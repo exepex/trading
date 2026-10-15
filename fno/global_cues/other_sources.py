@@ -77,6 +77,7 @@ class RbiUsdInrSource(ReferenceRateSource):
     cue, dataset, unit, date_zone = "usdinr_rbi", "rbi/currency/reference-rate", "rupees per US dollar", IST
     publisher = "Reserve Bank of India, reference rate archive (the FBIL reference rate)"
     first_value_date = date(2007, 1, 1)
+    max_age_days = 5  # a Thursday rate on Tuesday, after a Friday and a Monday holiday
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         form = (("txtFromDate", f"{start:%d/%m/%Y}"), ("txtToDate", f"{end:%d/%m/%Y}"), ("chkUSD", "on"))

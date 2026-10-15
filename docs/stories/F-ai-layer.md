@@ -333,7 +333,86 @@ cash spend separately.
 
 **Judge verifies:** recomputes one month's allocation.
 
-**Depends:** C1, F1 · **Size:** S · **Status:** later
+**Depends:** C1, F1 · **Size:** S · **Status:** split (design v2, 15 Oct 2026): the minimal part below is built; **F8 part
+2, later**, keeps the per-book lines in C1's account ledger, the scoreboards' and dashboard's separate fields (criterion 2)
+and filling S2's `AiCostAllocation` port (judge 87: "latent until F8 fills the port"), once books 2 and 3 trade
+
+### F8 minimal (design v2 slice A, 15 Oct 2026; built with BG1, response 104)
+
+**History:** the text above is F8 as first written (later slice). Design v2 (`docs/design_v2/REPLAN.md` row F8: "keep,
+**move earlier** (slice A)... The budget cap (BG1) needs it, and S1's freeze needs its code") moved a minimal F8 into
+slice A, built together with BG1 (`docs/stories/BG-budget.md`). Revised after judge 104 (FAIL on eddd035).
+
+**Facts checked on 15 Oct 2026 (builder and judge B, response 104 and judge 104), the base of this design:**
+- A cloud session's `result` events (`list_events`, kind `result`) carry per turn `duration_ms` (wall time),
+  `num_turns` and `usage` (`input_tokens`, `output_tokens`, `cache_read_input_tokens`,
+  `cache_creation_input_tokens`) of the main loop; `get_session` gives the id and `configured_model`. Nothing else is
+  read and nothing is estimated.
+- **Page envelope (judge 104):** a page with older events carries `has_more: true`; the last page omits `has_more`
+  (and, when empty, `data`).
+- `cse_<id>` and `session_<id>` name the same session (judge 104, checked on the judge's own id).
+- The session tools exist only inside a Claude session; GitHub Actions has no such API.
+- **The AI books' routine sessions cannot be read from other sessions** ("not found"), and `list_sessions` omits
+  trigger-fired runs.
+- **A routine cannot read its own run's usage at its end:** a `result` event is written when a turn ends, and a fired
+  routine runs one turn (reasoning only, from the event model; to be confirmed on the first run). So the owner's "5 A"
+  (15 Oct: "the routine records its own usage at the end of each run") is met by the routine timing its own run.
+- `duration_api_ms` can exceed `duration_ms` (parallel calls), and `modelUsage` includes side calls: minutes are wall
+  minutes of turns, tokens are main-loop tokens, both labelled.
+
+**Scope.** In:
+- `SessionUsageReader` (interface) with two readers:
+  - `ExportFileUsageReader`: a Claude session saves, into one JSON file outside the repository, `captured_at` (with its
+    zone), `get_session`, and every page of `list_events(kinds=["result"])` newest first, each with the `before_id`
+    cursor it was read with; only numbers are taken (never message text), one row per session per IST day;
+  - `SelfTimedUsageReader` (owner's "5 A"): a routine's own record of its run (`session_id` from `get_session` with no
+    id, `model`, `started_at`, `ended_at`): its wall minutes on the IST day it ended, tokens unknown;
+- `accounting/ai_usage.csv`, written once per (session, day): `date, purpose, book, role_or_bundle, session_id, model,
+  minutes, turns, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tokens_basis, source,
+  captured_at`. `purpose` is `books_and_roles` (counts against the cap), `development` (builders, orchestrator,
+  judges) or `data_routines` (code jobs a Claude routine runs, such as the 3 pm and 15-minute recorders, whose host the
+  owner chose on 15 Oct 2026 with "cost measured by F8"; never against the AI cap);
+- `accounting/ai_session_roster.csv`: the development sessions, from a chained `list_sessions(mine=true)` export
+  (ids and times only), so a session never captured is known (judge 104 must-fix 3);
+- the allocation, S1's decided `ai_cost_allocation` (14 Oct 2026): the month's plan cost from
+  `accounting/operating_costs.csv` (item `Claude subscription`) x minutes / all minutes, to the paisa, the remainder to
+  the largest share (ties: first in name order); development shown as "development, not a book cost"; "allocated,
+  not a bill"; a warning when book shares are over- or understated by missing sessions;
+- the owner's plan cost, INR 20,000 a month (owner, 15 Oct 2026): recorded for October 2026 citing its row, and held as
+  one config value citing it (`budget.plan_cost`), applied to every month from October 2026 (`plan_cost.py`);
+- `python -m fno budget record-usage [--self-timed] | record-roster`, refusing an export inside the repository.
+Out: reading sessions itself (Python cannot call the session tools), changing the books' routine prompt to write the
+timing record (a new registered book version, F1/G5: the orchestrator's call), and F8 part 2 (above).
+
+**Acceptance criteria:**
+1. Allocated costs for a month sum exactly (to the paisa) to the recorded plan cost, the remainder going to the largest
+   share with the stated tie-break (tests pin which share gets it); a negative plan cost is refused.
+2. Allocated cost and cash spend are separate fields everywhere this story writes them (meter lines, signal data);
+   development's part reads "development, not a book cost".
+3. A month without a recorded plan cost is flagged and every allocated cost shows "unknown", never zero (test).
+4. Export rows come only from the session's own figures: minutes = sum of `duration_ms` of that IST day's `result`
+   events (a turn counts on the day its result was written); tokens = sums of their `usage`, blank when any event of
+   the day lacks them; no message text is kept. Self-timed rows: end minus start, tokens unknown (tests).
+5. An export that could under-count is refused, never read as less: a page not read with the newer page's `first_id`,
+   a page after one without `has_more: true`, a last page with `has_more: true`, an event without a `uuid`, a duration
+   that is not a number of 0 or more, a time without a zone, or no result events at all. A real envelope (last page
+   without `has_more`) is accepted (tests).
+6. A (session, day) in the ledger is never rewritten; only the `session_<id>` form is accepted; only days the reader
+   calls complete are recorded (an export: before both today and its capture day; a self-timed run: its end day); each
+   row keeps when it was read; a damaged ledger is refused; the file is replaced whole (tests).
+7. Coverage is shown: each fired AI book session before today with no usage row counts as "not captured"; each
+   development session active in the month counts as captured only with a reading taken after its last activity (or
+   after the last complete day), and only when a roster was read after that day; a fire log or roster of another shape
+   is refused (tests).
+
+**Test plan:** unit tests with the real field names and page envelope of 15 Oct, constructed rosters, the ledger, the
+allocation (uneven, tie, no cost, no usage), the coverage, and the CLI refusals.
+
+**Judge verifies:** recomputes one month's allocation by hand from the two CSV files; feeds a real export, one with a
+missing middle page and one taken mid-day; checks no text field reaches a ledger.
+
+**Depends:** C1, F1, S1 (`ai_cost_allocation`) · **Size:** S · **Status:** built on `story/f8-bg1-budget`, revised
+after judge 104 (response 104)
 
 ---
 

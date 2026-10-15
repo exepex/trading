@@ -132,6 +132,117 @@ a written override, F4), `forecasts` (G3 link). Records live under `journal/<boo
 
 ---
 
+## D3b. A book's timely decision is its first original run; corrections are shown apart
+
+**Repository:** trading
+
+**Description:** As the portfolio manager, I want each book's decision for a day to be its first original run
+committed before the deadline, and every correction to be recorded and shown with its reason but never traded or
+scored as the decision. That way no later run, whether a rerun with fresher data, a second checkout or a correction,
+can replace what the book decided in time (a look-ahead hole).
+
+**Context and why:** Orchestrator decisions 58, 59 (b) and 60, from story E5b and judge 123. D3 allows a correction as a
+new run linked to the record it corrects (D3 criterion 4; the `corrects` field, `fno/playbook/decision_record.py:93`,
+None today: no correction writer exists yet). E3's collector, `D3CommittedDecisions.committed`
+(`fno/desk/committed_decisions.py:36-41`), walks the day's runs from the last and takes the first one committed
+before the deadline, that is, the **latest** timely run. So a correction or a second run committed before the deadline
+becomes the day's decision. E5b prevents Book 1 from writing a second run (the prevention); this story is the
+guarantee for every book, whatever writes the run.
+
+**What reads the collector and the runs, and whether it depends on "latest" (checked in code on `main`):**
+
+| Reader | What it reads | Depends on "latest"? |
+|---|---|---|
+| E3's decisions step (`fno/desk/daily_steps.py:97`) | `committed(book, day, deadline)`, written to the day's run log | **yes**: this is the rule changed here |
+| E3's fills (`fno/desk/daily_run.py:57`, `daily_steps.fill`) | the run ID and commit recorded in the run log (`recorded`) | no: they read what the decisions step recorded |
+| Scoreboard B (`fno/scoreboard/committed_runs.py` `runs`, `entry_decisions.py`, `sources.input_hashes`) | the run log's recorded run per book and day | no, but it inherits the collector's choice |
+| S1's first counted decision (`fno/evaluation/order.py` `first_counted_decision`) | the earliest committed run of the first counted day | no: it already takes the first. It sorts run folders by name (see the ordering fact below) |
+| Book 1's orders and exits (`fno/books/book1_records.py` `decided_trades`, `recorded_terms`, `decided_exit_days`) | **every** run's records, keyed by trade ID | **yes, by accident**: a later run's record with the same trade ID replaces the earlier one in the dict. So a correction would change a live trade's terms and time exit |
+| The daily trade card (`fno/cards/`) | no decision run (it points to "the desk's decision records") | no |
+| The packs (`fno/desk/pack*.py`) | no decision run | no |
+| C4's recorded pass (`fno/desk/recorded_c4.py`) | the collected run's record and its `edited` check | no: it follows the collector |
+| D3's timing check (`fno/playbook/decision_timing.py`) | one given run | no, and it has no caller today |
+
+**Ordering fact (strong evidence, read in code):** `DecisionStore.runs` sorts run folders by name, and run IDs are
+`<date>-r<n>`, so `-r10` sorts before `-r2`. "First" and "latest" by folder name are therefore wrong from the tenth
+run of a day. This story orders runs by their commit time (the commit that added `records.sha256`, E3's own timing
+source), then by the run counter as a number, never by the folder name. Decision 61's ancestry order was dropped by
+the owner's 15 Oct rule ("keep the design simple"): one runner per book and E5b's one-a-day check make commit time
+enough. Known limits: two checkouts with skewed clocks deciding one book on one day could be ordered wrongly (E5b
+prevents that second run); a run folder deleted or edited by hand after collection is reported only as "does not
+match", with no finer reason (owner's simplicity rule).
+
+**Scope.** In:
+- **A correction run:** a run any of whose records has a non-null `corrects`. D3 writes a correction as its own run.
+- **E3's collector** takes, for every book, the first committed original run in the shared order, when it is visible at
+  the deadline (E3's visibility rule is unchanged) and committed before it. When that first run is late, nothing is
+  taken: a run after it in the commit-time order is later still, so it can never replace it. The decisions step also
+  records in the run log every correction run it saw for the day, and every other run that it did not take, each with its run
+  ID, its commit and, for a correction, the record it corrects and its reason. These are shown, never collected.
+- **Book 1's orders, exits and C2's view of the book** read the records of the run that opened each trade, and only
+  for trades opened by fills: a chosen trade that never filled, or one in a run never collected, is not in the book
+  (judge 125 minor 4). That run is the one E3's decisions
+  step collected on the trade's entry day, named in that day's run log. The fill rows' `decision_id` is the record's
+  opportunity ID (`fno/books/book1_orders.py:4`), which does not name the run, so the run log is the source. A
+  record with the same trade ID in any other run, a correction included, is ignored and reported in one alert at each
+  exit review while the trade is open
+  ("a later record names trade t1; the trade follows its opening run"). When the entry day's run log is missing,
+  names no run, or names a run whose files no longer match its `records.sha256` (checked from the run's own files,
+  with no git history, so a scheduled session's shallow clone checks it the same way), the trade has no
+  opening run: an alert names why, and nothing falls back to another run, least of all the latest record. Such a
+  trade gets no time exit, and E4 holds it; E4's own risk-reducing exits still run for it (design 9): protection
+  unverified orders its close, an expired leg goes to settlement, and an exit already ordered goes on. C2's view of
+  the book refuses an open trade without terms (an input error, as before), so Book 1 opens nothing new until the
+  record is put right.
+- **One run order, one function (decision 60):** a single shared function orders a day's runs by commit time (the
+  commit that added `records.sha256`), then by the run counter as a number. Runs not yet committed sort after every
+  committed run, by counter. It lives beside `DecisionStore` (`fno/playbook/run_order.py`), and every reader that
+  orders a day's runs uses it, with no sort of its own: E3's collector, the run log's list of other runs, and S1's
+  `first_counted_decision`. Book 1's records need no order at all: they take the opening run by its ID from the run
+  log, and list other runs naming a trade by day and counter, for the alert only. S1's code
+  (`fno/evaluation/order.py`) is in no freeze: `research/evaluation/` holds no `FREEZE_v*.md` on `main`.
+- **Scoreboard B** lists the day's corrections and uncollected runs apart (`uncollected_runs` per book, each with its
+  day, run ID, commit and time, and for a correction its `corrections`: what it corrects and why), never in the
+  scored results.
+Out:
+- writing corrections (no correction writer exists; D3's format stays);
+- E5b's prevention (Book 1 never writes a second run).
+
+**Acceptance criteria:**
+1. With two original runs both committed before the deadline, the collector takes the earlier one by commit time, for
+   each of three books (test).
+2. A correction run committed before the deadline is never collected. The original run is collected, and the run log
+   lists the correction with its run ID, commit, the record it corrects and its reason (test).
+3. A day with only a correction run (its original late or missing) has no timely decision, and the book is late as
+   today (test).
+4. Runs `-r2` and `-r10` are ordered by commit time, then by counter as a number, never by name. There is one test
+   per caller (the collector, the run log, `book1_records` and `first_counted_decision`), each with ten runs. Only
+   the shared function sorts (a test fails if another caller sorts run folders itself).
+4b. An uncommitted run is never first counted (it has no commit). `first_counted_decision` gives the same results as
+   today. `main` holds no committed decision run yet, so today's
+   data is empty; a fixture with runs r1 to r9 on several days gives the same first counted decision under the old
+   name order and the new order (test).
+5. A later run or correction record naming an open trade's ID never changes that trade's terms or time exit. It is
+   alerted once (test).
+6. Scoreboard B shows corrections and uncollected runs apart, and its scored numbers are unchanged by them (test).
+7. Every existing E3, S2 and Book 1 test still passes unchanged, apart from the tests that assert the "latest timely
+   run" rule. Those are named in the claims with why each must change (e.g. `tests/timetable/test_parts.py:113`,
+   which expects r2 over r1).
+
+**Test plan:** unit tests on the collector with a fake commit source; a Book 1 replay with a planted correction; a
+scoreboard B fixture with a correction day; broken-code proofs per criterion. No network, no Slack.
+
+**Judge verifies:** plants a correction before the deadline, a second original run, a ten-run day for each caller, a
+caller with its own sort, and a correction naming an open trade; checks each reader in the table.
+
+**Quality rule 9:** it decides which decision trades, so after the judge's code PASS it goes to ChatGPT before the
+merge.
+
+**Depends:** D3, E3, S1, S2 · **Size:** S · **Status:** story text PASS (judge 125); built on
+`story/d3b-first-timely-decision`, judge pending (response 125)
+
+---
+
 ## D4. Book 2's authority envelope
 
 **Repository:** trading

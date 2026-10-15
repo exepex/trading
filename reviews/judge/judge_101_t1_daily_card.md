@@ -289,3 +289,16 @@ above the statement next time.
 - CI run 38671984351 on 16a904a: completed, success.
 
 **Verdict: PASS for a84f92db66056cc7f8b154e17da3ebf327f70d0c.** Every T1 minor is closed. Merge it; I check the merge.
+
+## Addendum 5 (15 Oct 2026): merge check, a84f92d merged to main as 860030c
+
+- **Parents.** 860030c's parents are 26f020e (main) and a84f92d (the passed tip).
+- **The merge matches my recomputation exactly** (empty diff; no conflicts).
+- **Branch files arrived unchanged.** `fno/cards`, `tests/cards`, the T1 story and `fno/constants.py` equal a84f92d.
+- **No unjudged code since.** From 860030c to c0978bd only review, log, decision and scheduled-job data files changed;
+  none under `fno/`, `tests/`, `tools/` or `.github/`.
+- **CI.** Run 38674600675 (`checks`) on c0978bd, the first push carrying the merge: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records the dry-run card printing on the merged tree, with the tree
+  clean.
+
+**Merge check: PASS. T1 is done:** every criterion is met, every minor is closed, and both merges are checked.

@@ -26,7 +26,7 @@ MONTH_FORMAT = "%Y-%m"
 RESUME = "Nothing more was done; run the same command again (only missing months are fetched)."
 STOPPING_FAILURES = (
     RawSourceUnavailable,
-    requests.RequestException,  # NSE's 403, 429 or 5xx, and Drive's network errors
+    requests.RequestException,  # Drive's network errors (NSE's failures arrive as RawSourceUnavailable, A9b)
     DriveSignInRefused,
     RawFileConflict,
     RuntimeError,  # Drive settings missing
@@ -92,7 +92,7 @@ def _sweep(args) -> int:
     report = build_vix_revision_sweep().sweep(months_to_fetch(args.start, args.end, now_ist().date()))
     print("\n".join(report.lines()))
     print(COMMIT_REMINDER)
-    return 0 if not (report.unanswered or report.invalid or report.not_archived) else 1
+    return 0 if not (report.unanswered or report.invalid or report.not_archived or report.stopped) else 1
 
 
 def _check(args) -> int:

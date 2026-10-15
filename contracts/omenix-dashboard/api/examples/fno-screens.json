@@ -1,0 +1,3359 @@
+{
+ "getFnoCard_india_trade": {
+  "summary": "Mock (india): TRADE card, PAPER ONLY",
+  "description": "A rule-based put spread approved to paper; AMBER weather; three objections, no hard-rule breach. Made-up numbers on a future date",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "card",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "b621152103ec964562582345cef2848c2c0c9419ee63297f5e67a44ca5f8c50d",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "label": "PAPER ONLY",
+    "test_post": false,
+    "session": "2026-11-16",
+    "session_note": "NSE regular session",
+    "timing": {
+     "market_data_cutoff": "2026-11-16T09:30:00Z",
+     "decision_finalized_at": "2026-11-16T09:36:00Z",
+     "card_sent_at": "2026-11-16T09:38:00Z",
+     "delivery": "sent"
+    },
+    "valid_until": "2026-11-16T09:55:00Z",
+    "paper_trades_so_far": {
+     "total": 38,
+     "by_book": [
+      {
+       "family": "rule",
+       "trades": 38
+      },
+      {
+       "family": "hybrid",
+       "trades": 0
+      },
+      {
+       "family": "ai",
+       "trades": 0
+      }
+     ]
+    },
+    "forecasts_on_record": {
+     "capture_day": "2026-11-16",
+     "late_generated_at": null,
+     "report_day": "2026-11-13",
+     "house_forecaster": "baseline_b_base_rate",
+     "other_forecasters": 3,
+     "questions": [
+      {
+       "question": "Q1",
+       "plain": "Will NIFTY be higher in 20 sessions?",
+       "probability": 0.58,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 670,
+        "said_from": 0.5,
+        "said_to": 0.6,
+        "days": 175,
+        "happened_share": 0.57,
+        "mean_brier": 0.245
+       },
+       "live": {
+        "status": "no_bin",
+        "scored": 24,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      },
+      {
+       "question": "Q4",
+       "plain": "Will India VIX be higher in 10 sessions?",
+       "probability": 0.47,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 680,
+        "said_from": 0.4,
+        "said_to": 0.5,
+        "days": 680,
+        "happened_share": 0.45,
+        "mean_brier": 0.25
+       },
+       "live": {
+        "status": "not_enough_data",
+        "scored": 0,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      }
+     ]
+    },
+    "missing": [],
+    "previous_misses": [],
+    "reason": null,
+    "trade": {
+     "family": "rule",
+     "strategy": "Put spread A, version 1",
+     "what": "MOCK NIFTY 29 Dec 2026 put spread at fictional strikes: buy 1 lot 10,600 PE, sell 1 lot 10,450 PE",
+     "legs": [
+      {
+       "contract": "MOCKNIFTY26DEC10600PE",
+       "side": "buy",
+       "lots": 1,
+       "option_type": "PE",
+       "strike": 10600,
+       "expiry": "2026-12-29"
+      },
+      {
+       "contract": "MOCKNIFTY26DEC10450PE",
+       "side": "sell",
+       "lots": 1,
+       "option_type": "PE",
+       "strike": 10450,
+       "expiry": "2026-12-29"
+      }
+     ],
+     "entry": {
+      "kind": "debit",
+      "min_per_unit": 52,
+      "max_per_unit": 58,
+      "valid_until": "2026-11-16T09:55:00Z"
+     },
+     "size": {
+      "lots": 1,
+      "units": 65,
+      "funds_at_entry": 29500
+     },
+     "max_loss": 3984,
+     "worst_cases": [
+      {
+       "scenario": "The worst 5 sessions of March 2020",
+       "loss": 3984
+      },
+      {
+       "scenario": "The week of 4 June 2024",
+       "loss": 3984
+      }
+     ],
+     "exit_plan": [
+      "Closes at its registered exits (a profit target and a time exit), checked once a day",
+      "The most it can lose is fixed at entry: no stop-loss order is needed or relied on"
+     ],
+     "costs": {
+      "charges_and_pads": 214,
+      "breakeven_per_unit": 61.3,
+      "tax_rate": 0.312
+     },
+     "vol_edge": null,
+     "proves_wrong": [
+      "Paused for your review if one trade loses more than Rs 10,000 or the version loses Rs 30,000 in total (S1)",
+      "Retired if its paper record's lower bound is still below zero at its registered sample"
+     ]
+    },
+    "forecast": {
+     "question": "Q1",
+     "plain": "Will NIFTY be higher in 20 sessions?",
+     "probability": 0.38,
+     "forecaster": "House forecast (the baselines)",
+     "backfill": {
+      "status": "scored",
+      "scored": 670,
+      "said_from": 0.3,
+      "said_to": 0.4,
+      "days": 140,
+      "happened_share": 0.41,
+      "mean_brier": 0.246
+     },
+     "live": {
+      "status": "scored",
+      "scored": 24,
+      "said_from": 0.3,
+      "said_to": 0.4,
+      "days": 9,
+      "happened_share": 0.44,
+      "mean_brier": 0.251
+     }
+    },
+    "stress": {
+     "open_positions": 1,
+     "max_loss_sum": 3984,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 1210
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 3984
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": 0,
+       "loss": 0
+      }
+     ]
+    },
+    "advocate": {
+     "status": "answered",
+     "verdict": "no_hard_rule_breach",
+     "objections": [
+      "The RBI policy is in 3 sessions; a rate surprise could move NIFTY past both strikes",
+      "Put prices are above their 3-month average, so the debit is dear",
+      "The rule-based forecasts sit close to the baselines: little edge is shown"
+     ]
+    },
+    "data_checks": {
+     "passed": true,
+     "missing_inputs": []
+    },
+    "price_of_staying_out": null,
+    "if_you_cannot_act": "If you cannot act by 16:08 IST, the paper record assumes you acted at the next session's 10:15 snapshot, and only if the price is still inside the entry range.",
+    "status": "TRADE",
+    "reason_text": "Paper trade today: Put spread A, version 1 (rule-based)",
+    "weather": {
+     "colour": "AMBER",
+     "why": "AMBER: India VIX up 14% in 5 sessions"
+    },
+    "evidence": {
+     "rung": 3,
+     "label": "some evidence",
+     "real_money_eligible": false,
+     "text": "Rung 3: approved to paper by the owner; 38 paper trades, lower bound +0.01 per rupee risked (above zero, after every cost). Real money: not eligible (gate 8.3 not met)"
+    },
+    "footer": {
+     "record_hashes": [
+      {
+       "path": "journal/book1_rules/decisions/2026-11-16.json",
+       "sha256": "45d3bad04bae0a3e99c73efa21c9986541c8877690494be1c2de7b0319b25e28"
+      },
+      {
+       "path": "research/packs/2026-11-16/common.json",
+       "sha256": "318cd3a1b6a8d78768e4c5fea89bb232acf7ba0ede188e134a9cfe1f83c07e45"
+      },
+      {
+       "path": "journal/book1_rules/risk/2026-11-16.json",
+       "sha256": "3bf8808e3be56119c2a91839e617caed089248a421818a75a1fc1f024791d39d"
+      },
+      {
+       "path": "research/forecasts/live_v2/2026/2026-11-16_forecasts.csv",
+       "sha256": "d5f2933ef351bd4051d08f53588aacb973bc9e79a818c8c2f784318b57bc9695"
+      },
+      {
+       "path": "research/weather/2026-11-16.json",
+       "sha256": "a12d10e235a0f5c05823d123f24cddda3418d43ab18e8107b4a52f488fadd60d"
+      },
+      {
+       "path": "research/objections/2026-11-16.json",
+       "sha256": "06a13547766de86e40fbd25bdfd7a4f4000fa867f2e6902c416f8d7b55c03a34"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoCard_india_watch": {
+  "summary": "Mock (india): WATCH card, a shadow never traded",
+  "description": "A hybrid candidate's shadow decision; the advocate did not answer in time, so code checks only",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "card",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "5e8ea05b306eba9a41ec5fb4e902f93f848f3918b610266685ddf4b31d9a34f8",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "label": "PAPER ONLY",
+    "test_post": false,
+    "session": "2026-11-16",
+    "session_note": "NSE regular session",
+    "timing": {
+     "market_data_cutoff": "2026-11-16T09:30:00Z",
+     "decision_finalized_at": "2026-11-16T09:36:00Z",
+     "card_sent_at": "2026-11-16T09:38:00Z",
+     "delivery": "sent"
+    },
+    "valid_until": "2026-11-16T09:55:00Z",
+    "paper_trades_so_far": {
+     "total": 38,
+     "by_book": [
+      {
+       "family": "rule",
+       "trades": 38
+      },
+      {
+       "family": "hybrid",
+       "trades": 0
+      },
+      {
+       "family": "ai",
+       "trades": 0
+      }
+     ]
+    },
+    "forecasts_on_record": {
+     "capture_day": "2026-11-16",
+     "late_generated_at": null,
+     "report_day": "2026-11-13",
+     "house_forecaster": "baseline_b_base_rate",
+     "other_forecasters": 3,
+     "questions": [
+      {
+       "question": "Q1",
+       "plain": "Will NIFTY be higher in 20 sessions?",
+       "probability": 0.58,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 670,
+        "said_from": 0.5,
+        "said_to": 0.6,
+        "days": 175,
+        "happened_share": 0.57,
+        "mean_brier": 0.245
+       },
+       "live": {
+        "status": "no_bin",
+        "scored": 24,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      },
+      {
+       "question": "Q4",
+       "plain": "Will India VIX be higher in 10 sessions?",
+       "probability": 0.47,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 680,
+        "said_from": 0.4,
+        "said_to": 0.5,
+        "days": 680,
+        "happened_share": 0.45,
+        "mean_brier": 0.25
+       },
+       "live": {
+        "status": "not_enough_data",
+        "scored": 0,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      }
+     ]
+    },
+    "missing": [],
+    "previous_misses": [],
+    "reason": null,
+    "trade": {
+     "family": "hybrid",
+     "strategy": "Buy protected movement, shadow 2",
+     "what": "Shadow only, never traded: MOCK NIFTY 29 Dec 2026 call spread at fictional strikes, buy 1 lot 10,800 CE, sell 1 lot 11,000 CE",
+     "legs": [
+      {
+       "contract": "MOCKNIFTY26DEC10800CE",
+       "side": "buy",
+       "lots": 1,
+       "option_type": "CE",
+       "strike": 10800,
+       "expiry": "2026-12-29"
+      },
+      {
+       "contract": "MOCKNIFTY26DEC11000CE",
+       "side": "sell",
+       "lots": 1,
+       "option_type": "CE",
+       "strike": 11000,
+       "expiry": "2026-12-29"
+      }
+     ],
+     "entry": {
+      "kind": "debit",
+      "min_per_unit": 71,
+      "max_per_unit": 78,
+      "valid_until": "2026-11-16T09:55:00Z"
+     },
+     "size": {
+      "lots": 1,
+      "units": 65,
+      "funds_at_entry": 31200
+     },
+     "max_loss": 5296,
+     "worst_cases": [
+      {
+       "scenario": "The worst 5 sessions of March 2020",
+       "loss": 5296
+      }
+     ],
+     "exit_plan": [
+      "Recorded as a shadow: its exits follow its registration and are only scored"
+     ],
+     "costs": {
+      "charges_and_pads": 226,
+      "breakeven_per_unit": 81.5,
+      "tax_rate": 0.312
+     },
+     "vol_edge": {
+      "vega_per_lot": 412,
+      "edge_needed_points": 1.6
+     },
+     "proves_wrong": [
+      "Its registered shadow test at 60 trades"
+     ]
+    },
+    "forecast": {
+     "question": "V4",
+     "plain": "Will NIFTY move less over the next 5 sessions than the options price in?",
+     "probability": 0.38,
+     "forecaster": "Hybrid",
+     "backfill": {
+      "status": "not_enough_data",
+      "scored": 0,
+      "said_from": null,
+      "said_to": null,
+      "days": null,
+      "happened_share": null,
+      "mean_brier": null
+     },
+     "live": {
+      "status": "not_enough_data",
+      "scored": 0,
+      "said_from": null,
+      "said_to": null,
+      "days": null,
+      "happened_share": null,
+      "mean_brier": null
+     }
+    },
+    "stress": {
+     "open_positions": 1,
+     "max_loss_sum": 3984,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 1210
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 3984
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": 0,
+       "loss": 0
+      }
+     ]
+    },
+    "advocate": {
+     "status": "advocate_unavailable",
+     "objections": [],
+     "verdict": null
+    },
+    "data_checks": {
+     "passed": true,
+     "missing_inputs": []
+    },
+    "price_of_staying_out": null,
+    "if_you_cannot_act": "Nothing to act on today.",
+    "status": "WATCH",
+    "reason_text": "Watch only: a candidate's shadow decision, recorded for learning, never to be traded",
+    "weather": {
+     "colour": "GREEN",
+     "why": "GREEN: India VIX at 11.2, calm for 10 sessions"
+    },
+    "evidence": {
+     "rung": 2,
+     "label": "reasoning only",
+     "real_money_eligible": false,
+     "text": "Rung 2: an exploratory shadow; promoted only if its forecast first beats the baseline. The advocate did not answer by 15:05: code checks only"
+    },
+    "footer": {
+     "record_hashes": [
+      {
+       "path": "journal/book1_rules/decisions/2026-11-16.json",
+       "sha256": "45d3bad04bae0a3e99c73efa21c9986541c8877690494be1c2de7b0319b25e28"
+      },
+      {
+       "path": "research/packs/2026-11-16/common.json",
+       "sha256": "318cd3a1b6a8d78768e4c5fea89bb232acf7ba0ede188e134a9cfe1f83c07e45"
+      },
+      {
+       "path": "research/forecasts/live_v2/2026/2026-11-16_forecasts.csv",
+       "sha256": "d5f2933ef351bd4051d08f53588aacb973bc9e79a818c8c2f784318b57bc9695"
+      },
+      {
+       "path": "research/weather/2026-11-16.json",
+       "sha256": "a12d10e235a0f5c05823d123f24cddda3418d43ab18e8107b4a52f488fadd60d"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoCard_india_red": {
+  "summary": "Mock (india): NO TRADE, weather RED",
+  "description": "RED blocks new entries; the price of staying out is not measured yet",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "card",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "0be6d2177dadb1beb1cf4c22455fdcddd4ad91c573f796f0041e7b5e81d4207c",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "label": "PAPER ONLY",
+    "test_post": false,
+    "session": "2026-11-16",
+    "session_note": "NSE regular session",
+    "timing": {
+     "market_data_cutoff": "2026-11-16T09:30:00Z",
+     "decision_finalized_at": "2026-11-16T09:36:00Z",
+     "card_sent_at": "2026-11-16T09:38:00Z",
+     "delivery": "sent"
+    },
+    "valid_until": "2026-11-16T09:55:00Z",
+    "paper_trades_so_far": {
+     "total": 38,
+     "by_book": [
+      {
+       "family": "rule",
+       "trades": 38
+      },
+      {
+       "family": "hybrid",
+       "trades": 0
+      },
+      {
+       "family": "ai",
+       "trades": 0
+      }
+     ]
+    },
+    "forecasts_on_record": {
+     "capture_day": "2026-11-16",
+     "late_generated_at": null,
+     "report_day": "2026-11-13",
+     "house_forecaster": "baseline_b_base_rate",
+     "other_forecasters": 3,
+     "questions": [
+      {
+       "question": "Q1",
+       "plain": "Will NIFTY be higher in 20 sessions?",
+       "probability": 0.58,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 670,
+        "said_from": 0.5,
+        "said_to": 0.6,
+        "days": 175,
+        "happened_share": 0.57,
+        "mean_brier": 0.245
+       },
+       "live": {
+        "status": "no_bin",
+        "scored": 24,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      },
+      {
+       "question": "Q4",
+       "plain": "Will India VIX be higher in 10 sessions?",
+       "probability": 0.47,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 680,
+        "said_from": 0.4,
+        "said_to": 0.5,
+        "days": 680,
+        "happened_share": 0.45,
+        "mean_brier": 0.25
+       },
+       "live": {
+        "status": "not_enough_data",
+        "scored": 0,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      }
+     ]
+    },
+    "missing": [],
+    "previous_misses": [],
+    "reason": "weather_red",
+    "trade": null,
+    "forecast": {
+     "question": "V6_1d",
+     "plain": "Will NIFTY move at least 2% tomorrow?",
+     "probability": 0.115,
+     "forecaster": "Weather",
+     "backfill": {
+      "status": "scored",
+      "scored": 2159,
+      "said_from": 0.1,
+      "said_to": 0.2,
+      "days": 31,
+      "happened_share": 0.19,
+      "mean_brier": 0.039
+     },
+     "live": {
+      "status": "scored",
+      "scored": 140,
+      "said_from": 0.1,
+      "said_to": 0.2,
+      "days": 4,
+      "happened_share": 0.25,
+      "mean_brier": 0.036
+     }
+    },
+    "stress": {
+     "open_positions": 2,
+     "max_loss_sum": 7968,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 5320
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 7968
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": 0,
+       "loss": 640
+      }
+     ]
+    },
+    "advocate": {
+     "status": "not_needed",
+     "objections": [],
+     "verdict": null
+    },
+    "data_checks": {
+     "passed": true,
+     "missing_inputs": []
+    },
+    "price_of_staying_out": {
+     "status": "not_measured_yet",
+     "shadow_net": null
+    },
+    "if_you_cannot_act": "Nothing to act on today.",
+    "status": "NO TRADE",
+    "reason_text": "No new trade today: the weather is RED",
+    "weather": {
+     "colour": "RED",
+     "why": "RED: a 2% day is 2.8 times as likely as usual (India VIX up 22% in 3 sessions; RBI policy decision next session)"
+    },
+    "evidence": {
+     "rung": null,
+     "label": null,
+     "real_money_eligible": false,
+     "text": "RED blocks every new entry (the owner's survival rule); open positions follow their exit plans"
+    },
+    "footer": {
+     "record_hashes": [
+      {
+       "path": "journal/book1_rules/decisions/2026-11-16.json",
+       "sha256": "45d3bad04bae0a3e99c73efa21c9986541c8877690494be1c2de7b0319b25e28"
+      },
+      {
+       "path": "research/packs/2026-11-16/common.json",
+       "sha256": "318cd3a1b6a8d78768e4c5fea89bb232acf7ba0ede188e134a9cfe1f83c07e45"
+      },
+      {
+       "path": "research/weather/2026-11-16.json",
+       "sha256": "a12d10e235a0f5c05823d123f24cddda3418d43ab18e8107b4a52f488fadd60d"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoCard_india_missing": {
+  "summary": "Mock (india): NO TRADE, a missing input named",
+  "description": "The data checks failed; each missing input is named with the story that brings it",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "card",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "d220a3f44e4ccd2f9a5baeb71c0470107005a6234ea53e579a64b0ddb04401f5",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "label": "PAPER ONLY",
+    "test_post": false,
+    "session": "2026-11-16",
+    "session_note": "NSE regular session",
+    "timing": {
+     "market_data_cutoff": "2026-11-16T09:30:00Z",
+     "decision_finalized_at": "2026-11-16T09:36:00Z",
+     "card_sent_at": "2026-11-16T09:38:00Z",
+     "delivery": "sent"
+    },
+    "valid_until": "2026-11-16T09:55:00Z",
+    "paper_trades_so_far": {
+     "total": 38,
+     "by_book": [
+      {
+       "family": "rule",
+       "trades": 38
+      },
+      {
+       "family": "hybrid",
+       "trades": 0
+      },
+      {
+       "family": "ai",
+       "trades": 0
+      }
+     ]
+    },
+    "forecasts_on_record": {
+     "capture_day": "2026-11-13",
+     "late_generated_at": "2026-11-13T13:57:00Z",
+     "report_day": null,
+     "house_forecaster": "baseline_b_base_rate",
+     "other_forecasters": 3,
+     "questions": [
+      {
+       "question": "Q1",
+       "plain": "Will NIFTY be higher in 20 sessions?",
+       "probability": 0.58,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "no_report",
+        "scored": 0,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       },
+       "live": {
+        "status": "no_report",
+        "scored": 0,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      }
+     ]
+    },
+    "missing": [
+     "3 pm Groww quotes of NIFTY monthly options (A4): 41 of 60 contracts without a bid or ask",
+     "India VIX level at 15:00 (A16)",
+     "scored live forecasts for 2026-11-13 (the capture was late)"
+    ],
+    "previous_misses": [
+     "no card on record for 2026-11-13"
+    ],
+    "reason": "data_check_failed",
+    "trade": null,
+    "forecast": null,
+    "stress": {
+     "open_positions": 1,
+     "max_loss_sum": 3984,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 1210
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 3984
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": 0,
+       "loss": 0
+      }
+     ]
+    },
+    "advocate": {
+     "status": "not_needed",
+     "objections": [],
+     "verdict": null
+    },
+    "data_checks": {
+     "passed": false,
+     "missing_inputs": [
+      {
+       "input": "3 pm Groww quotes of NIFTY monthly options",
+       "story": "A4",
+       "detail": "41 of 60 contracts had no bid or ask at 15:00; no later quote may enter the card"
+      },
+      {
+       "input": "India VIX level at 15:00",
+       "story": "A16",
+       "detail": "No 15-minute snapshot between 14:45 and 15:00 (the recorder's host was down)"
+      }
+     ]
+    },
+    "price_of_staying_out": {
+     "status": "not_measured_yet",
+     "shadow_net": null
+    },
+    "if_you_cannot_act": "Nothing to act on today.",
+    "status": "NO TRADE",
+    "reason_text": "No trade today: the 3 pm quotes failed their check",
+    "weather": {
+     "colour": null,
+     "why": "No weather today: the India VIX level at 15:00 is missing"
+    },
+    "evidence": {
+     "rung": null,
+     "label": null,
+     "real_money_eligible": false,
+     "text": "No decision is made on unchecked data"
+    },
+    "footer": {
+     "record_hashes": [
+      {
+       "path": "journal/book1_rules/decisions/2026-11-16.json",
+       "sha256": "45d3bad04bae0a3e99c73efa21c9986541c8877690494be1c2de7b0319b25e28"
+      },
+      {
+       "path": "research/packs/2026-11-16/common.json",
+       "sha256": "318cd3a1b6a8d78768e4c5fea89bb232acf7ba0ede188e134a9cfe1f83c07e45"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoCard_india_none": {
+  "summary": "Mock (india): NO TRADE, no strategy has passed",
+  "description": "The shape of the real state while no strategy is approved to paper, as a TEST post of live delivery (like T1's first post of 15 Oct 2026); the house forecast has no live record yet",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "card",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "d7e0361c3e3cbd2800fd0f3b258c1d0b7f1de15138175fbb400a0617e799df4e",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "label": "PAPER ONLY",
+    "test_post": true,
+    "session": "2026-11-16",
+    "session_note": "NSE regular session",
+    "timing": {
+     "market_data_cutoff": "2026-11-16T09:30:00Z",
+     "decision_finalized_at": "2026-11-16T09:36:00Z",
+     "card_sent_at": "2026-11-16T09:38:00Z",
+     "delivery": "sent"
+    },
+    "valid_until": "2026-11-16T09:55:00Z",
+    "paper_trades_so_far": {
+     "total": 0,
+     "by_book": [
+      {
+       "family": "rule",
+       "trades": 0
+      },
+      {
+       "family": "hybrid",
+       "trades": 0
+      },
+      {
+       "family": "ai",
+       "trades": 0
+      }
+     ]
+    },
+    "forecasts_on_record": {
+     "capture_day": "2026-11-16",
+     "late_generated_at": null,
+     "report_day": "2026-11-13",
+     "house_forecaster": "baseline_b_base_rate",
+     "other_forecasters": 3,
+     "questions": [
+      {
+       "question": "Q1",
+       "plain": "Will NIFTY be higher in 20 sessions?",
+       "probability": 0.58,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 670,
+        "said_from": 0.5,
+        "said_to": 0.6,
+        "days": 175,
+        "happened_share": 0.57,
+        "mean_brier": 0.245
+       },
+       "live": {
+        "status": "no_bin",
+        "scored": 24,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      },
+      {
+       "question": "Q4",
+       "plain": "Will India VIX be higher in 10 sessions?",
+       "probability": 0.47,
+       "forecaster": "Past average",
+       "backfill": {
+        "status": "scored",
+        "scored": 680,
+        "said_from": 0.4,
+        "said_to": 0.5,
+        "days": 680,
+        "happened_share": 0.45,
+        "mean_brier": 0.25
+       },
+       "live": {
+        "status": "not_enough_data",
+        "scored": 0,
+        "said_from": null,
+        "said_to": null,
+        "days": null,
+        "happened_share": null,
+        "mean_brier": null
+       }
+      }
+     ]
+    },
+    "missing": [
+     "weather model (story M1) not built"
+    ],
+    "previous_misses": [],
+    "reason": "no_approved_strategy",
+    "trade": null,
+    "forecast": {
+     "question": "V6_1d",
+     "plain": "Will NIFTY move at least 2% tomorrow?",
+     "probability": 0.04,
+     "forecaster": "House forecast (the baselines)",
+     "backfill": {
+      "status": "scored",
+      "scored": 2159,
+      "said_from": 0.0,
+      "said_to": 0.1,
+      "days": 1980,
+      "happened_share": 0.03,
+      "mean_brier": 0.04
+     },
+     "live": {
+      "status": "not_enough_data",
+      "scored": 0,
+      "said_from": null,
+      "said_to": null,
+      "days": null,
+      "happened_share": null,
+      "mean_brier": null
+     }
+    },
+    "stress": {
+     "open_positions": 0,
+     "max_loss_sum": 0,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 0
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 0
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": 0,
+       "loss": 0
+      }
+     ]
+    },
+    "advocate": {
+     "status": "not_needed",
+     "objections": [],
+     "verdict": null
+    },
+    "data_checks": {
+     "passed": true,
+     "missing_inputs": []
+    },
+    "price_of_staying_out": {
+     "status": "nothing_skipped",
+     "shadow_net": null
+    },
+    "if_you_cannot_act": "Nothing to act on today.",
+    "status": "NO TRADE",
+    "reason_text": "No trade today: no strategy has passed its test yet",
+    "weather": {
+     "colour": "GREEN",
+     "why": "GREEN: India VIX at 11.2, calm for 10 sessions"
+    },
+    "evidence": {
+     "rung": null,
+     "label": null,
+     "real_money_eligible": false,
+     "text": "No strategy is approved to paper: every idea so far failed or is still being tested"
+    },
+    "footer": {
+     "record_hashes": [
+      {
+       "path": "journal/book1_rules/decisions/2026-11-16.json",
+       "sha256": "45d3bad04bae0a3e99c73efa21c9986541c8877690494be1c2de7b0319b25e28"
+      },
+      {
+       "path": "research/packs/2026-11-16/common.json",
+       "sha256": "318cd3a1b6a8d78768e4c5fea89bb232acf7ba0ede188e134a9cfe1f83c07e45"
+      },
+      {
+       "path": "research/forecasts/live_v2/2026/2026-11-16_forecasts.csv",
+       "sha256": "d5f2933ef351bd4051d08f53588aacb973bc9e79a818c8c2f784318b57bc9695"
+      },
+      {
+       "path": "research/weather/2026-11-16.json",
+       "sha256": "a12d10e235a0f5c05823d123f24cddda3418d43ab18e8107b4a52f488fadd60d"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoWeather_india_green": {
+  "summary": "Mock (india): GREEN weather",
+  "description": "Calm drivers; the weather beats the usual chance on the one-day question; this month the RED rule saved Rs 1,240 (the 2 blocked trades would have lost it)",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "weather",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:31:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "9e69894be1fe82381127bedfa7ac991a5642bc2fc1d0bb47605b2ad7d5d0299f",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:31:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "session": "2026-11-16",
+    "status": "published",
+    "missing_inputs": [],
+    "model_version": "weather-v1",
+    "base_rate_1d": 0.041,
+    "base_rate_5d": 0.137,
+    "intraday": [],
+    "colour": "GREEN",
+    "blocks_new_entries": false,
+    "p_big_1d": 0.03,
+    "p_big_5d": 0.11,
+    "times_usual_1d": 0.73,
+    "times_usual_5d": 0.8,
+    "drivers": [
+     {
+      "driver": "vix_level",
+      "text": "India VIX at 11.2, low for the last year",
+      "push": "calmer"
+     },
+     {
+      "driver": "realised_volatility",
+      "text": "NIFTY moved less than 0.6% a day for 10 sessions",
+      "push": "calmer"
+     },
+     {
+      "driver": "scheduled_event",
+      "text": "No major event in the next 5 sessions",
+      "push": "calmer"
+     }
+    ],
+    "recent": [
+     {
+      "session": "2026-11-04",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-05",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-06",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-08",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-09",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-11",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-12",
+      "colour": "AMBER",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-13",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-16",
+      "colour": "GREEN",
+      "big_move": null
+     }
+    ],
+    "red_share": {
+     "sessions": 250,
+     "red_sessions": 21,
+     "share": 0.084,
+     "max_share": 0.15,
+     "over_alarming": false
+    },
+    "scores": [
+     {
+      "question": "V6_1d",
+      "baseline": "base_rate",
+      "status": "scoring",
+      "n_scored": 140,
+      "n_needed": 10,
+      "brier": 0.036,
+      "brier_baseline": 0.039,
+      "skill": 0.077,
+      "verdict": "better"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "base_rate",
+      "status": "scoring",
+      "n_scored": 28,
+      "n_needed": 10,
+      "brier": 0.101,
+      "brier_baseline": 0.118,
+      "skill": 0.144,
+      "verdict": "no_difference"
+     },
+     {
+      "question": "V6_1d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 140,
+      "n_needed": 10,
+      "brier": 0.036,
+      "brier_baseline": 0.037,
+      "skill": 0.027,
+      "verdict": "no_difference"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 28,
+      "n_needed": 10,
+      "brier": 0.101,
+      "brier_baseline": 0.104,
+      "skill": 0.029,
+      "verdict": "no_difference"
+     }
+    ],
+    "price_of_calm": {
+     "month": "2026-11",
+     "status": "measured",
+     "blocked_trades": 2,
+     "risk_avoided": 7960,
+     "shadow_net": -1240
+    }
+   }
+  }
+ },
+ "getFnoWeather_india_red": {
+  "summary": "Mock (india): RED weather, over-alarming",
+  "description": "RED blocks new entries; an intraday upgrade; RED on 16.4% of the last 250 sessions (above the 15% maximum); the RED rule cost Rs 4,810 this month",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "weather",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:31:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "60ba5a2f9135f7bd2c2adfc6de1b72b8c256890d869a25e3e2931b631f5b1ddf",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:31:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "session": "2026-11-16",
+    "status": "published",
+    "missing_inputs": [],
+    "model_version": "weather-v1",
+    "base_rate_1d": 0.041,
+    "base_rate_5d": 0.137,
+    "intraday": [
+     {
+      "at": "2026-11-16T06:15:00Z",
+      "from": "AMBER",
+      "to": "RED",
+      "why": "India VIX up 11% since the open"
+     }
+    ],
+    "colour": "RED",
+    "blocks_new_entries": true,
+    "p_big_1d": 0.115,
+    "p_big_5d": 0.41,
+    "times_usual_1d": 2.8,
+    "times_usual_5d": 2.99,
+    "drivers": [
+     {
+      "driver": "vix_change",
+      "text": "India VIX up 22% in 3 sessions",
+      "push": "riskier"
+     },
+     {
+      "driver": "scheduled_event",
+      "text": "RBI policy decision next session",
+      "push": "riskier"
+     },
+     {
+      "driver": "us_overnight",
+      "text": "S&P 500 fell 2.4% overnight",
+      "push": "riskier"
+     }
+    ],
+    "recent": [
+     {
+      "session": "2026-11-04",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-05",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-06",
+      "colour": "AMBER",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-08",
+      "colour": "AMBER",
+      "big_move": true
+     },
+     {
+      "session": "2026-11-09",
+      "colour": "RED",
+      "big_move": true
+     },
+     {
+      "session": "2026-11-11",
+      "colour": "RED",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-12",
+      "colour": "AMBER",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-13",
+      "colour": "AMBER",
+      "big_move": true
+     },
+     {
+      "session": "2026-11-16",
+      "colour": "RED",
+      "big_move": null
+     }
+    ],
+    "red_share": {
+     "sessions": 250,
+     "red_sessions": 41,
+     "share": 0.164,
+     "max_share": 0.15,
+     "over_alarming": true
+    },
+    "scores": [
+     {
+      "question": "V6_1d",
+      "baseline": "base_rate",
+      "status": "scoring",
+      "n_scored": 150,
+      "n_needed": 10,
+      "brier": 0.045,
+      "brier_baseline": 0.039,
+      "skill": -0.154,
+      "verdict": "worse"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "base_rate",
+      "status": "scoring",
+      "n_scored": 30,
+      "n_needed": 10,
+      "brier": 0.131,
+      "brier_baseline": 0.118,
+      "skill": -0.11,
+      "verdict": "no_difference"
+     },
+     {
+      "question": "V6_1d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 150,
+      "n_needed": 10,
+      "brier": 0.045,
+      "brier_baseline": 0.041,
+      "skill": -0.098,
+      "verdict": "worse"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 30,
+      "n_needed": 10,
+      "brier": 0.131,
+      "brier_baseline": 0.122,
+      "skill": -0.074,
+      "verdict": "no_difference"
+     }
+    ],
+    "price_of_calm": {
+     "month": "2026-11",
+     "status": "measured",
+     "blocked_trades": 6,
+     "risk_avoided": 23700,
+     "shadow_net": 4810
+    }
+   }
+  }
+ },
+ "getFnoWeather_india_missing": {
+  "summary": "Mock (india): no weather today, the missing input named",
+  "description": "Not published: the 15:00 VIX level is missing; no score yet (not enough data)",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "weather",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:31:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "b825f60f3ab3410b4932061fef08d2417c46fa21f6a9f4594df8e2e9949e8895",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:31:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "session": "2026-11-16",
+    "status": "not_published",
+    "missing_inputs": [
+     {
+      "input": "India VIX level at 15:00",
+      "story": "A16",
+      "detail": "No 15-minute snapshot between 14:45 and 15:00 (the recorder's host was down)"
+     }
+    ],
+    "model_version": "weather-v1",
+    "base_rate_1d": 0.041,
+    "base_rate_5d": 0.137,
+    "intraday": [],
+    "colour": null,
+    "blocks_new_entries": true,
+    "p_big_1d": null,
+    "p_big_5d": null,
+    "times_usual_1d": null,
+    "times_usual_5d": null,
+    "drivers": [],
+    "recent": [
+     {
+      "session": "2026-11-16",
+      "colour": null,
+      "big_move": null
+     }
+    ],
+    "red_share": {
+     "sessions": 0,
+     "red_sessions": 0,
+     "share": null,
+     "max_share": 0.15,
+     "over_alarming": false
+    },
+    "scores": [
+     {
+      "question": "V6_1d",
+      "baseline": "base_rate",
+      "status": "not_enough_data",
+      "n_scored": 0,
+      "n_needed": 10,
+      "brier": null,
+      "brier_baseline": null,
+      "skill": null,
+      "verdict": "not_tested"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "base_rate",
+      "status": "not_enough_data",
+      "n_scored": 0,
+      "n_needed": 10,
+      "brier": null,
+      "brier_baseline": null,
+      "skill": null,
+      "verdict": "not_tested"
+     },
+     {
+      "question": "V6_1d",
+      "baseline": "v0_checklist",
+      "status": "not_enough_data",
+      "n_scored": 0,
+      "n_needed": 10,
+      "brier": null,
+      "brier_baseline": null,
+      "skill": null,
+      "verdict": "not_tested"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "v0_checklist",
+      "status": "not_enough_data",
+      "n_scored": 0,
+      "n_needed": 10,
+      "brier": null,
+      "brier_baseline": null,
+      "skill": null,
+      "verdict": "not_tested"
+     }
+    ],
+    "price_of_calm": {
+     "month": "2026-11",
+     "status": "not_measured_yet",
+     "blocked_trades": null,
+     "risk_avoided": null,
+     "shadow_net": null
+    }
+   }
+  }
+ },
+ "getFnoForecastLab_india_winning": {
+  "summary": "Mock (india): forecasters beating their yardsticks",
+  "description": "Hybrid better than the base rate on Q1; the weather better on V6; Hybrid better on V2 by more than the minimum effect",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "forecast_lab",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:10:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "8bef9c9f89347a87e3da19c73e7256f443b81d9201507f390402c69941842397",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:10:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "standing": "Forecast scores are secondary to net profit: they only diagnose market reading and can never promote a book that does not make net money.",
+    "protocols": [
+     {
+      "version": "v3",
+      "status": "frozen",
+      "frozen_commit": "0000000",
+      "questions": [
+       "Q1",
+       "Q2",
+       "Q3",
+       "Q4",
+       "Q5"
+      ]
+     },
+     {
+      "version": "v4",
+      "status": "frozen",
+      "frozen_commit": "0000001",
+      "questions": [
+       "V1",
+       "V2",
+       "V3",
+       "V4",
+       "V5",
+       "V6_1d",
+       "V6_5d",
+       "V7"
+      ]
+     }
+    ],
+    "forecasters": [
+     {
+      "id": "book1_rules",
+      "name": "Rule-based",
+      "kind": "family",
+      "family": "rule",
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 158,
+       "missing_days": 2,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "book2_hybrid",
+      "name": "Hybrid",
+      "kind": "family",
+      "family": "hybrid",
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 151,
+       "missing_days": 3,
+       "late_days": 4,
+       "unscored_days": 2
+      }
+     },
+     {
+      "id": "book3_ai",
+      "name": "AI team",
+      "kind": "family",
+      "family": "ai",
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 149,
+       "missing_days": 2,
+       "late_days": 6,
+       "unscored_days": 3
+      }
+     },
+     {
+      "id": "baseline_b_base_rate",
+      "name": "How often it happened",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "baseline_premium_adjusted_implied",
+      "name": "Option prices, premium removed",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 157,
+       "missing_days": 3,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "baseline_har",
+      "name": "Recent movement",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "weather",
+      "name": "Weather",
+      "kind": "weather",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     }
+    ],
+    "questions": [
+     {
+      "id": "Q1",
+      "protocol": "v3",
+      "plain": "Will NIFTY be higher in 20 sessions?",
+      "kind": "probability",
+      "horizon_sessions": 20,
+      "metric": "brier",
+      "primary_baseline": "baseline_b_base_rate",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-12-15",
+       "values": [
+        {
+         "forecaster": "book1_rules",
+         "probability": 0.52,
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "probability": 0.61,
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "book3_ai",
+         "probability": 0.58,
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "probability": 0.55,
+         "variance": null,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 160,
+       "n_void": 2,
+       "n_needed": 40,
+       "per_forecaster": [
+        {
+         "forecaster": "book1_rules",
+         "n": 160,
+         "n_missing": 0,
+         "mean_loss": 0.248
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "n": 155,
+         "n_missing": 3,
+         "mean_loss": 0.236
+        },
+        {
+         "forecaster": "book3_ai",
+         "n": 152,
+         "n_missing": 2,
+         "mean_loss": 0.251
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "n": 160,
+         "n_missing": 0,
+         "mean_loss": 0.248
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "book2_hybrid",
+         "baseline": "baseline_b_base_rate",
+         "n_pairs": 160,
+         "mean_diff": -0.012,
+         "interval": [
+          -0.021,
+          -0.003
+         ],
+         "p_value": 0.004,
+         "verdict": "better",
+         "min_effect_met": null,
+         "futility_upper_bound": null
+        },
+        {
+         "forecaster": "book1_rules",
+         "baseline": "baseline_b_base_rate",
+         "n_pairs": 160,
+         "mean_diff": 0.0,
+         "interval": [
+          -0.004,
+          0.004
+         ],
+         "p_value": 0.97,
+         "verdict": "no_difference",
+         "min_effect_met": null,
+         "futility_upper_bound": null
+        }
+       ]
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     },
+     {
+      "id": "V6_1d",
+      "protocol": "v4",
+      "plain": "Will NIFTY move at least 2% tomorrow?",
+      "kind": "probability",
+      "horizon_sessions": 1,
+      "metric": "brier",
+      "primary_baseline": "baseline_b_base_rate",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-11-17",
+       "values": [
+        {
+         "forecaster": "weather",
+         "probability": 0.03,
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "probability": 0.035,
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "probability": 0.041,
+         "variance": null,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 140,
+       "n_void": 0,
+       "n_needed": 10,
+       "per_forecaster": [
+        {
+         "forecaster": "weather",
+         "n": 140,
+         "n_missing": 0,
+         "mean_loss": 0.036
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "n": 140,
+         "n_missing": 0,
+         "mean_loss": 0.038
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "n": 140,
+         "n_missing": 0,
+         "mean_loss": 0.039
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "weather",
+         "baseline": "baseline_b_base_rate",
+         "n_pairs": 140,
+         "mean_diff": -0.003,
+         "interval": null,
+         "p_value": 0.003,
+         "verdict": "better",
+         "min_effect_met": true,
+         "futility_upper_bound": 0.11
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "baseline": "baseline_b_base_rate",
+         "n_pairs": 140,
+         "mean_diff": -0.001,
+         "interval": null,
+         "p_value": 0.21,
+         "verdict": "no_difference",
+         "min_effect_met": true,
+         "futility_upper_bound": 0.07
+        }
+       ]
+      },
+      "settle": {
+       "status": "projected",
+       "r": 3.1,
+       "projected_date": "2027-05-20"
+      }
+     },
+     {
+      "id": "V2",
+      "protocol": "v4",
+      "plain": "How much will NIFTY move over the next 5 sessions?",
+      "kind": "variance",
+      "horizon_sessions": 5,
+      "metric": "qlike",
+      "primary_baseline": "baseline_premium_adjusted_implied",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-11-23",
+       "values": [
+        {
+         "forecaster": "book2_hybrid",
+         "probability": null,
+         "variance": 0.0172,
+         "status": "counted"
+        },
+        {
+         "forecaster": "baseline_premium_adjusted_implied",
+         "probability": null,
+         "variance": 0.0158,
+         "status": "counted"
+        },
+        {
+         "forecaster": "baseline_har",
+         "probability": null,
+         "variance": 0.0149,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 26,
+       "n_void": 0,
+       "n_needed": 20,
+       "per_forecaster": [
+        {
+         "forecaster": "book2_hybrid",
+         "n": 26,
+         "n_missing": 0,
+         "mean_loss": -3.41
+        },
+        {
+         "forecaster": "baseline_premium_adjusted_implied",
+         "n": 26,
+         "n_missing": 0,
+         "mean_loss": -3.31
+        },
+        {
+         "forecaster": "baseline_har",
+         "n": 26,
+         "n_missing": 0,
+         "mean_loss": -3.33
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "book2_hybrid",
+         "baseline": "baseline_premium_adjusted_implied",
+         "n_pairs": 26,
+         "mean_diff": -0.1,
+         "interval": null,
+         "p_value": 0.002,
+         "verdict": "better",
+         "min_effect_met": true,
+         "futility_upper_bound": 0.09
+        }
+       ]
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     }
+    ]
+   }
+  }
+ },
+ "getFnoForecastLab_india_losing": {
+  "summary": "Mock (india): forecasters losing to their yardsticks",
+  "description": "AI team worse on Q4 (too sure when wrong); today its Q4 forecast was late and Hybrid's day was a transcript breach, so neither counts; on V2 the AI team is futile (its improvement cannot reach the 3% minimum); V3 has 6 of the 40 days its test needs",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "forecast_lab",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:10:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "7fc7b4dc1f9dd02af45cf49fa94c25ed451cb9fe20edfff4f49efb49fd9ba3af",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:10:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "standing": "Forecast scores are secondary to net profit: they only diagnose market reading and can never promote a book that does not make net money.",
+    "protocols": [
+     {
+      "version": "v3",
+      "status": "frozen",
+      "frozen_commit": "0000000",
+      "questions": [
+       "Q1",
+       "Q2",
+       "Q3",
+       "Q4",
+       "Q5"
+      ]
+     },
+     {
+      "version": "v4",
+      "status": "frozen",
+      "frozen_commit": "0000001",
+      "questions": [
+       "V1",
+       "V2",
+       "V3",
+       "V4",
+       "V5",
+       "V6_1d",
+       "V6_5d",
+       "V7"
+      ]
+     }
+    ],
+    "forecasters": [
+     {
+      "id": "book1_rules",
+      "name": "Rule-based",
+      "kind": "family",
+      "family": "rule",
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 158,
+       "missing_days": 2,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "book2_hybrid",
+      "name": "Hybrid",
+      "kind": "family",
+      "family": "hybrid",
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 151,
+       "missing_days": 3,
+       "late_days": 4,
+       "unscored_days": 2
+      }
+     },
+     {
+      "id": "book3_ai",
+      "name": "AI team",
+      "kind": "family",
+      "family": "ai",
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 149,
+       "missing_days": 2,
+       "late_days": 6,
+       "unscored_days": 3
+      }
+     },
+     {
+      "id": "baseline_b_base_rate",
+      "name": "How often it happened",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "baseline_premium_adjusted_implied",
+      "name": "Option prices, premium removed",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 157,
+       "missing_days": 3,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "baseline_har",
+      "name": "Recent movement",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     },
+     {
+      "id": "weather",
+      "name": "Weather",
+      "kind": "weather",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
+     }
+    ],
+    "questions": [
+     {
+      "id": "Q4",
+      "protocol": "v3",
+      "plain": "Will India VIX be higher in 10 sessions?",
+      "kind": "probability",
+      "horizon_sessions": 10,
+      "metric": "brier",
+      "primary_baseline": "baseline_b_base_rate",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-12-01",
+       "values": [
+        {
+         "forecaster": "book3_ai",
+         "probability": 0.91,
+         "variance": null,
+         "status": "late"
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "probability": 0.52,
+         "variance": null,
+         "status": "breach"
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "probability": 0.47,
+         "variance": null,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 150,
+       "n_void": 0,
+       "n_needed": 40,
+       "per_forecaster": [
+        {
+         "forecaster": "book3_ai",
+         "n": 150,
+         "n_missing": 0,
+         "mean_loss": 0.301
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "n": 150,
+         "n_missing": 0,
+         "mean_loss": 0.249
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "book3_ai",
+         "baseline": "baseline_b_base_rate",
+         "n_pairs": 150,
+         "mean_diff": 0.052,
+         "interval": [
+          0.031,
+          0.073
+         ],
+         "p_value": 0.001,
+         "verdict": "worse",
+         "min_effect_met": null,
+         "futility_upper_bound": null
+        }
+       ]
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     },
+     {
+      "id": "V2",
+      "protocol": "v4",
+      "plain": "How much will NIFTY move over the next 5 sessions?",
+      "kind": "variance",
+      "horizon_sessions": 5,
+      "metric": "qlike",
+      "primary_baseline": "baseline_premium_adjusted_implied",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-11-23",
+       "values": [
+        {
+         "forecaster": "book3_ai",
+         "probability": null,
+         "variance": 0.0251,
+         "status": "counted"
+        },
+        {
+         "forecaster": "baseline_premium_adjusted_implied",
+         "probability": null,
+         "variance": 0.0158,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 64,
+       "n_void": 0,
+       "n_needed": 20,
+       "per_forecaster": [
+        {
+         "forecaster": "book3_ai",
+         "n": 64,
+         "n_missing": 0,
+         "mean_loss": -3.12
+        },
+        {
+         "forecaster": "baseline_premium_adjusted_implied",
+         "n": 64,
+         "n_missing": 0,
+         "mean_loss": -3.31
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "book3_ai",
+         "baseline": "baseline_premium_adjusted_implied",
+         "n_pairs": 64,
+         "mean_diff": 0.19,
+         "interval": null,
+         "p_value": 0.99,
+         "verdict": "futile",
+         "min_effect_met": false,
+         "futility_upper_bound": -0.02
+        }
+       ]
+      },
+      "settle": {
+       "status": "beyond_2_years",
+       "r": 4.8,
+       "projected_date": "2033-03-01"
+      }
+     },
+     {
+      "id": "V3",
+      "protocol": "v4",
+      "plain": "How much will NIFTY move over the next 20 sessions?",
+      "kind": "variance",
+      "horizon_sessions": 20,
+      "metric": "qlike",
+      "primary_baseline": "baseline_premium_adjusted_implied",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-12-15",
+       "values": [
+        {
+         "forecaster": "book1_rules",
+         "probability": null,
+         "variance": 0.0161,
+         "status": "counted"
+        },
+        {
+         "forecaster": "baseline_premium_adjusted_implied",
+         "probability": null,
+         "variance": 0.0158,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 6,
+       "n_void": 0,
+       "n_needed": 40,
+       "per_forecaster": [
+        {
+         "forecaster": "book1_rules",
+         "n": 6,
+         "n_missing": 0,
+         "mean_loss": -3.29
+        },
+        {
+         "forecaster": "baseline_premium_adjusted_implied",
+         "n": 6,
+         "n_missing": 0,
+         "mean_loss": -3.3
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "book1_rules",
+         "baseline": "baseline_premium_adjusted_implied",
+         "n_pairs": 6,
+         "mean_diff": null,
+         "interval": null,
+         "p_value": null,
+         "verdict": "not_tested",
+         "min_effect_met": null,
+         "futility_upper_bound": null
+        }
+       ]
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     }
+    ]
+   }
+  }
+ },
+ "getFnoForecastLab_india_waiting": {
+  "summary": "Mock (india): not enough data yet",
+  "description": "Q1 has 12 of the 40 days its test needs; the AI team's forecast today was generated after 15:15 IST, so it is late and not counted; no common start yet, so no coverage; V1 waits for the 15-minute quotes (A16); protocol v4 is still a draft",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "forecast_lab",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:10:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "1ecddc6a940bcffeda9d1ed676ee6fcb708127bd69861d992b5b7270f01e9f61",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:10:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "standing": "Forecast scores are secondary to net profit: they only diagnose market reading and can never promote a book that does not make net money.",
+    "protocols": [
+     {
+      "version": "v3",
+      "status": "frozen",
+      "frozen_commit": "0000000",
+      "questions": [
+       "Q1",
+       "Q2",
+       "Q3",
+       "Q4",
+       "Q5"
+      ]
+     },
+     {
+      "version": "v4",
+      "status": "draft",
+      "frozen_commit": null,
+      "questions": [
+       "V1",
+       "V2",
+       "V3",
+       "V4",
+       "V5",
+       "V6_1d",
+       "V6_5d",
+       "V7"
+      ]
+     }
+    ],
+    "forecasters": [
+     {
+      "id": "book1_rules",
+      "name": "Rule-based",
+      "kind": "family",
+      "family": "rule",
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": null
+     },
+     {
+      "id": "book3_ai",
+      "name": "AI team",
+      "kind": "family",
+      "family": "ai",
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": null
+     },
+     {
+      "id": "baseline_b_base_rate",
+      "name": "How often it happened",
+      "kind": "baseline",
+      "family": null,
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": null
+     }
+    ],
+    "questions": [
+     {
+      "id": "Q1",
+      "protocol": "v3",
+      "plain": "Will NIFTY be higher in 20 sessions?",
+      "kind": "probability",
+      "horizon_sessions": 20,
+      "metric": "brier",
+      "primary_baseline": "baseline_b_base_rate",
+      "status": "scoring",
+      "waiting_for": [],
+      "today": {
+       "made_on": "2026-11-16",
+       "answer_on": "2026-12-15",
+       "values": [
+        {
+         "forecaster": "book1_rules",
+         "probability": 0.53,
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "book3_ai",
+         "probability": 0.61,
+         "variance": null,
+         "status": "late"
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "probability": 0.55,
+         "variance": null,
+         "status": "counted"
+        }
+       ]
+      },
+      "scores": {
+       "n_scored": 12,
+       "n_void": 0,
+       "n_needed": 40,
+       "per_forecaster": [
+        {
+         "forecaster": "book1_rules",
+         "n": 12,
+         "n_missing": 0,
+         "mean_loss": 0.244
+        },
+        {
+         "forecaster": "baseline_b_base_rate",
+         "n": 12,
+         "n_missing": 0,
+         "mean_loss": 0.246
+        }
+       ],
+       "comparisons": [
+        {
+         "forecaster": "book1_rules",
+         "baseline": "baseline_b_base_rate",
+         "n_pairs": 12,
+         "mean_diff": null,
+         "interval": null,
+         "p_value": null,
+         "verdict": "not_tested",
+         "min_effect_met": null,
+         "futility_upper_bound": null
+        }
+       ]
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     },
+     {
+      "id": "V1",
+      "protocol": "v4",
+      "plain": "How much will NIFTY move tomorrow?",
+      "kind": "variance",
+      "horizon_sessions": 1,
+      "metric": "qlike",
+      "primary_baseline": "baseline_har",
+      "status": "waiting_for_data",
+      "waiting_for": [
+       {
+        "input": "15-minute NIFTY quotes",
+        "story": "A16",
+        "detail": "V1 starts when the recorder has 20 complete sessions; none are recorded yet"
+       }
+      ],
+      "today": null,
+      "scores": {
+       "n_scored": 0,
+       "n_void": 0,
+       "n_needed": 10,
+       "per_forecaster": [],
+       "comparisons": []
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     },
+     {
+      "id": "V6_1d",
+      "protocol": "v4",
+      "plain": "Will NIFTY move at least 2% tomorrow?",
+      "kind": "probability",
+      "horizon_sessions": 1,
+      "metric": "brier",
+      "primary_baseline": "baseline_b_base_rate",
+      "status": "not_started",
+      "waiting_for": [],
+      "today": null,
+      "scores": {
+       "n_scored": 0,
+       "n_void": 0,
+       "n_needed": 10,
+       "per_forecaster": [],
+       "comparisons": []
+      },
+      "settle": {
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
+      }
+     }
+    ]
+   }
+  }
+ },
+ "getFnoStrategyLab_india_passed": {
+  "summary": "Mock (india): one strategy passed and makes money on paper",
+  "description": "Trial 61 of 64 passed; its paper record after every cost and against the index fund and cash; real money still not eligible",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "strategy_lab",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:12:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "0e4fb9078c583c74055984adef4b5e4d285d62b67316e482263381148d69c9cd",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:12:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "headline": {
+     "any_passed": true,
+     "text": "1 strategy passed its test (trial 61 of 64; about 0.6 passes expected by chance alone)"
+    },
+    "factory": {
+     "trials_total": 64,
+     "by_status": {
+      "idea": 2,
+      "screened_out": 6,
+      "exploratory_shadow": 2,
+      "registered": 1,
+      "testing": 1,
+      "passed": 1,
+      "failed": 51,
+      "retired": 0
+     },
+     "expected_false_passes": 0.64,
+     "pass_level": 0.01
+    },
+    "ideas": [
+     {
+      "trial": 61,
+      "title": "A small protected put spread",
+      "rests_on": "Q1",
+      "gate": "G6",
+      "status": "passed",
+      "verdict": "pass",
+      "label": "some evidence"
+     },
+     {
+      "trial": 58,
+      "title": "Sell protected premium when movement is forecast well below what options price in",
+      "rests_on": "V2",
+      "gate": "G5",
+      "status": "exploratory_shadow",
+      "verdict": null,
+      "label": "reasoning only"
+     },
+     {
+      "trial": 57,
+      "title": "Buy protected movement when movement is forecast well above what options price in",
+      "rests_on": "V2",
+      "gate": "G1",
+      "status": "screened_out",
+      "verdict": null,
+      "label": "reasoning only"
+     }
+    ],
+    "books": [
+     {
+      "family": "rule",
+      "approved": [
+       "Put spread A, version 1"
+      ],
+      "trading": true,
+      "why_not": null,
+      "ai_and_data_costs": 1850
+     },
+     {
+      "family": "hybrid",
+      "approved": [],
+      "trading": false,
+      "why_not": "Its candidate is still a shadow",
+      "ai_and_data_costs": 6420
+     },
+     {
+      "family": "ai",
+      "approved": [],
+      "trading": false,
+      "why_not": "No strategy of its own has passed yet",
+      "ai_and_data_costs": null
+     }
+    ],
+    "results": [
+     {
+      "strategy": "Put spread A, version 1",
+      "family": "rule",
+      "rung": 3,
+      "status": "active",
+      "pause_reason": null,
+      "trades": 38,
+      "won": 24,
+      "lost": 14,
+      "gross": 21480,
+      "costs": 8132,
+      "net": 13348,
+      "net_after_tax": 9183,
+      "net_per_risk": {
+       "value": 0.077,
+       "lower_bound": 0.01
+      },
+      "worst_trade": -3910,
+      "max_drawdown": 7420,
+      "fill_error_per_unit": 0.4,
+      "vs_index_fund": 2300,
+      "vs_cash": 5100
+     }
+    ],
+    "real_money": {
+     "eligible": false,
+     "checks": [
+      {
+       "id": 1,
+       "plain": "Paper record: the lower bound of net per unit of risk is above zero after every cost, with the registered sample",
+       "met": true
+      },
+      {
+       "id": 2,
+       "plain": "After tax, it beats a NIFTY 50 index fund per rupee of capital tied, over the same months",
+       "met": false
+      },
+      {
+       "id": 3,
+       "plain": "Every trade stayed within its loss cap, and so did the crash replays (2020, June 2024)",
+       "met": true
+      },
+      {
+       "id": 4,
+       "plain": "Paper fills were honest: within the assumed pad of the next real quote",
+       "met": true
+      },
+      {
+       "id": 5,
+       "plain": "The evidence holds after counting every idea tried (a second untouched period or a multiplicity adjustment)",
+       "met": null
+      },
+      {
+       "id": 6,
+       "plain": "It fits the smaller real-money cap, and SEBI and tax rules are re-checked",
+       "met": null
+      },
+      {
+       "id": 7,
+       "plain": "The owner approves in writing",
+       "met": null
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoStrategyLab_india_paused": {
+  "summary": "Mock (india): an approved strategy losing and paused",
+  "description": "It crossed the Rs 30,000 pause line; a retired idea; real money not eligible",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "strategy_lab",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:12:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "94df81430986c11ff4de60049c9179f741babeb1c1582cf13d2b08853c2e2262",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:12:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "headline": {
+     "any_passed": true,
+     "text": "1 strategy passed its test, then lost on paper and is paused for review"
+    },
+    "factory": {
+     "trials_total": 64,
+     "by_status": {
+      "idea": 2,
+      "screened_out": 6,
+      "exploratory_shadow": 2,
+      "registered": 1,
+      "testing": 1,
+      "passed": 1,
+      "failed": 51,
+      "retired": 0
+     },
+     "expected_false_passes": 0.64,
+     "pass_level": 0.01
+    },
+    "ideas": [
+     {
+      "trial": 61,
+      "title": "A small protected put spread",
+      "rests_on": "Q1",
+      "gate": "G6",
+      "status": "passed",
+      "verdict": "pass",
+      "label": "some evidence"
+     },
+     {
+      "trial": 59,
+      "title": "A protected four-leg structure",
+      "rests_on": null,
+      "gate": "G6",
+      "status": "failed",
+      "verdict": "fail",
+      "label": "strong evidence"
+     }
+    ],
+    "books": [
+     {
+      "family": "rule",
+      "approved": [
+       "Put spread A, version 1"
+      ],
+      "trading": true,
+      "why_not": null,
+      "ai_and_data_costs": null
+     },
+     {
+      "family": "hybrid",
+      "approved": [],
+      "trading": false,
+      "why_not": "No strategy of its own has passed yet",
+      "ai_and_data_costs": null
+     },
+     {
+      "family": "ai",
+      "approved": [],
+      "trading": false,
+      "why_not": "No strategy of its own has passed yet",
+      "ai_and_data_costs": null
+     }
+    ],
+    "results": [
+     {
+      "strategy": "Put spread A, version 1",
+      "family": "rule",
+      "rung": 3,
+      "status": "paused",
+      "pause_reason": "It lost Rs 30,840 in total, past the Rs 30,000 pause line: new entries wait for your review",
+      "trades": 22,
+      "won": 9,
+      "lost": 13,
+      "gross": -26132,
+      "costs": 4708,
+      "net": -30840,
+      "net_after_tax": -30840,
+      "net_per_risk": {
+       "value": -0.352,
+       "lower_bound": -0.71
+      },
+      "worst_trade": -9620,
+      "max_drawdown": 34100,
+      "fill_error_per_unit": 0.6,
+      "vs_index_fund": -41200,
+      "vs_cash": -35600
+     }
+    ],
+    "real_money": {
+     "eligible": false,
+     "checks": [
+      {
+       "id": 1,
+       "plain": "Paper record: the lower bound of net per unit of risk is above zero after every cost, with the registered sample",
+       "met": false
+      },
+      {
+       "id": 2,
+       "plain": "After tax, it beats a NIFTY 50 index fund per rupee of capital tied, over the same months",
+       "met": false
+      },
+      {
+       "id": 3,
+       "plain": "Every trade stayed within its loss cap, and so did the crash replays (2020, June 2024)",
+       "met": true
+      },
+      {
+       "id": 4,
+       "plain": "Paper fills were honest: within the assumed pad of the next real quote",
+       "met": true
+      },
+      {
+       "id": 5,
+       "plain": "The evidence holds after counting every idea tried (a second untouched period or a multiplicity adjustment)",
+       "met": false
+      },
+      {
+       "id": 6,
+       "plain": "It fits the smaller real-money cap, and SEBI and tax rules are re-checked",
+       "met": null
+      },
+      {
+       "id": 7,
+       "plain": "The owner approves in writing",
+       "met": null
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoStrategyLab_india_none": {
+  "summary": "Mock (india): no strategy has passed",
+  "description": "The honest empty state: every try counted, none passed, no book trades",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "strategy_lab",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:12:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "eca9c9a225cbaba21b961a0a585f0dd058fd376c3233e30a0f6c438bf1ffdf3d",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:12:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "headline": {
+     "any_passed": false,
+     "text": "No strategy has passed its test yet: 58 ideas tried, 0 passed"
+    },
+    "factory": {
+     "trials_total": 58,
+     "by_status": {
+      "idea": 3,
+      "screened_out": 4,
+      "exploratory_shadow": 1,
+      "registered": 2,
+      "testing": 0,
+      "passed": 0,
+      "failed": 48,
+      "retired": 0
+     },
+     "expected_false_passes": 0.58,
+     "pass_level": 0.01
+    },
+    "ideas": [
+     {
+      "trial": 58,
+      "title": "Sell protected premium when movement is forecast well below what options price in",
+      "rests_on": "V2",
+      "gate": "G5",
+      "status": "exploratory_shadow",
+      "verdict": null,
+      "label": "reasoning only"
+     },
+     {
+      "trial": 57,
+      "title": "Buy protected movement when movement is forecast well above what options price in",
+      "rests_on": "V2",
+      "gate": "G1",
+      "status": "screened_out",
+      "verdict": null,
+      "label": "reasoning only"
+     }
+    ],
+    "books": [
+     {
+      "family": "rule",
+      "approved": [],
+      "trading": false,
+      "why_not": "No strategy approved to paper yet: Experiment 1 passed none",
+      "ai_and_data_costs": null
+     },
+     {
+      "family": "hybrid",
+      "approved": [],
+      "trading": false,
+      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored",
+      "ai_and_data_costs": null
+     },
+     {
+      "family": "ai",
+      "approved": [],
+      "trading": false,
+      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored",
+      "ai_and_data_costs": null
+     }
+    ],
+    "results": [],
+    "real_money": {
+     "eligible": false,
+     "checks": [
+      {
+       "id": 1,
+       "plain": "Paper record: the lower bound of net per unit of risk is above zero after every cost, with the registered sample",
+       "met": null
+      },
+      {
+       "id": 2,
+       "plain": "After tax, it beats a NIFTY 50 index fund per rupee of capital tied, over the same months",
+       "met": null
+      },
+      {
+       "id": 3,
+       "plain": "Every trade stayed within its loss cap, and so did the crash replays (2020, June 2024)",
+       "met": null
+      },
+      {
+       "id": 4,
+       "plain": "Paper fills were honest: within the assumed pad of the next real quote",
+       "met": null
+      },
+      {
+       "id": 5,
+       "plain": "The evidence holds after counting every idea tried (a second untouched period or a multiplicity adjustment)",
+       "met": null
+      },
+      {
+       "id": 6,
+       "plain": "It fits the smaller real-money cap, and SEBI and tax rules are re-checked",
+       "met": null
+      },
+      {
+       "id": 7,
+       "plain": "The owner approves in writing",
+       "met": null
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoPaperTrades_india_won": {
+  "summary": "Mock (india): a winning closed trade and an open position",
+  "description": "Rule-based won Rs 3,096 after costs at the desk's execution fill, Rs 2,860 at the 60-minute owner-timing fill the verdict uses; one put spread open",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "paper_trades",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:05:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "87d5b63a3db975fa3e3557345496bd13198b6dbee31203591b53f8c874613feb",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:05:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "accounts": [
+     {
+      "family": "rule",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2003054,
+      "cash": 1999414,
+      "open_trades": 1,
+      "open_max_loss": 3984
+     },
+     {
+      "family": "hybrid",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     },
+     {
+      "family": "ai",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     }
+    ],
+    "open": [
+     {
+      "trade_id": "book1-2026-11-16-1",
+      "family": "rule",
+      "strategy": "Put spread A, version 1",
+      "structure": "put spread",
+      "legs": [
+       {
+        "contract": "MOCKNIFTY26DEC10600PE",
+        "side": "buy",
+        "lots": 1,
+        "option_type": "PE",
+        "strike": 10600,
+        "expiry": "2026-12-29"
+       },
+       {
+        "contract": "MOCKNIFTY26DEC10450PE",
+        "side": "sell",
+        "lots": 1,
+        "option_type": "PE",
+        "strike": 10450,
+        "expiry": "2026-12-29"
+       }
+      ],
+      "opened_on": "2026-11-16",
+      "max_loss": 3984,
+      "mark_value": 3640,
+      "unrealised": -42,
+      "days_to_expiry": 29,
+      "monitor": null,
+      "alerts_today": null
+     }
+    ],
+    "closed": [
+     {
+      "trade_id": "book1-2026-11-02-1",
+      "family": "rule",
+      "strategy": "Put spread A, version 1",
+      "structure": "put spread",
+      "opened_on": "2026-11-02",
+      "closed_on": "2026-11-12",
+      "gross": 3310,
+      "costs": 214,
+      "net": 3096,
+      "result": "won",
+      "exit": "take_profit",
+      "fills": [
+       {
+        "minutes": 5,
+        "outcome": "filled",
+        "net": 3180
+       },
+       {
+        "minutes": 30,
+        "outcome": "filled",
+        "net": 3020
+       },
+       {
+        "minutes": 60,
+        "outcome": "filled",
+        "net": 2860
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ "getFnoPaperTrades_india_lost": {
+  "summary": "Mock (india): two losing trades, with missed fills",
+  "description": "A maximum-loss exit (at 60 minutes its entry would have been missed: the price had moved) and a time exit made before E8 existed, so its owner-timing fills are null, never invented; the monitor is not running yet (LM1), so its fields are null",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "paper_trades",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:05:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "244ffe6e945932f913fd2a99b35fad5ad6a3a723d981afb2938eb0dae7b96e15",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:05:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "accounts": [
+     {
+      "family": "rule",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 1992892,
+      "cash": 1992892,
+      "open_trades": 0,
+      "open_max_loss": 0
+     },
+     {
+      "family": "hybrid",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     },
+     {
+      "family": "ai",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     }
+    ],
+    "open": [],
+    "closed": [
+     {
+      "trade_id": "book1-2026-11-09-1",
+      "family": "rule",
+      "strategy": "Put spread A, version 1",
+      "structure": "put spread",
+      "opened_on": "2026-11-09",
+      "closed_on": "2026-11-13",
+      "gross": -3770,
+      "costs": 214,
+      "net": -3984,
+      "result": "lost",
+      "exit": "max_loss_exit",
+      "fills": [
+       {
+        "minutes": 5,
+        "outcome": "filled",
+        "net": -3984
+       },
+       {
+        "minutes": 30,
+        "outcome": "filled",
+        "net": -3984
+       },
+       {
+        "minutes": 60,
+        "outcome": "missed_price_moved",
+        "net": null
+       }
+      ]
+     },
+     {
+      "trade_id": "book1-2026-11-03-1",
+      "family": "rule",
+      "strategy": "Put spread A, version 1",
+      "structure": "put spread",
+      "opened_on": "2026-11-03",
+      "closed_on": "2026-11-11",
+      "gross": -2910,
+      "costs": 214,
+      "net": -3124,
+      "result": "lost",
+      "exit": "time_exit",
+      "fills": null
+     }
+    ]
+   }
+  }
+ },
+ "getFnoPaperTrades_india_none": {
+  "summary": "Mock (india): no paper trade yet",
+  "description": "Every book at its opening Rs 20 lakh; nothing open, nothing closed",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "paper_trades",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T12:05:00Z",
+   "schema_version": "2.7.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "9d36ef18b2920efef22b049381af910b32e5ce3b5f458b7ec54de3560a352840",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T12:05:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "accounts": [
+     {
+      "family": "rule",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     },
+     {
+      "family": "hybrid",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     },
+     {
+      "family": "ai",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
+      "open_trades": 0,
+      "open_max_loss": 0
+     }
+    ],
+    "open": [],
+    "closed": []
+   }
+  }
+ }
+}

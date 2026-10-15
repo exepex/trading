@@ -1,0 +1,1525 @@
+{
+ "series": 200000,
+ "rows": [
+  {
+   "n": 125,
+   "rule": "R0 borrowed V6b, NIFTY band 5-7",
+   "look 1": {
+    "threshold": 0.00013898220894549532,
+    "size": 0.005494505494505495,
+    "count": 182,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0008243194338332865,
+      49738
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      1422
+     ],
+     "calm 250 as measured": [
+      0.005494505494505495,
+      182
+     ],
+     "volatile 250 as measured": [
+      0.000689383494189482,
+      10154
+     ],
+     "full flipped": [
+      1.9980818414322252e-05,
+      50048
+     ],
+     "volatile 125 flipped": [
+      0.005298013245033113,
+      1510
+     ],
+     "calm 250 flipped": [
+      0.0,
+      179
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      10254
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.00021836361298669773,
+    "size": 0.01098901098901099,
+    "count": 182,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0010454783063251437,
+      49738
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      1422
+     ],
+     "calm 250 as measured": [
+      0.01098901098901099,
+      182
+     ],
+     "volatile 250 as measured": [
+      0.0007878668505022651,
+      10154
+     ],
+     "full flipped": [
+      1.9980818414322252e-05,
+      50048
+     ],
+     "volatile 125 flipped": [
+      0.010596026490066225,
+      1510
+     ],
+     "calm 250 flipped": [
+      0.0,
+      179
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      10254
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.003916535983385707,
+    "rate": 0.13261888814467515,
+    "count": 1493,
+    "by_null": {
+     "full as measured": [
+      0.0012767825080796393,
+      50126
+     ],
+     "volatile 125 as measured": [
+      0.13261888814467515,
+      1493
+     ],
+     "calm 250 as measured": [
+      0.0,
+      160
+     ],
+     "volatile 250 as measured": [
+      0.001763668430335097,
+      10206
+     ],
+     "full flipped": [
+      0.012823077538609267,
+      49988
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      1459
+     ],
+     "calm 250 flipped": [
+      0.09142857142857143,
+      175
+     ],
+     "volatile 250 flipped": [
+      0.00980392156862745,
+      10302
+     ]
+    }
+   },
+   "share": 0.06174349999999999
+  },
+  {
+   "n": 125,
+   "rule": "R0 borrowed V6b, NIFTY band 8-12",
+   "look 1": {
+    "threshold": 0.0006475737649326223,
+    "size": 0.023161189358372455,
+    "count": 6390,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0017102300259384886,
+      35083
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      6388
+     ],
+     "volatile 250 as measured": [
+      0.0059181218092543815,
+      30753
+     ],
+     "full flipped": [
+      0.00011309658448314861,
+      35368
+     ],
+     "volatile 125 flipped": [
+      0.023161189358372455,
+      6390
+     ],
+     "volatile 250 flipped": [
+      0.0001979348794246693,
+      30313
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0010072091274149458,
+    "size": 0.035054773082942095,
+    "count": 6390,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.002365818202548243,
+      35083
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      6388
+     ],
+     "volatile 250 as measured": [
+      0.008194322505121452,
+      30753
+     ],
+     "full flipped": [
+      0.00019791902284551006,
+      35368
+     ],
+     "volatile 125 flipped": [
+      0.035054773082942095,
+      6390
+     ],
+     "volatile 250 flipped": [
+      0.0002639131725662257,
+      30313
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.015377891457528305,
+    "rate": 0.31191806331471134,
+    "count": 6444,
+    "by_null": {
+     "full as measured": [
+      0.008686765457332652,
+      35226
+     ],
+     "volatile 125 as measured": [
+      0.31191806331471134,
+      6444
+     ],
+     "volatile 250 as measured": [
+      0.007021458100925257,
+      30478
+     ],
+     "full flipped": [
+      0.03129581594676892,
+      35468
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      6509
+     ],
+     "volatile 250 flipped": [
+      0.05122242891310125,
+      30104
+     ]
+    }
+   },
+   "share": 0.0721475
+  },
+  {
+   "n": 125,
+   "rule": "R0 borrowed V6b, NIFTY band 13+",
+   "look 1": {
+    "threshold": 0.0006475737649326223,
+    "size": 0.012705557963559645,
+    "count": 191491,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.00040522287257991897,
+      22210
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      191603
+     ],
+     "volatile 250 as measured": [
+      0.00086211888233364,
+      155431
+     ],
+     "full flipped": [
+      0.0004084596532631388,
+      22034
+     ],
+     "volatile 125 flipped": [
+      0.012705557963559645,
+      191491
+     ],
+     "volatile 250 flipped": [
+      0.00031439680726834087,
+      155854
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0010072091274149458,
+    "size": 0.020418714195445217,
+    "count": 191491,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0006303466906798739,
+      22210
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      191603
+     ],
+     "volatile 250 as measured": [
+      0.001029395680398376,
+      155431
+     ],
+     "full flipped": [
+      0.0006353816828537714,
+      22034
+     ],
+     "volatile 125 flipped": [
+      0.020418714195445217,
+      191491
+     ],
+     "volatile 250 flipped": [
+      0.0005646310008084489,
+      155854
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.009323007075635695,
+    "rate": 0.1560959304754742,
+    "count": 191472,
+    "by_null": {
+     "full as measured": [
+      0.007421234747769076,
+      21964
+     ],
+     "volatile 125 as measured": [
+      0.1560959304754742,
+      191472
+     ],
+     "volatile 250 as measured": [
+      0.008249236062963818,
+      155772
+     ],
+     "full flipped": [
+      0.006990417110318967,
+      21601
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      191426
+     ],
+     "volatile 250 flipped": [
+      0.003918450063811093,
+      155929
+     ]
+    }
+   },
+   "share": 0.3693115
+  },
+  {
+   "n": 125,
+   "rule": "R1 own, no gate",
+   "look 1": {
+    "threshold": 0.00036125940197724067,
+    "size": 0.05808,
+    "count": 200000,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.001125,
+      200000
+     ],
+     "calm 125 as measured": [
+      1.5e-05,
+      200000
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.05808,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.00108,
+      200000
+     ],
+     "full flipped": [
+      6e-05,
+      200000
+     ],
+     "calm 125 flipped": [
+      0.00062,
+      200000
+     ],
+     "volatile 125 flipped": [
+      0.006995,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.00014,
+      200000
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0005685903955609297,
+    "size": 0.07317,
+    "count": 200000,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.00177,
+      200000
+     ],
+     "calm 125 as measured": [
+      1.5e-05,
+      200000
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.07317,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.001565,
+      200000
+     ],
+     "full flipped": [
+      0.00014,
+      200000
+     ],
+     "calm 125 flipped": [
+      0.001,
+      200000
+     ],
+     "volatile 125 flipped": [
+      0.011525,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.00023,
+      200000
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.010440520899588553,
+    "rate": 0.29869,
+    "count": 200000,
+    "by_null": {
+     "full as measured": [
+      0.005205,
+      200000
+     ],
+     "calm 125 as measured": [
+      0.02879,
+      200000
+     ],
+     "volatile 125 as measured": [
+      0.17456,
+      200000
+     ],
+     "calm 250 as measured": [
+      6e-05,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.00835,
+      200000
+     ],
+     "full flipped": [
+      0.02443,
+      200000
+     ],
+     "calm 125 flipped": [
+      0.000205,
+      200000
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.29869,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.01081,
+      200000
+     ]
+    }
+   },
+   "share": 1.0
+  },
+  {
+   "n": 125,
+   "rule": "R2 own, mean VIX 0-13",
+   "look 1": {
+    "threshold": 2.769480501966404e-05,
+    "size": 0.015640772756280095,
+    "count": 172370,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0005282620179609086,
+      1893
+     ],
+     "calm 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.015640772756280095,
+      172370
+     ],
+     "full flipped": [
+      0.0,
+      1780
+     ],
+     "calm 125 flipped": [
+      3e-05,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      172500
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 2.769480501966404e-05,
+    "size": 0.015640772756280095,
+    "count": 172370,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0005282620179609086,
+      1893
+     ],
+     "calm 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.015640772756280095,
+      172370
+     ],
+     "full flipped": [
+      0.0,
+      1780
+     ],
+     "calm 125 flipped": [
+      3e-05,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      172500
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.005370190669332318,
+    "rate": 0.24272109158991184,
+    "count": 172519,
+    "by_null": {
+     "full as measured": [
+      0.0027793218454697055,
+      1799
+     ],
+     "calm 125 as measured": [
+      0.01353,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.0,
+      172358
+     ],
+     "full flipped": [
+      0.024585783003741316,
+      1871
+     ],
+     "calm 125 flipped": [
+      7e-05,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.24272109158991184,
+      172519
+     ]
+    }
+   },
+   "share": 0.3742715
+  },
+  {
+   "n": 125,
+   "rule": "R2 own, mean VIX 13-17",
+   "look 1": {
+    "threshold": 0.00026990337774698625,
+    "size": 0.012812160694896851,
+    "count": 27630,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0011828469537277333,
+      113286
+     ],
+     "calm 250 as measured": [
+      0.012812160694896851,
+      27630
+     ],
+     "full flipped": [
+      2.6590322895154358e-05,
+      112823
+     ],
+     "calm 250 flipped": [
+      0.0,
+      27500
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0004122129633670776,
+    "size": 0.018132464712269272,
+    "count": 27630,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0015888988930671045,
+      113286
+     ],
+     "calm 250 as measured": [
+      0.018132464712269272,
+      27630
+     ],
+     "full flipped": [
+      6.204408675536017e-05,
+      112823
+     ],
+     "calm 250 flipped": [
+      0.0,
+      27500
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.008041173848424633,
+    "rate": 0.13358320294021322,
+    "count": 27481,
+    "by_null": {
+     "full as measured": [
+      0.003027654935607164,
+      113289
+     ],
+     "calm 250 as measured": [
+      0.0001808841617827943,
+      27642
+     ],
+     "full flipped": [
+      0.023467953647476864,
+      113133
+     ],
+     "calm 250 flipped": [
+      0.13358320294021322,
+      27481
+     ]
+    }
+   },
+   "share": 0.1406195
+  },
+  {
+   "n": 125,
+   "rule": "R2 own, mean VIX 17-inf",
+   "look 1": {
+    "threshold": 0.0006103224606729796,
+    "size": 0.01241,
+    "count": 200000,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0011789533252378537,
+      84821
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.001645,
+      200000
+     ],
+     "full flipped": [
+      0.0001990702249493542,
+      85397
+     ],
+     "volatile 125 flipped": [
+      0.01241,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.000265,
+      200000
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0008553863619029374,
+    "size": 0.01774,
+    "count": 200000,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0016151660555758598,
+      84821
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.002035,
+      200000
+     ],
+     "full flipped": [
+      0.0002693303043432439,
+      85397
+     ],
+     "volatile 125 flipped": [
+      0.01774,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.000415,
+      200000
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.015683715981615762,
+    "rate": 0.24,
+    "count": 200000,
+    "by_null": {
+     "full as measured": [
+      0.011400037686074995,
+      84912
+     ],
+     "volatile 125 as measured": [
+      0.24,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.01381,
+      200000
+     ],
+     "full flipped": [
+      0.025860040472492823,
+      84996
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.01425,
+      200000
+     ]
+    }
+   },
+   "share": 0.485109
+  },
+  {
+   "n": 250,
+   "rule": "R0 borrowed V6b, NIFTY band 5-7",
+   "look 1": {
+    "threshold": 4.190244085526e-05,
+    "size": 0.038906838987614434,
+    "count": 7428,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.00021875854525567405,
+      36570
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      2
+     ],
+     "calm 250 as measured": [
+      0.038906838987614434,
+      7428
+     ],
+     "volatile 250 as measured": [
+      0.0,
+      97
+     ],
+     "full flipped": [
+      0.0,
+      36221
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      2
+     ],
+     "calm 250 flipped": [
+      0.0,
+      7361
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      90
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 6.016480536163499e-05,
+    "size": 0.04658050619278406,
+    "count": 7428,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.00032813781788351107,
+      36570
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      2
+     ],
+     "calm 250 as measured": [
+      0.04658050619278406,
+      7428
+     ],
+     "volatile 250 as measured": [
+      0.0,
+      97
+     ],
+     "full flipped": [
+      0.0,
+      36221
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      2
+     ],
+     "calm 250 flipped": [
+      0.0,
+      7361
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      90
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.0013635773287035272,
+    "rate": 0.5,
+    "count": 4,
+    "by_null": {
+     "full as measured": [
+      8.210854749979474e-05,
+      36537
+     ],
+     "volatile 125 as measured": [
+      0.5,
+      4
+     ],
+     "calm 250 as measured": [
+      0.0,
+      7368
+     ],
+     "volatile 250 as measured": [
+      0.0,
+      84
+     ],
+     "full flipped": [
+      0.004980326335195223,
+      36343
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      1
+     ],
+     "calm 250 flipped": [
+      0.1887933351249664,
+      7442
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      78
+     ]
+    }
+   },
+   "share": 0.04388550000000001
+  },
+  {
+   "n": 250,
+   "rule": "R0 borrowed V6b, NIFTY band 8-12",
+   "look 1": {
+    "threshold": 8.205020284334672e-05,
+    "size": 0.13793103448275862,
+    "count": 29,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0003742573331046205,
+      64127
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      29
+     ],
+     "calm 250 as measured": [
+      0.030303030303030304,
+      33
+     ],
+     "volatile 250 as measured": [
+      0.0,
+      1060
+     ],
+     "full flipped": [
+      0.0,
+      64183
+     ],
+     "volatile 125 flipped": [
+      0.13793103448275862,
+      29
+     ],
+     "calm 250 flipped": [
+      0.0,
+      32
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      1036
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.00012720622885399865,
+    "size": 0.13793103448275862,
+    "count": 29,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0006237622218410342,
+      64127
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      29
+     ],
+     "calm 250 as measured": [
+      0.06060606060606061,
+      33
+     ],
+     "volatile 250 as measured": [
+      0.0,
+      1060
+     ],
+     "full flipped": [
+      0.0,
+      64183
+     ],
+     "volatile 125 flipped": [
+      0.13793103448275862,
+      29
+     ],
+     "calm 250 flipped": [
+      0.0,
+      32
+     ],
+     "volatile 250 flipped": [
+      0.0,
+      1036
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.002391783332142743,
+    "rate": 0.5555555555555556,
+    "count": 27,
+    "by_null": {
+     "full as measured": [
+      0.00037543409567312205,
+      63926
+     ],
+     "volatile 125 as measured": [
+      0.5555555555555556,
+      27
+     ],
+     "calm 250 as measured": [
+      0.0,
+      30
+     ],
+     "volatile 250 as measured": [
+      0.0009407337723424271,
+      1063
+     ],
+     "full flipped": [
+      0.008658751579637112,
+      64097
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      41
+     ],
+     "calm 250 flipped": [
+      0.18181818181818182,
+      33
+     ],
+     "volatile 250 flipped": [
+      0.007692307692307693,
+      1040
+     ]
+    }
+   },
+   "share": 0.0652645
+  },
+  {
+   "n": 250,
+   "rule": "R0 borrowed V6b, NIFTY band 13+",
+   "look 1": {
+    "threshold": 0.0005776949064176853,
+    "size": 0.11153728827968334,
+    "count": 199969,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0010894337448971924,
+      79858
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      199969
+     ],
+     "volatile 250 as measured": [
+      0.0004979177982980265,
+      198828
+     ],
+     "full flipped": [
+      4.9897709695124994e-05,
+      80164
+     ],
+     "volatile 125 flipped": [
+      0.11153728827968334,
+      199969
+     ],
+     "volatile 250 flipped": [
+      0.00020616690468049158,
+      198868
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0009005181582365074,
+    "size": 0.1523436132600553,
+    "count": 199969,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0016028450499636856,
+      79858
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      199969
+     ],
+     "volatile 250 as measured": [
+      0.0006789788158609451,
+      198828
+     ],
+     "full flipped": [
+      0.00012474427423781248,
+      80164
+     ],
+     "volatile 125 flipped": [
+      0.1523436132600553,
+      199969
+     ],
+     "volatile 250 flipped": [
+      0.00038216304282237464,
+      198868
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.023411225572751423,
+    "rate": 0.7947921667466795,
+    "count": 199968,
+    "by_null": {
+     "full as measured": [
+      0.01644034129948655,
+      80047
+     ],
+     "volatile 125 as measured": [
+      0.7947921667466795,
+      199968
+     ],
+     "volatile 250 as measured": [
+      0.03351772692984662,
+      198850
+     ],
+     "full flipped": [
+      0.030979845038491244,
+      80278
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      199958
+     ],
+     "volatile 250 flipped": [
+      0.006657615527731684,
+      198870
+     ]
+    }
+   },
+   "share": 0.47882800000000003
+  },
+  {
+   "n": 250,
+   "rule": "R1 own, no gate",
+   "look 1": {
+    "threshold": 0.0003626587196144794,
+    "size": 0.1676,
+    "count": 200000,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.001175,
+      200000
+     ],
+     "calm 125 as measured": [
+      0.0,
+      200000
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.1676,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.00033,
+      200000
+     ],
+     "full flipped": [
+      1.5e-05,
+      200000
+     ],
+     "calm 125 flipped": [
+      0.002365,
+      200000
+     ],
+     "volatile 125 flipped": [
+      0.078745,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.00012,
+      200000
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.00055031568547394,
+    "size": 0.197915,
+    "count": 200000,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.001805,
+      200000
+     ],
+     "calm 125 as measured": [
+      0.0,
+      200000
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.197915,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.000465,
+      200000
+     ],
+     "full flipped": [
+      5.5e-05,
+      200000
+     ],
+     "calm 125 flipped": [
+      0.0037,
+      200000
+     ],
+     "volatile 125 flipped": [
+      0.108005,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.000205,
+      200000
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.012364931288894649,
+    "rate": 0.646615,
+    "count": 200000,
+    "by_null": {
+     "full as measured": [
+      0.00579,
+      200000
+     ],
+     "calm 125 as measured": [
+      0.091235,
+      200000
+     ],
+     "volatile 125 as measured": [
+      0.646615,
+      200000
+     ],
+     "calm 250 as measured": [
+      5e-06,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.01454,
+      200000
+     ],
+     "full flipped": [
+      0.024985,
+      200000
+     ],
+     "calm 125 flipped": [
+      1.5e-05,
+      200000
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.566,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.00418,
+      200000
+     ]
+    }
+   },
+   "share": 1.0
+  },
+  {
+   "n": 250,
+   "rule": "R2 own, mean VIX 0-13",
+   "look 1": {
+    "threshold": 0.0005473892019272139,
+    "size": 0.20609768489055505,
+    "count": 186989,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0,
+      66
+     ],
+     "calm 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.20609768489055505,
+      186989
+     ],
+     "full flipped": [
+      0.0,
+      67
+     ],
+     "calm 125 flipped": [
+      0.003695,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      187011
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0008852197850940535,
+    "size": 0.24627651893961677,
+    "count": 186989,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0,
+      66
+     ],
+     "calm 125 as measured": [
+      0.0,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.24627651893961677,
+      186989
+     ],
+     "full flipped": [
+      0.0,
+      67
+     ],
+     "calm 125 flipped": [
+      0.00596,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.0,
+      187011
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.00042325833688653807,
+    "rate": 0.1893806918753576,
+    "count": 186999,
+    "by_null": {
+     "full as measured": [
+      0.0,
+      76
+     ],
+     "calm 125 as measured": [
+      0.002715,
+      200000
+     ],
+     "calm 250 as measured": [
+      0.0,
+      186820
+     ],
+     "full flipped": [
+      0.0,
+      72
+     ],
+     "calm 125 flipped": [
+      0.0,
+      200000
+     ],
+     "calm 250 flipped": [
+      0.1893806918753576,
+      186999
+     ]
+    }
+   },
+   "share": 0.3870665
+  },
+  {
+   "n": 250,
+   "rule": "R2 own, mean VIX 13-17",
+   "look 1": {
+    "threshold": 0.00020807352773876743,
+    "size": 0.04480823918223042,
+    "count": 13011,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0010492413528826767,
+      109603
+     ],
+     "calm 250 as measured": [
+      0.04480823918223042,
+      13011
+     ],
+     "full flipped": [
+      9.161536206391088e-06,
+      109152
+     ],
+     "calm 250 flipped": [
+      0.0,
+      12989
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0003668414867260777,
+    "size": 0.06133271846898778,
+    "count": 13011,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0017061576781657436,
+      109603
+     ],
+     "calm 250 as measured": [
+      0.06133271846898778,
+      13011
+     ],
+     "full flipped": [
+      2.7484608619173264e-05,
+      109152
+     ],
+     "calm 250 flipped": [
+      0.0,
+      12989
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.009144441189565077,
+    "rate": 0.3116683332051381,
+    "count": 13001,
+    "by_null": {
+     "full as measured": [
+      0.002558482883841209,
+      109049
+     ],
+     "calm 250 as measured": [
+      7.587253414264036e-05,
+      13180
+     ],
+     "full flipped": [
+      0.024777270105207257,
+      109213
+     ],
+     "calm 250 flipped": [
+      0.3116683332051381,
+      13001
+     ]
+    }
+   },
+   "share": 0.1223775
+  },
+  {
+   "n": 250,
+   "rule": "R2 own, mean VIX 17-inf",
+   "look 1": {
+    "threshold": 0.0005473892019272139,
+    "size": 0.107615,
+    "count": 200000,
+    "nominal": 0.0013333333333333333,
+    "by_null": {
+     "full as measured": [
+      0.0008745613355326522,
+      90331
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.00046,
+      200000
+     ],
+     "full flipped": [
+      4.4062083475617145e-05,
+      90781
+     ],
+     "volatile 125 flipped": [
+      0.107615,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.000205,
+      200000
+     ]
+    }
+   },
+   "look 2": {
+    "threshold": 0.0008852197850940535,
+    "size": 0.15053,
+    "count": 200000,
+    "nominal": 0.002,
+    "by_null": {
+     "full as measured": [
+      0.0013284475982774462,
+      90331
+     ],
+     "volatile 125 as measured": [
+      0.0,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.000675,
+      200000
+     ],
+     "full flipped": [
+      0.00013218625042685144,
+      90781
+     ],
+     "volatile 125 flipped": [
+      0.15053,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.00037,
+      200000
+     ]
+    }
+   },
+   "futility": {
+    "threshold": 0.01919164210495855,
+    "rate": 0.750425,
+    "count": 200000,
+    "by_null": {
+     "full as measured": [
+      0.014338376891334251,
+      90875
+     ],
+     "volatile 125 as measured": [
+      0.750425,
+      200000
+     ],
+     "volatile 250 as measured": [
+      0.025865,
+      200000
+     ],
+     "full flipped": [
+      0.02467067188447335,
+      90715
+     ],
+     "volatile 125 flipped": [
+      0.0,
+      200000
+     ],
+     "volatile 250 flipped": [
+      0.00587,
+      200000
+     ]
+    }
+   },
+   "share": 0.49055599999999994
+  }
+ ]
+}

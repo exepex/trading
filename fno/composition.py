@@ -124,7 +124,16 @@ def open_account_writer(book: str, root: Path = ROOT, lease_seconds: float = DEF
     """The one way to write a book's paper account (story E1): takes the book's single-writer lock without waiting
     (`AccountBusy` if another writer holds it) and yields the account's writer; the lock is released on exit."""
     with AccountLock(root, book, lease_seconds) as lock:
-        yield AccountWriter(PaperAccount(root, book), lock)
+        yield AccountWriter(PaperAccount(root, book), lock, paper_account_rs())
+
+
+def paper_account_rs() -> float:
+    """Story C5: the books' paper account size, `config.yaml` `risk.profiles.books.paper_account_rs`."""
+    from .config import load_app_config
+    from .constants import RISK_PROFILE_BOOKS
+    from .risk.profile_settings import profile_settings
+
+    return profile_settings(load_app_config(), RISK_PROFILE_BOOKS).paper_account_rs
 
 
 def build_paper_account(book: str, root: Path = ROOT) -> PaperAccount:

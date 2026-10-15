@@ -16,7 +16,7 @@ from fno.global_cues.us_index_sources import CboeSp500Source, NasdaqNdxSource
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
-from tests.global_cues.fakes import cboe, nasdaq
+from tests.global_cues.fakes import FakeCreationTimes, cboe, nasdaq
 
 FAKE = [("2026-10-13", 1000.5), ("2026-10-14", 1001.25)]  # fake levels
 SEEN = datetime(2026, 10, 15, 6, 14, 45, tzinfo=IST)
@@ -82,7 +82,7 @@ def test_a_copy_already_in_drive_is_adopted_at_its_own_fetch_time(tmp_path):
     raw.put(COPY, cboe(*FAKE))
     table = drive_table(LocalFolderStore(tmp_path / "derived"))
     checks = CueChecks({"sp500": table}, tmp_path / "checks", {"sp500": DriveSnapshots(raw, "checks", lambda: SEEN)})
-    job = GlobalCueJob(CueCollector(None, raw, log, None), {"sp500": table}, checks)
+    job = GlobalCueJob(CueCollector(None, raw, log, None, FakeCreationTimes()), {"sp500": table}, checks)
     lines, ok = job.adopt(CboeSp500Source(), COPY, date(2007, 1, 1), date(2026, 10, 15))
     assert ok and lines[0].startswith("sp500: 2 dates added")
     assert {r["first_seen_at"] for r in table.rows()} == {SEEN.isoformat()}
@@ -94,7 +94,7 @@ def test_a_copy_already_in_drive_is_adopted_at_its_own_fetch_time(tmp_path):
 
 def test_a_copy_that_matches_no_request_or_is_missing_is_refused(tmp_path):
     raw = LocalFolderStore(tmp_path / "raw")
-    copies = CueCollector(None, raw, SnapshotLog(tmp_path / "log"), None).copies
+    copies = CueCollector(None, raw, SnapshotLog(tmp_path / "log"), None, FakeCreationTimes()).copies
     other = "nasdaq/indices/ndx-history/2026/10/15/061722_ndx-history_20260912_20261015.json"
     ndx, full, month = (
         NasdaqNdxSource(),
@@ -132,7 +132,9 @@ def test_a_second_copy_of_the_same_bytes_is_logged_too_and_adds_no_row(tmp_path)
     raw.put(COPY, cboe(*FAKE))
     raw.put(second, cboe(*FAKE))
     table = drive_table(LocalFolderStore(tmp_path / "derived"))
-    job = GlobalCueJob(CueCollector(None, raw, log, None), {"sp500": table}, CueChecks({}, tmp_path / "checks"))
+    job = GlobalCueJob(
+        CueCollector(None, raw, log, None, FakeCreationTimes()), {"sp500": table}, CueChecks({}, tmp_path / "checks")
+    )
     job.adopt(CboeSp500Source(), COPY, date(2007, 1, 1), date(2026, 10, 15))
     lines, _ = job.adopt(CboeSp500Source(), second, date(2007, 1, 1), date(2026, 10, 15))
     assert log.paths("sp500") == {COPY, second} and lines[0].startswith("sp500: 0 dates added")

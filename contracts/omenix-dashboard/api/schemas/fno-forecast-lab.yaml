@@ -1,0 +1,181 @@
+# Story P1: the Forecast lab (mockup 37; exepex/trading design v2 sections 2.2 and 5). Protocol v3 (G1's five
+# questions, frozen, running) and protocol v4 (V1-V7, G6, frozen before any counted forecast) side by side, each
+# question scored against its predeclared primary baseline. Forecasts never promote a book: profit decides (design 12.7).
+
+FnoForecastLab:
+  type: object
+  # v3 (Q1-Q5) is frozen and running; every v4-only field carries x-provisional until G6 freezes protocol v4
+  description: >-
+    What each forecaster said today and how each one scores against its yardstick, per question. Empty state: a
+    question with status waiting_for_data names the missing input (V1 waits for 20 sessions of 15-minute quotes);
+    a scoring question below its minimum says not_tested ("not enough data yet")
+  x-catalog: {publisher: fno, source: "the forecast records (G3, G5; v4: G7) and the score reports (G4 forecast_scores/v1; v4: G8)", freshness: 'after the close of each NSE session (outcomes resolve, scores refresh); today''s forecasts after the 15:00 cutoff', story: G8, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "how any forecaster forecasts: its inputs, method, prompts or fitted values (only what it said and how it scored)"
+  additionalProperties: false
+  required: [standing, protocols, forecasters, questions]
+  properties:
+    standing: {type: string, minLength: 1, x-unit: text, description: 'The one-line standing every report carries: forecasts are secondary to net profit and can never promote a book'}
+    protocols:
+      type: array
+      minItems: 1
+      description: The protocol versions on the screen
+      items:
+        type: object
+        additionalProperties: false
+        required: [version, status, frozen_commit, questions]
+        properties:
+          version: {type: string, enum: [v3, v4], x-unit: id, description: 'v3 = G1''s five questions; v4 = the volatility questions V1-V7 (G6)'}
+          status: {type: string, enum: [frozen, draft], x-unit: enum, description: 'Only forecasts made after the freeze count'}
+          frozen_commit: {type: ['string', 'null'], pattern: '^[0-9a-f]{7,40}$', x-unit: git commit, description: 'The freeze commit; null while a draft'}
+          questions: {type: array, minItems: 1, description: The question ids of this version, items: {type: string, pattern: '^(Q[1-5]|V[1-7](_1d|_5d)?)$', x-unit: id, description: A question id}}
+    forecasters:
+      type: array
+      minItems: 1
+      description: Every forecaster the screen names
+      items:
+        type: object
+        additionalProperties: false
+        required: [id, name, kind, family, status, isolation, isolation_label, coverage]
+        properties:
+          id: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, x-fill: built, x-record: 'forecast_record_v2:book', description: "The backend's forecaster id (e.g. book1_rules, baseline_b_base_rate)"}
+          name: {type: string, minLength: 1, x-unit: text, description: 'Display name in plain words (e.g. "Rule-based", "How often it happened")'}
+          kind: {type: string, enum: [family, baseline, weather, house], x-unit: enum, description: 'family = a book; baseline = a frozen yardstick; weather = the weather as a forecaster; house = the forecast the card shows'}
+          family: {anyOf: [{type: 'null'}, {$ref: '#/components/schemas/FnoFamily'}], description: 'The family, for kind family; null otherwise'}
+          status: {type: string, enum: [running, not_running, not_started], x-unit: enum, description: 'not_running = paused or not trading yet; not_started = no forecast made yet'}
+          isolation: {type: string, enum: [code, sealed_same_day, full_f1], x-unit: enum, x-catalog: {source: "G5's collection audit (fno/ai/scoring_gate.py ScoringStatus.isolation)", story: G5}, description: 'How the forecaster is kept from seeing outcomes and the other books: code (a baseline or rule), sealed_same_day (the AI books today), full_f1 (F1''s full isolation, needed before AI trading decisions)'}
+          isolation_label: {type: ['string', 'null'], x-unit: text, x-catalog: {source: "G5's collection audit (ScoringStatus.isolation)", story: G5}, x-fill: built, x-record: 'scoring_status:isolation', description: 'The label shown beside every AI record and score: "sealed same day (not full F1)" (owner, 14 Oct 2026, condition 2); null for code forecasters'}
+          coverage:
+            description: "The forecaster's live coverage since the common start: days with a pack, days counted, and why the rest are not; null before a common start exists (G4: a book without records is missing, never zero skill)"
+            x-catalog: {source: "G4's coverage (fno/forecast_scoring/coverage.py book_coverage) and G5's scoring gate", story: G4}
+            anyOf:
+              - {type: 'null'}
+              - type: object
+                additionalProperties: false
+                required: [pack_days, counted_days, missing_days, late_days, unscored_days]
+                properties:
+                  pack_days: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'book_coverage:pack_days', description: Session days with a market pack since the common start}
+                  counted_days: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'book_coverage:counted_days', description: Days with an on-time live forecast that counts}
+                  missing_days: {type: integer, minimum: 0, x-unit: count, description: Days with no forecast at all (left out and counted; never imputed)}
+                  late_days: {type: integer, minimum: 0, x-unit: count, description: 'Days generated after the 15:15 IST deadline (not counted)'}
+                  unscored_days: {type: integer, minimum: 0, x-unit: count, description: 'AI days made unscored by a transcript breach or a model mismatch'}
+        allOf:
+          - if: {properties: {isolation: {const: sealed_same_day}}}
+            then: {properties: {isolation_label: {const: sealed same day (not full F1)}}}
+          - if: {properties: {isolation: {const: code}}}
+            then: {properties: {isolation_label: {type: 'null'}}}
+          # an AI book can never be declared code (owner, 14 Oct 2026, condition 2: its label stays on every record)
+          - if: {properties: {kind: {const: family}, family: {enum: [hybrid, ai]}}, required: [kind, family]}
+            then: {properties: {isolation: {enum: [sealed_same_day, full_f1]}}}
+          # the books by their ids (judge 102 addendum 3), so a mislabelled kind or a null family cannot dodge the rule
+          - if: {properties: {id: {const: book2_hybrid}}, required: [id]}
+            then: {properties: {kind: {const: family}, family: {const: hybrid}, isolation: {enum: [sealed_same_day, full_f1]}}}
+          - if: {properties: {id: {const: book3_ai}}, required: [id]}
+            then: {properties: {kind: {const: family}, family: {const: ai}, isolation: {enum: [sealed_same_day, full_f1]}}}
+          - if: {properties: {id: {const: book1_rules}}, required: [id]}
+            then: {properties: {kind: {const: family}, family: {const: rule}}}
+          - if: {properties: {kind: {const: family}}, required: [kind]}
+            then: {properties: {family: {type: string}}}
+    questions:
+      type: array
+      minItems: 1
+      description: One entry per question, v3 first
+      items: {$ref: '#/components/schemas/FnoForecastQuestion'}
+FnoForecastQuestion:
+  type: object
+  description: One question with today's forecasts and its scores
+  additionalProperties: false
+  required: [id, protocol, plain, kind, horizon_sessions, metric, primary_baseline, status, waiting_for, today, scores, settle]
+  properties:
+    id: {type: string, pattern: '^(Q[1-5]|V[1-7](_1d|_5d)?)$', x-unit: id, description: 'Q1-Q5 (v3) or V1-V7 (v4; V6 has a one-day and a 5-day part)'}
+    protocol: {type: string, enum: [v3, v4], x-unit: id, description: Its protocol version}
+    plain: {type: string, minLength: 1, x-unit: text, description: 'The question in plain words, e.g. "Will NIFTY move at least 2% tomorrow?"'}
+    kind: {type: string, enum: [probability, variance], x-unit: enum, description: 'probability = a chance 0-1, scored by Brier; variance = a number for how much NIFTY will move, scored by QLIKE'}
+    horizon_sessions: {type: integer, minimum: 1, x-unit: sessions, description: Sessions until the answer is known}
+    metric: {type: string, enum: [brier, qlike], x-unit: enum, description: 'The miss score: Brier (0 perfect) for chances, QLIKE (lower is better) for variance'}
+    primary_baseline: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: 'The predeclared yardstick it must beat (design 5.3, e.g. baseline_premium_adjusted_implied for V2)'}
+    status: {type: string, enum: [scoring, waiting_for_data, not_started], x-unit: enum, description: 'waiting_for_data = an input does not exist yet (named in waiting_for); not_started = its protocol is not frozen yet'}
+    waiting_for: {type: array, description: 'The missing inputs (waiting_for_data only; empty otherwise)', items: {$ref: '#/components/schemas/FnoMissingInput'}}
+    today:
+      description: "Today's forecasts; null when none was made"
+      anyOf:
+        - {type: 'null'}
+        - type: object
+          additionalProperties: false
+          required: [made_on, answer_on, values]
+          properties:
+            made_on: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'forecast_record_v2:date', description: The session the forecast was made (before 15:00)}
+            answer_on: {type: string, format: date, x-unit: date (IST), description: The session the answer is known}
+            values:
+              type: array
+              description: One value per forecaster that forecast today (a missing forecast is left out and counted, never imputed)
+              items:
+                type: object
+                additionalProperties: false
+                required: [forecaster, probability, variance, status]
+                properties:
+                  status: {type: string, enum: [counted, pending, late, breach, model_mismatch], x-unit: enum, x-catalog: {source: "G3's generated_at against the 15:15 IST deadline (ForecastRecordV2.on_time) and G5's scoring gate (ScoringStatus)", story: G5}, description: 'counted = on time and scorable; pending = its audit is not done yet; late = generated after 15:15 IST (never counted); breach = a transcript breach made the day unscored; model_mismatch = not the registered model (unscored)'}
+                  forecaster: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, x-fill: built, x-record: 'forecast_record_v2:book', description: The forecaster id}
+                  probability: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, x-fill: built, x-record: 'forecast_record_v2:probability', description: 'The chance it said (probability questions; null for variance)'}
+                  variance: {type: ['number', 'null'], exclusiveMinimum: 0, x-unit: annualised variance (vol squared), x-catalog: {story: G7}, x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes', description: 'The variance it said, annualised on 252 sessions (variance questions; null for chances)'}
+    scores:
+      type: object
+      description: The question's scores so far
+      additionalProperties: false
+      required: [n_scored, n_void, n_needed, per_forecaster, comparisons]
+      properties:
+        n_scored: {type: integer, minimum: 0, x-unit: count, description: Answered, non-void days}
+        n_void: {type: integer, minimum: 0, x-unit: count, description: 'Void days (an input missing or stale; never interpolated)'}
+        n_needed: {type: integer, minimum: 1, x-unit: count, x-provisional: 'G6 revision 1 (dbba574) changes its v4 meaning; frozen only when G6 freezes', description: "Paired days a comparison needs before it is tested (v3: 40; v4: at least twice the block length, as G6 freezes it)"}
+        per_forecaster:
+          type: array
+          description: Each forecaster's mean miss score
+          items:
+            type: object
+            additionalProperties: false
+            required: [forecaster, n, n_missing, mean_loss]
+            properties:
+              forecaster: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: The forecaster id}
+              n_missing: {type: integer, minimum: 0, x-unit: count, x-catalog: {story: G8}, description: "Days it gave no forecast (left out of the score and counted, never imputed; G4 holds it for v3 in QuestionScores.counts['no_forecast'], which P2 maps)"}
+              n: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'score_summary:scored', description: Days scored}
+              mean_loss: {type: ['number', 'null'], x-unit: the question's metric, x-fill: built, x-record: 'score_summary:mean_brier', description: 'Mean miss score: Brier (v3, G4''s ScoreSummary.mean_brier) or QLIKE (v4 variance questions: G8 adds it; the record named holds only Brier today); null before any score'}
+        comparisons:
+          type: array
+          description: Each registered comparison against the primary baseline
+          items: {$ref: '#/components/schemas/FnoForecastComparison'}
+    settle:
+      type: object
+      x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes'
+      description: 'When the question can be settled (design 5.5 rule: after 60 scored outcomes the statistician measures r and publishes the projected date)'
+      additionalProperties: false
+      required: [status, r, projected_date]
+      properties:
+        status: {type: string, enum: [not_measured, projected, beyond_2_years], x-unit: enum, description: 'not_measured = under 60 scored outcomes; beyond_2_years = the card and the owner are told it cannot be settled in useful time'}
+        r: {type: ['number', 'null'], exclusiveMinimum: 0, x-unit: ratio, description: 'Spread of the daily loss differences divided by the registered effect; null until measured'}
+        projected_date: {type: ['string', 'null'], format: date, x-unit: date, description: 'The projected settle date; null until measured'}
+  allOf:
+    - if: {properties: {status: {const: waiting_for_data}}}
+      then: {properties: {waiting_for: {minItems: 1}}}
+      else: {properties: {waiting_for: {maxItems: 0}}}
+    - if: {properties: {scores: {properties: {n_scored: {maximum: 59}}}}}
+      then: {properties: {settle: {properties: {status: {const: not_measured}, r: {type: 'null'}, projected_date: {type: 'null'}}}}}
+    - if: {properties: {kind: {const: probability}}}
+      then: {properties: {metric: {const: brier}}}
+      else: {properties: {metric: {const: qlike}}}
+FnoForecastComparison:
+  type: object
+  description: One forecaster against the question's primary baseline (a paired difference of miss scores)
+  additionalProperties: false
+  required: [forecaster, baseline, n_pairs, mean_diff, interval, p_value, verdict, min_effect_met, futility_upper_bound]
+  properties:
+    forecaster: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: The forecaster}
+    baseline: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: The yardstick}
+    n_pairs: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'bootstrap_result:n', description: Days both forecast and the answer resolved}
+    mean_diff: {type: ['number', 'null'], x-unit: "the question's metric", x-fill: built, x-record: 'bootstrap_result:mean_difference', description: 'Mean of forecaster minus baseline; negative favours the forecaster'}
+    interval: {type: ['array', 'null'], minItems: 2, maxItems: 2, x-provisional: 'G6 revision 1 (dbba574) changes its v4 meaning; frozen only when G6 freezes', description: 'v3: the likely range of mean_diff (95%, unadjusted). v4: no fixed interval is part of the test (G6 revision 1); null unless G6 freezes one. Null when not tested', items: {type: number, x-unit: "the question's metric", x-fill: built, x-record: 'bootstrap_result:interval', description: 'Low end, then high end of the likely range'}}
+    p_value: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, x-fill: built, x-record: 'bootstrap_result:p_value', x-provisional: 'G6 revision 1 (dbba574) changes its v4 meaning; frozen only when G6 freezes', description: 'v3: the two-sided centred block-bootstrap p-value. v4 (G6 revision 1): the larger of the batch-means t test and the studentized block bootstrap, one-sided. Null when not tested'}
+    verdict: {type: string, enum: [better, worse, no_difference, futile, not_tested, before_review], x-unit: enum, x-provisional: 'G6 revision 1 (dbba574) changes its v4 meaning; frozen only when G6 freezes', description: "The backend's verdict under the frozen rule (Holm across the family, minimum effect); futile = v4 only: the 97.5% upper bound of the improvement is below the minimum effect (final at look 1); not_tested = fewer pairs than n_needed (not enough data yet); before_review = tested, but no claim before the first review"}
+    futility_upper_bound: {type: ['number', 'null'], x-unit: relative improvement (0.03 = 3%), x-provisional: 'G6 revision 1 (dbba574) changes its v4 meaning; frozen only when G6 freezes', x-catalog: {story: G8}, description: 'v4 only: the one-sided 97.5% upper bound of the relative improvement at this look (G6 revision 1: two looks, 2.5% each); null for v3 or when not computed'}
+    min_effect_met: {type: ['boolean', 'null'], x-unit: yes/no, x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes', description: 'v4: the gain is at least the registered minimum (3% lower QLIKE or Brier skill 0.02); null when not tested or v3'}

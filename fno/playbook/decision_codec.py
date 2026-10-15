@@ -9,7 +9,7 @@ from datetime import date
 
 from ..books.equity import AccountState
 from ..research_data.panel_reader import FutureQuote
-from ..risk.inputs import ContractQuote, Market, OpenTrade, RiskBook, TradeTerms
+from ..risk.inputs import ContractQuote, Market, OpenTrade, RiskBook, SessionTrade, TradeTerms
 
 
 def market_to_json(market: Market) -> dict:
@@ -62,9 +62,26 @@ def book_to_json(book: RiskBook) -> dict:
             }  # fmt: skip
             for t in book.open_trades
         ],
+        "session_trades": _session_to_json(book.session_trades),
         "closed_equity": [[d.isoformat(), value] for d, value in book.closed_equity],
         "restarts": [d.isoformat() for d in book.restarts],
     }
+
+
+def _session_to_json(trades: tuple[SessionTrade, ...] | None) -> list | None:
+    if trades is None:
+        return None
+    return [
+        {"trade_id": t.trade_id, "states": [[dict(sorted(units.items())), cash] for units, cash in t.states]}
+        for t in trades
+    ]
+
+
+def _session_from_json(rows: list | None) -> tuple[SessionTrade, ...] | None:
+    """None in records written before C5: the new-risk cap then refuses, never guesses."""
+    if rows is None:
+        return None
+    return tuple(SessionTrade(r["trade_id"], tuple((units, cash) for units, cash in r["states"])) for r in rows)
 
 
 def book_from_json(data: dict) -> RiskBook:
@@ -73,4 +90,5 @@ def book_from_json(data: dict) -> RiskBook:
         OpenTrade(t["trade_id"], TradeTerms(**t["terms"]), t["units"], t["cash_flow"]) for t in data["open_trades"]
     )
     closed = tuple((date.fromisoformat(d), value) for d, value in data["closed_equity"])
-    return RiskBook(data["name"], state, trades, closed, tuple(date.fromisoformat(d) for d in data["restarts"]))
+    restarts = tuple(date.fromisoformat(d) for d in data["restarts"])
+    return RiskBook(data["name"], state, trades, closed, restarts, _session_from_json(data.get("session_trades")))

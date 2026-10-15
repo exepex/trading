@@ -248,3 +248,95 @@ should-fixes 1-5 are fixed and re-judged.
 **Verdict: FAIL** for dashboard 02664369f05a21c6642e2336b40a54fc7e2d29be and trading
 e4bade7ebaaec34caeadc2d4a7f2967eaf5d9476, on should-fix 1 only. It is one schema rule and one probe. Everything else in
 judge 102 and addendum 1 is met.
+
+## Addendum 3 (15 Oct 2026): dashboard 1eef671072e21c59a54e548df535291ddf9b4825, trading 22ac79b27169d970071500227800e88eba61bedd
+
+**Scope:**
+- Dashboard 0266436..1eef671 is one commit: one schema rule, the provisional guard, two plants and a `changes.md` row.
+  No web or TypeScript change, so the web gates of addendum 2 stand.
+- Trading e4bade7..22ac79b is one commit: re-pin and claims.
+
+**Gates:**
+- Pin: all 33 files byte-equal to 1eef671.
+- Dashboard: `check_fno_screens` passes, 28/28 planted, along with `check_contract`, `check_mapping`, both
+  `render --check` runs, `examples --check` and code size.
+- Trading: trial merge with today's `origin/main` is clean; **3,673 passed**; ruff, format (790 files) and imports clean.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Should-fix 1: an AI book declared `code` | **PARTLY** | The new rule fires when `kind` is family and `family` is hybrid or ai. My probe (`book2_hybrid`, `code`, label null) is now refused, and the plant deleting the rule is caught. **But setting `family: null` on the same AI book skips the rule:** `kind: family`, `family: null`, `isolation: code`, label null validates (my probe). Nothing forces `family` to be set when `kind` is family. Mislabelling `kind` as baseline does the same |
+| Minor 1: provisional marks guarded | **MET** | `PROVISIONAL_PATHS` with `check_provisional`; removing `p_value`'s mark is a planted break and is caught |
+| Minor 2: mockup 31 `changes.md` row | **MET** | The row records 30,000 → 1,50,000, owner "2 A", and "the dashboard merges only after C5" |
+
+### Should-fix (narrower than before)
+
+1. **Key the AI-book rule on the forecaster's id, not only on `kind` and `family`.**
+   - Either require `isolation` to be `sealed_same_day` or `full_f1` when `id` is `book2_hybrid` or `book3_ai` (the AI
+     books, `AI_BOOKS`); or require `family` to be non-null when `kind` is family, and `kind: family` for those ids.
+   - Add my two probes: family null, and kind baseline.
+   - It is one rule and two probes; owner condition 2 is otherwise enforced.
+
+**Merge order (agreed):**
+1. C5 first: judge 105 PASS, then the ChatGPT round under rule 9.
+2. The dashboard.
+3. Re-pin trading at the dashboard's merge commit.
+4. Trading.
+
+**Verdict: FAIL** for dashboard 1eef671072e21c59a54e548df535291ddf9b4825 and trading
+22ac79b27169d970071500227800e88eba61bedd, on should-fix 1 only (the family-null and kind dodge). Everything else is met.
+
+## Addendum 4 (15 Oct 2026): dashboard 13e76b4c25b789dbc6441d64287a75cee3e187a8, trading 5e91b0eee67b50a289b719029d513815002cfd88
+
+**Scope:**
+- Dashboard 1eef671..13e76b4 is one commit: four schema rules keyed by forecaster id, two probes and the plant. No web
+  or TypeScript change.
+- Trading 22ac79b..5e91b0e is one commit: re-pin and claims.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Addendum 3 should-fix: the AI-isolation dodge | **MET** | Rules by id: `book2_hybrid` must be family hybrid, `book3_ai` family ai, both `sealed_same_day` or `full_f1`; `book1_rules` must be family rule; and `kind: family` needs a non-null family. All my probes are refused: `code`; family null with `code`; kind baseline with family null and `code`; `book3_ai` relabelled as family rule with `code`; a sealed book with a wrong label. The valid example still validates. The 12 probes include both of mine. The plant that removes every id and family rule is caught (28/28) |
+| Pin | **MET** | All 33 files byte-equal to 13e76b4 and to `pin.json` |
+| Dashboard checks | **MET** | `check_fno_screens` (289 leaves, 56 built, 28/28 planted), `check_contract`, `check_mapping`, both `render --check` runs, `examples --check` and code size: all exit 0. The web gates of addendum 2 stand (no web or TypeScript change since 0266436) |
+| Trading gates | **MET** | Trial merge with today's `origin/main` (F8/BG1 included): its only conflict is index rows in `reviews/claude/README.md` (keep both). The merged tree gives **3,852 passed**; ruff, format (820 files) and imports clean |
+
+Note, not a finding: `book1_rules` may still carry a sealed label. That adds a label and dodges nothing.
+
+**Verdict: PASS** for dashboard 13e76b4c25b789dbc6441d64287a75cee3e187a8 and trading
+5e91b0eee67b50a289b719029d513815002cfd88.
+
+**Merge order (agreed):**
+1. C5 first (it waits for its ChatGPT round under rule 9), because Home's `limit_max` text assumes C5.
+2. The dashboard at exactly 13e76b4.
+3. Re-pin trading at the dashboard's merge commit: byte-equal files, the new commit in `pin.json`, the README index
+   conflict resolved by keeping both.
+4. Trading.
+5. The quality rule 8 run: `check_fno_screens` on the dashboard's `main` and `tests/market_read_models` on trading's
+   `main`.
+
+My merge check verifies:
+- that both merges equal their recomputed trees;
+- that the pinned commit is an ancestor of the dashboard's `main`;
+- that no file changed except the pin.
+
+## Addendum 5 (15 Oct 2026): merge check, P1 merged as dashboard 3df9179 and trading b092c58
+
+**Order.** C5 merged first, at a8379e6, which is an ancestor of b092c58. Then the dashboard, then trading re-pinned and
+merged, as agreed.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Dashboard merge exact | MET | 3df9179's parents are 5a6a2a1 (`main`) and ff1ec22. `git merge-tree --write-tree` of the two equals 3df9179's tree (empty diff), and 3df9179 is on the dashboard's `main`. ff1ec22 is my passed 13e76b4 plus one commit, the Mock paper accounts at Rs 20 lakh after C5 (3 files), which judge A passed as judge 135 |
+| Trading merge exact | MET | b092c58's parents are d95d89f (`main`) and f20dcff; the recomputed merge equals its tree. Since 5e91b0e the branch adds only e2e3d78 (merge of `main`, with C5, and re-pin at ff1ec22; judge 135) and f20dcff (the pin's commit field set to 3df9179, one line) |
+| Pin at the dashboard merge | MET | All 33 pinned files in b092c58 have SHA-256 equal to the dashboard at 3df9179 and to `pin.json`; `pin.json` names 3df9179, which is on the dashboard's `main` |
+| Rule 8 | MET | The orchestrator's log records `python -m fno market contract-check`: "pinned W11 contract 2.7.0 (commit 3df91797c830): same as the dashboard's". I re-ran it myself: `check_fno_screens` on today's dashboard `main` holds every rule, 28/28 planted, and `check_contract` passes; `tests/market_read_models` on trading `main` gives 181 passed |
+
+**Follow-up, not a P1 defect: the pin now drifts by design.**
+- The dashboard has since merged story/p1-home-books-20lakh (b9c41ec, judge 136).
+- That changes `api/examples/blocks.json` and `api/schemas/blocks-home.yaml`: the books' description and examples move
+  to Rs 20 lakh, and the description text alone changes in the schema.
+- So trading's pinned copy at 3df9179 differs from the dashboard's `main` in those two files, and `contract-check` will
+  now report the difference.
+- No validation rule changed, so published pages still validate.
+- The re-pin to b9c41ec is a lane-1 change for trading.
+
+**Verdict: merge check PASS.** P1 is done in both repositories.

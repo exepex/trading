@@ -202,3 +202,29 @@ response 111 only. I judged A4b's own diff (`git diff 3ac5e65^ 3ac5e65`) and ran
 
 **Verdict: FAIL for 65d75e63c6626bf5e359b961b36eaf3f7215b1b5**, on should-fix 1 only. Everything else is verified on
 real data and with 15 of 15 mutations caught. A re-check needs only `replay_quote_store` and its new test.
+
+## Addendum 3 (15 Oct 2026): the replay fix at fe0f5cc120ba4408af4d01e7e670ddc603230bf6 (65d75e6..fe0f5cc)
+
+A4b's own change is e5d4ff0. ba6a2e8 merges `main`, and fe0f5cc touches response 111 only.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix 1: per-file replay store | MET | `ExportFirstQuoteStore` (25 lines) returns the export's file when present (bytes from `git archive`), else the Drive-only store, which is hash-checked and loud. It never writes (`ReadOnlyStoreError`). `replay_quote_store` builds it |
+| My reproduction re-run on real data | MET | The 14 Oct export with its CSV removed and a 13 Oct CSV left in the tree now gives `pack.json` and `forecasts.csv` equal, `matches: True`. The plain 14 Oct replay from git also gives `matches: True` |
+| Tests bite | MET | My plant "always the Drive-only store" (export ignored): 2 tests fail. The builder's mixed-tree test and the export-only test, which asserts Drive is never asked, are present |
+| Frozen files | MET | Of A4b's changes, only `fno/forecast_scoring/wiring.py` (FREEZE_v3, recorded; ruling R1) appears in any freeze record. Other `fno/` changes in the range come from the merge of `main` |
+| Minor 1 (`levels_failures`) | Not taken, orchestrator's decision 20 | Acceptable: NSE public data, outside criterion 9 |
+
+**Gates on fe0f5cc:**
+- **3,702 passed** (Slack token unset).
+- `ruff check`, `ruff format --check` and `check_imports` are clean.
+- A trial merge with today's `origin/main` conflicts only in `reviews/claude/README.md` (index rows; keep both).
+
+**Verdict: PASS for fe0f5cc120ba4408af4d01e7e670ddc603230bf6.** The merge condition stands (orchestrator's decision 14):
+1. The owner's write-read probe in the 3 pm routine's environment must pass first, printing only ok or an error type.
+2. Merge with both index rows kept, and run the full suite on the merged tree.
+3. Rule 8: log the first real 15:00 run (result line, sidecar committed, Drive hash equal to the sidecar).
+4. Any raw 15 Oct CSV committed before the merge gets its verified Drive copy and a `git rm`. After this fix that is
+   safe for replays at any point.
+
+I check the merge commit after it lands.

@@ -8,13 +8,14 @@ import pytest
 
 from fno.books import book1_exits
 from fno.books.book1_exits import PlaybookExitRules
-from fno.books.book1_records import decided_exit_days
+from fno.books.book1_records import DecidedExits, decided_exit_days
 from fno.books.book1_wiring import build_book1_exit_rules
 from fno.constants import BOOK1_RULES, PLAYBOOK_FOLDER
 from fno.desk.exit_rules import ExitContext
 from fno.desk.pricing import DeskLeg
 from fno.desk.status import OpenPosition
 from fno.models import IST
+from fno.playbook.decision_store import DecisionStore
 from fno.playbook.opportunities import OpportunityFinder
 from fno.playbook.schema import parse_strategy
 from fno.research_engine.cycles import TradingDays
@@ -23,6 +24,7 @@ from tests.checks.builders import CALENDAR
 from tests.decisions.builders import snapshot
 
 from .builders import EXITS, book1, book1_doc, clock_at
+from .openings import open_trades
 
 DAY = date(2026, 10, 13)
 FINDER = OpportunityFinder(TradingDays(CALENDAR))
@@ -40,9 +42,11 @@ class Alerts:
 @pytest.fixture
 def decided(tmp_path, monkeypatch):
     """Book 1 decides 13 Oct (one chosen trade); its open position is the decided trade."""
-    decider, _ = book1(tmp_path, snapshot(book1_doc()), clock_at(datetime.combine(DAY, time(15), IST)))
+    decider, commits = book1(tmp_path, snapshot(book1_doc()), clock_at(datetime.combine(DAY, time(15), IST)))
     decider.decide(DAY)
-    [(trade_id, (exit_day, version))] = decided_exit_days(tmp_path, BOOK1_RULES, FINDER).items()
+    [run] = DecisionStore(tmp_path, BOOK1_RULES).runs(DAY)
+    open_trades(tmp_path, BOOK1_RULES, DAY, run.name, commits.made[0][0])  # story D3b: only filled trades count
+    [(trade_id, (exit_day, version))] = decided_exit_days(tmp_path, BOOK1_RULES, FINDER).exits.items()
     legs = ((DeskLeg("N", date(2026, 11, 27), Leg(25_000, "CE", BOUGHT)), 65),)
     position = OpenPosition(trade_id, version, "d", legs, 0.0, datetime(2026, 10, 13, 15, 15), "exec", "", ())
     monkeypatch.setattr(book1_exits, "open_positions", lambda records: [position])
@@ -50,7 +54,8 @@ def decided(tmp_path, monkeypatch):
 
 
 def rules(root, version_text, alerts):
-    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, FINDER), version_text, lambda b: None, alerts)
+    decided = lambda book: decided_exit_days(root, book, FINDER)  # noqa: E731
+    exits = PlaybookExitRules(decided, version_text, lambda b: None, alerts)
     return exits.rules(BOOK1_RULES)
 
 
@@ -98,5 +103,5 @@ def test_an_unrelated_broken_draft_leaves_every_exit_applied(decided):
 
 def test_a_trade_without_a_committed_record_is_left_to_e4_with_an_alert(decided):
     alerts = Alerts()
-    exits = PlaybookExitRules(lambda book: {}, lambda v: None, lambda b: None, alerts)
+    exits = PlaybookExitRules(lambda book: DecidedExits({}, {}, {}), lambda v: None, lambda b: None, alerts)
     assert exits.rules(BOOK1_RULES) == {} and "no committed decision record" in alerts.sent[0]

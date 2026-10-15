@@ -1,0 +1,353 @@
+# Response 99: story G6, forecast protocol v4 (draft for the judge, then ChatGPT)
+
+**Builder:** Claude, 15 Oct 2026 IST, branch `story/g6-protocol-v4`. **Lane 1.** Not frozen: the freeze record comes only
+after the judge's PASS and ChatGPT's review. G1 v3 and its files are untouched. This file also answers ChatGPT review
+98's G6 caveat (cumulative Holm, p = 1 for hypotheses not yet judged, membership and timestamp on every report).
+
+## What changed
+
+- `research/forecasts/PROTOCOL_v4.md` (draft protocol, 286 lines).
+- `fno/forecast_v4/` (new package, pure functions, no I/O; largest file 103 lines): `terms.py`, `loss.py`, `pairs.py`,
+  `bootstrap.py`, `family.py`, `eligibility.py`, `units.py`, `settlement.py`, `sessions.py`, `stop_rule.py`, `power.py`.
+- `fno/constants.py`: v4 question, slot, baseline, verdict and stop-rule names (+23 lines).
+- `tests/forecast_v4/` (6 files, 91 tests) and `tests/fixtures/forecast_v4/v4_golden.json`.
+- `docs/stories/G-forecasts.md`: the G6 story with its 11 acceptance criteria.
+
+## Claims
+
+| # | Claim | Evidence | Label |
+|---|---|---|---|
+| 1 | Ranking loss `ln f + RV / f` is defined at RV = 0, finite near zero, never floors RV; non-positive forecasts and negative or non-finite RV are refused | `test_loss_and_pairs.py` | strong evidence |
+| 2 | Paired differences equal the textbook QLIKE's whenever RV > 0 (2,000 random cases, and the per-forecast gap is exactly `ln RV + 1`) | same file | strong evidence |
+| 3 | Scored set keeps zero-RV dates and zero differences; gate set is the same dates with RV > 0; zero-RV exclusions, missing forecasts, missing baselines, void and unresolved dates are counted, never imputed | `pairs.py`, tests | strong evidence |
+| 4 | The bootstrap is exactly p = (1 + #{D*-D <= D}) / (B+1), B = 10,000, ceil(n/L) starts from 0..n-L, seed `SeedSequence([20261015, k])`; a plain-loop rebuild matches; committed values reproduce; under 2L pairs p = 1 | `test_bootstrap.py` | strong evidence |
+| 5 | HAC (Newey-West, lag L-1) matches a hand computation and is reported only, never used to choose | `test_hac_matches...`; protocol 5.3 | strong evidence |
+| 6 | Minimum-effect gate = relative improvement on the gate set; 3% of mean textbook QLIKE (point), 0.02 Brier skill (probability) | `test_gate_is_three_percent...`, `test_brier_gate...` | strong evidence |
+| 7 | Futility = nearest-rank 95% upper bound of the improvement below the effect; never declared without 2L gate pairs | `test_futility_...` | strong evidence (code); the 5%-per-member IUT validity cites Berger 1982 |
+| 8 | Holm over a fixed 15-member family with p = 1 for unjudged members; every decision prints the look, its rate, a time-zoned timestamp and all 15 members | `test_family_and_stop_rule.py` | strong evidence |
+| 9 | Primary baselines as predeclared (premium-adjusted implied for V2/V3; option-implied probability by Brier for V5); an ineligible primary leaves the pair missing; V1's HAR switch is one way | `test_eligibility_and_power.py` | strong evidence |
+| 10 | V4 golden example: 13.656% session RV against 13.567% session-clock IV gives "no", while raw 13.8% would wrongly give "yes"; 9 calendar days gives 15.384% and "yes"; both sides integrate back to 0.00037 and 0.000365 | fixture computed with 30-digit decimals; `test_units_settlement_sessions.py` | strong evidence |
+| 11 | V5's outcome only from the frozen expiry's final settlement (E7's expiry-day F&O file), with path, SHA-256 and first-seen time; another expiry, another day's file or a level seen before 15:30 IST on expiry is refused | same file | strong evidence (code); that `SttlmPric` is the final settlement rests on E7's check of 25 Jan 2024 |
+| 12 | Session set = A7 regular sessions; muhurat and special excluded; the calendar's classification equals the closes file's `session` column on every row to 14 Oct 2026 | `test_session_set...`, `test_disclosed_base_rates...` | strong evidence |
+| 13 | Disclosed base rates reproduced from the committed closes: 100 of 2,409 = 4.15%; 331 of 2,405 windows = 13.76% | same test | strong evidence |
+| 14 | Stop rule: zero counted forecasters gives A undecided; zero shadows gives B `undecided/no_economic_test`; "no" needs futility everywhere; the full outcome table | `test_the_review_table` and neighbours | strong evidence (code matches design 8.2) |
+| 15 | Power report: design table reproduced (114, 316, 1,264 at 0.05/15); refused before 60 outcomes; overlapping outcomes counted as n / horizon | `test_eligibility_and_power.py` | strong evidence (arithmetic) |
+| 16 | Protocol text and `terms.py` state the same names and numbers | `test_protocol_text.py` | strong evidence |
+| 17 | 13 planted mutations (inequality, +1s, block range, percentile rank, p = 1, gate set, RV floor, clock, V5 boundary, zero shadows, empty A, one-way switch, session set) each fail a test | run before the commit | strong evidence |
+
+## Judge 98 fixes (one commit)
+
+- **Must-fix 1, the premium-adjusted window's source.** Yes, a point-in-time EOD IV30 exists: G1 v1's frozen
+  `PanelAtmIv30` on the A3 panel's first-archived end-of-day chains. The panel has 685 regular sessions from 2 Jan 2024
+  to 14 Oct 2026 (strong evidence: manifest count). The window is now limited to 2024 onwards, labelled
+  `iv30_eod_close_proxy`, with the rule `eligibility.premium_ratio_window` (at least 500, at most 750, resolved before
+  the refit) and two tests. About 620-680 rows remain after the horizon's tail and flagged days (some evidence: G1's
+  published flag rates, not recomputed). It is point in time by content, not by archive time, said in the protocol.
+- **Must-fix 2.** Section 11 now lists A (Holm at 0.02 at the review: 134 outcomes against 114 at r = 3), B (no power
+  report means option 2) and C (the EOD proxy) "for the owner's confirmation before the freeze". Section 10 makes
+  that confirmation a freeze precondition.
+- **Follow-up.** `test_a_tiny_positive_rv_stays_in_the_gate_set` (1e-13 and 1e-300 stay in the gate set).
+
+## Choices made in this draft (open to the judge and ChatGPT; protocol section 11)
+
+Items 2 and 6 below, and the EOD proxy, need the owner's confirmation before the freeze (protocol section 11, A-C).
+
+1. **Family of 15** (V1, V2, V6a, V6b, V7 x rules, hybrid, AI team). V3, V5 and V4 are tested the same way but never
+   members, because 20-session questions cannot settle in useful time and would tighten every other claim. Reasoning
+   only.
+2. **Two looks with an alpha split, 0.02 at the stop review and 0.03 at the settle date.** Design 5.5 says Holm at 5%
+   but 8.2 already has two looks (review, then the re-run on the projected date), so a single 5% per look would not
+   control the error. Cost, said plainly: at r = 3, look 1 needs 134 outcomes instead of 114. Reasoning only; the bound
+   itself is strong evidence (Bonferroni).
+3. **Special sessions excluded**, unlike G1 v1-v3, so outcomes and the disclosed base rates use one set. 4 of the 6
+   special sessions had normal timings; their moves stay inside the next regular return. Reasoning only.
+4. **V2 and V3 confirmatory on the close proxy** for all of v4; intraday versions reported apart. Reasoning only.
+5. **5% spread limit and a put-call-parity forward for weekly IV** (weekly expiries have no future). Some evidence
+   (one session of monthly spreads, 0.14-0.99%).
+6. **No power report yet leads to option 2** at the stop review. Reasoning only.
+7. **V5 "inside" is strict** (break-even counts as outside). Reasoning only.
+8. **The freeze waits for G7 and G8's code** (as S1's option A), so the code is hashed with the rules. Orchestrator's
+   call.
+
+## Checks run
+
+- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: see the commit message for the count. In this container the clone was
+  shallow at first: 8 freeze tests failed because frozen commits were missing; after `git fetch --unshallow` those 23
+  tests pass. Not caused by this change.
+- `ruff check fno tests tools`: clean. `ruff format --check`: clean. `python tools/check_imports.py`: clean.
+- `pip install -r requirements-groww.txt` failed in this container (building `clint` and `args`); nothing here needs it.
+
+## What this does not do
+
+No freeze record, no ledger row, no G7 baselines or G8 scoring code, no v4 forecast or score. Nothing reads a v4
+outcome. No order code.
+
+## Revision 1: answer to ChatGPT review 99, item by item
+
+Each item was checked before it was accepted.
+
+1. **Bootstrap size (blocking): ACCEPTED. The simulation proves the defect (strong evidence).**
+   - **The calibration.** `tools/v4_null_calibration.py` is seeded (SeedSequence([20261015, 99, cell])). Its output is
+     committed as `research/forecasts/v4_null_calibration.{json,md}`.
+     - 1,000 mean-zero series per cell.
+     - Five kinds: i.i.d., overlapping horizon, AR(1) with phi 0.5, right-skewed and left-skewed.
+     - L = 5, 10, 20, at n = 2L and n = 125.
+     - Thresholds: 0.0013, 0.002, 0.004, 0.01, 0.02, 0.03, 0.05. Tolerance: nominal + 2 Monte Carlo SE.
+     - Bootstrap B = 2,000 in the simulation (10,000 in scoring); the whole run takes about 70 seconds.
+   - **Revision 0's centred bootstrap** over-rejects. On the Gaussian processes it rejected 22-28% at n = 2L and up to
+     12% at 5% with n = 125. It is now a reported sensitivity only.
+   - **The new confirmatory p** (`confirmatory.py`) is max(batch-means t against Student t with k - 1 df, studentized
+     block bootstrap); both must pass.
+   - **Its worst cases at Holm's first step (0.0013) and at 5%:**
+     - Gaussian processes: 0.2% and 5.4% at n = 2L; 0.3% and 7.6% at n = 125. The 7.6% is the single AR(1) cell with
+       L = 5 at n = 125; every other Gaussian cell is within tolerance.
+     - Right-skewed: 0.7% and 10.1% at n = 2L; 0.7% and 7.2% at n = 125.
+     - Left-skewed: at most 0.1% and 2.1%.
+   - **Said plainly:** the switch fixes the dependence problem but not strong right skew. That is item D in protocol
+     section 11, for ChatGPT and the owner before the freeze.
+   - **Tests:** a small seeded version in `test_confirmatory.py` (i.i.d. and AR(1), 200 series, B = 500), a check that
+     the committed calibration covers every cell, and committed p-values. Student t is written in the standard library
+     (scipy is not a dependency) and is tested against known values.
+2. **Futility two-look budget (blocking): ACCEPTED (reasoning: Bonferroni over looks).**
+   - The bound is a 97.5% upper bound at each look. The seed words now carry the look number. The nearest rank is the
+     9,750th of 10,000.
+   - Futility at look 1 is final; an open member uses its own 2.5% at look 2.
+   - Golden values for both looks are in `test_bootstrap.py`.
+3. **Family, 4 looks, 6 units and settlement, 7 session set, 8 QLIKE gate, 10 freeze:** no change asked.
+4. **EOD proxy (5): ACCEPTED.**
+   - `diagnostics.proxy_drift` reports the paired 15:00 / EOD ratio: its median over all live days and over the latest
+     20, and their drift. It is descriptive only.
+   - The protocol says the proxy is never claimed to be equivalent to 15:00 IV30.
+5. **Power report (9): ACCEPTED.** It is now "a planning projection only; it promises no settle date".
+6. **Judge follow-ups: DONE.**
+   - A refit-day boundary test: a row resolved on the refit day is left out; the day before is kept.
+   - The first session is 1 Jan 2024 (the earlier text said 2 Jan), with a test.
+7. **A-C:** marked "confirmed by the owner, 15 Oct 2026", citing the `docs/DESK_DECISIONS.md` row on `main`.
+
+## Revision 2: answer to judge 98 addendum 2 (owner decision "3 B")
+
+1. **Must-fix 1, a measured option within tolerance for every L, n and look: DONE.**
+   - **The study.** `tools/v4_size_study.py` uses 100,000 series per cell below 0.01 and 10,000 above, B = 10,000,
+     with the judge's conditional bootstrap.
+     - Processes: i.i.d., AR(1) 0.5, overlapping, lognormal, two QLIKE empirical nulls and two Brier empirical nulls.
+     - Sizes: L = 5, 10, 20 at n = 2L and n = 125, plus n = 250 for the skewed processes.
+     - Options measured: A (revision 1), B/2, B/4, B/10, C (Hall's skew-corrected t), D (at least 12 batches) and E
+       (worst-case calibrated thresholds).
+   - **Real skew, measured on exposed 2024-26 close-proxy data.** QLIKE differences of baseline pairs have a raw skew
+     of -17 to +15. Their batch means have a skew of up to 7.5 at L = 5, 4.9 at L = 10 and 3.5 at L = 20; the
+     lognormal case has 2.8, 2.0 and 1.4. **The lognormal case understates reality**, so the calibration targets the
+     empirical nulls (some evidence: exposed data, a few pairs).
+   - **Results at Holm's first step (0.0013), on the real nulls at n = 125:**
+     - A: 6-18% at L = 5 and 10; still 7.5-10% at n = 250.
+     - B/10: 2-13%.
+     - C (Hall's correction) is no better than A.
+     - The Brier V6a null fails A at n = 125 (0.8%) and badly at n = 10 (17%).
+   - **The operative rule is E+D:** at least 12 batches, and a batch t p-value at or below the worst-case calibrated
+     threshold for the member's question, n and look. The threshold is computed at the look by
+     `tools/v4_claim_thresholds.py`, taken at the 95% lower confidence rank of the quantile.
+   - **Held-out sizes** (fresh seeds, 100,000 series) are within nominal + 2 SE in all 30 cells (strong evidence for
+     the measured processes).
+   - **Power cost** (normal approximation, planning only), in outcomes at r = 3 / r = 5, against 134 / 316 for the
+     plain first step:
+     - V1: 426 / 1,183.
+     - V2: 396 / 1,099.
+     - V6a: 180 / 499.
+     - V6b and V7: 151 / 419.
+   - **Consequence, said plainly:** V1 and V2 (QLIKE) cannot be claimed in useful time.
+   - **Code:**
+     - `confirmatory.calibrated_p` and `MIN_CLAIM_BATCHES`.
+     - `family.py` now uses Bonferroni at rate / 15, because only the first step is calibrated (Holm's later steps
+       are dropped).
+     - `hall_t` was measured and is kept as a reported option.
+     - Tests: `test_claim_rule.py`, a `hall_t` test, and the family tests.
+2. **Must-fix 2, thresholds below 0.01 at 50,000 or more series with B = 10,000: DONE.**
+   - The thresholds below 0.01 now use 100,000 series.
+   - Revision 1's 1,000-series figures are relabelled "superseded; some evidence only".
+3. **Not tested:** futility's percentile bound under the same heavy-tailed nulls. It may give a false "no" too; this
+   is disclosed in protocol section 11.
+
+## Revision 3: false futility (orchestrator, after revision 2)
+
+- **The test.** `tools/v4_futility_study.py` builds empirical nulls from exposed 2024-26 data (disclosed). Each one
+  pairs the real daily loss difference with the real baseline loss: QLIKE for V1 and V2 (gate set RV > 0, textbook
+  baseline loss) and Brier for V6a and V6b. The difference is shifted so the true relative improvement equals the
+  registered minimum effect exactly (3% QLIKE, Brier skill 0.02). It is tested in both orientations, resampled jointly
+  in circular 20-session blocks, at n = 125 and n = 250, at both looks.
+- **Revision 1's rule (F0, the 97.5% bootstrap bound)** gives a false "no" far too often (10,000 series per cell,
+  tolerance 2.81%). The target is at most 2.5% per look.
+  - V1: 27% at n = 125, 23% at n = 250 (the rare-big-gain orientation).
+  - V2: 32% and 23%.
+  - V6a: 16-17%.
+  - V6b: 7-12%.
+- **The operative rule is now F+D** (`confirmatory.futility_p`). A member can be called futile only with at least 12
+  batches and a batch-means t p-value for "improvement below the effect" at or below its worst-case calibrated
+  threshold. That threshold is the 2.5% quantile at its 95% lower confidence rank, over both orientations, computed at
+  the look for the member's n.
+- **F+D's held-out false-futility rate** (100,000 series per cell) is 0.0-2.6% in all 16 cells, within the 2.60%
+  tolerance (strong evidence for the measured nulls). The worst cell is V2 at n = 125: 2.58%.
+- **Tests.** `test_futility_rule.py` checks the rule's mapping, the 12-batch minimum, that the fast bound equals
+  `effect_check`, that the nulls sit exactly at the minimum effect, and the committed table.
+
+## Revision 4: answer to judge 98 addendum 3
+
+1. **Brier rules across regimes (must-fix 1): ACCEPTED. The defect is confirmed (strong evidence).**
+   - **The data.** `tools/v4_brier_regimes.py` rebuilds the V6a and V6b nulls from every exposed regular session with
+     a valid base rate (15 Jan 2019 to 14 Oct 2026).
+   - **The calm stress.** It adds the calmest stretches: 125 sessions from 13 Apr to 12 Oct 2021 and 250 sessions from
+     6 Oct 2022 to 10 Oct 2023, with no 2% day in either.
+   - **The run.** 100,000 held-out series per null, both orientations, n = 125 and 250, both looks, for claims and
+     false futility.
+   - **Without a gate, the rules fail.** V6b's claim size is 62-99% because calm windows always "claim". V6a is at
+     1.7% against 0.13%.
+   - **The gate: at least m 2% days in the scored window before any verdict.** With m = 5, 10, 15 or 20, every cell is
+     within tolerance; the calm stretches are never judgeable (0 events).
+   - **Operative rule: m = 5**, the smallest that holds. It keeps the most windows judgeable over 2019-26: 53% at
+     n = 125 and 90% at n = 250.
+   - **The stop rule.** A member that is not judgeable keeps p = 1 and is open, so it counts as undecided, never "no".
+     The existing decision unit already does this; no new state is needed.
+   - **Power cost** (normal approximation, planning only), in outcomes at r = 3 / r = 5:
+     - V6a: 541 / 1,501 at n = 125, and 874 at n = 250.
+     - V6b and V7: 151 / 418.
+   - **Said plainly:** V6a cannot be claimed in useful time either; V6b and V7 can, slowly, and only in non-calm
+     windows.
+2. **What "held-out" proves (must-fix 2): DONE.** Protocol 5.3 now says that fresh seeds measure Monte Carlo error
+   only, on the same days, and prove nothing about other periods.
+3. **Follow-ups: DONE.**
+   - The descriptive `_quantile` took the (k+1)-th order statistic. It is fixed, and `calibrated_t` was recomputed from
+     the same seeded series (`--repair-calibrated`).
+   - `calibrated_A` is dropped from the table, because recomputing it needs the conditional bootstrap again and the
+     operative values are elsewhere.
+   - Item D notes that a VIX null for V7 is still owed.
+   - `outcomes_needed` now uses -z(tau), which is exact for tiny thresholds.
+4. **Code and tests.**
+   - Code: `confirmatory.brier_judgeable` and `MIN_EVENT_DAYS = 5`, and `v4_brier_regimes.operative_thresholds` for G8
+     at each look.
+   - Tests: `test_brier_regimes.py`.
+
+## Revision 5: answer to judge 98 addendum 4
+
+1. **Must-fix A, the selection effect near the gate: ACCEPTED and fixed by banding (strong evidence for the 2019-26
+   nulls).**
+   - **The cause.** A window's count of 2% days is known before the verdict, so one threshold per question averaged
+     over calm and busy windows.
+   - **The fix.** `tools/v4_brier_bands.py` gives each band (5-7, 8-12, 13+ days) its own claim and futility
+     thresholds. Each is calibrated on 2019-26 nulls conditioned to its band: 200,000 series for calibration and
+     200,000 held out. `confirmatory.event_band` selects the band.
+   - **Result.** Every band is within tolerance at n = 125 and 250, at both looks, for claims and for false futility:
+     - Worst claim size at look 1 is 0.130% against 0.133% nominal.
+     - Worst claim size at look 2 is 0.192% against 0.200%.
+     - Worst false futility is 2.57% against a 2.5% target (tolerance about 2.6-2.7% at the band's count).
+   - **Judgeable share.** Unchanged from revision 4: 54% of windows at n = 125 (bands 25 / 18 / 11%) and 90% at
+     n = 250 (18 / 32 / 40%).
+   - **Power cost** (normal approximation, planning only, r = 3 / 5):
+     - V6a: 221-631 / 613-1,752 at n = 125; 586-1,047 / 1,626-2,907 at n = 250.
+     - V6b and V7: 149-181 / 412-502 at n = 125; 151-206 / 419-570 at n = 250.
+2. **V6a is effectively unreachable: STATED.**
+   - V6a's claim thresholds run from 2.6e-14 to 2e-5 at n = 125, and down to 1.4e-23 at n = 250 in the 5-7 band.
+   - The protocol (item D) and this response say plainly that V6a, like V1 and V2, will almost surely never be
+     claimed. Only V6b and V7 can be claimed, slowly.
+3. **A VIX null for V7 is still owed.** Item D keeps the note; V7 borrows V6b's banded thresholds until one is measured.
+4. **Tests.** `test_brier_bands.py` covers band coverage, the conditional quantile, every band within tolerance, and
+   the committed table.
+
+## Revision 6: answer to ChatGPT review 101
+
+1. **Item 6, V7 borrowing V6b's calibration: ACCEPTED. The preferred remedy was tried; it fails; the alternative is
+   applied (strong evidence).**
+   - **The V7 null.** `tools/v4_vix_null.py` builds it from point-in-time India VIX, using the exposed 2019-26 regular
+     sessions (disclosed). A rival (the base rate conditioned on VIX against its 20-session mean) is compared with the
+     750-session base rate. It runs in both orientations, over the full period and inside the calmest and most
+     volatile 125- and 250-session stretches, with 200,000 series per null, at n = 125 and 250, at both looks.
+   - **Three rules measured (`v4_vix_null.md`):**
+     - R0, V6b's NIFTY 2%-day gate and bands, borrowed: claim size 0.5-14%, false futility 13-80%.
+     - R1, V7's own threshold with no gate: 5.8-20% and 30-65%.
+     - R2, V7's own thresholds per mean-VIX band: 1.2-25% and 13-75%.
+     - Nominal is 0.13-0.20% for claims and 2.5% for futility. **None holds.**
+   - **Why it fails.** R1 holds on the full period (0.11-0.12% and 2.4-2.5%) and fails only inside one regime. A calm
+     year gives false claims of 5.8-16.8%; a volatile half-year gives a false "no" up to 65%. V7's skill depends on the
+     regime, so a 6-12 month window cannot settle it.
+   - **Applied: V7 is descriptive-only in v4** (`terms.DESCRIPTIVE_ONLY`). Its three slots stay at p = 1: it never
+     claims and is never futile. It is not counted in Test A, so it can neither claim nor block a "no". The family
+     stays at 15. Tests are in `test_vix_null.py`.
+2. **A finding the review did not ask for, said plainly: the same regime test also breaks V6b.**
+   - Inside the busiest stretches by 2% days (the 2020 crash), V6b's banded thresholds claim falsely up to 44%
+     (n = 125) and 91% (n = 250).
+   - In the other orientation they say a false "no" up to 86% and 99.9% (`v4_brier_busy_stress.json`).
+   - The calm stress passed only because calm windows are not judgeable.
+   - I did not change V6b's rule unasked. It is protocol item E, for the judge, ChatGPT and the owner: accept with the
+     disclosure, exclude crash-dominated windows, or make V6b descriptive too. The last would leave **no claimable
+     member in v4**.
+3. **Protocol split.** `PROTOCOL_v4.md` was at 350 lines. The calibration detail moved to `PROTOCOL_v4_calibration.md`,
+   which is part of the protocol and frozen with it. References and tests are updated; the main file is now 325 lines.
+4. **Items 1-5, 7 and 8:** no change asked. The product warning in item 7 stands. The protocol already lists which
+   members are eligible and why (item D), and an unjudgeable member is never evidence of no skill.
+
+## Revision 7: answer to judge 98 addendum 6 (FAIL on e32f89d)
+
+1. **The judge's key finding, that V6b's crash-window "failures" are regime-local truth: ACCEPTED, checked.** Every
+   stress row now prints the true relative improvement inside the stretch ("local"). V6b's revision 6 rates (44-91%
+   claims, 86-99.9% "no") sit where local is +0.64 / -0.64, against a 0.02 minimum effect: the forecaster really is
+   better or worse there. Most large rates are regime truth.
+2. **Must-fix (a), the regime check for V1, V2 and V6a: DONE** (`tools/v4_regime_stress.py`, `v4_regime_stress.md`;
+   calibration section 4). 100,000 series per cell; busy and calm stretches of 125 and 250 sessions; both
+   orientations; n = 125 and 250; operative thresholds unchanged. **It found genuine errors the judge did not name, so
+   the caveat is more than wording:**
+   - **V1 in calm 2021 (forecaster locally 21% better): false "no" 6.81% (n = 125) and 2.93% (n = 250), against 2.5%.
+     False claims 0.85% / 0.66% where it is locally 18% worse, against 0.133%.** Three V1 slots could reach about 2.6%
+     by the union bound, against look 1's 2% (reasoning: slots are correlated).
+   - V6b in the 2020-21 crash year: false "no" 3.43% (n = 125); false claims 0.43% / 0.20%.
+   - V6a there: false "no" 2.69% (tolerance 2.60%).
+   - V2: no genuine error. Full 2019-26: every member within, which also checks that V1 and V2's 2024-26 thresholds
+     hold on 2019-26.
+   - Test A "no" (every counted member futile): Brier members are never judgeable in calm stretches, and V1 and V2 say
+     "no" at most 0.46% in busy ones. So in these stretches a false Test A "no" is at most the smallest counted
+     member's rate (reasoning on measured marginal rates; the joint rate is not measured).
+3. **Must-fix (b), the caveat covers every member's claims AND futility and the whole of Test A: STATED** in protocol
+   section 11 E and calibration section 4 (tested in `test_protocol_text.py`).
+4. **Item E's options, as the judge framed them: WRITTEN** (section 11 E). Option 2 is measured
+   (`tools/v4_crash_cut.py`, `v4_crash_cut.md`). Two cuts, outcome-side only and frozen as written: mean VIX above 25,
+   or more than 10% 2% days.
+   - Cost: 7.6-8.9% and 12.6-15.7% of real 2019-26 windows. V6b's judgeable share falls from 50% to 43% / 37%
+     (n = 125) and from 78% to 69% / 63% (n = 250).
+   - Effect: **worse, not better.** Inside the crash year V6b's false "no" rises from 3.43% to 10.41% / 16.00%, its
+     false claims from 0.43% to 1.31% / 2.10%, and V6a's false "no" from 2.69% to 7.57%.
+   - Why: the cut keeps the calmer part of the crash year, where the measured improvement is itself mostly below the
+     effect. So the dependence moves to the next regime. No crash cut touches V1's calm-window error.
+   - My recommendation is option 1 (some evidence). Option 3 leaves no claimable member, so Test A could never say
+     "yes". The choice is the owner's; it is a freeze precondition.
+5. **G8 acceptance criterion: ADDED** (`docs/design_v2/REPLAN_new_stories.md`, G8). Every verdict, claim, "no" and Test
+   A result prints its window's mean India VIX, its 2%-day count and its band. It does this from the new
+   `fno/forecast_v4/regime.py` (`window_regime(...).line()`), so G8 never re-implements it. Tests are in
+   `test_regime.py`.
+6. **Not changed, said plainly:** no threshold was recalibrated. V1's calm-window error stands, disclosed. A
+   regime-robust QLIKE rule would be a new calibration (for example, nulls conditioned on the window's VIX level, as
+   the bands condition on 2% days). I have not built one because the judge did not ask and V7's attempt (R2) failed.
+   If the owner or judge wants it, it is the next item.
+
+## Revision 8: answer to judge 98 addendum 7 (FAIL on 41f29d3)
+
+1. **Must-fix 1, V1's calm-window results are real failures: ACCEPTED (my own revision 7 table showed the same:
+   6.81% and 0.85%). Fixed by design:** the 5-day gate (at least five 2% days in the scored window) now covers **every
+   member**, claims and futility (`confirmatory.judgeable`, renamed from `brier_judgeable`; protocol 5.3 item 3).
+   A calm window is undecided for every member. Re-run (`v4_regime_stress.md`, 100,000 series per cell):
+   - Calm stretches: 0% judged for every member, so no error there.
+   - V1 full period, false "no": **0.56%** at n = 125 (was 1.49%; the judge expected 0.54%) and 1.88% at n = 250.
+     Judgeable: 53% at n = 125, 90% at n = 250, as the judge expected.
+   - Every member holds over the full period. The remaining genuine errors are all in the 2020-21 crash year: V6a
+     false "no" 2.69%, V6b false "no" 3.43%, V6b false claims 0.43% / 0.20%.
+   - **Banding for V1/V2: measured, not needed.** 47 of 48 band cells are within tolerance. One is marginal: V1,
+     n = 250, flipped, 5-7 days, 2.75% against 2.73%. That band's own truth (+0.017) is below the 0.03 effect, so a
+     "no" there is the band's truth. One marginal cell at 2 SE in 48 is what chance gives (some evidence).
+2. **Must-fix 2, option 2's "worse" was on the wrong basis: ACCEPTED, and the claim is WITHDRAWN.** Every rate is now
+   marked against its own set's truth: the pooled true improvement of the judged series each cut keeps. It is shown
+   beside the same draws with no cut (`v4_crash_cut.md`).
+   - The share cut (more than 10% 2% days) removes V6b's and V6a's crash-year genuine errors. It adds one small one:
+     V6b false claims 0.42% on the 1.2% of series it keeps in the 2020 crash.
+   - The VIX cut (mean above 25) removes some errors and adds larger ones: V6b at n = 250, a false "no" 5.14% and
+     false claims 0.91%.
+   - The cost table stands: the cuts remove 7.6-15.7% of windows.
+   - Some evidence only: one crash decides it.
+   - Section 11 E and calibration section 4 are corrected. I no longer recommend between option 1 and option 2 with
+     the share cut; option 3 ends every claim.
+3. **Unchanged:** no threshold was recalibrated; the G8 regime line now says "not judgeable: undecided" below 5 days
+   for every member.

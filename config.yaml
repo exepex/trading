@@ -37,14 +37,58 @@ slack:
 
 risk_free_rate: 0.065
 
-# Risk manager (story C2, fno/risk/). Owner decisions of 12 Oct 2026 (docs/DESK_DECISIONS.md), per book on its own
-# Rs 5 lakh paper account. A rule passes at its limit and refuses beyond it.
+# Risk manager (stories C2 and C5, fno/risk/): one profile per kind of account, each listing the rules it runs and
+# exactly their settings (fno/risk/profile_settings.py). A rule passes at its limit and refuses beyond it, except the
+# drawdown brake, which stops entries at its amount. Owner decisions (docs/DESK_DECISIONS.md).
 risk:
-  max_loss_per_trade_rs: 10000     # one trade's modelled maximum loss, every charge and pad included
-  max_open_trades: 3
-  drawdown_brake_rs: 30000         # closed equity this far below its high: no new trades until the owner restarts
-  max_stress_loss_rs: 30000        # open trades (from marks) plus the proposal (from entry), worst scenario below
-  # Stress scenarios (design 8.1): NIFTY move in %, every leg's implied volatility times iv_factor, days that pass.
+  profiles:
+    # The three paper books, each on its own account: Rs 20 lakh and Rs 10,000 a trade (14 Oct 2026); bucket, open-risk
+    # and new-risk caps and the Rs 1.2 lakh brake (15 Oct 2026, design v2 6.2); no flat 3-trade limit and no old stress
+    # or exposure limit (15 Oct 2026, "1 A" and "2 A"). Caps are sums of B2 maximum losses, the proposal's included:
+    # limits on new entries, never a stop. Margin data older than one session means no new entry (design 6.1a).
+    books:
+      rules: [paper_account, max_loss_per_trade, bucket_cap, open_risk_cap, new_risk_per_day, drawdown_brake,
+              margin_room]
+      paper_account_rs: 2000000    # every book and shadow account opens with this; a book opened otherwise trades nothing
+      max_loss_per_trade_rs: 10000 # one trade's modelled maximum loss, every charge and pad included
+      bucket_cap_rs: 30000         # one bucket: an underlying group and a side of exposure
+      open_risk_cap_rs: 150000     # all open positions of the book
+      new_risk_per_day_rs: 50000   # the trades opened in one session
+      drawdown_brake_rs: 120000    # closed equity this far below its high: no new trades until the owner restarts
+      # Side(s) of exposure per structure code; a code not listed is unmapped and refused (design 6.1a). A directional
+      # spread lists two sides and counts its full maximum loss in both buckets (owner, 15 Oct 2026, "1 B"): a credit
+      # vertical [its direction, short_volatility], a debit vertical [its direction, long_volatility]. LC and LP (a
+      # bought option, a directional bet that gains when movement grows): orchestrator decision, owner to confirm
+      # (owner away, 15 Oct 2026; response 105 addendum 4).
+      bucket_sides:
+        SF: short_volatility
+        SC: short_volatility
+        BF: long_volatility
+        PCS: [bullish, short_volatility]   # bull put credit spread
+        CCS: [bearish, short_volatility]   # bear call credit spread
+        CDS: [bullish, long_volatility]    # bull call debit spread
+        PDS: [bearish, long_volatility]    # bear put debit spread
+        LC: [bullish, long_volatility]     # long call: orchestrator decision, owner to confirm
+        LP: [bearish, long_volatility]     # long put: orchestrator decision, owner to confirm
+      margin_max_age_sessions: 1
+    # The Manual paper account (owner, 13 Oct 2026; unchanged on 15 Oct 2026): Rs 5 lakh, Rs 10,000 a trade, 3 open
+    # trades, Rs 30,000 brake, C2's stress and exposure limits, margins up to 7 days old.
+    manual:
+      rules: [paper_account, max_loss_per_trade, max_open_trades, drawdown_brake, stress_loss, exposure_limit,
+              margin_room]
+      paper_account_rs: 500000
+      max_loss_per_trade_rs: 10000
+      max_open_trades: 3
+      drawdown_brake_rs: 30000
+      max_stress_loss_rs: 30000    # open trades (from marks) plus the proposal (from entry), worst scenario below
+      # Proposed values, reasoning only (design 8.1); to be set from research before paper trading.
+      exposure:
+        nifty_move_pct: 2
+        max_move_loss_rs: 15000
+        iv_rise_points: 5
+        max_iv_loss_rs: 15000
+      margin_max_age_days: 7
+  # Stress scenarios (design 8.1) for the profiles that run stress_loss: NIFTY move in %, every leg's implied volatility times iv_factor, days that pass.
   # Replays: the NIFTY 50 and India VIX close-to-close moves of the day (previous session to that day), from
   # research/data/nifty-panel/warmup_closes.csv; tests/risk/test_scenarios_data.py checks them against those closes.
   scenarios:
@@ -60,17 +104,18 @@ risk:
     - {name: replay_2024-06-04, nifty_move_pct: -5.9294, iv_factor: 1.2775, days: 1}
     - {name: replay_2026-02-01, nifty_move_pct: -1.9557, iv_factor: 1.1079, days: 1}  # Feb 2026's largest fall
     - {name: replay_2026-02-03, nifty_move_pct: 2.5476, iv_factor: 0.9301, days: 1}   # Feb 2026's largest move
-  # Proposed values, reasoning only (design 8.1); to be set from research before paper trading.
-  exposure:
-    nifty_move_pct: 2
-    max_move_loss_rs: 15000
-    iv_rise_points: 5
-    max_iv_loss_rs: 15000
-  # Initial margin (SPAN plus exposure) per structure, width and lot, with source and date; older than this, or
-  # missing, refuses the trade.
+  # Design 6.2's daily stress line (story C5): a report on every card, not a limit. VIX +50% is an iv_factor of 1.5 on
+  # every leg; "+5%" keeps volatility unchanged (response 105, question 1).
+  stress_line:
+    - {name: nifty_down_5pct_vix_up_50pct, nifty_move_pct: -5, iv_factor: 1.5, days: 1}
+    - {name: nifty_down_5pct_vix_up_100pct, nifty_move_pct: -5, iv_factor: 2, days: 1}
+    - {name: nifty_down_10pct_vix_up_50pct, nifty_move_pct: -10, iv_factor: 1.5, days: 1}
+    - {name: nifty_down_10pct_vix_up_100pct, nifty_move_pct: -10, iv_factor: 2, days: 1}
+    - {name: nifty_up_5pct, nifty_move_pct: 5, iv_factor: 1, days: 1}
+  # Initial margin (SPAN plus exposure) per structure, width and lot, with source and date; older than the profile's
+  # margin age, or missing, refuses the trade.
   margins:
     file: research/data/margins/margins.csv
-    max_age_days: 7
     # Story A14 criterion 1 (judge 77): NSE SPAN rows are written only after an independent broker check of the job's
     # figures passed. 14 Oct 2026: Groww's SPAN equals the row's to the rupee and its exposure equals NSE's rule to the
     # paisa on the same index base (claims response 77, "Broker check 2"); the judge decides whether this meets it.
@@ -114,3 +159,34 @@ desk:
     execution_snapshot: "15:15"
     fills_by: "15:20"
     lock_lease_seconds: 60
+
+# Story BG1: the monthly AI budget. Decided by the owner on 15 Oct 2026 (docs/DESK_DECISIONS.md, "Monthly AI budget
+# accepted"): AI routine use for books and roles capped at half of the plan's measured session minutes, alert at 80%,
+# AI roles stop at 100% while code jobs keep running. The plan publishes no minutes allowance, so the cap is 50% of all
+# measured session minutes of the month until `measured_basis_until`; then `plan_minutes_per_month`, the owner's fixed
+# figure from real data (owner, 15 Oct 2026, "7 A": "50% of measured minutes for two months, then a fixed monthly
+# figure"; two months from the decision taken as November and December 2026, October being partial: the
+# orchestrator's decision while the owner was away, response 113; the owner may change it).
+# `v4_freeze_date` is protocol v4's freeze day once it exists (G6); empty means "projected".
+budget:
+  books_and_roles_share_pct: 50
+  alert_pct: 80
+  stop_pct: 100
+  measured_basis_until: "2026-12"
+  plan_minutes_per_month: null  # owed by the owner after measured_basis_until; never set by a builder
+  # The plan's decided monthly cost, applied to every month from `from_month` until a newer decision row changes it
+  # (judge 104 addendum 1; the orchestrator's reading of the owner's row, response 113). A recorded payment row in
+  # accounting/operating_costs.csv is that month's cash spend; the meter flags it when it differs.
+  plan_cost:
+    rs_per_month: 20000
+    from_month: "2026-10"
+    decision: "DESK_DECISIONS 15 Oct 2026: Claude plan cost: INR 20,000 a month"
+  # Data routines run by a Claude routine, each with its real schedule; each run's self-timed record is needed before the
+  # measured level is known (judge 104 addenda 1-2). The 3 pm recorder is started every calendar day at about 14:50
+  # IST (CLAUDE.md), closed days included. Writing that record is a change to the routine's prompt: the owner's step.
+  data_routines:
+    - name: "3 pm quote recorder"
+      schedule: daily
+  stop_rule:
+    v4_freeze_date: null
+    projected_v4_freeze_month: "2026-11"  # design v2 section 8.2: "if v4 freezes in early November 2026"
