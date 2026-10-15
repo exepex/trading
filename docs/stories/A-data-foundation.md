@@ -1070,6 +1070,97 @@ re-runs the job twice and checks the CSV is unchanged; checks the validation evi
 
 ---
 
+## A14c. The stressed-margin factor recomputed from NSE's archived SPAN files
+
+**Repository:** trading · **Lane:** 1 (money and risk: C2's margin stress)
+
+**Description:** As the risk manager, I want the stressed-margin factor recomputed from NSE's own archived SPAN files
+by one fixed, tested rule, with its evidence table, before each 30-day expiry, so that C2's crash buffer is measured,
+not typed by hand, and never lapses by surprise.
+
+**Context and why:** `config.yaml` `risk.stressed_margin` holds `multiplier: 1.45`, `as_of: 2026-10-14`,
+`max_age_days: 30` (owner, 14 Oct 2026, DESK_DECISIONS: "1.45 now, by hand"; "a monthly recompute from the 2020 archive
+can follow"). C2 and C4 refuse every trade once `(day - as_of) > 30` (`fno/risk/margins.py`,
+`fno/checks/validity_margin.py`), so **from 14 Nov 2026 every paper trade is refused** unless a new value is entered.
+1.45 came from a one-off hand run (response 77, "Stressed-margin factor"): the largest rise of a held position's NSE
+margin from entry to exit (21 days before expiry), SF, SC and BF at widths 100, 200 and 300, over three hand-picked
+windows (Jan-Apr 2020 1.265; May-Jun 2024 1.407, BF 300 entered 5 Jun; Sep-Oct 2026 1.127), rounded up to the next
+0.05. No code in the repository reproduces it.
+
+Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evidence unless marked):
+- **The measured quantity and the applied quantity differ.** 1.45 is the rise of the held position's whole margin
+  (scan and exposure, "today's method"). C2 multiplies the scan only: `max(0, k x scan - NOV) + min(0, NOV) +
+  exposure` (judge 75). On 14 Oct the scan is 1-14% of the margin (exposure 59,077.07 on every row), so k = 1.45 adds
+  +0.6% to SF 100 (59,899 to 60,269), +5.7% to SC 300 (the largest) and 0% to every BF row (response 77's own table). A
+  1.4x rise of a held SF 100's whole margin (about 84,000) is not covered.
+- NSE writes day d's `i1` file on the evening of the previous session (stamps read 15 Oct: `nsccl.20261012` at Fri
+  9 Oct 22:36, `nsccl.20261005` at Thu 1 Oct 22:32), so every day of a holding has its own file.
+- Drive holds the `i1` files from 1 Oct 2026 (manifest `span-bod.csv`); A14's schedule adds one a session. The 2020 and
+  2024 windows are not archived: response 77 read them ad hoc. All of 2020-2026 is about 1,700 files, about 16 GB.
+- 2020's files charged a short-option minimum (5% of the index per short unit). A14's reader refuses any non-zero
+  minimum (fail closed), so it cannot read 2020 files as they stand.
+- A14's exposure rule (2%, 3% beyond 10% out of the money) is coded, not read from NSE. A circular that raises it shows
+  in no file, so no recompute from files can see it.
+
+**Scope.** In:
+- a read-only research command `python -m fno margins stress-factor --from <d> --to <d>` that, for every entry day in
+  the range and every structure and width that C2 trades, rebuilds the entry's legs (A14's builder, the same expiry
+  rule) and recomputes their margin parts (scan, NOV, exposure) on each later day's first-archived `i1` file up to the
+  exit day; it reports the largest held rise of the quantity C2 multiplies (decided by owner question 1), rounded up to
+  the next 0.05, and an evidence table (window, structure, width, entry day, day of the peak, figures);
+- the 2020 short-option minimum modelled as SPAN does (per tier: the larger of the scan and the minimum times the short
+  units), behind A14's calculator interface, so the same code reads every year; any other method difference is still
+  refused by name;
+- the A9 librarian back-fill of the chosen windows' `i1` files into Drive with their manifest rows (owner question 2);
+- the output written to `research/data/margins/stress_factor_<run day>.csv` and `.md` (append-only, the files' SHA-256
+  named); a run never edits `config.yaml`.
+
+Out: changing C2's formula (owner question 1 may lead to a separate C2 story); writing `config.yaml` (the owner enters
+the value, owner question 3); any order.
+
+**Owner questions (each with a recommendation):**
+1. **Which quantity does k measure? (strong evidence of the gap; recommendation is reasoning only.)** (A) Measure the
+   held rise of the scan alone, the quantity C2 multiplies; expect a much larger k (scan is small and swings), and
+   exposure is still unstressed. (B) Keep measuring the whole margin and change C2 to multiply the whole figure (`k x
+   (scan + exposure)`, netted as judge 75 decided) in a separate C2 story. **Recommended: B.** It is what the owner
+   asked for ("crash buffer for margin") and what a broker raises in a crisis; A keeps a buffer that does not cover the
+   exposure rise of a held trade. Until decided, the report gives both figures.
+2. **Which windows? (reasoning only.)** Response 77 says "every entry day since 1 Jan 2020"; `config.yaml` says "the
+   same windows, plus any later ones". **Recommended: every entry day since 1 Jan 2020.** It is not hand-picked, it is
+   a superset (its result is never below the three windows'), and the one-time cost is about 16 GB in Drive and one long
+   run; later runs add only the new month.
+3. **Who sets the value? (reasoning only.)** (A) The owner enters each month's value by hand (today's rule). (B) The run
+   may raise `multiplier` by itself (never lower it), the owner approves any lowering. **Recommended: A for now.** The
+   owner keeps every risk value; the run lands on about day 23 of 30, leaving a week to decide.
+4. **NSE's circulars. (reasoning only.)** No history covers a rate NSE raises by circular (2020's minimum, exposure
+   rates). **Recommended:** accept the limit for paper trading; A14's reader already writes no row when the NIFTY
+   method changes (C2 refuses within 7 days); repeat A14's broker check (one Groww figure) at each recompute, so a coded
+   rate that drifted from the broker is caught within a month.
+
+**Acceptance criteria:**
+1. Reproduction: on the 2026 window the command reproduces response 77's 1.127 (BF 100) within 0.001, or explains each
+   difference with the files' figures.
+2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported rise and its day equal a
+   hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a test.
+3. Point in time: each day uses that day's first-archived `i1` file written before 09:00 IST on it, as A14 does
+   (test); a missing day in a holding is named in the report and that entry is excluded, never filled.
+4. 2020 method: a planted file with a non-zero short-option minimum gives the SPAN figure by hand (test); any other
+   method difference is refused by name (test).
+5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
+   same files writes byte-identical output; nothing writes `config.yaml` (test).
+6. Owner questions 1-4 answered in DESK_DECISIONS before the first value from this command is entered.
+7. Code size, lint, imports and the full suite pass.
+
+**Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; owner
+and judge by 11 Nov; 1.45 expires after 13 Nov. Then monthly, about 7 days before each expiry.
+
+**Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
+day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
+
+**Depends:** A9, A14, C2 · **Size:** M · **Status:** text for the judge (lane 1)
+
+---
+
 ## A15. India VIX full history
 
 **Repository:** trading
