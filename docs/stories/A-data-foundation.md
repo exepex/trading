@@ -929,3 +929,151 @@ with `value_for`; plants a revised value and a late value; confirms no S&P 500 o
 
 **Depends:** A7, A9, A11 · **Size:** M · **Status:** built, with the US closes in Drive only (owner decision
 a927390); awaiting judge (claims: `reviews/claude/response_103_a17-global-cues.md`, addendum 1)
+
+---
+
+## A17b. Guards before any consumer reads a global cue
+
+**Repository:** trading
+
+**Description:** As the risk manager and the statistician, I want every global-cue reading to say how old it is and
+whether it is the session it should be, so that the weather, M1 and the forecasts never use a stale or missing US close
+as if it were last night's.
+
+**Context and why:** judge 103 (A17 PASS, 15 Oct 2026) minors 1, 3, 4 and 5, and judge 100 (A15) minors; orchestrator,
+15 Oct 2026. Judge 103 found that `value_for` returns sp500's 14 Oct value for 27 Nov 2026, six weeks old, and that on
+15 Oct at 09:15 nasdaq100's "previous close" is 13 Oct, because Nasdaq lacked 14 Oct. Only the run says STALE. No code
+reads a cue yet, so this must be done before the first consumer. Judge 103 minor 2 (FBIL in a public repository) is
+the orchestrator's decision: the table stays public for now, as an open owner item.
+
+**Scope.** In:
+1. **Readings with an age and an expected date.** A `CueReading` returns the row, its age in calendar days from the
+   India date, the date the source *should* have given (its expected value date), and a status. Statuses, decided in
+   this order:
+   - `none`: nothing usable;
+   - `current`: the value is the expected date's, **whatever its age** (after Hurricane Sandy, 26 Oct 2012's close is
+     the expected one on 31 Oct and is `current`);
+   - `ahead`: newer than the expected date (the calendar did not expect a value that day but the source published one,
+     e.g. RBI on an NSE holiday). Usable like `current`, and flagged so the calendar mismatch is seen;
+   - `behind`: older than the expected date, age within the source's `max_age_days`;
+   - `stale`: older than the expected date **and** age over `max_age_days`.
+   For a cue without an expected date (Brent) only `behind` (age within `max_age_days`), `stale` and `none` are
+   possible.
+   `value_for` stays for research and gains no silent behaviour. Callers use `reading_for` and must refuse `stale` and
+   `none`. A caller using `behind` must state it in its own rules.
+2. **A US stock-market session calendar** (behind a new `UsSessionCalendar` interface) gives the expected date for the
+   S&P 500 and the Nasdaq 100: the last NYSE trading date whose close is published before the cutoff. It is built
+   from:
+   - NYSE's holiday rules, computed: weekend observance, Good Friday from Easter, Juneteenth from 2022;
+   - a sourced list of unscheduled NYSE closures since 2007, each row with an https source:
+     - 2 Jan 2007, national day of mourning for President Ford;
+     - 29-30 Oct 2012, Hurricane Sandy;
+     - 5 Dec 2018, President G. H. W. Bush;
+     - 9 Jan 2025, President Carter.
+   Reasoning only: the computed rules are not NYSE's own published list for each year. The test (criterion 2) checks
+   them against a **dates-only list of US trading days** committed as
+   `research/data/global-cues/us_trading_dates.csv`. It is derived from the Drive-only S&P 500 table, with a column
+   saying whether the Nasdaq 100 table has the date too. Orchestrator's decision (owner away, logged): trading dates
+   are exchange-calendar facts, not index values, so the Drive-only rule for values still holds. The list is
+   rewritten by `global-cues check` when the Drive settings are present. Nasdaq's extra holiday rows (repeated values)
+   show as Nasdaq-only dates and are listed, not counted as sessions.
+
+   **The US 10-year is not on the NYSE calendar** (judge 116: `us10y.csv` has no value on Columbus Day 2025 or
+   Veterans Day 2024, when NYSE was open, and has values on Good Friday 2015, 2021 and 2023, and on 2 Jan 2007,
+   29 Oct 2012 and 9 Jan 2025, when NYSE was closed). It follows the bond-market (SIFMA) calendar. Simplification,
+   like USD/INR's: its expected date is the previous Monday-to-Friday weekday before the cutoff. A bond-market holiday
+   then shows as `behind`, never wrongly as `current`; a sourced SIFMA calendar is **out** for now.
+
+   For the USD/INR cues the expected date is the previous **NSE session** (the A7 calendar's `regular` or `special`
+   sessions, not plain Monday to Friday) or, at 15:00, the same day when it is one. This is a simplification: RBI's and
+   FBIL's holidays are not NSE's. A mismatch shows as `behind` or `ahead`, never wrongly as `current`. **FBIL will
+   almost always read `behind`**: its public site trails by about a week. For Brent there is no expected date; age
+   only.
+3. **`max_age_days` per cue for readings:**
+   - US index closes and the US 10-year: 4 days. Thursday's close on Monday covers a Good Friday, and Friday's close on
+     Tuesday covers a US Monday holiday.
+   - USD/INR (RBI): 5 days.
+   - FBIL: 14 days (its public site trails a week).
+   - Brent: 16 days (weekly release).
+   These are the run's STALE limits made per reading. The US numbers are newly tightened from 7 days, to the
+   calendar's worst normal case.
+4. **The `live` label skips muhurat sessions.** The first NSE open after a value date is the first `regular` or
+   `special` session; a muhurat session has no 09:15 open. Committed labels are unchanged, because every affected row
+   is already `backfilled`; a test recomputes them all.
+5. **`adopt` checks Drive's own creation time.** The copy's `createdTime` in Drive must fall within 10 minutes after
+   the time in its path; otherwise adopt refuses and names both times. This needs a new read of Drive metadata behind
+   the store interface; stores without it refuse adopt.
+6. **The once-a-day rule also caps failed attempts.** Every download attempt of a once-a-day cue is logged (time and
+   outcome, no value) in `research/data/manifests/global-cues/attempts/<cue>.csv`. A third attempt on one IST date
+   is the last: after 3 attempts, or after 1 saved copy, nothing is downloaded that day, and the run says so.
+7. **Judge 100's A15 minors:**
+   - a test of `vix-history sweep`'s exit code when the original is missing;
+   - the README's muhurat wording: one-hour sessions, in the evening until 2024 and 13:45-14:45 IST in 2025, per the
+     calendar's circulars;
+   - the `lambda` and `noqa` in `fno/vix_history/wiring.py` replaced by a named function.
+8. **FBIL:** the data README records the orchestrator's decision (the table stays public, non-commercial use of a
+   published benchmark) as an open owner item.
+
+Out: any consumer (M1, the weather, forecasts); any display of the private cues; changing past table rows.
+
+**Acceptance criteria:**
+1. `reading_for` gives row, age, expected date and status, decided in the stated order. Tests cover each status, with
+   good, bad, boundary and empty cases:
+   - 15 Oct 2026, 09:15, nasdaq100 last value 13 Oct: `behind` (expected 14 Oct);
+   - 27 Nov 2026 with nothing after 14 Oct: `stale`. The expected date is 25 Nov: Thanksgiving is 26 Nov 2026, from the
+     computed 2026 US calendar;
+   - 31 Oct 2012 at 09:15, sp500 last value 26 Oct: `current` (Sandy closed NYSE on 29-30 Oct), although 5 days old;
+   - usdinr_rbi with a value for a date that is an NSE holiday but an RBI business day: `ahead`;
+   - us10y with a value for Good Friday read on the following Monday: `current`. Under the Monday-to-Friday rule
+     Good Friday is the expected date; that rule never makes us10y `ahead`;
+   - an age exactly at `max_age_days` is `behind`, one day more is `stale`;
+   - Brent: only `behind`, `stale` or `none`;
+   - no rows: `none`.
+2. The US stock-market calendar's expected date is right on:
+   - a US Monday holiday (MLK, 20 Jan 2026 gives 16 Jan);
+   - Good Friday (Monday gives Thursday);
+   - Thanksgiving week;
+   - Juneteenth before and after 2022;
+   - a weekend-observed holiday;
+   - each listed closure;
+   - US summer and winter time at 09:15 and 15:00.
+   A CI test checks the committed `us_trading_dates.csv` (dates only) against the calendar: every weekday since 2007
+   without an S&P 500 date is a holiday or a listed closure, and every S&P 500 date is a computed session; any
+   mismatch is named. A second CI test checks us10y's own dates against the Monday-to-Friday rule: every missing
+   weekday is listed as a bond-market holiday or gap, never treated as a session.
+3. The `live` label never uses a muhurat session as an open (test with a value dated the day before a muhurat
+   session); every committed label still recomputes.
+4. `adopt` refuses a copy whose Drive creation time is before its path time or more than 10 minutes after it, and a
+   store that cannot give the time (tests with a fake store; one real check on the four adopted copies).
+5. Attempts are logged and capped: a third failed attempt is the last that day, and a saved copy ends the day's
+   downloads; the attempt log holds times and outcomes only (tests).
+6. Judge 100's minors are done (tests for the sweep's exit code; README text; no `noqa` left in the vix wiring).
+7. The FBIL decision is in the data README as an open owner item.
+8. Quality rules:
+   - a gap list;
+   - a self-review by independent agents;
+   - a broken-code proof per criterion;
+   - real output in dates, ages and statuses only, never a private value.
+   Code size, lint, imports and the full suite pass; no frozen file changes.
+
+**Gap list (quality rule 2):**
+
+| Requirement (source) | Where |
+|---|---|
+| `value_for` refuses or marks a value older than `max_age_days` (judge 103 minor 1; orchestrator (1)) | scope 1 and 3, criterion 1 |
+| readers check the previous US session before using a US close (judge 103 minor 1; orchestrator (1)) | scope 2, criteria 1-2 |
+| the US 10-year's own calendar (judge 116 a) | scope 2: the Monday-to-Friday simplification; a sourced SIFMA calendar **out** |
+| status precedence; a value newer than expected; Brent's statuses (judge 116 b) | scope 1, criterion 1 |
+| the archived-table test in CI without Drive (judge 116 c) | scope 2: the dates-only `us_trading_dates.csv` (orchestrator's decision), criterion 2 |
+| muhurat is not an NSE open in the labels (judge 103 minor 3; orchestrator (3)) | scope 4, criterion 3 |
+| `adopt` cross-checks Drive's creation time (judge 103 minor 4; orchestrator (4)) | scope 5, criterion 4 |
+| failed attempts capped (judge 103 minor 5; orchestrator (5)) | scope 6, criterion 5 |
+| FBIL in a public repository (judge 103 minor 2) | scope 8, criterion 7: an owner item, the table stays |
+| A15 sweep exit code, muhurat wording, `lambda` + `noqa` (judge 100 minors) | scope 7, criterion 6 |
+| no consumer reads a cue before this story (judge 103) | out of scope: consumers come later and must use `reading_for` |
+| RBI's own holiday calendar for USD/INR | **out**: the simplification is stated in scope 2; it can only make a reading `behind`, never wrongly `current` |
+
+**Judge verifies:** runs `reading_for` on real tables for 15 Oct 2026 and 27 Nov 2026 (statuses and dates only); checks
+the US calendar against the archived trading dates; plants a muhurat case, a mis-timed adopt and a fourth attempt.
+
+**Depends:** A17 · **Size:** S · **Status:** story text for the judge's check (quality rule 1); no code yet

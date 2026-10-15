@@ -171,7 +171,7 @@ def test_a_stale_cue_and_a_run_stopped_midway_are_reported_with_what_came_before
 def test_after_the_calendars_last_year_the_label_is_never_guessed():
     calendar = wiring.storage.build_session_calendar()
     after = wiring.next_nse_session(calendar, calendar.first)
-    assert after(date(2012, 3, 2)) == date(2012, 3, 3)  # before the calendar: the next day
+    assert after(date(2012, 3, 2)) == date(2012, 3, 5)  # before the calendar: the next weekday (Friday to Monday)
     with pytest.raises(CalendarError):
         after(date(calendar.last.year + 1, 1, 5))
 

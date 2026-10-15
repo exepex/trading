@@ -2,6 +2,7 @@
 error page is never kept as a version; the table is not changed by a revision."""
 
 import hashlib
+from argparse import Namespace
 from datetime import date, datetime
 
 import requests
@@ -11,6 +12,8 @@ from fno.storage.manifest_folder import ManifestFolder
 from fno.storage.raw_source import PublishedFile, RawSourceUnavailable
 from fno.storage.raw_store import LocalFolderStore
 from fno.storage.revisions import RevisionArchive, RevisionIndex
+from fno.vix_history import wiring
+from fno.vix_history.cli import cmd_vix_history
 from fno.vix_history.month_file import NseVixJsonReader
 from fno.vix_history.source import NseVixHistorySource as Source
 from fno.vix_history.sweep import VixRevisionSweep
@@ -95,3 +98,14 @@ def test_an_http_refusal_is_no_answer_not_a_crash(tmp_path):
 
     job, _, _ = sweep(tmp_path, Refused({}))
     assert job.sweep([JULY]).unanswered == [JULY]
+
+
+def test_the_sweep_command_exits_1_when_an_original_is_missing(tmp_path, monkeypatch, capsys):
+    job, _, _ = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    (tmp_path / "raw" / PATH).unlink()
+    monkeypatch.setattr(wiring, "build_vix_revision_sweep", lambda: job)
+    assert cmd_vix_history(Namespace(action="sweep", start=JULY, end=JULY)) == 1
+    assert "original MISSING from the archive, nothing compared 2010-07" in capsys.readouterr().out
+    job, _, _ = sweep(tmp_path / "kept", FakeNseVix({PATH: july_2010()}))
+    monkeypatch.setattr(wiring, "build_vix_revision_sweep", lambda: job)
+    assert cmd_vix_history(Namespace(action="sweep", start=JULY, end=JULY)) == 0  # the same bytes: nothing missing
