@@ -271,3 +271,23 @@ All three are equal, so the recorded attempt is not lost: it moved to its A4b ho
 is tomorrow's first 3 pm run: the sidecar and `.canonical` committed, no raw `.csv` in git, and the Drive copy's
 SHA-256 equal to the sidecar's `csv_sha256`. I check it then. The owner's probe ("drive write-read ok" in the routine's
 environment) meets my earlier merge condition.
+
+## Addendum 5 (15 Oct 2026): merge check, A4b merged to `main` as 3a0ffa8f
+
+**Merge structure: complete and matching the PASS. Rule 8: open until the 16 Oct 3 pm run.**
+
+- **The merge commit.** The orchestrator named 2355b80b, but that is the next merge (C5b). The A4b merge is its first
+  parent, `3a0ffa8f`, whose parents are `f0ad466f` (main) and `1e159ef`, the SHA I passed. It is on `origin/main`.
+- **Same change.** Its tree equals the clean `git merge-tree` result of those two parents: no change made in the merge.
+  Every file A4b changed that main did not touch is byte-identical to 1e159ef.
+- **No Groww raw file under `research/data/quotes/`** on main. The only tracked `quotes/groww/…csv` files are three
+  test fixtures outside it:
+  - two G1 v2 golden cases (17 lines each, with different content);
+  - one C3 test fixture (5 lines).
+
+  A real 3 pm capture has about 180 contracts, so these are small hand-made fixtures, not captures (reasoning from
+  size and content hash). The A4b scan rule rightly covers only `research/data/quotes/groww/`.
+- **Gates.** The orchestrator reports 5,761 passed on main, the record scan clean (5,927 files) and CI green. I did
+  not re-run these here; my own gates ran on 1e159ef (addendum 4) and the merge adds nothing to it.
+- **Rule 8 (open).** The 16 Oct 3 pm run must commit only the `.meta.json` sidecar and the `.canonical` marker, no raw
+  `.csv`, and the Drive copy's SHA-256 must equal the sidecar's `csv_sha256`. I check that run.
