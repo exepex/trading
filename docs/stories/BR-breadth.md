@@ -156,8 +156,10 @@ and false-futility rates are known on real Indian data.
 
        If no rate passes, claims are postponed and BR1 reports descriptively until a new version.
      - **False futility, at the selected rate's look 1:**
-       - The paths are shifted to a true improvement of exactly the minimum effect, in Brier units: δ = 0.02 x the
-         primary's mean Brier on that path's series, added to every day of d.
+       - The paths are shifted to a true improvement of exactly the minimum effect, in Brier units, added to every
+         day of the series. There is one δ everywhere, 0.02 x the primary's mean Brier from study 1, the same as in
+         the loop (judge 186 addendum 1).
+       - For the -d sign, the shift is added to -d itself, so it is -d's own improvement of δ.
        - The share declared futile at look 1 must be at most 0.035, for each sign and in the worst year.
        - If it fails, the futility threshold is lowered through (0.015, 0.01, 0.005) at the same looks, stopping at
          the first that passes. If none passes, futility is dropped (look 2 decides alone). This never changes the
