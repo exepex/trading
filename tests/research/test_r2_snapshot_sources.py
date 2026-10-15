@@ -163,3 +163,32 @@ def test_input_cache_refuses_a_file_whose_hash_differs_from_its_manifest(tmp_pat
         cache.fetch(dataset, log=lambda line: None)
     assert cache.read(dataset, date(2024, 1, 2)) == ("2024-01-02.zip", good)
     assert cache.read(dataset, date(2024, 1, 3)) is None
+
+
+def raw_snapshot():
+    quote = {"bid_price": 9.5, "offer_price": 10.5, "bid_quantity": 200, "offer_quantity": 300}
+    stock = {"symbol": "ABC", "expiry": "2026-11-24", "lot": 125, "quotes": [
+        {"steps": 0, "strike": 1000.0, "kind": "CE", "trading_symbol": "ABC1000CE", "payload": quote},
+        {"steps": -1, "strike": 980.0, "kind": "PE", "trading_symbol": "ABC980PE", "payload": quote}]}  # fmt: skip
+    data = json.dumps({"started": "2026-10-15T14:00:00+05:30", "stocks": [stock, {"symbol": "X", "skipped": "e"}]})
+    return data.encode()
+
+
+def test_the_run_rebuilds_snapshot_legs_from_the_raw_file_and_counts_missing_previous_rows():
+    from r2study.bhav import Leg
+    from r2study.snapshot_legs import SnapshotMismatch, rebuild, symbols, taken_on
+
+    data = raw_snapshot()
+    sha = hashlib.sha256(data).hexdigest()
+    chains = {"ABC": {date(2026, 11, 24): {(1000.0, "CE"): Leg(10.0, 0.0, 1.0, 125)}}}  # a row with 0 contracts
+    legs = rebuild(data, "groww/x.json", sha, chains)
+    assert (len(legs.legs), legs.no_previous_row, legs.stocks, legs.skipped_stocks) == (2, 1, 1, 1)
+    assert legs.no_row_share == 0.5 and not legs.usable  # above 20%: not used
+    assert legs.record()["sha256"] == sha and legs.record()["used"] is False
+    assert legs.legs[0].lot == 125 and legs.legs[1].steps == 1
+    full = rebuild(data, "groww/x.json", sha, {"ABC": {date(2026, 11, 24): {
+        (1000.0, "CE"): Leg(10.0, 0.0, 1.0, 125), (980.0, "PE"): Leg(10.0, 5.0, 1.0, 125)}}})  # fmt: skip
+    assert full.no_row_share == 0.0 and full.usable
+    with pytest.raises(SnapshotMismatch):
+        rebuild(data, "groww/x.json", "0" * 64, chains)
+    assert symbols(data) == {"ABC"} and taken_on(data) == date(2026, 10, 15)

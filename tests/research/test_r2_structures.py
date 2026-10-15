@@ -129,3 +129,26 @@ def test_a_leg_in_an_untradable_bucket_is_not_liquid_at_stage_3():
 def test_condor_credit_at_or_above_the_wider_wing_is_untradable():
     prices = {(1020.0, "CE"): 30.0, (1040.0, "CE"): 5.0, (980.0, "PE"): 0.5, (960.0, "PE"): 5.5}  # credit 20 = wing
     assert price_structure(BY_NAME["S7"], chain_of(prices), STRIKES).untradable == st.DEBIT_AT_WIDTH
+
+
+def test_condor_maximum_loss_uses_the_wider_wing_when_steps_differ():
+    strikes = Strikes(1000.0, 20.0, 50.0)  # 20 up, 50 down (a strike-grid change at K0)
+    prices = {(1020.0, "CE"): 12.0, (1040.0, "CE"): 5.0, (950.0, "PE"): 11.0, (900.0, "PE"): 4.0}
+    priced = price_structure(BY_NAME["S7"], chain_of(prices), strikes)
+    assert priced.width == 50.0 and maximum_loss(priced, 100, 0.0) == pytest.approx((50.0 - 14.0) * 100)
+
+
+def test_cap_with_pads_is_at_most_rs_10000():
+    model = spread_model(0.0)  # zero half-spread: the padded loss equals the debit
+    assert evaluate(BY_NAME["S1"], market(close=100.0), NO_CHARGES, model).fits_with_pads
+    assert not evaluate(BY_NAME["S1"], market(close=100.0001), NO_CHARGES, model).fits_with_pads
+
+
+def test_condor_tail_is_two_percent_of_the_maximum_loss_including_costs():
+    m = market(close=10.0)
+    m = EventMarket(**{**m.__dict__, "entry": {**m.entry, (1020.0, "CE"): Leg(12.0, 100.0, 1e6),
+                                                 (980.0, "PE"): Leg(11.0, 100.0, 1e6)}})  # fmt: skip
+    outcome = evaluate(BY_NAME["S7"], m, CHARGES, spread_model(0.0))
+    credit, costs = 12.0 - 10.0 + 11.0 - 10.0, outcome.charges
+    loss = (20.0 - credit) * 100 + costs
+    assert costs > 0 and outcome.expected_net == pytest.approx(0.05 * credit * 100 - costs - 0.02 * loss)

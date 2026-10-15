@@ -138,3 +138,44 @@ def test_passing_clusters_are_split_into_october_to_september_parts():
     rows = [Scored(passing, date(2024, 10, 16), "IT"), Scored(passing, date(2024, 10, 17), "IT"),
             Scored(passing, date(2025, 10, 16), "IT")]  # fmt: skip
     assert clusters_by_part(rows) == {"Oct 2024 - Sep 2025": 1, "Oct 2025 - Sep 2026": 1}
+
+
+def test_a_fitting_liquid_event_with_expected_net_at_or_below_zero_adds_no_cluster():
+    from r2study.evaluate import Outcome
+    from r2study.stages import Scored, score_structure
+
+    fits = dict(fits_without_pads=True, liquid=True, fits_with_pads=True, break_even_edge=0.05, gross_to_cost=1.0)
+    rows = [Scored(Outcome("S1", expected_net=0.0, **fits), date(2024, 10, 16), "IT"),
+            Scored(Outcome("S1", expected_net=-5.0, **fits), date(2024, 10, 23), "IT"),
+            Scored(Outcome("S1", expected_net=1.0, **fits), date(2024, 10, 30), "FIN")]  # fmt: skip
+    result = score_structure("S1", rows, (date(2024, 10, 1), date(2025, 9, 30)), None)
+    assert result.stage3_share == 1.0 and result.clusters == 1  # only the EN > 0 event's cluster
+
+
+def test_kish_uses_the_icc_of_absolute_moves_not_signed_moves():
+    moves = [(("IT", 2020, 5), 0.05), (("IT", 2020, 5), -0.05), (("FIN", 2020, 5), 0.01), (("FIN", 2020, 5), -0.01)]
+    result = within_week_correlation(moves)
+    assert result.rho_move != result.rho_abs
+    assert result.kish == pytest.approx(kish_count([2, 2], result.rho_abs))
+
+
+def summary_with(stocks):
+    return DaySummary(date(2024, 10, 1), {s: [Future(date(2024, 10, 31), 1, 1, 1, 1, 1, 1)] for s in stocks},
+                      frozenset(stocks))  # fmt: skip
+
+
+def test_stage_0_passes_at_exactly_80_percent_coverage_and_10_percent_lot_unknown():
+    from r2study.descriptive import results_date_coverage, stage0
+    from r2study.events import Meeting
+    from r2study.sessions import Sessions
+
+    days = [date(2024, 10, 1), date(2024, 12, 31), date(2025, 1, 1)]
+    stocks = ["A", "B", "C", "D", "E"]
+    summaries = {d: summary_with(stocks) for d in days}
+    meetings = [Meeting(s, date(2024, 11, 5), "Financial Results") for s in stocks[:4]]
+    coverage = results_date_coverage(meetings, summaries, Sessions(days), date(2024, 10, 1))
+    assert coverage["share"] == 0.8 and coverage["passes"]  # 4 of 5: exactly 80%
+    under = results_date_coverage(meetings[:3], summaries, Sessions(days), date(2024, 10, 1))
+    assert not under["passes"]
+    assert stage0(coverage, 10, 100)["passes"]  # exactly 10% lot unknown
+    assert not stage0(coverage, 11, 100)["passes"]

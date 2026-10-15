@@ -57,6 +57,22 @@ counts), and real gaps fixed since (a middle-tercile merge test; a quote answere
 calendar sessions; a stronger lot-formula mutation) plus **one code bug the mutation exposed**: the 20% one-sided
 boundary computed as `1 - 8/10` = 0.1999..., so exactly 20% could never be tested; now computed as a count ratio.
 
+## Judge 109 addendum 2 (FAIL on adccf53): what I checked and did
+
+All three should-fixes and four minors accepted after checking them against the code (each was true: no test bit
+judge D's eight plants; `previous_contracts` is 0.0 for both "no row" and "0 contracts"; nothing named the snapshot).
+- SF1: tests for M3 (EN <= 0 adds no cluster), M30 (pre-window events never decide), M17 (condor wider wing with
+  unequal steps), M18 (with-pads cap at 10,000.00 and just above), M23/M24 (stage 0 exactly 10% and 80%), M10 (S7 tail
+  on the costed loss), M16 (Kish on |m|). All eight are in `mutations.json`; 68 of 68 caught.
+- SF2: `r2study/snapshot_legs.py` rebuilds the legs from the raw Drive file plus the previous session's F&O file,
+  counts legs with no previous-session row, and the run uses the snapshot only at or below 20%.
+- SF3: `--snapshot PATH SHA256`; the run refuses a raw file whose SHA-256 differs; `results.json` gets a `snapshot`
+  record (Drive path, SHA-256, time, counts, used or not).
+- Minors: protocol and amendments in `check_frozen`; muhurat-day filings after-hours; cache outside the checkout;
+  the `--ready` parse noted in `FREEZE.md`.
+- The snapshot is taken from a worktree pinned at adccf53 (its 27 `FREEZE.md` hashes checked: all match), as judge D
+  ruled; `snapshot.py` and `snapshot_capture.py` are byte-identical in the fix commit.
+
 ## Gap list (REPLAN item 5, the protocol, judge 97's follow-ups)
 
 | Requirement | Where | Test |

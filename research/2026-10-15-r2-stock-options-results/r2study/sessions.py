@@ -12,10 +12,12 @@ OPEN, CLOSE = time(*MARKET_OPEN), time(*MARKET_CLOSE)
 
 class Sessions:
     """The sorted list of NSE sessions with an F&O file (`days`); `later` adds the calendar's sessions after the last
-    file, used only to count sessions up to an expiry (amendment 1 D5)."""
+    file, used only to count sessions up to an expiry (amendment 1 D5); `irregular` are days with a file that are not
+    regular sessions (a muhurat session), where no filing is "in market hours" (judge 109 addendum 2, minor 2)."""
 
-    def __init__(self, days, later=()):
+    def __init__(self, days, later=(), irregular=()):
         self.days = sorted(set(days))
+        self.irregular = frozenset(irregular)
         self._position = {day: i for i, day in enumerate(self.days)}
         self._counted = sorted(set(self.days) | {d for d in later if not self.days or d > self.days[-1]})
 
@@ -61,6 +63,8 @@ def reaction_session(sessions: Sessions, results_day: date, filed_at: datetime |
     if filed_at is None:
         return sessions.after(results_day)
     day, moment = filed_at.date(), filed_at.time().replace(tzinfo=None)
+    if day in sessions.irregular:
+        return sessions.after(day)
     if day in sessions and OPEN <= moment <= CLOSE:
         return day
     if moment < OPEN:

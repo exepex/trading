@@ -289,8 +289,8 @@
  },
  {
   "file": "wiring.py",
-  "old": "    return Sessions(days, later)",
-  "new": "    return Sessions(days)",
+  "old": "    return Sessions(days, later, stray)",
+  "new": "    return Sessions(days, irregular=stray)",
   "test": "test_r2_end_to_end.py::test_the_studys_sessions_count_calendar_sessions_after_the_last_file"
  },
  {
@@ -340,5 +340,71 @@
   "old": "\"decision_window_with_filed_at\": _share([e.filed_at is not None for e in decision_events]),",
   "new": "\"decision_window_with_filed_at\": 1.0,",
   "test": "test_r2_end_to_end.py::test_a_fitting_liquid_cheap_event_still_fails_on_clusters_a_year"
+ },
+ {
+  "file": "stages.py",
+  "old": "        passing = [s for s in scored if s.outcome.counts_for_clusters]",
+  "new": "        passing = [s for s in scored if s.outcome.stage3]",
+  "test": "test_r2_spreads_clusters_stages.py::test_a_fitting_liquid_event_with_expected_net_at_or_below_zero_adds_no_cluster"
+ },
+ {
+  "file": "analysis.py",
+  "old": "[x for x in v if x.reaction >= DECISION_START], window",
+  "new": "v, window",
+  "test": "test_r2_end_to_end.py::test_events_before_the_decision_window_never_decide"
+ },
+ {
+  "file": "structures.py",
+  "old": "return max(calls[-1] - calls[0], puts[-1] - puts[0])",
+  "new": "return min(calls[-1] - calls[0], puts[-1] - puts[0])",
+  "test": "test_r2_structures.py::test_condor_maximum_loss_uses_the_wider_wing_when_steps_differ"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "fits_with_pads=loss <= MAX_LOSS_CAP_RS",
+  "new": "fits_with_pads=loss < MAX_LOSS_CAP_RS",
+  "test": "test_r2_structures.py::test_cap_with_pads_is_at_most_rs_10000"
+ },
+ {
+  "file": "descriptive.py",
+  "old": "if lot_share > MAX_LOT_UNKNOWN_SHARE:",
+  "new": "if lot_share >= MAX_LOT_UNKNOWN_SHARE:",
+  "test": "test_r2_spreads_clusters_stages.py::test_stage_0_passes_at_exactly_80_percent_coverage_and_10_percent_lot_unknown"
+ },
+ {
+  "file": "descriptive.py",
+  "old": "\"passes\": share >= MIN_RESULTS_DATE_COVERAGE}",
+  "new": "\"passes\": share > MIN_RESULTS_DATE_COVERAGE}",
+  "test": "test_r2_spreads_clusters_stages.py::test_stage_0_passes_at_exactly_80_percent_coverage_and_10_percent_lot_unknown"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "tail = S7_TAIL_SHARE * loss if structure.credit else 0.0",
+  "new": "tail = S7_TAIL_SHARE * (loss - cost) if structure.credit else 0.0",
+  "test": "test_r2_structures.py::test_condor_tail_is_two_percent_of_the_maximum_loss_including_costs"
+ },
+ {
+  "file": "moves.py",
+  "old": "kish=kish_count([len(g) for g in signed], rho_abs),",
+  "new": "kish=kish_count([len(g) for g in signed], icc_anova(signed)),",
+  "test": "test_r2_spreads_clusters_stages.py::test_kish_uses_the_icc_of_absolute_moves_not_signed_moves"
+ },
+ {
+  "file": "snapshot_legs.py",
+  "old": "return bool(self.legs) and self.no_row_share <= MAX_NO_PREVIOUS_ROW_SHARE",
+  "new": "return bool(self.legs)",
+  "test": "test_r2_end_to_end.py::test_a_snapshot_above_20_percent_without_previous_rows_is_not_used"
+ },
+ {
+  "file": "snapshot_legs.py",
+  "old": "    if sha != expected_sha256:",
+  "new": "    if False:",
+  "test": "test_r2_snapshot_sources.py::test_the_run_rebuilds_snapshot_legs_from_the_raw_file_and_counts_missing_previous_rows"
+ },
+ {
+  "file": "sessions.py",
+  "old": "    if day in sessions.irregular:\n        return sessions.after(day)\n",
+  "new": "",
+  "test": "test_r2_timing_events.py::test_a_market_hours_filing_on_a_muhurat_day_is_after_hours"
  }
 ]

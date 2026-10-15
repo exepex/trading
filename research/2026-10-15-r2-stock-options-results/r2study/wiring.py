@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import json
 import subprocess
 from datetime import date, timedelta
 from pathlib import Path
@@ -23,11 +22,12 @@ from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLeg
 from fno.storage.wiring import build_drive_reader, build_session_calendar
 
 from .analysis import Inputs
+from .bhav import option_legs
 from .events import Meeting
 from .inputs import REPOSITORY, DatasetFiles, InputCache, checked, manifest_rows
 from .sessions import Sessions
+from .snapshot_legs import SnapshotLegs, rebuild, symbols, taken_on
 from .sources import corporate_actions, read_filing_times, read_meetings, read_sectors, symbol_names
-from .spreads import QuotedLeg
 
 FOLDER = Path(__file__).resolve().parents[1]
 UDIFF = DatasetFiles("fo-bhavcopy", NseDailyFoSource.path_for, NseDailyFoSource.filename_for, date(2024, 1, 1))
@@ -55,7 +55,13 @@ FILINGS_MANIFEST = REPOSITORY / "research" / "data" / "manifests" / "filings" / 
 LEDGER = REPOSITORY / "research" / "ledger.csv"
 LATER_DAYS = 60  # calendar sessions after the last F&O file, to count sessions up to an expiry (amendment 1 D5)
 CALENDAR_END = date(2026, 12, 31)  # research/data/calendar/nse_sessions.csv covers NSE's circulars up to here
-FROZEN = ("study.py", "snapshot.py", "AMENDMENT_2.md")  # with every r2study/*.py: hashed in FREEZE.md
+FROZEN = (
+    "study.py",
+    "snapshot.py",
+    "PROTOCOL.md",
+    "AMENDMENT_1.md",
+    "AMENDMENT_2.md",
+)  # with every r2study/*.py: hashed in FREEZE.md
 
 
 def sessions_from_manifests(log=print) -> Sessions:
@@ -67,7 +73,7 @@ def sessions_from_manifests(log=print) -> Sessions:
     log(f"sessions: {len(days)} days with an F&O file; {len(stray)} not regular sessions in the calendar: {stray}")
     last = max(days)
     later = calendar.sessions(last + timedelta(days=1), min(last + timedelta(days=LATER_DAYS), CALENDAR_END))
-    return Sessions(days, later)
+    return Sessions(days, later, stray)
 
 
 def snapshot_bytes(drive, name: str) -> bytes:
@@ -106,12 +112,21 @@ def meetings_from_archive(cache: InputCache, last: date, log=print) -> list[Meet
     return meetings
 
 
-def read_snapshot_legs(path: Path) -> list[QuotedLeg]:
-    """The snapshot's derived legs file (one JSON object per line, made by snapshot.py)."""
-    return [QuotedLeg(**json.loads(line)) for line in path.read_text().splitlines() if line.strip()]
+def snapshot_legs(drive, cache: InputCache, sessions: Sessions, names, path: str, sha256: str) -> SnapshotLegs:
+    """The snapshot's legs rebuilt from its raw Drive file (checked against the SHA-256 printed when it was taken) and
+    the previous session's F&O file (judge 109 addendum 2, should-fixes 2-3)."""
+    raw = drive.get(path)
+    if raw is None:
+        raise FileNotFoundError(f"raw/{path} is not in Drive")
+    previous = sessions.before(taken_on(raw))
+    found = cache.read(UDIFF, previous)
+    if found is None:
+        raise FileNotFoundError(f"{previous}: the previous session's F&O file is not cached")
+    return rebuild(raw, path, sha256, option_legs(previous, *found, symbols(raw), names))
 
 
-def build_inputs(cache_folder: Path, snapshot: Path | None, workers: int, last: date) -> Inputs:
+def build_inputs(cache_folder: Path, snapshot: tuple[str, str] | None, workers: int, last: date) -> Inputs:
+    """`snapshot`: the raw file's Drive path (under `raw/`) and the SHA-256 `snapshot.py` printed, or None."""
     drive = build_drive_reader()
     cache = InputCache(cache_folder, drive.get)
     sessions = sessions_from_manifests()
@@ -137,7 +152,7 @@ def build_inputs(cache_folder: Path, snapshot: Path | None, workers: int, last: 
         names=names,
         actions=corporate_actions(snapshot_bytes(drive, "actions"), names),
         charges=load_config()["charges"],
-        snapshot=read_snapshot_legs(snapshot) if snapshot else None,
+        snapshot=snapshot_legs(drive, cache, sessions, names, *snapshot) if snapshot else None,
         workers=workers,
     )
 

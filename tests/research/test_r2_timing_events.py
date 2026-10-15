@@ -140,3 +140,10 @@ def test_sessions_after_the_archive_are_counted_from_the_calendar_for_the_expiry
     assert choose_expiry(archive, [date(2026, 10, 27)], date(2026, 10, 13)) == (date(2026, 10, 27), False)
     bare = Sessions(weekdays(date(2026, 10, 1), date(2026, 10, 14)))
     assert choose_expiry(bare, [date(2026, 10, 27)], date(2026, 10, 13)) == (None, True)
+
+
+def test_a_market_hours_filing_on_a_muhurat_day_is_after_hours():
+    days = weekdays(date(2024, 10, 28), date(2024, 11, 8)) + [date(2024, 11, 3)]  # a Sunday muhurat session
+    sessions = Sessions(days, irregular=[date(2024, 11, 3)])
+    assert reaction_session(sessions, date(2024, 11, 3), datetime(2024, 11, 3, 11, 0)) == date(2024, 11, 4)
+    assert reaction_session(sessions, date(2024, 11, 4), datetime(2024, 11, 4, 11, 0)) == date(2024, 11, 4)

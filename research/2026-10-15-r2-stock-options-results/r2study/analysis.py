@@ -16,8 +16,9 @@ from .markets import CORPORATE_ACTION, LOT_UNKNOWN, screen_actions
 from .reading import DayFile, FileReader
 from .rules import DECISION_START, PERIOD_START
 from .sessions import Sessions
+from .snapshot_legs import SnapshotLegs
 from .sources import CorporateActions, SymbolNames
-from .spreads import QuotedLeg, SpreadModel
+from .spreads import SpreadModel
 from .stages import CANNOT, decide, score_structure
 
 Filed = tuple[datetime, date]
@@ -40,7 +41,7 @@ class Inputs:
     names: SymbolNames
     actions: CorporateActions
     charges: dict
-    snapshot: list[QuotedLeg] | None
+    snapshot: SnapshotLegs | None  # rebuilt from the raw Drive file; None when no snapshot was taken
     workers: int = 0
 
 
@@ -72,7 +73,7 @@ def run(inputs: Inputs) -> dict:
         left.add(event, CORPORATE_ACTION)
     found_plans = steps.plans(kept, reader, read, s, summary, legacy_rule if validation["valid"] else None, left)
     found = steps.markets(found_plans, reader, read, s, inputs.sectors, left, notes)
-    spreads = SpreadModel(inputs.snapshot) if inputs.snapshot else None
+    spreads = SpreadModel(inputs.snapshot.legs) if inputs.snapshot and inputs.snapshot.usable else None
     correlation, dropped = steps.correlation(events, legacy_rule, summary, inputs.nifty, inputs.sectors)
     scored = steps.score(found, inputs.charges, spreads)
     window = (DECISION_START, s.last)
@@ -104,6 +105,7 @@ def run(inputs: Inputs) -> dict:
         "correlation": correlation,
         "correlation_left_out": dict(dropped),
         "spreads": spreads,
+        "snapshot": inputs.snapshot.record() if inputs.snapshot else None,
         "descriptive": {
             **plan_lines([p for p in found_plans if p.event.reaction >= DECISION_START], inputs.sectors),
             "all_years": plan_lines(found_plans, inputs.sectors),

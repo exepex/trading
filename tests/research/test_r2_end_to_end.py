@@ -20,10 +20,12 @@ from r2study.events import Meeting
 from r2study.lots import LegacyLots, agreed_lot, validate_derivation
 from r2study.report import results_json, results_markdown
 from r2study.sessions import Sessions
+from r2study.snapshot_legs import SnapshotLegs
 from r2study.sources import CorporateActions, SymbolNames
 
 from fno.fo_bhavcopy import COLUMNS
 
+LEGS = [quoted(s, c, spread=0.001) for s in (0, 1, 2) for c in range(40)]
 DAYS = weekdays(date(2024, 10, 1), date(2025, 1, 10))
 EXPIRIES = [date(2024, 10, 31), date(2024, 11, 28), date(2024, 12, 26), date(2025, 1, 30), date(2025, 2, 27)]
 
@@ -60,7 +62,7 @@ def inputs(lot=100, snapshot=True, meetings=None, lot_of=None, filed=None, missi
         names=names,
         actions=CorporateActions([], names),
         charges=CHARGES,
-        snapshot=[quoted(s, c, spread=0.001) for s in (0, 1, 2) for c in range(40)] if snapshot else None,
+        snapshot=SnapshotLegs("raw/x.json", "0" * 64, "2026-10-15T14:00:00+05:30", legs=LEGS) if snapshot else None,
     )
 
 
@@ -181,3 +183,21 @@ def test_the_studys_sessions_count_calendar_sessions_after_the_last_file():
 
     sessions = sessions_from_manifests(log=lambda line: None)  # manifests and the calendar only: no study data
     assert sessions.between(sessions.last, sessions.last + timedelta(days=30)) >= 15
+
+
+def test_events_before_the_decision_window_never_decide(monkeypatch):
+    import r2study.analysis as analysis
+
+    monkeypatch.setattr(analysis, "DECISION_START", date(2024, 10, 24))  # the 23 Oct event is now before the window
+    out = run(inputs())
+    assert by_name(out)["S1"].events == 0
+    assert {s.name[:2]: s for s in out["structures_2019_sep_2024"]}["S1"].events == 1
+
+
+def test_a_snapshot_above_20_percent_without_previous_rows_is_not_used():
+    unusable = SnapshotLegs("raw/x.json", "0" * 64, "t", legs=LEGS, no_previous_row=int(len(LEGS) * 0.2) + 1)
+    assert run(inputs())["snapshot"]["used"] is True
+    plain = inputs()
+    plain.snapshot = unusable
+    out = run(plain)
+    assert out["snapshot"]["used"] is False and out["answer"]["answer"] == "CANNOT ANSWER"
