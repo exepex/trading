@@ -1,7 +1,7 @@
 # The breadth track (BR1)
 
 Research only: forecasts and their scores, never an order. The story is `docs/stories/BR-breadth.md`, the design
-`reviews/claude/response_154_breadth-track.md`. The protocol is `PROTOCOL.md`; it is not frozen.
+`reviews/claude/response_154_breadth-track.md`. The protocol is `PROTOCOL.md`; it is a draft, not frozen.
 
 ## How to read BR1's numbers (owner, 16 Oct 2026)
 
@@ -13,8 +13,10 @@ Research only: forecasts and their scores, never an order. The story is `docs/st
   unknown.
 - **The tilt is a planning case, not a good forecaster.** On 2024-2026 the 1.15 volatility tilt **lost** to `cal60`
   (t -8.06).
-- **A BR1 claim means one thing only:** "family F beats the primary baseline on T1, end of day". It is never "beats
-  all baselines", and never a trading or real-money result.
+- **A BR1 claim means one thing only:** "family F beats the primary baseline on T1, end of day". It is never a win over
+  every baseline, and never a trading or real-money result.
+- **Claims are postponed under protocol version 1:** study 3 found no rate at which the test keeps its false-claim
+  limits on the real null (`studies/results/DIAGNOSTICS.md`). A new version is the owner's decision.
 
 ## Layout
 

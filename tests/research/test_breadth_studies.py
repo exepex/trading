@@ -109,3 +109,18 @@ def test_false_futility_counts_a_true_improvement_of_delta_in_each_signs_own_dir
     far = study3.false_futility(member_paths - 0.05, losses, 100, 0.004, 0.025)  # a huge true improvement
     assert far == 0.0
     assert study3.false_futility(member_paths + 0.05, losses, 100, 0.004, 0.025) == 1.0  # a huge loss: futile
+
+
+def test_on_a_gaussian_ar1_null_of_lag_0_3_the_study_rate_is_the_frozen_tests_rate():
+    """Criterion 6: the study's false-claim count equals the frozen test run on every path (so within any 2 SE); the
+    test's own size on this null is a finding (DIAGNOSTICS.md), not something the study may correct."""
+    rng = np.random.default_rng(11)
+    noise = rng.standard_normal((3, 30, 160))
+    paths = np.zeros_like(noise)
+    for day in range(160):
+        paths[:, :, day] = noise[:, :, day] + (0.3 * paths[:, :, day - 1] if day else 0)
+    rate, looks = 0.2, (80, 160)  # a high rate, so the bootstrap branch is reached on a null
+    shortcut = study3.false_claims(paths, looks, rate)
+    full = {look: np.mean([min(confirmatory_test(paths[m, i, :look], 5, m).p_value for m in range(3)) <= rate / 3
+                           for i in range(30)]) for look in looks}  # fmt: skip
+    assert shortcut["look1"] == full[80] and shortcut["look2"] == full[160] and shortcut["look1"] > 0

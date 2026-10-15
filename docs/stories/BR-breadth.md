@@ -280,5 +280,5 @@ Out (with reasons):
 **Depends:** the Drive raw archive (read only), S1's protocol format and freezer, G8's `confirmatory_test` and
 `futility_p` (`fno/forecast_v4/confirmatory.py`).
 
-**Size:** M · **Status:** story text for the judge's check. Code and studies start only after its PASS and
-ChatGPT's review.
+**Size:** M · **Status:** text PASS (judge 186), ChatGPT review 121 ACCEPT; studies run once, claims POSTPONED by
+study 3; code with judge A (`reviews/claude/response_201_br1a-code-claims.md`).
