@@ -605,25 +605,33 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 ---
 
-## E5b. Book 1's decision command: a failed commit alerts once and is recovered, never redecided
+## E5b. Book 1's decision command: one decision a day, and a failed commit alerts once and is recovered
 
 **Repository:** trading
 
-**Description:** As the owner, I want `fno desk book1` to handle a failed commit the way E3's daily run now does (story
-E2b, decisions 44 and 47): one alert, a clear line, exit code 1, no traceback, and a rerun that commits the recorded
-decision as it was made, so that a refused or rejected commit is never silent and a decision is never made twice.
+**Description:** As the owner, I want Book 1 to hold at most one decision a day, and `fno desk book1` to handle a
+failed commit the way E3's daily run now does (story E2b, decisions 44 and 47): one alert, a clear line, exit code 1,
+no traceback, and a rerun that commits the recorded decision as it was made. That way a later run can never re-decide
+the day with later data (a look-ahead hole in the book's record), and a refused or rejected commit is never silent.
 
-**Context and why:** Orchestrator decision 46 (judge 118 addenda 3 and 7). Today `Book1.decide`
+**Context and why:** Orchestrator decisions 46 and 57 (judge 118 addenda 3 and 7). Today `Book1.decide`
 (`fno/books/book1.py:74`) calls `GitCommitter.commit`, which raises `CommitFailed` on any refusal or git failure (a
 raw quote file in the index, a failed pull, a push rejected three times, an unpushed commit it did not make). Nothing
 catches it, so the command ends in a traceback and nothing reaches #fno-desk. A rerun with byte-identical inputs then
 returns "already decided" (`DuplicateRun`, `fno/playbook/decision_store.py:72-75`) without committing, so the first
 decision stays uncommitted (or committed but unpushed) for good; with any changed input it decides again as a second
-run beside the first, so the day holds two decisions. The judge's note (addendum 7): a Book 1 decision commit left unpushed in a checkout
+run beside the first, so the day holds two decisions, and E3's collector takes the latest one committed before the
+deadline (`fno/desk/committed_decisions.py:36-41`). A rerun at 15:08 with fresher data would then replace the 15:00
+decision: a look-ahead hole (decision 57). The judge's note (addendum 7): a Book 1 decision commit left unpushed in a checkout
 also stops E3's daily run in that same checkout at its first commit (an unpushed commit the run did not make, decision
 51), so its exits are not reviewed until the decision is resolved.
 
 **Scope.** In:
+- **One Book 1 decision a day.** Before deciding, `Book1.decide` checks the day: a decision run already on disk
+  (committed, or recorded by the pending marker below) means it never decides again, whatever the inputs. It
+  recovers the pending commit, or reports "already decided". When the day's inputs now differ from that run's
+  `inputs.json`, it sends one alert stating the fact ("inputs changed after the decision ...; not re-decided") and
+  acts on nothing.
 - `cmd_book1` (`fno/books/book1_cli.py`) catches `CommitFailed`: one alert to #fno-desk through the same alert
   sender as the daily run, the same text printed as one line, exit code 1, no traceback. The text names the cause and
   what it blocks: the decision is not public yet, so it is not on time unless it is pushed before E3's deadline, and
@@ -636,18 +644,25 @@ also stops E3's daily run in that same checkout at its first commit (an unpushed
 - Its own marker, not the daily run's: the two commands may run in one checkout at overlapping times, and one shared
   marker could be overwritten.
 Out:
+- D3's shared store rule (`DecisionStore`: same inputs refused, new inputs make a new run;
+  `tests/decisions/test_records.py::test_the_same_inputs_twice_are_refused_new_inputs_make_a_new_run`) stays as it is.
+  It serves every book and D3's corrections (a new run linked by `corrects`, `test_a_correction_is_a_new_run_linked_to_
+  the_record_it_corrects`). The one-a-day rule is Book 1's, in `Book1.decide`; books 2 and 3 take it when they are
+  built (F5, F6). No existing test expects Book 1 itself to decide twice (checked: `tests/book1/`);
+- a question for the orchestrator, not changed here: E3's collector takes the latest run committed before the
+  deadline, so a D3 correction run committed before the deadline would be read as the day's decision;
 - any change to on-time rules: E3's collector decides from what origin shows at the deadline (`committed_at` before
   the deadline and visible then), so a decision pushed by a rerun after the deadline is late, as today;
 - automatic retries or schedules (no routine runs `fno desk book1` yet);
 - the daily run itself (E2b).
 
-**Owner or orchestrator choice (not decided here):** A (recommended): recover as above, which reuses E2b's class (one
-new constructor argument, the marker name). B (smaller): alert and exit 1 only, with the hand fix "push the local
-commit with `git push`, or remove the decision folder and rerun". B leaves an uncommitted decision folder that the
-rerun treats as already decided (or decides again beside, when an input changed), so I do not recommend it
-(reasoning only).
+**Decided (orchestrator decision 57):** option A, recovery with Book 1's own marker (one new constructor argument on
+E2b's class, the marker name), plus the one-decision-a-day rule. Option B (alert only, with a hand fix) was not taken.
 
 **Acceptance criteria:**
+0. Decide, change an input, rerun: one decision run for the day, one alert naming the changed input file, and the
+   decision files byte-identical; the same with the decision only recorded by the marker (not yet committed); a rerun
+   with unchanged inputs reports "already decided" with no alert (tests).
 1. With the real `GitCommitter` and a bare origin, a staged raw quote file, an unreachable origin and a push rejected
    three times each give exactly one alert naming the cause, one printed line, exit code 1 and no traceback (tests).
 2. After the cause is removed, a rerun commits the decision files byte-identical to the first run's, with D2 run once
@@ -661,10 +676,11 @@ rerun treats as already decided (or decides again beside, when an input changed)
 **Test plan:** CLI and unit tests with real git against a bare origin, a fake alert sender (nothing posted), broken-code
 proofs per criterion.
 
-**Judge verifies:** reruns criterion 2 by hand; plants a missing catch, a shared marker and a skipped hash check.
+**Judge verifies:** reruns criteria 0 and 2 by hand; plants a second decision on changed inputs, a missing catch, a
+shared marker and a skipped hash check.
 
 **Depends:** E2b (merged first: `CommitFailed`, `PendingCommitter`) · **Size:** S · **Status:** story text on
-`story/e5b-book1-commit-failure`, for the judge's story check (response 122)
+`story/e5b-book1-commit-failure`, for the judge's story check (response 123)
 
 ---
 
