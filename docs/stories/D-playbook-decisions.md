@@ -285,10 +285,18 @@ component and a D3 `served` key. Out: the AI that chooses (F5); new playbook for
 - C4: an `EnvelopeMode(ValidityMode)` replaces `WaitsFor("envelope", "D4")` in `fno/checks/wiring.py` (one line in
   the composition root). It runs the playbook mode's checks on the version the trade claims, then `permits`. Its
   proposal gets two fields, `action` and `rule_default` (`ValidityProposal`, C4's file, a judged change).
-- `shadow-only`: the account takes the rule default; the AI's action is recorded as Book 2's shadow action for
-  scoreboard A (S3 reads it as Book 2's action there).
-- The envelope's SHA-256 is a D6 component (`components["envelope"]`) and a D3 `served` key. A changed envelope file
-  differs from the registered component, so D6 marks the decision unscored, and C4 refuses it (fail closed).
+- **Whose envelope governs (judge 207):** the envelope of the playbook version actually traded governs every action
+  of that trade, `choose_strategy` included. Picking version B over the rule default A needs B's envelope to allow
+  `choose_strategy`, and B's statuses then apply to B's width and lots. Following the rule default uses A's.
+- `shadow-only`: the account takes the rule default; the AI's action is recorded in D3's `chosen_action` with status
+  `shadow`. **It is not scored until S3 reads it:** S3's `action_of` reads only `record["decision"]` (the account's
+  action, `fno/scoreboard/matched_actions.py`). An S3 reading change (the shadow `chosen_action` as Book 2's action on
+  scoreboard A) goes through the orchestrator to S3's builder at slice E. Until then a `shadow-only` action is listed,
+  never scored, and scoreboard A scores the account's rule default.
+- Each envelope's SHA-256 is a D6 component under the key `trade_envelope:<name>-v<n>`, one per playbook version
+  Book 2 may trade, and the same key in D3's `served`. The word "trade" keeps it apart from Hybrid's forecast
+  envelope (`fno/ai/envelope.py`). A changed envelope file differs from its registered component, so D6 marks the
+  decision unscored, and C4 refuses it (fail closed).
 
 **Acceptance criteria:**
 1. Each row of envelope v1 has a test: an allowed action passes; a forbidden one is refused with its reason; an action
@@ -296,7 +304,8 @@ component and a D3 `served` key. Out: the AI that chooses (F5); new playbook for
 2. A lot increase, a width outside the version's set, another structure, a strike other than the code's and a changed
    threshold are each refused by `permits` and by C4.
 3. A `shadow-only` action leaves the account at the rule default and records the shadow action (D3 `chosen_action`
-   with status shadow) (test).
+   with status `shadow`); until S3's reading change it is listed as unscored, never scored as the rule default's
+   result under the AI's name (test).
 4. An envelope file edited after its version was registered is refused: its hash differs from the D6 component (test
    on a temporary repository).
 5. C4's Book 2 mode calls the same `permits` and blocks a forbidden action even when F5's own check was skipped
@@ -305,6 +314,10 @@ component and a D3 `served` key. Out: the AI that chooses (F5); new playbook for
    refused: the envelope can never create a trade the rules did not offer (test).
 7. Every Book 2 record has `rule_default`, `chosen_action`, a non-empty `reason` and `authority_check` (the verdict);
    a missing one fails D3's validation (test).
+8. With versions A (the rule default) and B both eligible, and envelopes that differ (A allows `choose_width`, B
+   forbids it; B allows `choose_strategy`), choosing B with A's width set is refused, and choosing B at its own width
+   passes: the traded version's envelope governs (test). Each version's envelope is checked against its own
+   `trade_envelope:<name>-v<n>` component.
 
 **Test plan:** table-driven tests over every action and status; C4 tests with constructed proposals; a temporary git
 repository for the hash check.
@@ -315,7 +328,7 @@ repository for the hash check.
 
 | Requirement (source) | In D4 | Or out, with the reason |
 |---|---|---|
-| Choose among eligible approved strategies (12.2) | `choose_strategy`, criterion 1 | |
+| Choose among eligible approved strategies (12.2) | `choose_strategy`, criteria 1 and 8 (the traded version's envelope governs) | |
 | No trade or veto (12.2) | `no_trade`, criterion 1 | |
 | Delay entry the same day until 15:30 (12.2) | | Out: under E3's fixed timetable, a delay past the decision deadline is no trade that day, so it is `no_trade` |
 | Strike or width from a pre-approved set (12.2) | width: `choose_width` | Strike: out until D1 gives a version a strike set (today strikes are set by code) |
@@ -323,7 +336,8 @@ repository for the hash check.
 | Choose or tighten an exit from a pre-approved set; early event exit (12.2) | | Out of v1: the only machine exit is the time exit, and S3 values only it. A later envelope version, after D1 adds an exit set and E4/S3 value it |
 | Change any threshold, feature, structure or strategy: forbidden (12.2) | criterion 2 | |
 | Rule default and AI action with reason in every record (12.2) | criterion 7 | |
-| Fixed before paper, versioned (12.2) | criterion 4 (D6 component) | |
+| Fixed before paper, versioned with the playbook (12.2) | criterion 4 (a `trade_envelope:<name>-v<n>` D6 component per version) | |
+| A shadow-only action is scored on scoreboard A (12.2) | recorded (criterion 3) | Scoring: out of D4. It needs S3 to read the shadow `chosen_action`, routed to S3's builder at slice E; unscored until then |
 | C4 blocks independently (12.4) | criterion 5 | |
 | The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action in the enum | D3 refuses any non-empty `owner_override` for every book (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five"): a D3 code item at slice E, its builder settled then |
 
@@ -332,7 +346,8 @@ repository for the hash check.
   later action is a new envelope version, so its record starts fresh.
 - With `lots: 1` (the example version), `reduce_lots` has no effect; it matters only for versions with more lots.
 
-**Depends:** D1, D2, D3, D6, C4 · **Size:** S · **Status:** story text for the judge (response 204), the owner's five answers in; code waits
+**Depends:** D1, D2, D3, D6, C4 (with C4's owner's agreement to the `ValidityProposal` fields `action` and
+`rule_default`), S3's reading of the shadow `chosen_action` (for scoring shadow-only actions) · **Size:** S · **Status:** story text for the judge (response 204), the owner's five answers in; code waits
 for slice E's trigger
 
 ---
@@ -379,7 +394,9 @@ Book 3 mode. Out: the AI that invents and decides (F6); matched shadows (F7).
   `fno/book3/registry.py`: `register(spec)` validates the spec against the constitution and appends a row;
   `require_registered(strategy_id, decision_day, decision_commit)` checks that the registration commit is a strict
   ancestor of the decision commit (D6's `_registered_before`, reused) and was proposed on an earlier session than the
-  decision day (F6: no same-day invent-and-trade), and that the spec file's hash still matches.
+  decision day (F6: no same-day invent-and-trade), and that the spec file's hash still matches. `register()` sets
+  `proposed_on` itself, from the clock on the registration day (IST), and never takes it from the AI's spec
+  (judge 207).
 - C4: a `ConstitutionMode(ValidityMode)` replaces `WaitsFor("constitution", "D5")`: `require_registered`, the
   constitution's structure, expiry and holding checks, and the playbook mode's structure, width, lots and shape checks
   against the registered spec. C2's risk limits apply unchanged (Book 3 uses `risk.profiles.books`, as Books 1-2).
@@ -387,7 +404,8 @@ Book 3 mode. Out: the AI that invents and decides (F6); matched shadows (F7).
 
 **Acceptance criteria:**
 1. A decision with a `strategy_id` registered in a commit that is not a strict ancestor of the decision commit, or
-   proposed on the decision's own session, is refused (temporary git repository).
+   proposed on the decision's own session, is refused (temporary git repository). A spec that carries its own earlier
+   `proposed_on` gets the registration day instead (test).
 2. A spec file edited after registration is refused (hash).
 3. A spec with a structure outside the constitution's list, a naked short leg, a non-NIFTY underlying, a weekly expiry
    or a planned exit over 21 days after entry is refused at registration, and again by C4.
@@ -426,7 +444,8 @@ trades it the same session, and confirms that is refused.
   constitution version once A4/E4 record and price them.
 - Exits are the playbook format's time exit only (as D4), so every Book 3 strategy holds to its planned exit.
 
-**Depends:** D1, D3, D6, C2, C4, B4/D6 (git ancestry) · **Size:** M · **Status:** story text for the judge (response
+**Depends:** D1, D3, D6, C2, C4 (with C4's owner's agreement to the `ValidityProposal` field `strategy_id`), B4/D6 (git
+ancestry) · **Size:** M · **Status:** story text for the judge (response
 204), the owner's five answers in; code waits for slice E's trigger
 
 ---

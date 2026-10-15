@@ -80,3 +80,12 @@ All five were accepted as recommended. They are written into the texts as decide
 5. envelope v1 stays narrow.
 
 The Rs 30,000 brake conflict goes to S1's text owner (orchestrator).
+
+## Judge 207 (FAIL at 0cb5234d, 2 should-fix and 2 minor): all accepted, each checked
+
+| Point | Check | Change |
+|---|---|---|
+| SF1: one `components["envelope"]` key cannot hold the envelopes that `choose_strategy` implies; "envelope" collides with Hybrid's forecast envelope | Confirmed. Choosing among two eligible versions means two envelope files. `fno/ai/envelope.py` and `ai/versions.py` `envelope_width` already use the word. | Option (b): one `trade_envelope:<name>-v<n>` D6 component per playbook version, the same key in `served`. **The traded version's envelope governs every action of that trade**, `choose_strategy` included. New criterion 8 (A and B eligible, different statuses). I chose (b) over a book-level file because design 12.2 versions the envelope with the playbook. |
+| SF2: a `shadow-only` action has no reader on scoreboard A | Confirmed: S3's `action_of` reads only `record["decision"]` (`fno/scoreboard/matched_actions.py`), which is the account's rule default. | Stated plainly: unscored until S3 reads the shadow `chosen_action`. That reading change is in Depends and in the gap list, routed to S3's builder at slice E. Criterion 3 now says it is listed, never scored. |
+| m1: `proposed_on` from the clock | Correct: a proposer-written date is a small hole beside the commit check. | `register()` sets it on the registration day (IST). Criterion 1 tests that a spec's own date is ignored. |
+| m2: C4 owner agreement in Depends | Correct. | Both stories' Depends name the `ValidityProposal` fields and C4's owner's agreement. |
