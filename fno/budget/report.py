@@ -1,0 +1,89 @@
+"""The printed budget meter and stop-rule lines (story BG1). Cash spend and allocated cost are always separate lines;
+anything not recorded or not measured says so, never zero."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+
+from ..constants import ITEM_CLAUDE_PLAN, USAGE_PURPOSES
+from .allocation import ALLOCATED_LABEL, FORMULA, Allocation
+from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading
+from .items import ItemLine
+from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
+
+NOT_RECORDED = "not recorded"
+NOT_A_BOUND = "{n} fired AI book session(s) have no usage row: the % above is not a bound in either direction"
+
+
+@dataclass(frozen=True)
+class MonthMeter:
+    month: str
+    items: list[ItemLine]
+    allocation: Allocation
+    cap: CapReading
+    usage_rows: list[dict]
+    missing_captures: list[tuple[str, str, str]]
+    needs_owner_yes: list[str]
+    unknown_items: list[str]
+
+
+def meter_lines(meter: MonthMeter) -> list[str]:
+    lines = [f"Omenix F&O budget meter {meter.month} (design v2 section 8.1)"]
+    for item in meter.items:
+        cash = NOT_RECORDED if item.cash_rs is None else f"Rs {item.cash_rs:,.2f}"
+        lines.append(f"  {item.item}: cash spend {cash}; cap: {item.cap}")
+        if item.item == ITEM_CLAUDE_PLAN:
+            lines += _allocation_lines(meter.allocation)
+    lines += [f"  unknown item (not in 8.1): {name}" for name in meter.unknown_items]
+    lines += _usage_lines(meter.usage_rows) + _cap_lines(meter)
+    lines += [f"  NEEDS OWNER: {line}" for line in meter.needs_owner_yes]
+    return lines
+
+
+def _allocation_lines(allocation: Allocation) -> list[str]:
+    if allocation.flagged:
+        return [f"    {allocation.flagged}"]
+    lines = [f"    {ALLOCATED_LABEL} ({FORMULA}):"]
+    for (purpose, book, role), rupees in allocation.allocated_rs.items():
+        lines.append(f"      {purpose} {book or role}: Rs {rupees:,.2f}")
+    return lines
+
+
+def _usage_lines(rows: list[dict]) -> list[str]:
+    lines = []
+    for purpose in USAGE_PURPOSES:
+        mine = [r for r in rows if r["purpose"] == purpose]
+        minutes = sum(float(r["minutes"]) for r in mine)
+        known = all(r["output_tokens"] != "" for r in mine)
+        tokens = sum(int(r["output_tokens"]) for r in mine) if mine and known else None
+        out = "not available" if tokens is None else f"{tokens:,}"
+        sessions = len({r["session_id"] for r in mine})
+        lines.append(f"  measured {purpose}: {minutes:,.2f} minutes, {sessions} session(s), output tokens {out}")
+    return lines
+
+
+def _cap_lines(meter: MonthMeter) -> list[str]:
+    cap = meter.cap
+    pct = "unknown" if cap.pct_of_cap is None else f"{cap.pct_of_cap:.1f}%"
+    lines = [f"  AI cap: books and roles {cap.books_and_roles_minutes:,.2f} of {cap.cap_minutes:,.2f} minutes = {pct}; "
+             f"level {cap.level}", f"    basis: {cap.basis}"]  # fmt: skip
+    if cap.basis == BASIS_MEASURED:
+        lines.append(f"    {MEASURED_LIMIT}")
+    if meter.missing_captures:
+        lines.append(f"    {NOT_A_BOUND.format(n=len(meter.missing_captures))}")
+    return lines
+
+
+def stop_rule_lines(root: Path, review: ReviewDate, today: date) -> list[str]:
+    days_left = (review.day - today).days
+    lines = ["Omenix F&O stop-rule tracker (design v2 section 8.2)",
+             f"  review date: {review.day:%d %b %Y} ({review.basis}); {days_left} days from {today}"]  # fmt: skip
+    lines += [f"    {note}" for note in review.notes]
+    for test in ("A", "B"):
+        status, missing = stop_test_status(root, test)
+        lines.append(f"  Test {test}: {status}")
+        lines += [f"    missing: {i.what} (story {i.story})" for i in missing]
+    lines.append(f"  Test B note: {ZERO_SHADOWS}")
+    return lines

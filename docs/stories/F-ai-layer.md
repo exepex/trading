@@ -333,7 +333,63 @@ cash spend separately.
 
 **Judge verifies:** recomputes one month's allocation.
 
-**Depends:** C1, F1 · **Size:** S · **Status:** later
+**Depends:** C1, F1 · **Size:** S · **Status:** superseded by the minimal version below (design v2, 15 Oct 2026)
+
+### F8 minimal (design v2 slice A, 15 Oct 2026; built with BG1, response 104)
+
+**History:** the text above is F8 as first written (later slice). Design v2 (`docs/design_v2/REPLAN.md` row F8: "keep,
+**move earlier** (slice A)... The budget cap (BG1) needs it, and S1's freeze needs its code") moved a minimal F8 into
+slice A, built together with BG1 (`docs/stories/BG-budget.md`). Per-book lines in C1's account ledger and the dashboard
+stay for later (they need books 2 and 3 to trade); this version builds the capture, the ledger and the allocation.
+
+**Facts checked on 15 Oct 2026 (builder, response 104), the base of this design:**
+- A Claude Code cloud session's `result` events (`list_events`, kind `result`) carry, per turn: `duration_ms` (the
+  turn's wall time), `num_turns`, and `usage` (`input_tokens`, `output_tokens`, `cache_read_input_tokens`,
+  `cache_creation_input_tokens`) of the main loop. `get_session` gives the session's id and `configured_model`. These
+  are the only usage figures read; nothing is estimated.
+- They are readable only from inside a Claude session (the `claude-code-remote` tools); GitHub Actions has no such API.
+- **The AI books' routine sessions could not be read:** both 14 Oct fire-log sessions (`cse_...`) returned "not
+  found" from a builder session, and `list_sessions` says scheduled or trigger-fired runs are not listed. Until a way is
+  found (open question 1 of BG1), the books' usage is "not captured" and every figure that needs it says so.
+- `duration_api_ms` can exceed `duration_ms` (parallel model calls), and the `modelUsage` totals include side calls the
+  per-turn `usage` leaves out. So minutes are wall minutes of turns, tokens are main-loop tokens: both labelled.
+
+**Scope.** In:
+- `SessionUsageReader` (interface) and `ExportFileUsageReader`: a Claude session saves `get_session` plus every page of
+  `list_events(kinds=["result"])` for one session into a JSON file outside the repository; the reader extracts only
+  numbers (never message text) as one usage row per session per IST day;
+- `accounting/ai_usage.csv`, written once per (session, day): `date, purpose, book, role_or_bundle, session_id, model,
+  minutes, turns, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tokens_basis, source`. `purpose`
+  is `books_and_roles` (counts against the cap) or `development` (builders, orchestrator, judges);
+- the allocation (formula `minutes_share_v1`, to be frozen by S1): the month's recorded plan cost from
+  `accounting/operating_costs.csv` (item `Claude subscription`) split by measured minutes per (purpose, book, role),
+  rounded to paise by largest remainder so the parts sum exactly to the plan cost; labelled "allocated, not a bill";
+- `python -m fno budget record-usage` (writes rows) and the allocation in `python -m fno budget meter`.
+Out: reading sessions itself (Python cannot call the session tools; a Claude session or a later routine does, and runs
+the command), per-book lines in C1's account ledger, scoreboards, the dashboard, any scheduling.
+
+**Acceptance criteria:**
+1. Allocated costs for a month sum exactly (to the paisa) to the recorded plan cost, including months where the
+   proportional parts do not round evenly (test).
+2. Allocated cost and cash spend are separate fields everywhere this story writes them (meter lines and data): the
+   plan's cash spend is the owner's recorded fee; the allocated share is labelled "allocated, not a bill".
+3. A month without a recorded plan cost is flagged and every allocated cost shows "unknown", never zero (test).
+4. Usage rows come only from the session's own figures: minutes = sum of `duration_ms` of that IST day's `result`
+   events; tokens = sums of their `usage` fields, left blank (unknown) when any of that day's events lacks them; no
+   message text is kept (test with a recorded export shape).
+5. An export missing older event pages (no page with `has_more` false) is refused, so a session is never under-counted
+   silently (test).
+6. A (session, day) already in the ledger is never rewritten; only IST days before today are recorded (complete days).
+7. The capture coverage is shown: each fired AI book session in the fire logs with no usage row is counted as "not
+   captured" for its month.
+
+**Test plan:** unit tests on the export reader (real field names from 15 Oct), the ledger, the allocation (uneven
+rounding, no plan cost, no usage), and the coverage.
+
+**Judge verifies:** recomputes one month's allocation by hand from the two CSV files; feeds an export with a missing
+page; checks no text field of an event reaches the ledger.
+
+**Depends:** C1, F1 · **Size:** S · **Status:** built on `story/f8-bg1-budget`, waiting for the judge (response 104)
 
 ---
 

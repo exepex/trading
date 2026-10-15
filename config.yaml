@@ -114,3 +114,17 @@ desk:
     execution_snapshot: "15:15"
     fills_by: "15:20"
     lock_lease_seconds: 60
+
+# Story BG1: the monthly AI budget. Decided by the owner on 15 Oct 2026 (docs/DESK_DECISIONS.md, "Monthly AI budget
+# accepted"): AI routine use for books and roles capped at half of the plan's measured session minutes, alert at 80%,
+# AI roles stop at 100% while code jobs keep running. The plan publishes no minutes allowance, so by default the cap is
+# 50% of all measured session minutes of the month; `plan_minutes_per_month` is the owner's own figure if they set one
+# (BG1 open question 2). `v4_freeze_date` is protocol v4's freeze day once it exists (G6); empty means "projected".
+budget:
+  books_and_roles_share_pct: 50
+  alert_pct: 80
+  stop_pct: 100
+  plan_minutes_per_month: null
+  stop_rule:
+    v4_freeze_date: null
+    projected_v4_freeze_month: "2026-11"  # design v2 section 8.2: "if v4 freezes in early November 2026"

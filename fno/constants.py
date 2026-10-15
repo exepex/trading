@@ -238,3 +238,20 @@ DEEP_OTM_EXPOSURE_RATE, DEEP_OTM_DISTANCE = 0.03, 0.10  # a short option more th
 EXPOSURE_MODEL_MAX_MONTHS = 9  # beyond 9 months (5%) and on expiry day (+2%) NSE's rule differs: not modelled
 SPAN_BOD_CREATED_BEFORE = time(9, 0)  # IST: a day's `i1` file must be written before this (point in time)
 MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed row: "NSE SPAN <file> sha256=<hex>"
+
+# Stories F8 (minimal) and BG1 (fno/budget/): what an AI session's minutes were for, design v2 section 8.1's cost
+# items, and the order AI roles stop in at 100% of the AI cap (section 7.6); code jobs keep running
+PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT = "books_and_roles", "development"  # only the first counts against the cap
+USAGE_PURPOSES = (PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT)
+ITEM_CLAUDE_PLAN = "Claude subscription"
+ITEM_GITHUB_DRIVE = "GitHub Actions and Drive"
+ITEM_AZURE_POSTGRES = "Azure Database for PostgreSQL"
+ITEM_GROWW_API = "Groww API"
+ITEM_RECORDER_HOSTING = "Recorder and monitor hosting"
+ITEM_PAID_DATA = "Paid data"
+BUDGET_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_GITHUB_DRIVE, ITEM_AZURE_POSTGRES, ITEM_GROWW_API, ITEM_RECORDER_HOSTING,
+                ITEM_PAID_DATA)  # fmt: skip
+EXISTING_COST_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_AZURE_POSTGRES)  # running before 15 Oct 2026; others need a written yes
+BUDGET_OK, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN = "ok", "alert", "stop", "unknown"
+AI_ROLE_STOP_ORDER = ("analysts", "idea generator", "post-mortem writer", "devil's advocate objections",
+                      "AI forecasters")  # fmt: skip
