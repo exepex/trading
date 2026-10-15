@@ -24,5 +24,5 @@ so the fix cannot assume one layout.
 **Not changed.** GitHub Actions jobs keep `pip install`: `actions/setup-python` puts the matching `pip` first on
 PATH. The commit hook already picks `python3` first, and the script covers `python3`.
 
-**Checked.** The script on this machine (one interpreter: 5 s); with a planted `python` that cannot see the
-packages, it stops with "routine setup FAILED: 'python' (...) cannot import numpy, requests, yaml".
+**Checked.** The script on this machine (one interpreter: 2-5 s); in a virtual environment (installs into the venv, 14 s);
+with a planted `python` that cannot see the packages, or one that does not run, it stops with one "routine setup FAILED" line and exit 1. Judge 130 must-fix: a test that CLAUDE.md's 3 pm section and README name the script.

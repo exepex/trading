@@ -16,17 +16,27 @@ if [ "${1:-}" = "--groww" ]; then
     modules="$modules, growwapi"
 fi
 
+# Install through each name's own executable (a virtual environment's python keeps its packages); the real path
+# only spots two names that are one interpreter.
 interpreters=""
+seen=""
 for name in python3 python; do
     path=$(command -v "$name" 2>/dev/null) || continue
-    real=$("$path" -c 'import os, sys; print(os.path.realpath(sys.executable))')
-    case " $interpreters " in *" $real "*) ;; *) interpreters="$interpreters $real" ;; esac
+    probe=$("$path" -c 'import os, sys; print(sys.executable, os.path.realpath(sys.executable))') || {
+        echo "routine setup FAILED: '$name' ($path) does not run" >&2
+        exit 1
+    }
+    executable=${probe% *}
+    real=${probe##* }
+    case " $seen " in *" $real "*) continue ;; esac
+    seen="$seen $real"
+    interpreters="$interpreters $executable"
 done
 [ -n "$interpreters" ] || { echo "routine setup FAILED: no python3 or python on PATH" >&2; exit 1; }
 
 for py in $interpreters; do
     # shellcheck disable=SC2086  # requirements holds several words on purpose
-    "$py" -m pip install -q --use-pep517 $requirements || {
+    "$py" -m pip install -q --root-user-action=ignore --use-pep517 $requirements || {
         echo "routine setup FAILED: installing into $py" >&2
         exit 1
     }
