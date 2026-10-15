@@ -9,8 +9,9 @@ One request covers both, because C2c applies what A14c measures.
 - C2c: branch `story/c2c-whole-margin-stress` at `8a9a23e9`, section "C2c" of `docs/stories/C-code-roles.md`. Judge 174
   (judge G) FAILed `3b4342c` on one should-fix: credit spreads with the STR1 cap. `8a9a23e9` fixes it and is waiting for
   judge G's addendum.
-- A14c: branch `story/a14c-stress-recompute` at `010adb21`, section "A14c" of `docs/stories/A-data-foundation.md`.
-  Judge 173 PASS, with addenda 1 and 2 (no notes left).
+- A14c: branch `story/a14c-stress-recompute` at `5bb1c599`, section "A14c" of `docs/stories/A-data-foundation.md`.
+  Judge 173 PASS, with addenda 1 and 2, at `010adb21`. The owner's Q3 and Q4 revision at `5bb1c599` is waiting for
+  judge D.
 
 **Read:** both sections; judges 173 and 174 (`reviews/judge/`); response 77, section "Stressed-margin factor" (how 1.45
 was measured); judge 75 (the formula); `docs/DESK_DECISIONS.md` rows of 15 Oct at `d68b1a9c`: "Crash buffer applies to
@@ -43,9 +44,17 @@ the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 202
   refused by name.
 - **Reproduction check:** response 77's three hand figures, 1.127 (2026), 1.265 (2020) and 1.407 (2024), within 0.001
   or explained, after the full back-fill (about 1,700 files, 16 GB in Drive).
-- **Still open, owner's:** Q3, who enters each month's value (recommended: the owner, by hand); Q4, NSE circulars that
-  raise rates (recommended: accept for paper and repeat one Groww check at each recompute).
-- **Timeline:** build by about 3 Nov; first run about 6 Nov; owner and judge by 11 Nov.
+- **Owner, 15 Oct, Q3: automatic, with an alert.** A weekly Actions job appends the factor to
+  `research/data/margins/stress_factor.csv`. A rise applies at once. **Any** fall is held: the old factor stays and the
+  owner is asked. The orchestrator proposed holding only a fall above 0.05; I hold every fall, because a maximum over a
+  window that only grows cannot fall unless the data or the method is wrong.
+- **Owner, 15 Oct, Q4: accept the circular limit, plus one Groww comparison per recompute.** It runs in the Claude
+  routine, because GitHub holds no broker key. Tolerance: SPAN within Rs 1, exposure within 1% after index rescaling.
+  A mismatch alerts but does not hold the factor.
+- **Story C2d** (same branch as C2c, at `9857460d`): C2 and C4 read k from the latest row of that file dated on or
+  before the decision day (point in time). `config.yaml` keeps only the method, the file and `max_age_days`. A seed row
+  carries the owner's 1.45 of 14 Oct.
+- **Timeline:** build by about 3 Nov; first run about 6 Nov; judge by 11 Nov. Then weekly.
 
 **Questions (accept / partial / reject, with evidence; real cases only, per the owner's 15 Oct "keep the design
 simple" rule):**
@@ -56,7 +65,8 @@ simple" rule):**
 3. Is "largest held rise of the whole margin, entry to 21 days before expiry, since 2020, up to the next 0.05" a sound
    rule for k? Or is a quantile, or a per-structure k, more honest? Remember the 2020 minimum made 2020's margins
    track the index.
-4. Q3 and Q4: do you agree with the recommendations?
+4. Are the guardrails right: every fall held, a rise applied at once, below 1.0 refused, and an archive with fewer
+   sessions than the last run refused? Are the weekly cadence and the Groww tolerance right?
 5. Anything that would change a trade, a fill or a stop decision and must change before the code is built?
 
 **Answer file:** `reviews/chatgpt/review_117_c2c-a14c-stress.md` plus its line in `reviews/chatgpt/README.md`. Check
