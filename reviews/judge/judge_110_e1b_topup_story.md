@@ -64,3 +64,47 @@ finds exactly the readers it names: C2 `caps.py:100` and `book_view.py`, C4 `val
 
 **Verdict: FAIL for d309de619c799035ce0b5f7486a5166d44437703** (story text) on should-fix 1. A re-check needs only the
 capital definition, criteria 3-5 and the C4 design line.
+
+## Addendum 1 (15 Oct 2026): revision 2 at d6b313c26cae77a5374a9d26660d35e970036480
+
+Text only for E1b (`git diff d309de6 d6b313c -- docs/stories/E-paper-desk.md`; the other files in that range come
+from `main`, merged cleanly).
+
+| Item | Status | Evidence |
+|---|---|---|
+| sf 1, the write instant | MET | A top-up's `filled_at` is the IST write instant with its offset, never a bare date. Capital at an instant is the opening plus top-ups written at or before it, so a decision uses its cutoff in E1, C2 (`DESK_DECISION_TIME` on the decision day) and C4 (its cutoff, by the row's instant). Criteria 3 and 5 test a 17:00 top-up on T: it refuses T's 15:00 decision live and in replay, in both C2 and C4, and passes T+1's. A 10:00 top-up counts at 15:00 the same day |
+| Minor 1, capital not equity | MET | Criterion 1: a book with Rs 10,000 of realised losses still gets Rs 15,00,000 and keeps the loss |
+| Minor 2, a second top-up | MET | The output line names it "a further top-up"; raising the setting is a lane-1 config change and an owner decision |
+| Minor 3, C4 reading order | MET | Trades are read only from fill and settlement rows; a top-up row between two fills is capital (criterion 5 test) |
+
+### Who runs the real-journal top-up: the builder (orchestrator's decision 23). No objection, with three conditions
+
+My "never by the builder" was reasoning only, not a recorded rule. On the risk itself:
+- the command computes the amount;
+- it refuses at size, above size, unstarted and open books;
+- it writes under the book's lock;
+- it is idempotent per day.
+
+So the operator matters little, provided the merged code is what runs. The conditions:
+1. **Run it from a clean checkout of `main` at or after the merge commit**, via `python -m fno account top-up`, never
+   a branch build or a hand edit. Record the command's output lines (one per book) and the commit it ran at in the
+   claims file.
+2. **The data commit contains only the command's own writes**, for each of the three books:
+   - one appended `capital_top_up` row in `cash_ledger.csv`;
+   - the rebuilt `positions.json`;
+   - that day's row in `equity_history.csv`.
+
+   Nothing else under `journal/` or elsewhere. "Nothing else may be written" should list exactly these three files per
+   book, since the command itself writes all three.
+3. **Timing.** Run it outside 14:50-15:30 IST on a session day, so it never races the day's decision or fills under
+   the account lock. The timestamp rule makes any time correct, but a lock clash with the desk would refuse one of the
+   two writers.
+
+**My merge check will verify:**
+- each book's ledger is byte-for-byte its pre-merge content plus exactly one row;
+- the amount is Rs 20,00,000 minus that book's capital (Rs 15,00,000 each);
+- the instant is time-zone aware and after the merge commit's time;
+- `positions.json` and `equity_history.csv` equal what the merged code rebuilds from the ledger;
+- C2 and C4 then pass `paper_account` for the three books.
+
+**Verdict: PASS for d6b313c26cae77a5374a9d26660d35e970036480** (story text). Code on `main` after C5 merges.
