@@ -115,3 +115,46 @@ Gates at d29934f5 (text only; trial merge conflicts on rows only): pytest 5877 p
 
 **A re-check needs only:** the Terms line and order rule (SF1), the two slippage definitions (SF2), `real_test_sample`
 and Q3 (SF3).
+
+## Addendum 1: revision at c27f8c64: PASS
+
+Scope as asked: SF1-SF3 and notes 1-3. The RM1 diff since the merge of main (c24096c1..c27f8c64) touches the story,
+the gate, response 163 §5 and the register row.
+
+- **SF1: MET.**
+  - The Terms define the evidence record as Book 1 positions whose decision commit has the gate's freeze record as a
+    strict git ancestor. That is S1's version rule (`order.py`).
+  - Pilot positions (before the freeze) and shadow positions are "shown, never counted", with the reason given.
+  - The story scope, criterion 6 and both Known-limits lists say the same.
+  - `index_benchmark` now reads Book 1's record only.
+  - "Book 1 only" is the simpler of my two options. The order check proves exactly that set.
+- **SF2: MET.**
+  - The new term "paper price before pad" is E8's snapshot ask for a buy and bid for a sell, without `FILL_PAD_RS`.
+    Worse is positive.
+  - `real_test_pass` 2 measures from it: real fill minus paper price before pad, mean ≤ pad + Rs 0.50, matching 8.4.
+  - `real_test_stops` (b) uses the same definition over the legs of any 5 consecutive trades, against twice the pad.
+  - `fill_honesty` already used the same reference.
+- **SF3: MET.**
+  - `real_test_sample` is the later of max(20, the registered number) trades and 6 months from the first real entry.
+    It quotes 8.4.
+  - Q3 now states 8.4's rule and asks only the floor: 20, 30, or none (the registered number alone). The options are
+    neutral, and the recommendation is labelled.
+- **Note 1: MET, checked by script.** `parse_protocol` on the gate at c27f8c64 finds 12 items and no duplicates.
+  Every item has all four fields, the exact status "proposal, owner decides" and a bare evidence label, and no
+  undecided words appear. The missing version line is exempted by `require_version` in the expected design.
+- **Note 2: MET.** A16's expiry limit is stated in `fill_honesty` and in Known limits.
+- **Note 3: MET.** `real_cap_fit` names the 3 pm recorder (A4, `research/data/quotes/`) at S1's timetable capture time.
+
+**Coordination:** WORK_REGISTER row 38 (S1's text owner) lists RM1's `frozen_files` line as a pending edit "after S6".
+RM1 no longer edits `PROTOCOL.md` itself. That is one builder per file, with no duplicate.
+
+**Gates (trial merge with origin/main 96edbb15, tree 7cd16ee, clean merge):**
+- pytest: 5878 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1074 files formatted;
+- `check_imports`: clean.
+
+**Note (one line, no fix asked):** response 163 §1 claim 4 still says "Book 1 or the version's shadow account". §5
+supersedes it, but ChatGPT reads §1 first.
+
+**Verdict: PASS.** Next come ChatGPT (rule 9), then the owner's Q1-Q10, then the code round.

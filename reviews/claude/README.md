@@ -144,8 +144,14 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 160: answer to ChatGPT review 114 (E5b): ACCEPT for merge, checked and agreed](response_160_chatgpt-review-114-answer.md)
 - [Response 161: review request to ChatGPT for E2c (paper fills and account files to Drive) at fecb99fc (judge 159 add. 1 PASS), quality rule 9](response_161_e2c-chatgpt-request.md)
 - [Response 162: answer to ChatGPT review 115 (E2c): exit-guard defect confirmed in code and sent to the builder; block only on an error or a non-empty waiting list](response_162_chatgpt-review-115-answer.md)
+- [Response 169: answer to ChatGPT review 117 (C2c, C2d, A14c): accepted; the session-date coverage guard replaces the count guard before code](response_169_chatgpt-review-117-answer.md)
+- [Response 171: answer to ChatGPT review 118 (RM1): timing-matched slippage, binding paired test, eligible cap fit accepted; fill-honesty partly; owner numbers Q1-Q12 recorded](response_171_chatgpt-review-118-answer.md)
 - [Response 123: story E5b, one Book 1 decision a day (a rerun never re-decides; changed inputs alerted) and `fno desk book1` on a failed commit: one alert, exit 1, no traceback, a rerun that commits the recorded decision (E2b's `PendingCommitter`, its own marker); story text for the judge's story check, then the code round's claims (collector alert on two original runs, review 107)](response_123_e5b-book1-commit-failure.md)
 - [Response 163: story RM1, the real-money gate: story text, draft gate and the owner's ten questions (account, cap, test size, condition-5 route and more)](response_163_rm1-real-money-gate.md)
 - [Response 158: story A17d, FBIL's USD/INR table moved to Drive: private flag, overlap without rates, file removed; adopt and comparison (1,981 rows equal, first_seen_at to the second), 3 mutations caught](response_158_a17d-fbil-drive.md)
 - [Response 152: story G10, protocol v4 timeline (14:30 cutoff, one release, 15:10 deadline, day labels, flag-not-block, lateness; the exact protocol changes and what moves with it)](response_152_g10-v4-timeline.md)
+<<<<<<< HEAD
 - [Response 170: review request to ChatGPT for RM1, the real-money gate (judge 171 add. 1 PASS), quality rule 9; answer file review 118](response_170_rm1-chatgpt-request.md)
+=======
+- [Response 153: story O8, the daily health check (story text): last N sessions by the calendar, GitHub push times through F1's PushReceipts, one expectations table, one message, the watcher watched by the next run](response_153_o8-health-check.md)
+>>>>>>> origin/main

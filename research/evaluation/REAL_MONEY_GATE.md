@@ -13,6 +13,8 @@ freeze is a new protocol version; the pass mark is never lowered because time pa
 Item format: as `PROTOCOL.md` (Value, Status, Reason, Evidence). Items whose Reason names a question (Q1-Q13) need the owner's
 written answer (questions in `reviews/claude/response_163_rm1-real-money-gate.md`); the others are the builder's
 proposal, which the owner may accept as a set. The gate has no version line: it is versioned with S1's protocol.
+The owner's answers to Q1-Q12 are the `docs/DESK_DECISIONS.md` row "RM1 real-money gate numbers" (15 Oct 2026, commit
+946bb8e7); the review 118 changes are answered in `reviews/claude/response_171_chatgpt-review-118-answer.md`.
 
 Terms used below:
 - **Version:** one strategy version (playbook id and version; a changed rule is a new version and starts again).
