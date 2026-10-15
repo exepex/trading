@@ -119,3 +119,20 @@ All nine criteria are MET with my own evidence:
 Five minors. Minor 1 must be done before any consumer reads `value_for`; minor 2 is an owner item.
 - **Merge:** as a merge commit, keeping both sides in the 5 conflicted files.
 - **After the merge:** I check the recomputed merge, the branch files and CI.
+
+## Addendum 1 (15 Oct 2026): merge check, A17 merged to main as 9a88b39
+
+- **Parents.** 9a88b39's parents are c8ac9fd (main) and 9b65150 (the passed tip).
+- **The merge matches my recomputation.** `git merge-tree --write-tree c8ac9fd 9b65150` conflicts in the 5 files I
+  named. 9a88b39's tree differs from it only by the conflict markers, plus one blank line before "## A17" in
+  `docs/stories/A-data-foundation.md`. Both sides are kept everywhere.
+- **Branch files arrived unchanged.** Every file the branch changed is identical to 9b65150, except the 5 conflicted
+  ones. Those gain only `main`'s own lines: the A15 and T1 roots, parser lines, rows and story section.
+- **No unjudged change since.** From 9a88b39 to d67e9de only review, log, decision and manifest files changed.
+- **CI.** Run 38672896611 (`checks`) on d67e9de, the first push carrying the merge: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records `global-cues verify` against Drive on the merged tree: "every
+  cue row equals the archived copy it names". That matches my own run at 9b65150.
+- **Minors.** 1 and 3-5 go to A17b, whose story text I check as judge 116. Minor 2 (FBIL public) is the orchestrator's
+  logged decision, awaiting the owner.
+
+**Merge check: PASS.**
