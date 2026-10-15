@@ -99,8 +99,6 @@ Faults planted on purpose, one at a time (each made a test fail, then was revert
 Not done yet, with the reason:
 - the CLAUDE.md "Daily desk routine" section (criterion 8) waits for A4c's merge (16 Oct), so that it carries A4c's
   lines word for word from `main`;
-- the O8 swap (import `DAILY_RUN_STEPS`, delete `DESK_RUN_STEPS` in `fno/health/desk_checks.py` and its
-  source-parsing test) waits for O8 to reach `main`;
 - anything touching the account files waits for E2c;
 - the real day (criterion 9) waits for the owner pasting the prompt.
 
@@ -109,3 +107,17 @@ Said plainly:
   than risk a missing alert for other failures (reasoning only).
 - The refusal status is read from the commands' printed phrase "nothing written:". A test fails if either command
   stops printing it.
+
+### O8 swap (done in the merge of `main` at 5b1f561e; O8 merged first, judge 170)
+
+- `fno/health/desk_checks.py` imports `DAILY_RUN_STEPS`. Its private `DESK_RUN_STEPS` and the test that parsed
+  `daily_run.py`'s source are deleted.
+- The O8 builder's status rules (b) are built in:
+  - a `failed` or `refused` O1 step is a problem (`missed`), shown with its reason;
+  - `not_live` counts as neither missed nor a problem;
+  - an absent step is missed.
+- New tests:
+  - `test_the_check_reads_the_daily_run_s_own_tuple`: a desk-only log misses O1's six steps by name;
+  - `test_a_failed_or_refused_o1_step_is_a_problem_with_its_reason_not_live_is_not`.
+- `fno/constants.py` is at 348 lines after the merge: still under 350, with no squeeze. The next story that adds a
+  block there must split a cohesive block out.
