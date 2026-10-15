@@ -29,3 +29,15 @@ The LR1 reader change is also reviewed by the LR1 builder (orchestrator's go (b)
 2. This changes `fno/forecast_scoring/v4/`, so merge it **before** the v4 freeze commit, as the builder says.
 
 **Verdict: PASS for 0b47894f.** The LR1 part is subject to the LR1 builder's review, as agreed.
+
+## Addendum 1 (15 Oct 2026): e37ec7e0, with the LR1 builder's conditions
+
+- **G8.** Only the text changes: an empty cohort reads "no rows yet". The scoring is unchanged.
+- **LR1.**
+  - New labels: "live" and "back-fill (close-proxy), exploratory: does not count".
+  - An old-shape previous report gives "first report" (`_has_cohorts`), never a cross-shape difference. An old-shape
+    latest report still shows, as the back-fill cohort.
+  - My plant, `_has_cohorts` always True, fails 1 test.
+- **Gates.** `-n auto`: **6,525 passed, 0 failed**. Ruff is clean.
+
+**PASS for e37ec7e0.** Merge it before the freeze.
