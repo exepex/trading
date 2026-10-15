@@ -3,7 +3,8 @@
 - `CsvRowLog`: one CSV file in the repository, appended to (old bytes stay a prefix). For public-domain cues.
 - `DrivePartsRowLog`: a folder in the owner's Drive holding one new CSV part per append, never rewritten (Drive's
   copies are write-once). Its rows are every part's rows in name order. For cues whose values must never enter this
-  public repository (owner decision a927390, 15 Oct 2026: the S&P 500 and Nasdaq 100 closes).
+  public repository (owner decision a927390, 15 Oct 2026: the S&P 500 and Nasdaq 100 closes; story A17d: FBIL's
+  USD/INR rate).
 """
 
 from __future__ import annotations

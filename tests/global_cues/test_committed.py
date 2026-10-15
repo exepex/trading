@@ -67,7 +67,7 @@ def test_recomputing_from_the_copies_finds_a_planted_change(tmp_path):
 
 def test_no_private_cue_has_a_table_or_values_in_the_repository():
     private = {s.cue for s in wiring.SOURCES if s.private}
-    assert private == {"sp500", "nasdaq100"}
+    assert private == {"sp500", "nasdaq100", "usdinr_fbil"}  # FBIL: A17d
     files = {p.name for p in wiring.CUES_FOLDER.rglob("*") if p.is_file()}
     assert not {f"{cue}.csv" for cue in private} & files
     revisions = (

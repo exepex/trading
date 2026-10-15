@@ -6,20 +6,17 @@ import subprocess
 from datetime import time
 from pathlib import Path
 
-from fno.books.book1 import Book1
 from fno.books.paths import book_folder
 from fno.checks.validity import ValidityReport
 from fno.checks.validity_adapter import BookTradeValidator
 from fno.checks.validity_failures import ValidityFailureLog
 from fno.checks.validity_proposal import CheckResult
 from fno.constants import BOOK1_RULES, VALIDITY_FAILURES_FILE
-from fno.desk.git_sync import Git, GitCommitter
 from fno.playbook.decision_run import DecisionRun
 from fno.playbook.decision_store import DecisionStore
-from tests.checks.builders import CALENDAR
 from tests.decisions.builders import doc, snapshot
 
-from .builders import DAYS, FixedInputs, priced_evaluator
+from .builders import DAYS, git_book1, priced_evaluator
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -58,7 +55,7 @@ def test_a_same_day_rerun_leaves_the_failure_log_unchanged_and_the_checkout_clea
     validator = BookTradeValidator(BOOK1_RULES, FailingChecker(), NoCapture(), time(15, 12), ValidityFailureLog(root))
     run = DecisionRun(priced_evaluator(), DecisionStore(root, BOOK1_RULES), validator)
     playbook = snapshot(doc("sc-a"))
-    decider = Book1(root, CALENDAR, lambda: playbook, FixedInputs(), run, GitCommitter(Git(root)))
+    decider = git_book1(root, playbook, run)
     assert "decided" in decider.decide(DAYS[0])
     failures = book_folder(root, BOOK1_RULES) / VALIDITY_FAILURES_FILE
     logged = failures.read_bytes()
