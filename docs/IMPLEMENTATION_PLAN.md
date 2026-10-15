@@ -127,6 +127,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [S3](stories/S-scoreboards.md#s3-scoreboard-a-matched-decisions) | Scoreboard A: matched decisions | trading | E2, E4, F7, D6, S1 | M | later |
 | [S4](stories/S-scoreboards.md#s4-monthly-report-and-scheduled-reviews) | Monthly report and scheduled reviews | trading | S2, S3, G4, F4, F8, F9 | M | later |
 | [S5](stories/S-scoreboards.md#s5-research-feedback-loop) | Research feedback loop | trading | S4, D1, D4, D5, D6 | S | later |
+| [S6](stories/S-scoreboards.md#s6-scorecard-measures-do-nothing-gate-trade-luck-checks-t-check-warning-missed-runs-random-control) | Scorecard measures: do-nothing gate, trade-luck checks, t-check warning, missed runs, random control | trading | S1, S2, E3, E4, A13 | M | story text |
 | [P1](stories/P-publishing.md#p1-fo-read-model-contract) | F&O read-model contract | trading | D3, S2 (S3 for the scoreboard A page) | M | later |
 | [P2](stories/P-publishing.md#p2-read-model-builder) | Read-model builder | trading | P1, E3, S2, G4 (S3 for the scoreboard A page) | M | later |
 | [P3](stories/P-publishing.md#p3-atomic-publisher-to-azure) | Atomic publisher to Azure | trading | P2, X1, A1 | M | later |

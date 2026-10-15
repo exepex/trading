@@ -8,6 +8,7 @@ from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin, ScenarioLookupMargin
 from fno.risk.settings import StressedMarginSettings
+from tests.stress_factor_files import factor_file
 
 from .builders import DAY, FLY
 
@@ -21,8 +22,9 @@ def _table(tmp_path, rows: str, max_age: int = 7) -> MarginTable:
     return MarginTable(path, DaysOld(max_age), 65)
 
 
-def _multiplier(table, factor=1.5, source="broker calculator, stressed case", as_of=DAY, max_age=30):
-    return MultiplierMargin(table, StressedMarginSettings("multiplier", factor, source, as_of, max_age, None))
+def _multiplier(table, factor=1.5, as_of=DAY - timedelta(days=1), max_age=30):
+    """k from a factor file (story C2d): one row, dated the day before `DAY` by default."""
+    return MultiplierMargin(table, StressedMarginSettings("multiplier", factor_file(factor, as_of), max_age, None))
 
 
 def test_margin_is_the_latest_row_on_or_before_the_day_times_lots(tmp_path):
@@ -66,24 +68,29 @@ def test_a_missing_margin_file_fails_closed(tmp_path):
 def test_multiplier_margin_and_its_record(tmp_path):
     stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"))
     assert stressed.margin(TERMS, DAY) == 120_000.0
-    record = stressed.record()
-    assert record["method"] == "multiplier" and record["multiplier"] == "1.5" and record["as_of"] == "2026-10-13"
-    assert record["source"] == "broker calculator, stressed case"
+    record = stressed.record(DAY)
+    assert record["method"] == "multiplier" and record["multiplier"] == "1.5" and record["as_of"] == "2026-10-12"
+    assert record["status"] == "applied" and record["factor_file"].endswith(".csv")
 
 
 @pytest.mark.parametrize(
-    ("factor", "source", "as_of"),
+    ("as_of", "said"),
     [
-        (None, "s", DAY),
-        (1.5, None, DAY),
-        (1.5, "s", None),
-        (1.5, "s", DAY - timedelta(days=31)),
-        (1.5, "s", DAY + timedelta(days=1)),
+        (DAY - timedelta(days=31), "not valid on"),
+        (DAY, "no factor row before"),
+        (DAY + timedelta(days=1), "no factor row"),
     ],
 )
-def test_an_unset_expired_or_future_multiplier_fails_closed(tmp_path, factor, source, as_of):
-    stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"), factor, source, as_of)
-    with pytest.raises(RiskInputError, match="multiplier"):
+def test_an_expired_same_day_or_future_factor_fails_closed(tmp_path, as_of, said):
+    stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"), as_of=as_of)
+    with pytest.raises(RiskInputError, match=said):
+        stressed.margin(TERMS, DAY)
+
+
+def test_an_unset_factor_file_fails_closed(tmp_path):
+    table = _table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n")
+    stressed = MultiplierMargin(table, StressedMarginSettings("multiplier", None, 30, None))
+    with pytest.raises(RiskInputError, match="multiplier is not set"):
         stressed.margin(TERMS, DAY)
 
 
@@ -95,7 +102,7 @@ def test_a_multiplier_exactly_30_days_old_is_still_valid(tmp_path):
 def _lookup(tmp_path, rows: str) -> ScenarioLookupMargin:
     path = tmp_path / "stressed.csv"
     path.write_text("structure,width,scenario,margin_per_lot_rs,source,as_of\n" + rows)
-    settings = StressedMarginSettings("scenario_lookup", None, None, None, 30, path)
+    settings = StressedMarginSettings("scenario_lookup", None, 30, path)
     return ScenarioLookupMargin(settings, ["down", "up"], DaysOld(7))
 
 
@@ -119,7 +126,8 @@ def test_scenario_lookup_cannot_give_the_margin_at_entry_so_it_fails_closed(tmp_
 
 def test_the_margin_at_entry_stresses_the_scan_and_drops_the_premium_credit(tmp_path):
     """SF width 200 with scan 4,000, NOV -6,000 and exposure 50,000 a lot, factor 1.5, 2 lots: at entry
-    max(0, 6,000 + 6,000) + 50,000 = 62,000 a lot; C2's netted margin is 6,000 less."""
+    max(0, 1.5 x 4,000 + 6,000) + 1.5 x 50,000 = 87,000 a lot (C2c: k stresses the exposure too; was 62,000); C2's
+    netted margin is 6,000 less."""
     stressed = _multiplier(_table(tmp_path, "SF,200,4000,-6000,50000,calc,2026-10-12\n"))
-    assert stressed.margin_at_entry(TERMS, DAY) == 124_000.0
-    assert stressed.margin(TERMS, DAY) == 112_000.0
+    assert stressed.margin_at_entry(TERMS, DAY) == 174_000.0
+    assert stressed.margin(TERMS, DAY) == 162_000.0

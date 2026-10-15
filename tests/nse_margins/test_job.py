@@ -183,15 +183,10 @@ def test_the_created_cutoff_is_9_am_ist():
     assert time(9, 0) == SPAN_BOD_CREATED_BEFORE
 
 
-@pytest.mark.parametrize(
-    "check",
-    [BrokerApprovals({}), BrokerApprovals({"SF": Approval("check", date(2026, 10, 15))})],
-    ids=["none", "after_the_day"],
-)  # fmt: skip
-def test_without_a_passed_broker_check_rows_are_printed_and_none_written(tmp_path, check):
+def test_without_any_broker_check_rows_are_printed_and_none_written(tmp_path):
     path, alerts, printed = margins_file(tmp_path, done_before(DAY)), Alerts(), []
     before = path.read_bytes()
-    assert make_job(path, {DAY: span_zip()}, alerts=alerts, check=check, printed=printed).run() == 1
+    assert make_job(path, {DAY: span_zip()}, alerts=alerts, check=BrokerApprovals({}), printed=printed).run() == 1
     assert path.read_bytes() == before
     assert any(line.startswith("SF,100,1950.00,-10725.00,52000.00,NSE SPAN") for line in printed)
     assert len(alerts.sent) == 1 and "6 rows computed, none written" in alerts.sent[0]
@@ -205,3 +200,15 @@ def test_the_repository_config_records_the_groww_check_and_not_before_its_day():
     groww = Approval("Groww margin API (read-only), orchestrator run", date(2026, 10, 14))  # response 77, check 2
     assert dict(check.by_code) == {"SF": groww, "SC": groww, "BF": groww}  # story STR1b: no new code has a date
     assert check.approves("SF", date(2026, 10, 14)) and not check.approves("SF", date(2026, 10, 13))
+
+
+def test_the_first_run_after_the_check_writes_from_its_day_and_does_not_alert_on_the_days_before(tmp_path):
+    """The real first run (judge 77's check passed 14 Oct, nothing written yet): 7-13 Oct can never get a row, so they
+    are not pending; alerting on them would fail every run until they leave the 7-day window."""
+    path, alerts = margins_file(tmp_path), Alerts()
+    check = BrokerApprovals({code: Approval("check", DAY) for code in ("SF", "SC", "BF")})
+    files = {DAY - timedelta(days=n): span_zip() for n in range(8)}
+    job = make_job(path, files, alerts=alerts, check=check)
+    assert job.pending_days(DAY) == [DAY]
+    assert job.run() == 0 and alerts.sent == []
+    assert {line.rsplit(",", 1)[1] for line in path.read_text().splitlines()[1:]} == {DAY.isoformat()}

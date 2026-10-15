@@ -140,3 +140,58 @@ the simplicity rule.
 - ChatGPT's review follows (rule 9, fills). Any change after it comes back to me.
 - Merge steps as in the main verdict, plus addition (a): all nine account files must print "uploaded" or "already in
   Drive" before the `git rm --cached`.
+
+## Addendum 2 (15 Oct 2026): ChatGPT review 115 fix, fecb99fc..1ac23294, and `story/e2c-merge` 1cc9d80b
+
+The fix answers review 115's Q3. It is in the builder's response 150, "review 115", and the orchestrator's response
+162.
+
+**The fix (`daily_run._unreviewed`, `daily_steps.fill`):**
+
+| Last session's state | Who is blocked |
+|---|---|
+| No log, while an earlier log exists | every book |
+| A log without its exits step | every book |
+| An exits step where a book has an `error` or a non-empty `waiting` list | that book only |
+
+Other books fill as usual, and one alert names each blocked book and why. The block is decided per book, as the review
+asked. A failure that repeats every day keeps blocking, because each day's exits step records the error again.
+
+**Tests and plants:** `tests/timetable` passes, 96 tests. I planted three breaks myself, and each is caught:
+- ignore `waiting`: 1 test fails;
+- ignore `error`: 1 test fails;
+- block every book whenever one book is unreviewed: 2 tests fail.
+
+The reconcile test is review 115's non-blocking item. The fill reaches Drive, then the push of the daily totals is
+rejected. A fresh-container rerun fills nothing twice and commits totals equal to `daily_totals(Drive account)`. It
+passes.
+
+**The builder's doubt, ruled: sound (reasoning only).**
+- On a day without a snapshot, an open trade's price exits (stop and profit) are not checked, and `waiting` lists only
+  exits due without prices.
+- Not blocking that case adds no risk beyond a normal day. E3 fills, then reviews exits, at the same execution snapshot,
+  so the next valid day checks the unchecked stop at the very snapshot of any new fill. On every normal day a stop and
+  a new entry can already share a snapshot.
+- C2's decision-time view still counts the old position.
+- The real cost of the missed day is the data gap: a stop that would have fired a day earlier fires later, at that
+  day's price. Blocking entries would not recover it.
+- Blocking every day without a snapshot while a trade is open would stop entries on each data gap for no matching risk.
+- If the owner wants price exits re-checked before any new entry, the change is E3's order (exits before fills), as
+  the builder says. That is the owner's decision, not a defect here.
+
+**`story/e2c-merge` at 1cc9d80b** (main f23c5166 + fecb99fc, judge 163's `book1_cli.py` resolution, then 1ac23294):
+- `book1_cli.py` keeps E5b's single handler.
+  - Note a: `PrivateFilesUnavailable` gives its own alert, "nothing decided", before the `CommitFailed` branch.
+  - Note b: `--commit-run` skips the download, so it works with Drive down.
+- `daily_steps.py` keeps main's `DOUBLE` line and adds the per-book block. A blocked book skips the double-run check,
+  which is harmless, since it fills nothing.
+- Trial merge of 1cc9d80b with current `main` 9bbb6f43: **5,908 passed, 0 failed**. `ruff check`, `ruff format
+  --check` and `check_imports` are clean.
+- The only conflict is the `reviews/claude/README.md` index; keep both rows.
+
+**Nit (not blocking):** `test_fills_to_drive.py` has the comment "t1's time exit is due from 16 Oct" moved onto the
+`MONDAY` line. Move it back to `CLOSE_DAY` at the next edit.
+
+**Verdict: PASS for 1ac23294, and for `story/e2c-merge` 1cc9d80b as the merge tree.** ChatGPT's points are answered
+with tests. Merge steps as before: all nine account files must print "uploaded" or "already in Drive" before the
+`git rm --cached`. After the merge, run rule 8: `account show book1_rules` from a fresh checkout.

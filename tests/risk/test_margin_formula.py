@@ -1,7 +1,8 @@
-"""Judge 75 (story A14): C2 counts max(0, scan - NOV) + min(0, NOV) + exposure, stresses the scan risk only, refuses a
-margin not above 0, and with an open losing trade never leaves more free than a broker that nets the premium."""
+"""Judge 75 (story A14): C2 counts max(0, scan - NOV) + min(0, NOV) + exposure, stresses the scan and the exposure,
+never the premium (story C2c), refuses a margin not above 0, and with an open losing trade never leaves more free than
+a broker that nets the premium."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -11,6 +12,7 @@ from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginParts, MarginTable, MultiplierMargin
 from fno.risk.rules import MarginRoom
 from fno.risk.settings import StressedMarginSettings
+from tests.stress_factor_files import factor_file
 
 from .builders import DAY, START, book, market, open_trade, proposal, short_fly
 
@@ -28,9 +30,9 @@ def test_a_credit_structure_counts_its_scan_risk_and_a_debit_its_netted_span():
     assert BF_100.initial() == pytest.approx(59077.07)  # (B): max(0, 831.35 - 6,071) = 0
 
 
-def test_the_stress_factor_grows_the_scan_risk_never_the_premium():
-    assert SF_100.stressed(1.45) == pytest.approx(1.45 * 822.25 + 59077.07)
-    assert BF_100.stressed(1.45) == pytest.approx(59077.07)  # 1.45 x 831.35 is still below the 6,071 paid
+def test_the_stress_factor_grows_the_scan_and_the_exposure_never_the_premium():
+    assert SF_100.stressed(1.45) == pytest.approx(1.45 * (822.25 + 59077.07))  # 86,854.01 (was 60,269.33)
+    assert BF_100.stressed(1.45) == pytest.approx(1.45 * 59077.07)  # 1.45 x 831.35 is still below the 6,071 paid
     big_debit = MarginParts(10_000.0, 6_000.0, 0.0, "BF")
     assert big_debit.stressed(1.5) == pytest.approx(15_000.0 - 6_000.0)  # k x (scan - NOV) would be 6,000: too loose
 
@@ -48,7 +50,7 @@ def test_a_margin_not_above_0_or_a_negative_part_is_refused_by_name(parts, reaso
 def _room(tmp_path) -> MarginRoom:
     rows = [f"{p.what.split()[0]},100,{p.scan},{p.nov},{p.exposure},NSE SPAN test,{DAY}\n" for p in (SF_100, BF_100)]
     (tmp_path / "margins.csv").write_text(HEADER + "".join(rows))
-    settings = StressedMarginSettings("multiplier", 1.0, "exact input", DAY, 30, None)
+    settings = StressedMarginSettings("multiplier", factor_file(1.0, DAY - timedelta(days=1)), 30, None)
     return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", DaysOld(7), 65), settings), CostsAtMid())
 
 

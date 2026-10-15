@@ -120,3 +120,38 @@ T3. The forecasts, weather and data health sections are unchanged and stay MET.
 must name `fno/advocate/` as the one objecting AI to reuse, as the register now says, so no second one is built.
 
 **Verdict: PASS for 2c67480b211c626688da6cd53d766014568e9953** (story text). Code may start.
+
+## Addendum 3 (15 Oct 2026): LR1 code at b7b0ed49fd57b15ea7cbc3184cc00ce9f5ba8849
+
+Claims: `reviews/claude/response_167_lr1-weekly-postmortem.md`, "Code round". The builder sent the SHA to me directly.
+Judged on the real paths.
+
+### Gates
+
+- 5,971 passed (the builder's figure); ruff, format and imports clean.
+- `merge-tree` with `origin/main`: conflicts in `CLAUDE.md` (both sides add a composition root to the same list: keep
+  both lines) and `reviews/claude/README.md` (index rows).
+
+## Verdict: PASS (code); 1 note
+
+| Real path | Status | Evidence |
+|---|---|---|
+| The live dry run writes nothing | MET | `python -m fno postmortem weekly --week-ending 2026-10-17` on the repository printed the report, and `git status` stayed clean. The G4 part is `weekly_summary` of `research/forecasts/scores/2026-10-15.json` verbatim. The capture lateness lines are 2.7 and 10.7 minutes after 14:55 for 14 and 15 Oct. The weather rows show M1's back-fill labels. A16: "not enough data yet (0 of 20)". Each is a plain empty state where data is missing |
+| G8's report runs in the job without Drive | MET | I ran `forecast-v4-scores report --as-of 2026-10-17` with every `FNO_GDRIVE_*` unset: exit 0, report written (removed afterwards). The new workflow passes no Drive settings, and it does not need them |
+| Whole-token number rule | MET | `fno/advocate/numbers.py`: one `NUMBER` pattern for both texts (`40%`, `-0.0042`, dates and times as single tokens; `[L12]` is not a number, because of the lookbehind), a subset test, and number words refused. Tests 13-14 include "4 sessions" against "40%" |
+| Only the publisher reads the AI files | MET | `publish.py` (summary) and `routine_file.py` (objections, through the `Advocate` port) are the only readers. `test_boundaries` forbids desk, books, risk, checks and G4/G8 scoring imports |
+| The lines always post | MET | `Publisher.publish` sends summary or reason, objections or "advocate not run", then the lines in one message. The publish record is written once, and a second publish says "already posted" |
+| G4's Monday post retired | MET | `forecast-scores.yml`: the Monday cron, the `WEEKLY` env, the summary input and the `--send` step are removed. The daily 22:41 IST scoring stays |
+| Workflow | MET | Saturday 05:11 and 06:11 UTC (10:41 and 11:41 IST). Build: G8 report, lines committed and pushed, then the separate `postmortem fire` once the lines are on `main`. Publish: pull first. Only `FNO_SLACK_BOT_TOKEN` for Slack, the two routine secrets, the public-record scan on, no `--no-verify`, and an alert when the job fails |
+| Secrets | MET | The two names are in `fno/constants.py`, and the token is classed as a live credential in `tests/live_credentials.py` |
+| Coordination | MET | Register rows for LR1 and for the one objecting AI (T3 reuses it). `CLAUDE.md` lists the new composition root |
+
+## Note (does not change a trade)
+
+**The checklist must say the routine pushes before 11:41.** If the routine's two files arrive after 11:41 IST, publish
+posts "summary: no summary received" and "advocate not run", and the late files are never posted (once a week, no
+retry). That is the stated design. The owner checklist should say plainly that the routine must push before 11:41, so
+a slow run is understood.
+
+**Verdict: PASS for b7b0ed49fd57b15ea7cbc3184cc00ce9f5ba8849** (code). It merges with `CLAUDE.md`'s list keeping both
+lines. Rule 9 is the orchestrator's call: it posts to Slack and adds a schedule, but decides no trade.
