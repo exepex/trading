@@ -149,3 +149,303 @@ Plants: 22 of my own. 20 were caught; M16 and M18 survived (should-fix 2).
 - `fno/scorecard/wiring.py` builds E6's snapshots from the local quote folder. After A4b, it must read through A4b's hash-checked Drive store, or every fill outside the capture's checkout is "touch unknown". The merge must keep one version of `execution_capture.py`.
 
 **Verdict: FAIL for b76be4fdf00ab776148d854afde5f69d10782293** (code) on should-fixes 1-2. A re-check needs only `git_sync.py`, the fill and exit step handling, `touches.py` and their tests.
+
+## Addendum 3 (15 Oct 2026): fixes at c653744aa1e9e75c451e7c272316e441be20415a
+
+E2b's own commit is 8b47713; c653744 merges `origin/main` into it. Gates on c653744: 3,928 passed (the builder's figure);
+ruff, format and imports clean. Decision 42's commit (the touch size in E4's reason) was not pushed yet; I check it
+with the next SHA.
+
+| Item | Status | Evidence |
+|---|---|---|
+| sf 1, account write | MET for the account write | `_require_no_raw_quote_staged` runs before the pull and before `apply` and raises `CheckoutNotDedicated` with one alert. My plants caught: N1 (check removed), N2 (check moved after `apply`), N3 (refusal raised as a raw `ValueError`) |
+| sf 1, the run as a whole | **NOT MET (new should-fix 1)** | see below |
+| sf 2, untested touch cases | MET | Tests read the real `RecordedExecutionSnapshots`; my M16 and M18 are now caught |
+| Minor 1, "three" | MET | |
+| Minor 2, chain list | MET | Chains come from `meta["expiries"]`; a chain with no rows gets a None item, timed at the first request (plants N5, N6 caught) |
+| Minor 3, path-based guard | MET (reason stated) | |
+
+**The orchestrator's question: can the "rows as fallback for older sidecars" path hide a missing chain in a new capture? No.**
+- The fallback only runs when `expiries` is missing or empty.
+- The recorder always writes `expiries` (`recorder.py:233`). An empty list means no chain was fetched.
+- A pack is built only from the canonical capture, which must be `complete`. `complete` requires chains, no failures
+  and `rows == expected` (`recorder.py:228`), and fewer than 2 monthly expiries is itself a failure (`recorder.py:206-207`).
+- So a canonical capture always lists both chains. A chain fetched with no contracts is listed, gets a None item, and C3
+  names it.
+- Wording nit: the story says the sidecar's `expiries` are the chains "asked for"; they are the chains fetched. For a
+  canonical capture the two are the same.
+
+## New should-fix
+
+**1. In a real run, the daily run's own step commit hits the staged raw file first, and it stops the run with no alert.**
+- **How.** `DeskRun._step` commits the run log after every step through `GitCommitter`. With a raw quote file staged, the
+  first step's commit (before the fill step) runs `commit_paths`. Its staged check raises `RawQuoteCommitRefused`, a
+  `ValueError`.
+- **Probe.** Real `Git` and `GitCommitter`, a staged raw quote file, committing `journal/runs/<day>.json`: the refusal is
+  unhandled.
+- **Consequence.** `_step` does not catch it, and neither does `fno desk` → `book1_cli` (`build_daily_run(...).run(...)`).
+  - The run ends at its first step with a traceback.
+  - Nothing reaches #fno-desk. There are no exits that day.
+  - The new account-write path, with its "not filled" result and alert, is never reached.
+- **Why the tests missed it.** `test_raw_quote_refusal_run.py` swaps in a real check for book 1's account sync but
+  keeps the fake committer.
+- **Exits.** They could not run in that checkout anyway: every account write now refuses while the file is staged. The
+  defect is the silence.
+- **Expected fix.** The committer's refusal is alerted once to the desk channel, naming the file (the same sender
+  `_stop` uses). Test it with the real `GitCommitter` in a run: a staged raw file gives one alert naming it, and nothing
+  is committed.
+- Today a push rejected three times also ends the run unalerted. That is older than E2b and not E2b's to fix; it is worth
+  one line in the story's Out list or a follow-up.
+
+## Minor
+
+1. **N4 survived.** Making `staged()` ignore deletions (`--diff-filter=d`) passes all 310 related tests. Criterion 5 now
+   states "a staged deletion there is refused too", so that claim needs a test.
+
+**Verdict: FAIL for c653744aa1e9e75c451e7c272316e441be20415a** on new should-fix 1. A re-check needs the committer's
+refusal handling, its run-level test, the N4 test, and decision 42's commit.
+
+## Addendum 4 (15 Oct 2026): af31238713e4bd076524ce6832a77e5bdf76a2fe
+
+New commits: 290a8a0 (decision 42) and af31238 (decision 44). Gates: 3,935 passed (the builder's figure); ruff, format
+and imports clean. Decision 45's commit was not pushed yet; I check it with the next SHA.
+
+## Verdict: FAIL, 1 should-fix; 3 minor
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 3 sf 1, the run's own commit | MET | `GitCommitter` turns the raw-quote refusal and every `GitError` into `CommitFailed`, and `DailyRun._step` is the one handler (one alert, then `RunStopped`); `fno desk run` returns 1 on one line. The tests use the real `GitCommitter` with a bare origin: a staged raw file, an unreachable origin, a pre-receive hook. I read all three and the in-step case (capture commit) |
+| Addendum 3 minor 1, staged deletion | MET | `test_a_staged_deletion_of_a_quote_file_is_refused` (this catches my N4) |
+| Decision 42 | MET | `pricing.py` `NOT_ENOUGH_SIZE` names only the units. The pending-exit reason reuses `q.reason` (`exits.py:137`), so it carries no size. The test reads the committed `desk_events.csv` row |
+
+### The orchestrator's questions
+
+**1. Is a commit stuck local after a push rejected three times acceptable? Yes, but the alert gives no hand fix.**
+- It fails closed: `other_work` refuses every later account write while a commit is unpushed.
+- It also heals: the next successful `GitCommitter.commit` pulls and pushes `HEAD`, so a rerun carries the stuck commit
+  once origin accepts pushes again.
+- The alert says what happened, not what to do. It should say: exits did not run, open positions were not reviewed
+  today; fix the cause, then rerun `fno desk run`. That rerun advice is only safe after should-fix 1 below.
+
+**2. Can `RunStopped` skip something that must run? Yes, in two ways.**
+- **The exits.** A stop at any step before `exits` skips them. For all three causes this changes nothing, because the
+  exits' account writes would refuse anyway:
+  - a staged raw file is refused before apply;
+  - an unpushed commit fails the dedicated check;
+  - a failed pull raises `GitError` in the account write too.
+
+  The exception is a pull that fails once and works minutes later. Then the stop gives up that day's exits, as the old
+  crash did. Acceptable only if the alert names it (minor 1).
+- **The locks.** Account locks are context managers inside `GitAccountSync.write` (`with self.open_journal(...)`), so
+  an exception releases them. Nothing else holds a resource across `_step`.
+- **The failed step's own files on a rerun.** This is should-fix 1.
+
+## Should-fix
+
+**1. After a stop, a rerun marks the failed step done, and its files are never committed.**
+- **The order.** `_step` calls `log.record(...)` (which writes `journal/runs/<day>.json` to disk) before
+  `committer.commit(...)`. `run()` skips every step for which `log.done(name)` is true.
+- **Probe.** The real `DailyRun._step` and `RunLog`, a committer that fails once, the pack step with its
+  `journal/packs/<day>/common.json`: after `RunStopped`, `RunLog.open(root, day).done("pack")` is True.
+- **Consequence.** A rerun skips the pack step, and the next step's commit carries only the log and that step's own
+  paths.
+  - The pack stays uncommitted for good, while the committed run log says `"built": true` with its hash.
+  - That is a silent gap in the public record, after the very recovery an operator would try.
+  - A failed `decisions` step leaves its no-decision files the same way. Those sit in the book's folder, so later account
+    writes refuse (fail closed, alerted), but nothing says why.
+- **Before E2b** the same order existed, but the run crashed. Decision 44 makes stop-then-rerun the designed path, so
+  the rerun must be correct.
+- **Expected fix.** A step whose commit failed is not "done" on a rerun: either the log records it only once committed,
+  or the rerun first commits the paths of recorded but uncommitted steps. No step may run twice, and the fills step must
+  never refill. Test it with the real `GitCommitter`: a stop at `pack`, the cause removed, a rerun; the pack file is
+  committed, every step ran once, nothing was refilled.
+
+## Minor
+
+1. **The stop alert should say plainly what is missed and what to do.** Name "exits not reviewed today" when the stop
+   comes before `exits`, and give the hand fix: remove the cause, then rerun `fno desk run`. For a rejected push, add
+   "the local commit is pushed by that rerun".
+2. **Possible decision 45 scope (reasoning only).** `exit_rules.py:42,55` write "net Rs X if closed now" into the
+   `exit_ordered` reason. That net is worked out at the touch of every leg. If a leg then stays pending (not enough size),
+   X minus the published close fills of the other legs gives that leg's touch price at a snapshot where it did not fill.
+   That is one side, not both. Fold it into decision 45 if the rule is "no quote figure for an unfilled leg".
+3. The new Out line (Book 1's decision command still ends in a traceback on a failed commit) is a fair follow-up, not
+   E2b's.
+
+**Verdict: FAIL for af31238713e4bd076524ce6832a77e5bdf76a2fe** on should-fix 1. A re-check needs the rerun behaviour
+and its test, the alert text, and decision 45's commit.
+
+## Addendum 5 (15 Oct 2026): a31ea116dfc46bc89b59ffb8df6d3879281d575c
+
+a31ea11 is af31238 plus decision 45. Gates: 3,936 passed (the builder's figure); ruff, format and imports clean.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Decision 45 | MET | The reason is the fixed text `entry_worse_than_approved: entry price at the touch worse than the approved limit`; `shortfall_rs` is gone from `EVENT_COLUMNS`, `DeskEvent` and `EntryResult`; `worse_than_approved()` returns a bool. Tests cover the iron fly and a single-leg LC, with the exact columns and no digit outside the ID fields |
+| Readers of the dropped column | none | `grep -rn shortfall` over the tree finds only `entries.py`, `records.py` (comments), the test, the story and an old conversation log. No hit in `fno/scorecard`, `fno/market_read_models`, `fno/scoreboard`, the pack code, `tools/` or `contracts/omenix-dashboard/` (pin and `paper-portfolios.yaml`). No `desk_events.csv` is committed, so no stored file changes shape |
+| The digit test and a future field | acceptable | The test checks only a refused entry's row, and `IDS` lists the fields allowed digits. A future non-quote field such as `lots` makes the test fail until it is named there. That is a deliberate review point, not a lock-out: one line. Calling it `NON_QUOTE_FIELDS` would read better (nit) |
+| Addendum 4 should-fix 1, rerun after a stop | **NOT MET** | a31ea11 does not change `daily_run.py` or `run_log.py`. `_step` still records the step before committing, so a rerun after a stop skips the failed step and never commits its files |
+| Addendum 4 minor 1, alert wording | open | unchanged |
+
+**Verdict: FAIL for a31ea116dfc46bc89b59ffb8df6d3879281d575c** on addendum 4 should-fix 1 alone. Decision 45 is met
+and needs no further check. The next re-check needs only the rerun fix and its real-committer test, and the alert
+text.
+
+## Addendum 6 (15 Oct 2026): afafb07fbeaa78f3395219f045519e9bd92debee
+
+Parent a31ea11 (decision 45 already MET). This commit: decision 47 (`PendingCommitter`), decision 48 (fixed exit-rule
+reasons) and the alert texts. Gates: 3,943 passed (the builder's figure); ruff, format and imports clean. Files under 350
+lines (`pending_commit.py` 77, `daily_run.py` 110, `git_sync.py` 182).
+
+## Verdict: FAIL, 1 should-fix; 3 minor
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 4 sf 1, rerun after a stop | MET in the same checkout | A marker with paths, SHA-256 and message is written before every run commit and removed on success. `run()` calls `recover()` first, inside the one handler, and commits the files as recorded or stops naming a changed file. My plants: Q1 (no hash check), Q2 (no push when ahead) and Q3 (no recovery) are caught |
+| Addendum 4 minor 1, alert text | MET | "exits not reviewed today" before the exits, the hand fix, "the rerun pushes the local commit" (plant Q4 caught) |
+| Decision 48 | MET | `TARGET_REACHED`/`STOP_REACHED` fixed texts (plant Q6, a figure put back, caught). "every leg closed; net Rs N" stays: N is the sum of published fills |
+| The builder's partial disagreement with my addendum 4 Q1 | **accepted** | I said the next successful commit pushes the stuck one. It did not when that commit had nothing new (`commit_paths` False, so no push), which is exactly the recovery of an already-committed step. The builder is right, and the fix is right |
+
+### The orchestrator's three points
+
+**(1) A rerun in a fresh container (no marker, no uncommitted files). It is safe: fail-closed, no double fill. But the story does not state it (minor 1).**
+- **Fills.** `EntryDesk.enter` returns the recorded outcome when the journal already holds an entry event for that
+  `trade_id` (`entries.py:116-118`, reading the committed journal). Every book's account write is committed and pushed
+  by `GitAccountSync` itself. So a fresh rerun of the fills step never refills a trade whose write reached origin. A
+  write that never reached origin is not on the public record, so filling it once on the rerun is not a second fill.
+- **Exits.** These work from the journal's open positions, so a closed trade is not closed again.
+- **Decisions.** `collect_decisions` started after the deadline plus grace marks every book late (`daily_steps.py:91-94`,
+  "fails closed"). A fresh rerun after a stop at the decisions step therefore loses that day's entries for all books.
+  That is safe and visible (the no-decision files say why), but a cost.
+- **Pack.** The pack rebuilds byte-identically (E2 criterion 6), so re-running it is harmless.
+- **Reporting gap (reasoning only).** In a fresh checkout before A4b, the 15:15 raw CSV is absent. `_fill_one` then
+  returns "not filled" from the gate before `enter` can return the recorded outcome, so the rerun's log can say "not
+  filled" for a trade that was filled. It is a report mismatch, not a fill. After A4b, the snapshot comes from Drive.
+- **Conclusion.** No durable marker is needed for safety. The story must state the fresh-checkout rule (minor 1).
+
+**(2) A second capture on the rerun. It is consistent with E3: C3 refuses a capture outside the window.**
+- `CommittedExecutionSchedule` picks the latest record, but its window is `execution_snapshot`..`fills_by`.
+- `snapshot_checks.py:24-34` refuses a capture "outside its window (stale or early)" as `prices_unverified`.
+- So a rerun capture after `fills_by` fills nothing. One inside the window is a legitimate execution time.
+- Both records are committed, and each fill row names its `snapshot_id`, so the timing is visible.
+- I checked E3 and C3 only, not E8's text.
+- Minor 2: the story's "fills read the latest" should add "inside the window; after it C3 refuses".
+
+**(3) Can "push when HEAD is ahead" push a commit the run did not make? Yes, and the raw-quote guard does not stop it.**
+This is the should-fix.
+
+## Should-fix
+
+**1. The desk's committer pushes commits whose files the raw-quote guard never checked.**
+- **Probe.** Real `Git`, `GitCommitter` and `PendingCommitter`, with a bare origin. A stray local commit containing
+  `.../quote-snapshots/2026/10/nifty_20261014_151500.csv` (not made by the run), then one run commit of
+  `journal/runs/<day>.json`. Result: committed, and **origin now holds the raw quote file**.
+- **Why.** The guard checks the given paths and the index (`staged()`), and `push` sends `HEAD`, which includes every
+  unpushed commit. `GitAccountSync` refuses when unpushed commits exist (`other_work`), but `GitCommitter` does not.
+- **Before E2b?** Any push already carried earlier unpushed commits. The new "push when ahead" adds the case where the
+  run makes no commit at all.
+- **Why it matters.** The guard exists so a raw quote file never reaches the public repository, and a push is what
+  publishes.
+- **Expected fix.** Before every push, check the files changed in `origin/<branch>..HEAD`
+  (`git diff --name-only origin/<branch> HEAD`) against `RawQuoteGuard` and refuse naming them. That also covers a
+  recovered commit. Test it: a stray local commit with a raw file is refused before any push, and origin is unchanged.
+- **Optionally** also refuse unpushed commits not made by the run, as `other_work` does for account writes.
+
+## Minor
+
+1. **State the fresh-checkout rule in the story**, not only in response 118: a rerun in a fresh checkout has no marker
+   and starts from what was committed. Fills and exits are idempotent against the committed journal, and a decisions
+   step re-run after the deadline makes every book late (fail closed).
+2. **"Fills read the latest" needs the window**: inside the execution window; after `fills_by`, C3 refuses.
+3. **Plant Q5 survived.** Removing the `STILL_PENDING` refusal in `PendingCommitter.commit` passes all related tests.
+   `run()` recovers first, so the branch is defensive, but it should have a one-line test or go.
+
+**Verdict: FAIL for afafb07fbeaa78f3395219f045519e9bd92debee** on should-fix 1. A re-check needs the pre-push check
+and its test, and the two story lines.
+
+## Addendum 7 (15 Oct 2026): 8237214f7a523448d1b5a8316f2366f94b816d06
+
+Parent afafb07. Decision 51 adds the pre-push guard and the refusal of stray unpushed commits, plus the story minors.
+
+| Gate | At 8237214 | Trial merge with `main` fdaf4f6 |
+|---|---|---|
+| `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` | 3,949 passed | 4,683 passed |
+| ruff check / format / `check_imports.py` | clean | clean |
+| Conflicts | - | none (`reviews/claude/README.md` auto-merged) |
+
+`git_sync.py` is 217 lines, `pending_commit.py` 73.
+
+## Verdict: PASS (code); 3 minor
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 sf 1, pushing what the guard never saw | MET | Before every push attempt, `RawQuoteGuard` runs on `git diff --name-only -z origin/<branch> HEAD`, deletions included. Before the pull, `_refuse_stray` refuses unpushed non-merge commits that are not the run's own; account writes refuse any unpushed commit through the same `Git.unpushed()`. My plants caught: S1 (no pre-push guard), S2 (`_own` always true), S3 (files rule dropped), S5 (no stray check), S6 (recovery not passing its own message), S7 (merges counted), S8 (account writes allowing strays). **S4 (subject rule dropped) survived** (minor 1) |
+| Addendum 6 minors 1-3 | MET | The fresh-checkout rule and "inside the execution window; after `fills_by` C3 refuses" are in criterion 5. The unreachable `STILL_PENDING` branch is removed, and the docstring says why no marker can be left |
+
+### The orchestrator's three points
+
+**(1) A hand-made merge with its own edits passes (b).**
+- In the dedicated checkout the run makes merges only through `pull --no-rebase --no-edit`. A conflicted pull fails as a
+  `GitError`, so the run stops; it never commits a resolution. So an "evil merge" needs a person to make it in that
+  checkout.
+- Even then, (a) checks every file it changes against origin, so it cannot publish a raw quote file. What it could push
+  is non-quote content.
+- A local merge of a local branch brings its commits into `rev-list origin..HEAD --no-merges`, so they are checked as
+  strays.
+- Acceptable. It is reachable only by hand and cannot leak quotes.
+
+**(2) "Own" is a subset rule, not the same set: `files_of(commit) <= names`.**
+- A subset is right for the recovered commit (the commit touches what changed among the marker's files).
+- **It does not check content.** A stray commit with the run's message, touching only the marker's paths, with other
+  content would pass. To reach that, someone must copy the subject exactly and restore the files on disk to the marker's
+  digests (`recover()` checks the disk first). So it is not reachable by accident, and (a) still blocks raw quote files.
+- Minor 2: compare each file in the commit with the marker's SHA-256 (`git show <c>:<path>`), which makes "own" exact
+  and cheap.
+
+**(3) The new port parameter.**
+- The non-test `Committer` implementations are `GitCommitter` and `PendingCommitter`. The callers are `DailyRun._step`,
+  `PendingCommitter.recover`, D6's `book_versions.py:51`, the capture `execution_capture.py:52` and Book 1
+  `book1.py:74`.
+- Only `recover()` passes a value. Every other caller uses the default `""`, which allows no unpushed commit at all.
+  That is the safe default: it fails closed with one alert naming the commit.
+- One consequence to know: a Book 1 decision commit whose push was rejected stays local. In the same checkout, the
+  daily run then stops at its first commit (alert names it), and exits are not reviewed until it is resolved by hand.
+  That is consistent: account writes already refuse any unpushed commit, so exits could not run anyway. Pushing that
+  decision late would also have been wrong, since a late-pushed decision must stay late.
+
+## Minor
+
+1. **Plant S4 survived.** Dropping the subject comparison in `_own` passes all 43 related tests. The story says the run's
+   own commit is "told apart by ... its message", so add a test: a stray commit with another message, touching only the
+   marker's files, is refused.
+2. **Make "own" exact by content** (point 2 above): each file of the stuck commit must equal the marker's SHA-256.
+3. Carried from earlier addenda (follow-ups, not E2b's): a failed commit in `fno desk book1` still ends in a traceback.
+   Before A4b, a fresh rerun can report "not filled" for a filled trade.
+
+## Next steps
+
+- **Merge order** (decision 29 and this story's Depends line): after A4b. A4b is not on `main` yet: judge 111
+  addendum 3 says its merge waits for the owner's probe.
+- **Quality rule 9:** the code goes to ChatGPT after this PASS, before the merge.
+- **My merge check** will verify:
+  - `fno/scorecard/wiring.py` reads E6's snapshots through A4b's hash-checked store;
+  - one version of `execution_capture.py` is kept;
+  - the merged suite passes.
+
+**Verdict: PASS for 8237214f7a523448d1b5a8316f2366f94b816d06** (code). Minors 1-2 can ride the A4b merge commit.
+
+## Addendum 8 (15 Oct 2026): 9aefbc0ab1cbf6a1cda5a200cf6500aa0002b231
+
+One commit on top of 8237214 (orchestrator's decision 54): the two code minors of addendum 7.
+- Gates: 3,951 passed (the builder's figure); ruff, format and imports clean.
+- `git merge-tree` with `origin/main`: no conflict.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Minor 1, the message rule tested | MET | A `reworded` case covers it. My plant S4 (subject comparison dropped) is now caught |
+| Minor 2, "own" exact by content | MET | `OwnCommit` holds the message and each file's recorded SHA-256. `_own` requires the same subject, files within the marker's, and each committed file's content (`git show <c>:<path>`) equal to its recorded hash, where None means deleted. My plants caught: the content check dropped, the files rule dropped, and recovery not passing `OwnCommit` (S6) |
+| Nit | - | The `GitCommitter` docstring wraps oddly ("Any / refusal or git failure is / raised"); cosmetic |
+
+**Verdict: PASS for 9aefbc0ab1cbf6a1cda5a200cf6500aa0002b231** (code). The addendum 7 PASS carries to this SHA, and
+it is the version for ChatGPT (quality rule 9). The merge still waits for A4b, and my merge check is as listed in
+addendum 7.

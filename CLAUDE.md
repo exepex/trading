@@ -46,7 +46,8 @@ API keys or tokens.
 Started by a scheduled session at about 14:50 IST every day; the NSE session calendar (A7) decides whether it is a
 trading day, so special weekend sessions are recorded and closed days print "not a trading day". Research data
 only: never places, modifies or cancels orders.
-1. `pip install -q -r requirements.txt -r requirements-groww.txt` and `git config core.hooksPath .githooks` (turns on
+1. `pip install -q --use-pep517 -r requirements.txt -r requirements-groww.txt` (the flag is needed: see
+   `requirements-groww.txt`) and `git config core.hooksPath .githooks` (turns on
    the public-record scan, story O5, for every commit).
 2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
    incomplete). NSE's session calendar (`research/data/calendar/nse_sessions.csv`, story A7) decides the day: a
@@ -124,8 +125,9 @@ commit with `--no-verify`.
   `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
-  `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1) and
-  `fno/cards/wiring.py` (the daily trade card, story T1).
+  `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1),
+  `fno/cards/wiring.py` (the daily trade card, story T1) and `fno/intraday/wiring.py` (the 15-minute quote recorder:
+  Groww source behind a read-only allow-list, Drive store, clock check, story A16).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

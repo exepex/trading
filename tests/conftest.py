@@ -1,7 +1,10 @@
 """Guards for the whole test run."""
 
+import ipaddress
 import os
+import socket
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -28,6 +31,61 @@ def repository_data_is_untouched():
     after = _snapshot()
     changed = sorted(k for k in set(before) | set(after) if before.get(k) != after.get(k))  # new, changed, deleted
     assert not changed, f"tests changed the repository's data: {changed}"
+
+
+class RealNetworkBlocked(RuntimeError):
+    """A test tried to reach a real host. Not an OSError on purpose: no library retries or wraps it as a connection
+    failure, so the test fails loudly (story A9b, judge 119 addendum 1)."""
+
+
+PROXY_SETTINGS = ("HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "all_proxy")
+
+
+def _proxies() -> set[tuple[str, int]]:
+    """Proxy endpoints set on the machine: a proxy on this machine (a cloud session's) still reaches real hosts."""
+    found = set()
+    for name in PROXY_SETTINGS:
+        url = urlsplit(os.environ.get(name, ""))
+        if url.hostname and url.port:
+            found.add((url.hostname, url.port))
+    return found
+
+
+def _local(address, proxies: set[tuple[str, int]]) -> bool:
+    if not isinstance(address, tuple):  # a Unix socket path: this machine only
+        return True
+    host = str(address[0])
+    if (host, address[1]) in proxies:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.split("%")[0]).is_loopback
+    except ValueError:
+        return False
+
+
+@pytest.fixture(autouse=True)
+def no_real_network(monkeypatch):
+    """Every socket connect in the test process goes to this machine only (local test servers, e.g. the Postgres
+    one); any real host (NSE, Drive, Slack), or a proxy to one, fails loudly. The proxy settings are removed too, so
+    no library routes through one. Limit: a subprocess the test starts is not guarded (the credential guard above
+    keeps it without keys)."""
+    real_connect, real_connect_ex = socket.socket.connect, socket.socket.connect_ex
+    proxies = _proxies()
+    for name in PROXY_SETTINGS:
+        monkeypatch.delenv(name, raising=False)
+
+    def guard(connect):
+        def guarded(sock, address):
+            if not _local(address, proxies):
+                raise RealNetworkBlocked(f"a test tried to connect to {address!r}")
+            return connect(sock, address)
+
+        return guarded
+
+    monkeypatch.setattr(socket.socket, "connect", guard(real_connect))
+    monkeypatch.setattr(socket.socket, "connect_ex", guard(real_connect_ex))
 
 
 @pytest.fixture(scope="session")

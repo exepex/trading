@@ -423,3 +423,156 @@ the limit and not over it. Next time, split it rather than trim it.
 ChatGPT's re-review of revisions 1-5, the G7 and G8 code (G8 must use `event_band`, the operative thresholds and the
 gate exactly), and then my check of the freeze record's hashes. Merge as a merge commit after ChatGPT, keeping both
 READMEs' rows.
+
+## Addendum 6 (15 Oct 2026): revision 6 at e32f89d4c45e22f3f2e25cf3abab6895f0f55dcc (355eae4..e32f89d)
+
+Range: ChatGPT's review 101 (f52d858, 4e76d17) and e32f89d. The calibration text moves to
+`PROTOCOL_v4_calibration.md`. The commit adds V7's own VIX null (`tools/v4_vix_null.py`), makes V7 descriptive-only
+(`terms.DESCRIPTIVE_ONLY`, excluded in `family.judge_family` and `stop_rule.forecasting_test`), and adds V6b's
+busy-regime stress (`v4_brier_busy_stress.json`).
+
+## Gates
+
+On a trial merge with current `origin/main` (clean; `reviews/claude/README.md` auto-merges): **4013 passed**; ruff,
+format (852 files) and `check_imports` are clean. `PROTOCOL_v4.md` has 325 lines and the calibration file 97: the
+split is done.
+
+## My own-seed checks
+
+| Claim | My result | Verdict |
+|---|---|---|
+| V6b in the busiest 125 sessions (16 Dec 2019 - 18 Jun 2020, 36 2% days), n = 125, band 13+ | False claim **0.438** (builder 0.436). False "no", flipped orientation, **0.857** (builder 0.857). Opposite orientations about 0. 200,000 series, seeds [9090, ...] | Reproduced |
+| V7 own rule R1, n = 125, worst region | False claim look 1 **0.060** (calm 250) against the builder's 0.058; false "no" **0.302** (calm 250, flipped) against 0.299; the full period is near nominal (0.0014 and 0.024). 50,000 series a region | Reproduced |
+| V7 descriptive-only | Code checked: its slots are never judged (p = 1), they are not counted in Test A, and the family stays at 15. This is ChatGPT review 101's own alternative remedy | Correct |
+
+## What the stress numbers mean (the question on item E)
+
+**They are not a size failure in the usual sense.** Inside the 2020 crash stretch, the "null" difference (centred on
+its 2019-26 mean) has a **local mean of -0.33**, larger than its full-period SD (0.21). In that window the EWMA
+forecaster really did beat the base rate, by a lot. The stress resamples only from that stretch; at n = 250 it draws
+250 days from 125, so the local mean is fixed. Any consistent test **must** then "reject". What the 44-91% shows is
+this: a verdict from one regime-dominated window measures skill **in that regime**. It cannot measure long-run,
+all-weather skill. No test on a single window can fix that, because the data in such a window do not contain the
+answer (strong evidence: the local mean exceeds the spread). My own addenda 3-5 asked for "regime robustness". That
+was right for the calm case, where calm windows hold no information, but it cannot be met in a crash window by any
+rule. I say so plainly.
+
+**On item E's options (reasoning only; the owner decides):**
+1. **Accept with disclosure.** Statistically defensible **if** the claim is worded as what it is: "V6b beat its
+   baseline over the scored window". The registered error rates hold on average over windows like 2019-26's, not
+   inside any one regime. A claim from a crash-dominated window is a claim about crash-time skill. This is honest
+   and keeps V6b useful.
+2. **Exclude crash-dominated windows.** A legitimate **predeclared** gate, not post-hoc selection, only if all of these
+   hold:
+   - it is frozen now, before any v4 forecast exists;
+   - it is defined only on outcome-side data the forecasters do not influence (for example the window's mean VIX or
+     its 2%-day count above a fixed level), as the calm gate is;
+   - the remaining judgeable bands are re-measured within tolerance;
+   - its cost is disclosed.
+
+   Choosing the cut-off after seeing v4 results would be post-hoc and is not allowed. The cost: claims then never
+   speak to crash behaviour, which is when the 2% question matters most for risk.
+3. **Make V6b descriptive.** The most conservative option. Test A can then never say "yes" (no claimable member), so
+   the review is "undecided" or, through futility, "no".
+
+My view (reasoning only): option 1 or a properly frozen option 2. Option 1 is simpler and loses nothing, provided the
+card and the review state the regime of the scored window beside any verdict.
+
+## Must-fix
+
+**1. Item E is presented as V6b's alone, but the same regime point applies to every member's futility, and futility
+drives Test A's "no".**
+- Test A says "no" when **every** counted member is futile, and with B's "no" that means stop or pivot.
+- The busy-regime stress was run only for V6b (claims and futility) and for V7. V1, V2 and V6a's **futility** in a
+  crash-dominated window is neither measured nor disclosed. By the reasoning above, their futility verdicts there also
+  measure that crash.
+- Fix (wording, or a short run):
+  - either measure V1, V2 and V6a's false-futility rate inside the busiest 125- and 250-session stretches with the
+    existing tools;
+  - or state in section 11 E and calibration section 4 that the regime caveat applies to **every** member's verdict,
+    claims and futility alike;
+  - and that a Test A "no" reached in a crash-dominated window measures that crash.
+- The owner's choice under E should cover the whole Test A, not only V6b's claims.
+
+## Follow-ups (not blocking)
+
+- Whatever E decides, every report should print the scored window's regime (mean VIX, 2%-day count) beside each
+  verdict.
+- ChatGPT review 101's blocking item (V7) is resolved by its own alternative remedy. ChatGPT should confirm.
+
+**Verdict: FAIL for e32f89d4c45e22f3f2e25cf3abab6895f0f55dcc**, on must-fix 1 only. The numbers are reproduced and
+honest, V7's descriptive-only treatment is correct, and the split is done. A re-check needs only section 11 E,
+calibration section 4, and any new stress table.
+
+## Addendum 7 (15 Oct 2026): revision 7 at 41f29d3065a46024e249aba2e202a5031ead3849 (e32f89d..41f29d3)
+
+One commit (parent e32f89d). It adds every member's regime stress (`tools/v4_regime_stress.py`, 100,000 series a cell,
+with a "local" true-improvement column), measures item E's option 2 (`tools/v4_crash_cut.py`), adds the window-regime
+printout for G8 (`fno/forecast_v4/regime.py`), and updates the protocol, the calibration file and response 99.
+
+## Gates
+
+On a trial merge with current `origin/main` (clean; README auto-merge): **4819 passed**; ruff, format (916 files) and
+`check_imports` are clean. Protocol 334 lines and calibration file 138, both under 350.
+
+## The three questions
+
+**1. The "local" column: correct.** `local_improvement` = -mean(d) / mean(b) over the stretch. A claim is marked false
+only where local <= 0, and a futility "no" only where local >= the margin. That is the right test of whether a
+verdict contradicts the regime's own truth. One caveat: the resamples are circular 20-day block draws **inside** the
+stretch, not real windows, so each pseudo-window's truth varies around the stretch's local value.
+
+**2. Option 2: the "makes things worse" reading is not supported as written.** The re-measure table judges the
+**kept** series against the **whole stretch's** truth. Yet the cut keeps exactly the calmer pseudo-windows of the
+crash year, and their own median measured improvement is far lower:
+- V6b, busy 250, n = 125, as measured: local +0.305, but the kept median estimate is -0.008 (VIX cut) and -0.186
+  (2%-share cut);
+- at n = 250: +0.064 and -0.084.
+
+So most of the "false no" rates (10.4% and 16.0%) are "no" verdicts that **agree with the kept windows' own data**:
+regime truth again, wrongly marked bold. The same holds in reverse for the flipped claim rows.
+- What the cut really costs is in the cost table, which is sound: it removes 7.6-15.6% of real 2019-26 windows.
+- What it buys is not measured correctly; that needs each kept set's own truth.
+
+Option 2 is therefore **not shown to be worse**; it is shown to be **unmeasured on the right basis**.
+
+**3. V1's calm-window false claims (0.85%): not acceptable as disclosure only; a cheap fix exists.** I reproduced
+them with my own seeds (100,000 series):
+- calm 125, n = 125: false claim **0.89%** (builder 0.85%) where the local truth is **-0.175**, i.e. the forecaster
+  is locally worse;
+- false "no" **6.96%** (builder 6.81%) where the local truth is **+0.208**;
+- calm 250, n = 250: false "no" 11.4%.
+
+These are **not** regime truth: the verdict contradicts both the full-period and the local truth. Three V1 slots at
+0.89% give a union bound of about 2.7% against look 1's whole 2% budget, and a false "no" can stop the project.
+
+The Brier members already have the fix: their 5-event gate makes calm windows undecided. Applying the **same gate to
+V1 and V2** (fewer than five 2% days: no claim, no "no") removes every calm-stretch failure. In my run the calm
+stretches hold no 2% days, so the rate is 0. On the full period the gate only removes verdicts, so size can only fall:
+V1 false "no" 1.48% becomes 0.54% overall at n = 125. The cost is that V1 is judgeable in 53% of real windows at
+n = 125 and 90% at n = 250. V1 is effectively unclaimable anyway, so the gate costs only calm-window futility, which
+is exactly the unsafe part.
+
+## Must-fix
+
+1. **Extend the 5-event gate to V1 and V2** (claims and futility), or another measured gate that removes the
+   calm-window failures. Re-run `v4_regime_stress.py` to show it, and update the Test A text ("undecided" in a calm
+   window for every member). If the builder or the owner prefers disclosure only, the owner must accept a measured
+   false "no" of up to about 7% (11% at n = 250) for V1 in a calm window, which feeds the stop rule. I advise against
+   it: the fix is free.
+2. **Correct option 2's description in 11 E and calibration section 4.** The "worse" rates are judged against the
+   whole stretch's truth, while the kept series are the calmer sub-parts (kept median estimates -0.19 to +0.06 against
+   local +0.305). Either re-mark them against each kept set's own truth, or say plainly that option 2's benefit is not
+   measured on the right basis. Keep the cost table (7.6-15.6% of real windows removed). The owner must not choose E
+   on a mislabelled comparison.
+
+## Follow-ups (not blocking)
+
+- "Test A's false 'no' is bounded by reasoning from marginal rates; the joint rate is not measured." This is fine as
+  disclosed, because a "no" needs **every** counted member futile, so the joint rate is at most the smallest
+  member's. After must-fix 1 the calm-window case disappears.
+- `regime.py`: the G8 criterion (each verdict prints its window's mean VIX and 2%-day count) is right. Check it at G8.
+
+**Verdict: FAIL for 41f29d3065a46024e249aba2e202a5031ead3849**, on must-fixes 1 and 2. The new stress table is honest
+and reproducible, and the local column is right. The remaining issues are one real calm-window failure, which has a
+free fix, and one mislabelled comparison that the owner's choice would rest on.
