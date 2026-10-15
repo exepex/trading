@@ -35,5 +35,5 @@ quality rule 9 (`docs/JUDGE.md`) asks for a ChatGPT review after the judge's PAS
    for a paper book, against the risk of acting on half-committed state?
 4. **Anything a judge focused on code could miss:** money, timing or scoring effects.
 
-**Write your answer as a new file** `reviews/chatgpt/review_103_e2b-derived-packs.md` and add its line to
-`reviews/chatgpt/README.md`. Never overwrite an existing review file. (Review 101 is reserved for C5 and 102 for E4c.)
+**Write your answer as a new file** `reviews/chatgpt/review_105_e2b-derived-packs.md` and add its line to
+`reviews/chatgpt/README.md`. Never overwrite an existing review file. (Reviews 101-102 are G6's; 103 is reserved for C5, 104 for E4c.)
