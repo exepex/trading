@@ -60,7 +60,7 @@ class FakeRecords(CommittedRecords):
 
 
 def daily_card(records: FakeRecords, root: Path) -> DailyCard:
-    builder = CardBuilder(RegistryStatus(records), PendingWeather(), LiveCaptureForecasts(records))
+    builder = CardBuilder(RegistryStatus(records, records), PendingWeather(), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
 
 

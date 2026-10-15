@@ -91,32 +91,183 @@ claim; "AI unavailable" excluded from judgement scores (13.5).
 **Scope.** In: the standardised shadow account, scoring per book, paired differences, uncertainty. Out: whole systems
 (S2).
 
-**Expected design:** `fno/scoreboard/matched.py`: for each common opportunity (E2) and book, the book's action (Book 1
-and Book 2 real decisions or shadow-only actions; Book 3's F7 entry) is valued as **one standard unit** (one lot,
-standard size, no account constraints) with the E4 fill model on that day's execution snapshot and exits under the
-action's rule; paired differences between books by opportunity, with the protocol's uncertainty criterion; reported
-per segment, with the same detail list as S2 where it applies. Each book's matched results also carry S6's `measures`
-(net without the best trade, profit factor, maximum drawdown and worst day of the standardised series, in rupees only:
-no brake applies to a shadow account) and S6's `do_nothing` view (a), on each one-lot position's capital tied at entry
-(owner, 15 Oct 2026, "Do-nothing comparison shown on every scoreboard"). There is no view (b): scoreboard A has no
-account.
+**Expected design** (revision 1, 15 Oct 2026; REPLAN.md:48 moves the code into slice B because S1 v1 cannot freeze
+until it exists; it reports only once books 2 and 3 trade). New modules under `fno/scoreboard/`, beside S2's, no new
+composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
+
+1. **The day's actions** (`matched_actions.py`). For each session and book, the decision is the run E3's decisions step
+   recorded (the first original run, D3b; `committed_runs.py` already reads it). For each opportunity of E2's common
+   set (`fno/desk/opportunity_set.py`) the book's action comes from its D3 record for that opportunity (the day's
+   `no_trade` record, `NO_TRADE_ID`, is not an opportunity and is ignored):
+   - **take**, when `decision.action` is a trade (`chosen`), or when the record is `not chosen` and every refusal is an
+     account limit, which scoreboard A removes (S1 `scoreboard_a_standardisation`: "no cash, slot or margin limits").
+     Account limits are the slot and cash rules (`allocation.py:18`, `max_open_trades`, `margin_room`), the
+     account-state caps in `risk.verdicts` (`bucket_cap`, `open_risk_cap`, `new_risk_per_day`, `drawdown_brake`), the
+     account-wide stress and exposure checks (`stress_loss`, `exposure_limit`: they add the book's other open positions,
+     `fno/risk/rules.py:45-47, 82-84`, and are not in the books' profile today, `config.yaml` `risk.profiles.books`), and
+     the "unproven:" open-trade limit (`allocation.py:72-77`). Counting these as account limits is chosen over
+     re-checking the one-lot trade against an empty book: it needs no second risk run, and A drops account state
+     anyway (judge 168);
+   - **skip**, when `decision.action` is "no trade" for any other reason: the rule did not fire; no valid trade; a C4
+     block (the action reads "no trade" even when `decision.outcome` reads "chosen", `decision_record.py:76-79`); or a
+     `not chosen` refused by `max_loss_per_trade`, the one rule that judges the trade alone;
+   - **not observed**, never scored and always counted (criterion 3):
+     - no run collected for that book that day (late, `no_decision.json`, "AI unavailable" or a missed run);
+     - a collected run with no record for that opportunity (for example a version paused during the day, which Book
+       1's gate drops before deciding: the desk's gate, not the book's judgement);
+     - a risk verdict whose reason starts "refused, input not usable" (`fno/risk/manager.py:66`: bad data, not
+       judgement), or a `paper_account` refusal (a wrongly opened account: an operations fault);
+     - a decision D6 leaves unscored;
+     - a day with no valid execution snapshot (no book is scored that day).
+   Research candidates (`shadow: ...`) are not in the common set and never appear. Book 3's actions come from F7's
+   `shadow_decisions.json` through a port, `MatchedShadowDecisions`. Until F7 exists the port returns nothing, so every
+   Book 3 day is "not observed: F7 not built", counted apart from misses (design 6). F7's text does not yet say that each entry must name its structure and the
+   day's `common_pack_sha256`; F7 must add both before Book 3 can be scored (Depends).
+2. **The standard unit** (`standard_unit.py`), the one valuation F9 reuses ("valued like scoreboard A"; shared through
+   the orchestrator, no second copy):
+   - one lot of each leg of the action's candidate structure (the record's legs; its lot count is ignored), entered at
+     the day's execution snapshot (the same snapshot
+     ID for every book, from the run log) by E4's pricing (`fno/desk/pricing.price_leg`, the touch, all units or none),
+     with C1's charges;
+   - an entry leg that does not fill makes the action "not filled": scored 0 and listed. It is the same for every book
+     that took it, since the snapshot is shared;
+   - exit by the version's time exit (the last trading day at least `exit_days_before_expiry` days before the expiry,
+     `fno/playbook/opportunities.py:44`), the only exit code enforces today (`fno/playbook/exit_terms.py`), at that
+     session's execution snapshot. A leg without a valid quote is retried at
+     each next snapshot (E4's rule). A leg still open at expiry is settled by E7 (`fno/desk/settlement.py`);
+   - an action not yet exited is "open": listed, never scored.
+3. **Scores** (`matched.py`). A take's result is its one-lot net in rupees and its one-lot maximum loss at entry,
+   recomputed from the one-lot entry fills by the maximum-loss function the candidates use (never the record's
+   `worst_rs`, which is negative, priced at the pack's mids and for the book's lot count). A skip is 0 and 0. Actions
+   still open are cut from both sums and listed, never counted as 0. Every take has a fixed maximum loss, because C4
+   refuses any position whose maximum loss is not fixed at entry (design v2 03 item 3). A take whose one-lot maximum
+   loss cannot be computed (a missing input) is listed apart as "maximum loss unknown" and not scored.
+   - **Series days:** a book's series holds every session of the period on which it is observed, from the period's
+     first session to the last decision day whose actions have all closed. Days with only skips, or with no
+     opportunity, are in the series as (0, 0). Not-observed days are left out, never set to 0. The sample rule's 120
+     days and the bound's 20-day minimum count these observed sessions.
+   - **Per book:** net per unit of maximum loss at entry, Σ net ÷ Σ maximum loss over closed takes. This is S1's
+     scoreboard A measure (`scoreboard_a_standardisation`), not S2's net per risk-day: A has no daily marks. Its series
+     puts each action on its decision day (net, maximum loss), so S2's `uncertainty.lower_bound`, a ratio of sums over
+     moving blocks, computes exactly this measure's bound, with S1's block, seed and resamples (no second bootstrap).
+     A claim also needs the sample rule and the whole-period net above zero (S1 `uncertainty_criterion`).
+   - **Paired, X against Y:** on the decision days both books are observed and all their actions closed, the daily
+     difference of their one-lot nets in rupees (S1: "for X beats Y, the paired daily difference"). The statistic is
+     the mean difference: the same moving-block resampler on a series whose risk column is 1 on every day (the ratio
+     of sums is then the mean). A claim also needs the whole-period difference above zero and the sample rule.
+   - **Holm across the claims made at one review** (S1). `lower_bound` has a fixed 5%, so it cannot apply Holm.
+     `uncertainty.py` is split into the resampler (the sorted resampled values, unchanged) and two readers:
+     - S2's lower bound (unchanged);
+     - a one-sided bootstrap p-value, the share of resampled values at or below 0.
+     Holm then runs on the p-values: sorted ascending, the i-th of m claims passes while p < 0.05 / (m − i + 1); the
+     first failure stops the rest. For a single claim, p < 0.05 holds exactly when the nearest-rank 5th percentile is
+     above 0, so it agrees with S2's bound. Each book's not-observed days are printed beside
+     every pair.
+   - Reported per D6 segment and overall (S2's `EntryDecisions` segments), with pilot before the common start apart, as
+     S2 does.
+4. **Output:** the board as canonical JSON, written where E2c writes board B (Drive). A one-lot fill at the touch,
+   with marks, is the per-contract data E2c keeps out of the public record. CLI: `python -m fno scoreboard a`.
+5. **S6's share** (criterion 5) lands with S6's code, which is built after this code: the measures and the do-nothing
+   view (a) on these series.
+6. **The miss cap** is computed here from scoreboard A's own actions, so it does not wait for S6. A book's misses are its
+   days with no run collected (late, `no_decision.json`, "AI unavailable", missed). Days D6 leaves unscored, days
+   with no valid snapshot and Book 3's days before F7 are counted apart, outside the cap. The cap is 10% (G9's figure, owner row 170); S6's S1
+   item `missed_runs` freezes it.
 
 **Acceptance criteria:**
-1. The same opportunity set and the same snapshot are used for all books on a day (hash test).
-2. A constructed example with known outcomes reproduces the expected paired differences exactly.
+1. The same opportunity set and the same snapshot are used for all books on a day (hash test). Every book's record
+   names the same `common_pack_sha256` (the common pack holds E2's set), and the snapshot is the run log's one
+   execution snapshot ID for the day. A record naming another pack hash is refused and listed, never scored.
+2. A constructed example with known outcomes reproduces the expected paired differences exactly:
+   - 2 sessions and 2 opportunities, on fixture snapshots, with hand-computed fills and C1 charges;
+   - Book 1 takes O1 (a closed one-lot result and maximum loss by hand), Book 2 skips everything, Book 3 is not
+     observed;
+   - on day 2, Book 1 takes O2, whose short leg has too little size at the touch: "not filled", scored 0 and listed,
+     with its maximum loss out of the sum;
+   - expected: Book 1's net per unit of maximum loss and the Book 1 − Book 2 daily differences to the paisa, with
+     Book 3 absent from every pair and counted.
 3. "AI unavailable", late, missed and unscored decisions are excluded from judgement scores and counted separately;
    above S1's `missed_runs` cap (missed decisions over 10% of the book's eligible sessions in the period) the
    book's scoreboard A verdict reads "undecided, operations" (owner, 15 Oct 2026, row 170; story S6). Boundary: exactly
    10% missed is not over the cap; one more missed session is.
 4. No report or dashboard field combines scoreboard A and B into one figure (schema test).
 5. Each book's matched results carry S6's `measures` and `do_nothing` view (a), computed by S6's functions (no second
-   implementation), with the same known answers as S6's criteria 2, 3 and 5.
+   implementation), with the same known answers as S6's criteria 2, 3 and 5. This is delivered and tested with S6's
+   code.
+6. **The standard unit:**
+   - an entry leg with too little size at the touch gives "not filled", scored 0;
+   - the exit is on the last trading day at least `exit_days_before_expiry` days before the expiry (a holiday on that
+     day moves it earlier, as the opportunity code does);
+   - a leg without a quote on the exit day exits at the next snapshot where it has one, dated the day it fills, never
+     backdated;
+   - a leg still open at expiry is settled at E7's price;
+   - an action still open on the report day is listed and unscored.
+7. **Actions**, one fixture record per case:
+   - `chosen`: a take;
+   - `not chosen` refused by `bucket_cap` only, or by "unproven:": a take;
+   - `not chosen` refused by `stress_loss` only: a take; by `exposure_limit` only: a take;
+   - `not chosen` refused by `max_loss_per_trade`: a skip, and by `max_loss_per_trade` with `bucket_cap`: a skip;
+   - "input not usable": not observed;
+   - a C4 block with `decision.outcome` "chosen": a skip;
+   - `no trade`: a skip;
+   - the `no_trade` day record: ignored;
+   - a collected run missing one opportunity's record: not observed for that opportunity;
+   - a day without a valid snapshot: not observed for every book;
+   - a `shadow: would trade` record never appears.
+   Before F7, every Book 3 day is "not observed: F7 not built", outside the miss cap, and Book 3's verdict reads
+   "undecided, F7 not built".
+8. **Bounds:**
+   - the per-book bound equals `uncertainty.lower_bound` on the decision-day series;
+   - the pair bound equals it on the difference series with risk 1;
+   - a series shorter than one block (19 observed days) gives null, while exactly 20 gives a bound;
+   - a book with 25 sessions, 3 of them not observed and 10 skip-only, has a 22-day series holding the 10 skip-only
+     days as (0, 0);
+   - **Holm, known answer:** p-values 0.010, 0.030 and 0.040 for three claims: the first passes (0.010 < 0.0167), the
+     second fails (0.030 ≥ 0.025), and the third is not tested;
+   - p-value and bound agree: on one series, p < 0.05 exactly when `lower_bound` > 0;
+   - a pair with no common observed day gives null with "no common day";
+   - an action open on the report day ends the series before its day (design 3, series days): with a closed +1,000
+     take on day 1, an open take on day 2 and a closed take on day 3, the series holds day 1 only; days 2-3 count once
+     day 2's take closes. (Code revision: the text first said the day stays with the open take cut from its sums, which
+     contradicted design 3 and would favour short holds.)
+9. A rebuild from the same records gives byte-identical output.
 
-**Test plan:** known-answer tests; schema test.
+**Gap list:**
+
+| Requirement (source) | Where |
+|---|---|
+| Same eligible opportunities, universe, cutoff, fills and costs (design 12.5) | E2's set via the shared `common_pack_sha256` and the run log's snapshot ID (criterion 1); E4 pricing and C1 charges (design 2) |
+| Each book's decision committed independently (design 12.5) | the D3 run E3 collected by the deadline (design 1) |
+| Standardised shadow account: one lot, no account limits, no compounding (12.5; S1 item) | design 2; "not chosen" counts as a take (design 1) |
+| Exit by the strategy's own rule recorded with the decision (S1 item) | the time exit, the only enforced exit (design 2) |
+| Scored as net per unit of maximum loss; no trade = 0 (S1 item) | design 3 |
+| Book 3 via F7 (12.5) | the `MatchedShadowDecisions` port; before F7, "not observed" (criterion 7) |
+| "AI unavailable" excluded from judgement (13.5) | "not observed" (criterion 3) |
+| Missed decisions on observed days, with the miss cap (row 170, S6) | design 6; criterion 3 |
+| Paired differences, the uncertainty criterion and Holm (S1) | design 3; criteria 2 and 8 |
+| Never merged with B (12.5) | criterion 4 |
+| Per segment, pilot apart (S1 `segments`, `pilot_evidence`) | design 3 |
+| S6's measures and do-nothing on A (rows 162, 168) | criterion 5, with S6's code |
+| Private data stays out of the public record (E2c, decision of 15 Oct) | design 4 |
+| F9 valued "like scoreboard A" (F9; S1 `role_value_schedule`) | `standard_unit.py`, shared |
+
+**Known limits:**
+- Profit, loss and event exits are free text today (D1 refuses them on paper), so the time exit is the only rule. A
+  version that gains a coded exit adds it here in its own story.
+- The rupee pair difference is not risk-normalised (response 144 item 23). One lot standardises size, but two
+  structures' maximum losses can differ, and the per-book ratio is shown beside it.
+- Counting an account-limited `not chosen` as a take credits a book for a trade its account could not hold. That is
+  the point of A, and B shows what really happened.
+- Pairs use the days both books are observed. If one book's outages fall on unusual days, the shared days are not a
+  random sample, so each book's not-observed days are printed beside every pair.
+
+**Test plan:** known-answer tests on fixture snapshots and D3 records; boundary tests; schema and determinism tests.
 
 **Judge verifies:** recomputes one opportunity's standardised result for all three books.
 
-**Depends:** E2, E4, F7, D6, S1 · **Size:** M · **Status:** later
+**Depends:** E2, E4, E7, D3, D6, S1, S2 (bounds, segments), E2c (built after it: Drive board and shared download);
+F7 later, through its port (its entries must name the structure and the `common_pack_sha256`) · **Size:** M · **Status:** text revision 1, judge pending (branch
+`story/s3-scoreboard-a`, session 0185gR5DmoDh2zBAvgRU4CEB)
 
 ---
 

@@ -23,6 +23,13 @@ def no_network(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def drive_download_is_not_tested_here(monkeypatch):
+    from fno.desk import wiring as desk_wiring
+
+    monkeypatch.setattr(desk_wiring, "download_private_records", lambda day=None: None)
+
+
+@pytest.fixture(autouse=True)
 def today_is_the_15th(monkeypatch):
     from fno import models
 

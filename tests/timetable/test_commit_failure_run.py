@@ -16,9 +16,8 @@ from fno.desk.daily_run import RunStopped
 from fno.desk.git_sync import Git, GitCommitter
 from fno.desk.pending_commit import PendingCommitter
 
-from .fakes import C4, Commits, Decisions, Rules, daily_run
+from .fakes import C4, RAW_QUOTE, Commits, Decisions, Rules, daily_run
 from .test_daily_run import NORMAL, decided, run_day
-from .test_raw_quote_refusal_run import RAW_QUOTE
 
 
 def git(root, *args):
