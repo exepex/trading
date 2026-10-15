@@ -155,3 +155,36 @@ c083b4b36487465bf357868f7b71e96aacf11e65:
 
 The contract's structure, the privacy design, the pin and the drift tests are sound, and the card rules trace to the
 design.
+
+## Addendum 1 (15 Oct 2026): T1's real card fields, dashboard d3f80938630da7381c47996da88252b342235085 and trading 8142710ef7a3d7b93e7474640a9bce5239db7422
+
+The orchestrator sent this addendum before my FAIL message reached it, so it does not address must-fixes 1-3 or
+should-fixes 1-5 above. They stay open. This addendum judges only the T1 card fields and the new test.
+
+**Scope:**
+- Dashboard 3cf4baa..d3f8093 is one commit: `fno-card.yaml`, `fno-screens-common.yaml`, the examples, mockup 39 and
+  one line of `check_fno_screens.py`.
+- Trading c083b4b..8142710 is one commit: re-pin, a fixture, a new test file and two lines in the P1 test.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Pin | MET | All 33 pinned files have SHA-256 equal to the dashboard at d3f8093 and to `pin.json` (my hash loop) |
+| Fixture is T1's real record | MET | `cmp` of `tests/fixtures/cards/t1_delivery_2026-10-15.json` against `research/cards/deliveries/2026/2026-10-15-a1.json` at 9f540e9: byte-equal |
+| New card fields public-safe | MET | All of them are counts, dates, plain-text gaps, repository paths with SHA-256, and the house forecast with back-fill and live records apart. None holds a strike, an entry range or a strategy internal. The Drive path in T1's record names a file by day and timestamp only. Live legs and entry ranges stay under `FnoCardTrade` (owner visibility) |
+| `late_generated_at` and back-fill vs live | MET, and it narrows must-fix 1 for the card | The card now flags a late capture and keeps back-fill records apart from live ones, as T1's real post did (I read the post, read only). The Forecast lab still lacks the isolation label and per-forecast status (must-fix 1 stands) |
+| Is the XFAIL a weakened test? | Not weakened; acceptable | It is a new test, and it is expected to fail only while `research/cards/deliveries/` holds no record. **It flips to a hard check by itself:** I copied T1's record into that folder and all 3 tests pass. A planted bad record (status TRADE with no trade) fails. `-rx` prints the reason in every run. **What enforces the flip:** the records arriving with T1's merge (T1's `CARD_DELIVERIES_FOLDER` is the same path). Follow-up below |
+| Gates | MET | Trading at 8142710: 3,190 passed, 1 xfailed; ruff, format (707 files) and imports clean; `git merge-tree` with `origin/main` clean. Dashboard at d3f8093: `check_mapping`, `check_contract`, `render_catalog --check`, `check_fno_screens` (21/21), `render_fno_catalog --check`, `examples --check` and code size all exit 0; mockups 39 and 40 rebuild with no byte change |
+
+**Follow-ups (not blocking; for T1's merge):**
+1. When T1 merges, replace the test's hard-coded `research/cards/deliveries` with T1's `CARD_DELIVERIES_FOLDER` and
+   drop the XFAIL branch: assert that at least one record exists. Otherwise, if T1 ever moves the folder, the test
+   would expect-fail for ever unnoticed. The same goes for the copied 15:25 constant (`VALID_UNTIL_UTC`).
+2. The test fills the card's text sections (forecast lines, weather) from the empty example, as the builder says. T1
+   writing its Drive card record as JSON in FnoCard's shape would let the whole card be validated. This is a T1
+   proposal, reasoning only.
+3. `FnoRecordHash.kind` becomes `path` and `FnoCardForecast.record` becomes `backfill`/`live`, both breaking changes
+   inside the unreleased 2.7.0. That is acceptable before the first merge; after it, such a change needs a version bump.
+
+**Verdict for the addendum's own content: MET.** **P1 overall stays FAIL** until judge 102's must-fixes 1-3 (Forecast
+lab isolation label and counted status, the card's stress line, the gap list against the design sections) and
+should-fixes 1-5 are fixed and re-judged.

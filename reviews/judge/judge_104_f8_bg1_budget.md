@@ -165,3 +165,122 @@ Checking the cited design paragraphs myself:
 - Should-fixes 1-3.
 
 The stop-rule tracker, the ledger's write-once rule, the item lines and the dry-run signal are sound.
+
+## Addendum 1 (15 Oct 2026): revision 3 at 553ab47e1e123e1ac80cf8d1bdf35729f53038e8
+
+**Scope:**
+- The branch's own diff from its merge base with `main` (826864a): 38 files, +2,670. Its `main` merges are not part of
+  this review.
+- I read every module of `fno/budget/` in full, plus the config, the cost row, the changed accounting test, both story
+  texts and response 104.
+
+### Gates
+
+- **At 553ab47 (Slack token unset):** 3,319 passed; `ruff check`, `ruff format --check` (732 files) and
+  `check_imports` clean.
+- **Trial merge with `origin/main` (07e37a5):** clean; 3,319 passed; same checks clean.
+
+### Judge 104 items
+
+| Item | Result | My evidence |
+|---|---|---|
+| MF1 real export refused | **MET** | My own real 3-page export of this session, re-wrapped in the new shape (`captured_at`, `before_id` per page, the real last page with no `has_more` and no `data`), reads as 4.61 minutes, 6 turns and 18,315 output tokens. That equals my hand sum. `record-usage` then declines 15 Oct correctly, because the capture day is not complete. Mutation "absent has_more read as more" caught |
+| MF2 missing middle page | **MET** | The same real export with its middle page dropped: "page 2 was not read with the previous page's first_id". Chain-check mutation caught |
+| MF3 development and coverage bias | **PARTLY**: development MET, book pushback ACCEPTED, data routines NOT MET | See below |
+| MF4 rounding | **MET** | Rs 1,700 over three equal shares: 566.68 / 566.66 / 566.66, the decided rule (round down, remainder to the largest, ties by name). "Remainder to smallest" mutation caught |
+| MF5 gap list | **MET** | Covered or out of scope with a reason: Drive storage stated as not wired; the 6.5 alert `review_reached` built as a dry run; original F8 marked "F8 part 2, later", naming S2's `AiCostAllocation` port; S1's development label used |
+| SF1 tests | **MET** | Dry-run wiring, `v4_freeze_date`, weekend fallback (Fri 30 Jul 2027) and the token check are pinned |
+| SF2 citation | **MET** | The source must be exactly `DESK_DECISIONS <date>: <bold title>` of an existing row. My "unanchored" mutation (`search` for `match`) survives, but it is equivalent: the pattern carries `^...$`. The INR 20,000 row cites "15 Oct 2026: Claude plan cost: INR 20,000 a month", which is a real row (f31b366) |
+| SF3 self-review | **MET** | Three reviews reported with findings and responses |
+| Minors 1-7 | **MET** | Floored % in the meter and the alert; one "refused:" line for a bad month; config bounds checked; an export path inside the repository refused; midnight and special-session rules stated |
+| Accounting test change | **Not weaker** | `test_ledgers.py:83` still pins the whole file by equality (now the owner's exact row instead of empty) and adds `Ledgers(...).reconciles()`. S2 reads the per-book `journal/<book>/operating_costs.csv`, so the root row is not charged to any book |
+| Roster export | **MET** | My probes: titles, tags and token-like text in the export are dropped (ids and times only). A missing middle page, a full last page, no pages and a limit of 500 are all refused. Stale-roster, full-page and complete-before mutations caught |
+| Owner items | **MET** | `measured_basis_until: "2026-12"`. After it, with no fixed figure, the level is `unknown` with "the owner's fixed monthly figure is owed" (expiry mutation caught). "Nov and Dec" is the orchestrator's reading, labelled "owner to confirm" in the config and logged in response 113 |
+
+**MF3 in detail.**
+- **Development:** MET. With a development gap the measured level is `unknown`; with the owner's figure set, a
+  development gap does not matter (my probe: owner basis gives `ok` at 9%, measured gives `unknown`). The mutation
+  removing the rule is caught.
+- **The book pushback is ACCEPTED.** I tested monotonicity on 20,000 random cases with both bases: adding missed book
+  minutes never lowered the %, so 0 violations. That holds because books sit in both the numerator and the measured
+  denominator, while the owner's figure is fixed. So `alert`/`stop` with missed book sessions is a true floor, and
+  `ok` correctly becomes `unknown`. (30% gives unknown, 41% "alert, at least", 51% "stop, at least".)
+- **The new `data_routines` purpose breaks the "known level" rule. This is the remaining must-fix.**
+  - On the measured basis, data-routine minutes sit in the denominator only.
+  - Their sessions are scheduled or trigger-fired. The 3 pm Groww recorder runs every trading day today, and the
+    15-minute recorder is a Claude routine by owner decision.
+  - Those sessions are not in `list_sessions` and have no capture route, and nothing checks their coverage.
+    `MEASURED_LIMIT` says so, but the level is still given as known.
+  - My probe: books 45 and development 55 with 200 data-routine minutes uncaptured reads **90.0%, level `alert`, no
+    note**. The truth with them is 30.0%, `ok`. Missing data routines raise the %, so an `alert` or `stop` on the
+    measured basis is no longer a floor either.
+  - Fix, either:
+    - (a) the measured level is `unknown`, with that reason, until data-routine coverage is shown, for example from the
+      scheduled tasks' run records or a self-timed record per run; or
+    - (b) put to the owner whether data routines belong in the basis at all.
+  - The owner's-figure basis is unaffected.
+
+**My planted mutations: 12, of which 11 caught; the 12th is the equivalent citation one.**
+
+**Minor (new):**
+- Only October has a plan-cost row. From November the allocation shows "unknown" until a monthly row is added.
+- Say who adds it each month: the owner, or a recurring row taken from the "INR 20,000 a month" decision.
+
+**Orchestrator decisions noted:**
+- "Two months = Nov and Dec 2026" is labelled "owner to confirm".
+- Book usage stays "not captured" until a separate book-version story changes the prompts. That is consistent with the
+  judge 62 conditions, since a prompt change is a new registered version.
+
+**Verdict: FAIL for 553ab47e1e123e1ac80cf8d1bdf35729f53038e8**, on the data-routine part of MF3 only. Everything else
+from judge 104 is met, including the accepted book pushback. A re-check needs `cap.py` (and wherever the coverage
+comes from) and its tests.
+
+## Addendum 2 (15 Oct 2026): revision 4 at 790bad9b3e3cc30b8ef351b266c607fa236e279e
+
+One commit after 553ab47 (15 files, +295 −35): `routine_coverage.py`, `plan_cost.py`, config, cap, wiring, report and
+tests.
+
+### Gates
+
+- **At 790bad9 (Slack token unset):** 3,335 passed; `ruff check`, `ruff format --check` (735 files) and
+  `check_imports` clean.
+- **Trial merge with `origin/main` (d401037):** it conflicts in `CLAUDE.md`, `fno/cli.py` and `fno/constants.py`, where
+  T1, now merged, appended at the same places. All three are both-sides additions. I resolved them by keeping both
+  sides, with the imports sorted. The merged tree then gives **3,712 passed**, and ruff, format and imports are clean.
+- **The merger must resolve the same way:**
+  - both composition-root lines in `CLAUDE.md`, as one sentence;
+  - both CLI imports, in sorted order;
+  - both constants blocks.
+
+### Items
+
+| Item | Result | Evidence |
+|---|---|---|
+| Addendum 1 must-fix (data routines) | **MET in mechanism** | Each routine named in `budget.data_routines` is expected once per NSE session day. While n of m runs are recorded, the measured level is `unknown`, with the reason. My addendum 1 probe (books 45, development 55, no routine rows) now reads `unknown` with "0 of 3 expected run(s) recorded". With the three session-day rows added the gap clears. A missing calendar year (2027 today) gives "data routines not checked", which is fail-closed. The owner's-figure basis ignores the gap, which is correct. My mutations "routine gap ignored in cap" and "found counts every day" are caught |
+| Plan-cost minor | **MET** | One config value cites the decision row; `from_config` refuses a citation that is not a real row (mutation caught). Rs 20,000 is applied from 2026-10, with nothing before it (mutation caught). A recorded payment of 19,999.99 is flagged "differs" (mutation caught). A month with no payment row shows "Rs 20,000.00 (decided monthly fee (...); no payment row recorded)": labelled, not presented as a recorded payment |
+| Decision 6 (option a) and the "two months" note | Noted | Config now says "the orchestrator's decision while the owner was away, response 113; the owner may change it" |
+
+### Should-fix
+
+1. **The expected runs follow the NSE calendar, but the 3 pm routine runs every day.**
+   - `CLAUDE.md` says the recorder is "started by a scheduled session at about 14:50 IST every day". On a holiday,
+     weekend or muhurat-only day it still runs and prints "not a trading day".
+   - Those runs use session minutes that sit in the measured denominator, and `routine_gap` never expects them. A
+     month whose session-day runs are all recorded reads as "complete" while its non-session-day runs are missing,
+     which overstates the books' share. The bias is small, but it is the same bias addendum 1 closed.
+   - Fix: take the expected days from the routine's real schedule. That is every calendar day for the 3 pm recorder,
+     or the scheduled task's own cron, named per routine in `budget.data_routines`. Also correct the docstring ("runs
+     once on every NSE session day").
+2. **The fail-closed calendar path is untested.** My mutation that turns `CalendarError` into "complete" survived all
+   126 budget tests. Add a test for a month outside the calendar, for example 2027 today.
+
+**Minor:**
+- A routine run is matched by its `--role` text equalling the config name exactly ("3 pm quote recorder"). A typo in
+  `record-usage --role` leaves the run uncounted, which is fail-closed. Say so in the help text, or validate `--role`
+  against `budget.data_routines` when `--purpose data_routines` is given.
+- When A16's 15-minute recorder starts, it must be added to `budget.data_routines`.
+
+**My mutations this round:** 6, of which 5 caught (R3 survived, should-fix 2).
+
+**Verdict: FAIL for 790bad9b3e3cc30b8ef351b266c607fa236e279e** on should-fixes 1 and 2 (small). Everything else in
+judge 104 and addendum 1 is met.

@@ -748,3 +748,184 @@ re-downloadable; its SHA-256 recorded in the claims).
 re-runs the job twice and checks the CSV is unchanged; checks the validation evidence and tolerance.
 
 **Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** in progress (builder session 01FVYzWZtDAZrZLDZ6DtmSYL)
+
+---
+
+## A15. India VIX full history
+
+**Repository:** trading
+
+**Description:** As the statistician and the risk manager, I want India VIX's daily open, high, low and close for
+every day NSE publishes, archived raw in Drive and as a checked table in the repository, so that the weather can be
+calibrated and crash replays run over more than one crash.
+
+**Context and why:** design v2 section 2.1 and `REPLAN_new_stories.md`: the repository holds India VIX closes only from
+2017 (A3, A10's warm-up), which covers one crash (2020). Weather calibration and crash replay need 2008, 2011, 2013,
+2016, 2020 and 2024. Facts checked on 14-15 Oct 2026 (builder, response 100):
+- NSE's website serves the history as JSON (`/api/historicalOR/vixhistory?from=&to=`), at most 70 rows per answer
+  (the rest are cut silently), and nothing before **19 Jul 2010** (every window from Nov 2007 to Jun 2010 answers no
+  rows), although India VIX was launched in 2008. NSE Indices' own history page refused the cloud session.
+- NSE's daily index-close files are no substitute before 2017: the 2 Jan 2013 file has no VIX row (the 4 Jan 2016
+  file has one; the first year with one was not searched); 2017 onwards is already archived.
+
+**Scope.** In:
+- a raw dataset `nse/indices/india-vix-history`, one NSE answer per ended calendar month, archived to the owner's Drive
+  with the A9 rules (never overwritten, manifest row at save time), resumable;
+- A11's revision rule: a later NSE version of a month is kept beside the original and named day by day;
+- a derived table `research/data/vix/india_vix_daily.csv` with a README (source URL, terms, `first_seen_at`, columns,
+  units, findings) and its checks (gaps, doubtful levels, overlap with the index-close closes);
+- the parts behind interfaces (`RawFileSource`, `RawFileStore`, `VixMonthReader`), wired only in
+  `fno/vix_history/wiring.py`; commands `python -m fno vix-history fill|sweep|check|verify`.
+
+Out: VIX before NSE's first served day (named as a gap with the evidence); a schedule (the daily VIX comes from the
+index-close files, O6); any change to `warmup_closes.csv`, the panel, a frozen file or a forecast input.
+
+**Acceptance criteria:**
+1. Source and terms named: the README gives the publisher, the exact URL pattern, the terms position (with its
+   evidence label) and the request pace.
+2. Full range: every month from NSE's first served day to the last ended month is archived; the first day is found by
+   probing (recorded with the probe range), not assumed; anything earlier than NSE's launch of India VIX that the
+   source does not serve is stated as a gap, with the alternatives tried.
+3. Derived rows equal the raw files: a command recomputes every row from the archived files in Drive (values, source
+   path and SHA-256) and lists every difference, including every archived day the table lacks (a deleted month, a
+   table cut short); tests plant a changed value, a wrong SHA-256, a removed month and a cut end, and each is named;
+   every committed row's SHA-256 equals its month's manifest row (test).
+4. Point in time: every row carries `first_seen_at` (archive time, stated as such); the README states when a day's
+   value is known (after its 15:30 close, so a 15:00 decision on d uses d-1 at the latest); rows are only appended
+   (old bytes are a prefix of the new), a day present is never rewritten, a hole is never filled from behind, a month
+   still running is never fetched even when asked for (tests of the command's month range: mid-month, its last day,
+   the first of the next month, `--to` the running month);
+   revisions only through A11 (stored beside the original, the table unchanged, changes named day by day; an error
+   page is never kept as a version) (tests).
+5. Overlap check: the table's close is compared day by day with the VIX closes the repository already holds from 2017
+   (A3/A10); every mismatch is listed in a committed file, rounding told apart from real differences, never fixed.
+6. Gaps recorded, never filled: sessions without a row (NSE's calendar), and, before the calendar's first year,
+   weekdays without a row as unverified; rows on muhurat and special sessions labelled, with the README telling users
+   to select regular sessions through the A7 calendar; doubtful levels (zero, open or close outside the day's range)
+   kept as published and listed. A sweep that finds a missing original names it and fails.
+7. A missing or failed download (no answer, an HTML page, a cut or malformed answer) writes nothing and is named; a
+   stored file that fails its check or its manifest SHA-256 is reported and never replaced; a rerun fetches only what
+   is missing (tests).
+8. No frozen file changes (FREEZE records and the frozen-file tests pass); code size, lint, imports and the full suite
+   pass.
+
+**Gap list (quality rule 2): every requirement of design v2 2.1's A15 row, REPLAN's A15 paragraph and 2.1's
+outputs and failure modes.**
+
+| Requirement | Where |
+|---|---|
+| India VIX daily open, high, low, close | criteria 2, 3 |
+| back to its start | criterion 2 from NSE's first served day (19 Jul 2010); **2008 to Jul 2010 out**: NSE does not serve it (probed), NSE Indices refused; open owner question |
+| from NSE historical files | criterion 1 |
+| frequency daily | **out of scope**: no schedule (orchestrator: no schedules); daily closes come from the index-close files (O6); monthly `fill` by hand, lane 1 |
+| into Drive (raw) | criteria 2, 7 |
+| a derived table | criteria 3, 4, 6 |
+| A11's revision rule | criterion 4 (revisions) and 6 (missing original) |
+| every row with source, as_of, first_seen_at and the raw file's SHA-256 (2.1 outputs) | `source_path` (the publisher's file), `date` (as_of), `first_seen_at`, `source_sha256`: criteria 3, 4 |
+| look-ahead failure mode (2.1): a value used before it was known | criterion 4 (known-at rule) |
+| a source rewriting history (2.1) | criterion 4 (revisions kept apart) |
+| gaps recorded, never filled (2.1) | criterion 6 |
+| why: weather calibration and crash replays over several crashes | context; covers 2011, 2013, 2016, 2020, 2024, not 2008 |
+
+**Judge verifies:** runs `vix-history verify` (or recomputes 5 random months from Drive by hand) and `vix-history
+check` (committed checks unchanged); probes NSE for a window before 19 Jul 2010; plants a changed row and a rewrite of
+an old row; checks 2 Mar 2024 and the zero-open days against NSE; confirms no frozen file changed.
+
+**Depends:** A9, A10, A11 · **Size:** S · **Status:** judge 100 FAIL (3 should-fix) fixed; awaiting re-judge (claims:
+`reviews/claude/response_100_a15-vix-history.md`, addendum 1)
+
+## A17. Global cues, daily
+
+**Repository:** trading
+
+**Description:** As the risk manager and the macro economist, I want the overnight global cues (previous US closes of
+the S&P 500 and Nasdaq 100, the US 10-year yield, Brent and USD/INR) as they were known before each NSE open, from
+official or primary sources, so that the weather and gap-risk work use real cues and never a value published after
+the decision.
+
+**Context and why:** design v2 section 2.1 (data table) and the weather's drivers (2.3); `REPLAN_new_stories.md` A17.
+Facts checked on 15 Oct 2026 (builder, response 103):
+- FRED's site is refused by this environment's network policy, and S&P Dow Jones Indices answers 403. Nasdaq's and
+  Cboe's sites are reachable, but their terms forbid automated capture (Nasdaq) and storing index values (Cboe).
+  Owner decision a927390 (15 Oct 2026): use them anyway for personal, non-commercial research, with raw files and
+  values in Drive only, at most one download a day, and no display until the owner approves one.
+- The US Treasury (yearly par-yield CSV), EIA (Brent, released weekly), RBI (reference rate archive; none from
+  25 Jul 2018 to 11 Apr 2022) and FBIL (reference rates from 10 Jul 2018; public site about a week late) are
+  reachable.
+
+**Scope.** In:
+- one `GlobalCueSource` per cue and publisher, wired only in `fno/global_cues/wiring.py`;
+- raw copies archived in the owner's Drive through `RawFileStore` (A9), one per fetch, never overwritten, each logged
+  with its URL, SHA-256 and fetch time; a later copy that changes a held value is logged as a revision and the table
+  keeps the first value (A11's rule);
+- a derived table per cue in `research/data/global-cues/` with a README (source, URL, time zone, publication lag,
+  terms with evidence labels), `first_seen_at` and `provenance` (`live` or `backfilled`) on every row;
+- the as-of rule for an India date across time zones and holidays, at an explicit cutoff (09:15 or 15:00 IST), with
+  a live-only mode;
+- the private cues (S&P 500 from Cboe, Nasdaq 100 from Nasdaq): tables in Drive only, the four copies already there
+  adopted as the history start, at most one download a day;
+- commands `python -m fno global-cues fill|check|verify|adopt`.
+
+Out: a schedule; any display of the private cues (open owner item); any change to a frozen file, a forecast input
+or the weather.
+
+**Acceptance criteria:**
+1. Each cue names its publisher, URL, the time zone of its dates, when a value is published and the terms that apply,
+   each terms statement with an evidence label; a source whose terms restrict this use is named with its terms quoted
+   and is used only under a recorded owner decision; a source the network refuses is named and another is proposed.
+2. Every value carries `first_seen_at`; back-filled history is marked `backfilled` and only a value first seen before
+   09:15 IST on the first NSE session after its date is `live` (test on the committed tables recomputes the label).
+3. The as-of rule at an explicit cutoff (09:15 or 15:00 IST): a value is usable when its source says it was published
+   before the cutoff (US close 16:00 US Eastern with daylight saving; reference rate 13:30 IST; assumptions named);
+   a US Monday holiday gives Tuesday the Friday value; the same day's USD/INR counts at 15:00 and not at 09:15; live
+   use also needs `first_seen_at` before the cutoff (tests, including the exact publication time).
+4. Raw copies in Drive through `RawFileStore`, never overwritten, each logged; a later change to a held value is
+   logged as a revision and never rewrites the table; a late value is logged, never inserted; tables are append-only
+   (tests).
+5. Gaps recorded, never filled (weekdays without a value, repeated values); RBI and FBIL compared on every date both
+   publish, differences listed, the number compared printed (tests; committed check files reproduce); a cue whose
+   newest value is older than its source allows is named STALE.
+6. A failed download, a file that is not the publisher's, an empty answer, or a copy Drive refuses writes nothing to
+   that cue's table and is named; a Drive or setup failure stops the command with one line and exit 1 (tests).
+7. Derived rows equal the archived copies: `verify` recomputes every row's value from its copy, checks
+   `first_seen_at` is not before the copy was fetched and recomputes `provenance`, names a date held twice, rows out of
+   order and an empty cue table; tests plant each.
+8. Behind interfaces with one composition root (added to CLAUDE.md); no frozen file changes; code size, lint, imports
+   and the full suite pass.
+9. Private cues (owner decision a927390): their rows, revisions and gaps are written to Drive only, as write-once
+   parts; the repository holds only their copy logs (paths, URLs, hashes, sizes) and code; tests use made-up values
+   labelled fake; a second download on the same IST date is refused; the kept copies are adopted at their own fetch
+   times (tests; a test checks no private table or value is in the repository).
+
+**Gap list (quality rule 2): every requirement of REPLAN's A17 paragraph, design 2.1's data row, outputs and failure
+modes, and the orchestrator's brief.**
+
+| Requirement | Where |
+|---|---|
+| previous US close, S&P 500 and Nasdaq 100 | criterion 9 (Cboe, Nasdaq; Drive only, owner decision a927390), criterion 1 (their terms and FRED's notices quoted in the README) |
+| owner's conditions: Drive only, one download a day, no display until approved | criterion 9; display **out**, an open owner item |
+| Brent | criterion 1 (EIA; weekly release, every row `backfilled`) |
+| USD/INR | criterion 1 (RBI, and FBIL for RBI's 2018-2022 hole) |
+| US 10-year yield | criterion 1 (US Treasury) |
+| each behind `GlobalCueSource`, one composition root | criterion 8 |
+| `first_seen_at` on every value; back-fill marked as such | criterion 2 |
+| official or primary sources first; source, publication lag and time zone named | criterion 1 |
+| NSE currency and MCX files (design 2.1's suggestion) | **out**: NSE's currency-derivative file paths tried answered 404 and MCX answered 403 from this session; RBI and FBIL are the official reference rate, and NSE's USD/INR futures are a different quantity (a futures price) |
+| FRED for US closes (design 2.1) | **out**: refused by the network policy, and carries the same owners' restrictions (quoted in the README) |
+| "previous US close known before 09:15 IST": the date mapping across time zones and US holidays | criterion 3 |
+| known before 09:15 IST (REPLAN) and "global cues as of 15:00" (2.1 outputs) | criterion 3: both cutoffs, chosen explicitly |
+| raw files in Drive (A9) with A11's revision rule | criterion 4 |
+| derived daily table with a README | criteria 1, 2, 5 |
+| gaps recorded, never filled | criterion 5 |
+| a failed download writes nothing and is named | criterion 6 |
+| a publisher revising history kept apart (2.1; FRED revises) | criterion 4 |
+| look-ahead failure mode (2.1) | criterion 3 (`live_only`) |
+| licence and terms of each source, honestly labelled | criterion 1 |
+| no scheduling; O6 fetch-and-trigger | **out** (orchestrator: no schedules) |
+| no frozen files | criterion 8 |
+
+**Judge verifies:** runs `global-cues verify`; reads each source's terms itself; checks two US-holiday India dates
+with `value_for`; plants a revised value and a late value; confirms no S&P 500 or Nasdaq 100 data is in the repository.
+
+**Depends:** A7, A9, A11 · **Size:** M · **Status:** built, with the US closes in Drive only (owner decision
+a927390); awaiting judge (claims: `reviews/claude/response_103_a17-global-cues.md`, addendum 1)
