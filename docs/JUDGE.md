@@ -86,3 +86,36 @@ unsure, the change is lane 1.
   so a wrong claim can sit on `main` until that day's audit. Lane 1 keeps everything that touches money, trades or
   permanent records out of that risk.
 
+
+## Quality rules for every story (owner decision, 15 Oct 2026: "rules yes")
+
+Owner: "Everything must have to be reviewed thoroughly and properly. I don't want that we develop story with lot of
+gaps." These rules add to the loop above; none of them replaces the judge's own checks.
+
+1. **Story check before code.** The builder writes the full story text (scope, acceptance criteria, test plan) first.
+   The judge checks it against the design and the owner's decisions before the code is judged; a missing requirement is
+   a finding against the story text. A builder that wrote code first still has its story text judged first.
+2. **Gap list.** Every story lists each requirement of its design paragraph (and of every design section it cites) as
+   covered by a named criterion, or out of scope with the reason. A requirement in neither list is a blocking finding.
+3. **Builder self-review.** Before reporting, the builder runs independent code-review agents (correctness and silent
+   failures) on its diff and states in its claims file what they found and what it fixed or why not.
+4. **Broken-code proof per criterion.** Each criterion names its code (file:line) and a test, and the builder shows
+   that the test fails when that code is broken on purpose. The judge plants its own mutations as before; a builder's
+   proof never replaces them.
+5. **Positive, negative, boundary and empty cases.** For each criterion the builder's tests cover the good case, the
+   bad case, the boundary (at, just under, just over every limit) and the empty or missing-input case, and the judge
+   checks each of them itself (owner, 15 Oct 2026: "ensure that all the positive and negative use cases are tackled
+   properly").
+6. **Real output sample.** The claims file shows real output of the story (a card, a table, a refusal message) made by
+   the committed code, and says how it was made.
+7. **Orchestrator check before the judge.** The orchestrator reads the diff against the story and the gap list, re-runs
+   the gates, and sends the judge only a complete story at an exact SHA confirmed from the builder's push output.
+8. **End-to-end run after merge.** After a merge, the merged system runs once on real data in dry-run mode (no live
+   post, no order path); the judge's merge check includes its result.
+9. **Second reviewer for money.** Stories touching money limits, fills, exits or the real-money gate (C5, E8, RM1 and
+   later ones of that kind) also get a ChatGPT review after the judge's PASS and before the merge; its points are
+   checked with evidence (accept, partial or reject), never accepted blindly.
+
+**Several judges (owner decision, 15 Oct 2026).** Several judge sessions may run at once, each with a dedicated, limited
+set of stories named by the orchestrator, so no judge's load grows too large. Each follows this file in full. The
+verdict number equals the story's response number.
