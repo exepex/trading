@@ -38,7 +38,7 @@ mutations, one real Drive round trip). Open points that are not mine to decide a
 
 ## Criteria, code, tests and broken-code proof
 
-Each mutation was planted in a scratch worktree, the named tests run, then the file was restored (MUTATION_RESULT, plus the freeze plant).
+Each mutation was planted in a scratch worktree, the named tests run, then the file was restored (22 of 22 caught on the merged tree efd71d0, plus the freeze plant: one byte in `fno/forecast/capture.py` fails `tests/forecast/test_freeze_v2.py`, 2 failed).
 
 | # | Criterion | Code | Tests (positive / negative / boundary / empty) | Mutation → result |
 |---|---|---|---|---|
@@ -104,8 +104,9 @@ similar).
 ## Gates (on the merged tree: this branch plus `origin/main` at the merge commit)
 
 `git config core.hooksPath .githooks` (record scan ran on each commit); `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`:
-FULL_SUITE_RESULT; `ruff check fno tests tools`: clean; `ruff format`: clean;
-`python tools/check_imports.py`: clean; `tests/test_code_size.py`: passes (`wiring.py` 348 lines).
+3591 passed, 0 failed (408 s); `ruff check fno tests tools`: clean; `ruff format`: clean;
+`python tools/check_imports.py`: clean; `python tools/check_records.py`: clean (1365 files); `tests/test_code_size.py`:
+passes (`wiring.py` 348 lines).
 `pip install -r requirements-groww.txt` fails in this container (clint and args do not build; the file's own comment
 says so); no test needs `growwapi`.
 
