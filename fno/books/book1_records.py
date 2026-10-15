@@ -50,7 +50,7 @@ class DecidedExits:
     other_runs: Mapping[str, tuple[str, ...]]
 
 
-def book_trades(root: Path, book: str, sums_at: SumsAt) -> BookTrades:
+def opening_trades(root: Path, book: str, sums_at: SumsAt) -> BookTrades:
     openings = opening_runs(root, book, sums_at)
     chosen: dict[str, list[DecidedTrade]] = {}
     for record_path in DecisionStore(root, book).folder.glob("*/*/*.json"):
@@ -72,12 +72,12 @@ def book_trades(root: Path, book: str, sums_at: SumsAt) -> BookTrades:
 
 def recorded_terms(root: Path, book: str, sums_at: SumsAt) -> dict[str, TradeTerms]:
     """Each filled trade's structure, width and lots, by trade ID, from its opening run."""
-    return {t.trade_id: t.terms for t in book_trades(root, book, sums_at).trades.values()}
+    return {t.trade_id: t.terms for t in opening_trades(root, book, sums_at).trades.values()}
 
 
 def decided_exit_days(root: Path, book: str, finder: OpportunityFinder, sums_at: SumsAt) -> DecidedExits:
     """Each filled trade's time exit as fixed at its opening decision, with the trades that have none and why."""
-    found = book_trades(root, book, sums_at)
+    found = opening_trades(root, book, sums_at)
     exits, files = {}, {}
     for trade in found.trades.values():
         if trade.run not in files:

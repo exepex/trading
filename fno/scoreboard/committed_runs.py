@@ -11,11 +11,11 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from ..constants import JOURNAL_FOLDER
+from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP
 from ..desk.run_log import RUNS_FOLDER
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 
-DECISIONS_STEP, SNAPSHOT_STEP = "decisions", "snapshot"
+DECISIONS_STEP, SNAPSHOT_STEP = RUN_LOG_DECISIONS_STEP, "snapshot"
 
 
 @dataclass(frozen=True)

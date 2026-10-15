@@ -1,5 +1,5 @@
 """Story D3b fixtures: a decided day's chosen trades opened by fills, and that day's run log naming the run E3
-collected, so `book_trades` finds each trade's opening run as the desk would have left it."""
+collected, so `opening_trades` finds each trade's opening run as the desk would have left it."""
 
 from __future__ import annotations
 

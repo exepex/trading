@@ -17,16 +17,13 @@ from typing import Protocol
 
 from ..playbook.decision_store import SUMS_FILE, DecisionStore
 from ..playbook.run_order import OrderedRun, corrections, ordered_runs
+from ..playbook.run_order import RunCommits as OrderCommits
 from .daily_ports import CommittedDecision, DecisionSource
 from .pack_items import available_time
 
 
-class RunCommits(Protocol):
-    def added_in(self, path: str) -> tuple[str, str] | None: ...
-
+class RunCommits(OrderCommits, Protocol):
     def observed(self) -> str: ...
-
-    def is_ancestor(self, older: str, newer: str) -> bool: ...
 
 
 class RunNotRecorded(ValueError):

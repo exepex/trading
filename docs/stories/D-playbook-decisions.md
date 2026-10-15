@@ -181,7 +181,8 @@ only runs on parallel branches, then the run counter as a number breaks a tie, n
   (judge 125 minor 4). That run is the one E3's decisions
   step collected on the trade's entry day, named in that day's run log. The fill rows' `decision_id` is the record's
   opportunity ID (`fno/books/book1_orders.py:4`), which does not name the run, so the run log is the source. A
-  record with the same trade ID in any other run, a correction included, is ignored and reported once as an alert
+  record with the same trade ID in any other run, a correction included, is ignored and reported in one alert at each
+  exit review while the trade is open
   ("a later record names trade t1; the trade follows its opening run"). When the entry day's run log is missing,
   names no run, or names a run that is gone or does not match its committed `records.sha256`, the trade has no
   opening run: an alert names why, and nothing falls back to another run, least of all the latest record. Such a
@@ -196,10 +197,9 @@ only runs on parallel branches, then the run counter as a number breaks a tie, n
   `first_counted_decision`. Book 1's records need no order at all: they take the opening run by its ID from the run
   log, and list other runs naming a trade by day and counter, for the alert only. S1's code
   (`fno/evaluation/order.py`) is in no freeze: `research/evaluation/` holds no `FREEZE_v*.md` on `main`.
-- **Scoreboard B's key:** the board's top-level `uncollected_runs` holds each book's list (day, run ID, commit, time
-  and, for a correction, `corrections`).
-- **Scoreboard B** lists the day's corrections and uncollected runs apart (a `corrections` list per book and day:
-  run ID, corrects, reason), never in the scored results.
+- **Scoreboard B** lists the day's corrections and uncollected runs apart (`uncollected_runs` per book, each with its
+  day, run ID, commit and time, and for a correction its `corrections`: what it corrects and why), never in the
+  scored results.
 Out:
 - writing corrections (no correction writer exists; D3's format stays);
 - E5b's prevention (Book 1 never writes a second run).

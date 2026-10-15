@@ -17,12 +17,11 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..books.account import PaperAccount
-from ..constants import FILL_OPEN
+from ..constants import FILL_OPEN, RUN_LOG_DECISIONS_STEP
 from ..desk.records import DeskRecords
 from ..desk.run_log import RunLog
 from ..playbook.decision_store import SUMS_FILE, DecisionStore
 
-DECISIONS_STEP = "decisions"
 NO_LOG = "the run log of {day} names no decision of {book}"
 GONE = "its opening run {run} (run log of {day}) is not in the decision store"
 CHANGED = "its opening run {run} does not match the records.sha256 committed in {commit}"
@@ -58,7 +57,7 @@ def _entry_days(root: Path, book: str) -> dict[str, date]:
 
 def _opening_run(root: Path, book: str, day: date, sums_at: SumsAt) -> Path | str:
     log = RunLog.open(root, day)
-    entry = log.result(DECISIONS_STEP).get(book, {}) if log.done(DECISIONS_STEP) else {}
+    entry = log.result(RUN_LOG_DECISIONS_STEP).get(book, {}) if log.done(RUN_LOG_DECISIONS_STEP) else {}
     if "run_id" not in entry:
         return NO_LOG.format(day=day, book=book)
     run = DecisionStore(root, book).day_folder(day) / entry["run_id"]

@@ -10,7 +10,7 @@ from datetime import date
 from fno.books import book1_exits
 from fno.books.account import PaperAccount
 from fno.books.book1_exits import PlaybookExitRules
-from fno.books.book1_records import DecidedExits, book_trades, recorded_terms
+from fno.books.book1_records import DecidedExits, opening_trades, recorded_terms
 from fno.books.opening_runs import CHANGED, GONE, NO_LOG
 from fno.constants import BOOK1_RULES, FILL_OPEN
 from fno.desk.records import FILL_COLUMNS, DeskRecords
@@ -57,7 +57,7 @@ def test_a_later_record_or_correction_naming_the_trade_never_changes_it_and_is_a
     fixed = {"run_id": opening.name, "opportunity_id": OPPORTUNITY}
     run(tmp_path, DAY, 2, {"t1": 4}, corrects=fixed)  # same day, after: the latest record by any order
     run(tmp_path, LATER, 1, {"t1": 9})  # another day's run naming the same trade ID
-    found = book_trades(tmp_path, BOOK1_RULES, as_committed(tmp_path))
+    found = opening_trades(tmp_path, BOOK1_RULES, as_committed(tmp_path))
     assert found.trades["t1"].terms == TradeTerms("SC", 200, 1) and found.trades["t1"].run == opening
     assert found.other_runs == {"t1": (f"{DAY}-r2", f"{LATER}-r1")}
 
@@ -68,7 +68,7 @@ def no_opening(tmp_path, change):
     sums_at = as_committed(tmp_path)
     run(tmp_path, DAY, 2, {"t1": 1})  # a later run that could be fallen back to: it never is
     change(tmp_path, opening)
-    return book_trades(tmp_path, BOOK1_RULES, sums_at)
+    return opening_trades(tmp_path, BOOK1_RULES, sums_at)
 
 
 def test_a_missing_run_log_gives_no_trade_and_never_falls_back(tmp_path):
@@ -111,10 +111,10 @@ def test_the_exit_rules_name_why_and_alert_the_other_runs(monkeypatch):
 def test_other_runs_are_listed_by_day_and_counter_never_by_name(tmp_path):
     opening = run(tmp_path, DAY, 1, {"t1": 1})
     open_trades(tmp_path, BOOK1_RULES, DAY, opening.name, "c1", ["t1"])
-    for n in (2, 10):
+    for n in range(2, 11):  # ten runs on the day: r1 opened t1, r2 to r10 name it too
         run(tmp_path, DAY, n, {"t1": 1})
-    found = book_trades(tmp_path, BOOK1_RULES, as_committed(tmp_path))
-    assert found.other_runs == {"t1": (f"{DAY}-r2", f"{DAY}-r10")}
+    found = opening_trades(tmp_path, BOOK1_RULES, as_committed(tmp_path))
+    assert found.other_runs == {"t1": tuple(f"{DAY}-r{n}" for n in range(2, 11))}
 
 
 def test_the_opening_run_is_the_first_open_fill_s_day(tmp_path):
@@ -126,4 +126,16 @@ def test_the_opening_run_is_the_first_open_fill_s_day(tmp_path):
     fills.append(dict.fromkeys(FILL_COLUMNS, "") | {"fill_id": "t1-leg2", "trade_id": "t1", "action": FILL_OPEN,
                                                      "filled_at": f"{LATER}T15:15:30+05:30"})  # fmt: skip
     open_trades(tmp_path, BOOK1_RULES, LATER, later.name, "c1", [])  # LATER's log names its own run
-    assert book_trades(tmp_path, BOOK1_RULES, as_committed(tmp_path)).trades["t1"].run == opening
+    assert opening_trades(tmp_path, BOOK1_RULES, as_committed(tmp_path)).trades["t1"].run == opening
+
+
+def test_the_other_runs_alert_is_sent_once_per_exit_review(monkeypatch):
+    """ "Once" means once per review: each daily exit review that finds the trade open says it again, one alert."""
+    alerts = []
+    monkeypatch.setattr(book1_exits, "open_positions", lambda records: [type("P", (), {"trade_id": "t1"})])
+    decided = DecidedExits({"t1": (DAY, "sc-a-v1")}, {}, {"t1": (f"{DAY}-r2",)})
+    sender = type("Alerts", (), {"send": alerts.append})()
+    exits = PlaybookExitRules(lambda book: decided, lambda v: None, lambda b: None, sender)
+    for review in (1, 2):
+        exits.rules(BOOK1_RULES)
+        assert sum("other runs name it" in a for a in alerts) == review

@@ -46,12 +46,14 @@ def test_runs_r1_to_r9_give_the_same_first_counted_decision_as_the_old_name_orde
 
 
 def test_r2_before_r10_by_landing_order_not_by_name(tmp_path):
+    """Ten runs on the day: r1 stays on disk only, r2 lands first, r3 to r10 after it."""
     protocol_repo(tmp_path)
     run(tmp_path, "2026-11-02", 2)
     first = commit_all(tmp_path, "r2")
     for n in range(3, 11):
         run(tmp_path, "2026-11-02", n)
     commit_all(tmp_path, "r3 to r10")
+    run(tmp_path, "2026-11-02", 1)  # on disk only: never counted
     git = PlaybookGit(tmp_path)
     found = first_counted_decision(tmp_path, git, BOOK, None)
     assert found.run.endswith("2026-11-02-r2") and found.commit == first
