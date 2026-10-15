@@ -11,6 +11,7 @@ from fno.forecast_scoring.v4.records import LookRecords, NoRegistrations
 from fno.forecast_scoring.v4.scoring import V4Scoring
 from fno.forecast_scoring.v4.thresholds import FrozenToolThresholds
 from fno.forecast_v4.terms import LOOK_STOP_REVIEW
+from tests.forecast_scoring_v4.helpers import settled_gates
 from tests.forecast_scoring_v4.test_records_and_report import OneForecaster, Outcomes
 
 AT = datetime(2027, 5, 31, 16, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
@@ -39,19 +40,22 @@ def test_a_blocked_confirmatory_look_records_nothing_and_exits_1(tmp_path, capsy
     records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
     (tmp_path / "FREEZE_v4.md").write_text("# Freeze\nFrozen on: 2024-12-31\n")
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
-    blocked = _look(scoring, records, FrozenToolThresholds(tmp_path), audits(tmp_path, "2027-05-30"), LOOK_STOP_REVIEW,
-                    AT)  # fmt: skip
+    gates = settled_gates(audits(tmp_path, "2027-05-30"))
+    blocked = _look(scoring, records, FrozenToolThresholds(tmp_path), gates, LOOK_STOP_REVIEW, AT)
     assert blocked == 1 and not records.path(LOOK_STOP_REVIEW).exists()
     assert "look NOT run, nothing recorded" in capsys.readouterr().out
-    assert _look(scoring, records, FrozenToolThresholds(tmp_path), audits(tmp_path), LOOK_STOP_REVIEW, AT) == 0
+    assert (
+        _look(scoring, records, FrozenToolThresholds(tmp_path), settled_gates(audits(tmp_path)), LOOK_STOP_REVIEW, AT)
+        == 0
+    )
     assert records.path(LOOK_STOP_REVIEW).exists()
 
 
 def test_open_audits_never_stop_an_exploratory_look_before_the_freeze(tmp_path):
     records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
-    assert _look(scoring, records, FrozenToolThresholds(tmp_path), audits(tmp_path, "2027-05-30"), LOOK_STOP_REVIEW,
-                 AT) == 0  # fmt: skip
+    gates = settled_gates(audits(tmp_path, "2027-05-30"))
+    assert _look(scoring, records, FrozenToolThresholds(tmp_path), gates, LOOK_STOP_REVIEW, AT) == 0
 
 
 def test_the_live_wiring_reads_g11s_committed_file():

@@ -4,10 +4,8 @@ regime's own `>=`; the miss counts reach the report text, the report JSON and th
 import json
 from dataclasses import asdict
 from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
 
 from fno.constants import V4_SLOT_AI, V6_BIG_MOVE_5S
-from fno.forecast_scoring.v4.audits import OpenAuditFile
 from fno.forecast_scoring.v4.comparison import compare, paired_rows, seed_word
 from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import Outcome, V4ForecastSource, V4OutcomeSource
@@ -17,7 +15,7 @@ from fno.forecast_scoring.v4.scoring import QUESTIONS, V4Scoring
 from fno.forecast_v4.misses import MissReport
 from fno.forecast_v4.regime import is_big_move
 from fno.forecast_v4.terms import LOOK_STOP_REVIEW
-from tests.forecast_scoring_v4.helpers import values
+from tests.forecast_scoring_v4.helpers import settled_gates, values
 
 DAYS = [date(2025, 1, d) for d in range(1, 11)]
 ABSENT, MISSED = DAYS[4], DAYS[6]  # day 5: neither file has a row; day 7: the forecaster has none
@@ -27,7 +25,6 @@ OWN = values({d: 0.3 for d in DAYS if d not in (ABSENT, MISSED)}, live=True)
 BASE = values({d: 0.2 for d in DAYS if d != ABSENT}, live=True)
 EXPECTED = MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=1)
 
-NO_AUDITS = OpenAuditFile(Path("no-such-file.csv"), lambda: False)  # no AI book has written a row yet
 NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 
@@ -84,7 +81,7 @@ def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):
     records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
     (tmp_path / "FREEZE_v4.md").write_text("# Freeze\nFrozen on: 2024-12-31\n")
     at = datetime(2027, 5, 31, 16, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
-    _look(_scoring(), records, FrozenToolThresholds(tmp_path), NO_AUDITS, LOOK_STOP_REVIEW, at)
+    _look(_scoring(), records, FrozenToolThresholds(tmp_path), settled_gates(), LOOK_STOP_REVIEW, at)
     recorded = json.loads(records.path(LOOK_STOP_REVIEW).read_text())
     assert [V6_BIG_MOVE_5S, "rules", EXPECTED.line()] in recorded["misses"]
     assert recorded["test_a"] == "undecided"

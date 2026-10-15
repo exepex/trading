@@ -3,10 +3,11 @@ threshold tools, the look records and the slot registrations. Swapping any of th
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from ...config import ROOT
-from ...constants import V4_KIND_AI
+from ...constants import V4_DAY_SYSTEM_LATE, V4_KIND_AI
+from ...forecast_v4.sessions import is_scored_session
 from ...intraday.rv_table import RvTable
 from .audits import OpenAuditFile, has_kind
 from .cutoff_moves import RecordedCutoffMoves
@@ -14,7 +15,8 @@ from .days import DayCounts, DayFiles, LateDaysOut, day_counts
 from .g7_series import G7Series
 from .inputs import ForecastFiles
 from .outcomes import SeriesOutcomes
-from .records import LookRecords, NoRegistrations
+from .reconcile import AiSlotDays
+from .records import LookRecords, NoRegistrations, SlotRegistry
 from .scoring import V4Scoring
 from .thresholds import FrozenToolThresholds
 
@@ -31,7 +33,11 @@ def build_scoring() -> V4Scoring:
     """Before the freeze no slot is registered (the ledger row the freeze writes names them). A system_late day is
     out of the forecasts and the outcomes for every forecaster (G10)."""
     inputs = LateDaysOut(ForecastFiles(FORECASTS_FOLDER), _outcomes(), DayFiles(V4_DAYS_FOLDER))
-    return V4Scoring(inputs, inputs, NoRegistrations())
+    return V4Scoring(inputs, inputs, _registry())
+
+
+def build_ai_slot_days() -> AiSlotDays:
+    return AiSlotDays(ForecastFiles(FORECASTS_FOLDER), _registry(), _sessions_not_late)
 
 
 def build_day_counts(as_of: date) -> DayCounts:
@@ -54,3 +60,17 @@ def build_thresholds() -> FrozenToolThresholds:
 def _outcomes() -> SeriesOutcomes:
     rv = RvTable(INTRADAY_FOLDER)
     return SeriesOutcomes(G7Series(CLOSES_FILE.read_text(encoding="utf-8"), rv.rows))
+
+
+def _registry() -> SlotRegistry:
+    """One registry for scoring and the look's reconciliation; the freeze's ledger adapter replaces this line."""
+    return NoRegistrations()
+
+
+def _sessions_not_late(first: date, last: date) -> list[date]:
+    from ...storage.wiring import build_session_calendar
+
+    calendar = build_session_calendar()
+    late = {d for d, label in DayFiles(V4_DAYS_FOLDER).labels().items() if label.label == V4_DAY_SYSTEM_LATE}
+    days = (first + timedelta(days=i) for i in range((last - first).days + 1))
+    return [d for d in days if is_scored_session(calendar, d) and d not in late]
