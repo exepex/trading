@@ -109,3 +109,14 @@ is only that.
 
 Gates: docs only, and the builder's run of the same code tree is 5,992 passed. I did not re-run the suite for a
 text-only change.
+
+**Delta checked (36f6b0fa, docs only; the diff from 4d61fb8c touches only the F9 section and response 166):** the
+owner's "money only, risk shown" is now in.
+- **Risk shown:** per unit, the worst calendar month of paired differences and the mean one-lot maximum-loss
+  difference over changed opportunities, the latter from S3's code, imported.
+- **Never deciding:** neither figure enters Holm or the verdict, and "drop proposed" is printed as a proposal.
+- **Tests:** new criterion 12 tests that changing only these figures leaves the verdicts and p-values unchanged.
+- **Gap list:** the "lower risk" row now points to criterion 12.
+
+The required delta is met. **F9a text: PASS at 36f6b0fa.** Code may start once S1's pending edit 3 and S3's three
+files are on main.
