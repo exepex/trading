@@ -71,3 +71,19 @@ def test_an_unstarted_shadow_account_is_refused_not_created(root):
     with pytest.raises(ValueError, match="has not been started"):
         JournalShadowBooks(root, decision_market(), lambda account: {}).account(CANDIDATE)
     assert not (root / "journal" / "shadow").exists()
+
+
+def test_a_shadow_with_an_open_trade_is_valued_on_its_own_terms_never_book_1s(started, store, snapshots, entry_desk):
+    """Story R3 criterion 2: a shadow's open trade needs its own recorded terms. With terms that lack it (as Book 1's
+    did before R3), C2's view raises; with its own, it loads, and the lookup is asked for the shadow account only."""
+    from fno.risk.book_view import RiskInputError
+    from fno.risk.inputs import TradeTerms
+
+    write_snapshot(store, "exec", fly_rows(), at(15, 15), at(15, 15, 40))
+    assert enter(started, snapshots, entry_desk, shadow_order("t1")).outcome == OUTCOME_OPENED
+    with pytest.raises(RiskInputError, match="has no recorded terms"):
+        JournalShadowBooks(started, decision_market(), lambda account: {}).account(CANDIDATE)
+    asked = []
+    own = lambda account: asked.append(account) or {"t1": TradeTerms("SF", 200, 1)}  # noqa: E731
+    account = JournalShadowBooks(started, decision_market(), own).account(CANDIDATE)
+    assert asked == [NAME] and [t.trade_id for t in account.book.open_trades] == ["t1"]

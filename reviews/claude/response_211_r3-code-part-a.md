@@ -19,3 +19,17 @@ clean.
 
 **Known limit:** on a fresh checkout, `journal/shadow/` holds no committed files: accounts are kept in Drive (E2c). So
 Test B's `exists()` is true only after a run has opened or downloaded a shadow.
+
+## Code-round answer to ChatGPT review 129 (via response 214): accepted, with two parts pushed back on evidence
+
+| Review 129 asks | Answer | Evidence |
+|---|---|---|
+| Same session, one Book 1 trade and one shadow trade with different terms | ACCEPT | `test_book1_s_readers_and_account_are_identical_with_a_real_same_day_shadow`: Book 1's real D2 run decides one session with a paper version and a research version (width 50 against Book 1's 100). It asserts both modes are recorded and the widths differ. |
+| Book 1's opening trades, decided exits, counts, one-decision finder, account files identical with or without the shadow | ACCEPT, one part PARTIAL | All equal, the account files byte for byte. **The finder's run documents are not byte-identical by design:** D2 records the shadow books in `inputs.json` so the run can be replayed (`fno/playbook/decision_inputs.py`, `RecordingShadowBooks`). The test therefore compares what the one-decision rule uses: which runs exist, and where (`run_id`, `place`). |
+| E6 section | ACCEPT through its input | E6's Book 1 section reads only Book 1's account (`strategy_records(account, DeskRecords, charges)`), which the test compares byte for byte. Calling E6 directly on this fixture fails on the fixture's minimal fill rows (no units), not on a shadow. |
+| S2 and S3 boards | ACCEPT | S3: `test_s3_book1_actions_are_unchanged_by_a_shadow_on_the_same_day`. S2: `test_s2_book1_section_is_identical_with_a_shadow_record_in_book1_s_run`, on S2's own fixture, with a shadow record inside Book 1's run, because S2 feeds every record of a run into D6's segments (`entry_decisions.py`). Book 1's S2 section is equal. |
+| Overlapping opportunity IDs | REJECT, as impossible | An `opportunity_id` is `<name>-v<n>:<expiry>`, with no mode in it (`fno/playbook/opportunities.py`). A version is a book opportunity only at `paper` and a shadow only at `research`, never both on one day. D2's store keeps one file per id (`decision_store.py`, `record_file`). My own first probe "showed" an S3 leak only because the fixture's shadow record overwrote Book 1's file; I retracted it to the S3/S6 builder. |
+| A shadow trade ID not starting `shadow-`, still isolated by mode | ACCEPT | `test_a_record_of_the_wrong_mode_is_never_taken_even_with_a_matching_id` uses the ids `same` and `other`. Mutation: removing the mode check fails it. |
+| Conflicting caps: refuse only the shadow | ACCEPT, already covered | `tests/playbook/test_evaluate.py::test_shadow_and_book_never_share_slots`: the shadow's own book is full, so the shadow gets `SHADOW_NO_TRADE` ("slot:") while Book 1 is chosen. New for R3's own change: `test_a_shadow_with_an_open_trade_is_valued_on_its_own_terms_never_book_1s`, where terms lacking the shadow's trade raise `RiskInputError` (the old crash) and its own terms load. |
+
+**Gates:** `pytest -q -n auto` 6,796 passed; ruff, format, imports and the record scan are clean.

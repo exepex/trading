@@ -18,6 +18,7 @@ from .openings import open_trades
 from .test_book1 import FIFTEEN
 
 SHADOW = shadow_account("cand-v1")
+OTHER_WIDTHS = [50]  # a narrower condor than Book 1's, so the shadow's terms differ
 
 
 def test_shadow_accounts_are_opened_before_d2_reads_its_inputs(tmp_path):
@@ -101,3 +102,80 @@ def test_s3_book1_actions_are_unchanged_by_a_shadow_on_the_same_day(tmp_path):
 
     alone, both = actions(tmp_path / "alone", False), actions(tmp_path / "both", True)
     assert alone and alone == both
+
+
+def _decided_day(root, with_shadow: bool):
+    """One session through Book 1's real D2 run: a paper version, and (with the shadow) a registered research version
+    with other terms in the same run; Book 1's own chosen trades are then filled as the desk would."""
+    from tests.decisions.builders import doc as version
+
+    from .builders import book1_doc
+
+    candidate = version("cand", status="research")
+    candidate["structure"]["widths"] = OTHER_WIDTHS
+    docs = [book1_doc()] + ([candidate] if with_shadow else [])
+    playbook = snapshot(*docs, registered_research=("cand",) if with_shadow else ())
+    decider, commits = book1(root, playbook, clock_at(FIFTEEN(DAYS[0])))
+    decider.decide(DAYS[0])
+    [run] = DecisionStore(root, BOOK1_RULES).runs(DAYS[0])
+    records = [json.loads(p.read_text()) for p in sorted(run.glob("*.json")) if p.name != "inputs.json"]
+    book_ids = [r["structure"]["trade_id"] for r in records
+                if r.get("chosen_action") == "trade" and r.get("structure") and r.get("mode") != "shadow"]  # fmt: skip
+    open_trades(root, BOOK1_RULES, DAYS[0], run.name, commits.made[0][0], book_ids)
+    shadow_ids = [r["structure"]["trade_id"] for r in records if r.get("mode") == "shadow" and r.get("structure")]
+    return decider, records, shadow_ids
+
+
+def test_book1_s_readers_and_account_are_identical_with_a_real_same_day_shadow(tmp_path):
+    """ChatGPT review 129 and criterion 9, on D2's own output: Book 1's opening trades, decided exits, trade counts,
+    one-decision finder (which runs, where) and the account files are equal (E6 reads only that account) with the shadow
+    present or absent. The run's inputs.json differs by design: D2 records the shadow books for replay."""
+    from fno.books.book1_records import decided_exit_days
+    from fno.desk.trade_counts import DeskTradeCounts
+
+    from .test_exits import FINDER
+
+    def readers(root, with_shadow):
+        decider, records, shadow_ids = _decided_day(root, with_shadow)
+        account = PaperAccount(root, BOOK1_RULES)
+        trades = opening_trades(root, BOOK1_RULES)
+        return (
+            {
+                "trades": {k: (v.version, v.expiry, v.terms) for k, v in trades.trades.items()},
+                "problems": (trades.problems, trades.other_runs),
+                "exits": decided_exit_days(root, BOOK1_RULES, FINDER).exits,
+                "counts": DeskTradeCounts(DeskRecords(account)).open("sc-a", 1),
+                "finder": [(f.run_id, f.place) for f in decider.decided.find(DAYS[0])],
+                "account": {p.name: p.read_bytes() for p in sorted(account.folder.glob("*")) if p.is_file()},
+            },
+            records,
+            shadow_ids,
+        )
+
+    alone, _, _ = readers(tmp_path / "alone", False)
+    both, records, shadow_ids = readers(tmp_path / "both", True)
+    assert shadow_ids and alone["trades"] and both == alone  # a real shadow decision was recorded, Book 1 unchanged
+    assert {r["mode"] for r in records} == {"book", "shadow"}
+    widths = {r["mode"]: r["structure"]["width"] for r in records if r.get("structure")}
+    assert widths["shadow"] != widths["book"]  # the same session, different terms
+
+
+def test_s2_book1_section_is_identical_with_a_shadow_record_in_book1_s_run(tmp_path):
+    """Criterion 9 for S2: scoreboard B reads every record of Book 1's runs into D6's segments (entry_decisions.py), so
+    a shadow record in the same run must leave Book 1's section unchanged."""
+    from fno.constants import BOOK2_HYBRID, BOOK3_AI
+    from tests.scoreboard.builders import record, write_run
+    from tests.scoreboard.test_whole_system import R2, START, build, history
+
+    def section(root, with_shadow):
+        history(root)
+        if with_shadow:
+            shadow = record(BOOK1_RULES, START, R2, "cand-v1:2026-11-24", max_loss=4000) | {"mode": "shadow"}
+            write_run(root, BOOK1_RULES, START, R2, record(BOOK1_RULES, START, R2, "d-h1", max_loss=6000,
+                      stress=(12_000, 30_000)), record(BOOK1_RULES, START, R2, "d-o1", max_loss=7000,
+                      override="owner"), shadow)  # fmt: skip
+        board = build(root)
+        return {k: v for k, v in board["books"].items() if k not in (BOOK2_HYBRID, BOOK3_AI)}
+
+    alone, both = section(tmp_path / "alone", False), section(tmp_path / "both", True)
+    assert alone and both == alone
