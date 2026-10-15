@@ -438,7 +438,8 @@ questions.
 - **F9b (slice E, with F1's trading part and F2):** the book's session produces the shadow decision with the unit's
   card withheld and writes the rows F9a reads. Its story text is written when slice E starts.
 
-**Scope (F9a).** In: `fno/role_value/` (new package, its own composition root `fno/role_value/wiring.py`):
+**Scope (F9a).** In: `fno/role_value/` (new package, its own composition root `fno/role_value/wiring.py`) and
+`fno/evaluation/review_dates.py`:
 - **Units.** `RoleSet`: a book version's registered AI roles and declared bundles (D6's registry entry; F2's
   `agents/roles.yaml`), each unit with an identifier. A role inside a declared bundle is never a unit on its own.
   Mandatory control roles (C1, C2, C3, C4, the CUSUM and stop-rule meters) are never a unit.
@@ -490,9 +491,10 @@ questions.
 - **Review dates.** S1's `review_dates` rule has no code today. F9a adds one pure function, `review_dates(common_start,
   calendar, through)`: the last NSE session of the sixth full calendar month after the common start, then every 3
   calendar months on that month's last session. The NSE calendar is `fno/research_data/calendar.py`'s
-  `SessionCalendar`. The common start is an input (`--common-start`) until S1 fixes it in its record. Where the function
-  lives (`fno/evaluation/`, S1's package, so S3 and S4 use the same one) is agreed with S1's text owner (response 166,
-  question 8).
+  `SessionCalendar`. The common start is an input (`--common-start`) until S1 fixes it in its record. It lives in
+  `fno/evaluation/review_dates.py` (S1's package, hashed with S1; S1's text owner agreed, 15 Oct 2026), built by F9a.
+  It codes only the scheduled-review rule of S1's current `review_dates` item, not the weekly post-mortem or the
+  stop-rule review that REPLAN section 4 adds.
 - **Control roles.** From C4's failure log (`journal/<book>/validity_failures.csv`), per book and period: caught
   violations (failed-check rows) and prevented invalid actions (distinct `(day, opportunity_id)`), never a profit
   figure.

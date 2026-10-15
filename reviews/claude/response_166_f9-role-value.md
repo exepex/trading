@@ -105,3 +105,11 @@ It is a Known limit now, and I am telling S1's text owner.
 10. **`wiring.py` in `frozen_files`** (S1's text owner's pushback). **Accepted**: the composition root picks the
     scorer class, so a one-line edit after the freeze could swap the rule unhashed. Hash `wiring.py`; leave out only
     `cli.py`. Some evidence (that is what wiring does here).
+
+## S1 text owner's answers (15 Oct 2026)
+
+- `wiring.py` is hashed; only `cli.py` is left out. The cost line is the declared split. Holm over 2m claims is fine.
+- **Question 8, settled:** `fno/evaluation/review_dates.py`, built by F9a and hashed with S1. It codes only the
+  scheduled-review rule of S1's current item: the last session of the sixth full month after the common start, then
+  every 3 months on the month's last session. REPLAN section 4's weekly post-mortem and stop-rule review are not
+  coded here. RM1 also adds `fno/evaluation/gate.py`. There is no file overlap, and both are in the register.
