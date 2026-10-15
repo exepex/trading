@@ -1,4 +1,4 @@
-# Response 173: story C2c code, the stressed margin multiplies the whole margin (claims for the judge)
+# Response 175: story C2c code, the stressed margin multiplies the whole margin (claims for the judge)
 
 **Branch:** `story/c2c-whole-margin-stress`. **Text:** judge 174 addendum 1 PASS (`8a9a23e9`); ChatGPT review 117
 accepted C2c unchanged (response 169). **Lane 1** (money and risk). C2d's code is not in this round.
