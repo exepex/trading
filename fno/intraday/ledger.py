@@ -21,9 +21,10 @@ FIELDS = (
     "alert", "alert_at", "index_basis",
 )  # fmt: skip
 NOT_TAKEN = "not_taken"
-FILE_NAME = "slots/{day:%Y}/{day:%m}/{day:%d}/nifty_{day:%Y%m%d}_{mark:%H%M}.csv"
-DAY_FOLDER = "slots/{day:%Y}/{day:%m}/{day:%d}"
-SESSION_FOLDERS = "slots/*/*/*"
+ROOT = "slots/"  # everything the ledger writes is under this folder
+FILE_NAME = ROOT + "{day:%Y}/{day:%m}/{day:%d}/nifty_{day:%Y%m%d}_{mark:%H%M}.csv"
+DAY_FOLDER = ROOT + "{day:%Y}/{day:%m}/{day:%d}"
+SESSION_FOLDERS = ROOT + "*/*/*"
 
 
 class SlotLedger:

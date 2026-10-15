@@ -13,8 +13,9 @@ FIELDS = (
     "session", "status", "rv_session", "rv_intraday", "rv_overnight", "vol_pct", "void_reason", "good_slots",
     "due_slots", "basis_counts", "measure", "method", "source", "as_of", "first_seen_at", "inputs_sha256",
 )  # fmt: skip
-FILE_NAME = "rv/{day:%Y}/nifty_rv_{day:%Y%m%d}.csv"
-PATTERN = "rv/*/nifty_rv_*.csv"
+ROOT = "rv/"  # everything the table writes is under this folder
+FILE_NAME = ROOT + "{day:%Y}/nifty_rv_{day:%Y%m%d}.csv"
+PATTERN = ROOT + "*/nifty_rv_*.csv"
 SAME_INPUTS = ("method", "inputs_sha256")
 WRITTEN, ALREADY = "written", "already written"
 
