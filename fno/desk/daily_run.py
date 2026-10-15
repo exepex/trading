@@ -32,7 +32,14 @@ from collections.abc import Callable, Mapping
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from ..constants import DAILY_RUN_STEPS, RUN_LOG_DECISIONS_STEP
+from ..constants import (
+    DAILY_RUN_STEPS,
+    REVIEWS_STEP,
+    RUN_LOG_DECISIONS_STEP,
+    RUN_LOG_EXITS_STEP,
+    STEP_FAILED,
+    STEP_REFUSED,
+)
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from .daily_ports import CommitFailed, DayStep, Waiter
@@ -53,6 +60,7 @@ NO_LOG = "the run of {day} stopped before any step"
 BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
+UNSCORED = "the scorecards and automatic pauses of {day} did not run ({reason})"
 
 
 class RunStopped(Exception):
@@ -96,7 +104,7 @@ class DailyRun:
             "snapshot": (times.execution_snapshot, lambda: steps.take_snapshot(day)),
             "fills": (times.execution_snapshot, lambda: steps.fill(day, log.result("snapshot")["valid"],
                                                                    log.result(RUN_LOG_DECISIONS_STEP),
-                                                                   self._unreviewed(day))),
+                                                                   self._unreviewed(day) | self._unscored(day))),
             "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
         }  # fmt: skip
         return desk | {name: (None, lambda step=step: step.run(day)) for name, step in self.day_steps.items()}
@@ -121,6 +129,21 @@ class DailyRun:
         unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
                       for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
         return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
+
+    def _unscored(self, day: date) -> dict[str, str]:
+        """Story O1 (judge 214): when the last session reviewed its exits but its scorecards and automatic pauses (E6)
+        failed or were refused, a catastrophic loss may be unpaused, so no book opens anything new today (exits run).
+        Only once the run has the step (E3's own tests do not)."""
+        if REVIEWS_STEP not in self.day_steps:
+            return {}
+        last = self.calendar.previous_session(day)
+        steps = RunLog.open(self.steps.root, last).steps
+        if RUN_LOG_EXITS_STEP not in steps:  # no run, a closed day or a stop before the exits: `_unreviewed`'s rule
+            return {}
+        result = steps.get(REVIEWS_STEP, {}).get("result", {"status": STEP_FAILED, "reason": "not run"})
+        if result.get("status") not in (STEP_FAILED, STEP_REFUSED):
+            return {}
+        return dict.fromkeys(self.steps.books, UNSCORED.format(day=last, reason=result.get("reason", "")))
 
     def _pack(self, day: date) -> StepOutcome:
         """Retries while the canonical snapshot is not committed yet, until the recorder's window ends."""

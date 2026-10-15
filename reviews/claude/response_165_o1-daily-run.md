@@ -267,3 +267,25 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   runs its fetch with a hard 120-second limit (`UNSHALLOW_TIMEOUT_SECONDS`; it measured 6.7 s on a fresh clone). A
   time-out is a `GitError`, so it gives one alert and the day goes on, like a failed fetch.
 - Tests: `test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert`, and the runner order "parts, history, day".
+
+### E6's safety pauses in the daily run (judge 214's gap, orchestrator 16 Oct; a separate commit)
+
+- **The gap:** nothing ran `ScorecardRun` with its pauses. **Strong evidence:** judge E's grep, which I confirmed: no
+  caller of `fno desk scorecard` in any workflow or in O1 before this commit.
+- **What:** the step `reviews` (`REVIEWS_STEP`, after `exits` in `DAILY_RUN_STEPS`), `fno/daily/reviews.py`.
+  - `ReviewsStep` runs a list of `Review`s. Today that is only `ScorecardReview` (E6's real run with
+    `pause=True`); LR3 adds the second.
+  - Marks come from the day's committed execution snapshot, and the step commits `playbook/`.
+  - E6's `build_scorecard_run` takes `alerts=None`, so the run passes its `ReportedAlerts`. O1's graph-walk test
+    covers that.
+- **Fail-closed:** `DailyRun._unscored`. When the last session's exits ran but `reviews` failed, was refused or never
+  ran, every book opens nothing new today; exits run.
+- **My choice (reasoning only):** with no valid snapshot the step is refused, not ok, because open positions cannot be
+  marked. That blocks the next session's entries until a run marks them. Closed losses still pause.
+- **Tests:**
+  - `tests/scorecard/test_daily_reviews_step.py`: a catastrophic loss pauses the version the same day through the real
+    run; no snapshot gives refused, and the closed loss still pauses;
+  - `tests/daily/test_day_run.py`: `_unscored` over 5 cases, and an end-to-end test where day 1's reviews fail and
+    day 2's Book 1 opens nothing, with its exits run.
+- **Faults planted:** removing `_unscored` from the fills fails the end-to-end test; `pause=False` fails both step
+  tests.

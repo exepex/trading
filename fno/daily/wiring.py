@@ -10,7 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import CARD_DELIVERIES_FOLDER
+from ..constants import CARD_DELIVERIES_FOLDER, PLAYBOOK_FOLDER, REVIEWS_STEP
 from ..desk.daily_ports import DayStep
 from .runner import DayRunner
 
@@ -33,12 +33,15 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_sync import Git, GitCommitter
+    from ..desk.wiring import build_execution_snapshots
     from ..models import now_ist
+    from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
     from .history import WholeHistory
     from .processes import ChildProcesses
     from .quote_parts import QUOTE_PARTS, QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
+    from .reviews import ReviewsStep, ScorecardReview
     from .steps import Alerted, CommandStep, LiveFrom
 
     git, alerts, processes, live = (
@@ -68,6 +71,17 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
             CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed),
             alerts,
         ),  # E5: commits its own decision  # fmt: skip
+        REVIEWS_STEP: Alerted(
+            REVIEWS_STEP,
+            ReviewsStep(
+                (ScorecardReview(build_scorecard_run(cfg, root, alerts)),),
+                build_execution_snapshots(),
+                root,
+                git.changed,
+                (f"{PLAYBOOK_FOLDER}/",),
+            ),
+            alerts,
+        ),  # E6's pauses  # fmt: skip
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
     }

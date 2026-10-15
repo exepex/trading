@@ -86,6 +86,14 @@ and commits their own files. A rerun whose log already holds `quotes` starts no 
 day each recorder's own calendar rule records nothing. Chosen over "skip only the steps that need Drive" because it
 stays inside O1 and leaves E2c's judged stop rule as it is (reasoning only).
 
+**E6's pauses run every session (judge 214, orchestrator, 16 Oct):** no step ran E6's scorecard or its safety pauses,
+so a catastrophic loss would never pause its version. The `reviews` step runs E6's real `ScorecardRun` with
+`pause=True` after the exits, marked at the day's execution snapshot, through the run's one alert sender, and commits
+`playbook/`. A pause changes the version's status that day, so the next decision cannot trade it; exits still run.
+Without a valid snapshot the step is refused (open positions unmarked, their loss rules not judged), though closed
+losses still pause. A failed or refused step, or one that never ran after the exits, blocks every book's new entries
+at the next session (`DailyRun._unscored`); exits still run.
+
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 
@@ -104,6 +112,7 @@ In:
   | `versions`, `pack` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
   | `book1` | right after `pack` | E5's `desk book1 --day <d>` (Book 1's decision, committed by itself) |
   | `decisions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
+  | `reviews` | after `exits` | E6's scorecards and automatic pauses (catastrophic and cumulative loss), marked at the day's execution snapshot; commits the playbook's status changes (judge 214); LR3's drift monitor joins it later |
   | `quotes_done` | after `exits`: waits for the parts still running, records each part's result line and commit | |
   | `card` | after `quotes_done`, only if E3 did not stop | T1's `card daily --post`; always after `decisions` (final at 15:12) and `snapshot` (C3 final at 15:15), so a card never posts before what it shows is final (T2 builder, 15 Oct) |
 
