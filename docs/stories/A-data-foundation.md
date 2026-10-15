@@ -1107,17 +1107,35 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   the range and every structure and width that C2 trades, rebuilds the entry's legs (A14's builder, the same expiry
   rule) and recomputes their margin parts (scan, NOV, exposure) on each later day's first-archived `i1` file up to the
   exit day; it reports the largest held rise of the whole margin C2 counts (`initial()`: `max(0, scan - NOV) +
-  min(0, NOV) + exposure`, the quantity k multiplies after story C2c; owner question 1), rounded up to the next 0.05, and an evidence table (window, structure, width, entry day, day of the peak, figures);
+  min(0, NOV) + exposure`, the quantity k multiplies after story C2c; owner question 1), rounded up to the next 0.05,
+  and an evidence table (window, structure, width, entry day, day of the peak, figures);
 - the 2020 short-option minimum modelled as SPAN does (per tier: the larger of the scan and the minimum times the short
   units), behind A14's calculator interface, so the same code reads every year; any other method difference is still
   refused by name;
 - the A9 librarian back-fill of every session's `i1` file since 1 Jan 2020 into Drive with their manifest rows
   (owner question 2; about 1,700 files, about 16 GB);
-- the output written to `research/data/margins/stress_factor_<run day>.csv` and `.md` (append-only, the files' SHA-256
-  named); a run never edits `config.yaml`.
+- the evidence written to `research/data/margins/stress_evidence_<run day>.csv` and `.md` (the files' SHA-256 named);
+- **the factor applied automatically (owner question 3)**: each run appends one row to
+  `research/data/margins/stress_factor.csv` (append-only, never edited): `as_of` (run day), `factor` (in force),
+  `computed` (this run's rounded result), `unrounded`, `status` (`applied` or `held`), `peak` (window, structure, width,
+  entry day), `evidence_sha256` (of the evidence CSV). C2 and C4 read the latest row (story C2d); `config.yaml` keeps
+  only the method, the file path and `max_age_days`. A run never edits `config.yaml`;
+- guardrails, in this order: a result below 1.0, or an archive covering fewer sessions than the last run's, is refused
+  by name and writes no row; a result at or above the factor in force is `applied` (a rise applies at once); **any
+  result below the factor in force is `held`**: the row keeps the old factor and the alert asks the owner to approve
+  the lower one (DESK_DECISIONS row, then a row with status `applied` written by the next run that cites it);
+- incremental runs: the rule is a maximum over a window that only grows, so a run computes only the entries whose
+  holding ended since the last run's newest entry and takes the larger of that and the last `unrounded`; a full
+  re-run from 2020 is a flag (`--full`) and must give the same `unrounded` (test);
+- a GitHub Actions job (no AI, no broker key) each Sunday 10:00 IST: the librarian archives the week's `i1` files, the
+  run appends its row, the job commits; a weekly run keeps the row fresh (`max_age_days` 30 leaves three missed weeks
+  before C2 refuses);
+- one #fno-desk line per run: the factor in force, the change, `applied` or `held`, and the peak's window;
+- the broker check of owner question 4, in the daily Claude routine that already holds Groww's read-only access
+  (never in GitHub Actions, which holds no broker key): after each `applied` row, one read-only Groww margin request
+  for the SF 100 basket on that day's A14 row, compared with the row.
 
-Out: changing C2's formula (story C2c does it); writing `config.yaml` (the owner enters
-the value, owner question 3); any order.
+Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
 
 **Owner questions (each with a recommendation):**
 1. **Which quantity does k measure? ANSWERED (owner, 15 Oct 2026, relayed by the orchestrator): "WHOLE MARGIN. k
@@ -1129,20 +1147,24 @@ the value, owner question 3); any order.
 2. **Which windows? ANSWERED (owner, 15 Oct 2026, relayed): everything since 1 Jan 2020.** Every entry day from
    2 Jan 2020 to the run day; later runs add the new days. The `config.yaml` comment ("the same windows, plus any later
    ones") is corrected when the first value from this run is entered.
-3. **Who sets the value? (reasoning only.)** (A) The owner enters each month's value by hand (today's rule). (B) The run
-   may raise `multiplier` by itself (never lower it), the owner approves any lowering. **Recommended: A for now.** The
-   owner keeps every risk value; the run lands on about day 23 of 30, leaving a week to decide.
-4. **NSE's circulars. (reasoning only.)** No history covers a rate NSE raises by circular (2020's minimum, exposure
-   rates). **Recommended:** accept the limit for paper trading; A14's reader already writes no row when the NIFTY
-   method changes (C2 refuses within 7 days); repeat A14's broker check (one Groww figure) at each recompute, so a coded
-   rate that drifted from the broker is caught within a month.
+3. **Who sets the value? ANSWERED (owner, 15 Oct 2026, relayed): automatic, with an alert.** The run applies the
+   factor itself through `stress_factor.csv` and posts it to #fno-desk (scope above). The orchestrator proposed holding
+   only a fall of more than 0.05; this story holds **every** fall (reasoning): the rule is a maximum over a window that
+   only grows, so a correct run can never give a lower value, and any fall means a data or method fault, which must not
+   lower a crash buffer unseen. Falls of 0.05 or less are therefore held too.
+4. **NSE's circulars. ANSWERED (owner, 15 Oct 2026, relayed): accept the limit, plus one Groww comparison at each
+   recompute; a mismatch alerts.** No history covers a rate NSE raises by circular (2020's minimum, exposure rates).
+   The comparison: Groww's SPAN within Rs 1 of the row's `max(0, scan - NOV)` and Groww's exposure within 1% of the
+   row's after rescaling to Groww's index (response 77's check 2 met both: SPAN to the rupee, exposure to the paisa on
+   the same index base). A mismatch posts one #fno-desk line and does not hold the factor, which is NSE-based; it is
+   evidence that A14's coded exposure rule may be stale.
 
 **Acceptance criteria:**
 1. Reproduction, run after the back-fill of question 2 (Drive's archive starts on 1 Oct 2026 and the 2026 window has
    September entries; judge 173 note 1): the command reproduces each of response 77's three windows within 0.001, or
    explains each difference with the files' figures: 1.127 (Sep-Oct 2026, BF 100), 1.265 (Jan-Apr 2020, the
-   short-option minimum binding) and 1.407 (May-Jun 2024, BF 300 entered 5 Jun, today's binding value). The 2020 and 2024
-   figures are anchors the builder did not write (judge 173 note 2).
+   short-option minimum binding) and 1.407 (May-Jun 2024, BF 300 entered 5 Jun, today's binding value). The 2020 and
+   2024 figures are anchors the builder did not write (judge 173 note 2).
 2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported rise and its day equal a
    hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a test.
 3. Point in time: each day uses that day's first-archived `i1` file written before 09:00 IST on it, as A14 does
@@ -1152,18 +1174,28 @@ the value, owner question 3); any order.
 5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
    same files writes byte-identical output; nothing writes `config.yaml` (test).
 6. Owner questions 1 and 2 are recorded in DESK_DECISIONS (answered 15 Oct, commit d68b1a9c: "Crash buffer applies to
-   the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 are answered there before the
-   first value from this command is entered; C2c is merged before it, so the value is applied as it was measured.
-7. Code size, lint, imports and the full suite pass.
+   the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 are recorded there
+   before the first automatic row; C2c and C2d are merged before it, so the value is applied as it was measured.
+7. Guardrails (tests on planted runs): a rise is `applied`; any fall, 0.01 included, is `held` with the old factor kept
+   and one alert asking the owner; a result below 1.0 and an archive covering fewer sessions than the last run's are
+   refused with no row; an owner-approved fall is `applied` only when its DESK_DECISIONS row is cited; a mutation that
+   applies a fall fails a test.
+8. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test).
+9. Alerts: one #fno-desk line per run with the factor, the change, the status and the peak (test); a Groww mismatch
+   beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
+   is read-only and places nothing).
+10. Code size, lint, imports and the full suite pass.
 
-**Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; owner
-and judge by 11 Nov; 1.45 expires after 13 Nov. Then monthly, about 7 days before each expiry.
+**Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; judge
+by 11 Nov; 1.45 expires after 13 Nov. Then weekly (Sunday), automatic. Bootstrap: story C2d seeds
+`stress_factor.csv` with the owner's 1.45 of 14 Oct (status `applied`, source response 77), so C2 keeps its current
+factor until the first run.
 
 **Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
-**Depends:** A9, A14, C2, C2c · **Size:** M · **Status:** text PASS (judge 173); owner-answer revision for
-judge 173 addendum 1
+**Depends:** A9, A14, C2, C2c, C2d · **Size:** M · **Status:** text PASS (judge 173 addenda 1-2); owner Q3 and Q4
+revision for the judge
 
 ---
 
