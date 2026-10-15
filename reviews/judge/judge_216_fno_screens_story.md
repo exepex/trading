@@ -119,3 +119,15 @@ gains part (b), the orchestrator's question.
   and 17,910 data rows in the 19 top-level files. This matches my recount.
 - **Notes.** Rule 2 now says a Drive stop halts the whole publish, public pages included. The duplicate W3a-h
   register row is removed, and the text row points to the screens builder's row.
+
+## Addendum 3: head 5e938904
+
+**Verdict: PASS stands, and addendum 2's note is closed.** Rule 4's owner question now covers the probability rule
+too. Probability, base rate and colour together over about 2,400 days of `weather_history` let the floors and
+multiples be read back:
+- under (a), that is fine;
+- under (b), the history page drops the probabilities or the colour, and today's page shows only one of them.
+
+The drivers' `push` is defined without levels: it is the sign of the change since the previous session. Drivers are
+ordered by the size of that change against their own 250-session typical change, never by a model coefficient (which
+is on the never-sent list). No input level or `reaches` can be derived from either.
