@@ -77,3 +77,63 @@ gate number check out. One pairing rule biases the binding pass test against rea
   - `check_imports`: clean.
 
 **A re-check needs only the pairing and scaling rule (SF1).**
+
+## Addendum 1: revision at c528a9b6: FAIL (1 should-fix, one phrase)
+
+The delta from fb62461a covers the pairing rule, the valid quote, stop (b), criterion 1 and the owner's decisions.
+The rename to response 189 is in.
+
+- **SF1 (judge 198): MET.**
+  - Paper is restated at 1 lot: gross per unit before pad × the 1-lot units, minus the pad, minus C1's 1-lot charges.
+    It is "never paper net ÷ lots", the Rs 94.40 is explained, and criterion 1 pins Rs 94.40 against Rs 47.20.
+  - The real side carries actual contract-note charges (Q3).
+  - The prediction floor's evidence record is restated the same way.
+  - Padding the paper side at the gate's Rs 1 is consistent with the frozen gate. Its Terms say the evidence record
+    is filled "after C1 charges and pads" and the Paper pad is "the pad research results already assume", while
+    `FILL_PAD_RS` = 0 "never" serves as the gate's pad. It is also the coherent choice: real execution at about the
+    pad then gives d ≈ 0, whereas an unpadded paper side would charge real Rs 1 per unit of honest slippage against
+    the −Rs 500 margin.
+- **Notes 1-3: MET.**
+  - The valid quote needs both sides present.
+  - The A16 fallback is timed by the snapshot's observed fetch time, never its nominal mark.
+  - Stop (b) orders trades by exit time, so "the last 5" checked after every exit covers every run of 5.
+- **Owner decisions:** Q1-Q3 match row e7f40e8f (16 Oct, all three as recommended).
+
+**SF2. Where the pad applies is not stated, and it moves d by up to 4×.**
+- **Evidence:** the rule reads "gross per unit (entry and exit prices before pad, every leg) × the 1-lot units,
+  minus the pad of Rs 1 per unit × those units". Research's `PAD` is "worse on every leg at entry and at exit"
+  (`fno/research_engine/cycle_costs.py:24`).
+- **Path:** take a 2-leg spread at 65 units.
+  - The pad on every leg at entry and exit is 4 × 65 = Rs 260.
+  - The pad once per trade is Rs 65.
+  - Each paired d then differs by Rs 195, against the binding −Rs 500 margin. One reading favours real by Rs 195 per
+    trade relative to the other.
+- **Fix (text):** "minus Rs 1 per unit on every leg at entry and at exit (research's `PAD`)". Pin it in criterion 1's
+  example.
+
+**Gates (trial merge with origin/main 85990def, tree 5bde1ec, clean, `-n auto`):**
+- pytest: 6521 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1155 files formatted;
+- `check_imports`: clean.
+
+**A re-check needs only the pad phrase and criterion 1's example.**
+
+## Addendum 2: revision at 694b8a2f: PASS
+
+The delta c528a9b6..694b8a2f is 3 lines in `docs/stories/RM-real-money.md` and nothing else, so the builder's claim
+holds.
+
+- **SF2: MET.** The pairing now reads "minus Rs 1 per unit on every leg at entry and at exit (research's PAD,
+  `fno/research_engine/cycle_costs.py:24`)". Criterion 1 pins it: 2 legs × entry and exit × 65 × Rs 1 = Rs 260 per
+  trade, "not Rs 65". This is the research `PAD`'s own scope ("worse on every leg at entry and at exit").
+- SF1, notes 1-3, the owner's Q1-Q3 (e7f40e8f) and the rename are unchanged from addendum 1.
+
+**Gates (trial merge with origin/main 72d474c7, tree 31671c3, clean, `-n auto`):**
+- pytest: 6521 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1155 files formatted;
+- `check_imports`: clean.
+
+**Verdict: PASS.** ChatGPT's review follows (rule 9). The code starts only when a version reaches the gate and the
+orchestrator says go.
