@@ -727,7 +727,9 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 7. **Looks:** every AI transcript audit up to a confirmatory look's date is settled before that look runs (a look is
    recorded once, `LookRecords`, and would keep a false miss). G11 keeps the committed file
    `research/forecasts/v4_audits/open_audits.csv` (header `day,forecaster,question`; one row per AI forecast whose
-   audit is open; the row is removed when the audit settles, in the same commit as its v4 record row). The look's
+   audit is open; the row enters in the same commit as the book's collected submission (its sealed commitment and
+   reveal), so an open audit is never missing from the file, and leaves when the audit settles, in the same commit as
+   its v4 record row). The look's
    refusal is built by the A16/G8 builder in `fno/forecast_scoring/v4/` before the freeze (their register row and a
    freeze-checklist line): a look on date L refuses while any row has `day <= L`, naming the count and the earliest
    open day; a missing file means no open audit; a bad header or date stops the look. G8 reads the file, never G11's
