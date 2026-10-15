@@ -89,3 +89,23 @@ Lane 1 (a rule document). It changes one file and no code. It contains no secret
 
 **Verdict: FAIL for c158bf49dd69de414492be1611f6a85ecc040be4**, on must-fix 1 (rule 6 against owner decision 9) and
 should-fixes 1-3 (precision). All of them are wording in `docs/JUDGE.md` only. A re-check needs only the new section.
+
+## Addendum 1 (15 Oct 2026): 85972d90a830dfab3ba380697d84c0f8e94bdfa8 (c158bf4..85972d9)
+
+One commit. It changes only the new section of `docs/JUDGE.md` (19 lines added, 10 removed). `git merge-tree` with
+`origin/main` is clean, `git diff --check` is clean, and no new line exceeds 120 characters.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Must-fix 1: rule 6 samples | MET | Samples are only NO TRADE cards, redacted output or labelled historical examples. They are made in a dry run or a test, never by a live post, and never carry live strikes, entry ranges, strategy internals or secrets. The rule names the cards-in-Drive decision, the privacy rule and the record scan |
+| Should-fix 1: rule 1 timing | MET | New stories push the story text alone, and the judge checks it at that SHA before code starts. The seven stories already being built are named (A15, T1, P1, A17, F8/BG1, C5, STR1), and their story text is checked first within their code review |
+| Should-fix 2: rule 8 | MET | Who runs it: the merger. Where it is recorded: the log, plus the merge message or a follow-up commit. The judge's merge check verifies that record. A change with no data path, or a run without access, states so and why. A failure is reverted at once (refinement 5) |
+| Should-fix 3: rule 9 | MET | Any change made after a PASS because of the ChatGPT review returns to the judge before the merge |
+| Minors 1-2 | MET | The numbering is labelled the orchestrator's convention, with reserved numbers for verdicts that have no response file. The double blank line is gone |
+
+**New minor (not blocking):** rule 8 says "the person who merged (the orchestrator)". The 14 Oct decision row says the
+builder merges after a PASS, and `CLAUDE.md` leaves it open. The rule binds whoever merged, so it still applies. If
+builders merge, read the parenthesis as "today usually the orchestrator", or drop it at the next edit.
+
+**Verdict: PASS for 85972d90a830dfab3ba380697d84c0f8e94bdfa8.** Merge it. After the merge I check that `main` carries
+exactly this section.
