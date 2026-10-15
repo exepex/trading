@@ -66,3 +66,68 @@ before the first private page is right, and criterion 3 tests it.
   into one row.
 - **Ownership check.** P2 (BR1 builder), W3 (E4c/E4d builder) and the contract and mockups (01XFXpbk) each have one
   owner, and the old P2 text is replaced, not duplicated. No second publisher, reader or adapter is planned.
+
+## Addendum 1: heads a939fd23 and 1799b120 (weather_history page, contract 2.8.0, gateway entry points)
+
+**Verdict: FAIL stands.** Should-fix 1 and 2 are not addressed yet; these commits predate the verdict. Should-fix 1
+gains part (b), the orchestrator's question.
+
+- **The gateway entry points (rule 5), accepted.** Naming every route the gateway serves under `MB_GATEWAY=1` and
+  proving the import-graph test with a planted import is a real check. It is closer than "a test".
+- **Contract 2.8.0, additions only, and `weather_history`'s shape:** fine as text.
+- **The orchestrator's question: can the thresholds be read back from `weather_history`? Yes, the colour levels
+  can.**
+  - Each row carries the colour and the four figures it is computed from: p1, p5 and their base rates b1, b5.
+  - `fno/weather/colour.py` makes the colour a pure function of those four: RED when
+    `p1 >= max(10%, 2.5·b1)` or `p5 >= max(35%, 2.5·b5)`, AMBER at 6% / 20% and 1.5 times.
+  - With about 2,400 labelled rows, the RED and AMBER floors and multiples fall out of where the colours change. The
+    149 AMBER and 121 RED days bracket them.
+  - The per-input checklist limits (`RED_LIMITS`) cannot be read back from this page, since it carries no input
+    values.
+  - So if the lead's reading of the owner's rule covers the colour levels (it turned down the `weather_method` page
+    that would show them), the history page breaks that reading. It must either drop the base rates, or the
+    probabilities, or say so.
+- **Should-fix 1, now in two parts:**
+  - (a) everything in question is already public in this public repository, which is addendum 0's point: the rule in
+    `colour.py`'s docstring and constants, `RED_LIMITS`, and `reaches` in 2,409 committed files;
+  - (b) the new history page would show the colour levels again by read-back.
+
+  The owner should decide this once, with these facts: the levels are public (show them, or stop pretending they are
+  hidden), or private from now on (move them out of the public tree, accept that history keeps them, and cut the
+  history page down to colour and label).
+- **Should-fix 2** (the manifest count): still open.
+
+## Addendum 2: head 44132385 (response 219 addendum 1)
+
+**Verdict: PASS.** Both should-fixes are fixed, and both notes are applied.
+
+- **Should-fix 1(a).** Rule 4 now says plainly that the weather's input levels are a screen rule, not a secret. It
+  cites `checklist_v0.py:22`, `constants.py:23` and the `reaches` in all 2,409 committed records, and it puts one
+  owner question: (a) accept them as public, or (b) make them private from now on, with history staying public. The
+  builder recommends (a), marked as reasoning only. That is honest and complete.
+- **Should-fix 1(b), the history read-back: settled as written, with one note.**
+  - The owner's rule (16 Oct) is about the input levels: "the level at which an input turns a colour".
+    `weather_history` carries no input values, so it cannot show those.
+  - What it does let a reader recover is the colour rule's floors and multiples (`colour.py`). Those are the model's
+    owner-decided levels (design 2.3, "Weather thresholds accepted"), stated in public code, not input levels.
+  - So under the owner's own wording, the page keeps the rule. The stricter reading the lead used to turn down
+    `weather_method` would also catch this page.
+  - **Note:** add one sentence to the owner question, "the history page lets the colour rule's floors and multiples
+    be read back, as the public `colour.py` already states them", so the owner decides with every fact in front of
+    them.
+- **Should-fix 2.** The count is now 33 manifest CSVs, 57,178 lines, with the command that produced it in the table,
+  and 17,910 data rows in the 19 top-level files. This matches my recount.
+- **Notes.** Rule 2 now says a Drive stop halts the whole publish, public pages included. The duplicate W3a-h
+  register row is removed, and the text row points to the screens builder's row.
+
+## Addendum 3: head 5e938904
+
+**Verdict: PASS stands, and addendum 2's note is closed.** Rule 4's owner question now covers the probability rule
+too. Probability, base rate and colour together over about 2,400 days of `weather_history` let the floors and
+multiples be read back:
+- under (a), that is fine;
+- under (b), the history page drops the probabilities or the colour, and today's page shows only one of them.
+
+The drivers' `push` is defined without levels: it is the sign of the change since the previous session. Drivers are
+ordered by the size of that change against their own 250-session typical change, never by a model coefficient (which
+is on the never-sent list). No input level or `reaches` can be derived from either.

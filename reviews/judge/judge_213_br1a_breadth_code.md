@@ -168,3 +168,28 @@ The fix and the tests sit in merge commit aeea15d5. I read its diff against 90fe
 
 **Verdict: PASS.** Protocol v1's claims stay postponed, as its pre-registered rule says. A v2 is the owner's
 decision, through its own story text, judge and ChatGPT round.
+
+## Addendum 3: f6239740 (the owner's "descriptive only" written in): PASS
+
+The builder sent this directly, and I reported it to the orchestrator. The delta aeea15d5..f6239740 on BR1's files is
+86b3a60c plus a merge of main. Against main, `fno/` holds the same seven `fno/evaluation` files judged above.
+
+- **Matches the owner's row** (DESK_DECISIONS, 16 Oct, "BR1: descriptive only; no skill claim; the null size check
+  re-measured each year", in ce150a37 on main).
+  - `looks` and `null_size_check` read "decided by the owner on 2026-10-16".
+  - `null_size_check` adds the yearly re-measure on the latest two full years, labelled exploratory: "a pass is never
+    a claim by itself; it can only start a new protocol version".
+  - The status header, `claim_meaning` ("under version 1 it is never made"), `descriptive_reports` and `reporting`
+    ("each labelled descriptive") say the same.
+  - No other item changed status. `check --protocol breadth --decided` lists the other 16 as undecided, which is
+    right.
+- **The one test change** is in BR1a's own new test file. It pins the decided set to exactly {looks,
+  null_size_check}, which is correct.
+- **No code or config change** on the branch since aeea15d5.
+
+**Gates:**
+- The merge conflicts in `reviews/claude/README.md`, rows only. With the markers left in, 4 record-scan tests fail.
+- With both sides kept (tree f9cd8ab, origin/main 71bed543), `-n auto`: pytest 6864 passed. `ruff check` is clean,
+  `ruff format --check` shows 1215 files formatted, and `check_imports` is clean.
+
+**Verdict: PASS.**

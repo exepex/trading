@@ -344,3 +344,34 @@ that the parts still record on a download outage; the O2 builder updates it with
   clean.
 
 Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
+
+## Addendum 13: O1 at efa57570 (E6's pauses in the run, commit b2d98c40)
+
+**Verdict: FAIL, 1 should-fix.** The design is right:
+- E6's real `ScorecardRun` runs with `pause=True` after `exits`, through the run's one `ReportedAlerts`, and commits
+  `playbook/`;
+- `DailyRun._unscored` blocks every book's entries at the next session when the step failed, was refused or never ran
+  after the exits;
+- the exits always run.
+
+This closes judge 214's gap: nothing ran E6's pauses before. It is a text amendment that adds safety, and I accept it.
+
+- **Checked:**
+  - `_unscored` returns nothing when the last log has no `exits`, so E3's `_unreviewed` covers that case without a
+    double block;
+  - it is off when the run has no `reviews` step (E3's own tests);
+  - the default for a missing step is `failed` / "not run".
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6899 passed**; `ruff check` and `check_imports` are
+  clean. The builder's planted faults (no `_unscored` in the fills; `pause=False`) are named with the tests that catch
+  them.
+- **Should-fix 10: a day without a valid snapshot blocks the next day even when there is nothing to mark.**
+  - **Path:** `ReviewsStep.run` returns `refused` whenever the snapshot is not valid, so `_unscored` then blocks
+    every book's entries the next session. The stated reason is that open positions cannot be marked.
+  - **Why that is too wide:** with no open position in any book, nothing needs marking. Closed losses are still
+    judged (the builder's own test), so the refusal costs a trading day and protects nothing.
+  - **It happens in normal running:**
+    - the 15:15 capture failing twice is a normal case (O2's Groww family; C3's "no valid execution snapshot");
+    - today all three books hold 0 open trades (`journal/*/daily_totals.csv`, judge 216's count);
+    - so the first capture failure blocks the next session for nothing.
+  - **Fix:** refuse only when some book has an open position (through the same `paper_accounts` and `DeskRecords`
+    the scorecard reads). With none, record `ok`, saying "no open position to mark". Add one test each way.
