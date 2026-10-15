@@ -79,19 +79,32 @@ def test_a_time_without_a_zone_is_refused(tmp_path):
     with pytest.raises(ExportRefused, match="has no time zone"):
         days_of(tmp_path, export([result_event("2026-10-14T20:00:00", 60_000, "u1")]))
     with pytest.raises(ExportRefused, match="captured_at"):
-        ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-16T09:00"))).days()
+        reader = ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-16T09:00")))
+        reader.complete_before(date(2026, 10, 20))
 
 
 def test_an_export_of_an_unknown_shape_is_refused_not_read_as_nothing(tmp_path):
     with pytest.raises(ExportRefused, match="no result events"):
-        days_of(tmp_path, export([{"created_at": "2026-10-14T05:00:00Z", "data": {"result": {}}}]))
+        days_of(tmp_path, export([]))
+    with pytest.raises(ExportRefused, match="an event's result is not a JSON object"):  # review 3, M2: never skipped
+        days_of(tmp_path, export([TWO_DAYS[0], {"created_at": "2026-10-14T05:00:00Z", "data": {"result": {}}}]))
+    with pytest.raises(ExportRefused, match="has no created_at"):
+        days_of(tmp_path, export([{"result": TWO_DAYS[0]["result"]}]))
+    with pytest.raises(ExportRefused, match="the export is not a JSON object"):
+        days_of(tmp_path, [])
+
+
+def test_a_has_more_that_is_not_true_or_false_is_refused(tmp_path):
+    data = export(TWO_DAYS)
+    data["result_pages"][0]["response"]["ccr"]["has_more"] = "true"
+    with pytest.raises(ExportRefused, match="has_more is 'true'"):
+        days_of(tmp_path, data)
 
 
 def test_complete_days_end_at_the_capture_day_in_ist_or_today(tmp_path):
     reader = ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-15T20:00:00Z")))
     assert reader.complete_before(date(2026, 10, 20)) == date(2026, 10, 16)  # 20:00 UTC is 01:30 IST next day
     assert reader.complete_before(date(2026, 10, 14)) == date(2026, 10, 14)
-    assert {d.captured_at for d in reader.days()} == {"2026-10-16T01:30:00+05:30"}
 
 
 def test_the_real_page_envelope_of_15_october(tmp_path):

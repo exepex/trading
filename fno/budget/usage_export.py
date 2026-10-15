@@ -15,7 +15,7 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
-from .usage_reader import DayUsage, ExportRefused, SessionUsageReader, ist_time
+from .usage_reader import DayUsage, ExportRefused, SessionUsageReader, ist_time, shaped
 
 TOKEN_FIELDS = {  # ledger column -> field of a result event's `usage`
     "input_tokens": "input_tokens",
@@ -33,7 +33,7 @@ NO_RESULTS = "the export holds no result events: nothing to record (a changed ex
 
 class ExportFileUsageReader(SessionUsageReader):
     def __init__(self, path: Path):
-        self._export = json.loads(path.read_text(encoding="utf-8"))
+        self._export = shaped(json.loads(path.read_text(encoding="utf-8")), dict, "the export")
 
     def complete_before(self, today: date) -> date:
         """A day still running when the export was taken is not complete in it."""
@@ -43,16 +43,15 @@ class ExportFileUsageReader(SessionUsageReader):
         return self._export.get("captured_at") or ""
 
     def days(self) -> list[DayUsage]:
-        session = _unwrap(self._export.get("session") or {})
+        session = _unwrap(shaped(self._export.get("session") or {}, dict, "the session record"))
         session_id = session.get("id") or ""
         if not session_id:
             raise ExportRefused(NO_SESSION_ID)
         model = session.get("configured_model") or (session.get("session_context") or {}).get("model") or ""
         by_day = defaultdict(list)
-        for result in _results(self._export.get("result_pages") or []):
+        for result in _results(shaped(self._export.get("result_pages") or [], list, "result_pages")):
             by_day[ist_time(result["created_at"], "created_at").date()].append(result["result"])
-        captured = ist_time(self._captured_at(), "captured_at").isoformat()
-        return [_day_usage(day, session_id, model, by_day[day], captured) for day in sorted(by_day)]
+        return [_day_usage(day, session_id, model, by_day[day]) for day in sorted(by_day)]
 
 
 def _unwrap(part: dict) -> dict:
@@ -63,7 +62,9 @@ def _chained(pages: list) -> list[dict]:
     """The responses, once each page is shown to be read with the newer page's first_id and the last is the end."""
     responses, cursor = [], None
     for n, page in enumerate(pages, start=1):
-        response = _unwrap(page.get("response") or {})
+        response = _unwrap(shaped(shaped(page, dict, f"page {n}").get("response") or {}, dict, f"page {n}'s response"))
+        if response.get("has_more", False) not in (True, False):
+            raise ExportRefused(f"page {n}: has_more is {response['has_more']!r}, not true, false or absent")
         if page.get("before_id") != cursor:
             raise ExportRefused(BROKEN_CHAIN.format(n=n))
         if responses and responses[-1].get("has_more") is not True:
@@ -78,10 +79,10 @@ def _chained(pages: list) -> list[dict]:
 def _results(pages: list) -> list[dict]:
     seen, results = set(), []
     for page in _chained(pages):
-        for event in page.get("data") or []:
-            result = event.get("result")
-            if result is None:
-                continue  # another kind of event
+        for event in shaped(page.get("data") or [], list, "a page's data"):
+            result = shaped(shaped(event, dict, "an event").get("result"), dict, "an event's result")
+            if not isinstance(event.get("created_at"), str):
+                raise ExportRefused("a result event has no created_at")
             uuid = result.get("uuid")
             if not uuid:
                 raise ExportRefused(f"a result event of {event.get('created_at')} has no uuid")
@@ -99,11 +100,11 @@ def _figures(result: dict) -> dict:
     return {"duration_ms": figures.get("duration_ms"), "usage": figures.get("usage")}
 
 
-def _day_usage(day: date, session_id: str, model: str, turns: list[dict], captured_at: str) -> DayUsage:
+def _day_usage(day: date, session_id: str, model: str, turns: list[dict]) -> DayUsage:
     if not all(_is_duration(turn["duration_ms"]) for turn in turns):
         raise ExportRefused(f"{day}: a result event has no valid duration_ms (a number of 0 or more)")
     minutes = round(sum(turn["duration_ms"] for turn in turns) / 60000, 2)
-    return DayUsage(day, session_id, model, minutes, len(turns), _tokens(turns), SOURCE, captured_at)
+    return DayUsage(day, session_id, model, minutes, len(turns), _tokens(turns), SOURCE)
 
 
 def _is_duration(value) -> bool:

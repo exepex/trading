@@ -11,28 +11,35 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
-from .usage_reader import DayUsage, ExportRefused, SessionUsageReader, ist_time
+from .usage_reader import DayUsage, ExportRefused, SessionUsageReader, ist_time, shaped
 
 SOURCE = "self-timed by the routine (start to end of its run)"
+MAX_RUN = timedelta(hours=24)  # longer is a typo, not a run: refused, never recorded
+LATER_THAN_TODAY = "ended_at {day} is after today ({today}): a run cannot end in the future"
 BACKWARDS = "ended_at {end} is before started_at {start}"
 
 
 class SelfTimedUsageReader(SessionUsageReader):
     def __init__(self, path: Path):
-        self._record = json.loads(path.read_text(encoding="utf-8"))
+        self._record = shaped(json.loads(path.read_text(encoding="utf-8")), dict, "the timing record")
 
     def days(self) -> list[DayUsage]:
         start = ist_time(self._record.get("started_at") or "", "started_at")
         end = ist_time(self._record.get("ended_at") or "", "ended_at")
         if end < start:
             raise ExportRefused(BACKWARDS.format(end=end.isoformat(), start=start.isoformat()))
+        if end - start > MAX_RUN:
+            raise ExportRefused(f"the run lasted {end - start}, more than {MAX_RUN}: check started_at and ended_at")
         minutes = round((end - start).total_seconds() / 60, 2)
         session_id = self._record.get("session_id") or ""
         if not session_id:
             raise ExportRefused("the timing record has no session_id")
         # a run that crosses midnight IST counts on the day it ended
         model = self._record.get("model") or ""
-        return [DayUsage(end.date(), session_id, model, minutes, 1, None, SOURCE, end.isoformat())]
+        return [DayUsage(end.date(), session_id, model, minutes, 1, None, SOURCE)]
 
     def complete_before(self, today: date) -> date:
-        return self.days()[0].day + timedelta(days=1)
+        day = self.days()[0].day
+        if day > today:
+            raise ExportRefused(LATER_THAN_TODAY.format(day=day, today=today))
+        return day + timedelta(days=1)

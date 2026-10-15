@@ -43,6 +43,20 @@ def test_a_roster_that_may_continue_or_misses_a_page_is_refused(tmp_path):
         read_roster_export(path)
 
 
+def test_a_roster_limit_beyond_the_tools_maximum_is_refused(tmp_path):
+    with pytest.raises(ExportRefused, match="not a page size from 1 to 100"):
+        read_roster_export(roster_export(tmp_path, [[session(1)]], limit=500))
+
+
+def test_a_hand_edited_roster_time_without_a_zone_is_refused(tmp_path):
+    roster = SessionRoster(tmp_path)
+    roster.record(read_roster_export(roster_export(tmp_path, [[session(1)]])))
+    path = tmp_path / ROSTER_FILE
+    path.write_text(path.read_text(encoding="utf-8").replace("2026-10-14T11:30:00+05:30", "2026-10-14T11:30"), "utf-8")
+    with pytest.raises(ExportRefused, match="has no time zone"):
+        roster.rows()
+
+
 def test_merging_keeps_each_sessions_latest_activity(tmp_path):
     roster = SessionRoster(tmp_path)
     roster.record(read_roster_export(roster_export(tmp_path, [[session(1)]])))
@@ -52,24 +66,25 @@ def test_merging_keeps_each_sessions_latest_activity(tmp_path):
     assert "title" not in (tmp_path / ROSTER_FILE).read_text(encoding="utf-8")
 
 
-def usage(session_id, captured):
-    return {"session_id": session_id, "captured_at": captured}
+def usage(session_id, complete_before):
+    return {"session_id": session_id, "complete_before": complete_before}
 
 
 ROSTER = [{"session_id": "session_01", "created_at": "2026-10-14T08:30:00+05:30",
            "updated_at": "2026-10-15T11:30:00+05:30", "captured_at": "2026-10-16T08:00:00+05:30"}]  # fmt: skip
 
 
-def test_a_session_is_covered_only_by_a_reading_taken_after_its_last_activity():
-    before = date(2026, 10, 16)
-    assert development_coverage(ROSTER, [usage("session_01", "2026-10-15T12:00:00+05:30")], "2026-10", before).complete
-    stale = development_coverage(ROSTER, [usage("session_01", "2026-10-15T09:00:00+05:30")], "2026-10", before)
+def test_a_session_is_covered_only_by_a_reading_complete_past_its_last_active_day():
+    """Review 3, B1: a reading taken on the session's last active day holds only the days before it."""
+    before = date(2026, 10, 16)  # the session was last active on 15 Oct
+    assert development_coverage(ROSTER, [usage("session_01", "2026-10-16")], "2026-10", before).complete
+    stale = development_coverage(ROSTER, [usage("session_01", "2026-10-15")], "2026-10", before)
     assert not stale.complete and stale.missing == ("session_01",) and "1 development session(s)" in stale.reason
     assert not development_coverage(ROSTER, [], "2026-10", before).complete
 
 
 def test_a_roster_read_before_the_last_complete_day_ended_is_stale():
-    coverage = development_coverage(ROSTER, [usage("session_01", "2026-10-17T09:00:00+05:30")], "2026-10",
+    coverage = development_coverage(ROSTER, [usage("session_01", "2026-10-17")], "2026-10",
                                     date(2026, 10, 17))  # fmt: skip
     assert not coverage.complete and coverage.reason == "no session roster read since 2026-10-17T00:00:00+05:30"
     assert not development_coverage([], [], "2026-10", date(2026, 10, 16)).complete

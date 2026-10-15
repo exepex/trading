@@ -20,10 +20,11 @@ from ..constants import (
 )
 
 DECISION_CITATION = "DESK_DECISIONS"
-CITATION = re.compile(r"DESK_DECISIONS: (.+)$")
+CITATION = re.compile(r"^DESK_DECISIONS (\d{1,2} [A-Z][a-z]{2} \d{4}): (.+)$")  # the row's date and bold title
+DECISION_ROW = re.compile(r"^\| ([^|]+?) \| \*\*(.+?)\*\*", re.MULTILINE)
 NEEDS_YES = (
     "{month} {item} Rs {amount:,.2f}: a new recurring cost (or a negative amount) needs the owner's written yes: "
-    "cite its {cite} row as `DESK_DECISIONS: <bold title>`"
+    "cite its {cite} row as `DESK_DECISIONS <date>: <bold title>`"
 )
 CAPS = {  # what 8.1 sets for each item (the AI cap itself is computed in cap.py)
     ITEM_CLAUDE_PLAN: "AI minutes cap for books and roles (below)",
@@ -53,21 +54,23 @@ def plan_cost(costs: list[dict], month: str) -> float | None:
 
 def unapproved_costs(costs: list[dict], month: str, decisions: str) -> list[str]:
     """One line per recorded cost of the month that needs the owner's written yes and does not cite an existing
-    decision row: its `source` must read `DESK_DECISIONS: <the row's bold title>`, and that row must exist."""
+    decision row: its whole `source` must read `DESK_DECISIONS <date>: <bold title>` of a row of the decisions table.
+    Whether that row approves this very cost is left to the person reading it (a stated limit)."""
+    rows = set(DECISION_ROW.findall(decisions))
     lines = []
     for row in costs:
         amount = float(row["amount_rs"])
         if row["month"] != month or amount == 0 or (row["item"] in EXISTING_COST_ITEMS and amount > 0):
             continue
-        title = cited_title(row["source"])
-        if title is None or f"**{title}**" not in decisions:
+        if cited_row(row["source"]) not in rows:
             lines.append(NEEDS_YES.format(month=month, item=row["item"], amount=amount, cite=DECISION_CITATION))
     return lines
 
 
-def cited_title(source: str) -> str | None:
-    match = CITATION.search(source)
-    return match.group(1).strip() if match else None
+def cited_row(source: str) -> tuple[str, str] | None:
+    """(date, bold title) a cost's source cites, or None when it does not cite one in the required form."""
+    match = CITATION.match(source.strip())
+    return (match.group(1), match.group(2).strip()) if match else None
 
 
 def unknown_items(costs: list[dict], month: str) -> list[str]:

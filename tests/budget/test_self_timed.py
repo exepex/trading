@@ -22,7 +22,6 @@ def reader(tmp_path, **changes):
 def test_a_run_gives_its_wall_minutes_on_its_ist_day_with_unknown_tokens(tmp_path):
     (day,) = reader(tmp_path).days()
     assert (day.day, day.minutes, day.turns, day.tokens, day.source) == (date(2026, 10, 16), 12.5, 1, None, SOURCE)
-    assert day.captured_at == "2026-10-16T15:22:30+05:30"
 
 
 def test_the_finished_run_is_recorded_the_same_day(tmp_path):
@@ -38,7 +37,13 @@ def test_a_run_crossing_midnight_ist_counts_on_its_end_day(tmp_path):
     assert day.day == date(2026, 10, 17) and day.minutes == 20.0
 
 
+def test_a_run_ending_after_today_is_refused(tmp_path):
+    with pytest.raises(ExportRefused, match="after today"):
+        reader(tmp_path).complete_before(date(2026, 10, 15))
+
+
 @pytest.mark.parametrize("changes, match", [({"ended_at": "2026-10-16T09:30:00Z"}, "before started_at"),
+                                            ({"started_at": "2026-09-16T09:40:00Z"}, "more than 1 day"),
                                             ({"started_at": "2026-10-16T09:40:00"}, "no time zone"),
                                             ({"session_id": ""}, "no session_id")])  # fmt: skip
 def test_a_bad_timing_record_is_refused(tmp_path, changes, match):

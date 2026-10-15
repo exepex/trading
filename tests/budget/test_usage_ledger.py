@@ -100,6 +100,14 @@ def test_a_damaged_ledger_is_refused_not_read_as_fewer_rows(tmp_path):
         UsageLedger(tmp_path).rows()
 
 
+def test_nan_minutes_are_refused(tmp_path):
+    record(tmp_path)
+    path = tmp_path / LEDGER_FILE
+    path.write_text(path.read_text(encoding="utf-8").replace(",1.00,", ",nan,"), encoding="utf-8")
+    with pytest.raises(ValueError, match="line 2: minutes 'nan'"):
+        UsageLedger(tmp_path).rows()
+
+
 def test_the_ledger_is_replaced_whole_and_leaves_no_temporary_file(tmp_path):
     record(tmp_path)
     assert not list((tmp_path / "accounting").glob("*.tmp"))

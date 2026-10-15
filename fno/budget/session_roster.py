@@ -13,14 +13,15 @@ import io
 import json
 import os
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from ..models import IST
 from .usage_ledger import session_key
-from .usage_reader import ExportRefused, ist_time
+from .usage_reader import ExportRefused, ist_time, shaped
 
 ROSTER_FILE = "accounting/ai_session_roster.csv"
+MAX_LIMIT = 100  # list_sessions' largest page; the export's own limit cannot be checked further (a stated limit)
 COLUMNS = ("session_id", "created_at", "updated_at", "captured_at")
 BROKEN = "roster page {n} was not read with the previous page's last_id: a page is missing, so nothing is recorded"
 NOT_THE_END = "the roster's last page is full ({n} of {limit}): more sessions may follow, so nothing is recorded"
@@ -29,12 +30,16 @@ UNCAPTURED = "{n} development session(s) not fully captured"
 
 
 def read_roster_export(path: Path) -> list[dict]:
-    export = json.loads(path.read_text(encoding="utf-8"))
+    export = shaped(json.loads(path.read_text(encoding="utf-8")), dict, "the roster export")
     captured = ist_time(export.get("captured_at") or "", "captured_at").isoformat()
-    limit, cursor, sessions = int(export.get("limit") or 0), None, []
+    limit, cursor, sessions = export.get("limit"), None, []
+    if not isinstance(limit, int) or not 0 < limit <= MAX_LIMIT:
+        raise ExportRefused(
+            f"the roster's limit {limit!r} is not a page size from 1 to {MAX_LIMIT} (the tool's maximum)"
+        )
     pages = export.get("pages") or []
-    for n, page in enumerate(pages, start=1):
-        if page.get("after_id") != cursor:
+    for n, page in enumerate(shaped(pages, list, "pages"), start=1):
+        if shaped(page, dict, f"roster page {n}").get("after_id") != cursor:
             raise ExportRefused(BROKEN.format(n=n))
         response = (page.get("response") or {}).get("ccr", page.get("response") or {})
         sessions += response.get("data") or []
@@ -60,7 +65,11 @@ class SessionRoster:
         reader = csv.DictReader(io.StringIO(self._path.read_text(encoding="utf-8")))
         if tuple(reader.fieldnames or ()) != COLUMNS:
             raise ValueError(f"{ROSTER_FILE} columns must be {COLUMNS}")
-        return list(reader)
+        rows = list(reader)
+        for row in rows:  # a hand-edited time without its zone is refused here, not compared later
+            for column in ("created_at", "updated_at", "captured_at"):
+                ist_time(row[column] or "", f"{ROSTER_FILE} {row['session_id']} {column}")
+        return rows
 
     def record(self, new: list[dict]) -> int:
         """Merges a reading: each session keeps its latest times. Returns the number of sessions now listed."""
@@ -88,25 +97,29 @@ class DevelopmentCoverage:
 
 def development_coverage(roster: list[dict], usage: list[dict], month: str, before: date) -> DevelopmentCoverage:
     """Complete when a roster was read after the last complete day and every session active in the month on those days
-    has a usage reading taken after its last activity (or after that last complete day)."""
+    has a usage reading complete past its last active day (or up to the last complete day)."""
     first = date.fromisoformat(month + "-01")
     next_month = date(first.year + first.month // 12, first.month % 12 + 1, 1)
     cutoff = _start(min(before, next_month))
     if not roster or max(datetime.fromisoformat(r["captured_at"]) for r in roster) < cutoff:
         return DevelopmentCoverage(False, (), STALE.format(since=cutoff.isoformat()))
-    readings: dict[str, datetime] = {}
+    complete_to: dict[str, date] = {}  # per session: days before this are held in full
     for row in usage:
-        key, read = session_key(row["session_id"]), datetime.fromisoformat(row["captured_at"])
-        readings[key] = max(readings.get(key, read), read)
-    never = datetime.min.replace(tzinfo=IST)
+        key, upto = session_key(row["session_id"]), date.fromisoformat(row["complete_before"])
+        complete_to[key] = max(complete_to.get(key, upto), upto)
     missing = tuple(
         r["session_id"]
         for r in roster
         if datetime.fromisoformat(r["created_at"]) < cutoff
         and datetime.fromisoformat(r["updated_at"]) >= _start(first)
-        and readings.get(session_key(r["session_id"]), never) < min(datetime.fromisoformat(r["updated_at"]), cutoff)
+        and complete_to.get(session_key(r["session_id"]), date.min) < _needed(r["updated_at"], cutoff.date())
     )
     return DevelopmentCoverage(not missing, missing, UNCAPTURED.format(n=len(missing)) if missing else "")
+
+
+def _needed(updated_at: str, cutoff: date) -> date:
+    """A reading must be complete past the session's last active day, or up to the cutoff if it is still active."""
+    return min(datetime.fromisoformat(updated_at).date() + timedelta(days=1), cutoff)
 
 
 def _start(day: date) -> datetime:

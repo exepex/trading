@@ -1,13 +1,15 @@
 """The AI usage ledger `accounting/ai_usage.csv` (story F8): one row per AI session per IST day, written once and never
 rewritten. Rows come only from a `SessionUsageReader`; only days the reader calls complete are recorded (before today,
-and before the day an export was taken), each with the time it was read. A session is known by its id without the prefix
-(`session_` or `cse_`), so the same session written two ways is still recorded once. The file is rewritten whole through
-a temporary file, never appended in place. One recorder at a time: there is no lock (no routine runs this yet)."""
+and before the day an export was taken), each with the day before which its reading was complete. A session is known by
+its id without the prefix (`session_` or `cse_`), so the same session written two ways is still recorded once. The file
+is rewritten whole through a temporary file, never appended in place. One recorder at a time: there is no lock (no
+routine runs this yet)."""
 
 from __future__ import annotations
 
 import csv
 import io
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -20,9 +22,10 @@ from .usage_reader import DayUsage
 
 LEDGER_FILE = "accounting/ai_usage.csv"
 COLUMNS = ("date", "purpose", "book", "role_or_bundle", "session_id", "model", "minutes", "turns",
-           *TOKEN_FIELDS, "tokens_basis", "source", "captured_at")  # fmt: skip
+           *TOKEN_FIELDS, "tokens_basis", "source", "complete_before")  # fmt: skip
 TOKENS_BASIS = "main-loop usage of result events (side calls not included)"
 NOT_COMPLETE = "{day} is not complete in this reading (complete days are before {before}): record it from a later one"
+BAD_ROW = "{file} line {line}: minutes {minutes!r} is not a number >= 0, or complete_before is not a date"
 SESSION_ID = re.compile(r"session_[A-Za-z0-9]+")  # get_session's id form
 
 
@@ -83,7 +86,7 @@ class UsageLedger:
             elif (session_key(usage.session_id), usage.day.isoformat()) in known:
                 lines.append(f"{usage.day} {usage.session_id}: already recorded (never rewritten)")
             else:
-                new.append(_row(usage, who))
+                new.append(_row(usage, who, before))
                 lines.append(f"{usage.day} {usage.session_id}: recorded {usage.minutes} minutes, {usage.turns} turns")
         if new:
             self._write(rows + new)
@@ -104,17 +107,20 @@ def _check_row(line: int, row: dict) -> None:
     if None in row or None in row.values():
         raise ValueError(f"{LEDGER_FILE} line {line}: wrong number of fields")
     try:
-        if float(row["minutes"]) < 0:
+        if not 0 <= float(row["minutes"]) < math.inf:  # refuses nan and inf too
             raise ValueError
+        date.fromisoformat(row["complete_before"])
     except ValueError:
-        raise ValueError(f"{LEDGER_FILE} line {line}: minutes {row['minutes']!r} is not a number >= 0") from None
+        raise ValueError(BAD_ROW.format(file=LEDGER_FILE, line=line, minutes=row["minutes"])) from None
 
 
-def _row(usage: DayUsage, who: Attribution) -> dict:
+def _row(usage: DayUsage, who: Attribution, before: date) -> dict:
+    """`complete_before`: every day of this session before it was complete in the reading the row came from, so a later
+    check knows which of the session's days the ledger holds in full."""
     tokens = usage.tokens or {}
     row = {"date": usage.day.isoformat(), "purpose": who.purpose, "book": who.book,
            "role_or_bundle": who.role_or_bundle, "session_id": usage.session_id, "model": usage.model,
            "minutes": f"{usage.minutes:.2f}", "turns": usage.turns}  # fmt: skip
     row |= {column: tokens.get(column, "") for column in TOKEN_FIELDS}  # blank: unknown, never zero
     basis = TOKENS_BASIS if usage.tokens else "not available"
-    return row | {"tokens_basis": basis, "source": usage.source, "captured_at": usage.captured_at}
+    return row | {"tokens_basis": basis, "source": usage.source, "complete_before": before.isoformat()}

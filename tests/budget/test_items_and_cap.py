@@ -113,14 +113,17 @@ def test_shown_percentages_are_floored():
 
 
 def test_a_new_cost_needs_an_existing_cited_owner_decision():
-    costs = [cost("Paid data", 500), cost("Groww API", 200, "DESK_DECISIONS: Groww API data plan approved"),
-             cost("Groww API", 300, "not in DESK_DECISIONS"), cost("Groww API", 100, "DESK_DECISIONS: made up"),
+    cite = "DESK_DECISIONS 20 Oct 2026: Groww API data plan approved"
+    wrong_date = cite.replace("20 Oct", "21 Oct")
+    costs = [cost("Paid data", 500), cost("Groww API", 200, cite), cost("Groww API", 300, "not in DESK_DECISIONS"),
+             cost("Groww API", 100, "DESK_DECISIONS 20 Oct 2026: made up"), cost("Groww API", 101, "not in " + cite),
+             cost("Groww API", 102, wrong_date), cost("Groww API", 103, "DESK_DECISIONS 20 Oct 2026: approved"),
              cost("Claude subscription", 1700), cost("Azure Database for PostgreSQL", 900), cost("Weather feed", 50),
              cost("Recorder and monitor hosting", 0), cost("Claude subscription", -100)]  # fmt: skip
-    flagged = unapproved_costs(costs, "2026-10", DECISIONS)
-    assert [line.split(":")[0] for line in flagged] == ["2026-10 Paid data Rs 500.00", "2026-10 Groww API Rs 300.00",
-                                                        "2026-10 Groww API Rs 100.00", "2026-10 Weather feed Rs 50.00",
-                                                        "2026-10 Claude subscription Rs -100.00"]  # fmt: skip
+    flagged = [line.split(":")[0].removeprefix("2026-10 ") for line in unapproved_costs(costs, "2026-10", DECISIONS)]
+    assert flagged == ["Paid data Rs 500.00", "Groww API Rs 300.00", "Groww API Rs 100.00", "Groww API Rs 101.00",
+                       "Groww API Rs 102.00", "Groww API Rs 103.00", "Weather feed Rs 50.00",
+                       "Claude subscription Rs -100.00"]  # fmt: skip
     assert unknown_items(costs, "2026-10") == ["Weather feed"]
 
 
@@ -131,4 +134,4 @@ def test_the_recorded_plan_cost_cites_the_owner_row_that_exists():
     costs = read_operating_costs((ROOT / "accounting/operating_costs.csv").read_text(encoding="utf-8"))
     decisions = (ROOT / "docs/DESK_DECISIONS.md").read_text(encoding="utf-8")
     assert plan_cost(costs, "2026-10") == 20000.0 and unapproved_costs(costs, "2026-10", decisions) == []
-    assert costs[0]["source"] == "DESK_DECISIONS: Claude plan cost: INR 20,000 a month"
+    assert costs[0]["source"] == "DESK_DECISIONS 15 Oct 2026: Claude plan cost: INR 20,000 a month"

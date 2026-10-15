@@ -54,3 +54,11 @@ def test_record_roster_merges_a_list_sessions_export(tmp_path, monkeypatch, caps
                                 "pages": [{"after_id": None, "response": page}]}), encoding="utf-8")  # fmt: skip
     assert cli.cmd_budget(SimpleNamespace(budget_cmd="record-roster", export=path)) == 0
     assert "roster: 1 session(s) listed" in capsys.readouterr().out
+
+
+def test_a_missing_or_malformed_export_is_refused_in_one_line(tmp_path):
+    missing = run("record-usage", "--export", str(tmp_path / "none.json"), "--purpose", "development", "--role", "x")
+    assert missing.returncode == 1 and missing.stdout.startswith("refused:") and "Traceback" not in missing.stderr
+    (tmp_path / "list.json").write_text("[]", encoding="utf-8")
+    listed = run("record-usage", "--export", str(tmp_path / "list.json"), "--purpose", "development", "--role", "x")
+    assert listed.returncode == 1 and "the export is not a JSON object" in listed.stdout

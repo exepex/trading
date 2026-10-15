@@ -45,7 +45,7 @@ def cmd_budget(args) -> int:
                 "record-roster": _record_roster}  # fmt: skip
     try:
         return commands[args.budget_cmd](args, today)
-    except (ExportRefused, ValueError) as refused:  # every refusal says why; none is a traceback
+    except (ExportRefused, ValueError, OSError) as refused:  # every refusal says why; none is a traceback
         print(f"refused: {refused}")
         return 1
 

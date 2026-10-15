@@ -25,7 +25,6 @@ class DayUsage:
     turns: int
     tokens: dict[str, int] | None  # None: tokens unknown for the day (some turn carried none, or the reader has none)
     source: str  # where the figures came from, written to the ledger
-    captured_at: str  # when they were read (ISO, with zone): later readings show whether a session is fully captured
 
 
 class SessionUsageReader(ABC):
@@ -38,11 +37,19 @@ class SessionUsageReader(ABC):
         """Days before this one are complete in this reading; later days must come from a later reading."""
 
 
+def shaped(value, kind: type, what: str):
+    """`value` when it is of the expected JSON kind (an object or a list); otherwise the reading is refused. Every event
+    of a `list_events(kinds=["result"])` page must be a result event: one of another shape is refused, never skipped."""
+    if not isinstance(value, kind):
+        raise ExportRefused(f"{what} is not a JSON {'object' if kind is dict else 'list'}")
+    return value
+
+
 def ist_time(value: str, what: str) -> datetime:
     """An ISO time with its zone, in IST; one without a zone is refused (never read in the computer's local time)."""
     try:
         moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
+    except (ValueError, AttributeError):
         raise ExportRefused(f"{what} {value!r} is not an ISO time") from None
     if moment.tzinfo is None:
         raise ExportRefused(NO_ZONE.format(what=what, value=value))
