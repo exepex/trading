@@ -329,3 +329,18 @@ O1 side) and note B.
 
 Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c. Judge 204's O2 row (a) should now say
 that the parts still record on a download outage; the O2 builder updates it with the code.
+
+## Addendum 12: O1 at d123dbb9 (addendum 10's note done)
+
+**Verdict: PASS for the code built so far.** Addendum 10's note is closed.
+
+- **Order.** The quote parts now start before the whole-history fetch and before the Drive download, so neither can
+  delay the 3 pm parts.
+- **Time limit.** `Git.unshallow` runs with a hard limit of 120 s (`subprocess` timeout). A time-out becomes a
+  `GitError`, which means one alert and the day goes on.
+- **Test.** `test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert` covers it. My mutation removing the timeout
+  makes it fail.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6870 passed**; `ruff check` and `check_imports` are
+  clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
