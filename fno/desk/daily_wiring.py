@@ -32,19 +32,28 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     from ..storage.wiring import QUOTES_FOLDER, build_quote_store, build_raw_stores
     from .book_versions import Book1Versions
     from .committed_decisions import D3CommittedDecisions
+    from .drive_sync import DriveAccountSync
     from .execution_capture import CommittedExecutionSchedule, RecorderExecutionCapture
-    from .git_sync import Git, GitAccountSync, GitCommitter
+    from .git_sync import Git, GitCommitter
     from .pack_wiring import build_packs
     from .pending_commit import PendingCommitter
     from .recorded_c4 import RecordedC4Pass
     from .sleeper import SleepingWaiter
-    from .wiring import build_entry_desk, build_execution_snapshots, build_exit_desk, open_desk_journal
+    from .wiring import (
+        build_entry_desk,
+        build_execution_snapshots,
+        build_exit_desk,
+        build_private_files,
+        open_desk_journal,
+    )
 
     timetable, calendar, git = timetable_from_config(cfg), build_session_calendar(), git or Git(root)
     committer, history = PendingCommitter(GitCommitter(git), root), PlaybookGit(root)
-    alerts = build_alert_sender()
-    sync = GitAccountSync(git, lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds), alerts)
-    packs = build_packs(root, refresh=lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch()))
+    alerts, files = build_alert_sender(), build_private_files(root)
+    sync = DriveAccountSync(lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds, files), committer,
+                            root)  # fmt: skip
+    pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch())  # noqa: E731
+    packs = build_packs(root, refresh=pull, files=files)
     versions = Book1Versions(build_playbook_loader(root), VersionRegistry(root / VERSIONS_FILE), history,
                              history.head, committer)  # fmt: skip
     capture = RecorderExecutionCapture(build_quote_recorder(cfg).capture, build_quote_store(), QUOTES_FOLDER, root,
@@ -54,4 +63,4 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     decisions = D3CommittedDecisions(root, history)
     steps = DeskSteps(root, books, timetable, versions, packs, decisions, orders, capture, gate, RecordedC4Pass(), sync,
                       build_entry_desk(cfg), build_exit_desk(cfg), exit_rules, alerts, now_ist)  # fmt: skip
-    return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, day_steps)
+    return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, files, day_steps)

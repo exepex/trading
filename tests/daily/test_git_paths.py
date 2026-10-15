@@ -21,7 +21,7 @@ OWN = {
                 for suffix in (".canonical", "_150100.meta.json")],
 }  # fmt: skip
 RAW = [f"{GROWW}/{name}_20261016_145500.csv" for name in ("nifty", "banknifty")]
-OTHER = "journal/book1_rules/account/cash_ledger.csv"
+OTHER = "research/notes/another_writer.md"  # a tracked file another writer staged
 
 
 def git(repo, *args):
