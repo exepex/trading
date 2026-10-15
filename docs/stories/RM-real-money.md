@@ -226,7 +226,8 @@ unchanged.
    records once. A Drive write interrupted mid-way never marks an exit as recorded (the status stays "records
    pending"). `record-entry` and `record-exit` write no price, strike or rupee amount to the repository (a test reads
    the git diff after each).
-10. Late report: an exit at 10:00 losing Rs 21,000, reported at 15:00, with a new card at 12:00: the 12:00 card shows
+10. Late report: an exit alert delivered at 09:45, the owner's exit at 10:00 losing Rs 21,000, reported at 15:00, and
+    a new card at 12:00: the status is pending from 09:45, and the 12:00 card shows
     "do not place: unreconciled"; once the exit is recorded the stop is dated 10:00, and a real trade entered after
     10:00 is flagged a protocol breach and excluded from any pass.
 
