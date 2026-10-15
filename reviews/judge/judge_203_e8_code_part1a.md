@@ -174,3 +174,158 @@ On the builder's points 2, 4 and 6 and the live switch.
      preconditions, beside the entry rule.
    - Say whether the step still seals the calendar while the switch is off. Recommended: yes, so the seal history
      exists before go-live.
+
+## Addendum 2: E8 part 1b at 65ec0b05: FAIL, one should-fix
+
+Branch `story/e8-code-part1` at 65ec0b05: part 1a, then the hooks (ec2ef783), the package (49b8eda9) and the early
+view (beb89fe3), merged with O1 d123dbb9 and main.
+
+**Gates** (trial merge with origin/main, d4982347; E4d's 35c43e26 is on main but not on this head):
+- `-n auto`: 7,057 passed in 2 min 49 s.
+- ruff check, ruff format and check_imports are clean.
+- The largest file in `owner_timing` has 148 lines.
+
+### Should-fix 3: the due-mark fill skips E4c's and E4d's entry checks
+
+`DueFill.price` prices each leg with `price_leg` on its opening side only. It never calls `entry_problems` or
+`taken_units` (`fno/desk/entry_check.py`); a search of `fno/desk/owner_timing` finds neither. So at E8's real fill:
+
+- **E4c (decision 43).** A protective (bought) leg must also be sellable back at the snapshot it fills at. E8 fills an
+  entry whose protection has no bid at 10:15. This is the trade E4c exists to refuse: the next exit review marks it
+  "protection unverified".
+- **E4d (ChatGPT review 126, judge 205).** A book's entries at one snapshot share its displayed size. Two entries of
+  one book needing 65 units each against an ask size of 100 at the same due mark both pass `price_leg` alone, and
+  130 units fill against 100. E8 makes this more likely than E4 did, because every 15:00 decision of a book lands on
+  the same 10:15 mark.
+
+`entry_check.py` says itself that it "depends only on the snapshot it is given, so E8 can apply it at each of its
+snapshots", so the fix is one call, not a new rule.
+
+**Fix:**
+- In `DueFill.price`, after pricing, run `entry_problems(mark snapshot, order.legs(), units,
+  taken_units(book fill rows, mark snapshot, trade_id))` with main's E4d signature after the merge.
+- Any problem is "missed, no quote" with E4c's or E4d's code in the reason.
+- Earlier fills at that mark come first (rule 11 order), so `taken` sees them.
+- Two tests at a due mark:
+  - a protective leg with no bid misses;
+  - two entries of 65 units against a displayed 100: the first fills, the second misses with `size_shared_in_book`.
+
+Would it change a trade? Yes: it opens trades E4 would refuse.
+
+### The builder's two pushbacks: both accepted
+
+- **(a) T from T1's write-once delivery record, not from `entry_pending`.** Correct: the card is posted after the fills
+  step, so T does not exist when `entry_pending` is written.
+  - `DeliveredCards` takes the day's first attempt that Slack accepted, skipping test posts, from T1's committed
+    record, so a later post cannot move T.
+  - Early view 1's real point, that the order must never be rebuilt, is met by `KeptOrders`. The legs, units, cap,
+    decision ID and decision time are written once, before the `entry_pending` event, and filled as kept.
+- **(b) Switch by day (`daily.live_from.owner_timing_fills`), not by commit time.** Correct and simpler. Each decision
+  is handled once, on its own day, by that day's rule; a rerun of an earlier day keeps that day's rule; and a future
+  `live_from` set by the go-live row is clean. S1's precondition becomes "`live_from` set, on or before the freeze"
+  (sent to S1's text owner).
+
+### Judge 203's four conditions: met
+
+1. **A check, not a decision.** `FillDayRisk.miss` calls `manager.evaluate` and returns fill or miss. Nothing is
+   recorded as a decision.
+2. **E4 unchanged when E8 is not used.**
+   - `EntryDesk` and `ImmediateExits` are the defaults.
+   - `_unfilled` blocks entries only when the step's result is failed or refused (not when it is `not_live`, ok or
+     absent).
+   - Settlement still runs before `defer`.
+   - Today's timetable and daily tests pass.
+3. **Validity of what C2 and C4 read.** The spot must exist, and every contract held and proposed must be quoted in
+   that copy, or the entry is "missed, no quote". C4's maximum loss is recomputed on the fill prices.
+4. **Earlier fills first.** Items are sorted by order time. Each item's journal write (all legs, then the outcome
+   event) completes before the next item's check. A rerun finishes an item that already has fills without
+   re-checking it.
+
+### Known limits (stated by the builder): accepted as notes
+
+- **A second exit alert after a failed alert record.** If the alert record fails after Slack accepted the post, a
+  rerun posts again with a later T. That gives a later fill, the cautious direction. Note only.
+- **Legs of a non-near-month expiry miss with "no quote"**, because A16 records only the near-month future. This is a
+  systematic miss for any strategy that trades the next month. Report it under its own reason ("no future for that
+  expiry"), not inside "no quote", so the owner sees it; the remedy is A16 adding the next future. Recommended,
+  reasoning only.
+- **On a day with no snapshot, an exit is not ordered until the next 15:15.** One day later, the same as E4 today.
+  Note.
+- **The exit alert text** uses the first part of the exit reason before ":". The code judge should confirm that no
+  exit rule's reason puts a price before its first colon (the card rule).
+
+Re-review: should-fix 3 only. The E4/E2c builder's agreement on the hooks is still awaited through the orchestrator.
+
+## Addendum 3: E8 part 1b at 09d14c43: PASS
+
+Two commits since 65ec0b05: 6e85ef7a and 09d14c43.
+
+**Should-fix 3: closed.**
+- `DueFill.price` misses an entry with "missed, no quote" only when a leg has no quote or an invalid one (A4's rule).
+- It then runs E4c's `entry_problems` with E4d's `taken_units` (the book's fill rows) on the due mark's own copy,
+  before pricing or any fill, and misses with the first problem's own code.
+- Misses now keep the copy's ID and hash, and the fixed miss reasons sit in one table, `outcomes.MISSED_REASONS`.
+
+**Tests.**
+- **E4d:** two entries of 65 units each against a displayed size of 100 at one mark. The first fills its 4 legs; the
+  second misses with `size_shared_in_book (..., 65 already taken in this book at this snapshot)`.
+- **E4c's thin size:** an ask size of 64 against 65 units on the protection gives `protection_not_buyable`, not
+  "no quote".
+
+**The orchestrator's request, a protection-with-no-bid case:** there is no test of its own on this head. I ran one as
+a probe in a scratch checkout. A protection bid size of 64 against 65 units gives
+`protection_not_sellable (NIFTY26102725200CE, 65 units)` and writes no fill, so the behaviour is right. A literal "no
+bid" is a one-sided quote, which A4 treats as invalid, so that case is correctly "missed, no quote". The builder
+should add the probe as a test in the next commit:
+
+    marks.put(DUE, fly_rows({(25200, "CE"): {"bid_qty": 64.0}}))
+    assert apply(root, entries).startswith(PROTECTION_NOT_SELLABLE)
+
+This is a note, not a blocker: the code path is E4c's own tested function, and the probe passes on this head.
+
+**Hooks:** O1's builder and the E4/E2c builder both agreed (through the orchestrator; 73 E4 tests pass on 6e85ef7a).
+
+**Gates** (trial merge with origin/main, ae7fc6ad):
+- Full suite with `-n auto`: 7,060 passed in 2 min 55 s.
+- ruff check, ruff format and check_imports are clean.
+- The merge is clean.
+
+**E8 part 1 (1a and 1b) passes.** The notes of addendum 2 still stand:
+- report the next-month future miss under its own reason;
+- the code judge checks the exit-alert text;
+- O1 fetches the full history before go-live;
+- `live_from` is set on or before S1's freeze.
+
+Under quality rule 9 (money path), ChatGPT reviews it next.
+
+## Addendum 4: E8 part 1b at b79dee94 (the notes of addenda 2 and 3): PASS stands
+
+One commit since 09d14c43, b79dee94.
+
+- **No future for that expiry.** `_missing_reason` returns `MISSED_NO_FUTURE` only when every missing contract is
+  quoted in the copy and its expiry has no valid future there; any other gap is still "no quote". The reason is in
+  `MISSED_REASONS` (9 reasons, with a test that the table and the code agree). A parametrised test covers a missing
+  level against its reason.
+- **The exit alert never shows a figure.** The reason before the first colon is used only if it is plain lower-case
+  words (`[a-z_ ]+`); anything else becomes "exit ordered". The test checks for "(exit ordered)" and that no digit
+  appears after the trade ID.
+- **Protection with no bid at the mark.** A one-sided protective quote (ask, no bid) is no longer "no quote". It goes
+  to E4c's `entry_problems`, and its opening-side check fails because A4 refuses a one-sided quote, so it gives
+  `protection_not_buyable`, with its own test.
+  - **Keeping E4c's code is right.** It is exactly what E4c gives for the same quote at 15:15 (`_side_problem` with
+    `opening=True` gives `PROTECTION_NOT_BUYABLE`), so E8 adds no second rule and the two paths stay comparable.
+  - The name reads oddly for a quote that has an ask, but changing it would be E4c's change, not E8's. Note only.
+  - Crossed or two-sided invalid quotes, and quotes with no price on the opening side, still give "no quote".
+- **Gates** (trial merge with origin/main):
+  - full suite with `-n auto`: 7,062 passed in 2 min 52 s;
+  - ruff check, ruff format and check_imports are clean;
+  - the merge is clean.
+
+Addendum 3's PASS stands at b79dee94. Next is ChatGPT's review (rule 9).
+
+**Addendum 4, continued: cfd6a95b.** This commit only adds a test (+8 lines in `tests/desk_owner_timing/test_entry_fills.py`). It is addendum
+3's probe: a protection bid size of 64 against 65 units gives `protection_not_sellable`, and the account has no fill
+row. At cfd6a95b the package's tests give 103 passed, and ruff check and format are clean on the test folder. No code
+changed since b79dee94, whose full-suite run above (7,062 passed) stands.
+
+**The PASS covers b79dee94 and cfd6a95b together.**

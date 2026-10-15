@@ -9,6 +9,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome
+from fno.forecast_scoring.v4.reconcile import AiSlotDays
+from fno.forecast_scoring.v4.records import NoRegistrations
 
 WARMUP = Path(__file__).resolve().parents[2] / "research" / "data" / "nifty-panel" / "warmup_closes.csv"
 
@@ -41,3 +43,8 @@ def synthetic_window(n: int, big_days: int, start: date = date(2025, 1, 1)):
     days = [start + timedelta(days=i) for i in range(n)]
     outcomes = {d: Outcome(i % 3 == 0, False, 15.0, 0.03 if i < big_days else 0.005) for i, d in enumerate(days)}
     return days, outcomes
+
+
+def settled_slot_days():
+    """A look's reconciliation with nothing to settle: no registered AI slot."""
+    return AiSlotDays(None, NoRegistrations(), lambda first, last: [])

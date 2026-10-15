@@ -151,6 +151,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [K3](stories/X-cross-repository.md#k3-stock-backends-inbox-readers-switch-to-azure) | Stock backend's inbox readers switch to Azure | agentic-stock-prediction | W7, X1 | S | later |
 | [O1](stories/O-operations.md#o1-the-daily-desk-routine) | The daily desk routine | trading | E3, P3, P4, A7 | S | later |
 | [O2](stories/O-operations.md#o2-failure-handling-end-to-end) | Failure handling, end to end | trading | E3, E4, P3, P4 (F1, F4 for the AI-book cases, added in M5) | M | later |
+| [LM1](stories/LM1-position-monitor.md) | Position monitor, alert only | trading | A16, E1, E4, T1, O1 | M | story text |
 | [O3](stories/O-operations.md#o3-cross-repository-integration-tests) | Cross-repository integration tests | trading | P3, X1, W2, W3, O1 (W6, W7, K3 for test 4) | M | later |
 | [O4](stories/O-operations.md#o4-runbook-and-documentation) | Runbook and documentation | trading | O1, O2 | S | later |
 | [O5](stories/O-operations.md#o5-public-record-safety-scan) | Public-record safety scan | trading | - | S | done (judge passed) |

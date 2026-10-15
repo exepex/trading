@@ -61,6 +61,7 @@ def day(root, tmp_path, alerts):
                 "quotes": StartQuoteParts(parts),
                 "owner_timing_fills": RecordedStep("owner_timing_fills", calls),
                 "book1": RecordedStep("book1", calls),
+                "reviews": RecordedStep("reviews", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
             }
@@ -78,7 +79,7 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
-        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "card",
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card",
     ]  # fmt: skip
 
 
@@ -165,7 +166,7 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     again, rerun, _, new_parts, _, new_calls = day()
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1"]
+    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
     assert new_calls == ["card"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
@@ -236,3 +237,51 @@ def test_a_drive_outage_at_the_download_never_loses_the_day_s_nse_record(day, al
     assert code == 1 and "run STOPPED at the download of the private paper records" in line and line.endswith(NO_CARD)
     assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"] and calls == []
     assert len(alerts.sent) == 1  # E3's stop alert stands alone
+
+
+def _previous_session_log(root, reviews_result, exits=True):
+    from fno.desk.run_log import RunLog
+
+    log, at = RunLog.open(root, NORMAL), at_(15, 20)
+    if exits:
+        log.record("exits", at, at, {}, {})
+    if reviews_result is not None:
+        log.record("reviews", at, at, {}, reviews_result)
+
+
+def at_(hour, minute):
+    return at(hour, minute, day=NORMAL)
+
+
+@pytest.mark.parametrize(("reviews", "exits", "blocked"), [
+    ({"status": STEP_FAILED, "reason": "PlaybookError: bad file"}, True, True),
+    ({"status": STEP_REFUSED, "reason": "no valid execution snapshot"}, True, True),
+    (None, True, True),  # the exits ran but the reviews never did
+    ({"status": STEP_OK, "reason": "2 scorecards"}, True, False),
+    (None, False, False),  # a stop before the exits: `_unreviewed`'s rule, not this one
+])  # fmt: skip
+def test_unscored_last_session_blocks_new_entries_today_and_only_then(day, root, reviews, exits, blocked):
+    """Judge 214: when the last session's scorecards and automatic pauses failed or did not run after its exits, a
+    catastrophic loss may be unpaused, so no book opens anything new on the next session (its exits still run)."""
+    from tests.timetable.test_daily_run import SLOW
+
+    _, run, *_ = day()
+    _previous_session_log(root, reviews, exits)
+    unscored = run._unscored(SLOW)
+    assert (BOOK1_RULES in unscored) is blocked
+    assert not blocked or "did not run" in unscored[BOOK1_RULES]
+
+
+def test_a_failed_review_step_blocks_the_next_session_s_entries_end_to_end(day, alerts):
+    """Day 1's reviews raise (recorded failed, one alert); day 2's fills open nothing new for Book 1, its exits run."""
+    from tests.timetable.test_daily_run import SLOW
+
+    failing = Alerted("reviews", RecordedStep("reviews", [], raises=RuntimeError("playbook unreadable")), alerts)
+    runner, run, clock, *_ = day(steps={"reviews": failing})
+    runner.run(NORMAL)
+    run.steps.decisions.add(*decided(BOOK1_RULES, "t9", SLOW), SLOW)
+    clock.now = at(14, 35, day=SLOW)
+    runner.run(SLOW)
+    fills = run.run(SLOW).steps["fills"]["result"]
+    assert fills[BOOK1_RULES]["outcome"] == "not filled" and "did not run" in fills[BOOK1_RULES]["reason"]
+    assert "exits" in run.run(SLOW).steps

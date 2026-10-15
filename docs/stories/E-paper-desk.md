@@ -1096,6 +1096,160 @@ or retires (D1). Judge 67: a paper version whose live feature drifts drops out o
 
 ---
 
+## E6b. Missed executions in the scorecards: every refused or missed entry stays in the strategy's opportunities
+
+**Repository:** trading · **Lane:** 1 (scoring and evaluation records; S2's scoring code joins S1's freeze). **Quality
+rule 9 applies** (ChatGPT after the judge's PASS).
+
+**Description:** As the portfolio manager, I want each strategy's and each book's record to count every entry it
+could not execute, by reason, beside the trades it did fill, so that a strategy that loses entries to thin size, a
+shared touch or the owner's timing is seen as capacity-constrained, not as inactive or better than it is.
+
+**Context and why:**
+- S1 pending edit (10) (`docs/WORK_REGISTER.md`, S1 text row). It collects ChatGPT reviews 122, 123 and 126 (responses
+  190, 192, 209): net P&L per executed fill and per eligible opportunity, a missed entry being 0 in the denominator,
+  with the fill rate and miss reasons on the whole original set. Refused entries (E4c's `not_opened`, E4d's
+  `size_shared_in_book`, E8's misses) are missed executions of the strategy and its book, never a skip or a losing
+  trade. "Code follow-up for E6 and S2 raised when E8 merges."
+- **Today (code read, strong evidence):**
+  - E6's `execution_costs` counts `not_filled` (all `not_opened` plus partial fills) as one number, with no reason
+    split.
+  - S2's board counts filled trades only. A strategy's misses do not appear on it at all.
+  - E8's `TimingReport` (story text) is to report orders, fills, misses by reason and both nets per view. That would
+    be a third counter of the same thing.
+- **Why it matters (reasoning only):** filled-only results are conditional on filling. E8a measured that with the
+  owner's price cap, bought options fill mostly on mornings that went against them (some evidence), and E4d's fixed
+  entry priority makes a later strategy lose capacity to an earlier one. Without the misses beside them, a
+  miss-skewed record reads as "the strategy is bad", or a starved one as "the strategy is quiet".
+
+**Scope.** In:
+- **One counter, used three times.** A new class `ExecutionOpportunities` (new module, `fno/desk/execution_outcomes.py`)
+  is a pure function over one account's desk event rows and C1 trade lines (no file, Drive or desk I/O inside, so
+  hashing it at S1's freeze pulls in no desk behaviour; S1's owner, 15 Oct). It gives, per strategy version and for the
+  whole account:
+  - **opportunities:** every trade with an entry outcome that reached the fill step: `opened`, a partial fill
+    (unwound at once) or `not_opened` for any reason, E8's misses included (E8 writes each miss as a `not_opened`
+    event with its fixed reason; agreed with E8's builder, 15 Oct). Gate refusals (`refused`: C2, C3, timing, a
+    blocked book, E8's blocked book too) are risk or data decisions, not execution opportunities: counted apart, as
+    E6 does today. E8's `entry_pending` (handed over, not yet due) is counted as "awaiting fill", outside the
+    denominator until its fill or miss lands;
+  - **filled** and the **fill rate** (filled over opportunities);
+  - **misses by reason**, from one fixed table: `protection_not_buyable`, `protection_not_sellable`,
+    `short_leg_not_sellable`, `size_shared_in_book`, `entry_worse_than_approved`, "partial fill, unwound", E4's guard
+    ("a leg did not fill after the check"), and E8's eight (`MISSED_NO_CARD`, `MISSED_OWNER_AWAY`, `MISSED_NO_QUOTE`,
+    `MISSED_PRICE_MOVED`, `MISSED_EXPIRED`, `MISSED_FUNDS`, `MISSED_RISK_CAP`, `DECIDED_AFTER_CARD`, imported from E8's
+    modules, never copied). A reason the table does not know is counted as "other" with its count, never dropped;
+  - **filled-only net:** C1 net per closed completed position (E6's review sample, unchanged);
+  - **net per opportunity:** C1 net of every closed trade among the opportunities over the opportunities that are no
+    longer open. An unwound partial fill enters with its actual C1 net (legging and unwind costs), never as 0: only a
+    true no-fill counts 0 (S1's owner, correction a). A trade still open is neither 0 nor a miss: it is counted apart
+    as "open" (a part of filled) and is in neither net, as S3's `after_cut` does (correction b).
+- **The chain, per strategy and book** (ChatGPT review 131, response 221): chosen decisions (every desk entry
+  event of the strategy: gate refusals plus fill-step opportunities; orders stopped before the desk are S6's
+  `missed_runs`) → gate refused → reached the fill → opened / missed / awaiting fill → closed / still open. It keeps
+  decision feasibility apart from execution feasibility:
+  - **gate refusals by reason**, beside the execution figures, from one named table of the desk's refusal prefixes
+    (C2's "risk manager refused", with C2's first verdict named; C3's data checks; the risk decision not matching;
+    decided too late; snapshot incomplete; a blocked book), unknown ones as "other";
+  - **both counts in words**, never one as the other: for 100 decisions, 80 refused by C2, 20 reaching the fill and
+    20 opened, "fills 20 of 20" and "opened 20 of 100 decisions"; never "100% of signals traded";
+  - **an unwound partial fill** is an execution miss and its real net (spreads, C1 charges, legging loss) enters net
+    per opportunity: nine closes at +Rs 900 and one unwind at -Rs 250 give a filled-only average of Rs 900 and a net
+    per opportunity of (9 x 900 - 250) / 10 = Rs 785;
+  - **open trades:** `open_count` and the oldest open trade's age in sessions; both averages labelled "closed only,
+    provisional while trades are open". When they close, the figures are recomputed from the same immutable events,
+    never backdated. The denominator of net per opportunity is printed: opportunities minus open (awaiting fill is
+    in neither);
+  - **cohort label:** the block covers all dates and versions of the account and says so, "all dates, not the claim
+    cohort". Before any figure is used for a version or promotion comparison, the block for that claim is computed
+    on the claim's own eligible dates and version, by a date and version filter in the same counter (no second
+    engine). Example: pilot 20 of 20 filled and the new version 2 of 10 give 22 of 30 (73.3%) overall, which hides
+    the new version's 20%. E6b still changes no S1 verdict;
+  - E4d's fixed priority and `size_shared_in_book` per strategy, and E8's owner away, price moved and no quote apart
+    (they have different remedies).
+- **E6's scorecard** shows the block for every card. Its present entry line (`attempts`, `opened`, `not filled`,
+  `refused`) is replaced by the block, so there is one count of entries, not two (DRY). The changed report line is
+  stated in the claims, not loosened.
+- **S2's board** shows the block in each book's overall section and in each strategy entry (`strategies`), with the
+  gate refusals beside it so nothing vanishes. The block's logic is in the new module; `book_board.py` gains one call
+  for the overall section and one per strategy entry, and `sections.py` (S6's) is not changed. The book's block also
+  states the entry priority: "fixed, the decision's order (Book 1's order list), never reordered after outcomes"
+  (E4d).
+- **E8's `TimingReport`** calls the same class once per view account (agreed with E8's builder, 15 Oct: the class
+  takes one account, with no view logic inside). E6 and S2 read the verdict account only (E8 rule 10).
+- **Reported only.** No verdict, review, pause, brake, uncertainty test, do-nothing comparison or random control
+  changes. Those keep reading what they read now.
+
+Out:
+- run-level misses (a session with no collected decision): S6's `missed_runs` already reports them;
+- scoreboard A (matched decisions);
+- any change to how an entry fills or is refused (E4, E4c, E4d, E8);
+- per-section blocks on the board's pilot, head-to-head and segment sections (one line to add later if S1 asks).
+
+**Expected design:** `ExecutionOpportunities(event_rows, trade_lines)` (callers read the account) with
+`by_strategy() -> dict[str, ExecutionCounts]` and `whole() -> ExecutionCounts`. `ExecutionCounts` is a frozen
+dataclass (opportunities, awaiting fill, filled, misses by reason, open, gate refusals, filled-only net, net per
+opportunity). The reason table and the labels are constants in `fno/constants.py`; E8's reasons are imported from E8's
+modules. E6's `execution_costs` keeps the half-spread, legging and pending-exit figures and
+takes its entry counts from the class. S2's `book_board` adds the block. No new file over 350 lines.
+
+**Acceptance criteria:**
+1. A fixture account with one strategy and seven entries (3 opened and closed, 1 `size_shared_in_book`, 1
+   `protection_not_sellable`, 1 partial fill unwound with legging cost Rs 120, 1 gate refusal) gives: 6 opportunities,
+   3 filled, fill rate 50%, misses {size_shared_in_book: 1, protection_not_sellable: 1, partial fill, unwound: 1}, 1
+   gate refusal apart. The nets match a hand computation: filled-only = sum of the 3 nets / 3; per opportunity =
+   (sum of the 3 nets - 120) / 6.
+2. An E8 miss (`not_opened`, reason `MISSED_PRICE_MOVED`) counts as one opportunity, with its reason, and 0 net; an
+   E8 `entry_pending` counts as awaiting fill and is in no denominator; E8's blocked-book `refused` is a gate refusal.
+3. An unknown `not_opened` reason is counted under "other", and the totals still add up: filled + misses =
+   opportunities, with open a part of filled. "Other" is a visible catch, never a silent bucket: a test lists every
+   known reason code (E4, E4c, E4d and each of E8's constants by name), so a reason added in E8 without a table entry
+   fails that test.
+4. A trade still open is in neither net and is counted as open.
+5. Two strategies in one book: each strategy's block counts its own entries only, and the book's block is their sum.
+   Two books are never pooled.
+6. E6's card and S2's strategy entry give the same block for the same account and version (one class).
+7. No verdict changes: E6's review, S2's head-to-head figures, uncertainty, do-nothing and random control are
+   unchanged on the existing fixtures (their tests pass unchanged).
+8. The block holds no quote figure: reasons are codes and E8's fixed wording only (E2b).
+9. The chain (review 131): a strategy with 100 decisions, 80 C2 refusals (reason counted), 20 reaching the fill and
+   20 opened shows "fills 20 of 20" and "opened 20 of 100 decisions". Nine closes at +Rs 900 and one unwind at -Rs 250
+   give Rs 900 filled-only and Rs 785 per opportunity. An open trade shows `open_count` 1, its age in sessions and the
+   "closed only, provisional" label. The whole-account block says "all dates, not the claim cohort", and the filter
+   on one version's dates gives that version's own counts (pilot 20 of 20 and version 2 of 10 give 2 of 10, not 22 of
+   30). An unknown refusal or miss reason is "other".
+10. Engineering: constants in `fno/constants.py`; no file over 350 lines; ruff, imports and the full suite (`-n auto`)
+   pass.
+
+**Test plan:** unit tests on fixture desk records (no network, no Slack): criterion 1's account, an E8 miss, an
+unknown reason, an open trade, two strategies, two books; E6 and S2 rendering tests; a planted break per criterion.
+
+**Judge verifies:** plants a miss dropped from the denominator (criterion 1 fails), a gate refusal counted as an
+opportunity (criterion 1), an unknown reason dropped (criterion 3), an unwound partial fill counted as 0 (criterion
+1), an open trade counted as 0 (criterion 4), pooling across books (criterion 5), and E6 and S2 counting differently
+(criterion 6).
+
+**Agreements before code (both closed, 15 Oct):**
+1. **E8's miss record: closed** (E8's builder, session 01H1CmuW, 15 Oct): `not_opened` with E8's fixed reason, no new
+   outcome; `TimingReport` calls this class per view account.
+2. **S1's text: agreed** (its owner, session 0185gR5D, 15 Oct): its own item `execution_opportunities` (added to
+   `REQUIRED_ITEMS`; status "proposal, owner decides" until the owner decides), worded and landed by S1's owner, with
+   `fno/desk/execution_outcomes.py` named explicitly in `frozen_files` (the freezer reads explicit paths only). The
+   item, its `REQUIRED_ITEMS` entry and the path land as one S1 edit together with this story's code, never before
+   (a listed file that does not exist makes the freeze refuse); the reasons are named by code, not by a count. The
+   board change touches `book_board.py` only and is built after S6's follow-ups merge (`story/s6-followups`), or on
+   main merged first.
+
+**Code-round notes (judge 212):** a reason's code is matched on the text before " (" (E4c's and E4d's format);
+"partial fill, unwound" is the outcome `not_opened_partial_fill`; E4's guard with nothing filled is `not_opened` with
+free text ("<contract> did not fill: ...", `entries.py`), mapped by one named pattern constant (no change to E4's
+records), and it is in criterion 3's named test.
+
+**Depends:** E6, S2, E4c, E4d (all merged); E8 and S6's follow-ups (code only) · **Size:** S · **Status:** story
+text PASS judge 212 (0d644e83); code waits for E8 and S6's follow-ups (response 215)
+
+---
+
 ## E7. Expiry settlement
 
 **Repository:** trading
