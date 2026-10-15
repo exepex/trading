@@ -28,6 +28,12 @@ channel. Orchestrator of the stories below marked (O): session_01VG1RqxLFUVdvvPu
 | 26-week weather check (O) | Every 26 weeks of live v4 forecasts: weather_vix_v1's V6 vs v0 and the base rate; a loss gives the owner a keep-or-switch row, never an automatic switch | M1 builder 013xqaNTCbSBytKgqpfaYFqZ (routed by the orchestrator) | none | fno/weather/, G8 V6 scores | not started on purpose: story text near the first check (about 26 weeks after the v4 freeze) |
 | Backfill test (O) | `tests/forecast/test_backfill.py` compares the decompressed CSV, not gzip bytes (response 144 step 7) | A16/G8 builder 01VK88LxJvV1Gi7Wbr3D4fzp | story/x-backfill-test-decompressed | tests/forecast/test_backfill.py | built, with the orchestrator |
 | Handover / routines | Routine schedules, NSE in the 3 pm routine, late-data ladder | 01Mt6dcBU5kp2htdPN2KmiZH | story/O7-routine-setup | CLAUDE.md 3 pm section, routine prompts | please add your rows |
+| NF step 4 (O) | EQ2 earlier forecast-pack release (protocol v2 amendment route first) | Handover noise fairness 01MGqsxHq19U4mCNWEd4Y4RH (proposed) | not started | fno/forecast capture, forecast-capture.yml, PROTOCOL_v2 amendment | awaiting the session's reply |
+| NF step 5 (O) | One timing-consistency test replacing fno/timeline.py | Handover noise fairness 01MGqsxHq19U4mCNWEd4Y4RH (proposed) | not started | fno/timeline.py, tests | awaiting reply |
+| NF step 6 (O) | Daily 18:00 IST health check | Handover noise fairness 01MGqsxHq19U4mCNWEd4Y4RH (proposed) | not started | new job | awaiting reply |
+| NF step 7 (O) | Back-fill test compares decompressed content | A16/G8 builder 01VK88LxJvV1Gi7Wbr3D4fzp | story/x-backfill-test-decompressed | tests/forecast/test_backfill.py | go given |
+| NF step 8a (O) | All-F&O recording, indices first (3 pm routine, Drive only) | A4b builder 01MKtUHByHsR9cNwaP5KhFYH | story text | fno/quotes/, 3 pm routine | text go given; code after text PASS and A4b rule 8 |
+| NF step 9 (O) | Scorecard measures: do-nothing gate, net without best trade, profit factor, t-check warning, missed runs, random control | R2/G7 builder 0185gR5DmoDh2zBAvgRU4CEB | story text | fno/evaluation/, fno/scoreboard/ | text go given |
 
 ## Known overlaps to settle (15 Oct)
 
