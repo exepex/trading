@@ -154,3 +154,24 @@ writing code until the text passes.
 **Verdict: FAIL for 83f3614886f0ebe9d4c63f20f7511679662fb71a** (story text), on should-fixes A and B. Should-fixes
 2-5 of judge 108 are met, and 1 is met apart from A. A re-check needs only the Definitions (source time) and the trigger
 design and criteria 1 and 5 (ledger reconciliation).
+
+## Addendum 2 (15 Oct 2026): story text at 27f7b55419b74874420180d8462052dda9752e8c (83f3614..27f7b55)
+
+The story file and response 108 part 1c only. Text only.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix A: fallback level and time from one record | MET | In fallback the level is the latest **finished** 1-minute candle's close and its time is that candle's end. A candle still forming is never used. The quote's `last_price` is kept but never the level. Naive candle text gets an explicit +05:30, and text with an offset or unparseable text is `index_parse`. `index_basis` is on the document and the ledger, and `basis_counts` on the RV row, so a session that mixes the two sources is visible |
+| Should-fix B: two checkouts, one ledger | MET | One file per mark, per RV session and per revision index, so the runs never append to the same file. A taken mark's row is written only by the run whose Drive write made the first version (`FirstVersionStore.put` reports it). A pull comes before settling marks. A same-path race (both writing one `missed` row or the heartbeat) merges with GitHub's copy winning (`-X theirs`, in this committer, which commits only this folder, so it can only decide between two first versions of one file). Criterion 1's test uses two clones of one bare repository: one row per mark on `origin/main`, no conflict markers, both commits succeed |
+
+I traced the races:
+- A run takes a mark and the other later settles it as missed: the second run sees the Drive file and skips it.
+- Both runs fail one mark: the first push wins, and both rows were bad anyway.
+- Both write the heartbeat: the first pushed wins. Both runs are alive then, so the silence check is unaffected.
+
+`-X theirs` cannot touch files outside this folder, because the committer stages only this folder, so only this
+folder can conflict. That makes it safe as scoped.
+
+**Verdict: PASS for 27f7b55419b74874420180d8462052dda9752e8c** (story text). Code may start on the story branch. The code
+check covers every criterion, the trial (criterion 15) and the in-session amendment. The work-in-progress code on the
+side branch is judged only once it is on the story branch.
