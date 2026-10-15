@@ -37,3 +37,19 @@ story text only (noise-and-fairness step 6, 15 Oct 2026). No code is written yet
 ## Questions for the orchestrator
 1. The response number 153 is my pick, because 150-152 exist on other branches. Please confirm or reassign it.
 2. The `live_from` dates for the desk run and A16: should they be the first live day of each, set when that goes live?
+
+## Addendum 1: judge 164 (FAIL on 2f3f777, text only). All ten findings checked and accepted.
+
+| Finding | My check | Change in the story |
+|---|---|---|
+| SF1: deadline ownership | **True.** `fno/ai/timing.py` holds `LATEST_START = time(15, 13)`, so my "no module owns 15:13" was wrong. A8 23:30, closes 12:00, panel 13:00 and flows 23:59 exist only as cron comments. | 15:13 is imported from `LATEST_START`. The four others are health-owned constants (`A8_RELEASE_BY`, `INDEX_CLOSE_BY`, `PANEL_DAY_BY`, `FLOWS_BY`), each with its cron source, listed for step 5. Criterion 3 greps that they are the only time literals in `fno/health/`. |
+| SF2: N = 5 versus the 7-day log | **True by reasoning.** Five sessions span more than 7 days in any holiday week. The judge measured 86 of the 2025 runs; I did not re-run that count. | Accepted the judge's suggestion: the window is the sessions dated from 6 days before the run's IST date up to that date. The oldest push it can need is at most 6 d 8 h 47 min old, so it stays inside the log on every run. Criterion 1 adds the 2025 check: no push older than 7 days. |
+| SF3: criterion 1 contradicts the window | **True.** A 03:10 run on a session day moves the window. | The window is defined once. Criterion 1 now requires that session D is checked by every run from D 17:51 to D+6 23:59 and not after. |
+| SF4: which time decides "late" | **True.** Forecasts and the desk use in-file times, by their own protocols. | The table has a "time that decides late" column for each row. Criteria 2 and 4 are per row. |
+| SF5: one line per (check, session) | **True.** NSE alone would repeat for 5 days. | One line per check, listing its bad sessions. |
+| Minor 1: a stopped AI book | **True** (`fire.py:55-65`). | The fire log's reason is shown. |
+| Minor 2: NSE label | **True.** The owner moved NSE into the 14:33 routine (conversation of 15 Oct). | The label is "in the 14:33 routine; the Actions job at 14:20 is a fallback". |
+| Minor 3: watcher bounds | **True.** | Missing days are reported only inside the window and after the file's first row. Criterion 6 says what a same-day re-run does. |
+| Minor 4: "closed day" | **True.** Closed days never enter a window of sessions. | `not expected` is only muhurat, before `live_from`, or the desk's `skipped` step. The closed-day column is dropped. |
+| Minor 5: A16 has no deadline | **True.** | It says A16's own per-mark status is final and is reported as counts. |
+| Note: F1's 10-page cap | Accepted. | Added to Known limits. |
