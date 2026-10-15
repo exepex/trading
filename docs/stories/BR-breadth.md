@@ -237,6 +237,14 @@ Out (with reasons):
 6. Study 3 on a hand-made null with known dependence (an AR(1) of lag 0.3, Gaussian): the false-claim rate is
    within 2 standard errors of the procedure's rate. On a hand-made true effect at the minimum effect, false
    futility is within 2 SE of its target.
+6b. Study 3's two implementation checks (ChatGPT review 121), each with an explicit test:
+   - **Aligned blocks:** in every bootstrap path, all three members' daily series are resampled with the *same*
+     63-session block start indices. The test draws a path and compares the index arrays, so the same-day
+     cross-member correlation is kept.
+   - **Centring within the tested population:** each null series is centred on the mean of the population it is
+     tested on: the whole history for the overall rates, the worst year alone for the worst-year rates. The test
+     uses a fixture where one pair has a real mean edge only in the worst year. Its worst-year null must have mean
+     zero there.
 7. Study 3 on real data writes, for each candidate rate it tried: the look counts, and the false-claim rates per
    look and at either look, for each sign separately, overall and in the worst year. It then writes the selected
    rate, or "postponed"; the false-futility rates per sign at the selected look 1; and the futility threshold
