@@ -53,9 +53,11 @@ def test_the_report_prints_the_touch_unknown_count(root, make_run):
     from fno.constants import BOOK1_RULES
     from fno.scorecard.report import card_lines
 
-    from .history import trade
+    from .history import snapshots_of, trade
     from .test_scorecard import card
 
     trade(root, BOOK1_RULES, "fly-a-v1", "t1", DAY)
     lines = card_lines(card(make_run))
     assert any("touch unknown on 0 fill(s)" in line for line in lines), lines
+    snapshots_of(root).quotes.clear()  # every snapshot gone: both fills are touch unknown, and the report says so
+    assert any("touch unknown on 2 fill(s)" in line for line in card_lines(card(make_run)))

@@ -11,7 +11,7 @@ from pathlib import Path
 from ..quotes.recorder import DATASET
 
 QUOTE_FILE_SUFFIX = ".csv"
-REFUSED = "refused before git ran: {paths} would publish raw Groww quotes (owner 6 A and 8 A); nothing was committed"
+REFUSED = "refused: {paths} would publish raw Groww quotes (owner 6 A and 8 A); nothing was committed"
 
 
 class RawQuoteCommitRefused(ValueError):

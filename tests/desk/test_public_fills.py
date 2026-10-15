@@ -89,12 +89,27 @@ def test_two_accounts_on_opposite_sides_of_one_contract_at_one_snapshot_reveal_b
     assert both_sides(rows(root, BOOK1_RULES, BOOK2_HYBRID))  # together they reveal the touch of "next"
 
 
-def test_an_exit_at_the_snapshot_that_opened_the_trade(root, store, snapshots, exit_desk, clock, opened):
-    """Whether a time exit can close at the opening snapshot (which would reveal both sides) is pinned here."""
+def test_a_time_rule_is_never_judged_at_the_opening_snapshot(root, store, snapshots, exit_desk, clock, opened):
     clock.set(at_close())
-    results = review(root, snapshots, exit_desk, DAY, "exec", REACHED)
-    revealed = both_sides(rows(root))
-    assert revealed == set(), f"an exit at the opening snapshot revealed {revealed}: {results}"
+    [result] = review(root, snapshots, exit_desk, DAY, "exec", REACHED)
+    assert result.reason == "no exit rule reached" and both_sides(rows(root)) == set()
+
+
+def test_unverified_protection_at_the_opening_snapshot_closes_there_the_third_exception(
+    root, store, snapshots, entry_desk, exit_desk, clock
+):
+    """Review 2 finding 1 (pinned, put to the owner): a protective leg whose bid size cannot cover its units at the
+    snapshot that opened the trade marks it `protection_unverified`, and E4 closes the trade at that same snapshot, so
+    its rows show both sides of each leg closed there."""
+    from tests.desk.builders import write_snapshot
+    from tests.desk.test_entries import at
+
+    write_snapshot(store, "exec", fly_rows({(25200, CE): {"bid_qty": 1}}), at(15, 15), at(15, 15, 40))
+    assert enter(root, snapshots, entry_desk, fly_order()).outcome == "opened"
+    clock.set(at_close())
+    review(root, snapshots, exit_desk, DAY, "exec", REACHED)
+    assert both_sides(rows(root)) == {("exec", contract(25000, CE)), ("exec", contract(25000, PE)),
+                                      ("exec", contract(24800, PE))}  # fmt: skip
 
 
 def at_close():

@@ -37,7 +37,8 @@ def test_the_capture_commits_its_record_and_sidecar_never_the_quote_file(tmp_pat
     names = sorted(p.name for p in paths)
     assert names == [f"{captured.snapshot_id}.json", f"{captured.snapshot_id}.meta.json"]
     assert not any(p.suffix == ".csv" for p in paths)
-    body = json.loads(paths[0].read_text(encoding="utf-8")) if paths[0].suffix == ".json" else {}
+    [record_path] = [p for p in paths if p.name == f"{captured.snapshot_id}.json"]
+    body = json.loads(record_path.read_text(encoding="utf-8"))
     assert {"csv_sha256", "meta_sha256"} <= set(body) and captured.csv_sha256 == body["csv_sha256"]
 
 
@@ -105,7 +106,8 @@ def git_repo(tmp_path):
 
 
 def committed(git):
-    return git("ls-files").stdout.split()
+    """The files in the last commit (none before the first commit)."""
+    return git("ls-tree", "-r", "--name-only", "HEAD", check=False).stdout.split()
 
 
 @pytest.mark.parametrize("given", ["research/data/quotes", "research/data/quotes/", "research"])
@@ -123,7 +125,8 @@ def test_a_quote_file_staged_earlier_is_never_swept_into_a_desk_commit(tmp_path)
     git("add", "--", QUOTE)
     with pytest.raises(RawQuoteCommitRefused, match="nifty_20261014_151500.csv"):
         git.commit_paths([git.root / QUOTE.replace(".csv", ".meta.json")], "sidecar only")
-    assert committed(git) == []
+    assert committed(git) == []  # nothing committed; the earlier staged file stays staged, so it refuses again
+    assert git("diff", "--cached", "--name-only").stdout.split() == [QUOTE]
 
 
 def test_a_sidecar_alone_is_committed(tmp_path):

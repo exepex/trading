@@ -62,7 +62,8 @@ class Git:
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
         """Adds and commits these paths; False when nothing changed. What would be committed is the whole index, so
         the raw-quote guard checks every staged file after the add (a folder or a pathspec expands there, and a file
-        staged earlier by anything else is seen too); on a refusal the add is undone and nothing is committed."""
+        staged earlier by anything else is seen too); on a refusal this add is undone (another writer's staged files are
+        left as they were, so the next commit refuses too) and nothing is committed."""
         self.guard.check(paths)
         added = [self.relative(p) for p in paths]
         self("add", "--", *added)
@@ -70,7 +71,7 @@ class Git:
         try:
             self.guard.check([self.root / name for name in staged if name])
         except RawQuoteCommitRefused:
-            self("reset", "-q", "--", *added, *(n for n in staged if n), check=False)
+            self("reset", "-q", "--", *added, check=False)
             raise
         if self("diff", "--cached", "--quiet", check=False).returncode == 0:
             return False
