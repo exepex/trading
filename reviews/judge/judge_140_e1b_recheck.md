@@ -62,3 +62,28 @@ This is a test change on money records, so it is lane 1 (a quick judge check). D
 ### Merge check: NOT MET until CI on `main` is green again with the restated test
 
 The code merge and the real top-up are correct.
+
+## Addendum 2 (15 Oct 2026): the CI fix, `story/e1b-journal-pin` dde94700b40a94402bd9bcbceecc46deb27e6f6f
+
+**The change.** One test in one file, `tests/books/test_paper_account.py`, is restated for the true committed record.
+For each book:
+- **Ledger:** exactly two rows, the opening of `500000.0` and a `capital_top_up` of `1500000.0` dated 2026-10-15;
+- **Capital:** `capital()` equals 2,000,000, which equals `paper_account_rs()`;
+- **No fills;**
+- **`positions.json`:** cash and closed equity at 2,000,000;
+- **Equity history:** exactly the rows for 13 Oct (500000.00) and 15 Oct (2000000.00), both with 0 open trades.
+
+**Stricter than before.** The test now names each row's kind, amount and date, and the history's dates. The old
+version only counted rows. It matches the data commit 400d692 I read in addendum 1. No data is touched.
+
+**Gates.**
+- `tests/books`: 40 passed.
+- On a trial merge with origin/main, the full suite gives **5667 passed**.
+- `ruff check` and `ruff format --check` of the file: clean.
+
+**Note (one line).** It does not also assert `capital(15 Oct 15:00) == 500,000`, the point-in-time cut. That cut is
+covered by E1b's own unit tests on fixtures, and I checked it on the real journal in addendum 1.
+
+### Verdict: PASS for dde94700b40a94402bd9bcbceecc46deb27e6f6f
+
+- E1b's merge check closes when the first `checks` run on `main` with this test is green.
