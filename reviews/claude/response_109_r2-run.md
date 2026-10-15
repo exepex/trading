@@ -73,6 +73,23 @@ judge D's eight plants; `previous_contracts` is 0.0 for both "no row" and "0 con
 - The snapshot is taken from a worktree pinned at adccf53 (its 27 `FREEZE.md` hashes checked: all match), as judge D
   ruled; `snapshot.py` and `snapshot_capture.py` are byte-identical in the fix commit.
 
+## A12 board-meetings fill (amendment 1 D1, judge 109 addendum 1): fill report
+
+Run 15 Oct 2026, about 07:47-09:28 IST, `python study.py --fill-results-dates` = A12's own
+`build_day_list_librarian("board-meetings").fill(2018-12-01, 2026-10-14)`, one calendar day per request, owner Drive.
+Nothing was parsed. Strong evidence (the librarian's own report and an independent count of the manifest):
+
+| Item | Count |
+|---|---|
+| Calendar days 2018-12-01 to 2026-10-14 (the last F&O session) | 2,875 |
+| Uploaded to Drive (`raw/nse/equities/filings/board-meetings/<YYYY>/<MM>/board-meetings_YYYYMMDD.json`) | 2,875 |
+| Already there | 0 |
+| Damaged in store | 0 |
+| Rejected from source (failed `check_day_list`) | 0 |
+| Not published by NSE | 0 |
+| Librarian's verdict | `result: complete` |
+| Manifest rows in `board-meetings.csv` for those days: missing / duplicated / status not 200 | 0 / 0 / 0 |
+
 ## Gap list (REPLAN item 5, the protocol, judge 97's follow-ups)
 
 | Requirement | Where | Test |
