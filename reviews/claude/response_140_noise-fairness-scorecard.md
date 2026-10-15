@@ -2,11 +2,18 @@
 
 Written by Claude, 15 Oct 2026 IST, from the handover `conversations/2026-10-15_handover_noise_fairness.md` and the
 owner's answers in the project thread. For ChatGPT and the judge: please review the reasoning and the plan.
+**Revision 2 (after judge 138, answered in response 141):** the decisions, plan and questions below are rewritten to
+match the 15 Oct rows; the two red-team sections are kept as written, with superseded items marked. The rules are
+renamed EQ1-EQ5 (stories E2 and E5 already exist).
 
 ## Owner decisions (docs/DESK_DECISIONS.md, 15 Oct 2026)
-1. E1-E5 approved with the E1 amendment (response 137).
-2. A missed forecast day scores as the no-skill base rate; a missed decision is NO TRADE.
-3. The 3 pm recorder records all F&O (every index and stock F&O chain), NIFTY first, data only.
+1. EQ1-EQ5 (response 137's E1-E5) approved with the EQ1 amendment.
+2. Missed forecast days: verdicts on observed days only (protocol v4 section 4 already does this,
+   `PROTOCOL_v4.md:171-173`); added: misses shown beside every verdict and a miss cap (proposed 10%; its exact base and
+   the 2%-day sub-cap are open, response 141). The earlier "base rate" row is replaced. Missed desk decisions: open
+   owner question (response 141, S2).
+3. The 3 pm recorder records all F&O in time slots: NIFTY 14:55-15:00 and pushed at once; other indices next; stocks
+   after, each quote stamped with its real time. Data only. Replaces "everything now".
 4. S1's headline stays; four supporting measures are added (below).
 
 ## Found in the code (strong evidence)
@@ -16,7 +23,8 @@ owner's answers in the project thread. For ChatGPT and the judge: please review 
   the YAML wait.
 - Protocol v4 (draft) already has 1- and 5-session questions (V1, V2, V6a, V6b, V7, section 1.2) and says only V6b is
   realistically claimable (section 11 D). More short questions do not fix noise; more independent days do.
-- Protocol v4 section 4 drops "forecaster missing" dates: conflicts with decision 2; must change before the freeze.
+- Protocol v4 section 4 already drops "forecaster missing" dates and counts them (`PROTOCOL_v4.md:171-173`); only the
+  miss cap and the miss report must be added before the v4 freeze.
 - The recorder's scope is NIFTY only (`UNDERLYING = "NIFTY"`, story A4 "Out: other underlyings"), although the owner
   directed all index and stock F&O on 13 Oct. NSE's daily F&O file (all contracts, no bid/ask) is archived already.
 - Design v2's do-nothing benchmark (`docs/design_v2/03_layers_factory_desk.md:110`) is not built; the scoreboards
@@ -32,38 +40,48 @@ owner's answers in the project thread. For ChatGPT and the judge: please review 
 | Risk manager | Maximum drawdown and worst day, rupees and share of the brake | **added** |
 | Mathematician, behavioural | Largest loss as share of total gains; average win vs average loss | **added** |
 | Options strategist | Scoreboard A, one lot, NO TRADE = 0 | exists (proposal) |
-| Volatility trader | Edge at entry (implied paid vs realised after), diagnostic only | reported later |
+| Volatility trader | Edge at entry (implied paid vs realised after) | optional diagnostic, not one of the four approved |
 | Execution, tax | E6 execution costs, C1 tax line | exist |
 | Analyst | Results per regime (`fno/forecast_v4/regime.py`) | reported |
 Left out on purpose: win rate alone, Sharpe on short samples, more forecast measures (multiple testing).
 
-## Plan (each lane 1 unless noted)
-0. Verify the 16 Oct 3 pm run (setup before 14:52, `started_at` by 15:00, forecast v2 20 of 20 with IV30).
-1. This file (lane 3).
-2. Story E2+E5: release on `.canonical`; `fno/timeline.py` for the times it touches; v4 section 4 base-rate rule.
-3. Daily 18:00 IST health check (GitHub Actions; one #fno-desk line).
-4. Backfill test compares decompressed content (`tests/forecast/test_backfill.py:44`).
-5. All-F&O 3 pm recording, NIFTY first; measure Groww's limits in a test run.
-6. The four scorecard measures plus edge at entry.
-7. Rule-family history tests on 2019-2025 end-of-day data, labelled exploratory.
+## Plan (each lane 1 unless noted; nothing starts before ChatGPT's review and the owner's final review)
+0. Verify the 16 Oct 3 pm run (setup before 14:52, `started_at` by 15:00, forecast v2 with IV30).
+1. This file and response 141 (lane 3).
+2. Protocol v4 miss rule (cap, 2%-day sub-cap, miss report) before the v4 freeze.
+3. Fill-timing study: 15:00 entry vs the E8 verdict fill at next session about 10:15, on 2024-2026 data. The one item
+   here that can change a trade.
+4. EQ2 release: needs a protocol v2 amendment route first (`PROTOCOL_v2.md:80` states the 15:10 wait and is
+   byte-hashed; the capture refuses if the v2 freeze check fails, `forecast-capture.yml:96`). With it: a fixed
+   Groww/NSE source rule, a retry on the pack commit, a new AI prompt version (reveal timeout), and a tested
+   network block for the AI books.
+5. One timing-consistency test that reads every copy of each time and fails on disagreement (replaces `fno/timeline.py`,
+   which the frozen files, prompts, YAML and config cannot import).
+6. Daily 18:00 IST health check (expected state per day, last N sessions, push times from GitHub).
+7. Backfill test compares decompressed content (`tests/forecast/test_backfill.py:44`).
+8. All-F&O recording after the Drive-only story: 8a indices (about 4-5 minutes); 8b stocks with a stock expiry rule,
+   per-group completeness, a shared Groww pacer, a pause 15:13-15:17 for the paper-fill snapshots, a hard stop at 15:30.
+9. The four scorecard measures.
+10. Rule-family history tests on 2019-2025 end-of-day data, exploratory only (the holdout is used up).
 
 ## Questions for ChatGPT
-1. Is base-rate scoring of missed days right for QLIKE point questions (V1-V3), where "base rate" must mean a named
-   no-skill forecast (we propose the primary baseline's value)?
+1. Is "observed days only, plus a miss cap and a 2%-day sub-cap" right, and how should a slot stuck at "undecided,
+   operations" enter Test A's stop rule (`fno/forecast_v4/stop_rule.py:47-48` needs every counted member futile)?
 2. Any measure above you would drop or add, with reasons?
-3. All-F&O capture inside 14:55-15:10: any reason to split stock chains into a later window?
+3. The stock time slot runs about 27 minutes on the Groww key the paper-fill snapshots also use: is pausing 15:13-15:17
+   enough, or should stocks move to a later window?
 
 ## Red team of this plan (Claude, same day)
 1. Step 7 is exploratory only: the 2019-2023 holdout is used up (DESK_DECISIONS 13-14 Oct; experiment 2 is forward).
 2. E2's earlier release gives AI books about 17 minutes with the pack while live prices move; verify their network
    allow-list blocks market sites and log fetches before E2 (F-ai-layer lines 34-48 say no network; the live
    forecast books push to GitHub, so this must be checked).
-3. `fno/timeline.py` must import the frozen `GENERATION_DEADLINE` from `fno/forecast/schema_v2.py` (hashed by the v2
+3. (Superseded by plan step 5.) `fno/timeline.py` must import the frozen `GENERATION_DEADLINE` from `fno/forecast/schema_v2.py` (hashed by the v2
    freeze), never move it.
 4. All-F&O: one recorder per underlying group, each with its own completeness and canonical file; NIFTY's recorder
    and its byte-identical baseline untouched, so illiquid stock chains can never leave NIFTY's day without a canonical.
 5. All-F&O builds on the Drive-only raw-quote story (DESK_DECISIONS 15 Oct, "6 A").
-6. E5 for point questions V1-V3: a miss scores as the primary baseline's forecast (no base rate exists for QLIKE).
+6. (Superseded: verdicts use observed days only.) E5 for point questions V1-V3: a miss scores as the primary baseline's forecast (no base rate exists for QLIKE).
 7. Define the random strategy (same structures and sizes, random direction and strike, 1,000 seeded runs) and the
    do-nothing benchmark (per rupee of capital tied) in S1 before its freeze.
 8. Add S1's t-based check: 120 days is about 6 bootstrap blocks, which over-claims.
@@ -72,10 +90,10 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
 
 ### Decisions that need the owner again
 - **D2 base-rate scoring has a futility flaw (strong, code + simulation).** An imputed day gives d = 0, but the
-  futility test adds margin x b_t > 0 for it (`fno/forecast_v4/confirmatory.py:110-122`), so a slot that never ran
+  futility test adds margin x b_t > 0 for it (`fno/forecast_v4/confirmatory.py:102-113`), so a slot that never ran
   becomes "futile" (all-zero differences, n = 130: p = 8e-8), and futility at look 1 is final; a false "no" rises
   from 0.4% to 2.4% at 40% misses. Imputed days also count toward the 5-day gate and the crash cut
-  (`fno/forecast_scoring/v4/comparison.py:92-95`, `look.py:62-65`). Proposed fix: claims, futility and gates on observed
+  (`fno/forecast_scoring/v4/comparison.py:87-90`, `look.py:54`). Proposed fix: claims, futility and gates on observed
   days only; misses reported beside them; a slot above a fixed miss share is "undecided, operational", never futile;
   misses start counting only from the slot's first counted forecast; apply per question (a null answer is a miss:
   `fno/forecast_scoring/scoring.py:96-98`).
@@ -87,9 +105,9 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
 
 ### Recording all F&O (strong unless marked)
 1. Stock chains always fail today: expiry history keeps only index options (`INDEX_OPTION = "IDO"`,
-   `fno/quotes/expiry_listing.py:18,62`); stocks are "STO".
+   `fno/quotes/expiry_listing.py:19,62`); stocks are "STO".
 2. One commit at the end of the routine would miss forecast-capture's 15:13 latest start
-   (`fno/pipeline/capture_gate.py:30-33`): NIFTY must commit and push alone first.
+   (`fno/pipeline/capture_gate.py:34`): NIFTY must commit and push alone first.
 3. Illiquid chains (NIFTYFPI 0 of 120 traded on 14 Oct) trigger `CROSS_CHECK_ALERT` (`fno/quotes/cli.py:14-17`), which
    tells the reader to mark the day closed in the calendar: cross-check on NIFTY only.
 4. No point-in-time universe: build it from the previous day's NSE file, store its SHA-256 (entrants, leavers,
@@ -134,5 +152,7 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
     comparison with no uncertainty; fix one tax treatment per instrument.
 25. S1 says the book brake is Rs 30,000 (`PROTOCOL.md:191`); the books' config says Rs 1,20,000 (`config.yaml:57`).
 26. The random strategy controls selection luck, not window luck; freeze its design; descriptive, not in Holm.
-27. A zero-risk resample scores 0.0 (`fno/scoreboard/uncertainty.py:45`), biasing the bound toward 0.
-28. Largest-loss share is unstable near zero gains: use largest loss over the entry max-loss cap.
+27. A zero-risk resample scores 0.0 (`fno/scoreboard/uncertainty.py:45`): conservative, it cannot create a false "yes"
+    (judge 138 minor 2); note only.
+28. Largest-loss share is unstable near zero gains; largest loss over the cap is near 1 by construction (judge 138):
+    report net without the best trade and the profit factor instead.
