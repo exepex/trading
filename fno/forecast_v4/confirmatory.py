@@ -28,6 +28,7 @@ STUDENTIZED_SEED_WORD = 2
 MIN_CLAIM_BATCHES = 12  # rules E+D and F+D: fewer batches give neither a claim nor a futility "no"
 FUTILITY_LEVEL = 0.025  # per member and look (Bonferroni 2 x 2.5% over the two looks)
 MIN_EVENT_DAYS = 5  # Brier members (V6a, V6b, V7): fewer 2% days in the scored window give no claim and no "no"
+EVENT_BANDS = ((5, 7), (8, 12), (13, None))  # revision 5: each band has its own Brier thresholds
 
 
 def batch_layout(n: int, block: int) -> tuple[int, int]:
@@ -117,3 +118,13 @@ def brier_judgeable(event_days: int) -> bool:
     look (p = 1 for claims and futility: open, never "no"). Calm stretches of 2019-26 held none in 125 and 250
     sessions (`tools/v4_brier_regimes.py`)."""
     return event_days >= MIN_EVENT_DAYS
+
+
+def event_band(event_days: int) -> tuple[int, int | None] | None:
+    """Revision 5 (judge 98 addendum 4): the band of a Brier member's 2%-day count, which selects its claim and
+    futility thresholds (`tools/v4_brier_bands.py`); None below the gate (not judgeable)."""
+    for band in EVENT_BANDS:
+        low, high = band
+        if event_days >= low and (high is None or event_days <= high):
+            return band
+    return None

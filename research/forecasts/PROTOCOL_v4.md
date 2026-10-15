@@ -182,8 +182,8 @@ missing; daily HAR never stands in again.
    forecaster; one-sided.
 2. **Resampling.** For n pairs and block length L (table 1.2): B = 10,000 resamples, each drawing ceil(n / L) block
    starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence(words))`, the words starting
-   with the v4 seed 20261015; all starts in one draw of shape (B, ceil(n / L))), joined in draw order and cut to n. k is the member's place in the family (below);
-   reported-only comparisons are numbered after 15.
+   with the v4 seed 20261015; all starts in one draw of shape (B, ceil(n / L))), joined in draw order and cut to n.
+   k is the member's place in the family (below); reported-only comparisons are numbered after 15.
 3. **Confirmatory claim rule, revision 2: rule E+D** (owner decision "3 B", 15 Oct 2026; judge 98 addendum 2;
    `confirmatory.calibrated_p`, `tools/v4_claim_thresholds.py`). A member claims at a look only with **at least 12
    whole batches** and a **batch-means t** p-value (the latest floor(n / L) batches of L, Student t with batches - 1
@@ -209,10 +209,13 @@ missing; daily HAR never stands in again.
    A **calm stress** adds the calmest 125 and 250 sessions (13 Apr - 12 Oct 2021 and 6 Oct 2022 - 10 Oct 2023, no 2%
    day in either). A Brier member is **judged (claim or futility) only when its scored window holds at least 5 2%
    days** (`confirmatory.brier_judgeable`); otherwise it is not judgeable at that look (p = 1, open, never "no").
-   Measured: without the gate, claim size is up to 62-99% for V6b; with it, every cell is within tolerance (n = 125
-   and 250, both looks, full period and calm stress, claims and false futility). The share of windows judgeable over
-   2019-26 is 53% at n = 125 and 90% at n = 250, and 0% in the calm stretches. Revision 1's 1,000-series calibration
-   (`v4_null_calibration.md`) is superseded; its rates below 0.01 are some evidence only. The studentized bootstrap,
+   Without the gate V6b's claim size is up to 62-99%; with it every cell holds. Judgeable: 53% of 2019-26 windows at
+   n = 125, 90% at n = 250, none in the calm stretches. **Revision 5 (judge 98 addendum 4;
+   `tools/v4_brier_bands.py`, `confirmatory.event_band`):** one threshold per question over-rejected 2-4x in windows
+   with only 5-7 2% days, because the count is known before the verdict. So each band (5-7, 8-12, 13+ days) has its own
+   claim and futility thresholds, calibrated on nulls conditioned to that band (200,000 series). Every band holds:
+   claims and false futility, n = 125 and 250, both looks (held-out). Revision 1's calibration
+   (`v4_null_calibration.md`) is superseded (some evidence only below 0.01). The studentized bootstrap,
    revision 0's centred bootstrap and a Newey-West HAC t are reported sensitivities, **never used to choose a
    result**.
 4. **Minimum effect, registered (owner's 3%, unit confirmed 15 Oct 2026):** on the gate set, the relative improvement
@@ -269,8 +272,8 @@ missing; daily HAR never stands in again.
   A strategy without a resolved trade has no bound and is undecided.
 - **Table:** B yes: continue. A no and B no: stop or pivot (owner chooses). A yes and B not yes: continue 6 months with
   the AI budget halved. Anything else: option 1 (continue to the projected settle date, a planning projection) when
-  the best-powered question's projected settle date is at most 2 years after the review, else option 2 (code only). **No power report yet means no
-  projected date: option 2** (reasoning only; flagged in section 11).
+  the best-powered question's projected settle date is at most 2 years after the review, else option 2 (code only).
+  **No power report yet means no projected date: option 2** (reasoning only; section 11).
 
 ## 7. The 60-outcome power report (`power.py`): a planning projection only
 
@@ -336,12 +339,12 @@ confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
   the only measured option within tolerance in every cell. Its power cost, by normal approximation (planning only,
   optimistic under heavy tails), in independent outcomes at r = 3 / r = 5 with the n = 125 thresholds (at least this,
   since thresholds fall as n grows). The plain first step needs 134
-  / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years). The Brier
-  members, with revision 4's gate and 2019-26 thresholds: V6a 541 / 1,501 at n = 125 (about 2.1 / 6 years) and
-  more at n = 250; V6b and V7 151 / 418 (about 3 / 8 years), and only in windows with 5 or more 2% days. **Said
-  plainly: V1, V2 and V6a cannot be claimed in useful time on realistic data; V6b and V7 can, slowly.** The other
-  options stay disclosed in `v4_size_study.md`. Futility is measured the same way (5.5, rule F+D). **Still owed: a
-  VIX null for V7**; it borrows V6b's thresholds until one is measured.
+  / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years). Brier, by band
+  (revision 5, at r = 3): V6a 221-631 at n = 125 and 586-1,047 at n = 250, with claim thresholds of 2.6e-14 to 2e-5
+  (down to 1.4e-23 at n = 250, 5-7 days). **Such thresholds are effectively unreachable, so V6a, like V1 and V2,
+  will almost surely never be claimed.** V6b and V7: 149-206 (about 3-4 years), only in windows with 5 or more 2%
+  days. **Said plainly: only V6b and V7 can be claimed, slowly.** Other options: `v4_size_study.md`; futility as 5.5.
+  **Still owed: a VIX null for V7**; it borrows V6b's thresholds until one is measured.
 
-Also open to challenge: the 15-member family without V3, V5 and V4 (5.6); special sessions excluded (section 2); V2
-and V3 on `close_proxy` (1.1); the 5% spread limit and parity forward (1.4); strict "inside" for V5 (1.5).
+Also open to challenge: the family without V3-V5 (5.6), special sessions out (2), V2-V3 on `close_proxy` (1.1), the
+5% spread limit and parity forward (1.4), strict "inside" for V5 (1.5).

@@ -103,24 +103,24 @@ def threshold(p_sets: list[np.ndarray], rate: float) -> float:
     return min(float(np.sort(p)[rank]) for p in p_sets)
 
 
-def _draws(series, block, n, word, futility, stretches):
+def _draws(series, block, n, word, futility, stretches, count: int = SERIES):
     """{name: (p, events)} for the full period and each calm stretch, both orientations."""
     out = {}
     for flip in (False, True):
         d = null_d(series, flip, futility)
         for name, stretch in [("full", None), *stretches.items()]:
             rng = np.random.default_rng(np.random.SeedSequence([SEED, word, block, n, int(flip), len(name)]))
-            xd, xb, events = sample(series, d, n, SERIES, rng, stretch)
+            xd, xb, events = sample(series, d, n, count, rng, stretch)
             p = p_futility(xd, xb, block) if futility else p_claims(xd, block)
             out[f"{name} {'flipped' if flip else 'as measured'}"] = (p, events)
     return out
 
 
-def gaussian_p(block: int, n: int, word: int) -> list[np.ndarray]:
+def gaussian_p(block: int, n: int, word: int, count: int = SERIES) -> list[np.ndarray]:
     out = []
     for i, process in enumerate(claims.GAUSSIAN):
         rng = np.random.default_rng(np.random.SeedSequence([SEED, word, block, n, 10 + i]))
-        out.append(claims.batch_t_p(study.null_matrix(process, SERIES, n, block, rng, {}), block))
+        out.append(claims.batch_t_p(study.null_matrix(process, count, n, block, rng, {}), block))
     return out
 
 

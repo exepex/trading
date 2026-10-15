@@ -223,3 +223,29 @@ Each item was checked before it was accepted.
    - Code: `confirmatory.brier_judgeable` and `MIN_EVENT_DAYS = 5`, and `v4_brier_regimes.operative_thresholds` for G8
      at each look.
    - Tests: `test_brier_regimes.py`.
+
+## Revision 5: answer to judge 98 addendum 4
+
+1. **Must-fix A, the selection effect near the gate: ACCEPTED and fixed by banding (strong evidence for the 2019-26
+   nulls).**
+   - **The cause.** A window's count of 2% days is known before the verdict, so one threshold per question averaged
+     over calm and busy windows.
+   - **The fix.** `tools/v4_brier_bands.py` gives each band (5-7, 8-12, 13+ days) its own claim and futility
+     thresholds. Each is calibrated on 2019-26 nulls conditioned to its band: 200,000 series for calibration and
+     200,000 held out. `confirmatory.event_band` selects the band.
+   - **Result.** Every band is within tolerance at n = 125 and 250, at both looks, for claims and for false futility:
+     - Worst claim size at look 1 is 0.130% against 0.133% nominal.
+     - Worst claim size at look 2 is 0.192% against 0.200%.
+     - Worst false futility is 2.57% against a 2.5% target (tolerance about 2.6-2.7% at the band's count).
+   - **Judgeable share.** Unchanged from revision 4: 54% of windows at n = 125 (bands 25 / 18 / 11%) and 90% at
+     n = 250 (18 / 32 / 40%).
+   - **Power cost** (normal approximation, planning only, r = 3 / 5):
+     - V6a: 221-631 / 613-1,752 at n = 125; 586-1,047 / 1,626-2,907 at n = 250.
+     - V6b and V7: 149-181 / 412-502 at n = 125; 151-206 / 419-570 at n = 250.
+2. **V6a is effectively unreachable: STATED.**
+   - V6a's claim thresholds run from 2.6e-14 to 2e-5 at n = 125, and down to 1.4e-23 at n = 250 in the 5-7 band.
+   - The protocol (item D) and this response say plainly that V6a, like V1 and V2, will almost surely never be
+     claimed. Only V6b and V7 can be claimed, slowly.
+3. **A VIX null for V7 is still owed.** Item D keeps the note; V7 borrows V6b's banded thresholds until one is measured.
+4. **Tests.** `test_brier_bands.py` covers band coverage, the conditional quantile, every band within tolerance, and
+   the committed table.
