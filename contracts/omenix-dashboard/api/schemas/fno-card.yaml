@@ -16,12 +16,23 @@ FnoCard:
     - "the AI team's and the devil's advocate's prompts and model settings"
     - "the strategy's parameters and any fitted value"
   additionalProperties: false
-  required: [label, test_post, session, session_note, status, reason, reason_text, timing, valid_until, trade, stress, paper_trades_so_far, weather, forecast, forecasts_on_record, advocate, data_checks, missing, previous_misses, evidence, price_of_staying_out, if_you_cannot_act, footer]
+  required: [label, test_post, session, session_note, withheld, status, reason, reason_text, timing, valid_until, trade, stress, paper_trades_so_far, weather, forecast, forecasts_on_record, advocate, data_checks, missing, previous_misses, evidence, price_of_staying_out, if_you_cannot_act, footer]
   properties:
     label: {type: string, const: PAPER ONLY, x-unit: text, description: 'Every card is for paper trading; no card ever tells the owner to place a real order'}
     test_post: {type: boolean, x-unit: yes/no, x-catalog: {source: "T1's delivery record (research/cards/deliveries/, card_delivery/v1: test)"}, description: 'True for a one-off check of live delivery, not the day''s card (the post says TEST)'}
     session: {type: string, format: date, x-unit: date (IST), description: The NSE session the card is for}
     session_note: {type: string, minLength: 1, x-unit: text, x-catalog: {source: "T1's TradeCard.session (from the NSE session calendar, A7)"}, description: 'What kind of day it is, e.g. "NSE regular session", or that the calendar could not say'}
+    withheld:
+      description: "Set when today's card was held back because a risk rule was broken (its maximum loss above its book's max_loss_cap): the page then carries the previous session's card, visibly dated by its own session, never shown as today's (owner, 16 Oct 2026). null on every normal day"
+      x-catalog: {source: "P2's per-page hold (the card page's run status)", story: P2}
+      anyOf:
+        - {type: 'null'}
+        - type: object
+          additionalProperties: false
+          required: [session, reason_text]
+          properties:
+            session: {type: string, format: date, x-unit: date (IST), description: 'The session whose card was held back (today)'}
+            reason_text: {type: string, const: "Today's card was held back: a risk rule was broken", x-unit: text, description: "The owner's sentence, shown as is (owner, 16 Oct 2026); never the trade's figures"}
     status: {type: string, enum: [TRADE, NO TRADE, WATCH], x-unit: enum, description: 'TRADE = a paper trade of a strategy approved to paper; NO TRADE = nothing today, with a reason; WATCH = a candidate''s shadow decision, for learning, never to be traded'}
     reason:
       type: ['string', 'null']

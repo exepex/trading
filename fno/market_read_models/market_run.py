@@ -14,6 +14,7 @@ from ..alerts.sender import AlertSender
 from ..research_data.calendar import SessionCalendar
 from .contract import ContractBroken, PinnedContract
 from .home_blocks import FiguresNotComputed
+from .page_holds import held_lines
 from .publication import Publication, PublicationBuilder, hashes
 from .publication_inputs import PublicationInputsFile
 from .publisher import PublishFailed, ReadModelPublisher
@@ -95,11 +96,13 @@ class MarketRun:
             return 1, [message, self.alerts.send(message)], Outcome(FAILED, stop.code, message)
         line = PUBLISHED_LINE.format(day=day, count=len(publication.records), publication_id=publication.publication_id,
                                      publisher=self.publisher.name, added=added)  # fmt: skip
+        held = held_lines(day, publication.held, publication.broken, self.contract.version)  # story P11
+        alerted = [sent for h in held for sent in (h, self.alerts.send(h))]
         stored = hashes(publication)
         read_back = READ_BACK.format(count=len(stored), publication_id=publication.publication_id)
         inputs = self.inputs.record(publication) if self.inputs else []
-        lines = [line, read_back, *hash_lines(stored), *inputs]
-        return 0, lines, Outcome(PUBLISHED, publication_id=publication.publication_id)
+        lines = [line, *alerted, read_back, *hash_lines(stored), *inputs]
+        return 0, lines, Outcome(PUBLISHED, reason="; ".join(held) or None, publication_id=publication.publication_id)
 
     def _publish(self, day: date, prepare: Prepare | None) -> tuple[Publication, int]:
         problem = prepare(day) if prepare else None
@@ -109,13 +112,15 @@ class MarketRun:
         if changed:
             raise Stopped("contract", CONTRACT_CHANGED, DAMAGED_PIN.format(files=", ".join(changed)))
         try:
-            publication = self.publications.build(self.rows.build(day))
+            publication = self.publications.build(self.rows.build(day), self.publisher.current)
         except IncompleteSession as exc:
             raise Stopped("archived files", ARCHIVE_INCOMPLETE, str(exc)) from exc
         except ContractBroken as exc:
             raise Stopped("W11 schema", SCHEMA_INVALID, str(exc)) from exc
         except FiguresNotComputed as exc:
             raise Stopped("F&O figures", FIGURES_NOT_COMPUTED, str(exc)) from exc
+        except PublishFailed as exc:  # the current publication could not be read for a held page (story P11)
+            raise Stopped("publish", database_code(exc.failure_class), str(exc)) from exc
         try:
             added = self.publisher.publish(publication)
             stored = self.publisher.stored(publication.publication_id)

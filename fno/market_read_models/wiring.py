@@ -9,6 +9,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ..ai.paths import AI_FOLDER
 from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import (
@@ -20,9 +21,11 @@ from ..constants import (
     PLAYBOOK_REGISTRY_FILE,
     RISK_PROFILE_BOOKS,
 )
+from ..forecast.capture import LIVE_FOLDER
 from ..forecast_scoring.wiring import SCORES_FOLDER
 from ..forecast_v4_rules.series import closes_rows, regular_closes
 from ..forecast_v4_rules.wiring import CLOSES_FILE
+from ..research_data.calendar import SessionCalendar
 from ..research_engine.implied_vol import SpotBlackScholes
 from ..risk.profile_settings import ProfileSettings, profile_settings
 from ..scoreboard.committed_runs import CommittedRuns
@@ -55,12 +58,15 @@ from .fno_rows import FnoRowBuilder
 from .followed import FollowedCompaniesFolder
 from .forecast_history_block import FnoForecastHistoryBlock
 from .forecast_history_inputs import ScoreReportsReader
+from .forecast_lab_block import FnoForecastLabBlock
+from .forecast_lab_inputs import ForecastLabReader, SessionsAhead
 from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
 from .frame_inputs import FlowsReader
 from .home_blocks import FnoBooksBlock, FnoPicksBlock
 from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
 from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
+from .page_holds import PageHoldsBlock
 from .paper_trades_block import FnoPaperTradesBlock
 from .paper_trades_closed import ClosedTrades, CommittedStructures
 from .paper_trades_inputs import PaperBooksReader
@@ -92,8 +98,8 @@ def build_market_blocks() -> list[BlockBuilder]:
     return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
             ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
-            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(),
-            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock(), FnoPaperTradesBlock()]  # fmt: skip
+            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(), FnoWeatherHistoryBlock(),
+            FnoForecastHistoryBlock(), FnoForecastLabBlock(), FnoPaperTradesBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -134,7 +140,7 @@ def build_market_run(cfg: dict, local_folder: Path | None = None) -> MarketRun:
     """Stories P6, P7: the archived NSE files in Drive, the pinned contract, the publisher and the run status (a local
     folder when given, else Azure), #fno-desk alerts."""
     contract = build_pinned_contract()
-    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit())
+    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit(), holds_page=PageHoldsBlock())
     rows = build_session_rows_builder(cfg)
     publisher, status = build_read_model_publisher(local_folder), build_run_status(local_folder)
     return MarketRun(build_session_calendar(), contract, rows, publications, publisher, build_alert_sender(), status,
@@ -169,7 +175,13 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     reports = ScoreReportsReader(ROOT / SCORES_FOLDER)
     paper = build_paper_books(cfg, profile)
     return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports,
-                              paper)  # fmt: skip
+                              build_forecast_lab_inputs(calendar), paper)  # fmt: skip
+
+
+def build_forecast_lab_inputs(calendar: SessionCalendar) -> ForecastLabReader:
+    """Story P2b: G4's committed reports and the committed live and AI forecast records (G3, F1)."""
+    folders = [ROOT / LIVE_FOLDER, ROOT / AI_FOLDER]
+    return ForecastLabReader(ScoreReportsReader(ROOT / SCORES_FOLDER), folders, SessionsAhead(calendar))
 
 
 def build_paper_books(cfg: dict, profile: ProfileSettings) -> PaperBooksReader:

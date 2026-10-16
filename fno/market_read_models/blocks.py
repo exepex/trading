@@ -15,6 +15,7 @@ from .stock_rows import UNIVERSE_FNO, UNIVERSE_FOLLOWED, UNIVERSE_NIFTY_500
 if TYPE_CHECKING:
     from .chain_session import ChainSession
     from .flows_block import FlowsInputs
+    from .forecast_lab_inputs import ForecastLabInputs
     from .frame_inputs import FrameInputs
     from .home_inputs import HomeInputs
     from .paper_trades_inputs import PaperTradesInputs
@@ -43,6 +44,7 @@ class SessionRows:
     flows: FlowsInputs | None = None  # the big investors' flows (P8)
     weather: WeatherInputs | None = None  # M1's weather records for the session (P2a)
     score_reports: list[dict] | None = None  # G4's daily score reports up to the session (P2, forecast history)
+    forecast_lab: ForecastLabInputs | None = None  # G4's latest report and the session's forecast records (P2b)
     paper_trades: PaperTradesInputs | None = None  # each book's paper account and C5's limits (P2c)
 
 
@@ -54,6 +56,12 @@ class BlockBuilder(ABC):
     @abstractmethod
     def build(self, rows: SessionRows) -> dict:
         """The block's stored payload for the session (a paged block: the whole table)."""
+
+    def held(self, previous: dict, rule: str) -> dict | None:
+        """Story P11: the page to publish while this block is held (`PageHeld`), from the previous publication's
+        payload: unchanged by default (a page that stays true for its own session); None for no row (a page whose old
+        payload would state what the rule says is no longer true)."""
+        return previous
 
     def served(self, payload: dict) -> dict:
         """The payload the route serves from the stored one by default (a paged block: its first page)."""

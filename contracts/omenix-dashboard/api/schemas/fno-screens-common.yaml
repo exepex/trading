@@ -90,3 +90,7 @@ FnoForecastHistoryResponse:
   allOf:
     - $ref: '#/components/schemas/FnoScreenMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoForecastHistory'}}}
+FnoPageHoldsResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoPageHolds'}}}

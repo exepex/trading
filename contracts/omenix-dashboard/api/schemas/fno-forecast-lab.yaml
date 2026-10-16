@@ -86,7 +86,7 @@ FnoForecastQuestion:
     kind: {type: string, enum: [probability, variance], x-unit: enum, description: 'probability = a chance 0-1, scored by Brier; variance = a number for how much NIFTY will move, scored by QLIKE'}
     horizon_sessions: {type: integer, minimum: 1, x-unit: sessions, description: Sessions until the answer is known}
     metric: {type: string, enum: [brier, qlike], x-unit: enum, description: 'The miss score: Brier (0 perfect) for chances, QLIKE (lower is better) for variance'}
-    primary_baseline: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: 'The predeclared yardstick it must beat (design 5.3, e.g. baseline_premium_adjusted_implied for V2)'}
+    primary_baseline: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: 'What its registered (primary) comparisons test against: v3: book1_rules (G1 protocol section 8: Book 2 and Book 3 against Book 1; a book against a baseline is secondary, descriptive, never in comparisons); v4: the predeclared baseline (design 5.3, e.g. baseline_premium_adjusted_implied for V2)'}
     status: {type: string, enum: [scoring, waiting_for_data, not_started], x-unit: enum, description: 'waiting_for_data = an input does not exist yet (named in waiting_for); not_started = its protocol is not frozen yet'}
     waiting_for: {type: array, description: 'The missing inputs (waiting_for_data only; empty otherwise)', items: {$ref: '#/components/schemas/FnoMissingInput'}}
     today:
@@ -98,7 +98,7 @@ FnoForecastQuestion:
           required: [made_on, answer_on, values]
           properties:
             made_on: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'forecast_record_v2:date', description: The session the forecast was made (before 15:00)}
-            answer_on: {type: string, format: date, x-unit: date (IST), description: The session the answer is known}
+            answer_on: {type: ['string', 'null'], format: date, x-unit: date (IST), description: "The session the answer is known; null when that session falls in a year whose NSE session calendar is not published yet (shown as not known yet, never guessed; e.g. from about 3 Dec for a 20-session question until NSE publishes next year's holidays)"}
             values:
               type: array
               description: One value per forecaster that forecast today (a missing forecast is left out and counted, never imputed)
@@ -134,7 +134,7 @@ FnoForecastQuestion:
               mean_loss: {type: ['number', 'null'], x-unit: the question's metric, x-fill: built, x-record: 'score_summary:mean_brier', description: 'Mean miss score: Brier (v3, G4''s ScoreSummary.mean_brier) or QLIKE (v4 variance questions: G8 adds it; the record named holds only Brier today); null before any score'}
         comparisons:
           type: array
-          description: Each registered comparison against the primary baseline
+          description: "Each registered (primary) comparison against primary_baseline; secondary, descriptive comparisons never appear here"
           items: {$ref: '#/components/schemas/FnoForecastComparison'}
     settle:
       type: object
@@ -143,7 +143,7 @@ FnoForecastQuestion:
       additionalProperties: false
       required: [status, r, projected_date]
       properties:
-        status: {type: string, enum: [not_measured, projected, beyond_2_years], x-unit: enum, description: 'not_measured = under 60 scored outcomes; beyond_2_years = the card and the owner are told it cannot be settled in useful time'}
+        status: {type: string, enum: [not_measured, projected, beyond_2_years], x-unit: enum, description: 'not_measured = not measured yet: fewer than 60 scored outcomes, or no measurement built yet; beyond_2_years = the card and the owner are told it cannot be settled in useful time'}
         r: {type: ['number', 'null'], exclusiveMinimum: 0, x-unit: ratio, description: 'Spread of the daily loss differences divided by the registered effect; null until measured'}
         projected_date: {type: ['string', 'null'], format: date, x-unit: date, description: 'The projected settle date; null until measured'}
   allOf:
