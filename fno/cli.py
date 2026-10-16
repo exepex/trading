@@ -16,6 +16,7 @@ from .daily.cli import add_daily_parser
 from .desk.cli import add_desk_parser
 from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
+from .factory.cli import add_factory_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
@@ -233,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     add_postmortem_parser(sub)
     add_global_cues_parser(sub)
     add_health_parser(sub)
+    add_factory_parser(sub)
 
     args = p.parse_args(argv)
     try:

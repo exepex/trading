@@ -11,14 +11,13 @@ from dataclasses import asdict, dataclass, fields
 from datetime import date
 from pathlib import Path
 
-from ..constants import V1_RV_1S
+from ..forecast_v4.terms import POINT_QUESTIONS
 from .baselines import OK
 
 LIVE, BACKFILL = "live", "backfill_exploratory"
 BASELINE, RULE = "baseline", "rule"
 SLOT_RULES, SLOT_REPORTED = "rules", "reported"
 VERSION = "1"
-POINT_QUESTIONS = frozenset({V1_RV_1S})  # phase 1: the variance question; the others are probabilities
 
 
 class InvalidRecord(ValueError):

@@ -1,0 +1,33 @@
+{
+ "answer": {
+  "book": "book2_hybrid",
+  "day": "2026-10-16",
+  "export_sha256": "3963f89cb06e0bc47873c5e4babcbba4e9b310e6f509baf21e1d9b8afba5ec0e",
+  "forecasts": {
+   "q1_nifty_up_20d": {
+    "probability": 0.553,
+    "reason": "Book 1 value kept; NIFTY down ~6% from Aug high but no clear edge beyond base rate 0.588 vs risk-neutral 0.518."
+   },
+   "q2_nifty_move_3pct_20d": {
+    "probability": 0.4,
+    "reason": "Book 1 0.393 nudged up: trailing RV20 15.6 above IV30 12.96, recent 1-2% daily swings make a 3% 20d move a bit likelier than base rate 0.352."
+   },
+   "q3_rv20_above_trailing": {
+    "probability": 0.374,
+    "reason": "Book 1 kept: trailing RV20 15.6 is elevated vs IV30 12.96 and VIX 13.95, so mean reversion favours lower future RV; model 0.259, base 0.489."
+   },
+   "q4_vix_up_10d": {
+    "probability": 0.449,
+    "reason": "Book 1 kept; VIX 13.95 mid of its 1-month 13.4-15.3 range, no reason to move."
+   },
+   "q5_rv20_below_atm_iv30": {
+    "probability": 0.58,
+    "reason": "Book 1 0.621 cut: trailing RV20 15.6 already exceeds IV30 12.96 by 2.6 points, so realised vol staying above implied is more likely than the base rate 0.689 implies."
+   }
+  },
+  "model_reported": "unknown",
+  "pack_sha256": "9fb20e4b430acf05508f6a2e27f7649860ea986289da76b6d02ab53c14adb533",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "salt": "cb9478396302c8219eee018f2b25586f"
+}
