@@ -232,7 +232,7 @@ requires them in this text.
   - its registry row (`research`, `approved_by: desk`) by `python -m fno playbook set-status`.
 - **The label's one source:** the version file's `edge_family: measurement` (an existing D1 field, no schema change).
   One predicate, `is_measurement(strategy)`, reads it, and every output below calls it. Its constant is named at the top of the predicate's
-  module (`fno/constants.py` is at its size limit).
+  module, `fno/playbook/measurement.py` (`fno/constants.py` is at its size limit).
 - **Outputs (code):**
   - E6's shadow section shows `<version> (measurement)`;
   - E6's research-loss alert for a measurement uses review 129's wording as one message constant in `pauses.py`;
@@ -284,8 +284,12 @@ requires them in this text.
 - Until part B, B0 is decided and recorded daily but never filled: its account stays at its opening cash.
 
 **Split:**
-- E6's files (`pauses.py`, `report.py`) are shared with E6b's builder (session 0134MoC6f7aAJVcHRBiyATo6): agreement is
-  asked before code.
+- E6's files (`pauses.py`, `report.py`) are shared with E6b's builder (session 0134MoC6f7aAJVcHRBiyATo6). Agreed on
+  16 Oct:
+  - R3 makes both edits. E6b changes only the entries line of `card_lines`, never the title, the shadow section or
+    `pauses.py`; whichever merges second resolves any text conflict and re-runs the full suite;
+  - `is_measurement` is public, in its own module `fno/playbook/measurement.py`, so E6b can read it too;
+  - a test pins the non-measurement title and alert bytes.
 - D1's fields are unchanged; only the new predicate is added.
 - E8's builder (session 01H1CmuWzBtbtjzoQNJUz2Dz) confirmed that E8 adds no caller of the two record readers
   (condition 11 is R3's).
