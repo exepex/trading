@@ -30,10 +30,11 @@ class FiredSession:
     entry: dict  # the fire log's entry: version, session link, time
 
 
-def fired_sessions(root: Path) -> list[FiredSession]:
-    """Every book-day that was actually fired, oldest first."""
+def fired_sessions(root: Path, folder: str = AI_FOLDER) -> list[FiredSession]:
+    """Every book-day that was actually fired, oldest first: the forecasts' by default; story F1t's decision sessions
+    pass their own folder (its fire logs have the same entries)."""
     found = []
-    for path in sorted((Path(root) / AI_FOLDER).glob(f"*/*{FIRED_SUFFIX}")):
+    for path in sorted((Path(root) / folder).glob(f"*/*{FIRED_SUFFIX}")):
         day = date.fromisoformat(path.name.removesuffix(FIRED_SUFFIX))
         for book, entry in sorted(json.loads(path.read_text(encoding="utf-8")).items()):
             if entry.get("fired"):
@@ -68,11 +69,12 @@ def sessions_to_audit(sessions: list[FiredSession], seeds: dict[Week, WeekSeed])
     return sorted([s for s in sessions if s.day in first] + drawn)
 
 
-def record_draws(root: Path, seeds: dict[Week, WeekSeed]) -> list[str]:
+def record_draws(root: Path, seeds: dict[Week, WeekSeed], folder: str = AI_FOLDER,
+                 draws_folder: str = DRAWS_FOLDER) -> list[str]:  # fmt: skip
     """Writes each new week's draw with its seed inputs (written once); returns the files written."""
     written = []
-    for week, chosen in weekly_draws(fired_sessions(root), seeds).items():
-        path = Path(root) / DRAWS_FOLDER / f"{seeds[week].week}.json"
+    for week, chosen in weekly_draws(fired_sessions(root, folder), seeds).items():
+        path = Path(root) / draws_folder / f"{seeds[week].week}.json"
         if path.is_file():
             continue
         record = {"seed": asdict(seeds[week]), "drawn": [[s.day.isoformat(), s.book] for s in chosen]}
@@ -82,7 +84,8 @@ def record_draws(root: Path, seeds: dict[Week, WeekSeed]) -> list[str]:
     return written
 
 
-def audits_due(root: Path, seeds: dict[Week, WeekSeed]) -> list[FiredSession]:
+def audits_due(root: Path, seeds: dict[Week, WeekSeed], folder: str = AI_FOLDER,
+               audits: TranscriptAudits | None = None) -> list[FiredSession]:  # fmt: skip
     """Selected sessions without an audit record yet."""
-    audits = TranscriptAudits(root)
-    return [s for s in sessions_to_audit(fired_sessions(root), seeds) if audits.get(s.day, s.book) is None]
+    audits = audits or TranscriptAudits(root)
+    return [s for s in sessions_to_audit(fired_sessions(root, folder), seeds) if audits.get(s.day, s.book) is None]

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
+from ..ai.audit_plan import FIRED_SUFFIX
 from ..ai.fire_once import Commit, FireOnceLog
 from ..ai.stop_rule import stop_reason
 from ..ai.transcript_audit import TranscriptAudits
@@ -31,7 +32,6 @@ NO_PACKS = "the day's packs are not written ({why}): nothing to decide from"
 LATE_START = "the fire step started {now:%H:%M:%S}, after {latest:%H:%M:%S}: its answer could only be late"
 TOO_BIG = "the pointer is {size} bytes, over the {cap}-byte cap: not sent (never truncated)"
 FLAGGED = "the pointer holds what the public-record scan flags ({kinds}): not sent"
-FIRED_SUFFIX = "_fired.json"
 
 
 @dataclass(frozen=True)

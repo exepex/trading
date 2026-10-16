@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from .ai.cli import add_ai_parser
+from .ai_trading.cli import add_ai_trading_parser
 from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
@@ -222,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
     add_playbook_parser(sub)
     add_margins_parser(sub)
     add_ai_parser(sub)
+    add_ai_trading_parser(sub)
     add_budget_parser(sub)
     add_forecast_parser(sub)
     add_forecast_v4_parser(sub)

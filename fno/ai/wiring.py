@@ -57,8 +57,10 @@ def build_ai_collector(env=os.environ) -> AiForecastCollector:
     return AiForecastCollector(ROOT, history, receipts, AiRecordWriter(ROOT), now_ist)
 
 
-def build_audit_seeds(root=ROOT, env=os.environ) -> tuple[dict, list[str]]:
-    """The weekly audit draws' seeds, each close confirmed in the Drive archive, and one line per refused week."""
+def build_audit_seeds(root=ROOT, env=os.environ, folder: str | None = None) -> tuple[dict, list[str]]:
+    """The weekly audit draws' seeds, each close confirmed in the Drive archive, and one line per refused week; for
+    the forecasts' fired sessions by default, or those of `folder` (story F1t's decision sessions)."""
     drive = storage.build_owner_drive(env)
     archive = DriveIndexCloseArchive(AreaStore(drive, storage.RAW_AREA)) if drive else NoCloseArchive()
-    return verified_seeds(root / CLOSES_FILE, archive, weeks_to_draw(fired_sessions(root)))
+    sessions = fired_sessions(root) if folder is None else fired_sessions(root, folder)
+    return verified_seeds(root / CLOSES_FILE, archive, weeks_to_draw(sessions))
