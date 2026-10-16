@@ -88,3 +88,56 @@ first-line story are kept apart as stated. No duplicate.
   tuple.
 - **One-line note:** criterion 5 still says "each Book 2 failure". Write `book_test` so it matches criterion 6 and the
   family row.
+
+## Addendum 2: O2 story text revision 4 (story/o2-failure-handling at 6fd9cc9f)
+
+**Verdict: FAIL, 1 should-fix.** The rest of revision 4 is correct and checked against main's code.
+
+| Claim | Result | Evidence |
+|---|---|---|
+| `Git.__call__` has no time limit; only `unshallow` has one (120 s) | MET | `fno/desk/git_sync.py`: `self.run(["git", *args], ...)` has no `timeout`; `UNSHALLOW_TIMEOUT_SECONDS = 120.0` |
+| A GitError becomes `CommitFailed` | MET in principle | `GitError` subclasses `AccountWriteRefused`, and `GitCommitter` wraps it (E3) |
+| Row (a): the quote parts start before the download and are waited for after a stop | MET | `fno/daily/runner.py` `run`: `self.parts.start(day)` comes first; `_finish_parts` runs on a stop |
+| Hung command: 600 s, with the whole process group | MET | `fno/daily/steps.py` `COMMAND_LIMIT_SECONDS = 600.0`; `fno/daily/processes.py` uses `os.killpg(..., SIGKILL)` and `start_new_session=True` |
+| Note B closed | MET | `fno/desk/daily_steps.py` 189-192: one `alerts.send`, no own print |
+| Criterion 5 now names `book_test` | MET | diff |
+| The one behaviour exception is named in Out | MET | diff |
+
+### Should-fix 1: a timed-out git call can leave `.git/index.lock`, so "the desk goes on" is false
+The new row says that after a quote part's hung commit the part gets O1's "NOT committed" alert "while the desk goes
+on", and that a hung desk commit gives E3's stop alert. The text does not say *how* the call is stopped. The obvious
+build, `subprocess.run(..., timeout=120)` as `unshallow` does, kills only `git` with SIGKILL.
+
+I tested this on git 2.43, the version in this container. The test used the run's own form, `git commit -q -m m -- a`,
+with a pre-commit hook that hangs, and a SIGKILL after 1.5 s:
+- while the hook runs, git holds `index.lock` and `next-index-<pid>.lock`;
+- after the kill, **both locks stay**, and the next `git add` fails with
+  `fatal: Unable to create '.../.git/index.lock': File exists`;
+- the hook process (in the real run, `tools/check_records.py --alert`, which can post to Slack) is not killed and goes
+  on running.
+
+The path from normal running is a commit or a `pull --no-rebase` merge step stopped at the limit: both run while git
+holds `index.lock`, and the commit runs the O5 hook, so a hook stuck past 120 s (scanning, or its Slack post) is exactly
+such a hang. After it:
+- every later git call of the day fails: each other quote part, the next desk step's commit, the run log;
+- so a hung quote-part commit before `exits` becomes E3's stop at the next desk commit ("exits not reviewed today"),
+  not "the desk goes on";
+- and the next day's routine fails on its first commit until someone deletes the lock by hand.
+
+The row would then be untrue, and a test that fakes the hang at `run` (rather than through a real git and hook) would
+not show it.
+
+**What the text needs** (the builder chooses the design; these are the requirements):
+1. Say how the call is stopped: its whole process group, as O1's `processes.py` already does for child commands, so the
+   hook dies with it.
+2. Say what happens to a lock that call leaves. Either the run removes the lock its own stopped call left (the routine's
+   checkout has one git writer, the run's one thread), or every later git call fails at once with one alert naming
+   the stale lock and the hand fix. Today the text says nothing about the lock.
+3. Add a test row that runs a real git with a hanging hook (the fake stays at the edge: the hook or the remote), stops
+   it at the limit, then checks the next commit of the day: the next quote part and the next desk step. Then check the
+   next day's first commit, so that what happens matches what the row says.
+
+### Notes (not should-fix)
+- A push stopped at the limit may already be accepted by the remote. The alert then says "NOT committed" for a commit
+  that reached main. The hand fix is harmless (nothing left to commit), but the alert wording could say "not confirmed".
+- 120 s for every call is reasoning only, as the text says. Today's pulls and pushes take seconds, so I accept it.

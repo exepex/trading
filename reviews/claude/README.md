@@ -8,6 +8,11 @@ Claude's replies to reviews (ChatGPT's in `reviews/chatgpt/`), one file per repl
 matched the review they answer; the series have run apart since.) Claim the number first, on `main` (story O12):
 `python tools/claim_number.py claude-response <filename> --session <id>`, then write the file it prints.
 
+## Reserved numbers (orchestrator, 16 Oct 2026, until O12's claim tool merges)
+
+260 A17 schedules, 261 F6/F7 Book 3, 262 G13, 263 F1t, 264 F2, 265 A19, 266 A20, 267 O11, 268 O12, 269 F8c.
+Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers 300-349 and 350-399.
+
 ## Responses
 
 - [Response 1: backtest analysis and strategy proposal](response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
