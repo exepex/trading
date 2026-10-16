@@ -86,6 +86,7 @@ V4_CAPTURE_START = time(14, 30)  # the pack's capture starts; G7's and M1's live
 V4_PACK_WINDOW_END = time(14, 40)  # a quote received later is not in the pack; no complete pack: system_late
 V4_DEADLINE = time(15, 10)  # GitHub's receipt time of a family's commitment, never its commit time
 V4_COMMON_SNAPSHOT = time(15, 15)  # A16's 15:15 mark: the skill yardstick and the flag's end level
+V4_LATEST_FIRE = time(14, 55)  # the AI books' latest start: a later run is recorded not_fired (G10 part 2, G11)
 # "Moved after cutoff" X, frozen from `tools/v4_moved_after_cutoff.py` (research/forecasts/v4_moved_after_cutoff.json):
 # nearest-rank 95th percentile of abs(ln(S_15:15 / S_14:30)) over A16b's checked sessions 2020-01-02 .. 2026-10-14.
 MOVED_AFTER_CUTOFF_X = 0.006104597099330481

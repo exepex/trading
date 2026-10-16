@@ -54,3 +54,37 @@ moves no exit.
    the last gate, labelled. Put it to the owner before Book 2's go-live; it does not block F5's code.
 2. **One slot per default trade:** this matches D4's one-choice-against-one-default check, and is simpler. I agree
    (reasoning only).
+
+## Addendum 1: 0b77381f
+
+**Verdict: still FAIL, 2 should-fix findings (one carried over, one sharpened).** Accepted since 6d2b6331:
+- E2c's four pack rules (Book 1's pack SHA-256 unchanged; `canonical_json`; a failing sheet refuses only its own pack;
+  own folders only), in criterion 1;
+- the sheet reads only the canonical snapshot the common pack names;
+- the check is renamed `check_decision`;
+- `seal` refuses private figures.
+
+**Should-fix 1 (carried over): the answer still has no top-level `action`.** Strong evidence: line 76 is still
+`{"slots": [...], "reason": str}`. F1t's base check at `seal` (f1204a5a, lines 184-185) requires `decision.action`
+(text) and `decision.reason`. As written, every Book 2 answer is refused before F5's check is even called.
+
+Fix: add `action` at the top of `decision`. For example, `trade` when any slot trades, `no_trade` when every slot is
+`no_trade` or there are no slots, and `follow_rule` when every slot follows. Have `check_decision` require it to agree
+with the slots.
+
+**Should-fix 2 (sharpened): Book 1's `ReplayedOrders`, reused as written, would order the rule default, not the AI's
+choice.** Strong evidence (code read, `fno/books/book1_orders.py:39-57`). It replays D2's own evaluator and orders
+`evaluation.chosen` whose stored action is "trade". For Book 2, D2's own choice is the rule default; the AI's
+`choose_width`, `reduce_lots` and `choose_strategy` picks come from the `SelectionAllocator` and its rebuild. A plain
+reuse "parametrised by book" would fill the default's terms while the record says the AI's.
+
+Fix: as F6's `Book3Orders` does, hand `ReplayedOrders` an evaluator rebuilt with the `SelectionAllocator` and the
+picks stored in the run's `inputs.json` (`selection`). Extend criterion 9:
+- a `choose_width` run orders the rebuilt width;
+- a changed stored pick refuses every order;
+- a C4 block, or a shadow-only choice's AI terms, is never ordered (the account gets the default);
+- editing today's version file moves no exit.
+
+Minor findings from the verdict, still open:
+1. On the shadow-only path, the default itself passes C2 and C4 in the same run.
+2. Name the C4 mode the unproven re-check changes, with a test that Book 1's C4 behaviour is unchanged.
