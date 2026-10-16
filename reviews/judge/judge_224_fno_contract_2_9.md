@@ -45,3 +45,17 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
   change of `inputs.backfill_sha256`. The contract could carry a per-point input hash, or say so.
 - **`mean_loss` for v4 (QLIKE):** "G8 adds it; the record named holds only Brier today". It is honest that the v4
   series will be empty until G8 publishes it.
+
+## Addendum 1: head 709cb8c (main 1972241 merged in)
+
+**PASS.**
+
+- 709cb8c contains 1972241 (`--is-ancestor` passes). `api/` and `tools/` are unchanged from be3629c, so the content
+  judged above stands.
+- **Gates:**
+  - `check_contract` and `check_fno_screens` exit 0;
+  - re-running `sync-design` leaves the tree clean, so the fixture is exact;
+  - `npm test` gives 499 passed, 0 failed, 0 skipped. W3a part 2 still passes on the 2.9 fixture: it reads only the
+    2.8 fields.
+- **Still a note, not a block:** the planted "also" mismatch is a manual check (yours and mine), not a committed
+  planted break. Add it to the checks' planted list when next touching `check_fno_screens.py`.
