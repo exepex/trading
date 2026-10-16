@@ -156,3 +156,16 @@ def test_a_book_and_a_shadow_record_of_one_opportunity_both_survive_and_a_true_c
     with pytest.raises(RecordClash, match="sc-a-v1_2026-11-27.json"):
         store.write(DAY, f"{DAY}-r2", None, [book, book | {"risk": None}])
     assert [r.name for r in store.runs(DAY)] == [f"{DAY}-r1"]  # nothing of the refused run was written
+
+
+@pytest.mark.parametrize("book", ["book1_rules", "book2_hybrid", "book3_ai"])
+@pytest.mark.parametrize("override", ["journal/book2_hybrid/owner_overrides.csv#3", "", {"reason": "x"}])
+def test_an_owner_override_is_refused_for_every_book(tmp_path, book, override):
+    """DESK_DECISIONS row 229 item 4: the owner never overrides a paper decision; any value but null is refused."""
+    record = records(run_day(tmp_path, snapshot(doc("sc-a"))))["no_trade"]
+    record.update(book=book, model_served="m", session_id="s", strategy_id="x", strategy_spec_sha256="y",
+                  authority_check="allowed: follow_rule")  # fmt: skip
+    validate_record(record)
+    record["owner_override"] = override
+    with pytest.raises(RecordError, match="owner never overrides"):
+        validate_record(record)

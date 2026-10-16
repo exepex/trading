@@ -36,6 +36,8 @@ NULLABLE = {
 }
 PER_OUTCOME = ("book", "chosen_action", "reason", "rule_default")  # set per record, not by the run
 LINKS = {"version_id", "judge", "owner_override", "forecasts"}  # filled when they exist (D6, C4/F4, F4, G3)
+# The owner never overrides a paper decision (owner, 16 Oct 2026, DESK_DECISIONS row 229 item 4): null in every book
+ALWAYS_NULL = ("owner_override",)
 
 
 class RecordError(ValueError):
@@ -131,8 +133,8 @@ def run_context_of(record: Mapping) -> dict:
 
 
 def validate_record(record: Mapping) -> None:
-    """RecordError unless the record has exactly the schema's fields, its version, and every three-book field filled
-    except where its book has none (criterion 6)."""
+    """RecordError unless the record has exactly the schema's fields, its version, every three-book field filled
+    except where its book has none (criterion 6), and no owner override in any book."""
     if record.get("schema_version") != SCHEMA_VERSION or record.get("kind") != KIND:
         raise RecordError(f"schema_version must be {SCHEMA_VERSION} and kind {KIND!r}")
     missing, unknown = sorted(set(FIELDS) - set(record)), sorted(set(record) - set(FIELDS))
@@ -144,6 +146,9 @@ def validate_record(record: Mapping) -> None:
     empty = [key for key in THREE_BOOK if record[key] is None and key not in allowed_null]
     if empty:
         raise RecordError(f"{record['book']} must fill {empty}")
+    overridden = [key for key in ALWAYS_NULL if record[key] is not None]
+    if overridden:
+        raise RecordError(f"{overridden} must be null: the owner never overrides a paper decision")
     served = record["served"]
     if not isinstance(served, Mapping) or not served or not all(isinstance(v, str) and v for v in served.values()):
         raise RecordError("served: every component the decision used, as non-empty text")
