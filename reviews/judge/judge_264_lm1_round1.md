@@ -66,3 +66,30 @@ Add a test: a position expiring past the calendar's end is still checked for los
 
 `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto -p no:cacheprovider`: 7,253 passed. `ruff check`: clean.
 `ruff format --check`: 1,287 files already formatted. `check_imports`: clean. Every file is under 350 lines.
+
+## Addendum 1: the fix at 631ff266 (only `git diff 798e9f3b 631ff266`)
+
+**PASS for round 1 plus this fix, with a merge condition.** Branch head 631ff266 also carries round 2a (798e9f3b: the
+mark reader, private alert records, public mark rows, heartbeat, silent check, alert seam). That is unjudged lane-1
+work and this verdict does not cover it. Merge either round 1 plus this fix alone (the fix cherry-picks onto 15886d25
+with only the claims file conflicting; I did exactly that), or wait for round 2a's own verdict.
+
+| Item | Result | Evidence |
+|---|---|---|
+| A far expiry needs no calendar | MET | `ExpiryNear._one` returns early when the expiry is more than `7 x (N + 1)` calendar days away; NSE's longest gap is 5 days (pinned below 7 by a test), so the bound is safe |
+| A near expiry past the calendar's end is a named WARNING; the other checks run | MET | `CalendarError` becomes `expiry_uncounted` with the calendar's words |
+| Any one check's failure is isolated | MET | `PositionMonitor._run`: a raising check gives its own `check_failed` WARNING (class name only, so no value leaks) |
+| Texts for the two new conditions | MET | in `ACTIONS`; prefix, first-line and no-exit/close tests |
+| My judge-264 reproduction | FIXED | on round 1 plus the fix, 1 Dec 2026 with a 28 Jan 2027 expiry at 90% loss gives `loss_used DANGER` and `short_strike_near DANGER`. On 28 Dec 2026 with a 4 Jan 2027 expiry, the same plus `expiry_uncounted WARNING` |
+| Exit-rule once-per-session note for the owner | written in the claims |
+
+**My mutations on round 1 plus the fix:**
+- The far-expiry bound removed: 1 test fails.
+- `CalendarError` no longer caught in `ExpiryNear`: 1 test fails.
+- The isolation narrowed to `KeyError` only: **survives** (75 passed). The isolation test raises one exception type.
+  The builder's own "isolation removed" mutant is killed, so this is a note: a second broken check raising another
+  type (e.g. `TypeError`) would pin "any exception".
+
+**Gates (run by me on 15886d25 with 631ff266 cherry-picked, the claims file restored):** 7,253 passed (`-n auto`).
+The only failures before restoring were the conflicted Markdown file's conflict-marker and record-scan tests. `ruff
+check`: clean. `ruff format --check`: 1,287 files already formatted. `check_imports`: clean.
