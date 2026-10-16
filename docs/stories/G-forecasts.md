@@ -347,6 +347,167 @@ judge (rule 1)
 
 ---
 
+## G7b. v4 baselines and rule forecasters, phase 2 (V2, V3 and V7 now; the implied baselines, V5 and V4 later)
+
+**Repository:** trading · **Lane:** 1 (it decides forecast and evaluation records) · **Judge:** D (judged G7 phase 1)
+
+**Description:** As the quantitative modeller, I want the remaining v4 questions (V2, V3, V4, V5, V7) to have their
+protocol baselines and one simple rule forecaster each, computed point in time and recorded like phase 1, so that G8
+can score them and the V2 idea ("buy protected movement when forecast movement is above implied") has the numbers it
+needs.
+
+**Context and why:** The owner's decision of 16 Oct 2026 (`docs/DESK_DECISIONS.md`, "Books 2 and 3: D4 and D5 code
+starts now; ... G7 phase 2 start now"). The decision "v4 freezes with V6a/V6b (V1 when A16 is ready); V2-V5 later in G7
+phase 2 under their own record". REPLAN slice B ("G7 phase 2 (V2-V5, V7)"). Protocol v4 sections 1.2-1.5, 3.1-3.2,
+5.6 and section 3 of `PROTOCOL_v4_calibration.md` (V7 descriptive only). G7 phase 1 is on main
+(`fno/forecast_v4_rules/`). G10 moved v4's clock to the pack observed 14:30-14:40; its protocol text is not yet
+applied on main (`PROTOCOL_v4.md:38` still says 15:00).
+
+**Does this change a trade or stop decision?** Not directly.
+- V3, V4 and V5 are reported only (`terms.REPORTED_ONLY`). V7 is descriptive only (`terms.DESCRIPTIVE_ONLY`). V2 is a
+  family member, but protocol 11 D says it will almost surely never be claimed (about 8-22 years of outcomes).
+- Its use is the V2 idea's inputs (R3, `docs/stories/R-factory.md:54`) and the descriptive implied-against-realised
+  comparisons. That comparison is the volatility risk premium every option-selling idea rests on, measured forward
+  rather than on spent history.
+- Said plainly: nothing here makes a trade profitable. It gives the numbers that can show whether one is.
+
+### What exists and what is missing (checked on main a24cfa0d)
+
+| Need | State | Evidence |
+|---|---|---|
+| Closes, VIX closes, close-proxy RV | on main | `series.py`; 2,411 regular rows 2 Jan 2017-15 Oct 2026, each with a VIX close |
+| Trailing, EWMA, HAR, base rate | on main, horizon-generic | `baselines.py`: `Ewma.forecast(d, h)`, `Har(rv, h, ...)`, `BaseRate(outcomes)` |
+| EOD IV30 proxy (premium ratio window) | on main | `fno/forecast/iv30.py` `PanelAtmIv30`. Measured today on the panel, 1 Jan 2024-15 Oct 2026: 686 regular sessions, **647 unflagged**, 39 flagged single-expiry (15/13/11 by year). Strong evidence that the 500 minimum holds, as protocol 3.1 assumed |
+| v4 pack (14:30-14:40: spot, future, chains, IV30, `observed_at`, SHA-256) | **not built** | only the day-label reader (`fno/forecast_scoring/v4/days.py`); G10's next step, A16/G8 builder (`WORK_REGISTER.md` row "G10 v4 timeline") |
+| A4 at 14:30 with two monthlies | A4 records the two nearest monthlies, but at 14:55-15:10 | `fno/quotes/recorder.py:36` |
+| A16 weekly ATM bid/ask | recorded only inside the raw Groww payload; no parser | `fno/intraday/groww_source.py`, `document.py` |
+| V4 and V5 outcomes | nobody resolves them | `fno/forecast_scoring/v4/scoring.py:26` prints "not started"; `units.v4_outcome` and `settlement.v5_outcome` are uncalled |
+| V5 outcome `first_seen_at` | no ready source | the bhavcopy manifest has no time; A8's `release_times.first_seen_times` is the nearest source |
+
+### Scope, in four parts (each judged on its own branch; part a first)
+
+- **Part a (closes only; proposed before the v4 freeze, see question 1):**
+  - V2 and V3: the trailing, EWMA and HAR daily baselines on the close proxy, plus a rule forecaster for each.
+  - V7: the base rate (its primary baseline) and a rule forecaster.
+  - Back-fill and live capture as phase 1.
+  - Needs no pack and no new data.
+- **Part b (needs G10's pack):** V2 and V3's raw implied and premium-adjusted implied baselines (V2/V3's primary).
+  - The ratio window comes from the EOD proxy, back-filled from 2024 (exploratory).
+  - The daily `(day, pack IV30, EOD IV30)` series that G8's `diagnostics.proxy_drift` needs.
+- **Part c (needs the pack and V5's outcome source):** V5's option-implied probability (primary, Brier); V5's outcome
+  resolution in G7's rule module (G8 imports it, as `series.py`); V5's base rate.
+- **Part d (needs an A16 weekly quote parser):** V4's outcome resolution and base rate. **Recommended: defer** (question
+  4).
+
+**Out:** building the pack (G10's), scoring and reports (G8), the freeze records (G6, and V2-V5's own record), adding
+captures to the routine (a schedule change at go-live), the AI books' V-answers (G11). Moving records to Drive is also
+out: phase 2 writes in phase 1's layout, which G8 reads; story O9 moves data files step by step and is not this story.
+
+### Part a, exact rules (zero fitted parameters, design 5.7 rule 5)
+
+- **V2 and V3 baselines** (protocol 3.1, `h` = `terms.HORIZON_SESSIONS`: 5 and 20; the close proxy for the whole of v4,
+  protocol 1.1):
+  - **Trailing:** the sum of close-proxy `RV_s` over the last `h` sessions before `d`. Phase 1's point-in-time reading
+    of "ending at `d`": `d`'s own close is not known at the cutoff.
+  - **EWMA:** `h x s2` at the last session before `d`.
+  - **HAR daily:** `Har(rv, h, sessions)`, horizon `h`.
+  - Each is missing when not strictly positive.
+- **Rule forecasters:**
+  - `v2_close_blend` (V2, proposed for V2's `rules` slot) and `v3_close_blend` (V3, reported): the mean of HAR daily
+    and EWMA at that horizon; missing when either input is missing. This is phase 1's `v1_close_blend` with the
+    question's horizon (reasoning only, the same equal-weight argument).
+  - `v7_vix_vs_mean20` (V7, reported; V7's slots stay at p = 1 in v4): the share of "VIX higher in 5 sessions" among
+    the most recent 750 resolved outcomes whose day `t` was on the same side of its trailing 20-session VIX mean as
+    `d` is (both means taken over the 20 sessions before `t` and before `d`; strictly above counts as "above"). At
+    least 500 such outcomes, else missing.
+  - Why this V7 rule: it is exactly the rival `PROTOCOL_v4_calibration.md` section 3 already measured. It adds no new
+    look at spent data and needs no new disclosure (reasoning only).
+- **V7 base rate:** phase 1's `BaseRate` on V7 outcomes `VIX(t+5) > VIX(t)` (strict). The outcome rule goes into
+  `series.py` beside `vix_closes`, so G8's `SeriesOutcomes` and G7 share one rule. G8 forms V7 today in
+  `fno/forecast_scoring/v4/outcomes.py`, so this is agreed with its owner first (question 3).
+- **Records:**
+  - Phase 1's layout and `records.write` are used unchanged.
+  - `records.POINT_QUESTIONS` becomes `terms.POINT_QUESTIONS` (V1-V3), so a V2 or V3 variance is validated as a
+    variance.
+  - New forecaster ids go in `fno/constants.py`.
+
+### Parts b-d, rules to settle in the protocol text before the v4 freeze (questions 1-2)
+
+The v4 freeze hashes `PROTOCOL_v4.md`, so wording questions about V2-V5's methods must be settled before 22-23 Oct
+even if their code comes later:
+- **Flagged IV30 on a live day:** the ratio window already drops flagged days (protocol 3.1). Proposed: on a live day
+  whose pack IV30 is flagged (single expiry), raw and premium-adjusted implied are **missing** (counted, never
+  filled). One estimator then runs through the window and the forecast.
+  - G10 notes that an `A2` day's IV30 is usually flagged, so `A2` days lose V2's primary.
+  - Reasoning only. The alternative is to keep flagged values with a label, which mixes two estimators in one scored
+    series.
+- **V5 and V4 base rates:** live outcomes only. V5 needs about 2 years of daily outcomes to reach 500; V4 needs about 2
+  years of A16 days. Until then the base rate is `not_eligible` (V4's is already said, protocol 3.1).
+  - Proposed for V5 too: no EOD history fills it. V5's back-fill from traded closes has no bid/ask, so the 5% spread
+    rule of 1.5 cannot be applied.
+- **V5's outcome `first_seen_at`:** A8's release-check log (`fno/research_data/release_times.first_seen_times`) for
+  the expiry day's bhavcopy. A day without a check row stays unresolved (never "now").
+
+### Acceptance criteria for part a (each with a test; real cases: positive, negative, boundary, empty)
+
+1. **V2 and V3 inputs:**
+   - Trailing, EWMA and HAR daily at `h` = 5 and 20 reproduce hand-computed values on a fixture.
+   - A forecast for `d` never reads `d`'s close (a look-ahead test: changing `d`'s close changes no forecast for `d`).
+   - Each is missing when not strictly positive.
+2. **V2 and V3 rule forecasters:** `v2_close_blend` and `v3_close_blend` equal the mean of their two inputs; missing
+   when either is missing.
+3. **V7 outcome:**
+   - `VIX(t+5) > VIX(t)`: a tie is "no", one tick up is "yes". It is resolved at `t+5`'s close over regular sessions only.
+   - G8's existing V7 outcomes are reproduced exactly from the shared rule; G8's tests are left unedited.
+4. **V7 base rate:** the most recent 750 resolved outcomes before the cutoff; 499 missing, 500 present.
+5. **`v7_vix_vs_mean20`:**
+   - The side test: strictly above is "above", equal is "below or equal".
+   - The conditional share is hand-computed on a fixture.
+   - It is missing below 500 matching outcomes.
+   - A look-ahead test: a later VIX close changes no earlier forecast.
+6. **Records:** V2 and V3 values are validated as variances (finite and > 0; 0 or negative refused); V7 values as
+   probabilities in [0, 1].
+7. **Back-fill:** from 2017 closes, every row `backfill_exploratory`, ending before the first live day. A re-run writes
+   identical files. **Phase 1's rows are byte-identical before and after** (V6 and V1 files unchanged).
+8. **Live capture:** before the 14:30 cutoff only (phase 1's `capture_day`); after it, nothing is written and the
+   command says so.
+9. **Size and design:** every file stays under 350 lines. No `fno/forecast_v4/` rule is re-implemented. The method hash
+   covers the new files.
+
+Parts b-d get their own criteria in their own text once their blockers clear: the pack's format, agreed with its
+builder, and question 4.
+
+### Questions for the orchestrator and the owner (recommendation first, each marked)
+
+1. **Does part a go inside the v4 freeze of 22-23 Oct?** Recommended: yes, if judge D can pass it before then.
+   - Then V2's `rules` slot has a registered forecaster from the first counted day, and phase 1's files are hashed once,
+     with V2/V3/V7 included.
+   - Otherwise part a goes into V2-V5's own record later, and must not touch the frozen phase 1 files (a new package
+     `fno/forecast_v4_phase2/`, phase 1's code imported unchanged).
+   - Reasoning only.
+2. **Do the three protocol wordings above go into `PROTOCOL_v4.md` before the freeze?** Recommended: yes.
+   - Otherwise they become a new protocol version later.
+   - The G6 text owner writes them, or I propose them to the G6 owner.
+3. **V7 outcome rule's home:** move it into `series.py` (G8 imports it), as agreed for V6. The A16/G8 builder
+   (01VK88LxJvV1Gi7Wbr3D4fzp) must agree first.
+4. **V4 (part d): defer.**
+   - Its only baseline needs about 2 years of A16 days, and it is a reported diagnostic.
+   - Recommended: build it only when G11's AI books answer V4, so their V4 rows can be scored. Reasoning only.
+5. **The pack (parts b-c):** I build nothing for it. I agree its fields with the A16/G8 builder: spot, the `e` future,
+   chain mids with bid and ask, IV30 with its flag, and `observed_at`.
+
+**Known limits:**
+- V2 and V3 on the close proxy carry noise; QLIKE still ranks correctly (protocol 1.1, Patton 2011).
+- `v7_vix_vs_mean20` was measured as regime-dependent (calibration section 3).
+- All back-fill is spent data and exploratory (protocol 8).
+- Parts b-c wait on the pack. Until then V2's primary is missing every day, so no V2 comparison exists (it is counted,
+  never filled).
+
+**Depends:** G7 phase 1 (merged), G6 (merged, not frozen), G8 (V7 outcomes), G10's pack (parts b-c), A16 (part d) ·
+**Size:** part a S, parts b-c M, part d S · **Status:** story text for judge D
+
+---
+
 ## G8. Protocol v4 scoring, comparisons and the two looks
 
 **Repository:** trading
