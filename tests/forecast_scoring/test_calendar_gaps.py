@@ -47,4 +47,16 @@ def test_the_weekly_summary_names_the_days_and_an_older_report_without_the_field
     assert not any(LABEL in line for line in weekly_summary(document))  # a report written before the field existed
     document["calendar_limited_days"] = [{"day": "2026-11-17", "questions": ["q1_nifty_up_20d"], "label": LABEL}]
     line = next(line for line in weekly_summary(document) if LABEL in line)
-    assert line == "Book 1's Q1 and Q2 averaged two baselines on 1 live days (baseline missing: calendar): 2026-11-17"
+    assert line == "Book 1's Q1 and Q2 were the base rate alone on 1 live days (baseline missing: calendar): 2026-11-17"
+
+
+def test_book1_s_q1_and_q2_are_the_base_rate_alone_when_baseline_a_is_missing():
+    """Judge 253: the summary's wording rests on Book 1's method, the mean of baseline A and the base rate on Q1-Q2."""
+    from fno.forecast.book1_method import book1_probabilities
+
+    q1 = "q1_nifty_up_20d"
+    both = book1_probabilities({"baseline_a_risk_neutral": {q1: 0.5214}, "baseline_b_base_rate": {q1: 0.5907},
+                                "baseline_c_model": {q1: None}})  # fmt: skip
+    alone = book1_probabilities({"baseline_a_risk_neutral": {q1: None}, "baseline_b_base_rate": {q1: 0.5907},
+                                 "baseline_c_model": {q1: None}})  # fmt: skip
+    assert round(both[q1], 4) == round((0.5214 + 0.5907) / 2, 4) and alone[q1] == 0.5907

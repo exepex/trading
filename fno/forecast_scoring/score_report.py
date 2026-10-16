@@ -112,7 +112,9 @@ def weekly_summary(document: dict) -> list[str]:
     limited = document.get("calendar_limited_days") or []  # reports before 16 Oct 2026 have no such field
     if limited:
         days = ", ".join(d["day"] for d in limited)
-        lines.append(f"Book 1's Q1 and Q2 averaged two baselines on {len(limited)} live days ({CALENDAR_NOTE}): {days}")
+        lines.append(
+            f"Book 1's Q1 and Q2 were the base rate alone on {len(limited)} live days ({CALENDAR_NOTE}): {days}"
+        )
     if document["unverified_live_days"]:
         lines.append(
             f"Not scored (files differ from the capture receipt): {', '.join(document['unverified_live_days'])}"
