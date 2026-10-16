@@ -1,6 +1,7 @@
 """Story C2 end to end: the risk manager as the app wires it (config.yaml `risk`, B2's cost model), its decision record,
 and failing closed on unusable inputs."""
 
+import csv
 from datetime import date, timedelta
 
 import pytest
@@ -85,30 +86,51 @@ def test_the_repository_settings_refuse_every_trade_until_margin_rows_are_entere
     assert not decision.ok and not margin.ok and "input not usable" in margin.reason
 
 
-def _repository_factor_on(tmp_path, day):
-    """The repository's own factor file (story C2d: the owner's seed, 1.45 as_of 14 Oct, 30 days), with a fresh
-    margin row for `day` (A14's job writes these daily)."""
+SEED_ONLY = HEADER + '2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,\n'
+
+
+def _factor_on(tmp_path, day, factor_path):
+    """A decision on `day` with `factor_path` as the factor file and a fresh margin row (A14 writes them daily)."""
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + f"\nSF,200,40000,0,0,test calculator,{day}\n")
-    factor = load_app_config()["risk"]["stressed_margin"]["factor_file"]
-    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": {"factor_file": str(ROOT / factor)}}}
+    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": {"factor_file": str(factor_path)}}}
     manager = build_risk_manager(load_app_config(overrides=overrides), tmp_path)
     new = proposal("new", FLY, 200, short_fly(25000, 200), day + timedelta(days=14))
     decision = manager.evaluate(new, book(), market(25000, PRICES, day + timedelta(days=14), day=day))
     return decision, next(v for v in decision.verdicts if v.rule == "margin_room")
 
 
+def _seed_only(tmp_path):
+    """The owner's seed alone (1.45 as_of 14 Oct, 30 days): the age rule's fixture; A14c's rows never move it."""
+    path = tmp_path / "seed_only.csv"
+    path.write_text(SEED_ONLY, encoding="utf-8")
+    return path
+
+
 @pytest.mark.parametrize("day", [date(2026, 10, 15), date(2026, 11, 13)])  # from the day after the seed (as_of < d)
 def test_the_owner_s_factor_lets_a_valid_trade_open_through_its_30th_day(tmp_path, day):
-    decision, margin = _repository_factor_on(tmp_path, day)
+    decision, margin = _factor_on(tmp_path, day, _seed_only(tmp_path))
     assert decision.ok, decision.reasons
     used = margin.numbers["stress_factor_row"]
     assert used["factor"] == "1.45" and used["as_of"] == "2026-10-14"
 
 
 def test_from_the_31st_day_every_trade_is_refused_until_the_factor_is_renewed(tmp_path):
-    decision, margin = _repository_factor_on(tmp_path, date(2026, 11, 14))
+    decision, margin = _factor_on(tmp_path, date(2026, 11, 14), _seed_only(tmp_path))
     assert not decision.ok and "stressed margin multiplier of 2026-10-14 is not valid on 2026-11-14" in margin.reason
+
+
+def test_the_repository_s_file_is_read_by_its_own_rule(tmp_path):
+    """Config names the real file, and C2 uses its latest row dated strictly before the day, whatever A14c has added
+    (append-only, so the seed stays in force on 15 Oct, the day after it, forever)."""
+    path = ROOT / load_app_config()["risk"]["stressed_margin"]["factor_file"]
+    all_rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    latest = max(date.fromisoformat(r["as_of"]) for r in all_rows)
+    for day in (date(2026, 10, 15), latest + timedelta(days=1)):  # the seed's next day, the latest row's next day
+        before = [r for r in all_rows if date.fromisoformat(r["as_of"]) < day]
+        _, margin = _factor_on(tmp_path, day, path)
+        used = margin.numbers["stress_factor_row"]
+        assert (used["as_of"], used["factor"]) == (before[-1]["as_of"], before[-1]["factor"])
 
 
 @pytest.mark.parametrize(
