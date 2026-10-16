@@ -36,6 +36,7 @@ class ValidityProposal:
     earlier: tuple[ValidityProposal, ...] = ()  # the book's trades chosen earlier the same day that passed C4
     open_terms: Mapping[str, tuple[str, float, int]] = field(default_factory=dict)  # open trade -> recorded terms
     premium_reserved: float = 0.0  # premium held for pending orders (E4)
+    rule_default: object | None = None  # Book 2 (story D4): the rule's own terms (a BookTerms), None when no trade
 
     @property
     def units(self) -> int:
