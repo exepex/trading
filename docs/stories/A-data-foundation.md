@@ -1292,19 +1292,35 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   run appends its row, the job commits; a weekly run keeps the row fresh (`max_age_days` 30 leaves three missed weeks
   before C2 refuses);
 - one #fno-desk line per run: the factor in force, the change, `applied` or `held`, and the peak's window;
-- **A14c part 2 (orchestrator, 16 Oct 2026: built after part 1 merges, with its own judge; judge 237 note 3):** the
-  broker check of owner question 4, one step in the daily Claude routine that already holds Groww's read-only
-  access (never in GitHub Actions, which holds no broker key); the routine's prompt is story O1's, so this story adds
-  the command and O1 adds its one line (judge 173 addendum 3, note 1): `python -m fno margins stress-broker-check`
-  runs in every session's daily run, first, before the 3 pm quote parts (so its Groww requests never overlap the 14:55
-  capture); it checks the latest `applied` row once: one read-only Groww margin request for the SF 100 basket on the
-  latest A14 row, compared with that row, and appends the result to `research/data/margins/stress_broker_check.csv`
-  (append-only: the factor row's `as_of`, the check time, both figures, `ok` or `mismatch`); if that `applied` row
-  already has a result, or the latest row is `held`, it prints "nothing to check" and exits 0 (idempotent); a Groww
-  failure exits 1 and the next session retries; it writes no other path. It runs only in market hours (Groww recheck,
-  16 Oct 10:42 IST: SPAN within Rs 0.25 of the row; at 00:12 IST Groww was still on the previous day's file, +Rs 155).
-  Part 1 (the recompute, the factor row, its line and the weekly workflow) does not wait for it: the check never holds
-  the factor.
+- **A14c part 2: the daily Groww broker check of every A14 row (orchestrator, 16 Oct 2026: built after part 1, its own
+  judge; widened the same day from "the SF 100 basket once per applied factor row" to every structure and width, because
+  a broker's margins cannot be fetched later: each unrecorded day is lost, gap audit part A2).**
+  `python -m fno margins broker-check` runs in the daily Claude routine, which holds Groww's key (never GitHub Actions,
+  which holds none). It runs first, before the 3 pm quote parts, so its requests never overlap the 14:55 capture; the
+  routine's prompt is story O1's, so this story adds the command and O1 adds its one line (judge 173 addendum 3, note
+  1). It works in market hours only: on a session day of A7's calendar, 09:30 to 14:30 IST. Outside them it prints
+  "outside market hours" and exits 0, because before the open Groww may still be on the previous day's file (16 Oct:
+  +Rs 155 at 00:12 IST; within Rs 0.25 at 10:42 IST).
+  - **What it checks:** each of the day's A14 rows (every structure and width in `margins.csv` for today), one
+    read-only Groww margin request per basket (`get_order_margin_details`, the row's legs at the file's prices: Groww
+    ignores the limit prices sent). SPAN: Groww's `span_required` against the row's `max(0, scan - NOV)`, within Rs 1
+    a lot. Exposure: Groww's `exposure_required` against the row's exposure rebased to Groww's implied index (Groww
+    charges exposure on the live index, the row on the last close), within 0.1% (orchestrator, 16 Oct, some evidence:
+    one basket on one day).
+  - **Read-only by construction:** the Groww client is reached only through an allow-list that admits the margin
+    calculator and the constants it needs; every other name, every order call included, is refused before the SDK
+    (A16's `ReadOnlyGroww`, given an allow-list per caller with A16's owner; a test proves `place_order`,
+    `modify_order` and `cancel_order` are refused).
+  - **Record (story O9 and O10's format):** every run writes one write-once file through O9's data store:
+    `data/margins/broker_checks/<as_of>/<run time IST>.csv`. Its SHA-256 receipt is committed, and nothing is appended
+    in GitHub. One row per basket: the check time, `as_of`, structure, width, both figures for SPAN and exposure, the
+    status (`ok`, `mismatch`, `error`) and its detail.
+  - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
+    and exits 0. An `error` row is retried by the next run.
+  - **Alerts:** one #fno-desk line per run with the counts and every mismatch and error. A Groww failure (sign-in,
+    network, a refused request) is an `error` row and the line, and exits 1. A run that cannot write its record also
+    sends the line and exits 1.
+  - **Never holds the factor:** the check is evidence. A mismatch is the owner's to judge, and part 1's rows are NSE's.
 
 Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
 
@@ -1369,9 +1385,11 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
    with an empty `unrounded` (the owner seed) the run is `--full` and the seed's 1.45 is not a floor (test: planted
    files whose true maximum is 1.30 give `computed` 1.30, then `held` against the seed's factor 1.45).
 10. Alerts (part 1): one #fno-desk line per run with the factor, the change, the status and the peak (test). Broker
-   check (part 2, its own judge): a Groww mismatch beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
-   is read-only and places nothing); a second broker check of the same `applied` row writes nothing and prints
-   "nothing to check" (test).
+   check (part 2, its own judge): on planted Groww answers, an `ok`, a SPAN mismatch over Rs 1, an exposure mismatch
+   over 0.1% after rebasing and a Groww error each give the right status row and the one line (tests); a second run on
+   the same day prints "nothing to check" and writes nothing (test); outside market hours it writes nothing (test);
+   every order call is refused by the allow-list (test); the record goes through O9's store with its receipt (test on
+   a planted store); the live check is read-only and places nothing.
 11. Code size, lint, imports and the full suite pass.
 
 **Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; judge
