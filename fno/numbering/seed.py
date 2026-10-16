@@ -23,8 +23,8 @@ def seed_registries(root: Path) -> int:
         path = root / category.registry
         registered = Counter(category.key(row.number, row.name) for row in read_rows(path))
         for item in numbered_items(root, category):
-            key = category.key(item.number, item.name)
-            if registered[key]:
+            key = next((k for k in category.keys_for_file(item.number, item.name) if registered[k]), None)
+            if key is not None:
                 registered[key] -= 1
                 continue
             append_row(path, Row(item.number, item.name, SEEDED))

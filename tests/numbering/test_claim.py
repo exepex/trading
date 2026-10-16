@@ -186,3 +186,11 @@ class _Wrapped:
 
     def __exit__(self, *exc):
         return self._context.__exit__(*exc)
+
+
+def test_a_reserved_number_is_taken(tmp_path):
+    reserved = {**MAIN, "numbers/claude-response.csv": MAIN["numbers/claude-response.csv"] + "9,response_9_*.md,o,t\n"}
+    clone, _ = origin_and_clones(tmp_path, reserved)
+    assert claimer(clone).claim(request()).number == "10"
+    with pytest.raises(ClaimRefused, match="claude-response 9 is already taken"):
+        claimer(clone).claim(request(exact="9"))

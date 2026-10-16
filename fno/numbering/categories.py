@@ -38,6 +38,11 @@ class Category:
         """What ties a file to its registry row: its number and file name."""
         return number, name
 
+    def keys_for_file(self, number: str, name: str) -> tuple[object, ...]:
+        """The row keys a file can be registered under: its own name, or a reservation `<prefix>_<n>_*.md` made
+        before the file's name was known (the orchestrator's reservations, 16 Oct 2026)."""
+        return self.key(number, name), self.key(number, f"{self.prefix}_{number}_*.md")
+
 
 @dataclass(frozen=True)
 class AddendumCategory(Category):
@@ -53,6 +58,9 @@ class AddendumCategory(Category):
     def key(self, number: str, name: str) -> object:
         """A heading names no label, so its number alone ties it to its row."""
         return number
+
+    def keys_for_file(self, number: str, name: str) -> tuple[object, ...]:
+        return (number,)
 
 
 CLAUDE_RESPONSE = Category("claude-response", "reviews/claude", "response")

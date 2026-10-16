@@ -176,3 +176,14 @@ def test_the_seed_registers_history_once_with_its_duplicates_and_pins_it(tmp_pat
     assert (root / "numbers/claude-response.csv").read_text() == (
         HEADER + "1,response_1_a.md,existing,\n1,response_1_b.md,existing,\n"
     )
+
+
+def test_a_reservation_row_holds_its_number_and_registers_the_file_when_it_lands(tmp_path):
+    reserved = f"3,response_3_*.md,session_orchestrator,{STAMP}\n"
+    root = checkout(tmp_path, "claude-response", CLEAN_REGISTRIES["numbers/claude-response.csv"] + reserved)
+    assert check_numbers(root) == []  # reserved, no file yet
+    write(root, {"reviews/claude/response_3_o12.md": "x\n"})
+    assert check_numbers(root) == []
+    assert seed_registries(root) == 0  # the seed does not add it again as history
+    write(root, {"reviews/claude/response_3_other.md": "y\n"})
+    assert check_numbers(root)[-1].startswith("numbers/claude-response.csv: number 3 is used 2 times")

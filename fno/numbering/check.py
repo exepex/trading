@@ -74,7 +74,9 @@ def _row_problem(category: Category, row: Row) -> str | None:
 
 def _missing_rows(category: Category, rows: list[Row], items: list[NumberedItem]) -> list[str]:
     registered = {category.key(row.number, row.name) for row in rows}
-    missing = {(i.where, i.number) for i in items if category.key(i.number, i.name) not in registered}
+    missing = {
+        (i.where, i.number) for i in items if not any(k in registered for k in category.keys_for_file(i.number, i.name))
+    }
     return [NO_ROW.format(where=w, number=n, registry=category.registry) for w, n in sorted(missing, key=_where_order)]
 
 
