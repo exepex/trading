@@ -12,6 +12,7 @@ from fno.alerts.sender import AlertSender
 from fno.market_read_models.blocks import BlockBuilder, SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
 from fno.market_read_models.flows_block import FlowsInputs
+from fno.market_read_models.forecast_lab_inputs import ForecastLabInputs
 from fno.market_read_models.frame_inputs import frame_inputs
 from fno.market_read_models.home_inputs import BookFigures, HomeInputs
 from fno.market_read_models.local_publisher import LocalFolderPublisher
@@ -53,9 +54,10 @@ def example_rows() -> SessionRows:
     calendar = build_session_calendar()
     flows = FlowsInputs([], [], calendar.sessions(date(2025, 6, 1), DAY)[-250:])  # no flows copy covers 12 Oct
     weather = WeatherInputs(DAY, None, [], {}, {})  # no weather record: the page's not-published state
+    lab = ForecastLabInputs(DAY, None, [])  # no G4 report and no forecast record yet: the Forecast lab's empty state
     return SessionRows(
         DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows,
-        weather, [],
+        weather, [], lab,
     )  # fmt: skip
 
 
@@ -169,7 +171,7 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1272 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1273 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
     assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 
