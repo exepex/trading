@@ -41,6 +41,7 @@ class SessionRows:
     frame: FrameInputs | None = None  # the session the reader acts on next (P10, India's band)
     flows: FlowsInputs | None = None  # the big investors' flows (P8)
     weather: WeatherInputs | None = None  # M1's weather records for the session (P2a)
+    score_reports: list[dict] | None = None  # G4's daily score reports up to the session (P2, forecast history)
 
 
 class BlockBuilder(ABC):

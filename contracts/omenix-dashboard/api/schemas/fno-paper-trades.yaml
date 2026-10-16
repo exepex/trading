@@ -23,7 +23,7 @@ FnoPaperTrades:
       items:
         type: object
         additionalProperties: false
-        required: [family, as_of, opening_value, value, cash, open_trades, open_max_loss, brake]
+        required: [family, as_of, opening_value, value, cash, open_trades, open_max_loss, open_risk_cap, brake]
         properties:
           brake:
             type: object
@@ -40,7 +40,8 @@ FnoPaperTrades:
           value: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:marked_equity', description: 'Marked value: cash plus open positions at their marks'}
           cash: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:cash', description: Cash}
           open_trades: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'account_state:open_trades', description: Open positions}
-          open_max_loss: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: not_built, x-catalog: {story: C5}, description: "Sum of the open positions' maximum losses (the account cap is Rs 1.5 lakh, owner 15 Oct 2026)"}
+          open_max_loss: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: not_built, x-catalog: {story: C5}, description: "Sum of the open positions' maximum losses, against open_risk_cap"}
+          open_risk_cap: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: not_built, x-catalog: {source: "the C5 profile's open-risk cap (config risk.profiles.books.open_risk_cap_rs)", story: C5}, description: "The book's published cap on its open positions' maximum losses (Rs 1,50,000, owner 15 Oct 2026; 2.10.0: sent, never copied into a screen)"}
     shadows:
       type: array
       description: "Shadow test accounts, each its own card and never added to a book (2.8.0); B0 is labelled measurement"
