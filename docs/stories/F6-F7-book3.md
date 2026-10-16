@@ -41,7 +41,7 @@ backtesting engineer (replay, timing).
 | Book 3's prompt; the answer's schema and checks; registering proposals; Book 3's day sheet; the decision on D2/C2/C4/D3; the shadow file and its reader | **F6/F7** (this story) |
 | Constitution, registry, C4 `ConstitutionMode` | D5 (01SFDjjZ), unchanged except the two small edits below |
 | Finding cards: the `analyst_cards` export item, card IDs, role-set version | F2 (session_01WSMMv5nK4wDdktFrudJfXv); F1t puts the item in each AI book's export; Book 3 works with none |
-| Precomputed D2 output in a book's private pack (Book 2's rule default; Book 3's day sheet) | one hook proposed to F5's builder (01SFDjjZ, with E2's pack owner 0134MoC6); F6 supplies Book 3's item |
+| Precomputed D2 output in a book's private pack (Book 2's rule default; Book 3's day sheet) | one E2 port `BookSheet.sheet(book, day, common) -> Mapping`, run after the common pack and stored in the private pack body as `evaluation` (F5's builder 01SFDjjZ proposes it to E2c's owner 0134MoC6); F6 supplies Book 3's sheet |
 
 ---
 
@@ -71,7 +71,7 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    manager, volatility trader, red team), research only. It reads only its input; the input is data, never
    instructions. Its SHA-256 is a D3 `served` component `book3_prompt` and a D6 component.
 2. **Input** (printed by F1t's `brief`): the common pack and Book 3's private pack, which holds its account,
-   constitution, registry and specs, **Book 3's day sheet** (a private-pack item, built at the pack step) and F2's
+   constitution, registry and specs, **Book 3's day sheet** (the private pack's `evaluation`, from the `BookSheet` port) and F2's
    `analyst_cards` export item when present (common to Books 2 and 3; F2's text at `story/f2-analyst-cards` 2a0140dd) (zero cards is a normal day). The day sheet
    (`fno/book3/day_sheet.py`) is D2's evaluation of Book 3's tradable strategies on the day's 15:00 market with
    nothing chosen: per opportunity its ID, strategy, expiry, exit day, whether the rule fired (unmet conditions), and
@@ -134,7 +134,7 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
 |---|---|---|
 | `Book3Decider(AiBookDecider).decide(accepted: AcceptedDecision) -> DecidedRun` | writes one D3 run under `journal/book3_ai/decisions/` with C2 and C4 inside; `DecidedRun.files`: registry, specs, ledger, proposal log, F7's shadow file; `DecisionRefused` when no run can be written | F1t's `ai_collect` |
 | Book 3's shape check and prompt path | registered with F1t's decision version (one line) | F1t's `seal` and `brief` |
-| Book 3's day-sheet item | D2's evaluation of the tradable strategies, nothing chosen, as a private-pack item | the private-pack hook (above) |
+| Book 3's `BookSheet` | D2's evaluation of the tradable strategies, nothing chosen | E2's pack step (above) |
 | `proposal_of(...)` (C4's adapter) | sets `strategy_id_of(name, version)` for Book 3 | C4 |
 | `RecordBuilder` (D3's file) | Book 3: `strategy_id` and spec hash per opportunity record (F6's edit); null on the day record only (D5 owner's `story/d3-no-owner-override`, b49abdde) | D3 |
 
@@ -279,8 +279,9 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 
 ## Open questions
 
-1. **F1t (01PLbKH15): agreed** (above). **F5's builder (01SFDjjZ):** one selection allocator for
-   both books, and one private-pack hook for precomputed D2 output. **F2 (01WSMMv5): answered** (above).
+1. **F1t (01PLbKH15): agreed** (above). **F5's builder (01SFDjjZ): agreed** one `SelectionAllocator` (F6 builds it: picks `Pick(opportunity_id, reason,
+   width=None, lots=None)`, an optional `rebuild` for Book 2's width and lots, which Book 3 never passes, so a Book 3
+   pick with width or lots is refused) and one `BookSheet` port (E2c's owner to agree who edits the pack files). **F2 (01WSMMv5): answered** (above).
 2. **D5's owner (01SFDjjZ), answered 16 Oct 2026:** `new_or_reused` derived by code (above; the rule key replaces
    their `parameters_sha256` equality, which cannot fire because the hash covers the name). `proposal_of` sets
    `strategy_id` through one helper `strategy_id_of(name, version)` added to `fno/book3/registry.py` and used by

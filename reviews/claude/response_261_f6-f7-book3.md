@@ -32,7 +32,7 @@ The story text only (quality rule 1): `docs/stories/F6-F7-book3.md`. F6 and F7's
   `strategy_id` (their `story/d3-no-owner-override`, b49abdde, which also refuses `owner_override`). My correction
   of their hash-equality proposal was sent to them; their reply is pending.
 - F1t agreed (its e0ba1b43): write paths restored on any failure; `check_decision` signature; `brief` prints `agents/book3/decide_v1.md`.
-- Open with F5's builder: one selection allocator for both AI books; one private-pack hook for precomputed D2 output
+- F5 agreed: one `SelectionAllocator` (built here, with an optional `rebuild` for Book 2) and one `BookSheet` pack port (pending E2c's owner).
   (Book 2's rule default, Book 3's day sheet).
 - F2 answered (its 2a0140dd): `analyst_cards` export item, card ID `<role>/v<n>/<day>`, role set joined with `+`.
 
