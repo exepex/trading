@@ -7,6 +7,169 @@ and definition of done: `docs/IMPLEMENTATION_PLAN.md`.
 
 ---
 
+## R1. The factory's code: idea gates G0-G6, the cost wall, the data spend, the sample plan, the trial count
+
+**Repository:** trading · **REPLAN:** slice B (`docs/design_v2/REPLAN_new_stories.md` l.64-68) · **Lane:** 1 (new
+story; registration of trials) · **Owner decision:** "Yes: R1 code + G7 phase 2 now (Recommended)", 16 Oct 2026
+(`docs/DESK_DECISIONS.md` row 239).
+
+**Description:** As the owner, I want every strategy idea to pass through the factory's gates by code, not by hand:
+written down and counted as a trial from its first line, stopped at the cost wall if it cannot make money after costs
+and rare large losses, labelled exploratory when its data is already used, given an honest sample size and time, and
+judged once, with every report saying how many trials came before it. Then a passed idea is evidence, not luck found by
+trying many things.
+
+**Context and why (strong evidence: `main` read on 16 Oct 2026, unless marked):**
+- **The rules exist as text only.** `research/FACTORY_RULES.md` (gates G0-G6, the G1 cost wall, `exploratory_shadow`,
+  the cumulative Holm family per research question, "trial k of K"), `research/DATA_SPEND.md` (one row per data set:
+  `fresh`, `exposed`, `spent`, `forward`, `registered`) and `research/ideas/TEMPLATE.md` (the idea card). None of the
+  gates is in code: no `screened_out`, `thin margin`, `exploratory_shadow`, sample plan or "trial k of K" in any `.py`
+  file. The three cards so far (`research/ideas/R2.md`, `FT1.md`, `B0.md`, trials 53-55) were screened by hand.
+- **The trial record exists and is guarded (story B4).** `research/ledger.csv` (55 rows; columns `trial_id,
+  experiment, description, kind, hypothesis, registered_on, protocol_path, protocol_commit, first_run_on, run_commit`)
+  through `fno/research_engine/ledger.py`: `Ledger.register` (one new row, no duplicate id), `require_committed`,
+  `require_registered` (frozen protocol commit, unchanged file), `mark_run`, `count`. `read_ledger` refuses any column
+  other than these ten, so a status column would change B4's guard and every writer (`fno/evaluation/freeze.py`, two
+  study packages). The status lives today in free text in `research/LEDGER.md` (which says 54 trials, one behind the
+  55 rows: the hand-kept count already drifts).
+- **What R1 can reuse (DRY):** C1's charges (`fno/costs.py` `order_charges`, `settlement_charges`, the config rates);
+  measured half-spreads (`fno/quotes/report.py`, A4; A16's 15-minute quotes); Holm's step-down
+  (`fno/scoreboard/uncertainty.py` `holm`, a plain list in, verdicts out); D1's playbook statuses and transitions
+  (`fno/playbook/transitions.py`, `research` = shadowed).
+- **Who else is involved.** R3 (owner 0145TfSwzmpk6MBrH92f5h4G) runs the shadows: accounts, books, B0, part B's fills.
+  R-factory.md R3 says R1 owns `CostWall`, `IdeaCard`, `SamplePlan` and `fno/factory/`, and that R3 applies the cost
+  wall by hand until then. The budget's stop-rule tracker expects from R1 "shadow strategies registered in the ledger
+  with pass mark and minimum useful net" (`fno/budget/stop_rule_tracker.py` l.49). S1's `freeze.py` registers
+  protocols in the same ledger; BR1a uses it too. R1 changes none of these.
+
+**Scope.**
+- In: the gate code G0-G4 and G6's verdict arithmetic for registered ideas and shadows, the gate log, the trial count,
+  the research-question families, the commands, and `FACTORY_RULES.md`'s one sentence about the status field
+  (below).
+- Out: running tests or shadows (G5: B4's experiments, R3's shadows, S1's protocols do that); opening shadow accounts
+  (R3); changing the ledger's columns (B4); any strategy rule; promotion to paper (D1, the owner); the dashboard
+  (paused, row 238).
+
+**Expected design.**
+- **Package `fno/factory/`**, wired only in a new `fno/factory/wiring.py`.
+- **`IdeaCard`** (data class) from `research/ideas/<id>.md`: the card keeps its human tables, plus one fenced
+  ` ```factory ` YAML block with the gate inputs as numbers. Fields:
+  - id, trial id, research question id;
+  - frequency per year;
+  - gross: bound in rupees per trade and its source kind (`measured` with mean, SD and n; `published` least
+    favourable value; `arithmetic` least favourable input), and the source text;
+  - tail: the probability and size of the maximum loss;
+  - legs: side, lots, entry premium, exit premium or settlement, and the half-spread pad per leg with its measurement
+    path;
+  - data sets read (DATA_SPEND rows) and the quantity measured;
+  - SD per trade for the plan, and the one-sided level of its pass mark.
+  - `TEMPLATE.md` gains the block (lane 1). A card without a valid block fails G0 with the field named.
+- **G0 registration:** `fno factory register <id>` validates the card, then writes the ledger row through B4's
+  `Ledger.register` (kind `prospective`, hypothesis `yes`), and the first gate-log row (`idea`). The card and both
+  rows are committed together (the command prints the files to commit and checks nothing else is staged).
+- **The gate log, instead of a status column** (reasoning only: B4's ten columns stay frozen and every writer keeps
+  working). `research/factory/gates.csv`, append-only: `trial_id, gate, outcome, on, commit, numbers` (`numbers` is a
+  short `k=v;k=v` text of the gate's figures, never a market value of a test's outcomes). A guard (same pattern as
+  B4's) refuses an edit or deletion of an existing row. An idea's status is its last row. `FACTORY_RULES.md` section
+  1's sentence "Until R1's code adds a status field to `research/ledger.csv`" becomes "R1's gate log
+  (`research/factory/gates.csv`)" (lane 1, this story).
+- **`CostWall` (G1, strategy pattern over the source kind):**
+  - The conservative bound: measured = the lower one-sided 90% bound of the mean (Student t, n - 1: the quantile
+    inverts the existing `fno/forecast_v4/student_t.py` `t_cdf` by bisection, since scipy is not installed; no third t
+    table beside `fno/scoreboard/t_check.py`'s 95% one); published = the
+    least favourable value; arithmetic = the stated least favourable input.
+  - Round-trip cost = C1's charges for every leg in and out (or settlement) at the screen date's config rates, plus
+    the measured pads.
+  - Tail = the worse of the card's figure and a measured family rate where the card cites one.
+  - Expected net = bound - cost - tail loss beyond the gross. Above zero passes; at or below zero writes
+    `screened_out` with the numbers. The 2x ratio is printed as `thin margin` only, never a reason.
+  - "no stated edge" when the card has no source. The cost-hurdle study (judge 97) is labelled `assumed hurdle` and
+    never logs a G1 pass for an idea.
+- **`DataSpendRegister` (G2):** reads `research/DATA_SPEND.md`'s table. Any data set `spent` or `exposed` for the
+  measured quantity gives `exploratory` (cannot pass G6); all `fresh` or `forward` gives `fresh`. It names the rows it
+  read. Updating the register's rows stays a hand edit in the same commit (the rule of the file); R1 checks it.
+- **`SamplePlan` (G3):** n = (z x SD / expected net)^2, with z from the card's one-sided pass level and the expected
+  net from G1. Time = n / frequency. Above 3 years: logged `exploratory_shadow` only (rule section 3).
+- **G4:** `fno factory freeze <id>` uses B4's `require_registered` (frozen protocol commit, unchanged file) and logs
+  `registered` with the frozen sample and pass mark. A shadow then goes to D1's `research` status by the owner's
+  existing `playbook set-status`; R1 never opens an account.
+- **Research questions and the cumulative Holm family:** `research/factory/questions.csv` (id, plain question,
+  alpha), append-only. G6 for a shadow: p-values of every shadow ever registered on the question. A shadow stopped,
+  retired or short of its frozen sample enters with p = 1. Holm via `uncertainty.holm`. A verdict is logged once and
+  never relabelled. The shadow's results come through a `ShadowResults` port. Its adapter reads R3's records, as
+  agreed with R3's owner (16 Oct 2026):
+  - decisions: `DecisionStore(root, BOOK1_RULES)`, records with `mode: "shadow"` only (filtered by mode, never by file
+    name);
+  - nets: E6's `strategy_records(account, DeskRecords(PaperAccount(root, account)), charges)` `.closed[i].line.net`
+    for account `shadow:<name>-v<n>`, read only after E2c's `download_private_records`, since the accounts are Drive
+    only;
+  - no CSV is parsed by R1.
+- **B0 and every measurement version** (`fno.playbook.measurement.is_measurement`) count in "trial k of K" but never
+  enter a family's Holm, the expected false passes or `RegisteredShadows`. If R1's Holm is the first code to decide a
+  figure with `is_measurement`, `measurement.py` moves from S1's exempt list into the frozen files in the same change
+  (judge A's condition, through R3's owner).
+- **The trial count:** `fno factory report` prints, for every idea, "trial k of K" (K = the ledger's rows) and the
+  expected false passes at the pass level (K x alpha), plus each idea's last gate. Reports by other stories call the
+  same `TrialCount`.
+- **For the budget's stop rule:** `RegisteredShadows` lists shadows registered in the ledger with their pass mark and
+  minimum useful net, for `stop_rule_tracker` l.48-49. R3 part B provides the resolved closed trades (its criterion
+  12), and the stop rule's `money_test` joins the two. R1 never reads closed trades for Test B.
+- **R3's hand step goes in the same change that merges `CostWall` (R1b).** Step 1 of R3's registration procedure
+  ("the cost wall worked by hand", R-factory.md R3 scope) becomes a call to `CostWall`, keeping B0's `measurement`
+  exception. That way the hand step and the code never both apply (agreed with R3's owner, who does not edit that
+  step meanwhile).
+
+**Staged rounds (each judged before the next; judge G):**
+- **R1a: records.** `IdeaCard` and its block, G0 registration, the gate log and its guard, `TrialCount`, `fno factory
+  register | status | report`, `TEMPLATE.md`'s block and `FACTORY_RULES.md`'s sentence. The three existing cards get
+  their blocks and back-filled `idea` rows dated by their ledger rows (labelled back-filled). Size M.
+- **R1b: the screens.** `CostWall`, `DataSpendRegister`, `SamplePlan`, `fno factory screen | spend | plan`, and R3's
+  step 1 rewritten to call `CostWall`. The three existing cards are re-screened by code and compared with their hand
+  screens; any difference is reported, never silently replaced. Size M.
+- **R1c: shadows and families.** `questions.csv`, `freeze`, the `ShadowResults` port and its R3 adapter, the
+  cumulative Holm verdict, `RegisteredShadows`. Size M.
+
+**Acceptance criteria.**
+1. A card with a valid block is registered by one command; the ledger row (through B4) and the gate log's `idea` row
+   are written; a card with a missing or malformed field is refused with the field named, and nothing is written.
+2. The gate log's guard refuses any edit or deletion of an existing row (a planted edit fails the test).
+3. "Trial k of K" equals the ledger's row count and order; expected false passes = K x alpha.
+4. `CostWall` reproduces `FACTORY_RULES.md`'s worked example from its source (response 92, l.39-40: the monthly
+   condor, n 33, mean gross +978, SD 2,667, cost Rs 824; n 57, +408, SD 3,403, Rs 814).
+   - On the means, the nets are +154 and -406. Response 92 prints +153 from unrounded means; the test uses the rounded
+     inputs.
+   - On the conservative bound (lower one-sided 90%, t 1.3086 and 1.2969), the bounds are +370.5 and -176.5 and the
+     nets are -453.5 and -990.5 (checked with `fno/forecast_v4/student_t.py`), so both are `screened_out`.
+   - Both carry `thin margin` (ratios 1.19 and 0.50).
+5. A card with no gross source is `screened_out` with "no stated edge"; a cost-hurdle study never logs a G1 pass.
+6. A test reading a `spent` or `exposed` data set for its measured quantity is `exploratory`, with the rows named.
+7. `SamplePlan` gives n and the time; above 3 years it logs `exploratory_shadow` only.
+8. Holm across a question's whole family (planted: 20 shadows, 19 stopped at p = 1, one at p = 0.004 with alpha 5%)
+   never passes the survivor alone; the family is recomputed at each verdict, and earlier verdicts are unchanged.
+9. R3's, B4's, S1's and D1's files and behaviour are unchanged (their tests pass untouched), except R3's step 1 in
+   R1b and, if R1c triggers it, `measurement.py` into the frozen files.
+10. A measurement version (B0) counts in "trial k of K" and never in a Holm family, the expected false passes or
+    `RegisteredShadows` (a planted measurement shadow at p = 0.001 does not pass anything).
+
+**Test plan.** Unit tests per gate with fixed inputs (the worked example, planted families); a guard test with a
+planted edit; an end-to-end test on a temporary repository: register, screen, plan, freeze, report; the three real
+cards re-screened (R1b) with their figures printed beside the hand screens.
+
+**Judge verifies (judge G).** Re-runs the worked example and the planted Holm family; plants an edit in the gate log;
+registers a card with a missing field; checks that no ledger column changed and that R3's files are untouched; compares
+the code's re-screen of R2, FT1 and B0 with their cards.
+
+**Open questions (for the orchestrator or the owner):**
+- The gate log in the repository, like `ledger.csv`, or in Drive under O9 ("every data file write-once in Drive")?
+  Reasoning only: it is a research record of decisions, not data, like the ledger.
+- `FACTORY_RULES.md` does not fix z for the sample plan; this text takes it from each idea's registered one-sided pass
+  level. Confirm, or name a fixed z.
+
+**Depends:** B4 (done), C1 (done), D1 (done), A4 (done); R3 for R1c's adapter. **Size:** L in total (three M rounds).
+**Status:** R1a next (story text with judge G).
+
+---
+
 ## R3. First forward shadows
 
 **Repository:** trading · **Issue:** #124 · **REPLAN:** slice B · **Lane:** 1 (new story; fills and records)
