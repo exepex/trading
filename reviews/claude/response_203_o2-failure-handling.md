@@ -93,3 +93,6 @@ Notes:
   - no lock created by the stopped call is left;
   - the next quote part's commit and the next desk commit succeed;
   - a lock present beforehand is left alone and gives the one named alert.
+- **The same hole in O1's command limit (found while fixing this one):** a `CommandStep` stopped at 600 s while its
+  command is inside a git commit leaves the same locks. Book 1's `desk book1` commits its own decision. The row "Hung
+  command" now uses the same lock rule, and a test kills it mid-commit.
