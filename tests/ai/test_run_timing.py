@@ -123,6 +123,14 @@ def test_a_reused_container_never_lends_another_days_start(desk):
     assert json.loads((desk / timing_path(DAY, BOOK3_AI)).read_text())["started_at"] == at(15, 11).isoformat()
 
 
+def test_two_books_in_one_container_each_keep_their_own_start(desk):
+    """Judge 276 addendum 1's note: the start is keyed by day and book, so one shared file would fail this."""
+    FakeRoutine(desk, Clock(at(15, 5))).session().brief(pointer(desk, BOOK2_HYBRID).to_text())
+    full_run(desk, BOOK3_AI)  # the same container's working folder
+    started = json.loads((desk / timing_path(DAY, BOOK3_AI)).read_text())["started_at"]
+    assert started == at(15, 11).isoformat()  # full_run's own brief at 15:11, not Book 2's earlier start file
+
+
 def test_the_ledger_gets_each_books_minutes_once(desk):
     full_run(desk, BOOK3_AI)
     recorder = BookUsageRecorder(desk, UsageLedger(desk))
