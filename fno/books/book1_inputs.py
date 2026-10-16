@@ -30,8 +30,10 @@ class InputsRefused(ValueError):
 class LiveBook1Inputs(Book1Inputs):
     def __init__(self, root: Path, quotes: RawFileStore, rate: float, model: ImpliedVolModel,
                  features: Callable[[date, CutoffSnapshot], object], parts: Callable[[Market], tuple],
-                 context: Callable[[date, Mapping[str, str]], Mapping[str, object]]):  # fmt: skip
-        self.root, self.quotes, self.rate, self.model = Path(root), quotes, rate, model
+                 context: Callable[[date, Mapping[str, str]], Mapping[str, object]],
+                 book: str = BOOK1_RULES):  # fmt: skip
+        """`book`: whose private pack is read (Book 3's decider reads the same inputs for its own account, F6)."""
+        self.root, self.quotes, self.rate, self.model, self.book = Path(root), quotes, rate, model, book
         self.features, self.parts, self.context = features, parts, context  # parts(market) -> (book, counts, shadow)
 
     def day(self, day: date) -> Book1Day:
@@ -39,7 +41,7 @@ class LiveBook1Inputs(Book1Inputs):
         common = packs.common_path(day)
         if not common.is_file():
             raise InputsRefused(f"no common pack for {day}: Book 1 reads the packs (E2)")
-        hashes = {"common_pack_sha256": _sha(common), "private_pack_sha256": _sha(packs.private_path(BOOK1_RULES, day))}
+        hashes = {"common_pack_sha256": _sha(common), "private_pack_sha256": _sha(packs.private_path(self.book, day))}
         snapshot = self._snapshot(day, CommonPack.read(day, common))
         market = market_from_snapshot(day, snapshot, self.rate, self.model)
         book, counts, shadow = self.parts(market)

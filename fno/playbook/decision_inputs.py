@@ -16,17 +16,15 @@ from .decision_codec import book_from_json, book_to_json, market_from_json
 from .documents import strategy_from_text
 from .evaluate import LiveFeatureValues
 from .loader import Playbook
+from .opened_playbook import OpenedPlaybook
 from .registry import parse_rows
 from .schema import Strategy
+from .schema import version_id as strategy_key
 from .shadow import ShadowAccount, ShadowBooks
 
 
 def context_key(context: DecisionContext) -> str:
     return f"{context.expiry.isoformat()}|{context.entry_day.isoformat()}|{context.exit_day.isoformat()}"
-
-
-def strategy_key(name: str, version: int) -> str:
-    return f"{name}-v{version}"
 
 
 class RecordingFeatures(LiveFeatureValues):
@@ -110,10 +108,23 @@ class PlaybookSnapshot:
     files: Mapping[str, str]
     registry_csv: str
     commit: str
+    opens: Mapping[str, str] | None = None  # F6: "<name>-v<n>" -> ISO day it opened; registry text kept as a record
 
     def playbook(self) -> Playbook:
         strategies = tuple(strategy_from_text(text, name) for name, text in sorted(self.files.items()))
+        if self.opens is not None:
+            opened = {key: date.fromisoformat(day) for key, day in self.opens.items()}
+            return OpenedPlaybook(strategies, opens={s.key: opened[strategy_key(*s.key)] for s in strategies})
         return Playbook(strategies, tuple(parse_rows(self.registry_csv)))
+
+    def to_json(self) -> dict:
+        opens = {"opens": dict(sorted(self.opens.items()))} if self.opens is not None else {}
+        return {"files": dict(sorted(self.files.items())), "registry_csv": self.registry_csv, "commit": self.commit,
+                **opens}  # fmt: skip
+
+    @classmethod
+    def from_json(cls, data: Mapping) -> PlaybookSnapshot:
+        return cls(data["files"], data["registry_csv"], data["commit"], data.get("opens"))
 
 
 @dataclass(frozen=True)
@@ -125,23 +136,22 @@ class DayInputs:
     book: dict = field(default_factory=dict)
     counts: dict = field(default_factory=dict)
     shadow: dict = field(default_factory=dict)
+    selection: tuple = ()  # an AI book's picks (F6), each Pick.to_json(); none for Book 1, whose bytes stay unchanged
 
     def to_json(self) -> dict:
+        picks = {"selection": list(self.selection)} if self.selection else {}
         return {
             "day": self.day.isoformat(),
-            "playbook": {"files": dict(sorted(self.playbook.files.items())), "registry_csv": self.playbook.registry_csv,
-                         "commit": self.playbook.commit},  # fmt: skip
+            "playbook": self.playbook.to_json(),
             "market": self.market, "features": self.features, "book": self.book, "counts": self.counts,
-            "shadow": self.shadow,
+            "shadow": self.shadow, **picks,
         }  # fmt: skip
 
     @classmethod
     def from_json(cls, data: dict) -> DayInputs:
-        snapshot = PlaybookSnapshot(
-            data["playbook"]["files"], data["playbook"]["registry_csv"], data["playbook"]["commit"]
-        )
+        snapshot = PlaybookSnapshot.from_json(data["playbook"])
         return cls(date.fromisoformat(data["day"]), snapshot, data["market"], data["features"], data["book"],
-                   data["counts"], data["shadow"])  # fmt: skip
+                   data["counts"], data["shadow"], tuple(data.get("selection", ())))  # fmt: skip
 
     def replay_arguments(self) -> tuple:
         """The arguments of `RuleEvaluator.evaluate`, rebuilt from the stored inputs."""

@@ -101,13 +101,29 @@ class Strategy:
         return tuple(dict.fromkeys(FEATURES[c.feature].live_version for c in self.entry_conditions))
 
 
+def version_id(name: str, version: int) -> str:
+    """The one spelling of a version's ID: its file name's stem, D3's input keys, Book 3's `strategy_id` (F6)."""
+    return f"{name}-v{version}"
+
+
 def file_name(name: str, version: int) -> str:
-    return f"{name}-v{version}.yaml"
+    return f"{version_id(name, version)}.yaml"
 
 
 def parameters_sha256(document: dict) -> str:
     """SHA-256 of the parsed rule (not the file's bytes: a comment or spacing edit is not a parameter change)."""
     rule = {key: value for key, value in document.items() if key not in LIFECYCLE_FIELDS}
+    canonical = json.dumps(rule, sort_keys=True, separators=(",", ":"), default=str, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+RULE_FIELDS = ("structure", "entry_conditions", "exits")  # what decides a trade, apart from names and descriptions
+
+
+def rule_sha256(document: dict) -> str:
+    """SHA-256 of the trading rule alone (story F6): a copied rule under another name or description has the same key,
+    which `parameters_sha256` cannot show, since it covers the name and version too."""
+    rule = {key: document.get(key) for key in RULE_FIELDS}
     canonical = json.dumps(rule, sort_keys=True, separators=(",", ":"), default=str, ensure_ascii=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
