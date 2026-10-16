@@ -36,7 +36,7 @@ committed manifest rows (`tests/test_fingerprints.py`), i.e. a 450 MB live back-
 | 6 | Manifest rows not committed is a failure | `test_manifest_rows_not_committed_is_a_failure` |
 | 7 | Moving the source tuples is not a behaviour change (`wiring.py` 348 → 299 lines) | `fno/storage/source_lists.py`; the names stay importable from `wiring.py`; full suite |
 | 8 | Live read-only check, 16 Oct 16:41 IST (real NSE fetch through the new source classes and content checks, nothing stored): ban list 74 bytes, trade date 16 Oct, AMBUJACEM, KAYNES, SAIL; lots 47,736 bytes, 219 symbols, NIFTY 65 | this session's log (script not committed) |
-| 9 | Gates on the unshallow clone: 7427 passed; ruff check and format clean; `check_imports.py` clean; `check_records.py` clean | this session's log |
+| 9 | Gates on the unshallow clone (head after the run_location change): 7429 passed; ruff check and format clean; `check_imports.py` clean; `check_records.py` clean | this session's log |
 
 Test changes outside A20a's files, each because a count or set grew by A20a's sources: `tests/nse_retry/test_policy.py`
 (22 → 24 NSE source classes, both new classes are covered by the policy test).
