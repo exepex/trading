@@ -108,3 +108,13 @@ it.
   It is my suggestion, not a criterion. Add it to 3.1 before the freeze, or record why not.
 - Freeze checklist: back-fill hash equal to the frozen method hash (the test above), the three wordings in the hashed
   `PROTOCOL_v4.md`, and phase 1's files regenerated together with the phase 2 files.
+
+## Addendum 2: head 43bceece
+
+**FAIL still: addendum 1's should-fix is open.** The messages crossed. 43bceece answers judge 258's V7 point in the
+text and adds the fourth wording, but changes no record file.
+- **Met:** the fourth PROTOCOL_v4 wording is in 3.1 ("For both trailing and EWMA, 'ending at d' and s2_d are read as
+  the last session before d"), and a test reads all four wordings. The V7 text matches the code and criterion 5's tests.
+- **Open:** the committed back-fill rows still carry `method_sha256` 80c86a8d5885, and the code still hashes to
+  a7d5932795d2 (my script on 43bceece). Regenerate the back-fill on the final code and add the row-hash test
+  (addendum 1).
