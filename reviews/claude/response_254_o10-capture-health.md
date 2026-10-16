@@ -121,3 +121,12 @@ and nothing is written to `research/ops/` [strong].
 - Part 2: O1's run log now records `failed` and `refused` steps. As agreed with O1's builder, `RunLogCheck` marks a
   problem `recorded` when every bad step is a failed or refused O1 step (O1 recorded and alerted it); a step missing
   from the log is not recorded (silent in the trial). Tests in `test_desk_and_data_checks.py` [strong].
+
+## Addendum 6: live run logs (criterion 7) and the merge
+- health-check.yml's first scheduled run: 38933946882, started 16 Oct 16:41 UTC (cron 12:21 UTC, 4 h 20 min late),
+  success. "Never ran" in the audit was only "no slot yet" [strong].
+- quote-recorder-nse.yml on 16 Oct: run 38908748514, started 13:33 UTC (19:03 IST), success: the 14:33 routine had
+  recorded NSE first, so the late run found the day already recorded and exited 0 [strong].
+- Part 1 merged to main at 54312c31 (judge 350 addenda 1-3 PASS); response 254 claimed in numbers/ (O12).
+- Not yet seen: the first capture-watch run (it exists on main only from 54312c31) and the first nse-margins
+  catch-up run (A14's story/a14-cron-catchup, not merged by me).
