@@ -246,9 +246,10 @@ the next year's holiday rows are added before every job that asks the calendar f
   accepted the message. A dry run, a refused post or a failed run never marks. A changed calendar has a new fingerprint,
   which re-arms the warning by itself.
 - The workflow commits `research/ops/` (the run record and the marker; nothing else writes there).
-- A job that fails outside its check step (checkout, install, a commit error) posts one line to #fno-desk, as
-  the other workflows do (response 239 item 7); a failed check step has already posted "health check FAILED", so the
-  step stays quiet then.
+- A job that fails without having posted (checkout, install, an import crash, a sender that cannot be built, a
+  commit error) posts one line to #fno-desk (response 239 item 7). The check step records `posted=true` in its step
+  outputs only once Slack accepted its own line ("health check FAILED" included), and the alert step runs on
+  `failure() && steps.check.outputs.posted != 'true'` (judge 240).
 
 Out: adding the calendar rows (the owner and a builder, from NSE's circular); any per-job "date past the calendar"
 handling (A14c).

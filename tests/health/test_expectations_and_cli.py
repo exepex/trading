@@ -173,7 +173,7 @@ def test_a_job_that_fails_outside_the_check_still_alerts_once(workflow):
     """Response 239 item 7: a failed checkout, install or commit gives one #fno-desk line; a failed check step already
     posted its own "health check FAILED", so this step stays quiet then."""
     step = workflow["jobs"]["check"]["steps"][-1]
-    assert step["if"] == "${{ failure() && steps.check.outcome != 'failure' }}"
+    assert step["if"] == "${{ failure() && steps.check.outputs.posted != 'true' }}"  # judge 240: not the outcome
     assert "build_alert_sender().send(" in step["run"] and set(step["env"]) == {"FNO_SLACK_BOT_TOKEN"}
 
 
@@ -198,3 +198,33 @@ def test_exactly_these_checks_are_live_from_these_sessions():
         "NIFTY panel day": expectations.DATA_JOBS_FROM, "FII/DII flows": expectations.DATA_JOBS_FROM,
     }  # fmt: skip
     assert expectations.FIRST_RECORDED < expectations.FIRST_SEALED  # both dates fixed in the table, before 16 Oct
+
+
+@pytest.mark.parametrize(
+    ("outcome", "dry_run", "error", "posted"),
+    [(SENT, False, None, True), (SENT, False, KeyError("x"), True), ("alert NOT sent: no token", False, None, False),
+     (SENT, True, None, False)],
+)  # fmt: skip
+def test_the_check_step_marks_posted_only_when_slack_accepted_its_line(monkeypatch, tmp_path, outcome, dry_run, error,
+                                                                       posted):  # fmt: skip
+    """Judge 240: the workflow's own failure line stays quiet only when this step really posted (FAILED included)."""
+    outputs = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(outputs))
+    _cli(monkeypatch, tmp_path, run=ALL_OK, error=error, dry_run=dry_run, outcome=outcome)
+    assert (outputs.is_file() and outputs.read_text() == "posted=true\n") is posted
+
+
+def test_a_sender_that_cannot_be_built_leaves_no_posted_mark_so_the_workflow_line_is_the_one_line(
+    monkeypatch, tmp_path
+):
+    """The crash judge 240 named: before anything posts, the step dies; `posted` is not true, so the workflow posts."""
+    outputs = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(outputs))
+
+    def cannot_build():
+        raise ImportError("a package missing from requirements.txt")
+
+    monkeypatch.setattr("fno.composition.build_alert_sender", cannot_build)
+    with pytest.raises(ImportError):
+        health_cli.cmd_health(SimpleNamespace(at=ist(DAY, 17, 51), dry_run=False), out=lambda line: None)
+    assert not outputs.exists()

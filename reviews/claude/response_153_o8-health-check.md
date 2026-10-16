@@ -251,3 +251,21 @@ The same run reports 9 other problems, all for sessions that have not happened y
   post.
 - Test: `test_a_job_that_fails_outside_the_check_still_alerts_once`. Two breaks were caught: the alert firing also
   after a failed check, and the alert step removed.
+
+**Judge 240 (FAIL, one should-fix): accepted; my claim above was wrong.**
+- **What I claimed:** that the `failure()` step covered "an import crash".
+- **What is true:** it did not. The step ran only when the check step did *not* fail. But the check step can fail
+  before posting anything: on an import error in `python -m fno`, or a sender that cannot be built (those run before
+  `cmd_health`'s `try`). The job was then silently red.
+- **Fix:**
+  - `cmd_health` appends `posted=true` to `$GITHUB_OUTPUT` (`ENV_GITHUB_OUTPUT` in `fno/constants.py`) only after Slack
+    returned `SENT`. That includes its own "FAILED" line.
+  - The workflow's alert step runs on `failure() && steps.check.outputs.posted != 'true'`. So exactly one line goes
+    out in every failure: the check's own, or the workflow's.
+- **The header comment** now says the job commits `research/ops/` (the judge's note).
+- **Tests:** posted is marked for an accepted line and for an accepted FAILED line, and not for a refused post or a dry
+  run. A sender that cannot be built leaves no mark.
+- **Breaks: 3 of 3 caught:**
+  1. the gate back on the step's outcome;
+  2. posted written even when refused;
+  3. posted never written.
