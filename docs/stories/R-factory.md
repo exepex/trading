@@ -235,14 +235,27 @@ requires them in this text.
   module, `fno/playbook/measurement.py` (`fno/constants.py` is at its size limit).
 - **Outputs (code):**
   - E6's shadow section shows `<version> (measurement)`;
-  - E6's research-loss alert for a measurement uses review 129's wording as one message constant in `pauses.py`;
+  - E6's single-trade alert (a closed trade's net at or below -`catastrophic_loss_rs`, E6's `<=`) for a measurement
+    uses review 129's wording as one message constant in `pauses.py`, with "Rs 10,000 or more" in place of "over
+    Rs 10,000" to match that `<=`;
   - from its second such loss, the alert adds the escalation "possible simulator defect (fill or settlement path):
     check it before any strategy relies on that path". The count comes from the version's closed trades at or beyond
-    its cap, read from its own account.
+    its cap, read from its own account;
+  - **E6's cumulative alert** (a research shadow's realised net at or below -3 x its cap, Rs -30,000 for B0, on each day
+    one of its trades closes; `cumulative_losses`) will fire for B0 in normal running. P1 ended 2019-23 at -34,486
+    (-23,140 without the stale closes), with a maximum drawdown of 40,607 (judge 226). For a measurement it reads:
+    "{version} (measurement) shadow test, not paused: cumulative loss Rs ... (3 x cap Rs ...); expected for a
+    measurement (no edge), not a defect; the owner decides". It is one message constant beside the single-trade one;
+  - **the repeat stays:** it fires on each close day while the total is at or below the line. That is about once a
+    month for B0, which is the owner's monthly reminder of the measurement's running cost, so it is not noise (reasoning
+    only). Changing E6's repeat rule would also change it for non-measurement shadows, which R3 does not touch;
+  - E6 sends at most one alert per version a day (`AutoPauser.apply`), and it lists the single-trade triggers before
+    the cumulative ones (`fno/scorecard/run.py`). So on a day both fire, B0's single-trade wording is sent.
 - **Not counted:** at Test B's integration (condition 3 below), a measurement shadow is listed, never counted.
 - **What B0 is, honestly** (strong evidence, `research/2026-10-12-experiment-1/RESULTS.md` and response 92):
-  - over 2019-23, P1 lost Rs 34,486 over 60 opportunities;
-  - its worst trade was -11,346, over the cap, on a stale close;
+  - over 2019-23, P1 lost Rs 34,486 over 60 opportunities, or Rs 23,140 without the 7 impossible stale-close exits
+    (`RESULTS.md`: impossible exits);
+  - its worst trade was -11,346, over the cap, on a stale close; the clean worst was -8,937;
   - funds at entry are about Rs 1,00,784 a lot.
   B0 measures premium, costs and the fill path at real quotes. It can never show an edge.
 
@@ -264,8 +277,9 @@ requires them in this text.
     - A missing shadow record fails closed (no order, or C4 "no D3 record"), never falling back to Book 1's file.
 12. **Test B readiness** (review 132, point 4).
     - At Test B's integration, R3's input is ready only when resolved shadow closed-trade records are read after E2c's
-      download, never when a folder exists (`StopRuleInput.exists`, `stop_rule_tracker.py:41`, is replaced for R3 by
-      a reader of closed trades).
+      download, and checked against the registered trial requirements (R1's pass mark and minimum useful net), never
+      when a folder exists (`StopRuleInput.exists`, `stop_rule_tracker.py:41`, is replaced for R3 by a reader of
+      closed trades).
     - Zero resolved, counted shadows stays `undecided / no_economic_test`, never NO. Measurement shadows are never
       counted.
     - A review run before the download reports "data not loaded".
@@ -273,8 +287,9 @@ requires them in this text.
 **Tests (added to the plan):**
 - 5. B0's version file parses, is registered `research`, and is shadowed the next session.
 - 6. `is_measurement` is true for B0 and false for the worked example.
-- 7. E6 alert wording for B0's first and second loss; a non-measurement shadow keeps E6's current wording (unchanged
-  bytes).
+- 7. E6 alert wording for B0's first and second single-trade loss, including a loss of exactly the cap (E6's `<=`),
+  and for B0's cumulative loss on a close day; a day with both sends the single-trade wording. A non-measurement
+  shadow keeps E6's current wording for both alerts (unchanged bytes).
 - 8. Conditions 10-12 as stated.
 
 **Known limits:**

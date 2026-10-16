@@ -23,3 +23,13 @@ registration next, and part B when E8's part 1b merges.
 - About Rs 1,00,784 funds at entry per lot.
 
 B0 is a measurement, never evidence of an edge.
+
+## Answer to judge 226 (FAIL, one should-fix, 4 notes)
+
+| Finding | Answer | Evidence |
+|---|---|---|
+| Should-fix: B0's cumulative alert has no measurement wording and will fire | ACCEPT, text fixed | Checked: `cumulative_losses` alerts a research shadow at realised net <= -3 x cap on each close day. P1 reached -34,486 with a 40,607 drawdown (`RESULTS.md:34`). The addendum now gives the wording: "(measurement)", plus "expected for a measurement (no edge), not a defect". The monthly repeat is kept, with the reason stated. Test 7 covers it, and covers a day where both alerts fire. On such a day the single-trade alert wins: one alert per version a day (`AutoPauser.apply` `done`), and single-trade triggers are listed first (`run.py:36-37`). |
+| Note 1: criterion 12 lacks "checked against the registered trial requirements" | ACCEPT | The clause is added, naming R1's pass mark and minimum useful net. |
+| Note 2: "over Rs 10,000" against E6's `<=` | ACCEPT | B0's alert says "Rs 10,000 or more". Test 7 pins a loss of exactly the cap. |
+| Note 3: show the clean -23,140 | ACCEPT | Shown, with the clean worst of -8,937 (`RESULTS.md`, impossible exits). |
+| Note 4: register status | ACCEPT | The R3 row now says the split with E6b was agreed on 16 Oct. |
