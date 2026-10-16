@@ -14,7 +14,7 @@ Everything in the story is built and tested:
   (`daily.live_from.price_distribution: null`).
 
 Evidence:
-- **Tests:** 106 G13 tests. The full suite passes on the pushed tree (count in "Gates").
+- **Tests:** 106 G13 tests. The full suite passes on the pushed tree: 7,841 passed.
 - **Mutations:** all 38 planted mutations are caught (table below).
 - **Real chain:** the real 16 Oct NSE chain reproduces the text's probe exactly.
 - **History:** the exploratory end-of-day back-fill over 1,918 sessions (2019 to Oct 2026) gives the desk its first
@@ -162,7 +162,8 @@ By role:
 ## Gates (on the pushed tree)
 
 `ruff check fno tests tools` clean; `ruff format --check` clean; `tools/check_imports.py` clean;
-`tools/check_records.py` clean; full suite: see the commit message of the pushed head (run with `-n auto`).
+`tools/check_records.py` clean; full suite `python -m pytest -q -p no:cacheprovider -n auto`: **7,841 passed**, 2
+warnings, 0 failed (code at fb0efca5; this file is the only change after it).
 
 ## Open points
 
