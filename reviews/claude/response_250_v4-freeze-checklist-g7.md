@@ -48,8 +48,11 @@ G7 or M1.
   - They reject the second fire: two schedules, one run log and one checkout is the race O1 removed. Agreed.
   - **Order (O1 follow-up, lane 1, judge D):** run weather and forecasts_v4 before `margin_check` (up to 600 s), so
     nothing that can block sits before them except the 120 s history fetch and E2c's Drive download. That Drive
-    download has per-request timeouts but no overall limit, so a slow Drive day can still push the captures past
-    14:30. That case stays loud (refused and alerted); a limit on it is the O1 builder's to consider.
+    download has per-request timeouts but no overall limit, so a slow Drive day could push the captures past 14:30.
+    **Root fix agreed (O1 builder):** both captures start as child processes at the run's start, before the history
+    fetch and the Drive download, as O1 already does for the quote parts. They read no private file. Each result is
+    recorded and committed in its own step. Both changes go into one O1 follow-up story for judge D, sent to G7 and M1
+    before any code; until then both steps stay `not_live`.
   - **Gate:** `daily.live_from.weather` and `.forecasts_v4` are set no earlier than the first day the stored routine
     starts at 14:05, in the same commit as the CLAUDE.md start-time line.
   - G7 agrees with both. M1's builder confirms for the weather step.
