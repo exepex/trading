@@ -282,6 +282,18 @@ requires them in this text.
   label, the card and the ledger row until that code reads `is_measurement`.
 - The post-mortem (LR1) shows no strategy lines today, so it has nothing to label.
 - Until part B, B0 is decided and recorded daily but never filled: its account stays at its opening cash.
+- **A realised B0 loss can still pass Rs 10,000** (code read: `fno/risk/rules.py` `MaxLossPerTrade`,
+  `fno/risk/open_risk.py` `of_legs`). C2 runs on the shadow's own book, so it refuses any entry whose modelled maximum
+  loss is above the cap. That model takes the worst payoff at expiry and adds the entry cash and the exit charges, with
+  B2's pads.
+  - Experiment 1's -11,346 came from an exit priced on a stale close. Live exits use the day's snapshot quotes after
+    A4's validity checks (E4), so a stale close is not used as such.
+  - The live exit happens 21 or more days before expiry, buying back at the ask and selling at the bid. The cost of
+    closing the losing side can exceed its width when its bid-ask spread is wider than B2's pad. Nothing re-sizes an
+    open trade.
+  - So the cap prevents a modelled loss above Rs 10,000, not a realised one. A realised loss above it is caught after
+    the fact by E6's alert above. A second one is escalated as a possible fill or settlement defect (reasoning only;
+    no live condor exit has been measured).
 
 **Split:**
 - E6's files (`pauses.py`, `report.py`) are shared with E6b's builder (session 0134MoC6f7aAJVcHRBiyATo6). Agreed on
