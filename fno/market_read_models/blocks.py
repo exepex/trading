@@ -55,6 +55,12 @@ class BlockBuilder(ABC):
     def build(self, rows: SessionRows) -> dict:
         """The block's stored payload for the session (a paged block: the whole table)."""
 
+    def held(self, previous: dict, rule: str) -> dict | None:
+        """Story P11: the page to publish while this block is held (`PageHeld`), from the previous publication's
+        payload: unchanged by default (a page that stays true for its own session); None for no row (a page whose old
+        payload would state what the rule says is no longer true)."""
+        return previous
+
     def served(self, payload: dict) -> dict:
         """The payload the route serves from the stored one by default (a paged block: its first page)."""
         return payload

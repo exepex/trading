@@ -231,4 +231,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 240 (filed first as 238, renumbered: O9 holds 238): A14c code claims for judge D (needed-factor measure, read-ahead, self-review fixes; criterion 10's broker check is deferred by the orchestrator)](response_240_a14c-code.md)
 - [Response 245: the weather at the calendar's end (24-31 Dec 2026): unknown events said on the weather page, v0's not-scored reason named in M1's record](response_245_m1-calendar-end.md)
 - `response_246_e2d-trade-marks.md`: story E2d text (per-trade daily marks): the gap (record_equity never called), one source (the run's 15:15 snapshot), stale or unmarked never invented, Drive only, the account-file record-scan hole closed.
+- [Response 244: story P11, the per-page hold: one page held back (the over-cap card), every other page published, no migration (story text for the judge)](response_244_p11-page-hold.md)
 - [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
