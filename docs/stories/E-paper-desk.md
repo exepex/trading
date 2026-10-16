@@ -1613,73 +1613,87 @@ equity only. So from the first open paper trade nothing records an open trade's 
 session 0134MoC6). Scoreboard B is not blocked: it re-marks from the execution snapshots at score time
 (`fno/scoreboard/daily_values.py`), and nothing here changes it.
 
-**Design:**
-1. **When and from what.** In the daily run, right after the exit review (`DeskSteps.review_exits`), for each book
-   and each shadow account with an open trade, inside the same `sync.write` (single-writer lock, Drive pull and push).
-   Each open contract is marked at the mid of the valid bid and ask in **the run's own 15:15 execution snapshot**,
-   the same snapshot fills and exits use (the snapshot's own validity rules, C3). No later quote, no other source,
-   and nothing re-dated: a rerun of a session uses that session's snapshot. **One marking rule:** the rule already
-   in S2's `fno/scoreboard/daily_values.py` (mid; else the last valid mark, flagged stale; else unvalued) moves into
-   one shared function, `fno/books/marking.py`, which E2d calls; S2's owner moves `daily_values` onto it, so the page
-   and scoreboard B can never value the same trade differently (R2/G7's review, response 246).
-2. **A contract without a valid quote.** It takes its last valid mark from the account's own mark record, flagged
-   `stale` (E1's `Mark(stale=True)`, already defined). With no earlier mark either, it is `unmarked`. An unmarked
-   contract never gets a price: that day's equity row is not written for the book, the trade's rows say `unmarked`,
-   and #fno-desk gets one alert naming the book, the trade and the contract (`FNO_SLACK_BOT_TOKEN`). The page then
-   shows the trade as "not valued on <date>", never a guess. The gap moves nothing that decides a trade: the
-   drawdown brake reads closed equity (`fno/risk/book_view.py`), and S2 carries an unvalued day's change to the next
-   valued day without interpolating.
-   **Past expiry:** between a contract's expiry and the publication of its final settlement price there is no quote.
-   The leg keeps its last valid mark with source `awaiting_settlement` (not `stale`), as S3's standard unit treats it,
-   until E7 settles it at the final settlement price at the next daily run after publication. A never-marked leg
-   past expiry stays unmarked.
-3. **What is written (Drive only, private).**
-   - `journal/<book>/account/trade_marks.csv`: one row per open trade, contract and session (date, trade id,
-     contract, signed units, mark, source `snapshot`/`last_valid`/`awaiting_settlement`/`none`, stale, mark value). It is new in
-     `ACCOUNT_FILES`, so `PrivateFiles` pulls and pushes it like the other account files. Today only `.gitignore`
-     (`journal/*/account/`, `journal/shadow/*/account/`) keeps account files out of git, and `git add -f` would get
-     past it (checked: `fno/record_scan/forbidden_files.py` refuses raw Groww quotes by path, but no account file).
-     E2d adds the same by-path refusal for every file under a book's or a shadow's `account/` folder, so a forced
-     add of `trade_marks.csv`, `equity_history.csv` or any account file is refused by the public-record scan (O5).
-   - The day's `equity_history.csv` row, through the existing `record_equity(day, marks)` (cash, closed and marked
-     equity, open trades, stale marks).
-
-   A rerun replaces that session's rows (idempotent by date, trade and contract), as `_replace_equity_row` already
-   does.
-4. **What stays public.** `daily_totals.csv` is unchanged: closed equity and counts only, no contract, price or mark
-   (owner, 15 Oct 2026, "A: move to Drive"). Per-trade marks and marked equity never enter a public repository.
-5. **Readers.** The P2 builder's `paper_trades` page reads the trade's mark value and unrealised (mark value plus the
-   trade's cash flow so far, before exit costs, as the contract says) and the book's marked value from these rows,
-   through `PrivateFiles`. A book whose last equity row is older than the session says so (the page's freshness), and
-   an unmarked trade publishes as unmarked.
-6. **Shadow accounts.** The same writer runs for each registered shadow account (R3's `journal/shadow/<account>`),
-   because a shadow's open value is reported the same way. A shadow never shares a book's file.
+**Design (judge 250 and its addendum 1: one rule, one history, no second implementation):**
+1. **The rule is S2's, imported unchanged.** S2's `fno/scoreboard/daily_values.py` already values an open trade per
+   session exactly as needed: cash flow so far plus each held leg at the mid of that session's valid 15:15
+   execution snapshot; a leg without a valid mid keeps its last valid mark, flagged stale; a leg never marked leaves
+   the day unvalued. E2d imports `trade_days`, `key_of` and `DayMarks` from it, and S2's `SnapshotMarks`
+   (`fno/scoreboard/sources.py`: each session's mids from the snapshot the run log recorded as valid). It edits none
+   of them; `daily_values.py` is hashed by S1 (PROTOCOL.md) and stays as it is. So the fallback comes from **the
+   trade's earlier execution snapshots**, the same history scoreboard B reads, never from a file E2d wrote: a lost
+   marking day cannot make the two disagree.
+2. **When.** In the daily run, right after the exit review (`DeskSteps.review_exits`; the run order is snapshot,
+   fill, exits, so a trade opened today is valued today), for each book and each shadow account with an open trade,
+   inside the same `sync.write` (single-writer lock, Drive pull and push). For each open trade E2d calls `trade_days`
+   over the trade's sessions (entry day to today) with `SnapshotMarks`; today's `TradeDay` is the value written. A
+   rerun of a session reads that session's recorded snapshot, so it is never re-dated and never uses a later quote.
+3. **Per trade, not per contract.** What the page needs is per trade (the contract's `mark_value` and
+   `unrealised`), and a per-contract mark would need a second walk of the history. So E2d stores, per open trade:
+   `value` (S2's `TradeDay.value`, cash flow plus the legs at their marks), `mark_value` (`value` minus the trade's
+   cash flow so far, from its fills), the stale contracts (S2's `TradeDay.stale`), and a status:
+   - `valued`;
+   - `unmarked` (a held leg never had a valid mid: `TradeDay.value` is None);
+   - `awaiting_settlement` (a stale contract whose expiry is before today: no quote exists until the final settlement
+     price is published; E7 settles it at the next daily run after publication). This is a label on S2's stale value,
+     not a different value, as S3's standard unit treats `past_expiry`.
+4. **An unmarked trade.** It never gets a price. Its row says `unmarked` with the contracts S2 could not value, that
+   book's equity row is not written that session, and #fno-desk gets one alert naming the book, the trade and the
+   contracts (`FNO_SLACK_BOT_TOKEN`). The page shows "not valued on <date>". The gap moves nothing that decides a
+   trade: the drawdown brake reads closed equity (`fno/risk/book_view.py`), and S2 carries an unvalued day's change
+   to the next valued day without interpolating.
+5. **What is written (Drive only, private).**
+   - `journal/<book>/account/trade_marks.csv`: one row per open trade and session (date, trade id, status, value,
+     mark value, stale contracts). It is new in `ACCOUNT_FILES`, so `PrivateFiles` pulls and pushes it like the other
+     account files. It is an output only: nothing reads it back to value a trade.
+   - The session's `equity_history.csv` row, from the same values: marked equity = closed equity + the sum of the
+     open trades' `value` (the identity `fno/books/equity.py` defines). It is written by a new
+     `AccountWriter.record_marked_equity(day, open_value, stale)`. The unused `record_equity(day, marks)` and its
+     per-contract `marks` path are removed with their tests, so the account has one valuation path, not two.
+   - A rerun replaces that session's rows (idempotent by date and trade), as `_replace_equity_row` already does; a
+     same-day row written by a top-up is replaced the same way (test).
+6. **Account files refused by path.** Today only `.gitignore` (`journal/*/account/`, `journal/shadow/*/account/`)
+   keeps account files out of git, and `git add -f` would get past it: `fno/record_scan/forbidden_files.py` refuses
+   raw Groww quotes by one fixed prefix, and no account file. E2d adds a matcher for the two wildcard folders (a new
+   class beside `ForbiddenFiles`, which matches one fixed prefix only), so a forced add of any account file is refused
+   by the public-record scan (O5).
+7. **What stays public.** `daily_totals.csv` is unchanged: closed equity and counts only, no contract, price or mark
+   (owner, 15 Oct 2026, "A: move to Drive").
+8. **Readers.** The P2 builder's `paper_trades` page reads `value` as `unrealised`, `mark_value`, the status, and the
+   book's marked value from the equity row, through `PrivateFiles`. A book whose last equity row is older than the
+   session says so (the page's freshness).
+9. **Shadow accounts.** The same step runs for each registered shadow account (R3's `journal/shadow/<account>`), in
+   its own files.
+10. **No age limit on a stale mark.** S2 has none, and a limit in one place only would split the two again. If the
+    owner wants one, it belongs in S2's rule, through S1 (judge 250 addendum 1, reasoning only).
 
 **Acceptance criteria:**
-1. After a run with an open trade and valid quotes, the book's `trade_marks.csv` has one row per open contract at the
-   snapshot's mid, and `equity_history.csv` has the session's row with marked equity = cash + the open contracts'
-   units times their marks. A test checks that the trade's value (cash flow plus mark value) equals S2's
-   `TradeDay.value` for the same fixture, both through the one shared marking function.
-2. A contract without a valid quote takes the last valid mark, flagged stale, and the equity row lists it in
-   `stale_marks`. With no earlier mark, the rows say `unmarked`, no equity row is written for that book that session,
-   and exactly one alert names book, trade and contract (fake sender in tests; nothing is posted while building).
-3. The marks come only from the run's execution snapshot: a planted later quote in the store is not used (test).
-4. A rerun of the same session gives the same bytes (idempotent).
-5. `trade_marks.csv` is in `ACCOUNT_FILES`, pulled and pushed with the account. The record scan refuses any staged
-   file under `journal/<book>/account/` or `journal/shadow/<account>/account/` by path, even after `git add -f`
-   (planted-file test for `trade_marks.csv` and `equity_history.csv`); `.gitignore` still keeps them out first.
-6. `daily_totals.csv` bytes are unchanged by marking (a test compares before and after a marked run).
-7. A book with no open trade writes no mark rows and still gets its equity row (closed equity equals marked equity).
-8. One book's marking failure is alerted and never stops another book's marking or exits (the exit review's existing
+1. **Same as S2, every session.** On a multi-session fixture, E2d's `value` equals S2's `trade_days` for every
+   session, and `mark_value` equals it minus the cash flow. The fixture has:
+   - an entry day;
+   - a session with a missing quote (stale, the earlier snapshot's mid);
+   - a **lost marking day** (day 2's marking step fails after its valid snapshot was recorded, then day 3 has no
+     quote): day 3 is valued at day 2's mid from the snapshot history, as S2 values it, never at day 1's value from
+     `trade_marks.csv`.
+2. The equity row's marked equity equals closed equity plus the open trades' values, with the stale contracts listed.
+3. A trade with a leg never validly quoted is `unmarked`: no equity row for that book that session, and exactly one
+   alert naming book, trade and contracts (fake sender in tests; nothing is posted while building).
+4. The values come only from recorded valid execution snapshots: a planted later quote in the store is not used.
+5. A rerun of the same session gives the same bytes (idempotent), and a same-day top-up row is replaced, not doubled.
+6. The record scan refuses a staged file under `journal/<book>/account/` or `journal/shadow/<account>/account/` by
+   path, even after `git add -f` (planted-file test for `trade_marks.csv` and `equity_history.csv`).
+7. `daily_totals.csv` bytes are unchanged by marking (before and after a marked run).
+8. A book with no open trade writes no trade rows and still gets its equity row (closed equity equals marked equity).
+9. One book's marking failure is alerted and never stops another book's marking or exits (the exit review's
    per-book rule).
-9. Shadow accounts are marked in their own files.
-10. A leg past its expiry with no settlement price yet keeps its last mark as `awaiting_settlement`; once E7 settles
-    it, the trade is closed and no longer marked (test with a fixture before and after the settlement file).
+10. Shadow accounts are valued in their own files.
+11. A stale contract past its expiry is labelled `awaiting_settlement`, with the same value S2 gives; after E7's
+    settlement the trade is closed and no longer listed (fixture before and after the settlement file).
+12. `daily_values.py`, `sources.py` and every S1-hashed file are byte-for-byte unchanged (a diff check in the claims).
 
-**Not in scope:** intraday marks (the live monitor, LM1, reads quotes for alerts only, and the paper record changes
-only at the daily run's snapshot); scoreboard B's own re-marking; the P2 page itself (P2c's builder).
+**Not in scope:** intraday marks (LM1 reads quotes for alerts only; the paper record changes only at the daily run's
+snapshot); the risk manager's own valuation with live marks (C2, unchanged); the P2 page itself (P2c's builder).
 
-**Depends:** E1 (`record_equity`, `Mark`), E2c (Drive store, `PrivateFiles`), E3 (the daily run), E4 (execution
-snapshot), C3 (quote validity), R3 (shadow accounts), O5 (the record scan), S2 (its marking rule, moved to one
-shared function), E7 (settlement) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
+**Depends:** E1 (the account writer), E2c (Drive store, `PrivateFiles`), E3 (the daily run and its run logs), E4
+(execution snapshot), C3 (quote validity), S2 (`trade_days`, `SnapshotMarks`, imported unchanged), E7 (settlement), R3
+(shadow accounts), O5 (the record scan) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
 **Status:** story text for judge B; prerequisite of the first paper trade (orchestrator, 16 Oct 2026).

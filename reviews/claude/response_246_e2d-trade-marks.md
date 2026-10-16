@@ -59,3 +59,27 @@ is not affected: it re-marks from the execution snapshots at score time (`fno/sc
    new column in `EQUITY_COLUMNS` would change every reader for no new information.
 4. **Size and DRY.** Accepted: criterion 1 compares against S2's `TradeDay.value` for the same fixture, not a hand
    formula.
+
+## Addendum 2: judge 250 and its addendum 1 (accepted; the design now has one rule and one history)
+
+Judge B is right, and addendum 1's shared `marking.py` did not go far enough. One function fed two histories still
+disagrees. The judge's example: D1 marked at 100; D2's marking step lost while D2's snapshot is valid at 110; D3 has
+no quote. Taking the fallback from `trade_marks.csv`, E2d would mark D3 at 100, while S2 marks it at 110.
+
+The rewritten text:
+- **Imports S2's code unchanged:** `trade_days`, `key_of` and `DayMarks` from `daily_values.py`, and `SnapshotMarks`
+  from `sources.py`. The fallback therefore comes from the trade's earlier execution snapshots, the same history
+  scoreboard B reads. No `marking.py`, no edit to an S1-hashed file, and no S1 frozen-files change are needed (this
+  replaces addendum 1's point 1 and R2/G7's frozen-files follow-up).
+- **Stores per trade, not per contract:** status, value, mark value and stale contracts. A per-contract mark would need
+  a second walk of the history. `trade_marks.csv` is an output only; nothing reads it back to value a trade.
+- **One valuation path:** the equity row is written from the same values (marked equity = closed equity + the open
+  trades' values), through a new `record_marked_equity`. The unused `record_equity(day, marks)` is removed with its
+  tests.
+- **Criterion 1** checks every session of a multi-session fixture, a lost marking day included, against S2's
+  `trade_days`.
+- **Criterion 12:** the S1-hashed files are unchanged.
+- **The judge's notes:**
+  - the account-folder refusal is a new wildcard matcher class, because `ForbiddenFiles` matches one fixed prefix;
+  - a same-day top-up equity row is replaced, never doubled (criterion 5);
+  - no age limit on a stale mark (S2 has none; a limit belongs in S2's rule, through S1).
