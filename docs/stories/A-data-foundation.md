@@ -1295,10 +1295,13 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
 - **A14c part 2: the daily Groww broker check of every A14 row (orchestrator, 16 Oct 2026: built after part 1, its own
   judge; widened the same day from "the SF 100 basket once per applied factor row" to every structure and width, because
   a broker's margins cannot be fetched later: each unrecorded day is lost, gap audit part A2).**
-  `python -m fno margins broker-check` runs in the daily Claude routine, which holds Groww's key (never GitHub Actions,
+  `python -m fno margins stress-broker-check` (the name O1's daily run already calls, step `margin_check`) runs in the
+  daily Claude routine, which holds Groww's key (never GitHub Actions,
   which holds none). It runs first, before the 3 pm quote parts, so its requests never overlap the 14:55 capture; the
   routine's prompt is story O1's, so this story adds the command and O1 adds its one line (judge 173 addendum 3, note
-  1). It works in market hours only: on a session day of A7's calendar, 09:30 to 14:30 IST. Outside them it prints
+  1). In O1's `daily run` it is the step after the quote parts start (about 14:33 IST) and must end before the 14:55
+  capture, so it is paced to finish within 15 minutes. It works in market hours only: on a session day of A7's
+  calendar, 09:30 to 14:50 IST. Outside them it prints
   "outside market hours" and exits 0, because before the open Groww may still be on the previous day's file (16 Oct:
   +Rs 155 at 00:12 IST; within Rs 0.25 at 10:42 IST).
   - **What it checks:** each of the day's A14 rows (every structure and width in `margins.csv` for today), one
@@ -1316,7 +1319,8 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     figure (read-only `get_order_list`, `get_positions_for_user` and `get_available_margin_details`, 16 Oct).
   - **Record (story O9 and O10's format):** every run writes one write-once file through O9's data store:
     `data/margins/broker_checks/<as_of>/<run time IST>.csv`. Its SHA-256 receipt is committed, and nothing is appended
-    in GitHub. One row per basket: the check time, `as_of`, structure, width, both figures for SPAN and exposure, the
+    in GitHub (O1's step commits `receipts/` and O10's file instead of the `stress_broker_check.csv` it names today,
+    agreed with O1's owner). One row per basket: the check time, `as_of`, structure, width, both figures for SPAN and exposure, the
     status (`ok`, `mismatch`, `error`) and its detail.
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
     and exits 0. An `error` row is retried by the next run.
