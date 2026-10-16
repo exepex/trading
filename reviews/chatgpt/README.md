@@ -88,3 +88,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 127: G11 AI books on v4 — one audit reconciliation change](review_127_g11-ai-books-v4.md)
 - [Review 129: R3 first forward shadows — PARTIAL](review_129_r3-forward-shadows.md)
 - [Review 131: E6b missed executions in scorecards — PARTIAL](review_131_e6b-missed-executions.md)
+- [Review 128: E8 owner-timing fills code part 1 — PARTIAL](review_128_e8-owner-timing-code.md)
