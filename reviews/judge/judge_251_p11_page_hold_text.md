@@ -48,3 +48,26 @@ or state that the rule says is no longer true (test per user).
 **Note:** a hold that outlives a contract version bump would re-file a payload of the older `schema_version`. State
 whether the publication validates held copies against the current pin, and what happens if one fails (I expect a
 whole-run stop, which is correct, but the text should say so).
+
+## Addendum 1: head efba832e (the should-fix fixed, both options taken)
+
+**PASS.** `git diff 89fe464a efba832e` touches only the P11 text and response 244 addendum 3.
+- **(b) The generic notice:** every publication carries the page `page_holds` (`[{page_key, since, rule}]`, empty on
+  a normal day), and the dashboard shows "<page> held back since <since>: <rule>". `FnoPageHolds` (screens lead) and
+  the W3 rendering are named dependencies, ordered before P2b's and P2c's rebase and before the first approval.
+- **(a) Per block:**
+  - Shown unchanged when the old payload stays true for its own session: the Forecast lab and the paper books.
+  - Dropped (`None`, no row) when it would state something the rule denies: Home's picks ("no approved strategy")
+    and Home's books ("limit_used 0").
+  - The card uses `withheld`.
+- **My note:** a held copy is validated against the current pin, gets no row if it fails (never a whole-run stop),
+  and the alert line says why (criterion 10).
+- **Criterion 9:** per user, the screen says the page is held and no held payload asserts a state the rule denies.
+
+**Notes for the code round:**
+- P11's own code publishes `page_holds`, so `FnoPageHolds` must be in the pinned contract before P11's code merges.
+  Otherwise the new page fails `ContractBroken` and stops the run. Put that order in Depends (today's line names
+  P6-P10, P7 and the alert sender only).
+- `page_holds` itself must never be held (a failure there is a whole-run stop). Say so, and test it.
+- `since` is the first held session of the current run of holds. A test should cover a hold that lifts and comes
+  back (a new `since`).
