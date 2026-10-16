@@ -68,3 +68,20 @@ through. A non-pack forecaster naming a SHA is not refused; that is harmless, as
 
 My two notes from judge 274 remain notes: until the 3 pm routine moves, `A2` is the normal path; and O1 owns the
 routine's timing.
+
+## Note (judge B, 16 Oct 2026): the A2 fallback cannot make a complete pack
+
+The G10 builder reported this while reading A16 for part (b). I checked all three points in A16's code:
+- **No India VIX:** `fno/intraday/groww_source.py` never reads it (grep: no "vix").
+- **One monthly, not two:** `fno/intraday/expiry_plan.py` asks for the nearest listed expiry (the weekly) and the
+  nearest monthly. IV30's two-monthly input is therefore missing.
+- **No `e` on a monthly expiry day:** the monthly is "on or after" the day (`expiry_plan.py:48-51`), while `e` is the
+  monthly strictly after `d`.
+
+So under section 1, every `A2` day would be `system_late`. My judge-277 condition ("part (b) must test A2 on a real
+A16 row") would fail for these reasons, not for timing.
+
+The text passed here needs a change, which is the orchestrator's choice: drop `A2`, a reduced `A2` pack, or a wider
+A16 mark. My view, reasoning only: drop `A2`. Now that A4e has passed (judge 281) and the routine moves to 14:05, a
+failed 14:30 capture made honestly `system_late` is better than a reduced pack whose inputs differ by day, which would
+make families' forecasts incomparable across days. The changed text comes back to me.
