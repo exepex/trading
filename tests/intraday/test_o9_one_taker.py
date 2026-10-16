@@ -5,10 +5,12 @@ import json
 import subprocess
 from datetime import date, datetime, time
 
+from fno.alerts.sender import NoAlertSender
 from fno.intraday.claims import LOST, UNCLAIMED, WON, ClaimResult, GitMarkClaims, MarkClaims, NoClaims
 from fno.intraday.groww_source import failure_name
 from fno.intraday.recorder import ALREADY
 from fno.intraday.streak import EFFECT_QUOTES, EFFECT_VOID, streak_alert_text
+from fno.intraday.sync import NoSync
 from fno.storage.manifest_commit import GitManifestRecorder
 from fno.storage.owned_paths_commit import OwnedPathsCommitter
 from tests.intraday.fakes import DAY, FakeClock, build, ist
@@ -197,3 +199,6 @@ def test_a_dry_run_claims_nothing_and_a_live_run_shares_its_paths_with_the_ledge
     live = wiring._claims(None)
     assert isinstance(live, GitMarkClaims) and live.committer.run_paths == wiring._ledger_paths()
     assert "research/data/intraday/slots/" in live.committer.run_paths
+    ledger = wiring._sync(None, NoAlertSender("test")).committer  # the other side shares the claims folder (judge 247)
+    assert ledger.run_paths == (wiring._repository_path(wiring.CLAIMS_FOLDER) + "/",)
+    assert isinstance(wiring._sync(tmp_path, NoAlertSender("test")), NoSync)
