@@ -258,7 +258,10 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
   2. a ledger row first, written with the card's `idea` row by `python -m fno factory register <id>`
      (`research/ledger.csv` via B4's guard; the trial count includes screened-out ideas);
   3. the frozen playbook version (SF, SC or BF only until STR1b-2), registered `research` with
-     `python -m fno playbook set-status` (owner or desk, `fno/playbook/transitions.py`);
+     `python -m fno playbook set-status` (owner or desk, `fno/playbook/transitions.py`), only for a card whose G1
+     screen passed (`python -m fno factory status <id>`), or a measurement. A `screened_out` idea gets no research
+     version, so no shadow account, unless a registered counterexample study shadows it (`FACTORY_RULES.md` section
+     3, rule 2). R1b's code does not enforce this at `set-status` (D1's command); the owner or desk checks the status;
   4. a measurement shadow's card and ledger row say "never promoted". Approving it to paper needs the owner's own
      decision, which this label does not grant.
 - **Results:** the shadow accounts' closed trades, net after costs, feed:
