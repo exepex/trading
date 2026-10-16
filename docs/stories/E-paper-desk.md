@@ -1731,4 +1731,4 @@ the snapshot the common pack froze, so that no book's evaluation is public and n
 5. The daily run keeps its one reported alert sender.
 
 **Depends:** E2 and E2c (packs, Drive), A4 (the snapshot store) · **Size:** S · **Owner:** 0134MoC6 ·
-**Status:** with judge E (response 273); needed by F5 and F6.
+**Status:** done: merged (judge 309 and addendum 1 PASS); F5 and F6 add their sheets.
