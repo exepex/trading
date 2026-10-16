@@ -1,7 +1,7 @@
 # A21. Rates and same-day first-seen: RBI's T-bill and repo rates daily, NSE announcements before 14:00
 
 **Repository:** trading · **Lane:** 1 (new story; outside services RBI and NSE; schedules) · **Judge:** F ·
-**Response number:** 272 (claims file) · **Owner rule (16 Oct 2026):** data must be up to date, and every failure alerts
+**Response number:** 274 (claims file) · **Owner rule (16 Oct 2026):** data must be up to date, and every failure alerts
 and is recorded.
 
 **Description:** As the owner, I want the cash rate and the policy rate captured from RBI every day, dated and with the
