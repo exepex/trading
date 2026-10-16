@@ -80,3 +80,23 @@ P2a part 2 in a trading worktree.
 - **`/us/strategy-lab/fno`:** India-only route, the same `notFound` pattern as W3a and W3b.
 - **The conflict with (1):** the shared CSS may conflict when the second of the two merges. Re-check that resolution
   then.
+
+## Addendum 1: (3) the pin swap at 0369430b, and (4) W3d's merge with main at ececa07
+
+**Both PASS.**
+
+- **(3) P2a part 2 at 0369430b.**
+  - **The pin:** `pin.json` changes exactly one line, `commit` 0e2d58e to `94127876` (the dashboard's main, "contract
+    2.8.0, mockups 37 and 41-46…", which exists in the dashboard repository).
+  - **The files:** I compared every one of the 37 pinned `api/` files by SHA-256 against the dashboard at 94127876,
+    and none differs.
+  - **The merge:** the branch's other changes since 63bb7c9c are main's merge (ad562ca1: data commits, a manifest),
+    and it merges cleanly into today's main.
+- **(4) W3d at ececa07.**
+  - **No CSS conflict:** `fno-screen.css` is unchanged from e796467, because main (9412787) did not touch it.
+  - **The one conflict, in `pages.test.ts`,** is resolved correctly. It keeps main's `notRead` (with the four 2.8.0
+    operations; `getFnoWeatherHistory` stays there until W3a part 2 merges) and drops `getFnoStrategyLab`, which W3d
+    now reads. The comment names the remaining owners (W3c to W3h).
+  - **Gates:** `npm test` gives 501 passed, 0 failed, 0 skipped.
+  - **W3a part 2:** it also edits `fno-screen.css` (the day strip). Whichever of W3a part 2 and W3d merges second
+    gets its CSS resolution re-checked.
