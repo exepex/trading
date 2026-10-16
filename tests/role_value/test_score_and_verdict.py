@@ -67,11 +67,25 @@ def test_no_verdict_without_review_on_another_day_or_below_30_changed():
     assert verdicts([scored(0.001, 0.999, changed=30)], True, REVIEW, [REVIEW])["u"] == EARNS
 
 
-def test_an_unknown_cost_gives_no_verdict_and_no_holm_entry():
+def test_an_unknown_cost_gives_no_verdict_and_stays_in_the_family_with_p_1():
     unknown = UnitScore("x", 40, 40, 10.0, None, None, None, None, None, None, None)
     found = verdicts([unknown, scored(0.9, 0.02, "b")], True, REVIEW, [REVIEW])
-    assert found == {"x": COST_UNKNOWN, "b": DROP}  # with x outside Holm, b's 0.02 < 0.05/2 passes
+    assert found == {"x": COST_UNKNOWN, "b": INCONCLUSIVE}  # 4 claims: b's 0.02 >= 0.05/4 = 0.0125
     assert score_unit("x", opportunities(cost=None)).p_earns is None
+
+
+def test_the_family_is_fixed_so_an_ineligible_unit_never_moves_another_s_threshold():
+    """Units a, b and c are registered; c has 29 changed opportunities at the first review and 30 at the next. With
+    the fixed family (6 claims), a's p = 0.009 passes only if 0.009 < 0.05/6 = 0.00833: it fails at both reviews,
+    whatever c's eligibility. A family of eligible units only would give a 4-claim threshold of 0.0125 at the first
+    review (a passes) and 6 claims at the next (a fails): a's verdict would move with c's sample."""
+    a, b = scored(0.009, 0.99, "a"), scored(0.5, 0.5, "b")
+    c_first = UnitScore("c", 29, 29, 0.0, 1.0, 0.0, None, 0.4, 0.6, None, None)
+    c_next = scored(0.4, 0.6, "c")
+    first = verdicts([a, b, c_first], True, REVIEW, [REVIEW])
+    later = verdicts([a, b, c_next], True, REVIEW, [REVIEW])
+    assert first["a"] == later["a"] == INCONCLUSIVE
+    assert first["c"] == "no verdict: 29 of 30 changed opportunities"
 
 
 def test_the_spread_beside_the_p_values_shows_each_block_s_calendar_span_and_the_months():
