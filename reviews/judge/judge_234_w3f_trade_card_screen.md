@@ -39,3 +39,19 @@ about 15:08 the desk sends one card". The source tip (`card-page.tsx:54`) says "
 - "Prices from the 15:00 bid and ask" (`position-view.ts`, from mockup 39) matches the desk's 15:00 decision quotes
   (E-paper-desk), so it stays.
 - When 2.11 merges, the cap bar should read `trade.max_loss_cap`, both the width and the aria label.
+
+## Addendum 1: head 2d2a723 (the should-fix fixed)
+
+**PASS.** It adds one commit on 0060182.
+
+- **The fix:** the lede and the source tip now say "after the day's decisions are final", and the card's own times
+  from the payload carry the real time. This matches T2 ("never assumes a time") and E8 (15:15 or later).
+- **The guard:** the new `no-fixed-time.test.ts` scans the screen's code (comments stripped) for "at, by, around or
+  about HH:MM", and a planted "at about 15:08" is caught. A grep of `lib/fno-card`, `components/fno-card` and the page
+  finds no "15:08" or "about 15".
+- **Times left on the screen:** the "15:00 bid and ask" and the forecast capture's deadline are contract facts, not
+  the send time.
+- **Gates on 2d2a723:** `check_contract` and `check_fno_screens` 0, `tsc` OK, `npm test` 541/541 (0 skipped).
+
+**Merge:** W3f must merge W3e, W3g and W3h and keep both sides of the additive lists. After 2.11 merges, draw the cap
+bar from `trade.max_loss_cap` (width and aria label).
