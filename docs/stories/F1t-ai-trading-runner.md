@@ -143,7 +143,10 @@ the pointer also holds one item `analyst_cards`, read at `ai_fire` from F2's `Ca
 routines; the day's cards file is in Drive by 14:55, before any book is fired, so their independence is shown by F2's
 receipts): `role_set_version`, `input_sha256` (the cards file's SHA-256) and every registered role's status line with
 its reason, with the card itself only when it is `valid` or `not_applicable`. The port never raises; with no cards
-file every role reads `no_submission`. The item is the same for both AI books (the analysts are shared, not a book's
+file, or a read that fails or takes over 30 s (F2's bound), every role reads `no_submission` and F2's one alert goes
+through the run's one sender (O1's `ReportedAlerts`, injected in `fno/daily/wiring.py`). The pointer is F1t's own
+(`fno/ai_trading/pointer.py`, 64 KiB cap), never `fno/ai/pointer.py`'s 4 KiB forecast parser. The session cannot read
+Drive (no credentials), so the cards travel in the pointer, not by hash alone. The item is the same for both AI books (the analysts are shared, not a book's
 private input). A book whose decision version lists no role units gets an item with no roles. Cards are never part of
 a book's answer; a book may cite card IDs in its own `decision` (F6's `cards_used`), checked by its own shape check
 and decider against the IDs it was given. `brief` refuses a pointer whose fields are
@@ -297,7 +300,8 @@ boundary and empty cases (quality rule 5).
 3b. **Cards.** The pointer's `analyst_cards` item holds `role_set_version`, `input_sha256`, every registered role's
    status line and the card only when `valid` or `not_applicable`, and `brief` prints it; with no cards file every role reads `no_submission` and the book is still
    fired; a version with no role units gets an item with no roles; `consulted_units` in the outcome record lists exactly the
-   roles whose card was passed (tests with a fake `CardsOfDay`).
+   roles whose card was passed (tests with a fake `CardsOfDay`); a full-size card set (every role at F2's largest
+   card) with the largest fixture private pack fits under the cap, and the claims show its size in bytes.
 4. **Seal and reveal.** `seal` adds the labels itself, refuses a wrong shape with what to fix, publishes only the
    commitment, and refuses a second seal; `reveal` waits until `reveal_from` and publishes a reveal that hashes to the
    commitment; the forecast's `seal` and `reveal` behave exactly as before (their tests unchanged and passing).
