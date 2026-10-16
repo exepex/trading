@@ -10,7 +10,8 @@ playbook** beat the rules alone.
 - Design 12.1, 12.2 and 12.9; design v2 `07_ai_team.md` 7.1 and 7.3; REPLAN: F5 kept for slice E, F3 becomes the
   devil's advocate (T2, T3), and F4 drops owner overrides.
 - The owner's decisions:
-  - D4/D5's five answers: DESK_DECISIONS row 229 (16 Oct), including no owner override on paper;
+  - DESK_DECISIONS "D4/D5: the five design questions accepted as recommended" (16 Oct), item 4: no owner override
+    on paper;
   - "build Books 2 and 3 end to end": the orchestrator's assignment of 16 Oct.
 - This text replaces the earlier F5 text in `F-ai-layer.md`. That text predates design v2: it had the red team and
   owner overrides as inputs.
@@ -37,23 +38,18 @@ control. A zero difference is "inconclusive".
 - the envelope files and their versions (D4, D6);
 - Book 3 (F6).
 
-## Part 1: Book 2's day sheet (E2 hook, shared with F6)
+## Part 1: Book 2's day sheet (E2's `BookSheet` port, shared with F6)
 
-- **Port** (E2): `BookSheet` (ABC) with `sheet(book, day, common: CommonPack) -> Mapping`, JSON-ready.
-  - `WrittenPacks.build` runs each book's sheet right after the common pack is built, inside the existing `pack` step.
-  - `PrivatePackBuilder.build` puts the sheet in the private pack's body as `"evaluation"`. A book without a sheet
-    (Book 1) is unchanged, byte for byte.
-  - Wired in `fno/desk/pack_wiring.py`, one line per book. Book 3's sheet is F6's.
-  - F5 edits `packs.py`, `private_pack.py` and `pack_wiring.py` on its branch. E2c's owner (0134MoC6) reviews the
-    diff before the judge.
-  - **E2c's rules (E2c's owner, 16 Oct):**
-    - A book without a sheet produces a byte-identical private pack: Book 1's pack SHA-256 is the same before and after
-      the change.
-    - The sheet's output goes through `canonical_json` and the pack's SHA-256 as today.
-    - A sheet that raises refuses only its own book's private pack, with a named reason, and never writes a partial
-      one. The other books' packs are still built.
-    - A sheet reads only its own book's folder and the playbook (the `ALLOWED_FOLDERS` rule of `private_pack.py`),
-      never another book's folder.
+- **The port is E2's** and E2c's owner (0134MoC6) builds it on `story/e2e-book-sheet`:
+  - `fno/desk/book_sheet.py`: `BookSheet(ABC).sheet(book, day, common: CommonPack) -> Mapping`, JSON-ready.
+  - `WrittenPacks` takes `sheets: Mapping[book, BookSheet]`. After the common pack is built, it runs each book's sheet
+    and passes the result to `PrivatePackBuilder.build(book, day, evaluation)`, which puts it in the body as
+    `"evaluation"`. A book without a sheet produces a byte-identical pack.
+  - A sheet that raises: that book's private pack is not written, one #fno-desk alert names the book and the reason,
+    and the other books' packs are still written.
+  - Wiring: `SHEETS = {book: sheet}` in `fno/desk/pack_wiring.py`. F5 adds Book 2's line when it merges, and Book 3's
+    sheet is F6's.
+- **F5 builds only Book 2's sheet** against that port.
 - **Book 2's sheet** (`fno/book2/sheet.py`): D2's `RuleEvaluator` at the cutoff over Book 2's approved versions, with
   Book 2's own book and counts. It writes:
   - `opportunities`: every book-mode outcome, with its ID, version, decision, reason, and built terms (width, lots,
@@ -63,6 +59,9 @@ control. A zero difference is "inconclusive".
 
   No journal file is written. The private pack stays out of git (only its `.sha256` is committed), so the sheet is
   never public (E2c's privacy rule and the owner's O9 rule).
+- **Its own rules** (E2c's review points a and d):
+  - it reads only its own book's folder and the playbook (`ALLOWED_FOLDERS` in `private_pack.py`);
+  - it reads the market as the next point says.
 - **The data it reads:** the common pack holds no per-contract quotes and no D2 features (E2b), so the sheet reads the
   market itself. It reads only **the canonical 3 pm snapshot that the common pack names in its provenance**
   (`a4_snapshot`, `snapshot_id`), never "the latest". It admits only data available by the pack's cutoff, as the
@@ -70,17 +69,28 @@ control. A zero difference is "inconclusive".
   sources too.
 - **Why in the pack:** Book 2's AI must see the rule default before it decides at about 15:00, and that snapshot
   exists only from the `pack` step (O1's builder, 16 Oct). There is no new daily step.
+- **Its time comes out of a margin** (O1's builder): the pack step retries until 15:10 for the canonical snapshot, and
+  `ai_fire`, right after it, fires at 15:07 at the latest. On a late-canonical day, every second the sheet takes comes
+  out of that margin. The tests time the sheet at the playbook's most strategies (every approved version, each with
+  its widths) and report the worst case. The budget is 5 s (reasoning only: D2 over a handful of versions is the same
+  work Book 1's run does).
 
 ## Part 2: the answer (`fno/book2/answer.py`, standard library only)
 
-- **Shape:** `{"slots": [...], "reason": str}`. There is one slot per rule-default trade, in the sheet's order:
+- **Shape:** `{"action": "follow_rule" | "change", "reason": <one line, 1-600 characters>, "slots": [...]}`.
+  - `action` and `reason` at the top meet F1t's base check at `seal` (story/f1t-ai-trading-runner f1204a5a: `decision`
+    has `action`, text, and `reason`, one line).
+  - `action` is `follow_rule` exactly when every slot follows its default, including a day with no slots. Otherwise it
+    is `change`.
+- There is one slot per rule-default trade, in the sheet's order:
   `{"default": <opportunity_id>, "action": "follow_rule" | "no_trade" | "trade", "opportunity_id": <id or null>,
   "width": <number or null>, "lots": <int or null>, "reason": <non-empty str>}`.
 - When the rule default is "no trade", `slots` is empty. The AI can never trade when the rules offered none (D4).
 - `check_decision(decision, sheet=None) -> list[str]` (the name in F1t's port) lists the problems, and an empty list
   means it is acceptable:
   - wrong types;
-  - a missing reason;
+  - a missing reason, or a top-level reason that is not one line of 1-600 characters;
+  - a top-level `action` that disagrees with the slots;
   - slots that do not match the rule default one to one;
   - two slots choosing the same opportunity;
   - with `sheet` given, an `opportunity_id` not in the sheet.
@@ -105,31 +115,42 @@ control. A zero difference is "inconclusive".
    - `trade`: the named opportunity, at the named width and lots.
 
    The allocator runs with `threshold=True` and a `rebuild` from D2's `CandidateBuilder` for a changed width or lot
-   count. C2 and the unproven limit then run on the picks in slot order. Every other candidate is NOT_CHOSEN "not
-   chosen by book2_hybrid".
+   count. C2 and the unproven limit then run on the picks **in D2's own rank order** (`Candidate.rank_key`), so one
+   ordering rule serves every book (F6). The first pick of an opportunity wins. Every other candidate is NOT_CHOSEN
+   "not chosen by book2_hybrid".
 3. **C4 per chosen trade** (`EnvelopeMode`, D4):
    - the proposal carries `rule_default` (the slot's default terms) and `eligible` from the sheet;
    - `permits` derives the actions;
    - `shadow-only`: the account takes the rule default and the choice is written as a shadow record (D3 `mode:
-     shadow`);
+     shadow`). The default the account takes goes through the same allocator, C2 and C4 in the same run, like any
+     pick;
    - `forbidden`: no trade, and the attempt is recorded.
 4. **The unproven limit, re-checked independently at C4** (judge 260 addendum 2: D4 option 2, kept for F5's
-   switch-on). C4 gains each version's completed and open paper-trade counts from E5's records as an input. A pick
-   that would hold more than the limit fails `unproven` at C4, whatever the allocator said.
+   switch-on). **`EnvelopeMode`** (Book 2's C4 mode) gains a check `unproven`. Its input is each version's completed
+   and open paper-trade counts from E5's records, plus the book's trades chosen earlier the same day that passed C4.
+   A pick that would hold more than the limit fails `unproven`, whatever the allocator said. Book 1's `PlaybookMode`
+   is unchanged: a test runs Book 1's C4 cases and finds the same results as before.
 5. **One D3 run** (`DecisionStore`, atomic), like Book 1's `DecisionRun`. Every record has:
    - `rule_default`, `chosen_action`, `reason` and `authority_check` as non-empty text (D4 criterion 7);
    - `model_served` (= `model_reported`) and `session_id` from `accepted`;
    - both pack hashes;
    - `owner_override` null (D3);
-   - in `served`, the playbook, config and `trade_envelope:<name>-v<n>` of every envelope used.
+   - in `served`, the playbook, config and `trade_envelope:<name>-v<n>` of every envelope used. The envelope keys
+     are passed in the run context's `"served"`, which `DecisionRun.decide` merges under its own keys (F6's change).
 
    The picks go in `inputs.json` under `selection`, so D3's replay rebuilds the allocator and reproduces every record.
 6. **Evidence, not inputs.** The analyst cards (F2) and the devil's advocate's objections (T3) are linked in the
    record. They are never an input of the allocator, C2 or C4.
-7. **Fills and exits** (F1t, judge 301: nobody owned them). Book 2's `OrderBuilder` replays the run's entry orders,
-   and its `ExitRules` come from the traded playbook version. Both reuse Book 1's `ReplayedOrders` and
-   `PlaybookExitRules` (`fno/books/book1_orders.py`, `book1_exits.py`), parametrised by book, not copied. F1t wires
-   them per book in `fno/daily/wiring.py`.
+7. **Fills and exits** (F1t and judge 301: nobody owned them; judge 307). Book 2 reuses Book 1's classes,
+   parametrised by book and evaluator, not copied, as F6 does for Book 3. F1t wires them per book in
+   `fno/daily/wiring.py`.
+   - **Orders:** `ReplayedOrders` (`fno/books/book1_orders.py`) replays Book 2's committed run through D2's evaluator
+     with the `SelectionAllocator` rebuilt from `inputs.json`'s `selection`. It must reproduce the stored records
+     exactly, so an entry order is never rebuilt from JSON by hand, and its entry limit is C2's own. A run that does
+     not replay orders nothing. Only trades that passed C4 are ordered.
+   - **Exits:** `PlaybookExitRules` (`fno/books/book1_exits.py`): each Book 2 trade exits by the time exit fixed at its
+     decision, from the version file that run read. Today's version file is read only to alert, never to move an
+     exit.
 8. **Timing.** `decide()` runs in O1's `ai_collect` step, between 15:11:00 and E3's 15:12 deadline. It does not
    re-run D2; it reads the sheet. Its run time is measured in the tests on a realistic day and reported, with a
    budget of 30 s, half of F1t's 60.
@@ -140,7 +161,9 @@ control. A zero difference is "inconclusive".
    No sheet file appears under `journal/`. A later capture planted in the store is not read: the sheet uses the
    snapshot the common pack names. A sheet that raises refuses Book 2's pack with a named reason and writes no partial
    pack, while Book 1's and Book 3's packs are still built.
-2. `check_decision` refuses each malformed shape in the test plan, and accepts the four actions.
+2. `check_decision` refuses each malformed shape in the test plan, including a decision with no top-level `action`
+   or `reason` and an `action` that disagrees with its slots. It accepts every slot action, and F1t's base check
+   passes every decision it accepts.
 3. Each envelope action works end to end on fake sessions:
    - `follow_rule` trades the default;
    - `no_trade` trades nothing;
@@ -154,8 +177,11 @@ control. A zero difference is "inconclusive".
 6. With no approved version, Book 2 writes the day's "no trade" record ("no approved strategy"), like Book 1.
 7. A Book 2 decision failing C4 never becomes a fill (end-to-end negative test through E4).
 8. `decide()` takes at most 30 s on the test day (measured and reported).
-9. Book 2's entry orders and exits use Book 1's `ReplayedOrders` and `PlaybookExitRules` for Book 2's run and traded
-   version. A Book 2 trade exits by its own version's exit rules.
+9. Book 2's entry orders and exits use Book 1's `ReplayedOrders` and `PlaybookExitRules`, parametrised, not copied:
+   - a changed pick in `inputs.json` (the run no longer replays) refuses every order of that run;
+   - a pick blocked by C4 is never ordered;
+   - editing today's version file moves no exit: the trade keeps the time exit fixed at its decision.
+10. Book 1's C4 results are unchanged by the `unproven` check (Book 1's existing C4 cases rerun).
 
 ## Test plan
 
@@ -178,4 +204,5 @@ control. A zero difference is "inconclusive".
    replaces only its own slot. Is that the intended unit, or should Book 2 choose a whole set? A set would change D4's
    one-choice-against-one-default check.
 
-**Depends:** D2, D3, D4 (merged), E2 (the hook), E5 (counts), F1t, F6's `SelectionAllocator` · **Size:** M
+**Depends:** D2, D3, D4 (merged), E2's `BookSheet` port (story/e2e-book-sheet), E5 (counts), F1t, F6's
+`SelectionAllocator` · **Size:** M

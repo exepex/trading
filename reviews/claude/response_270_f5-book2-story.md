@@ -46,3 +46,34 @@ on paper.
   - **F5 now owns Book 2's `OrderBuilder` and `ExitRules`**: Book 1's `ReplayedOrders` and `PlaybookExitRules`,
     reused and parametrised by book, not copied. This is criterion 9.
 - **F6:** its allocator criterion 12 matches this text (F6's story at 2153e9b0).
+
+## Judge 307 (FAIL at 6d2b6331, 2 should-fix), answered
+
+1. **No top-level `action`: accepted.** I checked F1t's base check (story/f1t-ai-trading-runner f1204a5a, lines
+   184-185): `decision` needs `action` (text) and `reason` (one line). The decision is now `{"action": "follow_rule" |
+   "change", "reason": <one line, 1-600 characters>, "slots": [...]}`. `action` is `follow_rule` exactly when every
+   slot follows its default. The shape check is named `check_decision(decision, sheet=None)`. Criterion 2 now also
+   requires that F1t's base check passes every decision `check_decision` accepts. Confirmed with F1t.
+2. **Book 2's orders and exits: accepted.** Part 3 point 7 reuses Book 1's `ReplayedOrders` (replayed with the
+   `SelectionAllocator` rebuilt from `inputs.json`) and `PlaybookExitRules`, parametrised, not copied. Criterion 9 has
+   the judge's three cases:
+   - a changed pick refuses every order;
+   - a pick blocked by C4 is never ordered;
+   - today's version file moves no exit.
+
+**Minor points:**
+- Shadow-only: the default the account takes passes the same allocator, C2 and C4 in the same run.
+- The unproven re-check is a new `unproven` check in `EnvelopeMode`. Book 1's `PlaybookMode` is unchanged, and
+  criterion 10 reruns Book 1's C4 cases.
+- Citations now give decision titles, not row numbers. I also fixed the two I wrote into D3's and F4's text.
+- D3 criterion 6 names Book 3's day-record exemption and the null `owner_override`.
+
+**Other changes since 0b77381f:**
+- The `BookSheet` port is now E2c's owner's (story/e2e-book-sheet, the orchestrator's choice). F5 builds only
+  Book 2's sheet, under E2c's rules a and d.
+- Picks run in D2's own rank order, not slot order (F6: one ordering rule).
+- The sheet's time comes out of the 15:07 fire margin on a late-canonical day (O1's builder). It is timed at the
+  playbook's most strategies, with a 5 s budget (reasoning only).
+- The envelope components reach `served` through the run context (F6's `DecisionRun` change).
+- S2's text: "overrides (F4)" removed from `S-scoreboards.md` S2's inputs (orchestrator: a one-line fix here, S2's
+  owner told through the register). S2's stale `RecordedOwnerOverride` code is S2's (judge 300 addendum 1).

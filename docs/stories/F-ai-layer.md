@@ -393,15 +393,15 @@ Daily objections are committed with the decision; research objections in the res
 
 **Description:** As the owner, I want research sufficiency and interpretation checked by a model different from the
 author and the judge itself audited monthly, so that the judge stays honest. I never override a paper decision
-(owner, 16 Oct 2026, DESK_DECISIONS row 229 item 4).
+(owner, 16 Oct 2026, DESK_DECISIONS "D4/D5: the five design questions accepted as recommended" item 4).
 
 **Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no trade
-or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS row 229
-item 4; design v2 03 leaves the owner only S1's safety stop; C2's written restart of a stopped book's drawdown brake is
-a risk control, not a decision override; both stay, outside this story); monthly audit of a stratified sample plus
-seeded known-answer cases. Per book: Book 2's judge failure means no trade (the account keeps no position; the rule
-default is recorded as a shadow); Book 3's judge verdicts are recorded evidence, not blocks (12.3); Book 1's strategies
-were judged at approval and its daily trades are checked by C4 only.
+or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS "D4/D5: the
+five design questions accepted as recommended" item 4; design v2 03 leaves the owner only S1's safety stop; C2's written
+restart of a stopped book's drawdown brake is a risk control, not a decision override; both stay, outside this story);
+monthly audit of a stratified sample plus seeded known-answer cases. Per book: Book 2's judge failure means no trade
+(the account keeps no position; the rule default is recorded as a shadow); Book 3's judge verdicts are recorded
+evidence, not blocks (12.3); Book 1's strategies were judged at approval and its daily trades are checked by C4 only.
 
 **Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the audit. Out:
 hard validity (C4); owner overrides (none on paper: D3 refuses a non-empty `owner_override` in every book).
