@@ -105,3 +105,13 @@ for D5 or F6, decided before F6 is built.
 
 **Gates (run by me on c8dbf86d):** 7,393 passed (`-n auto`, Slack token unset). `ruff check`: clean. `ruff format
 --check`: 1,322 files already formatted. `check_imports`: clean.
+
+## Addendum 2: story/d5-constitution-code at 3a84f73f
+
+**PASS.** The head carries D5's judge-263 fix (c8dbf86d, PASS in addendum 1; `fno/book3/` unchanged since) and D4's
+addendum-2 fix (094f7a97). My plant on the D4 part (drop the reached-C2 condition) fails 1 test here too.
+
+**Gates (run by me on 3a84f73f):** 7,418 passed, plus the same 3 known main failures in `tests/risk` (A14c's stress
+factor, judge 268). `ruff check`: clean. `ruff format --check`: 1,328 files already formatted. `check_imports`:
+clean. Merge after D4. Then ChatGPT (rule 9). The routine that runs Book 3's C4 must fetch in full (shallow clones
+are refused).

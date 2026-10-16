@@ -148,3 +148,23 @@ unproven B holding its one trade, `NOT_CHOSEN` for that reason, is refused as Bo
 
 7,212 passed (`-n auto`, Slack token unset). `ruff check`: clean. `ruff format --check`: 1,281 files already
 formatted. `check_imports`: clean. D5's head d3d31558 carries this fix, but not yet D5's own should-fix (judge 263).
+
+## Addendum 2: story/d4-envelope-code at 35126eb0 (fix 094f7a97)
+
+**PASS.** `DayEvaluation.eligible` now keeps only `CHOSEN` or `NOT_CHOSEN` outcomes that reached C2 (`o.risk is not
+None`). A candidate refused by its own version's limits before C2 (the no-trade threshold, the unproven limit:
+`allocation._before_risk`, risk `None`) is never eligible. A C2 refusal stays eligible, which is right: a slot lost to
+A is what `choose_strategy` trades, and B's own C2 verdicts are then required and re-checked by C4 (`risk_verdicts`,
+limits).
+
+- Tests: an unproven B (3 completed, 1 open) is `NOT_CHOSEN` "unproven", so eligible is {A}; a B losing the last
+  slot gives {A, B}.
+- My plant (drop the reached-C2 condition) fails 1 test.
+- The builder proposes option 2 (C4 re-checking the unproven limit from E5's counts) for F5's switch-on. I agree that
+  belongs there, as reasoning; record it with the switch-on condition already written on `ValidityProposal`.
+
+**Gates (run by me on 35126eb0):** 7,371 passed. The 3 failures are `tests/risk/test_manager.py` (two) and
+`tests/risk/test_stress_factor.py::test_the_repository_seed_row_is_read_by_c2_and_c4`. They fail identically on
+main since `df9bfaff` (A14c's stress factor 2.1 against tests pinned to 1.45; judge 268), not D4's. `ruff check`:
+clean. `ruff format --check`: 1,317 files already formatted. `check_imports`: clean. D4 goes to ChatGPT next (rule
+9).
