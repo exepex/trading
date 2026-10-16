@@ -1,5 +1,5 @@
-"""Story O11, the built stages: 16 Oct 2026 replayed from forecasts to the scoreboards. Each stage's output exists and
-agrees with the one before it; a clean day sends no alert."""
+"""Story O11, the built stages: 16 Oct 2026 replayed through O1's daily run, from the forecasts to the scoreboards.
+Each stage's output exists and agrees with the one before it; a clean day sends no alert."""
 
 import hashlib
 import json
@@ -7,7 +7,10 @@ import json
 import pytest
 
 from fno.books.account import PaperAccount
-from fno.constants import BOOK1_RULES, OUTCOME_OPENED
+from fno.checks.validity_constitution import ConstitutionMode
+from fno.checks.validity_envelope import EnvelopeMode
+from fno.checks.wiring import validity_modes
+from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, DAILY_RUN_STEPS, OUTCOME_OPENED, REVIEWS_STEP
 from fno.desk.records import DeskRecords
 from fno.forecast_v4_rules import records as v4
 from fno.forecast_v4_rules.records import LIVE
@@ -19,7 +22,19 @@ from tests.desk.conftest import RecordingAlerts
 from . import real_day as rd
 from .replay import EXECUTION_ID, Replay
 
-STEPS = ["versions", "pack", "decisions", "snapshot", "fills", "exits", "trade_marks"]
+STEPS = [
+    "weather",
+    "forecasts_v4",
+    "versions",
+    "pack",
+    "book1",
+    "decisions",
+    "snapshot",
+    "fills",
+    "exits",
+    "trade_marks",
+    REVIEWS_STEP,
+]  # O1's DAILY_RUN_STEPS without the quote parts, the margin check and the card
 
 
 @pytest.fixture
@@ -36,11 +51,13 @@ def chosen_record(root) -> dict:
 def test_weather_and_v4_forecasts_are_live_rows_of_the_day(day):
     out, root, _ = day
     weather = WeatherRecords(root / "weather").for_day(rd.DAY)
-    assert weather["label"] == LIVE and weather["made_at"].startswith("2026-10-16T08:55")  # 14:25 IST
-    assert out.forecast_lines[0].startswith("weather 2026-10-16: ") and out.forecast_rows > 0
+    assert weather["label"] == LIVE and weather["made_at"].startswith("2026-10-16T08:35")  # 14:05 IST, O1's start
+    assert out.log.result("weather")["lines"][0].startswith("weather 2026-10-16: ")
+    v4_line = out.log.result("forecasts_v4")["reason"]
+    written = int(v4_line.split()[0])
     rows = {path.stem: row for path in (root / "v4").rglob("*.csv") for d, row in v4.read(path).items()
             if d == "2026-10-16"}  # fmt: skip
-    assert len([*(root / "v4").rglob("*.csv")]) == out.forecast_rows + 4  # G7's rows, the weather's 2 x 2
+    assert len([*(root / "v4").rglob("*.csv")]) == written + 4  # G7's rows, the weather's 2 x 2
     assert {row.label for row in rows.values()} == {LIVE}
     waiting = {question for question, row in rows.items() if row.status != "ok"}
     assert waiting == {"v1_rv_next_session"}  # V1 waits for 20 A16 sessions (G7 phase 1); every other row is made
@@ -61,7 +78,6 @@ def test_the_pack_freezes_the_real_snapshot_and_the_previous_close(day):
 def test_book1_chooses_a_trade_on_the_pack_that_passes_risk_and_every_c4_check(day):
     out, root, _ = day
     record = chosen_record(root)
-    assert out.decision.startswith("Book 1 2026-10-16: decided (2026-10-16-r1)")
     assert record["chosen_action"] == "trade" and record["common_pack_sha256"] == out.pack.sha256
     assert record["risk"]["ok"] is True and record["risk"]["entry_cash_rs"] > 0
     c4 = record["validity"]["c4"]
@@ -72,7 +88,9 @@ def test_book1_chooses_a_trade_on_the_pack_that_passes_risk_and_every_c4_check(d
 def test_the_daily_run_collects_checks_fills_reviews_and_marks_the_same_trade(day):
     out, root, alerts = day
     log, record = out.log, chosen_record(root)
-    assert list(log.steps) == STEPS
+    assert list(log.steps) == STEPS and [s for s in DAILY_RUN_STEPS if s in STEPS] == STEPS
+    assert all(log.result(name)["status"] == "ok" for name in ("weather", "forecasts_v4", "book1", REVIEWS_STEP))
+    assert log.result("book1")["reason"].startswith("Book 1 2026-10-16: decided (2026-10-16-r1)")
     assert log.result("decisions")[BOOK1_RULES]["run_id"] == "2026-10-16-r1"
     snapshot = log.result("snapshot")
     assert snapshot["valid"] is True and snapshot["snapshot_id"] == EXECUTION_ID
@@ -104,3 +122,9 @@ def test_scorecard_and_both_scoreboards_read_the_same_trade_and_maximum_loss(day
     matched = out.matched["books"][BOOK1_RULES]
     assert (matched["eligible_days"], matched["pilot"]["takes"]["open"]) == (1, 1)
     assert json.dumps(out.board)  # the board is plain data, ready to publish
+
+
+def test_books_2_and_3_trades_are_checked_against_the_envelope_and_the_constitution():
+    """D4 and D5 merged: C4 checks a Book 2 trade against its envelope and a Book 3 trade against its constitution."""
+    modes = validity_modes()
+    assert isinstance(modes[BOOK2_HYBRID], EnvelopeMode) and isinstance(modes[BOOK3_AI], ConstitutionMode)

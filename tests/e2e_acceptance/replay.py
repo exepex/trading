@@ -62,17 +62,15 @@ from tests.timetable.fakes import TIMETABLE, Clock, Commits, LocalSync, Versions
 from tests.weather.fakes import FakeStore
 
 from . import real_day as rd
+from .o1_steps import day_steps
 
 EXECUTION_ID = "exec_20261016_151500"
-FORECAST_TIME = rd.at(14, 25)  # before G10's 14:30 cutoff, as the live capture runs
+O1_START = rd.at(14, 5)  # the agreed O1 start (16 Oct log): the forecast steps run first, before G10's 14:30 cutoff
 
 
 @dataclass
 class Outputs:
-    forecast_lines: list[str] = field(default_factory=list)
-    forecast_rows: int = 0
     pack: object = None
-    decision: str = ""
     log: object = None
     scorecards: list = field(default_factory=list)
     pauses: list = field(default_factory=list)
@@ -96,21 +94,6 @@ class RealRowsCapture:
         return RecordResult("recorded", EXECUTION_ID, True, len(rows))
 
 
-class DecidingClock(Clock):
-    """The run's clock and waiter: while the run waits for the 15:12 deadline, Book 1 decides at 15:00, as its own
-    routine does beside the daily run (the run's pack step at 14:58 comes first)."""
-
-    def __init__(self, decide):
-        super().__init__()
-        self.decide, self.decided, self.asked = decide, None, False
-
-    def until(self, moment) -> None:
-        if not self.asked and moment >= rd.at(15, 0):
-            self.now, self.asked = max(self.now, rd.at(15, 0)), True
-            self.decided = self.decide(rd.DAY)
-        super().until(moment)
-
-
 class RegisteredFirst:
     """Git's order for D6: the version row's commit comes before every decision commit."""
 
@@ -122,32 +105,41 @@ class RegisteredFirst:
 
 
 class Replay:
-    def __init__(self, root, monkeypatch, alerts, forecast_time=FORECAST_TIME, capture=RealRowsCapture, listed=True):
+    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True):
         self.root, self.alerts, self.cfg = root, alerts, load_app_config()
-        self.forecast_time, self.capture, self.listed = forecast_time, capture, listed
+        self.start, self.capture, self.listed = start, capture, listed
         self.playbook = rd.approved_playbook()
         rd.build_repository(root)
         rd.replace_outside_services(monkeypatch, root, self.playbook, listed)
         self.commits = BookCommits(clock_at(rd.at(15, 0)))
-        self.clock = DecidingClock(lambda day: self.book1().decide(day))
+        self.clock = Clock()
         self.run_commits = Commits(self.clock)  # the run's own commits (a test may make one fail)
         self.packs = WrittenPacks(build_common_pack_builder(root), build_private_pack_builder(root), PackStore(root),
                                   DESK_DECISION_TIME, PACKED_BOOKS)  # fmt: skip
         self.out = Outputs()
 
     def run(self) -> Outputs:
-        self.forecast()
-        self.clock.now = rd.at(14, 50)
+        self.clock.now = self.start
         self.out.log = self.daily_run().run(rd.DAY)
-        self.out.pack, self.out.decision = self.packs.stored(rd.DAY), self.clock.decided
-        self.score()
+        self.out.pack = self.packs.stored(rd.DAY)
+        if self.out.log.done("snapshot"):
+            self.score()
         return self.out
 
-    def forecast(self) -> None:
-        records, write = WeatherRecords(self.root / "weather"), v4_writer(self.root / "v4")
-        self.out.forecast_lines = capture_weather(build_weather_days(), records, rd.DAY, self.forecast_time, is_session,
-                                                  write, lambda: "normal", FakeStore(), previous_regular)  # fmt: skip
-        self.out.forecast_rows = capture_day(build_v4_forecasts(rd.DAY), rd.DAY, self.forecast_time, write)
+    def weather(self, day) -> list[str]:
+        """`fno weather capture` (O1's `weather` step)."""
+        return capture_weather(build_weather_days(), WeatherRecords(self.root / "weather"), day, self.clock(),
+                               is_session, v4_writer(self.root / "v4"), lambda: "normal", FakeStore(),
+                               previous_regular)  # fmt: skip
+
+    def forecasts_v4(self, day) -> list[str]:
+        """`fno forecast-v4 capture` (O1's `forecasts_v4` step)."""
+        written = capture_day(build_v4_forecasts(day), day, self.clock(), v4_writer(self.root / "v4"))
+        return [f"{written} v4 rows written"]
+
+    def decide(self, day) -> list[str]:
+        """`fno desk book1` (O1's `book1` step, right after the pack): Book 1's decision, committed at 15:00."""
+        return [self.book1().decide(day)]
 
     def book1(self) -> Book1:
         inputs = LiveBook1Inputs(self.root, rd.quote_store(self.root), self.cfg["risk_free_rate"], Black76(),
@@ -174,7 +166,11 @@ class Replay:
                                                                                 clock),
                           self.exit_rules(), self.alerts, clock)  # fmt: skip
         marking = marking_step(root, (BOOK1_RULES,), quotes, self.alerts)
-        return DailyRun(steps, CALENDAR, PendingCommitter(self.run_commits, root), clock, clock, marking)
+        commands = {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide}
+        o1 = day_steps(commands, build_scorecard_run(self.cfg, root, self.alerts), build_execution_snapshots(
+            root / rd.QUOTES), root, self.alerts)  # fmt: skip
+        return DailyRun(steps, CALENDAR, PendingCommitter(self.run_commits, root), clock, clock, marking,
+                        day_steps=o1)  # fmt: skip
 
     def exit_rules(self) -> PlaybookExitRules:
         finder = OpportunityFinder(TradingDays(CALENDAR))
@@ -186,7 +182,9 @@ class Replay:
         snapshots = build_execution_snapshots(self.root / rd.QUOTES)
         valid = self.out.log.result("snapshot")["valid"]
         marks = snapshot_marks(snapshots.snapshot(rd.DAY, EXECUTION_ID)) if valid else {}
-        self.out.scorecards, self.out.pauses = build_scorecard_run(self.cfg, self.root).run(rd.DAY, marks)
+        self.out.scorecards, self.out.pauses = build_scorecard_run(self.cfg, self.root, self.alerts).run(
+            rd.DAY, marks, pause=False
+        )  # the run's reviews step paused; this reads the same cards back
         served = self.served()
         self.out.board = board_from(
             self.root, self.cfg["charges"], CALENDAR, self.versions(served),
@@ -210,4 +208,4 @@ class Replay:
 
     def served(self) -> dict:
         runs = CommittedRuns(self.root)
-        return next(record["served"] for run in runs.runs() for record in runs.records(run))
+        return next((record["served"] for run in runs.runs() for record in runs.records(run)), {})

@@ -1,16 +1,14 @@
-"""Story O11, what is not implemented yet: one strict xfail per missing piece of the core engine, named by the story
-that builds it (`docs/CORE_ENGINE_PLAN.md`). When a story lands, its test passes, the strict xfail fails the suite, and
-that story's builder deletes the marker in the same branch (and, for `not_built`, writes the real check). The suite is
-complete when this file holds no xfail."""
-
-import importlib
+"""Story O11, what is not implemented yet: one strict xfail per missing piece of the core engine or of the go-live
+gate (DESK_DECISIONS row 247), named by the story or owner step that closes it (`docs/CORE_ENGINE_PLAN.md`). When it
+lands, its test passes, the strict xfail fails the suite, and that builder deletes the marker in the same branch (and,
+for `not_built`, writes the real check). The suite is complete when this file holds no xfail."""
 
 import pytest
 
 from fno import constants
-from fno.checks.validity_modes import WaitsFor
-from fno.checks.wiring import validity_modes
-from fno.config import load_app_config
+from fno.cards.weather import PendingWeather
+from fno.cards.wiring import build_daily_card
+from fno.config import ROOT, load_app_config
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from fno.desk.pack_wiring import PACKED_BOOKS
 from fno.playbook.decision_run import DecisionRun
@@ -41,34 +39,33 @@ def replayed_decisions(tmp_path, monkeypatch, book_name: str) -> list:
     return sorted((tmp_path / "journal" / book_name / "decisions" / rd.DAY.isoformat()).glob("*/*.json"))
 
 
-@missing("O1")
-def test_the_daily_routine_runs_weather_forecasts_book1_and_the_card_as_steps():
-    assert {"weather", "forecasts_v4", "book1", "card"} <= set(constants.DAILY_RUN_STEPS)
+@missing("owner: daily.live_from dates (go-live gate)")
+def test_every_o1_step_has_its_live_date():
+    assert all(load_app_config()["daily"]["live_from"].values())
 
 
-@missing("O1")
-def test_a_refused_step_is_alerted_and_the_run_goes_on():
-    steps = importlib.import_module("fno.daily.steps")  # O1's module: by name, as it is not on main yet
-
-    assert "the run goes on" in steps.FAILED_ALERT.format(day=rd.DAY, name="book1", status="failed", reason="no pack")
-
-
-@missing("D4")
-def test_book2_trades_are_checked_against_its_envelope():
-    assert not isinstance(validity_modes()[BOOK2_HYBRID], WaitsFor)
+@missing("O1 follow-up: the 14:05 start")
+def test_the_daily_routine_starts_before_the_1430_forecast_cutoff():
+    section = (ROOT / "CLAUDE.md").read_text(encoding="utf-8").split("## Daily desk routine")[1].split("\n## ")[0]
+    assert "14:33" not in section
 
 
-@missing("D5")
-def test_book3_trades_are_checked_against_its_constitution():
-    assert not isinstance(validity_modes()[BOOK3_AI], WaitsFor)
+@missing("T1c: the card reads M1's weather record")
+def test_the_card_shows_m1s_weather_not_a_pending_line():
+    assert not isinstance(build_daily_card(ROOT).builder.weather_source, PendingWeather)
 
 
-@missing("D4", "D5", "F1T")
+@missing("O11 part 2: the card step on a git root")
+def test_the_card_is_built_on_the_recorded_day():
+    not_built("the replay's card step (T1 reads committed records from git HEAD; the replay root is no checkout)")
+
+
+@missing("D4", "D5", "F1t")
 def test_books_2_and_3_get_their_private_packs():
     assert {BOOK2_HYBRID, BOOK3_AI} <= set(PACKED_BOOKS)
 
 
-@missing("D3c")
+@missing("D3 no override")
 def test_a_decision_with_an_owner_override_is_refused(tmp_path):
     run = DecisionRun(evaluator(), DecisionStore(tmp_path, constants.BOOK1_RULES))
     with pytest.raises(ValueError):
@@ -76,12 +73,12 @@ def test_a_decision_with_an_owner_override_is_refused(tmp_path):
                    {**CONTEXT, "owner_override": "owner says trade"})  # fmt: skip
 
 
-@missing("F1T", "F5")
+@missing("F1t", "F5")
 def test_book2_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monkeypatch):
     assert replayed_decisions(tmp_path, monkeypatch, BOOK2_HYBRID)
 
 
-@missing("F1T", "F6")
+@missing("F1t", "F6")
 def test_book3_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monkeypatch):
     assert replayed_decisions(tmp_path, monkeypatch, BOOK3_AI)
 
@@ -93,7 +90,7 @@ def test_paper_fills_follow_the_owners_reaction_time():
 
 @missing("G6")
 def test_protocol_v4_is_frozen_so_the_days_v4_rows_are_scored():
-    assert (rd.ROOT / "research" / "forecasts" / "FREEZE_v4.md").is_file()
+    assert (ROOT / "research" / "forecasts" / "FREEZE_v4.md").is_file()
 
 
 @missing("G11")

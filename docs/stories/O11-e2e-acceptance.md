@@ -34,45 +34,51 @@ and kill-and-rerun), UI.
 | Live features (B7) | fixed values | Test only |
 
 Three outside services are replaced at their composition-root seams: Drive's quote store becomes a local folder, NSE's
-F&O archive becomes one file, and the playbook's git approval becomes one approved version. The daily run's object
-graph is built as `fno/desk/daily_wiring.py` builds it, with git, Drive and Groww's recorder replaced as
-`tests/timetable` already replaces them. Everything else is the code on `main`, from its composition roots.
+F&O archive becomes one file, and the playbook's git approval becomes one approved version. The day runs through
+**O1's daily run** (`DailyRun` with O1's `day_steps`, in `DAILY_RUN_STEPS` order) built as `fno/daily/wiring.py`
+builds it, with three differences. Git, Drive and Groww's recorder are replaced as `tests/timetable` already replaces
+them. O1's command steps (`weather`, `forecasts_v4`, `book1`) call their command's own function in-process behind O1's
+`DayStep`, because a child process could not see the replay's seams; they keep O1's outcome rules. O1's real
+`Alerted` and `ReviewsStep` wrap them. The clock starts at **14:05**, the agreed O1 start (the stored 14:33 start is
+tested as a failure below). Everything else is the code on `main`, from its composition roots.
 
 ## Stages
 
 | # | Stage | Built on main? | Checked |
 |---|---|---|---|
-| 1 | Weather (M1) and v4 rule forecasts (G7) at 14:25 | yes | record and rows for the day, label live, before the cutoff |
-| 2 | Common and private packs (E2) at 14:58 | yes | the pack records the real snapshot's ID and SHA-256 and the 15 Oct close |
-| 3 | Book 1 decision (D2, E5) with C2/C5 risk and C4 validity at 15:00 | yes | chosen trade, risk ok, every C4 check ok, the record names the pack's SHA-256 |
+| 1 | O1 `weather` (M1) and `forecasts_v4` (G7) steps at 14:05 | yes | step ok; record and rows for the day, label live; only V1 waits (20 A16 sessions) |
+| 2 | Packs (E2) at 14:58 | yes | the pack records the real snapshot's ID and SHA-256 and the 15 Oct close |
+| 3 | O1 `book1` step: D2, C2/C5 risk, C4 validity | yes | chosen trade, risk ok, every C4 check ok, the record names the pack's SHA-256 |
 | 4 | Collection (E3), C3 data checks, execution snapshot | yes | collected on time, snapshot valid |
 | 5 | Fills (E4), exit review, trade marks (E2d) | yes | 4 legs filled from the snapshot, held, valued, equity row |
-| 6 | Scorecards (E6), scoreboards B (S2/S6) and A (S3) | yes | the same trade ID, maximum loss and day in each |
-| 7 | O1 routine steps (weather, forecasts, card in the run; a refused command alerted) | branch | xfail O1 |
-| 8 | Book 2 and Book 3 packs, decisions, C4 modes | no | xfail D4, D5, D3c, F1T, F5, F6 |
-| 9 | Owner-timing fills | branch | xfail E8 |
-| 10 | v4 scores of the day's rows; AI books' v4 rows | no | xfail G6, G11 |
-| 11 | Capture failure record, price distribution, analyst card, book usage, card objections | no story code | xfail O10, G13, F2, F8c, T3 |
+| 6 | O1 `reviews` (E6), scorecard, scoreboards B (S2/S6) and A (S3) | yes | the same trade ID, maximum loss and day in each |
+| 7 | C4 modes for Books 2 and 3 (D4, D5) | yes | envelope mode and constitution mode |
+| 8 | Go-live switches: `daily.live_from` dates, the 14:05 start, the card's weather from M1, the card step in the replay | no | xfail: owner, O1 follow-up, T1c, O11 part 2 |
+| 9 | Book 2 and Book 3 packs and decisions from a fake AI answer; no owner override | no | xfail: D4/D5/F1t, F1t+F5, F1t+F6, D3 no override |
+| 10 | Owner-timing fills | branch | xfail: E8 |
+| 11 | v4 scores of the day's rows; AI books' v4 rows | no | xfail: G6, G11 |
+| 12 | Capture failure rows, valuation record, analyst card, usage per routine, card objections | no | xfail: O10, G13, F2, F8c, T3 |
 
 ## Failures on the day
 
-| Failure | Expected now | Owner if missing |
-|---|---|---|
-| No 3 pm capture | pack not built, with the reason in the run log; Book 1 refuses; the book is "no decision" with its record | the refused command's alert: O1 |
-| The 15:15 capture fails | snapshot invalid in the run log, alerted; no fill | built |
-| No NSE F&O file | C4 blocks the trade, record and `validity_failures.csv`; C3 alerts | built |
-| A commit fails mid-run | the run stops and alerts once | built |
-| Forecasts after 14:30 | refused, nothing written | the refusal's alert and run-log line: O1 |
+| Failure | Expected now (all built under O1's run) |
+|---|---|
+| No 3 pm capture | pack not built, with the reason in the run log; the `book1` step failed, recorded and alerted; the book is "no decision" with its record; the run goes on to the reviews |
+| The 15:15 capture fails | snapshot invalid in the run log, alerted word for word; no fill |
+| No NSE F&O file | C4 blocks the trade (record and `validity_failures.csv`); C3 alerts |
+| A commit fails mid-run | the run stops and alerts once |
+| The stored 14:33 start | both forecast steps refused (after the 14:30 cutoff), recorded, alerted, nothing written; the desk's day goes on |
 
 ## Findings while building (one line each, for their owners)
 
 1. A daily-run restart after 15:00 logs the pack step "built: False, already holds a different pack". The private
-   pack holds the book's decisions folder, which changes at 15:00. The run goes on with the stored pack, so no trade
-   is affected. This is for O1/O2's kill-and-rerun.
+   pack holds the book's decisions folder, which changes at 15:00. No trade is affected. For O2's kill-and-rerun.
 2. NSE's contract IDs parse as underlying `OPTIDXNIFTY` in C5's bucket map, so a desk fed from NSE's chain (the
-   owner's "Groww, then NSE" fallback) would refuse every trade. No code feeds the desk from NSE today. It matters only
-   if the fallback is built.
-3. Forecast refusals and Book 1 input refusals raise with no alert until O1's command steps merge.
+   owner's "Groww, then NSE" fallback) would refuse every trade. It matters only if the fallback feeds the desk.
+3. At the routine's stored 14:33 start, no live forecast can be made. This is the known O1 follow-up (the 14:05
+   start).
+4. The card's weather is `PendingWeather` ("M1 pending", "no new trades") although M1 is merged, and no story wires
+   it (M1's text: "T1 change: Out"). The plan names it T1c.
 
 ## Acceptance criteria
 
@@ -84,6 +90,8 @@ graph is built as `fno/desk/daily_wiring.py` builds it, with git, Drive and Grow
 4. A missing stage turning real makes its strict xfail fail. Its builder then replaces the xfail with the real check
    in the same branch, so the list cannot go stale.
 5. No network, no credentials (the suite's guards stay on), each file under 350 lines, gates green.
+6. The go-live gate (DESK_DECISIONS row 247) starts its 10-day count only after this suite holds zero xfails and is
+   judged.
 
 ## Judge verifies
 
