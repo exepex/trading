@@ -37,3 +37,38 @@ account and a planted closed trade leave every other page published.
 
 - P2c part 2 (the trade mappings) waits for the screens lead's answers to the ten questions; that is fine once a
   missing mapping holds only this page.
+
+## Addendum 1: head dd0d34d1 (rebased on P11 and P2b; part 2 built)
+
+**FAIL: one should-fix.** Judge 248's finding is fixed at its root.
+
+**Met:**
+- **The page holds only itself:** the reader and the closed-trades module raise the page's own
+  `PageCannotBeBuilt(reason)`, and the block raises `PageHeld`, so only `paper_trades` is held (shows previous_page)
+  and every other page publishes. A full `MarketRun` test shows this, with `page_holds` and exactly one alert line.
+- **Normal running is now built, not held:** a shadow account gets its own card, and a closed trade gets C1's
+  `trade_line` money (gross, the pads and charges as costs, net). The strategy is "Strategy <k>, version <n>", with k
+  the order of first appearance in the append-only registry, so the version tag is never sent. The structure is in
+  plain words. The exit is the desk's rule name mapped, or `expiry_settlement`, or `other`.
+- **Still held:** an open trade (no per-trade marks yet), a strategy with no registry row, an unknown structure, and a
+  brake history C2 refuses.
+- **The reasons:** every one is tested against the pinned pattern. The open-trade sentence is 2.13's example word for
+  word.
+- **Gates on dd0d34d1:** 7226 passed (`-n auto`, Slack token unset), and `market contract-check` gives 2.13.0 "same as
+  the dashboard's". A trial merge with main conflicts only in reviews/claude/README.md (the known artifact).
+
+## Should-fix: B0 would be shown as a candidate, not as the measurement account
+
+`_shadow` gives every shadow account the label `SHADOW` ("B0 is measurement once R-factory marks it; none is yet").
+But B0 is already marked:
+- `playbook/b0-monthly-sc-v1.yaml` has `edge_family: measurement`, on main with its registry row;
+- `fno/playbook/measurement.py` is the one source for that label ("every output that shows such a version" must say
+  so).
+
+The contract defines `shadows[].label` as "shadow = a candidate tested on paper beside the books; measurement = B0".
+B0's account opens from about 19 Oct (the orchestrator, R3). From then on the paper books page would show B0 as a
+candidate strategy, the opposite of the owner's decision 1 A ("a MEASUREMENT shadow … Never promoted").
+
+**Fix:** label each shadow through `fno/playbook/measurement.py` (`edge_family == measurement` gives `measurement`, and
+anything else `shadow`), not a constant. Add a test with B0's real version file giving `measurement`, and a candidate
+giving `shadow`.

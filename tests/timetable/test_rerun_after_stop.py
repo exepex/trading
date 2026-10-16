@@ -99,7 +99,7 @@ def test_a_stop_at_the_pack_is_committed_as_recorded_on_the_rerun_and_nothing_re
     log = run.run(NORMAL)  # the hand fix done, the rerun
     assert committed(root, packs.path(NORMAL)) == recorded  # byte-identical, never rebuilt
     assert packs.builds == 1 and len(capture.taken) == 1 and list(log.steps) == [
-        "versions", "pack", "decisions", "snapshot", "fills", "exits"]  # fmt: skip
+        "versions", "pack", "decisions", "snapshot", "fills", "exits", "trade_marks"]  # fmt: skip
     pack_message = f"Desk run {NORMAL} step pack (committed on the rerun, as recorded)"
     assert origin_messages(root)[:2] == [f"Desk run {NORMAL} step versions", pack_message]
     assert len(PaperAccount(root, BOOK1_RULES).fills()) == 4  # the fly's four legs, filled once
@@ -140,25 +140,26 @@ def test_a_pending_file_changed_since_it_was_recorded_stops_the_rerun_and_is_nev
     assert git(root, "rev-parse", "HEAD") == head and packs.builds == 1  # nothing committed, nothing rebuilt
 
 
-REJECT_EXITS = """#!/bin/sh
+REJECT_LAST = """#!/bin/sh
 while read old new ref; do
-  git log --format=%s "$old..$new" | grep -q "step exits" && exit 1
+  git log --format=%s "$old..$new" | grep -q "step trade_marks" && exit 1
 done
 exit 0
 """
 
 
 def test_a_push_rejected_every_time_is_pushed_by_the_rerun(root, tmp_path, alerts):
-    """The last step's push is rejected: on the rerun nothing follows the recovery, which must push it itself."""
+    """The last step's push (the marks, story E2d) is rejected: on the rerun nothing follows the recovery, which must
+    push it itself."""
     run, clock, _ = real_run(root, tmp_path, alerts, Decisions(), FilePacks(root))
     hook = root / "origin.git" / "hooks" / "pre-receive"
-    hook.write_text(REJECT_EXITS, encoding="utf-8")
+    hook.write_text(REJECT_LAST, encoding="utf-8")
     hook.chmod(0o755)
     with pytest.raises(RunStopped):
         run_day(run, clock, NORMAL)
-    assert "run STOPPED at step exits" in alerts.sent[0] and "exits not reviewed today" not in alerts.sent[0]
+    assert "run STOPPED at step trade_marks" in alerts.sent[0] and "exits not reviewed today" not in alerts.sent[0]
     assert "the rerun pushes the local commit" in alerts.sent[0]
     hook.unlink()
     run.run(NORMAL)
-    assert origin_messages(root)[-1] == f"Desk run {NORMAL} step exits"  # the stuck commit, pushed by the recovery
+    assert origin_messages(root)[-1] == f"Desk run {NORMAL} step trade_marks"  # the stuck commit, pushed by recovery
     assert git(root, "rev-list", "origin/main..HEAD") == ""  # nothing left unpushed
