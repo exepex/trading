@@ -85,3 +85,13 @@ The step is `reviews`, after `exits` (`fno/daily/reviews.py` on `story/o1-daily-
 - The run's alert sender is passed in as `build_drift_check(cfg, root, alerts=None)`.
 - The step commits `journal/drift/alarms.csv`, a new append-only alarm record. **I added it** because the CUSUM is
   recomputed from records on each run, so without a record a forecaster alarm would be re-sent every day.
+
+## ChatGPT review 134 (PARTIAL) and the orchestrator's response 233: all five accepted, checked
+
+| Point | My check | Change |
+|---|---|---|
+| 1. iid resampling ignores clustered losses | Correct in principle, and measured (`calibrate_h_blocks.py`): blocks of 3 raise challenge SF from 5.5 to 6.0 and leave the rest at or below their iid value or the floor. **One correction to the review:** it says SF "already has an unacceptable 40-trade median at h = 4". That is the fixed-h case. LR3 already calibrates SF to 5.5 (median 172), so calibration, not the floor, fixes it. | `drift_h = max(4, h_iid, h_block)`; both values, the trade count, the span and the run-length spread are reported; fewer than 30 research trades means "drift uncalibrated" and refused paper. Criterion 13. |
+| 2. Research figures against E8 fills | Correct: worse paper fills are real underperformance, not a false alarm. A trade-only monitor misses signals that never fill. | Named "research-to-paper performance drift"; `mu0` and `sigma` are never re-estimated; E8's no-fill and opportunity rate is shown beside it. Criterion 14. |
+| 3. Forecasters | Agreed. | AI slots are not monitored until 12 live blocks are complete; V1-V3 are unchanged. Criterion 11. |
+| 4. S1 names the exception | Correct. | Listed under "Changes owned elsewhere": before any version is activated. |
+| 5. Pause scope | Correct: "new entries in every book pause" could read as a global halt, while D1's transition is per version. | Only the offending version pauses, in every book using it; a whole-book halt needs its own owner decision. Restart provenance. Criterion 12. |

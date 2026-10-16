@@ -351,27 +351,48 @@ copy is built here:
     **required for `paper`**, with two more plan fields, `trades_per_year` and the frozen `drift_h` (decided by the
     owner on 16 Oct 2026, `docs/DESK_DECISIONS.md` "Accept all four"; D1 changes, see "Changes owned elsewhere"; R1's
     sample plan needs the SD too).
-  - **Threshold** (decided by the owner on 16 Oct 2026): `h` is set **per version at registration**. It is
-    `max(4, h*)`, where `h*` is the smallest h in steps of 0.5 whose in-control median run length is at least ten
-    years of that version's trades (`trades_per_year`). The run length comes from resampling the version's
-    research-test per-trade nets: 10,000 runs, seed 20261014. The floor of 4 is design 5.8's value: a research sample
-    of 30-60 trades under-represents the tails. The value is frozen in the plan as `drift_h`. On experiment 1's six
-    samples this gives h = 4.0 to 5.5, and a 1 SD collapse is flagged in a median of 6-12 trades. A version without
-    a registered SD or `drift_h` is shown "drift not monitored", never a silent pass.
+  - **Threshold** (decided by the owner on 16 Oct 2026; block check added after ChatGPT review 134): `h` is set **per
+    version at registration**, from the version's research-test per-trade nets in decision-day order, by two
+    resamplings with the same target: an in-control median run length of at least ten years of that version's trades
+    (`trades_per_year`), with 10,000 runs and seed 20261014.
+    - `h_iid`: trades drawn one at a time with replacement.
+    - `h_block`: a chronological circular-block resampling with blocks of 3 consecutive trades, because losses cluster
+      in regimes. Three is a simple stress check, not a proven optimal length.
+    - Each is the smallest h in steps of 0.5 that meets the target. The frozen value, `drift_h`, is
+      `max(4, h_iid, h_block)`. The floor of 4 is design 5.8's value.
+    - The registration reports both values, the number of trades, their date span and the spread of the in-control
+      run length at `drift_h` (10th and 90th percentiles). The median is an estimate from close-proxy history, not a
+      guaranteed ten-year false-alarm rate.
+    - A version with fewer than 30 completed research trades is **"drift uncalibrated"** and is refused `paper` under
+      the mandatory-field rule. Thirty is the smallest sample in experiment 1 (reasoning only).
+    - On experiment 1's six samples: `h_iid` 1.0-5.5, `h_block` 1.5-6.0, frozen 4.0-6.0. The block check raises only
+      the most skewed one, short-premium SF in 2019-2023, from 5.5 to 6.0 (`calibrate_h_blocks.out`).
+    - A 1 SD collapse is flagged in a median of 6-12 trades. A version without a registered SD or `drift_h` is shown
+      "drift not monitored", never a silent pass.
+  - **What the alarm means (review 134, point 2):** it is named **"research-to-paper performance drift"**. Paper
+    outcomes are compared with the registered research expectation, and `mu0` and `sigma` are never re-estimated from
+    paper results, which would erase the failure. A real regime change is one cause; E8's owner-timed fills being
+    worse than the close-proxy test is another. Both are real underperformance. Because the monitor sees only
+    completed positions, the report and the alert show **E8's no-fill and opportunity rate** beside the CUSUM: a
+    strategy whose good signals mostly miss may never alarm. S1 and E6's opportunity-level review stays the binding
+    economic test.
   - **Alarm** (the pause as designed, decided by the owner on 16 Oct 2026):
-    - new entries in every book pause at once through E6's pause path (`paper -> paused`, approver `drift_rule`,
-      D1's status change), so the record shows which rule paused the version;
+    - **only the offending version pauses**, in every book that uses it, through E6's pause path (`paper -> paused`,
+      approver `drift_rule`, D1's status change), so the record shows which rule paused the version. Other versions
+      stay eligible unless their own hard gates block them; a whole-book halt would need its own owner decision
+      (review 134, point 5);
     - one #fno-desk line, and a line in LR1's post-mortem;
     - open positions run to their registered exits (no owner action on paper);
-    - the version resumes only by the owner's restart row after a review, like C2's brake;
+    - the version resumes only by the owner's restart row after a review, like C2's brake. The restart records who
+      restarted it, when, and the review it cites (its provenance), and the CUSUM restarts at 0 from that day;
     - a shadow version (status `research`) is alerted only.
 - **Forecasters** (`drift_forecasters.py`):
   - **Data:** for each scored v4 forecaster and question, `d = loss(forecaster) - loss(primary baseline)` (Brier for
     V6, QLIKE for V1; G8's own loss functions, imported), on non-overlapping outcomes only (V6b every fifth day).
   - **Blocks:** means of consecutive blocks of 20 outcomes.
   - **Standardising:** `z = block mean / s`, where `s` is the SD of the block means over the forecaster's exploratory
-    back-fill before the v4 freeze. A forecaster without a back-fill (the AI books) takes `s` from its first 12 live
-    blocks, and has no alarm before those blocks are complete.
+    back-fill before the v4 freeze. A forecaster without a back-fill (the AI books' slots) takes `s` from its first 12
+    live blocks, and is **not monitored until those 12 blocks are complete** (about a year).
   - **Which forecasters (judge 214):** only the V6 questions (Brier), the only ones with the back-fill evidence.
     V1-V3 (QLIKE and others, heavier-tailed, no back-fill checked here) show "drift not monitored until calibrated";
     each joins once the same block check is run on its own back-fill, as a new registered setting.
@@ -400,6 +421,8 @@ copy is built here:
   `drift_rule` (today only `owner` and `hard_loss_rule`).
 - **E6, the pauser** (`fno/scorecard/pauses.py`): `AutoPauser` takes the approver from the pause's reason instead of
   the hard-coded `hard_loss_rule`.
+- **S1, the protocol text** (its text owner): `immediate_pauses` names the drift pause as an exception **before any
+  version is activated** for paper (review 134, point 4).
 - **O1, the daily run:** the `reviews` step after `exits` runs `DriftReview` after E6's `ScorecardReview`, and commits
   the alarm record beside `playbook/`. Agreed with O1's builder: **LR3's own code commit** adds the one wiring entry
   and the pathspec in `fno/daily/wiring.py`, using a named constant `DRIFT_ALARMS_FILE = "journal/drift/alarms.csv"`
@@ -428,7 +451,17 @@ copy is built here:
    alarm, and every sender in the run is O1's one sender (tests).
 10. Each alert's first line and owner-delay line match the wording above, marked PAPER ONLY (tests for the strategy
     and the forecaster alert).
-11. A V1-V3 forecaster shows "drift not monitored until calibrated" and never alarms (test).
+11. A V1-V3 forecaster shows "drift not monitored until calibrated", and an AI slot shows "not monitored" until 12 live
+    blocks are complete; neither ever alarms (tests).
+12. Pause scope (review 134, point 5), with two paper versions in two books, one drifting:
+    - only the drifting version pauses, and the unaffected version keeps opening in both books;
+    - a repeated daily run gives one alarm row and one alert;
+    - the drifted version's open positions still exit;
+    - the owner's restart row records its provenance, and the CUSUM restarts from that day (tests).
+13. `h_iid`, `h_block` and the frozen `max(4, h_iid, h_block)` are reproduced on a constructed clustered-loss sample.
+    The block value is higher there. A version with fewer than 30 research trades is "drift uncalibrated" and refused
+    `paper` (tests).
+14. The strategy report and alert show E8's no-fill and opportunity rate beside the CUSUM (test).
 
 **Test plan:** unit tests with constructed series; calibration tests with resampled constructed samples; the
 back-fill check on the committed v4 files; E6 pause tests with a temporary playbook registry.
