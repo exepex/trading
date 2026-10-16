@@ -65,3 +65,63 @@ counted score while `verify` stays silent.**
 - `ruff check` is clean, `ruff format --check` shows 1226 files formatted, and `check_imports` is clean.
 
 **A re-check needs the extended bullet and test (option 1), or the owner's row and the Reason line (option 2).**
+
+## Addendum 1: e70dcf13 (the owner chose option 1, row 07f62385): FAIL (2 should-fix, both about exemptions)
+
+**Checked:** `story/s1-scoring-files` at `e70dcf13bc6f7b9eb13aa6be53008a91a38e7812` (main merged in). The diff since
+1ca9fe80, in S1, is the new "Score-time computation" bullet (14 modules and the cost) and the new
+`tests/evaluation/test_scoring_closure.py`.
+
+**What is right:**
+- The owner's row (16 Oct, "Hash the ~11 modules (Recommended)") is on main.
+- My 11 modules are listed, plus `books/equity.py`, `scorecard/execution_costs.py` and `scorecard/touches.py`, which
+  the import walk found.
+- The cost is written into the bullet: "after the freeze, any edit to one of these files needs a new S1 version".
+- The closure test walks imports from the scoring modules through every hashed module. A stale-exemption test and a
+  planted removal (`desk/pricing.py`) are included. My plant (`fno/costs.py` dropped from the list) fails 2 tests.
+- The wiring exemptions are right: composition roots, and `config.py`, whose scoring sections are hashed as config.
+- Most of the data shapes and readers are right too: names, record shapes and readers of committed rows, such as
+  the decision store, journal records, versions and the calendar.
+
+**The two calls asked:**
+
+**SF1. (a) Three "readers" are rejected: `fno/fo_bhavcopy.py`, `fno/market_read_models/nse_files.py` and
+`fno/desk/snapshot.py` decide which numbers are scored.**
+- **Evidence:**
+  - `fo_bhavcopy.py` maps NSE's columns to fields, for example `"SttlmPric": "SETTLE_PR"` and `ClsPric` to `CLOSE`
+    (lines 23 and 36). `desk/settlement.py` (hashed) reads settlement prices through `read_fo_file`, and those prices
+    enter S3's standard unit.
+  - `nse_files.py`'s `read_index_figures` gives the index closes behind S6's do-nothing benchmark (`sources.py:18`).
+  - `desk/snapshot.py`'s `quote_from_row`, `_number` and `touch()` turn a snapshot row into the bid and ask that
+    `price_leg` (hashed) prices at.
+- **Why the SHA-256 pin does not cover it:** the archive pins the input bytes, not which column the code takes or
+  how it parses it. A post-freeze edit, such as reading `ClsPric` where it read `SttlmPric`, or a changed
+  number-parsing rule, changes the figures. The bytes would still match and `verify` would stay silent. That is the
+  path judge 229 SF1 closed for `price_leg`.
+- **Fix:** move these three from `EXEMPT` to the hashed bullet. The owner's accepted cost already covers desk code.
+  The parsers change rarely, but when one does, a new S1 version is the honest consequence.
+
+**SF2. (b) Rejected: `fno/constants.py` is not "names only" for scoring.**
+- **Evidence:** walking the hashed modules' imports from `constants`, two are numbers that decide a verdict:
+  `PAPER_GATE_MONTHS = 3` and `UNPROVEN_BELOW_COMPLETED_TRADES = 20`, which `fno/scorecard/review.py` (hashed since
+  14 Oct) passes into the review rule (lines 25, 29 and 49). Everything else imported is strings, tuples or enums.
+- **Path:** an edit of either number after the freeze changes S1's paper gate outcome while `verify` reports
+  "unchanged".
+- **Fix (the simplest that keeps `constants.py` unhashed, since hashing a file every story edits would force a new S1
+  version weekly):**
+  - add a test that pins each numeric constant reached from a hashed module to the frozen `PROTOCOL.md` text, for
+    example `paper_gate`'s "3 full calendar months and 20 completed positions";
+  - extend the closure test so that any numeric (int or float) constant imported by a hashed module must be in that
+    pinned set;
+  - reword the exemption to "names, plus the pinned numbers in `<test>`".
+  - Moving the two numbers into a hashed module also works.
+
+**Note (no fix):** `books/account.py` (exempt as a reader) computes `capital()`, the opening plus top-ups, and
+`scoreboard/reconcile.py` uses it. It is a sum of committed rows, used for the reconciliation check, not a scored
+figure. That exemption is acceptable.
+
+**Gates:**
+- On the trial merge with origin/main d8670cd5 (tree 5eadc5c, clean), `-n auto`: pytest 6937 passed.
+- `ruff check` is clean, `ruff format --check` shows 1227 files formatted, and `check_imports` is clean.
+
+**A re-check needs only the three moved modules and the pinned-constants test.**
