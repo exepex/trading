@@ -231,4 +231,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 240 (filed first as 238, renumbered: O9 holds 238): A14c code claims for judge D (needed-factor measure, read-ahead, self-review fixes; criterion 10's broker check is deferred by the orchestrator)](response_240_a14c-code.md)
 - [Response 245: the weather at the calendar's end (24-31 Dec 2026): unknown events said on the weather page, v0's not-scored reason named in M1's record](response_245_m1-calendar-end.md)
 - `response_246_e2d-trade-marks.md`: story E2d text (per-trade daily marks): the gap (record_equity never called), one source (the run's 15:15 snapshot), stale or unmarked never invented, Drive only, the account-file record-scan hole closed.
-- [Response 247: LM1 thresholds, the question for the owner (1,668 sessions of 15-minute NIFTY: the 1.5% move fires on 16% of sessions; A16's incomplete marks would mute half a day)](response_247_lm1-thresholds.md)
+- [Response 248: LM1 thresholds, the question for the owner (1,668 sessions of 15-minute NIFTY: the 1.5% move fires on 16% of sessions; A16's incomplete marks would mute half a day)](response_248_lm1-thresholds.md)
