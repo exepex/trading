@@ -31,3 +31,20 @@ Dashboard `story/fno-contract-2-11` at f94f3bf (screens lead 01XFXpbkyixX7SuXeQC
 
 - The schema cannot check `max_loss <= max_loss_cap`. C2 sizing enforces it on trading's side. P2f's build should
   refuse a card whose `max_loss` is above `max_loss_cap`, since both come from the same records.
+
+## Addendum 1: head e3829c2 (BG1's budget shares added)
+
+**FAIL still: the should-fix above is not addressed.** `git show e3829c2:design/mockups/39-trade-card/js/3-position.js`
+line 50 still reads `% of the Rs 10,000 cap`. 39's files are unchanged in `git diff f94f3bf e3829c2`.
+
+What e3829c2 adds is met:
+- **Three required FnoBudget fields:** `share_pct` (exclusiveMinimum 0, maximum 100), `alert_pct` and `stop_pct`,
+  from trading `config.yaml` `budget:` (`books_and_roles_share_pct: 50`, `alert_pct: 80`, `stop_pct: 100`, lines
+  172-174). The level and cap descriptions name the fields instead of 80, 100 and 50.
+- **Planted breaks:** removing each field from `getFnoBudget_india_ok` was rejected by `check_fno_screens` ("'<field>'
+  is a required property").
+- **Mockup 43:** the alert tick is at `left:${min(100, alert_pct)}%`. The facts, aria label, sentence and how-to read
+  the three fields, and none of 80, 100 or "half" remains.
+- **Gates:** `check_contract` and `check_fno_screens` exit 0.
+- **The sweep:** the lead's sweep of 37 and 39-46 for copied owner limits missed exactly the label I raised. The fix
+  is still one line: `rs(c, T.max_loss_cap)` in the aria label.
