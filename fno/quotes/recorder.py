@@ -28,16 +28,19 @@ from ..research_data.expiries import MONTHLY_LISTING_DAYS
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .book_fetch import BookFetcher
+from .capture_log import CaptureLog
 from .expiry_listing import ExpiryHistory, ListedExpiries
 from .market_levels import LevelSource
 from .monthly_contracts import PointInTimeMonthlies
 from .quote_validity import quote_validity, traded_today
 from .slot import NIFTY_SLOT, Slot
+from .window import QuoteWindow
 
 DATASET = "groww/derivatives/quote-snapshots"
 NSE_DATASET = "nse/derivatives/quote-snapshots"  # story O6: NSE's public chain, never mixed with Groww's
 WINDOW_START, WINDOW_END = time(14, 55), time(15, 10)
 MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits for the window
+DEFAULT_WINDOW = QuoteWindow("", WINDOW_START, WINDOW_END, MAX_EARLY_WAIT_SECONDS)  # A4's, never changed
 RETRY_GAP_SECONDS = 60
 SPOT_BAND = 0.05  # strikes within 5% of spot
 MONTHLY_EXPIRIES = 2
@@ -97,14 +100,15 @@ class QuoteSnapshotRecorder:
     def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
                  fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
                  history: ExpiryHistory | None = None, levels: LevelSource | None = None,
-                 dataset: str = DATASET, slot: Slot = NIFTY_SLOT):  # fmt: skip
+                 dataset: str = DATASET, slot: Slot = NIFTY_SLOT, window: QuoteWindow = DEFAULT_WINDOW,
+                 log: CaptureLog | None = None):  # fmt: skip
         """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
         byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
         the monthly is the last listed expiry of each month."""
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
         self.fallback, self.calendar, self.levels, self.dataset = fallback, calendar, levels, dataset
         self.monthly_check = PointInTimeMonthlies(history) if history else None
-        self.slot, self.underlying = slot, slot.underlying
+        self.slot, self.underlying, self.window, self.log = slot, slot.underlying, window, log  # log: A4e only
         self.pacer = RatePacer(slot.per_second) if slot.per_second else None  # one per recorder, across attempts
 
     @staticmethod
@@ -134,9 +138,9 @@ class QuoteSnapshotRecorder:
             return RecordResult("already recorded", self.canonical(day))
         if outside_window:
             return self._attempt(day, canonical_allowed=False)
-        start, end = (datetime.combine(day, t, IST) for t in (WINDOW_START, WINDOW_END))
+        start, end = (datetime.combine(day, t, IST) for t in (self.window.start, self.window.end))
         if now < start:
-            if (start - now).total_seconds() > MAX_EARLY_WAIT_SECONDS:
+            if (start - now).total_seconds() > self.window.max_early_wait_seconds:
                 return RecordResult("too early")
             self.sleep((start - now).total_seconds())
         result = RecordResult("window closed")
@@ -199,6 +203,8 @@ class QuoteSnapshotRecorder:
 
     def _attempt(self, day: date, canonical_allowed: bool) -> RecordResult:
         started = self.now()
+        if self.log:
+            self.log.begin()
         snapshot_id = f"{self.slot.stem}_{started:%Y%m%d_%H%M%S}"
         failures, rows, chains, expiry_source, check = [], [], [], {"source": self.provider.name}, {}
         universe = self._universe(day, failures) if self.slot.check_listed else None
@@ -249,6 +255,8 @@ class QuoteSnapshotRecorder:
         }  # fmt: skip
         if raw_file_error:
             meta[RAW_FILE_SAVED] = False
+        if self.log:
+            meta.update(self.log.finish())  # A4e: each field's own times and the clock check
         if universe is not None:
             meta["universe"] = universe  # the NSE file that listed (or did not list) the underlying
         if self.monthly_check is not None:
