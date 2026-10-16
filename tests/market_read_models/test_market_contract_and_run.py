@@ -20,6 +20,7 @@ from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.publication_inputs import PublicationInputsFile
 from fno.market_read_models.run_status import LocalRunStatus
 from fno.market_read_models.session_rows import IncompleteSession
+from fno.market_read_models.weather_inputs import WeatherInputs
 from fno.market_read_models.wiring import CONTRACT_FOLDER, build_market_blocks
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.storage.wiring import build_session_calendar
@@ -51,9 +52,11 @@ def example_rows() -> SessionRows:
     fno = payload["getFnoScreenerRows_india"]["rows"]
     calendar = build_session_calendar()
     flows = FlowsInputs([], [], calendar.sessions(date(2025, 6, 1), DAY)[-250:])  # no flows copy covers 12 Oct
+    weather = WeatherInputs(DAY, None, [], {}, {})  # no weather record: the page's not-published state
     return SessionRows(
-        DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows
-    )
+        DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows,
+        weather,
+    )  # fmt: skip
 
 
 def builder() -> PublicationBuilder:
@@ -166,7 +169,7 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1269 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1270 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
     assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 

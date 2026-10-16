@@ -1,0 +1,112 @@
+"""The weather page's parts from M1's records (story P2a): drivers, the recent strip, the red share and the scores.
+
+- **Drivers** (story W3, privacy rule 4): each of v0's inputs that changed since the previous session's record, its
+  value in plain words; `push` is the sign of that change (up: riskier). They are ordered by the size of the change
+  against the input's own typical (median) change over the last 250 records, never by a model coefficient. The
+  scheduled events of the next 5 sessions follow, each riskier. No `reaches` colour, no level, no US cue.
+- **Recent, red share:** live records only, as M1 counts them.
+- **Scores:** G8's alone (`scores()`); none yet, so not_enough_data with no number."""
+
+from __future__ import annotations
+
+import statistics
+
+from ..constants import V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
+from ..forecast_v4_rules.records import LIVE
+from ..weather.constants import (
+    WEATHER_RED_MAX_SHARE,
+    WEATHER_RED_SHARE_RECORDS,
+    WeatherColour,
+)
+from .weather_inputs import WeatherInputs
+
+BASE_RATE, OK = "base_rate", "ok"
+QUESTIONS = (("V6_1d", V6_BIG_MOVE_1S), ("V6_5d", V6_BIG_MOVE_5S))
+YARDSTICKS = ("base_rate", "v0_checklist")  # the contract's two yardsticks
+RECENT_SESSIONS = 10
+N_NEEDED = 10  # the contract: twice V6's 5-session block
+DRIVERS = {  # v0's input -> (the contract's driver, its value in plain words)
+    "vix_ratio": ("vix_level", lambda v: f"India VIX at {v:.2f} times its median of the previous 250 sessions"),
+    "vix_change5": ("vix_change", lambda v: f"India VIX {'up' if v >= 0 else 'down'} {abs(v):.0%} over 5 sessions"),
+    "move5": ("recent_big_moves", lambda v: f"NIFTY's largest daily move in the last 5 sessions: {v:.1%}"),
+    "rv10": ("realised_volatility", lambda v: f"NIFTY's realised volatility over 10 sessions: {v:.0%} a year"),
+}
+EVENTS = {"budget": "Union Budget", "rbi_policy": "RBI policy decision", "election_result": "Election results"}
+
+
+def is_live(record: dict | None) -> bool:
+    return record is not None and record["label"] == LIVE
+
+
+def figure(record: dict, key: str, question: str) -> float | None:
+    entry = record["probabilities"][key][question]
+    return entry["value"] if entry["status"] == OK else None
+
+
+def published_colour(record: dict | None) -> str | None:
+    """A live record's colour; None for a back-fill record, a missing one or a live one M1 could not score."""
+    if not is_live(record) or record["colour"] == WeatherColour.NOT_SCORED:
+        return None
+    return record["colour"]
+
+
+def drivers(inputs: WeatherInputs) -> list[dict]:
+    """v0's inputs that changed since the previous session's record, strongest change first, then the events."""
+    record, history = inputs.record, [inputs.earlier.get(d) for d in inputs.sessions]
+    moved = []
+    for name, (driver, words) in DRIVERS.items():
+        today, before = _value(record, name), _value(history[-1] if history else None, name)
+        if today is None or before is None or today == before:
+            continue
+        typical = _typical_change([_value(r, name) for r in [*history, record]])
+        size = abs(today - before) / typical if typical else abs(today - before)
+        push = "riskier" if today > before else "calmer"
+        moved.append((size, {"driver": driver, "text": words(today), "push": push}))
+    events = [{"driver": "scheduled_event", "text": f"{EVENTS.get(e['type'], e['type'])} on {e['date']}",
+               "push": "riskier"} for e in record["drivers"]["events_next_5_sessions"] or []]  # fmt: skip
+    return [d for _, d in sorted(moved, key=lambda m: -m[0])] + events
+
+
+def _value(record: dict | None, name: str) -> float | None:
+    entry = (record["drivers"].get("v0_inputs") or {}).get(name) if record else None
+    return entry["value"] if entry else None
+
+
+def _typical_change(series: list[float | None]) -> float | None:
+    """The median absolute change between consecutive sessions' values over the last 250 changes."""
+    changes = [abs(b - a) for a, b in zip(series, series[1:], strict=False) if a is not None and b is not None]
+    return statistics.median(changes[-WEATHER_RED_SHARE_RECORDS:]) if changes else None
+
+
+def recent(inputs: WeatherInputs) -> list[dict]:
+    """The last 10 sessions, the day last: the published colour and whether a 2% move came the next session."""
+    records = {**inputs.earlier, inputs.day: inputs.record}
+    days = [*inputs.sessions, inputs.day][-RECENT_SESSIONS:]
+    moves = inputs.big_move
+    return [{"session": d.isoformat(), "colour": published_colour(records.get(d)), "big_move": moves.get(d)}
+            for d in days]  # fmt: skip
+
+
+def _live_records(inputs: WeatherInputs) -> list[dict]:
+    return [r for r in [*(inputs.earlier[d] for d in inputs.sessions if d in inputs.earlier), inputs.record]
+            if published_colour(r) is not None]  # fmt: skip
+
+
+def red_share(inputs: WeatherInputs) -> dict:
+    """RED's share of the last 250 live records (the day's included), as M1 counts it; over 15% is over-alarming,
+    judged only once 250 live records exist."""
+    counted = [r["colour"] for r in _live_records(inputs)][-WEATHER_RED_SHARE_RECORDS:]
+    reds = sum(c == WeatherColour.RED for c in counted)
+    share = reds / len(counted) if counted else None
+    full = len(counted) == WEATHER_RED_SHARE_RECORDS
+    return {"sessions": len(counted), "red_sessions": reds, "share": share, "max_share": WEATHER_RED_MAX_SHARE,
+            "over_alarming": bool(full and share > WEATHER_RED_MAX_SHARE)}  # fmt: skip
+
+
+def scores() -> list[dict]:
+    """G8 owns the weather's scores (`fno/forecast_scoring/v4/scores.py`) and has scored no live weather day, so each
+    question and yardstick is not_enough_data with no number. A reader of G8's report replaces this once it holds
+    live V6 rows; nothing here scores (judge 218)."""
+    return [{"question": label, "baseline": name, "status": "not_enough_data", "n_scored": 0, "n_needed": N_NEEDED,
+             "brier": None, "brier_baseline": None, "skill": None, "verdict": "not_tested"}
+            for name in YARDSTICKS for label, _ in QUESTIONS]  # fmt: skip
