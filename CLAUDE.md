@@ -57,10 +57,11 @@ cancels orders.
 2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
-   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk. It writes
-   `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day done with
-   problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the same day
-   skips the steps already done.
+   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww). It
+   writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
+   done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
+   same day skips the steps already done.
 3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
    result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
 

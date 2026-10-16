@@ -117,3 +117,49 @@ a workflow check that the two cannot differ.
   over-engineering.
 - Lane: 1 (a new workflow, Slack output). Merge only after this FAIL's two should-fix items pass re-judging. Part 2
   is judged separately.
+
+## Addendum 1: re-judge at f3ab7413 (code at 97213d61; also covers f1a0f4e1, 3dc1675f and 14446e7a, which came after c31ec103)
+
+**Verdict: PASS for part 1** (criteria 1-4, 6 and 8 met; criteria 5 and 7 are part 2 and the live runs). 1 new
+minor.
+
+Gates on f3ab7413, full history: **7397 passed**; ruff, ruff format (1319 files), `check_imports.py` and the record
+scan (6613 files) are all clean.
+
+| Finding | Builder's answer | My check | Result |
+|---|---|---|---|
+| SF1: a failed job without an alert step is silent | `needs_alert(error, jobs)` stays quiet only on `failure` when every failed job ran a step named "Alert..." or "One line to..." (conclusion success or failure); every other conclusion alerts. A test makes every step that calls `build_alert_sender` start with one of those prefixes | Code read. Plant "skipped counts as ran": caught. Plant "only the 'Alert' prefix": 2 failed. forecast-capture's gate case is tested (gate failure, capture skipped). participant-oi-watch's always() step posts exactly when the job fails, so quiet is right there | **Accepted** |
+| SF2: the librarian used today's date | step `due` (`participant-oi due-day`) feeds `DAY` to both `watch --day` and the librarian | Plant: the librarian goes back to `date +%F`: caught. Plant: `--day` dropped from the watch: caught | **Accepted** |
+| Minor 1: `git add` test | every path on every line | the extra-path plant from round 1 is now caught by the new test (same regex logic, read) | **Accepted** |
+| Minor 2: re-run attempts | the row link names `/attempts/<n>` after the first attempt | Plant: the attempt suffix removed: caught | **Accepted** |
+| Minor 3: queued runs cancelled in a group alert | kept on purpose: that slot's capture did not run | Reasonable: no watched workflow uses cancel-in-progress, and the owner prefers a line to silence | **Accepted** (the owner's rule) |
+
+Since round 1 (not in judge 350):
+- `record-error` writes the same row for routines, with no alert because the routine posts its own line. It is
+  small and tested.
+- The duplicate key is now (run URL, kind), so A19's episode rows, which share a run's URL, cannot hide that run's
+  later cancel. Plant "key on the URL only": caught.
+- The new known limit (nse-margins can give a duplicate line) is stated, and a duplicate beats a silence.
+
+**New minor:** `needs_alert` needs all failed jobs to have run their alert step. Changing `all` to `any` passes every
+test (139 passed), because no test has two failed jobs with only one alerting. No watched workflow can produce that
+today: forecast-capture's `capture` needs `gate`, and the others have one job. Add the two-job case when a workflow
+gains a second independent job.
+
+Merge note: part 1 may merge. Criterion 7's run logs can only exist after the merge; cite them in part 2. Whichever of
+O10 and A17 (judge 351) merges second adds `global-cues` and `vix-history` to the watcher's list.
+
+## Addendum 2: 0db3f682 (one commit after the PASS head f3ab7413)
+
+**Verdict: PASS; part 1 may merge at 0db3f682.**
+
+The change: a `news-capture` run (A19's poller) that is cancelled before any step ran counts as replaced, so it gets no
+row and no line. Every other workflow's cancelled-before-start run still records and alerts (judge 350, minor 3
+kept). That answers judge 352 SF2 from O10's side.
+
+The rule is scoped by name (`REPLACEABLE = ("news-capture",)`) and needs both `cancelled` and no step that ran. The
+three tests cover the replaced run, a news run cancelled after a step (still a failure), and another workflow
+cancelled before a step (still a lost slot).
+
+Accepted risk: an owner who cancels a queued news run by hand is also silent. That is harmless, because the kick
+workflow dispatches again.
