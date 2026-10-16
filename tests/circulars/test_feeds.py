@@ -55,9 +55,11 @@ def test_nse_lists_every_circular_of_the_dates_with_its_department():
 
 @pytest.mark.parametrize(
     "session",
-    [Session(403, b"denied"), Session(503, b'{"data": []}'), Session(body=b"<html>blocked</html>"), Session(body=b'{"data": [{"sub": "x"}]}'),
+    [Session(403, b"denied"), Session(503, b'{"data": []}'), Session(body=b"<html>blocked</html>"),
+     Session(body=b'{"data": [{"sub": "x"}]}'), Session(body=b'{"data": {"a": 1}}'),
      Session(body=b'{"rows": []}'), Session(error=requests.ConnectionError("down"))],
-    ids=["refused", "503 with a JSON body", "html", "item without fields", "no data list", "unreachable"],
+    ids=["refused", "503 with a JSON body", "html", "item without fields", "data a dict", "no data list",
+         "unreachable"],
 )  # fmt: skip
 def test_an_unreadable_nse_answer_fails_loudly(session):
     with pytest.raises(FeedFailed):
@@ -90,3 +92,9 @@ def test_a_file_the_publisher_does_not_serve_is_feedfailed():
     circular = NseCircularApi(Session(body=NSE_JSON)).fetch(D15, D16)[0]
     with pytest.raises(FeedFailed, match="HTTP 404"):
         NseCircularApi(Session(404, b"")).download(circular)
+
+
+def test_a_sebi_page_with_one_row_in_another_layout_fails_whole():
+    broken = SEBI_HTML.replace(b"<td>Oct 15, 2026</td>", b"<td>15-10-2026</td>", 1)
+    with pytest.raises(FeedFailed, match="24 of 25 rows readable"):
+        SebiCircularList(Session(body=broken)).fetch(D15, D16)

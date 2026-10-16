@@ -142,3 +142,20 @@ def test_a_latest_page_with_nothing_seen_before_is_a_possible_gap(tmp_path):
     problems = capture(tmp_path, feeds)[1].run(D16, [old])
     assert [p.key for p in problems] == ["sebi:gap"] and [r["number"] for r in rows(tmp_path)] == ["105293"]
     assert capture(tmp_path, feeds, run="r2-aaaaaa")[1].run(D16, []) == []  # the first ever run: no gap check
+
+
+def test_a_failed_list_part_keeps_the_run_s_other_problems(tmp_path):
+    def stale(source, listed, today):
+        return Problem(f"{source}:stale", "stale")
+
+    drive, cap = capture(tmp_path, {NSE: Feed([MF])}, freshness={NSE: stale})
+    cap.table.write = lambda day, rows: (_ for _ in ()).throw(OSError("drive 503"))
+    assert [p.key for p in cap.run(D16, [])] == ["nse:stale", "list-part"]
+
+
+def test_a_file_already_receipted_counts_as_saved_without_downloading(tmp_path):
+    drive, cap = capture(tmp_path, {NSE: Feed([FNO])})
+    cap.store.put(file_path(FNO), b"the first copy")  # saved by a run whose list part then failed
+    feed = Feed([FNO], broken=[FNO.link])
+    _, cap = capture(tmp_path, {NSE: feed}, run="r2-aaaaaa")
+    assert cap.run(D16, []) == [] and [r["file"] for r in rows(tmp_path)] == [SAVED]

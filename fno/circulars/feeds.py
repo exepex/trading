@@ -21,6 +21,7 @@ SEBI_ROW = re.compile(
     r"title=\"([^\"]*)\""
 )
 SEBI_NUMBER = re.compile(r"_(\d+)\.html$")
+SEBI_DATA_ROW = "<tr role='row' class="  # each circular's row (the header row has no class)
 TIMEOUT_SECONDS = 60
 
 
@@ -52,6 +53,8 @@ class NseCircularApi(CircularFeed):
         url = NSE_URL.format(since=since, until=until)
         try:
             items = self._get(url).json()["data"]
+            if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+                raise TypeError("data is not a list of circulars")
             return _merged([self._circular(item) for item in items])
         except (ValueError, KeyError, TypeError) as exc:  # not JSON, no list, an item without its fields
             raise FeedFailed(f"{url}: not NSE's circular list ({type(exc).__name__}: {exc})") from exc
@@ -84,9 +87,12 @@ class SebiCircularList(CircularFeed):
     LATEST_PAGE_ONLY = True  # the latest 25 circulars (back to 7 Sep 2026 on 16 Oct 2026)
 
     def fetch(self, since: date, until: date) -> list[Circular]:
-        rows = SEBI_ROW.findall(self._get(SEBI_URL).text)
+        page = self._get(SEBI_URL).text
+        rows = SEBI_ROW.findall(page)
         if not rows:
             raise FeedFailed(f"{SEBI_URL}: no circular rows (the page's layout changed or it was not served)")
+        if len(rows) != page.count(SEBI_DATA_ROW):  # a row whose layout changed would drop out unseen
+            raise FeedFailed(f"{SEBI_URL}: {len(rows)} of {page.count(SEBI_DATA_ROW)} rows readable (layout changed)")
         return [self._circular(*row) for row in rows]
 
     @staticmethod

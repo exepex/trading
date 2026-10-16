@@ -35,3 +35,8 @@ def test_sebi_45_days_is_fine_46_is_stale_and_empty_is_stale():
     assert sebi(SEBI, [circular(SEBI, today - timedelta(days=45))], today) is None
     assert sebi(SEBI, [circular(SEBI, today - timedelta(days=46))], today).key == "sebi:stale"
     assert sebi(SEBI, [], today).key == "sebi:stale"
+
+
+def test_beyond_the_calendar_is_its_own_problem_not_a_crash():
+    problem = NSE_FRESH(NSE, [], date(2027, 1, 2))  # the calendar holds no 2027 rows yet
+    assert problem.key == "nse:calendar" and "does not cover 2027-01-02" in problem.text

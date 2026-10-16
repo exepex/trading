@@ -5,13 +5,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date, timedelta
 
-from ..research_data.calendar import SessionCalendar
+from ..research_data.calendar import CalendarError, SessionCalendar
 from .model import Circular, Problem
 
 NSE_STALE = "{source}: stale: no circular dated the previous session {session} (NSE issued some on every 2026 session)"
 SEBI_MAX_AGE = timedelta(days=45)  # twice the longest gap (22 days) between the 25 circulars on its page, 16 Oct 2026
 SEBI_STALE = "{source}: stale: its newest circular is from {newest}, over {days} days ago"
 STALE_KEY = "{source}:stale"
+NO_CALENDAR = "{source}: freshness not judged: NSE's calendar does not cover {day} (add NSE's holiday circular rows)"
 
 
 class PreviousSessionFreshness:
@@ -21,7 +22,10 @@ class PreviousSessionFreshness:
         self.calendar = calendar
 
     def __call__(self, source: str, listed: Sequence[Circular], today: date) -> Problem | None:
-        session = self.calendar.previous_session(today)
+        try:
+            session = self.calendar.previous_session(today)
+        except CalendarError:  # the capture goes on; the gap in the calendar is its own problem
+            return Problem(f"{source}:calendar", NO_CALENDAR.format(source=source, day=today))
         if any(c.issued_on == session for c in listed):
             return None
         return Problem(STALE_KEY.format(source=source), NSE_STALE.format(source=source, session=session))

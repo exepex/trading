@@ -21,6 +21,7 @@ RETRY_LINE = "retried files: {saved} saved, {abandoned} abandoned, {failing} sti
 FEED_FAILED = "{source}: list NOT read: {error}"
 FILE_FAILED = "{source} {number}: file NOT saved (listed as failed; retried for 3 days): {error}"
 FILE_ABANDONED = "{source} {number}: file still failing after 3 days, abandoned: {link}"
+LIST_NOT_SAVED = "the run's new circulars NOT saved to Drive (the next run lists them again): {error}"
 MAY_HAVE_SKIPPED = (
     "{source}: none of the {listed} circulars on its latest page was seen before: some may have been missed "
     "between runs (check the publisher's full list)"
@@ -56,7 +57,10 @@ class CircularCapture:
             new_rows += self._capture(source, feed, today, known, {r["source"] for r in rows}, problems)
         new_rows += self._retry(known, problems)
         if new_rows:
-            self.table.write(today, new_rows)
+            try:
+                self.table.write(today, new_rows)
+            except (OSError, RuntimeError, ValueError) as exc:  # Drive: the run's other problems are kept too
+                problems.append(Problem("list-part", LIST_NOT_SAVED.format(error=exc)))
         return problems
 
     def _capture(self, source: str, feed: CircularFeed, today: date, known: Mapping, seen_sources: set[str],
@@ -82,6 +86,8 @@ class CircularCapture:
         return circular.row(relevant, first_seen_at, status)
 
     def _save(self, feed: CircularFeed, circular: Circular, problems: list[Problem]) -> str:
+        if self.store.receipts.read(f"{self.store.area}/{file_path(circular)}") is not None:
+            return SAVED  # saved by a run whose list part failed: the receipted copy stands (write-once)
         try:
             self.store.put(file_path(circular), feed.download(circular))
             return SAVED
