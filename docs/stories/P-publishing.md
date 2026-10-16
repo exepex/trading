@@ -456,15 +456,18 @@ own, while every other page publishes. Then a broken rule never shows a wrong ca
    - the run is `published`;
    - the status row's `reason` names each held page and its rule;
    - one #fno-desk line per held page, through the existing sender: "<day>: <page> held back: <rule>".
-   - For the card, the rule reads "risk-rule breach: C2 sizing or C4 validity let a trade past its book's per-trade
-     cap" (judge 233 add. 3, condition 1).
+   - For the card, the reason reads "A risk rule was broken: the risk sizing or the validity check let a trade past
+     its book's per-trade cap" (judge 233 add. 3, condition 1; no digit, judge 255).
+   - **Every reason is digit-free** (contract 2.13.0, `FnoPageHolds.reason`: `^[^0-9]*$`). It is shown on screen,
+     so it holds no value, and a test checks every reason in the code against the pinned pattern.
 4. **Unchanged:** every other failure still stops the whole run, as today. A hold is only for a rule its block's story
    names.
 5. **Every hold is said on screen, and no held page asserts what the rule says is no longer true** (judge 251; owner
    row 236: "say so on screen").
-   - **A generic notice:** every publication carries a page `page_holds`: `[{page_key, since, rule}]`, where `since`
-     is the first session held in a row. It is empty on a normal day. The dashboard shows "<page> held back since
-     <since>: <rule>" on that page. This needs a new contract schema (`FnoPageHolds`, the screens lead) and the W3
+   - **A generic notice:** every publication carries a page `page_holds` (contract 2.13.0): `{holds: [{page_key,
+     since, reason, shows}]}`. `since` is the first session held in a row, and `shows` is previous_page or nothing.
+     It is empty on a normal day. The dashboard shows "<page> held back since <since>: <reason>" on that page (the
+     card shows only its own withheld notice). This needs a new contract schema (`FnoPageHolds`, the screens lead) and the W3
      screens' rendering (the E4c/E4d builder). **Dependency:** both are ordered before P2b's and P2c's rebase and
      before the first strategy approval.
    - **Each block says how its held page is shown** (`BlockBuilder.held(previous_payload, rule)`): a payload, or None

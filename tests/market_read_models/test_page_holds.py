@@ -101,10 +101,14 @@ def test_since_resets_when_a_hold_lifts_and_returns():
 
 def test_every_hold_reason_in_the_code_is_a_fixed_sentence_with_no_digit():
     """Contract 2.13.0 refuses a digit in a reason (its probe plants "Rs 10,500"); a reason is shown on screen."""
+    import re
+
     from fno.market_read_models import home_blocks
 
+    holds = CONTRACT.schemas.get("FnoPageHolds")  # 2.13.0's pattern once pinned; until then the same rule
+    pattern = holds and holds["properties"]["holds"]["items"]["properties"]["reason"].get("pattern")
     for reason in (home_blocks.OPEN_TRADE_RISK, home_blocks.APPROVED_PICKS, RULE):
-        assert not any(ch.isdigit() for ch in reason) and "{" not in reason, reason
+        assert re.fullmatch(pattern or "^[^0-9]*$", reason) and "{" not in reason, reason
 
 
 def test_a_held_page_with_no_row_is_listed_as_showing_nothing(tmp_path):

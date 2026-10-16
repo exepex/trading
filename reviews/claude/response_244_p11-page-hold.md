@@ -100,3 +100,14 @@ The screens lead's `FnoPageHolds` (story/fno-contract-2-13 5c6fcdb, not merged y
 - no digit in a reason.
 The payload now has that shape. Home's two reasons are reworded with no digit ("C2", "P10" removed), and a test
 checks every hold reason in the code. The pin and the one-line wiring follow its merge.
+
+## Addendum 6 (16 Oct): judge 255's three points
+
+1. **Every hold sentence is digit-free.**
+   - The card's reason is "A risk rule was broken: the risk sizing or the validity check let a trade past its book's
+     per-trade cap"; "C2" and "C4" are gone.
+   - Home's two reasons were reworded in addendum 5.
+   - The final list went to the screens lead for the examples.
+2. The keys are `reason` and `shows`, as in the code since addendum 5.
+3. A test checks every reason against the pattern. It reads the pinned `FnoPageHolds.reason` pattern once 2.13.0 is
+   pinned; until then it checks the same rule, no digit.
