@@ -75,8 +75,11 @@ value or raises `Unresolved`.
 **2. The checks (`fno/judge/checks.py`), each giving `{check, passed, reasons, what_to_redo}`:**
 - **Sufficiency:** every cited pointer resolves in the named pack of this book-day (the book's own private pack, the
   only private pack the judge receives) to a scalar (number, text of at most 200 characters, true, false, null): a
-  whole object, list or file text is not a citation. A decision that departs from the rule (Book 2: `action` is
-  `change`; Book 3: `action` is `trade`) cites at least one item. What to redo: "cite each fact as a pointer to one
+  whole object, list or file text is not a citation. A decision that departs from the rule (Book 2: any `action`
+  other than `follow_rule`; Book 3: `action` is `trade`) cites at least one item. Account files sit in the private
+  pack as whole texts (`{"path", "sha256", "text"}`, `fno/desk/private_pack.py`), so the account's cash and positions
+  can never be cited, only scalars such as the day sheet's (`/evaluation/...`); this matches F1t's refusal of private
+  account figures in any answer, and the prompt lines say so. What to redo: "cite each fact as a pointer to one
   value in your own pack".
 - **Interpretation:** every number token (`numbers.py`'s tokenizer) in every text under a key named `reason`, at any
   depth of the decision, is a token of a cited value or of a JSON number in the decision itself (a slot's width or
@@ -89,7 +92,7 @@ value or raises `Unresolved`.
 `unavailable` (the judge did not decide: an exception, its model equal to the author's, or over its 5 s budget; an
 abstention). `blocks` is true exactly when the book is Book 2 and the status is not `pass`; for Book 3 it is always
 false (verdicts are evidence) and `unavailable` reads "judge unavailable". While approvals are suspended (design 5),
-a Book 2 `change` decision that passes both checks becomes `fail` with the reason "judge approvals suspended by audit
+a Book 2 decision other than `follow_rule` that passes both checks becomes `fail` with the reason "judge approvals suspended by audit
 <YYYY-MM>". Fields: `schema_version`, `kind: "judge_verdict"`, `book`, `day`,
 `judge` (`code:f4-v1`), `author_model` (the registered model), `status`, `blocks`, `reason` (one line), `checks`,
 `suspended_by`, `elapsed_ms`, `decision` (the judged decision object, already public in the reveal),
@@ -133,10 +136,13 @@ network time to the 15:11:00-15:12:00 window; its 5 s budget is measured, and ov
 4. Runs the 10 seeded known-answer cases (5 that must pass, 5 that must fail, one per failure kind).
 5. Fails when any seeded case is falsely approved or when false approvals exceed 10% of the re-checked approvals;
    false rejections are reported, not failing (the amended text).
-6. Writes `journal/judge/audits/<YYYY-MM>_<n>.json` (next free `n`, written once), prints the numbers, sends one
+6. Runs where the Drive settings are: the owner's scheduled routine session in the daily routine's environment (it
+   holds the four `FNO_GDRIVE_*` settings, story A4b), set up by the orchestrator; without them it stops with
+   "private packs not readable: Drive settings missing" and an alert, never a partial audit.
+7. Writes `journal/judge/audits/<YYYY-MM>_<n>.json` (next free `n`, written once), prints the numbers, sends one
    #fno-desk line through `AlertSender` when it fails or when anything was not re-checked, and exits 1 on a fail.
-**Suspension:** while the latest audit record (by month, then attempt) failed, every Book 2 `change` decision fails
-(above). `follow_rule` decisions are judged as usual: they take the rule's own trade, not an AI-chosen one. A rerun of
+**Suspension:** while the latest audit record (by month, then attempt) failed, every Book 2 decision other than `follow_rule`
+fails (above). `follow_rule` decisions are judged as usual: they take the rule's own trade, not an AI-chosen one. A rerun of
 the audit after a fix that passes lifts it.
 
 ## Acceptance criteria
@@ -148,7 +154,7 @@ the audit after a fix that passes lifts it.
 3. **No override.** Nothing in F4 writes or reads `owner_override`; a verdict file has no override field, and the only
    way past a `fail` is a new decision on a later day.
 4. **Sufficiency.** Each refusal: a pointer that does not resolve, a pointer into the other pack, a pointer to an
-   object, list or long text, a `change`/`trade` decision with no evidence; and each pass: a `follow_rule` or
+   object, list or long text, a Book 2 decision other than `follow_rule` or a Book 3 `trade` with no evidence; and each pass: a `follow_rule` or
    `no_trade` decision with no evidence, a valid pointer with `~1` escapes and list indices.
 5. **Interpretation.** A reason quoting a number not in its cited values fails ("4" never matches "40%" or "14"); a
    number in words fails; numbers of the decision's own fields pass; a reason quoting a cited value passes; reasons at
@@ -157,8 +163,8 @@ the audit after a fix that passes lifts it.
    Book 3 "judge unavailable"; `JudgeStep.run` never raises for a bad case.
 7. **Audit.** Sample sizes at the boundaries (0, 1, 5, 25 and 26 verdicts of a status); a planted edited verdict
    counts as a false approval; a pack whose SHA-256 differs is "not re-checked", named; a seeded case falsely approved
-   fails the audit; 10% false approvals passes, just over 10% fails; a failed audit suspends Book 2's `change`
-   approvals (and not `follow_rule`), and a later passing attempt lifts it. What the code re-check finds: edited or
+   fails the audit; 10% false approvals passes, just over 10% fails; a failed audit suspends Book 2's approvals of
+   any action other than `follow_rule` (and not `follow_rule`), and a later passing attempt lifts it. What the code re-check finds: edited or
    corrupted records, packs that no longer match, and a changed judge that now judges differently; not unsound
    reasoning (F4b).
 8. **Written once, private values never.** The verdict file is written once (same bytes accepted, different refused);
@@ -195,7 +201,12 @@ the audit after a fix that passes lifts it.
 
 ## Open questions (to the orchestrator, then the owner)
 
-1. **F4b, a model re-check of meaning, monthly (recommended: yes, after Book 2 has a month of decisions).** The daily
+1. **Code waits for this answer (judge 308 should-fix 1).** The owner chose "F4 follows its amended text" (DESK_DECISIONS,
+   16 Oct), which names its own AI session; this text replaces that with a code gate, so the owner decides between:
+   (a) a code gate daily, plus F4b's monthly re-check of meaning by another model (recommended); or (b) an AI judge
+   session daily, which at today's latencies makes Book 2 no-trade on most days unless the 15:10-15:12 timetable
+   moves. The answer is recorded here before any code. **F4b, a model re-check of meaning, monthly (recommended: yes,
+   after Book 2 has a month of decisions).** The daily
    judge is code because an AI session cannot fit the window (strong evidence: F1's latencies). Does the owner accept
    that Book 2's daily gate checks facts and numbers only, with meaning re-checked monthly by another model? Reasoning
    only on how much meaning-checking adds, since Book 2's actions are bounded by its envelope, C2 and C4.
@@ -205,4 +216,5 @@ the audit after a fix that passes lifts it.
    Recommendation: keep it strict, measure the first month's fail rate, revisit with the numbers.
 
 **Depends:** F1t (the port and `judge_failed`), F5 and F6 (the `evidence` key and prompt lines), E2/E2c (packs), D3
-(`judge` field, no override) · **Status:** story text for judge E
+(`judge` field, no override) · **Status:** story text; judge 308 FAIL fixed; code after the owner's answer to
+question 1 and the partners' addenda

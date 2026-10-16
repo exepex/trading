@@ -39,3 +39,20 @@ Builder: session_01AN94h4cY98oYa3CF2MZfak · Branch: `story/f4-ai-judge` · Judg
 Proposed stored prompt, 2nd of each month, 09:00 IST: "Run `sh tools/routine_setup.sh`, then
 `python -m fno judge audit <last month as YYYY-MM>`; commit and push `journal/judge/audits/` (`git pull --no-rebase`
 first); if it printed 'alert NOT sent', post its lines to #fno-desk with the Slack connector."
+
+## Judge 308 (FAIL, 2 should-fix, 2 minor) on 80c3ca5f: each finding
+
+Numbering: this claims file keeps 271 (reserved by the orchestrator in `reviews/claude/README.md`); judge E's verdict is
+308 (its range). Different folders, no clash.
+
+1. **Should-fix 1, owner's word before code: accepted.** Checked: DESK_DECISIONS line 254 says "F4 follows its amended
+   text", which names an AI session. Question 1 now states both options and that code waits for the answer; sent to
+   the orchestrator to take to the owner.
+2. **Should-fix 2, interfaces: accepted.** `change` replaced by "any action other than `follow_rule`" (checked: F5's
+   slot actions are `follow_rule | trade | no_trade`). Asked F1t (status `judge_failed`, the `JudgeStep` call before
+   `decide()`, `AcceptedDecision.judge`, the judge's time in 15:11-15:12, and correcting "travels inside the decision"),
+   F5 and F6 (the `evidence` key and the `evidence_problems` call) to put the agreement into their own texts for
+   judge E's addenda.
+3. **Minor 1, citable private values: accepted,** stated in design 2.
+4. **Minor 2, where the audit runs: accepted,** design 5 item 6: the owner's scheduled routine session with the Drive
+   settings; without them it stops with an alert.
