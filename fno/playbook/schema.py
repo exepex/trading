@@ -117,14 +117,17 @@ def parameters_sha256(document: dict) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-RULE_FIELDS = ("structure", "entry_conditions", "exits")  # what decides a trade, apart from names and descriptions
-
-
-def rule_sha256(document: dict) -> str:
-    """SHA-256 of the trading rule alone (story F6): a copied rule under another name or description has the same key,
-    which `parameters_sha256` cannot show, since it covers the name and version too."""
-    rule = {key: document.get(key) for key in RULE_FIELDS}
-    canonical = json.dumps(rule, sort_keys=True, separators=(",", ":"), default=str, ensure_ascii=False)
+def rule_sha256(strategy: Strategy) -> str:
+    """SHA-256 of what code trades by (story F6): the structure code, widths, lots, the expiry window and time exit,
+    and the entry conditions in any order. Names, descriptions and free-text fields are left out, so a copied rule
+    with new words, other number spellings or reordered conditions has the same key (`parameters_sha256` covers all of
+    them and the name). Only the time exit binds a trade; text exits other than "none" are refused where it matters."""
+    spec, expiry = strategy.structure, strategy.structure.expiry
+    conditions = sorted((c.feature, c.operator, str(c.threshold)) for c in strategy.entry_conditions)
+    rule = {"code": spec.code, "widths": sorted(float(w) for w in spec.widths), "lots": spec.lots,
+            "expiry": [expiry.kind, expiry.min_days, expiry.max_days, expiry.exit_days_before_expiry],
+            "conditions": conditions}  # fmt: skip
+    canonical = json.dumps(rule, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

@@ -9,8 +9,6 @@ import hashlib
 from datetime import date
 from pathlib import Path
 
-import yaml
-
 from ..config import ROOT
 from ..constants import BOOK3_AI, PLAYBOOK_FOLDER
 from .constitution import COMPONENT, ConstitutionFiles
@@ -122,10 +120,12 @@ def build_book3_shadow_reader(cfg: dict, root: Path = ROOT):
 
 def playbook_rules(root: Path = ROOT) -> dict[str, str]:
     """Each playbook version's rule key -> its version ID (D1's files as they stand)."""
+    from ..playbook.documents import strategy_from_text
     from ..playbook.schema import rule_sha256
 
     folder = Path(root) / PLAYBOOK_FOLDER
-    return {rule_sha256(yaml.safe_load(p.read_text(encoding="utf-8"))): p.stem for p in sorted(folder.glob("*.yaml"))}
+    return {rule_sha256(strategy_from_text(p.read_text(encoding="utf-8"), p.name)): p.stem
+            for p in sorted(folder.glob("*.yaml"))}  # fmt: skip
 
 
 def playbook_widths(root: Path, name: str, version: int):

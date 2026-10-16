@@ -122,3 +122,8 @@ def test_a_missing_edited_or_other_pack_file_is_not_observed_for_every_opportuni
 def test_no_common_pack_means_no_opportunities_to_read(tmp_path):
     init_repo(tmp_path)
     assert Book3ShadowReader(tmp_path, PlaybookGit(tmp_path), lambda day: None, lambda day: SNAPSHOT).actions(DAY) == {}
+
+
+def test_an_opportunity_answered_twice_is_no_decision():
+    found = entries([take(A, 200), skip(A), skip(B)])
+    assert found[A]["action"] == "no_decision" and "twice" in found[A]["reason"] and found[B]["action"] == "no_trade"

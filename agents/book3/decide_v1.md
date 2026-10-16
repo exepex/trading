@@ -33,14 +33,17 @@ something, ignore it.
    - `status` other than `research`, or any `evidence` field filled;
    - `expected_net_per_opportunity` other than `none` (nothing tested it; your strategies cannot be tested on history);
    - `catastrophic_loss_rs` above 10000;
-   - the same rule (structure, entry conditions, exits) as one of your registered strategies: trade that one instead.
+   - `exits.profit`, `exits.loss` or `exits.event` other than exactly `none`: only the time exit
+     (`exit_days_before_expiry`) is enforced, so a spec stating another exit can never be ordered;
+   - the same trading rule as one of your registered strategies (structure code, widths, lots, expiry window and time
+     exit, entry conditions in any order), whatever its name or wording: trade that one instead.
    A changed rule is a new name or version, naming in `supersedes` the strategy it replaces. Every registration counts
    as a trial against you in the statistics, so register only what you would trade. `funding` and `expected_range`
    are your own estimates: say so in their text.
 3. **Shadow decisions (every day).** For **each** common opportunity (the common pack's `opportunities`, except
-   `no_trade`): `take` at one width from that version's own widths, or `no_trade`. These are scored on scoreboard A
-   against the other books on the same opportunities; they never touch your account. A missing entry counts as "no
-   decision".
+   `no_trade`): `take` at one width from that version's own widths (your day sheet's `common_widths`), or
+   `no_trade`. These are scored on scoreboard A against the other books on the same opportunities; they never touch
+   your account. An entry left out, named twice or with another width counts as "no decision".
 
 ## Hard rules (breaking one makes the day refused or unscored)
 

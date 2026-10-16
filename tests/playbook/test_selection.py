@@ -10,7 +10,7 @@ from fno.constants import Decision
 from fno.playbook.allocation import Allocator
 from fno.playbook.candidates import NotBuilt
 from fno.playbook.evaluate import RuleEvaluator
-from fno.playbook.selection import NO_REBUILD, NOT_A_CANDIDATE, NOT_CHOSEN, Pick, SelectionAllocator
+from fno.playbook.selection import NAMED_TWICE, NO_REBUILD, NOT_A_CANDIDATE, NOT_CHOSEN, Pick, SelectionAllocator
 from fno.risk.inputs import TradeTerms
 from fno.risk.manager import RiskManager
 from fno.risk.rules import MaxLossPerTrade
@@ -97,11 +97,6 @@ def test_a_pick_that_is_not_a_built_candidate_is_attempted_never_traded():
     assert [(a.pick.opportunity_id, a.why) for a in selection.attempted] == [("sc-z-v1:2026-11-27", NOT_A_CANDIDATE)]
 
 
-def test_the_first_pick_of_an_id_wins():
-    outcomes, _ = run([Pick(A, "first"), Pick(A, "second")])
-    assert outcomes[A].reason == "picked by book_x: first"
-
-
 def test_a_pick_round_trips_through_json():
     pick = Pick(A, "go", 200.0, 1)
     assert Pick.from_json(pick.to_json()) == pick
@@ -130,3 +125,9 @@ def test_book1_s_inputs_json_has_no_selection_or_opens_key_and_book3_s_keeps_bot
     stored = with_picks.to_json()
     assert stored["selection"] == [Pick(A, "go").to_json()] and stored["playbook"]["opens"] == {}
     assert DayInputs.from_json(stored) == with_picks
+
+
+def test_a_pick_named_twice_is_attempted_and_the_first_stands():
+    outcomes, selection = run([Pick(A, "first"), Pick(A, "second")])
+    assert outcomes[A].reason == "picked by book_x: first"
+    assert [(a.pick.reason, a.why) for a in selection.attempted] == [("second", NAMED_TWICE)]

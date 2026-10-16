@@ -45,7 +45,14 @@ OPPORTUNITY = f"b3-sc-v1:{EXPIRY.isoformat()}"
 PROVENANCE = Provenance("model-x", "prompt-v1", "none", "new")
 PROMPT_SHA, CONSTITUTION_SHA = "p" * 64, constitution().sha256
 SERVED = {COMPONENT: CONSTITUTION_SHA, "book3_prompt": PROMPT_SHA}
-CONTEXT = {"code_commit": "c" * 40, "config_sha256": "f" * 64, "version_id": "book3-v1"}
+COMMON_SHA, PRIVATE_SHA = "a" * 64, "b" * 64
+CONTEXT = {
+    "code_commit": "c" * 40,
+    "config_sha256": "f" * 64,
+    "version_id": "book3-v1",
+    "common_pack_sha256": COMMON_SHA,
+    "private_pack_sha256": PRIVATE_SHA,
+}  # as Book 1's input reader gives them
 COMMON_OPPORTUNITIES = [
     {"opportunity_id": f"sc-a-v1:{EXPIRY.isoformat()}", "strategy": "sc-a", "version": 1},
     {"opportunity_id": "no_trade"},
@@ -84,12 +91,12 @@ def repository(root: Path, specs=(), on: date = YESTERDAY) -> Path:
 
 
 class FixedInputs(Book1Inputs):
-    def __init__(self, the_book=None, values=None):
-        self.the_book, self.values = the_book or book(name=BOOK3_AI), values
+    def __init__(self, the_book=None, values=None, context=None):
+        self.the_book, self.values, self.context = the_book or book(name=BOOK3_AI), values, context or CONTEXT
 
     def day(self, day):
         return Book1Day(chain_market(), FixedValues(self.values), self.the_book, Counts(), OwnShadowBooks(),
-                        CONTEXT)  # fmt: skip
+                        self.context)  # fmt: skip
 
 
 def evaluators() -> Book3Evaluators:
@@ -115,7 +122,7 @@ def widths(name, version):
 def decider(root: Path, today: date = DAY, inputs=None, playbook=None) -> Book3Decider:
     the_registry = registry(root, today=today)
     proposer = Book3Proposer(the_registry, lambda day: constitution(), 10_000, lambda: dict(playbook or {}))
-    check = validator(root)
+    check = validator(root, log=True)  # as the app's decision run: C4's failures are logged after the write
     runs = lambda ev, picks: DecisionRun(ev, DecisionStore(root, BOOK3_AI), check, picks)  # noqa: E731
     return Book3Decider(root, inputs or FixedInputs(), Book3Strategies(the_registry), evaluators(), proposer, runs,
                         Git(root).head, lambda day: SERVED, widths, "book3_decide_v1:test")  # fmt: skip
@@ -132,10 +139,11 @@ class Accepted:
     decision: dict
     private_pack: Pack
     day: date = DAY
+    version: str = "book3_ai-decision-v1"
     registered_model: str = "model-x"
     model_reported: str = "model-x"
     session: str = "https://claude.ai/code/session_test"
-    common_pack: Pack = field(default_factory=lambda: Pack("a" * 64, {"opportunities": COMMON_OPPORTUNITIES}))
+    common_pack: Pack = field(default_factory=lambda: Pack(COMMON_SHA, {"opportunities": COMMON_OPPORTUNITIES}))
     analyst_cards: dict | None = None
 
 
@@ -156,9 +164,11 @@ def sheet_for(root: Path, today: date = DAY) -> dict:
     inputs = FixedInputs().day(today)
     evaluation = rules.evaluate(today, tradable.snapshot.playbook(), inputs.market, inputs.features, inputs.book,
                                 inputs.counts, inputs.shadow)  # fmt: skip
-    return day_sheet(today, evaluation, tradable.snapshot.commit)
+    return day_sheet(
+        today, evaluation, tradable.snapshot.commit, {COMMON_OPPORTUNITIES[0]["opportunity_id"]: (300, 200)}
+    )
 
 
 def accepted(root: Path, the_decision: dict, sheet: dict | None = None, **changes) -> Accepted:
     body = {"evaluation": sheet if sheet is not None else sheet_for(root)}
-    return Accepted(the_decision, Pack("b" * 64, body), **changes)
+    return Accepted(the_decision, Pack(PRIVATE_SHA, body), **changes)

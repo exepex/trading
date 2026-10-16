@@ -27,7 +27,8 @@ def test_a_spec_registered_yesterday_trades_today_and_its_committed_text_is_kept
 
 def test_a_spec_proposed_today_is_not_tradable_today_and_is_tomorrow(tmp_path):
     repository(tmp_path, [spec("b3-sc")], on=DAY)
-    assert tradable(tmp_path).snapshot.files == {}
+    today = tradable(tmp_path)
+    assert today.snapshot.files == {} and today.excluded == {}  # not yet open, not refused (D5 would refuse it too)
     assert set(tradable(tmp_path, DAY + timedelta(days=1)).snapshot.files) == {"b3-sc-v1.yaml"}
 
 
@@ -58,3 +59,15 @@ def test_the_snapshot_round_trips_through_d3_s_inputs_json(tmp_path):
     snapshot = tradable(tmp_path).snapshot
     again = PlaybookSnapshot.from_json(snapshot.to_json())
     assert again == snapshot and [s.key for s in again.playbook().approved_on(DAY)] == [("b3-sc", 1)]
+
+
+def test_an_opened_playbook_never_approves_a_version_on_its_opening_day(tmp_path):
+    """The second guard behind criterion 1: D2 reads only `approved_on`, and that excludes the opening day."""
+    repository(tmp_path, [spec("b3-sc")])
+    snapshot = tradable(tmp_path).snapshot
+    opened_today = PlaybookSnapshot(
+        snapshot.files, snapshot.registry_csv, snapshot.commit, {"b3-sc-v1": DAY.isoformat()}
+    )
+    assert opened_today.playbook().approved_on(DAY) == ()
+    assert [s.key for s in opened_today.playbook().approved_on(DAY + timedelta(days=1))] == [("b3-sc", 1)]
+    assert opened_today.playbook().shadow_on(DAY) == () and opened_today.playbook().status_on(DAY) == {}

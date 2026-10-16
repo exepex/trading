@@ -35,9 +35,10 @@ class Book3Evaluators:
         return self.with_picks([Pick.from_json(p) for p in stored])[0]
 
 
-def day_sheet(day: date, evaluation: DayEvaluation, commit: str) -> dict:
+def day_sheet(day: date, evaluation: DayEvaluation, commit: str, common_widths: Mapping[str, Sequence[float]]) -> dict:
     """What Book 3's session sees of its own strategies today: each opportunity, whether its rule fired, and the trade
-    built at the cutoff (or why none was), with nothing chosen."""
+    built at the cutoff (or why none was), with nothing chosen; and each common opportunity's widths, the only ones a
+    shadow take may name (F7), since the common pack carries none and no playbook file is in Book 3's input."""
     opportunities = []
     for outcome in evaluation.outcomes:
         record = outcome.record()
@@ -48,10 +49,6 @@ def day_sheet(day: date, evaluation: DayEvaluation, commit: str) -> dict:
             "unmet_conditions": record["unmet_conditions"], "trade": record["trade"],
             "why_no_trade": "" if record["trade"] else record["reason"],
         })  # fmt: skip
+    widths = {i: [float(w) for w in found] for i, found in sorted(common_widths.items())}
     return {"kind": SHEET_KIND, "schema_version": SHEET_SCHEMA, "day": day.isoformat(), "strategies_commit": commit,
-            "opportunities": opportunities}  # fmt: skip
-
-
-def sheet_candidates(sheet: Mapping) -> set[str]:
-    """The opportunity IDs with a built trade: the only ones Book 3 may pick."""
-    return {o["opportunity_id"] for o in sheet["opportunities"] if o["trade"] is not None}
+            "opportunities": opportunities, "common_widths": widths}  # fmt: skip

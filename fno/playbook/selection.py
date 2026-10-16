@@ -21,6 +21,7 @@ NOT_CHOSEN = "not chosen by {book}"
 NO_REBUILD = "{book} picks cannot change width or lots"
 NOT_REBUILT = "rebuild refused: {why}"
 NOT_A_CANDIDATE = "not a built candidate today"
+NAMED_TWICE = "named twice: the first pick of an opportunity stands"
 
 
 @dataclass(frozen=True)
@@ -55,9 +56,14 @@ class SelectionAllocator:
     def __init__(self, allocator: Allocator, picks: Sequence[Pick], book: str, threshold: bool,
                  rebuild: Rebuild | None = None):  # fmt: skip
         self.allocator, self.book, self.threshold, self.rebuild = allocator, book, threshold, rebuild
-        self.picks = {p.opportunity_id: p for p in reversed(picks)}  # the first pick of an ID wins
+        self.picks: dict[str, Pick] = {}
         self._seen: set[str] = set()
         self._refused: list[Attempt] = []
+        for pick in picks:  # the first pick of an ID wins; a repeat is refused alone, never silently dropped
+            if pick.opportunity_id in self.picks:
+                self._refused.append(Attempt(pick, NAMED_TWICE))
+            else:
+                self.picks[pick.opportunity_id] = pick
 
     @property
     def attempted(self) -> list[Attempt]:

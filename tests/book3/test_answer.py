@@ -40,7 +40,8 @@ def test_a_wrong_set_of_keys_is_refused_whole(bad, expected):
     ({"action": "no_trade"}, "non-empty exactly when action is trade"),
     ({"trades": "b3-sc-v1"}, "trades must be a list"),
     ({"trades": [{"opportunity_id": "x"}]}, "trades[0] must have exactly the keys"),
-    ({"trades": [{"opportunity_id": "x", "reason": "a"}, {"opportunity_id": "x", "reason": "b"}]}, "must not repeat"),
+    ({"reason": "carriage\rreturn"}, "reason must be one line"),
+    ({"reason": "line\u2028separator"}, "reason must be one line"),
     ({"proposals": {"spec": "x"}}, "proposals must be a list"),
     ({"proposals": [proposal("")]}, "spec must be text, not empty"),
     ({"proposals": [proposal("x" * (MAX_SPEC_CHARS + 1))]}, f"at most {MAX_SPEC_CHARS} characters"),
@@ -50,7 +51,6 @@ def test_a_wrong_set_of_keys_is_refused_whole(bad, expected):
     ({"shadow": [{**TAKE, "width": 0}]}, "positive number for a take"),
     ({"shadow": [{**SKIP, "width": 200}]}, "must be null for no_trade"),
     ({"shadow": [{**TAKE, "action": "buy"}]}, "action must be one of"),
-    ({"shadow": [TAKE, TAKE]}, "shadow opportunity_id must not repeat"),
     ({"cards_used": ["volatility/v1/2026-10-13", 3]}, "cards_used must be a list of card IDs"),
     ({"cards_used": ["a", "a"]}, "cards_used must not repeat"),
 ])  # fmt: skip
@@ -72,3 +72,9 @@ def test_the_shape_check_imports_only_the_standard_library():
     code = "import sys, fno.book3.answer; print(' '.join(m for m in sys.modules if m.startswith('fno')))"
     loaded = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout.split()
     assert sorted(loaded) == ["fno", "fno.book3", "fno.book3.answer"]
+
+
+def test_a_pick_or_shadow_entry_named_twice_is_not_a_shape_problem():
+    """F6 design 3 and F7 criterion 1: the decider refuses the repeat alone (attempted, or `no_decision`)."""
+    twice = [{"opportunity_id": "x", "reason": "a"}, {"opportunity_id": "x", "reason": "b"}]
+    assert check_decision(good(trades=twice)) == [] and check_decision(good(shadow=[TAKE, TAKE])) == []

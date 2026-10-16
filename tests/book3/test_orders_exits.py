@@ -14,6 +14,7 @@ from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_records import decided_exit_days
 from fno.constants import BOOK3_AI
 from fno.desk.daily_ports import OrdersRefused
+from fno.desk.pack_items import canonical_json
 from fno.desk.status import OpenPosition
 from fno.models import IST
 from fno.playbook.documents import strategy_from_text
@@ -67,6 +68,12 @@ def test_a_c4_blocked_pick_is_never_ordered(tmp_path):
     assert orders(tmp_path, out.run) == []
 
 
+def test_an_unedited_canonical_rewrite_still_orders(tmp_path):
+    run = decided_run(tmp_path)
+    (run / "inputs.json").write_bytes(canonical_json(json.loads((run / "inputs.json").read_text())))
+    assert len(orders(tmp_path, run)) == 1
+
+
 @pytest.mark.parametrize("edit", ["picks", "spec"])
 def test_an_edited_stored_pick_or_spec_refuses_every_order(tmp_path, edit):
     run = decided_run(tmp_path)
@@ -76,7 +83,7 @@ def test_an_edited_stored_pick_or_spec_refuses_every_order(tmp_path, edit):
     else:
         name = next(iter(inputs["playbook"]["files"]))
         inputs["playbook"]["files"][name] += "# edited\n"
-    (run / "inputs.json").write_text(json.dumps(inputs))
+    (run / "inputs.json").write_bytes(canonical_json(inputs))
     with pytest.raises(OrdersRefused):
         orders(tmp_path, run)
 

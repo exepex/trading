@@ -77,9 +77,14 @@ runner before the first counted decision), the fill and exit mechanics themselve
    late, invalid, exposed or unrevealed day registers nothing): the common pack and Book 3's private pack, which holds its account,
    constitution, registry and specs, **Book 3's day sheet** (the private pack's `evaluation`, from the `BookSheet` port) and F2's
    `analyst_cards` export item when present (common to Books 2 and 3; F2's text at `story/f2-analyst-cards` 2a0140dd) (zero cards is a normal day). The day sheet
-   (`fno/book3/day_sheet.py`) is D2's evaluation of Book 3's tradable strategies on the day's 15:00 market with
+   (`fno/book3/evaluation.py`) is D2's evaluation of Book 3's tradable strategies on the day's 15:00 market with
    nothing chosen: per opportunity its ID, strategy, expiry, exit day, whether the rule fired (unmet conditions), and
-   the built candidate (structure, width, lots, legs, maximum loss) or why none was built.
+   the built candidate (structure, width, lots, legs, maximum loss) or why none was built; and `common_widths`, each
+   common opportunity's widths (the common pack carries none and no playbook file is in Book 3's input, so without
+   them a shadow take could only guess). The decider refuses the day (`DecisionRefused`, nothing written) when the
+   sheet's `opportunities` differ in any term from D2's re-run now, when the packs it reads differ from the fired
+   ones, when the `analyst_cards` item lacks `card_ids` or `role_set_version` (exact key names to confirm with F1t
+   and F2), or when the day already has a day log or shadow file (one decision a day).
 3. **Answer:** F1t's `{"model_reported", "decision"}`; F1t checks the labels, `decision.action` and
    `decision.reason` (one line, 1-600 characters). Book 3's `decision` (exactly these keys, checked by
    `fno/book3/answer.py`, registered with F1t as Book 3's shape check, so `seal` refuses a bad one before the
@@ -93,18 +98,23 @@ runner before the first counted decision), the fill and exit mechanics themselve
 4. **Proposals** (`fno/book3/proposals.py`), each on its own:
    - Book 3's guards before D5: `status: research`, every `evidence` field null, `expected_net_per_opportunity:
      none` (nothing tested it), `catastrophic_loss_rs` at most the owner's per-trade cap
-     (`risk.profiles.books.max_loss_per_trade_rs`, Rs 10,000), so a spec can never loosen E6's pause.
+     (`risk.profiles.books.max_loss_per_trade_rs`, Rs 10,000), so a spec can never loosen E6's pause; only exits
+     code enforces (the time exit, text exits exactly "none"), since Book 1's order replay refuses every order of a
+     run whose version states another exit. Text that cannot be read at all (bad YAML, an impossible date, a field D1
+     refuses) refuses that proposal only.
    - Then D5's `register()` (constitution check, `proposed_on` from the clock, the trial ledger). Provenance: `model`
      is `AcceptedDecision.registered_model` (F1t refuses a mismatch or `unknown` before the decider runs); `prompt_version` is
      `book3_decide_v1:<sha256 prefix>`; `role_set_version` is the `analyst_cards` item's registered role set (F2: role versions in
      role order joined with `+`, for example `volatility/v1`; `none` only when no role is registered, so a day with
      no valid card still names the set); `supersedes` from the answer. `new_or_reused` is set by code, never by the AI (agreed with D5's owner,
      16 Oct 2026): `reused` when the proposal names `supersedes` or its **rule key** equals a playbook version's;
-     otherwise `new`. The rule key is the SHA-256 of the trading fields only (`structure`, `entry_conditions`,
-     `exits`), because D1's `parameters_sha256` covers the name and version too, so a copied rule under a new name
+     otherwise `new`. The rule key is the SHA-256 of what code trades by, from the parsed rule: the structure code,
+     widths (as numbers, sorted), lots, the expiry window and time exit, and the entry conditions in any order. Free
+     text (strikes and width rules, text exits) is left out, so new wording, spacing or number spelling cannot dodge
+     it (self-review finding). D1's `parameters_sha256` covers the name and version too, so a copied rule under a new name
      always has a different `parameters_sha256` and an equality check on it could never fire. A proposal whose rule
      key equals an earlier registered Book 3 spec's is **refused** ("same rule as <id>: trade that one"), so one rule
-     never enters the trial family twice under two names. The rule key is one function, `rule_sha256(document)`,
+     never enters the trial family twice under two names. The rule key is one function, `rule_sha256(strategy)`,
      beside `parameters_sha256` in D1's `fno/playbook/schema.py` (no other rule comparison exists today; anything that
      compares rules later uses it). A playbook version re-versioned with the same rule has one rule key, so a Book 3
      spec copying either reads `reused` (agreed with D5's owner).
@@ -124,8 +134,9 @@ runner before the first counted decision), the fill and exit mechanics themselve
    `ConstitutionMode` checks each chosen trade through D3's `validate_chosen`; `DecisionRun` writes the records under
    `journal/book3_ai/decisions/` with `inputs.json` holding the picks too, so `replay` reproduces the decision.
    Records: `strategy_id` and `strategy_spec_sha256` per opportunity record; `chosen_action` "trade" or "no trade";
-   `reason` the answer's reason for a pick (else D2's outcome reason, or `decision.reason` on the day record);
-   `served` adds `constitution` and `book3_prompt`; `rule_default` and `authority_check` null (D3 `NULLABLE`).
+   `reason` the answer's reason for a pick (else D2's outcome reason); the day record keeps D2's account of what was
+   chosen, and the answer's `decision.reason` goes in the day log (`reason`), so D3's replay needs no AI text;
+   `served` adds `constitution`, `book3_prompt` and F1t's decision version (`ai_decision_version`, F1t's run check); `rule_default` and `authority_check` null (D3 `NULLABLE`).
 7. **Objections and cards are evidence only.** No objection or card is an input of the selection allocator, C2 or C4
    (D5 criterion 7 already proves C4; F6 tests the allocator).
 8. **Orders and exits** (`fno/book3/orders.py`, `fno/book3/exits.py`; F6 owns both, F1t only dispatches them per
@@ -296,7 +307,7 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 **Expected design:**
 - **Entries:** for each common opportunity of the day (the common pack's `opportunities`, without `no_trade`):
   `{opportunity_id, action: "take" | "no_trade", width, reason}`. A take names a width from that version's own
-  `widths` set; no lots (scoreboard A trades one lot). In D4's terms a take is `BookTerms(version, width, 1)` and
+  `widths` set (given to Book 3 in its day sheet's `common_widths`); no lots (scoreboard A trades one lot). In D4's terms a take is `BookTerms(version, width, 1)` and
   `no_trade` is `None`. There is no envelope: Book 3 may take an opportunity whose rule did not fire.
 - **File** `journal/book3_ai/shadow/<date>.json` (`fno/book3/shadow_file.py`), canonical JSON, write-once, with the
   day, the common pack's SHA-256 and one entry per common opportunity. An opportunity the answer left out, an

@@ -24,6 +24,7 @@ from tests.book3.engine_builders import (
     repository,
     sheet_for,
     spec,
+    spec_document,
     validator,
 )  # fmt: skip
 from tests.book3.engine_builders import evaluators as book3_evaluators
@@ -192,3 +193,83 @@ def test_a_pick_of_a_spec_edited_after_registration_never_trades(tmp_path):
     assert "edited after it" in log["excluded_strategies"]["b3-sc-v1"]
     assert log["attempted_picks"][0]["why"] == "not a built candidate today"
     assert records(out.run)["no_trade.json"]["chosen_action"] == "no trade"
+
+
+def test_the_registry_row_names_the_registered_model_never_the_answer_s(tmp_path):
+    """Criterion 4: the provenance comes from F1t's registered model, not from anything the session wrote."""
+    repository(tmp_path)
+    pack = accepted(tmp_path, decision(proposals=[proposal(spec("b3-new"))]), model_reported="what-the-model-says")
+    decider(tmp_path).decide(pack)
+    row = parse_registry((tmp_path / "book3/strategies/registry.csv").read_text())[0]
+    assert row["model"] == "model-x"
+
+
+def test_packs_read_now_that_differ_from_the_fired_ones_are_refused(tmp_path):
+    """Self-review finding: the records may only name packs the decision really read."""
+    from tests.book3.engine_builders import CONTEXT
+
+    repository(tmp_path, [spec()])
+    other = FixedInputs(context={**CONTEXT, "private_pack_sha256": "e" * 64})
+    with pytest.raises(DecisionRefused, match="private pack read now"):
+        decider(tmp_path, inputs=other).decide(accepted(tmp_path, decision()))
+    assert not (tmp_path / "journal" / BOOK3_AI).exists()
+
+
+def test_an_analyst_cards_item_without_its_fields_is_refused_never_read_as_no_cards(tmp_path):
+    repository(tmp_path)
+    with pytest.raises(DecisionRefused, match="analyst_cards must carry"):
+        decider(tmp_path).decide(accepted(tmp_path, decision(), analyst_cards={"cards": []}))
+
+
+def test_a_sheet_whose_terms_differ_is_refused_even_with_the_same_candidates(tmp_path):
+    """Self-review finding: the whole sheet is compared, not only which opportunities had a trade."""
+    repository(tmp_path, [spec()])
+    sheet = sheet_for(tmp_path)
+    sheet["opportunities"][0]["trade"] = {**sheet["opportunities"][0]["trade"], "width": 999}
+    with pytest.raises(DecisionRefused, match="does not reproduce"):
+        decider(tmp_path).decide(accepted(tmp_path, decision(trades=[OPPORTUNITY]), sheet))
+
+
+def test_a_second_decision_on_the_day_is_refused_before_anything_is_written(tmp_path):
+    repository(tmp_path, [spec()])
+    decide(tmp_path, decision())
+    runs = sorted((tmp_path / "journal" / BOOK3_AI / "decisions" / DAY.isoformat()).iterdir())
+    with pytest.raises(DecisionRefused, match="decides once a day"):
+        decide(tmp_path, decision(trades=[OPPORTUNITY]))
+    assert sorted((tmp_path / "journal" / BOOK3_AI / "decisions" / DAY.isoformat()).iterdir()) == runs
+
+
+def test_the_run_returns_every_file_it_wrote_and_names_the_decision_version(tmp_path):
+    """F1t commits `DecidedRun.files` with the run: the day log, the shadow, and the registry, spec, ledger and C4 log
+    when they were written; `served` names F1t's decision version (its run check)."""
+    from fno.book3.registry import REGISTRY_FILE, spec_path
+    from fno.research_engine.ledger import LEDGER_FILE
+
+    repository(tmp_path, [spec()])
+    (tmp_path / "book3/constitution-v1.yaml").write_text("version: 1\n")  # C4 blocks the pick: its log is written
+    narrower = {**spec_document()["structure"], "widths": [200, 100]}
+    the_proposal = proposal(spec("b3-new", structure=narrower))
+    out = decide(tmp_path, decision(trades=[OPPORTUNITY], proposals=[the_proposal], reason="why today"))
+    names = {p.relative_to(tmp_path).as_posix() for p in out.files}
+    assert names == {f"journal/{BOOK3_AI}/proposals/{DAY}.json", f"journal/{BOOK3_AI}/shadow/{DAY}.json",
+                     REGISTRY_FILE, LEDGER_FILE, spec_path("b3-new-v1"),
+                     f"journal/{BOOK3_AI}/validity_failures.csv"}  # fmt: skip
+    assert all(p.is_file() for p in out.files)
+    assert json.loads(out.files[0].read_text())["reason"] == "why today"
+    assert opportunity_record(out.run)["served"]["ai_decision_version"] == "book3_ai-decision-v1"
+
+
+def test_an_edited_pick_in_the_stored_inputs_is_found_by_the_replay(tmp_path):
+    """Criterion 7: an edit to `selection` in `inputs.json` itself (canonical bytes) is found."""
+    from fno.desk.pack_items import canonical_json
+
+    repository(tmp_path, [spec()])
+    out = decide(tmp_path, decision(trades=[OPPORTUNITY]))
+    path = out.run / "inputs.json"
+    stored = json.loads(path.read_text())
+    check = validator(tmp_path)
+    path.write_bytes(canonical_json(stored))  # an unedited canonical rewrite still replays
+    assert replay(out.run, book3_evaluators().from_stored(stored["selection"]), SAME_CODE, validator=check) == []
+    stored["selection"] = []
+    path.write_bytes(canonical_json(stored))
+    assert replay(out.run, book3_evaluators().from_stored([]), SAME_CODE, validator=check) != []

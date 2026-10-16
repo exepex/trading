@@ -1,7 +1,9 @@
 """Book 3's `decision` object (story F6 expected design 3, F7): its exact shape, checked by `check_decision` when the
 routine seals (F1t's `seal`, so the model can fix a refused answer before the deadline) and again by the decider. The
 standard library only, because the routine side imports nothing else. The checks are on shape alone: whether a pick
-is a built candidate, a proposal fits the constitution or a card was given is decided by the decider on the day."""
+is a built candidate, a proposal fits the constitution or a card was given is decided by the decider on the day. A
+pick or shadow entry named twice is not a shape problem: the decider records the second as refused, alone (F6 design
+3, F7 criterion 1)."""
 
 from __future__ import annotations
 
@@ -26,13 +28,12 @@ def check_decision(decision) -> list[str]:
     problems += _trades(decision["trades"], decision["action"])
     problems += _items("proposals", decision["proposals"], PROPOSAL_KEYS, _proposal)
     problems += _items("shadow", decision["shadow"], SHADOW_KEYS, _shadow)
-    problems += _unique_texts("shadow opportunity_id", [s.get("opportunity_id") for s in _dicts(decision["shadow"])])
     problems += _cards(decision["cards_used"])
     return problems
 
 
 def _reason(where: str, value) -> list[str]:
-    if not isinstance(value, str) or not value.strip() or "\n" in value or len(value) > MAX_REASON_CHARS:
+    if not isinstance(value, str) or not value.strip() or len(value.splitlines()) != 1 or len(value) > MAX_REASON_CHARS:
         return [f"{where} must be one line of 1 to {MAX_REASON_CHARS} characters"]
     return []
 
@@ -41,10 +42,6 @@ def _text(where: str, value, empty_ok: bool = False) -> list[str]:
     if not isinstance(value, str) or (not empty_ok and not value.strip()):
         return [f"{where} must be text" + ("" if empty_ok else ", not empty")]
     return []
-
-
-def _dicts(value) -> list[dict]:
-    return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
 
 
 def _items(name: str, value, keys: tuple[str, ...], check) -> list[str]:
@@ -66,7 +63,7 @@ def _trades(value, action) -> list[str]:
         return problems
     if (action == "trade") != bool(value):
         problems.append("trades must be non-empty exactly when action is trade")
-    return problems + _unique_texts("trades opportunity_id", [t["opportunity_id"] for t in value])
+    return problems
 
 
 def _trade(where: str, item: dict) -> list[str]:
