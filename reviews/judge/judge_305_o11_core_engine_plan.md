@@ -87,3 +87,40 @@ and trace it under E10/E11.
 - The withdrawal of `quote-recorder-nse.yml`'s retirement, with its conditions (failures into O10, C5's
   contract-ID fix before it feeds the desk): accepted.
 - The quote check: the builder grepped each quote. I spot-checked rows 244-247 again; they match.
+
+## Addendum 2: 467a4433 (revision 4, main merged)
+
+**Verdict: PASS (lane 2; the orchestrator merges it).**
+
+**The last should-fix (capture health): closed.** Step 2b now comes before the trial and is on the critical path, with
+an owner for each item:
+- O8's first runs (012eM7Ti);
+- nse-margins' early cron (01Vm1WnH);
+- the participant-OI second slot (013YJ5gj, until A8's owner is named);
+- O10's staleness alert proven on a never-started job, as a new O11 strict xfail.
+
+**On O8 never having run, the builder's pushback is accepted, with a deadline.** I checked it myself:
+- `health-check.yml`'s cron is `21 12 * * *` (17:51 IST);
+- the workflow reached `main`'s first-parent history at c1593789, 15 Oct 18:46:41 UTC, after that day's slot;
+- so its first scheduled run is due today, 16 Oct, at 12:21 UTC.
+Zero runs so far is therefore not yet a failure. The plan names "no run by 18:21 UTC" as the failure. The orchestrator
+should check that tonight. The nse-margins finding (1 scheduled run in total, about 5 h late) stands, and step 2b
+carries it.
+
+Also closed:
+- D3's row: merged as e5906769, and F4's no-override text after it.
+- F4 stays, its text amended.
+- Books 2 and 3's orders and exits (F5, F6) and F1t's model reporting are rows in (c) and on the path.
+
+Owner expectations: every row 244-247 expectation is traced, and the gate is the definition of done. I have no
+completeness gap left to name. Over-engineering: the drop and defer list is sound.
+
+## Correction (judge's own error, 16 Oct)
+In addendum 1 and in judge 305, I wrote that nse-margins' "03:30 IST cron never started". That was wrong as a finding.
+The 03:30 IST cron (`0 22 * * *`) reached `main` at 3c333417, 16 Oct 06:08:32 UTC (I checked with `git log -G`), so
+its first slot is tonight at 22:00 UTC. The earlier late runs were the old morning crons (the file's own comment
+records GitHub starting them 4-5 h late).
+
+The orchestrator also reports that the participant-OI cancels are fixed in O10's branch (`due_day`). So all three
+health items are "O10 plus a first-run check", as plan revision 4's step 2b already says. **The PASS of addendum 2
+stands.** Tonight's checks: `health-check.yml` by 18:21 UTC, and `nse-margins.yml`'s first 22:00 UTC run.

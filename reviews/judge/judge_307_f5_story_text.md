@@ -88,3 +88,36 @@ picks stored in the run's `inputs.json` (`selection`). Extend criterion 9:
 Minor findings from the verdict, still open:
 1. On the shadow-only path, the default itself passes C2 and C4 in the same run.
 2. Name the C4 mode the unproven re-check changes, with a test that Book 1's C4 behaviour is unchanged.
+
+## Addendum 2: 778e9c0f
+
+**Verdict: PASS on the story text, with 1 minor finding for the code round.**
+- **Should-fix 1: closed.** The decision is `{"action": "follow_rule" | "change", "reason", "slots": [...]}`, checked
+  by `check_decision(decision, sheet=None)`. Criterion 2 requires that F1t's base check passes everything
+  `check_decision` accepts.
+- **Should-fix 2: closed in the design** (part 3, item 7). `ReplayedOrders` replays Book 2's committed run "through
+  D2's evaluator with the `SelectionAllocator` rebuilt from `inputs.json`'s `selection`". A run that does not replay
+  orders nothing, and only C4-passed trades are ordered. Exits use `PlaybookExitRules`, from the version the run read.
+- **Minor findings from the verdict: closed.**
+  - The shadow-only default passes the same allocator, C2 and C4.
+  - The unproven check is named in `EnvelopeMode`, and criterion 10 shows Book 1's C4 is unchanged.
+  - Decision titles are cited instead of row numbers.
+  - D3 criterion 6 names Book 3's day-record exemption.
+  - S2's "overrides (F4)" input is removed.
+
+**Minor, for the code round.** Criterion 9 tests the refusal cases (a changed pick, a C4 block, a version file edit).
+It does not test the positive case that would catch the exact bug of addendum 1: **a `choose_width` (and a
+`reduce_lots`) run's entry order carries the AI's rebuilt width and lots, not the default's**. Add it. I will plant
+"replay with D2's plain evaluator" in the code review.
+
+## Addendum 3: a32f8ff7
+**PASS stands; the code-round minor of addendum 2 is closed in the text.**
+- `action` is `follow_rule`, `trade` or `no_trade`, and `check_decision` refuses an action that disagrees with the
+  slots.
+- Criterion 9 now says the evaluator `ReplayedOrders` replays is rebuilt with the `SelectionAllocator` and the stored
+  picks, "never D2's plain evaluator".
+- It adds the positive case "a `choose_width` run orders the rebuilt width, not the default's", and orders the default
+  for shadow-only.
+
+(Addendum 1 judged 0b77381f because the 778e9c0f message arrived after it was written; both heads' fixes are now
+covered.) For the code review I will also check `reduce_lots` (the AI's lots reach the order) with the same plant.
