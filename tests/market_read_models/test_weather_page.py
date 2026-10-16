@@ -158,6 +158,7 @@ def test_the_page_never_carries_a_level_a_reaches_colour_or_the_us_cue(live_worl
     inputs, _ = live_world
     text = json.dumps(published(inputs))
     assert "reaches" not in text and "us_move" not in text and "private" not in text
+    assert "us_overnight" not in {d["driver"] for d in published(inputs)["drivers"]}  # a valid enum, never sent
     levels = [*RED_LIMITS, *AMBER_LIMITS, *WEATHER_RED_FLOORS, *WEATHER_AMBER_FLOORS]
     shown = {f"{v:.2f}" for v in levels} | {f"{v:.0%}" for v in levels} | {f"{v:.1%}" for v in levels}
     for driver in published(inputs)["drivers"]:
