@@ -39,6 +39,6 @@ def test_routine_docs_never_name_a_bare_pip_install():
 
 def test_the_3pm_routine_and_readme_name_the_script():
     claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    recorder = claude.split("## 3 pm quote recorder", 1)[1].split("\n## ", 1)[0]
+    recorder = claude.split("## Daily desk routine", 1)[1].split("\n## ", 1)[0]
     assert "sh tools/routine_setup.sh --groww" in recorder
     assert "sh tools/routine_setup.sh --groww" in (ROOT / "README.md").read_text(encoding="utf-8")

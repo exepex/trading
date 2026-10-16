@@ -1,7 +1,9 @@
 """The paper desk's daily run (E3) and A16's 15-minute marks.
 
-- Desk: `journal/runs/<date>.json` holds every step of the run; the `decisions` step finished by the timetable's
-  decision deadline (its in-file time); a `skipped` run (not a session day) is not expected.
+- Desk: `journal/runs/<date>.json` holds every step of `DAILY_RUN_STEPS` (story O1's tuple, the one the run loops
+  over); the `decisions` step finished by the timetable's decision deadline (its in-file time); an O1 step whose status
+  is `failed` or `refused` is a problem shown with its reason, `not_live` is present and counts as neither; a `skipped`
+  run (not a session day) is not expected.
 - A16: the day's ledger has every mark with status `good`. A16's own per-mark status (its 120 s rule) is final: this
   check only counts it, with no deadline of its own beyond the session's last mark."""
 
@@ -10,7 +12,16 @@ from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 
-from ..constants import HEALTH_LATE, HEALTH_MISSED, HEALTH_NOT_EXPECTED, HEALTH_OK, RUN_LOG_DECISIONS_STEP
+from ..constants import (
+    DAILY_RUN_STEPS,
+    HEALTH_LATE,
+    HEALTH_MISSED,
+    HEALTH_NOT_EXPECTED,
+    HEALTH_OK,
+    RUN_LOG_DECISIONS_STEP,
+    STEP_FAILED,
+    STEP_REFUSED,
+)
 from ..desk.run_log import RunLog
 from ..intraday.ledger import SlotLedger
 from ..intraday.slots import FIRST_MARK, MARK_STEP, MARKS_PER_SESSION
@@ -18,10 +29,7 @@ from ..intraday.status import GOOD, LATE
 from ..models import IST
 from .model import CheckResult, Deadline, EvidenceUnknown, SessionCheck, absent, judged
 
-# The run's steps in order, as `fno/desk/daily_run.py` plans them (a test keeps the two equal); `skipped` is its
-# closed-day step
-DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits", "trade_marks")
-SKIPPED_STEP = "skipped"
+SKIPPED_STEP = "skipped"  # the run's closed-day step
 
 
 class RunLogCheck(SessionCheck):
@@ -41,10 +49,22 @@ class RunLogCheck(SessionCheck):
         except (KeyError, TypeError, ValueError):
             raise EvidenceUnknown(f"{log.path.name}: the decisions step has no readable finish time") from None
         result = judged(decided, self.deadline.on(session), "decisions finished")
-        missing = [step for step in DESK_RUN_STEPS if not log.done(step)]
-        if result.status == HEALTH_OK and missing:
-            return CheckResult(HEALTH_MISSED, f"steps not run: {', '.join(missing)}")
+        problems = _problems(log)
+        if result.status == HEALTH_OK and problems:
+            return CheckResult(HEALTH_MISSED, problems)
         return result
+
+
+def _problems(log: RunLog) -> str:
+    """Steps not run, and O1 steps that failed or were refused with their reasons; empty when there are none."""
+    missing = [step for step in DAILY_RUN_STEPS if not log.done(step)]
+    results = {name: step["result"] for name, step in log.steps.items()}
+    bad = [f"{name} {r['status']}: {r.get('reason', '')}" for name, r in results.items()
+           if r.get("status") in (STEP_FAILED, STEP_REFUSED)]  # fmt: skip
+    parts = ([f"steps not run: {', '.join(missing)}"] if missing else []) + (
+        [f"steps not ok: {'; '.join(bad)}"] if bad else []
+    )
+    return "; ".join(parts)
 
 
 class MarksCheck(SessionCheck):
