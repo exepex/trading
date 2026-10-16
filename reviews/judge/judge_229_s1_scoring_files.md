@@ -157,3 +157,28 @@ among them.
 - `evaluation check` prints S1 and the gate complete.
 
 **Verdict: PASS.**
+
+## Addendum 3: B0's `fno/playbook/measurement.py` against item 15's closure test (judge A, the test's judge)
+
+Asked by the R3 builder on the orchestrator's instruction, for `story/r3-b0-registration` at 89fcbbd5 (main merged
+in; judge G passed B0's code in judge 233 addendum 1). This judges only the closure-test decision.
+
+**Ruling: the exemption in `DATA_SHAPES` is accepted.**
+- **What the module is:** `measurement.py` is one predicate, `is_measurement(strategy)`, which tests whether
+  `strategy.edge_family == "measurement"`. It computes no number.
+- **Where scoring uses it:**
+  - In hashed code, `scorecard/scorecard.py:85` uses it only to set `Scorecard.measurement`.
+  - That flag is read in one place, `scorecard/report.py:32`, for the title's " (measurement)".
+  - No hashed module reads it for a figure, count or threshold. My grep over `fno/scorecard`, `fno/scoreboard` and
+    `fno/role_value` finds no other read.
+- **The reason line says when this ends:** "hash it once Test B counts by it". R3 part B's criterion 12, which leaves
+  measurement shadows out of Test B's count, must move `measurement.py` into `frozen_files`, through S1's text owner,
+  in the same change. The closure test will not catch that by itself, because an exempt module stays exempt. That
+  duty belongs to part B's judge.
+- **Gates on the trial merge with origin/main 7df28078 (tree e24ca26, clean), `-n auto`:** pytest 6975 passed.
+  `ruff check` and `check_imports` are clean.
+
+**Note for the orchestrator (outside item 15, no fix asked of B0):** `fno/scorecard/pauses.py`, E6's pause rules,
+is not in `frozen_files`. B0 changes how it treats a measurement version: a research-status measurement is "shadow
+test, not paused". S1's `immediate_pauses` item states pause rules, and the code that applies them is unhashed, as
+it was before B0. Whether `pauses.py` belongs in S1's hashed list is a question for S1's text owner before the freeze.
