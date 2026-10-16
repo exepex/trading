@@ -21,3 +21,8 @@ One file per strategy version: `playbook/<name>-v<n>.yaml`. The paper desk trade
 
 `example-sc-iv-rich-no-event-v1.yaml` is a worked example of the format only: experiment 1's policy P6, which
 **failed**. It is `research` and must never be approved as it stands.
+
+`b0-monthly-sc-v1.yaml` is **B0, a measurement** (story R3, owner decision 1 A): registered `research` on 16 Oct 2026,
+shadowed from the next session to measure premium, costs and fills at real quotes. `edge_family: measurement` marks
+it (`fno/playbook/measurement.py`); it is never promoted and never counted as a positive candidate. Idea card:
+`research/ideas/B0.md`.

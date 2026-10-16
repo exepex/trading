@@ -13,6 +13,7 @@ from datetime import date
 
 from ..accounting.ledgers import Ledgers, TradeLine
 from ..desk.snapshot import ContractKey, ExecutionSnapshot, ExecutionSnapshotSource
+from ..playbook.measurement import is_measurement
 from ..playbook.schema import Strategy
 from .execution_costs import ExecutionCosts, execution_costs
 from .review import Review, ReviewTerms, review
@@ -41,6 +42,7 @@ class Scorecard:
     costs: ExecutionCosts
     review: Review | None
     open_marks: tuple[OpenMark, ...]
+    measurement: bool = False  # story R3: a measurement version, labelled wherever it is shown
 
     @property
     def total_net(self) -> float:
@@ -80,5 +82,5 @@ def build_scorecard(
         record.account, record.strategy, str(strategy.status) if strategy else NO_VERSION,
         plan["expected_range"] if plan else None, plan["unit"] if plan else "", lines, ledgers.by_month(),
         ledgers.tax_by_year(), execution_costs(record, on, snapshots), judged,
-        tuple(_mark(t, marks) for t in record.open),
+        tuple(_mark(t, marks) for t in record.open), is_measurement(strategy),
     )  # fmt: skip
