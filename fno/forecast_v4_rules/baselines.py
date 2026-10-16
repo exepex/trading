@@ -1,6 +1,7 @@
-"""Protocol v4's phase-1 baselines (PROTOCOL_v4.md section 3.1; story G7): base rate (V6), trailing, EWMA and HAR
-(V1). Point in time: a forecast for day `d` reads only sessions before `d` (their closes and RVs are first seen before
-`d`'s 15:00 cutoff; `d`'s own are not). A value that cannot be computed is missing, never floored or replaced."""
+"""Protocol v4's close and RV baselines (PROTOCOL_v4.md section 3.1; stories G7 and G7b): base rate (V6, V7),
+trailing, EWMA and HAR (V1, V2, V3). Point in time: a forecast for day `d` reads only sessions before `d` (their
+closes and RVs are first seen before `d`'s cutoff; `d`'s own are not). A value that cannot be computed is missing,
+never floored or replaced."""
 
 from __future__ import annotations
 
@@ -118,6 +119,21 @@ class Har:
         if beta is None or x is None:
             return Value(NOT_ELIGIBLE)
         return Value.of(self.h * float(np.dot(beta, x)))
+
+
+class TrailingSum:
+    """V2 and V3's trailing baseline: the sum of the last `h` session RVs before `d` (the same measure; `d`'s own is
+    not known at the cutoff), not eligible with fewer than `h`."""
+
+    def __init__(self, rv: list[DayValue]):
+        self.days = [r.day for r in rv]
+        self.values = [r.value for r in rv]
+
+    def forecast(self, d: date, horizon: int) -> Value:
+        end = before(self.days, d)
+        if end < horizon:
+            return Value(NOT_ELIGIBLE)
+        return Value.of(sum(self.values[end - horizon : end]))
 
 
 def trailing_previous_session(rv: list[SessionRv], previous: date | None) -> Value:

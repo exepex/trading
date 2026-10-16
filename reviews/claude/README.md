@@ -232,3 +232,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 245: the weather at the calendar's end (24-31 Dec 2026): unknown events said on the weather page, v0's not-scored reason named in M1's record](response_245_m1-calendar-end.md)
 - `response_246_e2d-trade-marks.md`: story E2d text (per-trade daily marks): the gap (record_equity never called), one source (the run's 15:15 snapshot), stale or unmarked never invented, Drive only, the account-file record-scan hole closed.
 - [Response 247: story D4 code, Book 2's authority envelope (permits, files, C4 EnvelopeMode), switched off until an envelope exists; 5 stated deviations](response_247_d4-envelope-code.md)
+- [Response 244: story P11, the per-page hold: one page held back (the over-cap card), every other page published, no migration (story text for the judge)](response_244_p11-page-hold.md)
+- [Response 151: story A4c, BANKNIFTY, FINNIFTY and MIDCPNIFTY recorded after NIFTY in the 3 pm routine (builder's claims): 15:01-15:13 IST, paced, Drive-only quotes, step 0 on real Groww](response_151_a4c-all-indices.md)

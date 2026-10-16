@@ -4,7 +4,8 @@
 - `cash_ledger.csv`: append-only, one row per fill, plus the opening balance and any capital top-up (story E1b: dated
   by its write instant, counted as capital only from then). The source of truth.
 - `positions.json`: a view rebuilt from the ledger after every write (open legs, cash, closed equity, closed trades).
-- `equity_history.csv`: one row per day (cash, closed and marked equity), rewritten for a repeated day.
+- `equity_history.csv`: one row per day (cash, closed and marked equity), rewritten for a repeated day; the daily
+  run's marking step writes it from the open trades' values (story E2d).
 
 Reading needs no lock (`PaperAccount`). Writing needs the book's held single-writer lock (`AccountWriter`, opened by
 `fno.composition.open_account_writer`). Crash safety: a fill is one appended line, flushed to disk before the view is
@@ -17,6 +18,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -63,13 +65,17 @@ class WriterLock(Protocol):
 
 
 def _equity_row(day: date, state: AccountState, fills: int) -> dict[str, str]:
+    return _row(day, state.cash, state.closed_equity, state.marked_equity, state.open_trades, state.stale_marks, fills)
+
+
+def _row(day: date, cash: float, closed: float, marked: float, open_trades: int, stale, fills: int) -> dict[str, str]:
     return {
         "date": day.isoformat(),
-        "cash_rs": f"{state.cash:.2f}",
-        "closed_equity_rs": f"{state.closed_equity:.2f}",
-        "marked_equity_rs": f"{state.marked_equity:.2f}",
-        "open_trades": str(state.open_trades),
-        "stale_marks": ";".join(state.stale_marks),
+        "cash_rs": f"{cash:.2f}",
+        "closed_equity_rs": f"{closed:.2f}",
+        "marked_equity_rs": f"{marked:.2f}",
+        "open_trades": str(open_trades),
+        "stale_marks": ";".join(stale),
         "fills": str(fills),
     }
 
@@ -200,13 +206,18 @@ class AccountWriter:
         self._write_positions()
         return TopUp(amount, further)
 
-    def record_equity(self, day: date, marks: dict[str, Mark]) -> AccountState:
-        """Write the day's row of the equity history (replacing an earlier row for the same day)."""
+    def record_marked_equity(self, day: date, open_trades_value: float, stale: Sequence[str]) -> None:
+        """Story E2d: the day's equity row from the open trades' values as S2 gives them (`TradeDay.value`: each
+        trade's cash flow so far plus its held legs at their marks), replacing an earlier row for the day. Marked
+        equity = closed equity + `open_trades_value` (the identity of `equity.py`); `open_trades_value` is never
+        `equity.py`'s `open_value` (the legs alone), which would count the open trades' cash flow twice."""
         self.require_lock()
-        state = self.account.state(marks)
-        self._replace_equity_row(_equity_row(day, state, len(self.account.fills())))
+        summary = self.account.summary()
+        closed, opened = summary["closed_equity_rs"], len(summary["open_trades"])
+        row = _row(day, summary["cash_rs"], closed, closed + open_trades_value, opened, sorted(set(stale)),
+                   len(self.account.fills()))  # fmt: skip
+        self._replace_equity_row(row)
         self._write_positions()
-        return state
 
     def _replace_equity_row(self, row: dict[str, str]) -> None:
         rows = [r for r in self.account.equity_history() if r["date"] != row["date"]] + [row]

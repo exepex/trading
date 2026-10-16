@@ -39,6 +39,7 @@ class ExpiryHistory(ABC):
 class NseDailyFileExpiries(ListedExpiries, ExpiryHistory):
     def __init__(self, library: RawFileLibrary):
         self.library = library
+        self._files: dict[date, tuple[list[dict], dict] | None] = {}  # a day's file, read and parsed once a run (A4c)
 
     def listed(self, underlying: str, today: date) -> tuple[list[date], dict]:
         return self._latest(underlying, today - timedelta(days=1))[1:]
@@ -50,11 +51,10 @@ class NseDailyFileExpiries(ListedExpiries, ExpiryHistory):
         """The newest file from `last_day` back over LOOKBACK_DAYS days."""
         for back in range(LOOKBACK_DAYS):
             day = last_day - timedelta(days=back)
-            path = NseDailyFoSource.path_for(day)
-            found = self.library.get(path)
-            if found.data is None:
+            file = self._file(day)
+            if file is None:
                 continue
-            rows = read_fo_file(NseDailyFoSource.filename_for(day), found.data)
+            rows, provenance = file
             expiries = sorted(
                 {
                     date.fromisoformat(r["XpryDt"])
@@ -62,7 +62,17 @@ class NseDailyFileExpiries(ListedExpiries, ExpiryHistory):
                     if r["FinInstrmTp"] == INDEX_OPTION and r["TckrSymb"] == underlying
                 }
             )
-            provenance = {"source": found.origin, "file": path, "file_date": day.isoformat(),
-                          "sha256": hashlib.sha256(found.data).hexdigest()}  # fmt: skip
             return day, expiries, provenance
         raise ExpiryListUnavailable(f"no NSE F&O file in the {LOOKBACK_DAYS} days up to {last_day}")
+
+    def _file(self, day: date) -> tuple[list[dict], dict] | None:
+        """The day's parsed rows and provenance, or None when the day has no file (about 0.8 s a parse)."""
+        if day not in self._files:
+            path = NseDailyFoSource.path_for(day)
+            found = self.library.get(path)
+            self._files[day] = None if found.data is None else (
+                read_fo_file(NseDailyFoSource.filename_for(day), found.data),
+                {"source": found.origin, "file": path, "file_date": day.isoformat(),
+                 "sha256": hashlib.sha256(found.data).hexdigest()},
+            )  # fmt: skip
+        return self._files[day]
