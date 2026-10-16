@@ -904,7 +904,7 @@ claims (section 6); the dry run (criterion 6 of the text above) measures it.
 **4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file; R2/G7 builds it).
 The column sits right after `inputs_sha256`; `record()` takes it as a keyword, default empty; `records.py` checks
 only its form (empty or 64 hex characters). `read()` accepts a row without the column as empty, so every committed G7
-and M1 CSV (M1's two forecaster folders use G7's `Record` through `v4_writer`: 9,636 rows) stays byte-identical and is never regenerated, which keeps
+and M1 CSV (M1's two forecaster folders use G7's `Record` through `v4_writer`: 9,636 rows) reads unchanged and is never regenerated; a file's next write (it rewrites the whole file) adds the empty column, with no value changed, which keeps
 the freeze clean (R2/G7, 16 Oct). The refusal lives in a small guard in `fno/v4_pack/` used by the pack readers'
 writers (G11's first): fed the released SHA from the release record, it refuses a record naming another pack, and an
 empty SHA from a forecaster that reads the pack. **Design point for the judge:** G7's and M1's forecasters commit before the 14:30 cutoff from
@@ -930,7 +930,8 @@ forecast-capture.yml's existing slot; the v2 AI steps leave at the freeze (owner
 2. Pack and release record go through `DataStore.put` (a test refuses any open-for-write under a checkout data
    folder); G8 reads the release record from the DriveCache folder.
 3. `pack_sha256`: the guard refuses a pack-reading record with another SHA or an empty one; G7 and M1 rows carry it
-   empty; every committed G7 and M1 CSV reads unchanged without the column (no regeneration, byte-identical files);
+   empty; every committed G7 and M1 CSV is unchanged until its next write, which adds the empty column; no value changes
+   (a missing column reads as empty, equal to a new empty value, so `RecordConflict` is unaffected);
    `records.py` is not a G7 method file, so no method hash moves.
 4. The deadline: received 15:10:00 counts, 15:10:01 is a miss, from GitHub's receipt time through the interface.
 5. `V4_LATEST_FIRE` in terms; the workflow's trigger path equals the release record's receipt path (a test); no
