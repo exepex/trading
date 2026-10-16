@@ -55,9 +55,9 @@ def test_nse_lists_every_circular_of_the_dates_with_its_department():
 
 @pytest.mark.parametrize(
     "session",
-    [Session(403, b"denied"), Session(body=b"<html>blocked</html>"), Session(body=b'{"data": [{"sub": "x"}]}'),
+    [Session(403, b"denied"), Session(503, b'{"data": []}'), Session(body=b"<html>blocked</html>"), Session(body=b'{"data": [{"sub": "x"}]}'),
      Session(body=b'{"rows": []}'), Session(error=requests.ConnectionError("down"))],
-    ids=["refused", "html", "item without fields", "no data list", "unreachable"],
+    ids=["refused", "503 with a JSON body", "html", "item without fields", "no data list", "unreachable"],
 )  # fmt: skip
 def test_an_unreadable_nse_answer_fails_loudly(session):
     with pytest.raises(FeedFailed):
@@ -84,3 +84,9 @@ def test_relevance_keeps_fno_department_and_fno_subjects_only():
     assert relevant == {"NCL/CMPT/76975", "NSE/CMTR/76963", "NCL/CMPT/76951", "NSE/FAOP/76921"}  # the 4 F&O ones
     sebi = SebiCircularList(Session(body=SEBI_HTML)).fetch(D15, D16)
     assert FnoRelevance()(sebi[0])  # "... settlement methodology for derivatives contracts"
+
+
+def test_a_file_the_publisher_does_not_serve_is_feedfailed():
+    circular = NseCircularApi(Session(body=NSE_JSON)).fetch(D15, D16)[0]
+    with pytest.raises(FeedFailed, match="HTTP 404"):
+        NseCircularApi(Session(404, b"")).download(circular)
