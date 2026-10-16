@@ -21,9 +21,9 @@ record `research/ledger.csv` and `research/LEDGER.md`.
 | G6 Verdict | The registered pass mark; a fail is final for that version | verdict in the ledger |
 
 **Every idea is a trial from G0.** The ledger row is written when the card is committed, before G1 runs, so an idea
-stopped at any gate still counts in the trial total ("trial k of K" on every report). Until R1's code adds a status
-field to `research/ledger.csv` (its columns are fixed by B4's guard today), the status (`idea`, `screened_out`,
-`exploratory_shadow`, ...) is kept in the idea card and the Status column of `research/LEDGER.md`. A variant (a new threshold,
+stopped at any gate still counts in the trial total ("trial k of K" on every report). The status (`idea`,
+`screened_out`, `exploratory_shadow`, ...) is kept in R1's gate log (`research/factory/gates.csv`, append-only: an
+idea's status is its last row), since B4's guard fixes the columns of `research/ledger.csv`. A variant (a new threshold,
 filter, structure, strike rule, exit or period) is a new idea with its own card and its own row, never an edit.
 
 ## 2. G1 feasibility screen (the cost wall)
