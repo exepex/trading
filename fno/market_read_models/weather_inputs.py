@@ -6,7 +6,7 @@ probability."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from ..forecast_v4_rules.series import DayValue, big_move_outcomes
@@ -22,6 +22,7 @@ class WeatherInputs:
     sessions: list[date]  # the regular sessions before the day, oldest first (up to 251)
     earlier: dict[date, dict]  # those sessions' records (a session without one is absent)
     big_move: dict[date, bool]  # a session -> a 2% move came the next session (resolved by the day only)
+    history: list[dict] = field(default_factory=list)  # every record up to the day, oldest first (weather_history)
 
 
 class WeatherInputsReader:
@@ -32,4 +33,5 @@ class WeatherInputsReader:
         sessions = [c.day for c in self.closes if c.day < day][-HISTORY_SESSIONS:]
         earlier = {d: r for d in sessions if (r := self.records.for_day(d)) is not None}
         big_move = {o.day: o.value for o in big_move_outcomes(self.closes, 1) if o.resolved_on <= day}
-        return WeatherInputs(day, self.records.for_day(day), sessions, earlier, big_move)
+        history = [r for c in self.closes if c.day <= day and (r := self.records.for_day(c.day)) is not None]
+        return WeatherInputs(day, self.records.for_day(day), sessions, earlier, big_move, history)

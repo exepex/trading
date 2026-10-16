@@ -35,6 +35,7 @@ The F&O screens' pages (story P2, `docs/stories/W3-fno-screens.md`) publish in t
 | Page key | Contract schema | Source |
 |---|---|---|
 | `weather` | `FnoWeather` (P2a) | M1's records (`WeatherRecords`), NIFTY's committed closes; published only from a live record M1 scored, never a level, a `reaches` colour or the US cue (`weather_block.py`, `weather_parts.py`) |
+| `weather_history` | `FnoWeatherHistory` (P2a, 2.8.0) | every M1 record up to the session, oldest first: colour and label only, with the counts (`weather_history_block.py`) |
 
 "ours" (the companies the stock tool follows) is counted and tagged here over the NSE rows, from the stock tool's list
 (W11 input `FollowedCompaniesIndia`, orchestrator decision of 13 Oct 2026, judge 40): a close uses the latest list dated

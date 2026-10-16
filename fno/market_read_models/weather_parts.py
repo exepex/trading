@@ -4,15 +4,17 @@
   value in plain words; `push` is the sign of that change (up: riskier). They are ordered by the size of the change
   against the input's own typical (median) change over the last 250 records, never by a model coefficient. The
   scheduled events of the next 5 sessions follow, each riskier. No `reaches` colour, no level, no US cue.
-- **Recent, red share:** live records only, as M1 counts them.
-- **Scores:** G8's alone (`scores()`); none yet, so not_enough_data with no number."""
+- **Recent, red share:** every record, each labelled live or back-fill (exploratory, contract 2.8.0); the red share
+  counts live records once any exists, else the back-fill, and says which (`basis`), as M1 counts it.
+- **Scores:** G8's alone (`scores()`); none yet, so not_enough_data with no number, exploratory while only the
+  back-fill exists."""
 
 from __future__ import annotations
 
 import statistics
 
 from ..constants import V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
-from ..forecast_v4_rules.records import LIVE
+from ..forecast_v4_rules.records import BACKFILL, LIVE
 from ..weather.constants import (
     WEATHER_RED_MAX_SHARE,
     WEATHER_RED_SHARE_RECORDS,
@@ -43,11 +45,16 @@ def figure(record: dict, key: str, question: str) -> float | None:
     return entry["value"] if entry["status"] == OK else None
 
 
-def published_colour(record: dict | None) -> str | None:
-    """A live record's colour; None for a back-fill record, a missing one or a live one M1 could not score."""
-    if not is_live(record) or record["colour"] == WeatherColour.NOT_SCORED:
+def colour_of(record: dict | None) -> str | None:
+    """A record's colour; None without a record or for a day M1 could not score."""
+    if record is None or record["colour"] == WeatherColour.NOT_SCORED:
         return None
     return record["colour"]
+
+
+def basis(inputs: WeatherInputs) -> str:
+    """Live once any live record exists up to the day; until then the back-fill, labelled exploratory (2.8.0)."""
+    return LIVE if any(map(is_live, [*inputs.earlier.values(), inputs.record])) else BACKFILL
 
 
 def drivers(inputs: WeatherInputs) -> list[dict]:
@@ -79,34 +86,31 @@ def _typical_change(series: list[float | None]) -> float | None:
 
 
 def recent(inputs: WeatherInputs) -> list[dict]:
-    """The last 10 sessions, the day last: the published colour and whether a 2% move came the next session."""
+    """The last 10 sessions, the day last: each record's colour and label (live or back-fill, exploratory) and whether
+    a 2% move came the next session."""
     records = {**inputs.earlier, inputs.day: inputs.record}
     days = [*inputs.sessions, inputs.day][-RECENT_SESSIONS:]
-    moves = inputs.big_move
-    return [{"session": d.isoformat(), "colour": published_colour(records.get(d)), "big_move": moves.get(d)}
-            for d in days]  # fmt: skip
-
-
-def _live_records(inputs: WeatherInputs) -> list[dict]:
-    return [r for r in [*(inputs.earlier[d] for d in inputs.sessions if d in inputs.earlier), inputs.record]
-            if published_colour(r) is not None]  # fmt: skip
+    return [{"session": d.isoformat(), "colour": colour_of(records.get(d)), "big_move": inputs.big_move.get(d),
+             "label": records[d]["label"] if records.get(d) else None} for d in days]  # fmt: skip
 
 
 def red_share(inputs: WeatherInputs) -> dict:
-    """RED's share of the last 250 live records (the day's included), as M1 counts it; over 15% is over-alarming,
-    judged only once 250 live records exist."""
-    counted = [r["colour"] for r in _live_records(inputs)][-WEATHER_RED_SHARE_RECORDS:]
+    """RED's share of the last 250 records of the basis (the day's included), as M1 counts it; over 15% is
+    over-alarming, judged only once 250 such records exist."""
+    label = basis(inputs)
+    records = [inputs.earlier[d] for d in inputs.sessions if d in inputs.earlier] + [inputs.record]
+    counted = [r["colour"] for r in records if r is not None and r["label"] == label][-WEATHER_RED_SHARE_RECORDS:]
     reds = sum(c == WeatherColour.RED for c in counted)
     share = reds / len(counted) if counted else None
     full = len(counted) == WEATHER_RED_SHARE_RECORDS
     return {"sessions": len(counted), "red_sessions": reds, "share": share, "max_share": WEATHER_RED_MAX_SHARE,
-            "over_alarming": bool(full and share > WEATHER_RED_MAX_SHARE)}  # fmt: skip
+            "over_alarming": bool(full and share > WEATHER_RED_MAX_SHARE), "basis": label}  # fmt: skip
 
 
-def scores() -> list[dict]:
+def scores(exploratory: bool) -> list[dict]:
     """G8 owns the weather's scores (`fno/forecast_scoring/v4/scores.py`) and has scored no live weather day, so each
     question and yardstick is not_enough_data with no number. A reader of G8's report replaces this once it holds
     live V6 rows; nothing here scores (judge 218)."""
     return [{"question": label, "baseline": name, "status": "not_enough_data", "n_scored": 0, "n_needed": N_NEEDED,
-             "brier": None, "brier_baseline": None, "skill": None, "verdict": "not_tested"}
+             "brier": None, "brier_baseline": None, "skill": None, "verdict": "not_tested", "exploratory": exploratory}
             for name in YARDSTICKS for label, _ in QUESTIONS]  # fmt: skip

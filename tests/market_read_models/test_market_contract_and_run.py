@@ -64,7 +64,7 @@ def builder() -> PublicationBuilder:
 
 
 def test_the_pinned_copy_matches_its_pin_and_names_the_contract_version():
-    assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.7.0"
+    assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.8.0"
     assert "api/schemas/blocks-stored.yaml" in CONTRACT.pin["files"]
     assert CONTRACT.pin["repository"] == "exepex/omenix-dashboard" and len(CONTRACT.pin["commit"]) == 40
 
@@ -169,7 +169,7 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1270 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1271 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
     assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 

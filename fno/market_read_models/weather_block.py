@@ -4,15 +4,16 @@
   record at all gives `not_published`, the missing input named, no colour, and new entries blocked (fail closed).
 - **No levels** (owner, 16 Oct 2026): the page carries the colour, the probabilities beside their base rates and the
   drivers' values in plain words; never a driver's `reaches` colour, a threshold, or the US cue (`weather_parts.py`).
-- **Live only:** the recent strip and the red share count live records, as M1 does; the scores are G8's (none yet).
-  A back-fill colour is not a published colour, and this contract version has no field to label one exploratory."""
+- **Labelled back-fill (contract 2.8.0):** the recent strip and the red share show the back-fill, each row and the
+  share labelled; the scores are G8's (none yet). Today's colour is only ever a live record's."""
 
 from __future__ import annotations
 
+from ..forecast_v4_rules.records import LIVE
 from ..weather.constants import WEATHER_OPERATIVE_MODEL, WeatherColour
 from .blocks import BlockBuilder, SessionRows
 from .weather_inputs import WeatherInputs
-from .weather_parts import BASE_RATE, OK, QUESTIONS, drivers, figure, is_live, recent, red_share, scores
+from .weather_parts import BASE_RATE, OK, QUESTIONS, basis, drivers, figure, is_live, recent, red_share, scores
 
 PUBLISHED, NOT_PUBLISHED = "published", "not_published"
 NO_RECORD = "M1 wrote no weather record for {day}"
@@ -45,7 +46,7 @@ def weather_payload(inputs: WeatherInputs) -> dict:
         "p_big_1d": p1, "p_big_5d": p5, "base_rate_1d": b1, "base_rate_5d": b5,
         "times_usual_1d": _ratio(p1, b1), "times_usual_5d": _ratio(p5, b5),
         "drivers": drivers(inputs) if published else [], "intraday": [], "recent": recent(inputs),
-        "red_share": red_share(inputs), "scores": scores(),
+        "red_share": red_share(inputs), "scores": scores(basis(inputs) != LIVE),
         "price_of_calm": {"month": inputs.day.strftime("%Y-%m"), "status": "not_measured_yet", "blocked_trades": None,
                           "risk_avoided": None, "shadow_net": None},
     }  # fmt: skip
