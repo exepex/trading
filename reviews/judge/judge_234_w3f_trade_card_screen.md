@@ -71,3 +71,6 @@ bar from `trade.max_loss_cap` (width and aria label).
 
 **Note:** the block's heading still reads "Today's card" above a held previous card. The notice directly under it
 says otherwise, so this is not a finding; "Card" would be cleaner.
+- **Re-head dac843e (5680fe6 plus main 47d0328):** the `web/` change is the same withheld change. Dashboard main has
+  since moved to c2589b6 (W3b merged). A trial merge of dac843e into c2589b6 is clean and keeps W3b's "Baseline"
+  wording: the merged diff from main is the 7 withheld files only. `npm test` gives 577/577. The PASS stands.
