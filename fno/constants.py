@@ -195,7 +195,7 @@ V4_QUESTIONS = (
 )  # fmt: skip
 V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
 V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
-V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE = "A", "A2", "system_late"  # G10: a day's quality label (protocol 1.6)
+V4_DAY_A, V4_DAY_SYSTEM_LATE = "A", "system_late"  # G10: a day's quality label (protocol 1.6; A2 dropped, 16 Oct)
 V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE = "close_proxy", "live"  # G10: scored apart, never pooled
 V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
 V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"

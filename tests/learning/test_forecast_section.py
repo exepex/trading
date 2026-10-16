@@ -100,9 +100,7 @@ def test_lr1_reads_the_cohort_report_g8_actually_writes(tmp_path):
             return {d: Outcome(False, False, 14.0, 0.001) for d in days}
 
     scoring = V4Scoring(Files(), Outcomes(), NoRegistrations())
-    document = report_json(
-        [scoring.question_report(q) for q in QUESTIONS], False, "2026-10-17", DayCounts(0, 0, 0, 0, 0)
-    )
+    document = report_json([scoring.question_report(q) for q in QUESTIONS], False, "2026-10-17", DayCounts(0, 0, 0, 0))
     write_report(tmp_path / "v4", "2026-10-17", document)
     lines = _section(tmp_path).lines(build_week(Calendar(), SATURDAY))
     v6 = lines[lines.index("- v6_abs_move_2pct_next_session: scored, live forecasts 2") + 1 :]
