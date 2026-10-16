@@ -81,3 +81,14 @@ port is a Depends item.**
 | Minor 1, 2 | Criterion 16 (registration only inside `decide()`; the full test through F1t's judging once its code exists, said so); the F7 shadow file is written when C2 or C4 refuse the real pick | Accepted |
 
 The prompt also tells the AI not to quote account figures, which matches F1t's 3d. Consistent.
+
+## Addendum 2: c625151e (F4's evidence pointers)
+**PASS stands; F6's side of judge 308's should-fix 2 is closed.** F6 addendum 1 adds:
+- the top-level `evidence` key, 0 to 20 items, checked in `check_decision` by F4's `evidence_problems` (a missing key
+  is refused);
+- prompt lines matching F4's rules (account files are not citable; cite without quoting);
+- D3's `judge` field taken from `AcceptedDecision.judge`;
+- criterion 17: the same answer with a pass or a fail verdict gives identical trades, because Book 3's verdicts are
+  evidence only.
+The sequencing is stated: this code follows once `fno/judge/evidence.py` lands, and Book 3 cannot go live before
+then. F6's code at e1c715e1 is not yet submitted for judging, and I have not judged it.

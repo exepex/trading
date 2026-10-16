@@ -83,3 +83,21 @@ Fix expected: compare the home page with the release before the newest when the 
   same day, so the first-seen time is enough.
 - FBIL is excluded for the commercial-use reason already recorded in A17's README. Consistent.
 - Both workflows go through O10's capture-watch (judge 350 add. 1 PASS); the list must include them.
+
+## Addendum 1: re-judge at 94cda4a8 (main merged; A21's own change is the story text)
+
+**Verdict: PASS for the A21 story text** (1 minor to carry into the code). Code may start: rates first, then
+announcements, the latter after A16's owner builds `ObserverGroup`.
+
+| Finding | Answer in the text | My check | Result |
+|---|---|---|---|
+| B1: no gap list | 19-row gap list (owner's rules, the brief, PROTOCOL.md's S6 source rule, F2's first-seen rule, O9, O10, A12's boundary, A16's conditions, quality rules 5, 6 and 8) | read; every line maps to a criterion or to Out with its reason | **Accepted** |
+| SF1: the GitHub cron cannot deliver 09:00-14:00 | no announcements workflow. The poll is one member behind A16's `MarkObserver` port, inside A16's routine, the one process alive in the window. `missed_window` and `no_poll_by_1000` alerts; the 20-mark coverage list; a 5 s GET with no retries and a 10 s budget per mark; the routine's network allowance is a known limit | A16's slot files for 16 Oct: 26 files; 09:15, 09:30 and 09:45 `missed` / `not_taken`, 10:00 `good` (request 0.7 s), so 17 of 20 marks in 09:15-14:00 had a running process, as claimed. The text says plainly that nothing in A21 alerts if A16's routine never runs, and names A16's heartbeat check and O8 as the witnesses | **Accepted** |
+| SF2: the cross-run seen set | read once per run from today's receipted parts through O9's Drive cache; an unreadable seen set stops the run with one alert and polls nothing; criterion 8 uses two separate runs | read | **Accepted** |
+| SF3: false disagreement each auction day | the release before the newest is accepted while the newest is under 24 h old; criterion 7 tests 23:59 and 24:00, and "matches neither" | read | **Accepted** |
+| SF4: boundaries, real run, NSE client | criteria 4, 6, 7, 9 and 10 carry at, under and over cases; `PublicData`'s headers only, one GET with a hard 5 s timeout, everything caught and named; one alert per episode plus "recovered"; real sample and live run in the claims | read | **Accepted** |
+
+**Minor (carry into the code):** `first_seen_at` is "the poll's request time". An item NSE disseminates while the
+request is in flight would then be dated before we had it. The text's "later than the true sighting ... never earlier"
+holds only for the response time. Use the response time, as A19 does, or state that the difference is under the 5 s
+timeout and test the cutoff at the response time.
