@@ -7,6 +7,8 @@ from enum import StrEnum
 
 # The daily operations' names (E3's and O1's run steps, O1's step statuses, O8's health statuses) live in their own
 # module, split out at the size limit; imported here so every `from fno.constants import ...` keeps working
+from .constants_margins import *  # noqa: F403 - its `__all__` names them; callers keep `fno.constants`
+from .constants_margins import FAMILY_CREDIT, FAMILY_DEBIT  # the family table below uses them
 from .constants_operations import *  # noqa: F403 - its `__all__` names them; callers keep `fno.constants`
 
 # Environment variable names (values are never stored in files).
@@ -114,6 +116,15 @@ STRUCTURES_ONE_SIDE = (
     *STRUCTURES_BOUGHT_ONLY,
     STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD, STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD,
 )  # fmt: skip
+# A14c families (owner, 16 Oct 2026): each code's family, tied to its payoff bounds by a test (debit: worth at least 0;
+# credit: worth at most 0); the k measure reads only the codes whose stressed SPAN C2 does not cap (STR1's are capped)
+STRUCTURE_FAMILIES = {
+    STRUCTURE_SHORT_IRON_FLY: FAMILY_CREDIT, STRUCTURE_SHORT_CONDOR: FAMILY_CREDIT,
+    STRUCTURE_CALL_CREDIT_SPREAD: FAMILY_CREDIT, STRUCTURE_PUT_CREDIT_SPREAD: FAMILY_CREDIT,
+    STRUCTURE_LONG_IRON_FLY: FAMILY_DEBIT, STRUCTURE_LONG_CALL: FAMILY_DEBIT, STRUCTURE_LONG_PUT: FAMILY_DEBIT,
+    STRUCTURE_CALL_DEBIT_SPREAD: FAMILY_DEBIT, STRUCTURE_PUT_DEBIT_SPREAD: FAMILY_DEBIT,
+}  # fmt: skip
+STRESS_MEASURED_STRUCTURES = (STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY)
 
 
 class CycleStatus(StrEnum):
@@ -148,12 +159,6 @@ OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
 STRESSED_MARGIN_STRESSES = "scan and exposure (owner, 15 Oct 2026; story C2c)"  # every decision record's label
-# Story C2d: the stress factor k as A14c's weekly job appends it (append-only), read by C2 and by C4 with its own reader
-STRESS_FACTOR_COLUMNS = (
-    "as_of", "factor", "computed", "unrounded", "status", "peak", "coverage_through", "evidence_sha256",
-)  # fmt: skip
-STRESS_FACTOR_STATUSES = ("applied", "held")  # held: a lower result waits for the owner; the old factor stays in force
-STRESS_FACTOR_DATE = "%Y-%m-%d"  # the only date form accepted in the factor file
 # Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
 # mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
 BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (

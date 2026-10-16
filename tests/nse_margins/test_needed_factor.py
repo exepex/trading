@@ -56,6 +56,8 @@ def test_it_is_the_smallest_k_that_covers_on_random_parts():
 class FiguresByDay:
     """A calculator that answers the BF 200's real parts by day (entry 8 Apr, peak 4 May, exit 7 May 2020)."""
 
+    lot_size = 65
+
     def __init__(self, figures):
         self.figures = figures
 
@@ -64,10 +66,18 @@ class FiguresByDay:
 
 
 class OneStructure:
+    """One bought call (worth 0 or more, so any positive NOV is possible); the real BF 200's legs are below."""
+
     code = "BF"
 
+    def __init__(self, legs=None):
+        self.chosen = legs or (Leg(8800.0, "CE", 1),)
+
     def legs(self, chain, underlying, width):
-        return (Leg(8800.0, "CE", 1),)
+        return self.chosen
+
+
+BF_200_LEGS = (Leg(8800.0, "CE", 1), Leg(8800.0, "PE", 1), Leg(9000.0, "CE", -1), Leg(8600.0, "PE", -1))
 
 
 def test_the_tracker_records_the_needed_factor_of_a_held_debit():
@@ -81,3 +91,16 @@ def test_the_tracker_records_the_needed_factor_of_a_held_debit():
     (held,) = tracker.found.completed
     assert (held.entry, held.exit, held.peak_day) == (entry, exit_day, peak)
     assert held.needed == pytest.approx(1.748339, abs=1e-6) and held.peak_margin == pytest.approx(BF_200_PEAK)
+
+
+def test_the_real_bf_200_of_april_2020_is_an_impossible_entry_and_is_skipped():
+    """Owner, 16 Oct 2026: NSE's file valued that 200-wide long iron fly at 875.55 a unit (NOV 56,910.75 / 65); the
+    position can never be worth more than 200, so it is not entered, and it is named."""
+    entry, expiry = date(2020, 4, 8), date(2020, 5, 28)
+    figures = {entry: MarginFigure(BF_200.scan, BF_200.nov, BF_200.exposure)}
+    tracker = HeldRiseTracker((OneStructure(BF_200_LEGS),), lambda _: (200.0,), FiguresByDay(figures),
+                              lambda d: d.weekday() < 5)  # fmt: skip
+    tracker.feed(entry, SimpleNamespace(monthly_expiries=(expiry,), series={expiry: {}}, underlying=8_750.0))
+    assert tracker.open == [] and tracker.found.impossible == [
+        "BF 200 2020-04-08: impossible price in NSE's file (875.55 a unit, the position is worth 0 to 200)"
+    ]

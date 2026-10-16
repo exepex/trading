@@ -55,11 +55,11 @@ class MarginFile:
             return list(reader)
 
 
-def multiplier(settings: MarginSettings, day: date) -> float:
+def multiplier(settings: MarginSettings, day: date, structure: str) -> float:
     if settings.method != STRESSED_MARGIN_MULTIPLIER:
         raise MarginProblem(f"stressed margin method {settings.method!r}: C4 checks the multiplier method only")
     try:
-        return factor_on(settings.factor_file, day, settings.multiplier_max_age_days)[1]
+        return factor_on(settings.factor_file, day, settings.multiplier_max_age_days, structure)[1]
     except FactorProblem as exc:
         raise MarginProblem(str(exc)) from exc
 
@@ -96,7 +96,7 @@ def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: M
     structure, width, _ = terms
     row = margin_row(rows, terms, day, settings)
     scan, nov, exposure = (float(row[k]) for k in ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs"))
-    factor = multiplier(settings, day)
+    factor = multiplier(settings, day, structure)
     span, cap = max(0.0, factor * scan - nov), span_cap(structure, width, nov, lot_size)
     capped = span if cap is None else max(max(0.0, scan - nov), min(span, cap))  # never below the broker's own figure
     per_lot = capped + min(0.0, nov) + factor * exposure  # k stresses the exposure too, outside the cap (story C2c)

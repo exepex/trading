@@ -69,7 +69,7 @@ def test_a_session_gets_one_row_per_structure_and_width_and_old_bytes_stay_a_pre
     assert after.startswith(before)
     new = after[len(before) :].decode().splitlines()
     assert len(new) == 6 and new[0].startswith(
-        "SF,100,1950.00,-10725.00,52000.00,NSE SPAN nsccl.20261014.i1.zip sha256="
+        "SF,100,1950.00,-5525.00,52000.00,NSE SPAN nsccl.20261014.i1.zip sha256="
     )
     assert all(line.endswith(",2026-10-14") for line in new)
 
@@ -190,7 +190,7 @@ def test_without_any_broker_check_rows_are_printed_and_none_written(tmp_path):
     before = path.read_bytes()
     assert make_job(path, {DAY: span_zip()}, alerts=alerts, check=BrokerApprovals({}), printed=printed).run() == 1
     assert path.read_bytes() == before
-    assert any(line.startswith("SF,100,1950.00,-10725.00,52000.00,NSE SPAN") for line in printed)
+    assert any(line.startswith("SF,100,1950.00,-5525.00,52000.00,NSE SPAN") for line in printed)
     assert len(alerts.sent) == 1 and "6 rows computed, none written" in alerts.sent[0]
     assert "risk.margins.nse_span_check" in alerts.sent[0]
 

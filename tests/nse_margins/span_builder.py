@@ -21,9 +21,10 @@ SF_ARRAYS = {
 }
 SF_100_SPAN = 30 * LOT
 SF_100_EXPOSURE = 2 * 0.02 * UNDERLYING * LOT
-# The SF legs' prices: sold 120 + 110, bought 35 + 30, so its net option value is -(230 - 65) x 65 = -10,725 a lot
-SF_PRICES = {("C", 20000.0): 120.0, ("P", 20000.0): 110.0, ("C", 20100.0): 35.0, ("P", 19900.0): 30.0}
-SF_100_NOV = -(120 + 110 - 35 - 30) * LOT
+# The SF legs' prices: sold 120 + 110, bought 75 + 70, so its net option value is -(230 - 145) x 65 = -5,525 a lot (a
+# credit of 85 a unit, inside the 100 width: A14c skips an entry whose NOV breaks the payoff bounds)
+SF_PRICES = {("C", 20000.0): 120.0, ("P", 20000.0): 110.0, ("C", 20100.0): 75.0, ("P", 19900.0): 70.0}
+SF_100_NOV = -(120 + 110 - 75 - 70) * LOT
 
 
 def risk(scenarios: dict[int, float]) -> tuple[float, ...]:

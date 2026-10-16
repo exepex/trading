@@ -12,6 +12,7 @@ from fno.checks.validity_factor import FactorProblem, factor_on
 from fno.checks.validity_margin import stressed_per_lot
 from fno.checks.validity_settings import MarginSettings
 from fno.config import ROOT, load_app_config
+from fno.constants import STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
@@ -36,11 +37,11 @@ TWO_ROWS = f"{SEED},1.45,,,applied,seed,,\n{LATER},1.5,1.5,1.5,applied,peak,2026
 def c2(path: Path | None, day: date) -> float:
     if path is None:
         raise RiskInputError("no file")
-    return factor_in_force(path, day, 30).factor
+    return factor_in_force(path, day, 30, "credit").factor
 
 
 def c4(path: Path | None, day: date) -> float:
-    return factor_on(path, day, 30)[1]
+    return factor_on(path, day, 30, "SF")[1]
 
 
 BOTH = pytest.mark.parametrize(("read", "error"), [(c2, RiskInputError), (c4, FactorProblem)], ids=["C2", "C4"])
@@ -88,15 +89,17 @@ def test_a_held_row_keeps_the_old_factor_in_force(tmp_path, read, error):
 
 def test_the_repository_seed_row_is_read_by_c2_and_c4():
     """`research/data/margins/stress_factor.csv` starts with the owner's 1.45 of 14 Oct (`peak` quoted, it holds a
-    comma; no measured value). The file is append-only and A14c's rows are dated on their run day, so the seed is the
-    first row, and the one in force on 15 Oct, whatever rows follow it."""
+    comma; no measured value), under the header before or after the A14c family column (a one-time header change; no
+    data row's bytes change). The file is append-only and A14c's rows are dated on their run day, so the seed is the
+    first row, read as family `all`, and the one in force on 15 Oct for both families, whatever rows follow it."""
     path = ROOT / load_app_config()["risk"]["stressed_margin"]["factor_file"]
-    assert path.read_text(encoding="utf-8").startswith(
-        HEADER + '2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,\n'
-    )
-    row = factor_in_force(path, date(2026, 10, 15), 30)
-    assert (row.factor, row.status, row.evidence_sha256) == (1.45, "applied", "")
-    assert factor_on(path, date(2026, 10, 15), 30) == (SEED, 1.45)
+    header, seed_line = path.read_text(encoding="utf-8").splitlines()[:2]
+    assert header in (HEADER.strip(), ",".join(STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES))
+    assert seed_line == '2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,'
+    for family, code in (("credit", "SF"), ("debit", "BF")):
+        row = factor_in_force(path, date(2026, 10, 15), 30, family)
+        assert (row.factor, row.status, row.evidence_sha256, row.family) == (1.45, "applied", "", "all")
+        assert factor_on(path, date(2026, 10, 15), 30, code) == (SEED, 1.45)
 
 
 @pytest.mark.parametrize("key", ["multiplier", "source", "as_of"])

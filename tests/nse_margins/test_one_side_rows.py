@@ -36,10 +36,10 @@ def rows():
 # By hand from span_builder.SF_ARRAYS (a long position's loss per unit in scenarios 3 and 4) and SF_PRICES, spot
 # 20,000, lot 65; exposure 2% x 20,000 x 65 = 26,000 per short leg (none for a bought option):
 HAND = {
-    ("CCS", 100.0): (max(100 - 70, -15 + 10) * LOT, -(120 - 35) * LOT, 26_000.0),
-    ("CDS", 100.0): (max(-100 + 70, 15 - 10) * LOT, (120 - 35) * LOT, 26_000.0),
-    ("PCS", 100.0): (max(-20 + 12, 90 - 55) * LOT, -(110 - 30) * LOT, 26_000.0),
-    ("PDS", 100.0): (max(20 - 12, -90 + 55) * LOT, (110 - 30) * LOT, 26_000.0),
+    ("CCS", 100.0): (max(100 - 70, -15 + 10) * LOT, -(120 - 75) * LOT, 26_000.0),
+    ("CDS", 100.0): (max(-100 + 70, 15 - 10) * LOT, (120 - 75) * LOT, 26_000.0),
+    ("PCS", 100.0): (max(-20 + 12, 90 - 55) * LOT, -(110 - 70) * LOT, 26_000.0),
+    ("PDS", 100.0): (max(20 - 12, -90 + 55) * LOT, (110 - 70) * LOT, 26_000.0),
     ("LC", 0.0): (15 * LOT, 120 * LOT, 0.0),
     ("LP", 0.0): (20 * LOT, 110 * LOT, 0.0),
 }

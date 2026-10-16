@@ -175,7 +175,7 @@ class MarginRoom(RiskRule):
             needed_at_entry_rs=at_entry,
             free_before_entry_rs=free,
             capital_rs={proposal.trade_id: capital},
-            **self.stressed.record(market.day),
+            **self.stressed.record(market.day, proposal.terms.structure),
         )
 
 

@@ -68,10 +68,10 @@ def test_a_missing_margin_file_fails_closed(tmp_path):
 def test_multiplier_margin_and_its_record(tmp_path):
     stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"))
     assert stressed.margin(TERMS, DAY) == 120_000.0
-    record = stressed.record(DAY)
+    record = stressed.record(DAY, TERMS.structure)
     row = record["stress_factor_row"]
     assert record["method"] == "multiplier" and row["factor"] == "1.5" and row["as_of"] == "2026-10-12"
-    assert row["status"] == "applied" and record["factor_file"].endswith(".csv")
+    assert row["status"] == "applied" and row["family"] == "all" and record["factor_file"].endswith(".csv")
 
 
 @pytest.mark.parametrize(
