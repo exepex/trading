@@ -54,3 +54,38 @@ The record holds a lot: a surface by delta, skew, term structure, fair value for
 three forecasters with scoring. Each part answers the owner's words "prices, price forecasting, valuation" (row 244),
 and every part is descriptive. Nothing reads it to trade. Running cost: seconds in O1's run. Accepted, with minor 1 so
 the valuation is not mistaken for a signal (reasoning only).
+
+## Note: b4055cb7 (11:31)
+The diff from 84074ce5 adds:
+- `parity_forward` as a standalone pure function;
+- every IV and price through `implied_vol.Black76` (no new inverter; good, it keeps one inverter);
+- the G7b and G10 boundaries, both agreed.
+**Should-fix 1 stands:** the PAV weights, the 200-point gap order, the interpolation basis and a committed probe
+fixture are still unspecified.
+
+## Addendum 1: 85eba3a8 (835682aa plus the measured rate gap)
+
+**Verdict: PASS on the story text. Code may start.**
+
+**Should-fix 1: the builder's pushback is ACCEPTED. My finding was a unit error, mine.** My script printed simple
+returns `q/F - 1`; the probe gives log returns `ln(q/F)` of the same levels. Rechecked: `23,122 × (1 - 0.0372) =
+22,262`, and `ln(22,262/23,122) = -3.79%`; `23,122 × 1.0303 = 23,823`, and `ln = +2.99%` (+2.98% at the exact level).
+So my recomputation agreed with the probe all along. The builder still pinned the three choices:
+- a pair of strikes more than 200 points apart forms no midpoint, removed before the pooling pass;
+- equal weights per midpoint;
+- linear-in-strike interpolation on the first rising segment.
+They report that all four combinations give the same quantiles on this chain, because every strike gap is 50 points,
+and each pinned choice gets a test that fails under the other choice. The committed fixture
+`nse_20261016_expected.json` and `pricedist value --dry-run` make it rerunnable. Every text now names its unit.
+
+Minor findings, all answered:
+1. `smile_value`, with a note in every record that it is no trade signal.
+2. The h1/h5 centring is scaled by `h/n` and the spread by `sqrt(h/n)` around the median. Correct for a lognormal.
+3. The exact mean: body segments `(c_j - c_i)(K_i + K_j)/2` plus the tails' partial expectations `F N(-d1)` and
+   `F N(d1)`, scaled as the tails are. I rederived these, and they are right.
+4. Rerun: a recorded live day is never rebuilt; it is read back, its SHA-256 checked, and a missing receipt restored.
+   Accepted.
+
+Rate (Q3): RBI's 91-day T-bill was 5.7281% on 14 Oct, against config's 6.5%. The config is kept until A21 lands,
+because `config.yaml` is freeze-hashed. The effect is bounded at 0.08% at 38 days. Accepted (strong evidence:
+arithmetic).

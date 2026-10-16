@@ -61,3 +61,34 @@ it), and one selection allocator offered to F5. No layer beyond D2, C2, C4 and D
 - Red team and cards never block: criterion 9.
 - Pilot: criterion 10.
 All traced.
+
+## Note: 77a46c33 (11:32)
+The diff from e1994f0a adds `rule_sha256` beside `parameters_sha256` in `fno/playbook/schema.py`, and moves the
+selection allocator to `fno/playbook/selection.py`, to be shared with F5. Both are fine. **The three should-fix
+findings stand.** In particular, line 143 still restores "tracked files to HEAD", while F1t restores to a snapshot
+taken just before `decide()`.
+
+## Addendum 1: b096a4a2 (d8978bb8 plus two wording lines)
+
+**Verdict: PASS on the story text. Code may start once D5 (merged) and F1t round 1 are in place; the `BookSheet` pack
+port is a Depends item.**
+
+| Finding | Answer | Judge |
+|---|---|---|
+| SF1 orders and exits | Design item 8. `Book3Orders(OrderBuilder)` = Book 1's `ReplayedOrders` with D2's evaluator rebuilt from the run's stored picks and spec snapshot (`inputs.json`); any replay difference refuses every order; only committed "trade" records are ordered. `Book3ExitRules` = Book 1's `PlaybookExitRules` over Book 3's store, with the exit from the spec as the run read it; today's file only alerts. Criteria 14-15 | Accepted. It reuses Book 1's two classes (DRY) and keeps judge 84's rule that nothing read later moves an exit |
+| SF2 restore rule | F1t's snapshot rule quoted word for word; the HEAD wording is gone | Accepted. Matches F1t at f1204a5a |
+| SF3 day sheet | `BookSheet` port: builder F5 (01SFDjjZ) with E2c's owner (0134MoC6), in Depends. Criterion 13: the same `LiveFeatureValues` and `Market` as D2, built before the private pack, inside its hash (a changed value changes the hash), empty with no strategy | Accepted |
+| Minor 1, 2 | Criterion 16 (registration only inside `decide()`; the full test through F1t's judging once its code exists, said so); the F7 shadow file is written when C2 or C4 refuse the real pick | Accepted |
+
+The prompt also tells the AI not to quote account figures, which matches F1t's 3d. Consistent.
+
+## Addendum 2: c625151e (F4's evidence pointers)
+**PASS stands; F6's side of judge 308's should-fix 2 is closed.** F6 addendum 1 adds:
+- the top-level `evidence` key, 0 to 20 items, checked in `check_decision` by F4's `evidence_problems` (a missing key
+  is refused);
+- prompt lines matching F4's rules (account files are not citable; cite without quoting);
+- D3's `judge` field taken from `AcceptedDecision.judge`;
+- criterion 17: the same answer with a pass or a fail verdict gives identical trades, because Book 3's verdicts are
+  evidence only.
+The sequencing is stated: this code follows once `fno/judge/evidence.py` lands, and Book 3 cannot go live before
+then. F6's code at e1c715e1 is not yet submitted for judging, and I have not judged it.

@@ -72,3 +72,28 @@ Minor:
 
 Evidence labels: all findings above are strong evidence (code read and tests run), except "prefer the bold title",
 which is reasoning only.
+
+## Addendum 1: ac966350 (F4 text amended)
+
+**Verdict: PASS. It may merge, after the full gates on the final merged tree (merge procedure).**
+
+Checked myself:
+- **Diff from e5906769 to ac966350, outside `main`'s own changes.** It touches only `docs/stories/F-ai-layer.md`
+  (F4) and response 256. `fno/`, `tests/` and `D-playbook-decisions.md` are unchanged from b49abdde (`git diff
+  --stat` is empty). The code verdict and my four mutations above still hold.
+- **F4 against the owner's decision of 16 Oct** ("D4/D5: the five design questions accepted as recommended", item
+  (4), "no overrides on paper"):
+  - The override record and the override sample in the audit are removed.
+  - Criterion 3 now reads "no override of a judge verdict or a C4 failure on any paper decision ... refused (D3), and
+    nothing in F4 writes one".
+  - The test plan no longer mentions overrides.
+  - S1's safety stop and C2's brake restart are named as outside F4, which is correct: the brake restart is a risk
+    control (JUDGE.md, "Brake restarts").
+- **No contradiction remains:** I grep'd F4's section for "override", and every remaining mention says "none" or names
+  the C2 file.
+
+Notes, not findings:
+1. `docs/stories/S-scoreboards.md:63` still lists "overrides (F4)" as an input, as the builder flagged. That is S2's
+   owner's text and should go with minor 1 above (S2's stale `RecordedOwnerOverride`).
+2. The O11 plan (judge 305) proposes dropping F4 altogether. This amendment keeps F4 without overrides. The two can
+   coexist only once the owner decides whether F4 stays.
