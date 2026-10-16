@@ -4,7 +4,8 @@
   committed files and prints the prompt, then `INPUT` and the export. Nothing is shown unless every check passes.
 - `seal`: completes and checks the answer (refusals name what to fix, so the model can fix it before 15:15), then
   publishes only the commitment. The salt and answer stay in the routine's private working folder.
-- `reveal`: waits until 15:15:10 IST, then publishes the answer and the salt.
+- `reveal`: waits until 15:15:10 IST, then publishes the answer and the salt, then the run's own timing (story F8c;
+  `brief` noted its start), in a publish of its own, so a timing failure can never cost the reveal.
 """
 
 from __future__ import annotations
@@ -20,9 +21,10 @@ from .envelope import Envelope
 from .export import build_export, export_sha256
 from .paths import WORK_FOLDER, commitment_path, reveal_path
 from .pointer import BookPointer, parse_pointer
+from .run_timing import RunTiming
 from .seal import Commitment, new_salt, reveal_text
 from .timing import receipt_deadline, reveal_from
-from .transport import SubmissionTransport
+from .transport import PublishFailed, SubmissionTransport
 from .versions import version_by_label
 
 POINTER_FILE, EXPORT_FILE, SEALED_FILE = "pointer.txt", "export.json", "sealed.json"
@@ -49,10 +51,12 @@ class BookSession:
     transport: SubmissionTransport
     clock: Callable[[], datetime]
     sleep: Callable[[float], None]
+    timing: RunTiming
     out: Callable[[str], None] = print
 
     def brief(self, text: str) -> None:
         pointer = parse_pointer(text)
+        self.timing.start(pointer)
         version = version_by_label(pointer.version)
         prompt = version.prompt_text(self.root)
         export = build_export(self.root, pointer, version)
@@ -97,9 +101,17 @@ class BookSession:
             if existing != text:
                 raise BookStepRefused(f"{path} already holds a different reveal (written once)")
             self.out(f"already revealed: {path}")
-            return
-        commit = self.transport.publish(path, text, _message(pointer, "reveal (answer and salt)"))
-        self.out(f"revealed: {pointer.book} {pointer.day} in commit {commit[:10]}")
+        else:
+            commit = self.transport.publish(path, text, _message(pointer, "reveal (answer and salt)"))
+            self.out(f"revealed: {pointer.book} {pointer.day} in commit {commit[:10]}")
+        self._time_run(pointer)
+
+    def _time_run(self, pointer: BookPointer) -> None:
+        """The run's timing for BG1's ledger; a failure is said and never raised (the reveal is already out)."""
+        try:
+            self.out(self.timing.publish(pointer, _message(pointer, "run timing")))
+        except (PublishFailed, ValueError, OSError) as failed:
+            self.out(f"timing NOT published ({failed}): the run's AI minutes will show as not captured")
 
     def _save(self, name: str, text: str) -> None:
         folder = self.root / WORK_FOLDER
