@@ -343,6 +343,14 @@ self-review agents and broken-code proofs per criterion (judge quality rules 3-4
 - **Q3:** `config.yaml` `risk_free_rate` (6.5%), labelled in every file. A daily 91-day T-bill and repo capture is
   being assigned to another builder; G13 switches to it when it lands (a new `method_version`, so old rows keep
   their rate).
+  - **Measured gap (orchestrator, from A21's builder reading RBI on 16 Oct):** repo 5.50%, 91-day T-bill cut-off yield
+    5.7281% (14 Oct), so config's 6.5% is about 0.8 points high. **Kept at 6.5% until A21 lands, and why:**
+    `config.yaml` is hashed by the v1 and v2 freezes and read by the frozen forecasts, so changing it is not G13's
+    to do, and a second G13-only rate constant would be a stale copy by A21's first run. **The effect, bounded:**
+    with the parity forward the rate enters only through `e^{-rT}`; at 0.8 points and 38 days that is
+    `0.008 x 38/365 = 0.08%` of every option price and every CDF value (at most 0.0008 in probability), and less
+    for the near month (11 days: 0.024%) [strong: arithmetic]. Every file records the rate used, so a later switch
+    is visible.
 - **Q4:** boundaries agreed directly with each owner; each owner's answer is quoted in the claims file:
 
 | Neighbour | Owner session | Boundary (proposed by G13) |
