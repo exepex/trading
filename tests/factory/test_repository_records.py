@@ -41,3 +41,14 @@ def test_the_report_command_prints_the_count_and_every_card(capsys):
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].startswith(f"{build_trial_count(ROOT).total} trials in the ledger; expected false passes at 0.01")
     assert any(line.startswith("B0 v1 (measurement: never promoted): trial 55 of") for line in lines)
+
+
+def test_b0s_card_agrees_with_its_playbook_version():
+    """The playbook's edge_family stays the one source of a measurement version (R3); the card's flag must agree."""
+    import yaml
+
+    from fno.playbook.measurement import MEASUREMENT
+
+    version = yaml.safe_load((ROOT / "playbook" / "b0-monthly-sc-v1.yaml").read_text(encoding="utf-8"))
+    cards = {card.idea_id: card for card in read_all_ideas(ROOT)}
+    assert cards["B0"].measurement is (version["edge_family"] == MEASUREMENT) is True
