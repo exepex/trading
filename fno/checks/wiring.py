@@ -69,13 +69,22 @@ def validity_shapes() -> dict[str, Shape]:
     }
 
 
-def validity_modes() -> dict[str, ValidityMode]:
-    """Book 1 checks against the playbook; books 2 and 3 fail closed until D4's envelope and D5's constitution exist."""
+def validity_modes(root: Path | None = None) -> dict[str, ValidityMode]:
+    """Book 1 checks against the playbook; Book 2 against the playbook and its trade envelope (D4), with the envelope
+    files and the D6 registry under `root`; Book 3 fails closed until D5's constitution exists."""
+    from ..books.registered_components import RegisteredComponents
+    from ..books.version_registry import VersionRegistry
+    from ..books.versions import VERSIONS_FILE
+    from ..config import ROOT
     from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
+    from ..playbook.envelope_files import EnvelopeFiles
+    from .validity_envelope import EnvelopeMode
 
+    base = Path(root or ROOT)
+    registered = RegisteredComponents(VersionRegistry(base / VERSIONS_FILE))
     return {
         BOOK1_RULES: PlaybookMode(validity_shapes()),
-        BOOK2_HYBRID: WaitsFor("envelope", "D4"),
+        BOOK2_HYBRID: EnvelopeMode(validity_shapes(), EnvelopeFiles(base).all, registered),
         BOOK3_AI: WaitsFor("constitution", "D5"),
     }
 
@@ -90,7 +99,7 @@ def build_validity_checker(cfg: dict, root: Path, quotes, nse_library, accounts=
     limits = limits_from_config(cfg, root, RISK_PROFILE_BOOKS, build_session_calendar().session_kind)
     sources = Sources(EvidenceReader(quotes, DATASET), NseListing(nse_library), accounts or LedgerAccounts(root))
     checks = LimitChecks(limits, cfg["charges"], margins or MarginFile(limits.margins.file))
-    return ValidityChecker(sources, checks, validity_modes())
+    return ValidityChecker(sources, checks, validity_modes(root))
 
 
 def build_trade_validator(
