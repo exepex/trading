@@ -142,3 +142,10 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
   with nine "'backfill_sha256' is a required property" problems, the probe line `KeyError('backfill_sha256')`, and
   the mockup mismatch. It gives no traceback.
 - **Gates on e7bc792:** `check_contract` and `check_fno_screens` exit 0, and code size is OK.
+- **Correction (06:46 UTC):** the "not merged" line above is out of date. Dashboard main 38dfee6 merged 7ccdff8
+  after all, so the contract is 2.10.0 (version label only, as addendum 4 found).
+- **Re-head 025aa59:** story/fno-probe-report now merges main 38dfee6. Its diff against main is identical to
+  addendum 5's diff of e7bc792 against ea75be3 (`fno_rules.py` +5 -1). `check_contract` and `check_fno_screens` exit 0.
+  The PASS stands.
+- **W3c a2efbb3 against main 38dfee6:** a trial merge is clean, both checks exit 0 and `npm test` gives 520/520.
+  W3c's PASS (judge 225 addendum 1) holds on the 2.10.0 main.
