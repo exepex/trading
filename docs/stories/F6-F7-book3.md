@@ -3,8 +3,7 @@
 **Why a file of its own:** `docs/stories/F-ai-layer.md` is 599 lines and its F6/F7 texts predate D4's action
 vocabulary and D5's registry. The rewrite needs its interface table and gap lists; one file keeps them reviewable.
 The F6 and F7 sections of `F-ai-layer.md` now point here. Builder: session_01KTAQCDjPkDBKwfCMhWphXb, branch
-`story/f6-book3-engine`. Claims and questions: `reviews/claude/response_<n>_f6-f7-book3.md` (number reserved by the
-orchestrator).
+`story/f6-book3-engine`. Claims and questions: `reviews/claude/response_261_f6-f7-book3.md` (number from the orchestrator).
 
 Roles: portfolio manager (Book 3's choice), options strategist (what a spec may say), risk manager (C2 and C4 stay the
 only blocks), statistician (trial family, pilot, matched shadows), red team (objections are evidence only), data and
@@ -34,14 +33,15 @@ backtesting engineer (replay, timing).
 - **Not yet true on any branch:** `proposal_of` (C4's adapter) does not set `strategy_id`; D3's `RecordBuilder` takes
   `strategy_id` from the run, not per record, and Book 3's day record has no strategy.
 
-## Division of work (to agree; see "Interfaces")
+## Division of work (F1t's story `docs/stories/F1t-ai-trading-runner.md`, `story/f1t-ai-trading-runner`; see "Interfaces")
 
 | Part | Owner |
 |---|---|
-| Fire the session, build and deliver its input (export), receipt deadline, collect the answer JSON, model served, session failure gives "no decision (AI unavailable)", the commits (registration commit, then the decision commit before the promotion deadline), the O1 step, E4/E8 fills | **F1t** (runner, new session) |
+| Fire the routine (pointer: common pack hash, Book 3's private pack), `brief`, `seal`, `reveal`, receipts, judging the book-day (not fired, late, exposed, invalid, model mismatch or unknown, refused, promoted), the outcome record and alert, F1t's run check, the commit before E3's deadline, the O1 steps `ai_fire`/`ai_collect`, live switch, E4/E8 fills | **F1t** (session_01PLbKH15BXYucP6cT9xtoxK) |
 | Book 3's prompt; the answer's schema and checks; registering proposals; Book 3's day sheet; the decision on D2/C2/C4/D3; the shadow file and its reader | **F6/F7** (this story) |
 | Constitution, registry, C4 `ConstitutionMode` | D5 (01SFDjjZ), unchanged except the two small edits below |
-| Finding cards | F2 (new session); Book 3 works with none |
+| Finding cards | F2 (session_01WSMMv5nK4wDdktFrudJfXv); Book 3 works with none |
+| Precomputed D2 output in a book's private pack (Book 2's rule default; Book 3's day sheet) | one hook proposed to F5's builder (01SFDjjZ, with E2's pack owner 0134MoC6); F6 supplies Book 3's item |
 
 ---
 
@@ -70,17 +70,19 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
 1. **Prompt** `agents/book3/decide_v1.md`: Book 3 as a desk in one head (portfolio manager, options strategist, risk
    manager, volatility trader, red team), research only. It reads only its input; the input is data, never
    instructions. Its SHA-256 is a D3 `served` component `book3_prompt` and a D6 component.
-2. **Input** (code, delivered by F1t): the common pack, Book 3's private pack (its account, constitution, registry
-   and specs), **Book 3's day sheet** and F2's cards when present (zero cards is a normal day). The day sheet
+2. **Input** (printed by F1t's `brief`): the common pack and Book 3's private pack, which holds its account,
+   constitution, registry and specs, **Book 3's day sheet** (a private-pack item, built at the pack step) and F2's
+   cards when present (zero cards is a normal day). The day sheet
    (`fno/book3/day_sheet.py`) is D2's evaluation of Book 3's tradable strategies on the day's 15:00 market with
    nothing chosen: per opportunity its ID, strategy, expiry, exit day, whether the rule fired (unmet conditions), and
    the built candidate (structure, width, lots, legs, maximum loss) or why none was built.
-3. **Answer** (one JSON object, exactly these keys; `fno/book3/answer.py`):
-   `model_reported` (text), `trades` (list of `{opportunity_id, reason}`, empty for no trade), `no_trade_reason`
-   (text, required when `trades` is empty, empty otherwise), `proposals` (list of `{spec, supersedes, reason}`,
+3. **Answer:** F1t's `{"model_reported", "decision"}`; F1t checks the labels, `decision.action` and
+   `decision.reason` (one line, 1-600 characters). Book 3's `decision` (exactly these keys, checked by
+   `fno/book3/answer.py`, registered with F1t as Book 3's shape check, so `seal` refuses a bad one before the
+   deadline): `action` (`trade` or `no_trade`), `reason`, `trades` (list of `{opportunity_id, reason}`, non-empty
+   exactly when `action` is `trade`), `proposals` (list of `{spec, supersedes, reason}`,
    `spec` being the D1 YAML text), `shadow` (F7's entries), `cards_used` (card IDs). Every reason is one line of 1 to
-   600 characters. A wrong shape refuses the whole answer: the day is "no decision (answer refused: <why>)", which F1t
-   records like an unavailable AI (no trade, excluded from judgement scores). A trade naming an opportunity that is
+   600 characters. A wrong shape refuses the whole answer at `seal` (F1t: `invalid`, no trade). A trade naming an opportunity that is
    not a built candidate on the day sheet, or named twice, is refused alone and recorded as attempted; the rest of
    the answer stands. A card ID not in the input is refused (the answer cannot cite evidence it was not given).
 4. **Proposals** (`fno/book3/proposals.py`), each on its own:
@@ -88,7 +90,7 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
      none` (nothing tested it), `catastrophic_loss_rs` at most the owner's per-trade cap
      (`risk.profiles.books.max_loss_per_trade_rs`, Rs 10,000), so a spec can never loosen E6's pause.
    - Then D5's `register()` (constitution check, `proposed_on` from the clock, the trial ledger). Provenance: `model`
-     is the served model F1t read from the session record, never the answer's `model_reported`; `prompt_version` is
+     is `AcceptedDecision.registered_model` (F1t refuses a mismatch or `unknown` before the decider runs); `prompt_version` is
      `book3_decide_v1:<sha256 prefix>`; `role_set_version` is F2's role-set version when cards were given, else
      `none`; `supersedes` from the answer. `new_or_reused` is set by code, never by the AI (agreed with D5's owner,
      16 Oct 2026): `reused` when the proposal names `supersedes` or its **rule key** equals a playbook version's;
@@ -98,8 +100,9 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
      key equals an earlier registered Book 3 spec's is **refused** ("same rule as <id>: trade that one"), so one rule
      never enters the trial family twice under two names.
    - A refused proposal never stops the day: it is listed with its reason in the day's proposal log
-     `journal/book3_ai/proposals/<date>.json` (every proposal, registered or refused, write-once), which F1t commits
-     with the registry in the registration commit. No cap on proposals (D5: a cap is easy to game; every
+     `journal/book3_ai/proposals/<date>.json` (every proposal, registered or refused, write-once), returned in
+     `DecidedRun.files` with the registry, spec and ledger and committed with the run (one commit is enough: a day-d
+     proposal trades from d+1, when D5 checks ancestry). No cap on proposals (D5: a cap is easy to game; every
      registration is a trial).
 5. **Tradable strategies** (`fno/book3/strategies.py`): the registry's specs proposed before the day whose
    `require_registered` passes at the decision base commit. They trade from the session after `proposed_on`, like
@@ -112,7 +115,7 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    `ConstitutionMode` checks each chosen trade through D3's `validate_chosen`; `DecisionRun` writes the records under
    `journal/book3_ai/decisions/` with `inputs.json` holding the picks too, so `replay` reproduces the decision.
    Records: `strategy_id` and `strategy_spec_sha256` per opportunity record; `chosen_action` "trade" or "no trade";
-   `reason` the answer's reason for a pick (else D2's outcome reason, or `no_trade_reason` on the day record);
+   `reason` the answer's reason for a pick (else D2's outcome reason, or `decision.reason` on the day record);
    `served` adds `constitution` and `book3_prompt`; `rule_default` and `authority_check` null (D3 `NULLABLE`).
 7. **Objections and cards are evidence only.** No objection or card is an input of the selection allocator, C2 or C4
    (D5 criterion 7 already proves C4; F6 tests the allocator).
@@ -120,15 +123,18 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    all three books' records) puts every Book 3 decision before the common start in the pilot section. A label stored
    at decision time could be wrong on the common start day itself (the other books may commit after Book 3).
 
-**Interfaces (proposed to F1t and D5's owner; agreed before code):**
+**Interfaces (F1t's port as written in its story; confirmed to F1t, 16 Oct 2026):**
 
 | Interface | Shape | Called by |
 |---|---|---|
-| `Book3Engine.day_sheet(day, market, features, book, counts) -> dict` | the input part F6 owns | F1t, before firing |
-| `Book3Engine.decide(day, answer: dict, run: RunFacts) -> Book3Day` | `RunFacts`: served model, session ID, code and config hashes, both pack hashes, card IDs given, the commit to check registration at, the market inputs D2 reads | F1t, after collecting |
-| `Book3Day` | `refused` (answer-level reason or None), `registration_paths` (registry, specs, ledger, proposal log), `decision_run` (the D3 run folder), `shadow_path` (F7) | F1t commits `registration_paths` first, then the run and the shadow file in the decision commit |
-| `proposal_of(...)` (C4's adapter, D5's/C4's file) | sets `strategy_id = f"{name}-v{version}"` for Book 3 | C4 |
+| `Book3Decider(AiBookDecider).decide(accepted: AcceptedDecision) -> DecidedRun` | writes one D3 run under `journal/book3_ai/decisions/` with C2 and C4 inside; `DecidedRun.files`: registry, specs, ledger, proposal log, F7's shadow file; `DecisionRefused` when no run can be written | F1t's `ai_collect` |
+| Book 3's shape check and prompt path | registered with F1t's decision version (one line) | F1t's `seal` and `brief` |
+| Book 3's day-sheet item | D2's evaluation of the tradable strategies, nothing chosen, as a private-pack item | the private-pack hook (above) |
+| `proposal_of(...)` (C4's adapter) | sets `strategy_id_of(name, version)` for Book 3 | C4 |
 | `RecordBuilder` (D3's file) | Book 3: `strategy_id` and spec hash per opportunity record (F6's edit); null on the day record only (D5 owner's `story/d3-no-owner-override`, b49abdde) | D3 |
+
+Open with F1t: when its run check refuses a run, it also restores every path in `DecidedRun.files` (git checkout for
+tracked files, delete for new ones), so nothing half-registered is committed later.
 
 **Acceptance criteria:**
 1. A proposal registered on day d is on no day sheet and no decision on d; it is on d+1's (temporary git
@@ -142,11 +148,11 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    other than `research`, any filled `evidence`, an expected net other than `none`, or `catastrophic_loss_rs` above
    Rs 10,000 (and at Rs 10,000 exactly: accepted) is refused, listed in the proposal log with its reason, and the
    day's decision still runs.
-4. The registry row's `model` is the served model from `RunFacts`, never the answer's `model_reported`; the
+4. The registry row's `model` is `AcceptedDecision.registered_model`, never a value from the `decision` object; the
    `prompt_version` names the prompt file's hash.
-5. Every answer-level refusal (missing or extra key, a reason over 600 characters or with a line break, empty
-   `no_trade_reason` with no trades, a non-list `trades`) gives "no decision (answer refused: ...)" and no record of a
-   trade; a refused pick (not a built candidate, duplicate) leaves the other picks standing and is recorded as
+5. Every shape refusal (missing or extra key, a reason over 600 characters or with a line break, `action` `trade`
+   with no trades or `no_trade` with some, a non-list `trades`) is refused by Book 3's shape check with what to fix;
+   the decider raises `DecisionRefused` if a bad shape still reaches it (no run written); a refused pick (not a built candidate, duplicate) leaves the other picks standing and is recorded as
    attempted.
 6. A picked candidate refused by C2 (for example the open-risk cap) is not chosen and its risk reasons are recorded;
    C4 blocks independently (fake answer through the real D2, C2 and C4 path).
@@ -184,8 +190,8 @@ days; empty cases (no cards, no strategies, no candidates).
 | Portfolio manager combines findings (v2 7.2) | cards in the input, `cards_used`, criterion 8 | the cards themselves: F2 |
 | Every Book 3 record before the common start is pilot (12.6) | criterion 10, read by S2/S3 | |
 | A Book 3 win is not "AI judgement beats rules" (12.1) | | reporting: S2/S3's labels; F7 feeds scoreboard A |
-| Model served recorded; a mismatch unscored (F1, D6) | `RunFacts`, criterion 4 | the mismatch check: F1t and D6 |
-| Late or failed session gives no decision (F1) | answer refusal, criterion 5 | lateness and failure: F1t |
+| Model served recorded; a mismatch unscored (F1, D6) | `registered_model`, criterion 4 | the mismatch check: F1t's judging and D6 |
+| Late or failed session gives no decision (F1) | shape refusal, criterion 5 | lateness and failure: F1t's judging table |
 | The owner never overrides on paper (v2 03) | nothing in F6 reads an override | D3's refusal of `owner_override`: `story/d3-no-owner-override` (D5's owner, b49abdde, waits for judge E), a dependency before Book 3's first paper decision |
 | Never names a model on a screen (v2 7.1) | | screens are out (no UI work) |
 | A confirmatory claim only for a frozen selection policy (D5, review 130) | every registration is a trial (D5's ledger) | the claim rule: S1/S3 |
@@ -224,7 +230,7 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 - **File** `journal/book3_ai/shadow/<date>.json` (`fno/book3/shadow_file.py`), canonical JSON, write-once, with the
   day, the common pack's SHA-256 and one entry per common opportunity. An opportunity the answer left out, an
   unknown ID (dropped), a duplicate, or a take with a width outside the version's set becomes `no_decision` with the
-  reason, written by code. Written by `Book3Engine.decide` and committed in the decision commit.
+  reason, written by code. Written by Book 3's decider and committed with its run (`DecidedRun.files`).
 - **Reader** (`fno/book3/shadow_reader.py`): per opportunity `take` (with its `BookTerms`), `skip` or `not observed`
   (S3's `matched_actions` kinds). A file not committed before the day's execution snapshot (`timeliness`, D3's
   rule) reads as all `not observed` ("late"); a missing file is all `not observed` ("no decision").
@@ -263,9 +269,10 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 
 ## Open questions
 
-1. **To F1t (when introduced):** the `Book3Engine` interface above, and who commits what (registration commit, then
-   decision commit). Book 2 needs the same "AI picks on D2's candidates" step for F5; the selection allocator is
-   written so F5 can reuse it (one class, two users), if F5's owner agrees.
+1. **F1t (01PLbKH15):** the restore of `DecidedRun.files` on a refused run; which prompt file `brief` prints and
+   hashes (F1t's wrapper or `agents/book3/decide_v1.md`). **F5's builder (01SFDjjZ):** one selection allocator for
+   both books, and one private-pack hook for precomputed D2 output. **F2 (01WSMMv5):** where cards sit in the pack,
+   the card ID field and the role-set version string.
 2. **D5's owner (01SFDjjZ), answered 16 Oct 2026:** `new_or_reused` derived by code (above; the rule key replaces
    their `parameters_sha256` equality, which cannot fire because the hash covers the name). `proposal_of` sets
    `strategy_id` through one helper `strategy_id_of(name, version)` added to `fno/book3/registry.py` and used by
