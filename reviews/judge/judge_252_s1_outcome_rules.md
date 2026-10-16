@@ -61,3 +61,16 @@ S1 version. Tell the owner in one line, as before.
   `evaluation check` reports complete.
 
 **A re-check needs only the merge of main and the one exemption.**
+
+## Addendum 1: 40c6ad77 (main merged in): PASS
+
+- **SF1: MET.** `test_scoring_closure.py` exempts `fno/scorecard/measurement_alerts.py` with "measurement versions'
+  alert wording; decides nothing". That matches my reading in judge 252: three message templates and their
+  formatting, with no pause and no figure decided.
+- B0's `fno/playbook/measurement.py` exemption (judge 229 addendum 3) now sits on this branch through main.
+- **Gates on the trial merge with origin/main 72742726 (tree f825f22, clean), `-n auto`:** pytest 7160 passed, with
+  the closure tests green. `ruff check` is clean, `ruff format --check` shows 1272 files formatted, `check_imports`
+  is clean, and `evaluation check` reports complete.
+
+**Verdict: PASS.** The owner note of judge 252 stands: the cost of a new S1 version now covers E6 pauses and D3b's
+run order.
