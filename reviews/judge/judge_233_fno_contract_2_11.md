@@ -64,3 +64,27 @@ What e3829c2 adds is met:
 - 44's "before the market opens" describes the 07:10 IST schedule, but GitHub's schedule is best effort and has run
   hours late. It is true of the schedule, not a promise; "every session morning" alone would be safer. W3e's screen
   keeps "07:10 IST", which matches the cron (judge 232).
+
+## Addendum 3: head c4ba78d (copied-figure check; the two wording notes)
+
+**PASS.** It contains main f4f7f40; `git diff a570f0d c4ba78d` touches 8 files.
+
+- **New check:**
+  - `config_figures` collects the example values of 1,000 and up of every field whose `x-catalog.source` names the
+    config. Today these are `max_loss_cap`, `open_risk_cap` and `pause_at`, which now has its source line: C5's
+    `drawdown_brake_rs`. It writes each value three ways: 10000, 10,000 and 1,50,000. `_indian` groups correctly,
+    for example 150000 becomes 1,50,000.
+  - `check_copied_figures` fails a catalog mockup's js line that contains one of them. The list comes from the
+    contract, so there is no second copy.
+- **My planted breaks:** `cap = 150000` and `cap = 1,50,000` in `41/js/2-books.js:13` were each reported ("writes the
+  config figure …"). The restored tree passes.
+- **Wording:**
+  - 39's lede is now "after the 3 pm quotes". That is true (O1 posts after `quotes_done`) and has no fixed time.
+  - 44 is now "Runs every session morning".
+- **Gates on c4ba78d:** `check_contract`, `check_fno_screens`, `examples` and `render_catalog` exit 0. Code size is
+  OK, `sync-design` is clean, and `npm test` gives 520/520.
+
+**Notes:**
+- The check covers mockup js only. The screens in `web/` rely on their own tests (W3f's fixed-time test; W3c, W3f and
+  W3g grep tests). A `web/` copy of a config figure is not caught by this check.
+- Shares under 1,000 (BG1's 50, 80 and 100) are left out by design; W3g's test covers them on its screen.
