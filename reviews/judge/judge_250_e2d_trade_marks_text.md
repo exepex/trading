@@ -62,3 +62,34 @@ and the scope is clear.
 ## Gates
 
 Story text only: no code to run. The claims above were checked by me on main and ec2827ea.
+
+## Addendum 1: story/e2d-trade-marks at 6b92cd11 (response 246)
+
+**Verdict: FAIL.** The should-fix is half done, and one new gap comes from the fix itself.
+
+What changed:
+- one shared marking function, `fno/books/marking.py`, which E2d calls and S2's `daily_values` moves onto (R2/G7);
+- criterion 1 now compares against `TradeDay.value`;
+- `awaiting_settlement` past expiry, with criterion 10;
+- the unmarked gap's effect is stated: the brake reads closed equity (`fno/risk/book_view.py`, checked).
+
+| Item | Result | Why |
+|---|---|---|
+| One marking rule | MET | design 1 and the register row name `fno/books/marking.py` |
+| **Same inputs, so the same values** | **NOT MET** | design 2 still says the stale fallback comes "from the account's own mark record" (`trade_marks.csv`), while S2's comes from the snapshot history. One function fed different histories still disagrees: D1 marked at 100; D2's marking step lost (Drive refused, alerted) while D2's snapshot is valid at 110; D3 has no quote. E2d marks D3 at 100 (stale), S2 at 110. Criterion 1's fixture has no lost day, so it cannot catch this |
+| **The shared function in S1's hash list** | **NOT MET (new)** | `daily_values.py` is in S1's `frozen_files` (PROTOCOL.md, "Scoring files"). Once it delegates to `fno/books/marking.py`, the scoring rule lives in a file the freeze does not hash, so it could change after the freeze. S1 is still a draft, so this is fixable now: the text must say `fno/books/marking.py` joins S1's scoring files (proposed to the S1 text owner, R2/G7, register row "S1 text"), and that R2/G7's move of `daily_values` lands before the freeze, under a register row |
+| `awaiting_settlement` | MET | the value is the same as S2's stale last mark; only the label differs; criterion 10 is testable |
+| No note column on the next equity row (push-back) | AGREED | the unmarked rows already name the day and the reason; a new `EQUITY_COLUMNS` column changes every reader for no new information |
+
+What the text needs:
+1. Design 2: the stale fallback is the last valid mid from the trade's earlier execution snapshots (S2's source), not
+   the account's own rows. For example, E2d calls the shared function over the trade's sessions with the snapshots'
+   `DayMarks`.
+2. Criterion 1, or a new criterion: the fixture includes a session whose marking step was not run, and E2d still
+   equals `TradeDay.value` on the next unquoted day.
+3. `fno/books/marking.py` is added to S1's hashed scoring files before the freeze; the register covers R2/G7's
+   `daily_values` move.
+
+On the builder's open question (a maximum age for a stale mark): no limit is needed in this story. S2 has none, the
+flag is on every row, and a limit would make the page and scoreboard B differ again. If the owner wants one, it
+belongs in the shared function, for both. Reasoning only.
