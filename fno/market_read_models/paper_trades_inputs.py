@@ -14,6 +14,7 @@ memory, never written anywhere else) and the C5 profile's published limits.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from pathlib import Path
@@ -25,6 +26,8 @@ from ..desk.private_files import paper_accounts
 from ..desk.records import DeskRecords
 from ..desk.trade_counts import version_key
 from ..models import IST
+from ..playbook.measurement import MEASUREMENT, is_measurement
+from ..playbook.schema import Strategy
 from ..risk.book_view import closed_equity_series
 from ..risk.drawdown import equity_at, high_water_mark
 from ..risk.inputs import RiskInputError
@@ -36,7 +39,10 @@ OPEN_NOT_BUILT = (
     "A book holds an open trade, and this page cannot mark it for the session yet"  # no per-trade marks (E3)
 )
 BRAKE_UNREADABLE = "A book's drawdown brake history cannot be read, so its loss from the high is not shown"
-SHADOW, MEASUREMENT = "shadow", "measurement"  # B0 is measurement once R-factory marks it; none is yet
+SHADOW = "shadow"  # a candidate tested on paper; a measurement version (R3, B0) is MEASUREMENT, never a candidate
+NO_VERSION_FILE = "A shadow account's version file cannot be read, so it is never given a label"
+
+Versions = Callable[[str, int], Strategy | None]  # (name, version) -> its playbook file, None when it cannot be read
 
 
 @dataclass(frozen=True)
@@ -74,8 +80,10 @@ class PaperTradesInputs:
 
 
 class PaperBooksReader:
-    def __init__(self, root: Path, books: tuple[str, ...], profile: ProfileSettings, closed: ClosedTrades):
-        self.root, self.books, self.profile, self.closed = Path(root), books, profile, closed
+    def __init__(
+        self, root: Path, books: tuple[str, ...], profile: ProfileSettings, closed: ClosedTrades, versions: Versions
+    ):
+        self.root, self.books, self.profile, self.closed, self.versions = Path(root), books, profile, closed, versions
 
     def on(self, day: date) -> PaperTradesInputs:
         try:
@@ -127,8 +135,12 @@ class PaperBooksReader:
         strategy, version = version_key(name.removeprefix(SHADOW_PREFIX))
         if strategy not in self.closed.order:
             raise PageCannotBeBuilt(NOT_IN_REGISTRY)
+        found = self.versions(strategy, version)
+        if found is None:
+            raise PageCannotBeBuilt(NO_VERSION_FILE)
+        kind = MEASUREMENT if is_measurement(found) else SHADOW  # R3's one source: B0 is measurement, never a candidate
         label = STRATEGY_LABEL.format(k=self.closed.order[strategy], n=version)
-        return ShadowFigures(label, SHADOW, self._marks(PaperAccount(self.root, name), day))
+        return ShadowFigures(label, kind, self._marks(PaperAccount(self.root, name), day))
 
 
 def _trades(account: PaperAccount, day: date) -> tuple[list[TradePosition], list[TradePosition]]:

@@ -25,6 +25,7 @@ from ..forecast.capture import LIVE_FOLDER
 from ..forecast_scoring.wiring import SCORES_FOLDER
 from ..forecast_v4_rules.series import closes_rows, regular_closes
 from ..forecast_v4_rules.wiring import CLOSES_FILE
+from ..playbook.wiring import build_playbook_loader
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.implied_vol import SpotBlackScholes
 from ..risk.profile_settings import ProfileSettings, profile_settings
@@ -68,7 +69,7 @@ from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
 from .page_holds import PageHoldsBlock
 from .paper_trades_block import FnoPaperTradesBlock
-from .paper_trades_closed import ClosedTrades, CommittedStructures
+from .paper_trades_closed import ClosedTrades, CommittedStructures, PlaybookVersions
 from .paper_trades_inputs import PaperBooksReader
 from .postgres_publisher import PostgresPublisher
 from .publication import PRODUCT, PublicationBuilder
@@ -190,7 +191,8 @@ def build_paper_books(cfg: dict, profile: ProfileSettings) -> PaperBooksReader:
     registry = ROOT / PLAYBOOK_FOLDER / PLAYBOOK_REGISTRY_FILE
     structures = CommittedStructures(CommittedRuns(ROOT))
     text = lambda: registry.read_text() if registry.is_file() else ""  # noqa: E731
-    return PaperBooksReader(ROOT, BOOKS, profile, ClosedTrades(text, structures, cfg["charges"]))
+    versions = PlaybookVersions(build_playbook_loader(ROOT).load)  # R3: a measurement shadow is labelled so
+    return PaperBooksReader(ROOT, BOOKS, profile, ClosedTrades(text, structures, cfg["charges"]), versions)
 
 
 def build_weather_inputs() -> WeatherInputsReader:

@@ -92,3 +92,15 @@ losing trade moves the brake by its net loss; a planted Drive value reaches no f
 - **Known loss, stated plainly:** the held reason no longer names the book or the trade, so the alert does not say
   which one; neither does the run log. Only the desk's own records (E4's events, Drive) still do; the screen rule
   (no digits) forbids naming it here.
+
+## Addendum 2 (16 Oct): judge 248 addendum 1, B0 is a measurement
+
+Accepted and checked on main: `playbook/b0-monthly-sc-v1.yaml` has `edge_family: measurement`, and
+`fno/playbook/measurement.py` (`is_measurement`) is R3's one source for that label. Every shadow was labelled
+`shadow`, so from about 19 Oct B0 would have shown as a candidate, against owner decision 1 A ("never promoted").
+- Each shadow's label now comes from its own version file through `is_measurement`: `measurement`, else `shadow`.
+  The file is read through D1's loader (`PlaybookVersions`, wired in `wiring.py`).
+- A version file that cannot be read holds the page ("A shadow account's version file cannot be read, so it is never
+  given a label"); the label is never guessed.
+- Test: B0 with its real version file and the real registry is "Strategy 1, version 1", measurement. A candidate is
+  shadow, and an unreadable file holds the page.

@@ -6,6 +6,7 @@ test_contract_log_line.py) and 4 (never a version tag, a strike rule or anything
 import csv
 import json
 from datetime import date, datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -36,6 +37,7 @@ REGISTRY = "name,version,sha256,status,changed_on,approved_by,evidence_commit\n"
     f"{n},1,{'a' * 64},shadow,2026-10-01,owner,{'b' * 40}\n" for n in ("iv-rich-no-event-fly", "calm-condor")
 )  # two strategies whose names spell their filters: k is 1 and 2, never the name
 STRUCTURES = {("book2_hybrid", DAY, "d1"): "SF"}
+CANDIDATE = lambda name, version: SimpleNamespace(edge_family="premium")  # noqa: E731  (a candidate's version file)
 
 
 def write(root, book, action, opening=500_000.0):
@@ -56,7 +58,7 @@ def reader(root) -> PaperBooksReader:
     closed = ClosedTrades(
         lambda: REGISTRY, lambda book, day, decision: STRUCTURES.get((book, day, decision), ""), CFG["charges"]
     )
-    return PaperBooksReader(root, BOOKS, PROFILE, closed)
+    return PaperBooksReader(root, BOOKS, PROFILE, closed, CANDIDATE)
 
 
 def published(root, day=DAY) -> dict:
@@ -177,7 +179,7 @@ def test_a_strategy_with_no_registry_row_or_no_known_structure_holds_the_page(ro
     finally:
         STRUCTURES[("book2_hybrid", DAY, "d1")] = "SF"
     closed = ClosedTrades(lambda: "name,version\n", lambda *_: "SF", CFG["charges"])
-    assert "no row in the playbook registry" in PaperBooksReader(root, BOOKS, PROFILE, closed).on(DAY).held
+    assert "no row in the playbook registry" in PaperBooksReader(root, BOOKS, PROFILE, closed, CANDIDATE).on(DAY).held
 
 
 def test_a_shadow_is_its_own_card_under_a_registry_label(root):
@@ -195,8 +197,10 @@ def test_every_hold_reason_of_the_page_matches_the_pinned_pattern():
     from fno.market_read_models import paper_trades_closed, paper_trades_inputs
 
     pattern = CONTRACT_SCHEMAS["FnoPageHolds"]["properties"]["holds"]["items"]["properties"]["reason"]["pattern"]
-    for reason in (paper_trades_inputs.OPEN_NOT_BUILT, paper_trades_inputs.BRAKE_UNREADABLE,
-                   paper_trades_closed.NOT_IN_REGISTRY, paper_trades_closed.NO_STRUCTURE):  # fmt: skip
+    reasons = (paper_trades_inputs.OPEN_NOT_BUILT, paper_trades_inputs.BRAKE_UNREADABLE,
+               paper_trades_inputs.NO_VERSION_FILE, paper_trades_closed.NOT_IN_REGISTRY,
+               paper_trades_closed.NO_STRUCTURE)  # fmt: skip
+    for reason in reasons:
         assert re.fullmatch(pattern, reason), reason
 
 
@@ -234,3 +238,21 @@ def test_a_held_paper_books_page_leaves_every_other_page_published(tmp_path):
     pages = {key for b in build_market_blocks() for key in b.pages(good)}
     assert code == 0 and set(publisher.current()) == pages - {"paper_trades"} | {"page_holds"}
     assert alerts.sent == [f"{RUN_DAY}: paper_trades held back: {OPEN_NOT_BUILT}"]
+
+
+def test_b0_is_labelled_measurement_from_its_real_version_file_and_never_a_candidate(root):
+    """Judge 248 add. 1 and R3: the label comes from `is_measurement` on the real playbook file; B0 is measurement."""
+    from fno.config import ROOT
+    from fno.market_read_models.paper_trades_closed import PlaybookVersions
+    from fno.playbook.wiring import build_playbook_loader
+
+    registry = (ROOT / "playbook" / "registry.csv").read_text()
+    closed = ClosedTrades(lambda: registry, lambda *_: "", CFG["charges"])
+    versions = PlaybookVersions(build_playbook_loader(ROOT).load)
+    write(root, "shadow:b0-monthly-sc-v1", lambda w: w.start(OPENED), opening=2_000_000.0)
+    (shadow,) = PaperBooksReader(root, BOOKS, PROFILE, closed, versions).on(DAY).shadows
+    assert (shadow.name, shadow.label) == ("Strategy 1, version 1", "measurement")
+    candidate = PaperBooksReader(root, BOOKS, PROFILE, closed, CANDIDATE).on(DAY).shadows[0]
+    assert candidate.label == "shadow"
+    unreadable = PaperBooksReader(root, BOOKS, PROFILE, closed, lambda *_: None).on(DAY)
+    assert unreadable.held == "A shadow account's version file cannot be read, so it is never given a label"

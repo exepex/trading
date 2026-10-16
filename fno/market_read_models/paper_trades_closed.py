@@ -23,6 +23,7 @@ from ..books.equity import TradePosition
 from ..constants import FILL_SETTLE, OUTCOME_EXIT_ORDERED
 from ..desk.records import DeskRecords
 from ..desk.trade_counts import version_key
+from ..playbook.fields import PlaybookError
 
 STRUCTURE_WORDS = {  # the code's own definition: fno/research_engine/structures.py and fno/constants.py
     "SF": "sold iron butterfly", "SC": "sold iron condor", "BF": "bought iron butterfly", "LC": "bought call",
@@ -134,3 +135,19 @@ class CommittedStructures:
             self._codes = {(run.book, run.day, r["opportunity_id"]): (r.get("structure") or {}).get("structure", "")
                            for run in self.runs.runs() for r in self.runs.records(run)}  # fmt: skip
         return self._codes.get((book, day, decision_id), "")
+
+
+class PlaybookVersions:
+    """Each version's playbook file by (name, version), read once (D1's loader); None when the playbook or the file
+    cannot be read, so the page holds rather than guess a shadow's label."""
+
+    def __init__(self, load):
+        self.load, self._playbook = load, None
+
+    def __call__(self, name: str, version: int):
+        try:
+            if self._playbook is None:
+                self._playbook = self.load()
+            return self._playbook.get(name, version)
+        except PlaybookError:
+            return None
