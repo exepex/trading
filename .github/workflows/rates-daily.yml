@@ -1,0 +1,55 @@
+# Story A21: RBI's 91-day T-bill auction cut-off yields and the policy repo rate, twice a day, with first-seen times.
+# Each fetched page goes write-once to the owner's Drive (O9) and its receipt is committed with the error rows; a failure is one row in
+# research/ops/capture_errors.csv (O10) and one #fno-desk line posted by the capture itself. Research data only:
+# reads RBI's public pages, never trades. Secrets: the four FNO_GDRIVE_* settings and FNO_SLACK_BOT_TOKEN.
+name: rates-daily
+
+on:
+  schedule:
+    - cron: "10 3 * * *" # 08:40 IST
+    - cron: "10 13 * * *" # 18:40 IST: the same day's Wednesday auction results
+  workflow_dispatch:
+
+permissions:
+  contents: write # the receipts and the capture-error rows
+
+concurrency:
+  group: rates-daily
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
+      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Commit identity and the public-record scan (story O5)
+        run: |
+          git config core.hooksPath .githooks
+          git config user.name "omenix-rates"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Capture RBI's rates (alerts #fno-desk itself on any failure)
+        run: python -m fno rates capture
+      - name: Commit the receipts and the capture-error rows together
+        if: ${{ always() }}
+        run: |
+          git add receipts research/ops/capture_errors.csv 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "Data: rates receipts $(TZ=Asia/Kolkata date +%F)"
+          for attempt in 1 2 3; do
+            git pull --no-rebase --no-edit origin main && git push origin HEAD:main && exit 0
+            sleep $((attempt * 10))
+          done
+          exit 1 # a receipt not committed would let the next run re-record with a later time: capture-watch alerts

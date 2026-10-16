@@ -33,6 +33,7 @@ from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .rates.cli import add_rates_parser
 from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
@@ -235,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     add_global_cues_parser(sub)
     add_health_parser(sub)
     add_factory_parser(sub)
+    add_rates_parser(sub)
 
     args = p.parse_args(argv)
     try:

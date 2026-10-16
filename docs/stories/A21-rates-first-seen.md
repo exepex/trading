@@ -86,7 +86,12 @@ Out (each with where it goes):
     - `provenance` is `live`.
   - Every fetched page is written once to Drive's `data` area under O9: `rates/rbi/YYYY/MM/DD/HHMMSS_<name>.html`,
     with its receipt in the repository.
-  - The table is written as O9 part files (`rates/YYYY/MM/<day>.<run_id>.csv`).
+  - The table is written as O9 part files (`rates/table/YYYY/MM/<day>.<run_id>.csv`). A page that does not parse is
+    stored too, named `<name>_unreadable.html`, so only a page that parsed counts as a successful read for the 48-hour
+    rule.
+  - The workflow commits the run's receipts and its O10 rows in one step. If that push fails, the run fails and O10's
+    capture-watch records it and alerts. A receipt that never reaches `main` would let the next run record the same
+    value again with a later time: the alert names it (Known limit).
   - `RatesAsOf(cutoff)` returns each rate's latest value first seen at or before the cutoff, never a later one.
 - **Announcements (`fno/announcements_live/`):**
   - An `AnnouncementSource` interface has one adapter, `NseAnnouncementsSource`. It calls A12's URL template

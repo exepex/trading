@@ -25,6 +25,7 @@ on:
       - participant-oi-watch
       - postmortem-weekly
       - quote-recorder-nse
+      - rates-daily
       - stress-factor
     types: [completed]
 
