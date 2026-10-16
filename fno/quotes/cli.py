@@ -26,6 +26,8 @@ RAW_FILE_ALERT = (
 )
 CONFIGURED, NSE_SOURCE = "configured", "nse"
 GOOD_STATUSES = ("recorded", "already recorded", "not a trading day")
+WINDOW_REFUSED = "3 pm quote recorder: nothing asked"
+WINDOW_NSE = "--window is for the configured provider's capture only, not --source nse"
 
 
 def add_quotes_parser(subparsers) -> None:
@@ -39,6 +41,7 @@ def add_quotes_parser(subparsers) -> None:
         default=CONFIGURED,
         help="nse: NSE's public option chain into its own dataset (story O6); default: quotes.provider",
     )
+    record.add_argument("--window", help="a named window of config.yaml quotes.windows, in its own dataset (story A4e)")
     actions.add_parser("record-indices", help="BANKNIFTY, FINNIFTY and MIDCPNIFTY after NIFTY's push (15:01-15:13 IST)")
     actions.add_parser("compare", help="Groww's and NSE's canonical snapshots side by side, day by day (story O6)")
     actions.add_parser("report", help="median and 90th-percentile half-spread by distance from the money")
@@ -67,9 +70,29 @@ def cmd_quotes(args) -> int:
 
         build_indices = partial(build_index_quote_recorders, load_app_config(args.config))
         return record_indices(build_indices, build_alert_sender(), calendar_file)
+    if args.window:
+        return _record_window(args, build_alert_sender(), calendar_file)
     builder = build_nse_quote_recorder if args.source == NSE_SOURCE else build_quote_recorder
     build = partial(builder, load_app_config(args.config))
     return record_today(build, build_alert_sender(), args.outside_window, calendar_file)
+
+
+def _record_window(args, alerts: AlertSender, calendar_file: str) -> int:
+    """A named window (story A4e): Groww's capture only; a bad or unknown window stops before anything is asked."""
+    from ..config import ConfigError, load_app_config
+    from .window import named_window
+    from .window_wiring import build_window_quote_recorder
+
+    cfg = load_app_config(args.config)
+    try:
+        if args.source == NSE_SOURCE:
+            raise ConfigError(WINDOW_NSE)
+        named_window(cfg, args.window)
+    except ConfigError as error:
+        print(f"{WINDOW_REFUSED}: {error}")
+        return 1
+    return record_today(partial(build_window_quote_recorder, cfg, args.window), alerts, args.outside_window,
+                        calendar_file)  # fmt: skip
 
 
 def record_today(
