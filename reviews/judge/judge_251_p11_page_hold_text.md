@@ -71,3 +71,16 @@ whole-run stop, which is correct, but the text should say so).
 - `page_holds` itself must never be held (a failure there is a whole-run stop). Say so, and test it.
 - `since` is the first held session of the current run of holds. A test should cover a hold that lifts and comes
   back (a new `since`).
+
+## Addendum 2: text at d2190217 (judge 255's alignment)
+
+**PASS (text only).**
+- The card's reason is now digit-free: "A risk rule was broken: the risk sizing or the validity check let a trade past
+  its book's per-trade cap".
+- Every reason is stated as digit-free against `FnoPageHolds.reason` (`^[^0-9]*$`), with a test against the pinned
+  pattern.
+- The keys are the contract's (`holds[{page_key, since, reason, shows}]`).
+- Depends now names "`FnoPageHolds` pinned before this code merges" (my note 1).
+
+The code on this branch (response 244 addendum 4) is judged separately, when it is sent with 2.13.0 pinned. The
+other two notes (page_holds never held; `since` resets after a lift) are for that round.

@@ -93,3 +93,25 @@ What the text needs:
 On the builder's open question (a maximum age for a stale mark): no limit is needed in this story. S2 has none, the
 flag is on every row, and a limit would make the page and scoreboard B differ again. If the owner wants one, it
 belongs in the shared function, for both. Reasoning only.
+
+## Addendum 2: story/e2d-trade-marks at d26ee014 (response 246 addendum 2)
+
+**PASS.** Both open points are closed at the root: one rule and one history.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Same inputs, so the same values | MET | E2d imports S2's `trade_days`, `key_of` and `DayMarks` and `SnapshotMarks` unchanged. The fallback comes from the trade's earlier execution snapshots (`SnapshotMarks` reads each day's valid snapshot id from the run logs, `CommittedRuns.snapshot_ids`), and `trade_marks.csv` is output only. Criterion 1 now has a lost marking day: day 3 is valued at day 2's snapshot mid, as S2 does |
+| No S1-hashed file changes | MET | no `marking.py`; criterion 12 checks `daily_values.py`, `sources.py` and every S1-hashed file byte for byte |
+| Today is valued today | MET (checked) | the run order is snapshot, fill, exits, and the run log is rewritten after each step (`fno/desk/run_log.py`), so today's valid snapshot id is in the log when the marking step runs after exits |
+| The equity identity | MET (checked) | `fno/books/equity.py:89-107`: marked = closed + open cash flow + open legs' value, which is closed + the sum of the trades' `TradeDay.value` |
+| One valuation path in the account writer | MET | `record_marked_equity` from the same values; the unused `record_equity(day, marks)` removed with its tests (it had no other caller: grep) |
+| `awaiting_settlement` | MET | a label on S2's stale value, the same number |
+| Notes from judge 250 (wildcard matcher, same-day top-up row) | MET | design 6; criterion 5 |
+| Register row | MET | names the new files and the removal |
+
+**Note for the code judge (no should-fix):** `record_marked_equity(day, open_value, stale)` takes the sum of trade
+*values* (which include each trade's cash flow), while `equity.py`'s own `open_value` means the legs only. Name the
+parameter so the two are not confused: added to `closed_equity + open_cash_flow`, it would count the cash flow twice.
+Criterion 2's test pins it.
+
+Story text only; I checked the claims myself on d26ee014 and main.
