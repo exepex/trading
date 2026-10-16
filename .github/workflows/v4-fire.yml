@@ -50,7 +50,7 @@ jobs:
           else echo "no release record for ${day}: nothing fired" >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Fire the AI books on the released pack (G11)
         if: ${{ steps.day.outputs.day != '' }}
-        run: python -m fno ai fire --day "${{ steps.day.outputs.day }}" | tee fire.log
+        run: python -m fno ai fire --protocol v4 --day "${{ steps.day.outputs.day }}" | tee fire.log
       - name: Alert #fno-desk when the fire itself failed
         if: ${{ failure() }}
         run: |

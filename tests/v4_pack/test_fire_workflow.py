@@ -35,5 +35,5 @@ def test_no_schedule_starts_the_fire():
 
 
 def test_the_fire_names_its_day_and_the_latest_start_is_in_the_terms():
-    assert 'python -m fno ai fire --day "${{ steps.day.outputs.day }}"' in WORKFLOW.read_text()
+    assert 'python -m fno ai fire --protocol v4 --day "${{ steps.day.outputs.day }}"' in WORKFLOW.read_text()
     assert V4_LATEST_FIRE.isoformat() == "14:55:00"
