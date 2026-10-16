@@ -163,3 +163,14 @@ cancelled before a step (still a lost slot).
 
 Accepted risk: an owner who cancels a queued news run by hand is also silent. That is harmless, because the kick
 workflow dispatches again.
+
+## Addendum 3: 7aaa0259 (0db3f682 plus a merge of main plus two watched names)
+
+**Verdict: PASS. Merge 7aaa0259.** Against its merge base with main (2451d678), the branch changes only O10's own 18
+files. The one new change is `capture-watch.yml` listing `global-cues` and `vix-history` (A17 merged first, as judge
+351's merge note asked). The builder reports 7852 passed and 15 xfailed on that tree.
+
+Merge notes:
+- O12 is now on main, so the merged tree must pass `tools/check_numbers.py`. `response_254_o10-capture-health.md`
+  needs its registry row: re-seeding is the merger's job, done only with the orchestrator, and never by hand.
+- After O10 merges, A20a and A20b add `fo-masters` and `circulars` to this list, as judges 358 and 359 say.
