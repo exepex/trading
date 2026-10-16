@@ -55,3 +55,20 @@ The year-crossing condition replaced by `True`: 1 test fails (16 Nov would be la
 
 `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto -p no:cacheprovider`: 6,967 passed. `ruff check`: clean.
 `ruff format --check`: 1,237 files already formatted. `check_imports`: clean.
+
+## Addendum 1: story/g4-calendar-label at c65daea4
+
+**PASS.** The should-fix is closed.
+- The weekly line now reads "Book 1's Q1 and Q2 were the base rate alone on N live days (baseline missing: calendar):
+  ...".
+- The docstring says the same, and adds the "only cause" note: a day with an input problem is not labelled, so the
+  count can be below the window's sessions.
+- A new test calls `book1_probabilities` itself: with baseline A it is the mean of A and the base rate; without A it
+  equals the base rate. So the wording rests on the method, not on a reading.
+
+I checked the builder's 14 Oct figure in the claim: 0.5560525 is the mean of 0.5214385 and 0.5906667. Response 241's
+copy of the error is corrected on main (8a02f7b5). The diff since a9552c4e is the wording, the docstring and the test
+only, so the rest of the verdict stands.
+
+Gates (run by me on c65daea4): 6,968 passed (`-n auto`, Slack token unset). `ruff check`: clean. `ruff format --check`:
+1,237 files already formatted. `check_imports`: clean.
