@@ -1,27 +1,27 @@
-"""The idea card's machine block (story R1, G0): one fenced ```factory YAML block beside the card's human tables.
+"""The idea card's machine block (story R1): one fenced ```factory YAML block beside the card's human tables.
 
-A card without exactly one valid block is refused with the field named, before anything is written."""
+`read_card` checks the G0 fields; the G1-G3 inputs are read by their own gate when it runs (`inputs.py`), so a card
+lacking them is refused there, by name. A card without exactly one valid block is refused before anything is
+written."""
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 
 from .constants import CARD_FENCE
+from .fields import CardError, Fields
 
 _BLOCK = re.compile(rf"^```{CARD_FENCE}\n(.*?)^```$", re.MULTILINE | re.DOTALL)
-_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-_TEXT_FIELDS = ("id", "experiment", "description", "question")
-_FLAG_FIELDS = ("hypothesis", "measurement")
-_COUNT_FIELDS = ("version", "trial")
-FIELDS = (*_TEXT_FIELDS, *_FLAG_FIELDS, *_COUNT_FIELDS)  # R1a: G0 only; R1b adds the G1-G3 inputs
-
-
-class CardError(ValueError):
-    """The card cannot be registered; the message names the card and the field."""
+G0_FIELDS = ("id", "experiment", "description", "question", "hypothesis", "measurement", "version", "trial")
+SCREEN_FIELDS = ("gross", "tail", "cost")  # G1
+SPEND_FIELDS = ("data_sets", "measures")  # G2
+PLAN_FIELDS = ("sd_per_trade", "frequency_per_year", "pass_level")  # G3
+REGISTRATION_FIELDS = ("playbook_name", "playbook_version", "minimum_useful_net")  # G4
+FIELDS = (*G0_FIELDS, *SCREEN_FIELDS, *SPEND_FIELDS, *PLAN_FIELDS, *REGISTRATION_FIELDS)
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,7 @@ class IdeaCard:
     hypothesis: bool
     measurement: bool
     path: str  # the card's path relative to the repository root
+    inputs: Fields | None = field(default=None, compare=False, repr=False)  # the block, for the G1-G3 readers
 
 
 def read_card(root: Path, relative_path: str) -> IdeaCard:
@@ -43,66 +44,30 @@ def read_card(root: Path, relative_path: str) -> IdeaCard:
         raise CardError(f"{relative_path}: no such card")
     block = _block(path.read_text(encoding="utf-8"), relative_path)
     card = IdeaCard(
-        idea_id=_text(block, "id", relative_path),
-        version=_count(block, "version", relative_path),
-        trial_id=str(_count(block, "trial", relative_path)),
-        experiment=_slug(block, "experiment", relative_path),
-        description=_text(block, "description", relative_path),
-        question=_slug(block, "question", relative_path),
-        hypothesis=_flag(block, "hypothesis", relative_path),
-        measurement=_flag(block, "measurement", relative_path),
+        idea_id=block.text("id"),
+        version=block.count("version"),
+        trial_id=str(block.count("trial")),
+        experiment=block.slug("experiment"),
+        description=block.text("description"),
+        question=block.slug("question"),
+        hypothesis=block.flag("hypothesis"),
+        measurement=block.flag("measurement"),
         path=relative_path,
+        inputs=block,
     )
     if card.idea_id != path.stem:
         raise CardError(f"{relative_path}: field 'id' is {card.idea_id!r}, the file name says {path.stem!r}")
     return card
 
 
-def _block(text: str, where: str) -> dict:
+def _block(text: str, where: str) -> Fields:
     blocks = _BLOCK.findall(text)
     if len(blocks) != 1:
         raise CardError(f"{where}: needs exactly one ```{CARD_FENCE} block, found {len(blocks)}")
     try:
-        block = yaml.safe_load(blocks[0])
+        values = yaml.safe_load(blocks[0])
     except yaml.YAMLError as bad:
         raise CardError(f"{where}: the ```{CARD_FENCE} block is not valid YAML ({bad})") from bad
-    if not isinstance(block, dict):
+    if not isinstance(values, dict):
         raise CardError(f"{where}: the ```{CARD_FENCE} block must be a mapping of fields")
-    unknown = sorted(set(block) - set(FIELDS))
-    if unknown:
-        raise CardError(f"{where}: unknown field {unknown[0]!r}")
-    return block
-
-
-def _field(block: dict, name: str, where: str):
-    if block.get(name) is None:
-        raise CardError(f"{where}: field {name!r} is missing")
-    return block[name]
-
-
-def _text(block: dict, name: str, where: str) -> str:
-    value = _field(block, name, where)
-    if not isinstance(value, str) or not value.strip():
-        raise CardError(f"{where}: field {name!r} must be non-empty text")
-    return " ".join(value.split())
-
-
-def _slug(block: dict, name: str, where: str) -> str:
-    value = _text(block, name, where)
-    if not _SLUG.match(value):
-        raise CardError(f"{where}: field {name!r} must be lower-case letters, digits and hyphens")
-    return value
-
-
-def _flag(block: dict, name: str, where: str) -> bool:
-    value = _field(block, name, where)
-    if not isinstance(value, bool):
-        raise CardError(f"{where}: field {name!r} must be yes or no")
-    return value
-
-
-def _count(block: dict, name: str, where: str) -> int:
-    value = _field(block, name, where)
-    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-        raise CardError(f"{where}: field {name!r} must be a whole number of at least 1")
-    return value
+    return Fields(values, where).only(FIELDS)

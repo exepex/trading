@@ -72,3 +72,16 @@ candidate strategy, the opposite of the owner's decision 1 A ("a MEASUREMENT sha
 **Fix:** label each shadow through `fno/playbook/measurement.py` (`edge_family == measurement` gives `measurement`, and
 anything else `shadow`), not a constant. Add a test with B0's real version file giving `measurement`, and a candidate
 giving `shadow`.
+
+## Addendum 2: head 0ae25471 (B0's label)
+
+**PASS: P2c may merge once main is green, after P2b.**
+- **The label:** each shadow's label now comes from R3's one source. `PlaybookVersions` reads D1's playbook loader,
+  and `is_measurement(found)` gives `measurement`, anything else `shadow`. A version file that cannot be read holds the
+  page with a fixed, digit-free sentence (tested against the pattern with the other reasons).
+- **The test:** B0's real playbook file and real registry give ("Strategy 1, version 1", "measurement"), a candidate
+  gives "shadow", and an unreadable file holds the page. **My mutation** forcing every shadow to `shadow` fails it.
+- **Gates on 0ae25471:** 7370 passed and 3 failed, the same 3 risk tests red on main (judge 178 addendum 17). ruff and
+  check_imports clean.
+- **Note:** `PlaybookVersions` loads the whole playbook, so one broken playbook file holds the paper books page for
+  every shadow. That is a loud, page-only hold, so it is acceptable.

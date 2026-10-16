@@ -448,3 +448,10 @@ so it cannot happen before the merge and the owner's new prompt. Since e57046f3 
   live `stress_factor.csv` assuming the 14 Oct seed row is the latest. They are not O1's. They are main's, and the
   owner of C2d's tests must fix them: the tests should use their own planted factor file, not the live one.
 - **The builder's stash slip:** checked. The commit has both parents, and the tree checks out as above.
+
+## Addendum 18: head edb4e2b6
+
+**PASS, O1 may merge once main is green.** It is 8534b2b8 plus one commit, which names E2d's step as
+`RUN_LOG_TRADE_MARKS_STEP` in `fno/constants_operations.py` (the fixed-strings rule) and uses it in `DESK_RUN_STEPS` and
+the desk plan. There is no behaviour change. Full suite on edb4e2b6: 7410 passed and 3 failed, the 3 risk tests that
+are red on main itself (addendum 17).

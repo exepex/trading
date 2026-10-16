@@ -85,3 +85,39 @@ WORK_REGISTER row, plus merges of main. A14c's own `fno/` code is unchanged.
 
 Part 1 may merge. The notes in the main verdict stand (k of 1.75 or more on the first full run; the STR1 cap;
 `--approve-fall` not checked against DESK_DECISIONS).
+
+## Addendum 2: rule 8, the first live run (Actions, df9bfaff, 16 Oct 10:09 UTC)
+
+**PASS on correctness; one risk note for the owner (not a code finding).**
+- **The run:** full; 1,680 sessions from 2 Jan 2020 to 15 Oct 2026, each file's SHA-256 in `stress_files_2026-10-16.csv`;
+  58,345 holdings completed and 70 dropped and named.
+  - The drops are holdings entered 30-31 Jul 2025 on the 25 Sep 2025 expiry, with "no option series for 2025-09-25".
+    Reasoning only: NSE's 2025 move of the monthly expiry day re-dated that series. Each dropped holding keeps what it
+    needed so far, so k cannot fall.
+  - The row appended is `2026-10-16, 2.1, 2.1, 2.081729, applied, PDS 300 entered 2020-04-08 peak 2020-05-04`.
+- **My hand check from the two real Drive files** (read-only; both SHA-256 equal the manifest's). PDS 300 on the 28 May
+  2020 expiry: +8800 PE and -8500 PE.
+  - Entry: scan 28,860 (SOM Rs 444 × 1 short × 65), NOV 34,424, exposure 11,429.86 (2%). C2 counts 11,429.86.
+  - Peak, 4 May: scan 31,980 (SOM 492), NOV 1,758.25, exposure 19,226.80 (3%: 8500 < 0.9 × 9,859.9). C2 counts
+    49,448.555.
+  - k = (49,448.555 + 34,424) / (28,860 + 11,429.86) = **2.081729**, equal to the row, so computed 2.1. The code is
+    doing exactly what the owner's measure (07f62385) says.
+- **Risk note (strong evidence for the arithmetic; the judgement is reasoning only):**
+  - The binding case is a **debit** spread in the 2020 rally. The bought put lost almost all its value (NOV 34,424 to
+    1,758), while SPAN's minimum on the short leg and the 3% far-strike exposure rose. At entry, NOV exceeds the scan,
+    so C2 counted only the exposure (11,430). The "needed" k therefore mostly measures the collapse of the debit
+    leg's value, not a rise in the margin of a position at risk. That trader's loss was capped at the premium paid.
+  - One global k = 2.1 now applies to **every** structure, including credit spreads, whose own worst needed factors
+    were far lower: CCS and PCS about 1.2 in the windows measured earlier.
+  - From today C2 and C4 size every trade with about 2.1 × (scan + exposure), roughly half the lots of 1.45 for the
+    same capital.
+  - Also, 2020's short-option minimum no longer exists in NSE's files (zero since then), and it sets the scan at both
+    ends of this holding.
+  - Options for the owner (reasoning only):
+    - (a) keep the one global k (most conservative, and as decided);
+    - (b) a k per structure family (debit or credit), each measured by the same rule;
+    - (c) measure debit structures on the funds they need (margin plus premium paid) instead of margin alone.
+  - It is the owner's call. The code needs no change for (a).
+- **Red tests on main:** `tests/risk/test_manager.py` (2) and `test_stress_factor.py::test_the_repository_seed_row_is_read_by_c2_and_c4`
+  read the live factor file and assumed the seed row is the latest. They fail since this row. They need planted files
+  (C2d's tests).
