@@ -426,3 +426,25 @@ so it cannot happen before the merge and the owner's new prompt. Since e57046f3 
 - **Not mergeable as is.** Merge main (E2d) into `story/o1-daily-run` and resolve. E2d's marks step must keep its place
   after the exits inside O1's run (`DAILY_RUN_STEPS`, with O8's tuple), and must not run as a second desk path. Then
   send me the head. I re-check the resolved files and run the full suite.
+
+## Addendum 17: merge resolution 8534b2b8 (main d86e4584: A4c and E2d)
+
+**PASS: O1 may merge.** Criterion 9 is a post-merge check on Mon 19 Oct (addendum 15).
+- **Parents:** 4a4bede0 and d86e4584. Every file that differs from main is one O1 already changed (the builder's `comm`
+  check; I reran it, and it is empty).
+- **E2d's step inside O1's run:** `"trade_marks"` is in `DESK_RUN_STEPS` right after `exits`, so `DAILY_RUN_STEPS`
+  runs exits, then trade_marks, then reviews, then quotes_done, then card. The desk plan runs `self.marking.run(day)`
+  at the execution snapshot, and `MarkingStep` takes the run's one alert sender. There is no second desk path. O8
+  reads the constant, with no local tuple.
+- **`AFTER_EXITS` is derived from `DAILY_RUN_STEPS`** (exits and every later step) instead of E2d's fixed pair. That
+  is right: the fixed pair would have said "exits not reviewed today" for a stop at reviews, quotes_done or card. The
+  new parametrized test fails with the fixed pair put back (builder).
+- **Gates:** a trial merge of 8534b2b8 with current main is clean, ruff and check_imports clean, and 7441 passed with
+  3 failed. **The 3 failures are red on main too** (I reproduced them on a clean `origin/main`):
+  - `tests/risk/test_manager.py` (2);
+  - `tests/risk/test_stress_factor.py::test_the_repository_seed_row_is_read_by_c2_and_c4`.
+
+  Cause: A14c's first Actions run (df9bfaff) appended the 16 Oct factor row (2.1, applied), and these tests read the
+  live `stress_factor.csv` assuming the 14 Oct seed row is the latest. They are not O1's. They are main's, and the
+  owner of C2d's tests must fix them: the tests should use their own planted factor file, not the live one.
+- **The builder's stash slip:** checked. The commit has both parents, and the tree checks out as above.
