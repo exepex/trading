@@ -59,3 +59,15 @@ fields (`clock_checks` before and after, `clock_status` `clock_ok` only when bot
 `clock_worst_skew_seconds`), with the 5-second threshold and a stopped-run case. One rule, no copy.
 
 My note stands for part (b): NSE's futures carry no bid or ask, which G10's pack allows as None.
+
+## Addendum 2: story/a4e-named-quote-window at 08c6f465
+
+**PASS stands, strengthened.**
+- Criterion 4b now gives each expiry's chain call its own `request_sent_at` and `response_received_at`.
+- `levels_requested_at` and `levels_received_at` bracket the one `levels()` call; the receive time is an honest upper
+  bound for India VIX and the futures.
+- The text states that NSE's futures have no bid or ask.
+- A fake-clock test checks that a level read returning after the window's end keeps its real later time, never
+  clamped.
+
+The default sidecar is unchanged.
