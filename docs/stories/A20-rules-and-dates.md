@@ -30,7 +30,8 @@ analyst (event in window), A14 (margin method changes).
 ## Scope
 
 In:
-- **A20a** ban list and lot sizes: one copy per day fetched; contract master: one dated copy per session.
+- **A20a** ban list and lot sizes: one copy per trading day. The contract master is out: NSE keeps it dated (Step 0),
+  so it is not lost daily; a later story back-fills it when something needs it.
 - **A20b** NSE and SEBI circular lists with metadata and our first-seen time; the files of F&O-relevant circulars.
 - **A20c** India CPI, IIP, GDP and US FOMC, CPI, payrolls release dates with `announced_on` = the day we first saw
   each date, in A6's event model.
@@ -44,15 +45,15 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
 ## Design (reuse first)
 
 1. **A20a reuses P6's snapshot and A9's librarian machinery, in its own small job.** Two new `SnapshotSource`
-   classes (`FoBanListSource`, `FoLotSizeSource`) and one dated `NseArchiveSource` (`NseFoContractSource`), each with
-   a content check in `content_checks.py`, so they are saved to Drive with a manifest row like every NSE file. Not in
+   classes (`FoBanListSource`, `FoLotSizeSource`), each with a content check in `content_checks.py`, so they are saved
+   to Drive with a manifest row like every NSE file. Not in
    P6's market archive run: that run files snapshots under the PREVIOUS session (`market archive` day), while the ban
    list names the session it applies to. Timing read from NSE's `Last-Modified` (16 Oct): the ban list for a session
-   is written about 18:12 IST the evening before; the contract master dated D about 17:32 IST on D. So a job
+   is written about 18:12 IST the evening before. So a job
    `python -m fno fo-masters` runs at 07:45 IST (retry 11:15 IST; GitHub starts crons hours late): on a session day
    (A7 calendar; otherwise "not a trading day", exit 0) it files the ban list under the trade date it names (A
-   `SessionFiledTaker`; a ban list for an earlier session is refused as **stale**, a later one as from the future),
-   lot sizes under today, and the previous session's contract master through the librarian. `wiring.py` is at 348
+   `SessionFiledTaker`; a ban list for an earlier session is refused as **stale**, a later one as from the future)
+   and lot sizes under today. `wiring.py` is at 348
    lines, so the source tuples move to a new `fno/storage/source_lists.py` (no behaviour change). First-seen time =
    the day folder plus the manifest row's commit time (git); these are daily rules, so a day is the right grain.
 2. **A20b `fno/circulars/`.** Port `CircularFeed.fetch(since: date, until: date) -> list[Circular]`; adapters
@@ -85,8 +86,7 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
 
 ## Acceptance criteria
 
-1. A20a: `fo-masters` saves the ban list (under its trade date), lot sizes and the previous session's contract master
-   with manifest rows; a ban list for an earlier session is refused as stale and the run exits 1; a non-session day
+1. A20a: `fo-masters` saves the ban list (under its trade date) and lot sizes with manifest rows; a ban list for an earlier session is refused as stale and the run exits 1; a non-session day
    does nothing and exits 0; a fixture of each real layout passes
    its check and a damaged one fails. No file over 350 lines (`wiring.py` split).
 2. A20b: offline fixtures of both feeds produce `Circular` rows; a second run with the same items writes no part; a
