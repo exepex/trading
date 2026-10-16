@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 
+from ..alerts.sender import AlertSender
 from ..books.lock import DEFAULT_LEASE_SECONDS
 from ..composition import build_alert_sender, open_account_writer
 from ..config import ROOT
@@ -36,9 +37,10 @@ def build_entry_desk(cfg: dict) -> EntryDesk:
     return EntryDesk(cfg["charges"])
 
 
-def build_exit_desk(cfg: dict) -> ExitDesk:
-    """Exits at the execution snapshot's quotes; expired legs settled from NSE's daily F&O files (A2's library)."""
-    return ExitDesk(cfg["charges"], build_alert_sender(), NseFinalSettlement(build_nse_fo_library()))
+def build_exit_desk(cfg: dict, alerts: AlertSender | None = None) -> ExitDesk:
+    """Exits at the execution snapshot's quotes; expired legs settled from NSE's daily F&O files (A2's library).
+    `alerts`: the daily run's one sender (story O1), so an unsent exit alert is printed for the routine."""
+    return ExitDesk(cfg["charges"], alerts or build_alert_sender(), NseFinalSettlement(build_nse_fo_library()))
 
 
 def build_shadow_books(market: Market, terms: Callable[[str], Mapping[str, TradeTerms]], root: Path = ROOT

@@ -92,6 +92,10 @@ class CommittedSeries(OutcomeSeries):
     def big_move_outcomes(self, question):
         return {}
 
+    def vix_up_outcomes(self):
+        r = self.rows  # G8's former own V7 rule (before it read G7's): VIX(t+5) > VIX(t), the reference here
+        return {r[i][0]: r[i + 5][2] > r[i][2] for i in range(len(r) - 5)}
+
     def intraday_rv(self):
         return {}
 
