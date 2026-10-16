@@ -5,6 +5,10 @@ from __future__ import annotations
 from datetime import time
 from enum import StrEnum
 
+# The daily operations' names (E3's and O1's run steps, O1's step statuses, O8's health statuses) live in their own
+# module, split out at the size limit; imported here so every `from fno.constants import ...` keeps working
+from .constants_operations import *  # noqa: F403 - its `__all__` names them; callers keep `fno.constants`
+
 # Environment variable names (values are never stored in files).
 # Groww Trade API (market data only; the tool never places orders)
 ENV_GROWW_ACCESS_TOKEN = "GROWW_ACCESS_TOKEN"
@@ -335,16 +339,7 @@ CARD_SESSION_KINDS = (
     SESSION_SPECIAL,
 )  # a muhurat session is the one-hour Diwali session: no 15:00 card
 
-# Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
-RUN_LOG_DECISIONS_STEP = "decisions"
-RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
-
-# The daily health check (story O8, fno/health/): its statuses and its own run record
-HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"
-HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
-HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
-HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
-ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the health check records that it posted
+ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the health check (O8) records that it posted
 
 # Stories S1 and BR1a: the protocols `python -m fno evaluation check|freeze|verify --protocol` reads
 PROTOCOL_EVALUATION, PROTOCOL_BREADTH = "evaluation", "breadth"
