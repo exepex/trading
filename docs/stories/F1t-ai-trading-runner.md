@@ -142,12 +142,17 @@ not exactly these, whose version is not the book's current one, or whose private
 `canonical_json`) is not `private_pack_sha256`.
 
 **Routine side (`python -m fno.ai_trading`, standard library only):**
+- **Two prompts, said plainly (F6, 16 Oct):** the routine's stored prompt (owner-pasted, in F1t's checklist, not
+  hashed) only bootstraps `brief`, `seal`, `reveal` and the usage record; the book's decision prompt (F5's for Book 2,
+  F6's `agents/book3/decide_v1.md` for Book 3) is the file `brief` hash-checks against its registered version and
+  prints.
 - `brief '<pointer>'`: checks the pointer, reads `journal/packs/<d>/common.json` from `main` and checks its SHA-256,
   checks the versioned prompt's hash, saves its private working files under `.ai_decision/` (never committed), then
   prints the prompt, `INPUT`, the common pack and the private pack. Nothing is shown unless every check passes.
 - `seal <answer.json>`: the answer is `{"model_reported": <text>, "decision": {...}}`. `seal` adds the labels (book,
   day, version, both pack hashes) itself, checks the shape (F1t's base: `decision` is an object with `action` (text)
-  and `reason` (one line, 1-600 characters); then the book's own shape check, registered with its version by F5 or
+  and `reason` (one line, 1-600 characters); then the book's own shape check `check_decision(decision: dict) -> list[str]` (problems; empty means ok; standard
+  library only: F5's `fno/book2/answer.py`, F6's for Book 3), registered with its version by F5 or
   F6), and publishes only the commitment, to `journal/ai_decisions/submissions/<YYYY>/<d>_<book>.commitment.json`.
   A refused answer names what to fix, so the model can fix it before the deadline.
 - `reveal`: waits until `reveal_from`, then publishes answer and salt to `<d>_<book>.reveal.json`.
@@ -204,8 +209,17 @@ class DecidedRun:
 **F1t's check of a decided run before committing it:** the run is the only run of the book's day and is under its
 folder; every record passes D3's `validate_record`; every record's `book`, `common_pack_sha256` and
 `private_pack_sha256` equal the pointer's (criterion 7), `model_served` equals `model_reported`, `session_id` the fire
-log's link, and `served` names the decision version. A run that fails is never committed: it is removed from disk
-(it was never published), its file hashes are kept in the outcome record, and the book-day is `refused`.
+log's link, and `served` names the decision version; every file in `DecidedRun.files` is under the book's declared
+write paths. A run that fails is never committed, and the book-day is `refused` with the file hashes kept in the
+outcome record.
+
+**Write paths and restore (agreed with F6, 16 Oct):** each book's decision version declares the paths its decider may
+write (Book 3: `journal/book3_ai/`, `book3/` and its research-ledger rows; Book 2: `journal/book2_hybrid/` and C4's
+failure log). F1t commits only changes under them. When the run check fails, `DecisionRefused` is raised, or the
+decider raises anything else, F1t restores every change under those paths that the decider made (tracked files back
+to `HEAD`, new files deleted), so nothing half-registered (a `registry.csv` row, a spec file, a shadow file) can be
+committed later by accident; the restore is recorded in the outcome record (test: a decider that registers a
+proposal, then fails the check, leaves the tree equal to `HEAD`).
 
 **Book isolation:** each book's pointer holds only its own private pack; the decider receives only its own book's
 packs; each book's account is its own E1 folder (no shared cash); submissions of one book are never in another's
