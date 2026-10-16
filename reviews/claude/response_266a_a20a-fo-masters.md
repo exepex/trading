@@ -1,55 +1,81 @@
 # Response 266a: A20a, NSE's daily F&O ban list and market lots kept point in time (builder's claims)
 
-**Story:** `docs/stories/A20-rules-and-dates.md` (part a) · **Branch:** `story/a20a-fo-masters` (built on the text
-branch `story/a20-rules-and-dates`) · **Builder:** session_013u1Ac2N9eRQ8XCYPjwpaat · **Lane:** 1 (NSE, Drive, Slack,
-a workflow)
+**Story:** `docs/stories/A20-rules-and-dates.md` at e50ca714 (part a; text answer to judge 353 in response 266) ·
+**Branch:** `story/a20a-fo-masters` · **Builder:** session_013u1Ac2N9eRQ8XCYPjwpaat · **Lane:** 1 (NSE, Drive,
+Slack, a workflow)
 
 ## What it does
 
-`python -m fno fo-masters [--day D]` (workflow `fo-masters.yml`, 07:45 IST, retry 11:15 IST). On a trading day of
-NSE's session calendar (`regular` or `special`; a muhurat-only day, weekend or holiday prints "not a trading day",
-takes nothing, exits 0):
-1. **ban list** `fo_secban.csv` → Drive `raw/nse/derivatives/fo-ban-list/YYYY/MM/DD/` of the trade date its first line
-   names (`CurrentSessionTaker`). A copy for an earlier session is refused as **stale**; a later one as from the
-   future. Nothing is written in either case.
-2. **market lots** `fo_mktlots.csv` → `raw/nse/derivatives/fo-lot-sizes/YYYY/MM/DD/` of today (`SnapshotTaker`).
-Each saved file gets its SHA-256 manifest row, committed and pushed by the job. Each step prints one line. Any failed
-step (NSE refusal or 404, a damaged or stale copy, Drive, manifest rows not committed) makes ONE #fno-desk alert
-naming every failure, and the run exits 1. The alert goes through `StepOutputAlerts`, so the workflow's own failure
-line speaks only when the job could not post (a crash). O10's watcher writes the error row for the failed run
-(story Design 4; A20 writes no error file).
+`python -m fno fo-masters [--day D]` (workflow `fo-masters.yml`: 07:45, 11:15 and 18:45 IST, every day):
+- **ban list** (`fo_secban.csv`), every day: filed under the trade date its first line names
+  (`CurrentSessionTaker`), when that date is between the run day and the next trading day (A7 calendar, stepping
+  over a muhurat-only session). An earlier date is refused as stale, a later one as from the future, and nothing is
+  written in either case. A session's first copy is kept. On a trading day the step then fails unless that day's own
+  list is archived (stale = "no ban list archived for today's session").
+- **market lots** (`fo_mktlots.csv`), on trading days only (`regular` or `special`): one full copy under that day,
+  stored again even when unchanged (NSE gives no date, so the copy is the daily proof; about 48 KB).
+- Each saved file gets its SHA-256 manifest row, committed by the job. Each step prints one line. Any failed step
+  (NSE refusal or 404, a damaged, stale or future copy, Drive including its network errors, today's list missing,
+  manifest rows not committed) makes ONE #fno-desk alert naming every failure, and the run exits 1. The alert goes
+  through `StepOutputAlerts`, so the workflow's own line speaks only on a crash. O10's `capture-watch.yml` writes the
+  error row (`fo-masters` to be listed there; agreed with O10's builder).
 
-**Contract master: out (decision with evidence).** NSE serves it dated (`NSE_FO_contract_DDMMYYYY.csv.gz`: 200 for
-15 Oct 2026, 1 Sep 2026, 1 Oct 2025), so it is not lost daily. Adding it as a dated dataset would require a year of
-committed manifest rows (`tests/test_fingerprints.py`), i.e. a 450 MB live back-fill for no daily loss. Recorded in
-`docs/DATA_SOURCES.md` and the story text (3044b66d).
+## Claims per criterion (code, test, broken-code proof)
 
-## Claims and evidence
+Proof: each mutation below was planted in the code, the named test file run, and the file restored by
+`mutate.py` (this session's scratchpad, not committed). Every one was CAUGHT.
 
-| # | Claim | Evidence |
-|---|---|---|
-| 1 | Readers accept today's real layouts and refuse damaged ones whole | `fno/research_data/fo_masters.py`; `tests/fo_masters/test_readers.py` (fixtures cut from NSE's files of 16 Oct) |
-| 2 | Ban list filed under its trade date; stale and future copies refused, nothing written | `fno/storage/session_filed_taker.py` (`CurrentSessionTaker`, `StaleCopy`); `tests/fo_masters/test_job.py`, first three tests |
-| 3 | Non-trading day: nothing taken, no commit, exit 0 | `FoMastersJob.run`; `test_a_non_trading_day_takes_nothing_and_succeeds` |
-| 4 | Every step runs after a failure; one alert names every failure; exit 1; rows of what was taken still committed | `test_every_step_runs_and_one_alert_names_every_failure` |
-| 5 | A 404 ("NSE does not serve it now") is a failure, never "ok" | `taken`; `test_a_file_nse_does_not_serve_is_a_failure_not_news` |
-| 6 | Manifest rows not committed is a failure | `test_manifest_rows_not_committed_is_a_failure` |
-| 7 | Moving the source tuples is not a behaviour change (`wiring.py` 348 → 299 lines) | `fno/storage/source_lists.py`; the names stay importable from `wiring.py`; full suite |
-| 8 | Live read-only check, 16 Oct 16:41 IST (real NSE fetch through the new source classes and content checks, nothing stored): ban list 74 bytes, trade date 16 Oct, AMBUJACEM, KAYNES, SAIL; lots 47,736 bytes, 219 symbols, NIFTY 65 | this session's log (script not committed) |
-| 9 | Gates on the unshallow clone (head after the run_location change): 7429 passed; ruff check and format clean; `check_imports.py` clean; `check_records.py` clean | this session's log |
+| Crit. | Claim | Code | Tests | Mutation caught |
+|---|---|---|---|---|
+| 1 | Today's list and the next session's (across a weekend, and across the 8 Nov muhurat Sunday to 9 Nov) are taken under their own date; previous session stale; two sessions ahead refused; nothing written on a refusal; first copy kept; calendar's last day (31 Dec) still takes today's list | `fno/storage/session_filed_taker.py` `CurrentSessionTaker._check`; `fno/storage/trading_days.py` | `tests/fo_masters/test_job.py` (ban taker tests) | stale check removed; bound `> day`; bound removed; muhurat not skipped; calendar asked on today |
+| 1 | Readers: header-only list valid; empty, HTML, broken numbering, stray line refused | `fno/research_data/fo_masters.py` | `tests/fo_masters/test_readers.py` | numbering check removed |
+| 2 | Trading day without today's list fails (also when the 18:45 run took tomorrow's); no check on Saturday, the 2 Oct holiday or the 8 Nov muhurat Sunday | `fno/fo_masters/job.py` `ban_list_step` | `test_on_a_trading_day_...`, `test_on_a_weekend_a_holiday_or_a_muhurat_only_day_...` | today check removed; muhurat counted as trading |
+| 3 | Lots: header, non-number, wrong row width, short last row, no NIFTY refused; trailing blank lines ignored; a 404 is a failure | `read_lot_sizes`; `taken` | readers tests; `test_a_file_nse_does_not_serve_is_a_failure_not_news` | NIFTY check; row width; blank rows kept; 404 taken as ok |
+| 4 | Every step runs after a failure; one alert names all; manifest rows still committed; not committed is a failure; a Drive network error (`requests.ConnectionError`, an `OSError`) is a named failure; a non-trading day runs only the every-day step | `FoMastersJob.run`, `_run` | job tests | stop after first failure; not-committed ignored; OSError not caught; every-day step skipped |
+| 13 | Crons 07:45/11:15/18:45 IST, `contents: write`, alert step on `failure() && steps.masters.outputs.posted != 'true'`, env holds only secret references | `.github/workflows/fo-masters.yml` | `tests/fo_masters/test_workflow.py` | evening slot moved; alert condition changed |
+| 14 | The job commits only `research/data/manifests` | `build_manifest_recorder` | `test_the_job_commits_only_the_manifest_folder` | — (folder constant) |
+| 15 | Wired only in `fno/fo_masters/wiring.py` (and `storage/wiring.py` for the taker); tests never touch the network | wiring files | all tests offline | — |
 
-Test changes outside A20a's files, each because a count or set grew by A20a's sources: `tests/nse_retry/test_policy.py`
-(22 → 24 NSE source classes, both new classes are covered by the policy test).
+## Real output sample (criterion 16)
+
+The committed job classes with the real NSE sources, a local folder in place of Drive and a dry-run recorder and
+alert sender, run for Friday 16 Oct 2026 at 17:32 IST:
+
+```
+ban list: ok: nse/derivatives/fo-ban-list/2026/10/16/fo_secban.csv: archived (74 bytes)
+lot sizes: ok: nse/derivatives/fo-lot-sizes/2026/10/16/fo_mktlots.csv: archived (47736 bytes)
+manifest rows: (dry run, local folder)
+exit 0
+```
+
+First scheduled run: the 18:45 IST slot after merging; on a weekday, Monday 19 Oct 07:45 IST. Its log and manifest
+rows will be added here.
+
+## Builder self-review (quality rule 3)
+
+An independent review agent read the diff (correctness and silent failures). Its findings and what I did:
+1. **Should fix, accepted:** Drive's HTTP and network errors are `OSError`, so they escaped the step handler. There
+   was then no commit and no named alert, only the generic workflow line. `_run` now also catches `OSError`, and a
+   test and a mutation prove it.
+2. **Should fix, accepted:** `next_session` counts the 8 Nov muhurat Sunday, so a list for Monday 9 Nov written on
+   Friday would have been refused. The bound is now the next trading day (`trading_days.next_trading_day`); test
+   and mutation.
+3. **Minor, accepted:** on the calendar's last day the bound was computed even for today's own list. It is now
+   computed only past today; test and mutation.
+4. **Minor, partly accepted:** trailing blank lines in the lots file are now ignored. A blank line inside the ban
+   list still fails loudly: an unknown layout should alert, not pass.
+The agent found no silent exit-0 path.
+
+## Gates
+
+On the unshallow clone: 7445 passed; ruff check and format clean; `check_imports.py` and `check_records.py` clean.
 
 ## Honest limits
 
-- **First live run is Monday 19 Oct** (17 and 18 Oct are not sessions); `first_day` of both lists is 19 Oct. Until a
-  run's lines and manifest rows exist, the Drive and commit path is proven only by the shared code it reuses
-  (`SnapshotTaker`, `SessionFiledTaker`, `GitManifestRecorder`).
-- **An empty ban list's exact layout is unseen.** The reader accepts the header line alone; if NSE writes something
-  else (e.g. "NIL"), the check refuses it and the job alerts: loud, never silent. Fix with the real file then.
-- **Timing:** NSE writes the next session's ban list about 18:12 IST. A run GitHub starts after that would refuse
-  tomorrow's list (alerted). Both slots plus GitHub's usual 4-5 h delay end before then.
-- First-seen time is the day folder plus the manifest commit time (git), not a stored timestamp: these are daily rules.
-- O10's `capture-watch.yml` must list `fo-masters` for the error row (asked of O10's builder via the orchestrator).
-- `fno/alerts/run_location.py` is shared with A20b (the same file, byte for byte, on both branches).
+- An empty ban list's exact layout is unseen. A header-only file is accepted; anything else (e.g. "NIL") fails
+  loudly. It gets fixed with the real file.
+- What NSE writes before a muhurat-only session is unseen; both the muhurat date and the next trading day are
+  accepted.
+- First-seen time is the day folder plus the manifest commit time (git), not a stored timestamp.
+- `fno/alerts/run_location.py` is shared with A20b (the same file on both branches).
+- `tests/nse_retry/test_policy.py`: 22 → 24 NSE source classes (both new ones covered by the retry-policy test).

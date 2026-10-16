@@ -50,6 +50,7 @@ from .source_lists import DATED_SOURCES, LIBRARIAN_DATASETS, RAW_SOURCES, SNAPSH
 from .source_lists import FINGERPRINT_SOURCES as FINGERPRINT_SOURCES  # re-exported: callers read them from here
 from .source_lists import RUN_DATED_FLOWS as RUN_DATED_FLOWS
 from .source_lists import SNAPSHOT_SOURCES as SNAPSHOT_SOURCES
+from .trading_days import next_trading_day
 from .versioned_store import VersionedRawStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
@@ -228,7 +229,8 @@ def build_snapshot_taker(name: str) -> SnapshotTaker | SessionFiledTaker:
     if source_type in COVERED_SESSION:  # a latest-day report: filed under the session it covers
         parts = (store, build_nse_source(source_type), VALIDATORS[source_type], COVERED_SESSION[source_type])
         if source_type.STALE_REFUSED:  # valid only for its own session, written the evening before (A20a)
-            return CurrentSessionTaker(*parts, build_session_calendar().next_session)
+            calendar = build_session_calendar()
+            return CurrentSessionTaker(*parts, lambda day: next_trading_day(calendar, day))
         return SessionFiledTaker(*parts)
     return SnapshotTaker(store, build_nse_source(source_type), VALIDATORS[source_type])
 

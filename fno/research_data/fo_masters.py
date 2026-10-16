@@ -48,7 +48,7 @@ def ban_list_trade_date(filename: str, data: bytes) -> date:
 
 def read_lot_sizes(data: bytes, filename: str) -> dict[str, dict[str, int]]:
     """Symbol -> {expiry month as NSE writes it (e.g. 'OCT-26'): lot}, blank cells left out."""
-    rows = [[cell.strip() for cell in row] for row in csv.reader(io.StringIO(data.decode("utf-8-sig")))]
+    rows = [[cell.strip() for cell in row] for row in csv.reader(io.StringIO(data.decode("utf-8-sig"))) if row]
     if not rows or tuple(rows[0][:2]) != LOT_KEY_COLUMNS or len(rows[0]) < 3:
         raise BadFile(f"{filename}: needs the columns {LOT_KEY_COLUMNS} and at least one expiry month")
     months = rows[0][2:]

@@ -12,10 +12,9 @@ from datetime import date
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import SessionCalendar
 from ..storage.manifest_commit import ManifestRecorder
-from ..storage.raw_source import RawSourceUnavailable
 from ..storage.snapshot_taker import NOT_SERVED
+from ..storage.trading_days import is_trading_day
 
-TRADING_KINDS = ("regular", "special")  # a muhurat-only evening is not a day these rules are set for
 NOT_A_TRADING_DAY = "{day}: not a trading day; only the ban list for the next session is taken"
 NO_LIST_TODAY = (
     "no ban list archived for today's session {day} (NSE wrote none, or every run before its replacement failed)"
@@ -57,10 +56,6 @@ def ban_list_step(take: Callable[[date], str], archived: Callable[[date], bool],
     return run
 
 
-def is_trading_day(calendar: SessionCalendar, day: date) -> bool:
-    return calendar.session_kind(day) in TRADING_KINDS
-
-
 class FoMastersJob:
     def __init__(self, calendar: SessionCalendar, steps: Sequence[Step], recorder: ManifestRecorder,
                  alerts: AlertSender, where: str, out=print):  # fmt: skip
@@ -87,7 +82,7 @@ class FoMastersJob:
         try:
             self.out(STEP_OK.format(name=step.name, line=step.run(day)))
             return None
-        except (RawSourceUnavailable, ValueError, RuntimeError) as exc:  # Drive, NSE, a check, a stale copy
+        except (OSError, ValueError, RuntimeError) as exc:  # NSE, Drive (requests errors are OSError), a check, stale
             line = STEP_FAILED.format(name=step.name, reason=exc)
             self.out(line)
             return line

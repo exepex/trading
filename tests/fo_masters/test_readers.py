@@ -41,6 +41,7 @@ def test_lot_sizes_per_symbol_and_month_skip_the_stock_section_header_and_blank_
     assert lots["NIFTY"]["OCT-26"] == 65 and lots["BANKNIFTY"]["NOV-26"] == 30
     assert "Symbol" not in lots and "DEC-27" not in lots["BANKNIFTY"]  # NSE leaves that month blank for BANKNIFTY
     assert lots["UJJIVANSFB"] == {"OCT-26": 8000, "NOV-26": 8000, "DEC-26": 8000}
+    assert read_lot_sizes(LOTS + b"\n\n", "fo_mktlots.csv") == lots  # trailing blank lines are not rows
 
 
 @pytest.mark.parametrize(

@@ -10,13 +10,14 @@ import pytest
 
 from fno.alerts.dry_run import DryRunAlertSender
 from fno.alerts.run_location import NO_RUN_URL, run_location
-from fno.fo_masters.job import NOT_A_TRADING_DAY, FoMastersJob, Step, StepFailed, ban_list_step, is_trading_day, taken
+from fno.fo_masters.job import NOT_A_TRADING_DAY, FoMastersJob, Step, StepFailed, ban_list_step, taken
 from fno.storage.content_checks import COVERED_SESSION, VALIDATORS
 from fno.storage.manifest_commit import ManifestRecorder
 from fno.storage.raw_store import LocalFolderStore
 from fno.storage.session_filed_taker import CurrentSessionTaker, LaterSession, StaleCopy
 from fno.storage.snapshot_source import FoBanListSource
 from fno.storage.snapshot_taker import NOT_SERVED, TAKEN
+from fno.storage.trading_days import is_trading_day, next_trading_day
 from fno.storage.wiring import build_session_calendar
 
 BAN_16 = (Path(__file__).parents[1] / "fixtures" / "nse" / "fo_masters" / "fo_secban_16102026.csv").read_bytes()
@@ -40,7 +41,9 @@ class Serving:
 
 def ban_taker(store, data=BAN_16) -> CurrentSessionTaker:
     source = FoBanListSource
-    return CurrentSessionTaker(store, Serving(data), VALIDATORS[source], COVERED_SESSION[source], CALENDAR.next_session)
+    return CurrentSessionTaker(
+        store, Serving(data), VALIDATORS[source], COVERED_SESSION[source], lambda day: next_trading_day(CALENDAR, day)
+    )
 
 
 def test_the_ban_list_is_filed_under_its_trade_date(tmp_path):
@@ -179,3 +182,31 @@ def test_a_file_nse_does_not_serve_is_a_failure_not_news():
 def test_the_alert_points_to_the_actions_run():
     env = {"GITHUB_SERVER_URL": "https://github.com", "GITHUB_REPOSITORY": "o/r", "GITHUB_RUN_ID": "7"}
     assert run_location(env) == "https://github.com/o/r/actions/runs/7" and run_location({}) == NO_RUN_URL
+
+
+def test_a_drive_network_error_is_a_named_failure_and_the_rows_are_still_committed():
+    import requests
+
+    out, alerts, recorder = [], DryRunAlertSender(), Recorder()
+    steps = [
+        Step("ban list", fails(requests.ConnectionError("drive down")), every_day=True),
+        Step("lot sizes", ok("t")),
+    ]
+    assert job(steps, recorder, alerts, out).run(D16) == 1
+    assert "ban list: failed: drive down" in out and "lot sizes: ok: t" in out and recorder.commits
+    assert "drive down" in alerts.would_send[0]
+
+
+def test_a_list_for_the_trading_day_after_a_muhurat_session_is_taken(tmp_path):
+    friday, monday = date(2026, 11, 6), date(2026, 11, 9)  # Sunday 8 Nov is a muhurat-only session
+    assert CALENDAR.next_session(friday) == date(2026, 11, 8) and next_trading_day(CALENDAR, friday) == monday
+    store = LocalFolderStore(tmp_path)
+    ban_taker(store, ban_for(monday)).take(friday)
+    assert store.get(FoBanListSource.path_for(monday)) == ban_for(monday)
+
+
+def test_today_s_list_is_taken_on_the_calendar_s_last_day(tmp_path):
+    last = date(2026, 12, 31)  # the calendar ends here: the next trading day is unknown, and not needed
+    store = LocalFolderStore(tmp_path)
+    ban_taker(store, ban_for(last)).take(last)
+    assert store.get(FoBanListSource.path_for(last)) == ban_for(last)

@@ -11,6 +11,7 @@ from ..alerts.step_output import StepOutputAlerts
 from ..composition import build_alert_sender
 from ..storage.snapshot_source import FoBanListSource, FoLotSizeSource
 from ..storage.source_lists import dataset_name
+from ..storage.trading_days import is_trading_day
 from ..storage.wiring import (
     OWNER_UPLOAD_SETTINGS,
     build_manifest_recorder,
@@ -18,7 +19,7 @@ from ..storage.wiring import (
     build_session_calendar,
     build_snapshot_taker,
 )
-from .job import FoMastersJob, Step, ban_list_step, is_trading_day, taken
+from .job import FoMastersJob, Step, ban_list_step, taken
 
 
 def archived_ban_list(day: date) -> bool:
