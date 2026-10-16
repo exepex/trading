@@ -22,6 +22,9 @@ NOT_FAILED = ("success", "skipped", "neutral")
 FAILURE = "failure"  # the only conclusion after which a job's own alert step can have run
 ALERT_STEP_PREFIXES = ("Alert", "One line to")  # every workflow's alert step (YAML drops the text after " #")
 RAN = ("success", "failure")
+# Workflows where a newer run takes over from a cancelled pending one (A19's poller: its kick dispatches the next run);
+# such a run cancelled before any step ran was replaced, not lost. Any other workflow's cancelled slot is lost.
+REPLACEABLE = ("news-capture",)
 BEFORE_ANY_STEP = "before any step"
 ALERT = "Omenix F&O {job}: the GitHub Actions run was {kind} at '{step}' and posted nothing itself; see {url}"
 
@@ -58,7 +61,7 @@ class GitHubRuns(RunSource):
 def capture_error(run: dict, jobs: list[dict]) -> CaptureError | None:
     """The run's error row, or None when the run succeeded (or was skipped)."""
     kind = run.get("conclusion") or "unfinished"
-    if kind in NOT_FAILED:
+    if kind in NOT_FAILED or _replaced(run, kind, jobs):
         return None
     step, conclusion = _first_bad_step(jobs)
     started = datetime.fromisoformat(run["run_started_at"].replace("Z", "+00:00")).astimezone(IST)
@@ -69,6 +72,11 @@ def run_url(run: dict) -> str:
     """The run's link, naming the attempt after the first, so a re-run attempt gets its own row and line."""
     attempt = run.get("run_attempt") or 1
     return run["html_url"] if attempt == 1 else f"{run['html_url']}/attempts/{attempt}"
+
+
+def _replaced(run: dict, kind: str, jobs: list[dict]) -> bool:
+    started = any(s.get("conclusion") in RAN for job in jobs for s in job.get("steps") or [])
+    return run.get("name") in REPLACEABLE and kind == "cancelled" and not started
 
 
 def needs_alert(error: CaptureError, jobs: list[dict]) -> bool:

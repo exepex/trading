@@ -79,3 +79,10 @@ nse-margins catch-up slots.
 Known limit (new): a job whose command posts its own line and then fails with its "Alert" step skipped by its condition
 (nse-margins' "already alerted" path) gets a second line from the watcher. A duplicate is preferred to a silence
 [reasoning]. Gates: full suite 7397 passed on full history; ruff, format, imports, record scan clean [strong].
+
+## Addendum 2: replaced runs (A19's request after judge 352)
+A news-capture run cancelled before any step ran was replaced by a newer run (A19's kick dispatches the next one), so it
+gets no row and no line. This applies only to workflows in `REPLACEABLE` (news-capture today); any other workflow's run
+cancelled before a step is a lost capture slot and still gets both (`test_a_replaced_news_run_is_neither_recorded_nor_
+alerted`, `test_a_news_run_cancelled_after_a_step_ran_is_a_failure`, `test_any_other_workflow_cancelled_before_a_step_is_
+a_lost_slot`) [strong].
