@@ -60,3 +60,13 @@ yet word for word the sentences on P11's head d2190217.
   compute its risk used yet";
 - card: example "the sizing or validity checks let", P11 text "the risk sizing or the validity check let".
 The lead undertook to copy P11's final wording before 2.13 merges. Copy it from the code, so there is one list.
+- **Re-head 70f705c (the wording note acted on):** the held example now has four sentences. I checked each against
+  the pushed sources, word for word:
+  - `today` (picks, nothing) and `risk` (nothing) equal `home_blocks.py` `APPROVED_PICKS` and `OPEN_TRADE_RISK` on
+    P11's head d2190217;
+  - `card` (previous_page) equals P11's text, line 459. The card's hold lives in P2f's code, not P11's;
+  - `paper_trades` (previous_page), "A book holds an open trade, and this page cannot mark it for the session yet", is
+    on **no pushed branch** yet. P2c's rebase must use it word for word, or the example is re-copied.
+
+  `check_contract`, `check_fno_screens`, `examples` and `render_catalog` exit 0. A trial merge with dashboard main is
+  clean (view.ts auto-merged), and then `npm test` gives 578/578. The PASS stands on 70f705c.
