@@ -1,21 +1,20 @@
 # The weather's history (exepex/trading docs/stories/W3-fno-screens.md, W3a and P2a): one row per session for the colour
-# strip. Owner, 16 Oct 2026: the screen never shows an input's level; the inputs and their `reaches` colours are never
-# sent. Strict form until the owner answers the weather-levels question (story W3, rule 4 (b); judge 217 should-fix 1):
-# colour and label only. Over about 2,400 sessions, colour beside the chances and the usual chances would give the
-# colour rule's floors back, so the chances are left out; a later minor version adds them only if the owner chooses (a).
+# strip and the chances chart. Owner, 16 Oct 2026: the screen never shows an input's level; the inputs and their
+# `reaches` colours are never sent. Contract 2.9: the owner chose (a), the levels stay public (exepex/trading
+# docs/DESK_DECISIONS.md, 16 Oct 2026; they are in the public code and records already), so each session's chances
+# are back beside its colour (2.8.0 sent colour and label only, judge 217 should-fix 1).
 
 FnoWeatherHistory:
   type: object
   description: >-
-    Every session's weather colour and label, oldest first, and the counts by colour and by label. Colour only: the
-    day's chances of a big move are on the weather page (getFnoWeather), never in this history. Empty state: sessions empty and every count 0 (no weather record yet)
+    Every session's weather colour, label and two chances of a big NIFTY move beside the usual chance, oldest first,
+    and the counts by colour and by label. Empty state: sessions empty and every count 0 (no weather record yet)
   x-catalog: {publisher: fno, source: "M1's weather records (research/forecasts/v4/weather/<YYYY>/<day>.json)", freshness: 'once a session day, at the 07:10 IST publish', story: M1, status: planned}
   x-visibility: public
   x-fill: not_built
   x-never-sent:
     - "the weather inputs' values and the colour each input reaches (owner, 16 Oct 2026: never the level at which an input turns a colour)"
     - "the US cue (kept in Drive)"
-    - "each session's chances of a big move and the usual chances (strict form until the owner's weather-levels choice: beside the colours they would give the colour rule's floors back)"
   additionalProperties: false
   required: [sessions, counts]
   properties:
@@ -25,11 +24,15 @@ FnoWeatherHistory:
       items:
         type: object
         additionalProperties: false
-        required: [session, colour, label]
+        required: [session, colour, label, p_big_1d, p_big_5d, base_rate_1d, base_rate_5d]
         properties:
           session: {type: string, format: date, x-unit: date (IST), description: The NSE session}
           colour: {type: ['string', 'null'], enum: [GREEN, AMBER, RED, null], x-unit: enum, description: 'The operative colour; null when the day was not scored (it then blocks new trades like RED)'}
           label: {type: string, enum: [live, backfill_exploratory], x-unit: enum, description: 'live = made on the day before the cutoff; backfill_exploratory = rebuilt later from history, never a live record'}
+          p_big_1d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, description: "Chance that NIFTY's next-session move is at least 2% either way; null when not scored"}
+          p_big_5d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, description: 'Chance that the largest move over the next 5 sessions is at least 2% either way; null when not scored'}
+          base_rate_1d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'How often a 2% day happened over the 750 sessions before it (the usual chance)'}
+          base_rate_5d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'How often a 5-session window held a 2% move over the 750 sessions before it'}
     counts:
       type: object
       additionalProperties: false
