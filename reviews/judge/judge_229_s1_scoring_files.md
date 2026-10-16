@@ -125,3 +125,35 @@ figure. That exemption is acceptable.
 - `ruff check` is clean, `ruff format --check` shows 1227 files formatted, and `check_imports` is clean.
 
 **A re-check needs only the three moved modules and the pinned-constants test.**
+
+## Addendum 2: revision 2 at c3e0187d: PASS
+
+The delta e70dcf13..c3e0187d in S1 is the Score-time bullet (three parsers added), `test_scoring_closure.py`'s
+exemption lists and a new `tests/evaluation/test_frozen_numbers.py`. The other files are main merged in, item 13
+among them.
+
+- **SF1 (the parsers): MET.**
+  - `fno/fo_bhavcopy.py`, `fno/market_read_models/nse_files.py` and `fno/desk/snapshot.py` are now hashed, each named
+    for what it decides: the settlement columns, the index closes, and the bid and ask touch.
+  - They are removed from `EXEMPT`, so the stale-exemption test stays honest.
+  - My plant (`fo_bhavcopy.py` dropped from the bullet) fails 2 closure tests.
+- **The new exemption, `fno/quotes/recorder.py` as a reader: accepted.** `desk/snapshot.py:21` imports only
+  `DATASET` (`"groww/derivatives/quote-snapshots"`) and `QuoteSnapshotRecorder`, for its static `path()`, a file path.
+  Neither decides a number.
+- **SF2 (`constants.py`): MET.**
+  - `test_frozen_numbers.py` walks every hashed module's imports from `fno.constants`. Any int or float imported must
+    be in `PINNED`.
+  - Each pinned value must appear in the frozen text: `paper_gate`'s "at least 3 full calendar months" and "at least
+    20 completed positions" (`PROTOCOL.md:159`).
+  - My plant (`PAPER_GATE_MONTHS = 4`) fails 1 test.
+  - Leaving `constants.py` unhashed is now safe for scoring.
+- **Note (no fix):** the walk sees `from … constants import NAME` only. An `import fno.constants as c` with an
+  attribute read would slip past it. No hashed module does that today. Item 8 and 11's return, with its closure walk
+  starting at `fno/role_value`, is the moment to keep that pattern out.
+
+**Gates:**
+- On the trial merge with origin/main 0f4fe9c3 (tree 6179336, clean), `-n auto`: pytest 6958 passed.
+- `ruff check` is clean, `ruff format --check` shows 1234 files formatted, and `check_imports` is clean.
+- `evaluation check` prints S1 and the gate complete.
+
+**Verdict: PASS.**
