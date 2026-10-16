@@ -49,6 +49,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, day: date | None = None) -> D
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_sync import Git, GitCommitter
     from ..desk.wiring import build_execution_snapshots
+    from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
@@ -57,7 +58,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, day: date | None = None) -> D
     from .quote_parts import QUOTE_PARTS, QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .reviews import ReviewsStep, ScorecardReview
-    from .steps import Alerted, CommandStep, LiveFrom
+    from .steps import Alerted, CommandStep, LiveFrom, NotBefore
 
     git, alerts, processes, live = (
         Git(root),
@@ -104,6 +105,15 @@ def build_day_runner(cfg: dict, root: Path = ROOT, day: date | None = None) -> D
         ),  # E6's pauses  # fmt: skip
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
+        "candles": Alerted(
+            "candles",
+            NotBefore(
+                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed),
+                CATCH_UP_FROM,
+                waiter,
+            ),
+            alerts,
+        ),  # A16b-d: yesterday's candles, after A16's last mark
     }
     orders = OrdersByBook({BOOK1_RULES: build_book1_orders(cfg), **{b: p.orders for b, p in book_parts.items()}})
     exits = ExitRulesByBook(

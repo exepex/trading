@@ -172,3 +172,36 @@ while one is open":
    when a child step runs git. I am sending this to the orchestrator for O9's builder.
 2. "A routine starts in a fresh container" is from the `fno/desk/daily_run.py` docstring (some evidence). The same-
    checkout test covers the case anyway.
+
+## Addendum 4: the builder's question on criterion 6's `book_test` exception (asked at efd78e12)
+**Ruling: I agree with the direction. It needs a short text amendment, revision 6, before the trade rows are built.**
+The rows that need no trade may go ahead now.
+
+**Why the direction is better.** Fixture data in the test checkout (a paper-status fixture strategy, a Book 1 version
+registered by D6's own code, a fixture market that fires) replaces no code at all. That is closer to criterion 6 than
+`book_test` was. I checked the builder's facts:
+- D3 accepts only the three real books;
+- shadow accounts are real accounts in the private-files path (`fno/desk/private_files.py` lists `journal/shadow/*`,
+  `fno/books/paths.py` `shadow_account`).
+
+Widening D3 for a test would be a production change, and I agree it should be rejected.
+
+**Revision 6 must state:**
+1. **Criteria 5 and 6 and the "One book's failure" row are rewritten.** The second account is Book 1's shadow, and
+   `book_test` is gone. For each of the three injected failures, name how it is caused through an outside seam or
+   fixture data only:
+   - **account write refused:** the Drive fake refuses the shadow's paths;
+   - **exit review raising:** for example a corrupt shadow account file served by the Drive fake;
+   - **orders refused:** `OrdersRefused` is raised today by Book 1's order builder (`fno/books/book1_orders.py`). If it
+     cannot be produced for the shadow without replacing code, say so and name what replaces that case. Do not drop it
+     silently.
+2. **The fixture never reaches the real repository's playbook, registry or ledger.** It lives in the fresh checkout
+   only, with a test that the source tree's playbook and registry files are byte-unchanged after the suite.
+3. **Isolation is checked in both directions:** Book 1 is unchanged by each shadow failure, and the shadow is unchanged
+   by a Book 1 failure. The second is the realistic risk while Book 1 is the only trading book.
+4. **The known limit is named.** As of 16 Oct, production has no registered Book 1 version, so nothing trades. The
+   trade rows test a path that is not live yet (strong evidence, the builder's run log). When Book 2 (F5/F6) trades,
+   its isolation case is added.
+
+The two root fixes the suite found (Book 1's orders and the capture's quote folder ignoring `root`) are production code
+changes. They are lane 1 and are judged with O2's code, each with its own test.

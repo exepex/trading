@@ -58,7 +58,7 @@ def test_the_commitment_reveals_nothing_and_the_reveal_waits_for_1515_and_matche
     answer = open_reveal((desk / reveal_path(DAY, BOOK3_AI)).read_text(encoding="utf-8"),
                          Commitment.from_text(commitment_text))  # fmt: skip
     assert answer["forecasts"]["q4_vix_up_10d"]["probability"] == 0.5 and answer["book"] == BOOK3_AI
-    assert len(commits) == 2 and any(line.startswith("sealed: book3_ai") for line in routine.printed)
+    assert len(commits) == 3 and any(line.startswith("sealed: book3_ai") for line in routine.printed)  # + timing (F8c)
 
 
 def test_a_book_seals_once_per_day(desk):

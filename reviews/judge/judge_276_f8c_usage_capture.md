@@ -45,3 +45,19 @@ done" until it lands. A workflow change is lane 1: judge it with this, or on its
 
 **Gates (run by me on 955c7b09):** 7,645 passed (`-n auto`, Slack token unset), no failures. `ruff check`: clean.
 `ruff format --check`: 1,375 files already formatted. `check_imports`: clean.
+
+## Addendum 1: story/f8c-usage-capture at bd0586f5 (response 269 addendum 1)
+
+**PASS. The merge condition is met.** I judged the workflow line here as lane 1 with F8c.
+
+| Item | Result |
+|---|---|
+| `forecast-capture.yml` also adds `accounting/ai_usage.csv` | MET. One path in the commit step; schedule and triggers unchanged. The file exists on `main`, so `git add` cannot fail on a missing path |
+| The start is kept per day and book | MET. `.ai_book/started_<day>_<book>.json`; `brief` parses the pointer first. My earlier surviving plant (overwrite on every brief) now fails 1 test |
+| The not-captured alert posted twice (found by the builder) | FIXED, and checked. The job's "One line to #fno-desk" step posts `grep '^Omenix F&O AI' ai.log` inside its one summary. The alert text is no longer printed, only "usage not captured: <book> <day>: <send result>". My plant (print the alert text again) fails 1 test. The recorder's own lines ("Omenix F&O AI books' minutes (BG1): ...") still appear once, inside that daily summary. That is information, not a second alert |
+
+**Note only:** un-keying the file name (back to one `started.json`) survives the tests (11 passed). The new
+"reused container" test does not pin the keying, but the code keys it correctly.
+
+**Gates (run by me on bd0586f5):** 7,691 passed, no failures. `ruff check`: clean. `ruff format --check`: 1,389
+files already formatted. `check_imports`: clean.
