@@ -39,11 +39,24 @@ a role's cost per day is its own session's allocated usage (F8 writes one usage 
 between the books that consulted its card that day; the book's own session cost is no longer split across units.
 Until F9's owner changes the rule, F9a's current rule overstates the units' cost (still an upper bound, as labelled).
 
-## 4. O9 and credentials (for O9's owner)
+## 4. O9 and credentials (revised after F1t's rule, 16 Oct 2026)
 
-Following O9 section 5, the seal moves to receipts: the routine saves its commitment and reveal through `DataStore` and
-pushes their receipts; the receipt's first push time is the receipt time. The routine therefore needs the owner's
-Drive settings, so it could read any Drive file, including the books' private packs (E2c). The store is write-once,
-so records cannot be changed; reading is the risk. Proposal: a read-only Drive credential scoped to the `data/` area,
-plus a write path limited to the analysts' folder, for AI routines. Until then the limit is stated in the role
-version's `isolation` field, as F1 does.
+First proposal (withdrawn): the routine saves its seal through `DataStore`, which would need the owner's Drive settings
+in an AI session and would let it read any Drive file, including the books' private packs. F1t's rule is that a routine
+session has no Drive credentials (as F1's isolation), and that rule is right: it closes the read risk instead of
+stating it. So the design now follows the AI books exactly:
+- the role's own input items travel in its pointer (capped at 64 KiB like F1t's; over the cap is `not_fired`, never
+  truncated), and the collection checks the pointer's hash against the input file in Drive;
+- the commitment and reveal are pushed to `main` with `GitMainTransport`, as G5 and F1t do, with receipts by F1t's
+  `ObservedPushes`; they move to Drive receipts with the AI books' seal files in O9's step 4, in the same change;
+- the input file, the cards file and the audit files are saved by the Actions job through `DataStore`.
+No question remains for O9's owner from F2.
+
+## 5. Agreements with F1t and F6/F7 (16 Oct 2026)
+
+- F1t (session_01PLbKH15, `story/f1t-ai-trading-runner` 0a466db6 and 2639b915): one `analyst_cards` item in each AI
+  book's pointer (role_set_version, input_sha256, every role's status line, the card when valid or not_applicable), the
+  same for both books; `consulted_units` = the unit ids given; role_set_version in the books' D6 rows; F1t extracts
+  the shared seal class, F2 reuses it; `CardsOfDay` takes the run's one alert sender, injected.
+- F6/F7 (session_01KTAQCD, `story/f6-book3-engine` 30f42af3): `card_id` `<role>/v<n>/<day>` for `cards_used`;
+  role_set_version names the registered set (`volatility/v1`, `none` with no role registered).

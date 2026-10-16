@@ -151,8 +151,11 @@ a new prompt version once captured. Same-day intraday data is not in v1 (A16's s
 one file through O9's `DataStore` (`fno/storage/data_wiring.py`, writer `analyst-cards`): `analysts/<YYYY>/<d>_input.json`
 in Drive's `data` area, with its receipt committed under `receipts/` before any role is fired. The file holds, per role,
 its items and a manifest (item id, kind, source, first-seen time, SHA-256 of its lines), the cutoff and the missing
-inputs with their reasons; derived summaries only, never raw broker quote rows (A4b). The role's pointer carries the
-file's SHA-256; the routine reads it through the verified Drive cache, which refuses bytes that differ from the receipt.
+inputs with their reasons; derived summaries only, never raw broker quote rows (A4b). **A routine session has no Drive
+credentials (F1t's rule, as F1's isolation), so each role's own items travel in its pointer** (F2's own pointer,
+`fno/analysts/pointer.py`, one line of JSON, capped at 64 KiB like F1t's; an input over the cap is `not_fired`, never
+truncated), with the role's `input_sha256` (canonical JSON of that role's part of the input file). The collection checks
+that hash against the Drive file read through the verified cache, which refuses bytes that differ from the receipt.
 
 **4. The finding card.** The routine writes only the draft; code adds the labels (`role`, `day`, `as_of` = the cutoff,
 `version`, `input_sha256`, `card_id`) so the model cannot mislabel them. Schema version 1:
@@ -186,20 +189,25 @@ does). A card is refused, with the first rule it breaks in F2's own words, when:
 A `not_applicable` card (claims empty, view `no_view`) is valid: "nothing applies today" is an answer, never a number
 invented to fill the card.
 
-**6. Sealing (O9 section 5: "AI-book seal: push time of its receipt").** Before the commitment deadline the routine
-saves only a commitment (the SHA-256 of a random salt and its card, `fno/ai/seal.py`) through `DataStore` and commits
-and pushes its receipt; after the reveal time it saves the reveal (card and salt) the same way. The receipt time of
-each is GitHub's push time of the commit that first added its receipt (`fno/ai/history.py` `first_commit_adding` and
-`fno/ai/receipts.py`, reused on the receipt path); the bytes are read through the verified cache. So no role can read
+**6. Sealing (the books' mechanism, unchanged).** Before the commitment deadline the routine pushes only a commitment
+(the SHA-256 of a random salt and its card, `fno/ai/seal.py`) to `main` with `fno/ai`'s `GitMainTransport`, at
+`research/analysts/submissions/<YYYY>/<d>_<role>.commitment.json`; after the reveal time it pushes the reveal (card and
+salt) beside it. This is the same path the AI books use (G5 today, F1t for decisions), because a routine cannot write to
+Drive; when O9's step 4 moves the AI books' seal files to Drive receipts, the roles' move with them, in the same
+change. Receipt times come from the same `PushReceipts` adapter the books use (F1t's `ObservedPushes`: a `git fetch` at
+each deadline, no token), and a later rewrite never counts (`submissions.py`, first publication). So no role can read
 another role's card before its own commitment is in, and no card can change once sealed.
 
 **7. Firing and collection: the existing `fno/ai` mechanism, extended, never copied.** The trigger (`RoutineTrigger`,
 one routine per role, two repository secrets each, an unconfigured role is `UnconfiguredTrigger`), the seal, the
-receipt times, the first-publication reading, the model check (`outcome.model_check`) and the fire-once log are shared.
-Where `fno/ai` code is specific to forecasts (the book session's brief/seal/reveal steps, the firer's loop), the common
-part is extracted into one shared class used by both the forecast books and the roles; G5's forecast behaviour does not
-change and its existing tests pass unedited. The routine runs `sh tools/routine_setup.sh` (O7), then
-`python -m fno.analysts brief '<pointer>'`, `seal <card.json>`, `reveal`. Records are written once.
+transport, the receipts, the first-publication reading, the model check (`outcome.model_check`) and the fire-once log
+are shared. F1t extracts `fno/ai/book.py`'s brief/seal/reveal publish logic into one shared class (F1t's text, item 3;
+one builder per function); F2 uses that class and never makes a third copy, so F2's code round starts after that
+extraction is on `main`. Where the firer's loop is forecast-specific, F2 reuses F1t's shared form if F1t makes one, or
+extracts it itself with F1t's agreement; G5's forecast tests pass unedited either way. The routine runs
+`python -m fno.analysts brief '<pointer>'`, `seal <card.json>`, `reveal` (standard library only, as `python -m fno.ai`).
+The input file, the cards file and the audit files are saved by the Actions job through `DataStore`; records are
+written once.
 
 **8. Timetable (IST, `config.yaml` `analysts.timetable`, PROPOSED until S1 freezes it, like `desk.timetable`).** Cutoff
 14:00; latest fire start 14:15 (a run starting later fires nothing: "late start", recorded and alerted); commitment
@@ -245,14 +253,10 @@ capture. `config.yaml` `analysts.live_from` (a date or null, null on merge): bef
 `--dry-run` (no fire, no save, prints the input and what would be fired). Setting the date is the owner's call when
 Books 2-3 trade.
 
-**13. What a role never does (7.5).** Places or prepares an order, sees an outcome (the card is sealed before the books
-decide), edits a record (write-once store; a later collection only says whether it would differ), changes a rule,
-posts anywhere (alerts come from the Actions job only), names a model on a screen. **Credentials (open with O9's
-owner, response 264):** under O9 the routine needs the owner's Drive settings to read its input and save its seal,
-so it can read any Drive file, including the books' private packs (E2c). The store is write-once, so it cannot change
-a record; reading is the risk. The transcript audit's breach kinds cover it for the books today; a read-only,
-area-scoped Drive credential for AI routines would close it and is proposed to O9's owner. Until then this limit is
-stated in the role's version (`isolation`), as F1 does.
+**13. What a role never does (7.5).** Places or prepares an order, reads a credential (the routine has no Drive,
+Slack or broker settings and receives only its pointer), sees an outcome (the card is sealed before the books decide),
+edits a record (write-once store and first-publication reading; a later collection only says whether it would differ),
+changes a rule, posts anywhere (alerts come from the Actions job only), names a model on a screen.
 
 ### Gap list (design requirement → criterion, or out with the reason)
 
@@ -265,7 +269,7 @@ stated in the role's version (`isolation`), as F1 does.
 | Feeds Books 2-3 (7.2) | 9, crit. 9 |
 | Feeds idea cards and weather drivers (7.2) | Out: v1 feeds the books only; R1 and M1 take cards later as new inputs |
 | Analysts start only with the books' trading (7.2; owner 16 Oct: built now, off) | 12, crit. 12 |
-| Never: orders, credentials, outcomes, editing records, rules, posting, model on a screen (7.5) | 13, crit. 13; the Drive read limit stated, proposed to O9's owner |
+| Never: orders, credentials, outcomes, editing records, rules, posting, model on a screen (7.5) | 13, crit. 13 |
 | Cost allocation F8, value F9, budget stop order (7.6) | 10, 12, crit. 10, 14; F8 usage capture of role sessions out (F8 part 2's owner; the fire log keeps the links) |
 | Fired from GitHub Actions, routines on the owner's plan (7.1) | 7, crit. 7 |
 | Point-in-time data only (brief) | 2, crit. 2 |
@@ -274,7 +278,7 @@ stated in the role's version (`isolation`), as F1 does.
 | Fire and collect through `fno/ai`, no second mechanism (brief) | 7, crit. 15 |
 | Missing or invalid card: alert and record, never blocks the books (brief; owner 16 Oct) | 9, 11, crit. 8-9 |
 | Cards scored later through F9 (brief) | 10, crit. 10; scoring each card's view against outcomes: out (descriptive only, a later story if wanted) |
-| Data files write-once in Drive with receipts (O9; orchestrator's answer d) | 3, 6, 9, crit. 16 |
+| Data files write-once in Drive with receipts (O9; orchestrator's answer d) | 3, 9, crit. 16; the seal files follow the AI books' git path until O9's step 4 moves both (item 6) |
 | Independence between roles (design 3.3) | 6, crit. 7 (matters from the second role on; built and tested now) |
 | Observation, source and time known; counter-evidence; what proves it wrong; "not applicable", never invented numbers (design 3.1) | 4-5, crit. 4-6 |
 | Role matrix of every design 3.4 role (old F2 criterion 6) | Out: design v2's 7.2 table replaced it |
@@ -297,32 +301,34 @@ stated in the role's version (`isolation`), as F1 does.
    refused.
 6. **Labels fixed by code.** A draft cannot set `role`, `day`, `as_of`, `version`, `input_sha256` or `card_id`; a reveal whose
    labels differ from the pointer and input is refused at collection.
-7. **Sealing and independence.** A card counts only when its commitment's receipt was pushed by the commitment
-   deadline, its reveal's receipt by the reveal deadline, and the reveal hashes to the commitment; no reveal is saved
-   before the reveal time; a commitment pushed after another role's reveal was readable is `exposed`. Tests with fake
+7. **Sealing and independence.** A card counts only when its commitment was visible on `main` at the commitment
+   deadline's observation, its reveal by the reveal deadline's, and the reveal hashes to the commitment; no reveal is
+   pushed before the reveal time; a commitment pushed after another role's reveal was readable is `exposed`. Tests with fake
    receipts at, before and one second after each deadline, and an unknown receipt time (late).
 8. **Every failure is recorded and alerted.** Not fired (unconfigured trigger, fire refused, late start, budget stop),
    no submission, late, not revealed, refused (with the rule), model mismatch, exposed: each gives one status in the
-   cards file and one #fno-desk line (fake sender) without card text. A missing input, a failed Drive save and a failed
-   receipt push each give one line and a failure exit.
+   cards file and one #fno-desk line (fake sender) without card text. A missing input, a failed Drive save, a failed
+   receipt push and an input over the pointer cap each give one line and a failure exit.
 9. **Never blocks the books.** `CardsOfDay` returns every registered role's status even when no card exists or the
    cards file is missing, fails its receipt check, or cannot be read within 30 seconds (`no_submission` with the
-   reason, and one #fno-desk line), and never raises for a missing card. Its `card_id`s are unique and stable (same file, same ids), and `role_set_version` is `none` with an empty
+   reason, and one #fno-desk line through the alert sender it is given: the caller's, e.g. O1's one `ReportedAlerts`,
+   never one it builds), and never raises for a missing card. Its `card_id`s are unique and stable (same file, same ids), and `role_set_version` is `none` with an empty
    registry and `volatility/v1` with the v1 registry (tests).
 10. **F9 fit.** Every registered role's `unit_id` is accepted by F9's `RoleSet.of` and is not a control role (test
     against the imported F9 code).
 11. **Only registered roles fire.** A role not in the registry is never fired and a pointer naming one is refused.
 12. **Live switch.** With `analysts.live_from` null or after the day, a run fires nothing and saves nothing (only
     `--dry-run` output); from the date on, it fires. A malformed key is refused at config load.
-13. **Never-do rules.** The pointer carries no secret (O5 scan on a real pointer); `fno/analysts` imports no Slack,
-    Groww or order code on the routine side (import test); records are write-once (a second collection that differs
+13. **Never-do rules.** The pointer carries no secret (O5 scan on a real pointer); the routine side of `fno/analysts`
+    imports no Slack, Drive, Groww or order code (import test); records are write-once (a second collection that differs
     says so and saves nothing).
 14. **Budget.** A month signal with `stop_ai_roles: true` fires no role and records `not_fired: budget stop`; an unknown
     or missing signal fires and says so in the fire log.
 15. **One mechanism.** No second trigger, seal, receipt, submission or model-check code: `fno/analysts` imports them
     from `fno/ai` (test); G5's existing forecast tests pass unedited after any extraction.
-16. **O9.** No analyst file is added to the repository except receipts (O9 criterion 1's check passes); every saved
-    file has one receipt with a matching SHA-256; a planted changed file in the cache is refused with an alert.
+16. **O9.** The input, cards and audit files are saved only through `DataStore` (one receipt each, matching SHA-256);
+    a planted changed file in the cache is refused with an alert; the only analyst files in the repository are those
+    receipts and the seal files of item 6 (the AI books' own exception until O9's step 4).
 17. **Not a trading day / late start.** A closed day records "not a trading day" and fires nothing; a run that starts
     after the latest fire start fires nothing and alerts once.
 18. **End to end (fake AI).** One test runs a whole day with a fake Drive, fake triggers and fake routine answers (a
@@ -338,7 +344,8 @@ cards file, labelled as made by a test or a dry run (rule 6).
 dry-run input and checks each item against its source and first-seen time; confirms nothing is fired while
 `live_from` is null and that G5's tests are unedited.
 
-**Depends:** F1 (forecast part, merged), O9 parts 1 (`DataStore`, verified cache), A15, G2, BG1; F1t reads the cards
+**Depends:** F1 (forecast part, merged), F1t's shared seal class and `ObservedPushes` (on `main` before F2's code
+round), O9 parts 1 (`DataStore`, verified cache), A15, G2, BG1; F1t reads the cards
 file · **Size:** M (one role) · **Status:** story text rewritten to design v2 (16 Oct 2026), revised for the
 orchestrator's answers (response 264); waiting for the judge's text check; code after its PASS
 
