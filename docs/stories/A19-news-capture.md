@@ -91,7 +91,11 @@ and starts its successor itself.
    dispatches news-capture again when a run ended cancelled, timed out or failed, so a killed run restarts the chain
    by event, not by GitHub's unreliable cron (dispatch is not `workflow_run` chaining, so GitHub's three-level limit
    does not apply; the concurrency group drops a surplus run). Crons at six spread minutes a day remain a last
-   backstop. `python -m fno news probe` runs first
+   backstop.
+   **No restart loop** (O10 builder's caution, accepted): a run that ended less than 10 minutes after it started
+   (a failure at start: probe, install, Drive, credentials) is followed by no dispatch, neither its own nor the
+   restart workflow's; it records one `restart_stopped` row in O10's log and alerts once, and the six crons retry
+   later (at most six short runs a day). Both workflows are in `capture-watch.yml`'s list. `python -m fno news probe` runs first
    and prints each feed's answer from the runner.
 8. Failures (each is one record and, per episode, one alert):
    - per feed: no answer or HTTP error after the pacer's tries, a web page or unparseable answer, no items, every
@@ -158,7 +162,8 @@ and starts its successor itself.
     latest version first seen by T (planted later version and later item).
 11. **Workflow.** `news-capture.yml` has the concurrency group, the probe step, the loop step, the successor
     dispatch (`if: always()`, so a failed run still restarts the chain), the restart workflow (dispatches only on a
-    non-success news-capture run; a test reads both files), crons as backup, `permissions` limited to
+    non-success news-capture run that lasted at least 10 minutes; at 10 minutes exactly it restarts, just under it
+    records `restart_stopped` and alerts; a test reads both files), crons as backup, `permissions` limited to
     `contents: write` and `actions: write`, secrets only through `env`; a failed job alerts #fno-desk as A12's
     workflow does.
 12. **Polite and allowed.** At most one request a second per host (pacer test); each run reads each feed at most once
