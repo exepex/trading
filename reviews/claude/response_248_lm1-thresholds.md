@@ -155,3 +155,22 @@ not fire. The percentages are now rounded to 6 digits before the comparison.
 - An expiry warning is `once` per session, and an exit rule reached is `once` per session, so a whole day is not
   hourly noise.
 - The stale clock starts at the session's first mark (09:15) when nothing usable came yet.
+
+### The owner's decision applied (DESK_DECISIONS, 16 Oct 2026, row "LM1 position monitor: starting thresholds", 4186a4ce)
+
+The owner accepted every recommendation. `config.yaml` `monitor` now holds the decided values, with version
+`owner-2026-10-16`:
+- `big_move_step_pct: 0.5` (Q4b: repeat only on another +0.5%);
+- `check_incomplete_marks: true` (Q5b);
+- the other values as proposed.
+
+The row says the expiry WARNING is "at 09:30 on the session before expiry and on expiry day". So a new setting,
+`expiry_warn_from: "09:30"`, holds back an earlier mark (09:15). The warning stays `once` per session.
+
+The row says "only missed, failed or late marks count as stale". The code counts every status except good and
+incomplete, which also includes A16's `stale` status (an index reading too old). I read that as the row's intent:
+a stale index cannot be checked.
+
+Tests:
+- `test_the_repository_config_holds_the_owners_decided_values` pins every decided value.
+- `test_expiry_warns_from_the_0930_mark_only`.

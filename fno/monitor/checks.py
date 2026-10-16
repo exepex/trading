@@ -7,7 +7,7 @@ Market-wide conditions (the big move, stale quotes) are one condition for the wh
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from ..models import IST
 from ..research_data.calendar import SessionCalendar
@@ -132,6 +132,8 @@ class ExpiryNear(MonitorCheck):
         self.calendar = calendar
 
     def find(self, mark, positions):
+        if mark.mark.astimezone(IST).time() < time.fromisoformat(self.settings.expiry_warn_from):
+            return []
         found = []
         for p in positions:
             expiry = p.nearest_expiry

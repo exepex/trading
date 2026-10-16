@@ -25,7 +25,8 @@ def test_the_repository_config_builds_the_monitor_with_the_timetable_snapshot():
 @pytest.mark.parametrize(("key", "value"), [
     ("loss_used_warning", 0.9), ("loss_used_danger", 1.2), ("short_strike_near_pct", 0), ("big_move_pct", "1.5"),
     ("big_move_step_pct", -1), ("stale_after_minutes", 0), ("check_incomplete_marks", "yes"),
-    ("expiry_warn_sessions", -1), ("danger_summary_after", 2.5), ("summary_every_minutes", True), ("version", ""),
+    ("expiry_warn_sessions", -1), ("expiry_warn_from", "9.30"), ("expiry_warn_from", 930),
+    ("danger_summary_after", 2.5), ("summary_every_minutes", True), ("version", ""),
 ])  # fmt: skip
 def test_a_bad_value_stops_at_start(key, value):
     with pytest.raises(MonitorSettingsError, match="monitor setting"):
@@ -43,3 +44,14 @@ def test_a_missing_or_unknown_key_stops_at_start():
 def test_incomplete_marks_are_usable_only_when_set():
     assert settings().usable_statuses == (GOOD, INCOMPLETE)
     assert settings(check_incomplete_marks=False).usable_statuses == (GOOD,)
+
+
+def test_the_repository_config_holds_the_owners_decided_values():
+    """DESK_DECISIONS, 16 Oct 2026, "LM1 position monitor: starting thresholds" (response 248)."""
+    decided = monitor_settings(load_app_config())
+    assert decided.version == "owner-2026-10-16"
+    assert (decided.loss_used_warning, decided.loss_used_danger, decided.short_strike_near_pct) == (0.5, 0.8, 0.5)
+    assert (decided.big_move_pct, decided.big_move_step_pct, decided.stale_after_minutes) == (1.5, 0.5, 30)
+    assert decided.check_incomplete_marks is True
+    assert (decided.expiry_warn_sessions, decided.expiry_warn_from) == (1, "09:30")
+    assert (decided.danger_summary_after, decided.summary_every_minutes) == (10, 30)

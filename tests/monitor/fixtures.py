@@ -14,7 +14,7 @@ EXPIRY = date(2026, 10, 27)
 SECTION = {
     "version": "test-1", "loss_used_warning": 0.5, "loss_used_danger": 0.8, "short_strike_near_pct": 0.5,
     "big_move_pct": 1.5, "big_move_step_pct": 0.5, "stale_after_minutes": 30, "check_incomplete_marks": True,
-    "expiry_warn_sessions": 1, "danger_summary_after": 10, "summary_every_minutes": 30,
+    "expiry_warn_sessions": 1, "expiry_warn_from": "09:30", "danger_summary_after": 10, "summary_every_minutes": 30,
 }  # fmt: skip
 
 

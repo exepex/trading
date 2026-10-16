@@ -131,3 +131,9 @@ def test_vix_and_weather_checks_wait_and_are_never_built():
 def test_short_strike_exactly_half_a_percent_away_fires(short, fires):
     found = ShortStrikeNear(settings()).find(mark(level=25000.0), [spread(short=short)])
     assert bool(found) is fires
+
+
+def test_expiry_warns_from_the_0930_mark_only():
+    check = ExpiryNear(settings(), CALENDAR)
+    assert check.find(mark("09:15"), [spread(expiry=DAY)]) == []
+    assert len(check.find(mark("09:30"), [spread(expiry=DAY)])) == 1
