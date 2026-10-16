@@ -28,4 +28,4 @@ def test_the_desk_has_one_parser_holding_pack_and_scorecard():
         done = subprocess.run([sys.executable, "-m", "fno", "desk", *command], capture_output=True, text=True)
         assert done.returncode == 0, done.stderr
     done = subprocess.run([sys.executable, "-m", "fno", "desk", "--help"], capture_output=True, text=True)
-    assert "{pack,scorecard,book1,run}" in done.stdout
+    assert "{pack,scorecard,book1}" in done.stdout  # the daily run is `fno daily run` (story O1)

@@ -124,6 +124,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           git add research/forecasts # Book 1, the baselines, the AI books and the fire log
+          git add accounting/ai_usage.csv # the AI books' minutes ai collect recorded (story F8c)
           git diff --cached --quiet || git commit -m "G3/G5 Actions: forecast v2 records $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: One line to #fno-desk
