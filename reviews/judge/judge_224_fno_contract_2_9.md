@@ -126,3 +126,19 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
 - **Later (orchestrator, 16 Oct 06:37 UTC):** cf9692e and 07c8683 were already on dashboard main ea75be3 (merged as
   7731d0e) before this check, so 7ccdff8 would only bump version strings. It is not merged, and the contract stays
   2.9.0. My earlier reading, that main stopped at 709cb8c, came from main e74c939 and was out of date by then.
+
+## Addendum 5: story/fno-probe-report at e7bc792 (addendum 4's note fixed)
+
+**PASS.** 7ccdff8 (2.10) is withdrawn by the screens lead as redundant, and addendum 4 stays on record only.
+
+- **Shape:** e7bc792 contains main ea75be3. Its one commit changes only `tools/api/fno_rules.py` (+5 -1; the file now
+  has 118 lines).
+- **The fix:** `check_probes` catches `KeyError`, `IndexError` and `StopIteration` from a probe's change and reports
+  "probe on <example> cannot plant <what>: its example lacks the part it changes". It does not crash, and it still
+  fails closed: the problem is appended and the exit is 1. Putting the guard in `check_probes` covers every probe,
+  instead of one. These are the error types a probe's change raises when the example has lost a part, so the guard
+  hides no other bug.
+- **Shown:** I removed `backfill_sha256` from every series of `getFnoForecastHistory_india_ahead`. The check exits 1
+  with nine "'backfill_sha256' is a required property" problems, the probe line `KeyError('backfill_sha256')`, and
+  the mockup mismatch. It gives no traceback.
+- **Gates on e7bc792:** `check_contract` and `check_fno_screens` exit 0, and code size is OK.
