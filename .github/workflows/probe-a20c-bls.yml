@@ -1,0 +1,23 @@
+# Throwaway probe for story A20c (deleted after one run): can a GitHub runner read BLS's release schedules
+# (US CPI, payrolls)? Read-only; prints HTTP status codes and sizes only; no secrets.
+name: probe-a20c-bls
+on:
+  push:
+    branches: [probe/a20c-bls]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: BLS schedules from a runner
+        run: |
+          for ua in "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" "omenix-research/1.0"; do
+            for u in https://www.bls.gov/schedule/news_release/cpi.htm https://www.bls.gov/schedule/news_release/empsit.htm https://www.bls.gov/schedule/news_release/bls.ics; do
+              printf '%s | %s | ' "$u" "${ua%% *}"
+              curl -sS -o /dev/null -m 30 -A "$ua" -H "Accept-Language: en-US" -w '%{http_code} %{size_download}\n' "$u" || echo "curl failed"
+            done
+          done
+          printf 'fed fomc | '; curl -sS -o /dev/null -m 30 -A "Mozilla/5.0" -w '%{http_code} %{size_download}\n' https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
+          printf 'mospi arc api | '; curl -sS -o /dev/null -m 30 -A "Mozilla/5.0" -w '%{http_code} %{size_download}\n' https://www.mospi.gov.in/api/documents/get-latest-release-calender
