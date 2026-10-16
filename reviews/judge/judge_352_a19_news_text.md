@@ -161,3 +161,18 @@ Fix expected:
 **Minor (new).** Whether `workflow_run` fires for a news-capture run that was itself started by a `GITHUB_TOKEN`
 dispatch is not proven. The text rightly labels it reasoning only. Make criterion 15's real run prove it: a dispatched
 run ends, and the kick's run appears.
+
+## Addendum 2: re-judge at 7856f007
+
+**Verdict: PASS for the A19 story text, with one condition on the default config.** Code may start.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| SF6: the first poll of the day after the open | Correction in step 0: a run alive at 07:00 means a runner held overnight, the same runner time as polling, so "a third less load" was wrong. The question went back to the owner with four options. `news.overnight_bridge`: a bridged run polls nothing outside the window and sleeps until the window opens or 340 minutes pass. Criterion 7 has a fake-clock chain from 22:30 to 07:30 (first poll at 07:00, none at 06:59:59, no job over 340 minutes, no dispatch at 23:00 with the bridge off). The first live week lists each day's first poll time | The bridge's two hops (23:00 to about 04:40, then to 07:00) each stay under the 340-minute loop limit. The builder's correction of their own earlier claim is honest | **Accepted** |
+| Minor: the `workflow_run` chain is unproven | GitHub runs `workflow_run` only for workflow files on the default branch, so the proof moves to the orchestrator's end-to-end run after the merge (both run URLs; a failure is reported) | GitHub's documented behaviour; the right place for the proof | **Accepted** |
+
+**Condition.** The text says "Until the owner answers, this text assumes (1)" (24/7 polling). The owner's recorded
+decision is row 253, "News poller runs on GitHub only 07:00-23:00 IST". A builder's recommendation must not replace a
+standing owner decision, even as a default. Until the owner answers the SF6 question, the merged `config.yaml` must
+carry the recorded decision: `news.active_window` 07:00-23:00, and `news.overnight_bridge` false unless the owner
+picks (2). The code supports every option unchanged. I will check this at the code round.
