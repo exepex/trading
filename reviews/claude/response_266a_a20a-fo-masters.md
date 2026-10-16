@@ -1,4 +1,4 @@
-# Response 270: A20a, NSE's daily F&O ban list and market lots kept point in time (builder's claims)
+# Response 266a: A20a, NSE's daily F&O ban list and market lots kept point in time (builder's claims)
 
 **Story:** `docs/stories/A20-rules-and-dates.md` (part a) · **Branch:** `story/a20a-fo-masters` (built on the text
 branch `story/a20-rules-and-dates`) · **Builder:** session_013u1Ac2N9eRQ8XCYPjwpaat · **Lane:** 1 (NSE, Drive, Slack,
