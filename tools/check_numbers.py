@@ -1,10 +1,12 @@
 """Check the numbered series against their registries in `numbers/` (story O12); standard library only.
 
     python tools/check_numbers.py          # one line per problem, exit 1 when any; CI runs it on every push
-    python tools/check_numbers.py --seed   # when O12 merges only: register the files already on main as `existing`
+    python tools/check_numbers.py --seed   # when O12 merges: register the files on main as `existing` history and
+                                           # pin it in fno/numbering/seed_pins.json (a later run is a judged change)
 
 Fails when a numbered file (or a numbered `## Addendum` heading) has no registry row, when a number is used twice
-outside the seeded history, or when a row is malformed. A row with no file yet is a claim still being written.
+outside the seeded history, when the seeded history differs from its pin, when a series file is misnamed, or when a
+row is malformed. A row with no file yet is a claim still being written.
 """
 
 from __future__ import annotations

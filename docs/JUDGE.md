@@ -152,8 +152,9 @@ gaps." These rules add to the loop above; none of them replaces the judge's own 
   and the number check run on every push.
 
 **Several judges (owner decision, 15 Oct 2026).** Several judge sessions may run at once, each with a dedicated, limited
-set of stories named by the orchestrator, so no judge's load grows too large. Each follows this file in full. By the
-orchestrator's convention (not an owner rule), the verdict number equals the story's response number; a change with no
-response file gets a number the orchestrator reserves for it. Every judge number and addendum number is claimed in the
-central registry before the file or section is written (story O12): `python tools/claim_number.py judge-report <slug>
---session <id> --number <n>` for the convention's number, `judge-addendum <label> --report <n>` for an addendum.
+set of stories named by the orchestrator, so no judge's load grows too large. Each follows this file in full. Every
+judge number and addendum number is claimed in the central registry before the file or section is written (story
+O12): `python tools/claim_number.py judge-report <slug> --session <id>` and `python tools/claim_number.py
+judge-addendum <label> --session <id> --report <n>`; the report names the response it judges in its title. (The
+orchestrator's old convention, verdict number equal to the response number, ends with O12: the two series had already
+run apart, judges up to 274 against responses up to 252, so the equal number is often taken.)

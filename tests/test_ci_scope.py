@@ -76,4 +76,7 @@ def test_a_number_claim_is_lane_3_and_the_number_check_runs_on_every_push(tmp_pa
     head = commit(repo, {"numbers/judge-report.csv": "number,name,session,claimed_at_utc\n"})
     assert scope(repo, first, head) == ("code=false", ["numbers/judge-report.csv"])
     steps = (SCRIPT.parent.parent / ".github" / "workflows" / "checks.yml").read_text()
-    assert "      - run: python tools/check_numbers.py" in steps  # no `if:`: it runs whatever the scope
+    assert steps.rstrip().endswith(
+        "      - if: always() # story O12: every push, last, so a reused number never stops "
+        "the record scan above\n        run: python tools/check_numbers.py"
+    )

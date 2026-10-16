@@ -4,8 +4,11 @@ from pathlib import Path
 
 import pytest
 
+from fno.numbering.categories import CATEGORIES
 from fno.numbering.check import check_numbers
+from fno.numbering.registry import read_rows
 from fno.numbering.seed import seed_registries
+from fno.numbering.seed_pin import seeded_digest, write_pins
 from tests.numbering.helpers import HEADER, write
 
 STAMP = "2026-10-16T10:00:00Z"
@@ -25,9 +28,15 @@ CLEAN_REGISTRIES = {
 
 
 def checkout(tmp_path: Path, category: str = "", registry: str = "") -> Path:
-    """The clean checkout, with one category's registry replaced when given."""
-    replaced = {f"numbers/{category}.csv": registry} if category else {}
-    return write(tmp_path, {**FILES, **CLEAN_REGISTRIES, **replaced})
+    """The clean checkout with its seed pinned, then one category's registry replaced when given."""
+    pin(write(tmp_path, {**FILES, **CLEAN_REGISTRIES}))
+    return write(tmp_path, {f"numbers/{category}.csv": registry} if category else {})
+
+
+def pin(root: Path) -> Path:
+    """Pins the seeded rows as they stand, as the seed does at the merge."""
+    write_pins(root, {c.name: seeded_digest(read_rows(root / c.registry)) for c in CATEGORIES.values()})
+    return root
 
 
 def test_a_clean_checkout_passes_and_a_claim_without_its_file_yet_is_fine(tmp_path):
@@ -73,15 +82,48 @@ def test_two_headings_with_one_number_fail_unless_both_are_seeded(tmp_path):
 
 
 def test_seeded_history_may_repeat_a_number(tmp_path):
-    root = checkout(tmp_path, "claude-response", HEADER + "1,response_1_a.md,existing,\n1,response_1_b.md,existing,\n")
+    seeded = HEADER + "1,response_1_a.md,existing,\n1,response_1_b.md,existing,\n"
+    root = pin(checkout(tmp_path, "claude-response", seeded))
     write(root, {"reviews/claude/response_1_b.md": "x\n"})
     assert check_numbers(root) == []
 
 
-def test_a_seeded_row_after_a_claim_fails(tmp_path):
-    late_seed = HEADER + f"1,judge_1_a.md,existing,\n2,judge_2_b.md,session_x,{STAMP}\n3,judge_3_c.md,existing,\n"
-    assert check_numbers(checkout(tmp_path, "judge-report", late_seed)) == [
-        "numbers/judge-report.csv: seeded row 3 comes after a claimed row; the seed is history only"
+@pytest.mark.parametrize("where", ["first", "last"])
+def test_a_seeded_row_added_after_the_pin_fails_wherever_it_sits(tmp_path, where):
+    clash = "1,response_1_b.md,existing,\n"
+    rows = "1,response_1_a.md,existing,\n" + f"9,response_9_x.md,session_x,{STAMP}\n"
+    registry = HEADER + (clash + rows if where == "first" else rows + clash)
+    root = checkout(tmp_path, "claude-response", registry)
+    write(root, {"reviews/claude/response_1_b.md": "x\n"})
+    assert check_numbers(root) == [
+        "numbers/claude-response.csv: the seeded rows differ from their pin in fno/numbering/seed_pins.json; "
+        "the seed is history only"
+    ]
+
+
+def test_a_misnamed_series_file_fails(tmp_path):
+    root = checkout(tmp_path)
+    write(root, {"reviews/claude/response_07_b.md": "x\n", "reviews/chatgpt/review_7.md": "x\n"})
+    assert check_numbers(root) == [
+        "reviews/claude/response_07_b.md: not a response_<n>_<slug>.md name, so its number cannot be checked",
+        "reviews/chatgpt/review_7.md: not a review_<n>_<slug>.md name, so its number cannot be checked",
+    ]
+
+
+def test_a_level_3_heading_counts_and_a_quoted_one_in_a_code_block_does_not(tmp_path):
+    root = checkout(tmp_path)
+    text = FILES["reviews/judge/judge_1_a.md"] + "```\n## Addendum 1\n## Addendum 9\n```\n### Addendum 4\n"
+    (root / "reviews/judge/judge_1_a.md").write_text(text)
+    assert check_numbers(root) == ["reviews/judge/judge_1_a.md: number 1.4 has no row in numbers/judge-addendum.csv"]
+
+
+def test_one_line_per_unregistered_heading_even_when_repeated(tmp_path):
+    root = checkout(tmp_path)
+    (root / "reviews/judge/judge_1_a.md").write_text(FILES["reviews/judge/judge_1_a.md"] + "## Addendum 5\n" * 2)
+    assert check_numbers(root) == [
+        "reviews/judge/judge_1_a.md: number 1.5 has no row in numbers/judge-addendum.csv",
+        "numbers/judge-addendum.csv: number 1.5 is used 2 times (judge_1_a.md); "
+        "only seeded history may repeat a number",
     ]
 
 
@@ -94,13 +136,19 @@ def test_a_seeded_row_after_a_claim_fails(tmp_path):
         (f"2,judge_2_b.md,,{STAMP}", "no claiming session"),
         ("2,judge_2_b.md,s,2026-10-16 10:00", "claimed_at_utc is not YYYY-MM-DDTHH:MM:SSZ"),
         ("2,judge_2_b.md,s,", "claimed_at_utc is not YYYY-MM-DDTHH:MM:SSZ"),
-        (f"2,judge_2_b.md,existing,{STAMP}", "a seeded row has no time"),
     ],
 )
 def test_a_malformed_row_fails(tmp_path, row, reason):
     root = checkout(tmp_path, "judge-report", HEADER + "1,judge_1_a.md,existing,\n" + row + "\n")
     number, name = row.split(",")[:2]
     assert check_numbers(root) == [f"numbers/judge-report.csv: row {number},{name}: {reason}"]
+
+
+def test_a_seeded_row_with_a_time_fails(tmp_path):
+    registry = HEADER + "1,judge_1_a.md,existing,\n" + f"2,judge_2_b.md,existing,{STAMP}\n"
+    assert check_numbers(pin(checkout(tmp_path, "judge-report", registry))) == [
+        "numbers/judge-report.csv: row 2,judge_2_b.md: a seeded row has no time"
+    ]
 
 
 def test_an_addendum_number_must_have_both_parts(tmp_path):
@@ -117,11 +165,13 @@ def test_a_broken_header_is_one_finding(tmp_path):
     ]
 
 
-def test_the_seed_registers_history_once_with_its_duplicates(tmp_path):
+def test_the_seed_registers_history_once_with_its_duplicates_and_pins_it(tmp_path):
     root = write(tmp_path, {**FILES, "reviews/claude/response_1_b.md": "x\n"})
     assert check_numbers(root) != []
     assert seed_registries(root) == 6  # 2 responses, 1 review, 1 report, 2 addenda
+    pins = (root / "fno/numbering/seed_pins.json").read_text()
     assert seed_registries(root) == 0
+    assert (root / "fno/numbering/seed_pins.json").read_text() == pins
     assert check_numbers(root) == []
     assert (root / "numbers/claude-response.csv").read_text() == (
         HEADER + "1,response_1_a.md,existing,\n1,response_1_b.md,existing,\n"

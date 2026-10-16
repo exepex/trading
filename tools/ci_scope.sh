@@ -1,7 +1,8 @@
 #!/bin/sh
 # Which checks a push needs (checks.yml): prints `code=true` unless every changed file is a lane-3 path (judge and
-# review files, conversation logs, decision and register rows, number claims; CLAUDE.md "Judge lanes"), then `code=false`. Lane-3-only
-# pushes skip pytest, ruff and the import check; the record scan always runs, on the changed files.
+# review files, conversation logs, decision and register rows, number claims; CLAUDE.md "Judge lanes"), then
+# `code=false`. Lane-3-only pushes skip pytest, ruff and the import check; the record scan always runs, on the changed
+# files.
 #   sh tools/ci_scope.sh BASE HEAD [CHANGED_LIST]   # CHANGED_LIST: where to write the changed files that exist (NUL)
 # Any doubt counts as code: no BASE (a new branch: all zeros), a BASE missing from history (a force-push), or no change.
 set -eu

@@ -1,7 +1,7 @@
 """The number check (story O12): every numbered file or heading has its registry row, and no number is used twice.
 
-Seeded history (session `existing`) may hold a number twice; nothing claimed after the seed may. Seeded rows come
-first in each registry, so the seed cannot be reused later to register a clash.
+Seeded history (session `existing`) may hold a number twice; nothing claimed after the seed may. The seeded rows
+must equal their pinned SHA-256 (`seed_pin.py`), so no seeded row can be added later to hide a clash.
 """
 
 from __future__ import annotations
@@ -9,43 +9,54 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
-from fno.numbering.categories import CATEGORIES, Category
-from fno.numbering.numbered_items import NumberedItem, numbered_items
+from fno.numbering.categories import CATEGORIES, AddendumCategory, Category
+from fno.numbering.numbered_items import NumberedItem, misnamed_files, numbered_items
 from fno.numbering.registry import Row, read_rows, valid_stamp
+from fno.numbering.seed_pin import PINS, read_pins, seeded_digest
+
+EMPTY_SEED = seeded_digest([])  # a category with no pin has no seeded history
 
 NO_ROW = "{where}: number {number} has no row in {registry}"
 SHARED = "{registry}: number {number} is used {count} times ({names}); only seeded history may repeat a number"
 BAD_ROW = "{registry}: row {number},{name}: {reason}"
-SEED_AFTER_CLAIM = "{registry}: seeded row {number} comes after a claimed row; the seed is history only"
+SEED_CHANGED = "{registry}: the seeded rows differ from their pin in {pins}; the seed is history only"
+MISNAMED = "{where}: not a {prefix}_<n>_<slug>.md name, so its number cannot be checked"
 
 
 def check_numbers(root: Path) -> list[str]:
     """One finding line per problem, across every category; empty when clean."""
-    return [line for category in CATEGORIES.values() for line in _check_category(root, category)]
+    pins = read_pins(root)
+    return [line for category in CATEGORIES.values() for line in _check_category(root, category, pins)]
 
 
-def _check_category(root: Path, category: Category) -> list[str]:
+def _check_category(root: Path, category: Category, pins: dict[str, str]) -> list[str]:
     try:
         rows = read_rows(root / category.registry)
     except ValueError as malformed:
         return [f"{category.registry}: {malformed}"]
     items = numbered_items(root, category)
+    misnamed = [] if isinstance(category, AddendumCategory) else misnamed_files(root, category)
     return [
+        *[MISNAMED.format(where=where, prefix=category.prefix) for where in misnamed],
+        *_seed_changed(category, rows, pins),
         *_bad_rows(category, rows),
         *_missing_rows(category, rows, items),
         *_shared_numbers(category, rows, items),
     ]
 
 
+def _seed_changed(category: Category, rows: list[Row], pins: dict[str, str]) -> list[str]:
+    if pins.get(category.name, EMPTY_SEED) == seeded_digest(rows):
+        return []
+    return [SEED_CHANGED.format(registry=category.registry, pins=PINS)]
+
+
 def _bad_rows(category: Category, rows: list[Row]) -> list[str]:
-    found, claimed_seen = [], False
+    found = []
     for row in rows:
         reason = _row_problem(category, row)
         if reason:
             found.append(BAD_ROW.format(registry=category.registry, number=row.number, name=row.name, reason=reason))
-        if row.seeded and claimed_seen:
-            found.append(SEED_AFTER_CLAIM.format(registry=category.registry, number=row.number))
-        claimed_seen = claimed_seen or not row.seeded
     return found
 
 
@@ -63,8 +74,8 @@ def _row_problem(category: Category, row: Row) -> str | None:
 
 def _missing_rows(category: Category, rows: list[Row], items: list[NumberedItem]) -> list[str]:
     registered = {category.key(row.number, row.name) for row in rows}
-    missing = [item for item in items if category.key(item.number, item.name) not in registered]
-    return [NO_ROW.format(where=i.where, number=i.number, registry=category.registry) for i in missing]
+    missing = {(i.where, i.number) for i in items if category.key(i.number, i.name) not in registered}
+    return [NO_ROW.format(where=w, number=n, registry=category.registry) for w, n in sorted(missing, key=_where_order)]
 
 
 def _shared_numbers(category: Category, rows: list[Row], items: list[NumberedItem]) -> list[str]:
@@ -83,6 +94,10 @@ def _shared_numbers(category: Category, rows: list[Row], items: list[NumberedIte
 
 def _item_names(items: list[NumberedItem], number: str) -> set[str]:
     return {item.name for item in items if item.number == number}
+
+
+def _where_order(missing: tuple[str, str]) -> tuple:
+    return missing[0], _order(missing[1])
 
 
 def _order(number: str) -> tuple[int, ...]:

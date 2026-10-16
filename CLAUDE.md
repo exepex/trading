@@ -25,8 +25,8 @@ cost real money later, so:
   reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
   `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
   Take `<n>` from the central registry, never "highest plus one": `python tools/claim_number.py <category> <name>
-  --session <id>` (or, without the tool, append the row to `numbers/<category>.csv` and push it to `main` first; if
-  the push is refused, pull and take the next number). Story O12, `numbers/README.md`.
+  --session <id>` (or by hand, as `numbers/README.md` says: the row alone, pushed to `main` before the file; if the push
+  is refused, reset to `origin/main`, never merge, and take the next number). Story O12.
 - **Own limits too.** This applies to Claude's own limits and boundaries, not only tools: always give the fullest, most
   direct answer possible. If a limit ever shapes an answer, say so openly (what was limited and why), give everything
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
@@ -126,9 +126,10 @@ commit with `--no-verify`.
 
 ## Code
 
-- `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools`,
-  `python tools/check_imports.py` and `python tools/check_numbers.py` must pass before pushing code changes; format with `ruff format`. When the gates
-  run: `docs/JUDGE.md`, "Merge procedure".
+- `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools` and
+  `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. On `main` (after
+  `git pull --no-rebase origin main`, never on a story branch alone: claim rows live on `main`),
+  `python tools/check_numbers.py` must pass too. When the gates run: `docs/JUDGE.md`, "Merge procedure".
 - **Engineering standards (owner, mandatory for every agent and every session):** SOLID, DRY, KISS and clean code
   (clear names, small single-purpose functions and classes, no duplication, no dead code, comments only for the "why").
   **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose

@@ -15,8 +15,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from fno.numbering.categories import ADDENDUM_OF, SLUG, WHOLE, Category
-from fno.numbering.git_main import GitMain
-from fno.numbering.registry import Row, append_row, next_number, read_rows, utc_stamp
+from fno.numbering.git_main import GitMain, MainCopy
+from fno.numbering.registry import SEEDED, Row, append_row, next_number, utc_stamp
 
 TRIES = 8
 PAUSE_SECONDS = (0.5, 3.0)
@@ -62,7 +62,7 @@ class NumberClaimer:
         with self._git.main_copy() as copy:
             for attempt in range(1, self._tries + 1):
                 registry = copy.path / request.category.registry
-                number = _number(request, read_rows(registry), copy.rows_of)
+                number = _number(request, copy)
                 name = request.category.claimed_name(number, request.slug)
                 append_row(registry, Row(number, name, request.session, utc_stamp(self._clock())))
                 message = MESSAGE.format(
@@ -71,16 +71,16 @@ class NumberClaimer:
                 if copy.commit_and_push(request.category.registry, message):
                     return Claim(request.category.name, number, name)
                 if attempt < self._tries:
+                    self._pause(random.uniform(*PAUSE_SECONDS))  # pause first, so the retry reads the newest main
                     copy.reset_to_main()
-                    self._pause(random.uniform(*PAUSE_SECONDS))
         raise ClaimNotPushed(f"no {request.category.name} number claimed: {self._tries} pushes to main were refused")
 
 
 def _refuse_bad_request(request: ClaimRequest) -> None:
     if not SLUG.fullmatch(request.slug):
         raise ClaimRefused(f"slug {request.slug!r}: use lower-case letters and digits joined by '-' or '_'")
-    if not request.session.strip():
-        raise ClaimRefused("name the claiming session (--session)")
+    if not request.session.strip() or request.session == SEEDED:
+        raise ClaimRefused(f"name the claiming session (--session); {SEEDED!r} is reserved for the seeded history")
     is_addendum = request.category.name in ADDENDUM_OF
     if is_addendum != (request.report is not None):
         raise ClaimRefused(f"{request.category.name}: --report is {'required' if is_addendum else 'not allowed'}")
@@ -88,15 +88,16 @@ def _refuse_bad_request(request: ClaimRequest) -> None:
         raise ClaimRefused(f"--number {request.exact!r}: a whole number from 1")
 
 
-def _number(request: ClaimRequest, rows: list[Row], rows_of: Callable[[Category], list[Row]]) -> str:
+def _number(request: ClaimRequest, copy: MainCopy) -> str:
+    """The next free number, or the exact one asked for; a number is taken by a registry row or by a file (or
+    heading) already on `main`, so a file written without a claim is never handed out again."""
     category = request.category
-    if request.report is not None and not any(r.number == request.report for r in rows_of(ADDENDUM_OF[category.name])):
-        raise ClaimRefused(
-            f"{category.name}: report {request.report} has no row in {ADDENDUM_OF[category.name].registry}"
-        )
+    if request.report is not None and request.report not in copy.taken(ADDENDUM_OF[category.name]):
+        raise ClaimRefused(f"{category.name}: report {request.report} is not on main")
+    taken = copy.taken(category)
     if request.exact is None:
-        return next_number(category, rows, request.report)
+        return next_number(category, taken, request.report)
     number = f"{request.report}.{request.exact}" if request.report is not None else request.exact
-    if any(row.number == number for row in rows):
-        raise ClaimRefused(f"{category.name} {number} is already claimed")
+    if number in taken:
+        raise ClaimRefused(f"{category.name} {number} is already taken")
     return number

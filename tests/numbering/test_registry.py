@@ -3,7 +3,7 @@
 import pytest
 
 from fno.numbering.categories import CLAUDE_RESPONSE, JUDGE_ADDENDUM, JUDGE_REPORT
-from fno.numbering.registry import Row, append_row, next_number, read_rows
+from fno.numbering.registry import Row, append_row, next_number, read_rows, valid_stamp
 from tests.numbering.helpers import HEADER
 
 
@@ -13,16 +13,30 @@ def test_an_empty_or_missing_registry_starts_at_one(tmp_path):
     assert next_number(JUDGE_ADDENDUM, [], report="270") == "270.1"
 
 
-def test_the_next_number_follows_the_highest_not_the_count():
-    rows = [Row("1", "a", "existing"), Row("66", "b", "existing"), Row("66", "c", "existing"), Row("9", "d", "s")]
-    assert next_number(JUDGE_REPORT, rows) == "67"
+def test_the_next_number_follows_the_highest_not_the_count_and_skips_malformed_ones():
+    assert next_number(JUDGE_REPORT, ["1", "66", "66", "9", "x", "07", "500.1"]) == "67"
 
 
 def test_addenda_have_one_sequence_per_report():
-    rows = [Row("270.1", "x", "s"), Row("270.2", "y", "s"), Row("27.5", "z", "s"), Row("2700.9", "w", "s")]
-    assert next_number(JUDGE_ADDENDUM, rows, report="270") == "270.3"
-    assert next_number(JUDGE_ADDENDUM, rows, report="27") == "27.6"
-    assert next_number(JUDGE_ADDENDUM, rows, report="271") == "271.1"
+    taken = ["270.1", "270.2", "27.5", "2700.9", "270", "270.x"]
+    assert next_number(JUDGE_ADDENDUM, taken, report="270") == "270.3"
+    assert next_number(JUDGE_ADDENDUM, taken, report="27") == "27.6"
+    assert next_number(JUDGE_ADDENDUM, taken, report="271") == "271.1"
+
+
+def test_a_utc_stamp_must_have_its_full_shape():
+    assert valid_stamp("2026-10-16T10:00:00Z")
+    for wrong in ("2026-1-5T1:2:3Z", "2026-10-16T10:00:00", "2026-10-16 10:00:00Z", "2026-13-16T10:00:00Z", ""):
+        assert not valid_stamp(wrong)
+
+
+def test_blank_lines_a_byte_order_mark_and_an_empty_file_are_tolerated(tmp_path):
+    path = tmp_path / "x.csv"
+    path.write_text("\ufeff" + HEADER + "1,a,existing,\n\n")
+    assert read_rows(path) == [Row("1", "a", "existing")]
+    path.write_text("")
+    append_row(path, Row("1", "a", "s", "2026-10-16T10:00:00Z"))
+    assert read_rows(path) == [Row("1", "a", "s", "2026-10-16T10:00:00Z")]
 
 
 def test_append_writes_the_header_once_and_quotes_commas(tmp_path):

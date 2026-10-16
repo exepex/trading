@@ -1,7 +1,8 @@
-"""The registry seed (story O12): one `existing` row for each numbered file or heading not registered yet.
+"""The registry seed (story O12): one `existing` row for each numbered file or heading not registered yet, then the
+seed pin rewritten.
 
-Used when O12 merges, so the files already on `main` are history and not clashes. Once a category holds a claimed
-row, the check refuses any seeded row after it, so the seed cannot register a new clash later.
+Run once, on the merged tree when O12 merges, so the files already on `main` are history and not clashes. A later run
+changes `fno/numbering/seed_pins.json`, a code file (lane 1), so the judge sees every row it adds.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from pathlib import Path
 from fno.numbering.categories import CATEGORIES
 from fno.numbering.numbered_items import numbered_items
 from fno.numbering.registry import SEEDED, Row, append_row, read_rows
+from fno.numbering.seed_pin import seeded_digest, write_pins
 
 
 def seed_registries(root: Path) -> int:
@@ -27,4 +29,5 @@ def seed_registries(root: Path) -> int:
                 continue
             append_row(path, Row(item.number, item.name, SEEDED))
             added += 1
+    write_pins(root, {c.name: seeded_digest(read_rows(root / c.registry)) for c in CATEGORIES.values()})
     return added

@@ -84,9 +84,30 @@ def test_when_every_push_is_refused_nothing_is_claimed(tmp_path):
 def test_an_exact_number_is_claimed_when_free_and_refused_when_taken(tmp_path):
     clone, _ = origin_and_clones(tmp_path, MAIN)
     assert claimer(clone).claim(request(JUDGE_REPORT, exact="66")).name == "judge_66_new-work.md"
-    with pytest.raises(ClaimRefused, match="judge-report 66 is already claimed"):
+    with pytest.raises(ClaimRefused, match="judge-report 66 is already taken"):
         claimer(clone).claim(request(JUDGE_REPORT, exact="66"))
     assert claimer(clone).claim(request(JUDGE_REPORT)).number == "271"  # after the highest, not after 66
+
+
+def test_a_file_on_main_without_a_row_is_never_handed_out_again(tmp_path):
+    files = {**MAIN, "reviews/claude/response_5_old-habit.md": "x\n", "reviews/judge/judge_270_a.md": "## Addendum 4\n"}
+    clone, _ = origin_and_clones(tmp_path, files)
+    assert claimer(clone).claim(request()).number == "6"
+    with pytest.raises(ClaimRefused, match="claude-response 5 is already taken"):
+        claimer(clone).claim(request(exact="5"))
+    assert claimer(clone).claim(request(JUDGE_ADDENDUM, report="270")).number == "270.5"
+
+
+def test_a_push_refused_for_another_reason_stops_at_once_with_gits_words(tmp_path):
+    clone, _ = origin_and_clones(tmp_path, MAIN)
+    hook = tmp_path / "origin.git" / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'access denied for this key' >&2\nexit 1\n")
+    hook.chmod(0o755)
+    pauses = []
+    with pytest.raises(GitFailed, match="access denied for this key"):
+        claimer(clone, pauses).claim(request())
+    assert pauses == []
+    assert len(git(clone, "worktree", "list").splitlines()) == 1
 
 
 def test_addenda_are_numbered_per_report_and_need_the_report(tmp_path):
@@ -94,7 +115,7 @@ def test_addenda_are_numbered_per_report_and_need_the_report(tmp_path):
     assert claimer(clone).claim(request(JUDGE_ADDENDUM, "round-2", report="270")) == Claim(
         "judge-addendum", "270.2", "round-2"
     )
-    with pytest.raises(ClaimRefused, match="report 271 has no row in numbers/judge-report.csv"):
+    with pytest.raises(ClaimRefused, match="report 271 is not on main"):
         claimer(clone).claim(request(JUDGE_ADDENDUM, report="271"))
 
 
@@ -105,6 +126,7 @@ def test_addenda_are_numbered_per_report_and_need_the_report(tmp_path):
         (request(slug=""), "slug ''"),
         (request(slug="a--b"), "slug 'a--b'"),
         (request(session=" "), "name the claiming session"),
+        (request(session="existing"), "'existing' is reserved"),
         (request(JUDGE_ADDENDUM), "--report is required"),
         (request(report="270"), "--report is not allowed"),
         (request(exact="0"), "--number '0'"),
