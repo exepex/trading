@@ -42,3 +42,15 @@ be refused. Strong evidence: the new test's first line failed before this change
   still name its strategy.
 - Test: the day record passes with both null; an opportunity record with both null is refused.
 - Mutation check: removing the day-record rule fails the test. Restored.
+
+## Added: F4's text amended (orchestrator, 16 Oct: "amend F4's text in your D3 branch")
+
+`docs/stories/F-ai-layer.md`, F4:
+- the paper override path is removed: no `owner_overrides.csv` rows for judge check-2 or check-3 failures, no
+  override sample in the monthly audit, and criterion 3 now says no override exists and D3 refuses one;
+- S1's safety stop and C2's written brake restart stay, as the orchestrator asked. Both are named as outside F4, and
+  `journal/<book>/owner_overrides.csv` is identified as C2's brake-restart file, not a judge override;
+- the story title no longer says "owner overrides".
+
+Left for S2's owner: `docs/stories/S-scoreboards.md:63` still lists "overrides (F4)" as an S2 input. It now has nothing
+to read. That is S2's text, not mine.

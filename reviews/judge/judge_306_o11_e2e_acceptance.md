@@ -51,3 +51,27 @@ the branch with `main` merged in:
    goes to the right builder.
 2. Plan finding 2 (NSE contract IDs parse as `OPTIDXNIFTY` in C5's bucket map): I did not reproduce it (reasoning only
    for me). Whoever builds the NSE fallback must re-check it.
+
+## Addendum 1: 982cc6c6
+
+**Verdict: FAIL, 1 blocking and 1 should-fix.** The rework is good:
+- O1's steps run through O1's real `Alerted` and `ReviewsStep`;
+- a new failure test proves that the routine's stored 14:33 start refuses both forecast steps every day (a real
+  finding);
+- the D4/D5 xfails became a check;
+- new xfails track the owner's `live_from` dates, the 14:05 start, T1c and the card step.
+
+**Blocking 1. The branch is 40 commits behind `main`, and the D3 xfail now passes there.** Run myself: 982cc6c6 merged
+with `origin/main` gives `[XPASS(strict)] not built yet: D3 no override`, 1 failed, 11 passed, 15 xfailed. D3 merged
+as e5906769. Merge `main`, turn that xfail into the real check (a record with `owner_override` is refused, on the
+recorded day), and show 0 XPASS on the merged tree. The builder reported 7,691 passed on the branch alone; that does
+not cover today's `main`.
+
+**Should-fix 2. The D4/D5 check proves the wiring, not the behaviour.** Strong evidence (code read).
+`test_books_2_and_3_trades_are_checked_against_the_envelope_and_the_constitution` asserts only
+`isinstance(modes[BOOK2_HYBRID], EnvelopeMode)` and the same for `ConstitutionMode`. An `EnvelopeMode` that passed
+every trade would still pass it. Criterion 2 asks each built stage to show its output.
+
+Fix: on the recorded day's chain, send one Book 2 proposal outside the envelope and one Book 3 proposal with an
+unregistered strategy through the real `build_trade_validator`, and assert both are blocked with D4's and D5's
+reasons. That is two small cases on fixtures the suite already has.
