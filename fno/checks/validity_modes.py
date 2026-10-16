@@ -1,8 +1,8 @@
 """C4's modes (story C4, design 12.4). `PlaybookMode` checks the trade against the version it claims: the version's
 fingerprint, that the version may trade on the day, its structure code, wing widths and lots, and that the legs have
 that structure's shape (`validity_shapes.py`). Book 2's mode (`EnvelopeMode`, story D4) reuses it with "at most the
-version's lots" and adds the authority envelope. Book 3's constitution (D5) is not built: until it is, its check fails
-closed (`WaitsFor`), so no Book 3 trade can pass hard validity."""
+version's lots" and adds the authority envelope; Book 3's (`ConstitutionMode`, story D5) checks its registered
+strategy and constitution. A book without a mode has no trade path."""
 
 from __future__ import annotations
 
@@ -55,13 +55,3 @@ class PlaybookMode(ValidityMode):
             ),
             CheckResult("shape", not shape, shape or "legs have the structure's shape"),
         ]
-
-
-class WaitsFor(ValidityMode):
-    """A mode whose story is not built: every trade fails it, so nothing passes unchecked."""
-
-    def __init__(self, name: str, story: str):
-        self.name, self.story = name, story
-
-    def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
-        return [CheckResult(self.name, False, f"waits for story {self.story}: not checkable yet, so the trade fails")]

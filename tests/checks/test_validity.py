@@ -160,9 +160,10 @@ def test_nobody_overrides_a_failure(by):
     assert override(check(), by, "nothing to override").ok
 
 
-def test_book_3_fails_closed_until_its_story():
+def test_book_3_fails_closed_without_a_registered_constitution():
+    """Story D5: Book 3's mode refuses a trade when no constitution matches the registered D6 component."""
     report = check(proposal(book=BOOK3_AI))
-    assert failed(report) == {"constitution"} and "waits for story D5" in report.failures[0].reason
+    assert failed(report) == {"constitution"} and "no constitution file" in report.failures[0].reason
 
 
 def test_book_2_fails_closed_without_a_trade_envelope():

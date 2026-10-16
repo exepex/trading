@@ -148,7 +148,8 @@ commit with `--no-verify`.
   A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
-  paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a).
+  paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
+  `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive

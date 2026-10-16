@@ -55,6 +55,10 @@ class Git:
         result = self._run("show", f"{commit}:{path}")
         return result.stdout if result.returncode == 0 else None
 
+    def commits_touching(self, path: str) -> list[str]:
+        """Every commit that changed `path`, oldest first (story D5: the strategy registry's append-only check)."""
+        return self._run("log", "--format=%H", "--reverse", "--", path).stdout.split()
+
     def commit_exists(self, commit: str) -> bool:
         return bool(commit) and self._run("cat-file", "-e", f"{commit}^{{commit}}").returncode == 0
 
