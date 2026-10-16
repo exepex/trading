@@ -112,7 +112,7 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
 5. **Tradable strategies** (`fno/book3/strategies.py`): the registry's specs proposed before the day whose
    `require_registered` passes at the decision base commit. They trade from the session after `proposed_on`, like
    D2's "a same-day approval trades from the next session". A spec proposed today is on no day sheet today.
-6. **Decision** (`fno/book3/selection.py`, `fno/book3/decision_wiring.py`): D2's `RuleEvaluator` over the tradable
+6. **Decision** (`fno/playbook/selection.py`, shared with F5 for Book 2 if its builder agrees; `fno/book3/decider.py`, `fno/book3/decision_wiring.py`): D2's `RuleEvaluator` over the tradable
    strategies, with a **selection allocator**: the candidates the answer picked go to D2's `Allocator` (C2 and the
    unproven-version limit; the no-trade threshold off, since no Book 3 spec has a tested estimate); every other
    candidate is "not chosen by Book 3". Book 3 has **no daily width or lots choice**: the spec is the strategy
