@@ -67,6 +67,7 @@ def day(root, tmp_path, alerts):
                 "reviews": RecordedStep("reviews", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
+                "candles": RecordedStep("candles", calls),
             }
             | (steps or {}),
         )
@@ -88,6 +89,7 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
         "book1",
         "reviews",
         "card",
+        "candles",
     ]
 
 
@@ -112,7 +114,7 @@ def test_nifty_and_nse_start_together_the_indices_after_nifty_s_commit_nifty_com
     runner, run, _, parts, commits, _ = day(script(nifty=(14, 56), nse=(14, 55)))  # NSE ends first
     runner.run(NORMAL)
     started = {arguments: when for when, arguments in parts.processes.started}
-    assert started[NIFTY] == started[NSE] == at(14, 35, day=NORMAL)
+    assert started[NIFTY] == started[NSE] == at(14, 38, day=NORMAL)  # A4's earliest start (EARLIEST_START), not 14:35
     assert started[INDICES] == at(14, 56, day=NORMAL)  # right after NIFTY's commit, not before
     assert [(when, message.split()[-1], paths) for when, message, paths in commits] == [
         (at(14, 56, day=NORMAL), "nifty", ("nifty.canonical",)),  # first, though NSE ended before it
@@ -180,7 +182,7 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     again, rerun, _, new_parts, _, new_calls = day()
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["margin_check", "weather", "forecasts_v4", "book1", "reviews"] and new_calls == ["card"]
+    assert calls == ["margin_check", "weather", "forecasts_v4", "book1", "reviews"] and new_calls == ["card", "candles"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
 
