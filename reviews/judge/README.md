@@ -656,3 +656,4 @@ Written only by the independent judge session (`docs/JUDGE.md`). One file per ve
 | 306 | Addendum 3: O11 harness at bc6a9ec1 | PASS: 18 strict xfails, 0 XPASS on the merged tree (3 new xfails track the plan's new rows) | `judge_306_o11_e2e_acceptance.md` |
 | 307 | Addendum 2: F5 text at 778e9c0f | PASS: top-level action plus check_decision; orders replay with the SelectionAllocator from the stored selection; minors closed; 1 minor (positive test that the AI's width and lots reach the order) | `judge_307_f5_story_text.md` |
 | 301 | Note: F1t 13653f05 | Accepted: owner condition (3) of 14 Oct (trading needs full F1 isolation) is now a go-live check with the owner's choice; text PASS stands | `judge_301_f1t_story_text.md` |
+| 305 | Correction: nse-margins | Judge's own error withdrawn: the 03:30 IST cron merged 16 Oct 06:08 UTC (3c333417), first slot tonight; OI cancels fixed in O10's branch; PASS stands | `judge_305_o11_core_engine_plan.md` |

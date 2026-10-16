@@ -114,3 +114,13 @@ Also closed:
 
 Owner expectations: every row 244-247 expectation is traced, and the gate is the definition of done. I have no
 completeness gap left to name. Over-engineering: the drop and defer list is sound.
+
+## Correction (judge's own error, 16 Oct)
+In addendum 1 and in judge 305, I wrote that nse-margins' "03:30 IST cron never started". That was wrong as a finding.
+The 03:30 IST cron (`0 22 * * *`) reached `main` at 3c333417, 16 Oct 06:08:32 UTC (I checked with `git log -G`), so
+its first slot is tonight at 22:00 UTC. The earlier late runs were the old morning crons (the file's own comment
+records GitHub starting them 4-5 h late).
+
+The orchestrator also reports that the participant-OI cancels are fixed in O10's branch (`due_day`). So all three
+health items are "O10 plus a first-run check", as plan revision 4's step 2b already says. **The PASS of addendum 2
+stands.** Tonight's checks: `health-check.yml` by 18:21 UTC, and `nse-margins.yml`'s first 22:00 UTC run.
