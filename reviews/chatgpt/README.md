@@ -89,3 +89,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 129: R3 first forward shadows — PARTIAL](review_129_r3-forward-shadows.md)
 - [Review 131: E6b missed executions in scorecards — PARTIAL](review_131_e6b-missed-executions.md)
 - [Review 125: RM2 real-money test record — PARTIAL](review_125_rm2-real-money-record.md)
+- [Review 133: BR1a code and studies — PARTIAL, descriptive only](review_133_br1a-code.md)
