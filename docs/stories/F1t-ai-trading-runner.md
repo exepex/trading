@@ -100,7 +100,25 @@ strictly in this order and before `desk.timetable.decision_deadline`):**
 | 15:12:00 | E3 `decisions` | unchanged: takes each book's first original run visible and committed before the deadline |
 
 The `ai_collect` step started more than 30 s after `receipt_deadline` (a restart) marks every fired book `late`, as E3
-does (fail closed). Values are config, so S1's measured-timing rule can move them.
+does (fail closed), and its step status is `refused` with that reason, so the day ends "with problems" and O8 sees it.
+Values are config, so S1's measured-timing rule can move them.
+
+**Pushed late by earlier steps (O1 builder, 16 Oct):** `pack` retries until 15:10 while the canonical snapshot is late,
+and `book1` may run up to its 600 s limit. On a day the pack lands after about 15:07, every live AI book is
+`not_fired` (late start). That is correct, never a trade, and it is alerted.
+
+**Commit time at the deadline (strong evidence, code):** E3's collector (`D3CommittedDecisions`) pulls, then reads the
+checkout's own history: a run counts when its commit's committer time is before 15:12 (`committed_at >= deadline` is
+late). `ai_collect` commits through the run's one `PendingCommitter` (pull, commit, push, 3 push attempts). So (a) a
+commit made at 15:11:59 that pushes at 15:12:05 still counts in this checkout, as Book 1's does today; (b) a commit
+made at or after 15:12 is late by E3's rule and never filled; (c) a push rejected 3 times is `CommitFailed`, which
+stops the run with E3's one alert (decision 44), and the rerun after 15:12 is late. No case is silent. The worst case
+in seconds cannot be bounded by code (git calls have no timeout in E3's committer); the claims show the measured
+time of the step's commit on the test remote, and a test covers (a), (b) and (c).
+
+**Alerts (O1's one sender):** neither step sends alerts itself. Each returns `ok` when every live book was fired
+(`ai_fire`) or promoted (`ai_collect`), else `refused` with one reason naming each book's status and why; O1's
+`Alerted` wrapper then sends exactly one line per step and the day goes on. A raise is `failed`, alerted the same way.
 
 **Firing (`fno/ai_trading/fire.py`):** for each live AI book, in this order, the first that applies is recorded:
 budget signal `stop` (BG1, `BudgetSignal`) → `not_fired`; no registered decision version → `not_fired`; stop rule (two
@@ -108,8 +126,14 @@ transcript breaches in its last 20 decision session days, under that version) �
 `not_fired`; started after `latest_fire` → `not_fired` (late start); pointer over `MAX_POINTER_BYTES` (64 KiB, to be
 confirmed against the routine API's real limit before go-live) → `not_fired`, never truncated; pointer text holding
 anything the public-record scan (O5) flags → `not_fired`; `FireFailed` → `not_fired`. Otherwise fired, with the
-session link. Every `not_fired` sends one #fno-desk line. The fire log `journal/ai_decisions/<YYYY>/<d>_fired.json` is
-written once and committed by the step; a rerun never fires again.
+session link. Every `not_fired` is named in the step's one alert line.
+
+**Fire once, even across a crash (O1 builder, 16 Oct):** before any HTTP call, the step writes the fire log
+`journal/ai_decisions/<YYYY>/<d>_fired.json` with each book's entry `firing` and commits and pushes it; only then does
+it call each trigger, and it records the results in the step's own commit. A rerun that finds an entry still `firing`
+never fires that book again: the entry becomes `fire_unknown` ("the container stopped during the fire"), and the
+collection goes on as usual, so a routine that did start still has its sealed answer judged. A container lost before
+that first commit fired nothing.
 
 **Pointer (`DecisionPointer`, one line of JSON):** `kind: "decision"`, `book`, `day`, `version` (the registered decision
 version's label), `common_pack_sha256`, `private_pack_sha256` and `private_pack` (the book's E2 private pack body).
@@ -138,7 +162,7 @@ commit in neither is `ReceiptUnknown`, which `fno/ai`'s rules already treat as l
 
 | Status | When | Trade |
 |---|---|---|
-| `not_fired` | the fire log says so (with its reason) | no |
+| `not_fired` | the fire log says so (with its reason); a `fire_unknown` entry is judged on its submission like a fired one | no |
 | `no_submission` | no commitment (AI unavailable or limited) | no |
 | `late` | commitment not visible at observation 1, or `ai_collect` started late | no |
 | `exposed` | another book's reveal was already visible at observation 1 (it could have been read) | no |
@@ -151,7 +175,7 @@ commit in neither is `ReceiptUnknown`, which `fno/ai`'s rules already treat as l
 
 Each outcome is written once to `journal/ai_decisions/<YYYY>/<d>_<book>_outcome.json` (status, reason, version,
 model reported and its check, both pack hashes, receipt observations, the run ID when promoted) and committed by the
-step with any promoted run. Every status but `promoted` sends one line: "F&O AI decisions {day} {book}: {status}:
+step with any promoted run. Every status but `promoted` is named in the step's one alert line: "{book} {status}:
 {reason}; no trade today". A rerun finds the outcome file and does nothing again.
 
 **Hand-over port (agreed interface, to be confirmed by F5 and F6's builders before code):**
@@ -197,7 +221,9 @@ today's value (no forecast behaviour changes).
 **Usage (F8):** each decision routine's last step records its run with F8's `record-usage --self-timed --purpose
 books_and_roles --role "<book> trading decision"` (as LR1's routine does).
 
-**Live switches:** `daily.live_from.book2_hybrid` and `daily.live_from.book3_ai`, null until the owner sets them. A live
+**Live switches:** `daily.live_from.book2_hybrid` and `daily.live_from.book3_ai`, null until the owner sets them, read
+by one function beside O1's `live_dates` in `fno/daily/wiring.py` and listed in `fno/config.py`'s allowed
+`daily.live_from` keys, so a typo is refused (O1 builder, 16 Oct). A live
 book is added to E3's `books`, E2's packed books, `ai_fire` and `ai_collect`; a book not live is in none of them, and
 with no book live the two steps record `not_live` (O8 sees every step of `DAILY_RUN_STEPS`).
 
@@ -221,9 +247,11 @@ boundary and empty cases (quality rule 5).
    to E3's books. A switch dated after the day leaves it out; on the day, in (boundary test).
 2. **Firing, once.** A live book is fired once a day with a pointer holding exactly the fields above and only its own
    private pack; a rerun never fires again (fire log present). Each `not_fired` cause of the Design list is recorded with
-   its reason and alerted once: budget stop, no version, stop rule (2 breaches; 1 breach fires; a breach of an older
+   its reason and named in the step's one alert: budget stop, no version, stop rule (2 breaches; 1 breach fires; a breach of an older
    version does not count), no common pack, started at `latest_fire` (fires) and 1 s after (not), pointer at the size cap
-   (fires) and 1 byte over (not), a flagged pointer, `FireFailed` (tests).
+   (fires) and 1 byte over (not), a flagged pointer, `FireFailed` (tests). The fire log is committed with `firing`
+   entries before any trigger call; a process killed between the call and the step's log record, rerun, never fires
+   again and records `fire_unknown`, and that book's sealed answer is still judged (test).
 3. **The pointer is checked before any input is shown.** `brief` refuses a pointer with a missing or extra field, a
    wrong kind, another book's version, a private pack whose hash differs from its field, or a common pack whose
    committed bytes differ from `common_pack_sha256`, and prints nothing of the input; a good pointer prints the prompt,
@@ -236,14 +264,17 @@ boundary and empty cases (quality rule 5).
    every fired book `late` (boundary tests); no GitHub API call is made.
 6. **Every status of the judging table** has a test producing it from a fixture day with fake answers (valid, invalid,
    late, missing, not revealed, early reveal, exposed, model mismatch, model unknown, decider refusal, F1t check
-   failure), each with exactly one committed outcome record and, for every status but `promoted`, exactly one alert.
+   failure), each with exactly one committed outcome record; a day with any status but `promoted` gives the step
+   `refused` and exactly one alert naming every such book; a day with all books promoted gives `ok` and no alert.
 7. **Pack hashes.** A promoted run's records carry the pointer's two pack hashes, which equal the committed common pack
    and the private pack's committed `.sha256`; a decider writing another hash, another book, another model or session,
    or a second run is `refused` and its run is never committed (tests).
 8. **Accepted means filled only through E3 and C4.** End to end on the real `DailyRun`: a promoted Book 2 run whose C4
    pass is recorded fills at E3's snapshot exactly like a Book 1 run; a promoted run whose C4 failed (the action outside
    D4's envelope) never fills and its attempt is in the record; a run committed after E3's deadline is late and never
-   filled; every refusal or miss leaves E3's `no_decision.json` and no fill (tests with a fake decider and fake C4
+   filled; a run committed at 15:11:59 and pushed after 15:12 counts, one committed at 15:12:00 is late, a push
+   rejected 3 times stops the run with E3's alert (tests);
+   every refusal or miss leaves E3's `no_decision.json` and no fill (tests with a fake decider and fake C4
    records; the real C4 modes once D4 and D5 merge).
 9. **Book isolation.** Book 3's pointer, export and decider input contain no Book 2 file, hash or submission, and the
    reverse; one book's refusal, miss or decider exception leaves the other book's and Book 1's records byte-identical
