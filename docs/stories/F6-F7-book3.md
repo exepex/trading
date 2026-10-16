@@ -100,7 +100,10 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
      `exits`), because D1's `parameters_sha256` covers the name and version too, so a copied rule under a new name
      always has a different `parameters_sha256` and an equality check on it could never fire. A proposal whose rule
      key equals an earlier registered Book 3 spec's is **refused** ("same rule as <id>: trade that one"), so one rule
-     never enters the trial family twice under two names.
+     never enters the trial family twice under two names. The rule key is one function, `rule_sha256(document)`,
+     beside `parameters_sha256` in D1's `fno/playbook/schema.py` (no other rule comparison exists today; anything that
+     compares rules later uses it). A playbook version re-versioned with the same rule has one rule key, so a Book 3
+     spec copying either reads `reused` (agreed with D5's owner).
    - A refused proposal never stops the day: it is listed with its reason in the day's proposal log
      `journal/book3_ai/proposals/<date>.json` (every proposal, registered or refused, write-once), returned in
      `DecidedRun.files` with the registry, spec and ledger and committed with the run (one commit is enough: a day-d
