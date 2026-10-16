@@ -1,4 +1,4 @@
-# Judge 279: G7's `pack_sha256` column (story/g7-pack-sha-column at fe89e915)
+# Judge 280: G7's `pack_sha256` column (story/g7-pack-sha-column at fe89e915)
 
 Judge B, 16 Oct 2026. Lane 1 (forecast records), point 4 of G10 part 2's text (judge 274 addendum 1). Builder: R2/G7.
 
