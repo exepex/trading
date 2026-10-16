@@ -52,9 +52,9 @@ tested as a failure below). Everything else is the code on `main`, from its comp
 | 4 | Collection (E3), C3 data checks, execution snapshot | yes | collected on time, snapshot valid |
 | 5 | Fills (E4), exit review, trade marks (E2d) | yes | 4 legs filled from the snapshot, held, valued, equity row |
 | 6 | O1 `reviews` (E6), scorecard, scoreboards B (S2/S6) and A (S3) | yes | the same trade ID, maximum loss and day in each |
-| 7 | C4 modes for Books 2 and 3 (D4, D5) | yes | envelope mode and constitution mode |
+| 7 | The day's chosen trade checked by C4 as Book 2's and Book 3's (D4, D5) | yes | refused: no envelope permits it, no constitution registers it |
 | 8 | Go-live switches: `daily.live_from` dates, the 14:05 start, the card's weather from M1, the card step in the replay | no | xfail: owner, O1 follow-up, T1c, O11 part 2 |
-| 9 | Book 2 and Book 3 packs and decisions from a fake AI answer; no owner override | no | xfail: D4/D5/F1t, F1t+F5, F1t+F6, D3 no override |
+| 9 | Book 2 and Book 3 packs and decisions from a fake AI answer | no | xfail: D4/D5/F1t, F1t+F5, F1t+F6 |
 | 10 | Owner-timing fills | branch | xfail: E8 |
 | 11 | v4 scores of the day's rows; AI books' v4 rows | no | xfail: G6, G11 |
 | 12 | Capture failure rows, valuation record, analyst card, usage per routine, card objections | no | xfail: O10, G13, F2, F8c, T3 |
@@ -67,6 +67,7 @@ tested as a failure below). Everything else is the code on `main`, from its comp
 | The 15:15 capture fails | snapshot invalid in the run log, alerted word for word; no fill |
 | No NSE F&O file | C4 blocks the trade (record and `validity_failures.csv`); C3 alerts |
 | A commit fails mid-run | the run stops and alerts once |
+| An owner override in Book 1's decision (D3) | the `book1` step failed ("the owner never overrides a paper decision"), alerted; no decision, no fill |
 | The stored 14:33 start | both forecast steps refused (after the 14:30 cutoff), recorded, alerted, nothing written; the desk's day goes on |
 
 ## Findings while building (one line each, for their owners)

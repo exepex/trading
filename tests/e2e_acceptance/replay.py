@@ -105,9 +105,10 @@ class RegisteredFirst:
 
 
 class Replay:
-    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True):
+    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True, context=None):
         self.root, self.alerts, self.cfg = root, alerts, load_app_config()
         self.start, self.capture, self.listed = start, capture, listed
+        self.context = {**CONTEXT, **(context or {})}  # D3's record header fields of Book 1's run
         self.playbook = rd.approved_playbook()
         rd.build_repository(root)
         rd.replace_outside_services(monkeypatch, root, self.playbook, listed)
@@ -145,7 +146,7 @@ class Replay:
         inputs = LiveBook1Inputs(self.root, rd.quote_store(self.root), self.cfg["risk_free_rate"], Black76(),
                                  lambda day, snapshot: FixedValues(), lambda market: (book(), Counts(),
                                                                                        OwnShadowBooks()),
-                                 lambda day, hashes: {**CONTEXT, **hashes})  # fmt: skip
+                                 lambda day, hashes: {**self.context, **hashes})  # fmt: skip
         committer = PendingCommitter(self.commits, self.root, PENDING_MARKER)
         return Book1(self.root, CALENDAR, lambda: self.playbook, inputs,
                      build_decision_run(self.cfg, BOOK1_RULES, self.root), committer, DiskRuns(self.root, self.commits),

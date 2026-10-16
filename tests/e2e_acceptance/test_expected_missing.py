@@ -11,12 +11,7 @@ from fno.cards.wiring import build_daily_card
 from fno.config import ROOT, load_app_config
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from fno.desk.pack_wiring import PACKED_BOOKS
-from fno.playbook.decision_run import DecisionRun
-from fno.playbook.decision_store import DecisionStore
-from tests.decisions.builders import CONTEXT, doc, snapshot
 from tests.desk.conftest import RecordingAlerts
-from tests.playbook.evaluation_builders import DAY, Counts, FixedValues, OwnShadowBooks, chain_market, evaluator
-from tests.risk.builders import book
 
 from . import real_day as rd
 from .replay import Replay
@@ -63,14 +58,6 @@ def test_the_card_is_built_on_the_recorded_day():
 @missing("D4", "D5", "F1t")
 def test_books_2_and_3_get_their_private_packs():
     assert {BOOK2_HYBRID, BOOK3_AI} <= set(PACKED_BOOKS)
-
-
-@missing("D3 no override")
-def test_a_decision_with_an_owner_override_is_refused(tmp_path):
-    run = DecisionRun(evaluator(), DecisionStore(tmp_path, constants.BOOK1_RULES))
-    with pytest.raises(ValueError):
-        run.decide(DAY, snapshot(doc("sc-a")), chain_market(), FixedValues(), book(), Counts(), OwnShadowBooks(),
-                   {**CONTEXT, "owner_override": "owner says trade"})  # fmt: skip
 
 
 @missing("F1t", "F5")

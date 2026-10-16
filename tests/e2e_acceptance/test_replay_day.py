@@ -9,11 +9,13 @@ import pytest
 from fno.books.account import PaperAccount
 from fno.checks.validity_constitution import ConstitutionMode
 from fno.checks.validity_envelope import EnvelopeMode
-from fno.checks.wiring import validity_modes
+from fno.checks.wiring import build_trade_validator, validity_modes
+from fno.config import load_app_config
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, DAILY_RUN_STEPS, OUTCOME_OPENED, REVIEWS_STEP
 from fno.desk.records import DeskRecords
 from fno.forecast_v4_rules import records as v4
 from fno.forecast_v4_rules.records import LIVE
+from fno.playbook import decision_run
 from fno.quotes.recorder import DATASET
 from fno.scoreboard.committed_runs import CommittedRuns
 from fno.weather.records import WeatherRecords
@@ -124,7 +126,23 @@ def test_scorecard_and_both_scoreboards_read_the_same_trade_and_maximum_loss(day
     assert json.dumps(out.board)  # the board is plain data, ready to publish
 
 
-def test_books_2_and_3_trades_are_checked_against_the_envelope_and_the_constitution():
-    """D4 and D5 merged: C4 checks a Book 2 trade against its envelope and a Book 3 trade against its constitution."""
-    modes = validity_modes()
-    assert isinstance(modes[BOOK2_HYBRID], EnvelopeMode) and isinstance(modes[BOOK3_AI], ConstitutionMode)
+def test_the_days_trade_as_a_book2_or_book3_trade_is_refused_outside_the_envelope_and_the_constitution(
+    tmp_path, monkeypatch
+):
+    """D4 and D5 merged: the recorded day's own chosen trade, checked by C4 as Book 2's and Book 3's at the same
+    decision, is refused: no envelope permits it and no constitution registers it (none exists yet)."""
+    seen, validate = {}, decision_run.validate_chosen
+
+    def also_books_2_and_3(evaluation, validator, market, playbook, book):
+        for name in (BOOK2_HYBRID, BOOK3_AI):
+            other = build_trade_validator(load_app_config(), name, tmp_path, log=False)
+            seen[name] = validate(evaluation, other, market, playbook, book)
+        return validate(evaluation, validator, market, playbook, book)
+
+    monkeypatch.setattr(decision_run, "validate_chosen", also_books_2_and_3)
+    Replay(tmp_path, monkeypatch, RecordingAlerts()).run()
+    (book2,), (book3,) = seen[BOOK2_HYBRID].values(), seen[BOOK3_AI].values()
+    assert (book2.ok, book2.reason) == (False, "envelope: no trade envelope for sc-a v1")
+    assert (book3.ok, book3.reason) == (False, "constitution: no constitution file matches the registered D6 component")
+    assert isinstance(validity_modes()[BOOK2_HYBRID], EnvelopeMode)
+    assert isinstance(validity_modes()[BOOK3_AI], ConstitutionMode)

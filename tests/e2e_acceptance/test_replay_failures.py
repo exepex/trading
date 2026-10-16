@@ -106,3 +106,12 @@ def test_at_todays_1433_start_both_forecast_steps_are_refused_alerted_and_write_
         assert step_alert(name, STEP_REFUSED, result["reason"]) in alerts.sent
     assert not [*tmp_path.glob("weather/**/*.json")] and not [*tmp_path.glob("v4/**/*.csv")]
     assert log.result("fills")  # the desk's day goes on
+
+
+def test_an_owner_override_in_the_decision_is_refused_alerted_and_nothing_trades(tmp_path, monkeypatch, alerts):
+    """D3 merged (DESK_DECISIONS row 229 item 4): no paper decision carries an owner override."""
+    log = Replay(tmp_path, monkeypatch, alerts, context={"owner_override": "owner says trade"}).run().log
+    result = log.result("book1")
+    assert result["status"] == STEP_FAILED and "the owner never overrides a paper decision" in result["reason"]
+    assert step_alert("book1", STEP_FAILED, result["reason"]) in alerts.sent
+    assert log.result("decisions")[BOOK1_RULES]["decision"] == NO_DECISION_LATE and log.result("fills") == {}
