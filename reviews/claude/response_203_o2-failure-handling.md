@@ -96,3 +96,40 @@ Notes:
 - **The same hole in O1's command limit (found while fixing this one):** a `CommandStep` stopped at 600 s while its
   command is inside a git commit leaves the same locks. Book 1's `desk book1` commits its own decision. The row "Hung
   command" now uses the same lock rule, and a test kills it mid-commit.
+
+## Code round 1: the hard limit on every git call (9fe595d4)
+
+- **What:**
+  - `fno/desk/git_limit.py` (new). `LimitedRun` is a `subprocess.run` for git: each call gets its own process group
+    (`start_new_session`). At the limit it kills the group (`os.killpg`, SIGKILL) and reaps it, then removes the
+    call's own new locks and raises `TimeoutExpired`, with `removed` set to their names.
+  - `GitLocks.present()` lists `.git/**/*.lock`, skipping `objects/` and `lfs/`. `remove_new(before)` removes only
+    the locks absent before the call, and nothing while any process named `git…` is alive in `/proc` (judge note 1).
+    Without `/proc` it removes nothing.
+  - `fno/desk/git_sync.py`: every call goes through `Git._run` with `limit_seconds=GIT_CALL_LIMIT_SECONDS` (120 s), so
+    a timeout is a `GitCallStopped` (a `GitError`, hence `CommitFailed`).
+    - A git "'…lock': File exists" error gets the hand fix ("no git running? remove <lock> by hand, then rerun").
+    - `push()` turns a stop into `PushNotConfirmed` (a `PushRejected`), so `CommitFailed.unpushed` is True and E3's
+      rerun recovery handles it.
+    - `unshallow` now uses the same limit; its own timeout code is gone.
+    - `Git.show()` is new. `content_sha256` and D3's `fno/books/decided_runs.py` use it instead of calling `git.run`
+      directly; that direct call was the one path that would have bypassed the limit, and a test found it.
+  - `fno/daily/steps.py`: `CommandStep` takes `locks`. On O1's 600 s stop it removes the command's own new locks
+    (Book 1's `desk book1` commits by itself), and the reason names them. `fno/daily/wiring.py` passes
+    `GitLocks(root)`.
+- **Tests:**
+  - `tests/daily/test_git_limit.py`, real git with hanging hooks and a 1 s limit:
+    - a commit hung in `pre-commit` is stopped within the limit, the hook's process is gone (not running or a zombie),
+      no lock is left, and the next commit works;
+    - a lock that was already there stays, and the error gives the hand fix;
+    - nothing is removed while a git process runs, or when `/proc` is missing;
+    - a push hung in `pre-push` is "push not confirmed" and `unpushed`;
+    - the default `Git` has the limit.
+  - `tests/daily/test_steps.py`: a command stopped mid-commit leaves no new lock, and an older lock stays.
+- **Faults planted:**
+  - no `unlink` in `remove_new`: the commit test fails;
+  - no lock removal in `CommandStep`: its test fails.
+- **Not yet proven:** the 120 s value against a real slow GitHub push (reasoning only). The hook-killing relies on
+  hooks staying in git's process group, which is git's default; a hook that starts its own session (setsid) would
+  survive the stop.
+- **Gates:** 7638 passed; ruff, format, check_imports and check_records are clean.
