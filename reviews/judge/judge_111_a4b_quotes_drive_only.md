@@ -308,3 +308,7 @@ routine. The Drive check was read-only, and no quote value was printed or stored
 - **The parts together:** both started at 14:55:00, and their spots agree within 1.5 points (Groww 23,102.3, NSE
   23,103.8). Both canonical markers name the same attempt.
 - **A4c may merge** (its merge condition, judge 160 and addendum).
+- **From my check-in's list:** NSE's canonical is complete today, where 14 and 15 Oct were "none". The two parts went
+  out in one commit at 15:05 IST, before 15:13, because the per-part commits are A4c's change and A4c is not merged
+  yet. That is today's expected behaviour, not a finding. Once A4c merges, the next live day should show one commit per
+  part, NIFTY first (judge 160).
