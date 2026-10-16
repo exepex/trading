@@ -32,3 +32,13 @@ because it changes the decision-record schema.
   written restart of a stopped book. It is a risk control, not a decision override, so it is untouched.
 - **`fno/scoreboard/sources.py`'s override reader** belongs to S2's owner. It is now always false, but I have not
   removed it, since it is not my file.
+
+## Added: Book 3's day record names no strategy (agreed with F6's builder, 16 Oct)
+
+The F6/F7 builder (01KTAQCD) pointed this out, and I checked it. D3 makes `strategy_id` and `strategy_spec_sha256`
+required for Book 3, but Book 3's day record (`opportunity_id` "no_trade") has no strategy, so every Book 3 day would
+be refused. Strong evidence: the new test's first line failed before this change.
+- Fix: `DAY_RECORD_NULLABLE` lets Book 3's day record alone leave both null. Every Book 3 opportunity record must
+  still name its strategy.
+- Test: the day record passes with both null; an opportunity record with both null is refused.
+- Mutation check: removing the day-record rule fails the test. Restored.

@@ -35,6 +35,8 @@ NULLABLE = {
     BOOK3_AI: {"rule_default", "authority_check"},
 }
 PER_OUTCOME = ("book", "chosen_action", "reason", "rule_default")  # set per record, not by the run
+# Book 3's day record ("no trade" for the day) names no strategy; each of its opportunity records does (F6, 16 Oct)
+DAY_RECORD_NULLABLE = {BOOK3_AI: {"strategy_id", "strategy_spec_sha256"}}
 LINKS = {"version_id", "judge", "owner_override", "forecasts"}  # filled when they exist (D6, C4/F4, F4, G3)
 # The owner never overrides a paper decision (owner, 16 Oct 2026, DESK_DECISIONS row 229 item 4): null in every book
 ALWAYS_NULL = ("owner_override",)
@@ -143,6 +145,8 @@ def validate_record(record: Mapping) -> None:
     if record["book"] not in NULLABLE:
         raise RecordError(f"book: unknown {record['book']!r}")
     allowed_null = NULLABLE[record["book"]] | LINKS
+    if record["opportunity_id"] == NO_TRADE_ID:
+        allowed_null |= DAY_RECORD_NULLABLE.get(record["book"], set())
     empty = [key for key in THREE_BOOK if record[key] is None and key not in allowed_null]
     if empty:
         raise RecordError(f"{record['book']} must fill {empty}")

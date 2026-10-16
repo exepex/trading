@@ -169,3 +169,13 @@ def test_an_owner_override_is_refused_for_every_book(tmp_path, book, override):
     record["owner_override"] = override
     with pytest.raises(RecordError, match="owner never overrides"):
         validate_record(record)
+
+
+def test_book_3_s_day_record_alone_may_name_no_strategy(tmp_path):
+    """F6 (16 Oct): the day's "no trade" record has no strategy; an opportunity record of Book 3 must name its own."""
+    stored = records(run_day(tmp_path, snapshot(doc("sc-a"))))
+    three_book = {"book": "book3_ai", "rule_default": None, "authority_check": None, "model_served": "m",
+                  "session_id": "s", "strategy_id": None, "strategy_spec_sha256": None}  # fmt: skip
+    validate_record(stored["no_trade"] | three_book)
+    with pytest.raises(RecordError, match="strategy_id"):
+        validate_record(stored["sc-a-v1_2026-11-27"] | three_book)
