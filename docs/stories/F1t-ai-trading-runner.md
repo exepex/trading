@@ -286,6 +286,10 @@ boundary and empty cases (quality rule 5).
    wrong kind, another book's version, a private pack whose hash differs from its field, or a common pack whose
    committed bytes differ from `common_pack_sha256`, and prints nothing of the input; a good pointer prints the prompt,
    both packs and nothing else from the repository (tests; `brief` reads no file but the prompt and the common pack).
+3b. **Cards.** The pointer holds every registered role's status line, the card only when `valid` or
+   `not_applicable`, and `cards_sha256`; with no cards file every role reads `no_submission` and the book is still
+   fired; a version with no role units gets `cards: []`; `consulted_units` in the outcome record lists exactly the
+   roles whose card was passed (tests with a fake `CardsOfDay`).
 4. **Seal and reveal.** `seal` adds the labels itself, refuses a wrong shape with what to fix, publishes only the
    commitment, and refuses a second seal; `reveal` waits until `reveal_from` and publishes a reveal that hashes to the
    commitment; the forecast's `seal` and `reveal` behave exactly as before (their tests unchanged and passing).
@@ -369,7 +373,8 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 | Budget cap stops AI roles (BG1, design 7.6) | criterion 2 | |
 | AI usage recorded (F8) | criterion 13 (prompt step) | |
 | Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct): at E2's pack step code runs D2 for Book 2 and writes `journal/book2_hybrid/rule_defaults/<d>.json` (rule default terms and eligible set per opportunity); it is inside Book 2's private pack, so it travels in F1t's pointer under `private_pack_sha256` with no change here |
-| Red team, judge, cards, shadows (F2, F3, F4, F7) | carried in `decision` unchanged | Their stories |
+| Analyst cards and consulted units (F2, F9) | criterion 3b | The cards themselves: F2 |
+| Red team, judge, shadows (F3, F4, F7) | carried in `decision` unchanged | Their stories |
 | "Judge or AI unavailable" row of design 9 (O2) | criteria 6, 10 | O2's suite gains these cases once F1t merges (agreed with O2's builder) |
 
 ## Known limits (said plainly)
