@@ -1,0 +1,13 @@
+discovery SF: n=33 h=4.5 (in-control median run 171 trades)
+discovery SC: n=33 h=4.5 (in-control median run 162 trades)
+discovery BF: n=30 h=4.0 (in-control median run 141 trades)
+challenge SF: n=56 h=5.5 (in-control median run 172 trades)
+challenge SC: n=58 h=4.0 (in-control median run 147 trades)
+challenge BF: n=50 h=1.0 (in-control median run 179 trades)
+-- detection at the calibrated h: 1 SD worse per trade, median run --
+discovery SF h=4.5: 1 SD worse -> median 9 trades; 0.5 SD worse -> 25
+discovery SC h=4.5: 1 SD worse -> median 9 trades; 0.5 SD worse -> 25
+discovery BF h=4.0: 1 SD worse -> median 8 trades; 0.5 SD worse -> 23
+challenge SF h=5.5: 1 SD worse -> median 12 trades; 0.5 SD worse -> 39
+challenge SC h=4.0: 1 SD worse -> median 8 trades; 0.5 SD worse -> 20
+challenge BF h=1.0: 1 SD worse -> median 2 trades; 0.5 SD worse -> 4

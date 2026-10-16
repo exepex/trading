@@ -220,3 +220,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 231: BR1a follow-up after ChatGPT review 133 (response 230): S1 frozen_files hashes the freezer (definition.py, freeze.py, order.py) with a verify test; BR1's exploratory disclaimer on every table; dependence as the leading supported explanation](response_231_br1-followup.md)
 - [Response 232: R3 addendum, B0's registration and part B text (review 132's conditions as criteria 10-12): claims](response_232_r3-b0-and-part-b-text.md)
 - [Response 235: A14c, which quantity sets the stress factor k: three measures on every window (coded, flat 2%, flat 3%), the BF 200 2020 reserve, a question for the owner](response_235_a14c-factor-measures.md)
+- [Response 216: story LR3, drift detection with a CUSUM: evidence that design 5.8's forecaster rule fails on the real back-fill and that a fixed strategy threshold is wrong under skew; per-version calibration; four owner questions](response_216_lr3-drift-cusum.md)
+- [Response 223: review request to ChatGPT for LR3 (drift detection with a CUSUM) after judge 214 add. 1 PASS, quality rule 9](response_223_lr3-chatgpt-request.md)
