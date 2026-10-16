@@ -33,7 +33,7 @@ FnoPaperTrades:
             required: [loss_from_high, pause_at]
             properties:
               loss_from_high: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Closed equity below its highest close so far'}
-              pause_at: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), description: 'The published pause limit: at this loss from the high the book opens nothing new until the owner restarts it (Rs 1,20,000)'}
+              pause_at: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-catalog: {source: "the C5 profile's drawdown brake (config risk.profiles.books.drawdown_brake_rs)", story: C5}, description: 'The published pause limit: at this loss from the high the book opens nothing new until the owner restarts it (Rs 1,20,000)'}
           family: {$ref: '#/components/schemas/FnoFamily', x-fill: built, x-record: 'paper_account:book', description: 'The book, translated from its account''s book id: book1_rules is rule, book2_hybrid is hybrid, book3_ai is ai'}
           as_of: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'equity_history:date', description: The session of the marks}
           opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:capital', description: 'Opening balance plus top-ups in force, Rs 20 lakh a book'}

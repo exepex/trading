@@ -108,3 +108,26 @@ it.
   It is my suggestion, not a criterion. Add it to 3.1 before the freeze, or record why not.
 - Freeze checklist: back-fill hash equal to the frozen method hash (the test above), the three wordings in the hashed
   `PROTOCOL_v4.md`, and phase 1's files regenerated together with the phase 2 files.
+
+## Addendum 2: head 43bceece
+
+**FAIL still: addendum 1's should-fix is open.** The messages crossed. 43bceece answers judge 258's V7 point in the
+text and adds the fourth wording, but changes no record file.
+- **Met:** the fourth PROTOCOL_v4 wording is in 3.1 ("For both trailing and EWMA, 'ending at d' and s2_d are read as
+  the last session before d"), and a test reads all four wordings. The V7 text matches the code and criterion 5's tests.
+- **Open:** the committed back-fill rows still carry `method_sha256` 80c86a8d5885, and the code still hashes to
+  a7d5932795d2 (my script on 43bceece). Regenerate the back-fill on the final code and add the row-hash test
+  (addendum 1).
+
+## Addendum 3: head a33c1d48 (the back-fill regenerated)
+
+**PASS: the G7b text and part a's code may merge before the v4 freeze.**
+- **Root cause, as the builder found it:** `ruff format` rewrapped docstrings in the method files after the
+  regeneration, which moved the hash. The back-fill is now regenerated on the final code, in the same commit.
+- **My script on a33c1d48:** every G7 row carries `method_sha256` a7d5932795d2, equal to `wiring.method_sha256()` of
+  the tree. `python -m fno forecast-v4 backfill` adds 0 rows.
+- **New test:** `test_every_committed_g7_record_row_carries_this_trees_method_hash`. **My mutation** (a one-line
+  comment appended to `baselines.py`) fails it. It is now the freeze-checklist item, named in criterion 7.
+- **Gates:** 7158 passed (`-n auto`, Slack token unset).
+- **Correction to addendum 1:** I reviewed 8976522e, and the fourth wording came one commit later, at 43bceece. It is
+  in 3.1 and tested.
