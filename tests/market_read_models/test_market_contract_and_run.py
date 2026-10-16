@@ -9,6 +9,7 @@ from datetime import date
 import pytest
 
 from fno.alerts.sender import AlertSender
+from fno.constants import BOOKS
 from fno.market_read_models.blocks import BlockBuilder, SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
 from fno.market_read_models.flows_block import FlowsInputs
@@ -16,6 +17,7 @@ from fno.market_read_models.frame_inputs import frame_inputs
 from fno.market_read_models.home_inputs import BookFigures, HomeInputs
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
+from fno.market_read_models.paper_trades_inputs import AccountFigures, PaperTradesInputs
 from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.publication_inputs import PublicationInputsFile
 from fno.market_read_models.run_status import LocalRunStatus
@@ -27,14 +29,17 @@ from fno.storage.wiring import build_session_calendar
 
 from .chain_fixture import chain_of_12_october
 
-DAY = date(2026, 10, 12)
 CONTRACT = PinnedContract(CONTRACT_FOLDER)
 EXAMPLES = CONTRACT.examples()
+DAY = date(2026, 10, 12)
 OPENING_BOOKS = HomeInputs(
     [BookFigures(n, f, f"F&O Book {n}", 500000.0, 0.0, 0) for n, f in ((1, "rule"), (2, "hybrid"), (3, "ai"))],
     [],
     "No F&O strategy has passed testing yet (test).",
     30000.0,
+)
+OPENING_ACCOUNTS = PaperTradesInputs(  # each book at its opening value, nothing traded (P2c's empty state)
+    DAY, [AccountFigures(b, DAY, 2000000.0, 2000000.0, 2000000.0, 0, 0.0) for b in BOOKS], 120000.0, 150000.0
 )
 CALENDAR = CsvSessionCalendar(
     "date,kind,description,source_url\n2026-10-02,holiday,Gandhi Jayanti,https://nsearchives.nseindia.com/x.pdf\n"
@@ -55,7 +60,7 @@ def example_rows() -> SessionRows:
     weather = WeatherInputs(DAY, None, [], {}, {})  # no weather record: the page's not-published state
     return SessionRows(
         DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows,
-        weather, [],
+        weather, [], OPENING_ACCOUNTS,
     )  # fmt: skip
 
 
@@ -169,7 +174,7 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1272 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1273 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
     assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 

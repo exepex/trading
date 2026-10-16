@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .flows_block import FlowsInputs
     from .frame_inputs import FrameInputs
     from .home_inputs import HomeInputs
+    from .paper_trades_inputs import PaperTradesInputs
     from .weather_inputs import WeatherInputs
 
 CLOSE_UTC = "T10:00:00Z"  # NSE closes at 15:30 IST
@@ -42,6 +43,7 @@ class SessionRows:
     flows: FlowsInputs | None = None  # the big investors' flows (P8)
     weather: WeatherInputs | None = None  # M1's weather records for the session (P2a)
     score_reports: list[dict] | None = None  # G4's daily score reports up to the session (P2, forecast history)
+    paper_trades: PaperTradesInputs | None = None  # each book's paper account and C5's limits (P2c)
 
 
 class BlockBuilder(ABC):

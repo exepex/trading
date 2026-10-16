@@ -52,6 +52,8 @@ from .home_blocks import FnoBooksBlock, FnoPicksBlock
 from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
 from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
+from .paper_trades_block import FnoPaperTradesBlock
+from .paper_trades_inputs import PaperBooksReader
 from .postgres_publisher import PostgresPublisher
 from .publication import PRODUCT, PublicationBuilder
 from .publication_inputs import PublicationInputsFile
@@ -81,7 +83,7 @@ def build_market_blocks() -> list[BlockBuilder]:
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
             ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
             IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(),
-            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock()]  # fmt: skip
+            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock(), FnoPaperTradesBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -155,7 +157,9 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     store, calendar = build_versioned_reader(), build_session_calendar()
     flows = FlowsReader(store, calendar)
     reports = ScoreReportsReader(ROOT / SCORES_FOLDER)
-    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports)
+    paper = PaperBooksReader(ROOT, BOOKS, profile)  # the accounts E2c downloaded from Drive before the publish
+    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports,
+                              paper)  # fmt: skip
 
 
 def build_weather_inputs() -> WeatherInputsReader:
