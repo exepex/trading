@@ -18,7 +18,6 @@ from fno.config import load_app_config
 from fno.constants import BOOKS, RISK_PROFILE_BOOKS
 from fno.desk.records import EVENT_COLUMNS, EVENTS_FILE, FILL_COLUMNS, FILLS_FILE
 from fno.market_read_models.blocks import SessionRows
-from fno.market_read_models.home_blocks import FiguresNotComputed
 from fno.market_read_models.paper_trades_block import FnoPaperTradesBlock
 from fno.market_read_models.paper_trades_closed import ClosedTrades
 from fno.market_read_models.paper_trades_inputs import PaperBooksReader
@@ -26,6 +25,8 @@ from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.wiring import build_pinned_contract
 from fno.models import IST
 from fno.risk.profile_settings import profile_settings
+
+CONTRACT_SCHEMAS = build_pinned_contract().schemas
 
 CFG = load_app_config()
 PROFILE = profile_settings(CFG, RISK_PROFILE_BOOKS)
@@ -134,7 +135,7 @@ def test_a_closed_trade_is_c1s_trade_line_under_a_registry_label_never_its_versi
     assert (trade["family"], trade["strategy"], trade["structure"]) == (
         "hybrid",
         "Strategy 1, version 1",
-        "short iron fly",
+        "sold iron butterfly",
     )
     assert (trade["opened_on"], trade["closed_on"], trade["exit"]) == ("2026-10-16", "2026-10-16", "take_profit")
     text = json.dumps(published(root))
@@ -151,26 +152,32 @@ def test_the_exit_is_the_desks_own_rule_name(root, reason, exit_kind):
     assert published(root)["closed"][0]["exit"] == exit_kind
 
 
-def test_an_open_trade_stops_the_page_named_by_book_and_count_never_an_amount(root):
+def held(root, day=DAY) -> str | None:
+    """Story P11: the reason the page is held today (None: built), after the publication left out only this page."""
+    inputs = reader(root).on(day)
+    rows = SessionRows(day, [], [], [], [], paper_trades=inputs)
+    publication = PublicationBuilder([FnoPaperTradesBlock()], build_pinned_contract(), "c" * 40).build(rows)
+    assert ("paper_trades" in publication.records) == (inputs.held is None)  # no earlier page here: no row
+    assert publication.held == ({"paper_trades": inputs.held} if inputs.held else {})
+    return inputs.held
+
+
+def test_an_open_trade_holds_only_this_page_with_a_fixed_reason_never_an_amount_or_a_book(root):
     fill(root, BOOKS[1], "f1", "t1", "buy", PLANTED, 10)
-    with pytest.raises(FiguresNotComputed) as stopped:
-        published(root)
-    assert str(stopped.value).startswith("book2_hybrid: 1 open paper trade(s)")
-    assert "1234567" not in str(stopped.value) and "1,234,567" not in str(stopped.value)
-    assert published(root, date(2026, 10, 15))["accounts"][1]["open_trades"] == 0  # the session before still builds
+    reason = held(root)
+    assert reason == "A book holds an open trade, and this page cannot mark it for the session yet"  # the agreed one
+    assert held(root, date(2026, 10, 15)) is None  # the session before still builds
 
 
-def test_a_strategy_with_no_registry_row_or_no_known_structure_stops_the_page_named(root):
+def test_a_strategy_with_no_registry_row_or_no_known_structure_holds_the_page(root):
     closed_trade(root)
     STRUCTURES[("book2_hybrid", DAY, "d1")] = "XX"
     try:
-        with pytest.raises(FiguresNotComputed, match="no committed decision record naming a known structure"):
-            published(root)
+        assert "no committed decision record naming a known structure" in held(root)
     finally:
         STRUCTURES[("book2_hybrid", DAY, "d1")] = "SF"
     closed = ClosedTrades(lambda: "name,version\n", lambda *_: "SF", CFG["charges"])
-    with pytest.raises(FiguresNotComputed, match="has no row in the playbook registry"):
-        PaperBooksReader(root, BOOKS, PROFILE, closed).on(DAY)
+    assert "no row in the playbook registry" in PaperBooksReader(root, BOOKS, PROFILE, closed).on(DAY).held
 
 
 def test_a_shadow_is_its_own_card_under_a_registry_label(root):
@@ -179,8 +186,18 @@ def test_a_shadow_is_its_own_card_under_a_registry_label(root):
     assert shadow == {"name": "Strategy 2, version 3", "label": "shadow", "as_of": "2026-10-13",
                       "opening_value": 2_000_000.0, "value": 2_000_000.0, "open_trades": 0}  # fmt: skip
     write(root, "shadow:unknown-v1", lambda w: w.start(OPENED), opening=2_000_000.0)
-    with pytest.raises(FiguresNotComputed, match="shadow:unknown-v1: its strategy has no row"):
-        published(root)
+    assert "no row in the playbook registry" in held(root)
+
+
+def test_every_hold_reason_of_the_page_matches_the_pinned_pattern():
+    import re
+
+    from fno.market_read_models import paper_trades_closed, paper_trades_inputs
+
+    pattern = CONTRACT_SCHEMAS["FnoPageHolds"]["properties"]["holds"]["items"]["properties"]["reason"]["pattern"]
+    for reason in (paper_trades_inputs.OPEN_NOT_BUILT, paper_trades_inputs.BRAKE_UNREADABLE,
+                   paper_trades_closed.NOT_IN_REGISTRY, paper_trades_closed.NO_STRUCTURE):  # fmt: skip
+        assert re.fullmatch(pattern, reason), reason
 
 
 def test_a_planted_drive_value_reaches_the_payload_only_never_a_file(root):
@@ -198,3 +215,22 @@ def test_a_losing_closed_trade_moves_the_brake_by_exactly_its_net_loss(root):
     (trade,) = page["closed"]
     assert trade["result"] == "lost" and page["accounts"][1]["brake"]["loss_from_high"] == round(-trade["net"], 2)
     assert page["accounts"][0]["brake"]["loss_from_high"] == 0.0  # each book's brake is its own
+
+
+def test_a_held_paper_books_page_leaves_every_other_page_published(tmp_path):
+    """Judge 248: a book's open trade holds only `paper_trades`; the run publishes every other page and alerts once."""
+    from dataclasses import replace
+
+    from fno.market_read_models.paper_trades_inputs import OPEN_NOT_BUILT
+    from fno.market_read_models.wiring import build_market_blocks
+
+    from .test_market_contract_and_run import DAY as RUN_DAY
+    from .test_market_contract_and_run import Rows, example_rows, run
+
+    good = example_rows()
+    rows = replace(good, paper_trades=replace(good.paper_trades, held=OPEN_NOT_BUILT))
+    market, alerts, publisher = run(tmp_path, Rows(rows))
+    code, _ = market.run(RUN_DAY)
+    pages = {key for b in build_market_blocks() for key in b.pages(good)}
+    assert code == 0 and set(publisher.current()) == pages - {"paper_trades"} | {"page_holds"}
+    assert alerts.sent == [f"{RUN_DAY}: paper_trades held back: {OPEN_NOT_BUILT}"]

@@ -8,7 +8,7 @@ and the exit, and D3's committed decision record for the structure. Mapped as ag
 - **Exit:** the desk's own rule name (profit_target, stop_loss, time_exit), a settlement fill for expiry settlement,
   anything else `other`; `safety_stop` is never sent until S1's stop exists.
 - **Fills:** null for every trade until E8 records all three reaction times.
-A trade whose strategy or structure cannot be named stops the page, named, never a guessed label."""
+A trade whose strategy or structure cannot be named holds the page (story P11), never a guessed label."""
 
 from __future__ import annotations
 
@@ -23,18 +23,30 @@ from ..books.equity import TradePosition
 from ..constants import FILL_SETTLE, OUTCOME_EXIT_ORDERED
 from ..desk.records import DeskRecords
 from ..desk.trade_counts import version_key
-from .home_blocks import FiguresNotComputed
 
 STRUCTURE_WORDS = {  # the code's own definition: fno/research_engine/structures.py and fno/constants.py
-    "SF": "short iron fly", "SC": "short iron condor", "BF": "long iron fly", "LC": "bought call",
+    "SF": "sold iron butterfly", "SC": "sold iron condor", "BF": "bought iron butterfly", "LC": "bought call",
     "LP": "bought put", "CDS": "call debit spread (bull call spread)", "CCS": "call credit spread (bear call spread)",
     "PDS": "put debit spread (bear put spread)", "PCS": "put credit spread (bull put spread)",
 }  # fmt: skip
 EXITS = {"profit_target": "take_profit", "stop_loss": "max_loss_exit", "time_exit": "time_exit"}
 EXPIRY_SETTLEMENT, OTHER_EXIT = "expiry_settlement", "other"
 STRATEGY_LABEL = "Strategy {k}, version {n}"
-NOT_IN_REGISTRY = "{book}: trade {trade_id}'s strategy has no row in the playbook registry; it is never given a label"
-NO_STRUCTURE = "{book}: trade {trade_id} has no committed decision record naming a known structure"
+# Story P11 hold reasons of this page: fixed sentences shown on screen (contract 2.13.0: no value, no digit, no book id)
+NOT_IN_REGISTRY = (
+    "A trade or shadow account belongs to a strategy with no row in the playbook registry, so it is never given a label"
+)
+NO_STRUCTURE = "A trade has no committed decision record naming a known structure, so it is never given one"
+
+
+class PageCannotBeBuilt(Exception):
+    """The paper books page cannot be built today, for `reason` (one of the page's hold reasons): only this page is
+    held (story P11), every other page publishes."""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
 
 Structures = Callable[[str, date, str], str]  # (book, day, decision id) -> the structure code its record names
 
@@ -88,13 +100,13 @@ class ClosedTrades:
     def _strategy(self, book: str, trade_id: str, tag: str) -> str:
         name, version = version_key(tag)
         if name not in self.order:
-            raise FiguresNotComputed(NOT_IN_REGISTRY.format(book=book, trade_id=trade_id))
+            raise PageCannotBeBuilt(NOT_IN_REGISTRY)
         return STRATEGY_LABEL.format(k=self.order[name], n=version)
 
     def _structure(self, book: str, trade_id: str, day: date, decision_id: str) -> str:
         words = STRUCTURE_WORDS.get(self.structures(book, day, decision_id))
         if words is None:
-            raise FiguresNotComputed(NO_STRUCTURE.format(book=book, trade_id=trade_id))
+            raise PageCannotBeBuilt(NO_STRUCTURE)
         return words
 
 

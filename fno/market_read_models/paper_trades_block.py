@@ -1,14 +1,16 @@
 """The paper books page (story P2c, screen W3c; contract `FnoPaperTrades`, page `paper_trades`): each book's own paper
 account, never added across books, with its published limits from the C5 profile (`open_risk_cap`, `brake.pause_at`;
 never typed), its closed trades after costs and the shadow accounts, each on its own card and never added to a book
-(`paper_trades_inputs.py`, `paper_trades_closed.py`). A book's open trade stops the page, named, until per-trade
-marks are recorded."""
+(`paper_trades_inputs.py`, `paper_trades_closed.py`). What it cannot build yet (a book's open trade before per-trade
+marks are recorded, a trade or shadow it cannot label) holds only this page (story P11): the screen keeps the previous
+page, dated, and says why; every other page publishes."""
 
 from __future__ import annotations
 
 from ..constants import BOOKS
 from .blocks import BlockBuilder, SessionRows
 from .home_inputs import BOOK_FAMILIES
+from .page_holds import PageHeld
 from .paper_trades_closed import ClosedTrade, result
 from .paper_trades_inputs import Marks, PaperTradesInputs
 
@@ -19,6 +21,8 @@ class FnoPaperTradesBlock(BlockBuilder):
     page_key, served_schema = "paper_trades", "FnoPaperTradesResponse"
 
     def build(self, rows: SessionRows) -> dict:
+        if rows.paper_trades.held:  # story P11: only this page is held, keeping its previous (dated) page
+            raise PageHeld(rows.paper_trades.held)
         return paper_trades(rows.paper_trades)
 
 

@@ -69,3 +69,26 @@ Every account figure against the account's own rows and the config; capital befo
 opened; a closed trade against C1's trade line, labelled from the registry with no word of its tag; each exit; an open
 trade stops the page, named without the amount; a missing registry row or structure stops it; a shadow's own card; a
 losing trade moves the brake by its net loss; a planted Drive value reaches no file. 22 blocks, 1,273 pages a day.
+
+## Addendum 1 (16 Oct): rebased on P11 and P2b; judge 248's finding fixed at its root
+
+- **Merged in:** main, and story/p2b-forecast-lab, which carries P11 (judge 257 add. 2 PASS) and the 2.13.0 pin. So
+  this branch merges after P2b. Pages a day: 1,275 (23 blocks plus page_holds).
+- **Judge 248 (any trade or shadow stopped every page): fixed by the hold, not by a patch.**
+  - The reader and the closed-trades module no longer raise `FiguresNotComputed`. They raise the page's own
+    `PageCannotBeBuilt(reason)`.
+  - The reader returns the page's inputs with `held` set, and the block raises `PageHeld`. Only `paper_trades` is
+    held, keeping its previous dated page (`shows: previous_page`). Every other page publishes.
+  - A shadow account and a closed trade are now built (part 2), so normal running holds nothing.
+  - What still holds the page: a book's open trade (no per-trade marks yet), a trade or shadow whose strategy has no
+    registry row, a trade with no known structure, and a brake history C2 refuses.
+- **Reasons** are fixed sentences with no digit, so no book id or count. A test checks them against the pinned
+  pattern. The open-trade one is the agreed sentence, word for word: "A book holds an open trade, and this page
+  cannot mark it for the session yet".
+- **Test (judge 248):** a held paper books page in a full MarketRun leaves every other page published, plus
+  page_holds, with one alert line.
+- **Words:** the structures now read sold or bought iron butterfly, sold iron condor (the screens lead's beginner
+  check).
+- **Known loss, stated plainly:** the held reason no longer names the book or the trade, so the alert does not say
+  which one; neither does the run log. Only the desk's own records (E4's events, Drive) still do; the screen rule
+  (no digits) forbids naming it here.
