@@ -39,6 +39,7 @@ from ..constants import (
     REVIEWS_STEP,
     RUN_LOG_DECISIONS_STEP,
     RUN_LOG_EXITS_STEP,
+    RUN_LOG_TRADE_MARKS_STEP,
     STEP_FAILED,
     STEP_REFUSED,
 )
@@ -112,7 +113,7 @@ class DailyRun:
                                                                    log.result(RUN_LOG_DECISIONS_STEP),
                                                                    self._unreviewed(day) | self._unscored(day))),
             "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
-            "trade_marks": (times.execution_snapshot, lambda: self.marking.run(day)),  # story E2d
+            RUN_LOG_TRADE_MARKS_STEP: (times.execution_snapshot, lambda: self.marking.run(day)),  # story E2d
         }  # fmt: skip
         return desk | {name: (None, lambda step=step: step.run(day)) for name, step in self.day_steps.items()}
 

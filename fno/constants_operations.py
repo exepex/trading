@@ -7,6 +7,7 @@ from __future__ import annotations
 __all__ = [
     "RUN_LOG_DECISIONS_STEP",
     "RUN_LOG_EXITS_STEP",
+    "RUN_LOG_TRADE_MARKS_STEP",
     "REVIEWS_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
@@ -27,6 +28,7 @@ __all__ = [
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
 RUN_LOG_DECISIONS_STEP = "decisions"
 RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
+RUN_LOG_TRADE_MARKS_STEP = "trade_marks"  # E2d: every open trade marked right after the exits
 REVIEWS_STEP = "reviews"  # after the exits: E6's scorecards and automatic pauses (LR3's drift monitor joins it later)
 # E3's steps (with E2d's marking), then story O1's whole day in order (the health check O8 reads it); Book 1 decides
 # right after the pack
@@ -37,8 +39,8 @@ DESK_RUN_STEPS = (
     "snapshot",
     "fills",
     RUN_LOG_EXITS_STEP,
-    "trade_marks",
-)  # E2d marks every open trade right after the exits
+    RUN_LOG_TRADE_MARKS_STEP,
+)
 DAILY_RUN_STEPS = (
     "quotes",
     "margin_check",
