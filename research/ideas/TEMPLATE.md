@@ -39,7 +39,9 @@ and changing an input after seeing its numbers makes a new idea. `trial` is the 
 - `tail`: the maximum loss's `probability` and `loss` (rupees a trade), `in_gross` (yes when the gross figure already
   contains it, as a measured history does), and `family_probability` with `family_source` where a measured rate of
   the structure's family exists (the worse rate is used). Not needed when no edge is stated.
-- `cost`: either `measured` with its `source` (a measured round trip), or `legs`, each with `side` (buy or sell),
+- `cost`: either `measured` with its `source` (a measured round trip), or `legs`, each with `instrument`
+  (`index_option` or `stock_option`; a stock option cannot use `settlement`, since C1 has no physical-settlement
+  charge yet, so its card states a measured cost), `side` (buy or sell),
   `units`, `entry` premium, `exit` premium or `settlement` (intrinsic value a unit, cash-settled), and its measured
   half-spread `pad` with `pad_source`; C1's charges come from `config.yaml`.
 - `data_sets`: rows of `research/DATA_SPEND.md` as "data set | price type | period"; `measures`: the quantity tested.

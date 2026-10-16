@@ -34,6 +34,8 @@ def test_the_worked_condor_example(mean, sd, n, cost, t, bound, net, ratio, net_
 def test_a_positive_net_on_the_bound_passes_even_with_a_thin_margin():
     result = screen(ScreenInputs(StatedGross(GrossKind.PUBLISHED, 150, "study"), StatedCost(100, "m"), NO_TAIL))
     assert result.outcome == Outcome.PASSED and result.figures["net"] == 50 and result.thin_margin
+    zero = screen(ScreenInputs(StatedGross(GrossKind.PUBLISHED, 100, "study"), StatedCost(100, "m"), NO_TAIL))
+    assert zero.outcome == Outcome.SCREENED_OUT and zero.figures["net"] == 0  # at zero: screened out
     wide = screen(ScreenInputs(StatedGross(GrossKind.ARITHMETIC, 250, "sum"), StatedCost(100, "m"), NO_TAIL))
     assert wide.outcome == Outcome.PASSED and not wide.thin_margin
 

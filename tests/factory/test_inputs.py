@@ -45,19 +45,39 @@ def test_a_missing_or_bad_screen_input_is_named(tmp_path, old, new, message):
         screen_inputs(card(tmp_path, MEASURED.replace(old, new)), {})
 
 
-def test_no_stated_edge_needs_no_cost_or_tail(tmp_path):
-    inputs = screen_inputs(card(tmp_path, "gross: {kind: none, source: studies disagree}\n"), {})
+@pytest.mark.parametrize("kind", ["none", "assumed_hurdle"])
+def test_no_stated_edge_needs_no_cost_or_tail(tmp_path, kind):
+    inputs = screen_inputs(card(tmp_path, f"gross: {{kind: {kind}, source: studies disagree}}\n"), {})
     assert inputs.cost is None and inputs.tail is None
+
+
+def test_a_stock_option_leg_cannot_use_cash_settlement(tmp_path):
+    leg = "{instrument: stock_option, side: buy, units: 500, entry: 10, settlement: 4, pad: 0.1, pad_source: snapshot}"
+    extra = MEASURED.replace("{measured: 824, source: response 92}", f"{{legs: [{leg}]}}")
+    with pytest.raises(CardError, match=re.escape("'cost.legs[0].settlement' is cash settlement only")):
+        screen_inputs(card(tmp_path, extra), {})
+    index_leg = leg.replace("stock_option", "index_option")
+    inputs = screen_inputs(
+        card(tmp_path, MEASURED.replace("{measured: 824, source: response 92}", f"{{legs: [{index_leg}]}}")),
+        {"stt_exercise_pct": 0.15},
+    )
+    assert inputs.cost.legs[0].settlement == 4
+
+
+LEG = "instrument: index_option, side: sell, units: 65, entry: 120, exit: 40, pad: 1, pad_source: A4"
 
 
 @pytest.mark.parametrize(
     ("leg", "message"),
-    [("{side: sell, units: 65, entry: 120, exit: 40, settlement: 0, pad: 1, pad_source: A4}", "'cost.legs[0].exit' or"),
-     ("{side: short, units: 65, entry: 120, exit: 40, pad: 1, pad_source: A4}", "'cost.legs[0].side' must be one of"),
-     ("{side: sell, units: 65, entry: 120, exit: 40, pad: 1}", "'cost.legs[0].pad_source' is missing")],
-)  # fmt: skip
+    [
+        (LEG + ", settlement: 0", "'cost.legs[0].exit' or"),
+        (LEG.replace("side: sell", "side: short"), "'cost.legs[0].side' must be one of"),
+        (LEG.replace(", pad_source: A4", ""), "'cost.legs[0].pad_source' is missing"),
+        (LEG.replace("instrument: index_option, ", ""), "'cost.legs[0].instrument' is missing"),
+    ],
+)
 def test_a_bad_leg_is_named(tmp_path, leg, message):
-    extra = MEASURED.replace("{measured: 824, source: response 92}", f"{{legs: [{leg}]}}")
+    extra = MEASURED.replace("{measured: 824, source: response 92}", f"{{legs: [{{{leg}}}]}}")
     with pytest.raises(CardError, match=re.escape(message)):
         screen_inputs(card(tmp_path, extra), {})
 

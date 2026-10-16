@@ -18,7 +18,8 @@ _GROSS = {GrossKind.MEASURED: ("kind", "source", "mean", "sd", "n"),
           GrossKind.ARITHMETIC: ("kind", "source", "least_favourable"),
           GrossKind.NONE: ("kind", "source"), GrossKind.ASSUMED_HURDLE: ("kind", "source")}  # fmt: skip
 _TAIL = ("probability", "loss", "in_gross", "family_probability", "family_source")
-_LEG = ("side", "units", "entry", "exit", "settlement", "pad", "pad_source")
+_LEG = ("instrument", "side", "units", "entry", "exit", "settlement", "pad", "pad_source")
+_INDEX_OPTION, _STOCK_OPTION = "index_option", "stock_option"
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,9 @@ def _leg(fields: Fields) -> Leg:
     fields.only(_LEG)
     if fields.has("exit") == fields.has("settlement"):
         raise fields.refuse("exit", "or 'settlement' must be given, not both and not neither")
+    if fields.choice("instrument", (_INDEX_OPTION, _STOCK_OPTION)) == _STOCK_OPTION and fields.has("settlement"):
+        # stock options settle physically, and C1 has no physical-settlement charge yet (judge 266)
+        raise fields.refuse("settlement", "is cash settlement only: a stock-option card states a measured cost")
     return Leg(
         side=fields.choice("side", (SIDE_BUY, SIDE_SELL)),
         units=fields.count("units"),
