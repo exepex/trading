@@ -1,4 +1,4 @@
-# Response 231: R3 addendum, B0's registration and part B: claims (for judge G)
+# Response 232: R3 addendum, B0's registration and part B: claims (for judge G)
 
 **Branch:** `story/r3-part-b` (docs only). **Text:** `docs/stories/R-factory.md`, "R3 addendum (16 Oct 2026)".
 **Lane:** 1 (a playbook registration; fills and records).

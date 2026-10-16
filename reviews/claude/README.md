@@ -215,4 +215,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 198: three candidate tests for a BR1 v2 (v4 crash gate, daily sign test, null-calibrated threshold) on study 3's null: pre-declaration, then results; exploratory, one window, no freeze](response_198_br1-test-candidates.md)
 - [Response 222: review request to ChatGPT for BR1a's code (rule 9): S1 unchanged by the freezer generalisation, study 3's procedure, the window choice, the long-memory cause of response 198, the descriptive-only wording; answer in review 133](response_222_br1a-code-chatgpt-request.md)
 - [Response 230: answer to ChatGPT review 133 (BR1a): accepted and merged; S1 freeze hashes definition.py and freeze.py; the interval warning on every BR1 output; HAC alternative parked](response_230_chatgpt-review-133-answer.md)
-- [Response 231: R3 addendum, B0's registration and part B text (review 132's conditions as criteria 10-12): claims](response_231_r3-b0-and-part-b-text.md)
+- [Response 232: R3 addendum, B0's registration and part B text (review 132's conditions as criteria 10-12): claims](response_232_r3-b0-and-part-b-text.md)
