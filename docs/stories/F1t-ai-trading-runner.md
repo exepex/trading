@@ -58,6 +58,9 @@ but not the product quality." Errors must alert and be recorded.
   enforceable mode exists". So F1t is built and tested, but **no live switch may be set until the owner decides**
   either (a) to accept `sealed_same_day` for paper trading decisions, labelled "sealed same day (not full F1)" and not
   scored as an independent comparison, or (b) to wait for an enforceable mode. Asked through the orchestrator.
+  **Decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`): (a).** Every decision carries the label "sealed same day
+  (not full F1)" (the version label's `isolation:sealed_same_day`), and Books 2-3 are not counted as an independent
+  head-to-head until a stronger mode exists.
 
 ## Scope
 
@@ -85,8 +88,9 @@ but not the product quality." Errors must alert and be recorded.
 **Out (each with its owner or reason):**
 - What a book decides and its prompt: F5 (Book 2, D4/D5 owner session_01SFDjjZx7JYziM3jqJytG2z) and F6 (Book 3, the
   F6/F7 builder). F1t registers their prompt file and shape check by one line each when they land.
-- Analyst finding cards (F2), matched shadows (F7), the red team and judge (F3, F4): they travel inside the answer's
-  book-specific `decision` object, defined and checked by their stories. F1t passes them through unchanged.
+- Analyst finding cards (F2): F2's own sealed routines; F1t passes F2's `analyst_cards` item (Design). Matched shadows
+  (F7): inside Book 3's `decision` object, defined and checked by F6/F7. The red team and devil's advocate: T2/T3.
+  The AI judge (F4) is a separate step inside `ai_collect` (Addendum A below).
 - E3's collection and fills, E8's owner-timing fills: unchanged. An accepted AI run is collected and filled exactly as
   Book 1's.
 - D3's refusal of a non-empty `owner_override` (D4 table, owner 16 Oct): the D3 owner's code item; F1t's live switches
@@ -188,8 +192,8 @@ not exactly these, whose version is not the book's current one, or whose private
   session-description tool, that tool's `session_context.model`; `unknown` only when neither exists. `seal` refuses a
   `model_reported` that is not a model ID or `unknown`.
 - `seal <answer.json>`: the answer is `{"model_reported": <text>, "decision": {...}}`. `seal` adds the labels (book,
-  day, version, both pack hashes) itself, checks the shape (F1t's base: `decision` is an object with `action` (text)
-  and `reason` (one line, 1-600 characters); then the book's own shape check `check_decision(decision: dict) -> list[str]` (problems; empty means ok; standard
+  day, version, both pack hashes) itself, checks the shape (F1t's base: `decision` is an object with a one-line
+  `reason` of 1-600 characters; what it decides is the book's own: F5's slots, F6's action); then the book's own shape check `check_decision(decision: dict) -> list[str]` (problems; empty means ok; standard
   library only: F5's `fno/book2/answer.py`, F6's for Book 3), registered with its version by F5 or
   F6), and publishes only the commitment, to `journal/ai_decisions/submissions/<YYYY>/<d>_<book>.commitment.json`.
   A refused answer names what to fix, so the model can fix it before the deadline.
@@ -447,7 +451,8 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 | AI usage recorded (F8) | criterion 14 | |
 | Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct, revised after E2c's privacy point): at E2's pack step code runs D2 for Book 2 at the cutoff and puts the rule default and eligible set inside Book 2's private pack as its "evaluation" sheet (no journal file); it travels in F1t's pointer under `private_pack_sha256` with no change here. C4 reads the sheet, never the AI's answer; D3's replay must reproduce it |
 | Analyst cards and consulted units (F2, F9) | criterion 3b | The cards themselves: F2 |
-| Red team, judge, shadows (F3, F4, F7) | carried in `decision` unchanged | Their stories |
+| Shadows (F7) | carried in Book 3's `decision` unchanged | F6/F7 |
+| AI judge (F4) | Addendum A | The verdict itself: F4 |
 | "Judge or AI unavailable" row of design 9 (O2) | criteria 6, 10 | O2's suite gains these cases once F1t merges (agreed with O2's builder) |
 
 ## Known limits (said plainly)
@@ -481,3 +486,32 @@ O1 (merged first; F1t's code builds on it), the private-pack hook that puts Book
 sheet in their private packs before the pack step (register row "Book 2 pack rule default", 01SFDjjZ with E2's pack
 owner 0134MoC6), F8c (usage timing), D3 `owner_override` refusal, D4, D5, F5, F6 (for each book's go-live, not
 for F1t's merge: fakes stand in), E2, E3, BG1, F8 · **Status:** story text; judge 301 FAIL (4 should-fix, 2 minor) answered in this text, back to Judge E
+
+## Addendum after the text PASS (16 Oct 2026, agreed with the builders named; for Judge E)
+
+A. **The AI judge (F4, session_01AN94h4cY98oYa3CF2MZfak; F4 text story/f4-ai-judge 00f49a0c, design 4).** In
+   `ai_collect`, after F1t's own checks and before `decide()`: `judged = judge_step.run(JudgeCase(book, day,
+   registered_model, decision, common_pack.body, private_pack.body, common_sha256, private_sha256))`, built by
+   `fno/judge/wiring.py: build_judge_step(root)`; `run()` never raises (an error is verdict `unavailable`), pure code,
+   5 s budget. `decide()` runs in every case, with `AcceptedDecision` gaining `judge: str` (the verdict file's path) and
+   `judge_blocks: bool` (Book 2: fail or unavailable). When `judge_blocks`, the decider writes a no-trade run with the
+   rule default as a shadow record; F1t's run check refuses a blocked run that holds any chosen non-shadow trade; the
+   outcome is `judge_failed` (no trade, the verdict's reason, named in the step's alert); the run, the verdict file
+   (`journal/ai_decisions/<YYYY>/<d>_<book>_judge.json`) and the outcome record are committed together. Book 3's
+   verdict never blocks. **Code waits** for the owner's answer on a code or AI judge and F4's port; until it lands no
+   judge runs, and Book 2's go-live needs it (checklist).
+B. **Book answer shapes.** F1t's base check needs only a one-line `reason`; F5's `decision` is `{"slots": [...],
+   "reason"}`, F6's `{"action", "reason", "trades", "proposals", "shadow", "cards_used"}`. Each book's
+   `check_decision(decision)` checks the rest.
+C. **F2's card item** is `{"day", "input_sha256", "role_set_version", "roles": [{"role", "unit_id", "status",
+   "reason", "card_id", "card"}]}`, `card` null unless usable; the pointer refuses an item for another day.
+D. **Found by F1t's own reviews and fixed (each with a test):** the record scan reads every decoded text of the
+   pointer (JSON escapes hid a planted secret); a decider's undeclared write anywhere in the checkout is refused and put
+   back, except the quote parts' folder (`research/data/quotes/`, written in parallel; never put back); the run check
+   runs inside the guard; one book's failure is that book's `refused` record, never another's loss; the packs handed
+   to the decider must equal the fired labels; private figures are redacted from every recorded and alerted reason; a
+   leftover `firing` entry is judged on its submission; the observer's end (exit code, last line) is reported and the
+   observer is stopped at `ai_collect` and at exit (O1 builder's requirement); the fire log commits through E3's
+   `PendingCommitter` (its recovery); a wrong AI setting fails the AI steps only, never the quotes or Book 1.
+E. **One cap.** `ROUTINE_POINTER_MAX_BYTES` (64 KiB) in `fno/constants_operations.py`, shared with G11's v4 pointer.
+
