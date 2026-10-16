@@ -5,14 +5,16 @@
 - `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once);
 - `coverage`: per book, the pack days with a counted forecast (story G5 criterion 3);
 - `audits-due`: records any new weekly draw (with its seed inputs), then lists the selected sessions not audited yet;
-- `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once.
+- `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once;
+- `observe-remote`: reads the remote branch's head at each deadline into an observation file (story F1t's receipts).
 The routine side is `python -m fno.ai` (standard library only).
 """
 
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
 
 from ..constants import AI_BOOKS
 from .transcript_audit import BREACH_KINDS
@@ -35,6 +37,9 @@ def add_ai_parser(subparsers) -> None:
     record.add_argument("--evidence", required=True, help="what was read and seen (tool calls, files), never a secret")
     record.add_argument("--auditor", required=True, help="who read the transcript")
     record.add_argument("--session", default="", help="the session, when the fire log has no link")
+    observe = actions.add_parser("observe-remote", help="read the remote's head at each deadline (F1t receipts)")
+    observe.add_argument("--out", type=Path, required=True, help="the observation file (git-ignored)")
+    observe.add_argument("--deadline", type=datetime.fromisoformat, action="append", required=True)
     ai.set_defaults(func=cmd_ai)
 
 
@@ -44,6 +49,8 @@ def cmd_ai(args) -> int:
     day = getattr(args, "day", None) or now_ist().date()
     if args.ai_cmd == "audit-record":
         return _audit_record(args)
+    if args.ai_cmd == "observe-remote":
+        return _observe_remote(args)
     commands = {"fire": _fire, "reveals-ready": _reveals_ready, "collect": _collect, "coverage": _coverage,
                 "audits-due": _audits_due}  # fmt: skip
     return commands[args.ai_cmd](day)
@@ -114,4 +121,20 @@ def _audit_record(args) -> int:
     except AuditRefused as refused:
         print(f"refused: {refused}")
         return 1
+    return 0
+
+
+def _observe_remote(args) -> int:
+    import time
+
+    from ..config import ROOT
+    from ..models import now_ist
+    from .observed_receipts import ObservationFile
+    from .remote_observer import GitLsRemote, RemoteObserver
+
+    if any(deadline.tzinfo is None for deadline in args.deadline):
+        print("refused: every deadline needs its time zone")
+        return 1
+    RemoteObserver(GitLsRemote(ROOT), ObservationFile(args.out), now_ist, time.sleep).run(args.deadline)
+    print(f"observed the remote at {len(args.deadline)} deadline(s): {args.out}")
     return 0

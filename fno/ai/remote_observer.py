@@ -4,21 +4,17 @@ the collection cannot move them). It only asks the remote (`git ls-remote`), whi
 caller's rule "git in the repository only in the run's thread" holds. Each reading is bounded by `LS_REMOTE_SECONDS`;
 a failure is written as a failed reading, never retried later (a late reading proves nothing).
 
-    python -m fno.ai.remote_observer --out <file> --deadline <ISO time> [--deadline <ISO time> ...]
+    python -m fno ai observe-remote --out <file> --deadline <ISO time> [--deadline <ISO time> ...]
 """
 
 from __future__ import annotations
 
-import argparse
 import subprocess
-import sys
-import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
 
-from ..models import now_ist
 from .observed_receipts import Observation, ObservationFile
 
 LS_REMOTE_SECONDS = 20
@@ -67,19 +63,3 @@ class RemoteObserver:
             except RemoteHeadFailed as failed:
                 commit, error = None, str(failed)
             self.out.append(Observation(deadline, started, self.clock(), commit, error))
-
-
-def main(argv: list[str] | None = None, root: Path | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m fno.ai.remote_observer")
-    parser.add_argument("--out", type=Path, required=True, help="the observation file (git-ignored)")
-    parser.add_argument("--deadline", type=datetime.fromisoformat, action="append", required=True)
-    args = parser.parse_args(argv)
-    if any(d.tzinfo is None for d in args.deadline):
-        print("refused: every deadline needs its time zone")
-        return 1
-    RemoteObserver(GitLsRemote(root or Path.cwd()), ObservationFile(args.out), now_ist, time.sleep).run(args.deadline)
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

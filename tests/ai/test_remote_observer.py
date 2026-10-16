@@ -2,10 +2,12 @@
 failed reading as failed, and only asks the remote (the checkout is untouched)."""
 
 import subprocess
+from argparse import Namespace
 from datetime import datetime, timedelta
 
+from fno.ai.cli import cmd_ai
 from fno.ai.observed_receipts import ObservationFile
-from fno.ai.remote_observer import GitLsRemote, RemoteHead, RemoteHeadFailed, RemoteObserver, main
+from fno.ai.remote_observer import GitLsRemote, RemoteHead, RemoteHeadFailed, RemoteObserver
 from fno.models import IST
 
 FIRST = datetime(2026, 10, 19, 15, 10, tzinfo=IST)
@@ -86,5 +88,6 @@ def test_git_ls_remote_failure_is_a_failed_reading(tmp_path):
 
 
 def test_the_command_refuses_a_deadline_without_a_time_zone(tmp_path, capsys):
-    assert main(["--out", str(tmp_path / "o.json"), "--deadline", "2026-10-19T15:10:00"], root=tmp_path) == 1
+    args = Namespace(ai_cmd="observe-remote", out=tmp_path / "o.json", deadline=[datetime(2026, 10, 19, 15, 10)])
+    assert cmd_ai(args) == 1
     assert "time zone" in capsys.readouterr().out
