@@ -48,10 +48,11 @@ before a 14:30 cutoff) is A12's to close when a consumer needs it; listed under 
 **Terms consequence:** the repository is public, so headlines, summaries and links never enter it, Slack or any
 dashboard page. They live only in the owner's private Drive; the repository gets SHA-256 receipts (O9) and failure
 records that name the feed, never an item. Article bodies are never fetched (that is scraping beyond the feed).
-**Owner question (via the orchestrator):** is the owner's private research use, stored in their own Drive and never
-published, "personal, non-commercial use" under these three publishers' RSS terms? Builder's recommendation: yes
-(reasoning only; not legal advice). If no, the publisher feeds are switched off in config (`news.publisher_feeds: false`) and A19 runs on the official
-feeds only (RBI, SEBI); the code is the same either way (orchestrator, 16 Oct).
+**Owner's answer (16 Oct 2026, `docs/DESK_DECISIONS.md` row "News: ET, Mint and BusinessLine RSS headlines are
+captured for the owner's personal research use, in private Drive only"):** yes, for personal research; headlines,
+links and times in private Drive only; article bodies never fetched; never in the repository, Slack or dashboards.
+The publisher feeds stay switchable off in config (`news.publisher_feeds: false`), leaving the official feeds (RBI,
+SEBI).
 
 **GitHub's schedule is not reliable here** [strong]: `participant-oi-watch.yml` has 28 cron slots a day, yet only 3
 scheduled runs exist in total (14-15 Oct, GitHub's run list); the audit found other crons starting 4-5 h late. A cron
@@ -200,7 +201,7 @@ criterion, shown in the claims file.
 | Schedule frequent enough in market hours, justified | scope 7 (5-minute polls, continuous; step 0's cron evidence); criterion 11 |
 | Terms and robots respected; official or RSS; no paid source | step 0 table; criterion 12; owner question |
 | No duplicate of A12 or A20 | step 0; Out; criterion 12 |
-| Publisher feeds switchable off (orchestrator, pending the owner's terms answer) | scope 2; criterion 12 |
+| Publisher feeds switchable off (owner's answer, 16 Oct) | scope 2; criterion 12 |
 | Errors in O10's one format (orchestrator) | scope 8; criterion 7 |
 | Clock contract (A16 4.4: skew over 5 s flagged) | criterion 9 |
 | Tests offline with fixtures | test plan |
