@@ -29,10 +29,15 @@ but not the product quality." Errors must alert and be recorded.
     (E2c); only their `.sha256` is committed. A routine session has no Drive credentials (and must not have any).
   - C4 fails every Book 2 and Book 3 trade closed today (`WaitsFor("envelope", "D4")`, `WaitsFor("constitution",
     "D5")`, `fno/checks/wiring.py`). D4 and D5's code is on `story/d4-envelope-code` and `story/d5-constitution-code`.
-  - The forecast routines' timing on real days (strong evidence, `research/forecasts/ai_v1/2026/*_audit.json`): fired
-    at 15:10:20 IST; 14 Oct no commitment at all (`no_submission`, both books); 15 Oct commitments received 15:15:12
-    and 15:15:15, 12-15 s after the 15:15:00 deadline (`late`, both); 16 Oct received 15:11:26 and 15:11:59, 66-99 s
-    after the fire (`on_time`, both; Book 3's model `unverified`). One of three days was usable.
+  - The forecast routines on real days (strong evidence, `research/forecasts/ai_v1/2026/*_audit.json`, corrected after
+    judge 301): 14 Oct fired at 19:27:47 IST and failed at the setup script (`no_submission`, both books); 15 Oct fired
+    at 15:10:20, commitments received 15:15:12 and 15:15:15, 12-15 s after the 15:15:00 deadline (`late`, both); 16 Oct
+    fired at 15:10:19-20, received 15:11:26 and 15:11:59, 66-99 s after the fire (`on_time`, both).
+  - **Model reporting on those days (strong evidence, same files):** `model_reported` was `unknown` on 15 Oct (both
+    books) and 16 Oct (Book 2); only Book 3 on 16 Oct reported `claude-opus-5-5` (`match`). Under the no-trade rule for
+    an unknown model, that is 1 usable book-day of 6. The forecast prompt asks for the session-description tool only
+    and falls back to `unknown`; a session's own instructions also state its exact model ID (strong evidence: this
+    builder session's own system prompt names its model ID), so the decision step reads that first (Design).
   - `research/evaluation/PROTOCOL.md` (`timetable`): the desk's slots "look tight for an AI book's session"; the
     timetable is "proposed until S1".
 - **What the design asks (F1, design 13.5 step 3, 12.4, 12.6):** each book decides in its own session seeing only the
@@ -50,7 +55,8 @@ but not the product quality." Errors must alert and be recorded.
 ## Scope
 
 **In:**
-1. Two O1 steps, `ai_fire` (right after `book1`) and `ai_collect` (before E3's `decisions`), each AI book gated by its
+1. Two O1 steps, `ai_fire` (right after `pack`, before `book1`) and `ai_collect` (after `book1`, before E3's
+   `decisions`), each AI book gated by its
    own live switch `daily.live_from.book2_hybrid` and `daily.live_from.book3_ai` (null: that book is not in the desk at
    all, so nothing changes for Book 1).
 2. The decision pointer (what a routine is fired with) carrying the common pack's SHA-256 and the book's own private
@@ -92,20 +98,28 @@ strictly in this order and before `desk.timetable.decision_deadline`):**
 | Time | Who | What |
 |---|---|---|
 | 14:58-15:10 | daily run, E3 `pack` | common pack committed; each live AI book's private pack built (Drive) |
-| right after `book1` | `ai_fire` | one pointer per live AI book, fired once; not fired if the step starts after `latest_fire` 15:07:00 |
+| right after `pack`, before `book1` | `ai_fire` | one pointer per live AI book, fired once; not fired if the step starts after `latest_fire` 15:07:00; starts the receipt observer |
 | until 15:10:00 | each routine | `brief` → decides → `seal` pushes only its commitment to `main` |
-| 15:10:00 | `ai_collect` | `git fetch origin main`, observation 1 (`receipt_deadline`): a commitment counts only if visible then |
+| 15:10:00 | receipt observer (child process) | observation 1 (`receipt_deadline`): `git ls-remote origin refs/heads/main`; a commitment counts only if contained in that commit |
 | 15:10:10 | each routine | `reveal` (`reveal_from`) pushes the answer and salt |
-| 15:11:00 | `ai_collect` | fetch and merge, observation 2 (`reveal_deadline`); judge each book; accepted ones go to the decider; runs checked, then committed with the outcome records |
+| 15:11:00 | receipt observer | observation 2 (`reveal_deadline`), the same way |
+| after `book1`, once observation 2 exists | `ai_collect` | fetch and merge; judge each book against the two observations; accepted ones go to the decider; runs checked, then committed with the outcome records |
 | 15:12:00 | E3 `decisions` | unchanged: takes each book's first original run visible and committed before the deadline |
 
-The `ai_collect` step started more than 30 s after `receipt_deadline` (a restart) marks every fired book `late`, as E3
-does (fail closed), and its step status is `refused` with that reason, so the day ends "with problems" and O8 sees it.
+**Observations independent of the step order (judge 301):** `ai_fire` starts one receipt observer, a child process
+through O1's `Processes` (as the 3 pm quote parts are), so a slow `book1` (up to its 600 s limit) never moves an
+observation. The observer only reads the remote (`git ls-remote`, which never touches the checkout, so O1's "git only
+in the run's thread" rule for the repository holds) at each deadline and writes `{deadline, started_at, ended_at,
+commit}` to a git-ignored file. An observation that started more than 30 s after its deadline, failed, or is missing
+(the observer died, or a rerun started after the deadline) counts as not taken: every fired book is `late` (fail
+closed, as E3 does), and `ai_collect`'s status is `refused` with that reason, so the day ends "with problems" and O8
+sees it. `ai_collect` itself runs after `book1`; if `book1` ends after 15:12 the books are judged on time or not by
+the observations, but their runs commit after E3's deadline and are late by E3's rule (criterion 8).
 Values are config, so S1's measured-timing rule can move them.
 
-**Pushed late by earlier steps (O1 builder, 16 Oct):** `pack` retries until 15:10 while the canonical snapshot is late,
-and `book1` may run up to its 600 s limit. On a day the pack lands after about 15:07, every live AI book is
-`not_fired` (late start). That is correct, never a trade, and it is alerted.
+**Pushed late by earlier steps (O1 builder, 16 Oct):** `pack` retries until 15:10 while the canonical snapshot is late.
+On a day the pack lands after about 15:07, every live AI book is `not_fired` (late start). That is correct, never a
+trade, and it is alerted. `book1` no longer delays the fire (it runs after `ai_fire`).
 
 **Commit time at the deadline (strong evidence, code):** E3's collector (`D3CommittedDecisions`) pulls, then reads the
 checkout's own history: a run counts when its commit's committer time is before 15:12 (`committed_at >= deadline` is
@@ -154,19 +168,32 @@ not exactly these, whose version is not the book's current one, or whose private
 `canonical_json`) is not `private_pack_sha256`.
 
 **Routine side (`python -m fno.ai_trading`, standard library only):**
+- **Working folder:** `.ai_decision/` is added to `.gitignore` (test: a file there is never staged by the transport).
 - **Two prompts, said plainly (F6, 16 Oct):** the routine's stored prompt (owner-pasted, in F1t's checklist, not
-  hashed) only bootstraps `brief`, `seal`, `reveal` and the usage record; the book's decision prompt (F5's for Book 2,
+  hashed) only bootstraps `brief`, `seal` and `reveal` (the usage timing is F8c's, inside `brief` and `reveal`); the book's decision prompt (F5's for Book 2,
   F6's `agents/book3/decide_v1.md` for Book 3) is the file `brief` hash-checks against its registered version and
   prints.
 - `brief '<pointer>'`: checks the pointer, reads `journal/packs/<d>/common.json` from `main` and checks its SHA-256,
   checks the versioned prompt's hash, saves its private working files under `.ai_decision/` (never committed), then
   prints the prompt, `INPUT`, the common pack and the private pack. Nothing is shown unless every check passes.
+- **Model reported (judge 301):** `brief` prints, before the book's prompt, F1t's fixed answer rule: `model_reported`
+  is the exact model ID the session's own instructions state (its identity line); if the session also has its
+  session-description tool, that tool's `session_context.model`; `unknown` only when neither exists. `seal` refuses a
+  `model_reported` that is not a model ID or `unknown`.
 - `seal <answer.json>`: the answer is `{"model_reported": <text>, "decision": {...}}`. `seal` adds the labels (book,
   day, version, both pack hashes) itself, checks the shape (F1t's base: `decision` is an object with `action` (text)
   and `reason` (one line, 1-600 characters); then the book's own shape check `check_decision(decision: dict) -> list[str]` (problems; empty means ok; standard
   library only: F5's `fno/book2/answer.py`, F6's for Book 3), registered with its version by F5 or
   F6), and publishes only the commitment, to `journal/ai_decisions/submissions/<YYYY>/<d>_<book>.commitment.json`.
   A refused answer names what to fix, so the model can fix it before the deadline.
+- **No private account figure in the answer (judge 301; E2c, owner 15 Oct "A: move to Drive"):** the reveal is public
+  in the repository, and the book's `reason` is copied into its public D3 record. Keeping the reveal in Drive is not
+  possible (the session has no Drive credentials, by rule). So `seal`, and again the collection (`invalid`), refuse
+  any number token in any text of the answer that appears in the private pack's account files (E2c's
+  `ACCOUNT_FILES` under `journal/<book>/`: fills, ledger, positions, equity, marks, events) and does not appear in
+  the common pack or the book's public files (playbook, `book3/`), counting tokens of at least 3 digits or with a
+  decimal point. A strike or a price from the common pack may be named; a fill price, cash or P&L may not. The refusal
+  names the token's place, never prints the figure.
 - `reveal`: waits until `reveal_from`, then publishes answer and salt to `<d>_<book>.reveal.json`.
 - The seal and reveal steps are the same as the forecast's: `fno/ai/book.py`'s publish logic moves into one shared
   helper used by both (no behaviour change for forecasts; their tests unchanged), so nothing is written twice.
@@ -213,6 +240,11 @@ class AiBookDecider(ABC):             # F5: Book 2; F6: Book 3
         # writes ONE D3 run (DecisionStore, atomic) with C2 and C4 inside, as Book 1's DecisionRun does; a blocked
         # action still gets a "no trade, blocked" run with the attempt recorded (D4 criterion 2)
         # raises DecisionRefused(reason) when no run can be written (e.g. the private pack does not rebuild)
+
+# Also per book, owned by the decider's story (judge 301): its OrderBuilder (E3's port: the run's entry orders,
+# replayed from the run, as Book 1's ReplayedOrders) and its ExitRules (each open trade's exits, from its playbook
+# version for Book 2, from its registered D5 spec for Book 3). Owners: F5 (Book 2), F6 (Book 3). F1t wires them,
+# per book, in fno/daily/wiring.py only.
 
 @dataclass(frozen=True)
 class DecidedRun:
@@ -293,7 +325,8 @@ boundary and empty cases (quality rule 5).
    private pack; a rerun never fires again (fire log present). Each `not_fired` cause of the Design list is recorded with
    its reason and named in the step's one alert: budget stop, no version, stop rule (2 breaches; 1 breach fires; a breach of an older
    version does not count), no common pack, started at `latest_fire` (fires) and 1 s after (not), pointer at the size cap
-   (fires) and 1 byte over (not), a flagged pointer, `FireFailed` (tests). The fire log is committed with `firing`
+   (fires) and 1 byte over (not), a flagged pointer, `FireFailed` (tests). The O5 scan of a full fixture pointer
+   (realistic account files at their largest fixture size) finds nothing, and its time is in the claims. The fire log is committed with `firing`
    entries before any trigger call; a process killed between the call and the step's log record, rerun, never fires
    again and records `fire_unknown`, and that book's sealed answer is still judged (test).
 3. **The pointer is checked before any input is shown.** `brief` refuses a pointer with a missing or extra field, a
@@ -305,6 +338,16 @@ boundary and empty cases (quality rule 5).
    fired; a version with no role units gets an item with no roles; `consulted_units` in the outcome record lists exactly the
    roles whose card was passed (tests with a fake `CardsOfDay`); a full-size card set (every role at F2's largest
    card) with the largest fixture private pack fits under the cap, and the claims show its size in bytes.
+3c. **Model reported.** `brief` prints the model rule first; `seal` refuses a `model_reported` that is neither a model
+   ID nor `unknown`; an answer with `unknown` is `model_unverified` and no trade (tests). On the go-live non-counted
+   fire the session must report the registered model; a go-live fire reporting `unknown` blocks the live switch.
+3d. **No private figure in the answer.** An answer whose reason, proposal or shadow text holds a fill price, cash or
+   P&L figure from the private account files is refused at `seal` and `invalid` at collection, the message naming its
+   place, not the figure; a strike or price that also appears in the common pack is accepted; a 2-digit number is not
+   checked (boundary tests); `.ai_decision/` is git-ignored (test).
+3e. **Slow Book 1.** With a fake `book1` running until 15:11:30, observation 1 is still taken at 15:10:00 and an on-time
+   book is judged on time; with the observer killed before 15:10:00 every fired book is `late` and `ai_collect` is
+   `refused` (tests).
 4. **Seal and reveal.** `seal` adds the labels itself, refuses a wrong shape with what to fix, publishes only the
    commitment, and refuses a second seal; `reveal` waits until `reveal_from` and publishes a reveal that hashes to the
    commitment; the forecast's `seal` and `reveal` behave exactly as before (their tests unchanged and passing).
@@ -323,8 +366,9 @@ boundary and empty cases (quality rule 5).
    D4's envelope) never fills and its attempt is in the record; a run committed after E3's deadline is late and never
    filled; a run committed at 15:11:59 and pushed after 15:12 counts, one committed at 15:12:00 is late, a push
    rejected 3 times stops the run with E3's alert (tests);
-   every refusal or miss leaves E3's `no_decision.json` and no fill (tests with a fake decider and fake C4
-   records; the real C4 modes once D4 and D5 merge).
+   every refusal or miss leaves E3's `no_decision.json` and no fill (tests with a fake decider, fake C4 records and
+   fake per-book `OrderBuilder` and `ExitRules`; F5's and F6's real ones, and the real C4 modes, replace them in this
+   end-to-end test when they land, as part of each book's go-live).
 9. **Book isolation.** Book 3's pointer, export and decider input contain no Book 2 file, hash or submission, and the
    reverse; one book's refusal, miss or decider exception leaves the other book's and Book 1's records byte-identical
    to the same day without it; each book's fills go to its own account only (tests).
@@ -401,7 +445,7 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 ## Known limits (said plainly)
 
 - **Timing is tight and unproven for decisions (strong evidence above):** the forecast routines answered in time on 1 of
-  3 days. A pack built late (up to 15:10) leaves no time; such days are `not_fired` or `late`, never a trade. The
+  3 days, and the model was reported on 1 of 6 book-days. A pack built late (up to 15:10) leaves no time; such days are `not_fired` or `late`, never a trade. The
   timetable is S1's to freeze from measured times.
 - **Isolation is detected, not prevented** (`sealed_same_day`), as for forecasts.
 - **The pointer grows with the private pack** (account files grow with fills). At the measured API limit a day fails
@@ -412,7 +456,8 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 
 1. The hand-over interface: F6/F7 (session_01KTAQCDjPkDBKwfCMhWphXb) and F2 (session_01WSMMv5nK4wDdktFrudJfXv) to
    confirm before code. F5 (session_01SFDjjZx7JYziM3jqJytG2z) agreed on 16 Oct: its decider writes the whole D3 run;
-   Book 2's shape check is `fno/book2/answer.py` `check_answer(obj) -> list[str]` (standard library only), which
+   Book 2's shape check is `fno/book2/answer.py` `check_decision(decision) -> list[str]` (the port's one name;
+   standard library only), which
    `seal` calls; F5 times C2 + C4 + write within the 60 s on Book 1's run and reports the number.
 2. `fno/ai/book.py`: F8c (session_0134MoC6f7aAJVcHRBiyATo6) edits `brief` and `reveal` for the usage timing. The
    shared seal-and-reveal helper is extracted after F8c merges, on top of its version (order agreed with F8c); until
@@ -424,5 +469,7 @@ changes to `fno/ai/` is fine (G11's owner, session_013xqaNTCbSBytKgqpfaYFqZ, tol
 
 ## Depends
 
-O1 (merged first; F1t's code builds on it), D3 `owner_override` refusal, D4, D5, F5, F6 (for each book's go-live, not
-for F1t's merge: fakes stand in), E2, E3, BG1, F8 · **Status:** story text for the judge
+O1 (merged first; F1t's code builds on it), the private-pack hook that puts Book 2's evaluation sheet and Book 3's day
+sheet in their private packs before the pack step (register row "Book 2 pack rule default", 01SFDjjZ with E2's pack
+owner 0134MoC6), F8c (usage timing), D3 `owner_override` refusal, D4, D5, F5, F6 (for each book's go-live, not
+for F1t's merge: fakes stand in), E2, E3, BG1, F8 · **Status:** story text; judge 301 FAIL (4 should-fix, 2 minor) answered in this text, back to Judge E
