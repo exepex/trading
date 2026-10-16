@@ -27,6 +27,10 @@ Added after other builders asked (A14c, A16b/A17): `python -m fno health record-
 the routine posts its own line (`test_record_error_writes_one_row_for_a_routine`) [strong]. Gates after it: full suite
 7387 passed on full history; ruff, format, imports and record scan clean [strong].
 
+Fix found through A19's plan (a poller writes its own episode rows with its run URL): the watcher's "already recorded"
+now keys on (run URL, run conclusion), so a run's own rows can no longer hide its later cancel or timeout
+(`test_a_run_s_own_episode_rows_do_not_hide_its_cancel`; fails with the old key) [strong].
+
 ## The four health problems (run evidence)
 
 1. **participant-oi-release cancels [strong].** Runs 4, 6, 8 started 3-4.5 h late (01:51-03:22 IST) and were cancelled

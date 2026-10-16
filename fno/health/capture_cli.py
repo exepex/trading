@@ -36,7 +36,7 @@ def cmd_capture_failed(args, out=print, runs=None, log=None, alerts=None) -> int
     if error is None:
         out(SUCCEEDED.format(run_id=args.run_id))
         return 0
-    if log.has_run(error.run_url):
+    if log.has_run(error.run_url, error.kind):
         out(ALREADY.format(url=error.run_url))
         return 0
     log.append(error)

@@ -218,3 +218,11 @@ def test_record_error_writes_one_row_for_a_routine(tmp_path):
     assert lines == ["2026-10-16,a14c-broker-check,fetch,RuntimeError,Groww unreachable,"]
     with pytest.raises(SystemExit):
         main(["health", "record-error", "--job", "x"])  # step and kind are required
+
+
+def test_a_run_s_own_episode_rows_do_not_hide_its_cancel(tmp_path):
+    """A long poller (A19) records its episodes with its run URL; a later timeout still gets the row and the line."""
+    log = CaptureErrorLog(tmp_path / "capture_errors.csv")
+    log.append(CaptureError(date(2026, 10, 16), "participant-oi-release", "et-markets", "http_error", "x", OI_URL))
+    code, log, sender, _ = call(tmp_path, oi_run())
+    assert code == 0 and [e.kind for e in log.rows()] == ["http_error", "cancelled"] and len(sender.sent) == 1
