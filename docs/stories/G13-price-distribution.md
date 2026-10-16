@@ -66,13 +66,17 @@ New package `fno/price_distribution/` (each file well under 350 lines), composit
   `ask - bid <= max(0.10 x mid, Rs 0.50)`. An EOD price is used when its volume is above zero and its close at least
   Rs 0.50.
 - **Forward (Black-76's underlying):** from put-call parity at the three strikes where `|call mid - put mid|` is
-  smallest, `F = K + e^{rT}(C - P)`, averaged. The future's last trade and the gap to it are recorded. Reason: Groww
+  smallest, `F = K + e^{rT}(C - P)`, averaged. The one-strike formula is a small standalone pure function
+  (`parity_forward(strike, call_mid, put_mid, rate, days)`), the averaging a separate one, so G7b part d can import
+  the former for protocol 1.4's forward (its builder's request). The future's last trade and the gap to it are recorded. Reason: Groww
   gives no quote time, so the future's last trade can be older than the option quotes; the parity forward is
   consistent with the very prices it is used with. On 16 Oct they agreed to 0.0 points (above).
 - **Rate:** `config.yaml` `risk_free_rate` (6.5% today), recorded in every file. On a futures-based Black-76 the
   rate only discounts: at 38 days a 1-point rate change moves prices by about 0.1% and the CDF by the same factor
   [strong: arithmetic, `e^{0.01 x 38/365} = 1.0010`]. Q3 asks whether to read RBI's 91-day T-bill instead (the S6
   cash-rate decision of 16 Oct uses it for the S1 freeze).
+- **Implied volatility:** every IV and Black-76 price comes from `fno/research_engine/implied_vol.Black76`
+  (`price`, `implied_vol` on an `OptionPricing`), the project's one inverter; G13 adds none.
 - **Time:** calendar days / 365 for pricing (as B1 and G1); regular sessions from the session calendar (A7) for the
   forecast horizons.
 
@@ -307,7 +311,7 @@ self-review agents and broken-code proofs per criterion (judge quality rules 3-4
 | Neighbour | Owner session | Boundary (proposed by G13) |
 |---|---|---|
 | O1 daily run | 014zYLf18PgCzR7YoHs1X5Dp | **Agreed** (O1's owner, 16 Oct: "the plug-in part ... fits O1's code"; partial write = non-zero exit "written with problems", recorded `failed`, one alert, receipts committed; after `card`). O1's joining rules applied in design 7: one `DAILY_RUN_STEPS` entry, one steps-dict entry in `fno/daily/wiring.py`, `LIVE_STEPS` and the `daily.live_from` key; nothing else in `fno/daily/`; O1's owner checks this text's plug-in part |
-| G7b (part c, V5's implied probability) | 0185gR5DmoDh2zBAvgRU4CEB | G13 owns the valuation record and the quantile forecasts; G7b owns every v4 record. G7b may import G13's density module, never required to |
+| G7b (part c, V5's implied probability) | 0185gR5DmoDh2zBAvgRU4CEB | **Agreed** (G7b's builder, 16 Oct): G13 edits nothing in `fno/forecast_v4*/` or `research/forecasts/v4/` and writes nothing G8 reads. No overlap: G7b reads G10's v4 pack (14:30-14:40), never the A4 chains, and V5 stays protocol 3.1's lognormal (G7b will not import G13's density). Asked of G13: Black-76 only from `implied_vol.Black76`; `parity_forward` kept a standalone pure function for V4 (part d) |
 | G10 (v4 pack) | 01VK88LxJvV1Gi7Wbr3D4fzp | **Agreed** (G10's builder, 16 Oct): G13 reads the 3 pm A4 chains, never the v4 pack (`fno/v4_pack/`, Drive `v4/packs/`); edits nothing in `fno/forecast_scoring/v4/`, `fno/forecast_v4*/`, `fno/v4_pack/` or `fno/intraday/`; writes nothing G8 or G10 reads. No weekly parser is planned there (read G7b part d's if built). **Open risk:** A4's NIFTY capture may move to 14:30 for v4 (G10's lean: add a 14:30 capture, not move). G13 reads whatever `RecordedSnapshots` gives as the day's canonical and records `observed_at`, so a move changes the label of the inputs, not the code; the orchestrator's decision is noted in the claims file |
 | G11 (AI books) | 013xqaNTCbSBytKgqpfaYFqZ | **Agreed** (G11's owner, 16 Oct): G13 edits nothing in `fno/ai/` or `agents/`; AI price quantiles are a later story with its own budget check under BG1's cap; ids imported from `fno/constants.py` |
 
