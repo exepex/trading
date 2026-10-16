@@ -45,8 +45,11 @@ jobs:
         id: masters
         run: python -m fno fo-masters
       - name: Alert #fno-desk when the run failed without the job's own line (a crash, a sender that could not post)
-        if: ${{ failure() && steps.masters.outputs.posted != 'true' }}
+        if: ${{ failure() }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
+        env:
+          POSTED: ${{ steps.masters.outputs.posted }}
         run: |
+          if [ "$POSTED" = "true" ]; then echo "the job already spoke (its alert)"; exit 0; fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O master files: the GitHub Actions run failed without its own alert; see $RUN_URL"
