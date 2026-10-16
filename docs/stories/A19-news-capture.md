@@ -70,6 +70,17 @@ poll on GitHub 07:00-23:00 IST only (`news.active_window`), a third less load th
 is first seen about 07:00, still before the 09:15 open and every cutoff, and its `previous_poll_at` shows the honest
 window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours only.
 
+**Correction (judge 352 addendum 1 SF6, accepted):** that answer rested on this builder's claim "a third less load,
+overnight items first seen about 07:00", which holds only if a run is alive at 07:00. With no run overnight, only a
+cron can start the morning, and GitHub starts this repository's morning crons 4 h 40 to 5 h 01 late (judge's
+measure), so the first poll would land about 11:30-12:00 IST, after the open, with a gap record every morning. A run
+alive at 07:00 means a runner held overnight (two sleeping runs: a job stops at 6 h), which is the same runner time as
+polling. **Question back to the owner (16 Oct, through the orchestrator):** (1) poll 24/7 (recommended: same runner
+time as (2), exact overnight first-seen times); (2) poll 07:00-23:00 with a sleeping overnight bridge; (3) poll
+07:00-23:00 with cron mornings (about half the runner time; first poll after the open); (4) off GitHub. All of
+(1)-(3) are config (`news.active_window`, `news.overnight_bridge`), the same code. Until the owner answers, this text
+assumes (1).
+
 ## Scope
 
 **In:**
@@ -79,7 +90,7 @@ window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours onl
 2. Feed list in `config.yaml` (`news.feeds`: id, publisher, kind `publisher` or `official`, url, time format, the two
    stale limits of scope 8, optional excluded URL paths), validated by `fno/config.py`; `news.publisher_feeds` (true
    or false) switches every `publisher` feed off at once, leaving the official ones; `news.active_window` (IST start
-   and end; 07:00-23:00, the owner's SF1 answer). Time formats are a strategy (`PublishedTimeFormat`): RFC 822, RBI's no-zone IST
+   and end, or all day) and `news.overnight_bridge` (true or false; the owner's SF6 answer). Time formats are a strategy (`PublishedTimeFormat`): RFC 822, RBI's no-zone IST
    and SEBI's `16 Oct, 2026 +0530`; each states its precision (`second` or `day`).
 3. Parser: RSS 2.0 items to `NewsItem` (title, link, feed's own summary as plain text, published time as given and
    parsed, precision). An answer that is a web page, not XML, has no items or cannot be parsed is a failure.
@@ -101,7 +112,10 @@ window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours onl
    headline (case-folded, punctuation and spaces collapsed) from another publisher within 24 h is kept as its own
    item with `same_headline_as` set (both first-seen times matter; no fuzzy merging).
 6. **The poller and its memory.** `python -m fno news run` polls every feed every 5 minutes while inside
-   `news.active_window`, until 340 minutes or the window's end, whichever is first. The seen set lives in memory and
+   `news.active_window`, until 340 minutes or the window's end, whichever is first. **Overnight bridge** (SF6): with
+   `news.overnight_bridge: true`, a run outside the window polls nothing and sleeps until the window opens or 340
+   minutes pass, then polls or hands over; so the chain stays alive and the first poll of the day is at the window's
+   start. With an all-day window there is nothing to bridge. The seen set lives in memory and
    in a **seen snapshot**, `data/news/seen/YYYY/MM/DD/<run_id>-<n>.json` (item ids, versions, headline keys of the
    last 24 h, each feed's last successful poll and last new item, for the last **14 days**), written every 2 hours
    and at exit. A run starts from the newest receipted snapshot plus the receipted parts after it (through O9's
@@ -114,12 +128,13 @@ window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours onl
    (`build_receipt_committer`).
 7. **Schedule** (judge 352 SF2):
    - `.github/workflows/news-capture.yml`: `concurrency: news-capture` (never two pollers); probe, then the loop;
-     at its end, if the loop ran at least 10 minutes and the window is still open, it dispatches its successor
+     at its end, if the run lasted at least 10 minutes and the window is open or the bridge is on, it dispatches its
+     successor
      (`workflow_dispatch` with `GITHUB_TOKEN`, `actions: write`). The loop ends before the job's `timeout-minutes:
      355`, so this step runs.
    - `.github/workflows/news-capture-kick.yml`: the only other starter, triggered by six crons spread over the
      window and by `workflow_run` (news-capture, `completed`). It dispatches news-capture only when the window is
-     open **and no news-capture run is queued or in progress** (GitHub's run list), so a cron never queues behind a
+     open or the bridge is on, **and no news-capture run is queued or in progress** (GitHub's run list), so a cron never queues behind a
      live poller and is never cancelled. After a completed run it acts only on a non-success one: if that run lasted
      at least 10 minutes it dispatches a restart; if it ended sooner (a failure at start: probe, install, Drive,
      credentials) it dispatches nothing, writes one `restart_stopped` row and alerts once, and the crons retry later
@@ -203,6 +218,11 @@ window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours onl
    nothing.
 7. **Continuous run.** Polls every 5 minutes inside the window and none outside it; stops at 340 minutes or at the
    window's end; flushes (part, receipts, O10 rows) every 15 minutes and at exit, also after an exception.
+   **First poll of the day** (SF6): with the bridge on and a 07:00-23:00 window, a fake-clock chain from 22:30 to
+   07:30 polls nothing between 23:00 and 07:00, never runs a job over 340 minutes, and makes its first poll at
+   07:00 (and 06:59:59 polls nothing); with the bridge off, the chain ends at 23:00 and dispatches nothing. Live:
+   the claims file of the first live week (a follow-up after the merge) lists each day's first poll time, from the
+   heartbeat.
 8. **Failures recorded and alerted, once.** Each failure kind of scope 8 starts an episode: one O10 row and one
    alert; repeats add none; recovery adds one `_recovered` row and one alert; a restart with an open episode in the
    log adds no row and no alert (minor 2); `alert NOT sent` is printed and named.
@@ -230,6 +250,11 @@ window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours onl
 15. **Real run before the judge.** One `news run` of 20 minutes on the real feeds and Drive from this session (or a
     `workflow_dispatch` on the branch): the claims file shows counts per feed, parts, snapshot and receipts written,
     one deliberate failure (a planted bad URL in a dry-run config) recorded and alerted, never an item's text.
+    **Chain proof after the merge** (judge minor): GitHub fires `workflow_run` only for workflow files on the default
+    branch, so the branch cannot prove it; the orchestrator's end-to-end run after the merge (quality rule 8)
+    dispatches news-capture once with `GITHUB_TOKEN` (through the kick) and records that the run's completion
+    started a news-capture-kick run (both run URLs) and that the successor was dispatched; if it did not, the crons
+    are the only restart and that is reported, never assumed.
 
 ## Test plan
 
@@ -258,7 +283,9 @@ the claims file.
 | Stale feed detected, by the NSE calendar | criterion 9 |
 | Schedule frequent enough in market hours, justified | scope 6-7 (5-minute polls in the window; step 0's cron evidence); criteria 7, 13 |
 | News sites' terms and robots; official or RSS; no paid source | step 0 table; criterion 14; owner's answer |
-| GitHub's Actions terms (judge 352 SF1) | step 0; owner's answer (07:00-23:00 IST); `news.active_window`; criteria 7, 13 |
+| GitHub's Actions terms (judge 352 SF1) | step 0; owner's answer, then the SF6 correction back to the owner; `news.active_window`, `news.overnight_bridge`; criteria 7, 13 |
+| A run alive at the window's start; first poll times shown live (judge 352 add. 1 SF6) | scope 6 bridge; criterion 7 |
+| The `workflow_run` chain proven, not assumed (judge 352 add. 1 minor) | criterion 15 |
 | No duplicate of A12, A20 or A21 | step 0; Out; criterion 14 |
 | Publisher feeds switchable off (owner's answer, 16 Oct) | scope 2; criterion 14 |
 | Errors in O10's one format, episode state kept there (orchestrator; judge 352 minor 2) | scope 9; criterion 8 |
@@ -278,4 +305,4 @@ and chain; checks one real part in Drive against its receipt.
 
 **Depends:** O9 step 1 (merged), A9 pacer, A7 calendar, `AlertSender`; O10 part 1's `CaptureErrorLog`, after O10
 part 1 passes its re-judge and merges (judge 352 minor 3) · **Size:** M · **Status:** story text, revised after
-judge 352 (FAIL, 5 should fix, 3 minor); SF1 answered by the owner
+judge 352 and addendum 1 (SF6 back to the owner)
