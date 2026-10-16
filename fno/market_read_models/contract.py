@@ -14,6 +14,7 @@ from pathlib import Path
 import requests
 import yaml
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import best_match
 
 PIN_FILE = "pin.json"
 OPENAPI_FILE = "api/openapi.yaml"
@@ -64,12 +65,35 @@ class PinnedContract:
         return {k: v for f in EXAMPLES_FILES for k, v in json.loads((self.folder / f).read_text("utf-8")).items()}
 
     def validate(self, schema_name: str, instance) -> None:
-        """ContractBroken listing every violation (path and message) of `instance` against the named schema."""
+        """ContractBroken listing every violation of `instance` against the named schema by its path and the rule it
+        breaks, never the value: the message reaches the public Actions log (story P2, privacy rule 3)."""
         root = {"$ref": f"#/components/schemas/{schema_name}", "components": {"schemas": self.schemas}}
         errors = sorted(Draft202012Validator(root).iter_errors(instance), key=lambda e: list(e.absolute_path))
         if errors:
-            lines = [f"{'/'.join(map(str, e.absolute_path)) or '.'}: {e.message}" for e in errors[:10]]
+            lines = [_violation(e) for e in errors[:10]]
             raise ContractBroken(f"{schema_name}: {len(errors)} violation(s): " + "; ".join(lines))
+
+
+def _violation(error) -> str:
+    """A violation's path and rule; for a missing or unexpected field, the field names (keys, never values). Under
+    anyOf or oneOf, the alternative of the right type that came closest names it (a nullable object's failure is in
+    its object branch, not in "is not null")."""
+    while error.context:
+        error = best_match([e for e in error.context if e.validator != "type"] or error.context)
+    where = "/".join(map(str, error.absolute_path)) or "."
+    names = _field_names(error)
+    return f"{where}: breaks '{error.validator}'" + (f" ({', '.join(names)})" if names else "")
+
+
+def _field_names(error) -> list[str]:
+    if not isinstance(error.instance, dict):
+        return []
+    if error.validator == "required":
+        return [k for k in error.validator_value if k not in error.instance]
+    if error.validator == "additionalProperties" and error.validator_value is False:
+        allowed = set(error.schema.get("properties", {}))
+        return sorted(k for k in error.instance if k not in allowed)
+    return []
 
 
 class PublishedContract(ABC):
