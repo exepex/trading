@@ -10,7 +10,12 @@ ROOT = Path(__file__).resolve().parent.parent
 def test_t1_and_a16_import_the_one_server_clock_module_and_no_copy_exists():
     assert not (ROOT / "fno" / "cards" / "clock.py").exists()
     users = {}
-    for module in ("fno/cards/issue.py", "fno/cards/wiring.py", "fno/intraday/clock.py", "fno/intraday/wiring.py"):
+    for module in (
+        "fno/cards/issue.py",
+        "fno/cards/wiring.py",
+        "fno/intraday/clock.py",
+        "fno/intraday/clock_wiring.py",
+    ):
         tree = ast.parse((ROOT / module).read_text(encoding="utf-8"))
         users[module] = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module}
     assert all("server_clock" in modules for modules in users.values()), users
