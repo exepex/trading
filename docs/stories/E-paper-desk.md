@@ -1698,5 +1698,5 @@ snapshot); the risk manager's own valuation with live marks (C2, unchanged); the
 **Depends:** E1 (the account writer), E2c (Drive store, `PrivateFiles`), E3 (the daily run and its run logs), E4
 (execution snapshot), C3 (quote validity), S2 (`trade_days`, `SnapshotMarks`, imported unchanged), E7 (settlement), R3
 (shadow accounts), O5 (the record scan) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
-**Status:** text merged (judge 250 addendum 2 PASS); code on `story/e2d-code` for judge B (response 246 addendum 3);
-prerequisite of the first paper trade (orchestrator, 16 Oct 2026).
+**Status:** done: text (judge 250 addendum 2) and code (judge 262) PASS, merged; the desk's `live_from` is on or after
+this merge (O8's owner, judge 262).
