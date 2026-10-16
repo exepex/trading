@@ -54,7 +54,8 @@ def _today(inputs: ForecastLabInputs, question: str, horizon: int) -> dict | Non
     if not records:
         return None
     values = [v for r in sorted(records, key=lambda r: r.record.book) if (v := _value(inputs, r)) is not None]
-    return {"made_on": inputs.day.isoformat(), "answer_on": inputs.answer_on(inputs.day, horizon).isoformat(),
+    answer_on = inputs.answer_on(inputs.day, horizon)  # None past NSE's calendar: not known yet (2.13.0)
+    return {"made_on": inputs.day.isoformat(), "answer_on": answer_on.isoformat() if answer_on else None,
             "values": values}  # fmt: skip
 
 

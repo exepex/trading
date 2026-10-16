@@ -94,3 +94,15 @@ named by path and rule, never by value (criterion 3); an answer day beyond the c
   session's report, so this only matters for a manual run between them (then the AI books show pending).
 - Two isolation labels in one AI book's audits are shown as the weaker one (sealed same day), never full F1.
 - The question-level n_scored is Book 1's count; another forecaster's own count is in `per_forecaster`.
+
+## Addendum 1 (16 Oct): rebased on P11, judge 244's finding fixed at its root
+
+- **Main and P11 merged in** (story/ph1-page-hold 1082b285, judge 257 add. 2 PASS). The pin is now contract 2.13.0
+  (P11's pin head), so `today.answer_on` may be null.
+- **Judge 244 (a whole-run stop from 3 Dec 2026): fixed without a hold.**
+  - `SessionsAhead` returns None when the answer day lies beyond NSE's calendar (walked one session at a time).
+  - The question's `answer_on` is then null ("not known yet"), and the Forecast lab publishes as normal.
+  - No guessed date and no stopped publish; nothing to hold.
+- **Real-calendar test:** the 15 Oct records moved to 3 Dec 2026 give `answer_on` null for Q1, Q2, Q3 and Q5 (20
+  sessions, into 2027) and 17 Dec for Q4 (10 sessions). The page validates against the pinned 2.13.0.
+- Pages a day on this branch: 1,274 (22 blocks plus page_holds).

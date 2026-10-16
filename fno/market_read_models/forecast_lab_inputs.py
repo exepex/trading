@@ -19,13 +19,8 @@ from ..forecast.record_files import read_records_v2
 from ..forecast.schema_v2 import ForecastRecordV2
 from ..research_data.calendar import CalendarError, SessionCalendar
 from .forecast_history_inputs import ScoreReportsReader
-from .home_blocks import FiguresNotComputed
 
 RECORDS_GLOB = "*/*_forecasts.csv"
-BEYOND_CALENDAR = (
-    "the session {n} sessions after {day} is beyond NSE's session calendar: add NSE's {year} holiday circular rows "
-    "(story A7) to publish the Forecast lab"
-)
 
 
 @dataclass(frozen=True)
@@ -35,11 +30,15 @@ class ForecastLabInputs:
     today: list[ForecastRecordV2]  # every live and AI record made on the day (Book 1, the baselines, the AI books)
     late_days: dict[str, set[date]] = field(default_factory=dict)  # forecaster -> days its records were all late
     record_days: dict[str, set[date]] = field(default_factory=dict)  # forecaster -> days it has records, up to day
-    answer_on: Callable[[date, int], date] | None = None  # (session, sessions ahead) -> the session the answer is known
+    answer_on: Callable[[date, int], date | None] | None = (
+        None  # (session, sessions ahead) -> its answer day (None: unknown)
+    )
 
 
 class ForecastLabReader:
-    def __init__(self, scores: ScoreReportsReader, record_folders: list[Path], answer_on: Callable[[date, int], date]):
+    def __init__(
+        self, scores: ScoreReportsReader, record_folders: list[Path], answer_on: Callable[[date, int], date | None]
+    ):
         self.scores, self.record_folders, self.answer_on = scores, [Path(f) for f in record_folders], answer_on
 
     def on(self, day: date) -> ForecastLabInputs:
@@ -63,16 +62,16 @@ class ForecastLabReader:
 
 class SessionsAhead:
     """The session `n` NSE sessions after a day (calendar A7), walked one session at a time, so only a target that
-    really lies beyond the calendar fails (response 241). That stops the publish, named: never a guessed date."""
+    really lies beyond the calendar is unknown (response 241). Unknown is None: the Forecast lab says the answer day is
+    not known yet (contract 2.13.0, `today.answer_on` null), never a guessed date and never a stopped publish."""
 
     def __init__(self, calendar: SessionCalendar):
         self.calendar = calendar
 
-    def __call__(self, day: date, sessions: int) -> date:
-        start = day
+    def __call__(self, day: date, sessions: int) -> date | None:
         try:
             for _ in range(sessions):
                 day = self.calendar.next_session(day)
-        except CalendarError as exc:
-            raise FiguresNotComputed(BEYOND_CALENDAR.format(n=sessions, day=start, year=day.year + 1)) from exc
+        except CalendarError:
+            return None
         return day

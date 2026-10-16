@@ -4,6 +4,7 @@ version, its session). Criterion 2 does not apply: every input is committed and 
 
 import copy
 import json
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -221,7 +222,16 @@ def test_an_on_time_live_record_is_pending_until_g4_verified_its_day(tmp_path):
     assert {v["forecaster"]: v["status"] for v in page["questions"][0]["today"]["values"]}["book1_rules"] == "pending"
 
 
-def test_an_answer_day_beyond_nses_calendar_stops_the_publish_named_never_a_guessed_date():
-    with pytest.raises(FiguresNotComputed, match="beyond NSE's session calendar: add NSE's 2027 holiday circular rows"):
-        SessionsAhead(CALENDAR)(date(2026, 12, 3), 20)  # 20 sessions after 3 Dec 2026 reach 2027 (response 241)
+def test_an_answer_day_beyond_nses_calendar_is_not_known_yet_and_the_page_still_publishes(tmp_path):
+    """Judge 244 and contract 2.13.0: from 3 Dec 2026 a 20-session answer day falls in 2027 (the calendar holds 2026
+    only), so answer_on is null; the Forecast lab publishes (never a guessed date, never a stopped publish)."""
+    assert SessionsAhead(CALENDAR)(date(2026, 12, 3), 20) is None  # 20 sessions after 3 Dec 2026 reach 2027
     assert SessionsAhead(CALENDAR)(date(2026, 12, 2), 20) == date(2026, 12, 31)  # a target inside 2026 is answered
+    real = build_forecast_lab_inputs(CALENDAR).on(date(2026, 10, 15))
+    to_3_dec = lambda when: when.replace(month=12, day=3)  # noqa: E731  (the same time of day on 3 Dec)
+    moved = [replace(r, record=replace(r.record, date=date(2026, 12, 3), cutoff=to_3_dec(r.record.cutoff)),
+                     generated_at=to_3_dec(r.generated_at)) for r in real.today]  # fmt: skip
+    december = replace(real, day=date(2026, 12, 3), today=moved)
+    page = published(december)
+    answers = {q["id"]: q["today"]["answer_on"] for q in page["questions"]}
+    assert answers == {"Q1": None, "Q2": None, "Q3": None, "Q4": "2026-12-17", "Q5": None}  # Q4: 10 sessions
