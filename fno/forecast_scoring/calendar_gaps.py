@@ -6,8 +6,9 @@ the base rate alone on those days (judge 253). Reported, never rescored.
 
 A day is labelled only when the calendar is the only cause: baseline A's Q1 or Q2 is empty although the day's pack
 shows every other input of baseline A (no input problem, an IV30), and the 45-day window crosses into the next year.
-A day with an input problem is not labelled, so the count can be below the window's sessions. Known limit: a near-future contract
-expiring that very day would also leave baseline A empty; inside this window the calendar is a cause either way."""
+A day with an input problem is not labelled, so the count can be below the window's sessions. Known limit: a
+near-future contract expiring that very day would also leave baseline A empty; inside this window the calendar is a
+cause either way."""
 
 from __future__ import annotations
 
