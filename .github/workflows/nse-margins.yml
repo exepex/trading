@@ -86,9 +86,9 @@ jobs:
         if: ${{ steps.librarian.outcome != 'success' }}
         run: |
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
-            "Omenix F&O NSE margins: the Drive archive step failed; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            "Omenix F&O NSE margins: the archive step failed (Drive, NSE or the calendar: its log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
-      - name: Fail the run when the margins step stopped (already alerted)
+      - name: Fail the run when the margins step stopped (already alerted; the job names every stop, response 239 item 4)
         if: ${{ steps.margins.outcome != 'success' }}
         run: exit 1
       - name: Alert #fno-desk when the job itself failed
