@@ -46,3 +46,25 @@ The text needs:
   Name O1 beside A4's owner.
 
 Story text only; I checked the claims above against the register, CLAUDE.md and the cited code paths.
+
+## Addendum 1: story/g10-part2-text at df5dcf35
+
+**PASS.** The should-fix is met. Section 4 and criterion 3 now refuse "a pack-reading record with another SHA **or an
+empty one**", through a guard in `fno/v4_pack/` fed the released SHA from the release record.
+
+Checked:
+- `records.py` checks only the form (empty or 64 hex), and `read()` takes a missing column as empty. So the committed
+  G7 and M1 CSVs (9,636 M1 rows in its two forecaster folders) are not regenerated, and a file's next write adds the
+  empty column with no value changed.
+- `records.py` is not in G7's `METHOD_FILES` (`series`, `baselines`, `rules`, `vix_rule`, `capture`) nor in M1's
+  list, so no method hash moves. True by the files.
+- The future's expiry `e` and the chain's minimum expiries are now defined.
+
+**A condition for G11's code verdict (recorded, not a should-fix here):** the guard is opt-in. It binds a record
+only if that forecaster's writer calls it. "Reads the pack" is therefore decided by which writers call the guard, a
+fixed set in code, not by the record's own field, which is what my should-fix asked for. G11's judge must check that
+every pack-reading writer calls the guard (a test per writer). A writer that skipped it would let an empty SHA
+through. A non-pack forecaster naming a SHA is not refused; that is harmless, as it reads no pack.
+
+My two notes from judge 274 remain notes: until the 3 pm routine moves, `A2` is the normal path; and O1 owns the
+routine's timing.
