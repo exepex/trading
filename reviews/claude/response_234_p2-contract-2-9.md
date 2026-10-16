@@ -84,3 +84,9 @@ files; five files changed. It adds the two fields the screens lead had proposed:
   removed, and the code is unchanged from addendum 1.
 - **The dashboard's main is already at f4f7f40,** which changes only `web/`. `git diff 38dfee6 f4f7f40 -- api/` is
   empty, so `market contract-check` against main reports the pin as the same.
+
+## Addendum 3: pin commit f4f7f40 (dashboard main, 2.10.0)
+
+The orchestrator asked for dashboard main itself, f4f7f404537d0d31f1dd4a3f2539550e101515b5, labelled 2.10.0. Its
+`api/` bytes are identical to 38dfee6's (`git diff 38dfee6 f4f7f40 -- api/` is empty), so only `pin.json`'s commit
+changes.
