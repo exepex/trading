@@ -144,9 +144,11 @@ the point of scoring it.
   - `hist750`: the empirical quantiles (numpy's default linear rule) of all `h`-session log returns among the last
     750 regular sessions whose end is before the day; at least 500 such returns, else `not_eligible`. Zero fitted
     parameters; it carries NIFTY's fat tails and drift.
-  - `book2_hybrid` and `book3_ai`: slots only. The record schema and the scorer accept their rows; until a story has
-    them answer, their status is `not_started` and they are absent from comparisons. Who fires them is G11's or a
-    later story's decision, through the orchestrator.
+  - `book2_hybrid` and `book3_ai` (`fno/constants.py` `BOOK2_HYBRID`, `BOOK3_AI`, imported, never retyped): slots
+    only. The record schema and the scorer accept their rows; until a story has them answer they have no rows and no
+    start date, so no miss is ever counted for them (G11's owner, 16 Oct). The story that adds them sets their
+    start and whether earlier days count as misses (G11 counts misses from each slot's `effective_start`). Who fires
+    them is G11's or a later story's decision, through the orchestrator.
 - **One row per (day, forecaster, horizon):** `day, forecaster, horizon, target_day, s_ref, q05 ... q95, status,
   reason, label, tail_levels, method_version, method_sha256, inputs_sha256, made_at`. Status `ok`, `missing` (input
   failure, reason given) or `not_eligible`; quantiles must be strictly increasing when `ok`.
@@ -196,16 +198,24 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
 - `python -m fno pricedist backfill --from D1 --to D2 --source {3pm,eod}` and `python -m fno pricedist score`.
 - **Data failures (owner, 16 Oct: "we must notify that something failed"):** no canonical chain (`none` or absent),
   the raw file unreadable or failing its hash, an expiry failing its checks, the closes file missing a session
-  needed: the live command writes the day's file with `status: missing` and the reason for each part affected, and
-  sends one line through `AlertSender` to #fno-desk (`FNO_SLACK_BOT_TOKEN`); a failed send prints "alert NOT sent".
-  Back-fill and scoring never alert; they print counts per reason.
-- **Daily run (orchestrator's answer to Q1, 16 Oct):** a step `price_distribution` in O1's `DAILY_RUN_STEPS`
-  (`fno/constants_operations.py`), after the 3 pm quote parts (`quotes_done`), wrapped like O1's other steps:
-  `LiveFrom` (the `daily.live_from.price_distribution` key, null) around a `CommandStep` that runs
-  `pricedist record --day <d>` and commits its receipts. A data failure is written and alerted by the command itself,
-  which then exits 0 (one alert per failure); only a crash or a hang exits non-zero, and O1 alerts that once
-  (`FAILED_ALERT`), so nothing is alerted twice. The step edit in `fno/daily/` is agreed with O1's owner first (the
-  boundary table below). It changes no schedule: the run already exists.
+  needed: the command writes the day's file with `status: missing` and the reason for each part affected, prints
+  one line per problem, and ends on a non-zero exit whose last line names them all (`written with problems: ...`).
+  When nothing could be written at all (no chain for any underlying), it prints `nothing written: <reason>` and exits
+  0. The command never sends an alert itself: O1's `Alerted` wrapper sends exactly one alert for a failed or refused
+  step (O1's rule: one sender, `tests/daily/test_steps.py` walks the graph), and O1's `CommandStep` still commits the
+  receipts of what was written. Back-fill and scoring print counts per reason and never alert.
+- **Daily run (orchestrator's answer to Q1; O1's joining rules, its owner, 16 Oct):** a step `price_distribution`
+  in O1's `DAILY_RUN_STEPS` (`fno/constants_operations.py`, which O8's health check reads), right after
+  `quotes_done` and before `card`: it reads the day's canonical 3 pm chains (NIFTY and A4c's), which exist only once
+  the quote parts end, and nothing reads it (not the pack, not the card). One entry in the steps dict of
+  `fno/daily/wiring.py`: `Alerted(name, LiveFrom(CommandStep(processes, lambda day: (..., "pricedist", "record",
+  "--day", day), receipt_pathspecs(), git.changed), live[name]), alerts)`, with the name in `daily.live_from`
+  (`config.yaml`, null) and `LIVE_STEPS`. The pathspecs come from G13's own module
+  (`fno.price_distribution.folders.receipt_pathspecs()`, G13's receipts only, as M1's `record_folders()`), never a
+  shared folder. **No cutoff of its own** (unlike v4's 14:30): its inputs are the 3 pm captures, already timestamped,
+  and a row is `live` when made before its first target close, which the 15:30-ish end of the run always meets. It
+  takes seconds, well under O1's 600 s limit. No git outside the run's thread. It changes no schedule: the run already
+  exists. O1's owner checks the plug-in part of this text before code.
 
 ## Acceptance criteria (each with a test: positive, negative, boundary, empty)
 
@@ -233,24 +243,27 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
    in scores; back-fill stops before the first live day; rebuilding a day reproduces identical bytes; a changed
    method hash writes a new back-fill path and never touches the old one; a live row is never overwritten (Drive
    conflict surfaces).
-9. **Daily step:** with `live_from` null the step records `not_live` and writes nothing; from its date it runs the
-   command once, and a rerun the same day skips it (O1's rule); a data failure gives exit 0 with one alert, a crash
-   exit non-zero with O1's one alert (fake processes, as O1's tests).
+9. **Daily step:** with `live_from` null the step records `not_live` and nothing is called; from its date it runs the
+   command once, and a rerun the same day skips it (O1's rule); a written-with-problems day is a failed step with
+   exactly one alert and its receipts committed; a day with no chain is refused (`nothing written:`) with one alert;
+   the step's pathspecs name only G13's receipts; the built graph has no second sender (O1's graph test, fake
+   processes).
 10. **Storage:** every file goes through `DataStore.put` and gets a receipt; a failed Drive write leaves no receipt and
    the command reports it; readers read through the Drive cache only.
 11. **Scoring:** the pinball loss and QS match hand values (outcome below, inside and above the quantiles; at a
     quantile exactly); a row is not scored before its target close exists; calibration shares match a hand count;
     the bootstrap comparison equals `block_bootstrap` called directly on the same differences; under 40 paired days
     it is "not tested".
-12. **Failures:** each failure case of section 7 writes its `missing` reason and sends exactly one alert line through
-    a fake `AlertSender`; back-fill sends none; "not a trading day" writes nothing.
+12. **Failures:** each failure case of section 7 writes its `missing` reason, prints its line and gives the exit and
+    last line of section 7; the command itself sends no alert; back-fill never fails a run for a missing day (counted);
+    "not a trading day" writes nothing.
 13. **Indices:** a fixture BANKNIFTY chain gives a valuation record and no forecasts.
 14. **No frozen file changes:** the existing freeze tests pass unedited; no file added to `fno/forecast/`.
 15. **Real output sample** (quality rule 6): the claims file shows the 16 Oct NSE valuation record and forecasts made
     by the committed code in a dry run (index levels, no strategy internals), and the EOD back-fill's first scores.
 
 **Test plan:** unit tests per module (`tests/price_distribution/`), the flat-IV round trip, the planted-noise and
-planted-mispricing chains, the real 16 Oct NSE chain, a fake Drive store and alert sender, determinism tests. Builder
+planted-mispricing chains, the real 16 Oct NSE chain, a fake Drive store and fake processes, determinism tests. Builder
 self-review agents and broken-code proofs per criterion (judge quality rules 3-4).
 
 **Judge verifies:** recomputes one expiry's forward, ATM IV, two CDF points and one tail quantile by hand from the
@@ -292,10 +305,10 @@ self-review agents and broken-code proofs per criterion (judge quality rules 3-4
 
 | Neighbour | Owner session | Boundary (proposed by G13) |
 |---|---|---|
-| O1 daily run | 014zYLf18PgCzR7YoHs1X5Dp | G13 adds one step entry, its wiring line and the `daily.live_from.price_distribution` key (or O1's owner does); nothing else in `fno/daily/` |
+| O1 daily run | 014zYLf18PgCzR7YoHs1X5Dp | O1's joining rules (16 Oct) applied in design 7: one `DAILY_RUN_STEPS` entry, one steps-dict entry in `fno/daily/wiring.py`, `LIVE_STEPS` and the `daily.live_from` key; nothing else in `fno/daily/`; O1's owner checks this text's plug-in part |
 | G7b (part c, V5's implied probability) | 0185gR5DmoDh2zBAvgRU4CEB | G13 owns the valuation record and the quantile forecasts; G7b owns every v4 record. G7b may import G13's density module, never required to |
 | G10 (v4 pack) | 01VK88LxJvV1Gi7Wbr3D4fzp | G13 reads the 3 pm chains, not the v4 pack, and writes nothing G10 reads |
-| G11 (AI books) | 013xqaNTCbSBytKgqpfaYFqZ | G13 gives `book2_hybrid` and `book3_ai` slots only; whether and when the AI books answer price quantiles is G11's or a later story's, with its own prompts and budget |
+| G11 (AI books) | 013xqaNTCbSBytKgqpfaYFqZ | **Agreed** (G11's owner, 16 Oct): G13 edits nothing in `fno/ai/` or `agents/`; AI price quantiles are a later story with its own budget check under BG1's cap; ids imported from `fno/constants.py` |
 
 ## Original questions (kept for the record; answered above)
 
