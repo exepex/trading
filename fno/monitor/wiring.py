@@ -33,6 +33,9 @@ MONITOR_FOLDER = "monitor"  # inside A16's intraday folder: the rows and heartbe
 DRY_RUN_PRIVATE = "private"  # inside a dry-run folder: stands in for Drive's paper area
 DRY_RUN_ALERTS = "dry run"
 NO_DRIVE = "the owner's Drive settings are missing ({settings})"
+# The monitor's time per mark in A16's ObserverGroup (63d8de75: per-member limits, cap 300 s): one Slack post may take
+# its full 15 s timeout and a stress day sends several DANGERs on one mark; marks are 15 minutes apart
+MONITOR_TIME_LIMIT_SECONDS = 90.0
 
 
 def monitor_settings(cfg: dict) -> MonitorSettings:
