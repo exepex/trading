@@ -53,3 +53,10 @@ tests passing, because the tests build their own `PublicationBuilder`. That one 
 so (criterion 9, the owner's "say so on screen"), and nothing would notice it gone. Add one test that the real
 `build_market_run`'s publication builder carries a `PageHoldsBlock`, or that a publish through it writes a `page_holds`
 row. The mutation above must then fail.
+
+## Addendum 2: head 1082b285 (the wiring test)
+
+**PASS. P11 may merge.** The new `test_the_daily_runs_publications_carry_page_holds` builds the composition root's own
+`build_market_run` (only the Drive rows builder monkeypatched) and checks that its `PublicationBuilder` carries
+`PageHoldsBlock`. **My mutation** removing `holds_page=PageHoldsBlock()` from `wiring.py` now fails it. On 1082b285:
+7155 passed (`-n auto`), ruff and check_imports clean. The only change since 102bd870 is this test.
