@@ -55,3 +55,56 @@ Either way, make criterion 5 test the chosen side, tie, window and minimum, incl
 EWMA as "h x s2_d". Phase 1's code, which judge G7 phase 1 accepted, and this text read both as the last session
 before d, because d's close is unknown at the cutoff. Add a fourth wording saying so, so that the frozen text and the
 code agree.
+
+## Addendum 1: head 8976522e (text fix plus part a's code and the three protocol wordings)
+
+**FAIL: one should-fix**, in the back-fill files.
+
+**Met:**
+- **Judge 258's V7 should-fix:** option (a). The rule is the measured two-cell rival (`v4_vix_null.py:50-57`).
+  - "Below" is strictly below the 20-session mean of that session and the 19 before it, so a tie counts as above, as
+    measured.
+  - It uses the last 750 resolved outcomes (at least 500), with fewer than 100 on a side falling back to the window's
+    plain share.
+  - The one change is stated plainly: d takes its side at d-1 and each past t at t-1, and "this lagged rule was not
+    itself measured".
+  - `vix_rule.py` matches the text line for line.
+- **Mutations (each fails tests):** the tie as `<=` (1), no lag (2), no 100-cell fallback (1), a non-strict V7 outcome
+  (3), and a trailing look-ahead (2).
+- **Part a's code:**
+  - `TrailingSum` sums the h sessions before d; `close_blend` is shared by V1, V2 and V3.
+  - `vix_up_outcomes` (strict, at t+h's close) is in `series.py`.
+  - `records` uses `terms.POINT_QUESTIONS`, and the new ids are in `fno/forecast_v4_rules/constants.py`, because
+    `fno/constants.py` sits at 349 of 350 lines.
+- **The three PROTOCOL_v4 wordings, read as the G6 judge:**
+  - **1.5:** V5's `first_seen_at` falls back to A8's first sighting, and a day with neither stays unresolved.
+  - **3.1:** a flagged IV30 gives no raw or premium-adjusted value, missing and counted.
+  - **3.1:** V4's and V5's base rates count live outcomes only.
+  - All three are sentences added on top of the existing text and do not conflict with G10's planned 15:00 edits.
+    They are right. The owner signs them with the freeze.
+- **V6's phase-1 rows:** every value, status and inputs hash is unchanged, apart from the new 15 Oct row (script: the
+  four V6 files differ only in `method_sha256` and one appended row). That matches the rewritten criterion 7.
+- **Gates on 8976522e:** 7157 passed (`-n auto`, Slack token unset), ruff check and format clean, check_imports
+  clean.
+
+## Should-fix: the committed back-fill was not made with the committed code
+
+Every committed v4 back-fill row (phase 1's V6 and the new V2, V3 and V7 files) carries `method_sha256` 80c86a8d5885….
+The code on this head hashes to **a7d5932795d2** (`METHOD_FILES`: series, baselines, rules, vix_rule, capture).
+`python -m fno forecast-v4 backfill` on 8976522e is refused: "base_rate/v6_abs_move_2pct_next_session 2017-01-03: a
+different row is already written". So criterion 7's "a re-run writes identical files" fails on the exact SHA. The
+text's own freeze rule says "the freeze uses the last regeneration, made with the hashed code", and these files break
+it.
+
+**Fix:**
+- Regenerate the back-fill on the final code, in the same commit as any method-file change.
+- Add a test: every row in `research/forecasts/v4/` from these forecasters has `method_sha256` equal to the
+  `METHOD_FILES` hash of the tree. This is the freeze-checklist item the orchestrator asked about, and it catches the
+  next edit that forgets to regenerate.
+
+## Notes for the freeze
+
+- The fourth wording (trailing "ending at d" and EWMA "h x s2_d" read as the last session before d) was **not** added.
+  It is my suggestion, not a criterion. Add it to 3.1 before the freeze, or record why not.
+- Freeze checklist: back-fill hash equal to the frozen method hash (the test above), the three wordings in the hashed
+  `PROTOCOL_v4.md`, and phase 1's files regenerated together with the phase 2 files.
