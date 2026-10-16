@@ -24,6 +24,7 @@ from .status import index_check
 VOID_SHARE_LIMIT = 0.05
 OK, VOID = "ok", "void"
 VOID_SHARE_LINE = "void sessions: {void} of {total} ({share:.1%}){flag}"
+NOT_COUNTED = "; not counted: {n} before the first session with a recorded previous session (void by construction)"
 VOID_SHARE_FLAG = " - above 5%: propose a new version (design 5.2)"
 
 
@@ -55,11 +56,20 @@ class SessionRv:
         return any(row["session"] == day.isoformat() for row in self.table.rows())
 
     def void_share_line(self) -> str:
-        rows = self.table.rows()
-        void = sum(1 for r in rows if r["status"] == VOID)
-        share = void / len(rows) if rows else 0.0
+        """The 5% rule's count starts at the first session whose previous recorded session has a row (owner, 16 Oct
+        2026): before it the overnight part cannot exist, so those sessions are void by construction, listed apart."""
+        rows = sorted(self.table.rows(), key=lambda r: r["session"])
+        held = {r["session"] for r in rows}
+        start = next((i for i, r in enumerate(rows) if self._previous_held(r["session"], held)), len(rows))
+        counted = rows[start:]
+        void = sum(1 for r in counted if r["status"] == VOID)
+        share = void / len(counted) if counted else 0.0
         flag = VOID_SHARE_FLAG if share > VOID_SHARE_LIMIT else ""
-        return VOID_SHARE_LINE.format(void=void, total=len(rows), share=share, flag=flag)
+        line = VOID_SHARE_LINE.format(void=void, total=len(counted), share=share, flag=flag)
+        return line + (NOT_COUNTED.format(n=start) if start else "")
+
+    def _previous_held(self, session: str, held: set[str]) -> bool:
+        return previous_recorded_session(self.calendar, date.fromisoformat(session)).isoformat() in held
 
     def _readings(self, day: date, wanted: list[datetime]) -> list[tuple[float | None, str, str]]:
         """Per wanted mark: its usable level (None where missing or unusable), the basis of that level, and the stored
