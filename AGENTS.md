@@ -46,6 +46,9 @@ the same rules (see `CLAUDE.md`).
   meant for ChatGPT (or from it) are written as Markdown files in the repository, never only in chat, so each side
   reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
   `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
+  Take `<n>` from the central registry, never "highest plus one": `python tools/claim_number.py <category> <name>
+  --session <id>` (or, without the tool, append the row to `numbers/<category>.csv` and push it to `main` first; if
+  the push is refused, pull and take the next number). Story O12, `numbers/README.md`.
 - **Hard lines:** no real orders placed by the tool; nothing illegal (no market manipulation); API keys, passwords
   and tokens never in files or chat.
 

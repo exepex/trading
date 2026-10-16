@@ -7,7 +7,11 @@ Each review is a separate Markdown file in this directory.
 `review_<increment>_<filename>.md`
 
 - Start at `review_1_...md`.
-- For each new review, use the highest existing numeric increment plus one.
+- Claim the number before writing the review, in `numbers/chatgpt-review.csv` on `main` (story O12; never "highest
+  existing plus one" in your own copy: parallel sessions took the same number several times). Pull `main`, append one
+  row `<n>,review_<n>_<filename>.md,<who>,<UTC time YYYY-MM-DDTHH:MM:SSZ>` with the next number, commit only that file
+  and push it. If the push is refused, pull and take the next free number. The number is yours once the push is
+  accepted. Those who can run Python use `python tools/claim_number.py chatgpt-review <filename> --session <id>`.
 - Use a descriptive filename for the reviewed document or combined scope.
 - Preserve earlier reviews. A follow-up or corrected review gets a new number and links to the earlier review.
 

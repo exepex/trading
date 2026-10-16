@@ -4,8 +4,9 @@ Claude's replies to reviews (ChatGPT's in `reviews/chatgpt/`), one file per repl
 
 ## Naming
 
-`response_<increment>_<filename>.md`, where the increment matches the review it answers (response 1 answers
-ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
+`response_<increment>_<filename>.md`. Earlier responses are kept; a follow-up gets a new number. (Responses 1-12
+matched the review they answer; the series have run apart since.) Claim the number first, on `main` (story O12):
+`python tools/claim_number.py claude-response <filename> --session <id>`, then write the file it prints.
 
 ## Responses
 
