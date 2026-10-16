@@ -23,8 +23,9 @@ circular rows. NSE's 2027 circular is not published yet (likely December). O8 wi
 ## Loud but generic
 
 The desk run (E3), market publish, forecast capture, scoreboard, review dates and others crash, and their workflows post
-"run failed; see URL" at best. **health-check.yml has no failure alert**, so from 1 Jan the watchdog itself stops with
-only a red run. Only the Python-side handlers name the calendar: the 3 pm recorder, A16, the daily card, A17 cues and
+"run failed; see URL" at best. Correction (O8's owner, 16 Oct, checked at `fno/health/cli.py:43`): the health check
+is not silent on 1 Jan; its check step catches the error and posts "health check FAILED: CalendarError". The real gap
+was a failure outside that step (checkout, install, commit); O8b adds a `failure()` line for those only (3e215fbb). Only the Python-side handlers name the calendar: the 3 pm recorder, A16, the daily card, A17 cues and
 A15.
 
 ## Proposals (reasoning; each owner decides)
