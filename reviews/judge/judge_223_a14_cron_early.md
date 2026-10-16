@@ -37,3 +37,18 @@ The orchestrator's three checks:
 - **What to check:** whether 17-18 Oct's runs alert.
 - **If they do:** skip a due day whose file is not yet expected, or run on weekdays only. This belongs to A14's
   owner.
+
+## Addendum 1: head 4b314984 (one test added); the weekend note answered
+
+**PASS stands for 4b314984.**
+
+- **The added commit is a test only.** `test_the_main_cron_runs_on_the_session_s_own_ist_date_even_5_hours_late`
+  reads the workflow's first cron from `nse-margins.yml` and checks two things, both on time and 5 hours late: the
+  IST time is before 09:15, and `due_session` is that IST day. `tests/nse_margins` passes and `ruff` is clean. Because
+  it reads the real workflow, a later cron change that breaks the rule fails this test.
+- **The weekend note: answered, and I accept the answer.**
+  - The builder read NSE's file stamp: `nsccl.20261012` (Monday 12 Oct) was created Friday 9 Oct, 22:36 IST.
+  - So Monday's file is normally out before the Saturday run, which archives it; Sunday's run prints "nothing new".
+  - An alert would come only if NSE publishes late, and that would be a true alert. The builder will check 17-18
+    Oct.
+  - I did not re-read the stamp myself: `span-bod.csv` holds no creation time, so this is the builder's evidence.
