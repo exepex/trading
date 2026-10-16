@@ -126,3 +126,38 @@ The "Silence when no run is alive" line is honestly left to O10 and O8.
   This is the simplest design that can work, so no over-engineering, except that SF1 may change where the loop runs.
 - Terms: news sites' RSS terms read and quoted, owner decided, bodies never fetched, Google News excluded by robots.txt.
   Good. The platform's own terms are missing (SF1).
+
+## Addendum 1: re-judge at ed9fca7e (replaces 0bb34b70; the owner answered SF1)
+
+**Verdict: FAIL, 1 new should-fix item; the five round-1 findings and the three minors are all accepted.**
+
+| Finding | Answer in the text | My check | Result |
+|---|---|---|---|
+| SF1: GitHub's Actions terms | step 0 quotes the terms; the owner chose "07:00-23:00 IST" (DESK_DECISIONS row 253, owner's words quoted), `news.active_window` | row present on main, with the owner's quote | **Accepted** (the owner's decision) |
+| SF2: cron/self-dispatch cancels | a kick workflow dispatches only when the window is open and no news-capture run is queued or in progress; a run GitHub cancels before any step is "replaced" (O10 0db3f682, judge 350 add. 2 PASS); criterion 13 plants my sequence | read; O10's side checked in judge 350 add. 2 | **Accepted** |
+| SF3: 2-day seen set | a 14-day seen snapshot plus the parts after it; `beyond_window` flag and episode past 13 days; `bootstrap` on the first run; an unreadable seen set stops the run; criterion 6 boundaries | 14 days is about 2.5 times my 5.7-day Mint measure | **Accepted** |
+| SF4: gaps from data parts | a heartbeat `poll` line in every 15-minute part; gap and `previous_poll_at` from heartbeats; only in-window time counts; criterion 10 | read | **Accepted** |
+| SF5: stale limits ignore the calendar | session hours (09:00-18:00 on A7 sessions) and all hours, two limits per feed; `quiet-spells` re-sets them at 1.5 times the measured gap after 10 sessions; criterion 9 | read; the starting values are labelled as guesses | **Accepted** |
+| Minors 1-3 | the probe prints status, size, count and newest time only; episode state read from O10's log; the dependency wording fixed | read | **Accepted** |
+
+**New SF6. The day's first poll will usually be hours after 07:00, which defeats the premise of the owner's window
+[strong: measured GitHub delays].** DESK_DECISIONS row 253 records the owner's reason: "overnight items are first seen
+about 07:00, before the 09:15 open". But each day's chain is restarted only by the kick's crons, because the last run
+stops at 23:00 and dispatches nothing outside the window.
+
+GitHub starts this repository's crons late: morning slots 4 h 40 min to 5 h 01 min late (judge 351, every morning
+scheduled run checked), and evening slots 3 to 4.5 h late (participant-oi-release, judge 350). A 07:00 IST kick (01:30
+UTC) would usually start about 11:30-12:00 IST. So the overnight news would usually be first seen after the open. The
+coverage-gap alert would also fire at almost every morning start: a real gap, but a daily line.
+
+Fix expected:
+1. State this in the text and send it to the orchestrator for the owner, since the decision rests on the 07:00 premise.
+2. Give the design that keeps a run alive at 07:00 without depending on a morning cron. For example, the window's last
+   run dispatches, at 23:00, a successor that waits until 07:00 before its first poll. `workflow_dispatch` starts at
+   once, unlike a cron. The successor needs a second hop because a job lasts at most 6 h: 23:00 to 05:00, then
+   05:00 to 07:00. Or the owner accepts later morning coverage.
+3. Add a criterion for whichever is chosen, and make the first live week's claims cite each day's first poll time.
+
+**Minor (new).** Whether `workflow_run` fires for a news-capture run that was itself started by a `GITHUB_TOKEN`
+dispatch is not proven. The text rightly labels it reasoning only. Make criterion 15's real run prove it: a dispatched
+run ends, and the kick's run appears.
