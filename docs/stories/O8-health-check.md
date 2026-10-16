@@ -216,3 +216,51 @@ plants a late push, a `none` canonical and a skipped health run; reads the workf
 **Depends:** A4/A4b and A7 (calendar), F1 (`PushReceipts`), G2 (forecast v2), E3 (run log), A16, A8, A13 ·
 **Status:** text passed (judge 164 addendum 1); code built on `story/o8-health-check` for the judge
 (claims: `reviews/claude/response_153_o8-health-check.md`)
+
+---
+
+## O8c. One named line when any command stops on NSE's calendar
+
+**Repository:** trading · **Lane:** 1 (Slack output, two workflows) · **Size:** S
+
+**Description:** As the owner, I want any job that stops because NSE's calendar does not cover a day to say so in one
+line naming the job and the year to add, so that a missing holiday circular is never reported as a Drive failure or
+not reported at all.
+
+**Context and why:** Response 239, item 4 (A14c's audit), confirmed in the code (the orchestrator's go, 16 Oct 2026).
+- From 1 Jan 2027 the index-closes, panel-days and nse-margins jobs raise `CalendarError`, and none of them catches it:
+  - `IndexCloseAppender.run` catches only `PanelBuildError`;
+  - `PanelDayJob.run` catches only `NotFrozen` and `AppendRefused`;
+  - `NseMarginJob.run` catches only `MarginDayProblem` and `MarginLogConflict`;
+  - the librarian calls `is_session` unguarded.
+- Their workflows then:
+  - send one line saying "the Drive archive step failed", which is the wrong cause;
+  - claim "already alerted" for an append that never alerted;
+  - skip the final `failure()` step, which waited for the append to succeed.
+
+**Scope.** In:
+- `fno/cli.py` `main` catches `CalendarError` from any command. `fno/health/calendar_stop.py` prints and posts one line,
+  "Omenix F&O `<command>` stopped: <the calendar's own words>", and returns 1. The calendar's words name the day and
+  the year to add.
+- Commands that already handle the calendar themselves (3 pm recorder, A16, the back-fill, the card) never let it reach
+  `main`, so nothing is posted twice. Any other error is not turned into a calendar line.
+- In `index-closes.yml` and `panel-days.yml`:
+  - the librarian line reads "the archive step failed (Drive, NSE or the calendar: its log names it)";
+  - the final `failure()` step no longer waits for the append to succeed, so an unexpected append crash is never
+    silent. A named stop can then give two lines (its own, plus "see URL"), never none.
+
+Out: `nse-margins.yml`, which stays with its A14 owner (told the same two edits), and O9's later move of these jobs'
+data to Drive (alert steps only are touched here).
+
+**Acceptance criteria:**
+1. On a day past the calendar, the real index-closes job exits 1 and posts exactly one line, naming the command and
+   2027.
+2. A command that handles the calendar itself posts only its own line. Any other error is not changed into a calendar
+   line.
+3. The command is named without its options.
+4. Neither workflow blames Drive alone, and neither final `failure()` step is gated on the append.
+
+**Test plan:** `tests/health/test_calendar_stop.py`, with each criterion broken on purpose once.
+
+**Depends:** O8, A7 · **Status:** built on `story/o8c-calendar-stop-line` for judge B (claims: response 153,
+addendum 4)

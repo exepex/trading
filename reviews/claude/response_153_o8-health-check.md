@@ -186,3 +186,41 @@ A16's marks are silent, because they are not live yet.
 - The push race, as in every job.
 - The 2027 calendar rows (a loud FAILED until they are added).
 - The first real run's push-receipt lines can only be verified in Actions, because this session has no GitHub token.
+
+## Addendum 4: O8c, one named line for any command stopped by the calendar (for judge B)
+
+**Origin:** response 239, item 4. I confirmed it in the code (file and line evidence in the O8c story) and proposed
+this fix, and the orchestrator gave the go on 16 Oct. I own `index-closes.yml` and `panel-days.yml` for this fix.
+`nse-margins.yml` stays with its A14 owner, who has been told the same two edits.
+
+**O9 check:** the O9 session cannot be reached by message ("not found"; probably the other account). Its branch
+`story/o9-data-to-drive` changes no workflow and not `fno/cli.py`. Its story moves these jobs' data to Drive later.
+Only alert steps are touched here, so the two do not collide today.
+
+### Changes
+- `fno/cli.py` `main`: `except CalendarError` calls `fno/health/calendar_stop.py` `calendar_stop(command_name(argv),
+  error)`, which posts one line, "Omenix F&O `<command>` stopped: <the calendar's words>", and exits 1.
+- The commands that already catch the calendar themselves (`quotes/cli.py:77`, `intraday/cli.py:63,88`,
+  `intraday/backfill_cli.py:43`) return instead of re-raising, so they are never posted twice.
+- In both workflows:
+  - the librarian line names the possible causes and points to the log;
+  - the final `failure()` step drops `&& steps.append.outcome == 'success'`.
+
+### Evidence
+- **Real run:** `python -m fno pipeline index-closes --to 2027-01-04`, with no Slack token, printed:
+  `Omenix F&O `pipeline index-closes` stopped: 2027-01-01 is outside the calendar (2017-01-01 to 2026-12-31): add every
+  row of NSE's 2027 holiday circular (...) to the calendar file` and `alert NOT sent: FNO_SLACK_BOT_TOKEN is not set`,
+  with exit 1. Before this change it ended in a traceback.
+- **Tests:** `tests/health/test_calendar_stop.py`, 9 cases. Among them, the real `IndexCloseAppender` with the real
+  calendar, built without Drive.
+- **Breaks:** 5 of 5 caught:
+  1. no handler in `main`;
+  2. a line without the calendar's words;
+  3. the command named with its options;
+  4. index-closes still blaming Drive;
+  5. panel-days still gated on the append.
+
+### A trade-off, stated
+On a named stop in the append step, the job now posts two lines: the named one, then the generic "failed; see URL".
+That is better than the old case of none. Telling the two apart would need state passed between steps, which the
+simplicity rule argues against. This is my reasoning only.

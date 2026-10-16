@@ -79,13 +79,13 @@ jobs:
         if: ${{ steps.librarian.outcome != 'success' }}
         run: |
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
-            "Omenix F&O daily NIFTY panel: the Drive archive step failed; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            "Omenix F&O daily NIFTY panel: the archive step failed (Drive, NSE or the calendar: its log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
-      - name: Fail the run when the append stopped (already alerted)
+      - name: Fail the run when the append stopped (a named stop posts its own line; any other crash is alerted below)
         if: ${{ steps.append.outcome != 'success' }}
         run: exit 1
       - name: Alert #fno-desk when the job itself failed
-        if: ${{ failure() && steps.librarian.outcome == 'success' && steps.append.outcome == 'success' }}
+        if: ${{ failure() && steps.librarian.outcome == 'success' }} # an unexpected append crash is never silent (O8c)
         run: >
           python -c "from fno.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O daily NIFTY panel (GitHub Actions) failed; see
