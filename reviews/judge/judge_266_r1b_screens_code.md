@@ -67,3 +67,24 @@
   the whole expected tail loss is subtracted, which the rule requires.
 - **The gate log's per-gate outcomes (GATE_OUTCOMES) and judge 261 notes 1-3 are done.** The back-fill test now
   catches my `head()` mutation from judge 261; the builder states this and I did not re-plant it.
+
+## Addendum 1: `9a20155a` (judge G)
+
+**Verdict: PASS.** The fix reached me from the builder under the orchestrator's standing go for R1. The fix commit
+`9a20155a` changes `fno/factory/inputs.py`, three test files and `TEMPLATE.md`. `f94a4b92` before it adds one clause
+to R3's step 3, plus merges of main.
+
+- **Should-fix 1 is accepted.** `test_the_three_year_limit_is_exact` checks 3.0 years → `planned` and 3.0001 →
+  `exploratory_shadow`, through both `SamplePlan` and `sample_plan`. Each of these now fails a test: my `years >= 30`
+  mutation, a `>= PLAN_YEARS_LIMIT` mutation, and setting the constant to 5.0.
+- **Notes 1, 2 and 4 are done, each caught by my re-planted mutation.** Net = 0 now gives `screened_out` (the `>= 0`
+  mutation fails). `assumed_hurdle`, like `none`, needs no cost or tail (exempting `none` only fails). A leg now
+  states `instrument`, and a `stock_option` leg with `settlement` is refused by name (dropping the refusal fails).
+- **R3 step 3's clause** ("a research version only for a card whose G1 passed, or a measurement") matches
+  FACTORY_RULES section 3, rule 2. It says openly that D1's `set-status` does not enforce it. R3's owner agreed.
+- **Gates:** ruff check and ruff format are clean; factory tests: 90 passed. Full suite at `9a20155a`: **7,385 passed,
+  3 failed**. The 3 failures fail identically on `origin/main` (`b576230a`) alone:
+  - `tests/risk/test_manager.py`, twice (the 30-day factor tests);
+  - `tests/risk/test_stress_factor.py::test_the_repository_seed_row_is_read_by_c2_and_c4`.
+  They follow today's A14c data commit to `research/data/margins/stress_factor.csv`. They are not R1b's, and are
+  reported to the orchestrator separately.
