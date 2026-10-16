@@ -424,3 +424,57 @@ contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `
 5. Size, lint, imports, tests pass.
 
 **Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built criteria PASS (judge 61 and addendum 1; page keys today and risk); contract 2.5/2.6 blocks (India band, expiries, session hours_status) PASS (judge 66 items 1-3, addendum 2); live publish read-back at 07:10 IST 14 Oct pending
+
+## P11. Per-page hold: one page held back, every other page published
+
+**Owner decision:** 16 Oct 2026 (the orchestrator's decision row): an over-cap trade card holds back only the card
+page, and the screen says so. Judge 233 addendum 3 set its conditions. **Lane:** 1 (what every publish run publishes,
+the run status, an alert). **Builder:** the P2 page builder (013xqaNTCbSBytKgqpfaYFqZ). **Size:** S.
+
+**Description:** As the owner, I want a page that must not be shown, because a risk rule was broken, held back on its
+own, while every other page publishes. Then a broken rule never shows a wrong card, and never hides correct pages.
+
+**What exists (strong evidence, 16 Oct):**
+- Any page that cannot be built stops the whole publication (`market_run.py`: `FiguresNotComputed`, `ContractBroken`,
+  a crash), and every page stays at the previous one.
+- The store already reads the current publication's rows (`ReadModelPublisher.current()`).
+- `fno.pages_history` is keyed by (product, page_key, publication_id), so a row may keep an older `as_of`.
+- `fno.run_status` allows a free `reason` on a `published` row, but no `reason_code` (002's check). So no migration is
+  needed.
+
+**Design:**
+1. **`PageHeld(rule)`** is a new exception a block may raise from `build` when its page must not be published. `rule`
+   is a fixed sentence written by that block's story, never a value (no amount, strike or id).
+2. **`PublicationBuilder`** catches `PageHeld` per block, and nothing else.
+   - The held page's record is the current publication's record for that page key, unchanged (payload, `as_of`,
+     `built_at`, `payload_sha256`), filed under the new publication ID. The screen's freshness therefore shows its age,
+     and it is never shown as today's.
+   - With no earlier record, the page is absent.
+   - The publication carries `held: {page_key: rule}`. The publication ID covers the held copy's hash, so a second
+     run of the same day with the same hold adds nothing.
+3. **`MarketRun`:**
+   - the run is `published`;
+   - the status row's `reason` names each held page and its rule;
+   - one #fno-desk line per held page, through the existing sender: "<day>: <page> held back: <rule>".
+   - For the card, the rule reads "risk-rule breach: C2 sizing or C4 validity let a trade past its book's per-trade
+     cap" (judge 233 add. 3, condition 1).
+4. **Unchanged:** every other failure still stops the whole run, as today. A hold is only for a rule its block's story
+   names.
+5. **On screen:** the screens lead adds the contract field for "Today's card was held back: a risk rule was broken"
+   (a minor contract version). The publisher fills it from `held`. Its exact place is the contract's, not this story's.
+
+**First user:** the card page (P2f), whose over-cap rule raises `PageHeld`. Other pages that stop today (the Forecast
+lab's year-end calendar gap, a paper book's open trade, Home's open trade) are separate decisions, not in this story.
+
+**Acceptance criteria:**
+1. A test plants an over-cap card. Only the card page is held. Every other page publishes. The card's row is the
+   previous publication's, byte for byte (`payload_sha256`, `as_of`, `built_at`), and the read-back passes.
+2. Exactly one alert line, naming the risk-rule breach, with no value (a planted amount and trade id are not in it).
+3. The run status row is `published`, and its `reason` names the page and the rule.
+4. With no earlier card, the card is absent and every other page publishes.
+5. Two runs of the same day with the same hold give the same publication ID and add no rows.
+6. `FiguresNotComputed`, `ContractBroken` and a crash still stop the whole run (the existing tests stand).
+7. Local and Azure publishers behave the same (the local folder publisher in tests; Azure through the same records).
+
+**Depends:** P6-P10 (the publish path), P7 (run status), the alert sender. **Status:** story text for the judge
+(`reviews/claude/response_244_p11-page-hold.md`).
