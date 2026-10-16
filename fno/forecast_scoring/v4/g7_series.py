@@ -9,7 +9,7 @@ from datetime import date
 from ...constants import V7_VIX_UP_5S
 from ...forecast_v4.terms import HORIZON_SESSIONS
 from ...forecast_v4_rules import series
-from .outcomes import OutcomeSeries
+from .outcomes import OutcomeSeries, VixCloseMissing
 
 
 class G7Series(OutcomeSeries):
@@ -20,6 +20,9 @@ class G7Series(OutcomeSeries):
 
     def sessions(self) -> list[tuple[date, float, float]]:
         vix = {v.day: v.value for v in series.vix_closes(self.rows)}
+        missing = [c.day for c in self.closes if c.day not in vix]
+        if missing:
+            raise VixCloseMissing(missing)
         return [(c.day, c.value, vix[c.day]) for c in self.closes]
 
     def close_proxy_rv(self) -> dict[date, float]:
