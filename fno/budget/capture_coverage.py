@@ -12,22 +12,24 @@ from ..ai_trading.paths import DECISIONS_FOLDER
 from .usage_ledger import session_key
 
 FIRE_LOGS = "*/*_fired.json"
-FIRE_LOG_FOLDERS = (AI_FOLDER, DECISIONS_FOLDER)  # the forecasts' and (story F1t) the trading decisions' fire logs
+# the forecasts' and (story F1t) the trading decisions' fire logs, each with the run's name its alert gives
+FIRE_LOG_FOLDERS = {AI_FOLDER: "forecast", DECISIONS_FOLDER: "decision"}
 
 
 class FireLogUnreadable(ValueError):
     """A fire log is not the {book: {fired, session}} object F1 writes; the message names the file."""
 
 
-def fired_sessions(root: Path, month: str, before: str) -> list[tuple[str, str, str]]:
-    """(day, book, session link) of every fired book session in the month's fire logs, on days before `before` (a
-    session of today cannot be captured yet: only complete days are recorded)."""
+def fired_sessions(root: Path, month: str, before: str) -> list[tuple[str, str, str, str]]:
+    """(day, book, session link, run) of every fired book session in the month's fire logs, on days before `before`
+    (a session of today cannot be captured yet: only complete days are recorded); run is "forecast" or "decision"."""
     found = []
-    for log in sorted(p for folder in FIRE_LOG_FOLDERS for p in (root / folder).glob(FIRE_LOGS)):
-        day = log.name.removesuffix("_fired.json")
-        if day.startswith(month) and day < before:
-            found += [(day, book, session) for book, session in _fired(log)]
-    return found
+    for folder, run in FIRE_LOG_FOLDERS.items():
+        for log in sorted((root / folder).glob(FIRE_LOGS)):
+            day = log.name.removesuffix("_fired.json")
+            if day.startswith(month) and day < before:
+                found += [(day, book, session, run) for book, session in _fired(log)]
+    return sorted(found)
 
 
 def _fired(log: Path) -> list[tuple[str, str]]:
@@ -41,6 +43,6 @@ def _fired(log: Path) -> list[tuple[str, str]]:
     return [(book, e.get("session") or "") for book, e in entries.items() if e.get("fired")]
 
 
-def not_captured(root: Path, month: str, usage_rows: list[dict], before: str) -> list[tuple[str, str, str]]:
+def not_captured(root: Path, month: str, usage_rows: list[dict], before: str) -> list[tuple[str, str, str, str]]:
     captured = {session_key(row["session_id"]) for row in usage_rows}
     return [fired for fired in fired_sessions(root, month, before) if session_key(fired[2]) not in captured]
