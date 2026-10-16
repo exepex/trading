@@ -140,7 +140,8 @@ Agreed with F1t (its text at e0ba1b43): Book 3's decision version declares its w
 or any other exception from `decide()` restores every change under them (tracked files to HEAD, new files deleted), so
 nothing half-registered is committed later. The shape check is `check_decision(decision) -> list[str]` (standard
 library only), registered with the prompt `agents/book3/decide_v1.md` in F1t's `DecisionVersion`; `brief` hash-checks
-and prints that prompt.
+and prints that prompt. `analyst_cards` is in Book 3's pointer, printed by `brief`, and carried in `AcceptedDecision` as fired
+(card IDs, `role_set_version`, `input_sha256`; F1t at 0a466db6), which is what the decider checks `cards_used` against.
 
 **Acceptance criteria:**
 1. A proposal registered on day d is on no day sheet and no decision on d; it is on d+1's (temporary git
