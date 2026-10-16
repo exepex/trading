@@ -179,8 +179,10 @@ and prints that prompt. `analyst_cards` is in Book 3's pointer, printed by `brie
     C4 passes the pick.
 12. `SelectionAllocator` (shared with F5): unpicked candidates read "not chosen by <book>" with no risk verdict; a Book
     3 pick with width or lots (no `rebuild`) is refused; with a fake `rebuild`, C2 runs on the rebuilt candidate and a
-    rebuild raising `NotBuilt` leaves the pick not chosen with its reason; Book 1's `inputs.json` bytes are unchanged
-    (no `selection` key).
+    rebuild raising `NotBuilt` leaves the pick not chosen with its reason; `attempted` lists every pick that was not a
+    built candidate and every failed rebuild; a C2 refusal keeps D2's own reason text unprefixed (`slot:`, `cash:`,
+    `risk:`, which S2/S3 match); `threshold` is a constructor argument (Book 2 on, Book 3 off); Book 1's
+    `inputs.json` bytes are unchanged (no `selection` key).
 
 **Test plan:** temporary git repositories for registration and ancestry; fake answers (good, bad shape, each refused
 pick, each refused proposal); the real D2/C2/C4 path on a fixture market; replay; boundary cases at Rs 10,000 and 21
