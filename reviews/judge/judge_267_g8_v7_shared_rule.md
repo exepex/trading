@@ -1,4 +1,4 @@
-# Judge 265: G8's V7 outcome from G7's shared rule (story/g8-v7-shared-rule at d3deddd1)
+# Judge 267: G8's V7 outcome from G7's shared rule (story/g8-v7-shared-rule at d3deddd1)
 
 Judge B, 16 Oct 2026. Lane 1 (scoring), before the v4 freeze. Builder: A16/G8 (session 01VK88Lx). Claims are in the
 builder's message: V7 now comes from G7's `series.vix_up_outcomes`, as V6 does, with byte-identical outcomes.
