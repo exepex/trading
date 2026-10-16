@@ -306,7 +306,7 @@ self-review agents and broken-code proofs per criterion (judge quality rules 3-4
 
 | Neighbour | Owner session | Boundary (proposed by G13) |
 |---|---|---|
-| O1 daily run | 014zYLf18PgCzR7YoHs1X5Dp | O1's joining rules (16 Oct) applied in design 7: one `DAILY_RUN_STEPS` entry, one steps-dict entry in `fno/daily/wiring.py`, `LIVE_STEPS` and the `daily.live_from` key; nothing else in `fno/daily/`; O1's owner checks this text's plug-in part |
+| O1 daily run | 014zYLf18PgCzR7YoHs1X5Dp | **Agreed** (O1's owner, 16 Oct: "the plug-in part ... fits O1's code"; partial write = non-zero exit "written with problems", recorded `failed`, one alert, receipts committed; after `card`). O1's joining rules applied in design 7: one `DAILY_RUN_STEPS` entry, one steps-dict entry in `fno/daily/wiring.py`, `LIVE_STEPS` and the `daily.live_from` key; nothing else in `fno/daily/`; O1's owner checks this text's plug-in part |
 | G7b (part c, V5's implied probability) | 0185gR5DmoDh2zBAvgRU4CEB | G13 owns the valuation record and the quantile forecasts; G7b owns every v4 record. G7b may import G13's density module, never required to |
 | G10 (v4 pack) | 01VK88LxJvV1Gi7Wbr3D4fzp | G13 reads the 3 pm chains, not the v4 pack, and writes nothing G10 reads |
 | G11 (AI books) | 013xqaNTCbSBytKgqpfaYFqZ | **Agreed** (G11's owner, 16 Oct): G13 edits nothing in `fno/ai/` or `agents/`; AI price quantiles are a later story with its own budget check under BG1's cap; ids imported from `fno/constants.py` |
