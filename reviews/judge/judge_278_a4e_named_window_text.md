@@ -46,3 +46,28 @@ The text needs:
 
 Story text only; I checked the claims against `fno/quotes/recorder.py`, `fno/quotes/market_levels.py`, G10's text
 and part (a)'s code.
+
+## Addendum 1: story/a4e-named-quote-window at c350d375
+
+**PASS.** The should-fix is met by the new criterion 4b. A named capture's sidecar adds, on the same clock:
+- `chains`: per expiry, `expiry`, `spot` and `received_at` (that chain answer's arrival);
+- `levels_received_at`: the time the level reads returned. That is an honest upper bound for both India VIX and the
+  futures, since both had arrived by then. NSE's `india_vix_time` is kept beside it.
+
+There are fake-clock tests for both, and the default sidecar is unchanged. Criterion 4 now names A16's `ClockCheck`
+fields (`clock_checks` before and after, `clock_status` `clock_ok` only when both are, and
+`clock_worst_skew_seconds`), with the 5-second threshold and a stopped-run case. One rule, no copy.
+
+My note stands for part (b): NSE's futures carry no bid or ask, which G10's pack allows as None.
+
+## Addendum 2: story/a4e-named-quote-window at 08c6f465
+
+**PASS stands, strengthened.**
+- Criterion 4b now gives each expiry's chain call its own `request_sent_at` and `response_received_at`.
+- `levels_requested_at` and `levels_received_at` bracket the one `levels()` call; the receive time is an honest upper
+  bound for India VIX and the futures.
+- The text states that NSE's futures have no bid or ask.
+- A fake-clock test checks that a level read returning after the window's end keeps its real later time, never
+  clamped.
+
+The default sidecar is unchanged.
