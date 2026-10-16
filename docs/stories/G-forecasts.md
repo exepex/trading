@@ -896,10 +896,12 @@ the pack. G8 syncs `v4/days/` through the DriveCache before every report and loo
 
 **3. The capture at 14:30.** The pack is built from the 3 pm recorder's NIFTY capture moved to a 14:30-14:40 window
 (retries inside the window, every field with its time). That window is A4's recorder (`fno/quotes/`), not this
-builder's: A4's owner adds a `--window` setting so v2 keeps 14:55 until go-live; this part supplies the pack builder
+builder's: A4's owner (with O1, who owns the 3 pm routine's timing: register row "Handover / routines") adds a
+`--window` setting so v2 keeps 14:55 until go-live; this part supplies the pack builder
 that reads the capture's result and writes the pack and the release record. Fallback `A2`: A16's 14:30 mark
 (through the snapshot store, SHA-checked as in part 1's flag). Same Groww key as A16: one taker per moment is O9's
-claims (section 6); the dry run (criterion 6 of the text above) measures it.
+claims (section 6); the dry run (criterion 6 of the text above) measures it. **Said plainly (judge 274 add. 1):** until the routine moves (today it starts at 14:33 and
+runs setup first), `A2` is the normal path, not the fallback.
 
 **4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file; R2/G7 builds it).
 The column sits right after `inputs_sha256`; `record()` takes it as a keyword, default empty; `records.py` checks
