@@ -251,3 +251,13 @@ position, and any exception from one check took down the whole mark. Fixed at bo
 **Note for the owner (judge 264's request).** The owner's row says one alert per condition per position per hour. An
 **exit rule reached** is alerted **once per session** instead. It is information only, and E8's daily exit alert stays
 the one action alert, so repeating it hourly would add noise and lose no action. The owner can ask for hourly instead.
+
+### Round 2a addition: earlier records read locally first (A16's ObserverGroup time limit)
+
+A16's `ObserverGroup` (e90551d8) cuts each member off after a time limit. LM1 has asked for its own limit of 90 s
+(A21 keeps 10 s). To keep a typical mark well inside any limit, `AlertRecords.history` now reads a mark's record from
+the local copy this host wrote, and from Drive only for marks another run handled. One writer per mark file makes the
+local copy the record.
+
+Test: `test_marks_this_host_wrote_are_read_locally_and_others_from_drive`. Forcing every read to Drive fails it.
+Pytest: 7,404 passed.

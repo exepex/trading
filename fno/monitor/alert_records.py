@@ -74,14 +74,21 @@ class AlertRecords:
         self._call("written", name, lambda: self.store.replace(name, data))
 
     def history(self, day: date, before: datetime) -> list[SentAlert]:
-        """The alerts sent on the session's earlier marks, read from Drive (the record of every run)."""
+        """The alerts sent on the session's earlier marks. A mark this host wrote is read from its local copy (one
+        writer per mark file, so the copy is the record); any other mark from Drive, where every run's records are.
+        That keeps a mark's Drive reads to the marks other runs handled (A16's per-member time limit)."""
         sent = []
         for mark in (m for m in marks(day) if m < before):
-            name = self.name(day, mark)
-            data = self._call("read", name, lambda name=name: self.store.get(name))
+            data = self._read(self.name(day, mark))
             rows = csv.DictReader(io.StringIO(data.decode("utf-8"))) if data else []
             sent += [SentAlert(r["key"], r["severity"], parse_time(r["mark"])) for r in rows if r["state"] == SENT]
         return sent
+
+    def _read(self, name: str) -> bytes | None:
+        local = self.root / name
+        if local.is_file():
+            return local.read_bytes()
+        return self._call("read", name, lambda: self.store.get(name))
 
     @staticmethod
     def _call(what: str, name: str, action):

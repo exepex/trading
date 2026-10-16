@@ -114,3 +114,15 @@ def test_the_sending_row_is_in_drive_before_the_alert_goes_out(tmp_path):
     desk.sender.send = lambda text: seen.append([r["state"] for r in records(desk, "10:30")]) or send(text)
     desk.mark(DAY, "10:30")
     assert seen == [["sending"]] and [r["state"] for r in records(desk, "10:30")] == ["sent"]
+
+
+def test_marks_this_host_wrote_are_read_locally_and_others_from_drive(tmp_path):
+    desk = Desk(tmp_path, [DANGER_POSITION])
+    desk.mark(DAY, "10:30")
+    calls = []
+    get = desk.drive.get
+    desk.drive.get = lambda path: calls.append(path) or get(path)
+    desk.mark(DAY, "10:45")
+    assert not any(p.endswith("1030.csv") for p in calls)  # its own 10:30 record: the local copy
+    assert any(p.endswith("1015.csv") for p in calls)  # a mark it never wrote: Drive
+    assert len(desk.sender.texts) == 1  # the 10:30 alert still holds the hourly limit
