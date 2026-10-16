@@ -42,3 +42,20 @@ The orchestrator decided:
 - both are built here;
 - new acceptance criterion 8: P11 is merged before the first strategy approval, and a planted approval and a planted
   open trade each leave every other page published.
+
+## Addendum 3 (16 Oct): judge 251 accepted: every hold is said, and no held page states a falsehood
+
+**Accepted, checked against the code.** `home_blocks.py:15-17` already names "an empty panel that is no longer true"
+as the reason it stops today, so a held copy of it would bring that back.
+
+**Chosen: both, (b) for every page plus (a) where a payload would lie:**
+- **(b), a generic notice:** a `page_holds` page in every publication (`[{page_key, since, rule}]`, empty on a normal
+  day). It needs `FnoPageHolds` in the contract (the screens lead) and the W3 screens' rendering (the E4c/E4d
+  builder). It is ordered before P2b's and P2c's rebase and before the first approval.
+- **(a), per block:** `held()` returns the previous payload, or None for no row.
+  - The Forecast lab and the paper books keep theirs: their old payloads stay true for their own session.
+  - Home's picks and books drop theirs: the old payloads say "no approved strategy" and limit_used 0.
+  - The card shows `withheld`.
+
+**Contract bumps (the judge's note):** a held copy is validated against the current pin. A copy that no longer matches
+gets no row, never a whole-run stop, and its alert line says so (criterion 10).

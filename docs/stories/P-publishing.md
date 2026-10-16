@@ -460,14 +460,30 @@ own, while every other page publishes. Then a broken rule never shows a wrong ca
      cap" (judge 233 add. 3, condition 1).
 4. **Unchanged:** every other failure still stops the whole run, as today. A hold is only for a rule its block's story
    names.
-5. **On screen, the card only (contract 2.12.0, `FnoCard.withheld`).** A block may say how its held page is shown
-   (`BlockBuilder.held(previous_payload, rule)`).
-   - The default is the previous payload unchanged, so every held page except the card keeps its previous row byte
-     for byte.
+5. **Every hold is said on screen, and no held page asserts what the rule says is no longer true** (judge 251; owner
+   row 236: "say so on screen").
+   - **A generic notice:** every publication carries a page `page_holds`: `[{page_key, since, rule}]`, where `since`
+     is the first session held in a row. It is empty on a normal day. The dashboard shows "<page> held back since
+     <since>: <rule>" on that page. This needs a new contract schema (`FnoPageHolds`, the screens lead) and the W3
+     screens' rendering (the E4c/E4d builder). **Dependency:** both are ordered before P2b's and P2c's rebase and
+     before the first strategy approval.
+   - **Each block says how its held page is shown** (`BlockBuilder.held(previous_payload, rule)`): a payload, or None
+     for no row.
+     - **Shown (previous unchanged):** a page whose old payload stays true for its own session: the Forecast lab
+       (that session's forecasts and scores) and the paper books (that session's accounts). Its row is kept byte for
+       byte, and the notice says it is held.
+     - **Dropped (None, no row):** a page whose old payload states something the rule says is no longer true.
+       - Home's picks: held from the first approval, the old payload says "no approved strategy".
+       - Home's books (`risk`): held while a trade is open, the old payload says limit_used 0 and the value before
+         the trade.
+       The screen shows "not published" and the notice.
    - The card's held payload is the previous session's card payload, unchanged except `withheld = {session: <the
      day>, reason_text: "Today's card was held back: a risk rule was broken"}` (the contract's constant). Its own
      session stays the previous session's, always before `withheld.session` (the W3 screen treats anything else as a
      contract error). Its `payload_sha256` is recomputed. Its row keeps the previous `as_of` and `built_at`.
+   - **After a contract bump:** every held payload is validated against the current pin, like any page. A held copy
+     that no longer matches gets no row, never a whole-run stop. The notice stays, and the alert line adds "its
+     previous page no longer matches contract <version>".
 
 **Users (owner, 16 Oct, through the orchestrator: "the same principle; treat them as holds unless the judge
 objects"):**
@@ -492,6 +508,13 @@ P2b and P2c rebase on this story; their hold rules are in their own stories and 
 7. Local and Azure publishers behave the same (the local folder publisher in tests; Azure through the same records).
 8. **Before the first strategy approval, P11 is merged** (orchestrator, 16 Oct). A planted approval holds only the
    picks page, and a planted open trade holds only the `risk` page. Every other page publishes in both cases.
+9. **Per user, the held screen says it is held, and no held payload asserts a state the rule says is no longer true.**
+   - `page_holds` names the page, its first held session and the rule.
+   - Home's picks and books publish no row while held.
+   - A shown page is its previous row byte for byte.
+   - The card carries `withheld` and is never re-dated.
+10. A held copy that fails the current pin gets no row, the run still publishes every other page, and its alert line
+    says why.
 
 **Depends:** P6-P10 (the publish path), P7 (run status), the alert sender. **Status:** story text for the judge
 (`reviews/claude/response_244_p11-page-hold.md`).
