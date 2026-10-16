@@ -109,3 +109,15 @@ Minor findings from the verdict, still open:
 It does not test the positive case that would catch the exact bug of addendum 1: **a `choose_width` (and a
 `reduce_lots`) run's entry order carries the AI's rebuilt width and lots, not the default's**. Add it. I will plant
 "replay with D2's plain evaluator" in the code review.
+
+## Addendum 3: a32f8ff7
+**PASS stands; the code-round minor of addendum 2 is closed in the text.**
+- `action` is `follow_rule`, `trade` or `no_trade`, and `check_decision` refuses an action that disagrees with the
+  slots.
+- Criterion 9 now says the evaluator `ReplayedOrders` replays is rebuilt with the `SelectionAllocator` and the stored
+  picks, "never D2's plain evaluator".
+- It adds the positive case "a `choose_width` run orders the rebuilt width, not the default's", and orders the default
+  for shadow-only.
+
+(Addendum 1 judged 0b77381f because the 778e9c0f message arrived after it was written; both heads' fixes are now
+covered.) For the code review I will also check `reduce_lots` (the AI's lots reach the order) with the same plant.
