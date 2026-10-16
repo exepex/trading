@@ -238,5 +238,5 @@ def main(argv: list[str] | None = None) -> int:
     except PrivateFilesUnavailable as unavailable:  # story E2c: a command that needs the paper records stops, named
         print(f"stopped: {unavailable}")
         return 1
-    except CalendarError as gap:  # story O8c: any command stopped by NSE's calendar posts one named line
+    except CalendarError as gap:  # story O8c: any command stopped by NSE's calendar prints one named line
         return calendar_stop(command_name(argv), gap)

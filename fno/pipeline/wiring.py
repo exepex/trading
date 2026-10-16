@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 from datetime import timedelta
 
+from ..alerts.step_output import StepOutputAlerts
 from ..composition import build_alert_sender
 from ..constants import (
     DERIVED_AREA,
@@ -86,4 +87,5 @@ def build_index_close_appender(env=os.environ) -> IndexCloseAppender:
     """The daily index-close job: NSE's index-close files as archived in the owner's Drive (never fetched here, so a
     row is the first archived version), appended to the panel folder's warm-up closes."""
     files = drive_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, AreaStore(_project_drive(env), storage.RAW_AREA))
-    return IndexCloseAppender(files, storage.build_session_calendar(), storage.PANEL_FOLDER, build_alert_sender())
+    alerts = StepOutputAlerts(build_alert_sender())  # its workflow's failure line speaks only if this did not (O8c)
+    return IndexCloseAppender(files, storage.build_session_calendar(), storage.PANEL_FOLDER, alerts)

@@ -310,3 +310,33 @@ Only alert steps are touched here, so the two do not collide today.
 On a named stop in the append step, the job now posts two lines: the named one, then the generic "failed; see URL".
 That is better than the old case of none. Telling the two apart would need state passed between steps, which the
 simplicity rule argues against. This is my reasoning only.
+
+**Judge 246 (FAIL, one should-fix): accepted.** The finding: two alert layers fired for one stop and did not know
+about each other.
+1. The index-closes final step, once no longer gated on the append, posted a second line after the append's own named
+   stop.
+2. From 1 Jan, every command posted its calendar line and the workflow alerts posted too, about 4 lines per run.
+
+The redesign removes the second layer at its root:
+- `calendar_stop` **prints** the named line and does not post. The gap is announced in Slack by O8b's 45-day warning
+  and by the health check's daily "FAILED: CalendarError". Each workflow's one failure line points to the log.
+- A shared `StepOutputAlerts` (`fno/alerts/step_output.py`) records `posted=true` in the step's outputs only when Slack
+  accepted the line. It is used by the health check, replacing O8b's own helper, so O8c builds on O8b, and by the
+  index-close job.
+- `index-closes.yml`'s final step runs only if the append did not post. Every failing run gives exactly one line.
+
+New tests:
+- `tests/test_alert_step_output.py`;
+- the real job prints and posts nothing;
+- the wiring check (the index-close job's sender is wrapped);
+- the workflow condition.
+
+**Breaks: 5 of 5 caught:**
+1. the handler posting again;
+2. the gate ignoring `posted`;
+3. the job's sender not wrapped;
+4. `posted` recorded even when refused;
+5. the health check not wrapped.
+
+A14's nse-margins job keeps its own catch-all named line. Its `--due-day` calendar lines (librarian and revisions
+steps) no longer post: the cli handler only prints.
