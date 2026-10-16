@@ -148,7 +148,10 @@ or consumer default changed.
 - A12 has no active owner (its builder session has ended). The orchestrator is asked to agree the boundary: a new
   package that imports A12's URL template and changes no A12 file.
 - O10's `CaptureErrorLog` is not on `main` yet. A21's code waits for it, or is built on its branch.
-- A19's owner is asked to confirm no overlap with A19's RBI feed.
+- A19's owner confirmed no overlap (16 Oct 2026). A19 stores RBI press-release headlines through the RSS feed, and
+  A21 stores parsed yields from the HTML list. Reading RBI through A19 would turn any A19 outage into an A21 failure.
+  A19 never fetches NSE announcements. A12's next-day day file still keeps the whole day with `exchdisstime`; A21 adds
+  only the same-day copy with first-seen times.
 
 **Depends:** O9 step 1 (done), O10 (in progress), A7 (done), A12 (done). **Size:** M (two rounds: rates, then
 announcements).
