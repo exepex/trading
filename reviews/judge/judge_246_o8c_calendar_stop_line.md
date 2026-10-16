@@ -67,3 +67,30 @@ workflows' alert gates (path 1), which is why it went unseen.
 
 `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto -p no:cacheprovider`: 6,972 passed. `ruff check`: clean.
 `ruff format --check`: 1,237 files already formatted. `check_imports`: clean.
+
+## Addendum 1: story/o8c-calendar-stop-line at 7fadc85f (O8b merged in at 1fe47875)
+
+**PASS.** The should-fix is closed at its root. O8b's part was judged in judge 240 addendum 1 (PASS at 9232281d). Its
+private helper is now the shared `StepOutputAlerts`, with the same behaviour and tests.
+
+| Item | Result | Evidence |
+|---|---|---|
+| No second alert layer: the cli handler prints, never posts | MET | `calendar_stop` only prints. My runs at 7fadc85f, `pipeline index-closes --to 2027-01-04` and `data-librarian index-close` up to 2027-01-04, print the named line and attempt no post (no "alert NOT sent" line, the Slack token unset) |
+| The gap still reaches Slack | MET | O8b's once-only 45-day warning, and from the first uncovered day the health check: `health check --dry-run --at 2027-01-04T20:00` prints "health check FAILED: CalendarError" (the check catches it inside its `try` and posts it) |
+| index-closes: one line per failing run (path 1 of the should-fix) | MET | the index-close sender is wrapped in `StepOutputAlerts`, so a named STOPPED append records `posted=true`; the final step runs on `failure() && librarian success && append posted != 'true'`. A calendar gap fails the librarian, which posts its one line. An unexpected append crash posts nothing, so the final step speaks |
+| A posted mark only after Slack accepted | MET | `StepOutputAlerts.send` writes only on `SENT` (test) |
+| panel-days.yml unchanged (v3 freeze) | MET | byte-identical to main |
+
+**My mutations (real cases):**
+- The index-close sender not wrapped: 1 test fails.
+- The final step's `posted` condition removed: 1 test fails (the test reads the workflow).
+
+**Notes only:**
+- nse-margins in a 2027 run still gives two different lines: the librarian step's alert, then the margins job's own
+  `CalendarError` line (judge 245). The duplicate `--due-day` posts are gone. This is the pattern judge 245 noted.
+- panel-days (frozen): if its librarian succeeds and its append then stops on the calendar, no line is posted for that
+  run. The health check's daily "FAILED: CalendarError" covers the same gap. Changing it needs a new protocol version
+  (the owner's call), as the builder reported.
+
+**Gates (run by me on 7fadc85f):** 7,128 passed (`-n auto`, Slack token unset). `ruff check`: clean. `ruff format
+--check`: 1,267 files already formatted. `check_imports`: clean.
