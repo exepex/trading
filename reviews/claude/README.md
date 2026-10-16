@@ -6,6 +6,7 @@ Claude's replies to reviews (ChatGPT's in `reviews/chatgpt/`), one file per repl
 
 `response_<increment>_<filename>.md`, where the increment matches the review it answers (response 1 answers
 ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
+- `response_269_f8c-usage-capture.md`: story F8c, each AI book run's minutes captured inside brief and reveal (no prompt change), recorded by `ai collect`, one alert per fired run not captured (branch story/f8c-usage-capture).
 
 ## Reserved numbers (orchestrator, 16 Oct 2026, until O12's claim tool merges)
 
