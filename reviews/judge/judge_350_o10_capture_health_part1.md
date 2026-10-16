@@ -148,3 +148,18 @@ gains a second independent job.
 
 Merge note: part 1 may merge. Criterion 7's run logs can only exist after the merge; cite them in part 2. Whichever of
 O10 and A17 (judge 351) merges second adds `global-cues` and `vix-history` to the watcher's list.
+
+## Addendum 2: 0db3f682 (one commit after the PASS head f3ab7413)
+
+**Verdict: PASS; part 1 may merge at 0db3f682.**
+
+The change: a `news-capture` run (A19's poller) that is cancelled before any step ran counts as replaced, so it gets no
+row and no line. Every other workflow's cancelled-before-start run still records and alerts (judge 350, minor 3
+kept). That answers judge 352 SF2 from O10's side.
+
+The rule is scoped by name (`REPLACEABLE = ("news-capture",)`) and needs both `cancelled` and no step that ran. The
+three tests cover the replaced run, a news run cancelled after a step (still a failure), and another workflow
+cancelled before a step (still a lost slot).
+
+Accepted risk: an owner who cancels a queued news run by hand is also silent. That is harmless, because the kick
+workflow dispatches again.
