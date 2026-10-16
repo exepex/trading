@@ -167,3 +167,14 @@ def test_an_unusable_1515_level_leaves_the_flag_not_computable(tmp_path):
     recorder.run(time(15, 35))
     row = recorder.session_rv.table.row(DAY)
     assert (row["moved_after_cutoff"], row["cutoff_move_sign"]) == ("", "")
+
+
+def test_the_count_starts_across_a_muhurat_day_from_the_previous_recorded_session(tmp_path):
+    """9 Nov's previous recorded session is 6 Nov: the 8 Nov muhurat evening has no 15:30 mark (judge 270's plant:
+    the calendar's plain previous session would never let the count start)."""
+    from fno.intraday.session_rv import SessionRv
+
+    table = rv_rows(tmp_path, {"2026-11-06": "void", "2026-11-09": "ok"})
+    files = SimpleNamespace(source="groww")
+    line = SessionRv(files, calendar(), table, QuoteSnapshotRv15m()).void_share_line()
+    assert line == "void sessions: 0 of 1 (0.0%)" + NOT_COUNTED_1
