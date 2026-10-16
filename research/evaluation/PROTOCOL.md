@@ -200,13 +200,18 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 - **Evidence:** reasoning only
 
 ### `catastrophic_loss_book` Catastrophic-loss rule per book
-- **Value:** C2's drawdown brake, unchanged:
-  - while closed equity is Rs 30,000 or more below its high, the book opens no new trade;
+- **Value:** C2's drawdown brake with the owner's 15 Oct 2026 numbers, per book (each Rs 20 lakh book has its own):
+  - while closed equity is Rs 1,20,000 or more below its high, the book opens no new trade;
   - only the owner's restart row lifts it;
   - open trades are never closed by the brake.
+  - Beside it, limits on new entries only, never a stop: one risk bucket at most Rs 30,000 of maximum loss; all open
+    positions' maximum losses at most Rs 1,50,000; new maximum loss opened in one session at most Rs 50,000. There is
+    no flat open-trade limit. The figures are `config.yaml:risk`'s books profile, which the freeze hashes.
 - **Status:** proposal, owner decides
-- **Reason:** It is the owner's own decision of 12 Oct 2026 (`docs/DESK_DECISIONS.md`), the same for all three books.
-  Repeating it here freezes it for the comparison.
+- **Reason:** The owner's decisions of 15 Oct 2026 (`docs/DESK_DECISIONS.md`: "Risk buckets and caps accepted",
+  "Books drop the flat 3 open trades limit", "Risk caps and the drawdown brake apply per book") replace the 12 Oct
+  Rs 30,000 brake and 3 open trades, the same for all three books. Repeating them here freezes them for the
+  comparison; a test keeps these figures equal to `config.yaml`.
 - **Evidence:** reasoning only
 
 ### `immediate_pauses` Pauses before a scheduled review
