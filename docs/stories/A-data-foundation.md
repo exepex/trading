@@ -1320,9 +1320,12 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     status (`ok`, `mismatch`, `error`) and its detail.
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
     and exits 0. An `error` row is retried by the next run.
-  - **Alerts:** one #fno-desk line per run with the counts and every mismatch and error. A Groww failure (sign-in,
-    network, a refused request) is an `error` row and the line, and exits 1. A run that cannot write its record also
-    sends the line and exits 1.
+  - **Alerts and capture errors (O10's format, agreed 16 Oct):** one #fno-desk line per run, starting "Omenix F&O
+    a14c-broker-check:", with the counts and every mismatch and error. A Groww failure (sign-in, network, a refused
+    request) is an `error` row and the line, exits 1, and is also a capture error. It writes one row to O10's
+    `research/ops/capture_errors.csv` (date IST, job `a14c-broker-check`, step, kind = the error class, a message of
+    names only, at most 200 characters, never a value). A run that cannot write its record does the same. A mismatch is
+    a finding, not a capture error: it goes in the record and the line only. Outside market hours nothing is recorded.
   - **Never holds the factor:** the check is evidence. A mismatch is the owner's to judge, and part 1's rows are NSE's.
 
 Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
