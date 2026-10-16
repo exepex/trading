@@ -17,7 +17,7 @@ from fno.market_read_models.frame_inputs import frame_inputs
 from fno.market_read_models.home_inputs import BookFigures, HomeInputs
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
-from fno.market_read_models.paper_trades_inputs import AccountFigures, PaperTradesInputs
+from fno.market_read_models.paper_trades_inputs import AccountFigures, Marks, PaperTradesInputs
 from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.publication_inputs import PublicationInputsFile
 from fno.market_read_models.run_status import LocalRunStatus
@@ -39,7 +39,7 @@ OPENING_BOOKS = HomeInputs(
     30000.0,
 )
 OPENING_ACCOUNTS = PaperTradesInputs(  # each book at its opening value, nothing traded (P2c's empty state)
-    DAY, [AccountFigures(b, DAY, 2000000.0, 2000000.0, 2000000.0, 0, 0.0) for b in BOOKS], 120000.0, 150000.0
+    DAY, [AccountFigures(b, Marks(DAY, 2000000.0, 2000000.0, 2000000.0, 0), 0.0) for b in BOOKS], 120000.0, 150000.0
 )
 CALENDAR = CsvSessionCalendar(
     "date,kind,description,source_url\n2026-10-02,holiday,Gandhi Jayanti,https://nsearchives.nseindia.com/x.pdf\n"

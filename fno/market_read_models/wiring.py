@@ -11,12 +11,21 @@ from pathlib import Path
 
 from ..composition import build_alert_sender
 from ..config import ROOT
-from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID, RISK_PROFILE_BOOKS
+from ..constants import (
+    BOOKS,
+    ENV_FNO_DB_URL,
+    ENV_GITHUB_RUN_ATTEMPT,
+    ENV_GITHUB_RUN_ID,
+    PLAYBOOK_FOLDER,
+    PLAYBOOK_REGISTRY_FILE,
+    RISK_PROFILE_BOOKS,
+)
 from ..forecast_scoring.wiring import SCORES_FOLDER
 from ..forecast_v4_rules.series import closes_rows, regular_closes
 from ..forecast_v4_rules.wiring import CLOSES_FILE
 from ..research_engine.implied_vol import SpotBlackScholes
-from ..risk.profile_settings import profile_settings
+from ..risk.profile_settings import ProfileSettings, profile_settings
+from ..scoreboard.committed_runs import CommittedRuns
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.wiring import build_session_calendar, build_versioned_reader
 from ..weather.wiring import build_records
@@ -53,6 +62,7 @@ from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReade
 from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
 from .paper_trades_block import FnoPaperTradesBlock
+from .paper_trades_closed import ClosedTrades, CommittedStructures
 from .paper_trades_inputs import PaperBooksReader
 from .postgres_publisher import PostgresPublisher
 from .publication import PRODUCT, PublicationBuilder
@@ -157,9 +167,18 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     store, calendar = build_versioned_reader(), build_session_calendar()
     flows = FlowsReader(store, calendar)
     reports = ScoreReportsReader(ROOT / SCORES_FOLDER)
-    paper = PaperBooksReader(ROOT, BOOKS, profile)  # the accounts E2c downloaded from Drive before the publish
+    paper = build_paper_books(cfg, profile)
     return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports,
                               paper)  # fmt: skip
+
+
+def build_paper_books(cfg: dict, profile: ProfileSettings) -> PaperBooksReader:
+    """Story P2c: the accounts E2c downloaded from Drive before the publish, D3's committed decisions (the structures),
+    the append-only playbook registry (the strategies' order) and C1's charges."""
+    registry = ROOT / PLAYBOOK_FOLDER / PLAYBOOK_REGISTRY_FILE
+    structures = CommittedStructures(CommittedRuns(ROOT))
+    text = lambda: registry.read_text() if registry.is_file() else ""  # noqa: E731
+    return PaperBooksReader(ROOT, BOOKS, profile, ClosedTrades(text, structures, cfg["charges"]))
 
 
 def build_weather_inputs() -> WeatherInputsReader:
