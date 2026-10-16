@@ -7,19 +7,16 @@ outside the repository, sends no alert and commits nothing."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from ..alerts.sender import AlertSender, NoAlertSender
 from ..composition import build_alert_sender
-from ..constants import DEFAULT_REPOSITORY, GITHUB_REPOSITORY_VARIABLE
 from ..forecast_v4.cutoff_move import cutoff_flag
 from ..forecast_v4.terms import MOVED_AFTER_CUTOFF_X
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
-from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
 from ..storage.data_store import new_run_id
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.owned_paths_commit import OwnedPathsCommitter
@@ -36,7 +33,7 @@ from ..storage.wiring import (
     build_session_calendar,
 )
 from .claims import CLAIM_LABEL, CLAIM_MESSAGE, GitMarkClaims, MarkClaims, NoClaims
-from .clock import ClockCheck
+from .clock_wiring import build_clock_check
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
 from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
@@ -58,13 +55,6 @@ DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive proj
 COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
 DRY_RUN_ALERTS = "dry run"
 OWNED_PATHS = (LEDGER_ROOT, RV_ROOT, FILE_NAME)  # the ledger, the session RV and the heartbeat; nothing else (A16e)
-
-
-def build_clock_check() -> ClockCheck:
-    """A16's checked clock (GitHub and Slack), also used by A4e's named 3 pm captures: one rule, no copy."""
-    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
-                                                             or DEFAULT_REPOSITORY))  # fmt: skip
-    return ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
 
 
 def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> IntradayRecorder:

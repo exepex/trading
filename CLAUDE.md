@@ -172,7 +172,7 @@ commit with `--no-verify`.
   `fno/storage/data_wiring.py` (story O9: every data file write-once in Drive's `data` area, its SHA-256 receipt
   under `receipts/`, the verified Drive cache; apart because `wiring.py` is at the size limit),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
-  A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
+  A16b), `fno/intraday/clock_wiring.py` (A16's checked clock, shared by A16 and A4e), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
   paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),

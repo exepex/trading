@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ..intraday.wiring import build_clock_check
+from ..intraday.clock_wiring import build_clock_check
 from ..models import now_ist
 from ..providers import AUTO_PROVIDER, get_provider
 from ..providers.public import PublicData

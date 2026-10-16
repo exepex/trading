@@ -21,7 +21,7 @@ unchanged). Not run live: nothing schedules it until O1 and the owner decide (Kn
 | `fno/quotes/recorder.py` | takes `window` (default: A4's constants, `DEFAULT_WINDOW`) and an optional `log`; `begin` before the first request, `finish` into the sidecar (348 lines) |
 | `fno/quotes/cli.py` | `--window NAME` (refused with `--source nse`; a bad name or entry stops with "nothing asked", exit 1) |
 | `fno/storage/quote_wiring.py` | `build_drive_only_quote_store(..., dataset=)`: the Groww dataset whose quote files go to Drive (default unchanged) |
-| `fno/intraday/wiring.py` | A16's clock check moved, unchanged, into `build_clock_check()`, used by A16 and A4e (one rule, no copy) |
+| `fno/intraday/clock_wiring.py` (new, small composition root) | A16's clock check moved there unchanged as `build_clock_check()`, used by A16's `wiring.py` and A4e (one rule, no copy; apart so the 3 pm recorder does not import A16's Groww intraday graph, G10's builder's point); `CLAUDE.md`'s list, A16's composition-root test and A16c's one-clock test name it |
 | `config.yaml` | `quotes.windows.v4: {start: "14:30", end: "14:40", max_early_wait_minutes: 30}` |
 | `fno/desk/commit_guard.py` | the desk's raw-quote guard covers every Groww quote dataset (`<quotes>/groww/**/*.csv`, as `.gitignore` and the record scan already do), so a v4 quote file is refused too (E2b's file: one line, its owner told) |
 | `CLAUDE.md` | the new composition root in the Code list |
@@ -92,7 +92,7 @@ fake Drive: ['groww/derivatives/quote-snapshots-v4/2026/10/nifty_20261013_143002
 
 ## Gates
 
-On the final code: `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto`: 7,712 passed, 0 failed (an earlier run
+On the final code: `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto`: 7,714 passed, 0 failed (an earlier run
 on ac55bc60 had one setup error in `tests/factory/test_freeze_and_verdict.py` under parallel runs only; it passes
 alone, with and without this change, and did not recur). `ruff check fno tests tools`: clean; `ruff format --check`: 1,391
 files formatted; `python tools/check_imports.py`: clean (1,481 files); `python tools/check_records.py`: clean;
