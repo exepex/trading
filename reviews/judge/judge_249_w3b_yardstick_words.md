@@ -17,3 +17,9 @@ from main e425aea. Lane 1 (screen words). Judge D, 16 Oct 2026.
   The owner would read the options-implied baseline on Q1 and Q2 as "plain history". **Fix:** say "Baseline" alone, or
   name each baseline by what it is (for example "Baseline: option prices", "Baseline: past base rate", "Baseline:
   simple model"), and test one of each. The comment on `view.ts:61` says the same and needs the same fix.
+
+## Addendum 1: head d1a645f (the should-fix fixed)
+
+**PASS.** Every baseline is now "Baseline" beside its own name from the payload ("Option prices, premium removed",
+"How often it happened", "Recent movement"), and the `view.ts` comment says the same. The test covers all three plus
+"no 'plain history' anywhere in the rows". `npm test` 531/531.
