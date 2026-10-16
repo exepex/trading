@@ -22,7 +22,12 @@ Builder: session_01AN94h4cY98oYa3CF2MZfak · Branch: `story/f4-ai-judge` · Judg
   committed with the outcome record. Answer: pending.
 - **F5 (session_01SFDjjZx7JYziM3jqJytG2z):** top-level `evidence` key in Book 2's decision, `check_decision` calls
   `fno.judge.evidence.evidence_problems`, three prompt lines, D3 `judge` field. Answer: pending.
-- **F6/F7 (session_01KTAQCDjPkDBKwfCMhWphXb):** the same for Book 3; verdicts never block. Answer: pending.
+- **F6/F7 (session_01KTAQCDjPkDBKwfCMhWphXb):** the same for Book 3; verdicts never block. Answer (16 Oct): agreed;
+  shadow entries, trades and proposals each carry `reason`, `spec` is not a reason; D3 `judge` set from
+  `AcceptedDecision.judge` through the run context. Condition accepted: F6 adds `evidence` in one follow-up after
+  `fno/judge/evidence.py` is on main (F6's judge re-checks it as an addendum); Book 3 cannot go live before. Push-back
+  (a reason may cite a private pointer without writing its number): already so, the check runs one way; now stated
+  in design 2.
 
 ## Owner questions (via the orchestrator)
 

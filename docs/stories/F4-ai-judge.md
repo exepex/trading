@@ -82,6 +82,8 @@ value or raises `Unresolved`.
   depth of the decision, is a token of a cited value or of a JSON number in the decision itself (a slot's width or
   lots); no number is written in words (`numbers.py` rule 4). What to redo: "quote each number exactly as the pack
   writes it, and cite where it comes from". Reasons name the pointer and the token, never a private pack value.
+  The rule runs one way only: a cited pointer never obliges the text to write its number, so a reason may rest on a
+  private value (cited) without quoting it, as F1t's `seal` requires for account figures (F6, 16 Oct).
 
 **3. The verdict (`fno/judge/verdict.py`).** `status`: `pass` (both checks passed), `fail` (a check failed),
 `unavailable` (the judge did not decide: an exception, its model equal to the author's, or over its 5 s budget; an
