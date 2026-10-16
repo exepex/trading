@@ -36,7 +36,9 @@ class QuoteWindow:
 
 def named_window(cfg: dict, name: str) -> QuoteWindow:
     """The named window from the app's settings; refused (ConfigError) before any request when it is missing or bad."""
-    entry = cfg.get("quotes", {}).get(WINDOWS_KEY, {}).get(name)
+    quotes = cfg.get("quotes")
+    windows = quotes.get(WINDOWS_KEY) if isinstance(quotes, dict) else None
+    entry = windows.get(name) if isinstance(windows, dict) else None
     if entry is None:
         raise ConfigError(UNKNOWN.format(name=name))
     if not isinstance(entry, dict) or set(entry) != set(KEYS):

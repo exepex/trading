@@ -73,7 +73,7 @@ def named_recorder(folder, start, provider=None, offsets=((0.4,), (0.6,)), level
     drive = FakeDrive()
     store = DriveOnlyQuoteStore(LocalFolderStore(folder), lambda: drive, V4_DATASET, SETTINGS)
     servers = [ScriptedServer(f"server{i}", o, clock.now) for i, o in enumerate(offsets)]
-    log = CaptureLog(ClockCheck(servers, clock.now), clock.now)
+    log = CaptureLog(ClockCheck(servers, clock.now), clock.now, V4.end)
     recorder = QuoteSnapshotRecorder(
         TimedProvider(provider or FakeProvider(), log), store, clock.now, clock.sleep, calendar=CALENDAR,
         levels=TimedLevels(Levels(clock, level_delay), log), dataset=V4_DATASET,

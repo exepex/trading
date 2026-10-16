@@ -24,7 +24,7 @@ def build_window_quote_recorder(cfg: dict, name: str) -> QuoteSnapshotRecorder:
     """The same sources as A4's `build_quote_recorder`; raises ConfigError for an unknown or bad window before any
     of them is built or asked."""
     window = named_window(cfg, name)
-    log = CaptureLog(build_clock_check(), now_ist)
+    log = CaptureLog(build_clock_check(), now_ist, window.end)
     provider = TimedProvider(get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg), log)
     expiries, dataset = NseDailyFileExpiries(build_nse_fo_library()), window.dataset(DATASET)
     store = build_drive_only_quote_store(QUOTES_FOLDER, dataset=dataset)  # the window's quote files to Drive only (A4b)

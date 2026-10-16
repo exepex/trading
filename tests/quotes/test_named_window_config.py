@@ -31,6 +31,8 @@ def test_the_repository_config_holds_v4_at_1430_to_1440_with_a_30_minute_wait():
     "cfg, words",
     [
         ({}, "no window named 'v4'"),
+        ({"quotes": None}, "no window named 'v4'"),
+        ({"quotes": {"windows": ["v4"]}}, "no window named 'v4'"),
         (_cfg({"start": "14:30", "end": "14:40"}), "needs exactly the keys"),
         (_cfg(GOOD | {"extra": 1}), "needs exactly the keys"),
         (_cfg(GOOD | {"start": "2:30pm"}), "is not a time"),

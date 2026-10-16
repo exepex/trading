@@ -1,14 +1,14 @@
 # Response 278: story A4e, a named 3 pm quote window for protocol v4's pack (builder's claims)
 
 Branch `story/a4e-named-quote-window` (lane 1). Story text: `docs/stories/A-data-foundation.md`, section A4e, passed by
-judge 278 addendum 1 at c350d375 (08c6f465 adds only judge 278's own note to criterion 4b; confirmation asked).
+judge 278 addendum 2 at 08c6f465 (merged to main, ac35f980).
 Interface agreed with G10's builder (01VK88LxJvV1Gi7Wbr3D4fzp), 16 Oct. Builder session 01MKtUHByHsR9cNwaP5KhFYH.
 
 ## Verdict in two lines
 
 `python -m fno quotes record --window v4` records NIFTY in 14:30-14:40 IST into its own dataset
 (`quote-snapshots-v4`), quotes in Drive only, every pack field with its own times and A16's clock check in the sidecar;
-plain `quotes record` is unchanged. **Strong evidence** (tests, 14 of 14 planted bugs caught, v2 golden cases
+plain `quotes record` is unchanged. **Strong evidence** (tests, 19 of 19 planted bugs caught, v2 golden cases
 unchanged). Not run live: nothing schedules it until O1 and the owner decide (Known limits).
 
 ## What changed
@@ -16,13 +16,14 @@ unchanged). Not run live: nothing schedules it until O1 and the owner decide (Kn
 | File | Change |
 |---|---|
 | `fno/quotes/window.py` (new) | `QuoteWindow` and `named_window(cfg, name)`: `quotes.windows.<name>` read and refused (ConfigError naming the key) before anything is built |
-| `fno/quotes/capture_log.py` (new) | `CaptureLog` (two clock readings, chains, levels), `TimedProvider` and `TimedLevels` (decorators: the real provider and level source, unchanged, timed) |
+| `fno/quotes/capture_log.py` (new) | `CaptureLog` (two clock readings in order, chains, levels; `request_allowed` refuses any market request after the window's end), `TimedProvider` and `TimedLevels` (decorators: the real provider and level source, unchanged, timed and stopped at the end) |
 | `fno/quotes/window_wiring.py` (new composition root) | the v4 recorder: same sources as A4's, own dataset, Drive-only store for that dataset, `stop_requests_at` = window end, timed provider and levels, A16's clock check |
 | `fno/quotes/recorder.py` | takes `window` (default: A4's constants, `DEFAULT_WINDOW`) and an optional `log`; `begin` before the first request, `finish` into the sidecar (348 lines) |
 | `fno/quotes/cli.py` | `--window NAME` (refused with `--source nse`; a bad name or entry stops with "nothing asked", exit 1) |
 | `fno/storage/quote_wiring.py` | `build_drive_only_quote_store(..., dataset=)`: the Groww dataset whose quote files go to Drive (default unchanged) |
 | `fno/intraday/wiring.py` | A16's clock check moved, unchanged, into `build_clock_check()`, used by A16 and A4e (one rule, no copy) |
 | `config.yaml` | `quotes.windows.v4: {start: "14:30", end: "14:40", max_early_wait_minutes: 30}` |
+| `fno/desk/commit_guard.py` | the desk's raw-quote guard covers every Groww quote dataset (`<quotes>/groww/**/*.csv`, as `.gitignore` and the record scan already do), so a v4 quote file is refused too (E2b's file: one line, its owner told) |
 | `CLAUDE.md` | the new composition root in the Code list |
 | tests | `tests/quotes/test_named_window.py`, `test_named_window_config.py`, `window_fakes.py` |
 
@@ -33,16 +34,16 @@ its own dataset; a planted bug that drops this is caught.
 
 ## Criteria, tests and broken-code proof
 
-Each mutation planted in place, the two new test files run, the file restored (14 of 14 caught).
+Each mutation planted in place, the new test files and the desk guard's tests run, the file restored (19 of 19 caught).
 
 | # | Criterion | Tests | Mutation → result |
 |---|---|---|---|
 | 1 | Default unchanged | every existing quotes test, A4's byte-for-byte baseline, the default sidecar has no A4e key, `tools/forecast_live_golden.py` "unchanged" | (default constants untouched) |
-| 2 | Window | 14:05 run waits, nothing asked before 14:30 (chains, levels, quotes); 13:59 "too early", provider never asked; retry; no request after 14:40:00, a 6 s answer to a 14:39:5x request kept at its real later time; retries never start after 14:40, day ends "none" | start ignored, end ignored, 20-minute wait, no stop → all CAUGHT |
-| 3 | Own dataset | sidecar and marker under `quote-snapshots-v4`, quote file in fake Drive only, A4's report sees nothing; the composition root's store prefix | shared dataset, store not routed to Drive → CAUGHT |
-| 4 | Clock | both ok; skew before; skew after; no server answering (unchecked, no skew); a check that raises (one reading, never clock_ok) | status = last reading, missing reading ignored, log never begun, log not written → all CAUGHT |
+| 2 | Window | 14:05 run waits, nothing asked before 14:30 (chains, levels, quotes); 13:59 "too early", provider never asked; retry; a request at 14:40:00 allowed, at 14:40:01 refused; no quote, chain, levels or expiry-list request after 14:40 (a slow expiry list, a clock check running past 14:40); a 6 s answer to a 14:39:5x request kept at its real later time; retries never start after 14:40, day ends "none" | start ignored, end ignored, 20-minute wait, no quote stop, no stop before expiries, chain or levels, stop off by one → all CAUGHT |
+| 3 | Own dataset | sidecar and marker under `quote-snapshots-v4`, quote file in fake Drive only, A4's report sees nothing; the composition root's store prefix; the desk's guard refuses a v4 quote file | shared dataset, store not routed to Drive, desk guard on the default dataset only → CAUGHT |
+| 4 | Clock | both ok; skew before; skew after; no server answering (unchecked, no skew); a check that raises, before or after, keeps its place as `clock_unchecked` (never clock_ok) | status = last reading, failed reading dropped, log never begun, log not written → all CAUGHT |
 | 4b | Own times | chains per expiry with spot and both times; levels requested after the last chain answer and received before the first quote request; a level answered after 14:40 keeps that time; NSE futures carry no bid or ask | chain time not logged, level receive = request → CAUGHT |
-| 5 | Refusals | unknown name, missing or extra key, bad time, unquoted YAML 14:30 (the number 870), start not before end, negative or boolean wait; the command stops before building anything, also with `--source nse` | start<end check removed, nse allowed → CAUGHT |
+| 5 | Refusals | unknown name, `quotes` empty or `windows` not a mapping, missing or extra key, bad time, unquoted YAML 14:30 (the number 870), start not before end, negative or boolean wait; the command stops before building anything, also with `--source nse` | start<end check removed, nse allowed → CAUGHT |
 | 6 | Gates | below | |
 
 ## Output sample (fake quotes, fake Drive, fake clock; nothing sent)
@@ -91,12 +92,33 @@ fake Drive: ['groww/derivatives/quote-snapshots-v4/2026/10/nifty_20261013_143002
 
 ## Gates
 
-On ac55bc60: `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto`: 7,704 passed, 1 error in
-`tests/factory/test_freeze_and_verdict.py` (a setup error under parallel runs only: the file passes alone, 13 of 13,
-with and without this change; not touched by A4e). `ruff check fno tests tools`: clean; `ruff format --check`: 1,391
+On the final code: `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto`: 7,712 passed, 0 failed (an earlier run
+on ac55bc60 had one setup error in `tests/factory/test_freeze_and_verdict.py` under parallel runs only; it passes
+alone, with and without this change, and did not recur). `ruff check fno tests tools`: clean; `ruff format --check`: 1,391
 files formatted; `python tools/check_imports.py`: clean (1,481 files); `python tools/check_records.py`: clean;
 `python tools/forecast_live_golden.py`: "live golden cases unchanged: case_a, case_b". No file over 350 lines
 (`recorder.py` 348).
+
+## Self-review
+
+One independent review agent (correctness and silent failures) read the diff at ac55bc60:
+- **Accepted, fixed (blocking):** the window's end stopped only the quote-book requests. An attempt started just before
+  14:40 could still ask for the expiry list, the chains and the levels after it (the clock check alone can take up to
+  2 x 15 s). Now every market request goes through `CaptureLog.request_allowed`; after the end, expiries and chain
+  raise WindowEnded (recorded, incomplete) and levels record the failure (never raised). Tests: a slow expiry list; a
+  clock check running past 14:40; the 14:40:00 / 14:40:01 boundary. Broken-code proof: each guard removed fails.
+- **Accepted, fixed:** a failed clock reading was dropped, so `clock_checks` lost its before/after order. It now keeps
+  its place as `clock_unchecked`.
+- **Accepted, fixed:** the desk's raw-quote guard (E2b) covered only the default dataset; it now covers
+  `<quotes>/groww/`, like `.gitignore` and the record scan.
+- **Accepted, fixed:** `quotes` empty or `windows` not a mapping raised a traceback; now a ConfigError naming the key.
+- **Notes, no change:** the story's "run stopped before its last request" case cannot write a sidecar (no `finish`), so
+  it is tested as a failing check instead; `--outside-window --window v4` after 14:40 asks nothing (by design);
+  alerts do not name the window (the snapshot time does); with `quotes.provider: auto` and no Groww keys, NSE quotes
+  land in the Groww folder, as for the default run today; if a 14:30 run's files are left uncommitted, the 14:55
+  part's NIFTY commit glob sweeps them in once (for O1 when it schedules the run).
+- Checked by the agent, no finding: the default run (constants, no log, same sidecar keys); no reader of the default
+  dataset sees the v4 folder (`report.py`, `compare.py`, the desk, the v2 capture, health, learning, G4's replay).
 
 ## Known limits (from the story; nothing built for them)
 
