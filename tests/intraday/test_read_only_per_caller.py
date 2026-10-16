@@ -27,8 +27,38 @@ def test_a_caller_s_list_lets_only_its_names_through():
 
 @pytest.mark.parametrize("order_call", ORDER_CALLS)
 def test_no_list_may_hold_an_order_call(order_call):
-    with pytest.raises(ReadOnlyViolation, match=f"may not hold an order call: {order_call}"):
+    with pytest.raises(ReadOnlyViolation, match=f"only public reads and constants, not: {order_call}"):
         ReadOnlyGroww(Sdk, MARGIN_ONLY | {order_call})
+
+
+@pytest.mark.parametrize(
+    "name", ["session", "_request", "get_access_token", "generate_socket_token", "Place_order", "exit_position",
+             "get_session_info", "__class__", "get_Quote"],
+)  # fmt: skip
+def test_judge_356_s_names_are_refused_by_the_positive_rule(name):
+    """Only `get_<lower_snake>` reads and UPPER_CASE constants pass; private, token, session and other names do not."""
+    with pytest.raises(ReadOnlyViolation, match=f"only public reads and constants, not: {name}"):
+        ReadOnlyGroww(Sdk, MARGIN_ONLY | {name})
+
+
+def test_every_name_of_the_real_sdk_class_is_sorted_by_the_rule():
+    """dir() of growwapi.GrowwAPI, private names included (A16's 1.5.0 list when the SDK is absent): each name either
+    passes as a read or constant or is refused, and no order, private or token name passes."""
+    try:
+        from growwapi import GrowwAPI
+
+        names = set(dir(GrowwAPI))
+    except ImportError:
+        names = set(sdk_names()) | {"_request_post", "_build_headers", "__init__"}
+    passed = set()
+    for name in names:
+        try:
+            ReadOnlyGroww(Sdk, frozenset({name}))
+            passed.add(name)
+        except ReadOnlyViolation:
+            pass
+    assert passed and all(n.startswith("get_") or n.isupper() for n in passed)
+    assert not passed & set(ORDER_CALLS) and not any(n.startswith("_") or "token" in n for n in passed)
 
 
 def test_the_recorder_keeps_its_list_by_default():
@@ -38,14 +68,12 @@ def test_the_recorder_keeps_its_list_by_default():
         getattr(client, "get_order_margin_details")  # noqa: B009 - the access itself is what is tested
 
 
-def test_the_prefix_rule_catches_exactly_the_sdk_s_order_calls():
-    """The SDK's public names (the installed one, else A16's 1.5.0 list): the six order calls are refused in a list;
-    every other name is accepted. A later SDK name with one of these verbs fails here first and is reviewed; an order
-    call named without them would not, so a new SDK version is read before it is installed."""
+def test_no_sdk_order_call_ever_passes():
+    """The SDK's public names (the installed one, else A16's 1.5.0 list): every order call is refused."""
     refused = set()
     for name in sdk_names():
         try:
             ReadOnlyGroww(Sdk, frozenset({name}))
         except ReadOnlyViolation:
             refused.add(name)
-    assert refused == set(ORDER_CALLS)
+    assert set(ORDER_CALLS) <= refused

@@ -21,6 +21,10 @@ ALLOWED = READ_CALLS | CONSTANTS
 # SDK 1.5, 16 Oct 2026: six names, none of them a read). No caller's list may hold one, so an allow-list can never be
 # widened into a trading client by mistake; matched by prefix, so the trading names themselves never appear here.
 TRADING_VERBS = re.compile(r"^(place|modify|cancel|create)_")
+# The positive rule every caller's list must meet first (judge 356): only public reads named get_<lower_snake> and
+# UPPER_CASE constants; never a private name, and never a sign-in, token or session call, whatever its prefix.
+PUBLIC_READ, CONSTANT = re.compile(r"get_[a-z0-9_]+"), re.compile(r"[A-Z][A-Z0-9_]*")
+CREDENTIAL_WORDS = re.compile(r"token|session|secret|password|login|auth")
 
 
 class ReadOnlyViolation(AttributeError):
@@ -31,7 +35,14 @@ class ReadOnlyGroww:
     __slots__ = ("__client", "__allowed")
 
     def __init__(self, client: Callable[[], object], allowed: frozenset[str] = ALLOWED):
-        trading = sorted(name for name in allowed if TRADING_VERBS.match(name))
+        refused = sorted(name for name in allowed if not _allowed_name(name))
+        if refused:
+            raise ReadOnlyViolation(
+                f"an allow-list may hold only public reads and constants, not: {', '.join(refused)}"
+            )
+        trading = sorted(
+            name for name in allowed if TRADING_VERBS.match(name)
+        )  # the second line, should the first ever change
         if trading:
             raise ReadOnlyViolation(f"an allow-list may not hold an order call: {', '.join(trading)}")
         object.__setattr__(self, "_ReadOnlyGroww__client", client)  # called on each use: Groww's token renews daily
@@ -44,3 +55,8 @@ class ReadOnlyGroww:
 
     def __setattr__(self, name: str, value) -> None:
         raise ReadOnlyViolation("the read-only client cannot be changed")
+
+
+def _allowed_name(name: str) -> bool:
+    readable = PUBLIC_READ.fullmatch(name) or CONSTANT.fullmatch(name)
+    return bool(readable) and not CREDENTIAL_WORDS.search(name.lower())
