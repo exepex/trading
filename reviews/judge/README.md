@@ -1,7 +1,9 @@
 # Independent judge verdicts
 
 Written only by the independent judge session (`docs/JUDGE.md`). One file per verdict:
-`judge_<n>_<story>.md`, newest last.
+`judge_<n>_<story>.md`, newest last. Claim `<n>` (and every `## Addendum <k>`) on `main` first (story O12):
+`python tools/claim_number.py judge-report <story> --session <id>` and
+`python tools/claim_number.py judge-addendum <label> --session <id> --report <n>`.
 
 
 | # | Story | Verdict | File |
@@ -679,3 +681,6 @@ Written only by the independent judge session (`docs/JUDGE.md`). One file per ve
 | 309 | E2e BookSheet port (2d5dbf65) | FAIL, 1 should-fix: canonical_snapshot verifies the pack's snapshot file, then returns whatever the canonical marker names (planted later capture returned, bid 9,999.99); 7,813 passed on the merged tree, 4 own mutations caught; minor: no story text | `judge_309_e2e_book_sheet.md` |
 | 307 | Addendum 4: F5 text at 0bb574de | PASS: F4 evidence key and prompt lines, judge field, judge-blocked run (default kept as a shadow); depends on F1t's AcceptedDecision fields (308) and judge 309's snapshot fix | `judge_307_f5_story_text.md` |
 | 291 | Addendum 2: A14c part 2 text 1db15bdd + allow-list code c706a9ea | PASS: hard stop at 14:50 whatever the start, 15 baskets about 35 s; exposure recomputed on an independent NIFTY get_quote level; positive allow-list rule first (76 SDK names pass, all reads or constants; 3 plants caught); 7824 passed. Note: judge F (356) judged the same text | `judge_291_a14c_part2_broker_check.md` |
+| 282 | G10 part 2 (b1): release record, commitment times, v4 fire workflow (74a604d2) | FAIL (one should-fix): v4-fire.yml runs ai fire but never commits the fire log, which collect, reveals-ready, capture coverage and F8c's alerts all read. Release record, verified reads, the 15:10 deadline and the trigger are right; receipts/data/ path correction accepted; 2 plants caught; 7,801 passed. Merge after G11's v4 fire | [judge_282](judge_282_g10_part2b1_release.md) |
+| 358 | A20a fo-masters code (21e3b69c) | PASS: ban list by its own trade date (stale and two-ahead refused, muhurat stepped over), lots on trading days, one alert naming every failure, failure()-guarded workflow alert; 7445 passed, trial merge 7897; 6 of 6 plants caught; readers on live NSE files. Merge: add fo-masters to capture-watch; keep the CLAUDE.md wiring line | [judge_358](judge_358_a20a_fo_masters.md) |
+| 293 | O1 fix: 3 pm parts' earliest start (7b08108c) | PASS, lane 1, merge before Mon 19 Oct: NIFTY/NSE not before 14:38 (A4's 20-min early limit + 3 min, from A4's constants), started from every wait incl. commands, no git in start_due; stopped and closed days still start them; 7809 passed; 4 plants caught | [judge_293](judge_293_o1_part_start.md) |
