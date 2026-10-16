@@ -358,3 +358,8 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
 - **Faults planted:**
   - no `start_due` in `waiting`: the wiring test fails;
   - no `not_before`: 2 tests fail.
+- **Round 2 of the fix (found by O2's kill-and-rerun day):** a rerun whose log already holds `quotes` never opens
+  the day (judge 178 note 4), so `start_due` received `None` for the day and raised on the rerun's first wait
+  (`datetime.combine(None, ...)`). Every rerun after 14:33 would have crashed. Now `start_due` returns when the day
+  is not open. Test: `test_a_rerun_that_never_opens_the_day_starts_nothing_and_never_fails_on_a_wait`; with the
+  guard removed, it fails.
