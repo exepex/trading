@@ -81,8 +81,9 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     )  # fmt: skip
 
 
-def _observers() -> tuple[MarkObserver, ...]:
-    """Every mark observer, in order: LM1's position monitor, then A21's announcements poll, when they are built."""
+def _observers() -> tuple[tuple[MarkObserver, float], ...]:
+    """Every mark observer with its time limit, in order: LM1's position monitor, then A21's announcements poll, when
+    they are built (each owner names its limit here)."""
     return ()
 
 
