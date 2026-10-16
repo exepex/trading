@@ -291,3 +291,20 @@ environment) meets my earlier merge condition.
   not re-run these here; my own gates ran on 1e159ef (addendum 4) and the merge adds nothing to it.
 - **Rule 8 (open).** The 16 Oct 3 pm run must commit only the `.meta.json` sidecar and the `.canonical` marker, no raw
   `.csv`, and the Drive copy's SHA-256 must equal the sidecar's `csv_sha256`. I check that run.
+
+## Addendum 6: rule 8, the live 3 pm run of 16 Oct 2026 (Drive only for Groww's raw rows)
+
+**PASS.** I checked commit 2ec7c6e6, "3 pm quotes 2026-10-16 (Groww + NSE)", pushed 15:05 IST by the scheduled
+routine. The Drive check was read-only, and no quote value was printed or stored.
+- **Repository:** under `research/data/quotes/groww/` the commit adds only `nifty_20261016_145500.meta.json` and
+  `nifty_20261016.canonical`. `git ls-files` finds no Groww `.csv`, and `.gitignore:26`
+  (`research/data/quotes/groww/**/*.csv`) covers the path. The NSE part commits its own public chain CSV, as
+  designed.
+- **Drive equals the sidecar:** the Groww file `groww/derivatives/quote-snapshots/2026/10/nifty_20261016_145500.csv`,
+  read through the raw area, hashes to the sidecar's `csv_sha256` (9f6f60f4…) and holds 188 rows (sidecar: 188
+  expected, 188 recorded, `failures` empty, `complete` true, `in_window` true, 14:55:00-14:57:53 IST).
+- **NSE:** `complete` true, 188 of 188, 14:55:00-14:55:24 IST, and its CSV hashes to its sidecar's `csv_sha256`.
+  Its canonical is `nifty_20261016_145500`, as is Groww's.
+- **The parts together:** both started at 14:55:00, and their spots agree within 1.5 points (Groww 23,102.3, NSE
+  23,103.8). Both canonical markers name the same attempt.
+- **A4c may merge** (its merge condition, judge 160 and addendum).
