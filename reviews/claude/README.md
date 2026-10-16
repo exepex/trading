@@ -223,3 +223,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 235: A14c, which quantity sets the stress factor k: three measures on every window (coded, flat 2%, flat 3%), the BF 200 2020 reserve, a question for the owner](response_235_a14c-factor-measures.md)
 - [Response 216: story LR3, drift detection with a CUSUM: evidence that design 5.8's forecaster rule fails on the real back-fill and that a fixed strategy threshold is wrong under skew; per-version calibration; four owner questions](response_216_lr3-drift-cusum.md)
 - [Response 223: review request to ChatGPT for LR3 (drift detection with a CUSUM) after judge 214 add. 1 PASS, quality rule 9](response_223_lr3-chatgpt-request.md)
+- [Response 238: A14c code claims for judge D (needed-factor measure, read-ahead, self-review fixes; criterion 10's broker check is deferred by the orchestrator)](response_238_a14c-code.md)
