@@ -65,12 +65,10 @@ Terms, "Actions", say Actions should not be used for activity that places a disp
 GitHub-hosted runners, for "any other activity unrelated to the production, testing, deployment, or publication of
 the software project"; sanctions include disabling the repository, which would stop every capture job, not only
 news. A day-long poller is the clearest case in this repository (filings-archive's 355-minute runs every 6 h lean
-the same way). **Owner question (sent through the orchestrator, 16 Oct):** (A) poll on GitHub 07:00-23:00 IST only
-(recommended: a third less load; an item published overnight is first seen about 07:00, still before the 09:15 open
-and every cutoff, and its `previous_poll_at` shows the honest window); (B) 24/7 on GitHub; (C) a poller off GitHub (a
-small paid VM or the owner's machine), GitHub keeping the receipts; (D) NSE session hours only. The window is config
-(`news.active_window`), so (A), (B) and (D) are the same code; (C) is a different runner, not different code. Until
-the owner answers, the text assumes (A).
+the same way). **Owner's answer (16 Oct 2026, `docs/DESK_DECISIONS.md` row "News poller runs on GitHub only 07:00-23:00 IST"):**
+poll on GitHub 07:00-23:00 IST only (`news.active_window`), a third less load than 24/7; an item published overnight
+is first seen about 07:00, still before the 09:15 open and every cutoff, and its `previous_poll_at` shows the honest
+window. Options declined: 24/7 on GitHub, a poller off GitHub, session hours only.
 
 ## Scope
 
@@ -81,7 +79,7 @@ the owner answers, the text assumes (A).
 2. Feed list in `config.yaml` (`news.feeds`: id, publisher, kind `publisher` or `official`, url, time format, the two
    stale limits of scope 8, optional excluded URL paths), validated by `fno/config.py`; `news.publisher_feeds` (true
    or false) switches every `publisher` feed off at once, leaving the official ones; `news.active_window` (IST start
-   and end; the owner's SF1 choice). Time formats are a strategy (`PublishedTimeFormat`): RFC 822, RBI's no-zone IST
+   and end; 07:00-23:00, the owner's SF1 answer). Time formats are a strategy (`PublishedTimeFormat`): RFC 822, RBI's no-zone IST
    and SEBI's `16 Oct, 2026 +0530`; each states its precision (`second` or `day`).
 3. Parser: RSS 2.0 items to `NewsItem` (title, link, feed's own summary as plain text, published time as given and
    parsed, precision). An answer that is a web page, not XML, has no items or cannot be parsed is a failure.
@@ -260,7 +258,7 @@ the claims file.
 | Stale feed detected, by the NSE calendar | criterion 9 |
 | Schedule frequent enough in market hours, justified | scope 6-7 (5-minute polls in the window; step 0's cron evidence); criteria 7, 13 |
 | News sites' terms and robots; official or RSS; no paid source | step 0 table; criterion 14; owner's answer |
-| GitHub's Actions terms (judge 352 SF1) | step 0; owner question; `news.active_window` |
+| GitHub's Actions terms (judge 352 SF1) | step 0; owner's answer (07:00-23:00 IST); `news.active_window`; criteria 7, 13 |
 | No duplicate of A12, A20 or A21 | step 0; Out; criterion 14 |
 | Publisher feeds switchable off (owner's answer, 16 Oct) | scope 2; criterion 14 |
 | Errors in O10's one format, episode state kept there (orchestrator; judge 352 minor 2) | scope 9; criterion 8 |
@@ -280,4 +278,4 @@ and chain; checks one real part in Drive against its receipt.
 
 **Depends:** O9 step 1 (merged), A9 pacer, A7 calendar, `AlertSender`; O10 part 1's `CaptureErrorLog`, after O10
 part 1 passes its re-judge and merges (judge 352 minor 3) · **Size:** M · **Status:** story text, revised after
-judge 352 (FAIL, 5 should fix, 3 minor); SF1 waits for the owner
+judge 352 (FAIL, 5 should fix, 3 minor); SF1 answered by the owner
