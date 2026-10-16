@@ -149,3 +149,18 @@ and v2 freezes, which would need a new forecast version. Fix (wording): leave th
 
 **Verdict: FAIL for 35dfd5ec** (story text), on must-fix 1 only: one sentence in 4.1 plus the restore-to-path
 step. Everything else is ready for the owner and for market-brief's own approval.
+
+## Addendum 4 (16 Oct 2026): O9 v2 story text at 1664d638 (35dfd5ec..1664d638)
+
+The diff touches one file, `docs/stories/O9-data-to-drive.md` (+13/-7).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix 1: frozen check code | MET | 4.1 now leaves `freeze.py` and `freeze_v2.py` untouched and cites their pins (FREEZE.md line 27, FREEZE_v2.md lines 41-42). The cache sync writes each freeze-checked file back to its original path (git-ignored, same bytes, checked against its receipt), and `changed_files` compares the same hashes. Rule 5 still holds |
+| Note: 4.2 | Taken | `git show` stays and experiment 1's test is unchanged; the byte-exact upload is kept as a second copy |
+| Note: claim race | Taken | Criterion 3 names the exact test: two clones of one bare origin, add/add conflict settled by `-X theirs`, the loser takes no snapshot and waits |
+| Note: Drive token | Answered | The owner says the app is published and the refresh token was re-issued after that. The builder will verify a live Drive write before step 2. I accept that, and the step 2 judge round will ask for the evidence |
+
+**Verdict: PASS for 1664d638** (O9 v2 story text). Each build step in section 8 is its own lane-1 judge round.
+Section M also needs market-brief's own approval: both AIs and the owner. The owner's two open questions (rewriting
+history, a Slack line on good runs) stay with the owner.
