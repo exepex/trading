@@ -158,42 +158,43 @@ Daily objections are committed with the decision; research objections in the res
 
 ---
 
-## F4. AI judge (parts 2 and 3), owner overrides and the monthly audit
+## F4. AI judge (parts 2 and 3) and the monthly audit
 
 **Repository:** trading
 
 **Description:** As the owner, I want research sufficiency and interpretation checked by a model different from the
-author, my written overrides recorded and scored separately, and the judge itself audited monthly, so that the judge
-stays honest and I keep control.
+author and the judge itself audited monthly, so that the judge stays honest. I never override a paper decision
+(owner, 16 Oct 2026, DESK_DECISIONS row 229 item 4).
 
-**Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no
-trade or back to the author; only the owner can overrule a judgement (checks 2 or 3), in writing, and overridden
-trades are scored separately; no one overrules hard validity; monthly audit of a stratified sample plus seeded
-known-answer cases. Per book: Book 2's judge failure means no trade (the account keeps no position; the rule default
-is recorded as a shadow); Book 3's judge verdicts are recorded evidence, not blocks (12.3); Book 1's strategies were
-judged at approval and its daily trades are checked by C4 only.
+**Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no trade
+or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS row 229
+item 4; design v2 03 leaves the owner only S1's safety stop; C2's written restart of a stopped book's drawdown brake is
+a risk control, not a decision override; both stay, outside this story); monthly audit of a stratified sample plus
+seeded known-answer cases. Per book: Book 2's judge failure means no trade (the account keeps no position; the rule
+default is recorded as a shadow); Book 3's judge verdicts are recorded evidence, not blocks (12.3); Book 1's strategies
+were judged at approval and its daily trades are checked by C4 only.
 
-**Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the override
-record; the audit. Out: hard validity (C4).
+**Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the audit. Out:
+hard validity (C4); owner overrides (none on paper: D3 refuses a non-empty `owner_override` in every book).
 
 **Expected design:** `fno/ai/judge.py` as its own session (different model from the author); verdict JSON `check
-(sufficiency | interpretation), pass, reasons, what_to_redo, model`. Overrides: `journal/<book>/owner_overrides.csv`
-rows (`date, decision_id, check, reason, entered_by`) committed by the owner; an override can never target a C4 failure
-(code refuses). Monthly audit command `python -m fno judge audit <month>`: 20% of approvals, 20% of rejections, 20% of
-abstentions (at least 5 of each when available) plus every override, re-checked by the other model against
+(sufficiency | interpretation), pass, reasons, what_to_redo, model`. No override path: a judge verdict stands, and
+D3's record keeps `owner_override` null. (`journal/<book>/owner_overrides.csv` is C2's file for the owner's written
+brake restart, not a judge override.) Monthly audit command `python -m fno judge audit <month>`: 20% of approvals, 20%
+of rejections, 20% of abstentions (at least 5 of each when available), re-checked by the other model against
 recalculated evidence; plus 10 seeded known-answer cases. A failed audit (any false approval on a seeded case, or a
 false-approval rate above 10%) suspends the AI judge's approvals: Book 2 then takes no new AI-chosen trades until fixed.
 
 **Acceptance criteria:**
 1. A judge model equal to the author's model is refused.
 2. A Book-2 decision failing the judge opens no trade; the same failure on Book 3 is recorded and does not block.
-3. An override of a C4 failure is refused by code; an override of a check-2 or check-3 failure is recorded and the
-   trade is tagged so S2 and S3 score it separately.
+3. There is no override of a judge verdict or a C4 failure on any paper decision: a record with a non-empty
+   `owner_override` is refused (D3), and nothing in F4 writes one.
 4. The audit reports false approvals and false rejections on the seeded cases; a failed audit suspends approvals
    (test).
 5. A judge missing the deadline counts as a failed check for Book 2 (no trade) and "judge unavailable" for Book 3.
 
-**Test plan:** tests with fake verdicts, overrides and seeded cases.
+**Test plan:** tests with fake verdicts and seeded cases.
 
 **Judge verifies:** (by the other model) the monthly audit numbers.
 
