@@ -15,12 +15,14 @@ from .config import ROOT, load_app_config
 from .desk.cli import add_desk_parser
 from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
+from .factory.cli import add_factory_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
 from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
 from .global_cues.cli import add_global_cues_parser
+from .health.calendar_stop import calendar_stop, command_name
 from .health.cli import add_health_parser
 from .intraday.cli import add_intraday_parser
 from .learning.cli import add_postmortem_parser
@@ -30,6 +32,7 @@ from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
 from .role_value.cli import add_role_value_parser
@@ -229,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     add_postmortem_parser(sub)
     add_global_cues_parser(sub)
     add_health_parser(sub)
+    add_factory_parser(sub)
 
     args = p.parse_args(argv)
     try:
@@ -236,3 +240,5 @@ def main(argv: list[str] | None = None) -> int:
     except PrivateFilesUnavailable as unavailable:  # story E2c: a command that needs the paper records stops, named
         print(f"stopped: {unavailable}")
         return 1
+    except CalendarError as gap:  # story O8c: any command stopped by NSE's calendar prints one named line
+        return calendar_stop(command_name(argv), gap)

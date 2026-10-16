@@ -1,0 +1,2 @@
+session,status,rv_session,rv_intraday,rv_overnight,vol_pct,void_reason,good_slots,due_slots,basis_counts,measure,method,source,as_of,first_seen_at,inputs_sha256,moved_after_cutoff,cutoff_move_sign
+2026-10-16,void,,,,,"no usable index level at 09:15, 09:30, 09:45; no usable 15:30 level for the previous session",23,26,candle_1m_close:23,quote_snapshot,rv-quote-15m-v1,groww,2026-10-16T10:00:00+00:00,2026-10-16T10:01:09.789061+00:00,d0d876fdafc3ad84d5a488aef124bcf4a0550a648171bf059045daa52c358d0d,no,+

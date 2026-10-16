@@ -32,7 +32,7 @@ def problem_lines(run: HealthRun) -> list[str]:
     lines = [f"- {name}: {_sessions(found)}" for name, found in bad.items() if found]
     if run.missed_runs:
         lines.append(f"- health check did not run on {', '.join(_day(d) for d in run.missed_runs)}")
-    return lines
+    return lines + [f"- {warning}" for warning in run.warnings]
 
 
 def verdict(run: HealthRun) -> str:

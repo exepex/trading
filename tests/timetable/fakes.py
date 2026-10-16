@@ -31,9 +31,12 @@ from fno.desk.exits import ExitDesk
 from fno.desk.pending_commit import PendingCommitter
 from fno.desk.snapshot import RecordedExecutionSnapshots
 from fno.desk.timetable import timetable_from_config
+from fno.desk.trade_marking import MarkingStep, TradeMarker, marked_accounts
 from fno.desk.wiring import open_desk_journal
 from fno.models import IST
 from fno.quotes.recorder import RecordResult
+from fno.scoreboard.committed_runs import CommittedRuns
+from fno.scoreboard.sources import SnapshotMarks
 from fno.storage.raw_store import LocalFolderStore
 from tests.checks.builders import CALENDAR, nse_files
 from tests.desk.builders import CHARGES, fly_rows, write_snapshot
@@ -193,4 +196,13 @@ def daily_run(root, tmp_path, alerts, books, decisions, validity, rules, clock=N
                       RecorderExecutionCapture(capture, quotes, tmp_path / "quotes", root, committer), gate, validity,
                       LocalSync(root), EntryDesk(CHARGES, clock), ExitDesk(CHARGES, alerts, FakeSettlements(), clock),
                       rules, alerts, clock)  # fmt: skip
-    return DailyRun(steps, CALENDAR, committer, clock, clock), clock, capture, commits
+    marking = marking_step(root, books, quotes, alerts)
+    return DailyRun(steps, CALENDAR, committer, clock, clock, marking), clock, capture, commits
+
+
+def marking_step(root, books, quotes, alerts) -> MarkingStep:
+    """Story E2d's step as the daily wiring builds it: S2's marks from the recorded snapshots the run logs name."""
+    marker = lambda: TradeMarker(CALENDAR.sessions, SnapshotMarks(RecordedExecutionSnapshots(quotes),  # noqa: E731
+                                                                  CommittedRuns(root).snapshot_ids()))  # fmt: skip
+    journal = lambda book: open_desk_journal(book, root, TIMETABLE.lock_lease_seconds)  # noqa: E731
+    return MarkingStep(journal, marker, lambda: marked_accounts(root, books), alerts)

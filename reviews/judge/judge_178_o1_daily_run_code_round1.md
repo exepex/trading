@@ -390,3 +390,26 @@ This closes judge 214's gap: nothing ran E6's pauses before. It is a text amendm
 - **Gates on a trial merge with origin/main:** `-n auto` gives **6900 passed**; `ruff check` is clean.
 
 Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
+
+## Addendum 15: head e5ac277e (criterion 8, the routine text; final before merge)
+
+**PASS on criteria 1-8 and 10. Criterion 9 (one real trading day) is a post-merge check:** the routine runs `main`,
+so it cannot happen before the merge and the owner's new prompt. Since e57046f3 there are two commits:
+- **017f3203**, a merge of main. Its one conflict, in `fno/constants.py`, keeps main's `ENV_GITHUB_OUTPUT` and
+  `PROTOCOL_*` (344 lines).
+- **e5ac277e, criterion 8:** CLAUDE.md's "3 pm quote recorder" section becomes "Daily desk routine".
+  - The stored prompt is one sentence, and O7's setup line is unchanged.
+  - `python -m fno daily run` is listed with its three end lines and the "alert NOT sent" and conversation-log rule.
+  - A sub-section gives A4c's steps word for word. **My script comparison:** steps 2, 3, 3b and 4 equal the text on
+    `story/a4c-all-indices` 0be99326 exactly. It is led by "the routine never runs these commands itself … the `git
+    add` lines are also the hand fix".
+- **Trial merge in the real order** (main, then A4c 0be99326, then O1 e5ac277e):
+  - **CLAUDE.md conflicts** (A4c's section against O1's rewrite). Resolve with O1's version. I checked that nothing of
+    A4c's is lost: the only A4c lines missing from O1's file are old main wording that main has since reworded (O8,
+    LR1, O9).
+  - With that resolution, 7293 passed (`-n auto`, Slack token unset).
+  - `tests/quotes/test_routine_commit_paths.py` (A4c's), `tests/daily/test_routine_section.py` and
+    `tests/test_routine_setup.py` pass on the merged CLAUDE.md.
+- **Post-merge (criterion 9, as rule 8):** on the first trading day after the merge and the owner's prompt, the run
+  log `journal/runs/<date>.json`, the commit list (each part's own commit, NIFTY first) and the card go into response
+  165. I check them then.

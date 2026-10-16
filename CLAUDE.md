@@ -52,17 +52,25 @@ print "not a trading day". Research data only: never places, modifies or cancels
 1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
    checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
    Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
-2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
-   incomplete). NSE's session calendar (`research/data/calendar/nse_sessions.csv`, story A7) decides the day: a
-   holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special weekend session is recorded.
-   It prints the result line. The raw quote rows go to Google Drive only (story A4b; needs the four `FNO_GDRIVE_*`
-   settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive file's SHA-256) and the day's
-   `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
-3. Commit `research/data/quotes/` and push to `main` (`git pull --no-rebase` first). Never edit or delete a recorded
-   attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never bypass it
-   (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk itself when
-   `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector. Note them in
-   `conversations/<date>.md`.
+2. `python -m fno quotes record` (NIFTY, Groww) and `python -m fno quotes record --source nse` (NSE's public chain,
+   story O6) run in parallel from the routine's start; each waits for 14:55 IST, records NIFTY monthly quotes and
+   retries until 15:10 if a capture is incomplete. NSE's session calendar (`research/data/calendar/nse_sessions.csv`,
+   story A7) decides the day: a holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special
+   weekend session is recorded. It prints the result line. Groww's raw quote rows go to Google Drive only (story A4b;
+   needs the four `FNO_GDRIVE_*` settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive
+   file's SHA-256) and the day's `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
+3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase` first); never
+   `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed: `git add
+   ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`. Never edit
+   or delete a recorded attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never
+   bypass it (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk
+   itself when `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector.
+   Note them in `conversations/<date>.md`.
+3b. Right after NIFTY's push, run `python -m fno quotes record-indices` (story A4c: BANKNIFTY, FINNIFTY and
+   MIDCPNIFTY; 15:01-15:13 IST, paced; raw quotes to Drive only), alongside NSE if it is still running. When it is
+   done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
+   ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'`, commit and
+   push. It alerts #fno-desk itself for any index not recorded.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday
@@ -142,14 +150,17 @@ commit with `--no-verify`.
   `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
   scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
   Groww source behind a read-only allow-list, Drive store, clock check, story A16),
+  `fno/storage/data_wiring.py` (story O9: every data file write-once in Drive's `data` area, its SHA-256 receipt
+  under `receipts/`, the verified Drive cache; apart because `wiring.py` is at the size limit),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
   A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
   paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
-  repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
-  and results.
+  repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
+  Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
+  file (owner, 16 Oct 2026; story O9, built step by step).
 - F&O output goes only to Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN`; never the market-brief tool's
   `SLACK_*` variables or #market-brief.
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.

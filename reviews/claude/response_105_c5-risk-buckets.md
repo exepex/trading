@@ -407,3 +407,33 @@ show("after the owner's written restart row of 7 Oct", manager.evaluate(new(), l
 - `HeldMaxLoss` and C4's `held_max_loss` after partial exits and with unequal units.
 - That a broken Manual profile, a missing books setting, or an unused setting stops start-up in both C2 and C4.
 - That nothing in `fno/` sizes the books on Rs 5 lakh, and the committed Rs 5 lakh books are refused.
+
+## Addendum C5c: C4 names the calendar when it cannot count a margin's age (for judge B)
+
+**Origin:** response 239, item 6 (the A14c builder's audit). The orchestrator gave the go on 16 Oct 2026. The story is
+section C5c in `docs/stories/C-code-roles.md`.
+
+**What I confirmed in the code (strong evidence):**
+- `MarginSettings.fresh` returned False both for a calendar that cannot answer and for no calendar at all.
+- `margin_row` then refused with "too old".
+- C2's `SessionsOld` already lets the calendar error through, so C2 and C4 gave different reasons for the same day.
+
+**Change:**
+- `fresh` no longer swallows the calendar's error, and raises `ValueError(NO_CALENDAR)` when there is no calendar.
+- `margin_row` wraps the call and raises `MarginProblem("margin age for <day> cannot be counted: <reason>")`.
+- The reason is the calendar's own text, so it names the exact day and year to add, from either end of the covered
+  range (A14c's point: a look-back can cross into an uncovered year from either side).
+- The outcome is unchanged: the trade is refused.
+
+**Tests** (`tests/checks/test_validity_caps.py`):
+- 4 Jan 2027 names 2027.
+- 1 Jan 2026, whose look-back reaches 31 Dec 2025, names 2025.
+- No calendar gives its own reason.
+- Covered days still pass when fresh and say "too old" when old.
+- The old test `test_c4_treats_a_day_the_calendar_cannot_answer_as_a_stale_margin` pinned exactly the misleading
+  behaviour this story removes, so it is replaced, not weakened. The refusal itself is still asserted.
+
+**Deliberate breaks: 3 of 3 caught:**
+1. the calendar gap read as "too old" again;
+2. no calendar read as "too old";
+3. `margin_row` letting the raw calendar error out.

@@ -77,6 +77,7 @@ PANEL_INDEX_CLOSE_DIFFERS = "index_close_differs"
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
 NIFTY_SYMBOL, INDEX_OPTION, INDEX_FUTURE = "NIFTY", "IDO", "IDF"  # F&O symbol; UDiFF codes of index options, futures
+RECORDED_INDEX_OPTIONS = ("BANKNIFTY", "FINNIFTY", "MIDCPNIFTY")  # 3 pm, after NIFTY (owner, 15 Oct 2026; A4c)
 
 # Google Drive uploads as the owner (OAuth "Desktop app" client, one-time consent with tools/gdrive_oauth_setup.py);
 # values only in the cloud environment's settings, never in files or chat. Service accounts cannot upload (no quota).
@@ -343,6 +344,7 @@ HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", 
 HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
 HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
 HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
+ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the health check records that it posted
 
 # Stories S1 and BR1a: the protocols `python -m fno evaluation check|freeze|verify --protocol` reads
 PROTOCOL_EVALUATION, PROTOCOL_BREADTH = "evaluation", "breadth"

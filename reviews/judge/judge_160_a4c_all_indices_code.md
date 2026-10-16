@@ -59,3 +59,14 @@ The merge waits for my A4b rule 8 check of the 16 Oct 3 pm run, as the orchestra
 
 A4c's row covers `fno/quotes/` (recorder, cli) and the CLAUDE.md 3 pm section. The NSE recorder (O6) and A16 are
 untouched, and so is the O7 setup script. No duplicate.
+
+## Addendum: head 0be99326 (16 Oct, before merge)
+
+**The code PASS stands.** `git diff ef043b4 0be99326 -- fno/quotes tests/quotes` is empty. Everything else in the
+range is main merged in (`composition.py`'s E2c account sync and the CLAUDE.md gate line are main's). A trial merge
+with current main conflicts only in reviews/claude/README.md (the known artifact, both rows kept), and then 7190
+passed (`-n auto`, Slack token unset), ruff and check_imports clean.
+
+**Merge condition:** A4b's rule-8 live check of today's 3 pm run (judge 111, my check-in at 15:45 IST). The builder
+reports 188 of 188 contracts read back from Drive with equal SHA and no Groww file in the repository. I do my own
+check at 15:45 and merge A4c only on its PASS.

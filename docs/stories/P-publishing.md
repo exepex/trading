@@ -424,3 +424,102 @@ contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `
 5. Size, lint, imports, tests pass.
 
 **Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built criteria PASS (judge 61 and addendum 1; page keys today and risk); contract 2.5/2.6 blocks (India band, expiries, session hours_status) PASS (judge 66 items 1-3, addendum 2); live publish read-back at 07:10 IST 14 Oct pending
+
+## P11. Per-page hold: one page held back, every other page published
+
+**Owner decision:** 16 Oct 2026 (the orchestrator's decision row): an over-cap trade card holds back only the card
+page, and the screen says so. Judge 233 addendum 3 set its conditions. **Lane:** 1 (what every publish run publishes,
+the run status, an alert). **Builder:** the P2 page builder (013xqaNTCbSBytKgqpfaYFqZ). **Size:** S.
+
+**Description:** As the owner, I want a page that must not be shown, because a risk rule was broken, held back on its
+own, while every other page publishes. Then a broken rule never shows a wrong card, and never hides correct pages.
+
+**What exists (strong evidence, 16 Oct):**
+- Any page that cannot be built stops the whole publication (`market_run.py`: `FiguresNotComputed`, `ContractBroken`,
+  a crash), and every page stays at the previous one.
+- The store already reads the current publication's rows (`ReadModelPublisher.current()`).
+- `fno.pages_history` is keyed by (product, page_key, publication_id), so a row may keep an older `as_of`.
+- `fno.run_status` allows a free `reason` on a `published` row, but no `reason_code` (002's check). So no migration is
+  needed.
+
+**Design:**
+1. **`PageHeld(rule)`** is a new exception a block may raise from `build` when its page must not be published. `rule`
+   is a fixed sentence written by that block's story, never a value (no amount, strike or id).
+2. **`PublicationBuilder`** catches `PageHeld` per block, and nothing else.
+   - The held page's record is the current publication's record for that page key, unchanged (payload, `as_of`,
+     `built_at`, `payload_sha256`), filed under the new publication ID. The screen's freshness therefore shows its age,
+     and it is never shown as today's.
+   - With no earlier record, the page is absent.
+   - The publication carries `held: {page_key: rule}`. The publication ID covers the held copy's hash, so a second
+     run of the same day with the same hold adds nothing.
+3. **`MarketRun`:**
+   - the run is `published`;
+   - the status row's `reason` names each held page and its rule;
+   - one #fno-desk line per held page, through the existing sender: "<day>: <page> held back: <rule>".
+   - For the card, the reason reads "A risk rule was broken: the sizing or validity checks let a trade past its
+     book's per-trade cap" (the screens lead's wording, one list with the contract's examples) (judge 233 add. 3, condition 1; no digit, judge 255).
+   - **Every reason is digit-free** (contract 2.13.0, `FnoPageHolds.reason`: `^[^0-9]*$`). It is shown on screen,
+     so it holds no value, and a test checks every reason in the code against the pinned pattern.
+4. **Unchanged:** every other failure still stops the whole run, as today. A hold is only for a rule its block's story
+   names.
+5. **Every hold is said on screen, and no held page asserts what the rule says is no longer true** (judge 251; owner
+   row 236: "say so on screen").
+   - **A generic notice:** every publication carries a page `page_holds` (contract 2.13.0): `{holds: [{page_key,
+     since, reason, shows}]}`. `since` is the first session held in a row, and `shows` is previous_page or nothing.
+     It is empty on a normal day. The dashboard shows "<page> held back since <since>: <reason>" on that page (the
+     card shows only its own withheld notice). This needs a new contract schema (`FnoPageHolds`, the screens lead) and the W3
+     screens' rendering (the E4c/E4d builder). **Dependency:** both are ordered before P2b's and P2c's rebase and
+     before the first strategy approval.
+   - **Each block says how its held page is shown** (`BlockBuilder.held(previous_payload, rule)`): a payload, or None
+     for no row.
+     - **Shown (previous unchanged):** a page whose old payload stays true for its own session: the Forecast lab
+       (that session's forecasts and scores) and the paper books (that session's accounts). Its row is kept byte for
+       byte, and the notice says it is held.
+     - **Dropped (None, no row):** a page whose old payload states something the rule says is no longer true.
+       - Home's picks: held from the first approval, the old payload says "no approved strategy".
+       - Home's books (`risk`): held while a trade is open, the old payload says limit_used 0 and the value before
+         the trade.
+       The screen shows "not published" and the notice.
+   - The card's held payload is the previous session's card payload, unchanged except `withheld = {session: <the
+     day>, reason_text: "Today's card was held back: a risk rule was broken"}` (the contract's constant). Its own
+     session stays the previous session's, always before `withheld.session` (the W3 screen treats anything else as a
+     contract error). Its `payload_sha256` is recomputed. Its row keeps the previous `as_of` and `built_at`.
+   - **After a contract bump:** every held payload is validated against the current pin, like any page. A held copy
+     that no longer matches gets no row, never a whole-run stop. The notice stays, and the alert line adds "its
+     previous page no longer matches contract <version>".
+
+**Users (owner, 16 Oct, through the orchestrator: "the same principle; treat them as holds unless the judge
+objects"):**
+- the card page (P2f): its over-cap rule;
+- the Forecast lab (P2b): an answer day past NSE's calendar (until contract 2.13.0 lets `answer_on` be null);
+- the paper books page (P2c): an open trade with no per-trade marks, a trade or shadow it cannot label;
+- Home's two existing whole-run stops, built in this story (orchestrator, 16 Oct):
+  - an open trade in a book (`home_blocks.py:32`, `OPEN_TRADE_RISK`) holds the `risk` page;
+  - an approved strategy's picks (`home_blocks.py:47`, `APPROVED_PICKS`, met on the day of the first approval)
+    hold the picks page.
+P2b and P2c rebase on this story; their hold rules are in their own stories and tested there.
+
+**Acceptance criteria:**
+1. A test plants a held page. Only that page is held. Every other page publishes. Its row is the previous
+   publication's, byte for byte (`payload_sha256`, `as_of`, `built_at`), and the read-back passes. For the card
+   (P2f's test), the held payload is the previous card with `withheld` set and its own session never re-dated.
+2. Exactly one alert line, naming the risk-rule breach, with no value (a planted amount and trade id are not in it).
+3. The run status row is `published`, and its `reason` names the page and the rule.
+4. With no earlier card, the card is absent and every other page publishes.
+5. Two runs of the same day with the same hold give the same publication ID and add no rows.
+6. `FiguresNotComputed`, `ContractBroken` and a crash still stop the whole run (the existing tests stand).
+7. Local and Azure publishers behave the same (the local folder publisher in tests; Azure through the same records).
+8. **Before the first strategy approval, P11 is merged** (orchestrator, 16 Oct). A planted approval holds only the
+   picks page, and a planted open trade holds only the `risk` page. Every other page publishes in both cases.
+9. **Per user, the held screen says it is held, and no held payload asserts a state the rule says is no longer true.**
+   - `page_holds` names the page, its first held session and the rule.
+   - Home's picks and books publish no row while held.
+   - A shown page is its previous row byte for byte.
+   - The card carries `withheld` and is never re-dated.
+10. A held copy that fails the current pin gets no row, the run still publishes every other page, and its alert line
+    says why.
+
+**Depends:** P6-P10 (the publish path), P7 (run status), the alert sender, and **`FnoPageHolds` pinned before this
+code merges** (judge 251 add. 1, note 1): P11 publishes `page_holds` on every run, so an unpinned schema would stop it
+(`ContractBroken`). **Status:** text PASS (judge 251 addendum 1); code built (response 244 addendum 4), `page_holds`
+wired once its schema is pinned.
