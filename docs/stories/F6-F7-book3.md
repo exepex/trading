@@ -258,6 +258,26 @@ days; empty cases (no cards, no strategies, no candidates).
 0134MoC6, who edit `fno/desk/packs.py` and `private_pack.py`; F6 supplies only Book 3's sheet), `story/d3-no-owner-override` (Book 3's day record; the `owner_override` refusal, before the first paper decision), E2, D2,
 D3, D6, C2, C4 · **Size:** M · **Status:** story text for the judge
 
+### F6 addendum 1: F4's evidence pointers (agreed with F4's builder 01AN94h4, 16 Oct 2026; F4 text `story/f4-ai-judge` 90066e7d)
+
+F4's daily judge is code. For Book 3 its verdict is **evidence only, never a block** (design 12.3): `decide()` runs
+whatever the verdict says. **Sequencing:** this addendum's code follows in one change after
+`fno/judge/evidence.py` is on `main` (F6's code at e1c715e1 is built without it). Book 3 cannot go live before then:
+F1t's live switch is null and slice E's trigger has not happened.
+- **Shape:** Book 3's exact keys gain a top-level `evidence`, a list of 0 to 20 `{"pack": "common" | "private",
+  "pointer": "<RFC 6901 JSON pointer>"}` with no values. `check_decision` adds
+  `fno.judge.evidence.evidence_problems(decision.get("evidence")) -> list[str]` (standard library only; an empty list
+  is acceptable; a missing key is passed as None and refused as "evidence must be a list").
+- **Prompt lines:** cite a pointer for every number written in any reason; write numbers exactly as in the pack; never
+  write a number in words. Account files are not citable: a pointer must reach a scalar, and a whole file's text is
+  not one. Day-sheet values (`/evaluation/...`) are citable. A reason may cite a private pointer without writing its
+  number, so no account figure is ever quoted (F1t's `seal` refuses one).
+- **Record:** D3's existing `judge` field is set from `AcceptedDecision.judge` (the verdict file's path, added by F1t)
+  through the run context.
+- **Criterion 17 (with that change):** an answer without `evidence`, or with an entry F4's check refuses, is refused
+  by the shape check. An accepted answer's records carry `judge` from `AcceptedDecision.judge`. The same answer with a
+  pass or a fail verdict gives identical trades.
+
 ---
 
 ## F7. Book 3's matched shadow decisions for scoreboard A
