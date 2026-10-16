@@ -460,6 +460,8 @@ even if their code comes later:
   stored field holds that time (the bhavcopy manifest has `date,url,status,sha256,size_bytes` only; A11's revisions
   cover later versions). Proposed: that time where one is recorded, otherwise the first sighting in A8's release-check
   log (`fno/research_data/release_times.first_seen_times`). A day with neither stays unresolved (never "now").
+- **A fourth wording (judge 258's note):** trailing ("ending at `d`") and EWMA ("`h x s2_d`") are read as the last
+  session before `d`, as phase 1's code does: `d`'s own close is not known at the cutoff.
 - **Drafted on this branch** (`PROTOCOL_v4.md` sections 1.5 and 3.1, with a test that reads the wording), for judge
   D, who judged G6; the owner signs them with the freeze. The wordings add sentences only, so G10's planned
   "15:00 -> the pack's" edits apply on top without conflict.
@@ -476,11 +478,25 @@ even if their code comes later:
    - `VIX(t+5) > VIX(t)`: a tie is "no", one tick up is "yes". It is resolved at `t+5`'s close over regular sessions only.
    - G8's existing V7 outcomes are reproduced exactly from the shared rule; G8's tests are left unedited.
 4. **V7 base rate:** the most recent 750 resolved outcomes before the cutoff; 499 missing, 500 present.
-5. **`v7_vix_vs_mean20`:**
-   - The side test: strictly above is "above", equal is "below or equal".
-   - The conditional share is hand-computed on a fixture.
-   - It is missing below 500 matching outcomes.
-   - A look-ahead test: a later VIX close changes no earlier forecast.
+5. **`v7_vix_vs_mean20` (judge 258: the measured rival, with one stated adaptation for the cutoff):**
+   - **Side, as measured:** "below" means VIX strictly below its 20-session mean, that session and the 19 before it
+     (`tools/v4_vix_null.py:50-51`). Equal counts as "not below". A session with fewer than 20 sessions to average has
+     no side.
+   - **Window, as measured:** the most recent 750 resolved outcomes. The tool computes its rival only where the base
+     rate is valid, so the rule is not eligible below 500. A cell under 100 falls back to the window's plain share
+     (`MIN_CELL`, tool lines 55-57).
+   - **The one adaptation:** the tool's information set is the close of `t`. The 14:30 cutoff moves it back one
+     session: `d` takes its side at `d-1`, each past day `t` is filed under its side at `t-1`, and the window holds the
+     outcomes resolved before `d`. Nothing else changes. The lagged rule itself was not measured, so the calibration's
+     regime finding applies by reasoning only.
+   - **Tests** (`tests/forecast_v4_rules/test_v4rules_phase2.py`):
+     - the hand-computed cell share;
+     - the 20-session boundary;
+     - a flat VIX (equal is "not below");
+     - a spike that leaves a cell under 100 (the plain share);
+     - fewer than 500 (not eligible);
+     - a look-ahead test: `d`'s own VIX moved 30% down and up changes none of `d`'s values;
+     - mutations: the day's own close, a non-strict side, and no cell minimum each fail.
 6. **Records:** V2 and V3 values are validated as variances (finite and > 0; 0 or negative refused); V7 values as
    probabilities in [0, 1].
 7. **Back-fill:** from 2017 closes, every row `backfill_exploratory`, ending before the first live day. A re-run writes
@@ -515,7 +531,8 @@ builder, and question 4.
 
 **Known limits:**
 - V2 and V3 on the close proxy carry noise; QLIKE still ranks correctly (protocol 1.1, Patton 2011).
-- `v7_vix_vs_mean20` was measured as regime-dependent (calibration section 3).
+- The measured rival behind `v7_vix_vs_mean20` was regime-dependent (calibration section 3); its lagged form was not
+  measured.
 - All back-fill is spent data and exploratory (protocol 8).
 - Parts b-c wait on the pack. Until then V2's primary is missing every day, so no V2 comparison exists (it is counted,
   never filled).

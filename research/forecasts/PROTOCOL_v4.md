@@ -115,7 +115,8 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 ### 3.1 Methods (frozen here, built by G7 like G2; point in time: only inputs first seen before `d`'s cutoff)
 - **Trailing:** the same measure's RV over the last `h` scored sessions ending at `d`.
 - **EWMA (RiskMetrics):** per-session variance `s2_t = 0.94 s2_(t-1) + 0.06 RV_t`, started from the mean of the first 250
-  sessions; forecast `h x s2_d`. Eligible after 250 sessions.
+  sessions; forecast `h x s2_d`. Eligible after 250 sessions. **For both trailing and EWMA, "ending at `d`" and
+  `s2_d` are read as the last session before `d`:** `d`'s own close is not known at the cutoff (G7, G7b).
 - **HAR (daily):** OLS, levels: mean per-session close-proxy RV over the next `h` sessions on an intercept and the mean
   RV of the last 1, 5 and 22 sessions; most recent 750 rows resolved before the refit (at least 500); refit on the first
   scored session of each month; forecast `h x prediction`. **HAR (intraday):** the same on intraday `RV_s`, from 250

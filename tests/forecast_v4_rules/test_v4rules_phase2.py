@@ -155,11 +155,12 @@ def test_every_new_forecaster_has_a_value_on_a_recent_day():
         assert values[key].status == OK and 0 < values[key].value < 1
 
 
-def test_the_three_g7b_protocol_wordings_are_in_the_text():
+def test_the_g7b_protocol_wordings_are_in_the_text():
     text = " ".join((ROOT / "research" / "forecasts" / "PROTOCOL_v4.md").read_text().split())
     for wording in (
         "A flagged IV30** (single expiry, `AtmIv30.flagged`) gives no raw and no premium-adjusted value that day",
         "V4's and V5's base rates count live outcomes only:** no end-of-day history fills them",
         "the first sighting in A8's release-check log (`release_times.first_seen_times`)",
+        'For both trailing and EWMA, "ending at `d`" and `s2_d` are read as the last session before `d`:**',
     ):
         assert wording in text
