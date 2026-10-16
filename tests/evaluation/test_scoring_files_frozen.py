@@ -30,3 +30,9 @@ def test_a_scoring_module_missing_from_the_list_is_caught(tmp_path):
     text = (ROOT / PROTOCOL_FILE).read_text(encoding="utf-8").replace("`fno/scoreboard/t_check.py`,", "", 1)
     assert "fno/scoreboard/t_check.py" not in frozen_targets(text)
     assert Path(SCOREBOARD / "t_check.py").is_file()  # the module exists, so the first test would fail on this text
+
+
+def test_the_rules_that_decide_an_outcome_are_hashed():
+    """Judge A, 16 Oct 2026: E6's automatic pauses (the code of `catastrophic_loss_strategy`) and D3b's run order (which
+    run is a day's first decision) decide outcomes, so the freeze hashes them."""
+    assert {"fno/scorecard/pauses.py", "fno/playbook/run_order.py"} <= set(targets())
