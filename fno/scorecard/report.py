@@ -10,6 +10,7 @@ from .scorecard import Scorecard
 
 SAMPLE_UNIT = "Rs C1 net per completed position, before tax"
 NONE = "n/a"
+MEASURED = " (measurement)"  # story R3: a measurement version's title
 
 
 def _rs(value: float | None) -> str:
@@ -28,7 +29,7 @@ def card_lines(card: Scorecard) -> list[str]:
     costs, rev = card.costs, card.review
     low_high = f"{_rs(card.expected_range[0])} to {_rs(card.expected_range[1])}" if card.expected_range else NONE
     lines = [
-        f"{card.strategy} in {card.account} ({card.status})",
+        f"{card.strategy}{MEASURED if card.measurement else ''} in {card.account} ({card.status})",
         f"  closed trades {len(card.trade_lines)}, net {_rs(card.total_net)}; expected range {low_high} ({card.unit})",
         f"  review sample unit: {SAMPLE_UNIT}",
         f"  half-spread paid {_rs(costs.half_spread_per_unit)}/unit over {costs.units_at_quotes} units "
