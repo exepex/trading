@@ -6,6 +6,7 @@ O5): never `--no-verify`."""
 from __future__ import annotations
 
 import hashlib
+import re
 import subprocess
 from collections.abc import Sequence
 from pathlib import Path
@@ -14,9 +15,13 @@ from ..config import ROOT
 from ..storage.wiring import QUOTES_FOLDER
 from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
 from .daily_ports import AccountWriteRefused, CommitFailed, Committer, OwnCommit
+from .git_limit import GIT_CALL_LIMIT_SECONDS, LimitedRun
 
 PUSH_ATTEMPTS = 3
-UNSHALLOW_TIMEOUT_SECONDS = 120.0
+STOPPED = "git {what} ran past {seconds:.0f} s and was stopped with its hooks{removed}"
+REMOVED = "; its own lock files removed: {names}"
+HELD_LOCK = re.compile(r"'([^']+\.lock)': File exists")
+HAND_FIX = " (no git running? remove {lock} by hand, then rerun)"
 
 
 class GitError(AccountWriteRefused):
@@ -27,36 +32,52 @@ class PushRejected(GitError):
     """Every push attempt was rejected: the commit stays local and unpushed."""
 
 
+class GitCallStopped(GitError):
+    """A git call ran past its hard limit and was stopped (story O2)."""
+
+
+class PushNotConfirmed(PushRejected):
+    """A push stopped at its limit: it may have reached origin, so the run treats its commit as unpushed."""
+
+
 STRAY = "the checkout holds {count} unpushed commit(s) the run did not make ({what}); never pushed: resolve by hand"
 
 
 class Git:
-    def __init__(self, root: Path, run=subprocess.run, guard: RawQuoteGuard | None = None):
-        self.root, self.run = Path(root), run
+    def __init__(self, root: Path, run=None, guard: RawQuoteGuard | None = None,
+                 limit_seconds: float = GIT_CALL_LIMIT_SECONDS):  # fmt: skip
+        self.root, self.run, self.limit_seconds = Path(root), run or LimitedRun(), limit_seconds
         self.guard = guard or RawQuoteGuard(self.root, self.root / QUOTES_FOLDER.relative_to(ROOT))
 
     def __call__(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
-        done = self.run(["git", *args], cwd=self.root, capture_output=True, text=True)
+        done = self._run(["git", *args], text=True)
         if check and done.returncode != 0:
-            raise GitError(f"git {' '.join(args[:2])} failed: {(done.stderr or done.stdout).strip()[-300:]}")
+            said = (done.stderr or done.stdout).strip()
+            held = HELD_LOCK.search(said)
+            hand_fix = HAND_FIX.format(lock=held.group(1)) if held else ""
+            raise GitError(f"git {' '.join(args[:2])} failed: {said[-300:]}{hand_fix}")
         return done
+
+    def _run(self, command: list[str], text: bool) -> subprocess.CompletedProcess:
+        """Every git call of the run, under the one hard limit (story O2)."""
+        try:
+            return self.run(command, cwd=self.root, capture_output=True, text=text, timeout=self.limit_seconds)
+        except subprocess.TimeoutExpired as expired:
+            removed = getattr(expired, "removed", [])
+            names = REMOVED.format(names=", ".join(removed)) if removed else ""
+            what = " ".join(command[1:3])
+            raise GitCallStopped(STOPPED.format(what=what, seconds=self.limit_seconds, removed=names)) from None
 
     def branch(self) -> str:
         return self("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
-    def unshallow(self, timeout_seconds: float = UNSHALLOW_TIMEOUT_SECONDS) -> bool:
+    def unshallow(self) -> bool:
         """Fetches the whole history when the checkout is shallow (story O1: commit times are dates); False when it
-        was whole already. `GitError` when the fetch fails or runs past its hard time limit (it took 6.7 s on a fresh
-        clone of 2,756 commits, judge 178 addendum 10), so a hung fetch never holds the day."""
+        was whole already. `GitError` when the fetch fails or runs past the hard limit every call has, so a hung fetch
+        never holds the day."""
         if self("rev-parse", "--is-shallow-repository").stdout.strip() != "true":
             return False
-        command = ["git", "fetch", "-q", "--unshallow", "origin", self.branch()]
-        try:
-            done = self.run(command, cwd=self.root, capture_output=True, text=True, timeout=timeout_seconds)
-        except subprocess.TimeoutExpired:
-            raise GitError(f"git fetch --unshallow ran past {timeout_seconds:.0f} s and was stopped") from None
-        if done.returncode != 0:
-            raise GitError(f"git fetch --unshallow failed: {(done.stderr or done.stdout).strip()[-300:]}")
+        self("fetch", "-q", "--unshallow", "origin", self.branch())
         return True
 
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
@@ -90,7 +111,11 @@ class Git:
         return [self.root / name for name in names if name]
 
     def push(self) -> bool:
-        return self("push", "-q", "origin", f"HEAD:{self.branch()}", check=False).returncode == 0
+        branch = self.branch()
+        try:
+            return self("push", "-q", "origin", f"HEAD:{branch}", check=False).returncode == 0
+        except GitCallStopped as stopped:
+            raise PushNotConfirmed(f"push not confirmed: {stopped}") from None
 
     def relative(self, path: Path) -> str:
         return Path(path).resolve().relative_to(self.root.resolve()).as_posix()
@@ -111,8 +136,13 @@ class Git:
 
     def content_sha256(self, commit: str, name: str) -> str | None:
         """The SHA-256 of `name` as `commit` holds it; None when the commit holds no such file (deleted)."""
-        done = self.run(["git", "show", f"{commit}:{name}"], cwd=self.root, capture_output=True)
-        return hashlib.sha256(done.stdout).hexdigest() if done.returncode == 0 else None
+        data = self.show(commit, name)
+        return hashlib.sha256(data).hexdigest() if data is not None else None
+
+    def show(self, commit: str, name: str) -> bytes | None:
+        """`name`'s bytes as `commit` holds it; None when it holds no such file."""
+        done = self._run(["git", "show", f"{commit}:{name}"], text=False)
+        return done.stdout if done.returncode == 0 else None
 
     def files_of(self, commit: str) -> set[str]:
         names = self("diff-tree", "--no-commit-id", "--name-only", "-r", "-z", commit).stdout.split("\0")

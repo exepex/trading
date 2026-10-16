@@ -32,6 +32,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
+    from ..desk.git_limit import GitLocks
     from ..desk.git_sync import Git, GitCommitter
     from ..desk.wiring import build_execution_snapshots
     from ..models import now_ist
@@ -50,11 +51,12 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         ChildProcesses(root),
         live_dates(cfg),
     )
+    locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
     waiter = ServicingWaiter(parts, now_ist)
 
     def command(arguments: Callable[[date], tuple[str, ...]], folder: str) -> DayStep:
-        return CommandStep(processes, arguments, (folder,), git.changed)
+        return CommandStep(processes, arguments, (folder,), git.changed, locks=locks)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
     steps = {
@@ -68,7 +70,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
         "book1": Alerted(
             "book1",
-            CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed),
+            CommandStep(
+                processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, locks=locks
+            ),
             alerts,
         ),  # E5: commits its own decision  # fmt: skip
         REVIEWS_STEP: Alerted(
