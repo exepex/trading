@@ -37,23 +37,30 @@ def test_the_real_session_is_not_published_from_a_back_fill_record_and_every_num
     assert page["blocks_new_entries"] is True and page["missing_inputs"][0]["story"] == "M1"
     assert page["base_rate_1d"] == record["probabilities"]["base_rate"][Q1]["value"]
     assert page["base_rate_5d"] == record["probabilities"]["base_rate"][Q5]["value"]
-    assert page["p_big_1d"] is None and page["drivers"] == [] and page["red_share"]["sessions"] == 0
-    assert all(s["n_scored"] == 0 and s["status"] == "not_enough_data" for s in page["scores"])
+    assert page["p_big_1d"] is None and page["drivers"] == []
+    last_250 = [*(inputs.earlier[d] for d in inputs.sessions if d in inputs.earlier), record][-250:]
+    reds = sum(r["colour"] == "RED" for r in last_250)
+    assert page["red_share"] == {"sessions": 250, "red_sessions": reds, "share": reds / 250, "max_share": 0.15,
+                                 "over_alarming": reds / 250 > 0.15, "basis": BACKFILL}  # fmt: skip
+    assert all(s["n_scored"] == 0 and s["status"] == "not_enough_data" and s["exploratory"] for s in page["scores"])
 
 
-def test_the_real_recent_strip_shows_no_back_fill_colour_and_the_closes_own_2pct_moves():
+def test_the_real_recent_strip_shows_the_back_fill_labelled_and_the_closes_own_2pct_moves():
     from fno.forecast_v4_rules.series import closes_rows, regular_closes
     from fno.forecast_v4_rules.wiring import CLOSES_FILE
 
     closes = regular_closes(closes_rows(CLOSES_FILE.read_text()))
     by_day = {c.day: c.value for c in closes}
     days = [c.day for c in closes]
-    page = published(build_weather_inputs().on(REAL_DAY))
+    inputs = build_weather_inputs().on(REAL_DAY)
+    records = {**inputs.earlier, REAL_DAY: inputs.record}
+    page = published(inputs)
     for item in page["recent"]:
         day = date.fromisoformat(item["session"])
         later = days[days.index(day) + 1] if day < REAL_DAY else None
         expected = abs(math.log(by_day[later] / by_day[day])) >= 0.02 if later else None
-        assert item["colour"] is None and item["big_move"] == expected
+        shown = records[day]["colour"] if records[day]["colour"] != "not scored" else None
+        assert (item["colour"], item["label"], item["big_move"]) == (shown, BACKFILL, expected)
     assert len(page["recent"]) == 10 and page["recent"][-1]["session"] == REAL_DAY.isoformat()
 
 
@@ -111,20 +118,20 @@ def test_drivers_say_values_push_by_the_sign_of_the_change_and_rank_by_change_ov
     assert drivers[-1] == {"driver": "scheduled_event", "text": "RBI policy decision on 2025-09-20", "push": "riskier"}
 
 
-def test_recent_and_red_share_count_live_records_only_and_the_page_scores_nothing(live_world):
+def test_once_live_records_exist_the_red_share_counts_them_and_the_page_scores_nothing(live_world):
     inputs, _ = live_world
     page = published(inputs)
     colours = [r["colour"] for r in page["recent"]]
-    assert colours[-1] == "RED" and None not in colours[-10:]  # the last 10 sessions are all live
+    assert colours[-1] == "RED" and {r["label"] for r in page["recent"]} == {LIVE}  # the last 10 are live
     assert page["red_share"] == {"sessions": 13, "red_sessions": 1, "share": 1 / 13, "max_share": 0.15,
-                                 "over_alarming": False}  # fmt: skip
+                                 "over_alarming": False, "basis": LIVE}  # fmt: skip
     # 12 live days are resolved, yet the page scores nothing: the scores are G8's alone (judge 218)
     assert {(s["question"], s["baseline"]) for s in page["scores"]} == {
         (q, b) for q in ("V6_1d", "V6_5d") for b in ("base_rate", "v0_checklist")
     }
     assert all(
-        (s["status"], s["n_scored"], s["brier"], s["brier_baseline"], s["skill"], s["verdict"])
-        == ("not_enough_data", 0, None, None, None, "not_tested")
+        (s["status"], s["n_scored"], s["brier"], s["brier_baseline"], s["skill"], s["verdict"], s["exploratory"])
+        == ("not_enough_data", 0, None, None, None, "not_tested", False)
         for s in page["scores"]
     )
 

@@ -56,6 +56,7 @@ from .publisher import ReadModelPublisher
 from .run_status import LocalRunStatus, PostgresRunStatus, RunStatusRecorder
 from .session_rows import SessionRowsBuilder
 from .weather_block import FnoWeatherBlock
+from .weather_history_block import FnoWeatherHistoryBlock
 from .weather_inputs import WeatherInputsReader
 
 CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
@@ -76,7 +77,8 @@ def build_market_blocks() -> list[BlockBuilder]:
     return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
             ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
-            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock()]  # fmt: skip
+            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(),
+            FnoWeatherHistoryBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
