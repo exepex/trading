@@ -245,3 +245,4 @@ Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers
 - [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
 - [Response 252: A14c's first full run applied k = 2.1 (PDS 300, Apr 2020): run 3.99 s per file; 2.08 decomposed (2020's minimum, NSE's inconsistent prices, today's 3% exposure step); options for the owner](response_252_a14c-first-run-k-2.1.md)
 - [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)
+- [Response 270: F5 story text, Book 2's AI decider to design v2: day sheet in the private pack (E2 hook shared with F6), answer check, decider with F6's selection allocator, C2 and C4; for judge E](response_270_f5-book2-story.md)
