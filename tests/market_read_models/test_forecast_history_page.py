@@ -41,6 +41,10 @@ def test_every_point_is_the_reports_own_scored_count_and_mean_brier():
     got = {(ids[q["id"]], s["label"], s["forecaster"]): [(p["as_of"], p["n"], p["mean_loss"]) for p in s["points"]]
            for q in page["questions"] for s in q["series"]}  # fmt: skip
     assert got == expected and got  # the three real reports, one point each per series
+    shas = {json.loads(p.read_text())["inputs"]["backfill_sha256"] for p in FILES}
+    series = [s for q in page["questions"] for s in q["series"]]
+    assert {s["backfill_sha256"] for s in series if s["label"] == "backfill_exploratory"} == shas
+    assert all(s["backfill_sha256"] is None for s in series if s["label"] == "live")
 
 
 def test_a_report_with_no_scored_answer_gives_no_point_and_the_live_mode_stays_apart():
@@ -51,13 +55,17 @@ def test_a_report_with_no_scored_answer_gives_no_point_and_the_live_mode_stays_a
     assert len({(q["id"], s["forecaster"], s["label"]) for q in page["questions"] for s in q["series"]}) == len(series)
 
 
-def test_a_rebuilt_back_fill_drops_the_older_files_points_but_keeps_live_ones():
+def test_a_rebuilt_back_fill_starts_a_new_series_and_never_joins_the_old_one():
     reports = [json.loads(p.read_text()) for p in FILES]
+    old = reports[-1]["inputs"]["backfill_sha256"]
     rebuilt = copy.deepcopy(reports[-1]) | {"as_of": "2026-10-17"}
     rebuilt["inputs"] = rebuilt["inputs"] | {"backfill_sha256": "f" * 64}
     page = forecast_history([*reports, rebuilt])
-    backfill = [s for q in page["questions"] for s in q["series"] if s["label"] == "backfill_exploratory"]
-    assert backfill and all([p["as_of"] for p in s["points"]] == ["2026-10-17"] for s in backfill)
+    q1 = next(q for q in page["questions"] if q["id"] == "Q1")
+    book1 = [s for s in q1["series"] if s["forecaster"] == "book1_rules" and s["label"] == "backfill_exploratory"]
+    assert [s["backfill_sha256"] for s in book1] == [old, "f" * 64]
+    assert [p["as_of"] for p in book1[0]["points"]] == [r["as_of"] for r in reports]
+    assert [p["as_of"] for p in book1[1]["points"]] == ["2026-10-17"]
 
 
 def test_no_report_gives_the_empty_page():

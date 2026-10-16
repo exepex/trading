@@ -57,3 +57,20 @@ merged). Contract 2.9.0 is on omenix-dashboard main at e74c9395 (judge 224 adden
 | The empty state | `test_no_report_gives_the_empty_page` |
 | Weather history chances are the records' own (null when not ok); no input or `reaches` | `test_weather_history_page.py::test_a_row_carries_its_colour_label_and_the_records_own_chances_and_nothing_of_the_inputs` |
 | Pin 2.9.0; page counts 1,272 pages, 21 blocks | `test_market_contract_and_run.py`, `test_market_publish_read_back.py` |
+
+## Addendum 1: re-pinned to dashboard main ea75be3 (the orchestrator; 75133fc3 is withdrawn from the judge)
+
+The dashboard's main moved after e74c939 to ea75be313b34c457f9d5e3f5835c4dff6a4e852f. It is still 2.9.0, with the same
+files; five files changed. It adds the two fields the screens lead had proposed:
+
+1. **`backfill_sha256` per forecast-history series** (required; a string for back-fill, null for live, through
+   if/then/else). This replaces the deviation above.
+   - Each back-fill series now names its file, G4's `inputs.backfill_sha256`.
+   - A change of file starts a new series for the same forecaster, oldest file first, rather than dropping the older
+     points. No series ever spans a rebuild.
+   - The test now plants a rebuilt report: Q1 `book1_rules` back-fill becomes two series, the old file holding the
+     three real reports' points and the new file holding 17 Oct only.
+   - A real-data test checks that every back-fill series names the reports' own hash and every live one names none.
+2. **`accounts[].open_risk_cap` on `FnoPaperTrades`.** No page of this branch builds `FnoPaperTrades`; that page is
+   P2c. When I build it, the cap comes from the risk settings reader (`fno/risk/profile_settings.py`
+   `open_risk_cap_rs`), never a typed number, and the same goes for `brake.pause_at` (judge 224 addendum 3's note).

@@ -8,8 +8,9 @@ FnoForecastHistory:
     For each question, each forecaster's running average miss score as G4's report of each day gives it, live and
     rebuilt-from-history apart. A forecast is scored when its answer is known, up to the question's horizon (20
     sessions for Q1) after it was made, so the average between two reports, (n2 × m2 − n1 × m1) / (n2 − n1), is the
-    average over the answers that came in between them, mostly forecasts made earlier. Empty state: questions empty
-    (no answer scored yet)
+    average over the answers that came in between them, mostly forecasts made earlier. It is taken only within one
+    series: a series never spans a change of its scored inputs (a rebuilt back-fill starts a new one, backfill_sha256).
+    Empty state: questions empty (no answer scored yet)
   x-catalog: {publisher: fno, source: "G4's daily score reports (research/forecasts/scores/<day>.json, ScoreSummary per forecaster; v4: G8's reports)", freshness: 'after the close of each NSE session (outcomes resolve, scores refresh)', story: G8, status: planned}
   x-visibility: public
   x-fill: not_built
@@ -40,10 +41,15 @@ FnoForecastHistoryQuestion:
       items:
         type: object
         additionalProperties: false
-        required: [forecaster, label, points]
+        required: [forecaster, label, backfill_sha256, points]
+        # a rebuilt series names its back-fill file; a live one names none (judge 224)
+        if: {properties: {label: {const: backfill_exploratory}}}
+        then: {properties: {backfill_sha256: {type: string}}}
+        else: {properties: {backfill_sha256: {type: 'null'}}}
         properties:
           forecaster: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: The forecaster id (its name is on the Forecast lab page)}
           label: {type: string, enum: [live, backfill_exploratory], x-unit: enum, description: "live = G4's live mode (live_1500_proxy: forecasts made before the day's cutoff); backfill_exploratory = G4's back-fill mode (close_proxy: rebuilt later from history, never a live record)"}
+          backfill_sha256: {type: ['string', 'null'], pattern: '^[0-9a-f]{64}$', x-unit: SHA-256, description: "backfill_exploratory only: the back-fill file the series was scored on (G4's inputs.backfill_sha256). The producer starts a new series when it changes, because a rebuilt back-fill moves every running average at once and a difference across it means nothing; the screen draws the newest. null for live"}
           points:
             type: array
             description: "One point per G4 report (its as_of), oldest first; a day without a report has no point, and a forecaster with no scored answer yet has none"

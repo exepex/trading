@@ -85,7 +85,8 @@ info:
     average miss as each day's G4 report gives it, live and rebuilt from history apart, for the race chart and a
     period the owner picks, which counts the answers that came in during it); and each session's chances back on the weather's history (`weather_history`: `p_big_1d`, `p_big_5d`,
     `base_rate_1d`, `base_rate_5d`, required). A 2.8 `weather_history` payload is rejected; no F&O screen page is
-    published yet. Single forecasts with their outcomes (field B) wait for about 60 scored live days.
+    published yet. Single forecasts with their outcomes (field B) wait for about 60 scored live days. Also each paper
+    book's published open-risk cap (`accounts[].open_risk_cap`, beside `brake.pause_at`), so no screen copies it.
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and

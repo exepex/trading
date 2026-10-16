@@ -2711,7 +2711,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.9.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "f07fe666ee534242b29fabac805486afb1ec0f4989855fff2cca552ba8c25f1e",
+   "payload_sha256": "91701e1afa3e56f4c7953a96a638bb90f8216d85bd6b397e221035e068907a65",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2734,6 +2734,7 @@
        {
         "forecaster": "book1_rules",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-03-19",
@@ -3540,6 +3541,7 @@
        {
         "forecaster": "book2_hybrid",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-03-19",
@@ -4346,6 +4348,7 @@
        {
         "forecaster": "book3_ai",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-03-20",
@@ -5147,6 +5150,7 @@
        {
         "forecaster": "baseline_b_base_rate",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-03-19",
@@ -5953,6 +5957,7 @@
        {
         "forecaster": "book1_rules",
         "label": "backfill_exploratory",
+        "backfill_sha256": "3b3d0508b1e88e603b5f233af7b05440f8ff7e9c2027f027cd2866df851dab3d",
         "points": [
          {
           "as_of": "2026-10-30",
@@ -6019,6 +6024,7 @@
        {
         "forecaster": "baseline_b_base_rate",
         "label": "backfill_exploratory",
+        "backfill_sha256": "3b3d0508b1e88e603b5f233af7b05440f8ff7e9c2027f027cd2866df851dab3d",
         "points": [
          {
           "as_of": "2026-10-30",
@@ -6093,6 +6099,7 @@
        {
         "forecaster": "book2_hybrid",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-10-08",
@@ -6229,6 +6236,7 @@
        {
         "forecaster": "baseline_premium_adjusted_implied",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-10-08",
@@ -6365,6 +6373,7 @@
        {
         "forecaster": "baseline_har",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-10-08",
@@ -6516,7 +6525,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.9.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "cd222784a7da3cc98fad52857a95920a375e7575aee17e9538bde9789b97eb90",
+   "payload_sha256": "5ad8bace033b13b6a6764e86f650a787311cd94aeaf86bb563c543245a1b501e",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -6539,6 +6548,7 @@
        {
         "forecaster": "book3_ai",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-04-03",
@@ -7295,6 +7305,7 @@
        {
         "forecaster": "baseline_b_base_rate",
         "label": "live",
+        "backfill_sha256": null,
         "points": [
          {
           "as_of": "2026-04-03",
@@ -8549,7 +8560,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.9.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "57a04b49303b7f9b6a9a62ae764cf0b1bc2fc4049bcbbefe86b38158f71ddffd",
+   "payload_sha256": "ac8a657d291feb04e175234d0edb7fbcc165369f9388b72f5f1b9bcabb208406",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -8571,6 +8582,7 @@
       "cash": 1999414,
       "open_trades": 1,
       "open_max_loss": 3984,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8584,6 +8596,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8597,6 +8610,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8707,7 +8721,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.9.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "a7f2cf8b1fc45c552200c45f95342f17407f49a9eda86c6d5ce4e57ec2dc2563",
+   "payload_sha256": "2a1026692a11705ec104f05ff011cee1717706dd3d98043a837885c70483c21c",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -8729,6 +8743,7 @@
       "cash": 1992892,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 10204,
        "pause_at": 120000
@@ -8742,6 +8757,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8755,6 +8771,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8833,7 +8850,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.9.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "e24a4bf231a38ae23bdfd745d7cb3baec1ac1aad9f277ea2c8c6499855338171",
+   "payload_sha256": "412b7007bc5d20fdcfd2290bf55d24db43f62030982792a5f0b9d35fce81aa20",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -8855,6 +8872,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8868,6 +8886,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000
@@ -8881,6 +8900,7 @@
       "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0,
+      "open_risk_cap": 150000,
       "brake": {
        "loss_from_high": 0,
        "pause_at": 120000

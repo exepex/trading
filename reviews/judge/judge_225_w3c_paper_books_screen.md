@@ -18,3 +18,32 @@
 - **The tightened import test matches by endpoint,** so W3d's route must carry `endpoint: fno/strategy-lab` for
   `fno-strategy-lab`, or this test fails when both are on main. The failure would be loud, not silent: it is a check,
   not a risk.
+
+## Addendum 1: head a2efbb3 (main ea75be3 merged in; the open-risk cap bar drawn)
+
+**PASS.**
+
+- **Shape:** a2efbb3 contains dashboard main ea75be3 (W3d, plus 07c8683 merged as 7731d0e). Its only commits beyond
+  main are 5e648af (the main verdict) and a2efbb3.
+- **CSS resolution:**
+  - `fno-screen.css` differs from main only by three added lines, the shared `.cap` track (`.cap`, `.cap .bar` and
+    `.cap .bar i`). Main's `.strip` (W3a) and W3d's rules are untouched.
+  - `weather.css` keeps only `:where(.weather) .cap{margin-top:4px}`. Weather's bar is unchanged, because its root is
+    `fno-screen weather` (it gets the grid and gap from the shared track, and the margin from its own rule).
+  - The paper books' root is `fno-screen paper-books`. Its unused `.risk` rule is removed.
+- **Cap bar:**
+  - `view.ts` draws the bar as `width(open_max_loss, open_risk_cap)`, capped at 100%. The schema's
+    `exclusiveMinimum: 0` rules out a divide by zero.
+  - The words and aria label are identical to mockup 41's `2-books.js:19-20`.
+  - There is no 150000 in the screen's code. The new test with a Rs 60,000 cap and Rs 30,000 open risk gives a 50%
+    bar and the words follow it.
+  - This closes judge 225's accepted deviation (no cap bar).
+- **Import graph:**
+  - Readers of a screen's wiring are matched to that screen's own routes by endpoint (`fno/paper-books`, and W3d's
+    `fno/strategy-lab`).
+  - My planted break was caught: the weather loader folder reading `fno-paper-books/wiring` failed "fno-paper-books:
+    only its own pages' loaders read its wiring". It was removed afterwards.
+- **notRead:** `getFnoPaperTrades` is now read and removed from notRead; 2.9's `getFnoForecastHistory` is kept.
+- **Gates on a2efbb3:** `check_contract` and `check_fno_screens` exit 0, code size is OK, and `sync-design` leaves the
+  tree clean. `tsc` passes. `npm test` gives 520/520 (0 skipped). `next build` exits 0, with `/india/paper-books` and
+  `/india/strategy-lab/fno` built.

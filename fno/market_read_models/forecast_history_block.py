@@ -1,13 +1,12 @@
 """The forecast history page (story P2, contract 2.9 `FnoForecastHistory`, page `forecast_history`): for each v3
 question, each forecaster's running score as G4's report of each day gives it (`scores[].primary`: scored, mean_brier).
 
-- **Live and back-fill apart:** G4's `live_1500_proxy` mode is `live`, `close_proxy` is `backfill_exploratory`; one
-  series per forecaster and label, never joined.
+- **Live and back-fill apart:** G4's `live_1500_proxy` mode is `live`, `close_proxy` is `backfill_exploratory`; a live
+  series and a back-fill one are never joined.
 - **One point per G4 report** (its as_of); a day without a report has no point, and a point needs n >= 1.
-- **One back-fill file per series:** a back-fill series uses only the reports whose `inputs.backfill_sha256` is the
-  newest report's. A rebuild of the back-fill moves every running average at once, so points across two files would
-  make a period difference meaningless; the contract keeps one series per forecaster and label, so the page carries
-  the newest file's series (what the screen draws)."""
+- **One back-fill file per series** (contract 2.9 at ea75be3, `backfill_sha256`): a back-fill series names the file
+  it was scored on (G4's `inputs.backfill_sha256`); when the file changes, the same forecaster starts a new series, so
+  no series spans a rebuild (a rebuild moves every running average at once). A live series names none."""
 
 from __future__ import annotations
 
@@ -26,32 +25,30 @@ class FnoForecastHistoryBlock(BlockBuilder):
 
 
 def forecast_history(reports: list[dict]) -> dict:
-    points = _points(_same_backfill(reports))
+    points = _points(reports)
     questions = []
     for question, (contract_id, plain) in V3_QUESTIONS.items():
-        series = [{"forecaster": f, "label": LABELS[mode], "points": p} for (q, mode, f), p in points.items()
-                  if q == question]  # fmt: skip
+        series = [{"forecaster": f, "label": LABELS[mode], "backfill_sha256": sha, "points": p}
+                  for (q, mode, f, sha), p in points.items() if q == question]  # fmt: skip
         if series:
             questions.append({"id": contract_id, "protocol": "v3", "plain": plain, "metric": "brier", "series": series})
     return {"questions": questions}
 
 
-def _same_backfill(reports: list[dict]) -> list[tuple[dict, bool]]:
-    """Each report with whether its back-fill file is the newest report's (only those carry back-fill points)."""
-    newest = reports[-1]["inputs"].get("backfill_sha256") if reports else None
-    return [(r, r["inputs"].get("backfill_sha256") == newest) for r in reports]
-
-
-def _points(reports: list[tuple[dict, bool]]) -> dict[tuple[str, str, str], list[dict]]:
-    """(question, mode, forecaster) -> the running score after each report, oldest first, sorted by forecaster."""
-    out: dict[tuple[str, str, str], list[dict]] = {}
-    for report, current_backfill in reports:
+def _points(reports: list[dict]) -> dict[tuple, list[dict]]:
+    """(question, mode, forecaster, back-fill file or None) -> the running score after each report, oldest first; by
+    forecaster, then label, then file in the order it first appears."""
+    out: dict[tuple, list[dict]] = {}
+    for report in reports:
+        backfill = report["inputs"].get("backfill_sha256")
         for mode in report["modes"]:
-            if mode["mode"] not in LABELS or (mode["mode"] == CLOSE_PROXY and not current_backfill):
+            if mode["mode"] not in LABELS:
                 continue
             for score in mode["scores"]:
                 summary = score["primary"]
                 if summary["scored"] >= 1 and score["question"] in V3_QUESTIONS:
+                    key = (score["question"], mode["mode"], score["forecaster"],
+                           backfill if mode["mode"] == CLOSE_PROXY else None)  # fmt: skip
                     point = {"as_of": report["as_of"], "n": summary["scored"], "mean_loss": summary["mean_brier"]}
-                    out.setdefault((score["question"], mode["mode"], score["forecaster"]), []).append(point)
+                    out.setdefault(key, []).append(point)
     return dict(sorted(out.items(), key=lambda item: (item[0][2], item[0][1])))
