@@ -86,7 +86,12 @@ and starts its successor itself.
    commits receipts at most every 15 minutes and at exit through O9's committer (`build_receipt_committer`).
 7. Schedule: `.github/workflows/news-capture.yml`: `concurrency: news-capture` (never two pollers); at its end a
    run dispatches the next run of itself (`workflow_dispatch` with `GITHUB_TOKEN`, `actions: write`), so capture is
-   continuous; crons at six spread minutes a day only restart a broken chain. `python -m fno news probe` runs first
+   continuous. The loop ends itself (`--max-minutes 340`) before the job's `timeout-minutes: 355`, so the dispatch
+   step runs; a second small workflow `news-capture-restart.yml` (on `workflow_run` of news-capture, `completed`)
+   dispatches news-capture again when a run ended cancelled, timed out or failed, so a killed run restarts the chain
+   by event, not by GitHub's unreliable cron (dispatch is not `workflow_run` chaining, so GitHub's three-level limit
+   does not apply; the concurrency group drops a surplus run). Crons at six spread minutes a day remain a last
+   backstop. `python -m fno news probe` runs first
    and prints each feed's answer from the runner.
 8. Failures (each is one record and, per episode, one alert):
    - per feed: no answer or HTTP error after the pacer's tries, a web page or unparseable answer, no items, every
@@ -116,8 +121,10 @@ and starts its successor itself.
 - Article bodies (terms; scraping), paid sources (owner approval), non-English feeds, social media.
 - Reading or classifying news (relevance, sentiment, company tagging): the analysts' (F2) job, on top of the reader.
 - The economic calendar (A20c).
-- Real-time silence detection when no run is alive: a dead job cannot alert; that is O10's or O8's watcher (A19
-  gives it the newest receipt time per day and the gap records).
+- A watchdog that alerts within minutes when no run is alive: GitHub's cron cannot carry it (step 0). The restart
+  workflow (scope 7) covers killed runs by event; O10's watcher records them (`capture-watch.yml` lists
+  news-capture); O8's daily check gets a row "newest news receipt not older than X" (O10 builder proposes it to
+  O8's owner); the coverage-gap row (scope 8) records every gap when the next run starts.
 - Any UI or UI-facing API.
 
 ## Acceptance criteria
@@ -150,7 +157,8 @@ and starts its successor itself.
 10. **Reader is point in time.** `news list --until T` returns no item first seen after T and shows each item's
     latest version first seen by T (planted later version and later item).
 11. **Workflow.** `news-capture.yml` has the concurrency group, the probe step, the loop step, the successor
-    dispatch (`if: always()`, so a failed run still restarts the chain), crons as backup, `permissions` limited to
+    dispatch (`if: always()`, so a failed run still restarts the chain), the restart workflow (dispatches only on a
+    non-success news-capture run; a test reads both files), crons as backup, `permissions` limited to
     `contents: write` and `actions: write`, secrets only through `env`; a failed job alerts #fno-desk as A12's
     workflow does.
 12. **Polite and allowed.** At most one request a second per host (pacer test); each run reads each feed at most once
@@ -192,7 +200,7 @@ criterion, shown in the claims file.
 | Clock contract (A16 4.4: skew over 5 s flagged) | criterion 9 |
 | Tests offline with fixtures | test plan |
 | Real output sample (quality rule 6) | criterion 13 |
-| Silence when no run is alive | Out (O10/O8), with A19's gap records as input |
+| Silence when no run is alive | scope 7 restart by event; criterion 11; Out: a minutes-level watchdog (O10/O8 backstop) |
 
 ## Judge verifies
 
@@ -201,5 +209,5 @@ parameters, a revised title, a stale feed, a web-page answer, a 16-minute gap an
 or URL reaches the repository, Slack or logs; reads the workflow's chain and permissions; checks one real part in
 Drive against its receipt.
 
-**Depends:** O9 step 1 (merged), A9 pacer, `AlertSender`, O10 part 1's `CaptureErrorLog` (merged first) · **Size:** M ·
+**Depends:** O9 step 1 (merged), A9 pacer, `AlertSender`, O10 part 1's `CaptureErrorLog` (3dc1675f, merged first) · **Size:** M ·
 **Status:** story text for the judge
