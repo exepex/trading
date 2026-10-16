@@ -34,8 +34,8 @@ In:
 - **A20b** NSE and SEBI circular lists with metadata and our first-seen time; the files of F&O-relevant circulars.
 - **A20c** India CPI, IIP, GDP and US FOMC, CPI, payrolls release dates with `announced_on` = the day we first saw
   each date, in A6's event model.
-- One workflow `rules-and-dates.yml`; every failure or stale source gives one #fno-desk line and a committed error
-  record (through O10's port once it exists; see Design 4).
+- Workflows `fo-masters.yml` (A20a), `circulars.yml` (A20b), `macro-calendar.yml` (A20c); every failure or stale
+  source gives one #fno-desk line, and O10's watcher commits the error row (Design 4).
 
 Out: news (A19); state elections and company results dates; reading what a circular says (it is kept, not
 interpreted); changing any consumer of `events.csv` (M1 weather, F3 features, the desk packs). Wiring the macro dates
@@ -43,15 +43,18 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
 
 ## Design (reuse first)
 
-1. **A20a extends P6's market archive, no new job.** Two new `SnapshotSource` classes (`FoBanListSource`,
-   `FoLotSizeSource`, `fno/storage/snapshot_source.py`) and one dated `NseArchiveSource` (`NseFoContractSource`,
-   `raw_source.py`), each with a content check in `content_checks.py`. They join `SNAPSHOT_SOURCES` /
-   `DATED_SOURCES`, so `python -m fno market archive` (market-publish.yml, 07:10 IST) fetches, checks, saves to Drive
-   with its manifest row, and its existing failure line alerts. `wiring.py` is at 348 lines, so the source tuples move
-   to a new `fno/storage/source_lists.py` (no behaviour change). Checks: the ban list's trade date must be the day's
-   session (else "stale ban list" and nothing saved); lot sizes need `SYMBOL` and at least one expiry column with
-   NIFTY present; the contract master must be NSE's gzip CSV with its header. First-seen time = the day folder plus
-   the commit time of the manifest row (git); the content is a daily rule, so a day is the right grain.
+1. **A20a reuses P6's snapshot and A9's librarian machinery, in its own small job.** Two new `SnapshotSource`
+   classes (`FoBanListSource`, `FoLotSizeSource`) and one dated `NseArchiveSource` (`NseFoContractSource`), each with
+   a content check in `content_checks.py`, so they are saved to Drive with a manifest row like every NSE file. Not in
+   P6's market archive run: that run files snapshots under the PREVIOUS session (`market archive` day), while the ban
+   list names the session it applies to. Timing read from NSE's `Last-Modified` (16 Oct): the ban list for a session
+   is written about 18:12 IST the evening before; the contract master dated D about 17:32 IST on D. So a job
+   `python -m fno fo-masters` runs at 07:45 IST (retry 11:15 IST; GitHub starts crons hours late): on a session day
+   (A7 calendar; otherwise "not a trading day", exit 0) it files the ban list under the trade date it names (A
+   `SessionFiledTaker`; a ban list for an earlier session is refused as **stale**, a later one as from the future),
+   lot sizes under today, and the previous session's contract master through the librarian. `wiring.py` is at 348
+   lines, so the source tuples move to a new `fno/storage/source_lists.py` (no behaviour change). First-seen time =
+   the day folder plus the manifest row's commit time (git); these are daily rules, so a day is the right grain.
 2. **A20b `fno/circulars/`.** Port `CircularFeed.fetch(since: date, until: date) -> list[Circular]`; adapters
    `NseCircularApi`, `SebiCircularList`. `Circular` = source, number, date, department, category, subject, link,
    first_seen_at (UTC, the run's clock), `fno_relevant`. Relevance is a strategy `FnoRelevance`: NSE department
@@ -70,19 +73,21 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
    parsed calendar as a PartTable part `macro-calendar/...`; a reader builds A6 `Event`s: `announced_on` = first part
    that held the date; a date that vanishes later gets `first_withdrawn_on` = the first part without it, so A6's
    `known_on` works unchanged. Days before our first capture are honestly "late bound" (A6's own rule). Daily run
-   07:30 IST in the same workflow.
-4. **Failures.** Each part prints one result line per source (`ok`, `stale`, `failed: <reason>`). Any non-ok source:
-   one #fno-desk line through `AlertSender` (`FNO_SLACK_BOT_TOKEN`) naming all failing sources, and one committed error
-   row. Stale means: ban list trade date not today's session; contract master missing after 21:00 IST of the session;
-   a macro calendar whose last future date is under 30 days ahead (MOSPI's ARC ends in March: a new FY file is due);
-   a parser that finds fewer than the expected rows (MOSPI: 12 CPI dates per FY). The error record's format and file
-   are O10's; until O10 merges, A20 writes `research/ops/capture_errors.csv` only if O10's builder agrees, else it
-   waits on O10's port (open question 2).
+   07:30 IST.
+4. **Failures (O10's design, `story/o10-capture-health`).** Each job prints one line per source (`ok`, `stale`,
+   `failed: <reason>`) and exits 1 if any source is not ok; the workflow's `failure()` step posts one #fno-desk line
+   (the pattern of every capture workflow), and O10's `capture-watch.yml` writes the committed error row for every
+   non-success run. A20's workflows are added to O10's watch list (agreed with O10's builder); A20 writes no error file
+   of its own. Stale means: ban list not for today's session; a macro calendar whose last future date is under 30
+   days ahead (MOSPI's ARC ends in March: a new FY file is due); a parser finding fewer than the expected rows
+   (MOSPI: 12 CPI dates per FY). A run GitHub never starts is O10/O8's freshness row (A20 adds its rows there through
+   O10's builder).
 
 ## Acceptance criteria
 
-1. A20a: `market archive` saves the ban list, lot sizes and contract master with manifest rows; a ban list whose trade
-   date is not the day's session is refused with "stale ban list" and alerted; a fixture of each real layout passes
+1. A20a: `fo-masters` saves the ban list (under its trade date), lot sizes and the previous session's contract master
+   with manifest rows; a ban list for an earlier session is refused as stale and the run exits 1; a non-session day
+   does nothing and exits 0; a fixture of each real layout passes
    its check and a damaged one fails. No file over 350 lines (`wiring.py` split).
 2. A20b: offline fixtures of both feeds produce `Circular` rows; a second run with the same items writes no part; a
    new item gets its own first_seen_at; F&O-relevant items' files are saved, others are not; a non-JSON or 403 NSE
@@ -91,8 +96,8 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
    a removed date gets `first_withdrawn_on`; `known_on` returns them correctly; `events.csv` and A6's `TYPES` are
    unchanged; a calendar under 30 days ahead or with too few rows is "stale" and alerted.
 4. Every external service and store sits behind its port and is wired only in `fno/circulars/wiring.py` and
-   `fno/research_data/macro_wiring.py` (A20a uses P6's wiring); tests never touch the network.
-5. The workflow runs on schedule, commits receipts and error rows only, and never pushes data files to the repository.
+   `fno/research_data/macro_wiring.py` (A20a uses `fno/storage/wiring.py`'s builders); tests never touch the network.
+5. The workflows run on schedule, commit manifest rows or receipts only, and never pushes data files to the repository.
 
 ## Test plan
 
@@ -112,7 +117,7 @@ hide a failed fetch; that no data file is committed; that the first live run's l
    API; needs the owner to register, no cost) as a GitHub secret; (c) BLS with a contact address in the user agent
    (BLS asks for this; the address would be a secret, never in files). Recommendation: (a), then (b). Reasoning only
    until (a) is run.
-2. **O10's error record:** who is O10's builder, and is its port merged? A20 uses it rather than a second error file.
-3. **P6's market archive owner** agrees to A20a's three sources joining its run (one job, one manifest folder).
+2. **O10's builder** adds A20's workflows to `capture-watch.yml`'s list and A20's freshness rows to O8 (Design 4).
+3. Withdrawn: A20a no longer changes P6's market archive run (Design 1).
 4. **`pypdf` dependency** for MOSPI's PDF (free, pure Python). Alternative: MOSPI's rule "CPI on the 12th, next
    working day if a holiday" computed in code; rejected because it is a rule, not an announcement we saw.
