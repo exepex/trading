@@ -1,8 +1,8 @@
 # A19. News and announcements, captured with their true first-seen time
 
 **Repository:** trading · **Lane:** 1 (new story; outside services: news feeds, Drive, Slack; a GitHub workflow) ·
-**Branch:** `story/a19-news-capture` · **Claims file:** `reviews/claude/response_<n>_a19-news-capture.md` (number taken
-at the code push) · **Builder:** session_01Qj3wtYynDoNxVxFcqvZD9b · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH
+**Branch:** `story/a19-news-capture` · **Claims file:** `reviews/claude/response_265_a19-news-capture.md` (number given
+by the orchestrator) · **Builder:** session_01Qj3wtYynDoNxVxFcqvZD9b · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH
 
 **Description:** As the market research analyst, the macro economist and the devil's advocate, I want every market,
 macro and Indian-company headline from a small set of allowed feeds stored with the moment we first saw it, so that
@@ -36,8 +36,8 @@ before a 14:30 cutoff) is A12's to close when a consumer needs it; listed under 
 | Mint: Markets `rss/markets`, Economy `rss/economy` | 35 each; 10 h and 6 days | RSS terms (`/rss`): "within newsreaders for their personal, noncommercial use". robots: RSS allowed | **In** (private Drive only) |
 | The Hindu BusinessLine: Markets, Economy (`<section>/feeder/default.rss`) | 60 each; 5 h and 3 h | "RSS feeds for personal and non-commercial use by the user". robots: allowed | **In** (private Drive only) |
 | RBI press releases `pressreleases_rss.xml` | 10; 1.2 days; time without zone (IST) | Official, public | **In** |
-| SEBI `sebirss.xml` | 30; date only (`16 Oct, 2026 +0530`) | Official, public; robots allows all | **In** |
-| NSE circulars `nsearchives.nseindia.com/content/RSS/Circulars.xml` | 40; date only | NSE's own RSS page offers it | **In** (headlines and time only; reading circulars' content stays audit gap A3 #2) |
+| SEBI `sebirss.xml` | 30; date only (`16 Oct, 2026 +0530`); 24 recovery proceedings, 3 orders, 2 press releases, 1 circular | Official, public; robots allows all | **In**, except items under `/legal/circulars/` (A20b's; never stored twice) |
+| NSE circulars `nsearchives.nseindia.com/content/RSS/Circulars.xml` | 40; date only | NSE's own RSS page offers it | **Out**: A20b owns NSE and SEBI circulars (NSE's JSON API, full metadata; orchestrator, 16 Oct) |
 | Moneycontrol `rss/latestnews.xml`, `rss/marketreports.xml` | newest item **23 Apr 2024** | | **Out**: the feed is dead (the stale check below must catch such a feed) |
 | Business Standard `rss/markets-106.rss` | 35; 18 h | No RSS terms found on its RSS page | **Out** until its terms are found |
 | Google News RSS search | 100 | robots.txt disallows `/rss` for every agent | **Out** |
@@ -50,7 +50,8 @@ dashboard page. They live only in the owner's private Drive; the repository gets
 records that name the feed, never an item. Article bodies are never fetched (that is scraping beyond the feed).
 **Owner question (via the orchestrator):** is the owner's private research use, stored in their own Drive and never
 published, "personal, non-commercial use" under these three publishers' RSS terms? Builder's recommendation: yes
-(reasoning only; not legal advice). If no, A19 ships with the official feeds only.
+(reasoning only; not legal advice). If no, the publisher feeds are switched off in config (`news.publisher_feeds: false`) and A19 runs on the official
+feeds only (RBI, SEBI); the code is the same either way (orchestrator, 16 Oct).
 
 **GitHub's schedule is not reliable here** [strong]: `participant-oi-watch.yml` has 28 cron slots a day, yet only 3
 scheduled runs exist in total (14-15 Oct, GitHub's run list); the audit found other crons starting 4-5 h late. A cron
@@ -63,9 +64,10 @@ and starts its successor itself.
 1. `NewsSource` port (`fetch() -> FeedFetch`: status, answer bytes, the server's `Date` header, our request and
    response times) with one adapter, `RssFeedSource`, over `fno/http_pacing.py` (at most one request a second per
    host), sending `If-None-Match`/`If-Modified-Since` so an unchanged feed costs one short answer.
-2. Feed list in `config.yaml` (`news.feeds`: id, publisher, url, time format, `max_age_hours`), validated by
-   `fno/config.py`. Time formats are a strategy (`PublishedTimeFormat`): RFC 822, RBI's no-zone IST, SEBI's
-   `16 Oct, 2026 +0530`, NSE's date-only; each states its precision (`second` or `day`).
+2. Feed list in `config.yaml` (`news.feeds`: id, publisher, kind `publisher` or `official`, url, time format,
+   `max_age_hours`, optional excluded URL paths), validated by `fno/config.py`; `news.publisher_feeds` (true or
+   false) switches every `publisher` feed off at once, leaving the official ones. Time formats are a strategy (`PublishedTimeFormat`): RFC 822, RBI's no-zone IST and SEBI's
+   `16 Oct, 2026 +0530`; each states its precision (`second` or `day`).
 3. Parser: RSS 2.0 items to `NewsItem` (title, link, feed's own summary as plain text, published time as given and
    parsed, precision). An answer that is a web page, not XML, has no items or cannot be parsed is a failure.
 4. Records: one JSON Lines part per poll that found something new, written through O9's `DataStore` to Drive
@@ -89,16 +91,18 @@ and starts its successor itself.
 8. Failures (each is one record and, per episode, one alert):
    - per feed: no answer or HTTP error after the pacer's tries, a web page or unparseable answer, no items, every
      item without a parseable time, and **stale** (newest item older than its `max_age_hours`: publisher feeds 6 h,
-     official feeds RBI 168, SEBI 168, NSE circulars 96; starting values from step 0, all in config);
+     official feeds RBI 168, SEBI 168; starting values from step 0, all in config);
    - per run: Drive write failed, receipt commit failed, the seen set could not be loaded, clock skew over 5 s
      against the feed's `Date` header (as A16's clock rule), the successor dispatch failed;
    - **coverage gap**: at start, if the newest receipted part is older than 15 minutes, a gap record names its start
      and end (items first seen after it are late by up to that gap; `previous_poll_at` shows it per item).
    An episode alert goes once when a feed or step turns failing and once when it recovers (no alert every 5
-   minutes); every failed poll is a record. Alert text names the feed, kind and since-when, never an item. The
-   record and alert path are O10's shared ones (to be agreed with the O10 builder through the orchestrator); until
-   O10's port exists A19 uses `AlertSender` and a `CaptureFailureLog` port whose first adapter writes JSON Lines
-   failure parts through the same `DataStore` (Drive plus receipt).
+   minutes). Alert text names the feed, kind and since-when, never an item. Records use O10's committed
+   capture-error log (`research/ops/capture_errors.csv`, `fno/health/capture_errors.CaptureErrorLog`; one format,
+   no second one; orchestrator, 16 Oct): one row when an episode starts (`job` news-capture, `step` the feed or
+   run step, `kind`, a one-line message, the run's URL) and one row when it ends naming its length and failed
+   polls, committed with the next receipt commit. Alerts go through `AlertSender`. The run's own failure (killed,
+   timed out) is O10's watcher's, through `capture-watch.yml`.
 9. Reader for consumers and checks: `python -m fno news list --until <IST time> [--since ...]` prints the items
    (from receipted parts through the cache) whose `first_seen_at` is at or before the cutoff, each item's latest
    version first seen by then. Point-in-time is enforced in the reader, not left to callers.
@@ -108,9 +112,10 @@ and starts its successor itself.
 **Out (with reason):**
 - NSE corporate announcements (A12 has them with NSE's own time); a same-day NSE copy before 14:30 is A12's to add
   when a consumer asks.
+- NSE and SEBI circulars (A20b), and SEBI RSS items under `/legal/circulars/`.
 - Article bodies (terms; scraping), paid sources (owner approval), non-English feeds, social media.
 - Reading or classifying news (relevance, sentiment, company tagging): the analysts' (F2) job, on top of the reader.
-- NSE/SEBI circular content and the economic calendar (audit A3 #2 and #5): headlines only here.
+- The economic calendar (A20c).
 - Real-time silence detection when no run is alive: a dead job cannot alert; that is O10's or O8's watcher (A19
   gives it the newest receipt time per day and the gap records).
 - Any UI or UI-facing API.
@@ -120,7 +125,7 @@ and starts its successor itself.
 1. **Sources behind a port.** `NewsSource` and `RssFeedSource`; adding a feed is one config entry, adding a new kind
    of source is one class plus one line in `fno/news/wiring.py`. Conditional GET: an answer `304` counts as a
    successful poll with nothing new.
-2. **Parsing and times.** Each of the four time formats parses its step-0 sample to the right UTC time and precision;
+2. **Parsing and times.** Each of the three time formats parses its step-0 sample to the right UTC time and precision;
    a date-only time keeps `day` precision (never invented as midnight-exact); an item whose time cannot be read is
    kept with `published_at` null. Web page, empty feed, broken XML and zero items each give their named failure.
 3. **Record fields.** Every stored item has the fields of scope 4; `first_seen_at` is the poll's response time from
@@ -134,8 +139,9 @@ and starts its successor itself.
 6. **Continuous run.** The loop polls every 5 minutes until `--max-minutes`, commits receipts at most every 15
    minutes and at exit (also after an exception), and the seen set survives a restart (loaded from receipted parts):
    a restarted run does not store a known item again.
-7. **Failures recorded and alerted.** Each failure kind of scope 8 gives one record with feed, kind, time and run;
-   the first failure of an episode sends one alert, repeats in the same episode send none, recovery sends one;
+7. **Failures recorded and alerted.** Each failure kind of scope 8 starts an episode: one O10 row (job, step, kind,
+   message, run URL) and one alert; repeats in the same episode add no row and no alert; recovery adds one row and
+   one alert;
    `alert NOT sent` is recorded and printed. Stale: at, just under and just over `max_age_hours`.
 8. **Coverage gap.** A start more than 15 minutes after the newest receipted part records one gap with its start and
    end and alerts once; at 15 minutes exactly no gap.
@@ -148,7 +154,8 @@ and starts its successor itself.
     `contents: write` and `actions: write`, secrets only through `env`; a failed job alerts #fno-desk as A12's
     workflow does.
 12. **Polite and allowed.** At most one request a second per host (pacer test); each run reads each feed at most once
-    per 5-minute poll; the feed list holds only the step-0 "In" feeds (a test pins it against this story's table).
+    per 5-minute poll; the feed list holds only the step-0 "In" feeds (a test pins it against this story's table); with
+    `news.publisher_feeds: false` only RBI and SEBI are read; SEBI items under `/legal/circulars/` are never stored.
 13. **Real run before the judge.** One `news run --max-minutes 20` on the real feeds and Drive from this session (or a
     `workflow_dispatch` on the branch): the claims file shows counts per feed, parts and receipts written, one
     deliberate failure (a planted bad URL in a dry-run config) recorded and alerted, never an item's text.
@@ -179,7 +186,9 @@ criterion, shown in the claims file.
 | Stale feed detected | criterion 7 |
 | Schedule frequent enough in market hours, justified | scope 7 (5-minute polls, continuous; step 0's cron evidence); criterion 11 |
 | Terms and robots respected; official or RSS; no paid source | step 0 table; criterion 12; owner question |
-| No duplicate of A12 | step 0; Out |
+| No duplicate of A12 or A20 | step 0; Out; criterion 12 |
+| Publisher feeds switchable off (orchestrator, pending the owner's terms answer) | scope 2; criterion 12 |
+| Errors in O10's one format (orchestrator) | scope 8; criterion 7 |
 | Clock contract (A16 4.4: skew over 5 s flagged) | criterion 9 |
 | Tests offline with fixtures | test plan |
 | Real output sample (quality rule 6) | criterion 13 |
@@ -192,5 +201,5 @@ parameters, a revised title, a stale feed, a web-page answer, a 16-minute gap an
 or URL reaches the repository, Slack or logs; reads the workflow's chain and permissions; checks one real part in
 Drive against its receipt.
 
-**Depends:** O9 step 1 (merged), A9 pacer, `AlertSender`; O10's failure record (to agree) · **Size:** M ·
+**Depends:** O9 step 1 (merged), A9 pacer, `AlertSender`, O10 part 1's `CaptureErrorLog` (merged first) · **Size:** M ·
 **Status:** story text for the judge
