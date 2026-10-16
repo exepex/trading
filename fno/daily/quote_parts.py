@@ -10,11 +10,13 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
 from ..constants import STEP_FAILED
 from ..desk.daily_ports import CommitFailed, Committer
+from ..models import IST
+from ..quotes.recorder import MAX_EARLY_WAIT_SECONDS, WINDOW_START
 from .processes import Process, Processes
 from .steps import outcome
 
@@ -27,6 +29,12 @@ NOT_COMMITTED = (
 STILL_RUNNING = "still running {minutes} minutes after the desk's exits: stopped, nothing more committed for it"
 NEVER_STARTED = "never started: the part it waits for did not end in time"
 FINISH_LIMIT = timedelta(minutes=20)
+START_MARGIN = timedelta(minutes=3)  # inside A4's early limit by this much, for a slow start or a late clock
+# A4's recorder refuses a start more than `MAX_EARLY_WAIT_SECONDS` before its window ("too early", nothing recorded):
+# the earliest moment a 3 pm part may start, from A4's own constants (14:38 today)
+EARLIEST_START = (
+    datetime.combine(date.min, WINDOW_START) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS) + START_MARGIN
+).time()
 
 
 @dataclass(frozen=True)
@@ -35,11 +43,14 @@ class QuotePart:
     arguments: tuple[str, ...]  # the part's own `python -m fno` command, unchanged
     pathspecs: tuple[str, ...]  # its own files, and only its own
     starts_after: str | None = None  # starts once this part has ended and its commit was made or tried
+    not_before: time | None = None  # never starts earlier than this (A4's early limit)
 
 
 QUOTE_PARTS = (
-    QuotePart("nifty", ("quotes", "record"), (GROWW_QUOTES.format(name="nifty"),)),
-    QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",)),
+    QuotePart("nifty", ("quotes", "record"), (GROWW_QUOTES.format(name="nifty"),), not_before=EARLIEST_START),
+    QuotePart(
+        "nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",), not_before=EARLIEST_START
+    ),
     QuotePart("indices", ("quotes", "record-indices"), tuple(GROWW_QUOTES.format(name=n) for n in INDICES), "nifty"),
 )
 LEAD = QUOTE_PARTS[0].name  # NIFTY commits first: no other part commits before NIFTY's commit was made or tried
@@ -69,13 +80,20 @@ class QuoteParts:
         self.closed = False  # past the finish limit: no part starts any more
 
     def start(self, day: date) -> list[str]:
-        """Starts every part that waits for no other, once; the names started (again, if already started)."""
+        """Opens the day, once: every part that waits for no other starts now, or at its `not_before` if that is
+        later (`start_due`); the names of those parts."""
         if self.day != day:
             self.day = day
-            for part in self.parts:
-                if part.starts_after is None:
-                    self._start(part)
+            self.start_due()
         return [part.name for part in self.parts if part.starts_after is None]
+
+    def start_due(self) -> None:
+        """Starts each part whose time has come and that waits for no other; never runs git, so any wait of the run
+        may call it, a command's included."""
+        for part in self.parts:
+            due = part.not_before is None or self.clock() >= datetime.combine(self.day, part.not_before, IST)
+            if self.started and not self.closed and part.starts_after is None and due and self._unstarted(part):
+                self._start(part)
 
     @property
     def started(self) -> bool:
@@ -85,14 +103,15 @@ class QuoteParts:
         return self.started and len(self.results) < len(self.parts)
 
     def service(self) -> None:
-        """Commits every part that has ended (NIFTY's first), then starts the parts waiting for it."""
+        """Starts the parts now due, commits every part that has ended (NIFTY's first), then starts the parts waiting
+        for it."""
+        self.start_due()
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
                 self._finish(self._part(name), code, process.lines())
         for part in self.parts:
-            waiting = part.name not in self.running and part.name not in self.results
-            if self.started and not self.closed and waiting and part.starts_after in self.results:
+            if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
                 self._start(part)
 
     def finish(self, wait: Callable[[datetime], None], not_before: datetime | None = None) -> dict[str, dict]:
@@ -115,6 +134,9 @@ class QuoteParts:
             if part.name not in self.results:
                 self._failed(part.name, NEVER_STARTED)
         return self.results
+
+    def _unstarted(self, part: QuotePart) -> bool:
+        return part.name not in self.running and part.name not in self.results
 
     def _start(self, part: QuotePart) -> str:
         self.running[part.name] = self.processes.start(part.arguments)
