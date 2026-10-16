@@ -247,3 +247,4 @@ Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers
 - [Response 256: D3 refuses a non-empty owner_override in every book (DESK_DECISIONS row 229 item 4), builder's claims; F4's override text flagged](response_256_d3-no-owner-override.md)
 - [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)
 - [Response 255: G11 round 1, the AI books' v4 rows: one G7-schema row per started question for every settled book-day, every failure a miss, pending days without a row](response_255_g11-round-1-v4-rows.md)
+- [Response 264: F2 analyst cards, text round: the orchestrator's four answers, one analyst first (volatility) with the F9 sample argument, F9's cost rule and O9's credential limit for their owners](response_264_f2-analyst-cards.md)
