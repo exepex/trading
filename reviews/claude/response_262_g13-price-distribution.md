@@ -152,12 +152,39 @@ By role:
 
 - The back-fill file name (finding 8c) and the `--live` flag (8b), as above.
 - The record adds `source_note` (finding 2). The story's row columns are all present.
+- **A chain that was recorded but cannot be read (Drive down), or a build that fails, writes no file for that
+  underlying** (findings 2 and 3; judge 310 minor 3). The text says every failure writes a `missing` record. A
+  write-once file for a failure that may pass would turn a one-minute Drive outage into a lost day. So only a chain
+  never captured gets a `missing` record. The other two fail the step (exit 1, one alert) with the reason, and a
+  rerun records the day.
 - O1's own tests were extended for the new step, nothing loosened:
   - `tests/daily/test_day_run.py`: the fake steps, the call lists and a rerun's calls;
   - `tests/daily/test_steps.py`: the live dates;
   - `tests/health/test_desk_and_data_checks.py`: the steps not run.
 - **O1's owner reviews the `fno/daily/`, `constants_operations.py` and `config.yaml` diff (agreed, 16 Oct).**
 - CLAUDE.md's composition-root list adds `fno/price_distribution/wiring.py` (the story said so).
+
+## Judge 310 (FAIL at 794877c2, 1 should-fix, 3 minor): answers
+
+Each was checked against the code before it was fixed; all four are correct.
+1. **Should-fix: a rerun turned a problem day into `ok`. Accepted.** The judge is right. `record()` saw any existing
+   live file as "already recorded" with no problem, so O1's rerun of a failed step exited 0 and O8 saw a good day.
+   - Now a stored record's `problems` (a stored `missing` record included) count again: `<underlying>: already
+     recorded with N problems`, and the last line `written with problems: ...`, exit 1.
+   - Test: `test_recorder.py::test_a_rerun_of_a_problem_day_still_fails_with_the_stored_problems`.
+   - Mutation (stored problems dropped): caught.
+2. **Minor 1: the 200-point boundary and the [0, 1] clip were untested. Accepted.**
+   - `test_density.py::test_a_pair_exactly_200_points_apart_still_forms_a_midpoint` (200 kept, 250 dropped).
+   - `::test_pooled_values_are_clipped_to_zero_and_one`: raw CDF -0.58 and 1.58; the stored points start at 0.0 and
+     end at 1.0.
+   - Both mutations (`<=` to `<`, the clip removed) are caught.
+3. **Minor 2: a refused row stopped a whole back-fill range. Accepted.** A `ValueError` or `ArithmeticError` skips
+   that day only, counted as `build failed (...)`.
+   - Test: `test_backfill.py::test_a_day_whose_build_fails_is_skipped_and_counted_the_rest_are_written`.
+   - Mutation: caught.
+4. **Minor 3: the deviation is now listed** under "Deviations".
+
+Mutations now: 42 planted, 42 caught. G13 tests: 111.
 
 ## Gates (on the pushed tree)
 

@@ -139,3 +139,23 @@ def test_an_edge_option_without_an_implied_volatility_is_missing():
     used = UsedQuotes(tuple(q for q in broken), {})
     result = implied_distribution(used, FORWARD, RATE, DAYS)
     assert result.distribution is None and "lower edge" in result.reason
+
+
+@pytest.mark.parametrize(("gap", "kept"), [(200, True), (250, False)])
+def test_a_pair_exactly_200_points_apart_still_forms_a_midpoint(gap, kept):
+    grid = [k for k in strikes(22_400, 23_600) if not 22_800 < k < 22_800 + gap]
+    curve = put_curve(used_quotes(expiry_chain(NEAR, flat(0.12), grid=grid), SpreadFilter()), FORWARD, RATE, DAYS)
+    midpoints = [m for m, _, _, _ in raw_cdf(curve, RATE, DAYS)]
+    assert ((22_800 + 22_800 + gap) / 2 in midpoints) == kept
+
+
+def test_pooled_values_are_clipped_to_zero_and_one():
+    chain = expiry_chain(NEAR, flat(0.12), grid=strikes(22_000, 24_000))
+    low, high = 22_000, 24_000  # the lowest put far too dear, the highest call far too dear: CDF below 0 and above 1
+    priced = tuple(Quote(q.strike, q.kind, q.price + 30, q.bid + 30, q.ask + 30)
+                   if (q.strike, q.kind) in ((low, "PE"), (high, "CE")) else q for q in chain.quotes)  # fmt: skip
+    used = used_quotes(ExpiryChain(NEAR, priced, None), SpreadFilter())
+    raw = [c for _, c, _, _ in raw_cdf(put_curve(used, FORWARD, RATE, DAYS), RATE, DAYS)]
+    assert min(raw) < 0 and max(raw) > 1
+    points = implied_distribution(used, FORWARD, RATE, DAYS).distribution.points
+    assert points[0][1] == 0.0 and points[-1][1] == 1.0 and all(0.0 <= c <= 1.0 for _, c in points)

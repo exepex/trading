@@ -93,3 +93,19 @@ def test_written_days_with_problems_are_counted_by_kind(tmp_path):
     source = Chains({("NIFTY", DAY): chain_day(spot=None), ("NIFTY", MONDAY): chain_day(day=MONDAY, spot=None)})
     lines = backfill(tmp_path, source=source)[0].run("backfill_3pm", ("NIFTY",), DAY, MONDAY)
     assert "NIFTY backfill_3pm: 2 written days with: implied h1" in lines
+
+
+def test_a_day_whose_build_fails_is_skipped_and_counted_the_rest_are_written(tmp_path):
+    class Breaking(DayBuilder):
+        def build(self, chain, label, made_at):
+            if chain.day == MONDAY:
+                raise ValueError("Out of range float values are not JSON compliant")
+            return super().build(chain, label, made_at)
+
+    store, drive, _ = drive_store(tmp_path)
+    run = Backfill(chains(), Breaking(CALENDAR, RATE, CLOSES, "c0" * 32), store, CALENDAR, None)
+    lines = run.run("backfill_3pm", ("NIFTY",), DAY, MONDAY)
+    assert "NIFTY backfill_3pm: 1 days skipped: build failed (ValueError): Out of range float values are not JSON " \
+           "compliant" in lines  # fmt: skip
+    (only,) = drive.files.values()
+    assert [r["day"] for r in json.loads(gzip.decompress(only))["records"]] == [DAY.isoformat()]

@@ -145,3 +145,17 @@ def test_a_drive_failure_leaves_no_receipt_and_raises_to_the_command(tmp_path):
     else:
         raise AssertionError("a Drive failure must stop the command")
     assert receipts.under("data") == []
+
+
+def test_a_rerun_of_a_problem_day_still_fails_with_the_stored_problems(tmp_path):
+    """Judge 310: a stored `missing` record and a record with problems count again, so O8 never sees a false ok."""
+    chains = {("NIFTY", DAY): chain_day(spot=None)}  # NIFTY written with problems, BANKNIFTY recorded missing
+    built, drive, _, _ = recorder(tmp_path, chains=chains)
+    first_code, _ = built.record(DAY)
+    files = dict(drive.files)
+    code, lines = built.record(DAY)
+    assert (first_code, code) == (1, 1) and drive.files == files
+    assert lines[0].startswith("NIFTY: already recorded with ") and lines[1] == (
+        "BANKNIFTY: already recorded with 1 problems"
+    )
+    assert lines[-1].startswith("written with problems: NIFTY ") and "BANKNIFTY no canonical 3 pm chain" in lines[-1]

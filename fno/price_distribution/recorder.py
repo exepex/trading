@@ -6,7 +6,8 @@ failed or refused step.
   exit 0;
 - a closed day: `not a trading day`, exit 0;
 - a day already in Drive: never rebuilt (its `made_at` would change the bytes); the same bytes are put again, which
-  restores a missing receipt, and the line says `already recorded`;
+  restores a missing receipt, and the line says `already recorded`; its stored problems (a `missing` record
+  included) count again, so a rerun of a problem day still fails (judge 310);
 - no chain captured for any underlying: `nothing written: ...`, exit 0 (O1 records `refused`, one alert);
 - a chain recorded but unreadable (Drive down) or a build that fails: no file for that underlying, so a rerun can
   still record it; with any other problem, every other file is written (a chain not captured as a `missing` record),
@@ -15,6 +16,7 @@ failed or refused step.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Sequence
 from datetime import date, datetime
 
@@ -37,6 +39,7 @@ NOTHING = "nothing written: {reasons}"
 NO_CHAIN_ANYWHERE = "nothing written: no 3 pm chain for any underlying ({reasons})"
 BUILD_FAILED = "build failed ({kind}): {error}"
 ALREADY = "{underlying}: already recorded"
+ALREADY_WITH_PROBLEMS = "{underlying}: already recorded with {problems} problems"
 RECORDED = "{underlying}: recorded ({problems} problems)"
 PROBLEM = "problem: {problem}"
 WITH_PROBLEMS = "written with problems: {problems}"
@@ -61,7 +64,10 @@ class LiveRecorder:
             existing = self.store.get(path)
             if existing is not None:
                 self.store.put(path, existing)
-                lines.append(ALREADY.format(underlying=underlying))
+                stored = json.loads(existing).get("problems") or []  # a rerun never turns a problem day into ok
+                problems += [f"{underlying} {p}" for p in stored]
+                line = ALREADY_WITH_PROBLEMS if stored else ALREADY
+                lines.append(line.format(underlying=underlying, problems=len(stored)))
                 continue
             try:
                 chain = self.source.chain(underlying, day)

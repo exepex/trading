@@ -55,7 +55,11 @@ class Backfill:
                 if chain is None:
                     skipped[NO_CHAIN] += 1
                     continue
-                record = self.builder.build(chain, label, None)
+                try:
+                    record = self.builder.build(chain, label, None)
+                except (ValueError, ArithmeticError) as error:  # a refused row or a NaN: that day only (judge 310)
+                    skipped[f"build failed ({type(error).__name__}): {error}"] += 1
+                    continue
                 records.append(record)
                 problems.update(_reason(p) for p in set(record["problems"]))
             lines += [SKIPPED.format(underlying=underlying, label=label, count=n, reason=r) for r, n in skipped.items()]
