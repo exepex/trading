@@ -3,7 +3,8 @@ action of a closed list has a status `allowed`, `shadow-only` or `forbidden`; an
 forbidden. The actions a choice uses are derived from its terms against the rule default (D2), never claimed by the
 decider, so a choice cannot say one thing and do another. The envelope of the version actually traded governs every
 action of the trade (judge 207). A choice that trades when the rules offered no trade is always refused: the envelope
-never creates a trade the rules did not offer."""
+never creates a trade the rules did not offer. The rule default and the eligible versions come from D2's evaluation,
+never from the decider (judge 260)."""
 
 from __future__ import annotations
 

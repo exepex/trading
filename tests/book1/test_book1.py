@@ -104,7 +104,7 @@ class Validator:
     def __init__(self, ok):
         self.ok = ok
 
-    def validate(self, day, outcome, market, playbook, book, passed):
+    def validate(self, day, outcome, market, playbook, book, passed, eligible):
         from fno.playbook.decision_validity import ValidityResult
 
         check = {"check": "max_loss", "ok": self.ok, "reason": "" if self.ok else "Rs 1 off", "numbers": {}}

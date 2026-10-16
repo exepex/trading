@@ -71,6 +71,13 @@ class DayEvaluation:
     def chosen(self) -> tuple[Outcome, ...]:
         return tuple(o for o in self.outcomes if o.decision == Decision.CHOSEN)
 
+    @property
+    def eligible(self) -> frozenset[tuple[str, int]]:
+        """The book's versions whose rule fired with a valid candidate (chosen or not chosen), as (name, version): what
+        Book 2's envelope may choose among (story D4, criterion 9). A rule that did not fire is never eligible."""
+        valid = (Decision.CHOSEN, Decision.NOT_CHOSEN)
+        return frozenset(o.opportunity.strategy.key for o in self.outcomes if o.decision in valid)
+
     def record(self) -> dict:
         chosen = [o.opportunity.opportunity_id for o in self.chosen]
         return {
