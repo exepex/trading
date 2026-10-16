@@ -41,6 +41,8 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
 - **Before the freeze commit (judge 189, judge B's condition):** G10 part 2's moved-after-cutoff flag, written by
   A16's 15:30 run into its rv row (orchestrator's go, 16 Oct), changes `fno/intraday/session_rv.py`, which is
   byte-checked; it lands before the freeze or becomes a new version.
+- **Before the freeze commit (owner, 16 Oct):** A16's void-share count start (`story/a16-void-share-start`) changes
+  `fno/intraday/session_rv.py`, which is byte-checked; it lands before the freeze.
 - **Before the freeze commit (G7b, 16 Oct):** G8's V7 outcome moves to G7's `series.vix_up_outcomes` (one rule, as V6):
   `fno/forecast_scoring/v4/outcomes.py` drops its own `vix[i + horizon] > vix[i]` and `g7_series.py` adapts G7's
   function, with an equality test on the committed closes. Both files are byte-checked.
