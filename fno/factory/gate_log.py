@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Protocol
 
 from ..playbook.registry import rewritten_history
-from .constants import GATE_COLUMNS, GATES_FILE, NUMBERS_PATTERN, Gate, Outcome
+from .constants import GATE_COLUMNS, GATE_OUTCOMES, GATES_FILE, NUMBERS_PATTERN
 
 
 class GateLogError(ValueError):
@@ -37,7 +37,7 @@ class GateRow:
 def _check_row(row: GateRow) -> None:
     if not row.trial_id.isdigit():
         raise GateLogError(f"trial id {row.trial_id!r} is not a ledger trial number")
-    if row.gate not in set(Gate) or row.outcome not in set(Outcome):
+    if row.outcome not in GATE_OUTCOMES.get(row.gate, ()):
         raise GateLogError(f"trial {row.trial_id}: unknown gate {row.gate!r} or outcome {row.outcome!r}")
     if not re.match(NUMBERS_PATTERN, row.numbers):
         raise GateLogError(f"trial {row.trial_id}: numbers {row.numbers!r} are not k=v;k=v")
@@ -92,3 +92,8 @@ class GateLog:
         before = self._text() or _render(GATE_COLUMNS)
         self.file.parent.mkdir(parents=True, exist_ok=True)
         self.file.write_text(before + _render(astuple(row)), encoding="utf-8")
+
+
+def figures(row: GateRow) -> dict[str, str]:
+    """The row's `numbers` as a mapping (k=v;k=v)."""
+    return dict(pair.split("=", 1) for pair in row.numbers.split(";") if pair)

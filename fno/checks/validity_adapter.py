@@ -71,12 +71,12 @@ class BookTradeValidator:
 
     def validate(
         self, day: date, outcome: Outcome, market: Market, playbook: Playbook, book: RiskBook,
-        earlier: tuple[Outcome, ...],
+        earlier: tuple[Outcome, ...], eligible: frozenset[tuple[str, int]] = frozenset(),
     ) -> ValidityResult:  # fmt: skip
         cutoff = datetime.combine(day, self.cutoff, IST)
         before = tuple(proposal_of(self.book, day, o, market, playbook, cutoff) for o in earlier)
         own = proposal_of(self.book, day, outcome, market, playbook, cutoff)
-        proposal = replace(own, earlier=before, **account_inputs(book))
+        proposal = replace(own, earlier=before, eligible=eligible, **account_inputs(book))
         report = self.checker.check(proposal, self.captures.record(day))
         reason = "; ".join(f"{r.name}: {r.reason}" for r in report.failures)
         return ValidityResult(report.ok, report.record(), reason, report)

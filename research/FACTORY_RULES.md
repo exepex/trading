@@ -1,8 +1,9 @@
 # Strategy factory rules (story R1, documents part)
 
 Source: design v2, `docs/design_v2/03_layers_factory_desk.md` section 3.1 (layer 4), with REPLAN slice A item 4. This
-file is the rule text the factory's code (R1 code, slice B) must implement; until that code exists, the gates are
-applied by hand and recorded in the idea card and `research/ledger.csv`. A change to this file is lane 1 (rule
+file is the rule text the factory's code (R1 code, slice B) must implement. G0-G3 run by code since story R1b
+(`python -m fno factory register | screen | spend | plan`, recorded in `research/ledger.csv` and
+`research/factory/gates.csv`); G4-G6 are applied by hand until R1c. A change to this file is lane 1 (rule
 document, `docs/JUDGE.md`). Labels: **strong evidence**, **some evidence**, **reasoning only**.
 
 Related files: idea-card template `research/ideas/TEMPLATE.md`; data-spend register `research/DATA_SPEND.md`; trial

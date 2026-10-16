@@ -2,7 +2,7 @@
 
 import pytest
 
-from fno.factory.card import FIELDS, CardError, read_card
+from fno.factory.card import G0_FIELDS, CardError, read_card
 
 from .helpers import BLOCK, CARD, write_card
 
@@ -16,7 +16,7 @@ def test_a_valid_block_gives_the_card(tmp_path):
     assert card.path == CARD
 
 
-@pytest.mark.parametrize("field", FIELDS)
+@pytest.mark.parametrize("field", G0_FIELDS)
 def test_a_missing_field_is_named(tmp_path, field):
     block = "".join(line + "\n" for line in BLOCK.splitlines() if not line.startswith(f"{field}:"))
     with pytest.raises(CardError, match=f"field '{field}' is missing"):
