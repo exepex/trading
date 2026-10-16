@@ -16,7 +16,7 @@ G7 or M1.
 | # | Item | Owner | State on 16 Oct |
 |---|---|---|---|
 | 1 | **Ledger registration (B4) with the freeze**: V1 `rules` = `v1_close_blend`; V2 `rules` = `v2_close_blend`; V6a and V6b `rules` = M1's weather model (decision 70; `v6_ewma_t4` reported only); V7's three slots stay at p = 1 (descriptive only, `terms.DESCRIPTIVE_ONLY`); `hybrid` and `ai_team` slots = G11's books, or empty (p = 1) if G11 is not live by then | G6 freeze session (01MgTu3L1T3y6R18ATTwbFub) writes the rows; ids from me (G7), M1 (013xqaNTCbSBytKgqpfaYFqZ) and G11 (01XFXpbkyixX7SuXeQCp5EnX) | ids exist in code (`fno/constants.py`, `fno/forecast_v4_rules/constants.py`); rows not written |
-| 2 | **Live capture from the freeze day, before 14:30 IST**: O1's daily run already has both steps (`weather capture`, `forecast-v4 capture`, each from `config.yaml daily.live_from`), **but the routine starts at 14:33**, and both captures refuse from 14:30:00 (G10), so as it stands every day writes nothing: a miss for every G7 and M1 slot. Fix: the routine starts at 14:05 from the freeze day (G10's planned go-live time), and `daily.live_from.weather` and `.forecasts_v4` are set to the freeze date | the owner (routine time, `live_from` dates); O1 builder (014zYLf18PgCzR7YoHs1X5Dp) confirms the step order | O1 passed, merges once main is green; timing asked of the O1 builder 16 Oct |
+| 2 | **Live capture from the freeze day, before 14:30 IST**: O1's daily run already has both steps (`weather capture`, `forecast-v4 capture`, each from `config.yaml daily.live_from`), **but the routine starts at 14:33**, and both captures refuse from 14:30:00 (G10), so as it stands every day writes nothing: a miss for every G7 and M1 slot. Fix: the routine starts at 14:05 from the freeze day (G10's planned go-live time), and `daily.live_from.weather` and `.forecasts_v4` are set to the freeze date | the owner (routine time, `live_from` dates); O1 builder (014zYLf18PgCzR7YoHs1X5Dp) confirms the step order | O1 passed, merges once main is green; the O1 builder confirmed the reading (strong evidence: the code) |
 | 3 | **Back-fill regenerated on the frozen code**: `python -m fno forecast-v4 backfill` after deleting G7's folders, in the freeze commit if any G7 method file changed since; disclosed in `FREEZE_v4.md` as exploratory (protocol 8) | me (G7) | gate in place: `test_every_committed_g7_record_row_carries_this_trees_method_hash` fails on a stale back-fill |
 | 4 | **G8 reads V7 from G7's rule** (`series.vix_up_outcomes`) before the freeze commit, then G7's gap fix (a missing VIX close voids V7, judge 267's note) with its `sessions` argument | A16/G8 builder (01VK88LxJvV1Gi7Wbr3D4fzp), then me | G8 switch PASSED (judge 267), waits for main to be green; my fix `story/g7b-vix-gaps` 19e681a5 with judge B |
 | 5 | **The owner signs the four G7b wordings** in `PROTOCOL_v4.md` (1.5: V5's `first_seen_at` fallback; 3.1: flagged IV30 gives no implied value; V4/V5 base rates live only; trailing and EWMA read the last session before `d`) | the owner, with the freeze | drafted and judged (judge 258 add. 3 PASS); a test reads them |
@@ -42,6 +42,17 @@ G7 or M1.
   only if the routine cannot move.
 - **Not proposed:** an Actions cron. GitHub started morning crons 4-5 hours late (register row "A14 cron early").
 - A late day stays honest either way: a step that reaches the check at or after 14:30 writes nothing and says so.
+- **O1 builder's answer (16 Oct):**
+  - The reading is right. At 14:33 both steps are recorded `refused`, one alert each, and the day ends "day done with
+    problems: weather, forecasts_v4". So the miss is loud, but it would happen every day.
+  - They reject the second fire: two schedules, one run log and one checkout is the race O1 removed. Agreed.
+  - **Order (O1 follow-up, lane 1, judge D):** run weather and forecasts_v4 before `margin_check` (up to 600 s), so
+    nothing that can block sits before them except the 120 s history fetch and E2c's Drive download. That Drive
+    download has per-request timeouts but no overall limit, so a slow Drive day can still push the captures past
+    14:30. That case stays loud (refused and alerted); a limit on it is the O1 builder's to consider.
+  - **Gate:** `daily.live_from.weather` and `.forecasts_v4` are set no earlier than the first day the stored routine
+    starts at 14:05, in the same commit as the CLAUDE.md start-time line.
+  - G7 agrees with both. M1's builder confirms for the weather step.
 
 ## Not in this freeze (said plainly)
 
