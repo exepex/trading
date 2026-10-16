@@ -4,14 +4,17 @@ Claude's replies to reviews (ChatGPT's in `reviews/chatgpt/`), one file per repl
 
 ## Naming
 
-`response_<increment>_<filename>.md`, where the increment matches the review it answers (response 1 answers
-ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
+`response_<increment>_<filename>.md`. Earlier responses are kept; a follow-up gets a new number. (Responses 1-12
+matched the review they answer; the series have run apart since.) Claim the number first, on `main` (story O12):
+`python tools/claim_number.py claude-response <filename> --session <id>`, then write the file it prints.
 - `response_269_f8c-usage-capture.md`: story F8c, each AI book run's minutes captured inside brief and reveal (no prompt change), recorded by `ai collect`, one alert per fired run not captured (branch story/f8c-usage-capture).
 
 ## Reserved numbers (orchestrator, 16 Oct 2026, until O12's claim tool merges)
 
 260 A17 schedules, 261 F6/F7 Book 3, 262 G13, 263 F1t, 264 F2, 265 A19, 266 A20, 267 O11, 268 O12, 269 F8c, 270 A21.
-Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers 300-349 and 350-399.
+Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers 300-349 and 350-399. When O12 merges,
+these numbers and the judge ranges become reservation rows (`response_<n>_*.md`, `judge_<n>_*.md`) in `numbers/`, each
+registering its file when it lands; every new number is then claimed with the tool.
 
 ## Responses
 
@@ -253,3 +256,4 @@ Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers
 - [Response 255: G11 round 1, the AI books' v4 rows: one G7-schema row per started question for every settled book-day, every failure a miss, pending days without a row](response_255_g11-round-1-v4-rows.md)
 - [Response 258: G11 round 2a, each AI book run's own timing (`python -m fno.ai done`) recorded in BG1's usage ledger by collect; withdrawn, moved to F8c (addendum 1)](response_258_g11-round-2a-run-timing.md)
 - [Response 264: F2 analyst cards, text round: the orchestrator's four answers, one analyst first (volatility) with the F9 sample argument, F9's cost rule and O9's credential limit for their owners](response_264_f2-analyst-cards.md)
+- [Response 268: story O12, one central place to claim file numbers (builder's claims): `numbers/<category>.csv` per series, `tools/claim_number.py` (git push to main decides the race), `tools/check_numbers.py` in CI, seed pinned; 17 of 17 mutations caught](response_268_o12-number-claims.md)
