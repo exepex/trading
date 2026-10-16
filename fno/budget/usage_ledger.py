@@ -2,8 +2,9 @@
 rewritten. Rows come only from a `SessionUsageReader`; only days the reader calls complete are recorded (before today,
 and before the day an export was taken), each with the day before which its reading was complete. A session is known by
 its id without the prefix (`session_` or `cse_`), so the same session written two ways is still recorded once. The file
-is rewritten whole through a temporary file, never appended in place. One recorder at a time: there is no lock (no
-routine runs this yet)."""
+is rewritten whole through a temporary file, never appended in place. Two recorders, no lock: a development session
+(`budget record-usage`) and `ai collect` in its Actions job (story F8c). A push that meets the other's change on this
+file is refused by git, never merged into a wrong file; recording again is safe, since a session-day is written once."""
 
 from __future__ import annotations
 

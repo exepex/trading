@@ -5,8 +5,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from .validity_money import ProposedLeg
+
+if TYPE_CHECKING:
+    from ..playbook.envelope import BookTerms
 
 
 @dataclass(frozen=True)
@@ -36,6 +40,11 @@ class ValidityProposal:
     earlier: tuple[ValidityProposal, ...] = ()  # the book's trades chosen earlier the same day that passed C4
     open_terms: Mapping[str, tuple[str, float, int]] = field(default_factory=dict)  # open trade -> recorded terms
     premium_reserved: float = 0.0  # premium held for pending orders (E4)
+    # Book 2 (story D4): the rule's own terms, None when the rules offer no trade. Taken from D2's evaluation, never
+    # from the decider: a decider's default equal to its own choice would read as follow_rule (judge 260)
+    rule_default: BookTerms | None = None
+    eligible: frozenset[tuple[str, int]] = frozenset()  # Book 2: D2's versions that fired with a valid candidate
+    strategy_id: str = ""  # Book 3 (story D5): the registered strategy the trade uses
 
     @property
     def units(self) -> int:

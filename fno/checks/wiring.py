@@ -21,7 +21,7 @@ from .validity_evidence import EvidenceReader
 from .validity_limits import LimitChecks
 from .validity_listing import NseListing
 from .validity_margin import MarginFile
-from .validity_modes import PlaybookMode, ValidityMode, WaitsFor
+from .validity_modes import PlaybookMode, ValidityMode
 from .validity_settings import limits_from_config
 from .validity_shapes import BOUGHT, CALL, PUT, SOLD, BodyWithWings, OneBoughtOption, Shape, Vertical
 
@@ -69,14 +69,33 @@ def validity_shapes() -> dict[str, Shape]:
     }
 
 
-def validity_modes() -> dict[str, ValidityMode]:
-    """Book 1 checks against the playbook; books 2 and 3 fail closed until D4's envelope and D5's constitution exist."""
+def validity_modes(root: Path | None = None) -> dict[str, ValidityMode]:
+    """Book 1 checks against the playbook; Book 2 against the playbook and its trade envelope (D4); Book 3 against its
+    constitution and strategy registry (D5); the files, the D6 registry and git history under `root`."""
+    from ..book3.constitution import ConstitutionFiles
+    from ..book3.wiring import build_strategy_registry
+    from ..books.registered_components import RegisteredComponents
+    from ..books.version_registry import VersionRegistry
+    from ..books.versions import VERSIONS_FILE
+    from ..config import ROOT
     from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
+    from ..playbook.envelope_files import EnvelopeFiles
+    from ..research_engine.ledger import Git
+    from .validity_constitution import ConstitutionMode
+    from .validity_envelope import EnvelopeMode
 
+    base = Path(root or ROOT)
+    registered = RegisteredComponents(VersionRegistry(base / VERSIONS_FILE))
     return {
         BOOK1_RULES: PlaybookMode(validity_shapes()),
-        BOOK2_HYBRID: WaitsFor("envelope", "D4"),
-        BOOK3_AI: WaitsFor("constitution", "D5"),
+        BOOK2_HYBRID: EnvelopeMode(validity_shapes(), EnvelopeFiles(base).all, registered),
+        BOOK3_AI: ConstitutionMode(
+            validity_shapes(),
+            ConstitutionFiles(base).by_sha256,
+            registered,
+            build_strategy_registry(base),
+            Git(base).head,
+        ),  # fmt: skip
     }
 
 
@@ -90,7 +109,7 @@ def build_validity_checker(cfg: dict, root: Path, quotes, nse_library, accounts=
     limits = limits_from_config(cfg, root, RISK_PROFILE_BOOKS, build_session_calendar().session_kind)
     sources = Sources(EvidenceReader(quotes, DATASET), NseListing(nse_library), accounts or LedgerAccounts(root))
     checks = LimitChecks(limits, cfg["charges"], margins or MarginFile(limits.margins.file))
-    return ValidityChecker(sources, checks, validity_modes())
+    return ValidityChecker(sources, checks, validity_modes(root))
 
 
 def build_trade_validator(

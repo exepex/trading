@@ -101,6 +101,7 @@ python -m fno vix-history verify   # recompute the table from Drive and list any
 ```
 
 New days after 30 Sep 2026 come daily from the index-close files (O6, `warmup_closes.csv`, close only); a monthly
-`fill` adds each ended month here. It is not scheduled (no schedule was added by this story). Until it is, every
-monthly `fill` commit is **lane 1** (rows made by story code run by hand, not a scheduled job's output; judge 100 (f)).
+`fill` adds each ended month here: `.github/workflows/vix-history.yml` runs `fill` and `sweep` for the previous IST
+month at 07:11 IST every day (A17 schedules, 16 Oct 2026), so a month is added on the 1st and retried while NSE is late.
+Its commits are a scheduled job's data (lane 3); a `fill` run by hand stays **lane 1** (judge 100 (f)).
 `verify` names any day of an archived month the table lacks, and any value or source that differs.

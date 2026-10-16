@@ -8,11 +8,13 @@ yet"."""
 from __future__ import annotations
 
 import calendar
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
 from ..constants import JOURNAL_FOLDER, SHADOW_FOLDER
+from ..factory.constants import GATES_FILE
 from ..research_data.calendar import CalendarError, SessionCalendar
 
 FULL_MONTHS = 6
@@ -37,16 +39,32 @@ class StopRuleInput:
     what: str
     story: str
     path: str | None = None  # where the producing story writes it; None until that story defines it
+    present: Callable[[Path], bool] | None = None  # when a file existing is not enough (story R1c, BG1 owner's design)
 
     def exists(self, root: Path) -> bool:
+        if self.present is not None:
+            return self.present(root)
         return self.path is not None and (root / self.path).exists()
+
+
+def _shadows_registered(root: Path) -> bool:
+    """Test B's R1 input is present only once a shadow is registered (G4), not when the gate log merely exists."""
+    from ..factory.wiring import build_registered_shadows  # lazy: the budget does not load the factory otherwise
+
+    return bool(build_registered_shadows(root).all())
 
 
 INPUTS = (
     StopRuleInput("A", "protocol v4's registered family, frozen (primary comparisons, judgeable questions)", "G6"),
     StopRuleInput("A", "v4 daily scores of V6, V1 and V2 against their primary baselines", "G8"),
     StopRuleInput("A", "15-minute quotes long enough for V1 (V1 is judged only if they are)", "A16"),
-    StopRuleInput("B", "shadow strategies registered in the ledger with pass mark and minimum useful net", "R1"),
+    StopRuleInput(
+        "B",
+        "shadow strategies registered in the ledger with pass mark and minimum useful net",
+        "R1",
+        GATES_FILE,
+        _shadows_registered,
+    ),
     StopRuleInput("B", "resolved shadow trades, net after costs", "R3", SHADOW_ACCOUNTS),  # each account in Drive (E2c)
 )
 

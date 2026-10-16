@@ -15,6 +15,7 @@ on:
       - flows-download
       - forecast-capture
       - forecast-scores
+      - global-cues
       - health-check
       - index-closes
       - market-publish
@@ -26,6 +27,7 @@ on:
       - postmortem-weekly
       - quote-recorder-nse
       - stress-factor
+      - vix-history
     types: [completed]
 
 permissions:

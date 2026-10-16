@@ -44,14 +44,33 @@ Before ending any working session with the user, write or append to `conversatio
 "Decisions so far" and "Open questions" sections. Commit and push it. Never include email addresses,
 API keys or tokens.
 
-## 3 pm quote recorder (daily routine, stories A4 and A7)
+## Daily desk routine (story O1; the 3 pm quote parts: stories A4, A4c and A7)
 
-Started by a scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55); the NSE
-session calendar (A7) decides whether it is a trading day, so special weekend sessions are recorded and closed days
-print "not a trading day". Research data only: never places, modifies or cancels orders.
+Started by the owner's scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55);
+its stored prompt is exactly: "Run the daily desk routine in CLAUDE.md, section 'Daily desk routine'." One command runs
+the whole desk day; the NSE session calendar (A7) decides whether it is a trading day (a closed day records only
+`skipped` and each quote part prints "not a trading day"). Research and paper trading only: never places, modifies or
+cancels orders.
 1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
    checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
    Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
+2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
+   (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
+   forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
+   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww). It
+   writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
+   done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
+   same day skips the steps already done.
+3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
+   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+
+### What the run does for the 3 pm quote parts (A4c's routine steps, word for word)
+
+The routine never runs these commands itself: `daily run` runs each part's own command as a child process and makes
+each part's commit in its one thread. The `git add` lines below are also the hand fix when the run reports a part
+"NOT committed". Their rules hold for every commit of the day: never edit a recorded attempt, never `--no-verify`.
+
 2. `python -m fno quotes record` (NIFTY, Groww) and `python -m fno quotes record --source nse` (NSE's public chain,
    story O6) run in parallel from the routine's start; each waits for 14:55 IST, records NIFTY monthly quotes and
    retries until 15:10 if a capture is incomplete. NSE's session calendar (`research/data/calendar/nse_sessions.csv`,
@@ -156,7 +175,10 @@ commit with `--no-verify`.
   A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
-  paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a).
+  paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
+  `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5) and
+  `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
+  parts and the card around it, story O1).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
