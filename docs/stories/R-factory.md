@@ -211,4 +211,112 @@ Out (each with where it goes):
 6-9); B0 is registered after they merge. Shadow orders and fills (criteria 3-5) are built when E8's part 1b merges.
 
 **Depends:** D1, D2, E3, E5 (Book 1's run), E8 (fills), E6 (scorecard), BG1 (stop-rule tracker), STR1b-2 and G7/A16/G10
-for the V-ideas · **Size:** M · **Status:** story text, waiting for the judge
+for the V-ideas · **Size:** M · **Status:** text PASS (judge 208 add. 1); part A merged (0d796a1c, judge 210 add. 2, ChatGPT 132 / response 229);
+B0's registration and part B: text below, waiting for the judge
+
+### R3 addendum (16 Oct 2026): B0's registration and part B
+
+**Why:** part A is merged. The build order puts B0's registration next, then part B (shadow orders and fills) when
+E8's part 1b merges. ChatGPT review 132, accepted in response 229, adds three conditions to part B; the orchestrator
+requires them in this text.
+
+**B0's registration (built now, criterion 8):**
+- **Files** (desk registration: `(None, research)` is allowed for the desk, `fno/playbook/transitions.py`; the owner
+  chose it, decision 1 A):
+  - `research/ideas/B0.md`, from `TEMPLATE.md`;
+  - a ledger row through B4's guard (`prospective`, hypothesis `no`, description starting "B0 measurement: never
+    promoted");
+  - `playbook/b0-monthly-sc-v1.yaml`: experiment 1's P1 rule exactly, which is response 92's B0 row (SC, forward x
+    1.02 / x 0.98, widest of 300/250/200/150/100 within the Rs 10,000 cap, every monthly cycle 30-45 days out, exit at
+    the last 15:00 with 21+ days left, `entry_conditions: []`, `catastrophic_loss_rs: 10000`);
+  - its registry row (`research`, `approved_by: desk`) by `python -m fno playbook set-status`.
+- **The label's one source:** the version file's `edge_family: measurement` (an existing D1 field, no schema change).
+  One predicate, `is_measurement(strategy)`, reads it, and every output below calls it. Its constant is named at the top of the predicate's
+  module, `fno/playbook/measurement.py` (`fno/constants.py` is at its size limit).
+- **Outputs (code):**
+  - E6's shadow section shows `<version> (measurement)`;
+  - E6's single-trade alert (a closed trade's net at or below -`catastrophic_loss_rs`, E6's `<=`) for a measurement
+    uses review 129's wording as one message constant in `pauses.py`, with "Rs 10,000 or more" in place of "over
+    Rs 10,000" to match that `<=`;
+  - from its second such loss, the alert adds the escalation "possible simulator defect (fill or settlement path):
+    check it before any strategy relies on that path". The count comes from the version's closed trades at or beyond
+    its cap, read from its own account;
+  - **E6's cumulative alert** (a research shadow's realised net at or below -3 x its cap, Rs -30,000 for B0, on each day
+    one of its trades closes; `cumulative_losses`) will fire for B0 in normal running. P1 ended 2019-23 at -34,486
+    (-23,140 without the stale closes), with a maximum drawdown of 40,607 (judge 226). For a measurement it reads:
+    "{version} (measurement) shadow test, not paused: cumulative loss Rs ... (3 x cap Rs ...); expected for a
+    measurement (no edge), not a defect; the owner decides". It is one message constant beside the single-trade one;
+  - **the repeat stays:** it fires on each close day while the total is at or below the line. That is about once a
+    month for B0, which is the owner's monthly reminder of the measurement's running cost, so it is not noise (reasoning
+    only). Changing E6's repeat rule would also change it for non-measurement shadows, which R3 does not touch;
+  - E6 sends at most one alert per version a day (`AutoPauser.apply`), and it lists the single-trade triggers before
+    the cumulative ones (`fno/scorecard/run.py`). So on a day both fire, B0's single-trade wording is sent.
+- **Not counted:** at Test B's integration (condition 3 below), a measurement shadow is listed, never counted.
+- **What B0 is, honestly** (strong evidence, `research/2026-10-12-experiment-1/RESULTS.md` and response 92):
+  - over 2019-23, P1 lost Rs 34,486 over 60 opportunities, or Rs 23,140 without the 7 impossible stale-close exits
+    (`RESULTS.md`: impossible exits);
+  - its worst trade was -11,346, over the cap, on a stale close; the clean worst was -8,937;
+  - funds at entry are about Rs 1,00,784 a lot.
+  B0 measures premium, costs and the fill path at real quotes. It can never show an edge.
+
+**Part B (built when E8's part 1b merges): criteria 3-5 above, plus:**
+
+10. **With/without isolation after real shadow orders and fills** (review 132, point 1). One session holds a Book 1
+    trade and a shadow trade, both filled by E8's real path. Each of these is run with and without the shadow's
+    orders, fills and account, and must be identical:
+    - C2's risk view of Book 1;
+    - C4's recorded pass for Book 1's order;
+    - E6's Book 1 section;
+    - S2's Book 1 board;
+    - S3's Book 1 actions;
+    - Book 1's ledger files (`journal/book1_rules/account/`), byte for byte.
+    This test gates part B's merge.
+11. **Mode-aware order readers** (review 132, point 3). Before any shadow order is written, `book1_orders._stored_action`
+    and `recorded_c4` take an explicit mode and account, and look records up by `record_file(id, mode)`.
+    - Test: a book record and a shadow record with the same ID; each reader takes only its own.
+    - A missing shadow record fails closed (no order, or C4 "no D3 record"), never falling back to Book 1's file.
+12. **Test B readiness** (review 132, point 4).
+    - At Test B's integration, R3's input is ready only when resolved shadow closed-trade records are read after E2c's
+      download, and checked against the registered trial requirements (R1's pass mark and minimum useful net), never
+      when a folder exists (`StopRuleInput.exists`, `stop_rule_tracker.py:41`, is replaced for R3 by a reader of
+      closed trades).
+    - Zero resolved, counted shadows stays `undecided / no_economic_test`, never NO. Measurement shadows are never
+      counted.
+    - A review run before the download reports "data not loaded".
+
+**Tests (added to the plan):**
+- 5. B0's version file parses, is registered `research`, and is shadowed the next session.
+- 6. `is_measurement` is true for B0 and false for the worked example.
+- 7. E6 alert wording for B0's first and second single-trade loss, including a loss of exactly the cap (E6's `<=`),
+  and for B0's cumulative loss on a close day; a day with both sends the single-trade wording. A non-measurement
+  shadow keeps E6's current wording for both alerts (unchanged bytes).
+- 8. Conditions 10-12 as stated.
+
+**Known limits:**
+- No G6 promotion code exists yet (R1/S1). B0's exclusion from G6 and from positive-candidate counts is held by the
+  label, the card and the ledger row until that code reads `is_measurement`.
+- The post-mortem (LR1) shows no strategy lines today, so it has nothing to label.
+- Until part B, B0 is decided and recorded daily but never filled: its account stays at its opening cash.
+- **A realised B0 loss can still pass Rs 10,000** (code read: `fno/risk/rules.py` `MaxLossPerTrade`,
+  `fno/risk/open_risk.py` `of_legs`). C2 runs on the shadow's own book, so it refuses any entry whose modelled maximum
+  loss is above the cap. That model takes the worst payoff at expiry and adds the entry cash and the exit charges, with
+  B2's pads.
+  - Experiment 1's -11,346 came from an exit priced on a stale close. Live exits use the day's snapshot quotes after
+    A4's validity checks (E4), so a stale close is not used as such.
+  - The live exit happens 21 or more days before expiry, buying back at the ask and selling at the bid. The cost of
+    closing the losing side can exceed its width when its bid-ask spread is wider than B2's pad. Nothing re-sizes an
+    open trade.
+  - So the cap prevents a modelled loss above Rs 10,000, not a realised one. A realised loss above it is caught after
+    the fact by E6's alert above. A second one is escalated as a possible fill or settlement defect (reasoning only;
+    no live condor exit has been measured).
+
+**Split:**
+- E6's files (`pauses.py`, `report.py`) are shared with E6b's builder (session 0134MoC6f7aAJVcHRBiyATo6). Agreed on
+  16 Oct:
+  - R3 makes both edits. E6b changes only the entries line of `card_lines`, never the title, the shadow section or
+    `pauses.py`; whichever merges second resolves any text conflict and re-runs the full suite;
+  - `is_measurement` is public, in its own module `fno/playbook/measurement.py`, so E6b can read it too;
+  - a test pins the non-measurement title and alert bytes.
+- D1's fields are unchanged; only the new predicate is added.
+- E8's builder (session 01H1CmuWzBtbtjzoQNJUz2Dz) confirmed that E8 adds no caller of the two record readers
+  (condition 11 is R3's).
