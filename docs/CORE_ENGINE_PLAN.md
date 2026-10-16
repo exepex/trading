@@ -3,8 +3,8 @@
 Written for the orchestrator (session_01VG1RqxLFUVdvvPuMRYZtDH) and the plan judge, on the owner's request of
 16 Oct: "all the core engine functionality, data generation, evidences, they must align to my end goal and my
 expectations." It reads together with `docs/CORE_ENGINE_GAP_AUDIT.md` (the data and story audit of the same day) and
-does not repeat its tables. State checked on `origin/main` 986b5993 and the story branches on 16 Oct (revision 2: owners from the
-orchestrator, 16 Oct; D4, D5, O1, R1b, R1c and G8 merged; the go-live gate, DESK_DECISIONS row 247). Response 267.
+does not repeat its tables. State checked on `origin/main` 986b5993 and the story branches on 16 Oct (revision 3: owners from the
+orchestrator, 16 Oct; D3, D4, D5, O1, R1b, R1c and G8 merged; the go-live gate, DESK_DECISIONS row 247). Response 267.
 
 Evidence labels: **[strong]** read from files, branches or the judge index; **[some]** partial evidence;
 **[reasoning]** judgement only. States: **merged** (on `main`), **branch** (code on a story branch, not merged; the
@@ -60,7 +60,7 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | # | Stories (state, owner) | Trial evidence (every day of the 10) |
 |---|---|---|
 | E1 net profit | C1, E1/E1b, E2c/E2d, E7, S6 (merged) | Scoreboard B per book: net after charges, pads and 31.2% tax arithmetic, with a marks row per open trade; O11 checks the chain once, the trial daily |
-| E2 three books | Book 1: D1-D3, D6, E5 (merged); D4, D5 (merged); **D3 no override** (01SFDjjZ, code with the judge); **F1t** (01PLbKH1); **F5** (01SFDjjZ); **F6/F7** (01KTAQCD) | A decision record per book per session: Book 1 from D2, Books 2 and 3 from F1t's sealed AI answers ("no approved strategy" counts); zero books missing from the run log |
+| E2 three books | Book 1: D1-D3, D6, E5 (merged); D4, D5 (merged); D3 no override (merged, judge 300); **F1t** (01PLbKH1); **F5** (01SFDjjZ); **F6/F7** (01KTAQCD) | A decision record per book per session: Book 1 from D2, Books 2 and 3 from F1t's sealed AI answers ("no approved strategy" counts); zero books missing from the run log |
 | E3 scoreboards | S2, S3, S6, E6, F9a (merged); E6b (text, 0134MoC6); S1 freeze (0185gR5D) | Boards A and B built every day from the same common pack's SHA-256 for all three books |
 | E4 forecasts | G1-G5 (live); G7, G7b part a, G8, G9, G10 part 1, M1 (merged, not live); **G6 freeze** (01MgTu3L); G10 part 2, G7b b-c (01VK88Lx, 0185gR5D); G11 (round 1 PASS, 01XFXpbk); **G13** (01UkTaDe) | Weather and every v4 row written live before 14:30 (needs the 14:05 start and `live_from`); the AI books' v4 rows; a G13 valuation record from the 3 pm chain |
 | E5 daily card | T1, T2 (merged); T3 (0145TfSw); M2 (text); **T1c: card reads M1's weather** (no owner: the card still prints "M1 pending") | One card per session in #fno-desk by about 15:08 (delivery log), TRADE or NO TRADE with its reason and M1's colour |
@@ -82,7 +82,7 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | Gap | Owner now | Still open? |
 |---|---|---|
 | Books 2 and 3 in the daily run (F1t: `ai_fire`, `ai_collect`, sealed decisions) | 01PLbKH1 | text |
-| D3 refuses any `owner_override` | 01SFDjjZ | code with the judge |
+| D3 refuses any `owner_override` | 01SFDjjZ | merged (judge 300); O11 checks it on the recorded day |
 | F5 Book 2 decider on D4's narrow envelope | 01SFDjjZ | text |
 | F6/F7 Book 3 decider and matched shadows on D5 | 01KTAQCD | text |
 | F2 analysts, volatility first | 01WSMMv5 | text |
@@ -112,12 +112,12 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 
 Critical path (each arrow a hard dependency) [strong for the dependencies, reasoning for the order]:
 
-**D3 no override → F1t → F5 → F6/F7 → E8 merge → owner switches (routine at 14:05, `live_from` dates, G6 v4
+**F1t → F5 → F6/F7 → E8 merge → owner switches (routine at 14:05, `live_from` dates, G6 v4
 freeze) → O11 zero xfails, judged → 10-day trial with zero silent failures = done**
 
 | Step | Work | Owner | Parallel with |
 |---|---|---|---|
-| 1 | D3 no override, then F5 (one builder); F1t; F6/F7 | 01SFDjjZ; 01PLbKH1; 01KTAQCD | 2, 3 |
+| 1 | F5; F1t; F6/F7 | 01SFDjjZ; 01PLbKH1; 01KTAQCD | 2, 3 |
 | 2 | External data first, because history is lost daily: O10, A17 schedules, A19, A20 | 013YJ5gj, 01MBnbVU, 01Qj3wtY, 013u1Ac2 | everything |
 | 3 | E8 merge, then E6b code, R3 part B | 01H1CmuW, 0134MoC6, 0145TfSw | 1 |
 | 4 | O1's 14:05 start; T1c card weather | 014zYLf1; needs an owner | 1 |
