@@ -77,6 +77,6 @@ Numbering: this claims file keeps 271 (reserved by the orchestrator in `reviews/
     blocked run holding a chosen trade (defence in depth).
   - known limit stated in Context.
 - **F5's text:** `story/f5-book2-decider` 61f0f1aa holds the evidence key, the call, the prompt lines and D3 `judge`;
-  the `judge_blocks` run and the dates prompt line requested as a follow-up (messages crossed).
+  `0bb574de` adds the `judge_blocks` run (criterion 11) and the dates prompt line. Read by me: matches F4 design 2 and 4.
 - **F1t:** requested (port updated to the above); pending.
 - **Owner question 1:** with the orchestrator; pending.
