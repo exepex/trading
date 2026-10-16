@@ -2,7 +2,7 @@
 
 Builder 0134MoC6 (F8/BG1 owner). Asked by the orchestrator on 16 Oct 2026: the owner wants all external data captured,
 nothing lost (gap audit `docs/CORE_ENGINE_GAP_AUDIT.md`, Part B2 item 9). Lane 1: it touches the AI books' routine
-steps and an outside service (Slack alerts). For judge E or judge B.
+steps and an outside service (Slack alerts). For judge B (the orchestrator's choice, 16 Oct 11:21).
 
 ## The gap (checked on `main`)
 
@@ -30,8 +30,15 @@ steps and an outside service (Slack alerts). For judge E or judge B.
 5. **The meter:** a fired session without a row already counts as not captured (`capture_coverage.py`, F8
    criterion 7), so the level reads "not known", never a guessed number. No fake "missing" row is written. The alert
    makes the gap seen on the same day.
-6. **14-16 Oct:** those runs' minutes cannot be rebuilt. They stay "not captured" on the meter, which is the truth.
-   No minutes are invented.
+6. **14-16 Oct: no "missing" rows are written (the orchestrator asked for them; declined with evidence).** The
+   meter already lists all six of those runs as not captured. `not_captured(root, "2026-10", ledger, "2026-10-17")`
+   on main returns the six fired sessions of 14, 15 and 16 Oct (book2_hybrid and book3_ai each day). A ledger row with
+   a run's session id, even with blank minutes, would make `capture_coverage` count that session as captured, since it
+   matches on session id. The meter would then report the gap as closed: the opposite of the goal. The gap is recorded
+   where the meter reads it: the fire logs against the ledger. The minutes cannot be rebuilt, and none are invented.
+7. **"Fired" source (the G11 owner's request):** the alert reads the same fire logs as `collect`
+   (`fno/ai/paths.fired_path`, the per-book `fired` flag, through `capture_coverage.fired_sessions`). A book not
+   fired (a stop rule, a refused trigger) used no minutes and raises no alert.
 
 ## Criteria and tests (`tests/ai/test_run_timing.py`, plus `tests/ai/test_book_session.py`)
 
@@ -56,6 +63,8 @@ Changed expectation: a full book run now makes three commits (commitment, reveal
   this one line. I have not changed the workflow, since it is not my file.
 - **A rerun of `collect`** the same day sends the not-captured alert again. That is reasoning-only acceptable: a
   rerun is a hand action.
+- **A refused seal:** the routine never reaches reveal, so no timing file is written. That run then shows as not
+  captured, with an alert, never as zero (the G11 owner's point; reasoning only).
 - **Duration:** the timing covers brief to reveal, so a few seconds after the reveal are not counted. The routine
   ends right after it.
 - **Second recorder:** the ledger now has two (`fno/budget/usage_ledger.py` docstring updated). A clash is refused
