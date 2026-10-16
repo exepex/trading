@@ -95,3 +95,10 @@ def test_c4_measures_the_trade_s_own_holding_not_only_the_spec_s_window(tmp_path
     rule = strategy_from_text(short, "spec").parameters_sha256
     report = run(root, book3(rule_sha256=rule))
     assert "planned exit 2026-10-24 is 10 days after entry" in report.failures[0].reason
+
+
+def test_a_damaged_constitution_file_fails_the_named_constitution_check(tmp_path):
+    root = repo_with(tmp_path)
+    (root / "book3" / "constitution-v1.yaml").write_bytes(constitution_bytes(underlying="BANKNIFTY"))
+    report = run(root, book3())
+    assert failed(report) == {"constitution"} and "damaged constitution file" in report.failures[0].reason

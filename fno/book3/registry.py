@@ -99,6 +99,10 @@ class StrategyRegistry:
     def require_registered(self, strategy_id: str, decision_day: date, at_commit: str):
         """The registered spec, or NotRegistered: its row and spec must be committed at `at_commit`, proposed before
         the decision day, unchanged since, and the registry never edited (criteria 1, 2 and 5)."""
+        if self.git.is_shallow():
+            raise NotRegistered(
+                "a shallow clone hides the registry's history: fetch it in full (git fetch --unshallow)"
+            )
         committed = self.git.committed_text(REGISTRY_FILE, at_commit)
         row = next((r for r in parse_registry(committed or "") if r["strategy_id"] == strategy_id), None)
         if row is None:
@@ -113,14 +117,21 @@ class StrategyRegistry:
             raise NotRegistered(f"{strategy_id}: the spec differs from the one registered (hash)")
         if len(self.git.commits_touching(spec_path(strategy_id))) > 1:  # even an edit that keeps the rule's hash
             raise NotRegistered(f"{strategy_id}: the spec file differs from the one registered (edited after it)")
-        edited = self.edited_rows()
+        edited = self.edited_rows(at_commit)
         if edited:
             raise NotRegistered(f"the registry was edited, not appended to: {edited}")
         return spec
 
-    def edited_rows(self) -> list[str]:
-        """Rows of an earlier committed registry that a later one changed or removed (criterion 5)."""
-        versions = [parse_registry(self.git.committed_text(REGISTRY_FILE, c) or "")
-                    for c in self.git.commits_touching(REGISTRY_FILE)]  # fmt: skip
-        return [r["strategy_id"] for older, newer in zip(versions, versions[1:]) for r in older
-                if r not in newer[: len(older)]]  # fmt: skip
+    def edited_rows(self, revision: str = "HEAD") -> list[str]:
+        """Rows that a commit changed or removed from any of its parents' registries (criterion 5). Each commit is read
+        against each parent, so two registrations on parallel lines of history, merged with both rows kept, are two
+        appends; a merge that drops or edits either side's row is an edit."""
+        edited = []
+        for commit, parents in self.git.changes_with_parents(REGISTRY_FILE, revision):
+            newer = self._registry_at(commit)
+            for parent in parents:
+                edited += [r["strategy_id"] for r in self._registry_at(parent) if r not in newer]
+        return list(dict.fromkeys(edited))
+
+    def _registry_at(self, commit: str) -> list[dict]:
+        return parse_registry(self.git.committed_text(REGISTRY_FILE, commit) or "")

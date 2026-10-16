@@ -49,8 +49,12 @@ Mutation checks, run and restored. Each of these makes tests fail:
    is read from git: the row must be in the registry as committed at the checked commit. Strong evidence: that is how
    B4 proves registration.
 2. **C4 checks against HEAD.** C4 runs before the decision is committed, so "committed at HEAD" means strictly before
-   the decision's commit. D6 repeats the strict check at scoring. The text's "strict ancestor of the decision commit"
-   is met by the pair.
+   the decision's commit. (Corrected after judge 263: D6 does not repeat this check. Its `_registered_before` checks
+   D6 version rows, not Book 3 strategy registrations.) The text's "strict ancestor of the decision commit" still
+   holds:
+   - C4 runs before the decision's commit exists, so a row committed at HEAD at that moment is in a strict ancestor;
+   - `proposed_on` is set by the clock at registration and must be before the decision day.
+   Some evidence: this follows from the run order. No test commits a decision and then re-checks it.
 3. **The holding limit is checked twice:** on the spec's window at registration (`max_days - exit_days_before_expiry`)
    and on the trade's own exit at C4. The text named one check; the trade-level one is needed because D2's window is
    not checked again at C4.
@@ -64,6 +68,48 @@ Mutation checks, run and restored. Each of these makes tests fail:
 ## Changes to other owners' files
 
 - C4's `validity_proposal.py` and `wiring.py`;
-- B4's `ledger.py`: one read-only `Git` method.
+- B4's `ledger.py`: read-only `Git` methods (`commits_touching`; after judge 263 also `changes_with_parents` and
+  `is_shallow`).
 
 Both go through the orchestrator.
+
+## Judge 263's should-fix and notes, checked and fixed
+
+**Should-fix: accepted.** I reproduced it:
+- the history was base [x], line A [x, a], line B [x, b], then a merge keeping [x, a, b];
+- the old `edited_rows` compared neighbouring entries of `git log --reverse` and reported `b` as edited, so every Book
+  3 strategy would have been refused from then on;
+- plain `git log -- <file>` also skips a merge that is identical to one parent (strong evidence: a scratch repository
+  showed a merge dropping B's row was not listed at all).
+
+The fix uses the judge's design:
+- `Git.changes_with_parents` runs `git log --format='%H %P' --full-history`, which lists merges and each commit's real
+  parents;
+- `edited_rows(revision)` reads every listed commit's registry against each parent's, and any parent row missing or
+  changed is an edit;
+- `require_registered` passes the decision's commit as the revision.
+
+Tests:
+- a merge of parallel appends passes, and all three strategies are usable;
+- a merge that drops B's row is refused;
+- a merge that edits a row is refused.
+
+Mutation checks:
+- the old adjacent comparison fails 2 of the new tests;
+- reading only the first parent fails 2;
+- the shallow-clone check removed fails 1.
+
+All were restored.
+
+**Notes:**
+- A shallow clone is now refused ("fetch it in full"). Otherwise the history checks would pass on history they cannot
+  see. Tested with a `--depth 1` clone. This matters in practice: cloud sessions clone with a depth of 50 by default,
+  so any routine that runs Book 3 must fetch the full history first.
+- A damaged constitution file is now the named `constitution` check, not an exception. Tested.
+- Deviation 2's reason is corrected above.
+
+The spec-history count (`commits_touching(spec) <= 1`) keeps git's default simplification on purpose:
+- a spec added on one line and merged counts once;
+- with `--full-history`, the merge would count a second time, because it differs from the parent that lacks the file
+  (strong evidence: a scratch repository listed "Merge branch 'B'" and "add spec" with `--full-history`, and only
+  "add spec" without it).

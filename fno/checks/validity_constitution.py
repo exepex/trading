@@ -11,7 +11,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from datetime import date, timedelta
 
-from ..book3.constitution import COMPONENT, Constitution
+from ..book3.constitution import COMPONENT, Constitution, ConstitutionError
 from ..book3.registry import NotRegistered, StrategyRegistry
 from ..book3.spec_rules import constitution_problems
 from .validity_envelope import RegisteredComponents
@@ -31,7 +31,10 @@ class ConstitutionMode(ValidityMode):
 
     def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
         sha = self.registered(proposal.book, proposal.day).get(COMPONENT, "")
-        constitution = self.constitutions().get(sha)
+        try:
+            constitution = self.constitutions().get(sha)
+        except ConstitutionError as damaged:
+            return [CheckResult("constitution", False, f"damaged constitution file: {damaged}")]
         if constitution is None:
             return [CheckResult("constitution", False, "no constitution file matches the registered D6 component")]
         try:

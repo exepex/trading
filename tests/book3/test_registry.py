@@ -2,13 +2,14 @@
 committed before the decision, proposed on an earlier session, its spec unchanged and the registry never edited;
 every registration enters the research ledger's Book 3 trial family."""
 
+import subprocess
 from datetime import date
 
 import pytest
 
 from fno.book3.registry import REGISTRY_FILE, TRIAL_FAMILY, NotRegistered, Provenance, RegistrationRefused, spec_path
 from fno.research_engine.ledger import Ledger
-from tests.book3.builders import PROVENANCE, commit, constitution, init_repo, registry, spec_text
+from tests.book3.builders import PROVENANCE, commit, constitution, git, init_repo, registry, spec_text
 
 PROPOSED, NEXT = date(2026, 11, 2), date(2026, 11, 3)
 
@@ -86,3 +87,57 @@ def test_a_spec_outside_the_constitution_a_repeat_or_an_unknown_parent_is_refuse
         registry(repo).register(spec_text(), PROVENANCE, constitution())
     with pytest.raises(RegistrationRefused, match="supersedes"):
         registry(repo).register(spec_text(name="b3-x"), Provenance("m", "p", "r", "new", "nope-v1"), constitution())
+
+
+def parallel_registrations(repo):
+    """Judge 263's history: from a base with one row, line A registers one strategy and line B another."""
+    registered(repo, name="b3-x")
+    main = git(repo, "rev-parse", "--abbrev-ref", "HEAD")
+    git(repo, "checkout", "-qb", "line-b")
+    registered(repo, name="b3-b")
+    git(repo, "checkout", "-q", main)
+    registered(repo, name="b3-a")
+
+
+def merge_line_b(repo, keep) -> str:
+    """Merges line B; each conflicted file becomes `keep(ours, theirs)` of its two sides' lines."""
+    subprocess.run(["git", "merge", "-q", "--no-edit", "line-b"], cwd=repo, capture_output=True)
+    for path in git(repo, "diff", "--name-only", "--diff-filter=U").split():
+        ours, theirs = (git(repo, "show", f":{side}:{path}").splitlines() for side in (2, 3))
+        (repo / path).write_text("\n".join(keep(ours, theirs)) + "\n")
+    return commit(repo, "merge line B")
+
+
+def both(ours, theirs):
+    return ours + [line for line in theirs if line not in ours]
+
+
+def test_two_registrations_on_parallel_lines_merged_with_both_rows_are_appends_judge_263(repo):
+    parallel_registrations(repo)
+    at = merge_line_b(repo, both)
+    assert registry(repo).edited_rows() == []
+    for strategy_id in ("b3-x-v1", "b3-a-v1", "b3-b-v1"):
+        assert registry(repo).require_registered(strategy_id, NEXT, at).name == strategy_id[:-3]
+
+
+def test_a_merge_that_drops_a_side_s_row_is_refused_judge_263(repo):
+    parallel_registrations(repo)
+    at = merge_line_b(repo, lambda ours, theirs: ours)  # B's row dropped in the merge
+    assert registry(repo).edited_rows() == ["b3-b-v1"]
+    with pytest.raises(NotRegistered, match="edited, not appended"):
+        registry(repo).require_registered("b3-a-v1", NEXT, at)
+
+
+def test_a_merge_that_edits_a_row_is_refused_judge_263(repo):
+    parallel_registrations(repo)
+    at = merge_line_b(repo, lambda ours, theirs: [line.replace("model-x", "model-y") for line in both(ours, theirs)])
+    assert set(registry(repo).edited_rows(at)) == {"b3-x-v1", "b3-a-v1", "b3-b-v1"}
+
+
+def test_a_shallow_clone_is_refused_since_its_history_checks_cannot_see_everything(repo, tmp_path_factory):
+    registered(repo, name="b3-x")
+    at = registered(repo, name="b3-y")[1]
+    clone = tmp_path_factory.mktemp("shallow") / "clone"
+    git(repo.parent, "clone", "-q", "--depth", "1", repo.as_uri(), str(clone))
+    with pytest.raises(NotRegistered, match="shallow clone"):
+        registry(clone).require_registered("b3-y-v1", NEXT, at)
