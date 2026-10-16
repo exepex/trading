@@ -8,7 +8,7 @@ not conflict with others ... let's keep it a centralized way of handling uh, tha
 clashes." And: "do not over-engineer ... Simplicity is also our priority, but not the product quality."
 
 Parallel sessions (Claude builders, judges, ChatGPT) each pick "the highest number plus one" in their own checkout and
-push later, so two of them take the same number. On `main` at 9dbf1b3f: `response_66` twice, `judge_233`, `judge_234`
+push later, so two of them take the same number. On `main` at 9dbf1b3f (still so at a337f4e0): `response_66` twice, `judge_233`, `judge_234`
 and `judge_235` twice each, and judge 98 and judge 122 each hold two "Addendum" sections with the same number
 (addendum 3 and addendum 4). Judge 233 says "renumbered from 227" and judge 95 add. 1 "renumbered response_94": the
 clashes cost re-work and break links.
@@ -28,7 +28,7 @@ Each category has its own sequence, so categories never clash with each other. A
 highest taken in that category (for an addendum: the highest `k` of that report), where taken means a registry row
 or a file (or heading) already on `main`, so a file written the old way is never handed out again. A number can also
 be asked for exactly (`--number`); it is refused when taken. The judges' old convention (verdict number equal to the
-response number) ends here: the series have already run apart (judges to 274, responses to 252 on 16 Oct), so the
+response number) ends here: the series have already run apart (judges to 274, responses to 253 on 16 Oct), so the
 equal number is often taken; a report names the response it judges in its title.
 
 **Claiming is atomic through git itself.** `python tools/claim_number.py <category> <slug> --session <id>` works in a

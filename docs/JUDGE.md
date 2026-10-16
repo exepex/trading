@@ -157,4 +157,4 @@ judge number and addendum number is claimed in the central registry before the f
 O12): `python tools/claim_number.py judge-report <slug> --session <id>` and `python tools/claim_number.py
 judge-addendum <label> --session <id> --report <n>`; the report names the response it judges in its title. (The
 orchestrator's old convention, verdict number equal to the response number, ends with O12: the two series had already
-run apart, judges up to 274 against responses up to 252, so the equal number is often taken.)
+run apart, judges up to 274 against responses up to 253, so the equal number is often taken.)
