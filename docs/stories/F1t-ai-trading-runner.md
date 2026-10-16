@@ -214,12 +214,16 @@ write paths. A run that fails is never committed, and the book-day is `refused` 
 outcome record.
 
 **Write paths and restore (agreed with F6, 16 Oct):** each book's decision version declares the paths its decider may
-write (Book 3: `journal/book3_ai/`, `book3/` and its research-ledger rows; Book 2: `journal/book2_hybrid/` and C4's
-failure log). F1t commits only changes under them. When the run check fails, `DecisionRefused` is raised, or the
-decider raises anything else, F1t restores every change under those paths that the decider made (tracked files back
-to `HEAD`, new files deleted), so nothing half-registered (a `registry.csv` row, a spec file, a shadow file) can be
-committed later by accident; the restore is recorded in the outcome record (test: a decider that registers a
-proposal, then fails the check, leaves the tree equal to `HEAD`).
+write (Book 3: `journal/book3_ai/`, `book3/` and `research/ledger.csv`, the one file D5's `register()` appends a
+trial row to; Book 2: `journal/book2_hybrid/` and C4's failure log). F1t commits only changes under them. Just before
+`decide()`, F1t snapshots the bytes of every file under those paths; when the run check fails, `DecisionRefused` is
+raised, or the decider raises anything else, it puts every such file back to that snapshot (changed files rewritten,
+new files deleted), so nothing half-registered (a `registry.csv` row, a spec file, a ledger row, a shadow file) can be
+committed later by accident. The snapshot, not `HEAD`, is the reference: `research/ledger.csv` is shared with the
+research factory, and any change made before `decide()` (by anyone) is left as it was. The daily run is one thread, so
+nothing else writes these paths during `decide()`. The restore is recorded in the outcome record (test: a decider
+that registers a proposal and appends a ledger row, then fails the check, leaves every file equal to its snapshot,
+including a ledger row written before `decide()`).
 
 **Book isolation:** each book's pointer holds only its own private pack; the decider receives only its own book's
 packs; each book's account is its own E1 folder (no shared cash); submissions of one book are never in another's
