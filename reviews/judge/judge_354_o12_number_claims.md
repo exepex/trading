@@ -87,3 +87,17 @@ the four documents. No code change.
   `main`, and any number that appears twice must be checked by hand before it is seeded as history.
 - The judges' reserved rows 300-399 carry wildcard names (`judge_352_*.md`). I checked that the files I wrote, 350
   and 351 (now seeded) and 352-353 (reserved rows), pass the check on the trial merge.
+
+## Addendum 1: re-judge at 43af4b82 (one commit after ac1e52c5; documents and one test, nothing under `fno/` changed)
+
+**Verdict: PASS. O12 may merge, with the merge note above (re-seed on the merged tree, read every added row).**
+
+| Finding | Builder's answer | My check | Result |
+|---|---|---|---|
+| SF1: the manual path resets the agent's own checkout | all four documents and the story now claim from a separate copy (`git worktree add --detach ../claim origin/main`, a fresh clone, or GitHub's editor); the reset happens only inside that copy, which is then removed | I grepped for `reset --hard`: the only two hits are `numbers/README.md`:28 ("in `../claim` only") and the story, line 71 ("there only"). AGENTS.md, CLAUDE.md and `reviews/chatgpt/README.md` say "a separate copy of `main`, never your own checkout". GitHub's contents API refuses a save made against an old file version, so "a refused save means someone claimed first" holds | **Accepted** |
+| Minor 1: no test for a claim reusing a number seeded once | `test_a_claimed_row_reusing_a_number_seeded_once_fails` | My `< 1` plant now fails 1 test (56 passed); reverted, `tests/numbering` and `test_ci_scope.py` give 62 passed | **Accepted** |
+| Minor 2: unwritten claims are unprotected | stated in `numbers/README.md` and the story | read | **Accepted** |
+| Minor 3: record-scan steps skipped after a pytest failure | left for a separate change | as I said | **Accepted** (open, outside O12) |
+
+ruff, ruff format and `check_numbers.py` are clean at 43af4b82. I did not re-run the full suite: since ac1e52c5 (7790
+passed) only documents and one test changed. The merger runs it on the merged tree, per the new merge rule.
