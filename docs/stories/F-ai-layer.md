@@ -155,11 +155,11 @@ inputs with their reasons; derived summaries only, never raw broker quote rows (
 file's SHA-256; the routine reads it through the verified Drive cache, which refuses bytes that differ from the receipt.
 
 **4. The finding card.** The routine writes only the draft; code adds the labels (`role`, `day`, `as_of` = the cutoff,
-`version`, `input_sha256`) so the model cannot mislabel them. Schema version 1:
+`version`, `input_sha256`, `card_id`) so the model cannot mislabel them. Schema version 1:
 
 ```
 {"schema_version": 1, "role": "...", "day": "YYYY-MM-DD", "as_of": "<cutoff, ISO>", "version": "<role version label>",
- "input_sha256": "...", "model_reported": "...",
+ "input_sha256": "...", "card_id": "<role>/v<n>/<day>", "model_reported": "...",
  "not_applicable": null | "<one-line reason>",
  "claims": [{"text": "<one line>", "evidence": ["<item_id>", ...], "label": "strong" | "some" | "reasoning"}],
  "view": {"direction": "up" | "down" | "range" | "no_view", "volatility": "rising" | "falling" | "stable" | "no_view",
@@ -214,9 +214,16 @@ response 67 addendum 5). Only days the session calendar marks as recorded sessio
 `no_submission`, `not_fired`, `model_mismatch`, `exposed`), the reason, the receipt times, and the card itself only
 when `valid` or `not_applicable`; the refused draft goes in the audit file beside it (`<d>_<role>_audit.json`, also
 through `DataStore`). `CardsOfDay` (interface) with one adapter reading that file through the verified cache gives F1t
-`cards(day) -> {role: CardStatus}` and the input file's SHA-256; F1t records which roles' cards it passed
-(`consulted_units`, F9's column). A missing, late or refused card is a status line, never a block: the books decide
-without it.
+`cards(day) -> {role: CardStatus}`, the input file's SHA-256 and `role_set_version`. **The hand-off (agreed with F1t
+and F6, 16 Oct 2026):** cards are not part of a book's answer. F1t's export gives each AI book one item,
+`analyst_cards`: every registered role's status line, and the card when `valid` or `not_applicable`, the same for
+Books 2 and 3. Each card carries a stable `card_id` (`<role>/v<n>/<day>`, set by code); a book's answer may cite only
+those ids (F6's `cards_used`, refused otherwise by the book's own check). `role_set_version` is the registered role
+versions in role order (`volatility/v1`; a later set `macro/v1+volatility/v1`), or `none` when no role is registered;
+it names the registered set, never the day's availability, and goes into D6 version rows and Book 3's registry. F1t
+records `consulted_units` (F9's column): the unit ids of the roles whose card was in the book's `analyst_cards` item
+(given, whatever the book says it used; F9b's ablation withholds exactly that). A missing, late or refused card is a
+status line, never a block: the books decide without it.
 
 **10. F9 fit.** Each registered role is one F9 unit (`unit_id`, never a control role); F2 adds the entries to
 `agents/role_units.yaml` when F1t registers the trading versions of Books 2 and 3 (D6), and a test checks that every
@@ -288,7 +295,7 @@ stated in the role's version (`isolation`), as F1 does.
    1, 20, 0 and 21).
 5. **Not applicable.** A `not_applicable` card with empty claims and `no_view` is valid; with any claim or view it is
    refused.
-6. **Labels fixed by code.** A draft cannot set `role`, `day`, `as_of`, `version` or `input_sha256`; a reveal whose
+6. **Labels fixed by code.** A draft cannot set `role`, `day`, `as_of`, `version`, `input_sha256` or `card_id`; a reveal whose
    labels differ from the pointer and input is refused at collection.
 7. **Sealing and independence.** A card counts only when its commitment's receipt was pushed by the commitment
    deadline, its reveal's receipt by the reveal deadline, and the reveal hashes to the commitment; no reveal is saved
@@ -300,7 +307,8 @@ stated in the role's version (`isolation`), as F1 does.
    receipt push each give one line and a failure exit.
 9. **Never blocks the books.** `CardsOfDay` returns every registered role's status even when no card exists or the
    cards file is missing or fails its receipt check (`no_submission` with the reason), and never raises for a missing
-   card.
+   card. Its `card_id`s are unique and stable (same file, same ids), and `role_set_version` is `none` with an empty
+   registry and `volatility/v1` with the v1 registry (tests).
 10. **F9 fit.** Every registered role's `unit_id` is accepted by F9's `RoleSet.of` and is not a control role (test
     against the imported F9 code).
 11. **Only registered roles fire.** A role not in the registry is never fired and a pointer naming one is refused.
