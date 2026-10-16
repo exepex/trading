@@ -49,14 +49,16 @@ class RunLogCheck(SessionCheck):
         except (KeyError, TypeError, ValueError):
             raise EvidenceUnknown(f"{log.path.name}: the decisions step has no readable finish time") from None
         result = judged(decided, self.deadline.on(session), "decisions finished")
-        problems = _problems(log)
+        problems, recorded = _problems(log)
         if result.status == HEALTH_OK and problems:
-            return CheckResult(HEALTH_MISSED, problems)
+            return CheckResult(HEALTH_MISSED, problems, recorded)
         return result
 
 
-def _problems(log: RunLog) -> str:
-    """Steps not run, and O1 steps that failed or were refused with their reasons; empty when there are none."""
+def _problems(log: RunLog) -> tuple[str, bool]:
+    """Steps not run, and O1 steps that failed or were refused with their reasons (empty when there are none); and
+    whether the run recorded them itself: a failed or refused step was recorded and alerted by O1, a step missing from
+    the log was not (story O10's trial, agreed with O1's builder)."""
     missing = [step for step in DAILY_RUN_STEPS if not log.done(step)]
     results = {name: step["result"] for name, step in log.steps.items()}
     bad = [f"{name} {r['status']}: {r.get('reason', '')}" for name, r in results.items()
@@ -64,7 +66,7 @@ def _problems(log: RunLog) -> str:
     parts = ([f"steps not run: {', '.join(missing)}"] if missing else []) + (
         [f"steps not ok: {'; '.join(bad)}"] if bad else []
     )
-    return "; ".join(parts)
+    return "; ".join(parts), bool(bad) and not missing
 
 
 class MarksCheck(SessionCheck):

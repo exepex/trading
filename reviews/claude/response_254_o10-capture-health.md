@@ -113,3 +113,11 @@ and nothing is written to `research/ops/` [strong].
 | SF1: one capture-error row excused every session within 2 days | Accepted. `_excused` gives each row ONE problem of its check: the latest not yet excused, dated from the row's day back `MATCH_DAYS`. `MATCH_DAYS` tightened from 2 to 1: the latest measured evening-job starts land the next IST day (participant OI 01:52, index closes 11:41, panel 12:11, market archive about 11:52), so 2 only widened what a row can excuse. Remaining limit: two failed runs on day E excuse problems on E and E-1 even if E-1's job never started; excused problems never outnumber rows [reasoning] | `test_one_row_excuses_one_session_only` (judge's 19/20/21 case: only 21 excused; two rows on 21 excuse 21 and 20), `test_a_row_from_its_job_by_the_next_day_records_it` [strong] |
 | Minor 1: status in trial_days' silent checks | Accepted: `<check>:<status>` (e.g. `NSE margins:missed`) | tests in `test_trial.py` [strong] |
 | Minor 2: the trial depends on health-check's own cron | Accepted: stated in `trial.py`'s docstring and the story's known limits | [strong: text] |
+
+## Addendum 5: main merged (A17 schedules, O1)
+- Part 1 (7aaa0259): main merged; `capture-watch.yml` also watches `global-cues` and `vix-history` (A17, merged first);
+  `test_every_job_is_watched` and `test_every_alert_step_is_named_as_the_watcher_expects` pass with them. Full suite on
+  the merged tree: 7852 passed, 15 xfailed [strong].
+- Part 2: O1's run log now records `failed` and `refused` steps. As agreed with O1's builder, `RunLogCheck` marks a
+  problem `recorded` when every bad step is a failed or refused O1 step (O1 recorded and alerted it); a step missing
+  from the log is not recorded (silent in the trial). Tests in `test_desk_and_data_checks.py` [strong].

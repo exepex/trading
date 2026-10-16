@@ -75,7 +75,9 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     """Story O1 merged second: the steps expected are `DAILY_RUN_STEPS`, the tuple the run loops over (O1's
     `tests/daily/test_day_run.py` proves the run writes exactly it), never a copy: a desk-only log misses O1's."""
     _run_log(repo, steps=DESK_RUN_STEPS)
-    detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
+    result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
+    detail = result.detail
+    assert not result.recorded  # a step missing from the log was never recorded: silent in O10's trial
     assert (
         detail
         == "steps not run: quotes, margin_check, weather, forecasts_v4, book1, reviews, quotes_done, card, candles"
@@ -92,6 +94,7 @@ def test_a_failed_or_refused_o1_step_is_a_problem_with_its_reason_not_live_is_no
     assert (
         result.detail == "steps not ok: forecasts_v4 refused: nothing written: stale closes; card failed: Slack refused"
     )
+    assert result.recorded  # O1 recorded and alerted them: not silent in O10's trial
     _run_log(repo, results={"weather": {"status": STEP_NOT_LIVE, "reason": "no live date"}})
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == HEALTH_OK
 
