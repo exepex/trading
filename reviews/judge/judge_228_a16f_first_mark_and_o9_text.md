@@ -75,3 +75,17 @@ rule, stated now.
 The **A16f part passes**. To merge it before Monday: push a commit that removes `docs/stories/O9-data-to-drive.md`
 from this branch, or moves it to its own branch, with the A16f files byte-identical. I will PASS that SHA after
 checking only that diff.
+
+## Addendum 1 (16 Oct 2026): f4bedbeb (4c6fb11..f4bedbeb)
+
+- `git diff --stat 4c6fb11 f4bedbeb`: only `docs/stories/O9-data-to-drive.md` is deleted (106 lines). Every A16f file
+  is byte-identical to what I judged at 4c6fb11. Against the merge base the branch now carries only A16f's five files.
+- The gates of judge 228 stand: the code is unchanged, and the only change is a deleted file that nothing reads. The
+  trial merge with `main` was clean, with 6909 passed.
+- The builder accepted O9's must-fix and should-fix, and checked the same freeze files, tools and tests. O9 returns on
+  its own branch.
+- Follow-up 1 is partly covered: the routine prompt now starts with `git checkout -B main origin/main`. The
+  "commit nothing else" line and an unpublished-row alert go to the next A16 story.
+
+**Verdict: PASS for f4bedbeb (A16f).** Merge before Monday 19 Oct's 08:52 fire. After the merge I check the merge and
+CI, and Monday's run log for 09:15 taken as good and the rows on `main`.
