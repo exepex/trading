@@ -202,9 +202,13 @@ Only alert steps are touched here, so the two do not collide today.
   error)`, which posts one line, "Omenix F&O `<command>` stopped: <the calendar's words>", and exits 1.
 - The commands that already catch the calendar themselves (`quotes/cli.py:77`, `intraday/cli.py:63,88`,
   `intraday/backfill_cli.py:43`) return instead of re-raising, so they are never posted twice.
-- In both workflows:
+- In `index-closes.yml` only:
   - the librarian line names the possible causes and points to the log;
   - the final `failure()` step drops `&& steps.append.outcome == 'success'`.
+- **`panel-days.yml` is not changed.** My first edit broke two freeze tests: protocol v3's freeze pins its SHA-256
+  (`research/forecasts/FREEZE_v3.md:48`), and the panel job's own guard would have refused to run. I reverted it, and
+  it is byte-identical to `main`. Its Python step still posts the named line through `fno/cli.py`. Changing its
+  wording or its `failure()` gate needs a new protocol version, which is the owner's call.
 
 ### Evidence
 - **Real run:** `python -m fno pipeline index-closes --to 2027-01-04`, with no Slack token, printed:
@@ -218,7 +222,7 @@ Only alert steps are touched here, so the two do not collide today.
   2. a line without the calendar's words;
   3. the command named with its options;
   4. index-closes still blaming Drive;
-  5. panel-days still gated on the append.
+  5. (before the revert) panel-days still gated on the append. That break no longer applies: the file is unchanged.
 
 ### A trade-off, stated
 On a named stop in the append step, the job now posts two lines: the named one, then the generic "failed; see URL".

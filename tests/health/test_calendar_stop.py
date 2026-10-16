@@ -86,9 +86,9 @@ def test_any_other_error_is_not_turned_into_a_calendar_line(sender, monkeypatch)
     assert sender.sent == []
 
 
-@pytest.mark.parametrize("name", ["index-closes.yml", "panel-days.yml"])
-def test_the_workflows_name_no_single_cause_and_alert_an_unexpected_append_crash(name):
-    text = (ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+def test_index_closes_names_no_single_cause_and_alerts_an_unexpected_append_crash():
+    """panel-days.yml is frozen by protocol v3 (FREEZE_v3.md): left as it is; its Python step gets the named line."""
+    text = (ROOT / ".github" / "workflows" / "index-closes.yml").read_text(encoding="utf-8")
     steps = yaml.safe_load(text)["jobs"][next(iter(yaml.safe_load(text)["jobs"]))]["steps"]
     assert "the Drive archive step failed" not in text and "(Drive, NSE or the calendar: its log names it)" in text
     final = steps[-1]

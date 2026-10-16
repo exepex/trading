@@ -244,12 +244,13 @@ not reported at all.
   the year to add.
 - Commands that already handle the calendar themselves (3 pm recorder, A16, the back-fill, the card) never let it reach
   `main`, so nothing is posted twice. Any other error is not turned into a calendar line.
-- In `index-closes.yml` and `panel-days.yml`:
+- In `index-closes.yml` (not `panel-days.yml`, frozen by protocol v3: `research/forecasts/FREEZE_v3.md` pins its
+  SHA-256, and a change is a new protocol version, never an edit; its Python step still gets the named line):
   - the librarian line reads "the archive step failed (Drive, NSE or the calendar: its log names it)";
   - the final `failure()` step no longer waits for the append to succeed, so an unexpected append crash is never
     silent. A named stop can then give two lines (its own, plus "see URL"), never none.
 
-Out: `nse-margins.yml`, which stays with its A14 owner (told the same two edits), and O9's later move of these jobs'
+Out: `panel-days.yml` (frozen; a change needs a new protocol version, the owner's call), `nse-margins.yml`, which stays with its A14 owner (told the same two edits), and O9's later move of these jobs'
 data to Drive (alert steps only are touched here).
 
 **Acceptance criteria:**
@@ -258,7 +259,8 @@ data to Drive (alert steps only are touched here).
 2. A command that handles the calendar itself posts only its own line. Any other error is not changed into a calendar
    line.
 3. The command is named without its options.
-4. Neither workflow blames Drive alone, and neither final `failure()` step is gated on the append.
+4. `index-closes.yml` does not blame Drive alone, and its final `failure()` step is not gated on the append;
+   `panel-days.yml` is unchanged (its freeze tests pass).
 
 **Test plan:** `tests/health/test_calendar_stop.py`, with each criterion broken on purpose once.
 
