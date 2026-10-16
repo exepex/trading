@@ -116,3 +116,42 @@ previous close is NSE's `underlying` in `research/data/nifty-panel/warmup_closes
 
 The 15-minute and 60-minute moves are absolute changes between levels 1 and 4 marks apart, within one session. The
 replay over A16's live marks covers one day (16 Oct, `research/data/intraday/slots/2026/10/16/`).
+
+## Round 1 code claims (for judge B; orchestrator's go, 16 Oct: pure checks, texts and limits, unwired)
+
+Branch `story/lm1-code`. A16's `MarkObserver` port does not exist yet (orchestrator gave its go to A16's builder on 16
+Oct). So nothing here runs on a mark, posts to Slack, writes a file or reads Drive. Round 2 adds the observer, the
+adapters, the alert path through O1's `ReportedAlerts`, the private records, the heartbeat and the mark rows. Round 3
+adds the weekly replay.
+
+| Claim | Where | Proof |
+|---|---|---|
+| Criterion 1: no entry, exit, fill or order path. Every module `fno.monitor.wiring` loads, checked in a fresh interpreter, is outside `fno.desk`/`fno.books`/`fno.daily` except `fno.desk.timetable` (the execution snapshot's time), and none is named after a trade path | `fno/monitor/*`; E4's rule names are kept as plain labels, pinned to E4 by a test | `tests/monitor/test_no_trade_path.py` |
+| Criterion 2: with no open position nothing runs (`positions: 0`, no condition) | `monitor.py` | `test_no_position_runs_no_check` |
+| Criterion 3: each check fires at its threshold and stays quiet just below. Loss 50% and 80%. Short strike exactly 0.5% from the index level. Big move 1.5%, plus each further 0.5% step when `big_move_step_pct` is set (Q4b), else hourly. Each E4 rule. Stale at 30 minutes. Expiry from N sessions before (NSE calendar). VIX and weather exist only as `WAITING_CHECKS` | `checks.py` | `tests/monitor/test_checks.py` |
+| Criterion 4: a mark outside the usable statuses (or with no index level) gives only the stale WARNING. An unmarked position gives "cannot mark" with no value. An incomplete mark is usable only when `check_incomplete_marks` is true (Q5b) | `monitor.py`, `checks.py` | `test_an_unusable_mark_gives_only_the_stale_warning`, `test_an_incomplete_mark_is_checked_only_when_the_setting_allows` |
+| Criterion 5: one alert per key per hour (`hourly`) or per session (`once`). Desk-wide conditions are one key for the desk (judge 215 note 2). The 11th DANGER of a session folds into one summary at most every 30 minutes; WARNINGs are never folded | `limits.py` | `tests/monitor/test_limits.py` |
+| Criterion 6: every text starts "F&O monitor:"; the first line is "action: ..." or "information, no action"; the last line is the 60-minute assumption, naming today's or the next session's execution snapshot from the desk timetable; no text contains "exit" or "close" (any case); rupees appear only for the position's own loss; NIFTY levels are allowed (judge 215 note 3) | `texts.py` | `tests/monitor/test_texts.py` |
+| Settings: all from `config.yaml` `monitor` (an allowed key now), version `lm1-proposal-1`. A missing, unknown or bad value stops at start | `settings.py`, `config.yaml`, `fno/config.py` | `tests/monitor/test_settings.py` |
+
+**Float noise at a threshold (found by a test):** 25,375 / 25,000 − 1 gives 1.4999...%, so a move exactly at 1.5% did
+not fire. The percentages are now rounded to 6 digits before the comparison.
+
+**Mutation proofs (each planted bug fails at least one test):**
+- loss `>=` to `>`;
+- strike `<=` to `<` (it survived until the exact-0.5% case was added);
+- the handled exit rule ignored;
+- the hourly limit halved;
+- the storm limit removed;
+- staleness-first removed;
+- the run with no positions;
+- the 60-minute line fixed to "today".
+
+**Gates:** pytest 7,249 passed; ruff check and format; `check_imports` clean; every file is under 350 lines.
+
+**Interpretations to check (reasoning only):**
+- After the 10th DANGER, the summary lists only the DANGER conditions of the mark it is sent on. Conditions held in
+  between are kept for the record (round 2) but not repeated.
+- An expiry warning is `once` per session, and an exit rule reached is `once` per session, so a whole day is not
+  hourly noise.
+- The stale clock starts at the session's first mark (09:15) when nothing usable came yet.

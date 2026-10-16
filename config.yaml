@@ -199,3 +199,17 @@ health:
   window_days: 6
   # Story O8b: one line, once per calendar version, when NSE's calendar ends within this many days
   calendar_horizon_days: 45
+# Story LM1: the position monitor's thresholds. Proposals only: the owner decides them (response 248); `version`
+# names this set in every alert. big_move_step_pct: alert again each further step (null: once an hour while it lasts).
+monitor:
+  version: "lm1-proposal-1"
+  loss_used_warning: 0.5
+  loss_used_danger: 0.8
+  short_strike_near_pct: 0.5
+  big_move_pct: 1.5
+  big_move_step_pct: 0.5
+  stale_after_minutes: 30
+  check_incomplete_marks: true
+  expiry_warn_sessions: 1
+  danger_summary_after: 10
+  summary_every_minutes: 30

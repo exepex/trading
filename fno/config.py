@@ -26,6 +26,7 @@ ALLOWED_APP_KEYS = frozenset(
         "desk",
         "budget",
         "health",
+        "monitor",
     }  # fmt: skip
 )
 
