@@ -60,3 +60,19 @@ def test_the_60_minute_line_names_the_next_execution_snapshot(hhmm, when):
 
 def test_index_levels_are_allowed():
     assert any("NIFTY 24,600.00" in t for t in every_alert())
+
+
+def test_the_calendar_gap_and_failed_check_alerts_follow_the_rules_too():
+    from datetime import date
+
+    from fno.monitor.model import DESK, HOURLY, WARNING, Condition
+    from fno.monitor.monitor import CHECK_FAILED_NAME
+
+    from .test_checks import monitor
+
+    m = mark(day=date(2026, 12, 30))
+    found = monitor().find(m, [spread(expiry=date(2027, 1, 5))]).conditions
+    failed = Condition(CHECK_FAILED_NAME, WARNING, DESK, "check_failed:x", HOURLY, "the x check could not run")
+    for text in (alert_text(c, m, S) for c in [*found, failed]):
+        assert text.startswith(PREFIX) and ", action: " in text.splitlines()[0]
+        assert not FORBIDDEN.search(text), text

@@ -19,6 +19,8 @@ ACTIONS = {
     "big_move": "review every open position",
     "quotes_stale": "check A16's quote recorder (story A16); positions are not being watched",
     "danger_summary": "review every open position",
+    "expiry_uncounted": "check {trade}'s expiry date yourself; NSE's calendar needs next year's holiday rows",
+    "check_failed": "tell the LM1 builder; this check is not watching until fixed",
 }
 MARK_LINE = "Mark {mark} IST; thresholds {version}."
 LATER = ("If you act 60 minutes later, the paper record is the same: it changes only at {when} (alert_only; "

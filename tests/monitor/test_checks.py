@@ -3,6 +3,8 @@ with no position, a mark the monitor cannot use gives only the stale WARNING, an
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from fno.monitor.checks import (
@@ -137,3 +139,37 @@ def test_expiry_warns_from_the_0930_mark_only():
     check = ExpiryNear(settings(), CALENDAR)
     assert check.find(mark("09:15"), [spread(expiry=DAY)]) == []
     assert len(check.find(mark("09:30"), [spread(expiry=DAY)])) == 1
+
+
+def test_a_far_expiry_past_the_calendar_end_never_stops_the_other_checks():
+    """Judge 264: on 1 Dec 2026 a position expiring 28 Jan 2027 (past NSE's calendar) at 90% loss used."""
+    found = monitor().find(mark(day=date(2026, 12, 1)), [spread(loss=9000.0, expiry=date(2027, 1, 28))])
+    assert [(c.check, c.severity) for c in found.conditions] == [("loss_used", DANGER)]
+
+
+def test_a_near_expiry_past_the_calendar_end_is_a_named_warning_and_the_rest_still_runs():
+    found = monitor().find(mark(day=date(2026, 12, 30)), [spread(loss=9000.0, expiry=date(2027, 1, 5))])
+    checks = {c.check: c for c in found.conditions}
+    assert set(checks) == {"loss_used", "expiry_uncounted"}
+    assert "2027 holiday circular" in checks["expiry_uncounted"].facts
+
+
+def test_one_failing_check_is_its_own_warning_and_never_takes_the_others_down():
+    class Broken(LossUsed):
+        name = "broken"
+
+        def find(self, mark, positions):
+            raise KeyError("detail never shown")
+
+    s = settings()
+    found = PositionMonitor(s, [Broken(s), BigMove(s)], QuotesStale(s)).find(mark(level=24000.0), [spread()])
+    assert [c.check for c in found.conditions] == ["check_failed", "big_move"]
+    assert "KeyError" in found.conditions[0].facts and "detail" not in found.conditions[0].facts
+
+
+def test_the_seven_day_bound_holds_on_the_calendar():
+    """No gap between NSE sessions in the calendar reaches 7 calendar days (DAYS_PER_SESSION_AT_MOST)."""
+    from fno.monitor.checks import DAYS_PER_SESSION_AT_MOST
+
+    days = CALENDAR.sessions(date(2017, 1, 2), date(2026, 12, 31))
+    assert max((b - a).days for a, b in zip(days, days[1:])) < DAYS_PER_SESSION_AT_MOST
