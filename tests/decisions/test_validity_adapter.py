@@ -15,6 +15,7 @@ from tests.playbook.evaluation_builders import (
     Counts,
     FixedValues,
     OwnShadowBooks,
+    book_with_open,
     chain_market,
     evaluator,
     playbook,
@@ -120,3 +121,32 @@ def test_d2_s_eligible_versions_are_those_that_fired_and_c4_receives_them_judge_
     seen = Seen()
     validate_chosen(evaluation, seen, chain_market(), playbook(a, b), book())
     assert seen.eligible == {a.key}
+
+
+def test_a_version_its_own_unproven_limit_refused_is_not_eligible_judge_260_addendum_1(tmp_path):
+    """B is unproven (3 completed) with one open trade, so D2 refuses B by B's own limit, not for losing to A; nothing
+    after D2 re-checks that limit, so Book 2 may not choose B."""
+
+    class PerVersion(Counts):
+        def completed(self, name, version):
+            return 3 if name == "sc-b" else 25
+
+        def open(self, name, version):
+            return 1 if name == "sc-b" else 0
+
+    a, b = strategy("sc-a"), strategy("sc-b", expected=300.0)
+    evaluation = evaluator().evaluate(DAY, playbook(a, b), chain_market(), FixedValues(), book(), PerVersion(),
+                                      OwnShadowBooks())  # fmt: skip
+    reasons = {o.opportunity.strategy.name: (o.decision, o.reason) for o in evaluation.outcomes}
+    assert reasons["sc-b"][0] == Decision.NOT_CHOSEN and reasons["sc-b"][1].startswith("unproven")
+    assert evaluation.eligible == {a.key}
+
+
+def test_a_version_that_lost_its_slot_to_another_at_c2_stays_eligible():
+    """Losing the book's last slot to A is not B's own refusal: had the decider picked B, the slot was B's (C2 then
+    checks B's own verdicts, and C4 checks them again)."""
+    a, b = strategy("sc-a"), strategy("sc-b", expected=300.0)
+    evaluation = evaluator().evaluate(DAY, playbook(a, b), chain_market(), FixedValues(), book_with_open(2), Counts(),
+                                      OwnShadowBooks())  # fmt: skip
+    assert [o.reason.split(":")[0] for o in evaluation.outcomes if o.decision == Decision.NOT_CHOSEN] == ["slot"]
+    assert evaluation.eligible == {a.key, b.key}
