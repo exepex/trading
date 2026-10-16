@@ -103,9 +103,15 @@ Out, each with its reason:
    runners, probe run 38900266338). Each run writes each calendar read whole as one snapshot part
    `macro-calendar/<source>/...` and keeps the document once under its SHA-256. The reader: `announced_on` = the IST
    day of the first snapshot holding a date, only if before the date; a future date a later snapshot of the same
-   source drops is withdrawn (an unscheduled event with `first_announced_on` and `first_withdrawn_on`, so A6's
-   `known_on` knows it only until then); a past date the calendar stops covering stands; a date that comes back is a
-   new announcement. Days before our first capture are honestly "late bound" (A6's own rule). Daily at 07:30 IST.
+   source drops, while the date lies inside that snapshot's period (MOSPI: its financial year; the Fed: the run's
+   year to the last listed year), is withdrawn: A6's moved-meeting form, an unscheduled event with
+   `first_announced_on` and `first_withdrawn_on` and "WITHDRAWN" in its description, so `known_on` knows it only
+   until then (read only through `known_on`/`in_window`). A date outside the new document's period (the next
+   financial year's file) is kept; a past date dropped stands; a date that comes back is a new announcement. MOSPI's
+   footnote ("in case of holidays, reports release on next working day"): a planned weekend date moves to the Monday,
+   the printed date kept as `planned`; public holidays are not known here (a stated limit). FOMC dates are US dates
+   (statement about 23:30-00:30 IST), so NSE trades on them the next IST session. Days before our first capture are
+   honestly "late bound" (A6's own rule). Daily at 07:30 IST.
 4. **Failures (O10's design).** Each job prints one line per source (`ok`, `stale`, `failed: <reason>`) and exits 1
    if any source is not ok; O10's `capture-watch.yml` writes the committed error row for every non-success run (A20's
    workflows are on its list; agreed with O10's builder). Alerts:
