@@ -17,8 +17,9 @@ the function returns None, even when the target session is inside 2026.
 What it does:
 - **Live capture (G2/G3, protocol v2).**
   - `RiskNeutralBaseline.inputs` (`baselines.py:62`) gets no target day, so Q1 and Q2 are None.
-  - `book1_probabilities` (`book1_method.py:32-38`) then averages the other two baselines. Book 1's Q1 and Q2 on
-    those days are therefore a two-baseline average, not three.
+  - `book1_probabilities` (`book1_method.py:32-38`) uses only the baselines that are available. For Q1 and Q2,
+    Book 1 is the mean of the risk-neutral baseline and the base rate (`comparisons.py:44-48`), so on those days its
+    Q1 and Q2 are the base rate alone. (Corrected 16 Oct after judge 253; this said "a two-baseline average".)
   - The records are written once, so this is permanent for every day captured in the gap.
 - **G4 scoring (protocol v3).**
   - `OfficialOutcomes.resolve` (`forecast_scoring/resolution.py:66`) calls the same function and returns PENDING.
@@ -45,8 +46,8 @@ There are two causes, and the second matters more:
    At the turn of the year that assumption is false.
 2. **The calendar's lead time.** Even with the code fixed, every 20-session forecast from 3 Dec onward has an unknown
    target until NSE's 2027 holidays are in the calendar.
-   - Those live risk-neutral values are then None for good, a correct "no forecast", and Book 1 averages two
-     baselines.
+   - Those live risk-neutral values are then None for good, a correct "no forecast", and Book 1's Q1 and Q2
+     are the base rate alone.
    - So the code fix saves only the 11 sessions of 17 Nov to 2 Dec; the rest of the gap depends on when NSE's list
      arrives.
    - NSE has usually published the next year's trading holidays in December. That is reasoning only: I have not
@@ -59,7 +60,7 @@ protocol says: "Any change from here is a new version, never an edit." So no cod
 
 | Option | What it saves | Cost |
 |---|---|---|
-| A. Change nothing in the frozen code. Add NSE's 2027 rows the day the circular is out (A7's routine), and have O8's health check alert when the calendar ends within 60 days. | Scoring: everything (PENDING resolves once the rows land). Live: nothing in the gap. | The live risk-neutral Q1 and Q2 are None from 17 Nov until the rows land. Book 1 is a two-baseline average then. Both are visible in the records. |
+| A. Change nothing in the frozen code. Add NSE's 2027 rows the day the circular is out (A7's routine), and have O8's health check alert when the calendar ends within 60 days. | Scoring: everything (PENDING resolves once the rows land). Live: nothing in the gap. | The live risk-neutral Q1 and Q2 are None from 17 Nov until the rows land. Book 1's Q1 and Q2 are then the base rate alone. Both are visible in the records. |
 | B. A new forecast protocol version whose `horizon_day` walks session by session (v4's `next_scored_sessions`), frozen with its own record. | Live: the 11 sessions of 17 Nov to 2 Dec. | A whole new version, with a new freeze, a new ledger row and its own report section, to save one baseline's input on 11 days. It must be frozen and running before 17 Nov, a month from now. |
 | C. Invent 2027 rows (weekdays, no holidays) ahead of NSE. | — | Rejected: invented data. A missed 2027 holiday would set a wrong target day and score a wrong outcome. |
 
