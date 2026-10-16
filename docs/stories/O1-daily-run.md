@@ -42,6 +42,8 @@ its lines with the Slack connector; note any result other than "day done" in `co
 The routine is **updated, not created** (O1 never creates a scheduled task; the owner pastes the prompt). Groww, Drive
 and Slack settings are already in that routine's environment, so no broker key goes into GitHub (O6's rule). One
 schedule means no two schedules race (the old O1's reason).
+The stored prompt is one sentence pointing at the section ("Run the daily desk routine in CLAUDE.md, section 'Daily
+desk routine'."), so the three steps above are written only in CLAUDE.md (criterion 8; 16 Oct).
 
 **Ownership of the prompt (orchestrator, 15 Oct):** O1 owns the routine's prompt text and the CLAUDE.md section.
 A4c (other indices), G10 (14:05 start, 14:30-14:40 window) and the handover session change only the command they own

@@ -295,3 +295,39 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   E6's count is `sum(len(card.open_marks))` from its own scorecards, so the accounts are not read a second time. The
   step is refused only when the snapshot is invalid and a position is open. Tests cover both ways. Putting the old
   rule back fails the nothing-open test.
+
+### Criterion 8: the CLAUDE.md "Daily desk routine" section (16 Oct, after A4c's live check)
+
+- **Trigger:** the orchestrator, 16 Oct: A4c's live check holds on main 2ec7c6e6. The Groww capture was complete
+  (188 contracts, 0 failures, done 14:57:53 IST), the Drive SHA-256 entries and NSE's canonical are present, and no
+  Groww quote file is in the repository. Main is merged into the branch; the one conflict was `fno/constants.py`.
+  Main's `ENV_GITHUB_OUTPUT` and `PROTOCOL_*` stay there (344 lines). The branch already had the rest in
+  `constants_operations.py`.
+- **What:** CLAUDE.md's "3 pm quote recorder" section is replaced by "Daily desk routine". It holds the stored prompt
+  (one sentence pointing at the section), the setup line (O7's text unchanged), `python -m fno daily run` and its three
+  end lines, and the "alert NOT sent" and conversation-log rule. Under it is a sub-section with A4c's steps 2, 3, 3b
+  and 4, copied word for word from `story/a4c-all-indices` by script, not retyped. A lead line says the routine never
+  runs those commands itself: the run does, and the `git add` lines are the hand fix for "NOT committed".
+- **Strong evidence:**
+  - A4c's own path test (`tests/quotes/test_routine_commit_paths.py`, from its branch) passes against this CLAUDE.md;
+    it was run from a temporary copy, which was not committed;
+  - the new `tests/daily/test_routine_section.py` checks that the section names the setup, the command and the stored
+    prompt, that no "3 pm quote recorder" section is left, and that `daily run` appears nowhere else in CLAUDE.md;
+  - O7's `tests/test_routine_setup.py` now splits on the new heading. That is a one-word change in another story's
+    test, made because the section it reads was renamed; its check is unchanged;
+  - README's command and routine lines now name `fno daily run`.
+- **Merge order (reasoning only):** A4c merges first. A4c's CLAUDE.md change then conflicts with this section, and the
+  resolution is this section, which already carries A4c's text. If O1 merges first, A4c's merge takes this section
+  the same way.
+- **Risk at the switch (reasoning only, for the owner):** after the merge the routine's old stored prompt points at
+  a section that no longer exists. The owner should paste the new prompt before the next trading day's 14:33. Until
+  then a session following the old prompt finds the "Daily desk routine" section, whose heading names the 3 pm quote
+  parts; I cannot prove it will pick that section.
+
+### Criterion 9: one real day (open; cannot close before the merge)
+
+- The routine runs on `main`. `fno daily run` does not exist on `main` until O1 merges, and the owner pastes the
+  prompt (O1 never creates or edits a scheduled task). So the real day can only come after the merge. **Proposal:**
+  judge D's final addendum passes criteria 1-8 and 10, and criterion 9 is a post-merge check. Its evidence is the
+  first trading day's `journal/runs/<date>.json`, the commit list and the card in #fno-desk, added here and checked by
+  judge D. S1 counts no day before it.

@@ -44,25 +44,51 @@ Before ending any working session with the user, write or append to `conversatio
 "Decisions so far" and "Open questions" sections. Commit and push it. Never include email addresses,
 API keys or tokens.
 
-## 3 pm quote recorder (daily routine, stories A4 and A7)
+## Daily desk routine (story O1; the 3 pm quote parts: stories A4, A4c and A7)
 
-Started by a scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55); the NSE
-session calendar (A7) decides whether it is a trading day, so special weekend sessions are recorded and closed days
-print "not a trading day". Research data only: never places, modifies or cancels orders.
+Started by the owner's scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55);
+its stored prompt is exactly: "Run the daily desk routine in CLAUDE.md, section 'Daily desk routine'." One command runs
+the whole desk day; the NSE session calendar (A7) decides whether it is a trading day (a closed day records only
+`skipped` and each quote part prints "not a trading day"). Research and paper trading only: never places, modifies or
+cancels orders.
 1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
    checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
    Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
-2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
-   incomplete). NSE's session calendar (`research/data/calendar/nse_sessions.csv`, story A7) decides the day: a
-   holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special weekend session is recorded.
-   It prints the result line. The raw quote rows go to Google Drive only (story A4b; needs the four `FNO_GDRIVE_*`
-   settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive file's SHA-256) and the day's
-   `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
-3. Commit `research/data/quotes/` and push to `main` (`git pull --no-rebase` first). Never edit or delete a recorded
-   attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never bypass it
-   (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk itself when
-   `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector. Note them in
-   `conversations/<date>.md`.
+2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
+   (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
+   forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
+   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk. It writes
+   `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day done with
+   problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the same day
+   skips the steps already done.
+3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
+   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+
+### What the run does for the 3 pm quote parts (A4c's routine steps, word for word)
+
+The routine never runs these commands itself: `daily run` runs each part's own command as a child process and makes
+each part's commit in its one thread. The `git add` lines below are also the hand fix when the run reports a part
+"NOT committed". Their rules hold for every commit of the day: never edit a recorded attempt, never `--no-verify`.
+
+2. `python -m fno quotes record` (NIFTY, Groww) and `python -m fno quotes record --source nse` (NSE's public chain,
+   story O6) run in parallel from the routine's start; each waits for 14:55 IST, records NIFTY monthly quotes and
+   retries until 15:10 if a capture is incomplete. NSE's session calendar (`research/data/calendar/nse_sessions.csv`,
+   story A7) decides the day: a holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special
+   weekend session is recorded. It prints the result line. Groww's raw quote rows go to Google Drive only (story A4b;
+   needs the four `FNO_GDRIVE_*` settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive
+   file's SHA-256) and the day's `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
+3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase` first); never
+   `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed: `git add
+   ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`. Never edit
+   or delete a recorded attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never
+   bypass it (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk
+   itself when `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector.
+   Note them in `conversations/<date>.md`.
+3b. Right after NIFTY's push, run `python -m fno quotes record-indices` (story A4c: BANKNIFTY, FINNIFTY and
+   MIDCPNIFTY; 15:01-15:13 IST, paced; raw quotes to Drive only), alongside NSE if it is still running. When it is
+   done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
+   ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'`, commit and
+   push. It alerts #fno-desk itself for any index not recorded.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday

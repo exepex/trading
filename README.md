@@ -25,7 +25,8 @@ data only.
 ```bash
 sh tools/routine_setup.sh --groww                # install into every Python on PATH, check imports, hooks on
 python -m fno chain NIFTY                         # option chain around the money (root `provider` in config.yaml)
-python -m fno quotes record                       # 3 pm quote recorder (story A4); run by a weekday routine
+python -m fno daily run                           # the whole desk day, run by the daily routine (story O1)
+python -m fno quotes record                       # 3 pm quote recorder (story A4); one of the daily run's quote parts
 python -m fno quotes report                       # half-spread by distance from the money, from recorded days
 python -m fno intraday run --dry-run /tmp/a16     # 15-minute snapshots (story A16); --dry-run: no Drive, no commit
 python -m fno account show book1_rules          # a book's paper account: cash, closed equity, open legs (E1)
@@ -43,8 +44,9 @@ python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan:
 
 ## Routines
 
-- **3 pm quote recorder** (weekdays 14:48 IST, cloud routine): records NIFTY monthly bid/ask quotes into
-  `research/data/quotes/` and pushes to `main` (see `CLAUDE.md`). Recorded files are never edited.
+- **Daily desk routine** (daily 14:33 IST, cloud routine; the NSE calendar decides the day): `python -m fno daily run`
+  records the 3 pm quotes, runs the paper desk and posts the card (see `CLAUDE.md`, "Daily desk routine"). Recorded
+  files are never edited.
 
 ## Data and secrets
 
