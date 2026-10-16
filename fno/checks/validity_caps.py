@@ -3,12 +3,13 @@ and the bucket, open-risk and new-risk-per-day caps on sums of maximum losses. A
 full maximum loss in each of its buckets (owner, 15 Oct 2026, "1 B"); new risk counts every trade first filled this
 session, open or closed, at the largest maximum loss it carried (owner, "3 A").
 
-Nothing here comes from C2 (`fno.risk`). A position's bucket is its contracts' underlying (the symbol's letters before
-its first digit, NIFTY or BANKNIFTY) and its structure's side from `bucket_sides` in config.yaml. A held position's
-maximum loss is C4's own: its cash so far plus its worst value at expiry on C4's one-point grid between its outer
-strikes, plus each leg's exit pad and exit charges at that level (where levels tie, the larger charges), never below
-zero; a tail with more options sold than bought is not defined risk and fails. The proposal's is `validity_money`'s.
-Contract strikes come from the committed snapshot, so an open contract missing from it fails the check."""
+Nothing here comes from C2 (`fno.risk`). A position's bucket is its contracts' underlying (`fno/contract_symbols.py`,
+the symbol format's rule for Groww's and NSE's IDs alike: NIFTY or BANKNIFTY) and its structure's side from
+`bucket_sides` in config.yaml. A held position's maximum loss is C4's own: its cash so far plus its worst value at
+expiry on C4's one-point grid between its outer strikes, plus each leg's exit pad and exit charges at that level (where
+levels tie, the larger charges), never below zero; a tail with more options sold than bought is not defined risk and
+fails. The proposal's is `validity_money`'s. Contract strikes come from the committed snapshot, so an open contract
+missing from it fails the check."""
 
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from ..constants import BUCKET_INDEX_GROUPS
+from ..contract_symbols import underlying_of
 from .validity_account import AccountFacts, Position
 from .validity_chain import PricedChain
 from .validity_money import BUY, PAD, SELL, ProposedLeg, expiry_grid, order_charge
@@ -37,14 +39,9 @@ class Exposure:
     max_loss: float
 
 
-def _underlying(contract: str) -> str:
-    digits = [i for i, char in enumerate(contract) if char.isdigit()]
-    return contract[: digits[0]] if digits else contract
-
-
 def buckets_of(structure: str | None, contracts, sides: Mapping[str, object]) -> tuple[tuple[str, str], ...]:
     """A structure's sides from config.yaml: one name, or a list (a directional spread, owner 15 Oct 2026 "1 B")."""
-    groups = {_underlying(c) for c in contracts}
+    groups = {underlying_of(c) for c in contracts}
     if len(groups) != 1 or next(iter(groups)) not in BUCKET_INDEX_GROUPS or structure not in sides:
         raise CapProblem(f"unmapped bucket: structure {structure!r} on underlyings {sorted(groups)}")
     listed = sides[structure]

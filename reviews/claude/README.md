@@ -251,3 +251,4 @@ Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers
 - [Response 255: G11 round 1, the AI books' v4 rows: one G7-schema row per started question for every settled book-day, every failure a miss, pending days without a row](response_255_g11-round-1-v4-rows.md)
 - [Response 258: G11 round 2a, each AI book run's own timing (`python -m fno.ai done`) recorded in BG1's usage ledger by collect; withdrawn, moved to F8c (addendum 1)](response_258_g11-round-2a-run-timing.md)
 - [Response 264: F2 analyst cards, text round: the orchestrator's four answers, one analyst first (volatility) with the F9 sample argument, F9's cost rule and O9's credential limit for their owners](response_264_f2-analyst-cards.md)
+- [Response 270: story C5d, NSE contract IDs map to NIFTY in C5's and C4's buckets (claims for judge D)](response_270_c5d-nse-symbols.md)
