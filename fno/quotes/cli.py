@@ -39,6 +39,7 @@ def add_quotes_parser(subparsers) -> None:
         default=CONFIGURED,
         help="nse: NSE's public option chain into its own dataset (story O6); default: quotes.provider",
     )
+    actions.add_parser("record-indices", help="BANKNIFTY, FINNIFTY and MIDCPNIFTY after NIFTY's push (15:01-15:13 IST)")
     actions.add_parser("compare", help="Groww's and NSE's canonical snapshots side by side, day by day (story O6)")
     actions.add_parser("report", help="median and 90th-percentile half-spread by distance from the money")
     quotes.set_defaults(func=cmd_quotes)
@@ -59,9 +60,15 @@ def cmd_quotes(args) -> int:
 
         print("\n".join(compare_lines(QUOTES_FOLDER, build_quote_store(QUOTES_FOLDER))))
         return 0
+    calendar_file = CALENDAR_FILE.relative_to(ROOT).as_posix()
+    if args.quotes_cmd == "record-indices":
+        from ..composition import build_index_quote_recorders
+        from .indices_cli import record_indices
+
+        build_indices = partial(build_index_quote_recorders, load_app_config(args.config))
+        return record_indices(build_indices, build_alert_sender(), calendar_file)
     builder = build_nse_quote_recorder if args.source == NSE_SOURCE else build_quote_recorder
     build = partial(builder, load_app_config(args.config))
-    calendar_file = CALENDAR_FILE.relative_to(ROOT).as_posix()
     return record_today(build, build_alert_sender(), args.outside_window, calendar_file)
 
 
