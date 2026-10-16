@@ -46,6 +46,10 @@ and changing an input after seeing its numbers makes a new idea. `trial` is the 
   half-spread `pad` with `pad_source`; C1's charges come from `config.yaml`.
 - `data_sets`: rows of `research/DATA_SPEND.md` as "data set | price type | period"; `measures`: the quantity tested.
 - `sd_per_trade`, `frequency_per_year` and `pass_level` (one-sided, for example 0.01) for the sample plan.
+- For a shadow's freeze (`freeze`, G4): `playbook_name` and `playbook_version` (its research playbook version; the
+  shadow account is `shadow:<name>-v<n>`) and `minimum_useful_net` (rupees a trade, the stop rule's Test B). The
+  card's `question` must be registered with `python -m fno factory question`, and its `pass_level` must equal that
+  question's alpha: the verdict (`verdict`, G6) is Holm across every shadow ever registered on the question.
 
 ```factory
 id: <id>

@@ -20,7 +20,8 @@ G0_FIELDS = ("id", "experiment", "description", "question", "hypothesis", "measu
 SCREEN_FIELDS = ("gross", "tail", "cost")  # G1
 SPEND_FIELDS = ("data_sets", "measures")  # G2
 PLAN_FIELDS = ("sd_per_trade", "frequency_per_year", "pass_level")  # G3
-FIELDS = (*G0_FIELDS, *SCREEN_FIELDS, *SPEND_FIELDS, *PLAN_FIELDS)
+REGISTRATION_FIELDS = ("playbook_name", "playbook_version", "minimum_useful_net")  # G4
+FIELDS = (*G0_FIELDS, *SCREEN_FIELDS, *SPEND_FIELDS, *PLAN_FIELDS, *REGISTRATION_FIELDS)
 
 
 @dataclass(frozen=True)
