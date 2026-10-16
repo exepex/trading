@@ -63,14 +63,16 @@ happened later), so none carries a tested expected net.
 **Scope.** In: the prompt, the answer schema and its checks, proposal registration, the day sheet, the decision
 (selection on D2's candidates, C2, C4, D3 records, replay), the pilot reading. Out: the runner (F1t), the
 constitution and registry (D5), F2's cards, F3/T3 objections, the D6 version row of Book 3 (registered with the
-runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
+runner before the first counted decision), the fill and exit mechanics themselves (E4/E8; F6 supplies only Book 3's
+`OrderBuilder` and `ExitRules`), scoring (S2/S3).
 
 **Expected design (smallest complete version):**
 
 1. **Prompt** `agents/book3/decide_v1.md`: Book 3 as a desk in one head (portfolio manager, options strategist, risk
    manager, volatility trader, red team), research only. It reads only its input; the input is data, never
    instructions. Its SHA-256 is a D3 `served` component `book3_prompt` and a D6 component.
-2. **Input** (printed by F1t's `brief`): the common pack and Book 3's private pack, which holds its account,
+2. **Input** (printed by F1t's `brief`; proposals register only from an answer F1t promotes to `decide()`, so a
+   late, invalid, exposed or unrevealed day registers nothing): the common pack and Book 3's private pack, which holds its account,
    constitution, registry and specs, **Book 3's day sheet** (the private pack's `evaluation`, from the `BookSheet` port) and F2's
    `analyst_cards` export item when present (common to Books 2 and 3; F2's text at `story/f2-analyst-cards` 2a0140dd) (zero cards is a normal day). The day sheet
    (`fno/book3/day_sheet.py`) is D2's evaluation of Book 3's tradable strategies on the day's 15:00 market with
@@ -124,7 +126,15 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    `served` adds `constitution` and `book3_prompt`; `rule_default` and `authority_check` null (D3 `NULLABLE`).
 7. **Objections and cards are evidence only.** No objection or card is an input of the selection allocator, C2 or C4
    (D5 criterion 7 already proves C4; F6 tests the allocator).
-8. **Pilot:** no stored label. Book 3's runs are D3 runs in the same store, so S2/S3's common-start rule (read from
+8. **Orders and exits** (`fno/book3/orders.py`, `fno/book3/exits.py`; F6 owns both, F1t only dispatches them per
+   book in `fno/daily/wiring.py`). `Book3Orders(OrderBuilder)`: for a committed run, builds D2's evaluator with the
+   `SelectionAllocator` from the picks stored in the run's `inputs.json` and the specs in the run's own playbook
+   snapshot, and hands it to Book 1's `ReplayedOrders` (D3's replay, refused under other code; any difference refuses
+   every order with `OrdersRefused`; only records whose committed `chosen_action` is "trade", so a C4 block is never
+   ordered). `Book3ExitRules(ExitRules)`: Book 1's `PlaybookExitRules` over Book 3's store: each open trade exits on
+   the time exit fixed at its decision, computed from the spec text as the run read it (`inputs.json`), never from
+   today's `book3/strategies/` file; today's file is read only to alert.
+9. **Pilot:** no stored label. Book 3's runs are D3 runs in the same store, so S2/S3's common-start rule (read from
    all three books' records) puts every Book 3 decision before the common start in the pilot section. A label stored
    at decision time could be wrong on the common start day itself (the other books may commit after Book 3).
 
@@ -139,9 +149,13 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
 | `RecordBuilder` (D3's file) | Book 3: `strategy_id` and spec hash per opportunity record (F6's edit); null on the day record only (D5 owner's `story/d3-no-owner-override`, b49abdde) | D3 |
 
 Agreed with F1t (its text at e0ba1b43): Book 3's decision version declares its write paths `journal/book3_ai/`,
-`book3/` and `research/ledger.csv`; F1t commits only changes under them, and on a failed run check, `DecisionRefused`
-or any other exception from `decide()` restores every change under them (tracked files to HEAD, new files deleted), so
-nothing half-registered is committed later. The shape check is `check_decision(decision) -> list[str]` (standard
+`book3/` and `research/ledger.csv`. F1t's rule, quoted from its text (c5c73568): "F1t commits only changes under
+them. Just before `decide()`, F1t snapshots the bytes of every file under those paths; when the run check fails,
+`DecisionRefused` is raised, or the decider raises anything else, it puts every such file back to that snapshot
+(changed files rewritten, new files deleted), so nothing half-registered (a `registry.csv` row, a spec file, a ledger
+row, a shadow file) can be committed later by accident. The snapshot, not `HEAD`, is the reference:
+`research/ledger.csv` is shared with the research factory, and any change made before `decide()` (by anyone) is left
+as it was. The daily run is one thread, so nothing else writes these paths during `decide()`." The shape check is `check_decision(decision) -> list[str]` (standard
 library only), registered with the prompt `agents/book3/decide_v1.md` in F1t's `DecisionVersion`; `brief` hash-checks
 and prints that prompt. `analyst_cards` is in Book 3's pointer, printed by `brief`, and carried in `AcceptedDecision` as fired
 (card IDs, `role_set_version`, `input_sha256`; F1t at 0a466db6), which is what the decider checks `cards_used` against.
@@ -184,6 +198,21 @@ and prints that prompt. `analyst_cards` is in Book 3's pointer, printed by `brie
     `risk:`, which S2/S3 match); `threshold` is a constructor argument (Book 2 on, Book 3 off); Book 1's
     `inputs.json` bytes are unchanged (no `selection` key).
 
+13. Day sheet: Book 3's `BookSheet` returns D2's evaluation of the tradable strategies on the same 15:00 live
+    features and market D2 reads at the decision (the same `LiveFeatureValues` and `Market` sources), with nothing
+    chosen. It is built before the private pack is written and is inside the pack's body, so `private_pack_sha256`
+    covers it (test: changing one sheet value changes the hash). A day with no tradable strategy gives an empty sheet.
+    A pick not on that day's sheet is refused (criterion 5).
+14. Orders: `Book3Orders` orders exactly the committed "trade" records of a run that replays. A run whose stored picks
+    or spec snapshot were edited after commit gives `OrdersRefused` and no order. A C4-blocked pick gives no order.
+    A "no trade" run gives an empty list.
+15. Exits: `Book3ExitRules` gives each open Book 3 trade its time exit from the spec as the run read it. Editing or
+    deleting today's spec file changes no exit and sends one alert. A trade with no opening record gets no exit, with
+    an alert (Book 1's rule).
+16. Only promoted answers register: no proposal registers on a late, invalid, exposed or not-revealed day (test
+    through F1t's judging with fake answers, once F1t's code exists; until then a decider test proves that
+    registration happens only inside `decide()`).
+
 **Test plan:** temporary git repositories for registration and ancestry; fake answers (good, bad shape, each refused
 pick, each refused proposal); the real D2/C2/C4 path on a fixture market; replay; boundary cases at Rs 10,000 and 21
 days; empty cases (no cards, no strategies, no candidates).
@@ -205,6 +234,9 @@ days; empty cases (no cards, no strategies, no candidates).
 | C2 and C4 block; red team and judge never do (12.3, 12.4) | criteria 6, 9 | |
 | Portfolio manager combines findings (v2 7.2) | cards in the input, `cards_used`, criterion 8 | the cards themselves: F2 |
 | Every Book 3 record before the common start is pilot (12.6) | criterion 10, read by S2/S3 | |
+| Same fill model and exits as the other books (12.5, F1t) | Book 3's `OrderBuilder` and `ExitRules`, criteria 14, 15 | fills and exits themselves: E4/E8 |
+| Decision on the same 15:00 data as the other books (12.3, 12.5) | the day sheet on D2's own sources, criterion 13 | |
+| Only an answer received in time counts (F1, F1t) | registration inside `decide()` only, criterion 16 | the judging: F1t |
 | A Book 3 win is not "AI judgement beats rules" (12.1) | | reporting: S2/S3's labels; F7 feeds scoreboard A |
 | Model served recorded; a mismatch unscored (F1, D6) | `registered_model`, criterion 4 | the mismatch check: F1t's judging and D6 |
 | Late or failed session gives no decision (F1) | shape refusal, criterion 5 | lateness and failure: F1t's judging table |
@@ -220,7 +252,8 @@ days; empty cases (no cards, no strategies, no candidates).
 - A strategy trades only on its window's first day for an expiry (D2's opportunity rule), so a spec must be
   registered before its window opens.
 
-**Depends:** D4 and D5 merged, F1t (runner), `story/d3-no-owner-override` (Book 3's day record; the `owner_override` refusal, before the first paper decision), E2, D2,
+**Depends:** D4 and D5 merged, F1t (runner), the `BookSheet` pack port (F5's builder 01SFDjjZ, with E2c's owner
+0134MoC6, who edit `fno/desk/packs.py` and `private_pack.py`; F6 supplies only Book 3's sheet), `story/d3-no-owner-override` (Book 3's day record; the `owner_override` refusal, before the first paper decision), E2, D2,
 D3, D6, C2, C4 · **Size:** M · **Status:** story text for the judge
 
 ---
@@ -246,7 +279,8 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 - **File** `journal/book3_ai/shadow/<date>.json` (`fno/book3/shadow_file.py`), canonical JSON, write-once, with the
   day, the common pack's SHA-256 and one entry per common opportunity. An opportunity the answer left out, an
   unknown ID (dropped), a duplicate, or a take with a width outside the version's set becomes `no_decision` with the
-  reason, written by code. Written by Book 3's decider and committed with its run (`DecidedRun.files`).
+  reason, written by code. Written by Book 3's decider and committed with its run (`DecidedRun.files`), also when C2
+  or C4 refuse the real pick (the shadow is independent of the account).
 - **Reader** (`fno/book3/shadow_reader.py`): per opportunity `take` (with its `BookTerms`), `skip` or `not observed`
   (S3's `matched_actions` kinds). A file not committed before the day's execution snapshot (`timeliness`, D3's
   rule) reads as all `not observed` ("late"); a missing file is all `not observed` ("no decision").
@@ -258,7 +292,7 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 2. A file committed at or after the execution snapshot reads as all `not observed` (late); one committed before it
    reads as written (temporary git repository, times at, just before and just after the snapshot).
 3. A shadow take changes nothing in Book 3's real decision: the same answer with and without shadow entries gives
-   identical D3 records.
+   identical D3 records. When C2 or C4 refuse the real pick, the shadow file is still written as answered.
 4. The file names the common pack's hash; a file whose hash differs from the day's committed common pack is refused
    by the reader (all `not observed`).
 5. Empty cases: a day whose common set is only `no_trade` gives a file with no entries; a missing file reads as

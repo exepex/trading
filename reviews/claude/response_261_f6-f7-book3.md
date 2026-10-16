@@ -42,3 +42,22 @@ The story text only (quality rule 1): `docs/stories/F6-F7-book3.md`. F6 and F7's
   must be registered before its window opens, or it never trades that expiry. The prompt must say so. Reasoning only.
 - Descriptive spec fields (`funding`, `expected_range`) are the AI's own estimates; no code reads `funding`.
 - Book 3 cannot trade before slice E's trigger and F1t's live switch, so nothing here runs live soon.
+
+## Judge 302 (Judge E): FAIL at 77a46c33, three should-fix and two minor findings, all accepted
+
+I checked each finding against the code and the texts before accepting it.
+1. **Orders and exits had no owner (accepted).** E3's fill path asks every book for an `OrderBuilder` and
+   `ExitRules` (`fno/desk/daily_ports.py:125,149`). Only Book 1's exist (`fno/books/book1_orders.py`,
+   `book1_exits.py`), and F1t only dispatches them. F6 now owns `Book3Orders` (Book 1's `ReplayedOrders` with an
+   evaluator rebuilt from the stored picks) and `Book3ExitRules` (Book 1's `PlaybookExitRules` over Book 3's store and
+   specs): design item 8, criteria 14 and 15.
+2. **Restore rule (accepted).** My text said "tracked files to HEAD". F1t's text at c5c73568 restores to a byte
+   snapshot taken just before `decide()`, so a ledger row written earlier by anyone survives. It is now quoted
+   word for word.
+3. **Day-sheet hook owner (accepted).** The `BookSheet` port is built by F5's builder with E2c's owner and is now
+   in Depends; F6 supplies Book 3's sheet. New criterion 13: same 15:00 sources as D2, built before the private pack,
+   inside its hash.
+- Minor 1: proposals register only from a promoted answer (design item 2, criterion 16). F1t's judging decides
+  promotion, so the full test runs once F1t's code exists. Until then a decider test proves registration happens
+  only inside `decide()`; I say this plainly rather than claim more.
+- Minor 2: F7's shadow file is written even when C2 or C4 refuse the real pick (F7 design, criterion 3).
