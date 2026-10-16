@@ -20,6 +20,8 @@ from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
 from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
+from ..storage.data_store import new_run_id
+from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.raw_library import RawFileLibrary
 from ..storage.raw_source import NseDailyFoSource
@@ -33,6 +35,7 @@ from ..storage.wiring import (
     build_raw_stores,
     build_session_calendar,
 )
+from .claims import CLAIM_LABEL, CLAIM_MESSAGE, GitMarkClaims, MarkClaims, NoClaims
 from .clock import ClockCheck
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
@@ -49,6 +52,7 @@ from .snapshot_files import SnapshotFiles
 from .sync import GitLedgerSync, LedgerSync, NoSync
 
 INTRADAY_FOLDER = REPOSITORY / "research" / "data" / "intraday"  # derived files only: no prices
+CLAIMS_FOLDER = REPOSITORY / "receipts" / "intraday" / "claims"  # one claim file per mark (O9 section 6)
 DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive project folder
 COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
 DRY_RUN_ALERTS = "dry run"
@@ -71,6 +75,7 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
         source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
+        claims=_claims(dry_run_folder),
     )  # fmt: skip
 
 
@@ -103,6 +108,15 @@ def _expiry_plan(listed) -> ExpiryPlan:
 
 def _alerts(dry_run_folder: Path | None) -> AlertSender:
     return NoAlertSender(DRY_RUN_ALERTS) if dry_run_folder else build_alert_sender()
+
+
+def _claims(dry_run_folder: Path | None) -> MarkClaims:
+    """One taker per mark across overlapping runs (O9 section 6); a dry run claims nothing."""
+    if dry_run_folder:
+        return NoClaims()
+    committer = GitManifestRecorder(REPOSITORY, CLAIMS_FOLDER, message=CLAIM_MESSAGE, label=CLAIM_LABEL,
+                                    keep_remote_on_conflict=True)  # fmt: skip
+    return GitMarkClaims(CLAIMS_FOLDER, committer, new_run_id(), now_ist)
 
 
 def _sync(dry_run_folder: Path | None, alerts: AlertSender) -> LedgerSync:
