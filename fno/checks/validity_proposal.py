@@ -44,6 +44,7 @@ class ValidityProposal:
     # from the decider: a decider's default equal to its own choice would read as follow_rule (judge 260)
     rule_default: BookTerms | None = None
     eligible: frozenset[tuple[str, int]] = frozenset()  # Book 2: D2's versions that fired with a valid candidate
+    strategy_id: str = ""  # Book 3 (story D5): the registered strategy the trade uses
 
     @property
     def units(self) -> int:

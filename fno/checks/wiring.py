@@ -21,7 +21,7 @@ from .validity_evidence import EvidenceReader
 from .validity_limits import LimitChecks
 from .validity_listing import NseListing
 from .validity_margin import MarginFile
-from .validity_modes import PlaybookMode, ValidityMode, WaitsFor
+from .validity_modes import PlaybookMode, ValidityMode
 from .validity_settings import limits_from_config
 from .validity_shapes import BOUGHT, CALL, PUT, SOLD, BodyWithWings, OneBoughtOption, Shape, Vertical
 
@@ -70,14 +70,18 @@ def validity_shapes() -> dict[str, Shape]:
 
 
 def validity_modes(root: Path | None = None) -> dict[str, ValidityMode]:
-    """Book 1 checks against the playbook; Book 2 against the playbook and its trade envelope (D4), with the envelope
-    files and the D6 registry under `root`; Book 3 fails closed until D5's constitution exists."""
+    """Book 1 checks against the playbook; Book 2 against the playbook and its trade envelope (D4); Book 3 against its
+    constitution and strategy registry (D5); the files, the D6 registry and git history under `root`."""
+    from ..book3.constitution import ConstitutionFiles
+    from ..book3.wiring import build_strategy_registry
     from ..books.registered_components import RegisteredComponents
     from ..books.version_registry import VersionRegistry
     from ..books.versions import VERSIONS_FILE
     from ..config import ROOT
     from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
     from ..playbook.envelope_files import EnvelopeFiles
+    from ..research_engine.ledger import Git
+    from .validity_constitution import ConstitutionMode
     from .validity_envelope import EnvelopeMode
 
     base = Path(root or ROOT)
@@ -85,7 +89,13 @@ def validity_modes(root: Path | None = None) -> dict[str, ValidityMode]:
     return {
         BOOK1_RULES: PlaybookMode(validity_shapes()),
         BOOK2_HYBRID: EnvelopeMode(validity_shapes(), EnvelopeFiles(base).all, registered),
-        BOOK3_AI: WaitsFor("constitution", "D5"),
+        BOOK3_AI: ConstitutionMode(
+            validity_shapes(),
+            ConstitutionFiles(base).by_sha256,
+            registered,
+            build_strategy_registry(base),
+            Git(base).head,
+        ),  # fmt: skip
     }
 
 
