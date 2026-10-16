@@ -201,10 +201,11 @@ another role's card before its own commitment is in, and no card can change once
 **7. Firing and collection: the existing `fno/ai` mechanism, extended, never copied.** The trigger (`RoutineTrigger`,
 one routine per role, two repository secrets each, an unconfigured role is `UnconfiguredTrigger`), the seal, the
 transport, the receipts, the first-publication reading, the model check (`outcome.model_check`) and the fire-once log
-are shared. F1t extracts `fno/ai/book.py`'s brief/seal/reveal publish logic into one shared class (F1t's text, item 3;
-one builder per function); F2 uses that class and never makes a third copy, so F2's code round starts after that
-extraction is on `main`. Where the firer's loop is forecast-specific, F2 reuses F1t's shared form if F1t makes one, or
-extracts it itself with F1t's agreement; G5's forecast tests pass unedited either way. The routine runs
+are shared. F1t builds three generic pieces in `fno/ai/` (agreed 16 Oct 2026; names may change in its review):
+`SealedPublisher` (commitment, wait, reveal; extracted from `BookSession`), `ObservedPushes(PushReceipts)` and
+`FireOnceLog` (writes `firing` entries before any trigger call, records results, turns a leftover `firing` into
+`fire_unknown`). F2 uses them and never makes another copy; G5's `fno/ai/fire.py` stays untouched. F2's code round
+starts after they are on `main`. The routine runs
 `python -m fno.analysts brief '<pointer>'`, `seal <card.json>`, `reveal` (standard library only, as `python -m fno.ai`).
 The input file, the cards file and the audit files are saved by the Actions job through `DataStore`; records are
 written once.
@@ -219,7 +220,7 @@ response 67 addendum 5). Only days the session calendar marks as recorded sessio
 
 **9. The day's cards file and the books.** The collection saves `analysts/<YYYY>/<d>_cards.json` once through
 `DataStore` (receipt pushed): per role its status (`valid`, `not_applicable`, `refused`, `late`, `not_revealed`,
-`no_submission`, `not_fired`, `model_mismatch`, `exposed`), the reason, the receipt times, and the card itself only
+`no_submission`, `not_fired`, `fire_unknown`, `model_mismatch`, `exposed`), the reason, the receipt times, and the card itself only
 when `valid` or `not_applicable`; the refused draft goes in the audit file beside it (`<d>_<role>_audit.json`, also
 through `DataStore`). `CardsOfDay` (interface) with one adapter reading that file through the verified cache gives F1t
 `cards(day) -> {role: CardStatus}`, the input file's SHA-256 and `role_set_version`. **The hand-off (agreed with F1t
@@ -306,6 +307,7 @@ changes a rule, posts anywhere (alerts come from the Actions job only), names a 
    pushed before the reveal time; a commitment pushed after another role's reveal was readable is `exposed`. Tests with fake
    receipts at, before and one second after each deadline, and an unknown receipt time (late).
 8. **Every failure is recorded and alerted.** Not fired (unconfigured trigger, fire refused, late start, budget stop),
+   fire outcome unknown (a leftover `firing` entry),
    no submission, late, not revealed, refused (with the rule), model mismatch, exposed: each gives one status in the
    cards file and one #fno-desk line (fake sender) without card text. A missing input, a failed Drive save, a failed
    receipt push and an input over the pointer cap each give one line and a failure exit.
@@ -344,8 +346,8 @@ cards file, labelled as made by a test or a dry run (rule 6).
 dry-run input and checks each item against its source and first-seen time; confirms nothing is fired while
 `live_from` is null and that G5's tests are unedited.
 
-**Depends:** F1 (forecast part, merged), F1t's shared seal class and `ObservedPushes` (on `main` before F2's code
-round), O9 parts 1 (`DataStore`, verified cache), A15, G2, BG1; F1t reads the cards
+**Depends:** F1 (forecast part, merged), F1t's `SealedPublisher`, `ObservedPushes` and `FireOnceLog` (on `main` before
+F2's code round), O9 parts 1 (`DataStore`, verified cache), A15, G2, BG1; F1t reads the cards
 file · **Size:** M (one role) · **Status:** story text rewritten to design v2 (16 Oct 2026), revised for the
 orchestrator's answers (response 264); waiting for the judge's text check; code after its PASS
 
