@@ -21,3 +21,15 @@ The text is `docs/stories/P-publishing.md`, section P11. In short:
 3. The run is `published` even with a hold. The bell (W8) reads `reason`, so the dashboard can still show it.
 
 Code follows only after the story text's PASS.
+
+## Addendum 1 (16 Oct): the card's on-screen notice and the other users, before the judge's look
+
+- **The card is shown held through its payload** (screens lead, contract 2.12.0 `FnoCard.withheld`). So
+  `BlockBuilder.held(previous_payload, rule)` gives each block its held payload.
+  - The default is the previous payload unchanged, so a held page keeps its row byte for byte.
+  - The card's is the previous card with `withheld` set; its own session is never re-dated.
+- **Users:** the orchestrator relayed the owner's principle ("treat them as holds unless the judge objects").
+  - The Forecast lab's year-end answer day (judge 244);
+  - the paper books page's open trade, or a trade or shadow it cannot label (judge 248);
+  - proposed for the judge: Home's two existing whole-run stops, an open trade and an approved strategy's picks.
+    The second is met on the day of the first approval, before any trade.

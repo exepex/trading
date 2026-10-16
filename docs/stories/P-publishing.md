@@ -460,15 +460,28 @@ own, while every other page publishes. Then a broken rule never shows a wrong ca
      cap" (judge 233 add. 3, condition 1).
 4. **Unchanged:** every other failure still stops the whole run, as today. A hold is only for a rule its block's story
    names.
-5. **On screen:** the screens lead adds the contract field for "Today's card was held back: a risk rule was broken"
-   (a minor contract version). The publisher fills it from `held`. Its exact place is the contract's, not this story's.
+5. **On screen, the card only (contract 2.12.0, `FnoCard.withheld`).** A block may say how its held page is shown
+   (`BlockBuilder.held(previous_payload, rule)`).
+   - The default is the previous payload unchanged, so every held page except the card keeps its previous row byte
+     for byte.
+   - The card's held payload is the previous session's card payload, unchanged except `withheld = {session: <the
+     day>, reason_text: "Today's card was held back: a risk rule was broken"}` (the contract's constant). Its own
+     session stays the previous session's, always before `withheld.session` (the W3 screen treats anything else as a
+     contract error). Its `payload_sha256` is recomputed. Its row keeps the previous `as_of` and `built_at`.
 
-**First user:** the card page (P2f), whose over-cap rule raises `PageHeld`. Other pages that stop today (the Forecast
-lab's year-end calendar gap, a paper book's open trade, Home's open trade) are separate decisions, not in this story.
+**Users (owner, 16 Oct, through the orchestrator: "the same principle; treat them as holds unless the judge
+objects"):**
+- the card page (P2f): its over-cap rule;
+- the Forecast lab (P2b): an answer day past NSE's calendar (until contract 2.13.0 lets `answer_on` be null);
+- the paper books page (P2c): an open trade with no per-trade marks, a trade or shadow it cannot label;
+- proposed, for the judge: Home's two existing whole-run stops, an open trade (`home_blocks.py:32`) and an approved
+  strategy's picks (`home_blocks.py:47`, met on the day of the first approval).
+P2b and P2c rebase on this story; each user's hold rule is in its own story and tested there.
 
 **Acceptance criteria:**
-1. A test plants an over-cap card. Only the card page is held. Every other page publishes. The card's row is the
-   previous publication's, byte for byte (`payload_sha256`, `as_of`, `built_at`), and the read-back passes.
+1. A test plants a held page. Only that page is held. Every other page publishes. Its row is the previous
+   publication's, byte for byte (`payload_sha256`, `as_of`, `built_at`), and the read-back passes. For the card
+   (P2f's test), the held payload is the previous card with `withheld` set and its own session never re-dated.
 2. Exactly one alert line, naming the risk-rule breach, with no value (a planted amount and trade id are not in it).
 3. The run status row is `published`, and its `reason` names the page and the rule.
 4. With no earlier card, the card is absent and every other page publishes.
