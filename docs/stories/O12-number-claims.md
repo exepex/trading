@@ -65,10 +65,13 @@ change (lane 1, judged), never a claim. At the merge, the merger runs `python to
 merged tree (files keep landing on `main` meanwhile) and reads the rows it added before pushing; the judge's merge
 check verifies them.
 
-**Manual equivalent (ChatGPT and anyone who cannot run the tool).** Commit nothing else first; `git fetch origin main
-&& git reset --hard origin/main`; append one row with the next number; commit only that file; `git push origin
-HEAD:main`. If the push is refused, go back to the reset, never `git pull` (a merge can keep both appended rows with
-one number). The number is yours only once the push is accepted. Then write the file. Steps in `numbers/README.md`.
+**Manual equivalent (ChatGPT and anyone who cannot run the tool).** In a separate copy of the newest `main` (a
+worktree, a fresh clone, or GitHub's editor), never the person's own working checkout (judge 354 SF1: a reset there
+wipes uncommitted work): append one row with the next number; commit only that file; push to `main`. If the push is
+refused, refresh that copy (`reset --hard origin/main` there only), never `git pull` (a merge can keep both appended
+rows with one number), and take the next number. The number is yours only once the push is accepted. Then write the
+file. Steps in `numbers/README.md`. Not protected: a claimed row edited or deleted before its file exists (the check
+sees only files, reused numbers and the pinned seed); git history shows it.
 
 ### Why integers in a registry, not timestamps or UUIDs (reasoning only)
 

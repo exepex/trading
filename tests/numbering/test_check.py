@@ -187,3 +187,12 @@ def test_a_reservation_row_holds_its_number_and_registers_the_file_when_it_lands
     assert seed_registries(root) == 0  # the seed does not add it again as history
     write(root, {"reviews/claude/response_3_other.md": "y\n"})
     assert check_numbers(root)[-1].startswith("numbers/claude-response.csv: number 3 is used 2 times")
+
+
+def test_a_claimed_row_reusing_a_number_seeded_once_fails(tmp_path):
+    reused = f"1,response_1_c.md,session_y,{STAMP}\n"
+    root = checkout(tmp_path, "claude-response", CLEAN_REGISTRIES["numbers/claude-response.csv"] + reused)
+    assert check_numbers(root) == [
+        "numbers/claude-response.csv: number 1 is used 2 times (response_1_a.md, response_1_c.md); "
+        "only seeded history may repeat a number"
+    ]

@@ -25,8 +25,9 @@ cost real money later, so:
   reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
   `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
   Take `<n>` from the central registry, never "highest plus one": `python tools/claim_number.py <category> <name>
-  --session <id>` (or by hand, as `numbers/README.md` says: the row alone, pushed to `main` before the file; if the push
-  is refused, reset to `origin/main`, never merge, and take the next number). Story O12.
+  --session <id>` (or by hand, as `numbers/README.md` says: the row alone, pushed to `main` before the file from a
+  separate copy of `main`, never your own checkout; if the push is refused, never merge: refresh that copy and take the
+  next number). Story O12.
 - **Own limits too.** This applies to Claude's own limits and boundaries, not only tools: always give the fullest, most
   direct answer possible. If a limit ever shapes an answer, say so openly (what was limited and why), give everything
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to

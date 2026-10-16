@@ -97,3 +97,17 @@ Kept, with reasons:
 
 Run `python tools/check_numbers.py --seed` on the merged tree (files keep landing on `main`), read the rows it adds
 (`git diff numbers/ fno/numbering/seed_pins.json`), then the gates. Reservation rows still without a file stay as they are.
+
+## Addendum 1: judge 354 (FAIL, 1 should-fix, docs only)
+
+- **SF1 accepted.** The manual claim reset the claimant's own checkout, which wipes uncommitted work and moves the
+  branch off unpushed commits. All four documents (`numbers/README.md`, `AGENTS.md`, `CLAUDE.md`,
+  `reviews/chatgpt/README.md`) and the story text now claim from a separate copy of `main`: a worktree
+  (`git worktree add --detach ../claim origin/main`), a fresh clone, or GitHub's editor. The reset happens only in that
+  copy. GitHub's editor refuses a stale save the same way a push is refused.
+- **Minor 1 accepted:** new test `test_a_claimed_row_reusing_a_number_seeded_once_fails`. The judge's mutation
+  (`seeded_count[number] < 1`) now fails it: 1 failed, 56 passed. Reverted, 57 passed.
+- **Minor 2 accepted:** `numbers/README.md` and the story now say that a claimed row edited or deleted before its file
+  exists is not seen by the check; git history shows it.
+- **Minor 3 not in O12:** the record-scan steps are skipped after a failed pytest step. That behaviour predates O12; it
+  is for a separate change, as the judge says.

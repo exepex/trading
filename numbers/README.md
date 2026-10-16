@@ -16,15 +16,23 @@ the 14 old unnumbered `## Addendum` headings are outside the series.
 
 **Claim before you write.** `python tools/claim_number.py <category> <slug> --session <id>` pushes your row to `main`
 from a temporary worktree (your branch is untouched) and prints the number; a refused push is retried on the new
-`main`. Without the tool, commit nothing else first, then:
+`main`. Without the tool, claim from a separate copy of `main`, never your own working checkout (a reset there would
+wipe uncommitted work and unpushed commits):
 
-1. `git fetch origin main && git reset --hard origin/main` (your claim must sit on the newest `main`);
+1. `git fetch origin main && git worktree add --detach ../claim origin/main` (or a fresh clone), then work in
+   `../claim`;
 2. append one row: the next number after every row and every numbered file of the series, the file name, who you
    are, the UTC time (`YYYY-MM-DDTHH:MM:SSZ`);
 3. commit only this file and `git push origin HEAD:main`;
-4. refused? Someone claimed first. Never `git pull` (a merge can keep both rows with one number): go back to step 1.
+4. refused? Someone claimed first. Never `git pull` (a merge can keep both rows with one number): in `../claim` only,
+   `git fetch origin main && git reset --hard origin/main`, then step 2 again;
+5. accepted: the number is yours; `git worktree remove ../claim`, then write the file in your own checkout.
 
-The number is yours only once the push is accepted; then write the file. Claims are lane 3 (status rows).
+In GitHub's web editor (or its contents API) the same holds: edit the file on `main`, commit straight to `main`; a
+refused save (the file changed meanwhile) means someone claimed first, so reload and take the next number.
+Claims are lane 3 (status rows).
 
 `python tools/check_numbers.py` (CI, every push) fails when a numbered file or heading has no row, a number is used
-twice outside the history, or a row is malformed. Never edit or delete someone else's row.
+twice outside the history, or a row is malformed. Never edit or delete someone else's row: the check protects the
+seeded history (pinned) and catches a reused number, but it cannot see a claimed row edited or deleted before its file
+exists (git history and the judge's lane-3 audit can).
