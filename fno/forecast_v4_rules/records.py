@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import io
 import math
+import re
 from dataclasses import asdict, dataclass, fields
 from datetime import date
 from pathlib import Path
@@ -18,6 +19,7 @@ LIVE, BACKFILL = "live", "backfill_exploratory"
 BASELINE, RULE = "baseline", "rule"
 SLOT_RULES, SLOT_REPORTED = "rules", "reported"
 VERSION = "1"
+PACK_SHA256 = re.compile(r"(|[0-9a-f]{64})")  # empty, or the released pack's SHA-256
 
 
 class InvalidRecord(ValueError):
@@ -39,6 +41,7 @@ class Record:
     slot: str
     method_sha256: str
     inputs_sha256: str
+    pack_sha256: str  # G10 part 2: the pack a pack-reading record used; empty for G7 and M1 (closes up to d-1 only)
     made_at: str  # empty for back-filled rows, so a re-run writes identical files
 
     def same_as(self, other: Record) -> bool:
@@ -48,8 +51,12 @@ class Record:
 COLUMNS = tuple(f.name for f in fields(Record))
 
 
-def record(day: date, question: str, status: str, value: float | None, **audit: str) -> Record:
-    """A validated row: a variance finite and > 0, a probability in [0, 1]; a value only when status is ok."""
+def record(day: date, question: str, status: str, value: float | None, pack_sha256: str = "", **audit: str) -> Record:
+    """A validated row: a variance finite and > 0, a probability in [0, 1]; a value only when status is ok. A pack hash
+    is empty or 64 lowercase hex characters (its form only: whether it is the released pack is G10's `fno/v4_pack`
+    guard)."""
+    if not PACK_SHA256.fullmatch(pack_sha256):
+        raise InvalidRecord(f"{question} {day}: {pack_sha256!r} is not a pack SHA-256")
     if status == OK:
         bad = not math.isfinite(value) or (value <= 0 if question in POINT_QUESTIONS else not 0 <= value <= 1)
         if bad:
@@ -57,7 +64,7 @@ def record(day: date, question: str, status: str, value: float | None, **audit: 
         text = repr(float(value))
     else:
         text = ""
-    return Record(day.isoformat(), text, status, forecaster_version=VERSION, **audit)
+    return Record(day.isoformat(), text, status, forecaster_version=VERSION, pack_sha256=pack_sha256, **audit)
 
 
 def path(folder: Path, forecaster: str, question: str) -> Path:
@@ -67,7 +74,8 @@ def path(folder: Path, forecaster: str, question: str) -> Path:
 def read(file: Path) -> dict[str, Record]:
     if not file.exists():
         return {}
-    return {r["day"]: Record(**r) for r in csv.DictReader(io.StringIO(file.read_text()))}
+    # a file written before G10 part 2 has no pack column: its rows read as empty, so it needs no rewrite
+    return {r["day"]: Record(**{"pack_sha256": "", **r}) for r in csv.DictReader(io.StringIO(file.read_text()))}
 
 
 def write(folder: Path, forecaster: str, question: str, rows: list[Record]) -> int:
