@@ -70,3 +70,8 @@ The lead undertook to copy P11's final wording before 2.13 merges. Copy it from 
 
   `check_contract`, `check_fno_screens`, `examples` and `render_catalog` exit 0. A trial merge with dashboard main is
   clean (view.ts auto-merged), and then `npm test` gives 578/578. The PASS stands on 70f705c.
+- **Final head 9fc97d0:** it contains dashboard main a812fee (W3b and W3f-withheld, a real merge in 1ac8f9c). The
+  held example's sentences equal P11's head abef96fd (response 244 addendum 7) word for word: `today` and `risk` are
+  `home_blocks.py`'s `APPROVED_PICKS` and `OPEN_TRADE_RISK`, `card` is P-publishing.md line 459, and `paper_trades`
+  is the P2 builder's agreed P2c sentence (scripted comparison). `check_contract`, `check_fno_screens`, `examples` and
+  `render_catalog` exit 0, `sync-design` is clean, and `npm test` gives 578/578. **PASS on 9fc97d0; merge this head.**
