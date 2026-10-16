@@ -13,7 +13,7 @@ from fno.desk.git_sync import GitCommitter
 from .fakes import RAW_QUOTE, Decisions
 from .test_commit_failure_run import git
 from .test_daily_run import NORMAL, run_day
-from .test_rerun_after_stop import REJECT_EXITS, FilePacks, origin_messages, real_run
+from .test_rerun_after_stop import REJECT_LAST, FilePacks, origin_messages, real_run
 
 
 def stray_commit(root, name, text="stray\n", message="a commit the run did not make"):
@@ -23,9 +23,9 @@ def stray_commit(root, name, text="stray\n", message="a commit the run did not m
     git(root, "commit", "-q", "-m", message)
 
 
-def reject_exits(root):
+def reject_last(root):
     hook = root / "origin.git" / "hooks" / "pre-receive"
-    hook.write_text(REJECT_EXITS, encoding="utf-8")
+    hook.write_text(REJECT_LAST, encoding="utf-8")
     hook.chmod(0o755)
     return hook
 
@@ -69,7 +69,7 @@ def test_the_run_s_own_stuck_commit_still_pushes_after_origin_moved_on(root, tmp
     """The recovery's commit is the run's own (the marker's message, only the marker's files), so (b) lets it through;
     origin moved meanwhile, so a rerun's pull left a merge unpushed, and that merge is not a stray."""
     run, clock = stopped(root, tmp_path, alerts)
-    hook = reject_exits(root)
+    hook = reject_last(root)
     with pytest.raises(RunStopped):
         run_day(run, clock, NORMAL)
     other = tmp_path / "other"
@@ -85,21 +85,21 @@ def test_the_run_s_own_stuck_commit_still_pushes_after_origin_moved_on(root, tmp
     assert len(git(root, "rev-list", "--merges", "origin/main..HEAD").split()) == 1
     hook.unlink()
     run.run(NORMAL)
-    assert f"Desk run {NORMAL} step exits" in origin_messages(root)
+    assert f"Desk run {NORMAL} step trade_marks" in origin_messages(root)
     assert git(root, "rev-list", "origin/main..HEAD") == ""
 
 
 def test_a_stray_commit_copying_the_run_s_message_but_touching_other_files_is_refused(root, tmp_path, alerts):
     run, clock = stopped(root, tmp_path, alerts)
-    hook = reject_exits(root)
+    hook = reject_last(root)
     with pytest.raises(RunStopped):
         run_day(run, clock, NORMAL)
-    stray_commit(root, "notes/hand_edit.md", message=f"Desk run {NORMAL} step exits")
+    stray_commit(root, "notes/hand_edit.md", message=f"Desk run {NORMAL} step trade_marks")
     hook.unlink()
     with pytest.raises(RunStopped):
         run.run(NORMAL)
     assert "the run did not make" in alerts.sent[-1] and "notes/hand_edit.md" in alerts.sent[-1]
-    assert f"Desk run {NORMAL} step exits" not in origin_messages(root)
+    assert f"Desk run {NORMAL} step trade_marks" not in origin_messages(root)
 
 
 def reworded(root):
@@ -115,7 +115,7 @@ def changed_content(root):
     recorded = log.read_bytes()
     log.write_text("{}\n", encoding="utf-8")
     git(root, "add", "--", str(log.relative_to(root)))
-    git(root, "commit", "-q", "-m", f"Desk run {NORMAL} step exits")
+    git(root, "commit", "-q", "-m", f"Desk run {NORMAL} step trade_marks")
     log.write_bytes(recorded)
 
 
@@ -124,7 +124,7 @@ def test_a_stray_on_only_the_marker_s_files_is_refused_by_message_and_by_content
     """Judge 118 addendum 7 minors 1-2: the recorded content under another message is refused (plant S4); the run's
     own message with content other than the marker recorded is refused too (own is exact by content)."""
     run, clock = stopped(root, tmp_path, alerts)
-    hook = reject_exits(root)
+    hook = reject_last(root)
     with pytest.raises(RunStopped):
         run_day(run, clock, NORMAL)
     stray(root)

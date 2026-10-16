@@ -102,3 +102,27 @@ same opportunity. The condition is now written on the `ValidityProposal.rule_def
 
 The `TradeValidator.validate` signature gains `eligible`. Its two implementations are C4's adapter and Book 1's test
 fake. Book 1's checks do not read it.
+
+## Judge 260 addendum 1's should-fix, checked and fixed
+
+**Accepted.** `allocation.py:75-80` gives NOT_CHOSEN for the unproven limit too, and that refusal is the version's own,
+not a loss to another version. Nothing in `fno/checks` or `fno/risk` checks the unproven limit again (strong evidence:
+I read the code, and the new test failed on the earlier rule).
+
+**Fix:** I took option 1 of the two the judge offered, because it is the simplest.
+- `DayEvaluation.eligible` now keeps only outcomes that reached C2: chosen, or refused by C2 against the book after the
+  day's other choices.
+- A candidate whose own version refused it (the no-trade threshold or the unproven limit) carries no C2 verdict and is
+  never eligible.
+- C2's own refusals stay eligible. A slot that A took was B's had the decider picked B, and B's own C2 verdicts are
+  then required and C4 checks them again.
+
+Option 2, C4 re-checking the unproven limit itself, is more independent. But C4 would then need each version's
+completed and open paper-trade counts from E5's records as a new input. I think that is better added when F5 switches
+Book 2 on (reasoning only).
+
+**Tests:**
+- B is unproven (3 completed, 1 open): D2 marks it NOT_CHOSEN "unproven", and eligible is {A};
+- B loses the last slot to A at C2: eligible is {A, B}.
+
+**Mutation check:** dropping the "reached C2" condition fails the unproven test. Restored.

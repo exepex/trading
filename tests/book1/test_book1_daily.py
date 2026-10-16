@@ -36,7 +36,7 @@ from tests.decisions.builders import SAME_CODE, doc, snapshot
 from tests.desk.builders import CHARGES, row, write_snapshot
 from tests.desk.conftest import FakeSettlements
 from tests.playbook.evaluation_builders import EXPIRY, price
-from tests.timetable.fakes import TIMETABLE, Clock, Commits, FakePacks, LocalSync, Versions
+from tests.timetable.fakes import TIMETABLE, Clock, Commits, FakePacks, LocalSync, Versions, marking_step
 
 from .builders import DAYS, EXITS, book1, book1_doc, clock_at, priced_evaluator
 
@@ -101,7 +101,8 @@ def run_days(root, tmp_path, alerts, c4, monkeypatch, version=None, code=SAME_CO
                                                Commits(clock)),
                       gate, RecordedC4Pass(), LocalSync(root), EntryDesk(CHARGES, clock),
                       ExitDesk(CHARGES, alerts, FakeSettlements(), clock), exits, alerts, clock)  # fmt: skip
-    run, logs = DailyRun(steps, CALENDAR, PendingCommitter(Commits(clock), root), clock, clock), []
+    marking = marking_step(root, (BOOK1_RULES,), quotes, alerts)
+    run, logs = DailyRun(steps, CALENDAR, PendingCommitter(Commits(clock), root), clock, clock, marking), []
     for day in DAYS:
         git.clock.set(datetime.combine(day, time(15), IST))
         decider.decide(day)
@@ -151,7 +152,7 @@ def test_a_refused_order_build_fails_closed_for_entries_only_and_the_day_goes_on
         stop = doc("sc-a", exits={**EXITS, "loss": "stop at 2x credit"})
         logs = run_days(root, tmp_path, alerts, PASSED, monkeypatch, version=stop)
     first = logs[0]
-    assert list(first.steps) == ["versions", "pack", "decisions", "snapshot", "fills", "exits"]
+    assert list(first.steps) == ["versions", "pack", "decisions", "snapshot", "fills", "exits", "trade_marks"]
     refused = first.result("fills")[BOOK1_RULES]
     assert refused["outcome"] == "not filled" and "gives no orders" in refused["reason"]
     assert any(BOOK1_RULES in sent and "gives no orders" in sent for sent in alerts.sent)

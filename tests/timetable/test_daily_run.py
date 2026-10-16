@@ -67,7 +67,7 @@ def test_five_days(root, week):
     assert {(r["snapshot_id"], r["snapshot_sha256"]) for b in BOOKS for r in fills(root, b)} == {
         (snapshot["snapshot_id"], snapshot["sha256"])}  # fmt: skip
     assert [m.split("step ")[-1] for _, m in commits.made if "step" in m] == [
-        "versions", "pack", "decisions", "snapshot", "fills", "exits"]  # fmt: skip
+        "versions", "pack", "decisions", "snapshot", "fills", "exits", "trade_marks"]  # fmt: skip
 
     log = run_day(run, clock, SLOW)  # criterion 1: the slow book gets "no decision (late)"; the other fills on time
     assert log.result("decisions")[BOOK2_HYBRID]["decision"] == NO_DECISION_LATE
@@ -91,7 +91,7 @@ def test_five_days(root, week):
     before = (len(capture.taken), len(fills(root, BOOK1_RULES)))
     log = run.run(RESTART)  # the restart comes later the same day
     assert (len(capture.taken), len(fills(root, BOOK1_RULES))) == before and "exits" in log.steps
-    assert list(log.steps) == ["versions", "pack", "decisions", "snapshot", "fills", "exits"]
+    assert list(log.steps) == ["versions", "pack", "decisions", "snapshot", "fills", "exits", "trade_marks"]
 
 
 def test_every_step_s_times_inputs_and_result_are_in_the_committed_run_file(root, week):
@@ -229,7 +229,7 @@ def test_one_book_s_failing_exit_review_never_stops_another_s_or_the_run(root, t
     log = run_day(run, clock, NORMAL)
     exits = log.result("exits")
     assert exits[BOOK2_HYBRID] == {"reviewed": False, "error": f"ValueError: {BOOK2_HYBRID}: exit rules cannot be read"}
-    assert exits[BOOK1_RULES]["reviewed"] is True and list(log.steps)[-1] == "exits"
+    assert exits[BOOK1_RULES]["reviewed"] is True and list(log.steps)[-2:] == ["exits", "trade_marks"]
     assert any("EXIT REVIEW FAILED" in sent and BOOK2_HYBRID in sent for sent in alerts.sent)
 
 
@@ -259,5 +259,5 @@ def test_a_refused_account_write_fails_entries_closed_and_never_crashes_the_run(
     log = run_day(run, clock, NORMAL)
     assert log.result("fills")["t1"]["reason"].startswith("not filled: the account write was refused")
     assert log.result("fills")["b1"]["outcome"] == OUTCOME_OPENED
-    assert list(log.steps)[-1] == "exits" and log.result("exits")[BOOK1_RULES]["reviewed"] is False
+    assert list(log.steps)[-2:] == ["exits", "trade_marks"] and log.result("exits")[BOOK1_RULES]["reviewed"] is False
     assert any("account write was refused" in sent for sent in alerts.sent)

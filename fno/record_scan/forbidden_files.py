@@ -1,8 +1,10 @@
 """Files that must never be committed whatever they hold (story A4b): the public-record scan (story O5) refuses them by
-path, as one finding naming the kind, so a raw Groww quote file is refused even when added with `git add -f`."""
+path, as one finding naming the kind, so a raw Groww quote file or a private paper account file (story E2d) is refused
+even when added with `git add -f`."""
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 
@@ -18,4 +20,27 @@ class ForbiddenFiles:
 
 RAW_GROWW_QUOTES = ForbiddenFiles(
     "raw Groww quote file (Google Drive only, story A4b)", "research/data/quotes/groww/", ".csv"
+)
+
+
+@dataclass(frozen=True)
+class ForbiddenFolders:
+    """Every file under any folder matching one of `patterns` (repository paths, `*` one folder name), for folders
+    one fixed prefix cannot name: each book's and each shadow account's `account/` folder."""
+
+    kind: str
+    patterns: tuple[str, ...]
+
+    def matches(self, path: str) -> bool:
+        return any(_folder_regex(pattern).match(path) for pattern in self.patterns)
+
+
+def _folder_regex(pattern: str) -> re.Pattern:
+    """`journal/*/account/` as a prefix regex: each `*` is exactly one folder name, the rest literal."""
+    return re.compile("[^/]+".join(re.escape(part) for part in pattern.split("*")))
+
+
+PAPER_ACCOUNT_FILES = ForbiddenFolders(
+    "private paper account file (Google Drive only, stories E2c and E2d)",
+    ("journal/*/account/", "journal/shadow/*/account/"),
 )

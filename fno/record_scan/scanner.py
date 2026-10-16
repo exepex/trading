@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from .forbidden_files import ForbiddenFiles
+from .forbidden_files import ForbiddenFiles, ForbiddenFolders
 from .patterns import RecordPattern
 from .record_files import RecordText
 
@@ -33,7 +33,7 @@ class RecordScanner:
         patterns: list[RecordPattern],
         allowed_values: Iterable[str] = (),
         code_patterns: list[RecordPattern] = (),
-        forbidden: Iterable[ForbiddenFiles] = (),
+        forbidden: Iterable[ForbiddenFiles | ForbiddenFolders] = (),
     ):
         self._patterns = patterns
         self._code_patterns = list(code_patterns)
