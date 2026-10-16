@@ -201,3 +201,20 @@ def test_github_runs_names_the_problem_never_the_token():
     with pytest.raises(RunSourceError) as error:
         GitHubRuns("exepex/trading", "secret-token", down).run(7)
     assert "secret-token" not in str(error.value)
+
+
+def test_record_error_writes_one_row_for_a_routine(tmp_path):
+    from fno.cli import main
+    from fno.health import capture_cli
+
+    log = CaptureErrorLog(tmp_path / "capture_errors.csv")
+    lines = []
+    args = Namespace(
+        job="a14c-broker-check", step="fetch", kind="RuntimeError", message="Groww\nunreachable", run_url=""
+    )
+    assert capture_cli.cmd_record_error(args, lines.append, log, date(2026, 10, 16)) == 0
+    assert log.rows() == [CaptureError(date(2026, 10, 16), "a14c-broker-check", "fetch", "RuntimeError",
+                                       "Groww unreachable", "")]  # fmt: skip
+    assert lines == ["2026-10-16,a14c-broker-check,fetch,RuntimeError,Groww unreachable,"]
+    with pytest.raises(SystemExit):
+        main(["health", "record-error", "--job", "x"])  # step and kind are required

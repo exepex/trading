@@ -22,6 +22,11 @@ alert NOT sent: FNO_SLACK_BOT_TOKEN is not set
 exit 1
 ```
 
+Added after other builders asked (A14c, A16b/A17): `python -m fno health record-error --job --step --kind
+[--message] [--run-url]` writes the same row for a job that is not a workflow (a Claude routine). It writes the row only;
+the routine posts its own line (`test_record_error_writes_one_row_for_a_routine`) [strong]. Gates after it: full suite
+7387 passed on full history; ruff, format, imports and record scan clean [strong].
+
 ## The four health problems (run evidence)
 
 1. **participant-oi-release cancels [strong].** Runs 4, 6, 8 started 3-4.5 h late (01:51-03:22 IST) and were cancelled
