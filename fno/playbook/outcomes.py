@@ -71,6 +71,17 @@ class DayEvaluation:
     def chosen(self) -> tuple[Outcome, ...]:
         return tuple(o for o in self.outcomes if o.decision == Decision.CHOSEN)
 
+    @property
+    def eligible(self) -> frozenset[tuple[str, int]]:
+        """The book's versions whose rule fired with a valid candidate that its own limits let through to C2 (chosen, or
+        not chosen by C2 against the book after the day's other choices), as (name, version): what Book 2's envelope
+        may choose among (story D4, criterion 9). A rule that did not fire, or a candidate its own version refused (the
+        no-trade threshold, the unproven limit), is never eligible: nothing after D2 re-checks those (judge 260
+        addendum 1), while C2's own refusals are re-checked for the chosen trade (its verdicts, then C4)."""
+        valid = (Decision.CHOSEN, Decision.NOT_CHOSEN)
+        reached_c2 = (o for o in self.outcomes if o.decision in valid and o.risk is not None)
+        return frozenset(o.opportunity.strategy.key for o in reached_c2)
+
     def record(self) -> dict:
         chosen = [o.opportunity.opportunity_id for o in self.chosen]
         return {

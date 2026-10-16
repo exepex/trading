@@ -7,6 +7,11 @@ Claude's replies to reviews (ChatGPT's in `reviews/chatgpt/`), one file per repl
 `response_<increment>_<filename>.md`, where the increment matches the review it answers (response 1 answers
 ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 
+## Reserved numbers (orchestrator, 16 Oct 2026, until O12's claim tool merges)
+
+260 A17 schedules, 261 F6/F7 Book 3, 262 G13, 263 F1t, 264 F2, 265 A19, 266 A20, 267 O11, 268 O12, 269 F8c.
+Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers 300-349 and 350-399.
+
 ## Responses
 
 - [Response 1: backtest analysis and strategy proposal](response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
@@ -232,7 +237,11 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 240 (filed first as 238, renumbered: O9 holds 238): A14c code claims for judge D (needed-factor measure, read-ahead, self-review fixes; criterion 10's broker check is deferred by the orchestrator)](response_240_a14c-code.md)
 - [Response 245: the weather at the calendar's end (24-31 Dec 2026): unknown events said on the weather page, v0's not-scored reason named in M1's record](response_245_m1-calendar-end.md)
 - `response_246_e2d-trade-marks.md`: story E2d text (per-trade daily marks): the gap (record_equity never called), one source (the run's 15:15 snapshot), stale or unmarked never invented, Drive only, the account-file record-scan hole closed.
+- [Response 247: story D4 code, Book 2's authority envelope (permits, files, C4 EnvelopeMode), switched off until an envelope exists; 5 stated deviations](response_247_d4-envelope-code.md)
+- [Response 249: story D5 code, Book 3's constitution and strategy registry (C4 ConstitutionMode), on D4's branch, switched off; 6 stated deviations](response_249_d5-constitution-code.md)
+- [Response 253: review request to ChatGPT for D4 and D5's code after judges 260 and 263 PASS (quality rule 9): reference terms, eligible = reached C2, shadow-only, Book 3's data-mining guard, the 21-day limit, the shallow-clone refusal](response_253_d4-d5-chatgpt-request.md)
 - [Response 244: story P11, the per-page hold: one page held back (the over-cap card), every other page published, no migration (story text for the judge)](response_244_p11-page-hold.md)
 - [Response 151: story A4c, BANKNIFTY, FINNIFTY and MIDCPNIFTY recorded after NIFTY in the 3 pm routine (builder's claims): 15:01-15:13 IST, paced, Drive-only quotes, step 0 on real Groww](response_151_a4c-all-indices.md)
 - [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
 - [Response 252: A14c's first full run applied k = 2.1 (PDS 300, Apr 2020): run 3.99 s per file; 2.08 decomposed (2020's minimum, NSE's inconsistent prices, today's 3% exposure step); options for the owner](response_252_a14c-first-run-k-2.1.md)
+- [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)

@@ -15,7 +15,7 @@ from ..intraday.rv_table import RvTable
 from ..intraday.wiring import INTRADAY_FOLDER
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
 from . import records, series
-from .capture import DayForecasts, Inputs
+from .capture import FORECASTERS, DayForecasts, Inputs
 
 V4_FOLDER = ROOT / "research" / "forecasts" / "v4"  # the records, G8's input (one file per forecaster and question)
 CLOSES_FILE = PANEL_FOLDER / "warmup_closes.csv"  # official closes; the O6 daily index-close download extends them
@@ -51,3 +51,10 @@ def method_sha256() -> str:
 
 def v4_writer(folder: Path = V4_FOLDER):
     return lambda forecaster, question, rows: records.write(folder, forecaster, question, rows)
+
+
+def record_folders() -> list[str]:
+    """The repository folders `forecast-v4 capture` writes, one per forecaster id (repository-relative, ending "/"),
+    so a daily run commits exactly these and never another step's files (O1, agreed 16 Oct 2026)."""
+    folder = V4_FOLDER.relative_to(ROOT).as_posix()
+    return [f"{folder}/{forecaster}/" for forecaster in sorted({f for f, _ in FORECASTERS})]
