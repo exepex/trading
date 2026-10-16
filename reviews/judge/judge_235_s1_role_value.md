@@ -1,5 +1,7 @@
-# Judge 234: S1 items 8 and 11, `role_value_minimum_sample` in F9a's terms and the role-value files (judge A, lane 1)
+# Judge 235: S1 items 8 and 11, `role_value_minimum_sample` in F9a's terms and the role-value files (judge A, lane 1)
 
+
+Numbered 235: judge 234 is judge B's F9a fixed-family verdict, written at the same time.
 **Checked:** `story/s1-role-value` at `37b06a66293db83d7c232c17624de7311c75c8b7`. The diff is 2 files: S1's
 `PROTOCOL.md`, in `role_value_minimum_sample` and a new "Role-value files" bullet in `frozen_files`, and
 `tests/evaluation/test_role_value_wording.py`. It merges after F9's fixed-family code (891de864,
