@@ -769,6 +769,15 @@ the index windows at go-live (a later item); any change to the default run or it
    with fake servers: both ok; a skew before; a skew after; no answer; the run stopped before its last request (one
    reading only, so not `clock_ok`). What a status means for the pack's label is G10's rule (agreed 16 Oct: only
    `clock_ok` can give label `A`).
+4b. **Every pack field has our receipt time (G10, 16 Oct; protocol v4 section 1.6).** Today only the option rows carry
+   `response_received_at`; spot (from each expiry's chain call), India VIX and the NIFTY futures (NSE's level calls,
+   `fno/quotes/market_levels.py`) carry none of ours (India VIX has NSE's own stamp only). A named capture's sidecar
+   adds, on the same clock: `chains`, one entry per expiry with `expiry`, `spot` and `received_at` (the time that
+   expiry's chain answer arrived); and `levels_received_at`, the time the level reads returned, which is the receipt
+   time of both India VIX and the futures (an honest upper bound for each, since both answers had arrived by then;
+   NSE's `india_vix_time` is kept beside it). The default run's sidecar is unchanged. Tests with a fake clock: each
+   expiry's `received_at` is the chain call's return time; `levels_received_at` is after both level calls and before
+   the first quote request.
 5. **Refusals.** An unknown window name, a start not before the end, or a malformed time exits 1 before any request.
 6. Code size, lint, imports and the full suite pass.
 
@@ -787,6 +796,7 @@ the index windows at go-live (a later item); any change to the default run or it
 | The 14:40 cut is the pack's; A4 drops nothing (agreed with G10, 16 Oct) | design, criterion 2 (late answer kept) |
 | No request before the window's start (G10 point b) | criterion 2 |
 | Checked clock for `response_received_at` (G10 point a; protocol v4 section 1.6) | criterion 4 |
+| Our receipt time on spot, India VIX and the futures (G10, 16 Oct) | criterion 4b |
 | Default 14:55-15:10 unchanged, v2 frozen behaviour (orchestrator; FREEZE_v2) | criterion 1 |
 | Works as an extra capture or as the only one (G10 point 6) | design (own dataset), criterion 3 |
 | Routine start 14:05 (G10 table) | out of scope: O1 and the owner |
