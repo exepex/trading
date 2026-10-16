@@ -15,6 +15,8 @@ DATA_SHAPES = {  # names, constants and record shapes: no figure is computed in 
     "fno/budget/constants.py": "the budget's purpose names (no numbers)",
     "fno/models.py": "the clock and plain value types",
     "fno/books/fills.py": "the Fill row shape",
+    "fno/desk/trade_counts.py": "version_key only: parses a strategy-version tag",
+    "fno/desk/pack_items.py": "available_time only: parses an ISO time into IST",
     "fno/desk/execution.py": "fill_id only: an identifier string",
     "fno/playbook/decision_record.py": "the D3 record's field names and the no-trade ID",
     "fno/playbook/decision_validity.py": "the C4 'blocked' reason prefix",
@@ -31,6 +33,8 @@ READERS = {  # read committed or archived files as they are; the files themselve
     "fno/books/paths.py": "journal file paths",
     "fno/books/versions.py": "reads the strategy-version registry",
     "fno/desk/pack_store.py": "reads E2's common packs",
+    "fno/playbook/lifecycle.py": "D1's status writer: applies the pause the hashed rule decided",
+    "fno/playbook/loader.py": "reads the committed playbook files",
     "fno/desk/records.py": "reads the journal's fill and trade rows",
     "fno/desk/run_log.py": "reads E3's run logs",
     "fno/playbook/decision_store.py": "reads D3's committed decision records",
@@ -42,6 +46,7 @@ READERS = {  # read committed or archived files as they are; the files themselve
     "fno/storage/raw_store.py": "the raw data store",
 }
 WIRING = {  # composition and settings: the settings that decide figures are hashed as config sections
+    "fno/alerts/sender.py": "sends the #fno-desk line; decides nothing",
     "fno/budget/wiring.py": "composition root",
     "fno/composition.py": "composition root",
     "fno/config.py": "loads config.yaml; its scoring sections are hashed",
@@ -75,8 +80,9 @@ def imported(path: str) -> set[str]:
 
 
 def unaccounted(hashed: set[str]) -> dict[str, set[str]]:
+    """Walked from the scoring packages and from every hashed module, so a hashed rule's own imports are covered too."""
     start = {f"{package}/{p.name}" for package in SCORING_PACKAGES for p in (ROOT / package).glob("*.py")
-             if p.name not in NOT_SCORING}  # fmt: skip
+             if p.name not in NOT_SCORING} | {h for h in hashed if h.endswith(".py")}  # fmt: skip
     seen, todo, missing = set(), list(start), {}
     while todo:
         current = todo.pop()
