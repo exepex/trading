@@ -121,8 +121,8 @@ Out:
   criterion 3 checks it again over the whole day.
 - Steps that join `DAILY_RUN_STEPS` later (F1t's `ai_fire` and `ai_collect`, G13, A16b's catch-up, Book 2's rule
   default) are covered by the kill-and-rerun cases, which read the tuple, and by `Alerted`'s one-alert rule; each
-  story's own failure cases come with it. O10 (capture-job freshness) reads the run log and adds no second alert for a
-  step the run already alerted (boundary being agreed with its builder).
+  story's own failure cases come with it. O10 (capture-job freshness) covers only jobs outside `daily run` and sends no
+  alert for a run step (agreed with its builder, 16 Oct); the run log stays the one record of each step.
 
 ## Test plan
 
