@@ -37,3 +37,10 @@ share, which is outside this decision (see note 2).
    here.
 3. In the test, the `# fmt: skip` dict spans 2 lines, and imports sit inside the test functions. That is style only:
    the file is 169 lines, nowhere near the size limit.
+
+## Addendum 1: 9d91e78f (tests only, one test after e647596d)
+**PASS, still lane 1, same merge order. 9d91e78f is now the head to merge.** The new test
+`test_the_count_starts_across_a_muhurat_day_from_the_previous_recorded_session` covers 6 Nov (void), the 8 Nov
+muhurat, then 9 Nov (ok). Re-planting note 1's surviving mutant (`calendar.previous_session`): 1 failed, so the mutant
+is now caught. Restored: tests/intraday 205 passed on a trial merge with main; ruff and format clean. Note 2
+(the back-fill report's own share) stays the owner's call.
