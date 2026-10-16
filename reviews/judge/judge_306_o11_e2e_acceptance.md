@@ -75,3 +75,29 @@ every trade would still pass it. Criterion 2 asks each built stage to show its o
 Fix: on the recorded day's chain, send one Book 2 proposal outside the envelope and one Book 3 proposal with an
 unregistered strategy through the real `build_trade_validator`, and assert both are blocked with D4's and D5's
 reasons. That is two small cases on fixtures the suite already has.
+
+## Addendum 2: 9601a13e (main merged)
+
+**Verdict: PASS. It may merge (tests and the story text only); the merged tree is gated again at the merge.**
+
+Run myself on 9601a13e merged with today's `origin/main` (local merge c151b041):
+- `pytest tests/e2e_acceptance -rX`: 12 passed, 15 strict xfails, **0 XPASS**.
+- Full suite: **7,724 passed, 15 xfailed** (217 s).
+- `ruff check` and `ruff format --check` on `tests/e2e_acceptance`: clean. `check_imports` ok. `check_records`: clean
+  (6,722 files). Files total 746 lines, each under 350.
+
+Findings:
+- **Blocking 1: closed.**
+  - The `WaitsFor` import is gone.
+  - O1's steps run in O1's `DailyRun` in `DAILY_RUN_STEPS` order (`test_replay_day.py:93`).
+  - The refused-step and stored-14:33 cases are alerted, and the run goes on.
+  - D3: a decision with `owner_override` fails the `book1` step with D3's message, is alerted, and gives no decision
+    and no fill (`test_replay_failures.py:111`).
+- **Should-fix 2: closed.** The day's real chosen trade is sent through C4 as a Book 2 and a Book 3 trade. It is
+  refused with "envelope: no trade envelope for sc-a v1" and "constitution: no constitution file matches the
+  registered D6 component" (`test_replay_day.py:129-146`). **My plant:** `EnvelopeMode.checks` returning `[]`
+  (permit everything) fails that test. Restored. These refusals come from missing files, not from a breach of an
+  existing envelope. That is the honest state today, because no envelope or constitution file exists. When F5 and F6
+  land, their xfails become the in-envelope and out-of-envelope checks.
+- Builder's other mutations (`ALWAYS_NULL` emptied, Book 2 mode set to `PlaybookMode`, O1's alert send dropped): their
+  claims are consistent with the tests I read. I re-ran only the envelope plant.
