@@ -51,6 +51,13 @@ but not the product quality." Errors must alert and be recorded.
   (owner's conditions 1 and 2 of 14 Oct 2026): a sealed commitment before the deadline, the reveal after, a transcript
   audit on a random draw, and a stop after two breaches. F1t uses the same mode for decisions and labels every
   decision with it.
+- **This contradicts an owner condition (found while building, 16 Oct; strong evidence: `docs/DESK_DECISIONS.md`
+  row of 14 Oct, "AI books' forecast isolation", condition 3: "trading decisions (slice 4) still need full F1
+  isolation").** No full F1 mode is available to code (above), and F1's own text says what happens then: "books 2 and
+  3 run labelled 'isolation not enforced', and their results are not scored as an independent comparison until an
+  enforceable mode exists". So F1t is built and tested, but **no live switch may be set until the owner decides**
+  either (a) to accept `sealed_same_day` for paper trading decisions, labelled "sealed same day (not full F1)" and not
+  scored as an independent comparison, or (b) to wait for an enforceable mode. Asked through the orchestrator.
 
 ## Scope
 
@@ -390,7 +397,8 @@ boundary and empty cases (quality rule 5).
 15. **Real output sample.** The claims show the outcome records and alert lines of a fixture day with one promoted and
     one late book, made by the committed code in a test, with no live post.
 
-**Go-live checks (owner, before setting a live switch; not merge criteria):** the owner creates the two routines and
+**Go-live checks (owner, before setting a live switch; not merge criteria):** the owner's isolation decision above
+(condition 3 of 14 Oct); the owner creates the two routines and
 puts their trigger IDs and tokens in the daily run's environment; one fire on a non-counted day proves the routine API
 accepts a pointer of the measured size from the daily-run session's network, the session reaches `seal` and `reveal`,
 and a transcript read shows no file outside its input (F1 criterion 1 for decisions); D3's `owner_override` refusal,
