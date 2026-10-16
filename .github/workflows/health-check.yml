@@ -38,6 +38,7 @@ jobs:
           git config user.name "omenix-health-check"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Check the window and post one summary to #fno-desk
+        id: check
         env: # only this step sees them
           FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -49,3 +50,11 @@ jobs:
           git add research/ops/ # its run record and the calendar-horizon marker (O8b), nothing else
           git diff --cached --quiet || git commit -m "Data: health check run $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: Alert #fno-desk when the job failed before the check could post (setup, install, a commit error)
+        if: ${{ failure() && steps.check.outcome != 'failure' }} # a failed check step already posted "FAILED"
+        env:
+          FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+        run: >
+          python -c "from fno.composition import build_alert_sender;
+          print(build_alert_sender().send('Omenix F&O health check (GitHub Actions) failed before or after its check; see
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"

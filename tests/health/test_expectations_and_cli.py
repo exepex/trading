@@ -169,14 +169,22 @@ def test_the_workflow_checks_out_full_history_and_commits_only_its_run_record(wo
     assert "git pull --no-rebase" in commit and "--no-verify" not in WORKFLOW.read_text(encoding="utf-8")
 
 
+def test_a_job_that_fails_outside_the_check_still_alerts_once(workflow):
+    """Response 239 item 7: a failed checkout, install or commit gives one #fno-desk line; a failed check step already
+    posted its own "health check FAILED", so this step stays quiet then."""
+    step = workflow["jobs"]["check"]["steps"][-1]
+    assert step["if"] == "${{ failure() && steps.check.outcome != 'failure' }}"
+    assert "build_alert_sender().send(" in step["run"] and set(step["env"]) == {"FNO_SLACK_BOT_TOKEN"}
+
+
 def test_the_workflow_gives_its_secrets_only_to_the_check_step(workflow):
     job = workflow["jobs"]["check"]
-    with_env = [s for s in job["steps"] if "env" in s]
+    with_env = [s for s in job["steps"] if "env" in s and "GITHUB_TOKEN" in s["env"]]
     assert "env" not in job and [s["run"] for s in with_env] == ["python -m fno health check"]
     assert with_env[0]["env"] == {"FNO_SLACK_BOT_TOKEN": "${{ secrets.FNO_SLACK_BOT_TOKEN }}",
                                   "GITHUB_TOKEN": "${{ github.token }}"}  # fmt: skip
     runs = " ".join(s.get("run", "") for s in workflow["jobs"]["check"]["steps"])
-    assert "TOKEN" not in runs and "echo" not in runs
+    assert "TOKEN" not in runs and "echo" not in runs  # the alert step reads its token from env, never prints it
 
 
 def test_exactly_these_checks_are_live_from_these_sessions():

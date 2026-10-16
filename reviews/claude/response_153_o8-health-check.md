@@ -241,3 +241,13 @@ stale silently if A14c changed it. A fixed "6 Dec 2026" would be wrong from 2027
 instead, without copying the number. My reasoning only.
 
 The same run reports 9 other problems, all for sessions that have not happened yet.
+
+**Added after A14c's note (response 239 item 7).** A `failure()` step was added to `health-check.yml`.
+- The finding is partly right. From 1 Jan 2027, `CalendarError` is raised inside the check step, which catches it and
+  already posts "health check FAILED: CalendarError". That case was never silent.
+- The real gap was a failure outside that step: checkout, install, an import crash, or the commit. That gave only a red
+  run.
+- The new step posts one line in those cases, and stays quiet when the check step itself failed, so there is no double
+  post.
+- Test: `test_a_job_that_fails_outside_the_check_still_alerts_once`. Two breaks were caught: the alert firing also
+  after a failed check, and the alert step removed.
