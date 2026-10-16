@@ -137,3 +137,16 @@ dependencies, reasoning for the order]:
 What the owner should hear plainly [reasoning]: Books 2 and 3 can be built and switched on end to end in paper mode,
 but they will record "no approved strategy" every day until R3/R1 qualify one (row 239: built now, switched off until
 a strategy qualifies). The engine being complete is not the same as it trading.
+
+## Found by the O11 replay (16 Oct, [strong]: reproduced in `tests/e2e_acceptance/`)
+
+- **Book 1 works end to end on real data.** On NSE's real 16 Oct chain, a test version passed real C2/C5 risk and
+  every C4 check, filled 4 legs, was marked, and reached the scorecard and both scoreboards. This proves the parts fit.
+  It proves nothing about profit.
+- **The NSE fallback cannot feed the desk.** NSE's contract IDs parse as underlying `OPTIDXNIFTY` in C5's bucket map,
+  so every trade would be refused. This matters only if the owner's "Groww, then NSE" fallback is wired to the desk;
+  that story must restate the IDs.
+- **A restart after 15:00 logs a false pack failure.** The private pack holds the book's decisions folder, so a
+  rebuild after the decision differs and is logged "built: False". No trade is affected. For O1/O2's kill-and-rerun.
+- **Refusals do not alert before O1.** A refused forecast capture or Book 1 input raises with no alert until O1's
+  command steps merge. This is one more reason O1 is step 1.
