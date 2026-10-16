@@ -1,12 +1,14 @@
 """Shared fakes for the owner-timing tests (story E8): the real NSE calendar, a set of away days, an in-memory seal
 log with commit times, the availability file's text, due-mark copies, E8's records in memory and a fixed fill-day
-risk answer."""
+risk answer, a Slack poster and an exit rule that has fired."""
 
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 
+from fno.cards.posting import CardPoster, PostReceipt
 from fno.config import ROOT
+from fno.desk.exit_rules import ExitRule
 from fno.desk.owner_timing.availability import Availability, Seal, SealLog
 from fno.desk.owner_timing.fill_risk import FillRisk
 from fno.desk.owner_timing.mark_levels import MarkSnapshot
@@ -22,6 +24,7 @@ from tests.desk.builders import EXPIRY, DictStore, write_snapshot
 CALENDAR = load_session_calendar(ROOT / "research" / "data" / "calendar" / "nse_sessions.csv")
 SALT = "salt," + "ab" * 16
 NEAR_FUTURE = FutureQuote(EXPIRY, 25000.0, 0.0, 1, 0)
+SLACK_TS = "1792058160.000100"  # 15 Oct 2026, a Slack message timestamp
 
 
 def ist(day: date, hour: int, minute: int) -> datetime:
@@ -107,3 +110,19 @@ class Settable:
 
     def __call__(self) -> datetime:
         return self.now
+
+
+class Poster(CardPoster):
+    def __init__(self, ts: str | None = SLACK_TS):
+        self.ts, self.posted = ts, []
+
+    def post(self, text):
+        self.posted.append(text)
+        return PostReceipt("posted" if self.ts else "not sent: fixture", self.ts)
+
+
+class Due(ExitRule):
+    name = "fixture"
+
+    def reached(self, position, context):
+        return "time stop: fixture"

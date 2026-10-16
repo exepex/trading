@@ -10,7 +10,6 @@ import pytest
 
 from fno.books.account import PaperAccount
 from fno.cards.deliveries import DeliveryLog
-from fno.cards.posting import CardPoster, PostReceipt
 from fno.constants import OUTCOME_ENTRY_PENDING, OUTCOME_EXIT_ORDERED, OUTCOME_OPENED, OUTCOME_REFUSED
 from fno.desk.exit_rules import ExitRule
 from fno.desk.exits import ExitDesk
@@ -24,26 +23,9 @@ from fno.desk.records import DeskRecords
 from fno.desk.status import open_positions
 from fno.desk.wiring import open_desk_journal
 from tests.desk.builders import CHARGES, DAY, at, enter, fly_order, fly_rows, passed, write_snapshot
-from tests.desk_owner_timing.fakes import MemoryTimingLog
+from tests.desk_owner_timing.fakes import SLACK_TS, Due, MemoryTimingLog, Poster
 
 BOOK = "book1_rules"
-SLACK_TS = "1792058160.000100"  # 15 Oct 2026, a Slack message timestamp
-
-
-class Poster(CardPoster):
-    def __init__(self, ts: str | None = SLACK_TS):
-        self.ts, self.posted = ts, []
-
-    def post(self, text):
-        self.posted.append(text)
-        return PostReceipt("posted" if self.ts else "not sent: fixture", self.ts)
-
-
-class Due(ExitRule):
-    name = "fixture"
-
-    def reached(self, position, context):
-        return "time stop: fixture"
 
 
 class Attempts(DeliveryLog):

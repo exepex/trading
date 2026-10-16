@@ -13,7 +13,7 @@ from fno.desk.snapshot import RecordedExecutionSnapshots, SnapshotError
 from fno.intraday.document import CallRecord, SnapshotDocument, utc_text
 from fno.intraday.ledger import FIELDS, SlotLedger
 from fno.research_data.panel_reader import FutureQuote
-from tests.desk.builders import DictStore, fly_rows, write_snapshot
+from tests.desk.builders import DictStore, fly_rows, row, write_snapshot
 from tests.desk_owner_timing.fakes import ist
 
 FRI = date(2026, 10, 16)
@@ -118,3 +118,19 @@ def test_the_marks_spot_and_valid_future_come_from_the_same_copy(tmp_path):
 )
 def test_a_future_not_valid_in_the_copy_is_left_out(tmp_path, fut):
     assert recorded(tmp_path, document([quote(25000, "CE")], fut=fut)).at(FRI, MARK).futures == ()
+
+
+def test_a16s_copy_wins_even_when_the_a4_copy_at_the_same_mark_prices_the_trade_better(tmp_path):
+    """Response 228 point 6: two copies at one mark disagree; the canonical A16 copy is always taken, never the one that
+    favours the trade, and the snapshot's id and hash bind the chosen source."""
+    data = document([quote(25000, "CE", bid=100.0, ask=101.0)])
+    a4_store, contract = DictStore(), (date(2026, 10, 27), 25000, "CE")
+    cheaper = [row(25000, "CE", 80.0, 81.0, expiry=contract[0])]
+    started = MARK + timedelta(seconds=30)
+    write_snapshot(a4_store, "nifty_20261016_101530", cheaper, started, started + timedelta(seconds=40), day=FRI)
+    names = lambda day: ["nifty_20261016_101530.meta.json"]  # noqa: E731
+    stand_in = CaptureStandIn(RecordedExecutionSnapshots(a4_store), names, a4_store)
+    assert stand_in.at(FRI, MARK).prices.quote(*contract).ask == 81.0  # the cheaper copy is usable on its own
+    found = FirstAvailable(recorded(tmp_path, data), stand_in).at(FRI, MARK).prices
+    assert found.snapshot_id == PATH.rsplit("/", 1)[1] and found.sha256 == hashlib.sha256(data).hexdigest()
+    assert found.quote(*contract).ask == 101.0
