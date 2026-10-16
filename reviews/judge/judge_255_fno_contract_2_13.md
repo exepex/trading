@@ -40,3 +40,23 @@ pattern.
 
 **Note:** P11's text calls the field `rule`. The contract names it `reason` (the privacy check refuses rule-like
 keys), and adds `shows`. P11's code must use the contract's names; record that in P11's text at its code round.
+
+## Addendum 1: head b8399c7 (the should-fix fixed)
+
+**PASS.**
+- **Pattern and examples:** the pattern `^[^0-9]*$` stays. The examples now use P11's three digit-free hold
+  sentences, for picks (`today`, shows nothing), risk (shows nothing) and the card (shows previous_page). The invented
+  calendar reason is gone. Mockup 44's bad case draws Home's two (nothing) and the card (previous page). The reason's
+  description names P11's code as the sentences' owner: no value, no story code.
+- **Gates on b8399c7:** `check_contract`, `check_fno_screens`, `examples` and `render_catalog` exit 0, and `npm test`
+  gives 572/572.
+- **Merge with main:** b8399c7 does not contain dashboard main c2589b6 (W3b). A trial merge auto-merges
+  `web/lib/fno-forecast-lab/view.ts` cleanly, and then `npm test` gives 574/574. Merge it with a real merge.
+
+**Note (wording, not blocking: the examples are Mock data, and both texts pass the pattern):** the examples are not
+yet word for word the sentences on P11's head d2190217.
+- picks: example "cannot build its picks yet", code "does not build its picks yet";
+- risk: example "an open trade whose risk this page cannot compute yet", code "an open trade, and this page does not
+  compute its risk used yet";
+- card: example "the sizing or validity checks let", P11 text "the risk sizing or the validity check let".
+The lead undertook to copy P11's final wording before 2.13 merges. Copy it from the code, so there is one list.
