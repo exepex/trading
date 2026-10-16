@@ -55,3 +55,13 @@ def test_the_repository_config_holds_the_owners_decided_values():
     assert decided.check_incomplete_marks is True
     assert (decided.expiry_warn_sessions, decided.expiry_warn_from) == (1, "09:30")
     assert (decided.danger_summary_after, decided.summary_every_minutes) == (10, 30)
+
+
+def test_the_observer_and_silence_check_build_from_the_repository_config(tmp_path):
+    from fno.monitor.observer import MonitorObserver
+    from fno.monitor.positions import NoOpenPositions
+    from fno.monitor.wiring import build_monitor_observer, build_monitor_silence
+
+    observer = build_monitor_observer(load_app_config(), tmp_path, dry_run=True)
+    assert isinstance(observer, MonitorObserver) and isinstance(observer.positions, NoOpenPositions)
+    assert build_monitor_silence(tmp_path).heartbeat.file == tmp_path / "monitor" / "heartbeat.json"

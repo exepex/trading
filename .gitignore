@@ -27,3 +27,6 @@ research/data/quotes/groww/**/*.csv
 
 # Story O9: the local Drive cache (data is read from Drive, never committed)
 /work/drive-cache/
+# Story LM1: the position monitor's alert records name positions and their loss, so they live in Drive's `paper` area
+# only; the local copies are never committed
+journal/monitor/

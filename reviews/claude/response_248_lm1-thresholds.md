@@ -174,3 +174,52 @@ a stale index cannot be checked.
 Tests:
 - `test_the_repository_config_holds_the_owners_decided_values` pins every decided value.
 - `test_expiry_warns_from_the_0930_mark_only`.
+
+## Round 2a code claims (orchestrator's go, 16 Oct: round 2 on story/lm1-code with A16's port merged in)
+
+A16's port (`story/a16-mark-observer` 938577b3, judge D) is merged into this branch. Round 2 is split: 2a here; 2b is
+the real position adapter (below).
+
+| Claim | Where | Proof |
+|---|---|---|
+| `MonitorObserver` implements A16's `MarkObserver`: a handled mark is skipped; with no position nothing is checked or sent; otherwise read, check, alert, then the public row and the heartbeat. A failure is named by class in the row and heartbeat, then raised (A16 isolates it) | `observer.py` | `tests/monitor/test_observer.py` |
+| Criterion 2 live: with nothing open, one row (`positions 0`, `checked False`) and the heartbeat, nothing sent | `observer.py` | `test_with_nothing_to_watch_only_the_row_and_heartbeat_are_written` |
+| Criterion 7: the public row is the one-handling marker (a second fire, and a rerun after Drive recovers, send nothing). Every condition is recorded privately: `held`, or `sending` written before the send, then `sent` or `failed`. Drive down: the alert still goes out and the row says `alert_record_failed`. A refused send is printed (`alert NOT sent ...`, for the connector), recorded `failed`, sent again at the next mark, and its first record is kept. No public file names a trade, a price or a loss | `alerting.py`, `alert_records.py`, `mark_rows.py` | the observer tests, including `test_the_sending_row_is_in_drive_before_the_alert_goes_out` |
+| The hourly limit holds across marks and runs: the history is the session's `sent` rows read back from Drive, never local state | `alert_records.py` | `test_the_hourly_limit_holds_across_marks_through_the_private_history` |
+| Mark reader: the document's level only on a usable status; the last usable mark from A16's ledger (incomplete counts, decision 4186a4ce), but a mark not checked here never resets the stale clock; A16's clock skew carried into the record; NSE's archived close of the previous session; when it is unknown, the row says `previous_close_known False` | `mark_reader.py` | `tests/monitor/test_mark_reader_and_heartbeat.py` |
+| Criterion 9: `MonitorSilence.check(now) -> SilenceResult` reuses A16's `heartbeat_state` (30 minutes, 09:45-15:45, recorded sessions), never a copy. It is silent only while positions are open, with the story's exact text | `heartbeat.py` | same file |
+| The alert records are git-ignored (`journal/monitor/`) | `.gitignore` | `test_the_alert_records_folder_is_git_ignored` |
+| Alert seam: `monitor_alerts()` in `wiring.py` returns the one existing sender. O1's `ReportedAlerts` wraps it there when O1 merges | `wiring.py` | `test_the_observer_and_silence_check_build_from_the_repository_config` |
+| Criterion 1 still holds: the fresh-interpreter import list of `fno.monitor.wiring` has no desk, books or daily module except `desk.timetable`. The app's composition root (which also builds the books' services) is imported only inside `monitor_alerts()`, for the sender | `wiring.py` | `test_no_trade_path.py` |
+
+**Choices to check (reasoning only):**
+1. **Path.** The public rows and heartbeat are under `research/data/intraday/monitor/`, not the story's
+   `research/data/monitor/`, so they go up in A16's own commit (A16e: its committer refuses anything else staged, and a
+   second LM1 push inside the observer would race A16's). Sent to the orchestrator for its OK.
+2. **E2c's `PrivateFiles` is not used.** The records use the same store under it, `DriveIndexStore` over Drive's
+   `paper` area. `PrivateFiles` imports E4's desk records (and through them the fill and entry modules), which
+   criterion 1 keeps out of the monitor. Same Drive area, same mirror-then-replace order.
+3. **Not wired into A16's recorder.** The story says "wired from the start condition: no code runs before the first
+   position". At go-live there are three one-line changes in A16's files, each agreed with the A16 builder:
+   - `build_monitor_observer(cfg, folder)` replaces `NoObserver()`;
+   - `"monitor/"` joins A16's `OWNED_PATHS`;
+   - `heartbeat_check` also asks `build_monitor_silence(folder, PublishedHeartbeat(...))`.
+4. **The previous close is NSE's official one** (index-close archive, written at 21:11 IST with retries at 07:41 and
+   11:41). On a morning it is late, the big-move check cannot run, and the row says so.
+
+**Round 2b (not built): the real position adapter.**
+- It needs E4's net-if-closed. Today that is private in `ExitDesk`, a class that writes fills, so it would be
+  extracted as a pure valuation (an E4 change).
+- It also needs each trade's exit rules (from the playbook, which is empty) and C2's `HeldMaxLoss`.
+- It waits for the first expected position and the E4 and E3 owners.
+
+**Mutation proofs (2a):** each of these planted bugs fails at least one test:
+- one-handling removed;
+- `failed` counted as sent;
+- the sending row not written before the send (it survived until the in-flight test was added);
+- silent with no positions;
+- an unchecked mark resetting the clock;
+- Drive down stopping the send;
+- a failure not recorded.
+
+**Gates:** pytest 7,398 passed; ruff check and format; `check_imports` clean; every file is under 350 lines.

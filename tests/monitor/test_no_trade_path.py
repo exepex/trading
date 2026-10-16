@@ -14,7 +14,7 @@ LIST_IMPORTS = (
     "import json, sys, fno.monitor.wiring; print(json.dumps(sorted(m for m in sys.modules if m.startswith('fno'))))"
 )
 DESK_ALLOWED = {"fno.desk", "fno.desk.timetable"}  # the execution snapshot's time, read from config
-TRADE_WORDS = ("execution", "entr", "exit", "fill", "order", "settle", "decid", "book", "groww", "broker", "alert")
+TRADE_WORDS = ("execution", "entr", "exit", "fill", "order", "settle", "decid", "book", "groww", "broker")
 
 
 def monitor_imports() -> list[str]:
