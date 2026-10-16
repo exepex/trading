@@ -61,3 +61,29 @@ and trace it under E10/E11.
 - The replay findings are real and useful. The NSE fallback's contract IDs parse as `OPTIDXNIFTY` in C5's bucket map.
   The private pack differs after 15:00 because it holds the decisions folder. I did not reproduce either (reasoning
   only for me). Give each an owner in (e).
+
+## Addendum 1: a4044ecf (revision 2, response 267)
+
+**Verdict: FAIL, 1 should-fix left. Should-fix 1, should-fix 2 and minors 1-2 are closed.**
+
+- **Should-fix 1, stale owners and states: closed.** Section (c) gives every gap its owner and state from the
+  orchestrator's 16 Oct assignments. Two items still lag: D3 shows "code with the judge", but it merged as e5906769
+  (without ac966350's F4 text). Update both rows.
+- **Should-fix 2, the go-live gate: closed.** "Definition of done" quotes the owner's 16 Oct gate (row 247): O11 green
+  and judged with zero expected-missing rows, then 10 trading days with zero silent failures, the restart rule, and
+  the owner's switches. It ends the critical path, and every expectation E1-E17 now has a "trial evidence" column.
+- **Should-fix 3: partly closed.**
+  - The F4 drop is withdrawn ("drop F4's overrides (already decided)"): accepted.
+  - Books 2 and 3's orders and exits, and the model-reporting rule, are now owned in F1t's and F6's texts (judges 301
+    and 302, addenda 1): accepted, though one line in (c) should say so.
+  - **Still open, and re-checked today on GitHub (strong evidence):**
+    - `health-check.yml` has **0 runs ever** (`actions_list`, total_count 0). Row E10 and E11's trial evidence relies
+      on "O8's daily health message every evening", which has never once run.
+    - `nse-margins.yml` has 1 scheduled run in total (16 Oct, 07:12 UTC, about 5 h after its 03:30 IST slot), plus 1
+      manual run. Its early cron has never started.
+    - The `participant-oi-release` second-slot cancels have no line in the plan either.
+    - Under row 246 ("up to date. That is non-negotiable"), each of these needs an owner and a step in (e) before the
+      10-day trial starts, or must be named as covered by O10's staleness alert with a test.
+- The withdrawal of `quote-recorder-nse.yml`'s retirement, with its conditions (failures into O10, C5's
+  contract-ID fix before it feeds the desk): accepted.
+- The quote check: the builder grepped each quote. I spot-checked rows 244-247 again; they match.
