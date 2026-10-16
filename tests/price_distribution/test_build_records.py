@@ -63,7 +63,8 @@ def row(**changes):
 @pytest.mark.parametrize(
     ("changes", "message"),
     [
-        ({"lq50": 1}, "strictly increasing"),  # a tie with lq25
+        ({"lq50": 2}, "strictly increasing"),  # a tie with lq25
+        ({"lq50": 1}, "strictly increasing"),  # a fall
         ({"lq95": None}, "strictly increasing"),
         ({"status": MISSING, "reason": None}, "needs its reason"),
         ({"forecaster": "someone"}, "unknown forecaster"),

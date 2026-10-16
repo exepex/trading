@@ -52,10 +52,12 @@ def test_it_stops_before_the_first_live_day(tmp_path):
     assert [r["day"] for r in json.loads(gzip.decompress(only))["records"]] == [DAY.isoformat()]
 
 
-def test_a_rerun_is_byte_identical_and_a_new_method_writes_a_new_path(tmp_path):
+def test_a_rerun_is_byte_identical_and_a_new_method_writes_a_new_path(tmp_path, monkeypatch):
     run, drive, _ = backfill(tmp_path)
+    monkeypatch.setattr("time.time", lambda: 1_760_000_000.0)
     run.run("backfill_3pm", ("NIFTY",), DAY, MONDAY)
     first = dict(drive.files)
+    monkeypatch.setattr("time.time", lambda: 1_790_000_000.0)  # a later run: gzip carries no time
     run.run("backfill_3pm", ("NIFTY",), DAY, MONDAY)  # same bytes: Drive's no-op, no conflict
     assert drive.files == first
     changed = Backfill(chains(), DayBuilder(CALENDAR, RATE, CLOSES, "d1" * 32), run.store, CALENDAR, None)
