@@ -1,8 +1,8 @@
-# Judge 227: R3 B0's registration code, criterion 8 (judge G)
+# Judge 233: R3 B0's registration code, criterion 8 (judge G)
 
 - **Judged:** `story/r3-b0-registration` at `e352fcba` (code `496e74fd`, claims in `response_236_r3-b0-registration-code.md`,
   builder session 0145TfSwzmpk6MBrH92f5h4G). Lane 1. The text is the R3 addendum, PASSed at `7f94dbdf` (judge 226
-  addendum 1). The orchestrator gave the go. 227 was the next free number on main.
+  addendum 1). The orchestrator gave the go. 233 was the next free number on main (first written as 227, which another judge had already taken).
 - **Verdict: FAIL (claims only).** The code is correct, and all 13 of my mutations are caught. Two should-fixes are in
   the claims file, with no code change needed: the date of the first B0 decision is wrong, and the builder
   self-review that quality rule 3 requires is missing. There are also 4 notes.
