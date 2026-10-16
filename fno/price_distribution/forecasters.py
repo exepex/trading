@@ -66,6 +66,7 @@ def ok(log_quantiles, tails=()) -> Forecast:
 
 class QuantileForecaster(ABC):
     name: str
+    reads_closes = False  # True: the closes must reach the previous regular session (G13 section 7)
 
     def forecast(self, inputs: ForecastInputs, target: Target) -> Forecast:
         if target.day is None:
@@ -115,6 +116,7 @@ class RealisedVolForecaster(QuantileForecaster):
     """Lognormal, zero log drift, at B1's realised volatility (root mean square of daily log returns, not demeaned)."""
 
     name = RV20
+    reads_closes = True
 
     def _forecast(self, inputs: ForecastInputs, target: Target) -> Forecast:
         closes = inputs.closes[-(RV_WINDOW + 1) :]
@@ -128,6 +130,7 @@ class HistoricalForecaster(QuantileForecaster):
     """The empirical quantiles (numpy's linear rule) of every h-session log return inside the last 750 closes."""
 
     name = HIST750
+    reads_closes = True
 
     def _forecast(self, inputs: ForecastInputs, target: Target) -> Forecast:
         returns = _log_returns(inputs.closes[-HIST_WINDOW:], target.sessions)

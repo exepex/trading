@@ -13,7 +13,7 @@ from tests.daily.fakes import FakeProcesses
 from tests.timetable.fakes import Clock
 
 DAY = date(2026, 10, 16)
-ARGUMENTS = ("pricedist", "record", "--day", DAY.isoformat())
+ARGUMENTS = ("pricedist", "record", "--day", DAY.isoformat(), "--live")
 
 
 def built_step(monkeypatch):

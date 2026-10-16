@@ -10,7 +10,6 @@ from datetime import date, timedelta
 from fno.forecast_v4_rules.series import DayValue
 from fno.price_distribution.backfill import Backfill
 from fno.price_distribution.build import DayBuilder
-from fno.price_distribution.folders import backfill_path
 from fno.price_distribution.record_files import read_records
 from fno.price_distribution.sources import ChainUnavailable
 from fno.research_data.calendar import CsvSessionCalendar
@@ -35,7 +34,8 @@ def backfill(tmp_path, live_from=None, method="c0" * 32, source=None):
 def test_a_range_is_written_once_with_skipped_days_counted_by_reason(tmp_path):
     run, drive, receipts = backfill(tmp_path)
     lines = run.run("backfill_3pm", ("NIFTY",), DAY, date(2026, 10, 22))
-    path = f"data/{backfill_path('backfill_3pm', 'c0' * 32, 'NIFTY', DAY, date(2026, 10, 22))}"
+    (path,) = drive.files
+    assert path.startswith("data/price_distribution/v1/backfill/backfill_3pm_c0c0c0c0/nifty_2026-10-16_2026-10-22_")
     payload = json.loads(gzip.decompress(drive.files[path]))
     assert [r["day"] for r in payload["records"]] == [DAY.isoformat(), MONDAY.isoformat()]
     assert all(r["made_at"] is None and r["label"] == "backfill_3pm" for r in payload["records"])
@@ -79,3 +79,17 @@ def test_the_scorer_reads_live_and_backfill_records_from_the_cache_layout(tmp_pa
         local.parent.mkdir(parents=True, exist_ok=True)
         local.write_bytes(data)
     assert [r["day"] for r in read_records(tmp_path / "cache" / "data")] == [DAY.isoformat(), MONDAY.isoformat()]
+
+
+def test_new_inputs_for_the_same_range_go_to_a_new_path_not_a_conflict(tmp_path):
+    run, drive, _ = backfill(tmp_path)
+    run.run("backfill_3pm", ("NIFTY",), DAY, MONDAY)
+    later = Backfill(chains(), DayBuilder(CALENDAR, RATE, CLOSES[:-1], "c0" * 32), run.store, CALENDAR, None)
+    later.run("backfill_3pm", ("NIFTY",), DAY, MONDAY)  # another closes file: other bytes, other path
+    assert len(drive.files) == 2
+
+
+def test_written_days_with_problems_are_counted_by_kind(tmp_path):
+    source = Chains({("NIFTY", DAY): chain_day(spot=None), ("NIFTY", MONDAY): chain_day(day=MONDAY, spot=None)})
+    lines = backfill(tmp_path, source=source)[0].run("backfill_3pm", ("NIFTY",), DAY, MONDAY)
+    assert "NIFTY backfill_3pm: 2 written days with: implied h1" in lines

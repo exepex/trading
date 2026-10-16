@@ -22,11 +22,12 @@ from .forecasters import (
     RealisedVolForecaster,
     realised_vol_points,
 )
-from .horizons import targets
+from .horizons import previous_regular_session, targets
 from .records import RATE_SOURCE, SCHEMA, Stamp, forecast_row, valuation_dict
 from .valuation import value_day
 
 NO_SPOT = "no spot in the chain"
+STALE_CLOSES = "closes stale: the last close before the day is {last}, the previous regular session is {expected}"
 PROBLEMS = "problems"
 
 
@@ -59,6 +60,7 @@ class DayBuilder:
                 "made_at": made_at, "method_version": METHOD_VERSION, "method_sha256": self.method,
                 "inputs_sha256": stamp.inputs_sha256, "source": chain.source, "snapshot_id": chain.snapshot_id,
                 "chain_sha256": chain.inputs_sha256, "observed_at": chain.observed_at, "spot": chain.spot,
+                "source_note": chain.source_note,
                 "rate": self.rate, "rate_source": RATE_SOURCE, "note": RISK_NEUTRAL_NOTE,
                 "status": PROBLEMS if problems else OK, "problems": problems,
                 "valuation": valuation_dict(valuation, realised_vol_points(before) if nifty else None),
@@ -67,17 +69,26 @@ class DayBuilder:
     def _forecasts(self, chain: ChainDay, valuation, before: tuple[DayValue, ...], stamp: Stamp) -> list[dict]:
         found = targets(self.calendar, chain.day, [e.expiry for e in valuation.expiries])
         to_expiry = {t.expiry: t.sessions for t in found.values() if t.expiry is not None and t.sessions}
+        stale = self._stale(chain.day, before)
         rows = []
         for forecaster in self.forecasters:
             for horizon in HORIZONS:
                 target = found[horizon]
                 if chain.spot is None:
                     forecast = Forecast(MISSING, NO_SPOT)
+                elif stale and forecaster.reads_closes:
+                    forecast = Forecast(MISSING, stale)
                 else:
                     inputs = ForecastInputs(chain.day, chain.spot, valuation, before, to_expiry)
                     forecast = forecaster.forecast(inputs, target)
                 rows.append(forecast_row(chain.day, forecaster.name, target, chain.spot, forecast, stamp))
         return rows
+
+    def _stale(self, day: date, before: tuple[DayValue, ...]) -> str | None:
+        """Why the closes cannot be trusted for the day: they must reach the previous regular session."""
+        expected = previous_regular_session(self.calendar, day)
+        last = before[-1].day if before else None
+        return None if last == expected else STALE_CLOSES.format(last=last, expected=expected)
 
     def _inputs_sha256(self, chain: ChainDay, before: tuple[DayValue, ...]) -> str:
         closes = [[c.day.isoformat(), c.value] for c in before[-(HIST_WINDOW + 1) :]]  # all a forecaster reads

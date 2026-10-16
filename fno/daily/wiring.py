@@ -58,7 +58,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         return CommandStep(processes, arguments, (folder,), git.changed)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
-    price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat()),
+    price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
                                      receipt_pathspecs(), git.changed)  # fmt: skip
     steps = {
         "margin_check": Alerted(

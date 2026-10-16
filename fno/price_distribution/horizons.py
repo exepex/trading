@@ -37,6 +37,13 @@ def regular_sessions_until(calendar: SessionCalendar, day: date, end: date) -> i
     return count
 
 
+def previous_regular_session(calendar: SessionCalendar, day: date) -> date:
+    current = day - timedelta(days=1)
+    while not _is_regular(calendar, current):
+        current -= timedelta(days=1)
+    return current
+
+
 def nth_regular_session(calendar: SessionCalendar, day: date, n: int) -> date:
     current, found = day, 0
     while found < n:

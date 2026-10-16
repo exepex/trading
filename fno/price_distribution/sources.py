@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date
 
 from ..quotes.drive_only_store import RawQuoteHashMismatch, RawQuoteMissing, RawQuoteStoreUnavailable
@@ -33,10 +34,19 @@ class SnapshotChains(ChainSource):
         self.store, self.sources = store, tuple(sources)
 
     def chain(self, underlying: str, day: date) -> ChainDay | None:
+        """The first source with a readable chain; a source that fails to read is passed over (and named), so a
+        Drive outage on Groww's file still records NSE's chain. Raises only when a chain exists and none is readable."""
+        failures = []
         for source in self.sources:
-            found = self._from(source, underlying, day)
+            try:
+                found = self._from(source, underlying, day)
+            except ChainUnavailable as error:
+                failures.append(str(error))
+                continue
             if found is not None:
-                return found
+                return replace(found, source_note="; ".join(failures))
+        if failures:
+            raise ChainUnavailable("; ".join(failures))
         return None
 
     def _from(self, source: str, underlying: str, day: date) -> ChainDay | None:

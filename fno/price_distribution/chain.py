@@ -43,6 +43,7 @@ class ChainDay:
     observed_at: str  # ISO time the capture finished (3 pm) or the session's close (panel)
     spot: float | None
     expiries: tuple[ExpiryChain, ...]
+    source_note: str = ""  # why an earlier source was passed over (a read failure), if one was
 
 
 class ChainSource(ABC):

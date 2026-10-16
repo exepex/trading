@@ -10,7 +10,7 @@ from fno.forecast_v4_rules.series import DayValue
 from fno.models import IST
 from fno.price_distribution.build import DayBuilder
 from fno.price_distribution.folders import live_path
-from fno.price_distribution.recorder import NOT_TRADING, LiveRecorder
+from fno.price_distribution.recorder import HAND_RUN, NOT_TRADING, LiveRecorder
 from fno.price_distribution.sources import ChainUnavailable
 from fno.research_data.calendar import CsvSessionCalendar
 from tests.price_distribution.builders import DAY, RATE, Chains, chain_day, drive_store
@@ -23,9 +23,9 @@ NOW = datetime(2026, 10, 16, 15, 31, tzinfo=IST)
 BOTH = {("NIFTY", DAY): chain_day(), ("BANKNIFTY", DAY): chain_day(underlying="BANKNIFTY")}
 
 
-def recorder(tmp_path, chains=None, live_from=DAY, now=NOW, fail=False):
+def recorder(tmp_path, chains=None, live_from=DAY, now=NOW, fail=False, source=None):
     store, drive, receipts = drive_store(tmp_path, fail)
-    source = Chains(BOTH if chains is None else chains)
+    source = source or Chains(BOTH if chains is None else chains)
     built = LiveRecorder(source, DayBuilder(CALENDAR, RATE, CLOSES, "c0" * 32), store, CALENDAR,
                          ("NIFTY", "BANKNIFTY"), live_from, lambda: now)  # fmt: skip
     return built, drive, receipts, source
@@ -84,10 +84,42 @@ def test_one_missing_chain_is_recorded_missing_and_the_step_fails_with_one_line(
     assert missing["status"] == "missing" and missing["problems"] == ["no canonical 3 pm chain"]
 
 
-def test_an_unreadable_chain_names_its_reason(tmp_path):
+def test_an_unreadable_chain_writes_no_file_so_a_rerun_can_record_it(tmp_path):
     chains = {("NIFTY", DAY): chain_day(), ("BANKNIFTY", DAY): ChainUnavailable("groww raw quote file unreadable: x")}
-    code, lines = recorder(tmp_path, chains=chains)[0].record(DAY)
+    built, drive, _, _ = recorder(tmp_path, chains=chains)
+    code, lines = built.record(DAY)
     assert code == 1 and "BANKNIFTY groww raw quote file unreadable: x" in lines[-1]
+    assert "problem: BANKNIFTY groww raw quote file unreadable: x" in lines
+    assert f"data/{live_path('BANKNIFTY', DAY)}" not in drive.files
+    built.source = Chains(BOTH)  # Drive is back
+    assert built.record(DAY) == (0, ["NIFTY: already recorded", "BANKNIFTY: recorded (0 problems)", "recorded"])
+
+
+def test_every_chain_unreadable_is_a_failure_with_nothing_written(tmp_path):
+    down = ChainUnavailable("groww raw quote file unreadable: x")
+    built, drive, _, _ = recorder(tmp_path, chains={("NIFTY", DAY): down, ("BANKNIFTY", DAY): down})
+    code, lines = built.record(DAY)
+    assert code == 1 and lines[-1].startswith("nothing written: ") and not drive.files
+
+
+def test_one_failing_build_never_loses_the_other_underlyings(tmp_path):
+    class Breaking(DayBuilder):
+        def build(self, chain, label, made_at):
+            if chain.underlying == "BANKNIFTY":
+                raise ValueError("Out of range float values are not JSON compliant")
+            return super().build(chain, label, made_at)
+
+    built, drive, _, _ = recorder(tmp_path)
+    built.builder = Breaking(CALENDAR, RATE, CLOSES, "c0" * 32)
+    code, lines = built.record(DAY)
+    assert code == 1 and "BANKNIFTY build failed (ValueError)" in lines[-1]
+    assert list(drive.files) == [f"data/{live_path('NIFTY', DAY)}"]
+
+
+def test_a_hand_run_never_writes_live_rows(tmp_path):
+    built, drive, _, source = recorder(tmp_path)
+    code, lines = built.record(DAY, live=False)
+    assert code == 0 and lines == [HAND_RUN] and not drive.files and not source.calls
 
 
 def test_problems_inside_a_chain_fail_the_step_but_the_files_are_written(tmp_path):

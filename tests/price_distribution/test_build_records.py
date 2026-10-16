@@ -80,3 +80,25 @@ def test_the_record_check_refuses_bad_rows(changes, message):
 def test_the_record_check_accepts_good_rows_and_the_ai_slot_ids():
     check_row(row())
     check_row(row(forecaster=BOOK2_HYBRID, status=MISSING, reason="not answered"))
+
+
+def test_stale_closes_make_the_close_based_forecasters_missing_with_their_reason():
+    closes = [c for c in history(DAY) if c.day < DAY - timedelta(days=3)]  # the last three days' closes never landed
+    record = builder(closes).build(chain_day(), "backfill_3pm", None)
+    by = {(r["forecaster"], r["horizon"]): r for r in record["forecasts"]}
+    assert {by[("rv20", h)]["status"] for h in HORIZONS} == {MISSING}
+    assert by[("hist750", "h1")]["reason"].startswith("closes stale: the last close before the day is 2026-10-12")
+    assert {by[("implied", h)]["status"] for h in HORIZONS} == {OK}  # the chain alone needs no closes
+    assert record["status"] == "problems"
+
+
+def test_closes_up_to_the_previous_session_are_fresh_across_a_weekend():
+    monday = date(2026, 10, 19)
+    record = builder(history(date(2026, 10, 17))).build(chain_day(day=monday), "backfill_3pm", None)  # last: Fri 16th
+    assert {r["status"] for r in record["forecasts"] if r["forecaster"] == "rv20"} <= {OK, "not_eligible"}
+
+
+def test_not_started_is_accepted_for_the_ai_slots_only():
+    check_row(row(forecaster=BOOK3_AI, status="not_started", reason="the AI books do not answer yet"))
+    with pytest.raises(RecordRefused, match="AI books' slots only"):
+        check_row(row(status="not_started", reason="x"))

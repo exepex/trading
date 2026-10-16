@@ -40,6 +40,7 @@ def add_pricedist_parser(subparsers) -> None:
     p.add_argument("--to", dest="end", type=date.fromisoformat, default=None)
     p.add_argument("--underlying", default=None, help="value/backfill: one underlying (default NIFTY / all)")
     p.add_argument("--dry-run", action="store_true", help="value: always a dry run (writes nothing)")
+    p.add_argument("--live", action="store_true", help="record: O1's daily step only (a hand run writes no live row)")
     p.set_defaults(func=cmd_pricedist)
 
 
@@ -55,7 +56,7 @@ def cmd_pricedist(args) -> int:
 def _record(args, cfg) -> int:
     from .wiring import build_live_recorder
 
-    code, lines = build_live_recorder(cfg).record(args.day or now_ist().date())
+    code, lines = build_live_recorder(cfg).record(args.day or now_ist().date(), live=args.live)
     print("\n".join(lines))
     return code
 

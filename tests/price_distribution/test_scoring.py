@@ -7,7 +7,7 @@ import pytest
 
 from fno.forecast_scoring.block_bootstrap import compare
 from fno.price_distribution.constants import FORECAST_LEVELS
-from fno.price_distribution.score_report import comparisons, group_scores, resolved, score_report
+from fno.price_distribution.score_report import comparison_seed, comparisons, group_scores, resolved, score_report
 from fno.price_distribution.scoring import pinball, quantile_score, share_below, share_inside
 
 QUANTILES = [-0.03, -0.02, -0.01, 0.0, 0.01, 0.02, 0.03]
@@ -64,9 +64,12 @@ def test_the_comparison_is_g4_s_bootstrap_on_the_paired_daily_differences():
                for r, y in resolved([row(d) for d in days], closes)}  # fmt: skip
     rv = {r["day"]: quantile_score(FORECAST_LEVELS, y, [r[f"lq{round(t * 100):02d}"] for t in FORECAST_LEVELS])
           for r, y in resolved([row(d, "rv20", shift=0.004) for d in days], closes)}  # fmt: skip
-    direct = compare([implied[d] - rv[d] for d in sorted(implied)], 1)
+    direct = compare(
+        [implied[d] - rv[d] for d in sorted(implied)], comparison_seed("backfill_eod", "a" * 8, "h1", "rv20")
+    )
     first, second = out
     assert (first["second"], first["n"], first["p_value"], first["tested"]) == ("rv20", 60, direct.p_value, True)
+    assert direct.interval == first["interval_unadjusted_95"]
     assert first["mean_difference"] == pytest.approx(direct.mean_difference)
     assert (second["second"], second["n"], second["tested"], second["p_value"]) == ("hist750", 30, False, 1.0)
 
@@ -74,3 +77,13 @@ def test_the_comparison_is_g4_s_bootstrap_on_the_paired_daily_differences():
 def test_an_empty_report_has_no_groups():
     assert score_report([], {}) | {"note": ""} == {"schema": "g13_scores_v1", "note": "", "closes_through": None,
                                                     "scored_rows": 0, "groups": [], "comparisons": []}  # fmt: skip
+
+
+def test_a_comparison_s_seed_does_not_move_when_another_group_appears():
+    days = [date(2025, 1, 1) + timedelta(days=i) for i in range(60)]
+    closes = {d + timedelta(days=1): 100 * (1 + 0.01 * ((i % 7) - 3)) for i, d in enumerate(days)}
+    rows = [row(d) for d in days] + [row(d, "rv20", shift=0.004) for d in days]
+    alone = comparisons(resolved(rows, closes))[0]
+    earlier = [row(d, label="a_first") for d in days] + [row(d, "rv20", label="a_first") for d in days]
+    together = [c for c in comparisons(resolved(rows + earlier, closes)) if c["label"] == "backfill_eod"][0]
+    assert (alone["comparison"], alone["p_value"]) == (together["comparison"], together["p_value"])

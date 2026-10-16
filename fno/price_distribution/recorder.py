@@ -1,13 +1,17 @@
-"""The live daily record (section 7), run by O1's `price_distribution` step after the card. One file per underlying
-per day; the command never alerts itself: O1's `Alerted` sends the one alert for a failed or refused step.
+"""The live daily record (section 7), run by O1's `price_distribution` step after the card, which alone passes
+`--live`. One file per underlying per day; the command never alerts itself: O1's `Alerted` sends the one alert for a
+failed or refused step.
 
-- not live (no `daily.live_from.price_distribution`, before it, or not today): `nothing written: ...`, exit 0;
+- not live (no `--live`, no `daily.live_from.price_distribution`, before it, or not today): `nothing written: ...`,
+  exit 0;
 - a closed day: `not a trading day`, exit 0;
 - a day already in Drive: never rebuilt (its `made_at` would change the bytes); the same bytes are put again, which
   restores a missing receipt, and the line says `already recorded`;
-- no chain for any underlying: `nothing written: ...`, exit 0 (O1 records `refused`, one alert);
-- any other problem: every file still written (a missing chain as a `missing` record), last line `written with
-  problems: ...`, exit 1 (O1 records `failed`, one alert, and commits the receipts)."""
+- no chain captured for any underlying: `nothing written: ...`, exit 0 (O1 records `refused`, one alert);
+- a chain recorded but unreadable (Drive down) or a build that fails: no file for that underlying, so a rerun can
+  still record it; with any other problem, every other file is written (a chain not captured as a `missing` record),
+  one line per problem, last line `written with problems: ...`, exit 1 (O1 records `failed`, one alert, and commits
+  the receipts)."""
 
 from __future__ import annotations
 
@@ -25,12 +29,16 @@ from .sources import ChainUnavailable
 from .store import DistributionStore
 
 NOT_LIVE = "nothing written: not live on {day} (config.yaml daily.live_from.price_distribution: {live_from})"
+HAND_RUN = "nothing written: only O1's daily step writes live rows (--live); past days go through `pricedist backfill`"
 NOT_TODAY = "nothing written: {day} is not today ({today}); past days go through `pricedist backfill`"
 NOT_TRADING = "not a trading day"
 NO_CHAIN = "no canonical 3 pm chain"
-NOTHING = "nothing written: no 3 pm chain for any underlying ({reasons})"
+NOTHING = "nothing written: {reasons}"
+NO_CHAIN_ANYWHERE = "nothing written: no 3 pm chain for any underlying ({reasons})"
+BUILD_FAILED = "build failed ({kind}): {error}"
 ALREADY = "{underlying}: already recorded"
 RECORDED = "{underlying}: recorded ({problems} problems)"
+PROBLEM = "problem: {problem}"
 WITH_PROBLEMS = "written with problems: {problems}"
 DONE = "recorded"
 RECORDED_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)
@@ -42,40 +50,53 @@ class LiveRecorder:
         self.source, self.builder, self.store, self.calendar = source, builder, store, calendar
         self.underlyings, self.live_from, self.now = tuple(underlyings), live_from, now
 
-    def record(self, day: date) -> tuple[int, list[str]]:
+    def record(self, day: date, live: bool = True) -> tuple[int, list[str]]:
         now = self.now()
-        if self.live_from is None or day < self.live_from:
-            return 0, [NOT_LIVE.format(day=day, live_from=self.live_from)]
-        if day != now.date():
-            return 0, [NOT_TODAY.format(day=day, today=now.date())]
-        if self.calendar.session_kind(day) not in RECORDED_KINDS:
-            return 0, [NOT_TRADING]
-        lines, built, gaps, problems = [], {}, {}, []
+        refusal = self._refusal(day, now, live)
+        if refusal:
+            return 0, [refusal]
+        lines, problems, absent, retry = [], [], {}, {}
         for underlying in self.underlyings:
             path = live_path(underlying, day)
             existing = self.store.get(path)
             if existing is not None:
                 self.store.put(path, existing)
                 lines.append(ALREADY.format(underlying=underlying))
-                built[underlying] = None
                 continue
             try:
                 chain = self.source.chain(underlying, day)
             except ChainUnavailable as error:
-                chain, gaps[underlying] = None, str(error)
-            if chain is None:
-                gaps.setdefault(underlying, NO_CHAIN)
+                retry[underlying] = str(error)
                 continue
-            built[underlying] = self.builder.build(chain, LIVE, now.isoformat())
-        if not built:
-            return 0, [NOTHING.format(reasons="; ".join(f"{u}: {r}" for u, r in gaps.items()))]
-        for underlying, record in built.items():
-            if record is not None:
-                self.store.put(live_path(underlying, day), encode(record))
-                lines.append(RECORDED.format(underlying=underlying, problems=len(record["problems"])))
-                problems += [f"{underlying} {p}" for p in record["problems"]]
+            if chain is None:
+                absent[underlying] = NO_CHAIN
+                continue
+            try:
+                record = self.builder.build(chain, LIVE, now.isoformat())
+            except (ValueError, ArithmeticError) as error:  # a refused row, a NaN: never lose the other underlyings
+                retry[underlying] = BUILD_FAILED.format(kind=type(error).__name__, error=error)
+                continue
+            self.store.put(path, encode(record))
+            lines.append(RECORDED.format(underlying=underlying, problems=len(record["problems"])))
+            problems += [f"{underlying} {p}" for p in record["problems"]]
+        if len(absent) == len(self.underlyings):
+            return 0, [NO_CHAIN_ANYWHERE.format(reasons="; ".join(f"{u}: {r}" for u, r in absent.items()))]
         stamp = Stamp(LIVE, self.builder.method, "", now.isoformat())
-        for underlying, reason in gaps.items():
+        for underlying, reason in absent.items():
             self.store.put(live_path(underlying, day), encode(missing_record(underlying, day, reason, stamp)))
-            problems.append(f"{underlying} {reason}")
-        return (1, [*lines, WITH_PROBLEMS.format(problems="; ".join(problems))]) if problems else (0, [*lines, DONE])
+        problems += [f"{u} {r}" for u, r in {**absent, **retry}.items()]
+        if not problems:
+            return 0, [*lines, DONE]
+        listed = [PROBLEM.format(problem=p) for p in problems]
+        if not lines and not absent:  # every chain unreadable or failed: nothing written, and a rerun may succeed
+            return 1, [*listed, NOTHING.format(reasons="; ".join(problems))]
+        return 1, [*lines, *listed, WITH_PROBLEMS.format(problems="; ".join(problems))]
+
+    def _refusal(self, day: date, now: datetime, live: bool) -> str | None:
+        if not live:
+            return HAND_RUN
+        if self.live_from is None or day < self.live_from:
+            return NOT_LIVE.format(day=day, live_from=self.live_from)
+        if day != now.date():
+            return NOT_TODAY.format(day=day, today=now.date())
+        return None if self.calendar.session_kind(day) in RECORDED_KINDS else NOT_TRADING

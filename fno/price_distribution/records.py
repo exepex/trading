@@ -8,6 +8,7 @@ import math
 from dataclasses import dataclass
 
 from .constants import (
+    AI_SLOTS,
     DISTRIBUTION_LEVELS,
     FORECAST_LEVELS,
     FORECASTERS,
@@ -16,6 +17,7 @@ from .constants import (
     METHOD_VERSION,
     MISSING,
     NOT_ELIGIBLE,
+    NOT_STARTED,
     OK,
     RISK_NEUTRAL_NOTE,
     SMILE_VALUE_NOTE,
@@ -76,8 +78,10 @@ def check_row(row: dict) -> None:
     why = None
     if row["forecaster"] not in FORECASTERS or row["horizon"] not in HORIZONS or row["label"] not in LABELS:
         why = f"unknown forecaster, horizon or label in {row['forecaster']}/{row['horizon']}/{row['label']}"
-    elif row["status"] not in (OK, MISSING, NOT_ELIGIBLE):
+    elif row["status"] not in (OK, MISSING, NOT_ELIGIBLE, NOT_STARTED):
         why = f"unknown status {row['status']}"
+    elif row["status"] == NOT_STARTED and row["forecaster"] not in AI_SLOTS:
+        why = f"{NOT_STARTED} is for the AI books' slots only, not {row['forecaster']}"
     elif row["status"] == OK:
         values = [row[level_key(level, "lq")] for level in FORECAST_LEVELS]
         if any(v is None for v in values) or any(b <= a for a, b in zip(values, values[1:], strict=False)):

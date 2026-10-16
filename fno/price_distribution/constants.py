@@ -21,7 +21,7 @@ FORECAST_LEVELS = (0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95)
 DISTRIBUTION_LEVELS = (0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)
 
 # Row statuses and labels (section 4)
-OK, MISSING, NOT_ELIGIBLE = "ok", "missing", "not_eligible"
+OK, MISSING, NOT_ELIGIBLE, NOT_STARTED = "ok", "missing", "not_eligible", "not_started"  # not_started: AI slots
 LIVE, BACKFILL_3PM, BACKFILL_EOD = "live", "backfill_3pm", "backfill_eod"
 LABELS = (LIVE, BACKFILL_3PM, BACKFILL_EOD)
 BODY, TAIL = "body", "tail"

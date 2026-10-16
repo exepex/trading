@@ -5,6 +5,7 @@ the closes file."""
 
 from __future__ import annotations
 
+import hashlib
 import math
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
@@ -78,19 +79,23 @@ def comparisons(scored: list[tuple[dict, float]]) -> list[dict]:
         by[(*_group_key(row), row["forecaster"])][row["day"]] = quantile_score(
             FORECAST_LEVELS, outcome, [row[k] for k in LQ]
         )
-    keys = sorted({k[:3] for k in by})
-    out, k = [], 0
-    for group in keys:
+    out = []
+    for group in sorted({key[:3] for key in by}):
         for baseline in BASELINES:
             first, second = by.get((*group, IMPLIED), {}), by.get((*group, baseline), {})
             days = sorted(first.keys() & second.keys())
-            k += 1
+            k = comparison_seed(*group, baseline)
             result = compare([first[d] - second[d] for d in days], k)
             out.append({"label": group[0], "method": group[1], "horizon": group[2], "first": IMPLIED,
                         "second": baseline, "comparison": k, "n": result.n, "mean_difference": result.mean_difference,
                         "p_value": result.p_value, "interval_unadjusted_95": result.interval,
                         "tested": result.tested})  # fmt: skip
     return out
+
+
+def comparison_seed(label: str, method: str, horizon: str, baseline: str) -> int:
+    """The bootstrap's comparison number from the comparison itself, so a new group never changes another's p."""
+    return int(hashlib.sha256(f"{label}|{method}|{horizon}|{baseline}".encode()).hexdigest()[:8], 16)
 
 
 def score_report(records: Iterable[dict], closes: Mapping[date, float]) -> dict:
