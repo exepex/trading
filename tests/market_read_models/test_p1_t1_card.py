@@ -63,8 +63,9 @@ def test_t1s_first_real_delivery_record_fits_the_catalogs_card():
 
 def test_a_delivery_record_with_a_reason_the_catalog_lacks_fails():
     delivery = json.loads(FIRST_POST.read_text(encoding="utf-8")) | {"reason_code": "new_reason"}
-    with pytest.raises(Exception, match="new_reason"):
+    with pytest.raises(Exception, match="payload/reason: breaks 'enum'") as broken:
         CONTRACT.validate("FnoCardResponse", card_from_delivery(delivery))
+    assert "new_reason" not in str(broken.value)  # path and rule only, never the value (story P2, privacy rule 3)
 
 
 def test_every_committed_delivery_record_fits_the_catalogs_card():

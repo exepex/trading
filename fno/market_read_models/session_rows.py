@@ -43,6 +43,7 @@ from .nse_files import (
 )
 from .stock_rows import UNIVERSE_NIFTY_500, stock_rows, stock_series
 from .symbol_changes import joined, read_symbol_changes
+from .weather_inputs import WeatherInputsReader
 
 EQUITY_WINDOW = timedelta(days=372)  # the examples' window: a year of sessions (250) and a week to spare
 INDEX_WINDOW = timedelta(days=372)
@@ -69,9 +70,10 @@ class SessionRowsBuilder:
         chain: ChainBuilder,
         home: HomeInputsReader,
         flows: FlowsReader,
+        weather: WeatherInputsReader | None = None,
     ):
         self.store, self.calendar, self.fno, self.followed = store, calendar, fno, followed
-        self.chain, self.home, self.flows = chain, home, flows
+        self.chain, self.home, self.flows, self.weather = chain, home, flows, weather
 
     def build(self, day: date) -> SessionRows:
         missing: list[str] = []
@@ -108,7 +110,7 @@ class SessionRowsBuilder:
         fno = self.fno.rows(history, day, names)
         return SessionRows(
             day, stocks, fno, index_rows(figures), industries(nifty_500), chain, self.home.on(day),
-            frame_inputs(self.calendar, day), flows,
+            frame_inputs(self.calendar, day), flows, self.weather.on(day) if self.weather else None,
         )  # fmt: skip
 
     def symbols_to_look_up(self, day: date) -> list[str]:

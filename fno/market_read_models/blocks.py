@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .flows_block import FlowsInputs
     from .frame_inputs import FrameInputs
     from .home_inputs import HomeInputs
+    from .weather_inputs import WeatherInputs
 
 CLOSE_UTC = "T10:00:00Z"  # NSE closes at 15:30 IST
 CURRENCY = "INR"
@@ -39,6 +40,7 @@ class SessionRows:
     home: HomeInputs | None = None  # the F&O books and approvals for Home (P10)
     frame: FrameInputs | None = None  # the session the reader acts on next (P10, India's band)
     flows: FlowsInputs | None = None  # the big investors' flows (P8)
+    weather: WeatherInputs | None = None  # M1's weather records for the session (P2a)
 
 
 class BlockBuilder(ABC):
