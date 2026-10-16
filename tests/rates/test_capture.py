@@ -142,3 +142,28 @@ def test_a_drive_conflict_is_a_named_store_failure(tmp_path):
     run, failures, _, _ = capture(tmp_path, pages(home=changed))  # same clock: same path, other bytes
     run.run()
     assert ("home", "store_failed") in [(step, kind) for _, step, kind, _ in failures.rows]
+
+
+def test_an_unreadable_home_page_never_counts_as_a_read(tmp_path):
+    capture(tmp_path, pages())[0].run()
+    broken = HOME.replace(b"Policy Repo Rate", b"Policy rate")
+    later = Clock(T0 + timedelta(hours=49))
+    run, failures, _, _ = capture(tmp_path, pages(home=broken), clock=later, run="20261018T141000Z-gggggg")
+    run.run()
+    assert [kind for _, _, kind, _ in failures.rows] == ["layout", "stale"]  # the 48 h clock was not reset
+    assert any(p.name.endswith("_home_unreadable.html") for p in (tmp_path / "drive").rglob("*.html"))
+
+
+def test_no_change_notice_without_its_row(tmp_path):
+    capture(tmp_path, pages())[0].run()
+    changed = re.sub(rb"(Policy Repo Rate.*?)5\.50%", rb"\g<1>5.25%", HOME, count=1, flags=re.S)
+    run, _, alerts, _ = capture(tmp_path, pages(home=changed), clock=Clock(T0 + timedelta(minutes=5)),
+                                run="20261016T131500Z-hhhhhh")  # fmt: skip
+
+    class DownTable:
+        def write(self, day, rows):
+            raise OSError("Drive is down")
+
+    run.table = DownTable()
+    run.run()
+    assert "changed from" not in alerts.sent[0] and "table: OSError" in alerts.sent[0]
