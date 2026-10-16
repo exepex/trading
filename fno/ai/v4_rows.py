@@ -1,5 +1,7 @@
 """Story G11, the AI books' v4 rows: each book-day becomes one G7-schema row per started v4 question in G8's folder
-(`research/forecasts/v4/<book>/<question>.csv`), and every failed run is a miss, never a gap.
+(`research/forecasts/v4/<forecaster>/<question>.csv`, the forecaster being the registered version, e.g. `book3_ai_v2`:
+protocol v4's slot holds the first version registered for it, so a later version can never pour rows into it), and
+every failed run is a miss, never a gap.
 
 - **The status is F1's gate, used as is** (`scoring_gate.scoring_status`, the one rule every AI reader calls): scored
   is `ok` with the book's value; an unscored day keeps its outcome's own name (late, not_fired, no_submission,
@@ -43,6 +45,7 @@ class BookDay:
     was given and its version's hashes."""
 
     book: str
+    forecaster: str  # the registered forecaster (book and version, e.g. book3_ai_v2): the slot's ledger name and folder
     day: date
     gate: ScoringStatus
     stop_rule: bool
@@ -94,4 +97,5 @@ def write_book_day(folder: Path, day: BookDay, questions: Sequence[str], release
     if not rows:
         return 0
     check_pack_binding(day.book, day.day.isoformat(), day.pack_sha256, released_sha256)
-    return sum(records.write(folder, day.book, question, [row]) for question, row in zip(questions, rows, strict=True))
+    written = zip(questions, rows, strict=True)
+    return sum(records.write(folder, day.forecaster, question, [row]) for question, row in written)

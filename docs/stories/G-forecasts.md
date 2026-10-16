@@ -981,14 +981,17 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 2. **Prompt versions:** `agents/forecast/book2_hybrid_v2.md` and `book3_ai_v2.md`, registered in `fno/ai/versions.py`
    as new versions (a prompt "changes only as a new version"); same model; same label form
    `book/v2/sha256:.../isolation:sealed_same_day`. Book 2 keeps the rules' numbers in its pointer, Book 3 does not.
-   Each version also writes BG1's self-timing record (`fno/budget/self_timed.py`), the prompt change
-   `BG-budget.md:102-104` left open.
+   BG1's self-timing record (`fno/budget/self_timed.py`, the change `BG-budget.md:102-104` left open) is written by
+   `brief` and `reveal` themselves (story F8c, its owner's; response 258 addendum 1), so no prompt step is needed.
 3. **Fire and collect:** F1/G5's existing firer, seal, reveal and outcome code (`fno/ai/fire.py`, `seal.py`,
    `outcome.py`, `scoring_gate.py`), pointed at the v4 pack: fired after the pack's release (about 14:32, at the latest
    14:40); the commitment must be **received by GitHub by 15:10** (G10, `fno/forecast_v4/terms.py` `V4_DEADLINE`);
    reveal after 15:10. Fired once, never retried (as today). The timing constants come from `terms.py`, not a copy.
 4. **Records:** G11's own writer (G7's `records.record()` stamps G7's version, so it is not reused) writes
-   `research/forecasts/v4/book2_hybrid/<question>.csv` and `research/forecasts/v4/book3_ai/<question>.csv` in G7's
+   `research/forecasts/v4/book2_hybrid_v2/<question>.csv` and `research/forecasts/v4/book3_ai_v2/<question>.csv`
+   (one folder per registered version, named as item 6 registers it, because G8's reader and the look's
+   reconciliation find a slot's rows by its registered forecaster's folder; a later version writes its own folder and
+   never fills the slot of the first, response 272 addendum 1) in G7's
    schema (`fno/forecast_v4_rules/records.py`: `day, value, status, label, forecaster_version, kind, slot,
    method_sha256, inputs_sha256, made_at`), `label=live` always (AI answers have no back-fill; G10's cohorts), `slot`
    `hybrid` or `ai_team` (`fno/constants.py` `V4_SLOT_HYBRID`, `V4_SLOT_AI`), `kind=ai`, `method_sha256` the prompt's

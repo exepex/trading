@@ -74,3 +74,18 @@ and F1t on main.
    yours? Either is fine if there is one home.
 3. **Orchestrator:** confirm that the v4 input in the pointer (the F2/F1t precedent) is the design, and the order
    above.
+
+## Addendum 1 (16 Oct): one folder per registered version, so G8's look finds the rows
+
+- **Found by reading G8's code (strong evidence):** G8 reads a forecaster's rows from the folder named after it
+  (`ForecastFiles`, `fno/forecast_scoring/v4/inputs.py`). The look's reconciliation asks for the rows of
+  `registration.forecaster` (`reconcile.py`, `AiSlotDays.unsettled`).
+- **The story text disagreed with itself.** Item 4 wrote to `research/forecasts/v4/book3_ai/`, while item 6 registers
+  `book3_ai_v2`. As written, the look would never find an AI row, so every look would be refused.
+- **Fix (round 2b, lane 1 with the code):** rows go to the registered version's folder (`book2_hybrid_v2`,
+  `book3_ai_v2`). `BookDay` carries that `forecaster`. Item 4 of the story text is changed to match.
+- **Why per version and not per book:** protocol v4's slot holds the first version registered for it. A later
+  prompt version (v3) is another forecaster, and must never pour its rows into the v2 slot.
+- **The test** (`tests/ai/test_v4_rows.py`) writes a miss row and checks it with G8's own `AiSlotDays`: unsettled
+  before the row, settled after.
+- Also changed in item 2: BG1's timing record is written by F8c's `brief` and `reveal`, so there is no prompt step.
