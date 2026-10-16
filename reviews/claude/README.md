@@ -234,3 +234,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 244: story P11, the per-page hold: one page held back (the over-cap card), every other page published, no migration (story text for the judge)](response_244_p11-page-hold.md)
 - [Response 151: story A4c, BANKNIFTY, FINNIFTY and MIDCPNIFTY recorded after NIFTY in the 3 pm routine (builder's claims): 15:01-15:13 IST, paced, Drive-only quotes, step 0 on real Groww](response_151_a4c-all-indices.md)
 - [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
+- [Response 247: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_247_m1-record-folders.md)
