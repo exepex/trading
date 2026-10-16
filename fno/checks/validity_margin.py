@@ -34,6 +34,8 @@ from .validity_stress import marked
 COLUMNS = ("structure", "width", "scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs", "source", "as_of")
 NAME = "margin_room"
 
+CALENDAR_CANNOT_TELL = "margin age for {day} cannot be counted: {reason}"  # the calendar names the year to add
+
 
 class MarginProblem(ValueError):
     """No usable margin: the trade fails closed."""
@@ -73,7 +75,11 @@ def margin_row(rows, terms: tuple[str, float, int], day: date, settings: MarginS
     if not usable:
         raise MarginProblem(f"no margin row for {structure} {width:g} on or before {day}")
     row = max(usable, key=lambda r: r["as_of"])
-    if not settings.fresh(date.fromisoformat(row["as_of"]), day):
+    try:
+        fresh = settings.fresh(date.fromisoformat(row["as_of"]), day)
+    except ValueError as cannot_tell:  # the calendar's own words name the day and year it cannot answer (story C5c)
+        raise MarginProblem(CALENDAR_CANNOT_TELL.format(day=day, reason=cannot_tell)) from cannot_tell
+    if not fresh:
         raise MarginProblem(f"margin for {structure} {width:g} is from {row['as_of']}, too old on {day}")
     return row
 

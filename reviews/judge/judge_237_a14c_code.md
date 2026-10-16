@@ -65,3 +65,23 @@ finish times and a run-level byte-identical check.
   k. Its seconds per file decide whether 330 minutes are enough (8 workers at about 30 s a file is about 1.8 hours).
 - `--approve-fall` is not checked against DESK_DECISIONS (accepted as a note in the self-review). Reading the cited
   commit's row before applying would be cheap later.
+
+## Addendum 1: head c73fd5f5 (the three should-fixes)
+
+**PASS.** The claims are now `reviews/claude/response_240_a14c-code.md`, the same file renumbered because O9 holds 238
+on main. Since 769f97e2 the branch adds `tests/nse_margins/test_stress_boundaries.py`, the story's part-2 split and the
+WORK_REGISTER row, plus merges of main. A14c's own `fno/` code is unchanged.
+1. **One-step fall:** `decide` cases cover 1.45 to 1.40 (held), 1.41 to 1.40 (held) and 1.449 to 1.45 (applied, not a
+   fall), and there are planted runs at scale 11.7 (1.386747, computed 1.4) against both 1.45 and a hand 1.41. **My
+   mutation** `computed >= last.factor - 0.05` now fails 4 tests.
+2. **Incremental boundary:** run 1 on 7 Dec covers to Fri 4 Dec. The 20 Nov peak's holdings exit Mon 7 Dec, the first
+   session after that, and the incremental run equals full (1.686747). **My mutation** `exit >= coverage_through + 7
+   days` now fails 1 test.
+3. **Split:** the scope bullet is "A14c part 2 (… built after part 1 merges, with its own judge)", with the market-hours
+   evidence. Criterion 10 is split into part 1 (the line) and part 2 (the broker check). Depends and Status are
+   updated, and the WORK_REGISTER row matches.
+- **Gates on c73fd5f5:** 7028 passed (`-n auto`, Slack token unset), ruff check and format clean, check_imports clean.
+  A trial merge with current main is clean (WORK_REGISTER and README auto-merged), and then 7042 passed.
+
+Part 1 may merge. The notes in the main verdict stand (k of 1.75 or more on the first full run; the STR1 cap;
+`--approve-fall` not checked against DESK_DECISIONS).

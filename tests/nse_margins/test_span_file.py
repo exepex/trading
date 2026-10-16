@@ -73,4 +73,5 @@ def test_the_span_dataset_is_archived_by_the_librarian_with_its_content_check():
     assert LIBRARIAN_DATASETS["span-bod"] is NseSpanBodSource and FINGERPRINT_SOURCES["span-bod"] is NseSpanBodSource
     VALIDATORS[NseSpanBodSource]("nsccl.20261014.i1.zip", span_zip())
     with pytest.raises(ValueError):
-        VALIDATORS[NseSpanBodSource]("nsccl.20261014.i1.zip", span_zip(som="1"))
+        VALIDATORS[NseSpanBodSource]("nsccl.20261014.i1.zip", span_zip(som="1"))  # a minimum with no GROSS method
+    VALIDATORS[NseSpanBodSource]("nsccl.20200407.i1.zip", span_zip(som="405", som_method="GROSS", tiers=None))  # 2020

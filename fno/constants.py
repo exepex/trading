@@ -343,6 +343,7 @@ HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", 
 HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
 HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
 HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
+ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the health check records that it posted
 
 # Stories S1 and BR1a: the protocols `python -m fno evaluation check|freeze|verify --protocol` reads
 PROTOCOL_EVALUATION, PROTOCOL_BREADTH = "evaluation", "breadth"

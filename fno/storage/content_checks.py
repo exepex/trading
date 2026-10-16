@@ -62,7 +62,8 @@ VALIDATORS = {
     NsdlFpiDailyBySessionSource: lambda filename, data: read_nsdl_equity(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
-    NseSpanBodSource: lambda filename, data: read_span_file(data, filename),
+    # a valid SPAN file of any method A14c reads (2020's minimum included); A14's daily job still refuses that method
+    NseSpanBodSource: lambda filename, data: read_span_file(data, filename, allow_short_option_minimum=True),
 }
 
 # The session a flows copy covers, read from the copy itself: where the by-session series files it (judge 66, P8)

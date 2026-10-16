@@ -83,7 +83,7 @@ class WeatherDays:
             "day": d.isoformat(), "label": label, "colour": str(colour), "operative": WEATHER_OPERATIVE_MODEL,
             "proof": PROVEN if WEATHER_OPERATIVE_PROVEN else NOT_YET_PROVEN,
             "status": _status(values[WEATHER_OPERATIVE_MODEL], values["base_rate"]),
-            "model_colour": str(model_colour), "v0_colour": str(v0_colour),
+            "model_colour": str(model_colour), "v0_colour": str(v0_colour), "v0_status": self._v0_status(d),
             "probabilities": {name: _shown(v) for name, v in values.items()}, **red,
             "drivers": public_drivers(self.v0.inputs(d), self.v0.events_ahead(d)), **audit,
         }  # fmt: skip
@@ -93,6 +93,11 @@ class WeatherDays:
             for q, _ in QUESTIONS
         }
         return DayWeather(public, rows)
+
+    def _v0_status(self, d: date) -> str:
+        """`scored`, or `not scored:` and why (owner, 16 Oct: every calendar user fails loudly, by name)."""
+        reason = self.v0.unscored_reason(d)
+        return f"{WeatherColour.NOT_SCORED}: {reason}" if reason else SCORED
 
     def latest_row(self, d: date) -> date | None:
         """The last committed session before `d` (live: it must be the previous regular session)."""

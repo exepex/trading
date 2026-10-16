@@ -3,13 +3,14 @@ change for every story), so every number a hashed module imports from it is pinn
 Changing one alone, or a hashed module importing a new unpinned number, fails before a freeze."""
 
 import ast
+import importlib
 from pathlib import Path
 
-import fno.constants as constants
 from fno.config import ROOT
 from fno.evaluation.freeze import frozen_targets
 from fno.evaluation.protocol import PROTOCOL_FILE, parse_protocol
 
+CONSTANT_MODULES = ("fno.constants", "fno.budget.constants")  # names-only modules left unhashed (test_scoring_closure)
 PINNED = {  # constant -> (protocol item, its words with the number)
     "PAPER_GATE_MONTHS": ("paper_gate", "at least {} full calendar months"),
     "UNPROVEN_BELOW_COMPLETED_TRADES": ("paper_gate", "at least {} completed positions"),
@@ -30,10 +31,11 @@ def numbers_imported_by_hashed_modules() -> dict[str, set[str]]:
             if not isinstance(node, ast.ImportFrom):
                 continue
             base = list(package[: len(package) - node.level + 1] if node.level else ())
-            if ".".join(base + (node.module.split(".") if node.module else [])) != "fno.constants":
+            module = ".".join(base + (node.module.split(".") if node.module else []))
+            if module not in CONSTANT_MODULES:
                 continue
             for alias in node.names:
-                value = getattr(constants, alias.name, None)
+                value = getattr(importlib.import_module(module), alias.name, None)
                 if isinstance(value, int | float) and not isinstance(value, bool):
                     found.setdefault(alias.name, set()).add(target)
     return found
@@ -46,4 +48,4 @@ def test_every_number_a_hashed_module_imports_from_constants_is_pinned():
 def test_each_pinned_number_is_the_one_the_protocol_states():
     items = parse_protocol(text()).items
     for name, (item, words) in PINNED.items():
-        assert words.format(getattr(constants, name)) in items[item].value, name
+        assert words.format(getattr(importlib.import_module("fno.constants"), name)) in items[item].value, name
