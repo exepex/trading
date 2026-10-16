@@ -21,6 +21,7 @@ from fno.config import ROOT, load_app_config
 from fno.constants import BOOKS, PLAYBOOK_FOLDER
 from fno.daily.runner import DayRunner
 from fno.desk.private_files import PrivateFiles
+from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.storage.index_store import DriveIndexStore
 from fno.storage.raw_store import LocalFolderStore
 from tests.checks.builders import CALENDAR, nse_files
@@ -29,10 +30,10 @@ from tests.timetable.drive_day import fresh_container
 from .outside import (
     DAY,
     Children,
-    ExecutionCapture,
     FakeClock,
     FakeOwnerDrive,
     FakeSlack,
+    FixtureProvider,
     NoNseArchive,
     groww_part,
     nse_part,
@@ -87,7 +88,7 @@ class Day:
     clock: FakeClock
     drive: FakeOwnerDrive
     slack: FakeSlack
-    capture: ExecutionCapture
+    provider: FixtureProvider
     children: Children
     day: date = DAY
     printed: list[str] = field(default_factory=list)
@@ -96,6 +97,11 @@ class Day:
         from fno.storage.wiring import build_quote_store  # the patched binding: this checkout's folder
 
         return build_quote_store()
+
+    def recorder(self) -> QuoteSnapshotRecorder:
+        """A4's real NIFTY recorder over the fake Groww, on the fake clock, into this checkout's quote store."""
+        return QuoteSnapshotRecorder(self.provider, self.quote_store(), self.clock, self.clock.advance,
+                                     calendar=CALENDAR)  # fmt: skip
 
     def runner(self) -> DayRunner:
         from fno.daily.wiring import build_day_runner
@@ -141,8 +147,8 @@ def quote_parts_script(day_: Day) -> dict:
     nse = LocalFolderStore(day_.root / "research/data/quotes")
 
     def nifty() -> int:
-        groww_part(day_.quote_store(), day_.day, "nifty", day_.clock())
-        return 0
+        result = day_.recorder().attempt_now()
+        return 0 if result.complete else 1
 
     def indices() -> int:
         for name in ("banknifty", "finnifty", "midcpnifty"):
@@ -165,8 +171,7 @@ def fixture_day(tmp_path: Path, monkeypatch) -> Day:
     for name in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE"):
         monkeypatch.setenv(name, "")  # restored after the test; the clock sets them as it moves
     root, clock, drive, slack = checkout(tmp_path), FakeClock(os.environ), FakeOwnerDrive(), FakeSlack()
-    day_ = Day(root, clock, drive, slack, None, None)
-    day_.capture = ExecutionCapture(clock, day_.quote_store)
+    day_ = Day(root, clock, drive, slack, FixtureProvider(clock), None)
     quote_store = in_checkout(root)
     sessions = CALENDAR.sessions(date(2026, 9, 1), date(2026, 10, 31))
     seams = {
@@ -178,7 +183,7 @@ def fixture_day(tmp_path: Path, monkeypatch) -> Day:
         "fno.storage.wiring.build_nse_fo_library": lambda *a, **k: NoNseArchive(),
         "fno.desk.wiring.build_nse_fo_library": lambda *a, **k: NoNseArchive(),
         "fno.composition.build_nse_fo_library": lambda *a, **k: NoNseArchive(),
-        "fno.composition.build_quote_recorder": lambda cfg: day_.capture,
+        "fno.composition.build_quote_recorder": lambda cfg: day_.recorder(),
         "fno.daily.processes.ChildProcesses": lambda root: day_.children,
         "fno.storage.wiring.build_quote_store": quote_store,
         "fno.desk.wiring.build_quote_store": quote_store,

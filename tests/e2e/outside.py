@@ -1,18 +1,20 @@
-"""Story O2: the fakes of the daily run's outside services, and only those: the owner's Drive, Slack, the 15:15 Groww
-capture, NSE's archive, the clock, and the child commands' work (each 3 pm quote part writes what its real command
-writes; Book 1's decision runs the real Book 1). Every one has a switch for its family's failure."""
+"""Story O2: the fakes of the daily run's outside services, and only those: the owner's Drive, Slack, Groww's market
+data, NSE's archive, the clock, and the child commands (NIFTY's 3 pm part and the 15:15 capture run A4's real recorder
+over the fake Groww; Book 1's decision runs the real Book 1). Every one has a switch for its family's failure."""
 
 from __future__ import annotations
 
+import math
 import traceback
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fno.alerts.sender import AlertSender
+from fno.constants import OPTION_CALL, OPTION_PUT
 from fno.daily.processes import Process, Processes
-from fno.models import IST
-from fno.quotes.recorder import NSE_DATASET, QuoteSnapshotRecorder, RecordResult
+from fno.models import IST, OptionChain, OptionQuote, QuoteBook
+from fno.quotes.recorder import NSE_DATASET, QuoteSnapshotRecorder
 from fno.storage.raw_store import RawFileConflict, RawFileStore
-from tests.desk.builders import fly_rows, write_snapshot
+from tests.desk.builders import LOT, fly_rows, write_snapshot
 
 START = datetime(2026, 10, 14, 14, 33, tzinfo=IST)  # the routine's start (CLAUDE.md)
 DAY = START.date()
@@ -34,6 +36,53 @@ SPOT = round(previous_close() + 5.0, 2)  # the day's level, a quiet move from th
 def market_rows(at: datetime) -> list[dict]:
     """The fixture fly's four quotes as a capture at `at` records them, NIFTY's level on every row."""
     return [r | {"spot": f"{SPOT:g}", "response_received_at": at.isoformat()} for r in fly_rows()]
+
+
+class GrowwDown(ConnectionError):
+    """What the Groww SDK raises when Groww cannot be reached."""
+
+
+class FixtureProvider:
+    """Groww's market data for the fixture day: NIFTY at `SPOT`, five expiries, a smooth chain 600 points either
+    side; `down` fails every call, as a Groww outage does. Read-only, as the real adapter: there is no order call."""
+
+    name = "groww"
+    EXPIRIES = (date(2026, 10, 20), date(2026, 10, 27), date(2026, 11, 3), date(2026, 11, 24), date(2026, 12, 29))
+
+    def __init__(self, clock: FakeClock):
+        self.clock, self.down = clock, False
+
+    def expiries(self, underlying):
+        self._reachable()
+        return list(self.EXPIRIES)
+
+    def chain(self, underlying, expiry):
+        self._reachable()
+        centre = round(SPOT / 50) * 50
+        quotes = {(k, t): OptionQuote(k, t, price(k, t, expiry), symbol=symbol(k, t, expiry))
+                  for k in (centre + 50 * i for i in range(-12, 13)) for t in (OPTION_CALL, OPTION_PUT)}  # fmt: skip
+        return OptionChain(underlying, SPOT, expiry, self.clock(), LOT, quotes)
+
+    def quote_book(self, chain, strike, kind):
+        self._reachable()
+        mid = price(strike, kind, chain.expiry)
+        name = symbol(strike, kind, chain.expiry)
+        return QuoteBook(name, mid - 0.5, mid + 0.5, 650, 650, mid, self.clock(), "fields", "h")
+
+    def _reachable(self):
+        if self.down:
+            raise GrowwDown("groww unreachable (HTTP 503)")
+
+
+def symbol(strike: float, kind: str, expiry: date) -> str:
+    return f"NIFTY{expiry:%y%m%d}{strike:g}{kind}"
+
+
+def price(strike: float, kind: str, expiry: date) -> float:
+    """Intrinsic value plus a time value that falls with distance from the money and grows with time to expiry."""
+    intrinsic = max(0.0, SPOT - strike) if kind == OPTION_CALL else max(0.0, strike - SPOT)
+    years = max((expiry - DAY).days, 1) / 365
+    return round(intrinsic + 0.4 * SPOT * 0.12 * math.sqrt(years) * math.exp(-abs(strike - SPOT) / 600), 1) + 1.0
 
 
 class DriveDown(ConnectionError):
@@ -115,31 +164,6 @@ class FakeClock:
                 return clock.now.astimezone(tz) if tz else clock.now.replace(tzinfo=None)
 
         return ClockDatetime
-
-
-class ExecutionCapture:
-    """The 15:15 Groww capture: writes A4's snapshot files into the run's quote store (the csv to Drive) and returns
-    the recorder's result; `fails` makes each capture incomplete, as a Groww outage does."""
-
-    def __init__(self, clock: FakeClock, store):
-        self.clock, self.store, self.fails, self.taken = clock, store, False, []
-
-    def capture(self) -> RecordResult:
-        day, started = self.clock().date(), self.clock()
-        snapshot_id = f"nifty_{started:%Y%m%d_%H%M%S}"
-        self.clock.advance(40)  # the capture's own duration
-        write_snapshot(
-            self.store(),
-            snapshot_id,
-            market_rows(started),
-            started,
-            self.clock(),
-            complete=not self.fails,
-            day=day,
-            spot=SPOT,
-        )
-        self.taken.append(snapshot_id)
-        return RecordResult("recorded", snapshot_id, not self.fails, 4)
 
 
 class NoNseArchive:
