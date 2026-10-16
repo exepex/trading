@@ -5,6 +5,7 @@ through E3's committer in the run's one thread."""
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -28,7 +29,8 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
     return {name: date.fromisoformat(str(raw[name])) if raw.get(name) else None for name in LIVE_STEPS}
 
 
-def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
+def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep) -> DayRunner:
+    """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock)."""
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
@@ -53,10 +55,10 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     )
     locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
-    waiter = ServicingWaiter(parts, now_ist)
+    waiter = ServicingWaiter(parts, now_ist, sleep)
 
     def command(arguments: Callable[[date], tuple[str, ...]], folder: str) -> DayStep:
-        return CommandStep(processes, arguments, (folder,), git.changed, locks=locks)
+        return CommandStep(processes, arguments, (folder,), git.changed, sleep, locks)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
     steps = {
@@ -71,7 +73,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "book1": Alerted(
             "book1",
             CommandStep(
-                processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, locks=locks
+                processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, sleep, locks
             ),
             alerts,
         ),  # E5: commits its own decision  # fmt: skip
@@ -89,7 +91,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
     }
-    cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
+    cfg_orders, exit_rules = build_book1_orders(cfg, root), build_book1_exit_rules(root, alerts)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts)  # fmt: skip
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))
