@@ -52,9 +52,11 @@ equity analyst (F2) reads only what was public before its cutoff.
   - Two rates: `tbill_91d_cutoff` (each weekly auction's 91-day YTM at the cut-off price) and `policy_repo` (the
     policy repo rate).
   - The 182-day and 364-day yields come in the same release and are stored with it, because they cost nothing extra.
-- **Part 2: same-day announcements (`fno/announcements_live/`, new).** A poll of NSE's day list every 15 minutes from
-  09:00 to 14:00 IST on every NSE session. Each new `seq_id` becomes one row with the time we first saw it.
-- Commands, a schedule for each part, checks, and a reader for each part's consumers.
+- **Part 2: same-day announcements (`fno/announcements_live/`, new).** A poll of NSE's day list at each of A16's
+  15-minute marks from 09:15 to 14:00 IST on every NSE session. Each new `seq_id` becomes one row with the time we
+  first saw it.
+- Commands, checks, and a reader for each part's consumers; a schedule for the rates; the announcements poll rides in
+  A16's recorder routine (design below).
 
 Out (each with where it goes):
 - Changing `config.yaml`'s `risk_free_rate` or S6's `cash_rate`. Each consumer switches when its own owner decides:
@@ -87,30 +89,68 @@ Out (each with where it goes):
   - The table is written as O9 part files (`rates/YYYY/MM/<day>.<run_id>.csv`).
   - `RatesAsOf(cutoff)` returns each rate's latest value first seen at or before the cutoff, never a later one.
 - **Announcements (`fno/announcements_live/`):**
-  - An `AnnouncementSource` interface has one adapter, `NseAnnouncementsSource`. It uses A12's URL template with
-    today's date in both fields.
-  - Each poll keeps every `seq_id` not already recorded today. A row is `seq_id, symbol, isin, desc, an_dt,
-    exchdisstime, attachment_url, first_seen_at, run_id`. `first_seen_at` is the poll's request time.
-  - The first poll that sees an item wins. A later poll never rewrites it.
+  - An `AnnouncementSource` interface has one adapter, `NseAnnouncementsSource`. It calls A12's URL template
+    (`fno/filings/sources.py:53`) with today's date in both fields, through the existing NSE client `PublicData.nse_json`
+    (`fno/providers/public.py`): a paced session, a 0.4 s pause after each call, three tries with a cookie warm-up.
+    `docs/DATA_SOURCES.md` keeps `PublicData` outside A9b's retry policy, so the poller catches everything it raises
+    (`requests` errors, an HTTP 403 or 429, `RuntimeError`, bad JSON) and turns it into a named failure. One request per
+    poll.
+  - **The seen set (judge 355 SF2).** Each run is a fresh process. Before its first poll of the day it loads today's
+    rows from today's receipted part files, read through O9's verified Drive cache. If that load fails, the run stops
+    with one alert and one O10 row (`kind` `seen_set_unreadable`) and polls nothing, so an item is never re-recorded
+    with a later time. Within a run, the set is kept in memory and grows with each poll.
+  - Each poll keeps every `seq_id` not in the seen set. A row is `seq_id, symbol, isin, desc, an_dt, exchdisstime,
+    attachment_url, first_seen_at, run_id`. `first_seen_at` is the poll's request time. The first run that sees an
+    item wins, and a later run never rewrites it.
+  - Every poll also writes one poll-log row: `requested_at, mark, status (ok | failed), kind, items, new_items`. The
+    staleness and episode rules read it.
   - The raw responses and the day's part files are stored under O9, as for the rates.
-  - `AnnouncementsAsOf(day, cutoff)` gives F2 the items with `first_seen_at` at or before the cutoff.
-    `exchdisstime` is shown beside the first-seen time, never used in its place.
+  - `AnnouncementsAsOf(day, cutoff)` gives F2 the items with `first_seen_at` at or before the cutoff. `exchdisstime`
+    is shown beside the first-seen time, never used in its place.
+- **The clock for announcements (judge 355 SF1).** GitHub's cron cannot deliver the window on this repository: about 3
+  runs in 48 fifteen-minute slots (participant-oi-watch, judge 350), and morning runs 4 h 40 min to 5 h 01 min late
+  (judge 351). The one process alive in the window is A16's 15-minute recorder: a Claude routine with hourly fires
+  09:00-15:00 IST, each looping over its marks. On its first live day, 16 Oct 2026, it settled 23 of 26 marks with a
+  running process. From 09:15 to 14:00 that was 17 of 20 marks (10:00 onwards; the first fire did not run, so
+  09:15-09:45 are `missed`; `research/data/intraday/slots/2026/10/16/`) [strong evidence for one day].
+  - **Design:** the poller plugs in behind A16's `MarkObserver` port (`fno/intraday/observer.py`, merged, judge 265
+    add. 1). The port holds one observer and LM1's monitor plugs in too, so a fan-out `ObserverGroup` runs each
+    member isolated, LM1 first. The fan-out's place and A16's one wiring line (`fno/intraday/wiring.py:79`) are to be
+    agreed with A16's owner (01VK88Lx) and LM1's builder (012eM7Ti): both are asked.
+  - On each `after_mark` with mark 09:15-14:00 IST, the poller makes one poll. A mark after 14:00 polls nothing.
+  - **A day whose window had no successful poll:** at the first mark after 14:00 (any status), the poller writes one
+    `missed_window` poll-log row and one O10 row, and posts one alert.
+  - **No successful poll by 10:00:** at the first mark at or after 10:00, if today's poll log has no `ok` row, one
+    alert and one O10 row (`kind` `no_poll_by_1000`).
+  - **Said plainly:** if A16's routine does not run at all, A21's poller does not run either. Nothing in A21 then
+    alerts during the day; A16's own heartbeat-silence check and O8's daily health check are the witnesses. A21 adds
+    no host of its own; that would be an owner decision (judge 352 SF1's platform question).
+  - The poll runs inside the recorder's process before its commit. Its cost is one NSE request of about 1 s plus
+    pacing per mark [some evidence: today's live calls took under 2 s].
 - **Failures (the owner's rule):** every failure posts one #fno-desk line and appends one O10 row
-  (`research/ops/capture_errors.csv`, `job` `rates` or `announcements_live`, `kind` named). The failures:
-  - a source not reachable, or refused (for example a 403 from NSE);
-  - a page whose expected field is missing: the parser names the field;
-  - **stale:** no new T-bill auction release within 8 calendar days of the last one (the auctions are weekly), or no
-    successful announcements poll for 60 minutes inside the window on a session day;
-  - **disagreement:** the home page's 91-day figure differs from the latest auction release's 91-day YTM;
-  - **a repo-rate change** is posted as information (old value, new value, first-seen time) and recorded as a row; it
+  (`research/ops/capture_errors.csv`, `job` `rates` or `announcements_live`, `kind` named).
+  - **Rates (at most one alert per run, two runs a day):** a source not reachable or refused; a page whose expected
+    field is missing, with the field named.
+  - **Announcements, one alert per episode:** an episode starts at a failed poll whose previous poll-log row today was
+    `ok` (or at the day's first poll), and ends at the next `ok` poll, which posts one "recovered" line. Failed polls
+    inside an episode write poll-log rows and no new alert or O10 row.
+  - **Stale (rates):** the latest T-bill auction release is more than 8 calendar days before today. The auctions are
+    weekly, and a holiday moves one by a day.
+  - **Stale (rates):** no successful home-page read in the last 48 hours. If neither of a day's runs starts, the next
+    run that does start alerts.
+  - **Stale (announcements):** at a mark inside the window, the latest `ok` poll is more than 60 minutes before the
+    mark.
+  - **Disagreement, with a grace rule (judge 355 SF3):** the home page's 91-day figure must equal the 91-day YTM of the
+    newest release. When the newest release was first seen less than 24 hours ago, the release before it is accepted
+    too. A figure that matches neither is one alert and one O10 row. RBI may update the home-page box later than it
+    posts the release [reasoning only], and this keeps that lag from alerting every Wednesday.
+  - **A repo-rate change** is posted as information (old value, new value, first-seen time) and recorded as a row. It
     is not a failure.
-- **Schedules** (GitHub Actions, lane 1), each added to O10's capture-watch list:
-  - `rates-daily.yml` at about 08:40 and 18:40 IST every day. The second run catches each Wednesday's auction results
-    the same day.
-  - `announcements-live.yml` every 15 minutes, 09:00-14:00 IST, on NSE sessions only (A7's calendar decides; a run on a
-    closed day exits with "not a trading day").
-  - GitHub's schedule is best effort and can start late (reasoning only). A late run is recorded as late: its
-    first-seen time is the real fetch time, never the scheduled time, so lateness can cost coverage but never truth.
+- **Schedules** (GitHub Actions, lane 1): `rates-daily.yml` at about 08:40 and 18:40 IST every day, added to O10's
+  capture-watch list.
+  - Lateness of up to about 5 hours (judge 351) only delays the first-seen time. That time is always the real fetch
+    time, never the scheduled one.
+  - The announcements poller has no workflow: it runs in A16's routine (above).
 - Every file stays under 350 lines. Concrete classes are wired only in `fno/rates/wiring.py` and
   `fno/announcements_live/wiring.py`.
 
@@ -118,31 +158,79 @@ Out (each with where it goes):
 1. The T-bill parser reads the 14 Oct 2026 release (a committed copy as a test fixture): date 2026-10-14, release
    2026-2027/1325, 91-day YTM 5.7281, 182-day 6.2896, 364-day 6.4891.
 2. The home-page parser reads Policy Repo Rate 5.50 and the 91-day figure 5.7281 from a committed copy.
-3. A missing field, a changed title or a changed layout is refused with the field named, an alert and an O10 row.
-   Nothing is written to the table.
-4. `RatesAsOf` never returns a value first seen after its cutoff (planted rows on both sides).
+3. A missing field, a changed title or a changed layout is refused with the field named, one alert and one O10 row.
+   Nothing is written to the table. A refused or unreachable RBI page gives the same, one per run.
+4. `RatesAsOf` never returns a value first seen after its cutoff. Planted rows: at the cutoff, one second before and
+   one second after; no rows gives "no rate".
 5. A second run on the same day adds no row for an unchanged release or rate. A changed repo rate adds one row and
    one information alert.
-6. Stale and disagreement checks: planted cases give exactly one alert and one O10 row each; a clean day gives none.
-7. Announcements:
-   - two polls with overlapping items keep the first poll's `first_seen_at` for the shared `seq_id`s;
-   - `AnnouncementsAsOf(day, cutoff)` drops items first seen after the cutoff, even when their `exchdisstime` is
-     earlier.
-8. A closed day (A7) makes no announcements request and writes "not a trading day".
-9. Every page and response is stored once in Drive under O9 with its receipt. No data file is committed to the
-   repository.
-10. Both workflows are in O10's capture-watch list (its own test passes), post one #fno-desk line on failure, and use
-    only `FNO_SLACK_BOT_TOKEN`.
-11. Nothing in A12, A19, G13, S6, C2 or C4 changes; their tests pass untouched.
+6. Rates staleness, boundaries included:
+   - the last auction 8 days before today is clean, and 9 days stale (one alert, one O10 row);
+   - the last home-page read 48 hours before the run is clean, and 48 hours plus 1 second stale;
+   - no table at all (first run) is clean, not stale.
+7. Disagreement and its grace rule:
+   - home page equal to the newest release: clean;
+   - equal only to the release before, with the newest first seen 23 h 59 min ago: clean;
+   - the same, with the newest first seen 24 h ago: one alert;
+   - matching neither: one alert and one O10 row.
+8. Announcements first-seen across runs (judge 355 SF2):
+   - run 1 polls, then a separate run 2 (a new process with only Drive's parts) polls an overlapping list; the shared
+     `seq_id`s keep run 1's `first_seen_at` and only new items are added;
+   - a seen set that cannot be read stops run 2 with one alert and one O10 row, and polls nothing.
+9. `AnnouncementsAsOf(day, cutoff)` drops items first seen after the cutoff, even when their `exchdisstime` is
+   earlier. At the cutoff: kept. One second after: dropped. No rows: an empty list.
+10. The window and the clock:
+    - marks 09:15 and 14:00 poll;
+    - mark 14:15 does not poll, and on a day with no `ok` poll it writes one `missed_window` row and one alert;
+    - a first `ok` poll at 10:00 is clean, while no `ok` poll by the 10:00 mark gives one `no_poll_by_1000` alert;
+    - the last `ok` poll 60 minutes before a mark is clean, and 60 minutes plus 1 second is stale.
+11. Episodes: three failed polls in a row (a 403, a 429, a timeout) give one alert, one O10 row and three poll-log
+    rows; the next `ok` poll posts one "recovered" line. The poller never raises into A16's recorder: a planted
+    exception leaves the recorder's rows and commit untouched (A16's own isolation test passes).
+12. A closed day (A7) makes no announcements request and writes "not a trading day".
+13. Every page and response is stored once in Drive under O9 with its receipt. No data file is committed to the
+    repository.
+14. `rates-daily.yml` is in O10's capture-watch list (its own test passes), posts one #fno-desk line on failure, and
+    uses only `FNO_SLACK_BOT_TOKEN`.
+15. Nothing in A12, A19, G13, S6, C2 or C4 changes; their tests pass untouched. A16 changes only by the agreed wiring
+    line and fan-out.
 
-**Test plan.** Committed fixture copies of the two RBI pages and one NSE response, with fakes for the HTTP session,
-Drive, the clock and the alert sender. Each criterion gets a positive case, a negative case and an empty case:
-- a release, a changed layout, no release in 8 days;
-- an announcement poll, a refused poll, a closed day.
+**Gap list (quality rule 2).**
 
-**Judge verifies (judge F).** Runs the parsers on today's live pages and compares them with the numbers above. Plants a
-layout change and a stale week. Checks that `RatesAsOf` and `AnnouncementsAsOf` never look ahead, and that no A12 file
-or consumer default changed.
+| Requirement (source) | Where |
+|---|---|
+| Data up to date (owner, 16 Oct) | Criteria 6 and 10 (staleness, missed window, no poll by 10:00) |
+| Every failure alerts and is recorded (owner, 16 Oct) | Criteria 3, 6, 7, 8, 10, 11 and 14: each failure gives one alert and one O10 row |
+| Daily 91-day T-bill yield, dated, with first-seen time (orchestrator's brief) | Criteria 1, 4, 5 |
+| Policy repo rate, dated, with first-seen time (orchestrator's brief) | Criteria 2, 4, 5 |
+| Official RBI or FBIL source (brief) | RBI pages: criteria 1-2. FBIL is out (commercial-use limit, Out list) |
+| "The latest 91-day T-bill yield from RBI's published auction result" (PROTOCOL.md S6 row) | Criterion 1 reads the auction release itself, never the home page alone; criterion 7 cross-checks |
+| G13 replaces the 6.5% config rate (brief) | Out: G13's own switch (`method_version`). `RatesAsOf` (criterion 4) is what it reads |
+| S6's cash benchmark (brief) | Out: S1's owner sets it at the freeze. `RatesAsOf` (criterion 4) gives the value |
+| A12 filings gain a first-seen time and a same-day poll before 14:00 (brief) | Criteria 8-10 |
+| F2: "first-seen time ... never a content date" (F2's text) | Criterion 9 |
+| Agree with A12's owner; A19 leaves the gap to A12 | Settled below (orchestrator, A19's owner); criterion 15 |
+| Failures in O10's record (brief) | Criteria 3, 6-8, 10, 11, 14 |
+| Storage under O9's Drive rule (brief; CLAUDE.md) | Criteria 8 (seen set through the Drive cache) and 13 |
+| `PublicData` callers catch everything (`docs/DATA_SOURCES.md`) | Criterion 11 |
+| F&O output only to #fno-desk with `FNO_SLACK_BOT_TOKEN` (CLAUDE.md) | Criterion 14 |
+| No real orders (CLAUDE.md) | No order path is touched; criterion 15 |
+| Quality rules 5, 6, 8 (boundaries, real sample, live run) | Criteria 4, 6, 7, 9, 10 (boundaries); the test plan and claims (sample and live run) |
+
+**Test plan.**
+- Committed fixture copies of the two RBI pages and one NSE response, with fakes for the HTTP session, Drive, the
+  clock and the alert sender.
+- Each criterion gets a positive, a negative, a boundary and an empty case, as listed above.
+- Criterion 8 uses two separate run objects that share only a fake Drive.
+- Each criterion's code is broken on purpose once, and its test must fail (quality rule 4).
+- Claims file:
+  - a real output sample: today's table rows from a dry run against the live pages, and one announcements poll's
+    rows for one stock, redacted to symbol, time and type;
+  - a first live run of each part, with its command and result (quality rules 6 and 8).
+
+**Judge verifies (judge F).** Runs the parsers on that day's live pages and compares them with the claims. Plants a
+layout change, a stale week and a late home page. Runs two separate poll runs. Checks that `RatesAsOf` and
+`AnnouncementsAsOf` never look ahead, and that no A12 file or consumer default changed.
 
 **Settled before code:**
 - A12 has no active owner (its builder session has ended). The orchestrator agreed the boundary (16 Oct 2026): A21
@@ -154,5 +242,5 @@ or consumer default changed.
   A19 never fetches NSE announcements. A12's next-day day file still keeps the whole day with `exchdisstime`; A21 adds
   only the same-day copy with first-seen times.
 
-**Depends:** O9 step 1 (done), O10 (in progress), A7 (done), A12 (done). **Size:** M (two rounds: rates, then
+**Depends:** O9 step 1 (done), O10 (in progress), A7 (done), A12 (done), A16's mark observer port (done) and the fan-out agreement. **Size:** M (two rounds: rates, then
 announcements).
