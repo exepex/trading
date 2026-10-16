@@ -23,10 +23,17 @@ def test_every_card_matches_its_ledger_row():
 def test_the_hand_registered_cards_have_back_filled_idea_rows_only():
     gates = build_gate_log(ROOT)
     assert gates.history_problems() == []
-    hand = [row for row in gates.rows() if row.trial_id in ("53", "54", "55")]
-    assert [(r.trial_id, r.gate, r.outcome, r.numbers) for r in hand] == [
-        (t, "G0", "idea", BACKFILLED) for t in ("53", "54", "55")
-    ]
+    ideas = [row for row in gates.rows() if row.gate == "G0" and row.trial_id in ("53", "54", "55")]
+    assert [(r.trial_id, r.outcome, r.numbers) for r in ideas] == [(t, "idea", BACKFILLED) for t in ("53", "54", "55")]
+
+
+def test_r2s_code_screen_agrees_with_its_hand_screen():
+    """R2 stopped at the cost wall by hand (results.md); R1b's code says screened_out, no stated edge (assumed hurdle).
+    B0 and FT1 are measurements: never screened, so their last gate stays G0."""
+    gates = build_gate_log(ROOT)
+    r2 = gates.last("53")
+    assert (r2.gate, r2.outcome, r2.numbers) == ("G1", "screened_out", "reason=no_stated_edge;assumed_hurdle=yes")
+    assert gates.last("54").gate == gates.last("55").gate == "G0"
 
 
 def test_the_readable_ledger_states_the_trial_count():
@@ -40,7 +47,7 @@ def test_the_report_command_prints_the_count_and_every_card(capsys):
     assert main(["factory", "report"]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].startswith(f"{build_trial_count(ROOT).total} trials in the ledger; expected false passes at 0.01")
-    assert any(line.startswith("B0 v1 (measurement: never promoted): trial 55 of") for line in lines)
+    assert any(line.startswith("B0 v1 (measurement): trial 55 of") for line in lines)
 
 
 def test_b0s_card_agrees_with_its_playbook_version():
