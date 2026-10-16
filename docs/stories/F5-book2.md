@@ -207,6 +207,12 @@ control. A zero difference is "inconclusive".
 10. Book 1's C4 results are unchanged by the `unproven` check (Book 1's existing C4 cases rerun).
 11. With `judge_blocks` set, the run holds no chosen book trade: it holds the "no trade, judge failed" (or "judge
     unavailable") record and the rule default as a shadow, with `judge` set to the verdict path.
+12. O11's end-to-end replay (`tests/e2e_acceptance/test_expected_missing.py`): before F5 merges, its part of the
+    strict xfails becomes a real check in the replay, as D3, D4, D5 and O1 did (judge 306's addenda):
+    - `test_book2_decides_on_the_recorded_day_from_a_fake_ai_answer` (with F1t: whichever lands second turns it real);
+    - Book 2's half of `test_books_2_and_3_fill_and_exit_in_the_daily_run` (with F6).
+
+    Unsure cases go to O11's builder (01FWkBH4).
 
 ## Test plan
 
