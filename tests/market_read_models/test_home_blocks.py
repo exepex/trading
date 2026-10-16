@@ -1,6 +1,6 @@
 """Story P10: Home's F&O blocks publish the books' real accounts and the honest empty picks state, read from the F&O
 tool's own records (E1 accounts, the frozen experiment's result, C2's limit); a figure this story does not compute
-stops the run with its own reason code rather than publish a wrong one."""
+holds its own page with no row (story P11) rather than publish a wrong one, and every other page still publishes."""
 
 from dataclasses import replace
 from datetime import date
@@ -13,9 +13,10 @@ from fno.config import load_app_config
 from fno.constants import BOOKS
 from fno.desk.private_files import PrivateFiles
 from fno.market_read_models import wiring as market_wiring
-from fno.market_read_models.home_blocks import FiguresNotComputed, FnoBooksBlock, FnoPicksBlock
+from fno.market_read_models.home_blocks import APPROVED_PICKS, OPEN_TRADE_RISK, FnoBooksBlock, FnoPicksBlock
 from fno.market_read_models.home_inputs import BooksReader, FrozenExperimentApprovals
-from fno.market_read_models.wiring import LATEST_FROZEN_EXPERIMENT
+from fno.market_read_models.page_holds import PageHeld
+from fno.market_read_models.wiring import LATEST_FROZEN_EXPERIMENT, build_market_blocks
 from fno.storage.index_store import LocalIndexStore
 
 from .test_market_contract_and_run import CONTRACT, DAY, OPENING_BOOKS, Rows, builder, example_rows, run
@@ -90,21 +91,32 @@ def test_both_blocks_validate_and_say_the_truth():
 
 
 @pytest.mark.parametrize(
-    "home",
+    ("home", "page", "rule"),
     [
-        replace(OPENING_BOOKS, books=[replace(OPENING_BOOKS.books[0], open_trades=1), *OPENING_BOOKS.books[1:]]),
-        replace(OPENING_BOOKS, approved=["P3"]),
+        (replace(OPENING_BOOKS, books=[replace(OPENING_BOOKS.books[0], open_trades=1), *OPENING_BOOKS.books[1:]]),
+         "risk", OPEN_TRADE_RISK),
+        (replace(OPENING_BOOKS, approved=["P3"]), "today", APPROVED_PICKS),
     ],
-)
-def test_a_figure_this_story_does_not_compute_stops_the_run_with_its_code(tmp_path, home):
-    rows = replace(example_rows(), home=home)
-    market, alerts, _ = run(tmp_path, Rows(rows))
-    assert market.run(DAY)[0] == 1 and "NOT published (F&O figures)" in alerts.sent[0]
+)  # fmt: skip
+def test_a_figure_this_story_does_not_compute_holds_only_its_own_page_with_no_row(tmp_path, home, page, rule):
+    """Story P11 criteria 8 and 9: a planted open trade holds only `risk`, a planted approval only `today`; every other
+    page publishes, the held page has no row (its old payload would say 0 risk used, or "no approved strategy"), and
+    one alert line and the run status name the rule, never a value."""
+    good = example_rows()
+    market, alerts, publisher = run(tmp_path, Rows(good))
+    assert market.run(DAY)[0] == 0 and page in publisher.current()  # the previous publication has the page
+    market, alerts, publisher = run(tmp_path, Rows(replace(good, home=home)))
+    code, lines = market.run(DAY)
+    current = publisher.current()
+    assert code == 0 and page not in current
+    assert set(current) == {key for b in build_market_blocks() for key in b.pages(good)} - {page}
+    assert alerts.sent == [f"2026-10-12: {page} held back: {rule}"] and "P3" not in alerts.sent[0]
     from fno.market_read_models.run_status import LocalRunStatus
 
-    assert LocalRunStatus(tmp_path, "fno").rows()[0]["reason_code"] == "figures_not_computed"
-    with pytest.raises(FiguresNotComputed):
-        (FnoBooksBlock() if home.approved == [] else FnoPicksBlock()).build(rows)
+    status = LocalRunStatus(tmp_path, "fno").rows()[-1]
+    assert (status["result"], status["reason_code"], status["reason"]) == ("published", None, alerts.sent[0])
+    with pytest.raises(PageHeld, match="nothing is shown"):
+        (FnoBooksBlock() if page == "risk" else FnoPicksBlock()).build(replace(good, home=home))
 
 
 def test_the_page_keys_are_the_ones_w10_names_in_the_pinned_schemas():

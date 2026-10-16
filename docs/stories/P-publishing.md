@@ -516,5 +516,7 @@ P2b and P2c rebase on this story; their hold rules are in their own stories and 
 10. A held copy that fails the current pin gets no row, the run still publishes every other page, and its alert line
     says why.
 
-**Depends:** P6-P10 (the publish path), P7 (run status), the alert sender. **Status:** story text for the judge
-(`reviews/claude/response_244_p11-page-hold.md`).
+**Depends:** P6-P10 (the publish path), P7 (run status), the alert sender, and **`FnoPageHolds` pinned before this
+code merges** (judge 251 add. 1, note 1): P11 publishes `page_holds` on every run, so an unpinned schema would stop it
+(`ContractBroken`). **Status:** text PASS (judge 251 addendum 1); code built (response 244 addendum 4), `page_holds`
+wired once its schema is pinned.

@@ -59,3 +59,34 @@ as the reason it stops today, so a held copy of it would bring that back.
 
 **Contract bumps (the judge's note):** a held copy is validated against the current pin. A copy that no longer matches
 gets no row, never a whole-run stop, and its alert line says so (criterion 10).
+
+## Addendum 4 (16 Oct): the code (text PASS, judge 251 addendum 1)
+
+Branch `story/ph1-page-hold`, main merged in.
+- `fno/market_read_models/page_holds.py` (new): `PageHeld(rule)`, `page_holds_payload` (`since` carried while held,
+  reset when a hold lifts and returns), `held_lines` (one line per held page, the copy-broken suffix), and
+  `PageHoldsBlock` (its key and schema for the check; it is built by the publication, never from the rows, so it can
+  never be held).
+- `blocks.py`: `BlockBuilder.held(previous, rule)`, unchanged by default.
+- `publication.py`: `build(rows, previous)` catches `PageHeld` per block and reads the current publication only when
+  a page is held (`_once`).
+  - A held copy keeps its previous row's session, cut-off, build time, code and payload, under the new publication.
+    It is checked against the current pin.
+  - A copy that fails gets no row and is listed in `broken`.
+  - The publication ID covers the held copies.
+- `market_run.py`: one alert per held page, the lines in the run status `reason` (`published`, no reason code), and a
+  failed read of the current publication named as a publish stop. `postgres_publisher.current()` now wraps database
+  errors as `PublishFailed`, as `stored()` does.
+- `home_blocks.py`: Home's open-trade and approved-picks stops raise `PageHeld` with fixed sentences (no book name,
+  count or strategy any more) and hold with no row (`HeldWithoutRow`).
+
+**Not wired yet, stated plainly:** `PublicationBuilder(holds_page=...)` stays None in `wiring.py` until `FnoPageHolds`
+is pinned (screens lead, 2.13.0). So this branch must not merge before that pin (judge note 1). Wiring it is one
+line plus the pin.
+
+**Tests:**
+- `tests/market_read_models/test_page_holds.py`: criteria 1-5, 7, 9 and 10; `page_holds`' shape and its never-held
+  rule; the `since` reset.
+- `tests/market_read_models/test_home_blocks.py`: criterion 8, a planted open trade and a planted approval each
+  hold only their page with no row, every other page published, one alert, the run status `published` with the rule.
+- Criterion 6: the existing FiguresNotComputed, ContractBroken and crash tests stand unchanged.
