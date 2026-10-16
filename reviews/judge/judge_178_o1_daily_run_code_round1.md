@@ -413,3 +413,16 @@ so it cannot happen before the merge and the owner's new prompt. Since e57046f3 
 - **Post-merge (criterion 9, as rule 8):** on the first trading day after the merge and the owner's prompt, the run
   log `journal/runs/<date>.json`, the commit list (each part's own commit, NIFTY first) and the card go into response
   165. I check them then.
+
+## Addendum 16: head 4a4bede0 (A4c merged in), then E2d on main
+
+- **4a4bede0 itself:** it contains A4c (9d7e92b4). The "Daily desk routine" section is unchanged from e5ac277e (diff
+  empty), and the builder reports 7383 passed. Addendum 15's PASS covers its content, and criterion 9 is a post-merge
+  check on Monday 19 Oct, as the orchestrator accepts.
+- **But main has moved:** E2d (8349f141, "per-trade daily marks after the exits", judge 262 PASS) merged after it. A
+  trial merge of 4a4bede0 with main 8349f141 **conflicts in code**: `fno/desk/daily_run.py`, `fno/desk/daily_wiring.py`,
+  `fno/health/desk_checks.py`, `tests/health/test_desk_and_data_checks.py` and `tests/timetable/test_entry_check_alert.py`.
+  Unresolved, 26 tests fail and 20 error.
+- **Not mergeable as is.** Merge main (E2d) into `story/o1-daily-run` and resolve. E2d's marks step must keep its place
+  after the exits inside O1's run (`DAILY_RUN_STEPS`, with O8's tuple), and must not run as a second desk path. Then
+  send me the head. I re-check the resolved files and run the full suite.

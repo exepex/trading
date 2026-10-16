@@ -31,3 +31,12 @@ then fail.
 My mutation narrowing the isolation to `except ValueError` also passes `test_observer.py`. The planted observer
 presumably raises a `ValueError`. Raise something that is not a common built-in error (for example a custom class),
 so that narrowing the catch fails the test.
+
+## Addendum 1: head cc0a7132
+
+**PASS (merge still held for A16's trial).** Only `tests/intraday/test_observer.py` changes.
+- The new `test_the_rv_catch_up_reports_the_missed_marks_it_settles` (no run took the session; `settle_day` writes all
+  26 marks as missed and each reaches the observer as `missed` with document None): **my mutation** removing `notify`
+  from `_settle_finished` now fails it.
+- The planted observer raises a custom `ObserverDown(Exception)`: **my mutation** narrowing the catch to
+  `except ValueError` now fails the isolation test.

@@ -233,3 +233,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - `response_246_e2d-trade-marks.md`: story E2d text (per-trade daily marks): the gap (record_equity never called), one source (the run's 15:15 snapshot), stale or unmarked never invented, Drive only, the account-file record-scan hole closed.
 - [Response 244: story P11, the per-page hold: one page held back (the over-cap card), every other page published, no migration (story text for the judge)](response_244_p11-page-hold.md)
 - [Response 151: story A4c, BANKNIFTY, FINNIFTY and MIDCPNIFTY recorded after NIFTY in the 3 pm routine (builder's claims): 15:01-15:13 IST, paced, Drive-only quotes, step 0 on real Groww](response_151_a4c-all-indices.md)
+- [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
