@@ -50,7 +50,7 @@ class SameCards:
         self.value = item
 
     def item(self, day, units):
-        return self.value
+        return self.value | {"day": day.isoformat()}  # F2's item is the day's
 
 
 class Day:

@@ -6,6 +6,7 @@ live book, both record `not_live` and call nothing."""
 
 from __future__ import annotations
 
+import atexit
 from collections.abc import Callable, Sequence
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -13,8 +14,8 @@ from pathlib import Path
 from ..ai.fire_once import FIRED
 from ..ai.observed_receipts import GRACE, ObservationFile
 from ..ai.remote_observer import LS_REMOTE_SECONDS
-from ..constants import STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
-from ..daily.processes import Processes
+from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
+from ..daily.processes import Process, Processes
 from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
 from .collect import DecisionCollector
@@ -28,11 +29,50 @@ POLL = timedelta(seconds=1)
 LiveBooks = Callable[[date], Sequence[str]]
 
 
-def _result(problems: dict[str, str]) -> dict:
+def _result(problems: dict[str, str], note: str = "") -> dict:
     if not problems:
         return {"status": STEP_OK, "reason": "every live AI book done"}
     lines = "; ".join(f"{book} {why}" for book, why in sorted(problems.items()))
-    return {"status": STEP_REFUSED, "reason": f"{lines}; no trade today for these"}
+    return {"status": STEP_REFUSED, "reason": f"{lines}; no trade today for these{note}"}
+
+
+class ConfigRefused(DayStep):
+    """Stands in for both steps when the AI books' settings are wrong (a misspelled `daily.live_from` key, a timetable
+    out of order): the step fails with the reason, alerted once, and the rest of the day runs."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+
+    def run(self, day: date) -> StepOutcome:
+        return StepOutcome({}, {"status": STEP_FAILED, "reason": f"AI books not run: {self.reason}"})
+
+
+class ObserverHandle:
+    """The remote observer child, shared by the two steps (O1 builder, 16 Oct: never left running after the run).
+    `ai_collect` reports how it ended and stops it; an exit hook stops it if the run ends before `ai_collect`."""
+
+    def __init__(self):
+        self.process: Process | None = None
+
+    def start(self, processes: Processes, arguments) -> None:
+        self.process = processes.start(arguments)
+        atexit.register(self.stop)
+
+    def report(self) -> str:
+        """'' when it ended well or was never started (a rerun); else how it ended, for the step's reason."""
+        if self.process is None:
+            return ""
+        code = self.process.poll()
+        if code is None:
+            return "the remote observer was still running (stopped now)"
+        if code != 0:
+            lines = self.process.lines()
+            return f"the remote observer ended with exit code {code}" + (f" ({lines[-1]})" if lines else "")
+        return ""
+
+    def stop(self) -> None:
+        if self.process is not None and self.process.poll() is None:
+            self.process.stop()
 
 
 def _not_live() -> StepOutcome:
@@ -41,9 +81,9 @@ def _not_live() -> StepOutcome:
 
 class AiFireStep(DayStep):
     def __init__(self, root: Path, firer: DecisionFirer, timing: DecisionTiming, live: LiveBooks,
-                 processes: Processes):  # fmt: skip
+                 processes: Processes, observer: ObserverHandle):  # fmt: skip
         self.root, self.firer, self.timing, self.live, self.processes = Path(root), firer, timing, live, processes
-        self.observer = None  # kept so the child is not collected while it waits for its deadlines
+        self.observer = observer
 
     def run(self, day: date) -> StepOutcome:
         books = tuple(self.live(day))
@@ -51,7 +91,7 @@ class AiFireStep(DayStep):
             return _not_live()
         self._start_observer(day)
         log = self.firer.fire(day, books, self.timing.fire_timing(day))
-        problems = {b: f"not fired: {e.get('reason', '')}" for b, e in log.items() if e.get("state") != FIRED}
+        problems = {b: f"{e.get('state')}: {e.get('reason', '')}" for b, e in log.items() if e.get("state") != FIRED}
         return StepOutcome({"books": list(books)}, _result(problems), (self.root / fired_path(day),))
 
     def _start_observer(self, day: date) -> None:
@@ -62,14 +102,14 @@ class AiFireStep(DayStep):
         deadlines = self.timing.deadlines(day)
         arguments = ("ai", "observe-remote", "--out", str(out), "--deadline", deadlines.receipt.isoformat(),
                      "--deadline", deadlines.reveal.isoformat())  # fmt: skip
-        self.observer = self.processes.start(arguments)
+        self.observer.start(self.processes, arguments)
 
 
 class AiCollectStep(DayStep):
     def __init__(self, root: Path, collector: DecisionCollector, timing: DecisionTiming, live: LiveBooks,
-                 waiter: Waiter, clock: Callable[[], datetime]):  # fmt: skip
+                 waiter: Waiter, clock: Callable[[], datetime], observer: ObserverHandle):  # fmt: skip
         self.root, self.collector, self.timing, self.live = Path(root), collector, timing, live
-        self.waiter, self.clock = waiter, clock
+        self.waiter, self.clock, self.observer = waiter, clock, observer
 
     def run(self, day: date) -> StepOutcome:
         books = tuple(self.live(day))
@@ -77,12 +117,15 @@ class AiCollectStep(DayStep):
             return _not_live()
         deadlines = self.timing.deadlines(day)
         self._await_last_reading(day, deadlines.reveal)
+        ended = self.observer.report()
+        self.observer.stop()
         collected = self.collector.collect(day, books, deadlines)
         problems = {
             b: f"{r['status']}: {r['reason']}" for b, r in collected.outcomes.items() if r["status"] != PROMOTED
         }
         statuses = {book: record["status"] for book, record in collected.outcomes.items()}
-        return StepOutcome({"books": list(books), "statuses": statuses}, _result(problems), collected.paths)
+        note = f"; {ended}" if ended else ""
+        return StepOutcome({"books": list(books), "statuses": statuses}, _result(problems, note), collected.paths)
 
     def _await_last_reading(self, day: date, deadline: datetime) -> None:
         """Until the observer wrote its reading for the reveal deadline, or it can no longer be valid."""

@@ -43,7 +43,7 @@ def live_ai_books(cfg: dict, day: date) -> tuple[str, ...]:
 def build_day_runner(cfg: dict, root: Path = ROOT, day: date | None = None) -> DayRunner:
     """`day`: the session the run is for (its AI books are those live that day; none when not given)."""
     from ..ai_trading.book_dispatch import ExitRulesByBook, OrdersByBook
-    from ..ai_trading.wiring import build_ai_steps, build_book_parts
+    from ..ai_trading.wiring import build_ai_steps, build_book_parts, config_refused
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
@@ -73,10 +73,14 @@ def build_day_runner(cfg: dict, root: Path = ROOT, day: date | None = None) -> D
         return CommandStep(processes, arguments, (folder,), git.changed)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
-    ai_books = live_ai_books(cfg, day) if day else ()
+    try:
+        ai_books, wrong = (live_ai_books(cfg, day) if day else ()), ""
+    except ValueError as refused:  # one wrong AI setting stops the AI books only, never the quotes or Book 1
+        ai_books, wrong = (), str(refused)
     book_parts = build_book_parts(cfg, root, alerts, ai_books)
     live_on = lambda run_day: ai_books if run_day == day else ()  # noqa: E731 - the books live on the built day
-    ai_steps = build_ai_steps(cfg, root, live_on, book_parts, processes, waiter, git, now_ist)
+    ai_steps = config_refused(wrong) if wrong else build_ai_steps(cfg, root, live_on, book_parts, processes, waiter,
+                                                                    git, now_ist)  # fmt: skip
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts

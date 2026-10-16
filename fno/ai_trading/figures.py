@@ -58,3 +58,12 @@ def figure_problems(decision: dict, private: set[str]) -> list[str]:
     """Where the answer quotes a private figure; the figure itself is never repeated in the message."""
     return [f"{place} quotes a private account figure (fill, cash or P&L from your private pack): write it without "
             f"that number" for place, text in texts(decision) if figures(text) & private]  # fmt: skip
+
+
+REDACTED = "[private figure]"
+
+
+def redact(text: str, private: set[str]) -> str:
+    """The text with every private figure replaced (a decider's or shape check's message may quote one; outcome
+    records are public and their reasons are alerted)."""
+    return NUMBER.sub(lambda m: REDACTED if figures(m.group(0)) & private else m.group(0), text)

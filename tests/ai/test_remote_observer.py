@@ -91,3 +91,16 @@ def test_the_command_refuses_a_deadline_without_a_time_zone(tmp_path, capsys):
     args = Namespace(ai_cmd="observe-remote", out=tmp_path / "o.json", deadline=[datetime(2026, 10, 19, 15, 10)])
     assert cmd_ai(args) == 1
     assert "time zone" in capsys.readouterr().out
+
+
+def test_a_wake_before_the_deadline_by_the_wall_clock_sleeps_again(tmp_path):
+    class EarlyWake(Clock):
+        lag = timedelta(seconds=0.5)
+
+        def sleep(self, seconds):
+            self.now += timedelta(seconds=seconds) - self.lag  # the first wake comes 0.5 s early by the wall clock
+            self.lag = timedelta(0)
+
+    clock, out = EarlyWake(FIRST - timedelta(minutes=1)), ObservationFile(tmp_path / "obs.json")
+    RemoteObserver(Heads("c1"), out, clock, clock.sleep).run([FIRST])
+    assert not out.read()[0].problem() and out.read()[0].started_at >= FIRST

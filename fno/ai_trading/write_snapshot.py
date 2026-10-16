@@ -3,11 +3,13 @@ every folder. A refused or failed decision puts each path back exactly (changed 
 folders removed), so nothing half-written (a registry row, a spec file, a ledger row) can be committed later. The
 snapshot, not `HEAD`, is the reference: `research/ledger.csv` is shared with the research factory, so a change made
 before `decide()` by anyone is kept. The daily run is one thread, so nothing else writes these paths meanwhile.
-`OutsideSnapshot` does the same for the rest of the checkout: a decider may write nowhere else, and anything it wrote
-out there is found and put back (to its state before `decide()`, else `HEAD`), so no later step commits it."""
+`OutsideSnapshot` does the same for the rest of the checkout (except the paths it is told to leave alone: the write
+paths, and folders the run's children write in parallel): a decider may write nowhere else, and anything it wrote out
+there is found and put back (to its state before `decide()`, else `HEAD`), so no later step commits it."""
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from collections.abc import Sequence
@@ -89,13 +91,13 @@ class GitWorktree:
         self.root = Path(root)
 
     def changed(self) -> set[str]:
-        out = subprocess.run(["git", "status", "--porcelain=v1", "-z", "-uall"], cwd=self.root, capture_output=True,
-                             check=True).stdout.decode("utf-8")  # fmt: skip
+        out = os.fsdecode(subprocess.run(["git", "status", "--porcelain=v1", "-z", "-uall"], cwd=self.root,
+                                         capture_output=True, check=True).stdout)  # fmt: skip
         entries, paths, index = out.split("\0"), set(), 0
         while index < len(entries) and entries[index]:
             code, name = entries[index][:2], entries[index][3:]
             paths.add(name)
-            index += 2 if code[0] in "RC" else 1  # a rename's entry is followed by its old name
+            index += 2 if "R" in code or "C" in code else 1  # a rename or copy (either column) carries its old name
         return paths
 
     def at_head(self, path: str) -> bytes | None:

@@ -123,3 +123,29 @@ def test_the_snapshot_of_empty_paths_restores_to_empty(tmp_path):
     (tmp_path / "journal/book2_hybrid/new/deep/f.txt").write_text("x")
     assert snapshot.restore() == ["journal/book2_hybrid/new/deep/f.txt"]
     assert not (tmp_path / "journal/book2_hybrid/new").exists()
+
+
+class Malformed(FakeDecider):
+    """Writes a valid run plus a record file that is not JSON: the check itself cannot read it."""
+
+    def decide(self, accepted):
+        decided = super().decide(accepted)
+        (decided.run / "broken.json").write_text("{not json", encoding="utf-8")
+        return decided
+
+
+def test_a_run_the_check_cannot_read_is_refused_and_put_back(tmp_path):
+    promotion = promote(tmp_path, Malformed(tmp_path))
+    assert not promotion.promoted and "unreadable" in promotion.reason
+    assert DecisionStore(tmp_path, "book2_hybrid").runs(DAY) == []
+
+
+def test_git_status_renames_in_either_column_and_spaces_are_parsed(tmp_path):
+    from fno.ai_trading.write_snapshot import GitWorktree
+
+    (tmp_path / "c d.txt").write_text("x")
+    git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t", "add", "c d.txt")
+    git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "c d")
+    git(tmp_path, "mv", "c d.txt", "e f.txt")
+    (tmp_path / "new file.txt").write_text("y")
+    assert GitWorktree(tmp_path).changed() == {"e f.txt", "new file.txt"}

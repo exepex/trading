@@ -29,6 +29,7 @@ __all__ = [
     "ENV_ROUTINE_BOOK2_DECISION_TOKEN",
     "ENV_ROUTINE_BOOK3_DECISION_TRIGGER_ID",
     "ENV_ROUTINE_BOOK3_DECISION_TOKEN",
+    "ROUTINE_POINTER_MAX_BYTES",
 ]
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
@@ -77,3 +78,6 @@ ENV_ROUTINE_BOOK2_DECISION_TRIGGER_ID = "FNO_ROUTINE_BOOK2_DECISION_TRIGGER_ID"
 ENV_ROUTINE_BOOK2_DECISION_TOKEN = "FNO_ROUTINE_BOOK2_DECISION_TOKEN"
 ENV_ROUTINE_BOOK3_DECISION_TRIGGER_ID = "FNO_ROUTINE_BOOK3_DECISION_TRIGGER_ID"
 ENV_ROUTINE_BOOK3_DECISION_TOKEN = "FNO_ROUTINE_BOOK3_DECISION_TOKEN"
+# The routine API's text limit as F1t and G11 use it (one home, agreed with G11's owner 16 Oct): unmeasured, confirmed
+# by the go-live test fire; a pointer over it is not sent, never truncated
+ROUTINE_POINTER_MAX_BYTES = 64 * 1024

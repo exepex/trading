@@ -89,7 +89,7 @@ def test_a_book_never_fired_is_not_fired(tmp_path):
 
 def test_cards_that_changed_since_the_fire_refuse_the_book(tmp_path):
     day = full_day(tmp_path)
-    day.cards = SameCards({"input_sha256": "d" * 64, "role_set_version": "roles-v1", "roles": []})
+    day.cards = SameCards({"day": "2026-10-19", "input_sha256": "d" * 64, "role_set_version": "roles-v1", "roles": []})
     outcome = day.collect(("book2_hybrid",)).outcomes["book2_hybrid"]
     assert outcome["status"] == REFUSED and "not the ones fired" in outcome["reason"]
 
@@ -113,3 +113,67 @@ def test_consulted_units_are_the_roles_whose_card_was_given():
                       {"unit_id": "analyst_equity", "status": "no_submission"}]}  # fmt: skip
     assert consulted_units(item) == ("analyst_macro", "analyst_volatility")
     assert consulted_units({}) == () and consulted_units({"roles": []}) == ()
+
+
+def test_one_book_s_unexpected_failure_is_its_own_refused_record_and_the_other_book_goes_on(tmp_path):
+    class Exploding(FakeDecider):
+        def decide(self, accepted):
+            decided = super().decide(accepted)
+            (decided.run / "records.sha256").unlink()  # the check then cannot read the run
+            return decided
+
+    day = full_day(tmp_path, deciders=None)
+    day.deciders["book2_hybrid"] = Exploding(day.root)
+    outcomes = day.collect().outcomes
+    assert outcomes["book2_hybrid"]["status"] == REFUSED and outcomes["book3_ai"]["status"] == PROMOTED
+
+
+def test_a_failure_reading_one_book_s_submission_is_that_book_s_refused_record(tmp_path, monkeypatch):
+    import fno.ai_trading.collect as collect
+
+    day = full_day(tmp_path)
+    real = collect.read_submission
+
+    def broken(history, receipts, d, book, *paths):
+        if book == "book3_ai":
+            raise OSError("git log failed")
+        return real(history, receipts, d, book, *paths)
+
+    monkeypatch.setattr(collect, "read_submission", broken)
+    outcomes = day.collect().outcomes
+    assert outcomes["book3_ai"]["status"] == REFUSED and "OSError: git log failed" in outcomes["book3_ai"]["reason"]
+    assert outcomes["book2_hybrid"]["status"] == PROMOTED
+
+
+def test_packs_changed_since_the_fire_refuse_the_book(tmp_path):
+    from fno.desk.private_pack import PrivatePack
+
+    from .builders import private_body
+
+    day = full_day(tmp_path)
+    changed = private_body("book2_hybrid")
+    changed["files"][1]["text"] += "a later edit\n"
+    day.packs = type(day.packs)(day.packs.common, lambda b, d: PrivatePack(b, d, changed if b == "book2_hybrid"
+                                                                             else private_body(b, d)))  # fmt: skip
+    outcome = day.collect().outcomes["book2_hybrid"]
+    assert outcome["status"] == REFUSED and "not the ones fired" in outcome["reason"]
+
+
+def test_a_reason_quoting_a_private_figure_is_redacted_before_it_is_recorded(tmp_path):
+    day = full_day(tmp_path, deciders=None)
+    day.deciders["book2_hybrid"] = FakeDecider(day.root, refuse="cash 3,40,500 is below the margin")
+    reason = day.collect().outcomes["book2_hybrid"]["reason"]
+    assert "[private figure]" in reason and "340" not in reason and "3,40,500" not in reason
+
+
+def test_a_leftover_firing_entry_is_judged_on_its_submission(tmp_path):
+    import json
+
+    from fno.ai_trading.paths import fired_path
+
+    day = full_day(tmp_path)
+    log_file = day.root / fired_path(DAY)
+    log = json.loads(log_file.read_text())
+    log["book2_hybrid"]["state"] = "firing"
+    log_file.write_text(json.dumps(log))
+    assert day.collect(("book2_hybrid",)).outcomes["book2_hybrid"]["status"] == PROMOTED

@@ -99,6 +99,8 @@ def test_private_figures_leave_out_public_folders_and_the_common_pack():
 def test_labels_bind_the_cards_item_exactly(tmp_path):
     first, second = (
         labels_of(pointer(tmp_path)),
-        labels_of(pointer(tmp_path, cards={"input_sha256": "", "role_set_version": "", "roles": []})),
+        labels_of(
+            pointer(tmp_path, cards={"day": "2026-10-19", "input_sha256": "", "role_set_version": "", "roles": []})
+        ),
     )
     assert first["cards_sha256"] != second["cards_sha256"] and first["book"] == BOOK2_HYBRID

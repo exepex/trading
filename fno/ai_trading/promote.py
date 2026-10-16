@@ -17,6 +17,9 @@ from .write_snapshot import GitWorktree, OutsideSnapshot, Worktree, WriteSnapsho
 NO_DECIDER = "no decider is wired for {book} (its story, F5 or F6, has not landed)"
 CHECK_FAILED = "the decided run failed F1t's check: {problems}"
 UNDECLARED = "wrote files it did not return (never committed, put back): {paths}"
+# The run's children write here while a decider runs (the 3 pm quote parts, A4c, 15:01-15:13): never a decider's
+# change, never put back (a recorded quote attempt is never edited or deleted)
+PARALLEL_WRITERS = ("research/data/quotes/",)
 
 
 @dataclass(frozen=True)
@@ -38,8 +41,13 @@ class Promoter:
         decider = self.deciders.get(accepted.book)
         if decider is None:
             return Promotion(False, NO_DECIDER.format(book=accepted.book))
-        inside = WriteSnapshot.take(self.root, write_paths)
-        outside = OutsideSnapshot.take(self.root, self.worktree, write_paths)
+        try:
+            inside = WriteSnapshot.take(self.root, write_paths)
+            outside = OutsideSnapshot.take(self.root, self.worktree, (*write_paths, *PARALLEL_WRITERS))
+        except Exception as failure:  # noqa: BLE001 - nothing was written yet: refused, nothing to put back
+            return Promotion(
+                False, f"the checkout could not be read before deciding: {type(failure).__name__}: {failure}"
+            )
 
         def refused(reason: str, evidence: dict | None = None) -> Promotion:
             restored = tuple(sorted(set(inside.restore()) | set(outside.restore())))
@@ -51,11 +59,15 @@ class Promoter:
             return refused(f"the decider refused: {refusal}")
         except Exception as failure:  # noqa: BLE001 - any decider failure is one refused book-day, never a lost run
             return refused(f"the decider failed: {type(failure).__name__}: {failure}")
-        problems = run_problems(self.root, decided, accepted, write_paths)
-        undeclared = self._undeclared(decided, inside, outside)
-        problems += [UNDECLARED.format(paths=", ".join(undeclared))] if undeclared else []
+        try:  # a run the check cannot even read (a malformed record) is refused the same way, never left behind
+            problems = run_problems(self.root, decided, accepted, write_paths)
+            undeclared = self._undeclared(decided, inside, outside)
+            problems += [UNDECLARED.format(paths=", ".join(undeclared))] if undeclared else []
+            evidence = _sums(decided.run) if problems else {}
+        except Exception as failure:  # noqa: BLE001 - same rule as the decider's own failure
+            return refused(CHECK_FAILED.format(problems=f"unreadable: {type(failure).__name__}: {failure}"))
         if problems:
-            return refused(CHECK_FAILED.format(problems="; ".join(problems)), _sums(decided.run))
+            return refused(CHECK_FAILED.format(problems="; ".join(problems)), evidence)
         return Promotion(True, run_id=decided.run.name, paths=(decided.run, *decided.files))
 
     def _undeclared(self, decided: DecidedRun, inside: WriteSnapshot, outside: OutsideSnapshot) -> list[str]:
@@ -70,4 +82,5 @@ def _sums(run: Path) -> dict:
     sums = Path(run) / SUMS_FILE
     if not sums.is_file():
         return {}
-    return {name: digest for digest, name in (line.split("  ", 1) for line in sums.read_text("utf-8").splitlines())}
+    lines = (line.split("  ", 1) for line in sums.read_text("utf-8").splitlines() if "  " in line)
+    return {name: digest for digest, name in lines}

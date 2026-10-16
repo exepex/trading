@@ -73,6 +73,8 @@ def test_every_miss_is_recorded_alerted_once_and_never_filled(tmp_path, alerts, 
     assert no_decision(root) and filled(root) == []
     lines = [text for text in alerts.sent if "ai_collect" in text]
     assert len(lines) == 1 and f"{BOOK2_HYBRID} {status}" in lines[0]
+    if kwargs.get("observer_killed"):
+        assert "the remote observer ended with exit code 1 (Traceback: git ls-remote failed)" in lines[0]
 
 
 def test_a_decider_exception_refuses_the_book_and_the_day_goes_on_to_the_exits(tmp_path, alerts):  # noqa: F811

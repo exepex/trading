@@ -28,9 +28,8 @@ class SealedPublisher:
         return self.transport.existing(path) is not None
 
     def commit(self, path: str, commitment: Commitment, message: str) -> str:
-        """Publishes the commitment once; the commit that holds it."""
-        if self.is_sealed(path):
-            raise SealRefused(ALREADY_SEALED.format(path=path))
+        """Publishes the commitment; the commit that holds it. The caller asked `is_sealed` first (one pull, as the
+        forecast always did), before keeping its salt."""
         return self.transport.publish(path, commitment.to_text(), message)
 
     def wait_until(self, moment: datetime) -> None:

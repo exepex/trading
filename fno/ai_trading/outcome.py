@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from ..ai.fire_once import FIRE_UNKNOWN, FIRED
+from ..ai.fire_once import FIRE_UNKNOWN, FIRED, FIRING
 from ..ai.outcome import EXPOSED, INVALID, LATE, MODEL_MISMATCH, NO_SUBMISSION, NOT_FIRED, NOT_REVEALED
 from ..ai.outcome import model_check as compare_models
 from ..ai.receipts import PushReceipts, ReceiptUnknown
@@ -68,7 +68,7 @@ def judge(
 ) -> DayOutcome:
     """`others_early`: the other books whose reveal was already on the remote at the receipt deadline."""
     outcome = DayOutcome(book, ACCEPTED, version=facts.labels.get("version", ""))
-    if facts.fired.get("state") not in (FIRED, FIRE_UNKNOWN):
+    if facts.fired.get("state") not in (FIRED, FIRE_UNKNOWN, FIRING):  # a leftover `firing`: it may have started
         return outcome.stop(NOT_FIRED, facts.fired.get("reason") or "not fired")
     commitment, reveal = facts.submission.commitment, facts.submission.reveal
     if commitment is None:

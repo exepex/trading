@@ -65,3 +65,14 @@ def test_e3_counts_a_run_committed_before_its_deadline_only(tmp_path, moment, on
     deadline = datetime.combine(NORMAL, time(15, 12), IST)
     found = D3CommittedDecisions(root, PlaybookGit(root)).committed(BOOK2_HYBRID, NORMAL, deadline)
     assert (found is not None) is on_time
+
+
+def test_a_wrong_ai_setting_fails_the_ai_steps_only_and_the_day_still_builds():
+    runner = build_day_runner(with_live(book2_hybird="2026-10-14"), day=NORMAL)
+    assert runner.daily_run.steps.books == (BOOK1_RULES,) and "quotes" in runner.daily_run.day_steps
+    result = runner.daily_run.day_steps[AI_FIRE_STEP].run(NORMAL).result
+    assert result["status"] == "failed" and "unknown book2_hybird" in result["reason"]
+    timing = CFG["ai_books"]["decision_timing"] | {"reveal_deadline": "15:13:00"}
+    bad = with_live(book2_hybrid="2026-10-14") | {"ai_books": {"decision_timing": timing}}
+    result = build_day_runner(bad, day=NORMAL).daily_run.day_steps[AI_COLLECT_STEP].run(NORMAL).result
+    assert result["status"] == "failed" and "before desk.timetable.decision_deadline" in result["reason"]

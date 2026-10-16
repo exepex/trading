@@ -1,8 +1,8 @@
 """An AI book's decision answer (story F1t). The routine writes only `model_reported` and `decision`; `seal` adds the
 labels its pointer fixes (book, day, version, both pack hashes, the cards item's hash), so the model cannot mislabel
 them. The same checks run when sealing (the model can fix a refused answer before the deadline) and when collecting
-(nothing unchecked reaches a decider): the labels, the model rule, F1t's base shape (`action` and a one-line
-`reason`), the book's own shape check (F5's or F6's `check_decision`) and the private-figure rule."""
+(nothing unchecked reaches a decider): the labels, the model rule, F1t's base shape (an object with a one-line
+`reason`; what it decides is the book's own, checked by F5's or F6's `check_decision`) and the private-figure rule."""
 
 from __future__ import annotations
 
@@ -73,10 +73,7 @@ def _model_problems(model) -> list[str]:
 def base_problems(decision) -> list[str]:
     if not isinstance(decision, dict):
         return ["decision must be an object"]
-    problems = []
-    if not isinstance(decision.get("action"), str) or not decision["action"].strip():
-        problems.append("decision.action must be text")
     reason = decision.get("reason")
     if not isinstance(reason, str) or not reason.strip() or "\n" in reason or len(reason) > MAX_REASON_CHARS:
-        problems.append(f"decision.reason must be one line of 1 to {MAX_REASON_CHARS} characters")
-    return problems
+        return [f"decision.reason must be one line of 1 to {MAX_REASON_CHARS} characters"]
+    return []

@@ -20,7 +20,7 @@ from fno.ai_trading.fire import DecisionFirer
 from fno.ai_trading.paths import WORK_FOLDER, common_pack_path, observations_path
 from fno.ai_trading.ports import DayPacks
 from fno.ai_trading.promote import Promoter
-from fno.ai_trading.steps import AiCollectStep, AiFireStep
+from fno.ai_trading.steps import AiCollectStep, AiFireStep, ObserverHandle
 from fno.ai_trading.timing import decision_timing_from_config
 from fno.composition import build_record_scanner, open_account_writer
 from fno.config import load_app_config
@@ -107,12 +107,28 @@ class Observer:
         deadlines = [datetime.fromisoformat(a) for a in arguments[5::2]]
         for deadline in deadlines if not self.killed else ():
             self.clock.on(deadline + timedelta(seconds=0.4), lambda d=deadline: self._read(d))
-        return object()
+        return EndedProcess(1 if self.killed else 0)
 
     def _read(self, deadline):
         head = git(self.root, "rev-parse", "HEAD").strip()
         ObservationFile(self.root / observations_path(deadline.date())).append(
             Observation(deadline, self.clock(), self.clock(), head))  # fmt: skip
+
+
+class EndedProcess:
+    """The observer child as O1's `Process`: ended with `code` (1: it died before its readings)."""
+
+    def __init__(self, code):
+        self.code, self.stopped = code, False
+
+    def poll(self):
+        return self.code
+
+    def lines(self):
+        return ["Traceback: git ls-remote failed"] if self.code else []
+
+    def stop(self):
+        self.stopped = True
 
 
 class Routine(KeepPointer):
@@ -181,9 +197,9 @@ def build_day(root: Path, tmp_path: Path, alerts, day, routine_draft, *, c4=C4_P
                           ClockCommitter(root, clock).commit, clock)  # fmt: skip
     collector = DecisionCollector(root, RepoHistory(root), reg, Promoter(root, {BOOK2_HYBRID: decider}), packs,
                                   SameCards(), lambda: None)  # fmt: skip
-    observer = Observer(root, clock, observer_killed)
+    observer, handle = Observer(root, clock, observer_killed), ObserverHandle()
     books = lambda d: live  # noqa: E731
-    steps = {"ai_fire": AiFireStep(root, firer, TIMING, books, observer),
-             "ai_collect": AiCollectStep(root, collector, TIMING, books, clock, clock)}  # fmt: skip
+    steps = {"ai_fire": AiFireStep(root, firer, TIMING, books, observer, handle),
+             "ai_collect": AiCollectStep(root, collector, TIMING, books, clock, clock, handle)}  # fmt: skip
     run.day_steps = {name: Alerted(name, step, alerts) for name, step in steps.items()}  # as fno/daily/wiring.py
     return run, clock, routine, decider, observer, capture

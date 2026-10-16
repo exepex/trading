@@ -18,6 +18,7 @@ from pathlib import Path
 from .observed_receipts import Observation, ObservationFile
 
 LS_REMOTE_SECONDS = 20
+MIN_SLEEP_SECONDS = 0.01
 REMOTE, BRANCH = "origin", "refs/heads/main"
 
 
@@ -54,9 +55,8 @@ class RemoteObserver:
 
     def run(self, deadlines: Sequence[datetime]) -> None:
         for deadline in sorted(deadlines):
-            wait = (deadline - self.clock()).total_seconds()
-            if wait > 0:
-                self.sleep(wait)
+            while (wait := (deadline - self.clock()).total_seconds()) > 0:  # until the wall clock says so, not once
+                self.sleep(max(wait, MIN_SLEEP_SECONDS))  # a remainder too small for the clock still ends the wait
             started = self.clock()
             try:
                 commit, error = self.remote.head(), ""

@@ -28,8 +28,9 @@ PROMPTS = {BOOK2_HYBRID: "agents/decision/book2_hybrid_test_v1.md", BOOK3_AI: "a
 FILL_PRICE, CASH, STRIKE = "1,23,456.75", "3,40,500", "25150"  # account figures; the strike is also public
 COMMON_BODY = {"day": DAY.isoformat(), "kind": "common", "items": [{"name": "nifty_spot", "value": 25150.4},
                {"name": "strike_25150", "value": 25150}], "provenance": {}}  # fmt: skip
-CARDS = {"input_sha256": "c" * 64, "role_set_version": "roles-v1",
-         "roles": [{"unit_id": "analyst_volatility", "status": "valid", "card": {"view": "IV rich"}}]}  # fmt: skip
+CARDS = {"day": DAY.isoformat(), "input_sha256": "c" * 64, "role_set_version": "roles-v1",
+         "roles": [{"role": "volatility", "unit_id": "analyst_volatility", "status": "valid", "reason": "",
+                    "card_id": "volatility/v1/2026-10-19", "card": {"view": "IV rich"}}]}  # fmt: skip
 
 
 def at(hour: int, minute: int, second: int = 0, day: date = DAY) -> datetime:

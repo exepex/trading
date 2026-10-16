@@ -68,6 +68,13 @@ def build_day_packs(root: Path) -> DayPacks:
     return DayPacks(lambda day: CommonPack.read(day, store.common_path(day)), private)
 
 
+def config_refused(reason: str) -> dict:
+    from ..constants import AI_COLLECT_STEP, AI_FIRE_STEP
+    from .steps import ConfigRefused
+
+    return dict.fromkeys((AI_FIRE_STEP, AI_COLLECT_STEP), ConfigRefused(reason))
+
+
 def build_ai_steps(
     cfg: dict,
     root: Path,
@@ -85,23 +92,28 @@ def build_ai_steps(
     from ..composition import build_record_scanner
     from ..constants import AI_COLLECT_STEP, AI_FIRE_STEP
     from ..desk.git_sync import GitCommitter
+    from ..desk.pending_commit import PendingCommitter
     from ..desk.timetable import timetable_from_config
     from ..learning.writer import SignalFile
     from .collect import DecisionCollector
     from .fire import DecisionFirer
     from .promote import Promoter
-    from .steps import AiCollectStep, AiFireStep
-    from .timing import decision_timing_from_config
+    from .steps import AiCollectStep, AiFireStep, ObserverHandle
+    from .timing import DecisionTimingError, decision_timing_from_config
 
-    timing = decision_timing_from_config(cfg, timetable_from_config(cfg))
+    try:
+        timing = decision_timing_from_config(cfg, timetable_from_config(cfg))
+    except DecisionTimingError as wrong:
+        return config_refused(str(wrong))
     packs, cards = build_day_packs(root), cards or NoAnalystCards()
     triggers = {book: build_decision_trigger(book, env) for book in ROUTINES}
     firer = DecisionFirer(root, REGISTRY, triggers, SignalFile(root), packs, cards, build_record_scanner(),
-                          GitCommitter(git).commit, clock)  # fmt: skip
+                          PendingCommitter(GitCommitter(git), root).commit, clock)  # fmt: skip  # E3's recovery
     deciders = {book: book_parts.decider for book, book_parts in parts.items()}
     pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch())  # noqa: E731
     collector = DecisionCollector(root, RepoHistory(root), REGISTRY, Promoter(root, deciders), packs, cards, pull)
+    observer = ObserverHandle()
     return {
-        AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes),
-        AI_COLLECT_STEP: AiCollectStep(root, collector, timing, live, waiter, clock),
+        AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes, observer),
+        AI_COLLECT_STEP: AiCollectStep(root, collector, timing, live, waiter, clock, observer),
     }

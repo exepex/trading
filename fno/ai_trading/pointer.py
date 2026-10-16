@@ -11,14 +11,15 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from ..constants import ROUTINE_POINTER_MAX_BYTES
 from ..desk.pack_items import canonical_json, sha256_hex
 from .versions import DecisionRegistry, VersionRefused
 
 KIND = "decision"
 FIELDS = ("analyst_cards", "book", "common_pack_sha256", "day", "kind", "private_pack", "private_pack_sha256",
           "receipt_deadline", "reveal_from", "version")  # fmt: skip
-CARD_FIELDS = ("input_sha256", "role_set_version", "roles")
-MAX_POINTER_BYTES = 64 * 1024  # to confirm against the routine API's measured limit before go-live (story F1t)
+CARD_FIELDS = ("day", "input_sha256", "role_set_version", "roles")  # F2's item (agreed 16 Oct)
+MAX_POINTER_BYTES = ROUTINE_POINTER_MAX_BYTES  # one home with G11's v4 pointer; confirmed at the go-live fire
 SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
@@ -80,7 +81,7 @@ def parse_pointer(text: str, registry: DecisionRegistry) -> DecisionPointer:
         raise PointerRefused("version is not the book's registered decision version")
     times = (_moment(fields, name, day) for name in ("receipt_deadline", "reveal_from"))
     pointer = DecisionPointer(fields["book"], day, version.label, _sha(fields, "common_pack_sha256"),
-                              _private_pack(fields, day), _cards(fields["analyst_cards"]), *times)  # fmt: skip
+                              _private_pack(fields, day), _cards(fields["analyst_cards"], day), *times)  # fmt: skip
     if pointer.private_pack_sha256 != _sha(fields, "private_pack_sha256"):
         raise PointerRefused("the private pack does not hash to private_pack_sha256")
     return pointer
@@ -110,7 +111,9 @@ def _private_pack(fields: dict, day: date) -> dict:
     return pack
 
 
-def _cards(item) -> dict:
+def _cards(item, day: date) -> dict:
     if not isinstance(item, dict) or sorted(item) != list(CARD_FIELDS) or not isinstance(item["roles"], list):
         raise PointerRefused(f"analyst_cards must have exactly {', '.join(CARD_FIELDS)}, roles a list")
+    if item["day"] != day.isoformat():
+        raise PointerRefused("analyst_cards are not this day's")
     return item

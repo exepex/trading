@@ -67,14 +67,15 @@ class AnalystCards(ABC):
 
     @abstractmethod
     def item(self, day: date, role_units: Sequence[str]) -> dict:
-        """`{"role_set_version", "input_sha256", "roles": [...]}`: every role's status line, its card when usable."""
+        """F2's item `{"day", "input_sha256", "role_set_version", "roles": [{"role", "unit_id", "status", "reason",
+        "card_id", "card"}]}`: every registered role's entry, `card` null unless the status is usable."""
 
 
 class NoAnalystCards(AnalystCards):
     """Until F2's cards exist: an item with no roles, so a version consulting no units is fired as usual."""
 
     def item(self, day: date, role_units: Sequence[str]) -> dict:
-        return {"input_sha256": "", "role_set_version": "", "roles": []}
+        return {"day": day.isoformat(), "input_sha256": "", "role_set_version": "", "roles": []}
 
 
 USABLE_CARD_STATUSES = ("valid", "not_applicable")  # F2's statuses whose card is passed to the book

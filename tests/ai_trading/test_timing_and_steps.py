@@ -8,7 +8,7 @@ import pytest
 
 from fno.ai.observed_receipts import Observation, ObservationFile
 from fno.ai_trading.paths import observations_path
-from fno.ai_trading.steps import AiCollectStep, AiFireStep
+from fno.ai_trading.steps import AiCollectStep, AiFireStep, ObserverHandle
 from fno.ai_trading.timing import DecisionTimingError, decision_timing_from_config
 from fno.config import load_app_config
 from fno.constants import STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
@@ -53,13 +53,27 @@ class Untouchable:
         raise AssertionError(f"called {name} with no live book")
 
 
+class Child:
+    def __init__(self, code=None, lines=()):
+        self.code, self.printed, self.stopped = code, list(lines), False
+
+    def poll(self):
+        return self.code
+
+    def lines(self):
+        return self.printed
+
+    def stop(self):
+        self.stopped, self.code = True, -9
+
+
 class Processes:
-    def __init__(self):
-        self.started = []
+    def __init__(self, child=None):
+        self.started, self.child = [], child or Child()
 
     def start(self, arguments):
         self.started.append(arguments)
-        return object()
+        return self.child
 
 
 class Firer:
@@ -72,8 +86,9 @@ class Firer:
 
 
 def test_with_no_live_book_both_steps_are_not_live_and_call_nothing(tmp_path):
-    fire = AiFireStep(tmp_path, Untouchable(), TIMING, lambda day: (), Untouchable())
-    collect = AiCollectStep(tmp_path, Untouchable(), TIMING, lambda day: (), Untouchable(), Untouchable())
+    fire = AiFireStep(tmp_path, Untouchable(), TIMING, lambda day: (), Untouchable(), Untouchable())
+    collect = AiCollectStep(tmp_path, Untouchable(), TIMING, lambda day: (), Untouchable(), Untouchable(),
+                            Untouchable())  # fmt: skip
     for step in (fire, collect):
         done = step.run(DAY)
         assert done.result["status"] == STEP_NOT_LIVE and done.paths == ()
@@ -82,7 +97,8 @@ def test_with_no_live_book_both_steps_are_not_live_and_call_nothing(tmp_path):
 def test_ai_fire_starts_the_observer_once_and_reports_each_book_not_fired(tmp_path):
     processes = Processes()
     log = {"book2_hybrid": {"state": "fired"}, "book3_ai": {"state": "not_fired", "reason": "budget stop"}}
-    step = AiFireStep(tmp_path, Firer(log), TIMING, lambda day: ("book2_hybrid", "book3_ai"), processes)
+    step = AiFireStep(tmp_path, Firer(log), TIMING, lambda day: ("book2_hybrid", "book3_ai"), processes,
+                      ObserverHandle())  # fmt: skip
     done = step.run(DAY)
     (arguments,) = processes.started
     assert arguments[:3] == ("ai", "observe-remote", "--out") and arguments[-3:] == (
@@ -92,14 +108,14 @@ def test_ai_fire_starts_the_observer_once_and_reports_each_book_not_fired(tmp_pa
     )
     assert done.result == {
         "status": STEP_REFUSED,
-        "reason": "book3_ai not fired: budget stop; no trade today for these",
+        "reason": "book3_ai not_fired: budget stop; no trade today for these",
     }
     ObservationFile(tmp_path / observations_path(DAY)).append(
         Observation(at(15, 10), at(15, 10), at(15, 10, 1), "c1"))  # fmt: skip
     step.run(DAY)
     assert len(processes.started) == 1  # a rerun with readings starts none (a late reading proves nothing)
     assert AiFireStep(tmp_path, Firer({"book2_hybrid": {"state": "fired"}}), TIMING, lambda day: ("book2_hybrid",),
-                      processes).run(DAY).result["status"] == STEP_OK  # fmt: skip
+                      processes, ObserverHandle()).run(DAY).result["status"] == STEP_OK  # fmt: skip
 
 
 class Collector:
@@ -134,7 +150,8 @@ def test_ai_collect_waits_for_the_last_reading_then_reports(tmp_path, statuses, 
             readings.append(Observation(at(15, 11), at(15, 11), at(15, 11, 1), "c2"))
 
     waiter = Waiter(clock, reading_arrives)
-    step = AiCollectStep(tmp_path, Collector(statuses), TIMING, lambda day: tuple(statuses), waiter, clock)
+    step = AiCollectStep(tmp_path, Collector(statuses), TIMING, lambda day: tuple(statuses), waiter, clock,
+                         ObserverHandle())  # fmt: skip
     done = step.run(DAY)
     assert clock.now == at(15, 11, 1) and done.result["status"] == status
     if status == STEP_REFUSED:
@@ -144,6 +161,22 @@ def test_ai_collect_waits_for_the_last_reading_then_reports(tmp_path, statuses, 
 def test_ai_collect_gives_up_waiting_when_the_reading_can_no_longer_be_valid(tmp_path):
     clock = Clock(at(15, 10, 30))
     step = AiCollectStep(tmp_path, Collector({"book2_hybrid": "late"}), TIMING, lambda day: ("book2_hybrid",),
-                         Waiter(clock), clock)  # fmt: skip
+                         Waiter(clock), clock, ObserverHandle())  # fmt: skip
     step.run(DAY)
     assert clock.now == at(15, 11) + timedelta(seconds=50)  # 30 s grace + the 20 s bound of one remote read
+
+
+@pytest.mark.parametrize("child, said, stopped", [
+    (Child(code=None), "still running (stopped now)", True),
+    (Child(code=2, lines=["ls-remote: timed out"]), "exit code 2 (ls-remote: timed out)", False),
+    (Child(code=0), "", False),
+])  # fmt: skip
+def test_ai_collect_says_how_the_observer_ended_and_never_leaves_it_running(tmp_path, child, said, stopped):
+    handle = ObserverHandle()
+    handle.start(Processes(child), ("ai", "observe-remote"))
+    clock = Clock(at(15, 12))
+    step = AiCollectStep(tmp_path, Collector({"book2_hybrid": "late"}), TIMING, lambda day: ("book2_hybrid",),
+                         Waiter(clock), clock, handle)  # fmt: skip
+    reason = step.run(DAY).result["reason"]
+    assert (said in reason if said else "observer" not in reason) and child.stopped is stopped
+    assert child.poll() is not None  # never left running
