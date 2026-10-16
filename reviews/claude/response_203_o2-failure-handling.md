@@ -48,3 +48,23 @@ Notes:
   refusal would print twice under `ReportedAlerts`. Sent to the orchestrator for E4c's owner.
 - **C, accepted:** `NO_LOG`'s wording also covers a run that never began.
 - **D, accepted:** the step count is read from `DAILY_RUN_STEPS`.
+
+## Revision 4 (16 Oct, after O1's merge)
+
+- **Hard limit on every git call (orchestrator, 16 Oct: "take the git-call hard limits inside O2").** Strong
+  evidence, `fno/desk/git_sync.py`: `Git.__call__` runs `subprocess.run` with no `timeout`; only `unshallow` has one
+  (120 s). So a hung pull, commit or push blocks the run's one thread, the 15:15 exits included, and E3's judged rule
+  "a failed commit stops the run with one alert" is never reached. The planned fix, in O2's code: every git call of
+  `Git` goes through one hard limit (`GIT_CALL_LIMIT_SECONDS`, 120 s, the fetch's limit), and a timeout is a
+  `GitError`, which `GitCommitter` already turns into `CommitFailed`. The choice of 120 s for every call is reasoning
+  only: today's pushes take seconds, and a call past two minutes is hung. Test row: "Hung git call", in a desk commit
+  and in a quote part's commit.
+- **Hung command row:** O1's 600 s limit (`COMMAND_LIMIT_SECONDS`) in the end-to-end suite.
+- **Row (a) corrected:** since O1's judge 178 round, the quote parts start before the download (`fno/daily/runner.py`
+  `run`), and a stopped run waits for them to commit (`_finish_parts`). So a Drive outage at the download no longer
+  loses the day's quotes.
+- **Criterion 5:** "Book 2" corrected to `book_test` (judge 204 addendum 1's note).
+- **Judge 204 note B closed:** E4c's own print is gone (O1, with its owner's agreement), and the existing test asserts
+  exactly one unsent line.
+- **Later steps** (F1t, G13, A16b, Book 2's rule default): covered by the tuple-driven kill cases and `Alerted`. O10's
+  boundary is being agreed (one alert per failure).

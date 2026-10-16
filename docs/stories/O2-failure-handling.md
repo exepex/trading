@@ -50,11 +50,13 @@ family:
 
 | Family | The day's injected failure | What must happen (from the code that owns it) |
 |---|---|---|
-| Drive outage | (a) at the run's download; (b) at an account write during fills; (c) the recorder's raw quote file not saved | (a) the run stops before any step with E3's one alert, so the day's 3 pm quote parts (NSE included) never start and that day records no quotes; the next session blocks new entries for every book (`NO_LOG`) while its exits run; (b) `PrivateFilesUnavailable` is a `CommitFailed` (E2c, `fno/desk/drive_sync.py`), so the run stops at `fills`: no exits that day, E3's stop alert naming "exits not reviewed today", and the next session blocks new entries for every book (`BEFORE_EXITS`). Only `AccountWriteRefused` and `OrdersRefused` fail one book closed and let the run go on; that case is tested in the book family below. A change to this rule belongs to E2c, not O2; (c) the canonical is `none`, so there is no pack, no new trade and the exits are held with C3's alert |
+| Drive outage | (a) at the run's download; (b) at an account write during fills; (c) the recorder's raw quote file not saved | (a) the 3 pm quote parts (NSE included) start before the download (O1, judge 178), so they still record, are waited for and commit their own files; the desk stops before any step with E3's one alert and no card; the next session blocks new entries for every book (`NO_LOG`) while its exits run; (b) `PrivateFilesUnavailable` is a `CommitFailed` (E2c, `fno/desk/drive_sync.py`), so the run stops at `fills`: no exits that day, E3's stop alert naming "exits not reviewed today", and the next session blocks new entries for every book (`BEFORE_EXITS`). Only `AccountWriteRefused` and `OrdersRefused` fail one book closed and let the run go on; that case is tested in the book family below. A change to this rule belongs to E2c, not O2; (c) the canonical is `none`, so there is no pack, no new trade and the exits are held with C3's alert |
 | Slack outage | the sender refuses every post (token missing, HTTP error) | nothing changes in the records. Every alert of the day (the run's own and each child's) is printed once as "alert NOT sent ... \| text", and their count equals the alerts the same day sends with Slack up |
 | Groww or NSE failure | the NIFTY part exits 1; NSE exits 1; the 15:15 capture fails twice | NIFTY: no pack, every book "no decision (late)", exits held with an alert. NSE: the desk is unchanged (NSE is recorded only). Capture: "no valid execution snapshot", no fills, exits held with an alert |
 | Routine never starts | session D has no run log | O8's desk check gives D `missed (never ran)`; the run on D+1 blocks new entries for every book (`NO_LOG`, whose wording "stopped before any step" also covers a run that never began), runs its exits, and alerts |
 | Partial run and rerun | the process is killed after each step k in turn (every step of `DAILY_RUN_STEPS`, the count read from the tuple), and also between a step's record and its commit; then rerun at the same clock | no step runs twice. Kills from `quotes` up to `exits`: the rerun records `quotes_done` failed (`NOT_IN_THIS_RUN`) and the dead run's part files stay uncommitted (O1's decision, judge 178 note 4); everything else is byte-identical (SHA-256) to an uninterrupted day. Kills after `quotes_done`: byte-identical. A kill between record and commit: the rerun commits that step's files as recorded (E2b's `PendingCommitter`, or the next commit carries the log) and repeats nothing. A rerun after the 15:12 deadline follows E3's late rule (every book late) and nothing else |
+| Hung git call | a pull, commit or push that never returns (the fake remote hangs), once in a desk step's commit and once in a quote part's | every git call of the run is stopped at one hard limit (`GIT_CALL_LIMIT_SECONDS`, 120 s, the limit the whole-history fetch already has) and is a `GitError`, so a `CommitFailed`: in a desk step, E3's stop alert naming the step (before `exits`: "exits not reviewed today", and the next session blocks new entries); in a quote part, O1's "NOT committed" alert with the hand fix while the desk goes on. The one behaviour O2 adds (orchestrator, 16 Oct): without it a hang never reaches E3's judged rule "a failed commit stops the run with one alert", and it holds the 15:15 exits |
+| Hung command | a step's child command never ends | stopped at O1's 600 s limit with its whole process group; the step `failed`, one alert, the day goes on |
 | Data and limits (design 9) | a stale snapshot; an order over a C4 limit; the drawdown brake hit | no new trade for that order or book, stale prices never used as a fill, the alert names the check, and open trades go on under their own exits |
 | Broken protection (E4c) | at the entry snapshot: a protective leg cannot be bought; a protective leg can be bought but not sold back; a short leg cannot be sold | nothing fills and the trade is `not_opened` with E4c's reason code (`protection_not_buyable`, `protection_not_sellable`, `short_leg_not_sellable`), one desk event, no fill or ledger row, the account unchanged, and E4c's one alert ("... not opened: <reason code> (<contract>, <units> units): information, no action"). The position is never half-hedged. Neither the record nor the alert holds a quote figure |
 | One book's failure | a test-only second book `book_test` (the one exception to criterion 6): its orders refused (`OrdersRefused`); its account write refused (`AccountWriteRefused`); its exit review raising | `book_test`'s entries fail closed with one alert each and the run goes on; Book 1's decision, fills, exits and private records are byte-identical to the same day with `book_test` failure-free |
@@ -65,7 +67,8 @@ E3's stop line plus "no card today").
 
 Out:
 - new failure behaviour, unless a case shows that a judged rule is not met. Each such gap is fixed in the story that
-  owns the code and named in the claims, not patched in O2;
+  owns the code and named in the claims, not patched in O2. The one exception, given to O2 by the orchestrator (16 Oct):
+  the hard limit on every git call (`fno/desk/git_sync.py`, `Git`), with its test row above;
 - LM1's heartbeat (it waits for LM1);
 - the AI books' cases (F5/F6, slice E);
 - design 6.5's first-line rule (a separate story, below).
@@ -82,7 +85,7 @@ Out:
 4. **A rerun repeats nothing.** Kill after each step (and once between a record and its commit), then rerun: no step
    runs twice; the final state is byte-identical to an uninterrupted day except the named `quotes_done` outcome for
    kills from `quotes` to `exits`, or follows E3's documented late rule.
-5. **Books are isolated.** Book 1's records hash the same with and without each Book 2 failure.
+5. **Books are isolated.** Book 1's records hash the same with and without each `book_test` failure.
 6. **Fakes only at the edges.** The suite builds the run through `fno/daily/wiring.py`, replacing only the outside
    services: a test fails if any other part is replaced. The one exception: a test-only second book `book_test`, passed
    through `build_daily_run`'s existing `books` parameter (the real run has only Book 1), so book isolation can be
@@ -113,9 +116,13 @@ Out:
   separate small story fixes it after O1 merges (orchestrator, 16 Oct), and O2's suite then checks it.
 - The fakes cannot reproduce a real Groww or Drive error message; the cases use each adapter's documented exception.
 - A dead run's quote part files stay uncommitted on its rerun (O1's decision); the suite names it, never hides it.
-- Known before the code (judge 204 note B): E4c's refusal path prints its own unsent outcome (`fno/desk/daily_steps.py`
-  191-193), so under O1's `ReportedAlerts` an unsent refusal prints twice. Criterion 3 will catch it; the fix belongs
-  to E4c's owner (sent through the orchestrator).
+- Judge 204 note B is closed: E4c's own print was removed in O1 with its owner's agreement
+  (`fno/desk/daily_steps.py` 191), and `tests/timetable/test_entry_check_alert.py` asserts exactly one unsent line;
+  criterion 3 checks it again over the whole day.
+- Steps that join `DAILY_RUN_STEPS` later (F1t's `ai_fire` and `ai_collect`, G13, A16b's catch-up, Book 2's rule
+  default) are covered by the kill-and-rerun cases, which read the tuple, and by `Alerted`'s one-alert rule; each
+  story's own failure cases come with it. O10 (capture-job freshness) reads the run log and adds no second alert for a
+  step the run already alerted (boundary being agreed with its builder).
 
 ## Test plan
 
@@ -125,6 +132,7 @@ twin, and each family's key assertion is broken once on purpose.
 **Judge verifies:** runs the suite under `-n auto`; reads three failure transcripts (Drive at download, Slack down,
 kill after `fills` and rerun); plants one regression (for example, exits skipped after a stop) and sees a test fail.
 
-**Depends:** O1 (merge), E2c, E4c, C3, C4, E3, O8 (merged); LM1 for its case · **Status:** story text
-revision 3 (judge 204: should-fix 1-3, notes A-D) for judge D
+**Depends:** O1 (merged 1d01fd08), E2c, E4c, C3, C4, E3, O8 (merged); LM1 for its case · **Status:** story text
+revision 4 for judge D: the hard git limit and the hung-command row, row (a) after O1's early quote parts, `book_test`
+in criterion 5, note B closed (revision 3 passed, judge 204 addendum 1)
 (`reviews/claude/response_203_o2-failure-handling.md`)
