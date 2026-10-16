@@ -18,13 +18,14 @@ at CLAUDE.md, so no scheduled task changes.
 1. **Name:** `candles` is the last entry of `DAILY_RUN_STEPS` (`fno/constants_operations.py`), after `card`. O8 reads
    that tuple, so a day without the step counts as a miss.
 2. **Step:** one entry in the steps dict of `fno/daily/wiring.py`:
-   `Alerted("candles", NotBefore(CommandStep(processes, lambda day: ("intraday", "backfill"), candle_folders(),
-   git.changed), time(15, 33), now_ist, sleep), alerts)`.
+   `Alerted("candles", NotBefore(CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed),
+   CATCH_UP_FROM, waiter), alerts)`.
+   - `CATCH_UP_FROM` is A16's last mark (`slots.py`) plus 3 minutes, a named constant in `backfill_daily.py`.
    - It has no `live_from` date (always on from the merge, as `quotes` and `book1` are).
    - It has a start time, not a cutoff: it starts no earlier than 15:33 IST (see "Groww load").
    - After an E3 stop (`RunStopped`) no later step runs, so that day has no catch-up; the next day's run picks the
      missed session up, because only windows with sessions still to write are fetched.
-3. **Pathspecs:** they come from a new `fno/intraday/backfill_folders.py`, `candle_folders()` (M1's `record_folders()`
+3. **Pathspecs:** they come from a new `fno/intraday/backfill_daily.py`, `candle_folders()` (M1's `record_folders()`
    pattern). It lists exactly the back-fill's own files:
    - `research/data/intraday/rv-candle/`: the rows and `deferred.csv`;
    - `research/data/manifests/groww-candles/`: the Drive copies' manifest rows;
@@ -73,9 +74,11 @@ Out:
     add 2 calls a second to a running mark and cost it quotes.
   - The step therefore starts no earlier than 15:33 IST: after the 15:30 mark, with 2 minutes' margin. Its calls then
     meet no other Groww user of the routine.
-  - How it waits: a `NotBefore(step, time(15, 33), clock, sleep)` DayStep wrapper. A day already past 15:33 runs at
-    once; the routine ends about 15:34 instead of about 15:20. Where the wrapper lives is O1's call (`fno/daily/steps.py`
-    or this story's module).
+  - How it waits: a generic `NotBefore(step, at, waiter)` DayStep in `fno/daily/steps.py` (O1's owner, 16 Oct). It
+    waits through the run's `ServicingWaiter`, so a quote part still running is serviced. A day already past `at`
+    starts the step at once.
+  - **Side effect:** the routine session ends about 15:34 instead of about 15:20, so it runs about 14 minutes longer
+    every session day.
 
 **Writes:**
 - Drive (owner's raw area): one 15-minute window copy and one 1-minute copy per new session.
