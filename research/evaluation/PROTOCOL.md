@@ -443,6 +443,10 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     from the scoring modules through every hashed module: each fno module reached is hashed or exempted with a
     one-line reason (data shapes, readers and stores, wiring). The cost, accepted by the owner: after the freeze, any
     edit to one of these files needs a new S1 version, even when it is made for the desk or the risk manager.
+  - **Rules that decide an outcome (judge A, 16 Oct 2026):** `fno/scorecard/pauses.py` (E6's automatic pauses: the
+    code of `catastrophic_loss_strategy` and of `immediate_pauses`' strategy rules; a pause decides which trades exist to
+    be scored) and `fno/playbook/run_order.py` (which run is a day's first decision, read by the freezer's order check
+    and E3's collector).
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
     2026; listed above: every module of fno/scoreboard but its command line) and the code of F8 and F9
     is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
