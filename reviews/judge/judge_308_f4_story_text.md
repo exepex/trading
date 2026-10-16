@@ -62,3 +62,9 @@ judges 301, 302 and 307.
 - Failures alerted and recorded (row 246): the audit alerts; a judge failure is an outcome record via F1t.
 - Simplicity: no AI session is added to the daily window.
 - Completeness: research theses are out, with a reason (no producer). Accepted.
+
+## Note: efcb7bc9 (12:06)
+The diff from 80c3ca5f adds one sentence to design 2: the number rule runs one way, so a reason may rest on a cited
+private value without quoting it, which matches F1t's 3d. It also adds F6's answer to response 271. Both are fine.
+**Both should-fix findings stand.** Minor 1 also stands: account files are whole-text items, so a pointer into them
+cannot resolve to a scalar. Even "cite without quoting" works only for `evaluation` values.
