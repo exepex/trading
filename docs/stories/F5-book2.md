@@ -31,7 +31,7 @@ control. A zero difference is "inconclusive".
 - the estimand label.
 
 **Out:**
-- the runner, prompts, sealing and the deadline (F1t);
+- the runner, prompt versioning and firing, sealing and the deadline (F1t); Book 2's prompt lines below are F5's;
 - the analyst cards (F2);
 - the devil's advocate (T2, T3);
 - the AI judge (F4);
@@ -63,7 +63,9 @@ control. A zero difference is "inconclusive".
   - it reads only its own book's folder and the playbook (`ALLOWED_FOLDERS` in `private_pack.py`);
   - it reads the market as the next point says.
 - **The data it reads:** the common pack holds no per-contract quotes and no D2 features (E2b), so the sheet reads the
-  market itself. It reads only **the canonical 3 pm snapshot that the common pack names in its provenance**
+  market itself, through E2's `canonical_snapshot(day, common, quotes)` (`fno/desk/pack_snapshot.py`,
+  story/e2e-book-sheet 2d5dbf65), which returns the pack's own snapshot or raises `NotThePacksSnapshot`. It reads only
+  **the canonical 3 pm snapshot that the common pack names in its provenance**
   (`a4_snapshot`, `snapshot_id`), never "the latest". It admits only data available by the pack's cutoff, as the
   common inputs do, so the pack's no-look-ahead guarantee holds. C2's inputs (margins, limits) come from cutoff-time
   sources too.
@@ -84,6 +86,10 @@ control. A zero difference is "inconclusive".
   - `action` (judge 307 addendum 1) is `follow_rule` when every slot follows its default, including a day with no
     slots. Otherwise it is `trade` when any slot trades, and `no_trade` when none does. `check_decision` refuses an
     `action` that disagrees with the slots.
+- **Evidence** (F4, story/f4-ai-judge 90066e7d, design 1-2): a top-level `evidence` key, a list of 0-20
+  `{"pack": "common" | "private", "pointer": <RFC 6901 JSON pointer>}`, with no values, so no private value reaches
+  the public reveal. Any action other than `follow_rule` departs from the rule and must cite at least one pointer
+  (F4's code judge).
 - There is one slot per rule-default trade, in the sheet's order:
   `{"default": <opportunity_id>, "action": "follow_rule" | "no_trade" | "trade", "opportunity_id": <id or null>,
   "width": <number or null>, "lots": <int or null>, "reason": <non-empty str>}`.
@@ -95,7 +101,15 @@ control. A zero difference is "inconclusive".
   - a top-level `action` that disagrees with the slots;
   - slots that do not match the rule default one to one;
   - two slots choosing the same opportunity;
-  - with `sheet` given, an `opportunity_id` not in the sheet.
+  - with `sheet` given, an `opportunity_id` not in the sheet;
+  - a malformed evidence list: `check_decision` calls F4's `fno.judge.evidence.evidence_problems(decision.get(
+    "evidence")) -> list[str]` (standard library only), so `seal` refuses it early.
+- **Book 2's prompt says** (F4):
+  - cite a pointer for every number you write;
+  - quote numbers exactly as the pack writes them;
+  - never write numbers in words (one, two, half, twice);
+  - account cash and positions are not citable (whole-text files), while the day sheet's values under `/evaluation`
+    are.
 
   F1t's `seal` calls it without the sheet. `seal` also refuses private account figures in any answer text (F1t,
   judge 301), because `reason` is copied into the public record. The decider calls it with the sheet. The envelope
@@ -137,6 +151,7 @@ control. A zero difference is "inconclusive".
    - `model_served` (= `model_reported`) and `session_id` from `accepted`;
    - both pack hashes;
    - `owner_override` null (D3);
+   - `judge` = `AcceptedDecision.judge`, the path of F4's verdict file, which F1t adds;
    - in `served`, the playbook, config and `trade_envelope:<name>-v<n>` of every envelope used. The envelope keys
      are passed in the run context's `"served"`, which `DecisionRun.decide` merges under its own keys (F6's change).
 
@@ -200,14 +215,13 @@ control. A zero difference is "inconclusive".
 - Replays three Book 2 records against their sheet, envelope and packs.
 - Checks that nothing the AI wrote reaches `rule_default` or `eligible`.
 
-## Open questions (to the orchestrator, then the owner if needed)
+## Settled (owner and orchestrator, 16 Oct)
 
-1. **F4's AI judge is not built.** Its old text says Book 2's judge failure means no trade. Does Book 2 switch on
-   without F4, recording `judge: "not built"` with C4 as the last gate, or does it wait for F4? Recommendation: wait
-   for F4, because a judge that can block is part of Book 2's design (12.2). Reasoning only.
-2. **Several rule-default trades on one day.** The design here gives one slot per default trade, and a switch
-   replaces only its own slot. Is that the intended unit, or should Book 2 choose a whole set? A set would change D4's
-   one-choice-against-one-default check.
+1. **F4 is built before Book 2 switches on** (owner). A failed or unavailable judge means no trade for Book 2 that day.
+   F5 proposes to F4's builder that `decide()` is still called with the failed verdict and writes a "no trade, judge
+   failed" run, with the rule default as a shadow record, so scoreboard A keeps the paired day (the old F4/F5 design;
+   reasoning only). This waits for F4's builder's answer.
+2. **One slot per rule-default trade** (orchestrator's ruling), keeping D4's one choice against one default.
 
 **Depends:** D2, D3, D4 (merged), E2's `BookSheet` port (story/e2e-book-sheet), E5 (counts), F1t, F6's
 `SelectionAllocator` · **Size:** M

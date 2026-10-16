@@ -78,3 +78,13 @@ on paper.
 - S2's text: "overrides (F4)" removed from `S-scoreboards.md` S2's inputs (orchestrator: a one-line fix here, S2's
   owner told through the register). S2's stale `RecordedOwnerOverride` code is S2's (judge 300 addendum 1).
 - **Judge 307 addendum 1 (FAIL at 0b77381f):** both points were already covered at 778e9c0f. The judge's three-valued `action` (`follow_rule | trade | no_trade`) replaces my `follow_rule | change`. Criterion 9 now also says the evaluator is rebuilt with the stored picks, a `choose_width` run orders the rebuilt width, and C4-blocked or `shadow-only` AI terms are never ordered.
+- **F4's evidence agreement** (F4's builder, judge 308 should-fix 2; story/f4-ai-judge 90066e7d):
+  - a top-level `evidence` list (0-20 pack pointers, no values), with any action but `follow_rule` citing at least
+    one;
+  - `check_decision` calls `fno.judge.evidence.evidence_problems`;
+  - Book 2's prompt lines (cite every number, quote it exactly, no numbers in words, account files not citable);
+  - D3's `judge` = `AcceptedDecision.judge`.
+
+  Also: the sheet reads the market through E2's `canonical_snapshot` (story/e2e-book-sheet 2d5dbf65). The open
+  questions are now settled: F4 is built first (owner), and slots (the orchestrator's ruling). My "judge failed"
+  run proposal waits for F4's builder.
