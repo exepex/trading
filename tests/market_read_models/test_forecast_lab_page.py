@@ -20,6 +20,7 @@ from fno.market_read_models.forecast_history_inputs import ScoreReportsReader
 from fno.market_read_models.forecast_lab_block import V4_IDS, FnoForecastLabBlock
 from fno.market_read_models.forecast_lab_inputs import ForecastLabInputs, ForecastLabReader, SessionsAhead
 from fno.market_read_models.forecast_questions import V3_QUESTIONS
+from fno.market_read_models.home_blocks import FiguresNotComputed
 from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.wiring import build_forecast_lab_inputs, build_pinned_contract
 from fno.storage.wiring import build_session_calendar
@@ -195,7 +196,7 @@ def test_a_session_before_any_report_publishes_the_standing_and_no_scores(tmp_pa
 def test_coverage_that_does_not_add_up_stops_the_build_named(tmp_path):
     report = g4_report(as_of="2026-10-16")
     report["coverage"]["book1_rules"]["counted_days"] = 3  # more counted days than pack days
-    with pytest.raises(ValueError, match="book1_rules: G4's coverage does not add up"):
+    with pytest.raises(FiguresNotComputed, match="book1_rules: G4's coverage does not add up"):
         published(lab_on(tmp_path, report, date(2026, 10, 16)))
 
 

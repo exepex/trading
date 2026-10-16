@@ -62,7 +62,8 @@ Builder: session 013xqaNTCbSBytKgqpfaYFqZ (P2 page builder), branch `story/p2b-f
   - unscored: a live day that did not match its receipt; an AI book's other gate reasons;
   - missing: no forecast at all;
   - AI days still waiting for their audit are none of these.
-  If the split does not add up to G4's pack days, the build stops, named (test).
+  If the split does not add up to G4's pack days, the publish stops, named and alerted (`FiguresNotComputed`, the
+  same stop as Home's figures; first pushed as a plain `ValueError`, which would have crashed the run instead) (test).
 - Real, as of 16 Oct: Book 1 has 2 pack days, 1 counted and 1 late (14 Oct, generated 19:27 IST). Book 2 and Book 3
   each have 2 pack days, 0 counted, 1 missing (14 Oct, no submission) and 1 late (15 Oct).
 

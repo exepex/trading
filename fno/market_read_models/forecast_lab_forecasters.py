@@ -8,7 +8,7 @@
   own; the rest of the pack days are split by why they did not count: late (Book 1: its records generated after 15:15
   IST; an AI book: G5's reason "late"), unscored (an AI book's other gate reasons, or a live day that did not match its
   capture receipt) and missing (no forecast at all). AI days waiting for their audit are none of these. The split must
-  add up to G4's pack days, else the build stops, named."""
+  add up to G4's pack days, else the publish stops, named and alerted (`FiguresNotComputed`), never a guessed split."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from ..constants import (
     ISOLATION_SEALED_SAME_DAY,
 )
 from .forecast_lab_inputs import ForecastLabInputs
+from .home_blocks import FiguresNotComputed
 
 CODE, FULL_F1 = "code", "full_f1"
 ISOLATION_LABELS = {ISOLATION_SEALED_SAME_DAY: "sealed same day (not full F1)", FULL_F1: "full F1"}
@@ -89,6 +90,6 @@ def _coverage(inputs: ForecastLabInputs, book: str) -> dict | None:
     missing = counted["pack_days"] - counted["counted_days"] - late - unscored - pending
     parts = {"counted": counted["counted_days"], "late": late, "unscored": unscored, "pending": pending}
     if missing < 0:
-        raise ValueError(COVERAGE_BROKEN.format(book=book, parts=parts))
+        raise FiguresNotComputed(COVERAGE_BROKEN.format(book=book, parts=parts))
     return {"pack_days": counted["pack_days"], "counted_days": counted["counted_days"], "missing_days": missing,
             "late_days": late, "unscored_days": unscored}  # fmt: skip
