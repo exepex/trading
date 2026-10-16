@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from fno.macro_calendar.model import INDIA_CPI, INDIA_GDP, INDIA_IIP, CalendarFailed
-from fno.macro_calendar.mospi import FILE_BASE, LATEST_URL, MospiArcCalendar, pdf_text, read_arc
+from fno.macro_calendar.mospi import FILE_BASE, LATEST_URL, MospiArcCalendar, pdf_text, read_arc, release_day
 from tests.macro_calendar.pdf_fixture import text_pdf
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "macro_calendar"
@@ -24,13 +24,26 @@ def days(dates, kind):
 def test_the_real_calendar_gives_12_cpi_12_iip_and_5_gdp_dates():
     dates = read_arc(ARC, "u")
     cpi, iip, gdp = days(dates, INDIA_CPI), days(dates, INDIA_IIP), days(dates, INDIA_GDP)
-    assert len(cpi) == 12 and cpi[0] == date(2026, 4, 12) and cpi[-1] == date(2027, 3, 12)
-    assert len(iip) == 12 and date(2026, 6, 1) in iip and iip[-1] == date(2027, 3, 28)
+    assert len(cpi) == 12 and cpi[0] == date(2026, 4, 13) and cpi[-1] == date(2027, 3, 12)  # planned Sun 12 Apr
+    assert len(iip) == 12 and date(2026, 6, 1) in iip and iip[-1] == date(2027, 3, 29)  # planned Sun 28 Mar
     assert gdp == [date(2026, 6, 5), date(2026, 8, 31), date(2026, 11, 30), date(2027, 1, 7), date(2027, 2, 26)]
 
 
 def test_a_released_on_note_is_not_a_planned_date():
-    assert date(2026, 4, 13) not in days(read_arc(ARC, "u"), INDIA_CPI)  # "Released on 13th April, 2026"
+    assert (
+        date(2026, 4, 14) not in days(read_arc(ARC, "u"), INDIA_CPI) and len(days(read_arc(ARC, "u"), INDIA_CPI)) == 12
+    )
+
+
+def test_a_weekend_date_moves_to_monday_and_keeps_its_planned_date():
+    moved = {(d.kind, d.planned): d.day for d in read_arc(ARC, "u") if d.planned}
+    assert moved == {
+        (INDIA_CPI, date(2026, 4, 12)): date(2026, 4, 13), (INDIA_CPI, date(2026, 7, 12)): date(2026, 7, 13),
+        (INDIA_CPI, date(2026, 9, 12)): date(2026, 9, 14), (INDIA_CPI, date(2026, 12, 12)): date(2026, 12, 14),
+        (INDIA_IIP, date(2026, 6, 28)): date(2026, 6, 29), (INDIA_IIP, date(2026, 11, 28)): date(2026, 11, 30),
+        (INDIA_IIP, date(2027, 2, 28)): date(2027, 3, 1), (INDIA_IIP, date(2027, 3, 28)): date(2027, 3, 29),
+    }  # fmt: skip
+    assert release_day(date(2026, 10, 12)) == date(2026, 10, 12)  # a Monday stays
 
 
 def test_eleven_or_thirteen_cpi_dates_are_a_layout_change():
@@ -81,6 +94,7 @@ def test_the_adapter_follows_mospi_s_latest_calendar_and_refuses_a_bad_answer():
     session = Session({LATEST_URL: Answer(200, LATEST), pdf_url: Answer(200, text_pdf(lines))})
     calendar = MospiArcCalendar(session).fetch(date(2026, 10, 16))
     assert len(calendar.dates) == 28 and calendar.extension == "pdf" and session.asked == [LATEST_URL, pdf_url]
+    assert calendar.period == (date(2026, 4, 1), date(2027, 3, 31))
     with pytest.raises(CalendarFailed, match="HTTP 403"):
         MospiArcCalendar(Session({LATEST_URL: Answer(403, b"")})).fetch(date(2026, 10, 16))
     not_pdf = json.dumps({"data": {"url": "uploads/x.docx"}}).encode()

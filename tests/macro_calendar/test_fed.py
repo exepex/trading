@@ -32,3 +32,18 @@ def test_seven_meetings_no_panel_for_the_year_or_an_empty_page_are_refused():
         read_fomc(PAGE, date(2029, 1, 2))
     with pytest.raises(CalendarFailed):
         read_fomc("", date(2026, 10, 16))
+
+
+def test_the_adapter_s_period_runs_from_the_run_s_year_to_its_last_listed_year():
+    from fno.macro_calendar.fed import URL, FedFomcCalendar
+
+    class Answer:
+        status_code, content = 200, PAGE.encode()
+
+    class Session:
+        def get(self, url, timeout):
+            assert url == URL
+            return Answer()
+
+    calendar = FedFomcCalendar(Session()).fetch(date(2026, 10, 16))
+    assert calendar.period == (date(2026, 1, 1), date(2027, 12, 31)) and len(calendar.dates) == 16

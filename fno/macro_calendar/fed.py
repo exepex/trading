@@ -1,7 +1,8 @@
 """The Fed's FOMC calendar page (story A20c): one panel per year, each scheduled meeting a month and a day range
 ("27-28", "17-18*" with projections, "30-1" across "Apr/May"); the decision day is the range's last day. Entries
 that are not a day range (a notation vote, a call) are not scheduled decisions. A year from the run's year on must
-hold 8 decision days; any other count is a layout change."""
+hold 8 decision days; any other count is a layout change. Dates are US dates: the statement comes at 2 pm New York
+time, about 23:30-00:30 IST, so NSE first trades on it the next IST session."""
 
 from __future__ import annotations
 
@@ -59,4 +60,5 @@ class FedFomcCalendar:
 
     def fetch(self, today: date) -> Calendar:
         data = get_ok(self.session, URL).content
-        return Calendar(read_fomc(data.decode("utf-8", "replace"), today), data, "html")
+        dates = read_fomc(data.decode("utf-8", "replace"), today)
+        return Calendar(dates, data, "html", (date(today.year, 1, 1), date(dates[-1].day.year, 12, 31)))

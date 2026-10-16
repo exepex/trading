@@ -7,11 +7,11 @@ from __future__ import annotations
 
 import io
 import re
-from datetime import date
+from datetime import date, timedelta
 
 import requests
 from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from pypdf.errors import PyPdfError
 
 from .http import get_ok
 from .model import INDIA_CPI, INDIA_GDP, INDIA_IIP, MOSPI, Calendar, CalendarFailed, ReleaseDate
@@ -28,22 +28,38 @@ TITLES = {
 }
 EXPECTED = {INDIA_CPI: 12, INDIA_IIP: 12}  # monthly releases: one a month over the financial year
 MIN_GDP = 4  # at least the four quarterly estimates
+SATURDAY = 5
 
 
-def read_arc(text: str, source_url: str) -> tuple[ReleaseDate, ...]:
-    """Every CPI, IIP and GDP planned date of one financial year's calendar text; CalendarFailed on a layout change."""
+def financial_year(text: str, source_url: str) -> tuple[date, date]:
+    """The financial year the calendar covers: 1 April to 31 March."""
     year = FINANCIAL_YEAR.search(text)
     if year is None:
         raise CalendarFailed(f"{source_url}: no 'ADVANCE RELEASE CALENDAR (YYYY-YY)' title")
-    first_year = int(year.group(1))
-    planned = list(PLANNED.finditer(text))
+    return date(int(year.group(1)), 4, 1), date(int(year.group(1)) + 1, 3, 31)
+
+
+def release_day(planned: date) -> date:
+    """MOSPI's footnote: "In case of holidays, reports release on next working day". A weekend moves to Monday
+    (seen: CPI planned Sun 12 Apr 2026, released Mon 13 Apr); public holidays are not known here (a stated limit)."""
+    return planned + timedelta(days=7 - planned.weekday()) if planned.weekday() >= SATURDAY else planned
+
+
+def read_arc(text: str, source_url: str) -> tuple[ReleaseDate, ...]:
+    """Every CPI, IIP and GDP date of one financial year's calendar text; CalendarFailed on a layout change."""
+    first_year = financial_year(text, source_url)[0].year
+    matches = list(PLANNED.finditer(text))
     dates = []
-    for i, match in enumerate(planned):
-        end = planned[i + 1].start() if i + 1 < len(planned) else len(text)
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         title = text[match.end() : end]
         month = MONTHS.index(match.group(2)) + 1
-        day = date(first_year if month >= 4 else first_year + 1, month, int(match.group(1)))
-        dates += [ReleaseDate(kind, day, source_url) for kind, pattern in TITLES.items() if pattern.search(title)]
+        planned = date(first_year if month >= 4 else first_year + 1, month, int(match.group(1)))
+        day = release_day(planned)
+        moved = planned if day != planned else None
+        dates += [
+            ReleaseDate(kind, day, source_url, moved) for kind, pattern in TITLES.items() if pattern.search(title)
+        ]
     _check_counts(dates, source_url)
     return tuple(sorted(set(dates), key=lambda d: (d.day, d.kind)))
 
@@ -60,7 +76,7 @@ def _check_counts(dates: list[ReleaseDate], source_url: str) -> None:
 def pdf_text(data: bytes, source_url: str) -> str:
     try:
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(data)).pages)
-    except (PdfReadError, ValueError, OSError) as exc:
+    except (PyPdfError, ValueError, OSError, KeyError, TypeError, AssertionError) as exc:  # untrusted bytes
         raise CalendarFailed(f"{source_url}: not a readable PDF ({type(exc).__name__})") from exc
     if not text.strip():
         raise CalendarFailed(f"{source_url}: the PDF holds no text")
@@ -76,7 +92,8 @@ class MospiArcCalendar:
     def fetch(self, today: date) -> Calendar:
         url = FILE_BASE + self._latest_path()
         data = get_ok(self.session, url).content
-        return Calendar(read_arc(pdf_text(data, url), url), data, "pdf")
+        text = pdf_text(data, url)
+        return Calendar(read_arc(text, url), data, "pdf", financial_year(text, url))
 
     def _latest_path(self) -> str:
         try:

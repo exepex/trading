@@ -49,7 +49,7 @@ class CalendarCapture:
             self._save_document(source, fetched)
             seen_at = self.clock().astimezone(UTC).isoformat()
             PartTable(self.store, TABLE.format(source=source), COLUMNS).write(
-                today, [d.row(source, seen_at) for d in fetched.dates]
+                today, [d.row(source, seen_at, fetched.period) for d in fetched.dates]
             )
         except (OSError, RuntimeError, ValueError) as exc:  # Drive (requests errors are OSError), a conflict
             return [NOT_SAVED.format(source=source, error=exc)]

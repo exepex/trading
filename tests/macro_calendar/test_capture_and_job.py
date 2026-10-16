@@ -34,7 +34,7 @@ class Fake:
         if self.error:
             raise self.error
         dates = (ReleaseDate(US_FOMC, today + timedelta(days=10), "u"), ReleaseDate(US_FOMC, self.last, "u"))
-        return Calendar(dates, self.document, "html")
+        return Calendar(dates, self.document, "html", (date(today.year, 1, 1), date(today.year + 1, 12, 31)))
 
 
 def capture(tmp_path, calendars, run="20261016T020000Z-aaaaaa", drive=None):
@@ -52,8 +52,9 @@ def test_a_calendar_becomes_one_snapshot_part_and_its_document_is_kept_once(tmp_
     drive, cap = capture(tmp_path, [Fake("fed")])
     assert cap.run(D16) == []
     rows = snapshot(tmp_path, "fed")
-    assert [(r["kind"], r["date"], r["source"], r["seen_at"]) for r in rows] == [
-        ("us_fomc", "2026-10-26", "fed", NOW.isoformat()), ("us_fomc", "2026-12-15", "fed", NOW.isoformat()),
+    assert [(r["kind"], r["date"], r["source"], r["seen_at"], r["period_end"]) for r in rows] == [
+        ("us_fomc", "2026-10-26", "fed", NOW.isoformat(), "2027-12-31"),
+        ("us_fomc", "2026-12-15", "fed", NOW.isoformat(), "2027-12-31"),
     ]  # fmt: skip
     path = DOCUMENTS.format(source="fed", sha256=hashlib.sha256(b"doc").hexdigest(), extension="html")
     assert drive.get(f"data/{path}") == b"doc"
