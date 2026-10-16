@@ -69,3 +69,36 @@ Mutation checks, run and restored:
   orchestrator decides.
 - **S3 reading shadow actions** belongs to S3's builder (at slice E).
 - **F5, the AI that chooses**, is a later story.
+
+## Judge 260's should-fix and notes, checked and fixed
+
+**Should-fix, criterion 9: accepted.** I checked the code. `EnvelopeMode` passed `proposal.approved` to `permits`, and
+that set comes from `playbook.approved_on(day)`, which is status only (`validity_adapter.py`). The judge's path is real:
+A and B are both paper, only A fires, the decider picks B at a B width, and C4 passed. Strong evidence: the new test
+failed on the old line. The fix uses the judge's design:
+- `DayEvaluation.eligible` (D2's own evaluation) is the set of book-mode versions whose outcome is chosen or not chosen,
+  meaning the rule fired and a valid candidate was built. A rule that did not fire, a candidate D2 refused, or a shadow
+  outcome is never in it.
+- `validate_chosen` hands that set to the validator, which sets the new `ValidityProposal.eligible`. `EnvelopeMode`
+  checks the choice's version against it. Its default is empty, so a caller that leaves it out fails closed.
+- Tests:
+  - an approved B that did not fire is refused, and the same choice passes once B fires;
+  - in D2, a B with an unmet threshold is "rule did not fire", is not eligible, and the validator receives exactly
+    {A}.
+- Mutation checks: pointing C4 back at `approved` fails the new C4 test, and counting D2's "no trade" outcomes as
+  eligible fails the D2 test. Both were restored.
+
+**Recorded condition: agreed, nothing to build now.** `rule_default` must come from D2's evaluation, never from the
+decider. If the decider supplied a rule default equal to its own choice, the derived actions would read `follow_rule`.
+Today nothing sets it, so Book 2 fails closed. F5's adapter must take it from D2's chosen Book 1-style outcome for the
+same opportunity. The condition is now written on the `ValidityProposal.rule_default` field and in the module text of
+`envelope.py`. F5's switch-on must meet it.
+
+**Notes:**
+- A malformed envelope is now the named `envelope` check ("damaged trade envelope: ..."), not an exception. Tested.
+- `rule_default` is typed `BookTerms | None`. The import is for type checking only, so C4's proposal module loads no
+  playbook code.
+- The register row's paths are corrected to `playbook/envelopes/<name>-v<n>.yaml` and the files actually changed.
+
+The `TradeValidator.validate` signature gains `eligible`. Its two implementations are C4's adapter and Book 1's test
+fake. Book 1's checks do not read it.

@@ -100,3 +100,23 @@ def test_the_day_checked_is_the_runs_not_the_markets(tmp_path):
         later, chosen(version)[0], chain_market(), playbook(version), book(), ()
     )
     assert "date" in failed(result)
+
+
+def test_d2_s_eligible_versions_are_those_that_fired_and_c4_receives_them_judge_260(tmp_path):
+    """Story D4 criterion 9: both versions are approved, but B's threshold is unmet, so only A is eligible; the
+    validator is handed D2's set, never the approved list."""
+    a = strategy("sc-a")
+    b = strategy("sc-b", entry_conditions=[{"feature": "F1_atm_iv_minus_rv20", "operator": ">", "threshold": 5}])
+    evaluation = evaluator().evaluate(DAY, playbook(a, b), chain_market(), FixedValues(), book(), Counts(),
+                                      OwnShadowBooks())  # fmt: skip
+    assert {o.opportunity.strategy.name: o.reason for o in evaluation.outcomes}["sc-b"] == "rule did not fire"
+    assert evaluation.eligible == {a.key}
+
+    class Seen:
+        def validate(self, day, outcome, market, playbook, book, earlier, eligible):
+            self.eligible = eligible
+            return validator(tmp_path, log=False).validate(day, outcome, market, playbook, book, earlier, eligible)
+
+    seen = Seen()
+    validate_chosen(evaluation, seen, chain_market(), playbook(a, b), book())
+    assert seen.eligible == {a.key}
