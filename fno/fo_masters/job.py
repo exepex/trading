@@ -1,6 +1,7 @@
-"""One run of A20a's job: on a trading day, the ban list (filed under the trade date it names; stale refused) and
-today's market lots go to Drive with their manifest rows. Each step prints one line; any failed step makes one
-#fno-desk alert naming every failure, and the run exits 1."""
+"""One run of A20a's job: every day the ban list (filed under the trade date it names: the run day's session or the
+next one), and on a trading day today's market lots and the check that today's ban list is archived, go to Drive with
+their manifest rows. Each step prints one line; any failed step makes one #fno-desk alert naming every failure, and
+the run exits 1."""
 
 from __future__ import annotations
 
@@ -15,7 +16,10 @@ from ..storage.raw_source import RawSourceUnavailable
 from ..storage.snapshot_taker import NOT_SERVED
 
 TRADING_KINDS = ("regular", "special")  # a muhurat-only evening is not a day these rules are set for
-NOT_A_TRADING_DAY = "{day}: not a trading day; nothing taken"
+NOT_A_TRADING_DAY = "{day}: not a trading day; only the ban list for the next session is taken"
+NO_LIST_TODAY = (
+    "no ban list archived for today's session {day} (NSE wrote none, or every run before its replacement failed)"
+)
 STEP_OK, STEP_FAILED = "{name}: ok: {line}", "{name}: failed: {reason}"
 NOT_COMMITTED_MARK = " NOT committed"
 ALERT = "Omenix F&O master files for {day}: NOT complete: {failures}. Run log: {where}"
@@ -26,6 +30,7 @@ NOT_SERVED_SUFFIX = NOT_SERVED.removeprefix("{path}")  # a taker's line for a 40
 class Step:
     name: str
     run: Callable[[date], str]  # one line on success; raises on a failure
+    every_day: bool = False  # False: trading days only
 
 
 class StepFailed(RuntimeError):
@@ -39,6 +44,23 @@ def taken(line: str) -> str:
     return line
 
 
+def ban_list_step(take: Callable[[date], str], archived: Callable[[date], bool],
+                  is_trading_day: Callable[[date], bool]) -> Callable[[date], str]:  # fmt: skip
+    """Takes NSE's current ban list; on a trading day, fails unless that day's own list is archived by now (stale)."""
+
+    def run(day: date) -> str:
+        line = taken(take(day))
+        if is_trading_day(day) and not archived(day):
+            raise StepFailed(NO_LIST_TODAY.format(day=day))
+        return line
+
+    return run
+
+
+def is_trading_day(calendar: SessionCalendar, day: date) -> bool:
+    return calendar.session_kind(day) in TRADING_KINDS
+
+
 class FoMastersJob:
     def __init__(self, calendar: SessionCalendar, steps: Sequence[Step], recorder: ManifestRecorder,
                  alerts: AlertSender, where: str, out=print):  # fmt: skip
@@ -46,11 +68,12 @@ class FoMastersJob:
         self.alerts, self.where, self.out = alerts, where, out
 
     def run(self, day: date) -> int:
-        """0 when every step succeeded or the day is not a trading day; 1 (after one alert) otherwise."""
-        if self.calendar.session_kind(day) not in TRADING_KINDS:
+        """0 when every step of the day succeeded; 1 (after one alert) otherwise."""
+        trading = is_trading_day(self.calendar, day)
+        if not trading:
             self.out(NOT_A_TRADING_DAY.format(day=day))
-            return 0
-        failures = [failure for step in self.steps if (failure := self._run(step, day))]
+        steps = [step for step in self.steps if trading or step.every_day]
+        failures = [failure for step in steps if (failure := self._run(step, day))]
         committed = self.recorder.commit(f"fo-masters {day}")
         self.out(committed)
         if NOT_COMMITTED_MARK in committed:

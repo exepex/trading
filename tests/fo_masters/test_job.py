@@ -1,5 +1,7 @@
-"""A20a: the ban list is filed under the trade date it names and a stale one is refused; the job takes nothing on a
-non-trading day, runs every step even after one fails, and sends ONE alert naming every failure (exit 1)."""
+"""A20a: the ban list is filed under the trade date it names when that is the run day's session or the next one
+(boundaries: today, the next session across a weekend, the previous session, two sessions ahead); on a trading day a
+run that ends without today's list fails as stale; on other days only the ban list is taken; every step runs even
+after one fails, and ONE alert names every failure (exit 1)."""
 
 from datetime import date
 from pathlib import Path
@@ -8,7 +10,7 @@ import pytest
 
 from fno.alerts.dry_run import DryRunAlertSender
 from fno.alerts.run_location import NO_RUN_URL, run_location
-from fno.fo_masters.job import NOT_A_TRADING_DAY, FoMastersJob, Step, StepFailed, taken
+from fno.fo_masters.job import NOT_A_TRADING_DAY, FoMastersJob, Step, StepFailed, ban_list_step, is_trading_day, taken
 from fno.storage.content_checks import COVERED_SESSION, VALIDATORS
 from fno.storage.manifest_commit import ManifestRecorder
 from fno.storage.raw_store import LocalFolderStore
@@ -19,6 +21,11 @@ from fno.storage.wiring import build_session_calendar
 
 BAN_16 = (Path(__file__).parents[1] / "fixtures" / "nse" / "fo_masters" / "fo_secban_16102026.csv").read_bytes()
 D15, D16, D17, D19 = date(2026, 10, 15), date(2026, 10, 16), date(2026, 10, 17), date(2026, 10, 19)
+CALENDAR = build_session_calendar()
+
+
+def ban_for(day: date) -> bytes:
+    return BAN_16.replace(b"16-OCT-2026", f"{day:%d-%b-%Y}".upper().encode())
 
 
 class Serving:
@@ -33,7 +40,7 @@ class Serving:
 
 def ban_taker(store, data=BAN_16) -> CurrentSessionTaker:
     source = FoBanListSource
-    return CurrentSessionTaker(store, Serving(data), VALIDATORS[source], COVERED_SESSION[source])
+    return CurrentSessionTaker(store, Serving(data), VALIDATORS[source], COVERED_SESSION[source], CALENDAR.next_session)
 
 
 def test_the_ban_list_is_filed_under_its_trade_date(tmp_path):
@@ -43,16 +50,47 @@ def test_the_ban_list_is_filed_under_its_trade_date(tmp_path):
     assert store.get(FoBanListSource.path_for(D16)) == BAN_16
 
 
+def test_the_next_session_s_list_is_taken_across_a_weekend_under_its_own_date(tmp_path):
+    store = LocalFolderStore(tmp_path)  # Friday 16 Oct, 18:45 IST: NSE already shows Monday 19 Oct's list
+    ban_taker(store, ban_for(D19)).take(D16)
+    assert store.get(FoBanListSource.path_for(D19)) == ban_for(D19) and store.get(FoBanListSource.path_for(D16)) is None
+    ban_taker(store, ban_for(D19)).take(D17)  # Saturday: Monday is the next session too; the first copy is kept
+    assert store.get(FoBanListSource.path_for(D19)) == ban_for(D19)
+
+
 def test_a_ban_list_for_an_earlier_session_is_stale_and_nothing_is_written(tmp_path):
     store = LocalFolderStore(tmp_path)
     with pytest.raises(StaleCopy, match="stale"):
-        ban_taker(store).take(D19)  # NSE still serves 16 Oct's list on 19 Oct: today's is not written yet
-    assert store.get(FoBanListSource.path_for(D16)) is None
+        ban_taker(store, ban_for(D15)).take(D16)  # NSE still serves 15 Oct's list on 16 Oct
+    assert store.get(FoBanListSource.path_for(D15)) is None
 
 
-def test_a_ban_list_for_a_later_session_is_refused(tmp_path):
+def test_a_ban_list_two_sessions_ahead_is_refused(tmp_path):
+    store = LocalFolderStore(tmp_path)
     with pytest.raises(LaterSession):
-        ban_taker(LocalFolderStore(tmp_path)).take(D15)
+        ban_taker(store, ban_for(date(2026, 10, 20))).take(D16)  # 20 Oct is two sessions after 16 Oct
+    assert store.get(FoBanListSource.path_for(date(2026, 10, 20))) is None
+
+
+def ban_step(archived_days, line="x: archived (74 bytes)"):
+    return ban_list_step(lambda day: line, lambda day: day in archived_days, lambda day: is_trading_day(CALENDAR, day))
+
+
+def test_on_a_trading_day_a_run_without_today_s_list_is_stale_even_when_it_took_tomorrow_s():
+    assert ban_step({D16})(D16) == "x: archived (74 bytes)"
+    with pytest.raises(StepFailed, match="no ban list archived for today's session 2026-10-16"):
+        ban_step({D19})(D16)  # the 18:45 run took Monday's list, but Friday's was never archived
+
+
+def test_on_a_weekend_a_holiday_or_a_muhurat_only_day_no_stale_check_runs():
+    for day in (D17, date(2026, 10, 2), date(2026, 11, 8)):  # Saturday; Gandhi Jayanti; Diwali muhurat (Sunday)
+        assert not is_trading_day(CALENDAR, day) and ban_step(set())(day) == "x: archived (74 bytes)"
+    assert is_trading_day(CALENDAR, D16)
+
+
+def test_a_ban_list_nse_does_not_serve_is_a_failure():
+    with pytest.raises(StepFailed):
+        ban_step({D16}, NOT_SERVED.format(path="p"))(D16)
 
 
 class Recorder(ManifestRecorder):
@@ -85,10 +123,23 @@ def fails(error):
     return run
 
 
-def test_a_non_trading_day_takes_nothing_and_succeeds():
+def test_a_non_trading_day_takes_only_the_every_day_steps():
     out, recorder, called = [], Recorder(), []
-    assert job([Step("ban list", called.append)], recorder, out=out).run(D17) == 0  # a Saturday
-    assert out == [NOT_A_TRADING_DAY.format(day=D17)] and called == [] and recorder.commits == []
+    steps = [Step("ban list", lambda day: called.append("ban") or "taken", every_day=True),
+             Step("lot sizes", lambda day: called.append("lots") or "taken")]  # fmt: skip
+    assert job(steps, recorder, out=out).run(D17) == 0  # a Saturday
+    assert (
+        out[0] == NOT_A_TRADING_DAY.format(day=D17)
+        and called == ["ban"]
+        and recorder.commits == ["fo-masters 2026-10-17"]
+    )
+
+
+def test_a_trading_day_takes_every_step():
+    called = []
+    steps = [Step("ban list", lambda day: called.append("ban") or "taken", every_day=True),
+             Step("lot sizes", lambda day: called.append("lots") or "taken")]  # fmt: skip
+    assert job(steps).run(D16) == 0 and called == ["ban", "lots"]
 
 
 def test_every_step_runs_and_one_alert_names_every_failure():

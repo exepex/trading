@@ -46,8 +46,9 @@ def test_lot_sizes_per_symbol_and_month_skip_the_stock_section_header_and_blank_
 @pytest.mark.parametrize(
     "damaged",
     [b"SYMBOL,OCT-26\nNIFTY,65\n", LOTS.replace(b"NIFTY     ,65", b"NIFTY     ,6x", 1),
-     LOTS.replace(b"NIFTY 50", b"NIFTY 50,EXTRA", 1), LOTS.replace(b",NIFTY     ,", b",NIFTYX    ,", 1)],
-    ids=["header", "number", "cells", "no NIFTY"],
+     LOTS.replace(b"NIFTY 50", b"NIFTY 50,EXTRA", 1), LOTS.replace(b",NIFTY     ,", b",NIFTYX    ,", 1),
+     LOTS.rstrip(b"\r\n").rsplit(b",", 1)[0] + b"\n"],
+    ids=["header", "number", "cells", "no NIFTY", "short last row"],
 )  # fmt: skip
 def test_damaged_lot_sizes_are_refused(damaged):
     with pytest.raises(BadFile):

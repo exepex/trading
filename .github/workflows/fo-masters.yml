@@ -1,13 +1,14 @@
 # Story A20a: NSE's daily F&O master files kept point in time. NSE replaces the ban list (fo_secban.csv) and the market
-# lots (fo_mktlots.csv) in place, so each trading day's copy is archived to the owner's Drive (the ban list under the
-# trade date it names; a stale one is refused) with its SHA-256 manifest row (committed). Research data only; it never trades. Secrets: the Drive and Slack ones the
-# other jobs use; none is printed.
+# lots (fo_mktlots.csv) in place, so they are archived to the owner's Drive: the ban list under the trade date it names
+# (from the evening before; a stale one is refused), the lots once per trading day, each with its SHA-256 manifest row
+# (committed). Research data only; it never trades. Secrets: the Drive and Slack ones the other jobs use; none printed.
 name: fo-masters
 
 on:
   schedule:
     - cron: "15 2 * * *" # 07:45 IST: the ban list for today is written about 18:12 IST the evening before
     - cron: "45 5 * * *" # 11:15 IST retry (GitHub starts crons hours late; a second run keeps the first copies)
+    - cron: "15 13 * * *" # 18:45 IST: the next session's ban list, written about 18:12 IST, filed under its date
   workflow_dispatch:
 
 permissions:

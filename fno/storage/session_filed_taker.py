@@ -16,7 +16,8 @@ from .raw_store import RawFileStore
 from .snapshot_taker import ALREADY, NOT_SERVED, TAKEN
 
 FROM_THE_FUTURE = "{path}: the copy covers {session}, after the run's day {day}; refused"
-STALE = "{path}: stale: the copy covers {session}, not the run's session {day}; refused"
+STALE = "{path}: stale: the copy covers {session}, before the run's day {day}; refused"
+BEYOND_NEXT = "{path}: the copy covers {session}, after the session following {day}; refused"
 
 
 class LaterSession(ValueError):
@@ -58,10 +59,17 @@ class SessionFiledTaker:
 
 
 class CurrentSessionTaker(SessionFiledTaker):
-    """For a list valid only for the session it names (A20a's ban list): a copy for an earlier session means the
-    publisher has not written today's yet, so it is refused as stale instead of being taken as "already archived"."""
+    """For a list valid only for the session it names, published the evening before (A20a's ban list): a copy for the
+    run day's session or the next session is taken under that session; one for an earlier session means the publisher
+    has not written today's yet (stale), and one further ahead cannot exist yet; both are refused."""
+
+    def __init__(self, store: RawFileStore, source: NseArchiveSource, validate: Validator, covered: CoveredSession,
+                 next_session: Callable[[date], date]):  # fmt: skip
+        super().__init__(store, source, validate, covered)
+        self.next_session = next_session
 
     def _check(self, session: date, day: date, path: str) -> None:
-        super()._check(session, day, path)
         if session < day:
             raise StaleCopy(STALE.format(path=path, session=session, day=day))
+        if session > self.next_session(day):
+            raise LaterSession(BEYOND_NEXT.format(path=path, session=session, day=day))

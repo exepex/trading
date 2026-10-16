@@ -226,8 +226,10 @@ def build_snapshot_taker(name: str) -> SnapshotTaker | SessionFiledTaker:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
     source_type = SNAPSHOT_DATASETS[name]
     if source_type in COVERED_SESSION:  # a latest-day report: filed under the session it covers
-        taker = CurrentSessionTaker if source_type.STALE_REFUSED else SessionFiledTaker
-        return taker(store, build_nse_source(source_type), VALIDATORS[source_type], COVERED_SESSION[source_type])
+        parts = (store, build_nse_source(source_type), VALIDATORS[source_type], COVERED_SESSION[source_type])
+        if source_type.STALE_REFUSED:  # valid only for its own session, written the evening before (A20a)
+            return CurrentSessionTaker(*parts, build_session_calendar().next_session)
+        return SessionFiledTaker(*parts)
     return SnapshotTaker(store, build_nse_source(source_type), VALIDATORS[source_type])
 
 

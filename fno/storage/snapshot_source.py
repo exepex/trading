@@ -15,7 +15,7 @@ SNAPSHOT_FOLDER = "%Y/%m/%d"
 
 class SnapshotSource(NseArchiveSource):
     FILENAME = ""  # the publisher's fixed file name
-    STALE_REFUSED = False  # True: only a copy covering the run's own session is valid (CurrentSessionTaker)
+    STALE_REFUSED = False  # True: only a copy for the run day's or the next session is valid (CurrentSessionTaker)
 
     @classmethod
     def filename_for(cls, day: date) -> str:
@@ -162,7 +162,7 @@ class CorporateActionsBySymbolSource(CorporateActionsSource):
 class FoBanListSource(SnapshotSource):
     """NSE's F&O ban list (fo_secban.csv): the securities in the ban period for the trade date its first line names,
     written about 18:12 IST the evening before (Last-Modified, 16 Oct 2026) and replaced in place (story A20a). Filed
-    under that trade date, never the fetch day."""
+    under that trade date, never the fetch day, so an evening copy is filed under the next session."""
 
     dataset = "nse/derivatives/fo-ban-list"
     first_day = date(2026, 10, 19)  # the first session A20a's job can take (the manifest test holds it)
