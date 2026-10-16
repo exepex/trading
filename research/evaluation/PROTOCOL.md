@@ -283,15 +283,29 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 
 ### `role_value_minimum_sample` Role-value minimum sample and rule
 - **Value:**
-  - **When to judge:** a role or bundle is judged only at a scheduled review, and only with at least 30 applicable
-    opportunities on which the two decisions differed.
-  - **Interval:** a one-sided 95% interval of the mean paired net difference minus its allocated cost per
-    opportunity. It uses the moving-block bootstrap of `uncertainty_criterion`, with blocks of 20 ablation days of
-    that role, 10,000 resamples and seed 20261014.
-  - **Rule:**
-    - a drop is proposed when the interval's upper end is below zero;
-    - "earns its cost" is shown when its lower end is above zero;
-    - anything else is inconclusive and the role stays.
+  - **When to judge:** a role or bundle (a unit) is judged only at a scheduled review (`review_dates`, coded in
+    `fno/evaluation/review_dates.py`), and only with at least 30 applicable opportunities on which the two decisions
+    differed (changed opportunities).
+  - **Net value per opportunity:** the paired net difference, with the unit minus without it (0 when the two decisions
+    agree), minus that day's allocated cost. The cost covers the same dates as the tested net.
+  - **Cost, a declared split:** the book's cost for a day is F8's month allocation of its `books_and_roles` shares
+    times that day's minutes over the month's minutes, rounded down to the paisa. It is split equally across the units
+    consulted that day, the paise left going to the first unit in identifier order. The decider takes no part, so a
+    unit's figure is an upper bound, labelled "conservative cost allocation". The mean over every consulted day is
+    shown apart as the operating cost. A day without a usage row, or a month without a plan cost, is unknown, never
+    zero: no verdict.
+  - **Bootstrap:** S3's moving-block resampler on the net values in date order, each with a risk of 1: blocks of 20
+    observations (not 20 sessions), 10,000 resamples, seed 20261014. Each block's calendar span and the observations
+    per month are printed beside it. The 5th and 95th nearest-rank percentiles are printed only.
+  - **Rule:** each unit makes two one-sided claims, "earns its cost" (net value above zero) and "drop" (below zero).
+    Holm at 5% runs over a fixed family: both claims of every unit of the role set (2m claims for m units), a unit not
+    testable at that review (sample not met, cost unknown) entering at p = 1, so eligibility never loosens another
+    unit's threshold (ChatGPT review 124; the same rule as S3's family).
+    - a drop is proposed when the drop claim passes; "earns its cost" is shown when that claim passes;
+    - anything else is inconclusive and the unit stays.
+    - The risk effects (worst month, mean maximum-loss difference) are shown beside the verdict and never decide it
+      (owner, 15 Oct 2026: "money only, risk shown").
+  - **Provisional:** no role verdict counts as evidence until F9b's card-withholding test passes.
   - **Owner decides:** nothing is dropped automatically; the owner decides.
 - **Status:** proposal, owner decides
 - **Reason:** Each role is ablated once every k trading days (k = the number of roles and bundles), so 30 differing
@@ -433,6 +447,12 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     2026; listed above: every module of fno/scoreboard but its command line) and the code of F8 and F9
     is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
     version 2.
+  - **Role-value files (F9a; ChatGPT review 124, response 191 point 5):** `fno/role_value/checks.py`,
+    `fno/role_value/controls.py`, `fno/role_value/cost.py`, `fno/role_value/records.py`, `fno/role_value/render.py`,
+    `fno/role_value/report.py`, `fno/role_value/role_set.py`, `fno/role_value/role_set_file.py`,
+    `fno/role_value/rows.py`, `fno/role_value/score.py`, `fno/role_value/valuation.py`, `fno/role_value/verdict.py`,
+    `fno/role_value/wiring.py`, `fno/evaluation/review_dates.py`, and F8's allocation that splits the plan cost:
+    `fno/budget/allocation.py` (judge 235).
   - **Refusal:** the freeze tool refuses a listed file that does not exist.
 - **Status:** decided by the owner on 2026-10-14
 - **Reason:**
