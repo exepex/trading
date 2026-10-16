@@ -1,0 +1,82 @@
+"""A capture workflow's run that did not succeed, read from GitHub's Actions API (story O10). `RunSource` is the
+interface; `GitHubRuns` reads `GET /repos/{repository}/actions/runs/{id}` and its jobs with the run's own token.
+
+The error names the run's conclusion (`failure`, `cancelled`, `timed_out`) and the first step that did not succeed in
+the first job that did not succeed. Only names and conclusions are read, never a log, so nothing secret is copied."""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from datetime import datetime
+
+import requests
+
+from ..models import IST
+from .capture_errors import CaptureError
+
+RUN_URL = "https://api.github.com/repos/{repository}/actions/runs/{run_id}"
+API_HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+TIMEOUT_SECONDS = 30
+NOT_FAILED = ("success", "skipped", "neutral")
+SILENT_KINDS = ("cancelled", "timed_out")  # the workflow's own `failure()` step does not run: nothing was posted
+BEFORE_ANY_STEP = "before any step"
+ALERT = "Omenix F&O {job}: the GitHub Actions run was {kind} at '{step}' and posted nothing itself; see {url}"
+
+
+class RunSourceError(RuntimeError):
+    """GitHub's run or jobs could not be read; the message says why (never a credential)."""
+
+
+class RunSource(ABC):
+    @abstractmethod
+    def run(self, run_id: int) -> tuple[dict, list[dict]]:
+        """The run's JSON and its jobs' JSON (latest attempt)."""
+
+
+class GitHubRuns(RunSource):
+    def __init__(self, repository: str, token: str, get: Callable | None = None):
+        self._repository, self._token, self._get = repository, token, get or requests.get
+
+    def run(self, run_id: int) -> tuple[dict, list[dict]]:
+        url = RUN_URL.format(repository=self._repository, run_id=run_id)
+        return self._json(url), self._json(f"{url}/jobs", {"per_page": 100}).get("jobs", [])
+
+    def _json(self, url: str, params: dict | None = None) -> dict:
+        headers = {**API_HEADERS, "Authorization": f"Bearer {self._token}"}
+        try:
+            response = self._get(url, params=params, headers=headers, timeout=TIMEOUT_SECONDS)
+        except requests.RequestException as error:
+            raise RunSourceError(f"GitHub's Actions API not reached ({type(error).__name__})") from None
+        if not response.ok:
+            raise RunSourceError(f"HTTP {response.status_code} from GitHub's Actions API")
+        return response.json()
+
+
+def capture_error(run: dict, jobs: list[dict]) -> CaptureError | None:
+    """The run's error row, or None when the run succeeded (or was skipped)."""
+    kind = run.get("conclusion") or "unfinished"
+    if kind in NOT_FAILED:
+        return None
+    step, conclusion = _first_bad_step(jobs)
+    started = datetime.fromisoformat(run["run_started_at"].replace("Z", "+00:00")).astimezone(IST)
+    return CaptureError(started.date(), run["name"], step, kind, f"{step}: {conclusion}", run["html_url"])
+
+
+def needs_alert(error: CaptureError) -> bool:
+    return error.kind in SILENT_KINDS
+
+
+def alert_text(error: CaptureError) -> str:
+    return ALERT.format(job=error.job, kind=error.kind, step=error.step, url=error.run_url)
+
+
+def _first_bad_step(jobs: list[dict]) -> tuple[str, str]:
+    for job in jobs:
+        if job.get("conclusion") in NOT_FAILED:
+            continue
+        for step in job.get("steps") or []:
+            if step.get("conclusion") not in (*NOT_FAILED, None):
+                return f"{job['name']} / {step['name']}", step["conclusion"]
+        return f"{job['name']} / {BEFORE_ANY_STEP}", job.get("conclusion") or "unfinished"
+    return BEFORE_ANY_STEP, "no job ran"

@@ -18,7 +18,7 @@ def add_participant_oi_parser(subparsers) -> None:
     oi = subparsers.add_parser("participant-oi", help="NSE participant open interest: release times and the rule")
     actions = oi.add_subparsers(dest="oi_cmd", required=True)
     watch = actions.add_parser("watch", help="check NSE's archive until the day's file appears; log every check")
-    watch.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today, IST)")
+    watch.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today; before noon IST, yesterday)")
     watch.add_argument("--until", type=time.fromisoformat, default=DEFAULT_UNTIL, help="HH:MM IST (default 22:00)")
     watch.add_argument("--every", type=int, default=DEFAULT_EVERY_MINUTES, help="minutes between checks (default 5)")
     watch.add_argument("--evidence-folder", type=Path, default=None, help=EVIDENCE_HELP)
@@ -44,16 +44,14 @@ def cmd_participant_oi(args) -> int:
     if args.oi_cmd == "sweep":
         return _sweep(folder / PARTICIPANT_OI_SWEEPS.name if folder else None)
     if args.oi_cmd == "check-once":
-        from .release_check_once import due_day
-
-        return _check_once(args.day or due_day(now_ist()))
+        return _check_once(args.day or _due_day(now_ist()))
     from .release_times import MIN_MEASURED_DAYS, ReleaseLog, first_seen_times
 
     if args.oi_cmd == "rule":
         measured = len(first_seen_times(ReleaseLog(PARTICIPANT_OI_RELEASE_LOG).checks()))
         print(f"rule: {build_participant_oi_rule().describe()}; measured days: {measured} of {MIN_MEASURED_DAYS}")
         return 0
-    day = args.day or now_ist().date()
+    day = args.day or _due_day(now_ist())  # a run GitHub starts after midnight watches the evening before (O10)
     until = datetime.combine(day, args.until, IST)
     recorder = build_release_time_recorder(
         folder / PARTICIPANT_OI_RELEASE_LOG.name if folder else PARTICIPANT_OI_RELEASE_LOG
@@ -67,6 +65,12 @@ def cmd_participant_oi(args) -> int:
     else:
         print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
     return 1 if rewritten or (check is not None and check.outcome == RELEASE_UNREACHABLE) else 0
+
+
+def _due_day(now: datetime) -> date:
+    from .release_check_once import due_day
+
+    return due_day(now)
 
 
 def _check_once(day: date) -> int:
