@@ -1,10 +1,12 @@
 """Story A14: the daily job appends each session's rows once, point in time, and fails closed with one alert."""
 
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
 import pytest
+import yaml
 
+from fno.config import ROOT
 from fno.models import IST
 from fno.nse_margins.broker_approvals import Approval, BrokerApprovals
 from fno.nse_margins.calculator import MarginFigure, NseIndexOptionExposure, SpanMarginCalculator
@@ -212,3 +214,15 @@ def test_the_first_run_after_the_check_writes_from_its_day_and_does_not_alert_on
     assert job.pending_days(DAY) == [DAY]
     assert job.run() == 0 and alerts.sent == []
     assert {line.rsplit(",", 1)[1] for line in path.read_text().splitlines()[1:]} == {DAY.isoformat()}
+
+
+@pytest.mark.parametrize("late_hours", [0, 5])
+def test_the_main_cron_runs_on_the_session_s_own_ist_date_even_5_hours_late(late_hours):
+    """nse-margins.yml's first cron is 22:00 UTC, the previous UTC day (GitHub started this repository's morning crons
+    4-5 h late, 14-16 Oct 2026): at 03:30 IST, or 08:30 IST if late, the due session is that IST day's, before 09:15."""
+    workflow = yaml.safe_load((ROOT / ".github/workflows/nse-margins.yml").read_text(encoding="utf-8"))
+    minute, hour = (int(f) for f in workflow[True]["schedule"][0]["cron"].split()[:2])
+    start = datetime(2026, 10, 15, hour, minute, tzinfo=UTC) + timedelta(hours=late_hours)
+    now = start.astimezone(IST)
+    assert now.time() < time(9, 15) and now.date() == date(2026, 10, 16)
+    assert due_session(now, weekday) == date(2026, 10, 16)
