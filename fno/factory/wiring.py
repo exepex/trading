@@ -1,4 +1,5 @@
-"""Composition root of the factory (story R1): the ledger (B4), the gate log on D1's git history, the idea cards."""
+"""Composition root of the factory (story R1): the ledger (B4), the gate log on D1's git history, the idea cards, C1's
+charges from config.yaml and the data-spend register."""
 
 from __future__ import annotations
 
@@ -7,8 +8,9 @@ from pathlib import Path
 from ..config import ROOT
 from ..research_engine.ledger import Ledger
 from .card import IdeaCard, read_card
-from .constants import IDEAS_FOLDER, TEMPLATE_CARD
+from .constants import DATA_SPEND_FILE, IDEAS_FOLDER, TEMPLATE_CARD
 from .gate_log import GateLog
+from .gate_steps import GateSteps
 from .registration import IdeaRegistration
 from .staging import FactoryGit
 from .trial_count import TrialCount
@@ -38,3 +40,12 @@ def build_trial_count(root: Path = ROOT) -> TrialCount:
 def build_registration(root: Path = ROOT) -> IdeaRegistration:
     git = FactoryGit(Path(root))
     return IdeaRegistration(Ledger(root, git), GateLog(root, git), git)
+
+
+def build_gate_steps(root: Path = ROOT) -> GateSteps:
+    from ..config import load_app_config
+
+    git = FactoryGit(Path(root))
+    register = Path(root) / DATA_SPEND_FILE
+    charges = load_app_config()["charges"]
+    return GateSteps(GateLog(root, git), git, charges, lambda: register.read_text(encoding="utf-8"))
