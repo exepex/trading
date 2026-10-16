@@ -34,6 +34,17 @@ Groww credentials (`GROWW_API_KEY` and `GROWW_TOTP_SECRET`, or `GROWW_ACCESS_TOK
 `~/.trading.env`. Data calls work from a changing IP; Groww's static-IP rule covers order placement, which this tool
 never does.
 
+## Macro release calendars (story A20c)
+
+| Data | Source (code) | Coverage | Notes |
+|---|---|---|---|
+| India CPI, IIP, GDP release dates | MOSPI's Advance Release Calendar PDF via `www.mospi.gov.in/api/documents/get-latest-release-calender` (`fno/macro_calendar/mospi.py`, `pypdf`) | the current financial year's calendar, snapshot daily from the first run (`macro-calendar.yml`, 07:30 IST) | 12 CPI and 12 IIP dates a year or the run fails; the PDF kept write-once in Drive by SHA-256 |
+| US FOMC decision days | `www.federalreserve.gov/monetarypolicy/fomccalendars.htm` (`fno/macro_calendar/fed.py`) | every year from the run's year on (8 a year), daily | a notation vote is not a decision |
+| US CPI and payrolls release dates | none yet: BLS answers 403 to this container and to GitHub's runners (16 Oct 2026) | reported as a failure every run | a free FRED key awaits the owner |
+
+Each date's `announced_on` is the IST day of the first snapshot that held it (`fno/research_data/macro_events.py`, A6's
+event model); `events.csv` (hand-kept, A6) is unchanged.
+
 ## Politeness
 
 `fno/http_pacing.py`: at most one request a second to each site; two refusals in a row ("too many requests" or

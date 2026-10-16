@@ -26,6 +26,7 @@ from .health.calendar_stop import calendar_stop, command_name
 from .health.cli import add_health_parser
 from .intraday.cli import add_intraday_parser
 from .learning.cli import add_postmortem_parser
+from .macro_calendar.cli import add_macro_calendar_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
@@ -233,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     add_global_cues_parser(sub)
     add_health_parser(sub)
     add_factory_parser(sub)
+    add_macro_calendar_parser(sub)
 
     args = p.parse_args(argv)
     try:

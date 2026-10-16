@@ -1,5 +1,6 @@
 requests>=2.31
 PyYAML>=6.0
+pypdf==5.4.0            # MOSPI's release calendar PDF (story A20c; pinned, free)
 pytest>=8.0
 pytest-xdist>=3.6       # parallel tests: python -m pytest -q -n auto (CLAUDE.md gate line)
 numpy>=2.0              # experiment bootstraps and controls (numpy default_rng, protocol section 7)
