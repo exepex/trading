@@ -15,7 +15,10 @@ DATA_SHAPES = {  # names, constants and record shapes: no figure is computed in 
     "fno/budget/constants.py": "the budget's purpose names (no numbers)",
     "fno/models.py": "the clock and plain value types",
     "fno/books/fills.py": "the Fill row shape",
-    "fno/factory/constants.py": "gate names, outcomes, file paths; its numbers serve G1-G3, which Test B never reads",
+    "fno/factory/constants.py": (
+        "gate names, outcomes, file paths and the figures pattern, each value Test B reads pinned "
+        "(test_factory_constants_pinned); its numbers serve G1-G3, which Test B never reads"
+    ),
     "fno/desk/trade_counts.py": "version_key only: parses a strategy-version tag",
     "fno/desk/pack_items.py": "available_time only: parses an ISO time into IST",
     "fno/desk/execution.py": "fill_id only: an identifier string",
