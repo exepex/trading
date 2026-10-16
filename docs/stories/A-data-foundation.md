@@ -709,6 +709,85 @@ first live day (rule 8); no Groww quote file in the repository.
 
 ---
 
+## A4e. A named quote window for protocol v4's 14:30-14:40 pack (A4 behind config)
+
+**Repository:** trading · **Lane:** 1 (the 3 pm recorder, Groww, a v2-recorded file) · **Branch:**
+`story/a4e-named-quote-window` · **Judge:** B (G10's judge)
+
+**Description:** As the statistician and G10's pack builder, I want the 3 pm recorder to run a second, separately
+named NIFTY capture in a window set in `config.yaml` (v4: 14:30-14:40 IST), so that protocol v4's pack can be built
+from live quotes with honest times, while today's 14:55-15:10 capture and every reader of it stay exactly as they are.
+
+**Context and why:**
+- G10 (`docs/stories/G-forecasts.md`, "The day at go-live"; owner decisions of 15 Oct, rows "v4 timeline" and
+  "Honest times") needs a NIFTY capture from 14:30:00 with retries, each quote kept with the time its answer was
+  received; the pack takes only answers received by 14:40:00. A4 runs only in 14:55-15:10 (`fno/quotes/recorder.py:39`).
+- The orchestrator (16 Oct): behind config, default unchanged, interface agreed with G10's builder (agreed 16 Oct:
+  the 14:40 cut is the pack's, A4 never drops or relabels a row; the setting must work both as an extra capture and,
+  if the owner later ends 14:55, as the only one).
+- `fno/quotes/recorder.py` and `config.yaml` are in `FREEZE_v2.md`'s "recorded, not byte-checked" table: their behaviour
+  is locked by the v2 golden cases, so the default run must not change.
+- Readers of the 14:55 capture find it by name: `nifty_<day>.canonical` in `groww/derivatives/quote-snapshots`
+  (v2 capture, E2/E3 packs, C3, O8 health, LR1, G4 replay, `report.py` and `compare.py`, which glob `nifty_*.canonical`).
+  A new file prefix in the same folder would leak into those globs; a new dataset folder cannot.
+
+**Scope.** In: `quotes.windows` in `config.yaml` (named windows; none required); `python -m fno quotes record --window
+<name>`; the named capture in its own dataset `groww/derivatives/quote-snapshots-<name>` (Drive-only quotes through
+A4b's store, sidecar and marker in the repository, as today); no request after the named window's end; A16's clock
+check around a named capture, written to its sidecar. Out: the 14:30 run in the routine and the owner's 14:05 start
+(O1 and the owner, after the orchestrator's decision below); the pack itself and its 14:40 cut (G10 part b);
+the index windows at go-live (a later item); any change to the default run or its readers.
+
+**Expected design (the simplest that covers the real cases):**
+- `QuoteWindow(start, end, max_early_wait, stop_requests)` (new `fno/quotes/window.py`). The default window is A4's
+  constants (14:55, 15:10, 20 minutes, no stop): the default run is unchanged byte for byte.
+- `quotes.windows.<name>: {start, end, max_early_wait_minutes}` read in the composition root; an unknown name, a start
+  not before the end, or a bad time format is refused before any request (ConfigError naming the key). The v4 entry is
+  `{start: "14:30", end: "14:40", max_early_wait_minutes: 30}` (routine at 14:05 waits 25 minutes).
+- A named capture: `record()` waits for the start (no request before it), retries each minute while it is open, and
+  starts no request after its end (A4c's `Slot.stop_requests_at`); a request started before the end keeps its real
+  `response_received_at`, even after the end. It reads A16's `ClockCheck` before its first and after its last
+  request and writes `clock_status` and the worst skew to the sidecar (the pack decides what a skew means).
+- Same stems (`nifty_<YYYYMMDD>_<HHMMSS>`, `nifty_<YYYYMMDD>.canonical`) in the named dataset, so the routine's NIFTY
+  commit glob `groww/**/nifty_*` covers it and A4b's ignore rule and record scan keep its quote files out of git.
+
+**Acceptance criteria:**
+1. **Default unchanged.** `quotes record` without `--window` behaves as today: A4's byte-for-byte baseline, the v2
+   golden cases (`tools/forecast_live_golden.py` "unchanged") and every existing quotes, checks and desk test pass
+   unchanged.
+2. **Named window.** With `--window v4` and a fake clock: nothing is asked before 14:30:00 (a run at 14:05 waits; one
+   at 13:59 is "too early"); an incomplete attempt retries; no request starts after 14:40:00 (a request at 14:40:00 is
+   allowed, at 14:40:01 refused); a request started at 14:39:59 keeps its later answer time; the day ends "none" at the
+   window's end if nothing is complete.
+3. **Separate dataset.** The named capture's sidecar, marker and Drive file are under
+   `groww/derivatives/quote-snapshots-v4/`; nothing is written to the default dataset, and the default readers
+   (`report`, `compare`, the v2 capture, the desk's snapshot inputs) do not see it.
+4. **Clock.** The sidecar holds `clock_status` and the worst skew from A16's check (fake servers: ok, skew, no answer).
+5. **Refusals.** An unknown window name, a start not before the end, or a malformed time exits 1 before any request.
+6. Code size, lint, imports and the full suite pass.
+
+**Known limits (one line each, nothing built for them):**
+- A 14:30 capture beside A16's 14:30 mark puts about 190 more Groww quote calls (plus a few chain, expiry and level
+  calls) on the one key in those minutes; whether 14:30 is an extra capture or replaces 14:55 is the orchestrator's
+  and owner's decision (G10's builder raised it), not this story's.
+- A4's default run keeps an unchecked host clock (v2's frozen behaviour); only named captures are clock-checked.
+- A named capture is not in the routine until O1 adds it and the owner moves the start to 14:05.
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| Capture from 14:30 with retries, honest answer times (G10, owner 15 Oct) | criterion 2 |
+| The 14:40 cut is the pack's; A4 drops nothing (agreed with G10, 16 Oct) | design, criterion 2 (late answer kept) |
+| No request before the window's start (G10 point b) | criterion 2 |
+| Checked clock for `response_received_at` (G10 point a; protocol v4 section 1.6) | criterion 4 |
+| Default 14:55-15:10 unchanged, v2 frozen behaviour (orchestrator; FREEZE_v2) | criterion 1 |
+| Works as an extra capture or as the only one (G10 point 6) | design (own dataset), criterion 3 |
+| Routine start 14:05 (G10 table) | out of scope: O1 and the owner |
+
+**Depends:** A4, A4b, A4c (`Slot.stop_requests_at`), A16 (`ClockCheck`) · **Size:** S · **Status:** story text for
+judge B (16 Oct 2026)
+
 ## A5. Monthly-expiry identity in the package
 
 **Repository:** trading
