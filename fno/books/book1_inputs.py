@@ -4,23 +4,20 @@ records (same snapshot ID and quote-file SHA-256), so the decision reads exactly
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable, Mapping
 from datetime import date
 from pathlib import Path
 
 from ..constants import BOOK1_RULES
-from ..desk.common_pack import SNAPSHOT_INPUT, CommonPack
+from ..desk.common_pack import CommonPack
+from ..desk.pack_snapshot import NotThePacksSnapshot, canonical_snapshot
 from ..desk.pack_store import PackStore
-from ..quotes.recorder import QuoteSnapshotRecorder
-from ..research_data.quote_snapshots import CutoffSnapshot, RecordedSnapshots
+from ..research_data.quote_snapshots import CutoffSnapshot
 from ..research_engine.implied_vol import ImpliedVolModel
 from ..risk.inputs import Market
 from ..storage.raw_store import RawFileStore
 from .book1 import Book1Day, Book1Inputs
 from .book1_market import market_from_snapshot
-
-NOT_THE_PACK_S = "the canonical snapshot of {day} is not the one its common pack records ({why}): Book 1 refuses it"
 
 
 class InputsRefused(ValueError):
@@ -46,15 +43,10 @@ class LiveBook1Inputs(Book1Inputs):
         return Book1Day(market, self.features(day, snapshot), book, counts, shadow, self.context(day, hashes))
 
     def _snapshot(self, day: date, pack: CommonPack) -> CutoffSnapshot:
-        recorded = pack.body["provenance"].get(SNAPSHOT_INPUT, {})
-        snapshot_id = recorded.get("snapshot_id")
-        data = self.quotes.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.csv")) if snapshot_id else None
-        if data is None or hashlib.sha256(data).hexdigest() != recorded.get("csv_sha256"):
-            raise InputsRefused(NOT_THE_PACK_S.format(day=day, why=f"snapshot {snapshot_id}"))
-        snapshot = RecordedSnapshots(self.quotes).snapshot(day)
-        if snapshot is None:
-            raise InputsRefused(NOT_THE_PACK_S.format(day=day, why="no canonical snapshot"))
-        return snapshot
+        try:
+            return canonical_snapshot(day, pack, self.quotes)
+        except NotThePacksSnapshot as refused:
+            raise InputsRefused(f"{refused}: Book 1 refuses it") from None
 
 
 def _sha(path: Path) -> str:
