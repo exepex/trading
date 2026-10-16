@@ -169,7 +169,7 @@ commit in neither is `ReceiptUnknown`, which `fno/ai`'s rules already treat as l
 | `invalid` | this book's own reveal visible at observation 1 (revealed early); seal broken; answer shape or labels wrong | no |
 | `not_revealed` | no reveal visible at observation 2 | no |
 | `model_mismatch` | `model_reported` differs from the registered model | no |
-| `model_unverified` | `model_reported` is `unknown` (proposal: fail closed for trading; open question 1) | no |
+| `model_unverified` | `model_reported` is `unknown` (orchestrator ruling, 16 Oct: no trade, reason recorded; forecasts keep their rule) | no |
 | `refused` | the decider raised `DecisionRefused`, or F1t's run check failed (below) | no |
 | `promoted` | the decider wrote a run that passed F1t's check | E3 collects it; fills only if C4 passed |
 
@@ -352,11 +352,15 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
   closed; an alert at 80% of the cap names the need for a smaller private view (a later version).
 - **Two more routine runs per session day** on the owner's plan; BG1's cap applies.
 
-## Open questions (sent to the orchestrator)
+## Open questions
 
-1. `model_unverified` ("unknown"): no trade (proposal) or trade as forecasts count it?
-2. The interface above: F5 and F6's builders to confirm before code.
-3. Response number for the claims (the central claim tool, O12, is not merged).
+1. The hand-over interface: F5 (session_01SFDjjZx7JYziM3jqJytG2z), F6/F7 (session_01KTAQCDjPkDBKwfCMhWphXb) and F2
+   (session_01WSMMv5nK4wDdktFrudJfXv) to confirm before code; F5 to say how Book 2's rule default reaches the AI
+   before it decides.
+
+Settled (orchestrator, 16 Oct): model "unknown" is no trade; the new package `fno/ai_trading/` with default-preserving
+changes to `fno/ai/` is fine (G11's owner, session_013xqaNTCbSBytKgqpfaYFqZ, told); claims in
+`reviews/claude/response_263_f1t-ai-trading-runner.md`.
 
 ## Depends
 
