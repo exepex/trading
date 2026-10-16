@@ -84,6 +84,16 @@ NIFTY condor's best measured gross was +978 a trade (seen data) and +408 (holdou
 and the 2x warning flags both periods. This is hindsight: the costs were not measured this precisely before
 experiment 1.
 
+**Correction (16 Oct 2026, story R1; strong evidence: response 92 l.39-40 recomputed with
+`fno/forecast_v4/student_t.py`).** The paragraph above applies the rule's averages, not its conservative bound.
+- The inputs: n 33, mean gross +978, SD 2,667, cost Rs 824; and n 57, +408, SD 3,403, Rs 814.
+- On the means, the nets are +154 (+153 from the unrounded means) and -406.
+- The rule's conservative bound for a measured distribution is the lower one-sided 90% bound of the mean (t 1.3086 and
+  1.2969). That gives +370.5 and -176.5, so the expected nets are -453.5 and -990.5.
+- The screen therefore stops the condor on **both** periods, discovery included, not only on the holdout.
+- The 2x warning flags both (ratios 1.19 and 0.50).
+R1's `CostWall` test pins these figures.
+
 ## 3. `exploratory_shadow`
 
 An `exploratory_shadow` is a forward, costed decision record of an idea that is not (yet) a candidate: it is recorded
