@@ -398,7 +398,9 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 - **Value:**
   - **Files:** `research/evaluation/PROTOCOL.md`, `fno/evaluation/protocol.py`, `fno/evaluation/completeness.py`,
     `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`,
-    `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`.
+    `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`, and the freezer that applies this list:
+    `fno/evaluation/definition.py` (it holds S1's definition, the real-money gate's requirement included),
+    `fno/evaluation/freeze.py` and `fno/evaluation/order.py` (story BR1a's follow-up, response 230).
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct

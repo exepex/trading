@@ -94,3 +94,25 @@
 - **Scope:** docs only. Part B's code waits for E8 part 1b, and B0's registration is a desk act the owner chose
   (decision 1 A). No order path and no secret.
 - **Simplicity:** one existing field, one predicate, and one message constant. No new framework.
+
+## Addendum 1: `7f94dbdf` (judge G)
+
+**Verdict: PASS (text).** The fix reached me from the builder. I re-judged it as part of the judge and builder loop and
+report the verdict to the orchestrator. The diff since `371932fe` touches docs only: the R3 addendum, the R3 register
+row and response 232.
+
+- **Should-fix 1 is accepted.**
+  - The cumulative alert for a measurement has its own message constant. It carries `(measurement)` and says
+    "expected for a measurement (no edge), not a defect; the owner decides".
+  - Test 7 covers it, and a non-measurement shadow's bytes stay unchanged for both alerts.
+  - Keeping the repeat is reasonable. Changing E6's repeat rule would touch other shadows, and about one alert a month
+    is the measurement's running cost. It is marked "reasoning only".
+  - **The claim about a day where both alerts fire is correct** (code read). `fno/scorecard/run.py:35-36` builds
+    drifts, then single-trade triggers, then cumulative ones, and `AutoPauser.apply` sends once per version a day. So
+    the single-trade wording, with its escalation, wins. Test 7 pins it.
+- **Note 1 is done.** Criterion 12 now adds "checked against the registered trial requirements (R1's pass mark and
+  minimum useful net)", so it matches response 229 point 4 exactly.
+- **Note 2 is done.** The alert says "Rs 10,000 or more", matching E6's `<=`, and test 7 pins a loss of exactly the cap.
+- **Note 3 is done.** The text gives -23,140 without the 7 stale-close exits, and the clean worst trade of -8,937, both
+  matching `RESULTS.md`.
+- **Note 4 is done.** The register row says the split with E6b was agreed on 16 Oct.
