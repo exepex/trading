@@ -381,11 +381,12 @@ Out:
    - "Weather: <colour> (<operative>, <proof>)", plus " (back-fill, exploratory)" when the label is not `live`;
    - "Chance of a 2% NIFTY move: next session <p> (base rate <b>); within 5 sessions <p5> (base rate <b5>)", using the
      operative forecaster's probabilities and the base rate, as whole percents;
-   - "Checklist v0: <v0_colour>";
+   - "Checklist v0: <v0_colour>", or "Checklist v0: not scored (<v0_status's reason>)" when v0 itself is unscored;
    - for RED only, "RED: no new entries (owner rule)".
    - The record is added to the card's used records with its committed SHA-256.
 
-The adapter never shows a driver (this keeps the private US flag out) and never computes a colour.
+The adapter never shows a driver (this keeps the private US flag out) and never computes a colour. The "not scored"
+string is M1's `WeatherColour.NOT_SCORED`, imported from `fno/weather/constants.py`, never copied.
 
 **Acceptance criteria:**
 1. On a day with a committed scored record, the card shows the record's colour, operative forecaster, proof, chances,
@@ -403,7 +404,8 @@ The adapter never shows a driver (this keeps the private US flag out) and never 
 1. Positive: GREEN live, AMBER back-fill, RED. Each gives its exact lines and its used record.
 2. Negative: no record; a file that is not JSON; a record whose `day` is the day before.
 3. Boundary: a probability of exactly 0.10, shown as a whole percent ("10%"). A missing operative probability is
-   treated as "not scored" and never as 0%.
+   treated as "not scored" and never as 0%. M1's `_status` never writes that case, so this is a guard only. A v0
+   colour of "not scored" shows its `v0_status` reason.
 4. Empty: an empty `probabilities` object, and a committed folder with no file for the day.
 5. Wiring: `build_daily_card` builds `RecordedWeather`. One test runs the real committed record of 14 Oct 2026 through
    `GitHeadRecords`.
@@ -424,7 +426,12 @@ The adapter never shows a driver (this keeps the private US flag out) and never 
 | The SHA-256 footer of every record used (T1) | Criterion 1 |
 | Enforcing the block at the desk | Out (its own story) |
 
-**Split:** M1's builder (session 013xqaNTCbSBytKgqpfaYFqZ) is asked to agree the reader: the path from
-`WeatherRecords.path`, and the fields above read as written.
+**Split:** M1's builder (session 013xqaNTCbSBytKgqpfaYFqZ) agreed on 16 Oct:
+- the path is `WeatherRecords.path`;
+- reading the committed bytes is right, because in O1's run the weather step commits before the card, and an
+  uncommitted record must read as "no weather";
+- the fields used here are stable, and `v0_status` was added today;
+- `status` is exactly "scored" or "not scored: ...";
+- they will warn T1c's owner before any move of these records to Drive (O9).
 
 **Depends:** T1, M1 · **Size:** S · **Status:** story text, waiting for the judge (Judge E)
