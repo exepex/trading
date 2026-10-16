@@ -183,3 +183,15 @@ def test_every_committed_g7_record_row_carries_this_trees_method_hash():
             files += 1
             assert {r.method_sha256 for r in records.read(file).values()} == {expected}, file
     assert files == 14  # V6 4, V2 and V3 8, V7 2 (V1 has not started)
+
+
+def test_record_folders_name_every_g7_forecaster_folder_and_no_weather_folder():
+    from fno.forecast_v4_rules.capture import FORECASTERS
+    from fno.forecast_v4_rules.wiring import record_folders
+
+    folders = record_folders()
+    assert folders == sorted(set(folders)) and all(f.startswith("research/forecasts/v4/") for f in folders)
+    assert {f.split("/")[3] for f in folders} == {f for f, _ in FORECASTERS} and len(folders) == 10
+    assert not any("weather" in f for f in folders) and all(f.endswith("/") for f in folders)
+    written = {p.parent.name for p in (ROOT / "research" / "forecasts" / "v4").glob("*/*.csv")}
+    assert written - {"weather", "weather_vix_v1", "weather_checklist_v0"} <= {f.split("/")[3] for f in folders}

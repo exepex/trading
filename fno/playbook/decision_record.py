@@ -34,6 +34,7 @@ NULLABLE = {
     BOOK2_HYBRID: {"strategy_id", "strategy_spec_sha256"},
     BOOK3_AI: {"rule_default", "authority_check"},
 }
+NON_EMPTY = {BOOK2_HYBRID: ("rule_default", "chosen_action", "reason", "authority_check")}  # text, never ""
 PER_OUTCOME = ("book", "chosen_action", "reason", "rule_default")  # set per record, not by the run
 # Book 3's day record ("no trade" for the day) names no strategy; each of its opportunity records does (F6, 16 Oct)
 DAY_RECORD_NULLABLE = {BOOK3_AI: {"strategy_id", "strategy_spec_sha256"}}
@@ -153,6 +154,9 @@ def validate_record(record: Mapping) -> None:
     overridden = [key for key in ALWAYS_NULL if record[key] is not None]
     if overridden:
         raise RecordError(f"{overridden} must be null: the owner never overrides a paper decision")
+    blank = [key for key in NON_EMPTY.get(record["book"], ()) if not record[key]]
+    if blank:  # story D4 criterion 7: Book 2's AI action carries its reason and the envelope's verdict
+        raise RecordError(f"{record['book']} must give a non-empty {blank}")
     served = record["served"]
     if not isinstance(served, Mapping) or not served or not all(isinstance(v, str) and v for v in served.values()):
         raise RecordError("served: every component the decision used, as non-empty text")
