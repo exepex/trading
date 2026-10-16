@@ -15,6 +15,7 @@ from datetime import date
 
 from ..constants import AI_BOOKS, BASELINE_BASE_RATE, BOOK1_RULES, FORECAST_QUESTIONS
 from ..constants import ISOLATION_SEALED_SAME_DAY as ISOLATION_LABEL
+from .calendar_gaps import LABEL as CALENDAR_NOTE
 from .scoring import ComparisonResult, ModeScores, QuestionScores
 
 SCHEMA = "forecast_scores/v1"
@@ -108,6 +109,12 @@ def weekly_summary(document: dict) -> list[str]:
     lines += _coverage_lines(document)
     if not document["confirmatory_allowed"]:
         lines.append("Too early to tell: " + NOT_YET)
+    limited = document.get("calendar_limited_days") or []  # reports before 16 Oct 2026 have no such field
+    if limited:
+        days = ", ".join(d["day"] for d in limited)
+        lines.append(
+            f"Book 1's Q1 and Q2 were the base rate alone on {len(limited)} live days ({CALENDAR_NOTE}): {days}"
+        )
     if document["unverified_live_days"]:
         lines.append(
             f"Not scored (files differ from the capture receipt): {', '.join(document['unverified_live_days'])}"

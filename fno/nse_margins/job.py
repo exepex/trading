@@ -15,6 +15,7 @@ keeps refusing what has no fresh margin. The next run retries the same days.
 from __future__ import annotations
 
 import hashlib
+import traceback
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
 
@@ -70,11 +71,15 @@ class NseMarginJob:
             days = self.pending_days(due)
         except (MarginDayProblem, MarginLogConflict) as exc:
             problems.append(str(exc))
+        except Exception as exc:  # noqa: BLE001 - e.g. a year missing from A7's calendar: one line, not a traceback
+            problems.append(_unexpected(exc))
         for day in days:
             try:
                 problems += self._add_day(day)
             except (MarginDayProblem, MarginLogConflict) as exc:
                 problems.append(f"{day}: {exc}")
+            except Exception as exc:  # noqa: BLE001 - named in the line, with the traceback in the log
+                problems.append(f"{day}: {_unexpected(exc)}")
         if not days and not problems:
             self.print_line(NOTHING_NEW.format(day=due))
         if problems:
@@ -118,3 +123,8 @@ class NseMarginJob:
             self.print_line(HELD.format(day=day, rows=len(rows), codes=", ".join(codes)))
             for row in rows:
                 self.print_line(",".join(row.as_csv().values()))
+
+
+def _unexpected(exc: Exception) -> str:
+    traceback.print_exc()
+    return f"stopped by an unexpected {type(exc).__name__}: {exc}"

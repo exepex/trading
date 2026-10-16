@@ -7,9 +7,12 @@ and volatility scenarios (the two extreme ones already weighted).
 
 The margin method is modelled exactly only when the file's own definition says so, so anything else is refused
 (`BadSpanFile`, a `BadFile`): a zero short-option minimum, unit adjustment rates and contract value factors, and one
-16-value risk array per option. Spread charges exist only between different expiries, which a one-expiry structure
-never has. Scanning risk is summed over scan tiers (on a weekly expiry day the expiring series has a tier of its own);
-a one-expiry structure lies in one tier, so its scanning risk is that tier's, which the calculator checks.
+16-value risk array per option. Story A14c reads history too: with `allow_short_option_minimum` (never A14's daily job,
+which must keep refusing a method change), one GROSS minimum rate per short unit is read, as 2020's files charged
+(`nsccl.20200407.i1`: Rs 405 a short unit, about 5% of the index). Spread charges exist only between different expiries,
+which a one-expiry structure never has. Scanning risk is summed over scan tiers (on a weekly expiry day the expiring
+series has a tier of its own); a one-expiry structure lies in one tier, so its scanning risk is that tier's, which the
+calculator checks.
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ from ..models import IST
 
 SCENARIOS = 16
 CREATED_FORMAT = "%Y%m%d%H%M"
+SHORT_OPTION_MINIMUM_METHOD = "GROSS"  # SPAN charges the minimum on every short unit, hedged or not
 KEPT_PARTS = ("phyPf", "futPf", "oopPf", "ccDef")  # a portfolio is named by `pfCode`, a definition by `cc`
 OPTION_KINDS = {"C": OPTION_CALL, "P": OPTION_PUT}
 
@@ -51,18 +55,22 @@ class SpanFile:
     monthly_expiries: tuple[date, ...]  # the futures' expiries
     series: dict[date, dict[Contract, SpanOption]]  # options by expiry and contract
     scan_tiers: tuple[tuple[date, date], ...]  # (first, last) expiry of each scan tier
+    short_option_minimum: float = 0.0  # rupees per short unit (SPAN's GROSS minimum); 0 in every file since 2020
 
     def tiers_holding(self, expiry: date) -> int:
         return sum(first <= expiry <= last for first, last in self.scan_tiers)
 
 
-def read_span_file(data: bytes, filename: str, symbol: str = NIFTY_SYMBOL) -> SpanFile:
+def read_span_file(data: bytes, filename: str, symbol: str = NIFTY_SYMBOL,
+                   allow_short_option_minimum: bool = False) -> SpanFile:  # fmt: skip
     """The symbol's parts of a zipped SPAN file; BadSpanFile when it is damaged or outside the modelled method."""
     created, parts = _parse(_unzip(data, filename), filename, symbol)
-    _check_method(parts["ccDef"], filename)
+    history = allow_short_option_minimum
+    minimum = _check_method(parts["ccDef"], filename, history)
     try:
         return SpanFile(filename, created, _underlying(parts["phyPf"], filename), _expiries(parts["futPf"]),
-                        _series(parts["oopPf"], filename), _scan_tiers(parts["ccDef"], filename))  # fmt: skip
+                        _series(parts["oopPf"], filename), _scan_tiers(parts["ccDef"], filename, history),
+                        minimum)  # fmt: skip
     except BadSpanFile:
         raise
     except (TypeError, ValueError) as exc:  # an unreadable date or risk value
@@ -115,19 +123,32 @@ def _number(element: Element, tag: str, filename: str) -> float:
         raise BadSpanFile(f"{filename}: missing or unreadable <{tag}>") from exc
 
 
-def _scan_tiers(definition: Element, filename: str) -> tuple[tuple[date, date], ...]:
+def _scan_tiers(definition: Element, filename: str, history: bool) -> tuple[tuple[date, date], ...]:
+    """The scan tiers; a history read (story A14c) takes a file without `scanTiers` (2020's) as one tier, as SPAN
+    scans a combined commodity with no tiers defined."""
     tiers = tuple((_day(t.findtext("sPe")), _day(t.findtext("ePe"))) for t in definition.iterfind("scanTiers/tier"))
+    if not tiers and history and definition.find("scanTiers") is None:
+        return ((date.min, date.max),)
     if not tiers:
         raise BadSpanFile(f"{filename}: no scan tier")
     return tiers
 
 
-def _check_method(definition: Element, filename: str) -> None:
-    minimum = definition.find("somTiers")
-    if minimum is None or any(_number(rate, "val", filename) != 0 for rate in minimum.iter("rate")):
-        raise BadSpanFile(f"{filename}: a short-option minimum charge is not modelled")
+def _check_method(definition: Element, filename: str, allow_minimum: bool) -> float:
+    """The short-option minimum per short unit (0 unless allowed); anything not modelled is refused by name."""
     if any(_number(rate, "val", filename) != 1 for rate in definition.findall("adjRate")):
         raise BadSpanFile(f"{filename}: an adjustment rate other than 1 is not modelled")
+    tiers = definition.find("somTiers")
+    rates = [] if tiers is None else [_number(rate, "val", filename) for rate in tiers.iter("rate")]
+    if tiers is None or not rates:
+        raise BadSpanFile(f"{filename}: no short-option minimum definition")
+    if all(rate == 0 for rate in rates):
+        return 0.0
+    if not allow_minimum:
+        raise BadSpanFile(f"{filename}: a short-option minimum charge is not modelled")
+    if len(rates) != 1 or definition.findtext("somMeth", "").strip() != SHORT_OPTION_MINIMUM_METHOD or rates[0] < 0:
+        raise BadSpanFile(f"{filename}: only one GROSS short-option minimum rate is modelled, found {rates}")
+    return rates[0]
 
 
 def _underlying(index: Element, filename: str) -> float:

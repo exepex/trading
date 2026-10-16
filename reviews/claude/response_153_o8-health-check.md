@@ -186,3 +186,157 @@ A16's marks are silent, because they are not live yet.
 - The push race, as in every job.
 - The 2027 calendar rows (a loud FAILED until they are added).
 - The first real run's push-receipt lines can only be verified in Actions, because this session has no GitHub token.
+
+## Addendum 3: O8b, the NSE calendar's horizon line (orchestrator's go, 16 Oct 2026; for judge D)
+
+The story text is the O8b section of `docs/stories/O8-health-check.md`. Because the story is small, its text and code
+are on one branch, `story/o8b-calendar-horizon`.
+
+**A correction to my own message (16 Oct).** I told the orchestrator and the A14c builder that the line first fires on
+16 Nov. That is wrong. 31 Dec minus 16 Nov is exactly 45 days, which is not "fewer than 45". The line first fires on
+**17 Nov** (44 days left). The tests pin both days.
+
+### Code
+- `fno/health/horizon.py`, `CalendarHorizon`: `warning(run_day)` has no side effects; `mark()` writes the calendar's
+  SHA-256.
+- The checker adds the line to `HealthRun.warnings`. The report makes it one problem line.
+- The CLI marks only when the post returned `SENT`, the run did not fail, and the run had the line.
+- The wiring loads the concrete calendar, for `last` and `calendar_sha256()`. The threshold comes from
+  `config.yaml health.calendar_horizon_days: 45`.
+- The workflow commits `research/ops/`. A test checks that only the run record and the marker are written there.
+- The marker path is a module constant in `horizon.py`, not in `fno/constants.py`, which is at 348 of 350 lines on
+  `main`. That follows CLAUDE.md's rule that module-specific names live at the top of their module.
+
+### Criteria and tests (strong evidence: tests run, and each criterion broken on purpose)
+| # | Test (`tests/health/test_horizon.py`, unless noted) |
+|---|---|
+| 1 | `test_the_line_appears_only_when_fewer_than_45_days_are_left` (16 Nov no line; 17 Nov and 31 Dec one line each) |
+| 2 | `test_once_marked_the_same_calendar_never_warns_again_and_a_new_calendar_does` |
+| 3 | `test_the_marker_is_written_after_slack_accepted_the_warning`, `test_a_refused_post_or_a_dry_run_never_marks...`, `test_a_run_without_a_warning_never_marks` |
+| 4 | `test_the_real_settings_and_calendar_warn_for_2027_from_17_november` |
+| 5 | `test_the_workflow_checks_out_full_history_and_commits_only_its_run_record` (now `research/ops/`, and only these two writers) |
+
+**Deliberate breaks: 9 of 9 caught.** The breaks:
+1. the threshold made inclusive;
+2. the marker ignored;
+3. the marker never matching;
+4. the wrong year asked for;
+5. the line missing from the message;
+6. the marker written even when the post was refused;
+7. the marker never written;
+8. the threshold typed in code instead of read from config;
+9. the workflow dropping the marker.
+
+### Real sample
+`python -m fno health check --dry-run --at 2026-11-17T17:51:00` on this branch, with no tokens. The dry run wrote no
+`research/ops/`.
+
+```
+- NSE calendar covers only to 31 Dec 2026 (44 days left): add every row of NSE's 2027 holiday circular to research/data/calendar/nse_sessions.csv (source cited); look-ahead jobs such as A14c's stress run stop earlier, and every job that asks the calendar stops on 1 Jan 2027
+```
+
+The wording was agreed with the A14c builder (16 Oct), with one part of their proposal declined: their clause "A14c's
+stress run stops from about {last - 25 days}" would copy A14c's own look-ahead offset into O8, and the copy would go
+stale silently if A14c changed it. A fixed "6 Dec 2026" would be wrong from 2027 on. The line names the consequence
+instead, without copying the number. My reasoning only.
+
+The same run reports 9 other problems, all for sessions that have not happened yet.
+
+**Added after A14c's note (response 239 item 7).** A `failure()` step was added to `health-check.yml`.
+- The finding is partly right. From 1 Jan 2027, `CalendarError` is raised inside the check step, which catches it and
+  already posts "health check FAILED: CalendarError". That case was never silent.
+- The real gap was a failure outside that step: checkout, install, an import crash, or the commit. That gave only a red
+  run.
+- The new step posts one line in those cases, and stays quiet when the check step itself failed, so there is no double
+  post.
+- Test: `test_a_job_that_fails_outside_the_check_still_alerts_once`. Two breaks were caught: the alert firing also
+  after a failed check, and the alert step removed.
+
+**Judge 240 (FAIL, one should-fix): accepted; my claim above was wrong.**
+- **What I claimed:** that the `failure()` step covered "an import crash".
+- **What is true:** it did not. The step ran only when the check step did *not* fail. But the check step can fail
+  before posting anything: on an import error in `python -m fno`, or a sender that cannot be built (those run before
+  `cmd_health`'s `try`). The job was then silently red.
+- **Fix:**
+  - `cmd_health` appends `posted=true` to `$GITHUB_OUTPUT` (`ENV_GITHUB_OUTPUT` in `fno/constants.py`) only after Slack
+    returned `SENT`. That includes its own "FAILED" line.
+  - The workflow's alert step runs on `failure() && steps.check.outputs.posted != 'true'`. So exactly one line goes
+    out in every failure: the check's own, or the workflow's.
+- **The header comment** now says the job commits `research/ops/` (the judge's note).
+- **Tests:** posted is marked for an accepted line and for an accepted FAILED line, and not for a refused post or a dry
+  run. A sender that cannot be built leaves no mark.
+- **Breaks: 3 of 3 caught:**
+  1. the gate back on the step's outcome;
+  2. posted written even when refused;
+  3. posted never written.
+## Addendum 4: O8c, one named line for any command stopped by the calendar (for judge B)
+
+**Origin:** response 239, item 4. I confirmed it in the code (file and line evidence in the O8c story) and proposed
+this fix, and the orchestrator gave the go on 16 Oct. I own `index-closes.yml` and `panel-days.yml` for this fix.
+`nse-margins.yml` stays with its A14 owner, who has been told the same two edits.
+
+**O9 check:** the O9 session cannot be reached by message ("not found"; probably the other account). Its branch
+`story/o9-data-to-drive` changes no workflow and not `fno/cli.py`. Its story moves these jobs' data to Drive later.
+Only alert steps are touched here, so the two do not collide today.
+
+### Changes
+- `fno/cli.py` `main`: `except CalendarError` calls `fno/health/calendar_stop.py` `calendar_stop(command_name(argv),
+  error)`, which posts one line, "Omenix F&O `<command>` stopped: <the calendar's words>", and exits 1.
+- The commands that already catch the calendar themselves (`quotes/cli.py:77`, `intraday/cli.py:63,88`,
+  `intraday/backfill_cli.py:43`) return instead of re-raising, so they are never posted twice.
+- In `index-closes.yml` only:
+  - the librarian line names the possible causes and points to the log;
+  - the final `failure()` step drops `&& steps.append.outcome == 'success'`.
+- **`panel-days.yml` is not changed.** My first edit broke two freeze tests: protocol v3's freeze pins its SHA-256
+  (`research/forecasts/FREEZE_v3.md:48`), and the panel job's own guard would have refused to run. I reverted it, and
+  it is byte-identical to `main`. Its Python step still posts the named line through `fno/cli.py`. Changing its
+  wording or its `failure()` gate needs a new protocol version, which is the owner's call.
+
+### Evidence
+- **Real run:** `python -m fno pipeline index-closes --to 2027-01-04`, with no Slack token, printed:
+  `Omenix F&O `pipeline index-closes` stopped: 2027-01-01 is outside the calendar (2017-01-01 to 2026-12-31): add every
+  row of NSE's 2027 holiday circular (...) to the calendar file` and `alert NOT sent: FNO_SLACK_BOT_TOKEN is not set`,
+  with exit 1. Before this change it ended in a traceback.
+- **Tests:** `tests/health/test_calendar_stop.py`, 9 cases. Among them, the real `IndexCloseAppender` with the real
+  calendar, built without Drive.
+- **Breaks:** 5 of 5 caught:
+  1. no handler in `main`;
+  2. a line without the calendar's words;
+  3. the command named with its options;
+  4. index-closes still blaming Drive;
+  5. (before the revert) panel-days still gated on the append. That break no longer applies: the file is unchanged.
+
+### A trade-off, stated
+On a named stop in the append step, the job now posts two lines: the named one, then the generic "failed; see URL".
+That is better than the old case of none. Telling the two apart would need state passed between steps, which the
+simplicity rule argues against. This is my reasoning only.
+
+**Judge 246 (FAIL, one should-fix): accepted.** The finding: two alert layers fired for one stop and did not know
+about each other.
+1. The index-closes final step, once no longer gated on the append, posted a second line after the append's own named
+   stop.
+2. From 1 Jan, every command posted its calendar line and the workflow alerts posted too, about 4 lines per run.
+
+The redesign removes the second layer at its root:
+- `calendar_stop` **prints** the named line and does not post. The gap is announced in Slack by O8b's 45-day warning
+  and by the health check's daily "FAILED: CalendarError". Each workflow's one failure line points to the log.
+- A shared `StepOutputAlerts` (`fno/alerts/step_output.py`) records `posted=true` in the step's outputs only when Slack
+  accepted the line. It is used by the health check, replacing O8b's own helper, so O8c builds on O8b, and by the
+  index-close job.
+- `index-closes.yml`'s final step runs only if the append did not post. Every failing run gives exactly one line.
+
+New tests:
+- `tests/test_alert_step_output.py`;
+- the real job prints and posts nothing;
+- the wiring check (the index-close job's sender is wrapped);
+- the workflow condition.
+
+**Breaks: 5 of 5 caught:**
+1. the handler posting again;
+2. the gate ignoring `posted`;
+3. the job's sender not wrapped;
+4. `posted` recorded even when refused;
+5. the health check not wrapped.
+
+A14's nse-margins job keeps its own catch-all named line. Its `--due-day` calendar lines (librarian and revisions
+steps) no longer post: the cli handler only prints.

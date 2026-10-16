@@ -27,6 +27,7 @@ def add_health_parser(subparsers) -> None:
 
 def cmd_health(args, out=print) -> int:
     from ..alerts.sender import SENT
+    from ..alerts.step_output import StepOutputAlerts
     from ..composition import build_alert_sender
     from ..config import load_app_config
     from ..models import IST, now_ist
@@ -34,9 +35,10 @@ def cmd_health(args, out=print) -> int:
     from .wiring import build_health_check, build_run_record
 
     started = now_ist()
-    alerts = None if args.dry_run else build_alert_sender()
+    alerts = None if args.dry_run else StepOutputAlerts(build_alert_sender())  # records `posted` (judge 240)
     try:
-        run = build_health_check(load_app_config()).run(args.at or started)
+        check = build_health_check(load_app_config())
+        run = check.run(args.at or started)
         text, result, code = message(run), verdict(run), 0
         for line in table(run):
             out(line)
@@ -48,5 +50,7 @@ def cmd_health(args, out=print) -> int:
         sent = alerts.send(text)
         out(sent)
         build_run_record().append((args.at or started).astimezone(IST).date(), started, now_ist(), result)
+        if sent == SENT and not code and run.warnings:
+            check.horizon.mark()  # once only: a warning Slack accepted is never repeated for this calendar
         code = code or int(sent != SENT)
     return code
