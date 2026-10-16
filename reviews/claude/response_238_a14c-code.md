@@ -87,3 +87,15 @@ after the merge).
 - **Coverage** (strong evidence that it is partial): Jan 2024-Aug 2026 outside May-Jun 2024 has not been measured; the
   first full run may set k above 1.75. The story's known-limit paragraph says so.
 - The full run still needs to happen in Actions after the merge, with the first seconds-per-file measurement.
+
+## Addendum 1: judge 237's three should-fixes
+
+1. **One-step fall:** `tests/nse_margins/test_stress_boundaries.py` adds a planted 1.45 → 1.40 run and a hand factor of
+   1.41 in force with 1.40 computed (both `held`), plus unit cases of `decide` (1.449 rounds to 1.45: applied, not a
+   fall). The judge's mutation `computed >= last.factor - 0.05` now fails 4 tests (checked).
+2. **Incremental boundary:** run 1 on 7 Dec covers to Fri 4 Dec; the 20 Nov peak's holdings exit Mon 7 Dec, the first
+   session after it; the incremental run equals full (1.686747). The judge's mutation
+   `h.exit >= last.coverage_through + 7 days` now fails it (checked).
+3. **Broker-check split:** the story's scope bullet is now "A14c part 2" (built after part 1 merges, own judge),
+   criterion 10 is split into part 1 (the line) and part 2 (the broker check), and Depends/Status say so; the
+   WORK_REGISTER row matches.

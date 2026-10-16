@@ -1145,7 +1145,8 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   run appends its row, the job commits; a weekly run keeps the row fresh (`max_age_days` 30 leaves three missed weeks
   before C2 refuses);
 - one #fno-desk line per run: the factor in force, the change, `applied` or `held`, and the peak's window;
-- the broker check of owner question 4, one step in the daily Claude routine that already holds Groww's read-only
+- **A14c part 2 (orchestrator, 16 Oct 2026: built after part 1 merges, with its own judge; judge 237 note 3):** the
+  broker check of owner question 4, one step in the daily Claude routine that already holds Groww's read-only
   access (never in GitHub Actions, which holds no broker key); the routine's prompt is story O1's, so this story adds
   the command and O1 adds its one line (judge 173 addendum 3, note 1): `python -m fno margins stress-broker-check`
   runs in every session's daily run, first, before the 3 pm quote parts (so its Groww requests never overlap the 14:55
@@ -1153,7 +1154,10 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   latest A14 row, compared with that row, and appends the result to `research/data/margins/stress_broker_check.csv`
   (append-only: the factor row's `as_of`, the check time, both figures, `ok` or `mismatch`); if that `applied` row
   already has a result, or the latest row is `held`, it prints "nothing to check" and exits 0 (idempotent); a Groww
-  failure exits 1 and the next session retries; it writes no other path.
+  failure exits 1 and the next session retries; it writes no other path. It runs only in market hours (Groww recheck,
+  16 Oct 10:42 IST: SPAN within Rs 0.25 of the row; at 00:12 IST Groww was still on the previous day's file, +Rs 155).
+  Part 1 (the recompute, the factor row, its line and the weekly workflow) does not wait for it: the check never holds
+  the factor.
 
 Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
 
@@ -1217,8 +1221,8 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
 9. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test); after a row
    with an empty `unrounded` (the owner seed) the run is `--full` and the seed's 1.45 is not a floor (test: planted
    files whose true maximum is 1.30 give `computed` 1.30, then `held` against the seed's factor 1.45).
-10. Alerts: one #fno-desk line per run with the factor, the change, the status and the peak (test); a Groww mismatch
-   beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
+10. Alerts (part 1): one #fno-desk line per run with the factor, the change, the status and the peak (test). Broker
+   check (part 2, its own judge): a Groww mismatch beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
    is read-only and places nothing); a second broker check of the same `applied` row writes nothing and prints
    "nothing to check" (test).
 11. Code size, lint, imports and the full suite pass.
@@ -1255,8 +1259,8 @@ them beside this run's needed factor for reference only.
 **Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
-**Depends:** A9, A14, C2, C2c, C2d, O1 (the routine step) · **Size:** M · **Status:** text PASS (judge 173 addenda
-1-3)
+**Depends:** A9, A14, C2, C2c, C2d; part 2 also O1 (the routine step) · **Size:** M · **Status:** text PASS (judge 173
+addenda 1-3); part 1 code with judge D (judge 237), part 2 (the broker check) after part 1 merges
 
 ---
 
