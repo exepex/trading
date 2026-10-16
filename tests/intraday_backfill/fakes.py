@@ -9,8 +9,8 @@ from datetime import date, datetime, timedelta
 
 from fno.global_cues.cue_calendars import NseSessionCalendar
 from fno.intraday.backfill import CandleBackfill
+from fno.intraday.backfill_daily import DEFERRALS
 from fno.intraday.backfill_verify import CandleRowVerifier
-from fno.intraday.backfill_wiring import DEFERRALS
 from fno.intraday.candle_archive import CandleArchive
 from fno.intraday.candle_rv_table import CandleRvTable
 from fno.intraday.candle_source import FIFTEEN_MINUTES, ONE_MINUTE, CandleAnswer, CandleCallFailed, IntradayCandleSource
