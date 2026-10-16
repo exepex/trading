@@ -34,6 +34,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_sync import Git, GitCommitter
     from ..desk.wiring import build_execution_snapshots
+    from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
     from ..price_distribution.folders import receipt_pathspecs
     from ..scorecard.wiring import build_scorecard_run
@@ -43,7 +44,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from .quote_parts import QUOTE_PARTS, QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .reviews import ReviewsStep, ScorecardReview
-    from .steps import Alerted, CommandStep, LiveFrom
+    from .steps import Alerted, CommandStep, LiveFrom, NotBefore
 
     git, alerts, processes, live = (
         Git(root),
@@ -90,6 +91,15 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "price_distribution": Alerted(
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
+        "candles": Alerted(
+            "candles",
+            NotBefore(
+                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed),
+                CATCH_UP_FROM,
+                waiter,
+            ),
+            alerts,
+        ),  # A16b-d: yesterday's candles, after A16's last mark
     }
     cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,

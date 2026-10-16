@@ -110,8 +110,9 @@ worst), `risk` (C2 verdicts with numbers), `validity` (C4 result), `decision` (t
 `alternatives` (no trade, other candidates). **Three-book fields:** `book` (`book1_rules | book2_hybrid |
 book3_ai`), `version_id` (D6), `common_pack_sha256` and `private_pack_sha256` (E2), `rule_default` (Book 2: D2's
 action), `chosen_action` with `reason`, `authority_check` (Book 2: D4), `strategy_id` and its spec hash (Book 3: D5),
-`model_served` and `session_id` (AI books, F1), `judge` (C4 result; F4 verdicts and links), `owner_override` (link to
-a written override, F4), `forecasts` (G3 link). Records live under `journal/<book>/decisions/<date>/...` and are
+`model_served` and `session_id` (AI books, F1), `judge` (C4 result; F4 verdicts and links), `owner_override` (always
+null: the owner never overrides a paper decision, DESK_DECISIONS row 229 item 4; a non-empty value is refused for
+every book), `forecasts` (G3 link). Records live under `journal/<book>/decisions/<date>/...` and are
 **committed before the execution snapshot** (E3).
 
 **Acceptance criteria:**
