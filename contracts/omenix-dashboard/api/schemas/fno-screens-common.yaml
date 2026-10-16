@@ -86,3 +86,7 @@ FnoDataHealthResponse:
   allOf:
     - $ref: '#/components/schemas/FnoScreenMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoDataHealth'}}}
+FnoForecastHistoryResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoForecastHistory'}}}
