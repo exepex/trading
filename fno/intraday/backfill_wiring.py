@@ -24,6 +24,7 @@ from ..storage.wiring import (
     build_session_calendar,
 )
 from .backfill import SERIES_START, CandleBackfill
+from .backfill_daily import CANDLE_FOLDER, DEFERRALS, MANIFESTS
 from .backfill_verify import CandleRowVerifier
 from .candle_archive import CandleArchive
 from .candle_rv_table import CandleRvTable
@@ -33,10 +34,7 @@ from .nse_days import NseIndexDays
 from .read_only import ReadOnlyGroww
 from .realised_vol import CandleCloseRv15m
 from .session_deriver import SessionDeriver
-from .wiring import INTRADAY_FOLDER
 
-MANIFESTS = Path("groww-candles")
-DEFERRALS = Path("rv-candle") / "deferred.csv"
 DRY_RUN_DRIVE = "drive"
 
 
@@ -64,7 +62,7 @@ def build_candle_archive() -> CandleArchive:
 
 
 def build_deferral_log(dry_run_folder: Path | None = None) -> DeferralLog:
-    return DeferralLog((Path(dry_run_folder) if dry_run_folder else INTRADAY_FOLDER) / DEFERRALS)
+    return DeferralLog((Path(dry_run_folder) if dry_run_folder else CANDLE_FOLDER) / DEFERRALS)
 
 
 def _parts(dry_run_folder: Path | None):
@@ -74,7 +72,7 @@ def _parts(dry_run_folder: Path | None):
         folder = Path(dry_run_folder)
         archive = CandleArchive(AreaStore(LocalFolderStore(folder / DRY_RUN_DRIVE), RAW_AREA), folder / MANIFESTS)
         return folder, archive, calendar
-    return INTRADAY_FOLDER, CandleArchive(_owner_raw_area(), MANIFEST_FOLDER / MANIFESTS), calendar
+    return CANDLE_FOLDER, CandleArchive(_owner_raw_area(), MANIFEST_FOLDER / MANIFESTS), calendar
 
 
 def _owner_raw_area() -> RawFileStore:

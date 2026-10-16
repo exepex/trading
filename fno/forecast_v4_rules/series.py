@@ -77,10 +77,16 @@ def big_move_outcomes(closes: list[DayValue], horizon: int) -> list[Outcome]:
     return out
 
 
-def vix_up_outcomes(vix: list[DayValue], horizon: int) -> list[Outcome]:
+def vix_up_outcomes(vix: list[DayValue], horizon: int, sessions: list[date]) -> list[Outcome]:
     """V7: for forecast day t, whether India VIX closes strictly higher at t+horizon than at t (a tie is "no"),
-    resolved at t+horizon's close. `vix` is `vix_closes`: every regular session's close, in session order."""
-    return [Outcome(a.day, b.value > a.value, b.day) for a, b in zip(vix, vix[horizon:], strict=False)]
+    resolved at t+horizon's close. `t+horizon` counts regular `sessions`, not VIX rows: a day whose own or
+    t+horizon's VIX close is missing has no outcome (void), so a gap never stretches the horizon (judge 267)."""
+    known = {v.day: v.value for v in vix}
+    return [
+        Outcome(t, known[end] > known[t], end)
+        for t, end in zip(sessions, sessions[horizon:], strict=False)
+        if t in known and end in known
+    ]
 
 
 def live_intraday_rv(rows: list[dict]) -> list[SessionRv]:

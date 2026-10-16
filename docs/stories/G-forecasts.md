@@ -855,6 +855,95 @@ at go-live · **Size:** M · **Status:** story text for judge A, then ChatGPT (r
 
 ---
 
+### G10 part 2: the pack, its release record and the AI fire (build text, 16 Oct 2026)
+
+**Owner of this part:** the A16/G8 builder. **Lane:** 1 (judge B). **Before the v4 freeze** (22-23 Oct): G11 (Books 2
+and 3, the owner's top priority) builds on its interfaces. Part 1 (merged: clock, X, day-label reader, system_late
+exclusion, counts, the stored flag, cohorts, the look reconciliation) is not repeated here.
+
+**Agreed so far (cross-builder, 15-16 Oct):** R2/G7 (pack fields, the `pack_sha256` column in its records, the
+back-fill regenerated in the same commit), G11 (the fire on the pack's push, `V4_LATEST_FIRE`, collect in
+forecast-capture.yml's existing slot, no new cron), the orchestrator (the workflow and step edits are in this
+builder's remit, lane 1; any cron change goes to the owner first).
+
+**Storage follows O9 from day one (rule 5: nothing writes data into a checkout).** Every file this part writes goes
+through O9's `DataStore.put` (`fno/storage/data_wiring.build_data_store`): bytes write-once in Drive's `data` area,
+one receipt `receipts/<path>.sha256` committed by the A16f committer. Readers read through O9's `DriveCache`
+(verified SHA). Part 1's day-label reader keeps its format; only its root becomes the cache folder.
+
+**1. The pack** (`fno/v4_pack/`, a new package outside the frozen `fno/forecast_v4/`, so a later format change never
+touches the frozen set). One JSON document per regular session at Drive path `v4/packs/<YYYY>/<date>.json`; its
+SHA-256 (of the stored bytes, canonical JSON: sorted keys, UTF-8) is the pack's identity. Values stay in Drive only:
+Groww quote values never enter a repository (CLAUDE.md, A4b); GitHub holds the receipt. Fields, each with its own
+`observed_at` (this host's checked clock at the answer's receipt, protocol 1.6; `last_trade_time` only for the
+"traded today" check, never a time of observation):
+- `day`, `label` (`A` the 14:30 capture; `A2` A16's 14:30 mark as fallback), `source`, `provider`, `captured_from`,
+  `released_at`;
+- `spot` (NIFTY index), `future` (the future of expiry `e`: last, bid, ask), where `e` is the nearest monthly expiry
+  strictly after `d` (protocol 1.5, V5's expiry), and `india_vix` (NSE's value with NSE's own time where NSE gives
+  one);
+- `chain`: per contract `expiry`, `strike`, `kind`, `bid`, `ask`, `last`, `last_trade_time`, `observed_at`; `mid` =
+  (bid + ask) / 2 only when both sides are present, else absent. It holds at least both monthlies A4 records (IV30's
+  inputs; `e`'s chain includes the ATM call and put that V5's 5% spread rule reads) and, once V4 is built, the nearest
+  weekly;
+- `iv30`: `value`, `flagged` (single-expiry, protocol 1.6), `expiries`, `method` (the G1 estimator's name and file
+  hash), `observed_by`.
+A field received after 14:40:00 is not in the pack; a required field missing makes the day `system_late` (no pack).
+
+**2. The release record** (`v4/days/<YYYY>/<date>.json` in Drive, receipt in GitHub): `day`, `label` (`A`, `A2` or
+`system_late`), `pack_path`, `pack_sha256`, `observed_by` (part 1's format plus `pack_path`). Written once, right after
+the pack. G8 syncs `v4/days/` through the DriveCache before every report and look.
+
+**3. The capture at 14:30.** The pack is built from the 3 pm recorder's NIFTY capture moved to a 14:30-14:40 window
+(retries inside the window, every field with its time). That window is A4's recorder (`fno/quotes/`), not this
+builder's: A4's owner (with O1, who owns the 3 pm routine's timing: register row "Handover / routines") adds a
+`--window` setting so v2 keeps 14:55 until go-live; this part supplies the pack builder
+that reads the capture's result and writes the pack and the release record. Fallback `A2`: A16's 14:30 mark
+(through the snapshot store, SHA-checked as in part 1's flag). Same Groww key as A16: one taker per moment is O9's
+claims (section 6); the dry run (criterion 6 of the text above) measures it. **Said plainly (judge 274 add. 1):** until the routine moves (today it starts at 14:33 and
+runs setup first), `A2` is the normal path, not the fallback.
+
+**4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file; R2/G7 builds it).
+The column sits right after `inputs_sha256`; `record()` takes it as a keyword, default empty; `records.py` checks
+only its form (empty or 64 hex characters). `read()` accepts a row without the column as empty, so every committed G7
+and M1 CSV (M1's two forecaster folders use G7's `Record` through `v4_writer`: 9,636 rows) reads unchanged and is never regenerated; a file's next write (it rewrites the whole file) adds the empty column, with no value changed, which keeps
+the freeze clean (R2/G7, 16 Oct). The refusal lives in a small guard in `fno/v4_pack/` used by the pack readers'
+writers (G11's first): fed the released SHA from the release record, it refuses a record naming another pack, and an
+empty SHA from a forecaster that reads the pack. **Design point for the judge:** G7's and M1's forecasters commit before the 14:30 cutoff from
+closes up to d-1 only (proved: part 1's IV and back-fill checks), before any pack exists; they carry `pack_sha256`
+empty, and their method hash already proves they read no pack. Requiring a pack SHA from them would force them past
+their own cutoff.
+
+**5. The 15:10 deadline on GitHub's receipt time.** A live record counts only if GitHub received the commit that
+added its receipt by 15:10:00 IST: O8's `file_pushed_at` (GitHub push receipts, `fno/health/evidence.py:46`) on the
+receipt path, never the commit's own time. Behind an interface (`CommitmentTimes`), one adapter on O8's evidence. A
+record received at 15:10:01 is no forecast that day (a miss under G9's caps).
+
+**6. The AI fire.** `terms.V4_LATEST_FIRE = time(14, 55)` (G11's latest start: a later run is recorded `not_fired`).
+A new workflow triggered by `push` of `receipts/v4/days/**` on `main` runs `python -m fno ai fire` on the released
+pack; no cron (orchestrator, 16 Oct). The release record's receipt is pushed by the owner's routine with its own
+credentials, which starts workflows (strong evidence: 15 Oct, push bf16247a started forecast-capture run 38714143717
+within the minute); never by an Actions run's `GITHUB_TOKEN`, which starts nothing. Collect stays in
+forecast-capture.yml's existing slot; the v2 AI steps leave at the freeze (owner's choice A). Any cron change: owner.
+
+**Acceptance criteria (part 2):**
+1. A pack built from a fixture capture has every field above with its `observed_at`; a field received at 14:40:01 is
+   absent; a missing required field gives `system_late` and no pack; the SHA is of the stored bytes.
+2. Pack and release record go through `DataStore.put` (a test refuses any open-for-write under a checkout data
+   folder); G8 reads the release record from the DriveCache folder.
+3. `pack_sha256`: the guard refuses a pack-reading record with another SHA or an empty one; G7 and M1 rows carry it
+   empty; every committed G7 and M1 CSV is unchanged until its next write, which adds the empty column; no value changes
+   (a missing column reads as empty, equal to a new empty value, so `RecordConflict` is unaffected);
+   `records.py` is not a G7 method file, so no method hash moves.
+4. The deadline: received 15:10:00 counts, 15:10:01 is a miss, from GitHub's receipt time through the interface.
+5. `V4_LATEST_FIRE` in terms; the workflow's trigger path equals the release record's receipt path (a test); no
+   `schedule:` added to any workflow (a test).
+6. Real runs: criterion 6 of the text above (the dry run beside A16's 14:30 mark) on a session before the freeze;
+   and one dated day where the release record's push starts the fire run (run id, both times) in the claims. **Said
+   plainly:** the second needs the owner's 3 pm routine to commit at 14:30, which today starts at 14:33 and records
+   at 14:55; moving it earlier is the owner's schedule call. Without it, that proof comes after the freeze and G11
+   counts from the first proven day.
+
 ## G11. AI books on the v4 questions: books 2 and 3 forecast like the rules and are scored by G8 the same way
 
 **Repository:** trading · **Lane:** 1 (forecast records, a new registered prompt version, the AI books' fire) · **Name
