@@ -16,7 +16,8 @@ def test_a_normal_session_runs_every_step_in_order_alerts_nothing_and_ends_day_d
     assert day.run() == (0, "day done")
     log = run_log(day)
     assert list(log["steps"]) == list(DAILY_RUN_STEPS) and day.slack.sent == []
-    assert log["steps"]["decisions"]["result"]["book1_rules"]["committed_at"] == "2026-10-14T14:58:00+05:30"  # the fake clock
+    decided = log["steps"]["decisions"]["result"]["book1_rules"]
+    assert decided["committed_at"] == "2026-10-14T14:58:00+05:30"  # git dated it by the fake clock
     assert {name: part["status"] for name, part in log["steps"]["quotes_done"]["result"]["parts"].items()} == {
         "nifty": "ok", "nse": "ok", "indices": "ok"}  # fmt: skip
 
