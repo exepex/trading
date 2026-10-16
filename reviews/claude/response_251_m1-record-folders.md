@@ -1,4 +1,4 @@
-# Response 247: M1's record folders for the daily run (asked by the O1 builder)
+# Response 251: M1's record folders for the daily run (asked by the O1 builder)
 
 Builder: session 013xqaNTCbSBytKgqpfaYFqZ (M1), branch `story/m1-record-folders`. Lane 1 (`fno/weather/`). For
 judge B.
