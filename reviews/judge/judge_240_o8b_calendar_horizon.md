@@ -38,3 +38,31 @@ exactly one line.
 
 - The workflow header (lines 4 and 15) still says it commits only `research/ops/health_runs.csv`. Update it to name the
   marker, as the step's own comment does.
+
+## Addendum 1 (judge B, 16 Oct 2026): story/o8b-calendar-horizon at 9232281d
+
+**PASS.** Judge 240's should-fix is closed, and its note too. I took this over from judge D at the orchestrator's
+request.
+
+| Item | Result | Evidence |
+|---|---|---|
+| A crash before anything posts (an import error in `python -m fno`, a sender that cannot be built) gives one line | MET | `cmd_health` writes `posted=true` to `$GITHUB_OUTPUT` only when `alerts.send` returned `SENT`, its own FAILED line included. The alert step runs on `failure() && steps.check.outputs.posted != 'true'`, so an import crash never reaches `_record_posted` and the workflow's line speaks. Test: a sender whose build raises `ImportError` leaves no mark |
+| A refused post or a dry run leaves no mark | MET | parametrised test (four cases) |
+| Exactly one line per failure | MET | posted: the check's own line only; not posted: the workflow's only |
+| The workflow header names the marker (judge 240 note) | MET | lines 4 and 15 |
+| `GITHUB_OUTPUT` is not a credential | MET | `tests/live_credentials.py` `NOT_CREDENTIALS` |
+| The rest of judge 240's criteria (horizon line, once, config, marker commit) | MET, unchanged | the diff around them is the same as 3e215fbb |
+
+**My mutations (real cases):**
+- `_record_posted()` replaced by `pass`: 2 tests fail.
+- The alert step's `if:` put back on `steps.check.outcome != 'failure'`: 1 test fails (the test reads the workflow).
+
+**Notes only (no should-fix):**
+- If the check posted (`posted=true`) and then the commit step fails (a push race on a busy `main`), that day's run
+  posts nothing about the commit, although the step name lists "a commit". The run record then never reaches `main`,
+  so the next evening's check reports "health check did not run on <day>". It is caught one day later, not silent
+  forever.
+- `fno/constants.py` is now 349 lines, one under the limit. The next constant will need a split first.
+
+**Gates (run by me on 9232281d):** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto -p no:cacheprovider`:
+7,089 passed. `ruff check`: clean. `ruff format --check`: 1,259 files already formatted. `check_imports`: clean.
