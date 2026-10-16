@@ -161,10 +161,18 @@ def test_one_failing_check_is_its_own_warning_and_never_takes_the_others_down():
         def find(self, mark, positions):
             raise KeyError("detail never shown")
 
+    class AlsoBroken(LossUsed):
+        name = "also_broken"
+
+        def find(self, mark, positions):
+            raise TypeError("another kind of failure")
+
     s = settings()
-    found = PositionMonitor(s, [Broken(s), BigMove(s)], QuotesStale(s)).find(mark(level=24000.0), [spread()])
-    assert [c.check for c in found.conditions] == ["check_failed", "big_move"]
+    checks = [Broken(s), AlsoBroken(s), BigMove(s)]
+    found = PositionMonitor(s, checks, QuotesStale(s)).find(mark(level=24000.0), [spread()])
+    assert [c.check for c in found.conditions] == ["check_failed", "check_failed", "big_move"]
     assert "KeyError" in found.conditions[0].facts and "detail" not in found.conditions[0].facts
+    assert "TypeError" in found.conditions[1].facts  # judge 264 add. 1: any failure, not one type
 
 
 def test_the_seven_day_bound_holds_on_the_calendar():
