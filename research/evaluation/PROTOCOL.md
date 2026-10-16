@@ -417,15 +417,15 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `fno/evaluation/freeze.py` and `fno/evaluation/order.py` (story BR1a's follow-up, response 230).
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
+  - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
+    2026) and the code of F8 and F9
+    is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
+    version 2.
   - **Role-value files (F9a; ChatGPT review 124, response 191 point 5):** `fno/role_value/checks.py`,
     `fno/role_value/controls.py`, `fno/role_value/cost.py`, `fno/role_value/records.py`, `fno/role_value/render.py`,
     `fno/role_value/report.py`, `fno/role_value/role_set.py`, `fno/role_value/role_set_file.py`,
     `fno/role_value/rows.py`, `fno/role_value/score.py`, `fno/role_value/valuation.py`, `fno/role_value/verdict.py`,
     `fno/role_value/wiring.py`, `fno/evaluation/review_dates.py`.
-  - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
-    2026) and the code of F8 and F9
-    is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
-    version 2.
   - **Refusal:** the freeze tool refuses a listed file that does not exist.
 - **Status:** decided by the owner on 2026-10-14
 - **Reason:**
