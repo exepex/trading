@@ -205,12 +205,13 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
   step (O1's rule: one sender, `tests/daily/test_steps.py` walks the graph), and O1's `CommandStep` still commits the
   receipts of what was written. Back-fill and scoring print counts per reason and never alert.
 - **Daily run (orchestrator's answer to Q1; O1's joining rules, its owner, 16 Oct):** a step `price_distribution`
-  in O1's `DAILY_RUN_STEPS` (`fno/constants_operations.py`, which O8's health check reads), right after
-  `quotes_done` and before `card`: it reads the day's canonical 3 pm chains (NIFTY and A4c's), which exist only once
-  the quote parts end, and nothing reads it (not the pack, not the card). One entry in the steps dict of
+  in O1's `DAILY_RUN_STEPS` (`fno/constants_operations.py`, which O8's health check reads), after `card`: it reads
+  the day's canonical 3 pm chains (NIFTY and A4c's), committed once `quotes_done` ends, and nothing reads it (not the
+  pack, not the card), so the card never waits on it (O1's owner). One entry in the steps dict of
   `fno/daily/wiring.py`: `Alerted(name, LiveFrom(CommandStep(processes, lambda day: (..., "pricedist", "record",
   "--day", day), receipt_pathspecs(), git.changed), live[name]), alerts)`, with the name in `daily.live_from`
-  (`config.yaml`, null) and `LIVE_STEPS`. The pathspecs come from G13's own module
+  (`config.yaml`, null), `LIVE_STEPS` and `fno/config.py`'s allowed keys. G13's code branch makes these lines; O1's
+  owner reviews that diff (whoever merges second merges `main` in). The pathspecs come from G13's own module
   (`fno.price_distribution.folders.receipt_pathspecs()`, G13's receipts only, as M1's `record_folders()`), never a
   shared folder. **No cutoff of its own** (unlike v4's 14:30): its inputs are the 3 pm captures, already timestamped,
   and a row is `live` when made before its first target close, which the 15:30-ish end of the run always meets. It
