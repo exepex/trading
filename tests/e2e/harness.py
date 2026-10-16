@@ -123,6 +123,10 @@ class Day:
         path = self.root / "journal/runs" / f"{day or self.day}.json"
         return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
+    def origin_subjects(self) -> list[str]:
+        """Every commit message `origin` holds: what the run published."""
+        return git(self.root.parent / "origin.git", "log", "--format=%s", "main").splitlines()
+
     def step(self, name: str) -> dict:
         return self.log()["steps"][name]["result"]
 
