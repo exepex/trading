@@ -3,8 +3,8 @@
 Written for the orchestrator (session_01VG1RqxLFUVdvvPuMRYZtDH) and the plan judge, on the owner's request of
 16 Oct: "all the core engine functionality, data generation, evidences, they must align to my end goal and my
 expectations." It reads together with `docs/CORE_ENGINE_GAP_AUDIT.md` (the data and story audit of the same day) and
-does not repeat its tables. State checked on `origin/main` 986b5993 and the story branches on 16 Oct (revision 3: owners from the
-orchestrator, 16 Oct; D3, D4, D5, O1, R1b, R1c and G8 merged; the go-live gate, DESK_DECISIONS row 247). Response 267.
+does not repeat its tables. State checked on `origin/main` 986b5993 and the story branches on 16 Oct (revision 4: owners from the
+orchestrator, 16 Oct; D3, D4, D5, O1, R1b, R1c and G8 merged; judge 305 add. 1 answered; the go-live gate, DESK_DECISIONS row 247). Response 267.
 
 Evidence labels: **[strong]** read from files, branches or the judge index; **[some]** partial evidence;
 **[reasoning]** judgement only. States: **merged** (on `main`), **branch** (code on a story branch, not merged; the
@@ -60,7 +60,7 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | # | Stories (state, owner) | Trial evidence (every day of the 10) |
 |---|---|---|
 | E1 net profit | C1, E1/E1b, E2c/E2d, E7, S6 (merged) | Scoreboard B per book: net after charges, pads and 31.2% tax arithmetic, with a marks row per open trade; O11 checks the chain once, the trial daily |
-| E2 three books | Book 1: D1-D3, D6, E5 (merged); D4, D5 (merged); D3 no override (merged, judge 300); **F1t** (01PLbKH1); **F5** (01SFDjjZ); **F6/F7** (01KTAQCD) | A decision record per book per session: Book 1 from D2, Books 2 and 3 from F1t's sealed AI answers ("no approved strategy" counts); zero books missing from the run log |
+| E2 three books | Book 1: D1-D3, D6, E5 (merged); D4, D5 (merged); Book 2/3 orders and exits (F5, F6); model reporting (F1t); D3 no override (merged as e5906769, judge 300; F4's "no paper override" text merged after it); **F1t** (01PLbKH1); **F5** (01SFDjjZ); **F6/F7** (01KTAQCD) | A decision record per book per session: Book 1 from D2, Books 2 and 3 from F1t's sealed AI answers with the model served recorded ("no approved strategy" counts); zero books missing from the run log |
 | E3 scoreboards | S2, S3, S6, E6, F9a (merged); E6b (text, 0134MoC6); S1 freeze (0185gR5D) | Boards A and B built every day from the same common pack's SHA-256 for all three books |
 | E4 forecasts | G1-G5 (live); G7, G7b part a, G8, G9, G10 part 1, M1 (merged, not live); **G6 freeze** (01MgTu3L); G10 part 2, G7b b-c (01VK88Lx, 0185gR5D); G11 (round 1 PASS, 01XFXpbk); **G13** (01UkTaDe) | Weather and every v4 row written live before 14:30 (needs the 14:05 start and `live_from`); the AI books' v4 rows; a G13 valuation record from the 3 pm chain |
 | E5 daily card | T1, T2 (merged); T3 (0145TfSw); M2 (text); **T1c: card reads M1's weather** (no owner: the card still prints "M1 pending") | One card per session in #fno-desk by about 15:08 (delivery log), TRADE or NO TRADE with its reason and M1's colour |
@@ -69,7 +69,7 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | E8 real money | RM1 (merged); RM2 (text, 01CHxE3y) | Nothing to show in 10 days: the gate stays shut. The trial proves the engine, never an edge |
 | E9 external data | A1-A17, A4b, A4c, A16, O6, A12 (merged); **O10** (013YJ5gj, part 1 with the judge); **A19 news** (01Qj3wtY); **A20 circulars, masters, macro dates** (013u1Ac2); **A17 schedules** (01MBnbVU); O9 (01WHmxEY) | Every capture job leaves one daily row (ok, or failed with its alert) in O10's file; zero days without a row for any source |
 | E10 alert and record | AlertSender, O1's `Alerted`, O8/O8b/O8c, A16 heartbeat (merged); O2 (text PASS, code after O1, 014zYLf1); O10 | Each failure in the 10 days has its alert and its committed row and is root-caused in the conversation log; one silent failure restarts the count |
-| E11 evidence | Judge lanes, S1, G8 looks; **O11** (this session, with the judge) | O11 green with zero xfails at the trial's start; O8's daily health message every evening |
+| E11 evidence | Judge lanes, S1, G8 looks; **O11** (this session, with the judge); O8 health check (first run due 16 Oct 17:51 IST) | O11 green with zero xfails at the trial's start; O8's daily health message every evening, its own absence caught by O10's staleness alert (O11 xfail "O10") |
 | E12 AI analysis | **F2** volatility analyst first (01WSMMv5); F6 (01KTAQCD) | One analyst finding card per session, used by Book 2/3's sealed decision |
 | E13 learning | LR1 weekly post-mortem (merged; owner's routine pending); LR3 (text, 01SFDjjZ); LR2 (paragraph, no owner) | Two Saturday post-mortems inside the 10 trading days |
 | E14 costs | F8/BG1 (merged); **F8c** usage per routine (0134MoC6, with G11) | Each AI routine's minutes recorded per session; the budget meter under the cap |
@@ -82,7 +82,11 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | Gap | Owner now | Still open? |
 |---|---|---|
 | Books 2 and 3 in the daily run (F1t: `ai_fire`, `ai_collect`, sealed decisions) | 01PLbKH1 | text |
-| D3 refuses any `owner_override` | 01SFDjjZ | merged (judge 300); O11 checks it on the recorded day |
+| D3 refuses any `owner_override` | 01SFDjjZ | merged as e5906769 (judge 300); O11 checks it on the recorded day |
+| **Book 2's orders and exits** in the daily run (E3 takes each book's `OrderBuilder` and `ExitRules`; only Book 1's exist) | F5, 01SFDjjZ (orchestrator, 16 Oct) | text |
+| **Book 3's orders and exits** | F6, 01KTAQCD | text |
+| **Model reporting** (`model_served`, `session_id` in each AI decision record) | F1t, 01PLbKH1 | text |
+| **Capture health before the trial** (judge 305 add. 1): (1) `health-check.yml` has no run yet; (2) `nse-margins.yml`'s 03:30 cron has never started (1 scheduled run ever, 16 Oct 07:12 UTC, about 5 h late); (3) `participant-oi-release.yml`'s second slot is cancelled each evening | (1) O8, 012eM7Ti; (2) A14, 01Vm1WnH; (3) O10, 013YJ5gj, until the orchestrator names A8's owner; every one also O10's staleness alert | open: see step 2b. On (1): O8 reached `main` at 2026-10-15 18:46 UTC, after that day's 12:21 UTC slot, so its first scheduled run is due 16 Oct 12:21 UTC (17:51 IST). "0 runs" is not yet a failure; no run by 18:21 UTC is |
 | F5 Book 2 decider on D4's narrow envelope | 01SFDjjZ | text |
 | F6/F7 Book 3 decider and matched shadows on D5 | 01KTAQCD | text |
 | F2 analysts, volatility first | 01WSMMv5 | text |
@@ -103,7 +107,7 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | BR1 breadth code beyond the freezer | Defer: claims failed their own null check; descriptive only (row 231) |
 | G7b parts b-d (V2-V5) | Defer past the books: V2 alone needs 8-22 years of outcomes (row 214) |
 | LR3, F9 shadow firing, M2 price of calm, RM2 code, LM1 round 2b | Keep texts, build no code until the first real paper trades |
-| Four F2 analysts at once; F3 red team and F4 AI judge as separate stories | One analyst first (now the F2 owner's plan); fold F3 into T3; drop F4's overrides (already decided) |
+| Four F2 analysts at once; F3 red team as its own story | One analyst first (now the F2 owner's plan); fold F3 into T3. F4 stays (its text was amended to "no paper override" and merged); I withdraw "drop F4" |
 | A12 full-history filings | Keep the cheap job; build no consumer now |
 | `quote-recorder-nse.yml` | **Kept** (orchestrator: the owner's NSE fallback; I withdraw "retire"). But a fallback that fails every day is no fallback: its failures must reach O10's rows and alerts, and O11's finding 2 (NSE contract IDs refused by C5's buckets) must be fixed before it can ever feed the desk |
 | Judge paperwork per tiny change | 257 judge files in 5 days; the owner asked "are we ... making it over-engineered, over-complicated?" (15 Oct:336). Keep lane 2 and 3 as written; add no review layer |
@@ -112,13 +116,14 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 
 Critical path (each arrow a hard dependency) [strong for the dependencies, reasoning for the order]:
 
-**F1t → F5 → F6/F7 → E8 merge → owner switches (routine at 14:05, `live_from` dates, G6 v4
+**F1t → F5 (Book 2's decider, orders, exits) → F6/F7 (Book 3's) → E8 merge → capture health (2b) → owner switches (routine at 14:05, `live_from` dates, G6 v4
 freeze) → O11 zero xfails, judged → 10-day trial with zero silent failures = done**
 
 | Step | Work | Owner | Parallel with |
 |---|---|---|---|
 | 1 | F5; F1t; F6/F7 | 01SFDjjZ; 01PLbKH1; 01KTAQCD | 2, 3 |
 | 2 | External data first, because history is lost daily: O10, A17 schedules, A19, A20 | 013YJ5gj, 01MBnbVU, 01Qj3wtY, 013u1Ac2 | everything |
+| 2b | Capture health before the trial: O8's first runs seen (or fixed); nse-margins' early cron starts or moves to a time GitHub honours; participant-OI's second slot root-caused; O10's staleness alert proven on a job that never started (its O11 xfail turns real) | 012eM7Ti, 01Vm1WnH, 013YJ5gj | 1 |
 | 3 | E8 merge, then E6b code, R3 part B | 01H1CmuW, 0134MoC6, 0145TfSw | 1 |
 | 4 | O1's 14:05 start; T1c card weather | 014zYLf1; needs an owner | 1 |
 | 5 | G6 v4 freeze → G10 part 2 pack → G11 merge, M1 live, G7b b-c | 01MgTu3L, 01VK88Lx, 01XFXpbk, 0185gR5D | 1 |
