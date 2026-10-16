@@ -879,10 +879,13 @@ Groww quote values never enter a repository (CLAUDE.md, A4b); GitHub holds the r
 "traded today" check, never a time of observation):
 - `day`, `label` (`A` the 14:30 capture; `A2` A16's 14:30 mark as fallback), `source`, `provider`, `captured_from`,
   `released_at`;
-- `spot` (NIFTY index), `future` (the expiry-e future: last, bid, ask), `india_vix` (NSE's value with NSE's own time
-  where NSE gives one);
+- `spot` (NIFTY index), `future` (the future of expiry `e`: last, bid, ask), where `e` is the nearest monthly expiry
+  strictly after `d` (protocol 1.5, V5's expiry), and `india_vix` (NSE's value with NSE's own time where NSE gives
+  one);
 - `chain`: per contract `expiry`, `strike`, `kind`, `bid`, `ask`, `last`, `last_trade_time`, `observed_at`; `mid` =
-  (bid + ask) / 2 only when both sides are present, else absent;
+  (bid + ask) / 2 only when both sides are present, else absent. It holds at least both monthlies A4 records (IV30's
+  inputs; `e`'s chain includes the ATM call and put that V5's 5% spread rule reads) and, once V4 is built, the nearest
+  weekly;
 - `iv30`: `value`, `flagged` (single-expiry, protocol 1.6), `expiries`, `method` (the G1 estimator's name and file
   hash), `observed_by`.
 A field received after 14:40:00 is not in the pack; a required field missing makes the day `system_late` (no pack).
@@ -898,10 +901,13 @@ that reads the capture's result and writes the pack and the release record. Fall
 (through the snapshot store, SHA-checked as in part 1's flag). Same Groww key as A16: one taker per moment is O9's
 claims (section 6); the dry run (criterion 6 of the text above) measures it.
 
-**4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file, changed with their
-agreement in one commit that regenerates the back-fill). A record whose method reads the pack (the AI books; V4 and V5
-when built) carries the released pack's SHA-256; a live record naming any other SHA is refused (`RecordConflict`
-style, before writing). **Design point for the judge:** G7's and M1's forecasters commit before the 14:30 cutoff from
+**4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file; R2/G7 builds it).
+The column sits right after `inputs_sha256`; `record()` takes it as a keyword, default empty; `records.py` checks
+only its form (empty or 64 hex characters). `read()` accepts a row without the column as empty, so every committed G7
+and M1 CSV (M1's weather uses G7's `Record`: 12,045 rows) stays byte-identical and is never regenerated, which keeps
+the freeze clean (R2/G7, 16 Oct). The refusal lives in a small guard in `fno/v4_pack/` used by the pack readers'
+writers (G11's first): fed the released SHA from the release record, it refuses a record naming another pack, and an
+empty SHA from a forecaster that reads the pack. **Design point for the judge:** G7's and M1's forecasters commit before the 14:30 cutoff from
 closes up to d-1 only (proved: part 1's IV and back-fill checks), before any pack exists; they carry `pack_sha256`
 empty, and their method hash already proves they read no pack. Requiring a pack SHA from them would force them past
 their own cutoff.
@@ -923,8 +929,9 @@ forecast-capture.yml's existing slot; the v2 AI steps leave at the freeze (owner
    absent; a missing required field gives `system_late` and no pack; the SHA is of the stored bytes.
 2. Pack and release record go through `DataStore.put` (a test refuses any open-for-write under a checkout data
    folder); G8 reads the release record from the DriveCache folder.
-3. `pack_sha256`: a pack-reading record with another SHA is refused; G7 and M1 rows carry it empty; the back-fill is
-   regenerated in the column's commit with identical values (only the method hash moves).
+3. `pack_sha256`: the guard refuses a pack-reading record with another SHA or an empty one; G7 and M1 rows carry it
+   empty; every committed G7 and M1 CSV reads unchanged without the column (no regeneration, byte-identical files);
+   `records.py` is not a G7 method file, so no method hash moves.
 4. The deadline: received 15:10:00 counts, 15:10:01 is a miss, from GitHub's receipt time through the interface.
 5. `V4_LATEST_FIRE` in terms; the workflow's trigger path equals the release record's receipt path (a test); no
    `schedule:` added to any workflow (a test).
