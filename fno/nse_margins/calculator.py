@@ -2,9 +2,10 @@
 exposure margin, kept apart (judge 75: C2 combines them).
 
 SPAN: the structure's loss in each of the file's 16 scenarios is the sum over its legs of the leg's side (bought +1,
-sold -1) times the option's risk array; the scanning risk is the largest loss, never below zero. For one expiry there
-is no calendar-spread charge and NIFTY's short-option minimum is zero (both checked by `read_span_file`), so the SPAN
-margin is the scanning risk. The net option value is the legs' value at the file's prices (bought legs plus).
+sold -1) times the option's risk array; the scanning risk is the largest loss, never below zero. For one expiry there is
+no calendar-spread charge, so the SPAN margin is the scanning risk, or SPAN's short-option minimum (rate times short
+units, GROSS) when that is larger: zero in every file A14 reads, non-zero in 2020's (story A14c). The net option value
+is the legs' value at the file's prices (bought legs plus).
 
 Exposure: NSE's extreme-loss margin on index options, charged on each short option's notional value (the index's last
 close times the quantity); long options carry none. NSE's rule changes by circular, so it sits behind `ExposureRule`.
@@ -82,6 +83,7 @@ class SpanMarginCalculator:
         if missing:
             raise MarginOutsideModel(f"{span.name}: {missing} not in the {expiry} series")
         losses = [sum(leg.side * options[leg.contract].risk[i] for leg in legs) for i in range(SCENARIOS)]
+        minimum = span.short_option_minimum * sum(not leg.bought for leg in legs)
         nov = sum(leg.side * options[leg.contract].price for leg in legs)
         exposure = self.exposure.per_unit(legs, span.underlying, expiry, day)
-        return MarginFigure(max(0.0, *losses) * self.lot_size, nov * self.lot_size, exposure * self.lot_size)
+        return MarginFigure(max(0.0, minimum, *losses) * self.lot_size, nov * self.lot_size, exposure * self.lot_size)

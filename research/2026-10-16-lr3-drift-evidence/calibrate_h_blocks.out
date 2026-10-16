@@ -1,0 +1,6 @@
+discovery SF: n=33 span 2024-01-15..2026-09-15 iid h*=4.5 block h*=4.0 frozen h=4.5
+discovery SC: n=33 span 2024-01-15..2026-09-15 iid h*=4.5 block h*=3.5 frozen h=4.5
+discovery BF: n=30 span 2024-01-15..2026-09-15 iid h*=4.0 block h*=4.0 frozen h=4.0
+challenge SF: n=56 span 2019-01-14..2023-12-11 iid h*=5.5 block h*=6.0 frozen h=6.0
+challenge SC: n=58 span 2019-01-14..2023-12-11 iid h*=4.0 block h*=4.0 frozen h=4.0
+challenge BF: n=50 span 2019-01-14..2023-12-11 iid h*=1.0 block h*=1.5 frozen h=4.0

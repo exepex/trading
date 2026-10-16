@@ -1,7 +1,7 @@
 # Story O8: the daily health check. One free job each evening checks, from the repository's files and GitHub's push log,
 # that every daily job did its work on time over the sessions of the last 6 days, and posts one summary to #fno-desk.
 # A late start is harmless: the window is the same sessions whenever it runs (fno/health/window.py). Research only;
-# never trades, never fixes or re-runs a job. It commits only its own run record, research/ops/health_runs.csv.
+# never trades, never fixes or re-runs a job. It commits only research/ops/: its run record and the calendar marker.
 # Secrets: FNO_SLACK_BOT_TOKEN (the message) and the run's own GITHUB_TOKEN (GitHub's activity log, as F1); none is
 # printed or written to a file.
 name: health-check
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # commits research/ops/health_runs.csv
+  contents: write # commits research/ops/ (the run record and the calendar-horizon marker)
 
 concurrency:
   group: health-check
@@ -38,6 +38,7 @@ jobs:
           git config user.name "omenix-health-check"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Check the window and post one summary to #fno-desk
+        id: check
         env: # only this step sees them
           FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -45,7 +46,15 @@ jobs:
       - name: Commit the run record
         if: ${{ always() }}
         run: |
-          [ -f research/ops/health_runs.csv ] || exit 0 # a run that failed before its first row records nothing
-          git add research/ops/health_runs.csv
+          [ -d research/ops ] || exit 0 # a run that failed before its first row records nothing
+          git add research/ops/ # its run record and the calendar-horizon marker (O8b), nothing else
           git diff --cached --quiet || git commit -m "Data: health check run $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: Alert #fno-desk when the job failed and nothing was posted (setup, install, an import crash, a commit)
+        if: ${{ failure() && steps.check.outputs.posted != 'true' }} # posted: Slack accepted the check's own line
+        env:
+          FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+        run: >
+          python -c "from fno.composition import build_alert_sender;
+          print(build_alert_sender().send('Omenix F&O health check (GitHub Actions) failed before or after its check; see
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"

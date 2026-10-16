@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -29,6 +29,7 @@ from ..playbook.decision_inputs import PlaybookSnapshot
 from ..playbook.decision_run import DecisionRun
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 from ..playbook.evaluate import LiveFeatureValues
+from ..playbook.schema import Strategy
 from ..playbook.shadow import ShadowBooks
 from ..research_data.calendar import SessionCalendar
 from ..risk.inputs import Market, RiskBook
@@ -47,6 +48,9 @@ DISK_ONLY = ("F&O Book 1 {day}: run {run} is on disk only (not committed, not re
 NOT_DISK_ONLY = "Book 1 {day}: {run} is not a run on disk only ({place}): nothing committed"
 EDITED = "Book 1 {day}: {run} was edited after it was written ({files}): nothing committed"
 COMMITTED_RUN = "Book 1 {day}: {run} committed as recorded ({commit})"
+
+
+ShadowOpener = Callable[[Sequence[Strategy], date], list[str]]  # opens each research version's shadow account once
 
 
 class CommitRunRefused(ValueError):
@@ -74,9 +78,9 @@ class Book1Inputs(ABC):
 class Book1:
     def __init__(self, root: Path, calendar: SessionCalendar, playbook: Callable[[], PlaybookSnapshot],
                  inputs: Book1Inputs, run: DecisionRun, committer: PendingCommitter, decided: DecidedRuns,
-                 alerts: AlertSender):  # fmt: skip
+                 alerts: AlertSender, open_shadows: ShadowOpener = lambda strategies, day: []):  # fmt: skip
         self.root, self.calendar, self.playbook, self.inputs, self.run = Path(root), calendar, playbook, inputs, run
-        self.committer, self.decided, self.alerts = committer, decided, alerts
+        self.committer, self.decided, self.alerts, self.open_shadows = committer, decided, alerts, open_shadows
         self.store = DecisionStore(self.root, BOOK1_RULES)
 
     def decide(self, day: date) -> str:
@@ -91,6 +95,7 @@ class Book1:
         snapshot = self.playbook()
         if not snapshot.playbook().approved_on(day):
             self._no_approved(day, snapshot)
+        self.open_shadows(snapshot.playbook().shadow_on(day), day)  # before D2 reads them (story R3)
         inputs = self.inputs.day(day)
         run = self.run.decide(day, snapshot, inputs.market, inputs.features, inputs.book, inputs.counts,
                               inputs.shadow, inputs.context)  # fmt: skip

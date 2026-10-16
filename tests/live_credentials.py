@@ -25,6 +25,7 @@ NOT_CREDENTIALS = (
     c.ENV_GDRIVE_FOLDER_ID,
     c.ENV_GITHUB_RUN_ID,
     c.ENV_GITHUB_RUN_ATTEMPT,
+    c.ENV_GITHUB_OUTPUT,  # an Actions step's outputs file path (O8b), not a secret
     c.ENV_ROUTINE_DRY_RUN_TRIGGER_ID,
     c.ENV_ROUTINE_BOOK2_TRIGGER_ID,
     c.ENV_ROUTINE_BOOK3_TRIGGER_ID,

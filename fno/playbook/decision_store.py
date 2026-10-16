@@ -1,5 +1,6 @@
 """Where decision records live (story D3): `journal/<book>/decisions/<date>/<run_id>/`, one folder per run holding the
-run's replay inputs (`inputs.json`), one record per opportunity and `records.sha256` (`sha256sum -c` form).
+run's replay inputs (`inputs.json`), one record per opportunity and mode (a shadow's is `shadow_<id>.json`, story R3)
+and `records.sha256` (`sha256sum -c` form).
 
 - **Atomic:** the whole run is written into a hidden temporary folder and renamed into place, so a crash leaves the
   complete run or nothing (criterion 3). Hidden folders are never read as runs.
@@ -19,6 +20,7 @@ from pathlib import Path
 from ..constants import JOURNAL_FOLDER
 from ..desk.pack_items import canonical_json
 from .decision_record import validate_record
+from .opportunities import SHADOW
 
 DECISIONS_FOLDER, INPUTS_FILE, SUMS_FILE = "decisions", "inputs.json", "records.sha256"
 
@@ -27,8 +29,14 @@ class DuplicateRun(ValueError):
     """The same inputs were already decided today."""
 
 
-def record_file(opportunity_id: str) -> str:
-    return opportunity_id.replace(":", "_") + ".json"
+class RecordClash(ValueError):
+    """Two records of one run would share a file: refused, never one silently kept."""
+
+
+def record_file(opportunity_id: str, mode: str | None = None) -> str:
+    """A shadow record's name carries its mode (story R3), so a book's and a shadow's record of the same opportunity
+    both survive; a version name is `[a-z0-9-]` only, so the `shadow_` prefix never matches a book record's name."""
+    return (f"{SHADOW}_" if mode == SHADOW else "") + opportunity_id.replace(":", "_") + ".json"
 
 
 class DecisionStore:
@@ -65,7 +73,7 @@ class DecisionStore:
             raise FileExistsError(f"{target} exists: decision records are never rewritten")
         if inputs is not None:
             self._refuse_duplicate(day, inputs)
-        files = {record_file(r["opportunity_id"]): canonical_json(r) for r in records}
+        files = self._record_files(records)
         if inputs is not None:
             files[INPUTS_FILE] = inputs
         temporary = target.with_name(f".{run_id}.tmp")
@@ -77,6 +85,16 @@ class DecisionStore:
         (temporary / SUMS_FILE).write_text(sums, encoding="utf-8")
         os.rename(temporary, target)
         return target
+
+    @staticmethod
+    def _record_files(records: Sequence[dict]) -> dict[str, bytes]:
+        files: dict[str, bytes] = {}
+        for record in records:
+            name = record_file(record["opportunity_id"], record.get("mode"))
+            if name in files:
+                raise RecordClash(f"two records of this run would both be {name}: refused, nothing written")
+            files[name] = canonical_json(record)
+        return files
 
     def _refuse_duplicate(self, day: date, inputs: bytes) -> None:
         for run in self.runs(day):

@@ -142,6 +142,8 @@ commit with `--no-verify`.
   `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
   scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
   Groww source behind a read-only allow-list, Drive store, clock check, story A16),
+  `fno/storage/data_wiring.py` (story O9: every data file write-once in Drive's `data` area, its SHA-256 receipt
+  under `receipts/`, the verified Drive cache; apart because `wiring.py` is at the size limit),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
   A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
@@ -150,8 +152,9 @@ commit with `--no-verify`.
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
   parts and the card around it, story O1).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
-  repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
-  and results.
+  repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
+  Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
+  file (owner, 16 Oct 2026; story O9, built step by step).
 - F&O output goes only to Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN`; never the market-brief tool's
   `SLACK_*` variables or #market-brief.
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.

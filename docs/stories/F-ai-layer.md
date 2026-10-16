@@ -485,11 +485,12 @@ questions.
   resampler (`fno/scoreboard/uncertainty.py`, revision 2: the resampler and its one-sided p-value reader, imported) runs
   on it with a risk column of 1 (the mean), blocks of 20 opportunities, 10,000 resamples, seed 20261014. The printed
   interval is the nearest-rank 5th and 95th percentiles. It is shown only; the verdict comes from Holm.
-- **Holm** (owner, 15 Oct 2026, via the orchestrator; S3 revision 2's definition and code). At a review, each unit with
-  a known cost and at least 30 changed opportunities enters two one-sided claims: "earns its cost" (p = the reader on
-  the series: the share of resampled means at or below 0) and "drop" (p = the reader on the negated series). All 2m
-  claims of the book's m entering units go into S3's Holm step-down at 0.05/(m' − i + 1) over the 2m claims, as one
-  plain list. At most one claim per unit can pass. For a single unit this is about as strict as a two-sided 5% test,
+- **Holm** (owner, 15 Oct 2026, via the orchestrator; S3 revision 2's definition and code). At a review, **every unit
+  of the registered role set** contributes two one-sided claims: "earns its cost" (p = the reader on the series: the
+  share of resampled means at or below 0) and "drop" (p = the reader on the negated series). A unit without a known
+  cost or 30 changed opportunities stays in the family with p = 1. The family is therefore fixed at 2m claims for the
+  book's m registered units: one unit becoming testable never moves another's threshold (the flaw ChatGPT review 120
+  found in S3; response 237). The 2m claims go into S3's Holm step-down at 0.05/(2m − i + 1), as one plain list. At most one claim per unit can pass. For a single unit this is about as strict as a two-sided 5% test,
   stricter than S1's "one-sided 95%" (response 166, question 7).
 - **Verdict** (S1 `role_value_minimum_sample`; profit only): `drop proposed` (its drop claim passes Holm; a proposal the
   owner can overrule), `earns its cost` (its
@@ -550,12 +551,15 @@ Out: firing the shadow session and withholding the card (F9b); any change to S3'
    reason is printed instead (tests on the day before and the day of a review, with 29 and 30). `review_dates` is
    tested on a constructed calendar, including a month whose last calendar day is a holiday.
 5. A unit with a scored date that has no usage row, or is in a month with no recorded plan cost, shows cost and net
-   value "unknown" and gets no verdict; it does not enter Holm (tests). An unknown day that was not scored leaves the
+   value "unknown" and gets no verdict; it stays in the Holm family with p = 1, so it never loosens another unit's
+   threshold (tests). An unknown day that was not scored leaves the
    verdict possible and only the operating cost unknown (test). Each scored opportunity's net value uses its own
    date's portion: on scored dates of different cost, each net value and the exact series given to the resampler
    are checked (test). The daily split sums exactly to the book's daily allocation (test).
 6. Control roles show caught violations and prevented invalid actions from C4's log, and no profit figure (test).
-7. Holm: on constructed p-values the claims that pass match a hand computation of the step-down over the 2m claims,
+7. Holm: the family is every registered unit's two claims, an untestable unit at p = 1; an ineligible unit becoming
+   eligible leaves every other unit's verdict unchanged (test with a mutation check). On constructed p-values the
+   claims that pass match a hand computation of the step-down over the 2m claims,
    and the verdict follows the passing claim, not the printed interval (test). The function used is S3's (a test
    asserts the import is `fno.scoreboard.uncertainty`'s, not a copy).
 8. Both actions of a pair are valued by `fno/scoreboard/standard_unit.py` (a test asserts it is that function), on the

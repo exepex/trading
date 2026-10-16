@@ -100,6 +100,8 @@ def test_no_event_rows_and_a_calendar_that_ends_inside_the_window():
     assert _checklist(rows).colour(rows[280].day) == GREEN
     assert _checklist(rows).events_ahead(rows[296].day) is None  # 3 sessions left: no event check, no colour
     assert _checklist(rows).colour(rows[296].day) is None
+    assert "add NSE's next-year holiday circular rows" in _checklist(rows).unscored_reason(rows[296].day)
+    assert _checklist(rows).unscored_reason(rows[280].day) is None
 
 
 def test_the_four_inputs_equal_a_hand_computation():

@@ -30,6 +30,14 @@ next three calendar months within 10% of the day's NIFTY, both legs per strike; 
 only when the contract traded, searched within 1%-200% (else no IV, Greeks or chance); Greeks and prices from
 `fno/analytics.py`; history from 1 Jun 2026, at most six months (`chain_session.py`).
 
+The F&O screens' pages (story P2, `docs/stories/W3-fno-screens.md`) publish in the same publication:
+
+| Page key | Contract schema | Source |
+|---|---|---|
+| `weather` | `FnoWeather` (P2a) | M1's records (`WeatherRecords`), NIFTY's committed closes; published only from a live record M1 scored, never a level, a `reaches` colour or the US cue (`weather_block.py`, `weather_parts.py`) |
+| `weather_history` | `FnoWeatherHistory` (P2a, 2.10.0) | every M1 record up to the session, oldest first: colour, label and the two chances beside the usual chances, with the counts (`weather_history_block.py`) |
+| `forecast_history` | `FnoForecastHistory` (P2, 2.10.0) | G4's daily score reports: each v3 question's running score per forecaster, one point per report, live and back-fill apart, one back-fill file per series (`forecast_history_block.py`) |
+
 "ours" (the companies the stock tool follows) is counted and tagged here over the NSE rows, from the stock tool's list
 (W11 input `FollowedCompaniesIndia`, orchestrator decision of 13 Oct 2026, judge 40): a close uses the latest list dated
 on or before it (`followed.py`). Until the stock tool publishes the list (K5-proposed), lists are recorded in

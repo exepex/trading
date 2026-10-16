@@ -375,3 +375,18 @@ This closes judge 214's gap: nothing ran E6's pauses before. It is a text amendm
     - so the first capture failure blocks the next session for nothing.
   - **Fix:** refuse only when some book has an open position (through the same `paper_accounts` and `DeskRecords`
     the scorecard reads). With none, record `ok`, saying "no open position to mark". Add one test each way.
+
+## Addendum 14: O1 at e57046f3 (should-fix 10)
+
+**Verdict: PASS for the code built so far.** Should-fix 10 is closed.
+
+- **The rule now.** With no valid snapshot, `ReviewsStep` is refused only when the scorecards count an open position
+  (`sum(len(card.open_marks))`). With none open, it is `ok`, ending "no open position to mark". A closed loss still
+  pauses either way.
+- **The count is the real one.** `build_scorecard` makes one `OpenMark` for every open trade, marked or not, so an
+  empty mark set still counts each open trade (the refused test has 1 open trade and reports `open=1`).
+- **Tests and mutation.** One test each way, with the real `ScorecardRun`. My mutation putting the old rule back
+  (`if valid:`) fails the nothing-open test.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6900 passed**; `ruff check` is clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.

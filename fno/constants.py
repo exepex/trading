@@ -337,3 +337,8 @@ CARD_SESSION_KINDS = (
     SESSION_REGULAR,
     SESSION_SPECIAL,
 )  # a muhurat session is the one-hour Diwali session: no 15:00 card
+
+ENV_GITHUB_OUTPUT = "GITHUB_OUTPUT"  # an Actions step's outputs file: the health check (O8) records that it posted
+
+# Stories S1 and BR1a: the protocols `python -m fno evaluation check|freeze|verify --protocol` reads
+PROTOCOL_EVALUATION, PROTOCOL_BREADTH = "evaluation", "breadth"

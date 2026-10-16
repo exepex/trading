@@ -160,3 +160,25 @@ def test_a_failed_pull_aborts_its_merge_and_names_the_folder(tmp_path, repositor
     )
     assert git(clone, "status", "--porcelain") == "" or "UU" not in git(clone, "status", "--porcelain")
     assert not (clone / ".git" / "MERGE_HEAD").exists()
+
+
+def test_a_routine_checkout_on_a_session_branch_absent_from_origin_pushes_to_main(tmp_path, repository):
+    clone, origin, manifests = repository  # 16 Oct 2026: routine containers start on claude/lucid-ptolemy-*
+    git(clone, "checkout", "-q", "-b", "claude/lucid-ptolemy-test")
+    save_one_file(tmp_path, manifests)
+    assert GitManifestRecorder(clone, manifests).commit("test run") == COMMITTED.format(count=1)
+    assert "fao_participant_oi_09102026.csv" in git(origin, "show", "main:research/data/manifests/participant-oi.csv")
+    assert "claude/lucid-ptolemy-test" not in git(origin, "branch", "--list")
+
+
+def test_a_branch_carrying_other_unpublished_changes_is_refused_and_main_is_untouched(tmp_path, repository):
+    clone, origin, manifests = repository
+    git(clone, "checkout", "-q", "-b", "story/x-unjudged")
+    (clone / "code.py").write_text("unjudged\n")
+    git(clone, "add", "code.py")
+    git(clone, "commit", "-q", "-m", "unjudged code")
+    before = git(origin, "rev-parse", "main")
+    save_one_file(tmp_path, manifests)
+    outcome = GitManifestRecorder(clone, manifests).commit("test run")
+    assert "NOT committed: pull failed" in outcome and "code.py" in outcome
+    assert git(origin, "rev-parse", "main") == before
