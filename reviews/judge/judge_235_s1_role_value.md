@@ -68,3 +68,28 @@ the role-value cost, is still unhashed.
 - `ruff check` is clean, `ruff format --check` shows 1227 files formatted, and `check_imports` is clean.
 
 **A re-check needs only the F8 file in the list and its test line.**
+
+## Addendum 1: revision at a169734e (built on F9's fixed family, on main, and on item 15): PASS
+
+- **SF1 (F8's allocation): MET.**
+  - The Role-value bullet adds `fno/budget/allocation.py` ("F8's allocation that splits the plan cost", judge 235).
+  - The closure walk now starts at `fno/role_value` as well as `fno/scoreboard` (`SCORING_PACKAGES`).
+  - My plant (the allocation file dropped from the bullet) fails 3 tests across the closure and wording tests.
+- **New exemptions, all accepted:**
+  - `fno/budget/constants.py` holds names only, and `test_frozen_numbers.py` now covers it too (`CONSTANT_MODULES`),
+    so any number a hashed module imports from it must be pinned.
+  - `fno/budget/usage_ledger.py` reads F8's committed usage rows, and `fno/checks/validity_failures.py` reads C4's
+    append-only log. Both are readers of committed rows.
+  - `fno/budget/wiring.py` is a composition root.
+- **The register's cost line is fixed:** "a unit's cost the mean over its consulted days" no longer appears in
+  WORK_REGISTER on the trial merge.
+- **My note on the import form:** I walked the AST of every hashed module and every `fno/scoreboard` and
+  `fno/role_value` module. There is no `import fno.constants as …` and no `from .. import constants`, so the
+  numbers test's `from … constants import NAME` view covers every current import.
+- **Gates:**
+  - `tests/evaluation`: 93 passed on the branch.
+  - On the trial merge with origin/main 74e1c2a1 (tree b1b482e, clean), `-n auto`: pytest 6961 passed. `ruff check`
+    is clean, `ruff format --check` shows 1235 files formatted, and `check_imports` is clean.
+  - `evaluation check` prints S1 and the gate complete.
+
+**Verdict: PASS.**

@@ -84,3 +84,17 @@ files; five files changed. It adds the two fields the screens lead had proposed:
   removed, and the code is unchanged from addendum 1.
 - **The dashboard's main is already at f4f7f40,** which changes only `web/`. `git diff 38dfee6 f4f7f40 -- api/` is
   empty, so `market contract-check` against main reports the pin as the same.
+
+## Addendum 3: pin commit f4f7f40 (dashboard main, 2.10.0)
+
+The orchestrator asked for dashboard main itself, f4f7f404537d0d31f1dd4a3f2539550e101515b5, labelled 2.10.0. Its
+`api/` bytes are identical to 38dfee6's (`git diff 38dfee6 f4f7f40 -- api/` is empty), so only `pin.json`'s commit
+changes.
+
+## Addendum 4: judge 231's note (series key with the back-fill hash)
+
+Judge 231 (PASS at 9c8c41ad) noted that the two real-data tests in `test_forecast_history_page.py` key series by
+(question, label, forecaster) only. **Accepted, checked:** once a real back-fill rebuild lands, two series share that
+key, so the first test's dict would silently merge them and the second test's uniqueness check would fail. Both now
+key by (question, label, forecaster, backfill_sha256), the expected side taking the report's own
+`inputs.backfill_sha256` for back-fill and None for live. Test-only change; the page code is untouched.

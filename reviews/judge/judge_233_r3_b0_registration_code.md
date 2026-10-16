@@ -88,3 +88,28 @@ I ran `tests/scorecard tests/playbook tests/research tests/books tests/desk test
 - **Design:** `PauseTrigger.text` defaults to `""`, so E6's other triggers are unchanged. The constants are at the top
   of their own module, because `constants.py` is at its size limit.
 - **Safety:** no order path and no secret. B0 stays `research` and cannot be promoted by code.
+
+## Addendum 1: `f96cf009` (judge G)
+
+**Verdict: PASS.** This head arrived under the orchestrator's standing go for R3 and B0 work, and I told the
+orchestrator before judging. The code fix is `56f1ede3`. `f96cf009` adds only the gates line in response 236.
+
+- **Should-fix 1 is accepted.** `test_b0_s_first_decision_is_on_16_nov_the_first_session_of_december_s_window` runs
+  the real `OpportunityFinder` with the NSE calendar from 17 Oct to 30 Nov. The only opportunity day is 16 Nov, for
+  the 29 Dec expiry. Claim 4 and the owner effect now say so. Keeping the 19 Oct test is right, because it checks
+  `shadow_on` (the account is opened), not that a record exists.
+- **Should-fix 2 is accepted.** The self-review section is present, and both defects it found are real.
+  1. **A measurement at paper got "not paused" wording.** The single-trade path now uses the measurement text only at
+     `research`. Reverting that guard fails `test_a_measurement_approved_to_paper_is_paused_with_e6_s_own_wording`.
+  2. **The same-day escalation was lost.** E6 sends one alert per version a day, and the first of two cap losses
+     closing the same day carried count 1. The count is now the number of cap losses closed on or before that close
+     day. Two mutations each fail one test: `index + 1`, and a strict `<` plus 1.
+- **Notes 1-3 are done.** The R3 text says spot. The version file's comments state that `margin_per_lot` is the initial
+  margin, and that `expected_range` is per trade against E6's mean. The rule fingerprint is unchanged (`039a6e0733b1`,
+  checked).
+- **Gates:** ruff check, ruff format and `check_imports` are clean. Full suite in a worktree of `f96cf009`:
+  **6,936 passed, 0 failed**.
+
+**Note:** the matching research-only guard in `cumulative_losses` is untested: my mutation dropping it survives (346
+passed). The path needs the owner to approve B0 to paper, which its label forbids, so this is not a normal path. A
+one-line cumulative case beside the paper test would close it whenever `pauses.py` is next touched.
