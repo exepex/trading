@@ -105,3 +105,11 @@ Built as agreed with O8's owner (session_012eM7Ti), who reviewed f3ab7413..7379d
 
 Real dry run on this repository (no GitHub token here, so push times are `unknown`): the message ends with the trial line
 and nothing is written to `research/ops/` [strong].
+
+## Addendum 4: judge 357 (part 2 FAIL, 1 should-fix, 2 minor)
+
+| Finding | Answer | Evidence |
+|---|---|---|
+| SF1: one capture-error row excused every session within 2 days | Accepted. `_excused` gives each row ONE problem of its check: the latest not yet excused, dated from the row's day back `MATCH_DAYS`. `MATCH_DAYS` tightened from 2 to 1: the latest measured evening-job starts land the next IST day (participant OI 01:52, index closes 11:41, panel 12:11, market archive about 11:52), so 2 only widened what a row can excuse. Remaining limit: two failed runs on day E excuse problems on E and E-1 even if E-1's job never started; excused problems never outnumber rows [reasoning] | `test_one_row_excuses_one_session_only` (judge's 19/20/21 case: only 21 excused; two rows on 21 excuse 21 and 20), `test_a_row_from_its_job_by_the_next_day_records_it` [strong] |
+| Minor 1: status in trial_days' silent checks | Accepted: `<check>:<status>` (e.g. `NSE margins:missed`) | tests in `test_trial.py` [strong] |
+| Minor 2: the trial depends on health-check's own cron | Accepted: stated in `trial.py`'s docstring and the story's known limits | [strong: text] |

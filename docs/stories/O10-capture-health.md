@@ -67,8 +67,9 @@ captured properly so that we could fix them").
      its own (each job's alert and record belong to the job);
    - **the trial (owner's go-live gate: 10 sessions in a row with zero silent failures):** a problem (late, missed,
      unknown) is silent unless the job recorded it: its own evidence (`CheckResult.recorded`: a `none` canonical, an
-     incomplete snapshot, A16's bad marks) or a capture-error row from one of its jobs dated from the session to 2 days
-     later (`_recovered` rows aside). A session is judged once, by the first real run at which none of its checks is
+     incomplete snapshot, A16's bad marks) or a capture-error row from one of its jobs dated the session or the next
+     day, each row excusing one session only (judge 357; `_recovered` rows aside). trial_days.csv names each silent
+     check with its status (`NSE margins:missed`). A session is judged once, by the first real run at which none of its checks is
      `not due` (one with an `unknown` waits for its last run in the window, where `unknown` counts; a session no live
      check covers is never judged), and appended to `research/ops/trial_days.csv` (never edited; never by a dry run or a broken check). The
      message's last line is "trial: <k> clean sessions in a row" with what broke it ("last silent: <checks> <date>" or
@@ -114,6 +115,7 @@ Out: the routines' own alerts (they already post: the 3 pm recorder, A4c, A16); 
 **Known limits:** `workflow_run` fires only for workflows on `main`, and a workflow GitHub never starts gives no
 event (O8's freshness rows cover that, the same evening). A run that GitHub starts but cancels before any step leaves
 no step name ("before any step"). The watcher is itself an Actions job; if it never starts, O8's error-count line is
-the backstop.
+the backstop. The trial depends on health-check.yml's own cron starting at least once in every 6-day window: a session
+no run judged shows "not proven" and breaks the streak, loudly but without saying why beyond that line.
 
 **Depends:** O8, O8b, O8c (merged); A14 owner for nse-margins.yml · **Status:** text for the orchestrator.

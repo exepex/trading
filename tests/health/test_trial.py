@@ -1,5 +1,5 @@
 """Story O10: the go-live trial. A problem is silent unless its job recorded it (its own evidence, or a capture-error
-row from one of its jobs within 2 days); a session is judged once, when final;
+row from one of its jobs by the next day); a session is judged once, when final;
 a session with no row breaks the streak."""
 
 from __future__ import annotations
@@ -32,22 +32,24 @@ def error(job, day=DAY, kind="failure"):
 
 def test_a_problem_with_no_record_is_silent():
     assert judge(run(found("Index closes", HEALTH_MISSED), found("NSE recorder", HEALTH_OK)), []) == [
-        TrialDay(DAY, ("Index closes",))
+        TrialDay(DAY, ("Index closes:missed",))
     ]
 
 
-def test_a_row_from_its_job_within_two_days_records_it():
+def test_a_row_from_its_job_by_the_next_day_records_it():
     findings = (found("Index closes", HEALTH_MISSED),)
-    assert judge(run(*findings), [error("index-closes", DAY + timedelta(days=2))]) == [TrialDay(DAY, ())]
-    assert judge(run(*findings), [error("index-closes", DAY + timedelta(days=3))])[0].silent == ("Index closes",)
-    assert judge(run(*findings), [error("panel-days")])[0].silent == ("Index closes",)  # another job's row
-    assert judge(run(*findings), [error("index-closes", kind="http_error_recovered")])[0].silent == ("Index closes",)
+    assert judge(run(*findings), [error("index-closes", DAY + timedelta(days=1))]) == [TrialDay(DAY, ())]
+    silent = ("Index closes:missed",)
+    assert judge(run(*findings), [error("index-closes", DAY + timedelta(days=2))])[0].silent == silent
+    assert judge(run(*findings), [error("panel-days")])[0].silent == silent  # another job's row
+    assert judge(run(*findings), [error("index-closes", kind="http_error_recovered")])[0].silent == silent
+    assert judge(run(*findings), [error("index-closes", DAY - timedelta(days=1))])[0].silent == silent  # before it
 
 
 def test_the_job_s_own_evidence_records_it_and_late_or_unknown_are_problems():
     assert judge(run(found("NSE recorder", HEALTH_MISSED, recorded=True)), []) == [TrialDay(DAY, ())]
-    assert judge(run(found("NSE recorder", HEALTH_LATE)), [])[0].silent == ("NSE recorder",)
-    assert judge(run(found("NSE recorder", HEALTH_UNKNOWN)), [])[0].silent == ("NSE recorder",)
+    assert judge(run(found("NSE recorder", HEALTH_LATE)), [])[0].silent == ("NSE recorder:late",)
+    assert judge(run(found("NSE recorder", HEALTH_UNKNOWN)), [])[0].silent == ("NSE recorder:unknown",)
 
 
 def test_a_session_with_a_check_not_due_is_not_judged_yet():
@@ -93,10 +95,10 @@ def test_the_report_appends_only_when_asked(tmp_path):
     report = TrialReport(TrialLedger(tmp_path / "trial_days.csv"), log, CALENDAR)
     lines = report.lines(run(found("Index closes", HEALTH_MISSED), found("NSE recorder", HEALTH_MISSED)))
     assert lines == ["capture errors: 1 in the window (index-closes)",
-                     "trial: 0 clean sessions in a row (last silent: NSE recorder 15 Oct)"]  # fmt: skip
+                     "trial: 0 clean sessions in a row (last silent: NSE recorder:missed 15 Oct)"]  # fmt: skip
     assert not (tmp_path / "trial_days.csv").exists()  # a dry run stops here
     report.record()
-    assert TrialLedger(tmp_path / "trial_days.csv").days() == {DAY: TrialDay(DAY, ("NSE recorder",))}
+    assert TrialLedger(tmp_path / "trial_days.csv").days() == {DAY: TrialDay(DAY, ("NSE recorder:missed",))}
 
 
 class Recording:
@@ -152,7 +154,7 @@ def test_an_unknown_waits_for_the_session_s_last_run_in_the_window():
     unknown, ok = found("Index closes", HEALTH_UNKNOWN), found("Index closes", HEALTH_OK)
     assert judge(windowed(DAY + timedelta(days=1), unknown), []) == []  # deferred
     assert judge(windowed(DAY + timedelta(days=2), ok), []) == [TrialDay(DAY, ())]  # a later run sees it ok
-    assert judge(windowed(DAY + timedelta(days=6), unknown), []) == [TrialDay(DAY, ("Index closes",))]  # last chance
+    assert judge(windowed(DAY + timedelta(days=6), unknown), []) == [TrialDay(DAY, ("Index closes:unknown",))]
 
 
 def test_a_session_nothing_checked_is_never_judged():
@@ -160,3 +162,14 @@ def test_a_session_nothing_checked_is_never_judged():
 
     assert judge(run(), []) == []
     assert judge(run(found("Index closes", HEALTH_NOT_EXPECTED)), []) == []
+
+
+def test_one_row_excuses_one_session_only():
+    """Judge 357 SF1: never started on 19 and 20 Oct (silent), failed loudly on 21 Oct: only 21 is excused."""
+    days = (date(2026, 10, 19), date(2026, 10, 20), date(2026, 10, 21))
+    findings = tuple(found("Index closes", HEALTH_MISSED, session=d) for d in days)
+    many = HealthRun(days[-1], days, ("Index closes",), findings, (), (), JOBS)
+    judged = judge(many, [error("index-closes", days[-1])])
+    assert [d.silent for d in judged] == [("Index closes:missed",), ("Index closes:missed",), ()]
+    two = judge(many, [error("index-closes", days[-1]), error("index-closes", days[-1])])  # two failed runs that day
+    assert [d.silent for d in two] == [("Index closes:missed",), (), ()]
