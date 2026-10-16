@@ -164,3 +164,17 @@ The diff touches one file, `docs/stories/O9-data-to-drive.md` (+13/-7).
 **Verdict: PASS for 1664d638** (O9 v2 story text). Each build step in section 8 is its own lane-1 judge round.
 Section M also needs market-brief's own approval: both AIs and the owner. The owner's two open questions (rewriting
 history, a Slack line on good runs) stay with the owner.
+
+## Addendum 5 (16 Oct 2026): merge check, O9 v2 text merged to main as 431f37d0
+
+- **Merge is correct.** 431f37d0's parents are e10b38ab (main) and 1664d638 (the passed tip). Against its main parent
+  it changes exactly the branch's four files: the story, response 238, the work-register row and one index row.
+  `git diff 1664d638 431f37d0` on the story, response 238 and the register is empty.
+- **The one conflict was resolved by hand.** In `reviews/claude/README.md` both index rows (238 and 239) were kept;
+  the only difference from the recomputed merge is the removed conflict markers. No other file was touched.
+- **CI.** The parent is green. The run on 16a0a62, which contains the merge, was in progress; this is a docs-only
+  merge, and I confirm the run in my report.
+
+**Verdict: merge check PASS.**
+
+**CI confirmed (07:50 UTC):** checks run 38868747841 on 16a0a62 (this push contains 431f37d0) finished green.

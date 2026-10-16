@@ -135,6 +135,9 @@ risk:
     method: multiplier
     factor_file: research/data/margins/stress_factor.csv
     max_age_days: 30
+    # Story A14c: downloads of archived SPAN files running ahead of the recompute (one Drive stream gave 0.41 MB/s on
+    # 16 Oct 2026, about 30 s a file; parallel streams were each as fast). The order the files are read never changes.
+    recompute_workers: 8
 
 # Story E6: the paper review rule's statistics, in one place. PROVISIONAL until S1 (the evaluation protocol) freezes the
 # real statistics; S1 replaces these values here, with no code change (orchestrator, 14 Oct 2026; reasoning only).
