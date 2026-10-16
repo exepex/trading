@@ -34,6 +34,10 @@ validated ... do not over-engineer ... Simplicity is also our priority, but not 
   only following the rule, a veto, a narrower set (width, fewer lots) or another eligible version, all then checked by
   C2 and C4 (D4, F5). Checking meaning needs a model different from the author's, outside the daily window: that is
   **F4b** (out, below; an owner question).
+- **Known limit of this version (stated, F5 16 Oct):** design 7's "judgement" is narrower here: the code judge checks
+  citations and number consistency, not whether the reasoning is sound (F4b).
+- **A slot cannot hide a change:** Book 2's `check_decision` refuses a top-level `follow_rule` unless every slot follows
+  its default (F5), so "any action other than `follow_rule`" covers slot changes.
 - **Reuse (strong evidence: code):** `fno/advocate/numbers.py` already compares whole number tokens and refuses numbers
   written in words (judge 167 addendum 1); the judge uses it unchanged.
 
@@ -82,8 +86,11 @@ value or raises `Unresolved`.
   account figures in any answer, and the prompt lines say so. What to redo: "cite each fact as a pointer to one
   value in your own pack".
 - **Interpretation:** every number token (`numbers.py`'s tokenizer) in every text under a key named `reason`, at any
-  depth of the decision, is a token of a cited value or of a JSON number in the decision itself (a slot's width or
-  lots); no number is written in words (`numbers.py` rule 4). What to redo: "quote each number exactly as the pack
+  depth of the decision, is a token of a cited value or of a value the decision itself names outside its reasons
+  and its `evidence` (a slot's width or lots, an opportunity or card ID; text values over 200 characters, such as a
+  Book 3 proposal's `spec`, are not counted). Those named values are themselves checked against the day sheet by
+  F5's and F6's shape checks and by C4. A date or expiry written in a reason ("27 Nov") is a number like any other: it
+  is cited and written as the pack writes it (F5, 16 Oct); no number is written in words (`numbers.py` rule 4). What to redo: "quote each number exactly as the pack
   writes it, and cite where it comes from". Reasons name the pointer and the token, never a private pack value.
   The rule runs one way only: a cited pointer never obliges the text to write its number, so a reason may rest on a
   private value (cited) without quoting it, as F1t's `seal` requires for account figures (F6, 16 Oct).
@@ -114,10 +121,15 @@ class JudgeStep:                                          # build_judge_step(roo
 ```
 
 F1t's `ai_collect`, for each book-day that passed its own checks and before `decide()`: (1) `judged =
-step.run(case)`; (2) if `judged.verdict.blocks`, the book-day's outcome is `judge_failed` (no trade, `decide()` not
-called), its reason the verdict's; (3) otherwise `decide()` runs, with `AcceptedDecision.judge` set to the verdict
-file's repository path, which F5 and F6 write into D3's existing `judge` field; (4) the verdict file is committed with
-the outcome record. The judge reads nothing from disk except the audit records (for the suspension), so it adds no
+step.run(case)`; (2) `decide()` runs in every case, with `AcceptedDecision.judge` set to the verdict file's
+repository path (F5 and F6 write it into D3's existing `judge` field) and `AcceptedDecision.judge_blocks` to
+`judged.verdict.blocks`; (3) when `judge_blocks` is true, Book 2's decider writes a "no trade, judge failed" run (or
+"judge unavailable"): the account takes no position and the rule default is recorded as a shadow record (D3 `mode:
+shadow`), so scoreboard A keeps the paired day (the amended F4 text: "the rule default is recorded as a shadow"; F5,
+16 Oct); (4) F1t's check of the decided run refuses a blocked run that holds any chosen, non-shadow trade, so the
+block does not rest on the decider alone (defence in depth), and the book-day's outcome is `judge_failed` with the
+verdict's reason (no fill: E3 finds no chosen trade); (5) the verdict file is committed with the outcome record and
+the run. The judge reads nothing from disk except the audit records (for the suspension), so it adds no
 network time to the 15:11:00-15:12:00 window; its 5 s budget is measured, and over budget is `unavailable`.
 (Agreement with F1t, F5 and F6: response 271, "Coordination".)
 
@@ -149,8 +161,9 @@ the audit after a fix that passes lifts it.
 
 1. **Different model.** A judge whose model equals the author's registered model is refused: the verdict is
    `unavailable` with that reason (Book 2: no trade). The code judge's model is `code:f4-v1`.
-2. **Book 2 blocks, Book 3 records.** A Book 2 decision failing a check gives `blocks: true` and, through F1t's
-   port, no `decide()` call (no run, no fill); the same failure on Book 3 gives `blocks: false` and the verdict file.
+2. **Book 2 blocks, Book 3 records.** A Book 2 decision failing a check gives `blocks: true`; through F1t's port
+   the day's run has no chosen trade, the rule default is a shadow record, and a run that holds a chosen trade under
+   a blocking verdict is refused by F1t's run check (no fill); the same failure on Book 3 gives `blocks: false` and the verdict file.
 3. **No override.** Nothing in F4 writes or reads `owner_override`; a verdict file has no override field, and the only
    way past a `fail` is a new decision on a later day.
 4. **Sufficiency.** Each refusal: a pointer that does not resolve, a pointer into the other pack, a pointer to an
@@ -191,7 +204,7 @@ the audit after a fix that passes lifts it.
 |---|---|
 | Sufficiency and interpretation checked, by a model different from the author | criteria 1, 4, 5 (code daily); meaning: F4b, out, owner question 1 |
 | Verdict JSON `check, pass, reasons, what_to_redo, model` | design 3 (`checks` items, `judge`), criterion 8 |
-| Fail = no trade (Book 2); Book 3 recorded, not blocking; Book 1 by C4 only | criterion 2; Book 1 is not judged (no change to Book 1) |
+| Fail = no trade (Book 2), the rule default recorded as a shadow; Book 3 recorded, not blocking; Book 1 by C4 only | criterion 2, design 4; Book 1 is not judged (no change to Book 1) |
 | No override path; D3 keeps `owner_override` null | criterion 3; D3's refusal is `story/d3-no-owner-override` |
 | Judge missing the deadline = fail (Book 2), "judge unavailable" (Book 3) | criterion 6 |
 | Monthly audit: 20% of approvals, rejections, abstentions, at least 5; re-checked against recalculated evidence | criterion 7; the re-check by another model: F4b |

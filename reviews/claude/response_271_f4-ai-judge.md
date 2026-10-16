@@ -63,5 +63,18 @@ Numbering: this claims file keeps 271 (reserved by the orchestrator in `reviews/
   shape and the `check_decision` call, the prompt lines (account files not citable, `/evaluation` scalars are), D3
   `judge` from `AcceptedDecision.judge`, verdicts never block, the sequencing note, criterion 17. Read by me: matches
   F4 design 1-3.
-- **F1t:** requested; pending. **F5:** requested; pending.
+- **F5 (16 Oct):** agreed to the `evidence` key, the call and the prompt lines. Checked each point:
+  - correction 1 (`change` is stale): already fixed at 90066e7d; slot changes are covered because `check_decision`
+    refuses a `follow_rule` top level over a changed slot; now stated.
+  - correction 2 (dates, IDs and strategy names in reasons): checked the tokenizer: "sc-iv-v1" gives no token (the digit
+    follows a letter), but an ID such as "opp-3" gives "3", and "27 Nov" gives "27". Chosen: the values the decision
+    names outside its reasons (IDs, width, lots; text over 200 characters excluded) count as allowed, since F5/F6 and
+    C4 check them against the sheet; dates in prose are cited and written as the pack writes them. Reason: an
+    exemption by pattern would let any invented date through.
+  - push-back (no D3 run on a judge fail loses scoreboard A's paired day): **accepted.** Checked: the amended F4 text
+    says "the rule default is recorded as a shadow", which my design 4 had missed. Now `decide()` always runs with
+    `judge_blocks`; Book 2 writes "no trade, judge failed" with the rule default as a shadow; F1t's run check refuses a
+    blocked run holding a chosen trade (defence in depth).
+  - known limit stated in Context.
+- **F1t:** requested (port updated to the above); pending.
 - **Owner question 1:** with the orchestrator; pending.
