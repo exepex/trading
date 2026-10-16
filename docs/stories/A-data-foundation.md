@@ -1568,7 +1568,8 @@ them beside this run's needed factor for reference only.
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
 **Depends:** A9, A14, C2, C2c, C2d; part 2 also O1 (the routine step) · **Size:** M · **Status:** text PASS (judge 173
-addenda 1-3); part 1 code with judge D (judge 237), part 2 (the broker check) after part 1 merges
+addenda 1-3); part 1 merged; part 2 text and its allow-list code PASS (judge 291 addendum 2, judge 356 addendum 1),
+the check's code next (lane 1, its own judge)
 
 ---
 
