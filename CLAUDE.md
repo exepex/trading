@@ -143,7 +143,8 @@ commit with `--no-verify`.
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/storage/quote_wiring.py` (the 3 pm quote store: Groww's
-  raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/risk/wiring.py` (the
+  raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/quotes/window_wiring.py`
+  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/risk/wiring.py` (the
   risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
   and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),

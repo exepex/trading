@@ -60,6 +60,13 @@ DRY_RUN_ALERTS = "dry run"
 OWNED_PATHS = (LEDGER_ROOT, RV_ROOT, FILE_NAME)  # the ledger, the session RV and the heartbeat; nothing else (A16e)
 
 
+def build_clock_check() -> ClockCheck:
+    """A16's checked clock (GitHub and Slack), also used by A4e's named 3 pm captures: one rule, no copy."""
+    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
+                                                             or DEFAULT_REPOSITORY))  # fmt: skip
+    return ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
+
+
 def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> IntradayRecorder:
     folder = Path(dry_run_folder) if dry_run_folder else INTRADAY_FOLDER
     ledger = SlotLedger(folder)
@@ -70,12 +77,10 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
     calendar = build_session_calendar()
     session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m(), cutoff=v4_cutoff_flag)
-    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
-                                                             or DEFAULT_REPOSITORY))  # fmt: skip
-    clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
-        source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
+        source, files, ledger, Heartbeat(folder), calendar, alerts, build_clock_check(), session_rv,
+        _sync(dry_run_folder, alerts),
         claims=_claims(dry_run_folder), observer=NoObserver(),  # LM1's position monitor plugs in here
     )  # fmt: skip
 
