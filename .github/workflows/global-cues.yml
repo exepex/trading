@@ -3,20 +3,24 @@
 # FBIL to Drive only, the others into research/data/global-cues/), archives each copy in Drive with its log row,
 # extends the tables from 31 days before their last date and rewrites the checks; a cue that fails, or whose newest
 # value is older than its limit (STALE), is named and the run fails. The logs and tables are committed even then.
-# Two runs a day. Cboe and Nasdaq are downloaded at most once an IST day and a copy drops the US day still running
-# (A17's `may_hold_unfinished`), so the day's first run must come after the US close, or that close waits a day:
-#   04:41 IST, after the US closes (01:30-02:30 IST) and the Treasury's evening file (by about 04:30 IST), so the
-#   overnight cues are first seen before the 09:15 open; GitHub starts this repository's morning crons 4-5 hours late
-#   (14-16 Oct 2026), so on such a day they are first seen after 09:15, and the as-of rule (A17) does not count them
-#   as known at the open: the cost is a value marked late, never a wrong one;
-#   14:11 IST, after RBI's reference rate (about 13:00-13:30 IST); the US cues reuse the morning copy.
+# Three runs a day. GitHub starts this repository's morning crons 4 h 40 min to 5 h 01 min late (judge 351, 14-16 Oct
+# 2026), so the main run is set early enough to land before the 09:15 open even 5 hours late. Cboe and Nasdaq are
+# downloaded at most once an IST day (the owner's condition) and a copy drops the US day still running (A17's
+# `may_hold_unfinished`), so the day's first run must come after the US close (16:00 New York: 01:30 IST in summer
+# time, 02:30 IST in winter), or that close waits a day; a later run of the same IST day reuses the first copy:
+#   03:41 IST (08:41 if 5 hours late): 71 minutes after the winter close, 131 after the summer one;
+#   04:41 IST: the backup for the Treasury's 10-year yield, published by about 04:30 IST (`treasury_source.py`) and
+#   downloaded on every run, so an on-time 03:41 run that came before it is completed before the open;
+#   14:11 IST, after RBI's reference rate (about 13:00-13:30 IST).
+# A value first seen after 09:15 is not counted as known at the open (A17's as-of rule): late, never wrong.
 # One #fno-desk line when the run fails, naming the cues; O10's capture-watch records the failed run. Secrets: the A12
 # Drive and Slack ones; none is printed or written to a file.
 name: global-cues
 
 on:
   schedule:
-    - cron: "11 23 * * *" # 04:41 IST (the previous UTC day): the overnight US cues before the open
+    - cron: "11 22 * * *" # 03:41 IST (the previous UTC day): the overnight US cues, before the open even 5 h late
+    - cron: "11 23 * * *" # 04:41 IST: the Treasury's 10-year if the 03:41 run came before it
     - cron: "41 8 * * *" # 14:11 IST: RBI's reference rate of the day
   workflow_dispatch:
 

@@ -85,3 +85,30 @@ I checked each point before fixing it.
   about 09:20-09:40 IST, so the US cues will mostly be marked late at the open. That is a GitHub limit, and this
   story cannot remove it. A run earlier than 04:41 would come before the Treasury's file (about 04:30 IST).
 - **Gates on the fix commit:** 7,715 passed (-n auto); ruff and the import check are clean.
+
+## Addendum 2: main US-cue run at 03:41 IST (orchestrator, 16 Oct)
+
+- **The schedule is now three runs.**
+  - 03:41 IST (cron 22:11 UTC): the main run. It lands at 08:41 even if it starts 5 hours late. It comes 71 minutes
+    after the winter US close (16:00 New York = 02:30 IST) and 131 minutes after the summer one (01:30 IST).
+  - 04:41 IST: the backup for the Treasury's 10-year yield, published by about 04:30 IST (`treasury_source.py`). That
+    cue is downloaded on every run, so an on-time 03:41 run that came before the file is completed before the open.
+  - 14:11 IST: RBI's reference rate.
+  - The test now asserts:
+    - main run after 02:30 IST;
+    - main run plus 5 hours before 09:15;
+    - backup between 04:30 and 09:15;
+    - afternoon run between 13:30 and 19:00.
+- **When Cboe and Nasdaq are final: reasoning only, not measured.**
+  - I tried to measure it with Cboe's `Last-Modified` header. At 11:44 UTC it read 11:09 UTC, long after the close, so
+    the file is regenerated on a timer, and the header shows nothing about when the close lands.
+  - Cboe's quotes are 15-minute delayed, so the close should be in the file by about 16:20 New York. Nasdaq's history
+    API has no stated time.
+- **Why the 04:41 run cannot back up the US closes.** The owner's once-a-day condition means the first copy of an IST
+  day is the day's only one, and the 04:41 run reuses it. So if an on-time 03:41 copy lacks the close, that close is
+  first seen the next day and marked late. It is never wrong, and it is visible in the snapshot log.
+- **Measurement promised.** After a week of runs, I'll compare each US close's first-seen time with its run's start
+  time and report whether 03:41 ever came too early.
+- **On `always()`.** I used `!cancelled()` rather than `always()`: it is the same except on a cancelled or timed-out
+  run, which O10's capture-watch posts, so `always()` would post twice.
+- **Gates:** 7,715 passed (-n auto); ruff and imports are clean.

@@ -4,7 +4,7 @@ output and the previous IST month the VIX job asks for."""
 
 import re
 import subprocess
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 import yaml
@@ -16,6 +16,7 @@ from fno.models import IST, now_ist
 from fno.vix_history import cli as vix_cli
 
 WORKFLOWS = ROOT / ".github" / "workflows"
+DAY = date(2026, 10, 16)
 COMMAND = re.compile(r"python -m fno ([^\n|]+)")
 
 
@@ -35,9 +36,12 @@ def _ist_times(name: str) -> list[time]:
     return times
 
 
-def test_the_cue_runs_come_after_the_overnight_files_and_rbi_s_rate():
-    morning, afternoon = _ist_times("global-cues.yml")
-    assert time(4, 30) <= morning < time(9, 15)  # after the US closes (by 02:30) and the Treasury (by about 04:30)
+def test_the_cue_runs_come_after_the_us_close_and_land_before_the_open_even_5_hours_late():
+    main, backup, afternoon = _ist_times("global-cues.yml")
+    latest_us_close = time(2, 30)  # 16:00 New York in winter time; 01:30 IST in summer time
+    five_hours_late = (datetime.combine(DAY, main) + timedelta(hours=5)).time()
+    assert latest_us_close < main and five_hours_late < time(9, 15)  # judge 351: crons start 4 h 40 to 5 h 01 late
+    assert time(4, 30) <= backup < time(9, 15)  # the Treasury's file, by about 04:30 IST
     assert time(13, 30) <= afternoon < time(19, 0)  # after RBI's reference rate, before the US session opens
 
 
