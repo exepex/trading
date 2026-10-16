@@ -26,3 +26,11 @@ orchestrator's request. Lane 1: it publishes pages and moves the pinned contract
   `profile.open_risk_cap_rs` (already read in the wiring for the home books), never typed (judge 224 addendum 3).
 - My second mutation (reading `value` without the status guard) left the tests green, because non-ok entries
   already carry `value: null` in all 2,409 records. The guard is a belt-and-braces check, not an untested path.
+
+## Addendum 1: head 808fee92 (pin commit moved to dashboard main f4f7f40)
+
+**PASS.** `git diff 9c8c41ad 808fee92` changes only `pin.json`'s `commit` (38dfee63 to
+f4f7f404537d0d31f1dd4a3f2539550e101515b5, the full SHA of dashboard main) and response 234 addendum 3. The file hashes
+and `contract_version` 2.10.0 are unchanged. `git diff 38dfee6 f4f7f40 -- api` is empty, so the pinned bytes are still
+main's. A trial merge with trading main (acbb4cef) merges cleanly: `pytest -n auto` 6940 passed, ruff clean,
+check_imports clean.
