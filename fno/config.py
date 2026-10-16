@@ -27,6 +27,7 @@ ALLOWED_APP_KEYS = frozenset(
         "daily",
         "budget",
         "health",
+        "ai_books",
     }  # fmt: skip
 )
 

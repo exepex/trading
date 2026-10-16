@@ -1,7 +1,8 @@
 """Composition root of the daily run (story O1): E3's desk run (Book 1's orders and exit rules) with O1's steps
 around it: A14c's margin check, the weather, the v4 forecasts and the card as their own commands, each from its
-`daily.live_from` date; Book 1's decision (E5) right after the pack; and A4c's quote parts beside the desk, committed
-through E3's committer in the run's one thread."""
+`daily.live_from` date; the AI books' fire right after the pack and their collection after Book 1's decision (E5),
+each AI book from its own `daily.live_from` date with its own orders and exit rules (story F1t); and A4c's quote
+parts beside the desk, committed through E3's committer in the run's one thread."""
 
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import CARD_DELIVERIES_FOLDER, PLAYBOOK_FOLDER, REVIEWS_STEP
+from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, CARD_DELIVERIES_FOLDER, PLAYBOOK_FOLDER, REVIEWS_STEP
 from ..desk.daily_ports import DayStep
 from .runner import DayRunner
 
@@ -20,6 +21,7 @@ FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card")
+LIVE_BOOKS = (BOOK2_HYBRID, BOOK3_AI)  # story F1t: each AI book's first trading day; null: not in the desk at all
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -28,7 +30,20 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
     return {name: date.fromisoformat(str(raw[name])) if raw.get(name) else None for name in LIVE_STEPS}
 
 
-def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
+def live_ai_books(cfg: dict, day: date) -> tuple[str, ...]:
+    """The AI books live on `day` (`daily.live_from.<book>` on or before it); a key `daily.live_from` does not know is
+    refused, so a typo can never leave a book silently off (O1 builder, 16 Oct)."""
+    raw = cfg.get("daily", {}).get("live_from", {}) or {}
+    unknown = sorted(set(raw) - set(LIVE_STEPS) - set(LIVE_BOOKS))
+    if unknown:
+        raise ValueError(f"config.yaml daily.live_from: unknown {', '.join(unknown)}; known: {LIVE_STEPS + LIVE_BOOKS}")
+    return tuple(b for b in LIVE_BOOKS if raw.get(b) and date.fromisoformat(str(raw[b])) <= day)
+
+
+def build_day_runner(cfg: dict, root: Path = ROOT, day: date | None = None) -> DayRunner:
+    """`day`: the session the run is for (its AI books are those live that day; none when not given)."""
+    from ..ai_trading.book_dispatch import ExitRulesByBook, OrdersByBook
+    from ..ai_trading.wiring import build_ai_steps, build_book_parts
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
@@ -57,6 +72,10 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         return CommandStep(processes, arguments, (folder,), git.changed)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
+    ai_books = live_ai_books(cfg, day) if day else ()
+    book_parts = build_book_parts(cfg, root, alerts, ai_books)
+    live_on = lambda run_day: ai_books if run_day == day else ()  # noqa: E731 - the books live on the built day
+    ai_steps = build_ai_steps(cfg, root, live_on, book_parts, processes, waiter, git, now_ist)
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
@@ -66,6 +85,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
             "forecasts_v4", LiveFrom(command(lambda day: FORECASTS_V4, V4_RECORDS), live["forecasts_v4"]), alerts
         ),  # fmt: skip
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
+        **{name: Alerted(name, step, alerts) for name, step in ai_steps.items()},  # story F1t
         "book1": Alerted(
             "book1",
             CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed),
@@ -85,7 +105,10 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
     }
-    cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
-    daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
-                                alerts=alerts)  # fmt: skip
+    orders = OrdersByBook({BOOK1_RULES: build_book1_orders(cfg), **{b: p.orders for b, p in book_parts.items()}})
+    exits = ExitRulesByBook(
+        {BOOK1_RULES: build_book1_exit_rules(root, alerts), **{b: p.exits for b, p in book_parts.items()}}
+    )
+    daily_run = build_daily_run(cfg, orders, exits, books=(BOOK1_RULES, *ai_books), root=root, waiter=waiter,
+                                day_steps=steps, git=git, alerts=alerts)  # fmt: skip
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))

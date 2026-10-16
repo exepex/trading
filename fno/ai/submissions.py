@@ -3,6 +3,7 @@ at the commit that first added it (a later rewrite changes nothing), with GitHub
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -37,11 +38,22 @@ class Submission:
             return None
 
 
-def read_submission(history: RepoHistory, receipts: PushReceipts, day: date, book: str) -> Submission:
-    commitment = _published(history, receipts, commitment_path(day, book))
-    reveal = _published(history, receipts, reveal_path(day, book))
+PathOf = Callable[[date, str], str]  # (day, book) -> repository path
+
+
+def read_submission(
+    history: RepoHistory,
+    receipts: PushReceipts,
+    day: date,
+    book: str,
+    commitment_of: PathOf = commitment_path,
+    reveal_of: PathOf = reveal_path,
+) -> Submission:
+    """The forecast's submission by default; story F1t's decisions pass their own two paths."""
+    paths = commitment_of(day, book), reveal_of(day, book)
+    commitment, reveal = (_published(history, receipts, path) for path in paths)
     notes = [f"{p} was changed after it was first published; the first version counts"
-             for p, f in ((commitment_path(day, book), commitment), (reveal_path(day, book), reveal))
+             for p, f in zip(paths, (commitment, reveal))
              if f is not None and history.committed_text(p) != f.text]  # fmt: skip
     return Submission(commitment, reveal, notes)
 

@@ -4,7 +4,7 @@ closes, events), D2's opportunity code with the playbook, and the private pack's
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from ..config import ROOT
@@ -13,7 +13,7 @@ from .common_pack import CommonPackBuilder
 from .packs import WrittenPacks
 from .private_pack import PrivatePackBuilder
 
-PACKED_BOOKS = (BOOK1_RULES,)  # books 2 and 3 get private packs when D4 and D5 exist
+PACKED_BOOKS = (BOOK1_RULES,)  # the daily run packs its live books too (story F1t: each live AI book)
 
 
 def build_common_pack_builder(root: Path = ROOT) -> CommonPackBuilder:
@@ -46,7 +46,8 @@ def build_private_pack_builder(root: Path = ROOT) -> PrivatePackBuilder:
     return PrivatePackBuilder(root)
 
 
-def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None, files=None) -> WrittenPacks:
+def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None, files=None,
+                books: Sequence[str] = PACKED_BOOKS) -> WrittenPacks:  # fmt: skip
     """The day's common pack and each packed book's private pack, written once under `journal/`; the private packs are
     kept in Drive (story E2c), with only their `.sha256` committed."""
     from ..composition import DESK_DECISION_TIME
@@ -55,4 +56,4 @@ def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None, f
 
     keep = (files or build_private_files(root)).push
     return WrittenPacks(build_common_pack_builder(root), build_private_pack_builder(root), PackStore(root),
-                        DESK_DECISION_TIME, PACKED_BOOKS, refresh, keep)  # fmt: skip
+                        DESK_DECISION_TIME, books, refresh, keep)  # fmt: skip

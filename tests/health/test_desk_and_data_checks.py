@@ -76,7 +76,8 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     `tests/daily/test_day_run.py` proves the run writes exactly it), never a copy: a desk-only log misses O1's."""
     _run_log(repo, steps=DESK_RUN_STEPS)
     detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
-    assert detail == "steps not run: quotes, margin_check, weather, forecasts_v4, book1, reviews, quotes_done, card"
+    steps = "quotes, margin_check, weather, forecasts_v4, ai_fire, book1, ai_collect, reviews, quotes_done, card"
+    assert detail == f"steps not run: {steps}"
 
 
 def test_a_failed_or_refused_o1_step_is_a_problem_with_its_reason_not_live_is_not(repo):

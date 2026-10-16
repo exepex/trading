@@ -14,6 +14,8 @@ journal/*/packs/*/private.json
 research/scoreboards/B/
 research/scoreboards/A/
 .ai_book/
+.ai_decision/
+.ai_decision_observations/
 
 # A daily-run commit that failed, kept for the rerun to commit as recorded (story E2b, decision 47): local only
 journal/runs/.pending_commit.json

@@ -63,7 +63,9 @@ def day(root, tmp_path, alerts):
                 "weather": RecordedStep("weather", calls),
                 "forecasts_v4": RecordedStep("forecasts_v4", calls),
                 "quotes": StartQuoteParts(parts),
+                "ai_fire": RecordedStep("ai_fire", calls),  # story F1t
                 "book1": RecordedStep("book1", calls),
+                "ai_collect": RecordedStep("ai_collect", calls),
                 "reviews": RecordedStep("reviews", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
@@ -85,7 +87,9 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
         "margin_check",
         "weather",
         "forecasts_v4",
+        "ai_fire",
         "book1",
+        "ai_collect",
         "reviews",
         "card",
     ]
@@ -180,7 +184,8 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     again, rerun, _, new_parts, _, new_calls = day()
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["margin_check", "weather", "forecasts_v4", "book1", "reviews"] and new_calls == ["card"]
+    assert calls == ["margin_check", "weather", "forecasts_v4", "ai_fire", "book1", "ai_collect", "reviews"]
+    assert new_calls == ["card"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
 

@@ -23,6 +23,12 @@ __all__ = [
     "HEALTH_NOT_EXPECTED",
     "HEALTH_PROBLEMS",
     "HEALTH_RUNS_FILE",
+    "AI_FIRE_STEP",
+    "AI_COLLECT_STEP",
+    "ENV_ROUTINE_BOOK2_DECISION_TRIGGER_ID",
+    "ENV_ROUTINE_BOOK2_DECISION_TOKEN",
+    "ENV_ROUTINE_BOOK3_DECISION_TRIGGER_ID",
+    "ENV_ROUTINE_BOOK3_DECISION_TOKEN",
 ]
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
@@ -41,13 +47,16 @@ DESK_RUN_STEPS = (
     RUN_LOG_EXITS_STEP,
     RUN_LOG_TRADE_MARKS_STEP,
 )
+AI_FIRE_STEP, AI_COLLECT_STEP = "ai_fire", "ai_collect"  # story F1t: the AI books' decisions, around Book 1's
 DAILY_RUN_STEPS = (
     "quotes",
     "margin_check",
     "weather",
     "forecasts_v4",
     *DESK_RUN_STEPS[:2],
+    AI_FIRE_STEP,  # right after the pack: a slow Book 1 must not delay the fire (judge 301)
     "book1",
+    AI_COLLECT_STEP,  # before E3's deadline step
     *DESK_RUN_STEPS[2:],
     REVIEWS_STEP,
     "quotes_done",
@@ -60,3 +69,10 @@ HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", 
 HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
 HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
 HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
+
+# Story F1t: each AI book's decision routine (two more routines, made by the owner; the forecast routines are
+# separate), fired by the daily run, so these are settings of the daily routine's environment (names only here)
+ENV_ROUTINE_BOOK2_DECISION_TRIGGER_ID = "FNO_ROUTINE_BOOK2_DECISION_TRIGGER_ID"
+ENV_ROUTINE_BOOK2_DECISION_TOKEN = "FNO_ROUTINE_BOOK2_DECISION_TOKEN"
+ENV_ROUTINE_BOOK3_DECISION_TRIGGER_ID = "FNO_ROUTINE_BOOK3_DECISION_TRIGGER_ID"
+ENV_ROUTINE_BOOK3_DECISION_TOKEN = "FNO_ROUTINE_BOOK3_DECISION_TOKEN"

@@ -74,7 +74,7 @@ def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypat
         def run(self, day):
             return 1, f"day done with problems: weather ({day})"
 
-    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg: Runner())
+    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg, day=None: Runner())
     printed = []
     assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append) == 1
     assert printed == ["day done with problems: weather (2026-10-14)"]

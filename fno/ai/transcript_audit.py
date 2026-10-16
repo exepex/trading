@@ -6,6 +6,7 @@ version is registered (`fno/ai/stop_rule.py`)."""
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -50,15 +51,16 @@ class TranscriptAudit:
 
 
 class TranscriptAudits:
-    def __init__(self, root: Path):
-        self.root = Path(root)
+    def __init__(self, root: Path, path_of: Callable[[date, str], str] = transcript_audit_path):
+        """`path_of`: the forecast's audit path by default; story F1t's decision sessions pass their own."""
+        self.root, self.path_of = Path(root), path_of
 
     def get(self, day: date, book: str) -> TranscriptAudit | None:
-        path = self.root / transcript_audit_path(day, book)
+        path = self.root / self.path_of(day, book)
         return TranscriptAudit(**json.loads(path.read_text(encoding="utf-8"))) if path.is_file() else None
 
     def record(self, day: date, audit: TranscriptAudit) -> str:
-        path = self.root / transcript_audit_path(day, audit.book)
+        path = self.root / self.path_of(day, audit.book)
         if path.is_file():
             raise AuditRefused(f"{path.relative_to(self.root)} already exists (written once)")
         path.parent.mkdir(parents=True, exist_ok=True)

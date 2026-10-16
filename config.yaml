@@ -203,6 +203,22 @@ daily:
     weather: null
     forecasts_v4: null
     card: null
+    # Story F1t: each AI book's first trading day (null: the book is not in the desk at all). Set by the owner only,
+    # after the go-live checks in docs/stories/F1t-ai-trading-runner.md.
+    book2_hybrid: null
+    book3_ai: null
+
+# Story F1t: the AI books' decision timetable, proposed until S1 freezes it from measured run times (like
+# desk.timetable). A fire starting after latest_fire is not sent; a commitment counts only if on the remote at
+# receipt_deadline; the routine reveals from reveal_from; a reveal counts only if on the remote at reveal_deadline,
+# which must be before desk.timetable.decision_deadline (the promotion deadline).
+ai_books:
+  decision_timing:
+    status: proposed until S1
+    latest_fire: "15:07:00"
+    receipt_deadline: "15:10:00"
+    reveal_from: "15:10:10"
+    reveal_deadline: "15:11:00"
 
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
 # that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).

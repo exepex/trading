@@ -20,6 +20,7 @@ def cmd_daily_run(args, out=print) -> int:
     from ..models import now_ist
     from .wiring import build_day_runner
 
-    code, line = build_day_runner(load_app_config()).run(args.day or now_ist().date())
+    day = args.day or now_ist().date()
+    code, line = build_day_runner(load_app_config(), day=day).run(day)
     out(line)
     return code
