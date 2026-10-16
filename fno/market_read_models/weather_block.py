@@ -4,8 +4,8 @@
   record at all gives `not_published`, the missing input named, no colour, and new entries blocked (fail closed).
 - **No levels** (owner, 16 Oct 2026): the page carries the colour, the probabilities beside their base rates and the
   drivers' values in plain words; never a driver's `reaches` colour, a threshold, or the US cue (`weather_parts.py`).
-- **Live only:** the recent strip, the red share and the scores count live records, as M1 does. A back-fill colour is
-  not a published colour, and this contract version has no field to label one exploratory."""
+- **Live only:** the recent strip and the red share count live records, as M1 does; the scores are G8's (none yet).
+  A back-fill colour is not a published colour, and this contract version has no field to label one exploratory."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def weather_payload(inputs: WeatherInputs) -> dict:
         "p_big_1d": p1, "p_big_5d": p5, "base_rate_1d": b1, "base_rate_5d": b5,
         "times_usual_1d": _ratio(p1, b1), "times_usual_5d": _ratio(p5, b5),
         "drivers": drivers(inputs) if published else [], "intraday": [], "recent": recent(inputs),
-        "red_share": red_share(inputs), "scores": scores(inputs),
+        "red_share": red_share(inputs), "scores": scores(),
         "price_of_calm": {"month": inputs.day.strftime("%Y-%m"), "status": "not_measured_yet", "blocked_trades": None,
                           "risk_avoided": None, "shadow_net": None},
     }  # fmt: skip

@@ -52,7 +52,7 @@ def example_rows() -> SessionRows:
     fno = payload["getFnoScreenerRows_india"]["rows"]
     calendar = build_session_calendar()
     flows = FlowsInputs([], [], calendar.sessions(date(2025, 6, 1), DAY)[-250:])  # no flows copy covers 12 Oct
-    weather = WeatherInputs(DAY, None, [], {}, {1: {}, 5: {}})  # no weather record: the page's not-published state
+    weather = WeatherInputs(DAY, None, [], {}, {})  # no weather record: the page's not-published state
     return SessionRows(
         DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows,
         weather,

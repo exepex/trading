@@ -111,19 +111,22 @@ def test_drivers_say_values_push_by_the_sign_of_the_change_and_rank_by_change_ov
     assert drivers[-1] == {"driver": "scheduled_event", "text": "RBI policy decision on 2025-09-20", "push": "riskier"}
 
 
-def test_recent_red_share_and_scores_count_live_records_only(live_world):
-    inputs, days = live_world
+def test_recent_and_red_share_count_live_records_only_and_the_page_scores_nothing(live_world):
+    inputs, _ = live_world
     page = published(inputs)
     colours = [r["colour"] for r in page["recent"]]
     assert colours[-1] == "RED" and None not in colours[-10:]  # the last 10 sessions are all live
     assert page["red_share"] == {"sessions": 13, "red_sessions": 1, "share": 1 / 13, "max_share": 0.15,
                                  "over_alarming": False}  # fmt: skip
-    one_day = next(s for s in page["scores"] if s["question"] == "V6_1d" and s["baseline"] == "base_rate")
-    y = [1.0 if d == days[254] else 0.0 for d in days[-13:-1]]  # the drop is the move after session 254 (resolved)
-    p = [0.05] * 12
-    assert one_day["n_scored"] == 12 and one_day["status"] == "scoring" and one_day["verdict"] == "not_tested"
-    assert one_day["brier"] == pytest.approx(sum((a - b) ** 2 for a, b in zip(p, y)) / 12)
-    assert one_day["brier_baseline"] == pytest.approx(sum((0.04 - b) ** 2 for b in y) / 12)
+    # 12 live days are resolved, yet the page scores nothing: the scores are G8's alone (judge 218)
+    assert {(s["question"], s["baseline"]) for s in page["scores"]} == {
+        (q, b) for q in ("V6_1d", "V6_5d") for b in ("base_rate", "v0_checklist")
+    }
+    assert all(
+        (s["status"], s["n_scored"], s["brier"], s["brier_baseline"], s["skill"], s["verdict"])
+        == ("not_enough_data", 0, None, None, None, "not_tested")
+        for s in page["scores"]
+    )
 
 
 def test_a_back_fill_red_record_is_never_published(tmp_path):

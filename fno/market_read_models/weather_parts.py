@@ -4,20 +4,16 @@
   value in plain words; `push` is the sign of that change (up: riskier). They are ordered by the size of the change
   against the input's own typical (median) change over the last 250 records, never by a model coefficient. The
   scheduled events of the next 5 sessions follow, each riskier. No `reaches` colour, no level, no US cue.
-- **Recent, red share, scores:** live records only, as M1 counts them. A score is the mean Brier of the operative
-  model's live probabilities against a yardstick's in the same records, over the live days resolved by the session;
-  the verdict stays `not_tested` (the frozen test is G8's looks)."""
+- **Recent, red share:** live records only, as M1 counts them.
+- **Scores:** G8's alone (`scores()`); none yet, so not_enough_data with no number."""
 
 from __future__ import annotations
 
 import statistics
-from datetime import date
 
 from ..constants import V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from ..forecast_v4_rules.records import LIVE
 from ..weather.constants import (
-    WEATHER_BASELINE_V0,
-    WEATHER_OPERATIVE_MODEL,
     WEATHER_RED_MAX_SHARE,
     WEATHER_RED_SHARE_RECORDS,
     WeatherColour,
@@ -26,9 +22,9 @@ from .weather_inputs import WeatherInputs
 
 BASE_RATE, OK = "base_rate", "ok"
 QUESTIONS = (("V6_1d", V6_BIG_MOVE_1S), ("V6_5d", V6_BIG_MOVE_5S))
-HORIZON = {V6_BIG_MOVE_1S: 1, V6_BIG_MOVE_5S: 5}
-YARDSTICKS = (("base_rate", BASE_RATE), ("v0_checklist", WEATHER_BASELINE_V0))
-RECENT_SESSIONS, SCORE_DAYS_NEEDED = 10, 10
+YARDSTICKS = ("base_rate", "v0_checklist")  # the contract's two yardsticks
+RECENT_SESSIONS = 10
+N_NEEDED = 10  # the contract: twice V6's 5-session block
 DRIVERS = {  # v0's input -> (the contract's driver, its value in plain words)
     "vix_ratio": ("vix_level", lambda v: f"India VIX at {v:.2f} times its median of the previous 250 sessions"),
     "vix_change5": ("vix_change", lambda v: f"India VIX {'up' if v >= 0 else 'down'} {abs(v):.0%} over 5 sessions"),
@@ -86,7 +82,7 @@ def recent(inputs: WeatherInputs) -> list[dict]:
     """The last 10 sessions, the day last: the published colour and whether a 2% move came the next session."""
     records = {**inputs.earlier, inputs.day: inputs.record}
     days = [*inputs.sessions, inputs.day][-RECENT_SESSIONS:]
-    moves = inputs.outcomes[1]
+    moves = inputs.big_move
     return [{"session": d.isoformat(), "colour": published_colour(records.get(d)), "big_move": moves.get(d)}
             for d in days]  # fmt: skip
 
@@ -107,20 +103,10 @@ def red_share(inputs: WeatherInputs) -> dict:
             "over_alarming": bool(full and share > WEATHER_RED_MAX_SHARE)}  # fmt: skip
 
 
-def scores(inputs: WeatherInputs) -> list[dict]:
-    live = _live_records(inputs)
-    return [_score(live, inputs, label, question, name, yardstick) for name, yardstick in YARDSTICKS
-            for label, question in QUESTIONS]  # fmt: skip
-
-
-def _score(live: list[dict], inputs: WeatherInputs, label: str, question: str, name: str, yardstick: str) -> dict:
-    outcomes = inputs.outcomes[HORIZON[question]]
-    pairs = [(figure(r, WEATHER_OPERATIVE_MODEL, question), figure(r, yardstick, question),
-              outcomes.get(date.fromisoformat(r["day"]))) for r in live]  # fmt: skip
-    scored = [(p, b, float(y)) for p, b, y in pairs if p is not None and b is not None and y is not None]
-    brier = statistics.fmean((p - y) ** 2 for p, _, y in scored) if scored else None
-    base = statistics.fmean((b - y) ** 2 for _, b, y in scored) if scored else None
-    return {"question": label, "baseline": name, "n_scored": len(scored), "n_needed": SCORE_DAYS_NEEDED,
-            "status": "scoring" if len(scored) >= SCORE_DAYS_NEEDED else "not_enough_data",
-            "brier": brier, "brier_baseline": base, "skill": 1 - brier / base if base else None,
-            "verdict": "not_tested"}  # fmt: skip
+def scores() -> list[dict]:
+    """G8 owns the weather's scores (`fno/forecast_scoring/v4/scores.py`) and has scored no live weather day, so each
+    question and yardstick is not_enough_data with no number. A reader of G8's report replaces this once it holds
+    live V6 rows; nothing here scores (judge 218)."""
+    return [{"question": label, "baseline": name, "status": "not_enough_data", "n_scored": 0, "n_needed": N_NEEDED,
+             "brier": None, "brier_baseline": None, "skill": None, "verdict": "not_tested"}
+            for name in YARDSTICKS for label, _ in QUESTIONS]  # fmt: skip

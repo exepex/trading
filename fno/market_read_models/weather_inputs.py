@@ -13,7 +13,6 @@ from ..forecast_v4_rules.series import DayValue, big_move_outcomes
 from ..weather.records import WeatherRecords
 
 HISTORY_SESSIONS = 251  # 250 changes for the drivers' typical change; 250 records for the red share
-HORIZONS = (1, 5)  # V6a: the next session; V6b: within 5 sessions
 
 
 @dataclass(frozen=True)
@@ -22,7 +21,7 @@ class WeatherInputs:
     record: dict | None  # the session's weather record; None when M1 wrote none
     sessions: list[date]  # the regular sessions before the day, oldest first (up to 251)
     earlier: dict[date, dict]  # those sessions' records (a session without one is absent)
-    outcomes: dict[int, dict[date, bool]]  # horizon -> forecast day -> a 2% move came (resolved by the day only)
+    big_move: dict[date, bool]  # a session -> a 2% move came the next session (resolved by the day only)
 
 
 class WeatherInputsReader:
@@ -32,6 +31,5 @@ class WeatherInputsReader:
     def on(self, day: date) -> WeatherInputs:
         sessions = [c.day for c in self.closes if c.day < day][-HISTORY_SESSIONS:]
         earlier = {d: r for d in sessions if (r := self.records.for_day(d)) is not None}
-        outcomes = {h: {o.day: o.value for o in big_move_outcomes(self.closes, h) if o.resolved_on <= day}
-                    for h in HORIZONS}  # fmt: skip
-        return WeatherInputs(day, self.records.for_day(day), sessions, earlier, outcomes)
+        big_move = {o.day: o.value for o in big_move_outcomes(self.closes, 1) if o.resolved_on <= day}
+        return WeatherInputs(day, self.records.for_day(day), sessions, earlier, big_move)

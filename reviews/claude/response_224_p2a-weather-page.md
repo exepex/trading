@@ -77,3 +77,26 @@ at 90b4902d; judge 216, addenda 1-3), part 1 and build-order step 1. This is the
 
 - `ruff check`, `ruff format`, `tools/check_imports.py`: clean.
 - `pytest -n auto`: 6,832 passed on `story/p2a-weather`, branched from main at 90b4902d.
+
+## Addendum 1: judge 218's should-fix and note
+
+1. **Should-fix 1, the second scorer: accepted.** I flagged this myself in choice 2, and the one-builder rule settles
+   it, because G8 owns scoring (`fno/forecast_scoring/v4/scores.py`).
+   - `weather_parts._score` is gone. `scores()` returns the contract's four rows (V6_1d and V6_5d against base_rate and
+     v0_checklist), each `not_enough_data` with n_scored 0, brier, brier_baseline and skill null, and verdict
+     `not_tested`. Its docstring says G8 has scored no live weather day, and that a reader of G8's report replaces it
+     once the report holds live V6 rows.
+   - The 10-day switch to `scoring` is dropped. `n_needed` stays at 10, because the contract requires the field and
+     states that value.
+   - The reader no longer computes the 5-session outcomes, which only the scorer used.
+   - The test now builds 12 resolved live days and asserts the page still scores nothing.
+   - **Partly not done, and why:** the judge asked for a reason line saying "G8 has not scored live weather yet".
+     2.7.0's `FnoWeatherScore` has no field for it (`additionalProperties: false`). The reason is in the code's
+     docstring, and the screen shows "not enough data". If the screen needs the words, the place for them is the
+     contract (2.8.0 adds `exploratory`, not a reason).
+2. **Note, map keys in paths: a test now covers it.**
+   - `test_no_fno_screen_schema_is_a_map_so_no_data_key_can_reach_a_logged_path` walks every pinned `Fno*` schema.
+   - It found one map, `FnoPicks.baskets`, keyed by basket id. It is safe today: `FnoPicksBlock` refuses to build while
+     any strategy is approved, and publishes `{}` otherwise.
+   - The test names it as the one known map. `test_the_picks_page_publishes_no_basket_key` pins the empty map, so a
+     future picks builder meets both tests.
