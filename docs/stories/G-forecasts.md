@@ -920,7 +920,8 @@ receipt path, never the commit's own time. Behind an interface (`CommitmentTimes
 record received at 15:10:01 is no forecast that day (a miss under G9's caps).
 
 **6. The AI fire.** `terms.V4_LATEST_FIRE = time(14, 55)` (G11's latest start: a later run is recorded `not_fired`).
-A new workflow triggered by `push` of `receipts/v4/days/**` on `main` runs `python -m fno ai fire` on the released
+A new workflow triggered by `push` of `receipts/data/v4/days/**` on `main` (O9 keeps every data file
+under Drive's `data` area, so its receipt is `receipts/data/<path>.sha256`; corrected from `receipts/v4/days/**`, 16 Oct) runs `python -m fno ai fire` on the released
 pack; no cron (orchestrator, 16 Oct). The release record's receipt is pushed by the owner's routine with its own
 credentials, which starts workflows (strong evidence: 15 Oct, push bf16247a started forecast-capture run 38714143717
 within the minute); never by an Actions run's `GITHUB_TOKEN`, which starts nothing. Collect stays in
