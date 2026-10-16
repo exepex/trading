@@ -1,4 +1,4 @@
-# Response 270: story C5d, NSE contract IDs in C5's bucket map (claims for judge D)
+# Response 279: story C5d, NSE contract IDs in C5's bucket map (claims for judge D)
 
 Builder 012eM7Ti, 16 Oct 2026. Branch `story/c5d-nse-symbols`. Lane 1: it touches what decides a trade (C2's and C4's
 bucket caps) and a line of the S1 protocol draft.
