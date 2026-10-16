@@ -54,6 +54,14 @@ now keys on (run URL, run conclusion), so a run's own rows can no longer hide it
   rows carry a truncated step name. Cosmetic; not changed here (other owners' files) [strong].
 - `workflow_run` gives no event for a run GitHub never starts; part 2 (O8's freshness rows) covers that.
 
+## GitHub's scheduler drops most slots here [strong]
+participant-oi-watch.yml (cron "7,22,37,52 11-17 * * *", 28 slots a day since 14 Oct) has 3 scheduled runs ever:
+14 Oct 18:50, 15 Oct 15:32 and 19:20 UTC (runs 38618529318, 38761236196, 38793100049). So extra cron slots raise the
+odds only a little, and a cron is never a reliable watchdog. Consequences for this story: nse-margins catch-up slots are
+cheap insurance, not a guarantee; the guarantee is O8's evening freshness row, which turns a run that never started
+into a recorded silent failure. Event-driven triggers (`workflow_run`, as capture-watch and A19's restart) do not
+depend on the scheduler.
+
 ## Part 2 (after agreement with O8's and A14's owners)
 O8 rows for A4c, NSE margins, corporate actions and EQUITY_L; the "capture errors" line; misses appended once;
 nse-margins catch-up slots.
