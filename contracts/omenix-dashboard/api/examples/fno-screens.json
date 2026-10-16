@@ -9,7 +9,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:38:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "b621152103ec964562582345cef2848c2c0c9419ee63297f5e67a44ca5f8c50d",
    "publisher": "fno",
@@ -284,7 +284,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:38:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "5e8ea05b306eba9a41ec5fb4e902f93f848f3918b610266685ddf4b31d9a34f8",
    "publisher": "fno",
@@ -544,7 +544,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:38:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "0be6d2177dadb1beb1cf4c22455fdcddd4ad91c573f796f0041e7b5e81d4207c",
    "publisher": "fno",
@@ -748,7 +748,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:38:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "d220a3f44e4ccd2f9a5baeb71c0470107005a6234ea53e579a64b0ddb04401f5",
    "publisher": "fno",
@@ -918,7 +918,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:38:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "d7e0361c3e3cbd2800fd0f3b258c1d0b7f1de15138175fbb400a0617e799df4e",
    "publisher": "fno",
@@ -1128,9 +1128,9 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:31:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "9e69894be1fe82381127bedfa7ac991a5642bc2fc1d0bb47605b2ad7d5d0299f",
+   "payload_sha256": "54051ea4ebbd19ab395d22e5e8fc3b73288f0e1a6de3e8108147f149ec3befbe",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1159,12 +1159,12 @@
     "drivers": [
      {
       "driver": "vix_level",
-      "text": "India VIX at 11.2, low for the last year",
+      "text": "India VIX at 0.86 times its median of the previous 250 sessions",
       "push": "calmer"
      },
      {
       "driver": "realised_volatility",
-      "text": "NIFTY moved less than 0.6% a day for 10 sessions",
+      "text": "NIFTY's realised volatility over 10 sessions: 9% a year",
       "push": "calmer"
      },
      {
@@ -1177,47 +1177,56 @@
      {
       "session": "2026-11-04",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-05",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-06",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-08",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-09",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-11",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-12",
       "colour": "AMBER",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-13",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-16",
       "colour": "GREEN",
-      "big_move": null
+      "big_move": null,
+      "label": "live"
      }
     ],
     "red_share": {
@@ -1225,7 +1234,8 @@
      "red_sessions": 21,
      "share": 0.084,
      "max_share": 0.15,
-     "over_alarming": false
+     "over_alarming": false,
+     "basis": "live"
     },
     "scores": [
      {
@@ -1237,7 +1247,8 @@
       "brier": 0.036,
       "brier_baseline": 0.039,
       "skill": 0.077,
-      "verdict": "better"
+      "verdict": "better",
+      "exploratory": false
      },
      {
       "question": "V6_5d",
@@ -1248,7 +1259,8 @@
       "brier": 0.101,
       "brier_baseline": 0.118,
       "skill": 0.144,
-      "verdict": "no_difference"
+      "verdict": "no_difference",
+      "exploratory": false
      },
      {
       "question": "V6_1d",
@@ -1259,7 +1271,8 @@
       "brier": 0.036,
       "brier_baseline": 0.037,
       "skill": 0.027,
-      "verdict": "no_difference"
+      "verdict": "no_difference",
+      "exploratory": false
      },
      {
       "question": "V6_5d",
@@ -1270,7 +1283,8 @@
       "brier": 0.101,
       "brier_baseline": 0.104,
       "skill": 0.029,
-      "verdict": "no_difference"
+      "verdict": "no_difference",
+      "exploratory": false
      }
     ],
     "price_of_calm": {
@@ -1293,9 +1307,9 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:31:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "60ba5a2f9135f7bd2c2adfc6de1b72b8c256890d869a25e3e2931b631f5b1ddf",
+   "payload_sha256": "b7fbb06b3a9e43da515b9983886a08e3c8fce59567726b54735860ea04013324",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1331,7 +1345,7 @@
     "drivers": [
      {
       "driver": "vix_change",
-      "text": "India VIX up 22% in 3 sessions",
+      "text": "India VIX up 22% over 5 sessions",
       "push": "riskier"
      },
      {
@@ -1340,8 +1354,8 @@
       "push": "riskier"
      },
      {
-      "driver": "us_overnight",
-      "text": "S&P 500 fell 2.4% overnight",
+      "driver": "recent_big_moves",
+      "text": "NIFTY's largest daily move in the last 5 sessions: 2.3%",
       "push": "riskier"
      }
     ],
@@ -1349,47 +1363,56 @@
      {
       "session": "2026-11-04",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-05",
       "colour": "GREEN",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-06",
       "colour": "AMBER",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-08",
       "colour": "AMBER",
-      "big_move": true
+      "big_move": true,
+      "label": "live"
      },
      {
       "session": "2026-11-09",
       "colour": "RED",
-      "big_move": true
+      "big_move": true,
+      "label": "live"
      },
      {
       "session": "2026-11-11",
       "colour": "RED",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-12",
       "colour": "AMBER",
-      "big_move": false
+      "big_move": false,
+      "label": "live"
      },
      {
       "session": "2026-11-13",
       "colour": "AMBER",
-      "big_move": true
+      "big_move": true,
+      "label": "live"
      },
      {
       "session": "2026-11-16",
       "colour": "RED",
-      "big_move": null
+      "big_move": null,
+      "label": "live"
      }
     ],
     "red_share": {
@@ -1397,7 +1420,8 @@
      "red_sessions": 41,
      "share": 0.164,
      "max_share": 0.15,
-     "over_alarming": true
+     "over_alarming": true,
+     "basis": "live"
     },
     "scores": [
      {
@@ -1409,7 +1433,8 @@
       "brier": 0.045,
       "brier_baseline": 0.039,
       "skill": -0.154,
-      "verdict": "worse"
+      "verdict": "worse",
+      "exploratory": false
      },
      {
       "question": "V6_5d",
@@ -1420,7 +1445,8 @@
       "brier": 0.131,
       "brier_baseline": 0.118,
       "skill": -0.11,
-      "verdict": "no_difference"
+      "verdict": "no_difference",
+      "exploratory": false
      },
      {
       "question": "V6_1d",
@@ -1431,7 +1457,8 @@
       "brier": 0.045,
       "brier_baseline": 0.041,
       "skill": -0.098,
-      "verdict": "worse"
+      "verdict": "worse",
+      "exploratory": false
      },
      {
       "question": "V6_5d",
@@ -1442,7 +1469,8 @@
       "brier": 0.131,
       "brier_baseline": 0.122,
       "skill": -0.074,
-      "verdict": "no_difference"
+      "verdict": "no_difference",
+      "exploratory": false
      }
     ],
     "price_of_calm": {
@@ -1457,7 +1485,7 @@
  },
  "getFnoWeather_india_missing": {
   "summary": "Mock (india): no weather today, the missing input named",
-  "description": "Not published: the 15:00 VIX level is missing; no score yet (not enough data)",
+  "description": "Not published: the 15:00 VIX level is missing; no live record yet, so the strip and the RED share show the back-fill, labelled exploratory",
   "x-case": "empty",
   "value": {
    "market": "india",
@@ -1465,9 +1493,9 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T09:31:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "b825f60f3ab3410b4932061fef08d2417c46fa21f6a9f4594df8e2e9949e8895",
+   "payload_sha256": "bd87b6244a2a833eb05abf1c2dc888843764f41134d2f9ae3458b448ae26774d",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1502,17 +1530,67 @@
     "drivers": [],
     "recent": [
      {
+      "session": "2026-11-04",
+      "colour": "GREEN",
+      "big_move": false,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-05",
+      "colour": "GREEN",
+      "big_move": false,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-06",
+      "colour": "AMBER",
+      "big_move": false,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-08",
+      "colour": "GREEN",
+      "big_move": false,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-09",
+      "colour": "GREEN",
+      "big_move": false,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-11",
+      "colour": "GREEN",
+      "big_move": true,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-12",
+      "colour": "RED",
+      "big_move": true,
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-13",
+      "colour": "GREEN",
+      "big_move": false,
+      "label": "backfill_exploratory"
+     },
+     {
       "session": "2026-11-16",
       "colour": null,
-      "big_move": null
+      "big_move": null,
+      "label": null
      }
     ],
     "red_share": {
-     "sessions": 0,
-     "red_sessions": 0,
-     "share": null,
+     "sessions": 250,
+     "red_sessions": 13,
+     "share": 0.052,
      "max_share": 0.15,
-     "over_alarming": false
+     "over_alarming": false,
+     "basis": "backfill_exploratory"
     },
     "scores": [
      {
@@ -1524,7 +1602,8 @@
       "brier": null,
       "brier_baseline": null,
       "skill": null,
-      "verdict": "not_tested"
+      "verdict": "not_tested",
+      "exploratory": true
      },
      {
       "question": "V6_5d",
@@ -1535,7 +1614,8 @@
       "brier": null,
       "brier_baseline": null,
       "skill": null,
-      "verdict": "not_tested"
+      "verdict": "not_tested",
+      "exploratory": true
      },
      {
       "question": "V6_1d",
@@ -1546,7 +1626,8 @@
       "brier": null,
       "brier_baseline": null,
       "skill": null,
-      "verdict": "not_tested"
+      "verdict": "not_tested",
+      "exploratory": true
      },
      {
       "question": "V6_5d",
@@ -1557,7 +1638,8 @@
       "brier": null,
       "brier_baseline": null,
       "skill": null,
-      "verdict": "not_tested"
+      "verdict": "not_tested",
+      "exploratory": true
      }
     ],
     "price_of_calm": {
@@ -1580,7 +1662,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:10:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "8bef9c9f89347a87e3da19c73e7256f443b81d9201507f390402c69941842397",
    "publisher": "fno",
@@ -2028,7 +2110,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:10:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "7fc7b4dc1f9dd02af45cf49fa94c25ed451cb9fe20edfff4f49efb49fd9ba3af",
    "publisher": "fno",
@@ -2409,7 +2491,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:10:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "1ecddc6a940bcffeda9d1ed676ee6fcb708127bd69861d992b5b7270f01e9f61",
    "publisher": "fno",
@@ -2627,7 +2709,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:12:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "0e4fb9078c583c74055984adef4b5e4d285d62b67316e482263381148d69c9cd",
    "publisher": "fno",
@@ -2793,7 +2875,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:12:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "94df81430986c11ff4de60049c9179f741babeb1c1582cf13d2b08853c2e2262",
    "publisher": "fno",
@@ -2950,7 +3032,7 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:12:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
    "payload_sha256": "eca9c9a225cbaba21b961a0a585f0dd058fd376c3233e30a0f6c438bf1ffdf3d",
    "publisher": "fno",
@@ -3073,7 +3155,7 @@
  },
  "getFnoPaperTrades_india_won": {
   "summary": "Mock (india): a winning closed trade and an open position",
-  "description": "Rule-based won Rs 3,096 after costs at the desk's execution fill, Rs 2,860 at the 60-minute owner-timing fill the verdict uses; one put spread open",
+  "description": "Rule-based won Rs 3,096 after costs at the desk's execution fill, Rs 2,860 at the 60-minute owner-timing fill the verdict uses; one put spread open with one monitor alert; a measurement account and one shadow test beside the books",
   "x-case": "positive",
   "value": {
    "market": "india",
@@ -3081,9 +3163,9 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:05:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "87d5b63a3db975fa3e3557345496bd13198b6dbee31203591b53f8c874613feb",
+   "payload_sha256": "57a04b49303b7f9b6a9a62ae764cf0b1bc2fc4049bcbbefe86b38158f71ddffd",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3104,7 +3186,11 @@
       "value": 2003054,
       "cash": 1999414,
       "open_trades": 1,
-      "open_max_loss": 3984
+      "open_max_loss": 3984,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
      },
      {
       "family": "hybrid",
@@ -3113,7 +3199,11 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
      },
      {
       "family": "ai",
@@ -3122,7 +3212,29 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
+     }
+    ],
+    "shadows": [
+     {
+      "name": "B0 measurement account",
+      "label": "measurement",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2000000,
+      "open_trades": 0
+     },
+     {
+      "name": "Call spread test, version 1",
+      "label": "shadow",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 2001420,
+      "open_trades": 1
      }
     ],
     "open": [
@@ -3154,8 +3266,14 @@
       "mark_value": 3640,
       "unrealised": -42,
       "days_to_expiry": 29,
-      "monitor": null,
-      "alerts_today": null
+      "monitor": "alert_only",
+      "alerts_today": 1,
+      "alerts": [
+       {
+        "at": "2026-11-16T07:45:00Z",
+        "text": "F&O monitor: information, no action: book1-2026-11-16-1 has used 52% of its maximum loss at 13:15 IST; the paper record changes only at the next daily run's execution snapshot"
+       }
+      ]
      }
     ],
     "closed": [
@@ -3203,9 +3321,9 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:05:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "244ffe6e945932f913fd2a99b35fad5ad6a3a723d981afb2938eb0dae7b96e15",
+   "payload_sha256": "a7f2cf8b1fc45c552200c45f95342f17407f49a9eda86c6d5ce4e57ec2dc2563",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3226,7 +3344,11 @@
       "value": 1992892,
       "cash": 1992892,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 10204,
+       "pause_at": 120000
+      }
      },
      {
       "family": "hybrid",
@@ -3235,7 +3357,11 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
      },
      {
       "family": "ai",
@@ -3244,7 +3370,21 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
+     }
+    ],
+    "shadows": [
+     {
+      "name": "Call spread test, version 1",
+      "label": "shadow",
+      "as_of": "2026-11-16",
+      "opening_value": 2000000,
+      "value": 1994310,
+      "open_trades": 0
      }
     ],
     "open": [],
@@ -3307,9 +3447,9 @@
    "as_of": "2026-11-16",
    "cutoff": "2026-11-16T09:30:00Z",
    "built_at": "2026-11-16T12:05:00Z",
-   "schema_version": "2.7.0",
+   "schema_version": "2.8.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "9d36ef18b2920efef22b049381af910b32e5ce3b5f458b7ec54de3560a352840",
+   "payload_sha256": "e24a4bf231a38ae23bdfd745d7cb3baec1ac1aad9f277ea2c8c6499855338171",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3330,7 +3470,11 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
      },
      {
       "family": "hybrid",
@@ -3339,7 +3483,11 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
      },
      {
       "family": "ai",
@@ -3348,11 +3496,986 @@
       "value": 2000000,
       "cash": 2000000,
       "open_trades": 0,
-      "open_max_loss": 0
+      "open_max_loss": 0,
+      "brake": {
+       "loss_from_high": 0,
+       "pause_at": 120000
+      }
      }
     ],
+    "shadows": [],
     "open": [],
     "closed": []
+   }
+  }
+ },
+ "getFnoWeatherHistory_india_calm": {
+  "summary": "Mock (india): a calm month, one AMBER",
+  "description": "30 sessions: 20 rebuilt from history, 10 live; mostly GREEN",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "weather_history",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "3c2e4fbc856295df82761b73878b3ddcb014e9f630f8e633765bbfb0a3f1a98b",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "sessions": [
+     {
+      "session": "2026-10-06",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-07",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-08",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-09",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-12",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-13",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-14",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-15",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-16",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-19",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-20",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-21",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-22",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-23",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-26",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-27",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-28",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-29",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-30",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-02",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-03",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-04",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-05",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-06",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-09",
+      "colour": "AMBER",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-10",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-11",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-12",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-13",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-16",
+      "colour": "GREEN",
+      "label": "live"
+     }
+    ],
+    "counts": {
+     "green": 29,
+     "amber": 1,
+     "red": 0,
+     "not_scored": 0,
+     "live": 10,
+     "backfill": 20
+    }
+   }
+  }
+ },
+ "getFnoWeatherHistory_india_stormy": {
+  "summary": "Mock (india): a stormy fortnight",
+  "description": "Three RED sessions, one AMBER and one not scored (an input missing)",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "weather_history",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "216840a1a0ad49d614cd2ee15b5fcd7d5d77b3db7fc46a6ca20136f43fb5d7f2",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "sessions": [
+     {
+      "session": "2026-10-06",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-07",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-08",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-09",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-12",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-13",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-14",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-15",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-16",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-19",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-20",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-21",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-22",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-23",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-26",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-27",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-28",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-29",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-10-30",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-02",
+      "colour": "GREEN",
+      "label": "backfill_exploratory"
+     },
+     {
+      "session": "2026-11-03",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-04",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-05",
+      "colour": "RED",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-06",
+      "colour": "RED",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-09",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-10",
+      "colour": null,
+      "label": "live"
+     },
+     {
+      "session": "2026-11-11",
+      "colour": "RED",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-12",
+      "colour": "AMBER",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-13",
+      "colour": "GREEN",
+      "label": "live"
+     },
+     {
+      "session": "2026-11-16",
+      "colour": "GREEN",
+      "label": "live"
+     }
+    ],
+    "counts": {
+     "green": 25,
+     "amber": 1,
+     "red": 3,
+     "not_scored": 1,
+     "live": 10,
+     "backfill": 20
+    }
+   }
+  }
+ },
+ "getFnoWeatherHistory_india_none": {
+  "summary": "Mock (india): no weather record yet",
+  "description": "No session has a weather record",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "weather_history",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "1e03ceace783f6fbecc1f8d7dcb6f66ace7ef3635c47b9107d25cda2babd6221",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "sessions": [],
+    "counts": {
+     "green": 0,
+     "amber": 0,
+     "red": 0,
+     "not_scored": 0,
+     "live": 0,
+     "backfill": 0
+    }
+   }
+  }
+ },
+ "getFnoBudget_india_ok": {
+  "summary": "Mock (india): well under the cap",
+  "description": "AI books and roles at 34% of their cap",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "budget",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "59c723f796e4b8b1dfc74037ba8d0f7859b1dbd09b68d29a5baf7ae7ec919f5e",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "month": "2026-11",
+    "level": "ok",
+    "books_and_roles_minutes": 312.0,
+    "basis_minutes": 1840.0,
+    "cap_minutes": 920.0,
+    "pct_of_cap": 33.9,
+    "basis": "measured",
+    "note": "",
+    "groups": [
+     {
+      "group": "development",
+      "minutes": 1528.0,
+      "runs": 61
+     },
+     {
+      "group": "ai_books",
+      "minutes": 214.0,
+      "runs": 22
+     },
+     {
+      "group": "post_mortem",
+      "minutes": 54.0,
+      "runs": 3
+     },
+     {
+      "group": "ai_roles",
+      "minutes": 44.0,
+      "runs": 8
+     }
+    ]
+   }
+  }
+ },
+ "getFnoBudget_india_alert": {
+  "summary": "Mock (india): past the 80% alert",
+  "description": "AI books and roles at 84% of their cap: alert",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "budget",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "218bc3dd55659fb07a0de9ab552f49c38511d62cc3fbfeb846aa6106d62711fa",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "month": "2026-11",
+    "level": "alert",
+    "books_and_roles_minutes": 790.0,
+    "basis_minutes": 1880.0,
+    "cap_minutes": 940.0,
+    "pct_of_cap": 84.0,
+    "basis": "measured",
+    "note": "",
+    "groups": [
+     {
+      "group": "development",
+      "minutes": 1090.0,
+      "runs": 40
+     },
+     {
+      "group": "ai_books",
+      "minutes": 520.0,
+      "runs": 22
+     },
+     {
+      "group": "ai_roles",
+      "minutes": 210.0,
+      "runs": 30
+     },
+     {
+      "group": "post_mortem",
+      "minutes": 60.0,
+      "runs": 3
+     }
+    ]
+   }
+  }
+ },
+ "getFnoBudget_india_none": {
+  "summary": "Mock (india): nothing measured yet",
+  "description": "No timing record this month: level unknown",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "budget",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "b4c13c39074b9ebe5e379602ee3f17193fe9b51a0928e816648c037eef5dd74c",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "month": "2026-11",
+    "level": "unknown",
+    "books_and_roles_minutes": 0.0,
+    "basis_minutes": 0.0,
+    "cap_minutes": 0.0,
+    "pct_of_cap": null,
+    "basis": "measured",
+    "note": "Nothing measured yet this month: no routine has written its timing record",
+    "groups": []
+   }
+  }
+ },
+ "getFnoDataHealth_india_ok": {
+  "summary": "Mock (india): everything arrived",
+  "description": "Every source up to date; the publish and the health check passed",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "data_health",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "544665f1f846ff9c549da93b27b23a2d8951023eccf054cafa269693e43c0885",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "as_of": "2026-11-16",
+    "sources": [
+     {
+      "source": "index-close",
+      "plain": "NIFTY daily close (NSE)",
+      "last_day": "2026-11-16",
+      "rows": 2449,
+      "gaps": 0,
+      "status": "ok"
+     },
+     {
+      "source": "fo-bhavcopy",
+      "plain": "NSE F&O end-of-day file",
+      "last_day": "2026-11-16",
+      "rows": 716,
+      "gaps": 0,
+      "status": "ok"
+     },
+     {
+      "source": "participant-oi",
+      "plain": "Open interest by participant (NSE)",
+      "last_day": "2026-11-16",
+      "rows": 1955,
+      "gaps": 0,
+      "status": "ok"
+     },
+     {
+      "source": "vix",
+      "plain": "India VIX daily (NSE)",
+      "last_day": "2026-11-16",
+      "rows": 4210,
+      "gaps": 0,
+      "status": "ok"
+     }
+    ],
+    "publish": {
+     "status": "published",
+     "run_on": "2026-11-16",
+     "reason": null
+    },
+    "health_check": {
+     "status": "ok",
+     "run_on": "2026-11-16",
+     "problems": 0
+    }
+   }
+  }
+ },
+ "getFnoDataHealth_india_problems": {
+  "summary": "Mock (india): a late file and a failed publish",
+  "description": "Two sources behind, the publish failed (the previous one stays current), three problems",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "data_health",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "49667a231e8e128cc2d5a5d649a115346811e61934b72971a6c61c5804811df5",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "as_of": "2026-11-16",
+    "sources": [
+     {
+      "source": "fo-bhavcopy",
+      "plain": "NSE F&O end-of-day file",
+      "last_day": "2026-11-12",
+      "rows": 712,
+      "gaps": 2,
+      "status": "gaps"
+     },
+     {
+      "source": "participant-oi",
+      "plain": "Open interest by participant (NSE)",
+      "last_day": "2026-11-13",
+      "rows": 1952,
+      "gaps": 0,
+      "status": "stale"
+     },
+     {
+      "source": "index-close",
+      "plain": "NIFTY daily close (NSE)",
+      "last_day": "2026-11-16",
+      "rows": 2449,
+      "gaps": 0,
+      "status": "ok"
+     }
+    ],
+    "publish": {
+     "status": "failed",
+     "run_on": "2026-11-16",
+     "reason": "the F&O end-of-day file for the session was not on NSE's site by 08:30 IST"
+    },
+    "health_check": {
+     "status": "problems",
+     "run_on": "2026-11-16",
+     "problems": 3
+    }
+   }
+  }
+ },
+ "getFnoDataHealth_india_none": {
+  "summary": "Mock (india): nothing run yet",
+  "description": "No source row; the publish and the health check have not run",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "data_health",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "5cdac27b2e162942edb27a3e6c29d61b971937d5ef30adcd7f04fcc285be1ffb",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "as_of": "2026-11-16",
+    "sources": [],
+    "publish": {
+     "status": "not_run",
+     "run_on": null,
+     "reason": null
+    },
+    "health_check": {
+     "status": "not_run",
+     "run_on": null,
+     "problems": 0
+    }
+   }
+  }
+ },
+ "getFnoScoreboards_india_ahead": {
+  "summary": "Mock (india): Rule-based leads, early days",
+  "description": "Both boards ran; too few trades for the do-nothing test",
+  "x-case": "positive",
+  "value": {
+   "market": "india",
+   "page_key": "scoreboards",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "1ebea161f9650a9630a7f758c1c427cdc7a83c0c5d7101af1a54a2a248b1959b",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "board_b": {
+     "status": "ok",
+     "as_of": "2026-11-16",
+     "label": "Whole systems since the common start (1 Oct 2026)",
+     "do_nothing_net": 18400,
+     "books": [
+      {
+       "family": "rule",
+       "trades": 14,
+       "net": 26120,
+       "worst_month": -6200,
+       "max_drawdown": 9400,
+       "beats_do_nothing": "not_tested"
+      },
+      {
+       "family": "hybrid",
+       "trades": 11,
+       "net": 9840,
+       "worst_month": -11300,
+       "max_drawdown": 14100,
+       "beats_do_nothing": "not_tested"
+      },
+      {
+       "family": "ai",
+       "trades": 9,
+       "net": -4230,
+       "worst_month": -8800,
+       "max_drawdown": 12600,
+       "beats_do_nothing": "not_tested"
+      }
+     ]
+    },
+    "board_a": {
+     "status": "ok",
+     "as_of": "2026-11-16",
+     "label": "Matched decisions on a standard shadow account",
+     "do_nothing_net": 18400,
+     "books": [
+      {
+       "family": "rule",
+       "trades": 14,
+       "net": 21900,
+       "worst_month": -5100,
+       "max_drawdown": 8100,
+       "beats_do_nothing": "not_tested"
+      },
+      {
+       "family": "hybrid",
+       "trades": 14,
+       "net": 23300,
+       "worst_month": -7400,
+       "max_drawdown": 9900,
+       "beats_do_nothing": "not_tested"
+      },
+      {
+       "family": "ai",
+       "trades": 14,
+       "net": 15200,
+       "worst_month": -9100,
+       "max_drawdown": 11800,
+       "beats_do_nothing": "not_tested"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoScoreboards_india_behind": {
+  "summary": "Mock (india): every book behind doing nothing",
+  "description": "Board B: all three books below the index fund; board A still a pilot",
+  "x-case": "negative",
+  "value": {
+   "market": "india",
+   "page_key": "scoreboards",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "11863f9c5643860e38338ab4d61b857d82fa5e067c68543ff83a31771246211e",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "board_b": {
+     "status": "ok",
+     "as_of": "2026-11-16",
+     "label": "Whole systems since the common start (1 Oct 2026)",
+     "do_nothing_net": 31200,
+     "books": [
+      {
+       "family": "rule",
+       "trades": 22,
+       "net": -18450,
+       "worst_month": -16200,
+       "max_drawdown": 24800,
+       "beats_do_nothing": "no"
+      },
+      {
+       "family": "hybrid",
+       "trades": 19,
+       "net": -27300,
+       "worst_month": -19800,
+       "max_drawdown": 31100,
+       "beats_do_nothing": "no"
+      },
+      {
+       "family": "ai",
+       "trades": 16,
+       "net": -9100,
+       "worst_month": -12400,
+       "max_drawdown": 17700,
+       "beats_do_nothing": "no"
+      }
+     ]
+    },
+    "board_a": {
+     "status": "pilot",
+     "as_of": "2026-11-16",
+     "label": "Pilot: before the common start, no verdict",
+     "do_nothing_net": null,
+     "books": [
+      {
+       "family": "rule",
+       "trades": 3,
+       "net": -2100,
+       "worst_month": null,
+       "max_drawdown": 2600,
+       "beats_do_nothing": null
+      },
+      {
+       "family": "hybrid",
+       "trades": 3,
+       "net": -3900,
+       "worst_month": null,
+       "max_drawdown": 4100,
+       "beats_do_nothing": null
+      },
+      {
+       "family": "ai",
+       "trades": 3,
+       "net": 400,
+       "worst_month": null,
+       "max_drawdown": 1800,
+       "beats_do_nothing": null
+      }
+     ]
+    }
+   }
+  }
+ },
+ "getFnoScoreboards_india_none": {
+  "summary": "Mock (india): no scoreboard has run",
+  "description": "Both boards not run yet",
+  "x-case": "empty",
+  "value": {
+   "market": "india",
+   "page_key": "scoreboards",
+   "as_of": "2026-11-16",
+   "cutoff": "2026-11-16T09:30:00Z",
+   "built_at": "2026-11-16T09:38:00Z",
+   "schema_version": "2.8.0",
+   "source_commit": "0000000mock",
+   "payload_sha256": "474e690ac3f601116402cb0f7a2880652956acd37a1d522d437a1c30c450bf89",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-11-16T09:38:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-fno-2026-11-16",
+   "payload": {
+    "board_b": {
+     "status": "not_run",
+     "as_of": null,
+     "label": "Not run yet",
+     "do_nothing_net": null,
+     "books": []
+    },
+    "board_a": {
+     "status": "not_run",
+     "as_of": null,
+     "label": "Not run yet",
+     "do_nothing_net": null,
+     "books": []
+    }
    }
   }
  }

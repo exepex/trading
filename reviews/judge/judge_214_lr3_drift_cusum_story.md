@@ -78,3 +78,22 @@ None of the four options changes the four should-fix items, except Q3 as noted.
 - **Duplicates:** none. LR1 reads the alarms; G8's scores are read, not recomputed.
 
 **Verdict: FAIL for 1452b398** (story text). Fix should-fix 1-4 (minor optional), then re-judge.
+
+---
+
+## Addendum 1 (judge E): final head 9a738de6: PASS (story text)
+
+Diff `1452b398..9a738de6`: docs only (`LR-learning.md`, response 216). The owner's four answers are written in, and
+match the decision row "LR3 drift detection: the four design answers accepted as recommended" (16 Oct,
+`docs/DESK_DECISIONS.md:232`).
+
+| Should-fix | Fix | Accepted? (my evidence) |
+|---|---|---|
+| 1 Trigger | Runs every session in O1's `reviews` step after `exits`: E6's `ScorecardReview` first, then LR3's `DriftReview` (`review(day, marks) -> ReviewResult`). It uses the run's one sender, and an append-only `journal/drift/alarms.csv` makes reruns do nothing twice (criterion 9). "No version reaches `paper` until that step is live" | Accepted. The interface is real: `fno/daily/reviews.py` at e57046f3 (on `story/o1-daily-run`) has `Review`, `ReviewResult(lines, open_positions=0)`, `ScorecardReview` and `ReviewsStep`. This also closes the gap I noted for E6's own pauses: the same step runs them |
+| 2 D1 and E6 changes | A "changes owned elsewhere" section: three plan fields (`expected_sd_per_opportunity`, `trades_per_year`, `drift_h`, all required for `paper`); `drift_rule` added to `paper -> paused` (`transitions.py:18`); `AutoPauser` takes the approver from the pause. Depends updated | Accepted. All four gaps I listed are named, each through the orchestrator |
+| 3 V1-V3 | Only V6 is monitored. V1-V3 show "drift not monitored until calibrated" (criterion 11), and each joins after its own back-fill check | Accepted |
+| 4 Wording | Strategy: the first line says what to do; forecaster: "Information, no action"; both with the 60-minute line and PAPER ONLY (criterion 10) | Accepted. Matches design 6.5 |
+| Minor 1 and 2 | "6-12 trades"; the forecaster result labelled in-sample | Accepted |
+
+**Verdict: PASS for 9a738de6** (story text). Code may start. Its O1 wiring line lands with LR3's own code commit, as
+agreed.

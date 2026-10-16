@@ -46,9 +46,8 @@ def cmd_book1(args) -> int:
 
     day = args.day or now_ist().date()
     try:
-        if not args.commit_run:
-            download_private_records(day)  # C2's view, the trade counts and the private pack come from Drive
-        book1 = build_book1(load_app_config())
+        files = None if args.commit_run else download_private_records(day)  # C2's view, counts and pack from Drive
+        book1 = build_book1(load_app_config(), files=files)
         print(book1.commit_run(day, args.commit_run) if args.commit_run else book1.decide(day))
     except CommitRunRefused as refused:
         print(refused)

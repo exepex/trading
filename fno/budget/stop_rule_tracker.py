@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
+from ..constants import JOURNAL_FOLDER, SHADOW_FOLDER
 from ..research_data.calendar import CalendarError, SessionCalendar
 
 FULL_MONTHS = 6
@@ -25,6 +26,7 @@ REVIEW_REACHED = (
     "Omenix F&O SYSTEM: the stop-rule review date ({day:%d %b %Y}, {basis}) is reached: run Test A and Test B "
     "(design v2 section 8.2)"
 )
+SHADOW_ACCOUNTS = f"{JOURNAL_FOLDER}/{SHADOW_FOLDER}"  # story R3: one folder per research version's shadow account
 ZERO_SHADOWS = "at the review, zero eligible or resolved shadows gives undecided / no_economic_test, never no"
 
 
@@ -44,7 +46,7 @@ INPUTS = (
     StopRuleInput("A", "v4 daily scores of V6, V1 and V2 against their primary baselines", "G8"),
     StopRuleInput("A", "15-minute quotes long enough for V1 (V1 is judged only if they are)", "A16"),
     StopRuleInput("B", "shadow strategies registered in the ledger with pass mark and minimum useful net", "R1"),
-    StopRuleInput("B", "resolved shadow trades, net after costs", "R3"),
+    StopRuleInput("B", "resolved shadow trades, net after costs", "R3", SHADOW_ACCOUNTS),  # each account in Drive (E2c)
 )
 
 

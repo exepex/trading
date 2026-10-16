@@ -67,3 +67,16 @@ def test_the_review_date_reached_alert_comes_only_on_or_after_the_date():
     assert review_reached(review, date(2027, 5, 30)) == ""
     text = review_reached(review, date(2027, 5, 31))
     assert text.startswith("Omenix F&O SYSTEM: the stop-rule review date (31 May 2027") and "Test A and Test B" in text
+
+
+def test_test_b_reads_resolved_shadow_trades_from_the_shadow_accounts_folder(tmp_path):
+    """Judge 210 finding 1, criterion 7: Test B's R3 input is `journal/shadow`, where E6 opens each shadow account."""
+    from playbook.builders import document
+
+    from fno.desk.wiring import start_shadow_books
+    from fno.playbook.schema import parse_strategy
+
+    [r3] = [i for i in INPUTS if i.story == "R3"]
+    assert r3.path == "journal/shadow" and not r3.exists(tmp_path)
+    start_shadow_books([parse_strategy(document(name="cand-c"))], date(2026, 10, 14), tmp_path)
+    assert r3.exists(tmp_path)

@@ -13,7 +13,7 @@ FnoPaperTrades:
   x-never-sent:
     - "the rules that opened or closed a trade (only what was done and why in plain words)"
   additionalProperties: false
-  required: [accounts, open, closed]
+  required: [accounts, shadows, open, closed]
   properties:
     accounts:
       type: array
@@ -23,8 +23,17 @@ FnoPaperTrades:
       items:
         type: object
         additionalProperties: false
-        required: [family, as_of, opening_value, value, cash, open_trades, open_max_loss]
+        required: [family, as_of, opening_value, value, cash, open_trades, open_max_loss, brake]
         properties:
+          brake:
+            type: object
+            additionalProperties: false
+            description: "How far the book is from its pause: its own loss from its high against its published pause limit, in rupees (2.8.0; never a strategy's filter or threshold)"
+            x-catalog: {source: "the book's equity history (E1) and the C5 profile's drawdown brake (config risk.profiles.books.drawdown_brake_rs)", story: C5}
+            required: [loss_from_high, pause_at]
+            properties:
+              loss_from_high: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Closed equity below its highest close so far'}
+              pause_at: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), description: 'The published pause limit: at this loss from the high the book opens nothing new until the owner restarts it (Rs 1,20,000)'}
           family: {$ref: '#/components/schemas/FnoFamily', x-fill: built, x-record: 'paper_account:book', description: 'The book, translated from its account''s book id: book1_rules is rule, book2_hybrid is hybrid, book3_ai is ai'}
           as_of: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'equity_history:date', description: The session of the marks}
           opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:capital', description: 'Opening balance plus top-ups in force, Rs 20 lakh a book'}
@@ -32,13 +41,28 @@ FnoPaperTrades:
           cash: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:cash', description: Cash}
           open_trades: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'account_state:open_trades', description: Open positions}
           open_max_loss: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: not_built, x-catalog: {story: C5}, description: "Sum of the open positions' maximum losses (the account cap is Rs 1.5 lakh, owner 15 Oct 2026)"}
+    shadows:
+      type: array
+      description: "Shadow test accounts, each its own card and never added to a book (2.8.0); B0 is labelled measurement"
+      x-catalog: {source: "each registered shadow's paper account (fno/desk/shadow_books.py)", story: E6}
+      items:
+        type: object
+        additionalProperties: false
+        required: [name, label, as_of, opening_value, value, open_trades]
+        properties:
+          name: {type: string, minLength: 1, x-unit: text, description: "The shadow's display name (never its rules)"}
+          label: {type: string, enum: [shadow, measurement], x-unit: enum, description: 'shadow = a candidate tested on paper beside the books; measurement = B0, the measuring account'}
+          as_of: {type: string, format: date, x-unit: date (IST), description: The session of the marks}
+          opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), description: Its opening value}
+          value: {type: number, x-unit: INR (Paper), description: Its marked value}
+          open_trades: {type: integer, minimum: 0, x-unit: count, description: Open positions}
     open:
       type: array
       description: Open paper positions
       items:
         type: object
         additionalProperties: false
-        required: [trade_id, family, strategy, structure, legs, opened_on, max_loss, mark_value, unrealised, days_to_expiry, monitor, alerts_today]
+        required: [trade_id, family, strategy, structure, legs, opened_on, max_loss, mark_value, unrealised, days_to_expiry, monitor, alerts_today, alerts]
         properties:
           trade_id: {type: string, minLength: 1, x-unit: id, x-fill: built, x-record: 'desk_event:trade_id', description: The trade's id}
           family: {$ref: '#/components/schemas/FnoFamily', description: Its book}
@@ -52,6 +76,18 @@ FnoPaperTrades:
           days_to_expiry: {type: integer, minimum: 0, x-unit: sessions, description: NSE sessions left to expiry}
           monitor: {type: ['string', 'null'], enum: [alert_only, intraday_exits, null], x-unit: enum, x-catalog: {story: LM1}, description: "The live monitor's mode for its version; null until LM1 runs (never a mode for a monitor that does not exist)"}
           alerts_today: {type: ['integer', 'null'], minimum: 0, x-unit: count, x-catalog: {story: LM1}, description: 'Monitor alerts on it today; null until LM1 runs'}
+          alerts:
+            type: array
+            description: "Today's monitor alerts on it, the text and the time only (2.8.0); empty until LM1 runs. Owner only: an alert names the position and its loss"
+            x-visibility: owner
+            x-catalog: {source: "LM1's alert records (private, Drive)", story: LM1}
+            items:
+              type: object
+              additionalProperties: false
+              required: [at, text]
+              properties:
+                at: {type: string, format: date-time, x-unit: UTC time, description: The snapshot time}
+                text: {type: string, minLength: 1, x-unit: text, description: 'The alert as sent to #fno-desk (never a price)'}
     closed:
       type: array
       description: Closed paper trades, newest first

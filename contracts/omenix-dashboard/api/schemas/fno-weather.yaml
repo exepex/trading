@@ -11,6 +11,7 @@ FnoWeather:
   x-fill: not_built
   x-never-sent:
     - "the weather model's fitted coefficients and inputs beyond the named drivers"
+    - "the level at which an input turns a colour, each input's reaches colour, and the US cue (owner, 16 Oct 2026)"
   additionalProperties: false
   required: [session, status, missing_inputs, model_version, colour, blocks_new_entries, p_big_1d, p_big_5d, base_rate_1d, base_rate_5d, times_usual_1d, times_usual_5d, drivers, intraday, recent, red_share, scores, price_of_calm]
   properties:
@@ -34,9 +35,9 @@ FnoWeather:
         additionalProperties: false
         required: [driver, text, push]
         properties:
-          driver: {type: string, enum: [vix_level, vix_change, recent_big_moves, realised_volatility, us_overnight, scheduled_event], x-unit: enum, description: Which driver}
-          text: {type: string, minLength: 1, x-unit: text, description: 'In plain words, e.g. "India VIX up 14% in 5 sessions"'}
-          push: {type: string, enum: [calmer, riskier], x-unit: enum, description: Which way it pushed the weather}
+          driver: {type: string, enum: [vix_level, vix_change, recent_big_moves, realised_volatility, us_overnight, scheduled_event], x-unit: enum, description: 'Which driver (us_overnight is never sent: the US cue is kept in Drive)'}
+          text: {type: string, minLength: 1, x-unit: text, description: 'The input''s value in plain words, never the level at which it turns a colour (owner, 16 Oct 2026), e.g. "India VIX up 4% over 5 sessions"'}
+          push: {type: string, enum: [calmer, riskier], x-unit: enum, description: 'The sign of the input''s change since the previous session, never a level (exepex/trading docs/stories/W3-fno-screens.md, rule 4)'}
     intraday:
       type: array
       description: "Upgrades during the session from the live monitor (AMBER to RED only, never RED to GREEN inside a session)"
@@ -57,17 +58,19 @@ FnoWeather:
       items:
         type: object
         additionalProperties: false
-        required: [session, colour, big_move]
+        required: [session, colour, big_move, label]
         properties:
           session: {type: string, format: date, x-unit: date (IST), description: The session}
+          label: {type: ['string', 'null'], enum: [live, backfill_exploratory, null], x-unit: enum, description: 'live = made on the day; backfill_exploratory = rebuilt later from history, never a live record; null when the session has no record (2.8.0)'}
           colour: {type: ['string', 'null'], enum: [GREEN, AMBER, RED, null], x-unit: enum, description: 'Its colour; null when none was published'}
           big_move: {type: ['boolean', 'null'], x-unit: yes/no, description: 'A 2% move came next session; null while not known yet'}
     red_share:
       type: object
       description: 'How often it is RED: more than 15% of the last 250 sessions marks the weather "over-alarming" (a new version must be proposed; never retuned in place)'
       additionalProperties: false
-      required: [sessions, red_sessions, share, max_share, over_alarming]
+      required: [sessions, red_sessions, share, max_share, over_alarming, basis]
       properties:
+        basis: {type: string, enum: [live, backfill_exploratory], x-unit: enum, description: 'Which records the share counts: live, or rebuilt from history (exploratory) while no live record exists (2.8.0)'}
         sessions: {type: integer, minimum: 0, maximum: 250, x-unit: count, description: Sessions counted (up to the last 250)}
         red_sessions: {type: integer, minimum: 0, x-unit: count, description: Of them RED}
         share: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'red_sessions / sessions; null with no session'}
@@ -102,8 +105,9 @@ FnoWeatherScore:
   x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes'
   description: One weather question's score against one yardstick
   additionalProperties: false
-  required: [question, baseline, status, n_scored, n_needed, brier, brier_baseline, skill, verdict]
+  required: [question, baseline, status, n_scored, n_needed, brier, brier_baseline, skill, verdict, exploratory]
   properties:
+    exploratory: {type: boolean, x-unit: yes/no, description: 'True when the score is over days rebuilt from history (G8''s exploratory report), never a confirmatory result (2.8.0)'}
     question: {type: string, enum: [V6_1d, V6_5d], x-unit: id, description: 'V6_1d = a 2% move next session; V6_5d = within 5 sessions'}
     baseline: {type: string, enum: [base_rate, v0_checklist], x-unit: enum, description: 'The yardstick: base_rate = how often it happened over 750 sessions; v0_checklist = the frozen v0 weather rule (response 94), scored on the same questions'}
     status: {type: string, enum: [scoring, not_enough_data], x-unit: enum, description: 'not_enough_data = fewer scored days than the test needs'}
