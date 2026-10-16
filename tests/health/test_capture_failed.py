@@ -265,3 +265,25 @@ def test_a_re_run_attempt_gets_its_own_row_and_line(tmp_path):
     run, jobs = oi_run()
     code, log, sender, _ = call(tmp_path, ({**run, "run_attempt": 2}, jobs))
     assert [e.run_url for e in log.rows()] == [OI_URL, f"{OI_URL}/attempts/2"] and len(sender.sent) == 1
+
+
+def replaced_run(name, steps_ran):
+    run = {"name": name, "conclusion": "cancelled", "html_url": OI_URL, "run_started_at": "2026-10-16T05:00:00Z"}
+    ran = steps(("Set up job", "success")) if steps_ran else []
+    return run, [{"name": "poll", "conclusion": "cancelled", "steps": ran}]
+
+
+def test_a_replaced_news_run_is_neither_recorded_nor_alerted(tmp_path):
+    """A19 (judge 352 SF2): a pending poller run cancelled for a newer one never polled; the newer run carries on."""
+    code, log, sender, lines = call(tmp_path, replaced_run("news-capture", steps_ran=False))
+    assert (code, log.rows(), sender.sent) == (0, [], []) and "nothing to record" in lines[0]
+
+
+def test_a_news_run_cancelled_after_a_step_ran_is_a_failure(tmp_path):
+    _, log, sender, _ = call(tmp_path, replaced_run("news-capture", steps_ran=True))
+    assert len(log.rows()) == 1 and len(sender.sent) == 1
+
+
+def test_any_other_workflow_cancelled_before_a_step_is_a_lost_slot(tmp_path):
+    _, log, sender, _ = call(tmp_path, replaced_run("nse-margins", steps_ran=False))
+    assert log.rows()[0].step == "poll / before any step" and len(sender.sent) == 1
