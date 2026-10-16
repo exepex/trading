@@ -13,13 +13,26 @@ from ...constants import V1_RV_1S, V2_RV_5S, V3_RV_20S, V6_BIG_MOVE_1S, V6_BIG_M
 from ...forecast_v4.terms import HORIZON_SESSIONS
 from .inputs import Outcome, V4OutcomeSource
 
+VIX_MISSING = "VIX close missing for {day}{more}: fill it via O6 (no v4 report until then)"
+
+
+class VixCloseMissing(ValueError):
+    """A regular session without its India VIX close: a data fault O6 must fill. Scoring stops and names the day
+    rather than void it quietly, which would also change the comparisons' regimes (orchestrator, 16 Oct 2026)."""
+
+    def __init__(self, days: list[date]):
+        more = f" (and {len(days) - 1} more)" if len(days) > 1 else ""
+        super().__init__(VIX_MISSING.format(day=days[0], more=more))
+
+
 VOID_PLACEHOLDER = 0.0  # pairs.py reads a None outcome as unresolved before void; a void day's value is never used
 
 
 class OutcomeSeries(ABC):
     @abstractmethod
     def sessions(self) -> list[tuple[date, float, float]]:
-        """(day, official close, closing India VIX) of every A7 regular session, in date order."""
+        """(day, official close, closing India VIX) of every A7 regular session, in date order; VixCloseMissing when a
+        regular session has no VIX close."""
 
     @abstractmethod
     def close_proxy_rv(self) -> dict[date, float]:
