@@ -55,3 +55,27 @@ shared hook. Lane 1 (it changes what a book's decision reads). For judge E.
 
 - `python -m pytest -q -n auto`: 7784 passed (main merged in);
 - ruff and `python tools/check_imports.py` clean.
+
+## Addendum 1: judge 309 (FAIL, one should-fix), accepted and fixed
+
+- **The finding is right; I checked it in code.** `canonical_snapshot` hashed the pack's `<snapshot_id>.csv`, then
+  returned `RecordedSnapshots.snapshot(day)`, which follows the `.canonical` marker. Nothing tied the two, so a marker
+  naming a later capture changed what Book 1 read. The gap dates from E5b (my function) and is closed here.
+- **Fix:** `canonical_snapshot` now:
+  - reads the pack's recorded snapshot ID from the recorded dataset;
+  - checks both the quote file (`csv_sha256`) and the sidecar (`meta_sha256`) against the pack's recorded hashes;
+  - parses those verified bytes with `parse_snapshot`.
+
+  The marker is never read.
+- **Direct unit tests** (`tests/packs/test_pack_snapshot.py`):
+  - the pack's own capture is returned;
+  - judge 309's plant (a later capture with a 9,999.99 bid, the marker naming it) returns the 14:55 quotes;
+  - a quote file or sidecar that differs from the recorded hash is refused;
+  - a missing capture and a pack naming no snapshot are refused.
+
+  The old marker-following code fails two of these tests (checked by putting it back).
+- **Minor:** the E2e story section and its criteria are now in `docs/stories/E-paper-desk.md`.
+- **Fixture brought in line with the real pack:** `tests/book1/test_parts.py` `write_packs` now records the sidecar's
+  hash beside the quote file's, as E2's `SnapshotInput` provenance always has. `tests/quotes/test_drive_only_readers.py`
+  passes it. No assertion was changed.
+- Gates on the merged tree: 7819 passed (15 xfailed from main); ruff and check_imports clean.
