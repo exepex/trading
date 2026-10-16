@@ -298,7 +298,8 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
 
 ### Criterion 8: the CLAUDE.md "Daily desk routine" section (16 Oct, after A4c's live check)
 
-- **Trigger:** the orchestrator, 16 Oct: A4c's live check holds on main 2ec7c6e6. The Groww capture was complete
+- **Trigger:** the orchestrator, 16 Oct: A4b's live check holds on main 2ec7c6e6 (corrected by the orchestrator: A4c is
+  not merged yet; its code is with judge D, so O1's merge waits for A4c's merge). The Groww capture was complete
   (188 contracts, 0 failures, done 14:57:53 IST), the Drive SHA-256 entries and NSE's canonical are present, and no
   Groww quote file is in the repository. Main is merged into the branch; the one conflict was `fno/constants.py`.
   Main's `ENV_GITHUB_OUTPUT` and `PROTOCOL_*` stay there (344 lines). The branch already had the rest in
