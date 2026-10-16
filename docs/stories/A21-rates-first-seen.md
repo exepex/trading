@@ -144,10 +144,11 @@ Drive, the clock and the alert sender. Each criterion gets a positive case, a ne
 layout change and a stale week. Checks that `RatesAsOf` and `AnnouncementsAsOf` never look ahead, and that no A12 file
 or consumer default changed.
 
-**Open points (answers being sought before code):**
-- A12 has no active owner (its builder session has ended). The orchestrator is asked to agree the boundary: a new
-  package that imports A12's URL template and changes no A12 file.
-- O10's `CaptureErrorLog` is not on `main` yet. A21's code waits for it, or is built on its branch.
+**Settled before code:**
+- A12 has no active owner (its builder session has ended). The orchestrator agreed the boundary (16 Oct 2026): A21
+  adds a new package, `fno/announcements_live/`, imports only A12's URL template and changes no A12 file.
+- O10's `CaptureErrorLog` is not on `main` yet: O10 part 1 is being fixed after judge F's review. A21's code is built
+  against its branch's interface and rebased onto `main` once O10 lands (orchestrator, 16 Oct 2026).
 - A19's owner confirmed no overlap (16 Oct 2026). A19 stores RBI press-release headlines through the RSS feed, and
   A21 stores parsed yields from the HTML list. Reading RBI through A19 would turn any A19 outage into an A21 failure.
   A19 never fetches NSE announcements. A12's next-day day file still keeps the whole day with `exchdisstime`; A21 adds
