@@ -18,9 +18,12 @@ at CLAUDE.md, so no scheduled task changes.
 1. **Name:** `candles` is the last entry of `DAILY_RUN_STEPS` (`fno/constants_operations.py`), after `card`. O8 reads
    that tuple, so a day without the step counts as a miss.
 2. **Step:** one entry in the steps dict of `fno/daily/wiring.py`:
-   `Alerted("candles", CommandStep(processes, lambda day: ("intraday", "backfill"), candle_folders(), git.changed), alerts)`.
-   - It has no `live_from` date: the back-fill has run live since 14 Oct, so the step is on from the merge.
-   - It has no cutoff.
+   `Alerted("candles", NotBefore(CommandStep(processes, lambda day: ("intraday", "backfill"), candle_folders(),
+   git.changed), time(15, 33), now_ist, sleep), alerts)`.
+   - It has no `live_from` date (always on from the merge, as `quotes` and `book1` are).
+   - It has a start time, not a cutoff: it starts no earlier than 15:33 IST (see "Groww load").
+   - After an E3 stop (`RunStopped`) no later step runs, so that day has no catch-up; the next day's run picks the
+     missed session up, because only windows with sessions still to write are fetched.
 3. **Pathspecs:** they come from a new `fno/intraday/backfill_folders.py`, `candle_folders()` (M1's `record_folders()`
    pattern). It lists exactly the back-fill's own files:
    - `research/data/intraday/rv-candle/`: the rows and `deferred.csv`;
@@ -31,12 +34,21 @@ at CLAUDE.md, so no scheduled task changes.
    - Today these paths are defined inside `backfill_wiring.py`, which imports Groww. They move to the new module, so
      `fno/daily/wiring.py` never imports Groww code.
 4. **Command, unchanged:** `python -m fno intraday backfill`, with no arguments.
-   - Its default end is the latest finished session: yesterday before 21:00 IST, so at about 15:20 it is yesterday.
+   - Its default end is the latest finished session: yesterday before 21:00 IST, so at 15:33 it is yesterday.
    - Windows with no session still to write are not fetched.
    - It reads Groww only through A16's `ReadOnlyGroww` allow-list.
    - It exits 1 when any session is deferred or the run stopped. O1 then records `failed` with the last printed line
      and posts one #fno-desk line; the day goes on.
-5. **CLAUDE.md:** one clause in "Daily desk routine" step 2 names the candle catch-up after the card.
+   - A deferral is a real failure, not an expected wait. At 15:33 on day d+1, Groww's candles for day d are out, and
+     NSE's index-close file for d has been out since d's evening. So a deferral means a Groww, Drive or NSE call failed,
+     or NSE's file is still missing a day late. Either way the session is not captured, and under the owner's
+     16 Oct rule that must alert. It is not printed as "nothing written" (refused).
+5. **CLAUDE.md:** one clause in "Daily desk routine" step 2, after "T1's card in #fno-desk": "and, from 15:33 IST
+   (after A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only
+   Groww)". Sent to O1's owner for its check.
+6. **One schedule:** nothing else runs `intraday backfill`. The rows through 14 Oct were written by hand from this
+   builder's session (data commit 1d68c447, 15 Oct). No workflow, routine or scheduled task calls it: checked in
+   `.github/workflows/`, CLAUDE.md and the account's scheduled tasks on 16 Oct. So nothing has to be retired.
 
 Out:
 - any change to the back-fill's logic, files or Drive layout;
@@ -52,9 +64,18 @@ Out:
 - A long-gap day is about 2 s per missed session: 10 sessions (two weeks) take about 20 s.
 - O1's 600 s limit stops a gap of more than about 300 sessions (over a year). That run commits nothing, but its Drive
   copies stay, so the next day's run skips the windows already archived. This limit is stated, not guarded.
-- **Groww load:** at most about 2 calls a second, starting after the card (about 15:20 or later), when the 14:55-15:13
-  captures and the 15:15 snapshot are done. A16's 15:30 mark may overlap with it. Both are paced read calls, a few in
-  total, far below the per-key limit [reasoning only: Groww does not publish its per-key limit for these calls].
+- **Groww load: the step waits for A16's last mark.** The evidence is strong:
+  - A16 measured that one Groww key gives about 5 quotes a second safely (A16 story, "Rate limit").
+  - On 16 Oct, every mark taken by two runs at once lost 74-87 of about 224 quotes to Groww code 429
+    (`fno/intraday/claims.py`).
+  - A16's marks take about 53 s at that pace, and the last is 15:30 (15:30-15:31).
+  - The card can end before 15:16, which is inside the 15:15 mark. So a catch-up started right after the card could
+    add 2 calls a second to a running mark and cost it quotes.
+  - The step therefore starts no earlier than 15:33 IST: after the 15:30 mark, with 2 minutes' margin. Its calls then
+    meet no other Groww user of the routine.
+  - How it waits: a `NotBefore(step, time(15, 33), clock, sleep)` DayStep wrapper. A day already past 15:33 runs at
+    once; the routine ends about 15:34 instead of about 15:20. Where the wrapper lives is O1's call (`fno/daily/steps.py`
+    or this story's module).
 
 **Writes:**
 - Drive (owner's raw area): one 15-minute window copy and one 1-minute copy per new session.
@@ -66,13 +87,13 @@ Out:
 - one #fno-desk line from `Alerted`;
 - O8's freshness row for A16b, if O10 adds it: a row for the previous session in `rv-candle/` by the end of the
   routine.
-- Open point for O10 and O1, not built here: whether O10's `capture_errors.csv` should get one row per failed
-  daily-run step, written by O1's `Alerted`. That would make the routine's failures land in the same file as the
-  workflows' failures, instead of each step writing its own row.
+- No row in O10's `capture_errors.csv`: the journal is the one record of each daily-run step, and O8 reads it (O1's
+  owner, 16 Oct; O10 covers only jobs outside `daily run`).
 
 **Acceptance criteria:**
-1. `DAILY_RUN_STEPS` ends with `candles`, and the built steps dict has exactly one `candles` step, an `Alerted`
-   wrapping a `CommandStep` whose arguments are `("intraday", "backfill")`. Test: the graph walk in
+1. `DAILY_RUN_STEPS` ends with `candles`, and the built steps dict has exactly one `candles` step: an `Alerted`
+   wrapping `NotBefore(15:33)` around a `CommandStep` whose arguments are `("intraday", "backfill")`. A planted clock
+   at 15:20 sleeps until 15:33 before the command starts; at 15:40 it does not sleep. Test: the graph walk in
    `tests/daily/test_steps.py`'s style.
 2. Its pathspecs equal `candle_folders()`, and `backfill_wiring.py` builds the same three paths from that module.
    Test: one source for the paths.
