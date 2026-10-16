@@ -2,7 +2,7 @@
 the sessions it runs on and the first session it is live for (`None`: not live yet, so silent).
 
 Deadlines are the owners' objects (`LATEST_START`, `GENERATION_DEADLINE`, `receipt_deadline` inside the AI check, the
-desk timetable). The four below exist nowhere else in `fno/`; each is derived from its workflow's cron and is listed
+desk timetable). The five below exist nowhere else in `fno/`; each is derived from its workflow's cron and is listed
 for step 5's timing-consistency test."""
 
 from __future__ import annotations
@@ -29,14 +29,22 @@ PANEL_DAY_BY = Deadline(time(13, 0), days_after=1)  # panel-days.yml: after its 
 # flows-download.yml runs at 21:10, but the session's row reaches the manifest only after that run (4 h late on 14 Oct)
 # or the next morning's market publish (07:10): 12:00 the next day, as the closes (measured, response 153 addendum 2)
 FLOWS_BY = Deadline(time(12, 0), days_after=1)
+# market-publish.yml (cron 07:10 IST) adds session D's corporate-actions and EQUITY_L rows the next morning; GitHub
+# started it 4-5 h late: pushes at 11:56 IST on 15 Oct and 11:52 IST on 16 Oct 2026 (commits 5a313d87, 720defc7), so
+# 12:00 would be late on a slightly later start: 15:00 the next day (story O10, measured)
+MARKET_ARCHIVE_BY = Deadline(time(15, 0), days_after=1)
 
 PARTICIPANT_OI_MANIFEST = "research/data/manifests/participant-oi.csv"
 CLOSES_FILE = "research/data/nifty-panel/warmup_closes.csv"
 PANEL_MANIFEST = "research/data/nifty-panel/manifest.json"
 FLOWS_MANIFEST = "research/data/manifests/fii-dii-cash-by-session.csv"
+MARGINS_FILE = "research/data/margins/margins.csv"
+CORPORATE_ACTIONS_MANIFEST = "research/data/manifests/corporate-actions.csv"
+EQUITY_LIST_MANIFEST = "research/data/manifests/equity-list.csv"
 INTRADAY_FOLDER = "research/data/intraday"
 ALL_SESSION_KINDS = (*RECORDED_SESSION_KINDS, SESSION_MUHURAT)  # NSE publishes the evening files for muhurat too
 FIRST_RECORDED, FIRST_SEALED, DATA_JOBS_FROM = date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 13)
+FIRST_MARGINS = date(2026, 10, 14)  # the first session with a passed broker check (config.yaml risk.margins)
 
 
 @dataclass(frozen=True)
@@ -45,6 +53,7 @@ class Expectation:
     check: SessionCheck
     kinds: tuple[str, ...]  # the session kinds this job runs on; others are `not expected`
     live_from: date | None  # None: not live yet (silent)
+    jobs: tuple[str, ...] = ()  # the jobs whose capture-error rows record this check's failures (story O10)
 
     def expected_on(self, session: date, kind: str) -> bool:
         return self.live_from is not None and session >= self.live_from and kind in self.kinds
@@ -61,20 +70,27 @@ def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> 
         Expectation("3 pm Groww recorder", CanonicalCheck(evidence, DATASET, Deadline(LATEST_START)), recorded,
                     FIRST_RECORDED),
         Expectation("NSE recorder", CanonicalCheck(evidence, NSE_DATASET, Deadline(LATEST_START)), recorded,
-                    FIRST_RECORDED),
+                    FIRST_RECORDED, ("quote-recorder-nse",)),
         Expectation("Forecast v2 records",
                     ForecastRowsCheck(evidence, expected_forecast_rows(), Deadline(GENERATION_DEADLINE)), recorded,
-                    FIRST_RECORDED),
+                    FIRST_RECORDED, ("forecast-capture",)),
         *[Expectation(f"{BOOK_DISPLAY_NAMES[book]} sealed forecast", AiBookCheck(evidence, book), recorded,
-                      FIRST_SEALED) for book in AI_BOOKS],
+                      FIRST_SEALED, ("forecast-capture",)) for book in AI_BOOKS],
         Expectation("Desk daily run", RunLogCheck(root, Deadline(timetable.decision_deadline)), recorded, None),
         Expectation("A16 15-minute marks", MarksCheck(root / INTRADAY_FOLDER), recorded, None),
         Expectation("A8 participant OI", SessionRowCheck(evidence, PARTICIPANT_OI_MANIFEST, A8_RELEASE_BY),
-                    everything, DATA_JOBS_FROM),
+                    everything, DATA_JOBS_FROM, ("participant-oi-release", "participant-oi-watch")),
         Expectation("Index closes", SessionRowCheck(evidence, CLOSES_FILE, INDEX_CLOSE_BY), everything,
-                    DATA_JOBS_FROM),
+                    DATA_JOBS_FROM, ("index-closes",)),
         Expectation("NIFTY panel day", PanelDayCheck(evidence, PANEL_MANIFEST, PANEL_DAY_BY), everything,
-                    DATA_JOBS_FROM),
+                    DATA_JOBS_FROM, ("panel-days",)),
         Expectation("FII/DII flows", SessionRowCheck(evidence, FLOWS_MANIFEST, FLOWS_BY), everything,
-                    DATA_JOBS_FROM),
+                    DATA_JOBS_FROM, ("flows-download", "market-publish")),
+        # the desk's pack reads the margins first (story O10; owner of the time: the desk timetable)
+        Expectation("NSE margins", SessionRowCheck(evidence, MARGINS_FILE, Deadline(timetable.pack), "as_of"),
+                    recorded, FIRST_MARGINS, ("nse-margins",)),
+        Expectation("Corporate actions", SessionRowCheck(evidence, CORPORATE_ACTIONS_MANIFEST, MARKET_ARCHIVE_BY),
+                    recorded, DATA_JOBS_FROM, ("market-publish",)),
+        Expectation("EQUITY_L list", SessionRowCheck(evidence, EQUITY_LIST_MANIFEST, MARKET_ARCHIVE_BY), recorded,
+                    DATA_JOBS_FROM, ("market-publish",)),
     ]  # fmt: skip

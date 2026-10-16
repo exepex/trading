@@ -35,14 +35,15 @@ def cmd_health(args, out=print) -> int:
     from ..config import load_app_config
     from ..models import IST, now_ist
     from .report import FAILED, message, table, verdict
-    from .wiring import build_health_check, build_run_record
+    from .wiring import build_health_check, build_run_record, build_trial_report
 
     started = now_ist()
     alerts = None if args.dry_run else StepOutputAlerts(build_alert_sender())  # records `posted` (judge 240)
     try:
         check = build_health_check(load_app_config())
         run = check.run(args.at or started)
-        text, result, code = message(run), verdict(run), 0
+        trial = build_trial_report()
+        text, result, code = "\n".join([message(run), *trial.lines(run)]), verdict(run), 0
         for line in table(run):
             out(line)
     except Exception as error:  # the one place a broken check must still be heard
@@ -53,6 +54,8 @@ def cmd_health(args, out=print) -> int:
         sent = alerts.send(text)
         out(sent)
         build_run_record().append((args.at or started).astimezone(IST).date(), started, now_ist(), result)
+        if not code:
+            trial.record()  # the judged sessions, once each (story O10); never on a dry run or a broken check
         if sent == SENT and not code and run.warnings:
             check.horizon.mark()  # once only: a warning Slack accepted is never repeated for this calendar
         code = code or int(sent != SENT)

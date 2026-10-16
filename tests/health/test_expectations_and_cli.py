@@ -52,11 +52,11 @@ def test_the_desk_deadline_moves_with_the_timetable_config():
     assert _table(cfg)["Desk daily run"].check.deadline.at == time(15, 13)
 
 
-def test_the_four_health_owned_deadlines_are_the_only_time_literals_in_fno_health():
+def test_the_health_owned_deadlines_are_the_only_time_literals_in_fno_health():
     found = {
         path.name: len(re.findall(r"\btime\(\d", path.read_text(encoding="utf-8"))) for path in HEALTH.glob("*.py")
     }
-    assert {name: n for name, n in found.items() if n} == {"expectations.py": 4}
+    assert {name: n for name, n in found.items() if n} == {"expectations.py": 5}  # O10 adds MARKET_ARCHIVE_BY
 
 
 def test_no_code_in_fno_health_reads_a_commit_date():
@@ -165,7 +165,12 @@ def test_the_workflow_checks_out_full_history_and_commits_only_its_run_record(wo
     commit = next(s for s in steps if s.get("name") == "Commit the run record")["run"]
     assert re.findall(r"git add (\S+)", commit) == ["research/ops/"]
     writers = {m for path in HEALTH.glob("*.py") for m in re.findall(r'"(research/ops/[^"]+)"', path.read_text())}
-    expected = {HEALTH_RUNS_FILE, "research/ops/calendar_horizon_alerted.txt", "research/ops/capture_errors.csv"}  # O10
+    expected = {
+        HEALTH_RUNS_FILE,
+        "research/ops/calendar_horizon_alerted.txt",
+        "research/ops/capture_errors.csv",
+        "research/ops/trial_days.csv",
+    }  # O10
     assert writers | {HEALTH_RUNS_FILE} == expected
     assert "git pull --no-rebase" in commit and "--no-verify" not in WORKFLOW.read_text(encoding="utf-8")
 
@@ -197,6 +202,8 @@ def test_exactly_these_checks_are_live_from_these_sessions():
         "Book 3 sealed forecast": expectations.FIRST_SEALED, "Desk daily run": None, "A16 15-minute marks": None,
         "A8 participant OI": expectations.DATA_JOBS_FROM, "Index closes": expectations.DATA_JOBS_FROM,
         "NIFTY panel day": expectations.DATA_JOBS_FROM, "FII/DII flows": expectations.DATA_JOBS_FROM,
+        "NSE margins": expectations.FIRST_MARGINS, "Corporate actions": expectations.DATA_JOBS_FROM,
+        "EQUITY_L list": expectations.DATA_JOBS_FROM,
     }  # fmt: skip
     assert expectations.FIRST_RECORDED < expectations.FIRST_SEALED  # both dates fixed in the table, before 16 Oct
 

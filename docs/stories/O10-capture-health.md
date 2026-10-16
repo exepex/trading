@@ -56,16 +56,23 @@ captured properly so that we could fix them").
      step, so a second line would be noise;
    - commits only `research/ops/capture_errors.csv` (`git pull --no-rebase` first). If the watcher itself fails, its
      own `failure()` step posts one line.
-2. **O8 reads the error file and gains the missing freshness rows** (split agreed with O8's owner through the
-   orchestrator before coding):
-   - new rows: A4c's three indices (`CanonicalCheck` gets the underlying's name; live from 19 Oct), NSE margins (a row
-     of `margins.csv` whose `as_of` is the session, by 09:15; `SessionRowCheck` gets the date column), corporate
-     actions and EQUITY_L manifests (by 12:00 the next day);
-   - the daily message gets one line "capture errors: <n> in the window (<jobs>)" from `capture_errors.csv`, so the
-     evening summary names them even if a Slack line was missed;
-   - each new `missed` or `unknown` result is appended to `capture_errors.csv` once (`job` = the check's name, `step`
-     = `freshness`, `kind` = the status, `run_url` = the health run's URL, keyed on (date, job, kind)), so a job that
-     never started, and a routine's miss, also leave the committed error row.
+2. **O8 gains the freshness rows, the error line and the go-live trial** (agreed with O8's owner, 16 Oct; O8's owner
+   reviews every `fno/health/` diff):
+   - new rows: NSE margins (a `margins.csv` row whose `as_of` is the session, by the desk timetable's `pack` time, so
+     the deadline's owner is the desk), corporate actions and EQUITY_L manifests (by `MARKET_ARCHIVE_BY`, 15:00 the
+     next day: measured pushes 11:56 and 11:52 IST on 15 and 16 Oct, GitHub starting the 07:10 cron 4-5 h late).
+     `SessionRowCheck` matches the date column by header name and searches the push with that column's own key. The A4c
+     indices' rows wait for their first measured pushes after 19 Oct (a deadline is never typed unmeasured);
+   - each row names its `jobs`, the workflows whose capture-error rows record its failures; O8 writes no error row of
+     its own (each job's alert and record belong to the job);
+   - **the trial (owner's go-live gate: 10 sessions in a row with zero silent failures):** a problem (late, missed,
+     unknown) is silent unless the job recorded it: its own evidence (`CheckResult.recorded`: a `none` canonical, an
+     incomplete snapshot, A16's bad marks) or a capture-error row from one of its jobs dated from the session to 2 days
+     later (`_recovered` rows aside). A session is judged once, by the first real run at which none of its checks is
+     `not due`, and appended to `research/ops/trial_days.csv` (never edited; never by a dry run or a broken check). The
+     message's last line is "trial: <k> clean sessions in a row" with what broke it ("last silent: <checks> <date>" or
+     "not proven: <date>" for a session with no row), recomputed from the file and the calendar;
+   - the message gets "capture errors: <n> in the window (<jobs>)" when there are any.
 3. **The four health problems:**
    - participant-oi-release: `watch` takes its default day from `release_check_once.due_day` (before 12:00 IST, the
      evening before), as `check-once` already does. A run starting after midnight then checks the due day's file once
@@ -94,8 +101,10 @@ Out: the routines' own alerts (they already post: the 3 pm recorder, A4c, A16); 
 4. `capture-watch.yml` lists every capture workflow (a test compares its list with the workflow files that commit
    `research/data` or post capture alerts), has `actions: read` and `contents: write`, commits only
    `research/ops/capture_errors.csv`, and holds no secret value.
-5. O8: the new rows give `ok`, `late`, `missed` and `not due` from planted evidence; A4c is silent before 19 Oct; the
-   message carries the capture-errors line; a new miss is appended once and never twice across two runs.
+5. O8: the new rows give `ok`, `late`, `missed` and `not due` from planted evidence (margins by the `as_of` column);
+   the trial judges a session once when final, counts a problem silent unless recorded, breaks the streak on a silent
+   or missing session, skips weekends and holidays, and is never appended by a dry run or a broken check; the message
+   carries the capture-errors line.
 6. participant-oi `watch` started at 01:52 IST checks the previous day once and returns; at 17:11 IST it watches today.
 7. Run logs cited in the claims file: the first `capture-watch` run on a real non-success run, 16 Oct's health-check
    and quote-recorder-nse runs, and the first nse-margins catch-up run.

@@ -22,10 +22,16 @@ from .expectations import build_expectations
 from .horizon import HORIZON_MARKER, CalendarHorizon
 from .run_failures import GitHubRuns, RunSource
 from .run_record import RunRecord
+from .trial import TRIAL_FILE, TrialLedger, TrialReport
 
 
 def build_run_record(root: Path = ROOT) -> RunRecord:
     return RunRecord(Path(root) / HEALTH_RUNS_FILE)
+
+
+def build_trial_report(root: Path = ROOT) -> TrialReport:
+    ledger = TrialLedger(Path(root) / TRIAL_FILE)
+    return TrialReport(ledger, build_capture_error_log(root), load_session_calendar(CALENDAR_FILE))
 
 
 def build_capture_error_log(root: Path = ROOT) -> CaptureErrorLog:

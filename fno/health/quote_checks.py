@@ -28,10 +28,10 @@ class CanonicalCheck(SessionCheck):
             return absent(now, self.deadline.on(session), "never ran: no canonical")
         snapshot = text.strip()
         if snapshot == NONE_MARKER:
-            return CheckResult(HEALTH_MISSED, "none")
+            return CheckResult(HEALTH_MISSED, "none", recorded=True)
         sidecar = self.evidence.json(self._path(session, f"{snapshot}.meta.json"))
         if sidecar is None:
             raise EvidenceUnknown(f"{canonical} names {snapshot}, whose sidecar is not committed")
         if not (sidecar.get("complete") is True and sidecar.get("in_window") is True):
-            return CheckResult(HEALTH_MISSED, f"incomplete ({snapshot})")
+            return CheckResult(HEALTH_MISSED, f"incomplete ({snapshot})", recorded=True)
         return judged(self.evidence.file_pushed_at(canonical), self.deadline.on(session), "pushed")

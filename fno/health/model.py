@@ -29,6 +29,7 @@ class Deadline:
 class CheckResult:
     status: str
     detail: str = ""
+    recorded: bool = False  # a problem the job recorded itself (a `none` canonical, a failed step): not silent (O10)
 
 
 class SessionCheck(ABC):

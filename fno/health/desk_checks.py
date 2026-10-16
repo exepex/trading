@@ -63,4 +63,5 @@ class MarksCheck(SessionCheck):
         detail = f"{good} of {MARKS_PER_SESSION} good, {late} late, {MARKS_PER_SESSION - good - late} other"
         if now < last_mark:
             return absent(now, last_mark, detail)
-        return CheckResult(HEALTH_LATE if good + late == MARKS_PER_SESSION else HEALTH_MISSED, detail)
+        status = HEALTH_LATE if good + late == MARKS_PER_SESSION else HEALTH_MISSED
+        return CheckResult(status, detail, recorded=True)  # A16's ledger names each bad mark itself
