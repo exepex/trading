@@ -12,6 +12,8 @@
 6. `fills`: only the runs recorded at the deadline, each with a completed C4 pass, fill against that one snapshot;
    none if it is invalid.
 7. `exits`: every book's exit review, whatever happened before (risk-reducing exits always run).
+8. `trade_marks`: every account's open trades valued at the session's snapshot by S2's rule, with its equity row (story
+   E2d), so a trade opened or kept today is valued today.
 
 Each step's start, end, inputs and result go to `journal/runs/<date>.json`, committed after the step; a restarted run
 skips every step already recorded, so nothing is done twice. A commit that fails (a refused raw quote file, a failed
@@ -35,6 +37,7 @@ from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
 from .run_log import RunLog
+from .trade_marking import MarkingStep
 
 SKIPPED = "skipped"
 STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: the commit failed: {reason}. {fix}"
@@ -48,6 +51,7 @@ NO_LOG = "the run of {day} stopped before any step"
 BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
+AFTER_EXITS = ("step exits", "step trade_marks")  # a stop here leaves the day's exits reviewed
 
 
 class RunStopped(Exception):
@@ -56,8 +60,9 @@ class RunStopped(Exception):
 
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
-                 clock: Callable[[], datetime], files: PrivateFiles | None = None):  # fmt: skip
+                 clock: Callable[[], datetime], marking: MarkingStep, files: PrivateFiles | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
+        self.marking = marking  # story E2d
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
 
     def run(self, day: date) -> RunLog:
@@ -87,6 +92,7 @@ class DailyRun:
                 ),
             ),  # fmt: skip
             ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
+            ("trade_marks", times.execution_snapshot, lambda: self.marking.run(day)),
         )
         for name, moment, action in plan:
             if not log.done(name):
@@ -139,7 +145,7 @@ class DailyRun:
         try:
             action()
         except CommitFailed as failed:
-            missed = "" if where == "step exits" else EXITS_MISSED
+            missed = "" if where in AFTER_EXITS else EXITS_MISSED
             fix = "" if isinstance(failed, PendingChanged) else RERUN + (PUSHES if failed.unpushed else "")
             text = STOPPED.format(day=day, where=where, missed=missed, reason=failed, fix=fix).rstrip(" ")
             self.steps.alerts.send(text)

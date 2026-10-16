@@ -1624,9 +1624,11 @@ session 0134MoC6). Scoreboard B is not blocked: it re-marks from the execution s
    marking day cannot make the two disagree.
 2. **When.** In the daily run, right after the exit review (`DeskSteps.review_exits`; the run order is snapshot,
    fill, exits, so a trade opened today is valued today), for each book and each shadow account with an open trade,
-   inside the same `sync.write` (single-writer lock, Drive pull and push). For each open trade E2d calls `trade_days`
-   over the trade's sessions (entry day to today) with `SnapshotMarks`; today's `TradeDay` is the value written. A
-   rerun of a session reads that session's recorded snapshot, so it is never re-dated and never uses a later quote.
+   in the account's journal under its single-writer lock, pulled from Drive and pushed back (what `sync.write`
+   opens), committing nothing: marking changes no ledger row (response 246 addendum 3). For each open trade E2d calls
+   `trade_days` over the trade's sessions (entry day to today) with `SnapshotMarks`; today's `TradeDay` is the value
+   written. A rerun of a session reads that session's recorded snapshot, so it is never re-dated and never uses a
+   later quote.
 3. **Per trade, not per contract.** What the page needs is per trade (the contract's `mark_value` and
    `unrealised`), and a per-contract mark would need a second walk of the history. So E2d stores, per open trade:
    `value` (S2's `TradeDay.value`, cash flow plus the legs at their marks), `mark_value` (`value` minus the trade's
@@ -1696,4 +1698,5 @@ snapshot); the risk manager's own valuation with live marks (C2, unchanged); the
 **Depends:** E1 (the account writer), E2c (Drive store, `PrivateFiles`), E3 (the daily run and its run logs), E4
 (execution snapshot), C3 (quote validity), S2 (`trade_days`, `SnapshotMarks`, imported unchanged), E7 (settlement), R3
 (shadow accounts), O5 (the record scan) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
-**Status:** story text for judge B; prerequisite of the first paper trade (orchestrator, 16 Oct 2026).
+**Status:** text merged (judge 250 addendum 2 PASS); code on `story/e2d-code` for judge B (response 246 addendum 3);
+prerequisite of the first paper trade (orchestrator, 16 Oct 2026).
