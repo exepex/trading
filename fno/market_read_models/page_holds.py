@@ -17,24 +17,28 @@ from datetime import date
 from .blocks import BlockBuilder, SessionRows
 
 PAGE_HOLDS = "page_holds"
+SHOWS_PREVIOUS, SHOWS_NOTHING = "previous_page", "nothing"
 HELD_LINE = "{day}: {page} held back: {rule}"
 COPY_BROKEN = "; its previous page no longer matches contract {version}, so it is not published"
 
 
 class PageHeld(Exception):
-    """This page must not be published today, for `rule` (a fixed sentence its block's story writes)."""
+    """This page must not be published today, for `rule`: a fixed sentence its block's story writes, shown on screen
+    as the hold's reason, so it holds no value and no digit (contract 2.13.0 refuses digits)."""
 
     def __init__(self, rule: str):
         super().__init__(rule)
         self.rule = rule
 
 
-def page_holds_payload(holds: dict[str, str], previous: dict | None, day: date) -> dict:
-    """Each held page with its rule and the first session it has been held in a row: carried from the previous
-    publication's page_holds while the page stays held, reset when a hold lifts and returns."""
+def page_holds_payload(holds: dict[str, str], shown: set[str], previous: dict | None, day: date) -> dict:
+    """Each held page (contract 2.13.0 `FnoPageHolds`): its reason, whether the screen shows its previous page or
+    nothing, and the first session it has been held in a row: carried from the previous publication's page_holds while
+    the page stays held, reset when a hold lifts and returns."""
     before = {h["page_key"]: h["since"] for h in (previous or {}).get("holds", [])}
-    return {"holds": [{"page_key": key, "since": before.get(key, day.isoformat()), "rule": rule}
-                      for key, rule in sorted(holds.items())]}  # fmt: skip
+    return {"holds": [{"page_key": key, "since": before.get(key, day.isoformat()), "reason": reason,
+                       "shows": SHOWS_PREVIOUS if key in shown else SHOWS_NOTHING}
+                      for key, reason in sorted(holds.items())]}  # fmt: skip
 
 
 def held_lines(day: date, held: dict[str, str], broken: list[str], version: str) -> list[str]:

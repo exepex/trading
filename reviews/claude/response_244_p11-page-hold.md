@@ -90,3 +90,13 @@ line plus the pin.
 - `tests/market_read_models/test_home_blocks.py`: criterion 8, a planted open trade and a planted approval each
   hold only their page with no row, every other page published, one alert, the run status `published` with the rule.
 - Criterion 6: the existing FiguresNotComputed, ContractBroken and crash tests stand unchanged.
+
+## Addendum 5 (16 Oct): `page_holds` in contract 2.13.0's shape
+
+The screens lead's `FnoPageHolds` (story/fno-contract-2-13 5c6fcdb, not merged yet) is
+`{holds: [{page_key, since, reason, shows}]}`:
+- `reason`, not `rule`: the privacy check refuses rule-named keys;
+- `shows` is previous_page or nothing;
+- no digit in a reason.
+The payload now has that shape. Home's two reasons are reworded with no digit ("C2", "P10" removed), and a test
+checks every hold reason in the code. The pin and the one-line wiring follow its merge.

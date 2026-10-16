@@ -15,7 +15,7 @@ from fno.market_read_models.wiring import build_market_blocks
 
 from .test_market_contract_and_run import CONTRACT, Rows, example_rows, run
 
-RULE = "a planted rule broke (test)"
+RULE = "A planted rule broke in this test"
 ROW = ("as_of", "cutoff", "built_at", "source_commit", "payload_sha256", "payload", "market", "product")
 
 
@@ -83,15 +83,30 @@ def test_page_holds_names_each_held_page_from_its_first_held_session_and_is_neve
     publish(tmp_path, "2026-10-12T12:30:00Z", holds_page=FreePageHolds())
     publish(tmp_path, "2026-10-13T12:30:00Z", hold=True, holds_page=FreePageHolds())
     _, _, _, held = publish(tmp_path, "2026-10-14T12:30:00Z", hold=True, holds_page=FreePageHolds())
-    assert held["page_holds"]["payload"] == {"holds": [{"page_key": "weather", "since": "2026-10-13", "rule": RULE}]}
+    assert held["page_holds"]["payload"] == {
+        "holds": [{"page_key": "weather", "since": "2026-10-13", "reason": RULE, "shows": "previous_page"}]
+    }
     _, _, _, lifted = publish(tmp_path, "2026-10-15T12:30:00Z", holds_page=FreePageHolds())
     assert lifted["page_holds"]["payload"] == {"holds": []}
     assert "page_holds" not in {b.page_key for b in build_market_blocks()}  # built by the publication, never a block
 
 
 def test_since_resets_when_a_hold_lifts_and_returns():
-    first = page_holds_payload({"weather": RULE}, None, date(2026, 10, 12))
-    kept = page_holds_payload({"weather": RULE}, first, date(2026, 10, 13))
-    lifted = page_holds_payload({}, kept, date(2026, 10, 14))
-    back = page_holds_payload({"weather": RULE}, lifted, date(2026, 10, 15))
+    first = page_holds_payload({"weather": RULE}, set(), None, date(2026, 10, 12))
+    kept = page_holds_payload({"weather": RULE}, set(), first, date(2026, 10, 13))
+    lifted = page_holds_payload({}, set(), kept, date(2026, 10, 14))
+    back = page_holds_payload({"weather": RULE}, set(), lifted, date(2026, 10, 15))
     assert [p["holds"][0]["since"] for p in (first, kept, back)] == ["2026-10-12", "2026-10-12", "2026-10-15"]
+
+
+def test_every_hold_reason_in_the_code_is_a_fixed_sentence_with_no_digit():
+    """Contract 2.13.0 refuses a digit in a reason (its probe plants "Rs 10,500"); a reason is shown on screen."""
+    from fno.market_read_models import home_blocks
+
+    for reason in (home_blocks.OPEN_TRADE_RISK, home_blocks.APPROVED_PICKS, RULE):
+        assert not any(ch.isdigit() for ch in reason) and "{" not in reason, reason
+
+
+def test_a_held_page_with_no_row_is_listed_as_showing_nothing(tmp_path):
+    _, _, _, held = publish(tmp_path, "2026-10-13T12:30:00Z", hold=True, holds_page=FreePageHolds())
+    assert "weather" not in held and held["page_holds"]["payload"]["holds"][0]["shows"] == "nothing"

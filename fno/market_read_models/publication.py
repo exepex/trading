@@ -71,7 +71,9 @@ class PublicationBuilder:
                     pages.append((builder, builder.page_key, kept["payload"], kept))
         if self.holds_page is not None:
             previous_holds = before().get(PAGE_HOLDS, {}).get("payload") if held else None
-            pages.append((self.holds_page, PAGE_HOLDS, page_holds_payload(held, previous_holds, rows.day), None))
+            shown = {key for _, key, _, kept in pages if kept is not None}
+            notice = page_holds_payload(held, shown, previous_holds, rows.day)
+            pages.append((self.holds_page, PAGE_HOLDS, notice, None))
         sha256 = {key: hashlib.sha256(canonical(payload)).hexdigest() for _, key, payload, _ in pages}
         publication_id = publication_id_for(rows.day, sha256)
         records = {}
