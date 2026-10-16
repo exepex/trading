@@ -15,8 +15,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..ai.run_timing import RunTiming
 from ..ai.seal import Commitment, commitment_hash, new_salt
-from ..ai.sealed_publish import SealedPublisher
+from ..ai.sealed_publish import ALREADY_SEALED, SealedPublisher, SealRefused
+from ..ai.transport import PublishFailed
 from ..desk.pack_items import canonical_json, sha256_hex
 from ..desk.private_pack import ALLOWED_FOLDERS
 from .answer import MODEL_RULE, check_answer, complete_answer, labels_of
@@ -39,10 +41,12 @@ class DecisionSession:
     root: Path
     registry: DecisionRegistry
     publisher: SealedPublisher
+    timing: RunTiming  # F8c's run timing, with its decision run name (agreed with F8c's owner, 16 Oct)
     out: Callable[[str], None] = print
 
     def brief(self, text: str) -> None:
         pointer = parse_pointer(text, self.registry)
+        self.timing.start(pointer)
         prompt = self.registry.current(pointer.book).prompt_text(self.root)
         common = self._common_pack(pointer)
         self._save(POINTER_FILE, text)
@@ -64,7 +68,8 @@ class DecisionSession:
         private = private_figures(pointer.private_pack, self._common_pack(pointer).decode("utf-8"), public)
         check_answer(answer, labels, version.shape_check, private)
         path = commitment_path(pointer.day, pointer.book)
-        self.publisher.refuse_if_sealed(path)
+        if self.publisher.is_sealed(path):
+            raise SealRefused(ALREADY_SEALED.format(path=path))
         salt = new_salt()
         self._save(SEALED_FILE, json.dumps({"answer": answer, "salt": salt}))  # kept before publishing: reveal needs it
         commitment = Commitment(pointer.book, pointer.day.isoformat(), pointer.version, _hash(labels),
@@ -77,8 +82,21 @@ class DecisionSession:
         pointer = parse_pointer(self._load(POINTER_FILE), self.registry)
         sealed = json.loads(self._load(SEALED_FILE))
         path = reveal_path(pointer.day, pointer.book)
-        message = _message(pointer, "reveal (answer and salt)")
-        self.out(self.publisher.reveal(path, sealed["answer"], sealed["salt"], pointer.reveal_from, message))
+        if pointer.reveal_from > self.publisher.clock():
+            self.out(f"waiting until {pointer.reveal_from:%H:%M:%S} before revealing")
+            self.publisher.wait_until(pointer.reveal_from)
+        commit = self.publisher.reveal(
+            path, sealed["answer"], sealed["salt"], _message(pointer, "reveal (answer and salt)")
+        )
+        self.out(f"already revealed: {path}" if commit is None else f"revealed in commit {commit[:10]}")
+        self._time_run(pointer)
+
+    def _time_run(self, pointer: DecisionPointer) -> None:
+        """The run's timing for BG1's ledger; a failure is said and never raised (the reveal is already out)."""
+        try:
+            self.out(self.timing.publish(pointer, _message(pointer, "run timing")))
+        except (PublishFailed, ValueError, OSError) as failed:
+            self.out(f"timing NOT published ({failed}): the run's AI minutes will show as not captured")
 
     def _common_pack(self, pointer: DecisionPointer) -> bytes:
         path = self.root / common_pack_path(pointer.day)

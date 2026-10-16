@@ -8,9 +8,11 @@ import json
 from pathlib import Path
 
 from ..ai.paths import AI_FOLDER
+from ..ai_trading.paths import DECISIONS_FOLDER
 from .usage_ledger import session_key
 
 FIRE_LOGS = "*/*_fired.json"
+FIRE_LOG_FOLDERS = (AI_FOLDER, DECISIONS_FOLDER)  # the forecasts' and (story F1t) the trading decisions' fire logs
 
 
 class FireLogUnreadable(ValueError):
@@ -21,7 +23,7 @@ def fired_sessions(root: Path, month: str, before: str) -> list[tuple[str, str, 
     """(day, book, session link) of every fired book session in the month's fire logs, on days before `before` (a
     session of today cannot be captured yet: only complete days are recorded)."""
     found = []
-    for log in sorted((root / AI_FOLDER).glob(FIRE_LOGS)):
+    for log in sorted(p for folder in FIRE_LOG_FOLDERS for p in (root / folder).glob(FIRE_LOGS)):
         day = log.name.removesuffix("_fired.json")
         if day.startswith(month) and day < before:
             found += [(day, book, session) for book, session in _fired(log)]

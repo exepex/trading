@@ -47,3 +47,12 @@ def test_fired_decision_sessions_are_read_from_their_own_folder(tmp_path):
     fire_log(tmp_path, {"state": "fired", "fired": True, "version": "v1"})
     assert [s.book for s in fired_sessions(tmp_path, DECISIONS_FOLDER)] == ["book2_hybrid"]
     assert fired_sessions(tmp_path) == []  # the forecasts' folder holds none
+
+
+def test_a_fired_decision_session_counts_for_f8_s_capture_coverage(tmp_path):
+    from fno.budget.capture_coverage import not_captured
+
+    fire_log(tmp_path, {"state": "fired", "fired": True, "version": "v1", "session": "https://x.invalid/cse_abc"})
+    assert not_captured(tmp_path, f"{DAY:%Y-%m}", [], "2026-10-20") == [(DAY.isoformat(), "book2_hybrid",
+                                                                           "https://x.invalid/cse_abc")]  # fmt: skip
+    assert not_captured(tmp_path, f"{DAY:%Y-%m}", [{"session_id": "session_abc"}], "2026-10-20") == []

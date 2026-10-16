@@ -22,7 +22,8 @@ from .export import build_export, export_sha256
 from .paths import WORK_FOLDER, commitment_path, reveal_path
 from .pointer import BookPointer, parse_pointer
 from .run_timing import RunTiming
-from .seal import Commitment, new_salt, reveal_text
+from .seal import Commitment, new_salt
+from .sealed_publish import SealedPublisher, SealRefused
 from .timing import receipt_deadline, reveal_from
 from .transport import PublishFailed, SubmissionTransport
 from .versions import version_by_label
@@ -54,6 +55,11 @@ class BookSession:
     timing: RunTiming
     out: Callable[[str], None] = print
 
+    @property
+    def publisher(self) -> SealedPublisher:
+        """The shared seal-and-reveal steps (story F1t; F1t's decisions and F2's cards use the same)."""
+        return SealedPublisher(self.transport, self.clock, self.sleep)
+
     def brief(self, text: str) -> None:
         pointer = parse_pointer(text)
         self.timing.start(pointer)
@@ -78,12 +84,12 @@ class BookSession:
         if wrong:
             raise BookStepRefused("not sealed; fix and run seal again: " + "; ".join(wrong))
         path = commitment_path(pointer.day, pointer.book)
-        if self.transport.existing(path) is not None:
+        if self.publisher.is_sealed(path):
             raise BookStepRefused(f"{path} already exists: this book is sealed for {pointer.day} (written once)")
         salt = new_salt()
         self._save(SEALED_FILE, json.dumps({"answer": answer, "salt": salt}))  # kept before publishing: reveal needs it
         commitment = Commitment.of(answer, salt)
-        commit = self.transport.publish(path, commitment.to_text(), _message(pointer, "commitment (sealed answer)"))
+        commit = self.publisher.commit(path, commitment, _message(pointer, "commitment (sealed answer)"))
         when = "before" if self.clock() <= receipt_deadline(pointer.day) else "AFTER"
         self.out(f"sealed: {pointer.book} {pointer.day} commitment {commitment.commitment_sha256[:12]} in commit "
                  f"{commit[:10]}, pushed {when} 15:15:00 IST by this clock (GitHub's push time decides)")  # fmt: skip
@@ -94,15 +100,17 @@ class BookSession:
         wait = (reveal_from(pointer.day) - self.clock()).total_seconds()
         if wait > 0:
             self.out(f"waiting {wait:.0f} s until {reveal_from(pointer.day):%H:%M:%S} IST before revealing")
-            self.sleep(wait)
-        path, text = reveal_path(pointer.day, pointer.book), reveal_text(sealed["answer"], sealed["salt"])
-        existing = self.transport.existing(path)
-        if existing is not None:
-            if existing != text:
-                raise BookStepRefused(f"{path} already holds a different reveal (written once)")
+            self.publisher.wait_until(reveal_from(pointer.day))
+        path = reveal_path(pointer.day, pointer.book)
+        try:
+            commit = self.publisher.reveal(
+                path, sealed["answer"], sealed["salt"], _message(pointer, "reveal (answer and salt)")
+            )
+        except SealRefused as different:
+            raise BookStepRefused(str(different)) from None
+        if commit is None:
             self.out(f"already revealed: {path}")
         else:
-            commit = self.transport.publish(path, text, _message(pointer, "reveal (answer and salt)"))
             self.out(f"revealed: {pointer.book} {pointer.day} in commit {commit[:10]}")
         self._time_run(pointer)
 

@@ -4,9 +4,12 @@ concrete transport, clock and publisher. Standard library only (no `fno.config`,
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 
+from ..ai.book_wiring import REMOTE_SESSION_ENV
+from ..ai.run_timing import RunTiming, routine_session_id
 from ..ai.sealed_publish import SealedPublisher
 from ..ai.transport import GitMainTransport
 from ..models import now_ist
@@ -16,5 +19,10 @@ from .versions import REGISTRY
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-def build_decision_session(root: Path = REPOSITORY_ROOT) -> DecisionSession:
-    return DecisionSession(root, REGISTRY, SealedPublisher(GitMainTransport(root), now_ist, time.sleep))
+DECISION_RUN = "decision"  # its timing file and usage role (story F8c's mechanism, agreed 16 Oct)
+
+
+def build_decision_session(root: Path = REPOSITORY_ROOT, env=os.environ) -> DecisionSession:
+    transport = GitMainTransport(root)
+    timing = RunTiming(root, transport, now_ist, routine_session_id(env.get(REMOTE_SESSION_ENV, "")), DECISION_RUN)
+    return DecisionSession(root, REGISTRY, SealedPublisher(transport, now_ist, time.sleep), timing)

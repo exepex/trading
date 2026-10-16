@@ -16,7 +16,7 @@ from .paths import WORK_FOLDER, timing_path
 from .pointer import BookPointer
 from .transport import SubmissionTransport
 
-STARTED_FILE = "started_{day}_{book}.json"  # per run: a reused container never lends one day's start to another
+STARTED_FILE = "started_{day}_{book}{run}.json"  # per run: a reused container never lends one day's start to another
 NO_START = "no start was noted (brief did not run in this session)"
 NO_SESSION = "no session id: the routine's environment has no CLAUDE_CODE_REMOTE_SESSION_ID"
 REMOTE_PREFIX, SESSION_PREFIX = "cse_", "session_"
@@ -34,9 +34,11 @@ class RunTiming:
     transport: SubmissionTransport
     clock: Callable[[], datetime]
     session_id: str  # empty outside a cloud session: the start is noted, the publish refused
+    run: str = ""  # story F1t: "decision" for a book's decision run (its own timing file and usage role)
 
     def _started(self, pointer: BookPointer) -> Path:
-        return self.root / WORK_FOLDER / STARTED_FILE.format(day=pointer.day.isoformat(), book=pointer.book)
+        run = f"_{self.run}" if self.run else ""
+        return self.root / WORK_FOLDER / STARTED_FILE.format(day=pointer.day.isoformat(), book=pointer.book, run=run)
 
     def start(self, pointer: BookPointer) -> None:
         """The run's start, kept from its first `brief` (a repeated brief is the same run)."""
@@ -52,7 +54,7 @@ class RunTiming:
             raise ValueError(NO_START)
         if not self.session_id:
             raise ValueError(NO_SESSION)
-        path = timing_path(pointer.day, pointer.book)
+        path = timing_path(pointer.day, pointer.book, self.run)
         if self.transport.existing(path) is not None:
             return f"timing already published: {path}"
         started = json.loads(started_file.read_text(encoding="utf-8"))["started_at"]

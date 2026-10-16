@@ -19,6 +19,7 @@ from ..constants import AI_BOOKS
 from .paths import AI_FOLDER
 
 TIMING_GLOB = "timing/*/*.timing.json"
+RUN_ROLES = {"": "", "decision": "{book} trading decision"}  # a run's name in its timing file -> its usage role
 LINE = "Omenix F&O AI books' minutes (BG1): {file}: {result}"
 ALREADY = "already recorded"
 
@@ -41,10 +42,19 @@ class BookUsageRecorder:
         return lines
 
     def _record(self, path: Path, today: date) -> list[str]:
-        book = path.name.removesuffix(".timing.json").split("_", 1)[-1]
-        if book not in AI_BOOKS:
-            raise ValueError(f"{book!r} in the file name is not an AI book")
+        book, role = book_and_role(path.name)
         reader = SelfTimedUsageReader(path)
         return self.ledger.record(
-            reader.days(), Attribution(PURPOSE_BOOKS_AND_ROLES, book), reader.complete_before(today)
+            reader.days(), Attribution(PURPOSE_BOOKS_AND_ROLES, book, role), reader.complete_before(today)
         )
+
+
+def book_and_role(name: str) -> tuple[str, str]:
+    """`<day>_<book>.timing.json` is the book's forecast run (no role); `<day>_<book>_decision.timing.json` its trading
+    decision run (story F1t)."""
+    stem = name.removesuffix(".timing.json").split("_", 1)[-1]
+    book = next((b for b in AI_BOOKS if stem == b or stem.startswith(f"{b}_")), "")
+    run = stem.removeprefix(book).removeprefix("_") if book else ""
+    if not book or run not in RUN_ROLES:
+        raise ValueError(f"{stem!r} in the file name is not an AI book's run")
+    return book, RUN_ROLES[run].format(book=book)

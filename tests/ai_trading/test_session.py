@@ -104,3 +104,30 @@ def test_the_routine_side_imports_with_the_standard_library_only():
     code = "import sys; sys.path = [p for p in sys.path if 'packages' not in p]; import fno.ai_trading.__main__"
     done = subprocess.run([sys.executable, "-S", "-c", code], cwd=ROOT, capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
+
+
+def test_the_decision_run_times_itself_with_f8c_s_mechanism_under_its_own_role(repo):
+    from fno.ai.paths import timing_path
+    from fno.ai.usage_record import book_and_role
+
+    routine(repo).run(pointer(repo).to_text(), draft(), at(15, 8))
+    timing = json.loads((repo / timing_path(DAY, "book2_hybrid", "decision")).read_text())
+    assert timing["session_id"] == "session_test" and timing["started_at"] == at(15, 2).isoformat()
+    assert not (repo / timing_path(DAY, "book2_hybrid")).exists()  # the forecast's own file is never touched
+    assert book_and_role(timing_path(DAY, "book2_hybrid", "decision").split("/")[-1]) == (
+        "book2_hybrid", "book2_hybrid trading decision")  # fmt: skip
+    assert book_and_role(timing_path(DAY, "book3_ai").split("/")[-1]) == ("book3_ai", "")
+
+
+def test_a_timing_that_cannot_be_published_never_costs_the_reveal(repo):
+    fake = DecisionRoutine(repo, registry(repo), Clock(at(15, 2)), session_id="")
+    fake.run(pointer(repo).to_text(), draft(), at(15, 8))
+    assert (repo / reveal_path(DAY, "book2_hybrid")).is_file()
+    assert any("timing NOT published" in line for line in fake.printed)
+
+
+def test_a_timing_file_of_an_unknown_run_is_refused():
+    from fno.ai.usage_record import book_and_role
+
+    with pytest.raises(ValueError, match="not an AI book's run"):
+        book_and_role("2026-10-19_book2_hybrid_lunch.timing.json")
