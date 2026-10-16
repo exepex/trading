@@ -29,6 +29,7 @@ from ..forecast_v4_rules.baselines import OK
 from ..v4_pack.guard import check_pack_binding
 from .outcome import EXPOSED, INVALID, LATE, MODEL_MISMATCH, NO_SUBMISSION, NOT_FIRED, NOT_REVEALED
 from .scoring_gate import PENDING, SCORED, ScoringStatus
+from .versions import BookVersion
 
 AI_KIND = "ai"
 SLOTS = {BOOK2_HYBRID: V4_SLOT_HYBRID, BOOK3_AI: V4_SLOT_AI}
@@ -40,21 +41,28 @@ UNKNOWN_OUTCOME = "{book} {day}: outcome {reason!r} has no v4 status; nothing is
 
 @dataclass(frozen=True)
 class BookDay:
-    """What the collection settled for one book on one day: the gate's answer, whether the stop rule kept it from
-    firing (the fire log's flag), the values the book revealed per question (None where it gave none), the pack it
-    was given and its version's hashes."""
+    """What the collection settled for one book on one day: the registered version it ran (its book, forecaster,
+    label and prompt hash all come from it, so the guard's book and the folder can never disagree), the gate's answer,
+    whether the stop rule kept it from firing (the fire log's flag), the values the book revealed per question (None
+    where it gave none), its own input's hash and the pack it was given."""
 
-    book: str
-    forecaster: str  # the registered forecaster (book and version, e.g. book3_ai_v2): the slot's ledger name and folder
+    registered: BookVersion
     day: date
     gate: ScoringStatus
     stop_rule: bool
     values: Mapping[str, float | None]
-    version: str  # the registered label, e.g. book3_ai/v2/sha256:.../isolation:sealed_same_day
-    method_sha256: str  # the prompt's
-    inputs_sha256: str  # the book's own inputs (its pointer)
+    inputs_sha256: str  # the book's own input (its pointer's)
     made_at: str
     pack_sha256: str  # the pack the book was given (its pointer's)
+
+    @property
+    def book(self) -> str:
+        return self.registered.book
+
+    @property
+    def forecaster(self) -> str:
+        """The slot's ledger name and record folder, e.g. book3_ai_v2."""
+        return self.registered.forecaster
 
 
 def v4_status(day: BookDay) -> str | None:
@@ -79,14 +87,14 @@ def v4_rows(day: BookDay, questions: Sequence[str]) -> list[records.Record]:
     status = v4_status(day)
     if status is None:
         return []
-    audit = dict(label=records.LIVE, kind=AI_KIND, slot=SLOTS[day.book], method_sha256=day.method_sha256,
+    audit = dict(label=records.LIVE, kind=AI_KIND, slot=SLOTS[day.book], method_sha256=day.registered.prompt_sha256,
                  inputs_sha256=day.inputs_sha256, made_at=day.made_at)  # fmt: skip
     rows = []
     for question in questions:
         value = day.values.get(question) if status == OK else None
         own = status if status != OK or value is not None else INVALID
         row = records.record(day.day, question, own, value, **audit)
-        rows.append(replace(row, forecaster_version=day.version))
+        rows.append(replace(row, forecaster_version=day.registered.label))
     return rows
 
 

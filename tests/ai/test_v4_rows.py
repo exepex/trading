@@ -8,7 +8,8 @@ import pytest
 
 from fno.ai.scoring_gate import PENDING, SCORED, UNSCORED, ScoringStatus
 from fno.ai.v4_rows import BookDay, v4_rows, v4_status, write_book_day
-from fno.constants import BOOK2_HYBRID, BOOK3_AI, V4_SLOT_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
+from fno.ai.versions import current_version
+from fno.constants import BOOK2_HYBRID, BOOK3_AI, FORECAST_PROTOCOL_V4, V4_SLOT_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.inputs import ForecastFiles
 from fno.forecast_scoring.v4.reconcile import AiSlotDays
 from fno.forecast_scoring.v4.records import Registration, SlotRegistry
@@ -19,15 +20,14 @@ DAY = date(2026, 10, 26)
 QUESTIONS = (V6_BIG_MOVE_1S, V6_BIG_MOVE_5S)  # the rules slot's started set at the freeze (V6a, V6b)
 BOOK3_V2 = BOOK3_AI + "_v2"  # the registered forecaster: G8 finds it by its folder
 PACK = "d" * 64  # the released pack, given to the book in its pointer
-VERSION = "book3_ai/v2/sha256:" + "a" * 64 + "/isolation:sealed_same_day"
+V4 = {book: current_version(book, FORECAST_PROTOCOL_V4) for book in (BOOK2_HYBRID, BOOK3_AI)}  # prompt v2
 
 
 def book_day(status=SCORED, reason="on time; transcript clean or not drawn", stop_rule=False, values=None,
              book=BOOK3_AI, pack=PACK):  # fmt: skip
     values = {V6_BIG_MOVE_1S: 0.07, V6_BIG_MOVE_5S: 0.21} if values is None else values
     gate = ScoringStatus(status, reason, "sealed_same_day")
-    return BookDay(book, f"{book}_v2", DAY, gate, stop_rule, values, VERSION, "b" * 64, "c" * 64,
-                   "2026-10-26T09:36:00+00:00", pack)  # fmt: skip
+    return BookDay(V4[book], DAY, gate, stop_rule, values, "c" * 64, "2026-10-26T09:36:00+00:00", pack)
 
 
 def write(folder, day, released=PACK):
@@ -48,9 +48,9 @@ def test_an_on_time_day_writes_one_ok_row_per_question_that_g8_reads(tmp_path):
         "live",
         "ai",
         "ai_team",
-        VERSION,
+        V4[BOOK3_AI].label,
     )
-    assert (row.method_sha256, row.inputs_sha256) == ("b" * 64, "c" * 64)
+    assert (row.method_sha256, row.inputs_sha256) == (V4[BOOK3_AI].prompt_sha256, "c" * 64)
 
 
 @pytest.mark.parametrize(
@@ -135,3 +135,13 @@ def test_a_written_day_settles_g8s_reconciliation_and_a_missing_one_blocks_it(tm
     assert [s.day for s in slot_days.unsettled(DAY - timedelta(days=1), DAY)] == [DAY]  # no row yet: blocks the look
     write(tmp_path, book_day(UNSCORED, "no_submission"))
     assert slot_days.unsettled(DAY - timedelta(days=1), DAY) == []  # a miss row settles the day
+
+
+def test_the_guard_checks_the_book_of_the_version_that_names_the_folder(tmp_path, monkeypatch):
+    """Judge 274 add. 1 with the G10 builder (16 Oct): a book2_hybrid_v2 row is checked as book2_hybrid, both read
+    from the one registered version."""
+    checked = []
+    monkeypatch.setattr("fno.ai.v4_rows.check_pack_binding", lambda *args: checked.append(args))
+    write(tmp_path, book_day(book=BOOK2_HYBRID))
+    assert checked == [(BOOK2_HYBRID, DAY.isoformat(), PACK, PACK)]
+    assert (tmp_path / "book2_hybrid_v2").is_dir() and not (tmp_path / BOOK2_HYBRID).exists()
