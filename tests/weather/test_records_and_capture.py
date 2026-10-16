@@ -118,3 +118,21 @@ def test_the_back_fill_is_exploratory_ends_before_the_first_live_day_and_reruns_
     assert all(records.for_day(d)["label"] == BACKFILL for d in days)
     assert lines[0].startswith(f"back-fill (exploratory): {len(days)} days; colours ")
     assert again[1] == "0 v4 rows added"
+
+
+def test_a_capture_writes_only_inside_the_folders_the_daily_run_commits(tmp_path):
+    """O1 commits exactly `record_folders()` for the weather step: a real capture, laid out as in the repository,
+    writes nothing outside them (so no other step's commit can hold M1's files, nor M1's theirs)."""
+    from fno.config import ROOT
+    from fno.forecast_v4_rules.wiring import V4_FOLDER
+    from fno.weather.folders import record_folders
+    from fno.weather.wiring import WEATHER_FOLDER
+
+    v4_root, records = tmp_path / V4_FOLDER.relative_to(ROOT), tmp_path / WEATHER_FOLDER.relative_to(ROOT)
+    writer = lambda f, q, rows: v4.write(v4_root, f, q, rows)  # noqa: E731
+    capture_weather(WEATHER, WeatherRecords(records), DAY, BEFORE, is_session, writer, lambda: "normal", FakeStore(),
+                    previous_regular)  # fmt: skip
+    written = [p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*") if p.is_file()]
+    assert written and all(any(w.startswith(folder) for folder in record_folders()) for w in written), written
+    assert record_folders() == ("research/forecasts/v4/weather/", "research/forecasts/v4/weather_vix_v1/",
+                                "research/forecasts/v4/weather_checklist_v0/")  # fmt: skip

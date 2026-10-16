@@ -30,6 +30,7 @@ from .corporate_actions import CorporateAction, adjusted, read_corporate_actions
 from .fno_rows import FnoRowBuilder, UnderlyingDay, underlying_days
 from .followed import FollowedCompaniesSource
 from .forecast_history_inputs import ScoreReportsReader
+from .forecast_lab_inputs import ForecastLabReader
 from .frame_inputs import FlowsReader, frame_inputs
 from .home_inputs import HomeInputsReader
 from .index_rows import index_rows, industries
@@ -73,10 +74,11 @@ class SessionRowsBuilder:
         flows: FlowsReader,
         weather: WeatherInputsReader | None = None,
         score_reports: ScoreReportsReader | None = None,
+        forecast_lab: ForecastLabReader | None = None,
     ):
         self.store, self.calendar, self.fno, self.followed = store, calendar, fno, followed
         self.chain, self.home, self.flows, self.weather = chain, home, flows, weather
-        self.score_reports = score_reports
+        self.score_reports, self.forecast_lab = score_reports, forecast_lab
 
     def build(self, day: date) -> SessionRows:
         missing: list[str] = []
@@ -115,6 +117,7 @@ class SessionRowsBuilder:
             day, stocks, fno, index_rows(figures), industries(nifty_500), chain, self.home.on(day),
             frame_inputs(self.calendar, day), flows, self.weather.on(day) if self.weather else None,
             self.score_reports.on(day) if self.score_reports else None,
+            self.forecast_lab.on(day) if self.forecast_lab else None,
         )  # fmt: skip
 
     def symbols_to_look_up(self, day: date) -> list[str]:

@@ -102,12 +102,14 @@ def committed_store(rows=None, started: datetime = STARTED, spot: float | None =
     return store
 
 
-def checker(store, nse=None, account=None, margins=None, owner_limits=None, accounts=None) -> ValidityChecker:
+def checker(
+    store, nse=None, account=None, margins=None, owner_limits=None, accounts=None, modes=None
+) -> ValidityChecker:
     """The app's checker over these sources: by default a fresh Rs 5 lakh account, NSE's file of 13 Oct with lot 65,
     A14 margin rows of 13 Oct and config.yaml's limits with a stressed-margin factor set."""
     sources = Sources(EvidenceReader(store, DATASET), NseListing(nse or NseFiles()), accounts or Accounts(account))
     checks = LimitChecks(owner_limits or limits(), CHARGES, margins or Margins())
-    return ValidityChecker(sources, checks, validity_modes())
+    return ValidityChecker(sources, checks, modes or validity_modes())
 
 
 def check(the_proposal: ValidityProposal | None = None, store=None, record="committed", **sources):
