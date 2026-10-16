@@ -338,7 +338,7 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 | Live switch off until the owner turns it on (task) | criterion 1 | |
 | Budget cap stops AI roles (BG1, design 7.6) | criterion 2 | |
 | AI usage recorded (F8) | criterion 13 (prompt step) | |
-| Book 2 rule default precomputed by code (F5) | | F5: inside Book 2's private pack or its decider; F1t carries the private pack whole |
+| Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct): at E2's pack step code runs D2 for Book 2 and writes `journal/book2_hybrid/rule_defaults/<d>.json` (rule default terms and eligible set per opportunity); it is inside Book 2's private pack, so it travels in F1t's pointer under `private_pack_sha256` with no change here |
 | Red team, judge, cards, shadows (F2, F3, F4, F7) | carried in `decision` unchanged | Their stories |
 | "Judge or AI unavailable" row of design 9 (O2) | criteria 6, 10 | O2's suite gains these cases once F1t merges (agreed with O2's builder) |
 
@@ -354,9 +354,13 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 
 ## Open questions
 
-1. The hand-over interface: F5 (session_01SFDjjZx7JYziM3jqJytG2z), F6/F7 (session_01KTAQCDjPkDBKwfCMhWphXb) and F2
-   (session_01WSMMv5nK4wDdktFrudJfXv) to confirm before code; F5 to say how Book 2's rule default reaches the AI
-   before it decides.
+1. The hand-over interface: F6/F7 (session_01KTAQCDjPkDBKwfCMhWphXb) and F2 (session_01WSMMv5nK4wDdktFrudJfXv) to
+   confirm before code. F5 (session_01SFDjjZx7JYziM3jqJytG2z) agreed on 16 Oct: its decider writes the whole D3 run;
+   Book 2's shape check is `fno/book2/answer.py` `check_answer(obj) -> list[str]` (standard library only), which
+   `seal` calls; F5 times C2 + C4 + write within the 60 s on Book 1's run and reports the number.
+2. `fno/ai/book.py`: F8c (session_0134MoC6f7aAJVcHRBiyATo6) edits `brief` and `reveal` for the usage timing. The
+   shared seal-and-reveal helper is extracted after F8c merges, on top of its version (order agreed with F8c); until
+   then F1t's session code does not touch `book.py`.
 
 Settled (orchestrator, 16 Oct): model "unknown" is no trade; the new package `fno/ai_trading/` with default-preserving
 changes to `fno/ai/` is fine (G11's owner, session_013xqaNTCbSBytKgqpfaYFqZ, told); claims in
