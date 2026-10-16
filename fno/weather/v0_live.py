@@ -18,6 +18,11 @@ from .constants import WeatherColour
 from .model import WeatherModel
 
 Horizon = Callable[[date], date | None]  # the last of the 5 regular sessions after a day (None: calendar ends)
+INPUTS_MISSING = "its inputs need more closes before the day"
+BEYOND_CALENDAR = (
+    "the next 5 sessions run past NSE's session calendar, so the scheduled events are unknown: add NSE's next-year "
+    "holiday circular rows (story A7)"
+)
 
 
 class ChecklistV0:
@@ -35,6 +40,12 @@ class ChecklistV0:
         if end is None:
             return None
         return [e for e in self.events if e.announced <= d and d < e.day <= end]
+
+    def unscored_reason(self, d: date) -> str | None:
+        """Why v0 has no colour for `d`, in words (None when it has one): never a silent "not scored"."""
+        if self.inputs(d) is None:
+            return INPUTS_MISSING
+        return BEYOND_CALENDAR if self.events_ahead(d) is None else None
 
     def colour(self, d: date) -> WeatherColour | None:
         if d not in self._colours:

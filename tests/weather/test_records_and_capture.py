@@ -48,8 +48,8 @@ def test_capture_before_the_cutoff_writes_the_record_and_both_forecasters_rows(t
     lines, store = _capture(tmp_path)
     public = WeatherRecords(tmp_path / "weather").for_day(DAY)
     assert set(public) == {
-        "day", "label", "colour", "status", "operative", "proof", "model_colour", "v0_colour", "probabilities",
-        "red_share", "over_alarming", "drivers", "method_sha256", "inputs_sha256", "made_at",
+        "day", "label", "colour", "status", "operative", "proof", "model_colour", "v0_colour", "v0_status",
+        "probabilities", "red_share", "over_alarming", "drivers", "method_sha256", "inputs_sha256", "made_at",
     }  # fmt: skip
     assert (public["label"], public["red_share"], public["made_at"]) == (LIVE, NOT_ENOUGH, "2026-10-15T08:55:00+00:00")
     assert public["status"] == "scored"

@@ -65,3 +65,47 @@ Trial merge with `origin/main` (f9fa6695):
   - the code-length guard removed;
   - the retry note removed.
 - 2 survived: `_lost` and the dry-run claims (follow-ups 2 and 3).
+
+## Addendum 1 (16 Oct 2026): re-check at 6a93aefb
+
+**Verdict: PASS at 6a93aefb.** Must-fix 1 is fixed in the design. Follow-ups 2 and 3 are done.
+
+The fix (3 files over 72753fa3):
+- `GitManifestRecorder` takes `run_paths`, the path prefixes the other committer of the same run writes. Its pull refusal now accepts `owns(path) or path.startswith(run_paths)`.
+- Wiring gives the claims committer the ledger, rv and heartbeat paths, and gives the ledger committer `receipts/intraday/claims/`.
+- Every other path is still refused.
+
+| Check | Result |
+|---|---|
+| My judge-247 sequence: claim blip first, then origin returns | Builder's test: origin main holds both claims and the ledger row |
+| Reverse order (my probe, not committed): the ledger push lost first, then the next claim | The claim WON, and its push carried the ledger file to origin main |
+| Another story's path (my probe: `rv-candle/`, A16b's) | Still refused: UNCLAIMED, "outside this writer's paths: .../rv-candle/y.csv" |
+| Unjudged code in the checkout | Still refused (builder's test) |
+| Lost mark asked again (follow-up 2) | Test added. The builder's mutation is caught. |
+| Dry run commits claims (follow-up 3) | Test pins `NoClaims` for a dry run and that live wiring shares the ledger paths with the claims committer |
+
+**My mutation of the ledger side survived.** I removed `run_paths` from `_sync`'s committer, and all 203 tests in `tests/intraday` still passed.
+- This is not blocking. With only the claims side wired, the run still recovers at the next claim, because the claims committer carries the unpushed ledger commit. Recovery is just one mark slower.
+- Follow-up: extend the wiring test to assert the ledger committer's `run_paths` as well.
+
+**Gates.** Trial merge with `origin/main` (9f7cc6da):
+- `pytest -n auto`: 7109 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: clean.
+- The largest touched file is `recorder.py`, at 234 lines.
+
+**Merge order.** Step 1 is on main (78d66a02). 2a can merge now. Its remaining open items are follow-ups 4 and 5 from the original verdict, plus the ledger-side wiring test.
+
+## Addendum 2 (16 Oct 2026): merge check, step 2a merged as 3db04211
+
+**Verdict: merge check PASS.**
+
+- **The merge is exact.**
+  - Its parents are 2cb37304 (main) and 6a93aefb (the passed tip).
+  - Recomputing it with `git merge-tree` gives a tree identical to 3db04211.
+  - `git diff 6a93aefb 3db04211` on the 2a files is empty.
+  - Against its main parent it adds exactly the 7 files of 2a.
+- **CI.** Checks run 38875613720 on f169e223 contains the merge, ran the full suite and is green.
+- **Still open as follow-ups:**
+  - the ledger-side `run_paths` wiring test (addendum 1);
+  - items 4 and 5 of the original verdict.
