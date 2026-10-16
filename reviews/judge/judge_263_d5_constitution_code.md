@@ -83,3 +83,25 @@ for D5 or F6, decided before F6 is built.
 
 `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto -p no:cacheprovider`: 7,251 passed. `ruff check`: clean.
 `ruff format --check`: 1,292 files already formatted. `check_imports`: clean.
+
+## Addendum 1: story/d5-constitution-code at c8dbf86d (fix bfecf180)
+
+**PASS for D5's own scope.** It merges only after D4 passes: this branch carries D4's head, and D4 is still FAIL
+(judge 260 addendum 1, the unproven limit).
+
+| Item | Result | Evidence |
+|---|---|---|
+| A merge of parallel registrations is two appends | MET | `edited_rows(revision)` reads each commit's registry against **every** parent (`Git.changes_with_parents`: `git log --format='%H %P' --full-history <rev> -- file`; without parent rewriting, `%P` is the real parents). My own earlier reproduction (base `[x]`, A `[x,a]`, B `[x,b]`, merge `[x,a,b]`) now gives `[]`. Tests: parallel appends pass; a merge dropping B's row or editing a row is refused |
+| `require_registered` checks the decision's own revision | MET | `edited_rows(at_commit)` |
+| A shallow clone is refused by name | MET | `is_shallow()`; anything but "false" refuses, so outside a repository it also fails closed. Operational: a routine that runs Book 3's C4 must fetch in full (cloud sessions clone 50 commits) |
+| A damaged constitution is a named check | MET | `ConstitutionError`, caught as the `constitution` check |
+| Deviation 2's reason corrected | MET | it no longer claims D6 repeats it; marked some evidence |
+| The spec-count check keeps default simplification | AGREED | with `--full-history`, a spec added on a branch and merged would count twice. Default simplification still lists a merged edit when the merge takes the edited side |
+
+**My mutations (real cases, all caught):**
+- Only the first parent read: 2 tests fail.
+- The shallow check removed: 1 test fails.
+- `--full-history` removed: 1 test fails.
+
+**Gates (run by me on c8dbf86d):** 7,393 passed (`-n auto`, Slack token unset). `ruff check`: clean. `ruff format
+--check`: 1,322 files already formatted. `check_imports`: clean.
