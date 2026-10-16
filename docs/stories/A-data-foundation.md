@@ -1403,6 +1403,36 @@ measured; the first full run reads every session since 2 Jan 2020 and may set k 
 (1.265, 1.407, 1.127) were a different measure, scan plus exposure read to the window's end; the evidence table shows
 them beside this run's needed factor for reference only.
 
+**A14c families: one k per structure family (owner, 16 Oct 2026, DESK_DECISIONS: "(b) k per family"; "skip
+impossible prices"; orchestrator's rulings the same day).** The first full run applied one k of 2.1 to every structure.
+Two put debit spreads bought in April 2020 set it, and both maxima came from impossible prices in NSE's file (response
+252). From this change:
+- **The families, in one table** (`fno/constants.py`, read by A14c, C2 and C4; C4 may not import the research engine):
+  debit = BF, LC, LP, CDS, PDS; credit = SF, SC, CCS, PCS. A test ties the table to each structure's own payoff
+  bounds (`payoff_bounds`): debit = the position's least value is at least 0; credit = its most value is at most 0.
+  A new code with no family is refused by name.
+- **What is measured:** the held positions of the structures whose stressed SPAN C2 does not cap: SF and SC for credit,
+  BF for debit. The STR1 codes (LC, LP, CDS, CCS, PDS, PCS) stay out, because C2 and C4 cap their stressed SPAN
+  (`capital.py`, `validity_margin.py`), so k barely acts on them (orchestrator, 16 Oct). They still read their family's
+  k for their exposure.
+- **Impossible prices at entry are skipped** (the owner's rule, B2's BAD_PRICES): an entry whose NOV per unit in NSE's
+  file lies outside its legs' payoff bounds is not entered. It is named "impossible price in NSE's file" in the
+  evidence and counted in the line. Examples: BF 200 of 8 Apr 2020 is valued 875.6 a unit on a 200 width, and PDS 300
+  is valued 529.6 on a 300 width.
+- **The factor file gains a `family` column** (`debit`, `credit`, or `all`). The two existing rows are read as `all`.
+  Adding the column is a one-time change of the header line only; no data row's bytes change (test). Each run then
+  appends one row per family.
+- **C2 and C4 read the proposal's family:** the in-force row is the latest row dated strictly before the day whose
+  family is the proposal's or `all`. So the global 2.1 stays in force for both families until each family's own first
+  row. A family with neither its own row nor an `all` row refuses the trade by name. The 30-day age and the
+  hold-every-fall rule apply per family. The first per-family run is `--full` (no family row has a measured value
+  yet).
+- **The first per-family row of a family whose result is below 2.1** is a fall. It is held unless the owner's approval
+  is cited with `--approve-fall`. The family decision itself is proposed as that approval; the orchestrator confirms
+  before the run.
+- Known limit: prices on later held days are not bound-checked (the owner's rule names entries). An impossible price
+  on a peak day is shown in the evidence's peak figures for the judge to see.
+
 **Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
