@@ -762,7 +762,13 @@ the index windows at go-live (a later item); any change to the default run or it
 3. **Separate dataset.** The named capture's sidecar, marker and Drive file are under
    `groww/derivatives/quote-snapshots-v4/`; nothing is written to the default dataset, and the default readers
    (`report`, `compare`, the v2 capture, the desk's snapshot inputs) do not see it.
-4. **Clock.** The sidecar holds `clock_status` and the worst skew from A16's check (fake servers: ok, skew, no answer).
+4. **Clock.** A16's `ClockCheck` (one rule, A16's 5-second WARNING threshold, no copy) runs once before the first
+   request and once after the last. The sidecar holds `clock_checks` (the two readings' statuses, in order, each one of
+   A16's `clock_ok`, `clock_skew`, `clock_partial`, `clock_unchecked`), `clock_status` (`clock_ok` only when both
+   readings are `clock_ok`, else the worse one) and `clock_worst_skew_seconds` (null when no server answered). Tests
+   with fake servers: both ok; a skew before; a skew after; no answer; the run stopped before its last request (one
+   reading only, so not `clock_ok`). What a status means for the pack's label is G10's rule (agreed 16 Oct: only
+   `clock_ok` can give label `A`).
 5. **Refusals.** An unknown window name, a start not before the end, or a malformed time exits 1 before any request.
 6. Code size, lint, imports and the full suite pass.
 
