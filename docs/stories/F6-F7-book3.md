@@ -90,7 +90,13 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    - Then D5's `register()` (constitution check, `proposed_on` from the clock, the trial ledger). Provenance: `model`
      is the served model F1t read from the session record, never the answer's `model_reported`; `prompt_version` is
      `book3_decide_v1:<sha256 prefix>`; `role_set_version` is F2's role-set version when cards were given, else
-     `none`; `supersedes` from the answer; `new_or_reused` per D5's owner (open question 2).
+     `none`; `supersedes` from the answer. `new_or_reused` is set by code, never by the AI (agreed with D5's owner,
+     16 Oct 2026): `reused` when the proposal names `supersedes` or its **rule key** equals a playbook version's;
+     otherwise `new`. The rule key is the SHA-256 of the trading fields only (`structure`, `entry_conditions`,
+     `exits`), because D1's `parameters_sha256` covers the name and version too, so a copied rule under a new name
+     always has a different `parameters_sha256` and an equality check on it could never fire. A proposal whose rule
+     key equals an earlier registered Book 3 spec's is **refused** ("same rule as <id>: trade that one"), so one rule
+     never enters the trial family twice under two names.
    - A refused proposal never stops the day: it is listed with its reason in the day's proposal log
      `journal/book3_ai/proposals/<date>.json` (every proposal, registered or refused, write-once), which F1t commits
      with the registry in the registration commit. No cap on proposals (D5: a cap is easy to game; every
@@ -122,34 +128,37 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
 | `Book3Engine.decide(day, answer: dict, run: RunFacts) -> Book3Day` | `RunFacts`: served model, session ID, code and config hashes, both pack hashes, card IDs given, the commit to check registration at, the market inputs D2 reads | F1t, after collecting |
 | `Book3Day` | `refused` (answer-level reason or None), `registration_paths` (registry, specs, ledger, proposal log), `decision_run` (the D3 run folder), `shadow_path` (F7) | F1t commits `registration_paths` first, then the run and the shadow file in the decision commit |
 | `proposal_of(...)` (C4's adapter, D5's/C4's file) | sets `strategy_id = f"{name}-v{version}"` for Book 3 | C4 |
-| `RecordBuilder` (D3's file) | Book 3: `strategy_id` and spec hash per opportunity record; null on the day record only | D3 |
+| `RecordBuilder` (D3's file) | Book 3: `strategy_id` and spec hash per opportunity record (F6's edit); null on the day record only (D5 owner's `story/d3-no-owner-override`, b49abdde) | D3 |
 
 **Acceptance criteria:**
 1. A proposal registered on day d is on no day sheet and no decision on d; it is on d+1's (temporary git
    repository, fixed clock). A pick of a strategy that is not registered, registered by a commit that is not an
    ancestor of the decision base, or edited after registration, never becomes a chosen trade (C4 blocks it with
    D5's reason).
-2. A proposal breaking the constitution (structure outside it, weekly expiry, holding over 21 days), with `status`
+2. A proposal whose rule key equals an earlier Book 3 spec's is refused; one equal to a playbook version's, or
+   naming `supersedes`, is registered as `reused`; any other as `new` (a copied rule with a new name and new
+   descriptive text is still caught).
+3. A proposal breaking the constitution (structure outside it, weekly expiry, holding over 21 days), with `status`
    other than `research`, any filled `evidence`, an expected net other than `none`, or `catastrophic_loss_rs` above
    Rs 10,000 (and at Rs 10,000 exactly: accepted) is refused, listed in the proposal log with its reason, and the
    day's decision still runs.
-3. The registry row's `model` is the served model from `RunFacts`, never the answer's `model_reported`; the
+4. The registry row's `model` is the served model from `RunFacts`, never the answer's `model_reported`; the
    `prompt_version` names the prompt file's hash.
-4. Every answer-level refusal (missing or extra key, a reason over 600 characters or with a line break, empty
+5. Every answer-level refusal (missing or extra key, a reason over 600 characters or with a line break, empty
    `no_trade_reason` with no trades, a non-list `trades`) gives "no decision (answer refused: ...)" and no record of a
    trade; a refused pick (not a built candidate, duplicate) leaves the other picks standing and is recorded as
    attempted.
-5. A picked candidate refused by C2 (for example the open-risk cap) is not chosen and its risk reasons are recorded;
+6. A picked candidate refused by C2 (for example the open-risk cap) is not chosen and its risk reasons are recorded;
    C4 blocks independently (fake answer through the real D2, C2 and C4 path).
-6. Records: every Book 3 opportunity record passes D3's `validate_record` with `strategy_id`, `strategy_spec_sha256`,
+7. Records: every Book 3 opportunity record passes D3's `validate_record` with `strategy_id`, `strategy_spec_sha256`,
    `served["constitution"]`, `served["book3_prompt"]`, the pick's reason as `reason`; `replay` of the run reports no
    difference, and reports one when `inputs.json`'s picks are changed.
-7. With zero cards, zero registered strategies or zero candidates, the day is a valid "no trade" with its reason; a
+8. With zero cards, zero registered strategies or zero candidates, the day is a valid "no trade" with its reason; a
    cited card that was not given is refused.
-8. Objections never block: the same answer with and without a fake objection gives identical records.
-9. Pilot: with Book 3 records from a day before every book's first on-time record, S2's common start excludes them
-   and they read as pilot (test through `entry_decisions.common_start`).
-10. End to end on fixtures: a fake session answer (one proposal, one pick of a strategy registered the day before,
+9. Objections never block: the same answer with and without a fake objection gives identical records.
+10. Pilot: with Book 3 records from a day before every book's first on-time record, S2's common start excludes them
+    and they read as pilot (test through `entry_decisions.common_start`).
+11. End to end on fixtures: a fake session answer (one proposal, one pick of a strategy registered the day before,
     shadow entries) through `decide` writes the proposal log, the registry row, the D3 run and the shadow file, and
     C4 passes the pick.
 
@@ -164,20 +173,20 @@ days; empty cases (no cards, no strategies, no candidates).
 
 | Requirement (source) | In F6 | Or out, with the reason |
 |---|---|---|
-| Book 3 invents its strategies (12.1, 12.3) | proposals, criterion 2 | |
+| Book 3 invents its strategies (12.1, 12.3) | proposals, criteria 2, 3 | |
 | Full spec and hash registered before the first trade (12.3) | D5's `register`, criterion 1 | |
-| Proposer versions recorded (12.3) | provenance, criterion 3 | |
+| Proposer versions recorded (12.3) | provenance, criterion 4 | |
 | No same-day invent-and-trade (12.3, first-plan F6) | criterion 1 | |
 | Decision at the common cutoff (12.3) | the day sheet is D2 on the cutoff's market | the timetable is E3/F1t |
-| Defined risk, NIFTY monthly, at most 21 days (12.3, D5) | D5 at registration and C4, criterion 2 | |
-| Never changes risk limits or scoring (12.3) | `catastrophic_loss_rs` guard, criterion 2 | the rest is D5 (references only) |
-| C2 and C4 block; red team and judge never do (12.3, 12.4) | criteria 5, 8 | |
-| Portfolio manager combines findings (v2 7.2) | cards in the input, `cards_used`, criterion 7 | the cards themselves: F2 |
-| Every Book 3 record before the common start is pilot (12.6) | criterion 9, read by S2/S3 | |
+| Defined risk, NIFTY monthly, at most 21 days (12.3, D5) | D5 at registration and C4, criterion 3 | |
+| Never changes risk limits or scoring (12.3) | `catastrophic_loss_rs` guard, criterion 3 | the rest is D5 (references only) |
+| C2 and C4 block; red team and judge never do (12.3, 12.4) | criteria 6, 9 | |
+| Portfolio manager combines findings (v2 7.2) | cards in the input, `cards_used`, criterion 8 | the cards themselves: F2 |
+| Every Book 3 record before the common start is pilot (12.6) | criterion 10, read by S2/S3 | |
 | A Book 3 win is not "AI judgement beats rules" (12.1) | | reporting: S2/S3's labels; F7 feeds scoreboard A |
-| Model served recorded; a mismatch unscored (F1, D6) | `RunFacts`, criterion 3 | the mismatch check: F1t and D6 |
-| Late or failed session gives no decision (F1) | answer refusal, criterion 4 | lateness and failure: F1t |
-| The owner never overrides on paper (v2 03) | nothing in F6 reads an override | D3's refusal of `owner_override`: open D3 item, must land before Book 3's first paper decision |
+| Model served recorded; a mismatch unscored (F1, D6) | `RunFacts`, criterion 4 | the mismatch check: F1t and D6 |
+| Late or failed session gives no decision (F1) | answer refusal, criterion 5 | lateness and failure: F1t |
+| The owner never overrides on paper (v2 03) | nothing in F6 reads an override | D3's refusal of `owner_override`: `story/d3-no-owner-override` (D5's owner, b49abdde, waits for judge E), a dependency before Book 3's first paper decision |
 | Never names a model on a screen (v2 7.1) | | screens are out (no UI work) |
 | A confirmatory claim only for a frozen selection policy (D5, review 130) | every registration is a trial (D5's ledger) | the claim rule: S1/S3 |
 
@@ -189,7 +198,7 @@ days; empty cases (no cards, no strategies, no candidates).
 - A strategy trades only on its window's first day for an expiry (D2's opportunity rule), so a spec must be
   registered before its window opens.
 
-**Depends:** D4 and D5 merged, F1t (runner), D3's `owner_override` refusal (before the first paper decision), E2, D2,
+**Depends:** D4 and D5 merged, F1t (runner), `story/d3-no-owner-override` (Book 3's day record; the `owner_override` refusal, before the first paper decision), E2, D2,
 D3, D6, C2, C4 · **Size:** M · **Status:** story text for the judge
 
 ---
@@ -257,7 +266,10 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 1. **To F1t (when introduced):** the `Book3Engine` interface above, and who commits what (registration commit, then
    decision commit). Book 2 needs the same "AI picks on D2's candidates" step for F5; the selection allocator is
    written so F5 can reuse it (one class, two users), if F5's owner agrees.
-2. **To D5's owner (01SFDjjZ):** `new_or_reused` — proposed: `reused` when the proposal names `supersedes`, else
-   `new`. And the two small edits: `proposal_of` sets `strategy_id` for Book 3; D3 lets Book 3's day record hold null
-   `strategy_id` and spec hash.
+2. **D5's owner (01SFDjjZ), answered 16 Oct 2026:** `new_or_reused` derived by code (above; the rule key replaces
+   their `parameters_sha256` equality, which cannot fire because the hash covers the name). `proposal_of` sets
+   `strategy_id` through one helper `strategy_id_of(name, version)` added to `fno/book3/registry.py` and used by
+   `register` too (their agreement; `validity_adapter.py` is C4's file, a lane-1 edit in this branch). Book 3's day
+   record with null `strategy_id`: done in their `story/d3-no-owner-override` (b49abdde), which also refuses any
+   non-empty `owner_override`; F6 depends on it.
 3. **To D4's owner:** none needed (F7 uses `BookTerms` only).
