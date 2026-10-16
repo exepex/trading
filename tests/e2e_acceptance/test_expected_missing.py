@@ -70,6 +70,16 @@ def test_book3_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monke
     assert replayed_decisions(tmp_path, monkeypatch, BOOK3_AI)
 
 
+@missing("F5", "F6")
+def test_books_2_and_3_fill_and_exit_in_the_daily_run():
+    not_built("Book 2's and Book 3's OrderBuilder and ExitRules in E3's daily run (F5, F6)")
+
+
+@missing("F1t")
+def test_each_ai_decision_records_the_model_served_and_its_session():
+    not_built("F1t's model reporting (model_served, session_id) in Books 2 and 3's decision records")
+
+
 @missing("E8")
 def test_paper_fills_follow_the_owners_reaction_time():
     assert constants.VERDICT_REACTION_MINUTES == 60 and "owner_timing" in load_app_config()["desk"]
@@ -87,7 +97,12 @@ def test_the_ai_books_answer_the_v4_questions_on_the_recorded_day():
 
 @missing("O10")
 def test_every_capture_failure_leaves_one_committed_error_row_and_an_alert():
-    not_built("O10")
+    not_built("O10: one committed row per capture job and day, and an alert on a failure")
+
+
+@missing("O10", "A14")
+def test_a_scheduled_job_that_never_starts_is_alerted_as_stale():
+    not_built("O10's staleness alert on a due job with no run (health-check, nse-margins' early cron, participant-OI)")
 
 
 @missing("G13")
