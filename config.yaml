@@ -199,3 +199,31 @@ health:
   window_days: 6
   # Story O8b: one line, once per calendar version, when NSE's calendar ends within this many days
   calendar_horizon_days: 45
+
+# Story A19: news and announcements with the time we first saw them (docs/stories/A19-news-capture.md). Headlines,
+# links and times go to the owner's private Drive only (owner, 16 Oct: the publishers' RSS for personal research);
+# `publisher_feeds: false` leaves the official feeds (RBI, SEBI). Polling window (owner, 16 Oct, DESK_DECISIONS
+# "News poller runs on GitHub only 07:00-23:00 IST"); `overnight_bridge` waits for the owner's answer to judge 352
+# SF6 and stays false until then. Stale limits: all-hours at least ten times each feed's mean gap between items on
+# 16 Oct; session-hour limits a guess, reset from `news quiet-spells` after 10 sessions.
+news:
+  publisher_feeds: true
+  active_window: {start: "07:00", end: "23:00"}
+  overnight_bridge: false
+  feeds:
+    - {id: et-markets, publisher: Economic Times, kind: publisher, time_format: rfc822, stale_session_hours: 3, stale_any_hours: 24,
+       url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"}
+    - {id: et-economy, publisher: Economic Times, kind: publisher, time_format: rfc822, stale_session_hours: 6, stale_any_hours: 36,
+       url: "https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms"}
+    - {id: mint-markets, publisher: Mint, kind: publisher, time_format: rfc822, stale_session_hours: 3, stale_any_hours: 24,
+       url: "https://www.livemint.com/rss/markets"}
+    - {id: mint-economy, publisher: Mint, kind: publisher, time_format: rfc822, stale_session_hours: 24, stale_any_hours: 72,
+       url: "https://www.livemint.com/rss/economy"}
+    - {id: businessline-markets, publisher: The Hindu BusinessLine, kind: publisher, time_format: rfc822, stale_session_hours: 3,
+       stale_any_hours: 24, url: "https://www.thehindubusinessline.com/markets/feeder/default.rss"}
+    - {id: businessline-economy, publisher: The Hindu BusinessLine, kind: publisher, time_format: rfc822, stale_session_hours: 6,
+       stale_any_hours: 36, url: "https://www.thehindubusinessline.com/economy/feeder/default.rss"}
+    - {id: rbi-press, publisher: Reserve Bank of India, kind: official, time_format: rfc822_ist, stale_session_hours: 24,
+       stale_any_hours: 96, url: "https://www.rbi.org.in/pressreleases_rss.xml"}
+    - {id: sebi, publisher: SEBI, kind: official, time_format: day_comma_year, stale_session_hours: 24, stale_any_hours: 120,
+       url: "https://www.sebi.gov.in/sebirss.xml", excluded_paths: ["/legal/circulars/"]}
