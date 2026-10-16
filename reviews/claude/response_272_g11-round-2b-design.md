@@ -107,3 +107,28 @@ and F1t on main.
   registered in the rules slot".
 - Prompt files: `agents/forecast/book2_hybrid_v2.md` and `book3_ai_v2.md`, registered with their SHA-256. They may
   change before round 2b lands, with the hash updated in the same commit; once on main they change only as v3.
+
+## Addendum 3 (16 Oct): one set of run terms per protocol, threaded through F1/G5's collect chain
+
+- **Found by reading the code (strong evidence):** every link of F1/G5's chain fixes v2.
+  - `submissions.read_submission` uses the v2 commitment and reveal paths.
+  - `outcome.judge` uses `timing.receipt_deadline` (15:15) and `reveal_deadline` (15:30), and `Outcome` defaults to
+    the five v2 questions.
+  - `answer.check_answer` requires exactly `FORECAST_QUESTIONS`.
+  - `scoring_gate.scoring_status` reads the v2 audit file.
+  - `audit_plan.fired_sessions` and `stop_rule.breached_days` count v2 fire logs and v2 pack days, so after the
+    freeze they would never see a v4 day: the stop rule could never stop a v4 book, and no v4 day would be drawn
+    for a transcript audit.
+- **Root fix (strategy, one class, two instances):** `fno/ai/run_terms.py` holds a frozen `RunTerms` with the
+  commitment, reveal, audit and fire-log paths, the receipt deadline, the reveal window, the questions and the
+  session days the stop rule and the audit draw count. `V2_TERMS` reproduces today's values exactly; `V4_TERMS` uses
+  `ai_v4/`, 15:10 (`terms.V4_DEADLINE`) and V6a/V6b.
+  - Each function of the chain takes `terms`, defaulting to `V2_TERMS`, so every v2 caller and test is unchanged.
+    At the freeze the v2 steps go, and the defaults can go with them.
+  - No copy of the chain is made.
+- **The 15:10 deadline** comes from G10's `on_time` (`fno/v4_pack/commitment.py`), never a copied time, for v4's
+  receipt check.
+- **Shared files.** F1t (01PLbKH15BXYucP6cT9xtoxK) is adding folder parameters to `audit_plan.fired_sessions`,
+  `transcript_audit.TranscriptAudits` and `stop_rule.breached_days`. Those are the same seams, so the v4 terms use
+  F1t's parameters rather than adding a second set. The order is agreed with F1t before either side edits those
+  three files.
