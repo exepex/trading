@@ -16,7 +16,7 @@ paused, and its result is evidence for the owner, who decides. Commit the regist
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from ..alerts.sender import AlertSender
@@ -24,6 +24,8 @@ from ..constants import APPROVER_HARD_LOSS_RULE, SHADOW_PREFIX, PlaybookStatus
 from ..desk.trade_counts import version_key
 from ..playbook.lifecycle import StatusChanger
 from ..playbook.loader import Playbook
+from ..playbook.measurement import is_measurement
+from .measurement_alerts import cumulative_text, single_loss_text
 from .strategy_record import StrategyRecord
 
 ALERT = "F&O paper desk: {version} {action} ({reason})"
@@ -36,6 +38,7 @@ class PauseTrigger:
     name: str
     version: int
     reason: str
+    text: str = ""  # story R3: a measurement's own alert wording; empty for E6's ALERT
 
     @property
     def label(self) -> str:
@@ -65,11 +68,13 @@ def catastrophic_losses(
         if not found:
             continue
         cap, status = found[0].evaluation_plan["catastrophic_loss_rs"], found[0].status
-        for trade in record.closed:
-            counts = _counts(record, status, approved_on.get((name, version)), trade.line.closed_on, on)
-            if trade.line.net <= -cap and counts:
+        losses = [t for t in record.closed if t.line.net <= -cap]
+        for count, trade in enumerate(losses, start=1):
+            if _counts(record, status, approved_on.get((name, version)), trade.line.closed_on, on):
                 reason = f"trade {trade.trade_id} in {record.account} lost Rs {-trade.line.net:,.2f}, cap Rs {cap:,.2f}"
-                triggers.append(PauseTrigger(name, version, f"catastrophic loss: {reason}"))
+                trigger = PauseTrigger(name, version, f"catastrophic loss: {reason}")
+                text = single_loss_text(trigger.label, cap, reason, count) if is_measurement(found[0]) else ""
+                triggers.append(replace(trigger, text=text))
     return triggers
 
 
@@ -95,12 +100,16 @@ def cumulative_losses(
             continue
         totals[key] = totals.get(key, 0.0) + sum(line.net for line in lines)
         closed_today |= {key} if any(line.closed_on == on for line in lines) else set()
-    return [
+    measured = {s.key for s in playbook.strategies if is_measurement(s)}
+    triggers = [
         PauseTrigger(
             *key, f"cumulative loss: realised Rs {-total:,.2f}, {CUMULATIVE_CAPS} x cap Rs {caps[key][0]:,.2f}"
         )
         for key, total in sorted(totals.items())
         if total <= -CUMULATIVE_CAPS * caps[key][0] and (caps[key][1] == PlaybookStatus.PAPER or key in closed_today)
+    ]
+    return [
+        replace(t, text=cumulative_text(t.label, t.reason)) if (t.name, t.version) in measured else t for t in triggers
     ]
 
 
@@ -125,6 +134,6 @@ class AutoPauser:
             if status[key] == PlaybookStatus.PAPER:
                 self.changer.change(trigger.name, trigger.version, PlaybookStatus.PAUSED, APPROVER_HARD_LOSS_RULE, on)
                 action = PAUSED_NOW
-            text = ALERT.format(version=trigger.label, action=action, reason=trigger.reason)
+            text = trigger.text or ALERT.format(version=trigger.label, action=action, reason=trigger.reason)
             lines.append(f"{text} [{self.alerts.send(text)}]")
         return lines
