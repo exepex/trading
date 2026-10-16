@@ -123,3 +123,6 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
   never reaches this.
 - **Merge order:** W3c and W3d were built on 2.9.0. Whichever merges after 2.10 must take main and re-run `npm test`
   against the 2.10 fixture.
+- **Later (orchestrator, 16 Oct 06:37 UTC):** cf9692e and 07c8683 were already on dashboard main ea75be3 (merged as
+  7731d0e) before this check, so 7ccdff8 would only bump version strings. It is not merged, and the contract stays
+  2.9.0. My earlier reading, that main stopped at 709cb8c, came from main e74c939 and was out of date by then.

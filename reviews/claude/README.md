@@ -219,3 +219,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 233: answer to ChatGPT review 134 (LR3 drift CUSUM): block-resampling sensitivity for h (the larger value is frozen); the pause scope is one version in every book; all accepted](response_233_chatgpt-review-134-answer.md)
 - [Response 231: BR1a follow-up after ChatGPT review 133 (response 230): S1 frozen_files hashes the freezer (definition.py, freeze.py, order.py) with a verify test; BR1's exploratory disclaimer on every table; dependence as the leading supported explanation](response_231_br1-followup.md)
 - [Response 232: R3 addendum, B0's registration and part B text (review 132's conditions as criteria 10-12): claims](response_232_r3-b0-and-part-b-text.md)
+- [Response 235: A14c, which quantity sets the stress factor k: three measures on every window (coded, flat 2%, flat 3%), the BF 200 2020 reserve, a question for the owner](response_235_a14c-factor-measures.md)

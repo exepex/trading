@@ -97,3 +97,37 @@ match the decision row "LR3 drift detection: the four design answers accepted as
 
 **Verdict: PASS for 9a738de6** (story text). Code may start. Its O1 wiring line lands with LR3's own code commit, as
 agreed.
+
+## Addendum 2 (16 Oct 2026, judge B, delta re-check): f6716b56, after ChatGPT review 134 (response 233)
+
+The delta since 9a738de6 (judge 214 addendum 1) is docs and research evidence, plus a `main` merge: the LR3 story
+text, `calibrate_h_blocks.py` and its output, and the README row. There is no code.
+
+- **(1) `drift_h = max(4, h_iid, h_block)`** with chronological circular blocks of 3. **I re-ran the evidence script
+  myself** (`python3 research/2026-10-16-lr3-drift-evidence/calibrate_h_blocks.py`), and its output is
+  **byte-identical** to the committed `.out`.
+  - The story's numbers match it: `h_iid` 1.0-5.5, `h_block` 1.5-6.0, frozen 4.0-6.0. Only challenge SF rises, from
+    5.5 to 6.0.
+  - "Fewer than 30 research trades is uncalibrated and refused `paper`" is consistent with the samples (the smallest,
+    discovery BF, has n = 30 and is calibrated).
+  - The text says plainly that block length 3 is a stress check and that the median is not a ten-year guarantee
+    (criterion 13).
+  - Note for the code round: the registration's 10th and 90th percentile run lengths at `drift_h` are promised by the
+    text, but the evidence script does not compute them yet.
+- **(2)** The name "research-to-paper performance drift"; `mu0` and `sigma` never re-estimated; E8's no-fill and
+  opportunity rate beside the CUSUM (criterion 14). Correct: re-estimating from paper results would erase the failure
+  it is meant to catch.
+- **(3)** AI slots are not monitored until 12 live blocks (criterion 11).
+- **(4)** S1's `immediate_pauses` names the drift exception before any activation. It is a dependency on S1's text
+  owner, stated.
+- **(5)** The pause scope is one version in every book. Other versions keep opening, the drifted version's open
+  positions still exit, and the restart row records its provenance, with the CUSUM restarting at 0 (criterion 12).
+  Correct, and narrower than a whole-book halt, which would need its own owner decision.
+
+**The builder's correction to review 134: confirmed.** Review 134 says "SF already has an unacceptable 40-trade median
+at h=4". The 40 comes from `strategy_arl.out` at the **fixed** design value h = 4 (challenge SF: in-control median
+40). Under LR3's per-version calibration, SF already had h = 5.5, with an in-control median of 172 trades
+(`calibrate_h.out`). So the floor of 4 was never SF's operative threshold. The block check still adds a margin for
+clustered losses (5.5 to 6.0), which is the useful part of point 1.
+
+**PASS for f6716b56 (text).**
