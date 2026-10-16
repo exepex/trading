@@ -136,8 +136,14 @@ collection goes on as usual, so a routine that did start still has its sealed an
 that first commit fired nothing.
 
 **Pointer (`DecisionPointer`, one line of JSON):** `kind: "decision"`, `book`, `day`, `version` (the registered decision
-version's label), `common_pack_sha256`, `private_pack_sha256` and `private_pack` (the book's E2 private pack body).
-Only that book's private pack is ever put in its pointer (book isolation). `brief` refuses a pointer whose fields are
+version's label), `common_pack_sha256`, `private_pack_sha256`, `private_pack` (the book's E2 private pack body),
+`cards` and `cards_sha256`.
+Only that book's private pack is ever put in its pointer (book isolation). **Analyst cards (agreed with F2, 16 Oct):**
+the pointer also holds `cards` and `cards_sha256`, read at `ai_fire` from F2's `CardsOfDay.cards(day)` port (F2 saves
+the day's cards by 14:55): every registered role's status line with its reason, and the card itself only when it is
+`valid` or `not_applicable`. The port never raises; with no cards file every role reads `no_submission`. The cards are
+the same for both AI books (the analysts are shared, not a book's private input). A book whose decision version lists
+no role units gets `cards: []`. `brief` refuses a pointer whose fields are
 not exactly these, whose version is not the book's current one, or whose private pack's canonical SHA-256 (E2's
 `canonical_json`) is not `private_pack_sha256`.
 
@@ -192,6 +198,7 @@ class AcceptedDecision:
     session: str                      # the fire log's session link (D3 `session_id`)
     common_pack: CommonPack; private_pack: PrivatePack
     decision: dict                    # the book's own object, already shape-checked
+    cards_sha256: str; consulted_units: tuple[str, ...]   # F2: the roles whose cards were passed (F9's column)
     commitment_commit: str; reveal_commit: str
 
 class AiBookDecider(ABC):             # F5: Book 2; F6: Book 3
@@ -224,6 +231,11 @@ research factory, and any change made before `decide()` (by anyone) is left as i
 nothing else writes these paths during `decide()`. The restore is recorded in the outcome record (test: a decider
 that registers a proposal and appends a ledger row, then fails the check, leaves every file equal to its snapshot,
 including a ledger row written before `decide()`).
+
+**Role units (F2, F9):** each decision version names the role units it consults (v1: `analyst_volatility`) beside its
+prompt, model and isolation, so they are part of the book's D6 version; F2 writes `agents/role_units.yaml` from them.
+The outcome record holds `consulted_units` (roles with a `valid` or `not_applicable` card in the pointer) and
+`cards_sha256`, and the decider receives both to link in the D3 record.
 
 **Book isolation:** each book's pointer holds only its own private pack; the decider receives only its own book's
 packs; each book's account is its own E1 folder (no shared cash); submissions of one book are never in another's
