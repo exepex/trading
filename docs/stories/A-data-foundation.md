@@ -1296,27 +1296,49 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   judge; widened the same day from "the SF 100 basket once per applied factor row" to every structure and width, because
   a broker's margins cannot be fetched later: each unrecorded day is lost, gap audit part A2).**
   `python -m fno margins stress-broker-check` (the name O1's daily run already calls, step `margin_check`) runs in the
-  daily Claude routine, which holds Groww's key (never GitHub Actions,
-  which holds none). It runs first, before the 3 pm quote parts, so its requests never overlap the 14:55 capture; the
-  routine's prompt is story O1's, so this story adds the command and O1 adds its one line (judge 173 addendum 3, note
-  1). In O1's `daily run` it is the step after the quote parts start (about 14:33 IST) and must end before the 14:55
-  capture, so it is paced to finish within 15 minutes. It works in market hours only: on a session day of A7's
-  calendar, 09:30 to 14:50 IST. Outside them it prints
-  "outside market hours" and exits 0, because before the open Groww may still be on the previous day's file (16 Oct:
-  +Rs 155 at 00:12 IST; within Rs 0.25 at 10:42 IST).
+  daily Claude routine, which holds Groww's key (never GitHub Actions, which holds none). The routine's prompt is story
+  O1's: O1's `daily run` starts the 3 pm quote parts first and runs this step soon after (about 14:35 IST, after the
+  weather and the v4 forecasts), so the command needs no new prompt line (judge 173 addendum 3, note 1, met by O1's
+  step).
+  - **When:** on a session day of A7's calendar, from 09:30 IST, before which Groww may still be on the previous day's
+    file (16 Oct: +Rs 155 at 00:12 IST; within Rs 0.25 at 10:42 IST). Before 09:30, or on a closed day, it prints
+    "outside market hours" and exits 0.
+  - **Hard stop before the 14:55 capture:** no Groww request starts after 14:50 IST, whatever time the step began (a
+    rerun at 14:45 included). Baskets not yet asked at 14:50 are written as `error` with the detail "deadline", and the
+    run exits 1. Tests run at 14:49:59, 14:50:00 and 14:50:01.
+  - **Size and pacing:** today's A14 rows are 15 baskets a day (SF, SC and BF at five widths; the STR1 codes get rows
+    only after their broker approvals, STR1b). With one request every 2 seconds plus one NIFTY quote, a run takes
+    about 35 seconds, and a full STR1 set of about 40 baskets takes about 90 seconds, well inside the window.
   - **What it checks:** each of the day's A14 rows (every structure and width in `margins.csv` for today), one
     read-only Groww margin request per basket (`get_order_margin_details`, the row's legs at the file's prices: Groww
-    ignores the limit prices sent). SPAN: Groww's `span_required` against the row's `max(0, scan - NOV)`, within Rs 1
-    a lot. Exposure: Groww's `exposure_required` against the row's exposure rebased to Groww's implied index (Groww
-    charges exposure on the live index, the row on the last close), within 0.1% (orchestrator, 16 Oct, some evidence:
-    one basket on one day).
-  - **Read-only by construction:** the Groww client is reached only through an allow-list that admits the margin
-    calculator and the constants it needs; every other name, every order call included, is refused before the SDK
-    (A16's `ReadOnlyGroww`, given an allow-list per caller with A16's owner, e070d26f: no list may hold a name with an
-    order verb, `place_`, `modify_`, `cancel_` or `create_`, the SDK's six order calls). The margin call is a
-    calculator (strong evidence): the SDK posts the basket to `/margins/detail/orders` and has no docstring, but after
-    the four calls of 14-16 Oct the account showed 0 orders, 0 positions and 0 for every used or blocked margin
-    figure (read-only `get_order_list`, `get_positions_for_user` and `get_available_margin_details`, 16 Oct).
+    ignores the limit prices sent).
+    - SPAN: Groww's `span_required` against the row's `max(0, scan - NOV)`, within Rs 1 a lot.
+    - Exposure: Groww's `exposure_required` against A14's own exposure rule recomputed on an independent index level,
+      within 0.1% (orchestrator, 16 Oct, some evidence: one basket on one day). Groww charges exposure on the live
+      index, while the row uses the last close, and Groww's answer carries no index (response 77's fields). So the
+      level is one NIFTY `get_quote` (last price) taken by this caller at the run's start, and the row's legs' exposure
+      is recomputed at it with A14's `NseIndexOptionExposure`. The rate step at 10% out of the money is therefore
+      applied at the live level. The level is never implied from Groww's own exposure figure, which would compare
+      Groww with itself and could never mismatch (judges 291 and 356).
+    - Tests: at each tolerance and just under it (Rs 1.00 and Rs 0.99; 0.10% and 0.099%), just over it, and a planted
+      wrong exposure (0.2% high) on a correct index.
+  - **Read-only by construction:** the Groww client is reached only through an allow-list per caller (A16's
+    `ReadOnlyGroww`, agreed with A16's owner). This caller's list is `get_order_margin_details`, `get_quote` and the
+    constants they need.
+    - A list may hold only public reads named `get_<lower_snake_case>` and UPPER_CASE constants; never a name starting
+      with `_`, never a token or session call (`get_access_token`, `generate_socket_token`, `session`).
+    - As a second line, never a name starting with an order verb (`place_`, `modify_`, `cancel_`, `create_`; the SDK's
+      six order calls).
+    - Judge 356 reproduced six names the verb rule alone let through (`session`, `_request`, `get_access_token`,
+      `generate_socket_token`, `Place_order`, `exit_position`). Each is tested, and so is a list of every SDK name,
+      private ones included.
+    - The margin call is a calculator (strong evidence): the SDK posts the basket to `/margins/detail/orders` and has
+      no docstring, but after the four calls of 14-16 Oct the account showed 0 orders, 0 positions and 0 for every
+      used or blocked margin figure (read-only `get_order_list`, `get_positions_for_user` and
+      `get_available_margin_details`, 16 Oct).
+  - **O1's side (owner: O1's builder, reviewed by them):** this story's code branch changes `fno/daily/wiring.py`.
+    `MARGIN_CHECK` keeps the command; the committed pathspec `MARGIN_CHECKS` (`stress_broker_check.csv`) is replaced by
+    this module's `receipt_pathspecs()`. The step stays behind its `LiveFrom` date until the owner sets it.
   - **Record (story O9):** every run writes one write-once file through O9's data store:
     `data/margins/broker_checks/<as_of>/<run time IST>.csv`, one row per basket: the check time, `as_of`, structure,
     width, both figures for SPAN and exposure, the status (`ok`, `mismatch`, `error`) and its detail. Its SHA-256
@@ -1324,10 +1346,13 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     `receipts/` tree, and replacing the `stress_broker_check.csv` path O1 names today (agreed with O1's owner, 16 Oct).
     Nothing is appended in GitHub.
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
-    and exits 0. An `error` row is retried by the next run.
+    and exits 0. An `error` row is retried only by a rerun of the same day's step: O1 reruns a failed step when the
+    routine is run again that day. Otherwise the next run is the next session, so that day's broker figure for the
+    basket is lost. The `error` row and O1's line say so.
   - **Exit and lines (O1's rules, agreed 16 Oct):** a failure never alerts twice, and a finding is not a failure.
     O1's `daily run` records every step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed
-    step, so the check writes no O10 `capture_errors.csv` row and sends no alert of its own for a failure.
+    step, so the check writes no O10 `capture_errors.csv` row (O10 covers jobs outside the daily run) and sends no
+    alert of its own for a failure.
     - Exit 0, with the step `ok`: every basket `ok`, "nothing to check", or "outside market hours".
     - A `mismatch` (Groww and the A14 row differ beyond tolerance) is a finding. The check ran and its data landed, so
       it exits 0 and the step stays `ok`; it is never counted as a capture miss or retried. It sends its own one
@@ -1335,7 +1360,7 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
       tolerance for <baskets>: review the stress factor". Its last printed line names the baskets, so the run log
       keeps them; if Slack is down, the run relays the "alert NOT sent" line.
     - Exit 1, with the reason as the last printed line and no own alert: a Groww failure (sign-in, network, a refused
-      request; the rows are `error`) or a record that could not be written. A step whose data did not land is never
+      request, the NIFTY quote; the rows are `error`), the 14:50 deadline, or a record that could not be written. A step whose data did not land is never
       `ok`.
     - A real skip the owner should see prints "nothing written: <reason>", and O1 records it as refused.
   - **Never holds the factor:** the check is evidence. A mismatch is the owner's to judge, and part 1's rows are NSE's.
