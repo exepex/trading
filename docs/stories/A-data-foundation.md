@@ -1309,8 +1309,11 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     one basket on one day).
   - **Read-only by construction:** the Groww client is reached only through an allow-list that admits the margin
     calculator and the constants it needs; every other name, every order call included, is refused before the SDK
-    (A16's `ReadOnlyGroww`, given an allow-list per caller with A16's owner; a test proves `place_order`,
-    `modify_order` and `cancel_order` are refused).
+    (A16's `ReadOnlyGroww`, given an allow-list per caller with A16's owner, e070d26f: no list may hold a name with an
+    order verb, `place_`, `modify_`, `cancel_` or `create_`, the SDK's six order calls). The margin call is a
+    calculator (strong evidence): the SDK posts the basket to `/margins/detail/orders` and has no docstring, but after
+    the four calls of 14-16 Oct the account showed 0 orders, 0 positions and 0 for every used or blocked margin
+    figure (read-only `get_order_list`, `get_positions_for_user` and `get_available_margin_details`, 16 Oct).
   - **Record (story O9 and O10's format):** every run writes one write-once file through O9's data store:
     `data/margins/broker_checks/<as_of>/<run time IST>.csv`. Its SHA-256 receipt is committed, and nothing is appended
     in GitHub. One row per basket: the check time, `as_of`, structure, width, both figures for SPAN and exposure, the
