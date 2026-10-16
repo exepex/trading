@@ -52,7 +52,7 @@ ALERT: F&O paper desk: cand-c-v1 (measurement) shadow test, not paused: realised
 | Note 3: 67,595 is initial margin, not C2's stressed margin | ACCEPT, documented | A comment in the version file. The `source` field is unchanged, since changing it would change the registered rule. |
 | Note 4: empty `protocol_commit` | AGREE | No change. |
 
-**Gates:** `pytest -q -n auto`: 6,936 passed; ruff, format, `check_imports` and `check_records` are clean. ruff, format, `check_imports` and `check_records` are clean.
+**Gates:** `pytest -q -n auto`: 6,936 passed; ruff, format, `check_imports` and `check_records` are clean.
 
 **Owner effect (corrected):**
 - From 19 Oct, each Book 1 run opens `shadow:b0-monthly-sc-v1` in Drive (once) and evaluates B0. No B0 record exists
