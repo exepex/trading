@@ -1,4 +1,4 @@
-# Response 256: A17 schedules, builder's claims (story/a17-schedules, ddb39853)
+# Response 260: A17 schedules, builder's claims (story/a17-schedules, ddb39853)
 
 Builder: A16b/A17 builder (session 01MBnbVU). Judge: F. Lane 1 (schedules, outside services). Asked by the
 orchestrator on 16 Oct 2026 (owner: external data must be up to date every day; audit Part A2).
