@@ -164,3 +164,18 @@ def test_the_g7b_protocol_wordings_are_in_the_text():
         'For both trailing and EWMA, "ending at `d`" and `s2_d` are read as the last session before `d`:**',
     ):
         assert wording in text
+
+
+def test_every_committed_g7_record_row_carries_this_trees_method_hash():
+    """The freeze checklist item (judge 258 addendum 1): a back-fill made on other method files is refused on re-run,
+    so the committed one must be regenerated whenever they change."""
+    from fno.forecast_v4_rules.capture import FORECASTERS
+    from fno.forecast_v4_rules.wiring import V4_FOLDER, method_sha256
+
+    expected, files = method_sha256(), 0
+    for forecaster, question in FORECASTERS:
+        file = records.path(V4_FOLDER, forecaster, question)
+        if file.exists():
+            files += 1
+            assert {r.method_sha256 for r in records.read(file).values()} == {expected}, file
+    assert files == 14  # V6 4, V2 and V3 8, V7 2 (V1 has not started)

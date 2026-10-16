@@ -501,7 +501,9 @@ even if their code comes later:
    probabilities in [0, 1].
 7. **Back-fill:** from 2017 closes, every row `backfill_exploratory`, ending before the first live day. A re-run writes
    identical files. **Phase 1's V6 rows keep every value, status and inputs hash**, and only `method_sha256` changes.
-   The regenerated files replace the old ones in the same commit.
+   The regenerated files replace the old ones in the same commit. **A test checks that every committed G7 row's
+   `method_sha256` equals this tree's method-file hash** (`wiring.method_sha256`; judge 258 addendum 1, the freeze
+   checklist item), so a method edit without a regenerated back-fill fails the gates.
 8. **Live capture:** before the 14:30 cutoff only (phase 1's `capture_day`); after it, nothing is written and the
    command says so.
 9. **Size and design:** every file stays under 350 lines. No `fno/forecast_v4/` rule is re-implemented. The method hash

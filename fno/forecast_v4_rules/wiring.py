@@ -39,10 +39,14 @@ def build_v4_forecasts(today: date | None = None) -> DayForecasts:
     end = max(closes[-1].day, today or closes[-1].day)
     days = [closes[0].day + timedelta(days=i) for i in range((end - closes[0].day).days + 1)]
     sessions = [d for d in days if is_scored_session(calendar, d)]
-    package = Path(__file__).resolve().parent
-    method = hashlib.sha256(b"".join((package / name).read_bytes() for name in METHOD_FILES)).hexdigest()
     intraday = series.live_intraday_rv(RvTable(INTRADAY_FOLDER).rows()) if INTRADAY_FOLDER.exists() else []
-    return DayForecasts(Inputs(closes, vix, lines, intraday, sessions, method))
+    return DayForecasts(Inputs(closes, vix, lines, intraday, sessions, method_sha256()))
+
+
+def method_sha256() -> str:
+    """SHA-256 of the method files' bytes, carried by every record row (a back-fill made on other code is refused)."""
+    package = Path(__file__).resolve().parent
+    return hashlib.sha256(b"".join((package / name).read_bytes() for name in METHOD_FILES)).hexdigest()
 
 
 def v4_writer(folder: Path = V4_FOLDER):
