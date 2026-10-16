@@ -393,7 +393,7 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 | Live switch off until the owner turns it on (task) | criterion 1 | |
 | Budget cap stops AI roles (BG1, design 7.6) | criterion 2 | |
 | AI usage recorded (F8) | criterion 14 | |
-| Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct): at E2's pack step code runs D2 for Book 2 and writes `journal/book2_hybrid/rule_defaults/<d>.json` (rule default terms and eligible set per opportunity); it is inside Book 2's private pack, so it travels in F1t's pointer under `private_pack_sha256` with no change here |
+| Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct, revised after E2c's privacy point): at E2's pack step code runs D2 for Book 2 at the cutoff and puts the rule default and eligible set inside Book 2's private pack as its "evaluation" sheet (no journal file); it travels in F1t's pointer under `private_pack_sha256` with no change here. C4 reads the sheet, never the AI's answer; D3's replay must reproduce it |
 | Analyst cards and consulted units (F2, F9) | criterion 3b | The cards themselves: F2 |
 | Red team, judge, shadows (F3, F4, F7) | carried in `decision` unchanged | Their stories |
 | "Judge or AI unavailable" row of design 9 (O2) | criteria 6, 10 | O2's suite gains these cases once F1t merges (agreed with O2's builder) |
