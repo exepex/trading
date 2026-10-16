@@ -1215,8 +1215,13 @@ factor until the first run. **Hard date (orchestrator, 15 Oct):** the code merge
 7 Nov, a week before every trade is refused from 14 Nov; any threat to that date is reported at once.
 
 **Known limit:** no cache of the files' arrays. An incremental weekly run reads only the files back to the earliest
-holding that ended since the last row (about 35-50 files at about 5 s each, about 4 minutes); only a full run reads all
-of them once (about 2.5 hours). A cache would add a second store for no real saving (orchestrator agreed, 15 Oct).
+holding that ended since the last row (about 35-50 files); only a full run reads all of them once (about 1,700). A
+cache would add a second store for no real saving (orchestrator agreed, 15 Oct). **Read-ahead (orchestrator, 16 Oct):**
+one Drive stream gave 0.41 MB/s on 16 Oct (27-30 s per 12 MB file, so about 14 hours for a full run, past the
+workflow's 330 minutes) and parallel streams were each as fast; the run downloads up to
+`risk.stressed_margin.recompute_workers` files (8) ahead, each thread with its own Drive session, and still feeds them
+in day order (a test proves the same row and byte-identical evidence with and without it). A download error writes
+nothing and sends the one #fno-desk line. The first Actions run measures the seconds per file.
 
 **Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.

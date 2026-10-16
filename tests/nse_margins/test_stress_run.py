@@ -4,6 +4,7 @@ point-in-time checks, incremental equals full, deterministic evidence, and one #
 A held SF 100 at scale 1 has a whole margin of 53,950 a lot; a scale-20 day lifts it to 91,000 (rise 1.68674,
 computed 1.7) and a scale-8 day to 67,600 (rise 1.25301, computed 1.3), against the owner's seed of 1.45."""
 
+import time
 from datetime import date
 
 import pytest
@@ -20,14 +21,25 @@ RUN_DAY, THROUGH = date(2026, 11, 5), date(2026, 11, 4)
 SPIKE = date(2026, 10, 7)
 
 
-def run(tmp_path, files, run_day=RUN_DAY, archived=None, approved=None, full=False, rows=SEED):
+def run(
+    tmp_path,
+    files,
+    run_day=RUN_DAY,
+    archived=None,
+    approved=None,
+    full=False,
+    rows=SEED,
+    workers=1,
+    read=None,
+    tracker=sf_tracker,
+):
     tmp_path.mkdir(parents=True, exist_ok=True)
     factor = tmp_path / "stress_factor.csv"
     if not factor.exists():
         factor.write_text(HEADER + rows, encoding="utf-8")
     alerts, printed = Alerts(), []
-    sources = StressSources(day_file(files), lambda: archived if archived is not None else manifest(files), weekday,
-                            sf_tracker, FIRST)  # fmt: skip
+    sources = StressSources(read or day_file(files), lambda: archived if archived is not None else manifest(files),
+                            weekday, tracker, FIRST, workers)  # fmt: skip
     code = StressFactorRun(sources, StressFactorFile(factor), tmp_path / "evidence", alerts, run_day,
                            printed.append).run(full, approved)  # fmt: skip
     return code, factor.read_text(encoding="utf-8").splitlines()[-1].split(","), alerts.sent
@@ -132,3 +144,45 @@ def test_an_incremental_run_counts_only_holdings_that_ended_since_the_last(tmp_p
     first = (tmp_path / "evidence" / "stress_evidence_2026-11-05.md").read_text(encoding="utf-8")
     second = (tmp_path / "evidence" / "stress_evidence_2026-12-09.md").read_text(encoding="utf-8")
     assert "Holdings completed in this run: 17;" in first and "Holdings completed in this run: 25;" in second
+
+
+def test_reading_ahead_changes_no_byte_of_the_row_or_the_evidence(tmp_path):
+    """The full run's read-ahead (eight Drive downloads at once in config) against one at a time, on files whose
+    downloads finish in reverse order: the same factor row and byte-identical evidence."""
+    files = planted(date(2026, 12, 8), {SPIKE: 20.0, date(2026, 11, 20): 8.0})
+    fed = {"one": [], "ahead": []}
+
+    def mondays_last(day):
+        time.sleep(0.05 if day.weekday() == 0 else 0)  # Monday's download finishes after the rest of its week's
+        return day_file(files)(day)
+
+    def recording(name):
+        def new():
+            tracker = sf_tracker()
+            feed = tracker.feed
+            tracker.feed = lambda day, span, open_new=True: (fed[name].append(day), feed(day, span, open_new))
+            return tracker
+
+        return new
+
+    _, one, _ = run(tmp_path / "one", files, run_day=date(2026, 12, 9), tracker=recording("one"))
+    _, ahead, _ = run(tmp_path / "ahead", files, run_day=date(2026, 12, 9), workers=8, read=mondays_last,
+                      tracker=recording("ahead"))  # fmt: skip
+    assert fed["ahead"] == fed["one"] == sorted(files) and ahead == one and one[3] == "1.686747"
+    for name in ("stress_evidence_2026-12-09.csv", "stress_files_2026-12-09.csv", "stress_evidence_2026-12-09.md"):
+        assert (tmp_path / "ahead" / "evidence" / name).read_bytes() == (
+            tmp_path / "one" / "evidence" / name
+        ).read_bytes()
+
+
+def test_a_download_error_writes_nothing_and_says_so(tmp_path):
+    files = planted(THROUGH)
+
+    def drive_down(day):
+        if day == date(2026, 10, 20):
+            raise ConnectionError("Drive answered 503")
+        return day_file(files)(day)
+
+    code, row, sent = run(tmp_path, files, workers=4, read=drive_down)
+    assert code == 1 and row[0] == "2026-10-14" and not (tmp_path / "evidence").exists()
+    assert len(sent) == 1 and "nothing written: the archive could not be read: Drive answered 503" in sent[0]

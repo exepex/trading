@@ -6,7 +6,8 @@
 #      owner (owner, 15 Oct 2026, DESK_DECISIONS da0f769d). It writes its evidence beside it and sends one #fno-desk line;
 #   3. the factor row, the evidence and the manifest rows are committed. Nothing here edits config.yaml.
 # Weekly keeps the row fresh: C2 refuses after 30 days, so three failed Sundays still leave a valid factor.
-# A full recompute (about 2.5 hours, every session since 2020) is a manual run with full=true.
+# A full recompute (every session since 2020; downloads run ahead, risk.stressed_margin.recompute_workers) is a manual
+# run with full=true; its first run measures the seconds per file.
 name: stress-factor
 
 on:

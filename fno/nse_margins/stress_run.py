@@ -5,7 +5,8 @@ from `LOOKBACK_DAYS` before the last row's `coverage_through` (longer than any h
 that end after it, taking the larger of their rise and the last `unrounded`. The first run, and any run after a row
 with an empty `unrounded` (the owner's seed), is full, so a hand value never becomes a floor (judge 176). Every file
 must be the archive's first copy (its SHA-256 equals the manifest's) and written before 09:00 IST on its day (A14's
-point-in-time rule). Any refusal writes nothing and sends one #fno-desk line; so does every row written."""
+point-in-time rule). Files are read ahead by `workers` threads but fed in day order. Any refusal (a download error
+included) writes nothing and sends one #fno-desk line; so does every row written."""
 
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from ..constants import SPAN_BOD_CREATED_BEFORE
 from ..fo_bhavcopy import BadFile
 from .held_rise import HeldRiseTracker, Holding
 from .job import DayFile
+from .prefetch import in_order
 from .span_file import SpanFile, read_span_file
 from .stress_coverage import FIRST_SESSION, CoverageGap, check_coverage, required_sessions
 from .stress_evidence import build_evidence
@@ -33,11 +35,12 @@ REFUSED = "Omenix F&O stress factor {run_day}: nothing written: {reason}"
 
 @dataclass(frozen=True)
 class StressSources:
-    day_file: DayFile  # a session's first-archived i1 file
+    day_file: DayFile  # a session's first-archived i1 file; called from `workers` threads at once
     archived: Callable[[], Mapping[date, str]]  # the manifest: session -> SHA-256
     is_trading_day: Callable[[date], bool]
     new_tracker: Callable[[], HeldRiseTracker]
     first_session: date = FIRST_SESSION
+    workers: int = 1  # downloads running ahead of the day being read (prefetch.in_order)
 
 
 class StressFactorRun:
@@ -61,9 +64,7 @@ class StressFactorRun:
         last = self.factor_file.last()
         full = full or last.unrounded is None or last.coverage_through is None
         start = self.sources.first_session if full else last.coverage_through - timedelta(days=LOOKBACK_DAYS)
-        tracker = self.sources.new_tracker()
-        for day in (d for d in required if d >= start):
-            tracker.feed(day, self._span(day, coverage.files[day]))
+        tracker = self._read([d for d in required if d >= start], coverage.files)
         counted = [h for h in tracker.found.completed if full or h.exit > last.coverage_through]
         carried = None if full else last.unrounded
         if not counted and carried is None:
@@ -81,8 +82,16 @@ class StressFactorRun:
                               peak=peak)  # fmt: skip
         return line + (HELD_ASK if status == "held" else "")
 
-    def _span(self, day: date, sha256: str) -> SpanFile:
-        filename, data = self.sources.day_file(day)
+    def _read(self, days: list[date], sha256: Mapping[date, str]) -> HeldRiseTracker:
+        tracker = self.sources.new_tracker()
+        try:
+            for day, (filename, data) in in_order(self.sources.day_file, days, self.sources.workers):
+                tracker.feed(day, self._span(filename, data, day, sha256[day]))
+        except OSError as exc:  # Drive unreachable or refusing (requests' errors are OSErrors): nothing is written
+            raise StressRowRefused(f"the archive could not be read: {exc}") from exc
+        return tracker
+
+    def _span(self, filename: str, data: bytes | None, day: date, sha256: str) -> SpanFile:
         if data is None:
             raise StressRowRefused(f"{filename} is in the manifest but not in the archive")
         if hashlib.sha256(data).hexdigest() != sha256:
