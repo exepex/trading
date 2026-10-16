@@ -101,3 +101,66 @@ CI, and Monday's run log for 09:15 taken as good and the rows on `main`.
 - **Monday 19 Oct:** I check the 08:52 run's log for 09:15 taken as good and the rows on `main`.
 
 **Verdict: merge check PASS** (CI on the merge to be confirmed).
+
+## Addendum 3 (16 Oct 2026): O9 v2 story text at 35dfd5ec (`story/o9-data-to-drive`, text only)
+
+The branch changes four files, all documentation: `docs/stories/O9-data-to-drive.md` (179 lines), response 238 (the
+read-only inventories, 419 lines), and one row each in the claude README and the work register. No code or tests.
+
+**Judge 228's points:**
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix: frozen and test inputs | MET in substance, with one flaw (below) | Section 4 sorts them into three classes: freeze-checked, recorded but not checked, and tests that read real data (about 45, more than my 22). Criterion 5 requires every freeze check and the full suite to pass after removal |
+| Should-fix: receipt collisions | MET | Rule 3: one receipt file per Drive write (`receipts/<drive path>.sha256`), so a merge cannot conflict |
+
+**The design is sound and evidence-based:**
+- The owner's words are quoted.
+- Write-once is enforced by the existing `RawFileConflict`.
+- Appended tables become parts, and mutable state becomes versioned snapshots.
+- Readers read through a SHA-checked cache, and only the data root changes.
+- Section 5 maps every mechanism that relies on git history to its receipt.
+- A16's one-taker claim rests on the measured 16 Oct 429 evidence.
+- Each step gets its own judge round, and a step switches only when its readers work.
+
+## Must-fix
+
+**1. Section 4.1 changes a frozen file.** "The check reads the bytes from the Drive cache instead of the working
+tree" means editing `fno/forecast/freeze.py`, but `freeze.py` and `freeze_v2.py` are themselves listed with their
+SHA-256 in `research/forecasts/FREEZE.md` (line 27) and `FREEZE_v2.md` (lines 41-42). Changing them breaks the v1
+and v2 freezes, which would need a new forecast version. Fix (wording): leave the frozen check code unchanged.
+- Before a freeze check, the cache sync writes each freeze-checked file back to its **original repository path**,
+  git-ignored, with the same bytes.
+- `changed_files(root, freeze)` then compares the same hashes, untouched.
+- Rule 5's commit refusal still holds, because those files are ignored and never committed.
+
+## Notes (not blocking)
+
+- **4.2 is simpler than written.** History is not rewritten (section 7), so `git show <commit>:<path>` keeps working
+  for experiment 1 and for the recorded freeze versions. The upload is a useful second copy, but the test does not
+  need to change.
+- **Section 6's claim rule:** the losing run's push is rejected and its pull meets an add/add conflict on the claim
+  file. The committer settles it with `-X theirs` (A16's option). The A16 step's acceptance must test exactly this
+  race: two clones, one claim, the loser sees the winner's file and waits.
+- **Drive token:** the first text named the token expiring about 20 Oct 2026. O9 makes every run depend on that
+  token, so re-issuing it from the published app belongs before step 2.
+- Response 238 is 419 lines. It is a review file, which the size test does not cover, as with earlier long
+  responses.
+
+**Verdict: FAIL for 35dfd5ec** (story text), on must-fix 1 only: one sentence in 4.1 plus the restore-to-path
+step. Everything else is ready for the owner and for market-brief's own approval.
+
+## Addendum 4 (16 Oct 2026): O9 v2 story text at 1664d638 (35dfd5ec..1664d638)
+
+The diff touches one file, `docs/stories/O9-data-to-drive.md` (+13/-7).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix 1: frozen check code | MET | 4.1 now leaves `freeze.py` and `freeze_v2.py` untouched and cites their pins (FREEZE.md line 27, FREEZE_v2.md lines 41-42). The cache sync writes each freeze-checked file back to its original path (git-ignored, same bytes, checked against its receipt), and `changed_files` compares the same hashes. Rule 5 still holds |
+| Note: 4.2 | Taken | `git show` stays and experiment 1's test is unchanged; the byte-exact upload is kept as a second copy |
+| Note: claim race | Taken | Criterion 3 names the exact test: two clones of one bare origin, add/add conflict settled by `-X theirs`, the loser takes no snapshot and waits |
+| Note: Drive token | Answered | The owner says the app is published and the refresh token was re-issued after that. The builder will verify a live Drive write before step 2. I accept that, and the step 2 judge round will ask for the evidence |
+
+**Verdict: PASS for 1664d638** (O9 v2 story text). Each build step in section 8 is its own lane-1 judge round.
+Section M also needs market-brief's own approval: both AIs and the owner. The owner's two open questions (rewriting
+history, a Slack line on good runs) stay with the owner.
