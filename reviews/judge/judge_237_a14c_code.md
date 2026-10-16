@@ -6,7 +6,7 @@ measure decision 07f62385 (the smallest k needed), the read-ahead and the fail-c
 risk (C2's margin stress), a schedule and a workflow, Drive and Slack. Judge D, 16 Oct 2026.
 
 Read-only checks used: Google Drive (two archived SPAN files downloaded with the job's own reader, nothing written)
-and NSE's archive URL (one HEAD-style request, status only).
+and NSE's archive URL (one GET of a 2020 file, body discarded, status read).
 
 **FAIL: three should-fixes.** The code is right: every number I recomputed by hand matches. Two money rules lack a
 test that catches their natural break, and the story still promises a part this head does not build.
