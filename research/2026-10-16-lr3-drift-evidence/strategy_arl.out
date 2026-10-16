@@ -1,0 +1,6 @@
+discovery SF: n=33 mean Rs -554 sd Rs 1,301 (edge -0.43 SD) skew -1.05 min Rs -4,024 | in control: median 99, 10th pct 17 | edge gone: median 706, 10th pct 101 | 1 SD worse: median 8, 10th pct 4
+discovery SC: n=33 mean Rs 153 sd Rs 2,667 (edge +0.06 SD) skew -1.05 min Rs -6,298 | in control: median 107, 10th pct 20 | edge gone: median 85, 10th pct 16 | 1 SD worse: median 8, 10th pct 3
+discovery BF: n=30 mean Rs -1,070 sd Rs 910 (edge -1.18 SD) skew -1.36 min Rs -4,634 | in control: median 136, 10th pct 25 | edge gone: median 619, 10th pct 87 | 1 SD worse: median 8, 10th pct 4
+challenge SF: n=56 mean Rs -1,040 sd Rs 2,357 (edge -0.44 SD) skew -2.63 min Rs -13,728 | in control: median 40, 10th pct 6 | edge gone: median 39, 10th pct 6 | 1 SD worse: median 9, 10th pct 4
+challenge SC: n=58 mean Rs -595 sd Rs 3,666 (edge -0.16 SD) skew -0.54 min Rs -11,346 | in control: median 150, 10th pct 27 | edge gone: median 352, 10th pct 59 | 1 SD worse: median 7, 10th pct 4
+challenge BF: n=50 mean Rs 482 sd Rs 4,066 (edge +0.12 SD) skew +2.38 min Rs -4,474 | in control: median 3000, 10th pct 3000 | edge gone: median 3000, 10th pct 3000 | 1 SD worse: median 6, 10th pct 5

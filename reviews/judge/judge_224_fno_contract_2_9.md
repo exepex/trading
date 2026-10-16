@@ -123,3 +123,29 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
   never reaches this.
 - **Merge order:** W3c and W3d were built on 2.9.0. Whichever merges after 2.10 must take main and re-run `npm test`
   against the 2.10 fixture.
+- **Later (orchestrator, 16 Oct 06:37 UTC):** cf9692e and 07c8683 were already on dashboard main ea75be3 (merged as
+  7731d0e) before this check, so 7ccdff8 would only bump version strings. It is not merged, and the contract stays
+  2.9.0. My earlier reading, that main stopped at 709cb8c, came from main e74c939 and was out of date by then.
+
+## Addendum 5: story/fno-probe-report at e7bc792 (addendum 4's note fixed)
+
+**PASS.** 7ccdff8 (2.10) is withdrawn by the screens lead as redundant, and addendum 4 stays on record only.
+
+- **Shape:** e7bc792 contains main ea75be3. Its one commit changes only `tools/api/fno_rules.py` (+5 -1; the file now
+  has 118 lines).
+- **The fix:** `check_probes` catches `KeyError`, `IndexError` and `StopIteration` from a probe's change and reports
+  "probe on <example> cannot plant <what>: its example lacks the part it changes". It does not crash, and it still
+  fails closed: the problem is appended and the exit is 1. Putting the guard in `check_probes` covers every probe,
+  instead of one. These are the error types a probe's change raises when the example has lost a part, so the guard
+  hides no other bug.
+- **Shown:** I removed `backfill_sha256` from every series of `getFnoForecastHistory_india_ahead`. The check exits 1
+  with nine "'backfill_sha256' is a required property" problems, the probe line `KeyError('backfill_sha256')`, and
+  the mockup mismatch. It gives no traceback.
+- **Gates on e7bc792:** `check_contract` and `check_fno_screens` exit 0, and code size is OK.
+- **Correction (06:46 UTC):** the "not merged" line above is out of date. Dashboard main 38dfee6 merged 7ccdff8
+  after all, so the contract is 2.10.0 (version label only, as addendum 4 found).
+- **Re-head 025aa59:** story/fno-probe-report now merges main 38dfee6. Its diff against main is identical to
+  addendum 5's diff of e7bc792 against ea75be3 (`fno_rules.py` +5 -1). `check_contract` and `check_fno_screens` exit 0.
+  The PASS stands.
+- **W3c a2efbb3 against main 38dfee6:** a trial merge is clean, both checks exit 0 and `npm test` gives 520/520.
+  W3c's PASS (judge 225 addendum 1) holds on the 2.10.0 main.

@@ -1,0 +1,6 @@
+k=0.5 h=4 | shift 0.0: 334 | shift 0.2: 100 | shift 0.3: 60 | shift 0.5: 27 | shift 1.0: 8
+k=0.5 h=5 | shift 0.0: 925 | shift 0.2: 197 | shift 0.3: 103 | shift 0.5: 38 | shift 1.0: 10
+k=0.1 h=4 | shift 0.0: 39 | shift 0.2: 19 | shift 0.3: 15 | shift 0.5: 10 | shift 1.0: 5
+k=0.1 h=5 | shift 0.0: 60 | shift 0.2: 26 | shift 0.3: 19 | shift 0.5: 12 | shift 1.0: 6
+k=0.1 h=8 | shift 0.0: 170 | shift 0.2: 50 | shift 0.3: 34 | shift 0.5: 20 | shift 1.0: 10
+k=0.15 h=6 | shift 0.0: 120 | shift 0.2: 41 | shift 0.3: 28 | shift 0.5: 16 | shift 1.0: 8
