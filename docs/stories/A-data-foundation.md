@@ -1317,19 +1317,23 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     calculator (strong evidence): the SDK posts the basket to `/margins/detail/orders` and has no docstring, but after
     the four calls of 14-16 Oct the account showed 0 orders, 0 positions and 0 for every used or blocked margin
     figure (read-only `get_order_list`, `get_positions_for_user` and `get_available_margin_details`, 16 Oct).
-  - **Record (story O9 and O10's format):** every run writes one write-once file through O9's data store:
-    `data/margins/broker_checks/<as_of>/<run time IST>.csv`. Its SHA-256 receipt is committed, and nothing is appended
-    in GitHub (O1's step commits `receipts/` and O10's file instead of the `stress_broker_check.csv` it names today,
-    agreed with O1's owner). One row per basket: the check time, `as_of`, structure, width, both figures for SPAN and exposure, the
-    status (`ok`, `mismatch`, `error`) and its detail.
+  - **Record (story O9):** every run writes one write-once file through O9's data store:
+    `data/margins/broker_checks/<as_of>/<run time IST>.csv`, one row per basket: the check time, `as_of`, structure,
+    width, both figures for SPAN and exposure, the status (`ok`, `mismatch`, `error`) and its detail. Its SHA-256
+    receipt is committed by O1's step through this module's own `receipt_pathspecs()`, never the whole shared
+    `receipts/` tree, and replacing the `stress_broker_check.csv` path O1 names today (agreed with O1's owner, 16 Oct).
+    Nothing is appended in GitHub.
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
     and exits 0. An `error` row is retried by the next run.
-  - **Alerts and capture errors (O10's format, agreed 16 Oct):** one #fno-desk line per run, starting "Omenix F&O
-    a14c-broker-check:", with the counts and every mismatch and error. A Groww failure (sign-in, network, a refused
-    request) is an `error` row and the line, exits 1, and is also a capture error. It writes one row to O10's
-    `research/ops/capture_errors.csv` (date IST, job `a14c-broker-check`, step, kind = the error class, a message of
-    names only, at most 200 characters, never a value). A run that cannot write its record does the same. A mismatch is
-    a finding, not a capture error: it goes in the record and the line only. Outside market hours nothing is recorded.
+  - **Exit and lines (O1's rules, agreed 16 Oct):** the step sends no alert itself. O1's `daily run` records every
+    step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed step, so no O10
+    `capture_errors.csv` row is written either.
+    - Exit 0: every basket `ok`, "nothing to check", or "outside market hours".
+    - Exit 1, with the reason as the last printed line: a Groww failure (sign-in, network, a refused request; the
+      rows are `error`), a record that could not be written, or any `mismatch`. A mismatch is a finding, not a
+      failure, but it is exit 1 so that O1's one line reaches the owner. A step whose data did not land is never
+      `ok`.
+    - A real skip the owner should see prints "nothing written: <reason>", and O1 records it as refused.
   - **Never holds the factor:** the check is evidence. A mismatch is the owner's to judge, and part 1's rows are NSE's.
 
 Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
