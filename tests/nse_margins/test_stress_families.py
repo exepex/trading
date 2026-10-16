@@ -6,10 +6,19 @@ from datetime import date
 
 import pytest
 
+from fno.composition import build_tradable_structures
 from fno.config import load_app_config
-from fno.constants import STRESS_FACTOR_COLUMNS, STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES
+from fno.constants import (
+    FAMILY_DEBIT,
+    OPTION_CALL,
+    OPTION_PUT,
+    STRESS_FACTOR_COLUMNS,
+    STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES,
+    STRUCTURE_FAMILIES,
+)
 from fno.nse_margins.stress_log import StressFactorFile, StressRowRefused
 from fno.nse_margins.wiring import build_stress_factor_run
+from fno.research_engine.structures import payoff_bounds
 
 from .stress_days import planted, sf_tracker
 from .test_prefetch import SlowDrive
@@ -90,3 +99,17 @@ def test_one_family_without_its_own_measured_row_makes_the_whole_run_full(tmp_pa
     evidence = (tmp_path / "evidence" / "stress_evidence_2026-12-09.md").read_text(encoding="utf-8")
     assert code == 0 and evidence.startswith("# Stress factor run 2026-12-09 (full)")
     assert credit[3] == "1.686747" and "carried" not in credit[5]
+
+
+def test_every_tradable_structure_has_the_family_its_payoff_bounds_give():
+    """Debit: the position is never worth less than 0; credit: never more than 0 (story text). Every structure the
+    desk may build has one family, and the table names no other code."""
+    chain = frozenset((float(k), kind) for k in range(23_000, 27_001, 50) for kind in (OPTION_CALL, OPTION_PUT))
+    codes = set()
+    for structure in build_tradable_structures():
+        for width in (100.0, 200.0, 300.0):
+            least, most = payoff_bounds(structure.legs(chain, 25_000.0, width))
+            family = STRUCTURE_FAMILIES[structure.code]
+            assert least >= 0 if family == FAMILY_DEBIT else most <= 0, (structure.code, width, least, most)
+        codes.add(structure.code)
+    assert codes == set(STRUCTURE_FAMILIES)
