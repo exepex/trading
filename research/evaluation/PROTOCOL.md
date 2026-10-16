@@ -401,8 +401,18 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`.
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
+  - **Scoring files (S2, S3 and S6; listed by path, since the freeze hashes only listed paths):**
+    `fno/scoreboard/book_board.py`, `fno/scoreboard/book_trades.py`, `fno/scoreboard/committed_runs.py`,
+    `fno/scoreboard/daily_values.py`, `fno/scoreboard/do_nothing.py`, `fno/scoreboard/entry_decisions.py`,
+    `fno/scoreboard/entry_facts.py`, `fno/scoreboard/matched.py`, `fno/scoreboard/matched_actions.py`,
+    `fno/scoreboard/matched_board.py`, `fno/scoreboard/matched_days.py`, `fno/scoreboard/matched_measures.py`,
+    `fno/scoreboard/ports.py`, `fno/scoreboard/protocol_status.py`, `fno/scoreboard/random_control.py`,
+    `fno/scoreboard/reconcile.py`, `fno/scoreboard/sections.py`, `fno/scoreboard/series.py`,
+    `fno/scoreboard/sources.py`, `fno/scoreboard/standard_unit.py`, `fno/scoreboard/t_check.py`,
+    `fno/scoreboard/trade_measures.py`, `fno/scoreboard/uncertainty.py`, `fno/scoreboard/whole_system.py`,
+    `fno/scoreboard/wiring.py`.
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
-    2026) and the code of F8 and F9
+    2026; listed above: every module of fno/scoreboard but its command line) and the code of F8 and F9
     is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
     version 2.
   - **Refusal:** the freeze tool refuses a listed file that does not exist.
