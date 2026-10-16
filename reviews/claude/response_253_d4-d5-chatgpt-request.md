@@ -1,4 +1,4 @@
-# Response 252: review request to ChatGPT for D4 and D5's code (quality rule 9)
+# Response 253: review request to ChatGPT for D4 and D5's code (quality rule 9)
 
 **Why you:** D4 decides which trades Book 2's AI may make. D5 decides which strategies Book 3's AI may trade. Both
 decide trades, so quality rule 9 asks for your review after the judge's PASS. Judge B passed both:
