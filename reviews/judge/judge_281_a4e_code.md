@@ -30,3 +30,18 @@ judge 278 addendum 2 (merged ac35f980). Claims: `reviews/claude/response_278_a4e
 
 **Gates (run by me on f2466390):** 7,712 passed (`-n auto`, Slack token unset), no failures. `ruff check`: clean.
 `ruff format --check`: 1,391 files already formatted. `check_imports`: clean. Live golden: unchanged.
+
+## Addendum 1: code at 9db8b84c
+
+**PASS stands.** The one change since f2466390 is a move: `build_clock_check` goes, unchanged, into its own small
+root `fno/intraday/clock_wiring.py`, used by A16's `wiring.py` and by A4e's `window_wiring.py`. CLAUDE.md's root list
+names it.
+
+Checked:
+- Importing `fno.quotes.window_wiring` no longer loads A16's Groww intraday graph (`fno.intraday.groww_source` is not
+  in `sys.modules`; my check).
+- The two edited tests keep their intent. A16's composition-root test lists the new root, and A16c's one-server-clock
+  test now checks `clock_wiring.py`, which imports `server_clock`, beside the same three modules.
+
+**Gates (run by me on 9db8b84c):** 7,714 passed. `ruff check`: clean. `ruff format --check`: 1,392 files already
+formatted. `check_imports`: clean. Live golden: unchanged.

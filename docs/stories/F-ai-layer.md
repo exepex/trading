@@ -393,15 +393,15 @@ Daily objections are committed with the decision; research objections in the res
 
 **Description:** As the owner, I want research sufficiency and interpretation checked by a model different from the
 author and the judge itself audited monthly, so that the judge stays honest. I never override a paper decision
-(owner, 16 Oct 2026, DESK_DECISIONS row 229 item 4).
+(owner, 16 Oct 2026, DESK_DECISIONS "D4/D5: the five design questions accepted as recommended" item 4).
 
 **Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no trade
-or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS row 229
-item 4; design v2 03 leaves the owner only S1's safety stop; C2's written restart of a stopped book's drawdown brake is
-a risk control, not a decision override; both stay, outside this story); monthly audit of a stratified sample plus
-seeded known-answer cases. Per book: Book 2's judge failure means no trade (the account keeps no position; the rule
-default is recorded as a shadow); Book 3's judge verdicts are recorded evidence, not blocks (12.3); Book 1's strategies
-were judged at approval and its daily trades are checked by C4 only.
+or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS "D4/D5: the
+five design questions accepted as recommended" item 4; design v2 03 leaves the owner only S1's safety stop; C2's written
+restart of a stopped book's drawdown brake is a risk control, not a decision override; both stay, outside this story);
+monthly audit of a stratified sample plus seeded known-answer cases. Per book: Book 2's judge failure means no trade
+(the account keeps no position; the rule default is recorded as a shadow); Book 3's judge verdicts are recorded
+evidence, not blocks (12.3); Book 1's strategies were judged at approval and its daily trades are checked by C4 only.
 
 **Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the audit. Out:
 hard validity (C4); owner overrides (none on paper: D3 refuses a non-empty `owner_override` in every book).
@@ -433,36 +433,8 @@ false-approval rate above 10%) suspends the AI judge's approvals: Book 2 then ta
 
 ## F5. Book 2: AI decisions inside the envelope
 
-**Repository:** trading
-
-**Description:** As the owner, I want Book 2's AI to take, each day, the rule default or one permitted alternative
-with its reason, so that scoreboard A can show whether AI judgement adds value within the same tested strategies.
-
-**Context and why:** Design 12.1, 12.2 and 12.9 (Book 2: the actions in its envelope). Book 2 trades only strategies
-that passed the historical test (12.11). Every record holds the rule default and the AI action with its reason.
-
-**Scope.** In: Book 2's decider inside its session, use of cards and red-team objections, the envelope check, the
-record. Out: changing the envelope (a new version, D4, D6).
-
-**Expected design:** inside Book 2's session (F1): read the packs, the rule default (D2, precomputed by code into the
-private pack), the role cards (F2); choose an action from the envelope's allowed set; the decision draft goes to the
-red team (F3) and the judge (F4); the final record (D3) holds `rule_default`, `chosen_action`, `reason`,
-`authority_check`, card and objection links, judge verdict. Code then runs C2 and C4 (playbook mode, envelope check)
-before the deadline.
-
-**Acceptance criteria:**
-1. Every Book-2 record has both `rule_default` and `chosen_action` with a reason; a missing reason fails validation.
-2. An action outside the envelope is blocked by C4 and the account takes no trade (or the rule default if the
-   envelope says so); the attempted action is recorded.
-3. `shadow-only` actions are recorded for scoreboard A while the account follows the rule default.
-4. With no `paper` strategy, Book 2 records "no approved strategy" daily, like Book 1.
-5. End-to-end negative test: a Book-2 decision failing C4 never becomes a fill.
-
-**Test plan:** tests with fake sessions covering each envelope action.
-
-**Judge verifies:** replays three Book-2 records against their envelope and packs.
-
-**Depends:** C4, D2, D4, F1, F2, F3, F4 · **Size:** M · **Status:** later
+Rewritten to design v2 in `docs/stories/F5-book2.md` (16 Oct 2026), which replaces the text that stood here: Book 2's
+day sheet in its private pack, the answer shape, and the decider writing one D3 run with C2 and C4 inside.
 
 ---
 
