@@ -1,4 +1,4 @@
-# Response 271: A20b, NSE and SEBI circulars kept point in time (builder's claims)
+# Response 266b: A20b, NSE and SEBI circulars kept point in time (builder's claims)
 
 **Story:** `docs/stories/A20-rules-and-dates.md` (part b) · **Branch:** `story/a20b-circulars` (built on the text
 branch, 6487dc7e; independent of A20a's code) · **Builder:** session_013u1Ac2N9eRQ8XCYPjwpaat · **Lane:** 1 (NSE,
