@@ -37,3 +37,18 @@ def test_no_schedule_starts_the_fire():
 def test_the_fire_names_its_day_and_the_latest_start_is_in_the_terms():
     assert 'python -m fno ai fire --protocol v4 --day "${{ steps.day.outputs.day }}"' in WORKFLOW.read_text()
     assert V4_LATEST_FIRE.isoformat() == "14:55:00"
+
+
+FIRE_LOG_FOLDER = "research/forecasts/ai_v4"  # G11's fired_v4_path(day) lives under it; G11's test pins the two
+
+
+def test_the_fire_log_is_committed_and_pushed_after_the_fire():
+    steps = _workflow()["jobs"]["fire"]["steps"]
+    names = [step.get("name", "") for step in steps]
+    fire = next(i for i, name in enumerate(names) if name.startswith("Fire the AI books"))
+    commit = steps[next(i for i, name in enumerate(names) if name.startswith("Commit the fire log"))]
+    assert names.index(commit["name"]) > fire and "!cancelled()" in commit["if"]
+    script = commit["run"]
+    assert f"git add {FIRE_LOG_FOLDER} " in script and "git pull --no-rebase" in script
+    assert "git push origin HEAD:main" in script and "--no-verify" not in script
+    assert any("git config core.hooksPath .githooks" in step.get("run", "") for step in steps[:fire])
