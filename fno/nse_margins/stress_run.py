@@ -1,12 +1,12 @@
-"""One stress-factor run (story A14c): coverage first, then the largest held rise, then one row in the factor file.
+"""One stress-factor run (story A14c): coverage first, then the largest needed factor, then one row in the factor file.
 
 Full or incremental. The rule is a maximum over a window that only grows, so an incremental run reads the sessions
 from `LOOKBACK_DAYS` before the last row's `coverage_through` (longer than any holding) and counts only the holdings
-that end after it, taking the larger of their rise and the last `unrounded`. The first run, and any run after a row
-with an empty `unrounded` (the owner's seed), is full, so a hand value never becomes a floor (judge 176). Every file
-must be the archive's first copy (its SHA-256 equals the manifest's) and written before 09:00 IST on its day (A14's
-point-in-time rule). Files are read ahead by `workers` threads but fed in day order. Any refusal (a download error
-included) writes nothing and sends one #fno-desk line; so does every row written."""
+that end after it, taking the larger of their needed factor (`held_rise`) and the last `unrounded`. The first run,
+and any run after a row with an empty `unrounded` (the owner's seed), is full, so a hand value never becomes a floor
+(judge 176). Every file must be the archive's first copy (its SHA-256 equals the manifest's) and written before 09:00
+IST on its day (A14's point-in-time rule). Files are read ahead by `workers` threads but fed in day order. Any
+refusal (a download error included) writes nothing and sends one #fno-desk line; so does every row written."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ class StressFactorRun:
         carried = None if full else last.unrounded
         if not counted and carried is None:
             raise StressRowRefused("no holding completed in the archive")
-        new_max = max((h.rise for h in counted), default=0.0)
+        new_max = max((h.needed for h in counted), default=0.0)
         unrounded = max(new_max, carried or 0.0)
         factor, computed, status = decide(last, unrounded, approved_fall)
         peak = _peak(counted, new_max, carried, last.coverage_through, approved_fall)
@@ -108,6 +108,6 @@ def _peak(counted: list[Holding], new_max: float, carried: float | None, through
     if carried is not None and carried >= new_max:
         text = f"carried from the run through {through}"
     else:
-        h = max(counted, key=lambda h: (h.rise, -h.entry.toordinal()))
-        text = f"{h.structure} {h.width:g} entered {h.entry} peak {h.peak_day} rise {h.rise:.4f}"
+        h = max(counted, key=lambda h: (h.needed, -h.entry.toordinal()))
+        text = f"{h.structure} {h.width:g} entered {h.entry} peak {h.peak_day} needed {h.needed:.4f}"
     return text + (f"; fall approved by the owner, DESK_DECISIONS {approved}" if approved else "")

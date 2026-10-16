@@ -1,6 +1,7 @@
-"""Story A14c criterion 2: the largest held rise of the whole margin C2 counts, by hand on planted files. A held SF
-100 entered on 1 Oct at scale 1 (margin 53,950) peaks on 7 Oct at scale 10 (71,500): rise 1.32530; a smaller bump the
-day before and after must not win, and every day of the holding is read."""
+"""Story A14c criterion 2: the largest stress factor a held position needed, by hand on planted files. A held SF 100
+(a credit: its needed factor is the plain ratio of what C2 counts) entered on 1 Oct at scale 1 (margin 53,950) peaks
+on 7 Oct at scale 10 (71,500): 1.32530; a smaller bump the day before and after must not win, and every day of the
+holding is read. The debit case, where the two differ, is in `test_needed_factor.py`."""
 
 from datetime import date
 
@@ -21,22 +22,22 @@ def fed(scales):
     return tracker
 
 
-def test_the_largest_rise_over_the_holding_by_hand():
+def test_the_largest_needed_factor_over_the_holding_by_hand():
     tracker = fed({date(2026, 10, 6): 2.0, date(2026, 10, 7): 10.0, date(2026, 10, 8): 5.0})
     (held,) = tracker.found.completed
     assert (held.entry, held.exit, held.peak_day) == (FIRST, EXIT, date(2026, 10, 7))
     assert held.entry_margin == pytest.approx(BASE_MARGIN) and held.peak_margin == pytest.approx(margin(10))
-    assert held.rise == pytest.approx(71_500 / 53_950)  # 1.32530
+    assert held.needed == pytest.approx(71_500 / 53_950)  # 1.32530
 
 
-def test_a_rise_on_the_exit_day_counts():
+def test_a_peak_on_the_exit_day_counts():
     (held,) = fed({EXIT: 4.0}).found.completed
-    assert held.peak_day == EXIT and held.rise == pytest.approx(margin(4) / BASE_MARGIN)
+    assert held.peak_day == EXIT and held.needed == pytest.approx(margin(4) / BASE_MARGIN)
 
 
-def test_a_position_whose_margin_only_falls_has_a_rise_of_one():
+def test_a_position_whose_margin_only_falls_needs_a_factor_of_one():
     (held,) = fed({date(2026, 10, 7): 0.1}).found.completed
-    assert held.rise == pytest.approx(1.0) and held.peak_day == FIRST
+    assert held.needed == pytest.approx(1.0) and held.peak_day == FIRST
 
 
 def test_a_leg_missing_on_a_held_day_drops_the_position_by_name():

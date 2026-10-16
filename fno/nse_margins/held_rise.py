@@ -1,8 +1,13 @@
-"""The largest rise of a held position's whole margin, entry to exit (story A14c): the quantity the stress factor k
-multiplies (story C2c; owner, 15 Oct 2026). Every trading day is an entry, for every structure and width C2 trades,
-on A14's expiry rule (the first monthly expiry 30 or more days out); the position is held to the last trading day at
-least 21 days before expiry (B2's exit). Each day's margin of the same legs is what C2 counts, at k = 1
-(`MarginParts.initial`). Days are fed in order and each file is read once: open positions are carried forward.
+"""The stress factor each held position needed, entry to exit (story A14c; owner, 16 Oct 2026, decision 07f62385):
+the smallest k for which C2c's own stressed margin of the entry's parts, `max(0, k x scan - NOV) + min(0, NOV) +
+k x exposure` (`MarginParts.stressed`), covers what C2 counts (`MarginParts.initial`) on every later day held. A plain
+ratio of the counted margins is not used: for a debit structure the bought legs' value nearly cancels the scan at entry,
+so the ratio's small denominator measured the position losing value (3.55 in April 2020) instead of the margin the
+formula must cover (1.75). For a credit structure (NOV below 0) the two are the same number.
+
+Every trading day is an entry, for every structure and width C2 trades, on A14's expiry rule (the first monthly expiry
+30 or more days out); the position is held to the last trading day at least 21 days before expiry (B2's exit). Days are
+fed in order and each file is read once: open positions are carried forward.
 
 A position whose margin cannot be computed on some day (a leg no longer listed, a method outside the model) is
 dropped and named, never filled. A position with no margin at entry (a bought option) has no rise."""
@@ -21,6 +26,20 @@ from .calculator import MarginOutsideModel, SpanMarginCalculator
 from .span_file import SpanFile
 
 MIN_DAYS_TO_EXPIRY = 30  # A14's entry rule (the entry window's near edge)
+FACTOR_PRECISION = 1e-9  # the bisection's width; the factor returned is the upper end, so it always covers
+
+
+def needed_factor(entry: MarginParts, later: float) -> float:
+    """The smallest k >= 1 with `entry.stressed(k) >= later`, by bisection on C2c's own formula (it rises with k)."""
+    low, high = 1.0, 2.0
+    if entry.stressed(low) >= later:
+        return low
+    while entry.stressed(high) < later:
+        low, high = high, 2 * high
+    while high - low > FACTOR_PRECISION:
+        middle = (low + high) / 2
+        low, high = (low, middle) if entry.stressed(middle) >= later else (middle, high)
+    return high
 
 
 @dataclass
@@ -31,13 +50,14 @@ class Holding:
     expiry: date
     exit: date
     legs: Sequence[Leg]
-    entry_margin: float
-    peak_margin: float = 0.0
-    peak_day: date | None = None
+    entry_parts: MarginParts
+    needed: float = 1.0  # the stress factor this holding needed so far
+    peak_day: date | None = None  # the day that set `needed`
+    peak_margin: float = 0.0  # what C2 counted on that day
 
     @property
-    def rise(self) -> float:
-        return self.peak_margin / self.entry_margin
+    def entry_margin(self) -> float:
+        return self.entry_parts.initial()
 
 
 @dataclass
@@ -66,13 +86,14 @@ class HeldRiseTracker:
 
     def _mark(self, holding: Holding, day: date, span: SpanFile) -> None:
         try:
-            margin = self._whole(span, holding.expiry, holding.legs, day)
+            margin = self._parts(span, holding.expiry, holding.legs, day).initial()
         except (MarginOutsideModel, RiskInputError) as exc:
             self.open.remove(holding)
             self.found.dropped.append(f"{holding.structure} {holding.width:g} entered {holding.entry}: {exc}")
             return
-        if margin > holding.peak_margin:
-            holding.peak_margin, holding.peak_day = margin, day
+        needed = needed_factor(holding.entry_parts, margin)
+        if needed > holding.needed:
+            holding.needed, holding.peak_day, holding.peak_margin = needed, day, margin
         if holding.exit == day:
             self.found.completed.append(holding)
 
@@ -95,14 +116,15 @@ class HeldRiseTracker:
         if legs is None:
             return  # not listed at entry: A14 writes no row for it either
         try:
-            margin = self._whole(span, expiry, legs, day)
+            parts = self._parts(span, expiry, legs, day)
+            margin = parts.initial()
         except (MarginOutsideModel, RiskInputError):
             return  # no margin at entry (a bought option) or outside the model: nothing to hold
-        self.open.append(Holding(structure.code, width, day, expiry, exit_day, legs, margin, margin, day))
+        self.open.append(Holding(structure.code, width, day, expiry, exit_day, legs, parts, 1.0, day, margin))
 
-    def _whole(self, span: SpanFile, expiry: date, legs: Sequence[Leg], day: date) -> float:
+    def _parts(self, span: SpanFile, expiry: date, legs: Sequence[Leg], day: date) -> MarginParts:
         figure = self.calculator.per_lot(span, expiry, legs, day)
-        return MarginParts(figure.span, figure.nov, figure.exposure, "held position").initial()
+        return MarginParts(figure.span, figure.nov, figure.exposure, "held position")
 
     def _exit(self, expiry: date) -> date:
         day = expiry - timedelta(days=EXIT_MIN_DAYS)

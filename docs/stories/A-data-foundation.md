@@ -1107,9 +1107,10 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
 - a read-only research command `python -m fno margins stress-factor --from <d> --to <d>` that, for every entry day in
   the range and every structure and width that C2 trades, rebuilds the entry's legs (A14's builder, the same expiry
   rule) and recomputes their margin parts (scan, NOV, exposure) on each later day's first-archived `i1` file up to the
-  exit day; it reports the largest held rise of the whole margin C2 counts (`initial()`: `max(0, scan - NOV) +
-  min(0, NOV) + exposure`, the quantity k multiplies after story C2c; owner question 1), rounded up to the next 0.05,
-  and an evidence table (window, structure, width, entry day, day of the peak, figures);
+  exit day; it reports the largest stress factor a held position needed (owner question 1, as answered on 16 Oct):
+  per holding, the smallest k for which C2c's stressed margin of the entry's parts, `max(0, k x scan - NOV) +
+  min(0, NOV) + k x exposure`, covers what C2 counts (`initial()`) on every later day held; rounded up to the next
+  0.05, with an evidence table (window, structure, width, entry day, day of the peak, figures);
 - the 2020 short-option minimum modelled as SPAN does (per tier: the larger of the scan and the minimum times the short
   units), behind A14's calculator interface, so the same code reads every year; any other method difference is still
   refused by name;
@@ -1155,8 +1156,12 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
 
 **Owner questions (each with a recommendation):**
 1. **Which quantity does k measure? ANSWERED (owner, 15 Oct 2026, relayed by the orchestrator): "WHOLE MARGIN. k
-   multiplies the whole margin (scan plus exposure), as it was measured."** The run measures the held rise of the
-   whole margin C2 counts. The separate story C2c makes C2 and C4 multiply the same quantity; its effect at k = 1.45 on
+   multiplies the whole margin (scan plus exposure), as it was measured."** **Measure ANSWERED (owner, 16 Oct 2026,
+   DESK_DECISIONS 07f62385, response 235): "Proposed: smallest k needed".** The plain ratio of the counted margins, as
+   first built, gave 3.55 in April 2020: for a debit structure (BF 200 entered 8 Apr 2020: scan 57,720, NOV 56,911,
+   exposure 22,860) the bought legs' value nearly cancels the scan at entry, so the ratio measured the position losing
+   value. The needed factor there is 1.7483 (1.75 covers the 83,970 peak; 1.45 left it 24,040 short). For a credit
+   structure (NOV below 0) the needed factor equals the plain ratio. The separate story C2c makes C2 and C4 multiply the same quantity; its effect at k = 1.45 on
    the 14 Oct rows: a held SF 100 from about 59,900 to about 86,900 a lot (today's scan-only stress gives 60,269), so C2
    refuses more trades for the same capital, about 31% fewer lots (judge 173 note 3). The report also gives the scan's
    own rise, for information only.
@@ -1180,9 +1185,16 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
    September entries; judge 173 note 1): the command reproduces each of response 77's three windows within 0.001, or
    explains each difference with the files' figures: 1.127 (Sep-Oct 2026, BF 100), 1.265 (Jan-Apr 2020, the
    short-option minimum binding) and 1.407 (May-Jun 2024, BF 300 entered 5 Jun, today's binding value). The 2020 and
-   2024 figures are anchors the builder did not write (judge 173 note 2).
-2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported rise and its day equal a
-   hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a test.
+   2024 figures are anchors the builder did not write (judge 173 note 2). **Done (16 Oct 2026, response 235):** all three reproduce
+   to 0.001 with response 77's own measure, scan plus exposure, read to the window's end: 1.2650 (SF/SC entered 7 Apr
+   2020, to 30 Apr, every structure alike), 1.4073 (BF 300 entered 5 Jun 2024, to 28 Jun) and 1.1272 (BF 100 entered
+   28 Sep 2026, to 14 Oct). Held to the exit with the owner's measure (the needed factor), they are 1.7483, 1.3872 and
+   1.0589.
+2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported factor and its day
+   equal a hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a
+   test. The needed factor (owner, 16 Oct): the real BF 200 of 8 Apr 2020 gives 1.7483, and 1.75 covers its 83,970
+   peak (test); for a credit structure it equals the plain ratio (test); it is the smallest covering k on random parts
+   (test); a mutation back to the plain ratio, or one returning a k that does not cover, fails a test.
 3. Point in time: each day uses that day's first-archived `i1` file written before 09:00 IST on it, as A14 does
    (test); a missing day refuses the whole run before any computation (criterion 8), so no entry is ever filled.
 4. 2020 method: a planted file with a non-zero short-option minimum gives the SPAN figure by hand (test); any other
@@ -1223,7 +1235,13 @@ workflow's 330 minutes) and parallel streams were each as fast; the run download
 in day order (a test proves the same row and byte-identical evidence with and without it). A download error writes
 nothing and sends the one #fno-desk line. The first Actions run measures the seconds per file.
 
-**Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
+**Known limit: what is measured so far (16 Oct 2026, response 235).** The factor of about 1.75 comes from Jan-Apr 2020,
+Jun 2020-Dec 2023, May-Jun 2024 and Sep-Oct 2026 (entries). Jan 2024-Aug 2026 outside May-Jun 2024 is not yet
+measured; the first full run reads every session since 2 Jan 2020 and may set k higher. Response 77's three figures
+(1.265, 1.407, 1.127) were a different measure, scan plus exposure read to the window's end; the evidence table shows
+them beside this run's needed factor for reference only.
+
+**Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
 **Depends:** A9, A14, C2, C2c, C2d, O1 (the routine step) · **Size:** M · **Status:** text PASS (judge 173 addenda

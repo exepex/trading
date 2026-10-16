@@ -16,7 +16,7 @@ from pathlib import Path
 
 from ..constants import STRESS_FACTOR_COLUMNS
 
-ROUND_STEP = 0.05  # the rule rounds the largest held rise up to the next 0.05 (response 77)
+ROUND_STEP = 0.05  # the rule rounds the largest needed factor up to the next 0.05 (response 77)
 APPLIED, HELD = "applied", "held"
 
 
@@ -56,7 +56,7 @@ def rounded_up(value: float) -> float:
 
 
 def decide(last: LastRow, unrounded: float, approved_fall: str | None = None) -> tuple[float, float, str]:
-    """(factor in force, computed, status) for a run whose largest rise is `unrounded`."""
+    """(factor in force, computed, status) for a run whose largest needed factor is `unrounded`."""
     computed = rounded_up(unrounded)
     if computed < 1:
         raise StressRowRefused(f"the computed factor {computed:g} is below 1")
