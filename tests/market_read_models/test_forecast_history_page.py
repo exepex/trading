@@ -32,13 +32,16 @@ def test_every_point_is_the_reports_own_scored_count_and_mean_brier():
         for mode in report["modes"]:
             for s in mode["scores"]:
                 if s["primary"]["scored"] >= 1:
-                    key = (s["question"], LABEL[mode["mode"]], s["forecaster"])
+                    label = LABEL[mode["mode"]]
+                    sha = report["inputs"]["backfill_sha256"] if label == "backfill_exploratory" else None
+                    key = (s["question"], label, s["forecaster"], sha)
                     expected.setdefault(key, []).append(
                         (report["as_of"], s["primary"]["scored"], s["primary"]["mean_brier"])
                     )
     ids = {"Q1": "q1_nifty_up_20d", "Q2": "q2_nifty_move_3pct_20d", "Q3": "q3_rv20_above_trailing",
            "Q4": "q4_vix_up_10d", "Q5": "q5_rv20_below_atm_iv30"}  # fmt: skip
-    got = {(ids[q["id"]], s["label"], s["forecaster"]): [(p["as_of"], p["n"], p["mean_loss"]) for p in s["points"]]
+    got = {(ids[q["id"]], s["label"], s["forecaster"], s["backfill_sha256"]):
+           [(p["as_of"], p["n"], p["mean_loss"]) for p in s["points"]]
            for q in page["questions"] for s in q["series"]}  # fmt: skip
     assert got == expected and got  # the three real reports, one point each per series
     shas = {json.loads(p.read_text())["inputs"]["backfill_sha256"] for p in FILES}
@@ -52,7 +55,10 @@ def test_a_report_with_no_scored_answer_gives_no_point_and_the_live_mode_stays_a
     series = [s for q in page["questions"] for s in q["series"]]
     assert all(p["n"] >= 1 for s in series for p in s["points"])
     assert {s["label"] for s in series} <= {"live", "backfill_exploratory"}
-    assert len({(q["id"], s["forecaster"], s["label"]) for q in page["questions"] for s in q["series"]}) == len(series)
+    keys = {
+        (q["id"], s["forecaster"], s["label"], s["backfill_sha256"]) for q in page["questions"] for s in q["series"]
+    }
+    assert len(keys) == len(series)  # a rebuilt back-fill is its own series (judge 231 note)
 
 
 def test_a_rebuilt_back_fill_starts_a_new_series_and_never_joins_the_old_one():
