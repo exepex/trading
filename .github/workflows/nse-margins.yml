@@ -12,13 +12,17 @@
 # 20:00-24:00 IST in 2026) and a 07:45 IST retry; a second run with nothing new prints "nothing new" and writes nothing.
 # GitHub starts this repository's morning crons 4-5 hours late (14-16 Oct 2026: 01:40 and 02:11 UTC crons began at
 # 06:24-07:21 UTC; the first 07:45 IST cron had not begun by 10:45 IST), so the main run is set early enough to land
-# before the 09:15 open even 5 hours late. The day is IST's date (`due_session`), never UTC's; the 09:00 IST file
+# before the 09:15 open even 5 hours late. On 16 Oct one of the two slots then in force never started (the file was
+# edited while they waited) and the other began 5 h late (run 38865754022), so two catch-up slots follow; a run with
+# nothing new writes nothing. The day is IST's date (`due_session`), never UTC's; the 09:00 IST file
 # cutoff applies to NSE's file, not to the run.
 name: nse-margins
 
 on:
   schedule:
     - cron: "0 22 * * *" # 03:30 IST (the previous UTC day): today's session
+    - cron: "30 23 * * *" # 05:00 IST catch-up (O10)
+    - cron: "0 1 * * *" # 06:30 IST catch-up
     - cron: "15 2 * * *" # 07:45 IST retry
   workflow_dispatch:
     inputs:

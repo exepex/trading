@@ -70,3 +70,14 @@ Gates on 52064f3f: **7422 passed**; ruff, ruff format (1323) and `check_imports.
 Note (no change asked): with `MATCH_DAYS = 1`, a Friday problem whose job's failure row lands on Monday is not excused
 (Monday minus one day is Sunday), so it counts as silent. That errs toward strictness, which is the right side for a
 go-live gate.
+
+## Addendum 2: aab94813 (52064f3f plus part 1 merged plus one change)
+
+**Verdict: PASS. Merge after part 1.** Full suite on aab94813, mine: **7874 passed, 15 xfailed**; ruff clean.
+
+The change: `RunLogCheck` now marks a daily-run problem `recorded` only when every bad step is an O1 step logged as
+`failed` or `refused`. O1 records and alerts those, so they are not silent in the trial. A step missing from the run
+log stays unrecorded, and so silent. This was agreed with O1's builder, and the two tests assert both cases.
+
+**Minor:** a log with both a failed step and a missing step is untested. My plant (`recorded = bool(bad)`, ignoring
+missing steps) passed all 153 health tests. The code is right (`bool(bad) and not missing`); add that mixed case.

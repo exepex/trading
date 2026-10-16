@@ -101,3 +101,8 @@ announcements, the latter after A16's owner builds `ObserverGroup`.
 request is in flight would then be dated before we had it. The text's "later than the true sighting ... never earlier"
 holds only for the response time. Use the response time, as A19 does, or state that the difference is under the 5 s
 timeout and test the cutoff at the response time.
+
+## Addendum 2: head 5ae76881
+
+Only the claims-file number changes (272 → 274, the orchestrator's renumbering) and main is merged. I checked the
+story diff from 94cda4a8: one line. Addendum 1's PASS stands at 5ae76881.
