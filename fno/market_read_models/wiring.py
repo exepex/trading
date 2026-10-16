@@ -52,6 +52,7 @@ from .home_blocks import FnoBooksBlock, FnoPicksBlock
 from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
 from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
+from .page_holds import PageHoldsBlock
 from .postgres_publisher import PostgresPublisher
 from .publication import PRODUCT, PublicationBuilder
 from .publication_inputs import PublicationInputsFile
@@ -122,7 +123,7 @@ def build_market_run(cfg: dict, local_folder: Path | None = None) -> MarketRun:
     """Stories P6, P7: the archived NSE files in Drive, the pinned contract, the publisher and the run status (a local
     folder when given, else Azure), #fno-desk alerts."""
     contract = build_pinned_contract()
-    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit())
+    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit(), holds_page=PageHoldsBlock())
     rows = build_session_rows_builder(cfg)
     publisher, status = build_read_model_publisher(local_folder), build_run_status(local_folder)
     return MarketRun(build_session_calendar(), contract, rows, publications, publisher, build_alert_sender(), status,

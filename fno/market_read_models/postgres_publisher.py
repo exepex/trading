@@ -77,6 +77,11 @@ class PostgresPublisher(ReadModelPublisher):
             raise PublishFailed(f"{publication_id}: read-back: {described(exc)}", failure_class(exc)) from exc
 
     def current(self) -> dict[str, dict]:
-        with self._connect(self._url) as connection, connection.cursor() as cursor:
-            cursor.execute(CURRENT_PAGES, (PRODUCT,))
-            return {row[0]: dict(zip(COLUMNS[1:], row[1:])) | {"page_key": row[0]} for row in cursor.fetchall()}
+        from psycopg import Error
+
+        try:
+            with self._connect(self._url) as connection, connection.cursor() as cursor:
+                cursor.execute(CURRENT_PAGES, (PRODUCT,))
+                return {row[0]: dict(zip(COLUMNS[1:], row[1:])) | {"page_key": row[0]} for row in cursor.fetchall()}
+        except Error as exc:
+            raise PublishFailed(f"current publication: {described(exc)}", failure_class(exc)) from exc
