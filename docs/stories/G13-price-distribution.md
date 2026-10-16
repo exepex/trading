@@ -5,7 +5,7 @@ session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuM
 `story/g13-price-distribution` · **Status:** story text for the judge (no code yet)
 
 **Description.** As the volatility trader and the quantitative modeller, I want one record per session of what the
-3 pm option chain says (IV surface, skew, term structure, the option-implied price distribution, fair value against
+3 pm option chain says (IV surface, skew, term structure, the option-implied price distribution, a smile value against
 mid for every quoted contract) and daily NIFTY price-range forecasts as quantiles, scored against the closes, so the
 desk can see whether options are rich or cheap against what NIFTY then did, and so every later price forecaster (the
 AI books included) has a record and a yardstick.
@@ -43,7 +43,9 @@ exit or block a trade, and it is in no frozen protocol. Registering it in one is
 **Probe on real data (16 Oct NSE chain, the method below in a scratch script, not committed).** Near monthly (27 Oct,
 11 days): put-call-parity forward 23,122.0, equal to the future's last trade; 47 strikes 21,950-24,250; the measured
 CDF runs from 2.2% to 98.9%, so all seven quantiles are inside the quoted strikes: 5% at -3.79%, 50% at +0.11%, 95% at
-+2.98% from the forward (the left tail is longer: skew). Three raw CDF points went backwards (quote noise), fixed by
++2.98% from the forward, as log returns `ln(q/F)` (index levels 22,263, 23,147, 23,822; as simple returns `q/F - 1`:
+-3.72%, +0.11%, +3.03%, the judge's figures in judge 304: the same quantiles in the other unit). The left tail is
+longer: skew. Three raw CDF points went backwards (quote noise), fixed by
 the monotone step. Next monthly (23 Nov, 38 days): the quoted strikes cover the CDF only from 10.3% to 87.4%, so its
 5%, 10%, 90% and 95% quantiles come from the tail rule, and 10 raw points went backwards [strong: one day; the 5%
 band is A4's frozen recording rule].
@@ -92,10 +94,13 @@ Per expiry:
 - **Term structure:** ATM IV of each expiry, and the 30-day ATM IV from the frozen `interpolate_30d` (flag carried).
 - **Option-implied price distribution** (the method below): the CDF at each strike midpoint, the quantiles at 1%,
   5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, each marked `body` or `tail`, and two checks.
-- **Smile fit and fair value:** a quadratic in log-moneyness `k = ln(K/F)` fitted by least squares to the OTM IVs
-  (needs at least 5 points; its RMSE in IV points is recorded). Each quoted contract gets: bid, ask, mid, its own IV,
-  delta, smile IV, **fair value = Black-76 at the smile IV**, `fair - mid` in rupees and IV points, and whether fair
-  lies inside the bid-ask.
+- **Smile fit and smile value (the brief's "model fair value"):** a quadratic in log-moneyness `k = ln(K/F)` fitted
+  by least squares to the OTM IVs (needs at least 5 points; its RMSE in IV points is recorded). Each quoted contract
+  gets: bid, ask, mid, its own IV, delta, smile IV, **`smile_value` = Black-76 at the smile IV**, `smile_value - mid`
+  in rupees and IV points, and whether `smile_value` lies inside the bid-ask. **Said plainly, and written in every
+  record (`smile_value_note`):** this is a smoothness residual, how far one quote sits from a curve fitted to the same
+  day's quotes, not a valuation that says a contract is cheap or rich, and **no trade signal**: a contract off the
+  curve is usually a stale or wide quote (judge 304 minor 1, accepted: the owner must not read it as an edge).
 - **Implied minus realised:** ATM IV minus the `rv20` baseline's volatility (the volatility risk premium every
   option-selling idea rests on, forward-looking rather than on spent history).
 
@@ -110,20 +115,34 @@ the CDF: `CDF(K) = e^{rT} dP/dK`.
 1. **Body, model-free:** OTM calls become puts by parity (`P = C - e^{-rT}(F - K)`), giving one put curve; between
    adjacent used strikes `K_i < K_j` (gap at most 200 points), `CDF((K_i + K_j)/2) = e^{rT}(P_j - P_i)/(K_j - K_i)`.
    Quote noise can make it fall; one isotonic (pool-adjacent-violators) pass makes it non-decreasing, clipped to
-   [0, 1]; the number of raw decreases is recorded. A quantile inside the measured CDF is linear interpolation between
-   CDF points.
+   [0, 1]; the number of raw decreases is recorded. Pinned (judge 304 should-fix 1):
+   - a pair of adjacent used strikes more than 200 points apart forms **no** midpoint, so it is left out **before**
+     the pass (never pooled);
+   - the pass weighs every midpoint **equally** (not by strike gap);
+   - a quantile inside the measured CDF is **linear in strike** between the two CDF points around it: the first
+     segment `c_i < p <= c_j` with `c_j > c_i` (flat pooled segments are skipped), `K = K_i + (p - c_i)(K_j - K_i) /
+     (c_j - c_i)`;
+   - quantiles are stored as index levels and as log returns `ln(K / F)` (distribution) or `ln(K / S_ref)`
+     (forecasts); a percentage in any text says which.
+   On the 16 Oct chain the four combinations (equal or gap weights, strike or log-strike interpolation) all give the
+   same quantiles to 0.01 points (one CDF segment changes and none of the seven quantiles falls in it; strike gaps are
+   all 50 points), so judge 304's difference is the unit: it reported `q/F - 1`, the probe `ln(q/F)` [strong:
+   recomputed both, -3.72% = 22,263/23,122 - 1 and -3.79% = ln(22,263/23,122)].
 2. **Tails, one fixed rule:** below the lowest midpoint `K_L` (CDF `c_L`), `CDF(K) = c_L x N(-d2(K, s_L)) / N(-d2(K_L,
    s_L))` with `s_L` the IV of the lowest used put; above the highest `K_H`, `1 - CDF(K) = (1 - c_H) x N(d2(K, s_H)) /
    N(d2(K_H, s_H))`. The tail is lognormal-shaped at the edge option's own volatility and keeps the measured mass
    exactly, so the CDF is continuous and monotone with no fitted parameter.
 3. **Checks:** the distribution's mean against the forward (`|mean / F - 1|`, flagged above 0.5%), and at least 8
-   CDF points; a failed check makes that expiry's distribution `missing` with the reason (counted, never filled).
+   CDF points. The mean is exact for the stated distribution, no grid (judge 304 minor 3): the body's CDF is linear
+   between points, so each segment contributes `(c_j - c_i)(K_i + K_j) / 2`; the lower tail contributes
+   `c_L x F N(-d1(K_L, s_L)) / N(-d2(K_L, s_L))` and the upper `(1 - c_H) x F N(d1(K_H, s_H)) / N(d2(K_H, s_H))` (the
+   lognormal partial expectations `E[X; X < K] = F N(-d1)`, `E[X; X > K] = F N(d1)`, scaled as the tails are); a failed check makes that expiry's distribution `missing` with the reason (counted, never filled).
 
 Alternatives weighed (reasoning only): a fitted smile (quadratic or SVI) differentiated twice gives a smooth density
 but its wings are the fit's guess, and a quadratic can produce negative density; a two-lognormal mixture is always
 valid but needs a nonlinear fit (no scipy here) and imposes a shape; a plain lognormal at ATM IV ignores the skew the
 probe shows. The chosen rule is model-free where quotes exist and states plainly where it is not (`tail` marks).
-The quadratic smile is used only for fair value, where a smooth reference is the point.
+The quadratic smile is used only for the smile value, where a smooth reference is the point.
 
 **Said plainly:** this is the **risk-neutral** distribution, not a forecast of where NIFTY will be. Implied volatility
 usually sits above realised volatility and the left tail is priced heavier [strong: widely documented volatility risk
@@ -140,9 +159,11 @@ the point of scoring it.
 - **Levels:** 5%, 10%, 25%, 50%, 75%, 90%, 95%, stored as log returns from `S_ref` and as index levels.
 - **Forecasters (ids in `fno/price_distribution/constants.py`; `fno/constants.py` is at 349 lines):**
   - `implied`: the expiry's implied quantiles of `ln(F_T / F)` plus `ln(F / S_ref)`. For `h1` and `h5`, the
-    shortest used expiry with at least as many sessions as the horizon, its log quantiles scaled by
-    `sqrt(h / sessions to that expiry)` and the carry by `h / sessions` (reasoning only: the shape is kept and
-    variance assumed spread evenly over sessions; event days break it).
+    shortest used expiry with `n >= h` sessions to it, split around its median `m = ln(F_T median / F)`: `ln(q_h /
+    S_ref) = (h/n) x ln(F / S_ref) + (h/n) x m + sqrt(h/n) x (ln(q_T / F) - m)`. The centring (carry and the median's
+    offset, about `-s^2 T / 2` for a lognormal) scales linearly in time, the spread around the median by the square
+    root, exactly as a lognormal would (judge 304 minor 2, accepted). Reasoning only: the shape is kept and variance
+    assumed spread evenly over sessions; event days break it.
   - `rv20`: lognormal with zero log drift at the B1 realised volatility of the last 20 regular closes before the day
     (root mean square of daily log returns, not demeaned, times sqrt(252)), over `h` sessions.
   - `hist750`: the empirical quantiles (numpy's default linear rule) of all `h`-session log returns among the last
@@ -200,6 +221,14 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
   and each A4c index with a chain, writes them, prints one result line per underlying. Not a trading day: prints
   "not a trading day", writes nothing.
 - `python -m fno pricedist backfill --from D1 --to D2 --source {3pm,eod}` and `python -m fno pricedist score`.
+- `python -m fno pricedist value --day D --source {groww,nse} --dry-run`: prints one day's valuation record and
+  forecasts and writes nothing (no Drive, no receipt); the judge's and the claims file's way to see real output.
+- **Rerun and a failed receipt commit (judge 304 minor 4):** the live file holds `made_at`, so a rebuilt day would not
+  be byte-identical. So `record` never rebuilds a live day whose Drive file exists: it reads that file back, checks its
+  SHA-256, restores the receipt if the checkout lacks it, and prints `already recorded` (exit 0). A Drive file whose
+  receipt commit failed is therefore picked up by the next run of the day (O1 reruns a failed step) or a hand rerun,
+  never written twice; Drive's write-once conflict (`RawFileConflict`) is the backstop. Back-fill files carry no
+  `made_at` and are byte-identical on a rerun, so `DataStore.put`'s same-bytes no-op covers them.
 - **Data failures (owner, 16 Oct: "we must notify that something failed"):** no canonical chain (`none` or absent),
   the raw file unreadable or failing its hash, an expiry failing its checks, the closes file missing a session
   needed: the command writes the day's file with `status: missing` and the reason for each part affected, prints
@@ -234,10 +263,17 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
 4. **Distribution:** on a chain generated from a known lognormal (flat IV), the body CDF and the quantiles match
    Black-76's `N(-d2)` within 0.002 in probability; with planted quote noise the monotone step removes every decrease
    and the count is recorded; the tail rule is continuous at the edge and matches the formula; a chain with fewer
-   than 8 CDF points or a mean more than 0.5% off the forward is `missing` with its reason; the 16 Oct NSE chain
-   reproduces the probe's numbers above.
-5. **Fair value:** with a flat-IV chain, fair equals mid within Rs 0.01 for every contract; with one planted rich
-   contract, only it is outside the bid-ask; fewer than 5 OTM IVs gives no smile and no fair values (reason given).
+   than 8 CDF points or a mean more than 0.5% off the forward is `missing` with its reason; each pinned choice of
+   design 2 has a test that fails under the other choice (a gap over 200 points, unequal-gap pooling, a quantile in a
+   non-uniform segment); the mean check equals a hand value on a fixture. **Committed fixture:**
+   `tests/price_distribution/fixtures/nse_20261016_expected.json`, made by the committed code from the committed
+   16 Oct NSE CSV and checked by a test: 27 Oct forward 23,122.0, 47 strikes, CDF range 0.0217-0.9895, 3 raw
+   decreases, q05/q50/q95 at 22,263 / 23,147 / 23,822 (+-1 point; log -3.79% / +0.11% / +2.98%); 23 Nov CDF range
+   0.1034-0.8742, 10 decreases, q05, q10, q90, q95 marked `tail`. Any judge reruns it with
+   `python -m fno pricedist value --day 2026-10-16 --source nse --dry-run`.
+5. **Smile value:** with a flat-IV chain, `smile_value` equals mid within Rs 0.01 for every contract; with one planted
+   off-curve contract, only it is outside the bid-ask; fewer than 5 OTM IVs gives no smile and no smile values
+   (reason given); every record carries `smile_value_note` (no trade signal).
 6. **Forecasters:** `implied`, `rv20` and `hist750` match hand values on fixtures for each horizon (the sqrt scaling
    for `h1`/`h5`; the 20-close RV; the 750-window empirical quantiles); fewer than 20 closes or 500 returns gives
    `not_eligible`; a holiday inside the horizon moves the target session (A7 calendar); non-increasing quantiles are
@@ -254,7 +290,8 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
    the step's pathspecs name only G13's receipts; the built graph has no second sender (O1's graph test, fake
    processes).
 10. **Storage:** every file goes through `DataStore.put` and gets a receipt; a failed Drive write leaves no receipt and
-   the command reports it; readers read through the Drive cache only.
+   the command reports it; readers read through the Drive cache only; a rerun of a recorded live day writes nothing,
+   restores a missing receipt with the same SHA-256 and prints `already recorded`; `value --dry-run` writes nothing.
 11. **Scoring:** the pinball loss and QS match hand values (outcome below, inside and above the quantiles; at a
     quantile exactly); a row is not scored before its target close exists; calibration shares match a hand count;
     the bootstrap comparison equals `block_bootstrap` called directly on the same differences; under 40 paired days
@@ -282,7 +319,7 @@ self-review agents and broken-code proofs per criterion (judge quality rules 3-4
 | IV by delta/strike, compact surface (brief 1) | design 2, criterion 2 (per-contract IVs in the record) |
 | Skew, term structure (brief 1) | criteria 2, 3 |
 | Implied distribution per expiry, method justified (brief 1) | design 2, criterion 4 |
-| Fair value vs mid per contract, Black-76 on the future, rate source named (brief 1) | design 1-2, criterion 5, Q3 |
+| Fair value vs mid per contract, Black-76 on the future, rate source named (brief 1) | design 1-2 (`smile_value`, said to be no signal), criterion 5, Q3 |
 | A4c indices when live (brief 1) | criterion 13 |
 | Quantile forecasts at fixed horizons from implied, realised-vol baseline, AI slot (brief 2) | design 3, criterion 6 |
 | Proper scoring rule (pinball/CRPS) once outcomes arrive (brief 2) | design 6, criterion 11 |
