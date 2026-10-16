@@ -5,6 +5,7 @@ source is one new class and one line here. The book side has its own root (`book
 from __future__ import annotations
 
 import os
+from datetime import date
 
 from ..budget.wiring import build_usage_ledger
 from ..composition import build_alert_sender
@@ -19,6 +20,7 @@ from ..constants import (
     ENV_ROUTINE_BOOK3_TRIGGER_ID,
     GITHUB_REPOSITORY_VARIABLE,
 )
+from ..forecast_scoring.v4.inputs import ForecastFiles
 from ..models import now_ist
 from ..pipeline.trigger import RoutineFireTrigger, RoutineTrigger, UnconfiguredTrigger
 from ..storage import wiring as storage
@@ -34,6 +36,8 @@ from .receipts import GitHubActivityReceipts
 from .record_writer import AiRecordWriter
 from .usage_gaps import alert_usage_gaps
 from .usage_record import BookUsageRecorder
+from .v4_book_inputs import V4BookInputs
+from .v4_fire import V4BookFirer
 
 ROUTINES = {
     BOOK2_HYBRID: (ENV_ROUTINE_BOOK2_TRIGGER_ID, ENV_ROUTINE_BOOK2_TOKEN),
@@ -49,9 +53,28 @@ def build_book_trigger(book: str, env=os.environ) -> RoutineTrigger:
     return RoutineFireTrigger(book, trigger_id, token)
 
 
+def v4_live_from(cfg: dict | None = None) -> date | None:
+    """The v4 go-live date (`daily.live_from.forecasts_v4`): the v4 AI fire runs from it, and the v2 AI fire stops
+    (owner's choice A: one run cannot serve both)."""
+    from ..config import load_app_config
+    from ..daily.wiring import live_dates
+
+    return live_dates(cfg if cfg is not None else load_app_config())["forecasts_v4"]
+
+
+def build_v4_firer(env=os.environ) -> V4BookFirer:
+    from ..forecast_scoring.v4.wiring import FORECASTS_FOLDER, build_slot_registry
+    from ..v4_pack.wiring import build_released_packs
+
+    triggers = {book: build_book_trigger(book, env) for book in ROUTINES}
+    inputs = V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER))
+    return V4BookFirer(ROOT, triggers, lambda: build_released_packs(env), inputs, build_alert_sender(), now_ist,
+                       v4_live_from())  # fmt: skip
+
+
 def build_ai_firer(env=os.environ) -> AiBookFirer:
     triggers = {book: build_book_trigger(book, env) for book in ROUTINES}
-    return AiBookFirer(ROOT, triggers, build_alert_sender(), now_ist)
+    return AiBookFirer(ROOT, triggers, build_alert_sender(), now_ist, v4_live_from())
 
 
 def build_ai_collector(env=os.environ) -> AiForecastCollector:
