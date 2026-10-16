@@ -2,14 +2,18 @@
 every folder. A refused or failed decision puts each path back exactly (changed files rewritten, new files and new
 folders removed), so nothing half-written (a registry row, a spec file, a ledger row) can be committed later. The
 snapshot, not `HEAD`, is the reference: `research/ledger.csv` is shared with the research factory, so a change made
-before `decide()` by anyone is kept. The daily run is one thread, so nothing else writes these paths meanwhile."""
+before `decide()` by anyone is kept. The daily run is one thread, so nothing else writes these paths meanwhile.
+`OutsideSnapshot` does the same for the rest of the checkout: a decider may write nowhere else, and anything it wrote
+out there is found and put back (to its state before `decide()`, else `HEAD`), so no later step commits it."""
 
 from __future__ import annotations
 
 import shutil
+import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -70,3 +74,68 @@ def is_under(root: Path, path: Path, paths: Sequence[str]) -> bool:
     resolved = Path(path).resolve()
     return any(resolved == (Path(root) / p).resolve() or resolved.is_relative_to((Path(root) / p).resolve())
                for p in paths)  # fmt: skip
+
+
+class Worktree(Protocol):
+    def changed(self) -> set[str]:
+        """Every path git status lists (untracked included), relative to the root."""
+
+    def at_head(self, path: str) -> bytes | None:
+        """The file as `HEAD` holds it; None when `HEAD` has no such file."""
+
+
+class GitWorktree:
+    def __init__(self, root: Path):
+        self.root = Path(root)
+
+    def changed(self) -> set[str]:
+        out = subprocess.run(["git", "status", "--porcelain=v1", "-z", "-uall"], cwd=self.root, capture_output=True,
+                             check=True).stdout.decode("utf-8")  # fmt: skip
+        entries, paths, index = out.split("\0"), set(), 0
+        while index < len(entries) and entries[index]:
+            code, name = entries[index][:2], entries[index][3:]
+            paths.add(name)
+            index += 2 if code[0] in "RC" else 1  # a rename's entry is followed by its old name
+        return paths
+
+    def at_head(self, path: str) -> bytes | None:
+        shown = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=self.root, capture_output=True)
+        return shown.stdout if shown.returncode == 0 else None
+
+
+@dataclass(frozen=True)
+class OutsideSnapshot:
+    """Every changed file of the checkout outside the write paths, just before `decide()`: what the decider changes
+    out there is found (a decider may write nowhere else) and put back, so no later step can commit it."""
+
+    root: Path
+    worktree: Worktree
+    inside: tuple[str, ...]
+    before: dict[str, bytes | None]  # path -> bytes before decide(); None: absent then
+
+    @classmethod
+    def take(cls, root: Path, worktree: Worktree, inside: Sequence[str]) -> OutsideSnapshot:
+        outside = [p for p in worktree.changed() if not is_under(root, Path(root) / p, inside)]
+        return cls(Path(root), worktree, tuple(inside), {p: _bytes(Path(root) / p) for p in outside})
+
+    def changed(self) -> list[str]:
+        now = {p for p in self.worktree.changed() if not is_under(self.root, self.root / p, self.inside)}
+        return sorted(p for p in now | set(self.before) if _bytes(self.root / p) != self._reference(p))
+
+    def restore(self) -> list[str]:
+        changed = self.changed()
+        for name in changed:
+            reference, path = self._reference(name), self.root / name
+            if reference is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(reference)
+        return changed
+
+    def _reference(self, name: str) -> bytes | None:
+        return self.before[name] if name in self.before else self.worktree.at_head(name)
+
+
+def _bytes(path: Path) -> bytes | None:
+    return path.read_bytes() if path.is_file() else None

@@ -7,6 +7,7 @@ decision version, the stop rule (two transcript breaches in 20 decision days), t
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -19,6 +20,7 @@ from ..learning.writer import BudgetSignal
 from ..pipeline.trigger import FireFailed, RoutineTrigger
 from ..record_scan.scanner import RecordScanner
 from .answer import labels_of
+from .figures import texts as texts_of
 from .paths import DECISIONS_FOLDER, fired_path, transcript_audit_path
 from .pointer import MAX_POINTER_BYTES, DecisionPointer
 from .ports import AnalystCards, DayPacks
@@ -89,8 +91,9 @@ class DecisionFirer:
     def _refusal(self, pointer: DecisionPointer) -> str:
         if pointer.size() > MAX_POINTER_BYTES:
             return TOO_BIG.format(size=pointer.size(), cap=MAX_POINTER_BYTES)
-        findings = self.scanner.scan_text("decision pointer", pointer.to_text())
-        return FLAGGED.format(kinds=", ".join(sorted({f.kind for f in findings}))) if findings else ""
+        texts = [("decision pointer", pointer.to_text()), *texts_of(json.loads(pointer.to_text()), "decision pointer")]
+        findings = [f for place, text in texts for f in self.scanner.scan_text(place, text)]  # decoded: JSON escapes
+        return FLAGGED.format(kinds=", ".join(sorted({f.kind for f in findings}))) if findings else ""  # hide nothing
 
     def _fire_one(self, book: str, pointer: DecisionPointer) -> dict:
         trigger = self.triggers.get(book)
