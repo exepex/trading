@@ -19,6 +19,13 @@ Research only: forecasts and their scores, never an order. The story is `docs/st
   test keeps its false-claim limits on the real null, and none of three candidate replacements passed (response 198).
   Results are reported, each labelled descriptive, and the null size check is re-measured each year.
 
+- **Every BR1 chart, table and export carries this text (response 230):** "Exploratory estimate; interval is
+  descriptive and its coverage is not validated for these dependent market days. Not evidence of forecast skill,
+  trading profit or real-money eligibility." No family is ever marked as passing or as beating a baseline.
+- **Why the test failed:** dependence is the leading supported explanation, with skew and tails contributing
+  (`studies/results/DIAGNOSTICS.md`, response 198). A HAC or stationary-bootstrap test is parked: only as a future
+  pre-registered version, never retrofitted.
+
 ## Layout
 
 - `studies/`: BR1a's three pre-registered history studies (`run.py panel`, then `run.py studies`). Their results

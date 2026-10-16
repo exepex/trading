@@ -100,3 +100,25 @@ P2a part 2 in a trading worktree.
   - **Gates:** `npm test` gives 501 passed, 0 failed, 0 skipped.
   - **W3a part 2:** it also edits `fno-screen.css` (the day strip). Whichever of W3a part 2 and W3d merges second
     gets its CSS resolution re-checked.
+
+## Addendum 2: W3d at eec23d5 (main 1972241 merged in, with W3a part 2)
+
+**PASS.**
+
+- **The `fno-screen.css` resolution keeps both sides.** Every rule line of main's file is in the merged file. I
+  compared them with `comm`; the one line that differs is the 599 px media rule, which W3d's side already extends with
+  `.mb-verdict-word` (the same as in ececa07). The merge adds main's `.strip` rules beside W3d's `.chips`, `.marks`,
+  `.mb-verdict` and `.tabs`. Nothing is dropped or edited.
+- **`pages.test.ts`:** `getFnoStrategyLab` and `getFnoWeatherHistory` are both read now, so both are off `notRead`.
+- **Gates:** `npm test` gives 507 passed, 0 failed, 0 skipped, the duplicate-CSS test included.
+
+## Addendum 3: W3d at 22a56a7 (main e74c939, contract 2.9.0, merged in)
+
+**PASS.**
+
+- **The CSS:** against main, `fno-screen.css` differs only by W3d's additions (+8/−1: `.chips`, `.marks`, the
+  `.mb-verdict` rules, `.tabs`, and the verdict-word size on the 599 px media line). Main's `.strip` rules are
+  untouched. The one main line `comm` reports as missing is that 599 px rule, which W3d's version extends.
+- **`pages.test.ts`:** the only conflict. `getFnoStrategyLab` is off `notRead` (W3d reads it), and 2.9.0's
+  `getFnoForecastHistory` stays on it.
+- **Gates:** `npm test` gives 507 passed, 0 failed, 0 skipped.

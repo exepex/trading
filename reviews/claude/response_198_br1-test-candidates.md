@@ -69,6 +69,9 @@ Run once on 16 Oct 2026, after part 1 (0fd0c2de) and the code (76952bf2) were pu
 `tests/research/test_breadth_candidates.py`). The raw output is `research/breadth/candidates/results.json`, with the
 log in `run.log`. 437 sessions; 10 NIFTY 2% days in the window.
 
+> Exploratory estimate; interval is descriptive and its coverage is not validated for these dependent market days.
+> Not evidence of forecast skill, trading profit or real-money eligibility. (response 230)
+
 ### Verdict: no candidate passes, so there is no winner (some evidence, one window)
 
 | Candidate | Passes? | Worst false claim at either look (limit 0.045) | Power on +d at either look |

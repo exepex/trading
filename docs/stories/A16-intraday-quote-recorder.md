@@ -580,3 +580,35 @@ this recorder writes to, and A16b's backfill is a one-off command, so the risk i
 unpushed commits the run did not make would reuse `fno/desk/git_sync.py`'s `other_work` rule and is a separate
 follow-up if the orchestrator wants it. (b) The `-X theirs` pull settles a conflict anywhere in the repository with
 GitHub's copy, not only in A16's paths (judged and accepted in A16, amendment 2, rule 3); unchanged here.
+
+---
+
+## A16f. The first mark and the push target (fix, lane 1, 16 Oct 2026)
+
+**Why (strong evidence, 16 Oct 2026):** two defects lost the session's opening marks and kept later rows off `main`.
+1. **Early exit.** The routine fires at :52 IST so setup ends before the hour. The 08:52 fire started the recorder at
+   08:53:17; 09:15 was 22 minutes ahead, more than `slots.MAX_WAIT` (15 minutes), so `snapshot()` returned
+   `no mark now` and `run()` ended on it. `no mark now` is a good outcome, so nothing alerted (heartbeat of 08:53:18 on
+   branch `claude/lucid-ptolemy-cn5z9n`). The 09:52 fire then wrote 09:15, 09:30 and 09:45 as `missed` / `not_taken`
+   and the two-in-a-row alert fired; the session's realised variance is void. This would repeat every session.
+2. **Push target.** `GitManifestRecorder` pulled and pushed the current branch. A routine container starts on a
+   `claude/lucid-ptolemy-*` branch GitHub does not have, so every pull failed, every mark printed `NOT committed`, and
+   the commits stayed in the container until the agent pushed by hand. Overlapping runs could not see each other's
+   rows: both took 11:00 (an add/add conflict on push); 11:15 and 11:30 reached `main` only by a hand rescue.
+
+**Fix.**
+1. `run()` no longer ends on `no mark now` while a later mark up to `--until` exists: it sleeps until that mark is
+   within `MAX_WAIT` and takes it. `snapshot()` is unchanged (a single snapshot still waits at most 15 minutes).
+2. The committer fetches `origin main`, refuses (the outcome names the paths) while the checkout carries any change
+   not on `main` outside the writer's own paths, then pulls `origin main` and pushes `HEAD:main`. A routine's session
+   branch (main plus the writer's own data commits) publishes; a story branch with unjudged code never reaches `main`
+   through a data push. Applies to every user of the committer (manifests, read-model inputs, A16).
+
+**Criteria.** (a) A run started at 08:53:17 with `--until 10:05` takes 09:15, 09:30, 09:45 and 10:00, all good.
+(b) A run whose `--until` is before the first mark ends without waiting. (c) A clone on a branch absent from origin
+commits and the rows land on `main`; no session branch is created on origin. (d) A branch carrying another change is
+refused, the outcome names the path, and `main` is untouched. (e) Every existing recorder and committer test passes.
+
+**Routine prompt (owner edits; agents cannot edit API-created routines):** a step 0 that puts the checkout on `main`
+(`git fetch origin main && git checkout -B main origin/main`), and a last step that checks nothing recorded is left
+unpushed. With fix 2 the step 0 is belt-and-braces; it is needed until A16f merges.

@@ -29,7 +29,13 @@ run afterwards. They change no result and no rule; they only explain one.
    The limits are 0.025 per look and 0.045 at either look. Futility was not run, because the story runs it only at
    a selected rate.
 
+> Exploratory estimate; interval is descriptive and its coverage is not validated for these dependent market days.
+> Not evidence of forecast skill, trading profit or real-money eligibility.
+
 ## Diagnostics: why it fails (some evidence; one 2024-25 window)
+
+In one line: dependence is the leading supported explanation, with skew and tails contributing (response 198
+measured the dependence beyond 5 sessions).
 
 - **It is not caused by blocks repeating within a path.** The whole window is 437 days, shorter than the 495-day
   paths. But with 300-day paths, where nothing has to repeat, -d still gives 0.110 at look 1 and 0.085 at look 2 at
