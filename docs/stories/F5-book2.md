@@ -108,6 +108,9 @@ control. A zero difference is "inconclusive".
   - cite a pointer for every number you write;
   - quote numbers exactly as the pack writes them;
   - never write numbers in words (one, two, half, twice);
+  - write dates as the pack writes them, and cite them. The values the decision itself names outside its reasons and
+    evidence (IDs, width, lots) count as allowed numbers, because `check_decision` and C4 check them against the
+    sheet;
   - account cash and positions are not citable (whole-text files), while the day sheet's values under `/evaluation`
     are.
 
@@ -202,6 +205,8 @@ control. A zero difference is "inconclusive".
    - AI terms blocked by C4, or `shadow-only`, are never ordered; for `shadow-only` the default is what is ordered;
    - editing today's version file moves no exit: the trade keeps the time exit fixed at its decision.
 10. Book 1's C4 results are unchanged by the `unproven` check (Book 1's existing C4 cases rerun).
+11. With `judge_blocks` set, the run holds no chosen book trade: it holds the "no trade, judge failed" (or "judge
+    unavailable") record and the rule default as a shadow, with `judge` set to the verdict path.
 
 ## Test plan
 
@@ -217,10 +222,12 @@ control. A zero difference is "inconclusive".
 
 ## Settled (owner and orchestrator, 16 Oct)
 
-1. **F4 is built before Book 2 switches on** (owner). A failed or unavailable judge means no trade for Book 2 that day.
-   F5 proposes to F4's builder that `decide()` is still called with the failed verdict and writes a "no trade, judge
-   failed" run, with the rule default as a shadow record, so scoreboard A keeps the paired day (the old F4/F5 design;
-   reasoning only). This waits for F4's builder's answer.
+1. **F4 is built before Book 2 switches on** (owner). A failed or unavailable judge means no trade for Book 2 that day,
+   and the day is still recorded (agreed with F4's builder, story/f4-ai-judge 00f49a0c):
+   - `decide()` always runs. `AcceptedDecision` gains `judge` (the verdict path) and `judge_blocks` (bool).
+   - When `judge_blocks` is set, the decider writes a "no trade, judge failed" (or "judge unavailable") run, with the
+     rule default as a D3 `mode: shadow` record and `judge` = the path, so scoreboard A keeps the paired day.
+   - F1t's run check refuses a blocked run that holds any chosen non-shadow trade.
 2. **One slot per rule-default trade** (orchestrator's ruling), keeping D4's one choice against one default.
 
 **Depends:** D2, D3, D4 (merged), E2's `BookSheet` port (story/e2e-book-sheet), E5 (counts), F1t, F6's

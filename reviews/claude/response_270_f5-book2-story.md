@@ -88,3 +88,4 @@ on paper.
   Also: the sheet reads the market through E2's `canonical_snapshot` (story/e2e-book-sheet 2d5dbf65). The open
   questions are now settled: F4 is built first (owner), and slots (the orchestrator's ruling). My "judge failed"
   run proposal waits for F4's builder.
+- **F4's answers (story/f4-ai-judge 00f49a0c):** a blocked judge still gets a run: `judge_blocks` makes the decider write "no trade, judge failed" with the rule default as a shadow (criterion 11). Dates in reasons are cited and written as the pack writes them. The IDs, width and lots the decision names are allowed numbers.
