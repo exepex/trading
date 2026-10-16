@@ -43,7 +43,7 @@ proposes. (b2) also waits for the orchestrator's A2 decision (judge 274 note).
 **Gates (run by me on 74a604d2):** 7,801 passed, no failures. `ruff check`: clean. `ruff format --check`: 1,407
 files already formatted. `check_imports`: clean.
 
-## Addendum 282.1 (claimed through `tools/claim_number.py`): story/g10-part2b-release at be7322b1
+## Addendum 1: story/g10-part2b-release at be7322b1 (number 282.1, claimed with `tools/claim_number.py`)
 
 **PASS.** The should-fix is met:
 - `v4-fire.yml` sets a commit identity with the record scan on (`core.hooksPath .githooks`) before the fire.
