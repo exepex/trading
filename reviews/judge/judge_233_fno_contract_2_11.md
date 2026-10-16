@@ -48,3 +48,19 @@ What e3829c2 adds is met:
 - **Gates:** `check_contract` and `check_fno_screens` exit 0.
 - **The sweep:** the lead's sweep of 37 and 39-46 for copied owner limits missed exactly the label I raised. The fix
   is still one line: `rs(c, T.max_loss_cap)` in the aria label.
+
+## Addendum 2: head a570f0d (the should-fix fixed)
+
+**PASS.** a570f0d contains main f4f7f40, and its diff from e3829c2 touches four files.
+- **The finding is fixed:** `39/js/3-position.js:50` now reads `% of the ${rs(c, T.max_loss_cap)} cap`, and line 1
+  says "the book's per-trade cap". A grep of 39's js finds no 10,000 or 10000.
+- **44's how-to:** "Runs every morning at 07:10 IST" becomes "Runs every session morning, before the market opens".
+- **Gates on a570f0d:** `check_contract`, `check_fno_screens`, `examples` and `render_catalog` exit 0, `sync-design`
+  is clean, and `npm test` gives 520/520.
+
+**Notes (not blocking):**
+- Mockup 39's lede (`2-top.js:8`) still says "at about 15:08". That sentence predates 2.11 and is judge 234's finding
+  on W3f; fix it here or with W3f, so the screen and mockup agree.
+- 44's "before the market opens" describes the 07:10 IST schedule, but GitHub's schedule is best effort and has run
+  hours late. It is true of the schedule, not a promise; "every session morning" alone would be safer. W3e's screen
+  keeps "07:10 IST", which matches the cron (judge 232).
