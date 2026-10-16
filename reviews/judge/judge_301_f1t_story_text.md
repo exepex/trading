@@ -99,3 +99,25 @@ and C4: covered by the judging table and criteria 6, 8 and 10.
 The diff from 2639b915 changes only the Files paragraph (three generic shared pieces in `fno/ai/`) and adds a "Build
 rounds" paragraph. Splitting the shared pieces into their own judged round 1 is a sensible split. **The four
 should-fix findings above stand unchanged at f72abb24.**
+
+## Addendum 1: f1204a5a
+
+**Verdict: PASS on the story text. Code may start, in the text's two build rounds (round 1 is the shared
+`fno/ai/` pieces, judged on their own).** I read the diff from f72abb24 in full; every finding is answered in the
+text.
+
+| Finding | Answer at f1204a5a | Judge |
+|---|---|---|
+| SF1 model reporting, wrong facts | Context corrected (14 Oct at 19:27:47, a setup failure; unknown on 15 Oct both books and 16 Oct Book 2; "1 usable book-day of 6"). `brief` prints a fixed model rule first: the identity line, else the session-description tool, else `unknown`. `seal` refuses anything else. Criterion 3c: a go-live fire reporting `unknown` blocks the live switch | Accepted. Matches the four audit files I read |
+| SF2 step order | `ai_fire` right after `pack`, before `book1`. A receipt-observer child process (O1's `Processes`) runs `git ls-remote` at 15:10:00 and 15:11:00, read-only on the remote, writing a git-ignored file. Missing, failed or over 30 s late means every book `late` and `ai_collect` refused. Criterion 3e: a fake `book1` until 15:11:30, and a killed observer | Accepted. `ls-remote` never touches the checkout, so O1's single-thread git rule holds |
+| SF3 orders and exits unowned | Port block: owners F5 (Book 2) and F6 (Book 3), with F1t wiring them only; criterion 8 uses fakes until each go-live | Accepted. F6 at b096a4a2 takes Book 3's (judge 302 addendum 1) |
+| SF4 public reveal | `seal` and collection refuse any number token (3 or more digits, or with a decimal) from the private account files that is not also in the common pack or public files. The message names the place, never the figure. `.ai_decision/` git-ignored. Criterion 3d with boundaries | Accepted. Drive is impossible without credentials, so option 2 is right; the D3 `reason` is covered too |
+| Minor 1, 2 | One name, `check_decision`; the pack hook and F8c are in Depends; the O5 scan of a full fixture pointer and its time are in criterion 2 | Accepted |
+
+New minor findings, for the code round:
+1. **Number-token normalisation for 3d.** Indian grouping (`1,25,000`), `Rs`/`₹` prefixes and thousands commas must
+   be normalised before tokens are compared. Otherwise `1,25,000` splits into `1`, `25` and `000` and passes the
+   3-digit rule. Add those cases to 3d's boundary tests (reasoning only).
+2. **A slow `book1` still loses the AI books.** If `book1` ends after 15:12, the AI runs commit after E3's deadline
+   and are late. That is correct, fail closed and alerted, but it is a cost. Report `book1`'s measured duration on
+   real days in the claims, so S1's timetable can size it.
