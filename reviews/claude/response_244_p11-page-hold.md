@@ -136,3 +136,10 @@ The story codes (C2, C4, P10, D3) stay in the code's comments.
 
 Also fixed against the pinned schema: holds are listed oldest hold first (`since`, then page key), as `FnoPageHolds`
 says.
+
+## Addendum 9 (16 Oct): judge 257 addendum 1, the wiring line pinned by a test
+
+Accepted, and reproduced: with `holds_page=PageHoldsBlock()` removed from `wiring.py`, every test passed before.
+`test_the_daily_runs_publications_carry_page_holds` builds the composition root's own run (`build_market_run`, its
+Drive rows builder replaced) and checks its builder carries `PageHoldsBlock`. I re-ran the judge's mutation: the
+test now fails.

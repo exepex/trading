@@ -124,3 +124,14 @@ def test_a_paged_block_cannot_be_held():
 
     with pytest.raises(TypeError, match="HeldRows stores one page per parameter"):
         PublicationBuilder([HeldRows()], CONTRACT, "c" * 40).build(example_rows())
+
+
+def test_the_daily_runs_publications_carry_page_holds(tmp_path, monkeypatch):
+    """Judge 257 addendum 1: the composition root's own builder publishes page_holds (the line that makes every held
+    screen say so), not only the tests' builders. The session rows (Drive) are not needed for that."""
+    from fno.config import load_app_config
+    from fno.market_read_models import wiring
+
+    monkeypatch.setattr(wiring, "build_session_rows_builder", lambda cfg: None)
+    holds = wiring.build_market_run(load_app_config(), tmp_path).publications.holds_page
+    assert isinstance(holds, PageHoldsBlock) and holds.page_key == "page_holds"
