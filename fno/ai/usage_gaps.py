@@ -15,6 +15,7 @@ from ..budget.usage_ledger import UsageLedger
 NOT_CAPTURED = ("Omenix F&O AI books' minutes (BG1) {day}: {book}'s run NOT captured (no timing in the usage ledger: "
                 "the routine stopped before its reveal, or its timing could not be published); the budget meter shows "
                 "its minutes as not captured")  # fmt: skip
+PRINTED = "usage not captured: {book} {day}: {result}"
 
 
 def usage_gaps(root: Path, ledger: UsageLedger, day: date) -> list[tuple[str, str]]:
@@ -24,9 +25,10 @@ def usage_gaps(root: Path, ledger: UsageLedger, day: date) -> list[tuple[str, st
 
 
 def alert_usage_gaps(root: Path, ledger: UsageLedger, day: date, alerts: AlertSender) -> list[str]:
-    """One alert per fired run of `day` not captured; the lines printed (each alert's text and its send result)."""
+    """One alert per fired run of `day` not captured; one printed line each, naming the run and the send's result. The
+    line never repeats the alert's text: the forecast-capture job posts every `Omenix F&O AI` line of its log again."""
     lines = []
     for fired_day, book in usage_gaps(root, ledger, day):
-        text = NOT_CAPTURED.format(day=fired_day, book=book)
-        lines += [text, alerts.send(text)]
+        result = alerts.send(NOT_CAPTURED.format(day=fired_day, book=book))
+        lines.append(PRINTED.format(day=fired_day, book=book, result=result))
     return lines

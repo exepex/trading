@@ -102,6 +102,27 @@ def test_a_rerun_reveal_keeps_the_first_start_and_publishes_the_timing_once(desk
     assert routine.printed[-1] == f"timing already published: {timing_path(DAY, BOOK3_AI)}"
 
 
+def test_a_second_brief_keeps_the_runs_first_start(desk):
+    clock = Clock(at(15, 11))
+    routine = FakeRoutine(desk, clock)
+    routine.session().brief(pointer(desk, BOOK3_AI).to_text())
+    clock.now = at(15, 12)
+    routine.session().brief(pointer(desk, BOOK3_AI).to_text())  # the model ran brief again: the same run
+    answer = desk / ".ai_book" / "answer.json"
+    answer.write_text(json.dumps(draft()), encoding="utf-8")
+    routine.session().seal(answer)
+    routine.session().reveal()
+    assert json.loads((desk / timing_path(DAY, BOOK3_AI)).read_text())["started_at"] == at(15, 11).isoformat()
+
+
+def test_a_reused_container_never_lends_another_days_start(desk):
+    stale = desk / ".ai_book" / f"started_{(DAY - timedelta(days=1)).isoformat()}_{BOOK3_AI}.json"
+    stale.parent.mkdir(exist_ok=True)
+    stale.write_text(json.dumps({"started_at": at(9, 0).isoformat()}), encoding="utf-8")
+    full_run(desk)
+    assert json.loads((desk / timing_path(DAY, BOOK3_AI)).read_text())["started_at"] == at(15, 11).isoformat()
+
+
 def test_the_ledger_gets_each_books_minutes_once(desk):
     full_run(desk, BOOK3_AI)
     recorder = BookUsageRecorder(desk, UsageLedger(desk))
@@ -136,8 +157,10 @@ def test_a_fired_run_not_captured_is_one_alert_and_a_captured_one_none(desk):
     fired(desk, **{BOOK3_AI: "https://claude.ai/code/cse_01AbCdEf", BOOK2_HYBRID: "https://claude.ai/code/cse_02Zz"})
     ledger, alerts = UsageLedger(desk), Alerts()
     BookUsageRecorder(desk, ledger).record(DAY + timedelta(days=1))
-    alert_usage_gaps(desk, ledger, DAY, alerts)
+    printed = alert_usage_gaps(desk, ledger, DAY, alerts)
     assert alerts.sent == [NOT_CAPTURED.format(day=DAY.isoformat(), book=BOOK2_HYBRID)]
+    assert printed == [f"usage not captured: {BOOK2_HYBRID} {DAY}: alert sent to #fno-desk"]
+    assert not any(line.startswith("Omenix F&O AI") for line in printed)  # the job posts those lines again
 
 
 def test_a_day_with_nothing_fired_alerts_nothing(desk):

@@ -55,8 +55,8 @@ class BookSession:
     out: Callable[[str], None] = print
 
     def brief(self, text: str) -> None:
-        self.timing.start()
         pointer = parse_pointer(text)
+        self.timing.start(pointer)
         version = version_by_label(pointer.version)
         prompt = version.prompt_text(self.root)
         export = build_export(self.root, pointer, version)

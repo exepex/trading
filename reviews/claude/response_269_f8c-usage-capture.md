@@ -76,3 +76,22 @@ Changed expectation: a full book run now makes three commits (commitment, reveal
 - `ruff check` and `ruff format` clean;
 - `python tools/check_imports.py` clean;
 - no changed file is named in any `PROTOCOL.md` freeze list (checked by script).
+
+## Addendum 1: judge 276 (PASS with a merge condition), both points met
+
+1. **Merge condition, done in this branch.** `.github/workflows/forecast-capture.yml`'s records commit now also runs
+   `git add accounting/ai_usage.csv`, so the rows `ai collect` records are kept on main. This is lane 1 (a workflow
+   file), judged with F8c. Only a path is added; the schedule is unchanged. The G11 owner's request to 01VK88Lx for
+   the same line is superseded, and I've told them.
+2. **The run's start is now kept per day and book** (`.ai_book/started_<day>_<book>.json`). `brief` parses the pointer
+   first and then notes the start. Two new tests cover it:
+   - `test_a_second_brief_keeps_the_runs_first_start` kills the surviving plant (start() overwriting on every brief);
+   - `test_a_reused_container_never_lends_another_days_start` covers a previous day's start file left in a reused
+     container.
+3. **Found while adding the workflow line, fixed:** the job's "One line to #fno-desk" step posts every `Omenix F&O AI`
+   line of `ai.log` again. The not-captured alert text, printed as well as sent, would have reached #fno-desk twice.
+   The printed line is now `usage not captured: <book> <day>: <send result>`, which does not repeat the alert's text;
+   a test asserts this.
+4. **Collect rerun re-alerts:** unchanged and stated (reasoning only: a rerun is a hand action).
+
+Gates on the merged tree (main merged in): 7691 passed; ruff and check_imports clean.
