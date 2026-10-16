@@ -219,6 +219,55 @@ plants a late push, a `none` canonical and a skipped health run; reads the workf
 
 ---
 
+## O8b. The NSE calendar's horizon: one line, once
+
+**Repository:** trading · **Lane:** 1 (Slack output, the health workflow) · **Size:** S
+
+**Description:** As the owner, I want one line in the health message when NSE's calendar is about to run out, so that
+the next year's holiday rows are added before every job that asks the calendar fails on 1 January.
+
+**Context and why:**
+- `research/data/calendar/nse_sessions.csv` covers whole years: `CsvSessionCalendar.last` is 31 Dec 2026 (25 Dec is only
+  its last holiday row). From 1 Jan 2027 every `session_kind` call raises `CalendarError`, so the 3 pm recorder, the
+  desk run and this health check stop ("health check FAILED: CalendarError", O8's known limit). NSE publishes the next
+  year's holiday circular around December.
+- The A14c builder raised it, and the orchestrator decided (16 Oct 2026): O8 owns it as one line, once only, using a
+  SHA-256 marker. A14c keeps only its own per-job "date past the calendar" failures.
+
+**Scope.** In:
+- `fno/health/horizon.py`, `CalendarHorizon`. When `calendar.last - run day` is fewer than
+  `health.calendar_horizon_days` (45, in `config.yaml`) and the marker does not hold the current calendar's SHA-256,
+  the run carries one warning line (wording agreed with the A14c builder, 16 Oct): the end date, the days left, "add
+  every row of NSE's <year> holiday circular (source cited)", and that look-ahead jobs such as A14c's stress run stop
+  earlier while every job stops on 1 January. A14c's own look-ahead offset is not copied into O8 (it is A14c's rule and
+  would go stale).
+- The line is one problem line of the message, so the verdict counts it.
+- **Once only:** the CLI writes the calendar's SHA-256 to `research/ops/calendar_horizon_alerted.txt` only after Slack
+  accepted the message. A dry run, a refused post or a failed run never marks. A changed calendar has a new fingerprint,
+  which re-arms the warning by itself.
+- The workflow commits `research/ops/` (the run record and the marker; nothing else writes there).
+- A job that fails without having posted (checkout, install, an import crash, a sender that cannot be built, a
+  commit error) posts one line to #fno-desk (response 239 item 7). The check step records `posted=true` in its step
+  outputs only once Slack accepted its own line ("health check FAILED" included), and the alert step runs on
+  `failure() && steps.check.outputs.posted != 'true'` (judge 240).
+
+Out: adding the calendar rows (the owner and a builder, from NSE's circular); any per-job "date past the calendar"
+handling (A14c).
+
+**Acceptance criteria:**
+1. With 31 Dec as the last day, there is no line on 16 Nov (45 days left) and there is one line on 17 Nov (44 days) and
+   on 31 Dec. The line asks for the next year's rows.
+2. Once marked with the calendar's SHA-256, the same calendar never warns again; a different SHA-256 warns again.
+3. The marker is written only after Slack accepted the message: never by a dry run, a refused post, or a run without the
+   line.
+4. The threshold comes from `config.yaml`; the real calendar and settings warn for 2027 from 17 Nov 2026.
+5. The workflow commits the marker with the run record.
+
+**Test plan:** `tests/health/test_horizon.py`, and the workflow test in `tests/health/test_expectations_and_cli.py`.
+Every criterion is broken on purpose once.
+
+**Depends:** O8, A7 · **Status:** text and code on `story/o8b-calendar-horizon` for judge D (claims:
+`reviews/claude/response_153_o8-health-check.md`, addendum 3)
 ## O8c. One named line when any command stops on NSE's calendar
 
 **Repository:** trading · **Lane:** 1 (Slack output, two workflows) · **Size:** S
