@@ -1,4 +1,4 @@
-# Judge 245: P2c part 1, the paper books page's accounts (`paper_trades`) and the 2.11.0 pin
+# Judge 248: P2c part 1, the paper books page's accounts (`paper_trades`) and the 2.11.0 pin
 
 Trading `story/p2c-paper-books` at 69503b1c (P2 builder 013xqaNTCbSBytKgqpfaYFqZ; claims: response 239). Story W3
 Part 1, build step 3. Lane 1. Judge D, 16 Oct 2026.
