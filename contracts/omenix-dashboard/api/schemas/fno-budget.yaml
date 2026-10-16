@@ -12,15 +12,18 @@ FnoBudget:
   x-never-sent:
     - "the AI model's name, a session id or a routine's prompt"
   additionalProperties: false
-  required: [month, level, books_and_roles_minutes, basis_minutes, cap_minutes, pct_of_cap, basis, note, groups]
+  required: [month, level, books_and_roles_minutes, basis_minutes, cap_minutes, pct_of_cap, basis, share_pct, alert_pct, stop_pct, note, groups]
   properties:
     month: {type: string, pattern: '^\d{4}-\d{2}$', x-unit: month (YYYY-MM), description: The month measured}
-    level: {type: string, enum: [ok, alert, stop, unknown], x-unit: enum, description: 'ok below 80% of the cap; alert from 80%; stop from 100% (AI roles stop, the AI forecasters last); unknown when nothing can be measured'}
+    level: {type: string, enum: [ok, alert, stop, unknown], x-unit: enum, description: 'ok below alert_pct of the cap; alert from alert_pct; stop from stop_pct (AI roles stop, the AI forecasters last); unknown when nothing can be measured'}
     books_and_roles_minutes: {type: number, minimum: 0, x-unit: minutes, description: "The AI books' and roles' session minutes this month"}
     basis_minutes: {type: number, minimum: 0, x-unit: minutes, description: 'What the cap is a share of: all measured session minutes (until December 2026), then the owner''s plan minutes'}
-    cap_minutes: {type: number, minimum: 0, x-unit: minutes, description: 'The cap: 50% of the basis'}
+    cap_minutes: {type: number, minimum: 0, x-unit: minutes, description: 'The cap: share_pct of the basis'}
     pct_of_cap: {type: ['number', 'null'], minimum: 0, x-unit: percent, description: 'Books and roles as a share of the cap; null with nothing to measure against'}
     basis: {type: string, enum: [measured, plan], x-unit: enum, description: 'measured = a share of measured minutes; plan = a share of the owner''s plan minutes'}
+    share_pct: {type: number, exclusiveMinimum: 0, maximum: 100, x-unit: percent, x-catalog: {source: "BG1's config (budget.books_and_roles_share_pct)", story: BG1}, description: 'The cap as a share of the basis (50, owner 15 Oct 2026; 2.11.0: sent, never copied into a screen)'}
+    alert_pct: {type: number, exclusiveMinimum: 0, x-unit: percent, x-catalog: {source: "BG1's config (budget.alert_pct)", story: BG1}, description: 'The share of the cap at which the alert goes out (80, owner 15 Oct 2026)'}
+    stop_pct: {type: number, exclusiveMinimum: 0, x-unit: percent, x-catalog: {source: "BG1's config (budget.stop_pct)", story: BG1}, description: 'The share of the cap at which the AI roles stop (100, owner 15 Oct 2026)'}
     note: {type: string, x-unit: text, description: 'Why the level is unknown, or why it is a lower bound (a routine not yet timing itself); empty when complete'}
     groups:
       type: array
