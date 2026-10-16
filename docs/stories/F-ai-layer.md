@@ -389,45 +389,9 @@ Daily objections are committed with the decision; research objections in the res
 
 ## F4. AI judge (parts 2 and 3) and the monthly audit
 
-**Repository:** trading
-
-**Description:** As the owner, I want research sufficiency and interpretation checked by a model different from the
-author and the judge itself audited monthly, so that the judge stays honest. I never override a paper decision
-(owner, 16 Oct 2026, DESK_DECISIONS row 229 item 4).
-
-**Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no trade
-or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS row 229
-item 4; design v2 03 leaves the owner only S1's safety stop; C2's written restart of a stopped book's drawdown brake is
-a risk control, not a decision override; both stay, outside this story); monthly audit of a stratified sample plus
-seeded known-answer cases. Per book: Book 2's judge failure means no trade (the account keeps no position; the rule
-default is recorded as a shadow); Book 3's judge verdicts are recorded evidence, not blocks (12.3); Book 1's strategies
-were judged at approval and its daily trades are checked by C4 only.
-
-**Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the audit. Out:
-hard validity (C4); owner overrides (none on paper: D3 refuses a non-empty `owner_override` in every book).
-
-**Expected design:** `fno/ai/judge.py` as its own session (different model from the author); verdict JSON `check
-(sufficiency | interpretation), pass, reasons, what_to_redo, model`. No override path: a judge verdict stands, and
-D3's record keeps `owner_override` null. (`journal/<book>/owner_overrides.csv` is C2's file for the owner's written
-brake restart, not a judge override.) Monthly audit command `python -m fno judge audit <month>`: 20% of approvals, 20%
-of rejections, 20% of abstentions (at least 5 of each when available), re-checked by the other model against
-recalculated evidence; plus 10 seeded known-answer cases. A failed audit (any false approval on a seeded case, or a
-false-approval rate above 10%) suspends the AI judge's approvals: Book 2 then takes no new AI-chosen trades until fixed.
-
-**Acceptance criteria:**
-1. A judge model equal to the author's model is refused.
-2. A Book-2 decision failing the judge opens no trade; the same failure on Book 3 is recorded and does not block.
-3. There is no override of a judge verdict or a C4 failure on any paper decision: a record with a non-empty
-   `owner_override` is refused (D3), and nothing in F4 writes one.
-4. The audit reports false approvals and false rejections on the seeded cases; a failed audit suspends approvals
-   (test).
-5. A judge missing the deadline counts as a failed check for Book 2 (no trade) and "judge unavailable" for Book 3.
-
-**Test plan:** tests with fake verdicts and seeded cases.
-
-**Judge verifies:** (by the other model) the monthly audit numbers.
-
-**Depends:** C4, F1, F2 · **Size:** M · **Status:** later
+Rewritten to design v2 in `docs/stories/F4-ai-judge.md` (16 Oct 2026), which replaces the text that stood here: the
+daily judge of the AI books' decisions (code, inside F1t's collect window), its port, its verdict file, and the
+monthly audit with its seeded cases and suspension. No override of a verdict (owner, 16 Oct 2026).
 
 ---
 
