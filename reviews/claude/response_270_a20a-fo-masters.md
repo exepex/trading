@@ -1,4 +1,4 @@
-# Response 256: A20a, NSE's daily F&O ban list and market lots kept point in time (builder's claims)
+# Response 270: A20a, NSE's daily F&O ban list and market lots kept point in time (builder's claims)
 
 **Story:** `docs/stories/A20-rules-and-dates.md` (part a) · **Branch:** `story/a20a-fo-masters` (built on the text
 branch `story/a20-rules-and-dates`) · **Builder:** session_013u1Ac2N9eRQ8XCYPjwpaat · **Lane:** 1 (NSE, Drive, Slack,
@@ -52,5 +52,4 @@ Test changes outside A20a's files, each because a count or set grew by A20a's so
   tomorrow's list (alerted). Both slots plus GitHub's usual 4-5 h delay end before then.
 - First-seen time is the day folder plus the manifest commit time (git), not a stored timestamp: these are daily rules.
 - O10's `capture-watch.yml` must list `fo-masters` for the error row (asked of O10's builder via the orchestrator).
-- `docs/stories/A20-rules-and-dates.md` lines 9 and 104 still mention the contract master in passing; fixed with the
-  A20b text commit.
+- `fno/alerts/run_location.py` is shared with A20b (the same file, byte for byte, on both branches).

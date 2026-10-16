@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from fno.alerts.dry_run import DryRunAlertSender
+from fno.alerts.run_location import NO_RUN_URL, run_location
 from fno.fo_masters.job import NOT_A_TRADING_DAY, FoMastersJob, Step, StepFailed, taken
-from fno.fo_masters.wiring import NO_RUN_URL, run_location
 from fno.storage.content_checks import COVERED_SESSION, VALIDATORS
 from fno.storage.manifest_commit import ManifestRecorder
 from fno.storage.raw_store import LocalFolderStore
