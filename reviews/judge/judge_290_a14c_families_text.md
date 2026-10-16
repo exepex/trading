@@ -1,4 +1,4 @@
-# Judge 280: A14c families, story text (story/a14c-families at cdf31c7f)
+# Judge 290: A14c families, story text (story/a14c-families at cdf31c7f)
 
 **Verdict: PASS (text). The code is lane 1 and has its own judge, with the hand check below.**
 
