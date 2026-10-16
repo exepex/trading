@@ -1,5 +1,6 @@
-"""Story P2a (screen W3a): the `weather_history` page (contract 2.8.0), every session's colour and label from M1's
-records, re-counted here straight from the record files. Colour and label only (owner, 16 Oct 2026; judge 217)."""
+"""Story P2a (screen W3a): the `weather_history` page (contract 2.9.0), every session's colour, label and chances from
+M1's records, re-counted here straight from the record files. The chances are back in 2.9 (owner, 16 Oct 2026: the
+levels stay public)."""
 
 import json
 from collections import Counter
@@ -12,6 +13,7 @@ from fno.market_read_models.wiring import build_pinned_contract, build_weather_i
 from fno.weather.wiring import WEATHER_FOLDER
 
 REAL_DAY = date(2026, 10, 14)
+Q1, Q5 = "v6_abs_move_2pct_next_session", "v6_abs_move_2pct_within_5_sessions"
 
 
 def history(day: date) -> dict:
@@ -32,11 +34,18 @@ def test_every_committed_record_up_to_the_day_is_a_row_oldest_first_and_the_coun
     assert page["counts"]["backfill"] == len(files) == 2409 and page["counts"]["live"] == 0
 
 
-def test_a_row_carries_only_its_session_colour_and_label():
+def test_a_row_carries_its_colour_label_and_the_records_own_chances_and_nothing_of_the_inputs():
     page = history(REAL_DAY)
-    assert {tuple(sorted(row)) for row in page["sessions"]} == {("colour", "label", "session")}
-    text = json.dumps(page)
-    assert not any(word in text for word in ("reaches", "us_move", "p_big", "base_rate", "probabilit", "value"))
+    files = {r["day"]: r for r in map(lambda f: json.loads(f.read_text()), WEATHER_FOLDER.glob("*/*.json"))}
+    keys = ("base_rate_1d", "base_rate_5d", "colour", "label", "p_big_1d", "p_big_5d", "session")
+    assert {tuple(sorted(row)) for row in page["sessions"]} == {keys}
+    for row in page["sessions"]:
+        probabilities = files[row["session"]]["probabilities"]
+        for field, key, question in (("p_big_1d", "weather_vix_v1", Q1), ("p_big_5d", "weather_vix_v1", Q5),
+                                     ("base_rate_1d", "base_rate", Q1), ("base_rate_5d", "base_rate", Q5)):  # fmt: skip
+            entry = probabilities[key][question]
+            assert row[field] == (entry["value"] if entry["status"] == "ok" else None)
+    assert not any(word in json.dumps(page) for word in ("reaches", "us_move", "v0_inputs", "drivers"))
 
 
 def test_a_day_before_the_first_record_publishes_the_empty_history():

@@ -12,6 +12,7 @@ from pathlib import Path
 from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID, RISK_PROFILE_BOOKS
+from ..forecast_scoring.wiring import SCORES_FOLDER
 from ..forecast_v4_rules.series import closes_rows, regular_closes
 from ..forecast_v4_rules.wiring import CLOSES_FILE
 from ..research_engine.implied_vol import SpotBlackScholes
@@ -43,6 +44,8 @@ from .db_connection import VerifiedConnection
 from .flows_block import FlowsBlock
 from .fno_rows import FnoRowBuilder
 from .followed import FollowedCompaniesFolder
+from .forecast_history_block import FnoForecastHistoryBlock
+from .forecast_history_inputs import ScoreReportsReader
 from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
 from .frame_inputs import FlowsReader
 from .home_blocks import FnoBooksBlock, FnoPicksBlock
@@ -78,7 +81,7 @@ def build_market_blocks() -> list[BlockBuilder]:
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
             ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
             IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(),
-            FnoWeatherHistoryBlock()]  # fmt: skip
+            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -151,7 +154,8 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     home = HomeInputsReader(books, FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT), profile.open_risk_cap_rs)
     store, calendar = build_versioned_reader(), build_session_calendar()
     flows = FlowsReader(store, calendar)
-    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs())
+    reports = ScoreReportsReader(ROOT / SCORES_FOLDER)
+    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports)
 
 
 def build_weather_inputs() -> WeatherInputsReader:
