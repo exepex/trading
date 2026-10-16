@@ -1,0 +1,51 @@
+"""ReadOnlyGroww with one allow-list per caller (A14c part 2, agreed with A16's builder on 16 Oct 2026): the recorder
+keeps its default list; any caller's list refuses every other name at getattr; and no list may hold an order call,
+which the constructor refuses by name."""
+
+import pytest
+
+from fno.intraday.read_only import ALLOWED, ReadOnlyGroww, ReadOnlyViolation
+from tests.intraday.test_read_only_and_fallback import sdk_names
+
+ORDER_CALLS = ("place_order", "modify_order", "cancel_order", "create_smart_order", "modify_smart_order",
+               "cancel_smart_order")  # fmt: skip
+MARGIN_ONLY = frozenset({"get_order_margin_details", "SEGMENT_FNO"})
+
+
+class Sdk:
+    def __getattr__(self, name):
+        return name  # every name exists on the fake: only the wrapper can refuse
+
+
+def test_a_caller_s_list_lets_only_its_names_through():
+    client = ReadOnlyGroww(Sdk, MARGIN_ONLY)
+    assert client.get_order_margin_details == "get_order_margin_details" and client.SEGMENT_FNO == "SEGMENT_FNO"
+    for name in (*ORDER_CALLS, "get_quote", "get_positions_for_user", "get_available_margin_details"):
+        with pytest.raises(ReadOnlyViolation, match=f"{name} is not a read call this client may use"):
+            getattr(client, name)
+
+
+@pytest.mark.parametrize("order_call", ORDER_CALLS)
+def test_no_list_may_hold_an_order_call(order_call):
+    with pytest.raises(ReadOnlyViolation, match=f"may not hold an order call: {order_call}"):
+        ReadOnlyGroww(Sdk, MARGIN_ONLY | {order_call})
+
+
+def test_the_recorder_keeps_its_list_by_default():
+    client = ReadOnlyGroww(Sdk)
+    assert all(getattr(client, name) == name for name in ALLOWED)
+    with pytest.raises(ReadOnlyViolation):
+        getattr(client, "get_order_margin_details")  # noqa: B009 - the access itself is what is tested
+
+
+def test_the_prefix_rule_catches_exactly_the_sdk_s_order_calls():
+    """The SDK's public names (the installed one, else A16's 1.5.0 list): the six order calls are refused in a list;
+    every other name is accepted. A later SDK name with one of these verbs fails here first and is reviewed; an order
+    call named without them would not, so a new SDK version is read before it is installed."""
+    refused = set()
+    for name in sdk_names():
+        try:
+            ReadOnlyGroww(Sdk, frozenset({name}))
+        except ReadOnlyViolation:
+            refused.add(name)
+    assert refused == set(ORDER_CALLS)

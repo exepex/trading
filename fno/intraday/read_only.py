@@ -1,4 +1,5 @@
-"""The only Groww object the 15-minute recorder holds (story A16, criterion 10): an allow-list over the SDK client.
+"""The only Groww object a read-only caller holds (story A16, criterion 10; A14c part 2): an allow-list over the SDK
+client, one list per caller (the recorder's is the default).
 
 The client `growwapi.GrowwAPI` can place, modify and cancel orders (design 6.6: "a key that can trade"). The recorder
 needs five read calls and a few constants, so this wrapper lets exactly those through and refuses every other name
@@ -8,6 +9,7 @@ impossible by mistake and visible in review."""
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 
 READ_CALLS = frozenset({"get_quote", "get_option_chain", "get_expiries", "get_contracts", "get_historical_candles"})
@@ -15,6 +17,10 @@ CONSTANTS = frozenset(
     {"EXCHANGE_NSE", "SEGMENT_CASH", "SEGMENT_FNO", "CANDLE_INTERVAL_MIN_1", "CANDLE_INTERVAL_MIN_15"}  # 15: A16b
 )
 ALLOWED = READ_CALLS | CONSTANTS
+# Every growwapi.GrowwAPI name that creates, changes or cancels an order starts with one of these verbs (dir() of the
+# SDK 1.5, 16 Oct 2026: six names, none of them a read). No caller's list may hold one, so an allow-list can never be
+# widened into a trading client by mistake; matched by prefix, so the trading names themselves never appear here.
+TRADING_VERBS = re.compile(r"^(place|modify|cancel|create)_")
 
 
 class ReadOnlyViolation(AttributeError):
@@ -22,14 +28,18 @@ class ReadOnlyViolation(AttributeError):
 
 
 class ReadOnlyGroww:
-    __slots__ = ("__client",)
+    __slots__ = ("__client", "__allowed")
 
-    def __init__(self, client: Callable[[], object]):
+    def __init__(self, client: Callable[[], object], allowed: frozenset[str] = ALLOWED):
+        trading = sorted(name for name in allowed if TRADING_VERBS.match(name))
+        if trading:
+            raise ReadOnlyViolation(f"an allow-list may not hold an order call: {', '.join(trading)}")
         object.__setattr__(self, "_ReadOnlyGroww__client", client)  # called on each use: Groww's token renews daily
+        object.__setattr__(self, "_ReadOnlyGroww__allowed", frozenset(allowed))
 
     def __getattr__(self, name: str):
-        if name not in ALLOWED:
-            raise ReadOnlyViolation(f"{name} is not a read call the recorder may use")
+        if name not in self.__allowed:
+            raise ReadOnlyViolation(f"{name} is not a read call this client may use")
         return getattr(self.__client(), name)
 
     def __setattr__(self, name: str, value) -> None:
