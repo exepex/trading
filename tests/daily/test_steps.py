@@ -65,7 +65,13 @@ def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
 
 def test_the_live_dates_come_from_config_and_none_is_set_today():
     assert "daily" in ALLOWED_APP_KEYS
-    assert live_dates(load_app_config()) == {"margin_check": None, "weather": None, "forecasts_v4": None, "card": None}
+    assert live_dates(load_app_config()) == {
+        "margin_check": None,
+        "weather": None,
+        "forecasts_v4": None,
+        "card": None,
+        "price_distribution": None,  # story G13
+    }
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
 
