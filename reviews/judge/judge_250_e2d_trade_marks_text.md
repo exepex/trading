@@ -1,4 +1,4 @@
-# Judge 249: E2d per-trade daily marks, story text (story/e2d-trade-marks at ec2827ea)
+# Judge 250: E2d per-trade daily marks, story text (story/e2d-trade-marks at ec2827ea)
 
 Judge B, 16 Oct 2026. Lane 1 (a new story, touching the paper accounts and the record scan). The claims are in the
 builder's message (session 0134MoC6; no response number yet). The diff is a new E2d section at the end of
