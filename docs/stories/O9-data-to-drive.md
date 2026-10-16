@@ -78,13 +78,16 @@ Books 2 and 3 (seal/reveal), the LR1 post-mortem writer; their prompts lose ever
 
 Three classes, each staying valid:
 1. **Freeze-checked files** (`golden_iv30_rv20.csv` and `v2/golden/**` hashed by `fno/forecast/freeze.py:43-60`,
-   `freeze_v2.py`): the FREEZE files keep their SHA-256 lines unchanged; the check reads the bytes from the Drive cache
-   instead of the working tree and compares the same hash. A frozen file's receipt is written at migration with the
-   hash already in the FREEZE file; a mismatch fails exactly as today.
+   `freeze_v2.py`): the frozen code is not touched (`freeze.py` and `freeze_v2.py` are themselves pinned by SHA-256 in
+   `FREEZE.md` line 27 and `FREEZE_v2.md` lines 41-42; judge 228 add. 3). Before a freeze check, the cache sync writes
+   each freeze-checked file back to its original repository path, git-ignored, with the same bytes, verified against
+   its receipt; `changed_files(root, freeze)` then compares the same hashes, unchanged. Rule 5 holds: ignored files are
+   never committed. A frozen file's receipt is written at migration with the hash already in the FREEZE file; a
+   mismatch fails exactly as today.
 2. **Recorded, not checked** (warmup_closes, panel manifest, calendar in FREEZE/FREEZE_v2/FREEZE_v3; experiment 1's
-   files read at RUN_COMMIT by `git show`): the exact bytes of each recorded version are uploaded under their own
-   receipt (`git show <commit>:<path>` gives them), so "the file as it was at the freeze" stays fetchable by SHA.
-   Experiment 1's test reads them from the cache by SHA instead of `git show`.
+   files read at RUN_COMMIT by `git show`): git history is not rewritten (section 7), so `git show <commit>:<path>`
+   keeps returning those versions and experiment 1's test does not change. Each recorded version is also uploaded
+   byte-exact under its own receipt, so it stays fetchable by SHA if history is ever rewritten (open question 1).
 3. **Tests that read real repository data** (about 45 files, list in the inventory, beyond the judge's 22): unit
    tests switch to small fixtures built in `tmp_path` (the existing pattern, tests/conftest.py:16); tests whose point
    is the real data (G6 v4 tools on `warmup_closes.csv`, freeze tests, replay) become a "data" marker run after a cache
@@ -165,7 +168,10 @@ readers read from the cache (so nothing breaks in between). Git history is not r
 
 1. No workflow, routine or CLI adds a data file to either repository; CI and the hook refuse one.
 2. Every Drive file has one receipt with a matching SHA-256; a planted changed file stops the reader with an alert.
-3. Two A16 runs racing for one mark: one claim wins, one snapshot is taken, zero rate-limit failures from overlap.
+3. Two A16 runs racing for one mark, tested exactly with two clones of one bare origin: both commit a claim, one push
+   lands, the loser's pull meets the add/add conflict on the claim file, keeps the winner's copy (`-X theirs`, the
+   committer's existing first-push-wins rule), takes no snapshot and waits for the next mark; one snapshot is taken,
+   zero rate-limit failures from overlap.
 4. Every report, read model and score built from the cache equals the one built from repository data for a recorded
    day (byte-identical).
 5. Freeze checks and the full suite pass after removal from HEAD.
