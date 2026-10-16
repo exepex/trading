@@ -74,3 +74,26 @@ I judged bde03cff against the three should-fix items.
 a capture miss and never retried. Exit 1, with no alert of its own, is only for a Groww or write failure. Neither
 `capture_errors.csv` nor the step's own alert duplicates O1's journal and `Alerted`. This also closes my note on
 `capture_errors.csv`.
+
+## Addendum 2: text 1db15bdd and code c706a9ea (story/a14c-part2-broker-check)
+**Verdict: PASS, for both the text and the allow-list code (lane 1).** The builder may build the check's code. That code
+has its own judge, with the live read-only evidence.
+
+| Should-fix | Result | Evidence |
+|---|---|---|
+| 1. The window fits the run, with a hard end | MET | from 09:30 IST on an A7 session day, in O1's step at about 14:35. **No Groww request starts after 14:50 IST, whatever time the step began, reruns included**; the remaining baskets are `error` "deadline", exit 1. Tests at 14:49:59, 14:50:00 and 14:50:01. Size: 15 baskets today (SF, SC and BF at 5 widths), one request every 2 s plus one NIFTY quote, about 35 s; about 40 baskets with STR1 is about 90 s |
+| 2. An independent index | MET | one NIFTY `get_quote` at the run's start (in this caller's list). The legs' exposure is recomputed with A14's `NseIndexOptionExposure` at that level (the 10% OTM step applied live); never implied from Groww's figure. Tests: a planted 0.2% wrong exposure on a correct index, plus at, just under and just over each tolerance |
+| 3. O1's side | MET (addendum 1) | `receipt_pathspecs()` replaces `MARGIN_CHECKS`, reviewed by O1's builder, still behind `LiveFrom` |
+
+**Allow-list code at c706a9ea (judge 356's should-fix 1):**
+- **The positive rule comes first:** only `get_<lower_snake>` and UPPER_CASE names pass; no private name and no name
+  with token, session, secret, password, login or auth. The order-verb refusal stays second.
+- **Checked against the installed SDK:** 76 of its names pass the rule. All non-constant ones are reads
+  (`get_quote`, `get_order_list`, `get_user_profile` and the like); none places, changes or cancels anything. Names that
+  only read personal account data (holdings, profile) pass the rule but are in no caller's list.
+- **Planted mutations, all caught:** the credential-word check off (3 failed); `get_` dropped from the read pattern (12
+  failed); lowercase allowed for constants (9 failed).
+- **Gates on a trial merge with main:** 7824 passed and 15 xfailed; ruff and check_imports clean.
+
+**Process note for the orchestrator:** judge F (judge 356) and I both judged this text. The verdicts agree, but one item
+should have one judge. I am leaving the A14c part 2 code to whichever of us the orchestrator names.
