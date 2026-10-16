@@ -127,3 +127,9 @@ def test_no_common_pack_means_no_opportunities_to_read(tmp_path):
 def test_an_opportunity_answered_twice_is_no_decision():
     found = entries([take(A, 200), skip(A), skip(B)])
     assert found[A]["action"] == "no_decision" and "twice" in found[A]["reason"] and found[B]["action"] == "no_trade"
+
+
+def test_the_no_trade_opportunity_is_never_in_the_reader_s_result(tmp_path):
+    body = shadow_body(DAY, PACK.sha256, COMMON, [take(A, 200), skip(B)], widths)
+    actions = reader(committed(tmp_path, body, SNAPSHOT.replace(minute=11))).actions(DAY)
+    assert set(actions) == {A, B} and "no_trade" not in actions

@@ -178,3 +178,14 @@ def test_a_spec_deleted_only_on_disk_still_holds_its_rule(tmp_path):
     (tmp_path / spec_path("b3-first-v1")).unlink()  # still committed: its rule cannot be registered again
     [entry] = register(tmp_path, proposal(spec("b3-again")))
     assert entry["why"] == "same rule as b3-first-v1: trade that one"
+
+
+def test_a_damaged_registered_spec_refuses_the_day_s_proposals_and_never_raises(tmp_path):
+    from fno.book3.registry import spec_path
+    from tests.book3.builders import commit
+
+    repository(tmp_path, [spec("b3-first")])
+    (tmp_path / spec_path("b3-first-v1")).write_text("not: [valid\n")
+    commit(tmp_path, "a damaged spec")
+    [entry] = register(tmp_path, proposal(spec("b3-new", entry_conditions=[])))
+    assert entry["status"] == REFUSED and "cannot be read" in entry["why"]

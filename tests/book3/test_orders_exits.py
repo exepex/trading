@@ -126,3 +126,17 @@ def test_a_trade_with_no_opening_record_gets_no_exit_and_an_alert(tmp_path, monk
     alerts = Alerts()
     assert exits(tmp_path, alerts, monkeypatch, "unknown-trade").rules(BOOK3_AI) == {}
     assert len(alerts.sent) == 1 and "no time exit is set" in alerts.sent[0]
+
+
+def test_an_edited_time_exit_in_today_s_spec_never_moves_the_decided_exit(tmp_path, monkeypatch):
+    """Judge 400 should-fix 2: the exit day comes from the spec as the run read it. A valid edit sends no alert (only an
+    unreadable or unenforceable file does, Book 1's rule), and the exit stays."""
+    run = decided_run(tmp_path)
+    [trade_id] = open_trades(tmp_path, BOOK3_AI, DAY, run.name, Git(tmp_path).head())
+    expected = FINDER.exit_day(strategy_from_text(spec(), "spec"), date(2026, 11, 27))
+    path = tmp_path / spec_path("b3-sc-v1")
+    path.write_text(path.read_text().replace("exit_days_before_expiry: 25", "exit_days_before_expiry: 5"))
+    assert "exit_days_before_expiry: 5" in path.read_text()
+    alerts = Alerts()
+    [rule] = exits(tmp_path, alerts, monkeypatch, trade_id).rules(BOOK3_AI)[trade_id]
+    assert rule.exit_day == expected and alerts.sent == []

@@ -138,3 +138,24 @@ opportunity, two proposals (a copy, and a copy with a stop text), and a shadow t
 - Not runnable live yet: F1t's runner, E2e's `BookSheet` port (Book 3's sheet class plugs in when it lands) and F4's
   `evidence` (addendum 1) are not on `main`; F1t's live switch is null.
 - Until E2e's shared snapshot helper lands, Book 3 reuses Book 1's input reader with a `book` argument (no copy).
+
+## Judge 400 (Judge E): FAIL at c58117f3, two should-fix and four minor findings; all accepted after checking
+
+1. **One damaged registered spec stopped the whole day (accepted).** I confirmed that D5's `require_registered` parses
+   the spec (`fno/book3/registry.py`), so a committed invalid spec raised `PlaybookError` out of `on()`. Fixed: it is
+   excluded with its reason and the others stay tradable (`strategies.py`). In `_registered_rules` an unreadable spec
+   now refuses that day's proposals with the reason, and the decision still runs. Tests:
+   `test_one_damaged_spec_is_excluded_and_the_others_stay_tradable`,
+   `test_a_damaged_registered_spec_refuses_the_day_s_proposals_and_never_raises`.
+2. **Criterion 15's edit alert (accepted, as a criterion amendment).** Book 1's `PlaybookExitRules._warn` alerts only
+   on an unreadable or unenforceable file. A valid edit cannot move the exit, because the exit never reads today's
+   file, so the criterion now says so rather than adding a second alert rule for Book 3 only. The regression test now
+   exists: `test_an_edited_time_exit_in_today_s_spec_never_moves_the_decided_exit` changes `exit_days_before_expiry`
+   from 25 to 5 and asserts the decided exit and zero alerts.
+- Minor findings, all done:
+  - `served`'s playbook and config always win (`test_served_keeps_the_run_s_own_playbook_and_config…`).
+  - `no_trade` is absent from the reader's result (`test_the_no_trade_opportunity_is_never_in_the_reader_s_result`).
+  - Strategies are listed from the committed registry (`test_a_registry_missing_on_disk_still_lists…`; an
+    uncommitted row is not listed at all).
+  - Criterion 1 reworded: left out before D2, with C4 as the independent second guard.
+  - Design item 8 reworded: no `exits.py`; Book 1's class is wired in `decision_wiring.py`.

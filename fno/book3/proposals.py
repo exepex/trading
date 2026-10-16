@@ -17,6 +17,7 @@ from datetime import date
 
 from ..playbook.documents import strategy_from_text
 from ..playbook.exit_terms import unenforceable_exits
+from ..playbook.fields import PlaybookError
 from ..playbook.schema import Evidence, Strategy, rule_sha256
 from ..playbook.transitions import RESEARCH
 from .constitution import Constitution
@@ -101,5 +102,8 @@ class Book3Proposer:
             text = text or (on_disk.read_text(encoding="utf-8") if on_disk.is_file() else None)
             if text is None:
                 return {}, f"{row['strategy_id']}: its registered spec is missing, so no rule can be compared"
-            found[rule_sha256(strategy_from_text(text, path))] = row["strategy_id"]
+            try:
+                found[rule_sha256(strategy_from_text(text, path))] = row["strategy_id"]
+            except PlaybookError as damaged:  # the day's decision still runs; only the comparison is impossible
+                return {}, f"{row['strategy_id']}: its registered spec cannot be read ({damaged}), no rule compared"
         return found, ""

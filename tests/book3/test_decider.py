@@ -273,3 +273,19 @@ def test_an_edited_pick_in_the_stored_inputs_is_found_by_the_replay(tmp_path):
     stored["selection"] = []
     path.write_bytes(canonical_json(stored))
     assert replay(out.run, book3_evaluators().from_stored([]), SAME_CODE, validator=check) != []
+
+
+def test_served_keeps_the_run_s_own_playbook_and_config_whatever_the_context_says(tmp_path):
+    """DecisionRun merges an AI book's served components under its own two, which always win."""
+    from fno.playbook.decision_run import DecisionRun
+    from fno.playbook.decision_store import DecisionStore
+    from tests.decisions.builders import CONTEXT, doc, snapshot
+    from tests.playbook.evaluation_builders import Counts, FixedValues, OwnShadowBooks, chain_market, evaluator
+    from tests.risk.builders import book
+
+    context = {**CONTEXT, "served": {"playbook": "forged", "config": "forged", "extra": "kept"}}
+    run = DecisionRun(evaluator(), DecisionStore(tmp_path, "book1_rules")).decide(
+        DAY, snapshot(doc("sc-a")), chain_market(), FixedValues(), book(), Counts(), OwnShadowBooks(), context
+    )
+    served = json.loads((run / "no_trade.json").read_text())["served"]
+    assert served["extra"] == "kept" and "forged" not in (served["playbook"], served["config"])

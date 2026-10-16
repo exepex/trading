@@ -139,12 +139,13 @@ runner before the first counted decision), the fill and exit mechanics themselve
    `served` adds `constitution`, `book3_prompt` and F1t's decision version (`ai_decision_version`, F1t's run check); `rule_default` and `authority_check` null (D3 `NULLABLE`).
 7. **Objections and cards are evidence only.** No objection or card is an input of the selection allocator, C2 or C4
    (D5 criterion 7 already proves C4; F6 tests the allocator).
-8. **Orders and exits** (`fno/book3/orders.py`, `fno/book3/exits.py`; F6 owns both, F1t only dispatches them per
+8. **Orders and exits** (`fno/book3/orders.py`; the exits are Book 1's class wired in `fno/book3/decision_wiring.py`
+   `build_book3_exit_rules`, no new file; F6 owns both, F1t only dispatches them per
    book in `fno/daily/wiring.py`). `Book3Orders(OrderBuilder)`: for a committed run, builds D2's evaluator with the
    `SelectionAllocator` from the picks stored in the run's `inputs.json` and the specs in the run's own playbook
    snapshot, and hands it to Book 1's `ReplayedOrders` (D3's replay, refused under other code; any difference refuses
    every order with `OrdersRefused`; only records whose committed `chosen_action` is "trade", so a C4 block is never
-   ordered). `Book3ExitRules(ExitRules)`: Book 1's `PlaybookExitRules` over Book 3's store: each open trade exits on
+   ordered). Book 3's exit rules: Book 1's `PlaybookExitRules` over Book 3's store: each open trade exits on
    the time exit fixed at its decision, computed from the spec text as the run read it (`inputs.json`), never from
    today's `book3/strategies/` file; today's file is read only to alert.
 9. **Pilot:** no stored label. Book 3's runs are D3 runs in the same store, so S2/S3's common-start rule (read from
@@ -175,9 +176,10 @@ and prints that prompt. `analyst_cards` is in Book 3's pointer, printed by `brie
 
 **Acceptance criteria:**
 1. A proposal registered on day d is on no day sheet and no decision on d; it is on d+1's (temporary git
-   repository, fixed clock). A pick of a strategy that is not registered, registered by a commit that is not an
-   ancestor of the decision base, or edited after registration, never becomes a chosen trade (C4 blocks it with
-   D5's reason).
+   repository, fixed clock). A strategy that is not registered, registered by a commit that is not an ancestor of the
+   decision base, edited after registration or no longer readable is left out of the tradable set before D2 runs
+   (listed in the day log's `excluded_strategies` with D5's reason; one damaged spec never stops the others), so a
+   pick of it is only an attempt; C4's `ConstitutionMode` refuses it again independently (D5's tests).
 2. A proposal whose rule key equals an earlier Book 3 spec's is refused; one equal to a playbook version's, or
    naming `supersedes`, is registered as `reused`; any other as `new` (a copied rule with a new name and new
    descriptive text is still caught).
@@ -219,9 +221,10 @@ and prints that prompt. `analyst_cards` is in Book 3's pointer, printed by `brie
 14. Orders: `Book3Orders` orders exactly the committed "trade" records of a run that replays. A run whose stored picks
     or spec snapshot were edited after commit gives `OrdersRefused` and no order. A C4-blocked pick gives no order.
     A "no trade" run gives an empty list.
-15. Exits: `Book3ExitRules` gives each open Book 3 trade its time exit from the spec as the run read it. Editing or
-    deleting today's spec file changes no exit and sends one alert. A trade with no opening record gets no exit, with
-    an alert (Book 1's rule).
+15. Exits: each open Book 3 trade gets its time exit from the spec as the run read it. Editing today's spec file
+    (its time exit included) or deleting it changes no exit. A deleted, unreadable or unenforceable file sends one
+    alert; a valid edit sends none, since the exit never reads today's file (Book 1's rule, judge 400). A trade with no
+    opening record gets no exit, with an alert.
 16. Only promoted answers register: no proposal registers on a late, invalid, exposed or not-revealed day (test
     through F1t's judging with fake answers, once F1t's code exists; until then a decider test proves that
     registration happens only inside `decide()`).
