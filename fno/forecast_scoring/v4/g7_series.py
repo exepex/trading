@@ -33,7 +33,10 @@ class G7Series(OutcomeSeries):
 
     def vix_up_outcomes(self) -> dict[date, bool]:
         vix = series.vix_closes(self.rows)
-        return {o.day: o.value for o in series.vix_up_outcomes(vix, HORIZON_SESSIONS[V7_VIX_UP_5S])}
+        return {
+            o.day: o.value
+            for o in series.vix_up_outcomes(vix, HORIZON_SESSIONS[V7_VIX_UP_5S], [c.day for c in self.closes])
+        }
 
     def intraday_rv(self) -> dict[date, float | None]:
         return {s.day: s.value for s in series.live_intraday_rv(self.a16_rows())}
