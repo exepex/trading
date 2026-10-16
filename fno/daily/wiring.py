@@ -5,6 +5,7 @@ through E3's committer in the run's one thread."""
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -54,8 +55,13 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
     waiter = ServicingWaiter(parts, now_ist)
 
+    def waiting(seconds: float) -> None:
+        """A command's wait: a quote part due meanwhile starts (no git: the commits stay between the steps)."""
+        time.sleep(seconds)
+        parts.start_due()
+
     def command(arguments: Callable[[date], tuple[str, ...]], folder: str) -> DayStep:
-        return CommandStep(processes, arguments, (folder,), git.changed)
+        return CommandStep(processes, arguments, (folder,), git.changed, waiting)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
     steps = {
@@ -69,7 +75,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
         "book1": Alerted(
             "book1",
-            CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed),
+            CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, waiting),
             alerts,
         ),  # E5: commits its own decision  # fmt: skip
         REVIEWS_STEP: Alerted(
@@ -88,7 +94,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "candles": Alerted(
             "candles",
             NotBefore(
-                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed),
+                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed, waiting),
                 CATCH_UP_FROM,
                 waiter,
             ),
