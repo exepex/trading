@@ -238,72 +238,15 @@ before the deadline.
 
 ## F6. Book 3: the fully AI system and its pilot
 
-**Repository:** trading
-
-**Description:** As the owner, I want Book 3 to invent its own registered strategies and decide daily under its
-constitution, starting as a labelled pilot, so that we learn whether a complete AI system makes more net money under
-the same risk budget.
-
-**Context and why:** Design 12.1 (Book 3 answers a whole-system question; a Book-3 win is never claimed as "AI daily
-judgement beats rules" unless scoreboard A shows it), 12.3 (constitution, strategy identity), 12.6 (common start;
-earlier trades are pilot evidence), 12.11 (Book 3 starts as a pilot once its constitution, decision records, fills
-and costs, C2 and C4 Book-3 mode, role agents and the forecast protocol exist). Book 3's strategies cannot be tested
-on history (a model knows what happened later).
-
-**Scope.** In: Book 3's decider, strategy proposal and registration flow, pilot labelling. Out: the constitution
-itself (D5), matched shadows (F7).
-
-**Expected design:** inside Book 3's session (F1): read the packs and cards; to use a new strategy, write its full
-spec, which code registers (D5) **in a commit before the decision commit**; a strategy proposed today can be traded
-at the earliest at the next session (registration precedes its first trade by at least one day, so no same-day
-invent-and-trade, design 4). Decision record with `strategy_id` and spec hash; C2 and C4 (constitution mode). Every
-Book-3 record before the common-start date (S1) is labelled `pilot`.
-
-**Acceptance criteria:**
-1. A Book-3 trade with an unregistered or same-day-registered strategy is blocked.
-2. A strategy spec breaking the constitution (naked short, horizon over 3 weeks, non-NIFTY) is refused at
-   registration.
-3. Records before the common start are labelled `pilot` and excluded from head-to-head scoring (S2, S3) but kept and
-   reported.
-4. Red-team and judge objections are attached as evidence and never block a Book-3 trade; C2 and C4 do block.
-
-**Test plan:** tests with fake sessions: new strategy, reused strategy, refused spec, pilot labelling.
-
-**Judge verifies:** checks registration commits precede first trades for every Book-3 strategy in a month.
-
-**Depends:** C2, C4, D5, D6, F1, F2, F3, F4, G1 · **Size:** L · **Status:** later
+**Rewritten to design v2 (16 Oct 2026):** see `docs/stories/F6-F7-book3.md` (on D5's registry: propose on day d,
+register by code, trade from d+1; pilot read from the records). The first-plan text is replaced there.
 
 ---
 
 ## F7. Matched shadow decisions for scoreboard A
 
-**Repository:** trading
-
-**Description:** As the statistician, I want Book 3 to commit, every day, a shadow decision on the common opportunity
-set, so that all three books appear on scoreboard A, judged on the same opportunities.
-
-**Context and why:** Design 12.5: scoreboard A compares decisions on the same eligible opportunities, same approved
-strategy universe, same cutoff, fill model and costs, each committed independently and scored on a standardised
-shadow account; books 1 and 2 meet this naturally; Book 3 also commits a matched shadow decision on the common
-opportunity set every day. Owner requirement: all three books on both scoreboards.
-
-**Scope.** In: Book 3's shadow decision on each common opportunity (take or skip, and the choice among the approved
-strategies' permitted variants), committed with its real decision. Out: scoring (S3).
-
-**Expected design:** the common opportunity set from E2; Book 3's session writes `shadow_decisions.json` (one entry per
-opportunity, same action vocabulary as Book 2's envelope, without envelope limits) committed with its real decision
-before the deadline; validated by code; missing entries count as "no decision" for scoreboard A.
-
-**Acceptance criteria:**
-1. Every common opportunity of the day has a Book-3 shadow entry or a recorded "no decision".
-2. Shadow entries committed after the deadline are ignored.
-3. Shadow entries never affect Book 3's real account.
-
-**Test plan:** validation tests with fixture opportunity sets.
-
-**Judge verifies:** compares a day's shadow file with that day's common opportunity set.
-
-**Depends:** E2, F6 · **Size:** S · **Status:** later
+**Rewritten to design v2 (16 Oct 2026):** see `docs/stories/F6-F7-book3.md` (D4's `BookTerms` per common
+opportunity, one lot, committed before the execution snapshot).
 
 ---
 
