@@ -23,6 +23,7 @@ from .clock import ClockCheck
 from .document import SnapshotDocument, utc_text
 from .heartbeat import Heartbeat
 from .ledger import SlotLedger
+from .observer import MarkObserver, NoObserver, notify
 from .session_rv import SessionRv, previous_recorded_session
 from .settle import Settlement
 from .slots import MAX_WAIT, label, marks, takeable_marks, window_end
@@ -74,10 +75,11 @@ class IntradayRecorder:
     def __init__(self, source: IntradayQuoteSource, files: SnapshotFiles, ledger: SlotLedger, heartbeat: Heartbeat,
                  calendar: SessionCalendar, alerts: AlertSender, clock_check: ClockCheck, session_rv: SessionRv,
                  sync: LedgerSync, now: Callable[[], datetime] = now_ist, sleep=clock.sleep,
-                 claims: MarkClaims | None = None):  # fmt: skip
+                 claims: MarkClaims | None = None, observer: MarkObserver | None = None):  # fmt: skip
         self.source, self.files, self.ledger, self.heartbeat = source, files, ledger, heartbeat
         self.calendar, self.alerts, self.clock_check, self.session_rv = calendar, alerts, clock_check, session_rv
         self.sync, self.now, self.sleep, self.claims = sync, now, sleep, claims or NoClaims()
+        self.observer = observer or NoObserver()
         self.settlement = Settlement(files, ledger, alerts)
         self._lost: set[datetime] = set()  # marks another run claimed: never taken by this run
 
@@ -144,8 +146,8 @@ class IntradayRecorder:
         return lines + [self.sync.commit(f"{day} settled")]
 
     def _settle_finished(self, day: date) -> list[str]:
-        _, alert = self.settlement.settle(day, self.now())
-        return ([alert] if alert else []) + self._finish_session(day)
+        rows, alert = self.settlement.settle(day, self.now())
+        return ([alert] if alert else []) + notify(self.observer, day, rows, None) + self._finish_session(day)
 
     def _settle_previous(self, day: date) -> list[str]:
         """A previous session the host left unfinished (it died mid-session or missed the whole day) gets its missed
@@ -206,7 +208,7 @@ class IntradayRecorder:
         """Settles the ledger and alerts, writes the heartbeat, the realised variance once the session is complete,
         and commits. A realised-variance error is reported and alerted, never allowed to stop the rest."""
         rows, alert = self.settlement.settle(day, self.now(), taken, failed)
-        outcome.lines += [alert] if alert else []
+        outcome.lines += ([alert] if alert else []) + notify(self.observer, day, rows, taken[0] if taken else None)
         mine = next((r for r in rows if r["mark_ist"] == outcome.mark), None)
         if taken is not None and mine is not None:
             outcome.status, outcome.detail = mine["status"], TAKEN_DETAIL.format(**mine)
