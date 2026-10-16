@@ -1,4 +1,4 @@
-"""The content check of each raw dataset (stories A1, A8, P6): a function of a file's name and bytes that raises
+"""The content check of each raw dataset (stories A1, A8, P6, A20a): a function of a file's name and bytes that raises
 BadFile (a ValueError) when the file is damaged or not in its publisher's layout. The coverage check, the librarian
 and the snapshot takers use the same checks."""
 
@@ -11,6 +11,7 @@ from ..market_read_models.flows_files import read_fii_dii, read_nsdl_equity
 from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
 from ..market_read_models.symbol_changes import read_symbol_changes
 from ..nse_margins.span_file import read_span_file
+from ..research_data.fo_masters import ban_list_trade_date, read_ban_list, read_lot_sizes
 from ..research_data.participant_oi import read_participant_oi
 from .raw_source import (
     NseDailyFoSource,
@@ -27,6 +28,8 @@ from .snapshot_source import (
     EquityListSource,
     FiiDiiCashBySessionSource,
     FiiDiiCashSource,
+    FoBanListSource,
+    FoLotSizeSource,
     Nifty500ListSource,
     NsdlFpiDailyBySessionSource,
     NsdlFpiDailySource,
@@ -64,10 +67,13 @@ VALIDATORS = {
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
     # a valid SPAN file of any method A14c reads (2020's minimum included); A14's daily job still refuses that method
     NseSpanBodSource: lambda filename, data: read_span_file(data, filename, allow_short_option_minimum=True),
+    FoBanListSource: lambda filename, data: read_ban_list(data, filename),
+    FoLotSizeSource: lambda filename, data: read_lot_sizes(data, filename),
 }
 
-# The session a flows copy covers, read from the copy itself: where the by-session series files it (judge 66, P8)
+# The session a copy covers, read from the copy itself: where the by-session series files it (judge 66, P8; A20a)
 COVERED_SESSION = {
+    FoBanListSource: ban_list_trade_date,
     FiiDiiCashBySessionSource: lambda filename, data: read_fii_dii(data, filename).day,
     NsdlFpiDailyBySessionSource: lambda filename, data: read_nsdl_equity(data, filename)[0],
 }

@@ -16,10 +16,16 @@ from .raw_store import RawFileStore
 from .snapshot_taker import ALREADY, NOT_SERVED, TAKEN
 
 FROM_THE_FUTURE = "{path}: the copy covers {session}, after the run's day {day}; refused"
+STALE = "{path}: stale: the copy covers {session}, not the run's session {day}; refused"
 
 
 class LaterSession(ValueError):
     """The copy covers a session after the run's day: refused, nothing written."""
+
+
+class StaleCopy(ValueError):
+    """The copy covers a session before the run's day where only the day's own copy is valid: refused, nothing
+    written."""
 
 
 CoveredSession = Callable[[str, bytes], date]  # (file name, data) -> the session the copy covers
@@ -38,11 +44,24 @@ class SessionFiledTaker:
         self.validate(self.source.FILENAME, data)
         session = self.covered(self.source.FILENAME, data)
         path = self.source.path_for(session)
-        if session > day:
-            raise LaterSession(FROM_THE_FUTURE.format(path=path, session=session, day=day))
+        self._check(session, day, path)
         existing = self.store.get(path)
         if existing is not None:
             self.store.put(path, existing)  # the same bytes: the store keeps them; the archive's manifest gets its row
             return ALREADY.format(path=path)
         self.store.put(path, data)
         return TAKEN.format(path=path, size=len(data))
+
+    def _check(self, session: date, day: date, path: str) -> None:
+        if session > day:
+            raise LaterSession(FROM_THE_FUTURE.format(path=path, session=session, day=day))
+
+
+class CurrentSessionTaker(SessionFiledTaker):
+    """For a list valid only for the session it names (A20a's ban list): a copy for an earlier session means the
+    publisher has not written today's yet, so it is refused as stale instead of being taken as "already archived"."""
+
+    def _check(self, session: date, day: date, path: str) -> None:
+        super()._check(session, day, path)
+        if session < day:
+            raise StaleCopy(STALE.format(path=path, session=session, day=day))

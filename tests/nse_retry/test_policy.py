@@ -26,7 +26,7 @@ def run(cls, *answers, head=False, now=NOW):
 
 
 def test_every_nse_source_class_is_covered():
-    assert len(CLASSES) == 22  # A1, A8, A10, A11, A12, A14, A15, P6 and P8 (inventory of 15 Oct 2026)
+    assert len(CLASSES) == 24  # A1, A8, A10, A11, A12, A14, A15, P6, P8 (15 Oct 2026) and A20a's two lists
 
 
 @pytest.mark.parametrize("cls", CLASSES, ids=lambda c: c.__qualname__)
