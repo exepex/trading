@@ -270,7 +270,10 @@ with no book live the two steps record `not_live` (O8 sees every step of `DAILY_
 
 **Files (new unless named):** `fno/ai_trading/` (`pointer.py`, `versions.py`, `answer.py`, `session.py`, `__main__.py`,
 `fire.py`, `receipts.py`, `outcome.py`, `promote.py`, `records.py`, `steps.py`, `ports.py`, `paths.py`, `audit.py`,
-`cli.py`, `wiring.py`, `book_wiring.py`); changed: `fno/ai/book.py` (shared publish helper), `fno/ai/audit_plan.py`,
+`cli.py`, `wiring.py`, `book_wiring.py`); new shared pieces in `fno/ai/`, generic (a path, a transport, a clock; no
+book in their signatures) because F2's role routines reuse them too (agreed with F2, 16 Oct): `sealed_publish.py`
+(`SealedPublisher`, extracted from `BookSession` on top of F8c's version), `observed_receipts.py` (`ObservedPushes`)
+and `fire_once.py` (`FireOnceLog`; G5's `fno/ai/fire.py` is untouched); changed: `fno/ai/book.py` (uses the publisher), `fno/ai/audit_plan.py`,
 `fno/ai/transcript_audit.py`, `fno/ai/stop_rule.py` (path parameters), `fno/constants_operations.py`
 (`DAILY_RUN_STEPS` gains `ai_fire` and `ai_collect`), `fno/daily/wiring.py` (the two steps and per-book dispatch),
 `fno/desk/pack_wiring.py` (packed books from the run's books), `config.yaml` and `fno/config.py`
@@ -348,6 +351,9 @@ puts their trigger IDs and tokens in the daily run's environment; one fire on a 
 accepts a pointer of the measured size from the daily-run session's network, the session reaches `seal` and `reveal`,
 and a transcript read shows no file outside its input (F1 criterion 1 for decisions); D3's `owner_override` refusal,
 D4, D5, F5 (for Book 2) or F6 (for Book 3) are merged; at least one `paper` strategy exists (slice E's trigger).
+
+**Build rounds:** round 1, the three shared pieces with their tests (judged on their own, since F2's code waits on
+them); round 2, `fno/ai_trading/`, the O1 steps, the wiring and the end-to-end tests.
 
 ## Test plan
 
