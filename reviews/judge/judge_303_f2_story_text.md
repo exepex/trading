@@ -61,3 +61,27 @@ recorded push time). It must also show that the reveal time 14:40:10 and the car
 - Point-in-time only: criterion 2.
 - No UI: in scope.
 The credentials point is the one break.
+
+## Addendum 1: f68b50e8
+
+**Verdict: PASS on the story text. F2's code may start once F1t's three shared pieces (`SealedPublisher`,
+`ObservedPushes`, `FireOnceLog`) are on `main`, as the text says.**
+
+- **Blocking 1, the credentials: fixed.** I read items 3, 6, 7 and 13 at f68b50e8.
+  - The routine has no Drive credentials. Its input items travel in its own pointer (64 KiB cap; over the cap is
+    `not_fired`, never truncated).
+  - The collection checks the pointer's hash against the Drive file through the verified cache.
+  - The commitment and reveal go to `main` through `GitMainTransport`, as the AI books' do.
+  - The input, cards and audit files are saved by the Actions job through `DataStore`.
+  - Criterion 13 tests that the routine side imports no Drive, Slack, Groww or order code.
+  - The O9 credential question is withdrawn because the risk is now removed, not just stated.
+- **Should-fix 2, the receipt rule: fixed.** Item 6 uses F1t's `ObservedPushes` (a `git fetch` at each deadline, no
+  token), so both stories now time seals by one rule.
+- **Minor 1, one shared helper: fixed.** Item 7 names the three shared pieces F1t builds; G5's `fno/ai/fire.py` stays
+  untouched.
+- **Minor 2: still open.** Item 2 still dates `previous_pack` by "its committed time (the pack's receipt after O9)".
+  Before O9 moves G2's pack, state which value is used (the commit's committer time is not a receipt). This can be done
+  in the code round.
+- `fire_unknown` was added to the statuses and to criterion 8: consistent with F1t.
+- Interim note (no finding): until O9's step 4, the sealed cards sit in the public repository, like the AI forecasts.
+  They hold only derived public values (VIX, the previous pack, RV20), so this is no privacy issue.

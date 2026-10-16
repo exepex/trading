@@ -54,3 +54,11 @@ The record holds a lot: a surface by delta, skew, term structure, fair value for
 three forecasters with scoring. Each part answers the owner's words "prices, price forecasting, valuation" (row 244),
 and every part is descriptive. Nothing reads it to trade. Running cost: seconds in O1's run. Accepted, with minor 1 so
 the valuation is not mistaken for a signal (reasoning only).
+
+## Note: b4055cb7 (11:31)
+The diff from 84074ce5 adds:
+- `parity_forward` as a standalone pure function;
+- every IV and price through `implied_vol.Black76` (no new inverter; good, it keeps one inverter);
+- the G7b and G10 boundaries, both agreed.
+**Should-fix 1 stands:** the PAV weights, the 200-point gap order, the interpolation basis and a committed probe
+fixture are still unspecified.

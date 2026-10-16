@@ -61,3 +61,9 @@ it), and one selection allocator offered to F5. No layer beyond D2, C2, C4 and D
 - Red team and cards never block: criterion 9.
 - Pilot: criterion 10.
 All traced.
+
+## Note: 77a46c33 (11:32)
+The diff from e1994f0a adds `rule_sha256` beside `parameters_sha256` in `fno/playbook/schema.py`, and moves the
+selection allocator to `fno/playbook/selection.py`, to be shared with F5. Both are fine. **The three should-fix
+findings stand.** In particular, line 143 still restores "tracked files to HEAD", while F1t restores to a snapshot
+taken just before `decide()`.

@@ -94,3 +94,8 @@ Fix:
 ## Owner expectations covered
 Fail closed on every miss, an alert and a record for each (rows 246-247), and no AI answer reaches a fill without C2
 and C4: covered by the judging table and criteria 6, 8 and 10.
+
+## Note: f72abb24 (11:30)
+The diff from 2639b915 changes only the Files paragraph (three generic shared pieces in `fno/ai/`) and adds a "Build
+rounds" paragraph. Splitting the shared pieces into their own judged round 1 is a sensible split. **The four
+should-fix findings above stand unchanged at f72abb24.**
