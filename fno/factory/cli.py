@@ -1,11 +1,14 @@
-"""`python -m fno factory register | backfill | screen | spend | plan | status | report` (stories R1a and R1b).
-Research records only: nothing here runs a test, opens an account or places an order."""
+"""`python -m fno factory register | backfill | screen | spend | plan | status | report` (stories R1a and R1b), plus
+R1c's `question | freeze | verdict | shadows` (`shadow_cli.py`). Research records only: nothing here runs a test, opens
+an account or places an order."""
 
 from __future__ import annotations
 
 from datetime import date
 
 from .constants import DEFAULT_ALPHA
+from .shadow_cli import COMMANDS as SHADOW_COMMANDS
+from .shadow_cli import add_shadow_parsers
 
 EXIT_REFUSED = 2
 _GATE_HELP = {
@@ -28,18 +31,21 @@ def add_factory_parser(subparsers) -> None:
     status.add_argument("idea_id")
     report = actions.add_parser("report", help="every idea's trial k of K and last gate, and expected false passes")
     report.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help="one-sided pass level (default 0.01)")
+    add_shadow_parsers(actions)
     factory.set_defaults(func=cmd_factory)
 
 
 def cmd_factory(args) -> int:
+    from ..research_engine.ledger import NotRegistered
     from .card import CardError
     from .gate_log import GateLogError
-    from .gate_steps import GateStepError
+    from .gate_order import GateStepError
+    from .questions import QuestionError
     from .registration import RegistrationError
 
     try:
         lines = _COMMANDS[args.factory_cmd](args)
-    except (CardError, GateLogError, GateStepError, RegistrationError) as refused:
+    except (CardError, GateLogError, GateStepError, QuestionError, RegistrationError, NotRegistered) as refused:
         print(f"refused: {refused}")
         return EXIT_REFUSED
     print("\n".join(lines))
@@ -89,4 +95,4 @@ def _report(args) -> list[str]:
 
 
 _COMMANDS = {"register": _register, "backfill": _backfill, "screen": _gate, "spend": _gate, "plan": _gate,
-             "status": _status, "report": _report}  # fmt: skip
+             "status": _status, "report": _report, **SHADOW_COMMANDS}  # fmt: skip
