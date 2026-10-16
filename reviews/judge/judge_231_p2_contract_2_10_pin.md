@@ -34,3 +34,10 @@ f4f7f404537d0d31f1dd4a3f2539550e101515b5, the full SHA of dashboard main) and re
 and `contract_version` 2.10.0 are unchanged. `git diff 38dfee6 f4f7f40 -- api` is empty, so the pinned bytes are still
 main's. A trial merge with trading main (acbb4cef) merges cleanly: `pytest -n auto` 6940 passed, ruff clean,
 check_imports clean.
+
+## Addendum 2: head 5f9457e1 (the note on the real-data tests acted on)
+
+**PASS.** `git diff 808fee92 5f9457e1` touches only `tests/market_read_models/test_forecast_history_page.py` and
+response 234 addendum 4. Both real-data tests now key each series by (question, label, forecaster, backfill_sha256),
+with None for live, so a real rebuild no longer collides two series. The page code is unchanged. On 5f9457e1 the
+file's 4 tests pass and ruff check and format are clean.
