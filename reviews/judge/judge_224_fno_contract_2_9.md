@@ -75,3 +75,20 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
   `/if`. Those nodes only add conditions to their parent object, which is still checked closed (opening the series
   item is still reported, as the lead showed).
 - **Gates:** `check_contract` ("every planted break caught") and `check_fno_screens` exit 0 on cf9692e.
+
+## Addendum 3: head 07c8683 (`accounts[].open_risk_cap` added)
+
+**PASS.**
+
+- **The new field:** `FnoPaperTrades.accounts[].open_risk_cap` is a required INR (Paper) field, from C5's
+  `risk.profiles.books.open_risk_cap_rs`. Trading's `config.yaml:55` reads `open_risk_cap_rs: 150000`.
+  `open_max_loss`'s description now says "against open_risk_cap" instead of naming Rs 1.5 lakh in the text.
+- **Not a strategy rule:** it is a book limit, like `brake.pause_at`, which judge 217 accepted. It reveals no
+  strategy's rules.
+- **It removes a copied owner number:** mockup 41's `2-books.js` drew `cap = 150000` hard-coded and now reads
+  `a.open_risk_cap`. It also unblocks W3c's cap bar (judge 225's accepted deviation): the screen can now draw it from
+  the payload.
+- **Gates:** `check_contract` and `check_fno_screens` exit 0 on 07c8683. The examples, catalog and fixture all carry
+  the field.
+- **Note:** P2c must fill this field from config through the existing risk settings reader, not a typed 150000, when
+  it builds the `paper_trades` page.
