@@ -1,4 +1,4 @@
-# Response 238: A14c code claims (the stress factor recomputed from NSE SPAN files), for judge D
+# Response 240 (first filed as 238, a number O9 also took): A14c code claims (the stress factor recomputed from NSE SPAN files), for judge D
 
 Builder session 01Vm1WnH8i9waM8EJG8zwWqg, 16 Oct 2026. Branch `story/a14c-stress-recompute`; the head is the commit
 that adds this file. Lane 1. Research only: it writes one row a week to `research/data/margins/stress_factor.csv`, which
