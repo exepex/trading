@@ -51,24 +51,59 @@ def test_every_fno_command_parses_as_the_runner_calls_it(name, monkeypatch):
     assert called == {"global-cues.yml": ["fill"], "vix-history.yml": ["fill", "sweep"]}[name]
 
 
-def _alert_cues(tmp_path, fill_output: str) -> str:
-    """The alert step's `cues=` line, run by bash over a planted fill output."""
+def _alert_step(name: str) -> dict:
+    steps = [s for job in _workflow(name)["jobs"].values() for s in job["steps"]]
+    senders = [s for s in steps if "build_alert_sender" in s.get("run", "")]
+    assert len(senders) == 1 and senders[0] is steps[-1]  # one alert step, the last, so it sees every step's outcome
+    return senders[0]
+
+
+def _fires(name: str, outcomes: dict, failed: bool = False, cancelled: bool = False) -> bool:
+    """The alert step's `if:` as GitHub evaluates it: `failure()` is true after a step without continue-on-error
+    failed (the commit), `!cancelled()` false once the run was cancelled or timed out."""
+    expression = _alert_step(name)["if"].strip().removeprefix("${{").removesuffix("}}")
+    expression = re.sub(r"steps\.(\w+)\.outcome", lambda m: repr(outcomes[m.group(1)]), expression)
+    expression = expression.replace("!cancelled()", repr(not cancelled)).replace("failure()", repr(failed))
+    return eval(expression.replace("&&", " and ").replace("||", " or "))  # noqa: S307 - our own workflow's condition
+
+
+@pytest.mark.parametrize(
+    ("name", "steps"), [("global-cues.yml", ("fill",)), ("vix-history.yml", ("fill", "sweep"))]
+)  # fmt: skip
+def test_the_alert_fires_on_any_failed_step_and_a_failed_commit_and_never_on_a_clean_or_cancelled_run(name, steps):
+    clean = dict.fromkeys(steps, "success")
+    assert not _fires(name, clean) and not _fires(name, clean, failed=True, cancelled=True)
+    assert _fires(name, clean, failed=True)  # judge 351 SF1: the commit failed and every step before it succeeded
+    for step in steps:
+        assert _fires(name, clean | {step: "failure"}) and _fires(name, clean | {step: "failure"}, failed=True)
+        assert _fires(name, clean | {step: "skipped"}, failed=True)  # an earlier setup step failed
+    assert "exit 1" in _alert_step(name)["run"]  # the run is marked failed after its line
+
+
+def _alert_text(tmp_path, fill_output: str, commit: str = "success") -> str:
+    """The alert step's lines before its Python, run by bash over a planted fill output and commit outcome."""
     (tmp_path / "fill.txt").write_text(fill_output)
-    line = next(r for r in _runs("global-cues.yml") if "cues=" in r).splitlines()[0]
-    script = f'{line}\nprintf "%s" "$cues"'
+    lines = _alert_step("global-cues.yml")["run"].split("python -c")[0].replace("${{ steps.commit.outcome }}", commit)
+    script = f'{lines}\nprintf "%s" "${{what:-the run failed}}"'
     return subprocess.run(["bash", "-c", script], env={"RUNNER_TEMP": str(tmp_path)}, capture_output=True, text=True,
                           check=True).stdout  # fmt: skip
 
 
-def test_the_alert_names_each_failed_or_stale_cue_and_only_those(tmp_path):
+def test_the_alert_names_each_failed_or_stale_cue_and_a_failed_commit(tmp_path):
     output = (
         "sp500: FAILED, Cboe download failed (ConnectionError)\n"
         "us10y: 2 dates added, 0 revisions logged, last 2026-10-15\n"
         "brent: 0 dates added, 0 revisions logged, last 2026-09-22; STALE: older than 16 days on 2026-10-16\n"
-        "checks: gaps 3, overlap rows 120\n"
+        "gaps: us10y missing 2\n"
     )
-    assert _alert_cues(tmp_path, output) == "sp500,brent"
-    assert _alert_cues(tmp_path, "STOPPED (RuntimeError): set FNO_GDRIVE_FOLDER_ID. Run again.\n") == ""
+    assert _alert_text(tmp_path, output) == "sp500,brent failed or stale (the log names why)"
+    assert _alert_text(tmp_path, "us10y: 1 dates added\nchecks FAILED (OSError): disk full\n") == (
+        "checks failed or stale (the log names why)"
+    )
+    assert _alert_text(tmp_path, "STOPPED (RuntimeError): set FNO_GDRIVE_FOLDER_ID. Run again.\n") == "the run failed"
+    assert _alert_text(tmp_path, "us10y: 1 dates added\n", commit="failure") == (
+        "the commit step did not succeed (nothing of this run is in the repository)"
+    )
 
 
 def test_the_vix_job_asks_for_the_previous_ist_month(tmp_path):

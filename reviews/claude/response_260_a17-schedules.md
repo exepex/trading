@@ -57,3 +57,31 @@ orchestrator on 16 Oct 2026 (owner: external data must be up to date every day; 
   already comes from index-closes.yml. Daily OHLC rows would need a new story with a new source.
 - **A16b's daily catch-up is not scheduled here.** It needs a Groww key, and the owner decided on 13 Oct (DESK_DECISIONS
   rows 60 and 206) never to put a broker key in GitHub. The options went to the orchestrator for the owner.
+
+## Addendum 1: judge 351 (FAIL, 1 should-fix), fixed
+
+I checked each point before fixing it.
+- **SF1, accepted.** A step whose `if:` holds no status function gets an implicit `success() &&`. So after the commit
+  step failed, the cue-alert step was skipped, and the job-failure step required fill (and sweep) to be `success`. A
+  failed cue plus a failed push therefore posted nothing.
+  - Fix: one alert step per workflow, the last step:
+    - global-cues: `if: ${{ !cancelled() && (steps.fill.outcome != 'success' || failure()) }}`;
+    - vix-history: the same, with sweep added.
+  - Cancelled and timed-out runs stay O10's to post, so nothing is posted twice.
+  - Its line names the failed or stale cues and a commit step that did not succeed. The VIX line gives each step's
+    outcome.
+  - Tests:
+    - `test_the_alert_fires_on_any_failed_step_and_a_failed_commit_and_never_on_a_clean_or_cancelled_run` evaluates
+      the step's own `if:` for clean, failed-step, failed-commit, skipped and cancelled runs. It also asserts there is
+      exactly one sending step, that it is the last step, and that it ends with `exit 1`.
+    - Mutations: putting back the old `if:` fails it, and removing the alert step fails 2 tests.
+- **Minor 1, accepted.** `checks FAILED (...)` is now named `checks` (test case added).
+- **Minor 2, accepted.** YAML ends an unquoted step name at " #", so the alert steps' names are now quoted.
+- **Minor 3, accepted.** The push is retried 3 times (pull, push, 10 s and 20 s waits). A push that still fails is
+  alerted through SF1's step.
+- **Merge order, noted.** If this merges after O10, I add `global-cues` and `vix-history` to capture-watch's list
+  in the merge.
+- **For the owner, agreed.** With the measured delays (4 h 40 min to 5 h 01 min), the 04:41 IST run usually lands at
+  about 09:20-09:40 IST, so the US cues will mostly be marked late at the open. That is a GitHub limit, and this
+  story cannot remove it. A run earlier than 04:41 would come before the Treasury's file (about 04:30 IST).
+- **Gates on the fix commit:** 7,715 passed (-n auto); ruff and the import check are clean.
