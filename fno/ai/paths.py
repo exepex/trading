@@ -22,24 +22,24 @@ def rules_path(day: date) -> str:
     return f"{LIVE_PACK_FOLDER}/{day:%Y}/{day.isoformat()}_forecasts.csv"
 
 
-def commitment_path(day: date, book: str) -> str:
-    return f"{AI_FOLDER}/submissions/{day:%Y}/{day.isoformat()}_{book}.commitment.json"
+def commitment_path(day: date, book: str, folder: str = AI_FOLDER) -> str:
+    return f"{folder}/submissions/{day:%Y}/{day.isoformat()}_{book}.commitment.json"
 
 
-def reveal_path(day: date, book: str) -> str:
-    return f"{AI_FOLDER}/submissions/{day:%Y}/{day.isoformat()}_{book}.reveal.json"
+def reveal_path(day: date, book: str, folder: str = AI_FOLDER) -> str:
+    return f"{folder}/submissions/{day:%Y}/{day.isoformat()}_{book}.reveal.json"
 
 
 def records_path(day: date, book: str) -> str:
     return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_{book}_forecasts.csv"
 
 
-def audit_path(day: date, book: str) -> str:
-    return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_{book}_audit.json"
+def audit_path(day: date, book: str, folder: str = AI_FOLDER) -> str:
+    return f"{folder}/{day:%Y}/{day.isoformat()}_{book}_audit.json"
 
 
-def fired_path(day: date) -> str:
-    return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_fired.json"
+def fired_path(day: date, folder: str = AI_FOLDER) -> str:
+    return f"{folder}/{day:%Y}/{day.isoformat()}_fired.json"
 
 
 def timing_path(day: date, book: str) -> str:
@@ -52,7 +52,3 @@ def transcript_audit_path(day: date, book: str) -> str:
 
 
 AI_V4_FOLDER = "research/forecasts/ai_v4"  # the AI books' v4 fire logs and submissions (their rows: v4/<forecaster>/)
-
-
-def fired_v4_path(day: date) -> str:
-    return f"{AI_V4_FOLDER}/{day:%Y}/{day.isoformat()}_fired.json"

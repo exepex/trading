@@ -12,6 +12,7 @@ from datetime import date
 
 from ..constants import AI_BOOKS, BOOK2_HYBRID, FORECAST_PROTOCOL_V4, V4_QUESTIONS
 from ..constants_operations import ROUTINE_POINTER_MAX_BYTES
+from .envelope import Envelope
 from .pointer import SHA256, PointerRefused, is_probability
 from .v4_input import input_sha256
 from .versions import VersionRefused, current_version
@@ -45,6 +46,19 @@ class V4Pointer:
         if size > ROUTINE_POINTER_MAX_BYTES:
             raise ValueError(TOO_LONG.format(size=size, cap=ROUTINE_POINTER_MAX_BYTES))
         return text
+
+
+def v4_labels(built: dict) -> dict:
+    """What a v4 input fixes in every answer (the book cannot mislabel them); `export_sha256` holds the input's hash, so
+    the answer and commitment formats stay F1's."""
+    return {"book": built["book"], "day": built["day"], "export_sha256": input_sha256(built),
+            "pack_sha256": built["pack_sha256"], "version": built["version"]}  # fmt: skip
+
+
+def v4_envelope(built: dict) -> Envelope | None:
+    """Hybrid's envelope as its input states it; None for Book 3."""
+    rules = built.get("rules")
+    return Envelope.from_json(rules["envelope"]) if rules else None
 
 
 def parse_v4_pointer(text: str) -> V4Pointer:

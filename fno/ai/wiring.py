@@ -37,7 +37,9 @@ from .record_writer import AiRecordWriter
 from .usage_gaps import alert_usage_gaps
 from .usage_record import BookUsageRecorder
 from .v4_book_inputs import V4BookInputs
+from .v4_collect import V4BookCollector
 from .v4_fire import V4BookFirer
+from .v4_settle import V4RowSettler
 
 ROUTINES = {
     BOOK2_HYBRID: (ENV_ROUTINE_BOOK2_TRIGGER_ID, ENV_ROUTINE_BOOK2_TOKEN),
@@ -70,6 +72,23 @@ def build_v4_firer(env=os.environ) -> V4BookFirer:
     inputs = V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER))
     return V4BookFirer(ROOT, triggers, lambda: build_released_packs(env), inputs, build_alert_sender(), now_ist,
                        v4_live_from())  # fmt: skip
+
+
+def build_v4_collector(env=os.environ) -> V4BookCollector:
+    from ..forecast_scoring.v4.wiring import FORECASTS_FOLDER, build_slot_registry
+    from ..v4_pack.wiring import build_released_packs
+
+    history = RepoHistory(ROOT)
+    receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
+    inputs = V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER))
+    return V4BookCollector(ROOT, history, receipts, inputs, lambda: build_released_packs(env), now_ist,
+                           v4_live_from())  # fmt: skip
+
+
+def build_v4_settler(env=os.environ) -> V4RowSettler:
+    from ..forecast_scoring.v4.wiring import FORECASTS_FOLDER
+
+    return V4RowSettler(ROOT, FORECASTS_FOLDER, lambda: build_audit_seeds(ROOT, env)[0])
 
 
 def build_ai_firer(env=os.environ) -> AiBookFirer:

@@ -7,7 +7,7 @@ from datetime import date, datetime, time
 
 import pytest
 
-from fno.ai.paths import fired_v4_path
+from fno.ai.run_terms import V4_TERMS
 from fno.ai.v4_book_inputs import V4BookInputs
 from fno.ai.v4_fire import V4BookFirer
 from fno.ai.v4_pointer import parse_v4_pointer
@@ -35,8 +35,8 @@ PACK_SHA = "d" * 64
 QUESTIONS = [V6_BIG_MOVE_1S, V6_BIG_MOVE_5S]
 
 
-def at(hh, mm, day=DAY):
-    return datetime.combine(day, time(hh, mm), IST)
+def at(hh, mm, ss=0, day=DAY):
+    return datetime.combine(day, time(hh, mm, ss), IST)
 
 
 class Released:
@@ -63,32 +63,27 @@ class Ledger(SlotRegistry):
         return slots | {key: Registration("book3_ai_v2", DAY) for key in self.extra}
 
 
+def write_rules(v4):
+    """The day's live rules-slot (the weather) and base-rate rows for V6a, committed before 14:30; V6b has none."""
+    audit = dict(label=records.LIVE, kind="rule", slot="rules", method_sha256="b" * 64, inputs_sha256="c" * 64,
+                 made_at="2026-10-26T08:50:00+00:00")  # fmt: skip
+    for name, value in ((WEATHER_MODEL_VIX, 0.06), (V4_BASELINE_BASE_RATE, 0.04)):
+        records.write(v4, name, V6_BIG_MOVE_1S, [records.record(DAY, V6_BIG_MOVE_1S, "ok", value, **audit)])
+    return v4
+
+
 class Desk:
     def __init__(self, root, ledger=None, released=None, live_from=DAY, now=None):
         self.root, self.alerts = root, RecordingAlerts()
         self.triggers = {BOOK2_HYBRID: FakeTrigger(BOOK2_HYBRID), BOOK3_AI: FakeTrigger(BOOK3_AI)}
-        v4 = root / "research/forecasts/v4"
-        for name, value in ((WEATHER_MODEL_VIX, 0.06), (V4_BASELINE_BASE_RATE, 0.04)):
-            row = records.record(
-                DAY,
-                V6_BIG_MOVE_1S,
-                "ok",
-                value,
-                label=records.LIVE,
-                kind="rule",
-                slot="rules",
-                method_sha256="b" * 64,
-                inputs_sha256="c" * 64,
-                made_at="2026-10-26T08:50:00+00:00",
-            )
-            records.write(v4, name, V6_BIG_MOVE_1S, [row])
+        v4 = write_rules(root / "research/forecasts/v4")
         inputs = V4BookInputs(root, ledger or Ledger(), ForecastFiles(v4))
         packs = released or Released()
         self.firer = V4BookFirer(root, self.triggers, lambda: packs, inputs, self.alerts,
                                  lambda: now or at(14, 33), live_from)  # fmt: skip
 
     def log(self):
-        return json.loads((self.root / fired_v4_path(DAY)).read_text())
+        return json.loads((self.root / V4_TERMS.fired_path(DAY)).read_text())
 
 
 def test_both_books_are_fired_once_with_their_whole_input_in_the_pointer(tmp_path):
@@ -113,13 +108,13 @@ def test_both_books_are_fired_once_with_their_whole_input_in_the_pointer(tmp_pat
 
 @pytest.mark.parametrize(
     ("live_from", "now", "why"),
-    [(DAY, at(14, 33, date(2026, 10, 27)), "is not today"), (None, None, "no v4 go-live date"),
+    [(DAY, at(14, 33, day=date(2026, 10, 27)), "is not today"), (None, None, "no v4 go-live date"),
      (date(2026, 10, 27), None, "not live before 2026-10-27")],
 )  # fmt: skip
 def test_a_day_that_is_not_today_or_not_live_fires_nothing_and_logs_nothing(tmp_path, live_from, now, why):
     desk = Desk(tmp_path, live_from=live_from, now=now)
     assert why in desk.firer.fire(DAY)[-1]
-    assert not (tmp_path / fired_v4_path(DAY)).exists() and not desk.triggers[BOOK3_AI].fired
+    assert not (tmp_path / V4_TERMS.fired_path(DAY)).exists() and not desk.triggers[BOOK3_AI].fired
 
 
 def test_no_released_pack_fires_nothing_and_says_why(tmp_path):

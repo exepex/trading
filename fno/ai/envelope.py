@@ -28,6 +28,11 @@ class Envelope:
         """Protocol v4: one primary baseline per question (its value, or None when it has none today)."""
         return cls({q: _bounds([] if value is None else [value], width) for q, value in baseline.items()})
 
+    @classmethod
+    def from_json(cls, bounds: dict) -> Envelope:
+        """The envelope `as_json` wrote (an input's own statement of it)."""
+        return cls({q: (tuple(b) if b else None) for q, b in bounds.items()})
+
     def problem(self, question: str, probability: float | None) -> str:
         """Why the answer breaks the envelope, or '' when it is inside (a "no forecast" always is)."""
         if probability is None:

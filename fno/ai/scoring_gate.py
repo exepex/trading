@@ -13,7 +13,7 @@ from pathlib import Path
 from .audit_plan import fired_sessions, first_days, sessions_to_audit
 from .draw_seed import Week, WeekSeed
 from .outcome import ON_TIME
-from .paths import audit_path
+from .run_terms import V2_TERMS, RunTerms
 from .transcript_audit import BREACH, TranscriptAudits
 
 SCORED, UNSCORED, PENDING = "scored", "unscored", "pending"
@@ -30,9 +30,10 @@ class ScoringStatus:
         return self.status == SCORED
 
 
-def scoring_status(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed]) -> ScoringStatus:
+def scoring_status(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed],
+                   terms: RunTerms = V2_TERMS) -> ScoringStatus:  # fmt: skip
     """`seeds`: the weekly draws' verified seeds (`fno.ai.wiring.build_audit_seeds`); none means no week is drawn."""
-    collected = Path(root) / audit_path(day, book)
+    collected = Path(root) / terms.audit_path(day, book)
     if not collected.is_file():
         return ScoringStatus(PENDING, "not collected", "")
     audit = json.loads(collected.read_text(encoding="utf-8"))

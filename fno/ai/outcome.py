@@ -5,15 +5,16 @@ attempted values stay in the audit file."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
 from ..constants import FORECAST_QUESTIONS
 from .answer import AnswerRefused, check_answer
 from .envelope import Envelope
+from .run_terms import V2_TERMS, RunTerms
 from .seal import SealBroken, open_reveal
 from .submissions import Submission
-from .timing import receipt_deadline, reveal_deadline
 from .versions import BookVersion
 
 ON_TIME, LATE, NOT_REVEALED, INVALID = "on_time", "late", "not_revealed", "invalid"
@@ -26,7 +27,8 @@ class Outcome:
     book: str
     status: str
     version: str = ""  # the registered version label the records carry
-    probabilities: dict[str, float | None] = field(default_factory=lambda: dict.fromkeys(FORECAST_QUESTIONS))
+    questions: tuple[str, ...] = FORECAST_QUESTIONS  # the day's questions (v2's five, or a v4 pointer's list)
+    probabilities: dict[str, float | None] = field(default_factory=dict)
     problems: dict[str, str] = field(default_factory=dict)
     attempted: dict = field(default_factory=dict)
     model_reported: str = ""
@@ -35,9 +37,12 @@ class Outcome:
     revealed_at: datetime | None = None
     notes: list[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self.probabilities = self.probabilities or dict.fromkeys(self.questions)
+
     def withdraw(self, status: str, note: str) -> None:
         """No probability counts any more (the attempted values stay in the audit)."""
-        self.status, self.probabilities = status, dict.fromkeys(FORECAST_QUESTIONS)
+        self.status, self.probabilities = status, dict.fromkeys(self.questions)
         self.notes.append(note)
 
 
@@ -51,10 +56,11 @@ def model_check(reported: str, registered: str) -> str:
 
 
 def judge(book: str, day: date, submission: Submission, labels: dict, envelope: Envelope | None,
-          version: BookVersion) -> Outcome:  # fmt: skip
+          version: BookVersion, terms: RunTerms = V2_TERMS,
+          questions: Sequence[str] = FORECAST_QUESTIONS) -> Outcome:  # fmt: skip
     """The book's outcome from its submission, before the cross-book exposure check."""
     commitment, reveal = submission.sealed(), submission.reveal
-    outcome = Outcome(book, ON_TIME, version.label, notes=list(submission.notes))
+    outcome = Outcome(book, ON_TIME, version.label, tuple(questions), notes=list(submission.notes))
     if submission.commitment is None:
         outcome.withdraw(NO_SUBMISSION, "no commitment in the repository (the AI was unavailable)")
         return outcome
@@ -63,12 +69,12 @@ def judge(book: str, day: date, submission: Submission, labels: dict, envelope: 
     if commitment is None:
         outcome.withdraw(INVALID, "the commitment file is not a commitment")
         return outcome
-    if reveal is None or reveal.received_at is None or reveal.received_at > reveal_deadline(day):
-        outcome.withdraw(NOT_REVEALED, f"no reveal received by {reveal_deadline(day):%H:%M} IST ({_why(reveal)})")
+    if reveal is None or reveal.received_at is None or reveal.received_at > terms.reveal_deadline(day):
+        outcome.withdraw(NOT_REVEALED, f"no reveal received by {terms.reveal_by:%H:%M} IST ({_why(reveal)})")
         return outcome
     try:
         answer = open_reveal(reveal.text, commitment)
-        checked = check_answer(answer, labels, envelope)
+        checked = check_answer(answer, labels, envelope, questions)
     except (SealBroken, AnswerRefused) as broken:
         outcome.withdraw(INVALID, str(broken))
         return outcome
@@ -79,16 +85,16 @@ def judge(book: str, day: date, submission: Submission, labels: dict, envelope: 
     )
     outcome.model_reported = checked.model_reported
     outcome.model_check = model_check(checked.model_reported, version.registered_model)
-    _deadline_and_model(outcome, submission, day)
+    _deadline_and_model(outcome, submission, terms.receipt_deadline(day))
     return outcome
 
 
-def _deadline_and_model(outcome: Outcome, submission: Submission, day: date) -> None:
+def _deadline_and_model(outcome: Outcome, submission: Submission, deadline: datetime) -> None:
     received = submission.commitment.received_at
     if received is None:
         outcome.withdraw(LATE, f"receipt time unknown, treated as late ({submission.commitment.receipt_problem})")
-    elif received > receipt_deadline(day):
-        outcome.withdraw(LATE, f"commitment received {received.isoformat()}, after {receipt_deadline(day):%H:%M:%S}")
+    elif received > deadline:
+        outcome.withdraw(LATE, f"commitment received {received.isoformat()}, after {deadline:%H:%M:%S}")
     elif outcome.model_check == "mismatch":
         outcome.withdraw(MODEL_MISMATCH, f"the session reported {outcome.model_reported}, not the registered model")
 

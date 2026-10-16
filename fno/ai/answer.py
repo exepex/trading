@@ -5,6 +5,7 @@ fix a refused answer before the deadline) and when collecting (nothing unchecked
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..constants import FORECAST_QUESTIONS
@@ -34,8 +35,10 @@ def complete_answer(draft: dict, labels: dict) -> dict:
     return {**labels, **draft}
 
 
-def check_answer(answer: dict, labels: dict, envelope: Envelope | None) -> CheckedAnswer:
-    """Every question's outcome, or AnswerRefused when the labels or the shape are wrong."""
+def check_answer(answer: dict, labels: dict, envelope: Envelope | None,
+                 questions: Sequence[str] = FORECAST_QUESTIONS) -> CheckedAnswer:  # fmt: skip
+    """Every question's outcome, or AnswerRefused when the labels or the shape are wrong. `questions`: the day's (v2's
+    five, or a v4 pointer's list)."""
     if not isinstance(answer, dict) or sorted(answer) != list(ANSWER_FIELDS):
         raise AnswerRefused(f"the answer must have exactly the fields {', '.join(ANSWER_FIELDS)}")
     wrong = [name for name, value in labels.items() if answer[name] != value]
@@ -45,10 +48,10 @@ def check_answer(answer: dict, labels: dict, envelope: Envelope | None) -> Check
     if not isinstance(model, str) or not model.strip() or len(model) > MAX_MODEL_CHARS:
         raise AnswerRefused('model_reported must be short text ("unknown" when the session cannot tell)')
     forecasts = answer["forecasts"]
-    if not isinstance(forecasts, dict) or sorted(forecasts) != sorted(FORECAST_QUESTIONS):
-        raise AnswerRefused(f"forecasts must name exactly {', '.join(FORECAST_QUESTIONS)}")
+    if not isinstance(forecasts, dict) or sorted(forecasts) != sorted(questions):
+        raise AnswerRefused(f"forecasts must name exactly {', '.join(questions)}")
     kept, problems = {}, {}
-    for question in FORECAST_QUESTIONS:
+    for question in questions:
         value, problem = _question(forecasts[question])
         problem = problem or (envelope.problem(question, value) if envelope else "")
         kept[question], problems[question] = (None if problem else value), problem

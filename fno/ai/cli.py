@@ -2,6 +2,7 @@
 
 - `fire`: after the day's v2 pack is committed, fires each AI book's routine once (one #fno-desk line per failure);
   `fire --protocol v4 --day <d>` fires them on the released v4 pack instead (G11, run by v4-fire.yml);
+  `collect --protocol v4` judges the v4 day, then writes the rows of every settled day (G11);
 - `reveals-ready`: exit 0 once every fired book's reveal is in the checkout (or nothing was fired);
 - `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once), then
   records every book run's own timing in BG1's usage ledger and alerts each run of the day not captured (F8c);
@@ -28,10 +29,10 @@ def add_ai_parser(subparsers) -> None:
                        ("collect", "record the AI books' forecasts for the day (after 15:15 IST)")):  # fmt: skip
         action = actions.add_parser(name, help=text)
         action.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today in IST)")
-        if name == "fire":
+        if name in ("fire", "collect"):
             protocols = (FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4)
             action.add_argument("--protocol", choices=protocols, default=FORECAST_PROTOCOL_V2,
-                                help="v4: on the released v4 pack (v4-fire.yml)")  # fmt: skip
+                                help="v4: the books' run on the released v4 pack")  # fmt: skip
     actions.add_parser("coverage", help="pack days with a counted forecast, per AI book")
     actions.add_parser("audits-due", help="routine sessions selected for a transcript audit and not yet audited")
     record = actions.add_parser("audit-record", help="record one routine session's transcript audit (written once)")
@@ -50,8 +51,8 @@ def cmd_ai(args) -> int:
     day = getattr(args, "day", None) or now_ist().date()
     if args.ai_cmd == "audit-record":
         return _audit_record(args)
-    if args.ai_cmd == "fire" and args.protocol == FORECAST_PROTOCOL_V4:
-        return _fire_v4(day)
+    if args.ai_cmd in ("fire", "collect") and args.protocol == FORECAST_PROTOCOL_V4:
+        return _fire_v4(day) if args.ai_cmd == "fire" else _collect_v4(day)
     commands = {"fire": _fire, "reveals-ready": _reveals_ready, "collect": _collect, "coverage": _coverage,
                 "audits-due": _audits_due}  # fmt: skip
     return commands[args.ai_cmd](day)
@@ -68,6 +69,14 @@ def _fire_v4(day: date) -> int:
     from .wiring import build_v4_firer
 
     print("\n".join(build_v4_firer().fire(day)))
+    return 0
+
+
+def _collect_v4(day: date) -> int:
+    """Judges the day, then writes the rows of every settled day and counts those awaiting audit."""
+    from .wiring import build_v4_collector, build_v4_settler
+
+    print("\n".join(build_v4_collector().collect(day) + build_v4_settler().settle()))
     return 0
 
 

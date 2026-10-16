@@ -26,7 +26,7 @@ from ..models import IST
 from ..pipeline.trigger import FireFailed, RoutineTrigger
 from ..v4_pack.model import Pack
 from ..v4_pack.release import NotReleased, ReleasedPacks
-from .paths import fired_v4_path
+from .run_terms import V4_TERMS
 from .stop_rule import stop_reason
 from .v4_book_inputs import QuestionsRefused, V4BookInputs
 from .v4_pointer import V4Pointer
@@ -53,7 +53,7 @@ class V4BookFirer:
         refused = self._refused(day)
         if refused:
             return [LINE.format(day=day, result=refused)]
-        log_file = self.root / fired_v4_path(day)
+        log_file = self.root / V4_TERMS.fired_path(day)
         if log_file.is_file():
             return [LINE.format(day=day, result="already fired (fired once per day)")]
         try:
