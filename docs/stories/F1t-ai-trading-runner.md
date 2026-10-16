@@ -137,13 +137,16 @@ that first commit fired nothing.
 
 **Pointer (`DecisionPointer`, one line of JSON):** `kind: "decision"`, `book`, `day`, `version` (the registered decision
 version's label), `common_pack_sha256`, `private_pack_sha256`, `private_pack` (the book's E2 private pack body),
-`cards` and `cards_sha256`.
+and `analyst_cards`; `brief` prints `analyst_cards` with the two packs.
 Only that book's private pack is ever put in its pointer (book isolation). **Analyst cards (agreed with F2, 16 Oct):**
-the pointer also holds `cards` and `cards_sha256`, read at `ai_fire` from F2's `CardsOfDay.cards(day)` port (F2 saves
-the day's cards by 14:55): every registered role's status line with its reason, and the card itself only when it is
-`valid` or `not_applicable`. The port never raises; with no cards file every role reads `no_submission`. The cards are
-the same for both AI books (the analysts are shared, not a book's private input). A book whose decision version lists
-no role units gets `cards: []`. `brief` refuses a pointer whose fields are
+the pointer also holds one item `analyst_cards`, read at `ai_fire` from F2's `CardsOfDay` port (F2's own sealed
+routines; the day's cards file is in Drive by 14:55, before any book is fired, so their independence is shown by F2's
+receipts): `role_set_version`, `input_sha256` (the cards file's SHA-256) and every registered role's status line with
+its reason, with the card itself only when it is `valid` or `not_applicable`. The port never raises; with no cards
+file every role reads `no_submission`. The item is the same for both AI books (the analysts are shared, not a book's
+private input). A book whose decision version lists no role units gets an item with no roles. Cards are never part of
+a book's answer; a book may cite card IDs in its own `decision` (F6's `cards_used`), checked by its own shape check
+and decider against the IDs it was given. `brief` refuses a pointer whose fields are
 not exactly these, whose version is not the book's current one, or whose private pack's canonical SHA-256 (E2's
 `canonical_json`) is not `private_pack_sha256`.
 
@@ -198,7 +201,8 @@ class AcceptedDecision:
     session: str                      # the fire log's session link (D3 `session_id`)
     common_pack: CommonPack; private_pack: PrivatePack
     decision: dict                    # the book's own object, already shape-checked
-    cards_sha256: str; consulted_units: tuple[str, ...]   # F2: the roles whose cards were passed (F9's column)
+    analyst_cards: dict               # F2's item exactly as fired (card IDs, role_set_version, input_sha256)
+    consulted_units: tuple[str, ...]  # the unit IDs whose card was in that item: what was given (F9b withholds it)
     commitment_commit: str; reveal_commit: str
 
 class AiBookDecider(ABC):             # F5: Book 2; F6: Book 3
@@ -234,8 +238,9 @@ including a ledger row written before `decide()`).
 
 **Role units (F2, F9):** each decision version names the role units it consults (v1: `analyst_volatility`) beside its
 prompt, model and isolation, so they are part of the book's D6 version; F2 writes `agents/role_units.yaml` from them.
-The outcome record holds `consulted_units` (roles with a `valid` or `not_applicable` card in the pointer) and
-`cards_sha256`, and the decider receives both to link in the D3 record.
+The book's D6 version row names F2's `role_set_version`. The outcome record holds `consulted_units` (the unit IDs
+whose card was in the book's `analyst_cards` item, whatever the book says it used) and the item's `input_sha256`, and
+the decider receives the item and `consulted_units` to link in the D3 record.
 
 **Book isolation:** each book's pointer holds only its own private pack; the decider receives only its own book's
 packs; each book's account is its own E1 folder (no shared cash); submissions of one book are never in another's
@@ -248,8 +253,11 @@ week drawn with the same verified weekly seed), the same record and breach kinds
 `fired_sessions`, `TranscriptAudits` and `breached_days` take the folder or path as a parameter whose default is
 today's value (no forecast behaviour changes).
 
-**Usage (F8):** each decision routine's last step records its run with F8's `record-usage --self-timed --purpose
-books_and_roles --role "<book> trading decision"` (as LR1's routine does).
+**Usage (F8, agreed with F8c's owner, 16 Oct):** one mechanism, F8c's: `brief` starts `RunTiming` and `reveal`
+publishes it to a role-bearing timing path (`timing_path(day, book, run="decision")`, giving
+`<d>_<book>_decision.timing.json`), and `BookUsageRecorder` maps that suffix to role "<book> trading decision"
+(`books_and_roles`). F1t extends F8c's code after F8c merges (17 Oct), reviewed by F8's owner. F8c's not-captured
+alert keys on fire logs, so it also reads the decision fire log.
 
 **Live switches:** `daily.live_from.book2_hybrid` and `daily.live_from.book3_ai`, null until the owner sets them, read
 by one function beside O1's `live_dates` in `fno/daily/wiring.py` and listed in `fno/config.py`'s allowed
@@ -286,9 +294,9 @@ boundary and empty cases (quality rule 5).
    wrong kind, another book's version, a private pack whose hash differs from its field, or a common pack whose
    committed bytes differ from `common_pack_sha256`, and prints nothing of the input; a good pointer prints the prompt,
    both packs and nothing else from the repository (tests; `brief` reads no file but the prompt and the common pack).
-3b. **Cards.** The pointer holds every registered role's status line, the card only when `valid` or
-   `not_applicable`, and `cards_sha256`; with no cards file every role reads `no_submission` and the book is still
-   fired; a version with no role units gets `cards: []`; `consulted_units` in the outcome record lists exactly the
+3b. **Cards.** The pointer's `analyst_cards` item holds `role_set_version`, `input_sha256`, every registered role's
+   status line and the card only when `valid` or `not_applicable`, and `brief` prints it; with no cards file every role reads `no_submission` and the book is still
+   fired; a version with no role units gets an item with no roles; `consulted_units` in the outcome record lists exactly the
    roles whose card was passed (tests with a fake `CardsOfDay`).
 4. **Seal and reveal.** `seal` adds the labels itself, refuses a wrong shape with what to fix, publishes only the
    commitment, and refuses a second seal; `reveal` waits until `reveal_from` and publishes a reveal that hashes to the
@@ -322,9 +330,12 @@ boundary and empty cases (quality rule 5).
 12. **Transcript audit and stop rule** for decision sessions: selection, record and stop by the forecast's rule on the
     decision fire logs; forecast audits, draws and stops unchanged (tests on both).
 13. **Routine prompts and checklist.** `docs/stories/F1t-owner-checklist.md` holds the two routines' exact prompts (one
-    line of JSON passed only to `brief`; stop on a refusal; never `--no-verify`; record usage), the environment
+    line of JSON passed only to `brief`; stop on a refusal; never `--no-verify`), the environment
     variables' names (never values) the daily run needs, and the go-live checks below. A test checks the checklist's
     command names exist in the CLI.
+15. **Usage.** A decision session's `brief` and `reveal` write its timing file at the decision timing path; the
+    recorder books it as `books_and_roles` with role "<book> trading decision"; a fired decision session with no
+    timing file is reported "not captured" by F8c's check; forecast timing is unchanged (tests).
 14. **Real output sample.** The claims show the outcome records and alert lines of a fixture day with one promoted and
     one late book, made by the committed code in a test, with no live post.
 
@@ -371,7 +382,7 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 | Reuse `fno/ai` fire, collect, seal (task) | design (trigger, seal, transport, receipts interface, audit) | |
 | Live switch off until the owner turns it on (task) | criterion 1 | |
 | Budget cap stops AI roles (BG1, design 7.6) | criterion 2 | |
-| AI usage recorded (F8) | criterion 13 (prompt step) | |
+| AI usage recorded (F8) | criterion 15 | |
 | Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct): at E2's pack step code runs D2 for Book 2 and writes `journal/book2_hybrid/rule_defaults/<d>.json` (rule default terms and eligible set per opportunity); it is inside Book 2's private pack, so it travels in F1t's pointer under `private_pack_sha256` with no change here |
 | Analyst cards and consulted units (F2, F9) | criterion 3b | The cards themselves: F2 |
 | Red team, judge, shadows (F3, F4, F7) | carried in `decision` unchanged | Their stories |
