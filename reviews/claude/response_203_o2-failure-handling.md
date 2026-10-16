@@ -133,3 +133,34 @@ Notes:
   hooks staying in git's process group, which is git's default; a hook that starts its own session (setsid) would
   survive the stop.
 - **Gates:** 7638 passed; ruff, format, check_imports and check_records are clean.
+
+## Revision 6 (judge 204 addendum 4: the shadow replaces `book_test`)
+
+- **What I checked first (strong evidence, read in the code):**
+  - A shadow is decided and recorded inside Book 1's run, but **nothing fills, exits or refuses a shadow's orders**.
+    `ReplayedOrders.orders` takes `evaluation.chosen`, which keeps only `Decision.CHOSEN`; shadow outcomes are
+    `SHADOW_TRADE` (`fno/books/book1_orders.py` 47, `fno/playbook/outcomes.py` 71-72).
+  - `fill` and `review_exits` loop over `books` only (`fno/desk/daily_steps.py` 152, 200).
+  - Earlier reviews say the same: response_211 line 14, "shadow orders and fills are E8 part 1b's".
+  - The only per-account step today is `trade_marks` (`fno/desk/trade_marking.py`, an `except` per account).
+- **Consequences, written into the row:**
+  - **(a)** isolation at marking can be tested now;
+  - **(b)** a Book 1 failure must leave the shadow unchanged;
+  - **(c)** a shadow failure inside D2 aborts Book 1's whole decision today. `evaluate.py` 52-59 has no guard. That is
+    a real isolation gap. I am reporting it to D2's owner through the orchestrator, and the case is `xfail`, naming the
+    gap, until the fix;
+  - a refusal of only the shadow's orders cannot be produced, because there are none (judge's point 1, said, not
+    dropped).
+- **Drive failures:** `AccountWriteRefused` is never reached through the real wiring. A Drive failure is
+  `PrivateFilesUnavailable` (a `CommitFailed`) and stops the whole run (`fno/desk/private_files.py` 31 and 100-107,
+  E2c's rule), so "account write refused for one account" is not a per-account case today. Row Drive (b) already
+  tests the whole-run stop.
+- **Fixture, not code:** a `paper` fixture strategy with committed evidence (as `tests/playbook/test_loader.py`
+  `approved_repository` builds it), a registered research shadow, a fixture market that fires, and NSE's F&O file for
+  C4's listing check. All of it lives in the fresh checkout, and a test proves the source tree's playbook, registry and
+  version files are unchanged.
+- **Correction of my own earlier claim:** I first told the orchestrator that "Book 1 has no registered version, so
+  nothing trades". The version registry only affects scoring. The real reason nothing trades is that the registry
+  holds no `paper` strategy. The row and the Known limits say so.
+- **Criterion 8:** one fixture day takes 6-7 s through the real wiring. About 35 days cannot finish in a minute, so
+  the limit becomes two minutes on four cores, measured, not guessed.

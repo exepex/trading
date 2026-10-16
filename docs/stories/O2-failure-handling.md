@@ -59,7 +59,7 @@ family:
 | Hung command | a step's child command never ends, once while it holds a git lock (Book 1's `desk book1` commits its own decision) | stopped at O1's 600 s limit with its whole process group; the lock files created while it ran are removed by the same rule as a stopped git call (absent at its start, and nothing else runs git meanwhile); the step `failed`, one alert, the day goes on and the next commit succeeds |
 | Data and limits (design 9) | a stale snapshot; an order over a C4 limit; the drawdown brake hit | no new trade for that order or book, stale prices never used as a fill, the alert names the check, and open trades go on under their own exits |
 | Broken protection (E4c) | at the entry snapshot: a protective leg cannot be bought; a protective leg can be bought but not sold back; a short leg cannot be sold | nothing fills and the trade is `not_opened` with E4c's reason code (`protection_not_buyable`, `protection_not_sellable`, `short_leg_not_sellable`), one desk event, no fill or ledger row, the account unchanged, and E4c's one alert ("... not opened: <reason code> (<contract>, <units> units): information, no action"). The position is never half-hedged. Neither the record nor the alert holds a quote figure |
-| One book's failure | a test-only second book `book_test` (the one exception to criterion 6): its orders refused (`OrdersRefused`); its account write refused (`AccountWriteRefused`); its exit review raising | `book_test`'s entries fail closed with one alert each and the run goes on; Book 1's decision, fills, exits and private records are byte-identical to the same day with `book_test` failure-free |
+| One account's failure (judge 204 add. 4) | the second account is Book 1's shadow (a registered research version in the fixture checkout), never a test-only book. Today's code gives a shadow decisions, records, an opened account and marks, and nothing else (no shadow order, fill or exit exists: E8 part 1b's). So, through fixture data and outside seams only: (a) the shadow's account file served corrupt by the Drive fake at the `trade_marks` step; (b) Book 1's orders refused by its own replay (`OrdersRefused`, a fixture record whose replay differs); (c) a shadow-side failure inside Book 1's decision (the shadow's account file corrupt when `desk book1` reads it) | (a) only the shadow's marking fails, with one alert; Book 1's marks, records and private files are byte-identical to the twin day; (b) Book 1 opens nothing that day, with one alert, and the shadow's records and account are byte-identical; (c) today D2 has no guard around the shadow loop (`fno/playbook/evaluate.py` 52-59), so the failure aborts Book 1's whole decision: a gap, reported to D2's owner, and the case asserts the fixed rule once that fix lands (until then it is `xfail` with the gap named, never a test that expects the wrong outcome). A refusal of only the shadow's orders cannot be produced: shadows have no orders, so that case waits for E8 part 1b, and Book 2's isolation case for F5/F6 |
 
 Every case also checks: each alert is named and sent once (or printed once when unsent); every due exit is reviewed
 or held with an alert, never silently skipped; and the run ends on its one line (`day done with problems: ...`, or
@@ -85,15 +85,18 @@ Out:
 4. **A rerun repeats nothing.** Kill after each step (and once between a record and its commit), then rerun: no step
    runs twice; the final state is byte-identical to an uninterrupted day except the named `quotes_done` outcome for
    kills from `quotes` to `exits`, or follows E3's documented late rule.
-5. **Books are isolated.** Book 1's records hash the same with and without each `book_test` failure.
+5. **Accounts are isolated, both ways.** Book 1's records and files hash the same with and without each shadow
+   failure, and the shadow's with and without each Book 1 failure (the realistic risk while Book 1 trades alone).
 6. **Fakes only at the edges.** The suite builds the run through `fno/daily/wiring.py`, replacing only the outside
-   services: a test fails if any other part is replaced. The one exception: a test-only second book `book_test`, passed
-   through `build_daily_run`'s existing `books` parameter (the real run has only Book 1), so book isolation can be
-   tested before the AI books trade.
+   services: a test fails if any other part is replaced. Trades come from fixture data in the fresh checkout only (a
+   `paper` fixture strategy with its committed evidence, a registered research shadow, a fixture market that fires,
+   NSE's F&O file for C4's listing check served by the NSE archive fake), never from replaced code; a test proves the
+   source tree's `playbook/`, `playbook/registry.csv` and `journal/versions.csv` are byte-unchanged after the suite.
 7. **Real failure, real fix.** Every gap the suite finds is reported in the claims, with its file and line and the
    story that owns the fix. None is hidden by a test that expects the wrong outcome.
 8. **Engineering.** No file over 350 lines. The suite runs under `-n auto`, never touches the network, and finishes
-   in under a minute (some evidence: today's daily tests take about 6 s).
+   in under two minutes on four cores (some evidence: one fixture day takes 6-7 s through the real wiring, measured
+   16 Oct; revision 6 relaxes "a minute", which that measurement shows is not met by about 35 fixture days).
 
 ## Gap list
 
@@ -119,6 +122,9 @@ Out:
 - Judge 204 note B is closed: E4c's own print was removed in O1 with its owner's agreement
   (`fno/desk/daily_steps.py` 191), and `tests/timetable/test_entry_check_alert.py` asserts exactly one unsent line;
   criterion 3 checks it again over the whole day.
+- Nothing trades in production today (strong evidence: `playbook/registry.csv` holds no `paper` strategy, only
+  `b0-monthly-sc` v1 as `research`, dated 16 Oct; `fno playbook check` says "approved for paper: none"), so the trade
+  rows test a path that is not live yet. Shadow fills and exits wait for E8 part 1b, Book 2's isolation for F5/F6.
 - Steps that join `DAILY_RUN_STEPS` later (F1t's `ai_fire` and `ai_collect`, G13, A16b's catch-up, Book 2's rule
   default) are covered by the kill-and-rerun cases, which read the tuple, and by `Alerted`'s one-alert rule; each
   story's own failure cases come with it. O10 (capture-job freshness) covers only jobs outside `daily run` and sends no
@@ -133,6 +139,7 @@ twin, and each family's key assertion is broken once on purpose.
 kill after `fills` and rerun); plants one regression (for example, exits skipped after a stop) and sees a test fail.
 
 **Depends:** O1 (merged 1d01fd08), E2c, E4c, C3, C4, E3, O8 (merged); LM1 for its case · **Status:** story text
-revision 5 for judge D (judge 204 add. 2 should-fix 1: the stopped call's process group and its lock files): the hard git limit and the hung-command row, row (a) after O1's early quote parts, `book_test`
+revision 6 for judge D (judge 204 add. 4: the shadow replaces `book_test`, fixture data only, isolation both ways,
+the named limit; criterion 8's time measured); revision 5 passed (judge 204 add. 3): the hard git limit and the hung-command row, row (a) after O1's early quote parts, `book_test`
 in criterion 5, note B closed (revision 3 passed, judge 204 addendum 1)
 (`reviews/claude/response_203_o2-failure-handling.md`)
