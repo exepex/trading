@@ -8,12 +8,14 @@ from .blocks import CURRENCY, BlockBuilder, SessionRows
 from .page_holds import PageHeld
 
 DECISION_UTC = "T09:30:00Z"  # the books decide at 15:00 IST (design 13.5): their figures are as of then
-OPEN_TRADE_RISK = (  # story P11's hold reasons: fixed sentences shown on screen, so no value and no digit (2.13.0)
-    "A book holds an open trade, and this page does not compute its risk used yet, so nothing is shown rather than a "
-    "wrong figure"
+# Story P11's hold reasons: fixed sentences shown on screen, so no value, no digit and no story code (contract 2.13.0;
+# the screens lead's wording, one list with the contract's examples). The risk used is C2's stress of the open trades
+# and the picks are the books' D3 decision records, neither built by story P10 yet.
+OPEN_TRADE_RISK = (
+    "A book holds an open trade whose risk this page cannot compute yet, so nothing is shown rather than a wrong figure"
 )
 APPROVED_PICKS = (
-    "A strategy is approved, and this page does not build its picks yet, so nothing is shown rather than an empty "
+    "A strategy is approved, and this page cannot build its picks yet, so nothing is shown rather than an empty "
     "panel that is no longer true"
 )
 

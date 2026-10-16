@@ -111,3 +111,14 @@ checks every hold reason in the code. The pin and the one-line wiring follow its
 2. The keys are `reason` and `shows`, as in the code since addendum 5.
 3. A test checks every reason against the pattern. It reads the pinned `FnoPageHolds.reason` pattern once 2.13.0 is
    pinned; until then it checks the same rule, no digit.
+
+## Addendum 7 (16 Oct): one list of reasons, the screens lead's wording
+
+The screens lead's plain wording is adopted exactly; the contract's examples (story/fno-contract-2-13 b8399c7) carry
+the same three sentences, so there is one list:
+- card: "A risk rule was broken: the sizing or validity checks let a trade past its book's per-trade cap"
+- risk: "A book holds an open trade whose risk this page cannot compute yet, so nothing is shown rather than a wrong
+  figure"
+- today: "A strategy is approved, and this page cannot build its picks yet, so nothing is shown rather than an empty
+  panel that is no longer true"
+The story codes (C2, C4, P10, D3) stay in the code's comments.

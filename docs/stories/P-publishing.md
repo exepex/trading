@@ -456,8 +456,8 @@ own, while every other page publishes. Then a broken rule never shows a wrong ca
    - the run is `published`;
    - the status row's `reason` names each held page and its rule;
    - one #fno-desk line per held page, through the existing sender: "<day>: <page> held back: <rule>".
-   - For the card, the reason reads "A risk rule was broken: the risk sizing or the validity check let a trade past
-     its book's per-trade cap" (judge 233 add. 3, condition 1; no digit, judge 255).
+   - For the card, the reason reads "A risk rule was broken: the sizing or validity checks let a trade past its
+     book's per-trade cap" (the screens lead's wording, one list with the contract's examples) (judge 233 add. 3, condition 1; no digit, judge 255).
    - **Every reason is digit-free** (contract 2.13.0, `FnoPageHolds.reason`: `^[^0-9]*$`). It is shown on screen,
      so it holds no value, and a test checks every reason in the code against the pinned pattern.
 4. **Unchanged:** every other failure still stops the whole run, as today. A hold is only for a rule its block's story
