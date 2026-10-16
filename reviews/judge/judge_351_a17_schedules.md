@@ -91,3 +91,28 @@ Remedies, each **reasoning only**:
 
 That choice is the owner's. The same delay makes the 07:11 IST VIX job run at about noon, which is harmless for
 month files.
+
+## Addendum 1: re-judge at 97fe83ea (014b4cd1 the judge 351 fixes; 97fe83ea the orchestrator's earlier slot; main merged)
+
+**Verdict: PASS. A17 schedules may merge** (the second of O10 and A17 to merge adds `global-cues` and `vix-history`
+to capture-watch's list).
+
+Gates on 97fe83ea: **7715 passed**; ruff, ruff format (1388), `check_imports.py` and the record scan (6704) are clean.
+
+| Finding | Builder's answer | My check | Result |
+|---|---|---|---|
+| SF1: a failed cue or VIX step plus a failed commit posted nothing | one alert step, last, `if: ${{ !cancelled() && (steps.fill.outcome != 'success' \|\| failure()) }}` (VIX adds `sweep`); the test evaluates the `if:` for clean, failed-step, failed-commit, skipped and cancelled runs and asserts one sending step that ends `exit 1` | Plants: the `!cancelled()` guard removed (back to an implicit success): 1 failed. `sweep` dropped from the VIX condition: 1 failed. `!cancelled()` rather than `always()` is right, because O10 posts cancelled and timed-out runs (judge 350 add. 1). O10's needs_alert sees this step: the name starts "One line to" and is quoted | **Accepted** |
+| Minor 1: `checks FAILED` named "the run" | the grep also takes `<name> FAILED` | read | **Accepted** |
+| Minor 2: unquoted step names | quoted | read | **Accepted** |
+| Minor 3: no push retry | 3 tries, 10/20/30 s | read | **Accepted** |
+| Note: the 04:41 run lands after 09:15 | main run 03:41 IST (22:11 UTC), 04:41 as the Treasury backup, 14:11 for RBI. The test asserts main after 02:30 IST, main + 5 h before 09:15, and backup in 04:30-09:15 | 03:41 + 5 h 01 min = 08:42, before the open. It is 71 min after the winter (EST) close, 02:30 IST, which applies from 1 Nov 2026 | **Accepted** |
+
+**Condition to measure (some risk, stated by the builder):** under the owner's once-a-day download rule, if Cboe's
+or Nasdaq's file at 03:41 IST does not yet hold the US close, that close is first seen a day late every day, and
+nothing alerts: the 7-day stale limit never fires on a one-day lag. The builder will measure it after a week. The
+orchestrator should hold them to that measurement, with the first-seen versus value-date lags per day cited.
+
+**Other workflows (reported by the builder, checked by me):** index-closes, nse-margins and panel-days have the same
+implicit-`success()` alert after a commit step. When the librarian fails and the commit then fails, neither alert
+step runs. O10's watcher at 0db3f682 now covers this: the run is a `failure` whose failed job ran no "Alert" or "One
+line to" step, so the watcher posts. No change is needed in those frozen or other-owner files once O10 merges.
