@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import subprocess
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
 
 PUSH_ATTEMPTS = 3
@@ -36,10 +37,14 @@ class ManifestRecorder(ABC):
 
 class GitManifestRecorder(ManifestRecorder):
     def __init__(self, repository: Path, folder: Path, run=subprocess.run, message: str = COMMIT_MESSAGE,
-                 label: str = MANIFEST_LABEL, keep_remote_on_conflict: bool = False):  # fmt: skip
+                 label: str = MANIFEST_LABEL, keep_remote_on_conflict: bool = False,
+                 run_paths: Sequence[str] = ()):  # fmt: skip
         """`keep_remote_on_conflict`: a pull conflict is settled with the copy already pushed (`-X theirs`), for a
-        folder of write-once records where the first push wins (story A16); off for manifests."""
+        folder of write-once records where the first push wins (story A16); off for manifests. `run_paths`: path
+        prefixes another committer of the same run writes (the A16 run's claims and ledger, judge 247): their
+        unpushed commits are this run's own, so they never block this push and go up with it."""
         self.repository, self.run, self.message, self.label = Path(repository), run, message, label
+        self.run_paths = tuple(run_paths)
         self.merge_option = ("-X", "theirs") if keep_remote_on_conflict else ()
         self.folder = Path(folder).resolve().relative_to(self.repository.resolve()).as_posix()
 
@@ -98,7 +103,7 @@ class GitManifestRecorder(ManifestRecorder):
         changed = self._git("diff", "--name-only", f"origin/{TARGET_BRANCH}...HEAD")
         if changed.returncode != 0:
             return changed
-        foreign = sorted(path for path in changed.stdout.splitlines() if path and not self.owns(path))
+        foreign = sorted(path for path in changed.stdout.splitlines() if path and not self._of_this_run(path))
         if foreign:
             reason = OFF_MAIN.format(target=TARGET_BRANCH, paths=", ".join(foreign))
             return subprocess.CompletedProcess(changed.args, 1, stdout="", stderr=reason)
@@ -106,6 +111,9 @@ class GitManifestRecorder(ManifestRecorder):
 
     def owns(self, path: str) -> bool:
         return path.startswith(f"{self.folder}/")
+
+    def _of_this_run(self, path: str) -> bool:
+        return self.owns(path) or path.startswith(self.run_paths)
 
     def abort_merge(self) -> None:
         """Never leaves the checkout mid-merge: every later commit would fail."""
