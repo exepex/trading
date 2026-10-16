@@ -1,7 +1,7 @@
 # A21. Rates and same-day first-seen: RBI's T-bill and repo rates daily, NSE announcements before 14:00
 
 **Repository:** trading · **Lane:** 1 (new story; outside services RBI and NSE; schedules) · **Judge:** F ·
-**Response number:** 270 (reserved) · **Owner rule (16 Oct 2026):** data must be up to date, and every failure alerts
+**Response number:** 272 (claims file) · **Owner rule (16 Oct 2026):** data must be up to date, and every failure alerts
 and is recorded.
 
 **Description:** As the owner, I want the cash rate and the policy rate captured from RBI every day, dated and with the
@@ -90,15 +90,17 @@ Out (each with where it goes):
   - `RatesAsOf(cutoff)` returns each rate's latest value first seen at or before the cutoff, never a later one.
 - **Announcements (`fno/announcements_live/`):**
   - An `AnnouncementSource` interface has one adapter, `NseAnnouncementsSource`. It calls A12's URL template
-    (`fno/filings/sources.py:53`) with today's date in both fields, through the existing NSE client `PublicData.nse_json`
-    (`fno/providers/public.py`): a paced session, a 0.4 s pause after each call, three tries with a cookie warm-up.
-    `docs/DATA_SOURCES.md` keeps `PublicData` outside A9b's retry policy, so the poller catches everything it raises
-    (`requests` errors, an HTTP 403 or 429, `RuntimeError`, bad JSON) and turns it into a named failure. One request per
-    poll.
+    (`fno/filings/sources.py:53`) with today's date in both fields: one GET per poll on a paced session with `PublicData`'s
+    headers (`fno/providers/public.py`, imported). The GET has **a hard timeout of 5 s, connect plus read, and no retry
+    or cookie warm-up inside the mark** (A16 owner's condition). `PublicData.nse_json` itself is not used, because its
+    three tries and 20 s timeouts could hold A16's commit. A failed poll is simply retried at the next mark.
+    `docs/DATA_SOURCES.md` keeps NSE calls outside A9b's retry policy, so the poller catches everything (`requests`
+    errors, HTTP 403 or 429, a timeout, bad JSON) and turns it into a named failure.
   - **The seen set (judge 355 SF2).** Each run is a fresh process. Before its first poll of the day it loads today's
     rows from today's receipted part files, read through O9's verified Drive cache. If that load fails, the run stops
     with one alert and one O10 row (`kind` `seen_set_unreadable`) and polls nothing, so an item is never re-recorded
-    with a later time. Within a run, the set is kept in memory and grows with each poll.
+    with a later time. Within a run, the set is kept in memory and grows with each poll. The read-back happens once
+    per run (A16's hourly fire), at its first in-window mark.
   - Each poll keeps every `seq_id` not in the seen set. A row is `seq_id, symbol, isin, desc, an_dt, exchdisstime,
     attachment_url, first_seen_at, run_id`. `first_seen_at` is the poll's request time. The first run that sees an
     item wins, and a later run never rewrites it.
@@ -113,11 +115,22 @@ Out (each with where it goes):
   09:00-15:00 IST, each looping over its marks. On its first live day, 16 Oct 2026, it settled 23 of 26 marks with a
   running process. From 09:15 to 14:00 that was 17 of 20 marks (10:00 onwards; the first fire did not run, so
   09:15-09:45 are `missed`; `research/data/intraday/slots/2026/10/16/`) [strong evidence for one day].
-  - **Design:** the poller plugs in behind A16's `MarkObserver` port (`fno/intraday/observer.py`, merged, judge 265
-    add. 1). The port holds one observer and LM1's monitor plugs in too, so a fan-out `ObserverGroup` runs each
-    member isolated, LM1 first. The fan-out's place and A16's one wiring line (`fno/intraday/wiring.py:79`) are to be
-    agreed with A16's owner (01VK88Lx) and LM1's builder (012eM7Ti): both are asked.
-  - On each `after_mark` with mark 09:15-14:00 IST, the poller makes one poll. A mark after 14:00 polls nothing.
+  - **Design (agreed, 16 Oct 2026, with A16's owner 01VK88Lx and LM1's builder 012eM7Ti):** the poller plugs in
+    behind A16's `MarkObserver` port (`fno/intraday/observer.py`, merged, judge 265 add. 1), as one member of A16's
+    fan-out (below).
+  - On each `after_mark` with mark 09:15-14:00 IST, the poller makes one poll, whatever the mark's status (NSE's list
+    does not depend on Groww's quotes). A mark after 14:00 returns at once.
+  - **Time budget per mark (A16 owner and LM1 builder's condition):** the GET's 5 s, then the Drive writes of that
+    poll's raw response and its new rows, each with its own hard timeout, 10 s per mark in all. A write that does not
+    finish is a named failure. Its items stay unrecorded and are recorded at the next poll with that later time: later
+    than the true sighting, which is safe for a cutoff, never earlier.
+  - **The fan-out is A16's:** `ObserverGroup(MarkObserver)` in `fno/intraday/observer.py`, built by A16's owner.
+    Each member is isolated: a failing member never skips the next, and each failure line names the member's class.
+    Members get the same `(day, mark, document, status)` and share nothing. A16's `wiring.py` becomes
+    `observer=ObserverGroup(_observers())`; LM1 and A21 each add their own member in their own branch, LM1 first.
+  - **Coverage is visible (A16 owner's condition):** the day's poll log lists the window's 20 marks (09:15-14:00),
+    each `polled ok`, `polled failed (kind)` or `no poll (no mark)`. A gap shows as a gap, never as "no
+    announcements".
   - **A day whose window had no successful poll:** at the first mark after 14:00 (any status), the poller writes one
     `missed_window` poll-log row and one O10 row, and posts one alert.
   - **No successful poll by 10:00:** at the first mark at or after 10:00, if today's poll log has no `ok` row, one
@@ -125,8 +138,11 @@ Out (each with where it goes):
   - **Said plainly:** if A16's routine does not run at all, A21's poller does not run either. Nothing in A21 then
     alerts during the day; A16's own heartbeat-silence check and O8's daily health check are the witnesses. A21 adds
     no host of its own; that would be an owner decision (judge 352 SF1's platform question).
-  - The poll runs inside the recorder's process before its commit. Its cost is one NSE request of about 1 s plus
-    pacing per mark [some evidence: today's live calls took under 2 s].
+  - The poll runs inside the recorder's process, before its commit. Its cost is at most the 10 s budget per mark; today's
+    live calls took under 2 s [some evidence]. A16's snapshot is taken before any observer runs, so the marks' on-time
+    measure is not touched (A16 owner).
+  - **Network (Known limit):** the A16 routine's environment must allow `www.nseindia.com`. The owner set that
+    environment's policy, so the first dry run inside the routine proves it, or names the refusal.
 - **Failures (the owner's rule):** every failure posts one #fno-desk line and appends one O10 row
   (`research/ops/capture_errors.csv`, `job` `rates` or `announcements_live`, `kind` named).
   - **Rates (at most one alert per run, two runs a day):** a source not reachable or refused; a page whose expected
@@ -184,16 +200,20 @@ Out (each with where it goes):
     - mark 14:15 does not poll, and on a day with no `ok` poll it writes one `missed_window` row and one alert;
     - a first `ok` poll at 10:00 is clean, while no `ok` poll by the 10:00 mark gives one `no_poll_by_1000` alert;
     - the last `ok` poll 60 minutes before a mark is clean, and 60 minutes plus 1 second is stale.
-11. Episodes: three failed polls in a row (a 403, a 429, a timeout) give one alert, one O10 row and three poll-log
-    rows; the next `ok` poll posts one "recovered" line. The poller never raises into A16's recorder: a planted
-    exception leaves the recorder's rows and commit untouched (A16's own isolation test passes).
+11. Episodes and isolation:
+    - three failed polls in a row (a 403, a 429, a timeout) give one alert, one O10 row and three poll-log rows, and
+      the next `ok` poll posts one "recovered" line;
+    - a fake source that sleeps past 5 s gives the named timeout failure within the budget, and A16's commit still
+      runs;
+    - a planted exception in A21's member leaves LM1's member called and the recorder's rows and commit untouched;
+    - the day's coverage lists all 20 window marks, with a `no poll (no mark)` line for each mark A16 did not reach.
 12. A closed day (A7) makes no announcements request and writes "not a trading day".
 13. Every page and response is stored once in Drive under O9 with its receipt. No data file is committed to the
     repository.
 14. `rates-daily.yml` is in O10's capture-watch list (its own test passes), posts one #fno-desk line on failure, and
     uses only `FNO_SLACK_BOT_TOKEN`.
-15. Nothing in A12, A19, G13, S6, C2 or C4 changes; their tests pass untouched. A16 changes only by the agreed wiring
-    line and fan-out.
+15. Nothing in A12, A19, G13, S6, C2 or C4 changes; their tests pass untouched. A16 changes only by A16's own fan-out and
+    A21's one member line in its wiring.
 
 **Gap list (quality rule 2).**
 
@@ -212,7 +232,9 @@ Out (each with where it goes):
 | Agree with A12's owner; A19 leaves the gap to A12 | Settled below (orchestrator, A19's owner); criterion 15 |
 | Failures in O10's record (brief) | Criteria 3, 6-8, 10, 11, 14 |
 | Storage under O9's Drive rule (brief; CLAUDE.md) | Criteria 8 (seen set through the Drive cache) and 13 |
-| `PublicData` callers catch everything (`docs/DATA_SOURCES.md`) | Criterion 11 |
+| NSE callers catch everything (`docs/DATA_SOURCES.md`); bounded time inside A16's mark (A16 owner, LM1 builder) | Criterion 11 |
+| A gap in coverage is visible (A16 owner) | Criterion 11 (coverage list) |
+| A16's routine may not allow NSE's host (A16 owner) | Known limit; the first dry run in the routine proves it |
 | F&O output only to #fno-desk with `FNO_SLACK_BOT_TOKEN` (CLAUDE.md) | Criterion 14 |
 | No real orders (CLAUDE.md) | No order path is touched; criterion 15 |
 | Quality rules 5, 6, 8 (boundaries, real sample, live run) | Criteria 4, 6, 7, 9, 10 (boundaries); the test plan and claims (sample and live run) |
@@ -242,5 +264,5 @@ layout change, a stale week and a late home page. Runs two separate poll runs. C
   A19 never fetches NSE announcements. A12's next-day day file still keeps the whole day with `exchdisstime`; A21 adds
   only the same-day copy with first-seen times.
 
-**Depends:** O9 step 1 (done), O10 (in progress), A7 (done), A12 (done), A16's mark observer port (done) and the fan-out agreement. **Size:** M (two rounds: rates, then
+**Depends:** O9 step 1 (done), O10 (in progress), A7 (done), A12 (done), A16's mark observer port (done) and A16's `ObserverGroup` (A16's owner builds it after the orchestrator's go). **Size:** M (two rounds: rates, then
 announcements).
