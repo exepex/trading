@@ -57,3 +57,19 @@ section) so the port has its own record.
 2. `evaluation` key always present: 15 failed.
 3. Refusal neither sent nor printed: 2 failed.
 4. Hash check dropped in `canonical_snapshot`: 1 failed.
+
+## Addendum 1 (309.1, claimed with O12's tool): b1838eb3
+
+**Verdict: PASS. It may merge after the gates on the final merged tree.**
+- **Should-fix 1: fixed.** `canonical_snapshot` now reads the pack's recorded `snapshot_id` from its recorded
+  `dataset`, checks the quote file and the sidecar against the pack's `csv_sha256` and `meta_sha256`, and parses those
+  verified bytes. The marker is never read.
+- **Production fit:** real common packs record `dataset`, `csv_sha256` and `meta_sha256`
+  (`fno/desk/snapshot_inputs.py:86-87`), so the stricter check refuses nothing real.
+- **My plant re-run** (a later capture with the 21,950 CE bid at 9,999.99, named by the marker; the pack records
+  14:55 with both hashes): it now returns the pack's quotes (`[1162.85, 11.55]`).
+- **The builder's direct tests** (`tests/packs/test_pack_snapshot.py`): the good case, my plant, a wrong csv or
+  sidecar hash, a missing capture, and no snapshot named.
+- **Gates on b1838eb3 merged with `origin/main` (local 33b9a44b), run myself:** 7,952 passed, 18 xfailed; ruff,
+  format, imports and records clean.
+- **Minor 1: fixed.** E2e now has its section in `E-paper-desk.md`.
