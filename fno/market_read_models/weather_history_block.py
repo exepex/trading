@@ -1,4 +1,4 @@
-"""The weather's history page (story P2a, screen W3a; contract `FnoWeatherHistory` 2.9.0, page `weather_history`): every
+"""The weather's history page (story P2a, screen W3a; `FnoWeatherHistory` 2.10.0, page `weather_history`): every
 session's colour, label and two chances of a big move beside the usual chances from M1's records, oldest first, and
 the counts by colour and label.
 

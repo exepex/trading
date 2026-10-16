@@ -4,7 +4,7 @@ question, each forecaster's running score as G4's report of each day gives it (`
 - **Live and back-fill apart:** G4's `live_1500_proxy` mode is `live`, `close_proxy` is `backfill_exploratory`; a live
   series and a back-fill one are never joined.
 - **One point per G4 report** (its as_of); a day without a report has no point, and a point needs n >= 1.
-- **One back-fill file per series** (contract 2.9 at ea75be3, `backfill_sha256`): a back-fill series names the file
+- **One back-fill file per series** (contract 2.10.0, `backfill_sha256`): a back-fill series names the file
   it was scored on (G4's `inputs.backfill_sha256`); when the file changes, the same forecaster starts a new series, so
   no series spans a rebuild (a rebuild moves every running average at once). A live series names none."""
 

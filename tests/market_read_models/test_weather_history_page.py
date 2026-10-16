@@ -1,4 +1,4 @@
-"""Story P2a (screen W3a): the `weather_history` page (contract 2.9.0), every session's colour, label and chances from
+"""Story P2a (screen W3a): the `weather_history` page (contract 2.10.0), every session's colour, label and chances from
 M1's records, re-counted here straight from the record files. The chances are back in 2.9 (owner, 16 Oct 2026: the
 levels stay public)."""
 

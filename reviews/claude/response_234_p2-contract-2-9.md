@@ -74,3 +74,13 @@ files; five files changed. It adds the two fields the screens lead had proposed:
 2. **`accounts[].open_risk_cap` on `FnoPaperTrades`.** No page of this branch builds `FnoPaperTrades`; that page is
    P2c. When I build it, the cap comes from the risk settings reader (`fno/risk/profile_settings.py`
    `open_risk_cap_rs`), never a typed number, and the same goes for `brake.pause_at` (judge 224 addendum 3's note).
+
+## Addendum 2: pinned to 2.10.0 at dashboard 38dfee6 (the orchestrator; supersedes ea75be3)
+
+- **Why:** the orchestrator merged the judged version bump, so the shape with `backfill_sha256` and `open_risk_cap` is
+  now labelled 2.10.0 (dashboard 38dfee63b1418bce271026c5ad9509552dc40f29). That ends the "two shapes under one
+  label" problem.
+- **What changed:** the pinned `api/` bytes; `contract_version` 2.10.0; the version test. No file was added or
+  removed, and the code is unchanged from addendum 1.
+- **The dashboard's main is already at f4f7f40,** which changes only `web/`. `git diff 38dfee6 f4f7f40 -- api/` is
+  empty, so `market contract-check` against main reports the pin as the same.
