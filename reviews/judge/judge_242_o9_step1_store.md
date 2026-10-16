@@ -60,3 +60,15 @@ None for this step. What is built is correct and tested.
 5. A writer name containing a tab breaks the receipt format. Refuse it in `DataStore` or `Receipt`.
 6. Two runs in the same UTC second order their snapshots by random hex, so "newest wins" is not guaranteed there. This is unlikely, but it should be documented or tie-broken by `written_at`.
 7. Update the register row and the composition-root list in `CLAUDE.md` (lane 3 / docs).
+
+## Addendum 1 (16 Oct 2026): merge check, step 1 merged to main as 78d66a02
+
+**Verdict: merge check PASS.**
+
+- **The merge is exact.**
+  - Its parents are 281583b9 (main) and aa79450b (the passed tip).
+  - Recomputing it with `git merge-tree` gives a tree identical to 78d66a02 (empty diff).
+  - `git diff aa79450b 78d66a02 -- fno/storage tests/o9_store .gitignore` is empty.
+  - Against its main parent, it adds exactly the branch's 9 files (485 lines).
+- **Later changes on main.** Only A14c (32db170b) has touched `fno/storage` since: `content_checks.py` and `raw_source.py`, which step 1 did not change.
+- **CI.** Checks run 38872554601 on ffa0f74e, which contains the merge, ran the full suite and is green.
