@@ -102,3 +102,14 @@ def test_a_decider_refusal_is_refused_and_the_other_book_is_untouched(tmp_path):
         outcomes["book2_hybrid"]["status"] == REFUSED and "envelope sheet missing" in outcomes["book2_hybrid"]["reason"]
     )
     assert outcomes["book3_ai"]["status"] == PROMOTED
+
+
+def test_consulted_units_are_the_roles_whose_card_was_given():
+    from fno.ai_trading.ports import consulted_units
+
+    item = {"roles": [{"unit_id": "analyst_volatility", "status": "valid"},
+                      {"unit_id": "analyst_macro", "status": "not_applicable"},
+                      {"unit_id": "analyst_positioning", "status": "late"},
+                      {"unit_id": "analyst_equity", "status": "no_submission"}]}  # fmt: skip
+    assert consulted_units(item) == ("analyst_macro", "analyst_volatility")
+    assert consulted_units({}) == () and consulted_units({"roles": []}) == ()
