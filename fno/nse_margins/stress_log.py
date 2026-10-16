@@ -3,7 +3,12 @@ guardrails that decide the next row, and the append-only write. C2 and C4 read t
 
 Guardrails (owner, 15 Oct 2026, DESK_DECISIONS da0f769d; orchestrator: hold every fall): a result below 1.0 writes no
 row; a result at or above the factor in force is applied at once; any lower result is held (the row keeps the old
-factor and the alert asks the owner), unless the run cites the owner's DESK_DECISIONS commit approving that fall."""
+factor and the alert asks the owner), unless the run cites the owner's DESK_DECISIONS commit approving that fall.
+
+One k per structure family (owner, 16 Oct 2026): each run appends one row per family. A family's factor in force is its
+own latest row or an `all` row (the rows written before the family column), whichever is later; only its own rows carry
+a measured value forward, so its first run is full. The first append adds `family` to the header line once; no data
+row's bytes change."""
 
 from __future__ import annotations
 
@@ -14,7 +19,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import STRESS_FACTOR_COLUMNS
+from ..constants import FAMILY_ALL, STRESS_FACTOR_COLUMNS, STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES
 
 ROUND_STEP = 0.05  # the rule rounds the largest needed factor up to the next 0.05 (response 77)
 APPLIED, HELD = "applied", "held"
@@ -41,10 +46,12 @@ class NextRow:
     peak: str
     coverage_through: date
     evidence_sha256: str
+    family: str
 
     def as_csv_line(self) -> str:
         values = (self.as_of.isoformat(), f"{self.factor:g}", f"{self.computed:g}", f"{self.unrounded:.6f}",
-                  self.status, self.peak, self.coverage_through.isoformat(), self.evidence_sha256)  # fmt: skip
+                  self.status, self.peak, self.coverage_through.isoformat(), self.evidence_sha256,
+                  self.family)  # fmt: skip
         out = io.StringIO()
         csv.writer(out, lineterminator="\n").writerow(values)
         return out.getvalue()
@@ -72,31 +79,39 @@ class StressFactorFile:
     def __init__(self, path: Path):
         self.path = path
 
-    def last(self) -> LastRow:
+    def last(self, family: str) -> LastRow:
+        """The family's factor in force (its own latest row or an `all` row, whichever is later in the file) and the
+        measured value only its own latest row carries (none before its first run, so that run is full)."""
         rows = self._rows()
-        if not rows:
-            raise StressRowRefused(f"{self.path.name} has no row: the owner's seed must be first (story C2d)")
-        row = rows[-1]
+        in_force = [row for row in rows if (row.get("family") or FAMILY_ALL) in (family, FAMILY_ALL)]
+        if not in_force:
+            raise StressRowRefused(f"{self.path.name} has no row for {family}: the owner's seed must be first (C2d)")
+        own = [row for row in rows if row.get("family") == family]
         try:
-            unrounded = float(row["unrounded"]) if row["unrounded"] else None
-            through = date.fromisoformat(row["coverage_through"]) if row["coverage_through"] else None
-            return LastRow(float(row["factor"]), unrounded, through)
+            unrounded = float(own[-1]["unrounded"]) if own and own[-1]["unrounded"] else None
+            through = date.fromisoformat(own[-1]["coverage_through"]) if own and own[-1]["coverage_through"] else None
+            return LastRow(float(in_force[-1]["factor"]), unrounded, through)
         except (TypeError, ValueError) as exc:
-            raise StressRowRefused(f"{self.path.name}: its last row is unreadable ({exc})") from exc
+            raise StressRowRefused(f"{self.path.name}: the last {family} row is unreadable ({exc})") from exc
 
-    def append(self, row: NextRow) -> None:
-        """Appends one line; the bytes already there stay a prefix (never edited)."""
+    def append(self, rows: list[NextRow]) -> None:
+        """Appends one line per row; the data rows already there keep their bytes (never edited). Before the first
+        family row the header line alone gains `family`, written to a new file and moved over the old one."""
         data = self.path.read_bytes()
-        with open(self.path, "ab") as fh:
-            if data and not data.endswith(b"\n"):
-                fh.write(b"\n")
-            fh.write(row.as_csv_line().encode("utf-8"))
+        old_header = ",".join(STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES).encode("utf-8")
+        if data.split(b"\n", 1)[0].rstrip(b"\r") == old_header:
+            data = ",".join(STRESS_FACTOR_COLUMNS).encode("utf-8") + data[len(old_header) :]
+        if data and not data.endswith(b"\n"):
+            data += b"\n"
+        fresh = self.path.with_suffix(".tmp")
+        fresh.write_bytes(data + b"".join(row.as_csv_line().encode("utf-8") for row in rows))
+        fresh.replace(self.path)
 
     def _rows(self) -> list[dict[str, str]]:
         if not self.path.is_file():
             raise StressRowRefused(f"{self.path.name} is missing")
         with open(self.path, encoding="utf-8", newline="") as fh:
             reader = csv.DictReader(fh)
-            if tuple(reader.fieldnames or ()) != STRESS_FACTOR_COLUMNS:
+            if tuple(reader.fieldnames or ()) not in (STRESS_FACTOR_COLUMNS, STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES):
                 raise StressRowRefused(f"{self.path.name}: columns must be {', '.join(STRESS_FACTOR_COLUMNS)}")
             return list(reader)

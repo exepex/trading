@@ -10,7 +10,7 @@ from datetime import date, timedelta
 
 from fno.nse_margins.calculator import NseIndexOptionExposure, SpanMarginCalculator
 from fno.nse_margins.held_rise import HeldRiseTracker
-from fno.research_engine.structures import ShortIronFly
+from fno.research_engine.structures import LongIronFly, ShortIronFly
 
 from .span_builder import EXPIRY, LOT, SF_ARRAYS, default_options, risk, span_zip
 
@@ -53,6 +53,12 @@ def manifest(files: Mapping[date, bytes]) -> dict[date, str]:
 def sf_tracker() -> HeldRiseTracker:
     return HeldRiseTracker((ShortIronFly(),), lambda _: (100.0,), SpanMarginCalculator(NseIndexOptionExposure(), LOT),
                            weekday)  # fmt: skip
+
+
+def measured_tracker() -> HeldRiseTracker:
+    """SF for the credit family and BF for the debit one (A14c families); the planted BF 100 needs 1.0 every day."""
+    return HeldRiseTracker((ShortIronFly(), LongIronFly()), lambda _: (100.0,),
+                           SpanMarginCalculator(NseIndexOptionExposure(), LOT), weekday)  # fmt: skip
 
 
 def day_file(files: Mapping[date, bytes]) -> Callable[[date], tuple[str, bytes | None]]:

@@ -122,15 +122,28 @@ def test_from_the_31st_day_every_trade_is_refused_until_the_factor_is_renewed(tm
 
 def test_the_repository_s_file_is_read_by_its_own_rule(tmp_path):
     """Config names the real file, and C2 uses its latest row dated strictly before the day, whatever A14c has added
-    (append-only, so the seed stays in force on 15 Oct, the day after it, forever)."""
+    (append-only, so the seed stays in force on 15 Oct, the day after it, forever) for the proposal's family (SF is
+    credit) or `all` (A14c families)."""
     path = ROOT / load_app_config()["risk"]["stressed_margin"]["factor_file"]
-    all_rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    rows = csv.DictReader(path.open(encoding="utf-8"))
+    all_rows = [r for r in rows if (r.get("family") or "all") in ("credit", "all")]
     latest = max(date.fromisoformat(r["as_of"]) for r in all_rows)
     for day in (date(2026, 10, 15), latest + timedelta(days=1)):  # the seed's next day, the latest row's next day
         before = [r for r in all_rows if date.fromisoformat(r["as_of"]) < day]
         _, margin = _factor_on(tmp_path, day, path)
         used = margin.numbers["stress_factor_row"]
         assert (used["as_of"], used["factor"]) == (before[-1]["as_of"], before[-1]["factor"])
+
+
+def test_the_decision_records_the_row_of_the_proposal_s_family(tmp_path):
+    """A14c families: an SF proposal uses and records the credit row, never the debit row of the same day."""
+    path = tmp_path / "families.csv"
+    path.write_text(SEED_ONLY + "2026-10-16,1.2,1.2,1.15,applied,BF 100,2026-10-15,a,debit\n"
+                    "2026-10-16,2.3,2.3,2.25,applied,SF 100,2026-10-15,b,credit\n"
+                    "2026-10-16,1.3,1.3,1.25,applied,BF 200,2026-10-15,c,debit\n", encoding="utf-8")  # fmt: skip
+    _, margin = _factor_on(tmp_path, date(2026, 10, 20), path)
+    used = margin.numbers["stress_factor_row"]
+    assert (used["factor"], used["family"], used["evidence_sha256"]) == ("2.3", "credit", "b")
 
 
 @pytest.mark.parametrize(

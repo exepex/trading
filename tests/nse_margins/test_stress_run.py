@@ -4,6 +4,7 @@ point-in-time checks, incremental equals full, deterministic evidence, and one #
 A held SF 100 at scale 1 has a whole margin of 53,950 a lot; a scale-20 day lifts it to 91,000 (rise 1.68674,
 computed 1.7) and a scale-8 day to 67,600 (rise 1.25301, computed 1.3), against the owner's seed of 1.45."""
 
+import csv
 import time
 from datetime import date
 
@@ -13,7 +14,7 @@ from fno.nse_margins.stress_log import StressFactorFile
 from fno.nse_margins.stress_run import StressFactorRun, StressSources
 from tests.stress_factor_files import HEADER
 
-from .stress_days import FIRST, day_bytes, day_file, manifest, planted, sf_tracker, weekday
+from .stress_days import FIRST, day_bytes, day_file, manifest, measured_tracker, planted, weekday
 from .test_job import Alerts
 
 SEED = '2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,\n'
@@ -31,7 +32,8 @@ def run(
     rows=SEED,
     workers=1,
     read=None,
-    tracker=sf_tracker,
+    tracker=measured_tracker,
+    family="credit",
     is_trading_day=weekday,
 ):
     tmp_path.mkdir(parents=True, exist_ok=True)
@@ -43,7 +45,14 @@ def run(
                             is_trading_day, tracker, FIRST, workers)  # fmt: skip
     code = StressFactorRun(sources, StressFactorFile(factor), tmp_path / "evidence", alerts, run_day,
                            printed.append).run(full, approved)  # fmt: skip
-    return code, factor.read_text(encoding="utf-8").splitlines()[-1].split(","), alerts.sent
+    return code, family_row(factor, family), alerts.sent
+
+
+def family_row(factor, family):
+    """The family's latest row, or the file's last row when the run wrote none (the seed is read as `all`)."""
+    rows = list(csv.reader(factor.read_text(encoding="utf-8").splitlines()[1:]))
+    own = [row for row in rows if row[-1] == family]
+    return own[-1] if own else rows[-1]
 
 
 def test_a_rise_is_applied_at_once_with_its_evidence(tmp_path):
@@ -54,7 +63,8 @@ def test_a_rise_is_applied_at_once_with_its_evidence(tmp_path):
         len(sent) == 1 and "applied 1.7" in sent[0] and "was 1.45" in sent[0] and "SF 100 entered 2026-10-01" in sent[0]
     )
     evidence = (tmp_path / "evidence" / "stress_evidence_2026-11-05.md").read_text(encoding="utf-8")
-    assert "1.686747" in evidence and "Factor in force: 1.7 (applied)" in evidence
+    assert "| credit | 17 | 1.686747 | 1.7 | 1.7 (applied) |" in evidence
+    assert "| debit | 17 | 1.000000 | 1 | 1.45 (held) |" in evidence
 
 
 def test_any_fall_is_held_and_the_owner_is_asked(tmp_path):
@@ -122,7 +132,7 @@ def test_the_files_csv_names_every_session_and_its_sha256(tmp_path):
 
 def test_no_completed_holding_writes_nothing(tmp_path):
     code, row, sent = run(tmp_path, planted(date(2026, 10, 30)), run_day=date(2026, 10, 31))
-    assert code == 1 and row[0] == "2026-10-14" and "no holding completed" in sent[0]
+    assert code == 1 and row[0] == "2026-10-14" and "no debit holding completed in the archive" in sent[0]
 
 
 def test_the_seed_s_hand_value_is_not_a_floor(tmp_path):
@@ -144,7 +154,8 @@ def test_an_incremental_run_counts_only_holdings_that_ended_since_the_last(tmp_p
     run(tmp_path, files, run_day=date(2026, 12, 9))  # incremental: the 25 entered 26 Oct-27 Nov end on 7 Dec
     first = (tmp_path / "evidence" / "stress_evidence_2026-11-05.md").read_text(encoding="utf-8")
     second = (tmp_path / "evidence" / "stress_evidence_2026-12-09.md").read_text(encoding="utf-8")
-    assert "Holdings completed in this run: 17;" in first and "Holdings completed in this run: 25;" in second
+    for family in ("debit", "credit"):
+        assert f"| {family} | 17 |" in first and f"| {family} | 25 |" in second
 
 
 def test_reading_ahead_changes_no_byte_of_the_row_or_the_evidence(tmp_path):
@@ -159,7 +170,7 @@ def test_reading_ahead_changes_no_byte_of_the_row_or_the_evidence(tmp_path):
 
     def recording(name):
         def new():
-            tracker = sf_tracker()
+            tracker = measured_tracker()
             feed = tracker.feed
             tracker.feed = lambda day, span, open_new=True: (fed[name].append(day), feed(day, span, open_new))
             return tracker

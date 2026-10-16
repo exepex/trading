@@ -18,20 +18,22 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
-from ..constants import SPAN_BOD_CREATED_BEFORE
+from ..constants import SPAN_BOD_CREATED_BEFORE, STRESS_FAMILIES
 from ..fo_bhavcopy import BadFile
-from .held_rise import HeldRiseTracker, Holding
+from .family_result import FamilyResult, family_result
+from .held_rise import HeldRiseTracker
 from .job import DayFile
 from .prefetch import in_order
 from .span_file import SpanFile, read_span_file
 from .stress_coverage import FIRST_SESSION, CoverageGap, check_coverage, required_sessions
 from .stress_evidence import build_evidence
-from .stress_log import NextRow, StressFactorFile, StressRowRefused, decide
+from .stress_log import NextRow, StressFactorFile, StressRowRefused
 
 LOOKBACK_DAYS = 60  # a holding lasts at most about 44 calendar days (expiry 30-65 days out, exit 21 days before)
-WRITTEN = "Omenix F&O stress factor {run_day}: {status} {factor:g} (computed {computed:g}, was {was:g}); peak {peak}"
+HEADLINE = "Omenix F&O stress factor {run_day}: "
+WRITTEN = "{family} {status} {factor:g} (computed {computed:g}, was {was:g}), peak {peak}"
 HELD_ASK = "; a lower value waits for the owner: approve it with a DESK_DECISIONS row, then rerun with --approve-fall"
-DROPPED = "; {count} holding(s) dropped or not entered (named in the evidence)"
+DROPPED = "; {count} holding(s) dropped, not entered or skipped for an impossible price (named in the evidence)"
 REFUSED = "Omenix F&O stress factor {run_day}: nothing written: {reason}"
 
 
@@ -69,28 +71,20 @@ class StressFactorRun:
     def _run(self, full: bool, approved_fall: str | None) -> str:
         required = required_sessions(self.run_day, self.sources.is_trading_day, self.sources.first_session)
         coverage = check_coverage(required, self.sources.archived())
-        last = self.factor_file.last()
-        full = full or last.unrounded is None or last.coverage_through is None
-        start = self.sources.first_session if full else last.coverage_through - timedelta(days=LOOKBACK_DAYS)
+        lasts = {family: self.factor_file.last(family) for family in STRESS_FAMILIES}
+        full = full or any(last.unrounded is None or last.coverage_through is None for last in lasts.values())
+        through = None if full else min(last.coverage_through for last in lasts.values())
+        start = self.sources.first_session if full else through - timedelta(days=LOOKBACK_DAYS)
         tracker = self._read([d for d in required if d >= start], coverage.files)
-        counted = [h for h in tracker.found.completed if full or h.exit > last.coverage_through]
-        carried = None if full else last.unrounded
-        if not counted and carried is None:
-            raise StressRowRefused("no holding completed in the archive")
-        new_max = max((h.needed for h in counted), default=0.0)
-        unrounded = max(new_max, carried or 0.0)
-        factor, computed, status = decide(last, unrounded, approved_fall)
-        fell = approved_fall if factor < last.factor else None  # the approval is named only on a real fall
-        peak = _peak(counted, new_max, carried, last.coverage_through, fell)
-        evidence = build_evidence(self.run_day, counted, coverage.files, unrounded, (factor, computed, status),
-                                  tracker.found.dropped, "full" if full else "incremental")  # fmt: skip
+        results = [family_result(family, tracker.found.completed, lasts[family], full, approved_fall)
+                   for family in STRESS_FAMILIES]  # fmt: skip
+        evidence = build_evidence(
+            self.run_day, results, coverage.files, tracker.found, "full" if full else "incremental"
+        )
         evidence.write(self.evidence_folder, self.run_day)
-        self.factor_file.append(NextRow(self.run_day, factor, computed, unrounded, status, peak, coverage.through,
-                                        evidence.sha256))  # fmt: skip
-        line = WRITTEN.format(run_day=self.run_day, status=status, factor=factor, computed=computed, was=last.factor,
-                              peak=peak)  # fmt: skip
-        dropped = len(tracker.found.dropped)
-        return line + (DROPPED.format(count=dropped) if dropped else "") + (HELD_ASK if status == "held" else "")
+        self.factor_file.append([NextRow(self.run_day, r.factor, r.computed, r.unrounded, r.status, r.peak,
+                                         coverage.through, evidence.sha256, r.family) for r in results])  # fmt: skip
+        return _line(self.run_day, results, tracker.found)
 
     def _read(self, days: list[date], sha256: Mapping[date, str]) -> HeldRiseTracker:
         tracker = self.sources.new_tracker()
@@ -113,11 +107,14 @@ class StressFactorRun:
         return span
 
 
-def _peak(counted: list[Holding], new_max: float, carried: float | None, through: date | None,
-          approved: str | None) -> str:  # fmt: skip
-    if carried is not None and carried >= new_max:
-        text = f"carried from the run through {through}"
-    else:
-        h = max(counted, key=lambda h: (h.needed, -h.entry.toordinal()))
-        text = f"{h.structure} {h.width:g} entered {h.entry} peak {h.peak_day} needed {h.needed:.4f}"
-    return text + (f"; fall approved by the owner, DESK_DECISIONS {approved}" if approved else "")
+def _line(run_day: date, results: list[FamilyResult], found) -> str:
+    families = "; ".join(WRITTEN.format(family=r.family, status=r.status, factor=r.factor, computed=r.computed,
+                                        was=r.last.factor, peak=r.peak) for r in results)  # fmt: skip
+    skipped = len(found.dropped) + len(found.impossible)
+    held = any(r.status == "held" for r in results)
+    return (
+        HEADLINE.format(run_day=run_day)
+        + families
+        + (DROPPED.format(count=skipped) if skipped else "")
+        + (HELD_ASK if held else "")
+    )

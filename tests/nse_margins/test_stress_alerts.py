@@ -11,7 +11,7 @@ from fno.research_data.calendar import CalendarError
 from fno.storage.owner_token import DriveSignInRefused
 
 from .span_builder import EXPIRY, default_options, span_zip
-from .stress_days import EXPIRY2, planted, sf_tracker, weekday
+from .stress_days import EXPIRY2, measured_tracker, planted, weekday
 from .test_stress_run import SPIKE, THROUGH, run
 
 
@@ -33,7 +33,7 @@ def test_an_unexpected_stop_sends_one_line_and_writes_no_row(tmp_path, read, tra
     files = planted(THROUGH)
 
     def tracker():
-        held = sf_tracker()
+        held = measured_tracker()
         held.is_trading_day = trading or weekday  # the exit rule asks the calendar
         return held
 
@@ -59,16 +59,18 @@ def test_a_dropped_holding_is_counted_in_the_line(tmp_path):
     files = planted(THROUGH, {SPIKE: 20.0}) | {gone: without_a_held_leg(gone)}
     code, row, sent = run(tmp_path, files)
     assert code == 0 and row[1:5] == ["1.7", "1.7", "1.686747", "applied"]  # the spike before the hole still counts
-    assert "holding(s) dropped or not entered (named in the evidence)" in sent[0]
+    assert "holding(s) dropped, not entered or skipped for an impossible price (named in the evidence)" in sent[0]
     evidence = (tmp_path / "evidence" / "stress_evidence_2026-11-05.md").read_text(encoding="utf-8")
     assert "SF 100 entered 2026-10-01: " in evidence
 
 
 def test_an_approval_is_named_only_on_a_real_fall(tmp_path):
     _, rise, sent = run(tmp_path / "rise", planted(THROUGH, {SPIKE: 20.0}), approved="da0f769d")
-    assert rise[4] == "applied" and "fall approved" not in sent[0]
+    assert rise[4] == "applied" and "needed 1.6867; fall approved" not in sent[0]  # credit rose: no approval named
+    debit_fell = "BF 100 entered 2026-10-01 peak 2026-10-01 needed 1.0000; fall approved by the owner"
+    assert debit_fell in sent[0]
     _, fall, sent = run(tmp_path / "fall", planted(THROUGH, {SPIKE: 8.0}), approved="da0f769d")
-    assert fall[1] == "1.3" and "fall approved by the owner, DESK_DECISIONS da0f769d" in sent[0]
+    assert fall[1] == "1.3" and "needed 1.2530; fall approved by the owner, DESK_DECISIONS da0f769d" in sent[0]
 
 
 @pytest.mark.parametrize(("value", "factor"), [(1.40 + 1e-9, 1.40), (1.400001, 1.45), (1.40, 1.40), (1.7483, 1.75)])

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ..composition import build_alert_sender, build_tradable_structures
 from ..config import ROOT
-from ..constants import NIFTY_SYMBOL, STRUCTURES_BOUGHT_ONLY
+from ..constants import NIFTY_SYMBOL, STRESS_MEASURED_STRUCTURES, STRUCTURES_BOUGHT_ONLY
 from ..models import now_ist
 from ..research_data.expiries import DAYS_TO_EXPIRY
 from ..research_engine.cycle_costs import WIDTHS
@@ -66,11 +66,13 @@ def build_drive_span_files(env=os.environ) -> DayFile:
 def build_stress_factor_run(cfg: dict, run_day: date | None = None, env=os.environ, day_file: DayFile | None = None,
                             root: Path = ROOT) -> StressFactorRun:  # fmt: skip
     """Story A14c's run on Drive's archived files (or `day_file`), A9's manifest and the factor file in config; each
-    download thread has its own Drive session (`risk.stressed_margin.recompute_workers` threads)."""
+    download thread has its own Drive session (`risk.stressed_margin.recompute_workers` threads). Only the structures
+    whose stressed SPAN C2 does not cap are measured (SF, SC, BF)."""
     builder, is_trading_day = build_row_builder(cfg), build_trading_days()
     stressed = cfg["risk"]["stressed_margin"]
     workers = count_setting(stressed, "recompute_workers", ".stressed_margin")
-    tracker = lambda: HeldRiseTracker(builder.structures, builder.widths_for, builder.calculator, is_trading_day)  # noqa: E731
+    measured = [s for s in builder.structures if s.code in STRESS_MEASURED_STRUCTURES]
+    tracker = lambda: HeldRiseTracker(measured, builder.widths_for, builder.calculator, is_trading_day)  # noqa: E731
     manifest = lambda: {f.day: f.sha256 for f in storage.build_manifest_folder().read(NseSpanBodSource)}  # noqa: E731
     day_file = day_file or per_thread(lambda: build_drive_span_files(env))
     sources = StressSources(day_file, manifest, is_trading_day, tracker, workers=workers)

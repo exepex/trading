@@ -12,8 +12,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from ..constants import STRESS_MEASURED_STRUCTURES
 from ..research_engine.cycles import EXIT_MIN_DAYS
-from .held_rise import MIN_DAYS_TO_EXPIRY, Holding
+from .family_result import FamilyResult
+from .held_rise import MIN_DAYS_TO_EXPIRY, HeldRises, Holding
 
 # Response 77's hand-run windows (entry days) and its figures, measured as (scan + exposure) gross read to the window's
 # end (response 235: they reproduce to 0.001 with that measure); this run's figure is the needed factor
@@ -60,10 +62,12 @@ def window_best(holdings: Sequence[Holding], first: date, last: date) -> Holding
     return max(inside, key=lambda h: (h.needed, -h.entry.toordinal()), default=None)
 
 
-def build_evidence(run_day: date, holdings: Sequence[Holding], files: Mapping[date, str], unrounded: float,
-                   decision: tuple[float, float, str], dropped: Sequence[str], mode: str) -> Evidence:  # fmt: skip
-    rows = [("all", h) for h in best_per_key(holdings)]
-    windows = [(name, window_best(holdings, first, last), hand) for name, first, last, hand in WINDOWS]
+def build_evidence(run_day: date, results: Sequence[FamilyResult], files: Mapping[date, str], found: HeldRises,
+                   mode: str) -> Evidence:  # fmt: skip
+    """Each family's best holding per structure and width (scope = its family), then the reproduction windows."""
+    counted = [h for r in results for h in r.counted]
+    rows = [(r.family, h) for r in results for h in best_per_key(r.counted)]
+    windows = [(name, window_best(counted, first, last), hand) for name, first, last, hand in WINDOWS]
     rows += [(name, h) for name, h, _ in windows if h is not None]
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
@@ -76,34 +80,45 @@ def build_evidence(run_day: date, holdings: Sequence[Holding], files: Mapping[da
     files_writer.writerow(("session", "file", "sha256"))
     for day in sorted(files):
         files_writer.writerow((day.isoformat(), f"nsccl.{day:%Y%m%d}.i1.zip", files[day]))
-    markdown = _markdown(run_day, holdings, files, unrounded, decision, dropped, mode, windows)
+    markdown = _markdown(run_day, results, files, found, mode, windows)
     return Evidence(out.getvalue(), files_out.getvalue(), markdown)
 
 
-def _markdown(run_day, holdings, files, unrounded, decision, dropped, mode, windows) -> str:
-    factor, computed, status = decision
+def _markdown(run_day, results, files, found, mode, windows) -> str:
     lines = [
         f"# Stress factor run {run_day} ({mode})",
         "",
-        "Rule (story A14c; owner, 16 Oct 2026, decision 07f62385): the largest stress factor a held position needed, "
-        "the smallest k with max(0, k x scan - NOV) + min(0, NOV) + k x exposure of its entry parts at least what C2 "
-        f"counts on every later day held; entry on every session (first monthly expiry {MIN_DAYS_TO_EXPIRY}+ days out) "
-        f"to the last session {EXIT_MIN_DAYS}+ days before expiry, every structure and width C2 trades, rounded up "
-        "to the next 0.05.",
+        "Rule (story A14c; owner, 16 Oct 2026, decisions 07f62385 and the families rows): for each structure family, "
+        "the largest stress factor a held position needed, the smallest k with max(0, k x scan - NOV) + min(0, NOV) + "
+        "k x exposure of its entry parts at least what C2 counts on every later day held; entry on every session "
+        f"(first monthly expiry {MIN_DAYS_TO_EXPIRY}+ days out) to the last session {EXIT_MIN_DAYS}+ days before "
+        f"expiry; measured on {', '.join(STRESS_MEASURED_STRUCTURES)} (C2 caps the STR1 codes' stressed SPAN); "
+        "an entry "
+        "whose NSE price breaks its payoff bounds is skipped; rounded up to the next 0.05.",
         "",
         f"- Sessions read: {len(files)} ({min(files)} to {max(files)}), each file's SHA-256 in the files CSV",
-        f"- Holdings completed in this run: {len(holdings)}; dropped (named below): {len(dropped)}",
-        f"- Largest needed factor (unrounded, carried across runs): {unrounded:.6f}; computed {computed:g}",
-        f"- Factor in force: {factor:g} ({status})",
+        f"- Dropped (named below): {len(found.dropped)}; skipped for an impossible price: {len(found.impossible)}",
+        "",
+        "| Family | Positions measured | Largest needed (unrounded) | Computed | Factor in force "
+        "| Peak (not bound-checked) |",
+        "|---|---|---|---|---|---|",
+    ]
+    for r in results:
+        lines.append(
+            f"| {r.family} | {len(r.counted)} | {r.unrounded:.6f} | {r.computed:g} | {r.factor:g} ({r.status}) "
+            f"| {r.peak} |"
+        )
+    lines += [
         "",
         "| Window | Response 77 (gross, to window end) | Needed factor, this run | Holding |",
         "|---|---|---|---|",
     ]
     for name, h, hand in windows:
-        found = "no holding in this run" if h is None else f"{h.needed:.3f}"
+        value = "no holding in this run" if h is None else f"{h.needed:.3f}"
         what = "" if h is None else f"{h.structure} {h.width:g} entered {h.entry}, peak {h.peak_day}"
-        lines.append(f"| {name} | {hand} | {found} | {what} |")
-    if dropped:
-        lines += ["", "Dropped positions (a day's margin could not be computed):", ""]
-        lines += [f"- {reason}" for reason in sorted(dropped)]
+        lines.append(f"| {name} | {hand} | {value} | {what} |")
+    for title, names in (("Dropped positions (a day's margin could not be computed):", found.dropped),
+                         ("Skipped entries (an impossible price in NSE's file):", found.impossible)):  # fmt: skip
+        if names:
+            lines += ["", title, ""] + [f"- {reason}" for reason in sorted(names)]
     return "\n".join(lines) + "\n"
