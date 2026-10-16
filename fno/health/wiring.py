@@ -1,6 +1,7 @@
 """Composition root of the daily health check (story O8): the repository's files and history, F1's GitHub push
 receipts, the NSE calendar, the desk timetable from config.yaml, the run record and the #fno-desk alert sender. Another
-evidence source or receipt source is one new class plus one line here."""
+evidence source or receipt source is one new class plus one line here.
+Story O10 adds the capture-error log and GitHub's Actions runs."""
 
 from __future__ import annotations
 
@@ -10,19 +11,30 @@ from pathlib import Path
 
 from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
-from ..constants import ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, HEALTH_RUNS_FILE
+from ..constants import DEFAULT_REPOSITORY, ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, HEALTH_RUNS_FILE
 from ..desk.timetable import timetable_from_config
 from ..research_data.calendar import load_session_calendar
 from ..storage.wiring import CALENDAR_FILE
+from .capture_errors import CAPTURE_ERRORS_FILE, CaptureErrorLog
 from .checker import HealthCheck
 from .evidence import Evidence, HealthHistory
 from .expectations import build_expectations
 from .horizon import HORIZON_MARKER, CalendarHorizon
+from .run_failures import GitHubRuns, RunSource
 from .run_record import RunRecord
 
 
 def build_run_record(root: Path = ROOT) -> RunRecord:
     return RunRecord(Path(root) / HEALTH_RUNS_FILE)
+
+
+def build_capture_error_log(root: Path = ROOT) -> CaptureErrorLog:
+    return CaptureErrorLog(Path(root) / CAPTURE_ERRORS_FILE)
+
+
+def build_run_source(env: Mapping[str, str] = os.environ) -> RunSource:
+    repository = env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
+    return GitHubRuns(repository, env.get(ENV_GITHUB_TOKEN, ""))
 
 
 def build_health_check(cfg: dict, root: Path = ROOT, env: Mapping[str, str] = os.environ) -> HealthCheck:

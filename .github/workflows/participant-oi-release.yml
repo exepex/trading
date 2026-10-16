@@ -46,14 +46,19 @@ jobs:
           git config core.hooksPath .githooks
           git config user.name "omenix-participant-oi"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Watch NSE's archive until today's file appears (A8)
+      - name: The day still due, once for every step (a run starting after midnight IST checks the evening before)
+        id: due
+        run: echo "day=$(python -m fno participant-oi due-day)" >> "$GITHUB_OUTPUT"
+      - name: Watch NSE's archive until the due day's file appears (A8)
         id: watch
         continue-on-error: true
+        env:
+          DAY: ${{ steps.due.outputs.day }}
         run: |
           set -o pipefail
           limit=$(TZ=Asia/Kolkata date -d '+330 min' +%H:%M) # stop before GitHub's 6-hour limit
           if [[ "$limit" < "23:30" && "$limit" > "17:00" ]]; then until=$limit; else until=23:30; fi
-          python -m fno participant-oi watch --until "$until" --every 5 --evidence-folder "$EVIDENCE" | tee watch.log
+          python -m fno participant-oi watch --day "$DAY" --until "$until" --every 5 --evidence-folder "$EVIDENCE" | tee watch.log
       - name: Commit the check log
         run: |
           git add "$EVIDENCE"
@@ -62,10 +67,11 @@ jobs:
       - name: The day's file into Drive with its manifest row (A9)
         id: librarian
         continue-on-error: true
+        env:
+          DAY: ${{ steps.due.outputs.day }}
         run: |
           if grep -q ": present at" watch.log; then
-            day=$(TZ=Asia/Kolkata date +%F)
-            python -m fno data-librarian participant-oi --from "$day" --to "$day"
+            python -m fno data-librarian participant-oi --from "$DAY" --to "$DAY"
           else
             echo "not published yet (or not a session): nothing to upload"
           fi
