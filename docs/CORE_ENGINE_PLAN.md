@@ -3,7 +3,8 @@
 Written for the orchestrator (session_01VG1RqxLFUVdvvPuMRYZtDH) and the plan judge, on the owner's request of
 16 Oct: "all the core engine functionality, data generation, evidences, they must align to my end goal and my
 expectations." It reads together with `docs/CORE_ENGINE_GAP_AUDIT.md` (the data and story audit of the same day) and
-does not repeat its tables. State checked on `origin/main` 9dbf1b3f and the story branches on 16 Oct.
+does not repeat its tables. State checked on `origin/main` 986b5993 and the story branches on 16 Oct (revision 2: owners from the
+orchestrator, 16 Oct; D4, D5, O1, R1b, R1c and G8 merged; the go-live gate, DESK_DECISIONS row 247). Response 267.
 
 Evidence labels: **[strong]** read from files, branches or the judge index; **[some]** partial evidence;
 **[reasoning]** judgement only. States: **merged** (on `main`), **branch** (code on a story branch, not merged; the
@@ -35,118 +36,110 @@ to invest and when not to invest" (15 Oct:579). Shared goal row (DESK_DECISIONS,
 | E14 | Costs low: AI budget capped, polite free sources | "can we do it without costing any extra or unnecessary AI tokens" (13 Oct:451); monthly AI budget row (15 Oct) |
 | E15 | Simple design, no broken code, nothing half-built | "we do not over-engineer and over-complicate the design. Simplicity is also our priority, but not the product quality"; "No broken code"; "there must not be anything that is not implemented" (row 246 and the 16 Oct brief) |
 | E16 | Core engine first; no UI or UI-facing API now | "We don't do any UI work, any API work for now" (row 244) |
+| E17 | Once live, no issues anywhere | "once the system is up and running and live then I don't want any issues whether it's related to core engine or fetching data from external sources"; "10-day trial (Recommended)" (row 247) |
 
-## (b) Traceability: expectation → stories → state → owner session
 
-Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REGISTER.md`).
+## Definition of done: the go-live gate (owner, DESK_DECISIONS row 247)
 
-| # | Stories that deliver it | State [strong unless marked] | Owner |
-|---|---|---|---|
-| E1 net profit | C1 ledgers, E1/E1b accounts, E2c/E2d fills and marks, E7 settlement, S6 do-nothing gate | merged | various |
-| E2 three books | Book 1: D1-D3, D6, E5, E5b | merged, **not running** (O1 not merged) | 0134MoC6 |
-| | Book 2: D4 envelope | branch, judge 260 add. 2 PASS, not merged | 01SFDjjZ |
-| | Book 3: D5 constitution | branch, judge 263 add. 2 PASS, after D4 | 01SFDjjZ |
-| | D3 override refusal (decided 16 Oct row 229) | **missing** | none |
-| | F1 trading runner, F5 Book 2 decider, F6 Book 3 decider, F2 analyst cards, F7 matched shadows | text (first-plan text, predates D4/D5); rewrites named in row 246 | **none** |
-| E3 scoreboards | S2 board B, S3 board A, S6 measures, E6 scorecards, F9a role value | merged | 0185gR5D, 0134MoC6, 01SFDjjZ |
-| | E6b missed executions | text; code waits for E8 | 0134MoC6 |
-| | S1 protocol freeze (counting starts only after it) | text collecting, 15 items | 0185gR5D |
-| E4 forecasts | G1-G5 (v2/v3, live since 14 Oct) | merged, live | — |
-| | G6 v4 freeze | branch, waits for the G6 session | 01MgTu3L |
-| | G7 phase 1, G7b part a, G8, G9, G10 part 1 | merged (v4 back-fill only until the freeze) | 0185gR5D, 01VK88Lx |
-| | G7b parts b-c, G10 part 2 (14:30 pack), G11 AI books on v4 | branch or text | 0185gR5D, 01VK88Lx, 01XFXpbk |
-| | M1 weather as a forecaster | merged, not live (`daily.live_from.weather` null) | 013xqaNT |
-| | G13 price distribution and valuation record (row 246) | **missing** | none |
-| E5 daily card | T1 card, T2 rule checks | merged | 0145TfSw |
-| | T3 objections (TRADE/WATCH only) | text, after O1 | 0145TfSw |
-| | M2 weather DANGER alert | text, waits for a judge | 0145TfSw |
-| E6 paper, timing | E3 timetable, E4/E4c/E4d fills | merged | 0134MoC6 |
-| | **O1 daily routine** (runs everything above) | branch, judge 178 add. 18 PASS, not merged | 014zYLf1 |
-| | E8 owner-timing fills | branch, parts 1a-1b PASS, not merged | 01H1CmuW |
-| | LM1 position monitor | branch, rounds 1-2a | 012eM7Ti |
-| E7 risk | C2-C5, C2c, C2d, A14c part 1 | merged | 01Vm1WnH, 012eM7Ti |
-| | per-family k (row 242), A14c part 2 (Groww margin check), STR1b-2 | text or not started | 01Vm1WnH, 01BYjW9a |
-| E8 real money | RM1 gate | merged | 01CHxE3y |
-| | RM2 test record | text | 01CHxE3y |
-| E9 external data | A1-A17, A4b, A4c, A16, O6, A12 | merged; health in the gap audit Part A | various |
-| | A19 news, A20 circulars, F&O masters, economic calendar; A17/A16b/VIX OHLC schedules | **missing** (named in row 246) | none |
-| | O9 data to Drive | steps 1-2a merged, 2b next | 01WHmxEY |
-| E10 alert and record | AlertSender, O8 health check, O8b/O8c, A16 heartbeat | merged | 012eM7Ti |
-| | O10 capture failure alert plus committed error record (row 246) | **missing** | none |
-| | O2 failure handling suite | text, after O1 | 014zYLf1 |
-| E11 evidence | judge lanes, S1, G8 looks, O11 acceptance replay (this plan's story) | O11: text on story/o11-e2e-acceptance | this session |
-| E12 AI analysis | F2 analysts, F6 portfolio manager | **none built**; only the two forecasters and the advocate exist | none |
-| E13 learning | LR1 weekly post-mortem, devil's advocate | merged (owner's routine pending) | 0145TfSw |
-| | LR3 drift CUSUM | text | 01SFDjjZ |
-| | LR2 why-wrong reviews | REPLAN paragraph only | none |
-| E14 costs | F8/BG1 budget meter and stop rule | merged; **book routines' usage not captured** (gap audit B2 item 8) | 0134MoC6 |
-| E15 simplicity, no broken code | code-size test, gates, judge; O11 | merged; O11 makes "not implemented" a test list | this session |
-| E16 no UI now | P2a-h, W3, F&O screens | in flight work finishing, then stopping (row 238) | 013xqaNT, 0134MoC6, 01XFXpbk |
+The core engine is **done** only when both hold:
+1. **O11 green and judged** with **zero expected-missing rows**: every strict xfail in
+   `tests/e2e_acceptance/test_expected_missing.py` has become a real, passing check.
+2. **10 trading days in a row of full live capture and daily runs with zero silent failures.** A silent failure is
+   missing data or a skipped step with no alert and no record, and it restarts the count at day 0. An alerted,
+   recorded and root-caused failure does not restart it, and re-fetching corrupted or missed external data is
+   allowed. "Live" also needs the owner's routine, every `daily.live_from` date set, and the v4 freeze.
+   Books recording "no trade" because nothing is approved is correct behaviour, not a failure.
 
-## (c) Expected but covered by no story, with the smallest story for each
+Until then, every "done" in this plan means "merged and judged", never "live".
 
-| Gap | Why it matters (expectation) | Smallest story proposed |
+## (b) Traceability: expectation → stories → state → owner → how the 10-day trial evidences it
+
+Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REGISTER.md`). States on 16 Oct
+[strong]. "Trial evidence" is what the 10 days must show, read from committed records, every day of the 10.
+
+| # | Stories (state, owner) | Trial evidence (every day of the 10) |
 |---|---|---|
-| **G1x. Books 2 and 3 have no daily step** | E2: O1's steps run Book 1 only [strong]. Without this, D4/D5 never decide anything | **F1T** (F1's trading part plus one O1 step per book): fire the AI decision session with the private pack, collect the answer, validate it against D4/D5, run C2/C4, hand to E4/E8. Fake AI answer in tests. One story, not three |
-| **D3 owner_override refusal** | E8, decided row 229, precondition in D4's table | **D3c**: D3 refuses any non-empty `owner_override` for every book; one test per book. S |
-| **Book 2 decider (F5) on D4's narrow envelope** | E2 | **F5 rewrite**: prompt plus output schema for the five actions only (follow_rule, choose_strategy, no_trade, choose_width, reduce_lots); the rule default comes in the private pack. S-M |
-| **Book 3 decider (F6) on D5's registry** | E2, E12 | **F6 rewrite**: proposer and decider on D5's registry, propose day d, trade from d+1, pilot label. M. F7 (matched shadows) folds into F5/F6 as one field each, not its own story [reasoning] |
-| **AI analyst roles** | E12 | **F2 v1 = one analyst first** (volatility analyst, the main focus), not four. Add others only when F9 can measure the first one's value [reasoning] |
-| **Price distribution and valuation record** | E4 (row 244: "price forecasting, valuation") | **G13**: a daily NIFTY range record (quantiles from the 3 pm chain's implied distribution, a fair-value line per traded contract), recorded and scored, not traded. S-M. Regenerable from captured quotes, so after the books |
-| **Capture failure records** | E9, E10 | **O10**: every capture job writes one row (job, day, ok or failed, reason) to one shared file and alerts on failure or staleness through AlertSender. Extend O8's health check to read it; no second health system |
-| **News, circulars, F&O masters, macro calendar** | E9 | **A19** news (source, terms, first-seen, Drive), **A20** circulars plus `fo_mktlots`/ban list plus macro dates. These lose history daily, so they run in parallel with the engine work |
-| **Scheduling built sources** | E9 | **A17s**: one workflow each for A17 global cues, A16b daily catch-up and the VIX OHLC append. S |
-| **AI usage of the book routines** | E14 | **F8c**: each G5 routine records its own start and end minutes now (G11's timing record pulled forward). S |
-| **End-to-end proof** | E11, E15 | **O11** (this session): the acceptance replay below |
+| E1 net profit | C1, E1/E1b, E2c/E2d, E7, S6 (merged) | Scoreboard B per book: net after charges, pads and 31.2% tax arithmetic, with a marks row per open trade; O11 checks the chain once, the trial daily |
+| E2 three books | Book 1: D1-D3, D6, E5 (merged); D4, D5 (merged); **D3 no override** (01SFDjjZ, code with the judge); **F1t** (01PLbKH1); **F5** (01SFDjjZ); **F6/F7** (01KTAQCD) | A decision record per book per session: Book 1 from D2, Books 2 and 3 from F1t's sealed AI answers ("no approved strategy" counts); zero books missing from the run log |
+| E3 scoreboards | S2, S3, S6, E6, F9a (merged); E6b (text, 0134MoC6); S1 freeze (0185gR5D) | Boards A and B built every day from the same common pack's SHA-256 for all three books |
+| E4 forecasts | G1-G5 (live); G7, G7b part a, G8, G9, G10 part 1, M1 (merged, not live); **G6 freeze** (01MgTu3L); G10 part 2, G7b b-c (01VK88Lx, 0185gR5D); G11 (round 1 PASS, 01XFXpbk); **G13** (01UkTaDe) | Weather and every v4 row written live before 14:30 (needs the 14:05 start and `live_from`); the AI books' v4 rows; a G13 valuation record from the 3 pm chain |
+| E5 daily card | T1, T2 (merged); T3 (0145TfSw); M2 (text); **T1c: card reads M1's weather** (no owner: the card still prints "M1 pending") | One card per session in #fno-desk by about 15:08 (delivery log), TRADE or NO TRADE with its reason and M1's colour |
+| E6 paper, timing | E3, E4/E4c/E4d, O1 (merged); **E8** (branch, parts 1a-1b PASS, 01H1CmuW); LM1 (012eM7Ti) | Each card's fills at R = 5, 30 and 60 minutes (or "missed") recorded the same or next session |
+| E7 risk | C2-C5, C2c, C2d, A14c part 1 (merged); A14c part 2 and per-family k (01Vm1WnH); STR1b-2 (01BYjW9a) | A C2 and C4 verdict in every chosen record; no trade above Rs 10,000 or a bucket cap; the over-cap card hold never fires |
+| E8 real money | RM1 (merged); RM2 (text, 01CHxE3y) | Nothing to show in 10 days: the gate stays shut. The trial proves the engine, never an edge |
+| E9 external data | A1-A17, A4b, A4c, A16, O6, A12 (merged); **O10** (013YJ5gj, part 1 with the judge); **A19 news** (01Qj3wtY); **A20 circulars, masters, macro dates** (013u1Ac2); **A17 schedules** (01MBnbVU); O9 (01WHmxEY) | Every capture job leaves one daily row (ok, or failed with its alert) in O10's file; zero days without a row for any source |
+| E10 alert and record | AlertSender, O1's `Alerted`, O8/O8b/O8c, A16 heartbeat (merged); O2 (text PASS, code after O1, 014zYLf1); O10 | Each failure in the 10 days has its alert and its committed row and is root-caused in the conversation log; one silent failure restarts the count |
+| E11 evidence | Judge lanes, S1, G8 looks; **O11** (this session, with the judge) | O11 green with zero xfails at the trial's start; O8's daily health message every evening |
+| E12 AI analysis | **F2** volatility analyst first (01WSMMv5); F6 (01KTAQCD) | One analyst finding card per session, used by Book 2/3's sealed decision |
+| E13 learning | LR1 weekly post-mortem (merged; owner's routine pending); LR3 (text, 01SFDjjZ); LR2 (paragraph, no owner) | Two Saturday post-mortems inside the 10 trading days |
+| E14 costs | F8/BG1 (merged); **F8c** usage per routine (0134MoC6, with G11) | Each AI routine's minutes recorded per session; the budget meter under the cap |
+| E15 simplicity, no broken code | code-size test, gates, judge; O11; **O12** number claims (01KS9xBc) | Gates green on every merge in the 10 days; zero xfails |
+| E16 no UI now | P/W work finishing, then stopping (row 238) | No new screen work in the trial's commits |
+| E17 no issues once live | the go-live gate itself | The 10 days |
 
-## (d) Built or planned but serving no expectation now (be blunt)
+## (c) Gaps: what was ownerless is now owned (orchestrator, 16 Oct), and what is still open
 
-| Item | Why it is a candidate to drop or defer | Recommendation |
+| Gap | Owner now | Still open? |
 |---|---|---|
-| P2a-h read-model pages, W3 screens, contract 2.x pins | E16: no UI now; mockups not approved (row 243) | Finish only what is judged; **start nothing more** (already the rule). Defer P2c onward |
-| BR1 breadth track | Its claims failed their own null check; now "descriptive only" (row 231) | **Defer** further BR1 code after the freezer generalisation; it produces no claim |
-| G7b parts b-d (V2-V5) | V2 alone needs 8-22 years of outcomes (row 214) | **Defer** past the books; keep part a |
-| Two forecast protocols live side by side (v2 and v4) | Double scoring and double capture until v4 freezes | Keep until the G6 freeze, then retire v2's AI run (row 227 already does) |
-| LR3 CUSUM drift, F9 role value, M2 price of calm, RM2 | Need trades or roles that do not exist yet (no approved strategy; registry holds B0 only) | **Keep the texts, build no code** until the first real paper trades exist |
-| LM1 position monitor round 2b | No open paper position | Defer 2b until the first position (already its plan) |
-| Four F2 analyst roles at once | Cost (E14) and no way to value them yet | **One** analyst first (section c) |
-| F3 red team, F4 AI judge | T3 reuses the advocate; overrides dropped | **Drop** F3 and F4 as separate stories |
-| A12 full-history filings for Nifty 500 | Serves the equity-research analyst, which does not exist yet; F&O core does not read it | Keep the job (cheap, Actions), build no consumer now |
-| `quote-recorder-nse.yml` | Superseded by the routine step; fails daily (gap audit) | **Retire** |
-| Judge paperwork per tiny change | 257 judge files (with addenda) in 5 days; the owner asked "are we ... making it over-engineered, over-complicated?" (15 Oct:336) | Lane 2/3 as written; no new review layers |
+| Books 2 and 3 in the daily run (F1t: `ai_fire`, `ai_collect`, sealed decisions) | 01PLbKH1 | text |
+| D3 refuses any `owner_override` | 01SFDjjZ | code with the judge |
+| F5 Book 2 decider on D4's narrow envelope | 01SFDjjZ | text |
+| F6/F7 Book 3 decider and matched shadows on D5 | 01KTAQCD | text |
+| F2 analysts, volatility first | 01WSMMv5 | text |
+| O10 capture failure rows plus alerts | 013YJ5gj | part 1 with the judge |
+| A19 news; A20 circulars, F&O masters, macro dates | 01Qj3wtY; 013u1Ac2 | text |
+| G13 valuation and price distribution | 01UkTaDe | text |
+| F8c AI usage per routine | 0134MoC6 (folded with G11) | text |
+| A17/A15 schedules | 01MBnbVU | with judge F |
+| **T1c: the card reads M1's weather record** (found by O11: `fno/cards/weather.py` still prints "M1 pending" and blocks trades; M1's text left T1 out) | **none** | **missing**: smallest story, one `WeatherSource` adapter over `WeatherRecords.for_day` plus one wiring line |
+| **O1 start at 14:05** (known: the 14:33 start misses the 14:30 forecast cutoff, proven in O11's failure test) | O1 builder 014zYLf1 (follow-up for judge D) | open; then the owner edits the routine's time |
+| **`daily.live_from` dates** for margin check, weather, v4 forecasts, card | **owner** | all null today |
+
+## (d) Built or planned but serving no expectation now
+
+| Item | Recommendation |
+|---|---|
+| P2a-h read-model pages, W3 screens, contract pins | Finish only what is judged; start nothing more (row 238) |
+| BR1 breadth code beyond the freezer | Defer: claims failed their own null check; descriptive only (row 231) |
+| G7b parts b-d (V2-V5) | Defer past the books: V2 alone needs 8-22 years of outcomes (row 214) |
+| LR3, F9 shadow firing, M2 price of calm, RM2 code, LM1 round 2b | Keep texts, build no code until the first real paper trades |
+| Four F2 analysts at once; F3 red team and F4 AI judge as separate stories | One analyst first (now the F2 owner's plan); fold F3 into T3; drop F4's overrides (already decided) |
+| A12 full-history filings | Keep the cheap job; build no consumer now |
+| `quote-recorder-nse.yml` | **Kept** (orchestrator: the owner's NSE fallback; I withdraw "retire"). But a fallback that fails every day is no fallback: its failures must reach O10's rows and alerts, and O11's finding 2 (NSE contract IDs refused by C5's buckets) must be fixed before it can ever feed the desk |
+| Judge paperwork per tiny change | 257 judge files in 5 days; the owner asked "are we ... making it over-engineered, over-complicated?" (15 Oct:336). Keep lane 2 and 3 as written; add no review layer |
 
 ## (e) Order to finish, with the critical path
 
-Critical path to "all three books run end to end on paper" (each arrow is a hard dependency) [strong for the
-dependencies, reasoning for the order]:
+Critical path (each arrow a hard dependency) [strong for the dependencies, reasoning for the order]:
 
-**O1 merge → D4 merge → D5 merge → D3c → F1T (Book 2/3 steps) → F5 → F6 → E8 merge → O11 green**
+**D3 no override → F1t → F5 → F6/F7 → E8 merge → owner switches (routine at 14:05, `live_from` dates, G6 v4
+freeze) → O11 zero xfails, judged → 10-day trial with zero silent failures = done**
 
 | Step | Work | Owner | Parallel with |
 |---|---|---|---|
-| 1 | Merge O1 (PASS), owner creates the daily routine; set `live_from` dates | 014zYLf1, owner | 2, 3 |
-| 2 | Merge D4, then D5 (both PASS) | 01SFDjjZ | 1 |
-| 3 | O10 capture failure records; A17s schedules; retire the NSE recorder; A19, A20 texts then code | new builder(s) | everything (external data first: lost daily) |
-| 4 | Merge E8 part 1 (PASS), then E6b code, R3 part B | 01H1CmuW, 0134MoC6, 0145TfSw | 5 |
-| 5 | D3c, then F1T, F5, F6 (one builder, in this order) | **needs an owner** | 4 |
-| 6 | G6 v4 freeze → G10 part 2 pack → G11, M1 live, G7b b-c | 01MgTu3L, 01VK88Lx, 01XFXpbk, 0185gR5D | 4, 5 |
-| 7 | S1 freeze (needs E8, S3/S6 code, item 12 cash rate, item 14 E8 switch) | 0185gR5D | after 4 |
-| 8 | F8c usage capture now; F2 one analyst; G13 | new builder | after 5 |
-| 9 | O2 failure suite over O1; O11 turns its expected-missing rows green one by one | 014zYLf1, this session | from 1 |
+| 1 | D3 no override, then F5 (one builder); F1t; F6/F7 | 01SFDjjZ; 01PLbKH1; 01KTAQCD | 2, 3 |
+| 2 | External data first, because history is lost daily: O10, A17 schedules, A19, A20 | 013YJ5gj, 01MBnbVU, 01Qj3wtY, 013u1Ac2 | everything |
+| 3 | E8 merge, then E6b code, R3 part B | 01H1CmuW, 0134MoC6, 0145TfSw | 1 |
+| 4 | O1's 14:05 start; T1c card weather | 014zYLf1; needs an owner | 1 |
+| 5 | G6 v4 freeze → G10 part 2 pack → G11 merge, M1 live, G7b b-c | 01MgTu3L, 01VK88Lx, 01XFXpbk, 0185gR5D | 1 |
+| 6 | F2 volatility analyst; G13; F8c | 01WSMMv5, 01UkTaDe, 0134MoC6 | 1 |
+| 7 | S1 freeze (needs E8, S3/S6 code, cash rate, E8 switch) | 0185gR5D | after 3 |
+| 8 | Owner: routine time, `live_from` dates, A16 and LR1 routines, secrets | owner | after 4, 5 |
+| 9 | O11 turns each xfail real as its story lands, then is judged with zero xfails; O2 over O1 | this session; 014zYLf1 | from 1 |
+| 10 | **10-day trial**; any silent failure restarts the count | everyone | last |
 
-What the owner should hear plainly [reasoning]: Books 2 and 3 can be built and switched on end to end in paper mode,
-but they will record "no approved strategy" every day until R3/R1 qualify one (row 239: built now, switched off until
-a strategy qualifies). The engine being complete is not the same as it trading.
+Plainly [reasoning]: Books 2 and 3 will record "no approved strategy" every day until R1/R3 qualify one (row 239).
+A finished engine is not the same as an engine that trades, and the 10-day trial proves reliability, not profit.
 
 ## Found by the O11 replay (16 Oct, [strong]: reproduced in `tests/e2e_acceptance/`)
 
-- **Book 1 works end to end on real data.** On NSE's real 16 Oct chain, a test version passed real C2/C5 risk and
-  every C4 check, filled 4 legs, was marked, and reached the scorecard and both scoreboards. This proves the parts fit.
-  It proves nothing about profit.
+- **Book 1 works end to end on real data, under O1's run.** On NSE's real 16 Oct chain, a test version passed real
+  C2/C5 risk and every C4 check, filled 4 legs, was marked, and reached E6's reviews, the scorecard and both
+  scoreboards. This proves the parts fit. It proves nothing about profit.
+- **At the routine's stored 14:33 start, no live forecast can ever be made.** The weather and v4 steps are refused
+  (after 14:30) and alerted every day. This is the known O1 follow-up (the 14:05 start).
+- **The card's weather is not wired to M1** (gap T1c above).
 - **The NSE fallback cannot feed the desk.** NSE's contract IDs parse as underlying `OPTIDXNIFTY` in C5's bucket map,
-  so every trade would be refused. This matters only if the owner's "Groww, then NSE" fallback is wired to the desk;
-  that story must restate the IDs.
+  so every trade would be refused.
 - **A restart after 15:00 logs a false pack failure.** The private pack holds the book's decisions folder, so a
-  rebuild after the decision differs and is logged "built: False". No trade is affected. For O1/O2's kill-and-rerun.
-- **Refusals do not alert before O1.** A refused forecast capture or Book 1 input raises with no alert until O1's
-  command steps merge. This is one more reason O1 is step 1.
+  rebuild after the decision differs and is logged "built: False". No trade is affected. For O2's kill-and-rerun.

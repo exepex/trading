@@ -14,6 +14,8 @@ Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers
 
 ## Responses
 
+- [Response 267: O11, the core engine plan (revision 2: owners, go-live gate as done, trial evidence per expectation) and the end-to-end acceptance replay of 16 Oct 2026 (11 passing, 16 strict xfails as the not-built list)](response_267_o11-core-engine-plan.md)
+
 - [Response 1: backtest analysis and strategy proposal](response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Response 2: answers ChatGPT review 2, reproducible evidence, capacity finding](response_2_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Response 3: opening-loss fix, capacity claim withdrawn, gate, capacity screen and fill allowance specified](response_3_2026-10-12-backtest-analysis-and-strategy-proposal.md)
