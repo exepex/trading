@@ -39,3 +39,24 @@ trial merge** of b71da36 with 70f705c and dashboard main a812fee has no conflict
 (`holds.test.ts` "a page held with its previous page", "a page held with nothing", and "data health's table"). They
 pin a0a355d's example holds (the calendar reason, and paper books as `nothing`). Rebase on 70f705c, update the
 expected values to P11's four sentences, and run the suite.
+
+## Addendum 1: head 0979176 (both should-fixes fixed)
+
+**PASS.**
+- **Should-fix 1, Home:** one shared read, `lib/fno/page-holds.ts` `readPageHolds(reader)`, is used by the F&O wiring,
+  the frame (shell) adapter and Home's adapter (`HomeData.fnoHolds`).
+  - Picks (`today`): the frame's picks show `HeldNotice`, and "Not published" replaces them when the hold shows
+    nothing.
+  - Books (`risk`): the notice sits above the Who-trades cards, and each card's F&O line says not published.
+  - `every-reader.test.ts`: every `FNO_PAGES` key sits in one closed list of how its hold is shown. The readers of
+    `getFnoPicks` and `getFnoBooks` are pinned and checked for the notice, and a planted reader is caught.
+  - A failed holds read invents no notice (test).
+  - **My mutation** turning off the books notice in `who-trades.tsx` fails 1 test.
+- **Should-fix 2:** the branch merges dashboard main a812fee and 2.13 final 9fc97d0, and `holds.test.ts` expects P11's
+  four sentences.
+- **Gates:** a trial merge with current main d53cefe (2.13.0 merged) is clean. `check_contract` and
+  `check_fno_screens` exit 0, `tsc` passes, and `npm test` gives 587/587.
+
+**Note:** the 10 market pages listed "not held" match P11 today (it raises `PageHeld` only for its named users). The
+closed list makes a new hold choose a notice first. The regex checks pin source text, which is brittle but adequate
+for a structure rule.

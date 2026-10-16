@@ -269,3 +269,74 @@ The same run reports 9 other problems, all for sessions that have not happened y
   1. the gate back on the step's outcome;
   2. posted written even when refused;
   3. posted never written.
+## Addendum 4: O8c, one named line for any command stopped by the calendar (for judge B)
+
+**Origin:** response 239, item 4. I confirmed it in the code (file and line evidence in the O8c story) and proposed
+this fix, and the orchestrator gave the go on 16 Oct. I own `index-closes.yml` and `panel-days.yml` for this fix.
+`nse-margins.yml` stays with its A14 owner, who has been told the same two edits.
+
+**O9 check:** the O9 session cannot be reached by message ("not found"; probably the other account). Its branch
+`story/o9-data-to-drive` changes no workflow and not `fno/cli.py`. Its story moves these jobs' data to Drive later.
+Only alert steps are touched here, so the two do not collide today.
+
+### Changes
+- `fno/cli.py` `main`: `except CalendarError` calls `fno/health/calendar_stop.py` `calendar_stop(command_name(argv),
+  error)`, which posts one line, "Omenix F&O `<command>` stopped: <the calendar's words>", and exits 1.
+- The commands that already catch the calendar themselves (`quotes/cli.py:77`, `intraday/cli.py:63,88`,
+  `intraday/backfill_cli.py:43`) return instead of re-raising, so they are never posted twice.
+- In `index-closes.yml` only:
+  - the librarian line names the possible causes and points to the log;
+  - the final `failure()` step drops `&& steps.append.outcome == 'success'`.
+- **`panel-days.yml` is not changed.** My first edit broke two freeze tests: protocol v3's freeze pins its SHA-256
+  (`research/forecasts/FREEZE_v3.md:48`), and the panel job's own guard would have refused to run. I reverted it, and
+  it is byte-identical to `main`. Its Python step still posts the named line through `fno/cli.py`. Changing its
+  wording or its `failure()` gate needs a new protocol version, which is the owner's call.
+
+### Evidence
+- **Real run:** `python -m fno pipeline index-closes --to 2027-01-04`, with no Slack token, printed:
+  `Omenix F&O `pipeline index-closes` stopped: 2027-01-01 is outside the calendar (2017-01-01 to 2026-12-31): add every
+  row of NSE's 2027 holiday circular (...) to the calendar file` and `alert NOT sent: FNO_SLACK_BOT_TOKEN is not set`,
+  with exit 1. Before this change it ended in a traceback.
+- **Tests:** `tests/health/test_calendar_stop.py`, 9 cases. Among them, the real `IndexCloseAppender` with the real
+  calendar, built without Drive.
+- **Breaks:** 5 of 5 caught:
+  1. no handler in `main`;
+  2. a line without the calendar's words;
+  3. the command named with its options;
+  4. index-closes still blaming Drive;
+  5. (before the revert) panel-days still gated on the append. That break no longer applies: the file is unchanged.
+
+### A trade-off, stated
+On a named stop in the append step, the job now posts two lines: the named one, then the generic "failed; see URL".
+That is better than the old case of none. Telling the two apart would need state passed between steps, which the
+simplicity rule argues against. This is my reasoning only.
+
+**Judge 246 (FAIL, one should-fix): accepted.** The finding: two alert layers fired for one stop and did not know
+about each other.
+1. The index-closes final step, once no longer gated on the append, posted a second line after the append's own named
+   stop.
+2. From 1 Jan, every command posted its calendar line and the workflow alerts posted too, about 4 lines per run.
+
+The redesign removes the second layer at its root:
+- `calendar_stop` **prints** the named line and does not post. The gap is announced in Slack by O8b's 45-day warning
+  and by the health check's daily "FAILED: CalendarError". Each workflow's one failure line points to the log.
+- A shared `StepOutputAlerts` (`fno/alerts/step_output.py`) records `posted=true` in the step's outputs only when Slack
+  accepted the line. It is used by the health check, replacing O8b's own helper, so O8c builds on O8b, and by the
+  index-close job.
+- `index-closes.yml`'s final step runs only if the append did not post. Every failing run gives exactly one line.
+
+New tests:
+- `tests/test_alert_step_output.py`;
+- the real job prints and posts nothing;
+- the wiring check (the index-close job's sender is wrapped);
+- the workflow condition.
+
+**Breaks: 5 of 5 caught:**
+1. the handler posting again;
+2. the gate ignoring `posted`;
+3. the job's sender not wrapped;
+4. `posted` recorded even when refused;
+5. the health check not wrapped.
+
+A14's nse-margins job keeps its own catch-all named line. Its `--due-day` calendar lines (librarian and revisions
+steps) no longer post: the cli handler only prints.
