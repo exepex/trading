@@ -77,3 +77,4 @@ on paper.
 - The envelope components reach `served` through the run context (F6's `DecisionRun` change).
 - S2's text: "overrides (F4)" removed from `S-scoreboards.md` S2's inputs (orchestrator: a one-line fix here, S2's
   owner told through the register). S2's stale `RecordedOwnerOverride` code is S2's (judge 300 addendum 1).
+- **Judge 307 addendum 1 (FAIL at 0b77381f):** both points were already covered at 778e9c0f. The judge's three-valued `action` (`follow_rule | trade | no_trade`) replaces my `follow_rule | change`. Criterion 9 now also says the evaluator is rebuilt with the stored picks, a `choose_width` run orders the rebuilt width, and C4-blocked or `shadow-only` AI terms are never ordered.

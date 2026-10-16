@@ -77,11 +77,13 @@ control. A zero difference is "inconclusive".
 
 ## Part 2: the answer (`fno/book2/answer.py`, standard library only)
 
-- **Shape:** `{"action": "follow_rule" | "change", "reason": <one line, 1-600 characters>, "slots": [...]}`.
+- **Shape:** `{"action": "follow_rule" | "trade" | "no_trade", "reason": <one line, 1-600 characters>, "slots":
+  [...]}`.
   - `action` and `reason` at the top meet F1t's base check at `seal` (story/f1t-ai-trading-runner f1204a5a: `decision`
     has `action`, text, and `reason`, one line).
-  - `action` is `follow_rule` exactly when every slot follows its default, including a day with no slots. Otherwise it
-    is `change`.
+  - `action` (judge 307 addendum 1) is `follow_rule` when every slot follows its default, including a day with no
+    slots. Otherwise it is `trade` when any slot trades, and `no_trade` when none does. `check_decision` refuses an
+    `action` that disagrees with the slots.
 - There is one slot per rule-default trade, in the sheet's order:
   `{"default": <opportunity_id>, "action": "follow_rule" | "no_trade" | "trade", "opportunity_id": <id or null>,
   "width": <number or null>, "lots": <int or null>, "reason": <non-empty str>}`.
@@ -177,9 +179,12 @@ control. A zero difference is "inconclusive".
 6. With no approved version, Book 2 writes the day's "no trade" record ("no approved strategy"), like Book 1.
 7. A Book 2 decision failing C4 never becomes a fill (end-to-end negative test through E4).
 8. `decide()` takes at most 30 s on the test day (measured and reported).
-9. Book 2's entry orders and exits use Book 1's `ReplayedOrders` and `PlaybookExitRules`, parametrised, not copied:
+9. Book 2's entry orders and exits use Book 1's `ReplayedOrders` and `PlaybookExitRules`, parametrised, not copied.
+   The evaluator `ReplayedOrders` replays is rebuilt with the `SelectionAllocator` and the stored `selection` picks, as
+   F6's Book 3 orders are, never D2's plain evaluator, which would order the rule default:
+   - a `choose_width` run orders the rebuilt width, not the default's;
    - a changed pick in `inputs.json` (the run no longer replays) refuses every order of that run;
-   - a pick blocked by C4 is never ordered;
+   - AI terms blocked by C4, or `shadow-only`, are never ordered; for `shadow-only` the default is what is ordered;
    - editing today's version file moves no exit: the trade keeps the time exit fixed at its decision.
 10. Book 1's C4 results are unchanged by the `unproven` check (Book 1's existing C4 cases rerun).
 
