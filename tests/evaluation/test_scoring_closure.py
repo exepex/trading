@@ -11,7 +11,8 @@ from fno.evaluation.freeze import frozen_targets
 from fno.evaluation.protocol import PROTOCOL_FILE
 
 DATA_SHAPES = {  # names, constants and record shapes: no figure is computed in them
-    "fno/constants.py": "fixed strings and enum values",
+    "fno/constants.py": "names and enum values; each number scoring takes from it is pinned (test_frozen_numbers)",
+    "fno/budget/constants.py": "the budget's purpose names (no numbers)",
     "fno/models.py": "the clock and plain value types",
     "fno/books/fills.py": "the Fill row shape",
     "fno/desk/execution.py": "fill_id only: an identifier string",
@@ -25,6 +26,8 @@ DATA_SHAPES = {  # names, constants and record shapes: no figure is computed in 
 }
 READERS = {  # read committed or archived files as they are; the files themselves are the evidence
     "fno/books/account.py": "reads a book's paper account rows",
+    "fno/budget/usage_ledger.py": "reads F8's committed AI usage rows",
+    "fno/checks/validity_failures.py": "reads C4's append-only failure log",
     "fno/books/paths.py": "journal file paths",
     "fno/books/versions.py": "reads the strategy-version registry",
     "fno/desk/pack_store.py": "reads E2's common packs",
@@ -39,6 +42,7 @@ READERS = {  # read committed or archived files as they are; the files themselve
     "fno/storage/raw_store.py": "the raw data store",
 }
 WIRING = {  # composition and settings: the settings that decide figures are hashed as config sections
+    "fno/budget/wiring.py": "composition root",
     "fno/composition.py": "composition root",
     "fno/config.py": "loads config.yaml; its scoring sections are hashed",
     "fno/desk/wiring.py": "composition root",
@@ -46,6 +50,7 @@ WIRING = {  # composition and settings: the settings that decide figures are has
 }
 EXEMPT = {**DATA_SHAPES, **READERS, **WIRING}
 NOT_SCORING = {"__init__.py", "cli.py"}
+SCORING_PACKAGES = ("fno/scoreboard", "fno/role_value")  # S2, S3 and S6; F9 (judge 235)
 
 
 def module_file(module: str) -> str | None:
@@ -70,7 +75,8 @@ def imported(path: str) -> set[str]:
 
 
 def unaccounted(hashed: set[str]) -> dict[str, set[str]]:
-    start = {f"fno/scoreboard/{p.name}" for p in (ROOT / "fno/scoreboard").glob("*.py") if p.name not in NOT_SCORING}
+    start = {f"{package}/{p.name}" for package in SCORING_PACKAGES for p in (ROOT / package).glob("*.py")
+             if p.name not in NOT_SCORING}  # fmt: skip
     seen, todo, missing = set(), list(start), {}
     while todo:
         current = todo.pop()

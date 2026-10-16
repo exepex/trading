@@ -23,4 +23,5 @@ def test_the_cost_wording_is_f9a_s_declared_split():
 def test_every_role_value_module_and_the_review_dates_are_hashed():
     modules = {f"fno/role_value/{p.name}" for p in (ROOT / "fno/role_value").glob("*.py")
                if p.name not in {"__init__.py", "cli.py"}}  # fmt: skip
-    assert modules | {"fno/evaluation/review_dates.py"} <= set(frozen_targets(text()))
+    shared = {"fno/evaluation/review_dates.py", "fno/budget/allocation.py"}  # review dates; F8's plan-cost split
+    assert modules | shared <= set(frozen_targets(text()))

@@ -451,7 +451,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `fno/role_value/controls.py`, `fno/role_value/cost.py`, `fno/role_value/records.py`, `fno/role_value/render.py`,
     `fno/role_value/report.py`, `fno/role_value/role_set.py`, `fno/role_value/role_set_file.py`,
     `fno/role_value/rows.py`, `fno/role_value/score.py`, `fno/role_value/valuation.py`, `fno/role_value/verdict.py`,
-    `fno/role_value/wiring.py`, `fno/evaluation/review_dates.py`.
+    `fno/role_value/wiring.py`, `fno/evaluation/review_dates.py`, and F8's allocation that splits the plan cost:
+    `fno/budget/allocation.py` (judge 235).
   - **Refusal:** the freeze tool refuses a listed file that does not exist.
 - **Status:** decided by the owner on 2026-10-14
 - **Reason:**
