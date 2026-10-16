@@ -115,7 +115,7 @@ def _claims(dry_run_folder: Path | None) -> MarkClaims:
     if dry_run_folder:
         return NoClaims()
     committer = GitManifestRecorder(REPOSITORY, CLAIMS_FOLDER, message=CLAIM_MESSAGE, label=CLAIM_LABEL,
-                                    keep_remote_on_conflict=True)  # fmt: skip
+                                    keep_remote_on_conflict=True, run_paths=_ledger_paths())  # fmt: skip
     return GitMarkClaims(CLAIMS_FOLDER, committer, new_run_id(), now_ist)
 
 
@@ -123,5 +123,16 @@ def _sync(dry_run_folder: Path | None, alerts: AlertSender) -> LedgerSync:
     if dry_run_folder:
         return NoSync()
     committer = OwnedPathsCommitter(REPOSITORY, INTRADAY_FOLDER, OWNED_PATHS, message=COMMIT_MESSAGE,
-                                    label=COMMIT_LABEL, keep_remote_on_conflict=True)  # fmt: skip
+                                    label=COMMIT_LABEL, keep_remote_on_conflict=True,
+                                    run_paths=(_repository_path(CLAIMS_FOLDER) + "/",))  # fmt: skip
     return GitLedgerSync(committer, alerts)
+
+
+def _ledger_paths() -> tuple[str, ...]:
+    """The run's ledger, RV and heartbeat paths: the claims committer pushes them with its own (judge 247)."""
+    folder = _repository_path(INTRADAY_FOLDER)
+    return tuple(f"{folder}/{name}" for name in OWNED_PATHS)
+
+
+def _repository_path(path: Path) -> str:
+    return path.relative_to(REPOSITORY).as_posix()

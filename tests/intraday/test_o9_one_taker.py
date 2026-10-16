@@ -5,11 +5,12 @@ import json
 import subprocess
 from datetime import date, datetime, time
 
-from fno.intraday.claims import LOST, UNCLAIMED, WON, ClaimResult, GitMarkClaims, MarkClaims
+from fno.intraday.claims import LOST, UNCLAIMED, WON, ClaimResult, GitMarkClaims, MarkClaims, NoClaims
 from fno.intraday.groww_source import failure_name
 from fno.intraday.recorder import ALREADY
 from fno.intraday.streak import EFFECT_QUOTES, EFFECT_VOID, streak_alert_text
 from fno.storage.manifest_commit import GitManifestRecorder
+from fno.storage.owned_paths_commit import OwnedPathsCommitter
 from tests.intraday.fakes import DAY, FakeClock, build, ist
 from tests.intraday.groww_fakes import FakeGrowwApi
 from tests.intraday.test_groww_source import source
@@ -140,3 +141,59 @@ def test_a_run_that_cannot_reach_github_takes_the_mark_anyway(tmp_path):
     git(a, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
     result = claims_in(a, "run-a").claim(DAY, ist(DAY, 9, 15))
     assert result.outcome == UNCLAIMED and result.take and "NOT committed" in result.detail
+
+
+INTRADAY = "research/data/intraday"
+
+
+def run_committers(folder, run_id, shared=True):
+    """The claims committer and the ledger committer of one recorder run in one checkout (judge 247)."""
+    claims_paths, ledger_paths = (f"{CLAIMS}/",), (f"{INTRADAY}/slots/",)
+    claims = GitManifestRecorder(folder, folder / CLAIMS, message="Claim ({what})", label="claim",
+                                 keep_remote_on_conflict=True, run_paths=ledger_paths if shared else ())  # fmt: skip
+    ledger = OwnedPathsCommitter(folder, folder / INTRADAY, ("slots/",), label="intraday slots",
+                                 keep_remote_on_conflict=True, run_paths=claims_paths if shared else ())  # fmt: skip
+    return GitMarkClaims(folder / CLAIMS, claims, run_id, lambda: datetime(2026, 10, 16, 9, 14, 15)), ledger
+
+
+def test_a_claim_lost_to_a_network_blip_never_blocks_the_runs_later_pushes(tmp_path):
+    origin, a, _ = origin_with_two_clones(tmp_path)
+    claims, ledger = run_committers(a, "run-a")
+    git(a, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
+    assert claims.claim(DAY, ist(DAY, 9, 15)).outcome == UNCLAIMED  # its commit stays local
+    git(a, "remote", "set-url", "origin", str(origin))
+    (a / INTRADAY / "slots").mkdir(parents=True)
+    (a / INTRADAY / "slots" / "row_0915.csv").write_text("mark,status\n09:15,good\n")
+    assert ledger.commit("09:15").startswith("intraday slots committed and pushed")
+    assert claims.claim(DAY, ist(DAY, 9, 30)).outcome == WON
+    on_main = git(origin, "ls-tree", "-r", "--name-only", "main").split()
+    day = f"{DAY:%Y-%m-%d}"
+    assert {f"{CLAIMS}/{day}/0915.json", f"{CLAIMS}/{day}/0930.json", f"{INTRADAY}/slots/row_0915.csv"} <= set(on_main)
+
+
+def test_a_committer_still_refuses_changes_that_are_not_the_runs(tmp_path):
+    origin, a, _ = origin_with_two_clones(tmp_path)
+    claims, _ = run_committers(a, "run-a")
+    (a / "code.py").write_text("unjudged\n")
+    git(a, "add", "code.py")
+    git(a, "commit", "-q", "-m", "unjudged code")
+    result = claims.claim(DAY, ist(DAY, 9, 15))
+    assert result.outcome == UNCLAIMED and "code.py" in result.detail
+    assert "code.py" not in git(origin, "ls-tree", "-r", "--name-only", "main")
+
+
+def test_a_lost_mark_is_never_asked_for_again(tmp_path):
+    clock = FakeClock(ist(DAY, 9, 5))
+    recorder, *_ = build(tmp_path, clock)
+    recorder.claims = claims = LosesFirstMark(clock)
+    recorder.run(time(9, 35))
+    assert [f"{mark:%H:%M}" for mark, _ in claims.asked] == ["09:15", "09:30"]
+
+
+def test_a_dry_run_claims_nothing_and_a_live_run_shares_its_paths_with_the_ledger(tmp_path):
+    from fno.intraday import wiring
+
+    assert isinstance(wiring._claims(tmp_path), NoClaims)
+    live = wiring._claims(None)
+    assert isinstance(live, GitMarkClaims) and live.committer.run_paths == wiring._ledger_paths()
+    assert "research/data/intraday/slots/" in live.committer.run_paths
