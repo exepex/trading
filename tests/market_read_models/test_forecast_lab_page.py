@@ -219,3 +219,9 @@ def test_an_on_time_live_record_is_pending_until_g4_verified_its_day(tmp_path):
     report["coverage"]["book1_rules"]["counted_days"] = 0  # G4 never counts a day it could not verify
     page = published(lab_on(tmp_path, report, date(2026, 10, 15)))
     assert {v["forecaster"]: v["status"] for v in page["questions"][0]["today"]["values"]}["book1_rules"] == "pending"
+
+
+def test_an_answer_day_beyond_nses_calendar_stops_the_publish_named_never_a_guessed_date():
+    with pytest.raises(FiguresNotComputed, match="beyond NSE's session calendar: add NSE's 2027 holiday circular rows"):
+        SessionsAhead(CALENDAR)(date(2026, 12, 3), 20)  # 20 sessions after 3 Dec 2026 reach 2027 (response 241)
+    assert SessionsAhead(CALENDAR)(date(2026, 12, 2), 20) == date(2026, 12, 31)  # a target inside 2026 is answered

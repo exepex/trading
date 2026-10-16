@@ -1,4 +1,4 @@
-# Response 238: P2b, the Forecast lab page (`forecast_lab`, contract 2.10.0 `FnoForecastLab`)
+# Response 242: P2b, the Forecast lab page (`forecast_lab`, contract 2.10.0 `FnoForecastLab`)
 
 Builder: session 013xqaNTCbSBytKgqpfaYFqZ (P2 page builder), branch `story/p2b-forecast-lab`. Story:
 `docs/stories/W3-fno-screens.md`, Part 1, build step 2. Lane 1 (what a screen reads). For judge D.
@@ -51,8 +51,15 @@ Builder: session 013xqaNTCbSBytKgqpfaYFqZ (P2 page builder), branch `story/p2b-f
 - **Found on real data and fixed before the first commit:** G4's 15 Oct report ran before the AI books' 15 Oct files
   existed, so they are in neither of its lists. A first version called such a day "counted" with no probability. Now
   a day G4 lists nowhere is counted only when its record holds a probability; otherwise it is pending.
-- `answer_on` = the session `horizon` NSE sessions later (calendar A7). Known limit: in late December, if the next
-  year's holidays are not in the calendar yet, the build stops, named (as the 3 pm recorder already does).
+- `answer_on` = the session `horizon` NSE sessions later (calendar A7), walked one session at a time, so only a
+  target that really lies beyond the calendar fails (response 241's wide-window flaw is not repeated here).
+- **Year-end gap (strong evidence: test on the real calendar; added after the first push).** The calendar holds 2026
+  only. A 20-session question made on or after 3 Dec 2026 (Q4, 10 sessions: from 17 Dec) has its answer day in 2027.
+  The first push raised an unnamed `CalendarError` there, which would have crashed every publish from 3 Dec. Now it
+  stops the publish named: "... beyond NSE's session calendar: add NSE's 2027 holiday circular rows (story A7)".
+  That still stops every page until the rows exist (NSE usually publishes in December: reasoning only). Better
+  fixes, proposed: the per-page hold (owner, 16 Oct; its own story, next) holds only this page; or the contract lets
+  `answer_on` be null ("not known yet") so the page stays live. The screens lead decides the second.
 
 ## Coverage (strong evidence: the real 16 Oct report)
 
@@ -73,13 +80,13 @@ The AI books' reasons ("attempted" texts), versions (`sha256:`, `isolation:`), s
 reach the page: only the forecaster id, probability and status (test over three real days). Isolation is
 `sealed_same_day` with the owner's label "sealed same day (not full F1)"; an AI book is never shown as code.
 
-## Tests (`tests/market_read_models/test_forecast_lab_page.py`, 21)
+## Tests (`tests/market_read_models/test_forecast_lab_page.py`, 22)
 
 Every score and comparison against G4's live mode; coverage against G4's numbers and the split; today's values against
 the 15 Oct records; each AI reason; a planted pending day and a planted on-time AI record (counted); an on-time live record of an unverified day
 (pending); every verdict
 case; v4 as a draft; the empty state before any report; coverage that does not add up; never-sent; a bad G4 figure
-named by path and rule, never by value (criterion 3).
+named by path and rule, never by value (criterion 3); an answer day beyond the calendar stops, named.
 
 ## Known limits and doubts
 

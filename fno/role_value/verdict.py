@@ -1,8 +1,9 @@
 """The verdicts of one review (story F9a; S1 `role_value_minimum_sample`; owner, 15 Oct 2026: Holm across a book's
-units). Each unit with a known cost and at least 30 changed opportunities enters two one-sided claims, "earns its cost"
-and "drop"; all of them go into S3's Holm step-down (`fno/scoreboard/uncertainty.py`, imported) as one plain list. A
-unit passes at most one. Nothing is decided without `--review` on a scheduled review date, and a "drop proposed" is a
-proposal for the owner, never acted on."""
+units). The family is fixed: both one-sided claims, "earns its cost" and "drop", of every unit in the registered role
+set, so one unit becoming testable never moves another's threshold (as ChatGPT review 120 found for S3). A unit
+without a known cost or 30 changed opportunities stays in the family with p = 1. The list goes into S3's Holm
+step-down (`fno/scoreboard/uncertainty.py`, imported). A unit passes at most one claim. Nothing is decided without
+`--review` on a scheduled review date, and a "drop proposed" is a proposal for the owner, never acted on."""
 
 from __future__ import annotations
 
@@ -31,13 +32,17 @@ def verdicts(scores: Sequence[UnitScore], review: bool, on: date, review_days: S
         return {s.unit: NOT_REVIEW for s in scores}
     if on not in review_days:
         return {s.unit: NOT_REVIEW_DATE.format(day=on) for s in scores}
-    entering = [s for s in scores if _entering(s)]
-    passed = holm([p for s in entering for p in (s.p_earns, s.p_drop)])
+    passed = holm([p for s in scores for p in _claims(s)])
     found = {}
-    for i, score in enumerate(entering):
+    for i, score in enumerate(scores):
+        if not _entering(score):
+            found[score.unit] = COST_UNKNOWN if score.cost is None else TOO_FEW.format(changed=score.changed)
+            continue
         earns, drop = passed[2 * i], passed[2 * i + 1]
         found[score.unit] = EARNS if earns else DROP if drop else INCONCLUSIVE
-    for score in scores:
-        if score.unit not in found:
-            found[score.unit] = COST_UNKNOWN if score.cost is None else TOO_FEW.format(changed=score.changed)
     return found
+
+
+def _claims(score: UnitScore) -> tuple[float, float]:
+    """A unit's two one-sided p-values; a unit that cannot be tested at this review stays in the family with p = 1."""
+    return (score.p_earns, score.p_drop) if _entering(score) else (1.0, 1.0)

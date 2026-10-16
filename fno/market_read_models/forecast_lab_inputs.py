@@ -17,10 +17,15 @@ from pathlib import Path
 
 from ..forecast.record_files import read_records_v2
 from ..forecast.schema_v2 import ForecastRecordV2
-from ..research_data.calendar import SessionCalendar
+from ..research_data.calendar import CalendarError, SessionCalendar
 from .forecast_history_inputs import ScoreReportsReader
+from .home_blocks import FiguresNotComputed
 
 RECORDS_GLOB = "*/*_forecasts.csv"
+BEYOND_CALENDAR = (
+    "the session {n} sessions after {day} is beyond NSE's session calendar: add NSE's {year} holiday circular rows "
+    "(story A7) to publish the Forecast lab"
+)
 
 
 @dataclass(frozen=True)
@@ -57,12 +62,17 @@ class ForecastLabReader:
 
 
 class SessionsAhead:
-    """The session `n` NSE sessions after a day (calendar A7); a day the calendar cannot answer stops the build."""
+    """The session `n` NSE sessions after a day (calendar A7), walked one session at a time, so only a target that
+    really lies beyond the calendar fails (response 241). That stops the publish, named: never a guessed date."""
 
     def __init__(self, calendar: SessionCalendar):
         self.calendar = calendar
 
     def __call__(self, day: date, sessions: int) -> date:
-        for _ in range(sessions):
-            day = self.calendar.next_session(day)
+        start = day
+        try:
+            for _ in range(sessions):
+                day = self.calendar.next_session(day)
+        except CalendarError as exc:
+            raise FiguresNotComputed(BEYOND_CALENDAR.format(n=sessions, day=start, year=day.year + 1)) from exc
         return day
