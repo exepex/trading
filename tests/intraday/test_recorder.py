@@ -60,6 +60,21 @@ def test_more_than_15_minutes_early_takes_nothing(tmp_path):
     assert recorder.snapshot().status == NO_MARK and not source.taken
 
 
+def test_a_run_started_long_before_the_first_mark_waits_for_it_instead_of_ending(tmp_path):
+    clock = FakeClock(ist(DAY, 8, 53, 17))  # 16 Oct 2026: the 08:52 fire's recorder started here, 22 min early
+    recorder, source, *_ = build(tmp_path, clock)
+    recorder.run(time(10, 5))
+    assert [f"{m:%H:%M}" for m in source.taken] == ["09:15", "09:30", "09:45", "10:00"]
+    assert all(r["status"] == "good" for r in recorder.ledger.rows(DAY))
+
+
+def test_a_run_whose_until_comes_before_the_first_mark_still_ends(tmp_path):
+    clock = FakeClock(ist(DAY, 8, 40))
+    recorder, source, *_ = build(tmp_path, clock)
+    recorder.run(time(9, 5))
+    assert not source.taken and clock.now() < ist(DAY, 9, 5)
+
+
 def test_a_mark_already_stored_is_not_taken_again(tmp_path):
     clock = FakeClock(ist(DAY, 9, 14))
     recorder, source, *_ = build(tmp_path, clock)
