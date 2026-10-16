@@ -159,11 +159,11 @@ cards re-screened (R1b) with their figures printed beside the hand screens.
 registers a card with a missing field; checks that no ledger column changed and that R3's files are untouched; compares
 the code's re-screen of R2, FT1 and B0 with their cards.
 
-**Open questions (for the orchestrator or the owner):**
-- The gate log in the repository, like `ledger.csv`, or in Drive under O9 ("every data file write-once in Drive")?
-  Reasoning only: it is a research record of decisions, not data, like the ledger.
-- `FACTORY_RULES.md` does not fix z for the sample plan; this text takes it from each idea's registered one-sided pass
-  level. Confirm, or name a fixed z.
+**Settled (orchestrator, 16 Oct 2026, reasoning only):**
+- The gate log stays in the repository, like `ledger.csv`.
+- z for the sample plan is each idea's registered one-sided pass level.
+- `FACTORY_RULES.md`'s worked example gets the corrected figures of criterion 4, as a dated correction, in this
+  change.
 
 **Depends:** B4 (done), C1 (done), D1 (done), A4 (done); R3 for R1c's adapter. **Size:** L in total (three M rounds).
 **Status:** R1a next (story text with judge G).
