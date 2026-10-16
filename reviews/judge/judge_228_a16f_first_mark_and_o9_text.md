@@ -89,3 +89,15 @@ checking only that diff.
 
 **Verdict: PASS for f4bedbeb (A16f).** Merge before Monday 19 Oct's 08:52 fire. After the merge I check the merge and
 CI, and Monday's run log for 09:15 taken as good and the rows on `main`.
+
+## Addendum 2 (16 Oct 2026): merge check, A16f merged to main as 4a83ce6
+
+- **Merge is exact.** 4a83ce6's parents are c77868af (main) and f4bedbeb (the passed tip). Recomputing the merge with
+  `git merge-tree --write-tree` gives a tree identical to 4a83ce6's (empty diff).
+- **A16f files are identical on main.** `git diff f4bedbeb 4a83ce6` on all five A16f files is empty, and nothing
+  under `fno/intraday`, `fno/storage` or their tests changed between 4a83ce6 and the current head 78e7daa.
+- **CI.** The parent is green. The run on 78e7daa, which contains the merge, was in progress; I confirm it in my
+  report.
+- **Monday 19 Oct:** I check the 08:52 run's log for 09:15 taken as good and the rows on `main`.
+
+**Verdict: merge check PASS** (CI on the merge to be confirmed).

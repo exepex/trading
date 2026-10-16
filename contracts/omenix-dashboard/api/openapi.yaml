@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: market-brief app API
-  version: 2.8.0
+  version: 2.10.0
   summary: Read API over the precomputed read models (docs/ARCHITECTURE.md section 4), plus planned governed writes.
   description: |
     Research only: nothing here places, routes or suggests a trade, and nothing is investment advice.
@@ -79,6 +79,19 @@ info:
     Also added to existing pages: the weather's back-fill labels (`recent[].label`, `red_share.basis`,
     `scores[].exploratory`); paper trades' shadow accounts (`shadows`, never summed with a book), each book's distance to
     its pause (`accounts[].brake`) and the monitor's alerts on an open position (`open[].alerts`, owner only).
+
+    Version 2.9 (owner, 16 Oct 2026, exepex/trading docs/DESK_DECISIONS.md: weather levels public; the Forecast lab's
+    field A only): the Forecast lab's running scores (`forecast_history`, its own page: each forecaster's running
+    average miss as each day's G4 report gives it, live and rebuilt from history apart, for the race chart and a
+    period the owner picks, which counts the answers that came in during it); and each session's chances back on the weather's history (`weather_history`: `p_big_1d`, `p_big_5d`,
+    `base_rate_1d`, `base_rate_5d`, required). A 2.8 `weather_history` payload is rejected; no F&O screen page is
+    published yet. Single forecasts with their outcomes (field B) wait for about 60 scored live days.
+
+    Version 2.10 (judge 224 addendum 2; the W3 builder, 16 Oct 2026): each forecast-history series names the back-fill
+    file it was scored on (`series[].backfill_sha256`, null for live; a rebuilt back-fill starts a new series, so a
+    period is never differenced across a rebuild), and each paper book's published open-risk cap
+    (`accounts[].open_risk_cap`, from C5's config, beside `brake.pause_at`), so no screen copies it. Both are
+    required: a 2.9 forecast_history or paper_trades payload is rejected; neither page is published yet.
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and
