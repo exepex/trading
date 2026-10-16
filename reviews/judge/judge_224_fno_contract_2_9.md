@@ -59,3 +59,19 @@ in the checks (only my manual plant). Add it to the planted-breaks list so it st
     2.8 fields.
 - **Still a note, not a block:** the planted "also" mismatch is a manual check (yours and mine), not a committed
   planted break. Add it to the checks' planted list when next touching `check_fno_screens.py`.
+
+## Addendum 2: head cf9692e (judge 224's points done)
+
+**PASS.**
+
+- **The planted "also" break is committed.** `planted_also` copies each `MOCKUPS_ALSO` mockup's data into a scratch
+  folder, empties one example of each further operation, runs `check_mockups` and requires the mismatch to be
+  reported. `check_fno_screens` exits 0 with it in place.
+- **Back-fill rebuilds are handled.** Each series requires `backfill_sha256`, enforced by `if`/`then`/`else` on its
+  label: a string for `backfill_exploratory` (G4's `inputs.backfill_sha256`, which exists in the real report), null for
+  live. The text says a rebuilt back-fill starts a new series and the period difference is taken only within one. Two
+  new probes (a rebuilt series without the hash, a live one with it) are refused.
+- **The check change is accepted.** The closed-object rule now also skips `/then` and `/else`, as it already skipped
+  `/if`. Those nodes only add conditions to their parent object, which is still checked closed (opening the series
+  item is still reported, as the lead showed).
+- **Gates:** `check_contract` ("every planted break caught") and `check_fno_screens` exit 0 on cf9692e.
