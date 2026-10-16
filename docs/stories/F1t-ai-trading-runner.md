@@ -333,10 +333,10 @@ boundary and empty cases (quality rule 5).
     line of JSON passed only to `brief`; stop on a refusal; never `--no-verify`), the environment
     variables' names (never values) the daily run needs, and the go-live checks below. A test checks the checklist's
     command names exist in the CLI.
-15. **Usage.** A decision session's `brief` and `reveal` write its timing file at the decision timing path; the
+14. **Usage.** A decision session's `brief` and `reveal` write its timing file at the decision timing path; the
     recorder books it as `books_and_roles` with role "<book> trading decision"; a fired decision session with no
     timing file is reported "not captured" by F8c's check; forecast timing is unchanged (tests).
-14. **Real output sample.** The claims show the outcome records and alert lines of a fixture day with one promoted and
+15. **Real output sample.** The claims show the outcome records and alert lines of a fixture day with one promoted and
     one late book, made by the committed code in a test, with no live post.
 
 **Go-live checks (owner, before setting a live switch; not merge criteria):** the owner creates the two routines and
@@ -382,7 +382,7 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 | Reuse `fno/ai` fire, collect, seal (task) | design (trigger, seal, transport, receipts interface, audit) | |
 | Live switch off until the owner turns it on (task) | criterion 1 | |
 | Budget cap stops AI roles (BG1, design 7.6) | criterion 2 | |
-| AI usage recorded (F8) | criterion 15 | |
+| AI usage recorded (F8) | criterion 14 | |
 | Book 2 rule default precomputed by code (F5) | | F5 (agreed 16 Oct): at E2's pack step code runs D2 for Book 2 and writes `journal/book2_hybrid/rule_defaults/<d>.json` (rule default terms and eligible set per opportunity); it is inside Book 2's private pack, so it travels in F1t's pointer under `private_pack_sha256` with no change here |
 | Analyst cards and consulted units (F2, F9) | criterion 3b | The cards themselves: F2 |
 | Red team, judge, shadows (F3, F4, F7) | carried in `decision` unchanged | Their stories |
