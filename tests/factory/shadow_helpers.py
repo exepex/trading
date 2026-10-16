@@ -1,7 +1,7 @@
 """A planned idea in a temporary repository, frozen and judged with fakes for the playbook and the shadow accounts
 (story R1c)."""
 
-from datetime import date
+from datetime import date, timedelta
 from types import SimpleNamespace
 
 from fno.factory.constants import DATA_SPEND_FILE
@@ -35,18 +35,28 @@ class Versions:
         return SimpleNamespace(name=name, version=version, edge_family=family)
 
 
+def after_freeze(nets, first=DAY + timedelta(days=1)):
+    """Positions opened on successive days from `first`, as (opened_on, net)."""
+    return [(first + timedelta(days=i), net) for i, net in enumerate(nets)]
+
+
 class Results:
+    """A shadow account's completed positions as (opened_on, net); a plain list of nets opens them after the freeze."""
+
     def __init__(self, nets=None):
-        self.by_account = dict(nets or {})
+        self.by_account = {a: v if v and isinstance(v[0], tuple) else after_freeze(v) for a, v in (nets or {}).items()}
+        self.asked = []
 
-    def nets(self, account):
-        return list(self.by_account.get(account, []))
+    def nets(self, account, opened_after):
+        self.asked.append((account, opened_after))
+        return [net for day, net in self.by_account.get(account, []) if day > opened_after]
 
 
-def planned_repo(root, extra=SHADOW):
+def planned_repo(root, extra=SHADOW, spent=False):
     init_repo(root)
     (root / DATA_SPEND_FILE).write_text(REGISTER)
-    write_card(root, BLOCK + PLAN + extra)
+    plan = PLAN.replace("Quotes | Groww | 2027", "Closes | NSE | 2019") if spent else PLAN
+    write_card(root, BLOCK + plan + extra)
     build_registration(root).register(read_idea("X1", root), DAY)
     commit(root, "register X1")
     steps = build_gate_steps(root)

@@ -39,8 +39,11 @@ def verdict(args) -> list[str]:
     from .wiring import build_verdicts, read_idea
 
     result = build_verdicts().judge(read_idea(args.idea_id), date.today())
-    members = [f"  {m.version}: p {m.p:.4f} ({m.positions} of {m.sample} positions)" for m in result.members]
+    members = [f"  {m.version}: p {m.p:.4f} ({m.positions} of {m.sample} positions opened after {m.opened_after})"
+               for m in result.members]  # fmt: skip
     word = "passed" if result.passed else "failed"
+    if result.exploratory:
+        word += " (exploratory data: it can never pass, FACTORY_RULES section 4)"
     return [f"{args.idea_id}: G6 {word} (Holm across {len(result.members)} shadows on {result.question_id}, alpha "
             f"{result.alpha:g}); never relabelled", *members,
             "miss share: not reported until E6b's missed-execution counter is merged (R1 Known limits)",

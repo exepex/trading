@@ -1,6 +1,9 @@
 """G4 and G6 end to end (story R1c, criteria 8 and 10): freeze only a planned idea, judge once at the frozen sample by
 Holm across the question's cumulative family, and never register a measurement."""
 
+import math
+from datetime import timedelta
+
 import pytest
 
 from fno.factory.constants import Gate
@@ -9,11 +12,22 @@ from fno.factory.gate_order import GateStepError
 from fno.factory.registered_shadows import RegisteredShadows
 from fno.factory.verdict import one_sided_p
 from fno.factory.wiring import read_idea
-from fno.research_engine.ledger import NotRegistered
+from fno.research_engine.ledger import NotRegistered, write_ledger
 from fno.scoreboard.uncertainty import holm
 
 from .helpers import commit, git
-from .shadow_helpers import DAY, QUESTION, WINNING, Results, Versions, freezer, parts, planned_repo, verdicts
+from .shadow_helpers import (
+    DAY,
+    QUESTION,
+    WINNING,
+    Results,
+    Versions,
+    after_freeze,
+    freezer,
+    parts,
+    planned_repo,
+    verdicts,
+)  # fmt: skip
 
 ACCOUNT = "shadow:x1-sc-v1"
 
@@ -105,3 +119,62 @@ def test_an_earlier_verdict_is_never_relabelled(repo):
     before = parts(repo)[0].gates.last("3")
     plant_family(repo, 19)
     assert parts(repo)[0].gates.last("3") == before and before.outcome == "passed"
+
+
+def test_a_position_opened_on_or_before_the_freeze_day_never_counts(repo):
+    """Judge 271, FACTORY_RULES section 3 rule 1: records made before the freeze never count."""
+    frozen(repo)
+    before = [(DAY - timedelta(days=i), 5000.0) for i in range(20)] + [(DAY, 5000.0)]
+    results = Results({ACCOUNT: before})
+    with pytest.raises(GateStepError, match="0 of 11 positions"):
+        verdicts(repo, results).judge(read_idea("X1", repo), DAY)
+    assert results.asked == [(ACCOUNT, DAY)]
+    results = Results({ACCOUNT: before + after_freeze([-100.0] * 11)})
+    result = verdicts(repo, results).judge(read_idea("X1", repo), DAY)
+    assert result.judged.p == 1.0 and not result.passed and result.judged.opened_after == DAY.isoformat()
+    assert figures(parts(repo)[0].gates.last("3"))["opened_after"] == DAY.isoformat()
+
+
+def test_an_exploratory_trial_never_passes_but_stays_in_its_family(tmp_path):
+    """Judge 271, FACTORY_RULES section 4: a test on spent or exposed data cannot pass G6."""
+    repo = planned_repo(tmp_path, spent=True)
+    assert parts(repo)[0].gates.last("3").outcome == "planned"
+    frozen(repo)
+    result = verdicts(repo, Results({ACCOUNT: WINNING})).judge(read_idea("X1", repo), DAY)
+    assert result.holm_passed and result.exploratory and not result.passed
+    row = parts(repo)[0].gates.last("3")
+    assert (row.outcome, figures(row)["exploratory"]) == ("failed", "yes")
+    assert len(result.members) == 1
+
+
+def test_a_member_short_of_its_sample_enters_at_p_1_however_strong(repo):
+    frozen(repo)
+    plant_family(repo, 1)
+    strong = [5000.0, 5200.0, 4900.0] * 3  # 9 strongly positive positions: short of the frozen 11
+    result = verdicts(repo, Results({ACCOUNT: WINNING, "shadow:other-v0": strong})).judge(read_idea("X1", repo), DAY)
+    other = next(m for m in result.members if m.version == "other-v0")
+    assert one_sided_p(strong) < 0.001 and (other.positions, other.p) == (9, 1.0)
+
+
+def test_the_p_value_matches_students_t_with_n_minus_1_degrees_of_freedom():
+    """A known answer: nets 1..5, t = 3 / (sqrt(2.5) / sqrt(5)) = 4.2426 with 4 degrees of freedom; df 4 has the closed
+    form F(t) = 1/2 + (3/8) u (1 - t^2 / (12 (1 + t^2 / 4))), u = t / sqrt(1 + t^2 / 4)."""
+    t = 3 / (math.sqrt(2.5) / math.sqrt(5))
+    u, x = t / math.sqrt(1 + t * t / 4), t * t / 4
+    assert one_sided_p([1.0, 2.0, 3.0, 4.0, 5.0]) == pytest.approx(1 - (0.5 + 0.375 * u * (1 - x / (3 * (1 + x)))))
+    assert one_sided_p([1.0, 2.0, 3.0, 4.0, 5.0]) == pytest.approx(0.0066178, abs=1e-7)
+
+
+def test_a_trial_is_frozen_once(repo):
+    frozen(repo)
+    with pytest.raises(GateStepError, match="its last gate is G4 registered"):
+        freezer(repo).freeze(read_idea("X1", repo), DAY)
+
+
+def test_a_ledger_row_with_a_protocol_commit_is_never_frozen_again(repo):
+    ledger = parts(repo)[1]
+    rows = [r | {"protocol_commit": "abc123"} if r["trial_id"] == "3" else r for r in ledger.rows()]
+    ledger.file.write_text(write_ledger(rows))
+    commit(repo, "a commit set by hand")
+    with pytest.raises(GateStepError, match="trial 3 is already frozen at abc123"):
+        freezer(repo).freeze(read_idea("X1", repo), DAY)
