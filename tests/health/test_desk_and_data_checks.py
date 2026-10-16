@@ -38,10 +38,11 @@ def test_the_desk_run_is_on_time_by_its_decisions_finish(repo, decided, status):
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == status
 
 
-def test_a_run_log_missing_a_step_is_a_miss_naming_it(repo):
-    _run_log(repo, steps=DESK_RUN_STEPS[:-1])
+@pytest.mark.parametrize("missing", ["exits", "trade_marks"])  # story E2d: the marking step after the exits
+def test_a_run_log_missing_a_step_is_a_miss_naming_it(repo, missing):
+    _run_log(repo, steps=tuple(step for step in DESK_RUN_STEPS if step != missing))
     result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
-    assert result.status == HEALTH_MISSED and "exits" in result.detail
+    assert result.status == HEALTH_MISSED and missing in result.detail
 
 
 def test_a_run_log_without_decisions_and_no_run_log_at_all(repo):

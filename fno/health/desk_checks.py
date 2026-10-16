@@ -20,7 +20,7 @@ from .model import CheckResult, Deadline, EvidenceUnknown, SessionCheck, absent,
 
 # The run's steps in order, as `fno/desk/daily_run.py` plans them (a test keeps the two equal); `skipped` is its
 # closed-day step
-DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits")
+DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits", "trade_marks")
 SKIPPED_STEP = "skipped"
 
 
