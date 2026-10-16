@@ -12,6 +12,8 @@ from pathlib import Path
 
 from ..constants import SESSION_MUHURAT
 
+NO_CALENDAR = "no NSE session calendar to count the margin's age in sessions"
+
 
 @dataclass(frozen=True)
 class Shock:
@@ -38,18 +40,17 @@ class MarginSettings:
         return kind is not None and kind != SESSION_MUHURAT
 
     def fresh(self, as_of: date, day: date) -> bool:
+        """Raises ValueError, naming the cause, when the calendar is missing or cannot answer for a day the look-back
+        reaches (story C5c): the caller refuses with that reason, never with "too old"."""
         if self.max_age_sessions is None:
             return (day - as_of).days <= self.max_age_days
         if self.session_kind is None:
-            return False  # no calendar: fail closed
+            raise ValueError(NO_CALENDAR)
         oldest = day
-        try:
-            for _ in range(self.max_age_sessions):
+        for _ in range(self.max_age_sessions):
+            oldest -= timedelta(days=1)
+            while not self._trading_day(oldest):
                 oldest -= timedelta(days=1)
-                while not self._trading_day(oldest):
-                    oldest -= timedelta(days=1)
-        except ValueError:  # the calendar cannot answer for that day: fail closed
-            return False
         return as_of >= oldest
 
 

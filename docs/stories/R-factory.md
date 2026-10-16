@@ -226,9 +226,10 @@ requires them in this text.
   - `research/ideas/B0.md`, from `TEMPLATE.md`;
   - a ledger row through B4's guard (`prospective`, hypothesis `no`, description starting "B0 measurement: never
     promoted");
-  - `playbook/b0-monthly-sc-v1.yaml`: experiment 1's P1 rule exactly, which is response 92's B0 row (SC, forward x
+  - `playbook/b0-monthly-sc-v1.yaml`: experiment 1's P1 rule exactly, which is response 92's B0 row (SC, spot x
     1.02 / x 0.98, widest of 300/250/200/150/100 within the Rs 10,000 cap, every monthly cycle 30-45 days out, exit at
-    the last 15:00 with 21+ days left, `entry_conditions: []`, `catastrophic_loss_rs: 10000`);
+    the last 15:00 with 21+ days left, `entry_conditions: []`, `catastrophic_loss_rs: 10000`). P1 and D2 centre on spot;
+    response 92 wrote "forward" (judge 233 note 1);
   - its registry row (`research`, `approved_by: desk`) by `python -m fno playbook set-status`.
 - **The label's one source:** the version file's `edge_family: measurement` (an existing D1 field, no schema change).
   One predicate, `is_measurement(strategy)`, reads it, and every output below calls it. Its constant is named at the top of the predicate's
