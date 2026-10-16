@@ -18,9 +18,9 @@ PROPOSER = (
     "fno.costs", "fno.research_engine.cycle_costs", "fno.research_engine.structures", "fno.research_engine.simulator",
     "fno.research_engine.leg_prices", "fno.risk.trade_costs", "fno.risk.rules", "fno.risk.manager", "fno.risk.margins",
     "fno.risk.stress", "fno.risk.drawdown", "fno.risk.overrides", "fno.risk.book_view", "fno.risk.settings",
-    "fno.risk.profile_settings", "fno.risk.buckets", "fno.risk.open_risk", "fno.risk.caps", "fno.risk.margin_age",
-    "fno.research_engine.implied_vol", "fno.books.account", "fno.books.equity", "fno.books.fills",
-    "fno.playbook.candidates", "fno.playbook.allocation", "fno.playbook.book_effects",
+    "fno.risk.profile_settings", "fno.risk.stress_factor", "fno.risk.buckets", "fno.risk.open_risk", "fno.risk.caps",
+    "fno.risk.margin_age", "fno.research_engine.implied_vol", "fno.books.account", "fno.books.equity",
+    "fno.books.fills", "fno.playbook.candidates", "fno.playbook.allocation", "fno.playbook.book_effects",
 )  # fmt: skip
 VALIDITY_FILES = sorted((ROOT / "fno" / "checks").glob("validity*.py"))
 

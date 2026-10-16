@@ -6,24 +6,38 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from ...constants import V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE
 from ...forecast_v4.terms import POWER_REPORT_AT
 from .comparison import Comparison, margin
+from .days import DayCounts
 from .records import EXPLORATORY
-from .scoring import STATUS_SCORED, QuestionReport
+from .scoring import STATUS_SCORED, Cohort, QuestionReport
 
+COHORT_HEADINGS = {
+    V4_COHORT_CLOSE_PROXY: "close-proxy cohort (back-fill: the close stands in for the 14:30 pack; exploratory)",
+    V4_COHORT_LIVE: "live cohort (captured before the cutoff)",
+}  # G10: scored apart, never pooled
 SECONDARY = "Forecasts are secondary to net profit; no p-value here is a verdict (verdicts come only from a look)."
 
 
-def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str) -> list[str]:
-    lines = ([] if frozen else [EXPLORATORY]) + [f"Omenix F&O protocol v4 scores as of {as_of}", SECONDARY]
+def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> list[str]:
+    lines = ([] if frozen else [EXPLORATORY]) + [f"Omenix F&O protocol v4 scores as of {as_of}", SECONDARY, days.line()]
     for report in reports:
         lines.append(f"{report.question}: {report.status}")
         if report.status != STATUS_SCORED:
             continue
         lines.append(f"  live forecasts: {report.live_forecasts}")
-        lines += [f"  {name}: {_scores_text(scores)}" for name, scores in report.scores.items()]
-        for comparison in report.comparisons:
-            lines += comparison_lines(comparison)
+        for name, cohort in report.cohorts.items():
+            lines += _cohort_lines(name, cohort)
+    return lines
+
+
+def _cohort_lines(name: str, cohort: Cohort) -> list[str]:
+    if not cohort.scores:
+        return [f"  {COHORT_HEADINGS[name]}: no rows yet"]
+    lines = [f"  {COHORT_HEADINGS[name]}:"] + [f"  {f}: {_scores_text(s)}" for f, s in cohort.scores.items()]
+    for comparison in cohort.comparisons:
+        lines += comparison_lines(comparison)
     return lines
 
 
@@ -51,15 +65,17 @@ def comparison_lines(c: Comparison) -> list[str]:
     ]
 
 
-def report_json(reports: list[QuestionReport], frozen: bool, as_of: str) -> dict:
-    return {"as_of": as_of, "exploratory": not frozen, "questions": [_question_json(r) for r in reports]}
+def report_json(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> dict:
+    questions = [_question_json(r) for r in reports]
+    return {"as_of": as_of, "exploratory": not frozen, "days": asdict(days), "questions": questions}
 
 
 def _question_json(report: QuestionReport) -> dict:
     return {
         "question": report.question, "status": report.status, "live_forecasts": report.live_forecasts,
-        "scores": {name: asdict(s) if s else None for name, s in report.scores.items()},
-        "comparisons": [_comparison_json(c) for c in report.comparisons],
+        "cohorts": {name: {"scores": {f: asdict(s) if s else None for f, s in c.scores.items()},
+                           "comparisons": [_comparison_json(x) for x in c.comparisons]}
+                    for name, c in report.cohorts.items()},
     }  # fmt: skip
 
 

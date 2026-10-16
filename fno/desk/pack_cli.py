@@ -21,9 +21,12 @@ def cmd_pack(args) -> int:
     from ..models import now_ist
     from .pack_items import PackError
     from .pack_wiring import build_packs
+    from .wiring import build_private_files
 
-    day, packs = args.day or now_ist().date(), build_packs()
+    files = build_private_files()
+    day, packs = args.day or now_ist().date(), build_packs(files=files)
     try:
+        files.download()  # story E2c: the private packs hold each account's text, read from Drive first
         common = packs.build(day)
     except PackError as refused:
         print(f"refused: {refused}")

@@ -310,22 +310,18 @@ Out:
 - the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
 - a failed commit in `fno desk book1` (Book 1's decision, `fno/books/book1.py:74`) still ends in a traceback with no
   alert, as before E2b: that command is not the daily run; a follow-up for the orchestrator;
-- **three stated exceptions**, put to the owner together with the open question of whether paper fills should move to
-  Drive at all:
+- **two stated exceptions** (three until story E4c removed the third), put to the owner together with the open
+  question of whether paper fills should move to Drive at all (since answered: story E2c keeps the fill rows in Drive):
   1. *an unwound entry* (judge 118 SF1; orchestrator for the owner, response 113): when an entry fails after some legs
      filled (E4 criterion 2), each filled leg is traded back at the same snapshot (a protection bought at the ask and
      sold at the bid; a short already sold at the bid bought back at the ask), and `legging_cost_rs` in
-     `desk_events.csv` is the spreads paid. Those rows publish both sides of each unwound contract. Rare: a failed
-     entry only, after 15:15;
+     `desk_events.csv` is the spreads paid. Those rows publish both sides of each unwound contract. Since story E4c it
+     is reached only through E4's guard (a fill failing after E4c's entry check passed: a defect, not a market case);
   2. *two accounts on opposite sides* (judge 118 addendum 1, confirmed by a test): E4 fills each account on its own,
      so when one account buys a contract and another sells it at the same execution snapshot (one closing while the
      other opens, or a book and a shadow), their rows together publish both sides of that contract;
-  3. *protection unverified at the opening snapshot* (builder's review 2, confirmed by a test; orchestrator for the
-     owner, response 113): when a protective leg's bid size cannot cover its units at the snapshot that opened the
-     trade, E4 marks it `protection_unverified` and closes the trade at that same snapshot (`fno/desk/exits.py:90-106`),
-     so its rows show both sides of each leg closed there. It is also a pointless loss (the spread paid in and out at
-     once): a separate small E4 story will refuse such an entry (a protection-exit size check before opening), which
-     removes this exception;
+  3. *(removed by story E4c)* protection unverified at the opening snapshot: such an entry is now refused before any
+     leg fills (`protection_not_sellable`), so nothing is bought and closed at once;
 - **known channels outside the fill rows (stated, not changed here; one owner question with the fills-to-Drive
   question):** scoreboard B (`research/scoreboards/B/<date>.json`, `fno/scoreboard/whole_system.py:60`) commits
   `raw_account_net_rs`, which marks open legs at the mid of the same 15:15 execution snapshot the fills used
@@ -373,11 +369,11 @@ the hash-checked store. The guard and the derived pack work the same with either
 | Raw quotes to Drive only ("6 A") | out: A4b |
 | E2 criteria 1-5 (no book data, determinism, cutoff refusals, opportunity set) | criterion 6 (E2's tests still pass on schema 2) |
 | E4 criterion 1 (fill price = the snapshot's ask or bid, snapshot hash in the row) | kept; criterion 3 |
-| E4 criterion 2 (a failed short leg unwinds the protection, legging cost recorded) | kept; the one stated exception (criterion 3) |
+| E4 criterion 2 (a failed short leg unwinds the protection, legging cost recorded) | changed by E4c (decision 43): kept only as a guard, so the unwind exception occurs only through it (criterion 3) |
 | E6's half-spread paid (criterion 3 of E6) | criterion 3 |
 | C3's spot rules (2% from the previous close, 0.2% chain agreement) | criterion 2 |
 | One spot per recorded chain (orchestrator's decision 4, review 2 finding 6) | criterion 2 |
-| Other committed figures that could reveal a quote (review 2) | Scope "Out": exception 3, known channels, kept mids |
+| Other committed figures that could reveal a quote (review 2) | Scope "Out": known channels, kept mids (exception 3 removed by E4c) |
 
 **Acceptance criteria:**
 1. A common pack built from a canonical snapshot holds no `option:` item and no field named `bid`, `ask`, `bid_qty` or
@@ -392,13 +388,14 @@ the hash-checked store. The guard and the derived pack work the same with either
    has none). A chain whose rows carry no spot, or that has no rows at all, keeps its `spot:` item with no value, and
    a refused `spot:` item counts as missing; C3 names the chain and fails, so the 0.2% agreement is never skipped
    (tests).
-3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the three stated exceptions (an unwound
-   entry; two accounts on opposite sides of one contract at one snapshot; protection unverified at the opening
-   snapshot), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
-   (opened, closed at a later snapshot, pending exit, a time rule at the opening snapshot, partial fill) and find that
-   within one account only the unwound legs give both sides, that unverified protection at the opening snapshot does
-   (pinned until the E4 story removes it), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
-   same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the two stated exceptions (an unwound
+   entry, only through E4c's guard; two accounts on opposite sides of one contract at one snapshot; the third,
+   protection unverified at the opening snapshot, was removed by E4c), no committed desk fill row lets a filled
+   leg's other quote side be worked out: tests build E4's outcomes (opened, closed at a later snapshot, pending exit,
+   a time rule at the opening snapshot, partial fill) and find that within one account only the unwound legs give
+   both sides (since E4c, only through its guard), that unverified protection at the opening snapshot is never bought
+   (E4c), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old
+   figure on the same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
    average, never zero), and the scorecard report prints how many fills were "touch unknown"; a settlement row (no
    quote) is excluded as before (tests). **Depends on A4b:** E6 reads the 15:15 quote file from Drive through A4b's
    hash-checked store, so E2b merges only after A4b.
@@ -570,6 +567,343 @@ next valid quotes. Every fill row: book, decision ID, snapshot ID and hash, leg,
 
 **Depends:** A4, C1, C2, E1 · **Size:** M · **Status:** done (judge 68 with addendum 1 PASS; merged 129e4a4; `fno/desk/`, claims `reviews/claude/response_71_e4-fill-model.md`)
 `reviews/claude/response_71_e4-fill-model.md`)
+
+---
+
+## E4c. Refuse an entry unless every leg fills and the protection can be sold back, at the entry snapshot
+
+**Repository:** trading · **Lane:** 1 (fills and entries). **Quality rule 9 applies:** after the judge's PASS and
+before the merge, ChatGPT reviews it as a second reviewer for money; its points are checked with evidence, and any
+change made because of that review returns to the judge before the merge (`docs/JUDGE.md`).
+
+**Description:** As the risk manager, I want the desk to check, before any leg fills, that every leg of an entry can
+fill at the execution snapshot and that every protective (bought) leg can also be sold back there. When any check
+fails, nothing is bought. The paper account then never pays the spread twice for a trade it cannot hold, and the
+public record never shows both sides of a contract from a failed entry.
+
+**Context and why:**
+- **Decision 30** (`reviews/claude/response_113_autonomous-decisions.md`), from E2b's builder review (finding R2-1):
+  this is E2b's exception 3, "protection unverified at the opening snapshot".
+- **Decision 43** (judge 120, should-fix 1; orchestrator, option A): the same check covers every leg's opening side,
+  so design 3.2's "all legs fill at one snapshot or none" is met in full.
+
+At the execution snapshot the daily run fills entries first and then reviews exits at the same snapshot
+(`fno/desk/daily_run.py`, steps `fills` then `exits`). Two paths waste money today:
+1. **Protection that cannot be sold back.** The exit review marks a position `protection_unverified` when a
+   protective leg's sell-back does not fill there (`fno/desk/exits.py`, `price_leg(..., leg.side(opening=False),
+   ...)`). It then orders the exit at once:
+   - short legs are bought back at the ask;
+   - other protective legs are sold at the bid;
+   - the unsellable protection stays a pending exit.
+2. **A leg that cannot fill after the protection is bought.** E4 fills legs in order, protection first
+   (`fno/desk/entries.py`). When a later leg does not fill, every leg already filled is unwound at the same snapshot
+   (E4 criterion 2), and the legging cost is recorded. The later leg can be a second protective leg or a short leg
+   whose bid size is too small.
+
+Both paths are a certain loss of the spread with no purpose. Their fill rows publish both sides of each contract
+traded back. On paper every quote of the snapshot is known before the first fill, so both can be refused in advance.
+C5 (on its branch, `story/c5-risk-buckets`) counts a trade opened and closed in the same session against the day's
+Rs 50,000 new-risk cap ("3 A"). Path 1 therefore also uses up that budget.
+
+**What already refuses, and what does not (strong evidence: code read, existing tests):** A4's validity rule
+(`fno/desk/snapshot.py`, `ExecutionQuote.a4_problem`) makes a quote unusable on **both** sides when:
+- there is no bid;
+- the bid is 0;
+- either size is 0 or missing;
+- the book is crossed;
+- or the contract had no trade today.
+
+So for a protective leg with **no bid, a bid of 0 or no bid size**, the buy side fails too and E4 already opens nothing
+(`tests/desk/test_entries.py::test_a_protective_leg_without_a_valid_quote_opens_nothing`). Path 1 is reached only by a
+**valid two-sided quote whose bid size is above 0 but below the units held** (E2b's pinned test uses a bid size of 1
+against 65 units).
+
+**This changes E4's passed criterion 2 (decision 43, recorded here because lane 1 cannot reopen it silently).**
+Criterion 2 ("a failed short leg after filled protection unwinds the protection and records the legging cost") stops
+being a normal path. With every leg checked before any fill, no paper partial fill can happen at one snapshot. Why:
+- design 3.2's "all legs fill at one snapshot or none";
+- decision 30's "a certain loss of the spread with no purpose";
+- no partial path left for the public record to show;
+- paper fills all happen at one snapshot, so trying leg by leg gains nothing.
+
+The unwind code stays only as a **defensive guard**: if a fill fails after the checks passed (a defect, not a market
+case), the filled legs are still unwound as E4 built them, and a test drives that guard. E2b's exception 1 (an unwound
+entry) then occurs only through the guard. E6's legging-cost figure, fed by the normal path today, then stays at zero
+unless the guard fires; that is stated in E6's report as a known effect, not a change to E6.
+
+**Scope.** In:
+- **The entry check, before any leg fills.** In `EntryDesk.enter`, after C3's checks and E4's existing refusals, at
+  this execution snapshot:
+  - every leg's opening side must fill: a valid A4 quote whose size at the touch covers the units (`price_leg` on the
+    opening side: the ask size for a bought leg, the bid size for a sold leg);
+  - every protective (bought) leg's closing side must also fill: the same quote's bid size covers the units
+    (`price_leg` on the closing side).
+
+  On any failure nothing fills, and the trade is recorded `not_opened` with one reason code:
+  - `protection_not_buyable`: a protective leg's opening side fails;
+  - `protection_not_sellable`: a protective leg's closing side fails;
+  - `short_leg_not_sellable`: a short leg's opening side fails.
+
+  Each reason names the contract and the units. It holds no quote figure.
+- **Order of checks, fixed:** C3 data checks → E4's refusals (`refusal`) → the entry check (the legs in E4's order,
+  protective first; for each leg its opening side, then for a protective leg its closing side) → E4's entry limit →
+  fills. When more than one fails, the first in this order is recorded.
+- **The unwind as a guard:** E4's unwind runs only if a fill fails after the entry check passed. It keeps its legging
+  cost and its pending-exit path (a leg it cannot trade back stays an exit order).
+- **What is recorded:**
+  - one desk event (`not_opened`, the reason code, the snapshot ID and hash);
+  - no fill row, no E1 ledger row, the account unchanged.
+
+  Neither the reason nor the alert holds a quote figure (no bid, ask or size number), only the contract and the units
+  held. This follows E2b's rule that no committed desk record reveals a quote.
+- **What is alerted:** one #fno-desk line per refused entry, through the daily run's existing `AlertSender`, of the
+  form "F&O paper desk <book>: trade <id> not opened: <reason code> (<contract>, <units> units): information, no
+  action" (design 6.5: the first line says what to do). Without the token it prints "alert NOT sent: ..." and the run
+  goes on.
+- **Tests in lane 1 that change on purpose (stated, not loosened):**
+  - `test_a_short_leg_failing_after_protection_unwinds_at_the_same_snapshot_with_its_legging_cost`: now expects
+    `not_opened` with `short_leg_not_sellable`, nothing bought and no legging cost. Its unwind assertions (order,
+    prices, legging cost) move to the new guard test, unchanged;
+  - `test_a_second_protective_leg_failing_unwinds_the_first_and_nothing_opens`: now expects `not_opened` with
+    `protection_not_buyable` and nothing bought;
+  - `test_an_unwind_leg_without_bid_size_stays_as_an_exit_order`: the pending-unwind path is kept and driven through
+    the guard (a fill failing after the checks passed), with the same assertions;
+  - `test_a_leg_fills_only_when_the_size_at_the_touch_covers_its_units`: the same outcomes, with the new reason text;
+  - E2b's `test_unverified_protection_at_the_opening_snapshot_closes_there_the_third_exception`: now expects
+    `not_opened` and no row revealing both sides. E2b's story text then lists two exceptions, not three, with
+    exception 1 reached only through the guard (edited in E4c's code commit, after E2b merges).
+
+Out (with reasons):
+- **A spread-width threshold** ("bid present but the spread is too wide"). None is set; the orchestrator agrees: none
+  until there is evidence. No registered source names a maximum spread. A wide spread with enough size can still fill
+  and be sold back, so it causes no same-snapshot close. The cost of crossing a wide spread on entry is already bounded
+  by E4's entry limit (the net entry at the touch must be no worse than the entry C2 approved). Any width threshold is
+  a new rule for the owner to set, with A16's measured spreads as its evidence: open question 1.
+- **Short legs' buy-back depth at entry** (the ask size of a sold leg). It causes no same-snapshot close: the exit
+  review does not judge price rules at the opening snapshot. A later exit waits as a pending exit (E4 criterion 3):
+  open question 2.
+- **Later snapshots.** `protection_unverified` on a position opened earlier stays exactly as E4 built it (block new
+  risk, alert, exit at the next valid quotes).
+- **E8's code.** E8 is not built. Its per-R fills (R = 5, 30 and 60 minutes) inherit this check: its story must call
+  E4c's function at each R snapshot (gap list).
+- **The size figures in E4's other reasons.** "size N at the touch is below M units" publishes a quote size in
+  `desk_events.csv`. That finding went to E2b's current fix round (decision 42 in response 113). E4c's own reasons and
+  alerts never carry it (criteria 5 and 7).
+
+**Design:** one small function in a new module `fno/desk/entry_check.py`, for example
+`entry_problems(snapshot, legs, units) -> list[str]`, built on E4's `price_leg`, so E4c adds no second pricing rule.
+`EntryDesk.enter` calls it at the fixed point; E8 will call the same function. The three reason codes are constants in
+`fno/constants.py`. No new composition root and no new wiring, since `EntryDesk` already receives its inputs. The alert
+is sent from `fno/desk/daily_steps.py`, which already holds the `AlertSender`.
+
+**Gap list:**
+
+| Requirement (source) | Where |
+|---|---|
+| Refuse an entry whose protection cannot be sold back at the entry snapshot (decision 30) | criteria 1, 2 |
+| Check every leg's opening side too; any failure, nothing bought (decision 43, judge 120 should-fix 1) | criteria 1, 3, 4 |
+| E4 criterion 2 (unwind after a failed short leg) | changed by decision 43: kept only as a guard, criterion 8 |
+| Exception 3 removed (E2b text and its pinned test); exception 1 only through the guard | criterion 6, criterion 8 |
+| "A protective leg that does not fill means nothing opens"; protection bought first and sold last (E4 design, design 8) | criteria 1, 3, 4 |
+| All legs fill at one snapshot or none (design 3.2): no leg fills unless every leg can, and no protection is bought that cannot be sold back | criteria 1, 3, 4, 8 (fully covered: no partial fill remains outside the guard) |
+| When protection cannot be verified, the desk blocks new risk, alerts and never fabricates a close (design 6.1a) | criteria 1, 7; later snapshots unchanged (criterion 9) |
+| Alerts: the first line says what to do (design 6.5) | criterion 7 |
+| No quote revealed by a committed desk record or alert (E2b) | criteria 5, 7 |
+| Cases: no bid, bid 0, bid present but too wide, a one-leg trade, a multi-leg STR1 structure (orchestrator) | criteria 2, 3; width: Out, open question 1 |
+| E2b's exception 2 (two accounts on opposite sides) | unchanged; not an entry failure |
+| The size figures in E4's existing reasons (finding) | Out: E2b's fix round, decision 42 |
+| C5's buckets and the new risk per day ("3 A") | criterion 10 |
+| E8's 5, 30 and 60-minute fills (design 03 item 2) | criterion 11 (one shared check, inherited); E8's code: Out |
+| E4 criterion 6: never an order call | criterion 12 |
+| Engineering standards (CLAUDE.md) | criterion 13 |
+
+**Cases** (fixture: the short iron fly of `tests/desk/builders.py`, 65 units. The protective legs are 25200 CE and
+24800 PE; the short legs are 25000 CE and 25000 PE):
+
+| Case | Quote | Today | With E4c |
+|---|---|---|---|
+| Positive | every leg valid; each size covering 65 units on its opening side, and each protective bid size too | opens | opens |
+| Boundary at | a protective bid size of 65 | opens | opens |
+| Boundary just over | a protective bid size of 66 | opens | opens |
+| Boundary just under | a protective bid size of 64 | opens, then closed at the same snapshot (exception 3) | `not_opened`, `protection_not_sellable`, nothing bought |
+| Negative | a protective bid size of 1 (E2b's case) | exception 3 | `not_opened`, nothing bought |
+| Protective ask size short | valid quote, a protective ask size of 64 | `not_opened` (the leg does not fill) | `not_opened`, `protection_not_buyable` (by size), nothing bought |
+| No bid | a protective bid empty | `not_opened` (A4: one-sided) | `not_opened`, `protection_not_buyable` (A4 makes the quote unusable both ways), nothing bought |
+| Bid 0 | a protective bid of 0 | `not_opened` | the same as no bid |
+| No bid size | a protective bid above 0, bid size 0 | `not_opened` (A4: no size) | the same as no bid |
+| Second protective leg not buyable | 24800 PE missing | 25200 CE bought, then unwound (legging cost) | `not_opened`, `protection_not_buyable`, nothing bought |
+| Short leg's bid size short | a short leg's bid size of 64 (boundaries 64, 65, 66) | protection bought, short leg refused, unwound (legging cost) | at 64: `not_opened`, `short_leg_not_sellable`, nothing bought; at 65 and 66: opens |
+| Short leg A4-invalid | a short leg `valid: false` | protection bought, then unwound | `not_opened`, `short_leg_not_sellable`, nothing bought |
+| Wide spread, enough size | for example bid 40, ask 71 on a protective leg | opens if within the entry limit | unchanged: no width rule (Out) |
+| One-leg trade (STR1 LC or LP) | the bought option's bid size below the units | opens, then closed at once | `not_opened`, `protection_not_sellable` |
+| Multi-leg STR1 (SF, SC, BF, the verticals) | any one leg short on its checked side | exception 3 or an unwind | `not_opened`; no leg bought |
+| Guard | a fill fails after the entry check passed (test double) | n/a | E4's unwind runs as before: legging cost recorded; a leg it cannot trade back stays an exit order |
+| Empty: no protective leg | an order with no bought leg (a naked short) | C4 refuses it before the desk | the check covers only the short legs' opening side; it never replaces C4's refusal, which stays the guard |
+| Empty: no quote at all | a protective contract absent | `not_opened` | `not_opened`, `protection_not_buyable` |
+| Prices unverified (C3) | any | `refused` before pricing | unchanged (C3 first) |
+| Rerun of the same trade | any | the recorded outcome | unchanged |
+
+**Acceptance criteria:**
+1. Before any leg fills, the entry check runs at the execution snapshot: every leg's opening side, and every
+   protective leg's closing side. Any failure makes the entry `not_opened` with `protection_not_buyable`,
+   `protection_not_sellable` or `short_leg_not_sellable`. No fill row, no E1 ledger row; the account is unchanged.
+2. Boundaries and structures:
+   - a size equal to the units passes; units - 1 is refused; units + 1 passes, for a protective bid, a protective ask
+     and a short bid;
+   - every leg of a multi-leg structure is checked, and one failing leg refuses the whole structure;
+   - a one-leg bought option behaves the same.
+
+   Tested with the fly, and with STR1's codes once STR1 is merged (with the fly alone if it is not).
+3. A protective leg that cannot be bought (no quote; A4-invalid: no bid, bid 0, no size, crossed, no trade today; or
+   an ask size below the units) gives `protection_not_buyable` before any leg fills, including a later protective leg.
+   There is no unwind and no legging cost. A short leg that cannot be sold gives `short_leg_not_sellable` in the same
+   way.
+4. The order of checks is C3 → E4's refusals → the entry check (legs in E4's order: opening side, then a protective
+   leg's closing side) → the entry limit → fills. A case failing two checks records the first. A rerun returns the
+   recorded outcome.
+5. The refusal's reason and its event hold no quote figure: no bid, ask or size number (a test reads
+   `desk_events.csv` and finds none of the snapshot's figures in the row).
+6. Exception 3 is gone. E2b's scenario (the fly with a wing's bid size 1) gives `not_opened`, and no committed row
+   reveals both sides of any contract. E2b's story text lists two exceptions, exception 1 only through the guard.
+7. One #fno-desk alert per refused entry through `AlertSender`, ending "information, no action", and holding no quote
+   figure (a test checks the sent text against the snapshot's figures). Without the token it prints "alert NOT sent:
+   <reason>" and the run continues to its exits (tests with a fake sender and with none).
+8. Guard (E4 criterion 2, changed by decision 43): if a fill fails after the entry check passed, E4's unwind still
+   runs. Legs are traded back short first and protection last, the legging cost is recorded, and a leg it cannot trade
+   back stays an exit order (tests drive the guard with a test double; the moved assertions are unchanged).
+9. Later snapshots: a position opened earlier whose protection becomes unquotable is still marked
+   `protection_unverified`, blocks new risk and exits at the next valid quotes, exactly as before (existing tests stay
+   green unchanged).
+10. C5: a refused entry writes no E1 ledger row, so `RiskBook.session_trades` (built from E1's ledger) does not count
+    it toward the Rs 50,000 new risk of the day. Within the decision run that chose it, D2's same-session choice
+    already counted it, which is conservative. Tested once C5 has merged; until then, by the empty ledger.
+11. E8 hook: the check is one function (`fno/desk/entry_check.py`) that `EntryDesk` calls. A test calls it on a second
+    snapshot to show it depends only on the snapshot it is given, so E8 can apply it at each R.
+12. Never an order: the provider fake fails on any order call (as E4 criterion 6).
+13. Engineering: constants in `fno/constants.py`, no file or class over 350 lines, interfaces unchanged, ruff, the
+    import check and the full suite pass.
+
+**Test plan:** unit tests with fixture snapshots (`tests/desk/builders.py`):
+- each case of the table, at the boundaries (64, 65 and 66 units: a protective bid, a protective ask, a short bid);
+- the guard driven by a test double;
+- the five existing tests named in Scope, changed as stated, with no assertion dropped (the unwind assertions move to
+  the guard tests).
+
+The builder also follows quality rules 3-6: two independent review agents, a planted break per criterion, and a real
+refusal sample from a dry run on a fixture snapshot (no live strikes).
+
+**Judge verifies:**
+- plants a size of units - 1 on each checked side of each leg in turn, and on a one-leg trade;
+- that no fill row is written, and that neither the event nor the alert holds a quote figure;
+- that the guard still unwinds with its legging cost and its pending path;
+- that later-snapshot `protection_unverified` is unchanged;
+- the order of the checks, the alert with and without a token, and that E2b's third exception is gone.
+
+**Depends:** E4 (merged), A4, **E2b (its code must merge first: E4c changes E2b's pinned test and its story's
+exceptions)**, C5 (criterion 10's test), STR1 (criterion 2's codes; the fly covers the rest if STR1 has not merged) ·
+**Size:** S · **Status:** code on `story/e4c-protective-leg-refusal`, for the judge (text PASS judge 120 add. 1;
+ChatGPT review 104 accepted the text; claims in `reviews/claude/response_184_e4c-entry-check.md`).
+
+**Open questions for the owner (reasoning only, no change in E4c):**
+1. Should a maximum entry spread exist (for example, a ratio of the spread to the premium)? E4c sets none. The
+   evidence for a value would come from A16's recorded spreads.
+2. Should a short leg's buy-back depth (ask size) also be required at entry? It causes no same-snapshot loss, but an
+   exit may wait for depth.
+
+**Known limits (ChatGPT review 123, response 192; text only, no code change):**
+- **Shared displayed size.** `entry_problems` checks one entry's legs on their own. Two entries of the same book on
+  one contract at one snapshot could each pass against size they would have to share. This predates E4c. Book 1
+  trades nothing today (no approved strategy), but its orders are every traded opportunity of the day
+  (`fno/books/book1_orders.py`), so two approved strategies whose legs share a contract could reach it. Fixed by story
+  E4d (orchestrator, 15 Oct 2026): a book's entries at one snapshot are checked together.
+- **One immutable snapshot.** The check and the fills read the same recorded snapshot, so the order book cannot
+  change between legs. A real legged entry can meet a different book at each leg; this model cannot show that.
+
+---
+
+## E4d. A book's entries at one snapshot share its displayed size: the later one is refused, never over-filled
+
+**Repository:** trading · **Lane:** 1 (fills and entries). **Quality rule 9 applies** (ChatGPT after the judge's PASS).
+
+**Description:** As the risk manager, I want a book's entries at one execution snapshot to be checked against the
+displayed size *together*, so that two trades on the same contract never both fill against size only one of them
+could have taken.
+
+**Context and why:** ChatGPT review 123 (Q2) and E4c's first Known limit; orchestrator, 15 Oct 2026 (after response
+192): "it gets fixed, not just listed".
+- `entry_problems` (E4c) checks one entry's legs on their own. `DeskSteps.fill` loops over a book's orders at one
+  snapshot, so two entries needing 65 units each of one contract both pass against a displayed size of 100, and both
+  fill: 130 units at a touch that shows 100.
+- **This is a real path (code read, strong evidence):** Book 1's orders are every traded opportunity of the day
+  (`fno/books/book1_orders.py`). Two approved strategies near ATM (for example SF and BF on the monthly expiry) share
+  their short strikes.
+- Paper only: an over-fill inflates the book's results by fills that could not have happened at that quote.
+
+**Scope.** In:
+- **The units a book has already taken at this snapshot** come from its own desk records: every fill row with this
+  `snapshot_id` and this snapshot's SHA-256 (so a same-named snapshot of another day never counts), whatever its action
+  (an unwind's closing fills on the guard path included), summed per (contract, touch side): a buy takes ask size, a
+  sell takes bid size (judge 201). For each protective leg still held from an entry at this snapshot, its sell-back need
+  (the units bought less any already sold back there) is counted on the bid side too, the same capacity E4c checks. This
+  is a conservative reservation, not consumed liquidity: the sell-back is not an order, so it can refuse a short sale a
+  real book could have filled (review 126 Q2). This needs no new state: the records are kept in Drive after each entry
+  (E2c) and are what the next entry reads, and a rerun counts the same units (E1's fills are idempotent by fill ID). The
+  entry being checked never counts its own trade's rows, so a rerun after a crash between its fills and its event does
+  not refuse itself.
+- **The check:** `entry_problems` takes those units as an optional argument (empty by default, so E8 and E4c's tests
+  are unchanged). Each leg's side passes only if the displayed size covers this entry's units plus the units already
+  taken on that contract and side. The same `price_leg` is used with the summed units, so there is no second pricing
+  rule.
+- **The refusal:** the later entry is `not_opened` with a new code, `size_shared_in_book`, and
+  "(<contract>, <units> units, <taken> already taken in this book at this snapshot)". These are the book's own units,
+  never a quote figure. The information alert is the same as E4c's (`refused_by_check`).
+- **Order:** entries are checked in the order the book's orders come (the decision's order). The first that fits
+  fills; a later one that no longer fits is refused. E4c's own codes keep priority: a leg that fails on its own records
+  its E4c code. `size_shared_in_book` is recorded only when the leg would have passed alone.
+  This is a fixed, deterministic priority: Book 1's order list decides, the earlier strategy wins, and the order is
+  never changed after outcomes are seen (review 126, response 209). It is a paper execution policy, not a fair split
+  between strategies: a later strategy can lose capacity to an earlier one, and E6 and scoreboard B report such misses
+  (review 126 Q4, routed to their owners).
+- **Never pooled across books:** each book (and each shadow account) counts only its own records, as E1's firewall
+  says.
+
+Out:
+- **Exits at the same snapshot** (they run after the fills; a close that meets thin size already stays a pending exit,
+  E4 criterion 3).
+- **Across books.** Different paper accounts are independent hypothetical books.
+- **A short leg's buy-back depth.** E4c open question 2 is unchanged.
+
+**Acceptance criteria:**
+1. Two entries of one book each need 65 units of one contract on one side, against a displayed size of 100: the first
+   opens, the second is `not_opened` with `size_shared_in_book`, and no fill row or ledger row is written for it. At
+   size 130 both open; at 129 the second is refused (boundary).
+2. The same two entries in two different books both open (never pooled).
+3. A leg that would fail alone records its E4c code, not `size_shared_in_book`.
+4. A rerun of the fills step returns the recorded outcomes. The first entry's units are counted from its committed
+   fill rows, and nothing fills twice.
+5. A protective leg already opened counts its sell-back need on the bid side. A later entry that sells the same
+   contract short at the bid fits only if the bid size covers both.
+6. The reason and the alert hold no quote figure.
+7. `entry_problems` with no units taken behaves exactly as in E4c: every E4c test passes unchanged.
+8. Engineering: the code in `entry_check.py` or one small new class behind it; constants in `fno/constants.py`; no
+   file over 350 lines; ruff, imports and the full suite (`-n auto`) pass.
+
+**Test plan:** unit tests with the fly fixture (65 units) and an SF plus BF pair sharing the 25000 strikes: sizes 100,
+129, 130 and 131; two books; the rerun; a planted break per criterion. No network, no Slack.
+
+**Judge verifies:** plants the units taken as zero (criterion 1 fails), pooling across books (criterion 2), and the
+shared code taking priority over an E4c code (criterion 3).
+
+**Known limits:**
+- The snapshot's displayed size is all the depth the model knows. A real book could refill between two orders.
+- The units taken are those already filled at this snapshot. An entry refused for another reason takes nothing.
+- Every action other than `open` on a bought leg counts as reducing the protection still held. This is true for
+  `unwind`, `close` and `settle`, the only such actions today; revisit it with any new action (review 126 Q5a).
+- Two legs of one new entry on the same contract and side are not summed against each other. No STR1 structure has
+  such legs; add a focused test before any structure that does is activated (review 126 Q5b).
+
+**Depends:** E4c (merged first) · **Size:** S · **Status:** code PASS judge 205 (e33ba70d);
+ChatGPT review 126 PARTIAL, acceptable for merge (text only, response 209)
 
 ---
 
@@ -761,6 +1095,160 @@ or retires (D1). Judge 67: a paper version whose live feature drifts drops out o
 
 ---
 
+## E6b. Missed executions in the scorecards: every refused or missed entry stays in the strategy's opportunities
+
+**Repository:** trading · **Lane:** 1 (scoring and evaluation records; S2's scoring code joins S1's freeze). **Quality
+rule 9 applies** (ChatGPT after the judge's PASS).
+
+**Description:** As the portfolio manager, I want each strategy's and each book's record to count every entry it
+could not execute, by reason, beside the trades it did fill, so that a strategy that loses entries to thin size, a
+shared touch or the owner's timing is seen as capacity-constrained, not as inactive or better than it is.
+
+**Context and why:**
+- S1 pending edit (10) (`docs/WORK_REGISTER.md`, S1 text row). It collects ChatGPT reviews 122, 123 and 126 (responses
+  190, 192, 209): net P&L per executed fill and per eligible opportunity, a missed entry being 0 in the denominator,
+  with the fill rate and miss reasons on the whole original set. Refused entries (E4c's `not_opened`, E4d's
+  `size_shared_in_book`, E8's misses) are missed executions of the strategy and its book, never a skip or a losing
+  trade. "Code follow-up for E6 and S2 raised when E8 merges."
+- **Today (code read, strong evidence):**
+  - E6's `execution_costs` counts `not_filled` (all `not_opened` plus partial fills) as one number, with no reason
+    split.
+  - S2's board counts filled trades only. A strategy's misses do not appear on it at all.
+  - E8's `TimingReport` (story text) is to report orders, fills, misses by reason and both nets per view. That would
+    be a third counter of the same thing.
+- **Why it matters (reasoning only):** filled-only results are conditional on filling. E8a measured that with the
+  owner's price cap, bought options fill mostly on mornings that went against them (some evidence), and E4d's fixed
+  entry priority makes a later strategy lose capacity to an earlier one. Without the misses beside them, a
+  miss-skewed record reads as "the strategy is bad", or a starved one as "the strategy is quiet".
+
+**Scope.** In:
+- **One counter, used three times.** A new class `ExecutionOpportunities` (new module, `fno/desk/execution_outcomes.py`)
+  is a pure function over one account's desk event rows and C1 trade lines (no file, Drive or desk I/O inside, so
+  hashing it at S1's freeze pulls in no desk behaviour; S1's owner, 15 Oct). It gives, per strategy version and for the
+  whole account:
+  - **opportunities:** every trade with an entry outcome that reached the fill step: `opened`, a partial fill
+    (unwound at once) or `not_opened` for any reason, E8's misses included (E8 writes each miss as a `not_opened`
+    event with its fixed reason; agreed with E8's builder, 15 Oct). Gate refusals (`refused`: C2, C3, timing, a
+    blocked book, E8's blocked book too) are risk or data decisions, not execution opportunities: counted apart, as
+    E6 does today. E8's `entry_pending` (handed over, not yet due) is counted as "awaiting fill", outside the
+    denominator until its fill or miss lands;
+  - **filled** and the **fill rate** (filled over opportunities);
+  - **misses by reason**, from one fixed table: `protection_not_buyable`, `protection_not_sellable`,
+    `short_leg_not_sellable`, `size_shared_in_book`, `entry_worse_than_approved`, "partial fill, unwound", E4's guard
+    ("a leg did not fill after the check"), and E8's eight (`MISSED_NO_CARD`, `MISSED_OWNER_AWAY`, `MISSED_NO_QUOTE`,
+    `MISSED_PRICE_MOVED`, `MISSED_EXPIRED`, `MISSED_FUNDS`, `MISSED_RISK_CAP`, `DECIDED_AFTER_CARD`, imported from E8's
+    modules, never copied). A reason the table does not know is counted as "other" with its count, never dropped;
+  - **filled-only net:** C1 net per closed completed position (E6's review sample, unchanged);
+  - **net per opportunity:** C1 net of every closed trade among the opportunities over the opportunities that are no
+    longer open. An unwound partial fill enters with its actual C1 net (legging and unwind costs), never as 0: only a
+    true no-fill counts 0 (S1's owner, correction a). A trade still open is neither 0 nor a miss: it is counted apart
+    as "open" (a part of filled) and is in neither net, as S3's `after_cut` does (correction b).
+- **The chain, per strategy and book** (ChatGPT review 131, response 221): chosen decisions (every desk entry
+  event of the strategy: gate refusals plus fill-step opportunities; orders stopped before the desk are S6's
+  `missed_runs`) → gate refused → reached the fill → opened / missed / awaiting fill → closed / still open. It keeps
+  decision feasibility apart from execution feasibility:
+  - **gate refusals by reason**, beside the execution figures, from one named table of the desk's refusal prefixes
+    (C2's "risk manager refused", with C2's first verdict named; C3's data checks; the risk decision not matching;
+    decided too late; snapshot incomplete; a blocked book), unknown ones as "other";
+  - **both counts in words**, never one as the other: for 100 decisions, 80 refused by C2, 20 reaching the fill and
+    20 opened, "fills 20 of 20" and "opened 20 of 100 decisions"; never "100% of signals traded";
+  - **an unwound partial fill** is an execution miss and its real net (spreads, C1 charges, legging loss) enters net
+    per opportunity: nine closes at +Rs 900 and one unwind at -Rs 250 give a filled-only average of Rs 900 and a net
+    per opportunity of (9 x 900 - 250) / 10 = Rs 785;
+  - **open trades:** `open_count` and the oldest open trade's age in sessions; both averages labelled "closed only,
+    provisional while trades are open". When they close, the figures are recomputed from the same immutable events,
+    never backdated. The denominator of net per opportunity is printed: opportunities minus open (awaiting fill is
+    in neither);
+  - **cohort label:** the block covers all dates and versions of the account and says so, "all dates, not the claim
+    cohort". Before any figure is used for a version or promotion comparison, the block for that claim is computed
+    on the claim's own eligible dates and version, by a date and version filter in the same counter (no second
+    engine). Example: pilot 20 of 20 filled and the new version 2 of 10 give 22 of 30 (73.3%) overall, which hides
+    the new version's 20%. E6b still changes no S1 verdict;
+  - E4d's fixed priority and `size_shared_in_book` per strategy, and E8's owner away, price moved and no quote apart
+    (they have different remedies).
+- **E6's scorecard** shows the block for every card. Its present entry line (`attempts`, `opened`, `not filled`,
+  `refused`) is replaced by the block, so there is one count of entries, not two (DRY). The changed report line is
+  stated in the claims, not loosened.
+- **S2's board** shows the block in each book's overall section and in each strategy entry (`strategies`), with the
+  gate refusals beside it so nothing vanishes. The block's logic is in the new module; `book_board.py` gains one call
+  for the overall section and one per strategy entry, and `sections.py` (S6's) is not changed. The book's block also
+  states the entry priority: "fixed, the decision's order (Book 1's order list), never reordered after outcomes"
+  (E4d).
+- **E8's `TimingReport`** calls the same class once per view account (agreed with E8's builder, 15 Oct: the class
+  takes one account, with no view logic inside). E6 and S2 read the verdict account only (E8 rule 10).
+- **Reported only.** No verdict, review, pause, brake, uncertainty test, do-nothing comparison or random control
+  changes. Those keep reading what they read now.
+
+Out:
+- run-level misses (a session with no collected decision): S6's `missed_runs` already reports them;
+- scoreboard A (matched decisions);
+- any change to how an entry fills or is refused (E4, E4c, E4d, E8);
+- per-section blocks on the board's pilot, head-to-head and segment sections (one line to add later if S1 asks).
+
+**Expected design:** `ExecutionOpportunities(event_rows, trade_lines)` (callers read the account) with
+`by_strategy() -> dict[str, ExecutionCounts]` and `whole() -> ExecutionCounts`. `ExecutionCounts` is a frozen
+dataclass (opportunities, awaiting fill, filled, misses by reason, open, gate refusals, filled-only net, net per
+opportunity). The reason table and the labels are constants in `fno/constants.py`; E8's reasons are imported from E8's
+modules. E6's `execution_costs` keeps the half-spread, legging and pending-exit figures and
+takes its entry counts from the class. S2's `book_board` adds the block. No new file over 350 lines.
+
+**Acceptance criteria:**
+1. A fixture account with one strategy and seven entries (3 opened and closed, 1 `size_shared_in_book`, 1
+   `protection_not_sellable`, 1 partial fill unwound with legging cost Rs 120, 1 gate refusal) gives: 6 opportunities,
+   3 filled, fill rate 50%, misses {size_shared_in_book: 1, protection_not_sellable: 1, partial fill, unwound: 1}, 1
+   gate refusal apart. The nets match a hand computation: filled-only = sum of the 3 nets / 3; per opportunity =
+   (sum of the 3 nets - 120) / 6.
+2. An E8 miss (`not_opened`, reason `MISSED_PRICE_MOVED`) counts as one opportunity, with its reason, and 0 net; an
+   E8 `entry_pending` counts as awaiting fill and is in no denominator; E8's blocked-book `refused` is a gate refusal.
+3. An unknown `not_opened` reason is counted under "other", and the totals still add up: filled + misses =
+   opportunities, with open a part of filled. "Other" is a visible catch, never a silent bucket: a test lists every
+   known reason code (E4, E4c, E4d and each of E8's constants by name), so a reason added in E8 without a table entry
+   fails that test.
+4. A trade still open is in neither net and is counted as open.
+5. Two strategies in one book: each strategy's block counts its own entries only, and the book's block is their sum.
+   Two books are never pooled.
+6. E6's card and S2's strategy entry give the same block for the same account and version (one class).
+7. No verdict changes: E6's review, S2's head-to-head figures, uncertainty, do-nothing and random control are
+   unchanged on the existing fixtures (their tests pass unchanged).
+8. The block holds no quote figure: reasons are codes and E8's fixed wording only (E2b).
+9. The chain (review 131): a strategy with 100 decisions, 80 C2 refusals (reason counted), 20 reaching the fill and
+   20 opened shows "fills 20 of 20" and "opened 20 of 100 decisions". Nine closes at +Rs 900 and one unwind at -Rs 250
+   give Rs 900 filled-only and Rs 785 per opportunity. An open trade shows `open_count` 1, its age in sessions and the
+   "closed only, provisional" label. The whole-account block says "all dates, not the claim cohort", and the filter
+   on one version's dates gives that version's own counts (pilot 20 of 20 and version 2 of 10 give 2 of 10, not 22 of
+   30). An unknown refusal or miss reason is "other".
+10. Engineering: constants in `fno/constants.py`; no file over 350 lines; ruff, imports and the full suite (`-n auto`)
+   pass.
+
+**Test plan:** unit tests on fixture desk records (no network, no Slack): criterion 1's account, an E8 miss, an
+unknown reason, an open trade, two strategies, two books; E6 and S2 rendering tests; a planted break per criterion.
+
+**Judge verifies:** plants a miss dropped from the denominator (criterion 1 fails), a gate refusal counted as an
+opportunity (criterion 1), an unknown reason dropped (criterion 3), an unwound partial fill counted as 0 (criterion
+1), an open trade counted as 0 (criterion 4), pooling across books (criterion 5), and E6 and S2 counting differently
+(criterion 6).
+
+**Agreements before code (both closed, 15 Oct):**
+1. **E8's miss record: closed** (E8's builder, session 01H1CmuW, 15 Oct): `not_opened` with E8's fixed reason, no new
+   outcome; `TimingReport` calls this class per view account.
+2. **S1's text: agreed** (its owner, session 0185gR5D, 15 Oct): its own item `execution_opportunities` (added to
+   `REQUIRED_ITEMS`; status "proposal, owner decides" until the owner decides), worded and landed by S1's owner, with
+   `fno/desk/execution_outcomes.py` named explicitly in `frozen_files` (the freezer reads explicit paths only). The
+   item, its `REQUIRED_ITEMS` entry and the path land as one S1 edit together with this story's code, never before
+   (a listed file that does not exist makes the freeze refuse); the reasons are named by code, not by a count. The
+   board change touches `book_board.py` only and is built after S6's follow-ups merge (`story/s6-followups`), or on
+   main merged first.
+
+**Code-round notes (judge 212):** a reason's code is matched on the text before " (" (E4c's and E4d's format);
+"partial fill, unwound" is the outcome `not_opened_partial_fill`; E4's guard with nothing filled is `not_opened` with
+free text ("<contract> did not fill: ...", `entries.py`), mapped by one named pattern constant (no change to E4's
+records), and it is in criterion 3's named test.
+
+**Depends:** E6, S2, E4c, E4d (all merged); E8 and S6's follow-ups (code only) · **Size:** S · **Status:** story
+text PASS judge 212 (0d644e83); code waits for E8 and S6's follow-ups (response 215)
+
+---
+
 ## E7. Expiry settlement
 
 **Repository:** trading
@@ -811,4 +1299,301 @@ settled), choosing exits (E4's rules and the playbook).
 **Judge verifies:** recomputes one settlement by hand from an expiry day's NSE file.
 
 **Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** done (judge 71 PASS; merged f655612; claims `reviews/claude/response_73_e7-expiry-settlement.md`)
-claims `reviews/claude/response_73_e7-expiry-settlement.md`)
+
+---
+
+
+## E8. Owner-timing fills
+
+Story text in its own file: `docs/stories/E8-owner-timing-fills.md` (issue #109).
+
+---
+
+## E8a. Fill-timing study: what E8's reaction-time fills do to an entry (history)
+
+**Repository:** trading
+
+**Description:** As the F&O trader and the risk manager, I want to know how far each structure family's entry price
+moves between the decision and E8's fills (R = 5, 30 and 60 minutes), for a 15:00 decision and for a 14:00 decision,
+and how often a trade that wins when filled at the decision price would lose when filled at E8's price, so that the
+owner can choose the decision time from numbers before any strategy is paper traded on E8's fills.
+
+**Context and why:** owner decision of 15 Oct 2026 "Fill-timing study: history now, then live"
+(`docs/DESK_DECISIONS.md:179`). E8's design (`docs/design_v2/03_layers_factory_desk.md:88-102`): a card at time T
+fills at the first quote snapshot at or after T + R; after 15:25 the fill moves to the next session's 09:15 + R; the
+remedy for a costly delay is an earlier decision time (an S1 `timetable` change, for example 14:00), never a shorter
+R. Response 144 plan item 3. Facts already measured:
+- NIFTY's close-to-open move, 680 sessions of 2024-26 (`research/data/intraday/rv-candle`, `rv_overnight`): median
+  0.22%, at least 0.5% on 17% of sessions, at least 1% on 5% (some evidence; recomputed by judge 153).
+- Groww serves 15-minute candles of **expired** NIFTY options (read-only probe, 15 Oct 2026, nothing stored): Jan and
+  Jun 2024 and Mar 2025 contracts answered 51-53 candles with volume and open interest. The prices are **real last
+  trades**, not bid and ask and not model estimates. A Sep 2025 symbol returned nothing (probably a wrong expiry date
+  after NSE's move to Tuesday expiries), so coverage is probed before the freeze (below).
+- The daily card has no trade fields yet (`fno/cards/card.py:76-78`) and E8 is not built, so no entry range exists.
+
+**What the numbers can and cannot mean (judge 153 B1).** For one structure entered later with the same exit, the P&L
+changes by exactly the entry move `C`. The families mirror each other (STR1: SF = CCS + PCS, BF = CDS + PDS, BF is SF
+with every leg reversed), so the **mean** of `C` for a seller is minus the buyer's: it is mostly price drift, chiefly
+the overnight time decay (theta), which a later seller also stops paying for. So the mean is never read as "the cost of
+waiting". The study leads with the **size** of the move (the spread of `C` and of `|C|`, the bad-side tail) and with
+the **flip share** (below), splits 1-night from 3-night (weekend and holiday) gaps, and shows the time part
+separately. It cannot measure what waiting costs in the decision itself (an older signal): that is out of scope and
+said on the report.
+
+**Scope.** In:
+- a frozen, registered history study, 2 Jan 2024 to 30 Sep 2026, of NIFTY monthly options, for the families SF, SC,
+  BF and the STR1 codes (LC, LP, CDS, CCS, PDS, PCS);
+- the two decision times with all three E8 reaction times;
+- E4's 15:15 execution snapshot (it is at the same time as the 15:00 decision's R = 5 fill and the 14:00 decision's
+  R = 60 fill, so it is labelled on those rows, not computed apart);
+- the flip share;
+- the raw candles archived;
+- one results file.
+
+Out, each with its reason (gap list, judge 153 B3):
+- The live comparison with A16's bid and ask. It needs 20 sessions of A16 data, so it is a follow-up story; this story
+  only fixes its rule.
+- E8's fill code and its entry range. The card has no trade fields yet.
+- "Missed, price moved". It needs an entry range; the 5/10/20% thresholds below stand in for it.
+- The decay of the decision signal. It cannot be measured from prices alone.
+- Weekly options. The decisions are monthly.
+- Any edge or verdict on a strategy.
+- A timetable change. The owner decides from the results.
+
+**Expected design:**
+- **Registration:** study folder `research/2026-10-16-fill-timing/` (`PROTOCOL.md`, `FREEZE.md`, `README.md`,
+  `results.md`, `results.json`, a small `ft1study/` package) and idea card `research/ideas/FT1.md`. Ledger trial 54
+  takes kind `prospective`, hypothesis `no`, as R2 did (`fno/research_engine/ledger.py:26`). Protocol and code hash
+  are frozen before the full fetch (`research/FACTORY_RULES.md` G4).
+- **Coverage probe before the freeze:** one read-only call per month of the window (nearest-ATM call of that month's
+  monthly expiry, symbol built from the panel's listed expiry date) records only whether Groww answers and its candle
+  count, never a price. A month that does not answer is first investigated (symbol format, the Tuesday-expiry dates
+  from Sep 2025, a second strike) and its cause written in the protocol; only a month still unanswered is left out and
+  listed. The probe's counts and causes go into the protocol before the freeze.
+- **Sessions:** every regular session (A7) whose next session exists. Special and muhurat sessions are left out and
+  counted.
+- **Expiry:** the nearest monthly expiry more than 7 sessions away. Figures are split by sessions to expiry (8-15,
+  16-25, 26 and more), so contracts of different ages are never pooled without a split.
+- **Strikes:** built by `fno/research_engine/structures.py` at NIFTY's 15-minute close at the decision time, at width
+  200 points (experiment 1's middle width; 100 and 300 as sensitivity), from the expiry's strikes in the daily panel.
+- **Prices and times:** each leg's close of the 15-minute candle ending at the time named. All legs of a structure
+  are taken at the same time.
+  - The decision price is the 15:00 close (candle 14:45) or the 14:00 close (candle 13:45).
+  - A 15:00 decision (card about 15:08) fills at 15:15 (R = 5), next session 09:45 (R = 30) and next session 10:15
+    (R = 60).
+  - A 14:00 decision (card about 14:08) fills at 14:15, 14:45 and 15:15.
+- **Measure:** `C = signed(price_fill - price_decision)` in index points per unit, positive when worse for the trader
+  (a seller gets less credit, a buyer pays more); **bad side** means `C > 0`. It is shown also as a share of the
+  structure's risk scale: the width for SF, SC, BF and the four spreads, the decision debit for LC and LP (their
+  "width" is a distance out of the money, not a risk), never a share of a small credit; and in rupees at today's NIFTY
+  lot size (stated once; points carry the result).
+- **Per family, decision time and R:**
+  - n; the 10th, 50th and 90th percentiles of `C`; the mean of `|C|` and its 95% block-bootstrap interval;
+  - the share of days with bad-side `C` above 5%, 10% and 20% of the risk scale (entry-range stand-ins, reasoning
+    only);
+  - the time part: the Black-76 value change from the decision time to the fill time with only time moving (forward
+    and IV held at the decision; forward = the same-expiry NIFTY future's 15-minute close at the decision time,
+    fetched read-only with the legs; IV per leg from that forward and the leg's decision price,
+    `fno/research_engine/implied_vol.py`; time in calendar minutes / (365 x 1440)), shown beside the mean of `C`; a
+    leg whose IV cannot be solved makes that structure's time part "not computed", counted, never filled in;
+  - splits: 1-night vs 3-or-more-night gaps; gap band from the same 15:00-to-fill window (below 0.5%, 0.5-1%, 1% and
+    more); India VIX at the decision day's open (known at decision time; below 13, 13-18, above 18). A cell with fewer
+    than 30 days prints "too few days", never a number.
+- **The owner's choice, paired:** per session and family, the difference between the 15:00 decision's R = 60 bad-side
+  `|C|` and the 14:00 decision's R = 60 bad-side `|C|`, with its block-bootstrap interval. What the 14:00 path gives up
+  (the last hour's information) is stated as not measured.
+- **Flip share ("win at both", owner row):** for each structure, held to expiry (settled at intrinsic value against
+  NSE's final settlement price, E7), net of C1 charges, each fill charged at its own price (STT and exchange charges are shares of premium), with a P&L of exactly zero counted as
+  not a win. Printed per family and decision time at R = 60: **bad flips** (wins at the decision price that lose at
+  E8's price) as a share of those wins, and **good flips** (losses that become wins) as a share of those losses. The
+  report prints only these two shares, never a win rate or a mean P&L, so no strategy result leaks out. All entries
+  into one expiry share one settlement price, so the independent unit is the **expiry** (about 33): the interval
+  resamples whole expiries (B = 10,000, the protocol's seed). Exploratory: it reads option P&L of spent data.
+- **Bootstrap:** stationary blocks of 5 sessions (10 and 20 as checks), B = 10,000, one fixed seed in the protocol.
+- **Stale and missing legs:** a leg whose candle has zero volume is stale. The structure is left out of that time's
+  figures and counted; no other price stands in. Per family and path, more than 10% of sessions stale or missing makes
+  that cell "insufficient data", and the report shows it as such, never as a number.
+- **Spread caveat:** candle closes carry no spread. A4 has only a few sessions of 15:00 bid and ask and nothing at
+  09:45, 10:15 or 14:00-14:45, so the spread at the fill times is **not measured** here. The report says so and gives
+  A4's 15:00 median half-spread per family only as an order of size; the live follow-up measures it.
+- **Raw answers** go to Drive through `RawFileStore` (`raw/groww/options/candles-15m/<yyyy>/...`) with a manifest and
+  SHA-256 in `research/data/manifests/`, in A16b's pattern. Nothing raw goes in the repository. Groww is reached only
+  through A16's `ReadOnlyGroww` behind a paced candle-source interface, at most 2 calls a second, outside market hours.
+  Estimate: about 2,000-3,000 calls, 20-40 minutes (reasoning only; the dry run measures it).
+- **Data spend:** Groww's historical 2024-26 option and future candles become `registered` with the ledger row and
+  `spent` after the run, for the 14:00-to-next-10:15 windows of the sampled contracts, because `C` is the P&L of
+  "sell at the decision, buy back at the fill". Their 2019-23 candles stay `fresh`. The flip share reads NSE's final
+  settlement prices of 2024-26 expiries (already seen through the spent monthly data). The rows are written in
+  `research/DATA_SPEND.md` with the ledger row.
+- **Live rule, for the follow-up:** after 20 sessions of A16 snapshots, `C` from mid-quotes and from bid/ask (sells at
+  bid, buys at ask) is compared, paired by session and family, with the candle-close `C` of the same sessions. The
+  report gives the paired difference and its interval, and says the history figures are "not confirmed" when that
+  interval excludes zero or its median passes 2% of the risk scale.
+
+**Acceptance criteria:**
+1. The coverage probe, protocol, idea card, ledger row 54 (prospective, hypothesis no), the DATA_SPEND rows and the
+   code hash are committed and frozen before the full fetch; the probe records no price.
+2. One 15:00-decision day and one 14:00-decision day are recomputed by hand from the archived raw answers: strikes,
+   leg prices at the decision and at each fill, `C`, and the flip of one SF and one LC structure. Each equals the
+   output.
+3. Signs and mirrors: fixture candles where a seller's credit falls give positive `C` for SF and negative for BF on the
+   same legs (`C(BF) = -C(SF)`, and likewise CDS/CCS and PDS/PCS), tested exactly.
+4. E8's timing: a 15:00 decision maps to 15:15, next 09:45 and next 10:15, and a 14:00 decision to 14:15, 14:45 and
+   15:15. A Friday decision's next-session fills fall on Monday (or the next A7 session) and are counted as 3 or more
+   nights.
+5. Exclusions: a stale leg removes that structure at that time and is counted; an entry 7 or fewer sessions before
+   expiry, a special or muhurat session, and a month the probe did not answer are excluded and counted. A cell over
+   10% stale or missing prints "insufficient data".
+6. The bootstrap uses the protocol's seed, B and block lengths; the flip-share interval resamples whole expiries. The
+   same run twice gives the same intervals.
+7. The report prints, per family, decision time and R, every figure listed in the design, the paired 14:00-vs-15:00
+   difference, the flip share, the time part, the splits, the exclusion counts, the spread caveat and the window,
+   each labelled exploratory measurement, and the "not measured" lines (signal decay, fill-time spread).
+8. The time part equals a hand Black-76 value for one fixture leg (forward, strike, IV, minutes to fill given); the
+   gap, VIX, nights and sessions-to-expiry splits put fixture days in the right cells; a cell under 30 days prints
+   "too few days".
+9. The report prints only the two flip shares from option P&L, never a win rate or mean P&L (a test reads the
+   report's fields).
+10. Read-only: the study's import closure reaches no order, position, margin or funds call (A16b's test pattern). No
+   credential and no raw candle appears in the repository or the output.
+
+**Test plan:**
+- Unit tests with fixture candles: the strike choice, the E8 time mapping, the sign and mirror rule, the stale and
+  exclusion rules, the bootstrap seed, the flip share, and the report.
+- The read-only closure test.
+- A dry run on 5 sessions with real answers before the full run, giving the call count and duration.
+
+**Judge verifies:**
+- Recomputes the two hand days from the archived raw answers.
+- Plants a sign error, a stale-leg substitution, an expiry-week entry and a wrong R mapping, and sees each test fail.
+- Checks that the probe and the freeze precede the full fetch and that the probe holds no price.
+
+**Depends:** A7, A15, A16 (`ReadOnlyGroww`), A16b (candle pattern), B2 and STR1 (structures), C1, E7 (settlement for
+the flip share) · **Size:** M · **Status:** proposed (story text revision 3, answering judges 153 and 154)
+
+**Evidence labels:**
+- The overnight-gap figures are some evidence.
+- The 5/10/20% thresholds, the 7-session rule, the 10% insufficient-data cut and the 2% live tolerance are reasoning
+  only.
+- The study is exploratory measurement with no edge claim. Only the live comparison can make its figures evidence of
+  what the owner would really get.
+
+---
+
+## E2c. Per-contract paper fills, marks and equity history in Drive; per-book daily totals in public
+
+**Repository:** trading
+
+**Description:** As the owner, I want every paper record that names a contract's price, and every mark, kept in Drive,
+with only per-book daily totals in the public repository. Then no one can rebuild a Groww quote from the public record
+(owner "6 A" and "8 A").
+
+**Context and why:** Owner decision, 15 Oct 2026 (`docs/DESK_DECISIONS.md`): "Per-contract paper fills, marks and
+equity history move to Drive before the first counted paper fill (story E2c)" ("A: move to Drive"). ChatGPT review
+105, point 1 (strong evidence: algebra) found the leak that E2b left open. A public fill at the ask `a`, together with a
+public mark `m` of the same contract at the same snapshot, gives the bid: `b = 2m - a`. For a book with one open
+contract, `m` is `(marked_equity - cash) / units` (`equity_history.csv`, scoreboard B's `raw_account_net_rs`). STR1's
+single-leg structures (LC, LP) make this a real path, not an imagined one. Response 131 records the rule (the public
+record keeps per-book daily totals only) and review 105's point 3 (a run with an unrecovered stop opens nothing). No
+paper fill has happened yet (no strategy approved), so the move costs no history.
+
+**What is public today and where each part goes (checked in code on `main`):**
+
+| File (committed today) | What it holds | Goes to |
+|---|---|---|
+| `journal/<book>/account/cash_ledger.csv` (E1) | every fill: contract, quoted and fill price, charges | Drive |
+| `journal/<book>/account/desk_fills.csv`, `desk_events.csv` (E4) | every leg's fill; events with reasons and legging cost | Drive |
+| `journal/<book>/account/positions.json` (E1) | open and closed trades with their money | Drive |
+| `journal/<book>/account/equity_history.csv` (E1) | daily cash, closed and **marked** equity | Drive |
+| `research/scoreboards/B/<date>.json` (S2) | per-trade lines and marked results | Drive |
+| `journal/<book>/packs/<date>/private.json` (E2, committed by E3's pack step: `daily_steps.py:85`, `pack_store.py:28`) | the full text of the book's own files, its account folder included (`private_pack.py`) | Drive; its `private.json.sha256` stays public (D3 records the pack's hash as evidence) |
+| new: `journal/<book>/daily_totals.csv` | per book, one row per date with a ledger row (closed equity cannot change without one): `date`, `closed_equity_rs`, `open_trades`, `closed_trades`, `fills` (a count) | public |
+
+`closed_equity_rs` is the opening cash plus the net of closed trades only. It holds no cash for open positions and no
+mark. A closed trade's net is the sum of its fills at different snapshots, so it gives no bid-ask pair (reasoning).
+The run log keeps what it holds after E2b (outcomes, run IDs, snapshot IDs, no prices). The daily card is already
+Drive-only (T1).
+
+**Scope.** In:
+- **Where the files live.** A book's account folder becomes local and git-ignored. Its files are kept in Drive through
+  A4b's Drive store, under their repository paths in the `paper` area (`paper/journal/<book>/account/`; judge 159
+  accepted the whole path, so one rule covers accounts, packs and scoreboard B), with the same names and formats (E1,
+  E4). Shadow accounts go the same way (`paper/journal/shadow/<name>/account/`).
+- **The writer.** Every account write (fills, exits, settlement) runs as one `DriveAccountSync`, behind E3's existing
+  `AccountSync` port and replacing `GitAccountSync` in `fno/desk/daily_wiring.py`:
+  - download the book's files from Drive;
+  - apply under E1's lock;
+  - upload the changed files, the desk fills first and the desk events last (judge 159: a push that stops part way
+    leaves a state the rerun completes; an entry's event is its "done" marker, and a ledger fill never reaches Drive
+    without its desk row);
+  - then write and commit `daily_totals.csv`.
+
+  The daily run is the only writer of accounts (E3), so the git reset-and-reapply logic for competing writers goes:
+  one writer, no merge.
+- **The private packs.** E2's pack builder writes each book's `private.json` to Drive beside the account. Only its
+  `private.json.sha256` is committed, and D3 records the pack's hash, as today. Book 1's decision hashes its pack for
+  D3's record (`fno/books/book1_inputs.py:42`), so it needs the downloaded copy.
+- **The readers: one shared download at the start of each run or command that reads accounts or private packs.**
+  The function fetches every book's account and private packs from Drive into the git-ignored local folders. It runs
+  once, before anything reads them. The readers are:
+  - E3's daily run (fills, exits, settlement, the C3 and C4 checks);
+  - Book 1's decision (C2's view of the book, trade counts, opening runs, its private pack: `fno/books/book1_wiring.py`);
+  - C4's `LedgerAccounts` (`fno/checks/validity_account.py`, wired in `fno/checks/wiring.py:91`). Its replay stays
+    valid on the Drive copy, because C4 counts only the ledger rows filled by the decision cutoff, and the ledger is
+    append-only;
+  - T1's card (`fno/cards/status.py:29`, `:83-100`). It reads `positions.json` from the downloaded folder, no longer
+    from the committed record;
+  - E6's scorecards (`fno/scorecard/wiring.py`);
+  - scoreboard B (`fno/scoreboard/wiring.py`), which writes its board to Drive, not to `research/scoreboards/B/`;
+  - Home's read model (`fno/market_read_models/home_inputs.py`), which publishes to the dashboard's Azure store as
+    today;
+  - E1's account command (`fno/composition.py`), and the shadow books (`fno/desk/shadow_books.py`), whose accounts
+    are downloaded with the books'.
+- **The move itself.** Today's committed account files hold only the opening rows. They are uploaded to Drive once,
+  then removed from the repository (`git rm`, the history keeps the opening rows only), and the folder is ignored.
+- **A stop before the exits blocks new entries** (review 105 point 3; response 131). E3's rerun recovers a stop in the
+  same checkout (E2b). But the daily routine starts in a fresh container each day, so the stop can only be seen in the
+  committed run log. Before today's fills, the desk reads the last session's run log. If that log has no `exits` step
+  (the run stopped before its exits), today opens no new entry, with one alert naming the day. A stop before any
+  step (the recovery or the download) leaves no log, so a missing log blocks too once an earlier log exists (judge
+  159). A completed exits step can still hold a book whose review failed (an `error`, such as a Drive 503) or whose
+  due exits were held up for lack of a snapshot (a non-empty `waiting`): that book alone opens nothing new (ChatGPT
+  review 115). A day without a snapshot and nothing due blocks nothing. Today's exits still run, and once they are
+  done the next session opens normally.
+Out:
+- the raw quote files (A4b);
+- D3's decision records and C4's records (they hold no fill or mark; E2b's kept mids stay, as decided);
+- any change to how fills are priced (E4, E4c).
+
+**Acceptance criteria:**
+1. After a day with fills and exits, no committed file holds a contract's fill price, a mark, cash or marked equity:
+   a test runs a fixture day end to end (the pack step included) and scans every committed file, the private packs'
+   folders included, for the day's prices and marks.
+2. `daily_totals.csv` holds, per book and date with a ledger row, exactly the five columns above, matching the Drive account by
+   hand on a fixture day (one entry and one closed trade).
+3. After the shared download, the daily run, Book 1's decision (with its private pack), C4, T1's card, E6, scoreboard B
+   and Home read the same values as they read from the local folder before (one test each, on a fake Drive store).
+4. A Drive write that fails stops the account write with E3's alert. Nothing is committed for that step, and the rerun
+   repeats the write (E1's fills are idempotent by fill ID).
+5. With the last session's run log holding no `exits` step, today's fills step opens nothing and sends one alert, and
+   today's exits still run. With the step present, entries open as usual.
+
+**Test plan:** a fake Drive store (A4b's), a fixture day end to end, the committed-file scan (packs included), and one
+reader test each.
+No network, no Slack.
+
+**Judge verifies:** runs the fixture day and greps the committed tree for the day's prices; recomputes one
+`daily_totals.csv` row by hand; checks the stop-blocks-entries test.
+
+**Known limits:**
+- The read models go only to the dashboard's Azure store behind sign-in (judge 148). P2 or any later job must never
+  commit a page holding these fields to a public repository.
+- Two daily runs on one book at the same time would race on Drive (no lock across containers). Only one routine runs
+  the desk.
+- A closed single-leg trade's net, kept owner-only here, is not a bid-ask pair (its fills are at different snapshots).
+- Every command that reads the accounts needs Drive's four `FNO_GDRIVE_*` settings, `market publish --local`
+  included; without them it stops with one line rather than read a stale copy.
+
+**Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** done: merged df136912 (response 150, first
+numbered 148; story text PASS judge 148 add. 1; code PASS judge 159 add. 2; ChatGPT review 115); accounts moved to
+Drive at the merge (3f5a4473, d9f67c4)

@@ -53,6 +53,50 @@ and in C4 (6 of 6).
 - `tests/checks/validity_sources.py` (shared by the checks and decisions tests): the factor is dated the day before
   `FILE_DAY`, the decision day of those tests.
 
+## Judge 188 note 1 (fixed)
+
+Of two rows with the same `as_of`, the later one in the file wins: the file is append-only, so it is the correction.
+C2 and C4 both use a stable sort on the parsed date and take the last row. Test
+`test_of_two_rows_with_the_same_date_the_later_one_wins` covers the later row first in the file and last in the file.
+Planting the old `max` fails it in each reader.
+
+## Builder self-review (quality rule 3)
+
+One independent review agent, given only the diff (`6353bf68..1fbcb2ff`), the passed text and these claims. It ran
+the full suite on its own worktree (6,191 passed) and probed both readers with 16 planted files. What it found, and what
+I did after checking each:
+
+1. **Must-fix, accepted.** An unreadable row (empty factor, a bad or date-time `as_of`, a short row) raised a raw
+   `ValueError` or `TypeError`. In C4 that escaped the whole check run, because `multiplier()` catches only
+   `FactorProblem` and `_run` only `MarginProblem` and `PricingProblem`. In C2 it was refused without the file's name,
+   and a short row escaped `RiskManager.evaluate`. A14c appends this file unattended, so this is a real path.
+   **Fixed:** both readers parse every row first, and any unreadable row refuses by name ("stress_factor.csv row N").
+   Tests: 7 bad-row cases in C2 and C4, plus one end-to-end test each through C4's `check()` and C2's
+   `RiskManager`. The 19 new cases fail on the old readers.
+2. **Should-fix, accepted:** a NaN or infinite factor passed `< 1`. **Fixed:** `math.isfinite` in both readers, tested.
+3. **Should-fix:** a same-date tie took the first row. Fixed as judge 188 note 1 (above).
+4. **Should-fix, accepted:** the latest row was picked by comparing date text, and `fromisoformat` also took
+   `20261020`. **Fixed:** only `YYYY-MM-DD` is accepted (`STRESS_FACTOR_DATE`, `strptime`), and rows are ordered by
+   the parsed date. The compact and date-time forms are tested.
+5. **Minor, accepted:** the record said `multiplier` and mixed the row's `as_of` and `status` into the margin
+   figures. **Fixed:** the margin-room verdict carries `stress_factor_row: {as_of, factor, status,
+   evidence_sha256}`, the story's names, pinned in `test_manager.py` and `test_margins.py`.
+6. **Should-fix, accepted:** stale text. **Fixed:**
+   - `research/data/margins/README.md` now describes the C2c formula and k from the file, with a section on
+     `stress_factor.csv` (columns, append-only, YYYY-MM-DD, the later same-date row wins, any bad row refuses);
+   - C4's module text;
+   - the register row ("strictly before").
+7. **None:** no other code reads the old config fields.
+8. **Note, stated here:** a decision dated 14 Oct 2026 has no factor (the seed is dated 14 Oct, and the rule is
+   strictly before). No decision record exists for that day, so nothing changes. "The switch changes no figure"
+   holds from 15 Oct.
+9. **Minor, accepted:**
+   - `fno.risk.stress_factor` is now named in the C4 independence guard's list;
+   - the test helper's temporary folder is removed at exit. It stays module-level, because module-level settings
+     need the files at import, so `tmp_path_factory` cannot be used.
+10. **Note:** `fno/constants.py` is at exactly 350 lines (the limit), so the next constant needs a split. I did not
+    split it here.
+
 ## What this means for the owner (reasoning)
 
 Nothing changes in any figure today. From A14c's first weekly row, k moves without anyone editing config: a rise
@@ -60,7 +104,7 @@ applies the next session, and any fall waits for the owner.
 
 ## Gates
 
-On the final tree: `python -m pytest -q` 6,186 passed (12 min 50 s); `ruff check fno tests tools` and `ruff format
---check` clean; `python tools/check_imports.py` clean; `python tools/check_records.py` clean (6,016 files). A first
-full run found 5 `tests/decisions` failures: their shared source dated the factor on the decision day itself, which
-C2d no longer uses; `tests/checks/validity_sources.py` now dates it the day before, and the rerun is the one above.
+On the final tree after judge 188's note and the self-review fixes: `python -m pytest -q` 6,209 passed (11 min 55 s);
+`ruff check fno tests tools` and `ruff format --check` clean; `python tools/check_imports.py` clean;
+`python tools/check_records.py` clean (6,022 files). The first round (8c0c9fdc) gave 6,186; the new cases are the
+tie, bad-row, NaN/inf and end-to-end tests.

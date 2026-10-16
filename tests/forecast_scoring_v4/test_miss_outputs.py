@@ -5,16 +5,17 @@ import json
 from dataclasses import asdict
 from datetime import date, datetime, timedelta, timezone
 
-from fno.constants import V6_BIG_MOVE_5S
+from fno.constants import V4_SLOT_AI, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.comparison import compare, paired_rows, seed_word
+from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import Outcome, V4ForecastSource, V4OutcomeSource
-from fno.forecast_scoring.v4.records import LookRecords, NoRegistrations
+from fno.forecast_scoring.v4.records import LookRecords, NoRegistrations, Registration
 from fno.forecast_scoring.v4.render import report_json, report_lines
 from fno.forecast_scoring.v4.scoring import QUESTIONS, V4Scoring
 from fno.forecast_v4.misses import MissReport
 from fno.forecast_v4.regime import is_big_move
 from fno.forecast_v4.terms import LOOK_STOP_REVIEW
-from tests.forecast_scoring_v4.helpers import values
+from tests.forecast_scoring_v4.helpers import settled_slot_days, values
 
 DAYS = [date(2025, 1, d) for d in range(1, 11)]
 ABSENT, MISSED = DAYS[4], DAYS[6]  # day 5: neither file has a row; day 7: the forecaster has none
@@ -23,6 +24,8 @@ OUTCOMES = {d: Outcome(i % 2 == 0, False, 15.0, RETURNS.get(d, 0.001)) for i, d 
 OWN = values({d: 0.3 for d in DAYS if d not in (ABSENT, MISSED)}, live=True)
 BASE = values({d: 0.2 for d in DAYS if d != ABSENT}, live=True)
 EXPECTED = MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=1)
+
+NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 
 def test_a_day_neither_file_holds_is_an_input_failure_and_exactly_2_percent_is_a_2_percent_day():
@@ -51,8 +54,11 @@ class Outcomes(V4OutcomeSource):
 
 
 class Registered(NoRegistrations):
+    def __init__(self, effective_start=DAYS[0], slot="rules"):
+        self.registration, self.slot = Registration("weather_m1", effective_start), slot
+
     def registered(self):
-        return {(V6_BIG_MOVE_5S, "rules"): "weather_m1"}
+        return {(V6_BIG_MOVE_5S, self.slot): self.registration}
 
 
 def _scoring():
@@ -61,10 +67,11 @@ def _scoring():
 
 def test_the_report_text_and_json_carry_the_miss_counts():
     reports = [_scoring().question_report(q) for q in QUESTIONS]
-    assert f"    {EXPECTED.line()}" in report_lines(reports, frozen=False, as_of="2025-01-20")
-    v6b = next(q for q in report_json(reports, frozen=False, as_of="2025-01-20")["questions"]
+    assert f"    {EXPECTED.line()}" in report_lines(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)
+    v6b = next(q for q in report_json(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)["questions"]
                if q["question"] == V6_BIG_MOVE_5S)  # fmt: skip
-    assert v6b["comparisons"][0]["misses"] == asdict(EXPECTED)
+    assert v6b["cohorts"]["live"]["comparisons"][0]["misses"] == asdict(EXPECTED)
+    assert v6b["cohorts"]["close_proxy"] == {"scores": {}, "comparisons": []}
 
 
 def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):
@@ -74,7 +81,7 @@ def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):
     records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
     (tmp_path / "FREEZE_v4.md").write_text("# Freeze\nFrozen on: 2024-12-31\n")
     at = datetime(2027, 5, 31, 16, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
-    _look(_scoring(), records, FrozenToolThresholds(tmp_path), LOOK_STOP_REVIEW, at)
+    _look(_scoring(), records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at)
     recorded = json.loads(records.path(LOOK_STOP_REVIEW).read_text())
     assert [V6_BIG_MOVE_5S, "rules", EXPECTED.line()] in recorded["misses"]
     assert recorded["test_a"] == "undecided"
@@ -100,7 +107,7 @@ def test_after_the_freeze_misses_count_from_the_day_after_it_and_earlier_days_ne
 
 
 class StartsAfterFreeze(BrokenAfterFreeze):
-    """No row at all before 6 Jan, four days after a 2 Jan freeze; live every day from then on."""
+    """No row at all before 6 Jan, the fourth session after a 2 Jan freeze; live every day from then on."""
 
     def values(self, question, forecaster):
         if forecaster == "base_rate":
@@ -108,10 +115,17 @@ class StartsAfterFreeze(BrokenAfterFreeze):
         return values({d: 0.3 for d in DAYS[5:]}, live=True)
 
 
-def test_a_member_that_starts_after_the_freeze_counts_misses_only_from_its_first_forecast():
-    scoring = V4Scoring(StartsAfterFreeze(), Outcomes(), Registered())
-    member = scoring.member_comparisons(counted_after=DAYS[1])[(V6_BIG_MOVE_5S, "rules")]
-    assert member.misses == MissReport(observable=5, missed=0, big_observable=2, big_missed=0, input_failures=0)
+def test_a_registered_slot_misses_from_its_effective_start_even_before_its_first_forecast():
+    """Owner, 16 Oct 2026: an AI slot registered from day 1 after the freeze that first submits on day 4 has 3
+    misses (days 1-3); its first forecast never moves the start."""
+    scoring = V4Scoring(StartsAfterFreeze(), Outcomes(), Registered(DAYS[2], V4_SLOT_AI))
+    member = scoring.member_comparisons(counted_after=DAYS[1])[(V6_BIG_MOVE_5S, V4_SLOT_AI)]
+    assert member.misses == MissReport(observable=8, missed=3, big_observable=2, big_missed=0, input_failures=0)
+
+
+def test_misses_never_count_before_a_later_effective_start():
+    later = V4Scoring(StartsAfterFreeze(), Outcomes(), Registered(DAYS[5]))
+    assert later.member_comparisons(counted_after=DAYS[1])[(V6_BIG_MOVE_5S, "rules")].misses.missed == 0
 
 
 def test_a_void_day_neither_file_holds_is_not_an_input_failure():

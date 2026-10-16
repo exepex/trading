@@ -8,8 +8,8 @@ import json
 from datetime import date
 from pathlib import Path
 
-from ..constants import WEATHER_RED_MAX_SHARE, WEATHER_RED_SHARE_RECORDS, WeatherColour
 from ..forecast_v4_rules.records import LIVE, RecordConflict
+from .constants import WEATHER_RED_MAX_SHARE, WEATHER_RED_SHARE_RECORDS, WeatherColour
 
 NOT_ENOUGH = "not enough data yet"
 

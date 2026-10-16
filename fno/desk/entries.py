@@ -3,11 +3,12 @@
 Before any leg: C3's data checks on this snapshot and every leg of the order must pass (else "no new trade: stale or
 unverified data"); the trade needs the risk manager's approval (C2) for this book, trade and day; a decision committed
 before the execution snapshot started; a complete snapshot; and no open position of the book whose protection is
-unverified or whose leg expired before its exit. Then the protective (bought) legs fill first, then the short legs,
-each at the touch of a valid quote whose size covers the units. The first leg that does not fill stops the entry:
-every leg already filled is unwound at the same snapshot (short legs bought back first, protection sold last), the
-legging cost is recorded and the trade does not open. An unwind leg without a valid quote stays open as an exit
-order, retried at the next snapshot.
+unverified or whose leg expired before its exit. Then E4c's entry check (`entry_check.py`): every leg must fill on its
+opening side and every protective leg be sellable back, at this snapshot, else nothing is bought and the trade is
+`not_opened` with one reason code. Then the protective (bought) legs fill first, then the short legs, each at the
+touch of a valid quote whose size covers the units. If a leg still does not fill (a defect, since the check passed),
+the guard unwinds every leg already filled at the same snapshot (short legs bought back first, protection sold last),
+records the legging cost and the trade does not open; an unwind leg without a valid quote stays an exit order.
 
 Entry limit (orchestrator, 14 Oct 2026; judge 68): C2 checked the maximum loss on the entry it modelled (decision mids,
 B2's pad, entry charges) and records that entry cash in its decision, with the proposal it judged; the limit is read
@@ -21,7 +22,7 @@ limit scales with the lots (legs never fill in part). Exits are never limited.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 
 from ..checks.data_checks import CheckReport, DataChecks
@@ -38,6 +39,7 @@ from ..constants import (
 from ..models import now_ist
 from ..risk.inputs import Proposal
 from ..risk.manager import RiskDecision
+from .entry_check import entry_problems, taken_units
 from .execution import FillMaker, check_point_in_time, closing_quotes, legging_cost
 from .pricing import DeskLeg, LegQuote, price_leg
 from .records import DeskEvent, DeskJournal
@@ -75,6 +77,7 @@ class EntryResult:
     outcome: str
     reason: str
     legging_cost_rs: float | None = None
+    refused_by_check: bool = False  # story E4c: this call's entry check refused it (never true for a recorded replay)
 
 
 def worse_than_approved(order: EntryOrder, maker: FillMaker, quotes: list[LegQuote]) -> bool:
@@ -119,13 +122,21 @@ class EntryDesk:
         reason = checks.reason() if not checks.ok else refusal(order, snapshot, blocking_trades(journal.records))
         if reason:
             return self._event(journal, order, snapshot, OUTCOME_REFUSED, reason)
+        taken = taken_units(
+            journal.records.fill_rows(), snapshot, trade_id
+        )  # story E4d: the book's size at this snapshot
+        problems = entry_problems(snapshot, order.legs(), order.proposal.units, taken)
+        if problems:  # story E4c: nothing is bought unless every leg fills and the protection can be sold back
+            return replace(
+                self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, problems[0]), refused_by_check=True
+            )
         maker = FillMaker(order.book, order.strategy, order.decision_id, trade_id, snapshot, self.charges)
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
         if all(q.fills for q in quotes) and worse_than_approved(order, maker, quotes):
             return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, WORSE_THAN_APPROVED)
         opened: list[LegQuote] = []
         for quote in quotes:
-            if not quote.fills:
+            if not quote.fills:  # a guard only (decision 43): the entry check passed, so this is a defect
                 return self._unwind(journal, order, snapshot, maker, opened, quote)
             journal.record_fill(maker.record(quote, FILL_OPEN))
             opened.append(quote)

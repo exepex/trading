@@ -10,7 +10,7 @@ from fno.risk.manager import RiskManager
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.verdict import RiskRule
 from fno.risk.wiring import build_risk_manager
-from tests.stress_factor_files import factor_file
+from tests.stress_factor_files import HEADER, factor_file
 
 from .builders import DAY, FLY, book, market, open_trade, proposal, short_fly
 
@@ -56,8 +56,8 @@ def test_inside_every_limit_the_trade_may_open_and_every_rule_reports(tmp_path):
         "stresses": "scan and exposure (owner, 15 Oct 2026; story C2c)",
         "factor_file": "k1.5_2026-10-12_applied.csv",
     }
-    used = _verdict(decision, "margin_room").numbers  # story C2d: the factor row used on the decision day
-    assert (used["multiplier"], used["as_of"], used["status"], used["evidence_sha256"]) == (
+    used = _verdict(decision, "margin_room").numbers["stress_factor_row"]  # story C2d: the row used on the day
+    assert (used["factor"], used["as_of"], used["status"], used["evidence_sha256"]) == (
         "1.5",
         "2026-10-12",
         "applied",
@@ -102,7 +102,8 @@ def _repository_factor_on(tmp_path, day):
 def test_the_owner_s_factor_lets_a_valid_trade_open_through_its_30th_day(tmp_path, day):
     decision, margin = _repository_factor_on(tmp_path, day)
     assert decision.ok, decision.reasons
-    assert margin.numbers["multiplier"] == "1.45" and margin.numbers["as_of"] == "2026-10-14"
+    used = margin.numbers["stress_factor_row"]
+    assert used["factor"] == "1.45" and used["as_of"] == "2026-10-14"
 
 
 def test_from_the_31st_day_every_trade_is_refused_until_the_factor_is_renewed(tmp_path):
@@ -146,3 +147,15 @@ def test_a_bug_in_a_rule_is_not_swallowed():
 
     with pytest.raises(KeyError):
         _evaluate(RiskManager([Broken()], {}))
+
+
+def test_a_malformed_factor_file_refuses_the_trade_by_name(tmp_path):
+    """Story C2d (self-review): a short row once escaped RiskManager.evaluate as a TypeError."""
+    bad = tmp_path / "stress_factor.csv"
+    bad.write_text(HEADER + "2026-10-12,1.45\n", encoding="utf-8")
+    margins = tmp_path / "margins.csv"
+    margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
+    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": {"factor_file": str(bad)}}}
+    decision = _evaluate(build_risk_manager(load_app_config(overrides=overrides), tmp_path))
+    margin = _verdict(decision, "margin_room")
+    assert not decision.ok and "stress_factor.csv row 2" in margin.reason

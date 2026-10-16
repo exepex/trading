@@ -16,6 +16,7 @@ from fno.evaluation.freeze import (
     read_record,
     target_hash,
 )  # fmt: skip
+from fno.evaluation.gate import GATE_FILE
 from fno.evaluation.protocol import PROTOCOL_FILE
 from fno.playbook.history import PlaybookGit
 from fno.research_engine.ledger import read_ledger
@@ -34,7 +35,7 @@ def test_the_freeze_records_the_protocol_commit_and_every_hash_and_registers_the
     record = freezer(tmp_path).freeze(TODAY)
     assert record.version == 1 and record.protocol_commit == commit
     assert set(record.hashes) == {PROTOCOL_FILE, "fno/scoring.py", "config.yaml:desk.timetable",
-                                  "config.yaml:scorecard_review"}  # fmt: skip
+                                  "config.yaml:scorecard_review", GATE_FILE}  # fmt: skip
     assert read_record((tmp_path / freeze_path(1)).read_text()) == record
     row = read_ledger((tmp_path / "research/ledger.csv").read_text())[-1]
     assert (row["trial_id"], row["experiment"], row["kind"], row["hypothesis"]) == (
@@ -46,6 +47,15 @@ def test_the_freeze_records_the_protocol_commit_and_every_hash_and_registers_the
 def test_a_draft_is_never_frozen(tmp_path):
     protocol_repo(tmp_path, small_frozen_files(DRAFT))
     with pytest.raises(FreezeRefused, match="not decided by the owner: common_start"):
+        freezer(tmp_path).freeze(TODAY)
+    assert not (tmp_path / freeze_path(1)).exists()
+
+
+def test_a_decided_protocol_with_a_number_still_marked_for_the_freeze_day_is_never_frozen(tmp_path):
+    """Judge 196: the cash rate's placeholder is refused until the owner sets it and removes the marker."""
+    text = small_frozen_files(decided()).replace("5.5% a year", "5.5% a year (set at the freeze)")
+    protocol_repo(tmp_path, text)
+    with pytest.raises(FreezeRefused, match="not decided by the owner: do_nothing_benchmark"):
         freezer(tmp_path).freeze(TODAY)
     assert not (tmp_path / freeze_path(1)).exists()
 

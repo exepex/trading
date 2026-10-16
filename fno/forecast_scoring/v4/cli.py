@@ -28,35 +28,50 @@ def add_forecast_v4_scores_parser(subparsers) -> None:
 
 def cmd_forecast_v4(args) -> int:
     from ...models import now_ist
-    from .wiring import build_look_records, build_scoring, build_thresholds
+    from .wiring import (
+        build_ai_slot_days,
+        build_day_counts,
+        build_look_records,
+        build_scoring,
+        build_thresholds,
+    )
 
     scoring, records = build_scoring(), build_look_records()
     if args.v4_cmd == "report":
-        return _report(scoring, records, (args.as_of or now_ist().date()).isoformat())
-    return _look(scoring, records, build_thresholds(), args.look, now_ist())
+        as_of = args.as_of or now_ist().date()
+        return _report(scoring, records, as_of.isoformat(), build_day_counts(as_of))
+    return _look(scoring, records, build_thresholds(), build_ai_slot_days(), args.look, now_ist())
 
 
-def _report(scoring, records, as_of: str) -> int:
+def _report(scoring, records, as_of: str, days) -> int:
     from .render import report_json, report_lines
     from .scoring import QUESTIONS
 
     reports = [scoring.question_report(q) for q in QUESTIONS]
-    lines = report_lines(reports, records.frozen(), as_of)
+    lines = report_lines(reports, records.frozen(), as_of, days)
     records.folder.mkdir(parents=True, exist_ok=True)
     (records.folder / f"{as_of}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    payload = report_json(reports, records.frozen(), as_of)
+    payload = report_json(reports, records.frozen(), as_of, days)
     (records.folder / f"{as_of}.json").write_text(json.dumps(payload, indent=1, default=str) + "\n", encoding="utf-8")
     print("\n".join(lines))
     return 0
 
 
-def _look(scoring, records, thresholds, look: str, decided_at) -> int:
+def _look(scoring, records, thresholds, slot_days, look: str, decided_at) -> int:
+    """A recorded look runs only when every scheduled AI slot-day up to its day is settled (`slot_days`)."""
     from dataclasses import asdict
 
     from .look import run_look
+    from .reconcile import LookBlocked, require_reconciled
     from .records import EXPLORATORY
 
     counted_after = records.frozen_on() if records.frozen() else None
+    if counted_after is not None:
+        try:
+            require_reconciled(slot_days.unsettled(counted_after, decided_at.date()), decided_at.date())
+        except LookBlocked as refusal:
+            print(f"look NOT run, nothing recorded: {refusal}")
+            return 1
     result = run_look(look, decided_at, scoring.member_comparisons(counted_after), thresholds, records.closed(look))
     if counted_after is None:
         print("\n".join([EXPLORATORY, *result.lines()]))

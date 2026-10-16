@@ -33,6 +33,7 @@ from ..research_data.calendar import SessionCalendar
 from .daily_ports import CommitFailed, Waiter
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
+from .private_files import PrivateFiles
 from .run_log import RunLog
 
 SKIPPED = "skipped"
@@ -41,7 +42,12 @@ EXITS_MISSED = "; exits not reviewed today"
 RERUN = "Fix: remove the cause, then rerun `fno desk run` (it commits these files as recorded, never repeating a step)"
 PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
+DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
+NO_LOG = "the run of {day} stopped before any step"
+BEFORE_EXITS = "the run of {day} stopped before its exits"
+NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
+HELD_UP = "due exits held up: {exits}"
 
 
 class RunStopped(Exception):
@@ -50,11 +56,14 @@ class RunStopped(Exception):
 
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
-                 clock: Callable[[], datetime]):  # fmt: skip
+                 clock: Callable[[], datetime], files: PrivateFiles | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
+        self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
 
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
+        if self.files is not None:
+            self._guarded(day, DOWNLOAD, self.files.download)
         log = RunLog.open(self.steps.root, day)
         kind = self.calendar.session_kind(day)
         if kind not in RECORDED_SESSION_KINDS:
@@ -70,7 +79,12 @@ class DailyRun:
             (
                 "fills",
                 times.execution_snapshot,
-                lambda: steps.fill(day, log.result("snapshot")["valid"], log.result(RUN_LOG_DECISIONS_STEP)),
+                lambda: steps.fill(
+                    day,
+                    log.result("snapshot")["valid"],
+                    log.result(RUN_LOG_DECISIONS_STEP),
+                    self._unreviewed(day),
+                ),
             ),  # fmt: skip
             ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
         )
@@ -79,6 +93,27 @@ class DailyRun:
                 self.waiter.until(times.at(day, moment))
                 self._step(log, name, action)
         return log
+
+    def _unreviewed(self, day: date) -> dict[str, str]:
+        """Each book whose exits the last session did not review, with why (review 105 point 3, judge 159, review
+        115): today it opens nothing new. The routine starts in a fresh container, so the committed run log is the only
+        place this can be seen.
+        - No log while an earlier one exists: a stop before any step (the recovery or the download). Every book.
+        - A log without its exits step: a stop before the exits. Every book.
+        - An exits step where a book's review failed (`error`) or exits were due but held up (`waiting`): that book.
+          A day without a snapshot and nothing due leaves no exit unreviewed, so it blocks nothing."""
+        last = self.calendar.previous_session(day)
+        log = RunLog.open(self.steps.root, last)
+        if not log.steps:
+            stopped = any(d < last for d in RunLog.days(self.steps.root))
+            return dict.fromkeys(self.steps.books, NO_LOG.format(day=last)) if stopped else {}
+        if SKIPPED in log.steps:
+            return {}
+        if "exits" not in log.steps:
+            return dict.fromkeys(self.steps.books, BEFORE_EXITS.format(day=last))
+        unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
+                      for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
+        return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
 
     def _pack(self, day: date) -> StepOutcome:
         """Retries while the canonical snapshot is not committed yet, until the recorder's window ends."""

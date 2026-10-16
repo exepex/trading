@@ -9,7 +9,7 @@ from datetime import date
 def add_weather_parser(subparsers) -> None:
     parser = subparsers.add_parser("weather", help="the market weather: V6 probabilities, colour, drivers (M1)")
     actions = parser.add_subparsers(dest="weather_cmd", required=True)
-    capture = actions.add_parser("capture", help="record today's weather (today only, before 15:00 IST)")
+    capture = actions.add_parser("capture", help="record today's weather (today only, before the 14:30 IST cutoff)")
     capture.add_argument("--day", type=date.fromisoformat, help="the day (default today; any other day is refused)")
     actions.add_parser("backfill", help="write the exploratory back-fill (before the first live record)")
     parser.set_defaults(func=cmd_weather)

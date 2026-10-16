@@ -1,6 +1,6 @@
-"""Writing the weather (story M1): today's live record before the 15:00 cutoff, and the exploratory back-fill.
+"""Writing the weather (story M1): today's live record before the cutoff (14:30, G10), and the exploratory back-fill.
 
-- Live: only on a regular session (protocol v4 section 2), only for today and only before 15:00 IST (as G3 and G7);
+- Live: only on a regular session (protocol v4 section 2), only for today and only before the 14:30 IST cutoff (as G7);
   otherwise nothing is written and the reason is printed. The US-move flag goes to the private Drive part only; the
   printed lines never show it (judge 129).
 - Back-fill: every regular session from the first with inputs to the day before the first live record, labelled
@@ -13,7 +13,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable
 from datetime import UTC, date, datetime
 
-from ..forecast_v4_rules.capture import CaptureRefused, cutoff
+from ..forecast_v4_rules.capture import CUTOFF, CaptureRefused, cutoff
 from ..forecast_v4_rules.records import BACKFILL, LIVE
 from ..storage.raw_store import RawFileStore
 from .day import WeatherDays
@@ -36,7 +36,7 @@ def capture_weather(
     if not is_session(d):
         raise CaptureRefused(f"{d} is not a v4 session (holiday, weekend, special or muhurat)")
     if now >= cutoff(d):
-        raise CaptureRefused(f"{now:%Y-%m-%d %H:%M} IST is at or after {d}'s 15:00 cutoff")
+        raise CaptureRefused(f"{now:%Y-%m-%d %H:%M} IST is at or after {d}'s {CUTOFF:%H:%M} cutoff")
     if weather.latest_row(d) != previous(d):
         raise CaptureRefused(STALE_CLOSES.format(latest=weather.latest_row(d), previous=previous(d)))
     red = red_share(records.live_colours_before(d), weather.colours(d)[0])

@@ -1025,7 +1025,9 @@ Facts checked on 14 Oct 2026 (builder, response 77):
   + exposure`, k from config; superseded by stories C2c and C2d, 15 Oct 2026: k stresses the exposure too, and comes
   from A14c's factor file); with an open losing trade C2 never leaves more free than a broker that nets the
   premium (test);
-- a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
+- a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (03:30 IST, retry 07:45 IST;
+  GitHub starts this repository's morning crons 4-5 hours late, so the main run lands before 09:15 even then;
+  orchestrator, 16 Oct):
   librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;
 - a proposal (not a change) for deriving C2's stressed-margin factor from archived files.
 

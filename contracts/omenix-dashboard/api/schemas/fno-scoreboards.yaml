@@ -1,0 +1,45 @@
+# The two F&O scoreboards (exepex/trading stories S2 and S3; W3h in docs/stories/W3-fno-screens.md). Scoreboard B: each
+# book's whole paper account (which complete system made the most net money). Scoreboard A: every book's decisions on
+# the same common opportunities on a standard shadow account (whose judgement is better). Shown apart, never combined
+# into one figure, never merged with the stock tool's.
+
+FnoScoreboards:
+  type: object
+  description: >-
+    Scoreboard B (whole systems) and scoreboard A (matched decisions), each per book after all costs, with the
+    do-nothing yardstick. Empty state: both boards not_run (no scoreboard has run yet)
+  x-catalog: {publisher: fno, source: "S2's and S3's board files (research/scoreboards/{B,A}/<date>.json, kept in Drive)", freshness: 'after each scoreboard run, at the 07:10 IST publish', story: S2, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "the strategies' rules, and the AI model's name"
+  additionalProperties: false
+  required: [board_b, board_a]
+  properties:
+    board_b: {$ref: '#/components/schemas/FnoScoreboard', description: 'Scoreboard B: each book''s whole paper account'}
+    board_a: {$ref: '#/components/schemas/FnoScoreboard', description: 'Scoreboard A: matched decisions on a standard shadow account'}
+FnoScoreboard:
+  type: object
+  description: One scoreboard; books never added together
+  additionalProperties: false
+  required: [status, as_of, label, books, do_nothing_net]
+  properties:
+    status: {type: string, enum: [ok, pilot, not_run], x-unit: enum, description: 'pilot = before the common start date (shown, never a verdict); not_run = no run yet'}
+    as_of: {type: ['string', 'null'], format: date, x-unit: date (IST), description: The session of the run; null when not run}
+    label: {type: string, x-unit: text, description: 'The board''s standing in plain words, e.g. "Pilot: before the common start, no verdict"'}
+    do_nothing_net: {type: ['number', 'null'], x-unit: INR (Paper), description: 'What holding a NIFTY index fund with the same money made over the same days (the do-nothing yardstick); null when not run'}
+    books:
+      type: array
+      maxItems: 3
+      description: One row per book; empty when not run
+      items:
+        type: object
+        additionalProperties: false
+        required: [family, trades, net, worst_month, max_drawdown, beats_do_nothing]
+        properties:
+          family: {$ref: '#/components/schemas/FnoFamily', description: The book}
+          trades: {type: integer, minimum: 0, x-unit: count, description: Closed trades counted}
+          net: {type: number, x-unit: INR (Paper), description: 'Profit or loss after every cost (charges, pads, AI cost allocated)'}
+          worst_month: {type: ['number', 'null'], x-unit: INR (Paper), description: 'Its worst calendar month; null with no full month'}
+          max_drawdown: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Largest fall from a high'}
+          beats_do_nothing: {type: ['string', 'null'], enum: ['yes', 'no', not_tested, null], x-unit: enum, description: 'Whether its net beat the do-nothing yardstick by the test S1 freezes; not_tested before enough trades; null in a pilot'}

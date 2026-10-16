@@ -40,10 +40,17 @@ Rules: a trade's margin is the latest row dated on or before the decision day; o
 (7) or missing means **no trade**. Never the broker's live total for an open short structure: it includes the marked
 loss, which available cash already deducts.
 
-Stressed margin (`config.yaml` `risk.stressed_margin`): with `multiplier` k, the factor, its source and its date must
-be set (no trade otherwise; expires after 30 days); it stresses the scanning risk only:
-`max(0, k x scan - NOV) + min(0, NOV) + exposure` (the premium already paid or received does not grow). With `scenario_lookup`, a file named in `scenario_file` with columns
+Stressed margin (`config.yaml` `risk.stressed_margin`): with `multiplier`, k stresses the scan and the exposure, never
+the premium (story C2c): `max(0, k x scan - NOV) + min(0, NOV) + k x exposure`. k is never in config (story C2d): it is
+the `factor` of the latest row of `factor_file` dated strictly before the decision day (no trade otherwise; a row
+expires after `max_age_days`, 30). With `scenario_lookup`, a file named in `scenario_file` with columns
 `structure, width, scenario, margin_per_lot_rs, source, as_of` needs a fresh row for every configured scenario.
+
+`stress_factor.csv` (stories C2d and A14c): `as_of, factor, computed, unrounded, status, peak, coverage_through,
+evidence_sha256`, append-only, never edited. A14c's weekly job appends one row (`status` `applied`, or `held` when a
+lower result waits for the owner; `factor` is always the one in force). Dates are `YYYY-MM-DD` only; of two rows with
+the same date the later one wins (a correction); any unreadable row refuses every trade by name. The first row is the
+owner's 1.45 of 14 Oct 2026 (response 77), with no measured value.
 
 Empty on 13 Oct 2026: until margins (A14's job, or the owner) and the stressed-margin factor exist, every proposal is
 refused by `margin_room`.

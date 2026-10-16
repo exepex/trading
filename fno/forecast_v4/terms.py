@@ -3,6 +3,8 @@ the minimum effects, the confirmatory family and its two looks."""
 
 from __future__ import annotations
 
+from datetime import time
+
 from ..constants import (
     V1_RV_1S,
     V2_RV_5S,
@@ -75,6 +77,20 @@ BIG_DAY_MISS_CAP = 0.10  # share of baseline-observable 2% days it may miss (bel
 POWER_REPORT_AT = 60  # scored outcomes of a question before its noise ratio r is measured
 POWER = 0.80
 USEFUL_TIME_YEARS = 2  # a projected settle date later than this is reported as "cannot settle in useful time"
+# V1 reads only A16 rows of this method (judge 177): a new A16 sampling method is a new version, never fed in silently.
+V1_INTRADAY_METHOD = "rv-quote-15m-v1"
+
+# The day's clock (story G10, section 1.6; owner, 15 Oct 2026), IST. A quote is in the pack only if its answer was
+# received by the window end (its `observed_at`: our receipt time, never a last-trade time).
+V4_CAPTURE_START = time(14, 30)  # the pack's capture starts; G7's and M1's live capture refuses from here
+V4_PACK_WINDOW_END = time(14, 40)  # a quote received later is not in the pack; no complete pack: system_late
+V4_DEADLINE = time(15, 10)  # GitHub's receipt time of a family's commitment, never its commit time
+V4_COMMON_SNAPSHOT = time(15, 15)  # A16's 15:15 mark: the skill yardstick and the flag's end level
+# "Moved after cutoff" X, frozen from `tools/v4_moved_after_cutoff.py` (research/forecasts/v4_moved_after_cutoff.json):
+# nearest-rank 95th percentile of abs(ln(S_15:15 / S_14:30)) over A16b's checked sessions 2020-01-02 .. 2026-10-14.
+MOVED_AFTER_CUTOFF_X = 0.006104597099330481
+MOVED_AFTER_CUTOFF_SAMPLE = 1661
+MOVED_AFTER_CUTOFF_SOURCE = "1d68c4477ec2356ecc9a3c5583c5702152424b8f"  # A16b's table and manifests revision
 
 
 def min_pairs(question: str) -> int:

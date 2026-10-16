@@ -2,7 +2,7 @@
 structure and width's SPAN scan, net option value (NOV) and exposure margin, with source and date.
 
 - Stressed margin per lot: max(0, k x scan - NOV) + min(0, NOV) + k x exposure (story C2c), with k the owner's
-  stressed-margin multiplier (which needs its source and date). A total not above 0 is refused, except 0 for a
+  stressed-margin multiplier (from A14c's factor file, story C2d). A total not above 0 is refused, except 0 for a
   bought-only structure (LC, LP: NSE blocks no margin on a paid-up long option; story STR1).
 - Needed: every open trade's stressed margin, plus those of the trades chosen earlier the same day, plus the
   proposal's.

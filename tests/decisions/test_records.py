@@ -139,3 +139,20 @@ def test_book_3_may_leave_the_rule_default_empty(tmp_path):
     record["book"] = "book2_hybrid"
     with pytest.raises(RecordError, match="rule_default"):
         validate_record(record)
+
+
+def test_a_book_and_a_shadow_record_of_one_opportunity_both_survive_and_a_true_clash_is_refused(tmp_path):
+    """Story R3 (the orchestrator's store fix): a shadow record's file name carries its mode, so nothing overwrites
+    across modes; two records that would still share a file refuse the whole run, never keep one silently."""
+    from fno.playbook.decision_store import RecordClash, record_file
+
+    run = run_day(tmp_path / "a", snapshot(doc("sc-a")))
+    book = records(run)["sc-a-v1_2026-11-27"]
+    shadow = book | {"mode": "shadow"}  # the same opportunity ID
+    store = DecisionStore(tmp_path / "b", "book1_rules")
+    written = store.write(DAY, f"{DAY}-r1", None, [book, shadow])
+    assert record_file(book["opportunity_id"], "shadow") == "shadow_sc-a-v1_2026-11-27.json"
+    assert records(written) == {"sc-a-v1_2026-11-27": book, "shadow_sc-a-v1_2026-11-27": shadow}
+    with pytest.raises(RecordClash, match="sc-a-v1_2026-11-27.json"):
+        store.write(DAY, f"{DAY}-r2", None, [book, book | {"risk": None}])
+    assert [r.name for r in store.runs(DAY)] == [f"{DAY}-r1"]  # nothing of the refused run was written
