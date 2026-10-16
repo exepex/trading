@@ -41,3 +41,19 @@ calendar: a publish on 3 Dec 2026 builds every other page.
 - O8b's horizon line (judge 240) fires on 17 Nov, 16 days before this would stop. Name that consequence in O8b's line
   only if (a) or (b) is not done.
 - The question-level `n_scored` is Book 1's; the claims say so.
+
+## Addendum 1: head 8ea526cb (rebased on P11; the root fix)
+
+**PASS.** The should-fix is fixed at its root, with no hold needed. `SessionsAhead` walks one session at a time and
+returns `None` when the answer day lies past NSE's calendar. `today.answer_on` is then null, which is contract
+2.13.0's "not known yet". Nothing raises, so nothing stops or holds.
+- **On the real calendar (my run):** (2 Dec, 20) gives 31 Dec; (3 Dec, 20) gives None; (16 Dec, 10) gives 31 Dec;
+  (17 Dec, 10) gives None. The builder's test moves the 15 Oct records to 3 Dec 2026, and the page validates against
+  the pinned 2.13.0, with Q1, Q2, Q3 and Q5 null and Q4 on 17 Dec.
+- **Gates on 8ea526cb:** 7205 passed (`-n auto`, Slack token unset), ruff and check_imports clean, and `market
+  contract-check` gives 2.13.0 "same as the dashboard's". P11 (1082b285) is on main, and a trial merge with main is
+  clean (WORK_REGISTER auto-merged).
+
+**Note:** any `CalendarError` in the walk now reads as "not known yet". A calendar broken inside its covered range
+would show as unknown answer days on this page, but the same calendar stops the 3 pm recorder, the desk and O8 loudly
+(O8c), so it cannot go unseen.
