@@ -142,8 +142,8 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
   three registered-baseline pairs' daily d, centred within the population tested; 2,000 circular block-bootstrap
   paths of 63-session blocks with the same block starts for all members; both signs, both looks, whole window and
   worst year. Result: **no rate passes, claims postponed** (`studies/results/study3.json`; the reasons, some
-  evidence, in `studies/results/DIAGNOSTICS.md` and response 198: crash-day skew and dependence lasting longer
-  than the test's 5-session blocks, in the two `market` pairs). **Re-measured each year:** after each calendar year
+  evidence, in `studies/results/DIAGNOSTICS.md` and response 198: dependence is the leading supported explanation, with skew and tails contributing; the dependence lasts longer than
+  the test's 5-session blocks, in the two `market` pairs). **Re-measured each year:** after each calendar year
   closes, the same check is run on the latest two full years and reported, labelled exploratory. A pass is never a
   claim by itself; it can only start a new protocol version.
 - **Status:** decided by the owner on 2026-10-16
@@ -170,7 +170,10 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
 
 ### `reporting` Reporting
 - **Value:** every family against every baseline at every report: the paired difference, its interval and the
-  date, the losers too, each labelled descriptive. Results are per protocol version.
+  date, the losers too, each labelled descriptive. Results are per protocol version. Every BR1 chart, table and
+  export carries this text: "Exploratory estimate; interval is descriptive and its coverage is not validated for
+  these dependent market days. Not evidence of forecast skill, trading profit or real-money eligibility." No
+  family is ever marked as passing or as beating a baseline (response 230).
 - **Status:** proposal, owner decides
 - **Reason:** nothing is shown only when it wins.
 - **Evidence:** reasoning only
