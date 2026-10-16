@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from .capture_cli import add_capture_parser
+
 
 def ist_time(text: str) -> datetime:
     """An ISO time; one without an offset is read as IST."""
@@ -22,6 +24,7 @@ def add_health_parser(subparsers) -> None:
     check = actions.add_parser("check", help="check the sessions of the window and post one summary to #fno-desk")
     check.add_argument("--at", type=ist_time, help="the run time (default now; no offset means IST)")
     check.add_argument("--dry-run", action="store_true", help="print the message; post and record nothing")
+    add_capture_parser(actions)
     parser.set_defaults(func=cmd_health)
 
 
