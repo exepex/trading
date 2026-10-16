@@ -25,6 +25,8 @@ INDEX_SYMBOL = "NIFTY"
 FUTURE_SYMBOL = "NIFTY{expiry:%y}{month}FUT"  # e.g. NIFTY26OCTFUT (step 0: the form get_quote accepts)
 WORKERS, PER_SECOND = 4, 5
 CALL_TIMEOUT_SECONDS = 10  # a hung call is a failure, never a stuck loop
+QUOTES_RETRIED = "quotes_retried:{count}"
+MAX_CODE_LENGTH = 12  # Groww's error codes are short words (e.g. 429); anything longer is not kept
 EXPIRY_PLAN, INDEX_PARSE, CHAIN_PARSE = "expiry_plan", "index_parse", "chain_parse"
 PARSE_ERRORS = (TypeError, ValueError, OverflowError, IndexError, KeyError, AttributeError, OSError)
 
@@ -75,8 +77,19 @@ class GrowwIntradaySource(IntradayQuoteSource):
         doc.expected_contracts = len(contracts)
         with ThreadPoolExecutor(WORKERS) as pool:
             doc.quotes = list(pool.map(self._quote, contracts))
+            self._retry_failed(doc, contracts, pool)
         doc.two_sided_contracts = sum(1 for q in doc.quotes if _two_sided(q))
         return self._finish(doc)
+
+    def _retry_failed(self, doc: SnapshotDocument, contracts: list[dict], pool: ThreadPoolExecutor) -> None:
+        """Asks once more, at the same pace, for every quote that failed (16 Oct: single 429s happen even with one
+        recorder). A retried quote keeps its own request and answer times; the note counts the retries."""
+        failed = [i for i, q in enumerate(doc.quotes) if q.failure and contracts[i]["symbol"]]
+        if not failed:
+            return
+        for i, record in zip(failed, pool.map(self._quote, [contracts[i] for i in failed]), strict=True):
+            doc.quotes[i] = record
+        doc.notes.append(QUOTES_RETRIED.format(count=len(failed)))
 
     def _read_index(self, doc: SnapshotDocument) -> None:
         """The level and its source time: the quote's own, else one finished 1-minute candle's close and end."""
@@ -112,8 +125,8 @@ class GrowwIntradaySource(IntradayQuoteSource):
         sent = self.clock()
         try:
             payload = _payload(request(self.client))
-        except Exception as exc:  # the class name only: an exception's text could carry a credential
-            return CallRecord(name, sent, None, None, type(exc).__name__, meta or {})
+        except Exception as exc:  # name and code only: an exception's text could carry a credential
+            return CallRecord(name, sent, None, None, failure_name(exc), meta or {})
         return CallRecord(name, sent, self.clock(), payload, "", meta or {})
 
     def _future(self, monthly: date) -> CallRecord:
@@ -151,6 +164,14 @@ class GrowwIntradaySource(IntradayQuoteSource):
         return self._call(f"quote {symbol}", lambda api: api.get_quote(trading_symbol=symbol,
                           exchange=api.EXCHANGE_NSE, segment=api.SEGMENT_FNO, timeout=CALL_TIMEOUT_SECONDS),
                           contract)  # fmt: skip
+
+
+def failure_name(exc: Exception) -> str:
+    """The class name, plus Groww's short error code when it gives one: Groww sends its rate limit as `status:
+    FAILURE` with code `429`, which the SDK raises as a plain GrowwAPIException (16 Oct), so the class alone hid it.
+    A code that is not a short word is dropped rather than risk keeping text."""
+    code = str(getattr(exc, "code", "") or "")
+    return f"{type(exc).__name__}:{code}" if code.isalnum() and len(code) <= MAX_CODE_LENGTH else type(exc).__name__
 
 
 def _two_sided(record: CallRecord) -> bool:
