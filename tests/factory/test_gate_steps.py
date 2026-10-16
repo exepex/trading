@@ -7,28 +7,12 @@ import pytest
 
 from fno.factory.constants import DATA_SPEND_FILE
 from fno.factory.gate_log import figures
-from fno.factory.gate_steps import GateStepError
+from fno.factory.gate_order import GateStepError
 from fno.factory.wiring import build_gate_log, build_gate_steps, build_registration, read_idea
 
-from .helpers import BLOCK, commit, git, init_repo, write_card
+from .helpers import BLOCK, INPUTS, REGISTER, commit, git, init_repo, write_card
 
 DAY = date(2026, 10, 17)
-REGISTER = """## Register
-
-| Data set | Price type | Period | Status | Used by (ledger trials) | Notes |
-|---|---|---|---|---|---|
-| Quotes | Groww | 2027 | `forward` | none | |
-| Closes | NSE | 2019 | `spent` | 1 | |
-"""
-INPUTS = """gross: {kind: published, least_favourable: 1200, source: a planted study}
-tail: {probability: 0.05, loss: 9000, in_gross: no}
-cost: {measured: 300, source: a planted measurement}
-data_sets: ["Quotes | Groww | 2027"]
-measures: planted outcomes
-sd_per_trade: 3000
-frequency_per_year: 200
-pass_level: 0.01
-"""
 
 
 @pytest.fixture

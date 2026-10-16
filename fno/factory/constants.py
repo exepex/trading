@@ -6,6 +6,8 @@ from enum import StrEnum
 IDEAS_FOLDER = "research/ideas"
 TEMPLATE_CARD = "TEMPLATE.md"
 GATES_FILE = "research/factory/gates.csv"
+QUESTIONS_FILE = "research/factory/questions.csv"
+QUESTION_COLUMNS = ("question_id", "question", "alpha")
 GATE_COLUMNS = ("trial_id", "gate", "outcome", "on", "commit", "numbers")
 CARD_FENCE = "factory"  # the card's machine block: a fenced ```factory YAML block
 IDEA_KIND = "prospective"  # every factory idea is registered before any of its results exists
@@ -23,6 +25,8 @@ class Gate(StrEnum):
     SCREEN = "G1"
     DATA_SPEND = "G2"
     SAMPLE_PLAN = "G3"
+    REGISTRATION = "G4"
+    VERDICT = "G6"
 
 
 class Outcome(StrEnum):
@@ -33,6 +37,8 @@ class Outcome(StrEnum):
     EXPLORATORY = "exploratory"
     PLANNED = "planned"
     EXPLORATORY_SHADOW = "exploratory_shadow"
+    REGISTERED = "registered"
+    FAILED = "failed"
 
 
 GATE_OUTCOMES = {
@@ -40,6 +46,8 @@ GATE_OUTCOMES = {
     Gate.SCREEN: (Outcome.PASSED, Outcome.SCREENED_OUT),
     Gate.DATA_SPEND: (Outcome.FRESH, Outcome.EXPLORATORY),
     Gate.SAMPLE_PLAN: (Outcome.PLANNED, Outcome.EXPLORATORY_SHADOW),
+    Gate.REGISTRATION: (Outcome.REGISTERED,),
+    Gate.VERDICT: (Outcome.PASSED, Outcome.FAILED),
 }
 
 

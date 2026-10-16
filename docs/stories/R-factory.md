@@ -166,7 +166,18 @@ the code's re-screen of R2, FT1 and B0 with their cards.
   change.
 
 **Depends:** B4 (done), C1 (done), D1 (done), A4 (done); R3 for R1c's adapter. **Size:** L in total (three M rounds).
-**Status:** R1a done (judge 261 PASS, 29a0707a); R1b (the screens) with judge G.
+**Known limits (R1c, agreed with R3's owner, 16 Oct 2026):**
+- A counterexample study (`FACTORY_RULES.md` section 3, rule 2) is frozen by hand until a real one exists: `fno
+  factory freeze` refuses any idea whose last gate is not G3, so a `screened_out` idea is never frozen by code.
+- The verdict's p uses completed positions only. A "shadow: would trade" decision that is never filled (missed, no
+  card, price cap) is not a position, so clustered misses would bias the sample. The miss share is printed as "not
+  reported" until E6b's missed-execution counter is merged; then it is read from there (one counter, not two). R1c
+  therefore reads no decision records.
+- Until E8 part 1b and R3 part B merge, every shadow has zero positions: no verdict is given and the stop rule's Test B
+  stays undecided.
+
+**Status:** R1a done (judge 261 PASS, 29a0707a); R1b done (judge 266 addendum 1 PASS, 9a20155a); R1c (shadows and
+families) with judge G.
 
 ---
 
