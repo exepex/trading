@@ -1,0 +1,81 @@
+"""G0 registration (story R1): an idea card becomes a ledger trial (B4's guard) and its first gate-log row, `idea`.
+
+Both rows and the card are committed together, so nothing else may be staged. Cards registered by hand before this
+code (R2, FT1, B0) get a back-filled `idea` row dated by their ledger row and labelled back-filled; no later gate is
+back-filled."""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import Protocol
+
+from ..research_engine.ledger import LEDGER_FILE, Ledger
+from .card import IdeaCard
+from .constants import BACKFILLED, GATES_FILE, IDEA_KIND, Gate, Outcome
+from .gate_log import GateLog, GateRow
+
+
+class RegistrationError(ValueError):
+    """The card is not registered; nothing was written."""
+
+
+class RegistrationGit(Protocol):
+    def head(self) -> str: ...
+
+    def staged_paths(self) -> list[str]: ...
+
+    def first_commit_containing(self, text: str, path: str) -> str | None: ...
+
+
+class IdeaRegistration:
+    def __init__(self, ledger: Ledger, gates: GateLog, git: RegistrationGit):
+        self.ledger, self.gates, self.git = ledger, gates, git
+
+    def register(self, card: IdeaCard, today: date) -> tuple[str, ...]:
+        """Writes the ledger row and the `idea` row; returns the files to commit together."""
+        files = self._ready(card)
+        rows = self.ledger.rows()
+        if any(row["trial_id"] == card.trial_id for row in rows):
+            raise RegistrationError(f"trial {card.trial_id} is already in {LEDGER_FILE}")
+        if any(row["protocol_path"] == card.path for row in rows):
+            raise RegistrationError(f"{card.path} is already registered (a variant is a new card with a new id)")
+        expected = str(max((int(row["trial_id"]) for row in rows), default=0) + 1)
+        if card.trial_id != expected:
+            raise RegistrationError(
+                f"{card.path}: field 'trial' is {card.trial_id}, the next ledger trial is {expected}"
+            )
+        self.ledger.register(card.trial_id, card.experiment, card.description, IDEA_KIND, card.hypothesis,
+                             protocol_path=card.path, today=today)  # fmt: skip
+        self.gates.append(self._idea_row(card.trial_id, today.isoformat(), self.git.head(), ""))
+        return files
+
+    def backfill(self, card: IdeaCard) -> tuple[str, ...]:
+        """The `idea` row of a card whose ledger row was written by hand before R1's code."""
+        files = self._ready(card)
+        row = next((r for r in self.ledger.rows() if r["trial_id"] == card.trial_id), None)
+        if row is None:
+            raise RegistrationError(f"{card.path}: trial {card.trial_id} is not in {LEDGER_FILE}; register it")
+        for field, card_value in (("experiment", card.experiment), ("description", card.description),
+                                  ("hypothesis", "yes" if card.hypothesis else "no")):  # fmt: skip
+            if row[field] != card_value:
+                raise RegistrationError(f"{card.path}: field {field!r} differs from trial {card.trial_id}'s ledger row")
+        commit = self.git.first_commit_containing(f"\n{card.trial_id},", LEDGER_FILE)
+        if commit is None:
+            raise RegistrationError(f"trial {card.trial_id}: its ledger row is not committed")
+        self.gates.append(self._idea_row(card.trial_id, row["registered_on"], commit, BACKFILLED))
+        return files
+
+    def _ready(self, card: IdeaCard) -> tuple[str, ...]:
+        """The files to commit; refuses before writing when other files are staged or the trial has a gate row."""
+        files = (card.path, LEDGER_FILE, GATES_FILE)
+        others = sorted(set(self.git.staged_paths()) - set(files))
+        if others:
+            raise RegistrationError(f"other files are staged ({', '.join(others)}): commit the registration alone")
+        self.gates.require_append_only()
+        if self.gates.last(card.trial_id) is not None:
+            raise RegistrationError(f"trial {card.trial_id} already has a gate-log row")
+        return files
+
+    @staticmethod
+    def _idea_row(trial_id: str, on: str, commit: str, numbers: str) -> GateRow:
+        return GateRow(trial_id, Gate.IDEA_CARD, Outcome.IDEA, on, commit, numbers)
