@@ -1,6 +1,7 @@
-"""The data series of protocol v4's phase-1 questions (PROTOCOL_v4.md sections 1-2): regular-session NIFTY and India
-VIX closes, the close-proxy session variance, the V6 big-move outcomes with the session that resolves them, and A16's
-live intraday session variance. The one place for these rules: G8 imports them to resolve outcomes (story G7)."""
+"""The data series of protocol v4's questions (PROTOCOL_v4.md sections 1-2): regular-session NIFTY and India VIX
+closes, the close-proxy session variance, the V6 big-move and V7 VIX-up outcomes with the session that resolves them,
+and A16's live intraday session variance. The one place for these rules: G8 imports them to resolve outcomes (stories
+G7 and G7b)."""
 
 from __future__ import annotations
 
@@ -74,6 +75,12 @@ def big_move_outcomes(closes: list[DayValue], horizon: int) -> list[Outcome]:
         if len(window) == horizon:
             out.append(Outcome(start.day, any(abs(r.value) >= BIG_MOVE for r in window), window[-1].day))
     return out
+
+
+def vix_up_outcomes(vix: list[DayValue], horizon: int) -> list[Outcome]:
+    """V7: for forecast day t, whether India VIX closes strictly higher at t+horizon than at t (a tie is "no"),
+    resolved at t+horizon's close. `vix` is `vix_closes`: every regular session's close, in session order."""
+    return [Outcome(a.day, b.value > a.value, b.day) for a, b in zip(vix, vix[horizon:], strict=False)]
 
 
 def live_intraday_rv(rows: list[dict]) -> list[SessionRv]:

@@ -16,7 +16,7 @@ from fno.forecast_v4_rules import records
 from fno.forecast_v4_rules.backfill import backfill, backfill_days
 from fno.forecast_v4_rules.baselines import NOT_ELIGIBLE, NOT_STARTED, OK
 from fno.forecast_v4_rules.capture import CaptureRefused, DayForecasts, Inputs, capture_day, cutoff
-from fno.forecast_v4_rules.series import SessionRv, closes_rows, regular_closes
+from fno.forecast_v4_rules.series import SessionRv, closes_rows, regular_closes, vix_closes
 from fno.models import IST
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,10 +25,11 @@ TODAY = date(2026, 10, 15)
 
 
 def forecasts(intraday=(), extra_session=TODAY):
-    closes = regular_closes(closes_rows(TEXT))
+    rows = closes_rows(TEXT)
+    closes = regular_closes(rows)
     lines = [line for line in TEXT.splitlines()[1:] if line.split(",")[1] == "regular"]
     sessions = [c.day for c in closes] + [extra_session]
-    return DayForecasts(Inputs(closes, lines, list(intraday), sessions, "m" * 64))
+    return DayForecasts(Inputs(closes, vix_closes(rows), lines, list(intraday), sessions, "m" * 64))
 
 
 def live_rows(n, last=date(2026, 10, 14), void=()):
@@ -77,9 +78,10 @@ def test_inputs_hash_moves_with_an_earlier_close_and_not_with_a_later_one():
     later = "\n".join(lines[:-1] + [lines[-1].replace("22622.7", "22000.0")]) + "\n"
     earlier = TEXT.replace("2026-10-13,regular,", "2026-10-13,regular,1", 1)
     for text, same in ((later, True), (earlier, False)):
-        closes = regular_closes(closes_rows(text))
+        rows = closes_rows(text)
+        closes = regular_closes(rows)
         lines_reg = [line for line in text.splitlines()[1:] if line.split(",")[1] == "regular"]
-        moved = DayForecasts(Inputs(closes, lines_reg, [], [c.day for c in closes], "m" * 64))
+        moved = DayForecasts(Inputs(closes, vix_closes(rows), lines_reg, [], [c.day for c in closes], "m" * 64))
         row = moved.records(TODAY - timedelta(days=1), "x", "")[(V4_BASELINE_BASE_RATE, V6_BIG_MOVE_1S)]
         assert (row.inputs_sha256 == plain.inputs_sha256) is same
 
@@ -91,7 +93,7 @@ def test_capture_writes_only_before_the_cutoff_and_only_on_a_session(tmp_path):
         return records.write(tmp_path, forecaster, question, rows)
 
     before_cutoff = datetime(2026, 10, 15, 14, 29, 59, tzinfo=IST)  # G10: the cutoff is 14:30
-    assert capture_day(f, TODAY, before_cutoff, write) == 9
+    assert capture_day(f, TODAY, before_cutoff, write) == 19  # V6 4, V1 5 (not started), V2 and V3 8, V7 2
     with pytest.raises(CaptureRefused):
         capture_day(f, TODAY, datetime(2026, 10, 15, 14, 30, tzinfo=IST), write)
     with pytest.raises(CaptureRefused):
@@ -109,7 +111,7 @@ def test_backfill_stops_before_the_first_live_day_skips_unstarted_v1_and_repeats
 
     days = backfill_days(f, date(2026, 10, 14))
     assert days[-1] == date(2026, 10, 13)
-    assert backfill(f, days, write) == 4 * len(days)  # V6 only: V1 has not started
+    assert backfill(f, days, write) == 14 * len(days)  # V6 4, V2 and V3 8, V7 2: V1 has not started
     first = {p: p.read_bytes() for p in tmp_path.glob("*/*.csv")}
     assert backfill(f, days, write) == 0
     assert {p: p.read_bytes() for p in tmp_path.glob("*/*.csv")} == first

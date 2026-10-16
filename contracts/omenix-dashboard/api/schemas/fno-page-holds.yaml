@@ -1,0 +1,29 @@
+# Contract 2.13 (judge 251 on exepex/trading story P11, the per-page hold; the P2 builder, 16 Oct 2026): every
+# publication says which F&O pages are held back, so each held page says so on screen, never only by its age (the
+# owner's "say so on screen", DESK_DECISIONS row 236). The card keeps its own `withheld` notice as well.
+
+FnoPageHolds:
+  type: object
+  description: >-
+    The pages held back in this publication, each with the first session it was held in a row, the reason it was held
+    and what the screen shows meanwhile. Empty state: holds empty (every page published normally)
+  x-catalog: {publisher: fno, source: "P11's per-page hold (the publication's held list and fno.run_status)", freshness: 'with every publication', story: P11, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "the held page's figures or the value that broke the rule (only which page, since when and which rule)"
+  additionalProperties: false
+  required: [holds]
+  properties:
+    holds:
+      type: array
+      description: One row per held page, oldest hold first; empty on a normal day
+      items:
+        type: object
+        additionalProperties: false
+        required: [page_key, since, reason, shows]
+        properties:
+          page_key: {type: string, pattern: '^[a-z_]+$', x-unit: id, description: "The held page's key (e.g. today and risk on Home, card)"}
+          since: {type: string, format: date, x-unit: date (IST), description: 'The first session of this hold in a row'}
+          reason: {type: string, minLength: 1, pattern: '^[^0-9]*$', x-unit: text, description: "Why it is held: one of P11's fixed sentences, in plain words, owned by its code (never a value, never a story or record code: no digits)"}
+          shows: {type: string, enum: [previous_page, nothing], x-unit: enum, description: 'previous_page = the page keeps its last published row, dated by its own as_of; nothing = no row is shown, because the old one would state something no longer true (the screen says "not published")'}
