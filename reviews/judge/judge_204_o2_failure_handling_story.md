@@ -141,3 +141,34 @@ not show it.
 - A push stopped at the limit may already be accepted by the remote. The alert then says "NOT committed" for a commit
   that reached main. The hand fix is harmless (nothing left to commit), but the alert wording could say "not confirmed".
 - 120 s for every call is reasoning only, as the text says. Today's pulls and pushes take seconds, so I accept it.
+
+## Addendum 3: O2 story text revision 5 (story/o2-failure-handling at 449bdc93)
+
+**Verdict: PASS.** Should-fix 1 of addendum 2 is closed. 8726f741, the O10 boundary line (O10 covers only jobs outside
+`daily run` and sends no alert for a run step), is also fine: it means one alert per failure.
+
+| Point | Result | Evidence |
+|---|---|---|
+| Process-group kill of a stopped git call (the hook too), then wait | MET | "Hung git call" row, the same as `fno/daily/processes.py` (`start_new_session`, `killpg`) |
+| Lock handling | MET | only locks absent before the call are removed; a pre-existing lock fails the call at once with the lock path and the hand fix |
+| Real-git test | MET | a hanging hook, in a desk commit, a quote-part commit and a push; checks the hook is gone, no lock is left, and the next quote part, the next desk commit and the next day's first commit all succeed |
+| Push note | MET | "push not confirmed", marked unpushed, recovered by E3's rerun |
+| The same hole in O1's 600 s command kill, found by the builder | MET | `desk book1` commits its own decision; the row now uses the same lock rule plus a kill-mid-commit test. A good find, beyond what I asked |
+
+**The rule's premise holds on main today, and I checked it.** It is "one git call at a time, and no child runs git
+while one is open":
+- `CommandStep.run` waits with a plain `clock_time.sleep` (`fno/daily/steps.py`), so the run makes no git call of its
+  own while a child step runs;
+- `fno/quotes/cli.py` (the quote parts' child command) runs no git;
+- O9's `build_receipt_committer` / `build_data_store` have no caller on main yet.
+
+### Notes (not should-fix)
+1. **The premise is a future dependency.** O9's later steps put a receipt commit in every writer. If one of the quote
+   parts' child commands (they run alongside the desk's git calls) ever commits receipts itself, two problems follow:
+   - a lock that child creates during one of the run's calls would be removed as "this call's";
+   - and git's own lock would make the run's call fail.
+
+   O9's writers inside `daily run` should commit through the run's one committer, or the O2 code should fail a test
+   when a child step runs git. I am sending this to the orchestrator for O9's builder.
+2. "A routine starts in a fresh container" is from the `fno/desk/daily_run.py` docstring (some evidence). The same-
+   checkout test covers the case anyway.
