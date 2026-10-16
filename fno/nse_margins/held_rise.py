@@ -10,7 +10,8 @@ Every trading day is an entry, for every structure and width C2 trades, on A14's
 fed in order and each file is read once: open positions are carried forward.
 
 A position whose margin cannot be computed on some day (a leg no longer listed, a method outside the model) is
-dropped and named, never filled. A position with no margin at entry (a bought option) has no rise."""
+dropped and named, never filled; the factor it needed up to its last computable day still counts, so a hole in the
+data can never lower k. A position with no margin at entry (a bought option) has no rise."""
 
 from __future__ import annotations
 
@@ -90,6 +91,7 @@ class HeldRiseTracker:
         except (MarginOutsideModel, RiskInputError) as exc:
             self.open.remove(holding)
             self.found.dropped.append(f"{holding.structure} {holding.width:g} entered {holding.entry}: {exc}")
+            self.found.completed.append(holding)  # what it needed up to now still counts: a hole never lowers k
             return
         needed = needed_factor(holding.entry_parts, margin)
         if needed > holding.needed:
@@ -118,8 +120,11 @@ class HeldRiseTracker:
         try:
             parts = self._parts(span, expiry, legs, day)
             margin = parts.initial()
-        except (MarginOutsideModel, RiskInputError):
-            return  # no margin at entry (a bought option) or outside the model: nothing to hold
+        except RiskInputError:
+            return  # no margin at entry (a bought option): nothing to hold
+        except MarginOutsideModel as exc:
+            self.found.dropped.append(f"{structure.code} {width:g} not entered {day}: {exc}")
+            return
         self.open.append(Holding(structure.code, width, day, expiry, exit_day, legs, parts, 1.0, day, margin))
 
     def _parts(self, span: SpanFile, expiry: date, legs: Sequence[Leg], day: date) -> MarginParts:

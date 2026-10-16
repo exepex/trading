@@ -32,6 +32,7 @@ def run(
     workers=1,
     read=None,
     tracker=sf_tracker,
+    is_trading_day=weekday,
 ):
     tmp_path.mkdir(parents=True, exist_ok=True)
     factor = tmp_path / "stress_factor.csv"
@@ -39,7 +40,7 @@ def run(
         factor.write_text(HEADER + rows, encoding="utf-8")
     alerts, printed = Alerts(), []
     sources = StressSources(read or day_file(files), lambda: archived if archived is not None else manifest(files),
-                            weekday, tracker, FIRST, workers)  # fmt: skip
+                            is_trading_day, tracker, FIRST, workers)  # fmt: skip
     code = StressFactorRun(sources, StressFactorFile(factor), tmp_path / "evidence", alerts, run_day,
                            printed.append).run(full, approved)  # fmt: skip
     return code, factor.read_text(encoding="utf-8").splitlines()[-1].split(","), alerts.sent

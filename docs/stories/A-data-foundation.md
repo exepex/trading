@@ -1118,7 +1118,8 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   refused by name;
 - the A9 librarian back-fill of every session's `i1` file since 1 Jan 2020 into Drive with their manifest rows
   (owner question 2; about 1,700 files, about 16 GB);
-- the evidence written to `research/data/margins/stress_evidence_<run day>.csv` and `.md` (the files' SHA-256 named);
+- the evidence written to `research/data/margins/stress/stress_evidence_<run day>.csv` and `.md`, with
+  `stress_files_<run day>.csv` (every session's file and SHA-256);
 - **the factor applied automatically (owner question 3)**: each run appends one row to
   `research/data/margins/stress_factor.csv` (append-only, never edited): `as_of` (run day), `factor` (in force),
   `computed` (this run's rounded result), `unrounded`, `status` (`applied` or `held`), `peak` (window, structure, width,
@@ -1236,6 +1237,14 @@ workflow's 330 minutes) and parallel streams were each as fast; the run download
 `risk.stressed_margin.recompute_workers` files (8) ahead, each thread with its own Drive session, and still feeds them
 in day order (a test proves the same row and byte-identical evidence with and without it). A download error writes
 nothing and sends the one #fno-desk line. The first Actions run measures the seconds per file.
+
+**Fail-closed details (builder self-review, 16 Oct 2026).** Any other stop (Drive consent expired, Drive settings
+missing, a year missing from A7's calendar, a bad manifest row) also writes no row and sends the one line, naming the
+error; A7's calendar ends on 25 Dec 2026, so from about 30 Nov an entry on a January 2027 expiry needs NSE's 2027
+holiday rows first. A held position whose margin cannot be computed on a later day (a strike no longer listed) is
+dropped and named, and the factor it needed up to then still counts, so a hole can never lower k; an entry the model
+cannot price is named too, and the line gives the count. The workflow commits the factor row and its evidence only
+when the factor step succeeded, and posts one line when the result was computed but not committed to `main`.
 
 **Known limit: what is measured so far (16 Oct 2026, response 235).** The factor of about 1.75 comes from Jan-Apr 2020,
 Jun 2020-Dec 2023, May-Jun 2024 and Sep-Oct 2026 (entries). Jan 2024-Aug 2026 outside May-Jun 2024 is not yet

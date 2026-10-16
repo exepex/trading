@@ -51,8 +51,9 @@ class NextRow:
 
 
 def rounded_up(value: float) -> float:
-    """Up to the next 0.05 (1.407 -> 1.45; 1.40 stays 1.40), free of float noise."""
-    return round(math.ceil(round(value / ROUND_STEP, 9)) * ROUND_STEP, 2)
+    """Up to the next 0.05 (1.407 -> 1.45; 1.40 stays 1.40), free of float and bisection noise: the needed factor is
+    kept to 6 decimals (`unrounded`), so a bisection end 1e-9 above 1.40 still gives 1.40."""
+    return round(math.ceil(round(value / ROUND_STEP, 6)) * ROUND_STEP, 2)
 
 
 def decide(last: LastRow, unrounded: float, approved_fall: str | None = None) -> tuple[float, float, str]:

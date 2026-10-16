@@ -40,15 +40,17 @@ def test_a_position_whose_margin_only_falls_needs_a_factor_of_one():
     assert held.needed == pytest.approx(1.0) and held.peak_day == FIRST
 
 
-def test_a_leg_missing_on_a_held_day_drops_the_position_by_name():
+def test_a_leg_missing_on_a_held_day_drops_the_position_by_name_and_keeps_what_it_needed():
     tracker = sf_tracker()
-    files = planted(EXIT)
+    files = planted(EXIT, {date(2026, 10, 7): 10.0})
     for day, data in sorted(files.items()):
         span = read_span_file(data, f"nsccl.{day:%Y%m%d}.i1.zip")
         if day == date(2026, 10, 9):
             span.series[EXPIRY].pop((20100.0, "CE"))
         tracker.feed(day, span, open_new=day == FIRST)
-    assert tracker.found.completed == [] and "SF 100 entered 2026-10-01" in tracker.found.dropped[0]
+    (held,) = tracker.found.completed
+    assert "SF 100 entered 2026-10-01" in tracker.found.dropped[0] and tracker.open == []
+    assert held.peak_day == date(2026, 10, 7) and held.needed == pytest.approx(71_500 / 53_950)
 
 
 def test_every_day_opens_its_own_entry_and_only_finished_holdings_complete():

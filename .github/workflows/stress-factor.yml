@@ -65,16 +65,25 @@ jobs:
           if [ "${FULL:-false}" = "true" ]; then python -m fno margins stress-factor --full
           else python -m fno margins stress-factor; fi
       - name: Commit the factor row, its evidence and the manifest rows
-        run: |
-          git add $STRESS "$MANIFESTS"
+        id: commit
+        env:
+          WROTE: ${{ steps.stress.outcome == 'success' }}
+        run: | # the factor row and evidence only from a run that succeeded; the manifest rows always
+          if [ "$WROTE" = "true" ]; then git add -- $STRESS; fi
+          git add -- "$MANIFESTS"
           git diff --cached --quiet || git commit -m "A14c Actions: stress factor $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: One line to #fno-desk when the row was computed but not committed (C2 still reads the previous row)
+        if: ${{ failure() && steps.commit.outcome == 'failure' && steps.stress.outcome == 'success' }}
+        run: |
+          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O stress factor: the run's result was NOT committed to main (C2 still reads the previous row); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: One line to #fno-desk when the librarian failed (the factor step alerts by itself)
-        if: ${{ steps.librarian.outcome != 'success' }}
+        if: ${{ always() && steps.librarian.outcome != 'success' }}
         run: |
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O stress factor: the Drive archive step failed; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
       - name: Fail the run when the factor step wrote nothing (already alerted)
-        if: ${{ steps.stress.outcome != 'success' }}
+        if: ${{ always() && steps.stress.outcome != 'success' }}
         run: exit 1

@@ -11,6 +11,7 @@ refusal (a download error included) writes nothing and sends one #fno-desk line;
 from __future__ import annotations
 
 import hashlib
+import traceback
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -30,6 +31,7 @@ from .stress_log import NextRow, StressFactorFile, StressRowRefused, decide
 LOOKBACK_DAYS = 60  # a holding lasts at most about 44 calendar days (expiry 30-65 days out, exit 21 days before)
 WRITTEN = "Omenix F&O stress factor {run_day}: {status} {factor:g} (computed {computed:g}, was {was:g}); peak {peak}"
 HELD_ASK = "; a lower value waits for the owner: approve it with a DESK_DECISIONS row, then rerun with --approve-fall"
+DROPPED = "; {count} holding(s) dropped or not entered (named in the evidence)"
 REFUSED = "Omenix F&O stress factor {run_day}: nothing written: {reason}"
 
 
@@ -53,10 +55,16 @@ class StressFactorRun:
         try:
             line = self._run(full, approved_fall)
         except (CoverageGap, StressRowRefused, BadFile) as exc:
-            self.print_line(self.alerts.send(REFUSED.format(run_day=self.run_day, reason=exc)))
-            return 1
+            return self._refused(exc)
+        except Exception as exc:  # e.g. Drive consent expired, a calendar year missing: still one line, never silent
+            traceback.print_exc()
+            return self._refused(f"stopped by an unexpected {type(exc).__name__}: {exc}")
         self.print_line(self.alerts.send(line))
         return 0
+
+    def _refused(self, reason) -> int:
+        self.print_line(self.alerts.send(REFUSED.format(run_day=self.run_day, reason=reason)))
+        return 1
 
     def _run(self, full: bool, approved_fall: str | None) -> str:
         required = required_sessions(self.run_day, self.sources.is_trading_day, self.sources.first_session)
@@ -72,7 +80,8 @@ class StressFactorRun:
         new_max = max((h.needed for h in counted), default=0.0)
         unrounded = max(new_max, carried or 0.0)
         factor, computed, status = decide(last, unrounded, approved_fall)
-        peak = _peak(counted, new_max, carried, last.coverage_through, approved_fall)
+        fell = approved_fall if factor < last.factor else None  # the approval is named only on a real fall
+        peak = _peak(counted, new_max, carried, last.coverage_through, fell)
         evidence = build_evidence(self.run_day, counted, coverage.files, unrounded, (factor, computed, status),
                                   tracker.found.dropped, "full" if full else "incremental")  # fmt: skip
         evidence.write(self.evidence_folder, self.run_day)
@@ -80,7 +89,8 @@ class StressFactorRun:
                                         evidence.sha256))  # fmt: skip
         line = WRITTEN.format(run_day=self.run_day, status=status, factor=factor, computed=computed, was=last.factor,
                               peak=peak)  # fmt: skip
-        return line + (HELD_ASK if status == "held" else "")
+        dropped = len(tracker.found.dropped)
+        return line + (DROPPED.format(count=dropped) if dropped else "") + (HELD_ASK if status == "held" else "")
 
     def _read(self, days: list[date], sha256: Mapping[date, str]) -> HeldRiseTracker:
         tracker = self.sources.new_tracker()
