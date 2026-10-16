@@ -31,7 +31,7 @@ The story text only (quality rule 1): `docs/stories/F6-F7-book3.md`. F6 and F7's
   `fno/book3/registry.py` used by `register` and C4's `proposal_of`; Book 3's day record may have a null
   `strategy_id` (their `story/d3-no-owner-override`, b49abdde, which also refuses `owner_override`). My correction
   of their hash-equality proposal was sent to them; their reply is pending.
-- Open with F1t: restoring `DecidedRun.files` when its run check refuses a run, and which prompt file `brief` hashes.
+- F1t agreed (its e0ba1b43): write paths restored on any failure; `check_decision` signature; `brief` prints `agents/book3/decide_v1.md`.
 - Open with F5's builder: one selection allocator for both AI books; one private-pack hook for precomputed D2 output
   (Book 2's rule default, Book 3's day sheet).
 - Open with F2: where the cards sit, the card ID field, the role-set version.

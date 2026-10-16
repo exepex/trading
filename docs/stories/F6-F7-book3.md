@@ -133,8 +133,12 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
 | `proposal_of(...)` (C4's adapter) | sets `strategy_id_of(name, version)` for Book 3 | C4 |
 | `RecordBuilder` (D3's file) | Book 3: `strategy_id` and spec hash per opportunity record (F6's edit); null on the day record only (D5 owner's `story/d3-no-owner-override`, b49abdde) | D3 |
 
-Open with F1t: when its run check refuses a run, it also restores every path in `DecidedRun.files` (git checkout for
-tracked files, delete for new ones), so nothing half-registered is committed later.
+Agreed with F1t (its text at e0ba1b43): Book 3's decision version declares its write paths `journal/book3_ai/`,
+`book3/` and `research/ledger.csv`; F1t commits only changes under them, and on a failed run check, `DecisionRefused`
+or any other exception from `decide()` restores every change under them (tracked files to HEAD, new files deleted), so
+nothing half-registered is committed later. The shape check is `check_decision(decision) -> list[str]` (standard
+library only), registered with the prompt `agents/book3/decide_v1.md` in F1t's `DecisionVersion`; `brief` hash-checks
+and prints that prompt.
 
 **Acceptance criteria:**
 1. A proposal registered on day d is on no day sheet and no decision on d; it is on d+1's (temporary git
@@ -269,8 +273,7 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 
 ## Open questions
 
-1. **F1t (01PLbKH15):** the restore of `DecidedRun.files` on a refused run; which prompt file `brief` prints and
-   hashes (F1t's wrapper or `agents/book3/decide_v1.md`). **F5's builder (01SFDjjZ):** one selection allocator for
+1. **F1t (01PLbKH15): agreed** (above). **F5's builder (01SFDjjZ):** one selection allocator for
    both books, and one private-pack hook for precomputed D2 output. **F2 (01WSMMv5):** where cards sit in the pack,
    the card ID field and the role-set version string.
 2. **D5's owner (01SFDjjZ), answered 16 Oct 2026:** `new_or_reused` derived by code (above; the rule key replaces
