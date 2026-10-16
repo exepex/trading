@@ -11,20 +11,22 @@ from __future__ import annotations
 import time as clock
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
 from ..constants import SESSION_MUHURAT
 from ..models import IST, now_ist
 from ..quotes.recorder import MUHURAT_ONLY, RECORDED_SESSION_KINDS
 from ..research_data.calendar import CalendarError, SessionCalendar
+from .claims import ClaimResult, MarkClaims, NoClaims
 from .clock import ClockCheck
 from .document import SnapshotDocument, utc_text
 from .heartbeat import Heartbeat
 from .ledger import SlotLedger
+from .observer import MarkObserver, NoObserver, notify
 from .session_rv import SessionRv, previous_recorded_session
 from .settle import Settlement
-from .slots import label, marks, takeable_marks, window_end
+from .slots import MAX_WAIT, label, marks, takeable_marks, window_end
 from .snapshot_files import SnapshotFiles
 from .source import IntradayQuoteSource
 from .status import FAILED
@@ -39,6 +41,9 @@ TAKEN_DETAIL = (
 )
 
 TAKE_FAILED, DRIVE_WRITE = "take", "drive_write"
+CLAIM_LEAD = timedelta(seconds=45)
+CLAIMED_BY = "claimed by another run ({run}): taken there, not here"
+CLAIM_LINE = "claim {outcome}: {detail}"
 STARTED_AFTER = "started after --until {until:%H:%M}: nothing to take"
 ALREADY_PAUSE_SECONDS = 60
 HEARTBEAT_NAME = "story A16 intraday recorder"
@@ -69,11 +74,14 @@ class SlotOutcome:
 class IntradayRecorder:
     def __init__(self, source: IntradayQuoteSource, files: SnapshotFiles, ledger: SlotLedger, heartbeat: Heartbeat,
                  calendar: SessionCalendar, alerts: AlertSender, clock_check: ClockCheck, session_rv: SessionRv,
-                 sync: LedgerSync, now: Callable[[], datetime] = now_ist, sleep=clock.sleep):  # fmt: skip
+                 sync: LedgerSync, now: Callable[[], datetime] = now_ist, sleep=clock.sleep,
+                 claims: MarkClaims | None = None, observer: MarkObserver | None = None):  # fmt: skip
         self.source, self.files, self.ledger, self.heartbeat = source, files, ledger, heartbeat
         self.calendar, self.alerts, self.clock_check, self.session_rv = calendar, alerts, clock_check, session_rv
-        self.sync, self.now, self.sleep = sync, now, sleep
+        self.sync, self.now, self.sleep, self.claims = sync, now, sleep, claims or NoClaims()
+        self.observer = observer or NoObserver()
         self.settlement = Settlement(files, ledger, alerts)
+        self._lost: set[datetime] = set()  # marks another run claimed: never taken by this run
 
     def snapshot(self, until: time | None = None) -> SlotOutcome:
         """Takes the next open or coming mark (waiting at most 15 minutes), unless it is after `until`. Never stops
@@ -86,12 +94,18 @@ class IntradayRecorder:
         lines = [self.sync.pull()] + self._settle_previous(day)  # see what an overlapping run already pushed
         open_marks = [m for m in takeable_marks(day, started) if until is None or m.time() <= until]
         settled = {row["mark"] for row in self.ledger.rows(day)}  # after the pull: also the other run's rows
-        mark = next((m for m in open_marks if utc_text(m) not in settled), None)
+        mark = next((m for m in open_marks if utc_text(m) not in settled and m not in self._lost), None)
         if mark is None:
             status, detail = (ALREADY, "") if open_marks else (NO_MARK, NO_MARK_DETAIL)
             outcome = SlotOutcome(status, label(open_marks[0]) if open_marks else "", detail, lines)
             return self._close(day, started, outcome)
         self.source.prepare(day)
+        claim = self._claim(day, mark)
+        if not claim.take:
+            self._lost.add(mark)
+            detail = CLAIMED_BY.format(run=claim.holder)
+            return self._close(day, started, SlotOutcome(ALREADY, label(mark), detail, lines))
+        lines += [CLAIM_LINE.format(outcome=claim.outcome, detail=claim.detail)] if claim.detail else []
         wait = (mark - self.now()).total_seconds()
         if wait > 0:
             self.sleep(wait)
@@ -112,8 +126,10 @@ class IntradayRecorder:
         while self.now().astimezone(IST).time() < until:
             outcome = self.snapshot(until)
             outcomes.append(outcome)
-            if outcome.status in (NOT_TRADING_DAY, NO_MARK) or not self._later_mark(until):
+            if outcome.status == NOT_TRADING_DAY or not self._later_mark(until):
                 break
+            if outcome.status == NO_MARK:  # started more than MAX_WAIT early (the 08:52 fire): wait, never end
+                self._wait_for_next_mark(until)
             if outcome.status == ALREADY:  # another host took the open marks: wait for the next one to open
                 self.sleep(ALREADY_PAUSE_SECONDS)
         return outcomes
@@ -130,8 +146,8 @@ class IntradayRecorder:
         return lines + [self.sync.commit(f"{day} settled")]
 
     def _settle_finished(self, day: date) -> list[str]:
-        _, alert = self.settlement.settle(day, self.now())
-        return ([alert] if alert else []) + self._finish_session(day)
+        rows, alert = self.settlement.settle(day, self.now())
+        return ([alert] if alert else []) + notify(self.observer, day, rows, None) + self._finish_session(day)
 
     def _settle_previous(self, day: date) -> list[str]:
         """A previous session the host left unfinished (it died mid-session or missed the whole day) gets its missed
@@ -153,9 +169,26 @@ class IntradayRecorder:
             return today
         return previous_recorded_session(self.calendar, today)
 
+    def _claim(self, day: date, mark: datetime) -> ClaimResult:
+        """Claims the mark CLAIM_LEAD before it: late enough that a run dying while it waits rarely holds a mark it
+        never takes, early enough for a push to land."""
+        wait = (mark - CLAIM_LEAD - self.now()).total_seconds()
+        if wait > 0:
+            self.sleep(wait)
+        return self.claims.claim(day, mark)
+
     def _later_mark(self, until: time) -> bool:
+        return self._next_mark(until) is not None
+
+    def _next_mark(self, until: time) -> datetime | None:
         now = self.now()
-        return any(m > now and m.time() <= until for m in marks(now.astimezone(IST).date()))
+        return next((m for m in marks(now.astimezone(IST).date()) if m > now and m.time() <= until), None)
+
+    def _wait_for_next_mark(self, until: time) -> None:
+        """Sleeps until the next mark is within MAX_WAIT, so the next snapshot takes it."""
+        wait = (self._next_mark(until) - MAX_WAIT - self.now()).total_seconds()
+        if wait > 0:
+            self.sleep(wait)
 
     def _take(self, day: date, mark: datetime):
         """(document, bytes, clock reading, Drive path) of this run's copy, saved under its own name; else the
@@ -175,7 +208,7 @@ class IntradayRecorder:
         """Settles the ledger and alerts, writes the heartbeat, the realised variance once the session is complete,
         and commits. A realised-variance error is reported and alerted, never allowed to stop the rest."""
         rows, alert = self.settlement.settle(day, self.now(), taken, failed)
-        outcome.lines += [alert] if alert else []
+        outcome.lines += ([alert] if alert else []) + notify(self.observer, day, rows, taken[0] if taken else None)
         mine = next((r for r in rows if r["mark_ist"] == outcome.mark), None)
         if taken is not None and mine is not None:
             outcome.status, outcome.detail = mine["status"], TAKEN_DETAIL.format(**mine)

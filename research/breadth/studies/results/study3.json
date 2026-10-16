@@ -1,0 +1,139 @@
+{
+ "futility": null,
+ "loop": [
+  {
+   "false_claim": {
+    "whole/+d": {
+     "either": 0.029,
+     "look1": 0.006,
+     "look2": 0.0245
+    },
+    "whole/-d": {
+     "either": 0.1355,
+     "look1": 0.0915,
+     "look2": 0.082
+    },
+    "worst_year/+d": {
+     "either": 0.0085,
+     "look1": 0.004,
+     "look2": 0.0045
+    },
+    "worst_year/-d": {
+     "either": 0.0605,
+     "look1": 0.0415,
+     "look2": 0.0315
+    }
+   },
+   "looks": [
+    248,
+    495
+   ],
+   "rate": 0.02,
+   "rolling_real_windows": {
+    "false_claim": null,
+    "windows": 0
+   }
+  },
+  {
+   "false_claim": {
+    "whole/+d": {
+     "either": 0.0155,
+     "look1": 0.005,
+     "look2": 0.0115
+    },
+    "whole/-d": {
+     "either": 0.1045,
+     "look1": 0.071,
+     "look2": 0.064
+    },
+    "worst_year/+d": {
+     "either": 0.002,
+     "look1": 0.0015,
+     "look2": 0.001
+    },
+    "worst_year/-d": {
+     "either": 0.046,
+     "look1": 0.0345,
+     "look2": 0.0195
+    }
+   },
+   "looks": [
+    263,
+    526
+   ],
+   "rate": 0.015,
+   "rolling_real_windows": {
+    "false_claim": null,
+    "windows": 0
+   }
+  },
+  {
+   "false_claim": {
+    "whole/+d": {
+     "either": 0.0145,
+     "look1": 0.0085,
+     "look2": 0.0075
+    },
+    "whole/-d": {
+     "either": 0.094,
+     "look1": 0.064,
+     "look2": 0.0515
+    },
+    "worst_year/+d": {
+     "either": 0.0015,
+     "look1": 0.001,
+     "look2": 0.0005
+    },
+    "worst_year/-d": {
+     "either": 0.0385,
+     "look1": 0.0255,
+     "look2": 0.019
+    }
+   },
+   "looks": [
+    285,
+    569
+   ],
+   "rate": 0.01,
+   "rolling_real_windows": {
+    "false_claim": null,
+    "windows": 0
+   }
+  },
+  {
+   "false_claim": {
+    "whole/+d": {
+     "either": 0.003,
+     "look1": 0.002,
+     "look2": 0.0015
+    },
+    "whole/-d": {
+     "either": 0.0705,
+     "look1": 0.0515,
+     "look2": 0.033
+    },
+    "worst_year/+d": {
+     "either": 0.0005,
+     "look1": 0.0005,
+     "look2": 0.0
+    },
+    "worst_year/-d": {
+     "either": 0.028,
+     "look1": 0.0215,
+     "look2": 0.0105
+    }
+   },
+   "looks": [
+    321,
+    642
+   ],
+   "rate": 0.005,
+   "rolling_real_windows": {
+    "false_claim": null,
+    "windows": 0
+   }
+  }
+ ],
+ "postponed": true,
+ "selected_rate": null
+}

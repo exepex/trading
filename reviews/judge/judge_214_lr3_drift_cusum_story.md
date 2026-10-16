@@ -78,3 +78,56 @@ None of the four options changes the four should-fix items, except Q3 as noted.
 - **Duplicates:** none. LR1 reads the alarms; G8's scores are read, not recomputed.
 
 **Verdict: FAIL for 1452b398** (story text). Fix should-fix 1-4 (minor optional), then re-judge.
+
+---
+
+## Addendum 1 (judge E): final head 9a738de6: PASS (story text)
+
+Diff `1452b398..9a738de6`: docs only (`LR-learning.md`, response 216). The owner's four answers are written in, and
+match the decision row "LR3 drift detection: the four design answers accepted as recommended" (16 Oct,
+`docs/DESK_DECISIONS.md:232`).
+
+| Should-fix | Fix | Accepted? (my evidence) |
+|---|---|---|
+| 1 Trigger | Runs every session in O1's `reviews` step after `exits`: E6's `ScorecardReview` first, then LR3's `DriftReview` (`review(day, marks) -> ReviewResult`). It uses the run's one sender, and an append-only `journal/drift/alarms.csv` makes reruns do nothing twice (criterion 9). "No version reaches `paper` until that step is live" | Accepted. The interface is real: `fno/daily/reviews.py` at e57046f3 (on `story/o1-daily-run`) has `Review`, `ReviewResult(lines, open_positions=0)`, `ScorecardReview` and `ReviewsStep`. This also closes the gap I noted for E6's own pauses: the same step runs them |
+| 2 D1 and E6 changes | A "changes owned elsewhere" section: three plan fields (`expected_sd_per_opportunity`, `trades_per_year`, `drift_h`, all required for `paper`); `drift_rule` added to `paper -> paused` (`transitions.py:18`); `AutoPauser` takes the approver from the pause. Depends updated | Accepted. All four gaps I listed are named, each through the orchestrator |
+| 3 V1-V3 | Only V6 is monitored. V1-V3 show "drift not monitored until calibrated" (criterion 11), and each joins after its own back-fill check | Accepted |
+| 4 Wording | Strategy: the first line says what to do; forecaster: "Information, no action"; both with the 60-minute line and PAPER ONLY (criterion 10) | Accepted. Matches design 6.5 |
+| Minor 1 and 2 | "6-12 trades"; the forecaster result labelled in-sample | Accepted |
+
+**Verdict: PASS for 9a738de6** (story text). Code may start. Its O1 wiring line lands with LR3's own code commit, as
+agreed.
+
+## Addendum 2 (16 Oct 2026, judge B, delta re-check): f6716b56, after ChatGPT review 134 (response 233)
+
+The delta since 9a738de6 (judge 214 addendum 1) is docs and research evidence, plus a `main` merge: the LR3 story
+text, `calibrate_h_blocks.py` and its output, and the README row. There is no code.
+
+- **(1) `drift_h = max(4, h_iid, h_block)`** with chronological circular blocks of 3. **I re-ran the evidence script
+  myself** (`python3 research/2026-10-16-lr3-drift-evidence/calibrate_h_blocks.py`), and its output is
+  **byte-identical** to the committed `.out`.
+  - The story's numbers match it: `h_iid` 1.0-5.5, `h_block` 1.5-6.0, frozen 4.0-6.0. Only challenge SF rises, from
+    5.5 to 6.0.
+  - "Fewer than 30 research trades is uncalibrated and refused `paper`" is consistent with the samples (the smallest,
+    discovery BF, has n = 30 and is calibrated).
+  - The text says plainly that block length 3 is a stress check and that the median is not a ten-year guarantee
+    (criterion 13).
+  - Note for the code round: the registration's 10th and 90th percentile run lengths at `drift_h` are promised by the
+    text, but the evidence script does not compute them yet.
+- **(2)** The name "research-to-paper performance drift"; `mu0` and `sigma` never re-estimated; E8's no-fill and
+  opportunity rate beside the CUSUM (criterion 14). Correct: re-estimating from paper results would erase the failure
+  it is meant to catch.
+- **(3)** AI slots are not monitored until 12 live blocks (criterion 11).
+- **(4)** S1's `immediate_pauses` names the drift exception before any activation. It is a dependency on S1's text
+  owner, stated.
+- **(5)** The pause scope is one version in every book. Other versions keep opening, the drifted version's open
+  positions still exit, and the restart row records its provenance, with the CUSUM restarting at 0 (criterion 12).
+  Correct, and narrower than a whole-book halt, which would need its own owner decision.
+
+**The builder's correction to review 134: confirmed.** Review 134 says "SF already has an unacceptable 40-trade median
+at h=4". The 40 comes from `strategy_arl.out` at the **fixed** design value h = 4 (challenge SF: in-control median
+40). Under LR3's per-version calibration, SF already had h = 5.5, with an in-control median of 172 trades
+(`calibrate_h.out`). So the floor of 4 was never SF's operative threshold. The block check still adds a margin for
+clustered losses (5.5 to 6.0), which is the useful part of point 1.
+
+**PASS for f6716b56 (text).**

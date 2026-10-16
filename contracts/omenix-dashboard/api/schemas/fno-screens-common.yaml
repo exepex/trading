@@ -70,3 +70,27 @@ FnoPaperTradesResponse:
   allOf:
     - $ref: '#/components/schemas/FnoScreenMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoPaperTrades'}}}
+FnoWeatherHistoryResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoWeatherHistory'}}}
+FnoScoreboardsResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoScoreboards'}}}
+FnoBudgetResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoBudget'}}}
+FnoDataHealthResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoDataHealth'}}}
+FnoForecastHistoryResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoForecastHistory'}}}
+FnoPageHoldsResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoPageHolds'}}}

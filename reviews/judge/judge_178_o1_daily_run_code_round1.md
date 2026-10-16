@@ -344,3 +344,114 @@ that the parts still record on a download outage; the O2 builder updates it with
   clean.
 
 Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
+
+## Addendum 13: O1 at efa57570 (E6's pauses in the run, commit b2d98c40)
+
+**Verdict: FAIL, 1 should-fix.** The design is right:
+- E6's real `ScorecardRun` runs with `pause=True` after `exits`, through the run's one `ReportedAlerts`, and commits
+  `playbook/`;
+- `DailyRun._unscored` blocks every book's entries at the next session when the step failed, was refused or never ran
+  after the exits;
+- the exits always run.
+
+This closes judge 214's gap: nothing ran E6's pauses before. It is a text amendment that adds safety, and I accept it.
+
+- **Checked:**
+  - `_unscored` returns nothing when the last log has no `exits`, so E3's `_unreviewed` covers that case without a
+    double block;
+  - it is off when the run has no `reviews` step (E3's own tests);
+  - the default for a missing step is `failed` / "not run".
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6899 passed**; `ruff check` and `check_imports` are
+  clean. The builder's planted faults (no `_unscored` in the fills; `pause=False`) are named with the tests that catch
+  them.
+- **Should-fix 10: a day without a valid snapshot blocks the next day even when there is nothing to mark.**
+  - **Path:** `ReviewsStep.run` returns `refused` whenever the snapshot is not valid, so `_unscored` then blocks
+    every book's entries the next session. The stated reason is that open positions cannot be marked.
+  - **Why that is too wide:** with no open position in any book, nothing needs marking. Closed losses are still
+    judged (the builder's own test), so the refusal costs a trading day and protects nothing.
+  - **It happens in normal running:**
+    - the 15:15 capture failing twice is a normal case (O2's Groww family; C3's "no valid execution snapshot");
+    - today all three books hold 0 open trades (`journal/*/daily_totals.csv`, judge 216's count);
+    - so the first capture failure blocks the next session for nothing.
+  - **Fix:** refuse only when some book has an open position (through the same `paper_accounts` and `DeskRecords`
+    the scorecard reads). With none, record `ok`, saying "no open position to mark". Add one test each way.
+
+## Addendum 14: O1 at e57046f3 (should-fix 10)
+
+**Verdict: PASS for the code built so far.** Should-fix 10 is closed.
+
+- **The rule now.** With no valid snapshot, `ReviewsStep` is refused only when the scorecards count an open position
+  (`sum(len(card.open_marks))`). With none open, it is `ok`, ending "no open position to mark". A closed loss still
+  pauses either way.
+- **The count is the real one.** `build_scorecard` makes one `OpenMark` for every open trade, marked or not, so an
+  empty mark set still counts each open trade (the refused test has 1 open trade and reports `open=1`).
+- **Tests and mutation.** One test each way, with the real `ScorecardRun`. My mutation putting the old rule back
+  (`if valid:`) fails the nothing-open test.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6900 passed**; `ruff check` is clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
+
+## Addendum 15: head e5ac277e (criterion 8, the routine text; final before merge)
+
+**PASS on criteria 1-8 and 10. Criterion 9 (one real trading day) is a post-merge check:** the routine runs `main`,
+so it cannot happen before the merge and the owner's new prompt. Since e57046f3 there are two commits:
+- **017f3203**, a merge of main. Its one conflict, in `fno/constants.py`, keeps main's `ENV_GITHUB_OUTPUT` and
+  `PROTOCOL_*` (344 lines).
+- **e5ac277e, criterion 8:** CLAUDE.md's "3 pm quote recorder" section becomes "Daily desk routine".
+  - The stored prompt is one sentence, and O7's setup line is unchanged.
+  - `python -m fno daily run` is listed with its three end lines and the "alert NOT sent" and conversation-log rule.
+  - A sub-section gives A4c's steps word for word. **My script comparison:** steps 2, 3, 3b and 4 equal the text on
+    `story/a4c-all-indices` 0be99326 exactly. It is led by "the routine never runs these commands itself … the `git
+    add` lines are also the hand fix".
+- **Trial merge in the real order** (main, then A4c 0be99326, then O1 e5ac277e):
+  - **CLAUDE.md conflicts** (A4c's section against O1's rewrite). Resolve with O1's version. I checked that nothing of
+    A4c's is lost: the only A4c lines missing from O1's file are old main wording that main has since reworded (O8,
+    LR1, O9).
+  - With that resolution, 7293 passed (`-n auto`, Slack token unset).
+  - `tests/quotes/test_routine_commit_paths.py` (A4c's), `tests/daily/test_routine_section.py` and
+    `tests/test_routine_setup.py` pass on the merged CLAUDE.md.
+- **Post-merge (criterion 9, as rule 8):** on the first trading day after the merge and the owner's prompt, the run
+  log `journal/runs/<date>.json`, the commit list (each part's own commit, NIFTY first) and the card go into response
+  165. I check them then.
+
+## Addendum 16: head 4a4bede0 (A4c merged in), then E2d on main
+
+- **4a4bede0 itself:** it contains A4c (9d7e92b4). The "Daily desk routine" section is unchanged from e5ac277e (diff
+  empty), and the builder reports 7383 passed. Addendum 15's PASS covers its content, and criterion 9 is a post-merge
+  check on Monday 19 Oct, as the orchestrator accepts.
+- **But main has moved:** E2d (8349f141, "per-trade daily marks after the exits", judge 262 PASS) merged after it. A
+  trial merge of 4a4bede0 with main 8349f141 **conflicts in code**: `fno/desk/daily_run.py`, `fno/desk/daily_wiring.py`,
+  `fno/health/desk_checks.py`, `tests/health/test_desk_and_data_checks.py` and `tests/timetable/test_entry_check_alert.py`.
+  Unresolved, 26 tests fail and 20 error.
+- **Not mergeable as is.** Merge main (E2d) into `story/o1-daily-run` and resolve. E2d's marks step must keep its place
+  after the exits inside O1's run (`DAILY_RUN_STEPS`, with O8's tuple), and must not run as a second desk path. Then
+  send me the head. I re-check the resolved files and run the full suite.
+
+## Addendum 17: merge resolution 8534b2b8 (main d86e4584: A4c and E2d)
+
+**PASS: O1 may merge.** Criterion 9 is a post-merge check on Mon 19 Oct (addendum 15).
+- **Parents:** 4a4bede0 and d86e4584. Every file that differs from main is one O1 already changed (the builder's `comm`
+  check; I reran it, and it is empty).
+- **E2d's step inside O1's run:** `"trade_marks"` is in `DESK_RUN_STEPS` right after `exits`, so `DAILY_RUN_STEPS`
+  runs exits, then trade_marks, then reviews, then quotes_done, then card. The desk plan runs `self.marking.run(day)`
+  at the execution snapshot, and `MarkingStep` takes the run's one alert sender. There is no second desk path. O8
+  reads the constant, with no local tuple.
+- **`AFTER_EXITS` is derived from `DAILY_RUN_STEPS`** (exits and every later step) instead of E2d's fixed pair. That
+  is right: the fixed pair would have said "exits not reviewed today" for a stop at reviews, quotes_done or card. The
+  new parametrized test fails with the fixed pair put back (builder).
+- **Gates:** a trial merge of 8534b2b8 with current main is clean, ruff and check_imports clean, and 7441 passed with
+  3 failed. **The 3 failures are red on main too** (I reproduced them on a clean `origin/main`):
+  - `tests/risk/test_manager.py` (2);
+  - `tests/risk/test_stress_factor.py::test_the_repository_seed_row_is_read_by_c2_and_c4`.
+
+  Cause: A14c's first Actions run (df9bfaff) appended the 16 Oct factor row (2.1, applied), and these tests read the
+  live `stress_factor.csv` assuming the 14 Oct seed row is the latest. They are not O1's. They are main's, and the
+  owner of C2d's tests must fix them: the tests should use their own planted factor file, not the live one.
+- **The builder's stash slip:** checked. The commit has both parents, and the tree checks out as above.
+
+## Addendum 18: head edb4e2b6
+
+**PASS, O1 may merge once main is green.** It is 8534b2b8 plus one commit, which names E2d's step as
+`RUN_LOG_TRADE_MARKS_STEP` in `fno/constants_operations.py` (the fixed-strings rule) and uses it in `DESK_RUN_STEPS` and
+the desk plan. There is no behaviour change. Full suite on edb4e2b6: 7410 passed and 3 failed, the 3 risk tests that
+are red on main itself (addendum 17).

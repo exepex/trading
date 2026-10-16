@@ -8,7 +8,7 @@ import pytest
 
 from fno.forecast_v4.terms import V1_INTRADAY_METHOD
 from fno.forecast_v4_rules.baselines import MISSING, NOT_ELIGIBLE, OK, BaseRate, Ewma, Value
-from fno.forecast_v4_rules.rules import big_move_probability, v1_close_blend, v6_ewma_t4
+from fno.forecast_v4_rules.rules import big_move_probability, close_blend, v6_ewma_t4
 from fno.forecast_v4_rules.series import (
     DayValue,
     big_move_outcomes,
@@ -103,8 +103,8 @@ def test_t4_tail_probability_matches_the_t_table():
 
 def test_rule_forecasters_pass_on_missing_inputs_and_blend_two_values():
     assert v6_ewma_t4(Value(NOT_ELIGIBLE)) == (Value(NOT_ELIGIBLE), Value(NOT_ELIGIBLE))
-    assert v1_close_blend(Value(OK, 2e-4), Value(OK, 1e-4)).value == pytest.approx(1.5e-4)
-    assert v1_close_blend(Value(OK, 2e-4), Value(NOT_ELIGIBLE)) == Value(MISSING)
+    assert close_blend(Value(OK, 2e-4), Value(OK, 1e-4)).value == pytest.approx(1.5e-4)
+    assert close_blend(Value(OK, 2e-4), Value(NOT_ELIGIBLE)) == Value(MISSING)
     p1 = v6_ewma_t4(Value(OK, 1e-4))[0].value
     assert v6_ewma_t4(Value(OK, 1e-4))[1].value == pytest.approx(1 - (1 - p1) ** 5)
 

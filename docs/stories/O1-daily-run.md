@@ -42,6 +42,8 @@ its lines with the Slack connector; note any result other than "day done" in `co
 The routine is **updated, not created** (O1 never creates a scheduled task; the owner pastes the prompt). Groww, Drive
 and Slack settings are already in that routine's environment, so no broker key goes into GitHub (O6's rule). One
 schedule means no two schedules race (the old O1's reason).
+The stored prompt is one sentence pointing at the section ("Run the daily desk routine in CLAUDE.md, section 'Daily
+desk routine'."), so the three steps above are written only in CLAUDE.md (criterion 8; 16 Oct).
 
 **Ownership of the prompt (orchestrator, 15 Oct):** O1 owns the routine's prompt text and the CLAUDE.md section.
 A4c (other indices), G10 (14:05 start, 14:30-14:40 window) and the handover session change only the command they own
@@ -90,8 +92,9 @@ stays inside O1 and leaves E2c's judged stop rule as it is (reasoning only).
 so a catastrophic loss would never pause its version. The `reviews` step runs E6's real `ScorecardRun` with
 `pause=True` after the exits, marked at the day's execution snapshot, through the run's one alert sender, and commits
 `playbook/`. A pause changes the version's status that day, so the next decision cannot trade it; exits still run.
-Without a valid snapshot the step is refused (open positions unmarked, their loss rules not judged), though closed
-losses still pause. A failed or refused step, or one that never ran after the exits, blocks every book's new entries
+Without a valid snapshot the step is refused only when some book holds an open position (it cannot be marked, so its
+loss rules were not judged); with none open it is ok, "no open position to mark" (judge 178 addendum 13). Closed
+losses pause either way. A failed or refused step, or one that never ran after the exits, blocks every book's new entries
 at the next session (`DailyRun._unscored`); exits still run.
 
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the

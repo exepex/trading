@@ -48,19 +48,27 @@ def _series(expiry: date, options, cvf: str, sc: str) -> str:
 
 def span_xml(created="202610132128", underlying=UNDERLYING, futures=(date(2026, 10, 27), EXPIRY), series=None,
              tiers=((date(2026, 10, 19), date(2031, 6, 24)),), som="0", adj="1.00000", cvf="1.00", sc="1.00000",
-             symbol="NIFTY") -> str:  # fmt: skip
+             symbol="NIFTY", som_method="") -> str:  # fmt: skip
+    """`tiers=None` leaves out `scanTiers` (2020's files); `som_method` adds `somMeth` (2020's GROSS)."""
     series = series if series is not None else {EXPIRY: default_options()}
     futs = "".join(f"<fut><pe>{e:%Y%m%d}</pe><p>{underlying}</p></fut>" for e in futures)
     opts = "".join(_series(e, o, "1.00", sc) for e, o in series.items())
-    tier_xml = "".join(f"<tier><tn>{n}</tn><sPe>{a:%Y%m%d}</sPe><ePe>{b:%Y%m%d}</ePe></tier>"
-                       for n, (a, b) in enumerate(tiers, 1))  # fmt: skip
+    tier_xml = (
+        ""
+        if tiers is None
+        else "<scanTiers>"
+        + "".join(
+            f"<tier><tn>{n}</tn><sPe>{a:%Y%m%d}</sPe><ePe>{b:%Y%m%d}</ePe></tier>" for n, (a, b) in enumerate(tiers, 1)
+        )
+        + "</scanTiers>"
+    )
     return (
         f"<?xml version='1.0'?><spanFile><fileFormat>4.00</fileFormat><created>{created}</created><pointInTime>"
         "<phyPf><pfCode>BANKNIFTY</pfCode><phy><p>50000</p></phy></phyPf>"
         f"<phyPf><pfCode>{symbol}</pfCode><phy><p>{underlying}</p></phy></phyPf>"
         f"<futPf><pfCode>{symbol}</pfCode>{futs}</futPf>"
         f"<oopPf><pfCode>{symbol}</pfCode><cvf>{cvf}</cvf>{opts}</oopPf>"
-        f"<ccDef><cc>{symbol}</cc><adjRate><r>1</r><val>{adj}</val></adjRate><scanTiers>{tier_xml}</scanTiers>"
+        f"<ccDef><cc>{symbol}</cc><somMeth>{som_method}</somMeth><adjRate><r>1</r><val>{adj}</val></adjRate>{tier_xml}"
         f"<somTiers><tier><tn>0</tn><rate><r>1</r><val>{som}</val></rate></tier></somTiers>"
         "<dSpread><rate><r>1</r><val>404</val></rate></dSpread></ccDef>"
         "</pointInTime></spanFile>"

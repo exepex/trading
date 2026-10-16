@@ -1,0 +1,60 @@
+[      0s] start A_v4_crash_gate
+[      3s] whole +d alpha 0.02 0.019
+[     10s] whole -d alpha 0.02 0.125
+[     11s] worst_year +d alpha 0.02 0.0085
+[     13s] worst_year -d alpha 0.02 0.059
+[     16s] whole +d alpha 0.015 0.011
+[     24s] whole -d alpha 0.015 0.0965
+[     25s] worst_year +d alpha 0.015 0.002
+[     27s] worst_year -d alpha 0.015 0.0445
+[     29s] whole +d alpha 0.01 0.008
+[     35s] whole -d alpha 0.01 0.0875
+[     35s] worst_year +d alpha 0.01 0.0015
+[     37s] worst_year -d alpha 0.01 0.038
+[     39s] whole +d alpha 0.005 0.0015
+[     44s] whole -d alpha 0.005 0.0645
+[     45s] worst_year +d alpha 0.005 0.0005
+[     47s] worst_year -d alpha 0.005 0.028
+[     72s] power member 0 alpha 0.02 0.794
+[     99s] power member 1 alpha 0.02 0.89
+[    131s] power member 2 alpha 0.02 0.95
+[    131s] start B_daily_sign
+[    143s] whole +d alpha 0.02 0.2705
+[    155s] whole -d alpha 0.02 0.264
+[    182s] whole +d alpha 0.02 0.5425
+[    218s] whole -d alpha 0.02 0.784
+[    229s] worst_year +d alpha 0.02 0.2175
+[    239s] worst_year -d alpha 0.02 0.2205
+[    282s] worst_year +d alpha 0.02 0.8985
+[    326s] worst_year -d alpha 0.02 0.929
+[    339s] whole +d alpha 0.015 0.233
+[    352s] whole -d alpha 0.015 0.207
+[    381s] whole +d alpha 0.015 0.506
+[    422s] whole -d alpha 0.015 0.7585
+[    432s] worst_year +d alpha 0.015 0.1615
+[    443s] worst_year -d alpha 0.015 0.16
+[    493s] worst_year +d alpha 0.015 0.8965
+[    543s] worst_year -d alpha 0.015 0.918
+[    555s] whole +d alpha 0.01 0.221
+[    567s] whole -d alpha 0.01 0.221
+[    595s] whole +d alpha 0.01 0.4975
+[    637s] whole -d alpha 0.01 0.757
+[    647s] worst_year +d alpha 0.01 0.171
+[    657s] worst_year -d alpha 0.01 0.1675
+[    710s] worst_year +d alpha 0.01 0.904
+[    764s] worst_year -d alpha 0.01 0.919
+[    779s] whole +d alpha 0.005 0.1675
+[    794s] whole -d alpha 0.005 0.146
+[    830s] whole +d alpha 0.005 0.458
+[    880s] whole -d alpha 0.005 0.6935
+[    892s] worst_year +d alpha 0.005 0.102
+[    904s] worst_year -d alpha 0.005 0.104
+[    969s] worst_year +d alpha 0.005 0.89
+[   1034s] worst_year -d alpha 0.005 0.9125
+[   1070s] power member 0 alpha 0.02 0.998
+[   1109s] power member 1 alpha 0.02 0.948
+[   1158s] power member 2 alpha 0.02 1.0
+[   1158s] start C_calibrated
+[   1208s] power member 0 alpha 0.0055 0.719
+[   1231s] power member 1 alpha 0.0055 0.893
+[   1259s] power member 2 alpha 0.0055 1.0

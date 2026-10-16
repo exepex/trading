@@ -6,7 +6,10 @@ The freezer refuses unless the protocol is committed unchanged, complete, and de
 also refuses when a listed file is missing, or when this version is already frozen, and unless the real-money gate
 (story RM1) is listed and is complete and decided too, so the gate is frozen before any counted paper decision.
 It then registers the protocol in the research ledger (B4). A later change to any hashed target is a new protocol
-version, never an edit of a frozen one."""
+version, never an edit of a frozen one.
+
+Everything protocol-specific comes from a `ProtocolDefinition` (story BR1a), S1's evaluation protocol by default; the
+gate is required only by a definition that asks for it (BR1's breadth protocol decides no money)."""
 
 from __future__ import annotations
 
@@ -21,10 +24,10 @@ import yaml
 
 from ..research_engine.ledger import Ledger, read_ledger, write_ledger
 from .completeness import completeness_problems, undecided_items
+from .definition import EVALUATION, ProtocolDefinition
 from .gate import GATE_FILE, gate_problems
-from .protocol import PROTOCOL_FILE, parse_protocol
+from .protocol import parse_protocol
 
-FREEZE_TEMPLATE = "research/evaluation/FREEZE_v{version}.md"
 CONFIG_PREFIX = "config.yaml:"
 TARGET = re.compile(r"`([^`\s]+)`")
 COMMIT_LINE = re.compile(r"^Protocol commit: `([0-9a-f]{40})`$", re.MULTILINE)
@@ -43,15 +46,15 @@ class FreezeRecord:
     hashes: dict[str, str]  # target (a repository path, or config.yaml:<section>) -> SHA-256
 
 
-def freeze_path(version: int) -> str:
-    return FREEZE_TEMPLATE.format(version=version)
+def freeze_path(version: int, definition: ProtocolDefinition = EVALUATION) -> str:
+    return definition.freeze_path(version)
 
 
-def frozen_targets(text: str) -> list[str]:
+def frozen_targets(text: str, definition: ProtocolDefinition = EVALUATION) -> list[str]:
     """The targets the `frozen_files` item lists; the protocol itself is always one."""
     item = parse_protocol(text).items.get("frozen_files")
     listed = TARGET.findall(item.value) if item else []
-    return sorted({PROTOCOL_FILE, *(t for t in listed if "/" in t or t.startswith(CONFIG_PREFIX))})
+    return sorted({definition.protocol_file, *(t for t in listed if "/" in t or t.startswith(CONFIG_PREFIX))})
 
 
 class WorkingTree:
@@ -97,21 +100,21 @@ def target_hash(source, target: str) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def render(record: FreezeRecord) -> str:
+def render(record: FreezeRecord, definition: ProtocolDefinition = EVALUATION) -> str:
     rows = "\n".join(f"| `{target}` | `{sha}` |" for target, sha in sorted(record.hashes.items()))
     return (
-        f"# Evaluation protocol freeze record\n\nProtocol version: {record.version}\n"
+        f"# {definition.record_title}\n\nProtocol version: {record.version}\n"
         f"Protocol commit: `{record.protocol_commit}`\n\n"
         "Every target's SHA-256 at the freeze (a config section: the SHA-256 of its canonical JSON). A change to any "
-        "of them is a new protocol version with its own freeze (story S1, criterion 3).\n\n"
+        f"of them is a new protocol version with its own freeze ({definition.record_rule}).\n\n"
         f"| Target | SHA-256 |\n|---|---|\n{rows}\n"
     )
 
 
-def read_record(text: str) -> FreezeRecord:
+def read_record(text: str, definition: ProtocolDefinition = EVALUATION) -> FreezeRecord:
     version, commit = VERSION_LINE.search(text), COMMIT_LINE.search(text)
     hashes = dict(HASH_ROW.findall(text))
-    if version is None or commit is None or PROTOCOL_FILE not in hashes:
+    if version is None or commit is None or definition.protocol_file not in hashes:
         raise FreezeRefused("a freeze record names its version, the protocol commit and the protocol's hash")
     return FreezeRecord(int(version.group(1)), commit.group(1), hashes)
 
@@ -129,14 +132,14 @@ def changed_targets(source, record: FreezeRecord) -> list[str]:
 
 
 class ProtocolFreezer:
-    def __init__(self, root: Path, git, ledger: Ledger | None = None):
-        self.root, self.git = Path(root), git
+    def __init__(self, root: Path, git, ledger: Ledger | None = None, definition: ProtocolDefinition = EVALUATION):
+        self.root, self.git, self.definition = Path(root), git, definition
         self.ledger = ledger or Ledger(self.root, git)
 
     def _checked_text(self) -> tuple[int, str]:
-        text = (self.root / PROTOCOL_FILE).read_text(encoding="utf-8")
+        text = (self.root / self.definition.protocol_file).read_text(encoding="utf-8")
         protocol = parse_protocol(text)
-        problems = completeness_problems(text, protocol)
+        problems = completeness_problems(text, protocol, self.definition.required_items)
         undecided = undecided_items(protocol)
         if problems or undecided:
             why = problems + ([f"not decided by the owner: {', '.join(undecided)}"] if undecided else [])
@@ -145,15 +148,16 @@ class ProtocolFreezer:
 
     def freeze(self, today: date) -> FreezeRecord:
         version, text = self._checked_text()
-        path = self.root / freeze_path(version)
+        path = self.root / self.definition.freeze_path(version)
         if path.exists():
-            raise FreezeRefused(f"{freeze_path(version)} exists: a change is a new protocol version")
-        targets = frozen_targets(text)
-        self._require_gate(targets)
+            raise FreezeRefused(f"{self.definition.freeze_path(version)} exists: a change is a new protocol version")
+        targets = frozen_targets(text, self.definition)
+        if self.definition.requires_gate:
+            self._require_gate(targets)
         self._require_committed(targets)
-        commit, head = self.git.commits_touching(PROTOCOL_FILE)[-1], AtCommit(self.git, "HEAD")
+        commit, head = self.git.commits_touching(self.definition.protocol_file)[-1], AtCommit(self.git, "HEAD")
         record = FreezeRecord(version, commit, {t: target_hash(head, t) for t in targets})
-        path.write_text(render(record), encoding="utf-8")
+        path.write_text(render(record, self.definition), encoding="utf-8")
         self._register(record, today)
         return record
 
@@ -180,9 +184,9 @@ class ProtocolFreezer:
         """A ledger row for the protocol (B4): prospective, no hypothesis, naming the protocol and its commit."""
         rows = self.ledger.rows()
         trial = str(max((int(r["trial_id"]) for r in rows if r["trial_id"].isdigit()), default=0) + 1)
-        description = f"Evaluation protocol v{record.version}: the three books' comparison rules (story S1)"
-        experiment = f"evaluation-protocol-v{record.version}"
-        self.ledger.register(trial, experiment, description, "prospective", False, PROTOCOL_FILE, today)
+        description = self.definition.ledger_description.format(version=record.version)
+        experiment = self.definition.ledger_experiment.format(version=record.version)
+        self.ledger.register(trial, experiment, description, "prospective", False, self.definition.protocol_file, today)
         rows = [
             r | {"protocol_commit": record.protocol_commit} if r["trial_id"] == trial else r for r in self.ledger.rows()
         ]

@@ -139,3 +139,54 @@ def test_book_3_may_leave_the_rule_default_empty(tmp_path):
     record["book"] = "book2_hybrid"
     with pytest.raises(RecordError, match="rule_default"):
         validate_record(record)
+
+
+def test_a_book_and_a_shadow_record_of_one_opportunity_both_survive_and_a_true_clash_is_refused(tmp_path):
+    """Story R3 (the orchestrator's store fix): a shadow record's file name carries its mode, so nothing overwrites
+    across modes; two records that would still share a file refuse the whole run, never keep one silently."""
+    from fno.playbook.decision_store import RecordClash, record_file
+
+    run = run_day(tmp_path / "a", snapshot(doc("sc-a")))
+    book = records(run)["sc-a-v1_2026-11-27"]
+    shadow = book | {"mode": "shadow"}  # the same opportunity ID
+    store = DecisionStore(tmp_path / "b", "book1_rules")
+    written = store.write(DAY, f"{DAY}-r1", None, [book, shadow])
+    assert record_file(book["opportunity_id"], "shadow") == "shadow_sc-a-v1_2026-11-27.json"
+    assert records(written) == {"sc-a-v1_2026-11-27": book, "shadow_sc-a-v1_2026-11-27": shadow}
+    with pytest.raises(RecordClash, match="sc-a-v1_2026-11-27.json"):
+        store.write(DAY, f"{DAY}-r2", None, [book, book | {"risk": None}])
+    assert [r.name for r in store.runs(DAY)] == [f"{DAY}-r1"]  # nothing of the refused run was written
+
+
+@pytest.mark.parametrize("book", ["book1_rules", "book2_hybrid", "book3_ai"])
+@pytest.mark.parametrize("override", ["journal/book2_hybrid/owner_overrides.csv#3", "", {"reason": "x"}])
+def test_an_owner_override_is_refused_for_every_book(tmp_path, book, override):
+    """DESK_DECISIONS row 229 item 4: the owner never overrides a paper decision; any value but null is refused."""
+    record = records(run_day(tmp_path, snapshot(doc("sc-a"))))["no_trade"]
+    record.update(book=book, model_served="m", session_id="s", strategy_id="x", strategy_spec_sha256="y",
+                  authority_check="allowed: follow_rule")  # fmt: skip
+    validate_record(record)
+    record["owner_override"] = override
+    with pytest.raises(RecordError, match="owner never overrides"):
+        validate_record(record)
+
+
+def test_book_3_s_day_record_alone_may_name_no_strategy(tmp_path):
+    """F6 (16 Oct): the day's "no trade" record has no strategy; an opportunity record of Book 3 must name its own."""
+    stored = records(run_day(tmp_path, snapshot(doc("sc-a"))))
+    three_book = {"book": "book3_ai", "rule_default": None, "authority_check": None, "model_served": "m",
+                  "session_id": "s", "strategy_id": None, "strategy_spec_sha256": None}  # fmt: skip
+    validate_record(stored["no_trade"] | three_book)
+    with pytest.raises(RecordError, match="strategy_id"):
+        validate_record(stored["sc-a-v1_2026-11-27"] | three_book)
+
+
+@pytest.mark.parametrize("field", ["reason", "authority_check", "chosen_action", "rule_default"])
+def test_a_book_2_record_must_give_its_reason_and_the_envelope_s_verdict(tmp_path, field):
+    """Story D4 criterion 7: present is not enough; an empty reason or verdict is refused for Book 2."""
+    record = records(run_day(tmp_path, snapshot(doc("sc-a"))))["no_trade"]
+    record.update(book="book2_hybrid", model_served="m", session_id="s", authority_check="allowed: follow_rule")
+    validate_record(record)
+    record[field] = ""
+    with pytest.raises(RecordError, match="non-empty"):
+        validate_record(record)

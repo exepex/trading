@@ -12,14 +12,19 @@ from datetime import datetime, timedelta
 
 from ..alerts.sender import SENT
 from .document import parse_time
-from .status import GOOD
+from .status import GOOD, INCOMPLETE
 
 STREAK_LENGTH = 2
 ALERT_GAP = timedelta(hours=1)
 STREAK_ALERT = (
-    "Action: check the 15-minute recorder (is its routine running, does Groww sign in?). SYSTEM, story A16: "
-    "{count} bad snapshots in a row on {day}: {marks}. Gaps stay gaps; this session's realised variance will be void."
+    "Action: check the 15-minute recorder ({check}). SYSTEM, story A16: {count} bad snapshots in a row on {day}: "
+    "{marks}. {effect}"
 )
+CHECK_RUNNING = "is its routine running, does Groww sign in?"
+CHECK_QUOTES = "are two runs taking one mark, is Groww limiting the rate?"
+EFFECT_VOID = "Gaps stay gaps; this session's realised variance will be void."
+# an incomplete mark has a usable index level (status.verdict): the realised variance needs only the index
+EFFECT_QUOTES = "The index levels were usable, so the realised variance is not affected; contract quotes are missing."
 
 
 def streak_alert_text(rows: list[dict], now: datetime) -> str:
@@ -33,7 +38,9 @@ def streak_alert_text(rows: list[dict], now: datetime) -> str:
         return ""
     streak = open_streaks[-1]
     marks = ", ".join(f"{r['mark_ist']} {r['status']} ({r['failures']})" for r in streak)
-    return STREAK_ALERT.format(count=len(streak), day=streak[-1]["session"], marks=marks)
+    quotes_only = all(r["status"] == INCOMPLETE for r in streak)
+    check, effect = (CHECK_QUOTES, EFFECT_QUOTES) if quotes_only else (CHECK_RUNNING, EFFECT_VOID)
+    return STREAK_ALERT.format(check=check, count=len(streak), day=streak[-1]["session"], marks=marks, effect=effect)
 
 
 def _streaks(rows: list[dict]) -> list[list[dict]]:

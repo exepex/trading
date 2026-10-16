@@ -1,0 +1,49 @@
+# Data health (exepex/trading stories A1-A17 manifests and checks, P7 run status, O8 health check; W3e in
+# docs/stories/W3-fno-screens.md). What arrived, what is missing and whether the last publish and health check passed.
+
+FnoDataHealth:
+  type: object
+  description: >-
+    Each data source's last day, rows and gaps, the last publish run and the last daily health check. Empty state: no
+    source rows and both runs not_run
+  x-catalog: {publisher: fno, source: "the data manifests (research/data/manifests/), the check files (vix, global cues), fno.run_status (P7) and O8's run record (research/ops/health_runs.csv)", freshness: 'daily, at the 07:10 IST publish', story: O8, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "any data value (a quote, a close, an open interest): only dates, counts and statuses"
+  additionalProperties: false
+  required: [as_of, sources, publish, health_check]
+  properties:
+    as_of: {type: string, format: date, x-unit: date (IST), description: The session the page describes}
+    sources:
+      type: array
+      description: One row per data source, worst status first
+      items:
+        type: object
+        additionalProperties: false
+        required: [source, plain, last_day, rows, gaps, status]
+        properties:
+          source: {type: string, pattern: '^[a-z0-9_-]+$', x-unit: id, description: 'The manifest id, e.g. index-close'}
+          plain: {type: string, minLength: 1, x-unit: text, description: 'What it is in plain words, e.g. "NIFTY daily close (NSE)"'}
+          last_day: {type: ['string', 'null'], format: date, x-unit: date (IST), description: The last session it holds; null when it holds none}
+          rows: {type: integer, minimum: 0, x-unit: count, description: Rows held}
+          gaps: {type: integer, minimum: 0, x-unit: count, description: 'Sessions missing that the NSE calendar says should be there'}
+          status: {type: string, enum: [ok, stale, gaps, missing], x-unit: enum, description: 'stale = its last day is older than its due day; gaps = sessions missing; missing = no file'}
+    publish:
+      type: object
+      additionalProperties: false
+      description: The last publish run (P7's run status)
+      required: [status, run_on, reason]
+      properties:
+        status: {type: string, enum: [published, failed, publishing, not_run], x-unit: enum, description: 'failed keeps the previous publication current'}
+        run_on: {type: ['string', 'null'], format: date, x-unit: date (IST), description: The session it published; null when not run}
+        reason: {type: ['string', 'null'], x-unit: text, description: 'Why it failed, in plain words (never a value); null otherwise'}
+    health_check:
+      type: object
+      additionalProperties: false
+      description: "O8's last daily health check (17:51 IST)"
+      required: [status, run_on, problems]
+      properties:
+        status: {type: string, enum: [ok, problems, not_run], x-unit: enum, description: 'problems = at least one expected file or run missing'}
+        run_on: {type: ['string', 'null'], format: date, x-unit: date (IST), description: The day it checked; null when not run}
+        problems: {type: integer, minimum: 0, x-unit: count, description: Problems found}

@@ -1,8 +1,10 @@
 # Strategy factory rules (story R1, documents part)
 
 Source: design v2, `docs/design_v2/03_layers_factory_desk.md` section 3.1 (layer 4), with REPLAN slice A item 4. This
-file is the rule text the factory's code (R1 code, slice B) must implement; until that code exists, the gates are
-applied by hand and recorded in the idea card and `research/ledger.csv`. A change to this file is lane 1 (rule
+file is the rule text the factory's code (R1 code, slice B) must implement. G0-G4 and G6 run by code (stories R1b and
+R1c: `python -m fno factory register | screen | spend | plan | freeze | verdict`, recorded in `research/ledger.csv`,
+`research/factory/gates.csv` and `research/factory/questions.csv`); G5, the test itself, is run by its own story (B4's
+experiments, R3's shadows). A change to this file is lane 1 (rule
 document, `docs/JUDGE.md`). Labels: **strong evidence**, **some evidence**, **reasoning only**.
 
 Related files: idea-card template `research/ideas/TEMPLATE.md`; data-spend register `research/DATA_SPEND.md`; trial
@@ -21,9 +23,9 @@ record `research/ledger.csv` and `research/LEDGER.md`.
 | G6 Verdict | The registered pass mark; a fail is final for that version | verdict in the ledger |
 
 **Every idea is a trial from G0.** The ledger row is written when the card is committed, before G1 runs, so an idea
-stopped at any gate still counts in the trial total ("trial k of K" on every report). Until R1's code adds a status
-field to `research/ledger.csv` (its columns are fixed by B4's guard today), the status (`idea`, `screened_out`,
-`exploratory_shadow`, ...) is kept in the idea card and the Status column of `research/LEDGER.md`. A variant (a new threshold,
+stopped at any gate still counts in the trial total ("trial k of K" on every report). The status (`idea`,
+`screened_out`, `exploratory_shadow`, ...) is kept in R1's gate log (`research/factory/gates.csv`, append-only: an
+idea's status is its last row), since B4's guard fixes the columns of `research/ledger.csv`. A variant (a new threshold,
 filter, structure, strike rule, exit or period) is a new idea with its own card and its own row, never an edit.
 
 ## 2. G1 feasibility screen (the cost wall)
@@ -83,6 +85,16 @@ NIFTY condor's best measured gross was +978 a trade (seen data) and +408 (holdou
 (response 92), so its expected net was +153 and -406; on the conservative bound (the holdout) the screen stops it,
 and the 2x warning flags both periods. This is hindsight: the costs were not measured this precisely before
 experiment 1.
+
+**Correction (16 Oct 2026, story R1; strong evidence: response 92 l.39-40 recomputed with
+`fno/forecast_v4/student_t.py`).** The paragraph above applies the rule's averages, not its conservative bound.
+- The inputs: n 33, mean gross +978, SD 2,667, cost Rs 824; and n 57, +408, SD 3,403, Rs 814.
+- On the means, the nets are +154 (+153 from the unrounded means) and -406.
+- The rule's conservative bound for a measured distribution is the lower one-sided 90% bound of the mean (t 1.3086 and
+  1.2969). That gives +370.5 and -176.5, so the expected nets are -453.5 and -990.5.
+- The screen therefore stops the condor on **both** periods, discovery included, not only on the holdout.
+- The 2x warning flags both (ratios 1.19 and 0.50).
+R1's `CostWall` test pins these figures.
 
 ## 3. `exploratory_shadow`
 

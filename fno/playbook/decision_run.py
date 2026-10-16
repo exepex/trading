@@ -116,7 +116,7 @@ def replay(
         evaluation, file_hashes(inputs.playbook)
     )
     stored = {p.name: json.loads(p.read_text(encoding="utf-8")) for p in run.glob("*.json") if p.name != INPUTS_FILE}
-    fresh = {record_file(r["opportunity_id"]): json.loads(canonical_json(r)) for r in rebuilt}
+    fresh = {record_file(r["opportunity_id"], r.get("mode")): json.loads(canonical_json(r)) for r in rebuilt}
     differences = [f"{name}: missing in the replay" for name in sorted(set(stored) - set(fresh))]
     differences += [f"{name}: not in the stored run" for name in sorted(set(fresh) - set(stored))]
     for name in sorted(set(stored) & set(fresh)):

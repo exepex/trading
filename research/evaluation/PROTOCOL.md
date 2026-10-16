@@ -200,13 +200,18 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 - **Evidence:** reasoning only
 
 ### `catastrophic_loss_book` Catastrophic-loss rule per book
-- **Value:** C2's drawdown brake, unchanged:
-  - while closed equity is Rs 30,000 or more below its high, the book opens no new trade;
+- **Value:** C2's drawdown brake with the owner's 15 Oct 2026 numbers, per book (each Rs 20 lakh book has its own):
+  - while closed equity is Rs 1,20,000 or more below its high, the book opens no new trade;
   - only the owner's restart row lifts it;
   - open trades are never closed by the brake.
+  - Beside it, limits on new entries only, never a stop: one risk bucket at most Rs 30,000 of maximum loss; all open
+    positions' maximum losses at most Rs 1,50,000; new maximum loss opened in one session at most Rs 50,000. There is
+    no flat open-trade limit. The figures are `config.yaml:risk`'s books profile, which the freeze hashes.
 - **Status:** proposal, owner decides
-- **Reason:** It is the owner's own decision of 12 Oct 2026 (`docs/DESK_DECISIONS.md`), the same for all three books.
-  Repeating it here freezes it for the comparison.
+- **Reason:** The owner's decisions of 15 Oct 2026 (`docs/DESK_DECISIONS.md`: "Risk buckets and caps accepted",
+  "Books drop the flat 3 open trades limit", "Risk caps and the drawdown brake apply per book") replace the 12 Oct
+  Rs 30,000 brake and 3 open trades, the same for all three books. Repeating them here freezes them for the
+  comparison; a test keeps these figures equal to `config.yaml`.
 - **Evidence:** reasoning only
 
 ### `immediate_pauses` Pauses before a scheduled review
@@ -278,15 +283,29 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 
 ### `role_value_minimum_sample` Role-value minimum sample and rule
 - **Value:**
-  - **When to judge:** a role or bundle is judged only at a scheduled review, and only with at least 30 applicable
-    opportunities on which the two decisions differed.
-  - **Interval:** a one-sided 95% interval of the mean paired net difference minus its allocated cost per
-    opportunity. It uses the moving-block bootstrap of `uncertainty_criterion`, with blocks of 20 ablation days of
-    that role, 10,000 resamples and seed 20261014.
-  - **Rule:**
-    - a drop is proposed when the interval's upper end is below zero;
-    - "earns its cost" is shown when its lower end is above zero;
-    - anything else is inconclusive and the role stays.
+  - **When to judge:** a role or bundle (a unit) is judged only at a scheduled review (`review_dates`, coded in
+    `fno/evaluation/review_dates.py`), and only with at least 30 applicable opportunities on which the two decisions
+    differed (changed opportunities).
+  - **Net value per opportunity:** the paired net difference, with the unit minus without it (0 when the two decisions
+    agree), minus that day's allocated cost. The cost covers the same dates as the tested net.
+  - **Cost, a declared split:** the book's cost for a day is F8's month allocation of its `books_and_roles` shares
+    times that day's minutes over the month's minutes, rounded down to the paisa. It is split equally across the units
+    consulted that day, the paise left going to the first unit in identifier order. The decider takes no part, so a
+    unit's figure is an upper bound, labelled "conservative cost allocation". The mean over every consulted day is
+    shown apart as the operating cost. A day without a usage row, or a month without a plan cost, is unknown, never
+    zero: no verdict.
+  - **Bootstrap:** S3's moving-block resampler on the net values in date order, each with a risk of 1: blocks of 20
+    observations (not 20 sessions), 10,000 resamples, seed 20261014. Each block's calendar span and the observations
+    per month are printed beside it. The 5th and 95th nearest-rank percentiles are printed only.
+  - **Rule:** each unit makes two one-sided claims, "earns its cost" (net value above zero) and "drop" (below zero).
+    Holm at 5% runs over a fixed family: both claims of every unit of the role set (2m claims for m units), a unit not
+    testable at that review (sample not met, cost unknown) entering at p = 1, so eligibility never loosens another
+    unit's threshold (ChatGPT review 124; the same rule as S3's family).
+    - a drop is proposed when the drop claim passes; "earns its cost" is shown when that claim passes;
+    - anything else is inconclusive and the unit stays.
+    - The risk effects (worst month, mean maximum-loss difference) are shown beside the verdict and never decide it
+      (owner, 15 Oct 2026: "money only, risk shown").
+  - **Provisional:** no role verdict counts as evidence until F9b's card-withholding test passes.
   - **Owner decides:** nothing is dropped automatically; the owner decides.
 - **Status:** proposal, owner decides
 - **Reason:** Each role is ablated once every k trading days (k = the number of roles and bundles), so 30 differing
@@ -398,13 +417,48 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 - **Value:**
   - **Files:** `research/evaluation/PROTOCOL.md`, `fno/evaluation/protocol.py`, `fno/evaluation/completeness.py`,
     `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`,
-    `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`.
+    `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`, and the freezer that applies this list:
+    `fno/evaluation/definition.py` (it holds S1's definition, the real-money gate's requirement included),
+    `fno/evaluation/freeze.py` and `fno/evaluation/order.py` (story BR1a's follow-up, response 230).
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
+  - **Scoring files (S2, S3 and S6; listed by path, since the freeze hashes only listed paths):**
+    `fno/scoreboard/book_board.py`, `fno/scoreboard/book_trades.py`, `fno/scoreboard/committed_runs.py`,
+    `fno/scoreboard/daily_values.py`, `fno/scoreboard/do_nothing.py`, `fno/scoreboard/entry_decisions.py`,
+    `fno/scoreboard/entry_facts.py`, `fno/scoreboard/matched.py`, `fno/scoreboard/matched_actions.py`,
+    `fno/scoreboard/matched_board.py`, `fno/scoreboard/matched_days.py`, `fno/scoreboard/matched_measures.py`,
+    `fno/scoreboard/ports.py`, `fno/scoreboard/protocol_status.py`, `fno/scoreboard/random_control.py`,
+    `fno/scoreboard/reconcile.py`, `fno/scoreboard/sections.py`, `fno/scoreboard/series.py`,
+    `fno/scoreboard/sources.py`, `fno/scoreboard/standard_unit.py`, `fno/scoreboard/t_check.py`,
+    `fno/scoreboard/trade_measures.py`, `fno/scoreboard/uncertainty.py`, `fno/scoreboard/whole_system.py`,
+    `fno/scoreboard/wiring.py`.
+  - **Score-time computation (owner, 16 Oct 2026, "Hash the ~11 modules"; judge 229):** the code the scoring calls
+    to compute a scored figure: `fno/desk/pricing.py`, `fno/desk/settlement.py`, `fno/risk/open_risk.py`,
+    `fno/risk/trade_costs.py`, `fno/risk/buckets.py`, `fno/risk/inputs.py`, `fno/research_engine/cycle_costs.py`,
+    `fno/research_engine/structures.py`, `fno/accounting/ledgers.py`, `fno/costs.py`, `fno/scorecard/scorecard.py`,
+    `fno/scorecard/execution_costs.py`, `fno/scorecard/touches.py`, `fno/books/equity.py`, and the parsers that
+    decide which numbers are scored: `fno/fo_bhavcopy.py` (NSE's settlement columns),
+    `fno/market_read_models/nse_files.py` (the index closes) and `fno/desk/snapshot.py` (the bid and ask touch;
+    judge 229 addendum 1). A test walks the imports
+    from the scoring modules through every hashed module: each fno module reached is hashed or exempted with a
+    one-line reason (data shapes, readers and stores, wiring). The cost, accepted by the owner: after the freeze, any
+    edit to one of these files needs a new S1 version, even when it is made for the desk or the risk manager.
+  - **Rules that decide an outcome (judge A, 16 Oct 2026):** `fno/scorecard/pauses.py` (E6's automatic pauses: the
+    code of `catastrophic_loss_strategy` and of `immediate_pauses`' strategy rules; a pause decides which trades exist to
+    be scored), `fno/playbook/run_order.py` (which run is a day's first decision, read by the freezer's order check
+    and E3's collector), `fno/playbook/measurement.py` (which versions are measurements, left out of the stop rule's
+    Test B, R1c), `fno/factory/registered_shadows.py` and `fno/factory/gate_log.py` (the shadows Test B counts and the
+    factory verdicts they read, R1c), and `fno/budget/stop_rule_tracker.py` (Test B's count itself).
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
-    2026) and the code of F8 and F9
+    2026; listed above: every module of fno/scoreboard but its command line) and the code of F8 and F9
     is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
     version 2.
+  - **Role-value files (F9a; ChatGPT review 124, response 191 point 5):** `fno/role_value/checks.py`,
+    `fno/role_value/controls.py`, `fno/role_value/cost.py`, `fno/role_value/records.py`, `fno/role_value/render.py`,
+    `fno/role_value/report.py`, `fno/role_value/role_set.py`, `fno/role_value/role_set_file.py`,
+    `fno/role_value/rows.py`, `fno/role_value/score.py`, `fno/role_value/valuation.py`, `fno/role_value/verdict.py`,
+    `fno/role_value/wiring.py`, `fno/evaluation/review_dates.py`, and F8's allocation that splits the plan cost:
+    `fno/budget/allocation.py` (judge 235).
   - **Refusal:** the freeze tool refuses a listed file that does not exist.
 - **Status:** decided by the owner on 2026-10-14
 - **Reason:**

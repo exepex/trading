@@ -8,7 +8,8 @@
   (judge 85). A changed protocol is a new version with its own freeze, never an edit of a frozen one.
 - **Verify:** the latest freeze's targets are unchanged in the working tree. A suite test runs it, so CI fails on any
   edit to a frozen target.
-A run's commit is the one that added its `records.sha256` (D3)."""
+A run's commit is the one that added its `records.sha256` (D3). `verify` takes a protocol definition (story BR1a), S1's
+by default; the freeze order and the version of a decision are S1's books' alone."""
 
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from pathlib import Path
 
 from ..playbook.decision_store import DecisionStore
 from ..playbook.run_order import ordered_runs
+from .definition import EVALUATION, ProtocolDefinition
 from .freeze import AtCommit, WorkingTree, changed_targets, freeze_path, read_record
 
 FREEZE_NAME = re.compile(r"^FREEZE_v([1-9][0-9]*)\.md$")
@@ -45,8 +47,8 @@ def freeze_commit(git, version: int) -> str | None:
     return added[0] if added else None
 
 
-def frozen_versions(root: Path) -> list[int]:
-    folder = Path(root) / Path(freeze_path(1)).parent
+def frozen_versions(root: Path, definition: ProtocolDefinition = EVALUATION) -> list[int]:
+    folder = Path(root) / Path(definition.freeze_path(1)).parent
     names = (FREEZE_NAME.match(p.name) for p in folder.glob("FREEZE_v*.md")) if folder.is_dir() else ()
     return sorted(int(m.group(1)) for m in names if m)
 
@@ -79,8 +81,9 @@ def order_problems(git, version: int, firsts: Sequence[CountedDecision]) -> list
     ]
 
 
-def _record(root: Path, version: int):
-    return read_record((Path(root) / freeze_path(version)).read_text(encoding="utf-8"))
+def _record(root: Path, version: int, definition: ProtocolDefinition = EVALUATION):
+    text = (Path(root) / definition.freeze_path(version)).read_text(encoding="utf-8")
+    return read_record(text, definition)
 
 
 def version_of(root: Path, git, decision_commit: str) -> int | None:
@@ -98,10 +101,10 @@ def version_of(root: Path, git, decision_commit: str) -> int | None:
     return None
 
 
-def verify(root: Path) -> list[str]:
+def verify(root: Path, definition: ProtocolDefinition = EVALUATION) -> list[str]:
     """Why the latest frozen version's targets differ in the working tree; empty when none differ or none is frozen."""
-    versions = frozen_versions(root)
+    versions = frozen_versions(root, definition)
     if not versions:
         return []
-    changed = changed_targets(WorkingTree(root), _record(root, versions[-1]))
+    changed = changed_targets(WorkingTree(root), _record(root, versions[-1], definition))
     return [f"v{versions[-1]}: {target} changed after the freeze (a change is a new version)" for target in changed]

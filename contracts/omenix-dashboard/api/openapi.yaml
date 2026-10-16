@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: market-brief app API
-  version: 2.7.0
+  version: 2.13.0
   summary: Read API over the precomputed read models (docs/ARCHITECTURE.md section 4), plus planned governed writes.
   description: |
     Research only: nothing here places, routes or suggests a trade, and nothing is investment advice.
@@ -69,6 +69,51 @@ info:
     and empty cases (api/examples/fno-screens.json) and a plain-words field table (api/catalog/fno-screens.md, generated)
     naming each field's meaning, unit, backend record, freshness, visibility and whether the backend can fill it today.
     Both repositories test against it: tools/api/check_fno_screens.py here, the pinned copy in exepex/trading.
+
+    Version 2.8 (exepex/trading docs/stories/W3-fno-screens.md, owner decision 16 Oct 2026 "F&O screens start now";
+    no F&O screen page is published yet, so its new required fields, which reject a 2.7 payload, break no live page):
+    four more India-only F&O pages: the weather's history (`weather_history`, colour and label only, never an input's
+    level or the chances, until the owner's weather-levels choice),
+    scoreboards A and B (`scoreboards`, never combined), AI usage against BG1's minutes cap (`budget`, no model names)
+    and data health (`data_health`, dates, counts and statuses only), each with Mock examples in its three cases.
+    Also added to existing pages: the weather's back-fill labels (`recent[].label`, `red_share.basis`,
+    `scores[].exploratory`); paper trades' shadow accounts (`shadows`, never summed with a book), each book's distance to
+    its pause (`accounts[].brake`) and the monitor's alerts on an open position (`open[].alerts`, owner only).
+
+    Version 2.9 (owner, 16 Oct 2026, exepex/trading docs/DESK_DECISIONS.md: weather levels public; the Forecast lab's
+    field A only): the Forecast lab's running scores (`forecast_history`, its own page: each forecaster's running
+    average miss as each day's G4 report gives it, live and rebuilt from history apart, for the race chart and a
+    period the owner picks, which counts the answers that came in during it); and each session's chances back on the weather's history (`weather_history`: `p_big_1d`, `p_big_5d`,
+    `base_rate_1d`, `base_rate_5d`, required). A 2.8 `weather_history` payload is rejected; no F&O screen page is
+    published yet. Single forecasts with their outcomes (field B) wait for about 60 scored live days.
+
+    Version 2.10 (judge 224 addendum 2; the W3 builder, 16 Oct 2026): each forecast-history series names the back-fill
+    file it was scored on (`series[].backfill_sha256`, null for live; a rebuilt back-fill starts a new series, so a
+    period is never differenced across a rebuild), and each paper book's published open-risk cap
+    (`accounts[].open_risk_cap`, from C5's config, beside `brake.pause_at`), so no screen copies it. Both are
+    required: a 2.9 forecast_history or paper_trades payload is rejected; neither page is published yet.
+
+    Version 2.11 (the W3 builder, 16 Oct 2026): the card's per-trade loss cap (`trade.max_loss_cap`, from the book's
+    C5 profile, `max_loss_per_trade_rs`), so the screen's cap bar never copies Rs 10,000. Required: a 2.10 card with a
+    trade is rejected; the card page is not published yet. The schema's `maximum: 10000` stays as the owner's ceiling.
+    Also BG1's three shares on the budget page (`share_pct`, `alert_pct`, `stop_pct`, from its config), required, so
+    the screen's cap, alert mark and stop line never copy 50, 80 or 100; the budget page is not published yet.
+
+    Version 2.12 (the P2 builder, checked on G1's PROTOCOL.md section 8, 16 Oct 2026): the Forecast lab follows G1.
+    For v3, `primary_baseline` is book1_rules and `comparisons` hold only the registered tests (Book 2 and Book 3
+    against Book 1); a book against a baseline is secondary and descriptive and never a comparison. Settle's
+    `not_measured` also covers "no measurement built yet". The Mock examples are dated so every verdict is possible
+    under the protocol (better or worse only after the first review). Also the card's `withheld` (owner, 16 Oct 2026):
+    when today's card broke a risk rule (its maximum loss above its book's cap), the page carries the previous
+    session's card, dated by its own session, under the owner's sentence "Today's card was held back: a risk rule was
+    broken"; null on every normal day. Required: a 2.11 card is rejected; the card page is not published yet.
+
+    Version 2.13 (the P2 builder, 16 Oct 2026): a forecast's answer day may be unknown (`today.answer_on` null) when it
+    falls in a year whose NSE session calendar is not published yet, so the Forecast lab stays published instead of
+    stopping each December until NSE publishes next year's holidays. Also the page `page_holds` (judge 251 on P11): in
+    every publication, the F&O pages held back, each with the session its hold began, the reason (a fixed sentence, never
+    a value) and whether the screen shows the previous page or nothing, so every held page says so on screen. Both are
+    additions: every 2.12 payload stays valid.
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and

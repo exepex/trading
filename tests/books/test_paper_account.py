@@ -116,8 +116,8 @@ def test_a_closed_trade_matches_the_cost_accountants_trade_net(root):
     with open_account_writer(BOOK1_RULES, root) as writer:
         for fill_id, contract, side, price in legs:
             writer.apply_fill(fill(fill_id, "spread", contract, side, price))
-        state = writer.record_equity(DAY, {})  # no open trade, so no marks needed
     account = build_paper_account(BOOK1_RULES, root)
+    state = account.state({})  # no open trade, so no marks needed
     (closed,) = account.closed_trades()
     assert closed.closed_on == DAY
     assert state.closed_equity - START_CASH == pytest.approx(trade_line(closed, CHARGES).net)  # C1 and E1 agree
@@ -136,13 +136,18 @@ def test_a_repeated_fill_id_is_skipped_and_a_reused_one_refused(root):
 
 
 def test_the_equity_history_keeps_one_row_per_day(root):
+    """Story E2d: the marked row is closed equity plus the open trades' S2 values (cash flow plus legs), never plus
+    the legs alone; a rerun of the day replaces its row."""
     with open_account_writer(BOOK1_RULES, root) as writer:
         writer.apply_fill(fill("f1", "t", "CE25000", "buy", 100.0))
-        writer.record_equity(DAY, {"CE25000": Mark(90.0)})
-        writer.record_equity(DAY, {"CE25000": Mark(110.0)})
+        flow = build_paper_account(BOOK1_RULES, root).summary()["open_trades"][0]["cash_flow_rs"]
+        writer.record_marked_equity(DAY, flow + 90.0 * 65, ())
+        writer.record_marked_equity(DAY, flow + 110.0 * 65, ("CE25000",))
     rows = build_paper_account(BOOK1_RULES, root).equity_history()
     assert [r["date"] for r in rows] == ["2026-10-13"]
+    assert float(rows[0]["closed_equity_rs"]) == pytest.approx(START_CASH)
     assert float(rows[0]["marked_equity_rs"]) == pytest.approx(float(rows[0]["cash_rs"]) + 110.0 * 65)
+    assert (rows[0]["open_trades"], rows[0]["stale_marks"], rows[0]["fills"]) == ("1", "CE25000", "1")
 
 
 def test_writes_need_this_books_lock_held(root, tmp_path_factory):

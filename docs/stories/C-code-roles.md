@@ -592,3 +592,42 @@ Out: the factor's computation and the guardrails (A14c); the formula (C2c); the 
 owner's 14 Oct decision; reads one decision record.
 
 **Depends:** C2, C2c, C4 · **Size:** S · **Status:** text for the judge (lane 1)
+
+---
+
+## C5c. C4 names the calendar when it cannot count a margin's age
+
+**Repository:** trading · **Lane:** 1 (C4 decides whether a trade may go ahead) · **Size:** S
+
+**Description:** As the risk manager, I want C4's margin-freshness refusal to name the NSE calendar when the calendar
+cannot answer, so that a missing year's holiday rows are never misread as a stale margin.
+
+**Context and why:** Response 239, item 6 (A14c's audit; the orchestrator's go, 16 Oct 2026).
+- `MarginSettings.fresh` (`fno/checks/validity_settings.py`) returned False when the calendar could not answer for a
+  day of the look-back, and also when no calendar was given. `margin_row` then refused with "margin ... is from
+  2026-12-31, too old on 2027-01-04": the wrong reason.
+- It failed closed, so it was safe. Only the reason was wrong.
+- C2's twin (`fno/risk/margin_age.py`, `SessionsOld`) already lets the calendar's error through.
+
+**Scope:**
+- `fresh` raises a `ValueError` naming the cause:
+  - the calendar's own `CalendarError` passes through; it names the day and the year to add, from either end of the
+    covered years;
+  - with no calendar, it raises "no NSE session calendar ...".
+- `margin_row` turns that error into a `MarginProblem`: "margin age for <day> cannot be counted: <the calendar's
+  words>". The trade is still refused.
+- Out: C2 (it already names the calendar), and any change to the margin rule itself.
+
+**Acceptance criteria:**
+1. For a day past the calendar's last year (4 Jan 2027, margin from 31 Dec 2026), the refusal names the calendar and
+   2027, never "too old".
+2. For a look-back that crosses into a year before the calendar's first (1 Jan 2026, margin from 31 Dec 2025), the
+   refusal names 2025.
+3. With no calendar, the refusal says so, and the trade is still refused.
+4. Covered days keep the existing behaviour: a fresh margin passes, and an old one is "too old".
+
+**Test plan:** `tests/checks/test_validity_caps.py`. The old test that pinned the misleading behaviour is replaced.
+Each criterion is broken on purpose once.
+
+**Depends:** C4, C5, A7 · **Status:** built on `story/c5c-margin-calendar-reason` for judge B (claims:
+`reviews/claude/response_105_c5-risk-buckets.md`, addendum C5c)

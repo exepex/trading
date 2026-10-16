@@ -8,15 +8,22 @@
 #   4. the manifest rows and the margins file are committed (only valid rows are ever written).
 # A structure's rows are written only from the day config.yaml risk.margins.nse_span_check records its passed broker
 # check (judge 77; SF, SC and BF passed 14 Oct 2026, claims response 77); days before the first check are not pending.
-# Scheduled since the check passed (story A14 criterion 1): 07:45 IST for today's session and an 08:30 IST retry, both
-# before the 09:15 open; a second run with nothing new prints "nothing new" and writes nothing. GitHub may start a
-# scheduled run late; the 09:00 IST file cutoff applies to NSE's file, not to the run.
+# Scheduled since the check passed (story A14 criterion 1): 03:30 IST for today's session (NSE writes it by 03:05 IST,
+# 20:00-24:00 IST in 2026) and a 07:45 IST retry; a second run with nothing new prints "nothing new" and writes nothing.
+# GitHub starts this repository's morning crons 4-5 hours late (14-16 Oct 2026: 01:40 and 02:11 UTC crons began at
+# 06:24-07:21 UTC; the first 07:45 IST cron had not begun by 10:45 IST), so the main run is set early enough to land
+# before the 09:15 open even 5 hours late. On 16 Oct one of the two slots then in force never started (the file was
+# edited while they waited) and the other began 5 h late (run 38865754022), so two catch-up slots follow; a run with
+# nothing new writes nothing. The day is IST's date (`due_session`), never UTC's; the 09:00 IST file
+# cutoff applies to NSE's file, not to the run.
 name: nse-margins
 
 on:
   schedule:
-    - cron: "15 2 * * *" # 07:45 IST
-    - cron: "0 3 * * *" # 08:30 IST retry
+    - cron: "0 22 * * *" # 03:30 IST (the previous UTC day): today's session
+    - cron: "30 23 * * *" # 05:00 IST catch-up (O10)
+    - cron: "0 1 * * *" # 06:30 IST catch-up
+    - cron: "15 2 * * *" # 07:45 IST retry
   workflow_dispatch:
     inputs:
       from:
@@ -83,9 +90,9 @@ jobs:
         if: ${{ steps.librarian.outcome != 'success' }}
         run: |
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
-            "Omenix F&O NSE margins: the Drive archive step failed; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            "Omenix F&O NSE margins: the archive step failed (Drive, NSE or the calendar: its log names it); see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
-      - name: Fail the run when the margins step stopped (already alerted)
+      - name: Fail the run when the margins step stopped (already alerted; the job names every stop, response 239 item 4)
         if: ${{ steps.margins.outcome != 'success' }}
         run: exit 1
       - name: Alert #fno-desk when the job itself failed

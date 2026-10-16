@@ -12,14 +12,17 @@ from fno.alerts.sender import AlertSender
 from fno.market_read_models.blocks import BlockBuilder, SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
 from fno.market_read_models.flows_block import FlowsInputs
+from fno.market_read_models.forecast_lab_inputs import ForecastLabInputs
 from fno.market_read_models.frame_inputs import frame_inputs
 from fno.market_read_models.home_inputs import BookFigures, HomeInputs
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
+from fno.market_read_models.page_holds import PAGE_HOLDS, PageHoldsBlock
 from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.publication_inputs import PublicationInputsFile
 from fno.market_read_models.run_status import LocalRunStatus
 from fno.market_read_models.session_rows import IncompleteSession
+from fno.market_read_models.weather_inputs import WeatherInputs
 from fno.market_read_models.wiring import CONTRACT_FOLDER, build_market_blocks
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.storage.wiring import build_session_calendar
@@ -51,24 +54,29 @@ def example_rows() -> SessionRows:
     fno = payload["getFnoScreenerRows_india"]["rows"]
     calendar = build_session_calendar()
     flows = FlowsInputs([], [], calendar.sessions(date(2025, 6, 1), DAY)[-250:])  # no flows copy covers 12 Oct
+    weather = WeatherInputs(DAY, None, [], {}, {})  # no weather record: the page's not-published state
+    lab = ForecastLabInputs(DAY, None, [])  # no G4 report and no forecast record yet: the Forecast lab's empty state
     return SessionRows(
-        DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows
-    )
+        DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS, frame_inputs(calendar, DAY), flows,
+        weather, [], lab,
+    )  # fmt: skip
 
 
 def builder() -> PublicationBuilder:
-    return PublicationBuilder(build_market_blocks(), CONTRACT, "c" * 40, clock=lambda: "2026-10-12T12:30:00Z")
+    return PublicationBuilder(
+        build_market_blocks(), CONTRACT, "c" * 40, clock=lambda: "2026-10-12T12:30:00Z", holds_page=PageHoldsBlock()
+    )
 
 
 def test_the_pinned_copy_matches_its_pin_and_names_the_contract_version():
-    assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.7.0"
+    assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.13.0"
     assert "api/schemas/blocks-stored.yaml" in CONTRACT.pin["files"]
     assert CONTRACT.pin["repository"] == "exepex/omenix-dashboard" and len(CONTRACT.pin["commit"]) == 40
 
 
 def test_every_block_built_from_valid_rows_validates_as_stored_and_as_served():
     publication = builder().build(example_rows())
-    pages = {key for b in build_market_blocks() for key in b.pages(example_rows())}
+    pages = {key for b in build_market_blocks() for key in b.pages(example_rows())} | {PAGE_HOLDS}
     assert (
         set(publication.records) == pages
         and {"chain_history", "chain_rows:2026-10-27", "chain_contract:NIFTY26OCT22350CE"} <= pages
@@ -80,7 +88,9 @@ def test_every_block_built_from_valid_rows_validates_as_stored_and_as_served():
 
 def test_the_publication_id_names_the_content_never_the_commit_or_the_build_time():
     first = builder().build(example_rows())
-    later = PublicationBuilder(build_market_blocks(), CONTRACT, "d" * 40, clock=lambda: "2026-10-13T02:00:00Z")
+    later = PublicationBuilder(
+        build_market_blocks(), CONTRACT, "d" * 40, clock=lambda: "2026-10-13T02:00:00Z", holds_page=PageHoldsBlock()
+    )
     assert later.build(example_rows()).publication_id == first.publication_id  # a later commit, same pages
     changed = example_rows()
     changed.stocks[0] = {**changed.stocks[0], "p": changed.stocks[0]["p"] + 1}  # NSE's later version of a file
@@ -166,9 +176,11 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1269 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1274 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
-    assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
+    assert set(publisher.current()) == {k for b in build_market_blocks() for k in b.pages(example_rows())} | {
+        PAGE_HOLDS
+    }
 
 
 def test_a_missing_file_or_a_schema_break_alerts_and_leaves_the_previous_publication(tmp_path):

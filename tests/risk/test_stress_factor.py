@@ -87,11 +87,12 @@ def test_a_held_row_keeps_the_old_factor_in_force(tmp_path, read, error):
 
 
 def test_the_repository_seed_row_is_read_by_c2_and_c4():
-    """`research/data/margins/stress_factor.csv`: the owner's 1.45 of 14 Oct, `peak` quoted (it holds a comma), no
-    measured value (A14c's first run is --full after it)."""
+    """`research/data/margins/stress_factor.csv` starts with the owner's 1.45 of 14 Oct (`peak` quoted, it holds a
+    comma; no measured value). The file is append-only and A14c's rows are dated on their run day, so the seed is the
+    first row, and the one in force on 15 Oct, whatever rows follow it."""
     path = ROOT / load_app_config()["risk"]["stressed_margin"]["factor_file"]
-    assert path.read_text(encoding="utf-8") == HEADER + (
-        '2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,\n'
+    assert path.read_text(encoding="utf-8").startswith(
+        HEADER + '2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,\n'
     )
     row = factor_in_force(path, date(2026, 10, 15), 30)
     assert (row.factor, row.status, row.evidence_sha256) == (1.45, "applied", "")

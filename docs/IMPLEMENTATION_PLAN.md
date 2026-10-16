@@ -79,6 +79,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | built; awaiting judge |
 | [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | trading | - | M | done (judge passed) |
 | [A4b](stories/A-data-foundation.md#a4b-raw-groww-quotes-in-google-drive-only-the-public-repository-keeps-hashes-counts-and-derived-values) | Raw Groww quotes in Google Drive only | trading | A4, A9 | M | story text for the judge (15 Oct 2026) |
+| [A4c](stories/A-data-foundation.md#a4c-the-other-index-options-at-3-pm-all-fo-recording-part-8a) | The other index options at 3 pm (all-F&O recording, 8a) | trading | A4, A4b, A5 | M | story text for the judge (15 Oct 2026) |
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | done (judge passed) |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | done (judge passed; criteria 4-5 moved to B1, B5) |
 | [A7](stories/A-data-foundation.md#a7-every-component-uses-the-session-calendar) | Every component uses the session calendar | trading | A1 (calendar) | S | done (judge passed) |
@@ -109,7 +110,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | done (judge 73, merged 374ad67) |
 | [E7](stories/E-paper-desk.md#e7-expiry-settlement) | Expiry settlement | trading | A2, C1, C2, E1, E4 | S | done (judge 71, merged f655612) |
 | [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | forecast part done (judges 62, 88, 90); trading part later |
-| [F2](stories/F-ai-layer.md#f2-role-agents-and-finding-cards) | Role agents and finding cards | trading | F1 | L | later |
+| [F2](stories/F-ai-layer.md#f2-analyst-roles-and-finding-cards) | Analyst roles and finding cards | trading | F1 | L | text rewritten 16 Oct 2026 |
 | [F3](stories/F-ai-layer.md#f3-red-team) | Red team | trading | F1, F2 | M | later |
 | [F4](stories/F-ai-layer.md#f4-ai-judge-parts-2-and-3-owner-overrides-and-the-monthly-audit) | AI judge (parts 2 and 3), owner overrides and the monthly audit | trading | C4, F1, F2 | M | later |
 | [F5](stories/F-ai-layer.md#f5-book-2-ai-decisions-inside-the-envelope) | Book 2: AI decisions inside the envelope | trading | C4, D2, D4, F1, F2, F3, F4 | M | later |

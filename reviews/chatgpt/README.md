@@ -7,7 +7,12 @@ Each review is a separate Markdown file in this directory.
 `review_<increment>_<filename>.md`
 
 - Start at `review_1_...md`.
-- For each new review, use the highest existing numeric increment plus one.
+- Claim the number before writing the review, in `numbers/chatgpt-review.csv` on `main` (story O12; never "highest
+  existing plus one" in your own copy: parallel sessions took the same number several times). On the newest `main`,
+  in a separate copy (a worktree, a fresh clone, or GitHub's editor), never your own working checkout, append one row
+  `<n>,review_<n>_<filename>.md,<who>,<UTC time YYYY-MM-DDTHH:MM:SSZ>` with the next number, commit only that file
+  and push it to `main`. If the push or save is refused, never pull and merge: refresh that copy and take the next
+  number (steps in `numbers/README.md`). The number is yours once the push is accepted. Those who can run Python use `python tools/claim_number.py chatgpt-review <filename> --session <id>`.
 - Use a descriptive filename for the reviewed document or combined scope.
 - Preserve earlier reviews. A follow-up or corrected review gets a new number and links to the earlier review.
 
@@ -89,3 +94,7 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 129: R3 first forward shadows — PARTIAL](review_129_r3-forward-shadows.md)
 - [Review 131: E6b missed executions in scorecards — PARTIAL](review_131_e6b-missed-executions.md)
 - [Review 128: E8 owner-timing fills code part 1 — PARTIAL](review_128_e8-owner-timing-code.md)
+- [Review 125: RM2 real-money test record — PARTIAL](review_125_rm2-real-money-record.md)
+- [Review 132: R3 shadow accounts code part A — PARTIAL](review_132_r3-code-part-a.md)
+- [Review 133: BR1a code and studies — PARTIAL, descriptive only](review_133_br1a-code.md)
+- [Review 134: LR3 drift CUSUM — PARTIAL](review_134_lr3-drift-cusum.md)

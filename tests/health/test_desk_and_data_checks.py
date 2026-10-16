@@ -52,10 +52,11 @@ def test_the_desk_run_is_on_time_by_its_decisions_finish(repo, decided, status):
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == status
 
 
-def test_a_run_log_missing_a_step_is_a_miss_naming_it(repo):
-    _run_log(repo, steps=DAILY_RUN_STEPS[:-1])
+@pytest.mark.parametrize("missing", ["exits", "trade_marks", "card"])  # E2d's marking step after the exits, O1's last
+def test_a_run_log_missing_a_step_is_a_miss_naming_it(repo, missing):
+    _run_log(repo, steps=tuple(step for step in DAILY_RUN_STEPS if step != missing))
     result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
-    assert result.status == HEALTH_MISSED and result.detail == "steps not run: card"
+    assert result.status == HEALTH_MISSED and result.detail == f"steps not run: {missing}"
 
 
 def test_a_run_log_without_decisions_and_no_run_log_at_all(repo):
@@ -77,7 +78,7 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
     assert detail == (
         "steps not run: quotes, owner_timing_fills, margin_check, weather, forecasts_v4, book1, reviews, "
-        "quotes_done, card"
+        "quotes_done, card, candles"
     )
 
 

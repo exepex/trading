@@ -12,6 +12,8 @@
 6. `fills`: only the runs recorded at the deadline, each with a completed C4 pass, fill against that one snapshot;
    none if it is invalid.
 7. `exits`: every book's exit review, whatever happened before (risk-reducing exits always run).
+8. `trade_marks`: every account's open trades valued at the session's snapshot by S2's rule, with its equity row (story
+   E2d), so a trade opened or kept today is valued today.
 
 The steps run in the order of `DAILY_RUN_STEPS` (story O1, the one tuple the health check O8 reads): the desk's own
 above, and around them O1's `DayStep`s (the margin check, weather, v4 forecasts and the quote parts before, Book 1's
@@ -38,6 +40,7 @@ from ..constants import (
     REVIEWS_STEP,
     RUN_LOG_DECISIONS_STEP,
     RUN_LOG_EXITS_STEP,
+    RUN_LOG_TRADE_MARKS_STEP,
     STEP_FAILED,
     STEP_REFUSED,
 )
@@ -48,6 +51,7 @@ from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
 from .run_log import RunLog
+from .trade_marking import MarkingStep
 
 SKIPPED = "skipped"
 STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: the commit failed: {reason}. {fix}"
@@ -63,6 +67,8 @@ NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
 UNSCORED = "the scorecards and automatic pauses of {day} did not run ({reason})"
 UNFILLED = "today's owner-timing fills {status} ({reason})"
+# a stop at the exits or any later step leaves the day's exits reviewed (E2d's marking and O1's steps after them)
+AFTER_EXITS = tuple(f"step {name}" for name in DAILY_RUN_STEPS[DAILY_RUN_STEPS.index(RUN_LOG_EXITS_STEP) :])
 
 
 class RunStopped(Exception):
@@ -71,9 +77,10 @@ class RunStopped(Exception):
 
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
-                 clock: Callable[[], datetime], files: PrivateFiles | None = None,
+                 clock: Callable[[], datetime], marking: MarkingStep, files: PrivateFiles | None = None,
                  day_steps: Mapping[str, DayStep] | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
+        self.marking = marking  # story E2d
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
         self.day_steps = dict(day_steps or {})  # story O1's steps around the desk's
 
@@ -109,6 +116,7 @@ class DailyRun:
                                                                    self._unreviewed(day) | self._unscored(day)
                                                                    | self._unfilled(log))),
             "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
+            RUN_LOG_TRADE_MARKS_STEP: (times.execution_snapshot, lambda: self.marking.run(day)),  # story E2d
         }  # fmt: skip
         return desk | {name: (None, lambda step=step: step.run(day)) for name, step in self.day_steps.items()}
 
@@ -180,7 +188,7 @@ class DailyRun:
         try:
             action()
         except CommitFailed as failed:
-            missed = "" if where == "step exits" else EXITS_MISSED
+            missed = "" if where in AFTER_EXITS else EXITS_MISSED
             fix = "" if isinstance(failed, PendingChanged) else RERUN + (PUSHES if failed.unpushed else "")
             text = STOPPED.format(day=day, where=where, missed=missed, reason=failed, fix=fix).rstrip(" ")
             self.steps.alerts.send(text)

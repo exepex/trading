@@ -24,3 +24,6 @@ journal/runs/.pending_book1.json.tmp
 # Raw Groww quote files live in Google Drive only (owner, 15 Oct 2026, "6 A"; story A4b): the repository keeps each
 # attempt's sidecar and the day's canonical marker
 research/data/quotes/groww/**/*.csv
+
+# Story O9: the local Drive cache (data is read from Drive, never committed)
+/work/drive-cache/

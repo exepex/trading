@@ -4,13 +4,14 @@
 - `freeze` writes the freeze record and registers the protocol in the ledger; commit both at once.
 - `order` checks that the freeze precedes each book's first counted decision.
 - `verify` checks that the latest freeze's files and settings are unchanged (a suite test runs it).
+`check`, `freeze` and `verify` take `--protocol breadth` for BR1's protocol (story BR1a); the default is S1's.
 None of them computes a result or places an order."""
 
 from __future__ import annotations
 
 from datetime import date
 
-from ..constants import BOOKS
+from ..constants import BOOKS, PROTOCOL_BREADTH, PROTOCOL_EVALUATION
 
 EXIT_FAILED = 2
 
@@ -20,30 +21,34 @@ def add_evaluation_parser(subparsers) -> None:
     actions = evaluation.add_subparsers(dest="evaluation_cmd", required=True)
     check = actions.add_parser("check", help="completeness check of the protocol and the real-money gate")
     check.add_argument("--decided", action="store_true", help="also require every item decided by the owner")
-    actions.add_parser("freeze", help="freeze the decided protocol (commit the record and the ledger at once)")
-    actions.add_parser("verify", help="the latest freeze's files and settings are unchanged")
+    freeze = actions.add_parser("freeze", help="freeze the decided protocol (commit the record and the ledger at once)")
+    verify = actions.add_parser("verify", help="the latest freeze's files and settings are unchanged")
+    for action in (check, freeze, verify):
+        action.add_argument("--protocol", choices=(PROTOCOL_EVALUATION, PROTOCOL_BREADTH), default=PROTOCOL_EVALUATION)
     order = actions.add_parser("order", help="the freeze precedes each book's first counted decision")
     order.add_argument("--version", type=int, default=1)
     order.add_argument("--common-start", type=date.fromisoformat, help="without it every decision counts")
     evaluation.set_defaults(func=cmd_evaluation)
 
 
-def _check(decided: bool) -> int:
+def _check(decided: bool, name: str = PROTOCOL_EVALUATION) -> int:
     from ..config import ROOT
     from .completeness import completeness_problems, undecided_items
-    from .protocol import PROTOCOL_FILE, parse_protocol
+    from .protocol import parse_protocol
+    from .wiring import protocol_definition
 
-    text = (ROOT / PROTOCOL_FILE).read_text(encoding="utf-8")
+    definition = protocol_definition(name)
+    text = (ROOT / definition.protocol_file).read_text(encoding="utf-8")
     protocol = parse_protocol(text)
-    problems = completeness_problems(text, protocol)
+    problems = completeness_problems(text, protocol, definition.required_items)
     undecided = undecided_items(protocol) if decided else []
     for problem in problems:
         print(f"incomplete: {problem}")
     if undecided:
         print(f"not decided by the owner ({len(undecided)}): {', '.join(undecided)}")
     if not (problems or undecided):
-        print(f"{PROTOCOL_FILE} version {protocol.version}: complete" + (" and decided" if decided else ""))
-    gate_failed = _check_gate(ROOT, decided)
+        print(f"{definition.protocol_file} version {protocol.version}: complete" + (" and decided" if decided else ""))
+    gate_failed = _check_gate(ROOT, decided) if definition.requires_gate else False
     return EXIT_FAILED if problems or undecided or gate_failed else 0
 
 
@@ -60,16 +65,17 @@ def _check_gate(root, decided: bool) -> bool:
     return bool(problems)
 
 
-def _freeze() -> int:
-    from .freeze import FreezeRefused, freeze_path
-    from .wiring import build_freezer
+def _freeze(name: str = PROTOCOL_EVALUATION) -> int:
+    from .freeze import FreezeRefused
+    from .wiring import build_freezer, protocol_definition
 
     try:
-        record = build_freezer().freeze(date.today())
+        record = build_freezer(protocol=name).freeze(date.today())
     except FreezeRefused as refused:
         print(f"not frozen: {refused}")
         return EXIT_FAILED
-    print(f"wrote {freeze_path(record.version)} ({len(record.hashes)} targets) and its ledger row: commit both now")
+    path = protocol_definition(name).freeze_path(record.version)
+    print(f"wrote {path} ({len(record.hashes)} targets) and its ledger row: commit both now")
     return 0
 
 
@@ -88,11 +94,12 @@ def _order(version: int, common_start: date | None) -> int:
     return EXIT_FAILED if problems else 0
 
 
-def _verify() -> int:
+def _verify(name: str = PROTOCOL_EVALUATION) -> int:
     from ..config import ROOT
     from .order import verify
+    from .wiring import protocol_definition
 
-    problems = verify(ROOT)
+    problems = verify(ROOT, protocol_definition(name))
     for problem in problems:
         print(f"changed: {problem}")
     if not problems:
@@ -102,9 +109,9 @@ def _verify() -> int:
 
 def cmd_evaluation(args) -> int:
     if args.evaluation_cmd == "check":
-        return _check(args.decided)
+        return _check(args.decided, args.protocol)
     if args.evaluation_cmd == "verify":
-        return _verify()
+        return _verify(args.protocol)
     if args.evaluation_cmd == "freeze":
-        return _freeze()
+        return _freeze(args.protocol)
     return _order(args.version, args.common_start)

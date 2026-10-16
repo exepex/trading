@@ -9,13 +9,20 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ..ai.paths import AI_FOLDER
 from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID, RISK_PROFILE_BOOKS
+from ..forecast.capture import LIVE_FOLDER
+from ..forecast_scoring.wiring import SCORES_FOLDER
+from ..forecast_v4_rules.series import closes_rows, regular_closes
+from ..forecast_v4_rules.wiring import CLOSES_FILE
+from ..research_data.calendar import SessionCalendar
 from ..research_engine.implied_vol import SpotBlackScholes
 from ..risk.profile_settings import profile_settings
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.wiring import build_session_calendar, build_versioned_reader
+from ..weather.wiring import build_records
 from .blocks import (
     BlockBuilder,
     FnoRowsBlock,
@@ -40,18 +47,26 @@ from .db_connection import VerifiedConnection
 from .flows_block import FlowsBlock
 from .fno_rows import FnoRowBuilder
 from .followed import FollowedCompaniesFolder
+from .forecast_history_block import FnoForecastHistoryBlock
+from .forecast_history_inputs import ScoreReportsReader
+from .forecast_lab_block import FnoForecastLabBlock
+from .forecast_lab_inputs import ForecastLabReader, SessionsAhead
 from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
 from .frame_inputs import FlowsReader
 from .home_blocks import FnoBooksBlock, FnoPicksBlock
 from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
 from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
+from .page_holds import PageHoldsBlock
 from .postgres_publisher import PostgresPublisher
 from .publication import PRODUCT, PublicationBuilder
 from .publication_inputs import PublicationInputsFile
 from .publisher import ReadModelPublisher
 from .run_status import LocalRunStatus, PostgresRunStatus, RunStatusRecorder
 from .session_rows import SessionRowsBuilder
+from .weather_block import FnoWeatherBlock
+from .weather_history_block import FnoWeatherHistoryBlock
+from .weather_inputs import WeatherInputsReader
 
 CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
 AZURE_POSTGRES_ROOTS = ROOT / "db" / "fno" / "azure-postgres-roots.pem"  # the CAs the publisher trusts (P6)
@@ -65,12 +80,14 @@ LATEST_FROZEN_EXPERIMENT = (  # its decisive run's passing policies are the only
 
 
 def build_market_blocks() -> list[BlockBuilder]:
-    """Stories P6, P8, P9 and P10: the India blocks the contract assigns to publisher fno (Screener and Markets; the
-    NIFTY option chain; Home's F&O books and picks; India's band, expiries and flows), all in one publication."""
+    """Stories P6, P8, P9, P10 and P2a: the India blocks the contract assigns to publisher fno (Screener and Markets;
+    the NIFTY option chain; Home's F&O books and picks; India's band, expiries and flows; the weather), all in one
+    publication."""
     return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
             ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
-            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock()]  # fmt: skip
+            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(),
+            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock(), FnoForecastLabBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -111,7 +128,7 @@ def build_market_run(cfg: dict, local_folder: Path | None = None) -> MarketRun:
     """Stories P6, P7: the archived NSE files in Drive, the pinned contract, the publisher and the run status (a local
     folder when given, else Azure), #fno-desk alerts."""
     contract = build_pinned_contract()
-    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit())
+    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit(), holds_page=PageHoldsBlock())
     rows = build_session_rows_builder(cfg)
     publisher, status = build_read_model_publisher(local_folder), build_run_status(local_folder)
     return MarketRun(build_session_calendar(), contract, rows, publications, publisher, build_alert_sender(), status,
@@ -142,7 +159,21 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     books = BooksReader(ROOT, BOOKS, profile.paper_account_rs)
     home = HomeInputsReader(books, FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT), profile.open_risk_cap_rs)
     store, calendar = build_versioned_reader(), build_session_calendar()
-    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, FlowsReader(store, calendar))
+    flows = FlowsReader(store, calendar)
+    reports = ScoreReportsReader(ROOT / SCORES_FOLDER)
+    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports,
+                              build_forecast_lab_inputs(calendar))  # fmt: skip
+
+
+def build_forecast_lab_inputs(calendar: SessionCalendar) -> ForecastLabReader:
+    """Story P2b: G4's committed reports and the committed live and AI forecast records (G3, F1)."""
+    folders = [ROOT / LIVE_FOLDER, ROOT / AI_FOLDER]
+    return ForecastLabReader(ScoreReportsReader(ROOT / SCORES_FOLDER), folders, SessionsAhead(calendar))
+
+
+def build_weather_inputs() -> WeatherInputsReader:
+    """Story P2a: M1's committed weather records and NIFTY's committed closes (O6), both in this repository."""
+    return WeatherInputsReader(build_records(), regular_closes(closes_rows(CLOSES_FILE.read_text())))
 
 
 def repository_commit() -> str:

@@ -32,8 +32,12 @@ def script(nifty=(14, 56), nse=(14, 57), indices=(15, 13), day=NORMAL):
 
 
 class FailingDesk(Commits):
+    def __init__(self, clock, step):
+        super().__init__(clock)
+        self.step = step
+
     def commit(self, paths, message, own_unpushed=None):
-        if "step pack" in message:
+        if message.endswith(f"step {self.step}"):
             raise CommitFailed("pull failed: origin unreachable")
         return super().commit(paths, message, own_unpushed)
 
@@ -42,12 +46,12 @@ class FailingDesk(Commits):
 def day(root, tmp_path, alerts):
     """A day's run: E3's desk with Book 1, the five O1 steps, the quote parts on a recording committer."""
 
-    def build(times=None, steps=None, desk_fails=False, part_fails="", files=FILES):
+    def build(times=None, steps=None, desk_fails="", part_fails="", files=FILES):
         decisions = Decisions()
         decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
         run, clock, _, commits = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
         if desk_fails:
-            run.committer = PendingCommitter(FailingDesk(clock), root)
+            run.committer = PendingCommitter(FailingDesk(clock, desk_fails), root)
         commits_made = []
         parts, waiter = quote_parts(clock, times or script(), RecordingCommitter(clock, commits_made, part_fails),
                                     alerts, files)  # fmt: skip
@@ -64,6 +68,7 @@ def day(root, tmp_path, alerts):
                 "reviews": RecordedStep("reviews", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
+                "candles": RecordedStep("candles", calls),
             }
             | (steps or {}),
         )
@@ -79,7 +84,7 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
-        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card",
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card", "candles",
     ]  # fmt: skip
 
 
@@ -141,8 +146,14 @@ def test_a_failing_o1_step_is_recorded_alerted_once_and_every_later_step_runs(da
     assert "exits" in steps and "card" in steps  # nothing later was skipped
 
 
+@pytest.mark.parametrize("step", ["trade_marks", "reviews", "card"])
+def test_a_stop_after_the_exits_never_says_the_exits_were_missed(day, alerts, step):
+    code, line = day(desk_fails=step)[0].run(NORMAL)
+    assert code == 1 and f"run STOPPED at step {step}" in line and "exits not reviewed today" not in line
+
+
 def test_after_the_desk_s_commit_failure_stop_the_card_never_runs_and_the_parts_still_commit(day, alerts):
-    runner, run, _, parts, commits, calls = day(desk_fails=True)
+    runner, run, _, parts, commits, calls = day(desk_fails="pack")
     code, line = runner.run(NORMAL)
     assert code == 1 and line.endswith(NO_CARD) and "run STOPPED at step pack" in line
     assert "card" not in calls and len(alerts.sent) == 1  # E3's alert stands alone
@@ -167,7 +178,7 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
     assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
-    assert new_calls == ["card"]
+    assert new_calls == ["card", "candles"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
 

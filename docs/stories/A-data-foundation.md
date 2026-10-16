@@ -562,6 +562,252 @@ file NOT saved to Drive".
 
 ---
 
+## A4c. The other index options at 3 pm (all-F&O recording, part 8a)
+
+**Repository:** trading · **Lane:** 1 (Groww data, the daily routine's output) · **Branch:** `story/a4c-all-indices`
+
+**Description:** As the execution specialist and the volatility trader, I want the bid/ask of the other traded NSE
+index options recorded after NIFTY in the 3 pm routine, each with its real capture time, so that spreads, skews and
+liquidity of BANKNIFTY, FINNIFTY and MIDCPNIFTY options are measured, not assumed.
+
+**Context and why:**
+- Owner, 13 Oct 2026: record all index and stock F&O. Owner, 15 Oct 2026 (`docs/DESK_DECISIONS.md`; response 144,
+  decision 3): the 3 pm recorder records all F&O in time slots, NIFTY first (14:55-15:00, pushed at once), other
+  indices next, stocks after, each quote stamped with its real time; data only. Response 144's plan step 8: "8a
+  indices (about 4-5 minutes); 8b stocks" after the Drive-only story (A4b, merged).
+- The recorder records NIFTY only (`UNDERLYING = "NIFTY"`, `fno/quotes/recorder.py`; A4 "Out: other underlyings").
+- NSE's F&O file of 14 Oct 2026 (strong evidence: counted from the archived file) lists index options on six
+  underlyings. For the two nearest monthlies, strikes within 5% of spot:
+
+  | Underlying | Contracts | Traded that day |
+  |---|---|---|
+  | NIFTY (A4, unchanged) | 184 | 177 |
+  | BANKNIFTY | 220 | 198 |
+  | FINNIFTY | 146 | 70 |
+  | MIDCPNIFTY | 220 | 109 |
+  | NIFTYNXT50 | 276 | 8 |
+  | NIFTYFPI | 120 | 0 |
+
+  Owner, 15 Oct 2026 (`docs/DESK_DECISIONS.md`): "drop NIFTYFPI and NIFTYNXT50, record only the traded indices". So
+  this story records BANKNIFTY, FINNIFTY and MIDCPNIFTY: about 590 quotes a day (220 + 146 + 220, plus about 6 chain
+  and expiry calls). Each lists monthlies only (3 expiries), so A5's monthly rule needs no change.
+
+**Scope.** In: BANKNIFTY, FINNIFTY and MIDCPNIFTY (owner's list), each checked against the previous session's NSE F&O
+file (point in time: the file's name and SHA-256 are kept in each sidecar); the two nearest monthlies; strikes within 5% of spot; A4's
+columns and validity rule; Drive-only quote files through A4b's store; one routine step after NIFTY's push.
+Out: NIFTYFPI and NIFTYNXT50 (owner, 15 Oct: barely traded; 0 and 8 of 120 and 276 contracts on 14 Oct); stocks
+(8b: a stock expiry rule, the 14:20 start that needs an owner schedule change); NIFTY weeklies, BSE
+SENSEX, futures per underlying and lot sizes (response 144 finding 8, owner's choice); any reader of the new
+snapshots (data only; no forecast, desk or card uses them); NIFTY's own recording (unchanged).
+
+**Expected design (the simplest that covers the real cases):**
+- `QuoteSnapshotRecorder` takes the underlying as a constructor value (default `NIFTY`); file stems become
+  `<underlying lower-case>_<YYYYMMDD>_<HHMMSS>` and `<underlying lower-case>_<YYYYMMDD>.canonical`, which for NIFTY are
+  today's names byte for byte. Same dataset (`groww/derivatives/quote-snapshots`), so A4b's store sends every new quote
+  file to Drive and keeps sidecars and markers in the repository.
+- The window is a constructor value too: NIFTY keeps 14:55-15:10; the other indices use 15:01-15:13 (after A16's
+  15:00 snapshot, about 50 s; before 15:13, when forecast-capture stops pulling, and before the 15:15 marks of A16 and
+  E3, which share the Groww key). No request starts outside the window, so no row can come after 15:30 (response 144
+  finding 5).
+- Pace: the index run uses at most 3 parallel requests and at most 2.5 request starts a second (A16's `RatePacer`).
+  Together with A16's 5 a second this stays under the about 10 a second where Groww began failing (A16 step 0;
+  some evidence, one morning). About 600 calls at 2.5 a second take about 4 minutes: done by about 15:05.
+- The calendar cross-check "calendar says session, no same-day trades" stays NIFTY's only (response 144 finding 3):
+  an index whose contracts did not trade today is recorded complete, its rows `valid=false` ("no trade today") as A4
+  already marks them, and raises no alert (a quiet day for FINNIFTY or MIDCPNIFTY must not read as a closed market).
+- The universe: the owner's three names (a constant in `fno/constants.py`). The latest NSE F&O file before today is
+  read once per run and serves every expiry lookup (response 144 finding 6: about 0.8 s a parse); a name the file no
+  longer lists as an index option (`IDO`) gets an incomplete attempt with that reason, never a silent skip.
+- Command `python -m fno quotes record-indices`: records each underlying in turn (an incomplete one is retried while
+  the window lasts, A4's rule), prints one result line per underlying, exits 1 if any is not complete, and sends one
+  #fno-desk alert naming the incomplete ones (Slack token from the environment, as A4).
+- Routine order (judge 151; the handover session's NSE step, `conversations/2026-10-15.md`: the 14:33 routine runs the
+  Groww and NSE recorders in parallel and pushes Groww first, then NSE). NIFTY (Groww) and NSE start together as
+  today. Right after NIFTY's push, `record-indices` starts, alongside the NSE recorder if that is still running. Each of
+  the three parts commits and pushes **only its own files** when it is done, one commit at a time (`git pull
+  --no-rebase` first): NIFTY its `nifty_*` sidecars and marker, NSE `research/data/quotes/nse/`, the indices their
+  `banknifty_*`, `finnifty_*` and `midcpnifty_*` sidecars and markers. Never `git add research/data/quotes/` as a
+  whole. NIFTY is always pushed first; NSE and the indices in whichever order they finish. The `CLAUDE.md` 3 pm
+  section is changed in this branch (below); the owner copies the same steps into the routine's prompt.
+
+**Step 0 (before code; read-only, counts and names only):** one call each of Groww's expiry list and option chain for
+BANKNIFTY, FINNIFTY and MIDCPNIFTY, to confirm Groww's names for them. A name Groww refuses is reported in the claims,
+and that underlying's attempts are recorded incomplete with the error type, never skipped silently.
+
+**Acceptance criteria:**
+1. **Each index recorded.** On a session day, `record-indices` writes, for each of the three underlyings, an attempt
+   with every contract of its two nearest monthlies within 5% of spot (A4's columns, validity and freshness rules), its
+   quote file in Drive only and its sidecar (with the universe file's name and SHA-256) and canonical marker in the
+   repository (tests with a fake provider and a fake Drive: positive; a provider that refuses one underlying, or an
+   NSE file that no longer lists it, gives that underlying an incomplete attempt and canonical "none", the others
+   complete).
+2. **NIFTY unchanged.** A4's byte-for-byte baseline test, the G1 v2 golden cases and every reader's test pass
+   unchanged; no reader reads the new files (they match only `nifty_*`).
+3. **Time box and pace.** No request starts before 15:01:00 or after 15:13:00 IST; request starts are at least 0.4 s
+   apart; an underlying still incomplete at 15:13 gets canonical "none" (tests with a fake clock: at, just before and
+   just after each limit).
+4. **No false closed-day alert.** An index with no same-day trade is recorded complete with invalid rows and no
+   cross-check alert; NIFTY's cross-check is unchanged (tests).
+5. **Not a trading day / empty.** On a closed day the command records nothing and prints "not a trading day"; with no
+   NSE file in the last 7 days it records nothing, prints why, alerts once and exits 1 (A4's fail-closed rule).
+6. **Routine and docs.** `CLAUDE.md`'s 3 pm section (changed in this branch) lists the NIFTY, NSE and index steps,
+   their order and each part's own `git add` paths (wording below); each part's paths stage only its own sidecars and
+   markers, never a Groww quote file (test with `git add --dry-run` on a fixture folder holding all three parts' files;
+   A4b's `.gitignore` and record-scan rule already cover `groww/**.csv`).
+7. Code size, lint, imports and the full suite pass.
+8. **First live day (rule 8).** On the first session after the merge, `main` holds NIFTY's, NSE's and the three
+   indices' sidecars and markers for the day, each part in its own commit, NIFTY's pushed first; the orchestrator
+   records the commits and their push times in the conversation log.
+
+**`CLAUDE.md` 3 pm section, as changed in this branch (steps 2-3b; steps 1 and 4 unchanged):**
+- 2: "`python -m fno quotes record` (NIFTY, Groww) and `python -m fno quotes record --source nse` (NSE's public chain,
+  story O6) run in parallel from the routine's start; each waits for 14:55 IST and retries until 15:10. [the existing
+  calendar and Drive-only text stays]"
+- 3: "Each part commits and pushes only its own files, one commit at a time, `git pull --no-rebase` first; never
+  `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed:
+  `git add ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`.
+  [the existing never-edit, record-scan and alert text stays]"
+- 3b: "Right after NIFTY's push, run `python -m fno quotes record-indices` (BANKNIFTY, FINNIFTY and MIDCPNIFTY;
+  15:01-15:13 IST, paced; raw quotes to Drive only), alongside NSE if it is still running. When it is done:
+  `git add ':(glob)research/data/quotes/groww/**/banknifty_*' ':(glob)research/data/quotes/groww/**/finnifty_*'
+  ':(glob)research/data/quotes/groww/**/midcpnifty_*'`, commit and push. It alerts #fno-desk itself for any index not
+  recorded."
+
+**Test plan:** A4's fake provider extended with a per-underlying chain; a fake clock for the window and pace; A4b's
+fake Drive; one dry run with fake quotes for the claims' output sample; step 0's read-only check.
+
+**Judge verifies:** the window and pace with a fake clock; NIFTY's baseline bytes; one real run's sidecars after the
+first live day (rule 8); no Groww quote file in the repository.
+
+**Known limits (one line each, nothing built for them):**
+- A push of an index's canonical marker before 15:13 starts another forecast-capture run; it waits in the concurrency
+  group and stops at its gate (the day's pack is already on main).
+- The rate figures come from one morning's measurement (A16 step 0); a slower Groww day can leave an index "none".
+- A new index or a change in which indices trade needs an owner decision and a one-line change of the list.
+- NIFTY's own retries can run to 15:10 (A4's rule) and the indices start only after NIFTY's push, so on such a day the
+  indices get the last minutes of their window and may end "none" (data only).
+
+**Gap list (owner decisions 13 and 15 Oct; response 144 findings 1-9 on all-F&O recording):**
+
+| Requirement | Where |
+|---|---|
+| All index F&O recorded, each quote with its real time (owner 13 and 15 Oct), only the traded indices (owner 15 Oct: drop NIFTYFPI and NIFTYNXT50) | criterion 1 (A4's per-row request and response times); scope |
+| Time slots: NIFTY first and pushed at once, other indices next (owner 15 Oct) | design (routine step 3b), criterion 3 |
+| Finding 1: stock chains fail on the IDO-only expiry history | out of scope: stocks are 8b (indices are IDO) |
+| Finding 2: NIFTY must be pushed alone before 15:13 | unchanged step 3; indices run after it |
+| Finding 3: cross-check on NIFTY only | criterion 4 |
+| Finding 4: point-in-time universe with the file's SHA-256 | design (universe: the owner's list, checked against the previous session's file, its SHA-256 kept), criterion 1 |
+| Finding 5: no rows after 15:30 | criterion 3 (nothing starts after 15:13) |
+| Finding 6: parse the NSE file once | design (universe) |
+| Finding 7: one shared Groww rate budget, NIFTY first | design (pace, window after A16's 15:00 mark), criterion 3 |
+| Finding 8: weeklies, SENSEX, futures, lot sizes not recorded | out of scope (owner's choice) |
+| Finding 9: raw files never under `research/data/quotes/` | A4b's store (criterion 1), A4b's ignore and scan rules (criterion 6) |
+| Stocks at 14:20 need an earlier routine start (owner schedule change) | out of scope: 8b |
+| Coordination with the NSE step in the same routine (owner 15 Oct; judge 151) | design (routine order), criteria 6 and 8; `CLAUDE.md` |
+
+**Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 3 (15 Oct 2026: three indices, owner; judge 151's should-fix and minor)
+
+---
+
+## A4e. A named quote window for protocol v4's 14:30-14:40 pack (A4 behind config)
+
+**Repository:** trading · **Lane:** 1 (the 3 pm recorder, Groww, a v2-recorded file) · **Branch:**
+`story/a4e-named-quote-window` · **Judge:** B (G10's judge)
+
+**Description:** As the statistician and G10's pack builder, I want the 3 pm recorder to run a second, separately
+named NIFTY capture in a window set in `config.yaml` (v4: 14:30-14:40 IST), so that protocol v4's pack can be built
+from live quotes with honest times, while today's 14:55-15:10 capture and every reader of it stay exactly as they are.
+
+**Context and why:**
+- G10 (`docs/stories/G-forecasts.md`, "The day at go-live"; owner decisions of 15 Oct, rows "v4 timeline" and
+  "Honest times") needs a NIFTY capture from 14:30:00 with retries, each quote kept with the time its answer was
+  received; the pack takes only answers received by 14:40:00. A4 runs only in 14:55-15:10 (`fno/quotes/recorder.py:39`).
+- The orchestrator (16 Oct): behind config, default unchanged, interface agreed with G10's builder (agreed 16 Oct:
+  the 14:40 cut is the pack's, A4 never drops or relabels a row; the setting must work both as an extra capture and,
+  if the owner later ends 14:55, as the only one).
+- `fno/quotes/recorder.py` and `config.yaml` are in `FREEZE_v2.md`'s "recorded, not byte-checked" table: their behaviour
+  is locked by the v2 golden cases, so the default run must not change.
+- Readers of the 14:55 capture find it by name: `nifty_<day>.canonical` in `groww/derivatives/quote-snapshots`
+  (v2 capture, E2/E3 packs, C3, O8 health, LR1, G4 replay, `report.py` and `compare.py`, which glob `nifty_*.canonical`).
+  A new file prefix in the same folder would leak into those globs; a new dataset folder cannot.
+
+**Scope.** In: `quotes.windows` in `config.yaml` (named windows; none required); `python -m fno quotes record --window
+<name>`; the named capture in its own dataset `groww/derivatives/quote-snapshots-<name>` (Drive-only quotes through
+A4b's store, sidecar and marker in the repository, as today); no request after the named window's end; A16's clock
+check around a named capture, written to its sidecar. Out: the 14:30 run in the routine and the owner's 14:05 start
+(O1 and the owner, after the orchestrator's decision below); the pack itself and its 14:40 cut (G10 part b);
+the index windows at go-live (a later item); any change to the default run or its readers.
+
+**Expected design (the simplest that covers the real cases):**
+- `QuoteWindow(start, end, max_early_wait, stop_requests)` (new `fno/quotes/window.py`). The default window is A4's
+  constants (14:55, 15:10, 20 minutes, no stop): the default run is unchanged byte for byte.
+- `quotes.windows.<name>: {start, end, max_early_wait_minutes}` read in the composition root; an unknown name, a start
+  not before the end, or a bad time format is refused before any request (ConfigError naming the key). The v4 entry is
+  `{start: "14:30", end: "14:40", max_early_wait_minutes: 30}` (routine at 14:05 waits 25 minutes).
+- A named capture: `record()` waits for the start (no request before it), retries each minute while it is open, and
+  starts no request after its end (A4c's `Slot.stop_requests_at`); a request started before the end keeps its real
+  `response_received_at`, even after the end. It reads A16's `ClockCheck` before its first and after its last
+  request and writes `clock_status` and the worst skew to the sidecar (the pack decides what a skew means).
+- Same stems (`nifty_<YYYYMMDD>_<HHMMSS>`, `nifty_<YYYYMMDD>.canonical`) in the named dataset, so the routine's NIFTY
+  commit glob `groww/**/nifty_*` covers it and A4b's ignore rule and record scan keep its quote files out of git.
+
+**Acceptance criteria:**
+1. **Default unchanged.** `quotes record` without `--window` behaves as today: A4's byte-for-byte baseline, the v2
+   golden cases (`tools/forecast_live_golden.py` "unchanged") and every existing quotes, checks and desk test pass
+   unchanged.
+2. **Named window.** With `--window v4` and a fake clock: nothing is asked before 14:30:00 (a run at 14:05 waits; one
+   at 13:59 is "too early"); an incomplete attempt retries; no request starts after 14:40:00 (a request at 14:40:00 is
+   allowed, at 14:40:01 refused); a request started at 14:39:59 keeps its later answer time; the day ends "none" at the
+   window's end if nothing is complete.
+3. **Separate dataset.** The named capture's sidecar, marker and Drive file are under
+   `groww/derivatives/quote-snapshots-v4/`; nothing is written to the default dataset, and the default readers
+   (`report`, `compare`, the v2 capture, the desk's snapshot inputs) do not see it.
+4. **Clock.** A16's `ClockCheck` (one rule, A16's 5-second WARNING threshold, no copy) runs once before the first
+   request and once after the last. The sidecar holds `clock_checks` (the two readings' statuses, in order, each one of
+   A16's `clock_ok`, `clock_skew`, `clock_partial`, `clock_unchecked`), `clock_status` (`clock_ok` only when both
+   readings are `clock_ok`, else the worse one) and `clock_worst_skew_seconds` (null when no server answered). Tests
+   with fake servers: both ok; a skew before; a skew after; no answer; the run stopped before its last request (one
+   reading only, so not `clock_ok`). What a status means for the pack's label is G10's rule (agreed 16 Oct: only
+   `clock_ok` can give label `A`).
+4b. **Every pack field has its own request and receive time (G10, 16 Oct; protocol v4 section 1.6; judge 278).**
+   Today only the option rows carry `request_sent_at` and `response_received_at`; spot (from each expiry's chain call),
+   India VIX and the NIFTY futures (NSE's level calls, `fno/quotes/market_levels.py`) carry none of ours (India VIX has
+   NSE's own stamp only). A named capture's sidecar adds, on the same clock:
+   - `chains`: one entry per expiry with `expiry`, `spot`, `request_sent_at` and `response_received_at` of that
+     expiry's chain call;
+   - `levels_requested_at` and `levels_received_at`: when the level reads (India VIX and the futures, one `levels()`
+     call making both NSE requests) started and returned. Both answers had arrived by the return, so
+     `levels_received_at` is an honest upper bound for each; NSE's `india_vix_time` is kept beside it. NSE's futures
+     give last price and volume only, **no bid or ask** (G10's pack carries None for them).
+   The default run's sidecar is unchanged. Tests with a fake clock: each expiry's two times are its own chain call's;
+   the level times bracket both level calls and come before the first quote request; a level read that returns after
+   the window's end keeps that real later time (nothing is clamped or relabelled).
+5. **Refusals.** An unknown window name, a start not before the end, or a malformed time exits 1 before any request.
+6. Code size, lint, imports and the full suite pass.
+
+**Known limits (one line each, nothing built for them):**
+- A 14:30 capture beside A16's 14:30 mark puts about 190 more Groww quote calls (plus a few chain, expiry and level
+  calls) on the one key in those minutes; whether 14:30 is an extra capture or replaces 14:55 is the orchestrator's
+  and owner's decision (G10's builder raised it), not this story's.
+- A4's default run keeps an unchecked host clock (v2's frozen behaviour); only named captures are clock-checked.
+- A named capture is not in the routine until O1 adds it and the owner moves the start to 14:05.
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| Capture from 14:30 with retries, honest answer times (G10, owner 15 Oct) | criterion 2 |
+| The 14:40 cut is the pack's; A4 drops nothing (agreed with G10, 16 Oct) | design, criterion 2 (late answer kept) |
+| No request before the window's start (G10 point b) | criterion 2 |
+| Checked clock for `response_received_at` (G10 point a; protocol v4 section 1.6) | criterion 4 |
+| Our request and receive times on spot, India VIX and the futures (G10, 16 Oct; judge 278) | criterion 4b |
+| Default 14:55-15:10 unchanged, v2 frozen behaviour (orchestrator; FREEZE_v2) | criterion 1 |
+| Works as an extra capture or as the only one (G10 point 6) | design (own dataset), criterion 3 |
+| Routine start 14:05 (G10 table) | out of scope: O1 and the owner |
+
+**Depends:** A4, A4b, A4c (`Slot.stop_requests_at`), A16 (`ClockCheck`) · **Size:** S · **Status:** story text for
+judge B (16 Oct 2026)
+
 ## A5. Monthly-expiry identity in the package
 
 **Repository:** trading
@@ -1025,7 +1271,9 @@ Facts checked on 14 Oct 2026 (builder, response 77):
   + exposure`, k from config; superseded by stories C2c and C2d, 15 Oct 2026: k stresses the exposure too, and comes
   from A14c's factor file); with an open losing trade C2 never leaves more free than a broker that nets the
   premium (test);
-- a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
+- a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (03:30 IST, retry 07:45 IST;
+  GitHub starts this repository's morning crons 4-5 hours late, so the main run lands before 09:15 even then;
+  orchestrator, 16 Oct):
   librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;
 - a proposal (not a change) for deriving C2's stressed-margin factor from archived files.
 
@@ -1068,6 +1316,197 @@ re-downloadable; its SHA-256 recorded in the claims).
 re-runs the job twice and checks the CSV is unchanged; checks the validation evidence and tolerance.
 
 **Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** done: judge 77 PASS (round 2 2c3865e, merged 6568315; Groww check ee7f35b, merged e49705e; funds at entry 90dfcd3, merged 6647511); schedule on `story/a14-schedule`, awaiting the judge
+
+---
+
+## A14c. The stressed-margin factor recomputed from NSE's archived SPAN files
+
+**Repository:** trading · **Lane:** 1 (money and risk: C2's margin stress)
+
+**Description:** As the risk manager, I want the stressed-margin factor recomputed from NSE's own archived SPAN files
+by one fixed, tested rule, with its evidence table, before each 30-day expiry, so that C2's crash buffer is measured,
+not typed by hand, and never lapses by surprise.
+
+**Context and why:** `config.yaml` `risk.stressed_margin` holds `multiplier: 1.45`, `as_of: 2026-10-14`,
+`max_age_days: 30` (owner, 14 Oct 2026, DESK_DECISIONS: "1.45 now, by hand"; "a monthly recompute from the 2020 archive
+can follow"). C2 and C4 refuse every trade once `(day - as_of) > 30` (`fno/risk/margins.py`,
+`fno/checks/validity_margin.py`), so **from 14 Nov 2026 every paper trade is refused** unless a new value is entered.
+1.45 came from a one-off hand run (response 77, "Stressed-margin factor"): the largest rise of a held position's NSE
+margin from entry to exit (21 days before expiry), SF, SC and BF at widths 100, 200 and 300, over three hand-picked
+windows (Jan-Apr 2020 1.265; May-Jun 2024 1.407, BF 300 entered 5 Jun; Sep-Oct 2026 1.127), rounded up to the next
+0.05. No code in the repository reproduces it.
+
+Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evidence unless marked):
+- **The measured quantity and the applied quantity differ.** 1.45 is the rise of the held position's whole margin
+  (scan and exposure, "today's method"). C2 multiplies the scan only: `max(0, k x scan - NOV) + min(0, NOV) +
+  exposure` (judge 75). On 14 Oct the scan is 1-14% of the margin (exposure 59,077.07 on every row), so k = 1.45 adds
+  +0.6% to SF 100 (59,899 to 60,269), +5.7% to SC 300 (the largest) and 0% to every BF row (response 77's own table). A
+  1.4x rise of a held SF 100's whole margin (about 84,000) is not covered.
+- NSE writes day d's `i1` file on the evening of the previous session (stamps read 15 Oct: `nsccl.20261012` at Fri
+  9 Oct 22:36, `nsccl.20261005` at Thu 1 Oct 22:32), so every day of a holding has its own file.
+- Drive holds the `i1` files from 1 Oct 2026 (manifest `span-bod.csv`); A14's schedule adds one a session. The 2020 and
+  2024 windows are not archived: response 77 read them ad hoc. All of 2020-2026 is about 1,700 files, about 16 GB.
+- 2020's files charged a short-option minimum (5% of the index per short unit). A14's reader refuses any non-zero
+  minimum (fail closed), so it cannot read 2020 files as they stand.
+- A14's exposure rule (2%, 3% beyond 10% out of the money) is coded, not read from NSE. A circular that raises it shows
+  in no file, so no recompute from files can see it.
+
+**Scope.** In:
+- a read-only research command `python -m fno margins stress-factor --from <d> --to <d>` that, for every entry day in
+  the range and every structure and width that C2 trades, rebuilds the entry's legs (A14's builder, the same expiry
+  rule) and recomputes their margin parts (scan, NOV, exposure) on each later day's first-archived `i1` file up to the
+  exit day; it reports the largest stress factor a held position needed (owner question 1, as answered on 16 Oct):
+  per holding, the smallest k for which C2c's stressed margin of the entry's parts, `max(0, k x scan - NOV) +
+  min(0, NOV) + k x exposure`, covers what C2 counts (`initial()`) on every later day held; rounded up to the next
+  0.05, with an evidence table (window, structure, width, entry day, day of the peak, figures);
+- the 2020 short-option minimum modelled as SPAN does (per tier: the larger of the scan and the minimum times the short
+  units), behind A14's calculator interface, so the same code reads every year; any other method difference is still
+  refused by name;
+- the A9 librarian back-fill of every session's `i1` file since 1 Jan 2020 into Drive with their manifest rows
+  (owner question 2; about 1,700 files, about 16 GB);
+- the evidence written to `research/data/margins/stress/stress_evidence_<run day>.csv` and `.md`, with
+  `stress_files_<run day>.csv` (every session's file and SHA-256);
+- **the factor applied automatically (owner question 3)**: each run appends one row to
+  `research/data/margins/stress_factor.csv` (append-only, never edited): `as_of` (run day), `factor` (in force),
+  `computed` (this run's rounded result), `unrounded`, `status` (`applied` or `held`), `peak` (window, structure, width,
+  entry day), `coverage_through` (the last session the archive covers, checked as below), `evidence_sha256` (of the
+  evidence CSV). C2 and C4 read the latest row (story C2d); `config.yaml` keeps
+  only the method, the file path and `max_age_days`. A run never edits `config.yaml`;
+- **coverage check first (ChatGPT review 117; it replaces a session count, which a same-count archive with a different
+  missing date, or one ending a session early, would pass):** before computing, the run derives the required date set,
+  every session A7's calendar gives (regular and special, not muhurat-only) from 2 Jan 2020 through the latest session
+  before the run day, and checks each date has its first-archived `i1` file in the A9 manifest; any gap is named, no
+  row is appended, and one #fno-desk line goes out, so stale or holed data can neither drop the worst holding nor reset
+  the 30-day age; `coverage_through` is that latest session, recorded in the row and the evidence;
+- guardrails, in this order: a result below 1.0 is refused by name and writes no row; a result at or above the factor in
+  force is `applied` (a rise applies at once); **any result below the factor in force is `held`**: the row keeps the old
+  factor and the alert asks the owner to approve the lower one (DESK_DECISIONS row, then a row with status `applied`
+  written by the next run that cites it);
+- incremental runs: the rule is a maximum over a window that only grows, so a run computes only the entries whose
+  holding ended since the last run's newest entry and takes the larger of that and the last `unrounded`; a full
+  re-run from 2020 is a flag (`--full`) and must give the same `unrounded` (test); the first run, and any run whose last
+  row has an empty `unrounded` (C2d's owner seed of 1.45, a hand value), is a `--full` run, so the seed never becomes a
+  floor of the measured series (judge 176);
+- a GitHub Actions job (no AI, no broker key) each Sunday 10:00 IST: the librarian archives the week's `i1` files, the
+  run appends its row, the job commits; a weekly run keeps the row fresh (`max_age_days` 30 leaves three missed weeks
+  before C2 refuses);
+- one #fno-desk line per run: the factor in force, the change, `applied` or `held`, and the peak's window;
+- **A14c part 2 (orchestrator, 16 Oct 2026: built after part 1 merges, with its own judge; judge 237 note 3):** the
+  broker check of owner question 4, one step in the daily Claude routine that already holds Groww's read-only
+  access (never in GitHub Actions, which holds no broker key); the routine's prompt is story O1's, so this story adds
+  the command and O1 adds its one line (judge 173 addendum 3, note 1): `python -m fno margins stress-broker-check`
+  runs in every session's daily run, first, before the 3 pm quote parts (so its Groww requests never overlap the 14:55
+  capture); it checks the latest `applied` row once: one read-only Groww margin request for the SF 100 basket on the
+  latest A14 row, compared with that row, and appends the result to `research/data/margins/stress_broker_check.csv`
+  (append-only: the factor row's `as_of`, the check time, both figures, `ok` or `mismatch`); if that `applied` row
+  already has a result, or the latest row is `held`, it prints "nothing to check" and exits 0 (idempotent); a Groww
+  failure exits 1 and the next session retries; it writes no other path. It runs only in market hours (Groww recheck,
+  16 Oct 10:42 IST: SPAN within Rs 0.25 of the row; at 00:12 IST Groww was still on the previous day's file, +Rs 155).
+  Part 1 (the recompute, the factor row, its line and the weekly workflow) does not wait for it: the check never holds
+  the factor.
+
+Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
+
+**Owner questions (each with a recommendation):**
+1. **Which quantity does k measure? ANSWERED (owner, 15 Oct 2026, relayed by the orchestrator): "WHOLE MARGIN. k
+   multiplies the whole margin (scan plus exposure), as it was measured."** **Measure ANSWERED (owner, 16 Oct 2026,
+   DESK_DECISIONS 07f62385, response 235): "Proposed: smallest k needed".** The plain ratio of the counted margins, as
+   first built, gave 3.55 in April 2020: for a debit structure (BF 200 entered 8 Apr 2020: scan 57,720, NOV 56,911,
+   exposure 22,860) the bought legs' value nearly cancels the scan at entry, so the ratio measured the position losing
+   value. The needed factor there is 1.7483 (1.75 covers the 83,970 peak; 1.45 left it 24,040 short). For a credit
+   structure (NOV below 0) the needed factor equals the plain ratio. The separate story C2c makes C2 and C4 multiply the same quantity; its effect at k = 1.45 on
+   the 14 Oct rows: a held SF 100 from about 59,900 to about 86,900 a lot (today's scan-only stress gives 60,269), so C2
+   refuses more trades for the same capital, about 31% fewer lots (judge 173 note 3). The report also gives the scan's
+   own rise, for information only.
+2. **Which windows? ANSWERED (owner, 15 Oct 2026, relayed): everything since 1 Jan 2020.** Every entry day from
+   2 Jan 2020 to the run day; later runs add the new days. The `config.yaml` comment ("the same windows, plus any later
+   ones") is corrected when the first value from this run is entered.
+3. **Who sets the value? ANSWERED (owner, 15 Oct 2026, relayed): automatic, with an alert.** The run applies the
+   factor itself through `stress_factor.csv` and posts it to #fno-desk (scope above). The orchestrator proposed holding
+   only a fall of more than 0.05; this story holds **every** fall (reasoning): the rule is a maximum over a window that
+   only grows, so a correct run can never give a lower value, and any fall means a data or method fault, which must not
+   lower a crash buffer unseen. Falls of 0.05 or less are therefore held too.
+4. **NSE's circulars. ANSWERED (owner, 15 Oct 2026, relayed): accept the limit, plus one Groww comparison at each
+   recompute; a mismatch alerts.** No history covers a rate NSE raises by circular (2020's minimum, exposure rates).
+   The comparison: Groww's SPAN within Rs 1 of the row's `max(0, scan - NOV)` and Groww's exposure within 1% of the
+   row's after rescaling to Groww's index (response 77's check 2 met both: SPAN to the rupee, exposure to the paisa on
+   the same index base). A mismatch posts one #fno-desk line and does not hold the factor, which is NSE-based; it is
+   evidence that A14's coded exposure rule may be stale.
+
+**Acceptance criteria:**
+1. Reproduction, run after the back-fill of question 2 (Drive's archive starts on 1 Oct 2026 and the 2026 window has
+   September entries; judge 173 note 1): the command reproduces each of response 77's three windows within 0.001, or
+   explains each difference with the files' figures: 1.127 (Sep-Oct 2026, BF 100), 1.265 (Jan-Apr 2020, the
+   short-option minimum binding) and 1.407 (May-Jun 2024, BF 300 entered 5 Jun, today's binding value). The 2020 and
+   2024 figures are anchors the builder did not write (judge 173 note 2). **Done (16 Oct 2026, response 235):** all three reproduce
+   to 0.001 with response 77's own measure, scan plus exposure, read to the window's end: 1.2650 (SF/SC entered 7 Apr
+   2020, to 30 Apr, every structure alike), 1.4073 (BF 300 entered 5 Jun 2024, to 28 Jun) and 1.1272 (BF 100 entered
+   28 Sep 2026, to 14 Oct). Held to the exit with the owner's measure (the needed factor), they are 1.7483, 1.3872 and
+   1.0589.
+2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported factor and its day
+   equal a hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a
+   test. The needed factor (owner, 16 Oct): the real BF 200 of 8 Apr 2020 gives 1.7483, and 1.75 covers its 83,970
+   peak (test); for a credit structure it equals the plain ratio (test); it is the smallest covering k on random parts
+   (test); a mutation back to the plain ratio, or one returning a k that does not cover, fails a test.
+3. Point in time: each day uses that day's first-archived `i1` file written before 09:00 IST on it, as A14 does
+   (test); a missing day refuses the whole run before any computation (criterion 8), so no entry is ever filled.
+4. 2020 method: a planted file with a non-zero short-option minimum gives the SPAN figure by hand (test); any other
+   method difference is refused by name (test).
+5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
+   same files writes byte-identical output; nothing writes `config.yaml` (test).
+6. Owner questions 1 and 2 are recorded in DESK_DECISIONS (answered 15 Oct, commit d68b1a9c: "Crash buffer applies to
+   the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 with the hold-every-fall
+   rule at da0f769d; C2c and C2d are merged before it, so the value is applied as it was measured.
+7. Guardrails (tests on planted runs): a rise is `applied`; any fall, 0.01 included, is `held` with the old factor kept
+   and one alert asking the owner; a result below 1.0 is refused with no row; an owner-approved fall is `applied` only
+   when its DESK_DECISIONS row is cited; a mutation that applies a fall fails a test.
+8. Coverage (planted manifests and calendar, ChatGPT review 117): (a) the same number of files with one required date
+   missing and another date present instead: refused, the missing date named, no row; (b) the latest session missing
+   while every earlier one is present: refused, no row, so the 30-day age is not reset; (c) a complete archive: the
+   row's `coverage_through` is the latest session before the run day (tests).
+9. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test); after a row
+   with an empty `unrounded` (the owner seed) the run is `--full` and the seed's 1.45 is not a floor (test: planted
+   files whose true maximum is 1.30 give `computed` 1.30, then `held` against the seed's factor 1.45).
+10. Alerts (part 1): one #fno-desk line per run with the factor, the change, the status and the peak (test). Broker
+   check (part 2, its own judge): a Groww mismatch beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
+   is read-only and places nothing); a second broker check of the same `applied` row writes nothing and prints
+   "nothing to check" (test).
+11. Code size, lint, imports and the full suite pass.
+
+**Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; judge
+by 11 Nov; 1.45 expires after 13 Nov. Then weekly (Sunday), automatic. Bootstrap: story C2d seeds
+`stress_factor.csv` with the owner's 1.45 of 14 Oct (status `applied`, source response 77), so C2 keeps its current
+factor until the first run. **Hard date (orchestrator, 15 Oct):** the code merged and its first row written by about
+7 Nov, a week before every trade is refused from 14 Nov; any threat to that date is reported at once.
+
+**Known limit:** no cache of the files' arrays. An incremental weekly run reads only the files back to the earliest
+holding that ended since the last row (about 35-50 files); only a full run reads all of them once (about 1,700). A
+cache would add a second store for no real saving (orchestrator agreed, 15 Oct). **Read-ahead (orchestrator, 16 Oct):**
+one Drive stream gave 0.41 MB/s on 16 Oct (27-30 s per 12 MB file, so about 14 hours for a full run, past the
+workflow's 330 minutes) and parallel streams were each as fast; the run downloads up to
+`risk.stressed_margin.recompute_workers` files (8) ahead, each thread with its own Drive session, and still feeds them
+in day order (a test proves the same row and byte-identical evidence with and without it). A download error writes
+nothing and sends the one #fno-desk line. The first Actions run measures the seconds per file.
+
+**Fail-closed details (builder self-review, 16 Oct 2026).** Any other stop (Drive consent expired, Drive settings
+missing, a year missing from A7's calendar, a bad manifest row) also writes no row and sends the one line, naming the
+error; A7's calendar ends on 25 Dec 2026, so from about 30 Nov an entry on a January 2027 expiry needs NSE's 2027
+holiday rows first. A held position whose margin cannot be computed on a later day (a strike no longer listed) is
+dropped and named, and the factor it needed up to then still counts, so a hole can never lower k; an entry the model
+cannot price is named too, and the line gives the count. The workflow commits the factor row and its evidence only
+when the factor step succeeded, and posts one line when the result was computed but not committed to `main`.
+
+**Known limit: what is measured so far (16 Oct 2026, response 235).** The factor of about 1.75 comes from Jan-Apr 2020,
+Jun 2020-Dec 2023, May-Jun 2024 and Sep-Oct 2026 (entries). Jan 2024-Aug 2026 outside May-Jun 2024 is not yet
+measured; the first full run reads every session since 2 Jan 2020 and may set k higher. Response 77's three figures
+(1.265, 1.407, 1.127) were a different measure, scan plus exposure read to the window's end; the evidence table shows
+them beside this run's needed factor for reference only.
+
+**Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
+day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
+
+**Depends:** A9, A14, C2, C2c, C2d; part 2 also O1 (the routine step) · **Size:** M · **Status:** text PASS (judge 173
+addenda 1-3); part 1 code with judge D (judge 237), part 2 (the broker check) after part 1 merges
 
 ---
 

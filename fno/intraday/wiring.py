@@ -7,19 +7,18 @@ outside the repository, sends no alert and commits nothing."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from ..alerts.sender import AlertSender, NoAlertSender
 from ..composition import build_alert_sender
-from ..constants import DEFAULT_REPOSITORY, GITHUB_REPOSITORY_VARIABLE
 from ..forecast_v4.cutoff_move import cutoff_flag
 from ..forecast_v4.terms import MOVED_AFTER_CUTOFF_X
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
-from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
+from ..storage.data_store import new_run_id
+from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.raw_library import RawFileLibrary
 from ..storage.raw_source import NseDailyFoSource
@@ -33,12 +32,14 @@ from ..storage.wiring import (
     build_raw_stores,
     build_session_calendar,
 )
-from .clock import ClockCheck
+from .claims import CLAIM_LABEL, CLAIM_MESSAGE, GitMarkClaims, MarkClaims, NoClaims
+from .clock_wiring import build_clock_check
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
 from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
 from .ledger import ROOT as LEDGER_ROOT
 from .ledger import SlotLedger
+from .observer import NoObserver
 from .read_only import ReadOnlyGroww
 from .realised_vol import QuoteSnapshotRv15m
 from .recorder import IntradayRecorder
@@ -49,6 +50,7 @@ from .snapshot_files import SnapshotFiles
 from .sync import GitLedgerSync, LedgerSync, NoSync
 
 INTRADAY_FOLDER = REPOSITORY / "research" / "data" / "intraday"  # derived files only: no prices
+CLAIMS_FOLDER = REPOSITORY / "receipts" / "intraday" / "claims"  # one claim file per mark (O9 section 6)
 DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive project folder
 COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
 DRY_RUN_ALERTS = "dry run"
@@ -65,12 +67,11 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
     calendar = build_session_calendar()
     session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m(), cutoff=v4_cutoff_flag)
-    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
-                                                             or DEFAULT_REPOSITORY))  # fmt: skip
-    clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
-        source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
+        source, files, ledger, Heartbeat(folder), calendar, alerts, build_clock_check(), session_rv,
+        _sync(dry_run_folder, alerts),
+        claims=_claims(dry_run_folder), observer=NoObserver(),  # LM1's position monitor plugs in here
     )  # fmt: skip
 
 
@@ -105,9 +106,29 @@ def _alerts(dry_run_folder: Path | None) -> AlertSender:
     return NoAlertSender(DRY_RUN_ALERTS) if dry_run_folder else build_alert_sender()
 
 
+def _claims(dry_run_folder: Path | None) -> MarkClaims:
+    """One taker per mark across overlapping runs (O9 section 6); a dry run claims nothing."""
+    if dry_run_folder:
+        return NoClaims()
+    committer = GitManifestRecorder(REPOSITORY, CLAIMS_FOLDER, message=CLAIM_MESSAGE, label=CLAIM_LABEL,
+                                    keep_remote_on_conflict=True, run_paths=_ledger_paths())  # fmt: skip
+    return GitMarkClaims(CLAIMS_FOLDER, committer, new_run_id(), now_ist)
+
+
 def _sync(dry_run_folder: Path | None, alerts: AlertSender) -> LedgerSync:
     if dry_run_folder:
         return NoSync()
     committer = OwnedPathsCommitter(REPOSITORY, INTRADAY_FOLDER, OWNED_PATHS, message=COMMIT_MESSAGE,
-                                    label=COMMIT_LABEL, keep_remote_on_conflict=True)  # fmt: skip
+                                    label=COMMIT_LABEL, keep_remote_on_conflict=True,
+                                    run_paths=(_repository_path(CLAIMS_FOLDER) + "/",))  # fmt: skip
     return GitLedgerSync(committer, alerts)
+
+
+def _ledger_paths() -> tuple[str, ...]:
+    """The run's ledger, RV and heartbeat paths: the claims committer pushes them with its own (judge 247)."""
+    folder = _repository_path(INTRADAY_FOLDER)
+    return tuple(f"{folder}/{name}" for name in OWNED_PATHS)
+
+
+def _repository_path(path: Path) -> str:
+    return path.relative_to(REPOSITORY).as_posix()
