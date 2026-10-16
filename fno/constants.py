@@ -77,6 +77,7 @@ PANEL_INDEX_CLOSE_DIFFERS = "index_close_differs"
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
 NIFTY_SYMBOL, INDEX_OPTION, INDEX_FUTURE = "NIFTY", "IDO", "IDF"  # F&O symbol; UDiFF codes of index options, futures
+RECORDED_INDEX_OPTIONS = ("BANKNIFTY", "FINNIFTY", "MIDCPNIFTY")  # 3 pm, after NIFTY (owner, 15 Oct 2026; A4c)
 
 # Google Drive uploads as the owner (OAuth "Desktop app" client, one-time consent with tools/gdrive_oauth_setup.py);
 # values only in the cloud environment's settings, never in files or chat. Service accounts cannot upload (no quota).
