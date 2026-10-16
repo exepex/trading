@@ -12,8 +12,10 @@ from pathlib import Path
 
 HORIZON_MARKER = "research/ops/calendar_horizon_alerted.txt"
 CALENDAR_PATH = "research/data/calendar/nse_sessions.csv"
-WARNING = ("NSE calendar covers only to {last:%d %b %Y} ({days} days left): add NSE's {year} holiday circular rows to "
-           f"{CALENDAR_PATH}")  # fmt: skip
+# Look-ahead jobs (A14c's weekly stress run) stop earlier by their own rules; no other story's offset is copied here
+WARNING = ("NSE calendar covers only to {last:%d %b %Y} ({days} days left): add every row of NSE's {year} holiday "
+           f"circular to {CALENDAR_PATH} (source cited); look-ahead jobs such as A14c's stress run stop earlier, and "
+           "every job that asks the calendar stops on 1 Jan {year}")  # fmt: skip
 
 
 class CalendarHorizon:

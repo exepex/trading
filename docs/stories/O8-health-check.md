@@ -237,8 +237,10 @@ the next year's holiday rows are added before every job that asks the calendar f
 **Scope.** In:
 - `fno/health/horizon.py`, `CalendarHorizon`. When `calendar.last - run day` is fewer than
   `health.calendar_horizon_days` (45, in `config.yaml`) and the marker does not hold the current calendar's SHA-256,
-  the run carries one warning line. The line names the end date, the days left, and the next year's holiday circular
-  rows to add.
+  the run carries one warning line (wording agreed with the A14c builder, 16 Oct): the end date, the days left, "add
+  every row of NSE's <year> holiday circular (source cited)", and that look-ahead jobs such as A14c's stress run stop
+  earlier while every job stops on 1 January. A14c's own look-ahead offset is not copied into O8 (it is A14c's rule and
+  would go stale).
 - The line is one problem line of the message, so the verdict counts it.
 - **Once only:** the CLI writes the calendar's SHA-256 to `research/ops/calendar_horizon_alerted.txt` only after Slack
   accepted the message. A dry run, a refused post or a failed run never marks. A changed calendar has a new fingerprint,

@@ -44,7 +44,8 @@ def test_once_marked_the_same_calendar_never_warns_again_and_a_new_calendar_does
 def test_the_real_settings_and_calendar_warn_for_2027_from_17_november(tmp_path):
     horizon = build_health_check(load_app_config(), root=tmp_path).horizon
     assert horizon.days == 45 and horizon.last == LAST and horizon.marker == tmp_path / HORIZON_MARKER
-    assert "add NSE's 2027 holiday circular rows" in horizon.warning(date(2026, 11, 17))
+    line = horizon.warning(date(2026, 11, 17))
+    assert "add every row of NSE's 2027 holiday circular to" in line and line.endswith("stops on 1 Jan 2027")
     assert horizon.warning(date(2026, 11, 16)) is None
 
 

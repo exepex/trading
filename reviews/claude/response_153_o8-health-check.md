@@ -232,7 +232,12 @@ are on one branch, `story/o8b-calendar-horizon`.
 `research/ops/`.
 
 ```
-- NSE calendar covers only to 31 Dec 2026 (44 days left): add NSE's 2027 holiday circular rows to research/data/calendar/nse_sessions.csv
+- NSE calendar covers only to 31 Dec 2026 (44 days left): add every row of NSE's 2027 holiday circular to research/data/calendar/nse_sessions.csv (source cited); look-ahead jobs such as A14c's stress run stop earlier, and every job that asks the calendar stops on 1 Jan 2027
 ```
+
+The wording was agreed with the A14c builder (16 Oct), with one part of their proposal declined: their clause "A14c's
+stress run stops from about {last - 25 days}" would copy A14c's own look-ahead offset into O8, and the copy would go
+stale silently if A14c changed it. A fixed "6 Dec 2026" would be wrong from 2027 on. The line names the consequence
+instead, without copying the number. My reasoning only.
 
 The same run reports 9 other problems, all for sessions that have not happened yet.
