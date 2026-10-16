@@ -57,3 +57,20 @@ sound and would pass on its own (below).
   pathspec.
 - **The SPAN tolerance of Rs 1 a lot and exposure 0.1% are "some evidence"** (one basket, one day), as stated. Keep the
   first weeks' mismatches as a finding for the owner, never as an automatic change.
+
+## Addendum 1: heads 0f20dd73, c8498066 and bde03cff (bde03cff is the head to judge)
+The three heads were pushed before my verdict above reached the builder, so they answer O1's owner, not this verdict.
+I judged bde03cff against the three should-fix items.
+
+**Verdict: still FAIL: should-fix 2 is open, and should-fix 1 is partly met.**
+
+| Should-fix | Result | Evidence |
+|---|---|---|
+| 1. The window fits the run | PARTLY | Now 09:30-14:50 IST, "the step after the quote parts start (about 14:33 IST)", "paced to finish within 15 minutes". Still missing: a rule that **no request starts after 14:50**, whatever time the step began. A rerun or a late routine starting the step at 14:45 would otherwise be paced to 15:00 and overlap the 14:55 capture. Also missing: the expected number of baskets a day, behind the 15-minute claim |
+| 2. An independent index for the exposure check | NOT MET | Unchanged: "rebased to Groww's implied index". Groww's answer has no index field, so the check is circular unless the text names a separate NIFTY level (a `get_quote` in this caller's list, or A16's nearest 15-minute level) and a planted-mismatch test |
+| 3. O1's command and file | MET | It keeps O1's name `margins stress-broker-check`; `receipt_pathspecs()` replaces `stress_broker_check.csv`, agreed with O1's owner; the step commits only its own receipts |
+
+**The new exit rules are right.** A mismatch is a finding: its own line saying what to do, exit 0, the step `ok`, never
+a capture miss and never retried. Exit 1, with no alert of its own, is only for a Groww or write failure. Neither
+`capture_errors.csv` nor the step's own alert duplicates O1's journal and `Alerted`. This also closes my note on
+`capture_errors.csv`.
