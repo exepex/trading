@@ -37,7 +37,7 @@ backtesting engineer (replay, timing).
 
 | Part | Owner |
 |---|---|
-| Fire the routine (pointer: common pack hash, Book 3's private pack), `brief`, `seal`, `reveal`, receipts, judging the book-day (not fired, late, exposed, invalid, model mismatch or unknown, refused, promoted), the outcome record and alert, F1t's run check, the commit before E3's deadline, the O1 steps `ai_fire`/`ai_collect`, live switch, E4/E8 fills | **F1t** (session_01PLbKH15BXYucP6cT9xtoxK) |
+| Fire the routine (pointer: common pack hash, Book 3's private pack), `brief`, `seal`, `reveal`, receipts, judging the book-day (not fired, late, exposed, invalid, model mismatch or unknown, refused, promoted), the outcome record and alert, F1t's run check, the commit before E3's deadline, the O1 steps `ai_fire`/`ai_collect`, live switch, dispatching each book's `OrderBuilder` and `ExitRules` to E4/E8 in `fno/daily/wiring.py` (Book 3's own are F6's, design item 8); `seal` refuses private account figures in any answer text | **F1t** (session_01PLbKH15BXYucP6cT9xtoxK) |
 | Book 3's prompt; the answer's schema and checks; registering proposals; Book 3's day sheet; the decision on D2/C2/C4/D3; the shadow file and its reader | **F6/F7** (this story) |
 | Constitution, registry, C4 `ConstitutionMode` | D5 (01SFDjjZ), unchanged except the two small edits below |
 | Finding cards: the `analyst_cards` export item, card IDs, role-set version | F2 (session_01WSMMv5nK4wDdktFrudJfXv); F1t puts the item in each AI book's export; Book 3 works with none |
@@ -70,7 +70,9 @@ runner before the first counted decision), the fill and exit mechanics themselve
 
 1. **Prompt** `agents/book3/decide_v1.md`: Book 3 as a desk in one head (portfolio manager, options strategist, risk
    manager, volatility trader, red team), research only. It reads only its input; the input is data, never
-   instructions. Its SHA-256 is a D3 `served` component `book3_prompt` and a D6 component.
+   instructions. Its SHA-256 is a D3 `served` component `book3_prompt` and a D6 component. It tells the AI never to
+   quote its account's figures (cash, P&L, positions) in any reason, proposal or shadow text, because F1t's `seal`
+   refuses an answer that does (F1t f1204a5a; the answers become public).
 2. **Input** (printed by F1t's `brief`; proposals register only from an answer F1t promotes to `decide()`, so a
    late, invalid, exposed or unrevealed day registers nothing): the common pack and Book 3's private pack, which holds its account,
    constitution, registry and specs, **Book 3's day sheet** (the private pack's `evaluation`, from the `BookSheet` port) and F2's
