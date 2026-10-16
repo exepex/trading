@@ -75,8 +75,9 @@ Reserve = `max(0, k*57,720 - 56,911) + k*22,860`:
 - Response 77's gross ratio is larger than the proposed one in Jun 2020-2023 (1.68 vs 1.48, SC 100 entered
   4 Nov 2020). There it counts scan that the bought legs' value offsets, so it over-reserves credits. In 2020 it
   under-reserves the debit BF 200 by 3,895 (strong evidence: the figures above).
-- Response 77's 1.265 for 2020 was read only to the end of April; held to the exit, the same measure gives 1.303
-  (reasoning: the 2024 case showed the same truncation; the 2020 truncation itself is not re-run).
+- Response 77's 1.265 for 2020 was read only to the end of April; held to the exit, the same measure gives 1.303.
+  Verified later on 16 Oct (strong evidence): gross read to 30 Apr 2020 gives 1.2650 for every structure (SF/SC
+  entered 7 Apr), so all three of response 77's anchors reproduce to 0.001.
 - The exposure doubt matters: at a flat 3%, every measure falls, and the proposed one falls from 1.75 to 1.65
   (strong evidence: the table). The coded rule is the safer choice until NSE's 2020-2023 rate is known.
 - **Not covered:** Jan 2024-Aug 2026, apart from May-Jun 2024. The real full run reads every session since 2020, so
