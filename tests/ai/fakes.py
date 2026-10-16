@@ -13,6 +13,7 @@ from pathlib import Path
 from fno.ai.book import BookSession
 from fno.ai.paths import CLOSES_FILE, pack_path, rules_path
 from fno.ai.receipts import PushReceipts, ReceiptUnknown
+from fno.ai.run_timing import RunTiming
 from fno.ai.transport import SubmissionTransport
 from fno.ai.versions import VERSIONS
 from fno.constants import FORECAST_QUESTIONS
@@ -102,8 +103,9 @@ class FakeRoutine:
         self.transport = LocalCommitTransport(root)
         self.printed: list[str] = []
 
-    def session(self) -> BookSession:
-        return BookSession(self.root, self.transport, self.clock, self.clock.sleep, self.printed.append)
+    def session(self, session_id: str = "session_01AbCdEf") -> BookSession:
+        timing = RunTiming(self.root, self.transport, self.clock, session_id)
+        return BookSession(self.root, self.transport, self.clock, self.clock.sleep, timing, self.printed.append)
 
     def run(self, text: str, answer: dict, sealed_at: datetime, reveal: bool = True) -> list[str]:
         session = self.session()

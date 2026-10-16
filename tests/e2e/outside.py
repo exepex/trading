@@ -5,16 +5,13 @@ over the fake Groww; Book 1's decision runs the real Book 1). Every one has a sw
 from __future__ import annotations
 
 import math
-import traceback
 from datetime import date, datetime, timedelta
 
-from fno.alerts.sender import AlertSender
+from fno.alerts.sender import NOT_SENT, SENT, AlertSender
 from fno.constants import OPTION_CALL, OPTION_PUT
-from fno.daily.processes import Process, Processes
 from fno.models import IST, OptionChain, OptionQuote, QuoteBook
-from fno.quotes.recorder import NSE_DATASET, QuoteSnapshotRecorder
 from fno.storage.raw_store import RawFileConflict, RawFileStore
-from tests.desk.builders import LOT, fly_rows, write_snapshot
+from tests.desk.builders import LOT, fly_rows
 
 START = datetime(2026, 10, 14, 14, 33, tzinfo=IST)  # the routine's start (CLAUDE.md)
 DAY = START.date()
@@ -97,42 +94,50 @@ class FakeOwnerDrive(RawFileStore):
     def __init__(self):
         self.files: dict[str, bytes] = {}
         self.down = False
+        self.down_areas: set[str] = set()  # e.g. {"raw"}: only those areas fail
 
     def get(self, path):
-        self._reachable()
+        self._reachable(path)
         return self.files.get(path)
 
     def put(self, path, data):
-        self._reachable()
+        self._reachable(path)
         if path in self.files and self.files[path] != data:
             raise RawFileConflict(path)
         self.files[path] = data
 
     def file_id(self, path):
-        self._reachable()
+        self._reachable(path)
         return path if path in self.files else None
 
     def replace_contents(self, file_id, data):
-        self._reachable()
+        self._reachable(file_id)
         self.files[file_id] = data
 
-    def _reachable(self):
-        if self.down:
+    def _reachable(self, path: str):
+        if self.down or path.split("/", 1)[0] in self.down_areas:
             raise DriveDown("drive unreachable (HTTP 503)")
 
 
 class FakeSlack(AlertSender):
-    """#fno-desk: `down` refuses every post, as an unset token or an HTTP error does."""
+    """#fno-desk: `down` refuses every post, as an unset token or an HTTP error does; the outcome line is the real
+    sender's (`SENT`, or `NOT_SENT` with the reason)."""
 
     def __init__(self):
         self.sent: list[str] = []
+        self.refused: list[str] = []
         self.down = False
 
     def send(self, text):
         if self.down:
-            raise ConnectionError("slack unreachable")
+            self.refused.append(text)
+            return NOT_SENT.format(reason="ConnectionError")
         self.sent.append(text)
-        return "alert sent to #fno-desk"
+        return SENT
+
+
+class Killed(BaseException):
+    """The routine's container dies: no step's handler sees it (they catch `Exception`), so the run just ends."""
 
 
 class FakeClock:
@@ -144,7 +149,12 @@ class FakeClock:
         self.environ = environ
         self.set(start)
 
+    kill_when = None  # a condition: once true, the next reading of the clock kills the run
+
     def __call__(self) -> datetime:
+        if self.kill_when is not None and self.kill_when():
+            self.kill_when = None
+            raise Killed(f"killed at {self.now:%H:%M:%S}")
         return self.now
 
     def set(self, moment: datetime) -> None:
@@ -171,57 +181,3 @@ class NoNseArchive:
 
     def get(self, path):
         return None
-
-
-class ScriptedProcess(Process):
-    def __init__(self, clock: FakeClock, ends_at: datetime, work, lines: list[str]):
-        self.clock, self.ends_at, self.work, self.printed, self.code, self.stopped = (
-            clock,
-            ends_at,
-            work,
-            lines,
-            None,
-            False,
-        )
-
-    def poll(self):
-        if self.code is None and not self.stopped and self.clock() >= self.ends_at:
-            try:
-                self.code = self.work()
-            except Exception:  # noqa: BLE001 - a crashing command exits 1 with its traceback, as a real child does
-                self.printed, self.code = traceback.format_exc().splitlines(), 1
-        return self.code
-
-    def lines(self):
-        return list(self.printed)
-
-    def stop(self):
-        self.stopped = True
-
-
-class Children(Processes):
-    """The child commands: `script[arguments] = (minutes after start, work)`; `work()` does what the real command
-    leaves behind and returns its exit code. A command not in the script is a test error, never a silent pass."""
-
-    def __init__(self, clock: FakeClock, script: dict):
-        self.clock, self.script, self.started = clock, script, []
-
-    def start(self, arguments) -> Process:
-        key = tuple(arguments)
-        minutes, work, lines = self.script[key[:2] if key[:2] == ("desk", "book1") else key]
-        self.started.append((self.clock(), key))
-        return ScriptedProcess(self.clock, self.clock() + timedelta(minutes=minutes), work, lines)
-
-
-def groww_part(store, day, name: str, at: datetime) -> None:
-    """What a Groww quote part leaves: its attempt (the csv to Drive, the sidecar committed) and its canonical."""
-    snapshot_id = f"{name}_{at:%Y%m%d_%H%M%S}"
-    write_snapshot(store, snapshot_id, market_rows(at), at, at + timedelta(seconds=30), day=day, spot=SPOT)
-    store.put(QuoteSnapshotRecorder.path(day, f"{name}_{day:%Y%m%d}.canonical"), snapshot_id.encode())
-
-
-def nse_part(store, day, at: datetime) -> None:
-    """What NSE's part leaves: its whole attempt and the canonical marker, all committed (NSE's chain is public)."""
-    snapshot_id = f"nifty_{at:%Y%m%d_%H%M%S}"
-    for name, data in ((f"{snapshot_id}.meta.json", b"{}"), (f"nifty_{day:%Y%m%d}.canonical", snapshot_id.encode())):
-        store.put(QuoteSnapshotRecorder.path(day, name, NSE_DATASET), data)

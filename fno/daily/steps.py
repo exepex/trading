@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import time as clock_time
 from collections.abc import Callable, Sequence
-from datetime import date
+from datetime import date, datetime, time
 
 from ..alerts.sender import AlertSender
 from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
-from ..desk.daily_ports import DayStep
+from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
 from ..desk.git_limit import GitLocks
+from ..models import IST
 from .processes import Process, Processes
 
 NOTHING_WRITTEN = "nothing written:"  # how `weather capture` and `forecast-v4 capture` print a refusal (exit 0)
@@ -123,3 +124,15 @@ class Alerted(DayStep):
         if status in (STEP_FAILED, STEP_REFUSED) and (raised or self.status_alerts):
             self.alerts.send(FAILED_ALERT.format(day=day, name=self.name, status=status, reason=done.result["reason"]))
         return done
+
+
+class NotBefore(DayStep):
+    """Starts its step no earlier than `at` IST on the run's day, waiting through the run's waiter (so a quote part
+    still running is serviced); a run already past `at` starts it at once."""
+
+    def __init__(self, step: DayStep, at: time, waiter: Waiter):
+        self.step, self.at, self.waiter = step, at, waiter
+
+    def run(self, day: date) -> StepOutcome:
+        self.waiter.until(datetime.combine(day, self.at, IST))
+        return self.step.run(day)

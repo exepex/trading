@@ -9,11 +9,14 @@ the run writes there and `Git`'s guard expects it there."""
 
 from __future__ import annotations
 
+import contextlib
+import io
+import json
 import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from fno.composition import open_account_writer
@@ -21,24 +24,27 @@ from fno.config import ROOT, load_app_config
 from fno.constants import BOOKS, PLAYBOOK_FOLDER
 from fno.daily.runner import DayRunner
 from fno.desk.private_files import PrivateFiles
+from fno.models import IST
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.storage.index_store import DriveIndexStore
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.wiring import QUOTES_FOLDER
 from tests.checks.builders import CALENDAR, nse_files
 from tests.timetable.drive_day import fresh_container
 
+from .children import Background, Children, Foreground, groww_snapshot, nse_snapshot
 from .outside import (
     DAY,
-    Children,
+    START,
     FakeClock,
     FakeOwnerDrive,
     FakeSlack,
     FixtureProvider,
     NoNseArchive,
-    groww_part,
-    nse_part,
 )
 
+QUOTES = QUOTES_FOLDER.relative_to(ROOT)
+CALENDAR_NAME = "research/data/calendar/nse_sessions.csv"
 COPIED = ("fno", PLAYBOOK_FOLDER, "journal/versions.csv", ".gitignore", "config.yaml")  # the code too: D3 hashes it
 # Every name the suite replaces, and nothing else (criterion 6): a test checks the set
 OUTSIDE_SEAMS = (
@@ -99,7 +105,8 @@ class Day:
         return build_quote_store()
 
     def recorder(self) -> QuoteSnapshotRecorder:
-        """A4's real NIFTY recorder over the fake Groww, on the fake clock, into this checkout's quote store."""
+        """A4's real NIFTY recorder over the fake Groww, on the run's clock, into this checkout's quote store."""
+        self.provider.clock = self.clock
         return QuoteSnapshotRecorder(self.provider, self.quote_store(), self.clock, self.clock.advance,
                                      calendar=CALENDAR)  # fmt: skip
 
@@ -111,12 +118,31 @@ class Day:
     def run(self) -> tuple[int, str]:
         return self.runner().run(self.day)
 
+    def log(self, day: date | None = None) -> dict:
+        """The committed run log of `day` (this day by default); {} when there is none."""
+        path = self.root / "journal/runs" / f"{day or self.day}.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+    def step(self, name: str) -> dict:
+        return self.log()["steps"][name]["result"]
+
+    def move_to(self, day: date) -> None:
+        """The next routine: a new container (no private record left locally), 14:33 on `day`, fresh child commands."""
+        fresh_container(self.root)
+        self.day = day
+        self.clock.set(datetime.combine(day, START.timetz()))
+        self.children = children(self)
+
+
+def children(day_: Day) -> Children:
+    return Children(day_.clock, quote_parts_script(day_), day_.root / QUOTES)
+
 
 def in_checkout(root: Path):
     """`build_quote_store` with this checkout's quote folder as its default (the real store, the fake Drive)."""
-    from fno.storage.wiring import QUOTES_FOLDER, build_quote_store
+    from fno.storage.wiring import build_quote_store
 
-    return lambda folder=None: build_quote_store(folder or root / QUOTES_FOLDER.relative_to(ROOT))
+    return lambda folder=None: build_quote_store(folder or root / QUOTES)
 
 
 def start_accounts_in_drive(root: Path, drive: FakeOwnerDrive, day: date) -> None:
@@ -128,38 +154,56 @@ def start_accounts_in_drive(root: Path, drive: FakeOwnerDrive, day: date) -> Non
     fresh_container(root)
 
 
-def book1_decides(day_: Day):
+def book1_decides(day_: Day) -> Foreground:
     """`desk book1 --day D` as the child runs it, at this checkout (`cmd_book1` reads the package's ROOT)."""
 
-    def work() -> int:
+    def work():
         from fno.books.book1_wiring import build_book1
         from fno.desk.wiring import download_private_records
 
         files = download_private_records(day_.day, day_.root)
-        day_.printed.append(str(build_book1(load_app_config(), day_.root, files=files).decide(day_.day)))
-        return 0
+        return 0, [str(build_book1(load_app_config(), day_.root, files=files).decide(day_.day))]
 
-    return work
+    return Foreground(0, work)
+
+
+def printed(action) -> list[str]:
+    """What a command printed while `action` ran (a child's stdout)."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = action()
+    return code, [line for line in out.getvalue().splitlines() if line.strip()]
 
 
 def quote_parts_script(day_: Day) -> dict:
-    """The 3 pm parts as their real commands end on a good day: NIFTY at 14:56, NSE at 14:57, the indices at 15:13."""
-    nse = LocalFolderStore(day_.root / "research/data/quotes")
+    """The 3 pm parts: NIFTY by A4's real `record_today` over the fake Groww, NSE's chain at 14:57, the three indices
+    by 15:13 (their window), each in its own time."""
+    from fno.quotes.cli import record_today
+    from fno.storage.wiring import build_quote_store
 
-    def nifty() -> int:
-        result = day_.recorder().attempt_now()
-        return 0 if result.complete else 1
+    def nifty(clock, staging):
+        day_.provider.clock = clock
+        build = lambda: QuoteSnapshotRecorder(day_.provider, build_quote_store(staging), clock, clock.advance,  # noqa: E731
+                                              calendar=CALENDAR)  # fmt: skip
+        return printed(lambda: record_today(build, day_.slack, False, CALENDAR_NAME))
 
-    def indices() -> int:
+    def nse(clock, staging):
+        clock.set(max(clock(), datetime.combine(day_.day, time(14, 57), IST)))
+        nse_snapshot(LocalFolderStore(staging), day_.day, clock())
+        return 0, ["recorded: nse (complete=True)"]
+
+    def indices(clock, staging):
+        clock.set(max(clock(), datetime.combine(day_.day, time(15, 13), IST)))
         for name in ("banknifty", "finnifty", "midcpnifty"):
-            groww_part(day_.quote_store(), day_.day, name, day_.clock())
-        return 0
+            groww_snapshot(build_quote_store(staging), day_.day, name, clock())
+        return 0, ["recorded: 3 indices"]
 
     return {
-        ("quotes", "record"): (23, nifty, ["recorded: nifty (complete=True)"]),
-        ("quotes", "record", "--source", "nse"): (24, lambda: nse_part(nse, day_.day, day_.clock()) or 0, ["ok"]),
-        ("quotes", "record-indices"): (17, indices, ["recorded: 3 indices"]),
-        ("desk", "book1"): (0, book1_decides(day_), []),
+        ("quotes", "record"): Background(nifty),
+        ("quotes", "record", "--source", "nse"): Background(nse),
+        ("quotes", "record-indices"): Background(indices),
+        ("desk", "book1"): book1_decides(day_),
+        ("intraday", "backfill"): Foreground(0, lambda: (0, ["nothing to catch up"])),  # A16b: no Groww candles here
     }
 
 
@@ -192,6 +236,6 @@ def fixture_day(tmp_path: Path, monkeypatch) -> Day:
     assert tuple(seams) == OUTSIDE_SEAMS
     for target, value in seams.items():
         monkeypatch.setattr(target, value)
-    day_.children = Children(clock, quote_parts_script(day_))
+    day_.children = children(day_)
     start_accounts_in_drive(root, drive, DAY)
     return day_
