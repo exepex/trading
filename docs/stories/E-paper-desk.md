@@ -1618,15 +1618,24 @@ session 0134MoC6). Scoreboard B is not blocked: it re-marks from the execution s
    and each shadow account with an open trade, inside the same `sync.write` (single-writer lock, Drive pull and push).
    Each open contract is marked at the mid of the valid bid and ask in **the run's own 15:15 execution snapshot**,
    the same snapshot fills and exits use (the snapshot's own validity rules, C3). No later quote, no other source,
-   and nothing re-dated: a rerun of a session uses that session's snapshot.
+   and nothing re-dated: a rerun of a session uses that session's snapshot. **One marking rule:** the rule already
+   in S2's `fno/scoreboard/daily_values.py` (mid; else the last valid mark, flagged stale; else unvalued) moves into
+   one shared function, `fno/books/marking.py`, which E2d calls; S2's owner moves `daily_values` onto it, so the page
+   and scoreboard B can never value the same trade differently (R2/G7's review, response 246).
 2. **A contract without a valid quote.** It takes its last valid mark from the account's own mark record, flagged
    `stale` (E1's `Mark(stale=True)`, already defined). With no earlier mark either, it is `unmarked`. An unmarked
    contract never gets a price: that day's equity row is not written for the book, the trade's rows say `unmarked`,
    and #fno-desk gets one alert naming the book, the trade and the contract (`FNO_SLACK_BOT_TOKEN`). The page then
-   shows the trade as not marked, never a guess.
+   shows the trade as "not valued on <date>", never a guess. The gap moves nothing that decides a trade: the
+   drawdown brake reads closed equity (`fno/risk/book_view.py`), and S2 carries an unvalued day's change to the next
+   valued day without interpolating.
+   **Past expiry:** between a contract's expiry and the publication of its final settlement price there is no quote.
+   The leg keeps its last valid mark with source `awaiting_settlement` (not `stale`), as S3's standard unit treats it,
+   until E7 settles it at the final settlement price at the next daily run after publication. A never-marked leg
+   past expiry stays unmarked.
 3. **What is written (Drive only, private).**
    - `journal/<book>/account/trade_marks.csv`: one row per open trade, contract and session (date, trade id,
-     contract, signed units, mark, source `snapshot`/`last_valid`/`none`, stale, mark value). It is new in
+     contract, signed units, mark, source `snapshot`/`last_valid`/`awaiting_settlement`/`none`, stale, mark value). It is new in
      `ACCOUNT_FILES`, so `PrivateFiles` pulls and pushes it like the other account files. Today only `.gitignore`
      (`journal/*/account/`, `journal/shadow/*/account/`) keeps account files out of git, and `git add -f` would get
      past it (checked: `fno/record_scan/forbidden_files.py` refuses raw Groww quotes by path, but no account file).
@@ -1649,7 +1658,8 @@ session 0134MoC6). Scoreboard B is not blocked: it re-marks from the execution s
 **Acceptance criteria:**
 1. After a run with an open trade and valid quotes, the book's `trade_marks.csv` has one row per open contract at the
    snapshot's mid, and `equity_history.csv` has the session's row with marked equity = cash + the open contracts'
-   units times their marks (a test recomputes it from the fixture snapshot).
+   units times their marks. A test checks that the trade's value (cash flow plus mark value) equals S2's
+   `TradeDay.value` for the same fixture, both through the one shared marking function.
 2. A contract without a valid quote takes the last valid mark, flagged stale, and the equity row lists it in
    `stale_marks`. With no earlier mark, the rows say `unmarked`, no equity row is written for that book that session,
    and exactly one alert names book, trade and contract (fake sender in tests; nothing is posted while building).
@@ -1663,10 +1673,13 @@ session 0134MoC6). Scoreboard B is not blocked: it re-marks from the execution s
 8. One book's marking failure is alerted and never stops another book's marking or exits (the exit review's existing
    per-book rule).
 9. Shadow accounts are marked in their own files.
+10. A leg past its expiry with no settlement price yet keeps its last mark as `awaiting_settlement`; once E7 settles
+    it, the trade is closed and no longer marked (test with a fixture before and after the settlement file).
 
 **Not in scope:** intraday marks (the live monitor, LM1, reads quotes for alerts only, and the paper record changes
 only at the daily run's snapshot); scoreboard B's own re-marking; the P2 page itself (P2c's builder).
 
 **Depends:** E1 (`record_equity`, `Mark`), E2c (Drive store, `PrivateFiles`), E3 (the daily run), E4 (execution
-snapshot), C3 (quote validity), R3 (shadow accounts), O5 (the record scan) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
+snapshot), C3 (quote validity), R3 (shadow accounts), O5 (the record scan), S2 (its marking rule, moved to one
+shared function), E7 (settlement) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
 **Status:** story text for judge B; prerequisite of the first paper trade (orchestrator, 16 Oct 2026).
