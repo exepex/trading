@@ -58,6 +58,19 @@ def plan_inputs(card: IdeaCard) -> PlanInputs:
     return PlanInputs(sd, frequency, level)
 
 
+@dataclass(frozen=True)
+class RegistrationInputs:
+    playbook_name: str
+    playbook_version: int
+    minimum_useful_net: float  # rupees a trade: the stop rule's "minimum useful net" (Test B)
+
+
+def registration_inputs(card: IdeaCard) -> RegistrationInputs:
+    block = _block(card)
+    return RegistrationInputs(block.slug("playbook_name"), block.count("playbook_version"),
+                              block.positive("minimum_useful_net"))  # fmt: skip
+
+
 def _gross(fields: Fields) -> GrossSource:
     kind = GrossKind(fields.choice("kind", list(GrossKind)))
     fields.only(_GROSS[kind])
