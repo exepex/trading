@@ -416,12 +416,15 @@ out: phase 2 writes in phase 1's layout, which G8 reads; story O9 moves data fil
   - `v2_close_blend` (V2, proposed for V2's `rules` slot) and `v3_close_blend` (V3, reported): the mean of HAR daily
     and EWMA at that horizon; missing when either input is missing. This is phase 1's `v1_close_blend` with the
     question's horizon (reasoning only, the same equal-weight argument).
-  - `v7_vix_vs_mean20` (V7, reported; V7's slots stay at p = 1 in v4): the share of "VIX higher in 5 sessions" among
-    the most recent 750 resolved outcomes whose day `t` was on the same side of its trailing 20-session VIX mean as
-    `d` is (both means taken over the 20 sessions before `t` and before `d`; strictly above counts as "above"). At
-    least 500 such outcomes, else missing.
-  - Why this V7 rule: it is exactly the rival `PROTOCOL_v4_calibration.md` section 3 already measured. It adds no new
-    look at spent data and needs no new disclosure (reasoning only).
+  - `v7_vix_vs_mean20` (V7, reported; V7's slots stay at p = 1 in v4): the two-cell rival that
+    `PROTOCOL_v4_calibration.md` section 3 measured (`tools/v4_vix_null.py:50-57`), with one change for the cutoff.
+    - Among the most recent 750 V7 outcomes resolved before the cutoff (at least 500, as the base rate), take the share
+      of 1s on the same side as `d`. "Below" means VIX strictly below its 20-session mean (that session and the 19
+      before it).
+    - With fewer than 100 outcomes on that side, use the window's plain share, as the tool does.
+    - **The one change, said plainly:** the tool reads each day's own close. At 14:30 `d`'s VIX close is not known, so
+      `d` takes the side at `d-1`, and each past day `t` is filed under its side at `t-1`. This lagged rule was not
+      itself measured. The calibration's regime finding carries over by reasoning only.
 - **V7 base rate:** phase 1's `BaseRate` on V7 outcomes `VIX(t+5) > VIX(t)` (strict). The outcome rule goes into
   `series.py` beside `vix_closes`, so G8's `SeriesOutcomes` and G7 share one rule. G8 forms V7 today in
   `fno/forecast_scoring/v4/outcomes.py`, so this is agreed with its owner first (question 3).
@@ -429,7 +432,15 @@ out: phase 2 writes in phase 1's layout, which G8 reads; story O9 moves data fil
   - Phase 1's layout and `records.write` are used unchanged.
   - `records.POINT_QUESTIONS` becomes `terms.POINT_QUESTIONS` (V1-V3), so a V2 or V3 variance is validated as a
     variance.
-  - New forecaster ids go in `fno/constants.py`.
+  - The new forecaster ids go in `fno/forecast_v4_rules/constants.py`: `fno/constants.py` has 349 of its 350 lines,
+    and the weather ids already moved out the same way (E4c). Phase 1's ids stay where they are.
+- **Re-running the back-fill (found while building):** every row carries `method_sha256`, the hash of G7's method
+  files.
+  - G10's edit to `capture.py` already changed that hash. Re-running phase 1's back-fill on main a24cfa0d is
+    therefore refused as a conflict (`records.write`).
+  - The values themselves reproduce: all 9,636 rows, 0 differences apart from the hash.
+  - So the exploratory back-fill files are regenerated whenever the method files change before the freeze. They are
+    reproducible and never counted. The freeze uses the last regeneration, made with the hashed code.
 
 ### Parts b-d, rules to settle in the protocol text before the v4 freeze (questions 1-2)
 
@@ -445,8 +456,13 @@ even if their code comes later:
   years of A16 days. Until then the base rate is `not_eligible` (V4's is already said, protocol 3.1).
   - Proposed for V5 too: no EOD history fills it. V5's back-fill from traded closes has no bid/ask, so the 5% spread
     rule of 1.5 cannot be applied.
-- **V5's outcome `first_seen_at`:** A8's release-check log (`fno/research_data/release_times.first_seen_times`) for
-  the expiry day's bhavcopy. A day without a check row stays unresolved (never "now").
+- **V5's outcome `first_seen_at`:** protocol 1.5 already names "the archive time of A11's first version", but no
+  stored field holds that time (the bhavcopy manifest has `date,url,status,sha256,size_bytes` only; A11's revisions
+  cover later versions). Proposed: that time where one is recorded, otherwise the first sighting in A8's release-check
+  log (`fno/research_data/release_times.first_seen_times`). A day with neither stays unresolved (never "now").
+- **Drafted on this branch** (`PROTOCOL_v4.md` sections 1.5 and 3.1, with a test that reads the wording), for judge
+  D, who judged G6; the owner signs them with the freeze. The wordings add sentences only, so G10's planned
+  "15:00 -> the pack's" edits apply on top without conflict.
 
 ### Acceptance criteria for part a (each with a test; real cases: positive, negative, boundary, empty)
 
@@ -468,7 +484,8 @@ even if their code comes later:
 6. **Records:** V2 and V3 values are validated as variances (finite and > 0; 0 or negative refused); V7 values as
    probabilities in [0, 1].
 7. **Back-fill:** from 2017 closes, every row `backfill_exploratory`, ending before the first live day. A re-run writes
-   identical files. **Phase 1's rows are byte-identical before and after** (V6 and V1 files unchanged).
+   identical files. **Phase 1's V6 rows keep every value, status and inputs hash**, and only `method_sha256` changes.
+   The regenerated files replace the old ones in the same commit.
 8. **Live capture:** before the 14:30 cutoff only (phase 1's `capture_day`); after it, nothing is written and the
    command says so.
 9. **Size and design:** every file stays under 350 lines. No `fno/forecast_v4/` rule is re-implemented. The method hash

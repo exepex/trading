@@ -89,7 +89,9 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   day only (`SttlmPric`, every expiring NIFTY row agreeing; E7 checked it on 25 Jan 2024's file, strong evidence).
   Never a later daily close, never another expiry's level.
 - **Frozen with the outcome:** the source path (`NseDailyFoSource.path_for(e)`), the file's SHA-256 and `first_seen_at`,
-  the archive time of A11's first version. A level first seen before 15:30 IST on `e` is refused. A missing file keeps
+  the archive time of A11's first version; where no such time is recorded, the first sighting in A8's release-check
+  log (`release_times.first_seen_times`), and a day with neither stays unresolved, never stamped "now" (G7b). A level
+  first seen before 15:30 IST on `e` is refused. A missing file keeps
   the outcome unresolved; it is never filled from the index-close file.
 - V5 is a **terminal intrinsic-payoff proxy**: "inside" means a buyer held to expiry lost before costs; "outside" does
   not mean the buyer won. **V5 is not evidence of money.**
@@ -119,6 +121,8 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   scored session of each month; forecast `h x prediction`. **HAR (intraday):** the same on intraday `RV_s`, from 250
   A16 sessions (all available up to 750).
 - **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the 15:00 pack (G1 v2's estimator).
+  **A flagged IV30** (single expiry, `AtmIv30.flagged`) gives no raw and no premium-adjusted value that day: missing
+  and counted, never filled, as the ratio window below drops flagged days (G7b).
 - **Premium-adjusted implied:** raw implied times the median of `RV_h(t) / raw implied_h(t)` over the most recent 750
   sessions resolved before the refit (at least 500), refit monthly as HAR (`eligibility.premium_ratio_window`).
   **Source of the window (judge 98 must-fix 1):** live 15:00 IV30 starts only on 13 Oct 2026, so on live data alone
@@ -139,7 +143,9 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   `p = N(z(K + P)) - N(z(K - P))` with `z(x) = (ln(x / F) + s^2 tau / 2) / (s sqrt(tau))`.
   Labelled "risk-neutral, not a real-world probability".
 - **Base rate (every probability question):** as G1 (b): the share of 1s among the most recent 750 scored sessions
-  before `d` whose outcome resolved before `d`'s cutoff and is not void; at least 500, else no value.
+  before `d` whose outcome resolved before `d`'s cutoff and is not void; at least 500, else no value. **V4's and V5's
+  base rates count live outcomes only:** no end-of-day history fills them (V5's traded closes carry no bid and ask, so
+  1.5's spread rule cannot apply), so each has no value for about two years after its start (G7b).
 - **A baseline value that is not strictly positive (variance) or cannot be computed is missing that day, never
   floored or replaced.** V4's base rate needs 500 resolved A16 days, so V4 has no baseline comparison for about two
   years after A16 starts (said plainly; V4 is reported only).
