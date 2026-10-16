@@ -171,3 +171,19 @@ def test_the_page_never_carries_a_level_a_reaches_colour_or_the_us_cue(live_worl
     for driver in published(inputs)["drivers"]:
         assert not any(level in driver["text"] for level in shown), driver["text"]
         assert not any(word in driver["text"].lower() for word in ("floor", "turns", "level", "threshold"))
+
+
+def test_events_m1_could_not_know_are_said_never_shown_as_no_event(tmp_path):
+    """24-31 Dec 2026: M1's calendar ends inside the 5-session window, so it records the events as null (unknown)."""
+    day = date(2026, 12, 28)
+    store = WeatherRecords(tmp_path)
+    for i, d in enumerate((day - timedelta(days=1), day)):
+        rec = record(d, LIVE, "GREEN", 0.05, 0.14, calm(i))
+        rec["drivers"]["events_next_5_sessions"] = None
+        store.write(d, rec)
+    page = published(
+        WeatherInputsReader(store, [DayValue(day - timedelta(days=1), 100.0), DayValue(day, 100.1)]).on(day)
+    )
+    assert page["drivers"][-1] == {"driver": "scheduled_event", "push": "riskier",
+                                   "text": "Scheduled events over the next 5 sessions not known yet: NSE's next-year "
+                                           "holiday list is not loaded"}  # fmt: skip
