@@ -25,7 +25,10 @@ def test_rights_job_step_and_the_crash_only_alert_line():
     assert flow["permissions"] == {"contents": "write"}
     steps = flow["jobs"]["circulars"]["steps"]
     assert next(s for s in steps if s.get("id") == "circulars")["run"] == "python -m fno circulars"
-    assert steps[-1]["if"] == "${{ failure() && steps.circulars.outputs.posted != 'true' }}"
+    alert = steps[-1]
+    assert alert["name"].startswith("Alert") and alert["if"].startswith("${{ failure() }}")  # O10's watcher sees it ran
+    assert alert["env"] == {"POSTED": "${{ steps.circulars.outputs.posted }}"}
+    assert alert["run"].startswith('if [ "$POSTED" = "true" ]; then') and "exit 0; fi" in alert["run"].splitlines()[0]
 
 
 def test_no_secret_value_is_written_in_the_workflow():
@@ -37,3 +40,12 @@ def test_the_job_commits_only_receipts_and_the_open_problem_keys():
     assert build_receipt_committer().folder == "receipts"
     assert ALERT_STATE_FOLDER.relative_to(ROOT).as_posix() == "research/ops/alerts"
     assert ALERT_STATE_FILE.parent == ALERT_STATE_FOLDER
+
+
+def test_the_alert_step_posts_nothing_and_succeeds_when_the_job_already_spoke():
+    import subprocess
+
+    script = load()["jobs"]["circulars"]["steps"][-1]["run"]
+    done = subprocess.run(["bash", "-e", "-c", script], env={"POSTED": "true", "PATH": "/usr/bin:/bin"},
+                          capture_output=True, text=True)  # fmt: skip
+    assert done.returncode == 0 and "already spoke" in done.stdout and "python" not in done.stderr

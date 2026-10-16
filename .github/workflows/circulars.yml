@@ -1,5 +1,5 @@
 # Story A20b: NSE's and SEBI's circulars kept point in time. Each run lists the circulars not seen before (NSE: its
-# circulars API for yesterday and today; SEBI: its latest circulars page) with the time first seen, saves the file of
+# circulars API for the last 14 days; SEBI: its latest circulars page) with the time first seen, saves the file of
 # each F&O-relevant one, and writes the run's new rows as one part of `circulars/list`, all write-once in the owner's
 # Drive (O9); the repository gets only their SHA-256 receipts (committed). Research data only; it never trades.
 # Secrets: the Drive and Slack ones the other jobs use; none is printed.
@@ -7,7 +7,7 @@ name: circulars
 
 on:
   schedule:
-    - cron: "30 2-16 * * *" # hourly, 08:00-22:00 IST: NSE and SEBI publish through the evening
+    - cron: "30 2-16 * * *" # hourly, 08:00-22:00 IST, every day: NSE issued circulars on 13 non-session days of 2026
   workflow_dispatch:
 
 permissions:
@@ -44,8 +44,11 @@ jobs:
         id: circulars
         run: python -m fno circulars
       - name: Alert #fno-desk when the run failed without the job's own line (a crash, a sender that could not post)
-        if: ${{ failure() && steps.circulars.outputs.posted != 'true' }}
+        if: ${{ failure() }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
+        env:
+          POSTED: ${{ steps.circulars.outputs.posted }}
         run: |
+          if [ "$POSTED" = "true" ]; then echo "the job already spoke (its alert, or an episode already alerted)"; exit 0; fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O circulars: the GitHub Actions run failed without its own alert; see $RUN_URL"

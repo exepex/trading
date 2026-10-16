@@ -39,7 +39,7 @@ scratchpad, not committed).
 | 7 | NSE stale judged on the previous session from a session day, a holiday and a weekend; empty list stale; beyond the calendar its own problem (`nse:calendar`), not a crash; SEBI 45 days fine, 46 stale, empty stale; a stale feed's circulars still listed; a latest page with nothing seen before is a gap (not on the first ever run) | `freshness.py`, `capture.py` | `test_freshness.py`, `test_capture.py` | NSE rule off; SEBI `<=` → `<`; stale ignored; gap check off; CalendarError not caught |
 | 8 | Listed at first sight with time and status; empty list and repeat list write no part; window 14 days; a link failing twice then working ends `saved` with its first time; exactly 3 days still retried, 3 days 1 minute `abandoned`, never again; a failed list part keeps the run's other problems; a receipted file counts as saved | `capture.py` | `test_capture.py` | window 1 day; failed file held back; retry takes a new time; never abandoned; list-part replaces problems; receipt not trusted |
 | 9 | One alert per episode; known problem quiet but step marked spoken; one "recovered" line; one-off always alerted; keys only in the state; a refused alert is sent again and the step never claims it spoke; a refused recovery is posted again; a known problem with a refused recovery lets the workflow speak; an abandoned file is not "recovered"; unread parts stop the capture; receipts not committed alerts every run | `job.py`, `episodes.py`, `fno/alerts/step_output.py` `record_posted` | `test_job.py` | known alerts again; no recovered line; step not marked spoken; state saved though not sent; spoken though not sent; abandoned reported recovered; not-committed ignored. **Not caught:** "one-off kept open", an equivalent mutant (one-off keys never enter the state by another path) |
-| 13 | Cron `30 2-16 * * *`, `contents: write`, alert step on `failure() && steps.circulars.outputs.posted != 'true'`, env holds only secret references | `.github/workflows/circulars.yml` | `test_workflow.py` | cron changed |
+| 13 | Cron `30 2-16 * * *`, `contents: write`; the alert step (name starts "Alert") runs on every `failure()`, so O10's watcher sees it ran, and exits 0 without posting when the job already spoke (`posted == 'true'`: its alert, or an episode already alerted) (judge 359 SF1); env holds only secret references | `.github/workflows/circulars.yml` | `test_workflow.py` (the `if:`, the env, and the script run in bash with `POSTED=true`) | cron changed |
 | 14 | Commits only `receipts/` and `research/ops/alerts/` | `wiring.py` | `test_the_job_commits_only_...` | — |
 | 15 | Wired only in `fno/circulars/wiring.py`; tests never touch the network | wiring | all offline | — |
 
@@ -83,9 +83,17 @@ Two independent review passes:
   5. **Minors, accepted:** NSE `data` not a list; partial SEBI row parse. Not changed: a `first_seen_at` without a
      time zone (this code never writes one).
 
+## After judge 359 (FAIL, 1 should-fix)
+
+- SF1 accepted: with `posted == 'true'` the old condition skipped the alert step, and O10's watcher, which stays
+  quiet only when an "Alert"/"One line to" step ran, would have posted on every hourly run of an episode. The step
+  now runs on every failure and exits 0 quietly when the job already spoke.
+- Minor accepted: the header says 14 days. "NSE and SEBI also publish on holidays" is corrected: NSE issued
+  circulars on 13 non-session days of 2026, but your sample (2 Oct, weekends) had none.
+
 ## Gates
 
-On the unshallow clone: 7424 passed; ruff check and format clean; `check_imports.py` and `check_records.py` clean.
+On the unshallow clone (head after judge 359): 7425 passed; ruff check and format clean; `check_imports.py` and `check_records.py` clean.
 
 ## Honest limits
 
