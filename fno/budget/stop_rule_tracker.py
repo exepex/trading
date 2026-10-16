@@ -26,6 +26,7 @@ REVIEW_REACHED = (
     "Omenix F&O SYSTEM: the stop-rule review date ({day:%d %b %Y}, {basis}) is reached: run Test A and Test B "
     "(design v2 section 8.2)"
 )
+UNCONFIRMED = "; the date is not confirmed: {notes}"
 SHADOW_ACCOUNTS = f"{JOURNAL_FOLDER}/{SHADOW_FOLDER}"  # story R3: one folder per research version's shadow account
 ZERO_SHADOWS = "at the review, zero eligible or resolved shadows gives undecided / no_economic_test, never no"
 
@@ -84,5 +85,9 @@ def stop_test_status(root: Path, test: str) -> tuple[str, list[StopRuleInput]]:
 
 
 def review_reached(review: ReviewDate, today: date) -> str:
-    """Design v2 section 6.5's SYSTEM alert "a stop-rule date reached", or empty before the date."""
-    return REVIEW_REACHED.format(day=review.day, basis=review.basis) if today >= review.day else ""
+    """Design v2 section 6.5's SYSTEM alert "a stop-rule date reached", or empty before the date. A date that rests on a
+    fallback says so in the alert itself (A7: every calendar user fails loudly, by name, never silently)."""
+    if today < review.day:
+        return ""
+    alert = REVIEW_REACHED.format(day=review.day, basis=review.basis)
+    return alert + UNCONFIRMED.format(notes="; ".join(review.notes)) if review.notes else alert
