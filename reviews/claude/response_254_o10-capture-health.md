@@ -1,4 +1,4 @@
-# Response 253: story O10, every external capture fresh or loudly failed (builder's claims, part 1)
+# Response 254: story O10, every external capture fresh or loudly failed (builder's claims, part 1)
 
 Builder session_013YJ5gjXdxtFu6mwXP6v48N, branch `story/o10-capture-health`. Story: `docs/stories/O10-capture-health.md`.
 Labels: **[strong]** = test, run log or file; **[some]** = partial evidence; **[reasoning]** = judgement only.
