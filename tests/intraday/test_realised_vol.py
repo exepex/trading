@@ -3,6 +3,7 @@ session row computed from stored snapshots, written once."""
 
 import math
 from datetime import date, time
+from types import SimpleNamespace
 
 import pytest
 
@@ -107,11 +108,33 @@ def test_the_row_is_written_once_and_other_inputs_are_refused(tmp_path):
     assert recorder.session_rv.table.rows() == first
 
 
-def test_the_void_share_is_reported_and_flagged_above_5_percent(tmp_path):
+NOT_COUNTED_1 = "; not counted: 1 before the first session with a recorded previous session (void by construction)"
+
+
+def test_the_first_recorded_session_is_void_by_construction_and_not_counted(tmp_path):
+    """Owner, 16 Oct 2026: 14 Oct (the first) has no recorded previous session, so its overnight part cannot exist;
+    the 5% count starts at 15 Oct."""
     _, recorder = _two_sessions(tmp_path)
-    assert recorder.session_rv.void_share_line() == (
-        "void sessions: 1 of 2 (50.0%) - above 5%: propose a new version (design 5.2)"
-    )
+    assert recorder.session_rv.void_share_line() == "void sessions: 0 of 1 (0.0%)" + NOT_COUNTED_1
+
+
+def rv_rows(folder, statuses):
+    from fno.intraday.rv_table import CUTOFF_FIELDS, FIELDS, RvTable
+
+    table = RvTable(folder)
+    for day, status in statuses.items():
+        table.write_once({**dict.fromkeys((*FIELDS, *CUTOFF_FIELDS), ""), "session": day, "status": status,
+                          "method": "rv-quote-15m-v1", "inputs_sha256": day})  # fmt: skip
+    return table
+
+
+def test_a_later_void_session_counts_and_is_flagged_above_5_percent(tmp_path):
+    from fno.intraday.session_rv import SessionRv
+
+    table = rv_rows(tmp_path, {"2026-10-13": "void", "2026-10-14": "ok", "2026-10-15": "void", "2026-10-16": "ok"})
+    files = SimpleNamespace(source="groww")  # the void share never reads a snapshot
+    line = SessionRv(files, calendar(), table, QuoteSnapshotRv15m()).void_share_line()
+    assert line == "void sessions: 1 of 3 (33.3%) - above 5%: propose a new version (design 5.2)" + NOT_COUNTED_1
 
 
 def test_the_overnight_part_starts_from_the_last_recorded_session_skipping_a_muhurat_day():
