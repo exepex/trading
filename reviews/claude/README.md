@@ -229,3 +229,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 239: A7 calendar out-of-range audit: 6 silent or misleading users (the first from 17 Nov 2026, G2/G3 horizon_day), loud-but-generic workflows, proposals per owner](response_239_calendar-2027-audit.md)
 - [Response 236: R3, B0's registration code (measurement label, E6 wording, first decision record 16 Nov): claims](response_236_r3-b0-registration-code.md)
 - [Response 240 (filed first as 238, renumbered: O9 holds 238): A14c code claims for judge D (needed-factor measure, read-ahead, self-review fixes; criterion 10's broker check is deferred by the orchestrator)](response_240_a14c-code.md)
+- [Response 245: the weather at the calendar's end (24-31 Dec 2026): unknown events said on the weather page, v0's not-scored reason named in M1's record](response_245_m1-calendar-end.md)
