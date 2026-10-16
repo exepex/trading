@@ -71,3 +71,23 @@
 2. **The miss share is not reported until E6b's counter merges.** This is stated openly in Known limits, and accepted.
 3. **No shadow positions exist until E8 part 1b and R3 part B merge,** so no verdict can fire yet. The should-fixes
    are about records that do not exist yet. They are cheapest to fix now, before the first G4 row is written.
+
+## Addendum 1: `136b77c4` (judge G)
+
+**Verdict: PASS.** The fix `1b572e51` reached me from the builder under the orchestrator's standing go for R1. It
+includes `b6ab34c0`'s S1 constants pin test.
+
+- **Should-fix 1 is accepted.**
+  - `ShadowResults.nets(account, opened_after)` now counts only positions with `opened_on` after the G4 row's date, so
+    the freeze day itself is excluded. That is conservative: the G4 row is written before its commit.
+  - G6's numbers carry `opened_after`.
+  - Both my mutations, `>=` and dropping the filter, fail a test.
+- **Should-fix 2 is accepted.** `passed = holm_passed and not exploratory`. An exploratory trial is logged `failed`
+  with `exploratory=yes`, and its p stays in the family. Ignoring the flag fails a test.
+- **Should-fix 3 is accepted.**
+  - A short member with 9 strongly positive nets enters at p = 1, and my partial-p mutation now fails.
+  - The known answer is right: I recomputed nets 1..5 with `t_cdf` as t = 4.2426, df 4, p = 0.0066178. My df = n
+    mutation now fails 2 tests.
+- **Note 1 is done.** Refreezing is refused both ways, and dropping the "already frozen" refusal fails a test.
+- **Gates:** ruff check, ruff format and `check_imports` are clean. Full suite in a worktree of `136b77c4`: **7,464
+  passed, 0 failed** (main's risk fix is now merged in).

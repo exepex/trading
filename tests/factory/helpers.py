@@ -44,3 +44,21 @@ def write_card(root: Path, block: str = BLOCK, path: str = CARD) -> str:
     card.parent.mkdir(parents=True, exist_ok=True)
     card.write_text(f"# Idea card\n\n| Field | Value |\n|---|---|\n\n```factory\n{block}```\n\n## G1\n")
     return path
+
+
+REGISTER = """## Register
+
+| Data set | Price type | Period | Status | Used by (ledger trials) | Notes |
+|---|---|---|---|---|---|
+| Quotes | Groww | 2027 | `forward` | none | |
+| Closes | NSE | 2019 | `spent` | 1 | |
+"""
+INPUTS = """gross: {kind: published, least_favourable: 1200, source: a planted study}
+tail: {probability: 0.05, loss: 9000, in_gross: no}
+cost: {measured: 300, source: a planted measurement}
+data_sets: ["Quotes | Groww | 2027"]
+measures: planted outcomes
+sd_per_trade: 3000
+frequency_per_year: 200
+pass_level: 0.01
+"""

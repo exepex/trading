@@ -9,13 +9,16 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from ..checks.data_checks import CaptureRecord
 from .common_pack import CommonPack
 from .entries import EntryOrder
 from .exit_rules import ExitRule
 from .records import DeskJournal
+
+if TYPE_CHECKING:
+    from .daily_steps import StepOutcome
 
 T = TypeVar("T")
 
@@ -29,6 +32,15 @@ class CommittedDecision:
     commit: str  # the commit that holds the run
     committed_at: datetime  # its committer time (time zone aware)
     run: Path | None = None  # the run's folder (D3): its orders are built from it at the fill, C4's pass read there
+
+
+class DayStep(ABC):
+    """One of story O1's steps around the desk's own (weather, v4 forecasts, the quote parts, the card): run once at
+    its place in `DAILY_RUN_STEPS`, recorded and committed by the daily run like any desk step."""
+
+    @abstractmethod
+    def run(self, day: date) -> StepOutcome:
+        """What the step did: its inputs, its result (with `status` and `reason`) and the files to commit."""
 
 
 class Waiter(ABC):

@@ -15,12 +15,15 @@ DATA_SHAPES = {  # names, constants and record shapes: no figure is computed in 
     "fno/budget/constants.py": "the budget's purpose names (no numbers)",
     "fno/models.py": "the clock and plain value types",
     "fno/books/fills.py": "the Fill row shape",
+    "fno/factory/constants.py": (
+        "gate names, outcomes, file paths and the figures pattern, each value Test B reads pinned "
+        "(test_factory_constants_pinned); its numbers serve G1-G3, which Test B never reads"
+    ),
     "fno/desk/trade_counts.py": "version_key only: parses a strategy-version tag",
     "fno/desk/pack_items.py": "available_time only: parses an ISO time into IST",
     "fno/desk/execution.py": "fill_id only: an identifier string",
     "fno/playbook/decision_record.py": "the D3 record's field names and the no-trade ID",
     "fno/playbook/decision_validity.py": "the C4 'blocked' reason prefix",
-    "fno/playbook/measurement.py": "R3 measurement label for the title line only (hash it once Test B counts by it)",
     "fno/playbook/opportunities.py": "the book and shadow mode names",
     "fno/playbook/schema.py": "the playbook file's field schema",
     "fno/research_data/panel_reader.py": "the FutureQuote row shape",
@@ -32,6 +35,7 @@ READERS = {  # read committed or archived files as they are; the files themselve
     "fno/budget/usage_ledger.py": "reads F8's committed AI usage rows",
     "fno/checks/validity_failures.py": "reads C4's append-only failure log",
     "fno/books/paths.py": "journal file paths",
+    "fno/factory/append_only.py": "reads the gate log's committed rows and refuses an edited history",
     "fno/books/versions.py": "reads the strategy-version registry",
     "fno/desk/pack_store.py": "reads E2's common packs",
     "fno/playbook/lifecycle.py": "D1's status writer: applies the pause the hashed rule decided",
@@ -53,6 +57,7 @@ WIRING = {  # composition and settings: the settings that decide figures are has
     "fno/composition.py": "composition root",
     "fno/config.py": "loads config.yaml; its scoring sections are hashed",
     "fno/desk/wiring.py": "composition root",
+    "fno/factory/wiring.py": "composition root",
     "fno/storage/wiring.py": "composition root",
 }
 EXEMPT = {**DATA_SHAPES, **READERS, **WIRING}
