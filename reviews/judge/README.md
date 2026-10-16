@@ -1,7 +1,9 @@
 # Independent judge verdicts
 
 Written only by the independent judge session (`docs/JUDGE.md`). One file per verdict:
-`judge_<n>_<story>.md`, newest last.
+`judge_<n>_<story>.md`, newest last. Claim `<n>` (and every `## Addendum <k>`) on `main` first (story O12):
+`python tools/claim_number.py judge-report <story> --session <id>` and
+`python tools/claim_number.py judge-addendum <label> --session <id> --report <n>`.
 
 
 | # | Story | Verdict | File |
