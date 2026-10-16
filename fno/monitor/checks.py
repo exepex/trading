@@ -10,13 +10,17 @@ from abc import ABC, abstractmethod
 from datetime import datetime, time, timedelta
 
 from ..models import IST
-from ..research_data.calendar import SessionCalendar
+from ..research_data.calendar import CalendarError, SessionCalendar
 from .model import DANGER, DESK, HOURLY, ONCE, POSITION, WARNING, Condition, MonitorMark, WatchedPosition
 from .settings import MonitorSettings
 
 PRECISION = 6  # percent digits kept, so a level exactly at a threshold is not lost to float noise (1.4999...)
 # E4's rule names (`fno/desk/exit_rules.py`, pinned by a test) in plain words: the monitor imports nothing of the desk
 RULE_LABELS = {"profit_target": "profit target", "stop_loss": "stop loss", "time_exit": "time limit"}
+# NSE's longest closure from 2017 to 2026 is 5 calendar days between sessions (2,478 sessions, the A7 calendar), so any
+# 7 days hold a session: an expiry more than 7 x (N + 1) days away is more than N sessions away
+DAYS_PER_SESSION_AT_MOST = 7
+EXPIRY_UNCOUNTED = "expiry_uncounted"
 REACHED = "{trade} ({book}) reached its {rule} rule at {when}; the paper record changes at the daily run"
 WAITING_CHECKS = {
     "vix_jump": "waits for an intraday VIX source (A16's mark has none); nothing built, nothing sent",
@@ -134,15 +138,24 @@ class ExpiryNear(MonitorCheck):
     def find(self, mark, positions):
         if mark.mark.astimezone(IST).time() < time.fromisoformat(self.settings.expiry_warn_from):
             return []
-        found = []
-        for p in positions:
-            expiry = p.nearest_expiry
+        return [c for p in positions if (c := self._one(mark, p))]
+
+    def _one(self, mark: MonitorMark, p: WatchedPosition) -> Condition | None:
+        expiry = p.nearest_expiry
+        if (expiry - mark.session).days > DAYS_PER_SESSION_AT_MOST * (self.settings.expiry_warn_sessions + 1):
+            return None  # too far to be within the window: no session count, so no calendar needed (judge 264)
+        key = f"{self.name}:{p.trade_id}:{expiry}"
+        try:
             left = len(self.calendar.sessions(mark.session, expiry)) - 1
-            if 0 <= left <= self.settings.expiry_warn_sessions:
-                facts = f"{p.trade_id} ({p.book}): nearest expiry {expiry:%d %b %Y}, {left} sessions after today"
-                found.append(Condition(self.name, WARNING, POSITION, f"{self.name}:{p.trade_id}:{expiry}", ONCE,
-                                       facts, p.trade_id))  # fmt: skip
-        return found
+        except CalendarError as gap:  # this position's warning only; every other check still runs
+            facts = (
+                f"{p.trade_id} ({p.book}): nearest expiry {expiry:%d %b %Y}; sessions to it cannot be counted: {gap}"
+            )
+            return Condition(EXPIRY_UNCOUNTED, WARNING, POSITION, key, ONCE, facts, p.trade_id)
+        if not 0 <= left <= self.settings.expiry_warn_sessions:
+            return None
+        facts = f"{p.trade_id} ({p.book}): nearest expiry {expiry:%d %b %Y}, {left} sessions after today"
+        return Condition(self.name, WARNING, POSITION, key, ONCE, facts, p.trade_id)
 
 
 class QuotesStale:

@@ -223,3 +223,31 @@ the real position adapter (below).
 - a failure not recorded.
 
 **Gates:** pytest 7,398 passed; ruff check and format; `check_imports` clean; every file is under 350 lines.
+
+## Judge 264 (round 1 FAIL) addressed
+
+**Should-fix accepted (reproduced on 15886d25).** On 1 Dec 2026, a position expiring 28 Jan 2027 at 90% loss used
+gave `CalendarError` and no condition at all. The cause was in the design: the expiry check counted sessions for every
+position, and any exception from one check took down the whole mark. Fixed at both levels:
+
+1. **`ExpiryNear` counts sessions only when the expiry can be inside the window.** NSE's longest gap between sessions
+   from 2017 to 2026 is 5 calendar days (2,478 sessions; pinned by `test_the_seven_day_bound_holds_on_the_calendar`).
+   So an expiry more than 7 × (N + 1) days away is more than N sessions away and needs no calendar. When a near expiry
+   cannot be counted (past the calendar's end), that position gets a named WARNING, `expiry_uncounted`, with the
+   calendar's own words. The first line is "action: check <trade>'s expiry date yourself; NSE's calendar needs next
+   year's holiday rows". Every other check still runs.
+2. **`PositionMonitor` runs each check in isolation.** A check that raises becomes its own WARNING (`check_failed`,
+   desk-wide, hourly, the error's class name only), and the other checks still run. A future bug in one check can no
+   longer silence the others, and it is never silent itself.
+
+**Tests:**
+- the judge's case (`test_a_far_expiry_past_the_calendar_end_never_stops_the_other_checks`: only the loss DANGER);
+- a near expiry past the end (`expiry_uncounted` plus the loss DANGER);
+- a broken check isolated;
+- both new alert texts follow the first-line and no-exit/close rules.
+
+**Mutation proofs:** removing the bound, the isolation or the `CalendarError` catch each fails a test.
+
+**Note for the owner (judge 264's request).** The owner's row says one alert per condition per position per hour. An
+**exit rule reached** is alerted **once per session** instead. It is information only, and E8's daily exit alert stays
+the one action alert, so repeating it hourly would add noise and lose no action. The owner can ask for hourly instead.
