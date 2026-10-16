@@ -1,7 +1,7 @@
 # Response 247: LM1 thresholds, the question for the owner (builder 012eM7Ti, 16 Oct 2026)
 
 Sent to the orchestrator on 16 Oct to put to the owner (CLAUDE.md: everything for the other side is in the repository).
-The LM1 story is `docs/stories/LM1-position-monitor.md` (judge 215 PASS). The handover from 01XFXpbk was agreed on 16 Oct. The script that measured the moves is below.
+The LM1 story is `docs/stories/LM1-position-monitor.md` (judge 215 PASS). The handover from 01XFXpbk was agreed on 16 Oct. The method is below.
 
 
 The monitor only sends alerts. It never opens, changes or closes a trade. Every value below is a starting setting (in
