@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import AI_BOOKS, BOOK2_HYBRID, V4_QUESTIONS
+from ..constants import AI_BOOKS, BOOK2_HYBRID, FORECAST_PROTOCOL_V4, V4_QUESTIONS
 from ..constants_operations import ROUTINE_POINTER_MAX_BYTES
 from .pointer import SHA256, PointerRefused, is_probability
 from .v4_input import input_sha256
@@ -72,16 +72,18 @@ def _check_input(built) -> None:
         raise PointerRefused(f"{book!r} is not an AI book")
     try:
         date.fromisoformat(built["day"])
-        registered = current_version(book).label
+        registered = current_version(book, FORECAST_PROTOCOL_V4)
     except (VersionRefused, TypeError, ValueError) as error:
         raise PointerRefused(str(error)) from None
-    if built["version"] != registered:
+    if built["version"] != registered.label:
         raise PointerRefused("version is not the book's registered version")
     if not isinstance(built["pack_sha256"], str) or not SHA256.fullmatch(built["pack_sha256"]):
         raise PointerRefused("pack_sha256 is not a SHA-256")
     questions = built["questions"]
     if not isinstance(questions, list) or not questions or not set(questions) <= set(V4_QUESTIONS):
         raise PointerRefused("questions must be a non-empty list of v4 questions")
+    if not set(questions) <= set(registered.questions):
+        raise PointerRefused(f"{registered.label} does not define {sorted(set(questions) - set(registered.questions))}")
     if book == BOOK2_HYBRID:
         _check_rules(built["rules"], questions)
 

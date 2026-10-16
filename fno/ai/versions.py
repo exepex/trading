@@ -9,7 +9,18 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..constants import BOOK2_HYBRID, BOOK3_AI, ISOLATION_SEALED_SAME_DAY
+from ..constants import (
+    BOOK2_HYBRID,
+    BOOK3_AI,
+    FORECAST_PROTOCOL_V2,
+    FORECAST_PROTOCOL_V4,
+    FORECAST_QUESTIONS,
+    ISOLATION_SEALED_SAME_DAY,
+    V6_BIG_MOVE_1S,
+    V6_BIG_MOVE_5S,
+)
+
+V4_AI_QUESTIONS = (V6_BIG_MOVE_1S, V6_BIG_MOVE_5S)  # what prompt v2 defines: v4 freezes with V6a and V6b (16 Oct)
 
 
 class VersionRefused(ValueError):
@@ -25,6 +36,13 @@ class BookVersion:
     registered_model: str  # the routine's model; a different served model leaves the day unscored (D6)
     envelope_width: float | None  # Hybrid: how far outside the baselines' range it may go; None: no envelope
     isolation: str = ISOLATION_SEALED_SAME_DAY  # how the routine is isolated: part of the version (D6)
+    questions: tuple[str, ...] = FORECAST_QUESTIONS  # what its prompt defines; it is never asked anything else
+    protocol: str = FORECAST_PROTOCOL_V2  # the protocol it answers: v2 and v4 run side by side until the v4 freeze
+
+    @property
+    def forecaster(self) -> str:
+        """The registered forecaster's name, e.g. `book3_ai_v2`: protocol v4's slot ledger name and record folder."""
+        return f"{self.book}_v{self.number}"
 
     @property
     def label(self) -> str:
@@ -44,14 +62,20 @@ VERSIONS = (
                 "8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af", "claude-opus-5-5", 0.10),
     BookVersion(BOOK3_AI, 1, "agents/forecast/book3_ai_v1.md",
                 "6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a", "claude-opus-5-5", None),
+    BookVersion(BOOK2_HYBRID, 2, "agents/forecast/book2_hybrid_v2.md",
+                "8997f1aa72fffcd442bb4c659a8ddea05fbe1ca6fbb64bc435bfd99bf1c9ffc4", "claude-opus-5-5", 0.10,
+                questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4),
+    BookVersion(BOOK3_AI, 2, "agents/forecast/book3_ai_v2.md",
+                "2b1d63ef2ae27c266f75904e0b697b5bd022a3c7705a947a3d229edf246ad6ad", "claude-opus-5-5", None,
+                questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4),
 )  # fmt: skip
 
 
-def current_version(book: str) -> BookVersion:
-    """The newest registered version of the book's forecast."""
-    found = [v for v in VERSIONS if v.book == book]
+def current_version(book: str, protocol: str = FORECAST_PROTOCOL_V2) -> BookVersion:
+    """The newest registered version of the book's forecast for `protocol` (a v4 version never answers v2)."""
+    found = [v for v in VERSIONS if v.book == book and v.protocol == protocol]
     if not found:
-        raise VersionRefused(f"{book!r} is not an AI book")
+        raise VersionRefused(f"{book!r} has no registered {protocol} version")
     return max(found, key=lambda v: v.number)
 
 

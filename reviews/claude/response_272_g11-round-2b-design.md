@@ -89,3 +89,21 @@ and F1t on main.
 - **The test** (`tests/ai/test_v4_rows.py`) writes a miss row and checks it with G8's own `AiSlotDays`: unsettled
   before the row, settled after.
 - Also changed in item 2: BG1's timing record is written by F8c's `brief` and `reveal`, so there is no prompt step.
+
+## Addendum 2 (16 Oct): versions name their protocol and questions; V6's rules slot is the weather
+
+- **A v4 version must not disturb the v2 run.** If `current_version(book)` simply returned the newest version,
+  registering prompt v2 would switch today's v2 run to it before the freeze. So `BookVersion` gains `protocol` (v2 or
+  v4) and `current_version(book, protocol)` picks the newest version of that protocol. v1 keeps the default (v2),
+  so every existing caller is unchanged; a test pins it.
+- **A version names the questions its prompt defines** (`questions`, v1: the five v2 questions; v2: V6a and V6b). The
+  v4 pointer refuses a question outside them, so a pointer adding V1 needs a new prompt version first; the model is
+  never asked a question its prompt does not define.
+- **`BookVersion.forecaster`** (`book3_ai_v2`) is the registered name and folder (addendum 1), derived from the
+  version, so it has one home.
+- **Correction to section 2 item 1:** V6's rules slot is M1's market weather (`weather_vix_v1`, decision 70;
+  `fno/forecast_v4_rules/capture.py` marks `v6_ewma_t4` reported only), not a G7 rule. Hybrid's input takes the rules
+  slot's forecaster from the slot registry, never a name written in code, and the prompt says "the forecaster
+  registered in the rules slot".
+- Prompt files: `agents/forecast/book2_hybrid_v2.md` and `book3_ai_v2.md`, registered with their SHA-256. They may
+  change before round 2b lands, with the hash updated in the same commit; once on main they change only as v3.

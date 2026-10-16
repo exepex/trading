@@ -12,14 +12,14 @@ from fno.ai.pointer import PointerRefused
 from fno.ai.v4_input import V4InputFor, build_v4_input, input_sha256
 from fno.ai.v4_pointer import V4Pointer, parse_v4_pointer
 from fno.ai.versions import current_version
-from fno.constants import BOOK2_HYBRID, BOOK3_AI
+from fno.constants import BOOK2_HYBRID, BOOK3_AI, FORECAST_PROTOCOL_V4
 from fno.constants_operations import ROUTINE_POINTER_MAX_BYTES
 from tests.ai.test_book_session import THIRD_PARTY
 from tests.ai.test_v4_input import DAY, QUESTIONS, RULES, a_pack, closes
 
 
 def pointer(book=BOOK3_AI):
-    who = V4InputFor(book, current_version(book).label, DAY, QUESTIONS, "d" * 64)
+    who = V4InputFor(book, current_version(book, FORECAST_PROTOCOL_V4).label, DAY, QUESTIONS, "d" * 64)
     rules, width = (RULES, 0.10) if book == BOOK2_HYBRID else (None, None)
     return V4Pointer(build_v4_input(who, a_pack(), closes(), rules, width))
 
@@ -70,3 +70,9 @@ def test_the_pointer_reads_with_the_standard_library_only():
     )
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert done.stdout.strip() == "[]"
+
+
+def test_a_question_the_prompt_does_not_define_is_refused():
+    """Prompt v2 defines V6a and V6b only; V1 needs a new version first."""
+    with pytest.raises(PointerRefused, match="does not define"):
+        parse_v4_pointer(_edited(lambda f: f["input"].update(questions=["v1_rv_next_session"])))

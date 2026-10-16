@@ -12,11 +12,12 @@ from fno.ai.v4_input import V4InputFor, build_v4_input, input_sha256
 from fno.constants import BOOK2_HYBRID, BOOK3_AI, V4_BASELINE_BASE_RATE, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.models import IST
 from fno.v4_pack.model import ChainQuote, FutureQuote, Iv30, Level, Pack, VixLevel
+from fno.weather.constants import WEATHER_MODEL_VIX
 
 DAY = date(2026, 10, 26)
 WEEKLY, MONTHLY = date(2026, 10, 27), date(2026, 11, 24)
 QUESTIONS = (V6_BIG_MOVE_1S, V6_BIG_MOVE_5S)
-RULES_FORECASTER = "v6_ewma_t4"
+RULES_FORECASTER = WEATHER_MODEL_VIX  # V6's rules slot is the market weather (decision 70)
 POINTER_CAP = 64 * 1024
 METHOD = "atm_iv30_g1/sha256:" + "c" * 64
 
