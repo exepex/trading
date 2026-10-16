@@ -47,9 +47,9 @@ should-fix: receipts must not collide). Built from two read-only inventories of 
 |---|---|---|
 | `DataStore` | `put(path, bytes)` write-once into Drive area `data/`; returns the SHA-256 | `GoogleDriveUploadStore`, `AreaStore` |
 | `ReceiptWriter` | writes and commits `receipts/<path>.sha256` after a successful `put` | A16f `GitManifestRecorder` (origin main, refusal) |
-| `DriveCache` | `sync(prefixes)`: list Drive, download what is new, verify against receipts, keep a local index | `GoogleDriveStore` (service-account reads), `DriveOnlyQuoteStore`'s SHA check |
-| `PartTable` | write a part; read the union (CSV and JSONL), latest-wins for supersessions | new; replaces in-place appends |
-| `Snapshot` | versioned state files, newest wins | replaces `DriveIndexStore.replace` |
+| `DriveCache` | `sync(prefix, into=, strip=)`: the receipts are the index (Drive is never listed; a file without a receipt is never read); downloads only what the cache lacks or holds with other bytes; checks every byte against the receipt's SHA-256; a missing or changed file is reported, never written. Every caller stops and alerts when `not report.complete`. Files restored with `into=` go to git-ignored paths only | `GoogleDriveStore` reads, `DriveOnlyQuoteStore`'s SHA check |
+| `PartTable` | write one CSV part per run and day; read the union of a table's parts in path order. JSONL parts and supersession rules (latest-wins) are not built: each table keeps its own rule, and a step that moves a JSONL or superseding table builds or names its reader first (judge 242) | new; replaces in-place appends |
+| `Snapshot` | versioned state files `<name>/<run_id>.json`, newest run_id wins; two runs in the same UTC second are ordered by the run_id's random suffix, so a step whose snapshots can share a second must not rely on their order | replaces `DriveIndexStore.replace` |
 
 Market-brief gets the same five parts (no Drive code exists there today); the Drive settings are the same four
 `FNO_GDRIVE_*` names or a second set chosen by the owner.

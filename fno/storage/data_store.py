@@ -14,6 +14,9 @@ from .raw_store import RawFileStore, path_parts
 from .receipts import Receipt, ReceiptFolder
 
 RUN_ID_TIME = "%Y%m%dT%H%M%SZ"
+RECEIPT_BREAKERS = ("\t", "\n", "\r")
+WRITER, RUN_ID = "writer", "run_id"
+BAD_FIELD = "{name} must be non-empty without tabs or line breaks: {value!r}"
 
 
 def new_run_id(now: datetime | None = None) -> str:
@@ -27,6 +30,9 @@ class DataStore:
                  clock: Callable[[], datetime] = lambda: datetime.now(UTC)):  # fmt: skip
         """`drive`: the whole project folder; `area`: the Drive area every path of this store lives under."""
         path_parts(area)
+        for name, value in ((WRITER, writer), (RUN_ID, run_id)):  # a tab or line break would split a receipt line
+            if not value or any(c in value for c in RECEIPT_BREAKERS):
+                raise ValueError(BAD_FIELD.format(name=name, value=value))
         self.drive, self.area, self.receipts = drive, area, receipts
         self.writer, self.run_id, self.clock = writer, run_id, clock
 

@@ -11,13 +11,14 @@ from __future__ import annotations
 import time as clock
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
 from ..constants import SESSION_MUHURAT
 from ..models import IST, now_ist
 from ..quotes.recorder import MUHURAT_ONLY, RECORDED_SESSION_KINDS
 from ..research_data.calendar import CalendarError, SessionCalendar
+from .claims import ClaimResult, MarkClaims, NoClaims
 from .clock import ClockCheck
 from .document import SnapshotDocument, utc_text
 from .heartbeat import Heartbeat
@@ -39,6 +40,9 @@ TAKEN_DETAIL = (
 )
 
 TAKE_FAILED, DRIVE_WRITE = "take", "drive_write"
+CLAIM_LEAD = timedelta(seconds=45)
+CLAIMED_BY = "claimed by another run ({run}): taken there, not here"
+CLAIM_LINE = "claim {outcome}: {detail}"
 STARTED_AFTER = "started after --until {until:%H:%M}: nothing to take"
 ALREADY_PAUSE_SECONDS = 60
 HEARTBEAT_NAME = "story A16 intraday recorder"
@@ -69,11 +73,13 @@ class SlotOutcome:
 class IntradayRecorder:
     def __init__(self, source: IntradayQuoteSource, files: SnapshotFiles, ledger: SlotLedger, heartbeat: Heartbeat,
                  calendar: SessionCalendar, alerts: AlertSender, clock_check: ClockCheck, session_rv: SessionRv,
-                 sync: LedgerSync, now: Callable[[], datetime] = now_ist, sleep=clock.sleep):  # fmt: skip
+                 sync: LedgerSync, now: Callable[[], datetime] = now_ist, sleep=clock.sleep,
+                 claims: MarkClaims | None = None):  # fmt: skip
         self.source, self.files, self.ledger, self.heartbeat = source, files, ledger, heartbeat
         self.calendar, self.alerts, self.clock_check, self.session_rv = calendar, alerts, clock_check, session_rv
-        self.sync, self.now, self.sleep = sync, now, sleep
+        self.sync, self.now, self.sleep, self.claims = sync, now, sleep, claims or NoClaims()
         self.settlement = Settlement(files, ledger, alerts)
+        self._lost: set[datetime] = set()  # marks another run claimed: never taken by this run
 
     def snapshot(self, until: time | None = None) -> SlotOutcome:
         """Takes the next open or coming mark (waiting at most 15 minutes), unless it is after `until`. Never stops
@@ -86,12 +92,18 @@ class IntradayRecorder:
         lines = [self.sync.pull()] + self._settle_previous(day)  # see what an overlapping run already pushed
         open_marks = [m for m in takeable_marks(day, started) if until is None or m.time() <= until]
         settled = {row["mark"] for row in self.ledger.rows(day)}  # after the pull: also the other run's rows
-        mark = next((m for m in open_marks if utc_text(m) not in settled), None)
+        mark = next((m for m in open_marks if utc_text(m) not in settled and m not in self._lost), None)
         if mark is None:
             status, detail = (ALREADY, "") if open_marks else (NO_MARK, NO_MARK_DETAIL)
             outcome = SlotOutcome(status, label(open_marks[0]) if open_marks else "", detail, lines)
             return self._close(day, started, outcome)
         self.source.prepare(day)
+        claim = self._claim(day, mark)
+        if not claim.take:
+            self._lost.add(mark)
+            detail = CLAIMED_BY.format(run=claim.holder)
+            return self._close(day, started, SlotOutcome(ALREADY, label(mark), detail, lines))
+        lines += [CLAIM_LINE.format(outcome=claim.outcome, detail=claim.detail)] if claim.detail else []
         wait = (mark - self.now()).total_seconds()
         if wait > 0:
             self.sleep(wait)
@@ -154,6 +166,14 @@ class IntradayRecorder:
         if self.calendar.session_kind(today) in RECORDED_SESSION_KINDS and now > window_end(marks(today)[-1]):
             return today
         return previous_recorded_session(self.calendar, today)
+
+    def _claim(self, day: date, mark: datetime) -> ClaimResult:
+        """Claims the mark CLAIM_LEAD before it: late enough that a run dying while it waits rarely holds a mark it
+        never takes, early enough for a push to land."""
+        wait = (mark - CLAIM_LEAD - self.now()).total_seconds()
+        if wait > 0:
+            self.sleep(wait)
+        return self.claims.claim(day, mark)
 
     def _later_mark(self, until: time) -> bool:
         return self._next_mark(until) is not None

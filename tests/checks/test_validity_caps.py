@@ -12,9 +12,11 @@ from fno.checks.validity_account import AccountFacts, Position
 from fno.checks.validity_caps import held_max_loss
 from fno.checks.validity_chain import PricedChain
 from fno.checks.validity_evidence import EvidenceReader
+from fno.checks.validity_margin import MarginProblem, margin_row
 from fno.checks.validity_money import entry_cash_flow, max_loss
 from fno.constants import RISK_PROFILE_BOOKS
 from fno.quotes.recorder import DATASET
+from fno.research_data.calendar import CsvSessionCalendar
 from fno.risk.open_risk import HeldMaxLoss
 from tests.checks.builders import committed_record
 from tests.checks.validity_builders import DAY, SHAPES, check, committed_store, failed, legs_of, mid, proposal
@@ -168,12 +170,38 @@ def test_c4_refuses_to_start_on_a_books_setting_missing_never_a_crash_later(key)
         limits(RISK_PROFILE_BOOKS, **{key: None})
 
 
-def test_c4_treats_a_day_the_calendar_cannot_answer_as_a_stale_margin():
-    def no_calendar(day):
-        raise ValueError("calendar has no 2031")
+SOURCE = "https://nsearchives.nseindia.com/content/circulars/test.pdf"
+CALENDAR_2026 = CsvSessionCalendar(f"date,kind,description,source_url\n2026-12-25,holiday,test,{SOURCE}\n")
+SF_200 = ("SF", 200.0, 1)
 
-    settings = replace(limits(RISK_PROFILE_BOOKS).margins, session_kind=no_calendar)
-    assert not settings.fresh(date(2031, 1, 2), date(2031, 1, 2))
+
+def _row_on(day: date, as_of: str, session_kind):
+    settings = replace(limits(RISK_PROFILE_BOOKS).margins, session_kind=session_kind)
+    return margin_row([MARGIN_ROWS[0] | {"as_of": as_of}], SF_200, day, settings)
+
+
+@pytest.mark.parametrize(
+    ("day", "as_of", "year"),
+    [(date(2027, 1, 4), "2026-12-31", "2027"), (date(2026, 1, 1), "2025-12-31", "2025")],  # past either end
+)
+def test_c4_names_the_calendar_when_it_cannot_count_the_margins_age(day, as_of, year):
+    """Story C5c: never "too old" for a day the calendar cannot answer; the calendar's own words name the year."""
+    with pytest.raises(MarginProblem) as refused:
+        _row_on(day, as_of, CALENDAR_2026.session_kind)
+    reason = str(refused.value)
+    assert reason.startswith(f"margin age for {day} cannot be counted:") and "too old" not in reason
+    assert f"add every row of NSE's {year} holiday circular" in reason
+
+
+def test_c4_names_a_missing_calendar_and_still_refuses():
+    with pytest.raises(MarginProblem, match="cannot be counted: no NSE session calendar"):
+        _row_on(date(2026, 10, 14), "2026-10-13", None)
+
+
+def test_a_covered_day_still_gives_fresh_or_too_old():
+    assert _row_on(date(2026, 10, 14), "2026-10-13", CALENDAR_2026.session_kind)["as_of"] == "2026-10-13"
+    with pytest.raises(MarginProblem, match="too old on 2026-10-14"):
+        _row_on(date(2026, 10, 14), "2026-10-12", CALENDAR_2026.session_kind)
 
 
 @pytest.mark.parametrize(

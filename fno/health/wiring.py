@@ -12,10 +12,12 @@ from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
 from ..constants import ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, HEALTH_RUNS_FILE
 from ..desk.timetable import timetable_from_config
-from ..storage.wiring import build_session_calendar
+from ..research_data.calendar import load_session_calendar
+from ..storage.wiring import CALENDAR_FILE
 from .checker import HealthCheck
 from .evidence import Evidence, HealthHistory
 from .expectations import build_expectations
+from .horizon import HORIZON_MARKER, CalendarHorizon
 from .run_record import RunRecord
 
 
@@ -28,4 +30,7 @@ def build_health_check(cfg: dict, root: Path = ROOT, env: Mapping[str, str] = os
     receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
     evidence = Evidence(Path(root), history, receipts)
     expectations = build_expectations(evidence, Path(root), timetable_from_config(cfg))
-    return HealthCheck(expectations, build_session_calendar(), build_run_record(root), cfg["health"]["window_days"])
+    calendar, settings = load_session_calendar(CALENDAR_FILE), cfg["health"]
+    horizon = CalendarHorizon(calendar.last, calendar.calendar_sha256(), Path(root) / HORIZON_MARKER,
+                              settings["calendar_horizon_days"])  # fmt: skip
+    return HealthCheck(expectations, calendar, build_run_record(root), settings["window_days"], horizon)

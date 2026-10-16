@@ -20,6 +20,7 @@ DATA_SHAPES = {  # names, constants and record shapes: no figure is computed in 
     "fno/desk/execution.py": "fill_id only: an identifier string",
     "fno/playbook/decision_record.py": "the D3 record's field names and the no-trade ID",
     "fno/playbook/decision_validity.py": "the C4 'blocked' reason prefix",
+    "fno/playbook/measurement.py": "R3 measurement label for the title line only (hash it once Test B counts by it)",
     "fno/playbook/opportunities.py": "the book and shadow mode names",
     "fno/playbook/schema.py": "the playbook file's field schema",
     "fno/research_data/panel_reader.py": "the FutureQuote row shape",

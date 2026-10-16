@@ -3,7 +3,8 @@
 - **Drivers** (story W3, privacy rule 4): each of v0's inputs that changed since the previous session's record, its
   value in plain words; `push` is the sign of that change (up: riskier). They are ordered by the size of the change
   against the input's own typical (median) change over the last 250 records, never by a model coefficient. The
-  scheduled events of the next 5 sessions follow, each riskier. No `reaches` colour, no level, no US cue.
+  scheduled events of the next 5 sessions follow, each riskier; when M1 could not know them (its calendar ends inside
+  the window), one driver says so. No `reaches` colour, no level, no US cue.
 - **Recent, red share:** every record, each labelled live or back-fill (exploratory, contract 2.8.0); the red share
   counts live records once any exists, else the back-fill, and says which (`basis`), as M1 counts it.
 - **Scores:** G8's alone (`scores()`); none yet, so not_enough_data with no number, exploratory while only the
@@ -26,6 +27,7 @@ BASE_RATE, OK = "base_rate", "ok"
 QUESTIONS = (("V6_1d", V6_BIG_MOVE_1S), ("V6_5d", V6_BIG_MOVE_5S))
 YARDSTICKS = ("base_rate", "v0_checklist")  # the contract's two yardsticks
 RECENT_SESSIONS = 10
+EVENTS_UNKNOWN = "Scheduled events over the next 5 sessions not known yet: NSE's next-year holiday list is not loaded"
 N_NEEDED = 10  # the contract: twice V6's 5-session block
 DRIVERS = {  # v0's input -> (the contract's driver, its value in plain words)
     "vix_ratio": ("vix_level", lambda v: f"India VIX at {v:.2f} times its median of the previous 250 sessions"),
@@ -69,9 +71,18 @@ def drivers(inputs: WeatherInputs) -> list[dict]:
         size = abs(today - before) / typical if typical else abs(today - before)
         push = "riskier" if today > before else "calmer"
         moved.append((size, {"driver": driver, "text": words(today), "push": push}))
-    events = [{"driver": "scheduled_event", "text": f"{EVENTS.get(e['type'], e['type'])} on {e['date']}",
-               "push": "riskier"} for e in record["drivers"]["events_next_5_sessions"] or []]  # fmt: skip
-    return [d for _, d in sorted(moved, key=lambda m: -m[0])] + events
+    return [d for _, d in sorted(moved, key=lambda m: -m[0])] + _events(record)
+
+
+def _events(record: dict) -> list[dict]:
+    """The next 5 sessions' scheduled events. M1 records null when its calendar ends inside the window (the year's
+    last sessions before NSE's next-year holiday list is loaded): that is unknown, never "no event", so it is said,
+    and counted riskier (unknown is caution; the contract has no neutral push)."""
+    ahead = record["drivers"]["events_next_5_sessions"]
+    if ahead is None:
+        return [{"driver": "scheduled_event", "text": EVENTS_UNKNOWN, "push": "riskier"}]
+    return [{"driver": "scheduled_event", "text": f"{EVENTS.get(e['type'], e['type'])} on {e['date']}",
+             "push": "riskier"} for e in ahead]  # fmt: skip
 
 
 def _value(record: dict | None, name: str) -> float | None:
