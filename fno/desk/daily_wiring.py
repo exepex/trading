@@ -55,7 +55,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     journal = lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds, files)  # noqa: E731
     sync = DriveAccountSync(journal, committer, root)
     pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch())  # noqa: E731
-    packs = build_packs(root, refresh=pull, files=files)
+    packs = build_packs(root, refresh=pull, files=files, alerts=alerts)
     versions = Book1Versions(build_playbook_loader(root), VersionRegistry(root / VERSIONS_FILE), history,
                              history.head, committer)  # fmt: skip
     capture = RecorderExecutionCapture(build_quote_recorder(cfg).capture, build_quote_store(), QUOTES_FOLDER, root,
