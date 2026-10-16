@@ -69,7 +69,8 @@ captured properly so that we could fix them").
      unknown) is silent unless the job recorded it: its own evidence (`CheckResult.recorded`: a `none` canonical, an
      incomplete snapshot, A16's bad marks) or a capture-error row from one of its jobs dated from the session to 2 days
      later (`_recovered` rows aside). A session is judged once, by the first real run at which none of its checks is
-     `not due`, and appended to `research/ops/trial_days.csv` (never edited; never by a dry run or a broken check). The
+     `not due` (one with an `unknown` waits for its last run in the window, where `unknown` counts; a session no live
+     check covers is never judged), and appended to `research/ops/trial_days.csv` (never edited; never by a dry run or a broken check). The
      message's last line is "trial: <k> clean sessions in a row" with what broke it ("last silent: <checks> <date>" or
      "not proven: <date>" for a session with no row), recomputed from the file and the calendar;
    - the message gets "capture errors: <n> in the window (<jobs>)" when there are any.

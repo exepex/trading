@@ -141,3 +141,22 @@ def test_the_cli_appends_on_a_real_run_only(monkeypatch, tmp_path):
     assert cli(dry_run=False) == 0 and trial.recorded == 1
     assert sent[-1].endswith("\ntrial: 1 clean session in a row")  # one message, the trial line last
     assert cli(dry_run=False, broken=True) == 1 and trial.recorded == 1
+
+
+def windowed(run_day, *findings):
+    return HealthRun(run_day, (DAY,), ("Index closes", "NSE recorder"), tuple(findings), (), (), JOBS, 6)
+
+
+def test_an_unknown_waits_for_the_session_s_last_run_in_the_window():
+    """O8 owner's review: GitHub's log unreachable on one run must not freeze a silent failure into the trial."""
+    unknown, ok = found("Index closes", HEALTH_UNKNOWN), found("Index closes", HEALTH_OK)
+    assert judge(windowed(DAY + timedelta(days=1), unknown), []) == []  # deferred
+    assert judge(windowed(DAY + timedelta(days=2), ok), []) == [TrialDay(DAY, ())]  # a later run sees it ok
+    assert judge(windowed(DAY + timedelta(days=6), unknown), []) == [TrialDay(DAY, ("Index closes",))]  # last chance
+
+
+def test_a_session_nothing_checked_is_never_judged():
+    from fno.constants import HEALTH_NOT_EXPECTED
+
+    assert judge(run(), []) == []
+    assert judge(run(found("Index closes", HEALTH_NOT_EXPECTED)), []) == []

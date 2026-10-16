@@ -86,3 +86,22 @@ gets no row and no line. This applies only to workflows in `REPLACEABLE` (news-c
 cancelled before a step is a lost capture slot and still gets both (`test_a_replaced_news_run_is_neither_recorded_nor_
 alerted`, `test_a_news_run_cancelled_after_a_step_ran_is_a_failure`, `test_any_other_workflow_cancelled_before_a_step_is_
 a_lost_slot`) [strong].
+
+## Addendum 3: part 2 (branch story/o10-part2-freshness-trial), after the O8 owner's review
+
+Built as agreed with O8's owner (session_012eM7Ti), who reviewed f3ab7413..7379d723 and approved after one fix.
+
+| Item | Claim | Evidence |
+|---|---|---|
+| Freshness rows | NSE margins (`as_of`, by the desk timetable's `pack`, 14:58), corporate actions and EQUITY_L (by `MARKET_ARCHIVE_BY`, 15:00 next day) | `tests/health/test_capture_freshness.py` [strong]; the deadline's measurement: two pushes, 11:56 and 11:52 IST (5a313d87, 720defc7) [some] |
+| Column by name | `SessionRowCheck(..., column)` matches the header name and searches the push with that column's key (`<d>,`, `,<d>,`, `,<d>`) | same file [strong] |
+| Trial | silent = a problem neither in the job's own evidence (`CheckResult.recorded`) nor in a capture-error row of its jobs within 2 days; once per session; missing sessions break the streak; dry runs and broken checks never append | `tests/health/test_trial.py` [strong] |
+| O8 owner's should-fix | an `unknown` waits for the session's last run in the window; a later ok judges it clean, an unknown on the last run judges it silent | `test_an_unknown_waits_for_the_session_s_last_run_in_the_window` [strong] |
+| O8 owner's Q1 | "3 pm Groww recorder" has no jobs on purpose: the routine records failures in the canonical (`none`, incomplete); a never-started routine is silent. Comment in `expectations.py` | [strong: code] |
+| O8 owner's Q2 | agreed: a session no live check covers is never judged | `test_a_session_nothing_checked_is_never_judged` [strong] |
+| Test isolation | `tests/health/conftest.py` gives every health test a trial report that writes nothing (three existing CLI tests wrote the real `research/ops/trial_days.csv` before it; found in my run) | full suite leaves `research/ops/` unchanged [strong] |
+| A4c rows | not added: they wait for measured pushes after 19 Oct | - |
+| Judge 350's new minor (`all` vs `any` in `needs_alert`) | no watched workflow has two independent failing jobs today; a test is added when one does | [reasoning] |
+
+Real dry run on this repository (no GitHub token here, so push times are `unknown`): the message ends with the trial line
+and nothing is written to `research/ops/` [strong].

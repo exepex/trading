@@ -31,7 +31,7 @@ PANEL_DAY_BY = Deadline(time(13, 0), days_after=1)  # panel-days.yml: after its 
 FLOWS_BY = Deadline(time(12, 0), days_after=1)
 # market-publish.yml (cron 07:10 IST) adds session D's corporate-actions and EQUITY_L rows the next morning; GitHub
 # started it 4-5 h late: pushes at 11:56 IST on 15 Oct and 11:52 IST on 16 Oct 2026 (commits 5a313d87, 720defc7), so
-# 12:00 would be late on a slightly later start: 15:00 the next day (story O10, measured)
+# 12:00 would be late on a slightly later start: 15:00 the next day (story O10; some evidence: two pushes measured)
 MARKET_ARCHIVE_BY = Deadline(time(15, 0), days_after=1)
 
 PARTICIPANT_OI_MANIFEST = "research/data/manifests/participant-oi.csv"
@@ -67,6 +67,8 @@ def expected_forecast_rows() -> int:
 def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> list[Expectation]:
     recorded, everything = RECORDED_SESSION_KINDS, ALL_SESSION_KINDS
     return [
+        # no jobs: the 14:33 routine records its failures in the canonical itself (`none`, incomplete), so a routine
+        # that never started leaves no record and is silent, as it should be (O10's trial)
         Expectation("3 pm Groww recorder", CanonicalCheck(evidence, DATASET, Deadline(LATEST_START)), recorded,
                     FIRST_RECORDED),
         Expectation("NSE recorder", CanonicalCheck(evidence, NSE_DATASET, Deadline(LATEST_START)), recorded,

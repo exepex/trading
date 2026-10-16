@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
-from ..constants import HEALTH_NOT_DUE, HEALTH_PROBLEMS
+from ..constants import HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED, HEALTH_PROBLEMS, HEALTH_UNKNOWN
 from ..research_data.calendar import SessionCalendar
 from .capture_errors import CaptureError, CaptureErrorLog
 from .checker import HealthRun
@@ -35,11 +35,15 @@ class TrialDay:
 
 
 def judge(run: HealthRun, errors: list[CaptureError]) -> list[TrialDay]:
-    """Each session of the run whose checks are all final, with its silent checks."""
+    """Each session of the run whose checks are all final, with its silent checks. A session nothing checked (no live,
+    expected check) is never judged. An `unknown` may be the health check's own blind spot (GitHub's log unreachable),
+    so it waits for the session's last run in the window, where it counts as a problem (O8 owner's review)."""
     jobs, days = dict(run.jobs), []
+    last_chance = run.run_day - timedelta(days=run.window_days)
     for session in run.sessions:
-        found = [f for f in run.findings if f.session == session]
-        if any(f.result.status == HEALTH_NOT_DUE for f in found):
+        found = [f for f in run.findings if f.session == session and f.result.status != HEALTH_NOT_EXPECTED]
+        statuses = {f.result.status for f in found}
+        if not found or HEALTH_NOT_DUE in statuses or (HEALTH_UNKNOWN in statuses and session > last_chance):
             continue
         problems = [f for f in found if f.result.status in HEALTH_PROBLEMS and not f.result.recorded]
         silent = [f.check for f in problems if not _recorded(errors, jobs.get(f.check, ()), session)]

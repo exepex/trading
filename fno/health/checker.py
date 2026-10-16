@@ -36,6 +36,7 @@ class HealthRun:
     missed_runs: tuple[date, ...]
     warnings: tuple[str, ...] = ()  # once-only lines needing the owner (the calendar's horizon, O8b)
     jobs: tuple[tuple[str, tuple[str, ...]], ...] = ()  # each check's jobs that record its failures (O10's trial)
+    window_days: int = 0  # the window's length: a session dated `window_days` before the run is on its last run
 
 
 class HealthCheck:
@@ -55,7 +56,8 @@ class HealthCheck:
         ]
         return HealthRun(run_day, tuple(sessions), tuple(e.name for e in self.expectations if e.live_from),
                          tuple(findings), tuple(self.record.missing(run_day, self.days)),
-                         self._warnings(run_day), tuple((e.name, e.jobs) for e in self.expectations))  # fmt: skip
+                         self._warnings(run_day), tuple((e.name, e.jobs) for e in self.expectations),
+                         self.days)  # fmt: skip
 
     def _warnings(self, run_day: date) -> tuple[str, ...]:
         line = self.horizon.warning(run_day) if self.horizon else None
