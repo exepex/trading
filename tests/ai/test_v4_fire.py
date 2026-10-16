@@ -177,3 +177,9 @@ def test_the_wiring_refuses_a_day_without_needing_drive():
     from fno.ai.wiring import build_v4_firer
 
     assert "is not today" in build_v4_firer({}).fire(date(2026, 10, 1))[-1]  # no Drive settings in this env
+
+
+def test_the_fire_log_is_in_the_folder_v4_fire_yml_commits():
+    """v4-fire.yml commits `research/forecasts/ai_v4` after the fire (judge 282): the path is pinned here."""
+    assert V4_TERMS.fired_path(DAY) == "research/forecasts/ai_v4/2026/2026-10-26_fired.json"
+    assert V4_TERMS.audit_path(DAY, BOOK3_AI).startswith("research/forecasts/ai_v4/")  # collect's commit covers it
