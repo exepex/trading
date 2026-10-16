@@ -54,3 +54,13 @@ Judge F (independent). Story `docs/stories/A20-rules-and-dates.md` at e50ca714 (
   That is enough for daily rules.
 - The empty ban list's layout is unseen. A header-only file is accepted and anything else fails loudly: the right
   default. Fix it from the first real empty file.
+
+## Addendum 1: a duplicate line I missed (found while judging A20b, judge 359)
+
+The PASS stands, with one recommended change before merging. `fo-masters.yml`'s fallback step is
+`if: ${{ failure() && steps.masters.outputs.posted != 'true' }}`. When the job posted its own line it is skipped, so
+O10's watcher (needs an alert step that ran) posts a second line for the same failed run. That is at most 3 runs a
+day, the same "duplicate rather than silence" limit I accepted in judge 350 add. 1, so it is not blocking here.
+
+It is removed by the same change as judge 359 SF1: `if: ${{ failure() }}`, and the step exits 0 without sending when
+`posted == 'true'`. I recommend doing it in the same merge.
