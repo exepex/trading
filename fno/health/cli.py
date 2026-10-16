@@ -16,6 +16,19 @@ def ist_time(text: str) -> datetime:
     return moment if moment.tzinfo else moment.replace(tzinfo=IST)
 
 
+def _record_posted() -> None:
+    """`posted=true` in the step's outputs (Actions); anything that stops before this leaves the workflow's own
+    failure line to speak, so a crash at import or a sender that cannot be built is never silent."""
+    import os
+
+    from ..constants import ENV_GITHUB_OUTPUT
+
+    path = os.environ.get(ENV_GITHUB_OUTPUT)
+    if path:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write("posted=true\n")
+
+
 def add_health_parser(subparsers) -> None:
     parser = subparsers.add_parser("health", help="the daily health check of every daily job (story O8)")
     actions = parser.add_subparsers(dest="health_cmd", required=True)
@@ -36,7 +49,8 @@ def cmd_health(args, out=print) -> int:
     started = now_ist()
     alerts = None if args.dry_run else build_alert_sender()
     try:
-        run = build_health_check(load_app_config()).run(args.at or started)
+        check = build_health_check(load_app_config())
+        run = check.run(args.at or started)
         text, result, code = message(run), verdict(run), 0
         for line in table(run):
             out(line)
@@ -47,6 +61,10 @@ def cmd_health(args, out=print) -> int:
     if alerts:
         sent = alerts.send(text)
         out(sent)
+        if sent == SENT:
+            _record_posted()  # the workflow's own alert stays quiet only after this (judge 240)
         build_run_record().append((args.at or started).astimezone(IST).date(), started, now_ist(), result)
+        if sent == SENT and not code and run.warnings:
+            check.horizon.mark()  # once only: a warning Slack accepted is never repeated for this calendar
         code = code or int(sent != SENT)
     return code
