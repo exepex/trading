@@ -1325,13 +1325,17 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     Nothing is appended in GitHub.
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
     and exits 0. An `error` row is retried by the next run.
-  - **Exit and lines (O1's rules, agreed 16 Oct):** the step sends no alert itself. O1's `daily run` records every
-    step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed step, so no O10
-    `capture_errors.csv` row is written either.
-    - Exit 0: every basket `ok`, "nothing to check", or "outside market hours".
-    - Exit 1, with the reason as the last printed line: a Groww failure (sign-in, network, a refused request; the
-      rows are `error`), a record that could not be written, or any `mismatch`. A mismatch is a finding, not a
-      failure, but it is exit 1 so that O1's one line reaches the owner. A step whose data did not land is never
+  - **Exit and lines (O1's rules, agreed 16 Oct):** a failure never alerts twice, and a finding is not a failure.
+    O1's `daily run` records every step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed
+    step, so the check writes no O10 `capture_errors.csv` row and sends no alert of its own for a failure.
+    - Exit 0, with the step `ok`: every basket `ok`, "nothing to check", or "outside market hours".
+    - A `mismatch` (Groww and the A14 row differ beyond tolerance) is a finding. The check ran and its data landed, so
+      it exits 0 and the step stays `ok`; it is never counted as a capture miss or retried. It sends its own one
+      #fno-desk line, saying what to do first (design 6.5): "Omenix F&O margin check: Groww and A14 differ beyond
+      tolerance for <baskets>: review the stress factor". Its last printed line names the baskets, so the run log
+      keeps them; if Slack is down, the run relays the "alert NOT sent" line.
+    - Exit 1, with the reason as the last printed line and no own alert: a Groww failure (sign-in, network, a refused
+      request; the rows are `error`) or a record that could not be written. A step whose data did not land is never
       `ok`.
     - A real skip the owner should see prints "nothing written: <reason>", and O1 records it as refused.
   - **Never holds the factor:** the check is evidence. A mismatch is the owner's to judge, and part 1's rows are NSE's.
@@ -1400,7 +1404,8 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
    files whose true maximum is 1.30 give `computed` 1.30, then `held` against the seed's factor 1.45).
 10. Alerts (part 1): one #fno-desk line per run with the factor, the change, the status and the peak (test). Broker
    check (part 2, its own judge): on planted Groww answers, an `ok`, a SPAN mismatch over Rs 1, an exposure mismatch
-   over 0.1% after rebasing and a Groww error each give the right status row and the one line (tests); a second run on
+   over 0.1% after rebasing and a Groww error each give the right status row and exit code, and only a mismatch sends
+   the check's own line (tests); a second run on
    the same day prints "nothing to check" and writes nothing (test); outside market hours it writes nothing (test);
    every order call is refused by the allow-list (test); the record goes through O9's store with its receipt (test on
    a planted store); the live check is read-only and places nothing.
