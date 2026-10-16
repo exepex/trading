@@ -5,6 +5,7 @@ default (that would be imputing)."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from ..constants import BASELINE_BASE_RATE, BASELINE_MODEL, BASELINE_RISK_NEUTRAL
@@ -20,12 +21,12 @@ class Envelope:
 
     @classmethod
     def from_rules(cls, rules: Rules, width: float) -> Envelope:
-        bounds = {}
-        for question, by_name in rules.items():
-            values = [by_name[name] for name in BASELINES if by_name.get(name) is not None]
-            low, high = (min(values) - width, max(values) + width) if values else (None, None)
-            bounds[question] = (round(max(0.0, low), ROUNDING), round(min(1.0, high), ROUNDING)) if values else None
-        return cls(bounds)
+        return cls({q: _bounds([by[n] for n in BASELINES if by.get(n) is not None], width) for q, by in rules.items()})
+
+    @classmethod
+    def around(cls, baseline: Mapping[str, float | None], width: float) -> Envelope:
+        """Protocol v4: one primary baseline per question (its value, or None when it has none today)."""
+        return cls({q: _bounds([] if value is None else [value], width) for q, value in baseline.items()})
 
     def problem(self, question: str, probability: float | None) -> str:
         """Why the answer breaks the envelope, or '' when it is inside (a "no forecast" always is)."""
@@ -39,3 +40,10 @@ class Envelope:
 
     def as_json(self) -> dict[str, list[float] | None]:
         return {q: (list(b) if b else None) for q, b in sorted(self.bounds.items())}
+
+
+def _bounds(values: list[float], width: float) -> tuple[float, float] | None:
+    """From `width` below the lowest value to `width` above the highest, inside [0, 1]; None without a value."""
+    if not values:
+        return None
+    return round(max(0.0, min(values) - width), ROUNDING), round(min(1.0, max(values) + width), ROUNDING)
