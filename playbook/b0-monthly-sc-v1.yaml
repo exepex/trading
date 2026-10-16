@@ -30,6 +30,7 @@ live_use_rule:
 size_rule: 1 lot (65 units); no trade if the modelled maximum loss incl. charges exceeds Rs 10,000
 funding:
   margin_per_lot: 67595
+  # NSE's initial margin, not C2's stressed margin (about 98,013 at k 1.45) or the funds at entry (about Rs 1,00,784)
   source: NSE SPAN plus exposure for SC 300, 14 Oct 2026 (research/data/margins/margins.csv; response 92)
   date: 2026-10-14
 exits:
@@ -38,7 +39,8 @@ exits:
   loss: none  # nothing beyond the bought wings: the maximum loss is capped at entry
   event: none
 evaluation_plan:
-  expected_range:  # P1's 10th and 90th percentile trade net, 58 traded cycles 2019-23 (results_challenge.json)
+  expected_range:  # P1's 10th-90th percentile single-trade net, 58 traded cycles 2019-23 (results_challenge.json);
+  # a range of single trades, while E6's review compares the mean with its low: restate it before B0 reaches 20 positions
     low: -5084
     high: 4156
   expected_net_per_opportunity: -386

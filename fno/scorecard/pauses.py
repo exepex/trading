@@ -69,12 +69,16 @@ def catastrophic_losses(
             continue
         cap, status = found[0].evaluation_plan["catastrophic_loss_rs"], found[0].status
         losses = [t for t in record.closed if t.line.net <= -cap]
-        for count, trade in enumerate(losses, start=1):
+        measured = is_measurement(found[0]) and status == PlaybookStatus.RESEARCH
+        for trade in losses:
             if _counts(record, status, approved_on.get((name, version)), trade.line.closed_on, on):
                 reason = f"trade {trade.trade_id} in {record.account} lost Rs {-trade.line.net:,.2f}, cap Rs {cap:,.2f}"
                 trigger = PauseTrigger(name, version, f"catastrophic loss: {reason}")
-                text = single_loss_text(trigger.label, cap, reason, count) if is_measurement(found[0]) else ""
-                triggers.append(replace(trigger, text=text))
+                # by close day, so two losses closing the same day both carry the escalation E6's one alert keeps
+                count = sum(t.line.closed_on <= trade.line.closed_on for t in losses)
+                triggers.append(
+                    replace(trigger, text=single_loss_text(trigger.label, cap, reason, count) if measured else "")
+                )
     return triggers
 
 
@@ -100,7 +104,7 @@ def cumulative_losses(
             continue
         totals[key] = totals.get(key, 0.0) + sum(line.net for line in lines)
         closed_today |= {key} if any(line.closed_on == on for line in lines) else set()
-    measured = {s.key for s in playbook.strategies if is_measurement(s)}
+    measured = {s.key for s in playbook.strategies if is_measurement(s) and s.status == PlaybookStatus.RESEARCH}
     triggers = [
         PauseTrigger(
             *key, f"cumulative loss: realised Rs {-total:,.2f}, {CUMULATIVE_CAPS} x cap Rs {caps[key][0]:,.2f}"

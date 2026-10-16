@@ -88,3 +88,30 @@ def test_a_day_with_both_alerts_sends_the_single_trade_wording(root, make_run, a
     make_run().run(DAY, {})
     [text] = alerts.sent
     assert "realised loss of Rs 10,000 or more (trade big" in text and "cumulative" not in text
+
+
+def test_two_cap_losses_closing_the_same_day_keep_the_escalation(root, make_run, alerts):
+    """Self-review finding: E6 sends one alert per version a day, so the count is by close day, not by position."""
+    measured(root)
+    trade(root, SHADOW, "cand-c-v1", "s1", START, DAY, credit=50, debit=210)
+    trade(root, SHADOW, "cand-c-v1", "s2", START, DAY, credit=50, debit=210)
+    make_run().run(DAY, {})
+    [text] = alerts.sent
+    assert "loss 2 at or beyond the cap: possible simulator defect" in text
+
+
+def test_a_measurement_approved_to_paper_is_paused_with_e6_s_own_wording(root, make_run, alerts):
+    """Self-review finding: the measurement wording ("not paused") is for a research shadow only; were the owner ever
+    to approve a measurement, its pause must be reported as a pause."""
+    from fno.constants import BOOK1_RULES, PlaybookStatus
+
+    from .conftest import version
+
+    version(root / "playbook", "meas-p", PlaybookStatus.PAPER, edge_family="measurement")
+    trade(root, BOOK1_RULES, "meas-p-v1", "b1", START, DAY, credit=50, debit=210)
+    make_run().run(DAY, {})
+    [text] = alerts.sent
+    assert (
+        text.startswith("F&O paper desk: meas-p-v1 paused in every book (catastrophic loss: ")
+        and "measurement" not in text
+    )
