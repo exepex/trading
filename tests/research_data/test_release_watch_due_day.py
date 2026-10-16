@@ -74,3 +74,25 @@ def test_a_watch_whose_window_has_passed_checks_once_and_returns(tmp_path):
                                    lambda: datetime(2026, 10, 16, 1, 52, tzinfo=IST), sleeps.append)  # fmt: skip
     check = recorder.watch(day, datetime.combine(day, time(23, 30), IST), timedelta(minutes=5))
     assert check.outcome == RELEASE_ABSENT and archive.asked == [ParticipantOiSource.path_for(day)] and sleeps == []
+
+
+def test_due_day_prints_the_evening_before_after_midnight(monkeypatch, capsys):
+    monkeypatch.setattr(participant_oi_cli, "now_ist", lambda: datetime(2026, 10, 16, 1, 52, tzinfo=IST))
+    assert main(["participant-oi", "due-day"]) == 0
+    assert capsys.readouterr().out.strip() == "2026-10-15"
+
+
+def test_the_release_workflow_gives_one_day_to_the_watch_and_the_librarian():
+    """Judge 350 SF2: the day is computed once; no step computes its own from the clock."""
+    from pathlib import Path
+
+    import yaml
+
+    workflow = Path(__file__).resolve().parents[2] / ".github/workflows/participant-oi-release.yml"
+    steps = {s.get("id"): s for s in yaml.safe_load(workflow.read_text(encoding="utf-8"))["jobs"]["release"]["steps"]}
+    assert "participant-oi due-day" in steps["due"]["run"]
+    for step in ("watch", "librarian"):
+        assert steps[step]["env"]["DAY"] == "${{ steps.due.outputs.day }}"
+        assert "date +%F" not in steps[step]["run"] and '"$DAY"' in steps[step]["run"]
+    assert '--day "$DAY"' in steps["watch"]["run"]
+    assert '--from "$DAY" --to "$DAY"' in steps["librarian"]["run"]

@@ -19,7 +19,9 @@ RUN_URL = "https://api.github.com/repos/{repository}/actions/runs/{run_id}"
 API_HEADERS = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
 TIMEOUT_SECONDS = 30
 NOT_FAILED = ("success", "skipped", "neutral")
-SILENT_KINDS = ("cancelled", "timed_out")  # the workflow's own `failure()` step does not run: nothing was posted
+FAILURE = "failure"  # the only conclusion after which a job's own alert step can have run
+ALERT_STEP_PREFIXES = ("Alert", "One line to")  # every workflow's alert step (YAML drops the text after " #")
+RAN = ("success", "failure")
 BEFORE_ANY_STEP = "before any step"
 ALERT = "Omenix F&O {job}: the GitHub Actions run was {kind} at '{step}' and posted nothing itself; see {url}"
 
@@ -60,11 +62,26 @@ def capture_error(run: dict, jobs: list[dict]) -> CaptureError | None:
         return None
     step, conclusion = _first_bad_step(jobs)
     started = datetime.fromisoformat(run["run_started_at"].replace("Z", "+00:00")).astimezone(IST)
-    return CaptureError(started.date(), run["name"], step, kind, f"{step}: {conclusion}", run["html_url"])
+    return CaptureError(started.date(), run["name"], step, kind, f"{step}: {conclusion}", run_url(run))
 
 
-def needs_alert(error: CaptureError) -> bool:
-    return error.kind in SILENT_KINDS
+def run_url(run: dict) -> str:
+    """The run's link, naming the attempt after the first, so a re-run attempt gets its own row and line."""
+    attempt = run.get("run_attempt") or 1
+    return run["html_url"] if attempt == 1 else f"{run['html_url']}/attempts/{attempt}"
+
+
+def needs_alert(error: CaptureError, jobs: list[dict]) -> bool:
+    """True unless the run failed and every failed job ran its own alert step (judge 350 SF1: a failed job with no
+    alert step, such as forecast-capture's gate, posted nothing). Cancelled, timed-out, startup failures and the rest
+    never ran a `failure()` step."""
+    failed = [job for job in jobs if job.get("conclusion") == FAILURE]
+    return error.kind != FAILURE or not failed or not all(_ran_alert(job) for job in failed)
+
+
+def _ran_alert(job: dict) -> bool:
+    steps = job.get("steps") or []
+    return any(s.get("conclusion") in RAN and str(s.get("name", "")).startswith(ALERT_STEP_PREFIXES) for s in steps)
 
 
 def alert_text(error: CaptureError) -> str:

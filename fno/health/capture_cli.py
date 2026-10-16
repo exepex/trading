@@ -1,7 +1,7 @@
 """`python -m fno health capture-failed --run-id <id>` (story O10): run by the capture watcher (`capture-watch.yml`)
 when a watched workflow's run did not succeed; `record-error` is the same row for a job that is not a workflow (a
 Claude routine), which posts its own line. It appends the run's one row to the capture-error log (never twice for
-the same run) and posts one #fno-desk line only when the run cannot have posted its own (cancelled or timed out).
+the same run attempt) and posts one #fno-desk line unless every failed job ran its own alert step.
 Exit 1 when GitHub could not be read or a needed line was not accepted, so the watcher's own alert speaks."""
 
 from __future__ import annotations
@@ -29,7 +29,8 @@ def cmd_capture_failed(args, out=print, runs=None, log=None, alerts=None) -> int
 
     runs, log = runs or build_run_source(), log or build_capture_error_log()
     try:
-        error = capture_error(*runs.run(args.run_id))
+        run, jobs = runs.run(args.run_id)
+        error = capture_error(run, jobs)
     except RunSourceError as problem:
         out(f"capture-failed: {problem}")
         return 1
@@ -41,7 +42,7 @@ def cmd_capture_failed(args, out=print, runs=None, log=None, alerts=None) -> int
         return 0
     log.append(error)
     out(",".join(error.row()))
-    if not needs_alert(error):
+    if not needs_alert(error, jobs):
         return 0
     sent = (alerts or _sender()).send(alert_text(error))
     out(sent)

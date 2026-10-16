@@ -1,8 +1,9 @@
 # Story O10: every job's run that does not succeed leaves one committed row in research/ops/capture_errors.csv
-# (date, job, step, kind, message, run URL), and a run that was cancelled or timed out, which posts nothing itself
-# (each workflow's alert step runs only on failure()), also gets one #fno-desk line. Runs on GitHub's workflow_run
-# event, so no watched workflow is edited (panel-days.yml stays frozen, protocol v3). A run GitHub never starts gives
-# no event: the evening health check (O8) reports it. Research only; never trades, never re-runs a job.
+# (date, job, step, kind, message, run URL), and one #fno-desk line unless every failed job ran its own alert step
+# ("Alert..." or "One line to..."): a cancel, a timeout or a failed job with no alert step posts nothing itself
+# (judge 350). Runs on GitHub's workflow_run event, so no watched workflow is edited (panel-days.yml stays frozen,
+# protocol v3). A run GitHub never starts gives no event: the evening health check (O8) reports it. Research only;
+# never trades, never re-runs a job.
 # Secrets: FNO_SLACK_BOT_TOKEN (the line) and the run's own GITHUB_TOKEN (reads the watched run's steps, never a log).
 name: capture-watch
 

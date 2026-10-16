@@ -65,3 +65,17 @@ depend on the scheduler.
 ## Part 2 (after agreement with O8's and A14's owners)
 O8 rows for A4c, NSE margins, corporate actions and EQUITY_L; the "capture errors" line; misses appended once;
 nse-margins catch-up slots.
+
+## Addendum 1: judge 350 (FAIL, 2 should-fix, 3 minor)
+
+| Finding | Answer | Evidence |
+|---|---|---|
+| SF1: a failed job with no alert step (forecast-capture's `gate`) posts nothing, and the watcher stayed quiet on `failure` | Accepted. `needs_alert(error, jobs)` now stays quiet only when the run failed AND every failed job ran its own alert step (name starts "Alert" or "One line to"; executed = conclusion success or failure). Every other conclusion alerts (`startup_failure`, `action_required`, `stale` included). A test keeps every workflow's alert steps under those prefixes | `test_a_failed_job_without_its_own_alert_step_gets_the_line` (gate failure + skipped capture), `test_a_failed_job_whose_alert_step_was_skipped_gets_the_line`, `test_every_other_conclusion_alerts`, `test_every_alert_step_is_named_as_the_watcher_expects` [strong] |
+| SF2: participant-oi-release's librarian still used `date +%F` | Accepted. New `participant-oi due-day`; the workflow computes the day once (step `due`) and passes it as `DAY` to the watch (`--day`) and the librarian; no step reads the clock for the day | `test_due_day_prints_the_evening_before_after_midnight`, `test_the_release_workflow_gives_one_day_to_the_watch_and_the_librarian` [strong] |
+| Minor 1: the `git add` test read only the first path | Accepted: every path on every `git add` line | `test_commits_only_the_capture_error_log` [strong] |
+| Minor 2: a re-run attempt cancelled again posted nothing | Accepted: the row's link names the attempt after the first (`.../attempts/<n>`), so it is a new row and a new line | `test_a_re_run_attempt_gets_its_own_row_and_line` [strong] |
+| Minor 3: a pending run cancelled by a concurrency group alerts | Kept on purpose: that slot's capture did not run, which the owner wants to hear about; no current capture workflow uses `cancel-in-progress: true`, so it happens only when GitHub queues a third run behind two [reasoning] | - |
+
+Known limit (new): a job whose command posts its own line and then fails with its "Alert" step skipped by its condition
+(nse-margins' "already alerted" path) gets a second line from the watcher. A duplicate is preferred to a silence
+[reasoning]. Gates: full suite 7397 passed on full history; ruff, format, imports, record scan clean [strong].

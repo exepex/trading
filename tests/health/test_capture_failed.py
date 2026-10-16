@@ -226,3 +226,42 @@ def test_a_run_s_own_episode_rows_do_not_hide_its_cancel(tmp_path):
     log.append(CaptureError(date(2026, 10, 16), "participant-oi-release", "et-markets", "http_error", "x", OI_URL))
     code, log, sender, _ = call(tmp_path, oi_run())
     assert code == 0 and [e.kind for e in log.rows()] == ["http_error", "cancelled"] and len(sender.sent) == 1
+
+
+def gate_failure():
+    """forecast-capture.yml: the gate job crashed (it has no alert step) and `capture` (needs: gate) was skipped."""
+    run = {"name": "forecast-capture", "conclusion": "failure", "html_url": OI_URL,
+           "run_started_at": "2026-10-16T09:30:00Z"}  # fmt: skip
+    jobs = [{"name": "gate", "conclusion": "failure", "steps": steps(("Set up job", "success"), ("Decide", "failure"))},
+            {"name": "capture", "conclusion": "skipped", "steps": []}]  # fmt: skip
+    return run, jobs
+
+
+def test_a_failed_job_without_its_own_alert_step_gets_the_line(tmp_path):
+    """Judge 350 SF1."""
+    code, log, sender, _ = call(tmp_path, gate_failure())
+    assert code == 0 and log.rows()[0].step == "gate / Decide" and len(sender.sent) == 1
+
+
+def test_a_failed_job_whose_alert_step_was_skipped_gets_the_line(tmp_path):
+    run, jobs = nse_run()
+    jobs[0]["steps"][2]["conclusion"] = "skipped"
+    jobs[0]["steps"].insert(0, {"name": "Commit identity", "conclusion": "failure"})
+    _, _, sender, _ = call(tmp_path, (run, jobs))
+    assert len(sender.sent) == 1
+
+
+@pytest.mark.parametrize("conclusion", ["startup_failure", "action_required", "stale"])
+def test_every_other_conclusion_alerts(tmp_path, conclusion):
+    run, jobs = nse_run()
+    run["conclusion"] = conclusion
+    _, log, sender, _ = call(tmp_path, (run, jobs))
+    assert log.rows()[0].kind == conclusion and len(sender.sent) == 1
+
+
+def test_a_re_run_attempt_gets_its_own_row_and_line(tmp_path):
+    """Judge 350 minor 2: a re-run cancelled again is a new failure, not a duplicate."""
+    call(tmp_path, oi_run())
+    run, jobs = oi_run()
+    code, log, sender, _ = call(tmp_path, ({**run, "run_attempt": 2}, jobs))
+    assert [e.run_url for e in log.rows()] == [OI_URL, f"{OI_URL}/attempts/2"] and len(sender.sent) == 1
