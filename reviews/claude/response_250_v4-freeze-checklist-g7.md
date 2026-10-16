@@ -64,5 +64,6 @@ G7 or M1.
 - **V2's primary baseline** (premium-adjusted implied) does not exist until G10's pack and G7b part b. Until then every
   V2 pair is missing (counted, never filled), so V2 cannot be judged even with `v2_close_blend` registered. V3, V5
   and the implied baselines come later under their own record (decision of 16 Oct); V4 waits for G11.
+- **A missing VIX close** in a future O6 row: G7 voids the affected V7 days (story/g7b-vix-gaps), but G8 raises, and every v4 report stops until O6 fills the close. That is kept on purpose (agreed with the A16/G8 builder, 16 Oct): a raise never scores a day set that differs from G7's, and voiding in G8 would need a rule for the regime line too. No committed regular close lacks VIX today (strong evidence: 2,411 of 2,411).
 - Honest expectation (protocol 11 D): V1, V2 and V6a will almost surely never be claimed; only V6b can be, slowly.
   The freeze makes the record countable; it does not make any forecaster good.
