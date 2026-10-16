@@ -12,8 +12,8 @@ on paper.
 | Point | Decision | Agreed with |
 |---|---|---|
 | Where the AI sees the rule default | A `BookSheet` E2 hook in the `pack` step, written into Book 2's private pack as `"evaluation"`. No journal file, because a committed file would be public (E2c's privacy rule; the O9 rule) | E2c's owner 0134MoC6 proposed it, and who edits the pack code is still open; F6's builder 01KTAQCD wants one hook for Books 2 and 3; O1's builder 014zYLf1 confirmed D2 needs data that exists only from the `pack` step |
-| Hand-over | F1t's `AiBookDecider.decide(AcceptedDecision) -> DecidedRun`. F1t fills no record field | F1t 01PLbKH15 (story/f1t-ai-trading-runner 1da500c4) |
-| Answer check | `check_answer`, standard library only, called by F1t's `seal` | F1t |
+| Hand-over | F1t's `AiBookDecider.decide(AcceptedDecision) -> DecidedRun`. F1t fills no record field | F1t 01PLbKH15 (story/f1t-ai-trading-runner f1204a5a) |
+| Answer check | `check_decision`, standard library only, called by F1t's `seal` | F1t |
 | Selection | F6's generic `SelectionAllocator` with `Pick(opportunity_id, reason, width, lots)` and a `rebuild`, so one implementation serves both books | F6's builder |
 | C4 independence | C4 reads `rule_default` and `eligible` from the hash-covered sheet, never from the AI. D3's replay recomputes them | F1t; for judge E to accept or reject |
 | Unproven limit | Re-checked at C4 from E5's counts | judge 260 addendum 2 (D4 option 2, for F5's switch-on) |
@@ -26,3 +26,23 @@ on paper.
 **For the judge:**
 - The 30 s budget is an estimate (reasoning only): D2 is not re-run at 15:11, only C2, C4 and the store write.
 - The E2 hook changes E2c's files. Who makes that edit is not settled yet.
+
+## Changes after review (16 Oct)
+
+- **E2c's owner** (0134MoC6):
+  - The common pack holds no per-contract quotes or D2 features. So the sheet reads only the canonical 3 pm snapshot
+    named in the common pack's provenance (`a4_snapshot`), never "the latest", and only cutoff-time data. I checked:
+    `fno/desk/common_pack.py:25` names `SNAPSHOT_INPUT = "a4_snapshot"`.
+  - F5 makes the E2 edit, and E2c's owner reviews it.
+  - Four rules added to the text and to criterion 1:
+    - Book 1's pack SHA-256 is unchanged;
+    - the sheet's output goes through `canonical_json`;
+    - a failing sheet refuses only its own book's pack, with no partial pack;
+    - a sheet reads only its own book's folders.
+  - New tests: a planted later capture is not read; one book's failing sheet does not stop the others.
+- **F1t** (judge 301, story/f1t-ai-trading-runner f1204a5a):
+  - the shape check is named `check_decision`;
+  - `seal` refuses private account figures in answer text;
+  - **F5 now owns Book 2's `OrderBuilder` and `ExitRules`**: Book 1's `ReplayedOrders` and `PlaybookExitRules`,
+    reused and parametrised by book, not copied. This is criterion 9.
+- **F6:** its allocator criterion 12 matches this text (F6's story at 2153e9b0).

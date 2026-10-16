@@ -44,7 +44,16 @@ control. A zero difference is "inconclusive".
   - `PrivatePackBuilder.build` puts the sheet in the private pack's body as `"evaluation"`. A book without a sheet
     (Book 1) is unchanged, byte for byte.
   - Wired in `fno/desk/pack_wiring.py`, one line per book. Book 3's sheet is F6's.
-  - Who edits `packs.py` and `private_pack.py` is agreed with E2c's owner (0134MoC6) before code.
+  - F5 edits `packs.py`, `private_pack.py` and `pack_wiring.py` on its branch. E2c's owner (0134MoC6) reviews the
+    diff before the judge.
+  - **E2c's rules (E2c's owner, 16 Oct):**
+    - A book without a sheet produces a byte-identical private pack: Book 1's pack SHA-256 is the same before and after
+      the change.
+    - The sheet's output goes through `canonical_json` and the pack's SHA-256 as today.
+    - A sheet that raises refuses only its own book's private pack, with a named reason, and never writes a partial
+      one. The other books' packs are still built.
+    - A sheet reads only its own book's folder and the playbook (the `ALLOWED_FOLDERS` rule of `private_pack.py`),
+      never another book's folder.
 - **Book 2's sheet** (`fno/book2/sheet.py`): D2's `RuleEvaluator` at the cutoff over Book 2's approved versions, with
   Book 2's own book and counts. It writes:
   - `opportunities`: every book-mode outcome, with its ID, version, decision, reason, and built terms (width, lots,
@@ -54,8 +63,13 @@ control. A zero difference is "inconclusive".
 
   No journal file is written. The private pack stays out of git (only its `.sha256` is committed), so the sheet is
   never public (E2c's privacy rule and the owner's O9 rule).
-- **Why in the pack:** Book 2's AI must see the rule default before it decides at about 15:00, and D2 needs the cutoff
-  data, which exists only from the `pack` step (O1 builder, 16 Oct). There is no new daily step.
+- **The data it reads:** the common pack holds no per-contract quotes and no D2 features (E2b), so the sheet reads the
+  market itself. It reads only **the canonical 3 pm snapshot that the common pack names in its provenance**
+  (`a4_snapshot`, `snapshot_id`), never "the latest". It admits only data available by the pack's cutoff, as the
+  common inputs do, so the pack's no-look-ahead guarantee holds. C2's inputs (margins, limits) come from cutoff-time
+  sources too.
+- **Why in the pack:** Book 2's AI must see the rule default before it decides at about 15:00, and that snapshot
+  exists only from the `pack` step (O1's builder, 16 Oct). There is no new daily step.
 
 ## Part 2: the answer (`fno/book2/answer.py`, standard library only)
 
@@ -63,19 +77,21 @@ control. A zero difference is "inconclusive".
   `{"default": <opportunity_id>, "action": "follow_rule" | "no_trade" | "trade", "opportunity_id": <id or null>,
   "width": <number or null>, "lots": <int or null>, "reason": <non-empty str>}`.
 - When the rule default is "no trade", `slots` is empty. The AI can never trade when the rules offered none (D4).
-- `check_answer(obj, sheet=None) -> list[str]` lists the problems, and an empty list means it is acceptable:
+- `check_decision(decision, sheet=None) -> list[str]` (the name in F1t's port) lists the problems, and an empty list
+  means it is acceptable:
   - wrong types;
   - a missing reason;
   - slots that do not match the rule default one to one;
   - two slots choosing the same opportunity;
   - with `sheet` given, an `opportunity_id` not in the sheet.
 
-  F1t's `seal` calls it without the sheet. The decider calls it with the sheet. The envelope is **not** checked
-  here: C4 does that.
+  F1t's `seal` calls it without the sheet. `seal` also refuses private account figures in any answer text (F1t,
+  judge 301), because `reason` is copied into the public record. The decider calls it with the sheet. The envelope
+  is **not** checked here: C4 does that.
 
-## Part 3: the decider (`fno/book2/decider.py`, F1t's `AiBookDecider`)
+## Part 3: the decider (`fno/book2/decider.py`, F1t's `AiBookDecider`; story/f1t-ai-trading-runner f1204a5a)
 
-`decide(accepted: AcceptedDecision) -> DecidedRun` (F1t's hand-over port, story/f1t-ai-trading-runner 1da500c4):
+`decide(accepted: AcceptedDecision) -> DecidedRun` (F1t's hand-over port):
 
 1. **Inputs only from code.**
    - The sheet comes from `accepted.private_pack`, whose hash F1t checks against the pointer.
@@ -110,15 +126,21 @@ control. A zero difference is "inconclusive".
    The picks go in `inputs.json` under `selection`, so D3's replay rebuilds the allocator and reproduces every record.
 6. **Evidence, not inputs.** The analyst cards (F2) and the devil's advocate's objections (T3) are linked in the
    record. They are never an input of the allocator, C2 or C4.
-7. **Timing.** `decide()` runs in O1's `ai_collect` step, between 15:11:00 and E3's 15:12 deadline. It does not
+7. **Fills and exits** (F1t, judge 301: nobody owned them). Book 2's `OrderBuilder` replays the run's entry orders,
+   and its `ExitRules` come from the traded playbook version. Both reuse Book 1's `ReplayedOrders` and
+   `PlaybookExitRules` (`fno/books/book1_orders.py`, `book1_exits.py`), parametrised by book, not copied. F1t wires
+   them per book in `fno/daily/wiring.py`.
+8. **Timing.** `decide()` runs in O1's `ai_collect` step, between 15:11:00 and E3's 15:12 deadline. It does not
    re-run D2; it reads the sheet. Its run time is measured in the tests on a realistic day and reported, with a
    budget of 30 s, half of F1t's 60.
 
 ## Acceptance criteria
 
-1. Book 2's private pack holds the sheet: rule default, eligible set and outcomes. Book 1's pack bytes are unchanged.
-   No sheet file appears under `journal/`.
-2. `check_answer` refuses each malformed shape in the test plan, and accepts the four actions.
+1. Book 2's private pack holds the sheet: rule default, eligible set and outcomes. Book 1's pack SHA-256 is unchanged.
+   No sheet file appears under `journal/`. A later capture planted in the store is not read: the sheet uses the
+   snapshot the common pack names. A sheet that raises refuses Book 2's pack with a named reason and writes no partial
+   pack, while Book 1's and Book 3's packs are still built.
+2. `check_decision` refuses each malformed shape in the test plan, and accepts the four actions.
 3. Each envelope action works end to end on fake sessions:
    - `follow_rule` trades the default;
    - `no_trade` trades nothing;
@@ -132,6 +154,8 @@ control. A zero difference is "inconclusive".
 6. With no approved version, Book 2 writes the day's "no trade" record ("no approved strategy"), like Book 1.
 7. A Book 2 decision failing C4 never becomes a fill (end-to-end negative test through E4).
 8. `decide()` takes at most 30 s on the test day (measured and reported).
+9. Book 2's entry orders and exits use Book 1's `ReplayedOrders` and `PlaybookExitRules` for Book 2's run and traded
+   version. A Book 2 trade exits by its own version's exit rules.
 
 ## Test plan
 
