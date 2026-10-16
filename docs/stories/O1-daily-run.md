@@ -246,6 +246,17 @@ command, which commits its own decision; its pathspecs are none, so the run swee
 | G10 times (14:05, 14:30-14:40, 15:10, 15:15) | read from their owners; nothing typed in O1 |
 | O8 checks what O1 produces | 7 and the contract above |
 
+## Fix after the merge: the 3 pm parts' earliest start (16 Oct, branch `story/o1-part-start`)
+
+- **The gap (strong evidence, found by O2's end-to-end day):** A4's recorder returns "too early" and records nothing
+  when started more than `MAX_EARLY_WAIT_SECONDS` (20 min) before its 14:55 window (`fno/quotes/recorder.py` 137-140).
+  O1 started NIFTY's and NSE's parts at the run's start, so a run starting before 14:35 (the routine starts at 14:33,
+  14:05 after G10) loses both records.
+- **The fix:** each part has `not_before`, `EARLIEST_START` = 14:55 - 20 min + 3 min = 14:38, from A4's constants.
+  `QuoteParts.start` opens the day and starts only the parts that are due. `start_due` (no git) starts the others
+  from any wait of the run: the desk's `ServicingWaiter`, and every command's poll loop (`waiting` in
+  `fno/daily/wiring.py`). Commits stay between the steps. A run stopped early still starts them, in `finish`.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).

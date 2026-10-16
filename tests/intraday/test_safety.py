@@ -35,7 +35,11 @@ def test_no_file_of_the_package_names_an_order_position_margin_or_funds_call():
 
 def test_concrete_classes_are_built_only_in_the_composition_root():
     for path in PACKAGE.glob("*.py"):
-        if path.name in ("wiring.py", "backfill_wiring.py"):  # A16's root and A16b's (CLAUDE.md's list)
+        if path.name in (
+            "wiring.py",
+            "backfill_wiring.py",
+            "clock_wiring.py",
+        ):  # A16's, A16b's, the clock's (CLAUDE.md)
             continue
         calls = {n.func.id for n in ast.walk(ast.parse(path.read_text())) if isinstance(n, ast.Call)
                  and isinstance(n.func, ast.Name)}  # fmt: skip
