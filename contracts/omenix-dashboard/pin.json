@@ -1,6 +1,6 @@
 {
  "repository": "exepex/omenix-dashboard",
- "commit": "38dfee63b1418bce271026c5ad9509552dc40f29",
+ "commit": "f4f7f404537d0d31f1dd4a3f2539550e101515b5",
  "contract_version": "2.10.0",
  "files": {
   "api/examples/blocks-32.json": "17c455b146ee2ae778468ab779ec17d1aed08575eb04349841a780882a047498",
