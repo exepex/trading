@@ -40,7 +40,7 @@ def test_the_report_command_prints_the_count_and_every_card(capsys):
     assert main(["factory", "report"]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].startswith(f"{build_trial_count(ROOT).total} trials in the ledger; expected false passes at 0.01")
-    assert any(line.startswith("B0 v1 (measurement: never promoted): trial 55 of") for line in lines)
+    assert any(line.startswith("B0 v1 (measurement): trial 55 of") for line in lines)
 
 
 def test_b0s_card_agrees_with_its_playbook_version():

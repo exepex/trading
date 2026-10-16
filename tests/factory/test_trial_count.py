@@ -33,6 +33,6 @@ def test_expected_false_passes_leave_out_measurements_only():
 def test_the_idea_line_shows_the_place_the_last_gate_and_the_labels():
     row = GateRow("10", "G0", "idea", "2026-10-15", "abc", "backfilled=yes")
     assert idea_line(card("10", measurement=True), COUNT, row) == (
-        "X1 v1 (measurement: never promoted): trial 3 of 4; last gate G0 idea on 2026-10-15 (back-filled)"
+        "X1 v1 (measurement): trial 3 of 4; last gate G0 idea on 2026-10-15 (back-filled)"
     )
     assert idea_line(card("2"), COUNT, None) == "X1 v1: trial 2 of 4; no gate-log row (register or back-fill it)"
