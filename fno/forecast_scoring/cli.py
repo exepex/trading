@@ -45,7 +45,9 @@ def _replay(day: date) -> int:
 
 def _run(as_of: date, args) -> int:
     from ..config import ROOT, load_app_config
+    from ..forecast.capture import LIVE_FOLDER
     from ..forecast.freeze import NotFrozen
+    from .calendar_gaps import calendar_limited_days
     from .score_report import report_json
     from .wiring import SCORES_FOLDER, build_receipts, score_forecasts
 
@@ -54,6 +56,7 @@ def _run(as_of: date, args) -> int:
     except NotFrozen as problem:
         print(f"Omenix F&O forecast scores: not scored: protocol freeze check failed: {problem}")
         return 1
+    document["calendar_limited_days"] = calendar_limited_days(ROOT / LIVE_FOLDER, document["unverified_live_days"])
     path = ROOT / SCORES_FOLDER / f"{as_of.isoformat()}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(report_json(document), encoding="utf-8")
