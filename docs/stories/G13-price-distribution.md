@@ -1,6 +1,6 @@
 # G13. Daily NIFTY valuation record and price-distribution forecasts
 
-**Repository:** trading · **Lane:** 1 (new story; forecast and evaluation records; Drive) · **Builder:**
+**Repository:** trading · **Lane:** 1 (new story; forecast and evaluation records; Drive) · **Judge:** E · **Response:** 262 · **Builder:**
 session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Branch:**
 `story/g13-price-distribution` · **Status:** story text for the judge (no code yet)
 
@@ -153,10 +153,11 @@ the point of scoring it.
 
 ### 4. Labels, live_from, regeneration
 
-- `live`: written by the daily command on day `d` (made_at recorded) before the first target close. The first live
-  day is the earliest row labelled `live` (as G7, `fno/forecast_v4_rules/records.py:96`); no setting holds it.
+- `live`: written by O1's daily run on day `d` (made_at recorded, before the first target close), only from the
+  step's `config.yaml` `daily.live_from.price_distribution` date (null until the owner sets it, as the other O1
+  steps). The first live day is that date; a hand run never writes `live`.
 - `backfill_3pm`: rebuilt later from the captured 3 pm chains (14 Oct on); `backfill_eod`: from the panel, 2019 on.
-  Back-fill stops before the first live day. All three are scored and reported apart, never pooled.
+  Back-fill stops before the first live day (none set: it may cover every captured day). All three are scored and reported apart, never pooled.
 - Every output is a pure function of captured inputs and the method files: re-running a day reproduces it byte for
   byte. A changed method file changes `method_sha256`; earlier files are never edited (Drive is write-once), so a
   regenerated back-fill goes to a new path named by the method hash, and live rows keep the method they were made
@@ -198,7 +199,13 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
   needed: the live command writes the day's file with `status: missing` and the reason for each part affected, and
   sends one line through `AlertSender` to #fno-desk (`FNO_SLACK_BOT_TOKEN`); a failed send prints "alert NOT sent".
   Back-fill and scoring never alert; they print counts per reason.
-- When the command runs each day (a routine step or a workflow) is a schedule change: Q1, not built here.
+- **Daily run (orchestrator's answer to Q1, 16 Oct):** a step `price_distribution` in O1's `DAILY_RUN_STEPS`
+  (`fno/constants_operations.py`), after the 3 pm quote parts (`quotes_done`), wrapped like O1's other steps:
+  `LiveFrom` (the `daily.live_from.price_distribution` key, null) around a `CommandStep` that runs
+  `pricedist record --day <d>` and commits its receipts. A data failure is written and alerted by the command itself,
+  which then exits 0 (one alert per failure); only a crash or a hang exits non-zero, and O1 alerts that once
+  (`FAILED_ALERT`), so nothing is alerted twice. The step edit in `fno/daily/` is agreed with O1's owner first (the
+  boundary table below). It changes no schedule: the run already exists.
 
 ## Acceptance criteria (each with a test: positive, negative, boundary, empty)
 
@@ -226,17 +233,20 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
    in scores; back-fill stops before the first live day; rebuilding a day reproduces identical bytes; a changed
    method hash writes a new back-fill path and never touches the old one; a live row is never overwritten (Drive
    conflict surfaces).
-9. **Storage:** every file goes through `DataStore.put` and gets a receipt; a failed Drive write leaves no receipt and
+9. **Daily step:** with `live_from` null the step records `not_live` and writes nothing; from its date it runs the
+   command once, and a rerun the same day skips it (O1's rule); a data failure gives exit 0 with one alert, a crash
+   exit non-zero with O1's one alert (fake processes, as O1's tests).
+10. **Storage:** every file goes through `DataStore.put` and gets a receipt; a failed Drive write leaves no receipt and
    the command reports it; readers read through the Drive cache only.
-10. **Scoring:** the pinball loss and QS match hand values (outcome below, inside and above the quantiles; at a
+11. **Scoring:** the pinball loss and QS match hand values (outcome below, inside and above the quantiles; at a
     quantile exactly); a row is not scored before its target close exists; calibration shares match a hand count;
     the bootstrap comparison equals `block_bootstrap` called directly on the same differences; under 40 paired days
     it is "not tested".
-11. **Failures:** each failure case of section 7 writes its `missing` reason and sends exactly one alert line through
+12. **Failures:** each failure case of section 7 writes its `missing` reason and sends exactly one alert line through
     a fake `AlertSender`; back-fill sends none; "not a trading day" writes nothing.
-12. **Indices:** a fixture BANKNIFTY chain gives a valuation record and no forecasts.
-13. **No frozen file changes:** the existing freeze tests pass unedited; no file added to `fno/forecast/`.
-14. **Real output sample** (quality rule 6): the claims file shows the 16 Oct NSE valuation record and forecasts made
+13. **Indices:** a fixture BANKNIFTY chain gives a valuation record and no forecasts.
+14. **No frozen file changes:** the existing freeze tests pass unedited; no file added to `fno/forecast/`.
+15. **Real output sample** (quality rule 6): the claims file shows the 16 Oct NSE valuation record and forecasts made
     by the committed code in a dry run (index levels, no strategy internals), and the EOD back-fill's first scores.
 
 **Test plan:** unit tests per module (`tests/price_distribution/`), the flat-IV round trip, the planted-noise and
@@ -255,23 +265,40 @@ self-review agents and broken-code proofs per criterion (judge quality rules 3-4
 | Skew, term structure (brief 1) | criteria 2, 3 |
 | Implied distribution per expiry, method justified (brief 1) | design 2, criterion 4 |
 | Fair value vs mid per contract, Black-76 on the future, rate source named (brief 1) | design 1-2, criterion 5, Q3 |
-| A4c indices when live (brief 1) | criterion 12 |
+| A4c indices when live (brief 1) | criterion 13 |
 | Quantile forecasts at fixed horizons from implied, realised-vol baseline, AI slot (brief 2) | design 3, criterion 6 |
-| Proper scoring rule (pinball/CRPS) once outcomes arrive (brief 2) | design 6, criterion 10 |
-| Plug into G4/G8's pattern without editing frozen files; registration as an owner question (brief 2) | design 4-6 (G7/G8's labels, first-live rule, block bootstrap reused), criterion 13, Q2 |
-| Regenerable from captured inputs; backfill and live labels after live_from (brief) | design 4, criterion 8 |
-| Data failures alert and are recorded (brief; owner 16 Oct) | design 7, criterion 11 |
-| Every data file write-once in Drive with a receipt (owner 16 Oct, O9) | design 5, criterion 9 |
+| Proper scoring rule (pinball/CRPS) once outcomes arrive (brief 2) | design 6, criterion 11 |
+| Plug into G4/G8's pattern without editing frozen files; registration as an owner question (brief 2) | design 4-6 (G7/G8's labels, first-live rule, block bootstrap reused), criterion 14, Q2 |
+| Regenerable from captured inputs; backfill and live labels after live_from (brief) | design 4, criteria 8-9 |
+| Data failures alert and are recorded (brief; owner 16 Oct) | design 7, criterion 12 |
+| Runs daily in O1's run with a `live_from` date (orchestrator, Q1) | design 7, criterion 9 |
+| Every data file write-once in Drive with a receipt (owner 16 Oct, O9) | design 5, criterion 10 |
 | Point in time, `first_seen_at` before the cutoff (design 2.1 failure modes) | criterion 7 |
 | A method changed quietly (design 2.2 failure modes) | `method_sha256` in every row, criterion 8 |
 | **Out:** weekly-expiry horizon | needs an A16 weekly quote parser (G7b part d needs the same); `h5` stands in until then |
 | **Out:** realised-vol baseline on A16 intraday RV | A16 has one session (16 Oct, void by construction); add as `rv20_intraday` once 20 valid sessions exist, a new forecaster id |
-| **Out:** running it daily | a schedule change, Q1 |
 | **Out:** AI books answering | G11 or a later story; G13 gives the slot |
 | **Out:** any use in a trade decision, protocol registration | Q2 |
 | **Out:** V5's option-implied probability (G7b part c) | G7b's; G13's density module is offered for it via the orchestrator, never imposed |
 
-## Questions for the orchestrator and the owner (recommendation first)
+## Decisions (orchestrator, 16 Oct 2026, answers to Q1-Q4)
+
+- **Q1:** G13 runs as a step of O1's daily run, after the 3 pm quote parts, not as a separate routine (design 7).
+- **Q2:** no protocol registration now; the orchestrator takes registration to the owner once there are scores.
+- **Q3:** `config.yaml` `risk_free_rate` (6.5%), labelled in every file. A daily 91-day T-bill and repo capture is
+  being assigned to another builder; G13 switches to it when it lands (a new `method_version`, so old rows keep
+  their rate).
+- **Q4:** boundaries agreed directly with each owner; each owner's answer is quoted in the claims file:
+
+| Neighbour | Owner session | Boundary (proposed by G13) |
+|---|---|---|
+| O1 daily run | 014zYLf18PgCzR7YoHs1X5Dp | G13 adds one step entry, its wiring line and the `daily.live_from.price_distribution` key (or O1's owner does); nothing else in `fno/daily/` |
+| G7b (part c, V5's implied probability) | 0185gR5DmoDh2zBAvgRU4CEB | G13 owns the valuation record and the quantile forecasts; G7b owns every v4 record. G7b may import G13's density module, never required to |
+| G10 (v4 pack) | 01VK88LxJvV1Gi7Wbr3D4fzp | G13 reads the 3 pm chains, not the v4 pack, and writes nothing G10 reads |
+| G11 (AI books) | 013xqaNTCbSBytKgqpfaYFqZ | G13 gives `book2_hybrid` and `book3_ai` slots only; whether and when the AI books answer price quantiles is G11's or a later story's, with its own prompts and budget |
+
+## Original questions (kept for the record; answered above)
+
 
 - **Q1. Where the daily run lives.** Recommended: a step in the 3 pm routine right after NIFTY's push (and after A4c
   for the indices), since the routine already reads the day's chain and has the Drive settings; O1 owns that prompt.
