@@ -68,3 +68,28 @@ Notes:
   exactly one unsent line.
 - **Later steps** (F1t, G13, A16b, Book 2's rule default): covered by the tuple-driven kill cases and `Alerted`. O10's
   boundary is being agreed (one alert per failure).
+
+## Revision 5 (judge 204 addendum 2, should-fix 1: accepted)
+
+- **The finding, checked:** a commit stopped at the limit leaves `.git/index.lock` (and `next-index-<pid>.lock`),
+  the hook keeps running, and every later git call then fails with "File exists". I accept it. The mechanism is
+  sound: git holds `index.lock` for the whole commit, including the pre-commit hook, and a kill of git alone leaves
+  both the lock and the hook. I will reproduce the judge's test as the suite's first case.
+- **The design now in the row:**
+  - each git call gets its own process group (`start_new_session=True`), and on the limit the whole group is
+    killed and waited for, the same way as `fno/daily/processes.py`;
+  - the lock files that call created are then removed. They are found by comparing `.git/**/*.lock` before and
+    after the call, so only locks absent before it are touched. That is safe because the run's git is
+    single-threaded and nothing else of the run runs git during a call (the child commands are waited for);
+  - a lock that was already present is never removed. The call fails at once, and the alert names the lock and the
+    hand fix.
+- **A stopped push** is "push not confirmed" and is marked unpushed, so E3's rerun recovery deals with it (the
+  judge's note).
+- **"The next day's routine":** the routine starts in a fresh container (`fno/desk/daily_run.py` 122), so a lock
+  left in one container cannot reach the next day's clone. That is some evidence, read from the code, not tested
+  live. The test still checks the next day's first commit in the same checkout, which is the stronger case.
+- **Tests:** a real git repository with a hanging pre-commit hook and a short limit. They check that:
+  - the hook's process is gone;
+  - no lock created by the stopped call is left;
+  - the next quote part's commit and the next desk commit succeed;
+  - a lock present beforehand is left alone and gives the one named alert.
