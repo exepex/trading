@@ -2,10 +2,10 @@
 
 Branch `story/o12-number-claims`, lane 1 (tools/, CI, rule documents). Story text: `docs/stories/O12-number-claims.md`
 (commit 3a4684aa, pushed first per quality rule 1). Builder session_01KS9xBc14DGACR9QrS6Acdq. Number 268 is
-the orchestrator's reservation (reviews/claude/README.md, acb57e21); the registry carries all ten reservations
-(260-269) as rows `response_<n>_*.md`, which register their files when they land and keep the tool from handing the
-numbers out. Judges E and F's ranges (300-349, 350-399) need no rows: the tool counts every judge file on `main`, so
-after the merge the next judge number follows the highest written one and the ranges end.
+the orchestrator's reservation (reviews/claude/README.md, acb57e21). The registry carries the orchestrator's
+reservations as rows named `<prefix>_<n>_*.md`: responses 260-270 and judges 300-399 not yet written (judges E and F
+number from those ranges until the merge). Each row registers its file when it lands, and the tool hands none of them
+out, so a judge still writing from its range cannot clash with a tool claim; new judge numbers start at 400.
 
 ## Design check (the orchestrator's proposal, validated)
 
@@ -32,7 +32,7 @@ branch-local check would refuse correct work. CI runs it on every push to `main`
 
 | # | Code | Test (fails when the code is broken: mutation) |
 |---|---|---|
-| 1 | `numbers/*.csv`, `fno/numbering/seed.py`, `seed_pin.py` | `test_check.py::test_the_seed_registers_history_once_with_its_duplicates_and_pins_it`; 1,009 rows from main d7f2b737, plus the ten reservation rows 260-269 (268 is this file); duplicates: response 66, judges 233-235, addenda 98.3, 122.4, 233.1 |
+| 1 | `numbers/*.csv`, `fno/numbering/seed.py`, `seed_pin.py` | `test_check.py::test_the_seed_registers_history_once_with_its_duplicates_and_pins_it`; 1,023 rows from main (merged after d7f2b737), plus 102 reservation rows (responses 260-270 not yet written, 268 being this file; judges 300-399 not yet written); duplicates: response 66, judges 233-235, addenda 98.3, 122.4, 233.1 |
 | 2 | `fno/numbering/claim.py`, `git_main.py` | `test_claim.py` (exact free and taken, file without a row, report not on main, 10 refusals); M6, M9, M11, M16 |
 | 3 | `claim.py:claim`, `git_main.py:commit_and_push` | two-clone race, four clones in threads, retries exhausted, server hook refusal; M1, M12, M13 |
 | 4 | `git_main.py:main_copy` | caller's branch and staged file unchanged; one worktree left after success and failure; M5 |
@@ -45,8 +45,8 @@ race, which depends on timing: it was caught in my run but is not guaranteed in 
 
 ## Gates (main d7f2b737 merged in, head after this file)
 
-`pytest -q -n auto`: 7,714 passed. `ruff check` and `ruff format --check`: clean. `check_imports.py`: clean (1,479
-files). `check_records.py`: clean (6,694 files). `check_numbers.py`: clean.
+`pytest -q -n auto`: 7,790 passed. `ruff check` and `ruff format --check`: clean. `check_imports.py`: clean (1,495
+files). `check_records.py`: clean (6,726 files). `check_numbers.py`: clean.
 
 ## Real output (a local bare copy of this branch as `origin`, record-scan hook on; not the real `main`)
 

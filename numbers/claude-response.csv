@@ -157,6 +157,8 @@ number,name,session,claimed_at_utc
 251,response_251_m1-record-folders.md,existing,
 252,response_252_a14c-first-run-k-2.1.md,existing,
 253,response_253_d4-d5-chatgpt-request.md,existing,
+255,response_255_g11-round-1-v4-rows.md,existing,
+256,response_256_d3-no-owner-override.md,existing,
 25,response_25_2026-10-12-review-20.md,existing,
 26,response_26_2026-10-12-review-21.md,existing,
 27,response_27_2026-10-12-cleanup-built.md,existing,
@@ -250,3 +252,4 @@ number,name,session,claimed_at_utc
 267,response_267_*.md,session_01VG1RqxLFUVdvvPuMRYZtDH,2026-10-16T11:20:09Z
 268,response_268_o12-number-claims.md,session_01KS9xBc14DGACR9QrS6Acdq,2026-10-16T11:20:09Z
 269,response_269_*.md,session_01VG1RqxLFUVdvvPuMRYZtDH,2026-10-16T11:20:09Z
+270,response_270_*.md,session_01VG1RqxLFUVdvvPuMRYZtDH,2026-10-16T11:20:09Z

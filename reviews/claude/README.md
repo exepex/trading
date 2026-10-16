@@ -10,10 +10,10 @@ matched the review they answer; the series have run apart since.) Claim the numb
 
 ## Reserved numbers (orchestrator, 16 Oct 2026, until O12's claim tool merges)
 
-260 A17 schedules, 261 F6/F7 Book 3, 262 G13, 263 F1t, 264 F2, 265 A19, 266 A20, 267 O11, 268 O12, 269 F8c.
+260 A17 schedules, 261 F6/F7 Book 3, 262 G13, 263 F1t, 264 F2, 265 A19, 266 A20, 267 O11, 268 O12, 269 F8c, 270 A21.
 Anyone else: ask the orchestrator for a number. Judges E and F use judge numbers 300-349 and 350-399. When O12 merges,
-the ten numbers become reservation rows (`response_<n>_*.md`) in `numbers/claude-response.csv`, each registering its
-file when it lands; the judge ranges end, and every new number is claimed with the tool.
+these numbers and the judge ranges become reservation rows (`response_<n>_*.md`, `judge_<n>_*.md`) in `numbers/`, each
+registering its file when it lands; every new number is then claimed with the tool.
 
 ## Responses
 
@@ -247,5 +247,7 @@ file when it lands; the judge ranges end, and every new number is claimed with t
 - [Response 151: story A4c, BANKNIFTY, FINNIFTY and MIDCPNIFTY recorded after NIFTY in the 3 pm routine (builder's claims): 15:01-15:13 IST, paced, Drive-only quotes, step 0 on real Groww](response_151_a4c-all-indices.md)
 - [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
 - [Response 252: A14c's first full run applied k = 2.1 (PDS 300, Apr 2020): run 3.99 s per file; 2.08 decomposed (2020's minimum, NSE's inconsistent prices, today's 3% exposure step); options for the owner](response_252_a14c-first-run-k-2.1.md)
+- [Response 256: D3 refuses a non-empty owner_override in every book (DESK_DECISIONS row 229 item 4), builder's claims; F4's override text flagged](response_256_d3-no-owner-override.md)
 - [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)
+- [Response 255: G11 round 1, the AI books' v4 rows: one G7-schema row per started question for every settled book-day, every failure a miss, pending days without a row](response_255_g11-round-1-v4-rows.md)
 - [Response 268: story O12, one central place to claim file numbers (builder's claims): `numbers/<category>.csv` per series, `tools/claim_number.py` (git push to main decides the race), `tools/check_numbers.py` in CI, seed pinned; 17 of 17 mutations caught](response_268_o12-number-claims.md)
