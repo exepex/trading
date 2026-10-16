@@ -474,9 +474,11 @@ objects"):**
 - the card page (P2f): its over-cap rule;
 - the Forecast lab (P2b): an answer day past NSE's calendar (until contract 2.13.0 lets `answer_on` be null);
 - the paper books page (P2c): an open trade with no per-trade marks, a trade or shadow it cannot label;
-- proposed, for the judge: Home's two existing whole-run stops, an open trade (`home_blocks.py:32`) and an approved
-  strategy's picks (`home_blocks.py:47`, met on the day of the first approval).
-P2b and P2c rebase on this story; each user's hold rule is in its own story and tested there.
+- Home's two existing whole-run stops, built in this story (orchestrator, 16 Oct):
+  - an open trade in a book (`home_blocks.py:32`, `OPEN_TRADE_RISK`) holds the `risk` page;
+  - an approved strategy's picks (`home_blocks.py:47`, `APPROVED_PICKS`, met on the day of the first approval)
+    hold the picks page.
+P2b and P2c rebase on this story; their hold rules are in their own stories and tested there.
 
 **Acceptance criteria:**
 1. A test plants a held page. Only that page is held. Every other page publishes. Its row is the previous
@@ -488,6 +490,8 @@ P2b and P2c rebase on this story; each user's hold rule is in its own story and 
 5. Two runs of the same day with the same hold give the same publication ID and add no rows.
 6. `FiguresNotComputed`, `ContractBroken` and a crash still stop the whole run (the existing tests stand).
 7. Local and Azure publishers behave the same (the local folder publisher in tests; Azure through the same records).
+8. **Before the first strategy approval, P11 is merged** (orchestrator, 16 Oct). A planted approval holds only the
+   picks page, and a planted open trade holds only the `risk` page. Every other page publishes in both cases.
 
 **Depends:** P6-P10 (the publish path), P7 (run status), the alert sender. **Status:** story text for the judge
 (`reviews/claude/response_244_p11-page-hold.md`).

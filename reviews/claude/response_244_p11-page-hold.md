@@ -33,3 +33,12 @@ Code follows only after the story text's PASS.
   - the paper books page's open trade, or a trade or shadow it cannot label (judge 248);
   - proposed for the judge: Home's two existing whole-run stops, an open trade and an approved strategy's picks.
     The second is met on the day of the first approval, before any trade.
+
+## Addendum 2 (16 Oct): Home's two stops become holds in this story
+
+The orchestrator decided:
+- Home's open-trade stop (`OPEN_TRADE_RISK`) holds the `risk` page;
+- its approved-picks stop (`APPROVED_PICKS`) holds the picks page;
+- both are built here;
+- new acceptance criterion 8: P11 is merged before the first strategy approval, and a planted approval and a planted
+  open trade each leave every other page published.
