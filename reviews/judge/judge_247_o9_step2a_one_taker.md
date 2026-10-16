@@ -95,3 +95,17 @@ The fix (3 files over 72753fa3):
 - The largest touched file is `recorder.py`, at 234 lines.
 
 **Merge order.** Step 1 is on main (78d66a02). 2a can merge now. Its remaining open items are follow-ups 4 and 5 from the original verdict, plus the ledger-side wiring test.
+
+## Addendum 2 (16 Oct 2026): merge check, step 2a merged as 3db04211
+
+**Verdict: merge check PASS.**
+
+- **The merge is exact.**
+  - Its parents are 2cb37304 (main) and 6a93aefb (the passed tip).
+  - Recomputing it with `git merge-tree` gives a tree identical to 3db04211.
+  - `git diff 6a93aefb 3db04211` on the 2a files is empty.
+  - Against its main parent it adds exactly the 7 files of 2a.
+- **CI.** Checks run 38875613720 on f169e223 contains the merge, ran the full suite and is green.
+- **Still open as follow-ups:**
+  - the ledger-side `run_paths` wiring test (addendum 1);
+  - items 4 and 5 of the original verdict.

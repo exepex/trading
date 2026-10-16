@@ -98,3 +98,14 @@ The builder's own commit changes 4 files over the main merge 3114001f: `CLAUDE.m
 - `ruff check` and `ruff format --check`: clean.
 - `check_imports`: clean.
 - `CLAUDE.md` is 158 lines.
+
+## Addendum 3 (16 Oct 2026): merge check, follow-ups merged as 067df59e
+
+**Verdict: merge check PASS.**
+
+- **The merge is exact.**
+  - Its parents are 57408607 (main) and 6be069b3 (the passed tip).
+  - Recomputing it with `git merge-tree` gives a tree identical to 067df59e.
+  - Against its main parent it adds exactly the four reviewed files: `CLAUDE.md`, the story, `data_store.py` and `test_store.py`.
+  - The only differences from the branch, in `content_checks.py` and `raw_source.py`, come from main (A14c, 32db170b).
+- **CI.** Checks run 38874396783 on c70e5c92 contains the merge, ran the full suite and is green.
