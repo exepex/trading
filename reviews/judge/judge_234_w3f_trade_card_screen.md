@@ -55,3 +55,19 @@ about 15:08 the desk sends one card". The source tip (`card-page.tsx:54`) says "
 
 **Merge:** W3f must merge W3e, W3g and W3h and keep both sides of the additive lists. After 2.11 merges, draw the cap
 bar from `trade.max_loss_cap` (width and aria label).
+
+## Addendum 2: the held-back card, `story/w3f-withheld` at 5680fe6 (contract 2.12.0 `FnoCard.withheld`)
+
+**PASS.** 5680fe6 is built on 2.12.0 at 7db3830 (judge 239 addendum 1).
+- **Held-back state:** the screen shows a red `role="alert"` notice with the owner's sentence (DESK_DECISIONS row
+  236), today's date and "Below is the card of <its session>, not today's", placed after the TEST note and before the
+  verdict, as in mockup 39. The verdict sub-line reads "Previous session's card", and the old card's own reason is
+  dated ("On Fri 13 Nov 2026: …"), so its "today" words are never the screen's.
+- **Contract error:** a card whose session is not earlier than `withheld.session` shows only the notice and no card.
+  This covers judge 239's note on the check the schema cannot make. **My mutation** `<=` instead of `<` fails 1 test.
+- `withheld.test.ts` covers the notice, the verdict line, a normal day, and an equal and a later date.
+- **Gates:** a trial merge with dashboard main 47d0328 (2.12.0 merged) is clean. `check_contract` and
+  `check_fno_screens` exit 0, `tsc` passes, and `npm test` gives 575/575.
+
+**Note:** the block's heading still reads "Today's card" above a held previous card. The notice directly under it
+says otherwise, so this is not a finding; "Card" would be cleaner.
