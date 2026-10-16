@@ -56,3 +56,12 @@ Numbering: this claims file keeps 271 (reserved by the orchestrator in `reviews/
 3. **Minor 1, citable private values: accepted,** stated in design 2.
 4. **Minor 2, where the audit runs: accepted,** design 5 item 6: the owner's scheduled routine session with the Drive
    settings; without them it stops with an alert.
+
+## Partner texts for judge 308 should-fix 2
+
+- **F6:** done at `c625151e` (`story/f6-book3-engine`, `docs/stories/F6-F7-book3.md`, "F6 addendum 1"): the evidence
+  shape and the `check_decision` call, the prompt lines (account files not citable, `/evaluation` scalars are), D3
+  `judge` from `AcceptedDecision.judge`, verdicts never block, the sequencing note, criterion 17. Read by me: matches
+  F4 design 1-3.
+- **F1t:** requested; pending. **F5:** requested; pending.
+- **Owner question 1:** with the orchestrator; pending.
