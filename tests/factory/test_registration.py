@@ -80,6 +80,7 @@ def test_the_same_card_is_never_registered_twice(repo):
 def test_backfill_dates_the_idea_row_by_its_ledger_row(repo):
     write_card(repo, TRIAL_2)
     registered_in = git(repo, "log", "--format=%H", "-1")
+    commit(repo, "a later commit, so the row must name the ledger's commit, not HEAD")  # judge 261 note 1
     build_registration(repo).backfill(read_idea("X1", repo))
     rows = build_gate_log(repo).rows()
     ledger_day = Ledger(repo).rows()[1]["registered_on"]

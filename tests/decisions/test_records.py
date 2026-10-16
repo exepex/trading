@@ -156,3 +156,14 @@ def test_a_book_and_a_shadow_record_of_one_opportunity_both_survive_and_a_true_c
     with pytest.raises(RecordClash, match="sc-a-v1_2026-11-27.json"):
         store.write(DAY, f"{DAY}-r2", None, [book, book | {"risk": None}])
     assert [r.name for r in store.runs(DAY)] == [f"{DAY}-r1"]  # nothing of the refused run was written
+
+
+@pytest.mark.parametrize("field", ["reason", "authority_check", "chosen_action", "rule_default"])
+def test_a_book_2_record_must_give_its_reason_and_the_envelope_s_verdict(tmp_path, field):
+    """Story D4 criterion 7: present is not enough; an empty reason or verdict is refused for Book 2."""
+    record = records(run_day(tmp_path, snapshot(doc("sc-a"))))["no_trade"]
+    record.update(book="book2_hybrid", model_served="m", session_id="s", authority_check="allowed: follow_rule")
+    validate_record(record)
+    record[field] = ""
+    with pytest.raises(RecordError, match="non-empty"):
+        validate_record(record)
