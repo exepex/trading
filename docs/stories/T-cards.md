@@ -328,3 +328,103 @@ Out (each with where it goes):
 pattern), F8, BG1 · **Size:** T2 S, T3 M ·
 **Status:** text PASS (judge 180 add. 1); T2 code on `story/t2-t3-advocate`, with judge E; T3 and T2b wait for T1's
 trade fields and O1; owner's decisions A, A, A recorded
+
+## T1c. The card shows the market weather from M1's record
+
+**Repository:** trading · **Found by:** the O11 replay (orchestrator, 16 Oct 2026) · **Lane:** 1 (the card decides
+what the owner sees about a trade)
+
+**Description:** As the owner, I want the daily card to show the market weather that M1 recorded for the day: its
+colour, the chances behind it and how proven it is. A missing or unscored reading must keep saying that it blocks new
+trades. Then the card no longer says "M1 pending" now that M1 exists.
+
+**Context and why (strong evidence: code on `main` read on 16 Oct 2026):**
+- M1 is merged.
+  - `fno/weather/records.py` `WeatherRecords` writes one record a day: `research/forecasts/v4/weather/<YYYY>/<d>.json`.
+  - Each record holds `colour`, `status`, `label`, `operative`, `proof`, `probabilities`, `v0_colour`, `day` and
+    `drivers`. The private US flag is kept out of it.
+  - M1's text leaves showing it on the card to "a follow-up T1 change, after M1 merges" (`docs/stories/M-weather.md`,
+    Out).
+- The card still uses `PendingWeather` (`fno/cards/weather.py`, wired in `fno/cards/wiring.py`). That class always
+  prints "Weather: not yet scored (M1 pending)", even on a day with a scored record. No story wires M1 into the card.
+- Today's committed records are back-fills (`label: backfill_exploratory`, up to 14 Oct). Live records start when
+  `weather capture` runs daily, which is O1's and v4's freeze's job. So T1c must also show an honest line on a day with
+  no record.
+
+**Scope.** In:
+- A new `WeatherSource` adapter, `RecordedWeather`, in `fno/cards/recorded_weather.py`. It reads the day's weather
+  record through the card's `CommittedRecords`: the committed bytes, the same as every other section, so the record
+  goes into the card's SHA-256 footer (`UsedRecord`). It takes the record's path from M1's `WeatherRecords.path`, so
+  the path has one source.
+- Wiring: one line in `fno/cards/wiring.py`, `RecordedWeather` in place of `PendingWeather`. `PendingWeather` is then
+  dead code and is removed.
+
+Out:
+- **Blocking a trade on RED or a missing reading at the desk's entry gate:** a story of its own (M1's Out names it).
+  The card only says it.
+- **The card's status reading the weather:** today the status is always `NO TRADE` (no version at `paper`), so a
+  `TRADE` card beside a RED line cannot happen. That is T1 slice B, with the trade fields.
+- **M1's record format and its writer:** M1's; T1c only reads them.
+- **Intraday colours:** LM1 and M1's intraday rule.
+
+**Design:** the card's lines, by the day's record (constants at the top of the module):
+1. **No record, an unreadable file, or a record whose `day` is not the card's day:**
+   - "Weather: no reading for <d>";
+   - "No new trades while the weather reading is missing (owner rule).";
+   - missing: "weather record for <d>".
+2. **`colour` "not scored", or `status` other than "scored":** (M1 writes `status` as "scored" or
+   "not scored: <what is missing>", `fno/weather/day.py`)
+   - "Weather: not scored for <d> (<what is missing>)";
+   - the same "no new trades" line;
+   - missing: "weather not scored for <d>".
+3. **GREEN, AMBER or RED:**
+   - "Weather: <colour> (<operative>, <proof>)", plus " (back-fill, exploratory)" when the label is not `live`;
+   - "Chance of a 2% NIFTY move: next session <p> (base rate <b>); within 5 sessions <p5> (base rate <b5>)", using the
+     operative forecaster's probabilities and the base rate, as whole percents;
+   - "Checklist v0: <v0_colour>";
+   - for RED only, "RED: no new entries (owner rule)".
+   - The record is added to the card's used records with its committed SHA-256.
+
+The adapter never shows a driver (this keeps the private US flag out) and never computes a colour.
+
+**Acceptance criteria:**
+1. On a day with a committed scored record, the card shows the record's colour, operative forecaster, proof, chances,
+   base rates and v0 colour, and lists the record with its SHA-256 among the used records.
+2. On a day with no record, an unreadable record, or a record for another day, the card says "no reading" and the
+   "no new trades" line, and names the record as missing. It never shows a colour.
+3. A "not scored" record gives the not-scored line and the "no new trades" line, with no colour.
+4. RED adds "RED: no new entries (owner rule)". GREEN and AMBER do not.
+5. A back-fill record is labelled "(back-fill, exploratory)". A live one is not.
+6. No driver value appears on the card. Only committed bytes are read: a record on disk that is not committed reads as
+   no record.
+7. `PendingWeather` and its "M1 pending" text are gone, and the wiring builds `RecordedWeather`.
+
+**Test plan:** fake `CommittedRecords` holding a record.
+1. Positive: GREEN live, AMBER back-fill, RED. Each gives its exact lines and its used record.
+2. Negative: no record; a file that is not JSON; a record whose `day` is the day before.
+3. Boundary: a probability of exactly 0.10, shown as a whole percent ("10%"). A missing operative probability is
+   treated as "not scored" and never as 0%.
+4. Empty: an empty `probabilities` object, and a committed folder with no file for the day.
+5. Wiring: `build_daily_card` builds `RecordedWeather`. One test runs the real committed record of 14 Oct 2026 through
+   `GitHeadRecords`.
+
+**Known limits:**
+- Until `weather capture` runs daily (O1 and v4's freeze), live days have no record, so the card says "no reading" and
+  "no new trades". That is true, and it is the owner's rule.
+- The card's weather is the 14:30-cutoff reading; an intraday change is LM1's.
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| M1: "the card shows the colour" (`M-weather.md`, Out and M2's Depends) | Criteria 1, 3 and 4 |
+| Owner "4 A": a missing reading blocks new trades and the card says so | Criteria 2 and 3 |
+| "Never a colour it did not score" (T1) | Criteria 2 and 3 |
+| Privacy (no private driver) | Criterion 6 |
+| The SHA-256 footer of every record used (T1) | Criterion 1 |
+| Enforcing the block at the desk | Out (its own story) |
+
+**Split:** M1's builder (session 013xqaNTCbSBytKgqpfaYFqZ) is asked to agree the reader: the path from
+`WeatherRecords.path`, and the fields above read as written.
+
+**Depends:** T1, M1 · **Size:** S · **Status:** story text, waiting for the judge (Judge E)
