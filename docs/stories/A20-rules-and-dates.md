@@ -6,7 +6,7 @@ workflow) · **Branches:** text `story/a20-rules-and-dates`; code in three parts
 session_013u1Ac2N9eRQ8XCYPjwpaat · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH
 
 **Description:** As the risk manager, the options strategist and the macro economist, I want the rules NSE and SEBI
-set (ban list, lot sizes, contract master, F&O circulars) and the dates of the big macro releases kept exactly as they
+set (ban list, lot sizes, F&O circulars) and the dates of the big macro releases kept exactly as they
 were known on each day, so that no backtest, check or forecast ever uses a rule or a date it could not have known then.
 
 **Context and why:** gap audit `docs/CORE_ENGINE_GAP_AUDIT.md` Part A3 #2, #5, #6 and Part B2 items 10, 12, 13; owner
@@ -57,16 +57,19 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
    lines, so the source tuples move to a new `fno/storage/source_lists.py` (no behaviour change). First-seen time =
    the day folder plus the manifest row's commit time (git); these are daily rules, so a day is the right grain.
 2. **A20b `fno/circulars/`.** Port `CircularFeed.fetch(since: date, until: date) -> list[Circular]`; adapters
-   `NseCircularApi`, `SebiCircularList`. `Circular` = source, number, date, department, category, subject, link,
-   first_seen_at (UTC, the run's clock), `fno_relevant`. Relevance is a strategy `FnoRelevance`: NSE department
-   "Futures & Options" (NSE Clearing's F&O margin circulars carry it too: NCL/CMPT/76975, 16 Oct, "Additional
-   Exposure Margin on Securities under MWPL"), or a subject keyword (lot size, margin, derivative,
-   F&O, expiry, contract, ban, position limit, STT); SEBI: subject keyword. Every item is kept (the flag never drops
-   a row). New items (link not in earlier parts) are written as one O9 `PartTable` part per run
-   (`circulars/<YYYY>/<MM>/<date>.<run_id>.csv`, Drive `data` area, receipt in `receipts/`); the file of each relevant
-   circular goes to the same store under `circulars/files/<source>/<file name>`. Runs hourly 08:00-22:00 IST; each
-   NSE run asks yesterday to today, so a missed run loses nothing but timing precision. SEBI's page shows the latest
-   25: if none of the previously seen SEBI items is on it, alert "SEBI list may have skipped items".
+   `NseCircularApi`, `SebiCircularList`. `Circular` = source, number, date, departments, category, subject, link;
+   each row adds first_seen_at (UTC, the run's clock) and `fno_relevant`. Relevance is a strategy `FnoRelevance`:
+   NSE department "Futures & Options" (NSE Clearing's F&O margin circulars carry it too: NCL/CMPT/76975, 16 Oct,
+   "Additional Exposure Margin on Securities under MWPL"), or an F&O subject word (lot size, position limit, MWPL,
+   ban period, F&O, equity or index derivative); SEBI: a subject word (derivative, margin, lot size, position limit,
+   expiry, F&O, index option). Every item is kept (the flag never drops a row). NSE lists a circular once per
+   department it concerns (70 items, 63 circulars on 15-16 Oct), so its items merge into one row with every
+   department. New items (link not in earlier parts) are written as one O9 `PartTable` part per run
+   (`circulars/list/<YYYY>/<MM>/<date>.<run_id>.csv`, Drive `data` area, receipt in `receipts/`); the file of each
+   relevant circular is saved first under `circulars/files/<source>/<YYYY>/<MM>/<file name>`, and a circular whose
+   file fails is not listed, so the next run tries again. Runs hourly 08:00-22:00 IST; each NSE run asks yesterday
+   to today, so a missed run loses nothing but timing precision. SEBI's page shows the latest 25: if none of the
+   previously seen SEBI items is on it, the run alerts a possible gap.
 3. **A20c extends A6** (`fno/research_data/events.py`). New `MACRO_TYPES` = india_cpi, india_iip, india_gdp, us_fomc,
    us_cpi, us_payrolls, kept apart from A6's hand-kept `TYPES` so `events.csv` and its consumers do not change. Port
    `ReleaseCalendar.dates() -> list[(type, date, source_url)]`; adapters `MospiArcCalendar` (PDF through `pypdf`, a new
@@ -86,9 +89,9 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
 
 ## Acceptance criteria
 
-1. A20a: `fo-masters` saves the ban list (under its trade date) and lot sizes with manifest rows; a ban list for an earlier session is refused as stale and the run exits 1; a non-session day
-   does nothing and exits 0; a fixture of each real layout passes
-   its check and a damaged one fails. No file over 350 lines (`wiring.py` split).
+1. A20a: `fo-masters` saves the ban list (under its trade date) and lot sizes with manifest rows; a ban list for an
+   earlier session is refused as stale and the run exits 1; a non-session day does nothing and exits 0; a fixture of
+   each real layout passes its check and a damaged one fails. No file over 350 lines (`wiring.py` split).
 2. A20b: offline fixtures of both feeds produce `Circular` rows; a second run with the same items writes no part; a
    new item gets its own first_seen_at; F&O-relevant items' files are saved, others are not; a non-JSON or 403 NSE
    answer and a SEBI page without the table are failures, alerted once, never "no new circulars".
@@ -101,7 +104,7 @@ into M1 or a forecaster changes a scored forecaster and is a separate decision f
 
 ## Test plan
 
-Offline fixtures cut from today's real files (ban list, lot sizes, 1 KB of the contract master, one NSE API answer,
+Offline fixtures cut from today's real files (ban list, lot sizes, one NSE API answer,
 one SEBI page, the ARC PDF's text pages, the Fed page); failure fixtures (403, HTML instead of JSON, empty table,
 stale date). Gates: the full suite, ruff, `check_imports.py`, `check_records.py`.
 
