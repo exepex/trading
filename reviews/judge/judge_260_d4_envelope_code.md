@@ -100,3 +100,51 @@ in D4's scope. Book 1 and Book 3 behave as before. I agree with them, subject to
 
 `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto -p no:cacheprovider`: 7,208 passed. `ruff check`: clean.
 `ruff format --check`: 1,281 files already formatted. `check_imports`: clean.
+
+## Addendum 1: story/d4-envelope-code at 917ee25a (fix 2cd7df07)
+
+**Verdict: FAIL.** The fix is right in shape, but its eligible set still holds one kind of version D2 refused.
+
+What changed:
+- `DayEvaluation.eligible` = the book's versions whose outcome is `CHOSEN` or `NOT_CHOSEN`;
+- `validate_chosen` passes it to the validator, and `ValidityProposal.eligible` (empty by default, so fail closed)
+  carries it to C4, where `EnvelopeMode` checks against it;
+- a test: an approved, not-fired B is refused, then passes once B fires;
+- a damaged envelope is now the named `envelope` check;
+- `rule_default` is typed `BookTerms | None`, and the switch-on condition is written on the field and in
+  `envelope.py`;
+- the register paths are corrected.
+
+| Item | Result |
+|---|---|
+| A not-fired B refused | MET (test; my plant "C4 back to `approved`" fails 1 test) |
+| `NO_TRADE` never eligible | MET (my plant adding `NO_TRADE` fails 1 test) |
+| Notes of judge 260 | all applied |
+| **Eligible = fired with a candidate that survived D2** | **NOT MET**, see below |
+
+### Should-fix: `NOT_CHOSEN` includes a version D2 refused by its own per-strategy rule
+
+`Decision.NOT_CHOSEN` is "a valid candidate that lost its slot, cash or risk check to the ranking". In
+`Allocator.allocate` it is also given by `_before_risk` for the **unproven limit**: "an unproven strategy (fewer than
+20 completed paper trades) may hold at most 1 open trade" (D2; `allocation.py:75-80`, `refusal[0] = True`). That
+refusal has nothing to do with losing to A; B is refused on its own. C4 does not re-check the unproven limit (grep:
+nothing in `fno/checks` or `fno/risk`).
+
+Path, once Book 2 is switched on:
+1. B is unproven and already holds one open trade.
+2. Today A fires and is chosen; B fires and is `NOT_CHOSEN` ("unproven ... at most 1").
+3. `eligible` = {A, B}. The decider picks B. F5 computes B's C2 verdicts (B's own outcome has none), and C4 passes:
+   B is eligible, permitted, and its envelope allows `choose_strategy`.
+
+Book 2 then holds two open trades of an unproven strategy, which D2's rule (design 3.2) forbids. The other
+`NOT_CHOSEN` reasons are covered: a slot lost to A is exactly what `choose_strategy` trades, and a cash or risk refusal
+is caught by C4's `risk_verdicts` and limits.
+
+The fix is the builder's. Either leave refusals of a version's own rule out of `eligible` (D2 knows the reason), or
+have C4 re-check the unproven limit independently. The second keeps C4 independent of D2's labels. Add a test: an
+unproven B holding its one trade, `NOT_CHOSEN` for that reason, is refused as Book 2's choice.
+
+### Gates (run by me on 917ee25a)
+
+7,212 passed (`-n auto`, Slack token unset). `ruff check`: clean. `ruff format --check`: 1,281 files already
+formatted. `check_imports`: clean. D5's head d3d31558 carries this fix, but not yet D5's own should-fix (judge 263).

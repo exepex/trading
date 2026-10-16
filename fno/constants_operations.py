@@ -28,8 +28,17 @@ __all__ = [
 RUN_LOG_DECISIONS_STEP = "decisions"
 RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
 REVIEWS_STEP = "reviews"  # after the exits: E6's scorecards and automatic pauses (LR3's drift monitor joins it later)
-# E3's steps, then story O1's whole day in order (the health check O8 reads it); Book 1 decides right after the pack
-DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", RUN_LOG_EXITS_STEP)
+# E3's steps (with E2d's marking), then story O1's whole day in order (the health check O8 reads it); Book 1 decides
+# right after the pack
+DESK_RUN_STEPS = (
+    "versions",
+    "pack",
+    RUN_LOG_DECISIONS_STEP,
+    "snapshot",
+    "fills",
+    RUN_LOG_EXITS_STEP,
+    "trade_marks",
+)  # E2d marks every open trade right after the exits
 DAILY_RUN_STEPS = (
     "quotes",
     "margin_check",

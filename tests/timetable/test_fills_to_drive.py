@@ -151,7 +151,7 @@ def test_a_stop_at_the_download_blocks_the_next_session_s_entries(root, tmp_path
     for book, trade in ((BOOK1_RULES, "t1"), (BOOK2_HYBRID, "b1")):
         assert "the run of 2026-10-13 stopped before any step" in log.result("fills")[book]["reason"]
         assert trade not in log.result("fills")
-    assert len(alerts.sent) == 1 and list(log.steps)[-1] == "exits"
+    assert len(alerts.sent) == 1 and list(log.steps)[-2:] == ["exits", "trade_marks"]
 
 
 def stopped_before_exits(root, day):
@@ -167,7 +167,7 @@ def test_a_last_session_stopped_before_its_exits_blocks_today_s_entries_only(roo
     if stopped:
         stopped_before_exits(root, previous)
     log = run_day(run, clock, NORMAL)
-    assert list(log.steps)[-1] == "exits" and BOOK1_RULES in log.result("exits")
+    assert list(log.steps)[-2:] == ["exits", "trade_marks"] and BOOK1_RULES in log.result("exits")
     if stopped:
         reason = f"no new entry: the run of {previous} stopped before its exits (today's exits run; the next session "
         assert log.result("fills") == {book: {"outcome": "not filled", "reason": reason + "opens as usual)"}
@@ -194,7 +194,7 @@ def test_one_book_s_failed_exit_review_blocks_that_book_only(root, tmp_path, ale
     )
     assert "t1" not in log.result("fills") and log.result("fills")["b1"]["outcome"] == OUTCOME_OPENED
     assert len(alerts.sent) == 1 and BOOK1_RULES in alerts.sent[0] and BOOK2_HYBRID not in alerts.sent[0]
-    assert list(log.steps)[-1] == "exits" and log.result("exits")[BOOK1_RULES]["reviewed"] is True
+    assert list(log.steps)[-2:] == ["exits", "trade_marks"] and log.result("exits")[BOOK1_RULES]["reviewed"] is True
 
 
 def test_no_snapshot_blocks_only_a_book_whose_due_exits_were_held_up(root, tmp_path, alerts):

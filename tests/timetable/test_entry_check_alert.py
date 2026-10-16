@@ -51,7 +51,7 @@ def test_without_the_token_it_prints_alert_not_sent_and_the_run_reaches_its_exit
     out = capsys.readouterr().out.splitlines()
     unsent = [line for line in out if "alert NOT sent: FNO_SLACK_BOT_TOKEN is not set" in line and "trade" in line]
     assert len(unsent) == 1 and "not opened" in unsent[0]
-    assert list(log.steps)[-1] == "exits"
+    assert list(log.steps)[-2:] == ["exits", "trade_marks"]
 
 
 def test_a_replayed_fills_step_sends_no_second_alert(root, tmp_path, alerts, thin_wing):
