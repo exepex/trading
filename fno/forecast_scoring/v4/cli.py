@@ -27,6 +27,16 @@ def add_forecast_v4_scores_parser(subparsers) -> None:
 
 
 def cmd_forecast_v4(args) -> int:
+    from .outcomes import VixCloseMissing
+
+    try:
+        return _run(args)
+    except VixCloseMissing as fault:  # one named line, never a traceback (orchestrator, 16 Oct 2026)
+        print(fault)
+        return 1
+
+
+def _run(args) -> int:
     from ...models import now_ist
     from .wiring import (
         build_ai_slot_days,

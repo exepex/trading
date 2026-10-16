@@ -7,19 +7,16 @@ outside the repository, sends no alert and commits nothing."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from ..alerts.sender import AlertSender, NoAlertSender
 from ..composition import build_alert_sender
-from ..constants import DEFAULT_REPOSITORY, GITHUB_REPOSITORY_VARIABLE
 from ..forecast_v4.cutoff_move import cutoff_flag
 from ..forecast_v4.terms import MOVED_AFTER_CUTOFF_X
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
-from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
 from ..storage.data_store import new_run_id
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.owned_paths_commit import OwnedPathsCommitter
@@ -36,12 +33,13 @@ from ..storage.wiring import (
     build_session_calendar,
 )
 from .claims import CLAIM_LABEL, CLAIM_MESSAGE, GitMarkClaims, MarkClaims, NoClaims
-from .clock import ClockCheck
+from .clock_wiring import build_clock_check
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
 from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
 from .ledger import ROOT as LEDGER_ROOT
 from .ledger import SlotLedger
+from .observer import NoObserver
 from .read_only import ReadOnlyGroww
 from .realised_vol import QuoteSnapshotRv15m
 from .recorder import IntradayRecorder
@@ -69,13 +67,11 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
     calendar = build_session_calendar()
     session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m(), cutoff=v4_cutoff_flag)
-    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
-                                                             or DEFAULT_REPOSITORY))  # fmt: skip
-    clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
-        source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
-        claims=_claims(dry_run_folder),
+        source, files, ledger, Heartbeat(folder), calendar, alerts, build_clock_check(), session_rv,
+        _sync(dry_run_folder, alerts),
+        claims=_claims(dry_run_folder), observer=NoObserver(),  # LM1's position monitor plugs in here
     )  # fmt: skip
 
 

@@ -9,7 +9,7 @@ from .trial_count import FalsePasses, TrialCount
 
 
 def idea_line(card: IdeaCard, count: TrialCount, last: GateRow | None) -> str:
-    label = " (measurement: never promoted)" if card.measurement else ""
+    label = " (measurement)" if card.measurement else ""  # "never promoted" is a shadow's label (R1c)
     head = f"{card.idea_id} v{card.version}{label}: {count.label(card.trial_id)}"
     if last is None:
         return f"{head}; no gate-log row (register or back-fill it)"
