@@ -52,3 +52,22 @@ Gates on a trial merge with origin/main: `-n auto` gives 6832 passed; `ruff chec
   |change| / median |change| over 250 records): this matches W3 rule 4 and carries no level. Accepted.
 - **The rest:** `model_version` is the record's `operative`, `intraday` is empty and `price_of_calm` is
   `not_measured_yet`, all honest.
+
+## Addendum 1: P2a at 62259e1f (response 224 addendum 1)
+
+**Verdict: PASS.** Should-fix 1 is closed.
+
+- **The scorer is gone.** `scores()` is now a constant list: each question and yardstick `not_enough_data`, with
+  `n_scored` 0 and `brier`, `brier_baseline` and `skill` null. Its docstring names G8's `scores.py` as the only
+  scorer and the reader that replaces it. No Brier arithmetic is left (`statistics` is now used only for the
+  drivers' median change).
+- **The reason line** stays in code because 2.7.0's `FnoWeatherScore` has no reason field, which is acceptable.
+- **The map-key note** is pinned: `FnoPicks.baskets` is the only map in the F&O screens and a test holds it empty.
+  `us_overnight` gets its page-side test.
+- **Gates on a trial merge with origin/main:** `-n auto` gives 6830 passed and 4 failed. All 4 are
+  `test_routine_gate.py`'s shard-count check, caused only by my trial merge leaving `reviews/claude/README.md`
+  unmerged: a conflict between the branch's response 224 row and main's response 225 row, so the file was listed
+  twice. Plain main passes the same file (17 passed).
+  - **For the merge:** resolve `reviews/claude/README.md` keeping both rows, then run the full suite on the merged
+    tree.
+  - `ruff check` and `check_imports` are clean.

@@ -55,3 +55,29 @@ FAIL, 2 should-fix.** The contract's checks pass on the mockups head:
   (or the P2 page test) that no payload driver is `us_overnight`, so the documentation is enforced.
 - **C.** `design/mockups/_platform/forecast_data.py` is deleted. `git grep` on 04ae2091 finds no remaining user of it
   (only 37's notes mention it), so the deletion is safe.
+
+## Addendum 1: contract 39d1829 and mockups f04cb50 (response 225)
+
+**Verdict: PASS.** Both should-fixes and both notes are closed.
+
+- **Should-fix 1.** `FnoWeatherHistory` rows now require only `session`, `colour` and `label`. The chances and the
+  usual chances are removed and listed in `x-never-sent`, with the reason: beside the colours they would give the
+  colour rule's floors back. A later minor version adds them only if the owner chooses (a). This is the strict form.
+- **Should-fix 2.** Mockup 37's notes now carry a table of each owner request from 13 Oct:
+  - kept: "lab", plain language, today on top and the past below, which family is best at which prediction, the
+    official statistics folded;
+  - changed, with reasons: ranked within each question only, since Brier and QLIKE do not add; settle dates per
+    question;
+  - dropped for now, with the reason (the contract has no per-day or per-period series) and a 2.9 proposal: the
+    "what made the difference" cards and the period chooser with its race chart.
+
+  The JS now has today, best, questions and forecasters views. The owner can sign off knowingly.
+- **Note A.** The version note now says 2.8.0's required fields reject a 2.7 payload, which is harmless because no
+  F&O screen page is published yet.
+- **Note B.** `fno_rules.check_never_sent_values` fails any `getFnoWeather` example with a driver `us_overnight`. The
+  page side is P2a's test (judge 218 addendum 1).
+- **Gates.**
+  - f04cb50: `check_contract`, `check_fno_screens` ("9 pages, 29 Mock examples… every rule holds"),
+    `check_semantics`, `check_mapping` and `check_stored` all exit 0.
+  - The contract branch alone (39d1829): `check_contract` and `check_fno_screens` exit 0. Its `MOCKUPS` list ending
+    at 41 is as intended.
