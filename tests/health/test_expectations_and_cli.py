@@ -163,18 +163,28 @@ def test_the_workflow_checks_out_full_history_and_commits_only_its_run_record(wo
     steps = workflow["jobs"]["check"]["steps"]
     assert steps[0]["with"]["fetch-depth"] == 0
     commit = next(s for s in steps if s.get("name") == "Commit the run record")["run"]
-    assert re.findall(r"git add (\S+)", commit) == [HEALTH_RUNS_FILE]
+    assert re.findall(r"git add (\S+)", commit) == ["research/ops/"]
+    writers = {m for path in HEALTH.glob("*.py") for m in re.findall(r'"(research/ops/[^"]+)"', path.read_text())}
+    assert writers | {HEALTH_RUNS_FILE} == {HEALTH_RUNS_FILE, "research/ops/calendar_horizon_alerted.txt"}
     assert "git pull --no-rebase" in commit and "--no-verify" not in WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_a_job_that_fails_outside_the_check_still_alerts_once(workflow):
+    """Response 239 item 7: a failed checkout, install or commit gives one #fno-desk line; a failed check step already
+    posted its own "health check FAILED", so this step stays quiet then."""
+    step = workflow["jobs"]["check"]["steps"][-1]
+    assert step["if"] == "${{ failure() && steps.check.outputs.posted != 'true' }}"  # judge 240: not the outcome
+    assert "build_alert_sender().send(" in step["run"] and set(step["env"]) == {"FNO_SLACK_BOT_TOKEN"}
 
 
 def test_the_workflow_gives_its_secrets_only_to_the_check_step(workflow):
     job = workflow["jobs"]["check"]
-    with_env = [s for s in job["steps"] if "env" in s]
+    with_env = [s for s in job["steps"] if "env" in s and "GITHUB_TOKEN" in s["env"]]
     assert "env" not in job and [s["run"] for s in with_env] == ["python -m fno health check"]
     assert with_env[0]["env"] == {"FNO_SLACK_BOT_TOKEN": "${{ secrets.FNO_SLACK_BOT_TOKEN }}",
                                   "GITHUB_TOKEN": "${{ github.token }}"}  # fmt: skip
     runs = " ".join(s.get("run", "") for s in workflow["jobs"]["check"]["steps"])
-    assert "TOKEN" not in runs and "echo" not in runs
+    assert "TOKEN" not in runs and "echo" not in runs  # the alert step reads its token from env, never prints it
 
 
 def test_exactly_these_checks_are_live_from_these_sessions():
@@ -188,3 +198,33 @@ def test_exactly_these_checks_are_live_from_these_sessions():
         "NIFTY panel day": expectations.DATA_JOBS_FROM, "FII/DII flows": expectations.DATA_JOBS_FROM,
     }  # fmt: skip
     assert expectations.FIRST_RECORDED < expectations.FIRST_SEALED  # both dates fixed in the table, before 16 Oct
+
+
+@pytest.mark.parametrize(
+    ("outcome", "dry_run", "error", "posted"),
+    [(SENT, False, None, True), (SENT, False, KeyError("x"), True), ("alert NOT sent: no token", False, None, False),
+     (SENT, True, None, False)],
+)  # fmt: skip
+def test_the_check_step_marks_posted_only_when_slack_accepted_its_line(monkeypatch, tmp_path, outcome, dry_run, error,
+                                                                       posted):  # fmt: skip
+    """Judge 240: the workflow's own failure line stays quiet only when this step really posted (FAILED included)."""
+    outputs = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(outputs))
+    _cli(monkeypatch, tmp_path, run=ALL_OK, error=error, dry_run=dry_run, outcome=outcome)
+    assert (outputs.is_file() and outputs.read_text() == "posted=true\n") is posted
+
+
+def test_a_sender_that_cannot_be_built_leaves_no_posted_mark_so_the_workflow_line_is_the_one_line(
+    monkeypatch, tmp_path
+):
+    """The crash judge 240 named: before anything posts, the step dies; `posted` is not true, so the workflow posts."""
+    outputs = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(outputs))
+
+    def cannot_build():
+        raise ImportError("a package missing from requirements.txt")
+
+    monkeypatch.setattr("fno.composition.build_alert_sender", cannot_build)
+    with pytest.raises(ImportError):
+        health_cli.cmd_health(SimpleNamespace(at=ist(DAY, 17, 51), dry_run=False), out=lambda line: None)
+    assert not outputs.exists()
