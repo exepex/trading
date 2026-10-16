@@ -62,3 +62,24 @@ ALERT: F&O paper desk: cand-c-v1 (measurement) shadow test, not paused: realised
 
 **Known limits:** those in the R3 addendum (no G6 code yet; LR1 shows no strategy lines; a realised loss can pass the
 cap).
+
+## Addendum: merge with main and S1 item 15's closure test (judge 233 addendum 1 PASS; merge held)
+
+- **What failed:** on main plus B0, `tests/evaluation/test_scoring_closure.py` found `fno/playbook/measurement.py`,
+  which the hashed `fno/scorecard/scorecard.py` imports, neither hashed nor exempted.
+- **Decision: exempt it as a data shape, not hash it** (strong evidence, code read: `grep -rn "\.measurement\b\|is_measurement" fno`).
+  - In scored code, `is_measurement` only sets `Scorecard.measurement`.
+  - That flag is read in one place, `report.py:32`, the title line's " (measurement)".
+  - No figure, count or threshold reads it. Its other caller, `pauses.py`, picks alert wording only and is outside the
+    scoring closure.
+  - The exemption's reason says to **hash it once Test B counts by it**. R3 part B's criterion 12 excludes measurement
+    shadows from Test B's count, which will make it decide a figure. Part B's text and code then move it into S1's
+    `frozen_files` (a lane-1 S1 change, through the owner of that list).
+- **Judge G's note:** `test_a_measurement_at_paper_keeps_e6_s_cumulative_pause_wording` covers the research-only guard
+  in `cumulative_losses`. Mutation (guard removed) fails it.
+- **Registry date:** the row stays 16 Oct, because the branch is merged on 16 Oct (IST). If it slips, it is re-dated
+  before merging.
+  - The first decision is still **16 Nov**: any registration date from 10 Oct to 13 Nov gives the same first session
+    of December's window.
+  - The test runs the real finder from the day after `REGISTERED`.
+- **Merge:** main merged in, with one README conflict (both new rows kept).

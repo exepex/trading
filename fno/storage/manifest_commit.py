@@ -13,6 +13,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 PUSH_ATTEMPTS = 3
+TARGET_BRANCH = "main"
+OFF_MAIN = "the checkout carries changes not on {target} outside this writer's paths: {paths}"
 COMMIT_MESSAGE = "Manifests: SHA-256 rows written at save time ({what})"
 MANIFEST_LABEL = "manifest rows"
 COMMITTED_AS, NOTHING_AS = "{label} committed and pushed ({count} file(s))", "{label}: nothing new to commit"
@@ -78,7 +80,7 @@ class GitManifestRecorder(ManifestRecorder):
             if pulled.returncode != 0:
                 self.abort_merge()
                 return self._not_committed("pull", _first_line(pulled))
-            pushed = self._git("push", "origin", "HEAD")
+            pushed = self._git("push", "origin", f"HEAD:{TARGET_BRANCH}")
             if pushed.returncode == 0:
                 return COMMITTED_AS.format(label=self.label, count=count)
         return self._not_committed("push", _first_line(pushed))
@@ -87,14 +89,27 @@ class GitManifestRecorder(ManifestRecorder):
         return NOT_COMMITTED.format(label=self.label, folder=self.folder, step=step, reason=reason)
 
     def pull(self) -> subprocess.CompletedProcess:
-        return self._git("pull", "--no-rebase", "--no-edit", *self.merge_option, "origin", self._branch())
+        """Merges main whatever branch is checked out: a routine container starts on a session branch that GitHub
+        does not have, and data belongs on main. Refused while the checkout carries anything else not on main, so
+        unjudged work on a story branch never reaches main through a data push."""
+        fetched = self._git("fetch", "origin", TARGET_BRANCH)
+        if fetched.returncode != 0:
+            return fetched
+        changed = self._git("diff", "--name-only", f"origin/{TARGET_BRANCH}...HEAD")
+        if changed.returncode != 0:
+            return changed
+        foreign = sorted(path for path in changed.stdout.splitlines() if path and not self.owns(path))
+        if foreign:
+            reason = OFF_MAIN.format(target=TARGET_BRANCH, paths=", ".join(foreign))
+            return subprocess.CompletedProcess(changed.args, 1, stdout="", stderr=reason)
+        return self._git("pull", "--no-rebase", "--no-edit", *self.merge_option, "origin", TARGET_BRANCH)
+
+    def owns(self, path: str) -> bool:
+        return path.startswith(f"{self.folder}/")
 
     def abort_merge(self) -> None:
         """Never leaves the checkout mid-merge: every later commit would fail."""
         self._git("merge", "--abort")
-
-    def _branch(self) -> str:
-        return self._git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
 
 def _first_line(result: subprocess.CompletedProcess) -> str:

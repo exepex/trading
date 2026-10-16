@@ -200,13 +200,18 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 - **Evidence:** reasoning only
 
 ### `catastrophic_loss_book` Catastrophic-loss rule per book
-- **Value:** C2's drawdown brake, unchanged:
-  - while closed equity is Rs 30,000 or more below its high, the book opens no new trade;
+- **Value:** C2's drawdown brake with the owner's 15 Oct 2026 numbers, per book (each Rs 20 lakh book has its own):
+  - while closed equity is Rs 1,20,000 or more below its high, the book opens no new trade;
   - only the owner's restart row lifts it;
   - open trades are never closed by the brake.
+  - Beside it, limits on new entries only, never a stop: one risk bucket at most Rs 30,000 of maximum loss; all open
+    positions' maximum losses at most Rs 1,50,000; new maximum loss opened in one session at most Rs 50,000. There is
+    no flat open-trade limit. The figures are `config.yaml:risk`'s books profile, which the freeze hashes.
 - **Status:** proposal, owner decides
-- **Reason:** It is the owner's own decision of 12 Oct 2026 (`docs/DESK_DECISIONS.md`), the same for all three books.
-  Repeating it here freezes it for the comparison.
+- **Reason:** The owner's decisions of 15 Oct 2026 (`docs/DESK_DECISIONS.md`: "Risk buckets and caps accepted",
+  "Books drop the flat 3 open trades limit", "Risk caps and the drawdown brake apply per book") replace the 12 Oct
+  Rs 30,000 brake and 3 open trades, the same for all three books. Repeating them here freezes them for the
+  comparison; a test keeps these figures equal to `config.yaml`.
 - **Evidence:** reasoning only
 
 ### `immediate_pauses` Pauses before a scheduled review
@@ -403,8 +408,29 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `fno/evaluation/freeze.py` and `fno/evaluation/order.py` (story BR1a's follow-up, response 230).
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
+  - **Scoring files (S2, S3 and S6; listed by path, since the freeze hashes only listed paths):**
+    `fno/scoreboard/book_board.py`, `fno/scoreboard/book_trades.py`, `fno/scoreboard/committed_runs.py`,
+    `fno/scoreboard/daily_values.py`, `fno/scoreboard/do_nothing.py`, `fno/scoreboard/entry_decisions.py`,
+    `fno/scoreboard/entry_facts.py`, `fno/scoreboard/matched.py`, `fno/scoreboard/matched_actions.py`,
+    `fno/scoreboard/matched_board.py`, `fno/scoreboard/matched_days.py`, `fno/scoreboard/matched_measures.py`,
+    `fno/scoreboard/ports.py`, `fno/scoreboard/protocol_status.py`, `fno/scoreboard/random_control.py`,
+    `fno/scoreboard/reconcile.py`, `fno/scoreboard/sections.py`, `fno/scoreboard/series.py`,
+    `fno/scoreboard/sources.py`, `fno/scoreboard/standard_unit.py`, `fno/scoreboard/t_check.py`,
+    `fno/scoreboard/trade_measures.py`, `fno/scoreboard/uncertainty.py`, `fno/scoreboard/whole_system.py`,
+    `fno/scoreboard/wiring.py`.
+  - **Score-time computation (owner, 16 Oct 2026, "Hash the ~11 modules"; judge 229):** the code the scoring calls
+    to compute a scored figure: `fno/desk/pricing.py`, `fno/desk/settlement.py`, `fno/risk/open_risk.py`,
+    `fno/risk/trade_costs.py`, `fno/risk/buckets.py`, `fno/risk/inputs.py`, `fno/research_engine/cycle_costs.py`,
+    `fno/research_engine/structures.py`, `fno/accounting/ledgers.py`, `fno/costs.py`, `fno/scorecard/scorecard.py`,
+    `fno/scorecard/execution_costs.py`, `fno/scorecard/touches.py`, `fno/books/equity.py`, and the parsers that
+    decide which numbers are scored: `fno/fo_bhavcopy.py` (NSE's settlement columns),
+    `fno/market_read_models/nse_files.py` (the index closes) and `fno/desk/snapshot.py` (the bid and ask touch;
+    judge 229 addendum 1). A test walks the imports
+    from the scoring modules through every hashed module: each fno module reached is hashed or exempted with a
+    one-line reason (data shapes, readers and stores, wiring). The cost, accepted by the owner: after the freeze, any
+    edit to one of these files needs a new S1 version, even when it is made for the desk or the risk manager.
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
-    2026) and the code of F8 and F9
+    2026; listed above: every module of fno/scoreboard but its command line) and the code of F8 and F9
     is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
     version 2.
   - **Refusal:** the freeze tool refuses a listed file that does not exist.

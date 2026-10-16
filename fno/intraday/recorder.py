@@ -24,7 +24,7 @@ from .heartbeat import Heartbeat
 from .ledger import SlotLedger
 from .session_rv import SessionRv, previous_recorded_session
 from .settle import Settlement
-from .slots import label, marks, takeable_marks, window_end
+from .slots import MAX_WAIT, label, marks, takeable_marks, window_end
 from .snapshot_files import SnapshotFiles
 from .source import IntradayQuoteSource
 from .status import FAILED
@@ -112,8 +112,10 @@ class IntradayRecorder:
         while self.now().astimezone(IST).time() < until:
             outcome = self.snapshot(until)
             outcomes.append(outcome)
-            if outcome.status in (NOT_TRADING_DAY, NO_MARK) or not self._later_mark(until):
+            if outcome.status == NOT_TRADING_DAY or not self._later_mark(until):
                 break
+            if outcome.status == NO_MARK:  # started more than MAX_WAIT early (the 08:52 fire): wait, never end
+                self._wait_for_next_mark(until)
             if outcome.status == ALREADY:  # another host took the open marks: wait for the next one to open
                 self.sleep(ALREADY_PAUSE_SECONDS)
         return outcomes
@@ -154,8 +156,17 @@ class IntradayRecorder:
         return previous_recorded_session(self.calendar, today)
 
     def _later_mark(self, until: time) -> bool:
+        return self._next_mark(until) is not None
+
+    def _next_mark(self, until: time) -> datetime | None:
         now = self.now()
-        return any(m > now and m.time() <= until for m in marks(now.astimezone(IST).date()))
+        return next((m for m in marks(now.astimezone(IST).date()) if m > now and m.time() <= until), None)
+
+    def _wait_for_next_mark(self, until: time) -> None:
+        """Sleeps until the next mark is within MAX_WAIT, so the next snapshot takes it."""
+        wait = (self._next_mark(until) - MAX_WAIT - self.now()).total_seconds()
+        if wait > 0:
+            self.sleep(wait)
 
     def _take(self, day: date, mark: datetime):
         """(document, bytes, clock reading, Drive path) of this run's copy, saved under its own name; else the

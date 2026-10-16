@@ -115,3 +115,20 @@ def test_a_measurement_approved_to_paper_is_paused_with_e6_s_own_wording(root, m
         text.startswith("F&O paper desk: meas-p-v1 paused in every book (catastrophic loss: ")
         and "measurement" not in text
     )
+
+
+def test_a_measurement_at_paper_keeps_e6_s_cumulative_pause_wording(root, make_run, alerts):
+    """Judge 233 addendum 1 note: the cumulative wording, too, is for a research shadow only."""
+    from fno.constants import BOOK1_RULES, PlaybookStatus
+
+    from .conftest import version
+
+    version(root / "playbook", "meas-p", PlaybookStatus.PAPER, edge_family="measurement")
+    for n in range(5):  # 5 x about -6,600, each below the cap
+        trade(root, BOOK1_RULES, "meas-p-v1", f"b{n}", START, DAY, credit=50, debit=150)
+    make_run().run(DAY, {})
+    [text] = alerts.sent
+    assert (
+        text.startswith("F&O paper desk: meas-p-v1 paused in every book (cumulative loss: ")
+        and "measurement" not in text
+    )
