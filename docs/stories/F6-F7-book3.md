@@ -40,7 +40,7 @@ backtesting engineer (replay, timing).
 | Fire the routine (pointer: common pack hash, Book 3's private pack), `brief`, `seal`, `reveal`, receipts, judging the book-day (not fired, late, exposed, invalid, model mismatch or unknown, refused, promoted), the outcome record and alert, F1t's run check, the commit before E3's deadline, the O1 steps `ai_fire`/`ai_collect`, live switch, E4/E8 fills | **F1t** (session_01PLbKH15BXYucP6cT9xtoxK) |
 | Book 3's prompt; the answer's schema and checks; registering proposals; Book 3's day sheet; the decision on D2/C2/C4/D3; the shadow file and its reader | **F6/F7** (this story) |
 | Constitution, registry, C4 `ConstitutionMode` | D5 (01SFDjjZ), unchanged except the two small edits below |
-| Finding cards | F2 (session_01WSMMv5nK4wDdktFrudJfXv); Book 3 works with none |
+| Finding cards: the `analyst_cards` export item, card IDs, role-set version | F2 (session_01WSMMv5nK4wDdktFrudJfXv); F1t puts the item in each AI book's export; Book 3 works with none |
 | Precomputed D2 output in a book's private pack (Book 2's rule default; Book 3's day sheet) | one hook proposed to F5's builder (01SFDjjZ, with E2's pack owner 0134MoC6); F6 supplies Book 3's item |
 
 ---
@@ -72,7 +72,7 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    instructions. Its SHA-256 is a D3 `served` component `book3_prompt` and a D6 component.
 2. **Input** (printed by F1t's `brief`): the common pack and Book 3's private pack, which holds its account,
    constitution, registry and specs, **Book 3's day sheet** (a private-pack item, built at the pack step) and F2's
-   cards when present (zero cards is a normal day). The day sheet
+   `analyst_cards` export item when present (common to Books 2 and 3; F2's text at `story/f2-analyst-cards` 2a0140dd) (zero cards is a normal day). The day sheet
    (`fno/book3/day_sheet.py`) is D2's evaluation of Book 3's tradable strategies on the day's 15:00 market with
    nothing chosen: per opportunity its ID, strategy, expiry, exit day, whether the rule fired (unmet conditions), and
    the built candidate (structure, width, lots, legs, maximum loss) or why none was built.
@@ -84,15 +84,17 @@ runner before the first counted decision), fills (E4/E8), scoring (S2/S3).
    `spec` being the D1 YAML text), `shadow` (F7's entries), `cards_used` (card IDs). Every reason is one line of 1 to
    600 characters. A wrong shape refuses the whole answer at `seal` (F1t: `invalid`, no trade). A trade naming an opportunity that is
    not a built candidate on the day sheet, or named twice, is refused alone and recorded as attempted; the rest of
-   the answer stands. A card ID not in the input is refused (the answer cannot cite evidence it was not given).
+   the answer stands. A card ID (F2's `<role>/v<n>/<day>`) not in that day's `analyst_cards` item is refused (the answer cannot
+   cite evidence it was not given).
 4. **Proposals** (`fno/book3/proposals.py`), each on its own:
    - Book 3's guards before D5: `status: research`, every `evidence` field null, `expected_net_per_opportunity:
      none` (nothing tested it), `catastrophic_loss_rs` at most the owner's per-trade cap
      (`risk.profiles.books.max_loss_per_trade_rs`, Rs 10,000), so a spec can never loosen E6's pause.
    - Then D5's `register()` (constitution check, `proposed_on` from the clock, the trial ledger). Provenance: `model`
      is `AcceptedDecision.registered_model` (F1t refuses a mismatch or `unknown` before the decider runs); `prompt_version` is
-     `book3_decide_v1:<sha256 prefix>`; `role_set_version` is F2's role-set version when cards were given, else
-     `none`; `supersedes` from the answer. `new_or_reused` is set by code, never by the AI (agreed with D5's owner,
+     `book3_decide_v1:<sha256 prefix>`; `role_set_version` is the `analyst_cards` item's registered role set (F2: role versions in
+     role order joined with `+`, for example `volatility/v1`; `none` only when no role is registered, so a day with
+     no valid card still names the set); `supersedes` from the answer. `new_or_reused` is set by code, never by the AI (agreed with D5's owner,
      16 Oct 2026): `reused` when the proposal names `supersedes` or its **rule key** equals a playbook version's;
      otherwise `new`. The rule key is the SHA-256 of the trading fields only (`structure`, `entry_conditions`,
      `exits`), because D1's `parameters_sha256` covers the name and version too, so a copied rule under a new name
@@ -274,8 +276,7 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
 ## Open questions
 
 1. **F1t (01PLbKH15): agreed** (above). **F5's builder (01SFDjjZ):** one selection allocator for
-   both books, and one private-pack hook for precomputed D2 output. **F2 (01WSMMv5):** where cards sit in the pack,
-   the card ID field and the role-set version string.
+   both books, and one private-pack hook for precomputed D2 output. **F2 (01WSMMv5): answered** (above).
 2. **D5's owner (01SFDjjZ), answered 16 Oct 2026:** `new_or_reused` derived by code (above; the rule key replaces
    their `parameters_sha256` equality, which cannot fire because the hash covers the name). `proposal_of` sets
    `strategy_id` through one helper `strategy_id_of(name, version)` added to `fno/book3/registry.py` and used by

@@ -34,7 +34,7 @@ The story text only (quality rule 1): `docs/stories/F6-F7-book3.md`. F6 and F7's
 - F1t agreed (its e0ba1b43): write paths restored on any failure; `check_decision` signature; `brief` prints `agents/book3/decide_v1.md`.
 - Open with F5's builder: one selection allocator for both AI books; one private-pack hook for precomputed D2 output
   (Book 2's rule default, Book 3's day sheet).
-- Open with F2: where the cards sit, the card ID field, the role-set version.
+- F2 answered (its 2a0140dd): `analyst_cards` export item, card ID `<role>/v<n>/<day>`, role set joined with `+`.
 
 ## Known risks (said plainly)
 
