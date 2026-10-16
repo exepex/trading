@@ -202,3 +202,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 226: proposal for contract 2.9, two Forecast-lab fields for the owner (running score by session for the period chooser and race chart; settled forecasts with outcomes for the costliest mistakes); text only](response_226_proposal-contract-2-9-forecast-lab.md)
 - [Response 189: story RM2, the real-money test record: story text, claims and three owner questions](response_189_rm2-real-money-record.md)
 - [Response 196: review request to ChatGPT for RM2, the real-money test record (judge 198 add. 2 PASS), quality rule 9; answer file review 125](response_196_rm2-chatgpt-request.md)
+- [Response 211: R3 code part A (shadow accounts opened before D2, own terms, mode isolation, Test B path): claims](response_211_r3-code-part-a.md)
+- [Response 220: review request to ChatGPT for R3 code part A after judge 210's PASS, quality rule 9](response_220_r3-code-part-a-chatgpt-request.md)

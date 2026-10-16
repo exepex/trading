@@ -32,10 +32,12 @@ class OpeningRuns:
     problems: Mapping[str, str]  # trade ID -> why it has no opening run
 
 
-def opening_runs(root: Path, book: str) -> OpeningRuns:
+def opening_runs(root: Path, book: str, decider: str | None = None) -> OpeningRuns:
+    """`decider`: whose decision runs opened the trades (default the book itself). A shadow account's trades are opened
+    by Book 1's run, which records them with mode `shadow` (story R3)."""
     runs, problems = {}, {}
     for trade_id, day in _entry_days(root, book).items():
-        found = _opening_run(Path(root), book, day)
+        found = _opening_run(Path(root), decider or book, day)
         if isinstance(found, Path):
             runs[trade_id] = found
         else:

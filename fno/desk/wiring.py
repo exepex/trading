@@ -5,7 +5,7 @@ order: the desk reads recorded quotes and published NSE files, never a broker.""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
@@ -41,8 +41,10 @@ def build_exit_desk(cfg: dict) -> ExitDesk:
     return ExitDesk(cfg["charges"], build_alert_sender(), NseFinalSettlement(build_nse_fo_library()))
 
 
-def build_shadow_books(market: Market, terms: Mapping[str, TradeTerms], root: Path = ROOT) -> JournalShadowBooks:
-    """D2's `ShadowBooks` for one day: each research candidate's own account under `journal/shadow/`."""
+def build_shadow_books(market: Market, terms: Callable[[str], Mapping[str, TradeTerms]], root: Path = ROOT
+                       ) -> JournalShadowBooks:  # fmt: skip
+    """D2's `ShadowBooks` for one day: each research candidate's own account under `journal/shadow/`, valued on that
+    account's own terms (`terms(account)`, story R3)."""
     return JournalShadowBooks(root, market, terms)
 
 
