@@ -85,8 +85,10 @@ but not the product quality." Errors must alert and be recorded.
 **Out (each with its owner or reason):**
 - What a book decides and its prompt: F5 (Book 2, D4/D5 owner session_01SFDjjZx7JYziM3jqJytG2z) and F6 (Book 3, the
   F6/F7 builder). F1t registers their prompt file and shape check by one line each when they land.
-- Analyst finding cards (F2), matched shadows (F7), the red team and judge (F3, F4): they travel inside the answer's
+- Analyst finding cards (F2), matched shadows (F7) and the red team (F3, now T2/T3): they travel inside the answer's
   book-specific `decision` object, defined and checked by their stories. F1t passes them through unchanged.
+- The judge (F4, `docs/stories/F4-ai-judge.md`): a separate step F1t calls in `ai_collect` (design, "The judge"); its
+  checks, verdict file and audit are F4's.
 - E3's collection and fills, E8's owner-timing fills: unchanged. An accepted AI run is collected and filled exactly as
   Book 1's.
 - D3's refusal of a non-empty `owner_override` (D4 table, owner 16 Oct): the D3 owner's code item; F1t's live switches
@@ -221,6 +223,7 @@ commit in neither is `ReceiptUnknown`, which `fno/ai`'s rules already treat as l
 | `not_revealed` | no reveal visible at observation 2 | no |
 | `model_mismatch` | `model_reported` differs from the registered model | no |
 | `model_unverified` | `model_reported` is `unknown` (orchestrator ruling, 16 Oct: no trade, reason recorded; forecasts keep their rule) | no |
+| `judge_failed` | the judge's verdict blocks (Book 2: `fail` or `unavailable`); the decider still wrote its "no trade, judge failed" run, which passed F1t's check (below) | no (the rule default is a shadow) |
 | `refused` | the decider raised `DecisionRefused`, or F1t's run check failed (below) | no |
 | `promoted` | the decider wrote a run that passed F1t's check | E3 collects it; fills only if C4 passed |
 
@@ -241,6 +244,8 @@ class AcceptedDecision:
     analyst_cards: dict               # F2's item exactly as fired (card IDs, role_set_version, input_sha256)
     consulted_units: tuple[str, ...]  # the unit IDs whose card was in that item: what was given (F9b withholds it)
     commitment_commit: str; reveal_commit: str
+    judge: str                        # F4's verdict file, repository-relative (D3 `judge`)
+    judge_blocks: bool                # F4's verdict blocks: Book 2 writes "no trade, judge failed" (F5 criterion 11)
 
 class AiBookDecider(ABC):             # F5: Book 2; F6: Book 3
     def decide(self, accepted: AcceptedDecision) -> DecidedRun: ...
@@ -263,8 +268,20 @@ class DecidedRun:
 folder; every record passes D3's `validate_record`; every record's `book`, `common_pack_sha256` and
 `private_pack_sha256` equal the pointer's (criterion 7), `model_served` equals `model_reported`, `session_id` the fire
 log's link, and `served` names the decision version; every file in `DecidedRun.files` is under the book's declared
-write paths. A run that fails is never committed, and the book-day is `refused` with the file hashes kept in the
+write paths; every record's `judge` equals `AcceptedDecision.judge`; and when `judge_blocks` is true, no record is a
+chosen trade (only "no trade" records and `mode: shadow` records), so the block does not rest on the decider alone. A run that fails is never committed, and the book-day is `refused` with the file hashes kept in the
 outcome record.
+
+**The judge (F4, agreed with F4's builder 01AN94h4, 16 Oct; F4 text `story/f4-ai-judge` 992a3f89, design 4):** for
+each book-day that passed the checks above (every status before `judge_failed`), and before `decide()`, `ai_collect`
+calls `judged = judge_step.run(JudgeCase(book, day, registered_model, decision, common_pack.body, private_pack.body,
+common_pack.sha256, private_pack.sha256))`, with `JudgeStep` from `fno/judge/wiring.py: build_judge_step(root)`.
+`run()` never raises (an error inside the judge is the verdict `unavailable`). `decide()` then runs in every case with
+`AcceptedDecision.judge = judged.path` (repository-relative) and `judge_blocks = judged.verdict.blocks` (true only for
+Book 2; Book 3's verdicts are evidence). A blocked book-day whose run passes the check is `judge_failed` with the
+verdict's reason line, named in the step's alert; the verdict file is committed with the run and the outcome record
+(on every judged day). The judge is pure code with a 5 s budget measured inside it (target under 0.5 s), so it fits
+`ai_collect`'s 15:11:00-15:12:00 window beside `decide()`'s 30 s (F5).
 
 **Write paths and restore (agreed with F6, 16 Oct):** each book's decision version declares the paths its decider may
 write (Book 3: `journal/book3_ai/`, `book3/` and `research/ledger.csv`, the one file D5's `register()` appends a
@@ -396,6 +413,11 @@ boundary and empty cases (quality rule 5).
     timing file is reported "not captured" by F8c's check; forecast timing is unchanged (tests).
 15. **Real output sample.** The claims show the outcome records and alert lines of a fixture day with one promoted and
     one late book, made by the committed code in a test, with no live post.
+16. **The judge (F4).** With a fake `JudgeStep`: a passing verdict promotes as before with `AcceptedDecision.judge`
+    set and every record's `judge` equal to it; a blocking Book 2 verdict gives `judge_failed`, one alert line, the
+    "no trade, judge failed" run and the verdict file committed, and no fill; a decider that writes a chosen trade
+    under `judge_blocks` is refused by the run check (nothing committed but the outcome); a failing Book 3 verdict
+    (never blocking) still promotes; a book-day that ends before the judge (late, invalid ...) calls no judge.
 
 **Go-live checks (owner, before setting a live switch; not merge criteria):** the owner's isolation decision above
 (condition 3 of 14 Oct); the owner creates the two routines and
