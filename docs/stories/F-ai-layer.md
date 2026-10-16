@@ -306,8 +306,8 @@ stated in the role's version (`isolation`), as F1 does.
    cards file and one #fno-desk line (fake sender) without card text. A missing input, a failed Drive save and a failed
    receipt push each give one line and a failure exit.
 9. **Never blocks the books.** `CardsOfDay` returns every registered role's status even when no card exists or the
-   cards file is missing or fails its receipt check (`no_submission` with the reason), and never raises for a missing
-   card. Its `card_id`s are unique and stable (same file, same ids), and `role_set_version` is `none` with an empty
+   cards file is missing, fails its receipt check, or cannot be read within 30 seconds (`no_submission` with the
+   reason, and one #fno-desk line), and never raises for a missing card. Its `card_id`s are unique and stable (same file, same ids), and `role_set_version` is `none` with an empty
    registry and `volatility/v1` with the v1 registry (tests).
 10. **F9 fit.** Every registered role's `unit_id` is accepted by F9's `RoleSet.of` and is not a control role (test
     against the imported F9 code).
