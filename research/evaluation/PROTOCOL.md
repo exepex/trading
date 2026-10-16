@@ -422,7 +422,10 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     to compute a scored figure: `fno/desk/pricing.py`, `fno/desk/settlement.py`, `fno/risk/open_risk.py`,
     `fno/risk/trade_costs.py`, `fno/risk/buckets.py`, `fno/risk/inputs.py`, `fno/research_engine/cycle_costs.py`,
     `fno/research_engine/structures.py`, `fno/accounting/ledgers.py`, `fno/costs.py`, `fno/scorecard/scorecard.py`,
-    `fno/scorecard/execution_costs.py`, `fno/scorecard/touches.py`, `fno/books/equity.py`. A test walks the imports
+    `fno/scorecard/execution_costs.py`, `fno/scorecard/touches.py`, `fno/books/equity.py`, and the parsers that
+    decide which numbers are scored: `fno/fo_bhavcopy.py` (NSE's settlement columns),
+    `fno/market_read_models/nse_files.py` (the index closes) and `fno/desk/snapshot.py` (the bid and ask touch;
+    judge 229 addendum 1). A test walks the imports
     from the scoring modules through every hashed module: each fno module reached is hashed or exempted with a
     one-line reason (data shapes, readers and stores, wiring). The cost, accepted by the owner: after the freeze, any
     edit to one of these files needs a new S1 version, even when it is made for the desk or the risk manager.
