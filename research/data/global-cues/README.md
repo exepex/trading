@@ -213,4 +213,5 @@ python -m fno global-cues adopt --cue sp500 --copy <raw path> [--from] [--to]   
 `check` covers the private cues only when the Drive settings are present (their tables are in Drive); without them it
 rewrites the public cues' checks alone.
 
-Not scheduled (no schedule was added by this story).
+`.github/workflows/global-cues.yml` runs `fill` at 03:41, 04:41 and 14:11 IST every day (A17 schedules, 16 Oct 2026); its
+commits are a scheduled job's data (lane 3). A failed or stale cue posts one #fno-desk line naming it.
