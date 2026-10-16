@@ -15,6 +15,7 @@ from .stock_rows import UNIVERSE_FNO, UNIVERSE_FOLLOWED, UNIVERSE_NIFTY_500
 if TYPE_CHECKING:
     from .chain_session import ChainSession
     from .flows_block import FlowsInputs
+    from .forecast_lab_inputs import ForecastLabInputs
     from .frame_inputs import FrameInputs
     from .home_inputs import HomeInputs
     from .weather_inputs import WeatherInputs
@@ -42,6 +43,7 @@ class SessionRows:
     flows: FlowsInputs | None = None  # the big investors' flows (P8)
     weather: WeatherInputs | None = None  # M1's weather records for the session (P2a)
     score_reports: list[dict] | None = None  # G4's daily score reports up to the session (P2, forecast history)
+    forecast_lab: ForecastLabInputs | None = None  # G4's latest report and the session's forecast records (P2b)
 
 
 class BlockBuilder(ABC):

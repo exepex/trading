@@ -9,12 +9,15 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ..ai.paths import AI_FOLDER
 from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID, RISK_PROFILE_BOOKS
+from ..forecast.capture import LIVE_FOLDER
 from ..forecast_scoring.wiring import SCORES_FOLDER
 from ..forecast_v4_rules.series import closes_rows, regular_closes
 from ..forecast_v4_rules.wiring import CLOSES_FILE
+from ..research_data.calendar import SessionCalendar
 from ..research_engine.implied_vol import SpotBlackScholes
 from ..risk.profile_settings import profile_settings
 from ..storage.manifest_commit import GitManifestRecorder
@@ -46,6 +49,8 @@ from .fno_rows import FnoRowBuilder
 from .followed import FollowedCompaniesFolder
 from .forecast_history_block import FnoForecastHistoryBlock
 from .forecast_history_inputs import ScoreReportsReader
+from .forecast_lab_block import FnoForecastLabBlock
+from .forecast_lab_inputs import ForecastLabReader, SessionsAhead
 from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
 from .frame_inputs import FlowsReader
 from .home_blocks import FnoBooksBlock, FnoPicksBlock
@@ -82,7 +87,7 @@ def build_market_blocks() -> list[BlockBuilder]:
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
             ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
             IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock(), FnoWeatherBlock(),
-            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock()]  # fmt: skip
+            FnoWeatherHistoryBlock(), FnoForecastHistoryBlock(), FnoForecastLabBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -156,7 +161,14 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     store, calendar = build_versioned_reader(), build_session_calendar()
     flows = FlowsReader(store, calendar)
     reports = ScoreReportsReader(ROOT / SCORES_FOLDER)
-    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports)
+    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, flows, build_weather_inputs(), reports,
+                              build_forecast_lab_inputs(calendar))  # fmt: skip
+
+
+def build_forecast_lab_inputs(calendar: SessionCalendar) -> ForecastLabReader:
+    """Story P2b: G4's committed reports and the committed live and AI forecast records (G3, F1)."""
+    folders = [ROOT / LIVE_FOLDER, ROOT / AI_FOLDER]
+    return ForecastLabReader(ScoreReportsReader(ROOT / SCORES_FOLDER), folders, SessionsAhead(calendar))
 
 
 def build_weather_inputs() -> WeatherInputsReader:
