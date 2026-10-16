@@ -22,6 +22,22 @@ pass mark, so the trade fields say "none". Story E8a; protocol `research/2026-10
 | Needs a reaction faster than 60 minutes? | The study measures what a 5-60 minute reaction costs |
 | Frequency | About 680 decision days, 2 Jan 2024 to 30 Sep 2026 |
 
+## Machine block (story R1)
+
+Read by `python -m fno factory` (G0 fields; R1b adds the screen inputs). Its `idea` gate-log row is back-filled
+from the ledger row (the card was registered by hand before R1's code).
+
+```factory
+id: FT1
+version: 1
+trial: 54
+experiment: fill-timing-2026-10-16
+description: "FT1 fill timing (E8a): how far E8's R = 5/30/60 fills move NIFTY monthly entries after a 15:00 or 14:00 decision, and the flip share (exploratory measurement, no edge)"
+question: fill-timing
+hypothesis: no
+measurement: yes
+```
+
 ## G1-G6
 
 | Field | Value |

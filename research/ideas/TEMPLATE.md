@@ -1,8 +1,9 @@
 # Idea card: <id> <short name>
 
 Copy this file to `research/ideas/<id>.md`, fill every field (write "none" or "unknown" rather than leaving one
-blank), and commit it **together with its ledger row** (`research/ledger.csv`; status `idea` in `research/LEDGER.md`
-until R1's code adds a status field) before G1 runs. Rules: `research/FACTORY_RULES.md`. Label every claim **strong evidence**, **some evidence** or **reasoning only**.
+blank), fill its `factory` block below, and register it with `python -m fno factory register <id>` (story R1): that
+writes its ledger row (`research/ledger.csv`) and its `idea` row in the gate log (`research/factory/gates.csv`, where
+an idea's status is its last row); commit the three files together before G1 runs. Rules: `research/FACTORY_RULES.md`. Label every claim **strong evidence**, **some evidence** or **reasoning only**.
 
 ## G0: the idea
 
@@ -22,6 +23,23 @@ until R1's code adds a status field) before G1 runs. Rules: `research/FACTORY_RU
 | Expected gross per trade, with source | <figure or distribution, and where it comes from> |
 | Needs a reaction faster than 60 minutes? | <yes: flagged "needs fast reaction", judged at R = 60> |
 | Frequency | <trades a year; effective independent ones if trades cluster> |
+
+## Machine block (story R1)
+
+Read by `python -m fno factory`; a card without exactly one valid block is refused with the field named. R1b adds the
+G1-G3 inputs. `trial` is the next ledger trial number; `experiment` and `question` are lower-case words joined by
+hyphens; `hypothesis` is yes when the idea tests an edge; `measurement` is yes for a measurement (never promoted).
+
+```factory
+id: <id>
+version: 1
+trial: <next trial number>
+experiment: <experiment-slug>
+description: "<one line for the ledger>"
+question: <research-question-slug>
+hypothesis: yes
+measurement: no
+```
 
 ## G1: feasibility screen inputs
 

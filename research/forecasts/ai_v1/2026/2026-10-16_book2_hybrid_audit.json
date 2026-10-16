@@ -1,0 +1,54 @@
+{
+ "attempted": {
+  "q1_nifty_up_20d": {
+   "probability": 0.553,
+   "reason": "Book 1 value kept; NIFTY down ~6% from Aug high but no clear edge beyond base rate 0.588 vs risk-neutral 0.518."
+  },
+  "q2_nifty_move_3pct_20d": {
+   "probability": 0.4,
+   "reason": "Book 1 0.393 nudged up: trailing RV20 15.6 above IV30 12.96, recent 1-2% daily swings make a 3% 20d move a bit likelier than base rate 0.352."
+  },
+  "q3_rv20_above_trailing": {
+   "probability": 0.374,
+   "reason": "Book 1 kept: trailing RV20 15.6 is elevated vs IV30 12.96 and VIX 13.95, so mean reversion favours lower future RV; model 0.259, base 0.489."
+  },
+  "q4_vix_up_10d": {
+   "probability": 0.449,
+   "reason": "Book 1 kept; VIX 13.95 mid of its 1-month 13.4-15.3 range, no reason to move."
+  },
+  "q5_rv20_below_atm_iv30": {
+   "probability": 0.58,
+   "reason": "Book 1 0.621 cut: trailing RV20 15.6 already exceeds IV30 12.96 by 2.6 points, so realised vol staying above implied is more likely than the base rate 0.689 implies."
+  }
+ },
+ "book": "book2_hybrid",
+ "commitment_received_at": "2026-10-16T09:41:26+00:00",
+ "counted": {
+  "q1_nifty_up_20d": 0.553,
+  "q2_nifty_move_3pct_20d": 0.4,
+  "q3_rv20_above_trailing": 0.374,
+  "q4_vix_up_10d": 0.449,
+  "q5_rv20_below_atm_iv30": 0.58
+ },
+ "day": "2026-10-16",
+ "fire": {
+  "fired": true,
+  "fired_at": "2026-10-16T15:10:19.378091+05:30",
+  "session": "https://claude.ai/code/cse_01U2ngP3BNRmZMieaAeuPazF",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "unverified",
+ "model_reported": "unknown",
+ "notes": [],
+ "problems": {
+  "q1_nifty_up_20d": "",
+  "q2_nifty_move_3pct_20d": "",
+  "q3_rv20_above_trailing": "",
+  "q4_vix_up_10d": "",
+  "q5_rv20_below_atm_iv30": ""
+ },
+ "reveal_received_at": "2026-10-16T09:45:19+00:00",
+ "status": "on_time",
+ "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+}
