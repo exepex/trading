@@ -93,14 +93,19 @@ Out, each with its reason:
      its latest 25). SEBI's page shows only 25: if none of the previously seen SEBI circulars is on it, the run alerts
      a possible gap.
    - Hourly 08:00-22:00 IST, every day (NSE and SEBI also publish on holidays).
-3. **A20c extends A6** (`fno/research_data/events.py`). New `MACRO_TYPES` = india_cpi, india_iip, india_gdp, us_fomc,
-   us_cpi, us_payrolls, kept apart from A6's hand-kept `TYPES` so `events.csv` and its consumers do not change. Port
-   `ReleaseCalendar.dates() -> list[(type, date, source_url)]`; adapters `MospiArcCalendar` (PDF through `pypdf`,
-   approved by the orchestrator, pinned), `FedFomcCalendar` (HTML), US CPI/payrolls per open question 1. Each run
-   writes the parsed calendar as a PartTable part `macro-calendar/...`; a reader builds A6 `Event`s: `announced_on`
-   = the first part that held the date; a date that vanishes later gets `first_withdrawn_on` = the first part
-   without it, so A6's `known_on` works unchanged. Days before our first capture are honestly "late bound" (A6's own
-   rule). Daily at 07:30 IST.
+3. **A20c extends A6 without editing it.** `fno/research_data/events.py` is frozen by experiment 1
+   (`research/2026-10-12-experiment-1/FREEZE.md` lists its SHA-256), so a new `fno/research_data/macro_events.py`
+   holds `MACRO_TYPES` = india_cpi, india_iip, india_gdp, us_fomc, us_cpi, us_payrolls and builds A6 `Event`s that
+   A6's own `known_on` and `in_window` read unchanged; `events.csv` and its consumers do not change. Port
+   `ReleaseCalendar.fetch(today) -> Calendar` (dates plus the fetched document); adapters `MospiArcCalendar` (PDF
+   through `pypdf==5.4.0`, approved by the orchestrator), `FedFomcCalendar` (HTML), and US CPI/payrolls as an
+   `UnconfiguredCalendar` that fails every run until the owner decides (open question 1: BLS also refuses GitHub's
+   runners, probe run 38900266338). Each run writes each calendar read whole as one snapshot part
+   `macro-calendar/<source>/...` and keeps the document once under its SHA-256. The reader: `announced_on` = the IST
+   day of the first snapshot holding a date, only if before the date; a future date a later snapshot of the same
+   source drops is withdrawn (an unscheduled event with `first_announced_on` and `first_withdrawn_on`, so A6's
+   `known_on` knows it only until then); a past date the calendar stops covering stands; a date that comes back is a
+   new announcement. Days before our first capture are honestly "late bound" (A6's own rule). Daily at 07:30 IST.
 4. **Failures (O10's design).** Each job prints one line per source (`ok`, `stale`, `failed: <reason>`) and exits 1
    if any source is not ok; O10's `capture-watch.yml` writes the committed error row for every non-success run (A20's
    workflows are on its list; agreed with O10's builder). Alerts:
@@ -160,12 +165,15 @@ Each criterion has good, bad, boundary and empty cases in its tests.
 9. **A20b alerts once per episode.** A new problem alerts once; the same problem in the next run does not alert but
    the run still exits 1 and marks the step as having spoken; a cleared problem posts one "recovered" line; the state
    file holds keys only (no URLs, values or log text).
-10. **A20c MOSPI.** The real ARC PDF of Sept 2026 gives 12 CPI dates for FY 2026-27 (11 or 13 is refused as a
-    layout change), its IIP and GDP dates; a PDF without text is refused.
+10. **A20c MOSPI.** The real ARC of Sept 2026 (its text as pinned pypdf extracts it; the record scan refuses a
+    binary fixture) gives 12 CPI and 12 IIP dates for FY 2026-27 (11 or 13 is refused as a layout change) and its GDP
+    dates; a PDF without text and a non-PDF are refused.
 11. **A20c Fed and stale.** The real FOMC page gives each year's 8 decision days; a calendar whose last future date
     is 30 days ahead is fine, 29 days stale; an empty page is refused.
-12. **A20c event model.** `announced_on` is the first part's day; a removed date gets `first_withdrawn_on`; A6's
-    `known_on` returns them correctly before, on and after those days; `events.csv` and A6's `TYPES` are unchanged.
+12. **A20c event model.** `announced_on` is the IST day of the first snapshot (a UTC evening counts as the next IST
+    day); a date first seen on or after its day is dropped; a removed future date gets `first_withdrawn_on` and A6's
+    `known_on` returns it the day before and not on the withdrawal day; a dropped past date stands; a returning date
+    is a new announcement; `events.py`, `events.csv` and A6's `TYPES` are unchanged.
 13. **Workflows** (read by a test from the YAML): each A20 workflow has its crons as above, `contents: write`, its
     alert step on `failure() && steps.<id>.outputs.posted != 'true'`, no secret value; each is on O10's
     `capture-watch.yml` list once O10 is merged.
@@ -191,7 +199,8 @@ hide a failed fetch; that no data file is committed; the real-run samples and, a
 
 ## Open questions (orchestrator, owner)
 
-1. **US CPI and payrolls dates: BLS refuses this container (403).** Orchestrator, 16 Oct: test from a GitHub runner
-   first; only if refused, the owner is asked for a free FRED API key (St. Louis Fed's release-dates API) as a secret.
+1. **US CPI and payrolls dates: BLS refuses this container and GitHub's runners (403; probe run 38900266338, 16
+   Oct).** The orchestrator asks the owner for a free FRED API key (St. Louis Fed's release-dates API) as a secret.
+   Until then the macro-calendar run fails daily on that line, on purpose: never silent.
 2. Settled: O10's builder lists A20's workflows in `capture-watch.yml`; whichever merges second adds the names.
 3. Settled: `pypdf` approved (free, pinned version).
