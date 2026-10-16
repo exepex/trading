@@ -173,3 +173,23 @@ def test_receipts_reach_main_from_a_session_branch_and_the_data_never_enters_git
     on_main = git(origin, "ls-tree", "-r", "--name-only", "main").split()
     assert "receipts/data/intraday/slots/2026/10/16/a.csv.sha256" in on_main
     assert not any(path.endswith("a.csv") for path in on_main)  # the data itself is only in Drive
+
+
+@pytest.mark.parametrize(("writer", "run_id"), [("job\tx", "r"), ("job", "r\n1"), ("", "r"), ("job", "")])
+def test_a_writer_or_run_id_that_would_split_a_receipt_is_refused(tmp_path, writer, run_id):
+    with pytest.raises(ValueError, match="without tabs or line breaks"):
+        DataStore(LocalFolderStore(tmp_path / "drive"), "data", ReceiptFolder(tmp_path / "r"), writer, run_id)
+
+
+def test_a_receipt_interrupted_mid_write_is_never_read(tmp_path, monkeypatch):
+    receipts = ReceiptFolder(tmp_path / "receipts")
+
+    def crash(self, target):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("pathlib.Path.replace", crash)
+    with pytest.raises(OSError):
+        receipts.write(Receipt("data/a.csv", "1" * 64, 1, T0.isoformat(), "j", "r"))
+    monkeypatch.undo()
+    assert receipts.read("data/a.csv") is None and receipts.under("data") == []
+    assert [f.name for f in (tmp_path / "receipts/data").iterdir()] == [".a.csv.sha256.part"]

@@ -60,3 +60,41 @@ None for this step. What is built is correct and tested.
 5. A writer name containing a tab breaks the receipt format. Refuse it in `DataStore` or `Receipt`.
 6. Two runs in the same UTC second order their snapshots by random hex, so "newest wins" is not guaranteed there. This is unlikely, but it should be documented or tie-broken by `written_at`.
 7. Update the register row and the composition-root list in `CLAUDE.md` (lane 3 / docs).
+
+## Addendum 1 (16 Oct 2026): merge check, step 1 merged to main as 78d66a02
+
+**Verdict: merge check PASS.**
+
+- **The merge is exact.**
+  - Its parents are 281583b9 (main) and aa79450b (the passed tip).
+  - Recomputing it with `git merge-tree` gives a tree identical to 78d66a02 (empty diff).
+  - `git diff aa79450b 78d66a02 -- fno/storage tests/o9_store .gitignore` is empty.
+  - Against its main parent, it adds exactly the branch's 9 files (485 lines).
+- **Later changes on main.** Only A14c (32db170b) has touched `fno/storage` since: `content_checks.py` and `raw_source.py`, which step 1 did not change.
+- **CI.** Checks run 38872554601 on ffa0f74e, which contains the merge, ran the full suite and is green.
+
+## Addendum 2 (16 Oct 2026): step 1 follow-ups at 6be069b3 (`story/o9-step1-followups`)
+
+**Verdict: PASS at 6be069b3. The condition is met.**
+
+The builder's own commit changes 4 files over the main merge 3114001f: `CLAUDE.md`, the story, `data_store.py` and `test_store.py`.
+
+| Item from judge 242 | Reality | Status |
+|---|---|---|
+| Condition: section 2 must match the code | Section 2 now gives each part's real behaviour. PartTable writes CSV parts only, with supersession per table, and any step that moves a JSONL or superseding table must build or name its reader first. DriveCache uses receipts as its index, never lists Drive, and every caller stops and alerts when `not report.complete`. Paths written with `into=` are git-ignored only. Same-second snapshot ties are ordered by the random suffix, and callers must not rely on that order. | met |
+| 3: `into=` paths git-ignored | Written as a rule in section 2; it will be checked at the step that removes the data from git | met (as a rule) |
+| 4: atomic receipt write untested | New test: a crash in `Path.replace` leaves only the hidden `.part` file, and `read` and `under` see nothing. My mutation replacing the write with a direct `write_text` makes it fail. | met |
+| 5: a tab in the writer breaks a receipt | `DataStore` refuses an empty writer or run_id, and any tab, LF or CR (4 tests). My mutation narrowing the check to tabs only makes the LF case fail. | met |
+| 6: snapshot same-second ties | Documented in section 2 | met |
+| 7: composition-root list, register row | `CLAUDE.md` now names `fno/storage/data_wiring.py`. The register row was updated on main separately (lane 3). | met |
+
+**Rule text.** `CLAUDE.md`'s "GitHub files are the default store" becomes the owner's Drive-only rule (DESK_DECISIONS, 16 Oct), with "built step by step".
+- This is accurate as a direction. But until each writer moves, most data still reaches GitHub.
+- Read it as the target, not the current state.
+- The 3 pm recorder section of `CLAUDE.md` is already consistent with it: sidecars only, with the raw files in Drive.
+
+**Gates.** Trial merge with `origin/main` (8aacf8b1):
+- `pytest -n auto`: 7075 passed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: clean.
+- `CLAUDE.md` is 158 lines.
