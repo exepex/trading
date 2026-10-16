@@ -33,7 +33,7 @@ validated ... do not over-engineer ... Simplicity is also our priority, but not 
   ("the action fits the reasons" in meaning). For Book 2 the room for unsound reasoning is narrow: its envelope allows
   only following the rule, a veto, a narrower set (width, fewer lots) or another eligible version, all then checked by
   C2 and C4 (D4, F5). Checking meaning needs a model different from the author's, outside the daily window: that is
-  **F4b** (out, below; an owner question).
+  **F4b** (out, below; owner decision 1).
 - **Known limit of this version (stated, F5 16 Oct):** design 7's "judgement" is narrower here: the code judge checks
   citations and number consistency, not whether the reasoning is sound (F4b).
 - **A slot cannot hide a change:** Book 2's `check_decision` refuses a top-level `follow_rule` unless every slot follows
@@ -55,7 +55,7 @@ validated ... do not over-engineer ... Simplicity is also our priority, but not 
 **Out (each with its owner or reason):**
 - **F4b, a model re-check of meaning** (a monthly AI routine on a model different from the author's, reading the
   audit sample with its packs and judging whether each action fits its reasons): needs a routine and a schedule;
-  owner question 1. Until then the audit's re-check is code (criterion 7 states what that does and does not find).
+  owner decision 1. Until then the audit's re-check is code (criterion 7 states what that does and does not find).
 - **Research theses:** no story produces a thesis to judge yet (Book 3's proposals register as `research` under D5's
   guards and trade only after their own tests). Judged when the research loop exists.
 - **The red team / devil's advocate:** T2, T3 (objections never block).
@@ -202,7 +202,7 @@ the audit after a fix that passes lifts it.
 
 | Requirement | Where |
 |---|---|
-| Sufficiency and interpretation checked, by a model different from the author | criteria 1, 4, 5 (code daily); meaning: F4b, out, owner question 1 |
+| Sufficiency and interpretation checked, by a model different from the author | criteria 1, 4, 5 (code daily); meaning: F4b, out (owner decision 1) |
 | Verdict JSON `check, pass, reasons, what_to_redo, model` | design 3 (`checks` items, `judge`), criterion 8 |
 | Fail = no trade (Book 2), the rule default recorded as a shadow; Book 3 recorded, not blocking; Book 1 by C4 only | criterion 2, design 4; Book 1 is not judged (no change to Book 1) |
 | No override path; D3 keeps `owner_override` null | criterion 3; D3's refusal is `story/d3-no-owner-override` |
@@ -212,22 +212,14 @@ the audit after a fix that passes lifts it.
 | Verdicts for research theses | out: no thesis producer yet |
 | Inside the deadline | design 4, criterion 10 |
 
-## Open questions (to the orchestrator, then the owner)
+## Owner decisions (16 Oct 2026; DESK_DECISIONS "F4: a code judge every day, plus a monthly AI re-check of meaning (F4b)")
 
-1. **Code waits for this answer (judge 308 should-fix 1).** The owner chose "F4 follows its amended text" (DESK_DECISIONS,
-   16 Oct), which names its own AI session; this text replaces that with a code gate, so the owner decides between:
-   (a) a code gate daily, plus F4b's monthly re-check of meaning by another model (recommended); or (b) an AI judge
-   session daily, which at today's latencies makes Book 2 no-trade on most days unless the 15:10-15:12 timetable
-   moves. The answer is recorded here before any code. **F4b, a model re-check of meaning, monthly (recommended: yes,
-   after Book 2 has a month of decisions).** The daily
-   judge is code because an AI session cannot fit the window (strong evidence: F1's latencies). Does the owner accept
-   that Book 2's daily gate checks facts and numbers only, with meaning re-checked monthly by another model? Reasoning
-   only on how much meaning-checking adds, since Book 2's actions are bounded by its envelope, C2 and C4.
-2. **Strictness costs trades (some evidence: the rule is strict by design).** Every number in a reason must be cited;
-   one uncited "2" in a `follow_rule` reason fails Book 2's day. The prompts (F5, F6) say so, and the audit reports
-   false rejections. Accept, or let `follow_rule` days pass the interpretation check with a recorded warning?
-   Recommendation: keep it strict, measure the first month's fail rate, revisit with the numbers.
+1. **Owner:** "Code daily + AI monthly (Recommended)": a code judge every day (this story) plus a monthly re-check of
+   meaning by a different AI model (F4b, built after a month of Book 2 decisions). This replaces "F4 follows its
+   amended text" on the judge's form; everything else of the amended text stands.
+2. **Orchestrator's ruling (same row):** number citation stays strict on `follow_rule` days too; the first month's
+   fail rate is measured (the audit reports false rejections) and the rule revisited with the numbers.
 
 **Depends:** F1t (the port and `judge_failed`), F5 and F6 (the `evidence` key and prompt lines), E2/E2c (packs), D3
-(`judge` field, no override) · **Status:** story text; judge 308 FAIL fixed; code after the owner's answer to
-question 1 and the partners' addenda
+(`judge` field, no override) · **Status:** story text; judge 308 FAIL fixed; owner answered; partners' addenda: F5
+0bb574de, F6 c625151e, F1t pending

@@ -79,4 +79,6 @@ Numbering: this claims file keeps 271 (reserved by the orchestrator in `reviews/
 - **F5's text:** `story/f5-book2-decider` 61f0f1aa holds the evidence key, the call, the prompt lines and D3 `judge`;
   `0bb574de` adds the `judge_blocks` run (criterion 11) and the dates prompt line. Read by me: matches F4 design 2 and 4.
 - **F1t:** requested (port updated to the above); pending.
-- **Owner question 1:** with the orchestrator; pending.
+- **Owner question 1 answered** (orchestrator, 16 Oct; DESK_DECISIONS line 257): "Code daily + AI monthly
+  (Recommended)". Q2, orchestrator's ruling: strict on `follow_rule` days, measure the first month. Both in the text
+  under "Owner decisions".
