@@ -1,8 +1,8 @@
 """A Book 3 strategy against its constitution (story D5 criterion 3), at registration and again at C4. The spec is in
 D1's playbook format, so its structure code, expiry kind and expiry window are its own fields. The playbook format has
 no underlying (every version is a NIFTY option strategy) and accepts only monthly expiries today, so a non-NIFTY or a
-weekly spec cannot be written at all; the expiry check stays as the second guard for when D1 adds another kind. The planned
-holding is at most the expiry window's far end minus the days before expiry at which the time exit falls."""
+weekly spec cannot be written at all; the expiry check stays as the second guard for when D1 adds another kind. The
+planned holding is at most the expiry window's far end minus the days before expiry at which the time exit falls."""
 
 from __future__ import annotations
 
