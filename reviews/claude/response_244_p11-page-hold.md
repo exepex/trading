@@ -122,3 +122,17 @@ the same three sentences, so there is one list:
 - today: "A strategy is approved, and this page cannot build its picks yet, so nothing is shown rather than an empty
   panel that is no longer true"
 The story codes (C2, C4, P10, D3) stay in the code's comments.
+
+## Addendum 8 (16 Oct): the pin head (judge 257's three points)
+
+1. **Pinned 2.13.0 at dashboard main d53cefeb** (strong evidence: byte copies; contract-check "same as the
+   dashboard's"). It includes the new schema file `api/schemas/fno-page-holds.yaml`; I checked that no `$ref` in the
+   pinned files is left without a definition. `holds_page=PageHoldsBlock()` is wired in `wiring.py`, so every
+   publication carries `page_holds` (1,273 pages a day on this branch).
+2. **The tests use the real `FnoPageHoldsResponse`** (`FreePageHolds` is removed). Home's held test checks the published
+   `page_holds` row. The reason-pattern test reads the pinned `^[^0-9]*$`.
+3. **A paged block cannot be held:** `PageHeld` from a block stored one page per parameter is refused with a named
+   `TypeError` (test with P9's chain rows).
+
+Also fixed against the pinned schema: holds are listed oldest hold first (`since`, then page key), as `FnoPageHolds`
+says.

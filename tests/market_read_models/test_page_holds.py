@@ -24,10 +24,6 @@ class HeldWeather(FnoWeatherBlock):
         raise PageHeld(RULE)
 
 
-class FreePageHolds(PageHoldsBlock):
-    served_schema = None  # FnoPageHolds is not pinned yet: its shape is tested here, its schema once pinned
-
-
 def builder(clock: str, hold: bool = False, holds_page: BlockBuilder | None = None) -> PublicationBuilder:
     blocks = [HeldWeather() if hold and isinstance(b, FnoWeatherBlock) else b for b in build_market_blocks()]
     return PublicationBuilder(blocks, CONTRACT, "c" * 40, clock=lambda: clock, holds_page=holds_page)
@@ -80,13 +76,13 @@ def test_a_held_copy_that_no_longer_matches_the_pin_gets_no_row_and_the_line_say
 
 
 def test_page_holds_names_each_held_page_from_its_first_held_session_and_is_never_held(tmp_path):
-    publish(tmp_path, "2026-10-12T12:30:00Z", holds_page=FreePageHolds())
-    publish(tmp_path, "2026-10-13T12:30:00Z", hold=True, holds_page=FreePageHolds())
-    _, _, _, held = publish(tmp_path, "2026-10-14T12:30:00Z", hold=True, holds_page=FreePageHolds())
+    publish(tmp_path, "2026-10-12T12:30:00Z", holds_page=PageHoldsBlock())
+    publish(tmp_path, "2026-10-13T12:30:00Z", hold=True, holds_page=PageHoldsBlock())
+    _, _, _, held = publish(tmp_path, "2026-10-14T12:30:00Z", hold=True, holds_page=PageHoldsBlock())
     assert held["page_holds"]["payload"] == {
         "holds": [{"page_key": "weather", "since": "2026-10-13", "reason": RULE, "shows": "previous_page"}]
     }
-    _, _, _, lifted = publish(tmp_path, "2026-10-15T12:30:00Z", holds_page=FreePageHolds())
+    _, _, _, lifted = publish(tmp_path, "2026-10-15T12:30:00Z", holds_page=PageHoldsBlock())
     assert lifted["page_holds"]["payload"] == {"holds": []}
     assert "page_holds" not in {b.page_key for b in build_market_blocks()}  # built by the publication, never a block
 
@@ -112,5 +108,19 @@ def test_every_hold_reason_in_the_code_is_a_fixed_sentence_with_no_digit():
 
 
 def test_a_held_page_with_no_row_is_listed_as_showing_nothing(tmp_path):
-    _, _, _, held = publish(tmp_path, "2026-10-13T12:30:00Z", hold=True, holds_page=FreePageHolds())
+    _, _, _, held = publish(tmp_path, "2026-10-13T12:30:00Z", hold=True, holds_page=PageHoldsBlock())
     assert "weather" not in held and held["page_holds"]["payload"]["holds"][0]["shows"] == "nothing"
+
+
+def test_a_paged_block_cannot_be_held():
+    """Story P11 holds single pages only: a block stored one page per parameter (P9's chain rows) is refused, named."""
+    import pytest
+
+    from fno.market_read_models.chain_blocks import ChainRowsBlock
+
+    class HeldRows(ChainRowsBlock):
+        def pages(self, rows):
+            raise PageHeld(RULE)
+
+    with pytest.raises(TypeError, match="HeldRows stores one page per parameter"):
+        PublicationBuilder([HeldRows()], CONTRACT, "c" * 40).build(example_rows())

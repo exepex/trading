@@ -15,7 +15,7 @@ from fno.desk.private_files import PrivateFiles
 from fno.market_read_models import wiring as market_wiring
 from fno.market_read_models.home_blocks import APPROVED_PICKS, OPEN_TRADE_RISK, FnoBooksBlock, FnoPicksBlock
 from fno.market_read_models.home_inputs import BooksReader, FrozenExperimentApprovals
-from fno.market_read_models.page_holds import PageHeld
+from fno.market_read_models.page_holds import PAGE_HOLDS, PageHeld
 from fno.market_read_models.wiring import LATEST_FROZEN_EXPERIMENT, build_market_blocks
 from fno.storage.index_store import LocalIndexStore
 
@@ -109,7 +109,10 @@ def test_a_figure_this_story_does_not_compute_holds_only_its_own_page_with_no_ro
     code, lines = market.run(DAY)
     current = publisher.current()
     assert code == 0 and page not in current
-    assert set(current) == {key for b in build_market_blocks() for key in b.pages(good)} - {page}
+    assert set(current) == {key for b in build_market_blocks() for key in b.pages(good)} - {page} | {PAGE_HOLDS}
+    assert current[PAGE_HOLDS]["payload"] == {
+        "holds": [{"page_key": page, "since": DAY.isoformat(), "reason": rule, "shows": "nothing"}]
+    }  # said on screen, criterion 9
     assert alerts.sent == [f"2026-10-12: {page} held back: {rule}"] and "P3" not in alerts.sent[0]
     from fno.market_read_models.run_status import LocalRunStatus
 

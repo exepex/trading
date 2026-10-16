@@ -32,13 +32,13 @@ class PageHeld(Exception):
 
 
 def page_holds_payload(holds: dict[str, str], shown: set[str], previous: dict | None, day: date) -> dict:
-    """Each held page (contract 2.13.0 `FnoPageHolds`): its reason, whether the screen shows its previous page or
-    nothing, and the first session it has been held in a row: carried from the previous publication's page_holds while
-    the page stays held, reset when a hold lifts and returns."""
+    """Each held page (contract 2.13.0 `FnoPageHolds`), oldest hold first: its reason, whether the screen shows its
+    previous page or nothing, and the first session it has been held in a row: carried from the previous publication's
+    page_holds while the page stays held, reset when a hold lifts and returns."""
     before = {h["page_key"]: h["since"] for h in (previous or {}).get("holds", [])}
-    return {"holds": [{"page_key": key, "since": before.get(key, day.isoformat()), "reason": reason,
-                       "shows": SHOWS_PREVIOUS if key in shown else SHOWS_NOTHING}
-                      for key, reason in sorted(holds.items())]}  # fmt: skip
+    rows = [{"page_key": key, "since": before.get(key, day.isoformat()), "reason": reason,
+             "shows": SHOWS_PREVIOUS if key in shown else SHOWS_NOTHING} for key, reason in holds.items()]  # fmt: skip
+    return {"holds": sorted(rows, key=lambda h: (h["since"], h["page_key"]))}
 
 
 def held_lines(day: date, held: dict[str, str], broken: list[str], version: str) -> list[str]:

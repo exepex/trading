@@ -19,6 +19,7 @@ from .page_holds import PAGE_HOLDS, PageHeld, page_holds_payload
 MARKET, PRODUCT, PUBLISHER, PAPER = "india", "fno", "fno", "Paper"
 FRESHNESS_RULE = "fno_calendar"
 ID_HEX = 12  # hex digits of the content hash in a publication ID
+PAGED_HOLD = "{block} stores one page per parameter: a paged block cannot be held (story P11 holds single pages only)"
 ROW_FIELDS = (
     "market",
     "page_key",
@@ -65,6 +66,8 @@ class PublicationBuilder:
             try:
                 pages += [(builder, key, payload, None) for key, payload in builder.pages(rows).items()]
             except PageHeld as hold:
+                if type(builder).pages is not BlockBuilder.pages:  # one page per parameter: no single row to keep
+                    raise TypeError(PAGED_HOLD.format(block=type(builder).__name__)) from hold
                 held[builder.page_key] = hold.rule
                 kept = self._held(builder, before().get(builder.page_key), hold.rule, broken)
                 if kept is not None:
