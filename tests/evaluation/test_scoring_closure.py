@@ -48,6 +48,7 @@ READERS = {  # read committed or archived files as they are; the files themselve
 }
 WIRING = {  # composition and settings: the settings that decide figures are hashed as config sections
     "fno/alerts/sender.py": "sends the #fno-desk line; decides nothing",
+    "fno/scorecard/measurement_alerts.py": "measurement versions' alert wording; decides nothing",
     "fno/budget/wiring.py": "composition root",
     "fno/composition.py": "composition root",
     "fno/config.py": "loads config.yaml; its scoring sections are hashed",
