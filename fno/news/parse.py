@@ -50,8 +50,8 @@ def parse_feed(data: bytes, feed: Feed) -> list[NewsItem]:
 
 def _item(node, feed: Feed) -> NewsItem | None:
     link = _text(node, "link") or _text(node, "guid")
-    if not link.startswith(("https://", "http://")):
-        return None  # an item without a link has no identity; counted as no item
+    if not link.startswith(("https://", "http://")) or not _well_formed(link):
+        return None  # an item without a usable link has no identity; skipped, never a crash of the whole run
     published = TIME_FORMATS[feed.time_format].read(_text(node, "pubDate"))
     return NewsItem(_plain(_text(node, "title")), link, _plain(_text(node, "description")), published)
 
@@ -62,6 +62,14 @@ def _text(node, tag: str) -> str:
 
 def _plain(text: str) -> str:
     return " ".join(html.unescape(TAG.sub(" ", html.unescape(text))).split())
+
+
+def _well_formed(link: str) -> bool:
+    try:
+        canonical_url(link)
+    except ValueError:  # e.g. "http://[abc/x": urlsplit refuses it
+        return False
+    return True
 
 
 def _excluded(url: str, paths: tuple[str, ...]) -> bool:

@@ -27,13 +27,14 @@ def test_news_capture_keeps_one_poller_ends_before_its_limit_and_chains():
     assert flow["permissions"] == {"contents": "write", "actions": "write"}
     job, named = steps(flow)
     assert job["timeout-minutes"] == 355
-    assert named["Poll the feeds"]["run"] == "python -m fno news run --max-minutes 340"
+    assert named["Poll the feeds"]["run"] == "python -m fno news run --max-minutes 330"  # 25 min of margin
     assert named["Poll the feeds"]["id"] == "loop"
     successor = named["Start the successor"]
     assert successor["if"] == "${{ always() && steps.loop.outputs.successor == 'true' }}"
     assert successor["run"] == "gh workflow run news-capture.yml --ref main"
     assert named["Probe the feeds from this runner (status and counts only)"]["continue-on-error"] is True
-    assert named["Alert #fno-desk when the job itself failed"]["if"] == "${{ failure() }}"
+    alert = named["Alert #fno-desk when the job itself failed"]["if"]
+    assert alert == "${{ failure() && steps.loop.outputs.recorded != 'true' }}"
 
 
 def test_secrets_reach_the_jobs_only_through_env():

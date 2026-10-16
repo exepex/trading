@@ -12,13 +12,13 @@ from datetime import date, datetime
 
 from ..alerts.sender import SENT, AlertSender
 from ..models import IST
-from .names import COVERAGE_GAP, JOB, RECOVERED_SUFFIX, RESTART_STOPPED
+from .names import COVERAGE_GAP, JOB, RECOVERED_SUFFIX
 
 OPENED = "Omenix F&O news: {step} {kind} since {since} IST ({detail})"
 CLOSED = "Omenix F&O news: {step} {kind} recovered after {minutes} min, {count} failed poll(s)"
 CLOSED_CARRIED = "Omenix F&O news: {step} {kind} recovered (open since {day}, before this run)"
-ALERT_FAILED = "; {outcome}"
-EVENT_KINDS = (COVERAGE_GAP, RESTART_STOPPED)  # one-off rows: nothing stays open
+ALERT_FAILED = "[{outcome}] "
+EVENT_KINDS = (COVERAGE_GAP,)  # one-off rows: nothing stays open
 
 
 @dataclass(frozen=True)
@@ -85,7 +85,7 @@ class Episodes:
     def _record(self, step: str, kind: str, text: str) -> None:
         outcome = self.alerts.send(text)
         self.out(f"{text} -> {outcome}")
-        message = text if outcome == SENT else text + ALERT_FAILED.format(outcome=outcome)
+        message = text if outcome == SENT else ALERT_FAILED.format(outcome=outcome) + text  # first: O10 cuts at 200
         self.log.append(self.clock().astimezone(IST).date(), step, kind, message)
 
 

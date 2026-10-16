@@ -18,6 +18,7 @@ def add_kick_parser(actions) -> None:
 
 def cmd_kick(args, out=print, parts=None) -> int:
     from .github_runs import GitHubError, read_event
+    from .names import DISPATCH as DISPATCH_STEP
     from .names import RESTART_STOPPED
 
     parts = parts or _real_parts()
@@ -28,12 +29,17 @@ def cmd_kick(args, out=print, parts=None) -> int:
         decision = decide(parts["clock"](), parts["window"], parts["bridge"], runs.active_count(), completed)
         out(DECIDED.format(action=decision.action, reason=decision.reason))
         if decision.action == STOPPED:
-            episodes.event(RESTART_STOPPED, RESTART_STOPPED, f"Omenix F&O news: {decision.reason} ({completed.url})")
-            out(parts["committer"].commit("news capture: restart stopped"))
+            episodes.fail(RESTART_STOPPED, RESTART_STOPPED, f"{decision.reason} ({completed.url})")
+            committed = parts["committer"].commit("news capture: restart stopped")
+            out(committed)
+            return int("NOT committed" in committed)
         elif decision.action == DISPATCH:
             runs.dispatch()
+            episodes.ok(DISPATCH_STEP)
     except GitHubError as problem:
         out(NOT_STARTED.format(problem=problem))
+        episodes.fail(DISPATCH_STEP, DISPATCH_STEP, f"kick: {problem}")
+        out(parts["committer"].commit("news capture: kick failed"))
         return 1
     return 0
 

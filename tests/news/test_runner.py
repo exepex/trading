@@ -136,7 +136,75 @@ def test_a_commit_failure_is_an_episode():
 def test_an_exception_still_flushes_and_commits():
     store, committer = Store(), Committer()
     run, clock, source, *_ = make(ist(2026, 10, 16, 10, 0), store=store, committer=committer)
-    source.answers = [FEED, RuntimeError("bug")]
+    real_poll, calls = run.poller.poll, []
+
+    def poll_then_crash(now):
+        calls.append(now)
+        if len(calls) > 1:
+            raise RuntimeError("bug")
+        return real_poll(now)
+
+    run.poller.poll = poll_then_crash
     with pytest.raises(RuntimeError):
         run.run()
     assert len(store.parts) == 1 and committer.calls == 1
+
+
+def test_a_drive_failure_still_commits_its_failure_row():
+    store, committer = Store(fail_parts=99), Committer()
+    run, clock, source, log, _ = make(ist(2026, 10, 16, 10, 0), max_run=timedelta(minutes=15), store=store,
+                                      committer=committer)  # fmt: skip
+    run.run()
+    assert [r.kind for r in log.rows()] == ["drive_write"]
+    assert committer.calls == 3  # three tries at the end, each one committing (the row reaches the repository)
+    assert run.saved is False
+
+
+def test_the_last_flush_is_retried_until_saved():
+    store = Store(fail_parts=2)
+    run, clock, source, log, _ = make(ist(2026, 10, 16, 10, 0), max_run=timedelta(minutes=10), store=store)
+    run.run()
+    assert run.saved and len(store.parts) == 1
+    assert [r.kind for r in log.rows()] == ["drive_write", "drive_write_recovered"]
+
+
+def test_a_failed_commit_leaves_the_run_unsaved_and_tries_once_more_for_the_row():
+    committer = Committer("news receipts NOT committed: push failed: rejected. Commit receipts/ by hand")
+    run, clock, source, log, _ = make(ist(2026, 10, 16, 10, 0), committer=committer, max_run=timedelta(minutes=5))
+    run.run()
+    assert run.saved is False and committer.calls == 3 * 2  # each of the three last tries commits twice
+    assert log.messages[0].endswith("(news receipts NOT committed: push failed)")  # short: no "by hand" hint
+
+
+def test_a_healthy_run_closes_a_stopped_restart():
+    run, clock, source, log, alerts = make(ist(2026, 10, 16, 10, 0), max_run=timedelta(minutes=20))
+    run.episodes.fail("restart_stopped", "restart_stopped", "the run ended failure after 2.0 min: not restarted")
+    run.run()
+    assert [r.kind for r in log.rows()] == ["restart_stopped", "restart_stopped_recovered"]
+
+
+def test_a_short_run_leaves_a_stopped_restart_open():
+    run, clock, source, log, alerts = make(ist(2026, 10, 16, 10, 0), max_run=timedelta(minutes=9))
+    run.episodes.fail("restart_stopped", "restart_stopped", "stopped")
+    run.run()
+    assert [r.kind for r in log.rows()] == ["restart_stopped"]
+
+
+class SnapshotStore(Store):
+    def __init__(self, fail_snapshots: int):
+        super().__init__()
+        self.fail_snapshots = fail_snapshots
+
+    def put_snapshot(self, now, sequence, memory):
+        if self.fail_snapshots:
+            self.fail_snapshots -= 1
+            raise ConnectionError("drive down")
+        super().put_snapshot(now, sequence, memory)
+
+
+def test_a_failed_snapshot_is_retried_at_the_next_flush_under_its_own_step():
+    store = SnapshotStore(fail_snapshots=1)
+    run, clock, source, log, _ = make(ist(2026, 10, 16, 10, 0), max_run=timedelta(minutes=140), store=store)
+    run.run()
+    assert [r.kind for r in log.rows()] == ["snapshot_write", "snapshot_write_recovered"]
+    assert store.snapshots[0][0] == ist(2026, 10, 16, 12, 15)  # 2 h failed, retried 15 minutes later

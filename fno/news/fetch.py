@@ -26,7 +26,7 @@ NOT_MODIFIED_STATUS = 304
 class FeedFetch:
     status: int
     data: bytes
-    server_date: datetime | None  # the answer's `Date` header (the clock check, scope 8)
+    server_date: datetime | None  # the answer's `Date` header (the clock check, scope 8); None from a cache
     requested_at: datetime
     received_at: datetime
 
@@ -59,8 +59,9 @@ class RssFeedSource(NewsSource):
         if response.status_code != NOT_MODIFIED_STATUS and not 200 <= response.status_code < 300:
             raise FeedProblem(HTTP_ERROR, f"HTTP {response.status_code}")
         self._remember(response)
-        return FeedFetch(response.status_code, response.content, _date(response.headers.get("Date")),
-                         requested_at, received_at)  # fmt: skip
+        served_by_cache = str(response.headers.get("Age", "0")).strip() not in ("", "0")
+        server_date = None if served_by_cache else _date(response.headers.get("Date"))
+        return FeedFetch(response.status_code, response.content, server_date, requested_at, received_at)
 
     def _headers(self) -> dict[str, str]:
         headers = {"User-Agent": USER_AGENT}

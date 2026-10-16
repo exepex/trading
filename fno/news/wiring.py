@@ -33,7 +33,7 @@ def now_utc() -> datetime:
     return datetime.now(UTC)
 
 
-def build_settings(env=os.environ) -> NewsSettings:
+def build_settings() -> NewsSettings:
     return news_settings(load_app_config(), frozenset(TIME_FORMATS))
 
 

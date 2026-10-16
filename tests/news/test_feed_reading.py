@@ -193,3 +193,16 @@ def test_rss_source_failures_are_http_errors(answer):
     with pytest.raises(FeedProblem) as problem:
         RssFeedSource(RBI, clock, Session(answer)).fetch()
     assert problem.value.kind == HTTP_ERROR
+
+
+def test_an_item_with_a_broken_link_is_skipped_never_a_crash():
+    good = item_xml("Fine", "https://a.example/fine", "Fri, 16 Oct 2026 15:08:49 +0530")
+    broken = item_xml("Broken", "http://[abc/x", "Fri, 16 Oct 2026 15:08:49 +0530")
+    assert [i.title for i in parse_feed(rss(good, broken), MARKETS)] == ["Fine"]
+
+
+def test_a_cached_answer_has_no_server_date():
+    cached = Response(200, b"<rss/>", {"Date": "Fri, 16 Oct 2026 09:50:00 GMT", "Age": "459"})
+    assert RssFeedSource(RBI, clock, Session(cached)).fetch().server_date is None
+    fresh = Response(200, b"<rss/>", {"Date": "Fri, 16 Oct 2026 09:59:59 GMT", "Age": "0"})
+    assert RssFeedSource(RBI, clock, Session(fresh)).fetch().server_date is not None

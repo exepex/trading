@@ -94,9 +94,16 @@ def test_kick_records_a_stopped_restart_once_and_commits_it():
     assert len(alerts.sent) == 1
 
 
-def test_kick_names_a_github_failure_and_exits_1():
-    code, *_, printed, _ = kick(Runs(fail=True), {})
-    assert code == 1 and "NOT started" in printed[-1]
+def test_kick_names_a_github_failure_records_it_once_and_exits_1():
+    code, log, alerts, printed, committer = kick(Runs(fail=True), {})
+    assert code == 1 and any("NOT started" in p for p in printed)
+    assert ([r.kind for r in log.rows()], len(alerts.sent), committer.calls) == (["dispatch"], 1, 1)
+
+
+def test_a_short_failure_at_night_or_beside_a_live_poller_is_nothing():
+    short = completed("failure", timedelta(minutes=2))
+    assert decide(NIGHT, WINDOW, False, 0, short).action == NOTHING
+    assert decide(DAY, WINDOW, False, 1, short).action == NOTHING
 
 
 class Response:

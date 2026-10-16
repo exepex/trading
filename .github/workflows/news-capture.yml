@@ -19,7 +19,7 @@ concurrency:
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 355 # the loop ends itself at 340 minutes, so the successor step always gets to run
+    timeout-minutes: 355 # the loop ends at 330 minutes: setup, the probe, the memory load and the last flush fit
     env:
       FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
       FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
@@ -44,14 +44,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Poll the feeds
         id: loop
-        run: python -m fno news run --max-minutes 340
+        run: python -m fno news run --max-minutes 330
       - name: Start the successor
         if: ${{ always() && steps.loop.outputs.successor == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run news-capture.yml --ref main
       - name: "Alert #fno-desk when the job itself failed"
-        if: ${{ failure() }}
+        if: ${{ failure() && steps.loop.outputs.recorded != 'true' }} # a failure the run recorded has alerted once
         run: >
           python -c "from fno.composition import build_alert_sender;
           print(build_alert_sender().send('Omenix F&O news capture: the GitHub Actions run failed; see

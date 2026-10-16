@@ -112,9 +112,10 @@ assumes (1).
    headline (case-folded, punctuation and spaces collapsed) from another publisher within 24 h is kept as its own
    item with `same_headline_as` set (both first-seen times matter; no fuzzy merging).
 6. **The poller and its memory.** `python -m fno news run` polls every feed every 5 minutes while inside
-   `news.active_window`, until 340 minutes or the window's end, whichever is first. **Overnight bridge** (SF6): with
-   `news.overnight_bridge: true`, a run outside the window polls nothing and sleeps until the window opens or 340
-   minutes pass, then polls or hands over; so the chain stays alive and the first poll of the day is at the window's
+   `news.active_window`, until 330 minutes (the workflow's `--max-minutes`; the job's 355-minute limit also holds
+   setup, the probe, the memory load's retries and the last flush's) or the window's end, whichever is first.
+   **Overnight bridge** (SF6): with `news.overnight_bridge: true`, a run outside the window polls nothing and sleeps
+   until the window opens or its minutes pass, then polls or hands over; so the chain stays alive and the first poll of the day is at the window's
    start. With an all-day window there is nothing to bridge. The seen set lives in memory and
    in a **seen snapshot**, `data/news/seen/YYYY/MM/DD/<run_id>-<n>.json` (item ids, versions, headline keys of the
    last 24 h, each feed's last successful poll and last new item, for the last **14 days**), written every 2 hours
@@ -158,8 +159,18 @@ assumes (1).
      `python -m fno news quiet-spells` reports each feed's longest gap between new items by day type (session day
      inside hours, session night, closed day) from the stored parts, and the limits are reset to 1.5 times the
      measured longest gap in a follow-up config change (lane 1), the evidence cited beside each value;
-   - per run: Drive write failed, receipt commit failed, `seen_set_load`, clock skew over 5 s against the feed's
-     `Date` header (as A16's clock rule), the successor dispatch failed;
+   - per feed, also `feed_error`: anything unexpected while reading one feed fails that feed only, and an item with
+     an unusable link is skipped, so one feed never stops the others (builder's self-review);
+   - per run: part write failed (`drive_write`), snapshot write failed (`snapshot_write`, retried at the next
+     flush), receipt commit failed, `seen_set_load` (after three tries a minute apart), `start` (the run could not
+     be built: settings, Drive credentials, the calendar), clock skew over 5 s (as A16's clock rule; measured
+     outside the request-to-answer interval and the `Date` header's whole second, and not on an answer a cache
+     served, `Age` above 0, so a slow download or a CDN copy is not skew), and the kick's `dispatch` (it could not
+     read or start runs). The successor step's own failure fails the job: O10's watcher records it and the kick
+     restarts the run. A stopped restart (scope 7) is an episode, closed by the next run that lasts 10 minutes, so
+     a start fault alerts once, not at every cron. The last flush is tried three times and always commits, so a
+     failure row reaches the repository even with Drive down; a run that could not save or commit everything exits
+     1 with `recorded=true`, and the job's generic alert then stays quiet (the run already alerted);
    - **coverage gap** (judge 352 SF4): at start, the time from the last heartbeat poll to now, counting only time
      inside `news.active_window`; above 15 minutes, one gap record with its start and end (items first seen after it
      are late by up to that gap; `previous_poll_at` shows it per item). A quiet hour has heartbeats, so it is never a
@@ -216,10 +227,10 @@ assumes (1).
    published 13 days ago is not flagged, 13 days plus 1 minute is flagged `beyond_window` with one episode; no news
    receipts gives `bootstrap` items; receipts with an unreadable snapshot stop the run with `seen_set_load` and store
    nothing.
-7. **Continuous run.** Polls every 5 minutes inside the window and none outside it; stops at 340 minutes or at the
+7. **Continuous run.** Polls every 5 minutes inside the window and none outside it; stops at its `--max-minutes` or at the
    window's end; flushes (part, receipts, O10 rows) every 15 minutes and at exit, also after an exception.
    **First poll of the day** (SF6): with the bridge on and a 07:00-23:00 window, a fake-clock chain from 22:30 to
-   07:30 polls nothing between 23:00 and 07:00, never runs a job over 340 minutes, and makes its first poll at
+   07:30 polls nothing between 23:00 and 07:00, never runs a job past its `--max-minutes`, and makes its first poll at
    07:00 (and 06:59:59 polls nothing); with the bridge off, the chain ends at 23:00 and dispatches nothing. Live:
    the claims file of the first live week (a follow-up after the merge) lists each day's first poll time, from the
    heartbeat.
@@ -233,8 +244,8 @@ assumes (1).
 10. **Coverage gap** (SF4). A quiet hour with heartbeats but no items: no gap. A start 15 minutes after the last
     heartbeat: no gap; 15 minutes plus 1 second: one gap row and one alert. A start at 07:00 after a last poll at
     22:55 with the window 07:00-23:00: no gap.
-11. **Clock.** Skew over 5 s against the feed's `Date` header is recorded on the item and as a failure record; 5 s
-    exactly is not.
+11. **Clock.** Skew over 5 s beyond the `Date` header's second is recorded on the item and as a failure record; 5 s
+    exactly is not; inside the request-to-answer interval it is 0; a cached answer (`Age` above 0) is not checked.
 12. **Reader is point in time.** `news list --until T` returns no item first seen after T and shows each item's
     latest version first seen by T (planted later version and later item).
 13. **Workflows** (SF2). `news-capture.yml`: the concurrency group, the probe, the loop, the successor dispatch (only

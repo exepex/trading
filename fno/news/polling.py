@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from ..models import IST
 from .episodes import Episodes
 from .fetch import FeedFetch, NewsSource
 from .identity import item_id, version_of
@@ -14,6 +15,7 @@ from .names import (
     BEYOND_WINDOW,
     CLOCK,
     FAILED,
+    FEED_ERROR,
     HTTP_ERROR,
     ITEM_LINE,
     NEW,
@@ -28,8 +30,9 @@ from .names import (
 from .parse import FeedProblem, NewsItem, parse_feed
 from .stale import StaleRule
 
-FETCH_KINDS = (HTTP_ERROR, NOT_XML, NO_ITEMS)
+FETCH_KINDS = (HTTP_ERROR, NOT_XML, NO_ITEMS, FEED_ERROR)
 MAX_SKEW = timedelta(seconds=5)
+DATE_RESOLUTION = timedelta(seconds=1)  # HTTP's Date header has whole seconds
 SKEW_DETAIL = "{feed}: our clock differs from its Date header by {seconds:.1f} s"
 
 
@@ -60,20 +63,27 @@ class FeedPoller:
             fetch = source.fetch()
             items = [] if fetch.not_modified else parse_feed(fetch.data, feed)
         except FeedProblem as problem:
-            self.episodes.fail(feed.id, problem.kind, f"{feed.id}: {problem}")
-            self._check_stale(source, now)
-            return {"outcome": f"{FAILED}:{problem.kind}", "listed": 0, "new": 0}, [], None
+            return self._failed(source, now, problem.kind, str(problem))
+        except Exception as error:  # one feed's surprise never stops the others
+            return self._failed(source, now, FEED_ERROR, f"unexpected {type(error).__name__}")
         self.episodes.ok(feed.id, FETCH_KINDS)
         first_poll = feed.id not in self.memory.last_poll
         previous = self.memory.mark_poll(feed, fetch.received_at)
         records = self.memory.observe(feed, items, fetch.received_at, first_poll)
+        self.memory.last_new.setdefault(feed.id, fetch.received_at.isoformat())  # the stale clock starts at once
         skew = _skew(fetch)
         lines = [self._line(source, fetch, item, record, previous, skew) for item, record in _matched(items, records)]
         self._check_times(source, items)
         self._check_window(source, records)
         self._check_stale(source, now)
         outcome = NOT_MODIFIED if fetch.not_modified else NEW if lines else NOTHING_NEW
-        return {"outcome": outcome, "listed": len(items), "new": len(lines)}, lines, skew
+        result = {"outcome": outcome, "listed": len(items), "new": len(lines), "seen_at": fetch.received_at.isoformat()}
+        return result, lines, skew
+
+    def _failed(self, source: NewsSource, now: datetime, kind: str, detail: str) -> tuple[dict, list[dict], None]:
+        self.episodes.fail(source.feed.id, kind, f"{source.feed.id}: {detail}")
+        self._check_stale(source, now)
+        return {"outcome": f"{FAILED}:{kind}", "listed": 0, "new": 0}, [], None
 
     def _line(self, source: NewsSource, fetch: FeedFetch, item: NewsItem, record: dict, previous: str | None,
               skew: float | None) -> dict:  # fmt: skip
@@ -103,7 +113,8 @@ class FeedPoller:
         if last_new is None:
             return  # nothing new seen yet: its first new item starts the clock
         if self.stale.is_stale(feed, datetime.fromisoformat(last_new), now):
-            self.episodes.fail(feed.id, STALE, f"{feed.id}: nothing new since {last_new[:16]}")
+            since = f"{datetime.fromisoformat(last_new).astimezone(IST):%d %b %H:%M} IST"
+            self.episodes.fail(feed.id, STALE, f"{feed.id}: nothing new since {since}")
         else:
             self.episodes.ok(feed.id, (STALE,))
 
@@ -115,6 +126,14 @@ def _matched(items: list[NewsItem], records: list[dict]) -> list[tuple[NewsItem,
 
 
 def _skew(fetch: FeedFetch) -> float | None:
+    """How far our clock is outside the server's: 0 when the server's second [Date, Date + 1 s) overlaps our
+    request-to-answer interval (a slow download is not skew); positive when ours runs ahead. None without a Date or
+    when a cache served the answer (`Age`: its Date is the origin's, not now)."""
     if fetch.server_date is None or fetch.server_date.tzinfo is None:
         return None
-    return round((fetch.received_at - fetch.server_date).total_seconds(), 1)
+    earliest, latest = fetch.server_date, fetch.server_date + DATE_RESOLUTION
+    if latest < fetch.requested_at:
+        return round((fetch.requested_at - latest).total_seconds(), 1)
+    if earliest > fetch.received_at:
+        return round((fetch.received_at - earliest).total_seconds(), 1)
+    return 0.0

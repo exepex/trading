@@ -15,6 +15,7 @@ from tests.news.fakes import (
     LINK,
     MARKETS,
     RBI,
+    SEBI,
     Alerts,
     Clock,
     MemoryLog,
@@ -68,7 +69,7 @@ def test_closed_episodes_and_other_jobs_and_events_are_not_open():
 def test_alert_not_sent_is_named_in_the_row():
     found, _, log, _, printed = episodes(outcome="alert NOT sent: FNO_SLACK_BOT_TOKEN is not set")
     found.event("coverage_gap", "coverage_gap", "gap")
-    assert log.messages[0].endswith("alert NOT sent: FNO_SLACK_BOT_TOKEN is not set")
+    assert log.messages[0].startswith("[alert NOT sent: FNO_SLACK_BOT_TOKEN is not set] ")  # first: O10 cuts at 200
     assert "alert NOT sent" in printed[0]
 
 
@@ -85,7 +86,12 @@ def test_a_poll_gives_its_heartbeat_then_its_new_items_with_every_field():
     clock = Clock(T0)
     feeds, found = poller([ScriptedSource(MARKETS, [FEED], clock)], clock)
     heartbeat, line = feeds.poll(T0)
-    assert heartbeat["line"] == "poll" and heartbeat["feeds"]["et-markets"] == {"outcome": "new", "listed": 1, "new": 1}
+    assert heartbeat["line"] == "poll" and heartbeat["feeds"]["et-markets"] == {
+        "outcome": "new",
+        "listed": 1,
+        "new": 1,
+        "seen_at": T0.isoformat(),
+    }
     assert line["line"] == "item" and line["first_seen_at"] == T0.isoformat()
     assert (line["previous_poll_at"], line["bootstrap"], line["published_precision"]) == (None, True, "second")
     expected = {"item_id", "version", "publisher", "feed", "url", "title", "summary", "published_raw", "line",
@@ -127,12 +133,17 @@ def test_items_without_any_readable_time_are_kept_and_flagged():
     assert line["published_at"] is None and found.is_open("et-markets", "no_times")
 
 
-@pytest.mark.parametrize("offset, flagged", [(timedelta(seconds=5), False), (timedelta(seconds=5.1), True)])
-def test_clock_skew_over_5_seconds_is_a_failure(offset, flagged):
+@pytest.mark.parametrize(
+    "offset, skew, flagged",
+    [(timedelta(seconds=6), 5.0, False), (timedelta(seconds=6.1), 5.1, True), (timedelta(seconds=-5.1), -5.1, True),
+     (timedelta(seconds=0.5), 0.0, False)],
+)  # fmt: skip
+def test_clock_skew_over_5_seconds_beyond_the_dates_second_is_a_failure(offset, skew, flagged):
+    """The server's Date names a whole second [Date, Date + 1 s): 6 s behind our clock is 5 s of skew."""
     clock = Clock(T0)
     feeds, found = poller([ScriptedSource(MARKETS, [FEED], clock, offset)], clock)
     _, line = feeds.poll(T0)
-    assert line["clock_skew_s"] == round(offset.total_seconds(), 1)
+    assert line["clock_skew_s"] == skew
     assert found.is_open("clock", "clock") is flagged
 
 
@@ -156,3 +167,23 @@ def test_nothing_of_an_item_is_printed():
     feeds.poll(T0)
     feeds.poll(T0 + timedelta(minutes=5))
     assert printed and all(HEADLINE not in p and LINK not in p for p in printed)
+
+
+def test_one_feeds_surprise_never_stops_the_others():
+    clock = Clock(T0)
+    feeds, found = poller([ScriptedSource(RBI, [KeyError("x")], clock), ScriptedSource(MARKETS, [FEED], clock)], clock)
+    heartbeat, line = feeds.poll(T0)
+    assert heartbeat["feeds"]["rbi-press"]["outcome"] == "failed:feed_error" and line["feed"] == "et-markets"
+    assert found.is_open("rbi-press", "feed_error")
+
+
+def test_the_stale_clock_starts_at_a_feeds_first_poll_even_with_nothing_stored():
+    """SEBI listing only circulars (A20b's, excluded) stores nothing, yet still goes stale."""
+    clock = Clock(T0)
+    only_excluded = rss(item_xml("Circular", "https://www.sebi.gov.in/legal/circulars/x.html", "16 Oct, 2026 +0530"))
+    feeds, found = poller([ScriptedSource(SEBI, [only_excluded], clock)], clock)
+    feeds.poll(T0)
+    clock.sleep(24 * 3600 + 60)  # past SEBI's 24 session hours? no: 24 h of all hours on Friday-Saturday is 9 session h
+    clock.sleep(5 * 24 * 3600)  # past its 120 all-hours limit
+    feeds.poll(clock())
+    assert found.is_open("sebi", "stale")

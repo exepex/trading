@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
+from ..models import IST
 from .identity import headline_key, item_id, version_of
 from .names import DAY, FAILED, POLL_LINE
 from .parse import NewsItem
@@ -16,6 +17,7 @@ from .settings import Feed
 SEEN_WINDOW = timedelta(days=14)
 BEYOND_WINDOW_AGE = timedelta(days=13)  # one day of margin inside the window
 HEADLINE_LINK = timedelta(hours=24)
+JUST_SEEN = timedelta(minutes=5)  # one poll: an item stored by one feed credits every feed listing it in that poll
 FIELDS = ("versions", "first_seen", "headlines", "last_poll", "last_new", "last_heartbeat")
 
 
@@ -32,8 +34,8 @@ class SeenMemory:
         """Records the feed's unseen items and versions; returns their identity fields. `first_poll`: the feed was
         never polled before, so what it lists was published earlier and is only first seen now (`bootstrap`)."""
         stored = [record for item in items if (record := self._observe(feed, item, seen_at, first_poll))]
-        if stored:
-            self.last_new[feed.id] = seen_at.isoformat()
+        if stored or any(self._just_seen(item_id(item.url), seen_at) for item in items):
+            self.last_new[feed.id] = seen_at.isoformat()  # a feed listing an item another feed stored now is alive
         return stored
 
     def mark_poll(self, feed: Feed, polled_at: datetime) -> str | None:
@@ -56,6 +58,10 @@ class SeenMemory:
         self.versions.setdefault(key, []).append(version)
         return record
 
+    def _just_seen(self, key: str, seen_at: datetime) -> bool:
+        first = self.first_seen.get(key)
+        return first is not None and seen_at - datetime.fromisoformat(first) <= JUST_SEEN
+
     def _link_headline(self, key: str, title: str, publisher: str, seen_at: datetime) -> str | None:
         words = headline_key(title)
         if not words:
@@ -69,22 +75,23 @@ class SeenMemory:
         return linked
 
     def replay(self, line: dict) -> None:
-        """Applies one stored part line (scope 4), so parts written after the last snapshot are not forgotten."""
+        """Applies one stored part line (scope 4) through the same updates the live poll made, so a memory rebuilt
+        after a restart equals the live one."""
         if line["line"] == POLL_LINE:
             self.last_heartbeat = line["polled_at"]
             for feed_id, outcome in line["feeds"].items():
                 if not outcome["outcome"].startswith(FAILED):
-                    self.last_poll[feed_id] = line["polled_at"]
+                    seen = outcome.get("seen_at", line["polled_at"])
+                    self.last_poll[feed_id] = seen
+                    self.last_new.setdefault(feed_id, seen)
             return
         key, seen = line["item_id"], line["first_seen_at"]
-        self.versions.setdefault(key, [])
-        if line["version"] not in self.versions[key]:
+        if line["new_item"] and key not in self.versions:
+            self._link_headline(key, line["title"], line["publisher"], datetime.fromisoformat(seen))
+            self.first_seen[key] = seen
+        if line["version"] not in self.versions.setdefault(key, []):
             self.versions[key].append(line["version"])
-        self.first_seen.setdefault(key, seen)
         self.last_new[line["feed"]] = max(self.last_new.get(line["feed"], seen), seen)
-        words = headline_key(line["title"])
-        if words and words not in self.headlines:
-            self.headlines[words] = [key, line["publisher"], seen]
 
     def prune(self, now: datetime) -> None:
         """Forgets items first seen before the window and headlines older than 24 hours."""
@@ -108,5 +115,5 @@ def _published_before(item: NewsItem, limit: datetime) -> bool:
     if value is None:
         return False
     if item.published.precision == DAY:
-        return date.fromisoformat(value) < limit.date()
+        return date.fromisoformat(value) < limit.astimezone(IST).date()  # a date-only time is an IST date
     return datetime.fromisoformat(value) < limit

@@ -38,19 +38,19 @@ class Decision:
 
 def decide(now: datetime, window: PollingWindow, bridge: bool, active_runs: int,
            completed: CompletedRun | None = None) -> Decision:  # fmt: skip
-    """`completed`: the run whose completion started the kick (None for a cron)."""
-    if completed is not None:
-        if completed.conclusion == SUCCESS:
-            return Decision(NOTHING, "the run succeeded and dispatched its own successor")
-        if completed.conclusion == CANCELLED and not completed.steps_ran:
-            return Decision(NOTHING, "the run was replaced in the queue before any step ran")
-        if completed.lasted < SHORTEST_RESTARTED:
-            minutes = completed.lasted.total_seconds() / 60
-            return Decision(STOPPED, f"the run ended {completed.conclusion} after {minutes:.1f} min: not restarted")
-    if not (bridge or window.is_open(now)):
-        return Decision(NOTHING, "the polling window is closed")
+    """`completed`: the run whose completion started the kick (None for a cron). A live poller or a closed window
+    means nothing to do, whatever ended (a duplicate failing beside a healthy poller, a run failing at night)."""
+    if completed is not None and completed.conclusion == SUCCESS:
+        return Decision(NOTHING, "the run succeeded and dispatched its own successor")
+    if completed is not None and completed.conclusion == CANCELLED and not completed.steps_ran:
+        return Decision(NOTHING, "the run was replaced in the queue before any step ran")
     if active_runs:
         return Decision(NOTHING, f"{active_runs} news-capture run(s) already queued or running")
+    if not (bridge or window.is_open(now)):
+        return Decision(NOTHING, "the polling window is closed")
+    if completed is not None and completed.lasted < SHORTEST_RESTARTED:
+        minutes = completed.lasted.total_seconds() / 60
+        return Decision(STOPPED, f"the run ended {completed.conclusion} after {minutes:.1f} min: not restarted")
     return Decision(DISPATCH, "restart after a failed run" if completed else "no poller alive")
 
 
