@@ -45,7 +45,7 @@ jobs:
       - name: Commit the run record
         if: ${{ always() }}
         run: |
-          [ -f research/ops/health_runs.csv ] || exit 0 # a run that failed before its first row records nothing
-          git add research/ops/health_runs.csv
+          [ -d research/ops ] || exit 0 # a run that failed before its first row records nothing
+          git add research/ops/ # its run record and the calendar-horizon marker (O8b), nothing else
           git diff --cached --quiet || git commit -m "Data: health check run $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main

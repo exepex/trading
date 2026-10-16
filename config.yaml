@@ -194,3 +194,5 @@ budget:
 # that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).
 health:
   window_days: 6
+  # Story O8b: one line, once per calendar version, when NSE's calendar ends within this many days
+  calendar_horizon_days: 45

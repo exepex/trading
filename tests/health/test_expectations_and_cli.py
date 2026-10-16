@@ -163,7 +163,9 @@ def test_the_workflow_checks_out_full_history_and_commits_only_its_run_record(wo
     steps = workflow["jobs"]["check"]["steps"]
     assert steps[0]["with"]["fetch-depth"] == 0
     commit = next(s for s in steps if s.get("name") == "Commit the run record")["run"]
-    assert re.findall(r"git add (\S+)", commit) == [HEALTH_RUNS_FILE]
+    assert re.findall(r"git add (\S+)", commit) == ["research/ops/"]
+    writers = {m for path in HEALTH.glob("*.py") for m in re.findall(r'"(research/ops/[^"]+)"', path.read_text())}
+    assert writers | {HEALTH_RUNS_FILE} == {HEALTH_RUNS_FILE, "research/ops/calendar_horizon_alerted.txt"}
     assert "git pull --no-rebase" in commit and "--no-verify" not in WORKFLOW.read_text(encoding="utf-8")
 
 

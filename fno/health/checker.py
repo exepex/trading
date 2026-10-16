@@ -12,6 +12,7 @@ from ..constants import HEALTH_NOT_EXPECTED, HEALTH_UNKNOWN
 from ..models import IST
 from ..research_data.calendar import SessionCalendar
 from .expectations import Expectation
+from .horizon import CalendarHorizon
 from .model import CheckResult, EvidenceUnknown
 from .run_record import RunRecord
 from .window import window_sessions
@@ -33,11 +34,14 @@ class HealthRun:
     checks: tuple[str, ...]
     findings: tuple[Finding, ...]
     missed_runs: tuple[date, ...]
+    warnings: tuple[str, ...] = ()  # once-only lines needing the owner (the calendar's horizon, O8b)
 
 
 class HealthCheck:
-    def __init__(self, expectations: list[Expectation], calendar: SessionCalendar, record: RunRecord, days: int):
+    def __init__(self, expectations: list[Expectation], calendar: SessionCalendar, record: RunRecord, days: int,
+                 horizon: CalendarHorizon | None = None):  # fmt: skip
         self.expectations, self.calendar, self.record, self.days = expectations, calendar, record, days
+        self.horizon = horizon
 
     def run(self, now: datetime) -> HealthRun:
         run_day = now.astimezone(IST).date()
@@ -49,7 +53,12 @@ class HealthCheck:
             if e.live_from is not None and session >= e.live_from
         ]
         return HealthRun(run_day, tuple(sessions), tuple(e.name for e in self.expectations if e.live_from),
-                         tuple(findings), tuple(self.record.missing(run_day, self.days)))  # fmt: skip
+                         tuple(findings), tuple(self.record.missing(run_day, self.days)),
+                         self._warnings(run_day))  # fmt: skip
+
+    def _warnings(self, run_day: date) -> tuple[str, ...]:
+        line = self.horizon.warning(run_day) if self.horizon else None
+        return (line,) if line else ()
 
     def _result(self, expectation: Expectation, session: date, now: datetime) -> CheckResult:
         kind = self.calendar.session_kind(session)

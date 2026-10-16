@@ -36,7 +36,8 @@ def cmd_health(args, out=print) -> int:
     started = now_ist()
     alerts = None if args.dry_run else build_alert_sender()
     try:
-        run = build_health_check(load_app_config()).run(args.at or started)
+        check = build_health_check(load_app_config())
+        run = check.run(args.at or started)
         text, result, code = message(run), verdict(run), 0
         for line in table(run):
             out(line)
@@ -48,5 +49,7 @@ def cmd_health(args, out=print) -> int:
         sent = alerts.send(text)
         out(sent)
         build_run_record().append((args.at or started).astimezone(IST).date(), started, now_ist(), result)
+        if sent == SENT and not code and run.warnings:
+            check.horizon.mark()  # once only: a warning Slack accepted is never repeated for this calendar
         code = code or int(sent != SENT)
     return code

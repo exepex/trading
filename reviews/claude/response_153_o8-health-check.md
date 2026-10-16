@@ -186,3 +186,53 @@ A16's marks are silent, because they are not live yet.
 - The push race, as in every job.
 - The 2027 calendar rows (a loud FAILED until they are added).
 - The first real run's push-receipt lines can only be verified in Actions, because this session has no GitHub token.
+
+## Addendum 3: O8b, the NSE calendar's horizon line (orchestrator's go, 16 Oct 2026; for judge D)
+
+The story text is the O8b section of `docs/stories/O8-health-check.md`. Because the story is small, its text and code
+are on one branch, `story/o8b-calendar-horizon`.
+
+**A correction to my own message (16 Oct).** I told the orchestrator and the A14c builder that the line first fires on
+16 Nov. That is wrong. 31 Dec minus 16 Nov is exactly 45 days, which is not "fewer than 45". The line first fires on
+**17 Nov** (44 days left). The tests pin both days.
+
+### Code
+- `fno/health/horizon.py`, `CalendarHorizon`: `warning(run_day)` has no side effects; `mark()` writes the calendar's
+  SHA-256.
+- The checker adds the line to `HealthRun.warnings`. The report makes it one problem line.
+- The CLI marks only when the post returned `SENT`, the run did not fail, and the run had the line.
+- The wiring loads the concrete calendar, for `last` and `calendar_sha256()`. The threshold comes from
+  `config.yaml health.calendar_horizon_days: 45`.
+- The workflow commits `research/ops/`. A test checks that only the run record and the marker are written there.
+- The marker path is a module constant in `horizon.py`, not in `fno/constants.py`, which is at 348 of 350 lines on
+  `main`. That follows CLAUDE.md's rule that module-specific names live at the top of their module.
+
+### Criteria and tests (strong evidence: tests run, and each criterion broken on purpose)
+| # | Test (`tests/health/test_horizon.py`, unless noted) |
+|---|---|
+| 1 | `test_the_line_appears_only_when_fewer_than_45_days_are_left` (16 Nov no line; 17 Nov and 31 Dec one line each) |
+| 2 | `test_once_marked_the_same_calendar_never_warns_again_and_a_new_calendar_does` |
+| 3 | `test_the_marker_is_written_after_slack_accepted_the_warning`, `test_a_refused_post_or_a_dry_run_never_marks...`, `test_a_run_without_a_warning_never_marks` |
+| 4 | `test_the_real_settings_and_calendar_warn_for_2027_from_17_november` |
+| 5 | `test_the_workflow_checks_out_full_history_and_commits_only_its_run_record` (now `research/ops/`, and only these two writers) |
+
+**Deliberate breaks: 9 of 9 caught.** The breaks:
+1. the threshold made inclusive;
+2. the marker ignored;
+3. the marker never matching;
+4. the wrong year asked for;
+5. the line missing from the message;
+6. the marker written even when the post was refused;
+7. the marker never written;
+8. the threshold typed in code instead of read from config;
+9. the workflow dropping the marker.
+
+### Real sample
+`python -m fno health check --dry-run --at 2026-11-17T17:51:00` on this branch, with no tokens. The dry run wrote no
+`research/ops/`.
+
+```
+- NSE calendar covers only to 31 Dec 2026 (44 days left): add NSE's 2027 holiday circular rows to research/data/calendar/nse_sessions.csv
+```
+
+The same run reports 9 other problems, all for sessions that have not happened yet.
