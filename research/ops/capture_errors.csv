@@ -1,1 +1,2 @@
 date,job,step,kind,message,run_url
+2026-10-17,filings-archive,archive / Probe NSE from this runner,failure,archive / Probe NSE from this runner: failure,https://github.com/exepex/trading/actions/runs/39002250719
