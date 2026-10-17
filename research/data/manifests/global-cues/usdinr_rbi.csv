@@ -1,3 +1,4 @@
 fetched_at,path,url,form,sha256,size_bytes
 2026-10-15T06:16:11.582325+05:30,rbi/currency/reference-rate/2026/10/15/061611_reference-rate-usd_20070101_20261015.html,https://www.rbi.org.in/Scripts/ReferenceRateArchive.aspx,txtFromDate=01/01/2007&txtToDate=15/10/2026&chkUSD=on,177c7f49dde4f82143fc9640ba29ca236b6e5634f9c5ee9a4deac0f917cf698d,829986
 2026-10-15T06:17:44.810486+05:30,rbi/currency/reference-rate/2026/10/15/061744_reference-rate-usd_20260913_20261015.html,https://www.rbi.org.in/Scripts/ReferenceRateArchive.aspx,txtFromDate=13/09/2026&txtToDate=15/10/2026&chkUSD=on,69855958348823b73ab9514dc32c94af1280a3810084c0e6ec5d50306f1c56c0,84362
+2026-10-17T05:53:40.570963+05:30,rbi/currency/reference-rate/2026/10/17/055340_reference-rate-usd_20260913_20261017.html,https://www.rbi.org.in/Scripts/ReferenceRateArchive.aspx,txtFromDate=13/09/2026&txtToDate=17/10/2026&chkUSD=on,1fd384db06c1dabe62d5410e19138961f5e1323f46d891d61cf2f017f677549d,84754
