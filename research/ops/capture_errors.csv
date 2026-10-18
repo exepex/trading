@@ -1,2 +1,3 @@
 date,job,step,kind,message,run_url
 2026-10-17,filings-archive,archive / Probe NSE from this runner,failure,archive / Probe NSE from this runner: failure,https://github.com/exepex/trading/actions/runs/39002250719
+2026-10-18,global-cues,"cues / One line to #fno-desk when the run failed: the failed or stale cues, and a failed commit",failure,"cues / One line to #fno-desk when the run failed: the failed or stale cues, and a failed commit: failure",https://github.com/exepex/trading/actions/runs/39081061034
