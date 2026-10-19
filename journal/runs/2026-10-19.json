@@ -1,0 +1,21 @@
+{
+ "day": "2026-10-19",
+ "kind": "daily_run",
+ "steps": {
+  "quotes": {
+   "started_at": "2026-10-19T14:37:02.337921+05:30",
+   "finished_at": "2026-10-19T14:37:02.337959+05:30",
+   "inputs": {
+    "parts": [
+     "nifty",
+     "nse",
+     "indices"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "started nifty, nse; indices after nifty"
+   }
+  }
+ }
+}
