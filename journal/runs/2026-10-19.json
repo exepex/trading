@@ -57,6 +57,15 @@
    "result": {
     "line": "Book 1 has no registered version: the owner registers the first one (D6); its decisions stay unscored"
    }
+  },
+  "pack": {
+   "started_at": "2026-10-19T14:58:08.033168+05:30",
+   "finished_at": "2026-10-19T14:58:15.447766+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "b6b01d3635952e9895475d002222b714d71827896c01a850945a7b389cc518c7"
+   }
   }
  }
 }
