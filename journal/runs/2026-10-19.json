@@ -66,6 +66,26 @@
     "built": true,
     "sha256": "b6b01d3635952e9895475d002222b714d71827896c01a850945a7b389cc518c7"
    }
+  },
+  "book1": {
+   "started_at": "2026-10-19T14:58:18.760592+05:30",
+   "finished_at": "2026-10-19T14:58:49.769992+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "--day",
+     "2026-10-19"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "Book 1 2026-10-19: decided (2026-10-19-r1), committed bd11a8de7ae17481869a75985b6cb2702feec161",
+    "exit_code": 0,
+    "lines": [
+     "Book 1 2026-10-19: decided (2026-10-19-r1), committed bd11a8de7ae17481869a75985b6cb2702feec161"
+    ]
+   }
   }
  }
 }
