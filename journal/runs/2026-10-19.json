@@ -387,6 +387,30 @@
      "exit_code": 1
     }
    }
+  },
+  "price_ranges": {
+   "started_at": "2026-10-19T15:19:15.480383+05:30",
+   "finished_at": "2026-10-19T15:19:18.621701+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "issue",
+     "unlisted",
+     "unlisted",
+     "unlisted",
+     "2026-10-19",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "refused",
+     "reason": "command:nothing_written",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
