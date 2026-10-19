@@ -84,6 +84,25 @@
      "exit_code": 0
     }
    }
+  },
+  "v4_release": {
+   "started_at": "2026-10-19T14:06:41.398165+05:30",
+   "finished_at": "2026-10-19T14:27:15.560533+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "release"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
