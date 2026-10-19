@@ -101,6 +101,19 @@
      "committed_at": "2026-10-19T14:58:45+05:30"
     }
    }
+  },
+  "snapshot": {
+   "started_at": "2026-10-19T15:15:00.000263+05:30",
+   "finished_at": "2026-10-19T15:18:09.576144+05:30",
+   "inputs": {},
+   "result": {
+    "valid": true,
+    "snapshot_id": "nifty_20261019_151500",
+    "sha256": "8bb32bd71799ea24ed5f7b103f901ce46209618c22f9ca879ec8fde96b06fd98",
+    "attempts": [
+     "nifty_20261019_151500"
+    ]
+   }
   }
  }
 }
