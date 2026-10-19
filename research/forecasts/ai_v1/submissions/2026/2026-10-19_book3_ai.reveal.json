@@ -1,0 +1,33 @@
+{
+ "answer": {
+  "book": "book3_ai",
+  "day": "2026-10-19",
+  "export_sha256": "2c95e50385192371dafb6414ecd8242eca38a8e476f75c80d1f7c06a2ab824c9",
+  "forecasts": {
+   "q1_nifty_up_20d": {
+    "probability": 0.53,
+    "reason": "Spot 22870.8 is -1.19% today and near the low end of the 60-session range; short-term mean reversion and positive drift give a slight up tilt, but the trend since Aug is down, so stay near 0.5."
+   },
+   "q2_nifty_move_3pct_20d": {
+    "probability": 0.46,
+    "reason": "IV30 14.0 and trailing RV20 16.2 imply a 20-day sd of about 4.0-4.6%; P(|move|>=3%) under a normal is about 0.46-0.50; fat tails offset by vol mean reversion."
+   },
+   "q3_rv20_above_trailing": {
+    "probability": 0.4,
+    "reason": "Trailing RV20 16.2 is above IV30 14.0 and near the top of its recent range; the market prices calmer volatility ahead and RV mean-reverts, but today's selloff and the Oct 27 expiry keep risk of a further spike."
+   },
+   "q4_vix_up_10d": {
+    "probability": 0.42,
+    "reason": "VIX 14.86 sits near the top of its 60-session range (10.35-15.28) after a +0.8 jump today; mean reversion favours lower in 10 days, but momentum in a falling market tempers it."
+   },
+   "q5_rv20_below_atm_iv30": {
+    "probability": 0.5,
+    "reason": "IV30 14.0 is below trailing RV20 16.2, so the usual variance risk premium is absent; history favours RV below IV most of the time, recent realised says otherwise; call it even."
+   }
+  },
+  "model_reported": "unknown",
+  "pack_sha256": "40ff6814975988d6ac5698854601176d8d2c460542ff2c17657faafc628588c8",
+  "version": "book3_ai/v1/sha256:6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a/isolation:sealed_same_day"
+ },
+ "salt": "c4b91cd9888e6b1aeea1903294626ace"
+}
