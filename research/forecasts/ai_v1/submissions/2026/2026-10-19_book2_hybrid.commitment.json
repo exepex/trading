@@ -1,0 +1,7 @@
+{
+ "book": "book2_hybrid",
+ "commitment_sha256": "cc8020000f647b9ca308620ff6e13476273142f2473a8d9ebecbc0d396a54d06",
+ "day": "2026-10-19",
+ "export_sha256": "be6161dffef586c5fb9c6d8dfce51d2bf6e9fce7e47b6f943cef80c97eb5128f",
+ "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+}
