@@ -411,6 +411,25 @@
      "exit_code": 0
     }
    }
+  },
+  "price_range_scores": {
+   "started_at": "2026-10-19T15:19:19.030261+05:30",
+   "finished_at": "2026-10-19T15:19:21.186107+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "failed",
+     "reason": "raised:STOPPED",
+     "exit_code": 1
+    }
+   }
   }
  }
 }
