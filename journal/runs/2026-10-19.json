@@ -49,6 +49,14 @@
     "status": "not_live",
     "reason": "no live date set (config.yaml daily.live_from)"
    }
+  },
+  "versions": {
+   "started_at": "2026-10-19T14:58:03.761238+05:30",
+   "finished_at": "2026-10-19T14:58:03.771994+05:30",
+   "inputs": {},
+   "result": {
+    "line": "Book 1 has no registered version: the owner registers the first one (D6); its decisions stay unscored"
+   }
   }
  }
 }
