@@ -307,6 +307,28 @@
      "exit_code": 0
     }
    }
+  },
+  "price_distribution": {
+   "started_at": "2026-10-19T15:19:06.172850+05:30",
+   "finished_at": "2026-10-19T15:19:08.664901+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "record",
+     "unlisted",
+     "2026-10-19",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "refused",
+     "reason": "command:nothing_written",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
