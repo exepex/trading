@@ -46,6 +46,25 @@
      "reason": "rehearsal:NOT_BUILT"
     }
    }
+  },
+  "weather": {
+   "started_at": "2026-10-19T14:06:04.995401+05:30",
+   "finished_at": "2026-10-19T14:06:36.045549+05:30",
+   "inputs": {
+    "command": [
+     "weather",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
