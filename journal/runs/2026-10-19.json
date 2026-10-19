@@ -240,6 +240,51 @@
     "marked_contracts": 184,
     "open_positions": 0
    }
+  },
+  "quotes_done": {
+   "started_at": "2026-10-19T15:18:41.405571+05:30",
+   "finished_at": "2026-10-19T15:18:41.405779+05:30",
+   "inputs": {},
+   "result": {
+    "status": "failed",
+    "reason": "unlisted",
+    "parts": {
+     "nifty": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "51c900089d0068f3809d9c28ebcd846d6e92e445",
+      "how": "started",
+      "started_at": "2026-10-19T14:38:00.000545+05:30"
+     },
+     "nse": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "50bee0bb2c9bfe0d7d356616a058a77eb3f81a16",
+      "how": "started",
+      "started_at": "2026-10-19T14:38:00.001261+05:30"
+     },
+     "indices": {
+      "status": "failed",
+      "reason": "command:exit_1",
+      "exit_code": 1,
+      "commit": "3d8692a3c231b2efeb10354d914a56a2142c9104",
+      "how": "started",
+      "started_at": "2026-10-19T14:58:06.635314+05:30"
+     }
+    },
+    "exercised_parts": {
+     "v4": {
+      "status": "failed",
+      "reason": "command:exit_1",
+      "exit_code": 1,
+      "commit": "58ad223213810d9a949af717c10b38e6307516f2",
+      "how": "started",
+      "started_at": "2026-10-19T14:27:00.000351+05:30"
+     }
+    }
+   }
   }
  }
 }
