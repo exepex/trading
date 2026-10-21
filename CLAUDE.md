@@ -185,7 +185,8 @@ commit with `--no-verify`.
   paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
   `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5),
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
-  parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12) and
+  parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
+  `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a) and
   `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
   scores: A4's chains, the panel, closes, O9's Drive store, story G13).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
