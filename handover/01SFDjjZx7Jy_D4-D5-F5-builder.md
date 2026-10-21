@@ -158,7 +158,10 @@ I was judged, never a judge. Open findings for others:
 
    R1's owner partly agrees (21 Oct). The shared allocator is the end state, and would also replace S1's freeze's own
    `isdigit` scan, a second copy. R1's minimal fix (numbered rows only, S1's rule) is the safe floor if D5 is switched
-   on first: `story/r1-book3-trial-ids` `df158875`, parked for the post-phase-1 judge queue. Both options are also in
+   on first: `story/r1-book3-trial-ids` `df158875`, parked for the post-phase-1 judge queue.
+   Its test plants a `book3:x-v1` row: it fails on `main` with that `ValueError` and passes with the fix (full suite
+   8942 passed; R1's owner via FL1's builder). Counting every ledger row, Book 3's included, in K is intended (judge
+   261). Both options are also in
    `handover/01XFXpbkyixX_A21-R1-builder.md` (`story/a21-announcements`).
 7. **The Innovation Lab design** (`docs/stories/IL-innovation-lab.md`, with judge E) depends on LR3's CUSUM for
    automatic demotion. LR3's code was never started (see (d)).
