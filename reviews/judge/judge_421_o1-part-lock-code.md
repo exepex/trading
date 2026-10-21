@@ -38,3 +38,15 @@ F1, outside this change.
 **Gates at 48822a54:** 8817 passed, 17 xfailed, 0 failed; ruff and check_imports clean.
 
 O2's strict xfails for F1 and G4 flip after both land, as the builder says.
+
+## Addendum 1: the merged head 00e9da61 (48822a54 plus main, G4 included)
+**Verdict: PASS. The condition is met; it may merge after the full gates pass on the exact pushed tree.**
+
+I checked only the conflict resolution:
+- `QuoteParts._finish` uses G4's `_commit_alert` (NOT_PUSHED / NOT_COMMITTED) and F1's `_earlier_commit` and
+  `_logged`, and both helpers are kept;
+- `fno/daily/wiring.py` builds ONE `GitCommitter(git, OwnUnpushed(...))` and gives it to `QuoteParts` (now with
+  `PartLocks` and `PartMarkers`) and to `build_daily_run(git_committer=committer)`;
+- `.gitignore` keeps both `journal/runs/.parts/` and `journal/runs/.own/`.
+
+**Gates on a trial merge of 00e9da61 with today's main:** no conflict; 8826 passed, 16 xfailed, 0 failed; ruff clean.
