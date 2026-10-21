@@ -99,3 +99,16 @@ Fix expected:
 - add a test that `lab_close`'s position is before `close_read`'s, while it exists.
 
 A one-line text change; I re-judge it at once.
+
+## Addendum 2: re-judge at 2524cbe5
+
+**Verdict: PASS for the A4h story text.** Code may start.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| SF2: the steps before `lab_close` would delay FL1-1's 15:45 report | Both steps go last: after `lab_close` while it exists, else after `candles`. `close_read` then starts at about 15:46. Criterion 5 asserts the order on the real tuple, with a test that `lab_close`'s index is below `close_read`'s | diff 8d3830a1..2524cbe5: only these three passages change | **Accepted** |
+
+For the code round, the claims must show:
+- criterion 8's planted-value test, in all its formats;
+- the real tuple's order;
+- the first five sessions' read, recheck and confirm lines, none holding a level (quality rule 8).
