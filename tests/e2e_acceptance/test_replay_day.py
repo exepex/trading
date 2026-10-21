@@ -37,13 +37,9 @@ STEPS = [
     "trade_marks",
     REVIEWS_STEP,
     "price_distribution",  # G13
+    "price_ranges",  # G13b
+    "lab_close",  # FL1-1
 ]  # O1's DAILY_RUN_STEPS without the quote parts, the margin check, the card and the candles
-
-
-@pytest.fixture
-def day(tmp_path, monkeypatch):
-    alerts = RecordingAlerts()
-    return Replay(tmp_path, monkeypatch, alerts).run(), tmp_path, alerts
 
 
 def chosen_record(root) -> dict:
