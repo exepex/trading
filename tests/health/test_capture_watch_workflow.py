@@ -10,7 +10,9 @@ import yaml
 
 WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
 WATCHER = WORKFLOWS / "capture-watch.yml"
-NOT_WATCHED = {"checks", "capture-watch"}  # CI on pushes, and the watcher itself
+# CI on pushes, the watcher itself, and O12b's number alert (a red run is main's number check, which it posts itself;
+# it is no data capture)
+NOT_WATCHED = {"checks", "capture-watch", "number-alert"}
 
 
 def load(path: Path) -> dict:

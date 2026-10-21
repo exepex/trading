@@ -58,7 +58,9 @@ class ChildProcess(Process):
         self._read()
 
     def lines(self) -> list[str]:
-        return self._read()[-KEPT_LINES:]
+        """The last result lines, never an unsent alert: its text goes to the routine only (it can hold what is meant
+        for Slack alone, such as a Drive error's text), never into the committed run record."""
+        return [line for line in self._read() if UNSENT not in line][-KEPT_LINES:]
 
     def _read(self) -> list[str]:
         if self.printed is None:
