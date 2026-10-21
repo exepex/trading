@@ -34,8 +34,9 @@ the weekly and monthly call and put options ... for now we focus on 9:15 and 15:
 ## Scope
 
 In:
-- the command `python -m fno lab close` (FL1-1) and `python -m fno lab open` (FL1-2), each run by its own Claude
-  routine that the owner creates, with the exact prompts and a CLAUDE.md section;
+- the command `python -m fno lab close` (FL1-1), run as O1's last daily step, and `python -m fno lab open` (FL1-2),
+  run by a morning routine (its design with the O1 builder in phase 2; the owner creates it, with its exact prompt and
+  a CLAUDE.md section);
 - the two reports and where they go;
 - the end-of-day tracking and scoring of every NIFTY and BANKNIFTY contract;
 - the lab's paper positions, their fills and exits (FL1-2);
@@ -48,8 +49,8 @@ real orders (never); UI; a second desk; a second fill reader; AI calls.
 
 | Part | Reuses | New |
 |---|---|---|
-| Slot and timing | O1's `Alerted` rule (recorded and alerted once, the run goes on); the A7 calendar (a closed day prints "not a trading day" and posts nothing) | `fno/forecast_lab/` and its wiring `fno/forecast_lab/wiring.py`; the `lab` CLI with `close` |
-| Forecasts | G13b's sealed records (one JSON per underlying, issue and day, write-once in Drive with an O9 receipt), read only through G13b's reader port `RangeForecasts.sealed(underlying, day, issue)`, never by path | the seal check on `sealed_at`, the receipt's commit time on `main` (never the self-reported `issued_at`): the 15:45 issue must be sealed before the next session's 09:15 |
+| Slot and timing | O1's daily run: `lab_close` is its last step, after `candles`, through `NotBefore(15:45)` and `Alerted`, with a `daily.live_from` date (agreed with the O1 builder): no new routine and no new prompt, so the 14:33 routine runs it; the A7 calendar (a closed day records `skipped`) | `fno/forecast_lab/` and its wiring `fno/forecast_lab/wiring.py`; the `lab close` command (O1 runs it as a child process); one step name in `DAILY_RUN_STEPS` and one line in `fno/daily/wiring.py` |
+| Forecasts | G13b's sealed records (one JSON per underlying, issue and day, write-once in Drive with an O9 receipt), read only through G13b's reader port `RangeForecasts.sealed(underlying, day, issue)`, never by path | the seal check on `sealed_at`, the GitHub push time of the issue's receipt (O8's push evidence; never a commit date, which the committer's clock sets, and never the self-reported `issued_at`; no push evidence means `late`, never assumed sealed): the 15:45 issue must be sealed before the next session's 09:15 |
 | Match report | G13b's scores (quantile score, 25-75 and 5-95 band coverage, `p_up` Brier, per forecaster, horizon and issue) and its outcome closes (NSE's official index close), read and never recomputed; LR1's section pattern and once-only `Publisher` | `MatchReport` sections: each forecast whose target is today against today's close (inside the 25-75 and 5-95 bands, direction of the median, quantile score); each baseline the same way; the running scoreboard and the trust line; then the next session's sealed N+1 and N+3 ranges |
 | Contract universe | NSE's F&O bhavcopy (A1's archive, the A13 job's reader); G13's Black-76 pricing (`fno/price_distribution/pricing.py`) | `ContractTracker`: see below |
 | Slack | `SlackChannelAlerts(token, channel)` with the same bot token; alerts stay on `build_alert_sender` (#fno-desk) | `FNO_FORECAST_CHANNEL_ID` and `FNO_INTRADAY_CHANNEL_ID` (the IDs the owner created on 21 Oct, passed by the orchestrator; they enter the repository only in FL1-1's code, with the scan change, because the scan refuses them until then) in `fno/forecast_lab/constants.py` (`fno/constants.py` is at 345 of 350 lines), imported into the record scan's `ALLOWED_VALUES` |
@@ -125,7 +126,8 @@ nothing twice. Lab fills, positions and marks are private records (E2c's pattern
 ## Acceptance criteria
 
 FL1-1:
-1. On a closed day `lab close` prints "not a trading day" and posts nothing.
+1. On a closed day `lab close` prints "not a trading day" and posts nothing; as O1's step it runs only after
+   `candles`, never before 15:45, and a failure is recorded in the run log and alerted once.
 2. A forecast sealed after its cutoff is never shown as that issue's forecast; the refusal is recorded and alerted
    to #fno-desk.
 3. The report's forecast scores equal G13b's scores on fixed rows (read, never recomputed).
