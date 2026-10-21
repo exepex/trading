@@ -3,10 +3,10 @@
 One crash or one squeeze hits a whole bucket, so its cap counts the bucket's positions together. A position is in one
 bucket per side its structure has: a fly or condor in one volatility side; a directional spread both in its direction
 and in a volatility side (owner, 15 Oct 2026, "1 B": a crash hits both), with its full maximum loss in each. Its
-underlying group is read from its contracts' exchange symbols (the letters before the first
-digit: `NIFTY26OCT25000CE` is NIFTY), its side from its structure code through the profile's `bucket_sides`. Fail
-closed (design 6.1a): a position that cannot be mapped (a structure code not listed, legs on two underlyings, a stock
-or an index 6.2 does not name) is an input error, so the trade is refused.
+underlying group is read from its contracts' exchange symbols in either provider's format (`fno/contract_symbols.py`:
+Groww's `NIFTY26OCT25000CE` and NSE's `OPTIDXNIFTY13-10-2026CE21950.00` are both NIFTY), its side from its structure
+code through the profile's `bucket_sides`. Fail closed (design 6.1a): a position that cannot be mapped (a structure code
+not listed, legs on two underlyings, a stock or an index 6.2 does not name) is an input error, so the trade is refused.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from ..constants import BUCKET_INDEX_GROUPS
+from ..contract_symbols import underlying_of
 from .inputs import RiskInputError
 
 
@@ -34,14 +35,6 @@ class BucketMap(ABC):
     @abstractmethod
     def buckets_of(self, structure: str, contracts: Iterable[str]) -> tuple[Bucket, ...]:
         """The position's buckets; RiskInputError when it cannot be mapped."""
-
-
-def underlying_of(contract: str) -> str:
-    """The exchange symbol's underlying: every character before the first digit."""
-    for i, char in enumerate(contract):
-        if char.isdigit():
-            return contract[:i]
-    return contract
 
 
 class StructureBuckets(BucketMap):

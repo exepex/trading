@@ -79,6 +79,7 @@ def _edited(edit):
     "edit",
     [
         lambda b: b.update(label="system_late"),  # a system_late day has no pack
+        lambda b: b.update(label="A2"),  # dropped 16 Oct (orchestrator): A16's mark cannot hold a full pack
         lambda b: b.update(chain=[]),
         lambda b: b["spot"].pop("observed_at"),
         lambda b: b["spot"].update(extra=1),
