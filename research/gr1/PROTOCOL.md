@@ -1,6 +1,6 @@
 # Protocol: GR1, sharper price ranges
 
-Ledger trials 56-70. Builder: session_01UkTaDeTRF9ksDgQB9cTU5C. Requested by the orchestrator for the owner on 21 Oct
+Ledger trials 56-70. Revision 2 (before review, judge 428): see section 14. Builder: session_01UkTaDeTRF9ksDgQB9cTU5C. Requested by the orchestrator for the owner on 21 Oct
 2026. Judge B reviews this protocol before any result is read, and the results after (orchestrator, 21 Oct).
 
 Research only. Nothing here changes G13b's code, its live step or a frozen file. A candidate that wins is a new, judged
@@ -45,7 +45,7 @@ This section is stated first, because it limits what any result can mean.
 | India VIX | `research/data/vix/india_vix_daily.csv` (A15), close of d and d-1 | d's close |
 | Event days | `research/data/events/events.csv` (A6): `rbi_policy`, `budget`, `election_result`, with `announced_on` before d | announced before d |
 | Option expiries | the expiries of the index's options in d's archived F&O file (the same chain the record was built from) | d's close |
-| Global cues | A17: S&P 500 close (Drive, private), US 10-year (`us10y.csv`), Brent (`brent.csv`) and USD/INR (`usdinr_rbi.csv`). Each read as its last value published before 15:30 IST on d: the US session that ended before d's Indian close, and RBI's rate of d-1 (RBI's rate is first usable on t+1, A17's README) | before 15:30 IST d |
+| Global cues | A17: S&P 500 close (Drive, private), US 10-year (`us10y.csv`) and USD/INR (`usdinr_rbi.csv`). Each is read with A17's own point-in-time rule, `value_for(live_only=False)` with the source's `available_at`, at the cutoff 15:30 IST on d (C7) or 09:15 IST on d (N0-C). Never a raw `value_date < d`, which would be look-ahead against live. USD/INR is RBI's rate of d-1 at the latest, one day staler than A17 allows (safe). **Brent is dropped** (judge 428 SF2): A17's rule makes EIA's weekly Brent at least 10 days old at d (`EIA_WORST_LAG`), so for a 1- to 3-session range it would test nothing | at the cutoff |
 | NIFTY intraday realised variance of d | A16b's `research/data/intraday/rv-candle/` (`rv_session`), from 2 Jan 2020, NIFTY only | d's close |
 | NIFTY 09:15 price | A16b's 15-minute candles (`nifty-15m`), the first candle's open | 09:15 IST |
 | Calendar | A7, `research/data/calendar/nse_sessions.csv` | always |
@@ -82,21 +82,28 @@ This section is stated first, because it limits what any result can mean.
 | Trial | Id | Conditioner(s) in `x` beyond the intercept | Parameters |
 |---|---|---|---|
 | 56 | C1 | none: one constant scale | 1 |
-| 57 | C2 | two constant scales: one for the 25/75 band, one for the 5/95 band (the shape, not only the width) | 2 |
+| 57 | C2 | two constant scales: one for the 25/75 band, one for the 5/95 band (the shape, not only the width). Parameters that would make any quantiles cross on any train day are refused (the outer-to-inner scale ratio must keep q05 < q25 and q75 < q95 on every day: about 0.41 for a normal shape) | 2 |
 | 58 | C3 | ln(VIX_d) minus ln(the train period's median VIX) | 2 |
 | 59 | C4 | ln(VIX_d / VIX_{d-1}) | 2 |
 | 60 | C5 | 1 if an RBI policy, budget or election-result day falls in (d, target] | 2 |
 | 61 | C6 | 1 if an expiry of the index's options falls in (d, target] | 2 |
-| 62 | C7 | the absolute last-published log moves of S&P 500, US 10-year (in points), Brent and USD/INR | 5 |
+| 62 | C7 | the absolute last-published moves of S&P 500 (log), US 10-year (points) and USD/INR (log), each by A17's rule at 15:30 IST on d | 4 |
 | 63 | C8 | ln(rv_session_d / implied's one-session variance at d); NIFTY only, 2020 on | 2 |
 | 64 | C9 | the target session's weekday (4 dummies, Monday the base) | 5 |
 | 65 | C10 | a separate constant scale per VIX tercile of d (terciles from the train period) | 3 |
-| 66 | C11 | the combination: the two conditioners from C3-C10 whose 2024 score improves most on C1 and that each meet the calibration rule; fewer than two pass means C11 is not run (still counted) | up to 3 |
+| 66 | C11 | the combination: the two conditioners from C3-C10 whose **train-period** fit improves most on C1's train QS (chosen on train, so 2024 is not used twice; judge 428); C11 is then selected on 2024 like any candidate | up to 3 |
 
-- **Combination rule (C11).** C11 uses C1's intercept plus the two chosen conditioners' columns together. The choice
-  is made per cell on 2024, before the final period is read.
-- **Count.** 11 candidates x 4 cells = 44 candidate-cells (C8 has no BANKNIFTY data: 42 fitted). Plus 3 N0 variants
-  (section 11) and the 1 not-tested row: **46 counted tests**.
+- **Combination rule (C11).** C11 uses C1's intercept plus the two chosen conditioners' columns together, chosen per
+  cell on train.
+- **Count: every registered candidate-cell counts, whether it runs or not** (judge 428: the first count was not
+  consistent). That is 12 conditioner candidates, C1-C11 plus FII/DII (trial 67), times 4 cells = 48. 4 of these
+  cannot run: FII/DII's 4 cells (no history) and C8's 2 BANKNIFTY cells (no intraday data), so 42 are fitted. Plus the
+  3 N0 variants: **51 counted tests**.
+- **Regime breaks, stated now** (judge 428), because they touch C6 and C9:
+  - BANKNIFTY weekly options ended in November 2024.
+  - NIFTY's weekly and monthly expiry moved from Thursday to Tuesday in September 2025.
+  - C6 reads the real expiries of each day's file, so it follows both changes. C9's weekday effect may change at
+    those dates; the results report C9 split at them.
 
 ## 7. Periods
 
@@ -106,8 +113,12 @@ This section is stated first, because it limits what any result can mean.
 | Select | 2024-01-01 to 2024-12-31 | choose at most one winner per cell (section 9) |
 | Final | 2025-01-01 to 2026-10-20 | read **once**, after the selection is committed (section 12) |
 
-Rows that are not `ok` for implied are dropped, as are rows with no outcome yet. The same days are used for the
-candidate and the baseline (paired).
+Rows that are not `ok` for implied are dropped, as are rows with no outcome yet.
+
+**Days.** Each candidate is compared with C0 on that candidate's own days, paired (judge 428 SF3). The candidates' day
+sets differ: C8 has gaps, C4 needs VIX of d-1, and C7 needs the cues. So selection uses each candidate's paired mean
+QS difference against C0, never raw means across different day sets. Every table reports the days each candidate
+drops, and why.
 
 ## 8. Scores
 
@@ -118,33 +129,52 @@ candidate and the baseline (paired).
 - **Coverage:** the share of outcomes inside the 25-75% band and inside the 5-95% band.
 - **Width in points:** the median over days of `S_ref x (e^{q95} - e^{q05})` (the 90% band) and of `S_ref x (e^{q75} -
   e^{q25})` (the 50% band).
-- **Comparison:** the mean daily QS difference against C0, by G4's block bootstrap (`fno/forecast_scoring/
-  block_bootstrap.compare`, seed from the comparison's key as G13b).
+- **Comparison:** the mean daily paired QS difference against C0, by G4's block bootstrap (`fno/forecast_scoring/
+  block_bootstrap.compare`, seed from the comparison's key as G13b). Its p-value is **two-sided**; a win also needs
+  the difference to favour the candidate.
 
 ## 9. Selection on 2024 (per cell)
 
 1. A candidate is **eligible** when its 2024 coverage of the 5-95% band is within [0.87, 0.93] and of the 25-75% band
    within [0.45, 0.55]. This is the hard calibration constraint: "almost certainly" must still mean about 90%.
-2. The **winner** is the eligible candidate with the lowest mean 2024 QS, if that QS is below C0's 2024 QS.
-3. If no candidate is eligible and better, the cell's winner is C0: "no candidate beat implied".
+2. The **winner** is the eligible candidate with the most negative paired mean QS difference against C0 on 2024, if
+   that difference is below 0.
+3. If no candidate is eligible and better, there is no winner for the cell.
+
+**What the bands cost, stated now** (judge 428 SF1, checked by exact binomial). The bands are kept as a hard rule,
+but they are noisy at these sample sizes. Even an exactly calibrated candidate fails them:
+
+| Look | N1 (about 246 days in 2024, about 440 in the final period) | N3 (overlapping outcomes; judge 428's simulation) |
+|---|---|---|
+| 2024 | about 23% of the time | about 37% |
+| Final period | about 6-7% | about 17% |
+| Both looks | about 72% pass | about 53% pass |
+
+So a cell with no winner means **"not shown at this sample size"**, never "no candidate can be sharper". C0 itself is
+checked against the same bands on both periods and reported. If implied fails its own band, that is reported as a
+finding about implied.
 
 ## 10. Decision on the final period (read once)
 
 A cell's winner is called **sharper** only if all four hold on the final period:
 
-- its mean QS is below C0's, with the bootstrap p-value Holm-adjusted across the cells that have a winner (at most 4)
-  below 0.05;
+- its paired mean QS difference against C0 is negative, with the two-sided bootstrap p-value Holm-adjusted across the
+  cells that have a winner (at most 4) below 0.05;
 - its 5-95% coverage is within [0.87, 0.93];
 - its 25-75% coverage is within [0.45, 0.55];
 - its median 90% width in points is smaller than C0's.
 
 Even then, the label is exploratory (section 2) and the next step is a live sealed shadow.
 
+A **C1 or C2 winner is marked "known before the study"** (judge 428): its final look re-measures the full-sample finding
+that suggested it (section 2). For C3-C10, the final period is fresh for the conditioning effect. A cell that fails is
+reported as "not shown at this sample size" (section 9).
+
 **Reported in full either way:**
 
 - every candidate on every period: QS, both coverages and both widths;
 - the selection table;
-- the multiplicity count (46);
+- the multiplicity count (51);
 - the final-period numbers of every candidate, for transparency. Only the selected winner is decided on.
 
 ## 11. N0 at 09:15 against N1 at 15:45, the same target (trials 68-70; NIFTY only, 2020 on)
@@ -160,10 +190,15 @@ Even then, the label is exploratory (section 2) and the next step is a live seal
   - **N0-B** (trial 69): N0-A times one constant scale, fitted on train.
   - **N0-C** (trial 70): N0-B with two conditioners known at 09:15: the absolute overnight gap, `|ln(open_d /
     close_{d-1})|`, and the absolute S&P 500 move of the US session that ended before 09:15 on d.
-- **Periods.** Train 2020-01-02 to 2023-12-31, select 2024, final 2025 to 20 Oct 2026 once; the same selection rule
-  as section 9.
-- **Reported:** median 90% and 50% width in points for N1 and each N0 variant on the same days, their coverages and
-  QS, and the width ratio N0/N1.
+- **Periods.** Train 2020-01-02 to 2023-12-31, select 2024, final 2025 to 20 Oct 2026 once.
+- **Rule** (judge 428 SF4; N0 is a measurement, so it gets no "sharper" label and does not join Holm):
+  - on 2024, N0-B and N0-C are compared against N0-A (the baseline) by paired QS difference, under section 9's
+    calibration bands;
+  - the better eligible one, or N0-A if neither is eligible and better, is carried to the final period.
+- **Reported:** all three variants against N1 on the same target days:
+  - the median 90% and 50% widths in points;
+  - coverages and QS;
+  - the width ratio N0/N1, with a block-bootstrap 95% interval.
 - **Measurement, not a hypothesis.** By construction alone N0-A is about 22% narrower: `sqrt(0.607 / 1)` = 0.78 on the
   CLOSE basis. The question is how much narrower the reliable N0 is, and whether overnight information adds anything
   beyond that.
@@ -173,20 +208,40 @@ Even then, the label is exploratory (section 2) and the next step is a live seal
 1. **Protocol and registration.** This protocol, the ledger rows 56-70 and the data-spend rows are committed. That
    commit is the protocol freeze (`FREEZE.md` names it and the file hashes). Judge B reviews it.
 2. **Code.** The study code (`research/gr1/`) is written and tested on synthetic data only (`tests/research_gr1/`),
-   with planted-bug proofs. Its hashes are frozen in `FREEZE.md` in their own commit. The run refuses to start if a
+   with planted-bug proofs, among them a planted same-day value for each global cue that A17's rule must refuse and a
+   planted 2025 row that must not change run 1's output. Its hashes are frozen in `FREEZE.md` in their own commit. The run refuses to start if a
    file differs from its hash.
 3. **Run 1, train and select.** It writes `selection.json`, which is committed before step 4. The run reads no row
    dated in 2025-26: the final rows are filtered out before any score is computed, and a test proves it.
-4. **Run 2, the final period.** It reads the committed `selection.json` and computes the final period once. It
-   refuses to run twice, by checking that `final.json` is absent at the committed head.
+4. **Run 2, the final period.** It reads the committed `selection.json` and never refits.
+   - It refuses to start unless `selection.json` is committed and unchanged, and unless no `final.json` exists at HEAD
+     or in any earlier commit.
+   - It writes `final.json` once.
+   - It is deterministic, so a judge can reproduce it: inputs sorted by day, seeds from the comparison keys (G4), no
+     clock or random state. Its inputs' SHA-256 is recorded in `final.json`.
 5. **Results.** A results file in `reviews/claude/` (number claimed), with plain conclusions. Then judge B reviews it.
 
 ## 13. What would make me stop and report instead
 
-- A data input missing for more than 5% of a period's days in a cell: report the gap and do not impute it.
+- A data input missing for more than 5% of a period's days in a cell: report the gap, do not impute it, and the cell
+  is **not decided** (judge 428).
 - A candidate whose fit does not converge (a grid edge is hit): report it as a failed fit, counted.
 - Any sign of look-ahead found during the work: stop, report and re-freeze, counted as a protocol change.
 
 ## 14. Deviations
 
-None yet. Any deviation is recorded here, dated, before the step it affects, and judge B is told.
+Any deviation is recorded here, dated, before the step it affects, and judge B is told.
+
+- **22 Oct 2026, revision 2, before review (judge 428: FAIL, 4 should-fix; nothing had been fitted or scored).** All
+  four should-fixes and the notes were checked and accepted:
+  - **SF1:** the band costs are stated (section 9), confirmed by my own exact binomial: 23.1% at n = 246 and 6.2% at
+    n = 440 for N1. C0 is checked against the same bands, and a cell with no winner means "not shown at this sample
+    size".
+  - **SF2:** every cue is read by A17's `value_for` and `available_at`. Brent is dropped: it is at least 10 days stale
+    by A17's rule. A planted same-day test is added per series.
+  - **SF3:** selection is by each candidate's paired difference against C0, with dropped days reported.
+  - **SF4:** N0's rule is defined (section 11).
+  - **Notes:** a consistent count of 51; C2 can no longer make quantiles cross; C11's pair is chosen on train; the
+    regime breaks are listed; run 2 is deterministic; the p-value is two-sided; a gap means the cell is not decided;
+    a C1 or C2 winner is marked "known before the study".
+  - New freeze hash and the ledger rows' `protocol_commit` are updated in the same change.
