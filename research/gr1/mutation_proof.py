@@ -73,8 +73,8 @@ M = [
     ("cues.py", 'if r["value_date"] not in held', "", "FBIL overrides RBI's own rate"),
     (
         "selection.py",
-        'entry["reason"] = _train_gap(fitted_on) or _ineligible(sel)',
-        'entry["reason"] = _ineligible(sel)',
+        "reason=_train_gap(on_train) or _ineligible(sel)",
+        "reason=_ineligible(sel)",
         "no train gap rule",
     ),
     (
@@ -83,6 +83,24 @@ M = [
         "return list(train)",
         "C8's 2020 start ignored",
     ),
+    (
+        "candidates.py",
+        "listed = ctx.expiries.get(row.underlying, {}).get(row.day)",
+        "listed = frozenset(e for f in ctx.expiries.get(row.underlying, {}).values() for e in f) or None",
+        "C6 reads the union of every file (SF2)",
+    ),  # fmt: skip
+    (
+        "selection.py",
+        "scales = () if candidate.two_band else column_scales(raw)",
+        "scales = ()",
+        "no standardising (SF1)",
+    ),  # fmt: skip
+    (
+        "splits.py",
+        '"BANKNIFTY": (date(2023, 9, 4), date(2024, 11, 14)),',
+        '"BANKNIFTY": (date(2024, 11, 14),),',
+        "a break left out (SF3)",
+    ),  # fmt: skip
     (
         "evaluate.py",
         "tuple(s - b for s, b in zip(scores, base, strict=True))",

@@ -78,7 +78,8 @@ def opens(first: date, last: date) -> dict[date, float]:
     return found
 
 
-def expiries(days: list[date]) -> dict[str, frozenset[date]]:
+def expiries(days: list[date]) -> dict[str, dict[date, frozenset[date]]]:
+    """Each index's expiries as listed in each day's own F&O file (judge 442 SF2: never a union across files)."""
     from fno.fo_bhavcopy import BadFile, read_fo_file
     from fno.storage.wiring import build_nifty_panel_files
 
@@ -103,9 +104,9 @@ def expiries(days: list[date]) -> dict[str, frozenset[date]]:
             break
     EXPIRY_CACHE.parent.mkdir(parents=True, exist_ok=True)
     EXPIRY_CACHE.write_text(json.dumps(cached, sort_keys=True))
-    union = {u: frozenset(date.fromisoformat(e) for f in cached["files"].values() for e in f["expiries"][u])
-             for u in ("NIFTY", "BANKNIFTY")}  # fmt: skip
-    return union
+    wanted = {d.isoformat() for d in days}
+    return {u: {date.fromisoformat(d): frozenset(date.fromisoformat(e) for e in f["expiries"][u])
+                for d, f in cached["files"].items() if d in wanted} for u in ("NIFTY", "BANKNIFTY")}  # fmt: skip
 
 
 def cue_reader():

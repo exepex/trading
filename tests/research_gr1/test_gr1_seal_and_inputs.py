@@ -81,8 +81,9 @@ def test_run_1_holds_no_value_after_its_last_day():
 
 def test_the_horizon_is_after_the_issue_day_up_to_and_with_the_target():
     (row,) = rows(DAY, DAY)
-    on_issue_day = context(events={DAY: date(2024, 1, 10)}, expiries={"NIFTY": frozenset({DAY})})
-    on_target = context(events={row.target_day: date(2024, 1, 10)}, expiries={"NIFTY": frozenset({row.target_day})})
+    on_issue_day = context(events={DAY: date(2024, 1, 10)}, expiries={"NIFTY": {DAY: frozenset({DAY})}})
+    on_target = context(events={row.target_day: date(2024, 1, 10)},
+                        expiries={"NIFTY": {DAY: frozenset({row.target_day})}})  # fmt: skip
     assert SINGLE["C5"].features(row, on_issue_day) == [1.0, 0.0] and SINGLE["C6"].features(row, on_issue_day) == [
         1.0,
         0.0,
@@ -96,3 +97,10 @@ def test_usdinr_takes_rbis_rate_and_fbils_only_for_rbis_missing_dates():
     merged = usdinr_rows(rbi, fbil)
     expected = [("2018-07-09", "68.5"), ("2018-07-10", "68.6"), ("2020-05-04", "75.6"), ("2022-04-12", "76.0")]
     assert [(r["value_date"], r["value"]) for r in merged] == expected
+
+
+def test_c6_reads_only_the_issue_days_own_file_never_a_later_revision():
+    (row,) = rows(DAY, DAY)
+    revised = {"NIFTY": {DAY: frozenset({date(2024, 3, 14)}), date(2024, 3, 7): frozenset({row.target_day})}}
+    assert SINGLE["C6"].features(row, context(expiries=revised)) == [1.0, 0.0]  # the 7 Mar file's new date never counts
+    assert SINGLE["C6"].features(row, context(expiries={"NIFTY": {}})) is None  # no file of the day: dropped

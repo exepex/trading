@@ -270,6 +270,29 @@ Any deviation is recorded here, dated, before the step it affects, and judge B i
     code, as written. Each candidate's own train period counts, so C8's start on 2 Jan 2020 is a design date, not a gap.
   - **What this changes:** only C7's input and the code's check of section 13. No candidate, period, score or decision
     rule changes. Counted tests stay 51.
+- **22 Oct 2026, deviation 4, judge 442 (FAIL of the code freeze d43877e7, 3 should-fix; deviation 3 accepted), before run
+  1. Nothing had been fitted or scored on real data.**
+  - **SF1:** each non-intercept conditioner is divided by its SD over the candidate's own train rows, before the fit, so
+    the bound |theta| <= 3 means at most a factor e^3 per train SD for every conditioner. In raw units, a USD/INR log
+    move of about 0.004 needed a theta of about 85 for a real effect, so C7 and N0-C would have been failed fits, never
+    tested. The SDs are stored with each fit in `selection.json`, and run 2 rebuilds the same candidate from them.
+    Dummies (C5, C6, C9, C10) are scaled the same way: it only changes theta's units. C1 and C2 have no such column.
+  - **SF2:** C6 reads the expiries listed in d's own F&O file, as section 3 says. A union across files would hold
+    revised dates: BANKNIFTY's Thursday-to-Wednesday move of September 2023, NIFTY's move to Tuesday in September 2025,
+    holiday reschedules.
+  - **SF3:** C9's split at the regime breaks is produced by both runs: train and 2024 in run 1, the final period in run
+    2. No split is computed after the final look. The break dates are pinned in `gr1study/splits.py` and a test:
+    - BANKNIFTY 4 Sep 2023 and 14 Nov 2024, read from the archived files' expiry lists;
+    - NIFTY 1 Sep 2025, from NSE's circular as recalled (reasoning only), which run 2 checks against its own files.
+  - **Notes:**
+    - A dropped day's reason names the missing input (note 3).
+    - A cue's move after a gap in its table is measured against the last row before the gap (note 2). This is stated,
+      not changed.
+    - The issue-date seal lets the N3 rows of 30-31 Dec 2024 read closes of early January 2025; the results say so
+      (note 1).
+    - `run_final` returns its result and writes nothing; `study.py --final` writes `final.json` (note 4).
+  - **What this changes:** theta's units, C6's input and two reported outputs. No candidate, period, score, constraint
+    or decision rule changes. Counted tests stay 51.
   - Note 1: C2's crossing check covers every scored day, and a crossing is a failed fit.
   - Note 2: DATA_SPEND's global-cues row no longer names Brent.
   - Note 3: the honest-limit sentence in section 2 (already in eb8d061a).

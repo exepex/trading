@@ -125,3 +125,43 @@ def test_a_train_gap_over_five_percent_is_not_decided_but_c8s_2019_is_not_a_gap(
     c8 = out["candidates"]["C8"]
     assert c8["status"] == "fitted" and not (c8["reason"] or "").startswith("not decided")
     assert c8["train"]["dropped"] == 0  # its 2019 rows are outside its own train period, never counted missing
+
+
+def test_a_large_effect_on_a_small_unit_conditioner_is_recovered_once_standardised():
+    """Judge 442 SF1: |log move| of USD/INR is ~0.004, so a real effect needs a raw theta far past the bound."""
+    import random
+
+    from gr1study.candidates import SINGLE as CANDIDATES
+    from gr1study.candidates import column_scales, standardised
+    from gr1study.evaluate import with_features
+    from gr1study.fit import fit
+
+    rng = random.Random(5)
+    days = weekdays(date(2022, 1, 1), date(2024, 12, 31))
+    moves = {d: abs(rng.gauss(0, 0.004)) for d in days}
+
+    def sd(day):
+        return 0.004 * (1 + 100 * moves[day])  # +40% width for a 1-SD move: a raw theta of about 85
+
+    train = rows(date(2022, 1, 1), date(2023, 12, 31), seed=1, implied_sd=0.006, sd_of=sd)
+    ctx = context(cue_move=lambda cue, d: moves.get(d))
+    raw, _ = with_features(CANDIDATES["C7"], train, ctx)
+    assert fit(CANDIDATES["C7"], raw).failed == "grid edge hit"  # the flaw judge 442 found, before deviation 4
+    scaled = standardised(CANDIDATES["C7"], column_scales(raw))
+    result = fit(scaled, with_features(scaled, train, ctx)[0])
+    assert result.failed is None and sum(result.theta[1:]) > 0.15  # the widening is found, in SD units
+    out = select_cell("NIFTY", train, rows(date(2024, 1, 1), date(2024, 12, 31), seed=2, implied_sd=0.006, sd_of=sd),
+                      ctx)  # fmt: skip
+    assert out["candidates"]["C7"]["status"] == "fitted" and len(out["candidates"]["C7"]["scales"]) == 3
+
+
+def test_the_c9_split_is_cut_at_the_pinned_breaks():
+    from gr1study.splits import BREAKS, segments
+
+    assert {"NIFTY": (date(2025, 9, 1),), "BANKNIFTY": (date(2023, 9, 4), date(2024, 11, 14))} == BREAKS
+    pieces = segments("BANKNIFTY", rows(date(2023, 8, 28), date(2024, 11, 20), underlying="BANKNIFTY"))
+    assert [p[0] for p in pieces] == ["start to 2023-09-04", "2023-09-04 to 2024-11-14", "2024-11-14 to end"]
+    assert pieces[0][1][-1].day == date(2023, 9, 1) and pieces[1][1][0].day == date(2023, 9, 4)
+    train, select = periods(underlying="BANKNIFTY")
+    split = select_cell("BANKNIFTY", train, select, context())["candidates"]["C9"]["split"]
+    assert [s["segment"] for s in split["select"]] == ["2023-09-04 to 2024-11-14", "2024-11-14 to end"]  # its regime

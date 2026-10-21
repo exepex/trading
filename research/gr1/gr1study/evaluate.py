@@ -12,7 +12,7 @@ from .fit import crossing_on, scaled
 from .rows import Row
 from .scaling import INNER, OUTER, inside, median, quantile_score, width_points
 
-MISSING_INPUT = "an input of the day is missing"
+MISSING_INPUT = "an input of the day"
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,11 @@ class Numbers:
     mean_qs: float | None
     differences: tuple[float, ...]  # candidate QS minus C0 QS, date order
     crossed: bool
+    needs: str = MISSING_INPUT  # what a dropped day lacks (judge 442 note 3)
+
+    @property
+    def dropped_reason(self) -> str | None:
+        return self.needs if self.dropped else None
 
     @property
     def dropped_share(self) -> float:
@@ -34,7 +39,7 @@ class Numbers:
 
     def as_dict(self) -> dict:
         mean_difference = sum(self.differences) / len(self.differences) if self.differences else None
-        return {"days": self.days, "dropped": self.dropped, "dropped_reason": MISSING_INPUT if self.dropped else None,
+        return {"days": self.days, "dropped": self.dropped, "dropped_reason": self.dropped_reason,
                 "inside_25_75": self.inside_50, "inside_05_95": self.inside_90, "median_width_50_points": self.width_50,
                 "median_width_90_points": self.width_90, "mean_qs": self.mean_qs,
                 "mean_qs_difference_vs_c0": mean_difference, "crossed": self.crossed}  # fmt: skip
@@ -52,8 +57,9 @@ def numbers(candidate: Candidate | None, theta, rows: Sequence[Row], ctx: Contex
         data, dropped = [(row, None) for row in rows], 0
     else:
         data, dropped = with_features(candidate, rows, ctx)
+    needs = (candidate.needs if candidate is not None else "") or MISSING_INPUT
     if not data:
-        return Numbers(0, dropped, None, None, None, None, None, (), False)
+        return Numbers(0, dropped, None, None, None, None, None, (), False, needs)
     quantiles = [row.quantiles if candidate is None else scaled(candidate, theta, row, x) for row, x in data]
     used = [row for row, _ in data]
     scores = [quantile_score(q, row.outcome) for q, row in zip(quantiles, used, strict=True)]
@@ -68,4 +74,5 @@ def numbers(candidate: Candidate | None, theta, rows: Sequence[Row], ctx: Contex
         sum(scores) / n,
         tuple(s - b for s, b in zip(scores, base, strict=True)),
         candidate is not None and crossing_on(candidate, theta, data),
+        needs,
     )  # fmt: skip

@@ -14,13 +14,13 @@ import numpy as np
 from fno.forecast_scoring.block_bootstrap import resampled_means
 from fno.price_ranges.scores import comparison_seed
 
-from .candidates import Candidate, Context
-from .evaluate import numbers, with_features
-from .fit import fit, scaled
+from .candidates import Candidate, Context, standardised
+from .evaluate import numbers
+from .fit import scaled
 from .periods import SELECT, TRAIN, sealed
 from .rows import Row
 from .scaling import MEDIAN, OUTER, width_points
-from .selection import bands_ok
+from .selection import bands_ok, fitted
 
 REMAINING_SHARE = 1 - 0.393  # G13b's measured overnight share (exposed: measured on 2020-2025)
 N0 = "N0"
@@ -69,9 +69,10 @@ def n0_study(pairs_by_period: dict[str, list], ctx: Context, candidates: dict[st
     out = {"variants": {}, "winner": None}
     better = {}
     for cid, cand in candidates.items():
-        result = fit(cand, with_features(cand, train, ctx)[0])
-        sel = numbers(cand, result.theta, [n0 for n0, _ in pairs_by_period[SELECT]], ctx) if not result.failed else None
-        out["variants"][cid] = {"theta": result.theta, "failed": result.failed,
+        entry, scaled_candidate = fitted(cand, train, ctx)  # standardised like C1-C11 (judge 442 SF1)
+        sel = numbers(scaled_candidate, entry["theta"], [n0 for n0, _ in pairs_by_period[SELECT]], ctx)
+        sel = sel if not entry["failed"] else None
+        out["variants"][cid] = {"theta": entry["theta"], "failed": entry["failed"], "scales": entry["scales"],
                                 "select": sel.as_dict() if sel else None}  # fmt: skip
         if sel and not sel.crossed and bands_ok(sel) and sel.differences and sum(sel.differences) < 0:
             better[cid] = sum(sel.differences) / len(sel.differences)
@@ -84,10 +85,12 @@ def n0_report(pairs: Sequence[tuple[Row, Row]], study: dict, ctx: Context, candi
     n0_rows, n1_rows = [p[0] for p in pairs], [p[1] for p in pairs]
     report = {"N1": numbers(None, None, n1_rows, ctx).as_dict(), "N0-A": numbers(None, None, n0_rows, ctx).as_dict(),
               "ratio_N0-A": width_ratio(pairs, None, None, ctx, f"{label}:N0-A")}  # fmt: skip
-    for cid, cand in candidates.items():
-        theta = study["variants"][cid]["theta"]
-        if study["variants"][cid]["failed"] or theta is None:
+    for cid, raw in candidates.items():
+        variant = study["variants"][cid]
+        theta = variant["theta"]
+        if variant["failed"] or theta is None:
             continue
+        cand = standardised(raw, variant["scales"])
         report[cid] = numbers(cand, theta, n0_rows, ctx).as_dict()
         report[f"ratio_{cid}"] = width_ratio(pairs, cand, theta, ctx, f"{label}:{cid}")
     return report
