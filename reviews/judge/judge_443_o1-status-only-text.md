@@ -49,3 +49,10 @@ breaks. Long shared prefixes such as "F&O daily run {day}: ..." are also ambiguo
   this is acceptable (the alert already holds the text) or alert it.
 - `waiting` items pass the same vocabulary. If they become `unlisted`, the list stays non-empty, so `_unreviewed` still
   blocks; criterion 5 covers it.
+
+## Addendum 1: head 1ca3a8c3
+**Still FAIL: both should-fix items are open.** The heads crossed: 1ca3a8c3 changes only the owners section and the
+register row, recording that the orchestrator agreed the change for E3, O8, T1 and S2 (no live owner), limited to the
+named files. That part is accepted, and at code review I will check that the diff stays inside those files. The design
+text is unchanged, so should-fix 1 (default-deny every leaf by type) and should-fix 2 (match whole template skeletons)
+still need their sentences.
