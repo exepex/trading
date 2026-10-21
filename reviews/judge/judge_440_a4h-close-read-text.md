@@ -67,3 +67,48 @@ Fix expected:
    that it is O6's.
 3. **Boundaries (quality rule 5).** Criterion 4 has the tolerance at, under and over. Criterion 1 already has 15:29 and
    15:30. Add a stamp of 15:31, and the tries at 2 and 3 with a fourth never sent.
+
+## Addendum 1: re-judge at 8d3830a1 (d35108ee for judge 440's points; 8d3830a1 the recheck step O1/O2 agreed)
+
+**Verdict: FAIL (1 should fix).** Every judge 440 finding is answered well. The new second step brings one ordering
+defect.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| B1: no gap list | A 19-row gap list: the owner's decisions, O9, the public-repository rule, O1's step terms, O10's "no ok without data", A7, VIX as the list's value, record-only, O6 unchanged, the interface, the gates | read; each row maps to a criterion or to Out | **Accepted** |
+| SF1: levels in O1's public run record | Lines name indices, statuses, the stamp, the Drive path and the SHA-256 only. Criterion 8 plants distinct values and refuses them in any format (`22811.37`, `22,811.37`, `22811.4`) for a read, rerun, recheck, confirm and refusal | read. The rounded and comma forms close the gap my plant showed the record scan has | **Accepted** |
+| Minor 1: settle measured; one gate | `close_recheck` at 16:00 (`same` or `differs by X`, write-once) every session, with the reason (the list is gone by the next day). With no first read, it becomes the day's record, "read at recheck", and does not alert a second time. `CLOSE_READ_FROM = 15:40` serves the hand run and O1 | read | **Accepted** |
+| Minor 2: a day never confirmed | One alert at the second session after it, sent once through a write-once `<day>.overdue.json`; O6 alerts on its own file | read | **Accepted** |
+| Minor 3: boundaries | stamp 15:31 recorded; the 4th try never sent (counted) | read | **Accepted** |
+
+### Should fix
+
+**SF2. The two steps would delay FL1-1's 15:45 report to about 16:00 every day while `lab_close` exists [strong:
+`main`'s `DAILY_RUN_STEPS` and `NotBefore`].**
+- On `main`, `DAILY_RUN_STEPS` ends with `candles` and then `lab_close`, the 15:45 report to #fno-forecast, commented
+  "last".
+- The text puts `close_read` "after `candles`" and `close_recheck` after it. It counts on FL1-1d removing `lab_close`
+  ("whichever merges second resolves one line").
+- FL1-1d has not merged (judge 438 FAIL). Steps run in order, and `NotBefore` waits through the run's waiter
+  (`fno/daily/steps.py:129-138`). If A4h merges first, `lab_close` would start only after the 16:00 recheck, so the
+  15:45 report would land at about 16:01 or later.
+
+Fix expected:
+- say that both steps go after `lab_close` for as long as it exists, so no consumer's time moves;
+- criterion 5 checks the order against the real tuple, not only after `candles`;
+- add a test that `lab_close`'s position is before `close_read`'s, while it exists.
+
+A one-line text change; I re-judge it at once.
+
+## Addendum 2: re-judge at 2524cbe5
+
+**Verdict: PASS for the A4h story text.** Code may start.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| SF2: the steps before `lab_close` would delay FL1-1's 15:45 report | Both steps go last: after `lab_close` while it exists, else after `candles`. `close_read` then starts at about 15:46. Criterion 5 asserts the order on the real tuple, with a test that `lab_close`'s index is below `close_read`'s | diff 8d3830a1..2524cbe5: only these three passages change | **Accepted** |
+
+For the code round, the claims must show:
+- criterion 8's planted-value test, in all its formats;
+- the real tuple's order;
+- the first five sessions' read, recheck and confirm lines, none holding a level (quality rule 8).
