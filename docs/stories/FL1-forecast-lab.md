@@ -77,6 +77,43 @@ Every NIFTY and BANKNIFTY contract in day d's bhavcopy is tracked: calls, puts a
 Routing: #fno-forecast gets the 15:45 report. #fno-desk keeps every alert (a failed run, a missing or late forecast, a
 missing bhavcopy) and the T1 card.
 
+## FL1-1c: the 15:45 message as text, picture and file (owner, 21 Oct 2026)
+
+The owner's decisions: DESK_DECISIONS f21a8966 (a designed page as a picture, plus the file) and 194aa8b3 (the
+user-needs brief's 8 answers). The user-needs brief is `docs/previews/fl1-html-report/USER_NEEDS.md`. The visual
+design belongs to the designer's session (story/fl1-report-design, owner sign-off first); this part is everything
+else.
+- **One message to #fno-forecast** through Slack's file upload (three calls), carrying:
+  - the 3 lines (one per index, then the system line ending "Research only. Not a trade tip.");
+  - the picture;
+  - the details file.
+
+  A failure before the last call is not posted, and a rerun may try again. A lost answer to the last call may have
+  posted the message, so it is marked posted and never retried. If the picture cannot be made, the text and the
+  file still go, with one alert.
+- **The page's numbers** come from one builder over the live sources, so the text, the picture and the file never
+  disagree:
+  - today's written issue, shown once written; its seal is judged by the seal checks, not here;
+  - G13b's own score rows with the band each scored, live over 3 pm back-fill over end-of-day back-fill;
+  - the method with the lowest next-session error (implied when there is no history yet);
+  - the 30-day light: green 25+, amber 24, red 23 or fewer;
+  - the stricter 20-session checks, as plain facts in the details only.
+- **Words:** "most likely" is the 50% range and "almost certainly" the 90% range, rounded outward to 10 points.
+  "Tomorrow" is used only when the next session is the next calendar day.
+- **Why a recent forecast missed:** each miss in the last 7 sessions gets "likely reason (after the fact)" only
+  from facts crossing stated limits:
+  - India VIX up 10% or more;
+  - an RBI policy decision or Union Budget day;
+  - a NIFTY expiry day;
+  - Brent 3% or more, or USD/INR 0.5% or more, in the last print before;
+  - an FII or DII net cash flow of Rs 4,000 crore or more that pushes the way of the miss (P8's archive, from
+    13 Oct).
+
+  Otherwise it says "no clear reason in our data". "Not checked: global markets (Asia, GIFT Nifty, US) and the
+  opening gap" until a data story adds them (owner, 21 Oct 2026).
+- **Records:** the message, the alerts, the coverage and both files are stored as one write-once Drive record, so a
+  rerun posts exactly what was made.
+
 ## FL1-2: the 09:15 report and paper positions (phase 2)
 
 **The 09:15 report** (`lab open`, its routine starting after NSE's pre-open ends at 09:08). It posts G13b's 09:15 issue,

@@ -68,3 +68,20 @@ The builder's eight choices beyond the text are each reasonable and stated:
 
 The text's open question 2 (terms of NSE's pages) is settled by the owner's row 281 (judge 431 add. 1). This is NSE's
 public JSON, read without a login, paced, and stored privately.
+
+## Addendum 1: re-judge at a1130dcd (response 300, addendum 1)
+
+**Verdict: PASS. A22's code may merge** (pull, full suite on the merged tree, then push, as `docs/JUDGE.md` says).
+
+Gates on a1130dcd, in a container **without growwapi** (as CI): **9025 passed**, 17 xfailed; ruff, ruff format
+(1676), `check_imports.py` and the record scan (7361) are clean.
+
+| Finding | Builder's answer | My check | Result |
+|---|---|---|---|
+| SF1: the wiring test built `GrowwProvider`, whose `__init__` imports the SDK that CI lacks | `_LazyGroww` builds the provider at the first read; the wiring test and a new read test run with `growwapi` blocked; a read without the SDK is a named `PartFailed` (`RuntimeError`, "Install the Groww SDK first") | Plant: back to `GrowwProvider(cfg)` at wiring: 2 failed. The full suite passes here, where the SDK is absent [strong] | **Accepted** |
+| (new) `PREOPEN_RECEIPT_BY` 09:20 → 09:15, FL1's read time, at O8's owner's request | constant, story text and O8's boundary tests (09:15:00 ok, 09:15:01 late; 09:14:59 not due, 09:15:00 missed) | Plant: back to 09:20: 2 failed. Reads end by 09:11 (`INDEX_WINDOW`), which leaves about 4 minutes for Drive and the push [some: no live day yet at 09:15] | **Accepted** |
+
+**Minor (not blocking).** Plant 3, a new `GrowwProvider` on every read (dropping the `or` cache), passed all 79
+preopen and witness tests. The cost would be a fresh Groww sign-in on each 30 s retry, up to about 5 a morning.
+Add a test that two reads build one provider. And state in the first live claims the receipt's push time against
+09:15 (quality rule 8): this deadline is now tighter than the one judged earlier.
