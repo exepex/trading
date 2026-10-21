@@ -65,6 +65,25 @@
      "exit_code": 0
     }
    }
+  },
+  "forecasts_v4": {
+   "started_at": "2026-10-21T14:06:20.061755+05:30",
+   "finished_at": "2026-10-21T14:06:22.092714+05:30",
+   "inputs": {
+    "command": [
+     "forecast-v4",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
