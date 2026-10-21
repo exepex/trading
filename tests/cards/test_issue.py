@@ -172,11 +172,11 @@ def test_a_failure_that_may_have_posted_or_is_a_refusal_is_never_retried(tmp_pat
     cases = (
         (
             requests.ReadTimeout("lost answer"),
-            "ReadTimeout; Slack may still have posted it (check #fno-desk); not retried",
+            f"ReadTimeout; Slack may still have posted it (check channel {FNO_DESK_CHANNEL_ID}); not retried",
         ),
         (
             requests.ConnectionError("dropped after sending"),
-            "ConnectionError; Slack may still have posted it (check #fno-desk); not retried",
+            f"ConnectionError; Slack may still have posted it (check channel {FNO_DESK_CHANNEL_ID}); not retried",
         ),
         ({"ok": False, "error": "channel_not_found"}, "channel_not_found"),
     )
@@ -265,5 +265,14 @@ def test_a_connection_error_is_never_retried_even_when_a_retry_would_succeed():
     assert len(slack.calls) == 1 and not receipt.sent
     assert (
         receipt.outcome
-        == "alert NOT sent: ConnectionError; Slack may still have posted it (check #fno-desk); not retried"
+        == f"alert NOT sent: ConnectionError; Slack may still have posted it (check channel {FNO_DESK_CHANNEL_ID}); "
+        "not retried"
     )
+
+
+def test_a_may_have_posted_failure_names_the_poster_s_own_channel_not_fno_desk():
+    """Orchestrator, 21 Oct: the same poster sends to another channel (FL1's #fno-forecast); its warning must say where
+    to look, never #fno-desk."""
+    other = "C0OTHERCHAN"
+    receipt = SlackCardPoster(TOKEN, other, FakeSlack(requests.ReadTimeout("lost")), sleep=lambda s: None).post("x")
+    assert f"check channel {other}" in receipt.outcome and "fno-desk" not in receipt.outcome
