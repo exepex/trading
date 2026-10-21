@@ -110,15 +110,22 @@ each part's commit in its one thread. The `git add` lines below are also the han
 Started by the owner's scheduled session at 08:36 IST every day; its stored prompt is exactly: "Run the pre-open capture
 in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is read through the read-only allow-list.
 1. `sh tools/routine_setup.sh --groww` (prints "routine setup ok").
-2. `python -m fno preopen record`. On a day that is not a trading day it prints "not a trading day" and ends. Otherwise
-   it reads GIFT Nifty (08:40-08:44:59), NSE's F&O pre-open list (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09
-   one-minute candle from Groww (09:10:00-09:10:59), saves the raw answers and the day row write-once to Drive, and
-   itself commits and pushes `research/ops/capture_errors.csv` and `receipts/` to `main` by about 09:12 (GIFT Nifty's
-   own file and receipt already when its read ends, about 08:41, for the 08:50 morning edition). It ends on
-   "pre-open recorded" or "pre-open recorded with problems: ..." (exit 1; it posts that one line to #fno-desk itself).
-3. If it printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk (`C0C89E8QCCD`)
-   with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only `receipts/` and
-   `research/ops/capture_errors.csv`, never `--no-verify`). No value is ever posted or committed.
+2. The trading-day check, once, before anything else (judge 439): `python -c "from fno.models import now_ist;
+   from fno.storage.trading_days import is_trading_day; from fno.storage.wiring import build_session_calendar;
+   print('trading day' if is_trading_day(build_session_calendar(), now_ist().date()) else 'not a trading day')"`.
+   On "not a trading day" stop here. If it stops with a calendar error, post that one line to #fno-desk and stop.
+3. On a trading day, start both at once, side by side (each waits for its own windows and commits only its own files):
+   - `python -m fno preopen record`. It reads GIFT Nifty (08:40-08:44:59), NSE's F&O pre-open list
+     (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09 one-minute candle from Groww (09:10:00-09:10:59), saves the
+     raw answers and the day row write-once to Drive, and itself commits and pushes `research/ops/capture_errors.csv`
+     and `receipts/` to `main` by about 09:12 (GIFT Nifty's own file and receipt already when its read ends, about
+     08:41, for the 08:50 morning edition). It ends on "pre-open recorded" or "pre-open recorded with problems: ..."
+     (exit 1; it posts that one line to #fno-desk itself).
+   - `python -m fno global-cues preopen` (story A17e part B: the open Asian indices' levels, 08:50-09:05 IST, its own
+     commit, its own alert and O10 row on any failure).
+4. If either printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk
+   (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only
+   the files the command names, never `--no-verify`). No value is ever posted or committed.
 
 ## Branch
 
