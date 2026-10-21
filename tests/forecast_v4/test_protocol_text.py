@@ -74,3 +74,26 @@ def test_revision_7_states_the_regime_caveat_for_every_member_and_test_a():
         assert option in TEXT
     assert "**Every member also needs at least 5 2% days in the scored window**" in TEXT
     assert "the 5-day gate covers every member" in calibration
+
+
+def test_the_days_clock_in_the_text_matches_terms():
+    """Story G10 criterion 1: section 1.6's times and X are the code's, so the text and `terms.py` cannot drift."""
+    section = TEXT[TEXT.index("### 1.6 The day's clock") : TEXT.index("## 2. The session set")]
+    rows = {line.split("|")[1].strip() for line in section.splitlines() if line.startswith("| ")}
+    for clock in (terms.V4_CAPTURE_START, terms.V4_PACK_WINDOW_END, terms.V4_DEADLINE):
+        assert f"{clock:%H:%M}:00" in rows  # the clock table's own row, not a mention elsewhere
+    assert f"{terms.V4_COMMON_SNAPSHOT:%H:%M}" in rows
+    assert f"**X = {terms.MOVED_AFTER_CUTOFF_X!r}**" in section
+    assert f"**{terms.MOVED_AFTER_CUTOFF_SAMPLE:,}**" in section and terms.MOVED_AFTER_CUTOFF_SOURCE in section
+    assert "the cutoff is **every field observed by 14:40:00 IST" in " ".join(TEXT.split())
+
+
+def test_the_day_labels_in_the_text_are_the_codes_and_a2_is_gone():
+    """The orchestrator's ruling of 16 Oct: A and system_late only; the draft's A2 fallback can never make a pack."""
+    from fno.constants import V4_DAY_A, V4_DAY_SYSTEM_LATE
+    from fno.forecast_scoring.v4.days import LABELS
+    from fno.v4_pack.codec import PACK_LABELS
+
+    assert LABELS == (V4_DAY_A, V4_DAY_SYSTEM_LATE) and PACK_LABELS == (V4_DAY_A,)
+    assert f"`{V4_DAY_A}`, the 14:30 capture" in " ".join(TEXT.split()) and f"`{V4_DAY_SYSTEM_LATE}`" in TEXT
+    assert "`A2`" not in TEXT.replace("replacing the draft's `A2`", "")

@@ -1,8 +1,9 @@
 """Each v4 day's quality label (story G10, protocol section 1.6), as G8 reads it. The go-live capture writes one file
-per day, `<folder>/<YYYY-MM-DD>.json`: the label (`A` live capture, `A2` A16's 14:30 mark as fallback, `system_late` no
-complete pack by 14:40), the released pack's SHA-256 and the pack's latest `observed_at`. A `system_late` day is out
-for every family (`LateDaysOut`) and counted; the "moved after cutoff" flag is counted, never a reason to drop a day.
-A day with no file (every back-fill day) has no label: the close-proxy cohort."""
+per day, `<folder>/<YYYY-MM-DD>.json`: the label (`A` the live capture, `system_late` no complete pack by 14:40; no
+fallback label: A2 was dropped on 16 Oct because A16's 14:30 mark can never make a complete pack), the released pack's
+SHA-256 and the pack's latest `observed_at`. A `system_late` day is out for every family (`LateDaysOut`) and counted;
+the "moved after cutoff" flag is counted, never a reason to drop a day. A day with no file (every back-fill day) has
+no label: the close-proxy cohort."""
 
 from __future__ import annotations
 
@@ -14,14 +15,14 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from ...constants import V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE
+from ...constants import V4_DAY_A, V4_DAY_SYSTEM_LATE
 from ...forecast_v4.terms import V4_PACK_WINDOW_END
 from ...models import IST
 from .inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 
-LABELS = (V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE)
+LABELS = (V4_DAY_A, V4_DAY_SYSTEM_LATE)
 SHA256 = re.compile(r"[0-9a-f]{64}")
-COUNTS_LINE = ("days (live pack): A {a}, A2 {a2}, system_late {late} (out for every family); moved after cutoff "
+COUNTS_LINE = ("days (live pack): A {a}, system_late {late} (out for every family); moved after cutoff "
                "{flagged}, flag not computable {unknown}")  # fmt: skip
 
 
@@ -40,13 +41,12 @@ class DayLabel:
 @dataclass(frozen=True)
 class DayCounts:
     a: int
-    a2: int
     late: int
     flagged: int
     unknown: int  # labelled days whose 14:30 or 15:15 level is missing: the flag is not computable
 
     def line(self) -> str:
-        return COUNTS_LINE.format(a=self.a, a2=self.a2, late=self.late, flagged=self.flagged, unknown=self.unknown)
+        return COUNTS_LINE.format(a=self.a, late=self.late, flagged=self.flagged, unknown=self.unknown)
 
 
 class V4DaySource(ABC):
@@ -87,7 +87,7 @@ def day_counts(labels: dict[date, DayLabel], moved: Callable[[date], bool | None
     shown = [label for day, label in labels.items() if day <= as_of]
     flags = [moved(label.day) for label in shown]
     count = [label.label for label in shown].count
-    return DayCounts(count(V4_DAY_A), count(V4_DAY_A2), count(V4_DAY_SYSTEM_LATE), flags.count(True), flags.count(None))
+    return DayCounts(count(V4_DAY_A), count(V4_DAY_SYSTEM_LATE), flags.count(True), flags.count(None))
 
 
 class LateDaysOut(V4ForecastSource, V4OutcomeSource):

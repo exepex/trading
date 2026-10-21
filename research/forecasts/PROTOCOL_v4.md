@@ -35,8 +35,9 @@ Evidence labels as the project uses them: **strong evidence**, **some evidence**
   unbiased proxy, Patton 2011, strong evidence, so the proxy costs power, not validity).
 
 ### 1.2 The questions
-`d` is the forecast day (a scored session, section 2); the cutoff is 15:00:00 IST on `d`, as G1 v2; `d+n` is the n-th
-scored session after `d`.
+`d` is the forecast day (a scored session, section 2); the cutoff is **every field observed by 14:40:00 IST
+on `d`, captured from 14:30:00, each with its real `observed_at`** (section 1.6; G1 v2 keeps 15:00 for its own
+questions); `d+n` is the n-th scored session after `d`.
 
 | Id | Name | Type | Outcome | Block L |
 |---|---|---|---|---|
@@ -57,12 +58,12 @@ V2, V3, V5, V6, V7: from the freeze (close proxy, A4 quotes, official closes). V
 V4: when A16 records weekly ATM quotes. A question that has not started shows "not enough data yet", never a failure.
 
 ### 1.4 V4, exact terms and units
-P(realised volatility of `d+1..d+5` < the 15:00 ATM implied volatility of the nearest weekly expiry at least 5 scored
+P(realised volatility of `d+1..d+5` < the pack's ATM implied volatility of the nearest weekly expiry at least 5 scored
 sessions after `d`).
 - **Expiry:** the nearest listed NIFTY expiry `e` with at least 5 scored sessions in `(d, e]`; `S_e` = that count,
   `C_e` = calendar days from `d` to `e`.
-- **ATM:** the listed strike nearest the 15:00 spot (a tie goes to the lower strike, as G1). The call and the put need a
-  live two-sided quote at 15:00 with `(ask - bid) / mid <= 5%` each, priced at mid; otherwise the day is void. Some
+- **ATM:** the listed strike nearest the pack's spot (a tie goes to the lower strike, as G1). The call and the put
+  need a live two-sided quote in the pack with `(ask - bid) / mid <= 5%` each, priced at mid; otherwise the day is void. Some
   evidence for 5%: on 14 Oct 2026's 14:55 capture, the 10 strikes nearest spot of both monthly expiries had spreads of
   0.14-0.99% of mid (one session, monthly only); G7 reports weekly spreads before the freeze.
 - **IV:** each leg's Black-76 IV (B1's `implied_vol.py`, rate 6.5%, calendar time `C_e / 365`) on the forward from put-call
@@ -81,8 +82,9 @@ sessions after `d`).
 
 ### 1.5 V5, exact terms and outcome source
 P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
-- **Frozen at 15:00 on `d`:** `e` (the nearest monthly expiry strictly after `d`, from the 15:00 pack's futures), `K`
-  (the listed strike nearest the 15:00 spot, tie to the lower) and `P` (the 15:00 mids of the `e` K call plus the K put,
+- **Frozen from the pack on `d` (section 1.6):** `e` (the nearest monthly expiry strictly after `d`, from the pack's
+  futures), `K` (the listed strike nearest the pack's spot, tie to the lower) and `P` (the pack's mids of the `e` K call
+  plus the K put,
   each under the 5% spread limit of 1.4; else void).
 - **Outcome (`settlement.py`):** inside when `abs(level - K) < P` (strict; break-even counts as outside). `level` is the
   index's **final settlement price of `e`**, read by E7's `NseFinalSettlement` from NSE's daily F&O file of the expiry
@@ -95,6 +97,36 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   the outcome unresolved; it is never filled from the index-close file.
 - V5 is a **terminal intrinsic-payoff proxy**: "inside" means a buyer held to expiry lost before costs; "outside" does
   not mean the buyer won. **V5 is not evidence of money.**
+
+### 1.6 The day's clock (story G10; owner, 15 Oct 2026; A2 dropped by the orchestrator, 16 Oct 2026)
+
+One clock for every family on a regular session `d`, IST (`terms.py`: `V4_CAPTURE_START`, `V4_PACK_WINDOW_END`,
+`V4_DEADLINE`, `V4_COMMON_SNAPSHOT`):
+
+| Time | What happens |
+|---|---|
+| 14:30:00 | The pack's capture starts: NIFTY spot, the futures, the chains and IV30; an incomplete capture retries. G7's and M1's capture refuses from this time (they read closes up to `d-1` only) |
+| 14:40:00 | **The pack's cutoff:** a quote is in the pack only if its answer was received by 14:40:00 |
+| when the pack is complete, at the latest 14:40 | **One release:** the one pack, with one SHA-256, goes to every family at the same moment |
+| 15:10:00 | **One deadline:** a family's forecast counts only if GitHub received the push carrying it by then (GitHub's receipt time, never the commit's own time) |
+| 15:15 | **The common snapshot** (A16's 15:15 mark): the moved-after-cutoff flag's end level |
+
+- **Honest times:** every live field keeps its real `observed_at`, the time this host received the answer to our
+  request (Groww gives no quote time; `last_trade_time` is used only for the "traded today" check). No field and no
+  day carries a time earlier than its `observed_at`; a field received after 14:40:00 is not in the pack.
+- **The day's label (one per day, on every v4 record and report):** `A`, the 14:30 capture with every required field
+  observed by 14:40:00; or `system_late`, no complete pack by 14:40:00. There is no fallback label: A16's 14:30 mark
+  has no India VIX, one monthly only and no next monthly on expiry days, so it can never make a complete pack
+  (orchestrator, 16 Oct 2026, replacing the draft's `A2`). The label carries the pack's latest `observed_at`.
+- **One pack, one hash:** a record that reads the pack names the released pack's SHA-256 (`pack_sha256`); a record
+  naming any other pack is refused. A record whose method reads no pack (G7's and M1's, closes up to `d-1`) carries it
+  empty.
+- **Moved after cutoff (a flag, never a block):** a day with `abs(ln(S_15:15 / S_14:30)) > X` is flagged and reported
+  apart; nothing is dropped. `S` is A16's checked level at its 14:30 and 15:15 marks; a day without either has no flag
+  value and is counted as "flag not computable". **X = 0.006104597099330481**, the nearest-rank 95th percentile (the
+  `ceil(0.95 n)`-th smallest move) over **1,661** of A16b's checked sessions, 2 Jan 2020 to 14 Oct 2026, source
+  revision `1d68c4477ec2356ecc9a3c5583c5702152424b8f` (`tools/v4_moved_after_cutoff.py`,
+  `research/forecasts/v4_moved_after_cutoff.json`). History's 5% does not promise 5% of future days.
 
 ## 2. The session set and void rules
 
@@ -120,13 +152,17 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 - **HAR (daily):** OLS, levels: mean per-session close-proxy RV over the next `h` sessions on an intercept and the mean
   RV of the last 1, 5 and 22 sessions; most recent 750 rows resolved before the refit (at least 500); refit on the first
   scored session of each month; forecast `h x prediction`. **HAR (intraday):** the same on intraday `RV_s`, from 250
-  A16 sessions (all available up to 750).
-- **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the 15:00 pack (G1 v2's estimator).
+  A16 sessions (all available up to 750); its 1-, 5- and 22-session means are formed over the usable (non-void)
+  sessions: a void session is skipped, never a reason to be missing (judge 127; at A16's 5% voids about 68% of days
+  would otherwise have no V1 primary).
+- **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the pack (section 1.6; G1 v2's
+  estimator).
   **A flagged IV30** (single expiry, `AtmIv30.flagged`) gives no raw and no premium-adjusted value that day: missing
   and counted, never filled, as the ratio window below drops flagged days (G7b).
 - **Premium-adjusted implied:** raw implied times the median of `RV_h(t) / raw implied_h(t)` over the most recent 750
   sessions resolved before the refit (at least 500), refit monthly as HAR (`eligibility.premium_ratio_window`).
-  **Source of the window (judge 98 must-fix 1):** live 15:00 IV30 starts only on 13 Oct 2026, so on live data alone
+  **Source of the window (judge 98 must-fix 1):** live IV30 at the cutoff starts only with v4's pack (section 1.6;
+  G1 v2's 15:00 IV30, from 13 Oct 2026, is another protocol's pack), so on live data alone
   V2's primary would not be eligible until about late 2028. The window's `raw implied_h(t)` therefore uses a labelled
   proxy, `iv30_eod_close_proxy`: G1 v1's frozen estimator `PanelAtmIv30` (`fno/forecast/iv30.py`) on the A3 panel's
   first-archived end-of-day chains (traded closes, volume > 0, Black-76 on the traded future), unflagged days only.
@@ -134,13 +170,14 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   were archived in Oct 2026). **Window from 1 Jan 2024 only:** UDiFF files, and outside G1's 2019-2023 holdout. The
   panel has 685 regular sessions from 1 Jan 2024 to 14 Oct 2026 (strong evidence: manifest count); after the
   horizon's unresolved tail and flagged days (G1 measured 11-23 a year from 2021), about 620-680 remain, so the 500
-  minimum holds at the freeze (some evidence). Live forecasts multiply the 15:00 raw implied by that ratio; the
-  mismatch between 15:00 and end-of-day IV30 enters the ratio's noise (reasoning only). Each live day's window point
+  minimum holds at the freeze (some evidence). Live forecasts multiply the **pack's** raw implied by that ratio; no
+  14:30 IV30 history exists, so the window stays the EOD proxy and the pack / EOD mismatch enters the ratio's noise
+  (reasoning only). Each live day's window point
   keeps the same EOD proxy, so one estimator runs through the window. **Forward diagnostic (ChatGPT review 99):**
-  every report gives the paired 15:00 / EOD IV30 ratio, its median over all live days and the latest 20, and their
-  drift (`diagnostics.proxy_drift`); descriptive only, and the proxy is never claimed equivalent to 15:00 IV30.
+  every report gives the paired pack / EOD IV30 ratio, its median over all live days and the latest 20, and their
+  drift (`diagnostics.proxy_drift`); descriptive only, and the proxy is never claimed equivalent to the pack's IV30.
 - **Option-implied probability (V5):** lognormal, `ln S_T ~ N(ln F - s^2 tau / 2, s^2 tau)`, `s` = the mean Black-76 IV of
-  the K call and put, `tau = C_e / 365`, `F` = expiry `e`'s future in the 15:00 pack;
+  the K call and put, `tau = C_e / 365`, `F` = expiry `e`'s future in the pack;
   `p = N(z(K + P)) - N(z(K - P))` with `z(x) = (ln(x / F) + s^2 tau / 2) / (s sqrt(tau))`.
   Labelled "risk-neutral, not a real-world probability".
 - **Base rate (every probability question):** as G1 (b): the share of 1s among the most recent 750 scored sessions
@@ -183,17 +220,21 @@ missing; daily HAR never stands in again.
 - **Missed days (revision 9; owner decisions of 15 Oct 2026, responses 144-147, judge 138-139, ChatGPT review 112;
   `misses.py`).** Verdicts use observed days only; a missed day is never imputed, because a filled-in day gives d = 0
   while the futility test still adds the minimum effect, so a forecaster that never ran would be called futile. What
-  the scored set leaves out is counted from the forecaster's first forecast (earlier days are "not started"); at a
-  look after the freeze, from the day after the freeze for a forecaster that had already started, so a member that
-  breaks straight after the freeze still counts those days:
+  the scored set leaves out is counted, for a **registered** slot, from its `effective_start`: a session on or after
+  the freeze and before the slot's first eligible session, named in its registration row, so every
+  baseline-observable day from then is observed or missed, even before its first forecast (ChatGPT review 119; owner,
+  16 Oct 2026: "Yes, from the declared start"). An **unregistered** slot is `not_started`:
   - a **miss** is a resolved, non-void day where the primary baseline forecast and the forecaster did not (a null
     answer is a miss);
   - an **input failure** is a resolved, non-void day where neither forecast (the common pack failed); it is counted
     apart and is never a miss;
   - a member is **"undecided, operations"** at a look when it missed more than **10%** of its baseline-observable days,
     or more than **10%** of the baseline-observable 2% days (the regime's 2% days, section 5); so with **fewer than 10**
-    such days, missing **any** of them is already more than 10%. Such a member is not judged at that look: never a claim, never futile.
+    such days, missing **any** of them is already more than 10%. Such a member is not judged at that look: never a
+    claim, never futile.
   - Every comparison and every look prints each member's misses, 2% days missed and input failures.
+  - **A `system_late` day** (section 1.6) is excluded for every member and counted apart; **a commitment received after
+    15:10** is no forecast that day (a miss). Every report states each label's day count and the flagged days.
 - Both sets are fixed by these rules before any score. Revision 2's floor (1% of the trailing 250-session median) is
   dropped; it is reported only as a sensitivity (it would have changed 133 of 2,159 close-proxy one-day outcomes).
 
@@ -297,6 +338,10 @@ calibrated threshold replaces rate / 15 in this formula, which needs far more ou
 - **Consequence:** 2017-2026 history is spent for V6 base rates and for any V-question tuned on it; it gives
   exploratory results only (`research/DATA_SPEND.md` once R1 writes it). **Only forecasts made after the freeze count.**
   Any G7 or G8 back-fill run before the freeze is labelled exploratory and is disclosed in the freeze record.
+- **Back-fills run before the freeze, exploratory, never counted:** G7's (`base_rate`, `v6_ewma_t4`, and from G7b the
+  V2, V3 and V7 baselines and rules; 2017 onward) and M1's weather back-fill (`weather_vix_v1`, `weather_checklist_v0`),
+  each row labelled `backfill_exploratory`; G8's exploratory reports and demonstration look (response 126). The
+  back-fill uses closes where live uses the pack's values; no intraday IV history exists.
 
 ## 9. Acceptance criteria and their tests (`tests/forecast_v4/`)
 
@@ -320,8 +365,10 @@ locked by these tests): `fno/constants.py`, `fno/desk/settlement.py`, `fno/resea
 `fno/research_engine/implied_vol.py`. The ledger row (B4) is written with the freeze. A change after it is a new
 version, never an edit.
 
-**Preconditions of the freeze:** the judge's PASS; ChatGPT's review; G7 and G8's code exists; and the owner's written
-confirmation of section 11's items A-C (given, 15 Oct 2026), D and E.
+**Preconditions of the freeze:** the judge's PASS; ChatGPT's review; G7 and G8's code exists; X's number frozen
+(section 1.6); the go-live date stated in `FREEZE_v4.md` with its `Frozen on: YYYY-MM-DD` line (G8 counts only live
+forecasts of later days); and the owner's written confirmation of section 11's items A-C (given, 15 Oct 2026), D and E
+(given: "3 B" and "E option 2", 15 Oct 2026).
 
 ## 11. Points for the judge and ChatGPT (decided in this draft, open to challenge)
 
@@ -355,6 +402,9 @@ confirmation of section 11's items A-C (given, 15 Oct 2026), D and E.
      13-16% of windows; the VIX cut (mean above 25) costs 8-9% but adds larger errors. Some evidence, one crash.
   3. **V6b descriptive** like V7: no claimable member is left in v4, so Test A could never say "yes".
   No recommendation from me between 1 and 2-share (the measured difference rests on one crash); 3 ends every claim.
+  **Decided: option 2** (owner, 15 Oct 2026, "merge G6, E option 2"): a window whose 2% days are more than 10% of its
+  scored outcomes is not judgeable at that look, for every member (`confirmatory.crash_dominated`, beside
+  `judgeable`); at n = 125 a judgeable window holds at most 12 such days, so the 13+ band starts at n = 130.
 
 Also open to challenge: the family without V3-V5 (5.6), special sessions out (2), V2-V3 on `close_proxy` (1.1), the
 5% spread limit and parity forward (1.4), strict "inside" for V5 (1.5).

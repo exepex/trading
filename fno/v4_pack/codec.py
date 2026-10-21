@@ -9,12 +9,12 @@ import json
 import math
 from datetime import date, datetime
 
-from ..constants import V4_DAY_A, V4_DAY_A2
+from ..constants import V4_DAY_A
 from ..forecast_v4.terms import V4_CAPTURE_START, V4_PACK_WINDOW_END
 from ..models import IST
 from .model import FIELD_NAMES, ChainQuote, FutureQuote, Iv30, Level, Pack, VixLevel
 
-PACK_LABELS = (V4_DAY_A, V4_DAY_A2)
+PACK_LABELS = (V4_DAY_A,)  # a pack exists only on an A day: A2 dropped (orchestrator, 16 Oct)
 OPTION_KINDS = ("CE", "PE")
 MID = "mid"
 
@@ -69,7 +69,7 @@ def _pack(body: dict) -> Pack:
     _keys(body, Pack)
     day = date.fromisoformat(body["day"])
     if body["label"] not in PACK_LABELS:
-        raise PackFormatError(f"label {body['label']!r} is not A or A2")
+        raise PackFormatError(f"label {body['label']!r} is not A")
     seen = _Window(day)
     chain = tuple(_chain_quote(item, seen) for item in body["chain"])
     if not chain:

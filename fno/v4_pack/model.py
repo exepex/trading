@@ -63,7 +63,7 @@ class Iv30:
 @dataclass(frozen=True)
 class Pack:
     day: date
-    label: str  # A (the 14:30 capture) or A2 (A16's 14:30 mark as fallback)
+    label: str  # A, the 14:30 capture (the only pack label; A2 dropped, 16 Oct)
     source: str
     provider: str
     captured_from: str  # the capture this pack was built from
