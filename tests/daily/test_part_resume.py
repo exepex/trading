@@ -38,11 +38,12 @@ def script(nifty=(14, 56), nse=(14, 57), indices=(15, 12)):
 class Run:
     """One run of the parts in the one container (`folder`: its checkout, so its lock files are shared)."""
 
-    def __init__(self, folder, clock, times=None, recorded=None, files=None):
+    def __init__(self, folder, clock, times=None, recorded=None, files=None, ended_none=frozenset()):
         self.alerts, self.commits = Alerts(), []
         self.processes = FakeProcesses(clock, times or script())
         self.parts = QuoteParts(QUOTE_PARTS, self.processes, RecordingCommitter(clock, self.commits),
-                                part_files(files or {}), self.alerts, clock, *tracking(folder, recorded))  # fmt: skip
+                                part_files(files or {}), self.alerts, clock,
+                                *tracking(folder, recorded, ended_none))  # fmt: skip
 
     def started(self):
         return [arguments for _, arguments in self.processes.started]
@@ -113,6 +114,23 @@ def test_a_stopped_run_s_parts_are_recorded_earlier_with_no_alert_and_their_left
     assert {name: (r["status"], r["how"]) for name, r in results.items()} == dict.fromkeys(
         ("nifty", "nse", "indices"), (STEP_OK, "earlier run"))  # fmt: skip
     assert results["nifty"]["commit"] == "abc1234" and rerun.committed() == ["nse"] and rerun.alerts.sent == []
+
+
+def test_an_earlier_run_s_part_whose_marker_says_none_fails_with_one_alert_never_ok(tmp_path):
+    """No ok without data (O10): a `none` marker means the window ended without a complete attempt. The rerun cannot
+    know whether the killed run alerted it, so it alerts once more rather than leave the day silent."""
+    clock = Clock()
+    clock.now = at(15, 30)
+    rerun = Run(tmp_path, clock, recorded={"nifty": "abc1234", "nse": "def5678", "indices": "0a1b2c3"},
+                ended_none={"nifty"})  # fmt: skip
+    rerun.parts.resume(DAY)
+    results = rerun.parts.finish(clock.until)
+    assert results["nifty"]["status"] == STEP_FAILED and results["nifty"]["how"] == "earlier run"
+    assert results["nifty"]["reason"] == (
+        "the day ended none, no complete attempt (recorded earlier, commit abc1234): nifty.canonical"
+    )
+    assert results["nse"]["status"] == STEP_OK and rerun.started() == []  # the window has ended: never restarted
+    assert len(rerun.alerts.sent) == 1 and "part nifty failed: the day ended none" in rerun.alerts.sent[0]
 
 
 def test_a_rerun_while_the_windows_are_open_restarts_the_parts_of_a_killed_container(tmp_path):
