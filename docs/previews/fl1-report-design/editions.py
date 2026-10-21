@@ -11,7 +11,7 @@ from pageview import adapt
 from rangechart import HorizontalRangeChart, RangeLayout, RangeRow
 
 HERE = Path(__file__).parent
-WIDTH = 564
+WIDTH = 490  # one chart column of the two-column page (1100 px wide; stacked on a phone)
 GRID = {"NIFTY": (50, 100), "BANKNIFTY": (100, 200)}  # (hairline every, number every)
 DOT_GRID = {"NIFTY": (100, 200), "BANKNIFTY": (250, 500)}
 WORD = {"green": "Correct", "amber": "Close call", "red": "Missed"}
@@ -24,6 +24,10 @@ RESEARCH = "Research only. Not a trade tip."
 CUES_EXAMPLE = [("S&P 500", "6,412", "−0.6%"), ("Nasdaq 100", "22,180", "−0.9%"), ("US 10-year", "4.21%", "−3 bp"),
                 ("USD/INR", "84.62", "+0.1%"), ("Brent (last print)", "$109.8", "+1.2%"),
                 ("GIFT Nifty · Asia · Europe", "coming (A17e, A22)", "")]
+WHY_MORNING_EXAMPLE = [
+    "Option prices imply a normal-sized day: India VIX 13.9, unchanged (example until wired)",
+    "Overnight, context only: US −0.4%, Nikkei +0.6%, Hang Seng −0.2% (example until A17e)",
+    "No RBI policy, budget or NIFTY expiry today (calendar)"]
 LEVELS_EXAMPLE = {"NIFTY": [("Biggest call OI (resistance)", "23,000"), ("Biggest put OI (support)", "22,500"),
                             ("PCR", "0.93 from 1.21"), ("Max pain", "22,900"), ("FII cash, ₹ crore", "−1,250"),
                             ("DII cash, ₹ crore", "+1,800"), ("FII index futures, net contracts", "−2.80 lakh")],
@@ -69,6 +73,25 @@ def _key(dot=False):
             f'<span><i class="r90"></i>almost certainly (9 days in 10)</span>{marks}</p>')
 
 
+def _why(title, lines):
+    items = "".join(f"<li>{line}</li>" for line in lines)
+    return (f'<div class="lab">{title} <span class="when">context, not cause, until a cue feeds the forecaster</span>'
+            f'</div><ul class="why-list">{items}</ul>')
+
+
+def _why_evening(idx, today, st):
+    if st == "red":
+        reasons = [m["reason"] for m in idx["misses7"] if m["date"].split(" ", 1)[1] == today["date"]]
+        gap = (today["close"] - today["hi90"]) if today["close"] > today["hi90"] else (today["lo90"] - today["close"])
+        side = "above" if today["close"] > today["hi90"] else "below"
+        return [f'Closed {fmt(gap)} points {side} “almost certainly”: ' + (reasons[0] if reasons else
+                "no clear reason in our data")] + ["Overnight context: US −1.8%, VIX +9% (example until wired)"]
+    width = today["hi90"] - today["lo90"]
+    return [f'A {("normal" if st == "green" else "larger than usual")}-sized day: the close moved '
+            f'{fmt(abs(today["close"] - today["mid"]))} points from the middle guess, the range was {fmt(width)} wide',
+            "Overnight context: US −0.4%, Nikkei +0.6% (example until A17e)"]
+
+
 def morning_card(idx):
     name, n1, n3 = idx["name"], idx["next"], idx["three"]
     grid, label = GRID[name]
@@ -82,6 +105,7 @@ def morning_card(idx):
             f'middle {fmt(n1["mid"])}</div>'
             f'<div class="lab">Graph 1 · the range on a scale <span class="when">gridlines every {grid} points</span></div>'
             f'<div class="scroll">{chart}</div>{_key()}'
+            f'{_why("Why this forecast", WHY_MORNING_EXAMPLE)}'
             f'<div class="lab">3-day outlook · {n3["date"]}</div><div class="line">{_range_words(n3)}</div>'
             f'<div class="record" style="margin-top:10px">{_pill(idx)}<span>right = inside “almost certainly”</span></div>'
             '</div>')
@@ -98,14 +122,7 @@ def morning(data):
     n1 = data["indices"][0]["next"]
     cards = "".join(morning_card(idx) for idx in data["indices"])
     return (_head(f'Morning forecast, {n1["date"]}') + _header("Today’s forecast", n1["date"], "08:50", data)
-            + _cues() + cards + _foot(data) + "</div></body></html>")
-
-
-def _reason(idx, day):
-    for m in idx["misses7"]:
-        if m["date"].split(" ", 1)[1] == day["date"]:
-            return f'<div class="why">Why, after the fact: {m["reason"]}.</div>'
-    return ""
+            + _cues() + f'<div class="cols">{cards}</div>' + _foot(data) + "</div></body></html>")
 
 
 def evening_card(idx):
@@ -120,7 +137,7 @@ def evening_card(idx):
     return (f'<div class="card"><h2>{name}<small>{today["date_long"]} · closed {fmt(today["close"])}</small></h2>'
             f'<div class="verdict"><span class="chip {st}">{GLYPH[st]} {WORD[st]}</span><div class="facts">'
             f'forecast <b>{fmt_low(today["lo50"])} – {fmt_high(today["hi50"])}</b> · closed <b>{fmt(today["close"])}</b>'
-            f'<br>{MEANS[st]}</div></div>{_reason(idx, today) if st == "red" else ""}'
+            f'<br>{MEANS[st]}</div></div>{_why("Why it was " + ("wrong" if st == "red" else "right"), _why_evening(idx, today, st))}'
             f'<div class="lab">Graph 2 · today’s range and where it closed <span class="when">gridlines every {grid}</span></div>'
             f'<div class="scroll">{g2}</div>'
             f'<div class="lab">Graph 3 · last 10 sessions <span class="when">each day’s range and its close · gridlines every {dgrid}</span></div>'
@@ -140,7 +157,7 @@ def evening(data):
     cards = "".join(evening_card(idx) for idx in data["indices"])
     return (_head(f'Evening check, {today["date_long"]}')
             + _header("Was today’s forecast right?", today["date_long"], "19:00", data)
-            + cards + _foot(data) + "</div></body></html>")
+            + f'<div class="cols">{cards}</div>' + _foot(data) + "</div></body></html>")
 
 
 def main():

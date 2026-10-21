@@ -1,11 +1,18 @@
-# FL1 report design v7: two editions, three graphs
+# FL1 report design v7: two editions, one page each, three graphs
 
 Written by the designer session, 21 Oct 2026, after the owner's verdict on the wireframe (DESK_DECISIONS c3231785):
 the structure stands, the graphs come back, the forecast cycle is two editions. Every number is drawn from the
 builder's PageView (`pageview.py`); nothing is computed here but the owner's three-colour rule and the outward
 rounding to 10. Reasoning only unless marked.
 
-## The two editions
+## The two editions (owner, f9737bce: one single page and one picture per edition, both indices together)
+
+Each edition is ONE page with one header and one footer: NIFTY and BANKNIFTY side by side from 760 px (the picture is
+drawn at 1100 px wide, 2x) and stacked on a phone. Each index card carries 2-4 **reason lines**: the morning "Why
+this forecast" (what option prices imply, the overnight context, the day's calendar) and the evening "Why it was
+right / wrong" (how far the close moved from the middle guess against the range's width, the miss reason from our
+data on a red day, the overnight context). Honesty rule on the label: "context, not cause, until a cue feeds the
+forecaster"; lines not yet in the PageView are example text marked as such.
 
 **A. Morning, 08:50 IST: "Today's forecast"** (`fl1-morning.html`). First a compact **global cues** strip (US closes,
 US 10-year, USD/INR, Brent with its print date; GIFT Nifty, Asia and Europe marked "coming" until A17e and A22), drawn
@@ -50,8 +57,8 @@ futures net), small, below the graphs, with example values labelled as such unti
 
 ## Checked
 
-Rendered with the pre-installed Chromium through Playwright at 2x, both editions at 600 and 390 px: 0 px sideways
-overflow (at phone width each graph scrolls inside its card at 520 px so its type stays 11 px), no console errors,
+Rendered with the pre-installed Chromium through Playwright at 2x, both editions at 1100 and 390 px (the picture
+at 1100): 0 px sideways overflow (at phone width each graph scrolls inside its card at 480 px so its type stays 11 px), no console errors,
 no external request. Read test: each graph answers its question in one or two seconds; each edition is two cards
 and reads in under 30 seconds. Collisions found and fixed in review: BANKNIFTY axis numbers (now spaced
 automatically), the close marker's label over the high label (now under the bar), two neighbouring close labels in

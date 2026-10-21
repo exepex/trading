@@ -10,7 +10,11 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--ink); font: 400 13.5px/20px var(--font); }
-.wrap { max-width: 600px; margin: 0 auto; padding: 16px; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.cols { display: grid; grid-template-columns: 1fr; gap: 0 14px; } .cols > * { min-width: 0; }
+@media (min-width: 760px) { .cols { grid-template-columns: 1fr 1fr; } }
+ul.why-list { margin: 2px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 18px; color: var(--ink); }
+ul.why-list li + li { margin-top: 3px; }
 header { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px 12px; flex-wrap: wrap; padding: 0 2px 10px; border-bottom: 1px solid var(--rule-major); margin-bottom: 14px; }
 header h1 { font: 700 17px/22px var(--font); margin: 0; letter-spacing: -.2px; }
 header .sub { font: 400 12px/16px var(--font); color: var(--muted); margin-top: 2px; }
@@ -49,7 +53,7 @@ header .tag { font: 600 11px/16px var(--font); color: var(--warn-ink); backgroun
 /* graphs */
 svg { display: block; width: 100%; height: auto; }
 .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-@media (max-width: 560px) { .scroll svg { min-width: 520px; } }
+@media (max-width: 560px) { .scroll svg { min-width: 480px; } }
 svg text { font: 500 11px var(--font); fill: var(--muted); }
 svg .grid { stroke: var(--rule); stroke-width: 1; } svg .grid.major { stroke: var(--rule-major); }
 svg .ax { text-anchor: middle; font-size: 10.5px; }
@@ -78,7 +82,8 @@ svg .s.close.amber { fill: var(--warn-ink); } svg .s.close.red { fill: var(--dow
 svg .sl { text-anchor: end; font: 600 9px var(--font); letter-spacing: .06em; text-transform: uppercase; fill: var(--muted); }
 /* the morning cues strip and the evening levels table */
 .strip { padding: 12px 18px 10px; }
-.cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 14px; margin-top: 4px; }
+.cells { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px 14px; margin-top: 4px; }
+@media (max-width: 760px) { .cells { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .cell small { display: block; font: 500 10.5px/14px var(--font); color: var(--muted); }
 .cell b { font: 600 13.5px/18px var(--font); color: var(--ink); margin-right: 5px; }
 .cell span { font: 500 11.5px/16px var(--font); color: var(--muted); }
