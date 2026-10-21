@@ -1,0 +1,54 @@
+{
+ "attempted": {
+  "q1_nifty_up_20d": {
+   "probability": 0.56,
+   "reason": "Book 1 0.562 kept; baselines 0.537-0.588 agree; 15:00 drop of -0.93% gives no clear 20d signal."
+  },
+  "q2_nifty_move_3pct_20d": {
+   "probability": 0.43,
+   "reason": "Book 1 0.417 nudged up: VIX 15.86 (+1.09 today) and trailing RV20 16.4 are above the calm regime the 0.352 base rate reflects; risk-neutral 0.482."
+  },
+  "q3_rv20_above_trailing": {
+   "probability": 0.34,
+   "reason": "Book 1 0.357 trimmed slightly toward model 0.224: trailing RV20 16.4 already exceeds IV30 15.07, so market prices lower vol ahead."
+  },
+  "q4_vix_up_10d": {
+   "probability": 0.38,
+   "reason": "Book 1 0.407 lowered: VIX 15.86 jumped 1.09 today to the top of its 14-15 range of the last 3 weeks; mean reversion favours a lower VIX in 10d, model 0.347."
+  },
+  "q5_rv20_below_atm_iv30": {
+   "probability": 0.64,
+   "reason": "Book 1 0.701 lowered: IV30 15.07 sits below trailing RV20 16.4 (thin variance premium), so realised beating implied is likelier than usual; stays in envelope."
+  }
+ },
+ "book": "book2_hybrid",
+ "commitment_received_at": "2026-10-21T09:40:55+00:00",
+ "counted": {
+  "q1_nifty_up_20d": 0.56,
+  "q2_nifty_move_3pct_20d": 0.43,
+  "q3_rv20_above_trailing": 0.34,
+  "q4_vix_up_10d": 0.38,
+  "q5_rv20_below_atm_iv30": 0.64
+ },
+ "day": "2026-10-21",
+ "fire": {
+  "fired": true,
+  "fired_at": "2026-10-21T15:10:19.930899+05:30",
+  "session": "https://claude.ai/code/cse_0197anEaxy7Kaofr8gMEDzo4",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "unverified",
+ "model_reported": "unknown",
+ "notes": [],
+ "problems": {
+  "q1_nifty_up_20d": "",
+  "q2_nifty_move_3pct_20d": "",
+  "q3_rv20_above_trailing": "",
+  "q4_vix_up_10d": "",
+  "q5_rv20_below_atm_iv30": ""
+ },
+ "reveal_received_at": "2026-10-21T09:45:13+00:00",
+ "status": "on_time",
+ "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+}

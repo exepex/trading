@@ -8,6 +8,7 @@ Claude's replies to reviews (ChatGPT's in `reviews/chatgpt/`), one file per repl
 matched the review they answer; the series have run apart since.) Claim the number first, on `main` (story O12):
 `python tools/claim_number.py claude-response <filename> --session <id>`, then write the file it prints.
 - `response_269_f8c-usage-capture.md`: story F8c, each AI book run's minutes captured inside brief and reveal (no prompt change), recorded by `ai collect`, one alert per fired run not captured (branch story/f8c-usage-capture).
+- `response_273_e2e-book-sheet.md`: story E2e, one BookSheet port in the pack step (each book's evaluation in its Drive-only private pack under "evaluation"; a failing sheet refuses only its own pack, alerted) and `canonical_snapshot`, the pack's own 3 pm snapshot shared by every book (branch story/e2e-book-sheet).
 
 ## Reserved numbers (orchestrator, 16 Oct 2026, until O12's claim tool merges)
 
@@ -251,6 +252,7 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 242: P2b, the Forecast lab page from G4's reports and the committed forecast records: Book 1 as v3's yardstick (G1 section 8), live scores only, v4 listed as a draft, AI statuses from G5's gate](response_242_p2b-forecast-lab.md)
 - [Response 250: protocol v4 freeze checklist, G7's side: ledger rows (v1/v2_close_blend, V6 rules M1's, V7 at p = 1), the live capture not yet scheduled anywhere, the back-fill hash gate, G8's V7 switch, the owner's four wordings, an owner per line](response_250_v4-freeze-checklist-g7.md)
 - [Response 252: A14c's first full run applied k = 2.1 (PDS 300, Apr 2020): run 3.99 s per file; 2.08 decomposed (2020's minimum, NSE's inconsistent prices, today's 3% exposure step); options for the owner](response_252_a14c-first-run-k-2.1.md)
+- [Response 254: story O10, every external capture fresh or loudly failed (builder's claims, part 1): the capture watcher on workflow_run, the committed capture-error log, participant-OI's late slot watching the wrong day; run evidence for the four health problems](response_254_o10-capture-health.md)
 - [Response 260: A17 schedules: global cues at 04:41 and 14:11 IST, India VIX months at 07:11 IST on GitHub Actions; alerts name the failed cues; A16b waits on the owner (no Groww key in GitHub)](response_260_a17-schedules.md)
 - [Response 256: D3 refuses a non-empty owner_override in every book (DESK_DECISIONS row 229 item 4), builder's claims; F4's override text flagged](response_256_d3-no-owner-override.md)
 - [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)

@@ -42,3 +42,26 @@ proposes. (b2) also waits for the orchestrator's A2 decision (judge 274 note).
 
 **Gates (run by me on 74a604d2):** 7,801 passed, no failures. `ruff check`: clean. `ruff format --check`: 1,407
 files already formatted. `check_imports`: clean.
+
+## Addendum 1: story/g10-part2b-release at be7322b1 (number 282.1, claimed with `tools/claim_number.py`)
+
+**PASS.** The should-fix is met:
+- `v4-fire.yml` sets a commit identity with the record scan on (`core.hooksPath .githooks`) before the fire.
+- After the fire (`!cancelled()`, only on a day with a release), a "Commit the fire log" step runs
+  `git add research/forecasts/ai_v4`, commits when something changed, then `pull --no-rebase` and `push origin
+  HEAD:main`. There is no `--no-verify`.
+- A test pins the order, the path, the pull and push, and the hook config. My plants (the commit step removed; the
+  hooks line removed) each fail 1 test.
+
+The fire line is now `ai fire --protocol v4 --day`, since plain `ai fire` stays v2's until the freeze (G11).
+
+**Merge conditions (recorded):**
+1. Merge only after G11's v4 fire lands. Both `--protocol v4` and the fire-log path come from G11's branch.
+2. G11's own test must check that `fired_v4_path` lies under `research/forecasts/ai_v4/`, the folder this workflow
+   commits. The builder has asked G11; G11's code verdict will check it.
+
+**Note:** if the fire dies before writing any log, `git add` of a missing folder fails the step. The failure alert
+then posts once, which is the same outcome as the failed fire.
+
+**Gates (run by me on be7322b1):** 7,802 passed. `ruff check`: clean. `ruff format --check`: 1,407 files already
+formatted. `check_imports`: clean.
