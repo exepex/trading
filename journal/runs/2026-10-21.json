@@ -199,6 +199,17 @@
     }
    },
    "result": {}
+  },
+  "exits": {
+   "started_at": "2026-10-21T15:18:04.562024+05:30",
+   "finished_at": "2026-10-21T15:18:14.200593+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "reviewed": true,
+     "results": []
+    }
+   }
   }
  }
 }
