@@ -35,6 +35,9 @@ This section is stated first, because it limits what any result can mean.
   trial and story.
 - **What is fresh.** No candidate below has been fitted or scored on any period, and no conditioner has been read
   against an outcome.
+- **Honest limit: the sealing is code plus process, not physical.** The 2025-26 back-fill records already sit in
+  Drive, and I have seen implied's own 2025-26 aggregate scores. What is sealed is every candidate's 2025-26
+  performance, which has never been computed; the data itself is not sealed (judge B, 21 Oct).
 
 ## 3. Data (point in time: each input as known at the issue time)
 
@@ -209,16 +212,22 @@ reported as "not shown at this sample size" (section 9).
    commit is the protocol freeze (`FREEZE.md` names it and the file hashes). Judge B reviews it.
 2. **Code.** The study code (`research/gr1/`) is written and tested on synthetic data only (`tests/research_gr1/`),
    with planted-bug proofs, among them a planted same-day value for each global cue that A17's rule must refuse and a
-   planted 2025 row that must not change run 1's output. Its hashes are frozen in `FREEZE.md` in their own commit. The run refuses to start if a
-   file differs from its hash.
-3. **Run 1, train and select.** It writes `selection.json`, which is committed before step 4. The run reads no row
-   dated in 2025-26: the final rows are filtered out before any score is computed, and a test proves it.
-4. **Run 2, the final period.** It reads the committed `selection.json` and never refits.
-   - It refuses to start unless `selection.json` is committed and unchanged, and unless no `final.json` exists at HEAD
-     or in any earlier commit.
-   - It writes `final.json` once.
-   - It is deterministic, so a judge can reproduce it: inputs sorted by day, seeds from the comparison keys (G4), no
-     clock or random state. Its inputs' SHA-256 is recorded in `final.json`.
+   planted 2025 row that must not change run 1's output. Its hashes are frozen in `FREEZE.md` in their own commit.
+   The run refuses to start if a file differs from its hash.
+3. **Run 1, train and select.**
+   - (a) Run 1 filters every record by issue date < 2025-01-01 at load, before any score, conditioner or outcome is
+     computed. A test plants a 2025 row whose outcome would change the selection and proves run 1's output does not
+     change.
+   - (b) Run 1 writes `selection.json` (winners, parameters and the 2024 table), and it is committed before run 2.
+4. **Run 2, the final period.**
+   - (c) Run 2 reads only the committed `selection.json`. It never refits. It refuses to start unless `selection.json`
+     is committed and unchanged since its commit, and unless `final.json` does not exist at HEAD or in any earlier
+     commit (git log). It writes `final.json` once; a second invocation refuses.
+   - It is deterministic, so a judge can reproduce `final.json` from the committed `selection.json`: inputs sorted by
+     day, seeds from the comparison keys (G4), no clock or random state. Its inputs' SHA-256 is recorded in
+     `final.json`.
+   - (d) Both runs refuse if any study file differs from its `FREEZE.md` hash or the folder has uncommitted changes
+     (the FT1 pattern).
 5. **Results.** A results file in `reviews/claude/` (number claimed), with plain conclusions. Then judge B reviews it.
 
 ## 13. What would make me stop and report instead
@@ -245,3 +254,5 @@ Any deviation is recorded here, dated, before the step it affects, and judge B i
     regime breaks are listed; run 2 is deterministic; the p-value is two-sided; a gap means the cell is not decided;
     a C1 or C2 winner is marked "known before the study".
   - New freeze hash and the ledger rows' `protocol_commit` are updated in the same change.
+  - Also in this revision, at judge B's request: section 12's (a)-(d) word for word as sent to the judge, run 2's
+    determinism, and the "honest limit" in section 2.
