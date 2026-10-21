@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from .ai.cli import add_ai_parser
+from .announcements_live.cli import add_announcements_parser
 from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
@@ -237,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
     add_factory_parser(sub)
     add_rates_parser(sub)
+    add_announcements_parser(sub)
 
     args = p.parse_args(argv)
     try:

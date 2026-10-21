@@ -77,14 +77,17 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
         source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
-        claims=_claims(dry_run_folder), observer=ObserverGroup(_observers()),
+        claims=_claims(dry_run_folder), observer=ObserverGroup(_observers(dry_run_folder is not None)),
     )  # fmt: skip
 
 
-def _observers() -> tuple[tuple[MarkObserver, float], ...]:
+def _observers(dry_run: bool) -> tuple[tuple[MarkObserver, float], ...]:
     """Every mark observer with its time limit, in order: LM1's position monitor, then A21's announcements poll, when
-    they are built (each owner names its limit here)."""
-    return ()
+    they are built (each owner names its limit here). A dry-run recorder gets dry-run observers."""
+    from ..announcements_live.constants import MEMBER_TIME_LIMIT_SECONDS as ANNOUNCEMENTS_LIMIT
+    from ..announcements_live.wiring import LazyAnnouncementsPoller
+
+    return ((LazyAnnouncementsPoller(dry_run), ANNOUNCEMENTS_LIMIT),)
 
 
 def v4_cutoff_flag(levels: dict) -> tuple[str, str]:

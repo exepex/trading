@@ -101,7 +101,9 @@ def test_in_the_recorder_a_failing_or_hung_member_never_stops_the_rows_or_the_co
     hung.release.set()
 
 
-def test_the_composition_root_wires_an_empty_group_until_lm1_and_a21_plug_in():
+def test_the_composition_root_wires_a21s_poll_at_its_agreed_10_s_until_lm1_plugs_in_before_it():
+    from fno.announcements_live.wiring import LazyAnnouncementsPoller
     from fno.intraday import wiring
 
-    assert wiring._observers() == ()
+    [(member, limit)] = wiring._observers(dry_run=False)
+    assert isinstance(member, LazyAnnouncementsPoller) and not member.dry_run and limit == 10.0
