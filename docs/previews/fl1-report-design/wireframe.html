@@ -1,0 +1,105 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FL1 report v7: wireframe</title>
+<style>
+/* Wireframe only: plain boxes with labels, no visual polish. Type is set at the sizes v7 will use (13-14 px body,
+   11-12 px secondary) so the density can be judged. Two columns from 760 px, one column on a phone. */
+:root { --ink: #333; --muted: #777; --line: #bbb; --box: #fafafa; --fill: #eee; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; color: var(--ink); font: 13.5px/20px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+.box { border: 1px dashed var(--line); background: var(--box); padding: 12px 14px; margin: 0 0 14px; }
+.box.solid { border-style: solid; }
+.lab { font: 600 10.5px/14px system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.lab .when { font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+h1 { font: 600 18px/24px system-ui, sans-serif; margin: 0; }
+h2 { font: 600 15px/22px system-ui, sans-serif; margin: 0 0 4px; }
+.sub { font-size: 12px; color: var(--muted); }
+.big { font: 600 22px/28px system-ui, sans-serif; }
+.cols { display: grid; grid-template-columns: 1fr; gap: 0 20px; } .cols > * { min-width: 0; }
+@media (min-width: 760px) { .cols { grid-template-columns: 1fr 1fr; } .cols.w31 { grid-template-columns: 2fr 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th { font: 600 11px/14px system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 6px 8px; text-align: right; border-bottom: 1px solid #e3e3e3; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+.chip { display: inline-block; border: 1px solid var(--line); border-radius: 3px; padding: 0 6px; font-size: 11.5px; line-height: 18px; }
+.strip { display: flex; gap: 8px; flex-wrap: wrap; }
+.strip .cell { flex: 1 1 120px; border: 1px dashed var(--line); padding: 6px 8px; }
+.cell b { display: block; font-size: 14px; }
+.cell small { font-size: 11px; color: var(--muted); }
+.band { height: 10px; background: var(--fill); border-radius: 2px; position: relative; margin: 4px 0; }
+.band i { position: absolute; top: -3px; width: 8px; height: 16px; background: #555; border-radius: 2px; }
+.dots { letter-spacing: 2px; font-size: 14px; word-break: break-all; line-height: 20px; }
+.scroll { overflow-x: auto; }
+td.wrap { white-space: normal; }
+.note { font-size: 11.5px; color: var(--muted); }
+.na { color: var(--muted); font-style: italic; }
+footer { font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+.legend { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+</style></head><body><div class="wrap">
+<div class="legend">Wireframe for v7: layout only. Solid box = always shown · dashed box = optional or conditional · [v] = value slot · "as of" says which session a number belongs to.</div>
+<div class="box solid"><div class="lab">1 · Masthead</div>
+<div class="cols"><div><h1>Omenix F&amp;O · Daily derivatives note</h1><div class="sub">Mon 19 Oct 2026 · issued 15:45 IST · data as of 3 pm (close follows in the evening edition, if chosen) · Paper research, not advice</div></div>
+<div class="sub" style="text-align:right">[provenance tag] · [system status: all normal / problem lines]</div></div></div>
+
+<div class="box solid"><div class="lab">2 · Snapshot strip <span class="when">today, 3 pm · one row, 5-6 cells</span></div>
+<div class="strip">
+<div class="cell"><small>NIFTY 3 pm</small><b>22,871 · −275 (−1.2%)</b><small>vs Fri close 23,146</small></div>
+<div class="cell"><small>BANKNIFTY 3 pm</small><b>55,498 · −346 (−0.6%)</b></div>
+<div class="cell"><small>India VIX 3 pm</small><b>13.9 · +0.4</b></div>
+<div class="cell"><small>USD/INR</small><b>[value · chg]</b><small>today</small></div>
+<div class="cell"><small>US 10-year</small><b>[value · chg]</b><small>last print</small></div>
+<div class="cell"><small>GIFT Nifty / Asia</small><b class="na">not available yet</b><small>coming (A17e, A22)</small></div>
+</div></div>
+
+<div class="cols">
+<div class="box solid"><div class="lab">3a · NIFTY card</div>
+<h2>NIFTY <span class="sub">3 pm 22,871</span></h2>
+<div class="lab">Range for Wed 21 Oct <span class="when">our forecast</span></div>
+<div class="big">22,740 – 23,000</div><div class="sub">most likely (1 day in 2) · almost certainly 22,530 – 23,190 (9 days in 10)</div>
+<div class="band"><i style="left:48%"></i></div>
+<div class="note">[range bar: wide = almost certainly, dark = most likely, marker = 3 pm price]</div>
+<div class="lab" style="margin-top:10px">Today's call check <span class="when">forecast made Fri for today</span></div>
+<div>23,010 – 23,270 · 3 pm 22,871 · <span class="chip">⚠ close call: inside “almost certainly” only</span></div>
+<div class="lab" style="margin-top:10px">Track record · last 30 days</div>
+<div><span class="chip">inside 25/30</span> <span class="chip">target 27</span> <span class="chip">avg width 650 pts</span> · <span class="dots">●●●○●●●●○●●●●●○●●●●●●●●○●●●○●●</span></div>
+<div class="note">● inside almost certainly · ○ outside (dates on hover / in the table)</div>
+<div class="lab" style="margin-top:10px">Levels <span class="when">yesterday's chain (today's at 3 pm after a small A4 change)</span></div>
+<div class="scroll"><table><tr><th>Item</th><th>Value</th><th>As of</th></tr>
+<tr><td>Biggest call OI (resistance)</td><td>23,000</td><td>Fri</td></tr>
+<tr><td>Biggest put OI (support)</td><td>22,500</td><td>Fri</td></tr>
+<tr><td>PCR</td><td>0.92</td><td>Fri</td></tr>
+<tr><td>Max pain</td><td>22,900</td><td>Fri</td></tr>
+<tr><td>Futures · basis</td><td class="na wrap">to confirm</td><td>3 pm</td></tr></table></div>
+</div>
+<div class="box solid"><div class="lab">3b · BANKNIFTY card</div><h2>BANKNIFTY <span class="sub">3 pm 55,498</span></h2>
+<div class="note">[same structure as 3a]</div>
+<div class="big">55,170 – 55,850</div><div class="sub">most likely · almost certainly 54,580 – 56,320</div>
+<div class="band"><i style="left:45%"></i></div>
+<div class="lab" style="margin-top:10px">Today's call check</div><div>55,490 – 56,160 · 3 pm 55,498 · <span class="chip">✓ inside most likely</span></div>
+<div class="lab" style="margin-top:10px">Track record</div><div><span class="chip">inside 28/30</span> <span class="chip">target 27</span> <span class="chip">avg width 1,500 pts</span></div>
+<div class="lab" style="margin-top:10px">Levels</div><div class="scroll"><table><tr><th>Item</th><th>Value</th><th>As of</th></tr><tr><td>Biggest call OI</td><td>56,000</td><td>Fri</td></tr><tr><td>Biggest put OI</td><td>55,000</td><td>Fri</td></tr><tr><td>PCR</td><td>[v]</td><td>Fri</td></tr><tr><td>Max pain</td><td>[v]</td><td>Fri</td></tr></table></div>
+</div></div>
+
+<div class="cols">
+<div class="box solid"><div class="lab">4 · Last 10 days, range vs close <span class="when">one row per day</span></div>
+<div class="scroll"><table><tr><th>Day</th><th>Most likely</th><th>Close</th><th>Result</th><th>Miss</th></tr>
+<tr><td>Fri 16 Oct</td><td>22,840 – 23,090</td><td>23,146</td><td>⚠ close call</td><td class="wrap">—</td></tr>
+<tr><td>Thu 15 Oct</td><td>22,500 – 22,750</td><td>22,997</td><td>✗ missed</td><td class="wrap">+56 above · no clear reason</td></tr>
+<tr><td>Wed 14 Oct</td><td>22,610 – 22,850</td><td>22,623</td><td>✓ correct</td><td class="wrap">—</td></tr>
+<tr><td colspan="5" class="note">… 7 more rows; a thin range bar with a dot can sit in the "most likely" cell …</td></tr></table></div>
+</div>
+<div class="box solid"><div class="lab">5 · Flows and positioning <span class="when">yesterday (NSE publishes after close)</span></div>
+<div class="scroll"><table><tr><th>Item</th><th>₹ crore</th><th>As of</th></tr>
+<tr><td>FII cash net</td><td>−1,250</td><td>Fri</td></tr><tr><td>DII cash net</td><td>+1,800</td><td>Fri</td></tr>
+<tr><td>FII index futures net OI</td><td>[v]</td><td>Fri</td></tr><tr><td>Client / Pro / FII long-short</td><td>[v]</td><td>Fri</td></tr></table></div>
+<div class="note">Source: NSE participant-wise OI (A8) and FII/DII cash. Never shown as today's.</div>
+</div></div>
+
+<div class="box"><div class="lab">6 · Why it missed · last 7 days <span class="when">only when there is a miss</span></div>
+<div>Thu 15 Oct: +56 above almost certainly · no clear reason in our data. &nbsp; Tue 13 Oct: +67 above · F&amp;O expiry; rupee −0.9%.</div></div>
+
+<div class="box"><div class="lab">7 · Details (attached file only) </div>
+<div class="note">30-day chart (lines, zoom) · every day in numbers · every method ✓/✗ grid and scores (collapsed) · stricter checks · seal and alerts · the words in numbers · contracts (proposal)</div></div>
+
+<footer>Research only. Not a trade tip. Sources: Groww 3 pm quotes, NSE bhavcopy and participant OI, NSE India VIX, FRED (US 10-year), RBI (USD/INR). Method: implied, best on history, 0 of 60 live days scored.</footer>
+</div></body></html>

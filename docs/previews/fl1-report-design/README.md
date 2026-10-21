@@ -6,7 +6,9 @@ to Slack; nothing under `fno/` is touched.
 
 | File | What it is |
 |---|---|
-| `DESIGN.md` | What was cut, what the one chart per index is, why each element exists |
+| `REFERENCES.md` | Research before v7: five broker notes opened, what their first screen carries, visual conventions, morning vs evening editions, our content proposal with data availability |
+| `wireframe.html` | The v7 wireframe: layout only, plain boxes, 13.5 px body, two columns from 760 px |
+| `DESIGN.md` | v6's rationale (rejected; kept for the record until v7 replaces it) |
 | `fl1-report-picture.html` | The picture in the message: the overview strip and one 8-day line chart per index, 600 px wide at 2x, no script |
 | `fl1-report-details.html` | The attached file: the same, the chart over 30 days with zoom, the 3-day forecast, why it missed, every day in numbers, every method, the contracts proposal, the checks |
 | `slack-message.txt` | The 3 text lines, unchanged from v4 |
