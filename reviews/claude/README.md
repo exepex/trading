@@ -19,6 +19,8 @@ registering its file when it lands; every new number is then claimed with the to
 
 ## Responses
 
+- [Response 288: story FL1, the forecast lab and daily reports: three Claude-routine slots, sealed ranges from G13b, NIFTY-only lab positions at A16 marks, the 15:45 match report with the trust rule, two new channels; dependencies G13, G13b, A22, E8 stated (story text)](response_288_fl1-forecast-lab.md)
+
 - [Response 267: O11, the core engine plan (revision 2: owners, go-live gate as done, trial evidence per expectation) and the end-to-end acceptance replay of 16 Oct 2026 (11 passing, 16 strict xfails as the not-built list)](response_267_o11-core-engine-plan.md)
 
 - [Response 1: backtest analysis and strategy proposal](response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
