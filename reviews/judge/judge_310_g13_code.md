@@ -107,3 +107,14 @@ Number 310.2. Head: 4b8bb9a6 (3600b911, plus a `main` merge, plus O11's replay c
 - **Merge condition:** today's `origin/main` has moved again (A20a's F&O masters), and merging it into 4b8bb9a6
   conflicts in `CLAUDE.md` and `fno/cli.py`. The builder merges `main`, resolves both with their owners, and the gates
   run on that tree. The 2 tests red on `main` (story/main-green) are known and are not G13's.
+
+## Addendum 3
+Number 310.3. Head: 6960e8e2 (the closed O11 check moved to `test_replay_day.py`, as O11's builder asked).
+**PASS stands.**
+- Since 3600b911, G13's own delta is only `tests/e2e_acceptance/` (replay, expected-missing, replay-day; 39
+  insertions, 7 deletions). No `fno/` file changed except through `main`.
+- At the tip: e2e and price-distribution tests give 124 passed, 17 xfailed, **0 XPASS**. My density plant (`b - a <= 0`)
+  fails 4 e2e tests.
+- **Merge condition unchanged:** today's `origin/main` (f2010104) still conflicts with this head in `CLAUDE.md` and
+  `fno/cli.py` (78 commits on `main` since its base). Merge `main`, resolve both, and run the full gates on that tree
+  before pushing. The 2 date-dependent tests red on `main` are known (story/main-green).
