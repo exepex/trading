@@ -27,6 +27,17 @@
     "status": "not_live",
     "reason": "no live date set (config.yaml daily.live_from)"
    }
+  },
+  "weather": {
+   "started_at": "2026-10-21T14:35:44.902480+05:30",
+   "finished_at": "2026-10-21T14:35:44.902505+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
   }
  }
 }
