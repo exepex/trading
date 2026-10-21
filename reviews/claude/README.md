@@ -260,6 +260,7 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)
 - [Response 270: F5 story text, Book 2's AI decider to design v2: day sheet in the private pack (E2 hook shared with F6), answer check, decider with F6's selection allocator, C2 and C4; for judge E](response_270_f5-book2-story.md)
 - [Response 278: story A4e claims (a named 3 pm quote window, v4's 14:30-14:40, own dataset, every field timed, clock-checked; default unchanged)](response_278_a4e-named-quote-window.md)
+- [Response 289: the 3 pm quote commands print an unsent alert with its text (O1's ReportedAlerts), never a bare "alert NOT sent" line; O2's outage gap](response_289_a4-unsent-alert-text.md)
 - [Response 255: G11 round 1, the AI books' v4 rows: one G7-schema row per started question for every settled book-day, every failure a miss, pending days without a row](response_255_g11-round-1-v4-rows.md)
 - [Response 258: G11 round 2a, each AI book run's own timing (`python -m fno.ai done`) recorded in BG1's usage ledger by collect; withdrawn, moved to F8c (addendum 1)](response_258_g11-round-2a-run-timing.md)
 - [Response 264: F2 analyst cards, text round: the orchestrator's four answers, one analyst first (volatility) with the F9 sample argument, F9's cost rule and O9's credential limit for their owners](response_264_f2-analyst-cards.md)
