@@ -125,15 +125,13 @@ refactors book.py after F8c. **T1c** (`0145TfSwzmpk6MBrH92f5h4G`) reads M1's wea
    - It is stopped with the freeze under the phase-1 scope.
 2. **Prompt v2 hashes are registered.** Any edit to `agents/forecast/book*_v2.md` before G11 lands must update its
    hash in `fno/ai/versions.py` in the same commit. After it lands, a change is a v3.
-3. **Urgent, found 21 Oct: main now sets `daily.live_from.forecasts_v4: "2026-10-22"`** (owner, 21 Oct, response 299
-   item 15) for G7's rule forecasts in O1.
-   - On main this is safe, because G11 round 2b is not there and the v2 AI fire has no v4 switch.
-   - But on `story/g11-ai-books-v4`, `ai fire --protocol v4` and the v2 AI stop both key on that same date. **Never
-     merge the branch as it is:** the books would be fired with a pointer their routine cannot read (step 7 is
-     missing), and the v2 AI run would stop.
-   - Fix before any merge: give the AI books their own go-live key (for example `ai.v4_live_from`, an allowed key in
-     `fno/config.py`), separate from O1's `forecasts_v4`. That is a design change the judge must see. Set it only
-     after step 7 and round 2c land.
+3. **Fixed 21 Oct at 04c6da88 (the orchestrator's ruling): the AI books go live on their own key,
+   `daily.live_from.ai_books_v4` (null in `config.yaml`), never O1's `forecasts_v4`** (main set that to 2026-10-22
+   for G7's rule forecasts).
+   - The v4 AI fire and the v2 AI stop both read only the new key, so even an accidental merge fires nothing.
+   - The test is `test_the_ai_books_go_live_on_their_own_key_never_forecasts_v4s_date`.
+   - Still: do not merge the branch before step 7 and round 2c. The main register row says so (ccb6915d).
+   - Set the key only once both have landed.
 4. `fno/constants.py` is at 346 of its 350-line limit; new constants go elsewhere (`constants_operations.py` holds
    `ROUTINE_POINTER_MAX_BYTES`).
 5. **M1's US-move flag lags a day on the Nasdaq-100 side** (A17/A17e builder 01MBnbVU, response 298, 21 Oct; strong
