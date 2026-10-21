@@ -223,3 +223,28 @@ Strong evidence.
 
 **Left, not blocking:** O11's replay (criterion 8) is still a strict xfail and a go-live condition, owned by this
 builder.
+
+## Note: criterion 7's go-live evidence (orchestrator's run on 87bd21ce, 21 Oct)
+
+**Ruling: criterion 7 is met for go-live. The owner does not need to add the scope first.**
+
+**What the code's check reported.** `python -m fno lab channels` printed "membership unknown (missing_scope)" for
+both channels and exited 1. The bot token cannot call `conversations.info`, which needs the `channels:read` scope.
+That is the designed fail-closed answer, not a code defect: an unknown never passes.
+
+**What I checked myself, read-only through the owner's Slack connector (strong evidence):**
+- `#fno-forecast`, `#fno-intraday` and `#fno-desk` each have exactly two members: `@contact.exepex` and
+  `@future_options_bot`.
+- The latest #fno-desk messages are posted by "Future Options Bot" (bot `B0C89ER6VUM`): the O8 health report, A8's
+  participant-OI line, A20a's master-file alert and the forecast routines. These are the repository's own alerts,
+  sent with `FNO_SLACK_BOT_TOKEN`. So the token's bot is that member.
+
+**Why that is enough.** Criterion 7 asks that membership be proved read-only, never with a test post. Membership read
+through the owner's connector proves the same fact through another read-only call. It holds the same intent and needs
+no scope change.
+
+Two notes:
+- Until the owner grants `channels:read` (optional), `lab channels` keeps exiting 1. It is a go-live check, not a
+  daily step, so nothing in the daily run depends on it.
+- If a bot is ever removed from #fno-forecast, the first failed post shows it: Slack's `not_in_channel` is a refusal,
+  `lab close` exits 1, and O1 alerts it once.
