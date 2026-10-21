@@ -12,6 +12,7 @@ LIVE_CREDENTIALS = (
     c.ENV_GDRIVE_OAUTH_CLIENT_SECRET,
     c.ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
     c.ENV_FNO_SLACK_BOT_TOKEN,  # a test through the real wiring posted fixture alerts to #fno-desk (14 Oct 2026)
+    c.ENV_FRED_API_KEY,  # FRED's release-dates key (A20c): a test must never call FRED with the owner's key
     c.ENV_MOTHERDUCK_TOKEN,
     c.ENV_FNO_DB_URL,
     c.ENV_ROUTINE_DRY_RUN_TOKEN,

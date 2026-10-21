@@ -45,6 +45,20 @@ All mutations were planted and restored by `mutate.py` (this session's scratchpa
 Removed after mutation testing: a "Released on" filter and a split that changed nothing on the real layout, since
 the exact counts already catch drift. They were dead code, so they were deleted rather than kept untested.
 
+## US CPI and payrolls from FRED (added 21 Oct, owner's key)
+
+- `fno/macro_calendar/fred.py`: FRED's release-dates API, CPI (release 10) and Employment Situation (release 50), with
+  scheduled dates included; dates from the run's year on; at least one after today, or the run fails. The key goes
+  only in the query: no message names the URL, rows cite the public release page, and a kept document has the key
+  replaced. Without `FNO_FRED_API_KEY` the wiring keeps `UnconfiguredCalendar` ("set the GitHub secret ...").
+- Tests: `tests/macro_calendar/test_fred.py`. The fixture follows FRED's documented answer format; it is **not a live
+  read**, because the key exists only as a GitHub secret. Mutations caught: key kept in the document, no future-date
+  check, past years kept, non-200 accepted, wiring always unconfigured. The first live run after the secret is set
+  proves the real answer.
+- The workflow passes the secret; the fallback step follows judge 359 (`if: failure()`, quiet when the job spoke);
+  `#` removed from step names (YAML read ` #fno-desk` as a comment and cut the names); `macro-calendar` added to O10's
+  `capture-watch.yml` list.
+
 ## Real output sample (criterion 16)
 
 The committed classes against the real MOSPI and Fed, with a local folder in place of Drive and dry-run receipts

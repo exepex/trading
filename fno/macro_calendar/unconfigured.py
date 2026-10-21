@@ -8,7 +8,7 @@ from datetime import date
 
 from .model import Calendar, CalendarFailed
 
-NOT_CONFIGURED = "{kinds}: no source configured (BLS refuses GitHub's runners; a FRED API key awaits the owner)"
+NOT_CONFIGURED = "{kinds}: no source configured: set the GitHub secret FNO_FRED_API_KEY (BLS refuses GitHub's runners)"
 
 
 class UnconfiguredCalendar:

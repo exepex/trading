@@ -1,7 +1,7 @@
 # Story A20c: the release dates of the big macro numbers kept point in time. Each run snapshots MOSPI's Advance Release
 # Calendar (India CPI, IIP, GDP) and the Fed's FOMC calendar into the owner's Drive (O9: write-once parts and the
-# documents, receipts committed), so each date is known from the day it was first seen. US CPI and payrolls have no
-# source yet (BLS refuses GitHub's runners): reported every run. Research data only; it never trades. Secrets: the
+# documents, receipts committed), so each date is known from the day it was first seen. US CPI and payrolls come from
+# FRED with the owner's key (BLS refuses GitHub's runners); without the secret they are reported every run. Research data only; it never trades. Secrets: the
 # Drive and Slack ones the other jobs use; none is printed.
 name: macro-calendar
 
@@ -27,6 +27,7 @@ jobs:
       FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      FNO_FRED_API_KEY: ${{ secrets.FNO_FRED_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,12 +41,15 @@ jobs:
           git config core.hooksPath .githooks
           git config user.name "omenix-macro-calendar"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: MOSPI's and the Fed's release calendars (the job alerts #fno-desk itself, naming every problem)
+      - name: MOSPI's, the Fed's and FRED's release calendars (the job alerts the desk channel, naming every problem)
         id: calendar
         run: python -m fno macro-calendar
-      - name: Alert #fno-desk when the run failed without the job's own line (a crash, a sender that could not post)
-        if: ${{ failure() && steps.calendar.outputs.posted != 'true' }}
+      - name: Alert the desk channel when the run failed without the job's own line (a crash, a sender that could not post)
+        if: ${{ failure() }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
+        env:
+          POSTED: ${{ steps.calendar.outputs.posted }}
         run: |
+          if [ "$POSTED" = "true" ]; then echo "the job already spoke (its alert)"; exit 0; fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O macro calendar: the GitHub Actions run failed without its own alert; see $RUN_URL"

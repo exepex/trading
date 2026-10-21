@@ -206,7 +206,7 @@ hide a failed fetch; that no data file is committed; the real-run samples and, a
 ## Open questions (orchestrator, owner)
 
 1. **US CPI and payrolls dates: BLS refuses this container and GitHub's runners (403; probe run 38900266338, 16
-   Oct).** The orchestrator asks the owner for a free FRED API key (St. Louis Fed's release-dates API) as a secret.
-   Until then the macro-calendar run fails daily on that line, on purpose: never silent.
+   Oct).** Settled: the owner created a free FRED key (secret `FNO_FRED_API_KEY`); A20c reads FRED's release-dates
+   API (releases 10 and 50). Until the secret is set the run reports "not configured" daily, on purpose.
 2. Settled: O10's builder lists A20's workflows in `capture-watch.yml`; whichever merges second adds the names.
 3. Settled: `pypdf` approved (free, pinned version).

@@ -130,7 +130,11 @@ def test_the_workflow_runs_daily_at_07_30_ist_with_the_crash_only_alert_line():
     assert [s["cron"] for s in flow[True]["schedule"]] == ["0 2 * * *"] and flow["permissions"] == {"contents": "write"}
     steps = flow["jobs"]["calendar"]["steps"]
     assert next(s for s in steps if s.get("id") == "calendar")["run"] == "python -m fno macro-calendar"
-    assert steps[-1]["if"] == "${{ failure() && steps.calendar.outputs.posted != 'true' }}"
+    alert = steps[-1]
+    assert alert["name"].startswith("Alert") and alert["if"].startswith("${{ failure() }}")  # O10's watcher sees it ran
+    assert alert["env"] == {"POSTED": "${{ steps.calendar.outputs.posted }}"}
+    assert alert["run"].startswith('if [ "$POSTED" = "true" ]; then') and "exit 0; fi" in alert["run"].splitlines()[0]
+    assert all("#" not in step.get("name", "") for step in steps)  # a " #" would cut the name (YAML comment)
     for name, value in flow["jobs"]["calendar"]["env"].items():
         assert value == f"${{{{ secrets.{name} }}}}", name
 

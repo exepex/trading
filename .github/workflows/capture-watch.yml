@@ -19,6 +19,7 @@ on:
       - global-cues
       - health-check
       - index-closes
+      - macro-calendar
       - market-publish
       - nse-margins
       - panel-days
