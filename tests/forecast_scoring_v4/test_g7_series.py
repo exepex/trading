@@ -30,4 +30,6 @@ def test_v1_reads_only_the_a16_rows_it_is_given():
     ]
     series = G7Series(WARMUP.read_text(encoding="utf-8"), lambda: rows)
     assert series.intraday_rv() == {date(2026, 10, 16): 4e-05}
-    assert SeriesOutcomes(series).outcomes(V1_RV_1S) == {}  # 16 Oct is not yet in the closes file: unresolved
+    outcomes = SeriesOutcomes(series).outcomes(V1_RV_1S)
+    # V1 for 15 Oct is 16 Oct's session RV: unresolved until the closes file reaches 16 Oct, then exactly the given row
+    assert set(outcomes) <= {date(2026, 10, 15)} and all(o.value == 4e-05 for o in outcomes.values())
