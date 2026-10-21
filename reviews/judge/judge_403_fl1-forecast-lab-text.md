@@ -68,3 +68,24 @@ Those changes are good: the seal time now comes from `main`, not from the produc
 1. The 09:30 issue's cutoff is still "before 09:45", while positions are priced and filled at the 09:30 copy.
 2. The `RangeRanker` still does not name the forecaster it ranks on.
 3. "Flat tails at the 5% and 95% levels" is unchanged.
+
+## Addendum 2
+Number 403.2. Head: 67c98204, with the new section "The lab's rules (judge 403)".
+
+**Verdict: PASS on the story text.**
+1. **Look-ahead: fixed.** The ranker reads the 09:30 issue only once it is sealed, and it prices and fills on the
+   first A16 mark strictly after `sealed_at`, normally 09:45. A forecast not sealed by 09:45 gives "not taken:
+   forecast sealed late", alerted.
+2. **Picking forecaster: fixed.** `lab_v1` trades `rv20` (realised against implied), fixed in config. A change is a
+   new version, never chosen by recent scores. The implied range is never a picking source. Every report names the
+   forecaster and version. The text also reminds the owner that this is the variance-risk-premium test, which costs
+   have eaten so far.
+3. **Tails: fixed.** It uses G13's anchored lognormal tail beyond q05 and q95, each tail carrying its 5% mass, with
+   σ = (ln q95 - ln q05)/(2 × 1.645) over the horizon, running to every wing. Expectations are exact (closed-form
+   partial expectations). Criterion 6b tests a condor whose wing lies beyond q95.
+   - Check of the formula: for a lognormal, ln q95 - ln q05 = 2 × 1.645 σ√τ, so this σ is the horizon's total σ. That
+     is consistent with applying it "over the horizon" (reasoning only: correct when the forecast is lognormal, as
+     `rv20` is; an approximation otherwise).
+- **Minor findings: all closed.** One lot each; expected against realised net by rank; the 15:15 exit against the
+  15:30 close target is stated.
+- Positive expected net is required to qualify, and it is re-checked at the fill touch (`RankedPrice`). Good.
