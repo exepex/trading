@@ -166,3 +166,19 @@ Strong evidence: probe.
 
 **My mutation run (11 new, each restored; `tests/forecast_lab`): all 11 caught.** Strong evidence. The builder reports
 15 of 15 on its own set.
+
+## Note: a6396ac3 (sent before addendum 1 reached the builder)
+The change since 8d2ad78e: `MatchSection` takes `issues_from`, which is `daily.live_from.price_ranges`. It expects no
+forecast from an issue day before G13b's first live day, and none at all while G13b is not live. Such a day says
+"none expected (issued before G13b's first live day)" and raises no alert.
+
+**Accepted** (strong evidence, read and checked against the new test). Without it, go-live would have sent false
+"missing" alerts for up to 3 sessions. A truly missing N1 after that date is still alerted.
+
+**Addendum 1's should-fix stands**: `_match` still marks a day matched without its scores. Two more items for the
+re-submission:
+1. **Merge conflicts:** a6396ac3 now conflicts with `main` in 5 files, because G13's score steps merged at d466e3d2:
+   `config.yaml`, `fno/daily/wiring.py`, `tests/daily/test_day_run.py`, `tests/daily/test_steps.py` and
+   `tests/health/test_desk_and_data_checks.py`. Merge `main` and re-run the gates.
+2. **T1's text change (judge 424):** `test_lab_close.py:78` formats `UNKNOWN` without `channel`, which breaks once
+   T1's fix is on `main`. Pass `channel=...` there.
