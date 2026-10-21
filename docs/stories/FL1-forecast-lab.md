@@ -61,7 +61,8 @@ Every NIFTY and BANKNIFTY contract in day d's bhavcopy is tracked: calls, puts a
 (judge 403.3):
 - **Prices are `ClsPric`**, NSE's closing price, never `SttlmPric` (for an untraded option NSE's settlement is a
   theoretical price). A contract counts as **traded** on a day only if its `TtlNbOfTxsExctd` (number of trades) is
-  above zero.
+  above zero. NSE's old format (before July 2024) has no `TtlNbOfTxsExctd`; a back-fill across that date defines
+  "traded" from its `CONTRACTS` column (`TtlTradgVol` after A2's reader) above zero, in one function (judge 403.4).
 - **Only contracts traded on d get a band.** Their implied volatility comes from d's close with Black-76 on the
   same-expiry future's close, or, without one, on the index close times exp(rate x years) (stated). Each band is
   repriced at each of the 15:45 issue's N+1 quantiles of the index, holding that volatility (sticky strike), one session
