@@ -21,7 +21,8 @@ ROWS = [row(22000, "PE", 900), row(22500, "PE", 300), row(23000, "CE", 1000), ro
 
 
 def test_the_nearest_expiry_chain_keeps_only_that_expiry_s_options_with_their_oi():
-    chain = nearest_chain("NIFTY", WED, ROWS)
+    expired = [row(21000, "PE", 99999, expiry="2026-10-20")]  # expired the day before: never the nearest
+    chain = nearest_chain("NIFTY", WED, ROWS + expired)
     assert chain.expiry == date(2026, 10, 27) and sorted(chain.quotes) == [
         (22000.0, "PE"), (22500.0, "CE"), (22500.0, "PE"), (23000.0, "CE")]  # fmt: skip
     assert nearest_chain("FINNIFTY", WED, ROWS) is None

@@ -94,7 +94,9 @@ def test_vix_is_the_previous_session_s_official_close_in_the_morning_only():
 
 
 def test_the_day_s_flags_are_the_day_s_own_events_and_expiry():
-    facts = Facts(events={MON: "RBI policy decision", FRI: "Union Budget"}, expiries=frozenset({MON}))
+    later = MON + timedelta(days=1)  # a later day's event is not today's flag
+    facts = Facts(events={MON: "RBI policy decision", FRI: "Union Budget", later: "Union Budget"},
+                  expiries=frozenset({MON}))  # fmt: skip
     view = FlagsSection(lambda day: facts).read(MON, "morning")
     assert [c.text for c in view.items] == ["RBI policy decision", "NIFTY F&O expiry today"]
     assert FlagsSection(lambda day: Facts()).read(MON, "morning").items == ()
