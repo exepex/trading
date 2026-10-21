@@ -358,3 +358,38 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
 - **Faults planted:**
   - no `start_due` in `waiting`: the wiring test fails;
   - no `not_before`: 2 tests fail.
+
+### Criterion 9: the real days (19 and 21 Oct 2026)
+
+Strong evidence: `journal/runs/2026-10-19.json` and `journal/runs/2026-10-21.json` on main, and the commit list on
+main.
+
+- **19 Oct:**
+  - Every step of `DAILY_RUN_STEPS` was recorded once, in order: `quotes` at 14:37:02 IST through `candles`
+    (finished 15:33:20).
+  - margin_check, weather, forecasts_v4 and card are `not_live` (`daily.live_from` null), as configured.
+  - pack built at 14:58:15. Book 1 decided 2026-10-19-r1, committed 14:58:45.
+  - decisions took that run at 15:12. snapshot `nifty_20261019_151500` is valid.
+  - fills `{}`: nothing approved to paper. exits reviewed. trade_marks marked `book1_rules` and the shadow
+    `b0-monthly-sc-v1`. reviews "0 scorecards". quotes_done "every part ok".
+  - The run ended at the catch-up's 15:33 wait.
+- **Commits, in order (IST; git prints UTC, add 05:30):**
+  - the steps quotes, margin_check, weather and forecasts_v4 at 14:37;
+  - **3 pm quotes nifty** adc2c10a at 14:57:57, **first**;
+  - **nse** ae7ffeb4 at 14:58:01;
+  - versions, pack, the Book 1 decision bd11a8de and book1 at about 14:58;
+  - **indices** f8e09ef9 at 15:05:34, after NIFTY's;
+  - decisions at 15:12:02, snapshot at 15:18:10, then fills, exits, trade_marks, reviews, quotes_done and card;
+  - candles 65e2303f at 15:33:21.
+- **20 Oct:** the run recorded only `skipped`: "not a session day" (the calendar's closed day). That is O1's closed-day
+  rule, live.
+- **21 Oct:** the same shape. NIFTY 80599014 at 14:57:52, then NSE 0b37051c, then the indices 55067976 at 15:05:43.
+  Every step was recorded.
+- **Not met, said plainly:** the criterion says "the card in #fno-desk". T1's card is not live, so no card was posted,
+  and that part of criterion 9 waits for `daily.live_from.card`. The criterion's other three parts are met: every step
+  recorded, every record committed, the log and the commit list here.
+- **Two related findings:**
+  - the rerun crash (story/o1-part-start 6776f7d1, with judge D) was not hit, because no rerun happened;
+  - `quotes`' reason says "started nifty, nse" although, since 7b08108c, they start at 14:38. The part's sidecar
+    (attempt `nifty_..._145500`) shows the recording waited for its window as designed. The wording is a cosmetic gap,
+    and I will make it "nifty, nse from 14:38" in the next O1 change.
