@@ -20,3 +20,18 @@ sources whose terms allow it) and what waits for the owner (six decisions), and 
 ## Boundary
 Agreed with the A22 builder (013u1Ac2) on 21 Oct, and written into A22's story: A22's "Asia opens" row now reads
 "A17e, not A22".
+
+## Revision 1 (21 Oct, 21:40 UTC): the owner's new data rule (DESK_DECISIONS 50a79a43)
+A source's redistribution terms no longer block a download for private research, so the story now picks the best
+source, not the most permissive one. The three kept limits (Drive only, no getting around blocks, paced) are in the text.
+- **Official publishers stay primary** where they answer without a login: CSIndex, TWSE OpenAPI, Nikkei's CSV, Cboe
+  VIX and STOXX's 3-month files. KOSPI's official source waits for the owner's KRX key.
+- **Yahoo's public chart API (no login) covers all eleven indexes back to 2019.** It is the history before each
+  official file starts and the only source for Hang Seng, ASX 200, Straits Times and FTSE 100.
+- **Yahoo checked against the official files (strong evidence):** Nikkei matches on 927 of 927 days. SSE matches on
+  1,887 days, but Yahoo lacks 3 real sessions. VIX matches on 1,960 of 1,963 days, with one large error
+  (2026-02-06: 20.37 against 17.76). So the reading prefers the official value, and every overlap is checked.
+- **Part B added:** a pre-09:15 level for each Asian index from Yahoo's 5-minute chart. A22's routine calls it at
+  08:50-09:05, and the first five sessions measure its delay.
+- **The six owner decisions of the first text are gone.** Two optional improvements remain: the KRX key, and noting
+  that Yahoo is not official.

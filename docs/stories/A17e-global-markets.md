@@ -4,106 +4,119 @@
 builder (session 01MBnbVU) · **Judge:** F · **Claims:** response 297
 
 **Description:** As the macro economist and the risk manager, I want the closes of the markets that move India before
-09:15 IST, each from a source we may use, first-seen time recorded, so that the weather, the 08:45 forecast and GR1
-stop reading the US alone (owner, 21 Oct 2026: "US market is not the only reason. Before the Indian market opens,
-there is Australian market, Singapore, Hong Kong, Japan, South Korea, probably China too ... we fetch data for each and
-every market that can affect the overall market in India ... don't consume US data only"; DESK_DECISIONS 21 Oct).
+09:15 IST, and their levels shortly before the open, each with its first-seen time, so that the weather, the 08:45
+forecast and GR1 stop reading the US alone (owner, 21 Oct 2026: "US market is not the only reason. Before the Indian
+market opens, there is Australian market, Singapore, Hong Kong, Japan, South Korea, probably China too ... we fetch
+data for each and every market that can affect the overall market in India ... don't consume US data only").
 
-**Boundary (agreed with the A22 builder, 013u1Ac2, 21 Oct):** A22 owns GIFT Nifty and NSE's pre-open; A17/A17e own
-every foreign index and the other global cues (US 10-year, Brent, USD/INR). An Asian intraday level before 09:15, if
-one is ever usable, is A17e's code and data, called from A22's 08:36 routine (no second reader, no second routine).
+**Data rule (owner, 21 Oct, DESK_DECISIONS 50a79a43):** a source's redistribution or reproduction terms no longer
+block a download for the owner's private research; pick the best source. Kept: (1) the data lives in private Drive
+only, never in this public repository or a public place, and Slack shows derived facts only; (2) no getting around
+logins, paywalls, CAPTCHAs or technical blocks, no false identity; (3) paced, polite downloads.
 
-## Step 0: every source tested (21 Oct 2026, 21:05-21:20 UTC; three research passes, the key ones re-run by me)
+**Boundary (agreed with the A22 builder, 013u1Ac2, 21 Oct; written into A22's story):** A22 owns GIFT Nifty and NSE's
+pre-open; A17/A17e own every foreign index and the other global cues. A17e's pre-open Asian levels (part B) run as a
+command that A22's 08:36 routine calls between its two windows (08:50-09:05 IST); no second reader, no second routine.
 
-"Tested" = fetched; terms quoted from the URL given. Verdicts: **allowed** (terms permit automated, non-commercial
-download and private storage), **restricted** (terms forbid automated download or storage; usable only under the
-owner's personal-research exception, decision a927390, 15 Oct: Drive only, never a public repository or shared screen,
-one small download a day), **none** (no free file found, or no usable endpoint).
+## Step 0: sources tested (21 Oct 2026, 21:05-21:40 UTC)
 
-| Index | Source tested | History found | Terms | Verdict |
-|---|---|---|---|---|
-| SSE Composite | CSIndex `csindex-home/perf/index-perf?indexCode=000001` (JSON, no key) | 2019-01-01 to 2026-10-21, 1,891 rows (re-run) | CSIndex disclaimer item 4: "any institution or person may browse and download the information of the website for any non-commercial use"; no reprint without permission | **allowed** |
-| TAIEX | TWSE OpenAPI `indicesReport/MI_5MINS_HIST` (government open-data licence) | current month only; 20 Oct newest at 21:20 UTC (re-run) | TWSE terms s.8 exempt data released to the government open-data platform; automated download of the main site is forbidden (s.6) | **allowed going forward**; history needs TWSE's consent |
-| KOSPI | KRX Open API `idx/kospi_dd_trd?basDd=` (free key, 1 year) | key needed (401 without) | KRX Open API terms (26 Dec 2025): "only for non-commercial purposes"; data not to be given to third parties | **allowed with the owner's key**; alternative Bank of Korea ECOS 802Y001 (key needs a Korean identity check) |
-| Nikkei 225 | Nikkei Indexes CSV `nkave/historical/nikkei_stock_average_daily_en.csv` | 2023-01-04 to 2026-10-21 (re-run); no 2019-2022 | personal use allowed; "beyond personal use ... a license agreement ... is required"; file footer forbids copying without permission; machine input may be licensable "non-display" use [search snippet] | **restricted** |
-| VIX | Cboe `delayed_quotes/charts/historical/_VIX.json` (A17's SPX parser unchanged) | 1990-01-02 to 2026-10-20 | Cboe terms: one copy "for your personal non-commercial use"; no storing in a retrieval system (same as SPX) | **restricted** (same terms as the S&P 500 the owner accepted) |
-| Euro Stoxx 50, DAX | STOXX `HistoricalData/h_3msx5e.txt`, `h_3mdax.txt` | rolling 3 months only (full history 403, login) | STOXX conditions s.3.1 "strictly view-only", s.3.5 no automated access "regardless of your purpose, including research", s.3.4 no historical databases | **restricted**, and no back-fill possible |
-| Straits Times | SGX chart API `indices/v1.0/charts/historic/pid/.STI/10y` | 2016-10-24 to 2026-10-21; duplicates and holiday-filled rows before mid-2019 | SGX: no storing in an electronic retrieval system; no automated scraping or bots | **restricted**, data not a clean official close |
-| Hang Seng | hsi.com.hk (no public endpoint, 404); HKEX daily quotation pages (one month kept) | none usable | HKEX: storage only on a disk "not ... connected to a network"; no bots | **none** |
-| S&P/ASX 200 | ASX (Markit) header JSON, no history endpoint | none | ASX: no spider, scraper or robot; "not to store ... the S&P index values" | **none** |
-| FTSE 100 | LSEG: no free file found | none | LSEG website terms s.10: no automated tool "regardless of whether ... personal use" | **none** |
-| FRED (NIKKEI225, VIXCLS) | site down for maintenance at both tests | untested | republishes owners' data under their copyright [reasoning] | untested; no cleaner licence expected |
+Three research passes fetched every candidate and read its terms (the terms are recorded for the owner, no longer a
+blocker); the key results were re-run by me. "Official" = the index owner or its exchange.
 
-**Pre-09:15 Asian levels: none usable** (tested): TWSE's live feed, ASX's delayed feed and KRX forbid automated
-access in their terms; Nikkei's real-time page is behind a bot wall and needs a licence; Hang Seng and SGX have no
-public index endpoint; SSE's quote host was unreachable. A22's "Asia opens: out" stands, now with evidence; GIFT Nifty
-(A22) is the pre-open proxy.
+**Official sources that answer without a login (tested):**
+
+| Index | Official source | History it gives |
+|---|---|---|
+| SSE Composite | CSIndex `csindex-home/perf/index-perf?indexCode=000001` (JSON) | 2019-01-01 to 2026-10-21, 1,891 rows |
+| TAIEX | TWSE OpenAPI `indicesReport/MI_5MINS_HIST` | current month only |
+| Nikkei 225 | Nikkei Indexes `nkave/historical/nikkei_stock_average_daily_en.csv` | 2023-01-04 to 2026-10-21 |
+| VIX | Cboe `delayed_quotes/charts/historical/_VIX.json` (A17's SPX parser) | 1990-01-02 to 2026-10-20 |
+| Euro Stoxx 50, DAX | STOXX `HistoricalData/h_3msx5e.txt`, `h_3mdax.txt` (needs SSL.com's public intermediate certificate: STOXX's chain is incomplete; this completes TLS, it bypasses nothing) | rolling 3 months |
+| KOSPI | KRX Open API (free key, 1 year) | key needed: not usable until the owner registers |
+| Hang Seng, ASX 200, Straits Times, FTSE 100 | none without a login or a bot wall (hsi.com.hk 404, ASX header JSON has no history, SGX chart data duplicated and holiday-filled, LSEG pages script-only) | - |
+
+**One source for all eleven (tested):** Yahoo Finance's public chart API
+(`query1.finance.yahoo.com/v8/finance/chart/<symbol>`, no login, cookie or CAPTCHA): daily rows from 2019 to
+2026-10-21 for ^N225 (1,900), ^KS11 (1,912), ^AXJO (1,978), ^HSI (1,919), 000001.SS (1,888), ^STI (1,962), ^TWII
+(1,892), ^FTSE (1,972), ^GDAXI (1,985), ^STOXX50E (1,962) and ^VIX (2,036), each with its exchange's time zone; and
+5-minute intraday levels with timestamps (^N225 on 21 Oct: 79 points from 05:30 IST).
+
+**Is Yahoo right? Checked against the official files (strong):** Nikkei 225 equal on all 927 common days; SSE
+Composite equal on all 1,887 common days, but Yahoo **lacks three real sessions** (2019-04-29, 2019-04-30 and the
+newest day at test time); VIX equal on 1,960 of 1,963 days, **one large error** (2026-02-06: Yahoo 20.37, Cboe
+17.76). So Yahoo is good but not clean: it is the source of last resort, never preferred over an official file.
+
+**Pre-09:15 Asian levels:** the official live feeds are behind logins or bot walls, or have no public endpoint (TWSE's
+MIS feed answers, but its terms bar automation; now recorded, not blocking). Yahoo's 5-minute chart gives every Asian
+index that is open at 08:50 IST (Nikkei, KOSPI, ASX 200 and TAIEX from 05:30-06:30 IST; Hang Seng, SSE and STI from
+06:30-07:00 IST). Its delay is not stated; part B measures it.
 
 ## Scope
 
-In (built without any owner decision: the **allowed** sources):
-1. Three new `GlobalCueSource` classes behind A17's interface, one line each in `fno/global_cues/wiring.py`:
-   - `CsindexShanghaiSource` (`sse_composite`): back-fill from 2019-01-01, then 31-day look-back. CSIndex inserts a
-     fake row on the requested start date when it is not a session (copying the next session; tested on 2019-01-01
-     and 2026-10-01): the parser drops a start-date row whose values equal the next row's.
-   - `TwseTaiexSource` (`taiex`): the open-data month, daily; history starts the day the job starts (no back-fill
-     until TWSE consents, owner decision 3).
-   - `KrxKospiSource` (`kospi`): one call per day (`basDd`), back-fill from 2019 in the paced session (about 1,900
-     calls once), key in `FNO_KRX_API_KEY` (GitHub secret and the environment; never in a file). Until the owner has
-     the key the source reports "not configured" and the run names it (no failure loop).
-2. Each value keeps A17's point-in-time rule: `first_seen_at` (the copy's fetch time), `available_at` from the market's
-   close (Shanghai 15:00 Beijing, Taipei 13:30, Seoul 15:30 KST, each with its closing auction), and the as-of label
-   at 09:15 and 15:00 IST. A same-day Asian close is never `live` at 09:15 (the session is still running); only the
-   previous day's is.
-3. A market calendar per cue from the source's own trading dates (A17's `us_trading_dates.csv` pattern), so a gap is a
-   missing session, never a holiday.
-4. Private by default: every A17e index value is kept in Drive only (A17d's private flag and `DrivePartsRowLog`); the
-   repository gets the snapshot log rows (fetch time, path, SHA-256) and dates only. This also meets O9 (data in
-   Drive, receipts in GitHub).
-5. Schedule: the existing `global-cues.yml` runs (03:41 main, 04:41, 14:11 IST); no new workflow. The Asian closes
-   of day d and Europe's (if decided) are out by 21:10 IST on d, so the 03:41 run of d+1 has them.
-6. The A17 checks (gaps, stale) and the run's one #fno-desk line cover the new cues unchanged.
+**Part A, daily closes (one cue per index and publisher, A17's pattern; each a `GlobalCueSource` and one line in
+`fno/global_cues/wiring.py`):**
+1. Official cues: `sse_composite` (CSIndex, back-fill from 2019), `taiex` (TWSE OpenAPI, from the first run),
+   `nikkei225` (Nikkei CSV, from 2023), `vix_us` (Cboe, from 2019), `eurostoxx50` and `dax` (STOXX 3-month files,
+   from the first run), `kospi` (KRX, only once `FNO_KRX_API_KEY` exists; until then the run line says
+   "kospi: not configured" and the run is not failed for it).
+2. Yahoo cues, one per index, all eleven, back-filled from 2019 (`<index>_yahoo`): the history before each official
+   file starts, and the only source for Hang Seng, ASX 200, Straits Times and FTSE 100. One class
+   `YahooChartSource(cue, symbol)`; dates in the exchange's own time zone from the answer's `exchangeTimezoneName`.
+3. One reading per index (A17b's `CueReader`): the official value where it has the date, the Yahoo value otherwise,
+   with its publisher named in the reading. An official/Yahoo pair is compared in the checks, like A17d's RBI and
+   FBIL overlap: a difference over 0.1 percent, or a session in one and not the other, is listed (counts only in the
+   repository).
+4. Point in time: each value's `first_seen_at` is its copy's fetch time; `available_at` is the market's close plus its
+   publication lag; the as-of label at 09:15 and 15:00 IST. A same-day Asian close is never `live` at 09:15 (its
+   session is still running); for the 09:15 open only the previous day's Asian and European closes count.
+5. Private: every index value in Drive only (A17d's private flag and `DrivePartsRowLog`); the repository gets snapshot
+   log rows (fetch time, path, SHA-256) and dates. Downloads paced (A17's `PacedSession`), Yahoo one request per
+   index per run.
+6. Schedule: inside the existing `global-cues.yml` runs (03:41, 04:41, 14:11 IST); every close of day d (Asia by
+   14:30 IST, Europe by 22:10 IST) is in the 03:41 run of d+1, which lands 05:30-06:40 IST (measured 17-21 Oct).
 
-In only after the owner's decision (each a separate line in `SOURCES`, nothing else to build):
-7. `CboeVixSource` (`vix_us`, A17's Cboe parser with the `_VIX` URL; back-fill from 1990): owner decision 1.
-8. `NikkeiSource` (`nikkei225`, from 2023-01-04 only): owner decision 2.
-9. Euro Stoxx 50 and DAX (STOXX 3-month files, forward only), Straits Times (SGX chart data, cleaned): owner
-   decision 4. All restricted sources: `private`, `once_a_day` (the owner's condition).
+**Part B, pre-open Asian levels:**
+7. `python -m fno global-cues preopen`: one Yahoo 5-minute read per open Asian index at A22's 08:50-09:05 slot; keeps
+   the raw answer in Drive with `seen_at`, and a row (index, level time, level, the previous official close) in the
+   private table. A level older than 20 minutes at `seen_at` is marked `stale`.
+8. A22's routine calls it (one line in A22's CLAUDE.md section, agreed with its builder); a failure is one #fno-desk
+   line and an O10 `capture_errors.csv` row (outside `daily run`).
+9. Delay measured: for the first five sessions, each 09:00 IST level is compared with the same index's 5-minute
+   official intraday where one is public (TWSE's MIS answer, read once by hand for the comparison only) and the lag is
+   reported.
 
-Out: Hang Seng, ASX 200, FTSE 100 (no usable source; the report keeps "not checked" for them); any intraday Asian
-level (none usable); paid data APIs (owner decision 5 if wanted); GIFT Nifty and NSE pre-open (A22).
-
-## Owner decisions (asked through the orchestrator)
-1. **VIX:** extend decision a927390 (personal research, Drive only, once a day) to Cboe's VIX file? Same publisher
-   and terms as the S&P 500 already used. Recommended yes [reasoning: no new kind of risk].
-2. **Nikkei 225:** use Nikkei's CSV under the same exception (personal use is allowed; machine input may need a
-   licence), or email Nikkei first? History would start 2023 either way.
-3. **TAIEX history to 2019:** ask TWSE for written consent (their FAQ exempts information "solely for the investor's
-   own use")? Until then TAIEX starts on the job's first day.
-4. **Europe and Singapore:** STOXX's and SGX's terms forbid automated access outright, "regardless of purpose,
-   including research". Use them under the exception anyway (3 months of history only for STOXX), or leave Europe out
-   until a licence? Recommended: leave out [reasoning: the terms are explicit and there is no history to test with].
-5. **A paid data API** (one vendor whose terms allow automated personal use, covering Hang Seng, ASX 200, FTSE 100,
-   DAX and the history gaps): worth a price check? Not built here.
-6. **KRX key:** the owner registers at openapi.krx.co.kr (free, one year) and adds `FNO_KRX_API_KEY` as a GitHub
-   secret.
+Out: GIFT Nifty and NSE's pre-open (A22); paid data feeds; FTSE 100 and Euro intraday (closed before 09:15); using the
+values in any forecast (FL1, M1 and GR1 decide that).
 
 ## Acceptance criteria
-1. Each new source parses its publisher's real answer (a saved fixture per source) and refuses an error page, an
-   empty answer and a changed layout with a named `ValueError`; CSIndex's fake start-date row is dropped (fixture of
-   2026-10-01) and a real start-date session is kept.
-2. `available_at` per market, including daylight saving where it applies (none of the three Asian markets has it);
-   the as-of label of a same-day Asian close at 09:15 IST is never `live` (test).
-3. The KOSPI source without a key: the run line says "kospi: not configured (FNO_KRX_API_KEY)" and the run is not
-   failed for it; with a key it never prints or stores the key (planted key test).
-4. Private: no A17e value, date-and-value pair or price-sized number in any repository file (A16b's scan pattern).
-5. The 2019 back-fills of SSE Composite and KOSPI run once by hand into Drive, with their snapshot logs committed;
-   counts and first/last dates cited in the claims file; `global-cues verify` passes on them.
-6. The first scheduled run after the merge is cited (run id, cues added, first-seen times before 09:15 IST).
-7. Gates pass; no file or class over 350 lines; composition only in `fno/global_cues/wiring.py`.
+1. Each source parses a saved real answer (one fixture per publisher) and refuses an error page, an empty answer and a
+   changed layout with a named `ValueError`. CSIndex's fake start-date row (copied from the next session when the
+   start date is a holiday, seen on 2019-01-01 and 2026-10-01) is dropped; a real start-date session is kept.
+2. Yahoo dates: the date is the exchange's own (a 00:00 UTC timestamp of a Tokyo session is that Tokyo date); no
+   weekend rows; a duplicate date in one answer is refused for that index (one ASX duplicate seen in the 2019 back-fill).
+3. The reading prefers the official value; the overlap check lists the 2026-02-06 VIX difference and the two missing
+   2019 SSE sessions when run on the real back-fill (cited in the claims).
+4. The as-of label: a same-day Asian close at 09:15 IST is never `live` (test across each market's close time).
+5. Private: no index value or price-sized number in any repository file (A16b's scan pattern over every file the run
+   writes).
+6. KOSPI without a key: one "not configured" line, no failure; with a key, the key never appears in output or files
+   (planted-key test).
+7. Part B: a planted 5-minute answer gives the level and its time; a stale level is marked; the command exits 0 on a
+   closed market day (Asian holiday) with "market closed" for that index.
+8. The 2019 back-fills run once by hand into Drive; counts, first and last dates, and the overlap check's findings in
+   the claims file; `global-cues verify` passes. The first scheduled run and the first part B read are cited.
+9. Gates pass; no file or class over 350 lines; composition only in `fno/global_cues/wiring.py`.
 
-**Known limits:** three of the owner's named markets (Hong Kong, Australia, UK) have no usable free source; Japan and
-Europe depend on the owner's decision; TAIEX has no history until TWSE consents; no Asian level before 09:15 exists
-for free. The 03:41 run lands at 05:30-06:40 IST (measured 17-21 Oct), well before 09:15.
+## For the owner (no decision needed to start; each is a choice to improve the data)
+- **KOSPI official:** register a free KRX Open API key (openapi.krx.co.kr) and add `FNO_KRX_API_KEY`; Yahoo serves
+  KOSPI until then.
+- **TAIEX and Nikkei official history to 2019:** official files reach only 2023 (Nikkei) and the current month (TWSE);
+  Yahoo fills it, and it matched Nikkei exactly where both exist.
+- Yahoo is not an official source: the overlap check is our only guard where no official file exists (Hang Seng,
+  ASX 200, Straits Times, FTSE 100).
 
-**Depends:** A17 (merged), A17d (private cues), O9 (receipts) · **Status:** story text for judge F.
+**Known limits:** Yahoo's delay for intraday Asian levels is unstated (part B measures it); its daily rows have rare
+errors and gaps (two found in 1,963 and 1,891 days); European indexes have only 3 months of official history.
+
+**Depends:** A17 (merged), A17d (private cues), O9 (receipts), A22 (the routine part B joins) · **Status:** story
+text for judge F.
