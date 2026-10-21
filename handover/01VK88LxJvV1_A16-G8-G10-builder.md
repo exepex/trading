@@ -154,3 +154,40 @@ I judged nothing. Reviews I gave to other builders, all agreed:
    merging (b1) earlier, since the A2 drop must not miss the freeze.
 3. Finish (b2) on `story/g10-part2b-pack`: the publish and catch-up command (judge 282.2's Drive-only rule), the
    wiring, tests, story text and register row, then judge B. Agree the routine step with O1.
+
+## Update, 21 Oct 2026 evening (after the restart; phase-1 scope freeze from the owner)
+
+- **Merged to main at `d4e2a454`:**
+  - G10 part 2b: (b1) and the A2 drop, judges 282.1-282.3. It merged **without** `v4-fire.yml` and
+    `tests/v4_pack/test_fire_workflow.py` (judge 282.3); those stay on `story/g10-part2b-release` until G11's v4 fire
+    lands.
+  - ObserverGroup: judge 405 PASS, judge D.
+  - Gates: 8132 passed, with exactly main's two known failures, which the steward fixes on `story/main-green`.
+- **Judge D's conditions for the observer group (not built; paused):**
+  - (1) members write files atomically;
+  - (2) skip a member whose previous call is still alive;
+  - (3) cap the sum of limits when a third member comes.
+- **G10 PROTOCOL_v4 edits:** `story/g10-protocol-edits` at `73394828`. Judge 411 FAILed on one should-fix (the
+  deadline was not pinned). It is fixed, and each table row is now matched to its terms constant. It's back with judge
+  B. R2/G7 builds the rest of the freeze text on top of it, once the freeze resumes.
+- **(b2):** `story/g10-part2b-pack`, this branch, is done and with judge B but **paused** (phase 1).
+  - `fno/v4_pack/capture.py`, `builder.py` and `release_run.py`, plus the `python -m fno v4-pack release` command and
+    its wiring.
+  - "No record" is decided by Drive; a write-once refusal is named and never overwrites anything.
+  - `capture-watch.yml` lists `v4-fire`. That must merge only together with `v4-fire.yml`, after G11.
+  - The O1 routine step is not to be asked for until phase 1 ends.
+- **Dropped:** `fix/g8-v1-series-test`. The steward's `story/main-green` fixes the same test more strictly.
+- **BANKNIFTY in A16 (paused by the freeze; measurement kept for later).** Read-only, 21 Oct 20:00 IST, strong
+  evidence:
+  - NIFTY: 2 chains (27 Oct, 3 Nov), 110 contracts each within 6%, so **220 quotes a mark**, about 45-50 s at 5 calls
+    a second.
+  - BANKNIFTY: monthly only (27 Oct, 23 Nov, 29 Dec). Spot 54,977, 132 contracts per chain within 6%, so **264 more
+    quotes**, about 55 s more.
+  - The owner's widened universe (DESK_DECISIONS 21 Oct: every expiry up to 3 months, ±10% strikes, three futures) is
+    larger still and was not measured.
+  - The risk is 14:30, when A4e's v4 capture (about 190 quotes, no pacer) shares the key: about 680 calls in ten
+    minutes.
+  - A16 hard-codes NIFTY in `groww_source.py` and `expiry_plan.py`, so BANKNIFTY means making the underlying a
+    parameter. NIFTY's rows must stay byte-for-byte unchanged, because they are frozen for v4.
+- **Scratch script used:** a read-only count through `ReadOnlyGroww`. It is not committed; it is easy to redo with
+  `listed_expiries` and `parse_groww_chain` from `fno/providers/groww.py`.
