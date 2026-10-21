@@ -75,3 +75,8 @@ def test_the_morning_report_keeps_what_it_confirmed_and_its_correction_alert():
     )
     assert written.matched == ("NIFTY 2026-10-23",) and len(written.alerts) == 2
     assert maker.seen[0] == "morning" and maker.seen[2][0].startswith("NIFTY Fri 23 Oct: CORRECTION")
+
+
+def test_a_close_two_paise_off_is_a_different_close_not_a_confirmation():
+    (line,) = confirmation({FRI: verdict(FRI)}, {FRI: 25390.02}).confirm(MON).lines
+    assert line.startswith("NIFTY Fri 23 Oct: official close 25,390.02, not 25,390.00")

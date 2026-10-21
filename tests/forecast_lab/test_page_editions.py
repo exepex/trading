@@ -108,3 +108,17 @@ def test_an_evening_without_a_forecast_for_today_checks_nothing_and_reads_no_clo
     view = build("evening", (implied(MON),), read=25390.0, at_time=(20, 5))
     assert not any(p.provisional for p in view.indices[0].horizons[0].timeline.points)
     assert not any("close was not read" in line for line in view.system)
+
+
+def test_the_morning_never_shows_a_row_aimed_before_today():
+    """A same-day row of the previous session (A22's N0, issued at 09:15 for that day) is not today's forecast."""
+    rows = (*implied(FRI).rows, RangeRow("implied", "N0", FRI, QUANTILES, 0.5, STATUS_OK))
+    (index,) = build("morning", (issue(FRI, rows=rows),)).indices
+    assert [r.horizon for r in index.today] == ["N1", "N3"]
+
+
+def test_the_evening_checks_only_a_forecast_aimed_at_today():
+    """A record whose next-session row names another day (a data error) is not checked against today's close."""
+    wrong = issue(FRI, rows=(RangeRow("implied", "N1", WED, QUANTILES, 0.5, STATUS_OK),))
+    view = build("evening", (wrong, implied(MON)), read=25390.0, at_time=(20, 5))
+    assert not any(p.provisional for p in view.indices[0].horizons[0].timeline.points)

@@ -84,3 +84,18 @@ def test_the_real_camera_draws_the_picture_page_at_its_width_and_trims_the_botto
     out = camera.picture(InterimRenderer().picture(view_with_history()), tmp_path / "p.png")
     with Image.open(out) as image:
         assert image.format == "PNG" and image.size[0] == 1200 and image.size[1] < 4000 * 2
+
+
+def test_a_verdict_is_kept_only_for_today_s_own_provisional_check():
+    from dataclasses import replace
+
+    from fno.forecast_lab.maker import verdicts
+    from fno.forecast_lab.page.model import Band, Horizon, Outcome, Timeline
+
+    band = Band(980.0, 995.0, 1000.0, 1005.0, 1020.0)
+    other = Outcome(date(2026, 10, 22), 1001.0, band, True, True, True, provisional=True)
+    view = page(indices=(replace(index(), horizons=(Horizon(Timeline("N1", "implied", (other,)), ()),)),))
+    assert verdicts(view) == ()
+    today = replace(other, day=view.day)
+    view = page(indices=(replace(index(), horizons=(Horizon(Timeline("N1", "implied", (today,)), ()),)),))
+    assert [(v.day, v.close, v.band) for v in verdicts(view)] == [(view.day, 1001.0, (980.0, 995.0, 1005.0, 1020.0))]

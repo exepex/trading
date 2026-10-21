@@ -71,3 +71,11 @@ def test_an_edition_before_its_live_date_or_with_none_posts_nothing():
         not_live = f"not live (config forecast_lab.live_from.morning: {live_from}); nothing posted"
         assert line == f"lab open 2026-10-26: {not_live}"
         assert alerts.sent == [] and composer.calls == 0
+
+
+def test_a_morning_posted_in_time_still_sends_its_stored_alerts_on_a_late_rerun():
+    records = Records()
+    records.write_report(MON, WrittenReport("today's forecast\n", ("a stored finding",)))
+    records.mark_posted(MON, "posted")
+    run, alerts, _ = morning(9, 20, records=records)
+    assert not run.run(MON).failed and alerts.sent == ["F&O forecast lab 2026-10-26: a stored finding"]
