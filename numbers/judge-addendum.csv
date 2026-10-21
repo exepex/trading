@@ -495,3 +495,5 @@ number,name,session,claimed_at_utc
 203.6,e8-session-offset-clock,session_01SvJD2QUjFKLEz5Jwptgsc9,2026-10-21T14:24:02Z
 406.1,g13b-rev2,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:24:09Z
 406.2,g13b-rev3-sref,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:30:47Z
+403.4,fl1-traded-only,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:33:58Z
+178.19,o1-criterion-9,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T14:36:24Z
