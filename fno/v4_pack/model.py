@@ -53,7 +53,7 @@ class ChainQuote:
 
 @dataclass(frozen=True)
 class Iv30:
-    value: float
+    value: float  # annualised, in volatility points (G1's unit)
     flagged: bool  # a single-expiry estimate (protocol 1.6)
     expiries: tuple[date, ...]
     method: str  # the G1 estimator's name and file hash
