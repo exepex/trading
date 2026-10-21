@@ -39,11 +39,14 @@ def _release_check(day: date | None, out) -> int:
 
 
 def _edition(action: str, day: date | None, out) -> int:
+    from ..composition import build_alert_sender
     from ..models import now_ist
     from .constants import EVENING, MORNING
+    from .edition_run import guarded
     from .wiring import build_edition
 
-    result = build_edition(MORNING if action == "open" else EVENING).run(day or now_ist().date())
+    edition = MORNING if action == "open" else EVENING
+    result = guarded(edition, day or now_ist().date(), lambda: build_edition(edition), build_alert_sender())
     for line in result.lines:
         out(line)
     return 1 if result.failed else 0
