@@ -70,7 +70,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
     price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
-                                     receipt_pathspecs(), git.changed, waiting)  # fmt: skip
+                                     receipt_pathspecs(), git.changed, waiting, locks)  # fmt: skip
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
