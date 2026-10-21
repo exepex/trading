@@ -112,7 +112,8 @@ per-row score (FL1 groups by method and never pools two versions). I judged ecf6
    `daily.live_from` keys (`price_distribution`, `price_ranges`) are null in `config.yaml`, so no live record is
    affected; only G13's Drive back-fill must be rerun after the merge, as the builder says. The orchestrator should
    check that rerun happened before either live switch is set.
-2. The G13 cache-prefix fix (trailing "/") still rides inside this branch. The split branch
-   `story/g13-cache-prefix-fix` does not exist on the remote (checked with `ls-remote` today); merging G13b brings the
-   fix to `main` either way.
+2. The G13 cache-prefix fix (cf858864, inside ecf681d9) is judged here as part of this one change, as the
+   orchestrator asked. Both `CACHE_PREFIX` constants (`price_distribution/cli.py:32`, `price_ranges/cli.py:31`) are
+   folder paths without a trailing "/". Putting the trailing "/" back fails 1 test in each package, through the real
+   `DriveCache` (strong evidence). No separate split branch is needed.
 3. Not re-verified by me: the claims' statistics themselves (the relabel is what judge 416 asked for).

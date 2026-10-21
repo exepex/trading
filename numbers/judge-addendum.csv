@@ -504,3 +504,6 @@ number,name,session,claimed_at_utc
 412.3,g4-own-commits-ruling,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T15:01:26Z
 417.1,f1-text-recheck,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T16:22:45Z
 416.1,g13b-416-fixes,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T16:28:27Z
+418.1,a4-alerted-flag,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T16:29:56Z
+417.2,f1-text-pass,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T16:30:02Z
+412.4,o2b-split,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T16:30:08Z
