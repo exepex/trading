@@ -163,11 +163,12 @@ def test_after_the_desk_s_commit_failure_stop_the_card_never_runs_and_the_parts_
     assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"]  # recorder's data kept
 
 
-def test_a_part_commit_that_fails_is_alerted_with_its_own_paths_and_the_day_goes_on(day, alerts):
+def test_a_part_commit_whose_push_failed_is_alerted_as_not_pushed_and_the_day_goes_on(day, alerts):
+    """G4: the commit is made but its push was rejected: the run's one committer keeps it for the next push."""
     runner, run, *_ = day(part_fails="nse")
     code, line = runner.run(NORMAL)
     (sent,) = alerts.sent
-    assert "quote part nse NOT committed" in sent and "git add 'research/data/quotes/nse/'" in sent
+    assert "quote part nse committed, NOT pushed (the next push carries it)" in sent
     assert (code, line) == (1, "day done with problems: quotes_done")
     assert "card" in run.run(NORMAL).steps
 

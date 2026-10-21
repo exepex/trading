@@ -26,7 +26,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                     books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT,
                     waiter: Waiter | None = None, day_steps: Mapping[str, DayStep] | None = None,
                     git=None, alerts=None, entry_desk: EntryFiller | None = None,
-                    exit_timing: ExitTiming | None = None) -> DailyRun:  # fmt: skip
+                    exit_timing: ExitTiming | None = None, git_committer=None) -> DailyRun:  # fmt: skip
     from ..books.version_registry import VersionRegistry
     from ..books.versions import VERSIONS_FILE
     from ..checks.gate import DataGate
@@ -54,7 +54,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     )
 
     timetable, calendar, git = timetable_from_config(cfg), build_session_calendar(), git or Git(root)
-    committer, history = PendingCommitter(GitCommitter(git), root), PlaybookGit(root)
+    committer, history = PendingCommitter(git_committer or GitCommitter(git), root), PlaybookGit(root)
     alerts, files = alerts or build_alert_sender(), build_private_files(root)
     journal = lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds, files)  # noqa: E731
     sync = DriveAccountSync(journal, committer, root)

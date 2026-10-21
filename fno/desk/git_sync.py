@@ -16,6 +16,7 @@ from ..storage.wiring import QUOTES_FOLDER
 from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
 from .daily_ports import AccountWriteRefused, CommitFailed, Committer, OwnCommit
 from .git_limit import GIT_CALL_LIMIT_SECONDS, LimitedRun
+from .own_commits import OwnUnpushed
 
 PUSH_ATTEMPTS = 3
 STOPPED = "git {what} ran past {seconds:.0f} s and was stopped with its hooks{removed}"
@@ -156,12 +157,12 @@ class GitCommitter(Committer):
     """Every commit passes `RawQuoteGuard` (story E2b): first on the given paths, before git runs (not even the pull),
     then on everything staged (`Git.commit_paths`), and before every push on every file the push would change. An
     unpushed commit the run did not make is refused before the pull (decision 51): the only one allowed is the run's
-    own `own_unpushed` commit: its message, and only the pending marker's files with their recorded content. Any
-    refusal or git failure is
-    raised as `CommitFailed`."""
+    own `own_unpushed` commit: its message, and only the pending marker's files with their recorded content. With
+    `own` (story O1, gap G4), every commit this committer made and could not push yet is accepted the same way, so one
+    part's failed push never stops the desk's next commit. Any refusal or git failure is raised as `CommitFailed`."""
 
-    def __init__(self, git: Git):
-        self.git = git
+    def __init__(self, git: Git, own: OwnUnpushed | None = None):
+        self.git, self.own = git, own or OwnUnpushed()
 
     def commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None = None) -> str:
         try:
@@ -174,29 +175,38 @@ class GitCommitter(Committer):
         self._refuse_stray(own_unpushed)
         branch = self.git.branch()
         self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
-        if self.git.commit_paths(paths, message) or self.git.ahead_of(f"origin/{branch}"):  # or one left unpushed
-            for _ in range(PUSH_ATTEMPTS):
-                self.git.guard.check(self.git.unpushed_files())
-                if self.git.push():
-                    break
-                self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
-            else:
-                raise PushRejected(
-                    f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed"
-                )
+        if self.git.commit_paths(paths, message):
+            self.own.remember(self._recorded("HEAD"))  # until a push carries it (G4)
+        if self.git.ahead_of(f"origin/{branch}"):  # this commit, or one left unpushed
+            self._push(message, branch)
+        self.own.pushed()  # origin holds every commit this committer made
         return self.git("rev-parse", "HEAD").stdout.strip()
+
+    def _push(self, message: str, branch: str) -> None:
+        for _ in range(PUSH_ATTEMPTS):
+            self.git.guard.check(self.git.unpushed_files())
+            if self.git.push():
+                return
+            self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
+        raise PushRejected(f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed")
 
     def _refuse_stray(self, own: OwnCommit | None) -> None:
         """A merge made by a retry's pull is not a stray: what it brings in is checked commit by commit here, and every
         file it changes on origin by the guard before the push."""
-        stray = [c for c in self.git.unpushed("--no-merges") if not self._own(c, own)]
+        allowed = [*([own] if own else []), *self.own.commits]
+        stray = [c for c in self.git.unpushed("--no-merges") if not any(self._own(c, mine) for mine in allowed)]
         if stray:
             what = "; ".join(f"'{self.git.subject(c)}': {', '.join(sorted(self.git.files_of(c)))}" for c in stray)
             raise GitError(STRAY.format(count=len(stray), what=what))
 
-    def _own(self, commit: str, own: OwnCommit | None) -> bool:
+    def _recorded(self, commit: str) -> OwnCommit:
+        return OwnCommit(
+            self.git.subject(commit), {f: self.git.content_sha256(commit, f) for f in self.git.files_of(commit)}
+        )
+
+    def _own(self, commit: str, own: OwnCommit) -> bool:
         """Exact: the same message, and each file the commit touches as the marker recorded it (judge 118 add. 7)."""
-        if own is None or self.git.subject(commit) != own.message:
+        if self.git.subject(commit) != own.message:
             return False
         files = self.git.files_of(commit)
         return files <= set(own.files) and all(self.git.content_sha256(commit, f) == own.files[f] for f in files)
