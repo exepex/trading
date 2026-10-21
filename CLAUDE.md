@@ -50,7 +50,8 @@ API keys or tokens.
 
 ## Daily desk routine (story O1; the 3 pm quote parts: stories A4, A4c and A7)
 
-Started by the owner's scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55);
+Started by the owner's scheduled session at 14:05 IST every day (owner, 21 Oct 2026, from 22 Oct: the weather and the
+v4 forecasts must run before their 14:30 cutoff, so setup must end well before 14:30);
 its stored prompt is exactly: "Run the daily desk routine in CLAUDE.md, section 'Daily desk routine'." One command runs
 the whole desk day; the NSE session calendar (A7) decides whether it is a trading day (a closed day records only
 `skipped` and each quote part prints "not a trading day"). Research and paper trading only: never places, modifies or
