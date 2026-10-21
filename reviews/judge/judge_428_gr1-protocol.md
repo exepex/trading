@@ -175,3 +175,99 @@ As written, the code would make these choices.
    change now is not a deviation. Record it in section 14 as "revision before review, judge 428", with a new hash in
    `FREEZE.md` and the ledger's protocol commit updated.
 2. Then I re-check the text, the hash and the ledger rows.
+
+## Addendum 1: revision 2 at a7a1b28a, freeze record 7cd1c3c1 (number 428.1, claimed with `tools/claim_number.py`)
+
+**PASS.** The protocol may proceed to step 2 (code on synthetic data, then hash-freeze before run 1). Nothing has been
+fitted or scored, and no study code exists: the branch adds only the protocol, the freeze record and the ledger rows.
+
+### Freeze and ledger
+- `PROTOCOL.md` has SHA-256 `ec02703d...3f0` at both a7a1b28a and 7cd1c3c1. `FREEZE.md` records it under "Revision 2"
+  and keeps the first freeze's hash above it.
+- All 15 ledger rows 56-70 now name a7a1b28a.
+- Row 62 (C7) says "Brent dropped, judge 428".
+- Section 14 dates the revision as before review.
+
+### The four should-fixes
+| Should-fix | Result | Where |
+|---|---|---|
+| SF1, band costs | MET | Section 9 states the rates. N1: about 23% on 2024 and 6-7% on the final period; the builder's own exact binomial gave 23.1% and 6.2% at n = 440. N3: 37% and 17%. Both looks together: 72% and 53% pass. The bands stay hard, C0 is checked and reported on both periods, and no winner means "not shown at this sample size" |
+| SF2, cue timing | MET | Every cue is read by A17's `value_for(live_only=False)` with its `available_at`, at 15:30 on d (C7) and 09:15 (N0-C), and the text says "never a raw `value_date < d`". Brent is dropped as at least 10 days stale. A planted same-day test per series is in section 12 step 2 |
+| SF3, day sets | MET | Selection uses each candidate's paired mean QS difference against C0 on its own days, and dropped days are reported with reasons (sections 7 and 9) |
+| SF4, N0's rule | MET | N0-B and N0-C are compared against N0-A on 2024 under the bands, and the better eligible one goes to the final period. There is no Holm and no "sharper". All three are reported against N1, with width-ratio bootstrap intervals (section 11) |
+
+### Notes from the verdict
+All are in the text:
+- the count of 51 (48 candidate-cells including FII/DII, 42 fitted, plus 3 N0);
+- C2's crossing guard;
+- C11's pair chosen on train;
+- the regime breaks, with C9 reported split at them;
+- run 2 deterministic, refusing if `final.json` exists in any commit, and recording its input hashes;
+- the two-sided p-value, with direction required;
+- a gap means the cell is not decided;
+- a C1 or C2 winner is marked "known before the study".
+
+The figures are consistent: 0.769 x 0.938 = 0.72.
+
+### New notes (one line each, none blocking)
+1. C2's guard refuses crossings on **train** days only. Implied's shape varies by day, so a fitted C2 could still
+   cross on a 2024 or final day. The code should check every scored day and count a crossing as a failed fit.
+2. `DATA_SPEND.md`'s global-cues row still names Brent among the registered series. Brent is now unused, so drop it
+   from that row when the code commit lands.
+3. The builder's honest limit (the 2025-26 records sit in Drive and implied's own 2025-26 scores were read; what is
+   sealed is every candidate's 2025-26 performance) is not yet in section 2. Section 2 already says the final period
+   is not fresh for the baseline, so this is wording only.
+
+### Next steps for me
+- The code commit with its hash freeze, before run 1: I check the synthetic tests, the planted 2025 row, the planted
+  same-day cues, and that the hashes match.
+- After run 2: I reproduce `final.json` from the committed `selection.json`, then judge the results file.
+
+## Addendum 2: revision 2 final at eb8d061a, freeze record 5bb4ea95 (number 428.2, claimed with `tools/claim_number.py`)
+
+**PASS, and this is the frozen protocol.** It supersedes a7a1b28a, which I passed in addendum 1.
+
+### What changed since a7a1b28a
+The diff to `PROTOCOL.md` holds only the additions I asked for:
+- Section 2 now carries the honest limit: the sealing is code plus process, and what is sealed is every candidate's
+  2025-26 performance, not the data. This was new note 3.
+- Section 12 now carries steps (a)-(d) word for word:
+  - (a) the load-time filter on issue date < 2025-01-01, with the planted-2025-row test;
+  - (b) `selection.json` committed before run 2;
+  - (c) run 2 never refits, refuses unless the selection file is unchanged since its commit, refuses if `final.json`
+    is in any commit, and refuses a second invocation;
+  - (d) both runs refuse a hash mismatch or uncommitted changes.
+- Section 12 also says run 2 is deterministic (inputs sorted by day, G4's seeds, no clock or random state, input
+  hashes recorded), so I can reproduce `final.json`.
+- Section 14 records the change.
+
+### Freeze and ledger
+- The SHA-256 is `8ed575b3...2eaa` at both eb8d061a and 5bb4ea95, as `FREEZE.md` records.
+- `FREEZE.md` states that the a7a1b28a freeze was superseded before review.
+- All 15 ledger rows name eb8d061a.
+
+### Still open for the code commit
+- New notes 1 and 2 from addendum 1 stay open: check C2's crossing on every scored day, and drop Brent from the
+  `DATA_SPEND.md` row.
+- Then I judge the code and its hash freeze before run 1.
+
+## Addendum 3: the final freeze at 9c67a3c7, freeze record 13241191 (number 428.3, claimed with `tools/claim_number.py`)
+
+**PASS, and this is the frozen protocol to merge.** It supersedes eb8d061a, which I passed in addendum 2. Its delta
+holds only addendum 1's notes 1 and 2:
+- C2: a crossing on any scored select or final day now counts the cell as a failed fit for C2.
+- `DATA_SPEND.md`'s global-cues row now reads "S&P 500, US 10-year, USD/INR (Brent dropped, judge 428)".
+- Section 14 records both changes.
+
+### Freeze and ledger
+- The SHA-256 is `89de9cf4...dfaa` at both 9c67a3c7 and 13241191, as `FREEZE.md` records.
+- All 15 ledger rows name 9c67a3c7.
+- I re-read the full delta from a7a1b28a: apart from the C2 rule, it is wording and process only (section 2's honest
+  limit, section 12's (a)-(d), section 14).
+
+### Merge
+The registration (protocol, freeze record, ledger rows 56-70, `LEDGER.md`, `DATA_SPEND.md`) may merge to main as a
+**merge commit**, so the freeze commits stay in history for B4's guard. Run `check_numbers` and the suite on the
+merged tree.
+
+Next I judge the study code and its hash freeze, before run 1.
