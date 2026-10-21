@@ -156,7 +156,7 @@ def evening(data):
     today = data["indices"][0]["days"][-1]
     cards = "".join(evening_card(idx) for idx in data["indices"])
     return (_head(f'Evening check, {today["date_long"]}')
-            + _header("Was today’s forecast right?", today["date_long"], "19:00", data)
+            + _header("Was today’s forecast right?", today["date_long"], "20:05", data)
             + f'<div class="cols">{cards}</div>' + _foot(data) + "</div></body></html>")
 
 

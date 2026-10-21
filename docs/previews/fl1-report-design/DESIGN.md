@@ -23,7 +23,7 @@ in bold above the bar, almost certainly in grey below, the middle in the accent)
 its value. A thinner second row on the same scale is the 3-day outlook. Then the 30-day light. No OI tables: the
 levels, flows and contracts live in the attached details file.
 
-**B. Evening, about 19:00 IST: "Was today's forecast right?"** (`fl1-evening.html`), checked against today's
+**B. Evening, about 20:05 IST: "Was today's forecast right?"** (`fl1-evening.html`), checked against today's
 official close read after 15:30, when today's OI, PCR and FII/DII flows also exist. Per index: a big chip
 (✓ Correct inside "most likely", ⚠ Close call inside "almost certainly" only, ✗ Missed outside both), the forecast
 range and the actual close in one line, the reason on a red day; **graph 2**: today's range on the scale with the
