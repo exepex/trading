@@ -17,6 +17,7 @@ from datetime import datetime, time
 
 import requests
 
+from ..research_data.calendar import CalendarError
 from .preopen import LIVE, STALE
 
 # every failure one index's read can meet: the network (a block included), the answer, Drive, the private table
@@ -45,7 +46,16 @@ def cmd_preopen(out=print, now: Callable[[], datetime] | None = None, sleep=cloc
     from .wiring import build_preopen, build_preopen_committers, nse_session_day
 
     now, is_session = now or now_ist, is_session or nse_session_day
-    if not is_session(now().date()):
+    try:
+        trading = is_session(now().date())
+    except (
+        CalendarError
+    ) as exc:  # a year the calendar does not hold yet: the run's one alert and row (judge 439 add. 1)
+        out(f"preopen: STOPPED, NSE's calendar cannot answer ({type(exc).__name__})")
+        _record("NSE calendar cannot answer for today")
+        out(_alert("NSE calendar cannot answer for today"))
+        return 1
+    if not trading:
         out(NOT_A_TRADING_DAY)
         return 0
     _wait_for_window(now, sleep)
