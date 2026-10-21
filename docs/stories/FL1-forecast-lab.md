@@ -52,21 +52,26 @@ real orders (never); UI; a second desk; a second fill reader; AI calls.
 | Slot and timing | O1's daily run: `lab_close` is its last step, after `candles`, through `NotBefore(15:45)` and `Alerted`, with a `daily.live_from` date (agreed with the O1 builder): no new routine and no new prompt, so the 14:33 routine runs it; the A7 calendar (a closed day records `skipped`) | `fno/forecast_lab/` and its wiring `fno/forecast_lab/wiring.py`; the `lab close` command (O1 runs it as a child process); one step name in `DAILY_RUN_STEPS` and one line in `fno/daily/wiring.py` |
 | Forecasts | G13b's sealed records (one JSON per underlying, issue and day, write-once in Drive with an O9 receipt), read only through G13b's reader port `RangeForecasts.sealed(underlying, day, issue)`, never by path | the seal check on `sealed_at`, the GitHub push time of the issue's receipt (O8's push evidence; never a commit date, which the committer's clock sets, and never the self-reported `issued_at`; no push evidence means `late`, never assumed sealed): the 15:45 issue must be sealed before the next session's 09:15 |
 | Match report | G13b's scores (quantile score, 25-75 and 5-95 band coverage, `p_up` Brier, per forecaster, horizon and issue) and its outcome closes (NSE's official index close), read and never recomputed; LR1's section pattern and once-only `Publisher` | `MatchReport` sections: each forecast whose target is today against today's close (inside the 25-75 and 5-95 bands, direction of the median, quantile score); each baseline the same way; the running scoreboard and the trust line; then the next session's sealed N+1 and N+3 ranges |
-| Contract universe | NSE's F&O bhavcopy (A1's archive, the A13 job's reader); G13's Black-76 pricing (`fno/price_distribution/pricing.py`) | `ContractTracker`: see below |
+| Contract universe (FL1-1b) | NSE's F&O bhavcopy (A1's archive, the A13 job's reader); Black-76 (`fno/research_engine/implied_vol.py`); G13's quantile scorer | `ContractTracker`: see below |
 | Slack | `SlackChannelAlerts(token, channel)` with the same bot token; alerts stay on `build_alert_sender` (#fno-desk) | `FNO_FORECAST_CHANNEL_ID` and `FNO_INTRADAY_CHANNEL_ID` (the IDs the owner created on 21 Oct, passed by the orchestrator; they enter the repository only in FL1-1's code, with the scan change, because the scan refuses them until then) in `fno/forecast_lab/constants.py` (`fno/constants.py` is at 345 of 350 lines), imported into the record scan's `ALLOWED_VALUES` |
 
-**Contract tracking and scoring.** Every NIFTY and BANKNIFTY contract in the day's bhavcopy is tracked: calls, puts and
-futures, all expiries. Each contract gets a predicted N+1 price band. It is repriced with Black-76 at each of the 15:45
-issue's N+1 quantiles of its underlying, holding its own implied volatility from today's close fixed (sticky strike)
-and with one session less to expiry. A future is the quantile itself. This modelling choice ignores changes in implied
-volatility, and the report says so. The outcome is the contract's N+1 bhavcopy close. NSE publishes the bhavcopy in the
-evening, so a band for day N+1 is scored in the 15:45 report of N+2 (stated in the report). The scores are:
-- band coverage at 25-75 and 5-95;
-- quantile score in rupees;
-- coverage by moneyness bucket and expiry;
-- the same for the implied range, as the baseline.
-
-The report shows summaries, never 1,000 rows. The full table is a write-once Drive record.
+**Contract tracking and scoring: part FL1-1b, after FL1-1 merges** (scope freeze, orchestrator 21 Oct: phase 1 is the
+15:45 report and the match report; contract scoring needs nothing beyond G13b phase 1 but is not needed to start).
+Every NIFTY and BANKNIFTY contract in day d's bhavcopy is tracked: calls, puts and futures, all expiries. The rule
+(judge 403.3):
+- **Prices are `ClsPric`**, NSE's closing price, never `SttlmPric` (for an untraded option NSE's settlement is a
+  theoretical price). A contract counts as **traded** on a day only if its `TtlNbOfTxsExctd` (number of trades) is
+  above zero.
+- **Only contracts traded on d get a band.** Their implied volatility comes from d's close with Black-76 on the
+  same-expiry future's close, or, without one, on the index close times exp(rate x years) (stated). Each band is
+  repriced at each of the 15:45 issue's N+1 quantiles of the index, holding that volatility (sticky strike), one session
+  closer to expiry. This ignores changes in implied volatility, and the report says so.
+- **A future's band keeps its basis:** each quantile times the future's d close divided by the index's d close.
+- **Only contracts traded on N+1 are scored**, against N+1's `ClsPric`. The rest are counted as "not scored: untraded
+  on d" or "not scored: untraded on N+1", by moneyness bucket and expiry, never dropped silently.
+- NSE publishes the bhavcopy in the evening, so a band for day N+1 is scored in the 15:45 report of N+2 (stated).
+- Scores: 25-75 and 5-95 coverage, quantile score in rupees, by moneyness bucket and expiry, with the implied range
+  as the baseline. The report shows summaries; the full table is a write-once Drive record.
 
 Routing: #fno-forecast gets the 15:45 report. #fno-desk keeps every alert (a failed run, a missing or late forecast, a
 missing bhavcopy) and the T1 card.
@@ -133,9 +138,11 @@ FL1-1:
 3. The report's forecast scores equal G13b's scores on fixed rows (read, never recomputed).
 4. The trust line shows the trading-day count against 60 (calibration) and against 6-12 months (edge), every day.
 5. A rerun posts nothing a second time, and its records are byte-identical.
-6. Contract tracking covers every NIFTY and BANKNIFTY contract in a fixed bhavcopy (count checked). Its bands follow
-   the stated sticky-strike rule (a golden contract checked by hand). A missing bhavcopy is alerted and scored later,
-   never skipped silently.
+6. (FL1-1b) Contract tracking covers every NIFTY and BANKNIFTY contract in a fixed bhavcopy (count checked). Bands
+   follow the stated sticky-strike rule (a golden contract checked by hand); a future's band keeps its basis. A
+   contract untraded on d or on N+1 is counted "not scored: untraded" by bucket, never scored on a stale or
+   theoretical price (test with one untraded option each way). A missing bhavcopy is alerted and scored later, never
+   skipped silently.
 7. Only #fno-desk, #fno-forecast and #fno-intraday IDs pass the record scan (test). The bot's membership in both new
    channels is checked with one read-only `conversations.info` call in setup, never a test post.
 8. O11's replay covers `lab close` on its recorded day; until FL1-1 lands, its strict xfail names it.
