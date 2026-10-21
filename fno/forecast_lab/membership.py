@@ -1,5 +1,5 @@
 """Criterion 7: the bot's membership in #fno-forecast and #fno-intraday, checked with Slack's read-only
-`conversations.info` (its `channel.is_member`), never a test post. A go-live check before `daily.live_from.lab_close`
+`conversations.info` (its `channel.is_member`), never a test post. A go-live check before `forecast_lab.live_from`
 is set; the token never appears in a line."""
 
 from __future__ import annotations

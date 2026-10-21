@@ -50,10 +50,7 @@ def test_the_lowest_error_method_is_shown_with_today_s_written_ranges_and_the_30
     assert index.price == 25250.0 and len(index.horizons[0].timeline.points) == len(HISTORY_DAYS)
     assert view.system == () and (index.light, index.light_word) == ("green", "Good")
     assert index.wrong_days == tuple(reversed(HISTORY_DAYS[-5:]))  # newest first
-    assert [r.when for r in index.today] == [
-        "tomorrow",
-        "in 3 trading days, Tue 27 Oct",
-    ]  # the fake rows share a target
+    assert [r.when for r in index.today] == ["tomorrow", "tomorrow"]  # the words follow each row's own target day
 
 
 def test_a_missing_issue_is_a_system_problem_and_the_page_still_shows_the_history():

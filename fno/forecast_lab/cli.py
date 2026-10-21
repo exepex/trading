@@ -1,6 +1,7 @@
-"""`python -m fno lab close [--day D]` (story FL1-1): the 15:45 report to #fno-forecast, run by O1's `lab_close` step.
-Exit 0 when the report was posted or there was nothing to post (not a regular session, an already-posted rerun); exit
-1 when it was not posted, so O1's `Alerted` alerts the failure once (the command never alerts its own failure).
+"""`python -m fno lab open|close [--day D]` (stories FL1-1 and FL1-1d): the morning edition (today's forecast, before
+09:15) and the evening edition (was today's forecast right?) to #fno-forecast, each run by its own owner routine.
+Exit 0 when the report was posted or there was nothing to post (not live, not a regular session, an already-posted
+rerun); exit 1 when it was not posted (the routine notes it; the run alerts what it must itself).
 `python -m fno lab channels`: criterion 7's read-only membership check of the lab's two channels, a go-live check;
 exit 1 unless the bot is a member of both."""
 
@@ -13,21 +14,25 @@ NO_TOKEN = "lab channels: FNO_SLACK_BOT_TOKEN is not set; membership not checked
 
 
 def add_lab_parser(subparsers) -> None:
-    p = subparsers.add_parser("lab", help="FL1: the forecast lab's 15:45 report; its channels' membership check")
-    p.add_argument("action", choices=("close", "channels"))
+    p = subparsers.add_parser("lab", help="FL1: the forecast lab's morning and evening reports; channel membership")
+    p.add_argument("action", choices=("open", "close", "channels"))
     p.add_argument("--day", type=date.fromisoformat, default=None)
     p.set_defaults(func=cmd_lab)
 
 
 def cmd_lab(args, out=print, env=os.environ) -> int:
-    return _channels(out, env) if args.action == "channels" else _close(args.day, out)
+    return _channels(out, env) if args.action == "channels" else _edition(args.action, args.day, out)
 
 
-def _close(day: date | None, out) -> int:
+def _edition(action: str, day: date | None, out) -> int:
+    from ..composition import build_alert_sender
     from ..models import now_ist
-    from .wiring import build_lab_close
+    from .constants import EVENING, MORNING
+    from .edition_run import guarded
+    from .wiring import build_edition
 
-    result = build_lab_close().run(day or now_ist().date())
+    edition = MORNING if action == "open" else EVENING
+    result = guarded(edition, day or now_ist().date(), lambda: build_edition(edition), build_alert_sender())
     for line in result.lines:
         out(line)
     return 1 if result.failed else 0
