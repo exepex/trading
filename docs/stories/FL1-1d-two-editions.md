@@ -202,12 +202,12 @@ one). A17 is agreed as read-only, above.
 
 | Item | Edition | Day 1 | Later |
 |---|---|---|---|
-| Today's range (G13b N1, sealed) | morning | yes | G13b's N0 from A22 |
+| Today's range (G13b N1, sealed) | morning | yes | G13b's N0 cannot be ready by 08:50 (it needs the 09:09 pre-open); see the note below |
 | Last official close, VIX close | morning | yes, by fetching `ind_close_all` (out 23:20 the night before) | |
 | Events (RBI policy, Budget), expiry flags | both | yes (A6 events, A20a lot and expiry files) | macro dates with A20c |
 | US closes (S&P 500, Nasdaq 100), US 10-year | both | normally yes: A17's 03:41 run committed at 05:30-06:40 IST on 17-21 Oct (A17 builder, measured); else **not out yet** | |
 | Brent, USD/INR (RBI) | both | yes, with its own print date | |
-| GIFT Nifty, pre-open | morning | not available | A22 (code in progress) |
+| GIFT Nifty, pre-open | morning | not available | A22: one day file pushed at about 09:11 (A22 builder), after the 08:50 post; see the note below |
 | Asia and Europe | both | not available | A17e |
 | News headlines | morning | not available | A19 |
 | Today's close | evening | yes (NSE index list, A4h's reader) | |
@@ -215,6 +215,16 @@ one). A17 is agreed as read-only, above.
 | FII index futures net | evening | yes if participant OI is out (18:36-19:38 seen) | |
 | FII and DII cash | evening | when out; time not yet measured (release check) | |
 | Direction-aware miss reasons | evening | yes (FL1-1c) | global markets with A17e |
+
+**A22 timing (open, for the owner).**
+- A22's day row holds GIFT Nifty (read at 08:40) and the pre-open (09:08-09:14). It is one write-once file pushed at
+  about 09:11, so nothing from A22 can be in an 08:50 post.
+- Options:
+  - (a) A22 writes GIFT separately at about 08:42, and the 08:50 edition shows it as context;
+  - (b) a short second post at about 09:12 with N0 and the pre-open, which is FL1-2's 09:15 report;
+  - (c) both. The builder's recommendation is (c).
+- Until the owner chooses, this story does not read A22. Its reader (O9's DriveCache, `fno.preopen.day_row`) plugs in
+  behind a Section later.
 
 ## Acceptance criteria
 
