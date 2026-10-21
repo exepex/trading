@@ -183,6 +183,8 @@ commit with `--no-verify`.
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
   paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
+  `fno/v4_pack/wiring.py` (protocol v4's released packs through the verified Drive cache and the 15:10
+  deadline on GitHub's receipt time, story G10 part 2),
   `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5),
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
   parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
