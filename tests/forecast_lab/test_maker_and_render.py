@@ -15,8 +15,8 @@ class Pages:
     def __init__(self, view):
         self.view, self.calls = view, []
 
-    def build(self, day, now, alerts, checks):
-        self.calls.append((alerts, checks))
+    def build(self, day, now, edition, alerts, checks, confirmation):
+        self.calls.append((edition, alerts, checks, confirmation))
         return self.view
 
 
@@ -42,19 +42,20 @@ def view_with_history():
 
 def test_the_text_picture_and_details_come_from_one_page_model():
     pages = Pages(view_with_history())
-    text, files, extra = ReportMaker(pages, InterimRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(),
-                                                                              ("an alert",), "a\n\nb")  # fmt: skip
-    assert text.endswith("Research only. Not a trade tip.") and extra == ()
-    assert [f.name for f in files] == ["forecast-2026-10-23.png", "forecast-2026-10-23.html"]
-    assert files[0].data.startswith(b"PNG<!doctype") and pages.calls == [(("an alert",), ("a", "b"))]
+    made = ReportMaker(pages, InterimRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "evening",
+                                                                ("an alert",), "a\n\nb")  # fmt: skip
+    assert made.text.endswith("Research only. Not a trade tip.") and made.alerts == ()
+    assert [f.name for f in made.files] == ["forecast-evening-2026-10-23.png", "forecast-evening-2026-10-23.html"]
+    assert made.files[0].data.startswith(b"PNG<!doctype")
+    assert pages.calls == [("evening", ("an alert",), ("a", "b"), ())]
 
 
 def test_a_picture_that_cannot_be_made_sends_the_file_and_the_text_with_one_alert():
     maker = ReportMaker(Pages(view_with_history()), InterimRenderer(), Camera(fail=True))
-    text, files, extra = maker.make(date(2026, 10, 23), datetime.now(), (), "")
-    assert [f.name for f in files] == ["forecast-2026-10-23.html"] and text
-    assert extra == ("the 15:45 picture was not made (no Chromium at /nowhere); the text and the details file were "
-                     "posted without it",)  # fmt: skip
+    made = maker.make(date(2026, 10, 23), datetime.now(), "morning")
+    assert [f.name for f in made.files] == ["forecast-morning-2026-10-23.html"] and made.text
+    assert made.alerts == ("the morning picture was not made (no Chromium at /nowhere); the text and the details file "
+                           "were posted without it",)  # fmt: skip
 
 
 def test_both_pages_are_self_contained_and_carry_the_research_line():

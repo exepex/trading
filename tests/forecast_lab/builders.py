@@ -5,8 +5,11 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from functools import partial
 
+from fno.forecast_lab.composers import EveningComposer
+from fno.forecast_lab.constants import EVENING
 from fno.forecast_lab.delivery import Attachment, Delivery, ReportPoster
-from fno.forecast_lab.lab_close import LabClose, ReportRecords
+from fno.forecast_lab.edition_run import Edition, EditionRun, ReportRecords
+from fno.forecast_lab.maker import Made
 from fno.forecast_lab.match import MatchSection
 from fno.forecast_lab.ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, RangeSource, SealedIssue
 from fno.forecast_lab.report import CloseReport
@@ -115,8 +118,8 @@ class Poster(ReportPoster):
 class EchoMaker:
     """The message as FL1-1's seal-check and match lines, with one file: so the coverage tests read what they check."""
 
-    def make(self, day, now, alerts, checks):
-        return checks, (Attachment(f"forecast-{day}.html", b"<p>details</p>", "Details"),), ()
+    def make(self, day, now, edition, alerts=(), checks="", confirmation=()):
+        return Made(checks, (Attachment(f"forecast-{day}.html", b"<p>details</p>", "Details"),), (), ())
 
 
 def lab(forecasts, records=None, poster=None, alerts=None, closes=None, first_day=DAY, underlyings=("NIFTY",),
@@ -125,5 +128,7 @@ def lab(forecasts, records=None, poster=None, alerts=None, closes=None, first_da
     match = MatchSection(forecasts, closes or Closes(), SESSIONS, issues_from)
     report = CloseReport(forecasts, match, first_day, underlyings=underlyings)
     records, poster, alerts = records or Records(), poster or Poster(), alerts or RecordingAlerts()
-    run = LabClose(report, EchoMaker(), records, poster, alerts, SESSIONS.is_regular, partial(at, today, 15, 47))
+    composer = EveningComposer(report, EchoMaker(), records.report)
+    run = EditionRun(Edition(EVENING, first_day), composer, records, poster, alerts, SESSIONS.is_regular,
+                     partial(at, today, 20, 5))  # fmt: skip
     return run, poster, alerts

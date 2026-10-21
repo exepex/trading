@@ -82,3 +82,28 @@ class Outcomes(ABC):
     @abstractmethod
     def close(self, underlying: str, day: date) -> float | None:
         """NSE's official index close of the day (the one G13b scores against), or None before it is archived."""
+
+
+class TodayCloses(ABC):
+    """The evening's own close of the day, read before NSE's official file (story FL1-1d; A4h's reader plugs in here).
+    The value is labelled as such on the page, and the next morning confirms it against `Outcomes`."""
+
+    @abstractmethod
+    def close(self, underlying: str, day: date) -> float | None:
+        """The day's close as read, or None when it was not read."""
+
+    @abstractmethod
+    def why_missing(self, day: date) -> str:
+        """Why no close was read: the page says it in words."""
+
+
+class NoTodayCloses(TodayCloses):
+    """Until A4h's reader exists: the evening says plainly that no close was read, and checks nothing."""
+
+    REASON = "A4h's close reader is not built yet"
+
+    def close(self, underlying: str, day: date) -> float | None:
+        return None
+
+    def why_missing(self, day: date) -> str:
+        return self.REASON
