@@ -1,0 +1,29 @@
+"""Story FL1's fixed values and message templates (the channel IDs live in `fno/constants_channels.py`)."""
+
+from __future__ import annotations
+
+from datetime import time
+
+UNDERLYINGS = ("NIFTY", "BANKNIFTY")  # owner, 21 Oct 2026 (DESK_DECISIONS row 262)
+ISSUE_CLOSE = "1545"  # phase 1's one issue (owner, "Lab universe, report times and phasing")
+HORIZON_SESSIONS = {"N1": 1, "N3": 3}  # sessions after the issue day; N0 comes with the 09:15 issue (FL1-2)
+LEVELS = (0.05, 0.25, 0.50, 0.75, 0.95)
+SEAL_BY = time(9, 15)  # a forecast counts for a target day only if sealed before that day's open
+CALIBRATION_DAYS, EDGE_WINDOW = 60, "6-12 months"
+REPORT_AREA = "forecast_lab/v1/close"  # under O9's Drive data area: the report text and its posted marker
+
+HEADER = "F&O forecast lab {day}: 15:45 report (paper research only, never an order)"
+TRUST = (
+    "Trust: {days} scored trading day(s) of about {needed} needed to judge calibration; a trading edge needs {edge}. "
+    "One day's forecasts, of every contract, are one outcome, not many."
+)
+NO_ISSUE = "{underlying} {horizon} (issued {issue_day}): no forecast was sealed; nothing to score"
+LATE = "{underlying} {horizon} (issued {issue_day}): sealed late ({sealed}); not shown as a forecast"
+NOT_SEALED_YET = "{underlying} next sessions: today's 15:45 issue is not sealed yet; not shown"
+NOT_ARCHIVED = "{underlying}: today's official close is not archived yet; today's match comes in the next report"
+ALERT = "F&O forecast lab {day}: {what}"
+NOT_A_SESSION = "lab close {day}: not a trading day; nothing posted"
+ALREADY_POSTED = "lab close {day}: already posted; nothing posted again"
+POSTED = "lab close {day}: #fno-forecast: {outcome}; {alerts} alert(s) to #fno-desk"
+NOT_POSTED = "the 15:45 report was not posted to #fno-forecast ({outcome})"
+MAY_HAVE_POSTED = "Slack may still have posted it"  # T1's poster wording: never retried, so never posted twice

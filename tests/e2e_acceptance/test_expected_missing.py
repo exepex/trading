@@ -123,3 +123,13 @@ def test_each_ai_book_routine_records_its_own_usage_minutes():
 @missing("T3")
 def test_a_trade_card_carries_the_devils_advocate_objections():
     not_built("T3")
+
+
+@missing("FL1-1")
+def test_the_1545_lab_report_is_posted_on_the_recorded_day():
+    not_built("FL1-1's `lab close` as O1's last step (waits for G13b's 15:45 issue and its reader)")
+
+
+@missing("FL1-2")
+def test_the_0915_lab_report_and_its_0930_paper_fills_on_the_recorded_day():
+    not_built("FL1-2's `lab open` and the 09:30 fills (waits for A22, E8 and A16's universe)")
