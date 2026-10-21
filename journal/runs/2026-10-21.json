@@ -501,6 +501,26 @@
      "exit_code": 1
     }
    }
+  },
+  "close_recheck": {
+   "started_at": "2026-10-21T15:42:03.625006+05:30",
+   "finished_at": "2026-10-21T16:02:03.146618+05:30",
+   "inputs": {
+    "command": [
+     "closes",
+     "read",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "failed",
+     "reason": "command:exit_1",
+     "exit_code": 1
+    }
+   }
   }
  }
 }
