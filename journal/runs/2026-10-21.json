@@ -368,6 +368,27 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "recommend": {
+   "started_at": "2026-10-21T15:24:58.320933+05:30",
+   "finished_at": "2026-10-21T15:25:12.338752+05:30",
+   "inputs": {
+    "command": [
+     "recommend",
+     "decide",
+     "unlisted",
+     "2026-10-21"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNSET",
+    "exercised": {
+     "status": "failed",
+     "reason": "recommend:INPUT_PROBLEM",
+     "exit_code": 1
+    }
+   }
   }
  }
 }
