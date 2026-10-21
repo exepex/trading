@@ -5,7 +5,6 @@ for `not_built`, writes the real check). The suite is complete when this file ho
 
 import pytest
 
-from fno import constants
 from fno.cards.weather import PendingWeather
 from fno.cards.wiring import build_daily_card
 from fno.config import ROOT, load_app_config
@@ -78,11 +77,6 @@ def test_books_2_and_3_fill_and_exit_in_the_daily_run():
 @missing("F1t")
 def test_each_ai_decision_records_the_model_served_and_its_session():
     not_built("F1t's model reporting (model_served, session_id) in Books 2 and 3's decision records")
-
-
-@missing("E8")
-def test_paper_fills_follow_the_owners_reaction_time():
-    assert constants.VERDICT_REACTION_MINUTES == 60 and "owner_timing" in load_app_config()["desk"]
 
 
 @missing("G6")

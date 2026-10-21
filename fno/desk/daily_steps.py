@@ -26,7 +26,7 @@ from .daily_ports import (
     ValidityGate,
     VersionKeeper,
 )
-from .entries import EntryDesk
+from .entries import EntryFiller
 from .exits import ExitDesk
 from .no_decision import write_no_decision
 from .pack_items import PackError
@@ -71,7 +71,7 @@ class DeskSteps:
     gate: DataGate
     validity: ValidityGate
     sync: AccountSync
-    entry_desk: EntryDesk
+    entry_desk: EntryFiller
     exit_desk: ExitDesk
     exit_rules: ExitRules
     alerts: AlertSender
