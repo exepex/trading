@@ -250,3 +250,24 @@ The diff to `PROTOCOL.md` holds only the additions I asked for:
 - New notes 1 and 2 from addendum 1 stay open: check C2's crossing on every scored day, and drop Brent from the
   `DATA_SPEND.md` row.
 - Then I judge the code and its hash freeze before run 1.
+
+## Addendum 3: the final freeze at 9c67a3c7, freeze record 13241191 (number 428.3, claimed with `tools/claim_number.py`)
+
+**PASS, and this is the frozen protocol to merge.** It supersedes eb8d061a, which I passed in addendum 2. Its delta
+holds only addendum 1's notes 1 and 2:
+- C2: a crossing on any scored select or final day now counts the cell as a failed fit for C2.
+- `DATA_SPEND.md`'s global-cues row now reads "S&P 500, US 10-year, USD/INR (Brent dropped, judge 428)".
+- Section 14 records both changes.
+
+### Freeze and ledger
+- The SHA-256 is `89de9cf4...dfaa` at both 9c67a3c7 and 13241191, as `FREEZE.md` records.
+- All 15 ledger rows name 9c67a3c7.
+- I re-read the full delta from a7a1b28a: apart from the C2 rule, it is wording and process only (section 2's honest
+  limit, section 12's (a)-(d), section 14).
+
+### Merge
+The registration (protocol, freeze record, ledger rows 56-70, `LEDGER.md`, `DATA_SPEND.md`) may merge to main as a
+**merge commit**, so the freeze commits stay in history for B4's guard. Run `check_numbers` and the suite on the
+merged tree.
+
+Next I judge the study code and its hash freeze, before run 1.
