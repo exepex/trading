@@ -152,7 +152,8 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 - **HAR (daily):** OLS, levels: mean per-session close-proxy RV over the next `h` sessions on an intercept and the mean
   RV of the last 1, 5 and 22 sessions; most recent 750 rows resolved before the refit (at least 500); refit on the first
   scored session of each month; forecast `h x prediction`. **HAR (intraday):** the same on intraday `RV_s`, from 250
-  A16 sessions (all available up to 750).
+  A16 sessions (all available up to 750); its 1-, 5- and 22-session means are taken over the usable (non-void)
+  sessions, so a void session is skipped, never a reason for the day's value to be missing.
 - **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the pack (section 1.6; G1 v2's live
   estimator on the pack's quotes).
   **A flagged IV30** (single expiry, `AtmIv30.flagged`) gives no raw and no premium-adjusted value that day: missing
@@ -216,17 +217,21 @@ missing; daily HAR never stands in again.
   counted on every report. For a probability question the gate set is the scored set.
 - **Missed days (revision 9; owner decisions of 15 Oct 2026, responses 144-147, judge 138-139, ChatGPT review 112;
   `misses.py`).** Verdicts use observed days only; a missed day is never imputed, because a filled-in day gives d = 0
-  while the futility test still adds the minimum effect, so a forecaster that never ran would be called futile. What
-  the scored set leaves out is counted from the forecaster's first forecast (earlier days are "not started"); at a
-  look after the freeze, from the day after the freeze for a forecaster that had already started, so a member that
-  breaks straight after the freeze still counts those days:
+  while the futility test still adds the minimum effect, so a forecaster that never ran would be called futile. After
+  the freeze, what the scored set leaves out is counted for each **registered** slot from its `effective_start`, the
+  session named in its row of `research/forecasts/v4_slots.csv`: a session after the freeze and no later than the
+  slot's first eligible session (the first live day after the freeze with a primary-baseline value). So every
+  baseline-observable day from then on is observed or missed, even before the slot's first forecast (owner, 16 Oct
+  2026, "from the declared start"; ChatGPT review 119). An **unregistered** slot is "not started": p = 1, never
+  judged. Exploratory runs before the freeze count misses from the forecaster's first forecast:
   - a **miss** is a resolved, non-void day where the primary baseline forecast and the forecaster did not (a null
     answer is a miss);
   - an **input failure** is a resolved, non-void day where neither forecast (the common pack failed); it is counted
     apart and is never a miss;
   - a member is **"undecided, operations"** at a look when it missed more than **10%** of its baseline-observable days,
     or more than **10%** of the baseline-observable 2% days (the regime's 2% days, section 5); so with **fewer than 10**
-    such days, missing **any** of them is already more than 10%. Such a member is not judged at that look: never a claim, never futile.
+    such days, missing **any** of them is already more than 10%. Such a member is not judged at that look: never a
+    claim, never futile.
   - Every comparison and every look prints each member's misses, 2% days missed and input failures.
 - **A `system_late` day** (section 1.6) is excluded for every member and counted apart; **a commitment received
   after 15:10:00** is no forecast that day (a miss). Every report states each label's day count and the flagged days.
@@ -245,14 +250,16 @@ missing; daily HAR never stands in again.
    claims at a look only with **at least 12 whole batches** and a **batch-means t** p-value (Student t, batches - 1
    df) **at or below its worst-case calibrated threshold**, computed at the look for the member's n by the frozen
    tools. **Every member also needs at least 5 2% days in the scored window** (`confirmatory.judgeable`; V1 and V2
-   from revision 8), else it is undecided at that look; V6a and V6b use the thresholds of the window's band (5-7,
-   8-12, 13+ days), V1 and V2 one threshold (measured: no band needed). A member that is "undecided, operations"
-   (section 4, revision 9) is not judged at that look. **V7 is descriptive-only in v4** (revision 6: no measured rule holds
-   its size across VIX regimes; its slots stay at p = 1, never a claim, never futile, not counted in Test A). Every
-   threshold, the nulls behind
-   it, the measured sizes and what "held-out" proves are in **`PROTOCOL_v4_calibration.md` (part of this protocol,
-   frozen with it)**. The studentized bootstrap, revision 0's centred bootstrap and a Newey-West HAC t are reported
-   sensitivities, **never used to choose a result**.
+   from revision 8), else it is undecided at that look. **A window whose 2% days are more than 10% of its scored
+   outcomes is not judgeable either, for every member** (`confirmatory.crash_dominated`; section 11 E, option 2): at
+   n = 125 a judgeable window holds at most 12 such days, so the 13+ band starts at n = 130. V6a and V6b use the
+   thresholds of the window's band (5-7, 8-12, 13+ days), V1 and V2 one threshold (measured: no band needed). A member
+   that is "undecided, operations" (section 4, revision 9) is not judged at that look. **V7 is descriptive-only in
+   v4** (revision 6: no measured rule holds its size across VIX regimes; its slots stay at p = 1, never a claim,
+   never futile, not counted in Test A). Every threshold, the nulls behind it, the measured sizes and what
+   "held-out" proves are in **`PROTOCOL_v4_calibration.md` (part of this protocol, frozen with it)**. The studentized
+   bootstrap, revision 0's centred bootstrap and a Newey-West HAC t are reported sensitivities, **never used to choose
+   a result**.
 4. **Minimum effect, registered (owner's 3%, unit confirmed 15 Oct 2026):** on the gate set, the relative improvement
    `-mean(d) / mean(baseline loss)` must be **at least 0.03** for a point question, with the baseline's **textbook**
    QLIKE as the loss (so the gate reads "3% lower mean textbook QLIKE on the same RV > 0 dates"), and **at least 0.02**
@@ -333,6 +340,11 @@ calibrated threshold replaces rate / 15 in this formula, which needs far more ou
 - **Consequence:** 2017-2026 history is spent for V6 base rates and for any V-question tuned on it; it gives
   exploratory results only (`research/DATA_SPEND.md` once R1 writes it). **Only forecasts made after the freeze count.**
   Any G7 or G8 back-fill run before the freeze is labelled exploratory and is disclosed in the freeze record.
+- **Back-fills run before the freeze (exploratory, never counted, each row `backfill_exploratory`):** G7's baselines
+  and rule forecasters from closes (`research/forecasts/v4/`: `base_rate`, `trailing`, `ewma_094`, `har_daily`,
+  `v6_ewma_t4`, and G7b's `v2_close_blend`, `v3_close_blend`, `v7_vix_vs_mean20`); M1's weather (`weather`,
+  `weather_vix_v1`, `weather_checklist_v0`); G8's exploratory reports (`research/forecasts/v4_scores/`) and demo
+  look. The freeze record names each with its commit and date range.
 - **Back-fill against live (G10):** the back-fill uses closes where live forecasts use the pack's values; no intraday
   implied-volatility history exists (the panel holds end-of-day chains only), so the two cohorts are never pooled.
 
@@ -395,6 +407,8 @@ confirmation of section 11's items A-C (given, 15 Oct 2026), D and E; X of secti
      13-16% of windows; the VIX cut (mean above 25) costs 8-9% but adds larger errors. Some evidence, one crash.
   3. **V6b descriptive** like V7: no claimable member is left in v4, so Test A could never say "yes".
   No recommendation from me between 1 and 2-share (the measured difference rests on one crash); 3 ends every claim.
+  **Decided: option 2, the share cut** (owner, 15 Oct 2026, `docs/DESK_DECISIONS.md`, "G6 item E: option 2"): written
+  in 5.3 (`confirmatory.crash_dominated`). Every verdict still prints its window's regime.
 
 Also open to challenge: the family without V3-V5 (5.6), special sessions out (2), V2-V3 on `close_proxy` (1.1), the
 5% spread limit and parity forward (1.4), strict "inside" for V5 (1.5).

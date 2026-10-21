@@ -200,12 +200,12 @@ budget:
 
 # Story O1: the daily run's own steps (`python -m fno daily run`) start live only from these dates (YYYY-MM-DD); null:
 # not live, the step is recorded `not_live`. Set by the owner or a freeze, never by the run (a first live weather
-# record ends M1's back-fill; live v4 rows before the G6 freeze would mix with it).
+# record ends M1's back-fill; live v4 rows made on or before the G6 freeze's `Frozen on:` day are never counted).
 daily:
   live_from:
     margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
-    weather: null
-    forecasts_v4: null
+    weather: "2026-10-22"  # owner, 21 Oct 2026 (response 299 item 15): on before the v4 freeze, routine at 14:05
+    forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
     card: null
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
