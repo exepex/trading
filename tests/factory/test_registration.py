@@ -106,3 +106,13 @@ def test_backfill_needs_a_registered_trial(repo):
     write_card(repo)
     with pytest.raises(RegistrationError, match="not in research/ledger.csv"):
         build_registration(repo).backfill(read_idea("X1", repo))
+
+
+def test_a_book3_row_in_the_ledger_never_stops_the_next_numbered_trial(repo):
+    """D5 registers `book3:<strategy_id>` rows in the same ledger (fno/book3/registry.py); the next factory trial
+    counts numbered rows only, as S1's freeze does (FL1 builder's finding, 21 Oct 2026)."""
+    Ledger(repo).register("book3:x-v1", "book3", "Book 3 strategy x-v1", "prospective", True, "s.yaml", DAY)
+    commit(repo, "book3 row")
+    write_card(repo)
+    build_registration(repo).register(read_idea("X1", repo), DAY)
+    assert Ledger(repo).rows()[-1]["trial_id"] == "3"

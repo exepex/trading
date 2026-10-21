@@ -39,7 +39,9 @@ class IdeaRegistration:
             raise RegistrationError(f"trial {card.trial_id} is already in {LEDGER_FILE}")
         if any(row["protocol_path"] == card.path for row in rows):
             raise RegistrationError(f"{card.path} is already registered (a variant is a new card with a new id)")
-        expected = str(max((int(row["trial_id"]) for row in rows), default=0) + 1)
+        expected = str(
+            max((int(r["trial_id"]) for r in rows if r["trial_id"].isdigit()), default=0) + 1
+        )  # book3:<id> rows
         if card.trial_id != expected:
             raise RegistrationError(
                 f"{card.path}: field 'trial' is {card.trial_id}, the next ledger trial is {expected}"
