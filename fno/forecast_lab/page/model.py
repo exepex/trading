@@ -134,6 +134,7 @@ class IndexView:
     backtested: int = 0  # of the last `scored` sessions, those scored on a back-fill, not a live sealed forecast
     why: tuple[Cue, ...] = ()  # the 2-4 key points (FL1-1d-2), in the stated order; context is never a cause
     levels: tuple[Cue, ...] = ()  # the evening's levels and flows table (FL1-1d-2)
+    result: Outcome | None = None  # the edition's own check: today's (evening) or the previous session's (morning)
 
 
 @dataclass(frozen=True)

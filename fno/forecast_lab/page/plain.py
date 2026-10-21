@@ -21,6 +21,7 @@ NORMAL = "✅ All systems normal."
 EDITIONS = {"morning": ("Today's forecast", "08:50"), "evening": ("Was today's forecast right?", "20:05")}
 RESULTS = {(True, True): "✓ Correct", (False, True): "⚠ Close call", (False, False): "✗ Missed"}  # the designer's words
 PROVISIONAL = "NSE's close; the official file confirms it tomorrow"
+OFFICIAL = "NSE's official close; G13b's score follows"
 
 
 def day_short(day: date) -> str:
@@ -66,13 +67,13 @@ def record_words(index: IndexView) -> str:
 
 
 def result_words(index: IndexView, today: date) -> str:
-    """The evening's verdict on today's forecast, or "" when today was not checked."""
-    points = index.horizons[0].timeline.points if index.horizons else ()
-    last = points[-1] if points else None
-    if last is None or last.day != today:
+    """The edition's own check (today's in the evening, the previous session's in the morning), or "" when none."""
+    result = index.result
+    if result is None:
         return ""
-    label = f" ({PROVISIONAL})" if last.provisional else ""
-    return f"today closed {last.close:,.2f}{label}: {RESULTS[(last.inside_50, last.inside_90)]}"
+    when = "today" if result.day == today else day_short(result.day)
+    label = PROVISIONAL if result.provisional else OFFICIAL
+    return f"{when} closed {result.close:,.2f} ({label}): {RESULTS[(result.inside_50, result.inside_90)]}"
 
 
 def index_line(index: IndexView, today: date) -> str:

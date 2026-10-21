@@ -102,7 +102,7 @@ def test_an_evening_without_today_s_close_checks_nothing_and_says_why():
     assert points[-1].day == HISTORY_DAYS[-1] and not any(p.provisional for p in points)
     said = (
         "NIFTY: today's close was not read (NSE's index list did not answer); today is not checked here, and its "
-        "result appears in tomorrow evening's report, once G13b scores NSE's official close"
+        "result appears in tomorrow morning's report once NSE's official close is archived"
     )
     assert said in view.system
 
@@ -131,3 +131,29 @@ def test_every_outcome_carries_its_gap_to_the_middle_so_the_page_never_computes_
     view = build("evening", (implied(FRI), implied(MON)), read=25390.0, at_time=(20, 5))
     last = view.indices[0].horizons[0].timeline.points[-1]
     assert (last.gap_points, last.gap_pct) == (90.0, round(90 / 25300 * 100, 3))
+
+
+THU = date(2026, 10, 22)
+
+
+class UpToThursday(History):
+    """G13b's scores at 08:50 on Monday: Friday's close is not scored yet."""
+
+    def points(self, underlying):
+        return [p for p in super().points(underlying) if p.target_day <= THU]
+
+
+def test_the_morning_checks_the_previous_session_on_its_official_close_when_not_scored_yet():
+    view = build("morning", (implied(THU), implied(FRI)), official={FRI: 25390.0}, history=UpToThursday())
+    (index,) = view.indices
+    assert (index.result.day, index.result.close, index.result.provisional) == (FRI, 25390.0, False)
+    assert index.horizons[0].timeline.points[-1] == index.result and index.scored == 30
+    assert slack_lines(view)[1].startswith("*NIFTY* · Fri 23 Oct closed 25,390.00 (NSE's official close; G13b's score "
+                                           "follows): ✓ Correct · today: most likely")  # fmt: skip
+
+
+def test_the_morning_does_not_check_a_session_already_scored_or_without_its_official_close():
+    scored = build("morning", (implied(THU), implied(FRI)), official={FRI: 25390.0})  # History scores Friday
+    assert scored.indices[0].result is None
+    unarchived = build("morning", (implied(THU), implied(FRI)), history=UpToThursday())
+    assert unarchived.indices[0].result is None
