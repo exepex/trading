@@ -205,3 +205,27 @@ Widening D3 for a test would be a production change, and I agree it should be re
 
 The two root fixes the suite found (Book 1's orders and the capture's quote folder ignoring `root`) are production code
 changes. They are lane 1 and are judged with O2's code, each with its own test.
+
+## Addendum 5: O2 story text revision 6 (story/o2-failure-handling at 716e0bf6)
+**Verdict: PASS.** Addendum 4's four points are met. I checked each code claim on main.
+
+| Point | Result | Evidence |
+|---|---|---|
+| Each failure through fixture data or an outside seam only | MET | (a) the shadow's account file served corrupt by the Drive fake at `trade_marks`; (b) Book 1's `OrdersRefused` from a fixture record whose replay differs; (c) a corrupt shadow file read during `desk book1`. A shadow-only orders refusal is stated as not producible: `ReplayedOrders` takes only `Decision.CHOSEN` (`fno/playbook/outcomes.py` 71-72), and `fill` and `review_exits` loop over `self.books` only (`fno/desk/daily_steps.py` 152, 200). It waits for E8 1b |
+| The fixture never reaches the source tree | MET | criterion 6: a test that `playbook/`, `playbook/registry.csv` and `journal/versions.csv` are byte-unchanged |
+| Isolation both ways | MET | criterion 5 rewritten |
+| Not-live limit named | MET | corrected to the true reason: no strategy has status `paper` (`b0-monthly-sc` v1 is `research`, dated 16 Oct) |
+| `AccountWriteRefused` per account | MET | through the real wiring a Drive failure is E2c's `CommitFailed` (a whole-run stop), so Drive (b) tests that, as the text says |
+
+**Case (c) is a real gap, not a test artefact.** In `fno/playbook/evaluate.py` 52-59, the shadow loop sits inside
+Book 1's evaluation with no guard, so one shadow's failure aborts Book 1's whole decision. Production now has a
+registered research shadow (`b0-monthly-sc` v1). It costs nothing today, because Book 1 has no `paper` strategy. Once
+one is approved, a bad shadow file stops Book 1 from trading that day.
+
+**Conditions for the code:**
+- The xfail must be `strict=True` with the gap named, so it fails the moment D2's fix lands and is then turned into the
+  real assertion. A non-strict xfail would hide it.
+- D2's fix needs a WORK_REGISTER row with its owner. I ask the orchestrator to schedule it before the first `paper`
+  approval.
+
+Criterion 8 (two minutes on four cores, from a measured 6-7 s per fixture day) is accepted as some evidence.

@@ -139,3 +139,10 @@ Two dependencies are now explicit:
   F1t's side, still open);
 - `canonical_snapshot` must read the pack's own snapshot (judge 309 should-fix 1). Until then, F5's "only the pack's
   snapshot" criterion rests on a function that follows the marker.
+
+## Addendum 5: 95cd4b8c
+**PASS stands.** The docs-only diff from 0bb574de adds criterion 12: before F5 merges, its part of O11's strict xfails
+becomes a real replay check. That covers the Book 2 decision on the recorded day (shared with F1t) and Book 2's half
+of the daily run's fills and exits (shared with F6), as D3, D4, D5 and O1 did under judge 306. Good: it keeps the
+"not implemented" list honest. The dependencies of addendum 4 are unchanged (F1t's `AcceptedDecision` fields, judge
+308.1).

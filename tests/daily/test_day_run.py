@@ -114,7 +114,7 @@ def test_nifty_and_nse_start_together_the_indices_after_nifty_s_commit_nifty_com
     runner, run, _, parts, commits, _ = day(script(nifty=(14, 56), nse=(14, 55)))  # NSE ends first
     runner.run(NORMAL)
     started = {arguments: when for when, arguments in parts.processes.started}
-    assert started[NIFTY] == started[NSE] == at(14, 35, day=NORMAL)
+    assert started[NIFTY] == started[NSE] == at(14, 38, day=NORMAL)  # A4's earliest start (EARLIEST_START), not 14:35
     assert started[INDICES] == at(14, 56, day=NORMAL)  # right after NIFTY's commit, not before
     assert [(when, message.split()[-1], paths) for when, message, paths in commits] == [
         (at(14, 56, day=NORMAL), "nifty", ("nifty.canonical",)),  # first, though NSE ended before it

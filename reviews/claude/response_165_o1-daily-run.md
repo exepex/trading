@@ -332,3 +332,29 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   judge D's final addendum passes criteria 1-8 and 10, and criterion 9 is a post-merge check. Its evidence is the
   first trading day's `journal/runs/<date>.json`, the commit list and the card in #fno-desk, added here and checked by
   judge D. S1 counts no day before it.
+
+### Fix: the 3 pm parts' earliest start (16 Oct, `story/o1-part-start`)
+
+- **Found by** O2's end-to-end day (story/o2-failure-handling): a fixture day started at 14:33, the routine's time,
+  and NIFTY's part printed "too early: - (0 contracts, complete=False)".
+- **Root cause (strong evidence):**
+  - A4's recorder refuses a start more than 20 minutes before 14:55 (`fno/quotes/recorder.py` 40, 137-140);
+  - O1 started NIFTY's and NSE's parts first thing in the run (judge 178);
+  - so a run starting before about 14:35 records neither. That is the routine's own time today if the setup is quick,
+    and every day after G10's 14:05.
+  - Today's live capture worked only because the old prompt ran `quotes record` after setup.
+- **Fix:**
+  - `QuotePart.not_before = EARLIEST_START`, which is `WINDOW_START - MAX_EARLY_WAIT_SECONDS + 3 min` = 14:38, taken
+    from A4's own constants and not typed;
+  - `QuoteParts.start_due()` never runs git and is called from every wait: `service()`, so the desk's
+    `ServicingWaiter` and the stopped run's `finish`, and the commands' poll loop, through `waiting` in
+    `fno/daily/wiring.py`;
+  - the commits stay between the steps, in the run's one thread.
+- **Tests:** `tests/daily/test_part_start.py`.
+  - A4's real recorder at 14:33 says "too early", and from 14:38 it waits for the window.
+  - No part starts before its time; it starts once from `start_due` and makes no commit.
+  - Every command of the built run starts due parts while it waits.
+  - `test_day_run`'s start time is now 14:38.
+- **Faults planted:**
+  - no `start_due` in `waiting`: the wiring test fails;
+  - no `not_before`: 2 tests fail.
