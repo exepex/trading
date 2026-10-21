@@ -1,6 +1,7 @@
 """One chart per index: a column per trading day (its forecast range as two shaded blocks, the close as a dot),
 then the forecast columns on the right with their numbers written beside them. Standard library only."""
 
+import math
 from dataclasses import dataclass
 
 
@@ -8,8 +9,18 @@ def fmt(value):
     return f"{int(round(value)):,}"
 
 
-def fmt10(value):
-    """Forecast numbers rounded to the nearest 10: easier to read, and no false precision."""
+def fmt_low(value):
+    """A range's lower edge rounded down to 10 (the builder's rule in fno/forecast_lab/page/plain.py: outward)."""
+    return f"{int(math.floor(value / 10) * 10):,}"
+
+
+def fmt_high(value):
+    """A range's upper edge rounded up to 10 (outward, as above)."""
+    return f"{int(math.ceil(value / 10) * 10):,}"
+
+
+def fmt_mid(value):
+    """The middle guess rounded to the nearest 10."""
     return f"{int(round(value / 10) * 10):,}"
 
 
@@ -110,10 +121,11 @@ class RangeColumnChart:
             f'<line class="mid" x1="{x - 3:.1f}" x2="{x + w + 3:.1f}" '
             f'y1="{self.y(f["mid"]):.1f}" y2="{self.y(f["mid"]):.1f}"/>',
         ]
-        labels = [("hi90", "faint"), ("hi50", "num"), ("mid", "centre"), ("lo50", "num"), ("lo90", "faint")]
-        ys = _spread([self.y(f[key]) for key, _ in labels], 17)
-        for (key, cls), y in zip(labels, ys):
-            parts.append(f'<text class="{cls}" x="{tx:.0f}" y="{y + 4.5:.1f}">{fmt10(f[key])}</text>')
+        labels = [("hi90", "faint", fmt_high), ("hi50", "num", fmt_high), ("mid", "centre", fmt_mid),
+                  ("lo50", "num", fmt_low), ("lo90", "faint", fmt_low)]
+        ys = _spread([self.y(f[key]) for key, _, _ in labels], 17)
+        for (key, cls, show), y in zip(labels, ys):
+            parts.append(f'<text class="{cls}" x="{tx:.0f}" y="{y + 4.5:.1f}">{show(f[key])}</text>')
         return parts
 
     def svg(self, aria):

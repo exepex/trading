@@ -81,5 +81,5 @@ from the score table at 390 px was found and fixed), no console errors, no exter
 no label overlaps another, the smallest type is 12 px, the five questions read top to bottom.
 
 Honest limits: the numbers behind the 30 columns were recovered from v4's chart coordinates (see README.md), so a
-value may be off by up to about 20 points; the builder draws from the real records. Rounding of the headline ranges to
-the nearest 10 is the designer's choice for readability; the builder decides the final rounding rule.
+value may be off by up to about 20 points; the builder draws from the real records. The headline ranges round outward to 10 (low down, high
+up), the builder's rule in `fno/forecast_lab/page/plain.py`, so the picture and the three text lines agree.

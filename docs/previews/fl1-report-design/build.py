@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 
-from chart import Layout, RangeColumnChart, fmt, fmt10
+from chart import Layout, RangeColumnChart, fmt, fmt_high, fmt_low
 
 HERE = Path(__file__).parent
 PICTURE_DAYS = 10
@@ -24,7 +24,7 @@ def _header(data):
 
 
 def _range(f):
-    return f'{fmt10(f["lo50"])} – {fmt10(f["hi50"])}', f'{fmt10(f["lo90"])} – {fmt10(f["hi90"])}'
+    return f'{fmt_low(f["lo50"])} – {fmt_high(f["hi50"])}', f'{fmt_low(f["lo90"])} – {fmt_high(f["hi90"])}'
 
 
 def _forecast_block(idx):
