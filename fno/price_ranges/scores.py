@@ -102,7 +102,7 @@ def consistency(records: Iterable[tuple[dict, bool]], v6a: Callable[[str], float
         if record.get("underlying") != "NIFTY":
             continue
         row = next((r for r in record.get("rows", []) if r["forecaster"] == IMPLIED and r["horizon"] == "N1"), None)
-        if row is not None and row["p_big_move"] is not None:
+        if row is not None and row.get("p_big_move") is not None:
             lines.append({"day": record["day"], "label": record["label"], "implied_p_big_move": row["p_big_move"],
                           "v6a": v6a(record["day"])})  # fmt: skip
     return lines

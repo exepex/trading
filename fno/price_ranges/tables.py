@@ -20,8 +20,10 @@ UNCHANGED = "{underlying} closes: no new row (table through {through})"
 
 
 class CloseTables:
-    def __init__(self, store: DistributionStore, receipts: ReceiptFolder, cache: DriveCache):
-        self.store, self.receipts, self.cache = store, receipts, cache
+    def __init__(
+        self, store: DistributionStore, receipts: ReceiptFolder, cache: DriveCache, first_day: date = FIRST_DAY
+    ):
+        self.store, self.receipts, self.cache, self.first_day = store, receipts, cache, first_day
 
     def latest_path(self, underlying: str) -> str | None:
         prefix = f"{underlying.lower()}_through_"
@@ -41,7 +43,7 @@ class CloseTables:
         """Appends every regular session after the table's last day up to `through`; returns its lines and gaps."""
         text = self.latest_text(underlying)
         rows = table_rows(text) if text else []
-        first = rows[-1].day + timedelta(days=1) if rows else FIRST_DAY
+        first = rows[-1].day + timedelta(days=1) if rows else self.first_day
         if first > through:
             return [UNCHANGED.format(underlying=underlying, through=rows[-1].day if rows else None)]
         found, gaps = files.rows(underlying, first, through)

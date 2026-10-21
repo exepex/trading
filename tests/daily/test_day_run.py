@@ -68,6 +68,7 @@ def day(root, tmp_path, alerts):
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
                 "price_distribution": RecordedStep("price_distribution", calls),
+                "price_ranges": RecordedStep("price_ranges", calls),
                 "candles": RecordedStep("candles", calls),
             }
             | (steps or {}),
@@ -91,6 +92,7 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
         "reviews",
         "card",
         "price_distribution",
+        "price_ranges",
         "candles",
     ]
 
@@ -185,7 +187,7 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
     assert calls == ["margin_check", "weather", "forecasts_v4", "book1", "reviews"]
-    assert new_calls == ["card", "price_distribution", "candles"]
+    assert new_calls == ["card", "price_distribution", "price_ranges", "candles"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
 
