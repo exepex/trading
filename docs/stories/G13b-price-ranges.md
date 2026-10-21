@@ -3,7 +3,9 @@
 **Repository:** trading · **Lane:** 1 (new story; forecast and evaluation records) · **Judge:** E · **Builder:**
 session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Branch:**
 `story/g13b-price-ranges` · **Depends on:** G13 (`fno/price_distribution/`; judge 310.1 PASS) · **Status:** story text
-for the judge (no code). Revision 2: the owner's 21 Oct scope and phasing, FL1's and G7's agreements.
+for the judge. Revision 2: the owner's 21 Oct scope and phasing, FL1's and G7's agreements (judge 406.1 PASS).
+Revision 3: `S_ref` at 15:45 is the 3 pm chain's spot, because the official close is not out yet; judge 406's two
+minors are written in; the scope freeze (DESK 21 Oct) builds part A only.
 
 **Description.** As the owner, I want:
 - an honest price range for NIFTY's and BANKNIFTY's next-session and third-session close after each day's close, and
@@ -83,9 +85,20 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   (part C) and `0930` (optional, not built; question 1), so records never change schema.
 - **Horizons:** `N1` and `N3`, the close of the first and third regular session after `d` (A7 calendar; past the
   calendar's end: `not_eligible`). At 15:45 there is no `N0` row, because the day has closed.
-- **`S_ref`:** `d`'s official close through `Outcomes.close(underlying, d)` (A4 below), first seen before 15:45. If it
-  is not yet seen, the issue is `missing` with its reason; a 15:00 price is never relabelled.
-- **`τ`** (sessions of variance, reasoning only): from a close to the k-th close after it, `τ = k`.
+- **`S_ref`** (revision 3: the official close is not out at 15:45). NSE's index-close file is archived in the evening:
+  `warmup_closes.csv` rows land 17:29-20:43 UTC, i.e. 23:00-02:13 IST, 13-16 Oct (git log). So `S_ref` is the spot
+  recorded with `d`'s canonical 3 pm chain:
+  - NIFTY: A4's 14:55-15:10 capture;
+  - BANKNIFTY: A4c's 15:01-15:13 capture.
+  - The chain's time is kept as `s_ref_at`, and `S_ref` is synchronous with the chain the `implied` forecaster reads.
+  - No chain means `missing`.
+  - The outcome is still the official close (A4). The move from the capture to `d`'s close is part of every
+    forecaster's uncertainty, through `τ`.
+- **`τ`** (sessions of variance, reasoning only): from the capture to the k-th close after `d`,
+  `τ = k + (1 - 0.393) x 30/375 = k + 0.049`.
+  - 0.393 is the measured overnight share (A16b candles, 2020-2025).
+  - 30 of the session's 375 minutes remain after about 15:00, and the intraday variance is taken as even in time.
+  - The constant is frozen in the method and printed beside the coverage in every report (judge 406 minor 1).
 
 **A2. Forecasters** (ids in `fno/price_ranges/constants.py`).
 - **`implied`:** G13's distribution of `d`'s 3 pm chain.
@@ -94,12 +107,12 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - The chain is 35 minutes older than `S_ref`: the scaling counts sessions from `d`'s close, and the 14:55-15:30
     move is in `S_ref` (reasoning only).
   - Back-fill uses `d`'s bhavcopy chain (A3).
-- **`rv20`:** lognormal, zero log drift, at the B1 realised volatility of the last 20 regular closes up to and
-  including `d`, over `τ`.
-- **`hist750`:** the empirical quantiles of the `k`-session close-to-close log returns in the last 750 sessions up to
-  `d`.
-- **`ewma_t4`** (G7's builder, 21 Oct): `X = s T / sqrt(2)` with `T ~ t(4)` and `s² = Ewma.variance(next session)`
-  (that is, through `d`'s own return), as v4's `v6_ewma_t4`.
+- **`rv20`:** lognormal, zero log drift, at the B1 realised volatility of the last 20 regular closes before `d` (`d`'s
+  close is not known at 15:45), over `τ`.
+- **`hist750`:** the empirical quantiles of the `k`-session close-to-close log returns in the last 750 sessions before
+  `d`, applied to `S_ref`. The small extra 0.049 is ignored (reasoning only; said).
+- **`ewma_t4`** (G7's builder, 21 Oct): `X = s T / sqrt(2)` with `T ~ t(4)` and `s² = Ewma.variance(d)` (the last
+  session before `d`), as v4's `v6_ewma_t4`, over `τ`.
   - N3 uses `sqrt(3) s` (the independence caveat of V6b, reasoning only).
   - t(4)'s quantile is in closed form: `t = sign(p - 1/2) x 2 sqrt(q - 1)`, `q = cos(arccos(sqrt(α))/3) / sqrt(α)`,
     `α = 4p(1-p)`.
@@ -120,7 +133,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - `status` (ok, missing, not_eligible) and `reason`.
 - **`p_up = P(close at target > S_ref)`:**
   - `implied`: `1 - CDF(S_ref)` on the scaled distribution;
-  - `rv20`: 0.5 by construction (zero log drift; said in the report);
+  - `rv20`: 0.5 by construction (zero log drift). Its Brier is therefore always 0.25, like `no_change`'s, and tests
+    nothing about direction; the report says so (judge 406 minor 2);
   - `hist750`: the share of positive returns;
   - `ewma_t4`: 0.5 (symmetric);
   - `no_change`: 0.5.
@@ -197,7 +211,7 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   (below).
 - G13b posts nothing to Slack; FL1 owns #fno-forecast.
 
-### Part B (phase 1, after part A): every NIFTY and BANKNIFTY contract valued at end of day
+### Part B (stopped by the scope freeze, DESK 21 Oct: not phase 1's list): every NIFTY and BANKNIFTY contract valued at end of day
 
 - **When:** for each session's archived F&O file, run by O1's 15:45 step once NSE has published it, else by the next
   run. The file's first-seen time is recorded. Its back-fill is the same path as A7.
@@ -238,11 +252,12 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 ## Acceptance criteria (each with a test: positive, negative, boundary, empty)
 
 **Part A**
-1. **Point in time:** a 1545 issue reads only the chain of `d`, closes up to `d` and the outcome reader's close of `d`
-   first seen before 15:45. A planted later file or close changes nothing; a close not yet seen makes the issue
+1. **Point in time:** a 1545 issue reads only `d`'s canonical chain (its spot is `S_ref`, its time `s_ref_at`) and the
+   closes before `d`. A planted `d` close, a later chain or a later close changes nothing; no chain makes the issue
    `missing`.
 2. **Horizons:**
    - N1 and N3 targets on the A7 calendar, with a holiday inside the range;
+   - τ = 1.049 and 3.049, and the report prints the 0.393 constant beside the coverage;
    - no N0 row at 1545;
    - the calendar's end is `not_eligible`.
 3. **Forecasters:**
