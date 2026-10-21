@@ -17,3 +17,4 @@ date,url,status,sha256,size_bytes
 2026-10-12,https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol=SADHNANIQ,200,f67d7171bcc750fda802ba5b74335ea66d411b88102e376d2369046651516533,2367
 2026-10-12,https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol=SILVER1,200,100046cdcaf5ad6c15b6b77f4cfb16317df9e0a336cc710d4cea3145e5efbe90,364
 2026-10-12,https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol=SILVERADD,200,812925dad825f98bec81cab1123363049b93c84ec67da9bebc17389d42b5ca27,352
+2026-10-19,https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol=CCAVENUE,200,757d28f8ef56d821e8f2517ccdf7fe550b030cfe2270d47fb186906001fcbf61,5394
