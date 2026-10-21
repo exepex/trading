@@ -2,6 +2,7 @@
 record (write-once file, receipt, the day's done baskets read back verified), and the Actions jobs never importing the
 broker client."""
 
+import dataclasses
 from datetime import date
 from pathlib import Path
 
@@ -146,3 +147,20 @@ def test_the_wiring_gives_the_check_only_this_caller_s_read_only_client(monkeypa
     assert client.get_quote and client.SEGMENT_FNO == "FNO"
     with pytest.raises(ReadOnlyViolation):
         client.place_order  # noqa: B018
+
+
+@pytest.mark.parametrize(("scan", "nov", "expected"), [(20_000.0, -5_525.0, 25_525.0), (3_000.0, 5_000.0, 0.0)])
+def test_groww_s_span_is_compared_with_the_row_s_span_after_its_net_option_value(scan, nov, expected):
+    """A credit adds its premium received (NOV below 0); a debit's bought value can cover the whole scan."""
+    basket = dataclasses.replace(BASKETS[("SF", 100.0)], scan=scan, nov=nov)
+    assert basket.span_expected == expected
+
+
+def test_a_row_whose_source_names_another_file_or_sha256_has_no_basket():
+    from fno.nse_margins.broker_basket import BasketBuilder, BasketProblem
+
+    from .broker_fakes import BUILDER, FILE, ROWS, SPAN
+
+    other = dict(ROWS[0], source=ROWS[0]["source"].replace("sha256=", "sha256=0"))
+    with pytest.raises(BasketProblem, match="its source names another file or SHA-256"):
+        BasketBuilder(BUILDER).basket(other, SPAN, FILE, DAY)
