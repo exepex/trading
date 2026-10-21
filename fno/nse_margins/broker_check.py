@@ -18,11 +18,11 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 
 from ..alerts.sender import AlertSender
-from .broker_basket import Basket, BasketBuilder, todays_rows
+from .broker_basket import Basket, BasketBuilder, BasketProblem, todays_rows
 from .broker_compare import ERROR, MISMATCH, compare
 from .broker_port import BrokerMargins
-from .broker_record import BrokerRecord, BrokerResult
-from .calculator import ExposureRule
+from .broker_record import BrokerRecord, BrokerResult, RecordProblem
+from .calculator import ExposureRule, MarginOutsideModel
 from .span_file import read_span_file
 
 OPENS, STOPS = time(9, 30), time(14, 50)
@@ -30,12 +30,15 @@ OUTSIDE = "margin check {day}: outside market hours"
 NO_ROWS = "margin check {day}: nothing written: margins.csv has no A14 row for {day}"
 NOTHING = "margin check {day}: nothing to check ({count} baskets already checked)"
 CHECKED = "margin check {day}: {ok} ok, {mismatch} mismatch, {error} error; record {path}"
+MISMATCHED = "; mismatch: {baskets}"
+NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); a rerun today asks them again"
 MISMATCH_LINE = "Omenix F&O margin check: Groww and A14 differ beyond tolerance for {baskets}: review the stress factor"
 FAILED = (
     "margin check {day}: {count} basket(s) not checked ({reason}); a rerun today retries them, else today's "
     "broker figure is lost"
 )
 DEADLINE, NO_FILE = "deadline", "the day's SPAN file is not in the archive"
+OWN_REFUSALS = (BasketProblem, RecordProblem, MarginOutsideModel)  # their text is this repository's own wording
 
 
 @dataclass(frozen=True)
@@ -67,34 +70,35 @@ class BrokerMarginCheck:
             if not rows:
                 return self._done(NO_ROWS.format(day=day))
             done = self.parts.record.done(day)
-        except Exception as exc:  # the rows or the day's earlier records unreadable: nothing asked, nothing written
-            return self._failed(day, 0, f"{type(exc).__name__}: {exc}")
-        due = [row for row in rows if (row["structure"], float(row["width"])) not in done]
+            due = [row for row in rows if _key(row) not in done]
+        except Exception as exc:  # rows or earlier records unreadable: nothing asked; the class name only (Drive's
+            return self._failed(day, 0, _named(exc))  # and google-auth's texts are not ours to print)
         if not due:
             return self._done(NOTHING.format(day=day, count=len(rows)))
         results = self._check(day, due)
         try:
             path = self.parts.record.write(day, started, results)
-        except Exception as exc:
-            return self._failed(day, len(results), str(exc))
+        except Exception as exc:  # the answers did not land: no finding is alerted, a same-day rerun asks again
+            self.print_line(NOT_SAVED.format(day=day, count=len(results), reason=_named(exc)))
+            return 1
         return self._finish(day, results, path)
 
     def _check(self, day: date, rows: Sequence[Mapping[str, str]]) -> list[BrokerResult]:
         baskets = self._baskets(day, rows)
         try:
             level = self._ask(self.parts.broker.index_level)
-        except Exception as exc:
+        except Exception as exc:  # a row whose basket already failed keeps its own reason
             why = DEADLINE if isinstance(exc, PastDeadline) else f"NIFTY quote: {type(exc).__name__}"
-            return [self._error(day, row, why) for row in rows]
+            return [self._error(day, row, b if isinstance(b := baskets[_key(row)], str) else why) for row in rows]
         results = []
         for row in rows:
-            basket = baskets.get((row["structure"], float(row["width"])))
+            basket = baskets[_key(row)]
             results.append(self._error(day, row, basket) if isinstance(basket, str) else self._one(day, basket, level))
         return results
 
     def _baskets(self, day: date, rows: Sequence[Mapping[str, str]]) -> dict[tuple[str, float], Basket | str]:
         """Each row's basket, or the reason it has none (kept as the row's `error` detail)."""
-        keys = [(row["structure"], float(row["width"])) for row in rows]
+        keys = [_key(row) for row in rows]
         try:
             name, data = self.parts.span_file(day)
             if data is None:
@@ -107,7 +111,7 @@ class BrokerMarginCheck:
             try:
                 found[key] = self.parts.baskets.basket(row, span, data, day)
             except Exception as exc:  # not the row's own basket (named), or outside the margin model
-                found[key] = f"{type(exc).__name__}: {exc}"
+                found[key] = _named(exc)
         return found
 
     def _one(self, day: date, basket: Basket, level: float) -> BrokerResult:
@@ -121,7 +125,7 @@ class BrokerMarginCheck:
             found = compare(basket, broker, level, self.parts.exposure, self.parts.lot_size, day)
         except Exception as exc:  # e.g. an expiry outside the exposure model: named, never a silent pass
             return BrokerResult(self.clock(), day, basket.structure, basket.width, broker[0], basket.span_expected,
-                                broker[1], None, ERROR, f"{type(exc).__name__}: {exc}")  # fmt: skip
+                                broker[1], None, ERROR, _named(exc))  # fmt: skip
         return BrokerResult(self.clock(), day, basket.structure, basket.width, found.span_broker, found.span_expected,
                             found.exposure_broker, found.exposure_expected, found.status, found.detail)  # fmt: skip
 
@@ -140,11 +144,11 @@ class BrokerMarginCheck:
 
     def _finish(self, day: date, results: Sequence[BrokerResult], path: str) -> int:
         counts = {status: sum(r.status == status for r in results) for status in ("ok", MISMATCH, ERROR)}
-        self.print_line(CHECKED.format(day=day, ok=counts["ok"], mismatch=counts[MISMATCH], error=counts[ERROR],
-                                       path=path))  # fmt: skip
-        mismatched = [f"{r.structure} {r.width:g} ({r.detail})" for r in results if r.status == MISMATCH]
+        mismatched = ", ".join(f"{r.structure} {r.width:g} ({r.detail})" for r in results if r.status == MISMATCH)
         if mismatched:
-            self.print_line(self.alerts.send(MISMATCH_LINE.format(baskets=", ".join(mismatched))))
+            self.print_line(self.alerts.send(MISMATCH_LINE.format(baskets=mismatched)))
+        summary = CHECKED.format(day=day, ok=counts["ok"], mismatch=counts[MISMATCH], error=counts[ERROR], path=path)
+        self.print_line(summary + (MISMATCHED.format(baskets=mismatched) if mismatched else ""))  # O1's reason
         errors = [r for r in results if r.status == ERROR]
         if errors:
             reasons = sorted({r.detail for r in errors})
@@ -158,6 +162,15 @@ class BrokerMarginCheck:
     def _done(self, line: str) -> int:
         self.print_line(line)
         return 0
+
+
+def _key(row: Mapping[str, str]) -> tuple[str, float]:
+    return row["structure"], float(row["width"])
+
+
+def _named(exc: Exception) -> str:
+    """A failure by its class name, and our own text only for our own refusals."""
+    return f"{type(exc).__name__}: {exc}" if isinstance(exc, OWN_REFUSALS) else type(exc).__name__
 
 
 class PastDeadline(RuntimeError):

@@ -58,10 +58,11 @@ stress-broker-check` (read-only Groww margin request for the SF 100 basket on th
 order). A mismatch posts its own #fno-desk line; the factor stays applied." The weekly row lands on Sunday, when the
 day's run records only `skipped`, so it is an O1 step, `margin_check`, run every session right after the quote parts
 start (they wait for 14:55 themselves) and done long before the 14:55 capture on the same Groww key. Agreed with the A14c builder (15 Oct; A14c text at
-`story/a14c-stress-recompute` f2192b2f): the command checks the latest `applied` row once, prints "nothing to check"
-otherwise (exit 0), exits 1 on a Groww or read failure (one O1 alert; the next session retries), and appends only
-`research/data/margins/stress_broker_check.csv`, the one path the step commits. It stays `not_live`
-(`daily.live_from.margin_check`) until A14c's code lands.
+`story/a14c-stress-recompute` f2192b2f; replaced on 16 Oct by A14c part 2's text, judges 291 and 356): the command
+checks every A14 row of the day, prints "nothing to check" when all are done (exit 0), exits 1 on a Groww, deadline or
+record failure (one O1 alert; a same-day rerun retries), and writes one O9 record in Drive per run; the step commits
+only its receipts, `receipt_pathspecs()` in `fno/nse_margins/broker_record.py`. It stays `not_live`
+(`daily.live_from.margin_check`) until the owner sets the date.
 
 **E8's step (agreed with the E8 builder, 15 Oct; E8 rule 11 at `story/e8-owner-timing-fills` fd3a0344):**
 `owner_timing_fills` joins `DAILY_RUN_STEPS` right after `quotes`, as E8's own `DayStep` listed with one line in

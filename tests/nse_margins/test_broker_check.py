@@ -52,7 +52,9 @@ def test_the_tolerances_at_and_around_their_boundaries(span_off, exposure_share,
             and alerts.sent[0].startswith("Omenix F&O margin check: Groww and A14 differ beyond tolerance for SF 100 (")
             and alerts.sent[0].endswith(": review the stress factor")
         )
-        assert printed[-1] == "alert sent"  # the run log keeps the line (or "alert NOT sent" when Slack is down)
+        assert printed[-2] == "alert sent"  # the run log keeps the send result ("alert NOT sent" when Slack is down)
+        assert printed[-1].startswith("margin check 2026-10-14: 5 ok, 1 mismatch, 0 error; record ")
+        assert printed[-1].split("; mismatch: ")[1].startswith("SF 100 (")  # O1's reason names the baskets
     else:
         assert alerts.sent == []
 
@@ -112,10 +114,13 @@ def test_a_broker_failure_is_an_error_row_exit_1_and_no_own_alert(failing):
 
 
 def test_a_record_that_cannot_be_written_or_read_exits_1():
-    check, *_, printed, _ = make_check(at(11, 0), record=MemoryRecord(refuse=RuntimeError("the record was not saved")))
-    assert check.run() == 1 and "the record was not saved" in printed[-1]
+    check, broker, _, alerts, printed, _ = make_check(at(11, 0), record=MemoryRecord(refuse=RuntimeError("x")))
+    broker.answers[SF100] = (0.0, 0.0)  # a mismatch whose record did not land is not alerted: a rerun asks again
+    assert check.run() == 1 and alerts.sent == []
+    assert printed[-1] == ("margin check 2026-10-14: 6 basket(s) checked but not saved (RuntimeError); a rerun today "
+                           "asks them again")  # fmt: skip
     check, broker, *_, printed, _ = make_check(at(11, 0), record=MemoryRecord(done=OSError("Drive answered 503")))
-    assert check.run() == 1 and broker.asked == [] and "OSError: Drive answered 503" in printed[-1]
+    assert check.run() == 1 and broker.asked == [] and "(OSError)" in printed[-1] and "503" not in printed[-1]
 
 
 def test_a_row_its_file_does_not_reproduce_or_a_missing_file_is_an_error_not_a_check():
@@ -133,3 +138,24 @@ def test_a_mismatch_and_an_error_together_alert_the_finding_and_exit_1():
     broker.fail[("BF", 200.0)] = TimeoutError()
     assert check.run() == 1 and len(alerts.sent) == 1 and "SF 100" in alerts.sent[0]
     assert "1 basket(s) not checked (Groww: TimeoutError)" in printed[-1]
+
+
+def test_an_index_failure_keeps_each_basket_s_own_reason():
+    changed = [dict(ROWS[0], scan_per_lot_rs="1.00"), *ROWS[1:]]
+    broker_down = ConnectionError("down")
+    check, broker, record, *_ = make_check(at(11, 0), rows=changed)
+    broker.level = broker_down
+    assert check.run() == 1
+    details = [r.detail for r in record.written[0]]
+    assert "is not reproduced" in details[0] and set(details[1:]) == {"NIFTY quote: ConnectionError"}
+
+
+def test_a_malformed_row_is_a_failure_line_not_a_traceback():
+    check, broker, *_, printed, _ = make_check(at(11, 0), rows=[dict(ROWS[0], width="x")])
+    assert (
+        check.run() == 1
+        and broker.asked == []
+        and printed[-1].endswith(
+            "0 basket(s) not checked (ValueError); a rerun today retries them, else today's broker figure is lost"
+        )
+    )

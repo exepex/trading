@@ -47,6 +47,7 @@ def test_the_adapter_reads_the_index_and_the_basket_through_its_allow_list():
     assert broker.index_level() == 20_050.5
     assert broker.basket(BASKETS[("SF", 100.0)].orders(65)) == (12_675.0, 52_130.0)
     assert api.calls[0][1]["segment"] == "CASH" and api.calls[1][1]["segment"] == "FNO"
+    assert api.calls[0][1]["timeout"] == api.calls[1][1]["timeout"] == 10  # the SDK's default would wait forever
 
 
 @pytest.mark.parametrize(
@@ -86,7 +87,7 @@ def _record(tmp_path, drive=None):
     drive = drive or DictStore()
     receipts = ReceiptFolder(tmp_path / "receipts")
     store = DataStore(drive, "data", receipts, "margins stress-broker-check", "run-1")
-    return BrokerRecord(store, DriveCache(drive, receipts, tmp_path / "cache")), drive
+    return BrokerRecord(lambda: store, lambda: DriveCache(drive, receipts, tmp_path / "cache")), drive
 
 
 def _result(structure, width, status):
@@ -164,3 +165,15 @@ def test_a_row_whose_source_names_another_file_or_sha256_has_no_basket():
     other = dict(ROWS[0], source=ROWS[0]["source"].replace("sha256=", "sha256=0"))
     with pytest.raises(BasketProblem, match="its source names another file or SHA-256"):
         BasketBuilder(BUILDER).basket(other, SPAN, FILE, DAY)
+
+
+def test_before_09_30_the_check_needs_no_drive_or_groww_settings(monkeypatch):
+    """The wiring builds Drive and Groww on first use, so outside market hours (a closed day too) neither is built."""
+    from fno.config import load_app_config
+    from fno.nse_margins import broker_wiring
+
+    monkeypatch.setattr(broker_wiring, "now_ist", lambda: at(9, 0))
+    printed = []
+    check = broker_wiring.build_broker_check(load_app_config(), env={})
+    check.print_line = printed.append
+    assert check.run() == 0 and printed == ["margin check 2026-10-14: outside market hours"]

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -54,18 +54,28 @@ class BrokerResult:
 
 
 class BrokerRecord:
-    def __init__(self, store: DataStore, cache: DriveCache):
-        self.store, self.cache = store, cache
+    def __init__(self, store: Callable[[], DataStore], cache: Callable[[], DriveCache]):
+        """Built on first use, so a closed day or an early start needs no Drive settings."""
+        self._store, self._cache = store, cache
+
+    @property
+    def store(self) -> DataStore:
+        return self._store()
+
+    @property
+    def cache(self) -> DriveCache:
+        return self._cache()
 
     def done(self, day: date) -> set[tuple[str, float]]:
         """(structure, width) of every basket with an `ok` or `mismatch` result in the day's earlier records."""
-        prefix = f"{self.store.area}/{FOLDER}/{day.isoformat()}"
-        report = self.cache.sync(prefix)
+        store, cache = self.store, self.cache
+        prefix = f"{store.area}/{FOLDER}/{day.isoformat()}"
+        report = cache.sync(prefix)
         if not report.complete:
             raise RecordProblem(UNREADABLE.format(problems="; ".join(report.problems)))
         found = set()
-        for receipt in self.cache.receipts.under(prefix):
-            text = self.cache.local(receipt.path).read_text(encoding="utf-8")
+        for receipt in cache.receipts.under(prefix):
+            text = cache.local(receipt.path).read_text(encoding="utf-8")
             found |= {(row["structure"], float(row["width"])) for row in csv.DictReader(io.StringIO(text))
                       if row["status"] in DONE}  # fmt: skip
         return found

@@ -31,8 +31,8 @@ def build_broker_check(cfg: dict, env=os.environ) -> BrokerMarginCheck:
     broker = GrowwBrokerMargins(ReadOnlyGroww(lambda: provider.api, BROKER_CHECK_CALLS))
     log = build_margin_log(cfg, ROOT)
     parts = BrokerCheckParts(
-        log.existing, build_drive_span_files(env), BasketBuilder(build_row_builder(cfg)), broker,
+        log.existing, lambda day: build_drive_span_files(env)(day), BasketBuilder(build_row_builder(cfg)), broker,
         NseIndexOptionExposure(), cfg["lot_sizes"][NIFTY_SYMBOL],
-        BrokerRecord(build_data_store(WRITER, env=env), build_drive_cache(env)),
+        BrokerRecord(lambda: build_data_store(WRITER, env=env), lambda: build_drive_cache(env)),
     )  # fmt: skip
     return BrokerMarginCheck(parts, build_trading_days(), now_ist, time.sleep, build_alert_sender(), PACE_SECONDS)

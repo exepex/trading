@@ -8,12 +8,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
+from ..constants import NIFTY_SYMBOL
 from ..intraday.index_reading import quote_reading
 from ..intraday.read_only import ReadOnlyGroww
 from ..providers.groww import _payload
 
 BROKER_CHECK_CALLS = frozenset({"get_order_margin_details", "get_quote", "SEGMENT_FNO", "SEGMENT_CASH", "EXCHANGE_NSE"})
-INDEX_SYMBOL = "NIFTY"
 CALL_TIMEOUT_SECONDS = 10  # a hung call is an error, never a stuck run
 SPAN_FIELD, EXPOSURE_FIELD = "span_required", "exposure_required"
 
@@ -38,7 +38,7 @@ class GrowwBrokerMargins(BrokerMargins):
 
     def index_level(self) -> float:
         api = self.client
-        quote = api.get_quote(trading_symbol=INDEX_SYMBOL, exchange=api.EXCHANGE_NSE, segment=api.SEGMENT_CASH,
+        quote = api.get_quote(trading_symbol=NIFTY_SYMBOL, exchange=api.EXCHANGE_NSE, segment=api.SEGMENT_CASH,
                               timeout=CALL_TIMEOUT_SECONDS)  # fmt: skip
         level, _ = quote_reading(_payload(quote))
         if not level or level <= 0:
@@ -47,7 +47,9 @@ class GrowwBrokerMargins(BrokerMargins):
 
     def basket(self, orders: Sequence[dict]) -> tuple[float, float]:
         api = self.client
-        answer = _payload(api.get_order_margin_details(segment=api.SEGMENT_FNO, orders=list(orders)))
+        answer = _payload(
+            api.get_order_margin_details(segment=api.SEGMENT_FNO, orders=list(orders), timeout=CALL_TIMEOUT_SECONDS)
+        )  # the SDK's default waits forever
         try:
             span, exposure = float(answer[SPAN_FIELD]), float(answer[EXPOSURE_FIELD])
         except (TypeError, KeyError, ValueError) as exc:
