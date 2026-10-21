@@ -9,11 +9,13 @@ from dataclasses import replace
 from datetime import date, datetime
 
 from fno.models import IST, OptionChain, OptionQuote, QuoteBook
+from fno.quotes import index_wiring
 from fno.quotes.book_fetch import BookFetcher
 from fno.quotes.drive_only_store import DriveOnlyQuoteStore
 from fno.quotes.indices import IndexRecording, weekly_slot
 from fno.quotes.recorder import DATASET, QuoteSnapshotRecorder
 from fno.quotes.weekly import NO_WEEKLY, WEEKLY_DATASET, WEEKLY_NAME, nearest_weeklies
+from fno.storage import quote_wiring
 from fno.storage.raw_store import LocalFolderStore
 from tests.quotes.drive_fakes import SETTINGS, FakeDrive
 from tests.quotes.index_fakes import FILE, Clock
@@ -78,6 +80,14 @@ class NiftyListing:
         return LISTED, dict(FILE)
 
 
+class ShortListing(NiftyListing):
+    def __init__(self, listed):
+        self.short = listed
+
+    def listed(self, underlying, today):
+        return self.short, dict(FILE)
+
+
 def _weekly(folder, provider, clock, drive):
     store = DriveOnlyQuoteStore(LocalFolderStore(folder), lambda: drive, WEEKLY_DATASET, SETTINGS)
     slot = replace(weekly_slot(), workers=1, per_second=None)  # deterministic order; the pace is A4c's, tested there
@@ -127,3 +137,31 @@ def test_a_quote_request_at_15_12_59_and_at_15_13_00_starts_and_one_at_15_13_01_
     for moment, starts in ((at(15, 12, 59), True), (at(15, 13, 0), True), (at(15, 13, 1), False)):
         [got] = BookFetcher(NiftyProvider(), lambda m=moment: m, 1, None, stop).fetch(chain, [(SPOT, "CE")])
         assert (got.error is None) is starts, moment
+
+
+def test_a_weekly_attempt_with_a_monthly_missing_records_nothing_and_says_why(tmp_path):
+    """Judge 441 minor 2: a listing of one month only gives one monthly (A5 takes each month's last expiry); the weekly
+    slot then records nothing and says so, as the monthly slot does, never a weekly beside an unknown monthly."""
+    clock, drive = Clock(datetime(2026, 10, 13, 15, 5, tzinfo=IST)), FakeDrive()
+    short = [date(2026, 10, 13), date(2026, 10, 20), date(2026, 10, 27)]
+    provider = NiftyProvider(listed=short)
+    recorder = _weekly(tmp_path, provider, clock, drive)
+    recorder.fallback = ShortListing(short)  # the fallback lists no more
+    result = recorder.attempt_now()
+    assert not result.complete and result.rows == 0 and provider.chains == []
+    sidecars = [json.loads(p.read_text()) for p in tmp_path.rglob("*.meta.json")]
+    assert "only 1 monthly expiries found" in sidecars[0]["failures"]
+
+
+def test_the_wiring_sends_weekly_quote_files_to_drive_only(tmp_path, monkeypatch):
+    """Judge 441 minor 1: wired to A4's store instead, a weekly quote file would stay local and never reach Drive."""
+    drive = FakeDrive()
+    monkeypatch.setattr(quote_wiring, "build_owner_drive", lambda env: drive)
+    monkeypatch.setattr(index_wiring, "QUOTES_FOLDER", tmp_path)
+    monkeypatch.setattr(index_wiring, "get_provider", lambda name, cfg: NiftyProvider())
+    monkeypatch.setattr(index_wiring, "build_nse_fo_library", lambda: None)
+    monkeypatch.setattr(index_wiring, "build_session_calendar", lambda: CALENDAR)
+    store = index_wiring.build_index_quote_recorders({})[WEEKLY_NAME].store
+    path = f"{WEEKLY_DATASET}/2026/10/niftyweekly_20261013_150501.csv"
+    store.put(path, b"snapshot_id\nx\n")
+    assert drive.files == {f"raw/{path}": b"snapshot_id\nx\n"} and not list(tmp_path.rglob("*.csv"))

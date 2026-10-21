@@ -266,10 +266,13 @@ class QuoteSnapshotRecorder:
                             raw_file_detail)  # fmt: skip
 
     def _targets(self, listed: list[date], months: list[date], day: date, failures: list[str]) -> list[date]:
-        """The expiries this slot records: A4's two monthlies, or the nearest weeklies around them (A4f)."""
+        """The expiries this slot records: A4's two monthlies, or the nearest weeklies around them (A4f). A weekly slot
+        short of two monthlies records nothing: a weekly beside an unknown monthly is never taken."""
+        if len(months) < MONTHLY_EXPIRIES:
+            failures.append(f"only {len(months)} monthly expiries found")
+            if self.slot.weeklies:
+                return []
         if not self.slot.weeklies:
-            if len(months) < MONTHLY_EXPIRIES:
-                failures.append(f"only {len(months)} monthly expiries found")
             return months
         weeklies = nearest_weeklies(listed, months, day, self.slot.weeklies)
         if not weeklies:
