@@ -67,7 +67,7 @@ an edge claim; trade signals as RM1 sets them; warnings 20 warned events.
 | a. Held-out history | R1's sample plan (G3) gets a held-out window and a one-look check at G4 | small | R1 (01XFXpbk) |
 | b. One registry for every kind | Forecasters (G13b methods, v4 rules, M1, AI forecasters) are versioned by method SHA but are not ledger trials. Each new method version registers a ledger row with its kind, plus three new gate names in the gate log (shadow, confirmed, demoted). This is R1's ledger and gate log, not a new store. It first needs a fix of the ledger's id seam (below). | small to medium | R1, D5 (01SFDjjZ), G13b (01UkTaDe) |
 | c. Results audit | A judge checklist in `docs/JUDGE.md`: registration ancestry, seal times, sample size, scoring code hash, no peeking at the held-out part | small (text) | orchestrator, judges |
-| d. Demotion on statistical decay | LR3's CUSUM code (already designed), connected to E6's pause for strategies and to a "demoted" gate row for forecasters and warnings. It needs an owner answer (Q2). | medium (LR3's own build) | LR3 / D4-D5 builder (01SFDjjZ), E6 (0134MoC6) |
+| d. Demotion on statistical decay | LR3's CUSUM code (already designed), connected to E6's pause for strategies and to a "demoted" gate row for forecasters and warnings. It needs an owner answer (Q2). | medium (LR3's own build; its code was never started and its designer's session is in handover, so it needs a new LR3 code builder) | a future LR3 builder (the orchestrator names one), E6 (0134MoC6) |
 | e. Warnings output | M2's alert, scored as M1 is | medium (M2's own build) | M2 (0145TfSw) |
 | f. The board | One read-only page that lists every candidate with its stage, measure and next gate, read from the ledger, the gate log and the existing score files (no new scoring) | small to medium | S2/S3 (0185gR5D) for the score readers |
 | g. Selector | A candidate whose output is the chosen member's output, registered and sealed like any member; built last | medium, later | none yet |
@@ -78,7 +78,8 @@ an edge claim; trade signals as RM1 sets them; warnings 20 warned events.
 - So the first Book 3 registration would make every later R1 registration raise `ValueError`.
 - Also, K counts every ledger row, including retrospective trials and measurements.
 
-Reported to R1's and D5's owners and the orchestrator.
+Reported to R1's and D5's owners and the orchestrator. D5's owner confirmed it and proposed that B4's `Ledger` alone
+allocate numeric ids for both (their handover, risk 6); R1's owner decides.
 
 **No new machinery beyond these.** Sealing, scoring, bootstraps, Holm, the freeze, the shadow accounts and the
 real-money gate exist and are reused as they are.
