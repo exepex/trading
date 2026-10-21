@@ -1,7 +1,9 @@
-"""The 15:45 report's forecast sections (story FL1-1): each sealed range whose target is today against today's official
-close, with G13b's own scores (never recomputed here), and the next session's sealed ranges. A forecast counts only if
-its seal (the receipt's GitHub push time) came before its target day's open; a missing or late one is said and
-alerted, never skipped."""
+"""The 15:45 report's forecast sections (story FL1-1): each sealed range whose target is the previous session against
+that session's official close, with G13b's own scores (never recomputed here), and the next session's sealed ranges.
+The previous session, not today: NSE archives the official close in the evening (G13b, 21 Oct 2026: about 23:00-02:13
+IST), so at 15:45 today's target can never be matched, while the previous session's is archived and scored. A forecast
+counts only if its seal (the receipt's GitHub push time) came before its target day's open; a missing or late one is
+said and alerted, never skipped."""
 
 from __future__ import annotations
 
@@ -52,11 +54,12 @@ class MatchSection:
             day = self.previous(day)
         return day
 
-    def lines(self, underlying: str, day: date) -> tuple[list[str], list[str]]:
-        """(report lines, alert texts) for today's targets."""
+    def lines(self, underlying: str, report_day: date) -> tuple[list[str], list[str]]:
+        """(report lines, alert texts) for the targets of the session before `report_day`."""
+        day = self.previous(report_day)
         if self.outcomes.close(underlying, day) is None:
-            return [NOT_ARCHIVED.format(underlying=underlying)], []
-        out, alerts = [f"{underlying}: today's ranges against the close"], []
+            return [NOT_ARCHIVED.format(underlying=underlying, target=day)], []
+        out, alerts = [f"{underlying}: ranges for {day} against its official close"], []
         scores = self.forecasts.scores(underlying, day)
         for horizon, sessions in HORIZON_SESSIONS.items():
             issue_day = self.issue_day(day, sessions)

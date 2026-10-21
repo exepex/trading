@@ -10,7 +10,8 @@ from fno.forecast_lab.ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, R
 from fno.models import IST
 from tests.checks.builders import CALENDAR
 
-DAY = date(2026, 10, 23)  # Friday, a session
+DAY = date(2026, 10, 23)  # Friday, a session: the targets matched
+REPORT_DAY = CALENDAR.next_session(DAY)  # Monday 26 Oct: its 15:45 report matches the previous session's targets
 N1_ISSUE, N3_ISSUE = CALENDAR.previous_session(DAY), date(2026, 10, 19)  # 22 Oct; 19 Oct (20 Oct is a holiday)
 QUANTILES = {0.05: 25000.0, 0.25: 25200.0, 0.50: 25300.0, 0.75: 25400.0, 0.95: 25600.0}
 

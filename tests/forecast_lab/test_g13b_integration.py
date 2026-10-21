@@ -18,6 +18,7 @@ from tests.price_distribution.builders import DAY, chain_day, drive_store
 from tests.price_ranges.builders import CALENDAR, builder, closes
 
 MONDAY, CLOSE = date(2026, 10, 19), 23_100.0  # DAY is Friday 16 Oct; N1's target is Monday 19 Oct
+REPORT_DAY = date(2026, 10, 21)  # 20 Oct is the test calendar's holiday: 21 Oct's report matches 19 Oct's targets
 PUSHED = datetime(2026, 10, 16, 15, 50, tzinfo=IST)
 
 
@@ -49,7 +50,7 @@ def test_g13b_s_real_record_and_scores_reach_the_report(tmp_path):
     assert issue.sealed_at == PUSHED and not issue.late and {r.horizon for r in issue.rows} == {"N1", "N3"}
     shown = next_ranges("NIFTY", issue, PUSHED)
     assert any(line.startswith("  N1 (2026-10-19) rv20: 5/25/50/75/95 ") for line in shown)
-    lines, alerts = MatchSection(source, Closes(), CALENDAR.previous_session).lines("NIFTY", MONDAY)
+    lines, alerts = MatchSection(source, Closes(), CALENDAR.previous_session).lines("NIFTY", REPORT_DAY)
     assert lines[1] == " N1, issued 2026-10-16 15:45 at 22990.00:" and any("close 23100.00" in x for x in lines)
     assert alerts == ["NIFTY N3 (issued 2026-10-14): no forecast was sealed; nothing to score"]
     assert source.scored_days("NIFTY", MONDAY) == [MONDAY] and {s.method for s in source.history("NIFTY", MONDAY)}

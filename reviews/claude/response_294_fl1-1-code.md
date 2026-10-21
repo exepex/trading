@@ -44,12 +44,19 @@ A change to G13b's shape fails there.
    `price_ranges` step. Running `lab close` there would only alert "no forecast was sealed" on the recorded day, which
    is correct behaviour but no real coverage. Proposal: add G13b's issue to the replay (O11 is mine) together with
    `lab close`, as a follow-up. Evidence: reasoning only.
-2. **At 15:45 today's official close is almost never archived** (G13b scores against NSE's official index-close file,
-   which arrives in the evening). So the match section usually says "today's match comes in the next report": the
-   report lags one day. Evidence: some evidence (G13b's `Outcomes` reads the archived file; its archive time is
-   evening). Options for the owner: an evening report, or a provisional match on A16's 15:30 mark, clearly labelled.
+2. **Fixed before judging (the commit after ad13de4e): the match section matches the previous session, not today.**
+   At 15:45 today's official close never exists: NSE's index-close file is archived in the evening (G13b builder:
+   rows land about 23:00-02:13 IST). As first built, the match section only matched targets equal to the report day,
+   so on live days it would always have said "not archived" and never shown a match. That was a design error, not a
+   lag. It now matches the targets of the session before the report day, whose close is archived and (with G13b's
+   proposed daily score step before 15:45) scored. A report day the routine misses leaves that session's targets out
+   of the match section; they still count in the scoreboard and the trust line. Evidence: strong (G13b's archive
+   times; `test_the_report_matches_the_previous_session...`, `test_an_unarchived_close_defers_the_match`, and the
+   G13b integration test now runs a 21 Oct report matching 19 Oct's targets across the test calendar's 20 Oct
+   holiday). An owner option remains: a provisional same-day match on A16's 15:30 mark, clearly labelled (not built).
 3. **No daily `pricerange score` step exists in `DAILY_RUN_STEPS`.** Without it, the scoreboard only moves when someone
-   runs G13b's score command. This is G13b's function, not mine; raised with the G13b builder and the orchestrator.
+   runs G13b's score command. This is G13b's function, not mine. The G13b builder agrees and has proposed an O1 step
+   `price_range_scores` right after `price_ranges` (before 15:45) to the orchestrator; nothing built yet.
 
 The step stays off (`daily.live_from.lab_close: null`) until the owner sets a date. It also needs the bot in
 #fno-forecast, proved by one read-only `conversations.info` call, never a test post.
