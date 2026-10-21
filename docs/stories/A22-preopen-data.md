@@ -124,6 +124,20 @@ by 08:40) The section: `sh tools/routine_setup.sh
 --groww`, then `python -m fno preopen record`; commit and push only `receipts/` and `research/ops/capture_errors.csv`
 (`git pull --no-rebase` first); if it prints "alert NOT sent", post its lines to #fno-desk with the Slack connector.
 
+## Amendment 1: GIFT Nifty for the 08:50 morning edition (owner, 22 Oct 2026, DESK_DECISIONS e70525ee4)
+
+The owner's morning edition posts by 08:50 IST, before the day row (pushed at about 09:11). As soon as the GIFT part
+ends (fresh at 08:40, or after its last read at 08:44:59), A22 writes it in its own write-once file
+`data/preopen/gift/YYYY/MM/<date>.csv` (the day row's GIFT cells with the date; a value only when `ok` or `late`) and
+pushes the receipts at once, so the receipt is on GitHub by about 08:41-08:46. FL1 reads it through
+`early_file("gift", day)` and `receipt_path(day, early_file("gift", day))`. A second run finds the file taken and
+writes nothing; a failed save or push is a problem line in the run's one alert and an O10 row. The day row is
+unchanged (it still carries GIFT). N0, which needs the 09:09 pre-open price, goes in FL1's short 09:12 post instead.
+
+Criteria: a good morning writes the GIFT file and pushes it at the GIFT part's end (08:40 on the injected clock),
+before the pre-open window; a GIFT never fresh is written with its status, its reason and no value, pushed after
+08:44:59; a failed push is named in the alert; a second run finds the file taken and pushes nothing.
+
 ## Open questions
 
 1. Step 0b (first trading morning after the text PASS, 09:08-09:15 IST): do `key=NIFTY` / `key=BANKNIFTY` answer, and

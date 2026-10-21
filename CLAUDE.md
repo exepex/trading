@@ -112,7 +112,8 @@ in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is r
 2. `python -m fno preopen record`. On a day that is not a trading day it prints "not a trading day" and ends. Otherwise
    it reads GIFT Nifty (08:40-08:44:59), NSE's F&O pre-open list (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09
    one-minute candle from Groww (09:10:00-09:10:59), saves the raw answers and the day row write-once to Drive, and
-   itself commits and pushes `research/ops/capture_errors.csv` and `receipts/` to `main` by about 09:12. It ends on
+   itself commits and pushes `research/ops/capture_errors.csv` and `receipts/` to `main` by about 09:12 (GIFT Nifty's
+   own file and receipt already when its read ends, about 08:41, for the 08:50 morning edition). It ends on
    "pre-open recorded" or "pre-open recorded with problems: ..." (exit 1; it posts that one line to #fno-desk itself).
 3. If it printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk (`C0C89E8QCCD`)
    with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only `receipts/` and
