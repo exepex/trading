@@ -109,12 +109,16 @@ def _iv30(body: dict, seen: _Window) -> Iv30:
     return Iv30(_number(body["value"]), body["flagged"], expiries, _text(body["method"]), seen(body["observed_by"]))
 
 
+def capture_window(day: date) -> tuple[datetime, datetime]:
+    """The day's capture window, 14:30:00-14:40:00 IST, both ends inside."""
+    return datetime.combine(day, V4_CAPTURE_START, IST), datetime.combine(day, V4_PACK_WINDOW_END, IST)
+
+
 class _Window:
     """Every observed time of a pack lies in its day's capture window, 14:30:00-14:40:00 IST."""
 
     def __init__(self, day: date):
-        self.start = datetime.combine(day, V4_CAPTURE_START, IST)
-        self.end = datetime.combine(day, V4_PACK_WINDOW_END, IST)
+        self.start, self.end = capture_window(day)
 
     def __call__(self, text: str) -> datetime:
         observed = _time(text)
