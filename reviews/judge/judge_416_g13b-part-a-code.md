@@ -86,3 +86,34 @@ normal swap, Ewma day, N3 scaling, hist window, seal `>=`, unknown push time sea
 scored, label pooling, the d-close read, all closes read, `S_ref` source, rerun problems, underlying pooling, implied
 `p_up`, the 7-day unknown store. 7 survived: M14, M17, M19, M20, M22, M27, M32. M17 (no next session treated as
 sealed) is also untested; add it with should-fix 2's tests.
+
+## Addendum 1: ecf681d9 (75353c7e plus the method SHA on each score row; response 293)
+
+**Verdict: PASS on G13b part A's code. Lane 1: the orchestrator may merge (pull, full suite on the merged tree,
+push).** The builder named 75353c7e; the branch then moved to ecf681d9, which only adds `method_sha256` to each
+per-row score (FL1 groups by method and never pools two versions). I judged ecf681d9.
+
+**Gates, run by me on ecf681d9 merged with today's `main` (no conflicts):** 8,797 passed, 17 xfailed; ruff clean;
+1,619 files formatted; imports clean; record scan clean (7,244 files). Strong evidence.
+
+| Finding | Answer | Judge (evidence) |
+|---|---|---|
+| SF1 no-chain day dropped problems | `issuer.py` returns the earlier problems and exit 1 when every underlying lacks a chain | Accepted. My mutation (drop them again) fails 1 test (strong) |
+| SF2 back-fill label, `check_row`, tests | `backfill.py:43` refuses a label whose basis differs (`live` refused); `records.check_header` refuses an unknown issue or label; tie test with `p_up != 0.5`; under-40 group; outcome between q05 and q25 | Accepted. Mutations: label guard off fails 3, header check off fails 3, a tie counted as up fails 1 (strong) |
+| SF3 headline | Claims line 144: "Some evidence, not strong (relabelled after judge 416)", with the back-fill basis and the uncorrected p | Accepted (read myself) |
+| Minor 1 dead code, DRY | `RV_YEAR` gone from `price_ranges`; `rv20` imports G13's `daily_realised_variance` | Accepted. See the note below on G13's method SHA |
+| Minor 2 tolerance | Story line 298 now says 1e-4 | Accepted |
+| Minor 3 `hist750` `p_up` | New test; my mutation `r > 0` to `r >= 0` now fails 1 test (M14 caught) | Accepted (strong) |
+| Minor 4 issue time | Story lines 137-138 say the run is about 15:15-15:30 and `issued_at` records it | Accepted |
+| New: method on score rows | Dropping `method_sha256` from `row_scores` fails 1 test | Accepted (strong) |
+
+**Notes for the merge (not findings).**
+1. Moving `rv20`'s arithmetic into G13's public `daily_realised_variance` changes G13's method SHA-256. Both
+   `daily.live_from` keys (`price_distribution`, `price_ranges`) are null in `config.yaml`, so no live record is
+   affected; only G13's Drive back-fill must be rerun after the merge, as the builder says. The orchestrator should
+   check that rerun happened before either live switch is set.
+2. The G13 cache-prefix fix (cf858864, inside ecf681d9) is judged here as part of this one change, as the
+   orchestrator asked. Both `CACHE_PREFIX` constants (`price_distribution/cli.py:32`, `price_ranges/cli.py:31`) are
+   folder paths without a trailing "/". Putting the trailing "/" back fails 1 test in each package, through the real
+   `DriveCache` (strong evidence). No separate split branch is needed.
+3. Not re-verified by me: the claims' statistics themselves (the relabel is what judge 416 asked for).

@@ -43,3 +43,14 @@ stopped run (judge 412 addendum 3), and that part is MET. The adopt wait is stil
 run waits for the lock to free", with no `FINISH_LIMIT` or `fills_by` bound, no "failed, still running after …" with
 one alert, and no hand fix. The heads probably crossed with this verdict; the three sentences of should-fix 1 and the
 clarification (an adopted part's status from its canonical; NIFTY-first kept) are all that is missing.
+
+## Addendum 2: head a34813e2
+**Verdict: PASS (text). Should-fix 1 is closed.** The code is next, lane 1.
+
+| Point | Result |
+|---|---|
+| The adopt wait sits inside `finish`'s bound (`FINISH_LIMIT`, not before `fills_by`), serviced, while the desk goes on | MET |
+| Past the bound: `failed` "still running after <minutes> minutes, held by an earlier run's recorder", one alert, no commit, the hand fix "a 3 pm recorder of an earlier run still holds <lock>: stop it, then rerun" | MET |
+| An adopted part's status comes from its canonical markers (`ok` "recorded earlier (commit <sha>)" or `failed`); then its files are committed under its own pathspecs | MET |
+| NIFTY first whatever `how` is; the indices only after NIFTY has ended | MET |
+| The new test: a part holding its lock past the bound fails with the hand-fix alert and no commit | MET |
