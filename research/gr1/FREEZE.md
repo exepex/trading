@@ -22,3 +22,13 @@ word at judge B's request.)
 | File | SHA-256 |
 |---|---|
 | `PROTOCOL.md` | `8ed575b36e322d73a350550e5e642a878e814677f2a92c4671cac96a40ef2eaa` |
+
+## Judge 428.1's notes applied (after its PASS of a7a1b28a, before any code), frozen at `9c67a3c7d7c80c201fc28db907a3e635042f2e87`
+
+Nothing had been fitted, scored or coded. The ledger rows 56-70 now name this commit. Delta from a7a1b28a is wording
+only, plus C2's crossing check on every scored day: section 2's honest limit, section 12's (a)-(d), C2's guard and
+section 14.
+
+| File | SHA-256 |
+|---|---|
+| `PROTOCOL.md` | `89de9cf4d43fdf9c1a9c6a5a017356f05edd3cec26627e6537e54ab52f70dfaa` |
