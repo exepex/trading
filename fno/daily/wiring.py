@@ -29,10 +29,12 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
     return {name: date.fromisoformat(str(raw[name])) if raw.get(name) else None for name in LIVE_STEPS}
 
 
-def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
+def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep) -> DayRunner:
+    """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock)."""
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
+    from ..desk.git_limit import GitLocks
     from ..desk.git_sync import Git, GitCommitter
     from ..desk.wiring import build_execution_snapshots
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
@@ -52,16 +54,17 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         ChildProcesses(root),
         live_dates(cfg),
     )
+    locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
-    waiter = ServicingWaiter(parts, now_ist)
+    waiter = ServicingWaiter(parts, now_ist, sleep)
 
     def waiting(seconds: float) -> None:
         """A command's wait: a quote part due meanwhile starts (no git: the commits stay between the steps)."""
-        time.sleep(seconds)
+        sleep(seconds)
         parts.start_due()
 
     def command(arguments: Callable[[date], tuple[str, ...]], folder: str) -> DayStep:
-        return CommandStep(processes, arguments, (folder,), git.changed, waiting)
+        return CommandStep(processes, arguments, (folder,), git.changed, waiting, locks)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
     steps = {
@@ -75,7 +78,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
         "book1": Alerted(
             "book1",
-            CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, waiting),
+            CommandStep(
+                processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, waiting, locks
+            ),
             alerts,
         ),  # E5: commits its own decision  # fmt: skip
         REVIEWS_STEP: Alerted(
@@ -94,14 +99,14 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "candles": Alerted(
             "candles",
             NotBefore(
-                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed, waiting),
+                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed, waiting, locks),
                 CATCH_UP_FROM,
                 waiter,
             ),
             alerts,
         ),  # A16b-d: yesterday's candles, after A16's last mark
     }
-    cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
+    cfg_orders, exit_rules = build_book1_orders(cfg, root), build_book1_exit_rules(root, alerts)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts)  # fmt: skip
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))

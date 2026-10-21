@@ -14,7 +14,7 @@ from fno.forecast_v4_rules import cli as v4_cli
 from fno.weather import cli as weather_cli
 from tests.timetable.fakes import Clock
 
-from .fakes import FakeProcesses, RecordedStep
+from .fakes import FakeProcesses, QuietLocks, RecordedStep
 
 DAY = date(2026, 10, 14)
 
@@ -88,7 +88,7 @@ def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
@@ -107,10 +107,33 @@ def test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holdin
     done = step.run(DAY)
     assert done.result == {
         "status": STEP_FAILED,
-        "reason": "stopped after 10 minutes without ending; nothing of it committed",
+        "reason": "stopped after 10 minutes without ending; nothing of it committed",  # no locks given: none removed
     }
     assert processes.made[MARGIN_CHECK].stopped and asked == [] and done.paths == ()
     assert clock() - processes.started[0][0] == timedelta(seconds=COMMAND_LIMIT_SECONDS)
+
+
+def test_a_command_stopped_inside_its_own_git_commit_leaves_no_lock(tmp_path):
+    """Story O2 (judge 204 addendum 2): Book 1's `desk book1` commits its own decision; stopped at the limit mid-commit,
+    the locks its git took are removed (they were not there when it started), and one that was there stays."""
+    (tmp_path / ".git" / "refs").mkdir(parents=True)
+    (tmp_path / ".git" / "config.lock").write_text("")  # another writer's, older than the command
+    clock = Clock()
+    book1 = ("desk", "book1", "--day", DAY.isoformat())
+    processes = FakeProcesses(clock, {book1: (clock() + timedelta(hours=5), 0, [])})
+
+    class MidCommit(QuietLocks):
+        def present(self):
+            if processes.started:  # the command has started its commit
+                (tmp_path / ".git" / "index.lock").write_text("")
+            return super().present()
+
+    step = CommandStep(
+        processes, lambda day: book1, (), lambda specs: [], sleep=clock.advance, locks=MidCommit(tmp_path)
+    )
+    done = step.run(DAY)
+    assert done.result["reason"].endswith("; the git lock files it left removed: .git/index.lock")
+    assert not (tmp_path / ".git" / "index.lock").exists() and (tmp_path / ".git" / "config.lock").exists()
 
 
 def test_an_alert_slack_did_not_take_is_printed_for_the_connector_one_it_took_is_not():
@@ -134,7 +157,7 @@ def test_the_desk_and_o1_share_that_one_sender(monkeypatch):
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert isinstance(seen["alerts"], ReportedAlerts)

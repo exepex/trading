@@ -74,14 +74,13 @@ def test_every_command_of_the_built_run_starts_due_parts_while_it_waits(monkeypa
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
-    runner = wiring.build_day_runner(load_app_config())
+    runner = wiring.build_day_runner(load_app_config(), sleep=lambda seconds: None)
     commands = [c for step in seen["day_steps"].values() for c in _command_steps(step)]
     assert len(commands) >= 5  # margin check, weather, v4 forecasts, Book 1, card, candles
     due = []
     monkeypatch.setattr(runner.parts, "start_due", lambda: due.append(1))
-    monkeypatch.setattr("time.sleep", lambda seconds: None)
     for command in commands:
         command.sleep(1.0)
     assert len(due) == len(commands)

@@ -58,8 +58,9 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     packs = build_packs(root, refresh=pull, files=files, alerts=alerts)
     versions = Book1Versions(build_playbook_loader(root), VersionRegistry(root / VERSIONS_FILE), history,
                              history.head, committer)  # fmt: skip
-    capture = RecorderExecutionCapture(build_quote_recorder(cfg).capture, build_quote_store(), QUOTES_FOLDER, root,
-                                       committer)  # fmt: skip
+    quotes_folder = root / QUOTES_FOLDER.relative_to(ROOT)  # this checkout's, as `Git`'s guard (story O2)
+    capture = RecorderExecutionCapture(build_quote_recorder(cfg).capture, build_quote_store(quotes_folder),
+                                       quotes_folder, root, committer)  # fmt: skip
     gate = DataGate(build_data_checks(build_raw_stores(), calendar), build_execution_snapshots(),
                     CommittedExecutionSchedule(root, timetable), alerts)  # fmt: skip
     decisions = D3CommittedDecisions(root, history)
