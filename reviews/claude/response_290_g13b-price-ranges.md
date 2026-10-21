@@ -66,6 +66,21 @@ A review agent read the whole branch before this file. Accepted, with tests:
    in log terms; late counts ok rows only; scores file named by its making time; a calendar gap is a reason, not a
    crash.
 
+## A bug G13's end-to-end run found (fixed here, commit cf858864)
+
+After G13's merge, its own commands ran from a fresh clone of `main` with the Drive settings: `pricedist backfill
+--source eod` wrote 1,926 NIFTY days to Drive and `--source 3pm` the 1-20 Oct chains of four indices (receipts on
+`main` at 2526b83b). `pricedist score` then stopped: "not a valid archive path: 'data/price_distribution/v1/'". Both
+CLIs passed the Drive cache a folder with a trailing "/", which `path_parts` refuses (rightly: an empty part).
+G13b's `pricerange score` had the same constant.
+- **Root cause in the tests:** G13's scorer test copied files into the cache folder by hand, so `sync` was never run
+  with the command's own prefix.
+- **Fix:** both prefixes are built from each story's `folders.py` (`DATA_AREA/ROOT`, `drive(ROOT)`); G13's test now
+  syncs through the real `DriveCache`, and G13b has the same test. Both fail with the old constant (checked).
+- **Real check after the fix** (no file written): the sync verified all 5 Drive files and the scores match response
+  262 (implied lowest QS at h1, h5, e1, e2; against rv20: p 0.023 h1, 0.009 h5, 0.053 e1, 0.687 e2).
+- This commit touches G13's `fno/price_distribution/cli.py` and its test: it reaches `main` with G13b's merge.
+
 ## What the data says (exploratory, not live evidence)
 
 **NIFTY, end of day, 1,918 sessions (Jan 2019 to 15 Oct 2026), CLOSE basis** (QS in log units, lower is better):
