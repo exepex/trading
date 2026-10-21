@@ -105,11 +105,6 @@ def test_a_scheduled_job_that_never_starts_is_alerted_as_stale():
     not_built("O10's staleness alert on a due job with no run (health-check, nse-margins' early cron, participant-OI)")
 
 
-@missing("G13")
-def test_the_day_has_a_price_distribution_and_valuation_record():
-    not_built("G13")
-
-
 @missing("F2")
 def test_an_analyst_finding_card_is_written_for_the_day():
     not_built("F2")

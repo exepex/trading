@@ -20,7 +20,7 @@ WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
-LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card")
+LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", "price_distribution")
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -37,6 +37,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..desk.wiring import build_execution_snapshots
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
+    from ..price_distribution.folders import receipt_pathspecs
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
     from .history import WholeHistory
@@ -64,6 +65,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         return CommandStep(processes, arguments, (folder,), git.changed, waiting)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
+    price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
+                                     receipt_pathspecs(), git.changed, waiting)  # fmt: skip
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
@@ -91,6 +94,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         ),  # E6's pauses  # fmt: skip
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
+        "price_distribution": Alerted(
+            "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
+        ),  # G13: its own receipts only  # fmt: skip
         "candles": Alerted(
             "candles",
             NotBefore(

@@ -52,6 +52,7 @@ DAILY_RUN_STEPS = (
     REVIEWS_STEP,
     "quotes_done",
     "card",
+    "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
 )  # fmt: skip; the quote parts start first (judge 178)
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
