@@ -70,6 +70,8 @@ def _rows(path: Path) -> list[FactorRow]:
 
 
 def _parsed(row: dict[str, str | None], where: str) -> FactorRow:
+    if None in row:  # more fields than the header: a family row under the old header would read as `all`
+        raise RiskInputError(f"stressed margin: {where} has more fields than the header")
     try:
         as_of = datetime.strptime(row["as_of"] or "", STRESS_FACTOR_DATE).date()
         factor, status = float(row["factor"] or ""), row["status"]

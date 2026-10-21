@@ -1,12 +1,14 @@
-"""One stress-factor run (story A14c): coverage first, then the largest needed factor, then one row in the factor file.
+"""One stress-factor run (story A14c): coverage first, then each family's largest needed factor, then one row per
+structure family (debit, credit; owner, 16 Oct 2026) in the factor file.
 
 Full or incremental. The rule is a maximum over a window that only grows, so an incremental run reads the sessions
-from `LOOKBACK_DAYS` before the last row's `coverage_through` (longer than any holding) and counts only the holdings
-that end after it, taking the larger of their needed factor (`held_rise`) and the last `unrounded`. The first run,
-and any run after a row with an empty `unrounded` (the owner's seed), is full, so a hand value never becomes a floor
-(judge 176). Every file must be the archive's first copy (its SHA-256 equals the manifest's) and written before 09:00
-IST on its day (A14's point-in-time rule). Files are read ahead by `workers` threads but fed in day order. Any
-refusal (a download error included) writes nothing and sends one #fno-desk line; so does every row written."""
+from `LOOKBACK_DAYS` before the earlier of the families' `coverage_through` (longer than any holding) and counts, per
+family, only the holdings that end after that family's own date, taking the larger of their needed factor
+(`held_rise`) and the family's last `unrounded`. The run is full when any family has no measured row of its own (the
+owner's seed and the rows before the family column), so a hand value never becomes a floor (judge 176). Every file
+must be the archive's first copy (its SHA-256 equals the manifest's) and written before 09:00 IST on its day (A14's
+point-in-time rule). Files are read ahead by `workers` threads but fed in day order. Any refusal (a download error
+included) writes nothing and sends one #fno-desk line; so does every run that writes its rows."""
 
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ from ..alerts.sender import AlertSender
 from ..constants import SPAN_BOD_CREATED_BEFORE, STRESS_FAMILIES
 from ..fo_bhavcopy import BadFile
 from .family_result import FamilyResult, family_result
-from .held_rise import HeldRiseTracker
+from .held_rise import HeldRises, HeldRiseTracker
 from .job import DayFile
 from .prefetch import in_order
 from .span_file import SpanFile, read_span_file
@@ -107,7 +109,7 @@ class StressFactorRun:
         return span
 
 
-def _line(run_day: date, results: list[FamilyResult], found) -> str:
+def _line(run_day: date, results: list[FamilyResult], found: HeldRises) -> str:
     families = "; ".join(WRITTEN.format(family=r.family, status=r.status, factor=r.factor, computed=r.computed,
                                         was=r.last.factor, peak=r.peak) for r in results)  # fmt: skip
     skipped = len(found.dropped) + len(found.impossible)

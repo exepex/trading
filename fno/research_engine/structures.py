@@ -82,6 +82,13 @@ def payoff_bounds(legs: Sequence[Leg]) -> tuple[float, float]:
     return -math.inf if upward < 0 else min(values), math.inf if upward > 0 else max(values)
 
 
+def possible_value(legs: Sequence[Leg], value: float) -> bool:
+    """B2's BAD_PRICES rule, shared with A14c (owner, 16 Oct 2026): a value per unit is possible only strictly inside
+    the payoff bounds; at or beyond them the prices promise a trade that cannot lose or cannot win."""
+    lowest, highest = payoff_bounds(legs)
+    return lowest < value < highest
+
+
 def nearest_strike(strikes: Iterable[float], target: float, tie_higher: bool) -> float:
     """The listed strike nearest `target`; an equal-distance tie goes to the higher strike if `tie_higher`."""
     return min(strikes, key=lambda k: (abs(k - target), -k if tie_higher else k))

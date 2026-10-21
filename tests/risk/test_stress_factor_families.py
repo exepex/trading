@@ -10,6 +10,8 @@ import pytest
 from fno.checks.validity_factor import FactorProblem, factor_on
 from fno.checks.validity_margin import stressed_per_lot
 from fno.checks.validity_settings import MarginSettings
+from fno.constants import OPTION_CALL, OPTION_PUT, STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES
+from fno.research_engine.structures import Leg, possible_value
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
@@ -22,6 +24,10 @@ DAY = date(2026, 11, 9)
 SEED = "2026-10-14,1.45,,,applied,seed,,\n"
 DEBIT = "2026-11-08,1.2,1.2,1.15,applied,BF 100,2026-11-06,a,debit\n"
 CREDIT = "2026-11-08,2.3,2.3,2.25,applied,SF 100,2026-11-06,b,credit\n"
+
+SF_100 = [Leg(25_000.0, OPTION_CALL, -1), Leg(25_000.0, OPTION_PUT, -1), Leg(25_100.0, OPTION_CALL, 1),
+          Leg(24_900.0, OPTION_PUT, 1)]  # fmt: skip
+BF_100 = [Leg(leg.strike, leg.kind, -leg.side) for leg in SF_100]
 
 
 def _file(tmp_path: Path, rows: str) -> Path:
@@ -104,3 +110,41 @@ def test_the_margins_use_the_k_of_the_proposal_s_structure(tmp_path):
         assert figures[1][name] > figures[0][name]
     for name in ("BF", "BF at entry"):
         assert figures[1][name] == figures[0][name]
+
+
+@BOTH
+def test_a_family_row_under_the_old_header_is_refused_not_read_as_all(tmp_path, read, error):
+    path = tmp_path / "stress_factor.csv"
+    path.write_text(",".join(STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES) + "\n" + SEED + CREDIT, encoding="utf-8")
+    with pytest.raises(error, match="row 3 has more fields than the header"):
+        read(path, DAY, "BF")
+
+
+@BOTH
+def test_the_30_day_age_applies_to_each_family_s_own_row(tmp_path, read, error):
+    """Debit's own row of 8 Oct is 31 days old on 8 Nov while credit's of 5 Nov is fresh (the seed is older still)."""
+    rows = SEED.replace("2026-10-14", "2026-10-01") + DEBIT.replace("2026-11-08", "2026-10-08")
+    path = _file(tmp_path, rows + CREDIT.replace("2026-11-08", "2026-11-05"))
+    assert read(path, date(2026, 11, 8), "SF") == 2.3
+    with pytest.raises(error, match="of 2026-10-08 is not valid on 2026-11-08"):
+        read(path, date(2026, 11, 8), "BF")
+
+
+def test_a_decision_record_on_a_day_needs_the_structure(tmp_path):
+    settings = StressedMarginSettings("multiplier", _file(tmp_path, SEED), 30, None)
+    c2 = MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), 65), settings)
+    assert "stress_factor_row" not in c2.record()
+    with pytest.raises(RiskInputError, match="needs the proposal's structure"):
+        c2.record(date(2026, 10, 20))
+
+
+@pytest.mark.parametrize(
+    ("legs", "value", "possible"),
+    [
+        (SF_100, -100.0, False), (SF_100, -99.95, True), (SF_100, 0.0, False), (SF_100, -0.05, True),
+        (BF_100, 0.0, False), (BF_100, 0.05, True), (BF_100, 100.0, False), (BF_100, 100.5, False),
+    ],
+)  # fmt: skip
+def test_a_price_is_possible_only_strictly_inside_the_payoff_bounds(legs, value, possible):
+    """B2's BAD_PRICES rule, shared by A14c: a credit at least the width, or a debit at most zero, is impossible."""
+    assert possible_value(legs, value) is possible

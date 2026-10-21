@@ -186,7 +186,11 @@ class MultiplierMargin(StressedMargin):
         (stories C2d and A14c families)."""
         file = self.settings.factor_file
         method = {"method": self.method, "stresses": STRESSED_MARGIN_STRESSES, "factor_file": file.name if file else ""}
-        return method if day is None or structure is None else method | self._row(day, structure).record()
+        if day is None:
+            return method
+        if structure is None:  # the row depends on the family: a day alone would drop it from the record silently
+            raise RiskInputError("stressed margin record: a decision day needs the proposal's structure")
+        return method | self._row(day, structure).record()
 
 
 class ScenarioLookupMargin(StressedMargin):

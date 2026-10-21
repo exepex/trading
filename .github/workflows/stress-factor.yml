@@ -2,8 +2,10 @@
 # broker key). Research data only; never trades.
 #   1. the A9 librarian archives the week's beginning-of-day SPAN files (span-bod) in Drive with their manifest rows;
 #   2. `margins stress-factor` checks the archive date by date (every session since 2 Jan 2020, A7's calendar), then
-#      appends one row to research/data/margins/stress_factor.csv: a rise applies at once, any fall is held for the
-#      owner (owner, 15 Oct 2026, DESK_DECISIONS da0f769d). It writes its evidence beside it and sends one #fno-desk line;
+#      appends one row per structure family (debit, credit; owner, 16 Oct 2026) to research/data/margins/
+#      stress_factor.csv: a rise applies at once, any fall is held for the owner (owner, 15 Oct 2026, DESK_DECISIONS
+#      da0f769d) unless a run cites the owner's approving commit (approve_fall). It writes its evidence beside it and
+#      sends one #fno-desk line;
 #   3. the factor row, the evidence and the manifest rows are committed. Nothing here edits config.yaml.
 # Weekly keeps the row fresh: C2 refuses after 30 days, so three failed Sundays still leave a valid factor.
 # A full recompute (every session since 2020; downloads run ahead, risk.stressed_margin.recompute_workers) is a manual
@@ -19,6 +21,10 @@ on:
         description: "true: read every session since 2 Jan 2020 (about 2.5 hours), not only the new ones"
         required: false
         default: "false"
+      approve_fall:
+        description: "the owner's DESK_DECISIONS commit (7-40 hex) approving a lower factor; empty holds every fall"
+        required: false
+        default: ""
 
 permissions:
   contents: write # commits the factor row, its evidence and the manifest rows
@@ -56,14 +62,24 @@ jobs:
         id: librarian
         continue-on-error: true
         run: python -m fno data-librarian span-bod --from "$(date -d '-14 days' +%F)"
-      - name: Recompute the stress factor (one row, or nothing and one #fno-desk line)
+      - name: Recompute the stress factor (one row per family, or nothing and one #fno-desk line)
         id: stress
         continue-on-error: true
         env:
           FULL: ${{ inputs.full }}
+          APPROVE_FALL: ${{ inputs.approve_fall }}
         run: |
-          if [ "${FULL:-false}" = "true" ]; then python -m fno margins stress-factor --full
-          else python -m fno margins stress-factor; fi
+          args=""
+          if [ "${FULL:-false}" = "true" ]; then args="--full"; fi
+          if [ -n "${APPROVE_FALL:-}" ]; then
+            if ! printf '%s' "$APPROVE_FALL" | grep -Eqx '[0-9a-f]{7,40}'; then
+              python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+                "Omenix F&O stress factor: nothing written: approve_fall must be a commit SHA (7-40 hex characters)"
+              exit 1
+            fi
+            args="$args --approve-fall $APPROVE_FALL"
+          fi
+          python -m fno margins stress-factor $args
       - name: Commit the factor row, its evidence and the manifest rows
         id: commit
         env:

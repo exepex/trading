@@ -113,3 +113,44 @@ def test_every_tradable_structure_has_the_family_its_payoff_bounds_give():
             assert least >= 0 if family == FAMILY_DEBIT else most <= 0, (structure.code, width, least, most)
         codes.add(structure.code)
     assert codes == set(STRUCTURE_FAMILIES)
+
+
+@pytest.mark.parametrize("ending", ["\r\n", ""], ids=["CRLF", "no last newline"])
+def test_the_header_change_keeps_crlf_bytes_and_a_missing_last_newline(tmp_path, ending):
+    """Line 1 alone changes (its own line ending kept); a file without a last newline gets one before the new rows."""
+    path = tmp_path / "stress_factor.csv"
+    body = OLD_ROWS.replace("\n", ending) if ending else OLD_ROWS.rstrip("\n")
+    header = OLD_HEADER.replace("\n", ending or "\n")
+    path.write_bytes((header + body).encode("utf-8"))
+    run(tmp_path, planted(THROUGH, {SPIKE: 20.0}))
+    kept = NEW_HEADER.replace("\n", ending or "\n") + body
+    data = path.read_bytes().decode("utf-8")
+    assert data.startswith(kept)
+    added = data[len(kept) :].strip("\r\n").splitlines()
+    assert [line.rsplit(",", 1)[1] for line in added] == ["debit", "credit"]
+
+
+def test_a_header_that_is_not_one_of_the_two_exact_lines_writes_nothing(tmp_path):
+    """A quoted header passes every reader, but rows appended under the old one would be read as `all`."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    path = tmp_path / "stress_factor.csv"
+    quoted = ",".join(f'"{name}"' for name in STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES) + "\n"
+    path.write_text(quoted + OLD_ROWS, encoding="utf-8")
+    code, _, sent = run(tmp_path, planted(THROUGH, {SPIKE: 20.0}))
+    assert code == 1 and path.read_text(encoding="utf-8") == quoted + OLD_ROWS
+    assert "line 1 must be exactly as_of,factor" in sent[0]
+
+
+def test_a_row_with_more_fields_than_the_header_is_refused(tmp_path):
+    path = tmp_path / "stress_factor.csv"
+    family_row_under_old_header = "2026-10-20,1.2,1.2,1.15,applied,BF,2026-10-19,ab,debit\n"
+    path.write_text(OLD_HEADER + OLD_ROWS + family_row_under_old_header, encoding="utf-8")
+    with pytest.raises(StressRowRefused, match="row 4 has more fields than the header"):
+        StressFactorFile(path).last("debit")
+
+
+def test_one_owner_approval_applies_a_fall_in_both_families(tmp_path):
+    _, credit, sent = run(tmp_path, planted(THROUGH, {SPIKE: 8.0}), approved="da0f769d")
+    debit = family_row(tmp_path / "stress_factor.csv", "debit")
+    assert credit[1:5] == ["1.3", "1.3", "1.253012", "applied"] and debit[1:5] == ["1", "1", "1.000000", "applied"]
+    assert sent[0].count("fall approved by the owner, DESK_DECISIONS da0f769d") == 2

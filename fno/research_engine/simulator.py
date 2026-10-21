@@ -23,7 +23,7 @@ from ..research_data.panel_reader import NiftyPanel
 from .cycle_costs import CycleTerms, PositionCosts
 from .cycles import Cycle
 from .leg_prices import LegPrice, contracts_on, fill_problem, leg_price
-from .structures import Leg, Structure, payoff_bounds, position_value
+from .structures import Leg, Structure, payoff_bounds, position_value, possible_value
 
 
 @dataclass(frozen=True)
@@ -96,8 +96,7 @@ class CycleSimulator:
         if problem:
             return WidthTrial(width, problem)
         prices = [p.price for p in entry]
-        lowest, highest = payoff_bounds(legs)
-        if not lowest < position_value(legs, prices) < highest:
+        if not possible_value(legs, position_value(legs, prices)):
             return WidthTrial(
                 width, CycleStatus.BAD_PRICES
             )  # the prices promise a trade that cannot lose or cannot win

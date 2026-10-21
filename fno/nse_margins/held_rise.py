@@ -5,13 +5,15 @@ ratio of the counted margins is not used: for a debit structure the bought legs'
 so the ratio's small denominator measured the position losing value (3.55 in April 2020) instead of the margin the
 formula must cover (1.75). For a credit structure (NOV below 0) the two are the same number.
 
-Every trading day is an entry, for every structure and width C2 trades, on A14's expiry rule (the first monthly expiry
+Every trading day is an entry, for every structure and width the run is given (the wiring gives SF, SC and BF, whose
+stressed SPAN C2 does not cap), on A14's expiry rule (the first monthly expiry
 30 or more days out); the position is held to the last trading day at least 21 days before expiry (B2's exit). Days are
 fed in order and each file is read once: open positions are carried forward.
 
 A position whose margin cannot be computed on some day (a leg no longer listed, a method outside the model) is
 dropped and named, never filled; the factor it needed up to its last computable day still counts, so a hole in the
-data can never lower k. A position with no margin at entry (a bought option) has no rise."""
+data can never lower k. A position with no margin at entry (a bought option) has no rise. An entry whose NSE price is
+impossible (B2's BAD_PRICES rule) is skipped and named."""
 
 from __future__ import annotations
 
@@ -20,15 +22,15 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from ..research_engine.cycles import EXIT_MIN_DAYS
-from ..research_engine.structures import Leg, Structure, payoff_bounds
+from ..research_engine.structures import Leg, Structure, payoff_bounds, possible_value
 from ..risk.inputs import RiskInputError
 from ..risk.margins import MarginParts
 from .calculator import MarginOutsideModel, SpanMarginCalculator
 from .span_file import SpanFile
 
 MIN_DAYS_TO_EXPIRY = 30  # A14's entry rule (the entry window's near edge)
-# Owner, 16 Oct 2026 (B2's BAD_PRICES rule): an entry whose NSE file NOV lies outside its legs' payoff bounds is skipped
-IMPOSSIBLE, PRICE_SLACK = "impossible price in NSE's file", 1e-9  # the slack only absorbs float noise
+# Owner, 16 Oct 2026 (B2's BAD_PRICES rule): an entry whose NSE NOV is not strictly inside its payoff bounds is skipped
+IMPOSSIBLE = "impossible price in NSE's file"
 FACTOR_PRECISION = 1e-9  # the bisection's width; the factor returned is the upper end, so it always covers
 
 
@@ -65,7 +67,7 @@ class Holding:
 
 @dataclass
 class HeldRises:
-    """What a pass found: completed holdings, and the ones dropped with their reason."""
+    """What a pass found: completed holdings, the ones dropped with their reason, and the entries skipped."""
 
     completed: list[Holding] = field(default_factory=list)
     dropped: list[str] = field(default_factory=list)
@@ -128,8 +130,9 @@ class HeldRiseTracker:
         except MarginOutsideModel as exc:
             self.found.dropped.append(f"{structure.code} {width:g} not entered {day}: {exc}")
             return
-        value, (least, most) = parts.nov / self.calculator.lot_size, payoff_bounds(legs)
-        if not least - PRICE_SLACK <= value <= most + PRICE_SLACK:
+        value = parts.nov / self.calculator.lot_size
+        if not possible_value(legs, value):
+            least, most = payoff_bounds(legs)
             self.found.impossible.append(f"{structure.code} {width:g} {day}: {IMPOSSIBLE} ({value:.2f} a unit, the "
                                          f"position is worth {least:g} to {most:g})")  # fmt: skip
             return

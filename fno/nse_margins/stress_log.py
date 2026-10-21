@@ -1,5 +1,6 @@
-"""A14c's side of the stress factor file (`stress_factor.csv`, story C2d's columns): the last row as written, the
-guardrails that decide the next row, and the append-only write. C2 and C4 read the file with their own readers.
+"""A14c's side of the stress factor file (`stress_factor.csv`, story C2d's columns): each family's last row as
+written, the guardrails that decide the next rows, and the append-only write.
+C2 and C4 read the file with their own readers.
 
 Guardrails (owner, 15 Oct 2026, DESK_DECISIONS da0f769d; orchestrator: hold every fall): a result below 1.0 writes no
 row; a result at or above the factor in force is applied at once; any lower result is held (the row keeps the old
@@ -23,6 +24,7 @@ from ..constants import FAMILY_ALL, STRESS_FACTOR_COLUMNS, STRESS_FACTOR_COLUMNS
 
 ROUND_STEP = 0.05  # the rule rounds the largest needed factor up to the next 0.05 (response 77)
 APPLIED, HELD = "applied", "held"
+HEADERS = (STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES, STRESS_FACTOR_COLUMNS)  # before and after the family column
 
 
 class StressRowRefused(RuntimeError):
@@ -98,9 +100,12 @@ class StressFactorFile:
         """Appends one line per row; the data rows already there keep their bytes (never edited). Before the first
         family row the header line alone gains `family`, written to a new file and moved over the old one."""
         data = self.path.read_bytes()
-        old_header = ",".join(STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES).encode("utf-8")
-        if data.split(b"\n", 1)[0].rstrip(b"\r") == old_header:
-            data = ",".join(STRESS_FACTOR_COLUMNS).encode("utf-8") + data[len(old_header) :]
+        old_header, new_header = (",".join(columns).encode("utf-8") for columns in HEADERS)
+        first = data.split(b"\n", 1)[0].rstrip(b"\r")
+        if first not in (old_header, new_header):  # e.g. a quoted header: no migration
+            raise StressRowRefused(f"{self.path.name}: line 1 must be exactly {new_header.decode('utf-8')}")
+        if first == old_header:
+            data = new_header + data[len(old_header) :]
         if data and not data.endswith(b"\n"):
             data += b"\n"
         fresh = self.path.with_suffix(".tmp")
@@ -112,6 +117,10 @@ class StressFactorFile:
             raise StressRowRefused(f"{self.path.name} is missing")
         with open(self.path, encoding="utf-8", newline="") as fh:
             reader = csv.DictReader(fh)
-            if tuple(reader.fieldnames or ()) not in (STRESS_FACTOR_COLUMNS, STRESS_FACTOR_COLUMNS_BEFORE_FAMILIES):
+            if tuple(reader.fieldnames or ()) not in HEADERS:
                 raise StressRowRefused(f"{self.path.name}: columns must be {', '.join(STRESS_FACTOR_COLUMNS)}")
-            return list(reader)
+            rows = list(reader)
+        extra = next((number for number, row in enumerate(rows, 2) if None in row), None)
+        if extra is not None:
+            raise StressRowRefused(f"{self.path.name} row {extra} has more fields than the header")
+        return rows
