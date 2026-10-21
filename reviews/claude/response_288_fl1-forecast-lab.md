@@ -12,8 +12,8 @@ Builder session_01FWkBH4zNAEFSEpjUzVEgnd. Story: `docs/stories/FL1-forecast-lab.
 4. E8's mark reader (`IntradayMarkSnapshots`) is on `story/e8-code-part1` only; FL1 waits for it, no second reader.
 5. `fno/constants.py` has 345 lines, so the two channel IDs go in `fno/forecast_lab/constants.py`.
 
-## Questions for the owner (through the orchestrator)
+## Owner's answers (21 Oct, DESK_DECISIONS row 264), now in the text
 
-1. Until A22, the 08:45 post repeats last evening's sealed forecast as "pre-open: no new input". Keep the slot like
-   this, or skip it until A22?
-2. `lab.top_n` default 10 (the owner said 10 or 20). All are NIFTY and correlated; 10 shows the same as 20.
+1. The 08:45 post waits for A22: FL1 runs 09:30 and 15:45; the 08:45 slot is FL1d.
+2. top_n = 10.
+3. A16 is extended to BANKNIFTY (A16 builder 01VK88Lx): BANKNIFTY positions are part FL1b2, behind that dependency.

@@ -22,20 +22,22 @@ first 15 minutes, and after the close. Second, a report matching them against th
   1. **G13b** (ranges at N+0, N+1 and N+3 for NIFTY and BANKNIFTY, sealed three times a day) has no text and no code.
      G13 itself is unmerged (judge 310 FAIL, fixes on its branch), and it covers NIFTY only, h1/h5/expiry horizons, 7
      levels and the 3 pm chain only.
-  2. **A22 pre-open data** (GIFT Nifty, NSE pre-open) has no text. Until it exists, an 08:45 forecast knows nothing
-     the 15:45 forecast of the evening before did not. FL1 then reposts that sealed forecast as "pre-open: no new
-     input" and never re-forecasts.
-  3. **BANKNIFTY has no intraday quotes.** A16 records NIFTY within 6% only; BANKNIFTY options exist only in A4c's
-     3 pm chain. So lab positions are **NIFTY only** until A16 (or a new recorder) covers BANKNIFTY. BANKNIFTY ranges
-     are still forecast and scored, against NSE's archived all-index close files.
+  2. **A22 pre-open data** (GIFT Nifty, NSE pre-open; A20 builder 013u1Ac2) has no text. Until it is live, an 08:45
+     forecast knows nothing the 15:45 forecast of the evening before did not, so **FL1 runs 09:30 and 15:45 only**;
+     the 08:45 slot starts with A22's first live day (owner, DESK_DECISIONS row 264).
+  3. **BANKNIFTY has no intraday quotes yet.** A16 records NIFTY within 6% only. The owner chose to extend A16 to
+     BANKNIFTY (row 264; A16 builder 01VK88Lx, Groww load measured first). Until that is live, lab positions are NIFTY
+     only. BANKNIFTY ranges are still forecast (G13b, G13 builder 01UkTaDe) and scored against NSE's archived
+     all-index close files.
 - E8's bid/ask reader for A16 marks (`IntradayMarkSnapshots`) is only on E8's branch. FL1 reuses it after E8 merges
   and never writes a second one.
 
 ## Scope
 
 In:
-- one command `python -m fno lab <slot>` for the slots `pre_open` (08:45), `open` (09:30) and `close` (15:45), each
-  run by its own Claude routine that the owner creates, with the exact prompts and a CLAUDE.md section;
+- one command `python -m fno lab <slot>` for the slots `open` (09:30) and `close` (15:45), each run by its own
+  Claude routine that the owner creates, with the exact prompts and a CLAUDE.md section. `pre_open` (08:45) is added
+  in FL1d, with A22;
 - sealing: the run calls G13b's record command for its slot and refuses to post a forecast whose seal is after its
   cutoff;
 - the lab's paper positions at 09:30 and their exits;
@@ -52,13 +54,13 @@ UI, a second desk, a second fill reader, AI calls.
 |---|---|---|
 | Slots and timing | O1's `Alerted` step rule (recorded and alerted once, the run goes on); the A7 calendar (a closed day prints "not a trading day") | `fno/forecast_lab/` package and its wiring `fno/forecast_lab/wiring.py`; `lab` CLI |
 | Forecasts | G13b's sealed records (Drive write-once, O9 receipts), read through G13b's reader | a seal-time check per slot: pre_open before 09:15, open before 09:45, close before the next session's 09:15 |
-| Positions (09:30) | E8's `IntradayMarkSnapshots.at(day, 09:30)`; E4's `price_leg` (fills at the touch, checks size); `Fill.priced` and C1's charges; C4's defined-risk shapes; R3's shadow-account layout for a research account | `RangeRanker`: for each defined-risk candidate (verticals and condors on the next weekly and monthly NIFTY expiries within A16's 6% band), the expected payoff at its horizon under the sealed 5-95% quantiles (linear between quantiles, flat tails at the 5% and 95% levels, stated as a modelling choice), minus entry and exit costs at bid/ask. Ranked by expected net per rupee of maximum loss; top N (config `lab.top_n`, default 10). One lab account `journal/lab/account/`, never in scoreboards A or B |
+| Positions (09:30) | E8's `IntradayMarkSnapshots.at(day, 09:30)`; E4's `price_leg` (fills at the touch, checks size); `Fill.priced` and C1's charges; C4's defined-risk shapes; R3's shadow-account layout for a research account | `RangeRanker`: for each defined-risk candidate (verticals and condors on the next weekly and monthly NIFTY expiries within A16's 6% band), the expected payoff at its horizon under the sealed 5-95% quantiles (linear between quantiles, flat tails at the 5% and 95% levels, stated as a modelling choice), minus entry and exit costs at bid/ask. Ranked by expected net per rupee of maximum loss; the top 10 (owner, row 264; config `lab.top_n`). One lab account `journal/lab/account/`, never in scoreboards A or B |
 | Exits | the same mark reader; every exit is fixed at entry: the 15:15 mark of N+1, or of N+3 if the horizon is N+3 | `LabExits` (time exit only: no stops, so no stop the lab cannot enforce) |
 | 15:45 match report | G13's `quantile_score`, `share_inside`; the post-mortem's section pattern and once-only publish (LR1 `Publisher` posts once and records a marker) | `MatchReport` sections: forecasts vs the close (inside the 25-75% and 5-95% bands, direction of the median, quantile score), each baseline the same way, positions' paper P&L after costs at the 15:30 mark (exit value at bid for long legs, ask for short ones), the running scoreboard and the trust line, then the next day's sealed forecasts |
 | Hourly line | A16's `MarkObserver.after_mark` (no new routine; an observer failure never stops A16) | `HourlyLine` at 10:15, 11:15, ..., 15:15: NIFTY against today's sealed band, open lab positions' marked P&L |
 | Slack | `SlackChannelAlerts(token, channel)` (same bot token); alerts stay on `build_alert_sender` (#fno-desk) | `FNO_FORECAST_CHANNEL_ID` and `FNO_INTRADAY_CHANNEL_ID` (the IDs the owner created on 21 Oct, passed by the orchestrator; they enter the repository only in FL1a's code, with the scan change, because the scan refuses them until then) in a new `fno/forecast_lab/constants.py` (`fno/constants.py` is at 345 of 350 lines), imported into the record scan's `ALLOWED_VALUES` |
 
-Routing: #fno-forecast gets the 08:45 post, the 09:30 post with the top positions, and the 15:45 match report with the
+Routing: #fno-forecast gets the 09:30 post with the top positions (and the 08:45 post from FL1d), and the 15:45 match report with the
 next day's forecasts. #fno-intraday gets the hourly lines. #fno-desk keeps every alert (a failed slot, a missing
 forecast, a refused seal) and the T1 card.
 
@@ -71,9 +73,10 @@ posts nothing twice.
 | Part | Delivers | Waits for |
 |---|---|---|
 | FL1a | channels, record-scan allowance and its test, CLAUDE.md routing line, `lab` command with the three slots, routine prompts, the match report on G13's NIFTY h1 rows (labelled "h1 = N+1"), the trust line | G13 merge |
-| FL1b | the lab: ranker, research account, 09:30 fills, time exits, P&L in the report, hourly line | E8 merge (mark reader) |
+| FL1b | the lab on NIFTY: ranker, research account, 09:30 fills, time exits, P&L in the report, hourly line | E8 merge (mark reader) |
+| FL1b2 | BANKNIFTY lab positions and hourly line | A16's BANKNIFTY marks |
 | FL1c | N+0 and N+3, BANKNIFTY ranges, three seals a day | G13b |
-| FL1d | the pre-open forecast with new information | A22 |
+| FL1d | the 08:45 slot and its routine, with A22's inputs | A22 live |
 
 ## Acceptance criteria
 
@@ -92,7 +95,7 @@ posts nothing twice.
 8. Only #fno-desk, #fno-forecast and #fno-intraday IDs pass the record scan (test). The bot's membership in both new
    channels is checked with one read-only `conversations.info` call in setup; there is never a test post.
 9. O11's replay covers the 15:45 report and the lab on its recorded day. Until each part lands, its O11 strict xfail
-   names it (FL1a-FL1d).
+   names it (FL1a, FL1b, FL1b2, FL1c, FL1d).
 10. Gates as in CLAUDE.md; no file over 350 lines.
 
 ## Judge verifies
