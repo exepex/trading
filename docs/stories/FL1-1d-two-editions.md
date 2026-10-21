@@ -127,6 +127,9 @@ What changes or is new:
   - Brent's 10 days is a stated limit, not evidence of a right number. It shows the latest price with its date, and
     never presents an old price as today's.
   one new class plus one line.
+- **Reasons for every miss in the 30-day window** (the designer's "when it was wrong" table lists 30 days; FL1-1c
+  gives reasons for 7 only). FL1-1c's `recent_misses` window widens from 7 to 30 sessions. The same direction-aware
+  facts and limits apply, and each day's facts are read as known on that day.
 - **Choosing the 2-4 key points** is plain code with a stated order, not a model:
   - in the morning: the used inputs first, then events, then the context cues by size of change against the cue's
     own 60-session spread, up to 4 points;
@@ -181,6 +184,15 @@ Each fetch belongs to another story's owner, and this story only calls it. Befor
 A9 and A8 (through the orchestrator, since A8 has no register row), P8 (no live owner; the orchestrator assigns one),
 and the owners of the morning's `data-librarian index-close` fetch (the A9 librarian's command; the O6 index-closes
 job archives the same file at 21:11). A17 is agreed as read-only, above.
+
+Two rules for every librarian fetch (from the A20/A22 builder, who last changed the librarian; reasoning only):
+- **A file not published yet is not a failure.** The librarian exits 1 with "not published" while NSE has not
+  released the file (the bhavcopy's Last-Modified reached 19:46 in the measured days). The routine shows "not out
+  yet", with no alert. Only a different error is `failed`.
+- **The manifest push can race** with `panel-days.yml`, which commits the same manifest later. The first push wins.
+  A refused push is pulled and retried once (item 8's rule), and a second librarian run finds the file "already
+  there".
+
 
 **7. The close read (A4h, owned by the A4 builder 01MKtUHB).** A simpler design is proposed to them:
 - The evening routine reads `/api/allIndices` at about 19:55 and accepts the answer only if NSE's stamp is today
