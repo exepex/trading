@@ -23,7 +23,7 @@ from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, STATUS_NO
 from fno.forecast_v4.terms import LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
 from tests.forecast_scoring_v4.helpers import settled_slot_days, values
 
-NO_DAYS = DayCounts(0, 0, 0, 0, 0)
+NO_DAYS = DayCounts(0, 0, 0, 0)
 
 
 def test_a_look_is_recorded_once_and_look_2_reads_the_members_closed_at_look_1(tmp_path):
