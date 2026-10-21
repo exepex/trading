@@ -24,7 +24,7 @@ pass mark, so the trade fields say "none". Story E8a; protocol `research/2026-10
 
 ## Machine block (story R1)
 
-Read by `python -m fno factory` (G0 fields; R1b adds the screen inputs). Its `idea` gate-log row is back-filled
+Read by `python -m fno factory` (G0 fields only: a measurement is never screened). Its `idea` gate-log row is back-filled
 from the ledger row (the card was registered by hand before R1's code).
 
 ```factory

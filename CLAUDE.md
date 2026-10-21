@@ -24,6 +24,10 @@ cost real money later, so:
   meant for ChatGPT (or from it) are written as Markdown files in the repository, never only in chat, so each side
   reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
   `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
+  Take `<n>` from the central registry, never "highest plus one": `python tools/claim_number.py <category> <name>
+  --session <id>` (or by hand, as `numbers/README.md` says: the row alone, pushed to `main` before the file from a
+  separate copy of `main`, never your own checkout; if the push is refused, never merge: refresh that copy and take the
+  next number). Story O12.
 - **Own limits too.** This applies to Claude's own limits and boundaries, not only tools: always give the fullest, most
   direct answer possible. If a limit ever shapes an answer, say so openly (what was limited and why), give everything
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
@@ -44,14 +48,33 @@ Before ending any working session with the user, write or append to `conversatio
 "Decisions so far" and "Open questions" sections. Commit and push it. Never include email addresses,
 API keys or tokens.
 
-## 3 pm quote recorder (daily routine, stories A4 and A7)
+## Daily desk routine (story O1; the 3 pm quote parts: stories A4, A4c and A7)
 
-Started by a scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55); the NSE
-session calendar (A7) decides whether it is a trading day, so special weekend sessions are recorded and closed days
-print "not a trading day". Research data only: never places, modifies or cancels orders.
+Started by the owner's scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55);
+its stored prompt is exactly: "Run the daily desk routine in CLAUDE.md, section 'Daily desk routine'." One command runs
+the whole desk day; the NSE session calendar (A7) decides whether it is a trading day (a closed day records only
+`skipped` and each quote part prints "not a trading day"). Research and paper trading only: never places, modifies or
+cancels orders.
 1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
    checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
    Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
+2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
+   (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
+   forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
+   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww). It
+   writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
+   done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
+   same day skips the steps already done.
+3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
+   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+
+### What the run does for the 3 pm quote parts (A4c's routine steps, word for word)
+
+The routine never runs these commands itself: `daily run` runs each part's own command as a child process and makes
+each part's commit in its one thread. The `git add` lines below are also the hand fix when the run reports a part
+"NOT committed". Their rules hold for every commit of the day: never edit a recorded attempt, never `--no-verify`.
+
 2. `python -m fno quotes record` (NIFTY, Groww) and `python -m fno quotes record --source nse` (NSE's public chain,
    story O6) run in parallel from the routine's start; each waits for 14:55 IST, records NIFTY monthly quotes and
    retries until 15:10 if a capture is incomplete. NSE's session calendar (`research/data/calendar/nse_sessions.csv`,
@@ -93,7 +116,8 @@ what it can damage, not by its size; when unsure, lane 1. Lane 1 is decided by t
   (list in `docs/JUDGE.md`). Everything not in lane 2 or 3 is lane 1. The orchestrator re-runs the checks and compares
   the builder's claim with the diff before merging; the judge audits each day's lane-2 merges once, and a FAIL is
   fixed first.
-- **Lane 3, no judge:** judge files, conversation logs, decision and status rows, and data commits by scheduled jobs.
+- **Lane 3, no judge:** judge files, conversation logs, decision and status rows, number claims (`numbers/`, story O12),
+  and data commits by scheduled jobs.
 
 A checkout on a detached HEAD pushes with `git push origin HEAD:<branch>`.
 
@@ -105,8 +129,9 @@ commit with `--no-verify`.
 ## Code
 
 - `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools` and
-  `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. When the gates
-  run: `docs/JUDGE.md`, "Merge procedure".
+  `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. On `main` (after
+  `git pull --no-rebase origin main`, never on a story branch alone: claim rows live on `main`),
+  `python tools/check_numbers.py` must pass too. When the gates run: `docs/JUDGE.md`, "Merge procedure".
 - **Engineering standards (owner, mandatory for every agent and every session):** SOLID, DRY, KISS and clean code
   (clear names, small single-purpose functions and classes, no duplication, no dead code, comments only for the "why").
   **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose
@@ -125,7 +150,8 @@ commit with `--no-verify`.
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/storage/quote_wiring.py` (the 3 pm quote store: Groww's
-  raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/risk/wiring.py` (the
+  raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/quotes/window_wiring.py`
+  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/risk/wiring.py` (the
   risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
   and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),
@@ -153,10 +179,14 @@ commit with `--no-verify`.
   `fno/storage/data_wiring.py` (story O9: every data file write-once in Drive's `data` area, its SHA-256 receipt
   under `receipts/`, the verified Drive cache; apart because `wiring.py` is at the size limit),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
-  A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
+  A16b), `fno/intraday/clock_wiring.py` (A16's checked clock, shared by A16 and A4e), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
   paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
+  `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5),
+  `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
+  parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
+  `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a),
   `fno/macro_calendar/wiring.py` (MOSPI's and the Fed's release calendars as daily snapshots in Drive, story A20c).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in

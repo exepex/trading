@@ -182,7 +182,7 @@ def test_the_verifier_is_built_without_groww_and_archives_nothing(tmp_path, monk
     monkeypatch.setattr(backfill_wiring, "build_nse_source", lambda kind: None)
     monkeypatch.setattr(backfill_wiring, "build_session_calendar", lambda: CALENDAR)
     monkeypatch.setattr(backfill_wiring, "SERIES_START", START)
-    monkeypatch.setattr(backfill_wiring, "INTRADAY_FOLDER", tmp_path / "table")  # never main's real back-fill rows
+    monkeypatch.setattr(backfill_wiring, "CANDLE_FOLDER", tmp_path / "table")  # never main's real back-fill rows
     monkeypatch.setattr(backfill_wiring, "MANIFEST_FOLDER", tmp_path / "manifests")
     verifier = backfill_wiring.build_candle_verifier()
     assert verifier.nse.library.archive is None and verifier.problems() == []

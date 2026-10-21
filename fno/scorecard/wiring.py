@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..alerts.sender import AlertSender
 from ..books.account import PaperAccount
 from ..composition import build_alert_sender
 from ..config import ROOT
@@ -19,8 +20,9 @@ from .review import review_terms
 from .run import ScorecardRun
 
 
-def build_scorecard_run(cfg: dict, root: Path = ROOT) -> ScorecardRun:
-    pauser = AutoPauser(build_status_changer(root), build_alert_sender())
+def build_scorecard_run(cfg: dict, root: Path = ROOT, alerts: AlertSender | None = None) -> ScorecardRun:
+    """`alerts`: the daily run's one sender (story O1), so an unsent pause alert is printed for the routine."""
+    pauser = AutoPauser(build_status_changer(root), alerts or build_alert_sender())
     return ScorecardRun(
         lambda: paper_accounts(root), lambda name: DeskRecords(PaperAccount(root, name)), build_playbook_loader(root),
         pauser, cfg["charges"], review_terms(cfg), build_execution_snapshots(root / QUOTES_FOLDER.relative_to(ROOT)),

@@ -6,10 +6,21 @@ from datetime import time, timedelta
 
 import pytest
 
-from fno.constants import HEALTH_LATE, HEALTH_MISSED, HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED, HEALTH_OK
+from fno.constants import (
+    DAILY_RUN_STEPS,
+    DESK_RUN_STEPS,
+    HEALTH_LATE,
+    HEALTH_MISSED,
+    HEALTH_NOT_DUE,
+    HEALTH_NOT_EXPECTED,
+    HEALTH_OK,
+    STEP_FAILED,
+    STEP_NOT_LIVE,
+    STEP_REFUSED,
+)
 from fno.desk.run_log import RUNS_FOLDER
 from fno.health.data_checks import PanelDayCheck, SessionRowCheck
-from fno.health.desk_checks import DESK_RUN_STEPS, MarksCheck, RunLogCheck
+from fno.health.desk_checks import MarksCheck, RunLogCheck
 from fno.health.expectations import CLOSES_FILE, FLOWS_BY, INDEX_CLOSE_BY, PANEL_DAY_BY, PANEL_MANIFEST
 from fno.health.model import Deadline
 from fno.intraday.slots import MARKS_PER_SESSION
@@ -26,10 +37,13 @@ def repo(tmp_path):
     return Repo(tmp_path)
 
 
-def _run_log(repo, steps=DESK_RUN_STEPS, decided=AT_DEADLINE):
-    body = {"started_at": decided.isoformat(), "finished_at": decided.isoformat(), "inputs": {}, "result": {}}
+def _run_log(repo, steps=DAILY_RUN_STEPS, decided=AT_DEADLINE, results=None):
+    def body(step):
+        return {"started_at": decided.isoformat(), "finished_at": decided.isoformat(), "inputs": {},
+                "result": (results or {}).get(step, {})}  # fmt: skip
+
     repo.write_json(f"journal/{RUNS_FOLDER}/{DAY.isoformat()}.json",
-                    {"day": DAY.isoformat(), "kind": "daily_run", "steps": {s: body for s in steps}})  # fmt: skip
+                    {"day": DAY.isoformat(), "kind": "daily_run", "steps": {s: body(s) for s in steps}})  # fmt: skip
 
 
 @pytest.mark.parametrize(("decided", "status"), [(ist(DAY, 15, 12), HEALTH_OK), (ist(DAY, 15, 12, 1), HEALTH_LATE)])
@@ -38,11 +52,11 @@ def test_the_desk_run_is_on_time_by_its_decisions_finish(repo, decided, status):
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == status
 
 
-@pytest.mark.parametrize("missing", ["exits", "trade_marks"])  # story E2d: the marking step after the exits
+@pytest.mark.parametrize("missing", ["exits", "trade_marks", "card"])  # E2d's marking step after the exits, O1's last
 def test_a_run_log_missing_a_step_is_a_miss_naming_it(repo, missing):
-    _run_log(repo, steps=tuple(step for step in DESK_RUN_STEPS if step != missing))
+    _run_log(repo, steps=tuple(step for step in DAILY_RUN_STEPS if step != missing))
     result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
-    assert result.status == HEALTH_MISSED and missing in result.detail
+    assert result.status == HEALTH_MISSED and result.detail == f"steps not run: {missing}"
 
 
 def test_a_run_log_without_decisions_and_no_run_log_at_all(repo):
@@ -57,15 +71,29 @@ def test_a_skipped_run_is_not_expected(repo):
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == HEALTH_NOT_EXPECTED
 
 
-def test_the_desk_steps_are_the_daily_runs_own_in_order():
-    import re
+def test_the_check_reads_the_daily_run_s_own_tuple(repo):
+    """Story O1 merged second: the steps expected are `DAILY_RUN_STEPS`, the tuple the run loops over (O1's
+    `tests/daily/test_day_run.py` proves the run writes exactly it), never a copy: a desk-only log misses O1's."""
+    _run_log(repo, steps=DESK_RUN_STEPS)
+    detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
+    assert (
+        detail
+        == "steps not run: quotes, margin_check, weather, forecasts_v4, book1, reviews, quotes_done, card, candles"
+    )
 
-    from fno.config import ROOT
 
-    source = (ROOT / "fno/desk/daily_run.py").read_text(encoding="utf-8")
-    plan = source[source.index("plan = (") : source.index("for name, moment, action in plan")]
-    names = [m.group(1) or "decisions" for m in re.finditer(r'\(\s*(?:"(\w+)"|RUN_LOG_DECISIONS_STEP),', plan)]
-    assert tuple(names) == DESK_RUN_STEPS
+def test_a_failed_or_refused_o1_step_is_a_problem_with_its_reason_not_live_is_not(repo):
+    refused = {"status": STEP_REFUSED, "reason": "nothing written: stale closes"}
+    failed = {"status": STEP_FAILED, "reason": "Slack refused"}
+    not_live = {"status": STEP_NOT_LIVE, "reason": "no live date"}
+    _run_log(repo, results={"weather": not_live, "card": failed, "forecasts_v4": refused})
+    result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
+    assert result.status == HEALTH_MISSED
+    assert (
+        result.detail == "steps not ok: forecasts_v4 refused: nothing written: stale closes; card failed: Slack refused"
+    )
+    _run_log(repo, results={"weather": {"status": STEP_NOT_LIVE, "reason": "no live date"}})
+    assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == HEALTH_OK
 
 
 def _marks(repo, statuses):

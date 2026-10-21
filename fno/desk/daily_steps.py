@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from ..alerts.sender import SENT, AlertSender
+from ..alerts.sender import AlertSender
 from ..checks.gate import DataGate
 from ..constants import NO_DECISION_LATE
 from .common_pack import CommonPack
@@ -188,9 +188,8 @@ class DeskSteps:
         entered = self.sync.write(order.book, lambda j: self.entry_desk.enter(order, snapshot, j, report), message)
         if entered.refused_by_check:  # story E4c: refused before any fill, for information; once, never on a replay
             what = ENTRY_REFUSED.format(trade=entered.trade_id, reason=entered.reason)
-            outcome = self.alerts.send(ALERT.format(day=snapshot.day, book=order.book, what=what))
-            if outcome != SENT:  # "alert NOT sent: <reason>" (no token): said on the run's output, and the run goes on
-                print(outcome)
+            # an unsent alert is printed once by the daily run's one sender (story O1's `ReportedAlerts`)
+            self.alerts.send(ALERT.format(day=snapshot.day, book=order.book, what=what))
         return {"outcome": entered.outcome, "reason": entered.reason, "snapshot_id": snapshot.snapshot_id,
                 "sha256": snapshot.sha256}  # fmt: skip
 

@@ -55,6 +55,20 @@ class Git:
         result = self._run("show", f"{commit}:{path}")
         return result.stdout if result.returncode == 0 else None
 
+    def commits_touching(self, path: str) -> list[str]:
+        """Every commit that changed `path`, oldest first (story D5: the strategy registry's append-only check)."""
+        return self._run("log", "--format=%H", "--reverse", "--", path).stdout.split()
+
+    def changes_with_parents(self, path: str, revision: str = "HEAD") -> list[tuple[str, tuple[str, ...]]]:
+        """Every commit in `revision`'s history that changed `path` against any of its parents, merges included, each
+        with its real parents (story D5: a merge of parallel registrations is two appends, not an edit)."""
+        lines = self._run("log", "--format=%H %P", "--full-history", revision, "--", path).stdout.splitlines()
+        return [(line.split()[0], tuple(line.split()[1:])) for line in lines if line.strip()]
+
+    def is_shallow(self) -> bool:
+        """A shallow clone lacks the older history, so a history check would pass on what it cannot see."""
+        return self._run("rev-parse", "--is-shallow-repository").stdout.strip() != "false"
+
     def commit_exists(self, commit: str) -> bool:
         return bool(commit) and self._run("cat-file", "-e", f"{commit}^{{commit}}").returncode == 0
 

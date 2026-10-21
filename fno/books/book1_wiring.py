@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
 
+from ..alerts.sender import AlertSender
 from ..config import ROOT
 from ..constants import BOOK1_RULES
 from .book1 import Book1
@@ -58,8 +59,9 @@ def build_book1_orders(cfg: dict, root: Path = ROOT) -> ReplayedOrders:
     return ReplayedOrders(build_rule_evaluator(cfg, root), build_code_tree(root), validator)
 
 
-def build_book1_exit_rules(root: Path = ROOT) -> PlaybookExitRules:
-    """Exits fixed at each decision (the committed runs); today's version files only feed the alerts."""
+def build_book1_exit_rules(root: Path = ROOT, alerts: AlertSender | None = None) -> PlaybookExitRules:
+    """Exits fixed at each decision (the committed runs); today's version files only feed the alerts (the daily
+    run's one sender when given, story O1)."""
     from ..books.account import PaperAccount
     from ..composition import build_alert_sender, build_session_calendar
     from ..constants import PLAYBOOK_FOLDER
@@ -74,8 +76,9 @@ def build_book1_exit_rules(root: Path = ROOT) -> PlaybookExitRules:
         path = root / PLAYBOOK_FOLDER / f"{version}.yaml"
         return path.read_text(encoding="utf-8") if path.is_file() else None
 
-    return PlaybookExitRules(lambda book: decided_exit_days(root, book, finder), version_text,
-                             lambda book: DeskRecords(PaperAccount(root, book)), build_alert_sender())  # fmt: skip
+    records = lambda book: DeskRecords(PaperAccount(root, book))  # noqa: E731
+    return PlaybookExitRules(lambda book: decided_exit_days(root, book, finder), version_text, records,
+                             alerts or build_alert_sender())  # fmt: skip
 
 
 def _features(cfg: dict, day: date, snapshot):

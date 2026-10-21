@@ -90,8 +90,8 @@ class DayForecasts:
         self.har_daily = Har(rv, 1, inputs.sessions)
         self.trailing = TrailingSum(rv)
         self.har_horizon = {q: Har(rv, HORIZON_SESSIONS[q], inputs.sessions) for q in BLENDS}
-        vix_up = vix_up_outcomes(inputs.vix, HORIZON_SESSIONS[V7_VIX_UP_5S])
-        self.vix_base_rate, self.vix_side = BaseRate(vix_up), VixSideRate(inputs.vix, vix_up)
+        vix_up = vix_up_outcomes(inputs.vix, HORIZON_SESSIONS[V7_VIX_UP_5S], self.days)
+        self.vix_base_rate, self.vix_side = BaseRate(vix_up), VixSideRate(inputs.vix, vix_up, self.days)
         self.base_rates = {q: BaseRate(big_move_outcomes(inputs.closes, h)) for q, h in
                            ((V6_BIG_MOVE_1S, 1), (V6_BIG_MOVE_5S, 5))}  # fmt: skip
         self._prefix = _prefix_hashes(inputs.closes_lines)

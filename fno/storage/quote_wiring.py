@@ -14,13 +14,16 @@ from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 from .wiring import OWNER_UPLOAD_SETTINGS, RAW_AREA, build_owner_drive
 
 
-def build_drive_only_quote_store(folder: Path, env=os.environ) -> DriveOnlyQuoteStore:
+def build_drive_only_quote_store(
+    folder: Path, env=os.environ, dataset: str = GROWW_QUOTE_DATASET
+) -> DriveOnlyQuoteStore:
     """Drive is signed in to only when a raw quote file is first saved or read, so building the store needs no Drive
-    (the forecast job's golden step, the NSE recorder and the tests build it without the settings)."""
+    (the forecast job's golden step, the NSE recorder and the tests build it without the settings). `dataset`: the Groww
+    dataset whose quote files go to Drive (A4e: a named window has its own)."""
 
     def drive() -> RawFileStore | None:
         owner = build_owner_drive(env)
         return AreaStore(owner, RAW_AREA) if owner is not None else None
 
     settings = ", ".join(OWNER_UPLOAD_SETTINGS)
-    return DriveOnlyQuoteStore(LocalFolderStore(folder), drive, GROWW_QUOTE_DATASET, settings)
+    return DriveOnlyQuoteStore(LocalFolderStore(folder), drive, dataset, settings)

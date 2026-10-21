@@ -2,7 +2,8 @@
 
 - `fire`: after the day's v2 pack is committed, fires each AI book's routine once (one #fno-desk line per failure);
 - `reveals-ready`: exit 0 once every fired book's reveal is in the checkout (or nothing was fired);
-- `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once);
+- `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once), then
+  records every book run's own timing in BG1's usage ledger and alerts each run of the day not captured (F8c);
 - `coverage`: per book, the pack days with a counted forecast (story G5 criterion 3);
 - `audits-due`: records any new weekly draw (with its seed inputs), then lists the selected sessions not audited yet;
 - `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once.
@@ -66,9 +67,9 @@ def _reveals_ready(day: date) -> int:
 
 
 def _collect(day: date) -> int:
-    from .wiring import build_ai_collector
+    from .wiring import build_ai_collector, record_book_usage
 
-    print("\n".join(build_ai_collector().collect(day)))
+    print("\n".join(build_ai_collector().collect(day) + record_book_usage(day)))
     return 0
 
 

@@ -160,8 +160,13 @@ def test_nobody_overrides_a_failure(by):
     assert override(check(), by, "nothing to override").ok
 
 
-@pytest.mark.parametrize(("book", "check_name", "story"), [(BOOK2_HYBRID, "envelope", "D4"),
-                                                           (BOOK3_AI, "constitution", "D5")])  # fmt: skip
-def test_books_2_and_3_fail_closed_until_their_stories(book, check_name, story):
-    report = check(proposal(book=book))
-    assert failed(report) == {check_name} and f"waits for story {story}" in report.failures[0].reason
+def test_book_3_fails_closed_without_a_registered_constitution():
+    """Story D5: Book 3's mode refuses a trade when no constitution matches the registered D6 component."""
+    report = check(proposal(book=BOOK3_AI))
+    assert failed(report) == {"constitution"} and "no constitution file" in report.failures[0].reason
+
+
+def test_book_2_fails_closed_without_a_trade_envelope():
+    """Story D4: Book 2's mode refuses a trade whose version has no envelope file, so nothing passes unchecked."""
+    report = check(proposal(book=BOOK2_HYBRID))
+    assert "envelope" in failed(report) and "no trade envelope" in report.failures[-1].reason

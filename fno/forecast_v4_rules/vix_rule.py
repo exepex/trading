@@ -16,15 +16,24 @@ MIN_CELL = 100  # the measured rival's cell minimum; a smaller cell falls back t
 
 
 class VixSideRate:
-    def __init__(self, vix: list[DayValue], outcomes: list[Outcome]):
-        self.days = [v.day for v in vix]
-        values = [v.value for v in vix]
+    def __init__(self, vix: list[DayValue], outcomes: list[Outcome], sessions: list[date]):
+        """`sessions`: the regular sessions in order. A 20-session window with a missing VIX close has no side, so
+        a gap never stretches the mean (judge 267)."""
+        known = {v.day: v.value for v in vix}
+        values = [known.get(d) for d in sessions]
+        self.days = list(sessions)
         self.below = [
-            values[i] < sum(values[i - MEAN_SESSIONS + 1 : i + 1]) / MEAN_SESSIONS if i >= MEAN_SESSIONS - 1 else None
+            self._below(values[i - MEAN_SESSIONS + 1 : i + 1]) if i >= MEAN_SESSIONS - 1 else None
             for i in range(len(values))
         ]
         self.outcomes = sorted(outcomes, key=lambda o: o.resolved_on)
         self.resolved = [o.resolved_on for o in self.outcomes]
+
+    @staticmethod
+    def _below(window: list[float | None]) -> bool | None:
+        if None in window:
+            return None
+        return window[-1] < sum(window) / MEAN_SESSIONS
 
     def side_before(self, d: date) -> bool | None:
         """Whether VIX was below its 20-session mean at the last session before `d` (None before 20 sessions)."""

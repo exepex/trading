@@ -55,7 +55,10 @@ CANONICAL = "research/data/quotes/groww/derivatives/quote-snapshots/2026/10/nift
 NSE_CSV = "research/data/quotes/nse/derivatives/quote-snapshots/2026/10/x.csv"
 
 
-@pytest.mark.parametrize("path", [QUOTE, QUOTE.replace(".csv", ".CSV"), DOTTED])
+V4_QUOTE = QUOTE.replace("quote-snapshots/", "quote-snapshots-v4/")  # A4e: a named window's own dataset
+
+
+@pytest.mark.parametrize("path", [QUOTE, QUOTE.replace(".csv", ".CSV"), DOTTED, V4_QUOTE])
 def test_a_raw_quote_path_is_refused_naming_it(tmp_path, path):
     with pytest.raises(RawQuoteCommitRefused, match="would publish raw Groww quotes"):
         guard(tmp_path).check([tmp_path / "journal/runs/2026-10-14.json", tmp_path / path])

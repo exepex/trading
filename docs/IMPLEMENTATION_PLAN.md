@@ -110,7 +110,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | done (judge 73, merged 374ad67) |
 | [E7](stories/E-paper-desk.md#e7-expiry-settlement) | Expiry settlement | trading | A2, C1, C2, E1, E4 | S | done (judge 71, merged f655612) |
 | [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | forecast part done (judges 62, 88, 90); trading part later |
-| [F2](stories/F-ai-layer.md#f2-role-agents-and-finding-cards) | Role agents and finding cards | trading | F1 | L | later |
+| [F2](stories/F-ai-layer.md#f2-analyst-roles-and-finding-cards) | Analyst roles and finding cards | trading | F1 | L | text rewritten 16 Oct 2026 |
 | [F3](stories/F-ai-layer.md#f3-red-team) | Red team | trading | F1, F2 | M | later |
 | [F4](stories/F-ai-layer.md#f4-ai-judge-parts-2-and-3-owner-overrides-and-the-monthly-audit) | AI judge (parts 2 and 3), owner overrides and the monthly audit | trading | C4, F1, F2 | M | later |
 | [F5](stories/F-ai-layer.md#f5-book-2-ai-decisions-inside-the-envelope) | Book 2: AI decisions inside the envelope | trading | C4, D2, D4, F1, F2, F3, F4 | M | later |

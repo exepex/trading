@@ -7,6 +7,7 @@ import pytest
 
 from fno.alerts.sender import NoAlertSender
 from fno.constants import BOOK1_RULES, OPTION_CALL, OUTCOME_NOT_OPENED
+from fno.daily.alerts import ReportedAlerts
 from tests.desk.builders import FLY_QUOTES, contract
 
 from . import fakes
@@ -43,9 +44,13 @@ def test_one_information_alert_with_no_quote_figure(root, tmp_path, alerts, thin
 
 
 def test_without_the_token_it_prints_alert_not_sent_and_the_run_reaches_its_exits(root, tmp_path, thin_wing, capsys):
-    run, clock = refused_day(root, tmp_path, NoAlertSender())
+    """Through the daily run's one sender (story O1's `ReportedAlerts`, as `fno/daily/wiring.py` wires it), the unsent
+    refusal is printed exactly once, never twice."""
+    run, clock = refused_day(root, tmp_path, ReportedAlerts(NoAlertSender()))
     log = run_day(run, clock, NORMAL)
-    assert "alert NOT sent: FNO_SLACK_BOT_TOKEN is not set" in capsys.readouterr().out.splitlines()
+    out = capsys.readouterr().out.splitlines()
+    unsent = [line for line in out if "alert NOT sent: FNO_SLACK_BOT_TOKEN is not set" in line and "trade" in line]
+    assert len(unsent) == 1 and "not opened" in unsent[0]
     assert list(log.steps)[-2:] == ["exits", "trade_marks"]
 
 

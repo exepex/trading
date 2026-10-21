@@ -329,3 +329,67 @@ row. At cfd6a95b the package's tests give 103 passed, and ruff check and format 
 changed since b79dee94, whose full-suite run above (7,062 passed) stands.
 
 **The PASS covers b79dee94 and cfd6a95b together.**
+
+## Addendum 5: E8 part 1, the delta after ChatGPT review 128 (responses 280 and 286), at 36b31327: PASS
+
+Branch `story/e8-code-part1` at 36b31327, merged with main of 21 Oct. Claimed as 203.5 in the number registry. The
+E8 commits since the PASS head are 12360bd9 and cc953337; the rest of the delta is merges of main, judged in their own
+stories.
+
+**No owner-timing code changed.** `git diff cfd6a95b 36b31327 -- fno/desk/owner_timing` is empty. The delta is:
+- tests;
+- the story text;
+- responses 280 and 286;
+- a test helper move;
+- an optional entry-desk factory in O11's replay harness. Its default is unchanged: `EntryDesk(CHARGES, clock)`.
+
+**Review 128's points, each checked against its test or text:**
+
+1. **The live boundary** (`test_live_boundary.py`).
+   - A decision the day before `live_from` is filled by E4 and never queued. One on `live_from` is handed over and
+     filled at the 10:15 mark. Each is run twice and ends with exactly 4 fills.
+   - An E4 exit still waiting across the live date: on the live date, one alert and no close; at the next 10:15, E8
+     closes the last leg. 4 closing fills, one per leg, so no leg is closed twice.
+   - The rule is in the story's rule 11.
+   - This matches `LiveFromEntries` and `LiveFromExits`, which choose by the day of the snapshot (addendum 2,
+     pushback b).
+2. **An order recovered two sessions later** keeps the card's T and its original due mark. It fills from that mark's
+   copy or misses "no quote", and the next day's copy is never read (`marks.read == [DUE]`).
+3. **A waiting exit keeps its risk** (`test_waiting_exit_risk.py`), through the real `FillDayRisk` and
+   `load_risk_book`.
+   - With only the protection still waiting, the next morning's risk book holds exactly 65 units of it, and a second
+     entry misses "over risk cap".
+   - With an alert delivered and nothing filled, all four legs are held, and a second entry misses.
+   - The builder states the limit plainly: the breach comes from the open-trades cap. It proves the units are counted;
+     it does not separately prove that stress-loss and margin size the leftover protection. Those rules read the same
+     `RiskBook.open_trades`, so I accept it (reasoning only).
+4. **Two copies.** A16's copy (ask 101) wins over a cheaper A4 stand-in (ask 81) at the same mark, and the snapshot
+   ID and SHA-256 are A16's. The stand-in is shown to be usable on its own, so A16 wins by rule, never by the price
+   that favours the trade.
+5. **Equal T.** The story's "Order of a morning's fills" says: oldest T first; equal T values in the step's fixed
+   order, books in config order, then entries before exits, then the records' order. That is exactly what the code
+   does: a stable `sorted` by T over `_pending()`, which loops books, then entries, then exits. Entries before exits
+   at an equal T is the cautious order, because the risk check still sees the open position.
+6. **Part 2's report text.** One cohort with four views, R = 60 the verdict. The overnight-move split covers opened
+   against price-moved misses and net per fill and per opportunity. No-card and away misses stay in the denominator
+   on their own rows. The edges (0.25% and 1%) are labelled reasoning only. No new filter, scheduler or service.
+7. **O11's E8 xfail is now a real check** (`test_replay_owner_timing.py`).
+   - 16 Oct is replayed with E8 live: the trade's outcome is `entry_pending` with the 60-minute hand-over reason, no
+     fill row is written, the order is kept at `book1_rules/orders/<trade>.json`, and no alert is sent.
+   - The step sits right after `quotes`.
+   - Removing `@missing("E8")` in `test_expected_missing.py` is right now that a real check exists.
+
+**Gates** on a trial merge with origin/main (8fcdded6):
+- full suite with `-n auto`: **8,285 passed, 2 failed, 17 xfailed**;
+- ruff check, ruff format, check_imports and check_numbers are clean.
+- The 2 failures fail the same way on origin/main alone, run in a clean worktree, so neither is E8's:
+  - `tests/forecast_scoring_v4/test_g7_series.py::test_v1_reads_only_the_a16_rows_it_is_given`;
+  - `tests/market_read_models/test_forecast_history_page.py::test_every_point_is_the_reports_own_scored_count_and_mean_brier`.
+
+**PASS.** E8 code part 1 may merge once main is green, or with exactly these two failures if the orchestrator rules so.
+The merge procedure's full suite runs on the merged tree.
+
+Still open before E8 goes live (from addenda 2-4, unchanged):
+- `live_from` is set by an owner row, on or before S1's freeze;
+- O1 fetches the full history before the day;
+- A16 runs live.
