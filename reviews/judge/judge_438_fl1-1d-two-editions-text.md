@@ -63,3 +63,34 @@ the text.
 ## Split check
 1d-1 (design items 1, 2, 4 in part, 7 and 8; criteria 1, 2, 5, 6 and 7) stands on its own; none of its criteria needs
 a Section. The should-fix sits in 1d-2's Sections, so 1d-1's code could start once this text passes.
+
+## Addendum 1: dfacef5a (response 307)
+
+**Verdict: PASS on the story text (lane 1). FL1-1d-1's code may start.** The diff from 6aabc36d to dfacef5a, apart
+from `main` merged in, changes only `docs/stories/FL1-1d-two-editions.md`.
+
+| Finding | Answer | Judge |
+|---|---|---|
+| SF1 per-source expected dates | A table, one rule per Section: closes, VIX, US closes, USD/INR, Brent, events, the bhavcopy levels, participant OI and the flows; morning and evening each have their own rule and label. A value outside its rule is "not out yet" in the evening and "not available" in the morning, never shown as current. One test per rule (criterion 3) | Accepted. Brent becomes "last print" up to 10 calendar days old, labelled with its date, and the text states that the limit is a choice, not evidence. US closes are the last US session before D's 09:15, so a US holiday shows the earlier session with its date. Reasoning only for the 10 days; the rule is honest |
+| Minor 1 citation | DESK_DECISIONS lines 284 and 287 | Accepted |
+| Minor 2 item 9 | It now leads with what is built (inside the evening routine, from 19:53) | Accepted |
+| Minor 3 index-close owner | Added: the A9 librarian's command; O6 archives the same file at 21:11 | Accepted |
+| Minor 4 routines | "Go-live conditions": the FL1 builder writes the CLAUDE.md sections in 1d-1 (lane 1); the owner creates both tasks from response 304's prompts, and no session creates them; the design sign-off; a first live run checked against its record | Accepted |
+
+**Note for the owner.** The FL1 builder could not delete `story/fl1-html-report` after FL1-1c's squash merge
+(45c72f6f), because the session's proxy drops branch deletes. Its commit 2ed6405e still holds the derived preview
+data (judge 434 should-fix 4). Deleting it in GitHub (Branches → delete) is advised, not required.
+
+## Note: 2b2c5724 (12 lines added to 1d-2's design)
+The commit adds two things:
+- **Miss reasons over 30 sessions, up from 7.** FL1-1c's `reasons()` looks up each fact for the miss day itself
+  (`facts.flows.get(day)`, the VIX of that day and the day before, events up to that day, and the last two prints
+  before it). So widening the window keeps every reason as known on its own day. Accepted.
+- **Two librarian rules:**
+  - a librarian "not published" exit shows "not out yet", with no alert. It must be told apart from other exit-1
+    errors by the librarian's own outcome text; test that in 1d-2;
+  - a manifest push race follows item 8's pull-and-retry-once rule.
+
+  Accepted (reasoning only, as labelled).
+
+1d-1 is unchanged. **The PASS of addendum 1 stands at 2b2c5724.**
