@@ -7,6 +7,7 @@
   ones, whose gaps are written to Drive).
 - verify: recomputes every table row from the archived copy it names (read-only).
 - adopt: takes a copy already in Drive's raw area into its cue's log and table, first seen at its own fetch time.
+- preopen: the Asian index levels before 09:15 IST (story A17e part B), called by A22's pre-open routine.
 Commit `research/data/global-cues/` and `research/data/manifests/global-cues/` after a run.
 """
 
@@ -34,8 +35,10 @@ STOPPING_FAILURES = (
 def add_global_cues_parser(subparsers) -> None:
     from .wiring import SOURCES
 
-    cues = subparsers.add_parser("global-cues", help="US closes, US 10-year, Brent and USD/INR (story A17)")
-    cues.add_argument("action", choices=("fill", "check", "verify", "adopt"))
+    cues = subparsers.add_parser(
+        "global-cues", help="US closes, world indexes, US 10-year, Brent and USD/INR (A17, A17e)"
+    )
+    cues.add_argument("action", choices=("fill", "check", "verify", "adopt", "preopen"))
     cues.add_argument("--cue", action="append", choices=[s.cue for s in SOURCES], help="one cue (repeatable)")
     cues.add_argument("--from", dest="start", type=date.fromisoformat, default=None, help="YYYY-MM-DD")
     cues.add_argument("--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default: today)")
@@ -45,7 +48,7 @@ def add_global_cues_parser(subparsers) -> None:
 
 def cmd_global_cues(args) -> int:
     """Every action; a Drive or setup failure stops it with one named line and exit 1, never a traceback."""
-    action = {"fill": _fill, "check": _check, "verify": _verify, "adopt": _adopt}[args.action]
+    action = {"fill": _fill, "check": _check, "verify": _verify, "adopt": _adopt, "preopen": _preopen}[args.action]
     try:
         return action(args)
     except STOPPING_FAILURES as exc:
@@ -54,15 +57,16 @@ def cmd_global_cues(args) -> int:
 
 
 def _fill(args) -> int:
-    from .wiring import build_job, sources_named
+    from .wiring import build_behind_check, build_job, sources_named
 
     end = args.end or now_ist().date()
     if args.start and args.start > end:
         print(f"--from {args.start} is after --to {end}: nothing asked for")
         return 1
     lines, ok = build_job().run(sources_named(args.cue), args.start, end)
-    print("\n".join(lines))
-    return 0 if ok else 1
+    behind_lines, on_time = build_behind_check().run(now_ist().date())
+    print("\n".join(lines + behind_lines))
+    return 0 if ok and on_time else 1
 
 
 def _check(args) -> int:
@@ -81,6 +85,12 @@ def _verify(args) -> int:
     problems += [p for s in sources for p in verifier.problems(s, tables[s.cue].rows())]
     print("\n".join(problems) or "every cue row equals the archived copy it names")
     return 1 if problems else 0
+
+
+def _preopen(args) -> int:
+    from .preopen_cli import cmd_preopen
+
+    return cmd_preopen()
 
 
 def _adopt(args) -> int:

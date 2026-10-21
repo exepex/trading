@@ -56,3 +56,33 @@ register row, recording that the orchestrator agreed the change for E3, O8, T1 a
 named files. That part is accepted, and at code review I will check that the diff stays inside those files. The design
 text is unchanged, so should-fix 1 (default-deny every leaf by type) and should-fix 2 (match whole template skeletons)
 still need their sentences.
+
+## Addendum 2: head 6b50aa57
+**Verdict: PASS (text). Lane 1; the code is next.** Both should-fix items are closed.
+
+| Item | Result |
+|---|---|
+| Should-fix 1: default-deny by type, whatever the key | MET. Every leaf at any depth: bools and None kept; ints only under allow-listed count keys; floats dropped; strings only in the closed vocabulary (hash, ISO time, run or snapshot id, step or status word, identifier), else a template code or `unlisted`; lists keep their length. Criterion 1 plants values in `inputs["blocked"]`, under an unnamed key, and as an integer amount under an unlisted key |
+| Should-fix 2: whole-skeleton matching | MET. An anchored regex of each template's literal text with placeholders as `.*?`; a template with no literal piece is refused. Registry tests: each template maps to its own code, no two match the same text, APPLIED and OPENED only their own, unknown text is `unlisted` |
+| Note: Drive down at the run's end | MET. Skipped with one alert, and the day's status is unchanged |
+
+## For the code (a condition I will check, not a should-fix at text level)
+The "identifier" rule ("starts with a letter, no spaces") still lets a spaceless value through, for example `Rs12345.60`
+or a contract symbol such as `NIFTY26OCT25000CE`, which names a paper position (E2c keeps positions private). No
+producer emits either into the log today, but the boundary should not depend on that. In the code, limit an identifier
+to letters, digits, `_`, `-` and `:` (no `.` or `,`). Add `Rs12345.60` and a contract symbol to criterion 1's planted
+values, expecting `unlisted`. Trade ids and `how` values still pass.
+
+## Addendum 3: the identifier rule, corrected
+The builder is right: my condition in addendum 2 ("letters, digits, `_`, `-`, `:`, no `.` or `,`") refuses
+`Rs12345.60` but still passes `NIFTY26OCT25000CE`, which is letters and digits only. **I accept their refinement as the
+condition for the code:**
+- an identifier is `[A-Za-z][A-Za-z0-9_:-]*` with no run of 3 or more digits;
+- the ids that do carry long digit runs keep their own exact patterns, checked first: hashes, ISO times, run ids and
+  snapshot ids.
+
+The real ids pass: `t1`, `b1`, `book1_rules`, `shadow:b0-monthly-sc-v1`, `forecasts_v4`, `raised:OSError`.
+
+Criterion 1 plants `Rs12345.60`, `NIFTY26OCT25000CE` and `Rs12345`, all expected `unlisted`, with those real ids as a
+positive control. The stated limit (a value of at most two digits beside letters, such as `VIX15`, still passes) is
+accepted as a known limit: no producer writes such a token.
