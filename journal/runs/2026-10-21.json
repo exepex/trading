@@ -482,6 +482,25 @@
     "reason": "command:exit_1",
     "exit_code": 1
    }
+  },
+  "close_read": {
+   "started_at": "2026-10-21T15:35:44.757947+05:30",
+   "finished_at": "2026-10-21T15:42:03.180173+05:30",
+   "inputs": {
+    "command": [
+     "closes",
+     "read"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "failed",
+     "reason": "command:exit_1",
+     "exit_code": 1
+    }
+   }
   }
  }
 }
