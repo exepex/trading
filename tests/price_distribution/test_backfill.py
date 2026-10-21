@@ -10,9 +10,11 @@ from datetime import date, timedelta
 from fno.forecast_v4_rules.series import DayValue
 from fno.price_distribution.backfill import Backfill
 from fno.price_distribution.build import DayBuilder
+from fno.price_distribution.cli import CACHE_PREFIX
 from fno.price_distribution.record_files import read_records
 from fno.price_distribution.sources import ChainUnavailable
 from fno.research_data.calendar import CsvSessionCalendar
+from fno.storage.drive_cache import DriveCache
 from tests.price_distribution.builders import DAY, RATE, Chains, chain_day, drive_store
 
 CALENDAR = CsvSessionCalendar("date,kind,description,source_url\n2026-10-20,holiday,Test,https://example.invalid\n")
@@ -72,12 +74,12 @@ def test_an_empty_range_writes_nothing(tmp_path):
 
 
 def test_the_scorer_reads_live_and_backfill_records_from_the_cache_layout(tmp_path):
-    run, drive, _ = backfill(tmp_path)
+    """Through the real verified cache and the command's own prefix, as `pricedist score` reads (the rule-8 run
+    found a trailing "/" refused here: a hand-copied cache had hidden it)."""
+    run, drive, receipts = backfill(tmp_path)
     run.run("backfill_3pm", ("NIFTY",), DAY, MONDAY)
-    for path, data in drive.files.items():
-        local = tmp_path / "cache" / path
-        local.parent.mkdir(parents=True, exist_ok=True)
-        local.write_bytes(data)
+    report = DriveCache(drive, receipts, tmp_path / "cache").sync(CACHE_PREFIX)
+    assert report.complete and len(report.downloaded) == 1
     assert [r["day"] for r in read_records(tmp_path / "cache" / "data")] == [DAY.isoformat(), MONDAY.isoformat()]
 
 
