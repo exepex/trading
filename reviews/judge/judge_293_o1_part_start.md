@@ -35,3 +35,22 @@ routine starts at 14:33, so this is a real path in normal running (strong eviden
 2. **A closed day's run now ends at about 14:38, not at once**, because its parts start at 14:38 to print "not a
    trading day". That costs about 5 minutes of routine time on closed days.
 3. Monday 19 Oct's run log should show NIFTY and NSE started at about 14:38. I will check it with O1 criterion 9.
+
+## Addendum 1: round 2 (story/o1-part-start at 6776f7d1, one commit on top of the merged 7b08108c)
+**Verdict: PASS. Lane 1. Merge it soon: it fixes a crash that is now on main.**
+
+**The bug (strong evidence: I removed the guard and the new test failed).** Before 6776f7d1, `start_due` worked out
+`datetime.combine(self.day, ...)` before it checked `self.started`. A rerun whose log already holds `quotes` never
+calls `start`, so `self.day` is `None`. Every wait of that rerun (`service()`, a command's poll) then raised
+`TypeError`. "A rerun the same day skips the steps already done" (CLAUDE.md) is normal running, so a same-day rerun
+after the `quotes` step crashes on main today.
+
+**The fix:** return before anything else when the day has not been opened. This is minimal and correct.
+
+**Checks:**
+- **Test:** `test_a_rerun_that_never_opens_the_day_starts_nothing_and_never_fails_on_a_wait`. With the guard removed it
+  fails (1 failed), and with it restored tests/daily gives 66 passed.
+- **Gates on a trial merge with main b6577f7d:** 8004 passed, 18 xfailed; 2 failed, the same 2 that fail on main itself
+  (`test_g7_series.py::test_v1_reads_only_the_a16_rows_it_is_given` and
+  `test_forecast_history_page.py::test_every_point_is_the_reports_own_scored_count_and_mean_brier`), not this change.
+  ruff and check_imports are clean.
