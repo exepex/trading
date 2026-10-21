@@ -50,3 +50,12 @@ markers.
    verified Drive cache starts empty. Each score step syncs its story's whole Drive folder, including every back-fill
    file, and FL1 syncs G13b's live and scores folders again. Before either `live_from` is set, record one measured
    duration of each score step on an empty cache against O1's 600 s step limit.
+
+## Note: d456c735 (two docs-only commits)
+b8d90d57..d456c735 changes only `docs/stories/G13b-price-ranges.md` (7 lines in A4), adding two rules:
+- BANKNIFTY's close table reads the first archived index-close file, never a later A11 revision;
+- never run `pricerange closes --to <today>` the same evening, because NSE's first file can be partial.
+
+I checked the text against the code. The live issue step updates the table only up to
+`previous_regular_session(calendar, day)` (`fno/price_ranges/wiring.py:92`), as the text says. No code or test
+changed. **The PASS and the merge condition stand.**
