@@ -36,21 +36,35 @@ ALL_STALE = "no live level: every open market stale"
 WINDOW_OPENS, WINDOW_CLOSES = time(8, 50), time(9, 5)  # IST: after A22's GIFT Nifty read, before its pre-open read
 CLOSED_WINDOW = "{index}: FAILED, not read: the window closed at 09:05 IST"
 NOT_COMMITTED_MARK = "NOT committed"
+NOT_A_TRADING_DAY = "preopen: not a trading day (NSE's calendar): nothing read"
 
 
-def cmd_preopen(out=print, now: Callable[[], datetime] | None = None, sleep=clock_time.sleep) -> int:
+def cmd_preopen(out=print, now: Callable[[], datetime] | None = None, sleep=clock_time.sleep, is_session=None) -> int:
+    """`is_session(day)`: NSE's calendar (A7) decides the day, as for every desk capture; a closed day reads nothing."""
     from ..models import now_ist
-    from .wiring import build_preopen, build_preopen_committers
+    from .wiring import build_preopen, build_preopen_committers, nse_session_day
 
-    now = now or now_ist
+    now, is_session = now or now_ist, is_session or nse_session_day
+    if not is_session(now().date()):
+        out(NOT_A_TRADING_DAY)
+        return 0
     _wait_for_window(now, sleep)
+    problems = []
     try:
         reader, sources = build_preopen()
     except FAILURES as exc:
         out(f"preopen: STOPPED before any read ({type(exc).__name__})")
-        return _report(out, f"stopped before any read ({type(exc).__name__})") | _commit(out, build_preopen_committers)
-    code = _read_all(out, reader, sources, now)
-    return code | _commit(out, build_preopen_committers)
+        problems.append(f"stopped before any read ({type(exc).__name__})")
+    else:
+        problems += _read_all(out, reader, sources, now)
+    if problems:  # the row first, so the commit below carries it
+        _record("; ".join(problems))
+    if not _committed(out, build_preopen_committers):
+        problems.append("receipts not committed")
+    if not problems:
+        return 0
+    out(_alert("; ".join(problems)))  # one line for everything that went wrong
+    return 1
 
 
 def _wait_for_window(now: Callable[[], datetime], sleep) -> None:
@@ -60,7 +74,8 @@ def _wait_for_window(now: Callable[[], datetime], sleep) -> None:
         sleep(wait)
 
 
-def _read_all(out, reader, sources, now: Callable[[], datetime]) -> int:
+def _read_all(out, reader, sources, now: Callable[[], datetime]) -> list[str]:
+    """Each index's line; the problems found (failed indexes, or no live level on a morning with open markets)."""
     failed, statuses = [], []
     for index, source in sources:
         if now().time() >= WINDOW_CLOSES:
@@ -76,31 +91,31 @@ def _read_all(out, reader, sources, now: Callable[[], datetime]) -> int:
         out(line)
         statuses.append(status)
     if failed:
-        return _report(out, f"{', '.join(failed)} failed")
-    if STALE in statuses and LIVE not in statuses:
-        return _report(out, ALL_STALE)
-    return 0
+        return [f"{', '.join(failed)} failed"]
+    return [ALL_STALE] if STALE in statuses and LIVE not in statuses else []
 
 
-def _commit(out, committers: Callable[[], list]) -> int:
-    """Its own files only (owned paths), whatever the reads gave; 1 when they could not be pushed (alerted)."""
+def _committed(out, committers: Callable[[], list]) -> bool:
+    """Its own files only (owned paths), whatever the reads gave; False when they could not be pushed."""
     try:
         lines = [committer.commit("pre-open Asian levels") for committer in committers()]
     except FAILURES as exc:
         lines = [f"pre-open receipts {NOT_COMMITTED_MARK}: {type(exc).__name__}"]
     for line in lines:
         out(line)
-    unsaved = [line for line in lines if NOT_COMMITTED_MARK in line]
-    return _report(out, "receipts not committed (the routine's output names why)") if unsaved else 0
+    return not any(NOT_COMMITTED_MARK in line for line in lines)
 
 
-def _report(out, what: str) -> int:
-    """One #fno-desk line and one O10 row; exit code 1."""
-    from ..composition import build_alert_sender
+def _record(what: str) -> None:
+    """One O10 row (a routine's failure: O10's `record-error` row)."""
     from ..health.capture_errors import CaptureError, one_line
     from ..health.wiring import build_capture_error_log
     from ..models import now_ist
 
-    out(build_alert_sender().send(ALERT.format(what=what)))
     build_capture_error_log().append(CaptureError(now_ist().date(), JOB, STEP, "failure", one_line(what), ""))
-    return 1
+
+
+def _alert(what: str) -> str:
+    from ..composition import build_alert_sender
+
+    return build_alert_sender().send(ALERT.format(what=what))

@@ -193,6 +193,13 @@ def build_preopen(env=os.environ) -> tuple[PreopenReader, list[tuple[str, YahooC
     return reader, [(index, yahoo[index + YAHOO_SUFFIX]) for index in PREOPEN_INDEXES]
 
 
+def nse_session_day(day: date) -> bool:
+    """Part B reads only on a day NSE trades in the morning (A7: regular or special, never muhurat-only)."""
+    from ..quotes.recorder import RECORDED_SESSION_KINDS
+
+    return storage.build_session_calendar().session_kind(day) in RECORDED_SESSION_KINDS
+
+
 def build_preopen_committers() -> list[OwnedPathsCommitter]:
     """Part B's own repository files: its snapshot logs and O10's capture-error log (its row after a failure); each
     committer adds only those paths, pulls with --no-rebase and retries its push (A16e's committer)."""

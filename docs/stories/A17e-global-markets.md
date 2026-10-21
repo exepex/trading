@@ -218,3 +218,6 @@ text for judge F.
    commits only its own files: its snapshot logs and, after a failure, O10's row. Each goes through A16e's
    owned-paths committer (pull `--no-rebase`, push retried), well before A22's push at about 09:11. A push that fails
    alerts and writes an O10 row.
+8. **Yahoo finality** (judge 439): a Yahoo close is final 30 minutes after its market closes, for both the collector
+   and the as-of labels. Part B checks NSE's calendar and reads nothing on a closed day; it writes its O10 row before
+   its commit and sends one alert per run.

@@ -149,3 +149,18 @@ def test_the_range_starts_a_day_early_so_sydneys_first_session_is_in_it():
     asx = YahooChartSource("asx200_yahoo", "^AXJO", SYDNEY, 7, False)
     url = asx.requests(date(2026, 10, 21), date(2026, 10, 21))[0].url
     assert "period1=1792454400" in url  # 2026-10-20 00:00 UTC: Sydney's 21 Oct bar is stamped 23:00 UTC on the 20th
+
+
+def test_a_yahoo_close_is_final_thirty_minutes_after_its_market_closes():
+    """Judge 439: Yahoo serves several exchanges 15-20 minutes late; its close counts 30 minutes after the market's."""
+    from fno.global_cues.collection import final_values
+    from fno.global_cues.source import CueValue
+    from fno.global_cues.yahoo_source import FINALITY_MARGIN
+
+    sti = YahooChartSource("sti_yahoo", "^STI", SINGAPORE, 7, False)
+    day, close = date(2026, 10, 21), datetime(2026, 10, 21, 14, 30, tzinfo=IST)  # 17:00 Singapore
+    assert timedelta(minutes=30) == FINALITY_MARGIN and sti.available_at(day) == close + FINALITY_MARGIN
+    value = [CueValue(day, 1.0)]
+    for seen, kept in ((close + timedelta(minutes=29), False), (close + timedelta(minutes=30), False),
+                       (close + timedelta(minutes=31), True)):  # fmt: skip
+        assert bool(final_values(sti, value, seen)) is kept, seen

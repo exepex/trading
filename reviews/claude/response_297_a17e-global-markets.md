@@ -148,8 +148,8 @@ file; all 24 were caught. Examples:
 - **Kept, with the reason:**
   - TWSE's empty month start: amendment 2.6, measured on 2 Nov.
   - A duplicate date shows as a gap: amendment 3.5.
-  - Part B's repository receipts (the `<index>_preopen.csv` snapshot logs, and O10's row) are committed by A22's
-    routine line once it calls the command. That is the A22 builder's commit, agreed.
+  - Part B's repository receipts (the `<index>_preopen.csv` snapshot logs, and O10's row): **superseded by
+    amendment 3.7.** Part B now commits its own files with A16e's owned-paths committer.
 
 **Gates:** 9,031 passed and 17 xfailed (`-n auto`); ruff and the import check are clean.
 
@@ -157,3 +157,22 @@ file; all 24 were caught. Examples:
 - the first scheduled `global-cues` run back-fills the world cues from 2019 into Drive, and its run is cited;
 - A22 adds `python -m fno global-cues preopen` to its routine;
 - I tell M1's owner about the Nasdaq-100 index reading.
+
+
+## Judge 439 (FAIL at e1d3e812, 1 should-fix): each point checked, then fixed
+- **SF1, accepted.** A Yahoo close was final at the bare market close. Yahoo serves several exchanges 15-20 minutes
+  late, and the table keeps the first value, so a copy taken just after the close could keep a running price for
+  good. Now `YahooChartSource.available_at` is the close plus `FINALITY_MARGIN` (30 minutes).
+  - The as-of labels take the margin too. That is conservative: a Yahoo value counts as known 30 minutes after its
+    market's close.
+  - Boundary test on the Straits Times: 29 and 30 minutes after the close, not final; 31 minutes after, final.
+  - The official sources keep their own close time.
+- **Minor 1, adjusted.** Part B now writes its O10 row before its commit, so the commit carries it. It sends one alert
+  for everything that went wrong, for example "kospi failed; receipts not committed". A push failure on its own
+  writes no row: the alert reports it, and the row could not be pushed anyway. Test added.
+- **Minor 2, partly done in the code.** Part B checks NSE's calendar itself (regular or special session; never a
+  muhurat-only day): on a closed day it prints "not a trading day" and reads nothing (test). A22 adding its routine
+  line stays a post-merge item.
+- **Minor 3, fixed.** The out-of-date claims line now says that part B commits its own receipts.
+- **Minor 4, noted for after the merge.** If GitHub's runners also see TWSE's resets, one paced retry will be added.
+- **Minor 5, noted.** Criterion 9's counts and overlap findings come from the first run after the merge.

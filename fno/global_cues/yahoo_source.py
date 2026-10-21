@@ -28,6 +28,7 @@ YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?period
 BLOCK_STATUSES = (401, 403, 429)
 BLOCKED = "{cue}: Yahoo {what}; stopped for this run, never retried another way"
 UNVERIFIED = "unverified (Yahoo only)"
+FINALITY_MARGIN = timedelta(minutes=30)  # over Yahoo's usual 15-20 minute delay
 
 
 class YahooBlocked(requests.RequestException):
@@ -108,7 +109,9 @@ class YahooChartSource(GlobalCueSource):
         return sorted(values, key=lambda v: v.value_date)  # a date given twice is left out, never guessed: a gap
 
     def available_at(self, value_date: date) -> datetime:
-        return self.market.available_at(value_date)
+        """The close plus `FINALITY_MARGIN` (judge 439): Yahoo serves several exchanges 15-20 minutes late, so a copy
+        taken at the close may still hold a running price; the as-of labels use the same, later moment."""
+        return self.market.available_at(value_date) + FINALITY_MARGIN
 
 
 def chart_result(data: bytes, cue: str) -> dict:

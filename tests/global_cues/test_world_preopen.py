@@ -27,6 +27,10 @@ def at_0855():
     return datetime(2026, 10, 22, 8, 55, tzinfo=IST)
 
 
+def always(day):
+    return True
+
+
 def no_sleep(seconds):
     raise AssertionError("no wait inside the window")
 
@@ -158,7 +162,7 @@ def test_the_command_alerts_once_and_records_one_o10_row_when_an_index_failed(mo
     )
     monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: errors)
     out = []
-    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=always) == 1
     assert out[:2] == ["nikkei225: live", out[1]] and out[1].startswith("kospi: FAILED (YahooBlocked)")
     assert sent == ["Omenix F&O pre-open Asian levels: kospi failed (the routine's output names why)"]
     (row,) = errors.rows()
@@ -172,7 +176,7 @@ def test_the_command_exits_0_and_records_nothing_when_every_index_read(monkeypat
 
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
     monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: pytest.fail("no row when nothing failed"))
-    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep) == 0
+    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 0
 
 
 def _alerts(monkeypatch, tmp_path):
@@ -195,7 +199,7 @@ def test_a_drive_failure_while_building_alerts_and_records_too(monkeypatch, tmp_
 
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", refused)
     out = []
-    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=always) == 1
     assert out[0] == "preopen: STOPPED before any read (DriveSignInRefused)"
     assert sent == [preopen_cli.ALERT.format(what="stopped before any read (DriveSignInRefused)")]
     assert [r.message for r in errors.rows()] == ["stopped before any read (DriveSignInRefused)"]
@@ -214,7 +218,10 @@ def test_a_failed_archive_write_alerts_and_the_next_indexes_still_read(monkeypat
         "fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None), ("kospi", None)])
     )
     out = []
-    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1 and "kospi: live" in out
+    assert (
+        preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=always) == 1
+        and "kospi: live" in out
+    )
     assert len(sent) == 1 and len(errors.rows()) == 1
 
 
@@ -228,17 +235,20 @@ def test_every_open_market_stale_alerts_but_stale_beside_a_live_one_does_not(mon
 
     pairs = [(index, None) for index in statuses]
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
-    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep) == 1
+    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 1
     assert sent == [
         "Omenix F&O pre-open Asian levels: no live level: every open market stale (the routine's output names why)"
     ]
     statuses["kospi"] = LIVE
-    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep) == 0 and len(sent) == 1
+    assert (
+        preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 0
+        and len(sent) == 1
+    )
 
 
 def test_it_waits_for_0850_reads_until_0905_and_then_reports_the_rest_unread(monkeypatch, tmp_path):
     sent, errors = _alerts(monkeypatch, tmp_path)
-    times = [(8, 40), (8, 50), (9, 4), (9, 5)]  # the wait, then one reading per index
+    times = [(8, 40), (8, 40), (8, 50), (9, 4), (9, 5)]  # the day, the wait, then one reading per index
     clock = iter(datetime(2026, 10, 22, h, m, tzinfo=IST) for h, m in times)
     slept = []
 
@@ -249,7 +259,7 @@ def test_it_waits_for_0850_reads_until_0905_and_then_reports_the_rest_unread(mon
     pairs = [("nikkei225", None), ("kospi", None), ("asx200", None)]
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
     out = []
-    assert preopen_cli.cmd_preopen(out.append, now=lambda: next(clock), sleep=slept.append) == 1
+    assert preopen_cli.cmd_preopen(out.append, now=lambda: next(clock), sleep=slept.append, is_session=always) == 1
     assert slept == [600.0]  # 08:40 to 08:50
     assert out[:3] == ["nikkei225: live", "kospi: live", "asx200: FAILED, not read: the window closed at 09:05 IST"]
     assert sent == [preopen_cli.ALERT.format(what="asx200 failed")]
@@ -266,9 +276,9 @@ def test_receipts_that_could_not_be_pushed_alert_and_record(monkeypatch, tmp_pat
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen_committers", lambda: [refused])
     out = []
-    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=always) == 1
     assert refused.whats == ["pre-open Asian levels"] and refused.line in out
-    assert sent == [preopen_cli.ALERT.format(what="receipts not committed (the routine's output names why)")]
+    assert sent == [preopen_cli.ALERT.format(what="receipts not committed")] and errors.rows() == []
 
 
 def test_the_committers_own_only_part_bs_files():
@@ -277,3 +287,32 @@ def test_the_committers_own_only_part_bs_files():
     logs, errors = REAL_COMMITTERS()
     assert logs.owned == tuple(f"research/data/manifests/global-cues/{i}_preopen.csv" for i in wiring.PREOPEN_INDEXES)
     assert errors.owned == ("research/ops/capture_errors.csv",)
+
+
+def test_a_read_failure_and_a_failed_push_give_one_alert_and_the_row_is_written_before_the_commit(
+    monkeypatch, tmp_path
+):
+    sent, errors = _alerts(monkeypatch, tmp_path)
+    rows_at_commit = []
+
+    class Reader:
+        def read(self, source, index):
+            raise YahooBlocked("kospi_yahoo: Yahoo answered HTTP 403; stopped for this run, never retried another way")
+
+    class Refused(Committed):
+        def commit(self, what):
+            rows_at_commit.append(len(errors.rows()))
+            return "O10 row NOT committed: push failed: rejected"
+
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("kospi", None)]))
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen_committers", lambda: [Refused()])
+    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 1
+    assert rows_at_commit == [1]  # the O10 row existed when the commit ran
+    assert sent == [preopen_cli.ALERT.format(what="kospi failed; receipts not committed")]
+
+
+def test_a_day_nse_does_not_trade_reads_nothing(monkeypatch):
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: pytest.fail("nothing is read on a closed day"))
+    out = []
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=lambda day: False) == 0
+    assert out == [preopen_cli.NOT_A_TRADING_DAY]
