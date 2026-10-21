@@ -909,6 +909,120 @@ chain calls: about 75 s at 2.5 a second, so the window ends about 15:07 on a nor
 
 **Depends:** A4, A4b, A4c, A5 · **Size:** M (about 1 day) · **Status:** story text for judge F (21 Oct 2026)
 
+## A4h. Today's index close, read after 15:30 for the evening check
+
+**Repository:** trading · **Lane:** 1 (NSE, Drive, O1's steps, a forecast check's input) · **Branch:**
+`story/a4h-close-read` · **Judge:** F
+
+**Description:** As the statistician and the F&O trader, I want today's NIFTY 50 and NIFTY BANK closes read from NSE
+soon after 15:30, kept write-once and later confirmed against NSE's official index-close file, so that the evening
+report can check today's forecast against today's close the same day, marked "provisional" until confirmed.
+
+**Context and why:**
+- Owner, 21 Oct 2026 (`docs/DESK_DECISIONS.md`): forecast before the open and check after the close (c3231785). The
+  evening edition runs at about 19:00 IST, from a scheduled task the owner will create (bcbbc454).
+- The official close reaches us only through NSE's index-close file (`ind_close_all_DDMMYYYY.csv`), archived by O6's
+  `index-closes.yml`. That job is scheduled for 21:11 IST, and GitHub has started this repository's scheduled runs
+  4.5-5.5 hours late (`participant-oi-watch.yml`'s note, 14 Oct). G13b scores against that file.
+- When the file is first published is **not measured**:
+  - NSE's server gives `Last-Modified: 17:50:10 GMT` (23:20 IST) for every file from 9 to 21 Oct (checked 22 Oct about
+    04:00 IST). That is NSE's late rewrite (A11 found the 12 Oct one), not the first release.
+  - Our manifest commits for these files came between 22:58 and 02:12 IST.
+  - So nothing shows the official file is out by 19:00. (Some evidence.)
+- NSE's public `/api/allIndices` carries the closes earlier. A4 already reads it at 3 pm (`fno/quotes/market_levels.py`,
+  `ALL_INDICES_PATH`) through `PublicData.nse_json`.
+- **Evidence for 21 Oct** (read 22 Oct, 03:57 IST, 12.5 hours after the close, compared with NSE's
+  `ind_close_all_21102026.csv`):
+  - the answer's `timestamp` was still `21-Oct-2026 15:30`;
+  - NIFTY 50 matched exactly at 22811.35, NIFTY BANK at 54976.9, NIFTY FINANCIAL SERVICES at 24691.45 and NIFTY
+    MIDCAP SELECT at 13367.85;
+  - **INDIA VIX did not match: 15.7 in allIndices against 15.68 official.** The VIX value is not the official close, so
+    VIX is not read here.
+  - The FL1 builder saw the same stamp and closes on 21 Oct hours after the close.
+  - These are two reads of one day. (Some evidence.)
+- **No past archive can test more days.** No read of allIndices after 15:30 was ever kept: A4's 3 pm read keeps the
+  parsed levels only, before the close. So the 5 record-only sessions below are the test.
+
+**Where the read runs (decided, with the reason):**
+- It is an O1 step, `close_read`, `NotBefore(15:40)`, placed just before `lab_close` in `DAILY_RUN_STEPS`.
+  - The daily routine is the only runner alive every session today: the 19:00 task does not exist yet, and GitHub's
+    schedule starts hours late.
+  - 15:40 is 10 minutes after NSE fixes the close.
+- The same command may be rerun later the same evening, for example by the 19:00 task when the step failed. The stamp
+  rule decides whether a read counts, not the clock time.
+- I considered the FL1 builder's proposal (one read at about 19:55 only) and did not adopt it as the only read:
+  - it needs a runner that does not exist yet;
+  - it rests on one day.
+  It stays possible as the rerun.
+
+**Scope.**
+- In:
+  - a command `python -m fno closes read` and its O1 step;
+  - NIFTY 50 and NIFTY BANK, the indices G13b and FL1 check;
+  - the raw answer and a parsed record, both write-once in Drive (O9's data store) with SHA-256 receipts;
+  - the confirm step against the archived official file;
+  - one #fno-desk alert per failure or difference.
+- Out:
+  - INDIA VIX (shown not to be the official close);
+  - other indices: no reader, but the raw answer keeps them all;
+  - any reader or display (FL1's `ProvisionalCloses` port reads the record);
+  - O6's job and files, which stay unchanged: A4h only reads the archived file, and O6's owner is told;
+  - measuring the official file's first release minute (the owner's open question in bcbbc454; one line in the claims).
+
+**Expected design (the simplest that covers the real cases):**
+- **One read.** `nse_json("/api/allIndices")`, through the existing client, with up to 3 tries 60 seconds apart on an
+  error or a refused stamp.
+- **When a read counts.** Its `timestamp` parses to today's session date at 15:30 or later. Any other stamp (the
+  previous session, before 15:30, missing) is refused with its text.
+- No "unchanged for 60 s" rule: 10 minutes after the close, two reads a minute apart can only catch a change in that
+  minute, while the confirm step catches any difference at all. (Reasoning only; the 5 sessions test the read itself.)
+- **Records.** The raw answer and `closes/<yyyy>/<mm>/<day>.json` go to O9's data store, write-once. The record holds:
+  day, the read and NSE's stamp, each index's value, `provisional`, and the raw answer's SHA-256.
+  - A rerun on a day already recorded writes nothing and prints "already recorded".
+- **Confirm.**
+  - Each run first confirms every earlier recorded day that has no confirmation yet and whose official file is in
+    Drive. It reads the file through the verified Drive cache, using the first archived version (what G13b scores), and
+    `read_index_closes` ("Nifty 50", "Nifty Bank").
+  - It writes `closes/<yyyy>/<mm>/<day>.confirm.json` write-once, per index: `confirmed` when within 0.01 point, else
+    `differs by X`.
+  - Any difference sends one alert.
+- **Lines and alerts.**
+  - One result line: `close read <day>: NIFTY 50 22811.35, NIFTY BANK 54976.9 (NSE 15:30)`, `not a trading day`,
+    `too early` or `close not read: <reason>`.
+  - A failed read (all 3 tries) and a confirm difference each send one #fno-desk alert through the existing sender.
+    The step's exit code tells O1.
+- **Placement.** `fno/close_read/` (source, record, confirm, command) and its composition root
+  `fno/close_read/wiring.py`. O1's step and `config.yaml`'s `daily.live_from.close_read`, set to the merge day, are
+  agreed with O1/O2's owner.
+
+**Record-only first.** For the first 5 sessions the record is written but FL1 does not show it. Each confirm line is
+reported. A difference over 0.01 on any of those days stops FL1's use until it is explained.
+
+**Size:** about 230 lines of code and 300 of tests. M, about 1 day.
+
+**Acceptance criteria:**
+1. **The stamp decides.** Using NSE answers built from the 21 Oct read (stamp 15:30 today, the previous session's
+   stamp, 15:29, missing, an error page, one index missing), only the first is recorded. Each refusal prints its reason.
+   The tries stop at 3.
+2. **Write-once and receipts.** The raw answer and the record each go to the data store once, with a receipt. A rerun
+   on a recorded day writes nothing.
+3. **The calendar.** A closed day (A7) prints "not a trading day" and reads nothing. Before 15:40 the step does not
+   start (O1's `NotBefore`).
+4. **Confirm.** Using the real `ind_close_all_21102026.csv` values:
+   - 22811.35 confirms;
+   - 22811.34 confirms (0.01 is inside the tolerance);
+   - 22811.33 records "differs by 0.02" and alerts once;
+   - a day whose official file is not yet in Drive stays unconfirmed with no alert;
+   - a confirmation is never rewritten.
+5. **O1.** `close_read` sits before `lab_close` in `DAILY_RUN_STEPS`. Its failure makes the day "done with problems"
+   without stopping `lab_close`. A rerun the same day skips it once recorded.
+6. **No Groww, no orders.** The source imports only the public client (`check_imports`).
+7. **The first 5 live sessions** (claims after merge): each day's read time, NSE stamp, the two values and the confirm
+   line, against the official file.
+
+**Depends:** A4 (market_levels' endpoint), A7, A10 (`read_index_closes`), O1, O6 (archived file, read only), O9 ·
+**Size:** M · **Status:** story text for judge F (22 Oct 2026)
+
 ## A5. Monthly-expiry identity in the package
 
 **Repository:** trading
