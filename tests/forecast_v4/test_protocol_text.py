@@ -136,4 +136,5 @@ def test_section_11_d_states_the_measured_noise_not_the_assumed_one():
     assert "only V6b can be claimed, slowly, and see E" not in flat
     assert "V6b needs about 14-22 years even if its full back-filled skill is real" in flat
     assert "no v4 member is provable in useful time" in flat
+    assert "V2's 8-22 years above are at the assumed r = 3-5, so with real noise it needs longer" in flat  # 436
     assert "The table's result is advice to the owner, never an automatic step" in flat
