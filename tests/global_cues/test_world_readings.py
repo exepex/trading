@@ -103,3 +103,11 @@ def test_the_checks_print_counts_only_write_dates_to_drive_and_name_the_unverifi
     assert "unverified (Yahoo only): hang_seng" in lines
     assert written["rows"][1] == [("vix_us", "2026-02-06", DIFFERS)]
     assert not any("17.76" in line or "20.37" in line for line in lines)  # no level is ever printed
+
+
+def test_official_holiday_rows_are_not_compared():
+    official = [row(d, 1.0, "") for d in ("2026-05-22", "2026-05-25", "2026-05-26")]  # 25 May: Memorial Day
+    yahoo = [row(d, 1.0, "") for d in ("2026-05-22", "2026-05-26", "2026-09-07")]  # 7 Sep: Labor Day, Yahoo's row
+    assert pair_rows("vix_us", official, yahoo[:2]) == [("vix_us", "2026-05-25", ONLY_OFFICIAL)]
+    us_sessions = lambda day: day != date(2026, 5, 25)  # noqa: E731
+    assert pair_rows("vix_us", official, yahoo, us_sessions) == []

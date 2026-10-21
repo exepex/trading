@@ -2,6 +2,7 @@
 answer and a changed layout; CSIndex's fake start-date row never enters a table; Yahoo dates are the exchange's own."""
 
 from datetime import date, time
+from pathlib import Path
 
 import pytest
 
@@ -82,9 +83,9 @@ def test_empty_answers_taiex_month_start_is_empty_the_others_refuse():
 
 
 def test_a_bad_twse_date_and_a_stoxx_row_of_another_index_are_refused():
-    with pytest.raises(ValueError, match="bad TWSE date"):
+    with pytest.raises(ValueError, match="not seven digits"):
         TwseTaiexSource().parse(twse(("2026-10-21", "1.0")))
-    with pytest.raises(ValueError, match="another index"):
+    with pytest.raises(ValueError, match="symbol is not DAX"):
         StoxxSource("dax", "dax", "DAX").parse(stoxx("SX5E", ("20.10.2026", 1.0)))
 
 
@@ -132,3 +133,40 @@ def test_yahoo_only_indexes_say_unverified_and_ask_one_range_per_run():
     assert UNVERIFIED in lone.publisher and UNVERIFIED not in yahoo().publisher
     requests = lone.requests(date(2019, 1, 1), date(2026, 10, 21))
     assert len(requests) == 1 and "%5EHSI" in requests[0].url and "interval=1d" in requests[0].url
+
+
+def test_a_nikkei_row_cut_short_is_refused_and_no_error_shows_a_cell(tmp_path):
+    cut = NIKKEI.replace(b'"2026/10/21","101.25","100.50","102.00","100.00"', b'"2026/10/21"')
+    with pytest.raises(ValueError, match="without its 5 cells"):
+        NikkeiSource().parse(cut)
+    layout = stoxx("DAX", ("4567.89", 30.5))  # a level where the date should be
+    with pytest.raises(ValueError) as refused:
+        StoxxSource("dax", "dax", "DAX", FRANKFURT).parse(layout)
+    assert "4567" not in str(refused.value)
+    with pytest.raises(ValueError) as refused:
+        CsindexShanghaiSource().parse(csindex(("3811.9", 1.0)))
+    assert "3811" not in str(refused.value)
+
+
+def test_a_short_row_or_an_impossible_number_is_unreadable_never_a_crash():
+    from fno.global_cues.collection import UNREADABLE
+
+    assert issubclass(IndexError, UNREADABLE) and issubclass(OverflowError, UNREADABLE)
+
+
+def test_the_certificate_bundle_takes_curls_variable_and_a_directory_falls_back(tmp_path, monkeypatch):
+    from fno.global_cues import europe_sources
+
+    proxy = tmp_path / "proxy.pem"
+    proxy.write_text("PROXY ROOTS\n")
+    for variable, value, expected in (
+        ("CURL_CA_BUNDLE", proxy, "PROXY ROOTS"),
+        ("REQUESTS_CA_BUNDLE", tmp_path, "BEGIN"),
+    ):
+        monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+        monkeypatch.delenv("CURL_CA_BUNDLE", raising=False)
+        monkeypatch.setenv(variable, str(value))
+        europe_sources._bundle_with_intermediate.cache_clear()
+        text = Path(europe_sources._bundle_with_intermediate()).read_text()
+        assert expected in text and "MIIGAjCCA+qgAwIBAgIQJrn" in text  # the roots, then SSL.com's intermediate
+    europe_sources._bundle_with_intermediate.cache_clear()

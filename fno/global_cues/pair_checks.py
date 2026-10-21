@@ -6,13 +6,28 @@ Drive and only the counts are printed (the values are private, owner rule 50a79a
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
+from datetime import date
+
+from .source import positive
 
 PAIR_FIELDS = ("index", "date", "kind")
 DIFFERS, ONLY_OFFICIAL, ONLY_YAHOO = "differs_over_0.1pct", "only_official", "only_yahoo"
 TOLERANCE = 0.001  # 0.1 percent: rounding between publishers stays far below it (Nikkei, SSE: equal to the cent)
 
 
-def pair_rows(index: str, official: list[dict[str, str]], yahoo: list[dict[str, str]]) -> list[tuple[str, str, str]]:
+def pair_rows(
+    index: str,
+    official: list[dict[str, str]],
+    yahoo: list[dict[str, str]],
+    is_session: Callable[[date], bool] | None = None,
+) -> list[tuple[str, str, str]]:
+    """`is_session`: the market's calendar, when a publisher has holiday rows (Cboe's VIX, Nasdaq, Yahoo's VIX): rows
+    on dates that are not sessions are compared on neither side (as readings skip them)."""
+    if is_session is not None:
+        official, yahoo = (
+            [r for r in rows if is_session(date.fromisoformat(r["value_date"]))] for rows in (official, yahoo)
+        )
     ours, theirs = _by_date(official), _by_date(yahoo)
     if not ours or not theirs:
         return []
@@ -34,4 +49,4 @@ def compared_dates(official: list[dict[str, str]], yahoo: list[dict[str, str]]) 
 
 
 def _by_date(rows: list[dict[str, str]]) -> dict[str, float]:
-    return {r["value_date"]: float(r["value"]) for r in rows}
+    return {r["value_date"]: positive(r["value"], r["value_date"], True) for r in rows}

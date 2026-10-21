@@ -22,14 +22,16 @@ from zoneinfo import ZoneInfo
 import requests
 
 from ..models import IST
+from .markets import MarketClose
 from .row_log import RowLog
 from .snapshot_log import SnapshotLog, SnapshotRow
-from .source import CueRequest
+from .source import CueRequest, positive
 from .yahoo_source import YahooChartSource, chart_result
 
 YAHOO_INTRADAY = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1d&interval=5m"
 STALE_AFTER = timedelta(minutes=20)
-LIVE, STALE, CLOSED = "live", "stale", "market closed"
+LIVE, STALE, CLOSED, LUNCH = "live", "stale", "market closed", "lunch break"
+BAR = timedelta(minutes=5)
 ROW_FIELDS = ("index", "seen_at", "level_time", "level", "status", "previous_close", "previous_close_cue", "sha256")
 RAW_FOLDER = "yahoo/preopen"
 
@@ -43,22 +45,35 @@ class PreopenLevel:
     status: str
 
 
-def level_status(seen_at: datetime, level_time: datetime, zone: ZoneInfo) -> str:
+def level_status(seen_at: datetime, level_time: datetime, market: MarketClose) -> str:
+    """`market closed` (no level today), `lunch break` (the market's midday break: the morning's last level), else
+    `live` or `stale` by the level's age."""
+    zone = ZoneInfo(market.zone)
     if level_time.astimezone(zone).date() != seen_at.astimezone(zone).date():
         return CLOSED
+    if market.at_lunch(seen_at):
+        return LUNCH
     return STALE if seen_at - level_time > STALE_AFTER else LIVE
 
 
-def newest_level(index: str, data: bytes, seen_at: datetime) -> PreopenLevel:
-    """The newest 5-minute close in a Yahoo chart answer (ValueError when there is none or the layout changed)."""
+def newest_level(index: str, data: bytes, seen_at: datetime, market: MarketClose) -> PreopenLevel:
+    """The newest 5-minute close in a Yahoo chart answer, timed at its bar's end (or now, for the bar still running);
+    ValueError when there is none or the layout changed. Never shows a level in an error."""
     result = chart_result(data, index)
-    zone = ZoneInfo(result["meta"]["exchangeTimezoneName"])
-    points = [(t, c) for t, c in zip(result.get("timestamp") or [], result["indicators"]["quote"][0]["close"]) if c]
+    stamps, closes = result.get("timestamp") or [], result["indicators"]["quote"][0]["close"]
+    if len(stamps) != len(closes):
+        raise ValueError(f"{index}: not one close per timestamp in Yahoo's answer")
+    points = [(t, c) for t, c in zip(stamps, closes, strict=True) if c is not None]
     if not points:
         raise ValueError(f"{index}: no 5-minute level in Yahoo's answer")
     stamp, level = points[-1]
-    level_time = datetime.fromtimestamp(stamp, zone)
-    return PreopenLevel(index, seen_at, level_time, float(level), level_status(seen_at, level_time, zone))
+    try:
+        bar_start = datetime.fromtimestamp(stamp, ZoneInfo(result["meta"]["exchangeTimezoneName"]))
+    except (OverflowError, OSError):
+        raise ValueError(f"{index}: an impossible timestamp in Yahoo's answer") from None
+    level_time = min(bar_start + BAR, seen_at)
+    value = positive(level, index, True)
+    return PreopenLevel(index, seen_at, level_time, value, level_status(seen_at, level_time, market))
 
 
 class PreopenReader:
@@ -75,17 +90,18 @@ class PreopenReader:
         self.session, self.archive, self.log, self.rows = session, archive, log, rows
         self.previous_close, self.clock = previous_close, clock
 
-    def read(self, source: YahooChartSource, index: str) -> str:
-        """One index's line; raises requests.RequestException (a block included) or ValueError on a failure."""
+    def read(self, source: YahooChartSource, index: str) -> tuple[str, str]:
+        """One index's line and status; raises requests.RequestException (a block included) or ValueError."""
         request = CueRequest(f"{index}_5m.json", YAHOO_INTRADAY.format(symbol=source.symbol.replace("^", "%5E")))
         data = source.download(self.session, request)  # A17e's block rule: no retry, no other way
         seen_at = self.clock().astimezone(IST)
-        level = newest_level(index, data, seen_at)
+        level = newest_level(index, data, seen_at, source.market)
         sha256 = self._archive(index, request, data, seen_at)
         close, close_cue = self.previous_close(index, seen_at)
         self.rows.append(ROW_FIELDS, [_row(level, close, close_cue, sha256)])
         age = round((seen_at - level.level_time).total_seconds() / 60)
-        return f"{index}: {level.status}, level of {level.level_time:%H:%M} {level.level_time.tzname()} ({age} min old)"
+        line = f"{index}: {level.status}, level of {level.level_time:%H:%M} {level.level_time.tzname()} ({age} min old)"
+        return line, level.status
 
     def _archive(self, index: str, request: CueRequest, data: bytes, seen_at: datetime) -> str:
         path = f"{RAW_FOLDER}/{seen_at:%Y/%m/%d}/{seen_at:%H%M%S}_{request.name}"

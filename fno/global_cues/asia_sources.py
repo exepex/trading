@@ -58,7 +58,7 @@ class CsindexShanghaiSource(OfficialAsianSource):
 class TwseTaiexSource(OfficialAsianSource):
     cue, dataset, date_zone = "taiex", "twse/indices/taiex-month", TAIPEI.zone
     publisher = "Taiwan Stock Exchange open data (government open-data platform), TAIEX daily, current month"
-    first_value_date, max_age_days, market = date(2026, 10, 1), 7, TAIPEI  # no history: the open data is one month
+    first_value_date, max_age_days, market = date(2026, 10, 1), 10, TAIPEI  # one month only; 10: the Lunar New Year
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         return [CueRequest("taiex-month.json", TWSE_TAIEX)]
@@ -83,6 +83,8 @@ class NikkeiSource(OfficialAsianSource):
         if not rows or rows[0] != NIKKEI_HEADER:
             raise ValueError(f"{self.cue}: not Nikkei's CSV (header)")
         dated = [r for r in rows[1:] if r and NIKKEI_DATE.fullmatch(r[0])]  # the copyright footer is skipped
+        if any(len(r) != len(NIKKEI_HEADER) for r in dated):
+            raise ValueError(f"{self.cue}: a dated row without its {len(NIKKEI_HEADER)} cells (a cut download?)")
         return checked([_dated(r[0], "%Y/%m/%d", r[1]) for r in dated], self.cue)
 
 
@@ -94,13 +96,16 @@ def _json(data: bytes, cue: str):
 
 
 def _dated(text: str, form: str, close) -> CueValue:
-    day = datetime.strptime(str(text), form).date()
+    try:
+        day = datetime.strptime(str(text), form).date()
+    except ValueError:
+        raise ValueError(f"a date cell is not a date in the form {form}") from None  # its text may be a level
     return CueValue(day, positive(close, day.isoformat(), True))
 
 
 def _roc_value(row: dict) -> CueValue:
     text = str(row["Date"])
     if not re.fullmatch(r"\d{7}", text):
-        raise ValueError(f"taiex: bad TWSE date {text!r}")
+        raise ValueError("taiex: a TWSE date that is not seven digits (layout changed)")  # its text may be a level
     day = date(int(text[:3]) + ROC_YEAR_OFFSET, int(text[3:5]), int(text[5:]))
     return CueValue(day, positive(row["ClosingIndex"], day.isoformat(), True))

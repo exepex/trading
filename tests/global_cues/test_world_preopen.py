@@ -9,8 +9,8 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from fno.global_cues import preopen_cli
-from fno.global_cues.markets import TOKYO
-from fno.global_cues.preopen import CLOSED, LIVE, ROW_FIELDS, STALE, PreopenReader, level_status, newest_level
+from fno.global_cues.markets import SEOUL, TOKYO
+from fno.global_cues.preopen import CLOSED, LIVE, LUNCH, ROW_FIELDS, STALE, PreopenReader, level_status, newest_level
 from fno.global_cues.row_log import CsvRowLog
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.yahoo_source import YahooBlocked, YahooChartSource
@@ -32,12 +32,21 @@ LEVEL = 12345.67  # made up
     ],
 )
 def test_twenty_minutes_old_is_live_and_twenty_minutes_one_is_stale(age, status):
-    assert level_status(SEEN, SEEN - age, TOKYO_ZONE) == status
+    assert level_status(SEEN, SEEN - age, SEOUL) == status
 
 
 def test_a_level_from_an_earlier_market_day_is_market_closed():
     yesterday = datetime(2026, 10, 21, 15, 25, tzinfo=TOKYO_ZONE)
-    assert level_status(SEEN, yesterday, TOKYO_ZONE) == CLOSED
+    assert level_status(SEEN, yesterday, TOKYO) == CLOSED
+
+
+def test_tokyos_lunch_break_reads_lunch_break_not_stale():
+    """Tokyo breaks 11:30-12:30 JST (08:00-09:00 IST): at 08:50 IST its 11:30 level is the morning's last, not late."""
+    at_lunch, after = datetime(2026, 10, 22, 8, 50, tzinfo=IST), datetime(2026, 10, 22, 9, 0, tzinfo=IST)
+    morning_last = datetime(2026, 10, 22, 11, 30, tzinfo=TOKYO_ZONE)
+    assert level_status(at_lunch, morning_last, TOKYO) == LUNCH
+    assert level_status(after, morning_last, TOKYO) == STALE  # 12:30 JST: the break is over, no new level yet
+    assert level_status(at_lunch, morning_last, SEOUL) == STALE  # Seoul has no lunch break
 
 
 def answer(*points):
@@ -47,12 +56,23 @@ def answer(*points):
 def test_the_newest_level_is_the_last_point_with_a_value():
     data = answer((utc(date(2026, 10, 22), time(3, 15)), 1.0), (utc(date(2026, 10, 22), time(3, 20)), LEVEL),
                   (utc(date(2026, 10, 22), time(3, 25)), None))  # fmt: skip
-    level = newest_level("nikkei225", data, SEEN)
-    assert (level.level, level.status) == (LEVEL, LIVE) and level.level_time.hour == 12  # 03:20 UTC = 12:20 Tokyo
+    level = newest_level("nikkei225", data, SEEN, TOKYO)
+    assert (level.level, level.status) == (LEVEL, LIVE)
+    assert f"{level.level_time:%H:%M}" == "12:25"  # the 03:20 UTC bar (12:20 Tokyo) ends at 12:25
     with pytest.raises(ValueError, match="no 5-minute level"):
-        newest_level("nikkei225", answer((utc(date(2026, 10, 22), time(3, 20)), None)), SEEN)
+        newest_level("nikkei225", answer((utc(date(2026, 10, 22), time(3, 20)), None)), SEEN, TOKYO)
     with pytest.raises(ValueError, match="not Yahoo's chart answer"):
-        newest_level("nikkei225", b"{}", SEEN)
+        newest_level("nikkei225", b"{}", SEEN, TOKYO)
+
+
+def test_a_level_is_never_shown_and_unequal_times_and_closes_are_refused():
+    bad = answer((utc(date(2026, 10, 22), time(3, 20)), "38123.5x"))
+    with pytest.raises(ValueError) as refused:
+        newest_level("nikkei225", bad, SEEN, TOKYO)
+    assert "38123" not in str(refused.value)
+    uneven = answer((utc(date(2026, 10, 22), time(3, 15)), 1.0)).replace(b'"close": [1.0]', b'"close": [1.0, 2.0]')
+    with pytest.raises(ValueError, match="not one close per timestamp"):
+        newest_level("nikkei225", uneven, SEEN, TOKYO)
 
 
 def reader(tmp_path, session):
@@ -70,8 +90,8 @@ def source():
 def test_a_read_archives_the_raw_answer_and_appends_one_private_row(tmp_path):
     data = answer((utc(date(2026, 10, 22), time(3, 20)), LEVEL))
     found, log = reader(tmp_path, CountingSession(CannedResponse(200, data)))
-    line = found.read(source(), "nikkei225")
-    assert line == "nikkei225: live, level of 12:20 JST (10 min old)" and str(LEVEL) not in line
+    line, status = found.read(source(), "nikkei225")
+    assert line == "nikkei225: live, level of 12:25 JST (5 min old)" and str(LEVEL) not in line and status == LIVE
     (row,) = log.rows()
     assert tuple(row) == ROW_FIELDS and (row["level"], row["status"], row["previous_close_cue"]) == (
         repr(LEVEL),
@@ -99,7 +119,7 @@ def test_the_command_alerts_once_and_records_one_o10_row_when_an_index_failed(mo
                 raise YahooBlocked(
                     "kospi_yahoo: Yahoo answered HTTP 403; stopped for this run, never retried another way"
                 )
-            return f"{index}: live"
+            return f"{index}: live", LIVE
 
     sent, errors = [], CaptureErrorLog(tmp_path / "capture_errors.csv")
     monkeypatch.setattr(
@@ -115,14 +135,75 @@ def test_the_command_alerts_once_and_records_one_o10_row_when_an_index_failed(mo
     assert out[:2] == ["nikkei225: live", out[1]] and out[1].startswith("kospi: FAILED (YahooBlocked)")
     assert sent == ["Omenix F&O pre-open Asian levels: kospi failed (the routine's output names why)"]
     (row,) = errors.rows()
-    assert (row.job, row.step, row.kind, row.message) == ("global-cues-preopen", "preopen", "failure", "failed: kospi")
+    assert (row.job, row.step, row.kind, row.message) == ("global-cues-preopen", "preopen", "failure", "kospi failed")
 
 
 def test_the_command_exits_0_and_records_nothing_when_every_index_read(monkeypatch):
     class Reader:
         def read(self, source, index):
-            return f"{index}: {CLOSED}"  # an Asian holiday is a good run
+            return f"{index}: {CLOSED}", CLOSED  # an Asian holiday is a good run
 
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
     monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: pytest.fail("no row when nothing failed"))
     assert preopen_cli.cmd_preopen(lambda line: None) == 0
+
+
+def _alerts(monkeypatch, tmp_path):
+    from fno.health.capture_errors import CaptureErrorLog
+
+    sent, errors = [], CaptureErrorLog(tmp_path / "capture_errors.csv")
+    sender = type("S", (), {"send": lambda self, text: sent.append(text) or "sent"})()
+    monkeypatch.setattr("fno.composition.build_alert_sender", lambda: sender)
+    monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: errors)
+    return sent, errors
+
+
+def test_a_drive_failure_while_building_alerts_and_records_too(monkeypatch, tmp_path):
+    from fno.storage.owner_token import DriveSignInRefused
+
+    sent, errors = _alerts(monkeypatch, tmp_path)
+
+    def refused():
+        raise DriveSignInRefused("the refresh token was revoked")
+
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", refused)
+    out = []
+    assert preopen_cli.cmd_preopen(out.append) == 1
+    assert out[0] == "preopen: STOPPED before any read (DriveSignInRefused)"
+    assert sent == [preopen_cli.ALERT.format(what="stopped before any read (DriveSignInRefused)")]
+    assert [r.message for r in errors.rows()] == ["stopped before any read (DriveSignInRefused)"]
+
+
+def test_a_failed_archive_write_alerts_and_the_next_indexes_still_read(monkeypatch, tmp_path):
+    sent, errors = _alerts(monkeypatch, tmp_path)
+
+    class Reader:
+        def read(self, source, index):
+            if index == "nikkei225":
+                raise RuntimeError("Drive refused the write")
+            return f"{index}: live", LIVE
+
+    monkeypatch.setattr(
+        "fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None), ("kospi", None)])
+    )
+    out = []
+    assert preopen_cli.cmd_preopen(out.append) == 1 and "kospi: live" in out
+    assert len(sent) == 1 and len(errors.rows()) == 1
+
+
+def test_every_open_market_stale_alerts_but_stale_beside_a_live_one_does_not(monkeypatch, tmp_path):
+    sent, errors = _alerts(monkeypatch, tmp_path)
+    statuses = {"nikkei225": STALE, "kospi": STALE, "hang_seng": CLOSED}
+
+    class Reader:
+        def read(self, source, index):
+            return f"{index}: {statuses[index]}", statuses[index]
+
+    pairs = [(index, None) for index in statuses]
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
+    assert preopen_cli.cmd_preopen(lambda line: None) == 1
+    assert sent == [
+        "Omenix F&O pre-open Asian levels: no live level: every open market stale (the routine's output names why)"
+    ]
+    statuses["kospi"] = LIVE
+    assert preopen_cli.cmd_preopen(lambda line: None) == 0 and len(sent) == 1

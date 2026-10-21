@@ -64,3 +64,96 @@ source, not the most permissive one. The three kept limits (Drive only, no getti
 - **Minor 1, accepted.** Hang Seng, ASX 200, Straits Times and FTSE 100 are labelled `unverified (Yahoo only)` in every
   reading and check line, because nothing official is there to compare against.
 - **Minor 2, accepted.** Criterion 7 tests the stale rule at 20:00 (not stale) and 20:01 (stale).
+
+## Code claims (story/a17e-global-markets; the head is in the message to judge F)
+
+**What is built:**
+- 7 official sources: CSIndex, TWSE, Nikkei, Cboe VIX, and STOXX for the DAX and the Euro Stoxx 50.
+- 12 Yahoo cues, including the Nasdaq-100 of amendment 1. One Yahoo block stops every Yahoo cue of the run.
+- `IndexReader`: one reading per index, the official value first.
+- The official/Yahoo pair checks, with the dates kept in Drive and only the counts printed.
+- The `behind` check at 09:15, alerted once per episode.
+- Part B, `global-cues preopen`, with its statuses: live, stale, lunch break and market closed.
+- Every value is private, kept in Drive. The repository gets snapshot log rows only.
+
+**Real output** (quality rule 6). A dry run of `GlobalCueJob` over the world sources, 21 Oct 2026 21:50-22:00 UTC.
+It made real downloads, with every file kept in a scratch folder: no Drive, no repository, and no level printed.
+- Rows added:
+
+  | Cue | Rows |
+  |---|---|
+  | `sse_composite` | 1,890 |
+  | `taiex` | 14 |
+  | `nikkei225` | 928 |
+  | `vix_us` | 1,994 |
+  | `eurostoxx50`, `dax` | 66 each |
+  | Yahoo cues | 1,887 to 1,985 each, from 2019 |
+
+  The run took 21 s.
+- Comparisons:
+  - DAX and Euro Stoxx 50: 65 dates, no difference.
+  - Nikkei: 927 dates, no difference.
+  - SSE: 1,887 dates; Yahoo lacks 2 real sessions (only_official 2).
+  - VIX: 1,963 dates; 3 differ by more than 0.1%, including 6 Feb 2026.
+  - Unverified (Yahoo only): asx200, ftse100, hang_seng, kospi, sti.
+- Part B on the real Yahoo 5-minute answers at 03:00 IST: all 7 Asian indexes read `market closed`, which is correct
+  because no Asian market was open yet.
+- **Not proven yet (risk):** TWSE's open-data API reset the connection from this sandbox in 2 of 4 runs. When it
+  does, `taiex: FAILED` and the run alerts, which is correct but noisy if it happens from GitHub's runners too. The
+  first scheduled week will show it.
+
+**Mutation proof** (quality rule 4). 24 mutations, one or more per criterion's code, each run against its test
+file; all 24 were caught. Examples:
+- the CSIndex window;
+- the exchange-local date: the first try missed it, so I added the Sydney 23:00 UTC case;
+- a tie going to the official value;
+- the 0.1% tolerance;
+- the Sydney and Shanghai closes;
+- a world cue made public;
+- the 20-minute stale rule;
+- no O10 row;
+- 429 not counted as a block;
+- redirects followed;
+- a consent page accepted;
+- the shared gate off;
+- a JSON error accepted;
+- the range starting on the day itself;
+- no lunch status;
+- a setup failure not alerted;
+- all-stale not alerted;
+- the bar's start used instead of its end;
+- holiday rows compared;
+- behind never alerting;
+- a short Nikkei row kept.
+
+**Self-review by two independent agents** (quality rule 3). Both found the same blocking item:
+- **Blocking, fixed:** a Drive failure while building part B's reader, or while writing its table, escaped without
+  an alert or an O10 row. Now any failure alerts and records, and two new tests cover it.
+- **Fixed:**
+  - Tokyo's lunch break mislabelled as `stale` at 08:50.
+  - Errors that could print a level (STOXX and TWSE dates and symbols, the CSIndex date, the part B level, a
+    damaged pair cell).
+  - A short Nikkei row or an impossible timestamp crashing the whole run (`IndexError` and `ArithmeticError` are now
+    unreadable).
+  - The certificate bundle: it now reads `CURL_CA_BUNDLE`, copes with a directory, and an `OSError` fails only its
+    own cue.
+  - Maximum ages shorter than real closures.
+  - The shared host stop.
+  - Yahoo's JSON error answer.
+  - Sydney's first day missing from a range.
+  - The bar's end time.
+  - Strict pairing of times and closes.
+  - Holiday rows on both sides.
+  - All-stale alerting.
+- **Kept, with the reason:**
+  - TWSE's empty month start: amendment 2.6, measured on 2 Nov.
+  - A duplicate date shows as a gap: amendment 3.5.
+  - Part B's repository receipts (the `<index>_preopen.csv` snapshot logs, and O10's row) are committed by A22's
+    routine line once it calls the command. That is the A22 builder's commit, agreed.
+
+**Gates:** 9,031 passed and 17 xfailed (`-n auto`); ruff and the import check are clean.
+
+**After the merge** (quality rule 8; owner f2293cea: live from the merge):
+- the first scheduled `global-cues` run back-fills the world cues from 2019 into Drive, and its run is cited;
+- A22 adds `python -m fno global-cues preopen` to its routine;
+- I tell M1's owner about the Nasdaq-100 index reading.

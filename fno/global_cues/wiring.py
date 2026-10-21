@@ -53,7 +53,7 @@ from .table import CueTable
 from .treasury_source import TreasuryTenYearSource
 from .us_index_sources import CboeSp500Source, NasdaqNdxSource
 from .verify import CueTableVerifier
-from .yahoo_source import YahooChartSource
+from .yahoo_source import YahooChartSource, YahooGate
 
 CUES_FOLDER = storage.REPOSITORY / "research" / "data" / "global-cues"
 CHECKS_FOLDER = CUES_FOLDER / "checks"
@@ -71,18 +71,25 @@ BEHIND_NAMES = (CboeSp500Source.cue, RbiUsdInrSource.cue, "nasdaq100", "vix_us")
 # usual closure (China's October and New Year weeks: 10 days)
 WORLD_INDEXES = (
     ("nikkei225", "^N225", TOKYO, 7, NikkeiSource.cue),
-    ("kospi", "^KS11", SEOUL, 7, None),  # KRX's own API needs the owner's key (A17e amendment 2)
+    (
+        "kospi",
+        "^KS11",
+        SEOUL,
+        10,
+        None,
+    ),  # 10: Chuseok closed 2-9 Oct 2025  # KRX's own API needs the owner's key (A17e amendment 2)
     ("asx200", "^AXJO", SYDNEY, 7, None),
     ("hang_seng", "^HSI", HONG_KONG, 7, None),
     ("sse_composite", "000001.SS", SHANGHAI, 10, CsindexShanghaiSource.cue),
     ("sti", "^STI", SINGAPORE, 7, None),
-    ("taiex", "^TWII", TAIPEI, 7, TwseTaiexSource.cue),
+    ("taiex", "^TWII", TAIPEI, 10, TwseTaiexSource.cue),  # 10: the Lunar New Year
     ("ftse100", "^FTSE", LONDON, 5, None),
     ("dax", "^GDAXI", FRANKFURT, 5, "dax"),
     ("eurostoxx50", "^STOXX50E", EURO_STOXX, 5, "eurostoxx50"),
     ("vix_us", "^VIX", CBOE_VIX, 4, CboeVixSource.cue),
     ("nasdaq100", "^NDX", NEW_YORK, 4, NasdaqNdxSource.cue),  # Nasdaq's own close is a day late at 03:41 (resp. 298)
 )
+YAHOO_GATE = YahooGate()  # one per process, so one per run: the first Yahoo block stops every Yahoo cue after it
 INDEX_PAIRS = {index: IndexPair(official, index + YAHOO_SUFFIX) for index, *_, official in WORLD_INDEXES}
 US_AND_RUPEE_SOURCES: tuple[GlobalCueSource, ...] = (
     CboeSp500Source(),
@@ -100,7 +107,7 @@ WORLD_SOURCES: tuple[GlobalCueSource, ...] = (  # A17e
     StoxxSource("eurostoxx50", "sx5e", "Euro Stoxx 50", EURO_STOXX),
     StoxxSource("dax", "dax", "DAX", FRANKFURT),
     *(
-        YahooChartSource(index + YAHOO_SUFFIX, symbol, market, age, official is not None)
+        YahooChartSource(index + YAHOO_SUFFIX, symbol, market, age, official is not None, YAHOO_GATE)
         for index, symbol, market, age, official in WORLD_INDEXES
     ),
 )
@@ -230,7 +237,11 @@ def _checks(tables: dict[str, CueTable], env=os.environ) -> CueChecks:
         for index, p in INDEX_PAIRS.items()
         if p.official in tables
     }
-    return CueChecks(tables, CHECKS_FOLDER, private, TRADING_DATES_FILE, INDEX_PAIRS, pairs)
+    calendars, by_cue = build_calendars(storage.build_session_calendar()), {s.cue: s for s in SOURCES}
+    sessions = {
+        i: calendars[p.official] for i, p in INDEX_PAIRS.items() if p.official and by_cue[p.official].holiday_rows
+    }
+    return CueChecks(tables, CHECKS_FOLDER, private, TRADING_DATES_FILE, INDEX_PAIRS, pairs, sessions)
 
 
 def build_raw_area(env=os.environ) -> RawFileStore:

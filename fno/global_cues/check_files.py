@@ -18,6 +18,7 @@ from collections import Counter
 from pathlib import Path
 
 from .checks import GAP_FIELDS, OVERLAP_FIELDS, gap_rows, overlap_rows
+from .cue_calendars import CueCalendar
 from .index_reader import IndexPair
 from .pair_checks import PAIR_FIELDS, compared_dates, pair_rows, pair_summary
 from .row_log import DriveSnapshots
@@ -38,12 +39,13 @@ class CueChecks:
         trading_dates: Path | None = None,
         pairs: dict[str, IndexPair] | None = None,
         pair_snapshots: dict[str, DriveSnapshots] | None = None,
+        pair_sessions: dict[str, CueCalendar] | None = None,
     ):
         """`private_gaps`: cue -> where its gaps go in Drive (those cues never reach the repository's files).
         `trading_dates`: where the dates-only US trading days go, when both US index tables are given."""
         self.tables, self.checks_folder, self.private_gaps = tables, Path(folder), private_gaps or {}
         self.trading_dates = trading_dates
-        self.pairs, self.pair_snapshots = pairs or {}, pair_snapshots or {}
+        self.pairs, self.pair_snapshots, self.pair_sessions = pairs or {}, pair_snapshots or {}, pair_sessions or {}
 
     def write(self) -> list[str]:
         gaps = {cue: gap_rows(cue, table.rows()) for cue, table in sorted(self.tables.items())}
@@ -74,7 +76,8 @@ class CueChecks:
             if not {pair.official, pair.yahoo} <= set(self.tables):
                 continue
             official, yahoo = self.tables[pair.official].rows(), self.tables[pair.yahoo].rows()
-            rows = pair_rows(index, official, yahoo)
+            calendar = self.pair_sessions.get(index)
+            rows = pair_rows(index, official, yahoo, calendar.is_session if calendar else None)
             if index in self.pair_snapshots:
                 self.pair_snapshots[index].write(PAIR_FIELDS, rows)
             lines.append(pair_summary(index, rows, compared_dates(official, yahoo)))

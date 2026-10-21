@@ -194,3 +194,21 @@ text for judge F.
    Nasdaq's. `CboeVixSource.holiday_rows` makes readings skip them.
 6. **Known limit, measured on 2 Nov.** TWSE's month file may be empty before the month's first session. The collector
    then reports "no values" for `taiex`, which could raise one false alert at a month's start.
+
+## Amendment 3 (21 Oct 2026, the code round's changes; for judge F)
+1. **Behind at 09:15** (judge 351 addendum 2). A name whose reading is `behind` at the open is alerted once per
+   episode (`behind.py`, A20b's `OpenProblems`, names only). It covers only names with a real session calendar: the
+   S&P 500, RBI's USD/INR, and the Nasdaq-100 and VIX index readings. The world indexes, the US 10-year and FBIL are
+   left out, because a `behind` on a weekday calendar is as often a holiday as a late publisher.
+2. **A block stops the host for the run** (code review). After the first Yahoo block, no other Yahoo cue of that run
+   sends a request (one shared `YahooGate`). Yahoo's JSON error answer counts as a block too.
+3. **Part B statuses.** `lunch break` is added for markets with a midday break: Tokyo 11:30-12:30 JST is 08:00-09:00
+   IST, so A22's slot falls inside it; Shanghai's and Hong Kong's breaks start at 09:00 and 09:30 IST. A level is timed
+   at its 5-minute bar's end. A morning where no open market is `live` (all `stale`) alerts and writes an O10 row. A
+   failure while building the reader (Drive) alerts and writes an O10 row too.
+4. **Maximum ages set from real closures:** STOXX 5 days (Easter Monday), KOSPI and TAIEX 10 days (Chuseok 2025,
+   the Lunar New Year).
+5. **Criterion 2's wording.** A date given twice is left out and shows in the checks as a gap
+   (`weekday_without_value`), not under its own kind.
+6. **Holiday rows on both sides.** Yahoo's VIX also had rows on two US holidays (25 May and 7 Sep 2026), so Yahoo
+   cues skip non-session dates in readings, and the official/Yahoo comparison drops those dates on both sides.

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from .source import at_local
 
@@ -15,16 +16,22 @@ from .source import at_local
 class MarketClose:
     zone: str
     close: time
+    lunch: tuple[time, time] | None = None  # the midday break, local time: no new level inside it
 
     def available_at(self, value_date: date) -> datetime:
         return at_local(value_date, self.close, self.zone)
 
+    def at_lunch(self, moment: datetime) -> bool:
+        local = moment.astimezone(ZoneInfo(self.zone)).time()
+        return self.lunch is not None and self.lunch[0] <= local < self.lunch[1]
 
-TOKYO = MarketClose("Asia/Tokyo", time(15, 30))  # 12:00 IST
+
+TOKYO = MarketClose("Asia/Tokyo", time(15, 30), (time(11, 30), time(12, 30)))  # 12:00 IST; lunch 08:00-09:00 IST
 SEOUL = MarketClose("Asia/Seoul", time(15, 30))  # 12:00 IST
-SHANGHAI = MarketClose("Asia/Shanghai", time(15, 0))  # 12:30 IST
+SHANGHAI = MarketClose("Asia/Shanghai", time(15, 0), (time(11, 30), time(13, 0)))  # 12:30 IST; lunch 09:00-10:30
 TAIPEI = MarketClose("Asia/Taipei", time(13, 30))  # 11:00 IST
-HONG_KONG = MarketClose("Asia/Hong_Kong", time(16, 10))  # after the closing auction: 13:40 IST
+# after the closing auction: 13:40 IST; lunch 09:30-10:30 IST
+HONG_KONG = MarketClose("Asia/Hong_Kong", time(16, 10), (time(12, 0), time(13, 0)))
 SINGAPORE = MarketClose("Asia/Singapore", time(17, 0))  # 14:30 IST
 # after the closing auction: 10:40 IST in Australian summer time, 11:40 in winter
 SYDNEY = MarketClose("Australia/Sydney", time(16, 10))

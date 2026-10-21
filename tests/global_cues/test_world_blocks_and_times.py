@@ -116,3 +116,36 @@ def test_a_same_day_asian_close_is_never_known_at_the_open_and_the_previous_days
         found = value_for(rows, date(2026, 10, 21), OPEN, False, market.available_at)
         assert found["value_date"] == "2026-10-20"
     assert value_for([], date(2026, 10, 21), OPEN, False, TOKYO.available_at) is None  # empty: no label at all
+
+
+def test_after_one_block_no_other_yahoo_cue_of_the_run_sends_a_request():
+    from fno.global_cues.markets import SEOUL
+    from fno.global_cues.yahoo_source import YahooGate
+
+    gate = YahooGate()
+    first = YahooChartSource("nikkei225_yahoo", "^N225", TOKYO, 7, True, gate)
+    second = YahooChartSource("kospi_yahoo", "^KS11", SEOUL, 10, False, gate)
+    blocked, later = CountingSession(BLOCKS[2]), CountingSession(BLOCKS[0])
+    with pytest.raises(YahooBlocked):
+        first.download(blocked, first.requests(date(2026, 10, 1), date(2026, 10, 2))[0])
+    with pytest.raises(YahooBlocked, match="not asked: nikkei225_yahoo was blocked earlier"):
+        second.download(later, second.requests(date(2026, 10, 1), date(2026, 10, 2))[0])
+    assert len(blocked.calls) == 1 and later.calls == []
+
+
+def test_yahoos_json_error_answer_is_a_block_too():
+    error = CannedResponse(
+        200, b'{"finance":{"result":null,"error":{"code":"Unauthorized","description":"Invalid Crumb"}}}'
+    )
+    with pytest.raises(YahooBlocked, match="error answer"):
+        nikkei_yahoo().download(
+            CountingSession(error), nikkei_yahoo().requests(date(2026, 10, 1), date(2026, 10, 2))[0]
+        )
+
+
+def test_the_range_starts_a_day_early_so_sydneys_first_session_is_in_it():
+    from fno.global_cues.markets import SYDNEY
+
+    asx = YahooChartSource("asx200_yahoo", "^AXJO", SYDNEY, 7, False)
+    url = asx.requests(date(2026, 10, 21), date(2026, 10, 21))[0].url
+    assert "period1=1792454400" in url  # 2026-10-20 00:00 UTC: Sydney's 21 Oct bar is stamped 23:00 UTC on the 20th

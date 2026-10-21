@@ -27,13 +27,16 @@ from .us_index_sources import CboeSp500Source
 STOXX_FILE = "https://www.stoxx.com/document/Indices/Current/HistoricalData/h_3m{symbol}.txt"
 STOXX_HEADER = "Date;Symbol;Indexvalue;"
 STOXX_INTERMEDIATE = Path(__file__).parent / "certs" / "sslcom_tls_issuing_rsa_ca_r1.pem"
-CA_BUNDLE_VARIABLE = "REQUESTS_CA_BUNDLE"  # a proxy's bundle where one is set (as in cloud sessions)
+CA_BUNDLE_VARIABLES = (
+    "REQUESTS_CA_BUNDLE",
+    "CURL_CA_BUNDLE",
+)  # requests' own order; a proxy's bundle in cloud sessions
 CBOE_VIX_FILE = "https://cdn.cboe.com/api/global/delayed_quotes/charts/historical/_VIX.json"
 
 
 class StoxxSource(GlobalCueSource):
     unit, private, date_zone = "index points", True, FRANKFURT.zone
-    max_age_days = 4  # a Thursday close on Monday after Good Friday and Easter
+    max_age_days = 5  # a Thursday close on Tuesday after Good Friday and Easter Monday (STOXX and Xetra holidays)
 
     def __init__(self, cue: str, symbol: str, name: str, market=EURO_STOXX):
         self.cue, self.symbol, self.market = cue, symbol, market
@@ -45,7 +48,11 @@ class StoxxSource(GlobalCueSource):
         return [CueRequest(f"h_3m{self.symbol}.txt", STOXX_FILE.format(symbol=self.symbol))]
 
     def download(self, session: requests.Session, request: CueRequest) -> bytes:
-        response = session.get(request.url, timeout=TIMEOUT_SECONDS, verify=_bundle_with_intermediate())
+        try:
+            bundle = _bundle_with_intermediate()
+        except OSError as exc:  # one cue's failure, never the run's: the bundle could not be read or written
+            raise requests.exceptions.SSLError(f"{self.cue}: no certificate bundle ({type(exc).__name__})") from exc
+        response = session.get(request.url, timeout=TIMEOUT_SECONDS, verify=bundle)
         response.raise_for_status()
         return response.content
 
@@ -56,9 +63,13 @@ class StoxxSource(GlobalCueSource):
         values = []
         for line in lines[1:]:
             day, symbol, level = (line.split(";") + ["", "", ""])[:3]
-            if symbol.upper() != self.symbol.upper():
-                raise ValueError(f"{self.cue}: a row of another index ({symbol!r}): layout changed")
-            values.append(CueValue(datetime.strptime(day, "%d.%m.%Y").date(), positive(level, day, True)))
+            if symbol.upper() != self.symbol.upper():  # its text may be a level after a layout change: never shown
+                raise ValueError(f"{self.cue}: a row whose symbol is not {self.symbol.upper()}: layout changed")
+            try:
+                value_date = datetime.strptime(day, "%d.%m.%Y").date()
+            except ValueError:
+                raise ValueError(f"{self.cue}: a date cell is not DD.MM.YYYY: layout changed") from None
+            values.append(CueValue(value_date, positive(level, day, True)))
         return checked(values, self.cue)
 
     def available_at(self, value_date: date) -> datetime:
@@ -81,7 +92,8 @@ class CboeVixSource(CboeSp500Source):
 @cache
 def _bundle_with_intermediate() -> str:
     """The usual trusted roots plus SSL.com's intermediate, as one file for this process."""
-    roots = Path(os.environ.get(CA_BUNDLE_VARIABLE) or certifi.where()).read_text(encoding="utf-8")
+    named = next((os.environ[v] for v in CA_BUNDLE_VARIABLES if os.environ.get(v)), "")
+    roots = Path(named if named and Path(named).is_file() else certifi.where()).read_text(encoding="utf-8")
     with tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False, encoding="utf-8") as bundle:
         bundle.write(roots + "\n" + STOXX_INTERMEDIATE.read_text(encoding="utf-8"))
     return bundle.name
