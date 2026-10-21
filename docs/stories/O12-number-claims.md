@@ -121,3 +121,27 @@ filled registry, per-report addendum sequences, an exact free and an exact taken
 race between two clones of a bare repository (the second claim is rejected once and gets the next number) and four
 clones claiming at once in threads; retries exhausted; a server hook refusing the push; the caller's checkout
 unchanged; each check failure planted in a temporary repository; the seed pinned and a later seeded row caught.
+
+## O12b: an alert when main's number check is red (orchestrator, 16 Oct 2026)
+
+**Why.** `checks.yml` already runs the number check on every push, but a red run is only a cross on GitHub: nobody is
+told, so a stray file (a numbered file written without a claim) can sit unseen while later pushes stay red.
+
+**Change.** `tools/check_numbers.py --alert [--baseline DIR]` posts the problem lines to #fno-desk with the existing
+alert sender (`FNO_SLACK_BOT_TOKEN`; without it, it prints "alert NOT sent"). With `--baseline`, only problems the
+baseline checkout did not already have are posted. `.github/workflows/number-alert.yml` runs it:
+- on every push to `main`, with the commit before the push as the baseline, so the push that turns `main` red is
+  announced once and later pushes stay quiet (a missing "before" commit, as on a force-push, means no baseline);
+- every hour (minute 17), without a baseline, as a reminder while `main` stays red and as a net for a missed push.
+It fixes nothing, writes nothing and has read-only repository permission. The plain check stays standard-library only:
+the alert sender is imported only when something is posted. Lane 1 (a workflow and a Slack post).
+
+**Criteria.**
+1. A red check with `--alert` posts one message listing every new problem line; a clean check posts nothing.
+2. With `--baseline`, problems the baseline already had are not posted; a new one is.
+3. The workflow runs on every push to `main` (with the before commit as baseline) and hourly (without), with only
+   `FNO_SLACK_BOT_TOKEN` and `contents: read`.
+4. (Added 21 Oct, root cause of main's 16 Oct red: judge 307's heading `## Addendum 307.5` was read as 307.307.) A
+   claim prints the next step word for word: the file to write, or for an addendum the heading `## Addendum <k>` with
+   only the addendum's own number; `numbers/README.md` says the same.
+Tests: `tests/numbering/test_tools.py` (the cases above, and the workflow's triggers and command).

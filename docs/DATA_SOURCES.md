@@ -16,6 +16,9 @@ re-added only through an approved story with point-in-time rules.
 | Equity corporate actions (splits, bonuses, demergers, dividends) | `www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=…&to_date=…` (JSON) | one copy per day fetched, from 13 Oct 2026 (P6) | ex-date and NSE's text; splits and bonuses adjust past prices |
 | Listed companies `EQUITY_L.csv`, Nifty 500 list `ind_nifty500list.csv` | `.../content/equities/`, `.../content/indices/` | one copy per day fetched, from 13 Oct 2026 (P6) | names and industries; replaced in place by NSE |
 | Symbol changes `symbolchange.csv` | `.../content/equities/` | one copy per day fetched, from 13 Oct 2026 (P6, judge 49) | joins a renamed stock's sessions to its new symbol (TATAMOTORS → TMPV); replaced in place by NSE |
+| F&O ban list `fo_secban.csv` | `.../content/fo/` (`FoBanListSource`, reader `fno/research_data/fo_masters.py`) | one copy per trading day, filed under the trade date it names, from 19 Oct 2026 (A20a, `fo-masters.yml`) | written about 18:12 IST the evening before; replaced in place by NSE; a stale copy is refused and alerted |
+| F&O market lots `fo_mktlots.csv` | `.../content/fo/` (`FoLotSizeSource`) | one copy per trading day fetched, from 19 Oct 2026 (A20a) | lot per underlying and expiry month; replaced in place by NSE |
+| F&O contract master `NSE_FO_contract_DDMMYYYY.csv.gz` | `.../content/fo/` | **not archived by us**: NSE keeps it dated (served for 1 Oct 2025 on 16 Oct 2026), so it is fetched by a back-fill only when a story needs it (A20a decision) | written about 17:32 IST on the session; every contract's lot, expiry, strike, limits |
 | Participant-wise OI (FII, DII, pro, client) | `.../content/nsccl/fao_participant_oi_DDMMYYYY.csv` (`ParticipantOiSource`, parser `fno/research_data/participant_oi.py`) | every session 1 Jan 2019 to 12 Oct 2026 (1,929 files, checked 13 Oct 2026; SHA-256 in `tools/nse_raw_download/manifest_participant_oi.csv`) | published after the close; usable only from the next session's decision time until release times are measured (story A8, `research/data/participant_oi/`) |
 
 The owner downloads these once with `tools/nse_raw_download/` and keeps them on Google Drive (current format 690 files,
@@ -33,6 +36,13 @@ local folder, then Drive, then NSE itself, and archives what it fetches to Drive
 Groww credentials (`GROWW_API_KEY` and `GROWW_TOTP_SECRET`, or `GROWW_ACCESS_TOKEN`) live only in the environment or
 `~/.trading.env`. Data calls work from a changing IP; Groww's static-IP rule covers order placement, which this tool
 never does.
+
+## Rules and notices (story A20)
+
+| Data | Source (code) | Coverage | Notes |
+|---|---|---|---|
+| NSE circulars | `www.nseindia.com/api/circulars?fromDate=…&toDate=…` (JSON; `fno/circulars/feeds.py`) | every circular NSE lists for yesterday and today, hourly 08:00-22:00 IST, from the first run (A20b, `circulars.yml`) | listed with our first-seen time in Drive `data/circulars/list/`; NSE lists a circular once per department, merged into one row; the file of each F&O one (department "Futures & Options" or F&O words in the subject) in `data/circulars/files/nse/` |
+| SEBI circulars | `www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=7&smid=0` (HTML) | its latest 25 circulars, hourly (A20b) | same table; the page of each F&O one (derivative, margin, lot size, position limit... in the title) in `data/circulars/files/sebi/`; a page with nothing seen before alerts as a possible gap |
 
 ## Politeness
 

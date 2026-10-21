@@ -25,15 +25,15 @@ def _built_steps(monkeypatch) -> dict:
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     return seen["day_steps"]
 
 
-def test_the_last_step_is_the_catch_up_after_a16_s_last_mark_committing_only_its_own_files(monkeypatch):
+def test_the_catch_up_runs_after_a16_s_last_mark_just_before_the_lab_report_committing_only_its_own_files(monkeypatch):
     step = _built_steps(monkeypatch)["candles"]
-    assert DAILY_RUN_STEPS[-1] == "candles" and isinstance(step, Alerted) and step.name == "candles"
+    assert DAILY_RUN_STEPS[-2:] == ("candles", "lab_close") and isinstance(step, Alerted) and step.name == "candles"
     waiting = step.step
     assert isinstance(waiting, NotBefore) and isinstance(waiting.step, CommandStep)
     assert waiting.at == CATCH_UP_FROM == time(15, 33) and marks(DAY)[-1].time() == time(15, 30)

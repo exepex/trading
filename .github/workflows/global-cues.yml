@@ -74,11 +74,11 @@ jobs:
           exit 1
       # One alert step for every failure (judge 351 SF1): `!cancelled()` keeps it running after a failed commit, which a
       # plain `if:` (an implicit `success() &&`) would skip; a cancelled or timed-out run is O10's capture-watch's to post
-      - name: "One line to #fno-desk when the run failed: the failed or stale cues, and a failed commit"
+      - name: "One line to #fno-desk when the run failed: the failed, stale or newly behind cues, and a failed commit"
         if: ${{ !cancelled() && (steps.fill.outcome != 'success' || failure()) }}
         run: |
-          cues="$(grep -oE '^[a-z0-9_]+(: FAILED|: .*STALE| FAILED)' "$RUNNER_TEMP/fill.txt" | cut -d' ' -f1 | cut -d: -f1 | paste -sd, - || true)"
-          what="${cues:+$cues failed or stale (the log names why)}"
+          cues="$(grep -oE '^[a-z0-9_]+(: FAILED|: BEHIND|: .*STALE| FAILED)' "$RUNNER_TEMP/fill.txt" | cut -d' ' -f1 | cut -d: -f1 | paste -sd, - || true)"
+          what="${cues:+$cues failed, stale or behind (the log names why)}"
           if [ "${{ steps.commit.outcome }}" != "success" ]; then what="${what:+$what; }the commit step did not succeed (nothing of this run is in the repository)"; fi
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
             "Omenix F&O global cues: ${what:-the run failed}; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

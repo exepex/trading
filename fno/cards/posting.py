@@ -24,7 +24,7 @@ NOT_DELIVERED = frozenset({"ConnectTimeout", "ratelimited", "service_unavailable
 SENT_THEN_LOST = frozenset(
     {"ConnectionError", "ReadTimeout", "Timeout", "ChunkedEncodingError", "JSONDecodeError", "RequestsJSONDecodeError"}
 )
-UNKNOWN = "{failure}; Slack may still have posted it (check #fno-desk); not retried"
+UNKNOWN = "{failure}; Slack may still have posted it (check channel {channel}); not retried"  # the poster's own
 NO_TS = "Slack accepted the post but gave no readable ts: posted, with no issuance time (not retried)"
 
 
@@ -64,7 +64,7 @@ class SlackCardPoster(CardPoster):
             if failure is None:  # accepted: never posted again, even without a usable ts
                 return _accepted(body, self._channel)
             if _may_have_posted(failure):  # a retry could post the card twice
-                return PostReceipt(NOT_SENT.format(reason=UNKNOWN.format(failure=failure)))
+                return PostReceipt(NOT_SENT.format(reason=UNKNOWN.format(failure=failure, channel=self._channel)))
             if failure not in NOT_DELIVERED:  # Slack refused it (e.g. channel_not_found): retrying cannot help
                 return PostReceipt(NOT_SENT.format(reason=failure))
         return PostReceipt(NOT_SENT.format(reason=f"{failure} after {ATTEMPTS} attempts"))

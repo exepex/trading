@@ -15,12 +15,14 @@ from ..ai.timing import LATEST_START
 from ..constants import AI_BOOKS, BOOK_DISPLAY_NAMES, FORECAST_QUESTIONS, FORECASTERS, SESSION_MUHURAT
 from ..desk.timetable import Timetable
 from ..forecast.schema_v2 import GENERATION_DEADLINE
+from ..preopen.day_row import PREOPEN_RECEIPT_BY
 from ..quotes.recorder import DATASET, NSE_DATASET, RECORDED_SESSION_KINDS
 from .data_checks import PanelDayCheck, SessionRowCheck
 from .desk_checks import MarksCheck, RunLogCheck
 from .evidence import Evidence
 from .forecast_checks import AiBookCheck, ForecastRowsCheck
 from .model import Deadline, SessionCheck
+from .preopen_checks import PreopenCheck
 from .quote_checks import CanonicalCheck
 
 A8_RELEASE_BY = Deadline(time(23, 30))  # participant-oi-release.yml: its 22:45 run watches until 23:30
@@ -69,6 +71,7 @@ def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> 
                       FIRST_SEALED) for book in AI_BOOKS],
         Expectation("Desk daily run", RunLogCheck(root, Deadline(timetable.decision_deadline)), recorded, None),
         Expectation("A16 15-minute marks", MarksCheck(root / INTRADAY_FOLDER), recorded, None),
+        Expectation("A22 pre-open data", PreopenCheck(evidence, Deadline(PREOPEN_RECEIPT_BY)), recorded, None),
         Expectation("A8 participant OI", SessionRowCheck(evidence, PARTICIPANT_OI_MANIFEST, A8_RELEASE_BY),
                     everything, DATA_JOBS_FROM),
         Expectation("Index closes", SessionRowCheck(evidence, CLOSES_FILE, INDEX_CLOSE_BY), everything,

@@ -13,21 +13,37 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
-from ..constants import STEP_FAILED
+from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
-from ..quotes.recorder import MAX_EARLY_WAIT_SECONDS, WINDOW_START
+from ..quotes.indices import INDEX_WINDOW_END
+from ..quotes.recorder import DATASET, MAX_EARLY_WAIT_SECONDS, NSE_DATASET, WINDOW_END, WINDOW_START
+from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
+from .earlier_run import EarlierRun, PartMarkers
+from .part_locks import PartLocks
 from .processes import Process, Processes
 from .steps import outcome
 
 GROWW_QUOTES = ":(glob)research/data/quotes/groww/**/{name}_*"  # A4c's per-part paths, as CLAUDE.md gives them
 INDICES = ("banknifty", "finnifty", "midcpnifty")
+# G4: the run's one committer remembers the commit, so the desk's next push takes it to origin
+NOT_PUSHED = "F&O daily run {day}: quote part {name} committed, NOT pushed (the next push carries it): {reason}"
 NOT_COMMITTED = (
     "F&O daily run {day}: quote part {name} NOT committed: {reason}. Hand fix (CLAUDE.md): git add {specs}, commit and "
     "push; never --no-verify"
 )
+PART_NOT_OK = (
+    "F&O daily run {day}: 3 pm quote part {name} {status}: {reason}; the day's {name} record may be missing: check its "
+    "sidecar and canonical marker"
+)
 STILL_RUNNING = "still running {minutes} minutes after the desk's exits: stopped, nothing more committed for it"
 NEVER_STARTED = "never started: the part it waits for did not end in time"
+STILL_HELD = (
+    "still running after {minutes} minutes, held by an earlier run's recorder: a 3 pm recorder of an earlier run "
+    "still holds {lock}: stop it, then rerun"
+)
+NOT_IN_THIS_RUN = "not in this run: an earlier run started it and ended, its window has closed and a marker is missing"
+STARTED, RESTARTED, ADOPTED, EARLIER = "started", "restarted", "adopted", "earlier run"  # each part's `how` (F1)
 FINISH_LIMIT = timedelta(minutes=20)
 START_MARGIN = timedelta(minutes=3)  # inside A4's early limit by this much, for a slow start or a late clock
 # A4's recorder refuses a start more than `MAX_EARLY_WAIT_SECONDS` before its window ("too early", nothing recorded):
@@ -44,15 +60,20 @@ class QuotePart:
     pathspecs: tuple[str, ...]  # its own files, and only its own
     starts_after: str | None = None  # starts once this part has ended and its commit was made or tried
     not_before: time | None = None  # never starts earlier than this (A4's early limit)
+    canonicals: tuple[tuple[str, str], ...] = ()  # (dataset, stem) of each canonical marker it records (A4)
+    window_end: time = WINDOW_END  # a rerun restarts it only before this (A4's window; the indices' own)
 
 
 QUOTE_PARTS = (
-    QuotePart("nifty", ("quotes", "record"), (GROWW_QUOTES.format(name="nifty"),), not_before=EARLIEST_START),
-    QuotePart(
-        "nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",), not_before=EARLIEST_START
-    ),
-    QuotePart("indices", ("quotes", "record-indices"), tuple(GROWW_QUOTES.format(name=n) for n in INDICES), "nifty"),
-)
+    QuotePart("nifty", ("quotes", "record"), (GROWW_QUOTES.format(name="nifty"),), not_before=EARLIEST_START,
+              canonicals=((DATASET, "nifty"),)),
+    QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",),
+              not_before=EARLIEST_START, canonicals=((NSE_DATASET, "nifty"),)),
+    QuotePart("indices", ("quotes", "record-indices"),
+              tuple(GROWW_QUOTES.format(name=n) for n in (*INDICES, WEEKLY_STEM)), "nifty",
+              canonicals=(*((DATASET, name) for name in INDICES), (WEEKLY_DATASET, WEEKLY_STEM)),  # A4f's weeklies
+              window_end=INDEX_WINDOW_END),
+)  # fmt: skip
 LEAD = QUOTE_PARTS[0].name  # NIFTY commits first: no other part commits before NIFTY's commit was made or tried
 
 
@@ -65,6 +86,8 @@ class QuoteParts:
         changed: Callable[[Sequence[str]], list],
         alerts: AlertSender,
         clock: Callable[[], datetime],
+        locks: PartLocks,
+        markers: PartMarkers,
     ):
         self.parts, self.processes, self.committer, self.changed, self.alerts, self.clock = (
             parts,
@@ -74,9 +97,11 @@ class QuoteParts:
             alerts,
             clock,
         )
+        self.locks, self.markers = locks, markers
         self.day: date | None = None
         self.running: dict[str, Process] = {}
         self.results: dict[str, dict] = {}
+        self.how: dict[str, str] = {}  # each part's `how` (F1)
         self.closed = False  # past the finish limit: no part starts any more
 
     def start(self, day: date) -> list[str]:
@@ -87,12 +112,32 @@ class QuoteParts:
             self.start_due()
         return [part.name for part in self.parts if part.starts_after is None]
 
+    def resume(self, day: date) -> None:
+        """A rerun whose log holds `quotes` but not `quotes_done` (F1; judge 412 add. 2-3, judge 417). Each part is
+        adopted while an earlier run's recorder still holds its lock (never a second recorder), taken from the earlier
+        run when every canonical marker exists, restarted while its window is open, and otherwise failed with one
+        alert. NIFTY still commits first and the indices still start after it, whatever each part's `how`."""
+        self.day = day
+        for part in self.parts:
+            if self.locks.held(day, part.name):
+                self._earlier(part, ADOPTED)
+            elif self.markers.recorded(day, part.canonicals):
+                self._earlier(part, EARLIER)
+            elif self.clock() < datetime.combine(day, part.window_end, IST):
+                self.how[part.name] = RESTARTED
+            else:
+                self._failed(part.name, NOT_IN_THIS_RUN)
+        self.start_due()
+
     def start_due(self) -> None:
         """Starts each part whose time has come and that waits for no other; never runs git, so any wait of the run
-        may call it, a command's included."""
+        may call it, a command's included. Before the day is opened (by `start` or `resume`; a rerun whose log holds
+        the whole day opens neither) there is nothing to start."""
+        if not self.started:
+            return
         for part in self.parts:
             due = part.not_before is None or self.clock() >= datetime.combine(self.day, part.not_before, IST)
-            if self.started and not self.closed and part.starts_after is None and due and self._unstarted(part):
+            if not self.closed and part.starts_after is None and due and self._unstarted(part):
                 self._start(part)
 
     @property
@@ -109,7 +154,7 @@ class QuoteParts:
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
-                self._finish(self._part(name), code, process.lines())
+                self._finish(self._part(name), code, process.lines(), process.alerted())
         for part in self.parts:
             if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
                 self._start(part)
@@ -128,7 +173,7 @@ class QuoteParts:
             if process.poll() is None:
                 process.stop()
                 del self.running[name]
-                self._failed(name, STILL_RUNNING.format(minutes=int(FINISH_LIMIT.total_seconds() // 60)))
+                self._failed(name, self._still_running(name))
         self.service()
         for part in self.parts:
             if part.name not in self.results:
@@ -138,24 +183,63 @@ class QuoteParts:
     def _unstarted(self, part: QuotePart) -> bool:
         return part.name not in self.running and part.name not in self.results
 
-    def _start(self, part: QuotePart) -> str:
-        self.running[part.name] = self.processes.start(part.arguments)
-        return part.name
+    def _start(self, part: QuotePart) -> None:
+        """The child inherits the part's lock and holds it for its life; a lock still held means a recorder of another
+        run is alive here, so it is adopted instead of starting a second one."""
+        with self.locks.taken(self.day, part.name, self.clock()) as lock:
+            if lock is None:
+                return self._earlier(part, ADOPTED)
+            self.running[part.name] = self.processes.start(part.arguments, hold=lock)
+        self.how.setdefault(part.name, STARTED)
 
-    def _finish(self, part: QuotePart, code: int, lines: list[str]) -> None:
+    def _earlier(self, part: QuotePart, how: str) -> None:
+        day, name = self.day, part.name
+        self.running[name] = EarlierRun(lambda: self.locks.held(day, name), self.markers, day, part.canonicals)
+        self.how[name] = how
+
+    def _still_running(self, name: str) -> str:
+        minutes = int(FINISH_LIMIT.total_seconds() // 60)
+        if self.how.get(name) == ADOPTED:
+            return STILL_HELD.format(minutes=minutes, lock=self.locks.path(self.day, name))
+        return STILL_RUNNING.format(minutes=minutes)
+
+    def _logged(self, name: str, result: dict) -> dict:
+        """How the part ran in this run and when it was started, by whichever run started it (the lock's record)."""
+        return result | {"how": self.how.get(name, STARTED), "started_at": self.locks.started(self.day, name)}
+
+    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool) -> None:
         del self.running[part.name]
         result = outcome(part.arguments, code, lines).result
         files = self.changed(part.pathspecs)
         try:
-            result["commit"] = self.committer.commit(files, f"3 pm quotes {self.day} {part.name}") if files else None
+            message = f"3 pm quotes {self.day} {part.name}"
+            result["commit"] = self.committer.commit(files, message) if files else self._earlier_commit(part)
         except CommitFailed as failed:
             result |= {"commit": None, "commit_error": str(failed)}
-            specs = " ".join(f"'{spec}'" for spec in part.pathspecs)
-            self.alerts.send(NOT_COMMITTED.format(day=self.day, name=part.name, reason=failed, specs=specs))
-        self.results[part.name] = result
+            self.alerts.send(self._commit_alert(part, failed))
+        self.results[part.name] = self._logged(part.name, result)
+        if result["status"] in (STEP_FAILED, STEP_REFUSED) and not alerted:
+            self._alert(part.name, result)  # a part that failed without alerting (a Groww outage): O2's case
+
+    def _commit_alert(self, part: QuotePart, failed: CommitFailed) -> str:
+        if failed.unpushed:
+            return NOT_PUSHED.format(day=self.day, name=part.name, reason=failed)
+        specs = " ".join(f"'{spec}'" for spec in part.pathspecs)
+        return NOT_COMMITTED.format(day=self.day, name=part.name, reason=failed, specs=specs)
+
+    def _earlier_commit(self, part: QuotePart) -> str | None:
+        """An earlier run's part with nothing left to commit: the commit holding its markers."""
+        if self.how.get(part.name) not in (ADOPTED, EARLIER):
+            return None
+        return self.markers.recorded(self.day, part.canonicals)
 
     def _failed(self, name: str, reason: str) -> None:
-        self.results[name] = {"status": STEP_FAILED, "reason": reason, "commit": None}
+        self.results[name] = self._logged(name, {"status": STEP_FAILED, "reason": reason, "commit": None})
+        self._alert(name, self.results[name])
+
+    def _alert(self, name: str, result: dict) -> None:
+        """Every part that did not record is alerted once: by itself, or here (owner, 16 Oct: every failure alerts)."""
+        self.alerts.send(PART_NOT_OK.format(day=self.day, name=name, status=result["status"], reason=result["reason"]))
 
     def _part(self, name: str) -> QuotePart:
         return next(part for part in self.parts if part.name == name)

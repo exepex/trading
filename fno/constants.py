@@ -7,6 +7,7 @@ from enum import StrEnum
 
 # The daily operations' names (E3's and O1's run steps, O1's step statuses, O8's health statuses) live in their own
 # module, split out at the size limit; imported here so every `from fno.constants import ...` keeps working
+from .constants_channels import *  # noqa: F403 - story FL1's two channels; callers keep `fno.constants`
 from .constants_operations import *  # noqa: F403 - its `__all__` names them; callers keep `fno.constants`
 
 # Environment variable names (values are never stored in files).
@@ -196,7 +197,7 @@ V4_QUESTIONS = (
 V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
 FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4 = "v2", "v4"  # which protocol an AI book version answers (G11)
 V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
-V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE = "A", "A2", "system_late"  # G10: a day's quality label (protocol 1.6)
+V4_DAY_A, V4_DAY_SYSTEM_LATE = "A", "system_late"  # G10: a day's quality label (protocol 1.6; A2 dropped, 16 Oct)
 V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE = "close_proxy", "live"  # G10: scored apart, never pooled
 V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
 V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
@@ -293,6 +294,9 @@ OUTCOME_PENDING_EXIT = "pending_exit"  # an exit leg had no valid quote: retried
 OUTCOME_CLOSED = "closed"
 OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is unquotable: no new risk in the book
 OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
+# Story E8: an entry handed to the owner-timing fill (filled at the next session's due mark), and its views
+OUTCOME_ENTRY_PENDING = "entry_pending"
+VIEW_VERDICT, VERDICT_REACTION_MINUTES = "verdict", 60  # R = 60 is the verdict (DESK_DECISIONS row 181)
 # Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
 ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
 # Story E4c: the entry check before any leg fills (every leg's opening side, a protective leg's closing side too)
