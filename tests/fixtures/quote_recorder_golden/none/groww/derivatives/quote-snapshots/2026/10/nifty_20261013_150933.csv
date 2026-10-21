@@ -1,1 +1,1 @@
-snapshot_id,request_sent_at,response_received_at,quote_time,age_basis,freshness_proxy,last_trade_time,provider,contract_id,expiry,strike,type,bid,ask,last,bid_qty,ask_qty,spot,book_source,valid,invalid_reason,raw_sha256
+snapshot_id,request_sent_at,response_received_at,quote_time,age_basis,freshness_proxy,last_trade_time,provider,contract_id,expiry,strike,type,bid,ask,last,bid_qty,ask_qty,spot,book_source,valid,invalid_reason,raw_sha256,open_interest

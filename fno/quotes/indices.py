@@ -18,6 +18,7 @@ from .recorder import (
     RecordResult,
 )
 from .slot import Slot
+from .weekly import NO_WEEKLY, WEEKLY_EXPIRIES
 
 INDEX_WINDOW_START, INDEX_WINDOW_END = time(15, 1), time(15, 13)
 INDEX_WORKERS, INDEX_PER_SECOND = 3, 2.5  # with A16's 5 a second, under the about 10 where Groww began failing
@@ -25,9 +26,15 @@ NOT_STARTED = RecordResult("window closed")
 DONE_WITHOUT_ATTEMPT = ("not a trading day", "already recorded", "too early")
 
 
-def index_slot(underlying: str) -> Slot:
+def index_slot(underlying: str, weeklies: int = 0) -> Slot:
+    """A4c's slot; with `weeklies`, A4f's NIFTY weekly slot (stem `niftyweekly`), same window and pace."""
     return Slot(underlying, cross_check=False, stop_requests_at=INDEX_WINDOW_END, workers=INDEX_WORKERS,
-                per_second=INDEX_PER_SECOND, check_listed=True)  # fmt: skip
+                per_second=INDEX_PER_SECOND, check_listed=True, weeklies=weeklies,
+                stem_suffix="weekly" if weeklies else "")  # fmt: skip
+
+
+def weekly_slot() -> Slot:
+    return index_slot("NIFTY", weeklies=WEEKLY_EXPIRIES)
 
 
 class IndexRecording:
@@ -69,5 +76,6 @@ class IndexRecording:
 
 
 def _final(reason: str) -> bool:
-    """A retry cannot help: the previous session's NSE file does not list the index, or cannot be read."""
-    return reason == NOT_LISTED or reason.startswith(f"{UNIVERSE}:")
+    """A retry cannot help: the previous session's NSE file does not list the index, or cannot be read; or no NIFTY
+    weekly is listed (A4f: the day ends "none" at once, so a rerun reads it as recorded)."""
+    return reason in (NOT_LISTED, NO_WEEKLY) or reason.startswith(f"{UNIVERSE}:")
