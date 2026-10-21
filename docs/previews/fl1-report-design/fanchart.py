@@ -31,7 +31,7 @@ class FanChart:
         self.high = math.ceil((max(values) + step * 0.4) / step) * step
         self.plot_right = layout.width - 8 - layout.forecast_width
         px_per_step = layout.plot_height * step / (self.high - self.low)
-        self.label_every = 1 if px_per_step >= 13 else 2  # a number on every gridline when they are 13 px apart
+        self.label_every = 1 if px_per_step >= 13 else (2 if px_per_step >= 6.5 else 4)  # numbers 13 px apart
         self.slot = (self.plot_right - layout.axis_width - 8) / len(days)
         self.height = layout.top + layout.plot_height + layout.bottom
 
@@ -66,7 +66,7 @@ class FanChart:
                 last = i == n - 1
                 lx = min(x + 4 if last else x, self.plot_right - 26)
                 # the label goes to the side away from the neighbouring closes, so the line never crosses it
-                near = [self.y(self.days[j]["close"]) for j in (i - 1, i + 1) if 0 <= j < n]
+                near = [self.y(self.days[j]["close"]) for j in (i - 2, i - 1, i + 1, i + 2) if 0 <= j < n]
                 above = sum(near) / len(near) > yc if near else d["close"] >= d["mid"]
                 # clear of the neighbouring dots too, so the line never runs through the number
                 y = min([yc] + near) - 9 if above else max([yc] + near) + 16
@@ -82,7 +82,9 @@ class FanChart:
         n = len(self.days)
         for i, d in enumerate(self.days):
             if (n - 1 - i) % self.date_every == 0:  # counted back from the last day, so the last is always written
-                parts.append(f'<text class="day" x="{self.x(i):.1f}" y="{base + 16}">{d["date"]}</text>')
+                last = i == n - 1 and not self.forecast
+                parts.append(f'<text class="day" style="text-anchor:{"end" if last else "middle"}" '
+                             f'x="{self.x(i) + (6 if last else 0):.1f}" y="{base + 16}">{d["date"]}</text>')
         return parts
 
     def _forecast(self):
@@ -102,7 +104,7 @@ class FanChart:
             parts.append(f'<text class="fv {cls}" x="{x1 + 6:.1f}" y="{y + 4:.1f}">{show(f[key])}</text>')
         parts.append(f'<text class="day fcd" x="{x1:.1f}" y="{self.lay.top + self.lay.plot_height + 16}">'
                      f'{f["date"].split(" ", 1)[1]}</text>')
-        parts.append(f'<text class="zh" x="{x1 + 6:.1f}" y="{self.lay.top - 4}">forecast</text>')
+        parts.append(f'<text class="zh" style="text-anchor:end" x="{self.lay.width - 8}" y="{self.lay.top - 4}">forecast</text>')
         return parts
 
     def svg(self, aria):

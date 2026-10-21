@@ -54,7 +54,8 @@ header .tag { font: 600 11px/16px var(--font); color: var(--warn-ink); backgroun
 /* graphs */
 svg { display: block; width: 100%; height: auto; }
 .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-@media (max-width: 560px) { .scroll svg { min-width: 480px; } }
+.phone { display: none; }
+@media (max-width: 560px) { .desk { display: none; } .phone { display: block; } }
 svg text { font: 500 11px var(--font); fill: var(--muted); }
 svg .grid { stroke: var(--rule); stroke-width: 1; } svg .grid.major { stroke: var(--rule-major); }
 svg .ax { text-anchor: middle; font-size: 10.5px; }

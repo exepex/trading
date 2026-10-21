@@ -12,7 +12,8 @@ from pageview import adapt
 from trendchart import TrendChart, TrendLayout
 
 HERE = Path(__file__).parent
-WIDTH = 490  # one chart column of the two-column page (1100 px wide; stacked on a phone)
+WIDTH = 490  # one chart column of the two-column page (1100 px wide)
+PHONE = 322  # the card's inner width on a 390 px phone: every chart is drawn again at this width, fewer numbers
 GRID = {"NIFTY": 100, "BANKNIFTY": 250}
 WORD = {"green": "Correct", "amber": "Close call", "red": "Missed"}
 GLYPH = {"green": "✓", "amber": "⚠", "red": "✗"}
@@ -67,9 +68,14 @@ def _why(title, lines):
             f'</div><ul class="why-list">{items}</ul>')
 
 
-def _trend(idx):
+def _trend(idx, width=WIDTH):
     days = idx["days"][-len(idx["rolling_90"]):] if idx["rolling_90"] else idx["days"][-30:]
-    return TrendChart([d["date"] for d in days], idx["rolling_90"], TrendLayout(WIDTH))
+    return TrendChart([d["date"] for d in days], idx["rolling_90"], TrendLayout(width))
+
+
+def _both(desk, phone):
+    """The desktop drawing and the phone drawing of one chart; CSS shows one of them."""
+    return f'<div class="desk">{desk}</div><div class="phone">{phone}</div>'
 
 
 def _reliability_chip(idx):
@@ -96,14 +102,17 @@ def _cues():
 
 def morning_card(idx):
     name, n1, n3 = idx["name"], idx["next"], idx["three"]
+    aria = f"{name}: last 10 days and today’s forecast corridor"
     fan = FanChart(idx["days"][-10:], FanLayout(WIDTH, GRID[name], forecast_width=96), forecast=n1, date_every=2)
+    small = FanChart(idx["days"][-10:], FanLayout(PHONE, GRID[name], plot_height=190, axis_width=44, forecast_width=78),
+                     forecast=n1, date_every=3)
     return (f'<div class="card"><h2>{name}<small>last close {fmt(idx["today"])} ({idx["price_at"]})</small></h2>'
             f'<div class="lab first">Today’s forecast · close {n1["date"]}</div>'
             f'<div class="headline">{fmt_low(n1["lo50"])} – {fmt_high(n1["hi50"])}<small>most likely</small></div>'
             f'<div class="line">almost certainly <b>{fmt_low(n1["lo90"])} – {fmt_high(n1["hi90"])}</b> · '
             f'middle {fmt_mid(n1["mid"])} · in 3 days most likely {fmt_low(n3["lo50"])} – {fmt_high(n3["hi50"])}</div>'
             f'<div class="lab">Last 10 days and today’s corridor <span class="when">gridlines every {GRID[name]}</span></div>'
-            f'<div class="scroll">{fan.svg(f"{name}: last 10 days and today’s forecast corridor")}</div>{_key()}'
+            f'{_both(fan.svg(aria), small.svg(aria))}{_key()}'
             f'{_why("Why this forecast", WHY_MORNING_EXAMPLE)}'
             f'<div class="record">{_reliability_chip(idx)}<span>steady = the 20-day share inside “almost certainly” '
             f'holds 80% or more; watch = it does not</span></div></div>')
@@ -155,8 +164,10 @@ def evening_card(idx, issue_day):
     name, days = idx["name"], idx["days"]
     today = days[-1]
     st = status(today)
+    aria = f"{name}: the last 30 days, forecast corridors and the close"
     fan = FanChart(days[-30:], FanLayout(WIDTH, GRID[name], plot_height=260), date_every=5)
-    trend = _trend(idx)
+    small = FanChart(days[-30:], FanLayout(PHONE, GRID[name], plot_height=220, axis_width=44), date_every=7)
+    trend, trend_small = _trend(idx), _trend(idx, PHONE)
     return (f'<div class="card"><h2>{name}<small>{today["date_long"]} · closed {fmt(today["close"])}</small></h2>'
             f'<div class="verdict"><span class="chip {st}">{GLYPH[st]} {WORD[st]}</span><div class="facts">'
             f'forecast <b>{fmt_low(today["lo50"])} – {fmt_high(today["hi50"])}</b> · closed <b>{fmt(today["close"])}</b>'
@@ -164,10 +175,11 @@ def evening_card(idx, issue_day):
             f'{_why(WHY_TITLE[st], _why_evening(idx, today, st))}'
             f'<div class="lab">Last 30 days · forecast vs actual <span class="when">gridlines every {GRID[name]}, '
             f'a number every {GRID[name] * fan.label_every}</span></div>'
-            f'<div class="scroll">{fan.svg(f"{name}: the last 30 days, forecast corridors and the close")}</div>{_key()}'
+            f'{_both(fan.svg(aria), small.svg(aria))}{_key()}'
             f'<div class="lab">This month · right vs wrong</div>{month_grid(days, issue_day)}'
             f'<div class="lab">Reliability trend <span class="when">20-day share inside “almost certainly” · '
-            f'{trend.state()}</span></div><div class="scroll">{trend.svg(f"{name}: reliability trend")}</div>'
+            f'{trend.state()}</span></div>'
+            f'{_both(trend.svg(f"{name}: reliability trend"), trend_small.svg(f"{name}: reliability trend"))}'
             f'<div class="lab">When it was wrong · last 30 days</div>{_misses_table(idx)}'
             f'<div class="lab">Levels and flows · today’s chain and NSE flows <span class="when">example values until '
             f'wired</span></div>{_levels(name)}</div>')

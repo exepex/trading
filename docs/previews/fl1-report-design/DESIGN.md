@@ -41,6 +41,10 @@ One definition of "right" everywhere: inside "almost certainly"; the three resul
 A written value never sits on another or on the line: miss labels go to the side away from the neighbouring closes,
 stack away from the line when two meet, and stay inside the plot; dates are counted back from the last day.
 
+On a phone (under 560 px) every chart is drawn a second time at the card's width (322 px) with fewer numbers and
+dates, and CSS shows that drawing instead of the desktop one, so the right edge (today's corridor, the last values)
+is always visible; nothing scrolls or crops.
+
 Rendered at 1100 and 390 px (2x): 0 px overflow, no console errors, no requests. Found and fixed in review: 24
 axis numbers 9 px apart on the 30-day chart (now every second gridline), the last value clipped at the right edge
 (the CSS anchor overrode the attribute), the trend labels over the line (moved left), the warning label washed out

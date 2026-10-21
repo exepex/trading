@@ -59,8 +59,12 @@ class TrendChart:
             parts.append(f'<circle class="tdot" cx="{x:.1f}" cy="{y:.1f}" r="4"/>')
             parts.append(f'<text class="tv" text-anchor="end" x="{x - 7:.1f}" y="{y + 4:.1f}">{last:.0%}</text>')
         base = lay.top + lay.plot_height
+        n = len(self.dates)
+        every = 5 if self.slot * 5 >= 60 else 7
         for i, d in enumerate(self.dates):
-            if i % 5 == 0 or i == len(self.dates) - 1:
-                parts.append(f'<text class="day" x="{self.x(i):.1f}" y="{base + 16}">{d}</text>')
+            if (n - 1 - i) % every == 0:
+                last = i == n - 1
+                parts.append(f'<text class="day" style="text-anchor:{"end" if last else "middle"}" '
+                             f'x="{self.x(i) + (6 if last else 0):.1f}" y="{base + 16}">{d}</text>')
         return (f'<svg class="trend" viewBox="0 0 {lay.width} {self.height}" role="img" aria-label="{aria}">'
                 + "".join(parts) + "</svg>")
