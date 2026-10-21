@@ -1,5 +1,5 @@
 """Story A4c, criterion 6: each part of the 3 pm routine stages only its own files with the paths CLAUDE.md gives it
-(NIFTY, NSE, the three indices), never a Groww quote file."""
+(NIFTY, NSE, the three indices and, A4f, NIFTY's weeklies), never a Groww quote file."""
 
 import shutil
 import subprocess
@@ -8,18 +8,25 @@ from fno.config import ROOT
 
 GROWW = "research/data/quotes/groww/derivatives/quote-snapshots/2026/10"
 NSE = "research/data/quotes/nse/derivatives/quote-snapshots/2026/10"
+WEEKLY = "research/data/quotes/groww/derivatives/quote-snapshots-weekly/2026/10"
 PARTS = {
     "nifty": ["':(glob)research/data/quotes/groww/**/nifty_*'"],
     "nse": ["research/data/quotes/nse/"],
-    "indices": [f"':(glob)research/data/quotes/groww/**/{name}_*'" for name in ("banknifty", "finnifty", "midcpnifty")],
+    "indices": [
+        f"':(glob)research/data/quotes/groww/**/{name}_*'"
+        for name in ("banknifty", "finnifty", "midcpnifty", "niftyweekly")
+    ],  # fmt: skip
 }
 FILES = {
     "nifty": [f"{GROWW}/nifty_20261016.canonical", f"{GROWW}/nifty_20261016_145500.meta.json"],
     "nse": [f"{NSE}/nifty_20261016{suffix}" for suffix in (".canonical", "_145501.csv", "_145501.meta.json")],
     "indices": [f"{GROWW}/{name}_20261016{suffix}" for name in ("banknifty", "finnifty", "midcpnifty")
-                for suffix in (".canonical", "_150100.meta.json")],
+                for suffix in (".canonical", "_150100.meta.json")]
+               + [f"{WEEKLY}/niftyweekly_20261016{suffix}" for suffix in (".canonical", "_150600.meta.json")],
 }  # fmt: skip
-RAW = [f"{GROWW}/{name}_20261016_145500.csv" for name in ("nifty", "banknifty")]
+RAW = [f"{GROWW}/{name}_20261016_145500.csv" for name in ("nifty", "banknifty")] + [
+    f"{WEEKLY}/niftyweekly_20261016_150600.csv"
+]
 
 
 def _git(repo, *args):
