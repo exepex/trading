@@ -149,3 +149,48 @@ def test_an_unsent_alert_printed_last_is_reported_but_never_kept_for_the_committ
     kept = process.lines()
     assert len(reported) == 1 and "FAKEFOLDERID123" in reported[0]
     assert kept == ["recorded: nifty_20261019_145500 (0 contracts, complete=False)"]
+
+
+UNSENT_ONLY = (
+    "import sys\n"
+    "print('recorded: nifty_20261019_145500 (0 contracts, complete=False) - raw quote file not saved: DriveDown')\n"
+    "print('alert NOT sent: Slack answered HTTP 503 | 3 pm quote recorder: raw quote file NOT saved to Drive')\n"
+    "sys.exit(1)\n"
+)
+
+
+class SentAlerts:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, text):
+        self.sent.append(text)
+        return "alert NOT sent: Slack answered HTTP 503"
+
+
+def test_a_part_whose_only_alert_went_unsent_is_not_alerted_twice_and_its_text_stays_out_of_the_record(
+    tmp_path, monkeypatch
+):
+    """Judge 412 add. 1 and the O1/O2 owner (21 Oct): with the real ChildProcess, a failed part that printed its own
+    unsent alert counts as alerted (no second PART_NOT_OK), the line reaches the routine once, never the run record."""
+    from datetime import date, datetime
+
+    from fno.daily.quote_parts import QuotePart, QuoteParts
+    from fno.models import IST
+    from tests.daily.fakes import RecordingCommitter
+
+    real_popen = subprocess.Popen
+    monkeypatch.setattr(subprocess, "Popen", lambda command, **o: real_popen([sys.executable, "-c", UNSENT_ONLY], **o))
+    reported, alerts = [], SentAlerts()
+    part = QuotePart("nifty", ("quotes", "record"), ("research/data/quotes/groww/",))
+    clock = lambda: datetime(2026, 10, 19, 15, 0, tzinfo=IST)  # noqa: E731
+    parts = QuoteParts(
+        (part,), ChildProcesses(tmp_path, reported.append), RecordingCommitter(clock, []), lambda s: [], alerts, clock
+    )
+    parts.start(date(2026, 10, 19))
+    wait(parts.running["nifty"], sleep=lambda seconds: time.sleep(0.05))
+    parts.service()
+    result = parts.results["nifty"]
+    assert result["status"] == "failed" and alerts.sent == []  # its own alert counts: no PART_NOT_OK
+    assert len(reported) == 1 and reported[0].startswith("alert NOT sent: Slack answered HTTP 503 | ")
+    assert not any("alert NOT sent" in line for line in result["lines"])  # never in the committed run record

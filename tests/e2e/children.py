@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fno.daily.processes import KEPT_LINES, UNSENT, Process, Processes
+from fno.daily.processes import KEPT_LINES, UNSENT, Process, Processes, printed_an_alert
 from fno.quotes.recorder import NSE_DATASET, QuoteSnapshotRecorder
 
 from .outside import SPOT, FakeClock, market_rows
@@ -57,7 +57,10 @@ class ScriptedProcess(Process):
         return self.code
 
     def lines(self):
-        return self.printed[-KEPT_LINES:]
+        return [line for line in self.printed if UNSENT not in line][-KEPT_LINES:]  # as ChildProcess keeps them
+
+    def alerted(self):
+        return printed_an_alert(self.printed)
 
     def stop(self):
         self.stopped = True

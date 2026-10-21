@@ -13,9 +13,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from ..alerts.sender import NOT_SENT
+from ..alerts.sender import NOT_SENT, SENT
 
 UNSENT = NOT_SENT.split(":")[0]  # "alert NOT sent": a child's own unsent alert, printed for the routine's connector
+OWN_ALERT = (SENT, UNSENT)  # a line a command's own alert left, sent or not
 KEPT_LINES = 10  # the run log keeps the last lines a command printed (result lines; never a secret, O5's scan)
 
 
@@ -31,6 +32,11 @@ class Process(ABC):
     @abstractmethod
     def stop(self) -> None:
         """Ends a command that ran past its limit."""
+
+    @abstractmethod
+    def alerted(self) -> bool:
+        """Whether the command sent, or tried to send, its own alert: over its whole output, since the kept lines
+        never hold an unsent alert (they reach the committed run record)."""
 
 
 class Processes(ABC):
@@ -62,6 +68,9 @@ class ChildProcess(Process):
         for Slack alone, such as a Drive error's text), never into the committed run record."""
         return [line for line in self._read() if UNSENT not in line][-KEPT_LINES:]
 
+    def alerted(self) -> bool:
+        return printed_an_alert(self._read())
+
     def _read(self) -> list[str]:
         if self.printed is None:
             self.output.seek(0)
@@ -86,3 +95,8 @@ class ChildProcesses(Processes):
         popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=subprocess.STDOUT, text=True,
                                  start_new_session=True)  # fmt: skip
         return ChildProcess(popen, output, self.report)
+
+
+def printed_an_alert(printed: Sequence[str]) -> bool:
+    """One rule for every `Process`: a line left by the command's own alert, sent or not."""
+    return any(mark in line for line in printed for mark in OWN_ALERT)

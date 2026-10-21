@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from ..alerts.sender import NOT_SENT, SENT, AlertSender
+from ..alerts.sender import AlertSender
 from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
@@ -30,7 +30,6 @@ PART_NOT_OK = (
     "F&O daily run {day}: 3 pm quote part {name} {status}: {reason}; the day's {name} record may be missing: check its "
     "sidecar and canonical marker"
 )
-OWN_ALERT = (SENT, NOT_SENT.split(":")[0])  # a line the part's own alert left ("alert sent ..." / "alert NOT sent ...")
 STILL_RUNNING = "still running {minutes} minutes after the desk's exits: stopped, nothing more committed for it"
 NEVER_STARTED = "never started: the part it waits for did not end in time"
 FINISH_LIMIT = timedelta(minutes=20)
@@ -117,7 +116,7 @@ class QuoteParts:
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
-                self._finish(self._part(name), code, process.lines())
+                self._finish(self._part(name), code, process.lines(), process.alerted())
         for part in self.parts:
             if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
                 self._start(part)
@@ -150,7 +149,7 @@ class QuoteParts:
         self.running[part.name] = self.processes.start(part.arguments)
         return part.name
 
-    def _finish(self, part: QuotePart, code: int, lines: list[str]) -> None:
+    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool) -> None:
         del self.running[part.name]
         result = outcome(part.arguments, code, lines).result
         files = self.changed(part.pathspecs)
@@ -161,7 +160,7 @@ class QuoteParts:
             specs = " ".join(f"'{spec}'" for spec in part.pathspecs)
             self.alerts.send(NOT_COMMITTED.format(day=self.day, name=part.name, reason=failed, specs=specs))
         self.results[part.name] = result
-        if result["status"] in (STEP_FAILED, STEP_REFUSED) and not any(m in ln for ln in lines for m in OWN_ALERT):
+        if result["status"] in (STEP_FAILED, STEP_REFUSED) and not alerted:
             self._alert(part.name, result)  # a part that failed without alerting (a Groww outage): O2's case
 
     def _failed(self, name: str, reason: str) -> None:

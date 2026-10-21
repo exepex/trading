@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from fno.constants import STEP_OK
-from fno.daily.processes import Process, Processes
+from fno.daily.processes import UNSENT, Process, Processes, printed_an_alert
 from fno.daily.quote_parts import QUOTE_PARTS, QuoteParts
 from fno.daily.quote_steps import ServicingWaiter
 from fno.desk.daily_ports import CommitFailed, Committer, DayStep
@@ -30,7 +30,10 @@ class FakeProcess(Process):
         return self.code if self.clock() >= self.ends_at else None
 
     def lines(self) -> list[str]:
-        return list(self.printed)
+        return [line for line in self.printed if UNSENT not in line]  # as ChildProcess keeps them
+
+    def alerted(self) -> bool:
+        return printed_an_alert(self.printed)
 
     def stop(self) -> None:
         self.stopped = True
