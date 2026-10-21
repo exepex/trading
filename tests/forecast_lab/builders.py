@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from functools import partial
 
-from fno.cards.posting import CardPoster, PostReceipt
+from fno.forecast_lab.delivery import Attachment, Delivery, ReportPoster
 from fno.forecast_lab.lab_close import LabClose, ReportRecords
 from fno.forecast_lab.match import MatchSection
 from fno.forecast_lab.ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, RangeSource, SealedIssue
@@ -102,13 +102,21 @@ class Records(ReportRecords):
         self.alert_marks[day] = list(outcomes)
 
 
-class Poster(CardPoster):
-    def __init__(self, *receipts: PostReceipt):
-        self.receipts, self.posts = list(receipts), []
+class Poster(ReportPoster):
+    def __init__(self, *deliveries: Delivery):
+        self.deliveries, self.posts, self.files = list(deliveries), [], []
 
-    def post(self, text):
+    def post(self, text, attachments):
         self.posts.append(text)
-        return self.receipts.pop(0) if self.receipts else PostReceipt("alert sent", "1700000000.0001", "C")
+        self.files.append([a.name for a in attachments])
+        return self.deliveries.pop(0) if self.deliveries else Delivery("posted to #fno-forecast", sent=True)
+
+
+class EchoMaker:
+    """The message as FL1-1's seal-check and match lines, with one file: so the coverage tests read what they check."""
+
+    def make(self, day, now, alerts, checks):
+        return checks, (Attachment(f"forecast-{day}.html", b"<p>details</p>", "Details"),), ()
 
 
 def lab(forecasts, records=None, poster=None, alerts=None, closes=None, first_day=DAY, underlyings=("NIFTY",),
@@ -117,5 +125,5 @@ def lab(forecasts, records=None, poster=None, alerts=None, closes=None, first_da
     match = MatchSection(forecasts, closes or Closes(), SESSIONS, issues_from)
     report = CloseReport(forecasts, match, first_day, underlyings=underlyings)
     records, poster, alerts = records or Records(), poster or Poster(), alerts or RecordingAlerts()
-    run = LabClose(report, records, poster, alerts, SESSIONS.is_regular, partial(at, today, 15, 47))
+    run = LabClose(report, EchoMaker(), records, poster, alerts, SESSIONS.is_regular, partial(at, today, 15, 47))
     return run, poster, alerts

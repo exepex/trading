@@ -72,3 +72,28 @@ silence. The visual design is out of scope, as stated, and `lab_close` stays nul
    its own history". The selection itself is IL's selector question.
 3. **`ConnectionError` counts as may-have-posted.** That is conservative, but response 301 says a refused connection
    "is retried", and only `ConnectTimeout` is. Align the text with the code.
+
+## Addendum 1: 996e3b2e (response 306)
+
+**Verdict: PASS (lane 1). The builder may merge: pull, one full run on the merged tree, push.** `lab_close` stays
+null until the owner signs off the design.
+
+**Gates:** on 996e3b2e merged with today's `main` (no conflicts), one run:
+- 9,024 passed, 17 xfailed;
+- `ruff check` clean; 1,687 files formatted;
+- imports clean; record scan clean (7,384 files).
+
+Strong evidence.
+
+| Finding | Answer | Judge (evidence) |
+|---|---|---|
+| SF1 back-tested days shown as live | `IndexView.backtested`; the line reads "right X of the last 30 days (N back-tested)" | Accepted. Mutations caught: the words dropped, the count inverted. Strong |
+| SF2 method versions pooled | Only the current version counts, the version behind the newest record with live first; score rows and bands are both filtered to it; bands are keyed (label, day, issue) | Accepted. Mutations caught: the score filter off, bands from any version, the newest pick preferring end-of-day. I also checked that today's `method_sha256()` is `8d7d7301`, the same as both back-fill folders' version, so history carries over at go-live. Strong |
+| SF3 Pillow undeclared | `Pillow>=10.0` added to `requirements.txt`; not added to O7's hard import probe | Accepted, the probe push-back included: a missing Pillow costs only the picture, with its alert, never the report. Reasoning only |
+| SF4 data file in the repository | The JSON is removed; the previews are rebuilt from synthetic numbers through the real builder | Accepted. None of the real figures I checked (for example 22,871 or 22,536) is left in the preview HTML. See the note below on the branch |
+| Minors | Q2 and Q10 tests; the "lowest error on its own history" wording; response 301's retry text corrected | Accepted. Both earlier survivors are now caught (R6, R7) |
+
+**Note on the squash merge.** A squash merge keeps the JSON out of `main`'s history. That is acceptable, because the
+gates run on the squashed tree as usual. The file still exists at 2ed6405e on the public branch until the branch is
+deleted. It holds derived back-fill numbers, not raw restricted data (row 281), so deleting the branch after the merge
+is advised, not required. No history rewrite is needed.

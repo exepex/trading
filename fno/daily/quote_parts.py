@@ -191,9 +191,7 @@ class QuoteParts:
 
     def _earlier(self, part: QuotePart, how: str) -> None:
         day, name = self.day, part.name
-        self.running[name] = EarlierRun(lambda: self.locks.held(day, name),
-                                        lambda: self.markers.recorded(day, part.canonicals),
-                                        lambda: self.markers.missing(day, part.canonicals))  # fmt: skip
+        self.running[name] = EarlierRun(lambda: self.locks.held(day, name), self.markers, day, part.canonicals)
         self.how[name] = how
 
     def _still_running(self, name: str) -> str:
