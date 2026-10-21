@@ -105,3 +105,17 @@ crumb page, a CAPTCHA). Line 39 says only that Yahoo answers today "no login, co
 retried with a cookie, crumb, another user agent or another address; and a criterion with a planted 401 and a planted
 consent page. Addendum 1's minors (label the four Yahoo-only indexes `unverified`; the stale rule at 20:00 and 20:01)
 go in the same revision.
+
+## Addendum 3: re-judge at 6f0725f8 (rev 3)
+
+**Verdict: PASS for the A17e story text.** Code may start.
+
+| Finding | Rev 3 | My check | Result |
+|---|---|---|---|
+| Add. 1 SF1: Yahoo blocks | lines 65-68: HTTP 401, 403 or 429, a consent or "crumb" page, or a CAPTCHA page stops that Yahoo cue for the run, writes nothing, and is named in the run's alert line; never retried with a cookie, crumb, other user agent or other address; the next scheduled run tries once, the same plain way. Criterion 8 plants a 401, a 403, a 429 and a consent page (HTTP 200), counts exactly one request, and checks that the other cues still run; the gap list maps it | read | **Accepted** |
+| Add. 1 minor 1: Yahoo-only indexes | `unverified (Yahoo only)` in every reading and check line (line 69, criterion 8, gap-list rows) | read | **Accepted** |
+| Add. 1 minor 2: stale boundary | 20:00 not stale, 20:01 `stale` (criterion 7) | read | **Accepted** |
+
+Note (no change asked): A17's run alerts once per run, so a Yahoo block that lasts gives one line per run (three runs
+a day). That is A17's accepted pattern, and with "never worked around" it is the right side to err on. If a long block
+happens, an episode rule like A20b's is the follow-up.
