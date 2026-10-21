@@ -80,3 +80,17 @@ from `main` merged in, changes only `docs/stories/FL1-1d-two-editions.md`.
 **Note for the owner.** The FL1 builder could not delete `story/fl1-html-report` after FL1-1c's squash merge
 (45c72f6f), because the session's proxy drops branch deletes. Its commit 2ed6405e still holds the derived preview
 data (judge 434 should-fix 4). Deleting it in GitHub (Branches → delete) is advised, not required.
+
+## Note: 2b2c5724 (12 lines added to 1d-2's design)
+The commit adds two things:
+- **Miss reasons over 30 sessions, up from 7.** FL1-1c's `reasons()` looks up each fact for the miss day itself
+  (`facts.flows.get(day)`, the VIX of that day and the day before, events up to that day, and the last two prints
+  before it). So widening the window keeps every reason as known on its own day. Accepted.
+- **Two librarian rules:**
+  - a librarian "not published" exit shows "not out yet", with no alert. It must be told apart from other exit-1
+    errors by the librarian's own outcome text; test that in 1d-2;
+  - a manifest push race follows item 8's pull-and-retry-once rule.
+
+  Accepted (reasoning only, as labelled).
+
+1d-1 is unchanged. **The PASS of addendum 1 stands at 2b2c5724.**
