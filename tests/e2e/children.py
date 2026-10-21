@@ -73,7 +73,9 @@ class Children(Processes):
     def __init__(self, clock: FakeClock, script: dict, quotes_folder: Path):
         self.clock, self.script, self.quotes_folder, self.started = clock, script, quotes_folder, []
 
-    def start(self, arguments) -> Process:
+    def start(self, arguments, hold=None) -> Process:
+        """`hold` (a 3 pm part's lock, F1) is not kept: a part here has done its work when it starts, so none outlives
+        a killed run, as a real one dies with the routine's container."""
         key = tuple(arguments)
         entry = self.script[key[:2] if key[:2] == ("desk", "book1") else key]
         self.started.append((self.clock(), key))
