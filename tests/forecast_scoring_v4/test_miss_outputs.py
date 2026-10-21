@@ -25,7 +25,7 @@ OWN = values({d: 0.3 for d in DAYS if d not in (ABSENT, MISSED)}, live=True)
 BASE = values({d: 0.2 for d in DAYS if d != ABSENT}, live=True)
 EXPECTED = MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=1)
 
-NO_DAYS = DayCounts(0, 0, 0, 0, 0)
+NO_DAYS = DayCounts(0, 0, 0, 0)
 
 
 def test_a_day_neither_file_holds_is_an_input_failure_and_exactly_2_percent_is_a_2_percent_day():
