@@ -154,3 +154,11 @@ def test_one_owner_approval_applies_a_fall_in_both_families(tmp_path):
     debit = family_row(tmp_path / "stress_factor.csv", "debit")
     assert credit[1:5] == ["1.3", "1.3", "1.253012", "applied"] and debit[1:5] == ["1", "1", "1.000000", "applied"]
     assert sent[0].count("fall approved by the owner, DESK_DECISIONS da0f769d") == 2
+
+
+@pytest.mark.parametrize(
+    "approval", ["da0f76", "DA0F769D", "da0f769d; rm -rf /", ""], ids=["short", "upper", "shell", "empty"]
+)
+def test_an_approval_that_is_not_a_commit_sha_writes_nothing(tmp_path, approval):
+    code, row, sent = run(tmp_path, planted(THROUGH, {SPIKE: 8.0}), approved=approval)
+    assert code == 1 and row[0] == "2026-10-14" and "--approve-fall must be a commit SHA" in sent[0]

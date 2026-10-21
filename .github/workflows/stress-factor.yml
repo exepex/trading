@@ -4,7 +4,7 @@
 #   2. `margins stress-factor` checks the archive date by date (every session since 2 Jan 2020, A7's calendar), then
 #      appends one row per structure family (debit, credit; owner, 16 Oct 2026) to research/data/margins/
 #      stress_factor.csv: a rise applies at once, any fall is held for the owner (owner, 15 Oct 2026, DESK_DECISIONS
-#      da0f769d) unless a run cites the owner's approving commit (approve_fall). It writes its evidence beside it and
+#      da0f769d) unless a run cites the owner's approving commit (approve_fall, a commit SHA). It writes its evidence beside it and
 #      sends one #fno-desk line;
 #   3. the factor row, the evidence and the manifest rows are committed. Nothing here edits config.yaml.
 # Weekly keeps the row fresh: C2 refuses after 30 days, so three failed Sundays still leave a valid factor.
@@ -69,17 +69,10 @@ jobs:
           FULL: ${{ inputs.full }}
           APPROVE_FALL: ${{ inputs.approve_fall }}
         run: |
-          args=""
-          if [ "${FULL:-false}" = "true" ]; then args="--full"; fi
-          if [ -n "${APPROVE_FALL:-}" ]; then
-            if ! printf '%s' "$APPROVE_FALL" | grep -Eqx '[0-9a-f]{7,40}'; then
-              python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
-                "Omenix F&O stress factor: nothing written: approve_fall must be a commit SHA (7-40 hex characters)"
-              exit 1
-            fi
-            args="$args --approve-fall $APPROVE_FALL"
-          fi
-          python -m fno margins stress-factor $args
+          set --
+          if [ "${FULL:-false}" = "true" ]; then set -- --full; fi
+          if [ -n "${APPROVE_FALL:-}" ]; then set -- "$@" --approve-fall "$APPROVE_FALL"; fi # the command checks it
+          python -m fno margins stress-factor "$@"
       - name: Commit the factor row, its evidence and the manifest rows
         id: commit
         env:

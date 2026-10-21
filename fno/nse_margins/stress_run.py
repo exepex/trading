@@ -13,6 +13,7 @@ included) writes nothing and sends one #fno-desk line; so does every run that wr
 from __future__ import annotations
 
 import hashlib
+import re
 import traceback
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -31,6 +32,7 @@ from .stress_coverage import FIRST_SESSION, CoverageGap, check_coverage, require
 from .stress_evidence import build_evidence
 from .stress_log import NextRow, StressFactorFile, StressRowRefused
 
+COMMIT_SHA = re.compile(r"[0-9a-f]{7,40}")  # the owner's DESK_DECISIONS commit approving a fall
 LOOKBACK_DAYS = 60  # a holding lasts at most about 44 calendar days (expiry 30-65 days out, exit 21 days before)
 HEADLINE = "Omenix F&O stress factor {run_day}: "
 WRITTEN = "{family} {status} {factor:g} (computed {computed:g}, was {was:g}), peak {peak}"
@@ -71,6 +73,8 @@ class StressFactorRun:
         return 1
 
     def _run(self, full: bool, approved_fall: str | None) -> str:
+        if approved_fall is not None and not COMMIT_SHA.fullmatch(approved_fall):
+            raise StressRowRefused(f"--approve-fall must be a commit SHA (7-40 hex characters), not {approved_fall!r}")
         required = required_sessions(self.run_day, self.sources.is_trading_day, self.sources.first_session)
         coverage = check_coverage(required, self.sources.archived())
         lasts = {family: self.factor_file.last(family) for family in STRESS_FAMILIES}

@@ -64,9 +64,11 @@ and fixed:
 | Docstrings still said one factor row (stress_run, stress_log, held_rise, the workflow) | read | rewritten per family | - |
 | Test gaps: CRLF and missing last newline in the header change; per-family 30-day age; one approval for a fall in both families | - | tests added | `test_the_header_change_keeps_crlf_bytes_and_a_missing_last_newline` [2], `test_the_30_day_age_applies_to_each_family_s_own_row` [C2, C4], `test_one_owner_approval_applies_a_fall_in_both_families` |
 
-**Added (lane 1, workflow):** `stress-factor.yml` gains an `approve_fall` dispatch input, checked as a 7-40 hex commit
-(else one #fno-desk line and nothing written), passed as `--approve-fall`. Without it the first per-family run would
-have to run outside Actions to cite the owner's approval.
+**Added (lane 1, workflow):** `stress-factor.yml` gains an `approve_fall` dispatch input, passed quoted as
+`--approve-fall`. The command refuses anything but a 7-40 lower-hex commit SHA (one #fno-desk line, nothing written;
+`test_an_approval_that_is_not_a_commit_sha_writes_nothing` [4]), so the check alerts from the run's own line and the
+workflow step names stay as the capture watcher expects. Without the input the first per-family run would have to run
+outside Actions to cite the owner's approval.
 
 Round 2 mutations, all 7 caught: strict bounds made inclusive (8 failed); each of the three extra-field refusals
 removed (1 each); the exact-header refusal removed (1); the record's structure check removed (1); A14c's skip removed
