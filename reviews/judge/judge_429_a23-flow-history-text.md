@@ -68,3 +68,26 @@ skipping it until needed is the right default. The `xlrd` pin follows the `pypdf
 For the code round: the daily copy is archived on its first fetch, so its `Last-Modified` is the original write. A
 later NSE rewrite of a recent file is A11's revision sweep's job (keep the later version beside the original). The
 claims should say whether these two datasets join A11's sweep, as participant OI does.
+
+## Addendum 2: 236389de (the owner's NSDL and xlrd answers applied)
+
+**Verdict: the PASS stands at 236389de.**
+
+The owner's answer is on main: DESK_DECISIONS row 279 (195b3f0f), item 5: "a one-time NSDL FPI back-fill for personal
+research only, private in Drive, never shown or shared (NSDL's terms prohibit redistribution; owner's choice, 21 Oct);
+xlrd allowed, pinned". The text follows it exactly:
+- scope 5: about 94 form posts (one per month, January 2019 to the last full month), at least 10 s apart, one pass,
+  one retry per month, no loop;
+- raw HTML write-once in Drive with receipts;
+- no value in the repository, a log, an alert, a card, a screen or Slack;
+- no daily NSDL job;
+- every row labelled `publication_time_unknown` and available from the session after its reporting date. That is
+  conservative, given NSDL's note that a reporting date carries the previous trading day's trades;
+- criterion 7 pins the pacing with an injected sleeper, the single retry, resume, refusal of a wrong title or a date
+  past the asked one, and a grep that no NSDL value reaches committed paths, logs or alert lines;
+- `xlrd==2.0.2` is pinned.
+
+For the owner, stated once more and not as an objection to their choice [reasoning only]: NSDL's terms prohibit
+reproduction and redistribution, which the private, Drive-only design respects. The site also discourages saving
+(blocked save keys), and an automated form back-fill, however slow, is a use NSDL did not offer. The owner has
+weighed this and chosen; the text makes the back-fill one-time and private, as decided.
