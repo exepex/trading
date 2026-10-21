@@ -58,22 +58,30 @@ class FanChart:
     def _closes(self):
         pts = " ".join(f"{self.x(i):.1f},{self.y(d['close']):.1f}" for i, d in enumerate(self.days))
         parts = [f'<polyline class="close" points="{pts}"/>']
-        n = len(self.days)
+        n, placed = len(self.days), []
         for i, d in enumerate(self.days):
             st, x, yc = status(d), self.x(i), self.y(d["close"])
             parts.append(f'<circle class="dot {st}" cx="{x:.1f}" cy="{yc:.1f}" r="4.5"/>')
             if st == "red" or i == n - 1:
-                above = d["close"] >= d["mid"]
-                anchor = "end" if i == n - 1 else "middle"
-                parts.append(f'<text class="v {st}" style="text-anchor:{anchor}" x="{x + (4 if i == n - 1 else 0):.1f}" '
-                             f'y="{yc - 9 if above else yc + 16:.1f}">{fmt(d["close"])}</text>')
+                last = i == n - 1
+                lx = min(x + 4 if last else x, self.plot_right - 26)
+                # the label goes to the side away from the neighbouring closes, so the line never crosses it
+                near = [self.y(self.days[j]["close"]) for j in (i - 1, i + 1) if 0 <= j < n]
+                above = sum(near) / len(near) > yc if near else d["close"] >= d["mid"]
+                # clear of the neighbouring dots too, so the line never runs through the number
+                y = min([yc] + near) - 9 if above else max([yc] + near) + 16
+                y = _free_y(lx, y, placed, above)
+                placed.append((lx, y))
+                parts.append(f'<text class="v {st}" style="text-anchor:{"end" if last else "middle"}" x="{lx:.1f}" '
+                             f'y="{y:.1f}">{fmt(d["close"])}</text>')
         return parts
 
     def _dates(self):
         base = self.lay.top + self.lay.plot_height
         parts = []
+        n = len(self.days)
         for i, d in enumerate(self.days):
-            if i % self.date_every == 0 or i == len(self.days) - 1:
+            if (n - 1 - i) % self.date_every == 0:  # counted back from the last day, so the last is always written
                 parts.append(f'<text class="day" x="{self.x(i):.1f}" y="{base + 16}">{d["date"]}</text>')
         return parts
 
@@ -92,7 +100,8 @@ class FanChart:
         ys = _spread([self.y(f[k]) for k, _, _ in labels], 14)
         for (key, cls, show), y in zip(labels, ys):
             parts.append(f'<text class="fv {cls}" x="{x1 + 6:.1f}" y="{y + 4:.1f}">{show(f[key])}</text>')
-        parts.append(f'<text class="day fcd" x="{x1:.1f}" y="{self.lay.top + self.lay.plot_height + 16}">{f["date"]}</text>')
+        parts.append(f'<text class="day fcd" x="{x1:.1f}" y="{self.lay.top + self.lay.plot_height + 16}">'
+                     f'{f["date"].split(" ", 1)[1]}</text>')
         parts.append(f'<text class="zh" x="{x1 + 6:.1f}" y="{self.lay.top - 4}">forecast</text>')
         return parts
 
@@ -103,6 +112,15 @@ class FanChart:
             body += self._forecast()
         return (f'<svg class="fan" viewBox="0 0 {self.lay.width} {self.height}" role="img" aria-label="{aria}">'
                 + "".join(body) + "</svg>")
+
+
+def _free_y(x, y, placed, above, dx=44, dy=12):
+    """A label y that does not sit on an earlier label: when one is within dx and dy, step further away from
+    the line (up for a label above its dot, down for one below)."""
+    for px, py in placed:
+        if abs(px - x) < dx and abs(py - y) < dy:
+            y = py - dy - 1 if above else py + dy + 1
+    return y
 
 
 def _spread(ys, gap):

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from calendar_grid import month_grid
 from fanchart import FanChart, FanLayout
-from linechart import fmt, fmt_high, fmt_low, status
+from linechart import fmt, fmt_high, fmt_low, fmt_mid, status
 from pageview import adapt
 from trendchart import TrendChart, TrendLayout
 
@@ -18,6 +18,7 @@ WORD = {"green": "Correct", "amber": "Close call", "red": "Missed"}
 GLYPH = {"green": "✓", "amber": "⚠", "red": "✗"}
 MEANS = {"green": "closed inside “most likely”", "amber": "closed inside “almost certainly” only",
          "red": "closed outside both ranges"}
+WHY_TITLE = {"green": "Why it was correct", "amber": "Why a close call", "red": "Why it missed"}
 RESEARCH = "Research only. Not a trade tip."
 # Example values, labelled as such on the page, until the builder wires A17 (cues), VIX and the chain and flow read
 # models (levels and flows) into the PageView. Never real numbers posing as today's.
@@ -56,7 +57,8 @@ def _foot(data):
 def _key():
     return ('<p class="key"><span><i class="r50"></i>most likely (1 day in 2)</span>'
             '<span><i class="r90"></i>almost certainly (9 days in 10)</span><span><i class="ln"></i>actual close</span>'
-            '<span><i class="dot green"></i>✓</span><span><i class="dot amber"></i>⚠</span><span><i class="dot red"></i>✗</span></p>')
+            '<span class="nowrap"><i class="dot green"></i>✓ correct · <i class="dot amber"></i>⚠ close call · '
+            '<i class="dot red"></i>✗ missed</span></p>')
 
 
 def _why(title, lines):
@@ -71,10 +73,16 @@ def _trend(idx):
 
 
 def _reliability_chip(idx):
+    """One definition of right everywhere: inside "almost certainly"; the colour follows the trend's state."""
     state = _trend(idx).state()
     if idx["light"] == "none":
         return f'<span class="pill none"><i></i>{idx["light_word"]}</span>'
-    return (f'<span class="pill {idx["light"]}"><i></i>Right {idx["right30"]} of {idx["scored"]} · {state}</span>')
+    days = idx["days"][-idx["scored"]:]
+    correct = sum(status(d) == "green" for d in days)
+    close = sum(status(d) == "amber" for d in days)
+    colour = {"steady": "green", "watch": "amber"}.get(state, "none")
+    return (f'<span class="pill {colour}"><i></i>Inside “almost certainly” {idx["right30"]} of {idx["scored"]} '
+            f'(✓ correct {correct} · ⚠ close call {close}) · {state}</span>')
 
 
 # ---- morning ---------------------------------------------------------------------------------------------------
@@ -88,17 +96,17 @@ def _cues():
 
 def morning_card(idx):
     name, n1, n3 = idx["name"], idx["next"], idx["three"]
-    fan = FanChart(idx["days"][-10:], FanLayout(WIDTH, GRID[name], forecast_width=96), forecast=n1)
+    fan = FanChart(idx["days"][-10:], FanLayout(WIDTH, GRID[name], forecast_width=96), forecast=n1, date_every=2)
     return (f'<div class="card"><h2>{name}<small>last close {fmt(idx["today"])} ({idx["price_at"]})</small></h2>'
             f'<div class="lab first">Today’s forecast · close {n1["date"]}</div>'
             f'<div class="headline">{fmt_low(n1["lo50"])} – {fmt_high(n1["hi50"])}<small>most likely</small></div>'
             f'<div class="line">almost certainly <b>{fmt_low(n1["lo90"])} – {fmt_high(n1["hi90"])}</b> · '
-            f'middle {fmt(n1["mid"])} · in 3 days most likely {fmt_low(n3["lo50"])} – {fmt_high(n3["hi50"])}</div>'
+            f'middle {fmt_mid(n1["mid"])} · in 3 days most likely {fmt_low(n3["lo50"])} – {fmt_high(n3["hi50"])}</div>'
             f'<div class="lab">Last 10 days and today’s corridor <span class="when">gridlines every {GRID[name]}</span></div>'
             f'<div class="scroll">{fan.svg(f"{name}: last 10 days and today’s forecast corridor")}</div>{_key()}'
             f'{_why("Why this forecast", WHY_MORNING_EXAMPLE)}'
-            f'<div class="record">{_reliability_chip(idx)}<span>right = inside “almost certainly”, steady = the 20-day '
-            f'share holds 80% or more</span></div></div>')
+            f'<div class="record">{_reliability_chip(idx)}<span>steady = the 20-day share inside “almost certainly” '
+            f'holds 80% or more; watch = it does not</span></div></div>')
 
 
 def morning(data):
@@ -153,7 +161,7 @@ def evening_card(idx, issue_day):
             f'<div class="verdict"><span class="chip {st}">{GLYPH[st]} {WORD[st]}</span><div class="facts">'
             f'forecast <b>{fmt_low(today["lo50"])} – {fmt_high(today["hi50"])}</b> · closed <b>{fmt(today["close"])}</b>'
             f'<br>{MEANS[st]}</div></div>'
-            f'{_why("Why it was " + ("wrong" if st == "red" else "right"), _why_evening(idx, today, st))}'
+            f'{_why(WHY_TITLE[st], _why_evening(idx, today, st))}'
             f'<div class="lab">Last 30 days · forecast vs actual <span class="when">gridlines every {GRID[name]}, '
             f'a number every {GRID[name] * fan.label_every}</span></div>'
             f'<div class="scroll">{fan.svg(f"{name}: the last 30 days, forecast corridors and the close")}</div>{_key()}'

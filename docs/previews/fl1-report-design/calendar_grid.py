@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from linechart import status
 
 GLYPH = {"green": "✓", "amber": "⚠", "red": "✗"}
-WORD = {"green": "Right", "amber": "Close", "red": "Wrong"}
+WORD = {"green": "Correct", "amber": "Close call", "red": "Missed"}
 
 
 def month_grid(days, issue_day):
@@ -34,6 +34,7 @@ def month_grid(days, issue_day):
             break
     total = sum(counts.values())
     head = "".join(f"<span>{w}</span>" for w in ("Mon", "Tue", "Wed", "Thu", "Fri"))
-    big = (f'<div class="counts"><b class="green">Right {counts["green"]}</b> · <b class="amber">Close {counts["amber"]}</b>'
-           f' · <b class="red">Wrong {counts["red"]}</b> <span>of {total} in {issue_day.strftime("%B")}</span></div>')
+    big = (f'<div class="counts"><b class="green">✓ Correct {counts["green"]}</b> · <b class="amber">⚠ Close call '
+           f'{counts["amber"]}</b> · <b class="red">✗ Missed {counts["red"]}</b> <span>of {total} trading days in '
+           f'{issue_day.strftime("%B")}</span></div>')
     return f'{big}<div class="calhead">{head}</div><div class="calgrid">{"".join(cells)}</div>'

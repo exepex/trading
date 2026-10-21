@@ -46,7 +46,8 @@ header .tag { font: 600 11px/16px var(--font); color: var(--warn-ink); backgroun
 .key { font-size: 11.5px; color: var(--muted); margin: 2px 0 0; display: flex; gap: 4px 14px; flex-wrap: wrap; }
 .key i { display: inline-block; width: 12px; height: 9px; border-radius: 2px; margin: 0 4px -1px 0; background: var(--accent); }
 .key i.r90 { opacity: .16; } .key i.r50 { opacity: .5; }
-.key i.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+.key i.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); margin-left: 2px; }
+.key .nowrap { white-space: nowrap; }
 .key i.dot.green { background: var(--up); } .key i.dot.amber { background: var(--warn); } .key i.dot.red { background: var(--down); }
 .foot { font-size: 11.5px; line-height: 17px; color: var(--muted); padding: 2px 2px 0; }
 .foot b { color: var(--up-ink); font-weight: 600; } .foot b.bad { color: var(--down-ink); }

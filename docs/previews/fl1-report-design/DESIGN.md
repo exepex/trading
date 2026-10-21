@@ -34,6 +34,13 @@ value and every miss written), the **reliability trend** line and the **month ca
 3. "Why this forecast": 3 key points, context-labelled.
 4. The reliability chip: "Right 25 of 30 · watch" (the 30-day light's count and the trend's state).
 
+One definition of "right" everywhere: inside "almost certainly"; the three result words are ✓ correct, ⚠ close call,
+✗ missed on both pages, in the key, the calendar counts and the reliability chip ("Inside 'almost certainly' 25 of 30
+(✓ correct 12 · ⚠ close call 13) · watch", coloured by the trend's state). The reasons heading follows the result
+("Why it was correct", "Why a close call", "Why it missed"). The middle guess rounds to 10 in text and on the chart.
+A written value never sits on another or on the line: miss labels go to the side away from the neighbouring closes,
+stack away from the line when two meet, and stay inside the plot; dates are counted back from the last day.
+
 Rendered at 1100 and 390 px (2x): 0 px overflow, no console errors, no requests. Found and fixed in review: 24
 axis numbers 9 px apart on the 30-day chart (now every second gridline), the last value clipped at the right edge
 (the CSS anchor overrode the attribute), the trend labels over the line (moved left), the warning label washed out
