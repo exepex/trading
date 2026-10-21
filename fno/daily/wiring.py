@@ -42,6 +42,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_limit import GitLocks
     from ..desk.git_sync import Git, GitCommitter
+    from ..desk.own_commits import OWN_UNPUSHED_FILE, OwnUnpushed
     from ..desk.owner_timing.wiring import build_owner_timing_desks, build_owner_timing_step
     from ..desk.wiring import build_entry_desk, build_execution_snapshots
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
@@ -64,7 +65,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         live_dates(cfg),
     )
     locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
-    parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
+    committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
+    parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist)
     waiter = ServicingWaiter(parts, now_ist, sleep)
 
     def waiting(seconds: float) -> None:
@@ -127,5 +129,6 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
-                                alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing)  # fmt: skip
+                                alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
+                                git_committer=committer)  # fmt: skip
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))
