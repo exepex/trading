@@ -7,19 +7,24 @@ rounding to 10. Reasoning only unless marked.
 
 ## The two editions
 
-**A. Morning, before 09:15: "Today's forecast"** (`fl1-morning.html`). Per index: the forecast for today's close in
+**A. Morning, 08:50 IST: "Today's forecast"** (`fl1-morning.html`). First a compact **global cues** strip (US closes,
+US 10-year, USD/INR, Brent with its print date; GIFT Nifty, Asia and Europe marked "coming" until A17e and A22), drawn
+with example values labelled as such until the builder wires A17. Then per index: the forecast for today's close in
 large type ("most likely"), the "almost certainly" range and the middle under it, then **graph 1**: the range on a
 horizontal scale with a hairline every 50 points for NIFTY (100 for BANKNIFTY), a number on every edge (most likely
 in bold above the bar, almost certainly in grey below, the middle in the accent) and the last close as a marker with
 its value. A thinner second row on the same scale is the 3-day outlook. Then the 30-day light. No OI tables: the
 levels, flows and contracts live in the attached details file.
 
-**B. Evening, after the official close: "Was today's forecast right?"** (`fl1-evening.html`). Per index: a big chip
+**B. Evening, about 19:00 IST: "Was today's forecast right?"** (`fl1-evening.html`), checked against today's
+official close read after 15:30, when today's OI, PCR and FII/DII flows also exist. Per index: a big chip
 (✓ Correct inside "most likely", ⚠ Close call inside "almost certainly" only, ✗ Missed outside both), the forecast
 range and the actual close in one line, the reason on a red day; **graph 2**: today's range on the scale with the
 close marked in the result colour and written; **graph 3**: the last 10 sessions, one column per day (pale = almost
 certainly, dark = most likely) with a dot where it closed, coloured by the result and written beside it, and three
-rows under the dates with every day's forecast high, close and low. Then the light with the wrong days' dates.
+rows under the dates with every day's forecast high, close and low. Then the light with the wrong days' dates, and
+a compact **levels and flows** table (biggest call and put OI, PCR from → to, max pain, FII and DII cash, FII index
+futures net), small, below the graphs, with example values labelled as such until wired.
 
 ## Why these forms
 
@@ -35,6 +40,9 @@ rows under the dates with every day's forecast high, close and low. Then the lig
   "dot inside the dark block" is one glance.
 - **Type and space from the references**: 13.5 px body, 11 px chart labels, 24 px only for the headline range, one
   accent for the ranges, green/amber/red only for the result and always with a glyph and a word.
+- **Example values, never a guess as a fact**: the cues strip and the levels table are not in the PageView yet, so
+  the preview shows example numbers under a label that says so (the dashboard's own rule for states the data does
+  not yet have). The builder replaces them with A17's cues and the chain and flow read models.
 - **Mock dates**: the dump is a 15:45 issue for 19 Oct, so the morning edition shows the forecast for Wed 21 Oct
   with the 3 pm price as "last close", and the evening edition shows the last scored session, Fri 16 Oct. Live, the
   morning takes the sealed forecast for the day and the previous official close; the evening takes the day's

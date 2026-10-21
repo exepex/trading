@@ -19,6 +19,16 @@ GLYPH = {"green": "✓", "amber": "⚠", "red": "✗"}
 MEANS = {"green": "closed inside “most likely”", "amber": "closed inside “almost certainly” only",
          "red": "closed outside both ranges"}
 RESEARCH = "Research only. Not a trade tip."
+# Example values, labelled as such on the page, until the builder wires A17 (cues) and the chain and flow read
+# models (levels and flows) into the PageView. Never real numbers posing as today's.
+CUES_EXAMPLE = [("S&P 500", "6,412", "−0.6%"), ("Nasdaq 100", "22,180", "−0.9%"), ("US 10-year", "4.21%", "−3 bp"),
+                ("USD/INR", "84.62", "+0.1%"), ("Brent (last print)", "$109.8", "+1.2%"),
+                ("GIFT Nifty · Asia · Europe", "coming (A17e, A22)", "")]
+LEVELS_EXAMPLE = {"NIFTY": [("Biggest call OI (resistance)", "23,000"), ("Biggest put OI (support)", "22,500"),
+                            ("PCR", "0.93 from 1.21"), ("Max pain", "22,900"), ("FII cash, ₹ crore", "−1,250"),
+                            ("DII cash, ₹ crore", "+1,800"), ("FII index futures, net contracts", "−2.80 lakh")],
+                  "BANKNIFTY": [("Biggest call OI (resistance)", "56,000"), ("Biggest put OI (support)", "55,000"),
+                                ("PCR", "0.88 from 1.02"), ("Max pain", "55,500")]}
 
 
 def _head(title):
@@ -77,11 +87,18 @@ def morning_card(idx):
             '</div>')
 
 
+def _cues():
+    cells = "".join(f'<div class="cell"><small>{name}</small><b>{value}</b><span>{change}</span></div>'
+                    for name, value, change in CUES_EXAMPLE)
+    return (f'<div class="card strip"><div class="lab first">Global cues · overnight <span class="when">example values '
+            f'until wired (A17)</span></div><div class="cells">{cells}</div></div>')
+
+
 def morning(data):
     n1 = data["indices"][0]["next"]
     cards = "".join(morning_card(idx) for idx in data["indices"])
-    return (_head(f'Morning forecast, {n1["date"]}') + _header("Today’s forecast", n1["date"], "09:00", data)
-            + cards + _foot(data) + "</div></body></html>")
+    return (_head(f'Morning forecast, {n1["date"]}') + _header("Today’s forecast", n1["date"], "08:50", data)
+            + _cues() + cards + _foot(data) + "</div></body></html>")
 
 
 def _reason(idx, day):
@@ -109,14 +126,20 @@ def evening_card(idx):
             f'<div class="lab">Graph 3 · last 10 sessions <span class="when">each day’s range and its close · gridlines every {dgrid}</span></div>'
             f'<div class="scroll">{g3}</div>{_key(dot=True)}'
             f'<div class="record" style="margin-top:10px">{_pill(idx)}'
-            f'<span>wrong days: {", ".join(idx["wrong_days"]) or "none"}</span></div></div>')
+            f'<span>wrong days: {", ".join(idx["wrong_days"]) or "none"}</span></div>{_levels(name)}</div>')
+
+
+def _levels(name):
+    rows = "".join(f"<tr><td>{item}</td><td>{value}</td></tr>" for item, value in LEVELS_EXAMPLE[name])
+    return (f'<div class="lab">Levels and flows · today’s chain and NSE flows <span class="when">example values until '
+            f'wired</span></div><table class="levels"><tbody>{rows}</tbody></table>')
 
 
 def evening(data):
     today = data["indices"][0]["days"][-1]
     cards = "".join(evening_card(idx) for idx in data["indices"])
     return (_head(f'Evening check, {today["date_long"]}')
-            + _header("Was today’s forecast right?", today["date_long"], "18:30", data)
+            + _header("Was today’s forecast right?", today["date_long"], "19:00", data)
             + cards + _foot(data) + "</div></body></html>")
 
 

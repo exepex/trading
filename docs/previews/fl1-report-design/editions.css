@@ -76,3 +76,14 @@ svg .s { text-anchor: middle; font: 500 10.5px var(--font); fill: var(--accent-i
 svg .s.close { font: 700 10.5px var(--font); } svg .s.close.green { fill: var(--up-ink); }
 svg .s.close.amber { fill: var(--warn-ink); } svg .s.close.red { fill: var(--down-ink); }
 svg .sl { text-anchor: end; font: 600 9px var(--font); letter-spacing: .06em; text-transform: uppercase; fill: var(--muted); }
+/* the morning cues strip and the evening levels table */
+.strip { padding: 12px 18px 10px; }
+.cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 14px; margin-top: 4px; }
+.cell small { display: block; font: 500 10.5px/14px var(--font); color: var(--muted); }
+.cell b { font: 600 13.5px/18px var(--font); color: var(--ink); margin-right: 5px; }
+.cell span { font: 500 11.5px/16px var(--font); color: var(--muted); }
+@media (max-width: 440px) { .cells { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+table.levels { width: 100%; max-width: 420px; border-collapse: collapse; font: 500 12.5px/18px var(--font); font-variant-numeric: tabular-nums; margin-top: 2px; }
+table.levels td { padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule); }
+table.levels td:last-child { text-align: right; font-weight: 600; color: var(--ink); white-space: nowrap; }
+table.levels td:first-child { color: var(--muted); }
