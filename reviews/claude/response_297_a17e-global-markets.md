@@ -35,3 +35,21 @@ source, not the most permissive one. The three kept limits (Drive only, no getti
   08:50-09:05, and the first five sessions measure its delay.
 - **The six owner decisions of the first text are gone.** Two optional improvements remain: the KRX key, and noting
   that Yahoo is not official.
+
+## Revision 2 (21 Oct, 21:50 UTC): judge 431's findings, each checked before fixing
+- **B1, accepted.** The story had no gap list, so I added one. It maps each market the owner named and each rule
+  (A17's point-in-time rule, 50a79a43's three limits, O9, the A22 boundary, the alert rule, and quality rules 5, 6
+  and 8) to a scope item, a criterion, or Out with its reason.
+- **Minor 1, accepted.** Criterion 4 now tests `available_at` at, one minute before and one minute after each market's
+  close in IST. That covers Australia's and Europe's 2026 clock changes, and an empty case where a missing date gives
+  no label.
+- **Minor 2, accepted with data.** The Asian closes are out by 10:40-14:30 IST, so the 14:11 cron could hold them. But
+  GitHub started that cron 3 h 42 to 7 h 09 late on 17-21 Oct (measured), so it would miss the 15:45 report every day.
+  Whether the report uses same-day Asian closes is FL1's decision. It is Out here, and the scope explains why.
+- **Minor 3, partly accepted.** The goal is to drop the equality guess, and that is right. A calendar-based rule needs
+  a Chinese exchange calendar we do not have; building it from Yahoo's dates would be circular. The rule I adopted
+  instead: every CSIndex request starts ten days before the first wanted date, and every earlier row is dropped. The
+  fake row can only be the request's first row, so it never enters a table, and a real flat close is never touched.
+  Criterion 1 tests both a planted holiday start and a planted flat close.
+- **Also fixed (my own find).** Refusing a whole Yahoo answer for one duplicate date would have lost ASX's whole
+  back-fill. Now a duplicate date is left out and listed in the checks.
