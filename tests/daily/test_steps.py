@@ -66,12 +66,9 @@ def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
 def test_the_live_dates_come_from_config_and_none_is_set_today():
     assert "daily" in ALLOWED_APP_KEYS
     assert live_dates(load_app_config()) == {
-        "margin_check": None,
-        "weather": None,
-        "forecasts_v4": None,
-        "card": None,
+        "margin_check": None, "weather": None, "forecasts_v4": None, "card": None, "owner_timing_fills": None,
         "price_distribution": None,  # story G13
-    }
+    }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
 
@@ -98,7 +95,7 @@ def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
-    assert DAILY_RUN_STEPS[:2] == ("quotes", "margin_check") and wiring.MARGIN_CHECKS.endswith(
+    assert DAILY_RUN_STEPS[:3] == ("quotes", "owner_timing_fills", "margin_check") and wiring.MARGIN_CHECKS.endswith(
         "stress_broker_check.csv"
     )
 

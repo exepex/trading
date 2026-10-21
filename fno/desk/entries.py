@@ -21,6 +21,7 @@ limit scales with the lots (legs never fill in part). Exits are never limited.
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import date, datetime
@@ -104,7 +105,17 @@ def refusal(order: EntryOrder, snapshot: ExecutionSnapshot, blocked: list[str]) 
     return ""
 
 
-class EntryDesk:
+class EntryFiller(ABC):
+    """What the daily run's fills step hands each order to (story E8): E4's fill at the execution snapshot, or E8's
+    hand-over to the owner-timing fill at the next session's due mark."""
+
+    @abstractmethod
+    def enter(self, order: EntryOrder, snapshot: ExecutionSnapshot, journal: DeskJournal, checks: CheckReport
+              ) -> EntryResult:  # fmt: skip
+        """The order's outcome, recorded in the book's journal; a rerun returns the recorded outcome."""
+
+
+class EntryDesk(EntryFiller):
     def __init__(self, charges: Mapping[str, float], clock=now_ist):
         self.charges, self.clock = dict(charges), clock
 

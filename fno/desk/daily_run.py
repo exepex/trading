@@ -36,6 +36,7 @@ from pathlib import Path
 
 from ..constants import (
     DAILY_RUN_STEPS,
+    OWNER_TIMING_STEP,
     REVIEWS_STEP,
     RUN_LOG_DECISIONS_STEP,
     RUN_LOG_EXITS_STEP,
@@ -65,6 +66,7 @@ BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
 UNSCORED = "the scorecards and automatic pauses of {day} did not run ({reason})"
+UNFILLED = "today's owner-timing fills {status} ({reason})"
 # a stop at the exits or any later step leaves the day's exits reviewed (E2d's marking and O1's steps after them)
 AFTER_EXITS = tuple(f"step {name}" for name in DAILY_RUN_STEPS[DAILY_RUN_STEPS.index(RUN_LOG_EXITS_STEP) :])
 
@@ -111,7 +113,8 @@ class DailyRun:
             "snapshot": (times.execution_snapshot, lambda: steps.take_snapshot(day)),
             "fills": (times.execution_snapshot, lambda: steps.fill(day, log.result("snapshot")["valid"],
                                                                    log.result(RUN_LOG_DECISIONS_STEP),
-                                                                   self._unreviewed(day) | self._unscored(day))),
+                                                                   self._unreviewed(day) | self._unscored(day)
+                                                                   | self._unfilled(log))),
             "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
             RUN_LOG_TRADE_MARKS_STEP: (times.execution_snapshot, lambda: self.marking.run(day)),  # story E2d
         }  # fmt: skip
@@ -137,6 +140,14 @@ class DailyRun:
         unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
                       for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
         return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
+
+    def _unfilled(self, log: RunLog) -> dict[str, str]:
+        """Story E8 rule 11: when today's owner-timing fills failed or were refused, C2 would see yesterday's positions
+        without this morning's fills and understate open risk, so no book opens anything new today (exits still run)."""
+        result = log.result(OWNER_TIMING_STEP) if log.done(OWNER_TIMING_STEP) else {}
+        if result.get("status") not in (STEP_FAILED, STEP_REFUSED):
+            return {}
+        return dict.fromkeys(self.steps.books, UNFILLED.format(status=result["status"], reason=result["reason"]))
 
     def _unscored(self, day: date) -> dict[str, str]:
         """Story O1 (judge 214): when the last session reviewed its exits but its scorecards and automatic pauses (E6)
