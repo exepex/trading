@@ -182,3 +182,44 @@ re-submission:
    `tests/health/test_desk_and_data_checks.py`. Merge `main` and re-run the gates.
 2. **T1's text change (judge 424):** `test_lab_close.py:78` formats `UNKNOWN` without `channel`, which breaks once
    T1's fix is on `main`. Pass `channel=...` there.
+
+## Addendum 2: 4857e539 (response 295, addendum 2)
+
+**Verdict: PASS (lane 1). The builder may merge: pull, full suite on the merged tree, push.** The step stays off
+(`daily.live_from.lab_close` null). The story's criteria 7 and 8 now list the go-live conditions:
+- the membership check;
+- O11's replay with G13b's issue;
+- `price_range_scores` live no later than `lab_close`;
+- `live_from.price_ranges` set to G13b's real first day.
+
+**Gates:** on 4857e539 merged with today's `main` (no conflicts). The orchestrator asked about an intermittent
+failure, so I ran the full suite twice:
+- both runs 8,936 passed, 18 xfailed, **no failure in either run**: I saw no intermittent failure;
+- `ruff check` clean; 1,654 files formatted;
+- imports clean; record scan clean (7,297 files).
+
+Strong evidence.
+
+**Addendum 1's should-fix: closed.**
+- `match_lines` now returns `(lines, complete)`. A match is complete only when every ok row of every forecast sealed
+  in time has G13b's score row, keyed by forecaster, horizon and issue day.
+- Until then the report shows one "archived but G13b has not scored all its forecasts yet" line, with no partial
+  match lines. The day is not marked matched, so a later report inside the 5-session window takes it up.
+- I re-ran my addendum 1 probe on this head. The 26 Oct report says 23 Oct is waiting for its scores; the 27 Oct
+  report matches 23 Oct with the N1 score 12.50 in the match section itself. Strong evidence.
+
+**My mutations (6, each restored): all caught.**
+- the match always counted complete;
+- a partly scored forecast counted complete;
+- the issue day dropped from the score key;
+- non-ok rows required;
+- `issues_from` ignored;
+- a forecast not sealed in time shown as matched.
+
+**The merge with `main` (score steps, T1) checked.**
+- `lab_close` is last in `DAILY_RUN_STEPS`, after `price_range_scores` and `candles`.
+- `LIVE_STEPS` and `config.yaml` carry all four keys.
+- `test_lab_close.py` passes `channel=` to T1's new `UNKNOWN`, so judge 424's merge condition is met.
+
+**Left, not blocking:** O11's replay (criterion 8) is still a strict xfail and a go-live condition, owned by this
+builder.
