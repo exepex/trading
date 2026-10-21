@@ -12,6 +12,7 @@ from ..alerts.sender import AlertSender
 from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
 from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
+from ..desk.git_limit import GitLocks
 from ..models import IST
 from .processes import Process, Processes
 
@@ -23,7 +24,8 @@ POLL_SECONDS = 1.0
 COMMAND_LIMIT_SECONDS = (
     600.0  # a hung command (a Groww call that never answers) is stopped, never holds the day forever
 )
-STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed"
+STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed{removed}"
+LOCKS_REMOVED = "; the git lock files it left removed: {names}"
 
 
 def wait(process: Process, sleep: Callable[[float], None] = clock_time.sleep, limit: float | None = None) -> int | None:
@@ -62,21 +64,28 @@ class CommandStep(DayStep):
         pathspecs: Sequence[str],
         changed: Callable[[Sequence[str]], list],
         sleep: Callable[[float], None] = clock_time.sleep,
+        locks: GitLocks | None = None,
     ):
-        self.processes, self.arguments, self.pathspecs, self.changed, self.sleep = (
+        self.processes, self.arguments, self.pathspecs, self.changed, self.sleep, self.locks = (
             processes,
             arguments,
             pathspecs,
             changed,
             sleep,
+            locks,
         )
 
     def run(self, day: date) -> StepOutcome:
+        """A command stopped at its limit may have been inside a git commit (Book 1's `desk book1` commits its own
+        decision): the git locks it left are removed by story O2's rule, so the next commit works."""
         arguments = self.arguments(day)
+        before = self.locks.present() if self.locks else set()
         process = self.processes.start(arguments)
         code = wait(process, self.sleep, COMMAND_LIMIT_SECONDS)
         if code is None:
-            reason = STOPPED_AT_LIMIT.format(minutes=int(COMMAND_LIMIT_SECONDS // 60))
+            removed = self.locks.remove_new(before) if self.locks else []
+            names = LOCKS_REMOVED.format(names=", ".join(removed)) if removed else ""
+            reason = STOPPED_AT_LIMIT.format(minutes=int(COMMAND_LIMIT_SECONDS // 60), removed=names)
             return StepOutcome({"command": list(arguments)}, {"status": STEP_FAILED, "reason": reason})
         return outcome(arguments, code, process.lines(), self.changed(self.pathspecs) if self.pathspecs else ())
 
