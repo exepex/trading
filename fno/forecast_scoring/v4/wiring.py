@@ -65,7 +65,12 @@ def _outcomes() -> SeriesOutcomes:
 def _registry() -> SlotRegistry:
     """One registry for scoring and the look's reconciliation: the committed slot registrations (none before the
     freeze commit writes the first rows)."""
-    return SlotFile(SLOTS_FILE, _first_eligible)
+    return SlotFile(SLOTS_FILE, _first_eligible, _frozen_on)
+
+
+def _frozen_on() -> date | None:
+    records = build_look_records()
+    return records.frozen_on() if records.frozen() else None
 
 
 def _first_eligible(question: str) -> date | None:
