@@ -40,10 +40,10 @@ jobs:
           git config core.hooksPath .githooks
           git config user.name "omenix-circulars"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: NSE and SEBI circulars (the job alerts #fno-desk itself, naming every problem)
+      - name: NSE and SEBI circulars (the job alerts the desk channel itself, naming every problem)
         id: circulars
         run: python -m fno circulars
-      - name: Alert #fno-desk when the run failed without the job's own line (a crash, a sender that could not post)
+      - name: Alert the desk channel when the run failed without the job's own line (a crash, a sender that could not post)
         if: ${{ failure() }} # always runs on a failure, so O10's watcher sees an alert step; quiet if the job spoke
         env:
           POSTED: ${{ steps.circulars.outputs.posted }}

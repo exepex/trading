@@ -28,6 +28,7 @@ def test_rights_job_step_and_the_crash_only_alert_line():
     alert = steps[-1]
     assert alert["name"].startswith("Alert") and alert["if"].startswith("${{ failure() }}")  # O10's watcher sees it ran
     assert alert["env"] == {"POSTED": "${{ steps.circulars.outputs.posted }}"}
+    assert all("#" not in step.get("name", "") for step in steps)  # a " #" would cut the name (YAML comment)
     assert alert["run"].startswith('if [ "$POSTED" = "true" ]; then') and "exit 0; fi" in alert["run"].splitlines()[0]
 
 
