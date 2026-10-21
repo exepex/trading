@@ -13,10 +13,12 @@ squash or rebase), or B4's ledger guard refuses the trials.
 
 Check before reading results: `sha256sum -c` on the files above, at the run commit.
 
-## Revision 2, before review (judge 428), frozen at `a7a1b28a9730c14a47710e70090ddbc963a7fe48`
+## Revision 2, before review (judge 428 and judge B's note on section 12), frozen at `eb8d061a6847ef6dd69263880af03b9c5a87f4a6`
 
-Nothing had been fitted or scored. The ledger rows 56-70 now name this commit.
+Nothing had been fitted or scored. The ledger rows 56-70 now name this commit. (An intermediate revision-2 freeze at
+`a7a1b28a`, hash `ec02703d...53f0`, was superseded before review by this one, which adds section 12's (a)-(d) word for
+word at judge B's request.)
 
 | File | SHA-256 |
 |---|---|
-| `PROTOCOL.md` | `ec02703d245a7d97e3ab4f8020279e896ee2b00cf6ca020e5839cb59837553f0` |
+| `PROTOCOL.md` | `8ed575b36e322d73a350550e5e642a878e814677f2a92c4671cac96a40ef2eaa` |
