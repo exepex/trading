@@ -143,6 +143,21 @@ I was judged, never a judge. Open findings for others:
    and claim every numbered file with `tools/claim_number.py` (O12), never "next free" by hand. I collided twice
    (252, 270).
 
+6. **D5 and R1 clash on ledger trial IDs** (reported 21 Oct by FL1's builder, 01FWkBH4; I checked it on `main`, by
+   reading the code, not by running it):
+   - `fno/book3/registry.py:95` writes trial ID `book3:<strategy_id>` into `research/ledger.csv`;
+   - R1's `fno/factory/registration.py:42` takes `int()` of every trial ID to find the next one;
+   - so the first Book 3 registration would make every later R1 registration raise `ValueError`.
+
+   Harmless today, because D5 is off.
+
+   My recommendation (reasoning only): B4's `Ledger` should own ID allocation, with one function that gives the next
+   numeric ID, used by R1 and by D5. Book 3's row would then name its strategy in `description` and `protocol_path`,
+   and R1's `int()` scan would no longer be needed. The alternative, R1 skipping non-numeric IDs, is a patch that
+   leaves two ID schemes in one ledger. Agree it with R1's owner (01XFXpbk) before Book 3 is switched on.
+7. **The Innovation Lab design** (`docs/stories/IL-innovation-lab.md`, with judge E) depends on LR3's CUSUM for
+   automatic demotion. LR3's code was never started (see (d)).
+
 ## (h) The successor's first three actions
 
 1. Read `docs/WORK_REGISTER.md` and DESK_DECISIONS's 21 Oct rows on `main`: is F5, D4/D5 or LR3 in phase 1? If not,
