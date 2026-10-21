@@ -92,10 +92,11 @@ each part's commit in its one thread. The `git add` lines below are also the han
    itself when `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector.
    Note them in `conversations/<date>.md`.
 3b. Right after NIFTY's push, run `python -m fno quotes record-indices` (story A4c: BANKNIFTY, FINNIFTY and
-   MIDCPNIFTY; 15:01-15:13 IST, paced; raw quotes to Drive only), alongside NSE if it is still running. When it is
-   done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
-   ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'`, commit and
-   push. It alerts #fno-desk itself for any index not recorded.
+   MIDCPNIFTY, then NIFTY's two nearest weeklies, story A4f; 15:01-15:13 IST, paced; raw quotes to Drive only),
+   alongside NSE if it is still running. When it is done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
+   ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'
+   ':(glob)research/data/quotes/groww/**/niftyweekly_*'`, commit and push. It alerts #fno-desk itself for any index
+   not recorded.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday
@@ -168,7 +169,8 @@ commit with `--no-verify`.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/storage/quote_wiring.py` (the 3 pm quote store: Groww's
   raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/quotes/window_wiring.py`
-  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/risk/wiring.py` (the
+  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/quotes/index_wiring.py`
+  (the other indices' 3 pm recorders and NIFTY's weeklies, stories A4c and A4f), `fno/risk/wiring.py` (the
   risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
   and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),

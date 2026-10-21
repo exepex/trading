@@ -397,8 +397,9 @@ confirmation of section 11's items A-C (given, 15 Oct 2026), D and E; X of secti
   **These counts assume r = 3; the measured r is far larger (judge 128 addendum 5, on the 2017-26 back-fill): about
   62 for V6b and 87 for V6a**, because one day's Brier difference on a rare 0/1 outcome swings far more than 2% of a
   0.05-0.14 Brier. With the measured noise: **V6b needs about 14-22 years even if its full back-filled skill is real;
-  V6a and V1 are effectively unreachable; V2 needs 8-22 years. Said plainly: no v4 member is provable in useful
-  time; v4 is an honest daily yardstick, not a path to proof** (owner, 21 Oct 2026, response 299 item 9; this
+  V6a and V1 are effectively unreachable; V2's 8-22 years above are at the assumed r = 3-5, so with real noise it
+  needs longer (its r is not measured: V2 has no primary baseline yet). Said plainly: no v4 member is provable in
+  useful time; v4 is an honest daily yardstick, not a path to proof** (owner, 21 Oct 2026, response 299 item 9; this
   replaces the earlier "only V6b can be claimed, slowly"). V7 is descriptive-only (5.3; its own VIX null
   is measured in `PROTOCOL_v4_calibration.md` section 3). Other options: `v4_size_study.md`; futility as 5.5.
 - **E. Regime dependence (revisions 6-8, judge 98 addenda 6-7; calibration section 4), for the owner.** The regime

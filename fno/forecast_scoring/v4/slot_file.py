@@ -7,6 +7,7 @@ Refused, never read past (judge 184's note; ChatGPT review 119):
 - a question outside the registered family or a slot outside `rules`, `hybrid`, `ai_team`;
 - a second row for a slot (the first registered version is the member; a later variant is reported, never a member);
 - `registered_on` after `effective_start` (a slot cannot be declared after the day its misses start);
+- `effective_start` on or before the freeze's day (protocol section 4: a session after the freeze; judge 430 note 2);
 - `effective_start` after the slot's first eligible session (its primary baseline's first live value after the
   freeze): a later start would hide the misses of the days between."""
 
@@ -30,10 +31,15 @@ class RegistrationRefused(ValueError):
 
 
 class SlotFile(SlotRegistry):
-    def __init__(self, file: Path, first_eligible: Callable[[str], date | None]):
+    def __init__(
+        self,
+        file: Path,
+        first_eligible: Callable[[str], date | None],
+        frozen_on: Callable[[], date | None] = lambda: None,
+    ):
         """`first_eligible(question)`: the first live session after the freeze with a primary-baseline value, or
-        None while there is none yet."""
-        self.file, self.first_eligible = Path(file), first_eligible
+        None while there is none yet. `frozen_on()`: the freeze's day, None before the freeze."""
+        self.file, self.first_eligible, self.frozen_on = Path(file), first_eligible, frozen_on
 
     def registered(self) -> dict[tuple[str, str], Registration]:
         if not self.file.exists():
@@ -53,6 +59,9 @@ class SlotFile(SlotRegistry):
         start, written = date.fromisoformat(row["effective_start"]), date.fromisoformat(row["registered_on"])
         if written > start:
             raise RegistrationRefused(f"{question}/{slot}: registered on {written}, after its effective start {start}")
+        frozen = self.frozen_on()
+        if frozen is not None and start <= frozen:
+            raise RegistrationRefused(f"{question}/{slot}: effective start {start} is not after the freeze ({frozen})")
         eligible = self.first_eligible(question)
         if eligible is not None and start > eligible:
             raise RegistrationRefused(
