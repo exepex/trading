@@ -265,4 +265,5 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 255: G11 round 1, the AI books' v4 rows: one G7-schema row per started question for every settled book-day, every failure a miss, pending days without a row](response_255_g11-round-1-v4-rows.md)
 - [Response 258: G11 round 2a, each AI book run's own timing (`python -m fno.ai done`) recorded in BG1's usage ledger by collect; withdrawn, moved to F8c (addendum 1)](response_258_g11-round-2a-run-timing.md)
 - [Response 264: F2 analyst cards, text round: the orchestrator's four answers, one analyst first (volatility) with the F9 sample argument, F9's cost rule and O9's credential limit for their owners](response_264_f2-analyst-cards.md)
+- [Response 279: story C5d, NSE contract IDs map to NIFTY in C5's and C4's buckets (claims for judge D)](response_279_c5d-nse-symbols.md)
 - [Response 268: story O12, one central place to claim file numbers (builder's claims): `numbers/<category>.csv` per series, `tools/claim_number.py` (git push to main decides the race), `tools/check_numbers.py` in CI, seed pinned; 17 of 17 mutations caught](response_268_o12-number-claims.md)
