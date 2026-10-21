@@ -61,6 +61,17 @@ forecasts; nothing breaks meanwhile.
 8. **N+1 focus (owner, 21 Oct):** V1 and V6a (next-session questions) stay members; nothing in the plan drops them.
    G13b's price ranges are scored only by G13b and v4's questions only by G8 (one scorer per question, agreed 21 Oct).
 
+## Open items from the judges (to apply when the freeze work resumes)
+
+- **Judge 409 should-fix 1:** section 4's miss start must read "a session **after** the freeze", not "on or after":
+  G8 clamps to the day after the freeze (`scoring._miss_start`, `reconcile.py:49`), and section 10 counts only days
+  after `Frozen on:`.
+- **Judge 409 blocking 1 (resolved):** piece 1's A2 code removal duplicated G10 part 2b (story/g10-part2b-release); piece
+  1 was withdrawn. G10's seven edits are the G10 builder's (story/g10-protocol-edits); this plan's remaining protocol
+  items go on top of them.
+- **Judge 409 note:** keep every edited line within 120 characters (section 1.4's ATM line was 125).
+- **Paused:** the owner's phase-1 scope freeze (21 Oct): piece 4 and the owner's dates wait for the owner's review.
+
 ## The owner's sign-off list (at the freeze commit)
 
 - Section 11 items A-C (given 15 Oct), D ("3 B") and E (option 2), each quoted with its DESK_DECISIONS row.
