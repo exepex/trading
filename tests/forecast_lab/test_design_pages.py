@@ -104,9 +104,10 @@ def test_the_honesty_labels_are_printed_and_never_dropped():
 
     index = nifty()
     # 1. a reason from the data is escaped, never injected as markup
-    hostile = replace(index, misses=(Miss(index.misses[0].day, "above", 60.0, ("<b>bold</b> & co",)),))
+    # the hostile reason sits on the newest miss, a red row of the shown day table AND of the misses table (446.1)
+    hostile = replace(index, misses=(Miss(index.misses[-1].day, "above", 60.0, ("<b>bold</b> & co",)),))
     html = render_evening(page("evening", indices=(hostile,)))
-    assert "&lt;b&gt;bold&lt;/b&gt; &amp; co" in html and "<b>bold</b>" not in html
+    assert html.count("&lt;b&gt;bold&lt;/b&gt; &amp; co") == 2 and "<b>bold</b>" not in html
     # 2. a provisional close says so instead of the date
     point = index.horizons[0].timeline.points[-1]
     provisional = SimpleNamespace(day=point.day, close=point.close, band=point.band, inside_50=point.inside_50,
