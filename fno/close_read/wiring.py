@@ -10,8 +10,9 @@ from ..composition import build_alert_sender
 from ..daily.alerts import ReportedAlerts
 from ..models import now_ist
 from ..providers.public import PublicData
-from ..storage.data_wiring import build_data_store, receipt_folder
-from ..storage.wiring import build_index_close_files, build_owner_drive, build_session_calendar
+from ..storage.data_wiring import RECEIPTS_FOLDER, RECEIPTS_MESSAGE, build_data_store, receipt_folder
+from ..storage.manifest_commit import GitManifestRecorder
+from ..storage.wiring import REPOSITORY, build_index_close_files, build_owner_drive, build_session_calendar
 from .confirm import Confirmer
 from .constants import DATA_AREA, ROOT, WRITER
 from .official import ArchivedIndexCloses
@@ -20,11 +21,19 @@ from .source import NseIndexList
 from .store import DriveClosesStore
 
 NO_DRIVE = "set the four FNO_GDRIVE_* owner settings to use A4h's Drive data store"
+RECEIPTS_LABEL = "close-read receipts"
 
 
 def receipt_pathspecs() -> tuple[str, ...]:
     """The receipts of A4h's Drive files only, never the shared `receipts/` root (O1's step commits these)."""
     return (f"receipts/{DATA_AREA}/{ROOT}/",)
+
+
+def build_receipts_committer() -> GitManifestRecorder:
+    """A hand or evening run's own commit of A4h's receipts only (O1's steps commit them through their pathspec):
+    uncommitted, a fresh checkout would not see them, read again and meet Drive's write-once file (judge 447)."""
+    folder = REPOSITORY / RECEIPTS_FOLDER / DATA_AREA / ROOT
+    return GitManifestRecorder(REPOSITORY, folder, message=RECEIPTS_MESSAGE, label=RECEIPTS_LABEL)
 
 
 def build_close_reader(env=os.environ) -> CloseReader:

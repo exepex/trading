@@ -1,6 +1,8 @@
 """Confirms each earlier provisional close against NSE's official file, once (a write-once `.confirm.json`): within
 0.01 point "confirmed", else "differs by X" and one #fno-desk alert for NIFTY 50 or NIFTY BANK (INDIA VIX is the list's
-value: its difference is recorded only). A day still unconfirmed at the second session after it alerts once."""
+value: its difference is recorded only). A day still unconfirmed at the second session after it alerts once. A day
+that fails (the archive or Drive unreachable, a damaged file) prints one line with the error's class only and stays
+unconfirmed; it never alerts on its own, and the overdue rule still applies to it (judge 447 SF1)."""
 
 from __future__ import annotations
 
@@ -10,7 +12,6 @@ from datetime import date, timedelta
 
 from ..alerts.output import announce
 from ..alerts.sender import AlertSender
-from ..fo_bhavcopy import BadFile
 from ..research_data.calendar import SessionCalendar
 from .constants import (
     CONFIRM_LINE,
@@ -26,7 +27,7 @@ from .official import OfficialCloses
 from .records import confirm_path, day_of, encode, overdue_path, record_path
 from .store import ClosesStore
 
-UNREADABLE = "close confirm {day}: the official file {problem}; not confirmed"
+FAILED = "close confirm {day}: not confirmed ({kind}, message withheld); tried again next run"
 
 
 class Confirmer:
@@ -38,16 +39,17 @@ class Confirmer:
         written = self.store.written()
         days = sorted(d for d in map(day_of, written) if d is not None and d < today)
         for day in (d for d in days if confirm_path(d) not in written):
-            self._confirm(day, today, written)
+            try:
+                self._confirm(day, today, written)
+            except Exception as error:  # noqa: BLE001 - one day's failure never stops the others or the read
+                self.log(FAILED.format(day=day, kind=type(error).__name__))
+                self._overdue_quietly(day, today, written)
 
     def _confirm(self, day: date, today: date, written: set[str]) -> None:
-        try:
-            found = self.official.closes(day)
-        except BadFile:
-            self.log(UNREADABLE.format(day=day, problem="cannot be read"))
-            return
+        found = self.official.closes(day)
         if found is None:
-            self._not_yet(day, today, written)
+            if not self._overdue(day, today, written):
+                self.log(NOT_YET.format(day=day))
             return
         filename, official = found
         provisional = json.loads(self.store.get(record_path(day)))
@@ -60,15 +62,21 @@ class Confirmer:
         if any(results[n.listed] != "confirmed" for n in INDICES if n.checked):
             announce(self.alerts, DIFFERS_ALERT.format(day=day, results=text))
 
-    def _not_yet(self, day: date, today: date, written: set[str]) -> None:
+    def _overdue(self, day: date, today: date, written: set[str]) -> bool:
+        """True from the second session after the day on; the first such run writes the mark and alerts once."""
         if len(self.calendar.sessions(day + timedelta(days=1), today)) < OVERDUE_SESSIONS:
-            self.log(NOT_YET.format(day=day))
-            return
-        if overdue_path(day) in written:
-            return  # alerted once already
-        self.store.put(overdue_path(day), encode({"day": day.isoformat(), "unconfirmed_on": today.isoformat()}))
-        self.log(OVERDUE.format(day=day, today=today))
-        announce(self.alerts, OVERDUE_ALERT.format(day=day, today=today))
+            return False
+        if overdue_path(day) not in written:
+            self.store.put(overdue_path(day), encode({"day": day.isoformat(), "unconfirmed_on": today.isoformat()}))
+            self.log(OVERDUE.format(day=day, today=today))
+            announce(self.alerts, OVERDUE_ALERT.format(day=day, today=today))
+        return True
+
+    def _overdue_quietly(self, day: date, today: date, written: set[str]) -> None:
+        try:
+            self._overdue(day, today, written)
+        except Exception as error:  # noqa: BLE001 - Drive down too: the next run tries the mark again
+            self.log(FAILED.format(day=day, kind=type(error).__name__))
 
 
 def _status(provisional: float, official: float | None, checked: bool) -> str:

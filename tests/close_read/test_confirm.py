@@ -66,4 +66,16 @@ def test_no_official_file_waits_then_alerts_once_at_the_second_session_after():
 def test_today_is_never_confirmed_and_a_damaged_file_says_so():
     assert _confirm(_recorded(), DAY) == ([], [])
     lines, sent = _confirm(_recorded(), NEXT, Official(raises=BadFile("x")))
-    assert lines == ["close confirm 2026-10-21: the official file cannot be read; not confirmed"] and sent == []
+    assert lines == ["close confirm 2026-10-21: not confirmed (BadFile, message withheld); tried again next run"]
+    assert sent == []
+
+
+def test_an_unreachable_archive_stays_unconfirmed_without_its_own_alert_and_the_overdue_rule_still_applies():
+    """Judge 447 SF1: one line with the error's class only (its message can carry a URL)."""
+    store, down = _recorded(), Official(raises=ConnectionError("https://nsearchives.nseindia.com/... refused"))
+    lines, sent = _confirm(store, NEXT, down)
+    assert lines == ["close confirm 2026-10-21: not confirmed (ConnectionError, message withheld); tried again next "
+                     "run"] and sent == [] and confirm_path(DAY) not in store.files  # fmt: skip
+    lines, sent = _confirm(store, SECOND, down)
+    assert lines[1].startswith("close confirm 2026-10-21: still not confirmed on 2026-10-23") and len(sent) == 1
+    assert _confirm(store, date(2026, 10, 26), down)[1] == []  # the overdue alert stays once

@@ -1,11 +1,12 @@
 """A4h criteria 1-3 and 9: the read, its tries, the calendar and the gate, write-once records, and the 16:00 recheck."""
 
 import json
+from datetime import date
 
 import pytest
 
 from fno.close_read.constants import READ, RECHECK
-from fno.close_read.records import raw_path, recheck_path, record_path
+from fno.close_read.records import encode, raw_path, recheck_path, record_path
 from fno.constants_operations import STEP_REFUSED
 from fno.daily.steps import outcome
 from tests.close_read.fakes import (
@@ -17,6 +18,7 @@ from tests.close_read.fakes import (
     Answers,
     Clock,
     MemoryStore,
+    Official,
     answer,
     at,
     reader,
@@ -110,3 +112,33 @@ def test_with_no_first_read_the_recheck_becomes_the_day_s_record():
     assert recheck_path(DAY) not in store.files
     assert _run(store, Answers(answer()), at(16, 5), RECHECK)[1][-1] == "close already rechecked 2026-10-21"
     assert _run(store, Answers(answer()), at(16, 5), READ)[1][-1] == "close already read 2026-10-21"
+
+
+class Down(Official):
+    def closes(self, day):
+        raise ConnectionError("https://nsearchives.nseindia.com/content/indices/ refused")
+
+
+class DriveGetDown(MemoryStore):
+    def get(self, path):
+        raise ConnectionError("drive unreachable")
+
+
+@pytest.mark.parametrize("store_kind", [MemoryStore, DriveGetDown])
+def test_a_failing_confirm_of_an_earlier_day_never_stops_today_s_read(store_kind):
+    """Judge 447 SF1: 19 Oct recorded but unconfirmed; the official archive (or Drive's get) fails; today is still
+    read and recorded with exit 0, and its line comes before any confirm line."""
+    store = store_kind()
+    store.put(record_path(date(2026, 10, 19)), encode({"indices": {}}))
+    official = Down() if store_kind is MemoryStore else Official({date(2026, 10, 19): {}})
+    lines, clock = [], Clock(at(15, 46))
+    code = reader(store, Answers(answer()), clock, official, lines=lines).run(READ)
+    assert code == 0 and record_path(DAY) in store.files
+    assert lines[0].startswith("close read 2026-10-21: ") and lines[1] == (
+        "close confirm 2026-10-19: not confirmed (ConnectionError, message withheld); tried again next run"
+    )
+    if store_kind is DriveGetDown:
+        return  # the recheck needs the first read from Drive: down, it fails loudly and O1 alerts
+    recheck_lines = []
+    assert reader(store, Answers(answer()), Clock(at(16, 0)), official, lines=recheck_lines).run(RECHECK) == 0
+    assert recheck_lines[0].startswith("close recheck 2026-10-21: ") and recheck_path(DAY) in store.files

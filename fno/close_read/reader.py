@@ -1,6 +1,7 @@
 """`closes read` and `closes read --recheck` (story A4h): on a regular session after the gate, read NSE's index list
 (up to 3 tries, 60 s apart), and write the raw answer and the day's record (or, at the recheck, the comparison with the
-first read) write-once in Drive. Every run first confirms earlier days. Exit 0 when recorded, already recorded, on a
+first read) write-once in Drive. Every run then confirms earlier days, after the read, so a confirm failure never
+stops it (judge 447 SF1). Exit 0 when recorded, already recorded, on a
 closed day or a non-regular session (printed "nothing written:", so O1 records it refused); exit 1 when too early or
 not read, which O1's `Alerted` alerts once (the reader never alerts its own failure)."""
 
@@ -48,8 +49,12 @@ class CloseReader:
 
     def run(self, which: str = READ) -> int:
         started = self.now()
+        code = self._read_day(started, which)
+        self.confirmer.run(started.date())
+        return code
+
+    def _read_day(self, started: datetime, which: str) -> int:
         day = started.date()
-        self.confirmer.run(day)
         if not self.calendar.is_session(day):
             return self._done(NOT_A_SESSION, 0)
         kind = self.calendar.session_kind(day)

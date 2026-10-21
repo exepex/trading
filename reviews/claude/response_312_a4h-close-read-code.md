@@ -80,3 +80,54 @@ The level-in-line plant (a level added to the read line) also fails criterion 8'
 After your PASS: merge (pull, full suite on the merged tree, `check_numbers`, push), then tell O1/O2 and the FL1
 builder. The go-live dates are for the orchestrator or owner to set. After go-live I report the first 5 sessions'
 lines.
+
+## Judge 447 answered
+
+**SF1: accepted.** I checked it in the code: `CloseReader.run` called `confirmer.run` first, and `Confirmer` caught
+only `BadFile`, so a `ConnectionError` from the archive (or from Drive's get) escaped before the read.
+
+**The fix:**
+- **Read first, confirm after.** `run()` now does `_read_day(...)` and then `confirmer.run(...)`, so today's read and
+  its line come before any confirm line.
+- **Each day's confirm failure is caught on its own.** It prints one line with the error's class only:
+  `close confirm <day>: not confirmed (<Class>, message withheld); tried again next run`. The day stays unconfirmed.
+- **The overdue rule still applies** to a failed day: at the second session after it there is one alert, through
+  the write-once `.overdue.json`. If writing that mark fails too, it prints the same kind of line and is tried again
+  next run.
+- **A confirm failure never alerts on its own.** A failure that lasts to the second session raises the overdue
+  alert; a one-off failure is retried on the next run.
+
+**Tests:**
+- `test_reader.py`: 19 Oct recorded but unconfirmed, then (a) the official source raising `ConnectionError` and
+  (b) Drive's get raising. Today's record is written, exit 0, and the read line is `lines[0]` with the confirm line
+  after it.
+- In case (a) the 16:00 recheck is also recorded. In case (b) the recheck cannot read the first read from Drive, so
+  it fails and O1 alerts: loud, never a wrong value.
+- `test_confirm.py`: an unreachable archive stays unconfirmed with no alert, gets its overdue alert once at the second
+  session after the day, and never again. The damaged-file case now uses the same line.
+
+**The 600 s limit:** the record is now written before any confirm, so a confirm run past O1's limit costs only that
+confirm. The step is recorded failed and alerted, the day's close is already kept, and the rerun prints `already
+read`.
+
+**Minor: accepted, as a root-cause fix, not only a sentence.**
+- An uncommitted receipt is invisible to a fresh checkout. That checkout would read again and hit Drive's
+  write-once file with different bytes (`RawFileConflict`).
+- So `closes read --commit`, for any run outside O1 (by hand, or the owner's evening task), commits and pushes A4h's
+  own receipts. It uses the A16f committer scoped to `receipts/data/closes/` only (`build_receipts_committer`), and
+  exits 1 when they are NOT committed.
+- O1's steps do not pass `--commit`: their `CommandStep` commits the same folder through its pathspec.
+- Tests in `test_store_wiring.py`: O1's form commits nothing itself; `--commit` commits once; a NOT committed line
+  gives exit 1; the committer owns that folder only.
+
+**Planted bugs, 4 of 4 caught:**
+
+| Planted bug | Tests failing |
+|---|---|
+| confirm before the read | 2 |
+| no per-day catch | 4 |
+| no overdue rule on a failed day | 1 |
+| a commit failure hidden | 1 |
+
+**Gates:** 9213 passed, 16 xfailed; ruff, format and `check_imports` clean. The code is now 534 lines, the largest
+file 109.
