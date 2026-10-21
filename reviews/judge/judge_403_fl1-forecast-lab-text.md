@@ -57,3 +57,14 @@ not at q95, or use G13's anchored lognormal tail. Test it with a condor whose wi
    report should show expected against realised net by rank, so the bias is visible to the owner.
 3. **Horizon against exit time.** The forecasts are about the N+1 (or N+3) close, but positions exit at the 15:15 mark.
    Say so in the report, or exit at the mark nearest the forecast's target.
+
+## Addendum 1
+Number 403.1. Head: db10d88f (a6c6db0d plus G13b's reader port, a seal check on `sealed_at` (the receipt's commit
+time, never the self-reported `issued_at`), and the match report reading G13b's own scores).
+
+Those changes are good: the seal time now comes from `main`, not from the producer.
+
+**The three should-fix findings stand.**
+1. The 09:30 issue's cutoff is still "before 09:45", while positions are priced and filled at the 09:30 copy.
+2. The `RangeRanker` still does not name the forecaster it ranks on.
+3. "Flat tails at the 5% and 95% levels" is unchanged.
