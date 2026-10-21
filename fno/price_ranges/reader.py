@@ -1,0 +1,71 @@
+"""The reader port FL1 uses (part A8): sealed live ranges, back-fill records and the latest scores, all from the
+verified Drive cache's local copy; FL1 never builds a path. A live record carries its seal (`sealed_at` from
+GitHub's push time) and `late` when it is not sealed by its deadline."""
+
+from __future__ import annotations
+
+import gzip
+import json
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+
+from .backfill import SCHEMA as BACKFILL_SCHEMA
+from .folders import BACKFILL, LIVE, RECEIPTS_ROOT, SCORES, drive, live_path
+from .sealing import Seal, SealCheck
+
+
+@dataclass(frozen=True)
+class SealedRanges:
+    record: dict
+    seal: Seal
+
+    @property
+    def sealed_at(self):
+        return self.seal.sealed_at
+
+    @property
+    def late(self) -> bool:
+        return self.seal.late
+
+
+def receipt_file(path: str) -> str:
+    """The repository path of a G13b Drive file's receipt (O9: `receipts/<drive path>.sha256`)."""
+    return f"{RECEIPTS_ROOT}/{drive(path)}.sha256"
+
+
+class RangeForecasts:
+    def __init__(self, cache_root: Path, seal: SealCheck):
+        """`cache_root`: the Drive cache's local root (its files under `data/...`), synced by the caller."""
+        self.root, self.seal = Path(cache_root), seal
+
+    def _read(self, path: str) -> dict | None:
+        file = self.root / drive(path)
+        return json.loads(file.read_bytes()) if file.is_file() else None
+
+    def sealed(self, underlying: str, day: date, issue: str) -> SealedRanges | None:
+        path = live_path(underlying, day, issue)
+        record = self._read(path)
+        return None if record is None else SealedRanges(record, self.seal.seal(receipt_file(path), day))
+
+    def live(self) -> Iterator[SealedRanges]:
+        for file in sorted((self.root / drive(LIVE)).rglob("*.json")):
+            record = json.loads(file.read_bytes())
+            path = file.relative_to(self.root / "data").as_posix()
+            yield SealedRanges(record, self.seal.seal(receipt_file(path), date.fromisoformat(record["day"])))
+
+    def backfill(self) -> Iterator[dict]:
+        for file in sorted((self.root / drive(BACKFILL)).rglob("*.json.gz")):
+            document = json.loads(gzip.decompress(file.read_bytes()))
+            if document.get("schema") == BACKFILL_SCHEMA:
+                yield from document["records"]
+
+
+class RangeScores:
+    def __init__(self, cache_root: Path):
+        self.root = Path(cache_root)
+
+    def latest(self) -> dict | None:
+        files = sorted((self.root / drive(SCORES)).glob("*.json"))
+        return json.loads(files[-1].read_bytes()) if files else None
