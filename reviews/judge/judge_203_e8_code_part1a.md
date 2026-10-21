@@ -393,3 +393,35 @@ Still open before E8 goes live (from addenda 2-4, unchanged):
 - `live_from` is set by an owner row, on or before S1's freeze;
 - O1 fetches the full history before the day;
 - A16 runs live.
+
+## Addendum 6: E8 at 3c30e5d0 (SessionOffsetClock for FL1): PASS
+
+One commit since 36b31327. It touches `fno/desk/owner_timing/clock.py` and `exit_fills.py` and adds 5 tests in
+`test_clock.py`.
+
+- **`RetryingClock` is a new interface**: `FillClock` plus `marks_from`, which `OwnerTimingExits` already used.
+  `OwnerTimingClock` now implements it, and `exit_fills.py` only changes its type hint. The pattern now has two uses.
+- **`is_fill_session` and `next_fill_session`** were moved out of the class word for word. `OwnerTimingClock` calls
+  them, so its behaviour is unchanged: the earlier clock tests pass as they were.
+- **`SessionOffsetClock`** (FL1's time exit):
+  - the mark `at` on the Nth fill session after the order's day, skipping holidays and muhurat-only days through the
+    same `next_fill_session`;
+  - no reaction time, no availability and never a miss;
+  - a leg without a quote is retried at every later mark, through the same `OwnerTimingExits`;
+  - the constructor refuses N < 1, a time off a 15-minute mark, and a mark after the last fill mark.
+  - Tests: N+1 and N+3 across a holiday; retries at later marks; the three refusals.
+- **Not wired into E8.** No file in `fno/` uses `SessionOffsetClock` outside `clock.py` (checked with grep), so nothing
+  E8 fills changes.
+- **Gates** on a trial merge with origin/main (8461cb41):
+  - `tests/desk_owner_timing`: 117 passed;
+  - full suite with `-n auto`: 8,291 passed, 2 failed, 17 xfailed. The same 2 failures as addendum 5, both main's own;
+  - ruff check, ruff format, check_imports and check_numbers are clean.
+
+Notes (no change needed):
+- The class sits in E8's package, which joins S1's `frozen_files` at the freeze. If FL1 later needs a change to it,
+  that is a frozen-file change.
+- FL1's own text is still FAIL (judge 403 addendum 403.1). If FL1 does not land, this class has no caller and should
+  go.
+- Building it here, by E8's clock owner, keeps one builder per function.
+
+**PASS at 3c30e5d0.** Addendum 5's merge conditions and go-live items stand.
