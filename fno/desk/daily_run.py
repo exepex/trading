@@ -51,6 +51,7 @@ from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
 from .run_log import RunLog
+from .step_recorder import AsGiven, StepRecorder
 from .trade_marking import MarkingStep
 
 SKIPPED = "skipped"
@@ -78,11 +79,12 @@ class RunStopped(Exception):
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
                  clock: Callable[[], datetime], marking: MarkingStep, files: PrivateFiles | None = None,
-                 day_steps: Mapping[str, DayStep] | None = None):  # fmt: skip
+                 day_steps: Mapping[str, DayStep] | None = None, recorder: StepRecorder | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
         self.marking = marking  # story E2d
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
         self.day_steps = dict(day_steps or {})  # story O1's steps around the desk's
+        self.recorder = recorder or AsGiven()  # story O1-status-only: the committed log holds status only
 
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
@@ -147,7 +149,8 @@ class DailyRun:
         result = log.result(OWNER_TIMING_STEP) if log.done(OWNER_TIMING_STEP) else {}
         if result.get("status") not in (STEP_FAILED, STEP_REFUSED):
             return {}
-        return dict.fromkeys(self.steps.books, UNFILLED.format(status=result["status"], reason=result["reason"]))
+        reason = result.get("reason", "")  # a status-only log holds the reason's code (O1-status-only)
+        return dict.fromkeys(self.steps.books, UNFILLED.format(status=result["status"], reason=reason))
 
     def _unscored(self, day: date) -> dict[str, str]:
         """Story O1 (judge 214): when the last session reviewed its exits but its scorecards and automatic pauses (E6)
@@ -177,7 +180,7 @@ class DailyRun:
         def step() -> None:
             started = self.clock()
             outcome = action()
-            log.record(name, started, self.clock(), outcome.inputs, outcome.result)
+            self.recorder.record(log, name, started, self.clock(), outcome.inputs, outcome.result)
             paths: tuple[Path, ...] = (log.path, *outcome.paths)
             self.committer.commit(paths, f"Desk run {log.day} step {name}")
 

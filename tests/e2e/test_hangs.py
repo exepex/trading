@@ -70,7 +70,8 @@ def test_a_command_that_never_ends_is_stopped_at_its_limit_and_the_day_goes_on(t
     day.children.script[("desk", "book1")] = Foreground(24 * 60, lambda: (0, []))  # Book 1's decision never returns
     code, line = day.run()
     assert (code, line) == (1, "day done with problems: book1")
-    assert day.step("book1")["reason"].startswith("stopped after 10 minutes without ending")
+    assert day.full_step("book1")["reason"].startswith("stopped after 10 minutes without ending")
+    assert day.step("book1")["reason"] == "o1:STOPPED_AT_LIMIT"  # the committed log: the code only
     assert day.step("decisions")["book1_rules"]["decision"] == "no decision (late)"
     assert day.step("exits")["book1_rules"]["reviewed"] is True
     assert [text for text in day.slack.sent if "step book1 failed" in text] and no_lock_left(day)
