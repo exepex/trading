@@ -53,3 +53,14 @@ source, not the most permissive one. The three kept limits (Drive only, no getti
   Criterion 1 tests both a planted holiday start and a planted flat close.
 - **Also fixed (my own find).** Refusing a whole Yahoo answer for one duplicate date would have lost ASX's whole
   back-fill. Now a duplicate date is left out and listed in the checks.
+
+## Revision 3 (21 Oct, 22:00 UTC): judge 431 addendum 1 (judged at 3faedabb, before revision 2)
+- **B1 was already fixed in revision 2 (febca555):** a gap list table. It now also names criterion 8.
+- **SF1, accepted.** Kept rule 2 means a block must stop the cue and never be worked around. Scope 2 now says: on
+  HTTP 401, 403 or 429, a consent or crumb page, or a CAPTCHA, the Yahoo cue stops for that run, writes nothing, and is
+  named in the run's one alert line. It is never retried with a cookie, a crumb, another user agent or another
+  address; the next scheduled run tries once more, the same plain way. New criterion 8 plants 401, 403, 429, a consent
+  page and a CAPTCHA page, and checks exactly one request each, with the other cues still running.
+- **Minor 1, accepted.** Hang Seng, ASX 200, Straits Times and FTSE 100 are labelled `unverified (Yahoo only)` in every
+  reading and check line, because nothing official is there to compare against.
+- **Minor 2, accepted.** Criterion 7 tests the stale rule at 20:00 (not stale) and 20:01 (stale).

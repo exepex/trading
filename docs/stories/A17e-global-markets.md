@@ -62,6 +62,11 @@ index that is open at 08:50 IST (Nikkei, KOSPI, ASX 200 and TAIEX from 05:30-06:
 2. Yahoo cues, one per index, all eleven, back-filled from 2019 (`<index>_yahoo`): the history before each official
    file starts, and the only source for Hang Seng, ASX 200, Straits Times and FTSE 100. One class
    `YahooChartSource(cue, symbol)`; dates in the exchange's own time zone from the answer's `exchangeTimezoneName`.
+   **A block is a stop, never a puzzle (rule 2 of 50a79a43):** an answer of HTTP 401, 403 or 429, a consent or
+   "crumb" page, or a CAPTCHA page stops that Yahoo cue for the run, writes nothing, and is named in the run's one
+   alert line. The source never retries it with a cookie, a crumb, another user agent or another address; the next
+   scheduled run tries once again, the same plain way. Hang Seng, ASX 200, Straits Times and FTSE 100, which have no
+   official file to check against, are labelled `unverified (Yahoo only)` in every reading and check line.
 3. One reading per index (A17b's `CueReader`): the official value where it has the date, the Yahoo value otherwise,
    with its publisher named in the reading. An official/Yahoo pair is compared in the checks, like A17d's RBI and
    FBIL overlap: a difference over 0.1 percent, or a session in one and not the other, is listed (counts only in the
@@ -115,11 +120,16 @@ values in any forecast (FL1, M1 and GR1 decide that).
    writes).
 6. KOSPI without a key: one "not configured" line, no failure; with a key, the key never appears in output or files
    (planted-key test).
-7. Part B: a planted 5-minute answer gives the level and its time; a stale level is marked; the command exits 0 on a
+7. Part B: a planted 5-minute answer gives the level and its time; a level exactly 20:00 minutes old at `seen_at` is
+   not stale, one 20:01 old is `stale`; the command exits 0 on a
    closed market day (Asian holiday) with "market closed" for that index.
-8. The 2019 back-fills run once by hand into Drive; counts, first and last dates, and the overlap check's findings in
+8. Blocks (rule 2): a planted 401, a planted 403, a planted 429, a planted consent page (HTTP 200 with Yahoo's
+   consent form) and a planted CAPTCHA page each stop that cue with one named line, write nothing, and make exactly
+   one request (the fake session counts requests: no retry, no cookie or header change); the other cues of the run
+   still run. Readings of the four Yahoo-only indexes carry `unverified (Yahoo only)`.
+9. The 2019 back-fills run once by hand into Drive; counts, first and last dates, and the overlap check's findings in
    the claims file; `global-cues verify` passes. The first scheduled run and the first part B read are cited.
-9. Gates pass; no file or class over 350 lines; composition only in `fno/global_cues/wiring.py`.
+10. Gates pass; no file or class over 350 lines; composition only in `fno/global_cues/wiring.py`.
 
 ## Gap list (quality rule 2)
 
@@ -127,7 +137,7 @@ values in any forecast (FL1, M1 and GR1 decide that).
 |---|---|
 | Australia (ASX 200) | scope 2 (Yahoo; no official source without a login); criterion 4 (10:40 / 11:40 IST boundary) |
 | Singapore (Straits Times) | scope 2 (Yahoo); SGX's own chart data is Out (duplicated and holiday-filled, tested) |
-| Hong Kong (Hang Seng) | scope 2 (Yahoo; no official source without a login or bot wall) |
+| Hong Kong (Hang Seng) | scope 2 (Yahoo; no official source without a login or bot wall), labelled unverified; criterion 8 |
 | Japan (Nikkei 225) | scope 1 (Nikkei, from 2023) and 2 (Yahoo, from 2019); criterion 3 (overlap) |
 | South Korea (KOSPI) | scope 2 (Yahoo); scope 1 once the owner's KRX key exists; criterion 6 |
 | China (SSE Composite) | scope 1 (CSIndex) and 2; criteria 1 and 3 |
@@ -135,17 +145,17 @@ values in any forecast (FL1, M1 and GR1 decide that).
 | Europe (FTSE 100, DAX, Euro Stoxx 50) | scope 1 (STOXX: DAX, Euro Stoxx 50) and 2 (Yahoo: all three); criterion 4 |
 | VIX | scope 1 (Cboe) and 2; criterion 3 (the 2026-02-06 difference) |
 | A pre-09:15 level where possible | part B, scope 7-9; criterion 7 |
-| Back-fill to 2019 | scope 1-2; criterion 8 |
+| Back-fill to 2019 | scope 1-2; criterion 9 |
 | First-seen time (A17's point-in-time rule) | scope 4; criterion 4 |
 | Private Drive only, never in this repository or a public place (50a79a43) | scope 5; criterion 5 |
-| No getting around logins, paywalls, CAPTCHAs or blocks; no false identity | Step 0 (only sources answering without a login); STOXX's certificate note; Out: Nikkei's bot-walled live page |
+| No getting around logins, paywalls, CAPTCHAs or blocks; no false identity | scope 2 (a block is a stop, never retried); criterion 8; Step 0 (only sources answering without a login); STOXX's certificate note; Out: Nikkei's bot-walled live page |
 | Paced, polite | scope 5 (`PacedSession`, one request per index per run) |
 | O9: data in Drive, receipts in GitHub | scope 5 (snapshot log rows with SHA-256) |
 | A22 boundary | the Boundary paragraph; part B scope 8 |
 | Failures alert and are recorded (owner, 16 Oct) | scope 6 (A17's run line and alert, O10's capture-watch on global-cues.yml); part B scope 8 |
-| Quality rule 5 (good, bad, boundary, empty) | criteria 1, 2, 4, 6 and 7 each name all four |
-| Quality rule 6 (real output sample) | criterion 8: back-fill and first-run lines, counts and dates only (values private) |
-| Quality rule 8 (end-to-end run after merge) | criterion 8: the first scheduled run and the first part B read, cited |
+| Quality rule 5 (good, bad, boundary, empty) | criteria 1, 2, 4, 6, 7 and 8 each name all four |
+| Quality rule 6 (real output sample) | criterion 9: back-fill and first-run lines, counts and dates only (values private) |
+| Quality rule 8 (end-to-end run after merge) | criterion 9: the first scheduled run and the first part B read, cited |
 | Same-day Asian closes for the 15:45 report | Out (FL1 decides); scope 6 says why the 14:11 cron cannot serve it |
 | Using the values in a forecast | Out (FL1, M1, GR1) |
 
