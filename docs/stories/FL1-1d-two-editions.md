@@ -17,13 +17,13 @@
 - **Design sign-off:** the designer's renderer is not wired until the owner signs off the design (orchestrator).
 
 **Owner decisions (DESK_DECISIONS):**
-- **c3231785:** forecast before the open, check after the close.
+- **`docs/DESK_DECISIONS.md` line 284:** forecast before the open, check after the close.
 - **bcbbc454:**
   - a morning edition at 08:50 and an evening edition after NSE's evening files;
   - new owner scheduled tasks;
   - the US closes may be shown.
 - **f9737bce:** the reasons in both editions, 2-4 key points, one page and one picture with both indices.
-- **The owner's minute:** evening at about 20:05 (start 19:53).
+- **The owner's minute (DESK_DECISIONS line 287):** evening at about 20:05 (start 19:53).
 - **Responses:** 303 and 304 (measured file times).
 
 Research and paper trading only: nothing here places, changes or cancels an order. Groww is not used.
@@ -104,9 +104,28 @@ What changes or is new:
 - `Cue` holds `name`, `value`, `change` (optional), `unit`, `as_of`, `role` ("used" or "context") and `text`
   (optional, for event flags).
 - **Status rules:**
-  - A section whose data is not dated for the session it describes shows "not out yet", never an older value.
+  - Each Section has its own **expected as-of rule**, in the table below (judge 438). A value outside its rule shows
+    "not out yet", never as current.
+  - Every rule has its own test.
   - `failed` is a read error. It sends one #fno-desk alert and is listed under the system line.
 - **Wiring:** sections are wired in a list in `fno/forecast_lab/page_wiring.py`. Adding A17e, A22 or A19 later means
+- **Expected as-of rules** (D = the edition's session day, in IST; "previous session" is from NSE's calendar):
+
+  | Section | Morning (day D) | Evening (day D) | Shown as |
+  |---|---|---|---|
+  | NIFTY, BANKNIFTY close | the previous session's official close (`ind_close_all`) | D's close (NSE's index list, stamped D 15:30 or later) | value with its date |
+  | India VIX | the previous session's official value | D's live value, "official later" | value with its date |
+  | US closes (S&P 500, Nasdaq-100), US 10-year | the last US session before D's 09:15 IST open (A17's reader, `OPEN`, `live_only`) | the same as the morning | "US close Tue 20 Oct" |
+  | USD/INR (RBI reference rate) | the latest rate dated on or before the previous session | the rate dated D, else the latest on or before the previous session, labelled with its date | value with its date |
+  | Brent | the latest print at most 10 calendar days old (EIA prints lag: the newest was 14 Oct on 22 Oct) | the same | "last print Wed 14 Oct" |
+  | Events, expiry flags | dated D | dated D | flag |
+  | PCR, OI walls, max pain (F&O bhavcopy) | the previous session's (labelled "as of") | D only | value with its date |
+  | FII index futures (participant OI) | the previous session's (labelled "as of") | D only | value with its date |
+  | FII and DII cash | the previous session's (labelled "as of") | D only | value with its date |
+
+  - A value that is older than its rule allows is "not out yet" in the evening, and "not available" in the morning.
+  - Brent's 10 days is a stated limit, not evidence of a right number. It shows the latest price with its date, and
+    never presents an old price as today's.
   one new class plus one line.
 - **Choosing the 2-4 key points** is plain code with a stated order, not a model:
   - in the morning: the used inputs first, then events, then the context cues by size of change against the cue's
@@ -159,8 +178,9 @@ day's once-only Cboe and Nasdaq download. The page reads instead:
   log.
 
 Each fetch belongs to another story's owner, and this story only calls it. Before code starts, each owner agrees:
-A9 and A8 (through the orchestrator, since A8 has no register row) and P8 (no live owner; the orchestrator assigns
-one). A17 is agreed as read-only, above.
+A9 and A8 (through the orchestrator, since A8 has no register row), P8 (no live owner; the orchestrator assigns one),
+and the owners of the morning's `data-librarian index-close` fetch (the A9 librarian's command; the O6 index-closes
+job archives the same file at 21:11). A17 is agreed as read-only, above.
 
 **7. The close read (A4h, owned by the A4 builder 01MKtUHB).** A simpler design is proposed to them:
 - The evening routine reads `/api/allIndices` at about 19:55 and accepts the answer only if NSE's stamp is today
@@ -183,11 +203,9 @@ one). A17 is agreed as read-only, above.
     manifest row.
 
 **9. Release check (10 sessions; the owner's request, built here; A8's owner told).**
-- What it does: polls F&O bhavcopy, participant OI and FII/DII every 10 minutes from 17:00 to 21:00 IST.
-  - For the two archive files it records Last-Modified.
-  - For FII/DII it records the first time the API's date equals today.
-- Where it runs and how its log is kept: inside the evening routine's window only, from 19:53. Its log is
-  append-only, in A8's release log format.
+- What is built: inside the evening routine only, from 19:53. For the F&O bhavcopy and participant OI it records each
+  file's Last-Modified; for FII/DII, the first read whose date is D.
+- Its log is append-only, in A8's release log format.
 - The 17:00-19:53 part needs a schedule the owner has not approved, so it is **not** built. Two sources cover that
   window instead: the evening run's own reads, and NSE's Last-Modified headers, which match A8's first-seen log to
   the minute for participant OI.
@@ -236,7 +254,8 @@ one). A17 is agreed as read-only, above.
    - A verdict change produces a correction line and one alert.
 3. **Sections:**
    - Every section is in exactly one state.
-   - "not out yet" is shown when the data's date is older than the session, never an older value.
+   - Every Section follows its expected as-of rule (the table under design item 3). A value outside the rule is never
+     shown as current. There is one test per rule.
    - `failed` alerts once.
    - A new section is one class plus one line in the wiring (shown by a test with a fake section).
 4. **Key points:** at most 4 key points per index, chosen by the stated order. Each is marked used or context, and no
@@ -248,6 +267,15 @@ one). A17 is agreed as read-only, above.
 9. **Size:** no file or class over 350 lines. Tests cover every state of every section and both editions end to end
    (O11's replay extended).
 10. **Mutation runs:** at least 12 planted mutations, every one caught.
+
+## Go-live conditions
+
+1. The CLAUDE.md sections "Morning routine" and "Evening routine" are written by the FL1 builder in FL1-1d-1, from
+   response 304's drafts. They are lane 1 and merge with the code.
+2. The owner creates the two scheduled tasks with response 304's exact stored prompts. The orchestrator gives the
+   steps to the owner (DESK_DECISIONS line 284: "the owner creates it"); no session creates them.
+3. The owner signs off the designer's page, and the designer's renderer is wired.
+4. A first live run of each edition is checked against its record before the next day's run.
 
 ## Judge verifies
 
