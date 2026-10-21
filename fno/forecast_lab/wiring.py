@@ -21,6 +21,7 @@ from .delivery import NoReportPoster, ReportPoster, SlackFilesPoster
 from .edition_run import Edition, EditionRun
 from .g13b_adapter import G13bCloses, G13bRanges
 from .match import MatchSection
+from .official_closes import ArchivedCloses
 from .page_wiring import build_report_maker
 from .records import DriveReportRecords
 from .report import CloseReport
@@ -60,7 +61,8 @@ def records(edition: str, env=os.environ) -> DriveReportRecords:
 
 def build_edition(edition: str, env=os.environ) -> EditionRun:
     from ..price_ranges import wiring as g13b
-    from ..price_ranges.closes import Outcomes
+    from ..price_ranges.closes import IndexFileCloses, Outcomes
+    from ..storage.wiring import build_index_close_files
     from ..price_ranges.folders import BACKFILL, LIVE, SCORES, drive
     from ..price_ranges.reader import RangeForecasts, RangeScores
 
@@ -71,8 +73,9 @@ def build_edition(edition: str, env=os.environ) -> EditionRun:
     store = g13b.build_store(env)
     forecasts, scores = RangeForecasts(g13b.CACHE_ROOT, g13b.build_seals(store)), RangeScores(g13b.CACHE_ROOT)
     ranges = G13bRanges(forecasts, scores)
-    closes = G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store))))
     calendar, cfg = build_session_calendar(), load_app_config()
+    closes = ArchivedCloses(G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store)))),
+                            IndexFileCloses(build_index_close_files(), calendar))  # fmt: skip
     sessions, live = RegularSessions(calendar), live_from(cfg)
     maker = build_report_maker(ranges, forecasts, scores, calendar, closes)
     evenings, own = records(EVENING, env), records(edition, env)

@@ -112,6 +112,10 @@ routines'." at 19:53 IST, both every day: NSE's calendar decides the day. Each e
 `forecast_lab.live_from` date in `config.yaml` ("not live" before it). Research and paper trading only: never places,
 modifies or cancels orders, and neither uses Groww.
 1. `sh tools/routine_setup.sh` (prints "routine setup ok").
+1b. The morning only, before `lab open`: `python -m fno data-librarian index-close --from "$(TZ=Asia/Kolkata date -d
+   '-7 days' +%F)"` archives the previous sessions' official index-close files in Drive (A9's command, unchanged;
+   orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
+   failure of the routine: the morning then says "not archived yet".
 2. The morning: `python -m fno lab open` posts today's forecast to #fno-forecast before 09:15, with the earlier
    evenings' checks confirmed against NSE's official closes; at or after 09:15 it posts nothing and alerts once. The
    evening: `python -m fno lab close` checks today's forecast against today's close and posts to #fno-forecast. Each
@@ -235,6 +239,6 @@ commit with `--no-verify`.
   file (owner, 16 Oct 2026; story O9, built step by step).
 - F&O output goes only to three Slack channels, all with `FNO_SLACK_BOT_TOKEN` (owner, 21 Oct 2026; story FL1):
   #fno-desk (`C0C89E8QCCD`) takes every alert and the daily card; #fno-forecast (`C0CAZS76WBC`) the forecast lab's
-  09:15 and 15:45 reports; #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and hourly lines. Never the market-brief
+  morning (08:50) and evening (20:05) editions (story FL1-1d); #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and hourly lines. Never the market-brief
   tool's `SLACK_*` variables or #market-brief, and no other channel (the record scan allows only these three IDs).
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.
