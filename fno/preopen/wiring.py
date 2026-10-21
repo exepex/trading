@@ -1,0 +1,67 @@
+"""Composition root of story A22's morning capture: NSE's two JSON answers through the shared polite session, Groww's
+NIFTY and BANKNIFTY 1-minute candles through A16b's source over A16's `ReadOnlyGroww`, A16's checked clock, the
+session calendar, O9's Drive data store, O10's capture-error log, the receipt and error committers and the alert."""
+
+from __future__ import annotations
+
+import time
+
+from ..composition import build_alert_sender
+from ..constants import RESEARCH_USER_AGENT
+from ..health.capture_errors import CAPTURE_ERRORS_FILE
+from ..health.wiring import build_capture_error_log
+from ..http_pacing import PacedSession
+from ..intraday.candle_source import GrowwCandleSource
+from ..intraday.clock_wiring import build_clock_check
+from ..intraday.read_only import ReadOnlyGroww
+from ..models import now_ist
+from ..providers.groww import GrowwProvider
+from ..storage.data_wiring import RECEIPTS_FOLDER, RECEIPTS_LABEL, RECEIPTS_MESSAGE, build_data_store
+from ..storage.manifest_commit import GitManifestRecorder
+from ..storage.owned_paths_commit import OwnedPathsCommitter
+from ..storage.trading_days import is_trading_day
+from ..storage.wiring import REPOSITORY, build_session_calendar
+from .parts import GrowwIndexPreopen, NseGiftNifty, NsePreopenList, PreopenPart
+from .record import JOB, PreopenRecorder
+from .run import PreopenRun
+
+GROWW_SYMBOLS = {"nifty": "NSE-NIFTY", "banknifty": "NSE-BANKNIFTY"}  # BANKNIFTY's probed 21 Oct (step 0b)
+ERRORS_MESSAGE = "Capture errors: A22 pre-open ({what})"
+
+
+def build_preopen_recorder(cfg: dict) -> PreopenRecorder:
+    calendar = build_session_calendar()
+    parts = _parts(cfg)
+    clock = build_clock_check()
+    return PreopenRecorder(
+        lambda day: is_trading_day(calendar, day),
+        lambda finished: PreopenRun(parts, now_ist, time.sleep, finished),
+        build_data_store(JOB), build_capture_error_log(), (_errors_committer(), _receipts_committer()),
+        build_alert_sender(), lambda: clock.check().warning(),
+    )  # fmt: skip
+
+
+def _parts(cfg: dict) -> list[PreopenPart]:
+    session = PacedSession()
+    session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
+    provider = GrowwProvider(cfg)
+    api = ReadOnlyGroww(lambda: provider.api)  # the only Groww object the capture holds
+    indices = [GrowwIndexPreopen(name, _candles(api, symbol)) for name, symbol in GROWW_SYMBOLS.items()]
+    return [NseGiftNifty(session, now_ist), NsePreopenList(session, now_ist), *indices]
+
+
+def _candles(api, symbol: str) -> GrowwCandleSource:
+    return GrowwCandleSource(api, now_ist, symbol=symbol)
+
+
+def _errors_committer() -> OwnedPathsCommitter:
+    """First: the receipts are new files, so they never block its pull; the error log may have changed upstream."""
+    folder, name = CAPTURE_ERRORS_FILE.rsplit("/", 1)
+    return OwnedPathsCommitter(REPOSITORY, REPOSITORY / folder, [name], message=ERRORS_MESSAGE, label="capture errors",
+                               run_paths=(f"{RECEIPTS_FOLDER}/",))  # fmt: skip
+
+
+def _receipts_committer() -> GitManifestRecorder:
+    """O9's receipt committer, which also carries an error-log commit whose own push failed."""
+    return GitManifestRecorder(REPOSITORY, REPOSITORY / RECEIPTS_FOLDER, message=RECEIPTS_MESSAGE,
+                               label=RECEIPTS_LABEL, run_paths=(CAPTURE_ERRORS_FILE,))  # fmt: skip
