@@ -6,9 +6,9 @@ import json
 from collections.abc import Callable
 from functools import partial
 
+from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import CalendarError
-from .alert_output import announce
 from .recorder import NO_SAME_DAY_TRADES, RAW_FILE_NOT_SAVED, QuoteSnapshotRecorder, RecordResult
 
 CALENDAR_STOP = "3 pm quote recorder stopped, nothing recorded: {error} ({file})"

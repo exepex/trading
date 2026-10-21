@@ -6,10 +6,10 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Mapping
 
+from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..models import now_ist
 from ..research_data.calendar import CalendarError
-from .alert_output import announce
 from .indices import IndexRecording
 from .recorder import QuoteSnapshotRecorder, RecordResult
 
