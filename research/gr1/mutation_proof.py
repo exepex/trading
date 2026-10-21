@@ -70,6 +70,19 @@ M = [
         "outcome = n1.outcome",
         "outcome not moved to 09:15",
     ),
+    ("cues.py", 'if r["value_date"] not in held', "", "FBIL overrides RBI's own rate"),
+    (
+        "selection.py",
+        'entry["reason"] = _train_gap(fitted_on) or _ineligible(sel)',
+        'entry["reason"] = _ineligible(sel)',
+        "no train gap rule",
+    ),
+    (
+        "selection.py",
+        "return [r for r in train if candidate.train_from is None or r.day >= candidate.train_from]",
+        "return list(train)",
+        "C8's 2020 start ignored",
+    ),
     (
         "evaluate.py",
         "tuple(s - b for s, b in zip(scores, base, strict=True))",

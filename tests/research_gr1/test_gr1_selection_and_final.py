@@ -110,3 +110,18 @@ def test_holm_and_every_check_are_needed():
 def test_the_winner_is_the_most_negative_difference_and_never_a_worse_candidate():
     assert winner_of({"C3": -0.0002, "C5": -0.0005, "C7": 0.0001}) == "C5"
     assert winner_of({"C3": 0.0001, "C7": 0.0}) is None and winner_of({}) is None and winner_of({"C4": None}) is None
+
+
+def test_a_train_gap_over_five_percent_is_not_decided_but_c8s_2019_is_not_a_gap():
+    train = rows(date(2019, 7, 1), date(2020, 12, 31), seed=1)  # half a year before C8's data starts
+    select = rows(date(2024, 1, 1), date(2024, 6, 30), seed=2)
+    days = weekdays(date(2019, 7, 1), date(2024, 6, 30))
+    vix = {d: 10.0 + (i % 20) for i, d in enumerate(days) if i % 10 or d.year == 2024}  # 10% of train missing
+    rv = {d: 1e-4 * (1 + (i % 3)) for i, d in enumerate(days) if d >= date(2020, 1, 2)}  # from 2020, as A16b's
+    ctx = context(vix=vix, train_vix_terciles=(15.0, 22.0), rv_session=rv,
+                  implied_variance={(r.underlying, r.day): 1e-4 for r in train + select})  # fmt: skip
+    out = select_cell("NIFTY", train, select, ctx)
+    assert out["candidates"]["C3"]["reason"].startswith("not decided:") and "train" in out["candidates"]["C3"]["reason"]
+    c8 = out["candidates"]["C8"]
+    assert c8["status"] == "fitted" and not (c8["reason"] or "").startswith("not decided")
+    assert c8["train"]["dropped"] == 0  # its 2019 rows are outside its own train period, never counted missing

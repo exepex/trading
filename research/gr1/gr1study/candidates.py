@@ -40,6 +40,7 @@ class Candidate:
     features: Features
     two_band: bool = False  # C2: one scale for 25/75, one for 5/95
     nifty_only: bool = False
+    train_from: date | None = None  # C8: its data starts 2 Jan 2020, so its train period does (section 7)
 
     def parameters(self, x: Sequence[float]) -> int:
         return 2 if self.two_band else len(x)
@@ -106,7 +107,7 @@ SINGLE: dict[str, Candidate] = {
     "C5": Candidate("C5", _event),
     "C6": Candidate("C6", _expiry),
     "C7": Candidate("C7", _cues),
-    "C8": Candidate("C8", _intraday, nifty_only=True),
+    "C8": Candidate("C8", _intraday, nifty_only=True, train_from=date(2020, 1, 2)),
     "C9": Candidate("C9", _weekday),
     "C10": Candidate("C10", _regime),
 }
@@ -120,4 +121,5 @@ def combined(first: str, second: str) -> Candidate:
         return None if a is None or b is None else [1.0, *a[1:], *b[1:]]
 
     nifty_only = SINGLE[first].nifty_only or SINGLE[second].nifty_only
-    return Candidate(f"C11({first}+{second})", features, nifty_only=nifty_only)
+    starts = [d for d in (SINGLE[first].train_from, SINGLE[second].train_from) if d]
+    return Candidate(f"C11({first}+{second})", features, nifty_only=nifty_only, train_from=max(starts, default=None))

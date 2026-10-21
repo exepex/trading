@@ -13,7 +13,7 @@ from datetime import date
 from pathlib import Path
 
 from .candidates import CUES, Context
-from .cues import DECISION_CUTOFF, cue_move, cutoff_for
+from .cues import DECISION_CUTOFF, cue_move, cutoff_for, usdinr_rows
 from .rows import Row
 
 METHOD, LABEL = "8d7d730170d1f67311b8112f6f811a079eae981b44b99c7224d8557c79664ce3", "backfill_eod"
@@ -115,6 +115,7 @@ def cue_reader():
     tables = build_tables(include_private=True)
     sources = {s.cue: s for s in SOURCES}
     rows = {cue: tables[cue].rows() for cue in CUES}
+    rows["usdinr_rbi"] = usdinr_rows(rows["usdinr_rbi"], tables["usdinr_fbil"].rows())
 
     def move(cue: str, day: date, cutoff=DECISION_CUTOFF) -> float | None:
         return cue_move(rows[cue], sources[cue], day, cutoff_for(cue, cutoff))

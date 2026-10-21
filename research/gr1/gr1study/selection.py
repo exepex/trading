@@ -30,9 +30,14 @@ def candidate_for(candidate_id: str) -> Candidate:
     return SINGLE[candidate_id]
 
 
+def own_train(candidate: Candidate, train: Sequence[Row]) -> list[Row]:
+    """The candidate's train period: C8's (and a C11 with C8) starts 2 Jan 2020, when its data does (section 7)."""
+    return [r for r in train if candidate.train_from is None or r.day >= candidate.train_from]
+
+
 def gain_over_c1(candidate: Candidate, theta, c1_theta, rows: Sequence[Row], ctx: Context) -> float | None:
     """Mean of QS(candidate) - QS(C1) on the candidate's own train days (C11's choice, section 6)."""
-    data, _ = with_features(candidate, rows, ctx)
+    data, _ = with_features(candidate, own_train(candidate, rows), ctx)
     if not data:
         return None
     c1 = SINGLE["C1"]
@@ -44,7 +49,7 @@ def gain_over_c1(candidate: Candidate, theta, c1_theta, rows: Sequence[Row], ctx
 def _fitted(candidate: Candidate, underlying: str, train: Sequence[Row], ctx: Context) -> dict:
     if candidate.nifty_only and underlying != "NIFTY":
         return {"theta": None, "failed": None, "status": NOT_RUN_NO_DATA}
-    data, _ = with_features(candidate, train, ctx)
+    data, _ = with_features(candidate, own_train(candidate, train), ctx)
     result = fit(candidate, data)
     return {"theta": result.theta, "failed": result.failed, "status": "fitted" if not result.failed else "failed"}
 
@@ -70,7 +75,7 @@ def select_cell(underlying: str, train: Sequence[Row], select: Sequence[Row], ct
     if c11 is None:
         fits["C11"] = {"theta": None, "failed": None, "status": NOT_RUN_C11}
     else:
-        data, _ = with_features(c11, train, ctx)
+        data, _ = with_features(c11, own_train(c11, train), ctx)
         result = fit(c11, data)
         fits[c11.id] = {"theta": result.theta, "failed": result.failed,
                         "status": "fitted" if not result.failed else "failed"}  # fmt: skip
@@ -79,10 +84,11 @@ def select_cell(underlying: str, train: Sequence[Row], select: Sequence[Row], ct
         entry = dict(f, eligible=False, reason=f["status"])
         if f["status"] == "fitted":
             cand = candidate_for(cid)
-            entry["train"] = numbers(cand, f["theta"], train, ctx).as_dict()
+            fitted_on = numbers(cand, f["theta"], own_train(cand, train), ctx)
+            entry["train"] = fitted_on.as_dict()
             sel = numbers(cand, f["theta"], select, ctx)
             entry["select"] = sel.as_dict()
-            entry["reason"] = _ineligible(sel)
+            entry["reason"] = _train_gap(fitted_on) or _ineligible(sel)
             if entry["reason"] is None:
                 entry["eligible"] = True
                 eligible[cid] = entry["select"]["mean_qs_difference_vs_c0"]
@@ -100,6 +106,15 @@ def winner_of(eligible: dict[str, float | None]) -> str | None:
     """The eligible candidate with the most negative paired difference against C0, if any is negative (section 9)."""
     better = {c: d for c, d in eligible.items() if d is not None and d < 0}
     return min(better, key=lambda c: (better[c], c)) if better else None
+
+
+def _train_gap(n: Numbers) -> str | None:
+    """Section 13: an input missing on over 5% of a period's days in a cell, train included, leaves it undecided."""
+    return (
+        f"not decided: {n.dropped_share:.1%} of train days miss an input (over 5%)"
+        if n.dropped_share > GAP_LIMIT
+        else None
+    )
 
 
 def _ineligible(n: Numbers) -> str | None:

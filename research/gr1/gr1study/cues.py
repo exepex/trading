@@ -15,6 +15,14 @@ LEVEL_CUES = ("us10y",)  # a yield: its move is a difference in points; the othe
 DAY_BEFORE_CUES = ("usdinr_rbi",)  # RBI's rate of d-1 at the latest (section 3): read at 09:15, before d's 13:30 rate
 
 
+def usdinr_rows(rbi: list[dict[str, str]], fbil: list[dict[str, str]]) -> list[dict[str, str]]:
+    """One USD/INR reference rate: RBI's rows, and FBIL's for the dates RBI lacks (RBI's hole, 24 Jul 2018 - 12 Apr
+    2022, after FBIL took the benchmark over). A17's README: the two are equal on all 1,086 dates both publish
+    (protocol deviation of 22 Oct, section 14). Read under RBI's rule (13:30 IST, 5 days)."""
+    held = {r["value_date"] for r in rbi}
+    return sorted([*rbi, *(r for r in fbil if r["value_date"] not in held)], key=lambda r: r["value_date"])
+
+
 def cutoff_for(cue: str, cutoff: time) -> time:
     return OPEN_CUTOFF if cue in DAY_BEFORE_CUES else cutoff
 

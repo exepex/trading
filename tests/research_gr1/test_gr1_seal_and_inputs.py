@@ -6,7 +6,7 @@ import math
 from datetime import date
 
 from gr1study.candidates import SINGLE
-from gr1study.cues import DECISION_CUTOFF, OPEN_CUTOFF, cue_move, cutoff_for
+from gr1study.cues import DECISION_CUTOFF, OPEN_CUTOFF, cue_move, cutoff_for, usdinr_rows
 from gr1study.inputs import up_to
 from gr1study.rows import implied_rows
 
@@ -88,3 +88,11 @@ def test_the_horizon_is_after_the_issue_day_up_to_and_with_the_target():
         0.0,
     ]
     assert SINGLE["C5"].features(row, on_target) == [1.0, 1.0] and SINGLE["C6"].features(row, on_target) == [1.0, 1.0]
+
+
+def test_usdinr_takes_rbis_rate_and_fbils_only_for_rbis_missing_dates():
+    rbi = table({date(2018, 7, 9): 68.5, date(2022, 4, 12): 76.0})
+    fbil = table({date(2018, 7, 10): 68.6, date(2022, 4, 12): 99.0, date(2020, 5, 4): 75.6})
+    merged = usdinr_rows(rbi, fbil)
+    expected = [("2018-07-09", "68.5"), ("2018-07-10", "68.6"), ("2020-05-04", "75.6"), ("2022-04-12", "76.0")]
+    assert [(r["value_date"], r["value"]) for r in merged] == expected
