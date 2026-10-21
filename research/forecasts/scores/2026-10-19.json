@@ -1,0 +1,5319 @@
+{
+ "ai_isolation": {
+  "book2_hybrid": [
+   "sealed_same_day"
+  ],
+  "book3_ai": [
+   "sealed_same_day"
+  ]
+ },
+ "as_of": "2026-10-19",
+ "calendar_limited_days": [],
+ "common_start": "2026-10-14",
+ "confirmatory_allowed": false,
+ "confirmatory_note": "Descriptive only: no comparison is called significant before the first scheduled review, six months of common-start trading of the compared books (design 12.8).",
+ "coverage": {
+  "book1_rules": {
+   "counted_days": 2,
+   "pack_days": 3
+  },
+  "book2_hybrid": {
+   "counted_days": 0,
+   "pack_days": 3
+  },
+  "book3_ai": {
+   "counted_days": 0,
+   "pack_days": 3
+  }
+ },
+ "inputs": {
+  "backfill_commit": "5632bfcb86a2d37c551fee7196114090177f9f4c",
+  "backfill_file": "research/forecasts/backfill/backfill_v1.csv.gz",
+  "backfill_sha256": "5b9d4306ff2977690f73ecdc8f56c1f8a107697f1bb892ab6290dcb5459faa58",
+  "closes_sha256": "29ab00925b7dc7e57311be177c2cc133e518605e95f4eb38c54cef61ccc1a669",
+  "history_start": "2024-01-01",
+  "live_days": 3,
+  "panel_manifest_sha256": "741df32324727cfb47917173eb1afaca67363bce4f062a132925db0038a8c0bc",
+  "protocol_v1_commit": "cf489e4c53714ce0fffae61db8850b49648ac391",
+  "protocol_v2_commit": "ab2e81193eb14ba97f1902bbc983e34c17d68769",
+  "protocol_v3_commit": "904c03697bf1f7d8256865ab3057fe2c2e9bcf50"
+ },
+ "late_live_records": 20,
+ "modes": [
+  {
+   "first_day": "2024-01-01",
+   "last_day": "2026-10-12",
+   "mode": "close_proxy",
+   "primary": [
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 1,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 2,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 3,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 4,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 5,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 6,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 7,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 8,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 9,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 10,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "book1_rules",
+     "tested": false
+    }
+   ],
+   "q5_flag_rate": 0.056686046511627904,
+   "scores": [
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 1,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": 0.18679120790641696,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 1,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.226078058169086,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 4,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.35878677999941694,
+        "observed_frequency": 0.5
+       },
+       {
+        "count": 50,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4773101712739621,
+        "observed_frequency": 0.62
+       },
+       {
+        "count": 553,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5480271238243839,
+        "observed_frequency": 0.5714285714285714
+       },
+       {
+        "count": 56,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6297000987777134,
+        "observed_frequency": 0.6785714285714286
+       },
+       {
+        "count": 5,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7498429981379353,
+        "observed_frequency": 0.8
+       },
+       {
+        "count": 2,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": 0.857775251801451,
+        "observed_frequency": 0.5
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.24769217578819624,
+      "mean_log_score": 0.68896360203645,
+      "scored": 672
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {
+      "iv30_flagged": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 38,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": 0.5511564547453365,
+         "observed_frequency": 0.5
+        },
+        {
+         "count": 1,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": 0.6087301257248889,
+         "observed_frequency": 0.0
+        },
+        {
+         "count": 0,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.2645371408893913,
+       "mean_log_score": 0.7225825392259905,
+       "scored": 39
+      },
+      "iv30_unflagged": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 1,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": 0.18679120790641696,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 1,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": 0.226078058169086,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 4,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": 0.35878677999941694,
+         "observed_frequency": 0.5
+        },
+        {
+         "count": 50,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": 0.4773101712739621,
+         "observed_frequency": 0.62
+        },
+        {
+         "count": 515,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": 0.5477962217370126,
+         "observed_frequency": 0.5766990291262136
+        },
+        {
+         "count": 55,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": 0.6300813710150374,
+         "observed_frequency": 0.6909090909090909
+        },
+        {
+         "count": 5,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": 0.7498429981379353,
+         "observed_frequency": 0.8
+        },
+        {
+         "count": 2,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": 0.857775251801451,
+         "observed_frequency": 0.5
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.2466543343364639,
+       "mean_log_score": 0.6868922931100803,
+       "scored": 633
+      }
+     }
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 40,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.2853893367883794,
+        "observed_frequency": 0.325
+       },
+       {
+        "count": 221,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.3532350190440193,
+        "observed_frequency": 0.2895927601809955
+       },
+       {
+        "count": 296,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.44949624317370984,
+        "observed_frequency": 0.3344594594594595
+       },
+       {
+        "count": 84,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5406014294842065,
+        "observed_frequency": 0.35714285714285715
+       },
+       {
+        "count": 28,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6487528230477156,
+        "observed_frequency": 0.7142857142857143
+       },
+       {
+        "count": 3,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7184339365907335,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.2287781749254131,
+      "mean_log_score": 0.650007822040695,
+      "scored": 672
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {
+      "iv30_flagged": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 4,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": 0.2850214854833058,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 21,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": 0.3619027400468088,
+         "observed_frequency": 0.38095238095238093
+        },
+        {
+         "count": 13,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": 0.4535990630661413,
+         "observed_frequency": 0.38461538461538464
+        },
+        {
+         "count": 1,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": 0.5240854305804759,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 0,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.2667122671538005,
+       "mean_log_score": 0.7295808553696,
+       "scored": 39
+      },
+      "iv30_unflagged": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 36,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": 0.2854302091556098,
+         "observed_frequency": 0.25
+        },
+        {
+         "count": 200,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": 0.3523249083387265,
+         "observed_frequency": 0.28
+        },
+        {
+         "count": 283,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": 0.4493077744154003,
+         "observed_frequency": 0.3321554770318021
+        },
+        {
+         "count": 83,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": 0.5408004174228057,
+         "observed_frequency": 0.3493975903614458
+        },
+        {
+         "count": 28,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": 0.6487528230477156,
+         "observed_frequency": 0.7142857142857143
+        },
+        {
+         "count": 3,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": 0.7184339365907335,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 0,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.22644100336631814,
+       "mean_log_score": 0.6451052180915207,
+       "scored": 633
+      }
+     }
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 688,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 688,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 688,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 175,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5854704761904762,
+        "observed_frequency": 0.5657142857142857
+       },
+       {
+        "count": 497,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6210060362173038,
+        "observed_frequency": 0.5935613682092555
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.24512383333333335,
+      "mean_log_score": 0.6836590592972936,
+      "scored": 672
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 261,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.35440102171136656,
+        "observed_frequency": 0.3333333333333333
+       },
+       {
+        "count": 378,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4575026455026455,
+        "observed_frequency": 0.35714285714285715
+       },
+       {
+        "count": 33,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5135757575757576,
+        "observed_frequency": 0.21212121212121213
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.23663347354497355,
+      "mean_log_score": 0.6664546536880859,
+      "scored": 672
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 264,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.48484848484848486,
+        "observed_frequency": 0.5681818181818182
+       },
+       {
+        "count": 408,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.515202614379085,
+        "observed_frequency": 0.39950980392156865
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.25254714285714286,
+      "mean_log_score": 0.6982419960524074,
+      "scored": 672
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 6,
+      "resolved": 682,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 682,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.46885630498533726,
+        "observed_frequency": 0.45161290322580644
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.2497573202997719,
+      "mean_log_score": 0.6926782634285094,
+      "scored": 682
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 633,
+      "void": 39
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 118,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6903615819209039,
+        "observed_frequency": 0.8389830508474576
+       },
+       {
+        "count": 515,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7272880258899677,
+        "observed_frequency": 0.654368932038835
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.21856342074776194,
+      "mean_log_score": 0.6304826904933855,
+      "scored": 633
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {
+      "q5_flagged_iv30": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 6,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": 0.6920000000000001,
+         "observed_frequency": 0.8333333333333334
+        },
+        {
+         "count": 33,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": 0.726020202020202,
+         "observed_frequency": 0.5151515151515151
+        },
+        {
+         "count": 0,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.2701342905982906,
+       "mean_log_score": 0.7401268186779765,
+       "scored": 39
+      }
+     }
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 688,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 688,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 79,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": 0.051206751054852326,
+        "observed_frequency": 0.13924050632911392
+       },
+       {
+        "count": 46,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": 0.1304927536231884,
+        "observed_frequency": 0.45652173913043476
+       },
+       {
+        "count": 25,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.2609066666666667,
+        "observed_frequency": 0.28
+       },
+       {
+        "count": 91,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.3536263736263736,
+        "observed_frequency": 0.1978021978021978
+       },
+       {
+        "count": 75,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.44565333333333335,
+        "observed_frequency": 0.32
+       },
+       {
+        "count": 74,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5571171171171171,
+        "observed_frequency": 0.7162162162162162
+       },
+       {
+        "count": 89,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6427415730337078,
+        "observed_frequency": 0.6067415730337079
+       },
+       {
+        "count": 48,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7565277777777778,
+        "observed_frequency": 0.4375
+       },
+       {
+        "count": 98,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": 0.8503809523809523,
+        "observed_frequency": 0.6632653061224489
+       },
+       {
+        "count": 47,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": 0.9418439716312057,
+        "observed_frequency": 0.8297872340425532
+       }
+      ],
+      "mean_brier": 0.2254646455026455,
+      "mean_log_score": 0.6531298868041344,
+      "scored": 672
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 6,
+      "resolved": 682,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 3,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": 0.08355555555555556,
+        "observed_frequency": 0.0
+       },
+       {
+        "count": 19,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": 0.15087719298245614,
+        "observed_frequency": 0.5263157894736842
+       },
+       {
+        "count": 50,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.26048,
+        "observed_frequency": 0.32
+       },
+       {
+        "count": 177,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.35909604519774013,
+        "observed_frequency": 0.3446327683615819
+       },
+       {
+        "count": 285,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4452116959064328,
+        "observed_frequency": 0.5017543859649123
+       },
+       {
+        "count": 119,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5465994397759103,
+        "observed_frequency": 0.42857142857142855
+       },
+       {
+        "count": 29,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6253333333333334,
+        "observed_frequency": 0.9310344827586207
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.24122642424242424,
+      "mean_log_score": 0.6775360974374246,
+      "scored": 682
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 633,
+      "void": 39
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 14,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": 0.07304761904761904,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 7,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": 0.14095238095238097,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 6,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.23622222222222222,
+        "observed_frequency": 0.8333333333333334
+       },
+       {
+        "count": 15,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.3555555555555555,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 65,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4554666666666667,
+        "observed_frequency": 0.8307692307692308
+       },
+       {
+        "count": 112,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5539285714285714,
+        "observed_frequency": 0.7232142857142857
+       },
+       {
+        "count": 153,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6552679738562092,
+        "observed_frequency": 0.673202614379085
+       },
+       {
+        "count": 92,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.741,
+        "observed_frequency": 0.6956521739130435
+       },
+       {
+        "count": 96,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": 0.8436111111111111,
+        "observed_frequency": 0.6666666666666666
+       },
+       {
+        "count": 73,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": 0.9498264840182649,
+        "observed_frequency": 0.3972602739726027
+       }
+      ],
+      "mean_brier": 0.3003508990696858,
+      "mean_log_score": 0.9042812971576435,
+      "scored": 633
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {
+      "q5_flagged_iv30": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 1,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": 0.296,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 2,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": 0.3433333333333333,
+         "observed_frequency": 1.0
+        },
+        {
+         "count": 4,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": 0.45966666666666667,
+         "observed_frequency": 0.25
+        },
+        {
+         "count": 10,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": 0.5498666666666667,
+         "observed_frequency": 0.7
+        },
+        {
+         "count": 12,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": 0.6493333333333333,
+         "observed_frequency": 0.5
+        },
+        {
+         "count": 7,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": 0.7384761904761905,
+         "observed_frequency": 0.7142857142857143
+        },
+        {
+         "count": 3,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": 0.8373333333333334,
+         "observed_frequency": 0.0
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.2935771623931624,
+       "mean_log_score": 0.8006386750430279,
+       "scored": 39
+      }
+     }
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 4,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4360712652334056,
+        "observed_frequency": 0.75
+       },
+       {
+        "count": 553,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5741965705168695,
+        "observed_frequency": 0.5949367088607594
+       },
+       {
+        "count": 113,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6153169668143318,
+        "observed_frequency": 0.5398230088495575
+       },
+       {
+        "count": 2,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7465542925673921,
+        "observed_frequency": 0.5
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.24462114295444687,
+      "mean_log_score": 0.6824161239736665,
+      "scored": 672
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 2,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.2978543967435818,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 226,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.35336038174596385,
+        "observed_frequency": 0.26991150442477874
+       },
+       {
+        "count": 399,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4540227232048004,
+        "observed_frequency": 0.3233082706766917
+       },
+       {
+        "count": 45,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5269391667172123,
+        "observed_frequency": 0.8222222222222222
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.23055565593230895,
+      "mean_log_score": 0.6541058876649766,
+      "scored": 672
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 672,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 81,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.27981893004115227,
+        "observed_frequency": 0.2345679012345679
+       },
+       {
+        "count": 64,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.3378541666666667,
+        "observed_frequency": 0.28125
+       },
+       {
+        "count": 159,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4479496855345912,
+        "observed_frequency": 0.25157232704402516
+       },
+       {
+        "count": 167,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5487465069860279,
+        "observed_frequency": 0.6287425149700598
+       },
+       {
+        "count": 152,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6519824561403509,
+        "observed_frequency": 0.5921052631578947
+       },
+       {
+        "count": 49,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7165034013605441,
+        "observed_frequency": 0.8367346938775511
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.2184402896825397,
+      "mean_log_score": 0.6275328833893079,
+      "scored": 672
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 6,
+      "resolved": 682,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 12,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": 0.2911111111111111,
+        "observed_frequency": 0.4166666666666667
+       },
+       {
+        "count": 82,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.3683658536585366,
+        "observed_frequency": 0.3780487804878049
+       },
+       {
+        "count": 502,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.45060026560424965,
+        "observed_frequency": 0.43227091633466136
+       },
+       {
+        "count": 86,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5216589147286822,
+        "observed_frequency": 0.6395348837209303
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.24192381948517433,
+      "mean_log_score": 0.6769366617549608,
+      "scored": 682
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 688,
+      "no_forecast": 0,
+      "pending": 16,
+      "resolved": 633,
+      "void": 39
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 2,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": 0.3936666666666666,
+        "observed_frequency": 1.0
+       },
+       {
+        "count": 24,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": 0.4314722222222222,
+        "observed_frequency": 0.9583333333333334
+       },
+       {
+        "count": 54,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": 0.5702098765432099,
+        "observed_frequency": 0.9074074074074074
+       },
+       {
+        "count": 261,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": 0.6560051085568327,
+        "observed_frequency": 0.7049808429118773
+       },
+       {
+        "count": 211,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": 0.7442338072669826,
+        "observed_frequency": 0.7156398104265402
+       },
+       {
+        "count": 81,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": 0.8321234567901235,
+        "observed_frequency": 0.3333333333333333
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": 0.24856202773389502,
+      "mean_log_score": 0.7057924013006968,
+      "scored": 633
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {
+      "q5_flagged_iv30": {
+       "calibration": [
+        {
+         "count": 0,
+         "high": 0.1,
+         "low": 0.0,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.2,
+         "low": 0.1,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.3,
+         "low": 0.2,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.4,
+         "low": 0.3,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 0.5,
+         "low": 0.4,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 7,
+         "high": 0.6,
+         "low": 0.5,
+         "mean_forecast": 0.557047619047619,
+         "observed_frequency": 0.5714285714285714
+        },
+        {
+         "count": 19,
+         "high": 0.7,
+         "low": 0.6,
+         "mean_forecast": 0.6608421052631579,
+         "observed_frequency": 0.5789473684210527
+        },
+        {
+         "count": 13,
+         "high": 0.8,
+         "low": 0.7,
+         "mean_forecast": 0.7305128205128205,
+         "observed_frequency": 0.5384615384615384
+        },
+        {
+         "count": 0,
+         "high": 0.9,
+         "low": 0.8,
+         "mean_forecast": null,
+         "observed_frequency": null
+        },
+        {
+         "count": 0,
+         "high": 1.0,
+         "low": 0.9,
+         "mean_forecast": null,
+         "observed_frequency": null
+        }
+       ],
+       "mean_brier": 0.27412353276353274,
+       "mean_log_score": 0.7503623403888728,
+       "scored": 39
+      }
+     }
+    }
+   ],
+   "secondary": [
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 11,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.011846660100934377,
+      0.005082407131834967
+     ],
+     "k": 12,
+     "mean_brier_difference": -0.0030710328337493755,
+     "n": 672,
+     "p_value": 0.47535246475352466,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 13,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 14,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.008744696273118649,
+      0.0078438844265373
+     ],
+     "k": 15,
+     "mean_brier_difference": -0.0005026903788864659,
+     "n": 672,
+     "p_value": 0.9124087591240876,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_b_base_rate",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 16,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 17,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 18,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.005336823937440411,
+      0.007883390877368748
+     ],
+     "k": 19,
+     "mean_brier_difference": 0.001777481006895828,
+     "n": 672,
+     "p_value": 0.5985401459854015,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 20,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 21,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.013382973017241567,
+      0.0010482369555140571
+     ],
+     "k": 22,
+     "mean_brier_difference": -0.006077817612664619,
+     "n": 672,
+     "p_value": 0.10538946105389461,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_b_base_rate",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 23,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 24,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 25,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.05882770692791005,
+      -0.0031129226521164092
+     ],
+     "k": 26,
+     "mean_brier_difference": -0.03410685317460317,
+     "n": 672,
+     "p_value": 0.018098190180981903,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_b_base_rate",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 27,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 28,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.03921703293650794,
+      0.017084826901455026
+     ],
+     "k": 29,
+     "mean_brier_difference": -0.007024355820105817,
+     "n": 672,
+     "p_value": 0.621037896210379,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_c_model",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 30,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 31,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 32,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.017460346823069402,
+      0.0017877396057347584
+     ],
+     "k": 33,
+     "mean_brier_difference": -0.007833500814597591,
+     "n": 682,
+     "p_value": 0.11248875112488751,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_b_base_rate",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 34,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 35,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.010285361599869664,
+      0.010486215917236877
+     ],
+     "k": 36,
+     "mean_brier_difference": 0.0006973952427500816,
+     "n": 682,
+     "p_value": 0.8947105289471053,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_c_model",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 37,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 38,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 39,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      0.00954696280498509,
+      0.05505650419519043
+     ],
+     "k": 40,
+     "mean_brier_difference": 0.029998606986133054,
+     "n": 633,
+     "p_value": 0.010298970102989701,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_b_base_rate",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 41,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 42,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": [
+      -0.08699844274179393,
+      -0.02430429675267684
+     ],
+     "k": 43,
+     "mean_brier_difference": -0.05178887133579076,
+     "n": 633,
+     "p_value": 0.0027997200279972004,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_c_model",
+     "tested": true
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 44,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 45,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_c_model",
+     "tested": false
+    }
+   ]
+  },
+  {
+   "first_day": "2026-10-15",
+   "last_day": "2026-10-16",
+   "mode": "live_1500_proxy",
+   "primary": [
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 1,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 2,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 3,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 4,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 5,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 6,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 7,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 8,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 9,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "book1_rules",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 10,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "book1_rules",
+     "tested": false
+    }
+   ],
+   "q5_flag_rate": 0.0,
+   "scores": [
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 1,
+      "pending": 1,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 1,
+      "pending": 1,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 2,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 2,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 2,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_a_risk_neutral",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_b_base_rate",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 2,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 2,
+      "pending": 0,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 1,
+      "pending": 1,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 1,
+      "pending": 1,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 1,
+      "pending": 1,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "baseline_c_model",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q1_nifty_up_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q2_nifty_move_3pct_20d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q3_rv20_above_trailing",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q4_vix_up_10d",
+     "sensitivities": {}
+    },
+    {
+     "counts": {
+      "forecasts": 2,
+      "no_forecast": 0,
+      "pending": 2,
+      "resolved": 0,
+      "void": 0
+     },
+     "forecaster": "book1_rules",
+     "primary": {
+      "calibration": [
+       {
+        "count": 0,
+        "high": 0.1,
+        "low": 0.0,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.2,
+        "low": 0.1,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.3,
+        "low": 0.2,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.4,
+        "low": 0.3,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.5,
+        "low": 0.4,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.6,
+        "low": 0.5,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.7,
+        "low": 0.6,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.8,
+        "low": 0.7,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 0.9,
+        "low": 0.8,
+        "mean_forecast": null,
+        "observed_frequency": null
+       },
+       {
+        "count": 0,
+        "high": 1.0,
+        "low": 0.9,
+        "mean_forecast": null,
+        "observed_frequency": null
+       }
+      ],
+      "mean_brier": null,
+      "mean_log_score": null,
+      "scored": 0
+     },
+     "question": "q5_rv20_below_atm_iv30",
+     "sensitivities": {}
+    }
+   ],
+   "secondary": [
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 11,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 12,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 13,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 14,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 15,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 16,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 17,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q1_nifty_up_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 18,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 19,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 20,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 21,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_a_risk_neutral",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 22,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 23,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 24,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q2_nifty_move_3pct_20d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 25,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 26,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 27,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 28,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 29,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 30,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 31,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q3_rv20_above_trailing",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 32,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 33,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 34,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 35,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 36,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 37,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 38,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q4_vix_up_10d",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 39,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "book3_ai",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 40,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 41,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 42,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_b_base_rate",
+     "tested": false
+    },
+    {
+     "first": "book1_rules",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 43,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book2_hybrid",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 44,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_c_model",
+     "tested": false
+    },
+    {
+     "first": "book3_ai",
+     "holm_significant": null,
+     "interval_unadjusted_95": null,
+     "k": 45,
+     "mean_brier_difference": null,
+     "n": 0,
+     "p_value": 1.0,
+     "question": "q5_rv20_below_atm_iv30",
+     "second": "baseline_c_model",
+     "tested": false
+    }
+   ]
+  }
+ ],
+ "pending_ai_days": [
+  {
+   "book": "book2_hybrid",
+   "day": "2026-10-16",
+   "reason": "transcript audit due"
+  },
+  {
+   "book": "book3_ai",
+   "day": "2026-10-16",
+   "reason": "transcript audit due"
+  }
+ ],
+ "schema": "forecast_scores/v1",
+ "standing": "Forecast scores are secondary to net profit: they only diagnose market reading and can never promote a book that does not make net money (design 12.7).",
+ "unscored_ai_days": [
+  {
+   "book": "book2_hybrid",
+   "day": "2026-10-14",
+   "reason": "no_submission"
+  },
+  {
+   "book": "book3_ai",
+   "day": "2026-10-14",
+   "reason": "no_submission"
+  },
+  {
+   "book": "book2_hybrid",
+   "day": "2026-10-15",
+   "reason": "late"
+  },
+  {
+   "book": "book3_ai",
+   "day": "2026-10-15",
+   "reason": "late"
+  }
+ ],
+ "unverified_live_days": []
+}

@@ -471,3 +471,22 @@ number,name,session,claimed_at_utc
 291.2,judge_291_a14c_part2_broker_check.md,existing,
 307.4,judge_307_f5_story_text.md,existing,
 356.1,judge_356_a14c_part2_broker_check_text.md,unclaimed file registered by the orchestrator,2026-10-16T12:44:17Z
+204.5,o2-revision-6,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-16T12:49:48Z
+282.1,g10-part2b1-fire-log,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-16T12:52:27Z
+350.3,o10-part1-7aaa0259,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-16T12:52:32Z
+357.2,o10-part2-aab94813,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-16T12:52:38Z
+358.1,a20a-duplicate-line,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-16T12:53:32Z
+309.1,e2e-fix,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-16T12:55:30Z
+308.1,f4-owner-answer,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-16T12:58:03Z
+307.5,f5-o11-criterion,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-16T12:59:43Z
+228.6,judge_228_a16f_first_mark_and_o9_text.md,unclaimed file registered by the orchestrator,2026-10-20T10:05:50Z
+282.2,g10-part2b-drop-a2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-21T14:02:35Z
+358.2,a20a-alert-step-d0fdc34b,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-21T14:02:53Z
+282.3,g10-part2b-merge-without-g11,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-21T14:11:03Z
+310.1,g13-rerun-fix,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:13:40Z
+293.1,o1-part-start-round-2,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T14:15:57Z
+310.2,g13-o11-replay,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:18:07Z
+403.1,fl1-db10d88f,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:18:13Z
+203.5,e8-part1-review128-delta,session_01SvJD2QUjFKLEz5Jwptgsc9,2026-10-21T14:18:19Z
+403.2,fl1-lab-rules,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T14:20:26Z
+359.1,a20b-alert-step-a92c20a7,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-21T14:21:34Z

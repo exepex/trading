@@ -178,3 +178,20 @@ history, a Slack line on good runs) stay with the owner.
 **Verdict: merge check PASS.**
 
 **CI confirmed (07:50 UTC):** checks run 38868747841 on 16a0a62 (this push contains 431f37d0) finished green.
+
+## Addendum 6 (19 Oct 2026): Monday's A16 run on main, with O9 step 2a live
+
+Every mark due by the time of the check (05:30 UTC) is on main and **good**: 09:15, 09:30, 09:45 and 10:00 as required, plus 10:15, 10:30, 10:45 and 11:00.
+
+- **Contracts.** Each mark recorded all of its contracts: 220 of 220, and 224 of 224 at 11:00.
+- **Ledger rows reached main, not a session branch.** Each one landed about 1.5 minutes after its claim. For example, the 10:00 claim is bbbce338 at 04:29:15Z and its row is 10688ace at 04:30:54Z.
+- **The heartbeat on main** shows the 11:00 mark as good, with `clock_ok` and a skew of 0.0.
+- **One taker per mark.**
+  - Every mark has exactly one claim file in `receipts/intraday/claims/2026-10-19/`.
+  - Each claim was made at mark minus 45 seconds (09:14:15, 09:29:15, and so on).
+  - Four runs took the marks in turn: 09:15-10:00, then 10:15-10:30, then 10:45, then 11:00.
+  - Git does not show runs that lost a claim, because a loser commits nothing, so this does not prove an overlap happened. It does show that no mark was taken twice and none was missed.
+- **The retry worked.** At 09:45 one quote failed and was retried (`quotes_retried:1`). The mark still recorded 220 of 220 contracts and is good.
+- **No Groww rate-limit (429) losses.** On 16 Oct, overlapping runs lost 74-87 quotes per mark. Today no mark lost any.
+
+**Verdict: the A16f and O9 step 2a behaviour holds in production for this session.**
