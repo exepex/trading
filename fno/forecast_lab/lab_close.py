@@ -24,7 +24,7 @@ from .constants import (
     UNDERLYINGS,
 )
 from .match import MatchSection, next_ranges
-from .ranges import RangeForecasts
+from .ranges import RangeSource
 from .scoreboard import scoreboard_lines, trust_line
 
 
@@ -53,7 +53,7 @@ class Sections(ABC):
 
 
 class CloseReport:
-    def __init__(self, forecasts: RangeForecasts, match: MatchSection, extra: tuple[Sections, ...] = (),
+    def __init__(self, forecasts: RangeSource, match: MatchSection, extra: tuple[Sections, ...] = (),
                  underlyings: tuple[str, ...] = UNDERLYINGS):  # fmt: skip
         self.forecasts, self.match, self.extra, self.underlyings = forecasts, match, extra, underlyings
 

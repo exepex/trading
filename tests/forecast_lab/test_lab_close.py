@@ -101,3 +101,12 @@ def test_a_refused_post_is_alerted_and_retried_by_the_rerun_but_a_maybe_posted_o
     run.run(DAY)
     assert len(poster.posts) == 1 and records.posted(DAY) and "Slack may still have posted it" in alerts.sent[-1]
     assert MAY_HAVE_POSTED in UNKNOWN  # T1's wording: the guard against a double post follows it
+
+
+def test_g13bs_own_late_verdict_makes_an_issue_late_even_with_a_push_time():
+    from dataclasses import replace
+
+    flagged = replace(issue(N1_ISSUE, at(N1_ISSUE, 15, 50)), late=True)
+    run, poster, alerts = lab(Forecasts((flagged, issue(N3_ISSUE, at(N3_ISSUE, 15, 50))), SCORES))
+    run.run(DAY)
+    assert "NIFTY N1 (issued 2026-10-22): sealed late" in poster.posts[0] and len(alerts.sent) == 1

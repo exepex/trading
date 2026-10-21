@@ -10,15 +10,15 @@ from datetime import date, datetime
 
 from ..models import IST
 from .constants import HORIZON_SESSIONS, ISSUE_CLOSE, LATE, LEVELS, NO_ISSUE, NOT_ARCHIVED, NOT_SEALED_YET, SEAL_BY
-from .ranges import STATUS_OK, Outcomes, RangeForecasts, RangeRow, RangeScore, SealedRanges
+from .ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, RangeSource, SealedIssue
 
 
 def opens(day: date) -> datetime:
     return datetime.combine(day, SEAL_BY, IST)
 
 
-def sealed_in_time(issue: SealedRanges, target_day: date) -> bool:
-    return issue.sealed_at is not None and issue.sealed_at < opens(target_day)
+def sealed_in_time(issue: SealedIssue, target_day: date) -> bool:
+    return not issue.late and issue.sealed_at is not None and issue.sealed_at < opens(target_day)
 
 
 def band(row: RangeRow) -> str:
@@ -43,7 +43,7 @@ def score_line(row: RangeRow, score: RangeScore, s_ref: float) -> str:
 
 
 class MatchSection:
-    def __init__(self, forecasts: RangeForecasts, outcomes: Outcomes, previous_session: Callable[[date], date]):
+    def __init__(self, forecasts: RangeSource, outcomes: Outcomes, previous_session: Callable[[date], date]):
         self.forecasts, self.outcomes, self.previous = forecasts, outcomes, previous_session
 
     def issue_day(self, target_day: date, sessions: int) -> date:
@@ -74,7 +74,7 @@ class MatchSection:
         return out, alerts
 
     @staticmethod
-    def _scored(issue: SealedRanges, horizon: str, issue_day: date, scores: list[RangeScore]) -> list[str]:
+    def _scored(issue: SealedIssue, horizon: str, issue_day: date, scores: list[RangeScore]) -> list[str]:
         lines = []
         for score in sorted(scores, key=lambda s: s.forecaster):
             row = issue.row(score.forecaster, horizon)
@@ -83,9 +83,9 @@ class MatchSection:
         return lines or ["  no scored row yet (G13b scores after the close is archived)"]
 
 
-def next_ranges(underlying: str, issue: SealedRanges | None, now: datetime) -> list[str]:
+def next_ranges(underlying: str, issue: SealedIssue | None, now: datetime) -> list[str]:
     """Today's 15:45 issue, shown only once sealed (pushed) by the time the report is built."""
-    if issue is None or issue.sealed_at is None or issue.sealed_at > now:
+    if issue is None or issue.late or issue.sealed_at is None or issue.sealed_at > now:
         return [NOT_SEALED_YET.format(underlying=underlying)]
     lines = [f"{underlying}: sealed ranges for the next sessions (from {issue.s_ref:.2f})"]
     for row in sorted(issue.rows, key=lambda r: (r.horizon, r.forecaster)):

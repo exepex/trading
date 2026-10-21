@@ -6,7 +6,7 @@ from datetime import date, datetime, time
 
 from fno.cards.posting import CardPoster, PostReceipt
 from fno.forecast_lab.lab_close import ReportRecords
-from fno.forecast_lab.ranges import STATUS_OK, Outcomes, RangeForecasts, RangeRow, RangeScore, SealedRanges
+from fno.forecast_lab.ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, RangeSource, SealedIssue
 from fno.models import IST
 from tests.checks.builders import CALENDAR
 
@@ -19,17 +19,17 @@ def at(day: date, hour: int, minute: int = 0) -> datetime:
     return datetime.combine(day, time(hour, minute), IST)
 
 
-def issue(day: date, sealed_at: datetime | None, underlying="NIFTY", rows=None) -> SealedRanges:
+def issue(day: date, sealed_at: datetime | None, underlying="NIFTY", rows=None) -> SealedIssue:
     rows = rows or (RangeRow("rv20", "N1", CALENDAR.next_session(day), QUANTILES, 0.55, STATUS_OK),
                     RangeRow("rv20", "N3", DAY, QUANTILES, 0.55, STATUS_OK))  # fmt: skip
-    return SealedRanges(underlying, day, "1545", 25250.0, sealed_at, tuple(rows))
+    return SealedIssue(underlying, day, "1545", 25250.0, sealed_at, tuple(rows))
 
 
 def score(issue_day: date, horizon: str, qs=12.5, inside=(True, True), forecaster="rv20") -> RangeScore:
     return RangeScore(forecaster, horizon, "1545", issue_day, DAY, 25350.0, qs, *inside, 0.2)
 
 
-class Forecasts(RangeForecasts):
+class Forecasts(RangeSource):
     def __init__(self, issues=(), scores=(), days=()):
         self.issues = {(i.underlying, i.day): i for i in issues}
         self.score_rows, self.days = list(scores), list(days)

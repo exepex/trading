@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import date
 
 from .constants import CALIBRATION_DAYS, EDGE_WINDOW, TRUST
-from .ranges import RangeForecasts, RangeScore
+from .ranges import RangeScore, RangeSource
 
 
 def _rate(flags: list[bool | None]) -> str:
@@ -39,6 +39,6 @@ def _mean(group: list[RangeScore]) -> float:
     return sum(s.quantile_score for s in group) / len(group)
 
 
-def trust_line(forecasts: RangeForecasts, underlyings: tuple[str, ...], day: date) -> str:
+def trust_line(forecasts: RangeSource, underlyings: tuple[str, ...], day: date) -> str:
     days = set().union(*(forecasts.scored_days(u, day) for u in underlyings))
     return TRUST.format(days=len(days), needed=CALIBRATION_DAYS, edge=EDGE_WINDOW)
