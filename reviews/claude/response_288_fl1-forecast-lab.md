@@ -17,3 +17,10 @@ Builder session_01FWkBH4zNAEFSEpjUzVEgnd. Story: `docs/stories/FL1-forecast-lab.
 1. The 08:45 post waits for A22: FL1 runs 09:30 and 15:45; the 08:45 slot is FL1d.
 2. top_n = 10.
 3. A16 is extended to BANKNIFTY (A16 builder 01VK88Lx): BANKNIFTY positions are part FL1b2, behind that dependency.
+
+## Owner's later decisions (21 Oct, "Lab universe, report times and phasing"), now in the text
+
+FL1 is two parts: FL1-1, the 15:45 report with ranges, the match report and the end-of-day contract tracking of every
+NIFTY and BANKNIFTY contract (phase 1); FL1-2, the 09:15 report with the top 10 candidates and paper fills at the 09:30
+mark (phase 2). Judge 403's three fixes are kept and timed for the 09:15 report. The 09:30 fills post to #fno-intraday
+(an intraday event the owner can act on; #fno-forecast keeps two fixed posts a day).
