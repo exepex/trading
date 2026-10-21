@@ -3,7 +3,8 @@
 from datetime import date, datetime, timedelta
 
 from fno.models import IST, OptionChain, OptionQuote, QuoteBook
-from fno.quotes.recorder import QuoteSnapshotRecorder, monthly_expiries, quote_validity
+from fno.quotes.quote_validity import quote_validity
+from fno.quotes.recorder import QuoteSnapshotRecorder, monthly_expiries
 from fno.quotes.report import canonical_snapshots, spread_report
 from fno.storage.raw_store import LocalFolderStore
 
