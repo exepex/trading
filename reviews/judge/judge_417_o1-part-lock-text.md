@@ -36,3 +36,10 @@ An adopted part's stdout and exit code are gone with the crashed run. Say that i
 when its canonical marker exists after the lock frees, otherwise `failed` "adopted part ended without a canonical",
 with one alert. Also say that NIFTY-first still holds: no other part commits before NIFTY's commit is made or tried,
 whatever `how` NIFTY's part has.
+
+## Addendum 1: head f9ace293
+**Still FAIL: should-fix 1 is open.** f9ace293 adds the "recorded earlier (commit <sha>)", no-alert rule, also after a
+stopped run (judge 412 addendum 3), and that part is MET. The adopt wait is still unbounded: the section still says "the
+run waits for the lock to free", with no `FINISH_LIMIT` or `fills_by` bound, no "failed, still running after …" with
+one alert, and no hand fix. The heads probably crossed with this verdict; the three sentences of should-fix 1 and the
+clarification (an adopted part's status from its canonical; NIFTY-first kept) are all that is missing.
