@@ -1,33 +1,32 @@
-"""v7: two editions, one page each with both indices, drawn from the builder's PageView with ONE chart language
-(owner, 21 Oct): the fan chart (corridors and the close line), the reliability trend line and the month calendar.
+"""v8: two editions, one page each with both indices, no shaded bands and no bars (owner, 21 Oct). Evening per
+index: the result card (three big numbers), chart 1 (forecast middle vs actual close), chart 2 (how far off),
+the day-by-day table, the counts with percentages and the calendar, the reliability trend, the misses, the levels.
+Morning per index: the big numbers, chart 1 over 10 days with today's forecast on the right, the reasons, the chip.
 `python editions.py` writes fl1-morning.html and fl1-evening.html from the PageView dump next to it."""
 
 import json
+from datetime import date
 from pathlib import Path
 
-from calendar_grid import month_grid
-from fanchart import FanChart, FanLayout
+from blocks import WORD, counts_line, day_table, misses_table, month_block, result_card
+from gapchart import GapChart, GapLayout
 from linechart import fmt, fmt_high, fmt_low, fmt_mid, status
 from pageview import adapt
 from trendchart import TrendChart, TrendLayout
+from twolines import LinesLayout, TwoLinesChart
 
 HERE = Path(__file__).parent
-WIDTH = 490  # one chart column of the two-column page (1100 px wide)
-PHONE = 322  # the card's inner width on a 390 px phone: every chart is drawn again at this width, fewer numbers
+WIDE, PHONE = 1060, 338  # one chart per row: the card's inner width on desktop and on a 390 px phone
 GRID = {"NIFTY": 100, "BANKNIFTY": 250}
-WORD = {"green": "Correct", "amber": "Close call", "red": "Missed"}
-GLYPH = {"green": "✓", "amber": "⚠", "red": "✗"}
-MEANS = {"green": "closed inside “most likely”", "amber": "closed inside “almost certainly” only",
-         "red": "closed outside both ranges"}
-WHY_TITLE = {"green": "Why it was correct", "amber": "Why a close call", "red": "Why it missed"}
 RESEARCH = "Research only. Not a trade tip."
-# Example values, labelled as such on the page, until the builder wires A17 (cues), VIX and the chain and flow read
-# models (levels and flows) into the PageView. Never real numbers posing as today's.
+WHY_TITLE = {"green": "Why it was correct", "amber": "Why a close call", "red": "Why it missed"}
+# Example values, labelled as such on the page, until the builder wires A17 (cues), VIX and the chain and flow
+# read models (FL1-1d's SectionView and Cue). Never real numbers posing as today's.
 CUES_EXAMPLE = [("S&P 500", "6,412", "−0.6%"), ("Nasdaq 100", "22,180", "−0.9%"), ("US 10-year", "4.21%", "−3 bp"),
                 ("USD/INR", "84.62", "+0.1%"), ("Brent (last print)", "$109.8", "+1.2%"),
-                ("GIFT Nifty · Asia · Europe", "coming (A17e, A22)", "")]
+                ("GIFT Nifty · Asia · Europe", "not available", "")]
 WHY_MORNING_EXAMPLE = [
-    "Option prices imply a normal-sized day: India VIX 13.9, unchanged (example until wired)",
+    "Option prices imply a normal-sized day: India VIX 13.9, unchanged (context; example until wired)",
     "Overnight, context only: US −0.4%, Nikkei +0.6%, Hang Seng −0.2% (example until A17e)",
     "No RBI policy, budget or NIFTY expiry today (calendar)"]
 LEVELS_EXAMPLE = {"NIFTY": [("Biggest call OI (resistance)", "23,000"), ("Biggest put OI (support)", "22,500"),
@@ -35,6 +34,9 @@ LEVELS_EXAMPLE = {"NIFTY": [("Biggest call OI (resistance)", "23,000"), ("Bigges
                             ("DII cash, ₹ crore", "+1,800"), ("FII index futures, net contracts", "−2.80 lakh")],
                   "BANKNIFTY": [("Biggest call OI (resistance)", "56,000"), ("Biggest put OI (support)", "55,000"),
                                 ("PCR", "0.88 from 1.02"), ("Max pain", "55,500")]}
+KEY = ('<div class="card howto"><b>How to read the result.</b> ✓ Correct = closed inside “most likely” (1 day in 2). '
+       '⚠ Close call = outside “most likely” but inside “almost certainly” (9 days in 10). ✗ Missed = outside '
+       '“almost certainly”. The gap says how far and which way: + closed higher than the forecast middle, − lower.</div>')
 
 
 def _head(title):
@@ -55,11 +57,9 @@ def _foot(data):
     return f'<p class="foot">{system} · {RESEARCH}</p>'
 
 
-def _key():
-    return ('<p class="key"><span><i class="r50"></i>most likely (1 day in 2)</span>'
-            '<span><i class="r90"></i>almost certainly (9 days in 10)</span><span><i class="ln"></i>actual close</span>'
-            '<span class="nowrap"><i class="dot green"></i>✓ correct · <i class="dot amber"></i>⚠ close call · '
-            '<i class="dot red"></i>✗ missed</span></p>')
+def _both(desk, phone):
+    """The desktop drawing and the phone drawing of one chart; CSS shows one of them."""
+    return f'<div class="desk">{desk}</div><div class="phone">{phone}</div>'
 
 
 def _why(title, lines):
@@ -68,27 +68,28 @@ def _why(title, lines):
             f'</div><ul class="why-list">{items}</ul>')
 
 
-def _trend(idx, width=WIDTH):
+def _trend(idx, width):
     days = idx["days"][-len(idx["rolling_90"]):] if idx["rolling_90"] else idx["days"][-30:]
     return TrendChart([d["date"] for d in days], idx["rolling_90"], TrendLayout(width))
 
 
-def _both(desk, phone):
-    """The desktop drawing and the phone drawing of one chart; CSS shows one of them."""
-    return f'<div class="desk">{desk}</div><div class="phone">{phone}</div>'
-
-
-def _reliability_chip(idx):
-    """One definition of right everywhere: inside "almost certainly"; the colour follows the trend's state."""
-    state = _trend(idx).state()
+def _chip(idx):
+    state = _trend(idx, WIDE).state()
     if idx["light"] == "none":
         return f'<span class="pill none"><i></i>{idx["light_word"]}</span>'
     days = idx["days"][-idx["scored"]:]
-    correct = sum(status(d) == "green" for d in days)
-    close = sum(status(d) == "amber" for d in days)
+    correct, close = sum(status(d) == "green" for d in days), sum(status(d) == "amber" for d in days)
     colour = {"steady": "green", "watch": "amber"}.get(state, "none")
     return (f'<span class="pill {colour}"><i></i>Inside “almost certainly” {idx["right30"]} of {idx["scored"]} '
             f'(✓ correct {correct} · ⚠ close call {close}) · {state}</span>')
+
+
+def _lines_key(morning=False):
+    extra = ('<span><i class="ln r50"></i>most likely</span><span><i class="ln r90"></i>almost certainly</span>'
+             if morning else "")
+    return (f'<p class="key"><span><i class="ln mid"></i>forecast middle</span><span><i class="ln close"></i>actual close</span>'
+            f'<span class="nowrap"><i class="dot green"></i>✓ correct · <i class="dot amber"></i>⚠ close call · '
+            f'<i class="dot red"></i>✗ missed</span>{extra}</p>')
 
 
 # ---- morning ---------------------------------------------------------------------------------------------------
@@ -97,32 +98,36 @@ def _cues():
     cells = "".join(f'<div class="cell"><small>{name}</small><b>{value}</b><span>{change}</span></div>'
                     for name, value, change in CUES_EXAMPLE)
     return (f'<div class="card strip"><div class="lab first">Global cues · overnight <span class="when">example values '
-            f'until wired (A17)</span></div><div class="cells">{cells}</div></div>')
+            f'until wired (A17); “not out yet” and “not available” are written as plain words</span></div>'
+            f'<div class="cells">{cells}</div></div>')
 
 
-def morning_card(idx):
+def morning_section(idx):
     name, n1, n3 = idx["name"], idx["next"], idx["three"]
-    aria = f"{name}: last 10 days and today’s forecast corridor"
-    fan = FanChart(idx["days"][-10:], FanLayout(WIDTH, GRID[name], forecast_width=96), forecast=n1, date_every=2)
-    small = FanChart(idx["days"][-10:], FanLayout(PHONE, GRID[name], plot_height=190, axis_width=44, forecast_width=78),
-                     forecast=n1, date_every=3)
+    aria = f"{name}: forecast middle and actual close, last 10 days, with today's forecast"
+    desk = TwoLinesChart(idx["days"][-10:], LinesLayout(WIDE, GRID[name], forecast_width=150), forecast=n1)
+    phone = TwoLinesChart(idx["days"][-10:], LinesLayout(PHONE, GRID[name], plot_height=200, axis_width=46,
+                                                         forecast_width=74), forecast=n1, date_every=3)
     return (f'<div class="card"><h2>{name}<small>last close {fmt(idx["today"])} ({idx["price_at"]})</small></h2>'
             f'<div class="lab first">Today’s forecast · close {n1["date"]}</div>'
-            f'<div class="headline">{fmt_low(n1["lo50"])} – {fmt_high(n1["hi50"])}<small>most likely</small></div>'
-            f'<div class="line">almost certainly <b>{fmt_low(n1["lo90"])} – {fmt_high(n1["hi90"])}</b> · '
-            f'middle {fmt_mid(n1["mid"])} · in 3 days most likely {fmt_low(n3["lo50"])} – {fmt_high(n3["hi50"])}</div>'
-            f'<div class="lab">Last 10 days and today’s corridor <span class="when">gridlines every {GRID[name]}</span></div>'
-            f'{_both(fan.svg(aria), small.svg(aria))}{_key()}'
-            f'{_why("Why this forecast", WHY_MORNING_EXAMPLE)}'
-            f'<div class="record">{_reliability_chip(idx)}<span>steady = the 20-day share inside “almost certainly” '
-            f'holds 80% or more; watch = it does not</span></div></div>')
+            f'<div class="three big"><div><small>Most likely</small><b>{fmt_low(n1["lo50"])} – {fmt_high(n1["hi50"])}</b>'
+            f'<span>1 day in 2</span></div><div><small>Almost certainly</small><b>{fmt_low(n1["lo90"])} – '
+            f'{fmt_high(n1["hi90"])}</b><span>9 days in 10</span></div><div><small>Forecast middle</small>'
+            f'<b>{fmt_mid(n1["mid"])}</b><span>in 3 days most likely {fmt_low(n3["lo50"])} – {fmt_high(n3["hi50"])}</span>'
+            f'</div></div></div>'
+            f'<div class="card"><div class="lab first">{name} · forecast vs actual close, last 10 days, and today’s '
+            f'forecast <span class="when">gridlines every {GRID[name]}</span></div>'
+            f'{_both(desk.svg(aria), phone.svg(aria))}{_lines_key(morning=True)}</div>'
+            f'<div class="card">{_why("Why this forecast", WHY_MORNING_EXAMPLE)}'
+            f'<div class="record">{_chip(idx)}<span>steady = the 20-day share inside “almost certainly” holds 80% or '
+            f'more; watch = it does not</span></div></div>')
 
 
 def morning(data):
     n1 = data["indices"][0]["next"]
-    cards = "".join(morning_card(idx) for idx in data["indices"])
+    body = "".join(morning_section(idx) for idx in data["indices"])
     return (_head(f'Morning forecast, {n1["date"]}') + _header("Today’s forecast", n1["date"], "08:50", data)
-            + _cues() + f'<div class="cols">{cards}</div>' + _foot(data) + "</div></body></html>")
+            + KEY + _cues() + body + _foot(data) + "</div></body></html>")
 
 
 # ---- evening ---------------------------------------------------------------------------------------------------
@@ -130,29 +135,12 @@ def morning(data):
 def _why_evening(idx, today, st):
     if st == "red":
         reasons = [m["reason"] for m in idx["misses7"] if m["date"].split(" ", 1)[1] == today["date"]]
-        gap = (today["close"] - today["hi90"]) if today["close"] > today["hi90"] else (today["lo90"] - today["close"])
-        side = "above" if today["close"] > today["hi90"] else "below"
-        return [f'Closed {fmt(gap)} points {side} “almost certainly”: ' + (reasons[0] if reasons else
-                "no clear reason in our data"), "Overnight context: US −1.8%, VIX +9% (example until wired)"]
+        return [reasons[0] if reasons else "No clear reason in our data",
+                "Overnight context: US −1.8%, VIX +9% (example until wired)"]
     size = "normal" if st == "green" else "larger than usual"
-    return [f'A {size}-sized day: the close moved {fmt(abs(today["close"] - today["mid"]))} points from the middle '
-            f'guess; the “almost certainly” range was {fmt(today["hi90"] - today["lo90"])} wide',
+    return [f'A {size}-sized day: the close moved {fmt(abs(today["close"] - today["mid"]))} points from the forecast '
+            f'middle; “almost certainly” was {fmt(today["hi90"] - today["lo90"])} points wide',
             "Overnight context: US −0.4%, Nikkei +0.6% (example until A17e)"]
-
-
-def _misses_table(idx):
-    rows = []
-    for d in reversed(idx["days"][-30:]):
-        if status(d) != "red":
-            continue
-        gap = d["close"] - d["hi90"] if d["close"] > d["hi90"] else d["lo90"] - d["close"]
-        side = "above" if d["close"] > d["hi90"] else "below"
-        reason = next((m["reason"] for m in idx["misses7"] if m["date"].split(" ", 1)[1] == d["date"]), None)
-        rows.append(f'<tr><td>{d["date"]}</td><td>{fmt(gap)} {side}</td>'
-                    f'<td>{reason or "<i>reason kept for the last 7 days only (builder to extend)</i>"}</td></tr>')
-    body = "".join(rows) or '<tr><td colspan="3">No miss in the last 30 days.</td></tr>'
-    return ('<table class="misses"><thead><tr><th>Date</th><th>Outside by</th><th>Reason</th></tr></thead>'
-            f'<tbody>{body}</tbody></table>')
 
 
 def _levels(name):
@@ -160,39 +148,44 @@ def _levels(name):
     return f'<table class="levels"><tbody>{rows}</tbody></table>'
 
 
-def evening_card(idx, issue_day):
-    name, days = idx["name"], idx["days"]
-    today = days[-1]
+def evening_section(idx, issue_day):
+    name, days = idx["name"], idx["days"][-30:]
+    today, grid = days[-1], GRID[name]
     st = status(today)
-    aria = f"{name}: the last 30 days, forecast corridors and the close"
-    fan = FanChart(days[-30:], FanLayout(WIDTH, GRID[name], plot_height=260), date_every=5)
-    small = FanChart(days[-30:], FanLayout(PHONE, GRID[name], plot_height=220, axis_width=44), date_every=7)
-    trend, trend_small = _trend(idx), _trend(idx, PHONE)
+    a1 = f"{name}: forecast middle and actual close, last 30 days"
+    a2 = f"{name}: how far the close was from the forecast middle, last 30 days"
+    c1 = _both(TwoLinesChart(days, LinesLayout(WIDE, grid), date_every=3).svg(a1),
+               TwoLinesChart(days, LinesLayout(PHONE, grid, plot_height=200, axis_width=46), date_every=7).svg(a1))
+    c2 = _both(GapChart(days, GapLayout(WIDE, grid), date_every=3).svg(a2),
+               GapChart(days, GapLayout(PHONE, grid, plot_height=200, axis_width=46), date_every=7).svg(a2))
+    trend = _both(_trend(idx, WIDE).svg(f"{name}: reliability trend"), _trend(idx, PHONE).svg(f"{name}: reliability trend"))
     return (f'<div class="card"><h2>{name}<small>{today["date_long"]} · closed {fmt(today["close"])}</small></h2>'
-            f'<div class="verdict"><span class="chip {st}">{GLYPH[st]} {WORD[st]}</span><div class="facts">'
-            f'forecast <b>{fmt_low(today["lo50"])} – {fmt_high(today["hi50"])}</b> · closed <b>{fmt(today["close"])}</b>'
-            f'<br>{MEANS[st]}</div></div>'
-            f'{_why(WHY_TITLE[st], _why_evening(idx, today, st))}'
-            f'<div class="lab">Last 30 days · forecast vs actual <span class="when">gridlines every {GRID[name]}, '
-            f'a number every {GRID[name] * fan.label_every}</span></div>'
-            f'{_both(fan.svg(aria), small.svg(aria))}{_key()}'
-            f'<div class="lab">This month · right vs wrong</div>{month_grid(days, issue_day)}'
-            f'<div class="lab">Reliability trend <span class="when">20-day share inside “almost certainly” · '
-            f'{trend.state()}</span></div>'
-            f'{_both(trend.svg(f"{name}: reliability trend"), trend_small.svg(f"{name}: reliability trend"))}'
-            f'<div class="lab">When it was wrong · last 30 days</div>{_misses_table(idx)}'
+            f'{result_card(today)}{_why(WHY_TITLE[st], _why_evening(idx, today, st))}</div>'
+            f'<div class="card"><div class="lab first">{name} · chart 1 · forecast vs actual close, last 30 days '
+            f'<span class="when">gridlines every {grid}</span></div>{c1}{_lines_key()}</div>'
+            f'<div class="card"><div class="lab first">{name} · chart 2 · how far off, last 30 days '
+            f'<span class="when">actual close minus the forecast middle, in points · above zero = closed higher than '
+            f'forecast · dashed = the range edges</span></div>'
+            f'{c2}<p class="key"><span><i class="ln r50"></i>most likely edges</span><span><i class="ln r90"></i>almost '
+            f'certainly edges</span><span class="nowrap"><i class="dot green"></i>✓ · <i class="dot amber"></i>⚠ · '
+            f'<i class="dot red"></i>✗</span></p></div>'
+            f'<div class="card"><div class="lab first">{name} · day by day, last 10 sessions</div>{day_table(idx, days[-10:])}</div>'
+            f'<div class="card"><div class="lab first">{name} · right vs wrong</div>'
+            f'{counts_line(days, "trading days, the last 30")}{month_block(idx["days"], issue_day)}</div>'
+            f'<div class="card"><div class="lab first">{name} · reliability trend <span class="when">20-day share inside '
+            f'“almost certainly” · {_trend(idx, WIDE).state()}</span></div>{trend}</div>'
+            f'<div class="card"><div class="lab first">{name} · when it was wrong, last 30 days</div>{misses_table(idx, days)}'
             f'<div class="lab">Levels and flows · today’s chain and NSE flows <span class="when">example values until '
             f'wired</span></div>{_levels(name)}</div>')
 
 
 def evening(data):
     today = data["indices"][0]["days"][-1]
-    issue_day = max(d["iso"] for d in data["indices"][0]["days"])
-    from datetime import date
-    cards = "".join(evening_card(idx, date.fromisoformat(issue_day)) for idx in data["indices"])
+    issue_day = date.fromisoformat(max(d["iso"] for d in data["indices"][0]["days"]))
+    body = "".join(evening_section(idx, issue_day) for idx in data["indices"])
     return (_head(f'Evening check, {today["date_long"]}')
             + _header("Was today’s forecast right?", today["date_long"], "20:05", data)
-            + f'<div class="cols">{cards}</div>' + _foot(data) + "</div></body></html>")
+            + KEY + body + _foot(data) + "</div></body></html>")
 
 
 def main():
