@@ -16,7 +16,7 @@ from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
 from ..storage.receipts import ReceiptFolder
 from .run import LATE, OK, PartResult
 
-PREOPEN_RECEIPT_BY = time(9, 20)  # the day row's receipt pushed by then (FL1 reads it at 09:15; O8 judges at 17:51)
+PREOPEN_RECEIPT_BY = time(9, 15)  # the consumer's need: FL1's 09:15 report reads the row (O8 judges it at 17:51)
 DAY_FILE = "preopen/day/{day:%Y}/{day:%m}/{day:%Y-%m-%d}.csv"
 RAW_FILE = "preopen/raw/{day:%Y}/{day:%m}/{day:%d}/{part}_{seen:%H%M%S}.json"
 VALUE_COLUMNS = {

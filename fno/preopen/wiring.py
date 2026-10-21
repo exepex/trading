@@ -44,10 +44,23 @@ def build_preopen_recorder(cfg: dict) -> PreopenRecorder:
 def _parts(cfg: dict) -> list[PreopenPart]:
     session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
-    provider = GrowwProvider(cfg)
+    provider = _LazyGroww(cfg)
     api = ReadOnlyGroww(lambda: provider.api)  # the only Groww object the capture holds
     indices = [GrowwIndexPreopen(name, _candles(api, symbol)) for name, symbol in GROWW_SYMBOLS.items()]
     return [NseGiftNifty(session, now_ist), NsePreopenList(session, now_ist), *indices]
+
+
+class _LazyGroww:
+    """Builds Groww's provider at the first read, not at wiring: the SDK (requirements-groww.txt) is then needed only
+    by a live read, where its absence is a named part failure (`CandleCallFailed`), never a crash at start."""
+
+    def __init__(self, cfg: dict):
+        self.cfg, self._provider = cfg, None
+
+    @property
+    def api(self):
+        self._provider = self._provider or GrowwProvider(self.cfg)
+        return self._provider.api
 
 
 def _candles(api, symbol: str) -> GrowwCandleSource:

@@ -195,7 +195,7 @@ def test_exactly_these_checks_are_live_from_these_sessions():
         "3 pm Groww recorder": expectations.FIRST_RECORDED, "NSE recorder": expectations.FIRST_RECORDED,
         "Forecast v2 records": expectations.FIRST_RECORDED, "Book 2 sealed forecast": expectations.FIRST_SEALED,
         "Book 3 sealed forecast": expectations.FIRST_SEALED, "Desk daily run": None, "A16 15-minute marks": None,
-            "A22 pre-open data": None,
+        "A22 pre-open data": None,
         "A8 participant OI": expectations.DATA_JOBS_FROM, "Index closes": expectations.DATA_JOBS_FROM,
         "NIFTY panel day": expectations.DATA_JOBS_FROM, "FII/DII flows": expectations.DATA_JOBS_FROM,
     }  # fmt: skip

@@ -64,7 +64,7 @@ In:
      `fno/health/preopen_checks.py` behind `SessionCheck`, one `Expectation` row (`RECORDED_SESSION_KINDS`,
      `live_from` None until the first live day, set in a separate commit). Status from the receipt's **push time**
      (`Evidence.file_pushed_at`), never its self-written time; unknown push time is `unknown`, never `ok`; the
-     deadline `PREOPEN_RECEIPT_BY = time(9, 20)` and the receipt path pattern are A22's constants, imported by O8.
+     deadline `PREOPEN_RECEIPT_BY = time(9, 15)` (FL1's read; O8's owner, code review) and the receipt path pattern are A22's constants, imported by O8.
      O8 runs at 17:51 IST, so it names a missed morning that evening.
    - The same-morning alarm is FL1's 09:15 report line "pre-open data: missing" when today's row is absent (agreed
      with FL1's builder; FL1-2 is not built yet).
@@ -98,7 +98,7 @@ values in a forecast (FL1's job: the 09:15 forecast can use both); historical ba
    the committed paths); each problem gives one O10 row and the run sends one alert.
 6. The routine prompt and its CLAUDE.md section exist; the command runs end to end against fixtures in a test.
 7. Real output sample: the first two live mornings' lines in the claims file.
-8. Witness: a planted trading day with no pre-open row gives O8's row `missed` after 09:20 and FL1's line "pre-open
+8. Witness: a planted trading day with no pre-open row gives O8's row `missed` from 09:15 and FL1's line "pre-open
    data: missing"; a holiday gives neither; the first live week's miss rate (routine fires missed / trading days) is in
    the claims file.
 

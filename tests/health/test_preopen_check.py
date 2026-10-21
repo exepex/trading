@@ -1,4 +1,5 @@
-"""A22's witness in O8 (criterion 8): the pre-open day row's receipt judged by its push time against 09:20."""
+"""A22's witness in O8 (criterion 8): the pre-open day row's receipt judged by its push time against 09:15, when
+FL1's report reads it (O8's owner, review of a2b2ad8c)."""
 
 from __future__ import annotations
 
@@ -30,14 +31,14 @@ def test_the_receipt_path_is_the_day_rows_receipt():
     assert receipt_path(DAY) == "receipts/data/preopen/day/2026/10/2026-10-15.csv.sha256"
 
 
-@pytest.mark.parametrize(("pushed", "status"), [(ist(DAY, 9, 20), HEALTH_OK), (ist(DAY, 9, 20, 1), HEALTH_LATE)])
-def test_on_time_by_its_push_up_to_0920_exactly(repo, pushed, status):
+@pytest.mark.parametrize(("pushed", "status"), [(ist(DAY, 9, 15), HEALTH_OK), (ist(DAY, 9, 15, 1), HEALTH_LATE)])
+def test_on_time_by_its_push_up_to_0915_exactly(repo, pushed, status):
     _pushed(repo, pushed)
     assert _check(repo).check(DAY, ist(DAY, 17, 51)).status == status
 
 
-@pytest.mark.parametrize(("now", "status"), [(ist(DAY, 9, 19, 59), HEALTH_NOT_DUE), (ist(DAY, 9, 20), HEALTH_MISSED)])
-def test_no_receipt_is_not_due_before_0920_then_missed(repo, now, status):
+@pytest.mark.parametrize(("now", "status"), [(ist(DAY, 9, 14, 59), HEALTH_NOT_DUE), (ist(DAY, 9, 15), HEALTH_MISSED)])
+def test_no_receipt_is_not_due_before_0915_then_missed(repo, now, status):
     result = _check(repo).check(DAY, now)
     assert result.status == status and "never ran" in result.detail
 

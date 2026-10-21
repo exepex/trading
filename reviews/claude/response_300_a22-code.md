@@ -15,7 +15,7 @@ Text: `docs/stories/A22-preopen-data.md` (judge 407 PASS, add. 1 and 2). O8's ow
 | 5 Storage, records | `fno/preopen/record.py`, `day_row.py` | raw answers and the day row write-once through O9's `DataStore` (receipts); one O10 row per problem; one alert per run; the second run finds the day row taken and the first row stands; Drive down names each unsaved file and writes no receipt; no value in any committed file, O10 row or alert (`tests/preopen/test_record.py`) |
 | 6 Routine | CLAUDE.md "Pre-open capture (story A22)"; `python -m fno preopen record` | end to end with the real adapters over a fake NSE session and fake Groww candles (`test_record.py`) |
 | 7 Real output | after the owner creates the 08:36 routine | **pending** (first two live mornings) |
-| 8 Witness | `fno/health/preopen_checks.py`, one `Expectation` row (`live_from` None) | receipt pushed at 09:20:00 ok, 09:20:01 late; absent 09:19:59 not due, 09:20:00 missed (O8's shared rule); unknown push time is `unknown`; regular and special expected, holiday and muhurat not (`tests/health/test_preopen_check.py`). FL1's 09:15 line "pre-open data: missing" is FL1-2's code (not built); its contract is `day_file(day)` and `receipt_path(day)` in `fno/preopen/day_row.py` |
+| 8 Witness | `fno/health/preopen_checks.py`, one `Expectation` row (`live_from` None) | receipt pushed at 09:15:00 ok, 09:15:01 late; absent 09:14:59 not due, 09:15:00 missed (O8's shared rule; 09:20 before addendum 1); unknown push time is `unknown`; regular and special expected, holiday and muhurat not (`tests/health/test_preopen_check.py`). FL1's 09:15 line "pre-open data: missing" is FL1-2's code (not built); its contract is `day_file(day)` and `receipt_path(day)` in `fno/preopen/day_row.py` |
 
 Safety: `tests/preopen/test_safety.py` (no trading call in the package; `GrowwProvider` only in `wiring.py`, held
 through `ReadOnlyGroww`).
@@ -80,8 +80,8 @@ sessions 21 equal {'nifty': 21, 'banknifty': 21} largest abs diff {'nifty': 0.0,
 `pytest -n auto`: 9,023 passed, 17 xfailed. `ruff check`, `ruff format --check`, `check_imports` and
 `check_records` are clean. Every file is under 350 lines (largest 98). A22's tests: 49 in `tests/preopen/` and 7 in
 `tests/health/test_preopen_check.py`. **Mutations: 11 of 11 caught**: GIFT 15 to 16 min; 09:08 to 09:07; the 09:09
-candle to 09:08; the last read 09:10:59 to 09:11:00; `late` from `<` to `<=`; values for every status; 09:20 to
-09:21; part problems dropped; BANKNIFTY's symbol. The same-day GIFT rule survived at first, so I added a
+candle to 09:08; the last read 09:10:59 to 09:11:00; `late` from `<` to `<=`; values for every status; the deadline
+plus a minute; part problems dropped; BANKNIFTY's symbol. The same-day GIFT rule survived at first, so I added a
 before-midnight test, which now catches it.
 
 ## Open
@@ -92,3 +92,19 @@ before-midnight test, which now catches it.
   09:10:59 limit) on the first live week; widen toward 09:11:30 if near the limit.
 - Text open question 2 (the owner's personal-research rule covering NSE's GIFT Nifty and pre-open pages) is not answered
   in DESK_DECISIONS as far as I found.
+
+## Addendum 1: judge 432 (FAIL, 1 should-fix) and O8's owner's review, both answered
+
+- **Judge 432 SF1, accepted.** `GrowwProvider.__init__` imports `growwapi`, and CI installs `requirements.txt` only,
+  so `wiring._parts` broke a test there. The provider is now built at the first read (`_LazyGroww` in
+  `fno/preopen/wiring.py`). Without the SDK, wiring still works and a read fails as a named part failure
+  ("Groww 1m ...: RuntimeError", the provider's own "Install the Groww SDK first"), never a crash at start. Two tests,
+  both with `growwapi` blocked: the wiring builds, and a read is `PartFailed`. Reproduced first: with the SDK
+  blocked by a `sitecustomize` import blocker, the old code fails that test (1 failed) and the new code passes. **Full
+  suite with `growwapi` blocked, as in CI: 9,025 passed, 17 xfailed.** ruff, format, imports and record scan are clean.
+- **O8's owner, should-fix, accepted.** The deadline was later than the need. `PREOPEN_RECEIPT_BY` is now 09:15,
+  FL1's read time (FL1 defines no cut-off constant yet to import; FL1-2 is not built). So a receipt pushed after 09:15
+  reads `late`, never "ok" for a row FL1 could not use. The story text and the boundary tests moved with it.
+- O8 nit 1 (indentation in the live-from table) is fixed. Nit 2: `DATA_AREA` and `RECEIPTS_FOLDER` exist only in
+  `fno/storage/data_wiring.py`. Moving O9's constants is outside A22, so they stay, as the reviewer allowed.
+- A16b's builder agrees with `symbol=` (the source still takes only a `ReadOnlyGroww`).
