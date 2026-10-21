@@ -48,3 +48,10 @@ Rejected options:
 ## Until A17e's code merges
 The Nasdaq-100 is one US trading day late at the open (reasoning: one day late, never wrong). The S&P 500 is on time
 and is the open's US equity cue.
+
+## Poll result (added 21 Oct, 22:50 UTC)
+Nasdaq's history API was read every 15 minutes from 21:02 to 22:48 UTC on 21 Oct, which is 17:02 to 18:48 New York
+(8 reads). It still lacked the 21 Oct close every time. The poll then stopped at its 2-hour limit. So Nasdaq
+publishes the day's close more than 2 h 48 min after the 16:00 New York close, and it is not out by 04:18 IST. The
+03:41 run's copies, taken at about 20:00-21:10 New York, lacked it too. The Yahoo cue of A17e's amendment 1 is the
+fix; when Nasdaq's close appears exactly stays unmeasured.
