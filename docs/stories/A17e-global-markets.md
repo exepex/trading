@@ -60,7 +60,10 @@ index that is open at 08:50 IST (Nikkei, KOSPI, ASX 200 and TAIEX from 05:30-06:
    from the first run), `kospi` (KRX, only once `FNO_KRX_API_KEY` exists; until then the run line says
    "kospi: not configured" and the run is not failed for it).
 2. Yahoo cues, one per index, all eleven, back-filled from 2019 (`<index>_yahoo`): the history before each official
-   file starts, and the only source for Hang Seng, ASX 200, Straits Times and FTSE 100. One class
+   file starts, and the only source for Hang Seng, ASX 200, Straits Times and FTSE 100. Amendment 1 (response 298):
+   a twelfth, `nasdaq100_yahoo` (^NDX), because Nasdaq's own API publishes the close too late for the 03:41 run (the
+   Nasdaq-100 was one US trading day late on every weekday morning, 17-21 Oct); A17's `nasdaq100` reading then takes
+   Yahoo's value until Nasdaq has the date. One class
    `YahooChartSource(cue, symbol)`; dates in the exchange's own time zone from the answer's `exchangeTimezoneName`.
    **A block is a stop, never a puzzle (rule 2 of 50a79a43):** an answer of HTTP 401, 403 or 429, a consent or
    "crumb" page, or a CAPTCHA page stops that Yahoo cue for the run, writes nothing, and is named in the run's one
@@ -108,7 +111,8 @@ values in any forecast (FL1, M1 and GR1 decide that).
    timestamp one second before midnight local stays on its day); no weekend rows; a date given twice in one answer is
    left out and listed in the checks, never guessed (one ASX duplicate seen in the 2019 back-fill); a row with a null
    close is skipped; an answer with no timestamps is refused with a named `ValueError`.
-3. The reading prefers the official value; the overlap check lists the 2026-02-06 VIX difference and the two missing
+3. The reading prefers the official value (amendment 1: the `nasdaq100` reading at 09:15 is Yahoo's previous close
+   when Nasdaq's copy lacks it, Nasdaq's once it has it; tested with the 20-21 Oct copies); the overlap check lists the 2026-02-06 VIX difference and the two missing
    2019 SSE sessions when run on the real back-fill (cited in the claims).
 4. `available_at` per market, tested at, one minute before and one minute after each boundary (IST): Shanghai 15:00
    Beijing = 12:30, Taipei 13:30 = 11:00, Seoul and Tokyo 15:30 = 12:00, Hong Kong 16:10 (after the closing auction)
