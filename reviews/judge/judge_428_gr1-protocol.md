@@ -175,3 +175,50 @@ As written, the code would make these choices.
    change now is not a deviation. Record it in section 14 as "revision before review, judge 428", with a new hash in
    `FREEZE.md` and the ledger's protocol commit updated.
 2. Then I re-check the text, the hash and the ledger rows.
+
+## Addendum 1: revision 2 at a7a1b28a, freeze record 7cd1c3c1 (number 428.1, claimed with `tools/claim_number.py`)
+
+**PASS.** The protocol may proceed to step 2 (code on synthetic data, then hash-freeze before run 1). Nothing has been
+fitted or scored, and no study code exists: the branch adds only the protocol, the freeze record and the ledger rows.
+
+### Freeze and ledger
+- `PROTOCOL.md` has SHA-256 `ec02703d...3f0` at both a7a1b28a and 7cd1c3c1. `FREEZE.md` records it under "Revision 2"
+  and keeps the first freeze's hash above it.
+- All 15 ledger rows 56-70 now name a7a1b28a.
+- Row 62 (C7) says "Brent dropped, judge 428".
+- Section 14 dates the revision as before review.
+
+### The four should-fixes
+| Should-fix | Result | Where |
+|---|---|---|
+| SF1, band costs | MET | Section 9 states the rates. N1: about 23% on 2024 and 6-7% on the final period; the builder's own exact binomial gave 23.1% and 6.2% at n = 440. N3: 37% and 17%. Both looks together: 72% and 53% pass. The bands stay hard, C0 is checked and reported on both periods, and no winner means "not shown at this sample size" |
+| SF2, cue timing | MET | Every cue is read by A17's `value_for(live_only=False)` with its `available_at`, at 15:30 on d (C7) and 09:15 (N0-C), and the text says "never a raw `value_date < d`". Brent is dropped as at least 10 days stale. A planted same-day test per series is in section 12 step 2 |
+| SF3, day sets | MET | Selection uses each candidate's paired mean QS difference against C0 on its own days, and dropped days are reported with reasons (sections 7 and 9) |
+| SF4, N0's rule | MET | N0-B and N0-C are compared against N0-A on 2024 under the bands, and the better eligible one goes to the final period. There is no Holm and no "sharper". All three are reported against N1, with width-ratio bootstrap intervals (section 11) |
+
+### Notes from the verdict
+All are in the text:
+- the count of 51 (48 candidate-cells including FII/DII, 42 fitted, plus 3 N0);
+- C2's crossing guard;
+- C11's pair chosen on train;
+- the regime breaks, with C9 reported split at them;
+- run 2 deterministic, refusing if `final.json` exists in any commit, and recording its input hashes;
+- the two-sided p-value, with direction required;
+- a gap means the cell is not decided;
+- a C1 or C2 winner is marked "known before the study".
+
+The figures are consistent: 0.769 x 0.938 = 0.72.
+
+### New notes (one line each, none blocking)
+1. C2's guard refuses crossings on **train** days only. Implied's shape varies by day, so a fitted C2 could still
+   cross on a 2024 or final day. The code should check every scored day and count a crossing as a failed fit.
+2. `DATA_SPEND.md`'s global-cues row still names Brent among the registered series. Brent is now unused, so drop it
+   from that row when the code commit lands.
+3. The builder's honest limit (the 2025-26 records sit in Drive and implied's own 2025-26 scores were read; what is
+   sealed is every candidate's 2025-26 performance) is not yet in section 2. Section 2 already says the final period
+   is not fresh for the baseline, so this is wording only.
+
+### Next steps for me
+- The code commit with its hash freeze, before run 1: I check the synthetic tests, the planted 2025 row, the planted
+  same-day cues, and that the hashes match.
+- After run 2: I reproduce `final.json` from the committed `selection.json`, then judge the results file.
