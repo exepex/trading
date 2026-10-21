@@ -23,7 +23,7 @@ from fno.numbering.claim import ClaimNotPushed, ClaimRequest  # noqa: E402
 from fno.numbering.git_main import GitFailed  # noqa: E402
 from fno.numbering.wiring import build_number_claimer  # noqa: E402
 
-CLAIMED = "claimed: {category} {number} -> {name}"
+CLAIMED = "claimed: {category} {number} -> {name}\nnext: {step}"
 NOT_CLAIMED = "number claim: NOT claimed ({reason})"
 
 
@@ -42,7 +42,8 @@ def main(argv: list[str] | None = None, claimer=None) -> int:
     except (ValueError, ClaimNotPushed, GitFailed) as reason:  # ValueError: a refused request or a broken registry
         print(NOT_CLAIMED.format(reason=reason))
         return 1
-    print(CLAIMED.format(**vars(claim)))
+    step = CATEGORIES[claim.category].next_step(claim.number, claim.name)
+    print(CLAIMED.format(**vars(claim), step=step))
     return 0
 
 
