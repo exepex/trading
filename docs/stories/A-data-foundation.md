@@ -979,7 +979,12 @@ report can check today's forecast against today's close the same day, marked "pr
 - **One read.** `nse_json("/api/allIndices")`, through the existing client, with up to 3 tries 60 seconds apart on an
   error or a refused stamp.
 - **When a read counts.** Its `timestamp` parses to today's session date at 15:30 or later. Any other stamp (the
-  previous session, before 15:30, missing) is refused with its text.
+  previous session, today before 15:30, missing) is refused with its text.
+- **Regular sessions only (known limit).** A7's calendar has no close time per session (columns: date, kind,
+  description, source), and its special sessions do not all close at 15:30 (the DR-site Saturdays end F&O at 12:30).
+  So on a `special` or `muhurat` day the command prints `close not read: <kind> session (no close time in the
+  calendar)` and exits 0 with nothing written: a known gap, not a failure (FL1-1 likewise covers regular sessions
+  only). A close time per session in A7 would lift it.
 - No "unchanged for 60 s" rule: 10 minutes after the close, two reads a minute apart can only catch a change in that
   minute, while the confirm step catches any difference at all. (Reasoning only; the 5 sessions test the read itself.)
 - **No 15:44 end.** The step starts at the later of 15:40 and the end of `candles` (as late as about 15:43), and any
@@ -1021,7 +1026,8 @@ reported. A difference over 0.01 on any of those days stops FL1's use until it i
 
 **Acceptance criteria:**
 1. **The stamp decides.** Using NSE answers built from the 21 Oct read (stamp 15:30 today, the previous session's
-   stamp, 15:29, missing, an error page, one index missing), only the first is recorded. Each refusal prints its reason.
+   stamp, today at 15:29, missing, an error page, one index missing), only the first is recorded. A special session
+   day prints its known-limit line, writes nothing and exits 0. Each refusal prints its reason.
    The tries stop at 3.
 2. **Write-once and receipts.** The raw answer and the record each go to the data store once, with a receipt. A rerun
    on a recorded day writes nothing.
