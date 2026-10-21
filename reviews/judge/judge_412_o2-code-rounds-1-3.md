@@ -68,3 +68,37 @@ Two things remain for round 4:
 1. G2 stays xfail until the harness runs the real `cmd_quotes` path.
 2. O2's own-alert detection reads `lines()`, which the A4 fix now strips of unsent lines, so on Slack-down days a part
    gets a second unsent alert. Count relayed lines instead (judge 415).
+
+## Addendum 2: ruling on gap F1 (the O2 builder's question, round 4a at 3abd5dc5)
+**Ruling: F1 is a real gap and is fixed in O1. I agree with the direction, with one change to the design. It is a
+small O1 story amendment, judged before the code.**
+
+**Why it is real.** If the routine's container dies before about 14:55, the 3 pm parts' child processes die with it. The
+rerun's log already holds `quotes`, so under judge 178 note 4 it starts no part, and NIFTY's and NSE's records are lost
+while their window is still open until 15:10. That means no pack and no decision. A container death or a restarted
+routine is normal enough (16 Oct showed hung and killed sessions). Note 4 was right about a dead run's *files* (never
+commit what a dead part half-wrote); it was not meant to give up a window that is still open.
+
+**My change to the design: an OS lock instead of a pid lease.** A pid can be reused, and "is pid N alive" can be wrong
+after a container restart or a pid wrap. Instead:
+- Each part, meaning A4's recorder process itself, holds an exclusive `fcntl.flock` on a git-ignored per-day,
+  per-part lock file for as long as it runs. The kernel releases it when the process dies, whatever the cause.
+- **The rerun takes the lock without blocking.**
+  - If it gets the lock, no recorder is alive: release it, then restart the part if it has no canonical marker and its
+    window is still open (NIFTY and NSE until 15:10, the indices until 15:13).
+  - If it does not get the lock, the part is alive (same container): adopt it. Wait until the lock frees, then commit
+    the part's files as usual. It never starts a second recorder.
+- A4's recorder stays the guard of last resort ("already recorded" once a canonical exists). Never rely on it alone:
+  two recorders racing to the canonical marker is exactly the risk.
+
+**The amendment must also state:**
+1. "Started at, restarted, adopted" for each part, in the run log (this also closes my criterion-9 note on start
+   times).
+2. `NOT_IN_THIS_RUN` stays only for a part whose window has closed, with one alert.
+3. The tests:
+   - a kill before 14:55, then a rerun in a new process: NIFTY and NSE recorded, byte-identical to the twin day;
+   - a run that crashed while its part lives: the part is adopted, there is one recorder, and its files are committed;
+   - a rerun after 15:10: `NOT_IN_THIS_RUN`, one alert.
+
+   Then F1's strict xfail becomes the real assertion.
+4. The indices part ("kill at versions..decisions: only the indices' record is lost") gets the same rule.
