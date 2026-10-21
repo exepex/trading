@@ -8,11 +8,19 @@ history ending the day before (G13b's committed close table is not in the replay
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
-from fno.cards.posting import PostReceipt
+from fno.forecast_lab.delivery import Attachment, Delivery, ReportPoster
 from fno.forecast_lab.g13b_adapter import G13bCloses, G13bRanges
+from fno.forecast_lab.g13b_history import G13bHistory
 from fno.forecast_lab.lab_close import LabClose
+from fno.forecast_lab.maker import ReportMaker
 from fno.forecast_lab.match import MatchSection
+from fno.forecast_lab.page.builder import PageBuilder
+from fno.forecast_lab.page.camera import PageCamera
+from fno.forecast_lab.page.facts import FactsSource
+from fno.forecast_lab.page.reasons import Facts
+from fno.forecast_lab.page.render import InterimRenderer
 from fno.forecast_lab.records import DriveReportRecords
 from fno.forecast_lab.report import CloseReport
 from fno.forecast_lab.sessions import RegularSessions
@@ -36,15 +44,30 @@ UNDERLYINGS = ("NIFTY",)
 REPORT_AT = rd.at(15, 45)
 
 
-class ForecastChannel:
-    """#fno-forecast: every post recorded, each accepted."""
+class ForecastChannel(ReportPoster):
+    """#fno-forecast: every message recorded with its files' names, each accepted."""
 
     def __init__(self):
         self.posts: list[str] = []
+        self.files: list[dict[str, bytes]] = []
 
-    def post(self, text: str) -> PostReceipt:
+    def post(self, text: str, attachments: list[Attachment]) -> Delivery:
         self.posts.append(text)
-        return PostReceipt("alert sent", f"{len(self.posts)}.0", "forecast")
+        self.files.append({a.name: a.data for a in attachments})
+        return Delivery("posted to #fno-forecast", sent=True)
+
+
+class FixedCamera(PageCamera):
+    """Headless Chromium is an outside program: the replay takes a fixed picture (FL1-1c's own tests draw real ones)."""
+
+    def picture(self, html: str, out: Path) -> Path:
+        out.write_bytes(b"PNG replay")
+        return out
+
+
+class NoFacts(FactsSource):
+    def facts(self, day):
+        return Facts()
 
 
 class NoCloses(CloseSeries):
@@ -85,16 +108,21 @@ class LabReplay:
         folder = self.root / "receipts"
         return [p.relative_to(self.root).as_posix() for p in folder.rglob("*.sha256") if "price_ranges" in p.as_posix()]
 
+    def _reader(self, store) -> tuple[RangeForecasts, RangeScores]:
+        return RangeForecasts(self.drive.folder, self._seals(store)), RangeScores(self.drive.folder)
+
     def lab_close(self, day) -> list[str]:
         """`fno lab close` (O1's `lab_close` step, FL1-1) at 15:45, the lab and G13b live from the day."""
         self.clock.until(REPORT_AT)
         store = DriveDistributionStore(self.drive, self._store("pricerange"))
-        ranges = G13bRanges(RangeForecasts(self.drive.folder, self._seals(store)), RangeScores(self.drive.folder))
+        ranges = G13bRanges(*self._reader(store))
         sessions = RegularSessions(CALENDAR)
         report = CloseReport(ranges, MatchSection(ranges, G13bCloses(Outcomes(NoCloses())), sessions, day), day,
                              underlyings=UNDERLYINGS)  # fmt: skip
         records = DriveReportRecords(self._store("lab-close"), ReceiptFolder(self.root / "receipts"))
-        result = LabClose(report, records, self.channel, self.alerts, sessions.is_regular, self.clock).run(day)
+        pages = PageBuilder(ranges, G13bHistory(*self._reader(store)), NoFacts(), sessions, UNDERLYINGS)
+        maker = ReportMaker(pages, InterimRenderer(), FixedCamera())
+        result = LabClose(report, maker, records, self.channel, self.alerts, sessions.is_regular, self.clock).run(day)
         if result.failed:
             raise RuntimeError(result.lines[-1])
         return result.lines

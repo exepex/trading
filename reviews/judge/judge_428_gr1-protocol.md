@@ -271,3 +271,20 @@ The registration (protocol, freeze record, ledger rows 56-70, `LEDGER.md`, `DATA
 merged tree.
 
 Next I judge the study code and its hash freeze, before run 1.
+
+## Addendum 4: the ledger-guard test at 8ffcc78c (number 428.4, claimed with `tools/claim_number.py`)
+
+**PASS.** It is test-only and touches one file, `tests/research/test_ledger_guard.py`, on top of the 9c67a3c7 freeze
+I passed in addendum 3.
+
+What the test now checks, following the pattern of R2, FT1 and B0:
+- the repository ledger's trial ids run 1-70;
+- GR1's 15 rows are prospective, with 11 hypotheses;
+- all 15 point to `research/gr1/PROTOCOL.md` under a single protocol commit;
+- row 67 is "NOT TESTED".
+
+Checks I ran on 8ffcc78c:
+- The file passes: 8 tests.
+- My plant (row 62's hypothesis flipped to "no") fails 1 test.
+
+The registration (9c67a3c7 plus 8ffcc78c) may merge to main as a merge commit. Run the full suite on the merged tree.

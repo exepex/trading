@@ -38,7 +38,6 @@ def test_every_o1_step_has_its_live_date():
     assert all(load_app_config()["daily"]["live_from"].values())
 
 
-@missing("O1 follow-up: the 14:05 start")
 def test_the_daily_routine_starts_before_the_1430_forecast_cutoff():
     section = (ROOT / "CLAUDE.md").read_text(encoding="utf-8").split("## Daily desk routine")[1].split("\n## ")[0]
     assert "14:33" not in section

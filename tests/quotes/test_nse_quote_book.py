@@ -8,7 +8,8 @@ from datetime import datetime
 from fno.models import IST
 from fno.providers.nse_quotes import NseQuoteProvider
 from fno.quotes.compare import compare_lines
-from fno.quotes.recorder import DATASET, NSE_DATASET, VOLUME_PROXY, QuoteSnapshotRecorder
+from fno.quotes.recorder import DATASET, NSE_DATASET, QuoteSnapshotRecorder
+from fno.quotes.snapshot_rows import VOLUME_PROXY
 from fno.storage.raw_store import LocalFolderStore
 
 from .test_quote_recorder import Clock

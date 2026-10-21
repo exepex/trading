@@ -446,3 +446,23 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
     `tests/daily/test_day_run.py::test_a_part_commit_whose_push_failed_is_alerted_as_not_pushed_and_the_day_goes_on`.
   - O2's strict xfail for G4 (`tests/e2e/test_hangs.py`, on `story/o2-failure-handling`) becomes the real assertion
     when this merges.
+
+### Fix: a `none` canonical marker is never `ok` on a rerun (F1 follow-up, 21 Oct; branch `story/o1-none-marker`)
+
+- **Gap (strong evidence, found in my own F1 code while reviewing A4f):** `PartMarkers.recorded` tested only that
+  each marker file exists. A4 writes the marker as `none` when the window ends with no complete attempt
+  (`NONE_MARKER`, `fno/quotes/recorder.py` 56 and 168-170). So a rerun after such a day called the part `ok`,
+  "recorded earlier", and the committed run log claimed data that does not exist.
+- **Fix:** `PartMarkers.ended_none` reads each marker's content. `EarlierRun` returns `failed`, "the day ended none,
+  no complete attempt (recorded earlier, commit <sha>): <markers>", when any marker is `none`.
+- **One change from my first proposal, to the orchestrator:** I proposed no second alert, saying the recorder alerts
+  for itself. Reading `record_today` (`fno/quotes/cli.py` 101-125) shows that is not always so: incomplete captures
+  until 15:10 end `none` with exit 1 and no own alert, and there O1's `PART_NOT_OK` is the only alert. A run killed
+  between the marker and O1's alert would then stay silent. So the rerun alerts once; the risk is a duplicate, not a
+  silent day.
+- **Tests:**
+  - `tests/daily/test_part_resume.py::test_an_earlier_run_s_part_whose_marker_says_none_fails_with_one_alert_never_ok`;
+  - `tests/e2e/test_kill_rerun.py::test_a_rerun_of_a_day_whose_nifty_ended_none_records_it_failed_and_alerts_it_once_more`,
+    on the real markers: Groww down all day, killed at the desk, then a rerun.
+  - With the check planted out, both fail.
+

@@ -32,7 +32,7 @@ from fno.storage.wiring import QUOTES_FOLDER
 from tests.checks.builders import CALENDAR, nse_files
 from tests.timetable.drive_day import fresh_container
 
-from .children import Background, Children, Foreground, groww_snapshot, nse_snapshot
+from .children import Background, Children, Foreground, groww_snapshot, nse_snapshot, weekly_snapshot
 from .outside import (
     DAY,
     START,
@@ -211,7 +211,8 @@ def quote_parts_script(day_: Day) -> dict:
         clock.set(max(clock(), datetime.combine(day_.day, time(15, 13), IST)))
         for name in ("banknifty", "finnifty", "midcpnifty"):
             groww_snapshot(build_quote_store(staging), day_.day, name, clock())
-        return 0, ["recorded: 3 indices"]
+        weekly_snapshot(LocalFolderStore(staging), day_.day, clock())  # A4f: the indices part's fourth marker
+        return 0, ["recorded: 3 indices and NIFTY weekly"]
 
     return {
         ("quotes", "record"): Background(nifty),

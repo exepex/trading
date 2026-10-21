@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from .delivery import Attachment
+
 
 def key(underlying: str, day: date) -> str:
     return f"{underlying} {day.isoformat()}"
@@ -20,3 +22,4 @@ class WrittenReport:
     alerts: tuple[str, ...]
     checked: tuple[str, ...] = ()
     matched: tuple[str, ...] = ()
+    attachments: tuple[Attachment, ...] = ()  # the picture and the details file (FL1-1c), posted with the text

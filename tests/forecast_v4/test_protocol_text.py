@@ -100,3 +100,41 @@ def test_the_days_clock_and_x_in_the_text_match_the_code():
 def test_the_day_labels_in_the_text_are_a_and_system_late_only():
     assert "`A`, every required field observed by 14:40:00" in TEXT and "`system_late`, no complete pack" in TEXT
     assert "was dropped on 16 Oct" in TEXT
+
+
+def test_the_freeze_plan_rules_are_written_as_the_code_runs_them():
+    """Response 287's remaining text (piece 1b): misses from a registered slot's `effective_start` after the freeze
+    (`scoring._miss_start`, `SlotFile`), item E's share cut (`confirmatory.crash_dominated`) and intraday HAR over
+    usable sessions only."""
+    flat = " ".join(TEXT.split())
+    assert "counted for each **registered** slot from its `effective_start`" in flat
+    assert "a session after the freeze and no later than the slot's first eligible session" in flat
+    assert 'An **unregistered** slot is "not started": p = 1, never judged.' in flat
+    assert "is not judgeable either, for every member** (`confirmatory.crash_dominated`" in flat
+    assert "**Decided: option 2, the share cut**" in flat
+    assert "a void session is skipped, never a reason for the day's value to be missing" in flat
+
+
+def test_the_share_cut_numbers_in_the_text_follow_the_code():
+    """Judge 430 note 1: the text's "10%" and "n = 130" are the code's `CRASH_SHARE` and the first n whose cut admits
+    13 2% days, so a change to either is caught."""
+    from fno.forecast_v4.confirmatory import CRASH_SHARE, crash_dominated
+
+    flat = " ".join(TEXT.split())
+    assert f"more than {round(CRASH_SHARE * 100)}% of its scored outcomes is not judgeable" in flat
+    first_n_for_13 = next(n for n in range(13, 1000) if not crash_dominated(13, n))
+    assert crash_dominated(13, 125) and not crash_dominated(12, 125)
+    assert (
+        f"at n = 125 a judgeable window holds at most 12 such days, so the 13+ band starts at n = {first_n_for_13}"
+        in flat
+    )
+
+
+def test_section_11_d_states_the_measured_noise_not_the_assumed_one():
+    """Response 299 item 9 (owner, 21 Oct 2026): judge 128's measured r replaces "only V6b can be claimed, slowly"."""
+    flat = " ".join(TEXT.split())
+    assert "only V6b can be claimed, slowly, and see E" not in flat
+    assert "V6b needs about 14-22 years even if its full back-filled skill is real" in flat
+    assert "no v4 member is provable in useful time" in flat
+    assert "V2's 8-22 years above are at the assumed r = 3-5, so with real noise it needs longer" in flat  # 436
+    assert "The table's result is advice to the owner, never an automatic step" in flat
