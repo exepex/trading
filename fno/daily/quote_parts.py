@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
-from ..constants import STEP_FAILED
+from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
 from ..quotes.recorder import MAX_EARLY_WAIT_SECONDS, WINDOW_START
@@ -25,6 +25,10 @@ INDICES = ("banknifty", "finnifty", "midcpnifty")
 NOT_COMMITTED = (
     "F&O daily run {day}: quote part {name} NOT committed: {reason}. Hand fix (CLAUDE.md): git add {specs}, commit and "
     "push; never --no-verify"
+)
+PART_NOT_OK = (
+    "F&O daily run {day}: 3 pm quote part {name} {status}: {reason}; the day's {name} record may be missing: check its "
+    "sidecar and canonical marker"
 )
 STILL_RUNNING = "still running {minutes} minutes after the desk's exits: stopped, nothing more committed for it"
 NEVER_STARTED = "never started: the part it waits for did not end in time"
@@ -89,10 +93,13 @@ class QuoteParts:
 
     def start_due(self) -> None:
         """Starts each part whose time has come and that waits for no other; never runs git, so any wait of the run
-        may call it, a command's included."""
+        may call it, a command's included. Before the day is opened (a rerun whose log already holds `quotes` never
+        opens it) there is nothing to start."""
+        if not self.started:
+            return
         for part in self.parts:
             due = part.not_before is None or self.clock() >= datetime.combine(self.day, part.not_before, IST)
-            if self.started and not self.closed and part.starts_after is None and due and self._unstarted(part):
+            if not self.closed and part.starts_after is None and due and self._unstarted(part):
                 self._start(part)
 
     @property
@@ -109,7 +116,7 @@ class QuoteParts:
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
-                self._finish(self._part(name), code, process.lines())
+                self._finish(self._part(name), code, process.lines(), process.alerted())
         for part in self.parts:
             if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
                 self._start(part)
@@ -142,7 +149,7 @@ class QuoteParts:
         self.running[part.name] = self.processes.start(part.arguments)
         return part.name
 
-    def _finish(self, part: QuotePart, code: int, lines: list[str]) -> None:
+    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool) -> None:
         del self.running[part.name]
         result = outcome(part.arguments, code, lines).result
         files = self.changed(part.pathspecs)
@@ -153,9 +160,16 @@ class QuoteParts:
             specs = " ".join(f"'{spec}'" for spec in part.pathspecs)
             self.alerts.send(NOT_COMMITTED.format(day=self.day, name=part.name, reason=failed, specs=specs))
         self.results[part.name] = result
+        if result["status"] in (STEP_FAILED, STEP_REFUSED) and not alerted:
+            self._alert(part.name, result)  # a part that failed without alerting (a Groww outage): O2's case
 
     def _failed(self, name: str, reason: str) -> None:
         self.results[name] = {"status": STEP_FAILED, "reason": reason, "commit": None}
+        self._alert(name, self.results[name])
+
+    def _alert(self, name: str, result: dict) -> None:
+        """Every part that did not record is alerted once: by itself, or here (owner, 16 Oct: every failure alerts)."""
+        self.alerts.send(PART_NOT_OK.format(day=self.day, name=name, status=result["status"], reason=result["reason"]))
 
     def _part(self, name: str) -> QuotePart:
         return next(part for part in self.parts if part.name == name)

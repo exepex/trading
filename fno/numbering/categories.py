@@ -34,6 +34,10 @@ class Category:
         """The registry row's name: the file to create."""
         return f"{self.prefix}_{number}_{slug}.md"
 
+    def next_step(self, number: str, name: str) -> str:
+        """What the claimant writes now, word for word."""
+        return f"write {self.folder}/{name}"
+
     def key(self, number: str, name: str) -> object:
         """What ties a file to its registry row: its number and file name."""
         return number, name
@@ -54,6 +58,11 @@ class AddendumCategory(Category):
     def claimed_name(self, number: str, slug: str) -> str:
         """The registry row's name: a short label (the section lives in an existing file)."""
         return slug
+
+    def next_step(self, number: str, name: str) -> str:
+        """The heading to write: only the addendum's own number (judge 307: "## Addendum 307.5" was read as 307.307)."""
+        report, addendum = number.split(".")
+        return f"write the heading '## Addendum {addendum}' in {self.folder}/{self.prefix}_{report}_*.md"
 
     def key(self, number: str, name: str) -> object:
         """A heading names no label, so its number alone ties it to its row."""

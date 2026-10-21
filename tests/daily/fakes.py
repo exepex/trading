@@ -6,12 +6,20 @@ from __future__ import annotations
 from datetime import datetime
 
 from fno.constants import STEP_OK
-from fno.daily.processes import Process, Processes
+from fno.daily.processes import Process, Processes, alerted_in
 from fno.daily.quote_parts import QUOTE_PARTS, QuoteParts
 from fno.daily.quote_steps import ServicingWaiter
 from fno.desk.daily_ports import CommitFailed, Committer, DayStep
 from fno.desk.daily_steps import StepOutcome
+from fno.desk.git_limit import GitLocks
 from tests.timetable.fakes import Clock
+
+
+class QuietLocks(GitLocks):
+    """No other git process runs (story O2): the test machine's xdist workers run git calls that must not count."""
+
+    def _git_alive(self) -> bool:
+        return False
 
 
 class FakeProcess(Process):
@@ -23,6 +31,9 @@ class FakeProcess(Process):
 
     def lines(self) -> list[str]:
         return list(self.printed)
+
+    def alerted(self) -> bool:
+        return alerted_in(self.printed)
 
     def stop(self) -> None:
         self.stopped = True

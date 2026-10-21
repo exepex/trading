@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from functools import partial
 
+from ..alerts.output import announce
 from ..models import now_ist
 from ..storage.librarian_cli import SIGN_IN_REFUSED, print_now, run_librarian
 from ..storage.manifest_commit import COMMITTED, NOTHING
@@ -64,9 +65,10 @@ class CommitOnce:
 
 def _archive(args, recorder: CommitOnce) -> int:
     from ..composition import build_alert_sender
+    from ..daily.alerts import ReportedAlerts
     from .wiring import build_companies, build_filings_librarian, build_gap_log, build_progress, write_symbol_map
 
-    started, alerts = now_ist(), build_alert_sender()
+    started, alerts = now_ist(), ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
     try:
         companies, progress = build_companies(), build_progress()
         step = progress.step()
@@ -83,7 +85,7 @@ def _archive(args, recorder: CommitOnce) -> int:
     except DriveSignInRefused as exc:
         message = SIGN_IN_REFUSED.format(reason=exc.reason)
         print(message)
-        print(alerts.send(message))
+        announce(alerts, message)
         return 1
     build_gap_log().replace(report.checked, report.gaps)
     committed = recorder.commit("filings archive")
@@ -97,7 +99,7 @@ def _archive(args, recorder: CommitOnce) -> int:
     for line in report_lines(report):
         print(line)
     problem = problem_of(report, committed)
-    print(alerts.send(run_line(step, progress, companies, report, totals, problem)))
+    announce(alerts, run_line(step, progress, companies, report, totals, problem))
     return 1 if problem else 0
 
 

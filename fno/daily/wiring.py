@@ -11,7 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import CARD_DELIVERIES_FOLDER, PLAYBOOK_FOLDER, REVIEWS_STEP
+from ..constants import CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP
 from ..desk.daily_ports import DayStep
 from .runner import DayRunner
 
@@ -20,7 +20,13 @@ WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
-LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card")
+LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
+              "price_ranges")  # fmt: skip
+
+
+def range_issue(day: date) -> tuple[str, ...]:
+    """G13b's live 15:45 issue (O1's `price_ranges` step)."""
+    return ("pricerange", "issue", "--at", "1545", "--day", day.isoformat(), "--live")
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -29,14 +35,19 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
     return {name: date.fromisoformat(str(raw[name])) if raw.get(name) else None for name in LIVE_STEPS}
 
 
-def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
+def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep) -> DayRunner:
+    """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock)."""
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
+    from ..desk.git_limit import GitLocks
     from ..desk.git_sync import Git, GitCommitter
-    from ..desk.wiring import build_execution_snapshots
+    from ..desk.owner_timing.wiring import build_owner_timing_desks, build_owner_timing_step
+    from ..desk.wiring import build_entry_desk, build_execution_snapshots
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
+    from ..price_distribution.folders import receipt_pathspecs
+    from ..price_ranges.folders import receipt_pathspecs as range_receipts
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
     from .history import WholeHistory
@@ -52,18 +63,22 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         ChildProcesses(root),
         live_dates(cfg),
     )
+    locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
-    waiter = ServicingWaiter(parts, now_ist)
+    waiter = ServicingWaiter(parts, now_ist, sleep)
 
     def waiting(seconds: float) -> None:
         """A command's wait: a quote part due meanwhile starts (no git: the commits stay between the steps)."""
-        time.sleep(seconds)
+        sleep(seconds)
         parts.start_due()
 
     def command(arguments: Callable[[date], tuple[str, ...]], folder: str) -> DayStep:
-        return CommandStep(processes, arguments, (folder,), git.changed, waiting)
+        return CommandStep(processes, arguments, (folder,), git.changed, waiting, locks)
 
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
+    price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
+                                     receipt_pathspecs(), git.changed, waiting, locks)  # fmt: skip
+    price_ranges = CommandStep(processes, range_issue, range_receipts(), git.changed, waiting, locks)
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
@@ -75,7 +90,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
         "book1": Alerted(
             "book1",
-            CommandStep(processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, waiting),
+            CommandStep(
+                processes, lambda day: ("desk", "book1", "--day", day.isoformat()), (), git.changed, waiting, locks
+            ),
             alerts,
         ),  # E5: commits its own decision  # fmt: skip
         REVIEWS_STEP: Alerted(
@@ -91,17 +108,24 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         ),  # E6's pauses  # fmt: skip
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
+        "price_distribution": Alerted(
+            "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
+        ),  # G13: its own receipts only  # fmt: skip
+        "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "candles": Alerted(
             "candles",
             NotBefore(
-                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed, waiting),
+                CommandStep(processes, lambda day: CATCH_UP_COMMAND, candle_folders(), git.changed, waiting, locks),
                 CATCH_UP_FROM,
                 waiter,
             ),
             alerts,
         ),  # A16b-d: yesterday's candles, after A16's last mark
     }
-    cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
+    cfg_orders, exit_rules = build_book1_orders(cfg, root), build_book1_exit_rules(root, alerts)
+    entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
+    fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
+    steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
-                                alerts=alerts)  # fmt: skip
+                                alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing)  # fmt: skip
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))

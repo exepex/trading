@@ -192,6 +192,14 @@ Only the `e4_1515` view fills the same day.
       every Drive and A16 read the step makes carries a network timeout of 60 seconds, and the step checks its
       10-minute deadline before each read. A timed-out read or a passed deadline is a step failure (new entries fail
       closed, exits still run), so a hung read can never hold up the day's exits.
+    - **The live date** (`daily.live_from.owner_timing_fills`, none by default; response 286). Each decision is handled
+      once, on its own day, by that day's rule:
+      - an entry decided before the date is filled by E4 at 15:15 and never queued;
+      - an entry decided on or after it is handed over and filled by E8;
+      - an exit E4 left waiting before the date (a protective leg without a quote) and still open on it is alerted at
+        that day's exit review and finished by E8 at its due mark.
+
+      Legs E4 already closed are never closed again (`tests/desk_owner_timing/test_live_boundary.py`).
 12. **Point in time.**
     - The decision must be committed before its card's T.
     - T must come from a delivery record.
@@ -285,6 +293,39 @@ said plainly (E8a, 15:00 decision, R = 60, some evidence): a bought option's pri
 risk on 23-28% of mornings, so many entries miss, and the fills that remain are mostly mornings that went against the
 idea. That is what a real limit order gets. The report's NIFTY-move split and the per-opportunity P&L show it from day
 one. The ±0.5% band figure behind the choice was about 32%, not the 17% of an earlier draft (the 09:15 open's gap).
+
+## Part 2's report (ChatGPT review 128, accepted in response 228)
+
+`TimingReport` (part 2) adds these to the list under "Expected design". It reads E6b's shared
+`ExecutionOpportunities` counter, so E6 and E8 never count opportunities two ways.
+1. **One cohort, four views.** R = 60 stays the frozen verdict. R = 5, R = 30 and `e4_1515` are diagnostics on the
+   same decisions, never separate trials. Each view shows:
+   - its fill rate;
+   - its net per filled trade and per opportunity;
+   - the same overnight-gap rows (item 2).
+2. **Adverse selection from the price cap.** Every eligible opportunity is split by the sign and size of NIFTY's move
+   between the decision and the due mark: against the trade, flat (under 0.25%), with the trade, and above or below
+   1%. The edges 0.25% and 1% are reasoning only, fixed before the first report. Each row shows:
+   - opened against `missed, price moved`;
+   - net per filled trade and per original opportunity;
+   - each trade's direction (bullish, bearish or neutral) and structure.
+
+   A missed trade is never booked as realised profit or loss. No move filter is added without evidence.
+3. **Misses in the denominator** (response 221, E6b):
+   - A miss that reached the fill step adds 0 to realised profit or loss and stays in the opportunity count.
+   - `missed, no card` (delivery) and `missed, owner away` (availability) stay in the owner-achievable count, but are
+     shown on their own rows, apart from market-execution misses (no quote, no future, price moved, expired, funds,
+     risk cap).
+   - A gate refusal (`refused`) is outside the count.
+   - A pending entry is in neither count until it resolves.
+   - A partial unwind counts its real cash.
+4. **Order of a morning's fills.** Within one book, items are filled oldest T first. Each is written before the next
+   one's check reads the account, so earlier entries use funds first; books never share cash. Equal T values keep the
+   step's fixed order: books in config order, then entries before exits, then the records' order.
+5. **Known limits, reported and never hidden:**
+   - A16 records only the near-month future, so a further-month expiry gives `missed, no future for that expiry`
+     rather than a made-up future.
+   - A day with no exit review orders no exit. The book stays exposed and flagged, with no backdated exit.
 
 ## Acceptance criteria
 
