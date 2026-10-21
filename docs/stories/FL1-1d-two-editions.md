@@ -300,3 +300,47 @@ Two rules for every librarian fetch (from the A20/A22 builder, who last changed 
 **Size estimate:**
 - FL1-1d-1: about 400 lines of code and 450 lines of tests.
 - FL1-1d-2: about 500 lines of code and 550 lines of tests.
+
+## FL1-1d-2 as built (22 Oct), and where it differs from the text above
+
+Each difference below was decided by the orchestrator or by measurement; none is silent.
+
+1. **The morning's own result (orchestrator, 22 Oct: "yes").** When G13b has not scored the previous session yet
+   (it scores in the 14:33 run), the morning checks the previous session's forecast against NSE's official close.
+   It reads G13b's tables first, then the archived index-close file itself (`official_closes.ArchivedCloses` over
+   G13b's own `IndexFileCloses`).
+   - That result is `IndexView.result`, labelled "NSE's official close; G13b's score follows".
+   - A day the evening could not check (no A4h close) thus gets its result the next morning. The evening's line now
+     says exactly that, and nothing more.
+2. **The official file's timing (the A4 builder's correction to response 304).** The index-close file's first
+   version appears before 23:20: our archive committed it by 23:04 on 21 Oct. 23:20 is the rewrite's Last-Modified.
+   The morning's fetch (`data-librarian index-close`) is step 1b of the routine section.
+3. **The release check covers the F&O bhavcopy and FII/DII cash only.** Participant OI is already measured by A8's
+   own watch job (16:37-23:22), and one builder per function means it is not checked a second time.
+   `python -m fno lab release-check` is read-only and never fails. Its logs are under
+   `research/data/forecast_lab/release/`.
+4. **In the evening, "the same way as the miss" applies to the US equity cues only** (the S&P 500 and the
+   Nasdaq-100: up for a miss above, down for a miss below). Calling any other cue's direction "the miss's way" would
+   be a claim about how it moves NIFTY, which this story does not make. The other cues follow by size, labelled
+   context.
+5. **India VIX is not shown in the evening.** NSE's index list gave 15.70 for 21 Oct, against an official 15.68, so
+   the list's value is never passed off as the close. The morning shows the previous session's official VIX, read
+   from the archived file.
+6. **GIFT Nifty (owner, (c) "Both").**
+   - At 08:50 GIFT Nifty is a context Section that reads A22b's early file (`preopen/gift/...`), once A22b merges.
+     Until then it says "not available" with why. A missing file at 08:50 is named in the edition itself
+     ("GIFT Nifty: not available"), so O8 needs no 08:50 row (judge 445's minor).
+   - The 09:12 post with N0 and the pre-open price belongs to FL1-2 (the 09:15 report), so no second builder makes
+     it.
+7. **Levels.**
+   - The levels use the nearest expiry of each index.
+   - A chain with one side only shows "none in the file" for the missing wall, never a made-up value.
+   - A file not out yet shows "not out yet".
+   - A read error is a `failed` Section: said in the system line and alerted once.
+8. **The librarian's words are pinned by a test** (`test_librarian_words.py`). "not published by the source" is the
+   only "not out yet" line. If A9 rewords it, the test fails, and the routine step changes with it.
+
+Not built yet, waiting on others:
+- A4h's `TodayCloses` adapter, which reads `closes/<yyyy>/<mm>/<day>.json` once A4h merges;
+- the GIFT adapter, once A22b merges;
+- the designer's renderer, which the designer ports and I wire with one line.
