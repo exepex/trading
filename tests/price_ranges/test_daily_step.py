@@ -28,5 +28,5 @@ def test_the_step_is_wired_after_g13_with_g13bs_receipts_only_and_not_live(monke
     command = step.step.step
     assert tuple(command.arguments(DAY)) == ("pricerange", "issue", "--at", "1545", "--day", "2026-10-16", "--live")
     assert tuple(command.pathspecs) == receipt_pathspecs() == ("receipts/data/price_ranges/v1/",)
-    assert DAILY_RUN_STEPS.index("price_ranges") == DAILY_RUN_STEPS.index("price_distribution") + 1
+    assert DAILY_RUN_STEPS.index("price_ranges") == DAILY_RUN_STEPS.index("price_distribution_scores") + 1  # G13 done
     assert step.step.live_from is None and step.run(DAY).result["status"] == STEP_NOT_LIVE
