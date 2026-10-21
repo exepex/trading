@@ -48,8 +48,9 @@ class Process(ABC):
 
 class Processes(ABC):
     @abstractmethod
-    def start(self, arguments: Sequence[str]) -> Process:
-        """Starts `python -m fno <arguments>` in the repository and returns at once."""
+    def start(self, arguments: Sequence[str], hold: int | None = None) -> Process:
+        """Starts `python -m fno <arguments>` in the repository and returns at once; `hold`, an open file the child
+        inherits and keeps for its life (a 3 pm part's lock, story O1 F1)."""
 
 
 class ChildProcess(Process):
@@ -95,10 +96,10 @@ class ChildProcesses(Processes):
     def __init__(self, root: Path, report: Callable[[str], None] = print):
         self.root, self.report = Path(root), report
 
-    def start(self, arguments: Sequence[str]) -> Process:
+    def start(self, arguments: Sequence[str], hold: int | None = None) -> Process:
         output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - open for the child's run, closed once read
         command = [sys.executable, "-m", "fno", *arguments]
         # its own process group, so `stop` ends everything it started
         popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=subprocess.STDOUT, text=True,
-                                 start_new_session=True)  # fmt: skip
+                                 start_new_session=True, pass_fds=() if hold is None else (hold,))  # fmt: skip
         return ChildProcess(popen, output, self.report)

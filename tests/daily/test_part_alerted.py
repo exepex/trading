@@ -15,7 +15,7 @@ from fno.daily.quote_parts import QUOTE_PARTS, QuoteParts
 from fno.models import IST
 from tests.timetable.fakes import Clock
 
-from .fakes import RecordingCommitter
+from .fakes import RecordingCommitter, tracking
 
 DAY = date(2026, 10, 14)
 UNSENT_LINE = f"{UNSENT}: ConnectionError | 3 pm quote recorder: raw quote file NOT saved to Drive (folder FOLDERID42)"
@@ -36,7 +36,7 @@ class RealChildren(Processes):
     def __init__(self, printed: list[str], relayed: list[str]):
         self.printed, self.relayed = printed, relayed
 
-    def start(self, arguments):
+    def start(self, arguments, hold=None):
         output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - closed by ChildProcess once read
         script = "import sys; print(sys.argv[1]); raise SystemExit(1)"
         popen = subprocess.Popen([sys.executable, "-c", script, "\n".join(self.printed)], stdout=output,
@@ -54,13 +54,15 @@ class RealChildren(Processes):
     ],
     ids=["own-alert-unsent", "own-alert-sent", "silent"],
 )
-def test_a_failed_part_is_alerted_exactly_once_and_its_unsent_text_never_reaches_the_kept_lines(printed, own_alert):
+def test_a_failed_part_is_alerted_exactly_once_and_its_unsent_text_never_reaches_the_kept_lines(
+    printed, own_alert, tmp_path
+):
     clock = Clock()
     clock.now = datetime(2026, 10, 14, 14, 56, tzinfo=IST)
     relayed, alerts = [], Alerts()
     nifty = (QUOTE_PARTS[0],)
     parts = QuoteParts(nifty, RealChildren(printed, relayed), RecordingCommitter(clock, []), lambda specs: [], alerts,
-                       clock)  # fmt: skip
+                       clock, *tracking(tmp_path))  # fmt: skip
     parts.start(DAY)
     parts.service()
     assert parts.results["nifty"]["status"] == "failed"

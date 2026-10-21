@@ -376,6 +376,52 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   one alert in total, the unsent line relayed once, and the folder ID never in the kept lines. Planting the old
   lines-based rule fails the unsent case.
 
+### Fix: a rerun resumes the 3 pm parts (gap F1; story text first, judge 412 addendum 2)
+
+- **Gap (strong evidence):** O2's `tests/e2e/test_kill_rerun.py`. A kill after any step from `quotes` to
+  `forecasts_v4` (14:33) and a rerun leave no NIFTY or NSE record and no pack. That case is a strict xfail today.
+- **Design:** judge D's per-part `fcntl.flock`, written into the O1 story's new section. The lock is taken by the run
+  and handed to the child through `pass_fds`, so A4's commands are unchanged and the kernel frees the lock when the
+  child dies. A rerun adopts a part whose lock is held, takes "earlier run" when all of a part's canonical markers
+  exist, restarts a part while its window is open, and otherwise records `NOT_IN_THIS_RUN` with one alert. Each part's
+  `how` and start time are logged.
+- **One choice of mine (reasoning only):** the run, not the recorder, takes the lock and passes it on, so no A4 file
+  changes. A4's builder is working on `cmd_quotes` (G2) at the same time.
+- Code follows judge D's PASS on this text (judge 417 add. 2 PASS).
+- **Code (claims, each tested):**
+  - `fno/daily/part_locks.py` (`PartLocks`): the lock is `journal/runs/.parts/<date>_<part>.lock`, git-ignored, with
+    no `.json` file there, so no run-log reader takes it. `taken` writes the part's start time into it and yields the
+    descriptor for `ChildProcesses.start(..., hold=)`, which passes it with `pass_fds`. The run's copy is closed on
+    leaving. `held` takes a free lock and lets it go at once.
+  - `fno/daily/earlier_run.py`: `EarlierRun`, a `Process` for a part an earlier run started. It ends when the lock
+    frees, `ok` with "recorded earlier (commit <sha>)" when every marker exists, otherwise `failed`. It is never
+    stopped by this run. `PartMarkers` gives a part's canonical marker paths from A4's `QuoteSnapshotRecorder.path`.
+  - `QuoteParts.resume`: adopted, earlier run, restarted (before `WINDOW_END`, the indices before
+    `INDEX_WINDOW_END`), or `NOT_IN_THIS_RUN` with one alert. Both earlier-run cases go through the same
+    `service`/`finish` path, so NIFTY-first and `FINISH_LIMIT` (not before `fills_by`) hold unchanged.
+  - Past the bound, an adopted part is `failed` with the hand fix ("... still holds <lock>: stop it, then rerun"),
+    one alert, and no commit.
+  - `_start` adopts instead of starting when the lock is already held (a second run in one container): never two
+    recorders.
+  - Each part's result carries `how` and `started_at` (from the lock file). `quotes`' reason is "nifty, nse from
+    14:38; indices after nifty".
+  - `DayRunner` resumes when the log holds `quotes` but not `quotes_done`. `FinishQuoteParts`' old "not started"
+    branch became unreachable and was removed; `NOT_IN_THIS_RUN` is now a per-part reason.
+  - Tests:
+    - `tests/daily/test_part_locks.py`: real child processes. The lock is held for the child's life and freed on end
+      and on kill, never taken twice, and not inherited by another child.
+    - `tests/daily/test_part_resume.py`:
+      - adopted, never started twice, NIFTY first;
+      - held past the bound: the hand-fix alert, no commit;
+      - stopped run: recorded earlier, no alert, leftovers committed;
+      - killed container: restarted;
+      - 15:11: NIFTY and NSE fail, the indices restart;
+      - 15:14: all three fail;
+      - a second run's start adopts.
+    - `tests/daily/test_day_run.py`: the rerun-after-kill test now expects "earlier run".
+  - O2's strict xfail for F1 (`tests/e2e/test_kill_rerun.py`, on `story/o2-failure-handling`) is flipped when this
+    merges.
+
 ### Fix: a quote part's unpushed commit never stops the desk (gap G4; story text first, judge 412 addendum 3)
 
 - **Gap (strong evidence):** O2's hang day. A part push that hung, or was rejected three times, left a local commit,
