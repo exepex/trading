@@ -10,7 +10,7 @@ from datetime import date
 
 from ..constants import PARTICIPANTS
 from ..research_data.fii_derivative_stats import read_fii_derivative_stats
-from ..research_data.participant_oi import read_participant_oi
+from ..research_data.participant_volume import read_participant_volume
 from ..storage.raw_source import FiiDerivativeStatsSource, NseArchiveSource, ParticipantVolumeSource
 
 Triple = tuple[str, str, str]
@@ -30,7 +30,7 @@ class ParticipantVolumeValues(FlowValues):
     source = ParticipantVolumeSource
 
     def values(self, data: bytes, day: date) -> list[Triple]:
-        volume = read_participant_oi(data, self.source.filename_for(day), day)
+        volume = read_participant_volume(data, self.source.filename_for(day), day)
         triples = []
         for participant in PARTICIPANTS:
             sides = {**volume.positions[participant], TOTAL: volume.totals[participant]}

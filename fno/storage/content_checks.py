@@ -14,6 +14,7 @@ from ..nse_margins.span_file import read_span_file
 from ..research_data.fii_derivative_stats import read_fii_derivative_stats
 from ..research_data.fo_masters import ban_list_trade_date, read_ban_list, read_lot_sizes
 from ..research_data.participant_oi import read_participant_oi
+from ..research_data.participant_volume import read_participant_volume
 from .raw_source import (
     FiiDerivativeStatsSource,
     NseDailyFoSource,
@@ -53,8 +54,8 @@ def validate_participant_oi(filename: str, data: bytes) -> None:
 
 
 def validate_participant_volume(filename: str, data: bytes) -> None:
-    """Participant OI's layout and identities hold for its sister file (bought and sold, per group: 2019 and 2026)."""
-    read_participant_oi(data, filename, ParticipantVolumeSource.day_for(filename))
+    """Participant OI's layout and identities, rows without a participant name ignored (A23 back-fill)."""
+    read_participant_volume(data, filename, ParticipantVolumeSource.day_for(filename))
 
 
 def validate_fii_derivative_stats(filename: str, data: bytes) -> None:

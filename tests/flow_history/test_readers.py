@@ -80,3 +80,23 @@ def test_fii_values_are_every_row_and_measure(monkeypatch):
                         lambda data, filename, day: parse_fii_rows(sheet_2026(), filename, day))  # fmt: skip
     triples = FiiDerivativeStatsValues().values(b"", date(2026, 10, 21))
     assert len(triples) == 7 * 6 and ("NIFTY FUTURES", "oi_crores", "2.5") in triples
+
+
+def test_rows_without_a_participant_name_are_ignored_as_nse_left_them_in_2021_and_2022():
+    """15 Sep 2021, 14 and 18 Oct 2022: stray sums under TOTAL with an empty first cell."""
+    from fno.research_data.participant_volume import read_participant_volume
+
+    day = date(2026, 10, 19)
+    data = participant_volume(day) + b",,,999,,12345,,,,\n,,,,,,,,,,,,,,\n"
+    assert read_participant_volume(data, "f", day).totals["FII"].long == 6
+    with pytest.raises(BadFile):  # a named row that breaks the identities is still refused
+        read_participant_volume(data.replace(b"FII,1,", b"FII,9,"), "f", day)
+
+
+def test_a_fractional_contract_count_is_still_refused():
+    """18 Mar 2019's file gives sixths of a contract: a sourced exception, never read as whole contracts."""
+    from fno.research_data.participant_volume import read_participant_volume
+
+    day = date(2026, 10, 19)
+    with pytest.raises(BadFile, match="not a whole number"):
+        read_participant_volume(participant_volume(day).replace(b"Client,1,", b"Client,1.1667,"), "f", day)

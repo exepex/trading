@@ -1,2 +1,3 @@
 dataset,date,reason,source_url
 nse/derivatives/fo-bhavcopy-legacy,2021-03-30,"Normal trading day (no holiday circular; cash bhavcopy and NSE's F&O market-activity zip exist for it), but NSE's archive has no old-format F&O bhavcopy for it: 404 from both archive hosts, checked 12 Oct 2026",https://nsearchives.nseindia.com/archives/fo/mkt/fo30032021.zip
+nse/derivatives/participant-volume,2019-03-18,"NSE's file gives fractional contract counts (sixths: .1667 to .8333, likely a lot-size conversion), which the content check refuses as contracts; not archived and not in the flow table (A23 back-fill, 22 Oct 2026)",https://nsearchives.nseindia.com/content/nsccl/fao_participant_vol_18032019.csv
