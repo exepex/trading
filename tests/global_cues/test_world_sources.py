@@ -13,7 +13,7 @@ from fno.global_cues.asia_sources import (
 )
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.europe_sources import CBOE_VIX_FILE, CboeVixSource, StoxxSource
-from fno.global_cues.markets import FRANKFURT, HONG_KONG, TOKYO
+from fno.global_cues.markets import FRANKFURT, HONG_KONG, SYDNEY, TOKYO
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.yahoo_source import UNVERIFIED, YahooChartSource
 from fno.storage.raw_store import LocalFolderStore
@@ -107,6 +107,9 @@ def test_yahoo_dates_are_the_exchanges_own_and_a_close_without_value_is_skipped(
     values = yahoo().parse(yahoo_chart(TOKYO_ZONE, rows))
     # 00:00 UTC is 09:00 in Tokyo, the same date; 14:59:59 UTC is 23:59:59 Tokyo, still 21 Oct; None is skipped
     assert _days(values) == [date(2026, 10, 20), day]
+    sydney = YahooChartSource("asx200_yahoo", "^AXJO", SYDNEY, 7, False)
+    opens = [(utc(date(2026, 10, 20), time(23, 0)), 5.0)]  # Sydney's 10:00 open of 21 Oct is 23:00 UTC on the 20th
+    assert _days(sydney.parse(yahoo_chart("Australia/Sydney", opens, "^AXJO"))) == [day]
 
 
 def test_a_date_given_twice_is_left_out_never_guessed_and_a_weekend_never_appears():
