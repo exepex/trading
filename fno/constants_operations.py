@@ -11,6 +11,7 @@ __all__ = [
     "REVIEWS_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
+    "OWNER_TIMING_STEP",
     "STEP_OK",
     "STEP_FAILED",
     "STEP_REFUSED",
@@ -41,8 +42,10 @@ DESK_RUN_STEPS = (
     RUN_LOG_EXITS_STEP,
     RUN_LOG_TRADE_MARKS_STEP,
 )
+OWNER_TIMING_STEP = "owner_timing_fills"  # story E8: right after the quote parts start, before every other step
 DAILY_RUN_STEPS = (
     "quotes",
+    OWNER_TIMING_STEP,
     "margin_check",
     "weather",
     "forecasts_v4",

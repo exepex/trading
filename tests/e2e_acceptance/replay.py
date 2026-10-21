@@ -105,8 +105,10 @@ class RegisteredFirst:
 
 
 class Replay:
-    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True, context=None):
+    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True, context=None,
+                 entries=None):  # fmt: skip
         self.root, self.alerts, self.cfg = root, alerts, load_app_config()
+        self.entries = entries or (lambda clock: EntryDesk(CHARGES, clock))  # E8 hands entries over when live
         self.start, self.capture, self.listed = start, capture, listed
         self.context = {**CONTEXT, **(context or {})}  # D3's record header fields of Book 1's run
         self.playbook = rd.approved_playbook()
@@ -163,7 +165,7 @@ class Replay:
                                            Commits(clock))  # fmt: skip
         steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), self.packs,
                           D3CommittedDecisions(root, self.commits), orders, capture, gate, RecordedC4Pass(),
-                          LocalSync(root), EntryDesk(CHARGES, clock), ExitDesk(CHARGES, self.alerts, FakeSettlements(),
+                          LocalSync(root), self.entries(clock), ExitDesk(CHARGES, self.alerts, FakeSettlements(),
                                                                                 clock),
                           self.exit_rules(), self.alerts, clock)  # fmt: skip
         marking = marking_step(root, (BOOK1_RULES,), quotes, self.alerts)
