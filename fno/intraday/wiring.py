@@ -39,7 +39,8 @@ from .groww_source import GrowwIntradaySource, groww_listed_expiries
 from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
 from .ledger import ROOT as LEDGER_ROOT
 from .ledger import SlotLedger
-from .observer import NoObserver
+from .observer import MarkObserver
+from .observer_group import ObserverGroup
 from .read_only import ReadOnlyGroww
 from .realised_vol import QuoteSnapshotRv15m
 from .recorder import IntradayRecorder
@@ -70,9 +71,14 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
         source, files, ledger, Heartbeat(folder), calendar, alerts, build_clock_check(), session_rv,
-        _sync(dry_run_folder, alerts),
-        claims=_claims(dry_run_folder), observer=NoObserver(),  # LM1's position monitor plugs in here
+        _sync(dry_run_folder, alerts), claims=_claims(dry_run_folder), observer=ObserverGroup(_observers()),
     )  # fmt: skip
+
+
+def _observers() -> tuple[tuple[MarkObserver, float], ...]:
+    """Every mark observer with its time limit, in order: LM1's position monitor, then A21's announcements poll, when
+    they are built (each owner names its limit here)."""
+    return ()
 
 
 def v4_cutoff_flag(levels: dict) -> tuple[str, str]:
