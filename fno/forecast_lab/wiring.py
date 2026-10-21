@@ -36,11 +36,13 @@ def build_forecast_poster(env=os.environ) -> CardPoster:
     return SlackCardPoster(token, FNO_FORECAST_CHANNEL_ID) if token else NoCardPoster()
 
 
-def first_day(cfg: dict) -> date | None:
-    """The lab's first live day (`daily.live_from.lab_close`): no report takes up a day before it."""
+def first_days(cfg: dict) -> tuple[date | None, date | None]:
+    """(the lab's first live day: no report covers a day before it; G13b's: no forecast is expected from an issue day
+    before it)."""
     from ..daily.wiring import live_dates
 
-    return live_dates(cfg)["lab_close"]
+    live = live_dates(cfg)
+    return live["lab_close"], live["price_ranges"]
 
 
 def build_lab_close(env=os.environ) -> LabClose:
@@ -58,6 +60,7 @@ def build_lab_close(env=os.environ) -> LabClose:
     closes = G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store))))
     calendar = build_session_calendar()
     sessions = RegularSessions(calendar)
-    report = CloseReport(ranges, MatchSection(ranges, closes, sessions), first_day(load_app_config()))
+    lab_from, issues_from = first_days(load_app_config())
+    report = CloseReport(ranges, MatchSection(ranges, closes, sessions, issues_from), lab_from)
     records = DriveReportRecords(build_data_store(WRITER, env=env), receipt_folder())
     return LabClose(report, records, build_forecast_poster(env), build_alert_sender(), sessions.is_regular, now_ist)

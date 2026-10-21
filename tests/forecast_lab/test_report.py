@@ -143,6 +143,19 @@ def test_only_an_ok_row_of_the_same_issue_day_is_matched():
     assert "median direction" not in poster.posts[0]  # a score of another issue day is never shown
 
 
+def test_no_forecast_issued_before_g13b_s_first_live_day_is_expected_so_go_live_raises_no_false_alert():
+    """G13b live from 23 Oct: 23 Oct's N1 (issued 22 Oct) and N3 (19 Oct) cannot exist, nor 26 Oct's N3 (21 Oct)."""
+    run, poster, alerts = lab(Forecasts((issue(DAY),)), issues_from=DAY)
+    run.run(REPORT_DAY)
+    none = "NIFTY forecasts for 2026-10-23: none expected (issued before G13b's first live day)"
+    assert alerts.sent == [] and none in poster.posts[0]
+    assert "NIFTY forecasts for 2026-10-26: every one sealed in time" in poster.posts[0]
+    run, _, alerts = lab(Forecasts(()), issues_from=DAY)
+    run.run(REPORT_DAY)
+    assert alerts.sent == ["F&O forecast lab 2026-10-26: NIFTY N1 for 2026-10-26 (issued 2026-10-23): no forecast was "
+                           "sealed; nothing to score"]  # fmt: skip
+
+
 def test_the_trust_line_counts_a_day_scored_for_either_underlying():
     forecasts = Forecasts(days={"BANKNIFTY": [DAY]})
     assert trust_line(forecasts, ("NIFTY", "BANKNIFTY"), REPORT_DAY).startswith("Trust: 1 scored trading day(s)")

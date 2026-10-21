@@ -20,6 +20,7 @@ TRUST = (
 )
 NO_ISSUE = "{underlying} {horizon} for {target} (issued {issue_day}): no forecast was sealed; nothing to score"
 LATE = "{underlying} {horizon} for {target} (issued {issue_day}): sealed late ({sealed}); not shown as a forecast"
+NONE_EXPECTED = "{underlying} forecasts for {target}: none expected (issued before G13b's first live day)"
 SEALS_OK = "{underlying} forecasts for {target}: every one sealed in time"
 NOT_IN_TIME = " {horizon}, issued {issue_day}: no forecast sealed in time (its seal check said why)"
 NO_SCORE_YET = "  no scored row yet (G13b scores after the close is archived)"

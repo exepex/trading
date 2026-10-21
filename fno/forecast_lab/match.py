@@ -20,6 +20,7 @@ from .constants import (
     MATCH_HEADER,
     NO_ISSUE,
     NO_SCORE_YET,
+    NONE_EXPECTED,
     NOT_IN_TIME,
     NOT_SEALED_YET,
     SEAL_BY,
@@ -69,13 +70,18 @@ class Forecast:
 
 
 class MatchSection:
-    def __init__(self, forecasts: RangeSource, outcomes: Outcomes, sessions: RegularSessions):
-        self.forecasts, self.outcomes, self.sessions = forecasts, outcomes, sessions
+    def __init__(self, forecasts: RangeSource, outcomes: Outcomes, sessions: RegularSessions, issues_from: date | None):
+        """`issues_from`: G13b's first live day (`daily.live_from.price_ranges`); no forecast is expected from an issue
+        day before it (None: G13b is not live, none is expected), so going live raises no false "missing" alert."""
+        self.forecasts, self.outcomes, self.sessions, self.issues_from = forecasts, outcomes, sessions, issues_from
 
     def aimed_at(self, underlying: str, target: date) -> list[Forecast]:
+        """The forecasts expected for `target`, each with its issue (None when never written)."""
         found = []
         for horizon, sessions in HORIZON_SESSIONS.items():
             issue_day = self.sessions.back(target, sessions)
+            if self.issues_from is None or issue_day < self.issues_from:
+                continue
             issue = self.forecasts.sealed(underlying, issue_day, ISSUE_CLOSE)
             deadline = opens(self.sessions.next(issue_day))
             found.append(Forecast(horizon, issue_day, issue, issue is not None and sealed_in_time(issue, deadline)))
@@ -91,7 +97,8 @@ class MatchSection:
             elif not forecast.in_time:
                 sealed = forecast.issue.sealed_at or "no push evidence"
                 alerts.append(LATE.format(**what, target=target, sealed=sealed))
-        return alerts or [SEALS_OK.format(underlying=underlying, target=target)], alerts
+        expected = SEALS_OK if self.aimed_at(underlying, target) else NONE_EXPECTED
+        return alerts or [expected.format(underlying=underlying, target=target)], alerts
 
     def match_lines(self, underlying: str, target: date) -> list[str] | None:
         """The match of `target`'s forecasts against its official close, or None while the close is not archived."""

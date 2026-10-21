@@ -1,8 +1,9 @@
 """The 15:45 report's text (story FL1-1). Each report takes up, for the last `LOOKBACK_SESSIONS` regular sessions, every
 target day an earlier report has not covered yet (judge 422): the seal check of every day up to today, and the match
 of every earlier day whose official close is archived. A day the routine missed, or whose close was archived late, is
-so covered by a later report, never skipped silently; one older than the window is left to the scoreboard. A day before
-the lab's first live day is never taken up (no forecast was expected for it)."""
+so covered by a later report, never skipped silently; one older than the window is left to the scoreboard. The
+window starts no earlier than the lab's own first live day (the report covers only its own days); which forecasts are
+expected at all is `MatchSection`'s rule (from G13b's first live day)."""
 
 from __future__ import annotations
 

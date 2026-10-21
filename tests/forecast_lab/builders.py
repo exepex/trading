@@ -19,6 +19,7 @@ SESSIONS = RegularSessions(CALENDAR)  # NSE's real calendar: 20 Oct 2026 is a ho
 DAY = date(2026, 10, 23)  # Friday: the targets matched
 REPORT_DAY = SESSIONS.next(DAY)  # Monday 26 Oct: its report matches 23 Oct's targets
 N1_ISSUE, N3_ISSUE = SESSIONS.previous(DAY), date(2026, 10, 19)  # 22 Oct; 19 Oct (20 Oct is a holiday)
+G13B_LIVE = date(2026, 10, 1)  # G13b's first live day in these tests: every issue below is expected
 QUANTILES = {0.05: 25000.0, 0.25: 25200.0, 0.50: 25300.0, 0.75: 25400.0, 0.95: 25600.0}
 
 
@@ -106,10 +107,10 @@ class Poster(CardPoster):
 
 
 def lab(forecasts, records=None, poster=None, alerts=None, closes=None, first_day=DAY, underlyings=("NIFTY",),
-        today=REPORT_DAY):  # fmt: skip
-    """The lab with fakes; its window starts at `first_day` (the lab's first live day)."""
-    report = CloseReport(forecasts, MatchSection(forecasts, closes or Closes(), SESSIONS), first_day,
-                         underlyings=underlyings)  # fmt: skip
+        today=REPORT_DAY, issues_from=G13B_LIVE):  # fmt: skip
+    """The lab with fakes; its window starts at `first_day` (the lab's first live day), G13b live from `issues_from`."""
+    match = MatchSection(forecasts, closes or Closes(), SESSIONS, issues_from)
+    report = CloseReport(forecasts, match, first_day, underlyings=underlyings)
     records, poster, alerts = records or Records(), poster or Poster(), alerts or RecordingAlerts()
     run = LabClose(report, records, poster, alerts, SESSIONS.is_regular, partial(at, today, 15, 47))
     return run, poster, alerts

@@ -122,3 +122,22 @@ All 15 are caught: M3, M5, M13, M16, M17, and ten new ones:
 ## Gates
 
 On the head sent to the judge: listed in the message with its SHA.
+
+## Addendum: one more flaw of my own, fixed after the re-submission (before any verdict)
+
+**A forecast issued before G13b's first live day was still "expected", so going live would have raised false
+alerts.** A report expects, for each target day, the N1 issue of the session before and the N3 issue of three sessions
+before. An issue day before G13b went live (`daily.live_from.price_ranges`) can never have a record. So, unless G13b
+went live at least 3 sessions before the lab, the first reports would have alerted "no forecast was sealed" to
+#fno-desk for forecasts that could not exist. That would be a false alarm, and it teaches the owner to ignore alerts.
+
+The fix: `MatchSection` takes G13b's first live day (`issues_from`), and expects no forecast from an issue day before
+it. While G13b is not live, it expects none. Such a target day reads "none expected (issued before G13b's first live
+day)", with no alert. The lab's own first live day still bounds which days a report covers. The two rules answer
+different questions:
+- which days the lab reports on: the lab's date;
+- which forecasts can exist: G13b's date.
+
+Test: `test_no_forecast_issued_before_g13b_s_first_live_day_is_expected_so_go_live_raises_no_false_alert`. It shows
+G13b live from 23 Oct with no false alert, and a truly missing N1 for 26 Oct still alerted. Mutation "issues_from
+ignored" is caught, so 16 of 16 now. Evidence: strong.
