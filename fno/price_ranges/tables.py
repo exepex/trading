@@ -5,7 +5,7 @@ content-named file (write-once) when it found new closes."""
 from __future__ import annotations
 
 import hashlib
-from datetime import date, timedelta
+from datetime import date
 
 from ..price_distribution.store import DistributionStore
 from ..storage.drive_cache import DriveCache
@@ -28,7 +28,7 @@ class CloseTables:
     def latest_path(self, underlying: str) -> str | None:
         prefix = f"{underlying.lower()}_through_"
         paths = [r.path for r in self.receipts.under(drive(CLOSES)) if r.path.rsplit("/", 1)[-1].startswith(prefix)]
-        return max(paths, default=None)  # ISO dates in the name: the latest table sorts last
+        return max(paths, default=None)  # ISO date, then zero-padded row count: the latest sorts last
 
     def latest_text(self, underlying: str) -> str | None:
         path = self.latest_path(underlying)
@@ -40,16 +40,26 @@ class CloseTables:
         return self.cache.local(path).read_text(encoding="utf-8")
 
     def update(self, underlying: str, files: IndexFileCloses, through: date) -> list[str]:
-        """Appends every regular session after the table's last day up to `through`; returns its lines and gaps."""
+        """Reads every regular session up to `through` that the table lacks, a late file's day included (a missing day
+        is retried on every update, never skipped once a later day is found; review finding 3)."""
         text = self.latest_text(underlying)
-        rows = table_rows(text) if text else []
-        first = rows[-1].day + timedelta(days=1) if rows else self.first_day
-        if first > through:
-            return [UNCHANGED.format(underlying=underlying, through=rows[-1].day if rows else None)]
-        found, gaps = files.rows(underlying, first, through)
+        rows = {r.day: r for r in table_rows(text)} if text else {}
+        names = dict(_names(text)) if text else {}
+        wanted = [d for d in files.regular_sessions(self.first_day, through) if d not in rows]
+        if not wanted:
+            return [UNCHANGED.format(underlying=underlying, through=max(rows, default=None))]
+        found, gaps = files.rows_for(underlying, wanted)
         if not found:
-            return [*gaps, UNCHANGED.format(underlying=underlying, through=rows[-1].day if rows else None)]
-        lines = [f"{d.isoformat()},{v!r},{name}" for d, v, name in found]
-        data = ((text or TABLE_HEADER + "\n") + "\n".join(lines) + "\n").encode()
-        self.store.put(closes_path(underlying, found[-1][0], hashlib.sha256(data).hexdigest()), data)
-        return [*gaps, WRITTEN.format(underlying=underlying, n=len(found), through=found[-1][0])]
+            return [*gaps, UNCHANGED.format(underlying=underlying, through=max(rows, default=None))]
+        merged = {**{d: (d, r.value, names[d]) for d, r in rows.items()}, **{d: (d, v, n) for d, v, n in found}}
+        lines = [f"{d.isoformat()},{v!r},{name}" for d, v, name in (merged[d] for d in sorted(merged))]
+        data = (TABLE_HEADER + "\n" + "\n".join(lines) + "\n").encode()
+        last = max(merged)
+        self.store.put(closes_path(underlying, last, len(merged), hashlib.sha256(data).hexdigest()), data)
+        return [*gaps, WRITTEN.format(underlying=underlying, n=len(found), through=last)]
+
+
+def _names(text: str):
+    for line in text.splitlines()[1:]:
+        day, _, name = line.split(",", 2)
+        yield date.fromisoformat(day), name

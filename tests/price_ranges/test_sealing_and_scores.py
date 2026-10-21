@@ -42,7 +42,14 @@ def row(forecaster="implied", shift=0.0, p_up=0.6, horizon="N1"):
 
 
 def record(day="2026-10-16", label="backfill_eod", underlying="NIFTY", rows=None):
-    return {"day": day, "label": label, "underlying": underlying, "issue": "1545", "rows": rows or [row()]}
+    return {
+        "day": day,
+        "label": label,
+        "underlying": underlying,
+        "issue": "1545",
+        "method_sha256": "ab" * 32,
+        "rows": rows or [row()],
+    }
 
 
 def test_qs_coverage_and_brier_by_hand():
@@ -73,7 +80,7 @@ def test_comparisons_are_g4s_bootstrap_with_the_comparisons_own_seed():
     first = next(c for c in out["comparisons"] if c["second"] == "rv20")
     y = math.log(1.005)
     diffs = [2 / 5 * sum(pinball(t, y, q) - pinball(t, y, q + 0.004) for t, q in zip(LEVELS, LQ, strict=True))] * 50
-    direct = compare(diffs, comparison_seed("backfill_eod", "NIFTY", "1545", "N1", "rv20"))
+    direct = compare(diffs, comparison_seed("backfill_eod", "abababab", "NIFTY", "1545", "N1", "rv20"))
     assert (first["n"], first["tested"]) == (50, True) and first["p_value"] == direct.p_value
     assert TAU_NOTE in out["notes"] and BRIER_NOTE in out["notes"]
 

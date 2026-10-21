@@ -12,6 +12,7 @@ from fno.price_ranges.build import CAPTURE, RangeBuilder
 from fno.price_ranges.folders import live_path, scores_path
 from fno.price_ranges.reader import RangeForecasts, RangeScores, receipt_file
 from fno.price_ranges.sealing import SealCheck
+from fno.price_ranges.seals import Seals
 from tests.price_distribution.builders import DAY, RATE, Chains, chain_day, drive_store
 from tests.price_ranges.builders import CALENDAR, builder, closes
 
@@ -66,7 +67,11 @@ def test_the_reader_gives_fl1_sealed_or_late_live_records_backfill_records_and_t
     def pushed_at(path):
         return pushed[path]  # MONDAY's has no push evidence: late
 
-    reader = RangeForecasts(root, SealCheck(pushed_at, CALENDAR))
+    store, _, _ = drive_store(tmp_path / "seals")
+    seals = Seals(
+        SealCheck(pushed_at, CALENDAR), store, receipt_file, lambda: datetime(2026, 10, 19, 16, 0, tzinfo=IST)
+    )
+    reader = RangeForecasts(root, seals)
     sealed = reader.sealed("NIFTY", DAY, "1545")
     assert sealed.sealed_at == pushed[receipt_file(live_path("NIFTY", DAY, "1545"))] and not sealed.late
     assert (

@@ -11,7 +11,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
-from datetime import date
+from datetime import date, timedelta
 
 import requests
 
@@ -94,7 +94,7 @@ def _score(args, cfg) -> int:
     from .folders import scores_path
     from .reader import RangeForecasts
     from .scores import score_report
-    from .wiring import CACHE_ROOT, build_closes, build_seal_check, build_store, build_tables
+    from .wiring import CACHE_ROOT, build_closes, build_seals, build_store, build_tables, seal_lines
 
     store = build_store()
     tables = build_tables(store)
@@ -102,7 +102,9 @@ def _score(args, cfg) -> int:
     if not report.complete:
         print(f"STOPPED: the Drive cache could not verify every file: {'; '.join(report.problems)}")
         return 1
-    reader, outcomes = RangeForecasts(CACHE_ROOT, build_seal_check()), Outcomes(build_closes(tables))
+    seals = build_seals(store)
+    sealed = seal_lines(seals, store, now_ist().date() + timedelta(days=1))  # today's issue included
+    reader, outcomes = RangeForecasts(CACHE_ROOT, seals), Outcomes(build_closes(tables))
     records = [(s.record, not s.late) for s in reader.live()] + [(r, True) for r in reader.backfill()]
     result = score_report(records, lambda u, d: outcomes.close(u, date.fromisoformat(d)), v6a)
     data = (json.dumps(result, sort_keys=True, indent=1) + "\n").encode()
@@ -112,5 +114,5 @@ def _score(args, cfg) -> int:
         c50 = "n/a" if g["inside_50"] is None else f"{g['inside_50']:.0%}"
         c90 = "n/a" if g["inside_90"] is None else f"{g['inside_90']:.0%}"
         print(SUMMARY.format(qs=g["mean_qs"], c50=c50, c90=c90, brier=g["brier_up"], **g))
-    print("\n".join([*result["notes"], f"late live rows: {result['late_rows']}", f"report written: {path}"]))
+    print("\n".join([*sealed, *result["notes"], f"late live rows: {result['late_rows']}", f"report written: {path}"]))
     return 0

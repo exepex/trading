@@ -12,11 +12,12 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from datetime import date
 
+from ..constants import SESSION_REGULAR
 from ..forecast_v4_rules.series import DayValue
 from ..price_distribution.chain import ChainSource
-from ..price_distribution.recorder import NO_CHAIN, RECORDED_KINDS
+from ..price_distribution.recorder import NO_CHAIN
 from ..price_distribution.sources import ChainUnavailable
-from ..research_data.calendar import SessionCalendar
+from ..research_data.calendar import CalendarError, SessionCalendar
 from .build import Basis, RangeBuilder
 from .constants import ISSUE_1545
 from .folders import backfill_path
@@ -41,7 +42,7 @@ class RangeBackfill:
         if self.live_from is not None and last >= self.live_from:
             last = min(last, self.calendar.previous_session(self.live_from))
             lines.append(STOPS.format(live_from=self.live_from))
-        days = [d for d in self.calendar.sessions(first, last) if self.calendar.session_kind(d) in RECORDED_KINDS]
+        days = [d for d in self.calendar.sessions(first, last) if self.calendar.session_kind(d) == SESSION_REGULAR]
         for underlying in underlyings:
             closes = self.closes(underlying)
             records, skipped, problems = [], Counter(), Counter()
@@ -67,7 +68,7 @@ class RangeBackfill:
             return None
         try:
             return self.builder.build(underlying, day, ISSUE_1545, chain, closes, basis, label, None)
-        except (ValueError, ArithmeticError) as error:  # a refused row or a NaN: that day only
+        except (ValueError, ArithmeticError, CalendarError) as error:  # a refused row, a NaN: that day only
             skipped[f"build failed ({type(error).__name__}): {error}"] += 1
             return None
 

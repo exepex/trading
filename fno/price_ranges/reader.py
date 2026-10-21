@@ -14,7 +14,8 @@ from pathlib import Path
 from .backfill import SCHEMA as BACKFILL_SCHEMA
 from .constants import LIVE as LIVE_LABEL
 from .folders import BACKFILL, LIVE, RECEIPTS_ROOT, SCORES, drive, live_path
-from .sealing import Seal, SealCheck
+from .sealing import Seal
+from .seals import Seals
 
 
 @dataclass(frozen=True)
@@ -37,9 +38,10 @@ def receipt_file(path: str) -> str:
 
 
 class RangeForecasts:
-    def __init__(self, cache_root: Path, seal: SealCheck):
-        """`cache_root`: the Drive cache's local root (its files under `data/...`), synced by the caller."""
-        self.root, self.seal = Path(cache_root), seal
+    def __init__(self, cache_root: Path, seals: Seals):
+        """`cache_root`: the Drive cache's local root (its files under `data/...`), synced by the caller; `seals`: the
+        stored seal of a record, else one computed now (review finding 1)."""
+        self.root, self.seals = Path(cache_root), seals
 
     def _read(self, path: str) -> dict | None:
         file = self.root / drive(path)
@@ -48,19 +50,28 @@ class RangeForecasts:
     def sealed(self, underlying: str, day: date, issue: str) -> SealedRanges | None:
         path = live_path(underlying, day, issue)
         record = self._read(path)
-        return None if record is None else SealedRanges(record, self.seal.seal(receipt_file(path), day))
+        return None if record is None else SealedRanges(record, self.seals.seal(underlying, day, issue))
 
     def live(self) -> Iterator[SealedRanges]:
         for file in sorted((self.root / drive(LIVE)).rglob("*.json")):
             record = json.loads(file.read_bytes())
-            path = file.relative_to(self.root / "data").as_posix()
-            yield SealedRanges(record, self.seal.seal(receipt_file(path), date.fromisoformat(record["day"])))
+            day = date.fromisoformat(record["day"])
+            yield SealedRanges(record, self.seals.seal(record["underlying"], day, record["issue"]))
 
     def backfill(self) -> Iterator[dict]:
+        """One record per (label, method, underlying, day, issue): overlapping or rerun back-fills never count twice;
+        the file whose range ends latest (then its path) wins (review finding 4)."""
+        documents = []
         for file in sorted((self.root / drive(BACKFILL)).rglob("*.json.gz")):
             document = json.loads(gzip.decompress(file.read_bytes()))
             if document.get("schema") == BACKFILL_SCHEMA:
-                yield from document["records"]
+                documents.append(((document["last"], file.as_posix()), document))
+        chosen = {}
+        for _, document in sorted(documents, key=lambda pair: pair[0]):
+            for record in document["records"]:
+                key = (record["label"], record["method_sha256"], record["underlying"], record["day"], record["issue"])
+                chosen[key] = record
+        yield from (chosen[key] for key in sorted(chosen))
 
 
 class RangeScores:

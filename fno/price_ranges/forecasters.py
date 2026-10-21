@@ -33,7 +33,7 @@ from .t4 import t4_quantile
 
 Z = [NormalDist().inv_cdf(level) for level in LEVELS]
 T4 = [t4_quantile(level) / math.sqrt(2) for level in LEVELS]  # unit variance: t(4) has variance 2
-BIG_MOVE = 0.02  # G7's consistency line: P(|r| >= 2%), reported beside V6a, never scored
+BIG_MOVE = 0.02  # G7's consistency line: P(|log r| >= 0.02), as V6a, reported beside it and never scored
 NO_EXPIRY = "no expiry with a distribution and at least {k} sessions after the day"
 TOO_FEW_CLOSES = "{n} closes ({minimum} needed)"
 TOO_FEW_RETURNS = "{n} {k}-session returns in the last {window} closes ({minimum} needed)"
@@ -102,7 +102,7 @@ class ImpliedRange(RangeForecaster):
         def cdf(y: float) -> float:  # P(log return <= y) on the scaled distribution
             return found.cdf(forward * math.exp(median + (y - centre) / root))
 
-        p_big = cdf(math.log(1 - BIG_MOVE)) + 1 - cdf(math.log(1 + BIG_MOVE))
+        p_big = cdf(-BIG_MOVE) + 1 - cdf(BIG_MOVE)
         return increasing(values, 1 - cdf(0.0), p_big)
 
 

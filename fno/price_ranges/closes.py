@@ -64,12 +64,16 @@ class IndexFileCloses:
     def __init__(self, files: DailyFiles, calendar: SessionCalendar):
         self.files, self.calendar = files, calendar
 
+    def regular_sessions(self, first: date, last: date) -> list[date]:
+        return [d for d in self.calendar.sessions(first, last) if self.calendar.session_kind(d) == SESSION_REGULAR]
+
     def rows(self, underlying: str, first: date, last: date) -> tuple[list[tuple[date, float, str]], list[str]]:
         """`(day, close, file name)` for each regular session from first to last, and a gap line for each missing."""
+        return self.rows_for(underlying, self.regular_sessions(first, last))
+
+    def rows_for(self, underlying: str, days) -> tuple[list[tuple[date, float, str]], list[str]]:
         name, found, gaps = INDEX_NAMES[underlying], [], []
-        for day in self.calendar.sessions(first, last):
-            if self.calendar.session_kind(day) != SESSION_REGULAR:
-                continue
+        for day in days:
             filename, data = self.files.get(day)
             if data is None:
                 gaps.append(GAP.format(underlying=underlying, day=day, why="no index-close file"))

@@ -97,7 +97,10 @@ class RangeBuilder:
         return chain.spot, chain.observed_at, None
 
     def _stale(self, day: date, read: tuple[DayValue, ...], basis: Basis) -> str | None:
-        expected = day if basis.reads_day_close else previous_regular_session(self.calendar, day)
+        try:
+            expected = day if basis.reads_day_close else previous_regular_session(self.calendar, day)
+        except CalendarError as error:
+            return STALE.format(last=read[-1].day if read else None, expected=f"a session the calendar knows ({error})")
         last = read[-1].day if read else None
         return None if last == expected else STALE.format(last=last, expected=expected)
 

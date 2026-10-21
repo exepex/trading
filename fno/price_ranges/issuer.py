@@ -10,12 +10,15 @@ import json
 from collections.abc import Callable, Sequence
 from datetime import date, datetime
 
+import requests
+
+from ..constants import SESSION_REGULAR
 from ..forecast_v4_rules.series import DayValue
 from ..price_distribution.chain import ChainSource
-from ..price_distribution.recorder import RECORDED_KINDS
 from ..price_distribution.sources import ChainUnavailable
 from ..price_distribution.store import DistributionStore
-from ..research_data.calendar import SessionCalendar
+from ..research_data.calendar import CalendarError, SessionCalendar
+from ..storage.raw_store import RawFileConflict
 from .build import CAPTURE, RangeBuilder, missing_issue
 from .constants import ISSUE_1545, LIVE
 from .folders import live_path
@@ -34,6 +37,16 @@ ISSUED = "{underlying}: issued ({n} problems)"
 PROBLEM = "problem: {problem}"
 WITH_PROBLEMS = "written with problems: {problems}"
 DONE = "issued"
+BEFORE_FAILED = "close tables or seals not updated ({kind}): {error}"
+CONTAINED = (
+    ValueError,
+    ArithmeticError,
+    RuntimeError,
+    OSError,
+    CalendarError,
+    RawFileConflict,
+    requests.RequestException,
+)
 
 
 class RangeIssuer:
@@ -50,7 +63,11 @@ class RangeIssuer:
         refusal = self._refusal(day, now, live)
         if refusal:
             return 0, [refusal]
-        lines, problems, absent, retry, written = list(self.before(day)), [], {}, {}, 0
+        lines, problems, absent, retry, written = [], [], {}, {}, 0
+        try:
+            lines += self.before(day)
+        except CONTAINED as error:  # a close-table or seal failure is a problem line, never NIFTY's lost issue
+            problems.append(BEFORE_FAILED.format(kind=type(error).__name__, error=error))
         for underlying in self.underlyings:
             path = live_path(underlying, day, ISSUE_1545)
             existing = self.store.get(path)
@@ -72,7 +89,7 @@ class RangeIssuer:
             try:
                 record = self.builder.build(underlying, day, ISSUE_1545, chain, self.closes(underlying), CAPTURE,
                                             LIVE, now.isoformat())  # fmt: skip
-            except (ValueError, ArithmeticError) as error:
+            except CONTAINED as error:  # a refused row, a NaN, a closes read that failed: this underlying only
                 retry[underlying] = BUILD_FAILED.format(kind=type(error).__name__, error=error)
                 continue
             self.store.put(path, encode(record))
@@ -99,4 +116,4 @@ class RangeIssuer:
             return NOT_LIVE.format(day=day, live_from=self.live_from)
         if day != now.date():
             return NOT_TODAY.format(day=day, today=now.date())
-        return None if self.calendar.session_kind(day) in RECORDED_KINDS else NOT_TRADING
+        return None if self.calendar.session_kind(day) == SESSION_REGULAR else NOT_TRADING  # A1: regular sessions

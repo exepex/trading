@@ -53,9 +53,9 @@ class BhavcopyChains(ChainSource):
             expiry = date.fromisoformat(r["XpryDt"][:10])
             if expiry < day:
                 continue
-            close, volume = _number(r["ClsPric"]), int(float(r["TtlTradgVol"] or 0))
+            close, volume = _number(r["ClsPric"]), int(_number(r["TtlTradgVol"]) or 0)
             if r["FinInstrmTp"] == FUTURE:
-                futures[expiry] = close if close and volume > 0 else None
+                futures[expiry] = _number(r["SttlmPric"])  # the same-expiry future's settlement (A7)
             elif r["FinInstrmTp"] == OPTION and r["OptnTp"] in ("CE", "PE"):
                 options[expiry].append(Quote(float(r["StrkPric"]), r["OptnTp"], close, volume=volume))
         nearest = sorted(options)[:EXPIRIES]

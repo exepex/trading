@@ -19,7 +19,8 @@ NAME = "BhavCopy_NSE_FO_0_0_0_20261016_F_0000.csv"
 def fo_row(symbol, kind, expiry, strike="", option="", close=0.0, volume=10):
     row = dict.fromkeys(COLUMNS, "")
     row.update(TradDt="2026-10-16", FinInstrmTp=kind, TckrSymb=symbol, XpryDt=expiry.isoformat(), StrkPric=strike,
-               OptnTp=option, ClsPric=f"{close:.2f}", TtlTradgVol=str(volume), UndrlygPric="51000.00")  # fmt: skip
+               OptnTp=option, ClsPric=f"{close:.2f}", SttlmPric=f"{close:.2f}", TtlTradgVol=str(volume),
+               UndrlygPric="51000.00")  # fmt: skip
     return row
 
 

@@ -9,10 +9,15 @@ DATA_AREA = "data"  # O9's area
 RECEIPTS_ROOT = "receipts"  # O9's receipts tree in the checkout
 ROOT = "price_ranges/v1"
 LIVE, BACKFILL, SCORES, CLOSES = f"{ROOT}/live", f"{ROOT}/backfill", f"{ROOT}/scores", f"{ROOT}/closes"
+SEALS = f"{ROOT}/seals"
 
 
 def live_path(underlying: str, day: date, issue: str) -> str:
     return f"{LIVE}/{day:%Y}/{day:%m}/{underlying.lower()}_{day.isoformat()}_{issue}.json"
+
+
+def seal_path(underlying: str, day: date, issue: str) -> str:
+    return f"{SEALS}/{day:%Y}/{day:%m}/{underlying.lower()}_{day.isoformat()}_{issue}.json"
 
 
 def backfill_path(label: str, method: str, underlying: str, first: date, last: date, content: str) -> str:
@@ -25,8 +30,9 @@ def scores_path(made: datetime, content: str) -> str:
     return f"{SCORES}/{made:%Y-%m-%dT%H%M%S}_{content[:12]}.json"
 
 
-def closes_path(underlying: str, through: date, content: str) -> str:
-    return f"{CLOSES}/{underlying.lower()}_through_{through.isoformat()}_{content[:12]}.csv"
+def closes_path(underlying: str, through: date, rows: int, content: str) -> str:
+    """Through date, then row count: a later update always sorts last, a late file's filled day included."""
+    return f"{CLOSES}/{underlying.lower()}_through_{through.isoformat()}_rows{rows:06d}_{content[:12]}.csv"
 
 
 def drive(path: str) -> str:

@@ -19,7 +19,7 @@ SCHEMA = "g13b_scores_v1"
 NOTE = "descriptive only, no protocol, no claim; labels, issues and underlyings never pooled; secondary to net profit"
 CALIBRATION_MARK = 60  # trading days the owner set for a first calibration read (DESK, 21 Oct)
 LQ = [level_key(level, "lq") for level in LEVELS]
-GroupKey = tuple[str, str, str, str]  # label, underlying, issue, horizon
+GroupKey = tuple[str, str, str, str, str]  # label, method (first 8 of its hash), underlying, issue, horizon
 
 
 def resolved(records: Iterable[tuple[dict, bool]], close: Callable[[str, str], float | None]) -> tuple[list, int]:
@@ -28,7 +28,7 @@ def resolved(records: Iterable[tuple[dict, bool]], close: Callable[[str, str], f
     found, late = [], 0
     for record, scorable in records:
         if not scorable:
-            late += len(record.get("rows", []))
+            late += sum(1 for row in record.get("rows", []) if row["status"] == OK)
             continue
         for row in record.get("rows", []):
             target = close(record["underlying"], row["target_day"]) if row["target_day"] else None
@@ -38,7 +38,8 @@ def resolved(records: Iterable[tuple[dict, bool]], close: Callable[[str, str], f
 
 
 def _key(record: dict, row: dict) -> GroupKey:
-    return record["label"], record["underlying"], record["issue"], row["horizon"]
+    """A method change is a new version: its rows are scored apart, never pooled (review finding 4)."""
+    return record["label"], record["method_sha256"][:8], record["underlying"], record["issue"], row["horizon"]
 
 
 def _qs(row: dict, outcome: float) -> float:
@@ -60,10 +61,11 @@ def group_scores(scored: list) -> list[dict]:
     for record, row, y in scored:
         groups[(*_key(record, row), row["forecaster"])].append((record, row, y))
     out = []
-    for (label, underlying, issue, horizon, forecaster), items in sorted(groups.items()):
+    for (label, method, underlying, issue, horizon, forecaster), items in sorted(groups.items()):
         band = forecaster != NO_CHANGE  # a point mass has no band: "n/a", never 0%
         out.append({
-            "label": label, "underlying": underlying, "issue": issue, "horizon": horizon, "forecaster": forecaster,
+            "label": label, "method": method, "underlying": underlying, "issue": issue, "horizon": horizon,
+            "forecaster": forecaster,
             "n": len(items), "days": len({r["day"] for r, _, _ in items}),
             "mean_qs": sum(_qs(row, y) for _, row, y in items) / len(items),
             "inside_50": _band(items, "lq25", "lq75") if band else None,
@@ -98,12 +100,13 @@ def comparisons(scored: list) -> list[dict]:
     for record, row, y in scored:
         by[(*_key(record, row), row["forecaster"])][record["day"]] = _qs(row, y)
     out = []
-    for group in sorted({k[:4] for k in by}):
+    for group in sorted({k[:5] for k in by}):
         for baseline in (f for f in RULE_FORECASTERS if f != IMPLIED):
             first, second = by.get((*group, IMPLIED), {}), by.get((*group, baseline), {})
             days = sorted(first.keys() & second.keys())
             result = compare([first[d] - second[d] for d in days], comparison_seed(*group, baseline))
-            out.append({"label": group[0], "underlying": group[1], "issue": group[2], "horizon": group[3],
+            out.append({"label": group[0], "method": group[1], "underlying": group[2], "issue": group[3],
+                        "horizon": group[4],
                         "first": IMPLIED, "second": baseline, "n": result.n, "mean_difference": result.mean_difference,
                         "p_value": result.p_value, "interval_unadjusted_95": result.interval,
                         "tested": result.tested})  # fmt: skip
