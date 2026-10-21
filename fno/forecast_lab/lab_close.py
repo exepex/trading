@@ -1,9 +1,11 @@
-"""`lab close` (story FL1-1): the 15:45 report, written once and posted once to #fno-forecast. A rerun after the
-report was written posts the stored text and alerts, never rebuilt ones (scores may have moved since). A rerun after
-the post posts nothing. Each missing or late forecast is one alert to #fno-desk (a finding of a written report). A
-report not posted is the step's failure: the command exits non-zero and O1's `Alerted` alerts it once (O1's exit
-contract: a step never alerts its own failure). A post Slack may have made without answering is never retried (no
-double post), so it is marked posted and the failure says to check the channel."""
+"""`lab close` (story FL1-1): the 15:45 report, written once, posted once to #fno-forecast, its alerts sent once to
+#fno-desk. A rerun after the report was written posts the stored text and alerts, never rebuilt ones (scores may have
+moved since). Each step has its own write-once marker (judge 422): a rerun after the post sends no second post, and a
+rerun after the alerts sends no second alert. The alerts' marker is written after the sends (a crash in between sends
+them again rather than losing them). Every alert's outcome is printed, an unsent one with its text so the routine
+posts it by hand (CLAUDE.md, step 3). A report not posted is the step's failure: the command exits non-zero and O1's
+`Alerted` alerts it once (O1's exit contract: a step never alerts its own failure). A post Slack may have made without
+answering is never retried (no double post), so it is marked posted and the failure says to check the channel."""
 
 from __future__ import annotations
 
@@ -12,34 +14,33 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from ..alerts.sender import AlertSender
+from ..alerts.sender import SENT, AlertSender
 from ..cards.posting import CardPoster
-from ..quotes.recorder import RECORDED_SESSION_KINDS
 from .constants import (
     ALERT,
+    ALERTS_ALREADY,
+    ALERTS_SENT,
     ALREADY_POSTED,
-    HEADER,
-    ISSUE_CLOSE,
+    CHECK_BEFORE_REPOST,
     MAY_HAVE_POSTED,
     NOT_A_SESSION,
     NOT_POSTED,
-    POSTED,
-    UNDERLYINGS,
+    REPORT_ALREADY,
+    REPORT_POSTED,
 )
-from .match import MatchSection, next_ranges
-from .ranges import RangeSource
-from .scoreboard import scoreboard_lines, trust_line
+from .report import CloseReport
+from .written import WrittenReport
 
 
 class ReportRecords(ABC):
     """The report's write-once records (O9: Drive data area, one receipt each)."""
 
     @abstractmethod
-    def report(self, day: date) -> tuple[str, list[str]] | None:
-        """The day's report text and its alerts as written, or None."""
+    def report(self, day: date) -> WrittenReport | None:
+        """The day's report as written, or None."""
 
     @abstractmethod
-    def write_report(self, day: date, text: str, alerts: list[str]) -> None: ...
+    def write_report(self, day: date, report: WrittenReport) -> None: ...
 
     @abstractmethod
     def posted(self, day: date) -> bool: ...
@@ -47,35 +48,11 @@ class ReportRecords(ABC):
     @abstractmethod
     def mark_posted(self, day: date, outcome: str) -> None: ...
 
-
-class Sections(ABC):
-    """More report lines (FL1-1's contract tracking joins here), each section with its alerts."""
+    @abstractmethod
+    def alerted(self, day: date) -> bool: ...
 
     @abstractmethod
-    def lines(self, day: date) -> tuple[list[str], list[str]]: ...
-
-
-class CloseReport:
-    def __init__(self, forecasts: RangeSource, match: MatchSection, extra: tuple[Sections, ...] = (),
-                 underlyings: tuple[str, ...] = UNDERLYINGS):  # fmt: skip
-        self.forecasts, self.match, self.extra, self.underlyings = forecasts, match, extra, underlyings
-
-    def build(self, day: date, now: datetime) -> tuple[str, list[str]]:
-        lines, alerts = [HEADER.format(day=day)], []
-        for underlying in self.underlyings:
-            matched, missed = self.match.lines(underlying, day)
-            lines += ["", *matched]
-            alerts += missed
-        for underlying in self.underlyings:
-            lines += ["", *next_ranges(underlying, self.forecasts.sealed(underlying, day, ISSUE_CLOSE), now)]
-        for underlying in self.underlyings:
-            lines += ["", f"{underlying}:", *scoreboard_lines(self.forecasts.history(underlying, day))]
-        for section in self.extra:
-            more, more_alerts = section.lines(day)
-            lines += ["", *more]
-            alerts += more_alerts
-        lines += ["", trust_line(self.forecasts, self.underlyings, day)]
-        return "\n".join(lines) + "\n", alerts
+    def mark_alerted(self, day: date, outcomes: list[str]) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -86,25 +63,39 @@ class LabResult:
 
 class LabClose:
     def __init__(self, report: CloseReport, records: ReportRecords, poster: CardPoster, desk: AlertSender,
-                 session_kind: Callable[[date], str | None], clock: Callable[[], datetime]):  # fmt: skip
+                 is_regular: Callable[[date], bool], clock: Callable[[], datetime]):  # fmt: skip
         self.report, self.records, self.poster, self.desk = report, records, poster, desk
-        self.session_kind, self.clock = session_kind, clock
+        self.is_regular, self.clock = is_regular, clock
 
     def run(self, day: date) -> LabResult:
-        if self.session_kind(day) not in RECORDED_SESSION_KINDS:
+        if not self.is_regular(day):
             return LabResult([NOT_A_SESSION.format(day=day)])
-        if self.records.posted(day):
+        posted, alerted = self.records.posted(day), self.records.alerted(day)
+        if posted and alerted:
             return LabResult([ALREADY_POSTED.format(day=day)])
         written = self.records.report(day)
         if written is None:
-            written = self.report.build(day, self.clock())
-            self.records.write_report(day, *written)
-        text, alerts = written
-        receipt = self.poster.post(text)
-        if receipt.sent or MAY_HAVE_POSTED in receipt.outcome:
+            written = self.report.build(day, self.clock(), self.records.report)
+            self.records.write_report(day, written)
+        lines, failed = [REPORT_ALREADY.format(day=day)], False
+        if not posted:
+            lines, failed = self._post(day, written)
+        lines += [ALERTS_ALREADY.format(day=day)] if alerted else self._alert(day, written)
+        return LabResult(lines, failed)
+
+    def _post(self, day: date, written: WrittenReport) -> tuple[list[str], bool]:
+        receipt = self.poster.post(written.text)
+        maybe = MAY_HAVE_POSTED in receipt.outcome
+        if receipt.sent or maybe:
             self.records.mark_posted(day, receipt.outcome)
-        sent = [self.desk.send(ALERT.format(day=day, what=what)) for what in alerts]
-        line = POSTED.format(day=day, outcome=receipt.outcome, alerts=len(sent))
+        line = REPORT_POSTED.format(day=day, outcome="posted" if receipt.sent else receipt.outcome)
         if receipt.sent:
-            return LabResult([line])
-        return LabResult([line, NOT_POSTED.format(outcome=receipt.outcome)], failed=True)
+            return [line], False
+        return [line, NOT_POSTED.format(outcome=receipt.outcome) + (CHECK_BEFORE_REPOST if maybe else "")], True
+
+    def _alert(self, day: date, written: WrittenReport) -> list[str]:
+        texts = [ALERT.format(day=day, what=what) for what in written.alerts]
+        outcomes = [self.desk.send(text) for text in texts]
+        self.records.mark_alerted(day, outcomes)
+        unsent = [f"{outcome}: {text}" for outcome, text in zip(outcomes, texts, strict=True) if outcome != SENT]
+        return [ALERTS_SENT.format(day=day, sent=len(texts) - len(unsent), total=len(texts)), *unsent]

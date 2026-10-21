@@ -3,6 +3,7 @@
 import pytest
 
 from fno.forecast_lab.records import DriveReportRecords
+from fno.forecast_lab.written import WrittenReport
 from fno.storage.data_store import DataStore
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
 from fno.storage.receipts import ReceiptFolder
@@ -17,22 +18,27 @@ def parts(tmp_path):
     return DriveReportRecords(store, receipts), drive
 
 
-def test_the_report_and_its_marker_are_written_once_and_read_back(parts):
+REPORT = WrittenReport("report\n", ("NIFTY N3: no forecast was sealed",), ("NIFTY 2026-10-23",), ("NIFTY 2026-10-22",))
+
+
+def test_the_report_and_its_markers_are_written_once_and_read_back(parts):
     records, drive = parts
-    assert records.report(DAY) is None and not records.posted(DAY)
-    records.write_report(DAY, "report\n", ["NIFTY N3: no forecast was sealed"])
-    assert records.report(DAY) == ("report\n", ["NIFTY N3: no forecast was sealed"])
-    records.write_report(DAY, "report\n", ["NIFTY N3: no forecast was sealed"])  # same bytes: no-op
+    assert records.report(DAY) is None and not records.posted(DAY) and not records.alerted(DAY)
+    records.write_report(DAY, REPORT)
+    assert records.report(DAY) == REPORT  # its coverage too: the next report takes up the rest
+    records.write_report(DAY, REPORT)  # same bytes: no-op
     with pytest.raises(RawFileConflict):
-        records.write_report(DAY, "another report\n", [])
+        records.write_report(DAY, WrittenReport("another report\n", ()))
     records.mark_posted(DAY, "alert sent")
-    assert records.posted(DAY)
+    records.mark_alerted(DAY, ["alert NOT sent: FNO_SLACK_BOT_TOKEN is not set"])
+    assert records.posted(DAY) and records.alerted(DAY)
     assert drive.get("data/forecast_lab/v1/close/2026/2026-10-23.posted.json") is not None
+    assert b"FNO_SLACK_BOT_TOKEN is not set" in drive.get("data/forecast_lab/v1/close/2026/2026-10-23.alerted.json")
 
 
 def test_a_damaged_drive_copy_stops_the_run(parts):
     records, drive = parts
-    records.write_report(DAY, "report\n", [])
+    records.write_report(DAY, REPORT)
     path = drive.folder / "data/forecast_lab/v1/close/2026/2026-10-23.json"
     path.write_text("tampered", encoding="utf-8")
     with pytest.raises(RuntimeError, match="cannot be read back verified"):

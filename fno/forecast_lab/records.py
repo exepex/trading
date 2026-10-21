@@ -1,7 +1,7 @@
-"""The 15:45 report's records in O9's data store (story FL1-1): the report (text and alerts) and its posted marker,
-each a write-once JSON file in Drive's data area with its receipt under `receipts/`. A report is read back verified
-against its receipt's SHA-256 (the Drive cache's check, for one file; the cache syncs whole folders): a missing or
-damaged copy stops the run, never a silent rebuild."""
+"""The 15:45 report's records in O9's data store (story FL1-1): the report (text, alerts and what it covered), its
+posted marker and its alerts' marker, each a write-once JSON file in Drive's data area with its receipt under
+`receipts/`. A report is read back verified against its receipt's SHA-256 (the Drive cache's check, for one file; the
+cache syncs whole folders): a missing or damaged copy stops the run, never a silent rebuild."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from ..storage.data_store import DataStore
 from ..storage.receipts import ReceiptFolder
 from .constants import REPORT_AREA
 from .lab_close import ReportRecords
+from .written import WrittenReport
 
 UNREADABLE = "the written 15:45 report of {day} cannot be read back verified: {problems}"
 
@@ -28,7 +29,7 @@ class DriveReportRecords(ReportRecords):
     def _drive_path(self, path: str) -> str:
         return f"{self.store.area}/{path}"
 
-    def report(self, day: date) -> tuple[str, list[str]] | None:
+    def report(self, day: date) -> WrittenReport | None:
         drive_path = self._drive_path(self._path(day))
         receipt = self.receipts.read(drive_path)
         if receipt is None:
@@ -37,16 +38,24 @@ class DriveReportRecords(ReportRecords):
         if data is None or hashlib.sha256(data).hexdigest() != receipt.sha256:
             raise RuntimeError(UNREADABLE.format(day=day, problems="missing" if data is None else "damaged"))
         body = json.loads(data)
-        return body["text"], list(body["alerts"])
+        return WrittenReport(body["text"], tuple(body["alerts"]), tuple(body["checked"]), tuple(body["matched"]))
 
-    def write_report(self, day: date, text: str, alerts: list[str]) -> None:
-        self.store.put(self._path(day), _json({"day": day.isoformat(), "text": text, "alerts": list(alerts)}))
+    def write_report(self, day: date, report: WrittenReport) -> None:
+        body = {"day": day.isoformat(), "text": report.text, "alerts": list(report.alerts),
+                "checked": list(report.checked), "matched": list(report.matched)}  # fmt: skip
+        self.store.put(self._path(day), _json(body))
 
     def posted(self, day: date) -> bool:
         return self.receipts.read(self._drive_path(self._path(day, ".posted"))) is not None
 
     def mark_posted(self, day: date, outcome: str) -> None:
         self.store.put(self._path(day, ".posted"), _json({"day": day.isoformat(), "slack": outcome}))
+
+    def alerted(self, day: date) -> bool:
+        return self.receipts.read(self._drive_path(self._path(day, ".alerted"))) is not None
+
+    def mark_alerted(self, day: date, outcomes: list[str]) -> None:
+        self.store.put(self._path(day, ".alerted"), _json({"day": day.isoformat(), "outcomes": list(outcomes)}))
 
 
 def _json(body: dict) -> bytes:

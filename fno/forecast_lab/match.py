@@ -1,13 +1,14 @@
-"""The 15:45 report's forecast sections (story FL1-1): each sealed range whose target is the previous session against
-that session's official close, with G13b's own scores (never recomputed here), and the next session's sealed ranges.
-The previous session, not today: NSE archives the official close in the evening (G13b, 21 Oct 2026: about 23:00-02:13
-IST), so at 15:45 today's target can never be matched, while the previous session's is archived and scored. A forecast
-counts only if its seal (the receipt's GitHub push time) came before its target day's open; a missing or late one is
-said and alerted, never skipped."""
+"""The 15:45 report's forecast sections (story FL1-1). Two checks per underlying and target day, kept apart (judge 422):
+- the seal check: each issue whose target is that day must be sealed (its receipt's GitHub push time) before the next
+  regular session's 09:15 after its issue day, the story's rule and G13b's deadline, and G13b's own `late` verdict
+  must not be set; a missing or late one is said and alerted. It needs no close, so it runs on the target's own day;
+- the match: each forecast sealed in time against the day's official close, with G13b's own scores (never recomputed
+  here). NSE archives the close in the evening (G13b, 21 Oct 2026: about 23:00-02:13 IST), so a day is matched in a
+  later report, said in its header (owner, 21 Oct 2026: "15:45, match lags 1 day")."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime
 
 from ..models import IST
@@ -18,19 +19,22 @@ from .constants import (
     LEVELS,
     MATCH_HEADER,
     NO_ISSUE,
-    NOT_ARCHIVED,
+    NO_SCORE_YET,
+    NOT_IN_TIME,
     NOT_SEALED_YET,
     SEAL_BY,
+    SEALS_OK,
 )
 from .ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, RangeSource, SealedIssue
+from .sessions import RegularSessions
 
 
 def opens(day: date) -> datetime:
     return datetime.combine(day, SEAL_BY, IST)
 
 
-def sealed_in_time(issue: SealedIssue, target_day: date) -> bool:
-    return not issue.late and issue.sealed_at is not None and issue.sealed_at < opens(target_day)
+def sealed_in_time(issue: SealedIssue, deadline: datetime) -> bool:
+    return not issue.late and issue.sealed_at is not None and issue.sealed_at < deadline
 
 
 def band(row: RangeRow) -> str:
@@ -54,46 +58,64 @@ def score_line(row: RangeRow, score: RangeScore, s_ref: float) -> str:
     )
 
 
+@dataclass(frozen=True)
+class Forecast:
+    """One issue aimed at a target day: `issue` is None when it was never written."""
+
+    horizon: str
+    issue_day: date
+    issue: SealedIssue | None
+    in_time: bool
+
+
 class MatchSection:
-    def __init__(self, forecasts: RangeSource, outcomes: Outcomes, previous_session: Callable[[date], date]):
-        self.forecasts, self.outcomes, self.previous = forecasts, outcomes, previous_session
+    def __init__(self, forecasts: RangeSource, outcomes: Outcomes, sessions: RegularSessions):
+        self.forecasts, self.outcomes, self.sessions = forecasts, outcomes, sessions
 
-    def issue_day(self, target_day: date, sessions: int) -> date:
-        day = target_day
-        for _ in range(sessions):
-            day = self.previous(day)
-        return day
-
-    def lines(self, underlying: str, report_day: date) -> tuple[list[str], list[str]]:
-        """(report lines, alert texts) for the targets of the session before `report_day`."""
-        day = self.previous(report_day)
-        if self.outcomes.close(underlying, day) is None:
-            return [NOT_ARCHIVED.format(underlying=underlying, target=day)], []
-        out, alerts = [MATCH_HEADER.format(underlying=underlying, target=day)], []
-        scores = self.forecasts.scores(underlying, day)
+    def aimed_at(self, underlying: str, target: date) -> list[Forecast]:
+        found = []
         for horizon, sessions in HORIZON_SESSIONS.items():
-            issue_day = self.issue_day(day, sessions)
+            issue_day = self.sessions.back(target, sessions)
             issue = self.forecasts.sealed(underlying, issue_day, ISSUE_CLOSE)
-            what = {"underlying": underlying, "horizon": horizon, "issue_day": issue_day}
-            if issue is None:
-                alerts.append(NO_ISSUE.format(**what))
-                out.append(alerts[-1])
-            elif not sealed_in_time(issue, day):
-                alerts.append(LATE.format(**what, sealed=issue.sealed_at or "no push evidence"))
-                out.append(alerts[-1])
-            else:
-                out.append(f" {horizon}, issued {issue_day} 15:45 at {issue.s_ref:.2f}:")
-                out.extend(self._scored(issue, horizon, issue_day, scores))
-        return out, alerts
+            deadline = opens(self.sessions.next(issue_day))
+            found.append(Forecast(horizon, issue_day, issue, issue is not None and sealed_in_time(issue, deadline)))
+        return found
 
-    @staticmethod
-    def _scored(issue: SealedIssue, horizon: str, issue_day: date, scores: list[RangeScore]) -> list[str]:
-        lines = []
-        for score in sorted(scores, key=lambda s: s.forecaster):
-            row = issue.row(score.forecaster, horizon)
-            if score.horizon == horizon and score.issue_day == issue_day and row and row.status == STATUS_OK:
-                lines.append(score_line(row, score, issue.s_ref))
-        return lines or ["  no scored row yet (G13b scores after the close is archived)"]
+    def seal_lines(self, underlying: str, target: date) -> tuple[list[str], list[str]]:
+        """(report lines, alert texts): every missing or late forecast for `target`."""
+        alerts = []
+        for forecast in self.aimed_at(underlying, target):
+            what = {"underlying": underlying, "horizon": forecast.horizon, "issue_day": forecast.issue_day}
+            if forecast.issue is None:
+                alerts.append(NO_ISSUE.format(**what, target=target))
+            elif not forecast.in_time:
+                sealed = forecast.issue.sealed_at or "no push evidence"
+                alerts.append(LATE.format(**what, target=target, sealed=sealed))
+        return alerts or [SEALS_OK.format(underlying=underlying, target=target)], alerts
+
+    def match_lines(self, underlying: str, target: date) -> list[str] | None:
+        """The match of `target`'s forecasts against its official close, or None while the close is not archived."""
+        if self.outcomes.close(underlying, target) is None:
+            return None
+        out = [MATCH_HEADER.format(underlying=underlying, target=target)]
+        scores = self.forecasts.scores(underlying, target)
+        for forecast in self.aimed_at(underlying, target):
+            if forecast.in_time:
+                out.append(f" {forecast.horizon}, issued {forecast.issue_day} 15:45 at {forecast.issue.s_ref:.2f}:")
+                out.extend(_scored(forecast, scores))
+            else:
+                out.append(NOT_IN_TIME.format(horizon=forecast.horizon, issue_day=forecast.issue_day))
+        return out
+
+
+def _scored(forecast: Forecast, scores: list[RangeScore]) -> list[str]:
+    lines = []
+    for score in sorted(scores, key=lambda s: s.forecaster):
+        row = forecast.issue.row(score.forecaster, forecast.horizon)
+        same = score.horizon == forecast.horizon and score.issue_day == forecast.issue_day
+        if same and row and row.status == STATUS_OK:
+            lines.append(score_line(row, score, forecast.issue.s_ref))
+    return lines or [NO_SCORE_YET]
 
 
 def next_ranges(underlying: str, issue: SealedIssue | None, now: datetime) -> list[str]:

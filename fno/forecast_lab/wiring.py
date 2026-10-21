@@ -5,17 +5,21 @@ Drive into O9's cache first), FL1's adapter, O9's data store for the report's re
 from __future__ import annotations
 
 import os
+from datetime import date
 
 from ..cards.posting import CardPoster, NoCardPoster, SlackCardPoster
 from ..composition import build_alert_sender, build_session_calendar
+from ..config import load_app_config
 from ..constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_FORECAST_CHANNEL_ID
 from ..models import now_ist
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, build_data_store, build_drive_cache, receipt_folder
 from .constants import REPORT_AREA
 from .g13b_adapter import G13bCloses, G13bRanges
-from .lab_close import CloseReport, LabClose
+from .lab_close import LabClose
 from .match import MatchSection
 from .records import DriveReportRecords
+from .report import CloseReport
+from .sessions import RegularSessions
 
 WRITER = "lab-close"
 UNSYNCED = "G13b's records could not be read verified from Drive: {problems}"
@@ -32,6 +36,13 @@ def build_forecast_poster(env=os.environ) -> CardPoster:
     return SlackCardPoster(token, FNO_FORECAST_CHANNEL_ID) if token else NoCardPoster()
 
 
+def first_day(cfg: dict) -> date | None:
+    """The lab's first live day (`daily.live_from.lab_close`): no report takes up a day before it."""
+    from ..daily.wiring import live_dates
+
+    return live_dates(cfg)["lab_close"]
+
+
 def build_lab_close(env=os.environ) -> LabClose:
     from ..price_ranges import wiring as g13b
     from ..price_ranges.closes import Outcomes
@@ -46,6 +57,7 @@ def build_lab_close(env=os.environ) -> LabClose:
     ranges = G13bRanges(RangeForecasts(g13b.CACHE_ROOT, g13b.build_seals(store)), RangeScores(g13b.CACHE_ROOT))
     closes = G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store))))
     calendar = build_session_calendar()
-    report = CloseReport(ranges, MatchSection(ranges, closes, calendar.previous_session))
+    sessions = RegularSessions(calendar)
+    report = CloseReport(ranges, MatchSection(ranges, closes, sessions), first_day(load_app_config()))
     records = DriveReportRecords(build_data_store(WRITER, env=env), receipt_folder())
-    return LabClose(report, records, build_forecast_poster(env), build_alert_sender(), calendar.session_kind, now_ist)
+    return LabClose(report, records, build_forecast_poster(env), build_alert_sender(), sessions.is_regular, now_ist)
