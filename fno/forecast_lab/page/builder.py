@@ -19,12 +19,14 @@ from datetime import date, datetime
 from ..constants import CALIBRATION_DAYS, EVENING, ISSUE_CLOSE, MORNING, UNDERLYINGS
 from ..ranges import NoTodayCloses, Outcomes, RangeSource, SealedIssue, TodayCloses
 from ..sessions import RegularSessions
+from .cues import FAILED, Section, SectionView
 from .drift import method_problems, stale
 from .facts import FactsSource
 from .history import HistorySource, ScorePoint, method_record
+from .keypoints import evening_points, morning_points
 from .model import Band, Horizon, IndexView, Outcome, PageView, Problem, RangeView, Timeline
 from .plain import LIGHT_WORDS, day_short, light, when
-from .reasons import recent_misses
+from .reasons import reasons, recent_misses
 
 LIVE = "Live, sealed"
 SHOWN, HORIZONS = 30, ("N1", "N3")
@@ -32,6 +34,7 @@ DEFAULT_METHOD = "implied"  # with no scored history yet (owner, 21 Oct 2026: th
 NO_ISSUE = "{underlying}: today's forecast is missing (none written by {now:%H:%M})"
 NO_FORECAST = "{underlying}: today's forecast is missing (none sealed on {issued:%a %d %b})"
 NOT_READ = "today's close was not read ({why}); today is not checked"
+READ_FAILED = "{name}: the read failed ({error})"
 PRICE_AT = {"close": "close {day}", "read": "close today", "3pm": "3 pm price {day}"}
 
 
@@ -47,25 +50,39 @@ def _mean_error(points: list[ScorePoint]) -> float:
 class PageBuilder:
     def __init__(self, ranges: RangeSource, history: HistorySource, facts: FactsSource, sessions: RegularSessions,
                  underlyings: tuple[str, ...] = UNDERLYINGS, official: Outcomes | None = None,
-                 today_closes: TodayCloses | None = None):  # fmt: skip
+                 today_closes: TodayCloses | None = None, sections: tuple[Section, ...] = ()):  # fmt: skip
         self.ranges, self.history, self.facts, self.sessions = ranges, history, facts, sessions
         self.underlyings, self.official, self.today_closes = underlyings, official, today_closes or NoTodayCloses()
+        self.sections = sections
 
     def build(self, day: date, now: datetime, edition: str = EVENING, alerts: tuple[str, ...] = (),
               checks: tuple[str, ...] = (), confirmation: tuple[str, ...] = ()) -> PageView:  # fmt: skip
-        facts, drift, system, indices = self.facts.facts(day), [], [], []
+        facts, drift, indices = self.facts.facts(day), [], []
         issued = day if edition == EVENING else self.sessions.previous(day)
+        cues = self._cues(day, edition)
+        system = [s.why for s in cues if s.status == FAILED]
         for underlying in self.underlyings:
             issue = self.ranges.sealed(underlying, issued, ISSUE_CLOSE)
             if issue is None:  # its seal (GitHub's push time) may show later; the seal checks judge it, not this page
                 system.append(NO_ISSUE.format(underlying=underlying, now=now) if edition == EVENING
                               else NO_FORECAST.format(underlying=underlying, issued=issued))  # fmt: skip
-            index, problems = self._index(underlying, day, edition, issue, facts)
+            index, problems = self._index(underlying, day, edition, issue, facts, cues)
             indices.append(index)
             drift += [p for p in problems if p.method != "data"]
             system += [f"{p.group}: {p.text}" for p in problems if p.method == "data"]
         return PageView(day, LIVE, tuple(indices), tuple(drift), tuple(system), checks, alerts, edition,
-                        confirmation)  # fmt: skip
+                        confirmation, cues)  # fmt: skip
+
+    def _cues(self, day: date, edition: str) -> tuple[SectionView, ...]:
+        """Every Section in its one state; a read error is `failed` (said in the system line), never a crash."""
+        views = []
+        for section in self.sections:
+            try:
+                views.append(section.read(day, edition))
+            except Exception as error:  # noqa: BLE001  any source error is that Section's, never the page's
+                why = READ_FAILED.format(name=section.name, error=type(error).__name__)
+                views.append(SectionView(section.name, FAILED, why=why))
+        return tuple(views)
 
     def _points(self, underlying: str, day: date) -> dict[tuple[str, str], list[ScorePoint]]:
         by = defaultdict(list)
@@ -105,8 +122,8 @@ class PageBuilder:
         NSE's official file (23:20 the night before) is archived, so at 08:50 the previous session is not scored yet."""
         return self.sessions.previous(day) if edition == EVENING else self.sessions.back(day, 2)
 
-    def _index(self, underlying: str, day: date, edition: str, issue: SealedIssue | None,
-               facts) -> tuple[IndexView, list[Problem]]:  # fmt: skip
+    def _index(self, underlying: str, day: date, edition: str, issue: SealedIssue | None, facts,
+               cues: tuple[SectionView, ...]) -> tuple[IndexView, list[Problem]]:  # fmt: skip
         by = self._points(underlying, day)
         banded = sorted({m for (m, h), ps in by.items() if h == "N1" and any(p.band for p in ps)})
         best = min(banded, key=lambda m: _mean_error(by[(m, "N1")]), default=DEFAULT_METHOD)
@@ -137,7 +154,16 @@ class PageBuilder:
         state = light(index)
         wrong = tuple(p.day for p in reversed(last) if not p.inside_90)
         return replace(index, light=state, light_word=LIGHT_WORDS[state], wrong_days=wrong,
-                       backtested=sum(not p.live for p in last)), problems  # fmt: skip
+                       backtested=sum(not p.live for p in last),
+                       why=self._why(day, edition, best, checked, facts, cues)), problems  # fmt: skip
+
+    def _why(self, day: date, edition: str, best: str, checked: Outcome | None, facts,
+             cues: tuple[SectionView, ...]) -> tuple:  # fmt: skip
+        if edition == MORNING:
+            return morning_points(best, cues)
+        missed = checked is not None and not checked.inside_90
+        said = reasons(day, self.sessions.previous(day), facts, checked.close > checked.band.q95) if missed else ()
+        return evening_points(checked, tuple(said), cues)
 
 
 def _last_scored(points: tuple[Outcome, ...], day: date) -> date | None:

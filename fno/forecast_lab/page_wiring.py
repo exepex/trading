@@ -5,6 +5,7 @@ signed off) and headless Chromium for the picture."""
 
 from __future__ import annotations
 
+import functools
 from datetime import date
 
 from ..config import ROOT
@@ -13,9 +14,12 @@ from .g13b_history import G13bHistory
 from .maker import ReportMaker
 from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
+from .page.cues import Section
 from .page.facts import RepositoryFacts
 from .page.render import InterimRenderer
 from .ranges import NoTodayCloses, Outcomes, RangeSource
+from .sections.global_cues import SPECS, GlobalCueSection
+from .sections.india import FlagsSection, PendingSection, VixSection
 from .sessions import RegularSessions
 
 PICTURE_WIDTH = 600  # CSS pixels: the picture page's own width, so a phone does not shrink it to unreadable
@@ -34,9 +38,29 @@ def flows_reader(calendar: SessionCalendar):
     return flows
 
 
+GIFT, GIFT_PENDING = "GIFT Nifty", "A22b's early GIFT file is not merged yet"
+
+
+def build_sections(facts: RepositoryFacts, sessions: RegularSessions) -> tuple[Section, ...]:
+    """The cues' Sections, one source each: A17's overnight cues (read only), India VIX from NSE's archived file, the
+    day's flags, and GIFT Nifty (pending A22b). A new source is one class and one line here."""
+    from ..global_cues.as_of import OPEN
+    from ..global_cues.wiring import build_reader
+    from ..storage.wiring import build_index_close_files
+
+    reader, known = functools.cache(build_reader), functools.cache(facts.facts)
+    return (
+        *(GlobalCueSection(reader, spec, OPEN) for spec in SPECS),
+        VixSection(build_index_close_files(), sessions.previous, lambda day: known(day).vix),
+        FlagsSection(known),
+        PendingSection(GIFT, GIFT_PENDING),
+    )
+
+
 def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar,
                        official: Outcomes) -> ReportMaker:  # fmt: skip
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
-    pages = PageBuilder(ranges, G13bHistory(forecasts, scores), RepositoryFacts(ROOT, flows_reader(calendar)),
-                        RegularSessions(calendar), official=official, today_closes=NoTodayCloses())  # fmt: skip
+    facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
+    pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official,
+                        today_closes=NoTodayCloses(), sections=build_sections(facts, sessions))  # fmt: skip
     return ReportMaker(pages, InterimRenderer(), ChromiumCamera(width=PICTURE_WIDTH))

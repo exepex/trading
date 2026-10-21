@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
+from .cues import Cue, SectionView
+
 
 @dataclass(frozen=True)
 class Band:
@@ -130,6 +132,8 @@ class IndexView:
     light_word: str = ""  # its word: "Good", "Watch", "Check" or "Too few days"
     wrong_days: tuple[date, ...] = ()  # of the last `scored` sessions, those outside "almost certainly", newest first
     backtested: int = 0  # of the last `scored` sessions, those scored on a back-fill, not a live sealed forecast
+    why: tuple[Cue, ...] = ()  # the 2-4 key points (FL1-1d-2), in the stated order; context is never a cause
+    levels: tuple[Cue, ...] = ()  # the evening's levels and flows table (FL1-1d-2)
 
 
 @dataclass(frozen=True)
@@ -143,3 +147,4 @@ class PageView:
     alerts: tuple[str, ...] = field(default=())
     edition: str = "evening"  # "morning" (today's forecast, 08:50) or "evening" (was it right, 20:05): FL1-1d
     confirmation: tuple[str, ...] = field(default=())  # morning: the last evening's close confirmed, or corrected
+    cues: tuple[SectionView, ...] = field(default=())  # every Section in its one state (FL1-1d-2)
