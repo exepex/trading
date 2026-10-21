@@ -25,7 +25,6 @@ from .constants import (
     NIFTY_SYMBOL,
     OPTION_CALL,
     OPTION_PUT,
-    RECORDED_INDEX_OPTIONS,
     STRUCTURE_CALL_CREDIT_SPREAD,
     STRUCTURE_CALL_DEBIT_SPREAD,
     STRUCTURE_LONG_CALL,
@@ -38,7 +37,6 @@ from .providers.base import Provider
 from .providers.nse_quotes import NseQuoteProvider
 from .providers.public import PublicData
 from .quotes.expiry_listing import NseDailyFileExpiries
-from .quotes.indices import index_slot
 from .quotes.market_levels import NseLevelSource
 from .quotes.recorder import DATASET as GROWW_QUOTE_DATASET
 from .quotes.recorder import NSE_DATASET as NSE_QUOTE_DATASET
@@ -104,23 +102,6 @@ def build_nse_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     """Story O6, owner's choice (a): the same recorder on NSE's public option chain (no broker key), into its own
     dataset beside Groww's, so the two can be compared and are never mixed."""
     return _quote_recorder(NseQuoteProvider(cfg), NSE_QUOTE_DATASET)
-
-
-def build_index_quote_recorders(cfg: dict) -> dict[str, QuoteSnapshotRecorder]:
-    """Story A4c: one recorder per traded index after NIFTY (the owner's list), on the 3 pm recorder's own provider,
-    sharing one reader of NSE's daily files (parsed once a run) and the Drive-only quote store; no NIFTY levels."""
-    provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
-    expiries, store, calendar = (
-        NseDailyFileExpiries(build_nse_fo_library()),
-        build_quote_store(),
-        build_session_calendar(),
-    )
-    return {
-        underlying: QuoteSnapshotRecorder(
-            provider, store, fallback=expiries, calendar=calendar, history=expiries, slot=index_slot(underlying)
-        )  # fmt: skip
-        for underlying in RECORDED_INDEX_OPTIONS
-    }
 
 
 def _quote_recorder(provider: Provider, dataset: str) -> QuoteSnapshotRecorder:
