@@ -192,6 +192,14 @@ Only the `e4_1515` view fills the same day.
       every Drive and A16 read the step makes carries a network timeout of 60 seconds, and the step checks its
       10-minute deadline before each read. A timed-out read or a passed deadline is a step failure (new entries fail
       closed, exits still run), so a hung read can never hold up the day's exits.
+    - **The live date** (`daily.live_from.owner_timing_fills`, none by default; response 286). Each decision is handled
+      once, on its own day, by that day's rule:
+      - an entry decided before the date is filled by E4 at 15:15 and never queued;
+      - an entry decided on or after it is handed over and filled by E8;
+      - an exit E4 left waiting before the date (a protective leg without a quote) and still open on it is alerted at
+        that day's exit review and finished by E8 at its due mark.
+
+      Legs E4 already closed are never closed again (`tests/desk_owner_timing/test_live_boundary.py`).
 12. **Point in time.**
     - The decision must be committed before its card's T.
     - T must come from a delivery record.
