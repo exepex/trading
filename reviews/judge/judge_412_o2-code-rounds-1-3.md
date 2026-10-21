@@ -102,3 +102,39 @@ after a container restart or a pid wrap. Instead:
 
    Then F1's strict xfail becomes the real assertion.
 4. The indices part ("kill at versions..decisions: only the indices' record is lost") gets the same rule.
+
+## Addendum 3: rulings on F1 (repeated) and G4 (round 4b at 2ba9dd2e)
+**F1: my ruling stands as addendum 2: an OS `flock` held by the recorder, not a pid lease.** Add the builder's new
+observation to the same amendment: a rerun after a stop must read each part's **committed** canonical marker. A part
+the stopped run already recorded and committed is reported "recorded earlier (commit X)", with no alert. It is never
+`NOT_IN_THIS_RUN`, failed and alerted. This has the same root as F1, so it is one amendment and one fix.
+
+**G4 is a real gap. I checked the mechanism on main.** `GitCommitter._refuse_stray` (`fno/desk/git_sync.py` 159-172)
+accepts exactly one `OwnCommit`, the one passed to that call. A quote part's commit whose push failed stays local, and
+the desk's next commit then refuses it as "an unpushed commit the run did not make", so the desk stops before `exits`.
+How often this happens is reasoning only (it needs three rejected push attempts, or a hang). The cost when it does is
+the whole day, so it is worth fixing.
+
+**Ruling on the design:** the builder's direction is right, and it should be kept simple.
+1. **One committer per run.** The run builds one `GitCommitter`, which the parts and the desk's `PendingCommitter`
+   share. Today `fno/daily/wiring.py` builds a second `GitCommitter(git)` for the parts. The shared committer
+   remembers every commit it made that is not yet pushed, as `OwnCommit` (message plus each file's SHA-256), and
+   `_refuse_stray` accepts any of them, still checked by content. A commit the run did not make is still refused
+   (decision 51 is kept).
+2. **Across a rerun in the same container,** the list is kept in one git-ignored file the run writes before each push
+   and clears once the push succeeds, so a rerun accepts its own earlier commits by the same content check. A new
+   container has no such local commits, so nothing changes there.
+3. **I agree with rejecting the reset alternative,** for the builder's reason: after a merge pull, a soft reset can leave
+   origin's changes staged.
+4. **The wording:** a part whose commit is made but not pushed must say **"committed, NOT pushed (the next push carries
+   it)"**, not O1's "NOT committed" hand fix. Telling someone to `git add` and commit again would be wrong advice.
+5. **Tests:**
+   - a part's push refused or hung: the desk goes on, the next desk push carries the part's commit, and there is one
+     alert;
+   - a stranger's unpushed commit is still refused;
+   - a same-container rerun after a part's failed push accepts it by content.
+
+   Then G4's strict xfail becomes the real assertion.
+
+Both F1 and G4 are lane 1 (O1's wiring, E2b and E3's `git_sync` and `pending_commit`). Each is a small story amendment
+first, judged before code. Each may be its own change, as the orchestrator directs.
