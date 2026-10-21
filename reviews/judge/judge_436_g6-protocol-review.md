@@ -48,3 +48,28 @@ in full. This is recorded so no one reads those 7 as the branch's.
    years" is not quite the source. Judge 128 gives V2 8-22 years "even at r = 3-5", the assumed noise, so with the
    measured noise V2 needs longer. The conclusion ("no v4 member is provable in useful time") is unchanged and, if
    anything, stronger. Suggested words for the next text piece: "V2 needs 8-22 years even at the assumed r = 3-5".
+
+## Addendum 1: b3a74979, `SlotFile` refuses a start on or before the freeze (number 436.1, claimed with `tools/claim_number.py`)
+
+**PASS.** It closes judge 430's note 2, at the orchestrator's request. The new check is in
+`fno/forecast_scoring/v4/slot_file.py`, after the `registered_on` rule: when the freeze day is known,
+`start <= frozen` is refused with a named message.
+
+`wiring._registry` passes `_frozen_on`, which is None before `FREEZE_v4.md` exists. `scoring._miss_start` keeps its
+`max(...)` as a second guard. Both files are byte-checked v4 files, and this lands before the freeze, as it must.
+
+### My plants (2 of 3 caught)
+- `<=` -> `<`: fails 1 test (the freeze-day row).
+- The check removed: fails 2 tests.
+- The wiring drops `_frozen_on`: survived. This is the same untested-wiring point as judge 414 note 3: before the
+  freeze both versions give None. The `_miss_start` clamp still guards the counting, so it is a note only.
+
+### Gates (run by me on b3a74979, `__pycache__` cleared first)
+| Gate | Result |
+|---|---|
+| `pytest -q -n auto` | 8,946 passed, 17 xfailed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | 1,658 files formatted |
+| `check_imports` | clean |
+
+The V2 wording note above stays open for the next text piece.
