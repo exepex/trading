@@ -1,28 +1,40 @@
-# FL1 report design v8 (designer's preview, branch `story/fl1-report-design`)
+# FL1 report design: signed off at d8f0440 (owner, 21 Oct 2026; DESK_DECISIONS 11ef1b23)
 
-The owner rejected v4 (cluttered), v5 (overview not on top, no values) and v6 (congested, big type, data missing),
-then approved the wireframe's structure with the graphs back and two editions. This folder is v7. Rationale in
-`DESIGN.md`; research in `REFERENCES.md`. Design only: the FL1 builder wires it to the real records and
+The owner signed off the report design at commit d8f0440: two editions, separate plain charts, no shaded bands and
+no bars. The design is frozen at that commit: no visual change unless the owner asks. The FL1 builder wires it
+(story FL1-1d) from the files in the first table. Rationale in `DESIGN.md`; research in `REFERENCES.md`. Design only: the FL1 builder wires it to the real records and
 to Slack; nothing under `fno/` is touched.
+
+## The signed-off design (d8f0440)
 
 | File | What it is |
 |---|---|
-| `REFERENCES.md` | Research before v7: five broker notes opened, what their first screen carries, visual conventions, morning vs evening editions, our content proposal with data availability |
-| `wireframe.html` | The v7 wireframe: layout only, plain boxes, 13.5 px body, two columns from 760 px |
-| `DESIGN.md` | v8's rationale: the two editions, the result card, chart 1 (forecast vs close), chart 2 (how far off), the tables, the calendar, the trend |
-| `fl1-morning.html` | Edition A, 08:50: the key, the cues strip, per index the three big numbers, chart 1 over 10 days with today's forecast on the right, why this forecast, the reliability chip |
-| `fl1-evening.html` | Edition B, 20:05: the key, per index the result card, chart 1, chart 2, the day-by-day table, the counts with percentages and the calendar, the reliability trend, when it was wrong, levels and flows |
-| `editions.py`, `blocks.py`, `twolines.py`, `gapchart.py`, `trendchart.py`, `calendar_grid.py`, `editions.css` | The v8 generator: `python editions.py` rewrites both editions from the PageView dump |
-| `fl1-report-picture.html` | v6's picture (rejected; kept until the builder wires v7) |
-| `fl1-report-details.html` | v6's attached file (the 30-day chart with zoom, every day in numbers, every method, the checks); v7's details file follows the wireframe's blocks 4-8 once the editions are approved |
-| `slack-message.txt` | The 3 text lines, unchanged from v4 |
-| `pageview-2026-10-19.json` | The builder's real PageView dump (story/fl1-html-report cf452764): every page is built from it |
-| `pageview.py` | Reads a PageView (dataclasses or the JSON dump) into plain values; `render_picture(pv)` and `render_details(pv)` for the builder's PageRenderer |
-| `build.py`, `linechart.py`, `report.css`, `zoom.js` | v6's generator (`python build.py`); `linechart.py` also holds the shared number formats and the three-colour rule |
+| `fl1-morning.html` | Edition A, 08:50 IST: the key, the cues strip, per index the three big numbers, chart 1 over 10 days with today's forecast on the right, why this forecast, the reliability chip |
+| `fl1-evening.html` | Edition B, 20:05 IST: the key, per index the result card, chart 1 (forecast vs close), chart 2 (how far off), the day-by-day table, the counts with percentages and the calendar, the reliability trend, when it was wrong, levels and flows |
+| `editions.py` | Builds both pages: `python editions.py` rewrites them from the PageView dump next to it |
+| `blocks.py` | The result card, the day-by-day table, the counts with percentages, the misses table |
+| `twolines.py` | Chart 1: forecast middle (dashed) vs actual close (solid); the morning variant with today's forecast |
+| `gapchart.py` | Chart 2: the gap in points per day, zero line, dashed step lines for the range edges |
+| `trendchart.py` | The reliability trend (rolling 20-day share inside "almost certainly", target, warning zone) |
+| `calendar_grid.py` | The month calendar of results |
+| `editions.css` | The look: the dashboard's tokens, one chart per card, phone drawings under 560 px |
+| `pageview.py` | Reads the builder's PageView (dataclasses or JSON) into the plain values the pages draw |
+| `linechart.py` | Shared number formats (outward rounding to 10) and the three-colour result rule |
+| `pageview-2026-10-19.json` | The builder's real PageView dump the preview is built from |
+| `DESIGN.md` | The rationale, block by block |
+| `REFERENCES.md` | The research: five broker notes, conventions, editions, the content table with availability |
 
-No PNG is committed (the record scan refuses binary files). To draw the picture:
-`/opt/pw-browsers/chromium --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=600,1700
---force-device-scale-factor=2 --screenshot=picture.png file://$PWD/fl1-report-picture.html`.
+## Kept for reference only (superseded, not part of the sign-off)
+
+| File | What it is |
+|---|---|
+| `wireframe.html` | The v7 wireframe the owner approved the structure of |
+| `fl1-report-details.html`, `fl1-report-picture.html`, `build.py`, `report.css`, `zoom.js` | v6's attached details file and picture (rejected look); the details file still shows the method grids, scores and checks that an attached file may carry |
+| `slack-message.txt` | v4's three text lines (superseded by the two editions) |
+
+No PNG is committed (the record scan refuses binary files). To draw an edition at the width the builder posts:
+`/opt/pw-browsers/chromium --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=1100,5000
+--force-device-scale-factor=2 --screenshot=evening.png file://$PWD/fl1-evening.html` (trim the empty bottom).
 
 ## Where the data comes from
 
