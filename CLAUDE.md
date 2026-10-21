@@ -104,6 +104,20 @@ each part's commit in its one thread. The `git add` lines below are also the han
    yourself only for any other result, or if it printed "alert NOT sent". Note every such result in
    `conversations/<date>.md`.
 
+## Pre-open capture (story A22)
+
+Started by the owner's scheduled session at 08:36 IST every day; its stored prompt is exactly: "Run the pre-open capture
+in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is read through the read-only allow-list.
+1. `sh tools/routine_setup.sh --groww` (prints "routine setup ok").
+2. `python -m fno preopen record`. On a day that is not a trading day it prints "not a trading day" and ends. Otherwise
+   it reads GIFT Nifty (08:40-08:44:59), NSE's F&O pre-open list (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09
+   one-minute candle from Groww (09:10:00-09:10:59), saves the raw answers and the day row write-once to Drive, and
+   itself commits and pushes `research/ops/capture_errors.csv` and `receipts/` to `main` by about 09:12. It ends on
+   "pre-open recorded" or "pre-open recorded with problems: ..." (exit 1; it posts that one line to #fno-desk itself).
+3. If it printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk (`C0C89E8QCCD`)
+   with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only `receipts/` and
+   `research/ops/capture_errors.csv`, never `--no-verify`). No value is ever posted or committed.
+
 ## Branch
 
 **Judge lanes (owner, 14 Oct 2026, `docs/DESK_DECISIONS.md`; details in `docs/JUDGE.md`).** A change's lane is set by
@@ -191,6 +205,7 @@ commit with `--no-verify`.
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
   parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
   `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a),
+  `fno/preopen/wiring.py` (the morning capture: GIFT Nifty, NSE's pre-open list, Groww's 09:09 candles, story A22),
   `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b) and
   `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
   scores: A4's chains, the panel, closes, O9's Drive store, story G13) and `fno/price_ranges/wiring.py` (NIFTY's and
