@@ -18,21 +18,24 @@ LIGHTS = {"green": "🟢", "amber": "🟡", "red": "🔴", "none": "⚪"}
 LIGHT_WORDS = {"green": "Good", "amber": "Watch", "red": "Check", "none": "Too few days"}
 RESEARCH = "Research only. Not a trade tip."
 NORMAL = "✅ All systems normal."
-TRADING_DAYS = {"N1": 1, "N3": 3}
+EDITIONS = {"morning": ("Today's forecast", "08:50"), "evening": ("Was today's forecast right?", "20:05")}
+RESULTS = {(True, True): "✓ Correct", (False, True): "⚠ Close call", (False, False): "✗ Missed"}  # the designer's words
+PROVISIONAL = "NSE's close; the official file confirms it tomorrow"
 
 
 def day_short(day: date) -> str:
     return f"{day:%a} {day.day} {day:%b}"
 
 
-def when(horizon: str, target: date, today: date) -> str:
-    """ "tomorrow" only when the next session is the next calendar day; otherwise the day, so a holiday or a weekend
-    never makes "tomorrow" wrong."""
-    sessions = TRADING_DAYS.get(horizon, 0)
-    if sessions == 1 and (target - today).days == 1:
+def when(ahead: int, target: date, today: date) -> str:
+    """`ahead`: regular sessions from `today` to `target` (0: today). "tomorrow" only when the next session is the next
+    calendar day; otherwise the day, so a holiday or a weekend never makes "tomorrow" wrong."""
+    if ahead == 0:
+        return "today"
+    if ahead == 1 and (target - today).days == 1:
         return "tomorrow"
-    ahead = "next trading day" if sessions == 1 else f"in {sessions} trading days"
-    return f"{ahead}, {day_short(target)}"
+    words = "next trading day" if ahead == 1 else f"in {ahead} trading days"
+    return f"{words}, {day_short(target)}"
 
 
 def outward(low: float, high: float) -> tuple[int, int]:
@@ -62,10 +65,21 @@ def record_words(index: IndexView) -> str:
     return f"right {index.right} of the last {index.scored} days{tested}"
 
 
+def result_words(index: IndexView, today: date) -> str:
+    """The evening's verdict on today's forecast, or "" when today was not checked."""
+    points = index.horizons[0].timeline.points if index.horizons else ()
+    last = points[-1] if points else None
+    if last is None or last.day != today:
+        return ""
+    label = f" ({PROVISIONAL})" if last.provisional else ""
+    return f"today closed {last.close:,.2f}{label}: {RESULTS[(last.inside_50, last.inside_90)]}"
+
+
 def index_line(index: IndexView, today: date) -> str:
-    parts = [f"*{index.underlying}*"]
+    result = result_words(index, today)
+    parts = [f"*{index.underlying}*", *([result] if result else [])]
     for view in index.today:
-        parts.append(f"{when(view.horizon, view.target_day, today)}: most likely {likely(view.band)} "
+        parts.append(f"{view.when}: most likely {likely(view.band)} "
                      f"(almost certainly {certain(view.band)})")  # fmt: skip
     return " · ".join(parts) + f" · {LIGHTS[light(index)]} {record_words(index)}"
 
@@ -76,5 +90,7 @@ def status_line(view: PageView) -> str:
 
 
 def slack_lines(view: PageView) -> list[str]:
-    """The message's text: one line per index, then the status line."""
-    return [*(index_line(i, view.day) for i in view.indices), status_line(view)]
+    """The message's text: the edition's title, one line per index, the morning's confirmations, the status line."""
+    title, at = EDITIONS[view.edition]
+    return [f"*{title}* ({day_short(view.day)}, {at})", *(index_line(i, view.day) for i in view.indices),
+            *view.confirmation, status_line(view)]  # fmt: skip

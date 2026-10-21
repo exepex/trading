@@ -15,7 +15,7 @@ from ..research_data.calendar import CalendarError
 from ..storage.data_store import DataStore
 from ..storage.manifest_commit import ManifestRecorder
 from ..storage.raw_store import RawFileConflict
-from .day_row import day_file, day_row, raw_file
+from .day_row import EARLY_FILES, day_file, day_row, early_file, early_row, raw_file
 from .run import OK, PartResult, PreopenRun
 
 JOB = "preopen"
@@ -25,6 +25,7 @@ DONE, WITH_PROBLEMS = "pre-open recorded", "pre-open recorded with problems: {pr
 ALERT = "A22 pre-open capture {day}: {problems}"
 NOT_COMMITTED = " NOT committed"
 DAY_ROW_TAKEN = "day row already written by an earlier run; this run's row not kept"
+EARLY_TAKEN = "file already written by an earlier run; this run's not kept"
 SAVE_ERRORS = (OSError, RuntimeError, ValueError)  # Drive and its settings; RawFileConflict is a RuntimeError
 
 
@@ -41,10 +42,13 @@ class Problem:
 class PreopenRecorder:
     def __init__(self, is_trading_day: Callable[[date], bool], run: Callable[[Callable], PreopenRun],
                  store: DataStore, errors: CaptureErrorLog, committers: Sequence[ManifestRecorder],
-                 alerts: AlertSender, clock_warning: Callable[[], str], out=print):  # fmt: skip
-        """`run`: builds the window run around the callback that saves each finished part."""
+                 alerts: AlertSender, clock_warning: Callable[[], str], early_commit: ManifestRecorder,
+                 out=print):  # fmt: skip
+        """`run`: builds the window run around the callback that saves each finished part; `early_commit` pushes a
+        part's own file (GIFT Nifty) as soon as the part ends."""
         self.is_trading_day, self.build_run, self.store, self.errors = is_trading_day, run, store, errors
         self.committers, self.alerts, self.clock_warning, self.out = committers, alerts, clock_warning, out
+        self.early_commit = early_commit
 
     def record(self, day: date) -> int:
         try:
@@ -54,13 +58,28 @@ class PreopenRecorder:
         except CalendarError as error:
             return self._finish(day, [Problem("calendar", "stopped", str(error))])
         problems = [Problem("clock", "warning", warning)] if (warning := self.clock_warning()) else []
-        results = self.build_run(lambda result: problems.extend(self._save_raw(day, result))).run(day)
+        results = self.build_run(lambda result: problems.extend(self._finished(day, result))).run(day)
         for result in results:
             self.out(PART_LINE.format(part=result.part, status=result.status, reads=result.reads,
                                       detail=f": {result.detail}" if result.detail else ""))  # fmt: skip
         problems += [Problem(r.part, r.status, r.detail) for r in results if r.status != OK]
         problems += self._save_day_row(day, warning or "ok", results)
         return self._finish(day, problems)
+
+    def _finished(self, day: date, result: PartResult) -> list[Problem]:
+        return self._save_raw(day, result) + (self._save_early(day, result) if result.part in EARLY_FILES else [])
+
+    def _save_early(self, day: date, result: PartResult) -> list[Problem]:
+        """The part's own write-once file and an immediate push of the receipts (owner e70525ee4: 08:50 edition)."""
+        try:
+            self.store.put(early_file(result.part, day), early_row(day, result))
+        except RawFileConflict:
+            return [Problem(f"{result.part} file", "taken", EARLY_TAKEN)]
+        except SAVE_ERRORS as error:
+            return [Problem(f"{result.part} file", "not saved to Drive", type(error).__name__)]
+        outcome = self.early_commit.commit(f"pre-open {result.part} {day}")
+        self.out(outcome)
+        return [Problem(f"{result.part} file", "commit failed", outcome)] if NOT_COMMITTED in outcome else []
 
     def _save_raw(self, day: date, result: PartResult) -> list[Problem]:
         if result.answer is None:

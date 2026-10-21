@@ -53,3 +53,26 @@ post sends no alert at all.
 3. **The morning routine starts at 08:38 and the owner's slot is 08:50 (bcbbc454).** That is consistent if the post
    lands by about 08:50. Record the measured compose-and-post time on the first live mornings, so the owner can
    confirm the start minute.
+
+## Addendum 1: dd6f4f5b (response 311)
+
+**Verdict: PASS (lane 1). The builder may merge: pull, one full run on the merged tree, push.** Both editions stay
+off (`forecast_lab.live_from` null).
+
+**Gates:** on dd6f4f5b merged with today's `main` (no conflicts), one run:
+- 9,276 passed, 16 xfailed;
+- `ruff check` clean; 1,731 files formatted;
+- imports clean; record scan clean (7,455 files).
+
+Strong evidence.
+
+| Finding | Answer | Judge (evidence) |
+|---|---|---|
+| SF1 a crash sent no alert | `edition_run.guarded` wraps the build and the run. Any exception becomes one #fno-desk alert ("the <edition> report was not made (<type>); nothing was posted", the error type only), its outcome is printed (the text too when unsent), and the run exits 1; `cli._edition` uses it | Accepted. Mutations caught: the guard sending no alert, the guard exiting 0 (strong). Giving only the type keeps paths and values out of Slack |
+| Minor 1 channel line | CLAUDE.md: "morning (08:50) and evening (20:05) editions" | Accepted |
+| Minor 2 the cutoff | Checked again after making, before the post | Accepted. Removing the re-check fails a test (strong) |
+| Minor 3 timing | To be measured on the first live mornings; stated as not yet measured | Accepted |
+
+**New minor, for 1d-2 or the next touch (reasoning only).** When the re-check trips, `_late` sends only the late
+alert. Any alerts the composed report carried, such as a morning CORRECTION from the confirmation, are dropped,
+because the day is then marked alerted. Send `written.alerts` with the late alert in that path.

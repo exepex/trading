@@ -34,6 +34,13 @@ class RegularSessions:
             day = self.previous(day)
         return day
 
+    def ahead(self, day: date, target: date) -> int:
+        """Regular sessions from `day` to `target` (0 when they are the same day)."""
+        count = 0
+        while day < target:
+            day, count = self.next(day), count + 1
+        return count
+
     def window(self, day: date, sessions: int) -> list[date]:
         """`day` and the `sessions - 1` regular sessions before it, oldest first."""
         days = [day]

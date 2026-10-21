@@ -1,6 +1,7 @@
-"""Composition root of story FL1-1c, the 15:45 message's content: the page builder over FL1's G13b adapter and
-G13b's history, the reasons' facts (the repository's tables and P8's FII/DII flows archive), the renderer (the
-interim drawing until the designer's is signed off) and headless Chromium for the picture."""
+"""Composition root of the report editions' content (stories FL1-1c and FL1-1d): the page builder over FL1's G13b
+adapter, G13b's history and official closes, the evening's own close (none until A4h's reader), the reasons' facts
+(the repository's tables and P8's FII/DII flows archive), the renderer (the interim drawing until the designer's is
+signed off) and headless Chromium for the picture."""
 
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
 from .page.facts import RepositoryFacts
 from .page.render import InterimRenderer
-from .ranges import RangeSource
+from .ranges import NoTodayCloses, Outcomes, RangeSource
 from .sessions import RegularSessions
 
 PICTURE_WIDTH = 600  # CSS pixels: the picture page's own width, so a phone does not shrink it to unreadable
@@ -33,8 +34,9 @@ def flows_reader(calendar: SessionCalendar):
     return flows
 
 
-def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar) -> ReportMaker:
+def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar,
+                       official: Outcomes) -> ReportMaker:  # fmt: skip
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), RepositoryFacts(ROOT, flows_reader(calendar)),
-                        RegularSessions(calendar))  # fmt: skip
+                        RegularSessions(calendar), official=official, today_closes=NoTodayCloses())  # fmt: skip
     return ReportMaker(pages, InterimRenderer(), ChromiumCamera(width=PICTURE_WIDTH))

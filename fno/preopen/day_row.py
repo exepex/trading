@@ -18,6 +18,7 @@ from .run import LATE, OK, PartResult
 
 PREOPEN_RECEIPT_BY = time(9, 15)  # the consumer's need: FL1's 09:15 report reads the row (O8 judges it at 17:51)
 DAY_FILE = "preopen/day/{day:%Y}/{day:%m}/{day:%Y-%m-%d}.csv"
+EARLY_FILES = {"gift": "preopen/gift/{day:%Y}/{day:%m}/{day:%Y-%m-%d}.csv"}  # owner e70525ee4: GIFT for 08:50
 RAW_FILE = "preopen/raw/{day:%Y}/{day:%m}/{day:%d}/{part}_{seen:%H%M%S}.json"
 VALUE_COLUMNS = {
     "gift": ("gift_level", "gift_contracts", "gift_expiry"),
@@ -37,9 +38,20 @@ def raw_file(day: date, result: PartResult) -> str:
     return RAW_FILE.format(day=day, part=result.part, seen=result.answer.seen_at.astimezone(IST))
 
 
-def receipt_path(day: date) -> str:
-    """The committed receipt of the day row, relative to the repository."""
-    return ReceiptFolder(Path(RECEIPTS_FOLDER)).file_for(f"{DATA_AREA}/{day_file(day)}").as_posix()
+def early_file(part: str, day: date) -> str:
+    """A part's own write-once file, pushed as soon as the part ends (GIFT Nifty, for the 08:50 morning edition)."""
+    return EARLY_FILES[part].format(day=day)
+
+
+def receipt_path(day: date, file: str | None = None) -> str:
+    """The committed receipt of the day row (or of another of A22's Drive files), relative to the repository."""
+    return ReceiptFolder(Path(RECEIPTS_FOLDER)).file_for(f"{DATA_AREA}/{file or day_file(day)}").as_posix()
+
+
+def early_row(day: date, result: PartResult) -> bytes:
+    """One part's cells as in the day row, with the date: values only when `ok` or `late`."""
+    names = ("date", *(f"{result.part}_{name}" for name in PART_COLUMNS), *VALUE_COLUMNS[result.part])
+    return _csv(names, {"date": day.isoformat(), **_part_cells(result)})
 
 
 def columns() -> tuple[str, ...]:
@@ -51,8 +63,12 @@ def day_row(day: date, clock: str, results: Sequence[PartResult]) -> bytes:
     row = {"date": day.isoformat(), "clock": clock}
     for result in results:
         row.update(_part_cells(result))
+    return _csv(columns(), row)
+
+
+def _csv(names: Sequence[str], row: dict[str, str]) -> bytes:
     out = io.StringIO()
-    writer = csv.DictWriter(out, columns(), restval="", lineterminator="\n")
+    writer = csv.DictWriter(out, names, restval="", lineterminator="\n")
     writer.writeheader()
     writer.writerow(row)
     return out.getvalue().encode()
