@@ -1,0 +1,2 @@
+day,value,status,label,forecaster_version,kind,slot,method_sha256,inputs_sha256,pack_sha256,made_at
+2026-10-21,,not_started,live,1,baseline,reported,21f62594f26f506eaddc59b6857de7a25c2b9fe7ad7c3769d8c15c20fff89fcd,1a4839aa7e0fe40f9e8595fa611e2baf97498663c3456445aaa19c1a1d9641ed,,2026-10-21T14:06:28.404525+05:30
