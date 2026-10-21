@@ -88,6 +88,9 @@ channel), as today, and to a private full log (below).
 
 ## Owners whose code this touches (agreed before the code, under the one-builder rule)
 
+**Agreed by the orchestrator for E3, O8, T1 and S2, which have no live owner (21 Oct).** The change is limited to
+what this section names, and judge D checks that the diff stays inside it.
+
 - E3: `fno/desk/daily_run.py` (`_step` records the public form; the three block-reason readers), and the
   `build_daily_run` parameter.
 - O8: `fno/health/desk_checks.py`. T1: `fno/cards/rule_checks.py`. S2: `fno/scoreboard/committed_runs.py`. Each only
