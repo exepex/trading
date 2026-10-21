@@ -149,3 +149,32 @@ first, judged before code. Each may be its own change, as the orchestrator direc
 
 **One line to keep in view:** D2's shadow-loop gap (judge 204 addendum 5, `fno/playbook/evaluate.py` 52-59) is a
 production fix, not an O2b test. It must land before the first paper approval too, and needs its own owner and row.
+
+## Addendum 5: rounds 4a and 4b at 39fbdf6e (the G4 xfail flipped)
+**Verdict: PASS for the tests. Do NOT merge 39fbdf6e as it is: merge it after F1 (00e9da61, judge 421 addendum 1),
+rebased.**
+
+- **The G4 row is real now.** `test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carries_it_and_the_desk_goes_on`
+  asserts:
+  - the alert "committed, NOT pushed (the next push carries it)" with "push not confirmed";
+  - the part's commit on origin, carried by the desk's next push;
+  - the exits reviewed;
+  - no lock left.
+
+  **Planted mutation:** G4's own-commit acceptance removed makes this test fail (1 failed).
+- **The kill and hang rows:** tests/e2e/test_hangs.py plus test_kill_rerun.py give 16 passed and 6 xfailed. The F1
+  cases are still strict xfails.
+- **Two product lines in this head:**
+  - `fno/desk/git_sync.py`: `Git` reads `GIT_CALL_LIMIT_SECONDS` when built, so the e2e suite can shorten it. That is
+    harmless and accepted.
+  - `fno/daily/quote_steps.py`: a new `NOT_IN_THIS_RUN_ALERT` on `FinishQuoteParts`' "not started" branch. **F1 removes
+    that branch** (it is unreachable once a rerun resumes the parts). Merged after F1, this change must be dropped, not
+    carried as dead code.
+
+**Condition:** after F1 lands, rebase round 4 on main:
+- drop the `quote_steps.py` alert;
+- turn the F1 strict xfails into real assertions (`test_kill_rerun` BEFORE_PARTS and `test_hangs`' rerun-after-stop);
+- change the kill-rerun assertions that still name `NOT_IN_THIS_RUN` to F1's per-part outcomes (`how`, "recorded
+  earlier", restarted).
+
+Then send that head; I check that diff.
