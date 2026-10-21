@@ -212,3 +212,13 @@ Notes:
 - **G2, reported, not mine:** a child prints only "alert NOT sent: <reason>", not the alert's text (`fno/quotes/cli.py`
   `record_today`). The orchestrator assigned it to the A4 builder (story/a4-unsent-alert-text). Strict xfail:
   `test_drive_down_for_raw_files...[slack-down]`.
+
+### Round 4b: G4's strict xfail becomes the real assertion (after O1's G4 merged, d1983cc6, judge 420)
+
+- `tests/e2e/test_hangs.py::test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carries_it_and_the_desk_goes_on`
+  replaces the strict xfail.
+  - The test asserts the alert "quote part nifty committed, NOT pushed (the next push carries it)" with "push not
+    confirmed", and that the part's commit then reaches origin through the desk's next push. It also asserts that the
+    exits are reviewed and that no git lock is left behind.
+- F1's strict xfails, in `test_kill_rerun.py` and in `test_hangs.py::test_the_rerun_after_a_stopped_push_ends_day_done`,
+  stay strict until O1's F1 code merges.

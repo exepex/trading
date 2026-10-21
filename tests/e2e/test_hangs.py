@@ -60,15 +60,11 @@ def test_the_rerun_after_a_stopped_push_ends_day_done(tmp_path, monkeypatch):
     assert day.run() == (0, "day done")
 
 
-PART_COMMIT_STOPS_THE_DESK = (
-    "gap G4 (O2, 21 Oct; owner O1 with E2b's committer): a quote part's commit whose push failed stays local and "
-    "unpushed, and the desk's next commit refuses it as a stray (decision 51): the desk stops at its next step, "
-    "exits not reviewed"
-)
-
-
-@pytest.mark.xfail(strict=True, reason=PART_COMMIT_STOPS_THE_DESK)
-def test_a_quote_part_s_push_that_hangs_is_not_committed_alerted_and_the_desk_goes_on(tmp_path, monkeypatch):
+def test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carries_it_and_the_desk_goes_on(
+    tmp_path, monkeypatch
+):
+    """Gap G4 (O1, judge 420): the run's one committer remembers the part's own unpushed commit, so the desk's next
+    commit accepts it, checked by content, and pushes it; never refused as a stray (decision 51)."""
     day = fixture_day(tmp_path, monkeypatch)
     hang, release = hanging_pushes(day, monkeypatch)
     after_parts = datetime.combine(day.day, time(14, 57, 30), IST)  # the parts' push hangs, the desk's do not
@@ -76,7 +72,9 @@ def test_a_quote_part_s_push_that_hangs_is_not_committed_alerted_and_the_desk_go
                               (lambda: day.clock.now >= after_parts, release)]  # fmt: skip
     code, line = day.run()
     assert code == 1 and line.startswith("day done with problems:") and "quotes_done" in line
-    assert any("quote part nifty NOT committed" in text and "push not confirmed" in text for text in day.slack.sent)
+    assert any("quote part nifty committed, NOT pushed (the next push carries it)" in text and "push not confirmed"
+               in text for text in day.slack.sent)  # fmt: skip
+    assert f"3 pm quotes {day.day} nifty" in day.origin_subjects()  # carried by the desk's next push
     assert day.step("exits")["book1_rules"]["reviewed"] is True and no_lock_left(day)
 
 
