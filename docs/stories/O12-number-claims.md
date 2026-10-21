@@ -141,4 +141,7 @@ the alert sender is imported only when something is posted. Lane 1 (a workflow a
 2. With `--baseline`, problems the baseline already had are not posted; a new one is.
 3. The workflow runs on every push to `main` (with the before commit as baseline) and hourly (without), with only
    `FNO_SLACK_BOT_TOKEN` and `contents: read`.
-Tests: `tests/numbering/test_tools.py` (the three cases above, and the workflow's triggers and command).
+4. (Added 21 Oct, root cause of main's 16 Oct red: judge 307's heading `## Addendum 307.5` was read as 307.307.) A
+   claim prints the next step word for word: the file to write, or for an addendum the heading `## Addendum <k>` with
+   only the addendum's own number; `numbers/README.md` says the same.
+Tests: `tests/numbering/test_tools.py` (the cases above, and the workflow's triggers and command).

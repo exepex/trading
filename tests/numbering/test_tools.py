@@ -22,7 +22,10 @@ def test_a_claim_prints_the_number_and_the_file_to_write(capsys):
     claimer = Claimer(Claim("judge-addendum", "270.2", "round-2"))
     args = ["judge-addendum", "round-2", "--session", "session_a", "--report", "270"]
     assert claim_number.main(args, claimer) == 0
-    assert capsys.readouterr().out == "claimed: judge-addendum 270.2 -> round-2\n"
+    assert capsys.readouterr().out == (
+        "claimed: judge-addendum 270.2 -> round-2\n"
+        "next: write the heading '## Addendum 2' in reviews/judge/judge_270_*.md\n"
+    )
     sent = claimer.requests[0]
     assert (sent.category.name, sent.slug, sent.session, sent.report, sent.exact) == (
         "judge-addendum",
@@ -96,3 +99,12 @@ def test_the_alert_workflow_runs_on_every_push_and_hourly_with_the_push_baseline
     assert '  push:\n    branches: [main]\n  schedule:\n    - cron: "17 * * * *"' in steps
     assert "run: python tools/check_numbers.py --alert ${{ steps.baseline.outputs.args }}" in steps
     assert "FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}" in steps
+
+
+def test_a_file_claim_names_the_file_to_write(capsys):
+    claimer = Claimer(Claim("claude-response", "283", "response_283_x.md"))
+    assert claim_number.main(["claude-response", "x", "--session", "s"], claimer) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "claimed: claude-response 283 -> response_283_x.md",
+        "next: write reviews/claude/response_283_x.md",
+    ]
