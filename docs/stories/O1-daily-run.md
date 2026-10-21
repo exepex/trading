@@ -268,8 +268,9 @@ command, which commits its own decision; its pathspecs are none, so the run swee
      builds a second one for the parts today). It remembers each commit it made and could not push as an
      `OwnCommit` (message and each file's SHA-256), and `_refuse_stray` accepts any of them, still checked by content.
      A stranger's commit is still refused;
-  2. the list is also kept in a git-ignored file (`journal/runs/.own_unpushed.json`), so a rerun in the same container
-     still accepts them by content. A new container has none, because its clone holds only what origin holds;
+  2. the list is also kept in a git-ignored file (`journal/runs/.own/unpushed.json`: its own folder, since the readers
+     of `journal/runs/*.json` take every file there for a run log), so a rerun in the same container still accepts
+     them by content. A new container has none, because its clone holds only what origin holds;
   3. no reset of the local commit (rejected: after a pull's merge it can leave origin's changes staged);
   4. the part's alert says "committed, NOT pushed (the next push carries it)", not the "NOT committed" hand fix.
 - **Tests:**

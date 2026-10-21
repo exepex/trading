@@ -22,6 +22,8 @@ from .steps import outcome
 
 GROWW_QUOTES = ":(glob)research/data/quotes/groww/**/{name}_*"  # A4c's per-part paths, as CLAUDE.md gives them
 INDICES = ("banknifty", "finnifty", "midcpnifty")
+# G4: the run's one committer remembers the commit, so the desk's next push takes it to origin
+NOT_PUSHED = "F&O daily run {day}: quote part {name} committed, NOT pushed (the next push carries it): {reason}"
 NOT_COMMITTED = (
     "F&O daily run {day}: quote part {name} NOT committed: {reason}. Hand fix (CLAUDE.md): git add {specs}, commit and "
     "push; never --no-verify"
@@ -158,11 +160,16 @@ class QuoteParts:
             result["commit"] = self.committer.commit(files, f"3 pm quotes {self.day} {part.name}") if files else None
         except CommitFailed as failed:
             result |= {"commit": None, "commit_error": str(failed)}
-            specs = " ".join(f"'{spec}'" for spec in part.pathspecs)
-            self.alerts.send(NOT_COMMITTED.format(day=self.day, name=part.name, reason=failed, specs=specs))
+            self.alerts.send(self._commit_alert(part, failed))
         self.results[part.name] = result
         if result["status"] in (STEP_FAILED, STEP_REFUSED) and not any(m in ln for ln in lines for m in OWN_ALERT):
             self._alert(part.name, result)  # a part that failed without alerting (a Groww outage): O2's case
+
+    def _commit_alert(self, part: QuotePart, failed: CommitFailed) -> str:
+        if failed.unpushed:
+            return NOT_PUSHED.format(day=self.day, name=part.name, reason=failed)
+        specs = " ".join(f"'{spec}'" for spec in part.pathspecs)
+        return NOT_COMMITTED.format(day=self.day, name=part.name, reason=failed, specs=specs)
 
     def _failed(self, name: str, reason: str) -> None:
         self.results[name] = {"status": STEP_FAILED, "reason": reason, "commit": None}
