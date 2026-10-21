@@ -21,6 +21,7 @@ from ..research_data.calendar import CalendarError
 from ..storage.owner_token import DriveSignInRefused
 from ..storage.raw_store import RawFileConflict
 from .constants import BACKFILL_3PM, BACKFILL_EOD, SOURCE_GROWW, SOURCE_NSE
+from .folders import DATA_AREA, ROOT
 from .records import encode
 
 STOPPING_FAILURES = (requests.RequestException, DriveSignInRefused, RawFileConflict, RuntimeError, CalendarError,
@@ -28,7 +29,7 @@ STOPPING_FAILURES = (requests.RequestException, DriveSignInRefused, RawFileConfl
 NO_CHAIN_LINE = "nothing written: no {source} chain for {underlying} on {day}"
 SYNC_PROBLEMS = "STOPPED: the Drive cache could not verify every file: {problems}"
 REPORT_WRITTEN = "report written: {path}"
-CACHE_PREFIX = "data/price_distribution/v1/"
+CACHE_PREFIX = f"{DATA_AREA}/{ROOT}"  # a folder path: the receipt folder refuses a trailing "/"
 
 
 def add_pricedist_parser(subparsers) -> None:
@@ -92,7 +93,7 @@ def _backfill(args, cfg) -> int:
 
 
 def _score(args, cfg) -> int:
-    from .folders import DATA_AREA, scores_path
+    from .folders import scores_path
     from .record_files import read_records
     from .score_report import score_report, summary_lines
     from .wiring import build_closes, build_score_inputs

@@ -34,6 +34,7 @@ from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
 from .price_distribution.cli import add_pricedist_parser
+from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .research_data.calendar import CalendarError
@@ -239,6 +240,7 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
     add_factory_parser(sub)
     add_pricedist_parser(sub)
+    add_pricerange_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)
 

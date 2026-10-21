@@ -68,6 +68,7 @@ def test_the_live_dates_come_from_config_and_none_is_set_today():
     assert live_dates(load_app_config()) == {
         "margin_check": None, "weather": None, "forecasts_v4": None, "card": None, "owner_timing_fills": None,
         "price_distribution": None,  # story G13
+        "price_ranges": None,  # story G13b
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
