@@ -94,7 +94,8 @@ each part's commit in its one thread. The `git add` lines below are also the han
    MIDCPNIFTY, then NIFTY's two nearest weeklies, story A4f; 15:01-15:13 IST, paced; raw quotes to Drive only),
    alongside NSE if it is still running. When it is done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
    ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'
-   ':(glob)research/data/quotes/groww/**/niftyweekly_*'`, commit and push. It alerts #fno-desk itself for any index not recorded.
+   ':(glob)research/data/quotes/groww/**/niftyweekly_*'`, commit and push. It alerts #fno-desk itself for any index
+   not recorded.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday
