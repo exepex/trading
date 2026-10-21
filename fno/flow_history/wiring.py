@@ -43,7 +43,7 @@ EVIDENCE_FOLDER = REPOSITORY / "research" / "data" / "flow_history"
 WRITE_TIMES_FILE = "{name}_write_times.csv"
 EVIDENCE_MESSAGE = "A23 flow history: NSE write times ({what})"
 VALUES = {dataset_name(v.source): v for v in (ParticipantVolumeValues(), FiiDerivativeStatsValues())}
-NSDL_TABLE = "nsdl-fpi"  # private: read only by a study from Drive, never shown or shared (owner, 21 Oct)
+NSDL_TABLE = "nsdl-fpi"  # private Drive only, never in the repository or a public place (owner, 50a79a43)
 
 
 def write_time_log(name: str) -> Path:

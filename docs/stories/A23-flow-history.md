@@ -17,7 +17,7 @@ NSDL FPI flows have 6 sessions of history (P8 captures only NSE's and NSDL's lat
 | **FII derivatives statistics**: FII buy and sell (contracts and crores) and end-of-day OI for index futures, index options, stock futures, stock options; from 2026 also per index (NIFTY, BANKNIFTY ...) | `nsearchives.nseindia.com/content/fo/fii_stats_DD-Mon-YYYY.xls` (Excel 97 binary) | 200 for 01-Jan-2019, 02-Jan-2019, 05-Jul-2024, 15-Oct-2026, 21-Oct-2026 | 21 Oct's file `Last-Modified` 19:14 IST that day; old files' times are later rewrites (2 Jan 2019 file: 6 Mar 2019), so first publication is unknown for history | NSE archive file, the same kind as A1/A8's files; owner's personal-research rule (15 Oct) |
 | **Participant-wise trading volume**: contracts bought and sold by Client, DII, FII, Pro in index and stock futures and options | `nsearchives.nseindia.com/content/nsccl/fao_participant_vol_DDMMYYYY.csv` | 200 for 02-Jan-2019 and 21-Oct-2026 | 21 Oct's file 19:14 IST; 2019's file rewritten 17 Jan 2019 | as above; A8 already archives the sister file (participant OI) |
 | FII/DII **cash-market** values | NSE `api/fiidiiTradeReact` | latest day only; no NSE archive found | P8 captures daily from 13 Oct 2026 | — |
-| NSDL **FPI** daily investment (equity, debt) | `www.fpi.nsdl.co.in/web/Reports/Archive.aspx` | an ASP.NET form by date (postback), no file links | the report date | NSDL's terms: "Reproduction, redistribution and transmission of any information contained on the website are strictly prohibited"; the page blocks save keys. **Owner, 21 Oct (DESK_DECISIONS 195b3f0f): a one-time back-fill for personal research only** (scope 5) |
+| NSDL **FPI** daily investment (equity, debt) | `www.fpi.nsdl.co.in/web/Reports/Archive.aspx` | an ASP.NET form by date (postback), no file links | the report date | NSDL's terms: "Reproduction, redistribution and transmission of any information contained on the website are strictly prohibited"; the page blocks save keys. **Owner, 21 Oct (DESK_DECISIONS 195b3f0f): a one-time back-fill for personal research only; data rule 50a79a43** (scope 5) |
 
 NSDL probe (21 Oct 2026, 22:45 IST, two paced form posts, 3 s apart) [strong: direct reads]: the form takes one
 "To Date" (`hdnDate`, `DD-Mon-YYYY`) and answers an HTML table, "Daily Trends in FPI Investments up to <date>", holding
@@ -52,20 +52,23 @@ In:
    09:15 IST open, else the first session after the `Last-Modified` time, and `rewritten` = yes for those (the
    values then may differ from what was first published; a study can drop or keep them, labelled).
 4. A coverage check: every session from 2019 present, damaged or explained (A7 calendar; NSE's documented gaps).
-5. **NSDL FPI daily investment, one-time back-fill (owner, 21 Oct 2026, DESK_DECISIONS 195b3f0f).** NSDL's terms
-   (step 0 table) prohibit reproduction, redistribution and transmission; the owner chose a one-time back-fill for
-   personal research only. So: `python -m fno flows nsdl-backfill` (run once, by hand or one `workflow_dispatch`)
-   posts the form once per month, January 2019 to the last full month, **one post at a time, at least 10 seconds
-   apart, one pass, no retries beyond one per month** (a month that fails twice is listed and alerted, never looped);
-   each answer is kept write-once in Drive (O9 `DataStore`, `data/flows/nsdl/raw/YYYY-MM.html`) with its receipt, and
-   a reader gives one row per reporting date and category (equity, debt, hybrid; route; gross purchases, sales, net in
-   crores). **Private:** no value enters the repository, a screen, the dashboard, a card, a Slack line or a report;
-   only the derived study table in Drive (`PartTable`) reads it. Point in time: a reporting date's row (the previous
-   session's trades) is available from the session after the reporting date [reasoning: NSDL publishes the reporting
-   date's report that day; no publication time is served], and every NSDL row is labelled `publication_time_unknown`.
-   No daily NSDL job (no repeated scraping); a later daily feed is a new owner decision.
+5. **NSDL FPI daily investment, one-time back-fill (owner, 21 Oct 2026, DESK_DECISIONS 195b3f0f; data rule 50a79a43).**
+   NSDL's terms (step 0 table) prohibit reproduction and redistribution. Under the owner's personal-research rule
+   (50a79a43) a source's redistribution terms no longer block a download for private research; three guards stay:
+   private Drive only (never in this repository, which is public, nor in any public place; Slack shows only derived
+   facts; the owner's private dashboard may show it through a later story), no getting around logins, CAPTCHAs or
+   blocks, and paced, polite reads. So: `python -m fno flows nsdl-backfill` (run once, by hand or one
+   `workflow_dispatch`) posts the form once per month, January 2019 to the last full month, **one post at a time, at
+   least 10 seconds apart, one pass, no retries beyond one per month** (a month that fails twice is listed and alerted,
+   never looped); each answer is kept write-once in Drive (O9 `DataStore`, `data/flows/nsdl/raw/YYYY-MM.html`) with its
+   receipt, and a reader gives one row per reporting date and category (equity, debt, hybrid, mutual funds, AIFs;
+   route; gross purchases, sales, net in crores and US$ million; the day's USD/INR rate). No value enters the
+   repository; today only the derived study table in Drive (`PartTable`) holds it. Point in time: a reporting date's row
+   (the previous session's trades) is available from the session after the reporting date [reasoning: NSDL publishes the
+   reporting date's report that day; no publication time is served], and every NSDL row is labelled
+   `publication_time_unknown`. No daily NSDL job (one pass, as the owner chose); a later daily feed is a new decision.
 
-Out: any daily or repeated NSDL read, and any display or sharing of NSDL values (owner, 21 Oct); NSE cash FII/DII history (no archive found); any forecaster use (a GR1
+Out: any daily or repeated NSDL read (owner, 21 Oct); any NSDL value in the repository or a public place (50a79a43); NSE cash FII/DII history (no archive found); any forecaster use (a GR1
 or later study decides); intraday flows.
 
 ## Acceptance criteria (good, bad, boundary and empty cases each)
@@ -97,7 +100,7 @@ or later study decides); intraday flows.
 | Requirement | Where |
 |---|---|
 | Past FII/DII (FPI) daily flows, 2019 on | criteria 1, 3 (FII derivatives and participant volume) |
-| NSDL's FPI archive | scope 5, criterion 7 (one-time, private; owner, 21 Oct) |
+| NSDL's FPI archive | scope 5, criterion 7 (one-time, private Drive; owner, 21 Oct; rule 50a79a43) |
 | NSE's archives if they hold history | Step 0: FII stats and participant volume do; cash FII/DII does not |
 | Read-only, write-once to Drive with receipts | criteria 3, 5 |
 | Point-in-time dates (first published) | criteria 2, 2b (t+1 when written before the next open; rewritten files flagged by their Last-Modified) |
@@ -107,6 +110,6 @@ or later study decides); intraday flows.
 
 ## Open questions
 
-None open. Answered by the owner, 21 Oct 2026 (DESK_DECISIONS 195b3f0f): (1) NSDL: one-time back-fill, personal
-research only, private in Drive, never shown or shared (scope 5); (2) `xlrd` allowed, pinned (`xlrd==2.0.2`, pure
+None open. Answered by the owner, 21 Oct 2026 (DESK_DECISIONS 195b3f0f, 50a79a43): (1) NSDL: one-time back-fill,
+personal research only, private Drive, never in the repository or a public place (scope 5); (2) `xlrd` allowed, pinned (`xlrd==2.0.2`, pure
 Python, reads `.xls`).

@@ -36,6 +36,17 @@ ask; the workflow runs it) and the NSE retry policy tests (now 26 classes) cover
 - NSDL: 3 form posts in all (2 Jan 2019, 15 Oct 2026, 30 Jun 2019, a Sunday, which works: 19 reporting dates, 190
   rows). The reader reads all three.
 
+## Judge 429 add. 2's three asks
+
+- Pacing test: `tests/flow_history/test_nsdl_backfill.py::test_one_post_per_month_at_least_10_s_apart_and_rows_in_the_table`
+  and `::test_a_month_that_fails_twice_is_listed_and_never_tried_a_third_time` check that every gap between posts is
+  at least 10 s, against the literal 10, not the constant; a mutant at 1 s is caught.
+- No value in the repository, log or alert:
+  `::test_the_command_prints_and_alerts_counts_and_months_only` checks every printed line, the alert and the
+  committed receipts. After the real pass, a grep of the repository diff and the run's log for the pass's values goes
+  in the addendum.
+- The real post count and duration of the one back-fill: in the addendum after it runs.
+
 ## Choices beyond the text (the judge decides)
 
 1. **Write times through A8's `LastWriteSweep` unchanged.** I give it a baseline below any write time, so it logs
@@ -66,8 +77,11 @@ policy's. **Mutations: 13 of 13 caught.** Two survived at first: the "nothing ne
 an empty part from none, and the pacing test compared against the constant itself. Both tests are tightened. Every
 file is under 350 lines.
 
-## For the owner (not blocking)
+## The owner's data rule (DESK_DECISIONS 50a79a43, after this round was written)
 
-P8 already shows NSDL's *latest* daily FPI figure on the dashboard (`fno/market_read_models/flows_block.py`, from
-before A23). NSDL's terms prohibit redistribution. If the dashboard is private to the owner, that may be fine; if
-anyone else can see it, the owner should decide. The A23 back-fill itself is never shown.
+A source's redistribution terms no longer block a download for private research. Three guards stay: private Drive
+only, never in the repository or a public place, with Slack showing only derived facts; no getting around logins,
+CAPTCHAs or blocks; paced reads. The orchestrator also confirmed that the owner's private dashboard and Slack may show
+it. I updated the text's scope 5, the NSDL docstrings and the privacy test's reason to that wording. Nothing in the
+code changes: no NSDL value enters the repository or a log, and the privacy test still makes any new reader a judged
+change. This also settles my earlier note on P8's dashboard figure, if the dashboard is private as the rule says.

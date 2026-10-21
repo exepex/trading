@@ -1,9 +1,9 @@
-"""The one-time, private back-fill of NSDL's FPI daily investment (story A23, scope 5; owner, 21 Oct 2026,
-DESK_DECISIONS 195b3f0f): NSDL's terms prohibit reproduction and redistribution, and the owner chose one gentle pass
-for personal research only. One form post per month, one at a time, at least `GAP_SECONDS` apart, one retry per
-month; a month that fails twice is listed, never looped. Each answer is kept write-once in Drive with its receipt and
-its rows go to the flow-history table at once, so a resumed pass skips the months already done. No value is printed
-or committed."""
+"""The one-time back-fill of NSDL's FPI daily investment (story A23, scope 5; owner, 21 Oct 2026, DESK_DECISIONS
+195b3f0f). NSDL's terms prohibit redistribution; under the owner's personal-research rule (50a79a43) the data lives in
+private Drive only, never in this repository or a public place, and is read politely: one form post per month, one at
+a time, at least `GAP_SECONDS` apart, one retry per month; a month that fails twice is listed, never looped. Each
+answer is kept write-once in Drive with its receipt and its rows go to the flow-history table at once, so a resumed
+pass skips the months already done. No value is printed or committed."""
 
 from __future__ import annotations
 
