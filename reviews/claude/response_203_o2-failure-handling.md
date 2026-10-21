@@ -164,3 +164,51 @@ Notes:
   holds no `paper` strategy. The row and the Known limits say so.
 - **Criterion 8:** one fixture day takes 6-7 s through the real wiring. About 35 days cannot finish in a minute, so
   the limit becomes two minutes on four cores, measured, not guessed.
+
+## Code round 2: the end-to-end harness (47b6212d, 40635d55, efd78e12, b96ff5b0)
+
+- **What:** `tests/e2e/` runs `fno daily run` through `fno/daily/wiring.py` `build_day_runner`, in a fresh checkout
+  with its own bare origin.
+  - The checkout holds a copy of `fno/`, `playbook/`, `journal/versions.csv`, `config.yaml` and `.gitignore`.
+  - The paper accounts live in the fake Drive.
+  - Only the names in `OUTSIDE_SEAMS` (`tests/e2e/harness.py`) are replaced, and a test checks the list:
+    - the clock (`fno.models.datetime`; git dates every commit by it through `GIT_COMMITTER_DATE`);
+    - Slack;
+    - the owner's Drive (two bindings);
+    - the raw NSE stores;
+    - NSE's archive (three bindings);
+    - Groww's 15:15 capture (A4's real recorder over `FixtureProvider`);
+    - the child commands (`tests/e2e/children.py`);
+    - the quote store's default folder (the real store, with the checkout's folder).
+  - The child commands: NIFTY's part runs A4's real `record_today` on its own clock, in its own staging folder, and
+    lands in the checkout when the run sees it end. Book 1's decision runs the real `build_book1(...).decide`.
+- **Production changes, each tested:**
+  - `build_day_runner(cfg, root, sleep)`: the run's waits take the injected sleep;
+  - `build_book1_orders(cfg, root)`: the run used the package's ROOT for Book 1's code tree. A decision committed
+    in the run's checkout would then fail the replay ("the running fno/ and config.yaml differ"). It is harmless in
+    production, where root is ROOT, but it is a real case of ignoring the injected root;
+  - the execution capture's quote folder is now `root / QUOTES_FOLDER.relative_to(ROOT)` (`fno/desk/daily_wiring.py`).
+  - Tests: the normal day itself, which ends "day done" with no alert and fails without either fix, plus the
+    adjusted fakes in `tests/daily/test_steps.py`.
+- **Process note (said plainly):** 47b6212d was pushed to the story branch with two failing tests and one lint error,
+  because my chained command did not stop on a failure. 40635d55 fixed it. Since then every push goes through a gate
+  script that exits non-zero.
+
+## Code round 3: the outage families and G1 (aab33abd, af9e9dd3)
+
+- **Tests:**
+  - `tests/e2e/test_outages.py`: Groww down all day; NSE failing; Drive down at the download; Drive down for raw
+    files. Each runs with Slack up and Slack down. The twin test compares, as one multiset, the alerts the owner gets
+    either way. "No step whose data did not land records ok" holds for the quote parts.
+  - `tests/e2e/test_never_starts.py`: a skipped session is O8's `missed`, and the next session blocks every book
+    once (`NO_LOG`) and still reviews its exits. The same holds after a Drive outage at the download.
+- **G1, a gap in O1's own code, fixed:** `quotes_done` is `status_alerts=False`, so a part that failed without
+  alerting for itself was never alerted. That is a Groww outage: `quotes record` ends incomplete with no alert. Now
+  `QuoteParts._alert` sends one line for a failed part whose lines carry no alert outcome, and for a part stopped or
+  never started. A part that did alert for itself gets no second line.
+  - Test: `test_a_failed_quote_part_is_alerted_once_by_itself_or_by_o1...` in `tests/daily/test_day_run.py`. It
+    replaces the old "gets no O1 alert" test, whose rule was wrong.
+  - Fault planted: no `_alert` call, and 5 tests fail.
+- **G2, reported, not mine:** a child prints only "alert NOT sent: <reason>", not the alert's text (`fno/quotes/cli.py`
+  `record_today`). The orchestrator assigned it to the A4 builder (story/a4-unsent-alert-text). Strict xfail:
+  `test_drive_down_for_raw_files...[slack-down]`.
