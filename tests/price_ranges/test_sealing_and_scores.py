@@ -97,5 +97,6 @@ def test_each_resolved_row_has_its_own_score_for_fl1():
     implied, point = out["rows"]
     assert (implied["outcome_close"], implied["inside_25_75"], implied["inside_05_95"]) == (101.5, False, True)
     assert implied["brier_up"] == pytest.approx(0.16) and implied["issue_day"] == "2026-10-16"
+    assert implied["method_sha256"] == "ab" * 32  # FL1 groups by method
     assert (point["inside_25_75"], point["inside_05_95"]) == (None, None)
     assert implied["quantile_score"] == pytest.approx(out["groups"][0]["mean_qs"])

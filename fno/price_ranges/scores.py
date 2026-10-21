@@ -84,9 +84,10 @@ def _inside(row: dict, y: float, low: str, high: str) -> bool | None:
 
 
 def row_scores(scored: list) -> list[dict]:
-    """One score per resolved row, as FL1 reads them (it never recomputes one): the target's official close, the log
-    outcome, QS, both band hits (None for the point mass) and the row's Brier."""
-    return [{"label": record["label"], "underlying": record["underlying"], "issue": record["issue"],
+    """One score per resolved row, as FL1 reads them (it never recomputes one): its method (two versions are never
+    pooled), the target's official close, the log outcome, QS, both band hits (None for the point mass), its Brier."""
+    return [{"label": record["label"], "method_sha256": record["method_sha256"], "underlying": record["underlying"],
+             "issue": record["issue"],
              "issue_day": record["day"], "forecaster": row["forecaster"], "horizon": row["horizon"],
              "target_day": row["target_day"], "outcome_close": round(row["s_ref"] * math.exp(y), 2),
              "outcome_log": y, "quantile_score": _qs(row, y), "inside_25_75": _inside(row, y, "lq25", "lq75"),
