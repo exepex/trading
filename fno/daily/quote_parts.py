@@ -18,6 +18,7 @@ from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
 from ..quotes.indices import INDEX_WINDOW_END
 from ..quotes.recorder import DATASET, MAX_EARLY_WAIT_SECONDS, NSE_DATASET, WINDOW_END, WINDOW_START
+from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
 from .earlier_run import EarlierRun, PartMarkers
 from .part_locks import PartLocks
 from .processes import Process, Processes
@@ -68,8 +69,10 @@ QUOTE_PARTS = (
               canonicals=((DATASET, "nifty"),)),
     QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",),
               not_before=EARLIEST_START, canonicals=((NSE_DATASET, "nifty"),)),
-    QuotePart("indices", ("quotes", "record-indices"), tuple(GROWW_QUOTES.format(name=n) for n in INDICES), "nifty",
-              canonicals=tuple((DATASET, name) for name in INDICES), window_end=INDEX_WINDOW_END),
+    QuotePart("indices", ("quotes", "record-indices"),
+              tuple(GROWW_QUOTES.format(name=n) for n in (*INDICES, WEEKLY_STEM)), "nifty",
+              canonicals=(*((DATASET, name) for name in INDICES), (WEEKLY_DATASET, WEEKLY_STEM)),  # A4f's weeklies
+              window_end=INDEX_WINDOW_END),
 )  # fmt: skip
 LEAD = QUOTE_PARTS[0].name  # NIFTY commits first: no other part commits before NIFTY's commit was made or tried
 

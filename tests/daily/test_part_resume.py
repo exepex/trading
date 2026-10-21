@@ -157,3 +157,42 @@ def test_a_second_run_s_start_adopts_a_part_another_live_run_holds(tmp_path):
     second = Run(tmp_path, clock)
     second.parts.start(DAY)  # the routine started twice in one container
     assert second.started() == [] and second.parts.how == {"nifty": "adopted", "nse": "adopted"}
+
+
+class CommittedGit:
+    """Every marker present is already committed (as `abc1234`)."""
+
+    def changed(self, paths):
+        return []
+
+    def __call__(self, *args):
+        return type("Done", (), {"stdout": "abc1234\n"})()
+
+
+def test_a_rerun_restarts_the_indices_part_when_only_the_weekly_marker_is_missing(tmp_path):
+    """A4f (O1/O2's owner, 21 Oct): the weekly marker is one of the indices part's canonicals, so a kill between
+    MIDCPNIFTY's marker and the weekly's is never taken as "recorded earlier"; inside the window the part restarts."""
+    from fno.daily.earlier_run import PartMarkers
+    from fno.daily.part_locks import PartLocks
+    from fno.quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
+
+    markers = PartMarkers(tmp_path, CommittedGit())
+    indices = next(part for part in QUOTE_PARTS if part.name == "indices")
+    assert (WEEKLY_DATASET, WEEKLY_STEM) in indices.canonicals
+    for part in QUOTE_PARTS:
+        for path in markers.paths(DAY, part.canonicals):
+            if WEEKLY_STEM not in path:
+                (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+                (tmp_path / path).write_text("x")
+    [missing] = markers.missing(DAY, indices.canonicals)
+    assert WEEKLY_STEM in missing and markers.recorded(DAY, indices.canonicals) is None
+    clock = Clock()
+    clock.now = at(15, 5)
+    processes, alerts = FakeProcesses(clock, script()), Alerts()
+    parts = QuoteParts(QUOTE_PARTS, processes, RecordingCommitter(clock, []), part_files({}), alerts, clock,
+                       PartLocks(tmp_path / PART_LOCKS), markers)  # fmt: skip
+    parts.resume(DAY)
+    assert parts.how["nifty"] == "earlier run" and parts.how["nse"] == "earlier run"
+    assert parts.how["indices"] == "restarted"
+    results = parts.finish(clock.until, at(15, 15))
+    assert [a for _, a in processes.started] == [INDICES] and results["indices"]["status"] == STEP_OK

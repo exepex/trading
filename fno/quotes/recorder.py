@@ -37,6 +37,7 @@ from .snapshot_rows import (
     snapshot_csv,
     snapshot_row,
 )
+from .weekly import NO_WEEKLY, nearest_weeklies
 from .window import QuoteWindow
 
 DATASET = "groww/derivatives/quote-snapshots"
@@ -204,16 +205,15 @@ class QuoteSnapshotRecorder:
         try:
             if failures:
                 raise _NotRecorded
-            months = self._nearest_monthlies(self.provider.expiries(self.underlying), day, check)
+            listed = self.provider.expiries(self.underlying)
+            months = self._nearest_monthlies(listed, day, check)
             if len(months) < MONTHLY_EXPIRIES and self.fallback:  # late December: Groww lists no next-year dates
                 try:
                     listed, expiry_source = self.fallback.listed(self.underlying, day)
                     months = self._nearest_monthlies(listed, day, check)
                 except Exception as exc:
                     failures.append(withheld("expiry fallback", exc))
-            if len(months) < MONTHLY_EXPIRIES:
-                failures.append(f"only {len(months)} monthly expiries found")
-            for expiry in months:
+            for expiry in self._targets(listed, months, day, failures):
                 chains.append(self.provider.chain(self.underlying, expiry))
         except _NotRecorded:
             pass
@@ -259,12 +259,22 @@ class QuoteSnapshotRecorder:
         self.store.put(self._path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
             self.store.put(self._marker(day), snapshot_id.encode())
-        reason = next(
-            (f for f in failures if f in (NO_SAME_DAY_TRADES, NOT_LISTED) or f.startswith(f"{UNIVERSE}:")), ""
-        )
+        final = (NO_SAME_DAY_TRADES, NOT_LISTED, NO_WEEKLY)
+        reason = next((f for f in failures if f in final or f.startswith(f"{UNIVERSE}:")), "")
         unverified = check["reason"] if check.get("status") == UNVERIFIED else ""
         return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified, raw_file_error,
                             raw_file_detail)  # fmt: skip
+
+    def _targets(self, listed: list[date], months: list[date], day: date, failures: list[str]) -> list[date]:
+        """The expiries this slot records: A4's two monthlies, or the nearest weeklies around them (A4f)."""
+        if not self.slot.weeklies:
+            if len(months) < MONTHLY_EXPIRIES:
+                failures.append(f"only {len(months)} monthly expiries found")
+            return months
+        weeklies = nearest_weeklies(listed, months, day, self.slot.weeklies)
+        if not weeklies:
+            failures.append(NO_WEEKLY)
+        return weeklies
 
     def _universe(self, day: date, failures: list[str]) -> dict:
         """The previous session's NSE file (name, date, SHA-256) and whether it lists the underlying as an index

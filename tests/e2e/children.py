@@ -104,6 +104,18 @@ def groww_snapshot(store, day, name: str, at: datetime) -> None:
     store.put(QuoteSnapshotRecorder.path(day, f"{name}_{day:%Y%m%d}.canonical"), snapshot_id.encode())
 
 
+def weekly_snapshot(store, day, at: datetime) -> None:
+    """A4f's NIFTY weekly attempt: its sidecar and canonical marker, in the weekly dataset (its csv goes to Drive)."""
+    from fno.quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
+
+    snapshot_id = f"{WEEKLY_STEM}_{at:%Y%m%d_%H%M%S}"
+    for name, data in (
+        (f"{snapshot_id}.meta.json", b"{}"),
+        (f"{WEEKLY_STEM}_{day:%Y%m%d}.canonical", snapshot_id.encode()),
+    ):
+        store.put(QuoteSnapshotRecorder.path(day, name, WEEKLY_DATASET), data)
+
+
 def nse_snapshot(store, day, at: datetime) -> None:
     """NSE's public attempt and its canonical marker, all committed."""
     snapshot_id = f"nifty_{at:%Y%m%d_%H%M%S}"

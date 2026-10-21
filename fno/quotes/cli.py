@@ -68,7 +68,7 @@ def cmd_quotes(args) -> int:
     calendar_file = CALENDAR_FILE.relative_to(ROOT).as_posix()
     alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
     if args.quotes_cmd == "record-indices":
-        from ..composition import build_index_quote_recorders
+        from .index_wiring import build_index_quote_recorders
         from .indices_cli import record_indices
 
         build_indices = partial(build_index_quote_recorders, load_app_config(args.config))
