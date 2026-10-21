@@ -978,6 +978,8 @@ report can check today's forecast against today's close the same day, marked "pr
 **Expected design (the simplest that covers the real cases):**
 - **One read.** `nse_json("/api/allIndices")`, through the existing client, with up to 3 tries 60 seconds apart on an
   error or a refused stamp.
+- **One gate time.** `CLOSE_READ_FROM = 15:40`, one constant: O1's `NotBefore` and the command's own "too early"
+  check both use it, so a hand run and the routine start at the same time.
 - **When a read counts.** Its `timestamp` parses to today's session date at 15:30 or later. Any other stamp (the
   previous session, today before 15:30, missing) is refused with its text.
 - **Regular sessions only (known limit).** A7's calendar has no close time per session (columns: date, kind,
@@ -1005,15 +1007,28 @@ report can check today's forecast against today's close the same day, marked "pr
   - It writes `closes/<yyyy>/<mm>/<day>.confirm.json` write-once, per index: `confirmed` when within 0.01 point, else
     `differs by X`.
   - A NIFTY 50 or NIFTY BANK difference sends one alert; VIX's difference is recorded only.
-- **Lines, exit codes and alerts.**
-  - Exit 0: `close read <day>: NIFTY 50 22811.35, NIFTY BANK 54976.9, INDIA VIX 15.7 (list) (NSE 21-Oct-2026 15:30)`;
-    `not a trading day`; `close already read <day>`.
-  - Exit 1: `too early: before 15:30` (run by hand); `close not read: <reason of the last try>` (for example `NSE
-    stamp 20-Oct-2026 15:30 is not today's session`).
+- **Lines, exit codes and alerts. No printed line holds an index level** (judge 440 SF1): O1 stores every line in
+  `journal/runs/<date>.json`, which is committed and public, and the levels belong in Drive only (O9). Lines name the
+  indices, statuses, NSE's stamp, the record's Drive path and its SHA-256; a derived difference ("differs by 0.02") is
+  allowed.
+  - Exit 0: `close read <day>: NIFTY 50, NIFTY BANK, INDIA VIX (list) recorded, NSE stamp 21-Oct-2026 15:30,
+    closes/2026/10/2026-10-21.json sha256 <first 12>`; `not a trading day`; `close already read <day>`.
+  - Exit 1: `too early: before 15:40`; `close not read: <reason of the last try>` (for example `NSE stamp
+    20-Oct-2026 15:30 is not today's session`).
   - A failed read alerts once, through O1's `Alerted` wrapper; the command does not also alert it. A confirm
     difference is the command's own alert (its read may still succeed, exit 0).
   - Each confirm prints one line per day: `close confirm <day>: NIFTY 50 confirmed, NIFTY BANK confirmed, INDIA VIX
     differs by 0.02 (list value)`.
+  - **A day never confirmed** (judge 440 minor 2): O6's index-closes job already posts one line when the official file
+    is missing. A4h's confirm part sends its own one alert when a recorded day is still unconfirmed at the second
+    session after it, and writes `<day>.overdue.json` write-once in Drive so the alert is sent once.
+- **The second read** (judge 440 minor 1): a separate O1 step, `close_recheck`, `NotBefore(16:00)`, after
+  `close_read`, runs `closes read --recheck`. It reads the list again with the same rules and writes the raw answer
+  and `<day>.recheck.json` write-once: per index `same` or `differs by X` against the 15:40 read. So when the official
+  file differs the next day, the record shows whether the list moved after 15:40 (a timing cause) or never matched (a
+  rule cause); by then that day's list is gone, so this is the only way to tell. It runs every session, not only the
+  record-only days: it costs the routine about 15 minutes of waiting, and keeps the evidence for every later day
+  (reasoning only). Its own live key `daily.live_from.close_recheck: null`.
 - **Placement.** `fno/close_read/` (source, record, confirm, command) and its composition root
   `fno/close_read/wiring.py`. O1's step is `Alerted("close_read", LiveFrom(NotBefore(CommandStep(...), CLOSE_READ_FROM,
   waiter), live["close_read"]), alerts)`: `LiveFrom` outside, so a not-live day never waits until 15:40;
@@ -1023,32 +1038,66 @@ report can check today's forecast against today's close the same day, marked "pr
 **Record-only first.** For the first 5 sessions the record is written but FL1 does not show it. Each confirm line is
 reported. A difference over 0.01 on any of those days stops FL1's use until it is explained.
 
-**Size:** about 230 lines of code and 300 of tests. M, about 1 day.
+**Size:** about 270 lines of code and 340 of tests (the second read and the overdue alert add about 40 each). M,
+about 1 day.
+
+**Gap list (every rule to a criterion or to Out):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| Check today's forecast after the close (owner, c3231785) | criteria 1, 7 |
+| Evening edition at about 19:00; a later rerun valid (owner, bcbbc454) | design (stamp rule), criterion 1 |
+| Provisional until confirmed against the official file within 0.01 | criterion 4 |
+| A day never confirmed is not silent | criterion 4 |
+| The cause of a difference visible (judge 440 minor 1) | design (second read), criterion 9 |
+| Data write-once in Drive, one SHA-256 receipt in GitHub (owner, 16 Oct; O9) | criterion 2 |
+| Public repository: no level in any printed or committed line (rule 50a79a43; judge 440 SF1) | criterion 8 |
+| Alerts only to #fno-desk with `FNO_SLACK_BOT_TOKEN`, once each | criteria 4, 5 |
+| Research only: no order, no Groww call | criterion 6 |
+| No `ok` without data (O10; O1's `outcome`) | criterion 1 |
+| A7's calendar decides; regular sessions only (known limit) | criteria 1, 3 |
+| O1's step terms (after `candles`, `LiveFrom` outside, own receipts pathspec, exit contract, `null` live date) | criterion 5 |
+| One gate constant for hand and routine runs | criterion 3 |
+| INDIA VIX as the list's value, never the official close; `open` kept (FL1, response 304) | criteria 2, 4 |
+| Record-only for 5 sessions | criterion 7, "Record-only first" |
+| O6's job and files unchanged (read only) | Out; criterion 6 |
+| A source behind an interface (`CloseListSource`, one NSE adapter, wired in `fno/close_read/wiring.py`) | design, criterion 6 |
+| No file or class over 350 lines; ruff, imports, full suite | criterion 10 |
+| Readers and display (FL1); other indices; the official file's release minute | Out |
 
 **Acceptance criteria:**
 1. **The stamp decides.** Using NSE answers built from the 21 Oct read (stamp 15:30 today, the previous session's
    stamp, today at 15:29, missing, an error page, one index missing), only the first is recorded. A special session
    day prints its `nothing written:` line, writes nothing and exits 0, and O1 records the step `refused`, never `ok`
-   (test). Each refusal prints its reason.
-   The tries stop at 3.
+   (test). Each refusal prints its reason. Stamp today at 15:31 is recorded. The tries stop at 3: a 4th try is never
+   sent (the fake source counts calls).
 2. **Write-once and receipts.** The raw answer and the record each go to the data store once, with a receipt. A rerun
    on a recorded day writes nothing.
-3. **The calendar.** A closed day (A7) prints "not a trading day" and reads nothing. Before 15:40 the step does not
-   start (O1's `NotBefore`).
+3. **The calendar and the gate.** A closed day (A7) prints "not a trading day" and reads nothing. Before 15:40 the
+   step does not start (O1's `NotBefore`), and a hand run prints `too early: before 15:40` and reads nothing; both use
+   `CLOSE_READ_FROM`.
 4. **Confirm.** Using the real `ind_close_all_21102026.csv` values:
    - 22811.35 confirms;
    - 22811.34 confirms (0.01 is inside the tolerance);
    - 22811.33 records "differs by 0.02" and alerts once;
    - a day whose official file is not yet in Drive stays unconfirmed with no alert;
+   - the same day still unconfirmed at the second session after it alerts once, and never again on later runs;
    - a confirmation is never rewritten.
-5. **O1.** `close_read` sits after `candles` in `DAILY_RUN_STEPS`. Its failure makes the day "done with problems" and
+5. **O1.** `close_read` sits after `candles`, and `close_recheck` after it, in `DAILY_RUN_STEPS`. Its failure makes the day "done with problems" and
    stops no later step. A rerun the same day skips it once recorded. `test_day_run`'s call lists and its rerun test's
    new calls, `test_steps`' live dates and health's step string are extended, never loosened. Not live (`null`), it
    neither waits nor reads.
 6. **No Groww, no orders.** The source imports only the public client (`check_imports`).
 7. **The first 5 live sessions** (claims after merge): each day's read time, NSE stamp, the values and the confirm
-   line, against the official file. Go-live items: the `live_from` date, and the e2e fixture's `("closes", "read")`
-   child once that date is on or before the fixture day (14 Oct).
+   line, against the official file. Go-live items: the two `live_from` dates, and the e2e fixture's `("closes",
+   "read")` child once that date is on or before the fixture day (14 Oct).
+8. **No level in a printed line.** A test plants distinct values (for example NIFTY 50 at 22811.37) in the fake
+   answer and asserts that no line the command prints, for a read, a rerun, a recheck, a confirm or a refusal, holds
+   any planted value in any format (`22811.37`, `22,811.37`, `22811.4`).
+9. **The second read.** With a fake answer changed by 0.05 between the 15:40 and 16:00 reads, the recheck record
+   says `differs by 0.05` for that index and `same` for the others; a rerun of the recheck writes nothing; not live,
+   the step neither waits nor reads.
+10. **Gates.** No file or class over 350 lines; `ruff`, `check_imports` and the full suite pass.
 
 **Depends:** A4 (market_levels' endpoint), A7, A10 (`read_index_closes`), O1, O6 (archived file, read only), O9 ·
 **Size:** M · **Status:** story text for judge F (22 Oct 2026)
