@@ -345,3 +345,11 @@ Each difference below was decided by the orchestrator or by measurement; none is
 Not built yet, waiting on others:
 - A4h's `TodayCloses` adapter, which reads `closes/<yyyy>/<mm>/<day>.json` once A4h merges;
 - the designer's renderer, which the designer ports and I wire with one line.
+
+**After judge 444.1 and the A4 builder's note (22 Oct).**
+- **Judge 444.1's minor:** a morning that turns late after making now sends the report's own alerts (a CORRECTION,
+  say) along with the late alert. Nothing is dropped.
+- **When A4h merges:** if its 15:40 read failed, the evening routine may rerun `python -m fno closes read` before
+  `lab close`. A4h accepts any read stamped 15:30 or later. The routine then commits `receipts/data/closes/` only:
+  pull first, add only that path, commit and push. This step is added to CLAUDE.md with A4h's `TodayCloses` adapter,
+  not before, since the command does not exist yet.

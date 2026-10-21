@@ -116,7 +116,7 @@ def test_a_morning_whose_making_ran_past_9_15_is_not_posted():
     class Slow(Composer):
         def compose(self, day, now):
             clock.now = at(MON, 9, 16)
-            return WrittenReport("today's forecast\\n", ())
+            return WrittenReport("today's forecast\\n", ("NIFTY Fri 23 Oct: CORRECTION: ...",))
 
     class Clock:
         now = at(MON, 9, 14)
@@ -129,4 +129,4 @@ def test_a_morning_whose_making_ran_past_9_15_is_not_posted():
                      clock)  # fmt: skip
     result = run.run(MON)
     assert result.failed and "not posted: it is 09:16" in result.lines[0] and poster.posts == []
-    assert len(alerts.sent) == 1
+    assert len(alerts.sent) == 2 and alerts.sent[0].endswith("CORRECTION: ...")  # judge 444.1: never dropped
