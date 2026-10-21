@@ -75,3 +75,17 @@ the page from made-up levels (30 sessions, three misses, a method record with it
   day" for the others until the builder keeps 30.
 - `details(view)` returns the same page as `picture(view)`: the attached file and the picture are one page by the
   owner's decision; the earlier details file (method grids, scores, checks) is not part of the signed-off design.
+
+## Addendum: judge 446 (FAIL, 2 should-fix, 2 minor) answered at the next commit
+
+Each point checked against the code before accepting; all four accepted.
+
+| # | Judge 446 | Decision | What changed |
+|---|---|---|---|
+| S1 | The morning chip prints no back-tested count (judge 434: never pass a back-test off as live) | **Accept** | `page.reliability_chip` adds "· N back-tested" when N > 0, on both pages; a method line (below) carries the count too |
+| S2 | No test pins the honesty labels; 4 of 4 mutations survived | **Accept** | `test_the_honesty_labels_are_printed_and_never_dropped`: a reason with markup is escaped; a provisional close says "the official file confirms it next morning" and a confirmed one does not; the back-tested count is on the evening note, the morning chip and the method line, and absent when zero; system problems print on both pages and "All systems normal" only when there is none. Each of the judge's four mutations and the chip's were planted and killed (`m1`-`m5` runs, each FAIL) |
+| M1 | The page no longer names the method | **Accept** (orchestrator: honesty, no owner decision needed) | `page.method_line` on both pages: "Method: implied, lowest error on its own history, 0 of 60 live days scored · back-tested N of the last 30 days" |
+| M2 | `view.checks` (the seal and match lines) are in no posted file | **Accept, stated as a limit** | The signed-off pages carry no checks block; the alerts and the system line cover a failed seal or match. The lines stay in the model for a details block if the owner asks for one |
+
+Known limit added: `view.checks` and `view.drift` are not printed by the signed-off design; alerts and the system
+line carry failures; the stricter 20-session checks live in the model only.

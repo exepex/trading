@@ -10,7 +10,7 @@ from .calendar import month_grid
 from .formats import GREEN, RED, fmt, long
 from .gap_chart import GapChart, GapLayout
 from .lines_chart import LinesChart, LinesLayout
-from .page import KEY, PHONE, WIDE, both, foot, head, header, levels_table, trend, why_block
+from .page import KEY, PHONE, WIDE, both, foot, head, header, levels_table, method_line, trend, why_block
 from .trend_chart import trend_state
 from .values import Day, days_of, reason_for, result_of, rolling_90
 
@@ -80,7 +80,8 @@ def section(index: IndexView, view: PageView) -> str:
                      trend(index, days, PHONE).svg(f"{name}: reliability trend"))  # fmt: skip
     return (
         f'<div class="card"><h2>{name}<small>{today.date_long} · closed {fmt(today.close)}</small></h2>'
-        f"{result_card(today)}{why_block(WHY_TITLE[today.result], why_lines(index, today), index)}</div>"
+        f"{result_card(today)}{why_block(WHY_TITLE[today.result], why_lines(index, today), index)}"
+        f"{method_line(index)}</div>"
         f'<div class="card"><div class="lab first">{name} · chart 1 · forecast vs actual close, last {len(days)} days '
         f'<span class="when">gridlines every {grid}</span></div>{c1}{KEY_LINES}</div>'
         f'<div class="card"><div class="lab first">{name} · chart 2 · how far off, last {len(days)} days '

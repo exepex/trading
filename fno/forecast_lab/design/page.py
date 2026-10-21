@@ -107,6 +107,16 @@ def levels_table(index: IndexView) -> str:
     return f'<table class="levels"><tbody>{body}</tbody></table>'
 
 
+def method_line(index: IndexView) -> str:
+    """One small line naming the method (judge 434.1): the best on its own history, not proven live."""
+    tested = getattr(index, "backtested", 0)
+    back = f" · back-tested {tested} of the last {index.scored} days" if tested else ""
+    return (
+        f'<p class="note">Method: {escape(index.method)}, lowest error on its own history, '
+        f"{index.live_days} of {index.days_needed} live days scored{back}</p>"
+    )
+
+
 def trend(index: IndexView, days: list[Day], width: int) -> TrendChart:
     values = rolling_90(index)
     shown = days[-len(values) :] if values else days
@@ -121,7 +131,9 @@ def reliability_chip(index: IndexView, days: list[Day]) -> str:
     scored = days[-index.scored :] if index.scored else days
     correct, close = sum(d.result == GREEN for d in scored), sum(d.result == AMBER for d in scored)
     colour = GREEN if state == STEADY else AMBER if state == "watch" else "none"
+    tested = getattr(index, "backtested", 0)
+    back = f" · {tested} back-tested" if tested else ""  # judge 434: a back-test is never passed off as live
     return (
         f'<span class="pill {colour}"><i></i>Inside “almost certainly” {index.right} of {index.scored} '
-        f"(✓ correct {correct} · ⚠ close call {close}) · {state}</span>"
+        f"(✓ correct {correct} · ⚠ close call {close}){back} · {state}</span>"
     )

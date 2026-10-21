@@ -91,3 +91,40 @@ def test_the_result_card_reads_the_editions_own_check_when_the_model_carries_it(
     with_result = SimpleNamespace(result=own, horizons=index.horizons)
     assert result_of(with_result, days).day == own.day  # FL1-1d-2's model: IndexView.result
     assert result_of(SimpleNamespace(result=None, horizons=()), []) is None
+
+
+def test_the_honesty_labels_are_printed_and_never_dropped():
+    """Judge 446: a mutation that drops any of these must fail here."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from fno.forecast_lab.design.blocks import result_card
+    from fno.forecast_lab.design.values import day_of
+    from fno.forecast_lab.page.model import Miss
+
+    index = nifty()
+    # 1. a reason from the data is escaped, never injected as markup
+    hostile = replace(index, misses=(Miss(index.misses[0].day, "above", 60.0, ("<b>bold</b> & co",)),))
+    html = render_evening(page("evening", indices=(hostile,)))
+    assert "&lt;b&gt;bold&lt;/b&gt; &amp; co" in html and "<b>bold</b>" not in html
+    # 2. a provisional close says so instead of the date
+    point = index.horizons[0].timeline.points[-1]
+    provisional = SimpleNamespace(day=point.day, close=point.close, band=point.band, inside_50=point.inside_50,
+                                  inside_90=point.inside_90, live=False, provisional=True)  # fmt: skip
+    assert "the official file confirms it next morning" in result_card(day_of(provisional))
+    assert "the official file confirms it next morning" not in result_card(day_of(point))
+    # 3. the back-tested count is on both pages: the evening's note and the morning's chip, and the method line
+    tested = replace(index, backtested=7)
+    evening = render_evening(page("evening", indices=(tested,)))
+    morning = render_morning(page("morning", indices=(tested,)))
+    assert "7 of the last 30 were scored on a back-fill, not live" in evening
+    assert "· 7 back-tested ·" in morning and "back-tested 7 of the last 30 days" in morning
+    assert "Method: implied, lowest error on its own history" in evening and "0 of 60 live days scored" in morning
+    assert "back-tested" not in render_morning(page("morning", indices=(index,)))  # none when there is none
+    # 4. system problems are printed on both pages, and "all normal" only when there is none
+    from fno.forecast_lab.page.model import PageView
+
+    broken = PageView(page().day, "Live, sealed", (index,), (), ("a forecast is missing: data late",))
+    for html in (render_morning(broken), render_evening(broken)):
+        assert "⚠ a forecast is missing: data late" in html and "All systems normal" not in html
+    assert "All systems normal" in render_evening(page("evening"))

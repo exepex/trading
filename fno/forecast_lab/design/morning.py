@@ -6,7 +6,7 @@ from __future__ import annotations
 from ..page.model import IndexView, PageView
 from .formats import fmt, fmt_mid, fmt_range
 from .lines_chart import LinesChart, LinesLayout
-from .page import KEY, PHONE, WIDE, both, cues_strip, foot, head, header, reliability_chip, why_block
+from .page import KEY, PHONE, WIDE, both, cues_strip, foot, head, header, method_line, reliability_chip, why_block
 from .values import days_of, today_of
 
 TITLE, ISSUED = "Today’s forecast", "08:50"
@@ -57,7 +57,7 @@ def section(index: IndexView) -> str:
         f'<div class="card"><h2>{name}<small>last close {fmt(index.price)} ({index.price_at})</small></h2>'
         f"{big_numbers(index)}</div>{chart_card(index)}"
         f'<div class="card">{why_block("Why this forecast", [], index)}'
-        f'<div class="record">{reliability_chip(index, days)}</div></div>'
+        f'<div class="record">{reliability_chip(index, days)}</div>{method_line(index)}</div>'
     )
 
 
