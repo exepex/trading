@@ -125,12 +125,28 @@ refactors book.py after F8c. **T1c** (`0145TfSwzmpk6MBrH92f5h4G`) reads M1's wea
    - It is stopped with the freeze under the phase-1 scope.
 2. **Prompt v2 hashes are registered.** Any edit to `agents/forecast/book*_v2.md` before G11 lands must update its
    hash in `fno/ai/versions.py` in the same commit. After it lands, a change is a v3.
-3. **`ai fire --protocol v4` and the v2 stop both key on `daily.live_from.forecasts_v4`**, null today. Setting that
-   date turns the v4 AI run on and the v2 AI run off together. Never set it before step 7 and round 2c land, or the
-   books are fired with a pointer their routine cannot read.
+3. **Urgent, found 21 Oct: main now sets `daily.live_from.forecasts_v4: "2026-10-22"`** (owner, 21 Oct, response 299
+   item 15) for G7's rule forecasts in O1.
+   - On main this is safe, because G11 round 2b is not there and the v2 AI fire has no v4 switch.
+   - But on `story/g11-ai-books-v4`, `ai fire --protocol v4` and the v2 AI stop both key on that same date. **Never
+     merge the branch as it is:** the books would be fired with a pointer their routine cannot read (step 7 is
+     missing), and the v2 AI run would stop.
+   - Fix before any merge: give the AI books their own go-live key (for example `ai.v4_live_from`, an allowed key in
+     `fno/config.py`), separate from O1's `forecasts_v4`. That is a design change the judge must see. Set it only
+     after step 7 and round 2c land.
 4. `fno/constants.py` is at 346 of its 350-line limit; new constants go elsewhere (`constants_operations.py` holds
    `ROUTINE_POINTER_MAX_BYTES`).
-5. The 64 KiB pointer cap is not yet confirmed against the routine API's real limit (F1t's story says to confirm it
+5. **M1's US-move flag lags a day on the Nasdaq-100 side** (A17/A17e builder 01MBnbVU, response 298, 21 Oct; strong
+   evidence: Nasdaq's API publishes the close late, so the 03:41 IST copy lacks the previous US close).
+   - Impact is low: `fno/weather/drivers.py` `us_move_flag` feeds only the private Drive record
+     (`capture.py:47`). The public record shows the placeholder `US_PUBLIC`, and neither the probabilities nor the
+     colour use it.
+   - `drivers.py` is not in M1's `METHOD_FILES`, so a fix moves no method hash.
+   - Recommended fix (b): read the Nasdaq-100 through A17e's `build_index_reader()`, which uses Nasdaq's value where
+     it has the date and Yahoo's ^NDX otherwise. A17e's builder offered a small helper for the previous close. It is
+     not started, because of the phase-1 freeze and the handover.
+   - Weather goes live on 22 Oct (`daily.live_from.weather`).
+6. The 64 KiB pointer cap is not yet confirmed against the routine API's real limit (F1t's story says to confirm it
    before go-live). A full input measured 20,713 bytes.
 
 ## (h) First three actions for the successor
