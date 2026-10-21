@@ -71,6 +71,7 @@ from tests.timetable.fakes import TIMETABLE, Clock, Commits, LocalSync, Versions
 from tests.weather.fakes import FakeStore
 
 from . import real_day as rd
+from .lab_replay import LabReplay
 from .o1_steps import day_steps
 
 EXECUTION_ID = "exec_20261016_151500"
@@ -86,6 +87,7 @@ class Outputs:
     board: object = None
     matched: object = None
     distribution_drive: object = None  # G13's Drive files of the day (Drive is an outside service: in memory)
+    lab: object = None  # G13b's issue and FL1's 15:45 report (`LabReplay`: its Drive folder and #fno-forecast posts)
 
 
 class RealRowsCapture:
@@ -192,8 +194,10 @@ class Replay:
                                                                                 clock),
                           self.exit_rules(), self.alerts, clock)  # fmt: skip
         marking = marking_step(root, (BOOK1_RULES,), quotes, self.alerts)
+        lab = self.out.lab = LabReplay(root, self.cfg, clock, self.alerts)
         commands = {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide,
-                    "price_distribution": self.price_distribution}  # fmt: skip
+                    "price_distribution": self.price_distribution, "price_ranges": lab.price_ranges,
+                    "lab_close": lab.lab_close}  # fmt: skip
         o1 = day_steps(commands, build_scorecard_run(self.cfg, root, self.alerts), build_execution_snapshots(
             root / rd.QUOTES), root, self.alerts)  # fmt: skip
         return DailyRun(steps, CALENDAR, PendingCommitter(self.run_commits, root), clock, clock, marking,
