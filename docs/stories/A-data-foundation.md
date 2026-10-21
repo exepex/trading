@@ -949,8 +949,11 @@ report can check today's forecast against today's close the same day, marked "pr
   parsed levels only, before the close. So the 5 record-only sessions below are the test.
 
 **Where the read runs (decided, with the reason):**
-- It is an O1 step, `close_read`, `NotBefore(15:40)`, placed after `candles` in `DAILY_RUN_STEPS` (O1/O2's owner
-  agreed, 22 Oct; FL1-1d removes `lab_close`, so whichever merges second resolves one line).
+- It is an O1 step, `close_read`, `NotBefore(15:40)`, placed last in `DAILY_RUN_STEPS`: after `lab_close` for as
+  long as that step exists, else after `candles` (judge 440 add. 1 SF2). Steps run in order and `NotBefore` waits, so
+  placed before `lab_close` the two A4h steps would hold FL1-1's 15:45 report to about 16:01; last, no consumer's time
+  moves, and close_read starts at about 15:46 instead of 15:40 while `lab_close` runs. When FL1-1d removes
+  `lab_close`, whichever merges second resolves one line (O1/O2's owner agreed, 22 Oct).
   - The daily routine is the only runner alive every session today: the 19:00 task does not exist yet, and GitHub's
     schedule starts hours late.
   - 15:40 is 10 minutes after NSE fixes the close.
@@ -1065,7 +1068,7 @@ about 1 day.
 | Research only: no order, no Groww call | criterion 6 |
 | No `ok` without data (O10; O1's `outcome`) | criterion 1 |
 | A7's calendar decides; regular sessions only (known limit) | criteria 1, 3 |
-| O1's step terms (after `candles`, `LiveFrom` outside, own receipts pathspec, exit contract, `null` live date) | criterion 5 |
+| O1's step terms (last: after `lab_close` while it exists, `LiveFrom` outside, own receipts pathspec, exit contract, `null` live date) | criterion 5 |
 | One gate constant for hand and routine runs | criterion 3 |
 | INDIA VIX as the list's value, never the official close; `open` kept (FL1, response 304) | criteria 2, 4 |
 | Record-only for 5 sessions | criterion 7, "Record-only first" |
@@ -1092,10 +1095,11 @@ about 1 day.
    - a day whose official file is not yet in Drive stays unconfirmed with no alert;
    - the same day still unconfirmed at the second session after it alerts once, and never again on later runs;
    - a confirmation is never rewritten.
-5. **O1.** `close_read` sits after `candles`, and `close_recheck` after it, in `DAILY_RUN_STEPS`. Its failure makes the
-   day "done with problems" and stops no later step. A rerun the same day skips it once recorded. `test_day_run`'s call
-   lists and its rerun test's new calls, `test_steps`' live dates and health's step string are extended, never loosened.
-   Not live (`null`), it neither waits nor reads.
+5. **O1.** In the real `DAILY_RUN_STEPS` tuple, `close_read` and then `close_recheck` are the last two steps: after
+   `lab_close` while it exists (a test asserts `lab_close`'s index is below `close_read`'s), else after `candles`. Its
+   failure makes the day "done with problems" and stops no later step. A rerun the same day skips it once recorded.
+   `test_day_run`'s call lists and its rerun test's new calls, `test_steps`' live dates and health's step string are
+   extended, never loosened. Not live (`null`), it neither waits nor reads.
 6. **No Groww, no orders.** The source imports only the public client (`check_imports`).
 7. **The first 5 live sessions** (claims after merge): each day's read time, NSE stamp, the values and the confirm
    line, against the official file. Go-live items: the two `live_from` dates, and the e2e fixture's `("closes",
