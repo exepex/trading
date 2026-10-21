@@ -74,3 +74,24 @@ problems listed.
 - "38 of 38 mutations caught": true for the builder's own set. A different set found the two gaps above.
 - The EOD back-fill first scores: made by an uncommitted script (the claims say so). Not reproduced; reasoning only
   for me.
+
+## Addendum 1
+Number 310.1 (claimed with O12's tool). Head: 3600b911 (main merged by the builder). Re-judged on 21 Oct, merged with
+that day's `origin/main` (841294c8; local merge bf38f187, no conflicts).
+
+**Verdict: PASS. It may merge after the gates on the final merged tree, and once `main`'s own 2 red tests (below) are
+fixed or known.**
+
+- **Should-fix 1: fixed.** `recorder.py` reads a stored record's `problems`, including its own `missing` placeholder,
+  on a rerun: "<U>: already recorded with N problems", last line "written with problems: ...", exit 1. My mutation
+  `stored = []` (stored problems dropped) fails the builder's new test.
+- **Minor 1: fixed.** My earlier survivor, `<= MAX_STRIKE_GAP` changed to `<` (`density.py:120`), is now caught.
+  Removing the [0, 1] clip (`density.py:141`) is caught too.
+- **Minor 2: fixed.** Back-fill contains `ValueError` and `ArithmeticError` per day. Narrowing that `except` is caught.
+- **Minor 3: fixed.** The deviation is listed in the claims.
+- **Gates on the merged tree:** 8,176 passed, 18 xfailed, **2 failed**. ruff, format (1,484 files), imports, records
+  (7,058) and numbers: all clean.
+  - Both failures are **red on `main` itself** at 841294c8 (run in a clean `main` worktree, same 2 failures):
+    `tests/forecast_scoring_v4/test_g7_series.py::test_v1_reads_only_the_a16_rows_it_is_given` and
+    `tests/market_read_models/test_forecast_history_page.py::test_every_point_is_the_reports_own_scored_count_and_mean_brier`.
+  - No G13 file is involved. They look date- or data-dependent (reasoning only). The orchestrator is told.
