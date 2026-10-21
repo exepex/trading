@@ -65,3 +65,26 @@ then posts once, which is the same outcome as the failed fire.
 
 **Gates (run by me on be7322b1):** 7,802 passed. `ruff check`: clean. `ruff format --check`: 1,407 files already
 formatted. `check_imports`: clean.
+
+## Addendum 2: story/g10-part2b-release at 81311283, A2 dropped (number 282.2, claimed with `tools/claim_number.py`)
+
+**PASS.** This covers the orchestrator's ruling (1), drop A2, made after my judge 274 note (90bc4565), together with
+the fire-log fix already passed in addendum 1.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Code: A2 removed everywhere | MET | `V4_DAY_A2` deleted from constants; G8's `days.LABELS` is (A, system_late); `DayCounts` and the counts line have no A2; the pack codec's `PACK_LABELS` is (A,). No `V4_DAY_A2` or `a2` reference left in `fno`, `tools` or `tests` (grep at 81311283) |
+| An A2 day file or pack is refused | MET | tests. My plants (A2 back in `LABELS`; A2 back in `PACK_LABELS`) each fail 1 test |
+| Text: section 1.6 labels are A and `system_late` only | MET | `system_late` also covers "no release record at all"; a verdict uses A days; a dated note gives the three facts I confirmed in A16's code |
+| The A path | MET | A4e's named capture (judge 281); only a sidecar with `clock_ok` gives A, anything else is `system_late` |
+| G11's catch-up rule | MET (text) | each publisher run first writes `system_late` for every earlier scored session since `daily.live_from.forecasts_v4` with no record, so the look is never blocked forever; records stay write-once. The code is in (b2) |
+| `days.py` lands before the freeze | noted | it is byte-checked at the v4 freeze |
+
+**A condition for (b2)'s code (recorded, not a finding here):** the catch-up must decide "no record" from Drive (O9's
+`DataStore` and its receipts), not from the checkout alone. If a day's release record is in Drive but its receipt is
+not pushed yet, a catch-up that looked only at the checkout would try to write `system_late`. Write-once refuses that,
+so it must fail by name, never overwrite and never crash the run. (b2)'s judge checks this with a test.
+
+**Gates (run by me on 81311283):** 7,966 passed, 18 xfailed (from main), no failures. `ruff check`: clean. `ruff
+format --check`: 1,441 files already formatted. `check_imports`: clean. Main has moved on since. Merge after G11's v4
+fire (addendum 1's condition), with a pull and the full suite on the merged tree.
