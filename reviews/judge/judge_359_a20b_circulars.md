@@ -52,3 +52,19 @@ extra O10 line per failed run once O10 merges. O10's builder listed this as a kn
 to a silence"), and I accepted it in judge 350 add. 1. For a job failing once a day it is one duplicate. For an hourly
 job inside an episode it is spam. The same one-line workflow change removes it everywhere except the frozen
 panel-days.
+
+## Addendum 1: re-judge at a92c20a7 (c4bd3afc the fix; a92c20a7 only renumbers the claims to 284)
+
+**Verdict: PASS. A20b may merge, after a fresh merge of main gated on the exact merged tree.**
+
+| Finding | Fix | My check | Result |
+|---|---|---|---|
+| SF1: O10 posted every hourly run of an open episode | The fallback step runs on every failure and exits 0 without sending when the job's `posted` output is `true`. The job sets it both when it posted and when the episode was already alerted (`spoken()`). So O10's watcher sees an "Alert" step that ran and adds no line; it still writes its row for each failed run | `tests/circulars` 44 passed. Putting back the old `failure() && posted != 'true'` fails 1 test. A test runs the step's script with `POSTED=true` (exit 0, "already spoke", no python call) | **Accepted** |
+| Minor 1: stale header | "the last 14 days" | read | **Accepted** |
+
+The cron comment now says NSE issued circulars on 13 non-session days of 2026, which corrects my own note in judge
+353 addendum 1 (my 14-day sample happened to have none on the 2 Oct holiday). Hourly every day is right.
+
+Merge notes:
+- add `circulars` to capture-watch's list on main;
+- merge main and run the full gates, `check_numbers.py` included, on the exact tree you push.
