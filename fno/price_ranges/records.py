@@ -9,7 +9,7 @@ from ..price_distribution.records import encode
 from .constants import (
     FORECASTERS,
     HORIZON_SESSIONS,
-    ISSUES,
+    HORIZONS_AT,
     LABELS,
     LEVELS,
     METHOD_VERSION,
@@ -20,7 +20,7 @@ from .constants import (
 )
 from .forecasters import RangeForecast
 
-__all__ = ["RecordRefused", "check_row", "encode", "level_key", "range_row"]
+__all__ = ["RecordRefused", "check_header", "check_row", "encode", "level_key", "range_row"]
 BAD_ROW = "range row refused: {why}"
 
 
@@ -50,13 +50,17 @@ def range_row(forecaster: str, horizon: str, target_day, tau: float | None, s_re
     return row
 
 
-def check_row(row: dict, issue: str | None = None, label: str | None = None) -> None:
+def check_header(issue: str, label: str) -> None:
+    """Every record, its rows and a missing record alike: an issue this version builds and a known label."""
+    if issue not in HORIZONS_AT or label not in LABELS:
+        raise RecordRefused(BAD_ROW.format(why=f"issue {issue!r} not built or label {label!r} unknown"))
+
+
+def check_row(row: dict) -> None:
     why = None
     values = [row[level_key(level, "lq")] for level in LEVELS]
     if row["forecaster"] not in FORECASTERS or row["horizon"] not in HORIZON_SESSIONS:
         why = f"unknown forecaster or horizon {row['forecaster']}/{row['horizon']}"
-    elif (issue is not None and issue not in ISSUES) or (label is not None and label not in LABELS):
-        why = f"unknown issue or label {issue}/{label}"
     elif row["status"] not in (OK, MISSING, NOT_ELIGIBLE):
         why = f"unknown status {row['status']}"
     elif row["status"] == OK:

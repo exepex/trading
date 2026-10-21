@@ -32,7 +32,6 @@ OVERNIGHT_SHARE = 0.393  # measured: A16b candle RV, 1,469 sessions 2020-2025 (s
 REST_OF_DAY = (1 - OVERNIGHT_SHARE) * 30 / 375
 
 DEADLINE = time(9, 15)  # a 15:45 issue is sealed by 09:15 IST of the next regular session
-RV_WINDOW, RV_YEAR, HIST_WINDOW, HIST_MINIMUM = 20, 252, 750, 500
 
 BRIER_NOTE = "rv20, ewma_t4 and no_change say P(up) = 0.5: their Brier is always 0.25 and tests nothing about direction"
 TAU_NOTE = "tau from the 3 pm capture adds (1 - 0.393) x 30/375 = 0.049 sessions; 0.393 is the frozen overnight share"

@@ -141,8 +141,14 @@ Every row of both records is `ok` (all ten per index in the scratch output `scra
 
 ## Honest headline (owner's notes, in every report)
 
-- **Strong evidence (1,900 NIFTY days; the same order on 686 BANKNIFTY days, significant at N3 only):** the option-implied range is the best of the five at both horizons and its
-  90% band holds 90-91%. The edge over a 20-day volatility rule is small (QS 0.00456 against 0.00471, 3%).
+- **Some evidence, not strong (relabelled after judge 416):** the option-implied range scores best of the five at
+  both horizons, and its 90% band holds 90-91% for NIFTY. Why only "some":
+  - it is back-fill on the end-of-day basis (`S_ref` = d's close, no rest-of-day tail, the panel's traded closes), not
+    the live 3 pm method that will be scored;
+  - NIFTY N1's edge is bootstrap p 0.037-0.044 against each of 4 baselines with no multiple-comparison correction
+    (N3: p 0.000-0.012);
+  - BANKNIFTY (686 days) is significant at N3 only (N1 p 0.054-0.090);
+  - the edge over a 20-day volatility rule is small: QS 0.00456 against 0.00471, 3%.
 - **No direction skill:** `implied`'s and `hist750`'s `P(up)` Brier is 0.248-0.250, the same as a coin. Only these two
   take a view on direction; `rv20`, `ewma_t4` and `no_change` say 0.5 by construction.
 - **`ewma_t4` is too narrow:** its 50% band holds 38-43%, not 50%.

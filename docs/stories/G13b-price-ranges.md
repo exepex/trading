@@ -8,7 +8,8 @@ Revision 3: `S_ref` at 15:45 is the 3 pm chain's spot, because the official clos
 minors are written in; the scope freeze (DESK 21 Oct) builds part A only. Revision 4 (the build's self-review,
 `reviews/claude/response_290_g13b-price-ranges.md`): the text now says what the code does in A1-A8 (implied's share,
 regular sessions only, the bhavcopy's three nearest expiries and settlement, seals stored once, the close table's
-rescan, back-fill dedupe, scores per row and by method, the scores file's name, FL1's tail rule per judge 403).
+rescan, back-fill dedupe, scores per row and by method, the scores file's name, FL1's tail rule per judge 403), and
+judge 416's guards and notes (A3, A7, criterion 3).
 
 **Description.** As the owner, I want:
 - an honest price range for NIFTY's and BANKNIFTY's next-session and third-session close after each day's close, and
@@ -133,6 +134,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - **Header:** `schema, underlying, day, issue, issued_at, label` (live, backfill_eod, backfill_3pm),
   `method_version, method_sha256, inputs_sha256`, and `inputs` (the close, its file and first-seen time, the chain's
   snapshot id or bhavcopy file).
+  - The issue is named `1545`, but O1 runs it right after `quotes_done`, about 15:15-15:30, and `issued_at` is that
+    real time. Point in time is unaffected: `d`'s close is never read (judge 416 minor 4).
 - **One row per (forecaster, horizon):**
   - `target_day, tau, s_ref`, the quantiles `q05 q25 q50 q75 q95` as levels and log returns, and `p_up`;
   - `status` (ok, missing, not_eligible) and `reason`.
@@ -144,8 +147,9 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - `ewma_t4`: 0.5 (symmetric);
   - `no_change`: 0.5.
   - Said plainly: only `implied` and `hist750` take a view on direction.
-- **Record check:** quantiles strictly increasing, except `no_change`'s equal ones; unknown forecaster, horizon or
-  issue refused.
+- **Record check:** quantiles strictly increasing, except `no_change`'s equal ones; an unknown forecaster or horizon
+  refused. Before any row, every record (a `missing` one too) is refused for an issue this version does not build
+  (only `1545`) or an unknown label (judge 416).
 - **Interpolation:** G13b publishes only the five quantiles. FL1 prices positions on them piecewise-linear inside
   5-95% and with anchored lognormal tails beyond them (judge 403, replacing the flat tails of revision 3). That is
   FL1's modelling choice, quoted here, not G13b's.
@@ -209,6 +213,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - byte-identical on a rerun, with a new path for new inputs;
   - a build failure skips its day, counted;
   - regular sessions only;
+  - only `backfill_eod` on the `CLOSE` basis or `backfill_3pm` on the `CAPTURE` basis: a back-fill can never carry
+    the `live` label (judge 416);
   - overlapping or rerun back-fill files count once per (label, method, underlying, day, issue): the file whose range
     ends latest wins.
 
@@ -289,7 +295,7 @@ paper positions. Nothing here sizes, enters or blocks a trade.
    - `implied` equals G13's scaled distribution at the hand-computed `k/n`;
    - `rv20` and `hist750` match hand values;
    - `ewma_t4` equals `s T/√2` with `s²` from G7's `Ewma` (imported) and the closed-form t(4) quantile;
-   - the closed form matches tabled t(4) values to 1e-6 (2.1318 at 95%, 0.7407 at 75%);
+   - the closed form matches tabled t(4) values to 1e-4, the tables' 4 decimals (2.1318 at 95%, 0.7407 at 75%);
    - `no_change` is a point mass with `p_up = 0.5`;
    - `implied`'s `p_up = 1 - CDF(S_ref)` by hand;
    - the AI and v4 slots are accepted ids with no rows.

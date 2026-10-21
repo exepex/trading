@@ -96,8 +96,9 @@ class RangeIssuer:
             written += 1
             lines.append(ISSUED.format(underlying=underlying, n=len(record["problems"])))
             problems += [f"{underlying} {p}" for p in record["problems"]]
-        if len(absent) == len(self.underlyings):
-            return 0, [*lines, NOTHING.format(reasons="; ".join(f"{u}: {r}" for u, r in absent.items()))]
+        if len(absent) == len(self.underlyings):  # an earlier failure still fails the step (judge 416)
+            nothing = NOTHING.format(reasons="; ".join(f"{u}: {r}" for u, r in absent.items()))
+            return (1 if problems else 0), [*lines, *(PROBLEM.format(problem=p) for p in problems), nothing]
         for underlying, reason in absent.items():
             record = missing_issue(underlying, day, ISSUE_1545, LIVE, reason, self.builder.method, now.isoformat())
             self.store.put(live_path(underlying, day, ISSUE_1545), encode(record))

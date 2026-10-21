@@ -29,7 +29,7 @@ from .constants import (
     SCHEMA,
 )
 from .forecasters import RULE_RANGES, RangeForecast, RangeForecaster, RangeInputs
-from .records import range_row
+from .records import check_header, range_row
 
 CALENDAR_ENDS = "the session calendar ends before the target ({error})"
 NO_REFERENCE = "no reference price: {why}"
@@ -50,6 +50,7 @@ CAPTURE, CLOSE = Basis("capture", REST_OF_DAY, False), Basis("close", 0.0, True)
 def missing_issue(underlying: str, day: date, issue: str, label: str, reason: str, method: str,
                   issued_at: str | None) -> dict:  # fmt: skip
     """An issue that could not be built, on file so the gap is recorded (owner, 16 Oct)."""
+    check_header(issue, label)
     return {"schema": SCHEMA, "underlying": underlying, "day": day.isoformat(), "issue": issue, "label": label,
             "issued_at": issued_at, "method_version": METHOD_VERSION, "method_sha256": method, "status": MISSING,
             "problems": [reason], "rows": []}  # fmt: skip
@@ -68,6 +69,7 @@ class RangeBuilder:
 
     def build(self, underlying: str, day: date, issue: str, chain: ChainDay | None, closes: Sequence[DayValue],
               basis: Basis, label: str, issued_at: str | None) -> dict:  # fmt: skip
+        check_header(issue, label)  # an unknown issue is refused, never a bare KeyError (judge 416)
         read = tuple(c for c in closes if c.day < day or (basis.reads_day_close and c.day == day))
         s_ref, s_ref_at, why = self._reference(day, chain, read, basis)
         if s_ref is None:

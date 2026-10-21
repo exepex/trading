@@ -14,12 +14,12 @@ import numpy as np
 
 from ..forecast_v4_rules.baselines import Ewma
 from ..forecast_v4_rules.series import DayValue, close_proxy_rv
+from ..price_distribution.constants import HIST_MINIMUM, HIST_WINDOW, RV_WINDOW
+from ..price_distribution.forecasters import daily_realised_variance, log_returns
 from ..price_distribution.valuation import DayValuation
 from .constants import (
     EWMA_T4,
     HIST750,
-    HIST_MINIMUM,
-    HIST_WINDOW,
     IMPLIED,
     LEVELS,
     MISSING,
@@ -27,7 +27,6 @@ from .constants import (
     NOT_ELIGIBLE,
     OK,
     RV20,
-    RV_WINDOW,
 )
 from .t4 import t4_quantile
 
@@ -106,14 +105,6 @@ class ImpliedRange(RangeForecaster):
         return increasing(values, 1 - cdf(0.0), p_big)
 
 
-def _daily_sd(closes: tuple[DayValue, ...]) -> float | None:
-    window = closes[-(RV_WINDOW + 1) :]
-    if len(window) < RV_WINDOW + 1:
-        return None
-    returns = [math.log(b.value / a.value) for a, b in zip(window, window[1:], strict=False)]
-    return math.sqrt(sum(r * r for r in returns) / RV_WINDOW)
-
-
 class RealisedVolRange(RangeForecaster):
     """Lognormal, zero log drift, at B1's realised volatility of the last 20 closes, over τ."""
 
@@ -121,10 +112,10 @@ class RealisedVolRange(RangeForecaster):
     reads_closes = True
 
     def forecast(self, inputs: RangeInputs, k: int) -> RangeForecast:
-        sd = _daily_sd(inputs.closes)
-        if sd is None:
+        variance = daily_realised_variance(inputs.closes)  # G13's rv20 rule, imported
+        if variance is None:
             return RangeForecast(NOT_ELIGIBLE, TOO_FEW_CLOSES.format(n=len(inputs.closes), minimum=RV_WINDOW + 1))
-        return increasing([z * sd * math.sqrt(k + inputs.tail) for z in Z], 0.5)
+        return increasing([z * math.sqrt(variance) * math.sqrt(k + inputs.tail) for z in Z], 0.5)
 
 
 class HistoricalRange(RangeForecaster):
@@ -135,7 +126,7 @@ class HistoricalRange(RangeForecaster):
 
     def forecast(self, inputs: RangeInputs, k: int) -> RangeForecast:
         window = inputs.closes[-HIST_WINDOW:]
-        returns = [math.log(b.value / a.value) for a, b in zip(window, window[k:], strict=False)]
+        returns = log_returns(window, k)
         if len(returns) < HIST_MINIMUM:
             reason = TOO_FEW_RETURNS.format(n=len(returns), k=k, window=HIST_WINDOW, minimum=HIST_MINIMUM)
             return RangeForecast(NOT_ELIGIBLE, reason)

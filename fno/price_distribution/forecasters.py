@@ -108,8 +108,17 @@ class ImpliedForecaster(QuantileForecaster):
         return ok(values, tails)
 
 
-def _log_returns(closes: tuple[DayValue, ...], step: int) -> list[float]:
+def log_returns(closes: tuple[DayValue, ...], step: int) -> list[float]:
     return [math.log(b.value / a.value) for a, b in zip(closes, closes[step:], strict=False)]
+
+
+def daily_realised_variance(closes: tuple[DayValue, ...]) -> float | None:
+    """`rv20`'s daily variance: the mean square of the last 20 daily log returns (not demeaned); None under 21 closes.
+    Public for G13b's `rv20` (one rule, imported)."""
+    window = closes[-(RV_WINDOW + 1) :]
+    if len(window) < RV_WINDOW + 1:
+        return None
+    return sum(r * r for r in log_returns(window, 1)) / RV_WINDOW
 
 
 class RealisedVolForecaster(QuantileForecaster):
@@ -119,11 +128,10 @@ class RealisedVolForecaster(QuantileForecaster):
     reads_closes = True
 
     def _forecast(self, inputs: ForecastInputs, target: Target) -> Forecast:
-        closes = inputs.closes[-(RV_WINDOW + 1) :]
-        if len(closes) < RV_WINDOW + 1:
+        variance = daily_realised_variance(inputs.closes)
+        if variance is None:
             return Forecast(NOT_ELIGIBLE, TOO_FEW_CLOSES.format(n=len(inputs.closes), minimum=RV_WINDOW + 1))
-        daily = math.sqrt(sum(r * r for r in _log_returns(closes, 1)) / RV_WINDOW)
-        return ok([z * daily * math.sqrt(target.sessions) for z in Z])
+        return ok([z * math.sqrt(variance) * math.sqrt(target.sessions) for z in Z])
 
 
 class HistoricalForecaster(QuantileForecaster):
@@ -133,7 +141,7 @@ class HistoricalForecaster(QuantileForecaster):
     reads_closes = True
 
     def _forecast(self, inputs: ForecastInputs, target: Target) -> Forecast:
-        returns = _log_returns(inputs.closes[-HIST_WINDOW:], target.sessions)
+        returns = log_returns(inputs.closes[-HIST_WINDOW:], target.sessions)
         if len(returns) < HIST_MINIMUM:
             reason = TOO_FEW_RETURNS.format(n=len(returns), h=target.sessions, window=HIST_WINDOW,
                                             minimum=HIST_MINIMUM)  # fmt: skip
@@ -143,7 +151,5 @@ class HistoricalForecaster(QuantileForecaster):
 
 def realised_vol_points(closes: tuple[DayValue, ...]) -> float | None:
     """`rv20`'s annualised volatility in points (for the record's implied-minus-realised line)."""
-    window = closes[-(RV_WINDOW + 1) :]
-    if len(window) < RV_WINDOW + 1:
-        return None
-    return math.sqrt(sum(r * r for r in _log_returns(window, 1)) / RV_WINDOW * RV_YEAR) * 100
+    variance = daily_realised_variance(closes)
+    return None if variance is None else math.sqrt(variance * RV_YEAR) * 100

@@ -18,12 +18,14 @@ from ..price_distribution.chain import ChainSource
 from ..price_distribution.recorder import NO_CHAIN
 from ..price_distribution.sources import ChainUnavailable
 from ..research_data.calendar import CalendarError, SessionCalendar
-from .build import Basis, RangeBuilder
-from .constants import ISSUE_1545
+from .build import CAPTURE, CLOSE, Basis, RangeBuilder
+from .constants import BACKFILL_3PM, BACKFILL_EOD, ISSUE_1545
 from .folders import backfill_path
 from .records import encode
 
 SCHEMA = "g13b_backfill_v1"
+BASES = {BACKFILL_EOD: CLOSE, BACKFILL_3PM: CAPTURE}  # a back-fill label and its one basis; never `live`
+WRONG_LABEL = "a back-fill is labelled backfill_eod (CLOSE basis) or backfill_3pm (CAPTURE basis), not {label}/{basis}"
 STOPS = "back-fill stops before the first live day {live_from}"
 WRITTEN = "{underlying} {label}: {days} days written to {path}"
 NONE_WRITTEN = "{underlying} {label}: no day to write"
@@ -38,6 +40,8 @@ class RangeBackfill:
         self.calendar, self.live_from = calendar, live_from
 
     def run(self, label: str, basis: Basis, underlyings: Sequence[str], first: date, last: date) -> list[str]:
+        if BASES.get(label) != basis:  # a back-fill is never counted as a sealed live day (judge 416)
+            raise ValueError(WRONG_LABEL.format(label=label, basis=basis.name))
         lines = []
         if self.live_from is not None and last >= self.live_from:
             last = min(last, self.calendar.previous_session(self.live_from))

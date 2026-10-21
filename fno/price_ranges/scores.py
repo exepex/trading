@@ -51,9 +51,13 @@ def _band(items: list, low: str, high: str) -> float | None:
     return share_inside(ys, [r[low] for _, r, _ in items], [r[high] for _, r, _ in items])
 
 
-def _brier(items: list) -> float:
+def _row_brier(row: dict, y: float) -> float:
     """P(up) against "the close is above S_ref" (an equal close is not up)."""
-    return sum((r["p_up"] - (1.0 if y > 0 else 0.0)) ** 2 for _, r, y in items) / len(items)
+    return (row["p_up"] - (1.0 if y > 0 else 0.0)) ** 2
+
+
+def _brier(items: list) -> float:
+    return sum(_row_brier(r, y) for _, r, y in items) / len(items)
 
 
 def group_scores(scored: list) -> list[dict]:
@@ -87,7 +91,7 @@ def row_scores(scored: list) -> list[dict]:
              "target_day": row["target_day"], "outcome_close": round(row["s_ref"] * math.exp(y), 2),
              "outcome_log": y, "quantile_score": _qs(row, y), "inside_25_75": _inside(row, y, "lq25", "lq75"),
              "inside_05_95": _inside(row, y, "lq05", "lq95"),
-             "brier_up": (row["p_up"] - (1.0 if y > 0 else 0.0)) ** 2} for record, row, y in scored]  # fmt: skip
+             "brier_up": _row_brier(row, y)} for record, row, y in scored]  # fmt: skip
 
 
 def comparison_seed(*key: str) -> int:
