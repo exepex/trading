@@ -85,7 +85,7 @@ This section is stated first, because it limits what any result can mean.
 | Trial | Id | Conditioner(s) in `x` beyond the intercept | Parameters |
 |---|---|---|---|
 | 56 | C1 | none: one constant scale | 1 |
-| 57 | C2 | two constant scales: one for the 25/75 band, one for the 5/95 band (the shape, not only the width). Parameters that would make any quantiles cross on any train day are refused (the outer-to-inner scale ratio must keep q05 < q25 and q75 < q95 on every day: about 0.41 for a normal shape) | 2 |
+| 57 | C2 | two constant scales: one for the 25/75 band, one for the 5/95 band (the shape, not only the width). Parameters that make any quantiles cross on any train day are refused in the fit. On select and final days, a crossing on any scored day counts the cell as a failed fit for C2 (judge 428.1 note 1). The outer-to-inner scale ratio must keep q05 < q25 and q75 < q95 on every day: about 0.41 for a normal shape | 2 |
 | 58 | C3 | ln(VIX_d) minus ln(the train period's median VIX) | 2 |
 | 59 | C4 | ln(VIX_d / VIX_{d-1}) | 2 |
 | 60 | C5 | 1 if an RBI policy, budget or election-result day falls in (d, target] | 2 |
@@ -256,3 +256,7 @@ Any deviation is recorded here, dated, before the step it affects, and judge B i
   - New freeze hash and the ledger rows' `protocol_commit` are updated in the same change.
   - Also in this revision, at judge B's request: section 12's (a)-(d) word for word as sent to the judge, run 2's
     determinism, and the "honest limit" in section 2.
+- **22 Oct 2026, after judge 428.1's PASS of a7a1b28a, before any code:** its notes 1-3 applied.
+  - Note 1: C2's crossing check covers every scored day, and a crossing is a failed fit.
+  - Note 2: DATA_SPEND's global-cues row no longer names Brent.
+  - Note 3: the honest-limit sentence in section 2 (already in eb8d061a).
