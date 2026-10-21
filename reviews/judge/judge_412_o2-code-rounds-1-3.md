@@ -138,3 +138,14 @@ the whole day, so it is worth fixing.
 
 Both F1 and G4 are lane 1 (O1's wiring, E2b and E3's `git_sync` and `pending_commit`). Each is a small story amendment
 first, judged before code. Each may be its own change, as the orchestrator directs.
+
+## Addendum 4: the O2 scope split (story/o2b-split at 49b81669, docs only)
+**Agreed. It is a status change, so lane 3; the orchestrator may merge it.** The text matches the record:
+- O2 rounds 1-3 merged at cdd59db6 (judge 412);
+- F1 (judge 417), G4 (judge 419) and the double-alert regression (judge 418) are O1 changes, each judged on its own;
+- the round 4a/4b kill and hang rows join main with those fixes, their strict xfails made real;
+- O2b (the trade rows and the source-tree-unchanged test) is paused, due before the first paper approval, with
+  revision 6 (judge 204 addendum 5) as its contract.
+
+**One line to keep in view:** D2's shadow-loop gap (judge 204 addendum 5, `fno/playbook/evaluate.py` 52-59) is a
+production fix, not an O2b test. It must land before the first paper approval too, and needs its own owner and row.

@@ -363,3 +363,15 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   (`datetime.combine(None, ...)`). Every rerun after 14:33 would have crashed. Now `start_due` returns when the day
   is not open. Test: `test_a_rerun_that_never_opens_the_day_starts_nothing_and_never_fails_on_a_wait`; with the
   guard removed, it fails.
+
+### Fix: a part that alerted for itself is never alerted twice (after A4's 1f005e5a; judge 412 add. 1 note 2)
+
+- **Regression (strong evidence, read on main):** since A4's privacy fix, `ChildProcess.lines()` keeps no
+  "alert NOT sent" line, so that an unsent alert's text never reaches the committed run log. O2's G1 rule read the
+  kept lines to decide whether a failed part had alerted for itself. So on a Slack-down day a part whose own alert was
+  unsent also got O1's `PART_NOT_OK`: two unsent lines for one failure.
+- **Fix:** `Process.alerted()` on the interface, read from the whole output (`alerted_in`, `ALERT_OUTCOMES` in
+  `fno/daily/processes.py`). `QuoteParts._finish` takes it.
+- **Test, with the real `ChildProcess`:** `tests/daily/test_part_alerted.py`, cases unsent, sent and silent: exactly
+  one alert in total, the unsent line relayed once, and the folder ID never in the kept lines. Planting the old
+  lines-based rule fails the unsent case.
