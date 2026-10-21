@@ -50,3 +50,28 @@ I checked only the conflict resolution:
 - `.gitignore` keeps both `journal/runs/.parts/` and `journal/runs/.own/`.
 
 **Gates on a trial merge of 00e9da61 with today's main:** no conflict; 8826 passed, 16 xfailed, 0 failed; ruff clean.
+
+## Addendum 2: F1 follow-up, a `none` marker is never "recorded earlier" (story/o1-none-marker at 25ded294)
+**Verdict: PASS. Lane 1. Merge before tomorrow's go-live.**
+
+**The gap (strong evidence; I confirmed it on main):** A4 writes the canonical marker as `none` when the window ends
+with no complete attempt (`NONE_MARKER`, `fno/quotes/recorder.py` 56 and 170). F1's `PartMarkers.recorded` checked only
+that the marker file exists. So a rerun on such a day reported the part `ok` "recorded earlier", and the run log
+claimed data that does not exist (against O10's "no ok without data"). My judge 421 missed this.
+
+**The fix:**
+- `PartMarkers.ended_none` reads each marker's content;
+- `EarlierRun._outcome` gives `failed` "the day ended none, no complete attempt (recorded earlier, commit <sha>):
+  <markers>";
+- a `none` part is never restarted: its marker exists and its window is over.
+
+**Alerting, which I accept:** the rerun alerts the `none` part once more (`alerted()` stays False). The builder checked
+that `record_today` (`fno/quotes/cli.py` 101-125) does not alert for itself on every path to `none`. Incomplete
+captures to 15:10 exit 1 silently, and O1's `PART_NOT_OK` is the only alert. A run killed between the marker and that
+alert would otherwise leave a silent day. A possible duplicate is better than silence (the owner's 16 Oct rule).
+
+**Checks:**
+- a unit case (fake markers; NSE still `ok`, no restart, one alert) and an e2e case (real markers; Groww down all day,
+  killed after `reviews`, rerun: `failed`, `how` "earlier run", exactly one new NIFTY alert with the exact text);
+- planted mutation: the `ended_none` branch disabled fails both (2 failed);
+- trial merge with main: 8944 passed, 17 xfailed, 0 failed; ruff and check_imports clean.
