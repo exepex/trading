@@ -100,3 +100,16 @@ def test_the_days_clock_and_x_in_the_text_match_the_code():
 def test_the_day_labels_in_the_text_are_a_and_system_late_only():
     assert "`A`, every required field observed by 14:40:00" in TEXT and "`system_late`, no complete pack" in TEXT
     assert "was dropped on 16 Oct" in TEXT
+
+
+def test_the_freeze_plan_rules_are_written_as_the_code_runs_them():
+    """Response 287's remaining text (piece 1b): misses from a registered slot's `effective_start` after the freeze
+    (`scoring._miss_start`, `SlotFile`), item E's share cut (`confirmatory.crash_dominated`) and intraday HAR over
+    usable sessions only."""
+    flat = " ".join(TEXT.split())
+    assert "counted for each **registered** slot from its `effective_start`" in flat
+    assert "a session after the freeze and no later than the slot's first eligible session" in flat
+    assert 'An **unregistered** slot is "not started": p = 1, never judged.' in flat
+    assert "is not judgeable either, for every member** (`confirmatory.crash_dominated`" in flat
+    assert "**Decided: option 2, the share cut**" in flat
+    assert "a void session is skipped, never a reason for the day's value to be missing" in flat
