@@ -207,6 +207,7 @@ daily:
     weather: null
     forecasts_v4: null
     card: null
+    price_distribution: null  # story G13's valuation record and price-distribution forecasts
 
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
 # that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).

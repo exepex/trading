@@ -1,0 +1,110 @@
+{
+ "2026-10-27": {
+  "cdf_high": 0.989479,
+  "cdf_low": 0.021709,
+  "forward": 23121.9596,
+  "quantiles": {
+   "q01": {
+    "level": 21747.0,
+    "log_return": -0.06130717,
+    "source": "tail"
+   },
+   "q05": {
+    "level": 22262.88,
+    "log_return": -0.03786202,
+    "source": "body"
+   },
+   "q10": {
+    "level": 22512.61,
+    "log_return": -0.02670727,
+    "source": "body"
+   },
+   "q25": {
+    "level": 22875.01,
+    "log_return": -0.01073784,
+    "source": "body"
+   },
+   "q50": {
+    "level": 23146.82,
+    "log_return": 0.0010748,
+    "source": "body"
+   },
+   "q75": {
+    "level": 23442.95,
+    "log_return": 0.01378704,
+    "source": "body"
+   },
+   "q90": {
+    "level": 23684.99,
+    "log_return": 0.02405875,
+    "source": "body"
+   },
+   "q95": {
+    "level": 23821.74,
+    "log_return": 0.02981578,
+    "source": "body"
+   },
+   "q99": {
+    "level": 24237.78,
+    "log_return": 0.0471297,
+    "source": "tail"
+   }
+  },
+  "raw_decreases": 3,
+  "strikes": 47
+ },
+ "2026-11-23": {
+  "cdf_high": 0.874151,
+  "cdf_low": 0.103448,
+  "forward": 23225.2246,
+  "quantiles": {
+   "q01": {
+    "level": 20703.58,
+    "log_return": -0.11493246,
+    "source": "tail"
+   },
+   "q05": {
+    "level": 21499.63,
+    "log_return": -0.07720329,
+    "source": "tail"
+   },
+   "q10": {
+    "level": 21950.26,
+    "log_return": -0.05645984,
+    "source": "tail"
+   },
+   "q25": {
+    "level": 22705.26,
+    "log_return": -0.02264239,
+    "source": "body"
+   },
+   "q50": {
+    "level": 23330.49,
+    "log_return": 0.00452207,
+    "source": "body"
+   },
+   "q75": {
+    "level": 23890.73,
+    "log_return": 0.02825161,
+    "source": "body"
+   },
+   "q90": {
+    "level": 24350.72,
+    "log_return": 0.04732267,
+    "source": "tail"
+   },
+   "q95": {
+    "level": 24691.02,
+    "log_return": 0.06120071,
+    "source": "tail"
+   },
+   "q99": {
+    "level": 25340.9,
+    "log_return": 0.08718082,
+    "source": "tail"
+   }
+  },
+  "raw_decreases": 10,
+  "strikes": 47
+ }
+}

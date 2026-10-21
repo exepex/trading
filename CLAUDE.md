@@ -189,7 +189,9 @@ commit with `--no-verify`.
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
   parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
   `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a),
-  `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b).
+  `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b) and
+  `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
+  scores: A4's chains, the panel, closes, O9's Drive store, story G13).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
