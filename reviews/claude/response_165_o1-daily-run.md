@@ -421,3 +421,28 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
     - `tests/daily/test_day_run.py`: the rerun-after-kill test now expects "earlier run".
   - O2's strict xfail for F1 (`tests/e2e/test_kill_rerun.py`, on `story/o2-failure-handling`) is flipped when this
     merges.
+
+### Fix: a quote part's unpushed commit never stops the desk (gap G4; story text first, judge 412 addendum 3)
+
+- **Gap (strong evidence):** O2's hang day. A part push that hung, or was rejected three times, left a local commit,
+  and the desk's next commit refused it as a stray, stopping the desk before its exits. Strict xfail
+  `test_a_quote_part_s_push_that_hangs_is_not_committed_alerted_and_the_desk_goes_on`.
+- **Design:** judge D's ruling, in the O1 story's new section: one shared committer that remembers its own unpushed
+  commits as `OwnCommit`s (checked by content), a git-ignored list for a same-container rerun, and the alert wording
+  "committed, NOT pushed (the next push carries it)".
+- Code follows judge D's PASS on this text (judge 419 PASS).
+- **Code (claims, each tested):**
+  - `fno/desk/own_commits.py` (`OwnUnpushed`): the run's own unpushed commits, kept in the git-ignored
+    `journal/runs/.own/unpushed.json` (written atomically) so a rerun in the same container knows them.
+  - `GitCommitter` remembers each commit it makes (message and each file's SHA-256), accepts those in its stray check,
+    and empties the list once origin holds everything. One committer per run: `fno/daily/wiring.py` builds it and
+    shares it between the quote parts and the desk (`build_daily_run(git_committer=...)`).
+  - A part whose commit was made but not pushed alerts "committed, NOT pushed (the next push carries it)", without the
+    hand fix; a commit that was never made keeps the NOT committed alert and its hand fix.
+  - Deliberately not covered: Book 1's own decision commit (its child process has its own committer); left unpushed
+    it still stops the next commit, because E5b's stop protects the decision's timing (judge 419).
+  - Tests: `tests/desk/test_own_unpushed.py` (carried and list emptied; a stranger's commit still refused; a rerun
+    accepts its own by content; refused once its files changed; the list is git-ignored) and
+    `tests/daily/test_day_run.py::test_a_part_commit_whose_push_failed_is_alerted_as_not_pushed_and_the_day_goes_on`.
+  - O2's strict xfail for G4 (`tests/e2e/test_hangs.py`, on `story/o2-failure-handling`) becomes the real assertion
+    when this merges.

@@ -21,6 +21,7 @@ journal/runs/.pending_commit.json.tmp
 journal/runs/.pending_book1.json
 journal/runs/.pending_book1.json.tmp
 journal/runs/.parts/
+journal/runs/.own/
 
 # Raw Groww quote files live in Google Drive only (owner, 15 Oct 2026, "6 A"; story A4b): the repository keeps each
 # attempt's sidecar and the day's canonical marker

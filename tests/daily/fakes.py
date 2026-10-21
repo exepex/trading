@@ -9,7 +9,7 @@ from datetime import datetime
 from fno.constants import STEP_OK
 from fno.daily.earlier_run import PartMarkers
 from fno.daily.part_locks import PART_LOCKS, PartLocks
-from fno.daily.processes import Process, Processes, alerted_in
+from fno.daily.processes import UNSENT, Process, Processes, alerted_in
 from fno.daily.quote_parts import QUOTE_PARTS, QuoteParts
 from fno.daily.quote_steps import ServicingWaiter
 from fno.desk.daily_ports import CommitFailed, Committer, DayStep
@@ -44,7 +44,7 @@ class FakeProcess(Process):
             self.lock = None
 
     def lines(self) -> list[str]:
-        return list(self.printed)
+        return [line for line in self.printed if UNSENT not in line]  # as ChildProcess keeps them
 
     def alerted(self) -> bool:
         return alerted_in(self.printed)
