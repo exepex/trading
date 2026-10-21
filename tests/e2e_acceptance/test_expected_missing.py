@@ -6,7 +6,7 @@ for `not_built`, writes the real check). The suite is complete when this file ho
 import pytest
 
 from fno import constants
-from fno.cards.weather import PendingWeather
+from fno.cards.recorded_weather import RecordedWeather
 from fno.cards.wiring import build_daily_card
 from fno.config import ROOT, load_app_config
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
@@ -45,9 +45,8 @@ def test_the_daily_routine_starts_before_the_1430_forecast_cutoff():
     assert "14:33" not in section
 
 
-@missing("T1c: the card reads M1's weather record")
 def test_the_card_shows_m1s_weather_not_a_pending_line():
-    assert not isinstance(build_daily_card(ROOT).builder.weather_source, PendingWeather)
+    assert isinstance(build_daily_card(ROOT).builder.weather_source, RecordedWeather)  # T1c
 
 
 @missing("O11 part 2: the card step on a git root")

@@ -12,10 +12,10 @@ from fno.cards.committed import CommittedRecords
 from fno.cards.daily import DailyCard
 from fno.cards.deliveries import RepoDeliveryFiles
 from fno.cards.forecasts import LiveCaptureForecasts
+from fno.cards.recorded_weather import RecordedWeather
 from fno.cards.render import SlackTextRenderer
 from fno.cards.session import CALENDAR_PATH, SessionCheck
 from fno.cards.status import REGISTRY_PATH, RegistryStatus
-from fno.cards.weather import PendingWeather
 from fno.constants import BOOKS
 from fno.server_clock import ServerClock, ServerTimeUnknown
 from fno.storage.raw_store import RawFileConflict, RawFileStore
@@ -28,6 +28,7 @@ PAPER_ROW = (
     "sc-iv-rich,1," + "a" * 64 + ",research,2026-10-13,desk,\n"
     "sc-iv-rich,1," + "a" * 64 + ",paper,2026-10-14,owner," + "b" * 40 + "\n"
 )
+WEATHER = "research/forecasts/v4/weather/{day:%Y}/{day}.json"  # M1's record path (WeatherRecords.path)
 TOKEN = "test-token-not-real"
 HOST = datetime(2026, 10, 15, 9, 38, 0, tzinfo=UTC)  # 15:08 IST
 
@@ -59,8 +60,12 @@ class FakeRecords(CommittedRecords):
         return sorted({p[len(prefix) :].split("/")[0] for p in self.files if p.startswith(prefix)})
 
 
+def weather_of(records: CommittedRecords) -> RecordedWeather:
+    return RecordedWeather(records, lambda day: WEATHER.format(day=day))
+
+
 def daily_card(records: FakeRecords, root: Path) -> DailyCard:
-    builder = CardBuilder(RegistryStatus(records, records), PendingWeather(), LiveCaptureForecasts(records))
+    builder = CardBuilder(RegistryStatus(records, records), weather_of(records), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
 
 

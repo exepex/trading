@@ -29,12 +29,12 @@ from .forecasts import LiveCaptureForecasts
 from .issue import CardIssuer
 from .posting import CardPoster, NoCardPoster, SlackCardPoster
 from .record_store import CardRecordStore, DriveCardRecords, NoCardRecords
+from .recorded_weather import RecordedWeather
 from .render import SlackTextRenderer
 from .rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader
 from .ruled_status import RuleChecks, RuledStatus
 from .session import SessionCheck
 from .status import RegistryStatus
-from .weather import PendingWeather
 from .witness import IssuanceWitness
 
 # Its `Date` header is GitHub's server time (no sign-in needed). A repository path, not the API root: the cloud
@@ -51,8 +51,17 @@ def _host_now() -> datetime:
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(build_status(records, root), PendingWeather(), LiveCaptureForecasts(records))
+    builder = CardBuilder(build_status(records, root), _weather(records, root), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
+
+
+def _weather(records, root: Path) -> RecordedWeather:
+    """M1's record path for a day, relative to the repository: the card reads the committed record (story T1c)."""
+    from ..weather.records import WeatherRecords
+    from ..weather.wiring import WEATHER_FOLDER
+
+    folder = WEATHER_FOLDER.relative_to(ROOT)
+    return RecordedWeather(records, lambda day: WeatherRecords(folder).path(day).as_posix())
 
 
 def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
