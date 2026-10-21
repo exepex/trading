@@ -838,8 +838,9 @@ ratio and the strikes with the most call and put open interest.
 weekly slot recording the two nearest NIFTY expiries that are not one of the monthly capture's two monthlies, strikes
 within 5% of spot, A4's columns, validity and Drive-only rules, in its own dataset `groww/derivatives/quote-snapshots-weekly`
 (stem `niftyweekly`); run by `record-indices` after MIDCPNIFTY, inside A4c's 15:01-15:13 window and pace; the indices
-part's commit pathspecs in O1's `QUOTE_PARTS` gain `groww/**/niftyweekly_*` (its owner agrees). Out: any reader of the
-weeklies or of the new column (pieces 1 and 2 are G13's); BANKNIFTY weeklies (none listed); a back-fill; the monthly capture's contracts,
+part in O1's `QUOTE_PARTS` gains the pathspec `groww/**/niftyweekly_*` and the canonical `(<weekly dataset>,
+"niftyweekly")` for F1's restart rule, and `CLAUDE.md`'s step 3b its `git add` glob (O1/O2's owner agreed, 21 Oct). Out:
+any reader of the weeklies or of the new column (pieces 1 and 2 are G13's); BANKNIFTY weeklies (none listed); a back-fill; the monthly capture's contracts,
 window or timing; A4e's v4 window (it gains the column, nothing else).
 
 **Expected design (the simplest that covers the real cases):**
@@ -855,6 +856,10 @@ window or timing; A4e's v4 window (it gains the column, nothing else).
   expiry is the monthly (its last week) records the two weeklies after it.
 - `record-indices` runs BANKNIFTY, FINNIFTY, MIDCPNIFTY, then NIFTY weekly, round-robin retries as A4c does; one result
   line each; the one alert names any not recorded.
+- **The weekly slot always leaves a canonical marker on a session day it runs** (F1's restart rule reads it: a missing
+  marker means "restart"): the complete attempt's id, or `none` at the window's end; a day whose listed expiries hold no
+  non-monthly one is one attempt with the reason and `none` at once, like A4c's unlisted index (the provider is not
+  asked for a chain).
 
 **Size (reasoning only, from A4c's measured pace):** about 2 x 46 strikes x 2 types = about 184 weekly quotes plus 2
 chain calls: about 75 s at 2.5 a second, so the window ends about 15:07 on a normal day (A4c's indices end about
@@ -877,7 +882,11 @@ chain calls: about 75 s at 2.5 a second, so the window ends about 15:07 on a nor
    desk's snapshot inputs).
 6. **Routine.** `git add --dry-run` in a temp repository with every part's files: the indices part's pathspecs stage the
    weekly sidecar and marker; NIFTY's `groww/**/nifty_*` stages no weekly file; `.gitignore`, the record scan and
-   E2b's guard refuse the weekly CSVs (A4c's path test, extended).
+   E2b's guard refuse the weekly CSVs (A4c's path test, extended). F1's restart: the indices part's `canonicals` list
+   the weekly marker (its dataset name imported from A4f's module, never typed); `tests/daily/test_part_resume.py` gains
+   "three index markers present, the weekly one missing, inside the window: the part restarts"; the e2e kill-rerun set
+   (`tests/e2e/test_kill_rerun.py`) passes with its `record-indices` child writing the weekly marker too; a no-weekly
+   day writes `none` (criterion 3), so its rerun reads as recorded. `CLAUDE.md` step 3b lists the `niftyweekly` glob.
 7. Code size, lint, imports and the full suite pass.
 
 **Known limits (one line each, nothing built for them):**
