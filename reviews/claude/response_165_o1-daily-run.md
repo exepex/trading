@@ -466,3 +466,36 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
     on the real markers: Groww down all day, killed at the desk, then a rerun.
   - With the check planted out, both fail.
 
+### Story O1-status-only: the public run log holds status, never data (branch `story/o1-status-only`)
+
+- **Text:** `docs/stories/O1-status-only.md`. Judge 443 add. 2 PASS, with the identifier condition refined (as built,
+  item 1). Agreed by the orchestrator for E3, O8, T1 and S2.
+- **Code (claims, each tested):**
+  - `fno/daily/public_log.py`: `PublicResult` default-denies every leaf by type. `ReasonRegistry` matches each
+    template by its whole skeleton and refuses a template without a literal piece.
+  - `fno/daily/reason_codes.py`: the closed set, built from the producers' own constants.
+  - `fno/daily/full_log.py`: `FullRunLog`, the git-ignored `journal/runs/.full/`, and `PublicRecorder`.
+  - `fno/daily/full_log_archive.py`: the write-once Drive copy and its receipt. On a failure, one alert with the
+    error type only.
+  - `fno/desk/step_recorder.py`: the `StepRecorder` seam. E3's default is `AsGiven`.
+  - `DailyRun(recorder=...)`, `build_daily_run(recorder=...)`, and `_unfilled` with `.get`.
+  - `DayRunner(after=...)`.
+  - `ChildProcesses`: stderr is kept apart, read through `Process.errors()`.
+- **Tests:**
+  - `tests/daily/test_public_log.py`, 9 tests:
+    - the planted values under named and unnamed keys, including `inputs["blocked"]`, `Rs12345.60`, `Rs12345`,
+      `NIFTY26OCT25000CE`, an integer amount and a float;
+    - the kept vocabulary, and a second projection that changes nothing;
+    - every template maps to exactly one code;
+    - `APPLIED` and `OPENED` match only their own texts;
+    - `unlisted`, `raised:<Type>`, and the refused literal-free template;
+    - command codes;
+    - old text-bearing logs still read;
+    - `.full` is git-ignored;
+    - a real child's price and stderr never reach the committed log, and its unsent line is still relayed.
+  - `tests/e2e/test_normal_day.py`: the built run carries the policy; its one Drive copy has its receipt pushed;
+    the data area down gives one alert and the day still ends `day done`.
+  - The e2e tests that read text now read the full log (`Day.full_step`) and assert the code in the committed one.
+  - The kill-rerun comparisons name the per-attempt copy and its receipt as the one difference.
+  - Plants: strings kept by key name instead of by type (2 failures); prefix matching (4 failures).
+

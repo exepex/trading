@@ -17,8 +17,9 @@ EARLIER, SKIPPED, NEXT = date(2026, 10, 13), date(2026, 10, 14), date(2026, 10, 
 
 def blocked_next_session(day) -> None:
     """The next session after a session with no log: every book blocked, one alert, its exits still reviewed."""
-    fills = day.step("fills")["book1_rules"]
-    assert fills["outcome"] == "not filled" and NO_LOG.format(day=SKIPPED) in fills["reason"]
+    fills, full = day.step("fills")["book1_rules"], day.full_step("fills")["book1_rules"]
+    assert fills == {"outcome": "not filled", "reason": "fills:BLOCKED"}  # the public log: status and code only
+    assert NO_LOG.format(day=SKIPPED) in full["reason"]  # the full text: the private log and the alert
     assert len([text for text in day.slack.sent if NO_LOG.format(day=SKIPPED) in text]) == 1
     assert day.step("exits")["book1_rules"]["reviewed"] is True
 

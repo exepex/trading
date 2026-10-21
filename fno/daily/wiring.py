@@ -20,6 +20,7 @@ WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
+FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
               "price_distribution_scores", "price_ranges", "price_range_scores")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
@@ -142,5 +143,33 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
-                                git_committer=committer)  # fmt: skip
-    return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))
+                                git_committer=committer, recorder=public_recorder(root))  # fmt: skip
+    archive = full_log_archive(root, committer, alerts)
+    return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts), archive.archive)
+
+
+def public_recorder(root: Path):
+    """Story O1-status-only: the committed run log holds status only; the full text stays in the private log."""
+    from .full_log import FULL_LOGS, FullRunLog, PublicRecorder
+    from .public_log import PublicResult, ReasonRegistry
+    from .reason_codes import COMMON, STEP_TEMPLATES
+
+    return PublicRecorder(PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES)), FullRunLog(root / FULL_LOGS))
+
+
+def full_log_archive(root: Path, committer, alerts):
+    """The full log's write-once Drive copy (O9's data store), its receipt in this checkout's `receipts/`."""
+    from ..storage import wiring as storage
+    from ..storage.data_store import DataStore, new_run_id
+    from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
+    from ..storage.receipts import ReceiptFolder
+    from .full_log import FULL_LOGS, FullRunLog
+    from .full_log_archive import DriveNotSet, FullLogArchive
+
+    def store() -> DataStore:
+        drive = storage.build_owner_drive()
+        if drive is None:
+            raise DriveNotSet()
+        return DataStore(drive, DATA_AREA, ReceiptFolder(root / RECEIPTS_FOLDER), FULL_LOG_WRITER, new_run_id())
+
+    return FullLogArchive(FullRunLog(root / FULL_LOGS), store, committer, alerts)
