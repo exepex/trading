@@ -5,14 +5,11 @@ limit is the one knob the suite turns (`fno.desk.git_sync.GIT_CALL_LIMIT_SECONDS
 
 from datetime import datetime, time
 
-import pytest
-
 from fno.desk.git_limit import GitLocks
 from fno.models import IST
 
 from .children import Foreground
 from .harness import fixture_day
-from .test_kill_rerun import RERUN_LOSES_THE_DAY
 
 LIMIT = 2.0
 HANG = '#!/bin/sh\n[ -f "$(git rev-parse --git-dir)/hang-push" ] && sleep 600\nexit 0\n'
@@ -32,7 +29,7 @@ def no_lock_left(day) -> bool:
     return GitLocks(day.root).present() == set()
 
 
-def test_a_desk_push_that_hangs_is_stopped_alerted_once_and_the_rerun_recovers(tmp_path, monkeypatch):
+def test_a_desk_push_that_hangs_is_stopped_alerted_once_and_the_rerun_recovers_to_day_done(tmp_path, monkeypatch):
     day = fixture_day(tmp_path, monkeypatch)
     hang, release = hanging_pushes(day, monkeypatch)
     day.clock.on_condition = [(lambda: day.committed(f"Desk run {day.day} step snapshot"), hang)]  # fills' push
@@ -46,18 +43,8 @@ def test_a_desk_push_that_hangs_is_stopped_alerted_once_and_the_rerun_recovers(t
     code, line = day.run()
     assert f"Desk run {day.day} step fills" in day.origin_subjects()  # the stuck commit, pushed by the recovery
     assert day.step("exits")["book1_rules"]["reviewed"] is True and "card" in day.log()["steps"]
-    assert line == "day done with problems: quotes_done"  # the named F1 limit: see the strict xfail below
-
-
-@pytest.mark.xfail(strict=True, reason=RERUN_LOSES_THE_DAY + "; and a rerun after a stop calls parts the stopped run "
-                   "committed 'not in this run' (failed, alerted)")  # fmt: skip
-def test_the_rerun_after_a_stopped_push_ends_day_done(tmp_path, monkeypatch):
-    day = fixture_day(tmp_path, monkeypatch)
-    hang, release = hanging_pushes(day, monkeypatch)
-    day.clock.on_condition = [(lambda: day.committed(f"Desk run {day.day} step snapshot"), hang)]
-    day.run()
-    release()
-    assert day.run() == (0, "day done")
+    parts = day.step("quotes_done")["parts"].values()  # F1: the stopped run's finish committed each part
+    assert line == "day done" and all(part["how"] == "earlier run" for part in parts)
 
 
 def test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carries_it_and_the_desk_goes_on(

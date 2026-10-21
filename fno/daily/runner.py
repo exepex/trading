@@ -17,7 +17,7 @@ DAY_DONE = "day done"
 WITH_PROBLEMS = "day done with problems: {steps}"
 NO_CARD = "; no card today"
 PROBLEMS = (STEP_FAILED, STEP_REFUSED)
-QUOTES_STEP = "quotes"
+QUOTES_STEP, QUOTES_DONE_STEP = "quotes", "quotes_done"
 
 
 class DayRunner:
@@ -30,9 +30,13 @@ class DayRunner:
         """The exit code and the one line the command ends on. The quote parts start first, before the whole-history
         fetch (`before`) and the run's Drive download, so neither a hung fetch nor a Drive outage can delay or lose the
         day's quotes, NSE included (judge D and the orchestrator, 16 Oct). A rerun whose log already holds `quotes`
-        starts none (judge 178 note 4)."""
-        if not RunLog.open(self.daily_run.steps.root, day).done(QUOTES_STEP):
+        but not `quotes_done` resumes them (gap F1): an earlier run's part is adopted or taken as recorded, one whose
+        window is still open is restarted."""
+        log = RunLog.open(self.daily_run.steps.root, day)
+        if not log.done(QUOTES_STEP):
             self.parts.start(day)  # first: neither the history fetch nor the Drive download can delay the 3 pm parts
+        elif not log.done(QUOTES_DONE_STEP):
+            self.parts.resume(day)
         self.before()
         try:
             log = self.daily_run.run(day)
