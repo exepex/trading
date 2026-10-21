@@ -3,6 +3,7 @@ document the judge and ChatGPT review is the rule the code runs."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -87,6 +88,11 @@ def test_the_days_clock_and_x_in_the_text_match_the_code():
     assert all(row in TEXT for row in rows), [row for row in rows if row not in TEXT]
     assert "observed by 14:40:00 IST on `d`,\ncaptured from 14:30:00" in TEXT and "after 15:10:00" in TEXT
     assert f"**X = {terms.MOVED_AFTER_CUTOFF_X!r}**" in TEXT
+    frozen = json.loads(
+        (Path(__file__).resolve().parents[2] / "research/forecasts/v4_moved_after_cutoff.json").read_text()
+    )
+    assert (frozen["quantile"], frozen["x"]) == (0.95, terms.MOVED_AFTER_CUTOFF_X)  # judge 411 note 1
+    assert "nearest rank" in frozen["convention"] and "the nearest-rank 95th percentile (the `ceil(0.95 n)`-th" in TEXT
     assert f"**{terms.MOVED_AFTER_CUTOFF_SAMPLE:,}**" in TEXT and terms.MOVED_AFTER_CUTOFF_SOURCE in TEXT
     assert "the cutoff is 15:00:00 IST on `d`" not in TEXT and "15:00 pack" not in TEXT
 
