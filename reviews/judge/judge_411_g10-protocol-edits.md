@@ -107,3 +107,43 @@ on `origin/main` (judge 409), and the main steward owns them (story/main-green).
 ## To pass
 
 Should-fix 1, plus my re-run of the deadline plant and the gates.
+
+## Addendum 1: story/g10-protocol-edits at 73394828, the should-fix (number 411.1, claimed with `tools/claim_number.py`)
+
+**PASS.** The text is unchanged since 77877f37; only the test changed.
+
+### The fix
+`test_the_days_clock_and_x_in_the_text_match_the_code` now pins each row of section 1.6's table, with its own label,
+to its own constant:
+- `| {V4_CAPTURE_START:%H:%M:%S} | The pack's capture starts`
+- `| {V4_PACK_WINDOW_END:%H:%M:%S} | **The pack's cutoff:**`
+- `| {V4_DEADLINE:%H:%M:%S} | **One deadline:**`
+- `| {V4_COMMON_SNAPSHOT:%H:%M} | **Common snapshot**`
+
+The failure message names any row that is missing.
+
+### My plants (6 of 6 caught, 1 failed each)
+In `terms.py`:
+- `V4_DEADLINE` -> 15:15 (the survivor in judge 411)
+- `V4_CAPTURE_START` -> 14:35
+- `V4_PACK_WINDOW_END` -> 14:45
+- `V4_COMMON_SNAPSHOT` -> 15:20
+
+In the text:
+- the deadline row -> 15:15
+- the snapshot row -> 15:10
+
+### Gates (run by me on 73394828, main merged at a4f2b09a)
+| Gate | Result |
+|---|---|
+| `pytest -q -n auto` | 8,134 passed, 18 xfailed, 2 failed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | 1,465 files formatted |
+| `check_imports` | clean |
+
+The 2 failures are main's known red tests, owned by the main steward. Main now carries G10 part 2b's A2 drop (d4e2a454),
+so note 3 of the verdict above no longer applies: the code and the text both say A and `system_late` only.
+
+### Still notes, not findings
+- The quantile convention is untested (note 1).
+- Four new lines run over 120 characters (note 2).
