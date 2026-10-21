@@ -54,11 +54,44 @@ UI, a second desk, a second fill reader, AI calls.
 |---|---|---|
 | Slots and timing | O1's `Alerted` step rule (recorded and alerted once, the run goes on); the A7 calendar (a closed day prints "not a trading day") | `fno/forecast_lab/` package and its wiring `fno/forecast_lab/wiring.py`; `lab` CLI |
 | Forecasts | G13b's sealed records: one JSON per (underlying, issue 0930 or 1545, day), write-once in Drive with an O9 receipt, quantiles q05-q95 and `p_up` per forecaster and horizon. FL1 reads them only through G13b's reader port (`RangeForecasts.sealed(underlying, day, issue)`), never by path. The 1545 issue has no N0 | a seal-time check per slot on `sealed_at`, the receipt's commit time on `main` (never the self-reported `issued_at`): the 09:30 issue before 09:45, the 15:45 issue before the next session's 09:15 (08:45, from FL1d: before 09:15) |
-| Positions (09:30) | E8's `IntradayMarkSnapshots.at(day, 09:30)` and `DueFill.price(order, DueMark(day, 09:30))` (ask to buy, bid to sell, size checked, all legs or none, E4c and E4d checks, C1 charges through E4's `FillMaker`; a miss is `Missed(reason, copy)`); C4's defined-risk shapes; R3's shadow-account layout for a research account | `RangeRanker`: for each defined-risk candidate (verticals and condors on the next weekly and monthly NIFTY expiries within A16's 6% band), the expected payoff at its horizon under the sealed 5-95% quantiles (linear between quantiles, flat tails at the 5% and 95% levels, stated as a modelling choice), minus entry and exit costs at bid/ask. Ranked by expected net per rupee of maximum loss; the top 10 (owner, row 264; config `lab.top_n`). The entry rule is one new `EntryRange` class, `RankedPrice`: a position fills only at the touch the ranker priced on the same 09:30 copy, or better (there is no C2 approval in the lab). One lab account `journal/lab/account/`, never in scoreboards A or B |
-| Exits | E8's `OwnerTimingExits` (shorts first, protection last; a leg without a valid quote waits for the next mark; past the last expiry, E7's settlement); every exit is fixed at entry: the 15:15 mark of N+1, or of N+3 if the horizon is N+3 | one `FillClock` strategy beside E8's `OwnerTimingClock` (a fixed session offset and time), written by E8's builder in E8's module (one builder per function); time exit only, so no stop the lab cannot enforce |
+| Positions (09:30 forecast, filled at the next mark) | E8's `IntradayMarkSnapshots.at(day, mark)` and `DueFill.price(order, DueMark(day, mark))` (ask to buy, bid to sell, size checked, all legs or none, E4c and E4d checks, C1 charges through E4's `FillMaker`; a miss is `Missed(reason, copy)`); C4's defined-risk shapes; R3's shadow-account layout for a research account | `RangeRanker` (rules below), one lab account `journal/lab/account/` that is never in scoreboards A or B or a book's account, and one `EntryRange` class `RankedPrice` |
+| Exits | E8's `OwnerTimingExits` typed on its `RetryingClock`, with E8's `SessionOffsetClock` (written by E8's builder, `story/e8-code-part1` 3c30e5d0): shorts first, protection last; a leg without a valid quote waits for the next mark; past the last expiry, E7's settlement | none (rule 6) |
 | 15:45 match report | G13b's scores (quantile score, 25-75 and 5-95 band coverage, `p_up` Brier per forecaster, horizon and issue) and its outcome closes (NSE's official index close), read and never recomputed; the post-mortem's section pattern and once-only publish (LR1 `Publisher` posts once and records a marker) | `MatchReport` sections: forecasts vs the close (inside the 25-75% and 5-95% bands, direction of the median, quantile score), each baseline the same way, positions' paper P&L after costs at the 15:30 mark (exit value at bid for long legs, ask for short ones), the running scoreboard and the trust line, then the next day's sealed forecasts |
 | Hourly line | A16's `MarkObserver.after_mark` (no new routine; an observer failure never stops A16) | `HourlyLine` at 10:15, 11:15, ..., 15:15: NIFTY against today's sealed band, open lab positions' marked P&L |
 | Slack | `SlackChannelAlerts(token, channel)` (same bot token); alerts stay on `build_alert_sender` (#fno-desk) | `FNO_FORECAST_CHANNEL_ID` and `FNO_INTRADAY_CHANNEL_ID` (the IDs the owner created on 21 Oct, passed by the orchestrator; they enter the repository only in FL1a's code, with the scan change, because the scan refuses them until then) in a new `fno/forecast_lab/constants.py` (`fno/constants.py` is at 345 of 350 lines), imported into the record scan's `ALLOWED_VALUES` |
+
+### The lab's rules (judge 403)
+
+1. **No look-ahead.** The ranker reads the 09:30 issue only once it is sealed (`sealed_at`), and it prices candidates
+   on the first A16 mark strictly after `sealed_at`: normally 09:45, never the 09:30 mark the forecast already saw.
+   That mark is also the fill mark. If the 09:30 issue is not sealed by 09:45, the day is "not taken: forecast sealed
+   late", recorded and alerted to #fno-desk, and no position opens.
+2. **One named forecaster per lab version, fixed before any result.** `lab_v1` trades **`rv20`**, G13b's
+   realised-volatility range, against option prices: a realised-against-implied test. The option-implied range is
+   **never** a picking source, because its expected payoff against the same options' prices is about zero by
+   construction, so its top 10 would be picked by noise and costs. It stays a baseline in the report. Changing the
+   forecaster is a new lab version (`lab.version`, `lab.forecaster` in config), never chosen by recent scores. Every
+   report names the picking forecaster and version.
+3. **Tails reach every wing.** The payoff expectation uses the forecast's quantiles as a distribution: linear in price
+   between adjacent quantiles from q05 to q95. Below q05 and above q95 it uses G13's anchored lognormal tail rule,
+   applied to the forecast. Each tail carries exactly its 5% mass, anchored at q05 (or q95), with volatility
+   sigma = (ln q95 - ln q05) / (2 x 1.645) over the horizon. It runs to zero and to infinity, so mass reaches each
+   candidate's wings, however far out. The expectation of each candidate's payoff is exact (piecewise-linear payoffs:
+   closed-form lognormal partial expectations in the tails). A test prices a short condor whose call wing lies beyond
+   q95 and shows the tail loss counted. Flat tails at q05 and q95 would understate it and bias the ranking toward
+   selling premium.
+4. **Ranking and size.** Candidates are verticals and condors on the next weekly and monthly NIFTY expiries within
+   A16's 6% band, **one lot each**. The score is expected net (expected payoff minus entry and exit costs at the fill
+   mark's bid and ask, with C1 charges) per rupee of maximum loss. Only candidates with positive expected net
+   qualify, and the top 10 are taken (owner, row 264; `lab.top_n`).
+5. **Entry rule (`RankedPrice`).** A position fills at the fill mark's touch only if its expected net, recomputed at
+   that touch, is still positive; otherwise it is "missed, price moved".
+6. **Exits and horizon.** Every exit is fixed at entry, through E8's `SessionOffsetClock(1 or 3, 15:15, calendar)`
+   from the entry session, with retries on later marks. The forecast's target is the 15:30 close; the exit is the
+   15:15 mark, the last mark a fill can rely on. The report states this 15-minute mismatch and scores the forecast at
+   the close and the position at its exit.
+7. **Winner's curse shown.** The report keeps, by rank (1 to 10), expected net at entry against realised net after
+   exit, so a ranking that only picks noise shows as expected far above realised.
 
 Routing: #fno-forecast gets the 09:30 post with the top positions (and the 08:45 post from FL1d), and the 15:45 match report with the
 next day's forecasts. #fno-intraday gets the hourly lines. #fno-desk keeps every alert (a failed slot, a missing
@@ -87,9 +120,13 @@ posts nothing twice.
    recomputed); a test on fixed rows checks that the report's numbers equal G13b's scores.
 4. The trust line shows the trading-day count against 60 (calibration) and against 6-12 months (edge), every day.
 5. A rerun of a slot posts nothing a second time (the posted marker), and its records are byte-identical.
-6. Lab positions are defined-risk only (C4's shapes). Each is filled at the 09:30 mark's touch with C1 charges, or
-   recorded "not filled" with its reason (missing quote, size, invalid). None appears in scoreboards A or B or in a
-   book's account.
+6. Lab positions are defined-risk only (C4's shapes), one lot each, priced and filled at the first mark after the
+   09:30 issue's `sealed_at` (never at a mark the forecast saw) with C1 charges, or recorded "not filled" or "missed,
+   price moved" with its reason. A late seal gives "not taken: forecast sealed late", alerted. Only the configured
+   forecaster ranks (never the implied range), and every report names it. None appears in scoreboards A or B or in
+   a book's account.
+6b. The tail rule counts mass to every wing: a test with a short condor whose wing lies beyond q95 gives a lower
+   expected net than flat tails would, by the closed-form tail loss.
 7. Every exit is the time exit fixed at entry; a position past its exit mark is closed at the next valid mark and the
    delay is reported.
 8. Only #fno-desk, #fno-forecast and #fno-intraday IDs pass the record scan (test). The bot's membership in both new
