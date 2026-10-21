@@ -143,10 +143,24 @@ write-once to Drive with its receipt and manifest row and never duplicates:
 - NSE's index list through A4h's reader (see 7).
 
 The morning routine runs `python -m fno data-librarian index-close --from D-1 --to D-1` for the official close and
-VIX, and reads the overnight cues from A17's tables (see "Day 1 and later").
+VIX.
+
+**The overnight cues are read, never fetched** (agreed with the A17 builder, 01MBnbVU, 22 Oct). Running
+`global-cues fill` from the routine would put two writers on A17's append-only tables and logs, and would own the
+day's once-only Cboe and Nasdaq download. The page reads instead:
+- **Now:** `fno.global_cues.wiring.build_reader(include_private=True).read(cue, day, OPEN, live_only=True)`, with
+  `OPEN` from `fno.global_cues.as_of`. It needs the Drive settings for the private S&P 500 and Nasdaq-100 tables.
+- **After A17e merges:** `build_index_reader()` for the Nasdaq-100, plus Asia, Europe and VIX. It takes Yahoo's
+  on-time close until Nasdaq's own close arrives, and marks such values.
+- **Missing values:** a reading of `none` or `behind` shows as "not out yet". A17e's own `behind` alert already
+  tells #fno-desk at 09:15, so this story sends none.
+- **Privacy (owner, bcbbc454):** the US values may appear in the owner's Slack and in the Drive record only, never in
+  a repository file. That includes test fixtures (made-up levels only), receipts (SHA-256 only) and the conversation
+  log.
 
 Each fetch belongs to another story's owner, and this story only calls it. Before code starts, each owner agrees:
-A9 and A8 (through the orchestrator, since A8 has no register row), P8 and A17 (01MBnbVU).
+A9 and A8 (through the orchestrator, since A8 has no register row) and P8 (no live owner; the orchestrator assigns
+one). A17 is agreed as read-only, above.
 
 **7. The close read (A4h, owned by the A4 builder 01MKtUHB).** A simpler design is proposed to them:
 - The evening routine reads `/api/allIndices` at about 19:55 and accepts the answer only if NSE's stamp is today
@@ -191,7 +205,7 @@ A9 and A8 (through the orchestrator, since A8 has no register row), P8 and A17 (
 | Today's range (G13b N1, sealed) | morning | yes | G13b's N0 from A22 |
 | Last official close, VIX close | morning | yes, by fetching `ind_close_all` (out 23:20 the night before) | |
 | Events (RBI policy, Budget), expiry flags | both | yes (A6 events, A20a lot and expiry files) | macro dates with A20c |
-| US closes (S&P 500, Nasdaq 100), US 10-year | both | yes if A17's 03:41 IST run has filled them by 08:40; GitHub starts 4-5 h late, so often **not out yet** in the morning unless A17 agrees the morning routine runs `global-cues fill` | |
+| US closes (S&P 500, Nasdaq 100), US 10-year | both | normally yes: A17's 03:41 run committed at 05:30-06:40 IST on 17-21 Oct (A17 builder, measured); else **not out yet** | |
 | Brent, USD/INR (RBI) | both | yes, with its own print date | |
 | GIFT Nifty, pre-open | morning | not available | A22 (code in progress) |
 | Asia and Europe | both | not available | A17e |
