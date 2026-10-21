@@ -3,6 +3,7 @@ the no-failure twin. Every case runs twice, Slack up and Slack down (criterion 3
 same multiset, each unsent one printed once for the routine's connector."""
 
 from collections import Counter
+
 import pytest
 
 from fno.alerts.sender import NOT_SENT
