@@ -89,3 +89,34 @@ Number 403.2. Head: 67c98204, with the new section "The lab's rules (judge 403)"
 - **Minor findings: all closed.** One lot each; expected against realised net by rank; the 15:15 exit against the
   15:30 close target is stated.
 - Positive expected net is required to qualify, and it is re-checked at the fill touch (`RankedPrice`). Good.
+
+## Addendum 3
+Number 403.3. Head: 3feff85e, restructured by the owner's "Lab universe, report times and phasing" (DESK_DECISIONS
+line 265, 21 Oct): FL1-1 is the 15:45 report plus end-of-day contract tracking; FL1-2 is the 09:15 report plus 09:30
+paper fills.
+
+**Verdict: FAIL, 1 should-fix and 1 minor.** The three judge-403 fixes are kept and correctly re-timed:
+- ranking on the sealed 09:15 issue; a seal after 09:15 opens nothing, and is alerted (criterion 9);
+- filling at the 09:30 mark, after the seal, with `RankedPrice` recomputing expected net at the touch;
+- `rv20` as the named picker (criterion 10);
+- anchored lognormal tails (criterion 11).
+The phasing matches the owner's row.
+
+**Should-fix 1. Contract scoring uses the bhavcopy close for every contract, including untraded ones.** Strong
+evidence for the data's nature; reasoning for the effect.
+- "The outcome is the contract's N+1 bhavcopy close", for every NIFTY and BANKNIFTY contract, all expiries.
+- In NSE's F&O file, a contract that did not trade on N+1 has no fresh close: its close and settlement are stale or
+  NSE's own theoretical value. G13b's part B says so for settlement ("settlement prices of illiquid options are NSE's
+  own ...").
+- Far strikes and far expiries are often untraded, so band coverage there would be scored against a model price or
+  yesterday's price. That flatters or punishes the band for reasons unrelated to the forecast. The same applies to the
+  "own implied volatility from today's close" that the band is repriced with.
+
+Fix:
+- Name the outcome field (close or settlement).
+- Score only contracts traded on both days (volume > 0 on day d for the IV, and on N+1 for the outcome). Count the rest
+  as "not scored: untraded", reported by bucket, never in the coverage.
+- Add a test with an untraded contract.
+
+**Minor 1.** "A future is the quantile itself" ignores the future's carry over the index (basis). Either use the
+future's own forward (index quantile × the future's basis ratio at d's close), or say so beside the futures' scores.
