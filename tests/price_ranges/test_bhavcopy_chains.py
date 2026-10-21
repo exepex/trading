@@ -1,7 +1,9 @@
-"""G13b criterion 8: a day's archived NSE F&O file (UDiFF) gives every option of the underlying as a G13 chain
-(traded closes, the same-expiry future, the three nearest expiries), the end-of-day basis builds its ranges from it,
-and an absent or damaged file gives no chain."""
+"""G13b criterion 8: a day's archived NSE F&O file, UDiFF or the old format, gives every option of the
+underlying as a G13 chain (traded closes, the same-expiry future's settlement, the three nearest expiries), the
+end-of-day basis builds its ranges from it, and an absent or damaged file gives no chain."""
 
+import io
+import zipfile
 from datetime import date
 
 from fno.fo_bhavcopy import COLUMNS
@@ -56,3 +58,31 @@ def test_no_file_or_a_damaged_one_gives_no_chain():
     assert BhavcopyChains([daily_files({}, "udiff")]).chain("BANKNIFTY", DAY) is None
     damaged = daily_files({DAY: (NAME, b"not,a,bhavcopy\n1,2,3\n")}, "udiff")
     assert BhavcopyChains([damaged]).chain("BANKNIFTY", DAY) is None
+
+
+def legacy_file() -> bytes:
+    """The same chain in NSE's old format (to 5 Jul 2024): zipped, `OPTIDX`/`FUTIDX`, `XX` for futures."""
+    header = "INSTRUMENT,SYMBOL,EXPIRY_DT,STRIKE_PR,OPTION_TYP,OPEN,HIGH,LOW,CLOSE,SETTLE_PR,CONTRACTS,VAL_INLAKH,"
+    lines = [header + "OPEN_INT,CHG_IN_OI,TIMESTAMP,"]
+    for expiry in EXPIRIES:
+        days, when = (expiry - DAY).days, expiry.strftime("%d-%b-%Y")
+        lines.append(f"FUTIDX,BANKNIFTY,{when},0,XX,0,0,0,50990.00,51000.00,10,1,0,0,16-OCT-2026,")
+        for strike in range(48_000, 54_100, 100):
+            for option in ("CE", "PE"):
+                price = black76_price(51_000.0, strike, option, days, 0.065, 0.13)
+                volume = 0 if price < 0.5 else 10
+                lines.append(f"OPTIDX,BANKNIFTY,{when},{strike},{option},0,0,0,{price:.2f},{price:.2f},{volume},1,0,0,"
+                             "16-OCT-2026,")  # fmt: skip
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("fo16OCT2026bhav.csv", "\n".join(lines) + "\n")
+    return buffer.getvalue()
+
+
+def test_an_old_format_file_gives_the_same_chain():
+    chain = BhavcopyChains([daily_files({DAY: ("fo16OCT2026bhav.csv.zip", legacy_file())}, "legacy")]).chain(
+        "BANKNIFTY", DAY)  # fmt: skip
+    current = BhavcopyChains([daily_files({DAY: (NAME, fo_file())}, "udiff")]).chain("BANKNIFTY", DAY)
+    assert [e.expiry for e in chain.expiries] == list(EXPIRIES[:3])
+    assert all(e.future == 51_000.0 for e in chain.expiries)  # settlement, not the 50,990 last trade
+    assert [e.quotes for e in chain.expiries] == [e.quotes for e in current.expiries]

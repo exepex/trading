@@ -9,6 +9,7 @@ import math
 from datetime import date, datetime, time, timedelta
 
 from fno.models import IST
+from fno.price_ranges.bhavcopy_chains import BhavcopyChains
 from fno.price_ranges.build import CAPTURE
 from fno.price_ranges.closes import IndexFileCloses, table_rows
 from fno.price_ranges.folders import seal_path
@@ -173,3 +174,32 @@ def test_a_calendar_gap_at_the_stale_check_is_a_reason_not_a_crash():
     by = {(r["forecaster"], r["horizon"]): r for r in record["rows"]}
     assert by[("rv20", "N1")]["status"] == "missing" and "calendar" in by[("rv20", "N1")]["reason"]
     assert Chains  # imported for the issuer helper's fakes
+
+
+def test_the_back_fill_skips_a_special_session(tmp_path):
+    from tests.price_ranges.test_backfill_and_reader import backfill
+
+    special = date(2026, 11, 1)
+    calendar = CsvSessionCalendar("date,kind,description,source_url\n"
+                                  "2026-11-01,special,Test special,https://example.invalid\n")  # fmt: skip
+    run, drive = backfill(tmp_path, source=Chains({("NIFTY", special): chain_day(day=special)}))
+    run.calendar = calendar
+    assert run.run("backfill_3pm", CAPTURE, ("NIFTY",), special, special) == ["NIFTY backfill_3pm: no day to write"]
+    assert not drive.files
+
+
+def test_the_bhavcopy_future_is_its_settlement_price_not_its_last_trade():
+    from tests.price_ranges.test_bhavcopy_chains import DAY as FO_DAY
+    from tests.price_ranges.test_bhavcopy_chains import NAME, fo_file
+
+    lines = fo_file().decode().splitlines()
+    header = lines[0].split(",")
+    close, kind = header.index("ClsPric"), header.index("FinInstrmTp")
+    for i, line in enumerate(lines[1:], 1):
+        cells = line.split(",")
+        if cells[kind] == "IDF":
+            cells[close] = "50999.00"  # the last trade differs from the day's settlement
+            lines[i] = ",".join(cells)
+    data = ("\n".join(lines) + "\n").encode()
+    chain = BhavcopyChains([daily_files({FO_DAY: (NAME, data)}, "udiff")]).chain("BANKNIFTY", FO_DAY)
+    assert all(e.future == 51_000.0 for e in chain.expiries)

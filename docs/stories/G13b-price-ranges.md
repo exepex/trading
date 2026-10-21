@@ -5,7 +5,10 @@ session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuM
 `story/g13b-price-ranges` · **Depends on:** G13 (`fno/price_distribution/`; judge 310.1 PASS) · **Status:** story text
 for the judge. Revision 2: the owner's 21 Oct scope and phasing, FL1's and G7's agreements (judge 406.1 PASS).
 Revision 3: `S_ref` at 15:45 is the 3 pm chain's spot, because the official close is not out yet; judge 406's two
-minors are written in; the scope freeze (DESK 21 Oct) builds part A only.
+minors are written in; the scope freeze (DESK 21 Oct) builds part A only. Revision 4 (the build's self-review,
+`reviews/claude/response_290_g13b-price-ranges.md`): the text now says what the code does in A1-A8 (implied's share,
+regular sessions only, the bhavcopy's three nearest expiries and settlement, seals stored once, the close table's
+rescan, back-fill dedupe, scores per row and by method, the scores file's name, FL1's tail rule per judge 403).
 
 **Description.** As the owner, I want:
 - an honest price range for NIFTY's and BANKNIFTY's next-session and third-session close after each day's close, and
@@ -81,7 +84,7 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 ### Part A (phase 1): the 15:45 ranges, sealed and scored
 
 **A1. Issue, horizons, reference.**
-- **Issue:** `1545` on each regular session `d`, for `NIFTY` and `BANKNIFTY`. The issue enum also holds `0915`
+- **Issue:** `1545` on each regular session `d` (a special or muhurat session is not issued and not back-filled), for `NIFTY` and `BANKNIFTY`. The issue enum also holds `0915`
   (part C) and `0930` (optional, not built; question 1), so records never change schema.
 - **Horizons:** `N1` and `N3`, the close of the first and third regular session after `d` (A7 calendar; past the
   calendar's end: `not_eligible`). At 15:45 there is no `N0` row, because the day has closed.
@@ -103,7 +106,9 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 **A2. Forecasters** (ids in `fno/price_ranges/constants.py`).
 - **`implied`:** G13's distribution of `d`'s 3 pm chain.
   - The expiry is the shortest with at least `k` sessions left after `d`. Its log quantiles are re-centred and scaled
-    exactly as G13's `h1`/`h5`: centring by `k/n`, spread around the median by `sqrt(k/n)`, re-referenced to `S_ref`.
+    as G13's `h1`/`h5`, with `share = (k + tail) / (n + tail)`: centring by `share`, spread around the median by
+    `sqrt(share)`, re-referenced to `S_ref`. Live (`CAPTURE` basis) `tail = 0.049`, the rest of `d`'s session;
+    end of day (`CLOSE` basis, `S_ref` = `d`'s close) `tail = 0`, so `share = k/n` exactly as G13.
   - The chain is 35 minutes older than `S_ref`: the scaling counts sessions from `d`'s close, and the 14:55-15:30
     move is in `S_ref` (reasoning only).
   - Back-fill uses `d`'s bhavcopy chain (A3).
@@ -141,8 +146,10 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - Said plainly: only `implied` and `hist750` take a view on direction.
 - **Record check:** quantiles strictly increasing, except `no_change`'s equal ones; unknown forecaster, horizon or
   issue refused.
-- **Interpolation:** G13b publishes only the five quantiles. FL1 prices positions on them piecewise-linear with flat
-  tails at the 5% and 95% levels. That is FL1's stated modelling choice, quoted here, not G13b's.
+- **Interpolation:** G13b publishes only the five quantiles. FL1 prices positions on them piecewise-linear inside
+  5-95% and with anchored lognormal tails beyond them (judge 403, replacing the flat tails of revision 3). That is
+  FL1's modelling choice, quoted here, not G13b's.
+- **`p_big_move`** (implied only): `P(|log return| >= 2%)`, the 2% line in log terms, for G7's consistency line.
 
 **A4. Outcomes.**
 - `Outcomes.close(underlying, day)` is NSE's official index close: "Nifty 50" and "Nifty Bank" in the archived
@@ -150,6 +157,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - For NIFTY it equals `warmup_closes.csv`; a test checks they agree. A missing file is an unresolved outcome, never
   filled.
 - BANKNIFTY's close history (2017 on) is derived once from the same files into Drive (O9), never committed as values.
+  Each update rescans every regular session the table lacks, so a late-archived file fills its day; a new table file
+  is named by its last day and row count, so the latest always sorts last.
 - FL1 and G13b's scorer use this one reader (FL1's request).
 
 **A5. Sealing** (owner: "sealed before its outcome").
@@ -161,25 +170,35 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - **Sealed:** `sealed_at` is at or before the issue's deadline: 09:15 of the next session for `1545`, 09:15 of `d`
   for `0915` (part C).
 - An unsealed or late live row is counted as `late` and never scored; push evidence that is unavailable means `late`,
-  never assumed sealed. Back-fill rows are never live evidence.
+  never assumed sealed. Back-fill rows are never live evidence. The late count counts `ok` rows only.
+- **Stored once:** GitHub's activity log reaches back one week, so each seal is read while it exists and kept as a
+  write-once seal file (`data/price_ranges/v1/seals/...`, with its receipt). A known push time, on time or late, is
+  final at once; unknown evidence is retried each day and, once the record is more than 7 days old, stored `late`.
+  Readers use the stored seal. In a shallow clone the last 10 days of `main` are fetched first, because git's first
+  commit adding a receipt is otherwise the clone's boundary commit.
 
 **A6. Scores** (reusing G13's and G4's code). For each (label, underlying, issue, horizon, forecaster):
 - **QS** over the five levels, `(2/5) x Σ pinball` in log units. That is a coarse CRPS approximation, said in the
   report.
 - **Coverage** of the 50% band (q25-q75) and the 90% band (q05-q95).
 - **Brier** of `p_up` against "close above `S_ref`" (equal is not up).
+- **Per row too:** one score row per scored forecast row (label, underlying, issue, issue day, forecaster, horizon,
+  target day, outcome close and log return, QS, inside 50%, inside 90%, Brier), for FL1 and audits.
+- **Groups** add the method's SHA-256: two methods are never pooled.
 - **Comparisons:**
   - `implied` against each baseline, by G4's block bootstrap (seed from the comparison's key, as G13);
   - descriptive only: no protocol, no claim;
   - every number printed next to its count of sealed live trading days and the owner's 60-day calibration mark.
 - **G7's consistency line** (reported, never scored): `implied`'s N1 `P(|r| >= 2%)` beside v4's V6a forecast of the
   same day.
-- **Scores files** go to `data/price_ranges/v1/scores/`. FL1 reads them through the reader port and never recomputes
+- **Scores files** go to `data/price_ranges/v1/scores/`, named by their IST making time (`YYYY-MM-DDTHHMMSS`).
+  The scorer stores due seals first. FL1 reads them through the reader port and never recomputes
   them.
 
 **A7. Back-fill** (the orchestrator's "if cheap"; it is, through one shared chain source).
-- `BhavcopyChains` (a new `ChainSource`): every NIFTY or BANKNIFTY option of a day's archived F&O file, all expiries.
-  - It gives the same-expiry future settlement as the forward check.
+- `BhavcopyChains` (a new `ChainSource`): every NIFTY or BANKNIFTY option of a day's archived F&O file, the three
+  nearest expiries (as G13's chains).
+  - It gives the same-expiry future's settlement price (`SttlmPric`, not its last trade) as the forward check.
   - Its quote filter is G13's `TradedCloseFilter` (traded that day, at least Rs 0.50).
   - It serves both the `backfill_eod` ranges (2019 on for NIFTY; BANKNIFTY from the first archived file it appears
     in) and part B.
@@ -188,7 +207,10 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - labelled and never pooled;
   - stops before the first live day;
   - byte-identical on a rerun, with a new path for new inputs;
-  - a build failure skips its day, counted.
+  - a build failure skips its day, counted;
+  - regular sessions only;
+  - overlapping or rerun back-fill files count once per (label, method, underlying, day, issue): the file whose range
+    ends latest wins.
 
 **A8. Reader port for FL1.**
 - `RangeForecasts.sealed(underlying, day, issue) -> SealedRanges | None`: the record, `sealed_at`, and `late` when it
@@ -198,6 +220,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - All are read through the verified Drive cache; FL1 never builds a path.
 
 **A9. Run and failures.**
+- A close-table, seal or closes failure is contained: it is a problem line (exit 1), and the other underlying is still
+  issued.
 - **Step:** `python -m fno pricerange issue --at 1545 --day D --live`, as O1's step `price_ranges` after
   `price_distribution`, wired like G13's step (`Alerted(LiveFrom(CommandStep))`, `daily.live_from.price_ranges` null,
   G13b's receipts as its only pathspecs).
@@ -207,7 +231,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
   - An unreadable input writes no file.
   - A rerun keeps stored problems.
   - The command never alerts itself.
-- **Commands:** `backfill`, `score` and `report`. The report is JSON for FL1, and its notes carry the honest headline
+- **Commands:** `pricerange issue`, `backfill`, `closes` (BANKNIFTY's table by hand) and `score` (stores due seals,
+  then writes the scores file and its report). The report is JSON for FL1, and its notes carry the honest headline
   (below).
 - G13b posts nothing to Slack; FL1 owns #fno-forecast.
 
