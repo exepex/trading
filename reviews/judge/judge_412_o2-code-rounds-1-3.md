@@ -58,3 +58,13 @@ clean. tests/e2e: 9 passed and 1 xfailed in 117 s on 4 workers.
 ## Merge order (must read)
 G2's strict xfail XPASSes, and so fails, as soon as the A4 unsent-alert fix (story/a4-unsent-alert-text) lands.
 Whichever of the two merges second must turn the xfail into the real assertion in the same push, or main goes red.
+
+## Addendum 1: merge-order correction
+My merge-order caveat above was wrong. I merged O2 (e6483952) with the A4 fix (cac35232) and main-green: tests/e2e plus
+tests/daily give 87 passed and 1 xfailed. G2's strict xfail does **not** flip, because the e2e children are scripted and
+never go through `cmd_quotes`. Either branch can merge first.
+
+Two things remain for round 4:
+1. G2 stays xfail until the harness runs the real `cmd_quotes` path.
+2. O2's own-alert detection reads `lines()`, which the A4 fix now strips of unsent lines, so on Slack-down days a part
+   gets a second unsent alert. Count relayed lines instead (judge 415).
