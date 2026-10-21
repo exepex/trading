@@ -329,6 +329,28 @@
      "exit_code": 0
     }
    }
+  },
+  "premium_ranges": {
+   "started_at": "2026-10-21T15:19:16.431621+05:30",
+   "finished_at": "2026-10-21T15:19:35.463026+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "issue",
+     "unlisted",
+     "2026-10-21",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "issued",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
