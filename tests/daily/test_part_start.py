@@ -84,3 +84,14 @@ def test_every_command_of_the_built_run_starts_due_parts_while_it_waits(monkeypa
     for command in commands:
         command.sleep(1.0)
     assert len(due) == len(commands)
+
+
+def test_a_rerun_that_never_opens_the_day_starts_nothing_and_never_fails_on_a_wait():
+    """A rerun whose log already holds `quotes` never calls `start` (judge 178 note 4); every wait still services the
+    parts (found by O2's kill-and-rerun day: it raised on the first wait)."""
+    clock = Clock()
+    processes = FakeProcesses(clock, {})
+    parts = QuoteParts(QUOTE_PARTS, processes, RecordingCommitter(clock, []), lambda specs: [], None, clock)
+    parts.start_due()
+    parts.service()
+    assert processes.started == [] and not parts.busy()

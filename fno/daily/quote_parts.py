@@ -94,10 +94,13 @@ class QuoteParts:
 
     def start_due(self) -> None:
         """Starts each part whose time has come and that waits for no other; never runs git, so any wait of the run
-        may call it, a command's included."""
+        may call it, a command's included. Before the day is opened (a rerun whose log already holds `quotes` never
+        opens it) there is nothing to start."""
+        if not self.started:
+            return
         for part in self.parts:
             due = part.not_before is None or self.clock() >= datetime.combine(self.day, part.not_before, IST)
-            if self.started and not self.closed and part.starts_after is None and due and self._unstarted(part):
+            if not self.closed and part.starts_after is None and due and self._unstarted(part):
                 self._start(part)
 
     @property
