@@ -29,7 +29,28 @@ class FillClock(ABC):
         """The mark an order sent at `order_time` (time zone aware) fills at, or why it misses."""
 
 
-class OwnerTimingClock(FillClock):
+class RetryingClock(FillClock):
+    """A clock whose exits are retried at every later mark until they fill (rule 7)."""
+
+    @abstractmethod
+    def marks_from(self, due: DueMark, order_time: datetime, until: datetime) -> Iterator[datetime]:
+        """The due mark and every following mark up to `until` at which the exit may fill."""
+
+
+def is_fill_session(calendar: SessionCalendar, day: date) -> bool:
+    kind = calendar.session_kind(day)
+    return kind is not None and kind != SESSION_MUHURAT
+
+
+def next_fill_session(calendar: SessionCalendar, day: date) -> date:
+    """A7's next session that has 15-minute marks (never a muhurat-only day)."""
+    day = calendar.next_session(day)
+    while not is_fill_session(calendar, day):
+        day = calendar.next_session(day)
+    return day
+
+
+class OwnerTimingClock(RetryingClock):
     def __init__(self, reaction_minutes: int, calendar: SessionCalendar, availability: Availability):
         self.reaction = timedelta(minutes=reaction_minutes)
         self.calendar, self.availability = calendar, availability
@@ -59,14 +80,10 @@ class OwnerTimingClock(FillClock):
             day = self._next_fill_session(day)
 
     def _fill_session(self, day: date) -> bool:
-        kind = self.calendar.session_kind(day)
-        return kind is not None and kind != SESSION_MUHURAT
+        return is_fill_session(self.calendar, day)
 
     def _next_fill_session(self, day: date) -> date:
-        day = self.calendar.next_session(day)
-        while not self._fill_session(day):
-            day = self.calendar.next_session(day)
-        return day
+        return next_fill_session(self.calendar, day)
 
     def _open_mark(self, day: date) -> datetime:
         mark = self._first_mark(day, datetime.combine(day, FIRST_MARK, IST) + self.reaction)
@@ -89,3 +106,25 @@ class ExecutionSnapshotClock(FillClock):
     def due(self, order_time: datetime, kind: str) -> DueMark | Missed:
         day = order_time.astimezone(IST).date()
         return DueMark(day, datetime.combine(day, self.execution_snapshot, IST))
+
+
+class SessionOffsetClock(RetryingClock):
+    """A fixed time exit (story FL1's lab): the mark at `at` on the `sessions`-th fill session after the order's day
+    (N+1 or N+3), no reaction time and no availability; a leg without a valid quote is retried at every later mark."""
+
+    def __init__(self, sessions: int, at: time, calendar: SessionCalendar):
+        if sessions < 1 or at.second or at.microsecond or at.minute % 15 or not FIRST_MARK <= at <= LAST_FILL_MARK:
+            raise ValueError(f"a time exit needs a session ahead and a 15-minute mark by {LAST_FILL_MARK}: {at}")
+        self.sessions, self.at, self.calendar = sessions, at, calendar
+
+    def due(self, order_time: datetime, kind: str) -> DueMark:
+        day = order_time.astimezone(IST).date()
+        for _ in range(self.sessions):
+            day = next_fill_session(self.calendar, day)
+        return DueMark(day, datetime.combine(day, self.at, IST))
+
+    def marks_from(self, due: DueMark, order_time: datetime, until: datetime) -> Iterator[datetime]:
+        day = due.session
+        while datetime.combine(day, FIRST_MARK, IST) <= until:
+            yield from (m for m in marks(day) if m >= due.mark and m <= until)
+            day = next_fill_session(self.calendar, day)

@@ -15,7 +15,7 @@ from ..exits import ExitDesk, exit_decision_id
 from ..records import DeskJournal
 from ..snapshot import ExecutionSnapshot
 from ..status import OpenPosition, open_positions
-from .clock import OwnerTimingClock
+from .clock import RetryingClock
 from .entry_fills import WINDOW
 from .mark_snapshots import MarkSnapshots
 from .outcomes import EXIT
@@ -26,7 +26,7 @@ WAITING = "{legs} without a valid quote at every mark up to {mark:%H:%M} of {ses
 
 
 class OwnerTimingExits:
-    def __init__(self, clock: OwnerTimingClock, snapshots: MarkSnapshots, desk: ExitDesk, log: TimingLog,
+    def __init__(self, clock: RetryingClock, snapshots: MarkSnapshots, desk: ExitDesk, log: TimingLog,
                  view: str, reaction_minutes: int, charges: Mapping[str, float],
                  now: Callable[[], datetime]):  # fmt: skip
         self.clock, self.snapshots, self.desk, self.log = clock, snapshots, desk, log

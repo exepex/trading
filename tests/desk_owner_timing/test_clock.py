@@ -7,7 +7,7 @@ from datetime import date, time
 import pytest
 
 from fno.desk.owner_timing.availability import AlwaysAvailable
-from fno.desk.owner_timing.clock import ExecutionSnapshotClock, OwnerTimingClock
+from fno.desk.owner_timing.clock import ExecutionSnapshotClock, OwnerTimingClock, SessionOffsetClock
 from fno.desk.owner_timing.outcomes import ENTRY, EXIT, MISSED_OWNER_AWAY, DueMark, Missed
 from tests.desk_owner_timing.fakes import CALENDAR, AwayDays, ist
 
@@ -56,3 +56,23 @@ def test_an_exit_keeps_moving():
 
 def test_e4s_view_fills_at_the_decision_days_execution_snapshot():
     assert ExecutionSnapshotClock(time(15, 15)).due(ist(THU, 15, 0), ENTRY) == DueMark(THU, ist(THU, 15, 15))
+
+
+@pytest.mark.parametrize(("sessions", "day"), [(1, MON), (3, date(2026, 10, 22))], ids=["N+1", "N+3"])
+def test_a_time_exit_falls_on_the_nth_session_after_the_entry_skipping_holidays(sessions, day):
+    """Story FL1's lab: entered Friday 09:30; Monday is N+1 and, past Tuesday's holiday, Thursday is N+3."""
+    due = SessionOffsetClock(sessions, time(15, 15), CALENDAR).due(ist(FRI, 9, 30), EXIT)
+    assert due == DueMark(day, ist(day, 15, 15))
+
+
+def test_a_time_exit_without_a_quote_is_retried_at_every_later_mark():
+    exits = SessionOffsetClock(1, time(15, 15), CALENDAR)
+    due = exits.due(ist(FRI, 9, 30), EXIT)
+    later = list(exits.marks_from(due, ist(FRI, 9, 30), ist(WED, 9, 45)))
+    assert later == [ist(MON, 15, 15), ist(MON, 15, 30), ist(WED, 9, 15), ist(WED, 9, 30), ist(WED, 9, 45)]
+
+
+@pytest.mark.parametrize(("sessions", "at"), [(0, time(15, 15)), (1, time(15, 10)), (1, time(15, 30))])
+def test_a_time_exit_needs_a_later_session_and_a_fill_mark(sessions, at):
+    with pytest.raises(ValueError):
+        SessionOffsetClock(sessions, at, CALENDAR)
