@@ -36,7 +36,8 @@ Self-reviews by independent agents on both branches; every finding fixed or answ
 ## (g) Risks a successor must not miss
 - After families merges, the next Sunday run is FULL (no family has its own measured row yet): about 2-2.5 hours,
   inside the 330-minute limit. Any family result below 2.1 is HELD (C2 keeps 2.1) until the approved dispatch.
-- Main's per-family k is unknown until that run; BF (debit) planted runs give about 1.0, so expect a large debit fall.
+- Each family's real k is unknown until that run (reasoning only: the global 2.1 came from impossible April 2020
+  prices that are now skipped, so either family may fall below 2.1).
 - The broker check's tolerances are some evidence only (one basket on 16 Oct, 15 baskets on the evening of 21 Oct).
 - NSE's 2027 holiday circular is not out; add its rows to `research/data/calendar/nse_sessions.csv` when published, or
   the calendar stops runs that need 2027 dates.
