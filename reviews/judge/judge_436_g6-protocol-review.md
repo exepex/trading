@@ -73,3 +73,30 @@ in full. This is recorded so no one reads those 7 as the branch's.
 | `check_imports` | clean |
 
 The V2 wording note above stays open for the next text piece.
+
+## Addendum 2: piece 1d, story/g6-slot-start at cbb382d1 (number 436.2, claimed with `tools/claim_number.py`)
+
+**PASS.** The branch holds two commits on main 11ef1b23.
+
+### 6ec1a10c, the freeze-day refusal
+Its diff is byte-identical to b3a74979, which I passed in addendum 1. I compared every added and removed line. So
+addendum 1's result applies unchanged.
+
+### cbb382d1, the V2 wording
+This closes this verdict's note. Section 11 D now reads "V2's 8-22 years above are at the assumed r = 3-5, so with
+real noise it needs longer (its r is not measured: V2 has no primary baseline yet)":
+- It matches judge 128 addendum 5.
+- It matches response 287: V2's premium-adjusted primary waits for G7b part b.
+- The "above" points to the paragraph's own E+D counts (396 / 1,099, about 8 / 22 years).
+
+A text test pins the new sentence. My plant (the old "V2 needs 8-22 years") fails 1 test.
+
+### Gates (run by me on cbb382d1)
+| Gate | Result |
+|---|---|
+| `pytest -q -n auto` | 9,031 passed, 16 xfailed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | 1,687 files formatted |
+| `check_imports` | clean |
+
+No open items remain in judges 430 or 436.

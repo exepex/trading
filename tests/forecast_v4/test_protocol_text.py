@@ -113,3 +113,27 @@ def test_the_freeze_plan_rules_are_written_as_the_code_runs_them():
     assert "is not judgeable either, for every member** (`confirmatory.crash_dominated`" in flat
     assert "**Decided: option 2, the share cut**" in flat
     assert "a void session is skipped, never a reason for the day's value to be missing" in flat
+
+
+def test_the_share_cut_numbers_in_the_text_follow_the_code():
+    """Judge 430 note 1: the text's "10%" and "n = 130" are the code's `CRASH_SHARE` and the first n whose cut admits
+    13 2% days, so a change to either is caught."""
+    from fno.forecast_v4.confirmatory import CRASH_SHARE, crash_dominated
+
+    flat = " ".join(TEXT.split())
+    assert f"more than {round(CRASH_SHARE * 100)}% of its scored outcomes is not judgeable" in flat
+    first_n_for_13 = next(n for n in range(13, 1000) if not crash_dominated(13, n))
+    assert crash_dominated(13, 125) and not crash_dominated(12, 125)
+    assert (
+        f"at n = 125 a judgeable window holds at most 12 such days, so the 13+ band starts at n = {first_n_for_13}"
+        in flat
+    )
+
+
+def test_section_11_d_states_the_measured_noise_not_the_assumed_one():
+    """Response 299 item 9 (owner, 21 Oct 2026): judge 128's measured r replaces "only V6b can be claimed, slowly"."""
+    flat = " ".join(TEXT.split())
+    assert "only V6b can be claimed, slowly, and see E" not in flat
+    assert "V6b needs about 14-22 years even if its full back-filled skill is real" in flat
+    assert "no v4 member is provable in useful time" in flat
+    assert "The table's result is advice to the owner, never an automatic step" in flat
