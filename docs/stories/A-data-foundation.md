@@ -808,6 +808,98 @@ the index windows at go-live (a later item); any change to the default run or it
 **Depends:** A4, A4b, A4c (`Slot.stop_requests_at`), A16 (`ClockCheck`) · **Size:** S · **Status:** story text for
 judge B (16 Oct 2026)
 
+## A4f. NIFTY weekly expiries and open interest in the 3 pm capture
+
+**Repository:** trading · **Lane:** 1 (the 3 pm recorder, Groww, a v2-recorded file) · **Branch:**
+`story/a4f-nifty-weekly-oi` · **Judge:** F · **Claims:** response 302
+
+**Description:** As the options strategist and the statistician, I want the 3 pm capture to record the NIFTY weekly
+contracts (the nearest weekly, and the next) and every contract's open interest, so that contract-level forecasts can
+be built and scored on the weeklies, where most NIFTY option trading is, and the report can show today's put-call
+ratio and the strikes with the most call and put open interest.
+
+**Context and why:**
+- Owner, 21 Oct 2026 (`docs/DESK_DECISIONS.md`, row "Contract-level forecasts", piece 3): "Weekly contracts", the 3 pm
+  capture extended to NIFTY weekly expiries, history from its start (no back-fill: quotes cannot be rebuilt), joining
+  the go-live when judged (f2293cea). BANKNIFTY lists no weeklies since Nov 2024, so NIFTY only.
+- A4 records the two nearest **monthlies** only (`fno/quotes/recorder.py`, A5's point-in-time rule). Groww's chain
+  already returns each leg's open interest (`fno/providers/groww.py:63`, `OptionQuote.oi`; NSE's at
+  `fno/providers/public.py:106`), but no snapshot column keeps it.
+- Every reader of the snapshot CSV uses `csv.DictReader` (`research_data/quote_snapshots.py`, `desk/snapshot_inputs.py`,
+  `checks/validity_evidence.py`, `forecast/live_pack.py`, `quotes/report.py`, `quotes/compare.py`), so a new last
+  column changes no reader. `recorder.py` and `config.yaml` are in `FREEZE_v2.md`'s "recorded, not byte-checked" table:
+  the v2 golden cases (which read committed fixtures) must stay "unchanged"; A4's own byte-for-byte baseline test changes
+  by exactly the new column, on purpose.
+- Readers find the monthly capture by `nifty_*.canonical` in `groww/derivatives/quote-snapshots` (`report.py:22`,
+  `compare.py:29`), so the weeklies cannot share that folder or stem (the A4e reason).
+- `recorder.py` is at 348 of 350 lines (A4e's known limit): it is split first, with no behaviour change.
+
+**Scope.** In: an `open_interest` column (last) in every Groww and NSE 3 pm snapshot CSV, from the chain leg; a NIFTY
+weekly slot recording the two nearest NIFTY expiries that are not one of the monthly capture's two monthlies, strikes
+within 5% of spot, A4's columns, validity and Drive-only rules, in its own dataset `groww/derivatives/quote-snapshots-weekly`
+(stem `niftyweekly`); run by `record-indices` after MIDCPNIFTY, inside A4c's 15:01-15:13 window and pace; the indices
+part's commit pathspecs in O1's `QUOTE_PARTS` gain `groww/**/niftyweekly_*` (its owner agrees). Out: any reader of the
+weeklies or of the new column (pieces 1 and 2 are G13's); BANKNIFTY weeklies (none listed); a back-fill; the monthly capture's contracts,
+window or timing; A4e's v4 window (it gains the column, nothing else).
+
+**Expected design (the simplest that covers the real cases):**
+- Split first: the row and CSV writing (`COLUMNS`, `_row`, `_csv`, the freshness helpers) move unchanged to
+  `fno/quotes/snapshot_rows.py`; A4's byte-for-byte baseline passes untouched by this step.
+- `open_interest`: the leg's `oi` from the chain call, written as A4 writes numbers (`_num`); a leg the chain does not
+  list gives an empty cell. The value is as of the chain answer (seconds before that row's quote), stated in the
+  sidecar `note`.
+- Weekly slot: `Slot("NIFTY", cross_check=False, stop_requests_at=15:13, workers=3, per_second=2.5)` (A4c's pace),
+  stem `niftyweekly` (so NIFTY's commit glob `groww/**/nifty_*` can never take a weekly file), dataset
+  `quote-snapshots-weekly`, and an expiry rule `nearest_weeklies(listed, monthlies, day, count=2)`: the two
+  nearest listed expiries from `day` on that are not among the monthlies A5's rule picks that day. A day whose nearest
+  expiry is the monthly (its last week) records the two weeklies after it.
+- `record-indices` runs BANKNIFTY, FINNIFTY, MIDCPNIFTY, then NIFTY weekly, round-robin retries as A4c does; one result
+  line each; the one alert names any not recorded.
+
+**Size (reasoning only, from A4c's measured pace):** about 2 x 46 strikes x 2 types = about 184 weekly quotes plus 2
+chain calls: about 75 s at 2.5 a second, so the window ends about 15:07 on a normal day (A4c's indices end about
+15:05:30, 19 and 21 Oct). Build about 1 day: split, column, slot and rule, tests, the first live day.
+
+**Acceptance criteria:**
+1. **Split changes nothing.** After the split alone, A4's byte-for-byte baseline, every quotes test and
+   `tools/forecast_live_golden.py` ("unchanged") pass with no test edited.
+2. **Open interest.** Every Groww and NSE snapshot row has `open_interest` as its last column, equal to the chain
+   leg's `oi` (fake chain: a value, zero, and a leg the chain lacks gives an empty cell); A4's baseline differs from
+   before by exactly that column; the v2 golden cases stay "unchanged"; every reader listed above still reads a new
+   file (one test per reader on a file with the column).
+3. **Weekly contracts.** On a session day, the weekly slot records the two nearest non-monthly NIFTY expiries within 5%
+   of spot, in `quote-snapshots-weekly`, quotes in Drive only, sidecar and `niftyweekly_<day>.canonical` in the repository
+   (fake provider: a normal week; a monthly-expiry week, where the weeklies after it are taken; only one weekly listed,
+   which records one and is complete; none listed, which records nothing and ends "none" with the reason).
+4. **Window and pace.** The weekly slot starts no request after 15:13:00 and keeps A4c's pace (fake clock); the monthly
+   capture's contracts, window and bytes (apart from the column) are unchanged.
+5. **Readers unaffected.** No reader of the monthly capture sees a weekly file (`report`, `compare`, the v2 capture, the
+   desk's snapshot inputs).
+6. **Routine.** `git add --dry-run` in a temp repository with every part's files: the indices part's pathspecs stage the
+   weekly sidecar and marker; NIFTY's `groww/**/nifty_*` stages no weekly file; `.gitignore`, the record scan and
+   E2b's guard refuse the weekly CSVs (A4c's path test, extended).
+7. Code size, lint, imports and the full suite pass.
+
+**Known limits (one line each, nothing built for them):**
+- Groww's parser turns a missing `open_interest` into 0 (`or 0`), so a 0 cannot be told from "not given"; the cell
+  says 0 in both cases (a reader treats 0 with care).
+- The weeklies share A4c's window: a slow index day can leave the weekly slot "none".
+- No history before the first live day.
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| NIFTY weekly contracts, the nearest and the next (owner, 21 Oct) | criterion 3 |
+| No change to the monthly capture or its 14:55-15:10 timing (orchestrator) | criteria 2 (bytes, only the column), 4 |
+| Paced within Groww's limits | criterion 4 (A4c's 2.5 a second) |
+| Write-once Drive and receipts as today | criterion 3 (A4b's store) |
+| open_interest in the snapshot (PCR, max call/put OI) | criterion 2 |
+| v2 frozen behaviour | criteria 1, 2 (golden "unchanged") |
+| `recorder.py` at the size limit | design (split), criterion 1 |
+
+**Depends:** A4, A4b, A4c, A5 · **Size:** M (about 1 day) · **Status:** story text for judge F (21 Oct 2026)
+
 ## A5. Monthly-expiry identity in the package
 
 **Repository:** trading
