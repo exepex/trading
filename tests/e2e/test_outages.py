@@ -3,8 +3,6 @@ the no-failure twin. Every case runs twice, Slack up and Slack down (criterion 3
 same multiset, each unsent one printed once for the routine's connector."""
 
 from collections import Counter
-from datetime import date
-
 import pytest
 
 from fno.alerts.sender import NOT_SENT
@@ -12,7 +10,6 @@ from fno.constants import STEP_FAILED, STEP_OK, STEP_REFUSED
 
 from .harness import fixture_day
 
-NEXT_SESSION = date(2026, 10, 15)
 UNSENT = NOT_SENT.format(reason="ConnectionError")
 
 
@@ -100,11 +97,7 @@ def test_drive_down_at_the_download_stops_the_desk_but_the_parts_still_record_an
     assert code == 1 and "run STOPPED at the download of the private paper records" in line
     assert line.endswith("; no card today") and day.log() == {}  # no step ran, so no log
     assert "3 pm quotes 2026-10-14 nse" in day.origin_subjects()  # NSE's public record still committed
-    assert sum(owner_alerts(day, printed).values()) >= 1
-    day.drive.down, day.slack.down = False, False
-    day.move_to(NEXT_SESSION)
-    assert day.run()[0] in (0, 1)
-    assert day.step("exits")["book1_rules"]["reviewed"] is True  # the next session's exits run
+    assert sum(owner_alerts(day, printed).values()) >= 1  # the next session: test_never_starts.py
 
 
 CHILD_ALERT_TEXT_GAP = (

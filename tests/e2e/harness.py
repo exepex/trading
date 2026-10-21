@@ -123,6 +123,11 @@ class Day:
         path = self.root / "journal/runs" / f"{day or self.day}.json"
         return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
+    def committed(self, message: str) -> bool:
+        """True once this checkout made a commit with exactly `message` (read from git's own reflog, cheaply)."""
+        reflog = self.root / ".git/logs/HEAD"
+        return reflog.is_file() and f"commit: {message}\n" in reflog.read_text(encoding="utf-8")
+
     def origin_subjects(self) -> list[str]:
         """Every commit message `origin` holds: what the run published."""
         return git(self.root.parent / "origin.git", "log", "--format=%s", "main").splitlines()
