@@ -23,6 +23,17 @@ runs inside a Claude routine started at 08:36 IST (the owner creates it from the
 | Index pre-open result (NIFTY, BANKNIFTY) | Groww 1-minute index candles (A16b's read-only adapter): the close of the last pre-open candle is NSE's official open (A16 amendment 3, judged) | proven for NIFTY on 114 sessions (A16b); BANKNIFTY to be checked in step 0b | Groww: the owner's paid subscription, read-only; values in Drive only (owner decision) |
 | Asia opens (Nikkei 225, KOSPI, Hang Seng) | none free and official in real time | not built | **Out:** JPX/KRX/HKEX real-time feeds are paid; delayed pages are scraping without a clear licence [reasoning] |
 
+## Step 0b (22 Oct 2026, 02:40 IST, Groww read-only, A16's `ReadOnlyGroww`; differences and times only) [strong]
+
+- NIFTY and BANKNIFTY 1-minute index candles exist for 09:00-09:14 on every regular session checked.
+- Over the 21 regular sessions 21 Sep-21 Oct 2026, the close stays at its final pre-open value from the 09:08 candle
+  (10 sessions) or the 09:09 candle (11), identically for both indices; never later.
+- On all 21 sessions, for both indices, **the 09:09 candle's close equals NSE's official open** (`ind_close_all`'s
+  Open Index Value) exactly (largest difference 0.00 points).
+- So the index pre-open value is the close of the 09:09 one-minute candle, complete at 09:10:00. Still unknown until a
+  live morning: how soon after 09:10:00 Groww serves that candle (the window allows retries to 09:10:59). NSE's
+  `key=NIFTY`/`key=BANKNIFTY` lists are kept only if they answer at 09:08 (not needed for criterion 3).
+
 ## Scope
 
 In:
@@ -33,8 +44,9 @@ In:
      `seen_at` (GIFT Nifty trades from 06:30 IST). A run started after 08:44:59 still reads it once and records it as
      `late` (alerted); before 08:40:00 it waits.
    - **Pre-open, window 09:08:30-09:10:59 IST:** NSE's `key=FO` list (and `key=NIFTY`, `key=BANKNIFTY` if they
-     answer), and the Groww 1-minute candles 09:00-09:08 of NIFTY and BANKNIFTY; retried every 30 s inside the
-     window. Complete when NSE's `lastUpdateTime` is today's and the Groww index candles hold a pre-open close.
+     answer) from 09:08:30, and the Groww 1-minute candles 09:00-09:09 of NIFTY and BANKNIFTY from 09:10:00 (the 09:09
+     candle's close is the pre-open value: step 0b); retried every 30 s inside the window. Complete when NSE's
+     `lastUpdateTime` is today's and both indices' 09:09 candles are present.
    - **Commit by 09:12 IST:** the run writes Drive, commits its receipts and error rows and pushes at 09:11 at the
      latest, so the 09:15 forecast reads them.
 2. Storage: every raw answer write-once in Drive (`data/preopen/raw/...`, O9 `DataStore`), one derived row per day
@@ -67,8 +79,9 @@ values in a forecast (FL1's job: the 09:15 forecast can use both); historical ba
    16 stale; yesterday's time stale; a missing `giftNifty` or a non-JSON answer fails.
 2. Pre-open list: today's real `key=FO` answer gives 213 IEPs; a `lastUpdateTime` of another day is incomplete; an
    empty `data` (as `key=NIFTY` answers in the evening) is incomplete, never complete.
-3. Index pre-open: Groww candles with a 09:07 or 09:08 pre-open close give it; candles only from 09:15 are
-   "no pre-open value" (A16's rule); BANKNIFTY proven in step 0b.
+3. Index pre-open: the close of the 09:09 one-minute candle (fixture cut from a real answer; step 0b: equal to NSE's
+   official open on 21 of 21 sessions for both indices); a day whose candles stop before 09:09 is "incomplete"
+   until 09:10:59; candles only from 09:15 are "no pre-open value" (A16's rule).
 4. Windows, exact boundaries (injected clock): GIFT at 08:39:59 waits, at 08:40:00 reads, at 08:44:59 is in the
    window, at 08:45:00 is `late`; pre-open at 09:08:29 waits, at 09:08:30 reads, at 09:10:59 retries, at 09:11:00
    stops and reports incomplete; the commit is done by 09:12:00; a GIFT answer stale at the first read and fresh at
