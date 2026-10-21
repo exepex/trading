@@ -78,8 +78,13 @@ def test_revision_7_states_the_regime_caveat_for_every_member_and_test_a():
 
 def test_the_days_clock_and_x_in_the_text_match_the_code():
     """Story G10: section 1.6's times, X and its provenance are the numbers `terms.py` runs."""
-    for moment in (terms.V4_CAPTURE_START, terms.V4_PACK_WINDOW_END, terms.V4_DEADLINE, terms.V4_COMMON_SNAPSHOT):
-        assert f"| {moment:%H:%M}" in TEXT
+    rows = (
+        f"| {terms.V4_CAPTURE_START:%H:%M:%S} | The pack's capture starts",
+        f"| {terms.V4_PACK_WINDOW_END:%H:%M:%S} | **The pack's cutoff:**",
+        f"| {terms.V4_DEADLINE:%H:%M:%S} | **One deadline:**",
+        f"| {terms.V4_COMMON_SNAPSHOT:%H:%M} | **Common snapshot**",
+    )  # each row of 1.6's table pinned to its own constant (judge 411: a moved deadline must fail)
+    assert all(row in TEXT for row in rows), [row for row in rows if row not in TEXT]
     assert "observed by 14:40:00 IST on `d`,\ncaptured from 14:30:00" in TEXT and "after 15:10:00" in TEXT
     assert f"**X = {terms.MOVED_AFTER_CUTOFF_X!r}**" in TEXT
     assert f"**{terms.MOVED_AFTER_CUTOFF_SAMPLE:,}**" in TEXT and terms.MOVED_AFTER_CUTOFF_SOURCE in TEXT
