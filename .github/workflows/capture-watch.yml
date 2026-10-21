@@ -28,6 +28,7 @@ on:
       - postmortem-weekly
       - quote-recorder-nse
       - stress-factor
+      - v4-fire
       - vix-history
     types: [completed]
 
