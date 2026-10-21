@@ -19,6 +19,8 @@ registering its file when it lands; every new number is then claimed with the to
 
 ## Responses
 
+- [Response 288: story FL1, the forecast lab and daily reports: three Claude-routine slots, sealed ranges from G13b, NIFTY-only lab positions at A16 marks, the 15:45 match report with the trust rule, two new channels; dependencies G13, G13b, A22, E8 stated (story text)](response_288_fl1-forecast-lab.md)
+
 - [Response 267: O11, the core engine plan (revision 2: owners, go-live gate as done, trial evidence per expectation) and the end-to-end acceptance replay of 16 Oct 2026 (11 passing, 16 strict xfails as the not-built list)](response_267_o11-core-engine-plan.md)
 
 - [Response 1: backtest analysis and strategy proposal](response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
@@ -274,3 +276,5 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 292: O9 status at the phase-1 freeze: step 2b not started, every O9 branch merged, nothing unpushed; the five resume items, with the A16 observer group found to be a git writer, not a DataStore user](response_292_o9-status.md)
 - [Response 290: story G13b part A build, NIFTY and BANKNIFTY 15:45 price ranges, sealed and scored (builder's claims): 73 tests, 14 of 14 mutations caught, today's real 1545 records for both indices, the first end-of-day scores (implied lowest QS for both; no direction skill)](response_290_g13b-price-ranges.md)
 - [Response 293: G13b part A, judge 416 answered: all 3 should-fix and 4 minor accepted (a no-chain day keeps earlier failures, back-fill label/basis guard, header check for issue and label, the empty tests, "some evidence" relabel, rv20 by import)](response_293_g13b-judge-416.md)
+- [Response 294: FL1-1 code, the 15:45 forecast lab report (builder's claims, for Judge E): lab close as O1's last step (off), G13b's real reader through FL1's adapter, three open points (O11 replay xfail, the official close not archived at 15:45, no daily score step)](response_294_fl1-1-code.md)
+- [Response 295: FL1-1, judge 422 answered: seal check apart from the close, each report records what it covered and the next takes up a missed or late-archived day (5 sessions), alerts sent once with each outcome printed, `lab channels` membership check, the story's seal rule, regular sessions only (the 8 Nov muhurat bug), 15 of 15 mutations caught](response_295_fl1-1-judge-422.md)

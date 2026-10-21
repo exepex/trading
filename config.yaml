@@ -211,6 +211,7 @@ daily:
     price_distribution_scores: null  # G13's daily `pricedist score` (the previous sessions' outcomes)
     price_ranges: null  # story G13b's 15:45 NIFTY and BANKNIFTY ranges
     price_range_scores: null  # G13b's daily `pricerange score` and seals, before FL1's 15:45 lab
+    lab_close: null  # story FL1-1's 15:45 report to #fno-forecast (after G13b's issue and its scores)
 
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
 # that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).

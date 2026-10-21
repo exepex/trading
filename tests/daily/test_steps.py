@@ -71,6 +71,7 @@ def test_the_live_dates_come_from_config_and_none_is_set_today():
         "price_distribution_scores": None,  # G13's daily scores
         "price_ranges": None,  # story G13b
         "price_range_scores": None,  # G13b's daily scores and seals
+        "lab_close": None,  # story FL1-1
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 

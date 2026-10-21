@@ -62,7 +62,8 @@ cancels orders.
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
    decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
-   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww). It
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww)
+   and, from 15:45 IST, FL1-1's forecast lab report to #fno-forecast (`lab close`; from its `daily.live_from` date). It
    writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done.
@@ -197,6 +198,8 @@ commit with `--no-verify`.
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
   file (owner, 16 Oct 2026; story O9, built step by step).
-- F&O output goes only to Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN`; never the market-brief tool's
-  `SLACK_*` variables or #market-brief.
+- F&O output goes only to three Slack channels, all with `FNO_SLACK_BOT_TOKEN` (owner, 21 Oct 2026; story FL1):
+  #fno-desk (`C0C89E8QCCD`) takes every alert and the daily card; #fno-forecast (`C0CAZS76WBC`) the forecast lab's
+  09:15 and 15:45 reports; #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and hourly lines. Never the market-brief
+  tool's `SLACK_*` variables or #market-brief, and no other channel (the record scan allows only these three IDs).
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.

@@ -21,6 +21,7 @@ from .factory.cli import add_factory_parser
 from .filings.cli import add_filings_parser
 from .fo_masters.cli import add_fo_masters_parser
 from .forecast.cli import add_forecast_parser
+from .forecast_lab.cli import add_lab_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
 from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
@@ -241,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     add_factory_parser(sub)
     add_pricedist_parser(sub)
     add_pricerange_parser(sub)
+    add_lab_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)
 
