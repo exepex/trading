@@ -72,3 +72,17 @@ or a contract symbol such as `NIFTY26OCT25000CE`, which names a paper position (
 producer emits either into the log today, but the boundary should not depend on that. In the code, limit an identifier
 to letters, digits, `_`, `-` and `:` (no `.` or `,`). Add `Rs12345.60` and a contract symbol to criterion 1's planted
 values, expecting `unlisted`. Trade ids and `how` values still pass.
+
+## Addendum 3: the identifier rule, corrected
+The builder is right: my condition in addendum 2 ("letters, digits, `_`, `-`, `:`, no `.` or `,`") refuses
+`Rs12345.60` but still passes `NIFTY26OCT25000CE`, which is letters and digits only. **I accept their refinement as the
+condition for the code:**
+- an identifier is `[A-Za-z][A-Za-z0-9_:-]*` with no run of 3 or more digits;
+- the ids that do carry long digit runs keep their own exact patterns, checked first: hashes, ISO times, run ids and
+  snapshot ids.
+
+The real ids pass: `t1`, `b1`, `book1_rules`, `shadow:b0-monthly-sc-v1`, `forecasts_v4`, `raised:OSError`.
+
+Criterion 1 plants `Rs12345.60`, `NIFTY26OCT25000CE` and `Rs12345`, all expected `unlisted`, with those real ids as a
+positive control. The stated limit (a value of at most two digits beside letters, such as `VIX15`, still passes) is
+accepted as a known limit: no producer writes such a token.
