@@ -116,7 +116,8 @@ def test_a_trade_card_carries_the_devils_advocate_objections():
 
 @missing("FL1-1")
 def test_the_1545_lab_report_is_posted_on_the_recorded_day():
-    not_built("FL1-1's `lab close` as O1's last step (waits for G13b's 15:45 issue and its reader)")
+    not_built("FL1-1's `lab close` in the replay: it needs G13b's `price_ranges` issue in the replay first, else the "
+              "recorded day only alerts 'no forecast was sealed' (FL1-1 itself: tests/forecast_lab/)")
 
 
 @missing("FL1-2")
