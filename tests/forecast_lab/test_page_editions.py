@@ -100,8 +100,9 @@ def test_an_evening_without_today_s_close_checks_nothing_and_says_why():
     view = build("evening", (implied(FRI), implied(MON)), at_time=(20, 5))
     points = view.indices[0].horizons[0].timeline.points
     assert points[-1].day == HISTORY_DAYS[-1] and not any(p.provisional for p in points)
-    assert ("NIFTY: today's close was not read (NSE's index list did not answer); today is not checked"
-            in view.system)  # fmt: skip
+    said = ("NIFTY: today's close was not read (NSE's index list did not answer); today is not checked here, and its "
+            "result appears in tomorrow evening's report, once G13b scores NSE's official close")
+    assert said in view.system
 
 
 def test_an_evening_without_a_forecast_for_today_checks_nothing_and_reads_no_close():

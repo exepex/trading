@@ -33,7 +33,10 @@ SHOWN, HORIZONS = 30, ("N1", "N3")
 DEFAULT_METHOD = "implied"  # with no scored history yet (owner, 21 Oct 2026: the best-proven method, implied)
 NO_ISSUE = "{underlying}: today's forecast is missing (none written by {now:%H:%M})"
 NO_FORECAST = "{underlying}: today's forecast is missing (none sealed on {issued:%a %d %b})"
-NOT_READ = "today's close was not read ({why}); today is not checked"
+NOT_READ = (
+    "today's close was not read ({why}); today is not checked here, and its result appears in tomorrow evening's "
+    "report, once G13b scores NSE's official close"
+)
 READ_FAILED = "{name}: the read failed ({error})"
 PRICE_AT = {"close": "close {day}", "read": "close today", "3pm": "3 pm price {day}"}
 

@@ -10,7 +10,7 @@ import os
 from datetime import date
 
 from ..composition import build_alert_sender, build_session_calendar
-from ..config import load_app_config
+from ..config import ROOT, load_app_config
 from ..constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_FORECAST_CHANNEL_ID
 from ..models import now_ist
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, build_data_store, build_drive_cache, receipt_folder
@@ -24,10 +24,12 @@ from .match import MatchSection
 from .official_closes import ArchivedCloses
 from .page_wiring import build_report_maker
 from .records import DriveReportRecords
+from .release import FlowsRelease, ReleaseChecks
 from .report import CloseReport
 from .sessions import RegularSessions
 
 WRITER = "forecast-lab"
+RELEASE_FOLDER, RELEASE_LOG = ROOT / "research" / "data" / "forecast_lab" / "release", "release_checks.csv"
 UNSYNCED = "G13b's records could not be read verified from Drive: {problems}"
 
 
@@ -57,6 +59,21 @@ def g13b_issues_from(cfg: dict) -> date | None:
 
 def records(edition: str, env=os.environ) -> DriveReportRecords:
     return DriveReportRecords(build_data_store(WRITER, env=env), receipt_folder(), REPORT_AREAS[edition])
+
+
+def build_release_checks() -> ReleaseChecks:
+    """The evening's read-only release check: the F&O bhavcopy through A8's recorder, FII and DII cash by session."""
+    from ..composition import build_session_calendar as calendar
+    from ..research_data.release_times import ReleaseLog, ReleaseTimeRecorder
+    from ..storage.raw_source import NseDailyFoSource
+    from ..storage.snapshot_source import FiiDiiCashBySessionSource
+    from ..storage.wiring import build_nse_source
+
+    fo = ReleaseTimeRecorder(build_nse_source(NseDailyFoSource), NseDailyFoSource.path_for, calendar(),
+                             ReleaseLog(RELEASE_FOLDER / "fo-bhavcopy" / RELEASE_LOG))  # fmt: skip
+    flows = FlowsRelease(build_nse_source(FiiDiiCashBySessionSource), FiiDiiCashBySessionSource.path_for,
+                         ReleaseLog(RELEASE_FOLDER / "fii-dii-cash" / RELEASE_LOG))  # fmt: skip
+    return ReleaseChecks({"fo-bhavcopy": fo, "fii-dii-cash": flows})
 
 
 def build_edition(edition: str, env=os.environ) -> EditionRun:

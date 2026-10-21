@@ -15,13 +15,27 @@ NO_TOKEN = "lab channels: FNO_SLACK_BOT_TOKEN is not set; membership not checked
 
 def add_lab_parser(subparsers) -> None:
     p = subparsers.add_parser("lab", help="FL1: the forecast lab's morning and evening reports; channel membership")
-    p.add_argument("action", choices=("open", "close", "channels"))
+    p.add_argument("action", choices=("open", "close", "release-check", "channels"))
     p.add_argument("--day", type=date.fromisoformat, default=None)
     p.set_defaults(func=cmd_lab)
 
 
 def cmd_lab(args, out=print, env=os.environ) -> int:
-    return _channels(out, env) if args.action == "channels" else _edition(args.action, args.day, out)
+    if args.action == "channels":
+        return _channels(out, env)
+    if args.action == "release-check":
+        return _release_check(args.day, out)
+    return _edition(args.action, args.day, out)
+
+
+def _release_check(day: date | None, out) -> int:
+    """FL1-1d-2: when NSE's evening files were out (read-only; logs only); never fails the routine."""
+    from ..models import now_ist
+    from .wiring import build_release_checks
+
+    for line in build_release_checks().run(day or now_ist().date()):
+        out(line)
+    return 0
 
 
 def _edition(action: str, day: date | None, out) -> int:
