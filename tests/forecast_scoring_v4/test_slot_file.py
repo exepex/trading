@@ -13,10 +13,13 @@ from fno.forecast_scoring.v4.slot_file import COLUMNS, RegistrationRefused, Slot
 FREEZE_NEXT = date(2026, 10, 28)  # the first session after a freeze on 27 Oct
 
 
-def slot_file(tmp_path, *rows, first_eligible=lambda q: FREEZE_NEXT):
+FROZEN_ON = date(2026, 10, 27)
+
+
+def slot_file(tmp_path, *rows, first_eligible=lambda q: FREEZE_NEXT, frozen_on=lambda: FROZEN_ON):
     file = tmp_path / "v4_slots.csv"
     file.write_text(",".join(COLUMNS) + "\n" + "".join(",".join(r) + "\n" for r in rows))
-    return SlotFile(file, first_eligible)
+    return SlotFile(file, first_eligible, frozen_on)
 
 
 def row(question=V6_BIG_MOVE_1S, slot=V4_SLOT_RULES, name="weather_vix_v1", start="2026-10-28", on="2026-10-27"):
@@ -39,6 +42,8 @@ def test_rows_become_registrations_and_no_file_means_none(tmp_path):
         row(slot="hybrid_v2"),  # not a slot
         row(start="2026-10-28", on="2026-10-29"),  # declared after its misses start
         row(start="2026-10-29"),  # starts after the first eligible session: one day's miss hidden
+        row(start="2026-10-27", on="2026-10-26"),  # on the freeze's day: misses start the session after it (430)
+        row(start="2026-10-23", on="2026-10-22"),  # before the freeze
     ],
 )
 def test_a_registration_that_changes_membership_or_hides_misses_is_refused(tmp_path, bad):
@@ -61,4 +66,5 @@ def test_a_start_on_the_first_eligible_session_or_before_any_eligible_value_is_a
 
 def test_before_the_freeze_the_repository_registers_no_slot():
     assert not wiring.FREEZE_FILE.exists() and wiring._first_eligible(V6_BIG_MOVE_1S) is None
+    assert wiring._frozen_on() is None
     assert wiring._registry().registered() == {}
