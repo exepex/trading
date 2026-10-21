@@ -9,7 +9,8 @@ name: capture-watch
 
 on:
   workflow_run:
-    # every scheduled job except CI (checks, number-alert); tests/health/test_capture_watch_workflow.py keeps this list complete
+    # every scheduled job except CI (checks, number-alert); tests/health/test_capture_watch_workflow.py keeps this
+    # list complete
     workflows:
       - filings-archive
       - flows-download
