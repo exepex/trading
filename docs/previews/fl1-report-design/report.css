@@ -27,6 +27,9 @@ header h1 span { font-weight: 400; color: var(--muted); }
 .light.green { background: var(--up-tint); color: var(--up-ink); } .light.green i { background: var(--up); }
 .light.amber { background: var(--warn-tint); color: var(--warn-ink); } .light.amber i { background: var(--warn); }
 .light.red { background: var(--down-tint); color: var(--down-ink); } .light.red i { background: var(--down); }
+.light.none { background: var(--tile); color: var(--muted); } .light.none i { background: var(--muted); }
+.foot .bad { color: var(--down-ink); }
+.live { font: 700 10px/14px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--up-ink); background: var(--up-tint); border-radius: 3px; padding: 1px 5px; vertical-align: middle; }
 /* the overview strip */
 .glance { padding-bottom: 6px; }
 .ov { padding: 10px 0 12px; border-top: 1px solid var(--rule); }

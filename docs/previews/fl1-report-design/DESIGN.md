@@ -57,6 +57,10 @@ Rendered with the pre-installed Chromium through Playwright at 2x: the picture a
 at 1100 and 390 px. No sideways overflow (the 30-day chart scrolls inside its card and zooms), no console errors, no
 external request. Looked at every render: no label over another label, every value in the rows readable.
 
-Honest limits: the 30 daily ranges and closes behind the chart were recovered from v4's chart coordinates (±20
-points, see README.md); the contracts card is a mock with a normal fit and an assumed expiry; the headline ranges
-round outward to 10 (the builder's rule).
+Data: every number is read from the builder's real PageView dump (`pageview-2026-10-19.json`, the production
+PageBuilder on G13b's back-fill) through `pageview.py`, which only formats dates and renames bands. The builder's
+PageRenderer calls `render_picture(page_view)` and `render_details(page_view)`.
+
+Honest limits: the contracts card is a mock with a normal fit and an assumed expiry; the headline ranges round
+outward to 10 (the builder's rule); the timeline in the dump ends at the session before the issue day (16 Oct), so the
+overview's "call" row shows that day until the builder adds today's close as the last outcome.

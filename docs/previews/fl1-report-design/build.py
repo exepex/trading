@@ -1,5 +1,6 @@
-"""Builds the v6 preview pages from data_v4.json: `python build.py` writes fl1-report-picture.html (the overview
-strip and one line chart per index) and fl1-report-details.html (everything). Standard library only."""
+"""Builds the v6 preview pages from the builder's PageView dump (pageview-<day>.json): `python build.py` writes
+fl1-report-picture.html (the overview strip and one line chart per index) and fl1-report-details.html (everything).
+Standard library only; the pages draw the PageView's values and never compute a forecast number."""
 
 import json
 from pathlib import Path
@@ -32,8 +33,9 @@ def _range(f, key="50"):
 
 
 def _light(idx):
-    word = {"green": "Good", "amber": "Watch", "red": "Poor"}[idx["light"]]
-    return f'<span class="light {idx["light"]}"><i></i>{word}: {idx["right30"]} of 30 days</span>'
+    if idx["light"] == "none":
+        return f'<span class="light none"><i></i>{idx["light_word"]}</span>'
+    return f'<span class="light {idx["light"]}"><i></i>{idx["light_word"]}: {idx["right30"]} of {idx["scored"]} days</span>'
 
 
 def _chip(st):
@@ -48,10 +50,10 @@ def _reason(idx, day):
 
 
 def _overview_row(idx):
-    today = idx["days"][-1]
+    today = idx["days"][-1]  # the last scored session: today's once the builder adds today's close to the timeline
     st = status(today)
     return (f'<div class="ov"><div class="ov-head"><b>{idx["name"]}</b>{_light(idx)}</div>'
-            f'<div class="ov-line"><span class="k">Today’s call</span>'
+            f'<div class="ov-line"><span class="k">Call for {today["date"]}</span>'
             f'<span>{_range(today)} · closed <b>{fmt(today["close"])}</b></span>{_chip(st)}</div>'
             f'<div class="ov-sub">{MEANS[st]} ({_range(today, "90")})</div>'
             f'{_reason(idx, today) if st == "red" else ""}'
@@ -77,9 +79,9 @@ def _key():
 
 
 def _tally(idx, days):
+    days = days[-idx["scored"]:] if idx["scored"] else days
     counts = {s: sum(status(d) == s for d in days) for s in ("green", "amber", "red")}
-    reds = [d["date"] for d in reversed(days) if status(d) == "red"]
-    red_dates = f' ({", ".join(reds)})' if reds else ""
+    red_dates = f' ({", ".join(idx["wrong_days"])})' if idx["wrong_days"] else ""
     return (f'<p class="tally">Last {len(days)} days: <b class="green">{counts["green"]} ✓ correct</b> · '
             f'<b class="amber">{counts["amber"]} ⚠ close call</b> · <b class="red">{counts["red"]} ✗ missed</b>'
             f'{red_dates}.</p>')
@@ -93,8 +95,11 @@ def chart_card(idx, days, width):
 
 
 def _foot(data):
-    return (f'<div class="foot"><span class="ok">✓ {data["system_line"]}</span>'
-            f'<span class="research">{data["research_line"]}</span></div>')
+    if data["system"]:
+        system = "".join(f'<span class="bad">⚠ {line}</span>' for line in data["system"])
+    else:
+        system = f'<span class="ok">✓ {data["system_line"]}</span>'
+    return f'<div class="foot">{system}<span class="research">{data["research_line"]}</span></div>'
 
 
 def picture(data):
@@ -120,12 +125,14 @@ def _why_missed(idx):
 
 def _days_table(idx):
     rows = []
-    for d in reversed(idx["days"]):
+    for d in reversed(idx["days"][-30:]):
         st = status(d)
-        rows.append(f'<tr><td>{d["date"]}</td><td>{fmt(d["lo50"])} – {fmt(d["hi50"])}</td>'
+        live = ' <span class="live">live</span>' if d["live"] else ""
+        rows.append(f'<tr><td>{d["date"]}{live}</td><td>{fmt(d["lo50"])} – {fmt(d["hi50"])}</td>'
                     f'<td>{fmt(d["lo90"])} – {fmt(d["hi90"])}</td><td>{fmt(d["mid"])}</td><td><b>{fmt(d["close"])}</b></td>'
                     f'<td class="{st}">{GLYPH[st]} {WORD[st]}</td></tr>')
-    return ('<div class="h">Every day in numbers · each forecast made the session before</div><div class="scroll">'
+    return ('<div class="h">Last 30 days in numbers · each forecast made the session before · '
+            '<span class="live">live</span> = a sealed live forecast, the rest back-fill history</div><div class="scroll">'
             '<table class="days"><thead><tr><th>Day</th><th>Most likely</th><th>Almost certainly</th>'
             '<th>Middle</th><th>Closed</th><th>Result</th></tr></thead><tbody>'
             + "".join(rows) + "</tbody></table></div>")
@@ -133,13 +140,14 @@ def _days_table(idx):
 
 def _methods(idx, horizon):
     block = idx["methods"][horizon]
-    dates = [d["date"] for d in idx["days"]]
+    dates = [d["date"] for d in idx["days"][-len(next(iter(block["grid"].values()))):]]
     glyph = {"in50": "✓", "in90": "✓", "miss": "✗", "none": "·"}
     head = "".join(f"<th>{d.split()[0]}</th>" for d in dates)
-    grid = "".join(f'<tr><th class="m">{m}{" ★" if m == "implied" else ""}</th>'
+    best = {s["method"] for s in block["scores"] if s["best"]}
+    grid = "".join(f'<tr><th class="m">{m}{" ★" if m in best else ""}</th>'
                    + "".join(f'<td class="{c}">{glyph[c]}</td>' for c in cells) + "</tr>"
                    for m, cells in block["grid"].items())
-    scores = "".join(f'<tr><td>{s["method"]}{" ★" if s["method"] == "implied" else ""}</td><td>{s["in50"]}</td>'
+    scores = "".join(f'<tr><td>{s["method"]}{" ★" if s["best"] else ""}</td><td>{s["in50"]}</td>'
                      f'<td>{s["in90"]}</td><td>{s["err"]}</td></tr>' for s in block["scores"])
     months = f'{dates[0].split()[1]} → {dates[-1].split()[1]}'
     return (f'<details class="more"><summary>Every method, {horizon} (for the curious)</summary><div class="inner">'
@@ -171,8 +179,9 @@ def _contracts(idx):
 
 
 def details_card(idx):
-    return (f'{chart_card(idx, idx["days"], 1510)}<div class="card">{_three(idx)}{_why_missed(idx)}'
-            f'<p class="plain">{idx["direction"]}</p>{_days_table(idx)}'
+    return (f'{chart_card(idx, idx["days"][-30:], 1510)}<div class="card">{_three(idx)}{_why_missed(idx)}'
+            f'<p class="plain">{idx["direction"]} Live days scored so far: {idx["live_days"]} of the {idx["days_needed"]} '
+            f'needed before the method counts as proven.</p>{_days_table(idx)}'
             f'{_methods(idx, "next session")}{_methods(idx, "in 3 sessions")}</div>{_contracts(idx)}')
 
 
@@ -187,8 +196,10 @@ def _words(data):
 
 def _system(data):
     lines = "".join(f"<li>{s}</li>" for s in data["stricter"])
+    checks = "<br>".join(data["checks"]) or "none"
+    alerts = "<br>".join(data["alerts"]) or "none today"
     return ('<div class="card"><div class="h first">System</div>'
-            f'<p class="plain">Seal checks: {data["seal"]}<br>Alerts: {data["alerts"]}</p>'
+            f'<p class="plain">Seal checks: {checks}<br>Alerts: {alerts}</p>'
             f'<details class="more"><summary>Stricter checks, last 20 sessions</summary><div class="inner">'
             f'<ul class="lines">{lines}</ul></div></details></div>')
 
@@ -201,7 +212,9 @@ def details(data):
 
 
 def main():
-    data = json.loads((HERE / "data_v4.json").read_text())
+    from pageview import adapt
+    page_view = json.loads(next(HERE.glob("pageview-*.json")).read_text())
+    data = adapt(page_view)
     (HERE / "fl1-report-picture.html").write_text(picture(data))
     (HERE / "fl1-report-details.html").write_text(details(data))
 

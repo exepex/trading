@@ -106,15 +106,19 @@ class ForecastLineChart:
         for i, d in enumerate(self.days):
             x, yh, yl, yc = self.x(i), self.y(d["hi50"]), self.y(d["lo50"]), self.y(d["close"])
             st = status(d)
-            above = d["close"] <= (d["lo50"] + d["hi50"]) / 2  # the close label sits away from the nearer line
+            outside_up, outside_down = d["close"] > d["hi50"], d["close"] < d["lo50"]
+            # the close label sits on the far side from the band; inside the band, away from the nearer line
+            above = outside_up or (not outside_down and d["close"] <= (d["lo50"] + d["hi50"]) / 2)
             y_close = yc - 11 if above else yc + 19
             labelled = every or i == n - 1 or i % 2 == 0
             if i in (0, n - 1) or st == "red":
-                y_hi, y_lo = yh - 7, yl + 15
+                # the edge label flips to the inside of the band when the close is outside on its side
+                y_hi = yh + 15 if outside_up else yh - 7
+                y_lo = yl - 7 if outside_down else yl + 15
                 if labelled and abs(y_hi - y_close) < 13:
-                    y_hi = yh + 15  # under its own point instead of over the close label
+                    y_hi = yh + 15 if y_hi < yc else yh - 7
                 if labelled and abs(y_lo - y_close) < 13:
-                    y_lo = yl - 7
+                    y_lo = yl - 7 if y_lo > yc else yl + 15
                 parts.append(f'<text class="v hi" x="{x:.1f}" y="{y_hi:.1f}">{fmt(d["hi50"])}</text>')
                 parts.append(f'<text class="v lo" x="{x:.1f}" y="{y_lo:.1f}">{fmt(d["lo50"])}</text>')
             parts.append(f'<circle class="dot {st}" cx="{x:.1f}" cy="{yc:.1f}" r="6"/>')
