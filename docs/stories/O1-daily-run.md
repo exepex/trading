@@ -257,6 +257,33 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   from any wait of the run: the desk's `ServicingWaiter`, and every command's poll loop (`waiting` in
   `fno/daily/wiring.py`). Commits stay between the steps. A run stopped early still starts them, in `finish`.
 
+## Fix after the merge: a rerun resumes the 3 pm parts (21 Oct, branch `story/o1-part-lock`; judge 412 add. 2)
+
+- **The gap F1 (strong evidence, O2's kill-and-rerun day):** when the routine's container dies before the parts
+  recorded, the parts die with it. The rerun's log already holds `quotes`, so it starts none, although the window is
+  open until 15:10 (indices 15:13). The day then has no NIFTY or NSE record, no pack and no decision. A rerun after a
+  stop also called parts that the stopped run had committed "not in this run".
+- **The rule (judge D's design):** each part runs holding an exclusive `fcntl.flock` on a git-ignored file,
+  `journal/runs/.parts/<date>_<part>.lock`. The run takes the lock when it starts the part and hands the open file to
+  the child (`pass_fds`), then closes its own copy. The child holds the lock for its whole life without knowing it,
+  so A4's commands are unchanged, and the kernel frees it when the child dies. On a rerun whose log holds `quotes`,
+  each part is resumed:
+  - **lock held** (a part of the crashed run still alive in this container): **adopted**. The run waits for the lock
+    to free, then commits the part's files as for its own part. A second recorder is never started;
+  - **every canonical marker of the part present:** **recorded by an earlier run**, `ok`. Any of its files still
+    uncommitted are committed;
+  - **otherwise, while the part's window is open** (`WINDOW_END` 15:10; the indices' `INDEX_WINDOW_END` 15:13, from
+    A4's constants): **restarted**, with its own `not_before` and `starts_after` (the indices after NIFTY);
+  - **otherwise:** `failed`, `NOT_IN_THIS_RUN`, with one alert. This is the only case left for it.
+- **The log names it:** each part's result carries `how` (`started`, `restarted`, `adopted`, `earlier run`) and its
+  start time. `quotes`' reason names the start time, "nifty, nse from 14:38" (judge 178 add. 19).
+- **Tests:**
+  - a kill before 14:55 with a rerun in a new run: the end state is the twin's bytes;
+  - a crashed run with a live part: adopted, one recorder;
+  - a rerun after 15:10: `NOT_IN_THIS_RUN` with one alert;
+  - the same for the indices part;
+  - F1's strict xfail in `tests/e2e/test_kill_rerun.py` becomes the real assertion.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).

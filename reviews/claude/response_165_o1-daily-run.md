@@ -363,3 +363,16 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   (`datetime.combine(None, ...)`). Every rerun after 14:33 would have crashed. Now `start_due` returns when the day
   is not open. Test: `test_a_rerun_that_never_opens_the_day_starts_nothing_and_never_fails_on_a_wait`; with the
   guard removed, it fails.
+
+### Fix: a rerun resumes the 3 pm parts (gap F1; story text first, judge 412 addendum 2)
+
+- **Gap (strong evidence):** O2's `tests/e2e/test_kill_rerun.py`. A kill after any step from `quotes` to
+  `forecasts_v4` (14:33) and a rerun leave no NIFTY or NSE record and no pack. That case is a strict xfail today.
+- **Design:** judge D's per-part `fcntl.flock`, written into the O1 story's new section. The lock is taken by the run
+  and handed to the child through `pass_fds`, so A4's commands are unchanged and the kernel frees the lock when the
+  child dies. A rerun adopts a part whose lock is held, takes "earlier run" when all of a part's canonical markers
+  exist, restarts a part while its window is open, and otherwise records `NOT_IN_THIS_RUN` with one alert. Each part's
+  `how` and start time are logged.
+- **One choice of mine (reasoning only):** the run, not the recorder, takes the lock and passes it on, so no A4 file
+  changes. A4's builder is working on `cmd_quotes` (G2) at the same time.
+- Code follows judge D's PASS on this text.
