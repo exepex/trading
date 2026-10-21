@@ -178,3 +178,25 @@ rebased.**
   earlier", restarted).
 
 Then send that head; I check that diff.
+
+## Addendum 6: round 4 rebased on F1 (story/o2-failure-handling at ba205014)
+**Verdict: PASS. Addendum 5's condition is met; it may merge after the full gates pass on the exact pushed tree.**
+
+- **The dead alert is dropped.** The only product line left is `git_sync.py` reading the limit when `Git` is built
+  (accepted in addendum 5). F1's per-part `NOT_IN_THIS_RUN` replaces the whole-step alert, so a part that is not
+  recorded still alerts once.
+- **The F1 xfails are real.** One parametrized test covers a kill after every step before `quotes_done`. Each case
+  asserts:
+  - the rerun ends `(0, "day done")` with no alert;
+  - the committed tree differs from the twin's only in the run log;
+  - Drive equals the twin's;
+  - each part's `how` (snapshot to reviews: every part "earlier run"; versions to decisions: nifty and nse "earlier
+    run", indices "restarted"; before versions: every part "restarted").
+
+  It replaces the old `NOT_IN_THIS_RUN` assertion, the lost-indices assertion and the xfail. The hang rerun asserts
+  "day done", with every part "earlier run".
+- **Planted mutation:** F1's "earlier run" branch removed (every part restarted instead) fails 10 of the kill and hang
+  tests.
+- **Gates on a trial merge with main (F1 included):** 8849 passed, 16 xfailed, 0 failed; ruff clean.
+
+This closes O2's kill-and-rerun and hang rows in phase 1. O2b (the trade rows) stays paused.

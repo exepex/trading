@@ -60,8 +60,9 @@ class CloseReport:
     def _match(self, draft: _Draft, underlying: str, targets: list[date], done: set[str]) -> None:
         for target in (d for d in targets if key(underlying, d) not in done):
             found = self.match.match_lines(underlying, target)
-            draft.add(found or [NOT_ARCHIVED.format(underlying=underlying, target=target)])
-            if found:
+            lines, complete = found or ([NOT_ARCHIVED.format(underlying=underlying, target=target)], False)
+            draft.add(lines)
+            if complete:
                 draft.matched.append(key(underlying, target))
 
 

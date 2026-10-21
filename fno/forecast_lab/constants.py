@@ -23,7 +23,10 @@ LATE = "{underlying} {horizon} for {target} (issued {issue_day}): sealed late ({
 NONE_EXPECTED = "{underlying} forecasts for {target}: none expected (issued before G13b's first live day)"
 SEALS_OK = "{underlying} forecasts for {target}: every one sealed in time"
 NOT_IN_TIME = " {horizon}, issued {issue_day}: no forecast sealed in time (its seal check said why)"
-NO_SCORE_YET = "  no scored row yet (G13b scores after the close is archived)"
+SCORES_NOT_READY = (
+    "{underlying}: the official close of {target} is archived but G13b has not scored all its forecasts yet; its match "
+    "comes in a later report"
+)
 NOT_SEALED_YET = "{underlying} next sessions: today's 15:45 issue is not sealed yet; not shown"
 MATCH_HEADER = (
     "{underlying} match: the forecasts for {target} against its official close; the latest days are matched in a "

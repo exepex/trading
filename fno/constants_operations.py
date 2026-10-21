@@ -56,7 +56,9 @@ DAILY_RUN_STEPS = (
     "quotes_done",
     "card",
     "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
+    "price_distribution_scores",  # G13's scores: outcomes lag one session (NSE's close file lands in the evening)
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
+    "price_range_scores",  # G13b's scores and seals, before FL1's 15:45 lab; the same one-session lag
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
     "lab_close",  # story FL1-1: the 15:45 report to #fno-forecast, last (fno/forecast_lab/constants.py REPORT_AT)
 )  # fmt: skip; the quote parts start first (judge 178)

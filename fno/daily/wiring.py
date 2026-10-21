@@ -21,7 +21,8 @@ FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
-              "price_ranges", "lab_close")  # fmt: skip
+              "price_distribution_scores", "price_ranges", "price_range_scores", "lab_close")  # fmt: skip
+DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 
 
 def range_issue(day: date) -> tuple[str, ...]:
@@ -88,6 +89,12 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     price_ranges = CommandStep(processes, range_issue, range_receipts(), git.changed, waiting, locks)
     lab_close = CommandStep(processes, lambda day: ("lab", "close", "--day", day.isoformat()), lab_receipts(),
                             git.changed, waiting, locks)  # fmt: skip
+
+    def scores(arguments: tuple[str, ...], pathspecs: tuple[str, ...], name: str) -> DayStep:
+        """G13's and G13b's scorers: their own receipts only (the scores file; G13b's seals too)."""
+        step = CommandStep(processes, lambda day: arguments, pathspecs, git.changed, waiting, locks)
+        return Alerted(name, LiveFrom(step, live[name]), alerts)
+
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
@@ -120,7 +127,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         "price_distribution": Alerted(
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
+        "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
+        "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),
         "candles": Alerted(
             "candles",
             NotBefore(

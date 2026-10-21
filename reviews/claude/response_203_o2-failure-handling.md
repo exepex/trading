@@ -212,3 +212,32 @@ Notes:
 - **G2, reported, not mine:** a child prints only "alert NOT sent: <reason>", not the alert's text (`fno/quotes/cli.py`
   `record_today`). The orchestrator assigned it to the A4 builder (story/a4-unsent-alert-text). Strict xfail:
   `test_drive_down_for_raw_files...[slack-down]`.
+
+### Round 4b: G4's strict xfail becomes the real assertion (after O1's G4 merged, d1983cc6, judge 420)
+
+- `tests/e2e/test_hangs.py::test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carries_it_and_the_desk_goes_on`
+  replaces the strict xfail.
+  - The test asserts the alert "quote part nifty committed, NOT pushed (the next push carries it)" with "push not
+    confirmed", and that the part's commit then reaches origin through the desk's next push. It also asserts that the
+    exits are reviewed and that no git lock is left behind.
+- F1's strict xfails, in `test_kill_rerun.py` and in `test_hangs.py::test_the_rerun_after_a_stopped_push_ends_day_done`,
+  stay strict until O1's F1 code merges.
+
+### Round 4a: F1's strict xfails become real assertions (O1's F1 code, judge 421 and add. 1 PASS, merged in)
+
+- **What the run does now (strong evidence, read from the run itself):** after a kill following any step before
+  `quotes_done`, the rerun ends `day done` with no alert. Its committed tree and Drive files equal the twin's,
+  except for the run log. Every step other than `quotes_done` matches the twin. The parts resume as follows:
+  - killed at the desk (snapshot through reviews): each part is taken as "earlier run";
+  - killed between versions and the decisions, before the indices ended: NIFTY and NSE are "earlier run" and the
+    indices are "restarted";
+  - killed before versions (from 14:33): all three are "restarted".
+- **`tests/e2e/test_kill_rerun.py`:** one test, `test_a_kill_before_quotes_done_reruns_to_the_twin_s_bytes_and_resumes_each_part`,
+  replaces three tests that asserted the old outcomes (`NOT_IN_THIS_RUN`, a lost indices record, and the strict
+  xfail). It is parametrized over every step before `quotes_done`, with the expected `how` of each part. The test for
+  kills after `quotes_done` is unchanged: the twin's bytes.
+- **`tests/e2e/test_hangs.py`:** the desk-hang rerun now ends `day done`, with each part "earlier run". The strict
+  xfail `test_the_rerun_after_a_stopped_push_ends_day_done` asserted the same thing, so it was removed into that test
+  rather than kept as a duplicate.
+- **Merge:** O2's `NOT_IN_THIS_RUN_ALERT` (quote_steps), the whole-step alert, gives way to F1's per-part alert. Every
+  part that is not recorded still alerts once, so "never silent" holds.

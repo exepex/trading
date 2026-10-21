@@ -149,6 +149,9 @@ FL1-1:
    run before `daily.live_from.lab_close` is set), never a test post.
 8. O11's replay covers `lab close` on its recorded day, with G13b's `price_ranges` issue in the replay; until then its
    strict xfail names it. A condition before `daily.live_from.lab_close` is set (judge 422), not a later nicety.
+   Also before it: G13b's `price_range_scores` step live no later than `lab_close`, and `daily.live_from.price_ranges`
+   set to G13b's real first live day (judge 422.1). A day is matched only once G13b has scored every ok row of every
+   forecast sealed in time; until then it is said to wait and a later report within 5 sessions takes it up.
 
 FL1-2:
 9. A 09:15 issue sealed after 09:15 opens no position: "not taken: forecast sealed late", alerted. Candidates are never

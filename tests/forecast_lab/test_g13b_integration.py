@@ -52,8 +52,9 @@ def test_g13b_s_real_record_and_scores_reach_the_report(tmp_path):
     shown = next_ranges("NIFTY", issue, PUSHED)
     assert any(line.startswith("  N1 (2026-10-19) rv20: 5/25/50/75/95 ") for line in shown)
     match = MatchSection(source, Closes(), RegularSessions(CALENDAR), G13B_LIVE)
-    lines = match.match_lines("NIFTY", MONDAY)
+    lines, complete = match.match_lines("NIFTY", MONDAY)
     assert lines[1] == " N1, issued 2026-10-16 15:45 at 22990.00:" and any("close 23100.00" in x for x in lines)
+    assert complete  # every ok row of G13b's record has its own score row
     assert match.seal_lines("NIFTY", MONDAY)[1] == [
         "NIFTY N3 for 2026-10-19 (issued 2026-10-14): no forecast was sealed; nothing to score"
     ]
