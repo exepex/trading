@@ -74,3 +74,18 @@ def test_revision_7_states_the_regime_caveat_for_every_member_and_test_a():
         assert option in TEXT
     assert "**Every member also needs at least 5 2% days in the scored window**" in TEXT
     assert "the 5-day gate covers every member" in calibration
+
+
+def test_the_days_clock_and_x_in_the_text_match_the_code():
+    """Story G10: section 1.6's times, X and its provenance are the numbers `terms.py` runs."""
+    for moment in (terms.V4_CAPTURE_START, terms.V4_PACK_WINDOW_END, terms.V4_DEADLINE, terms.V4_COMMON_SNAPSHOT):
+        assert f"| {moment:%H:%M}" in TEXT
+    assert "observed by 14:40:00 IST on `d`,\ncaptured from 14:30:00" in TEXT and "after 15:10:00" in TEXT
+    assert f"**X = {terms.MOVED_AFTER_CUTOFF_X!r}**" in TEXT
+    assert f"**{terms.MOVED_AFTER_CUTOFF_SAMPLE:,}**" in TEXT and terms.MOVED_AFTER_CUTOFF_SOURCE in TEXT
+    assert "the cutoff is 15:00:00 IST on `d`" not in TEXT and "15:00 pack" not in TEXT
+
+
+def test_the_day_labels_in_the_text_are_a_and_system_late_only():
+    assert "`A`, every required field observed by 14:40:00" in TEXT and "`system_late`, no complete pack" in TEXT
+    assert "was dropped on 16 Oct" in TEXT
