@@ -98,8 +98,26 @@ footer { font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--lin
 <div class="box"><div class="lab">6 · Why it missed · last 7 days <span class="when">only when there is a miss</span></div>
 <div>Thu 15 Oct: +56 above almost certainly · no clear reason in our data. &nbsp; Tue 13 Oct: +67 above · F&amp;O expiry; rupee −0.9%.</div></div>
 
-<div class="box"><div class="lab">7 · Details (attached file only) </div>
-<div class="note">30-day chart (lines, zoom) · every day in numbers · every method ✓/✗ grid and scores (collapsed) · stricter checks · seal and alerts · the words in numbers · contracts (proposal)</div></div>
+<div class="box solid"><div class="lab">7 · Contracts <span class="when">owner's choice, 21 Oct · data from G13 (market-implied), nearest monthly expiry</span></div>
+<div class="cols">
+<div><div class="lab">7a · Chance to finish in the money <span class="when">market-implied (risk-neutral), not our forecast</span></div>
+<div class="scroll"><table><tr><th>Strike</th><th>Call ITM</th><th>Put ITM</th><th>Price</th><th>Fair − price</th></tr>
+<tr><td>22,700</td><td>66%</td><td>34%</td><td>[v]</td><td>[v]</td></tr>
+<tr><td>22,800</td><td>58%</td><td>42%</td><td>[v]</td><td>[v]</td></tr>
+<tr><td>22,900 <span class="chip">at the money</span></td><td>49%</td><td>51%</td><td>[v]</td><td>[v]</td></tr>
+<tr><td>23,000</td><td>41%</td><td>59%</td><td>[v]</td><td>[v]</td></tr>
+<tr><td>23,100</td><td>32%</td><td>68%</td><td>[v]</td><td>[v]</td></tr></table></div>
+<div class="note">Call ITM = 1 − cdf(strike), put ITM = cdf(strike), from G13's per-strike record at 3 pm. The market's own odds typically overstate big moves. No per-day ✓/✗ per contract: one expiry is one outcome for every strike.</div></div>
+<div><div class="lab">7b · How honest were those odds? <span class="when">calibration across past expiries, NIFTY from 2019</span></div>
+<div class="scroll"><table><tr><th>Market said</th><th>Avg said</th><th>Finished ITM</th><th>Contracts</th><th>Expiries</th><th>Interval</th></tr>
+<tr><td>0–10%</td><td>5%</td><td>4%</td><td>[n]</td><td>[N]</td><td>[lo–hi]</td></tr>
+<tr><td>10–20%</td><td>15%</td><td>[v]</td><td>[n]</td><td>[N]</td><td>[lo–hi]</td></tr>
+<tr><td colspan="6" class="note">… one row per 10% bucket to 90–100% …</td></tr></table></div>
+<div class="note">BANKNIFTY, FINNIFTY, MIDCPNIFTY: "too few expiries yet" (their records start 19 Oct 2026); the row count N is always shown. A next-session premium range per contract does not exist yet (a later story), so it is not drawn.</div></div>
+</div></div>
+
+<div class="box"><div class="lab">8 · Details (attached file only) </div>
+<div class="note">30-day chart (lines, zoom) · every day in numbers · every method ✓/✗ grid and scores (collapsed) · stricter checks · seal and alerts · the words in numbers · the full contracts tables</div></div>
 
 <footer>Research only. Not a trade tip. Sources: Groww 3 pm quotes, NSE bhavcopy and participant OI, NSE India VIX, FRED (US 10-year), RBI (USD/INR). Method: implied, best on history, 0 of 60 live days scored.</footer>
 </div></body></html>

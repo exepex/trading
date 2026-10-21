@@ -91,8 +91,6 @@ table.days th:first-child, table.days td:first-child { text-align: left; }
 table.days td { padding: 7px 8px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
 table.days td.green { color: var(--up-ink); font-weight: 700; } table.days td.amber { color: var(--warn-ink); font-weight: 700; }
 table.days td.red { color: var(--down-ink); font-weight: 700; }
-table.contracts i.bar { display: inline-block; width: 60px; height: 8px; border-radius: 2px; background: var(--tile); margin-right: 8px; vertical-align: middle; position: relative; overflow: hidden; }
-table.contracts i.bar::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--p) * 100%); background: var(--accent); border-radius: 2px; }
 details.more { margin-top: 10px; border-top: 1px solid var(--rule); padding-top: 8px; }
 details.more summary { cursor: pointer; font: 600 15px/24px var(--font); color: var(--accent-ink); }
 details.more .inner { padding: 8px 0 4px; }

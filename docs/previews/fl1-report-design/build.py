@@ -5,7 +5,6 @@ Standard library only; the pages draw the PageView's values and never compute a 
 import json
 from pathlib import Path
 
-from contracts import SESSIONS_TO_EXPIRY, contract_rows
 from linechart import ForecastLineChart, Layout, fmt, fmt_high, fmt_low, status
 
 HERE = Path(__file__).parent
@@ -160,29 +159,11 @@ def _methods(idx, horizon):
             f'<th>Avg error, points</th></tr></thead><tbody>{scores}</tbody></table></div></div></details>')
 
 
-def _contracts(idx):
-    rows = "".join(
-        f'<tr><td><b>{r["strike"]:,}</b></td><td><i class="bar" style="--p:{r["call"]:.2f}"></i>{r["call"]:.0%}</td>'
-        f'<td><i class="bar" style="--p:{r["put"]:.2f}"></i>{r["put"]:.0%}</td>'
-        f'<td class="{"green" if r["call_check"] else "red"}">{"✓" if r["call_check"] else "✗"}</td>'
-        f'<td class="{"green" if r["put_check"] else "red"}">{"✓" if r["put_check"] else "✗"}</td></tr>'
-        for r in contract_rows(idx))
-    return (f'<div class="card"><div class="top"><h2>{idx["name"]} contracts <span class="tag">proposal, data to '
-            f'confirm</span></h2><span class="sub">nearest expiry (mock: {SESSIONS_TO_EXPIRY} sessions away)</span></div>'
-            '<div class="scroll"><table class="days contracts"><thead><tr><th>Strike</th><th>Call: chance in the money</th>'
-            '<th>Put: chance in the money</th><th>Today’s call check</th><th>Today’s put check</th></tr></thead>'
-            f'<tbody>{rows}</tbody></table></div>'
-            '<p class="plain">Chance = the forecast range’s probability that the index finishes above (call) or below '
-            '(put) the strike at expiry, from the 3-day forecast stretched to the expiry. Today’s check: did the contract '
-            'finish on the side the forecast made the session before implied? Mock numbers from a normal fit; '
-            'production reads G13’s per-strike implied probabilities and fair values. Paper only.</p></div>')
-
-
 def details_card(idx):
     return (f'{chart_card(idx, idx["days"][-30:], 1510)}<div class="card">{_three(idx)}{_why_missed(idx)}'
             f'<p class="plain">{idx["direction"]} Live days scored so far: {idx["live_days"]} of the {idx["days_needed"]} '
             f'needed before the method counts as proven.</p>{_days_table(idx)}'
-            f'{_methods(idx, "next session")}{_methods(idx, "in 3 sessions")}</div>{_contracts(idx)}')
+            f'{_methods(idx, "next session")}{_methods(idx, "in 3 sessions")}</div>')
 
 
 def _words(data):

@@ -27,12 +27,10 @@ are v4's; the layout is the owner's v6 brief, relayed by the orchestrator. Reaso
    - a key, then `Last 30 days: 12 ✓ correct · 13 ⚠ close call · 5 ✗ missed (dates)`.
 3. **Details** (attached file only): the 3-day forecast, "why it missed" for the last 7 days, every day in numbers
    (now with the three-colour result), every method in collapsed sections, the words in numbers, the system card.
-4. **Contracts (proposal, data to confirm)**, one card per index below its details: the nearest expiry, five strikes
-   around today's price, for each the chance that the call and the put finish in the money, read off the forecast
-   range, and today's check (did the contract finish on the side the forecast made the session before implied?).
-   The mock fits a normal curve to the forecast quantiles and assumes an expiry six sessions away; production
-   reads G13's per-strike implied probabilities and fair values and the real expiry from the F&O masters. The FL1
-   and G13 builders confirm the data.
+4. **Contracts**: v6's mock (a normal fit with a per-day check per contract) was withdrawn on 21 Oct after the G13
+   builder's facts: the chances are the market's own (1 − cdf for calls, cdf for puts, from G13's per-strike
+   record), and the check is a calibration table across past expiries, never a per-day tick per contract. The
+   wireframe's block 7 carries the corrected form.
 
 ## Why these choices
 
@@ -61,6 +59,5 @@ Data: every number is read from the builder's real PageView dump (`pageview-2026
 PageBuilder on G13b's back-fill) through `pageview.py`, which only formats dates and renames bands. The builder's
 PageRenderer calls `render_picture(page_view)` and `render_details(page_view)`.
 
-Honest limits: the contracts card is a mock with a normal fit and an assumed expiry; the headline ranges round
-outward to 10 (the builder's rule); the timeline in the dump ends at the session before the issue day (16 Oct), so the
+Honest limits: the headline ranges round outward to 10 (the builder's rule); the timeline in the dump ends at the session before the issue day (16 Oct), so the
 overview's "call" row shows that day until the builder adds today's close as the last outcome.

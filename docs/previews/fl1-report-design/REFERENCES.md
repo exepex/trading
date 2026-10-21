@@ -126,5 +126,6 @@ data that exists at that time, never a stale number posing as today's.
 | Brent | morning line | A17 | lags about a week | show date, or omit |
 | US closes | morning line | A17 (private, allowed) | overnight | owner's display approval |
 | GIFT Nifty, Asian markets | morning line | A17e, A22 | no | coming |
-| Contracts (chance in the money per strike) | details | G13 per-strike probabilities | proposal | needs confirmation |
+| Contracts: chance to finish in the money per strike (market-implied, 1 − cdf for calls, cdf for puts), with a calibration table across past expiries (buckets, share finished ITM, contracts, expiries, interval); no per-day ✓/✗ per contract | note, below the index cards (owner's choice, 21 Oct) | G13 per-strike cdf, price, IV, fair value; nearest two monthly expiries | yes for NIFTY (live from 13 Oct, history from 2019); BANKNIFTY/FINNIFTY/MIDCPNIFTY from 19 Oct ("too few expiries yet") | available (G13 builder, 21 Oct) |
+| Next-session premium range per contract | not yet | would be a new forecast with a vol assumption | no | later story (1.5-2 days, judged) |
 | Trade ideas with stop and target | never (research only) | — | — | out of scope |
