@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from fno.global_cues import preopen_cli
+from fno.global_cues import wiring as global_cues_wiring
 from fno.global_cues.markets import SEOUL, TOKYO
 from fno.global_cues.preopen import CLOSED, LIVE, LUNCH, ROW_FIELDS, STALE, PreopenReader, level_status, newest_level
 from fno.global_cues.row_log import CsvRowLog
@@ -19,6 +20,32 @@ from fno.storage.raw_store import LocalFolderStore
 from tests.global_cues.world_fakes import CannedResponse, CountingSession, utc, yahoo_chart
 
 TOKYO_ZONE = ZoneInfo("Asia/Tokyo")
+REAL_COMMITTERS = global_cues_wiring.build_preopen_committers  # before the fixture below fakes it
+
+
+def at_0855():
+    return datetime(2026, 10, 22, 8, 55, tzinfo=IST)
+
+
+def no_sleep(seconds):
+    raise AssertionError("no wait inside the window")
+
+
+@pytest.fixture(autouse=True)
+def no_commits(monkeypatch):
+    """The command's own commit, faked: the git committers are A16e's, tested there."""
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen_committers", lambda: [Committed()])
+
+
+class Committed:
+    def __init__(self, line="pre-open logs committed and pushed (1 file(s))"):
+        self.line, self.whats = line, []
+
+    def commit(self, what):
+        self.whats.append(what)
+        return self.line
+
+
 SEEN = datetime(2026, 10, 22, 9, 0, tzinfo=IST)  # 12:30 in Tokyo
 LEVEL = 12345.67  # made up
 
@@ -131,7 +158,7 @@ def test_the_command_alerts_once_and_records_one_o10_row_when_an_index_failed(mo
     )
     monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: errors)
     out = []
-    assert preopen_cli.cmd_preopen(out.append) == 1
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1
     assert out[:2] == ["nikkei225: live", out[1]] and out[1].startswith("kospi: FAILED (YahooBlocked)")
     assert sent == ["Omenix F&O pre-open Asian levels: kospi failed (the routine's output names why)"]
     (row,) = errors.rows()
@@ -145,7 +172,7 @@ def test_the_command_exits_0_and_records_nothing_when_every_index_read(monkeypat
 
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
     monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: pytest.fail("no row when nothing failed"))
-    assert preopen_cli.cmd_preopen(lambda line: None) == 0
+    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep) == 0
 
 
 def _alerts(monkeypatch, tmp_path):
@@ -168,7 +195,7 @@ def test_a_drive_failure_while_building_alerts_and_records_too(monkeypatch, tmp_
 
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", refused)
     out = []
-    assert preopen_cli.cmd_preopen(out.append) == 1
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1
     assert out[0] == "preopen: STOPPED before any read (DriveSignInRefused)"
     assert sent == [preopen_cli.ALERT.format(what="stopped before any read (DriveSignInRefused)")]
     assert [r.message for r in errors.rows()] == ["stopped before any read (DriveSignInRefused)"]
@@ -187,7 +214,7 @@ def test_a_failed_archive_write_alerts_and_the_next_indexes_still_read(monkeypat
         "fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None), ("kospi", None)])
     )
     out = []
-    assert preopen_cli.cmd_preopen(out.append) == 1 and "kospi: live" in out
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1 and "kospi: live" in out
     assert len(sent) == 1 and len(errors.rows()) == 1
 
 
@@ -201,9 +228,52 @@ def test_every_open_market_stale_alerts_but_stale_beside_a_live_one_does_not(mon
 
     pairs = [(index, None) for index in statuses]
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
-    assert preopen_cli.cmd_preopen(lambda line: None) == 1
+    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep) == 1
     assert sent == [
         "Omenix F&O pre-open Asian levels: no live level: every open market stale (the routine's output names why)"
     ]
     statuses["kospi"] = LIVE
-    assert preopen_cli.cmd_preopen(lambda line: None) == 0 and len(sent) == 1
+    assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep) == 0 and len(sent) == 1
+
+
+def test_it_waits_for_0850_reads_until_0905_and_then_reports_the_rest_unread(monkeypatch, tmp_path):
+    sent, errors = _alerts(monkeypatch, tmp_path)
+    times = [(8, 40), (8, 50), (9, 4), (9, 5)]  # the wait, then one reading per index
+    clock = iter(datetime(2026, 10, 22, h, m, tzinfo=IST) for h, m in times)
+    slept = []
+
+    class Reader:
+        def read(self, source, index):
+            return f"{index}: live", LIVE
+
+    pairs = [("nikkei225", None), ("kospi", None), ("asx200", None)]
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
+    out = []
+    assert preopen_cli.cmd_preopen(out.append, now=lambda: next(clock), sleep=slept.append) == 1
+    assert slept == [600.0]  # 08:40 to 08:50
+    assert out[:3] == ["nikkei225: live", "kospi: live", "asx200: FAILED, not read: the window closed at 09:05 IST"]
+    assert sent == [preopen_cli.ALERT.format(what="asx200 failed")]
+
+
+def test_receipts_that_could_not_be_pushed_alert_and_record(monkeypatch, tmp_path):
+    sent, errors = _alerts(monkeypatch, tmp_path)
+
+    class Reader:
+        def read(self, source, index):
+            return f"{index}: live", LIVE
+
+    refused = Committed("pre-open logs NOT committed: push failed: rejected. Commit research/... by hand")
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen_committers", lambda: [refused])
+    out = []
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep) == 1
+    assert refused.whats == ["pre-open Asian levels"] and refused.line in out
+    assert sent == [preopen_cli.ALERT.format(what="receipts not committed (the routine's output names why)")]
+
+
+def test_the_committers_own_only_part_bs_files():
+    from fno.global_cues import wiring
+
+    logs, errors = REAL_COMMITTERS()
+    assert logs.owned == tuple(f"research/data/manifests/global-cues/{i}_preopen.csv" for i in wiring.PREOPEN_INDEXES)
+    assert errors.owned == ("research/ops/capture_errors.csv",)

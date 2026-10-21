@@ -19,6 +19,7 @@ from ..models import now_ist
 from ..research_data.calendar import SessionCalendar
 from ..storage import wiring as storage
 from ..storage.creation_times import GoogleDriveCreationTimes
+from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.raw_store import AreaStore, RawFileStore
 from .as_of import OPEN
 from .asia_sources import CsindexShanghaiSource, NikkeiSource, TwseTaiexSource
@@ -66,6 +67,7 @@ PRIVATE_FOLDER = "global-cues"  # in Drive's derived area: <cue>/rows, <cue>/rev
 YAHOO_SUFFIX = "_yahoo"
 PREOPEN_INDEXES = ("nikkei225", "kospi", "asx200", "taiex", "hang_seng", "sse_composite", "sti")  # open by 08:50 IST
 PREOPEN_TABLE = "preopen"
+PREOPEN_COMMIT = "A17e: {what} (receipts)"
 BEHIND_NAMES = (CboeSp500Source.cue, RbiUsdInrSource.cue, "nasdaq100", "vix_us")  # NYSE or NSE session calendars
 # A17e: (index, Yahoo symbol, market, max age in days, the official cue or None); max age covers each market's longest
 # usual closure (China's October and New Year weeks: 10 days)
@@ -189,6 +191,21 @@ def build_preopen(env=os.environ) -> tuple[PreopenReader, list[tuple[str, YahooC
         _session(), build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER), rows, previous_close, now_ist
     )
     return reader, [(index, yahoo[index + YAHOO_SUFFIX]) for index in PREOPEN_INDEXES]
+
+
+def build_preopen_committers() -> list[OwnedPathsCommitter]:
+    """Part B's own repository files: its snapshot logs and O10's capture-error log (its row after a failure); each
+    committer adds only those paths, pulls with --no-rebase and retries its push (A16e's committer)."""
+    from ..health.capture_errors import CAPTURE_ERRORS_FILE
+
+    errors = storage.REPOSITORY / CAPTURE_ERRORS_FILE
+    logs = [f"{index}_preopen.csv" for index in PREOPEN_INDEXES]
+    return [
+        OwnedPathsCommitter(
+            storage.REPOSITORY, SNAPSHOT_LOG_FOLDER, logs, message=PREOPEN_COMMIT, label="pre-open logs"
+        ),
+        OwnedPathsCommitter(storage.REPOSITORY, errors.parent, [errors.name], message=PREOPEN_COMMIT, label="O10 row"),
+    ]
 
 
 def build_index_reader(include_private: bool = True, env=os.environ) -> IndexReader:

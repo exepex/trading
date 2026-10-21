@@ -212,3 +212,9 @@ text for judge F.
    (`weekday_without_value`), not under its own kind.
 6. **Holiday rows on both sides.** Yahoo's VIX also had rows on two US holidays (25 May and 7 Sep 2026), so Yahoo
    cues skip non-session dates in readings, and the official/Yahoo comparison drops those dates on both sides.
+7. **Part B's own window and commit** (agreed with A22's builder, 21 Oct). A22's `preopen record` holds the routine
+   from about 08:36 to 09:11, so the routine starts `global-cues preopen` beside it, not after it. The command waits
+   for 08:50 IST on its own clock and starts no read after 09:05; an index not reached by then is a failure. It then
+   commits only its own files: its snapshot logs and, after a failure, O10's row. Each goes through A16e's
+   owned-paths committer (pull `--no-rebase`, push retried), well before A22's push at about 09:11. A push that fails
+   alerts and writes an O10 row.
