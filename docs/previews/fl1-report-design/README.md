@@ -10,9 +10,10 @@ to Slack; nothing under `fno/` is touched.
 | `REFERENCES.md` | Research before v7: five broker notes opened, what their first screen carries, visual conventions, morning vs evening editions, our content proposal with data availability |
 | `wireframe.html` | The v7 wireframe: layout only, plain boxes, 13.5 px body, two columns from 760 px |
 | `DESIGN.md` | v7's rationale: the two editions and the three graphs |
-| `fl1-morning.html` | Edition A, 08:50: one page, both indices side by side: cues strip, today's forecast, graph 1, why this forecast, the 3-day outlook, the light |
-| `fl1-evening.html` | Edition B, 20:05: one page, both indices side by side: the verdict chip, why it was right or wrong, graph 2, graph 3, the light, levels and flows |
-| `editions.py`, `rangechart.py`, `dotchart.py`, `editions.css` | The v7 generator: `python editions.py` rewrites both editions from the PageView dump |
+| `fl1-morning.html` | Edition A, 08:50: one page, both indices: cues strip, today's forecast, the 10-day fan chart with today's corridor, why this forecast, the reliability chip |
+| `fl1-evening.html` | Edition B, 20:05: one page, both indices: the result card, the 30-day fan chart, the month calendar, the reliability trend, when it was wrong, levels and flows |
+| `editions.py`, `fanchart.py`, `trendchart.py`, `calendar_grid.py`, `editions.css` | The v7 generator: `python editions.py` rewrites both editions from the PageView dump |
+| `rangechart.py`, `dotchart.py` | Earlier v7 chart forms (withdrawn: the chart set is fixed to the fan chart); kept until the builder wires v7 |
 | `fl1-report-picture.html` | v6's picture (rejected; kept until the builder wires v7) |
 | `fl1-report-details.html` | v6's attached file (the 30-day chart with zoom, every day in numbers, every method, the checks); v7's details file follows the wireframe's blocks 4-8 once the editions are approved |
 | `slack-message.txt` | The 3 text lines, unchanged from v4 |

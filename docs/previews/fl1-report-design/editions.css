@@ -92,3 +92,39 @@ table.levels { width: 100%; max-width: 420px; border-collapse: collapse; font: 5
 table.levels td { padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule); }
 table.levels td:last-child { text-align: right; font-weight: 600; color: var(--ink); white-space: nowrap; }
 table.levels td:first-child { color: var(--muted); }
+/* v7 fixed chart language: the fan chart, the trend line, the calendar */
+svg.fan .r90 { fill: var(--accent); fill-opacity: .14; } svg.fan .r50 { fill: var(--accent); fill-opacity: .36; }
+svg.fan .fc { fill-opacity: .1; } svg.fan .r50.fc { fill-opacity: .28; }
+svg.fan .edge { stroke: var(--accent-ink); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+svg.fan .edge.mid { stroke: var(--ink); }
+svg.fan .close { fill: none; stroke: #111; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg.fan .v { font: 700 11px var(--font); text-anchor: middle; paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; fill: var(--ink); }
+svg.fan .v.red { fill: var(--down-ink); } svg.fan .v.amber { fill: var(--warn-ink); } svg.fan .v.green { fill: var(--up-ink); }
+svg.fan .fv { font: 600 11px var(--font); } svg.fan .fv.num { font-weight: 700; fill: var(--ink); }
+svg.fan .fv.centre { font-weight: 700; fill: var(--accent-ink); } svg.fan .fv.faint { fill: var(--muted); }
+svg.fan .zh { font: 700 10.5px var(--font); fill: var(--accent-ink); letter-spacing: .06em; text-transform: uppercase; }
+svg.fan .day { font: 600 10.5px var(--font); } svg.fan .day.fcd { fill: var(--accent-ink); }
+.key i.ln { display: inline-block; width: 16px; height: 0; border-top: 2px solid #111; margin: 0 5px 4px 0; border-radius: 0; background: none; }
+svg.trend .zone { fill: var(--down); fill-opacity: .07; }
+svg.trend .target { stroke: var(--up); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg.trend .tl { font: 600 10px var(--font); fill: var(--up-ink); text-anchor: start; } svg.trend .tl.warn { fill: var(--down-ink); }
+svg.trend .trend { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+svg.trend .tdot { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+svg.trend .tv { font: 700 11px var(--font); fill: var(--accent-ink); }
+svg.trend .day { font: 600 10.5px var(--font); }
+.counts { font: 700 15px/22px var(--font); margin: 2px 0 6px; }
+.counts b.green { color: var(--up-ink); } .counts b.amber { color: var(--warn-ink); } .counts b.red { color: var(--down-ink); }
+.counts span { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+.calhead { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; font: 600 10px/14px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.calgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 2px; }
+.cal { height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; font: 700 12.5px/16px var(--font); }
+.cal span { font-size: 11px; font-weight: 800; }
+.cal.green { background: var(--up-tint); color: var(--up-ink); } .cal.amber { background: var(--warn-tint); color: var(--warn-ink); }
+.cal.red { background: var(--down-tint); color: var(--down-ink); }
+.cal.off { background: var(--tile); color: var(--muted); font-weight: 500; } .cal.future { border: 1px dashed var(--rule-major); color: var(--muted); font-weight: 500; }
+.cal.pad { background: none; }
+table.misses { width: 100%; border-collapse: collapse; font: 500 12.5px/18px var(--font); margin-top: 2px; }
+table.misses th { font: 600 10.5px/14px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule-major); }
+table.misses td { padding: 5px 6px 5px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.misses td:first-child { font-weight: 700; white-space: nowrap; } table.misses td:nth-child(2) { white-space: nowrap; color: var(--down-ink); font-weight: 600; }
+table.misses td i { color: var(--muted); font-weight: 400; }

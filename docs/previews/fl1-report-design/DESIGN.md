@@ -5,7 +5,41 @@ the structure stands, the graphs come back, the forecast cycle is two editions. 
 builder's PageView (`pageview.py`); nothing is computed here but the owner's three-colour rule and the outward
 rounding to 10. Reasoning only unless marked.
 
-## The two editions (owner, f9737bce: one single page and one picture per edition, both indices together)
+## The chart set is fixed (owner, 21 Oct: "sometimes horizontal, sometimes vertical ... change randomly")
+
+One visual language in both editions, no bars anywhere: the **fan chart** (a light corridor = "almost certainly", a
+darker corridor = "most likely", a black line = the actual close, a dot per day coloured by the result, the last
+value and every miss written), the **reliability trend** line and the **month calendar**.
+
+**Evening, about 20:05 IST, one page, both indices side by side** (`fl1-evening.html`):
+1. Result card, no chart: ✓ Correct / ⚠ Close call / ✗ Missed, forecast vs close, and 2 reason lines ("context,
+   not cause, until a cue feeds the forecaster").
+2. "Last 30 days · forecast vs actual": the fan chart over 30 trading dates, gridlines every 100 (NIFTY) or 250
+   (BANKNIFTY), a number on every gridline when they are 13 px apart and on every second one otherwise (the
+   subtitle says which), the last value and each miss written in its colour.
+3. "This month · right vs wrong": a Mon-Fri calendar grid, one rounded cell per trading day with its date number,
+   coloured by the result with its glyph; closed weekdays grey, the future dashed; the counts in big type above.
+4. "Reliability trend": the rolling 20-day share inside "almost certainly" (the builder's rolling_90 for the shown
+   method), a dashed target line at 90%, a shaded warning zone below 80%, the last value written; the state word
+   ("steady" at 80% or more, else "watch") is the drift and fluctuation detector.
+5. "When it was wrong · last 30 days": date, how far outside, the reason (reasons exist for the last 7 days; the
+   builder is asked to keep 30).
+6. Levels and flows, the compact table (example values until wired).
+
+**Morning, 08:50 IST, one page, both indices side by side** (`fl1-morning.html`):
+1. The global cues strip (example values until A17 is wired).
+2. Per index: today's forecast in big type (most likely; almost certainly, middle and the 3-day range in one line),
+   then the SAME fan chart over the last 10 days with today's corridor extending to the right behind a dashed edge,
+   the high, middle and low written.
+3. "Why this forecast": 3 key points, context-labelled.
+4. The reliability chip: "Right 25 of 30 · watch" (the 30-day light's count and the trend's state).
+
+Rendered at 1100 and 390 px (2x): 0 px overflow, no console errors, no requests. Found and fixed in review: 24
+axis numbers 9 px apart on the 30-day chart (now every second gridline), the last value clipped at the right edge
+(the CSS anchor overrode the attribute), the trend labels over the line (moved left), the warning label washed out
+by the zone's opacity rule.
+
+## Earlier v7 notes (kept for the record)
 
 Each edition is ONE page with one header and one footer: NIFTY and BANKNIFTY side by side from 760 px (the picture is
 drawn at 1100 px wide, 2x) and stacked on a phone. Each index card carries 2-4 **reason lines**: the morning "Why

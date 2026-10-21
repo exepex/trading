@@ -48,8 +48,8 @@ def _range(rv):
 
 def _outcome(point):
     out = _band(_get(point, "band"))
-    out.update(date=short(_get(point, "day")), date_long=long(_get(point, "day")), close=_get(point, "close"),
-               right=bool(_get(point, "inside_90")), live=bool(_get(point, "live")))
+    out.update(date=short(_get(point, "day")), date_long=long(_get(point, "day")), iso=_day(_get(point, "day")).isoformat(),
+               close=_get(point, "close"), right=bool(_get(point, "inside_90")), live=bool(_get(point, "live")))
     return out
 
 
@@ -77,6 +77,14 @@ def _method(record):
     return _get(record, "method"), cells, score
 
 
+def _best_rolling(horizon):
+    """The shown method's rolling 20-session share inside the 90% range, per grid session (the builder's rolling_90)."""
+    for record in _get(horizon, "methods"):
+        if _get(record, "best"):
+            return list(_get(record, "rolling_90"))
+    return []
+
+
 def _horizon_methods(horizon):
     grid, scores = {}, []
     records = sorted(_get(horizon, "methods"), key=lambda r: (not _get(r, "best"), _get(r, "method")))
@@ -101,6 +109,7 @@ def _index(ix):
         "direction": "" if _get(ix, "direction_edge") else "It cannot tell up from down yet.",
         "live_days": _get(ix, "live_days"), "days_needed": _get(ix, "days_needed"),
         "days": points,
+        "rolling_90": _best_rolling(horizons[0]),
         "methods": {HORIZON_TITLE[_get(_get(h, "timeline"), "horizon")]: _horizon_methods(h) for h in horizons},
     }
 
@@ -110,7 +119,7 @@ def adapt(page_view):
     day = _day(_get(page_view, "day"))
     system = list(_get(page_view, "system"))
     return {
-        "report_day": f"{long(day)} {day.year}", "report_time": "15:45",
+        "report_day": f"{long(day)} {day.year}", "report_time": "15:45", "issue_day": day,
         "preview_note": _get(page_view, "provenance"),
         "system": system, "system_line": PROBLEM_FREE if not system else None, "research_line": RESEARCH_LINE,
         "words": WORDS, "light_rule": LIGHT_RULE, "not_checked": NOT_CHECKED,
