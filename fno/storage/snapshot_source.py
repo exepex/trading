@@ -15,6 +15,7 @@ SNAPSHOT_FOLDER = "%Y/%m/%d"
 
 class SnapshotSource(NseArchiveSource):
     FILENAME = ""  # the publisher's fixed file name
+    STALE_REFUSED = False  # True: only a copy for the run day's or the next session is valid (CurrentSessionTaker)
 
     @classmethod
     def filename_for(cls, day: date) -> str:
@@ -156,3 +157,25 @@ class CorporateActionsBySymbolSource(CorporateActionsSource):
     @classmethod
     def url_for(cls, path: str) -> str:
         return cls.SYMBOL_API.format(symbol=quote(path.rsplit("/", 1)[-1].removesuffix(cls.EXTENSION)))
+
+
+class FoBanListSource(SnapshotSource):
+    """NSE's F&O ban list (fo_secban.csv): the securities in the ban period for the trade date its first line names,
+    written about 18:12 IST the evening before (Last-Modified, 16 Oct 2026) and replaced in place (story A20a). Filed
+    under that trade date, never the fetch day, so an evening copy is filed under the next session."""
+
+    dataset = "nse/derivatives/fo-ban-list"
+    first_day = date(2026, 10, 19)  # the first session A20a's job can take (the manifest test holds it)
+    BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
+    FILENAME = "fo_secban.csv"
+    STALE_REFUSED = True
+
+
+class FoLotSizeSource(SnapshotSource):
+    """NSE's market lots per F&O underlying and expiry month (fo_mktlots.csv), replaced in place with no date in its
+    name or body (story A20a): one copy per session day fetched."""
+
+    dataset = "nse/derivatives/fo-lot-sizes"
+    first_day = date(2026, 10, 19)
+    BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
+    FILENAME = "fo_mktlots.csv"
