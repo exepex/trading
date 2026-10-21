@@ -488,6 +488,21 @@
      "exit_code": 0
     }
    }
+  },
+  "candles": {
+   "started_at": "2026-10-21T15:35:53.647095+05:30",
+   "finished_at": "2026-10-21T15:36:17.670466+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
