@@ -55,3 +55,13 @@ history, and the text must say so.**
 ## Over-engineering check
 No new store, scorer or freeze. Seven gaps, each mapped to an existing owner, and the selector deferred until two
 members are proven. Proportionate to the owner's request. Accepted (reasoning only).
+
+## Note: 4550232c (two lines since 59d77f50)
+The change is 3 lines in `docs/stories/IL-innovation-lab.md`:
+- Gap d now says LR3's code was never started and needs a new builder, named by the orchestrator.
+- The seam note records D5's confirmation, and its proposal that B4's `Ledger` alone allocates numeric IDs, with R1's
+  owner deciding.
+
+Both are accurate and partly answer minor 1. **The FAIL stands:** should-fix 1 (stage 2 spent for every existing
+method) and should-fix 2 (the board versus the UI pause) are unchanged. The orchestrator has parked both behind
+FL1-1c.
