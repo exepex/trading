@@ -49,6 +49,43 @@
     "status": "not_live",
     "reason": "no live date set (config.yaml daily.live_from)"
    }
+  },
+  "versions": {
+   "started_at": "2026-10-21T14:58:00.000220+05:30",
+   "finished_at": "2026-10-21T14:58:00.010776+05:30",
+   "inputs": {},
+   "result": {
+    "line": "Book 1 has no registered version: the owner registers the first one (D6); its decisions stay unscored"
+   }
+  },
+  "pack": {
+   "started_at": "2026-10-21T14:58:03.674745+05:30",
+   "finished_at": "2026-10-21T14:58:09.382882+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "f6f39f9f55d3ff6471977db208abc7a514a1d460232c4d2a5cfb2a5c1e4eafc4"
+   }
+  },
+  "book1": {
+   "started_at": "2026-10-21T14:58:12.659169+05:30",
+   "finished_at": "2026-10-21T14:58:42.667718+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "--day",
+     "2026-10-21"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "Book 1 2026-10-21: decided (2026-10-21-r1), committed a776bf42511fa3b33629c6495ec2424d95aa12cf",
+    "exit_code": 0,
+    "lines": [
+     "Book 1 2026-10-21: decided (2026-10-21-r1), committed a776bf42511fa3b33629c6495ec2424d95aa12cf"
+    ]
+   }
   }
  }
 }
