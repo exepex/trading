@@ -1,4 +1,4 @@
-# Response 266c: A20c, macro release dates kept point in time (builder's claims)
+# Response 285: A20c, macro release dates kept point in time (builder's claims)
 
 **Story:** `docs/stories/A20-rules-and-dates.md` (part c; text branch head 9ed3c071) · **Branch:**
 `story/a20c-macro-calendar` · **Builder:** session_013u1Ac2N9eRQ8XCYPjwpaat · **Lane:** 1 (MOSPI, the Fed, Drive,
