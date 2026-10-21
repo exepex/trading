@@ -12,7 +12,7 @@ from .gap_chart import GapChart, GapLayout
 from .lines_chart import LinesChart, LinesLayout
 from .page import KEY, PHONE, WIDE, both, foot, head, header, levels_table, trend, why_block
 from .trend_chart import trend_state
-from .values import Day, days_of, reason_for, rolling_90
+from .values import Day, days_of, reason_for, result_of, rolling_90
 
 TITLE, ISSUED = "Was today’s forecast right?", "20:05"
 GRID = {"NIFTY": 100, "BANKNIFTY": 250}
@@ -73,7 +73,7 @@ def section(index: IndexView, view: PageView) -> str:
     name, days = index.underlying, days_of(index, SHOWN)
     if not days:
         return f'<div class="card"><h2>{name}</h2><p class="line">no scored session yet</p></div>'
-    today, grid = days[-1], GRID.get(name, DEFAULT_GRID)
+    today, grid = result_of(index, days), GRID.get(name, DEFAULT_GRID)
     c1, c2 = charts(name, days, grid)
     state = trend_state(rolling_90(index))
     trend_svg = both(trend(index, days, WIDE).svg(f"{name}: reliability trend"),

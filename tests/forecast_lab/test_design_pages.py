@@ -77,3 +77,17 @@ def test_an_index_without_scored_sessions_renders_a_plain_line_instead_of_charts
     html = render_evening(page("evening", indices=(bare,)))
     assert "no scored session yet" in html and "<svg" not in html
     assert "Too few days" in render_morning(page("morning", indices=(bare,)))
+
+
+def test_the_result_card_reads_the_editions_own_check_when_the_model_carries_it():
+    from types import SimpleNamespace
+
+    from fno.forecast_lab.design.values import days_of, result_of
+
+    index = nifty()
+    days = days_of(index, 30)
+    assert result_of(index, days).day == days[-1].day  # main's model: the newest scored session
+    own = index.horizons[0].timeline.points[-5]
+    with_result = SimpleNamespace(result=own, horizons=index.horizons)
+    assert result_of(with_result, days).day == own.day  # FL1-1d-2's model: IndexView.result
+    assert result_of(SimpleNamespace(result=None, horizons=()), []) is None

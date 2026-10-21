@@ -1,6 +1,6 @@
 """The plain values the charts and blocks draw, read from the `PageView` once. A `Day` is one scored session with
-its forecast band and its result; a `Range` is one of today's forecasts. The only arithmetic here is the gap
-(close minus the forecast middle) and its percentage, until the builder's model carries them (FL1-1d-2)."""
+its forecast band and its result; a `Range` is one of today's forecasts. The gap (close minus the forecast
+middle) and its percentage come from the model (FL1-1d-2) and are computed here only on the model before it."""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ class Day:
     result: str  # "green", "amber" or "red"
     live: bool
     provisional: bool
+    gap: float  # close minus the forecast middle: the model's gap_points (FL1-1d-2), else computed here
+    gap_pct: float
 
     @property
     def date(self) -> str:
@@ -31,14 +33,6 @@ class Day:
     @property
     def date_long(self) -> str:
         return long(self.day)
-
-    @property
-    def gap(self) -> float:
-        return self.close - self.mid
-
-    @property
-    def gap_pct(self) -> float:
-        return self.gap / self.mid * 100
 
 
 @dataclass(frozen=True)
@@ -61,8 +55,10 @@ def _edges(band: Band) -> tuple[float, float, float, float, float]:
 
 
 def day_of(point: Outcome) -> Day:
+    gap = getattr(point, "gap_points", point.close - point.band.q50)
+    gap_pct = getattr(point, "gap_pct", gap / point.band.q50 * 100)
     return Day(point.day, point.close, *_edges(point.band), status(point), point.live,
-               bool(getattr(point, "provisional", False)))  # fmt: skip
+               bool(getattr(point, "provisional", False)), gap, gap_pct)  # fmt: skip
 
 
 def range_of(view: RangeView) -> Range:
@@ -73,6 +69,13 @@ def days_of(index: IndexView, last: int) -> list[Day]:
     """The last `last` scored sessions of the next-session timeline, oldest first."""
     points = index.horizons[0].timeline.points if index.horizons else ()
     return [day_of(p) for p in points[-last:]]
+
+
+def result_of(index: IndexView, days: list[Day]) -> Day | None:
+    """The edition's own check (`IndexView.result`, FL1-1d-2): today's close in the evening, the previous session's
+    in the morning; before that field exists, the newest scored session."""
+    own = getattr(index, "result", None)
+    return day_of(own) if own is not None else (days[-1] if days else None)
 
 
 def today_of(index: IndexView, horizon: str) -> Range | None:

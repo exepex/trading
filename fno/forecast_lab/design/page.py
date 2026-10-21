@@ -54,8 +54,16 @@ def both(desk: str, phone: str) -> str:
 
 
 def _cue_words(cue) -> str:
-    change = f" {escape(str(cue.change))}" if getattr(cue, "change", None) else ""
-    return f"{escape(str(cue.value))}{change}"
+    """A cue's value with its unit and change; a cue with no value prints its text (a flag, a reason)."""
+    if getattr(cue, "value", None) is None:
+        return escape(str(getattr(cue, "text", "") or ""))
+    unit = escape(str(getattr(cue, "unit", "") or ""))
+    value = f"{cue.value:,.2f}".rstrip("0").rstrip(".") if isinstance(cue.value, float) else str(cue.value)
+    change = getattr(cue, "change", None)
+    tail = (
+        f" {'+' if change >= 0 else '−'}{abs(change):,.2f}{unit}".rstrip("0").rstrip(".") if change is not None else ""
+    )
+    return f"{escape(value)}{unit if unit == '%' else ''}{tail}"
 
 
 def cues_strip(view: PageView) -> str:
@@ -64,7 +72,10 @@ def cues_strip(view: PageView) -> str:
     for section in sections:
         status = STATUS_WORDS.get(section.status)
         if status:
-            cells.append(f'<div class="cell"><small>{escape(section.name)}</small><b>{status}</b></div>')
+            why = escape(str(getattr(section, "why", "") or ""))
+            cells.append(
+                f'<div class="cell"><small>{escape(section.name)}</small><b>{status}</b><span>{why}</span></div>'
+            )
             continue
         for cue in section.items:
             cells.append(
