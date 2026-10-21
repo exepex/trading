@@ -1,5 +1,8 @@
-"""One 3 pm snapshot row and the snapshot CSV (stories A4, A4f): moved out of `recorder.py` unchanged when it reached
-the size limit."""
+"""One 3 pm snapshot row and the snapshot CSV (stories A4, A4f), apart from `recorder.py`, which reached the size limit.
+
+`open_interest` (A4f, the last column) is the chain leg's open interest as of the chain call, seconds before the row's
+own quote request; a leg the chain does not list gives an empty cell. Groww's chain parser turns a missing field into
+0 (`fno/providers/groww.py`), so a reader treats 0 as unknown, never as "no open interest"."""
 
 from __future__ import annotations
 
@@ -15,7 +18,7 @@ COLUMNS = (
     "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
     "last_trade_time",
     "provider", "contract_id", "expiry", "strike", "type", "bid", "ask", "last", "bid_qty", "ask_qty", "spot",
-    "book_source", "valid", "invalid_reason", "raw_sha256",
+    "book_source", "valid", "invalid_reason", "raw_sha256", "open_interest",
 )  # fmt: skip
 NO_QUOTE_TIME = "unknown: provider gives no quote timestamp"
 PAGE_TIME = "provider's snapshot timestamp (NSE page time, one for the whole chain)"
@@ -41,6 +44,7 @@ def snapshot_row(snapshot_id: str, provider: str, got: Fetched, chain: OptionCha
         "ask_qty": _num(book and book.ask_qty), "spot": f"{chain.spot:.2f}",
         "book_source": book.book_source if book else "", "valid": "false" if reason else "true",
         "invalid_reason": reason, "raw_sha256": book.raw_sha256 if book else "",
+        "open_interest": _whole(leg.oi) if leg else "",
     }  # fmt: skip
 
 
@@ -58,3 +62,8 @@ def _freshness_proxy(book: QuoteBook | None) -> str:
 
 def _num(value) -> str:
     return "" if value is None or value is False else f"{float(value):g}"
+
+
+def _whole(count: float) -> str:
+    """A contract count in full (never `:g`, which keeps 6 significant digits: 12,345,675 would be 1.23457e+07)."""
+    return str(round(count))
