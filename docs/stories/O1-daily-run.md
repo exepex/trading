@@ -284,6 +284,11 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   - **otherwise, while the part's window is open** (`WINDOW_END` 15:10; the indices' `INDEX_WINDOW_END` 15:13, from
     A4's constants): **restarted**, with its own `not_before` and `starts_after` (the indices after NIFTY);
   - **otherwise:** `failed`, `NOT_IN_THIS_RUN`, with one alert. This is the only case left for it.
+- **A `none` marker is not a record (21 Oct, found reviewing A4f; orchestrator: fix before go-live):** A4's recorder
+  writes the canonical marker as `none` when the window ends without a complete attempt. A part taken from an earlier
+  run whose markers include `none` is `failed`, "the day ended none, no complete attempt (recorded earlier, commit
+  <sha>)", never `ok` (O10: no ok without data). It is alerted once more, because the rerun cannot know whether the
+  killed run sent its alert, and a duplicate is better than a silent day.
 - **NIFTY first**, whatever each part's `how`: no other part commits before NIFTY's commit was made or tried, and the
   indices start only after NIFTY has ended (A4c).
 - **The log names it:** each part's result carries `how` (`started`, `restarted`, `adopted`, `earlier run`) and its

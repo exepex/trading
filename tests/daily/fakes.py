@@ -95,11 +95,16 @@ def part_files(spec_files: dict):
 
 
 class FakeMarkers(PartMarkers):
-    """`recorded[part name]`: the commit holding that part's canonical markers; a part not in it has none."""
+    """`recorded[part name]`: the commit holding that part's canonical markers; a part not in it has none. A part in
+    `ended_none` has markers that say `none`."""
 
-    def __init__(self, recorded: dict | None = None):
+    def __init__(self, recorded: dict | None = None, ended_none: frozenset = frozenset()):
         self.by_canonicals = {part.canonicals: commit for part in QUOTE_PARTS
                               for name, commit in (recorded or {}).items() if part.name == name}  # fmt: skip
+        self.none = {part.canonicals for part in QUOTE_PARTS if part.name in ended_none}
+
+    def ended_none(self, day, canonicals):
+        return [f"{stem}.canonical" for _, stem in canonicals] if canonicals in self.none else []
 
     def missing(self, day, canonicals):
         return [] if canonicals in self.by_canonicals else [f"{stem}.canonical" for _, stem in canonicals]
@@ -108,9 +113,9 @@ class FakeMarkers(PartMarkers):
         return self.by_canonicals.get(canonicals)
 
 
-def tracking(folder, recorded: dict | None = None) -> tuple[PartLocks, FakeMarkers]:
+def tracking(folder, recorded: dict | None = None, ended_none=frozenset()) -> tuple[PartLocks, FakeMarkers]:
     """The parts' real locks in `folder` (one container: shared by a run and its rerun) and fake markers."""
-    return PartLocks(folder / PART_LOCKS), FakeMarkers(recorded)
+    return PartLocks(folder / PART_LOCKS), FakeMarkers(recorded, ended_none)
 
 
 def quote_parts(clock, script, committer, alerts, files=None, folder=None, recorded=None):
