@@ -514,3 +514,9 @@ number,name,session,claimed_at_utc
 412.6,round-4a-rebased,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T17:52:44Z
 422.1,fl1-1-422-fixes,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T17:57:18Z
 422.2,fl1-1-4221-fix,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T18:46:04Z
+428.1,gr1-protocol-rev2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-21T21:01:17Z
+428.2,gr1-protocol-rev2-final,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-21T21:02:08Z
+428.3,gr1-protocol-final-freeze,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-21T21:02:58Z
+407.1,a22-text-e14c1a3f,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-21T21:03:39Z
+429.1,a23-text-fdc3b2b0,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-21T21:04:50Z
+407.2,a22-step0b-41e3591d,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-21T21:10:38Z
