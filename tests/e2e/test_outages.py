@@ -46,7 +46,7 @@ def no_ok_without_data(day) -> None:
 
 
 def groww_down(day):
-    day.provider.down = True
+    day.groww.down = True
 
 
 def test_groww_down_all_day_gives_no_pack_no_decision_no_new_risk_and_alerts_each_once(

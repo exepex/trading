@@ -15,6 +15,10 @@ from .quote_parts import QuoteParts
 
 POLL_SECONDS = 5.0
 NOT_IN_THIS_RUN = "the parts were started by an earlier run that ended; their results are in the recorder's own files"
+NOT_IN_THIS_RUN_ALERT = (
+    "F&O daily run {day}: the 3 pm quote parts were started by an earlier run that ended: check each part's canonical "
+    "marker, and commit any part file left with the `git add` lines of CLAUDE.md's Daily desk routine"
+)
 
 
 class ServicingWaiter(Waiter):
@@ -46,7 +50,8 @@ class FinishQuoteParts(DayStep):
         self.parts, self.waiter = parts, waiter
 
     def run(self, day: date) -> StepOutcome:
-        if not self.parts.started:
+        if not self.parts.started:  # alerted: a failure here is never silent (O2, owner 16 Oct)
+            self.parts.alerts.send(NOT_IN_THIS_RUN_ALERT.format(day=day))
             return StepOutcome({}, {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN})
         results = self.parts.finish(self.waiter.until)
         bad = [name for name, result in results.items() if result["status"] != STEP_OK or result.get("commit_error")]

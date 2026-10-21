@@ -40,6 +40,7 @@ from .outside import (
     FakeOwnerDrive,
     FakeSlack,
     FixtureProvider,
+    Groww,
     NoNseArchive,
 )
 
@@ -64,8 +65,12 @@ OUTSIDE_SEAMS = (
 )
 
 
+FIXTURE_DATE = "2026-10-13T18:00:00+05:30"  # the fixture checkout's own commit: fixed, so twin checkouts are identical
+
+
 def git(repo: Path, *args: str) -> str:
-    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=True).stdout
+    dated = {**os.environ, "GIT_COMMITTER_DATE": FIXTURE_DATE, "GIT_AUTHOR_DATE": FIXTURE_DATE}
+    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=True, env=dated).stdout
 
 
 def checkout(tmp_path: Path) -> Path:
@@ -94,7 +99,7 @@ class Day:
     clock: FakeClock
     drive: FakeOwnerDrive
     slack: FakeSlack
-    provider: FixtureProvider
+    groww: Groww
     children: Children
     day: date = DAY
     printed: list[str] = field(default_factory=list)
@@ -106,9 +111,8 @@ class Day:
 
     def recorder(self) -> QuoteSnapshotRecorder:
         """A4's real NIFTY recorder over the fake Groww, on the run's clock, into this checkout's quote store."""
-        self.provider.clock = self.clock
-        return QuoteSnapshotRecorder(self.provider, self.quote_store(), self.clock, self.clock.advance,
-                                     calendar=CALENDAR)  # fmt: skip
+        provider = FixtureProvider(self.groww, self.clock)
+        return QuoteSnapshotRecorder(provider, self.quote_store(), self.clock, self.clock.advance, calendar=CALENDAR)
 
     def runner(self) -> DayRunner:
         from fno.daily.wiring import build_day_runner
@@ -191,8 +195,8 @@ def quote_parts_script(day_: Day) -> dict:
     from fno.storage.wiring import build_quote_store
 
     def nifty(clock, staging):
-        day_.provider.clock = clock
-        build = lambda: QuoteSnapshotRecorder(day_.provider, build_quote_store(staging), clock, clock.advance,  # noqa: E731
+        provider = FixtureProvider(day_.groww, clock)
+        build = lambda: QuoteSnapshotRecorder(provider, build_quote_store(staging), clock, clock.advance,  # noqa: E731
                                               calendar=CALENDAR)  # fmt: skip
         return printed(lambda: record_today(build, day_.slack, False, CALENDAR_NAME))
 
@@ -224,7 +228,7 @@ def fixture_day(tmp_path: Path, monkeypatch) -> Day:
     for name in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE"):
         monkeypatch.setenv(name, "")  # restored after the test; the clock sets them as it moves
     root, clock, drive, slack = checkout(tmp_path), FakeClock(os.environ), FakeOwnerDrive(), FakeSlack()
-    day_ = Day(root, clock, drive, slack, FixtureProvider(clock), None)
+    day_ = Day(root, clock, drive, slack, Groww(), None)
     quote_store = in_checkout(root)
     sessions = CALENDAR.sessions(date(2026, 9, 1), date(2026, 10, 31))
     seams = {

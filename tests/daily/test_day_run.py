@@ -8,7 +8,7 @@ import pytest
 
 from fno.constants import BOOK1_RULES, DAILY_RUN_STEPS, DESK_RUN_STEPS, STEP_FAILED, STEP_OK, STEP_REFUSED
 from fno.daily.quote_parts import GROWW_QUOTES, PART_NOT_OK, QUOTE_PARTS
-from fno.daily.quote_steps import NOT_IN_THIS_RUN, FinishQuoteParts, StartQuoteParts
+from fno.daily.quote_steps import NOT_IN_THIS_RUN, NOT_IN_THIS_RUN_ALERT, FinishQuoteParts, StartQuoteParts
 from fno.daily.runner import DAY_DONE, NO_CARD, DayRunner
 from fno.daily.steps import Alerted
 from fno.desk.daily_ports import CommitFailed
@@ -185,6 +185,7 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     assert calls == ["margin_check", "weather", "forecasts_v4", "book1", "reviews"] and new_calls == ["card", "candles"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
+    assert alerts.sent == [NOT_IN_THIS_RUN_ALERT.format(day=NORMAL)]  # never silent (O2)
 
 
 def test_a_hung_part_is_stopped_after_the_limit_and_the_ended_parts_are_committed(day):
