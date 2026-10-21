@@ -263,15 +263,17 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   recorded, the parts die with it. The rerun's log already holds `quotes`, so it starts none, although the window is
   open until 15:10 (indices 15:13). The day then has no NIFTY or NSE record, no pack and no decision. A rerun after a
   stop also called parts that the stopped run had committed "not in this run".
-- **The rule (judge D's design):** each part runs holding an exclusive `fcntl.flock` on a git-ignored file,
+- **The rule (judge D's design, 412 add. 2 and 3):** each part's recorder process holds an exclusive `fcntl.flock`, not a pid
+  lease (pids are reused), on a git-ignored file,
   `journal/runs/.parts/<date>_<part>.lock`. The run takes the lock when it starts the part and hands the open file to
   the child (`pass_fds`), then closes its own copy. The child holds the lock for its whole life without knowing it,
   so A4's commands are unchanged, and the kernel frees it when the child dies. On a rerun whose log holds `quotes`,
   each part is resumed:
   - **lock held** (a part of the crashed run still alive in this container): **adopted**. The run waits for the lock
     to free, then commits the part's files as for its own part. A second recorder is never started;
-  - **every canonical marker of the part present:** **recorded by an earlier run**, `ok`. Any of its files still
-    uncommitted are committed;
+  - **every canonical marker of the part present:** `ok`, "recorded earlier (commit <sha>)", read from the commit that
+    holds the marker, with no alert. That holds also after a stopped run, whose parts were committed by its finish
+    (judge 412 add. 3). Any of its files still uncommitted are committed;
   - **otherwise, while the part's window is open** (`WINDOW_END` 15:10; the indices' `INDEX_WINDOW_END` 15:13, from
     A4's constants): **restarted**, with its own `not_before` and `starts_after` (the indices after NIFTY);
   - **otherwise:** `failed`, `NOT_IN_THIS_RUN`, with one alert. This is the only case left for it.
