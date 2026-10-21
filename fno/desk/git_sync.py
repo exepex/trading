@@ -44,9 +44,10 @@ STRAY = "the checkout holds {count} unpushed commit(s) the run did not make ({wh
 
 
 class Git:
-    def __init__(self, root: Path, run=None, guard: RawQuoteGuard | None = None,
-                 limit_seconds: float = GIT_CALL_LIMIT_SECONDS):  # fmt: skip
-        self.root, self.run, self.limit_seconds = Path(root), run or LimitedRun(), limit_seconds
+    def __init__(self, root: Path, run=None, guard: RawQuoteGuard | None = None, limit_seconds: float | None = None):
+        """`limit_seconds`: every call's hard limit, `GIT_CALL_LIMIT_SECONDS` unless given (read when built)."""
+        self.root, self.run = Path(root), run or LimitedRun()
+        self.limit_seconds = GIT_CALL_LIMIT_SECONDS if limit_seconds is None else limit_seconds
         self.guard = guard or RawQuoteGuard(self.root, self.root / QUOTES_FOLDER.relative_to(ROOT))
 
     def __call__(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:

@@ -157,11 +157,15 @@ class FakeClock:
         self.set(start)
 
     kill_when = None  # a condition: once true, the next reading of the clock kills the run
+    on_condition = ()  # (condition, action) pairs in turn: once the first is true, a reading runs its action once
 
     def __call__(self) -> datetime:
         if self.kill_when is not None and self.kill_when():
             self.kill_when = None
             raise Killed(f"killed at {self.now:%H:%M:%S}")
+        if self.on_condition and self.on_condition[0][0]():
+            (_, action), *self.on_condition = self.on_condition
+            action()
         return self.now
 
     def set(self, moment: datetime) -> None:
