@@ -149,7 +149,31 @@ what this section names, and judge D checks that the diff stays inside it.
 6. **The full log is git-ignored and never committed** (the same check as G4's list).
 7. **The built day runner always carries the policy.**
 
+## As built (21 Oct): where the code differs from or settles the text above
+
+1. **Identifiers have no run of 3 or more digits (judge 443 add. 2, refined).** The rule is `[A-Za-z][A-Za-z0-9_:-]*`
+   with no `.` or `,` and no run of 3 digits. Letters and digits alone would still pass `NIFTY26OCT25000CE`. Hashes,
+   ISO times, run ids and snapshot ids have their own exact patterns, checked first.
+2. **Codes are written `<area>:<NAME>`, not with a dot**, so a code passes the identifier rule. A rerun records the
+   decisions it reads back unchanged (`fills:BLOCKED` stays `fills:BLOCKED`).
+3. **No reader needed a change.** Health, the card line and scoreboard B already read with `.get`, or test `error`
+   before using it. The only reader change is `_unfilled` (`daily_run.py`), now `.get("reason", "")`.
+4. **The Drive copy runs only when the run ends without a stop.** A stopped run's committer is what failed, so its
+   receipt commit would fail too, with a second alert and another git wait. The day's local full log accumulates per
+   day, so the rerun that recovers the day copies every step, the stopped attempt's included. A crash or a killed
+   container never reaches it, and the local copy stays.
+5. **The copy's receipt goes to the run's own checkout** (`<root>/receipts/`), through the same owner Drive seam as
+   every Drive write (`fno.storage.wiring.build_owner_drive`). `data_wiring.receipt_folder()` points at the
+   repository itself, so it is not used here.
+6. **`not filled`** (E3's fills outcome, a literal in `daily_steps.py`) is in the closed word list. The e2e test
+   `test_never_starts.py` pins it: if the literal changes, the public log shows `unlisted` and the test fails.
+7. **The child's stderr** goes to its own file. `Process.errors()` (empty by default, so every fake process keeps
+   working) gives its last lines, and they go into the full log's `stderr` field, which the public form drops.
+
 ## Known limits
 
+- A token of at most 2 digits next to letters (for example `VIX15`) still passes the identifier rule. No producer
+  writes one.
+- Dict keys are kept as structure. Today they are books, steps, trade ids and field names.
 - A code says which message it was, never its values. Debugging a day needs the private full log or the alert.
 - A message reworded by its owner shows `unlisted` until its template is added to the registry. That is the safe side.

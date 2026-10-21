@@ -26,7 +26,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                     books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT,
                     waiter: Waiter | None = None, day_steps: Mapping[str, DayStep] | None = None,
                     git=None, alerts=None, entry_desk: EntryFiller | None = None,
-                    exit_timing: ExitTiming | None = None, git_committer=None) -> DailyRun:  # fmt: skip
+                    exit_timing: ExitTiming | None = None, git_committer=None, recorder=None) -> DailyRun:  # fmt: skip
     from ..books.version_registry import VersionRegistry
     from ..books.versions import VERSIONS_FILE
     from ..checks.gate import DataGate
@@ -73,7 +73,8 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                       entries, exits, exit_rules, alerts, now_ist)  # fmt: skip
     accounts = lambda: marked_accounts(root, books)  # noqa: E731
     marking = MarkingStep(journal, lambda: build_trade_marker(calendar, root), accounts, alerts)
-    return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, marking, files, day_steps)
+    return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, marking, files, day_steps,
+                    recorder)  # fmt: skip
 
 
 def build_trade_marker(calendar, root: Path) -> TradeMarker:
