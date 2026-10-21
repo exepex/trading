@@ -222,3 +222,31 @@ The figures are consistent: 0.769 x 0.938 = 0.72.
 - The code commit with its hash freeze, before run 1: I check the synthetic tests, the planted 2025 row, the planted
   same-day cues, and that the hashes match.
 - After run 2: I reproduce `final.json` from the committed `selection.json`, then judge the results file.
+
+## Addendum 2: revision 2 final at eb8d061a, freeze record 5bb4ea95 (number 428.2, claimed with `tools/claim_number.py`)
+
+**PASS, and this is the frozen protocol.** It supersedes a7a1b28a, which I passed in addendum 1.
+
+### What changed since a7a1b28a
+The diff to `PROTOCOL.md` holds only the additions I asked for:
+- Section 2 now carries the honest limit: the sealing is code plus process, and what is sealed is every candidate's
+  2025-26 performance, not the data. This was new note 3.
+- Section 12 now carries steps (a)-(d) word for word:
+  - (a) the load-time filter on issue date < 2025-01-01, with the planted-2025-row test;
+  - (b) `selection.json` committed before run 2;
+  - (c) run 2 never refits, refuses unless the selection file is unchanged since its commit, refuses if `final.json`
+    is in any commit, and refuses a second invocation;
+  - (d) both runs refuse a hash mismatch or uncommitted changes.
+- Section 12 also says run 2 is deterministic (inputs sorted by day, G4's seeds, no clock or random state, input
+  hashes recorded), so I can reproduce `final.json`.
+- Section 14 records the change.
+
+### Freeze and ledger
+- The SHA-256 is `8ed575b3...2eaa` at both eb8d061a and 5bb4ea95, as `FREEZE.md` records.
+- `FREEZE.md` states that the a7a1b28a freeze was superseded before review.
+- All 15 ledger rows name eb8d061a.
+
+### Still open for the code commit
+- New notes 1 and 2 from addendum 1 stay open: check C2's crossing on every scored day, and drop Brent from the
+  `DATA_SPEND.md` row.
+- Then I judge the code and its hash freeze before run 1.
