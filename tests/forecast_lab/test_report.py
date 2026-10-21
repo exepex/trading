@@ -24,6 +24,7 @@ from .builders import (
     lab,
     on_time,
     score,
+    scored,
 )
 
 SCORES = (score(N1_ISSUE, "N1", qs=12.5), score(N3_ISSUE, "N3", qs=30.25, inside=(False, True)))
@@ -32,6 +33,10 @@ MATCH_23 = (
     "report (NSE archives the close in the evening)"
 )
 MATCHED_N1 = "close 25350.00: 25-75 in, 5-95 in, median direction right, quantile score 12.50"
+NOT_READY_23 = (
+    "NIFTY: the official close of 2026-10-23 is archived but G13b has not scored all its forecasts yet; its match "
+    "comes in a later report"
+)
 LATE_N1 = (
     "NIFTY N1 for 2026-10-23 (issued 2026-10-22): sealed late (2026-10-23 09:16:00+05:30); not shown as a forecast"
 )
@@ -66,14 +71,40 @@ def test_a_late_seal_is_alerted_on_its_day_before_the_close_exists_and_matched_o
     assert " N1, issued 2026-10-22: no forecast sealed in time (its seal check said why)" in text
     assert "quantile score 30.25" in text and records.reports[REPORT_DAY].matched == ("NIFTY 2026-10-23",)
     third_day = SESSIONS.next(REPORT_DAY)
-    third, poster, alerts = lab(Forecasts((*forecasts.issues.values(), *on_time(third_day)), SCORES), records=records,
+    later = Forecasts((*forecasts.issues.values(), *on_time(third_day)), (*SCORES, *scored(REPORT_DAY)))
+    third, poster, alerts = lab(later, records=records,
                                 closes=Closes((DAY, REPORT_DAY)), today=third_day)  # fmt: skip
     third.run(third_day)
     assert records.reports[third_day].matched == ("NIFTY 2026-10-26",) and MATCH_23 not in poster.posts[0]
 
 
+def test_a_day_whose_scores_are_not_ready_is_not_matched_and_a_later_report_matches_it_with_them():
+    """Judge 422.1's probe: 23 Oct's close is archived by the 26 Oct report but G13b's score step has not run (or ran
+    late, or only partly); the day waits, and the 27 Oct report shows it with its scores."""
+    records, issues = Records(), on_time(DAY, REPORT_DAY, SESSIONS.next(REPORT_DAY))
+    partly = Forecasts(issues, SCORES[:1])  # the N1 row scored, the N3 row not yet
+    run, poster, _ = lab(partly, records=records)
+    run.run(REPORT_DAY)
+    assert NOT_READY_23 in poster.posts[0] and MATCHED_N1 not in poster.posts[0]
+    assert records.reports[REPORT_DAY].matched == ()
+    later = SESSIONS.next(REPORT_DAY)
+    run, poster, _ = lab(Forecasts(issues, (*SCORES, *scored(REPORT_DAY))), records=records,
+                         closes=Closes((DAY, REPORT_DAY)), today=later)  # fmt: skip
+    run.run(later)
+    assert MATCH_23 in poster.posts[0] and MATCHED_N1 in poster.posts[0] and "quantile score 30.25" in poster.posts[0]
+    assert records.reports[later].matched == ("NIFTY 2026-10-23", "NIFTY 2026-10-26")
+
+
+def test_a_forecast_with_one_of_its_rows_unscored_is_not_ready():
+    rows = (RangeRow("rv20", "N1", DAY, QUANTILES, 0.55, "ok"), RangeRow("implied", "N1", DAY, QUANTILES, 0.5, "ok"))
+    forecasts = Forecasts((issue(N1_ISSUE, rows=rows), issue(N3_ISSUE), *on_time(REPORT_DAY)), SCORES)  # rv20 only
+    run, poster, _ = lab(forecasts)
+    run.run(REPORT_DAY)
+    assert NOT_READY_23 in poster.posts[0]
+
+
 def test_a_missed_report_day_is_checked_and_matched_by_the_next_report():
-    forecasts = Forecasts(on_time(N1_ISSUE, DAY, REPORT_DAY), SCORES)
+    forecasts = Forecasts(on_time(N1_ISSUE, DAY, REPORT_DAY), scored(N1_ISSUE, DAY))
     records = Records()
     run, poster, alerts = lab(forecasts, records=records, closes=Closes((N1_ISSUE, DAY)), first_day=N1_ISSUE)
     run.run(REPORT_DAY)  # no report on 22 or 23 Oct
@@ -83,7 +114,8 @@ def test_a_missed_report_day_is_checked_and_matched_by_the_next_report():
 
 
 def test_a_close_archived_late_is_matched_by_a_later_report():
-    forecasts, records = Forecasts(on_time(DAY, REPORT_DAY, SESSIONS.next(REPORT_DAY)), SCORES), Records()
+    forecasts = Forecasts(on_time(DAY, REPORT_DAY, SESSIONS.next(REPORT_DAY)), scored(DAY, REPORT_DAY))
+    records = Records()
     run, poster, _ = lab(forecasts, records=records, closes=Closes(archived=()))
     run.run(REPORT_DAY)
     expected = "NIFTY: the official close of 2026-10-23 is not archived yet; its match comes in a later report"
@@ -133,14 +165,14 @@ def test_today_s_issue_is_shown_only_once_pushed_by_the_report_s_time():
 def test_only_an_ok_row_of_the_same_issue_day_is_matched():
     failed = RangeRow("rv20", "N1", DAY, QUANTILES, 0.55, "failed", "no chain")
     rows = (failed,)
-    forecasts = Forecasts((issue(N1_ISSUE, rows=rows), issue(N3_ISSUE), *on_time(REPORT_DAY)), SCORES[:1])
+    forecasts = Forecasts((issue(N1_ISSUE, rows=rows), issue(N3_ISSUE), *on_time(REPORT_DAY)), SCORES)
     run, poster, _ = lab(forecasts)
     run.run(REPORT_DAY)
     assert MATCHED_N1 not in poster.posts[0]  # a non-ok row is never matched
-    other_day = Forecasts((*on_time(DAY, REPORT_DAY),), (score(N3_ISSUE, "N1"),))
+    other_day = Forecasts((*on_time(DAY, REPORT_DAY),), (score(N3_ISSUE, "N1"), SCORES[1]))
     run, poster, _ = lab(other_day)
     run.run(REPORT_DAY)
-    assert "median direction" not in poster.posts[0]  # a score of another issue day is never shown
+    assert NOT_READY_23 in poster.posts[0]  # a score of another issue day never stands in for the N1 row's
 
 
 def test_no_forecast_issued_before_g13b_s_first_live_day_is_expected_so_go_live_raises_no_false_alert():

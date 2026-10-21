@@ -141,3 +141,32 @@ different questions:
 Test: `test_no_forecast_issued_before_g13b_s_first_live_day_is_expected_so_go_live_raises_no_false_alert`. It shows
 G13b live from 23 Oct with no false alert, and a truly missing N1 for 26 Oct still alerted. Mutation "issues_from
 ignored" is caught, so 16 of 16 now. Evidence: strong.
+
+## Addendum 2: judge 422.1 answered (one should-fix)
+
+**Accepted.** A day was marked `matched` as soon as its close was archived, even when G13b had scored none of its
+forecasts. If `price_range_scores` failed, ran late or went live after `lab_close`, the day was then never shown with
+its scores. My two-day test passed only because its scores were present from the start.
+
+The fix:
+- **`match_lines` returns whether the match is complete.** It is complete when every ok row of every forecast sealed
+  in time has G13b's own score row, matched on forecaster, horizon and issue day.
+- **While a score is missing,** the report shows one line: "the official close of <day> is archived but G13b has not
+  scored all its forecasts yet; its match comes in a later report". The day is not marked matched, and a later report
+  within the 5-session window takes it up.
+- **Partial lines are never shown,** so the same day never reads half-scored in two reports.
+
+Tests:
+- `test_a_day_whose_scores_are_not_ready_is_not_matched_and_a_later_report_matches_it_with_them`: the judge's probe;
+- `test_a_forecast_with_one_of_its_rows_unscored_is_not_ready`.
+
+Fixtures that matched other days now carry those days' scores (`scored(...)`). Mutations: "matched without scores"
+and "a partly scored forecast counted complete" are both caught, 18 of 18 in all.
+
+**Story, go-live conditions** (criterion 8):
+- `price_range_scores` live no later than `lab_close`;
+- `daily.live_from.price_ranges` set to G13b's real first live day.
+
+**Merged main** (G13's and G13b's score steps, d466e3d2): the five conflicts were resolved keeping both sides, with
+`lab_close` last, after `price_range_scores` and `candles`. T1's `UNKNOWN` now takes `{channel}`, so my test passes
+`channel=FNO_FORECAST_CHANNEL_ID`. That is harmless until T1 merges, and needed after.

@@ -39,15 +39,22 @@ class GrowwDown(ConnectionError):
     """What the Groww SDK raises when Groww cannot be reached."""
 
 
+class Groww:
+    """Groww itself, shared by every recorder of the day: `down` fails every call, as a Groww outage does."""
+
+    def __init__(self):
+        self.down = False
+
+
 class FixtureProvider:
-    """Groww's market data for the fixture day: NIFTY at `SPOT`, five expiries, a smooth chain 600 points either
-    side; `down` fails every call, as a Groww outage does. Read-only, as the real adapter: there is no order call."""
+    """Groww's market data for the fixture day, as one recorder sees it on its own clock: NIFTY at `SPOT`, five
+    expiries, a smooth chain 600 points either side. Read-only, as the real adapter: there is no order call."""
 
     name = "groww"
     EXPIRIES = (date(2026, 10, 20), date(2026, 10, 27), date(2026, 11, 3), date(2026, 11, 24), date(2026, 12, 29))
 
-    def __init__(self, clock: FakeClock):
-        self.clock, self.down = clock, False
+    def __init__(self, groww: Groww, clock: FakeClock):
+        self.groww, self.clock = groww, clock
 
     def expiries(self, underlying):
         self._reachable()
@@ -67,7 +74,7 @@ class FixtureProvider:
         return QuoteBook(name, mid - 0.5, mid + 0.5, 650, 650, mid, self.clock(), "fields", "h")
 
     def _reachable(self):
-        if self.down:
+        if self.groww.down:
             raise GrowwDown("groww unreachable (HTTP 503)")
 
 
@@ -150,11 +157,15 @@ class FakeClock:
         self.set(start)
 
     kill_when = None  # a condition: once true, the next reading of the clock kills the run
+    on_condition = ()  # (condition, action) pairs in turn: once the first is true, a reading runs its action once
 
     def __call__(self) -> datetime:
         if self.kill_when is not None and self.kill_when():
             self.kill_when = None
             raise Killed(f"killed at {self.now:%H:%M:%S}")
+        if self.on_condition and self.on_condition[0][0]():
+            (_, action), *self.on_condition = self.on_condition
+            action()
         return self.now
 
     def set(self, moment: datetime) -> None:
@@ -171,7 +182,8 @@ class FakeClock:
         class ClockDatetime(datetime):
             @classmethod
             def now(cls, tz=None):
-                return clock.now.astimezone(tz) if tz else clock.now.replace(tzinfo=None)
+                moment = clock()  # every reading of the run's time can kill the run (`kill_when`)
+                return moment.astimezone(tz) if tz else moment.replace(tzinfo=None)
 
         return ClockDatetime
 

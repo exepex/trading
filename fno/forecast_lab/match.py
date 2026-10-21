@@ -19,10 +19,10 @@ from .constants import (
     LEVELS,
     MATCH_HEADER,
     NO_ISSUE,
-    NO_SCORE_YET,
     NONE_EXPECTED,
     NOT_IN_TIME,
     NOT_SEALED_YET,
+    SCORES_NOT_READY,
     SEAL_BY,
     SEALS_OK,
 )
@@ -100,29 +100,34 @@ class MatchSection:
         expected = SEALS_OK if self.aimed_at(underlying, target) else NONE_EXPECTED
         return alerts or [expected.format(underlying=underlying, target=target)], alerts
 
-    def match_lines(self, underlying: str, target: date) -> list[str] | None:
-        """The match of `target`'s forecasts against its official close, or None while the close is not archived."""
+    def match_lines(self, underlying: str, target: date) -> tuple[list[str], bool] | None:
+        """(the match of `target`'s forecasts against its official close, whether it is complete), or None while the
+        close is not archived. Complete means every ok row of every forecast sealed in time has G13b's score (judge
+        422.1): until then the day is said to wait for its scores and a later report takes it up again."""
         if self.outcomes.close(underlying, target) is None:
             return None
         out = [MATCH_HEADER.format(underlying=underlying, target=target)]
         scores = self.forecasts.scores(underlying, target)
         for forecast in self.aimed_at(underlying, target):
-            if forecast.in_time:
-                out.append(f" {forecast.horizon}, issued {forecast.issue_day} 15:45 at {forecast.issue.s_ref:.2f}:")
-                out.extend(_scored(forecast, scores))
-            else:
+            if not forecast.in_time:
                 out.append(NOT_IN_TIME.format(horizon=forecast.horizon, issue_day=forecast.issue_day))
-        return out
+                continue
+            lines = _scored(forecast, scores)
+            if lines is None:
+                return [SCORES_NOT_READY.format(underlying=underlying, target=target)], False
+            out += [f" {forecast.horizon}, issued {forecast.issue_day} 15:45 at {forecast.issue.s_ref:.2f}:", *lines]
+        return out, True
 
 
-def _scored(forecast: Forecast, scores: list[RangeScore]) -> list[str]:
-    lines = []
-    for score in sorted(scores, key=lambda s: s.forecaster):
-        row = forecast.issue.row(score.forecaster, forecast.horizon)
-        same = score.horizon == forecast.horizon and score.issue_day == forecast.issue_day
-        if same and row and row.status == STATUS_OK:
-            lines.append(score_line(row, score, forecast.issue.s_ref))
-    return lines or [NO_SCORE_YET]
+def _scored(forecast: Forecast, scores: list[RangeScore]) -> list[str] | None:
+    """One line per ok row with its G13b score, or None while any ok row has no score yet."""
+    found = {(s.forecaster, s.horizon, s.issue_day): s for s in scores}
+    rows = sorted((r for r in forecast.issue.rows if r.horizon == forecast.horizon and r.status == STATUS_OK),
+                  key=lambda r: r.forecaster)  # fmt: skip
+    matched = [(row, found.get((row.forecaster, row.horizon, forecast.issue_day))) for row in rows]
+    if any(score is None for _, score in matched):
+        return None
+    return [score_line(row, score, forecast.issue.s_ref) for row, score in matched]
 
 
 def next_ranges(underlying: str, issue: SealedIssue | None, now: datetime) -> list[str]:

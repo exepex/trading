@@ -250,6 +250,11 @@ receipt under `receipts/`; readers use the verified Drive cache. Layout:
   and a row is `live` when made before its first target close, which the 15:30-ish end of the run always meets. It
   takes seconds, well under O1's 600 s limit. No git outside the run's thread. It changes no schedule: the run already
   exists. O1's owner checks the plug-in part of this text before code.
+- **Score step** (orchestrator, 21 Oct: phase-1 completion): O1's step `price_distribution_scores`, right after
+  `price_distribution`, runs `python -m fno pricedist score`, wired the same way with its own
+  `daily.live_from.price_distribution_scores` (null) and G13's receipts as its only pathspecs. Outcomes lag one
+  session (NSE's close file lands in the evening), so day d's run scores targets up to d-1; the scorer rescans every
+  record, so a missed run only delays rows.
 
 ## Acceptance criteria (each with a test: positive, negative, boundary, empty)
 

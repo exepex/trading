@@ -39,6 +39,11 @@ def score(issue_day: date, horizon: str, qs=12.5, inside=(True, True), forecaste
     return RangeScore(forecaster, horizon, "1545", issue_day, target, 25350.0, qs, *inside, 0.2)
 
 
+def scored(*targets: date) -> tuple[RangeScore, ...]:
+    """G13b's score of every row `issue` writes (rv20 at N1 and N3) aimed at `targets`."""
+    return tuple(score(SESSIONS.back(t, n), h, target=t) for t in targets for h, n in (("N1", 1), ("N3", 3)))
+
+
 def on_time(*targets: date) -> tuple[SealedIssue, ...]:
     """Every N1 and N3 issue aimed at `targets`, sealed on time."""
     days = {SESSIONS.back(t, n) for t in targets for n in (1, 3)}

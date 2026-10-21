@@ -5,6 +5,7 @@ from datetime import date
 
 from fno.alerts.sender import NoAlertSender
 from fno.cards.posting import UNKNOWN, PostReceipt
+from fno.constants import FNO_FORECAST_CHANNEL_ID
 from fno.forecast_lab.constants import MAY_HAVE_POSTED
 from fno.forecast_lab.written import WrittenReport
 from tests.desk.conftest import RecordingAlerts
@@ -75,7 +76,7 @@ def test_a_refused_post_fails_the_step_without_its_own_alert_and_the_rerun_retri
 
 def test_a_maybe_posted_report_is_never_posted_again_and_says_which_channel_to_check():
     records = Records()
-    maybe = PostReceipt("alert NOT sent: " + UNKNOWN.format(failure="ReadTimeout"))
+    maybe = PostReceipt("alert NOT sent: " + UNKNOWN.format(failure="ReadTimeout", channel=FNO_FORECAST_CHANNEL_ID))
     run, poster, _ = lab(MISSING, records=records, poster=Poster(maybe))
     first = run.run(REPORT_DAY)
     assert first.failed and first.lines[1].endswith("; check #fno-forecast before any repost")
