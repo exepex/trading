@@ -269,19 +269,29 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   the child (`pass_fds`), then closes its own copy. The child holds the lock for its whole life without knowing it,
   so A4's commands are unchanged, and the kernel frees it when the child dies. On a rerun whose log holds `quotes`,
   each part is resumed:
-  - **lock held** (a part of the crashed run still alive in this container): **adopted**. The run waits for the lock
-    to free, then commits the part's files as for its own part. A second recorder is never started;
+  - **lock held** (a part of the crashed run still alive in this container): **adopted**. A second recorder is never
+    started. The run waits for the lock to free inside `finish`'s existing bound (`FINISH_LIMIT`, and not before the
+    timetable's `fills_by`), serviced like its own parts, while the desk's steps go on (judge 417):
+    - when the lock frees, the part's status comes from its canonical markers, because its output and exit code are
+      gone: `ok` with "recorded earlier (commit <sha>)" when every marker exists, otherwise `failed`. Its files are
+      then committed under its own pathspecs;
+    - past the bound the part is `failed`, "still running after <minutes> minutes, held by an earlier run's
+      recorder", with one alert and no commit of its files. The alert gives the hand fix, because the run cannot stop
+      a process it did not start: "a 3 pm recorder of an earlier run still holds <lock>: stop it, then rerun";
   - **every canonical marker of the part present:** `ok`, "recorded earlier (commit <sha>)", read from the commit that
     holds the marker, with no alert. That holds also after a stopped run, whose parts were committed by its finish
     (judge 412 add. 3). Any of its files still uncommitted are committed;
   - **otherwise, while the part's window is open** (`WINDOW_END` 15:10; the indices' `INDEX_WINDOW_END` 15:13, from
     A4's constants): **restarted**, with its own `not_before` and `starts_after` (the indices after NIFTY);
   - **otherwise:** `failed`, `NOT_IN_THIS_RUN`, with one alert. This is the only case left for it.
+- **NIFTY first**, whatever each part's `how`: no other part commits before NIFTY's commit was made or tried, and the
+  indices start only after NIFTY has ended (A4c).
 - **The log names it:** each part's result carries `how` (`started`, `restarted`, `adopted`, `earlier run`) and its
   start time. `quotes`' reason names the start time, "nifty, nse from 14:38" (judge 178 add. 19).
 - **Tests:**
   - a kill before 14:55 with a rerun in a new run: the end state is the twin's bytes;
-  - a crashed run with a live part: adopted, one recorder;
+  - a crashed run with a live part: adopted, one recorder; and one still holding its lock past the bound: failed
+    with the hand-fix alert, its files not committed;
   - a rerun after 15:10: `NOT_IN_THIS_RUN` with one alert;
   - the same for the indices part;
   - F1's strict xfail in `tests/e2e/test_kill_rerun.py` becomes the real assertion.
