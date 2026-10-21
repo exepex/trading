@@ -51,3 +51,38 @@ decision n / out (no usable source).
 
 The six questions (VIX, Nikkei, TAIEX history, Europe and Singapore, a paid API, the KRX key) are correctly the
 owner's, each with a recommendation and its label. Nothing restricted is built before an answer.
+
+## Addendum 1: re-judge at 3faedabb (revision 1, under the owner's data rule, DESK_DECISIONS row 281)
+
+**Verdict: FAIL (B1 still open, 1 new should fix, 2 minor).**
+
+Under row 281 a source's redistribution terms no longer block it, so the restricted publishers and Yahoo's chart API
+may be used. Part A is now complete for all eleven indexes. Checking Yahoo against the official files row by row is
+good work [strong as reported]:
+- Nikkei: 927 of 927 equal;
+- SSE: 3 sessions missing on Yahoo;
+- VIX: 1,960 of 1,963 equal, with one large error (6 Feb 2026, 20.37 vs 17.76);
+- the reading prefers the official value, and an overlap check lists every difference.
+
+**B1 (from round 1) is still open: there is no gap list.** Revision 1 adds criteria but not the table that quality
+rule 2 requires. Map each market the owner named (Australia, Singapore, Hong Kong, Japan, South Korea, China), Europe,
+the VIX, A17's point-in-time rule, row 281's three kept rules, O9, the A22 boundary and quality rules 5, 6 and 8 to a
+criterion or to Out.
+
+**New SF1. Row 281's second kept rule needs a stated behaviour for when Yahoo blocks us.** The text says Yahoo answers
+"no login, cookie or CAPTCHA" today. Yahoo's chart API is known to start requiring a consent cookie and a "crumb", or
+to answer 401 or 429, without notice [reasoning only]. Fetching a crumb or rotating identities to get past that would
+be the circumvention row 281 forbids.
+
+Fix expected: say that on 401, 403, 429, a consent or crumb page, or a CAPTCHA, the Yahoo cue stops, alerts once (an
+episode) and is never retried with a cookie, a crumb, another user agent or another address. Add a criterion with a
+planted 401 and a planted consent page. The STOXX TLS point is accepted: supplying SSL.com's public intermediate
+certificate to complete a chain the server leaves incomplete bypasses nothing.
+
+## Minor
+
+1. For Hang Seng, ASX 200, Straits Times and FTSE 100 there is no official file, so the overlap check cannot guard them.
+   The text's "the overlap check is our only guard" is wrong for exactly these four. Label their readings
+   `unverified (Yahoo only)` so a study can see it.
+2. Boundaries (rule 5): part B's 20-minute stale rule at 20:00 and 20:01. Criterion 4's close-time test should be at
+   and just around each market's `available_at`.
