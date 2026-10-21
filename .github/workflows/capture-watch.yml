@@ -12,6 +12,7 @@ on:
     # every scheduled job except CI (checks, number-alert); tests/health/test_capture_watch_workflow.py keeps this
     # list complete
     workflows:
+      - circulars
       - filings-archive
       - flows-download
       - fo-masters
