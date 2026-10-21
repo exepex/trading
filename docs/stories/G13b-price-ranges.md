@@ -166,7 +166,8 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - **Which version of a day's file:** the table reads NSE's index-close files through the raw-file library, so it gets
   the first archived file, never a later revision (story A11). Neither point-in-time nor latest. NIFTY's
   `warmup_closes.csv` and the panel read the same way.
-- **Never `pricerange closes --to <today>` before NSE's final file** (about 08:00 IST the next day). A miss fetches
+- **Never `pricerange closes --to <today>` the same evening:** NSE may rewrite the file later that night (12 Oct 2026:
+  23:20 IST, two more indices), so run it from the next morning. A miss fetches
   the file from NSE and archives it write-once, and NSE's first evening file can be partial: on 21 Oct 2026, 146 of
   167 indices. The live step reads only up to the previous session, so it never does this.
 - FL1 and G13b's scorer use this one reader (FL1's request).
