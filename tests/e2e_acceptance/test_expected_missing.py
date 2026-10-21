@@ -3,6 +3,8 @@ gate (DESK_DECISIONS row 247), named by the story or owner step that closes it (
 lands, its test passes, the strict xfail fails the suite, and that builder deletes the marker in the same branch (and,
 for `not_built`, writes the real check). The suite is complete when this file holds no xfail."""
 
+import json
+
 import pytest
 
 from fno import constants
@@ -105,9 +107,16 @@ def test_a_scheduled_job_that_never_starts_is_alerted_as_stale():
     not_built("O10's staleness alert on a due job with no run (health-check, nse-margins' early cron, participant-OI)")
 
 
-@missing("G13")
-def test_the_day_has_a_price_distribution_and_valuation_record():
-    not_built("G13")
+def test_the_day_has_a_price_distribution_and_valuation_record(tmp_path, monkeypatch):
+    """G13 (closed): O1's `price_distribution` step writes the day's live NIFTY record from the recorded chain: two
+    expiries valued with their implied distributions, every rule forecaster at every horizon, no problem."""
+    out = Replay(tmp_path, monkeypatch, RecordingAlerts()).run()
+    assert out.log.result("price_distribution")["status"] == constants.STEP_OK
+    (path,) = [p for p in out.distribution_drive.files if p.endswith(f"nifty_{rd.DAY.isoformat()}.json")]
+    record = json.loads(out.distribution_drive.files[path])
+    assert (record["label"], record["status"], record["problems"]) == ("live", "ok", [])
+    assert [e["distribution"]["status"] for e in record["valuation"]["expiries"]] == ["ok", "ok"]
+    assert len(record["forecasts"]) == 12 and {r["status"] for r in record["forecasts"]} == {"ok"}
 
 
 @missing("F2")

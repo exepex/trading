@@ -36,7 +36,8 @@ STEPS = [
     "exits",
     "trade_marks",
     REVIEWS_STEP,
-]  # O1's DAILY_RUN_STEPS without the quote parts, the margin check and the card
+    "price_distribution",  # G13
+]  # O1's DAILY_RUN_STEPS without the quote parts, the margin check, the card and the candles
 
 
 @pytest.fixture
