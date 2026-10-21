@@ -81,6 +81,23 @@ def test_every_template_maps_to_its_own_code_and_no_two_templates_match_the_same
             assert registry.matching(step, text) == [code], (code, text)  # exactly one: no two templates overlap
 
 
+def test_a_template_matches_only_the_whole_text_never_a_text_that_merely_starts_like_it():
+    """Judge 448's surviving plant (fullmatch to match): a listed message followed by anything else is unlisted."""
+    registry = ReasonRegistry(COMMON, STEP_TEMPLATES)
+    for step, pairs in (("any", COMMON), *STEP_TEMPLATES.items()):
+        for code, template in pairs:
+            if not template.endswith("}"):  # ends in a literal: a suffix after it must not match
+                assert registry.matching(step, filled(template) + " net Rs 12,345.60") == [], code
+
+
+def test_keys_are_judged_too_and_digits_alone_never_pass_as_a_hash():
+    """Judge 448's notes: a key holding a contract symbol, and a value of digits only."""
+    projected = public().public("exits", {"NIFTY26OCT25000CE": True, "sha256": "f6f39f9f", "book1_rules": {"n": 2},
+                                          "amount": "1234567", "commit": "0b37051"})  # fmt: skip
+    assert projected == {"unlisted:0": True, "sha256": "f6f39f9f", "book1_rules": {"n": 2}, "amount": UNLISTED,
+                         "commit": "0b37051"}  # fmt: skip
+
+
 def test_a_template_that_starts_with_a_placeholder_matches_only_its_own_texts():
     registry = ReasonRegistry(COMMON, STEP_TEMPLATES)
     assert registry.code("owner_timing_fills", "3 applied, 1 waiting for their due mark") == "owner_timing:APPLIED"
