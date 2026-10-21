@@ -173,6 +173,48 @@
     "marked_contracts": 180,
     "open_positions": 0
    }
+  },
+  "quotes_done": {
+   "started_at": "2026-10-21T15:18:39.814192+05:30",
+   "finished_at": "2026-10-21T15:18:39.814258+05:30",
+   "inputs": {},
+   "result": {
+    "status": "ok",
+    "reason": "every part ok",
+    "parts": {
+     "nifty": {
+      "status": "ok",
+      "reason": "recorded: nifty_20261021_145500 (184 contracts, complete=True)",
+      "exit_code": 0,
+      "lines": [
+       "Ready to Groww!",
+       "recorded: nifty_20261021_145500 (184 contracts, complete=True)"
+      ],
+      "commit": "8059901498e0a799221e067c567a94bea2506fd1"
+     },
+     "nse": {
+      "status": "ok",
+      "reason": "recorded: nifty_20261021_145500 (184 contracts, complete=True)",
+      "exit_code": 0,
+      "lines": [
+       "recorded: nifty_20261021_145500 (184 contracts, complete=True)"
+      ],
+      "commit": "0b37051cdcef1b8812059400e8dfdd377e8ba431"
+     },
+     "indices": {
+      "status": "ok",
+      "reason": "MIDCPNIFTY recorded: midcpnifty_20261021_150400 (212 contracts, complete=True)",
+      "exit_code": 0,
+      "lines": [
+       "Ready to Groww!",
+       "BANKNIFTY recorded: banknifty_20261021_150100 (220 contracts, complete=True)",
+       "FINNIFTY recorded: finnifty_20261021_150250 (148 contracts, complete=True)",
+       "MIDCPNIFTY recorded: midcpnifty_20261021_150400 (212 contracts, complete=True)"
+      ],
+      "commit": "55067976a4d1a1a04b9c7ecf861ac17be68f109d"
+     }
+    }
+   }
   }
  }
 }
