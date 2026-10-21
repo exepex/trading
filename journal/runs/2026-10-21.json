@@ -469,6 +469,25 @@
      "exit_code": 0
     }
    }
+  },
+  "v4_deadline": {
+   "started_at": "2026-10-21T15:35:43.225206+05:30",
+   "finished_at": "2026-10-21T15:35:53.257524+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "deadline"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "v4_deadline:CHECKED",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
