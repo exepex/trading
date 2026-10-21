@@ -363,3 +363,13 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   (`datetime.combine(None, ...)`). Every rerun after 14:33 would have crashed. Now `start_due` returns when the day
   is not open. Test: `test_a_rerun_that_never_opens_the_day_starts_nothing_and_never_fails_on_a_wait`; with the
   guard removed, it fails.
+
+### Fix: a quote part's unpushed commit never stops the desk (gap G4; story text first, judge 412 addendum 3)
+
+- **Gap (strong evidence):** O2's hang day. A part push that hung, or was rejected three times, left a local commit,
+  and the desk's next commit refused it as a stray, stopping the desk before its exits. Strict xfail
+  `test_a_quote_part_s_push_that_hangs_is_not_committed_alerted_and_the_desk_goes_on`.
+- **Design:** judge D's ruling, in the O1 story's new section: one shared committer that remembers its own unpushed
+  commits as `OwnCommit`s (checked by content), a git-ignored list for a same-container rerun, and the alert wording
+  "committed, NOT pushed (the next push carries it)".
+- Code follows judge D's PASS on this text.

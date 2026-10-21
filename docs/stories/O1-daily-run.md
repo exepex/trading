@@ -257,6 +257,27 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   from any wait of the run: the desk's `ServicingWaiter`, and every command's poll loop (`waiting` in
   `fno/daily/wiring.py`). Commits stay between the steps. A run stopped early still starts them, in `finish`.
 
+## Fix after the merge: a quote part's unpushed commit never stops the desk (21 Oct, `story/o1-own-commits`; judge 412 add. 3)
+
+- **The gap G4 (strong evidence, O2's hang day, `tests/e2e/test_hangs.py`):** a quote part's commit whose push was
+  rejected three times, or stopped at the 120 s limit, stays local and unpushed. The desk's next commit refuses it as
+  "an unpushed commit the run did not make" (`GitCommitter._refuse_stray`, decision 51). So the desk stops at its next
+  step, the exits are not reviewed, and the next session blocks every book.
+- **The rule (judge D's ruling, kept simple):**
+  1. one `GitCommitter` per run, shared by the quote parts and the desk's `PendingCommitter` (`fno/daily/wiring.py`
+     builds a second one for the parts today). It remembers each commit it made and could not push as an
+     `OwnCommit` (message and each file's SHA-256), and `_refuse_stray` accepts any of them, still checked by content.
+     A stranger's commit is still refused;
+  2. the list is also kept in a git-ignored file (`journal/runs/.own_unpushed.json`), so a rerun in the same container
+     still accepts them by content. A new container has none, because its clone holds only what origin holds;
+  3. no reset of the local commit (rejected: after a pull's merge it can leave origin's changes staged);
+  4. the part's alert says "committed, NOT pushed (the next push carries it)", not the "NOT committed" hand fix.
+- **Tests:**
+  - a refused and a hung part push: the next desk push carries the commit, with one alert, and the desk goes on;
+  - a stranger's unpushed commit is still refused;
+  - a rerun accepts the run's own commit by content, and refuses it if its files were changed;
+  - G4's strict xfail in `tests/e2e/test_hangs.py` becomes the real assertion.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).
