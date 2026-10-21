@@ -68,7 +68,10 @@ def test_no_push_evidence_is_late_and_todays_unsealed_issue_is_not_shown():
 def test_the_report_matches_the_previous_session_whose_close_is_archived_in_the_evening():
     run, poster, _ = lab(Forecasts(ON_TIME, SCORES))
     run.run(REPORT_DAY)
-    assert "NIFTY: ranges for 2026-10-23 against its official close" in poster.posts[0]
+    assert (
+        "NIFTY match: the previous session's forecasts (2026-10-23) against its official close; today's are matched "
+        "in the next report (NSE archives the close in the evening)" in poster.posts[0]
+    )
 
 
 def test_an_unarchived_close_defers_the_match():

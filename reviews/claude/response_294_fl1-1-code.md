@@ -53,7 +53,7 @@ A change to G13b's shape fails there.
    of the match section; they still count in the scoreboard and the trust line. Evidence: strong (G13b's archive
    times; `test_the_report_matches_the_previous_session...`, `test_an_unarchived_close_defers_the_match`, and the
    G13b integration test now runs a 21 Oct report matching 19 Oct's targets across the test calendar's 20 Oct
-   holiday). An owner option remains: a provisional same-day match on A16's 15:30 mark, clearly labelled (not built).
+   holiday). Owner decision (DESK_DECISIONS, 21 Oct 2026): keep 15:45 with the one-session lag, said in the report's own match header; no provisional or evening match.
 3. **No daily `pricerange score` step exists in `DAILY_RUN_STEPS`.** Without it, the scoreboard only moves when someone
    runs G13b's score command. This is G13b's function, not mine. The G13b builder agrees and has proposed an O1 step
    `price_range_scores` right after `price_ranges` (before 15:45) to the orchestrator; nothing built yet.

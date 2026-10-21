@@ -11,7 +11,17 @@ from collections.abc import Callable
 from datetime import date, datetime
 
 from ..models import IST
-from .constants import HORIZON_SESSIONS, ISSUE_CLOSE, LATE, LEVELS, NO_ISSUE, NOT_ARCHIVED, NOT_SEALED_YET, SEAL_BY
+from .constants import (
+    HORIZON_SESSIONS,
+    ISSUE_CLOSE,
+    LATE,
+    LEVELS,
+    MATCH_HEADER,
+    NO_ISSUE,
+    NOT_ARCHIVED,
+    NOT_SEALED_YET,
+    SEAL_BY,
+)
 from .ranges import STATUS_OK, Outcomes, RangeRow, RangeScore, RangeSource, SealedIssue
 
 
@@ -59,7 +69,7 @@ class MatchSection:
         day = self.previous(report_day)
         if self.outcomes.close(underlying, day) is None:
             return [NOT_ARCHIVED.format(underlying=underlying, target=day)], []
-        out, alerts = [f"{underlying}: ranges for {day} against its official close"], []
+        out, alerts = [MATCH_HEADER.format(underlying=underlying, target=day)], []
         scores = self.forecasts.scores(underlying, day)
         for horizon, sessions in HORIZON_SESSIONS.items():
             issue_day = self.issue_day(day, sessions)

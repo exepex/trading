@@ -21,6 +21,10 @@ TRUST = (
 NO_ISSUE = "{underlying} {horizon} (issued {issue_day}): no forecast was sealed; nothing to score"
 LATE = "{underlying} {horizon} (issued {issue_day}): sealed late ({sealed}); not shown as a forecast"
 NOT_SEALED_YET = "{underlying} next sessions: today's 15:45 issue is not sealed yet; not shown"
+MATCH_HEADER = (
+    "{underlying} match: the previous session's forecasts ({target}) against its official close; today's are matched "
+    "in the next report (NSE archives the close in the evening)"
+)  # owner, 21 Oct 2026 (DESK_DECISIONS): 15:45, the match lags one session, said in the report
 NOT_ARCHIVED = "{underlying}: the official close of {target} is not archived yet; its match comes in the next report"
 ALERT = "F&O forecast lab {day}: {what}"
 NOT_A_SESSION = "lab close {day}: not a trading day; nothing posted"
