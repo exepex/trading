@@ -1083,10 +1083,10 @@ about 1 day.
    - a day whose official file is not yet in Drive stays unconfirmed with no alert;
    - the same day still unconfirmed at the second session after it alerts once, and never again on later runs;
    - a confirmation is never rewritten.
-5. **O1.** `close_read` sits after `candles`, and `close_recheck` after it, in `DAILY_RUN_STEPS`. Its failure makes the day "done with problems" and
-   stops no later step. A rerun the same day skips it once recorded. `test_day_run`'s call lists and its rerun test's
-   new calls, `test_steps`' live dates and health's step string are extended, never loosened. Not live (`null`), it
-   neither waits nor reads.
+5. **O1.** `close_read` sits after `candles`, and `close_recheck` after it, in `DAILY_RUN_STEPS`. Its failure makes the
+   day "done with problems" and stops no later step. A rerun the same day skips it once recorded. `test_day_run`'s call
+   lists and its rerun test's new calls, `test_steps`' live dates and health's step string are extended, never loosened.
+   Not live (`null`), it neither waits nor reads.
 6. **No Groww, no orders.** The source imports only the public client (`check_imports`).
 7. **The first 5 live sessions** (claims after merge): each day's read time, NSE stamp, the values and the confirm
    line, against the official file. Go-live items: the two `live_from` dates, and the e2e fixture's `("closes",
