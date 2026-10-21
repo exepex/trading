@@ -1,4 +1,4 @@
-# Judge 436: FL1-1d story text, the report in two editions (story/fl1-1d-two-editions at 6aabc36d)
+# Judge 438: FL1-1d story text, the report in two editions (story/fl1-1d-two-editions at 6aabc36d)
 
 **Verdict: FAIL on the story text: 1 should-fix finding and 4 minor.** It is close. The design matches the owner's
 decisions, reuses FL1-1/1c, adds no schedule, and states its limits honestly. The one gap is the rule that keeps stale
