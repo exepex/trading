@@ -60,7 +60,9 @@ DAILY_RUN_STEPS = (
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
     "price_range_scores",  # G13b's scores and seals, before FL1's 15:45 lab; the same one-session lag
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
-    "lab_close",  # story FL1-1: the 15:45 report to #fno-forecast, last (fno/forecast_lab/constants.py REPORT_AT)
+    "lab_close",  # story FL1-1: the 15:45 report to #fno-forecast (fno/forecast_lab/constants.py REPORT_AT)
+    "close_read",  # story A4h: today's closes from NSE's index list, 15:40; after lab_close, so its time never moves
+    "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
 )  # fmt: skip; the quote parts start first (judge 178)
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
 

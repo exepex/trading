@@ -33,7 +33,11 @@ def _built_steps(monkeypatch) -> dict:
 
 def test_the_catch_up_runs_after_a16_s_last_mark_just_before_the_lab_report_committing_only_its_own_files(monkeypatch):
     step = _built_steps(monkeypatch)["candles"]
-    assert DAILY_RUN_STEPS[-2:] == ("candles", "lab_close") and isinstance(step, Alerted) and step.name == "candles"
+    assert (
+        DAILY_RUN_STEPS[-4:] == ("candles", "lab_close", "close_read", "close_recheck")
+        and isinstance(step, Alerted)
+        and step.name == "candles"
+    )
     waiting = step.step
     assert isinstance(waiting, NotBefore) and isinstance(waiting.step, CommandStep)
     assert waiting.at == CATCH_UP_FROM == time(15, 33) and marks(DAY)[-1].time() == time(15, 30)

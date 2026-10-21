@@ -24,13 +24,18 @@ def built_step(monkeypatch, cfg=None):
     return seen["day_steps"]["lab_close"]
 
 
-def test_the_step_is_last_after_the_candles_and_waits_for_15_45(monkeypatch):
+def test_the_step_is_after_the_candles_only_a4h_s_reads_after_it_and_waits_for_15_45(monkeypatch):
     step = built_step(monkeypatch)
     assert isinstance(step, Alerted) and step.name == "lab_close" and isinstance(step.step, LiveFrom)
     waiting = step.step.step
     assert isinstance(waiting, NotBefore) and waiting.at == time(15, 45) and isinstance(waiting.step, CommandStep)
     assert tuple(waiting.step.arguments(DAY)) == ("lab", "close", "--day", "2026-10-21")
-    assert DAILY_RUN_STEPS[-2:] == ("candles", "lab_close")
+    assert DAILY_RUN_STEPS[-4:] == (
+        "candles",
+        "lab_close",
+        "close_read",
+        "close_recheck",
+    )  # A4h: after it, so 15:45 holds
 
 
 def test_it_commits_only_the_lab_s_own_receipts():

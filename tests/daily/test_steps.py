@@ -75,6 +75,7 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
         "price_ranges": phase_1,  # story G13b
         "price_range_scores": phase_1,  # G13b's daily scores and seals
         "lab_close": None,  # story FL1-1: held until its HTML report is signed off (owner, f21a8966)
+        "close_read": None, "close_recheck": None,  # story A4h: record-only from its go-live date
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
