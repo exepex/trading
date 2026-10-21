@@ -116,6 +116,8 @@ values in a forecast (FL1's job: the 09:15 forecast can use both); historical ba
 | Committed by about 09:12 IST for the 09:15 report (owner, 21 Oct) | scope 1, criterion 4 |
 | Boundary with A17e (foreign index closes) | Out: foreign closes and USD/INR are A17/A17e's (agreed with its builder) |
 | Point in time (`seen_at`), raw in Drive (O9) | criteria 4, 5 |
+| GIFT Nifty in the 08:50 morning edition (owner e70525ee4) | amendment 1: its own write-once file, pushed when the GIFT read ends |
+| A missed early GIFT push noticed before 08:50 | amendment 1: FL1's "GIFT Nifty: missing" line; A22's alert at about 09:11 |
 
 ## Routine prompt (for the owner to create, 08:36 IST daily)
 
@@ -131,7 +133,10 @@ ends (fresh at 08:40, or after its last read at 08:44:59), A22 writes it in its 
 `data/preopen/gift/YYYY/MM/<date>.csv` (the day row's GIFT cells with the date; a value only when `ok` or `late`) and
 pushes the receipts at once, so the receipt is on GitHub by about 08:41-08:46. FL1 reads it through
 `early_file("gift", day)` and `receipt_path(day, early_file("gift", day))`. A second run finds the file taken and
-writes nothing; a failed save or push is a problem line in the run's one alert and an O10 row. The day row is
+writes nothing; a failed save or push is a problem line in the run's one alert and an O10 row. That alert goes out
+only at about 09:11, after the 08:50 edition, so the same-morning signal is FL1's: when the morning edition finds no
+GIFT receipt for a trading day, it prints one line, "GIFT Nifty: missing", and posts without it (the contract FL1's
+builder agreed for the day row, extended to this file; judge 445 minor 1). The day row is
 unchanged (it still carries GIFT). N0, which needs the 09:09 pre-open price, goes in FL1's short 09:12 post instead.
 
 Criteria: a good morning writes the GIFT file and pushes it at the GIFT part's end (08:40 on the injected clock),

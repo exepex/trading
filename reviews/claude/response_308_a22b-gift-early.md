@@ -30,3 +30,10 @@ For FL1: `early_file("gift", day)` (Drive, under `data/`) and `receipt_path(day,
 
 Full suite with `growwapi` blocked, as in CI: 9,118 passed, 16 xfailed. ruff, format, imports and record scan are
 clean.
+
+## Addendum 1: judge 445 (PASS) minors
+
+1. A failed early push is alerted only at about 09:11. The amendment now says the same-morning signal is FL1's morning
+   edition printing "GIFT Nifty: missing" when no GIFT receipt is there (sent to FL1's builder to record in FL1-1d).
+2. The amendment's two rows are in A22's gap list.
+The first live morning's GIFT push time goes here after it.
