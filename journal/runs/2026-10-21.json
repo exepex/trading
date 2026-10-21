@@ -410,6 +410,25 @@
      "reason": "o1:STOPPED_AT_LIMIT"
     }
    }
+  },
+  "price_range_scores": {
+   "started_at": "2026-10-21T15:35:09.875041+05:30",
+   "finished_at": "2026-10-21T15:35:13.002506+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "failed",
+     "reason": "raised:STOPPED",
+     "exit_code": 1
+    }
+   }
   }
  }
 }
