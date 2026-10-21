@@ -49,10 +49,10 @@ def _reason(idx, day):
 
 
 def _overview_row(idx):
-    today = idx["days"][-1]  # the last scored session: today's once the builder adds today's close to the timeline
+    today = idx["days"][-1]  # the last scored session: the match lags one day (owner, 21 Oct), never "today"
     st = status(today)
     return (f'<div class="ov"><div class="ov-head"><b>{idx["name"]}</b>{_light(idx)}</div>'
-            f'<div class="ov-line"><span class="k">Call for {today["date"]}</span>'
+            f'<div class="ov-line"><span class="k">Last session · {today["date"]}</span>'
             f'<span>{_range(today)} · closed <b>{fmt(today["close"])}</b></span>{_chip(st)}</div>'
             f'<div class="ov-sub">{MEANS[st]} ({_range(today, "90")})</div>'
             f'{_reason(idx, today) if st == "red" else ""}'

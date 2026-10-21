@@ -58,8 +58,9 @@ footer { font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--lin
 <div class="big">22,740 – 23,000</div><div class="sub">most likely (1 day in 2) · almost certainly 22,530 – 23,190 (9 days in 10)</div>
 <div class="band"><i style="left:48%"></i></div>
 <div class="note">[range bar: wide = almost certainly, dark = most likely, marker = 3 pm price]</div>
-<div class="lab" style="margin-top:10px">Today's call check <span class="when">forecast made Fri for today</span></div>
-<div>23,010 – 23,270 · 3 pm 22,871 · <span class="chip">⚠ close call: inside “almost certainly” only</span></div>
+<div class="lab" style="margin-top:10px">Last session's call · Fri 16 Oct <span class="when">forecast made Thu, scored on Fri's official close (the match lags one day: owner, 21 Oct)</span></div>
+<div>22,840 – 23,090 · closed 23,146 · <span class="chip">⚠ close call: inside “almost certainly” only</span></div>
+<div class="note">A "today so far" check against the 3 pm price is NOT drawn: it would reverse the 21 Oct decision (owner question; the builder would add a provisional field if yes).</div>
 <div class="lab" style="margin-top:10px">Track record · last 30 days</div>
 <div><span class="chip">inside 25/30</span> <span class="chip">target 27</span> <span class="chip">avg width 650 pts</span> · <span class="dots">●●●○●●●●○●●●●●○●●●●●●●●○●●●○●●</span></div>
 <div class="note">● inside almost certainly · ○ outside (dates on hover / in the table)</div>
@@ -75,7 +76,7 @@ footer { font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--lin
 <div class="note">[same structure as 3a]</div>
 <div class="big">55,170 – 55,850</div><div class="sub">most likely · almost certainly 54,580 – 56,320</div>
 <div class="band"><i style="left:45%"></i></div>
-<div class="lab" style="margin-top:10px">Today's call check</div><div>55,490 – 56,160 · 3 pm 55,498 · <span class="chip">✓ inside most likely</span></div>
+<div class="lab" style="margin-top:10px">Last session's call · Fri 16 Oct</div><div>55,490 – 56,160 · closed 55,844 · <span class="chip">✓ inside most likely</span></div>
 <div class="lab" style="margin-top:10px">Track record</div><div><span class="chip">inside 28/30</span> <span class="chip">target 27</span> <span class="chip">avg width 1,500 pts</span></div>
 <div class="lab" style="margin-top:10px">Levels</div><div class="scroll"><table><tr><th>Item</th><th>Value</th><th>As of</th></tr><tr><td>Biggest call OI</td><td>56,000</td><td>Fri</td></tr><tr><td>Biggest put OI</td><td>55,000</td><td>Fri</td></tr><tr><td>PCR</td><td>[v]</td><td>Fri</td></tr><tr><td>Max pain</td><td>[v]</td><td>Fri</td></tr></table></div>
 </div></div>
@@ -108,12 +109,12 @@ footer { font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--lin
 <tr><td>23,000</td><td>41%</td><td>59%</td><td>[v]</td><td>[v]</td></tr>
 <tr><td>23,100</td><td>32%</td><td>68%</td><td>[v]</td><td>[v]</td></tr></table></div>
 <div class="note">Call ITM = 1 − cdf(strike), put ITM = cdf(strike), from G13's per-strike record at 3 pm. The market's own odds typically overstate big moves. No per-day ✓/✗ per contract: one expiry is one outcome for every strike.</div></div>
-<div><div class="lab">7b · How honest were those odds? <span class="when">calibration across past expiries, NIFTY from 2019</span></div>
+<div><div class="lab">7b · How honest were those odds? <span class="when">calibration across past expiries, NIFTY from 2019 · forecasts made 5 sessions before expiry (tables for 1 and about 20 sessions in the details) · proposed, story text pending</span></div>
 <div class="scroll"><table><tr><th>Market said</th><th>Avg said</th><th>Finished ITM</th><th>Contracts</th><th>Expiries</th><th>Interval</th></tr>
 <tr><td>0–10%</td><td>5%</td><td>4%</td><td>[n]</td><td>[N]</td><td>[lo–hi]</td></tr>
 <tr><td>10–20%</td><td>15%</td><td>[v]</td><td>[n]</td><td>[N]</td><td>[lo–hi]</td></tr>
 <tr><td colspan="6" class="note">… one row per 10% bucket to 90–100% …</td></tr></table></div>
-<div class="note">BANKNIFTY, FINNIFTY, MIDCPNIFTY: "too few expiries yet" (their records start 19 Oct 2026); the row count N is always shown. A next-session premium range per contract does not exist yet (a later story), so it is not drawn.</div></div>
+<div class="note">"Finished ITM" = the official index close on expiry day beyond the strike (NSE settlement). Interval = likely range of the true rate, strikes of one expiry counted together (bootstrap by expiry, proposed), so it is wide and honest. History (2019 on) is on end-of-day chains, live on the 3 pm chain: shown as separate tables or with a plain note, never merged silently. BANKNIFTY, FINNIFTY, MIDCPNIFTY: "too few expiries yet" (records start 19 Oct 2026); N always shown. A next-session premium range per contract does not exist yet (a later story), so it is not drawn.</div></div>
 </div></div>
 
 <div class="box"><div class="lab">8 · Details (attached file only) </div>

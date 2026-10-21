@@ -116,7 +116,8 @@ data that exists at that time, never a stale number posing as today's.
 | Official close | evening wrap | NSE allIndices / bhavcopy | evening (or add one 15:45 read) | small new part |
 | India VIX about 3 pm and change | 15:45 snapshot | A15 / A4 | yes | available |
 | Our range (most likely, almost certainly) for next session and in 3 sessions | 15:45 note, main | G13b | yes | available |
-| Today's call check (3 pm price vs the range forecast the session before) | 15:45 note, top | G13b timeline + 3 pm price | yes once the builder adds today's outcome | small change |
+| Last session's call check (the previous session's official close vs the range forecast for it; the match lags one day by the owner's 21 Oct decision) | 15:45 note, top, labelled by its date, never "today" | G13b timeline, last Outcome | yes | available |
+| "Today so far" check of the 3 pm price vs today's range | only if the owner reverses the 21 Oct decision | builder would add a provisional field | no | owner question |
 | 30-day track record with hit count, target and average width | 15:45 note | G13b | yes (width to add) | small change |
 | "Why it missed" reasons | 15:45 note, details | FL1 miss reasons | yes | available |
 | PCR, biggest call/put OI strikes, max pain | evening wrap; 15:45 only as "yesterday's" | chain_expiries.py (bhavcopy) | yesterday's | available (today's after an A4 OI read at 3 pm) |
