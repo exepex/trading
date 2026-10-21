@@ -86,3 +86,22 @@ certificate to complete a chain the server leaves incomplete bypasses nothing.
    `unverified (Yahoo only)` so a study can see it.
 2. Boundaries (rule 5): part B's 20-minute stale rule at 20:00 and 20:01. Criterion 4's close-time test should be at
    and just around each market's `available_at`.
+
+## Addendum 2: re-judge at febca555 (rev 2)
+
+**Verdict: FAIL, only addendum 1's SF1 left.** Rev 2 answers round 1 and crossed with addendum 1.
+
+| Finding | Rev 2 | My check | Result |
+|---|---|---|---|
+| B1: no gap list | "Gap list (quality rule 2)" table: each named market and each rule mapped to a scope item, a criterion or Out | read | **Accepted** |
+| Round 1 minor 1: close-time boundaries | criterion 4: each market's close at, minus 1 minute and plus 1 minute IST, the AU and EU clock changes, and an empty case | read | **Accepted** |
+| Round 1 minor 2: same-day closes for 15:45 | the 14:11 cron landed 3 h 42 min to 7 h 09 min late (17-21 Oct), so same-day closes are Out (FL1 decides), with the reason stated | consistent with the GitHub lateness I measured (judges 350, 351) | **Accepted** |
+| Round 1 minor 3: fake-row rule | each CSIndex request starts ten days early and drops every row before the wanted date, so the fake first row never lands and there is no equality guess; tests cover a planted holiday start and a flat close | better than my calendar suggestion: no calendar needed, and nothing circular | **Accepted** |
+| The builder's own fix | a duplicate Yahoo date is left out and listed, not the whole answer refused (ASX back-fill) | reasonable, and the date is listed, not hidden | **Accepted** |
+
+**Still open: addendum 1, SF1.** There is no stated behaviour when Yahoo starts blocking (401, 403, 429, a consent or
+crumb page, a CAPTCHA). Line 39 says only that Yahoo answers today "no login, cookie or CAPTCHA". The gap list maps
+"no getting around blocks" to step 0 and STOXX only. Add: the Yahoo cue stops, alerts once (an episode) and is never
+retried with a cookie, crumb, another user agent or another address; and a criterion with a planted 401 and a planted
+consent page. Addendum 1's minors (label the four Yahoo-only indexes `unverified`; the stale rule at 20:00 and 20:01)
+go in the same revision.
