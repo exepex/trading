@@ -75,9 +75,9 @@ class PackBuilder:
 
     def _iv30(self, day, spot, vix, quotes, futures, levels_at) -> Iv30 | None:
         live = tuple(LiveQuote(q.expiry, q.strike, q.kind, q.bid, q.ask, True) for q in quotes)
-        listed = tuple(PanelFuture(e, last, 0.0, 0, 0) for e, last in futures)
+        listed = tuple(PanelFuture(e, last, 0.0, volume, 0) for e, last, volume in futures)
         snapshot = CutoffSnapshot(day, levels_at.replace(tzinfo=None), spot, vix, live, listed)
-        ivs = {e: self.iv_rule.atm_implied_vol_points(snapshot, e) for e, _ in sorted(futures) if e >= day}
+        ivs = {e: self.iv_rule.atm_implied_vol_points(snapshot, e) for e, *_ in sorted(futures) if e >= day}
         found = interpolate_30d(day, ivs)
         if found is None:
             return None
@@ -85,8 +85,10 @@ class PackBuilder:
         return Iv30(found.points, found.flagged, found.expiries, self.iv_method, max([*used, levels_at]))
 
 
-def _futures(meta: dict) -> list[tuple[date, float]]:
-    return [(date.fromisoformat(f["expiry"]), float(f["last"])) for f in meta.get("futures", []) if f.get("last")]
+def _futures(meta: dict) -> list[tuple[date, float, int]]:
+    """(expiry, last, volume): Black-76 prices only on a future that traded (B7), as G1 v2's live pack passes it."""
+    return [(date.fromisoformat(f["expiry"]), float(f["last"]), int(f.get("volume") or 0))
+            for f in meta.get("futures", []) if f.get("last")]  # fmt: skip
 
 
 def _quote(row: dict) -> ChainQuote:
