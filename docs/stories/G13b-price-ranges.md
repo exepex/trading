@@ -163,6 +163,13 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - BANKNIFTY's close history (2017 on) is derived once from the same files into Drive (O9), never committed as values.
   Each update rescans every regular session the table lacks, so a late-archived file fills its day; a new table file
   is named by its last day and row count, so the latest always sorts last.
+- **Which version of a day's file:** the table reads NSE's index-close files through the raw-file library, so it gets
+  the first archived file, never a later revision (story A11). Neither point-in-time nor latest. NIFTY's
+  `warmup_closes.csv` and the panel read the same way.
+- **Never `pricerange closes --to <today>` the same evening:** NSE may rewrite the file later that night (12 Oct 2026:
+  23:20 IST, two more indices), so run it from the next morning. A miss fetches
+  the file from NSE and archives it write-once, and NSE's first evening file can be partial: on 21 Oct 2026, 146 of
+  167 indices. The live step reads only up to the previous session, so it never does this.
 - FL1 and G13b's scorer use this one reader (FL1's request).
 
 **A5. Sealing** (owner: "sealed before its outcome").
@@ -231,6 +238,13 @@ paper positions. Nothing here sizes, enters or blocks a trade.
 - **Step:** `python -m fno pricerange issue --at 1545 --day D --live`, as O1's step `price_ranges` after
   `price_distribution`, wired like G13's step (`Alerted(LiveFrom(CommandStep))`, `daily.live_from.price_ranges` null,
   G13b's receipts as its only pathspecs).
+- **Score step** (orchestrator, 21 Oct: phase-1 completion, FL1's scoreboard reads the latest scores file): O1's step
+  `price_range_scores`, right after `price_ranges` and before FL1's 15:45 lab, runs `python -m fno pricerange score`
+  (seals stored first, then the scores file), wired the same way with its own `daily.live_from.price_range_scores`
+  (null) and G13b's receipts as its only pathspecs.
+  - **One-session lag:** NSE's index-close file is archived in the evening (about 23:00-02:13 IST), so day d's run
+    scores targets up to d-1. An N1 range issued on d is scored in the run of d+2. The scorer rescans every record,
+    so a missed run only delays rows, never loses them.
 - **Exits:** as G13's.
   - A written day with problems: exit 1, `written with problems: ...`.
   - Nothing captured: `nothing written: ...`, exit 0.

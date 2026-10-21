@@ -510,3 +510,6 @@ number,name,session,claimed_at_utc
 418.2,which-head,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T16:31:17Z
 418.3,a4-alerted-extras,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T16:41:34Z
 421.1,merged-head,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T17:21:37Z
+412.5,round-4b,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T17:29:21Z
+412.6,round-4a-rebased,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-21T17:52:44Z
+422.1,fl1-1-422-fixes,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-21T17:57:18Z
