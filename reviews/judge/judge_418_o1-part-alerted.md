@@ -51,3 +51,18 @@ The builders now agree on this order:
    the e2e NIFTY child was caught.
 
 Never merge both as they are: they would conflict on the same lines of `processes.py` and `quote_parts.py`.
+
+## Addendum 3: the extras alone (story/a4-alerted-extras at c8052a40, on main 8ced7208)
+**Verdict: PASS. Tests only (4 files, +7 -14, no product code). It may merge after the full gates pass on the exact
+pushed tree.**
+
+- The test fakes' `lines()` (`FakeProcess`, e2e `ScriptedProcess`) drop unsent lines, as `ChildProcess` does;
+  `alerted()` stays main's `alerted_in`.
+- The e2e NIFTY child is wired with `ReportedAlerts`, as `cmd_quotes` is.
+- G2's strict xfail is removed, so slack-down runs for real.
+
+**Planted mutation:** the e2e NIFTY child without `ReportedAlerts` makes `test_outages.py` fail (1 failed), so the
+slack-down case bites.
+
+**Checks on a trial merge with main:** tests/e2e plus tests/daily give 91 passed; ruff is clean. The builder reports the
+full suite at 8,661 passed and 0 failed.
