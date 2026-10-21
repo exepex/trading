@@ -15,14 +15,14 @@ from fno.price_ranges.folders import receipt_pathspecs as range_receipts
 DAY = date(2026, 10, 16)
 
 
-def day_steps(monkeypatch) -> dict:
+def day_steps(monkeypatch, cfg=None) -> dict:
     from fno.daily import wiring
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda *args: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
-    wiring.build_day_runner(load_app_config())
+    wiring.build_day_runner(cfg or load_app_config())
     return seen["day_steps"]
 
 
@@ -45,3 +45,13 @@ def test_each_score_step_follows_its_issue_with_its_own_receipts_and_is_not_live
 
 def test_the_range_scores_run_before_the_last_steps_of_the_day():
     assert DAILY_RUN_STEPS.index("price_range_scores") < DAILY_RUN_STEPS.index("candles")
+
+
+def test_each_score_step_reads_its_own_live_date_never_its_issue_step_s(monkeypatch):
+    """Judge 423 minor 1: with every key null, a step reading another step's key would pass; distinct dates catch it."""
+    dates = {"price_distribution": "2026-11-02", "price_distribution_scores": "2026-11-03",
+             "price_ranges": "2026-11-04", "price_range_scores": "2026-11-05"}  # fmt: skip
+    cfg = load_app_config()
+    cfg = {**cfg, "daily": {**cfg["daily"], "live_from": {**cfg["daily"]["live_from"], **dates}}}
+    steps = day_steps(monkeypatch, cfg)
+    assert {name: steps[name].step.live_from.isoformat() for name in dates} == dates

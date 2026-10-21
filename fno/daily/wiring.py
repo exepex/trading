@@ -52,7 +52,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
+    from .earlier_run import PartMarkers
     from .history import WholeHistory
+    from .part_locks import PART_LOCKS, PartLocks
     from .processes import ChildProcesses
     from .quote_parts import QUOTE_PARTS, QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
@@ -67,7 +69,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     )
     locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
-    parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist)
+    parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist, PartLocks(root / PART_LOCKS),
+                       PartMarkers(root, git))  # fmt: skip
     waiter = ServicingWaiter(parts, now_ist, sleep)
 
     def waiting(seconds: float) -> None:

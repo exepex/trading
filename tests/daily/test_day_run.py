@@ -8,7 +8,7 @@ import pytest
 
 from fno.constants import BOOK1_RULES, DAILY_RUN_STEPS, DESK_RUN_STEPS, STEP_FAILED, STEP_OK, STEP_REFUSED
 from fno.daily.quote_parts import GROWW_QUOTES, PART_NOT_OK, QUOTE_PARTS
-from fno.daily.quote_steps import NOT_IN_THIS_RUN, FinishQuoteParts, StartQuoteParts
+from fno.daily.quote_steps import FinishQuoteParts, StartQuoteParts
 from fno.daily.runner import DAY_DONE, NO_CARD, DayRunner
 from fno.daily.steps import Alerted
 from fno.desk.daily_ports import CommitFailed
@@ -46,7 +46,7 @@ class FailingDesk(Commits):
 def day(root, tmp_path, alerts):
     """A day's run: E3's desk with Book 1, the five O1 steps, the quote parts on a recording committer."""
 
-    def build(times=None, steps=None, desk_fails="", part_fails="", files=FILES):
+    def build(times=None, steps=None, desk_fails="", part_fails="", files=FILES, recorded=None):
         decisions = Decisions()
         decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
         run, clock, _, commits = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
@@ -54,7 +54,7 @@ def day(root, tmp_path, alerts):
             run.committer = PendingCommitter(FailingDesk(clock, desk_fails), root)
         commits_made = []
         parts, waiter = quote_parts(clock, times or script(), RecordingCommitter(clock, commits_made, part_fails),
-                                    alerts, files)  # fmt: skip
+                                    alerts, files, root, recorded)  # fmt: skip
         calls = []
         run.waiter, run.day_steps = (
             waiter,
@@ -175,19 +175,26 @@ def test_a_part_commit_whose_push_failed_is_alerted_as_not_pushed_and_the_day_go
     assert "card" in run.run(NORMAL).steps
 
 
-def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
+def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_recorded(day, alerts):
+    """Killed at `quotes_done`, after every part ended and was committed: the rerun starts no recorder and takes
+    each part as recorded earlier, from the commit holding its markers, with no alert (F1)."""
     runner, run, clock, parts, commits, calls = day()
     run.day_steps["quotes_done"].run = lambda d: (_ for _ in ()).throw(KeyboardInterrupt())  # the routine is killed
     with pytest.raises(KeyboardInterrupt):
         runner.run(NORMAL)
-    again, rerun, _, new_parts, _, new_calls = day()
+    recorded = {name: f"c{n}" for n, name in enumerate(("nifty", "nse", "indices"), 1)}
+    again, rerun, _, new_parts, _, new_calls = day(recorded=recorded, files={})
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
     assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
     assert new_calls == ["card", "price_distribution", "price_distribution_scores", "price_ranges",
                          "price_range_scores", "candles"]  # fmt: skip
-    assert not new_parts.started
-    assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
+    assert new_parts.processes.started == [] and alerts.sent == []
+    done = steps["quotes_done"]["result"]
+    assert done["status"] == STEP_OK and {n: (p["how"], p["commit"]) for n, p in done["parts"].items()} == {
+        n: ("earlier run", commit) for n, commit in recorded.items()}  # fmt: skip
+    assert done["parts"]["nifty"]["reason"] == "recorded earlier (commit c1)"
+    assert done["parts"]["nifty"]["started_at"] == at(14, 38, day=NORMAL).isoformat()  # the killed run's start
 
 
 def test_a_hung_part_is_stopped_after_the_limit_and_the_ended_parts_are_committed(day):
