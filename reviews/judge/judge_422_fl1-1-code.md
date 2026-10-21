@@ -125,3 +125,44 @@ Fix:
 | Caught (14) | M1 FL1 ignores G13b's late; M2 seal `<` to `<=`; M4 pool methods; M6 no posted check; M7 may-have-posted not marked; M8 no SHA check; M9 direction flipped; M10 history not live-only; M11 closed day runs; M12 always rebuild; M14 a missing issue not alerted; M15 failure exits 0; M18 no target-day filter |
 | Survived (4) | M3, M5, M13, M17 (minor 1) |
 | Survived, on the criterion-2 path | M16 adapter drops G13b's late (should-fix 4) |
+
+## Addendum 1: 8d2ad78e (response 295)
+
+**Verdict: FAIL: 1 should-fix left. All 4 earlier should-fix findings and minors 1, 3 and 4 are closed; minor 2 is
+closed on FL1's side.** The new design takes up any day not yet covered, so a missed or late day is no longer lost.
+That design has one gap left.
+
+**Gates, on 8d2ad78e merged with today's `main` (no conflicts):**
+- 8,901 passed, 18 xfailed;
+- `ruff check` clean; 1,651 files formatted;
+- imports clean; record scan clean (7,293 files).
+
+I re-ran them clean after my mutation run had overlapped the first run; the results were identical. Strong evidence.
+
+| Finding | Answer | Judge (evidence) |
+|---|---|---|
+| SF1 match and seal checks behind the close | The seal check is separate and runs on the target's own day. Each report records `checked` and `matched` per underlying and day. Each report takes up every uncovered day of the last 5 regular sessions, from `live_from.lab_close` on. The header states the lag (owner's decision). | Accepted for seals and archive timing. My mutations all fail a test: earlier `checked` ignored, today not seal-checked, `first_day` ignored, window of 1, a day marked matched while not archived. One gap is left: new should-fix 1 below |
+| SF1 extra (builder's own find) | `RegularSessions`: FL1 steps over regular sessions only, as G13b does; `lab close` runs only on a regular session | Accepted. A real bug around the 8 Nov muhurat session. Making a non-regular day pass fails a test |
+| SF2 alert outcomes | A write-once `.alerted` marker written after the sends. "n of m alert(s) sent", plus one "alert NOT sent: reason: text" line per unsent alert. A rerun retries only the missing part. | Accepted. Mutations fail a test: outcomes treated as sent, skip on "posted" alone. A crash between the sends and the marker sends again rather than losing them; that is the right trade-off, and it is stated |
+| SF3 membership check | `python -m fno lab channels`: `conversations.info` by GET, `is_member` from the answer; unknown never passes; exit 1 unless both channels pass; a named go-live check | Accepted. Mutations fail a test: POST instead of GET, "any channel" instead of "every channel". Not added to `routine_setup.sh` (O7's file): fine as a one-time go-live check |
+| SF4 deadline and M16 | FL1's rule is the story's rule: before the next regular session's 09:15 after the issue day. G13b's real `SealCheck` marks a record late, through the adapter | Accepted. Moving the deadline one session later fails a test; M16 is killed (the builder's run) |
+| Minors | M3, M5, M13 and M17 asserted; the report line reads "report to #fno-forecast: posted"; "check #fno-forecast before any repost"; story text fixed; criterion 8 is a condition before `live_from` | Accepted. T1's own `UNKNOWN` still says "(check #fno-desk)". It is T1's constant, rightly left to its owner and raised with the orchestrator |
+
+**New should-fix 1. A day matched before G13b has scored it is marked `matched` and never shown with its scores.**
+Strong evidence: probe.
+- `CloseReport._match` adds a day to `matched` whenever `match_lines` returns lines. That happens as soon as the
+  close is archived, even when every in-time forecast shows "no scored row yet (G13b scores after the close is
+  archived)".
+- My probe:
+  - Report 1, on 26 Oct: 23 Oct's close archived, no scores. It matched 23 Oct with "no scored row yet" for N1 and
+    N3.
+  - Report 2, on 27 Oct: the N1 score for 23 Oct now exists and appears in the scoreboard. The report does **not**
+    take up 23 Oct again, so its match lines are never shown.
+- This happens whenever `price_range_scores` (judge 423) fails, runs late, or goes live after `lab_close`. The text
+  even promises the scores will come, the same false-promise pattern as before.
+- Fix: count a day as matched only when every in-time forecast for it has its score row, or none was in time.
+  Otherwise leave it for a later report inside the 5-session window. Add a two-day test like my probe.
+- Also add the go-live order to criterion 8's conditions: `price_range_scores` live no later than `lab_close`.
+
+**My mutation run (11 new, each restored; `tests/forecast_lab`): all 11 caught.** Strong evidence. The builder reports
+15 of 15 on its own set.
