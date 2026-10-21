@@ -7,8 +7,8 @@ from datetime import timedelta
 import pytest
 
 from fno.constants import BOOK1_RULES, DAILY_RUN_STEPS, DESK_RUN_STEPS, STEP_FAILED, STEP_OK, STEP_REFUSED
-from fno.daily.quote_parts import GROWW_QUOTES, QUOTE_PARTS
-from fno.daily.quote_steps import NOT_IN_THIS_RUN, FinishQuoteParts, StartQuoteParts
+from fno.daily.quote_parts import GROWW_QUOTES, PART_NOT_OK, QUOTE_PARTS
+from fno.daily.quote_steps import FinishQuoteParts, StartQuoteParts
 from fno.daily.runner import DAY_DONE, NO_CARD, DayRunner
 from fno.daily.steps import Alerted
 from fno.desk.daily_ports import CommitFailed
@@ -46,7 +46,7 @@ class FailingDesk(Commits):
 def day(root, tmp_path, alerts):
     """A day's run: E3's desk with Book 1, the five O1 steps, the quote parts on a recording committer."""
 
-    def build(times=None, steps=None, desk_fails="", part_fails="", files=FILES):
+    def build(times=None, steps=None, desk_fails="", part_fails="", files=FILES, recorded=None):
         decisions = Decisions()
         decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
         run, clock, _, commits = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
@@ -54,7 +54,7 @@ def day(root, tmp_path, alerts):
             run.committer = PendingCommitter(FailingDesk(clock, desk_fails), root)
         commits_made = []
         parts, waiter = quote_parts(clock, times or script(), RecordingCommitter(clock, commits_made, part_fails),
-                                    alerts, files)  # fmt: skip
+                                    alerts, files, root, recorded)  # fmt: skip
         calls = []
         run.waiter, run.day_steps = (
             waiter,
@@ -63,11 +63,17 @@ def day(root, tmp_path, alerts):
                 "weather": RecordedStep("weather", calls),
                 "forecasts_v4": RecordedStep("forecasts_v4", calls),
                 "quotes": StartQuoteParts(parts),
+                "owner_timing_fills": RecordedStep("owner_timing_fills", calls),
                 "book1": RecordedStep("book1", calls),
                 "reviews": RecordedStep("reviews", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
+                "price_distribution": RecordedStep("price_distribution", calls),
+                "price_distribution_scores": RecordedStep("price_distribution_scores", calls),
+                "price_ranges": RecordedStep("price_ranges", calls),
+                "price_range_scores": RecordedStep("price_range_scores", calls),
                 "candles": RecordedStep("candles", calls),
+                "lab_close": RecordedStep("lab_close", calls),
             }
             | (steps or {}),
         )
@@ -83,14 +89,9 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
-        "margin_check",
-        "weather",
-        "forecasts_v4",
-        "book1",
-        "reviews",
-        "card",
-        "candles",
-    ]
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card",
+        "price_distribution", "price_distribution_scores", "price_ranges", "price_range_scores", "candles", "lab_close",
+    ]  # fmt: skip
 
 
 def test_the_desk_s_own_steps_are_exactly_its_tuple_in_order(root, tmp_path, alerts):
@@ -165,26 +166,36 @@ def test_after_the_desk_s_commit_failure_stop_the_card_never_runs_and_the_parts_
     assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"]  # recorder's data kept
 
 
-def test_a_part_commit_that_fails_is_alerted_with_its_own_paths_and_the_day_goes_on(day, alerts):
+def test_a_part_commit_whose_push_failed_is_alerted_as_not_pushed_and_the_day_goes_on(day, alerts):
+    """G4: the commit is made but its push was rejected: the run's one committer keeps it for the next push."""
     runner, run, *_ = day(part_fails="nse")
     code, line = runner.run(NORMAL)
     (sent,) = alerts.sent
-    assert "quote part nse NOT committed" in sent and "git add 'research/data/quotes/nse/'" in sent
+    assert "quote part nse committed, NOT pushed (the next push carries it)" in sent
     assert (code, line) == (1, "day done with problems: quotes_done")
     assert "card" in run.run(NORMAL).steps
 
 
-def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
+def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_recorded(day, alerts):
+    """Killed at `quotes_done`, after every part ended and was committed: the rerun starts no recorder and takes
+    each part as recorded earlier, from the commit holding its markers, with no alert (F1)."""
     runner, run, clock, parts, commits, calls = day()
     run.day_steps["quotes_done"].run = lambda d: (_ for _ in ()).throw(KeyboardInterrupt())  # the routine is killed
     with pytest.raises(KeyboardInterrupt):
         runner.run(NORMAL)
-    again, rerun, _, new_parts, _, new_calls = day()
+    recorded = {name: f"c{n}" for n, name in enumerate(("nifty", "nse", "indices"), 1)}
+    again, rerun, _, new_parts, _, new_calls = day(recorded=recorded, files={})
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["margin_check", "weather", "forecasts_v4", "book1", "reviews"] and new_calls == ["card", "candles"]
-    assert not new_parts.started
-    assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
+    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
+    assert new_calls == ["card", "price_distribution", "price_distribution_scores", "price_ranges",
+                         "price_range_scores", "candles", "lab_close"]  # fmt: skip
+    assert new_parts.processes.started == [] and alerts.sent == []
+    done = steps["quotes_done"]["result"]
+    assert done["status"] == STEP_OK and {n: (p["how"], p["commit"]) for n, p in done["parts"].items()} == {
+        n: ("earlier run", commit) for n, commit in recorded.items()}  # fmt: skip
+    assert done["parts"]["nifty"]["reason"] == "recorded earlier (commit c1)"
+    assert done["parts"]["nifty"]["started_at"] == at(14, 38, day=NORMAL).isoformat()  # the killed run's start
 
 
 def test_a_hung_part_is_stopped_after_the_limit_and_the_ended_parts_are_committed(day):
@@ -210,16 +221,25 @@ def test_quotes_or_card_raising_is_recorded_failed_with_one_alert(day, alerts, n
 
 
 @pytest.mark.parametrize("part", ["nifty", "nse", "indices"])
-def test_a_quote_part_that_exits_non_zero_gets_no_o1_alert_and_the_others_still_commit(day, alerts, part):
+@pytest.mark.parametrize("own_alert", [True, False], ids=["alerted-itself", "silent"])
+def test_a_failed_quote_part_is_alerted_once_by_itself_or_by_o1_and_the_others_still_commit(
+    day, alerts, part, own_alert
+):
+    """A part that alerted for itself (its outcome line printed) gets no second alert (A4c); one that failed silently,
+    as an incomplete Groww capture does, gets O1's one line (O2, owner 16 Oct: every failure alerts)."""
     times = script()
     arguments = next(p.arguments for p in QUOTE_PARTS if p.name == part)
     ends_at, _, _ = times[arguments]
-    times[arguments] = (ends_at, 1, ["stopped, nothing recorded"])  # the part's own alert is its own (A4c)
+    lines = ["stopped, nothing recorded", *(["alert sent to #fno-desk"] if own_alert else [])]
+    times[arguments] = (ends_at, 1, lines)
     runner, run, _, parts, commits, _ = day(times)
     code, line = runner.run(NORMAL)
     results = run.run(NORMAL).steps["quotes_done"]["result"]
-    assert alerts.sent == [] and (code, line) == (1, "day done with problems: quotes_done")
-    assert results["reason"] == f"not ok: {part}" and results["parts"][part]["reason"] == "stopped, nothing recorded"
+    assert (code, line) == (1, "day done with problems: quotes_done")
+    assert alerts.sent == (
+        [] if own_alert else [PART_NOT_OK.format(day=NORMAL, name=part, status="failed", reason=lines[-1])]
+    )
+    assert results["reason"] == f"not ok: {part}" and results["parts"][part]["reason"] == lines[-1]
     assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"]  # its files too
 
 

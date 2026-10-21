@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from fno import constants
 from fno.books.account import PaperAccount
 from fno.books.book1 import PENDING_MARKER, Book1
 from fno.books.book1_exits import PlaybookExitRules
@@ -38,6 +39,10 @@ from fno.forecast_v4_rules.capture import capture_day
 from fno.forecast_v4_rules.wiring import build_v4_forecasts, v4_writer
 from fno.playbook.opportunities import OpportunityFinder
 from fno.playbook.wiring import build_decision_run, build_rule_evaluator
+from fno.price_distribution.recorder import LiveRecorder
+from fno.price_distribution.sources import SnapshotChains
+from fno.price_distribution.store import DriveDistributionStore
+from fno.price_distribution.wiring import build_day_builder
 from fno.quotes.recorder import RecordResult
 from fno.research_engine.cycles import TradingDays
 from fno.research_engine.implied_vol import Black76
@@ -47,6 +52,9 @@ from fno.scoreboard.sources import SnapshotMarks
 from fno.scoreboard.wiring import board_from, matched_board_from
 from fno.scorecard.scorecard import snapshot_marks
 from fno.scorecard.wiring import build_scorecard_run
+from fno.storage.data_store import DataStore
+from fno.storage.receipts import ReceiptFolder
+from fno.storage.wiring import build_session_calendar
 from fno.weather.capture import capture_weather
 from fno.weather.records import WeatherRecords
 from fno.weather.wiring import build_weather_days, is_session, previous_regular
@@ -57,11 +65,13 @@ from tests.decisions.builders import CONTEXT, SAME_CODE
 from tests.desk.builders import CHARGES, write_snapshot
 from tests.desk.conftest import FakeSettlements
 from tests.playbook.evaluation_builders import Counts, FixedValues, OwnShadowBooks
+from tests.price_distribution.builders import MemoryDrive
 from tests.risk.builders import book
 from tests.timetable.fakes import TIMETABLE, Clock, Commits, LocalSync, Versions, marking_step
 from tests.weather.fakes import FakeStore
 
 from . import real_day as rd
+from .lab_replay import LabReplay
 from .o1_steps import day_steps
 
 EXECUTION_ID = "exec_20261016_151500"
@@ -76,6 +86,8 @@ class Outputs:
     pauses: list = field(default_factory=list)
     board: object = None
     matched: object = None
+    distribution_drive: object = None  # G13's Drive files of the day (Drive is an outside service: in memory)
+    lab: object = None  # G13b's issue and FL1's 15:45 report (`LabReplay`: its Drive folder and #fno-forecast posts)
 
 
 class RealRowsCapture:
@@ -105,8 +117,10 @@ class RegisteredFirst:
 
 
 class Replay:
-    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True, context=None):
+    def __init__(self, root, monkeypatch, alerts, start=O1_START, capture=RealRowsCapture, listed=True, context=None,
+                 entries=None):  # fmt: skip
         self.root, self.alerts, self.cfg = root, alerts, load_app_config()
+        self.entries = entries or (lambda clock: EntryDesk(CHARGES, clock))  # E8 hands entries over when live
         self.start, self.capture, self.listed = start, capture, listed
         self.context = {**CONTEXT, **(context or {})}  # D3's record header fields of Book 1's run
         self.playbook = rd.approved_playbook()
@@ -138,6 +152,19 @@ class Replay:
         written = capture_day(build_v4_forecasts(day), day, self.clock(), v4_writer(self.root / "v4"))
         return [f"{written} v4 rows written"]
 
+    def price_distribution(self, day) -> list[str]:
+        """`fno pricedist record --live` (O1's `price_distribution` step, G13), NIFTY only: 16 Oct had no A4c capture.
+        A non-zero exit is O1's `failed`."""
+        drive = self.out.distribution_drive = MemoryDrive()
+        store = DriveDistributionStore(drive, DataStore(drive, "data", ReceiptFolder(self.root / "receipts"),
+                                                        "pricedist", "replay"))  # fmt: skip
+        recorder = LiveRecorder(SnapshotChains(rd.quote_store(self.root)), build_day_builder(self.cfg), store,
+                                build_session_calendar(), (constants.NIFTY_SYMBOL,), day, self.clock)  # fmt: skip
+        code, lines = recorder.record(day)
+        if code:
+            raise RuntimeError(lines[-1])
+        return lines
+
     def decide(self, day) -> list[str]:
         """`fno desk book1` (O1's `book1` step, right after the pack): Book 1's decision, committed at 15:00."""
         return [self.book1().decide(day)]
@@ -163,11 +190,14 @@ class Replay:
                                            Commits(clock))  # fmt: skip
         steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), self.packs,
                           D3CommittedDecisions(root, self.commits), orders, capture, gate, RecordedC4Pass(),
-                          LocalSync(root), EntryDesk(CHARGES, clock), ExitDesk(CHARGES, self.alerts, FakeSettlements(),
+                          LocalSync(root), self.entries(clock), ExitDesk(CHARGES, self.alerts, FakeSettlements(),
                                                                                 clock),
                           self.exit_rules(), self.alerts, clock)  # fmt: skip
         marking = marking_step(root, (BOOK1_RULES,), quotes, self.alerts)
-        commands = {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide}
+        lab = self.out.lab = LabReplay(root, self.cfg, clock, self.alerts)
+        commands = {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide,
+                    "price_distribution": self.price_distribution, "price_ranges": lab.price_ranges,
+                    "lab_close": lab.lab_close}  # fmt: skip
         o1 = day_steps(commands, build_scorecard_run(self.cfg, root, self.alerts), build_execution_snapshots(
             root / rd.QUOTES), root, self.alerts)  # fmt: skip
         return DailyRun(steps, CALENDAR, PendingCommitter(self.run_commits, root), clock, clock, marking,

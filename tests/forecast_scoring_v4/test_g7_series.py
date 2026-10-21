@@ -2,7 +2,7 @@
 hand rebuild, and the regime inputs are the first session's VIX and log return."""
 
 import math
-from datetime import date
+from datetime import date, timedelta
 
 from fno.constants import V1_RV_1S, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.g7_series import G7Series
@@ -18,16 +18,24 @@ def test_real_v6b_outcomes_through_g7s_rules_match_the_hand_rebuild():
     assert first.vix == sessions[1][2] and math.isclose(first.log_return, math.log(sessions[1][1] / sessions[0][1]))
 
 
+def a16_row(session: date) -> dict:
+    return {
+        "session": session.isoformat(),
+        "status": "ok",
+        "rv_session": "0.00004",
+        "first_seen_at": f"{session.isoformat()}T16:00:00+05:30",
+        "method": "rv-quote-15m-v1",
+    }
+
+
 def test_v1_reads_only_the_a16_rows_it_is_given():
-    rows = [
-        {
-            "session": "2026-10-16",
-            "status": "ok",
-            "rv_session": "0.00004",
-            "first_seen_at": "2026-10-16T16:00:00+05:30",
-            "method": "rv-quote-15m-v1",
-        }
-    ]
-    series = G7Series(WARMUP.read_text(encoding="utf-8"), lambda: rows)
-    assert series.intraday_rv() == {date(2026, 10, 16): 4e-05}
-    assert SeriesOutcomes(series).outcomes(V1_RV_1S) == {}  # 16 Oct is not yet in the closes file: unresolved
+    # Dates come from the committed closes file, which grows every trading day (a fixed date broke on 16 Oct's close)
+    sessions = regular_closes(date(2017, 1, 1), date(2099, 1, 1))
+    (before_last, *_), (last, *_) = sessions[-2], sessions[-1]
+    after_last = last + timedelta(days=7)  # surely not in the file yet
+    series = G7Series(WARMUP.read_text(encoding="utf-8"), lambda: [a16_row(after_last)])
+    assert series.intraday_rv() == {after_last: 4e-05}
+    assert SeriesOutcomes(series).outcomes(V1_RV_1S) == {}  # its session is not in the closes file: unresolved
+    resolved = SeriesOutcomes(G7Series(WARMUP.read_text(encoding="utf-8"), lambda: [a16_row(last)]))
+    assert list(resolved.outcomes(V1_RV_1S)) == [before_last]  # in the file: resolves the session before it
+    assert resolved.outcomes(V1_RV_1S)[before_last].value == 4e-05

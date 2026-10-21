@@ -6,6 +6,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Mapping
 
+from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..models import now_ist
 from ..research_data.calendar import CalendarError
@@ -28,13 +29,13 @@ def record_indices(build: Callable[[], Mapping[str, QuoteSnapshotRecorder]], ale
     except CalendarError as error:
         message = INDEX_CALENDAR_STOP.format(error=error, file=calendar_file)
         print(message)
-        print(alerts.send(message))
+        announce(alerts, message)
         return 1
     for underlying, result in results.items():
         print(_line(underlying, result))
     missing = [f"{name} ({_why(result)})" for name, result in results.items() if _missing(result)]
     if missing:
-        print(alerts.send(INDEX_ALERT.format(names="; ".join(missing))))
+        announce(alerts, INDEX_ALERT.format(names="; ".join(missing)))
     return 1 if missing else 0
 
 

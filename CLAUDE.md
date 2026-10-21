@@ -62,7 +62,8 @@ cancels orders.
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
    decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
-   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww). It
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww)
+   and, from 15:45 IST, FL1-1's forecast lab report to #fno-forecast (`lab close`; from its `daily.live_from` date). It
    writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done.
@@ -183,14 +184,22 @@ commit with `--no-verify`.
   run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
   its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
   paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
+  `fno/v4_pack/wiring.py` (protocol v4's released packs through the verified Drive cache and the 15:10
+  deadline on GitHub's receipt time, story G10 part 2),
   `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5),
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
   parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
-  `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a).
+  `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a),
+  `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b) and
+  `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
+  scores: A4's chains, the panel, closes, O9's Drive store, story G13) and `fno/price_ranges/wiring.py` (NIFTY's and
+  BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
   file (owner, 16 Oct 2026; story O9, built step by step).
-- F&O output goes only to Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN`; never the market-brief tool's
-  `SLACK_*` variables or #market-brief.
+- F&O output goes only to three Slack channels, all with `FNO_SLACK_BOT_TOKEN` (owner, 21 Oct 2026; story FL1):
+  #fno-desk (`C0C89E8QCCD`) takes every alert and the daily card; #fno-forecast (`C0CAZS76WBC`) the forecast lab's
+  09:15 and 15:45 reports; #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and hourly lines. Never the market-brief
+  tool's `SLACK_*` variables or #market-brief, and no other channel (the record scan allows only these three IDs).
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.

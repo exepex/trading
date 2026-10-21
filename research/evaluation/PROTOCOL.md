@@ -434,7 +434,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `fno/scoreboard/wiring.py`.
   - **Score-time computation (owner, 16 Oct 2026, "Hash the ~11 modules"; judge 229):** the code the scoring calls
     to compute a scored figure: `fno/desk/pricing.py`, `fno/desk/settlement.py`, `fno/risk/open_risk.py`,
-    `fno/risk/trade_costs.py`, `fno/risk/buckets.py`, `fno/risk/inputs.py`, `fno/research_engine/cycle_costs.py`,
+    `fno/risk/trade_costs.py`, `fno/risk/buckets.py`, `fno/contract_symbols.py` (a contract ID's underlying, story
+    C5d), `fno/risk/inputs.py`, `fno/research_engine/cycle_costs.py`,
     `fno/research_engine/structures.py`, `fno/accounting/ledgers.py`, `fno/costs.py`, `fno/scorecard/scorecard.py`,
     `fno/scorecard/execution_costs.py`, `fno/scorecard/touches.py`, `fno/books/equity.py`, and the parsers that
     decide which numbers are scored: `fno/fo_bhavcopy.py` (NSE's settlement columns),

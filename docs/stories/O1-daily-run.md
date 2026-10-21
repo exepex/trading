@@ -257,6 +257,67 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   from any wait of the run: the desk's `ServicingWaiter`, and every command's poll loop (`waiting` in
   `fno/daily/wiring.py`). Commits stay between the steps. A run stopped early still starts them, in `finish`.
 
+## Fix after the merge: a rerun resumes the 3 pm parts (21 Oct, branch `story/o1-part-lock`; judge 412 add. 2)
+
+- **The gap F1 (strong evidence, O2's kill-and-rerun day):** when the routine's container dies before the parts
+  recorded, the parts die with it. The rerun's log already holds `quotes`, so it starts none, although the window is
+  open until 15:10 (indices 15:13). The day then has no NIFTY or NSE record, no pack and no decision. A rerun after a
+  stop also called parts that the stopped run had committed "not in this run".
+- **The rule (judge D's design, 412 add. 2 and 3):** each part's recorder process holds an exclusive `fcntl.flock`, not a pid
+  lease (pids are reused), on a git-ignored file,
+  `journal/runs/.parts/<date>_<part>.lock`. The run takes the lock when it starts the part and hands the open file to
+  the child (`pass_fds`), then closes its own copy. The child holds the lock for its whole life without knowing it,
+  so A4's commands are unchanged, and the kernel frees it when the child dies. On a rerun whose log holds `quotes`,
+  each part is resumed:
+  - **lock held** (a part of the crashed run still alive in this container): **adopted**. A second recorder is never
+    started. The run waits for the lock to free inside `finish`'s existing bound (`FINISH_LIMIT`, and not before the
+    timetable's `fills_by`), serviced like its own parts, while the desk's steps go on (judge 417):
+    - when the lock frees, the part's status comes from its canonical markers, because its output and exit code are
+      gone: `ok` with "recorded earlier (commit <sha>)" when every marker exists, otherwise `failed`. Its files are
+      then committed under its own pathspecs;
+    - past the bound the part is `failed`, "still running after <minutes> minutes, held by an earlier run's
+      recorder", with one alert and no commit of its files. The alert gives the hand fix, because the run cannot stop
+      a process it did not start: "a 3 pm recorder of an earlier run still holds <lock>: stop it, then rerun";
+  - **every canonical marker of the part present:** `ok`, "recorded earlier (commit <sha>)", read from the commit that
+    holds the marker, with no alert. That holds also after a stopped run, whose parts were committed by its finish
+    (judge 412 add. 3). Any of its files still uncommitted are committed;
+  - **otherwise, while the part's window is open** (`WINDOW_END` 15:10; the indices' `INDEX_WINDOW_END` 15:13, from
+    A4's constants): **restarted**, with its own `not_before` and `starts_after` (the indices after NIFTY);
+  - **otherwise:** `failed`, `NOT_IN_THIS_RUN`, with one alert. This is the only case left for it.
+- **NIFTY first**, whatever each part's `how`: no other part commits before NIFTY's commit was made or tried, and the
+  indices start only after NIFTY has ended (A4c).
+- **The log names it:** each part's result carries `how` (`started`, `restarted`, `adopted`, `earlier run`) and its
+  start time. `quotes`' reason names the start time, "nifty, nse from 14:38" (judge 178 add. 19).
+- **Tests:**
+  - a kill before 14:55 with a rerun in a new run: the end state is the twin's bytes;
+  - a crashed run with a live part: adopted, one recorder; and one still holding its lock past the bound: failed
+    with the hand-fix alert, its files not committed;
+  - a rerun after 15:10: `NOT_IN_THIS_RUN` with one alert;
+  - the same for the indices part;
+  - F1's strict xfail in `tests/e2e/test_kill_rerun.py` becomes the real assertion.
+
+## Fix after the merge: a quote part's unpushed commit never stops the desk (21 Oct, `story/o1-own-commits`; judge 412 add. 3)
+
+- **The gap G4 (strong evidence, O2's hang day, `tests/e2e/test_hangs.py`):** a quote part's commit whose push was
+  rejected three times, or stopped at the 120 s limit, stays local and unpushed. The desk's next commit refuses it as
+  "an unpushed commit the run did not make" (`GitCommitter._refuse_stray`, decision 51). So the desk stops at its next
+  step, the exits are not reviewed, and the next session blocks every book.
+- **The rule (judge D's ruling, kept simple):**
+  1. one `GitCommitter` per run, shared by the quote parts and the desk's `PendingCommitter` (`fno/daily/wiring.py`
+     builds a second one for the parts today). It remembers each commit it made and could not push as an
+     `OwnCommit` (message and each file's SHA-256), and `_refuse_stray` accepts any of them, still checked by content.
+     A stranger's commit is still refused;
+  2. the list is also kept in a git-ignored file (`journal/runs/.own/unpushed.json`: its own folder, since the readers
+     of `journal/runs/*.json` take every file there for a run log), so a rerun in the same container still accepts
+     them by content. A new container has none, because its clone holds only what origin holds;
+  3. no reset of the local commit (rejected: after a pull's merge it can leave origin's changes staged);
+  4. the part's alert says "committed, NOT pushed (the next push carries it)", not the "NOT committed" hand fix.
+- **Tests:**
+  - a refused and a hung part push: the next desk push carries the commit, with one alert, and the desk goes on;
+  - a stranger's unpushed commit is still refused;
+  - a rerun accepts the run's own commit by content, and refuses it if its files were changed;
+  - G4's strict xfail in `tests/e2e/test_hangs.py` becomes the real assertion.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).
