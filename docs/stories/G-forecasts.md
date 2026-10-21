@@ -906,7 +906,12 @@ A16's 5 s) gives `A`; otherwise the day is `system_late`. No fallback: `A2` is d
 Groww key as A16's 14:30 mark: the dry run (criterion 6 of the text above) measures the load. **Every session gets a
 record (G11, 16 Oct):** each publisher run first writes `system_late` for every earlier scored session from
 `daily.live_from.forecasts_v4` to yesterday that has no record, so a day the routine never ran is settled (the look
-never stays blocked); records are write-once.
+never stays blocked); records are write-once. **Built (b2):** `python -m fno v4-pack release` (`fno/v4_pack/release_run.py`) runs the catch-up, then
+today (the pack from `StoredV4Capture`, `fno/v4_pack/builder.py`; before 14:40 a missing pack waits, after it the day is
+`system_late`), then commits the receipts with O9's committer; whether a record exists is decided by Drive, never the
+checkout, and a write-once refusal is named, never overwritten (judge 282.2). IV30 is G1 v2's live rule unchanged,
+stamped `g1_v2_live_atm_iv30/sha256:<live_features.py + iv30.py>`. The routine step (A4e's `quotes record --window
+v4` at 14:30, this command after it) is O1's to add (`fno/daily/`), with the owner's 14:05 start.
 
 **4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file; R2/G7 builds it).
 The column sits right after `inputs_sha256`; `record()` takes it as a keyword, default empty; `records.py` checks
