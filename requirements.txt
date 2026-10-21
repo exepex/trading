@@ -7,3 +7,4 @@ google-auth>=2.35       # raw-file archive on Google Drive (service account); us
 # Groww Trade API (market data only): requirements-groww.txt
 jsonschema>=4.23        # market read models: validation against the pinned W11 contract (story P6)
 psycopg[binary]>=3.2    # market read models: the Azure Postgres publisher (story P6; tests use a throwaway server)
+xlrd==2.0.2             # NSE's FII derivatives statistics, Excel 97 files (story A23; owner allowed, pinned)

@@ -2,7 +2,7 @@
 the sessions it runs on and the first session it is live for (`None`: not live yet, so silent).
 
 Deadlines are the owners' objects (`LATEST_START`, `GENERATION_DEADLINE`, `receipt_deadline` inside the AI check, the
-desk timetable). The four below exist nowhere else in `fno/`; each is derived from its workflow's cron and is listed
+desk timetable). The five below exist nowhere else in `fno/`; each is derived from its workflow's cron and is listed
 for step 5's timing-consistency test."""
 
 from __future__ import annotations
@@ -29,11 +29,15 @@ PANEL_DAY_BY = Deadline(time(13, 0), days_after=1)  # panel-days.yml: after its 
 # flows-download.yml runs at 21:10, but the session's row reaches the manifest only after that run (4 h late on 14 Oct)
 # or the next morning's market publish (07:10): 12:00 the next day, as the closes (measured, response 153 addendum 2)
 FLOWS_BY = Deadline(time(12, 0), days_after=1)
+# flow-history.yml (A23): 21:30 and a 07:15 retry the next day; due before the next morning's session (09:15)
+FLOW_HISTORY_BY = Deadline(time(9, 0), days_after=1)
 
 PARTICIPANT_OI_MANIFEST = "research/data/manifests/participant-oi.csv"
 CLOSES_FILE = "research/data/nifty-panel/warmup_closes.csv"
 PANEL_MANIFEST = "research/data/nifty-panel/manifest.json"
 FLOWS_MANIFEST = "research/data/manifests/fii-dii-cash-by-session.csv"
+FLOW_HISTORY_MANIFESTS = {"A23 participant volume": "research/data/manifests/participant-volume.csv",
+                          "A23 FII statistics": "research/data/manifests/fii-stats.csv"}  # fmt: skip
 INTRADAY_FOLDER = "research/data/intraday"
 ALL_SESSION_KINDS = (*RECORDED_SESSION_KINDS, SESSION_MUHURAT)  # NSE publishes the evening files for muhurat too
 FIRST_RECORDED, FIRST_SEALED, DATA_JOBS_FROM = date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 13)
@@ -77,4 +81,6 @@ def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> 
                     DATA_JOBS_FROM),
         Expectation("FII/DII flows", SessionRowCheck(evidence, FLOWS_MANIFEST, FLOWS_BY), everything,
                     DATA_JOBS_FROM),
+        *[Expectation(name, SessionRowCheck(evidence, path, FLOW_HISTORY_BY), everything, None)
+          for name, path in FLOW_HISTORY_MANIFESTS.items()],
     ]  # fmt: skip

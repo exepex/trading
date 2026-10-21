@@ -19,6 +19,7 @@ from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
 from .factory.cli import add_factory_parser
 from .filings.cli import add_filings_parser
+from .flow_history.cli import add_flows_parser
 from .fo_masters.cli import add_fo_masters_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_lab.cli import add_lab_parser
@@ -245,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     add_lab_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)
+    add_flows_parser(sub)
 
     args = p.parse_args(argv)
     try:

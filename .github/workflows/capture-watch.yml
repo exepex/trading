@@ -14,6 +14,7 @@ on:
     workflows:
       - circulars
       - filings-archive
+      - flow-history
       - flows-download
       - fo-masters
       - forecast-capture
