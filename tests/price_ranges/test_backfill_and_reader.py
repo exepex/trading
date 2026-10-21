@@ -9,10 +9,12 @@ from datetime import date, datetime, timedelta
 from fno.models import IST
 from fno.price_ranges.backfill import RangeBackfill
 from fno.price_ranges.build import CAPTURE, RangeBuilder
+from fno.price_ranges.cli import CACHE_PREFIX
 from fno.price_ranges.folders import live_path, scores_path
 from fno.price_ranges.reader import RangeForecasts, RangeScores, receipt_file
 from fno.price_ranges.sealing import SealCheck
 from fno.price_ranges.seals import Seals
+from fno.storage.drive_cache import DriveCache
 from tests.price_distribution.builders import DAY, RATE, Chains, chain_day, drive_store
 from tests.price_ranges.builders import CALENDAR, builder, closes
 
@@ -89,3 +91,14 @@ def test_the_reader_gives_fl1_sealed_or_late_live_records_backfill_records_and_t
     assert RangeScores(root).scored_days("NIFTY", MONDAY) == [MONDAY]
     assert RangeScores(root).scored_days("NIFTY", DAY) == []
     assert receipt_file(live_path("NIFTY", DAY, "1545")).startswith("receipts/data/price_ranges/v1/live/2026/10/")
+
+
+def test_the_score_command_s_prefix_syncs_through_the_real_cache_to_the_reader(tmp_path):
+    """`pricerange score` syncs this prefix first (the trailing "/" G13's rule-8 run found refused is not in it)."""
+    store, drive, receipts = drive_store(tmp_path)
+    history = closes(last=date(2026, 10, 23))
+    RangeBackfill(Chains({("NIFTY", DAY): chain_day()}), builder(), lambda u: history, store, CALENDAR, None).run(
+        "backfill_3pm", CAPTURE, ("NIFTY",), DAY, DAY)  # fmt: skip
+    report = DriveCache(drive, receipts, tmp_path / "cache").sync(CACHE_PREFIX)
+    assert report.complete and len(report.downloaded) == 1
+    assert [r["day"] for r in RangeForecasts(tmp_path / "cache", None).backfill()] == [DAY.isoformat()]

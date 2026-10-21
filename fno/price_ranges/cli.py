@@ -23,10 +23,12 @@ from ..storage.raw_store import RawFileConflict
 from .build import CAPTURE, CLOSE
 from .closes import Outcomes
 from .constants import BACKFILL_3PM, BACKFILL_EOD, ISSUE_1545, UNDERLYINGS
+from .folders import ROOT as ROOT_FOLDER
+from .folders import drive
 
 STOPPING = (requests.RequestException, DriveSignInRefused, RawFileConflict, RuntimeError, CalendarError, OSError)
 V6A_FILE = ROOT / "research" / "forecasts" / "v4" / "v6_ewma_t4" / "v6_abs_move_2pct_next_session.csv"
-CACHE_PREFIX = "data/price_ranges/v1/"
+CACHE_PREFIX = drive(ROOT_FOLDER)  # a folder path: the receipt folder refuses a trailing "/"
 SUMMARY = "{label} {underlying} {issue} {horizon} {forecaster}: n={n} QS={qs:.5f} 50%={c50} 90%={c90} Brier={brier:.3f}"
 
 
