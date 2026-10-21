@@ -215,3 +215,30 @@ rewrites the public cues' checks alone.
 
 `.github/workflows/global-cues.yml` runs `fill` at 03:41, 04:41 and 14:11 IST every day (A17 schedules, 16 Oct 2026); its
 commits are a scheduled job's data (lane 3). A failed or stale cue posts one #fno-desk line naming it.
+
+## World indexes (story A17e)
+
+Asia-Pacific, Europe and VIX closes since 2019, plus the Asian levels before 09:15 IST (part B). Every value is
+private: the tables, revisions, gaps and official/Yahoo comparisons are in Drive's derived area (owner rule
+50a79a43). The repository gets only the snapshot log rows: fetch time, path, URL, SHA-256 and size.
+
+| Index | Official cue (publisher) | Yahoo cue |
+|---|---|---|
+| Nikkei 225 | `nikkei225` (Nikkei Indexes CSV, from 2023-01-04) | `nikkei225_yahoo` |
+| KOSPI | none yet (KRX's API needs the owner's key) | `kospi_yahoo`, unverified |
+| S&P/ASX 200 | none | `asx200_yahoo`, unverified |
+| Hang Seng | none | `hang_seng_yahoo`, unverified |
+| SSE Composite | `sse_composite` (CSIndex, from 2019) | `sse_composite_yahoo` |
+| Straits Times | none | `sti_yahoo`, unverified |
+| TAIEX | `taiex` (TWSE open data, current month only) | `taiex_yahoo` |
+| FTSE 100 | none | `ftse100_yahoo`, unverified |
+| DAX, Euro Stoxx 50 | `dax`, `eurostoxx50` (STOXX three-month files) | `dax_yahoo`, `eurostoxx50_yahoo` |
+| VIX | `vix_us` (Cboe, from 2019) | `vix_us_yahoo` |
+| Nasdaq-100 | `nasdaq100` (A17) | `nasdaq100_yahoo` (Nasdaq's own close is a day late at 03:41: response 298) |
+
+- **Reading:** one per index (`build_index_reader`). It takes the official value where that has the date and
+  Yahoo's otherwise, and names the cue it came from.
+- **Yahoo blocks:** any HTTP 401, 403 or 429, redirect, or non-chart answer stops that cue for the run. It is never
+  retried another way.
+- **Part B:** `python -m fno global-cues preopen` reads the newest 5-minute level of each Asian index. A22's 08:36
+  routine calls it at about 08:50-09:05 IST.

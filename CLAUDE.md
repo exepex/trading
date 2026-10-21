@@ -169,7 +169,8 @@ commit with `--no-verify`.
   private packs, story E2), `fno/scorecard/wiring.py` (strategy scorecards and pause rules, story E6),
   `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4),
   `fno/vix_history/wiring.py` (the India VIX full history: NSE's month files, its table and checks, story A15),
-  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17),
+  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17;
+  the world indexes and their pre-open Asian levels, story A17e),
   `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),

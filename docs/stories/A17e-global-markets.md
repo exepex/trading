@@ -176,3 +176,21 @@ errors and gaps (two found in 1,963 and 1,891 days); European indexes have only 
 
 **Depends:** A17 (merged), A17d (private cues), O9 (receipts), A22 (the routine part B joins) · **Status:** story
 text for judge F.
+
+## Amendment 2 (21 Oct 2026, with the code; for judge F)
+1. **Fixtures are made up.** Criterion 1's "saved real answer" would put real index values in this public repository,
+   which criterion 5 and rule 50a79a43 forbid. So each test fixture copies its publisher's real layout with made-up
+   levels (`tests/global_cues/world_fakes.py`). The parsers were run on the real answers in a dry run, which the
+   claims file cites.
+2. **KOSPI's official source (KRX) is deferred.** Its answer cannot be seen without the owner's key, so a parser
+   written now would be a guess. `kospi_yahoo` serves KOSPI meanwhile. Criterion 6 moves to the story that adds KRX
+   once a key exists.
+3. **The Nasdaq-100 reading (amendment 1)** is A17e's `IndexReader` (`build_index_reader`), which prefers Nasdaq's own
+   value and reads Yahoo's when Nasdaq's copy lacks the date. The weather (M1) reads the `nasdaq100` table directly;
+   switching it to the index reading is M1's owner's decision (told), not done here.
+4. **Calendars.** The new markets use A17's `WeekdayCalendar`, as the US 10-year does: a local holiday reads `behind`,
+   never wrongly `current`. The US cues (VIX and both Nasdaq-100 cues) use A17's NYSE calendar.
+5. **VIX holiday rows.** Cboe's VIX file has a row on 31 US market holidays from 2022 to 2026, the same pattern as
+   Nasdaq's. `CboeVixSource.holiday_rows` makes readings skip them.
+6. **Known limit, measured on 2 Nov.** TWSE's month file may be empty before the month's first session. The collector
+   then reports "no values" for `taiex`, which could raise one false alert at a month's start.
