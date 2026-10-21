@@ -57,6 +57,7 @@ class RangeScore:
     inside_25_75: bool | None
     inside_05_95: bool | None
     brier_up: float | None
+    method: str = ""  # G13b's method SHA-256: scores of two method versions are never pooled
 
 
 class RangeSource(ABC):

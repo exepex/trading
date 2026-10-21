@@ -27,7 +27,7 @@ def _row(row: dict) -> RangeRow | None:
 def _score(row: dict) -> RangeScore:
     return RangeScore(row["forecaster"], row["horizon"], row["issue"], _day(row["issue_day"]), _day(row["target_day"]),
                       row["outcome_close"], row["quantile_score"], row["inside_25_75"], row["inside_05_95"],
-                      row.get("brier_up"))  # fmt: skip
+                      row.get("brier_up"), row.get("method_sha256") or "")  # fmt: skip
 
 
 class G13bRanges(RangeSource):

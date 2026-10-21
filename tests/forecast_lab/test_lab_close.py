@@ -116,3 +116,15 @@ def test_g13bs_own_late_verdict_makes_an_issue_late_even_with_a_push_time():
     run, poster, alerts = lab(Forecasts((flagged, issue(N3_ISSUE, at(N3_ISSUE, 15, 50))), SCORES))
     run.run(DAY)
     assert "NIFTY N1 (issued 2026-10-22): sealed late" in poster.posts[0] and len(alerts.sent) == 1
+
+
+def test_two_method_versions_of_one_forecaster_are_never_pooled():
+    from dataclasses import replace
+
+    from fno.forecast_lab.scoreboard import scoreboard_lines
+
+    old, new = replace(SCORES[0], method="a" * 64, quantile_score=10.0), replace(SCORES[0], method="b" * 64)
+    lines = scoreboard_lines([old, new])
+    for line in ("  N1 rv20 [method aaaaaaaa]: 1 day(s), mean quantile score 10.00",
+                 "  N1 rv20 [method bbbbbbbb]: 1 day(s), mean quantile score 12.50"):  # fmt: skip
+        assert any(shown.startswith(line) for shown in lines)
