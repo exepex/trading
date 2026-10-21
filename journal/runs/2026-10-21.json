@@ -226,6 +226,33 @@
     "status": "not_live",
     "reason": "no live date set (config.yaml daily.live_from)"
    }
+  },
+  "candles": {
+   "started_at": "2026-10-21T15:18:46.317497+05:30",
+   "finished_at": "2026-10-21T15:33:23.023695+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "void outside_nse_range: 2020-03-13, 2020-03-23, 2022-03-07, 2024-03-02, 2024-05-18",
+    "exit_code": 0,
+    "lines": [
+     "window 2026-06-22..2026-09-19: 63 sessions already derived, not fetched",
+     "window 2026-09-21..2026-10-19: 495 of 500 session candles (20 sessions)",
+     "sessions 1683: 1 written now, 1682 held before, 0 deferred",
+     "void 19 of 1683 (1.1%); by reason: {'missing_candles': 8, 'no_1m_check': 8, 'no_previous_close': 10, 'outside_nse_range': 5}",
+     "provenance: {'backfilled': 1683}",
+     "pre-open gap above 0.05 on 4 of 1681 sessions with a 1-minute answer: 2020-01-20, 2020-09-18, 2023-09-05, 2023-09-06",
+     "void missing_candles: 2020-03-13, 2020-03-23, 2021-02-24, 2024-03-02, 2024-05-18, 2025-09-26, 2025-10-10, 2026-09-29",
+     "void no_1m_check: 2020-03-13, 2020-03-23, 2021-02-24, 2022-03-07, 2024-03-02, 2024-05-18, 2025-09-26, 2026-09-29",
+     "void no_previous_close: 2020-01-01, 2020-03-16, 2020-03-24, 2021-02-25, 2022-03-08, 2024-03-04, 2024-05-21, 2025-09-29, 2025-10-13, 2026-09-30",
+     "void outside_nse_range: 2020-03-13, 2020-03-23, 2022-03-07, 2024-03-02, 2024-05-18"
+    ]
+   }
   }
  }
 }
