@@ -21,7 +21,7 @@ runs inside a Claude routine started at 08:36 IST (the owner creates it from the
 | Pre-open auction, F&O stocks | `www.nseindia.com/api/market-data-pre-open?key=FO` | 200, 213 stocks, each with IEP (equilibrium price), final quantity, previous close, `lastUpdateTime` 09:08:44 | as above |
 | Pre-open, NIFTY 50 / BANKNIFTY constituents | `...market-data-pre-open?key=NIFTY` and `key=BANKNIFTY` | `{"data":[],"msg":"No Data Found"}` in the evening; whether they answer at 09:08 is **unknown until a morning read** | as above |
 | Index pre-open result (NIFTY, BANKNIFTY) | Groww 1-minute index candles (A16b's read-only adapter): the close of the last pre-open candle is NSE's official open (A16 amendment 3, judged) | proven for NIFTY on 114 sessions (A16b); BANKNIFTY to be checked in step 0b | Groww: the owner's paid subscription, read-only; values in Drive only (owner decision) |
-| Asia opens (Nikkei 225, KOSPI, Hang Seng) | none free and official in real time | not built | **Out:** JPX/KRX/HKEX real-time feeds are paid; delayed pages are scraping without a clear licence [reasoning] |
+| Asia opens (Nikkei 225, KOSPI, Hang Seng) | A17e (the A17 builder's story: every non-Indian index) | not A22 | **A17e, not A22** (agreed 21 Oct). If A17e finds a legal pre-09:15 Asian level, A17e owns the code and data and may propose a command for A22's routine to call; no second Asian reader |
 
 ## Step 0b (22 Oct 2026, 02:40 IST, Groww read-only, A16's `ReadOnlyGroww`; differences and times only) [strong]
 
@@ -50,17 +50,25 @@ In:
    - **Commit by 09:12 IST:** the run writes Drive, commits its receipts and error rows and pushes at 09:11 at the
      latest, so the 09:15 forecast reads them.
 2. Storage: every raw answer write-once in Drive (`data/preopen/raw/...`, O9 `DataStore`), one derived row per day
-   (`data/preopen/day/...`, O9 `PartTable`: GIFT Nifty level and time, NIFTY and BANKNIFTY pre-open closes, the
-   number of F&O stocks with an IEP, `seen_at` of each); receipts committed. No value enters the repository.
+   under one fixed, write-once name `data/preopen/day/YYYY/MM/<date>.csv` (GIFT Nifty level and time, NIFTY and
+   BANKNIFTY pre-open closes, the number of F&O stocks with an IEP, `seen_at` and status of each); a second run the
+   same day finds the name taken and writes nothing, so a late run never hides an on-time one; receipts committed.
+   No value enters the repository.
 3. Failures: one #fno-desk line per run naming every problem (`AlertSender` via `StepOutputAlerts` pattern), and one
    row per problem in O10's `research/ops/capture_errors.csv` (`python -m fno health record-error`, O10's writer for
    routines), committed by the run.
 4. The routine prompt for the owner (below) and the CLAUDE.md section for it.
 5. **A witness for a routine that never starts** (judge 407 SF1; A16's 09:00 routine missed its first fire on 16
-   Oct, 1 of 3 sessions): an O8 freshness row "pre-open day row receipted by 09:20 IST on a trading day" (O8's
-   evening check; agreed with O8's owner before code), and the 09:15 forecast's own report line "pre-open data:
-   missing" when today's row is absent (FL1's owner agrees the line). Both name a missed day the same day; the
-   measured miss rate of the first live week is reported in the claims file.
+   Oct, 1 of 3 sessions):
+   - O8 (agreed with its owner, session_012eM7Ti, 21 Oct; it reviews the `fno/health/` diff before the judge): a new
+     `fno/health/preopen_checks.py` behind `SessionCheck`, one `Expectation` row (`RECORDED_SESSION_KINDS`,
+     `live_from` None until the first live day, set in a separate commit). Status from the receipt's **push time**
+     (`Evidence.file_pushed_at`), never its self-written time; unknown push time is `unknown`, never `ok`; the
+     deadline `PREOPEN_RECEIPT_BY = time(9, 20)` and the receipt path pattern are A22's constants, imported by O8.
+     O8 runs at 17:51 IST, so it names a missed morning that evening.
+   - The same-morning alarm is FL1's 09:15 report line "pre-open data: missing" when today's row is absent (agreed
+     with FL1's builder; FL1-2 is not built yet).
+   - The measured miss rate of the first live week is reported in the claims file.
 
 Out: Asia opens and every foreign index close (A17e, the A17 builder's; GIFT Nifty and pre-open are A22's); using the
 values in a forecast (FL1's job: the 09:15 forecast can use both); historical back-fill of GIFT Nifty (no free source).
