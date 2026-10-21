@@ -48,8 +48,8 @@ def _range(rv):
 
 def _outcome(point):
     out = _band(_get(point, "band"))
-    out.update(date=short(_get(point, "day")), close=_get(point, "close"), right=bool(_get(point, "inside_90")),
-               live=bool(_get(point, "live")))
+    out.update(date=short(_get(point, "day")), date_long=long(_get(point, "day")), close=_get(point, "close"),
+               right=bool(_get(point, "inside_90")), live=bool(_get(point, "live")))
     return out
 
 

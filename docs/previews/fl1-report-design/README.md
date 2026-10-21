@@ -1,20 +1,24 @@
-# FL1 report design v6 (designer's preview, branch `story/fl1-report-design`)
+# FL1 report design v7 (designer's preview, branch `story/fl1-report-design`)
 
-The owner rejected v4 (cluttered) and v5 (overview not on top, no values on the chart). This folder is v6: same data,
-same words, the owner's layout. Rationale in `DESIGN.md`. Design only: the FL1 builder wires it to the real records and
+The owner rejected v4 (cluttered), v5 (overview not on top, no values) and v6 (congested, big type, data missing),
+then approved the wireframe's structure with the graphs back and two editions. This folder is v7. Rationale in
+`DESIGN.md`; research in `REFERENCES.md`. Design only: the FL1 builder wires it to the real records and
 to Slack; nothing under `fno/` is touched.
 
 | File | What it is |
 |---|---|
 | `REFERENCES.md` | Research before v7: five broker notes opened, what their first screen carries, visual conventions, morning vs evening editions, our content proposal with data availability |
 | `wireframe.html` | The v7 wireframe: layout only, plain boxes, 13.5 px body, two columns from 760 px |
-| `DESIGN.md` | v6's rationale (rejected; kept for the record until v7 replaces it) |
-| `fl1-report-picture.html` | The picture in the message: the overview strip and one 8-day line chart per index, 600 px wide at 2x, no script |
-| `fl1-report-details.html` | The attached file: the same, the chart over 30 days with zoom, the 3-day forecast, why it missed, every day in numbers, every method, the checks |
+| `DESIGN.md` | v7's rationale: the two editions and the three graphs |
+| `fl1-morning.html` | Edition A, before 09:15: today's forecast, graph 1 (the range on a scale), the 3-day outlook, the light |
+| `fl1-evening.html` | Edition B, after the close: the verdict chip, graph 2 (today's range and the close), graph 3 (last 10 sessions), the light |
+| `editions.py`, `rangechart.py`, `dotchart.py`, `editions.css` | The v7 generator: `python editions.py` rewrites both editions from the PageView dump |
+| `fl1-report-picture.html` | v6's picture (rejected; kept until the builder wires v7) |
+| `fl1-report-details.html` | v6's attached file (the 30-day chart with zoom, every day in numbers, every method, the checks); v7's details file follows the wireframe's blocks 4-8 once the editions are approved |
 | `slack-message.txt` | The 3 text lines, unchanged from v4 |
 | `pageview-2026-10-19.json` | The builder's real PageView dump (story/fl1-html-report cf452764): every page is built from it |
 | `pageview.py` | Reads a PageView (dataclasses or the JSON dump) into plain values; `render_picture(pv)` and `render_details(pv)` for the builder's PageRenderer |
-| `build.py`, `linechart.py`, `report.css`, `zoom.js` | The generator: `python build.py` rewrites the HTML files from the dump. Standard library only |
+| `build.py`, `linechart.py`, `report.css`, `zoom.js` | v6's generator (`python build.py`); `linechart.py` also holds the shared number formats and the three-colour rule |
 
 No PNG is committed (the record scan refuses binary files). To draw the picture:
 `/opt/pw-browsers/chromium --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=600,1700

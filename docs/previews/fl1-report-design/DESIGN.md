@@ -1,63 +1,50 @@
-# FL1 report design v6: the rationale
+# FL1 report design v7: two editions, three graphs
 
-Written by the designer session, 21 Oct 2026, after the owner rejected v5 (the overview was not on top, the
-columns had no values, 500-point gridlines were too coarse, "make it just line, numbers on top"). The data and words
-are v4's; the layout is the owner's v6 brief, relayed by the orchestrator. Reasoning only unless marked.
+Written by the designer session, 21 Oct 2026, after the owner's verdict on the wireframe (DESK_DECISIONS c3231785):
+the structure stands, the graphs come back, the forecast cycle is two editions. Every number is drawn from the
+builder's PageView (`pageview.py`); nothing is computed here but the owner's three-colour rule and the outward
+rounding to 10. Reasoning only unless marked.
 
-## The page, top to bottom
+## The two editions
 
-1. **At a glance** (5 to 10 seconds), one block per index, like a broker's morning note:
-   - the 30-day light as a pill (`Good: 25 of 30 days`, word and colour);
-   - **Today's call**: the "most likely" range forecast the session before, the close, and a chip:
-     green `✓ Correct` = inside "most likely", amber `⚠ Close call` = inside "almost certainly" only,
-     red `✗ Missed` = outside both; one grey line says which range held; on a red day one line gives the reason;
-   - **Next**: the date, "most likely" in large bold, "almost certainly" after it.
-2. **One line chart per index** (the picture shows the last 8 trading days, the attached file 30):
-   - three lines: the forecast **high** and **low** (the edges of "most likely", accent colour) and the **actual
-     close** (ink, thicker); each close has a dot coloured green, amber or red by the rule above;
-   - **numbers on top**: the close is written at every point; the high and low are written at the first point, the
-     last point and on every red day (the brief's "ends and misses"); under the dates, three aligned rows give
-     **every** day's high, close (coloured by its result) and low, so every value on the graph is readable even
-     where the lines cross;
-   - **gridlines every 100 points for NIFTY**. For BANKNIFTY every 250: its 8-day span is about 2,000 points, so
-     100-point lines would be 20 lines 15 px apart with 11 px labels (unreadable); 250 gives 9 lines 33 px apart.
-     The card's subtitle states the step;
-   - the **forecast zone** on the right: the lines continue dashed into a tinted zone to the next day's high, middle
-     and low, each written with its word;
-   - a key, then `Last 30 days: 12 ✓ correct · 13 ⚠ close call · 5 ✗ missed (dates)`.
-3. **Details** (attached file only): the 3-day forecast, "why it missed" for the last 7 days, every day in numbers
-   (now with the three-colour result), every method in collapsed sections, the words in numbers, the system card.
-4. **Contracts**: v6's mock (a normal fit with a per-day check per contract) was withdrawn on 21 Oct after the G13
-   builder's facts: the chances are the market's own (1 − cdf for calls, cdf for puts, from G13's per-strike
-   record), and the check is a calibration table across past expiries, never a per-day tick per contract. The
-   wireframe's block 7 carries the corrected form.
+**A. Morning, before 09:15: "Today's forecast"** (`fl1-morning.html`). Per index: the forecast for today's close in
+large type ("most likely"), the "almost certainly" range and the middle under it, then **graph 1**: the range on a
+horizontal scale with a hairline every 50 points for NIFTY (100 for BANKNIFTY), a number on every edge (most likely
+in bold above the bar, almost certainly in grey below, the middle in the accent) and the last close as a marker with
+its value. A thinner second row on the same scale is the 3-day outlook. Then the 30-day light. No OI tables: the
+levels, flows and contracts live in the attached details file.
 
-## Why these choices
+**B. Evening, after the official close: "Was today's forecast right?"** (`fl1-evening.html`). Per index: a big chip
+(✓ Correct inside "most likely", ⚠ Close call inside "almost certainly" only, ✗ Missed outside both), the forecast
+range and the actual close in one line, the reason on a red day; **graph 2**: today's range on the scale with the
+close marked in the result colour and written; **graph 3**: the last 10 sessions, one column per day (pale = almost
+certainly, dark = most likely) with a dot where it closed, coloured by the result and written beside it, and three
+rows under the dates with every day's forecast high, close and low. Then the light with the wrong days' dates.
 
-- **Overview first, detail below**: the owner's rule. The picture is the overview strip plus the two charts; nothing
-  in the picture needs the attached file to be understood.
-- **8 days in the picture, not 10**: at 600 px wide each day gets 48 px, enough for an 11.5 px bold close label and the
-  value rows without overlap; 10 days gave 38 px and labels collided (tried, rejected in self-review).
-- **Value rows under the chart rather than 24 labels inside it**: the three lines cross often (each day's range is
-  centred on the previous close, the close moves on), so labelling high, low and close at every point inside the
-  plot overlapped in every render. The rows carry every number, aligned with its date; the plot keeps the close at
-  every point and the high and low where they matter.
-- **Colours**: the dashboard tokens (exepex/omenix-dashboard `design/system/tokens.css`): accent `#5a5ee6` for the
-  forecast lines and zone, ink `#4b465c` for the close, green `#15803d`, amber `#e07b00`, red `#dc2626` for the
-  result, always with a glyph (✓ ⚠ ✗) and a word. The dataviz validator passes the set; amber and red carry glyphs
-  so the tritan pair never relies on colour.
-- **Type**: 16 px body, 20 px headline numbers in the overview, 12 px dates, 10.5 px the smallest (the value rows).
-  Smaller than v5 because the owner asked for every number on the graph; the picture is drawn at 2x.
+## Why these forms
+
+- **One idea per graph.** Graph 1 answers "where will it close"; graph 2 "was it inside"; graph 3 "how has it been
+  going". No chart carries more than one range family and one marker per day.
+- **Every number visible.** Each range edge, middle and close is written next to its mark; graph 3 repeats the
+  high, close and low in aligned rows so the reader never estimates from the axis.
+- **Gridlines every 50 for NIFTY** (the owner's ask); every 100 for BANKNIFTY because its ranges are about twice as
+  wide, so 50 would be 35 hairlines on one bar. The axis writes a number only where numbers stay 72 px apart, so
+  labels never touch; the card subtitle states the step.
+- **Horizontal scale for one day, columns for ten days.** A single range reads best as a bar on a ruler (the
+  dashboard's own range bar, and the brokers' "zone" convention); ten days read best as columns with a dot, where
+  "dot inside the dark block" is one glance.
+- **Type and space from the references**: 13.5 px body, 11 px chart labels, 24 px only for the headline range, one
+  accent for the ranges, green/amber/red only for the result and always with a glyph and a word.
+- **Mock dates**: the dump is a 15:45 issue for 19 Oct, so the morning edition shows the forecast for Wed 21 Oct
+  with the 3 pm price as "last close", and the evening edition shows the last scored session, Fri 16 Oct. Live, the
+  morning takes the sealed forecast for the day and the previous official close; the evening takes the day's
+  official close once NSE archives it (the match lags one day: owner, 21 Oct).
 
 ## Checked
 
-Rendered with the pre-installed Chromium through Playwright at 2x: the picture at 600 and 390 px, the attached file
-at 1100 and 390 px. No sideways overflow (the 30-day chart scrolls inside its card and zooms), no console errors, no
-external request. Looked at every render: no label over another label, every value in the rows readable.
-
-Data: every number is read from the builder's real PageView dump (`pageview-2026-10-19.json`, the production
-PageBuilder on G13b's back-fill) through `pageview.py`, which only formats dates and renames bands. The builder's
-PageRenderer calls `render_picture(page_view)` and `render_details(page_view)`.
-
-Honest limits: the headline ranges round outward to 10 (the builder's rule); the timeline in the dump ends at the session before the issue day (16 Oct), so the
-overview's "call" row shows that day until the builder adds today's close as the last outcome.
+Rendered with the pre-installed Chromium through Playwright at 2x, both editions at 600 and 390 px: 0 px sideways
+overflow (at phone width each graph scrolls inside its card at 520 px so its type stays 11 px), no console errors,
+no external request. Read test: each graph answers its question in one or two seconds; each edition is two cards
+and reads in under 30 seconds. Collisions found and fixed in review: BANKNIFTY axis numbers (now spaced
+automatically), the close marker's label over the high label (now under the bar), two neighbouring close labels in
+graph 3 (now flipped to the free side).
