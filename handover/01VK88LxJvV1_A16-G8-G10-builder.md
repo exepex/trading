@@ -191,3 +191,11 @@ I judged nothing. Reviews I gave to other builders, all agreed:
     parameter. NIFTY's rows must stay byte-for-byte unchanged, because they are frozen for v4.
 - **Scratch script used:** a read-only count through `ReadOnlyGroww`. It is not committed; it is easy to redo with
   `listed_expiries` and `parse_groww_chain` from `fno/providers/groww.py`.
+- **Protocol edits at `a831e2ce`:** judge 411's notes are done as well. The quantile convention is tested against
+  `research/forecasts/v4_moved_after_cutoff.json`, and my long prose lines are wrapped. It's back with judge B.
+- **FL1's needs for BANKNIFTY in phase 2 (FL1-2, from about 3-5 Nov):**
+  - The owner's universe: every expiry up to 3 months, ±10%, plus the futures. FL1's fallback, if the load doesn't
+    fit, is the two nearest monthlies at ±6%, which needs the owner's yes.
+  - Marks to keep: 09:30 (entries), the hourly marks from 10:15, 15:15 (exits) and 15:30.
+  - The future and the index level at each mark.
+  - Measure the ±10%, 3-month load first.
