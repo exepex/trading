@@ -21335,9 +21335,33 @@
    "session": "regular",
    "source_format": "udiff",
    "status": "ok"
+  },
+  "2026-10-21": {
+   "appended_at": "2026-10-22T01:35:05.390656+05:30",
+   "calendar_sha256": "e34fbad752bb244e6116c1e474902208a72a03f5af6037c6d75bf9baa6756b4d",
+   "fo_file": "BhavCopy_NSE_FO_0_0_0_20261021_F_0000.csv.zip",
+   "fo_sha256": "ae3a26bc469647714c4a4fa4f953be0b288529e34a9ea1d21dfbb327fca19559",
+   "futures_rows": 3,
+   "index_file": "ind_close_all_21102026.csv",
+   "index_sha256": "0c3d63cb471f52a4147b5243447ebad815cafad1346d888f2f40846584496541",
+   "inputs_read_at": "2026-10-22T01:34:59.663194+05:30",
+   "inputs_version": "first archived (A11 original)",
+   "later_versions": {
+    "fo": [],
+    "index-close": [
+     {
+      "available_from": "2026-10-21T23:20:10+05:30",
+      "sha256": "ccaff4c523834856afae73d2072d45b62bd766ed6766057534eaaf3f9e7d420c"
+     }
+    ]
+   },
+   "rows": 1816,
+   "session": "regular",
+   "source_format": "udiff",
+   "status": "ok"
   }
  },
- "end": "2026-10-19",
+ "end": "2026-10-21",
  "files": {
   "futures_2019.csv.gz": {
    "csv_sha256": "f9aeb264a3b5b023132d7a596d0f2ec2006d5670cb1bd7d0cea66c538dcb1ccc",
@@ -21375,9 +21399,9 @@
    "sha256": "cc4244fda7692ea4792a72109a681a65e87d0baadf59d03a1645748075caaf4a"
   },
   "futures_2026.csv.gz": {
-   "csv_sha256": "80c812d81f408a2b493af027a9e5905846d7e371342a0a446a25ab0899b77a26",
-   "rows": 591,
-   "sha256": "7742b3ffb7c02eb5c688e4adfd2fcd63e9dd3d211528d232eb17df94423220af"
+   "csv_sha256": "f1df9b6056a4f7efcb894b34ed79b1b5e540d8e96f38f08e1934a68c960428a6",
+   "rows": 594,
+   "sha256": "f426476d76f11ff0476597ec985fa28ddabbfeef36d1696b58a27b03e4b54575"
   },
   "options_2019.csv.gz": {
    "csv_sha256": "e9ec7b6cb157824b4dbdf071caf56a9f29a14a2c88ebca542e1d3b3485dcdbf9",
@@ -21415,9 +21439,9 @@
    "sha256": "829ac6aed10d069a579e9628dc014555a2f20c6c4a0d39f72a57033ef45d3b43"
   },
   "options_2026.csv.gz": {
-   "csv_sha256": "9917fdf3432d78888d58b54457b16446fa4aa5e41e64c6d5f19d4adaa5c7fb12",
-   "rows": 350076,
-   "sha256": "9ccf3c3059a53b883138936dd91d5352d86d36e79442e8067620a451bed3bbb3"
+   "csv_sha256": "234b6e33514185386b63ab8f811b834d5781a6557102ffb523cb98527e8d3306",
+   "rows": 351892,
+   "sha256": "f0647b47c6171df7213f7e171a03efc3e98cadc353f278e9bf7da0a27d030e58"
   }
  },
  "start": "2019-01-01"
