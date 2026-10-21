@@ -122,3 +122,9 @@ def test_the_evening_checks_only_a_forecast_aimed_at_today():
     wrong = issue(FRI, rows=(RangeRow("implied", "N1", WED, QUANTILES, 0.5, STATUS_OK),))
     view = build("evening", (wrong, implied(MON)), read=25390.0, at_time=(20, 5))
     assert not any(p.provisional for p in view.indices[0].horizons[0].timeline.points)
+
+
+def test_every_outcome_carries_its_gap_to_the_middle_so_the_page_never_computes_it():
+    view = build("evening", (implied(FRI), implied(MON)), read=25390.0, at_time=(20, 5))
+    last = view.indices[0].horizons[0].timeline.points[-1]
+    assert (last.gap_points, last.gap_pct) == (90.0, round(90 / 25300 * 100, 3))

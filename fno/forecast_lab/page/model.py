@@ -40,6 +40,12 @@ class Outcome:
     inside_90: bool
     live: bool  # a sealed live forecast; False for G13b's back-fill (history)
     provisional: bool = False  # the evening's own close (NSE's index list), until the official file confirms it
+    gap_points: float = field(init=False)  # close minus the forecast's middle: the page shows it, never computes it
+    gap_pct: float = field(init=False)  # the same gap as a percentage of the middle
+
+    def __post_init__(self):
+        object.__setattr__(self, "gap_points", round(self.close - self.band.q50, 2))
+        object.__setattr__(self, "gap_pct", round((self.close - self.band.q50) / self.band.q50 * 100, 3))
 
 
 @dataclass(frozen=True)
@@ -119,7 +125,7 @@ class IndexView:
     horizons: tuple[Horizon, ...]  # N1 first
     right: int = 0  # of the last `scored` sessions, closes inside the "almost certainly" (90%) range, next session
     scored: int = 0
-    misses: tuple[Miss, ...] = ()  # the last 7 sessions' misses, newest first
+    misses: tuple[Miss, ...] = ()  # the last 30 sessions' misses, newest first
     light: str = "none"  # the 30-day light: "green", "amber", "red" or "none" (too few days)
     light_word: str = ""  # its word: "Good", "Watch", "Check" or "Too few days"
     wrong_days: tuple[date, ...] = ()  # of the last `scored` sessions, those outside "almost certainly", newest first
