@@ -2,6 +2,7 @@
 
 import pytest
 
+from fno.forecast_lab.delivery import Attachment
 from fno.forecast_lab.records import DriveReportRecords
 from fno.forecast_lab.written import WrittenReport
 from fno.storage.data_store import DataStore
@@ -18,14 +19,16 @@ def parts(tmp_path):
     return DriveReportRecords(store, receipts), drive
 
 
-REPORT = WrittenReport("report\n", ("NIFTY N3: no forecast was sealed",), ("NIFTY 2026-10-23",), ("NIFTY 2026-10-22",))
+FILES = (Attachment("forecast.png", bytes(range(256)), "Today's forecast"), Attachment("f.html", b"<p>", "Details"))
+REPORT = WrittenReport("report\n", ("NIFTY N3: no forecast was sealed",), ("NIFTY 2026-10-23",), ("NIFTY 2026-10-22",),
+                       FILES)  # fmt: skip
 
 
 def test_the_report_and_its_markers_are_written_once_and_read_back(parts):
     records, drive = parts
     assert records.report(DAY) is None and not records.posted(DAY) and not records.alerted(DAY)
     records.write_report(DAY, REPORT)
-    assert records.report(DAY) == REPORT  # its coverage too: the next report takes up the rest
+    assert records.report(DAY) == REPORT  # its coverage and its files too (binary intact): a rerun posts the same
     records.write_report(DAY, REPORT)  # same bytes: no-op
     with pytest.raises(RawFileConflict):
         records.write_report(DAY, WrittenReport("another report\n", ()))

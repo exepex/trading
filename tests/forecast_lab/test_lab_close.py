@@ -4,9 +4,7 @@ outcome printed (an unsent one with its text, for the routine to post by hand), 
 from datetime import date
 
 from fno.alerts.sender import NoAlertSender
-from fno.cards.posting import UNKNOWN, PostReceipt
-from fno.constants import FNO_FORECAST_CHANNEL_ID
-from fno.forecast_lab.constants import MAY_HAVE_POSTED
+from fno.forecast_lab.delivery import Delivery
 from fno.forecast_lab.written import WrittenReport
 from tests.desk.conftest import RecordingAlerts
 
@@ -65,7 +63,7 @@ def test_a_rerun_after_a_crash_between_the_post_and_the_alerts_sends_only_the_al
 def test_a_refused_post_fails_the_step_without_its_own_alert_and_the_rerun_retries_only_the_post():
     """O1's exit contract: the step fails (non-zero) and O1's `Alerted` alerts it once; the data alerts go once."""
     records, alerts = Records(), RecordingAlerts()
-    run, poster, _ = lab(MISSING, records=records, alerts=alerts, poster=Poster(PostReceipt("alert NOT sent: x")))
+    run, poster, _ = lab(MISSING, records=records, alerts=alerts, poster=Poster(Delivery("alert NOT sent: x")))
     result = run.run(REPORT_DAY)
     assert result.failed and "the 15:45 report was not posted to #fno-forecast (alert NOT sent: x)" in result.lines
     assert not records.posted(REPORT_DAY) and len(alerts.sent) == 2
@@ -76,10 +74,17 @@ def test_a_refused_post_fails_the_step_without_its_own_alert_and_the_rerun_retri
 
 def test_a_maybe_posted_report_is_never_posted_again_and_says_which_channel_to_check():
     records = Records()
-    maybe = PostReceipt("alert NOT sent: " + UNKNOWN.format(failure="ReadTimeout", channel=FNO_FORECAST_CHANNEL_ID))
+    maybe = Delivery("alert NOT sent: ReadTimeout; Slack may still have posted it", may_have_posted=True)
     run, poster, _ = lab(MISSING, records=records, poster=Poster(maybe))
     first = run.run(REPORT_DAY)
     assert first.failed and first.lines[1].endswith("; check #fno-forecast before any repost")
     assert run.run(REPORT_DAY).lines == ["lab close 2026-10-26: already posted and alerted; nothing sent again"]
     assert len(poster.posts) == 1 and records.posted(REPORT_DAY)
-    assert MAY_HAVE_POSTED in UNKNOWN  # T1's wording: the guard against a double post follows it
+
+
+def test_the_stored_files_are_posted_with_the_text_and_a_rerun_posts_the_same_files():
+    records = Records()
+    run, poster, _ = lab(MISSING, records=records, poster=Poster(Delivery("alert NOT sent: x")))
+    run.run(REPORT_DAY)
+    run.run(REPORT_DAY)  # the stored report, never a rebuilt one
+    assert poster.files == [["forecast-2026-10-26.html"]] * 2 and poster.posts[0] == poster.posts[1]

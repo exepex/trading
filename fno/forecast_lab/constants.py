@@ -43,4 +43,3 @@ ALERTS_SENT = "lab close {day}: {sent} of {total} alert(s) sent to #fno-desk"
 ALERTS_ALREADY = "lab close {day}: alerts already sent; none sent again"
 NOT_POSTED = "the 15:45 report was not posted to #fno-forecast ({outcome})"
 CHECK_BEFORE_REPOST = "; check #fno-forecast before any repost"  # Slack may have posted it
-MAY_HAVE_POSTED = "Slack may still have posted it"  # T1's poster wording: never retried, so never posted twice
