@@ -143,7 +143,8 @@ in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is r
 2. `python -m fno preopen record`. On a day that is not a trading day it prints "not a trading day" and ends. Otherwise
    it reads GIFT Nifty (08:40-08:44:59), NSE's F&O pre-open list (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09
    one-minute candle from Groww (09:10:00-09:10:59), saves the raw answers and the day row write-once to Drive, and
-   itself commits and pushes `research/ops/capture_errors.csv` and `receipts/` to `main` by about 09:12. It ends on
+   itself commits and pushes `research/ops/capture_errors.csv` and `receipts/` to `main` by about 09:12 (GIFT Nifty's
+   own file and receipt already when its read ends, about 08:41, for the 08:50 morning edition). It ends on
    "pre-open recorded" or "pre-open recorded with problems: ..." (exit 1; it posts that one line to #fno-desk itself).
 3. If it printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk (`C0C89E8QCCD`)
    with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only `receipts/` and
@@ -216,7 +217,8 @@ commit with `--no-verify`.
   private packs, story E2), `fno/scorecard/wiring.py` (strategy scorecards and pause rules, story E6),
   `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4),
   `fno/vix_history/wiring.py` (the India VIX full history: NSE's month files, its table and checks, story A15),
-  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17),
+  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17;
+  the world indexes and their pre-open Asian levels, story A17e),
   `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
