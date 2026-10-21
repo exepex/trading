@@ -389,6 +389,25 @@
      "exit_code": 1
     }
    }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-21T15:25:12.733458+05:30",
+   "finished_at": "2026-10-21T15:25:22.766054+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
