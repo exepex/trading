@@ -89,3 +89,25 @@ The fix costs a few lines and stops a permanent wrong row.
 5. **Criterion 9 has moved from a hand run to the first scheduled run.** That is acceptable as quality rule 8. The
    claims after the merge must cite the counts, the first and last dates, and the overlap findings named in
    criterion 3 (VIX on 6 Feb 2026, the two missing SSE sessions).
+
+## Addendum 1: re-judge at 85cb612a (amendment 3.8; new section of response 297)
+
+**Verdict: PASS. A17e may merge** (pull, full suite on the merged tree, `check_numbers.py`, then push).
+
+Gates on 85cb612a: **9037 passed**, 17 xfailed; ruff, ruff format (1673), `check_imports.py` and the record scan
+(7354) are clean.
+
+| Finding | Builder's answer | My check | Result |
+|---|---|---|---|
+| SF1: a Yahoo close final the minute its market closes | `available_at` = the close plus `FINALITY_MARGIN` (30 min) for every Yahoo cue; the as-of labels take it too, which is conservative; STI tested at +29, +30 (not final) and +31 (final); official sources keep their own times | Plants: margin 0: 1 failed. Margin 29 min: 1 failed. Applying it to the labels as well costs nothing at 09:15 (every Asian and European close is hours old) | **Accepted** |
+| Minor 1: part B's O10 row after a failed push lost; two alerts | The row is written before the commit, so the commit carries it; one alert names every problem ("kospi failed; receipts not committed"); a failed push adds no row of its own, and the alert reports it | Plants: row after the commit: 1 failed. Push failure left out of the alert: 2 failed | **Accepted** |
+| Minor 2: no trading-day check | Part B reads NSE's calendar itself (regular or special, never muhurat-only) and prints "not a trading day" on a closed day | Plant: check removed: 2 failed | **Accepted** |
+| Minor 3: stale claims line | corrected | read | **Accepted** |
+| Minors 4 and 5 | after the merge | stays open: the TWSE reset rate from GitHub's runners, and criterion 9's counts and overlap findings | **Open (after merge)** |
+
+**Minor (new, not blocking).** `nse_session_day` runs outside part B's failure handling. On a day outside the
+calendar's range (for example 1 Jan 2027 before NSE's 2027 holiday rows are added), `CalendarError` ends the command
+with a traceback, with no alert and no O10 row. A4's 3 pm capture alerts "stopped, nothing recorded" the same day,
+so the owner still hears of it [strong for the path, `calendar.py:98-100`]. Catching `CalendarError` into the one
+alert would make part B's own record complete. Still open after the merge: A22's routine line that starts
+`global-cues preopen`.
