@@ -121,3 +121,28 @@ It does not test the positive case that would catch the exact bug of addendum 1:
 
 (Addendum 1 judged 0b77381f because the 778e9c0f message arrived after it was written; both heads' fixes are now
 covered.) For the code review I will also check `reduce_lots` (the AI's lots reach the order) with the same plant.
+
+## Addendum 4: 0bb574de (F4's evidence and the judge-blocked run)
+**PASS stands. F5's side of judge 308's should-fix 2 is closed.** I read the docs-only diff from a32f8ff7:
+- the top-level `evidence` list, and any action other than `follow_rule` must cite one;
+- `check_decision` calls F4's `evidence_problems`;
+- prompt lines matching F4's rules (account files are not citable; `/evaluation` values are);
+- D3 `judge` = `AcceptedDecision.judge`;
+- the market is read through E2e's `canonical_snapshot`.
+
+New and agreed with F4 (00f49a0c): `decide()` always runs. A blocked or unavailable judge gives a "no trade, judge
+failed" run, with the default as a D3 shadow, so scoreboard A keeps the paired day (criterion 11). F1t's run check
+refuses a blocked run with any chosen trade.
+
+Two dependencies are now explicit:
+- F1t's text must gain `judge` and `judge_blocks` in `AcceptedDecision`, plus that run check (judge 308 should-fix 2,
+  F1t's side, still open);
+- `canonical_snapshot` must read the pack's own snapshot (judge 309 should-fix 1). Until then, F5's "only the pack's
+  snapshot" criterion rests on a function that follows the marker.
+
+## Addendum 5: 95cd4b8c
+**PASS stands.** The docs-only diff from 0bb574de adds criterion 12: before F5 merges, its part of O11's strict xfails
+becomes a real replay check. That covers the Book 2 decision on the recorded day (shared with F1t) and Book 2's half
+of the daily run's fills and exits (shared with F6), as D3, D4, D5 and O1 did under judge 306. Good: it keeps the
+"not implemented" list honest. The dependencies of addendum 4 are unchanged (F1t's `AcceptedDecision` fields, judge
+308.1).

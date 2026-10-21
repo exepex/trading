@@ -54,10 +54,10 @@ tested as a failure below). Everything else is the code on `main`, from its comp
 | 6 | O1 `reviews` (E6), scorecard, scoreboards B (S2/S6) and A (S3) | yes | the same trade ID, maximum loss and day in each |
 | 7 | The day's chosen trade checked by C4 as Book 2's and Book 3's (D4, D5) | yes | refused: no envelope permits it, no constitution registers it |
 | 8 | Go-live switches: `daily.live_from` dates, the 14:05 start, the card's weather from M1, the card step in the replay | no | xfail: owner, O1 follow-up, T1c, O11 part 2 |
-| 9 | Book 2 and Book 3 packs and decisions from a fake AI answer | no | xfail: D4/D5/F1t, F1t+F5, F1t+F6 |
+| 9 | Book 2 and Book 3 packs, decisions from a fake AI answer, model reporting, orders and exits | no | xfail: D4/D5/F1t, F1t+F5, F1t+F6, F1t, F5+F6 |
 | 10 | Owner-timing fills | branch | xfail: E8 |
 | 11 | v4 scores of the day's rows; AI books' v4 rows | no | xfail: G6, G11 |
-| 12 | Capture failure rows, valuation record, analyst card, usage per routine, card objections | no | xfail: O10, G13, F2, F8c, T3 |
+| 12 | Capture failure rows, a never-started job alerted as stale, valuation record, analyst card, usage per routine, card objections | no | xfail: O10, O10+A14, G13, F2, F8c, T3 |
 
 ## Failures on the day
 

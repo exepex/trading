@@ -9,6 +9,10 @@ provider: nse
 # The 3 pm quote recorder (story A4) has its own source, independent of `provider` above.
 quotes:
   provider: auto
+  # Story A4e: named capture windows, each in its own dataset (quote-snapshots-<name>); `quotes record --window v4`.
+  # The default capture (no --window) is A4's 14:55-15:10 and is not set here.
+  windows:
+    v4: {start: "14:30", end: "14:40", max_early_wait_minutes: 30}
 
 underlyings: [NIFTY, BANKNIFTY]
 

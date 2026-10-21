@@ -69,3 +69,14 @@ def test_any_doubt_runs_every_check(tmp_path):
     assert scope(repo, ZEROS, first)[0] == "code=true"  # a new branch
     assert scope(repo, "1234567" * 5 + "12345", first)[0] == "code=true"  # a base missing (a force-push)
     assert scope(repo, first, first)[0] == "code=true"  # nothing changed
+
+
+def test_a_number_claim_is_lane_3_and_the_number_check_runs_on_every_push(tmp_path):
+    repo, first = repository(tmp_path)
+    head = commit(repo, {"numbers/judge-report.csv": "number,name,session,claimed_at_utc\n"})
+    assert scope(repo, first, head) == ("code=false", ["numbers/judge-report.csv"])
+    steps = (SCRIPT.parent.parent / ".github" / "workflows" / "checks.yml").read_text()
+    assert steps.rstrip().endswith(
+        "      - if: always() # story O12: every push, last, so a reused number never stops "
+        "the record scan above\n        run: python tools/check_numbers.py"
+    )

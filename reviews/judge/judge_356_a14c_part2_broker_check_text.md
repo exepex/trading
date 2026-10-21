@@ -68,3 +68,21 @@ With SF1 as it stands, a list can hold an order path that has no order verb. Wit
 any name outside `get_*` reads and constants. I checked the SDK 1.5.0 list in the test file: none of its order calls
 starts with `get_`. One `get_` name posts, `get_order_margin_details`, and that is the calculator the text shows to
 place nothing.
+
+## Addendum 1: re-judge at c706a9ea (text 1db15bdd, code c706a9ea)
+
+**Verdict: PASS for the A14c part 2 text and the per-caller `ReadOnlyGroww`.** Code for the check may start. Judge D
+reviews the same heads under judge 291; each verdict stands on its own.
+
+Gates on c706a9ea: **7372 passed**; ruff, ruff format and `check_imports.py` are clean; `tests/intraday` 222 passed.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| SF1: the verb deny-list is not read-only | A positive rule first: only `get_<lower_snake>` reads and UPPER_CASE constants; never a name starting `_`; never a name containing token, session, secret, password, login or auth. The order-verb refusal stays as a second line. My six names plus `get_session_info`, `__class__` and `get_Quote` are tested, and so is every name of `dir(GrowwAPI)`, private ones included | Plants: the credential-word check removed: 3 failed. Any lowercase name allowed: 10 failed. Accepted in a direct call: `get_user_profile`, `get_order_list`, `API_URL`. These are reads, so the rule cannot make a list trade; what a caller may read is still decided per caller in review | **Accepted** |
+| SF2a: no deadline or size | 15 baskets a day today (SF, SC and BF at five widths), one request every 2 s plus one quote, about 35 s; no Groww request after 14:50 IST; the rest written as `error` "deadline", exit 1; tests at 14:49:59, 14:50:00 and 14:50:01 | read | **Accepted** |
+| SF2b: exposure compared with itself | an independent NIFTY `get_quote` at the run's start, and A14's `NseIndexOptionExposure` recomputed at that level; "never implied from Groww's own exposure figure"; a planted 0.2%-high exposure on a correct index is tested | read; this caller's list is `get_order_margin_details`, `get_quote` and the constants | **Accepted** |
+| Minor 1: boundaries | Rs 1.00 / 0.99 and 0.10% / 0.099%, plus just over each | read | **Accepted** |
+| Minor 2: `error` retry | same-day rerun only, otherwise lost and said so in the row and in O1's line | read | **Accepted** |
+
+For the code round: the claims must show the live run's request count and duration against the 35 s estimate, and
+the account still at 0 orders, 0 positions and 0 used margin after the first live day (read-only calls).

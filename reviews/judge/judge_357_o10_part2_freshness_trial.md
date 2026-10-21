@@ -53,3 +53,31 @@ three-session case, where 19 and 20 Oct must stay silent.
    one cron running.
 
 Criterion 7 (live run logs) is still pending, as the claims say.
+
+## Addendum 1: re-judge at 52064f3f
+
+**Verdict: PASS. O10 part 2 may merge** (after part 1 at 0db3f682). Criterion 7's live run logs remain for the claims
+after the merge.
+
+Gates on 52064f3f: **7422 passed**; ruff, ruff format (1323) and `check_imports.py` are clean.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| SF1: one row excuses up to three sessions | `_excused`: each row excuses one problem of its check, the latest not yet excused, dated from the row's day back `MATCH_DAYS`. `MATCH_DAYS` is tightened 2 → 1 from the measured late starts. My 19/20/21 Oct case is a test (only 21 is excused; two rows on 21 excuse 21 and 20) | Plants: the row not consumed: 1 failed. Every covered session excused: 1 failed. `MATCH_DAYS` back to 2: 1 failed. With rows consumed one each, excused problems can never outnumber rows | **Accepted** |
+| Minor 1: no status in the record | silent checks written as `<check>:<status>` | tests read | **Accepted** |
+| Minor 2: the trial depends on health-check's cron | stated in `trial.py` and the story's known limits | read | **Accepted** |
+
+Note (no change asked): with `MATCH_DAYS = 1`, a Friday problem whose job's failure row lands on Monday is not excused
+(Monday minus one day is Sunday), so it counts as silent. That errs toward strictness, which is the right side for a
+go-live gate.
+
+## Addendum 2: aab94813 (52064f3f plus part 1 merged plus one change)
+
+**Verdict: PASS. Merge after part 1.** Full suite on aab94813, mine: **7874 passed, 15 xfailed**; ruff clean.
+
+The change: `RunLogCheck` now marks a daily-run problem `recorded` only when every bad step is an O1 step logged as
+`failed` or `refused`. O1 records and alerts those, so they are not silent in the trial. A step missing from the run
+log stays unrecorded, and so silent. This was agreed with O1's builder, and the two tests assert both cases.
+
+**Minor:** a log with both a failed step and a missing step is untested. My plant (`recorded = bool(bad)`, ignoring
+missing steps) passed all 153 health tests. The code is right (`bool(bad) and not missing`); add that mixed case.

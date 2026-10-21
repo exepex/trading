@@ -56,10 +56,11 @@ def test_the_market_holds_only_valid_named_quotes_at_their_mid_with_a_black76_iv
         market_from_snapshot(DAY, cutoff(quotes, spot=None), 0.065, Black76())
 
 
-def write_packs(root, day, snapshot_id, csv_sha, private=True):
+def write_packs(root, day, snapshot_id, csv_sha, private=True, meta_sha=None):
+    """The packs as E2 writes them; `meta_sha`: the sidecar's hash, which the pack records beside the quote file's."""
     store = PackStore(root)
-    body = {"day": day.isoformat(), "provenance": {SNAPSHOT_INPUT: {"snapshot_id": snapshot_id, "csv_sha256": csv_sha}},
-            "items": []}  # fmt: skip
+    recorded = {"snapshot_id": snapshot_id, "csv_sha256": csv_sha, "meta_sha256": meta_sha}
+    body = {"day": day.isoformat(), "provenance": {SNAPSHOT_INPUT: recorded}, "items": []}
     store.write_common(CommonPack(day, body))
     if private:
         store.write_private(PrivatePack(BOOK1_RULES, day, {"day": day.isoformat(), "book": BOOK1_RULES}))
