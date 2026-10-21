@@ -477,3 +477,6 @@ number,name,session,claimed_at_utc
 357.2,o10-part2-aab94813,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-16T12:52:38Z
 358.1,a20a-duplicate-line,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-16T12:53:32Z
 309.1,e2e-fix,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-16T12:55:30Z
+308.1,f4-owner-answer,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-16T12:58:03Z
+307.5,f5-o11-criterion,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-16T12:59:43Z
+228.6,judge_228_a16f_first_mark_and_o9_text.md,unclaimed file registered by the orchestrator,2026-10-20T10:05:50Z
