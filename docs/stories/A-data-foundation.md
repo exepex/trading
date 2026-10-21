@@ -1028,7 +1028,16 @@ report can check today's forecast against today's close the same day, marked "pr
   file differs the next day, the record shows whether the list moved after 15:40 (a timing cause) or never matched (a
   rule cause); by then that day's list is gone, so this is the only way to tell. It runs every session, not only the
   record-only days: it costs the routine about 15 minutes of waiting, and keeps the evidence for every later day
-  (reasoning only). Its own live key `daily.live_from.close_recheck: null`.
+  (reasoning only). Its own live key `daily.live_from.close_recheck: null`, its gate `CLOSE_RECHECK_FROM = 16:00`.
+  - **No first read** (close_read failed or did not run): the recheck's read, under the same rules, becomes the day's
+    record `<day>.json` (marked `read at recheck`), so the evening still gets a close. It prints `close read <day> at
+    recheck (no first read to compare)` and exits 0. A failed recheck then exits 1 as any read does; close_read's own
+    failure was alerted once by its step and is never alerted again here.
+  - **Special and muhurat days:** the same `nothing written:` line and exit 0 as close_read, so O1 records `refused`.
+  - **Cost (reasoning only):** the routine's day ends after about 16:00 instead of about 15:45; on a closed day
+    nothing waits (A7 skips the whole run). No limit on the routine session's length is known to me or to O1/O2's
+    owner.
+  - O1/O2's owner agreed to the step (22 Oct), wired as close_read with `CLOSE_RECHECK_FROM`.
 - **Placement.** `fno/close_read/` (source, record, confirm, command) and its composition root
   `fno/close_read/wiring.py`. O1's step is `Alerted("close_read", LiveFrom(NotBefore(CommandStep(...), CLOSE_READ_FROM,
   waiter), live["close_read"]), alerts)`: `LiveFrom` outside, so a not-live day never waits until 15:40;
@@ -1096,7 +1105,9 @@ about 1 day.
    any planted value in any format (`22811.37`, `22,811.37`, `22811.4`).
 9. **The second read.** With a fake answer changed by 0.05 between the 15:40 and 16:00 reads, the recheck record
    says `differs by 0.05` for that index and `same` for the others; a rerun of the recheck writes nothing; not live,
-   the step neither waits nor reads.
+   the step neither waits nor reads. With no first read, the recheck writes the day's record marked `read at
+   recheck` and exits 0; a special day prints `nothing written:` and O1 records `refused`. The same three O1 test
+   lists are extended for it.
 10. **Gates.** No file or class over 350 lines; `ruff`, `check_imports` and the full suite pass.
 
 **Depends:** A4 (market_levels' endpoint), A7, A10 (`read_index_closes`), O1, O6 (archived file, read only), O9 ·
