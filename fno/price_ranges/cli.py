@@ -106,7 +106,7 @@ def _score(args, cfg) -> int:
     records = [(s.record, not s.late) for s in reader.live()] + [(r, True) for r in reader.backfill()]
     result = score_report(records, lambda u, d: outcomes.close(u, date.fromisoformat(d)), v6a)
     data = (json.dumps(result, sort_keys=True, indent=1) + "\n").encode()
-    path = scores_path(now_ist().date(), hashlib.sha256(data).hexdigest())
+    path = scores_path(now_ist(), hashlib.sha256(data).hexdigest())
     store.put(path, data)
     for g in result["groups"]:
         c50 = "n/a" if g["inside_50"] is None else f"{g['inside_50']:.0%}"

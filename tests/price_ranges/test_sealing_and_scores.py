@@ -83,3 +83,12 @@ def test_labels_underlyings_and_horizons_are_never_pooled():
                (record(rows=[row(horizon="N3")]), True)]  # fmt: skip
     groups = group_scores(resolved(records, lambda u, d: 100.5)[0])
     assert len(groups) == 4 and all(g["n"] == 1 for g in groups)
+
+
+def test_each_resolved_row_has_its_own_score_for_fl1():
+    out = score_report([(record(rows=[row(), row("no_change", p_up=0.5)]), True)], lambda u, d: 101.5)
+    implied, point = out["rows"]
+    assert (implied["outcome_close"], implied["inside_25_75"], implied["inside_05_95"]) == (101.5, False, True)
+    assert implied["brier_up"] == pytest.approx(0.16) and implied["issue_day"] == "2026-10-16"
+    assert (point["inside_25_75"], point["inside_05_95"]) == (None, None)
+    assert implied["quantile_score"] == pytest.approx(out["groups"][0]["mean_qs"])

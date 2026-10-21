@@ -73,8 +73,14 @@ def test_the_reader_gives_fl1_sealed_or_late_live_records_backfill_records_and_t
         reader.sealed("NIFTY", MONDAY, "1545").late and reader.sealed("NIFTY", DAY + timedelta(days=1), "1545") is None
     )
     assert [s.late for s in reader.live()] == [False, True]
-    scores = root / "data" / scores_path(DAY, "ab" * 6)
+    scores = root / "data" / scores_path(datetime(2026, 10, 16, 15, 50, tzinfo=IST), "ab" * 6)
     scores.parent.mkdir(parents=True)
-    scores.write_text(json.dumps({"schema": "g13b_scores_v1"}))
-    assert RangeScores(root).latest() == {"schema": "g13b_scores_v1"} and list(reader.backfill()) == []
+    rows = [{"underlying": "NIFTY", "label": "live", "target_day": "2026-10-19"},
+            {"underlying": "NIFTY", "label": "backfill_eod", "target_day": "2026-10-12"},
+            {"underlying": "BANKNIFTY", "label": "live", "target_day": "2026-10-19"}]  # fmt: skip
+    scores.write_text(json.dumps({"schema": "g13b_scores_v1", "rows": rows}))
+    assert RangeScores(root).latest()["schema"] == "g13b_scores_v1" and list(reader.backfill()) == []
+    assert len(RangeScores(root).rows("NIFTY")) == 2 and RangeScores(root).rows("NIFTY", live_only=True) == rows[:1]
+    assert RangeScores(root).scored_days("NIFTY", MONDAY) == [MONDAY]
+    assert RangeScores(root).scored_days("NIFTY", DAY) == []
     assert receipt_file(live_path("NIFTY", DAY, "1545")).startswith("receipts/data/price_ranges/v1/live/2026/10/")

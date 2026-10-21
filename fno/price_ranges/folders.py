@@ -3,7 +3,7 @@ these receipts."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 DATA_AREA = "data"  # O9's area
 RECEIPTS_ROOT = "receipts"  # O9's receipts tree in the checkout
@@ -20,8 +20,9 @@ def backfill_path(label: str, method: str, underlying: str, first: date, last: d
     return f"{BACKFILL}/{label}_{method[:8]}/{name}"
 
 
-def scores_path(day: date, content: str) -> str:
-    return f"{SCORES}/{day.isoformat()}_{content[:12]}.json"
+def scores_path(made: datetime, content: str) -> str:
+    """Named by the run's IST time, so the latest report sorts last even on a day with two runs."""
+    return f"{SCORES}/{made:%Y-%m-%dT%H%M%S}_{content[:12]}.json"
 
 
 def closes_path(underlying: str, through: date, content: str) -> str:

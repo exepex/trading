@@ -33,7 +33,7 @@ def resolved(records: Iterable[tuple[dict, bool]], close: Callable[[str, str], f
         for row in record.get("rows", []):
             target = close(record["underlying"], row["target_day"]) if row["target_day"] else None
             if row["status"] == OK and target is not None:
-                found.append((record, row, math.log(target / row["s_ref"])))
+                found.append((record, row, math.log(target / row["s_ref"])))  # outcome_close = s_ref x e^y
     return found, late
 
 
@@ -71,6 +71,21 @@ def group_scores(scored: list) -> list[dict]:
             "brier_up": _brier(items),
         })  # fmt: skip
     return out
+
+
+def _inside(row: dict, y: float, low: str, high: str) -> bool | None:
+    return None if row["forecaster"] == NO_CHANGE else row[low] <= y <= row[high]
+
+
+def row_scores(scored: list) -> list[dict]:
+    """One score per resolved row, as FL1 reads them (it never recomputes one): the target's official close, the log
+    outcome, QS, both band hits (None for the point mass) and the row's Brier."""
+    return [{"label": record["label"], "underlying": record["underlying"], "issue": record["issue"],
+             "issue_day": record["day"], "forecaster": row["forecaster"], "horizon": row["horizon"],
+             "target_day": row["target_day"], "outcome_close": round(row["s_ref"] * math.exp(y), 2),
+             "outcome_log": y, "quantile_score": _qs(row, y), "inside_25_75": _inside(row, y, "lq25", "lq75"),
+             "inside_05_95": _inside(row, y, "lq05", "lq95"),
+             "brier_up": (row["p_up"] - (1.0 if y > 0 else 0.0)) ** 2} for record, row, y in scored]  # fmt: skip
 
 
 def comparison_seed(*key: str) -> int:
@@ -113,5 +128,5 @@ def score_report(records: list[tuple[dict, bool]], close, v6a=lambda day: None) 
     live_days = len({r["day"] for r, _, _ in scored if r["label"] == LIVE})
     return {"schema": SCHEMA, "notes": [NOTE, QS_NOTE, TAU_NOTE, BRIER_NOTE], "calibration_mark_days": CALIBRATION_MARK,
             "sealed_live_days": live_days, "late_rows": late, "scored_rows": len(scored),
-            "groups": group_scores(scored), "comparisons": comparisons(scored),
+            "groups": group_scores(scored), "comparisons": comparisons(scored), "rows": row_scores(scored),
             "consistency": consistency(records, v6a)}  # fmt: skip

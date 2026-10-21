@@ -12,6 +12,7 @@ from datetime import date
 from pathlib import Path
 
 from .backfill import SCHEMA as BACKFILL_SCHEMA
+from .constants import LIVE as LIVE_LABEL
 from .folders import BACKFILL, LIVE, RECEIPTS_ROOT, SCORES, drive, live_path
 from .sealing import Seal, SealCheck
 
@@ -69,3 +70,14 @@ class RangeScores:
     def latest(self) -> dict | None:
         files = sorted((self.root / drive(SCORES)).glob("*.json"))
         return json.loads(files[-1].read_bytes()) if files else None
+
+    def rows(self, underlying: str, live_only: bool = False) -> list[dict]:
+        """The latest report's per-row scores of an underlying (live ones only when asked: FL1's history)."""
+        report = self.latest() or {}
+        return [r for r in report.get("rows", []) if r["underlying"] == underlying and (r["label"] == LIVE_LABEL or
+                                                                                      not live_only)]  # fmt: skip
+
+    def scored_days(self, underlying: str, through: date) -> list[date]:
+        """The target days with at least one live score, up to `through` (FL1's trust line)."""
+        days = {date.fromisoformat(r["target_day"]) for r in self.rows(underlying, live_only=True)}
+        return sorted(d for d in days if d <= through)
