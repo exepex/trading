@@ -7,7 +7,9 @@ printed, an unsent one with its text so the routine posts it by hand. A report n
 1), and the run alerts it once itself with that day's alerts: the editions run from the owner's routines, outside O1's
 `Alerted`. A post Slack may have made without answering is never retried (no double post), so it is marked posted and
 the failure says to check the channel. The morning edition is today's forecast only before the open: at or after 09:15
-it is not posted, and one alert says so (owner, DESK_DECISIONS line 284)."""
+it is not posted, and one alert says so (owner, DESK_DECISIONS line 284); the cutoff is checked again just before
+the post, since making the report takes time. Any failure before the post (a Drive sync refused while the edition is
+built, a report that cannot be made) is alerted once by `guarded`, never silent (judge 444)."""
 
 from __future__ import annotations
 
@@ -24,6 +26,7 @@ from .constants import (
     ALREADY_POSTED,
     CHECK_BEFORE_REPOST,
     COMMANDS,
+    CRASHED,
     LATE_ALERT,
     NOT_A_SESSION,
     NOT_LIVE,
@@ -100,6 +103,8 @@ class EditionRun:
         if written is None:
             written = self.composer.compose(day, self.clock())
             self.records.write_report(day, written)
+        if not posted and self._too_late():  # making it took time: the open may have come meanwhile
+            return self._late(day, alerted)
         lines, problem = [REPORT_ALREADY.format(name=self.name, day=day)], None
         if not posted:
             lines, problem = self._post(day, written)
@@ -136,3 +141,17 @@ class EditionRun:
         self.records.mark_alerted(day, outcomes)
         unsent = [f"{outcome}: {text}" for outcome, text in zip(outcomes, texts, strict=True) if outcome != SENT]
         return [ALERTS_SENT.format(name=self.name, day=day, sent=len(texts) - len(unsent), total=len(texts)), *unsent]
+
+
+def guarded(edition: str, day: date, build: Callable[[], EditionRun], desk: AlertSender) -> LabResult:
+    """Builds and runs the edition; any failure before its own handling (a Drive sync refused, a report that cannot be
+    made) is one #fno-desk alert with the edition, the day and the error's type, and the run's failure (exit 1). The
+    alert's outcome is printed, an unsent one with its text, for the routine to post by hand."""
+    try:
+        return build().run(day)
+    except Exception as error:  # noqa: BLE001  outside O1's Alerted: nothing may fail silently
+        what = CRASHED.format(edition=edition, error=type(error).__name__)
+        text = ALERT.format(day=day, what=what)
+        outcome = desk.send(text)
+        lines = [f"{COMMANDS[edition]} {day}: {what}"]
+        return LabResult(lines + ([] if outcome == SENT else [f"{outcome}: {text}"]), True)

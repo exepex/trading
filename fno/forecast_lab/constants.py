@@ -48,3 +48,4 @@ CHECK_BEFORE_REPOST = "; check #fno-forecast before any repost"  # Slack may hav
 NOT_LIVE = "{name} {day}: not live (config forecast_lab.live_from.{edition}: {since}); nothing posted"
 TOO_LATE = "{name} {day}: not posted: it is {now:%H:%M}, and the morning edition is only posted before 09:15"
 LATE_ALERT = "the morning edition was not posted before 09:15 (run at {now:%H:%M}); nothing was sent"
+CRASHED = "the {edition} report was not made ({error}); nothing was posted"

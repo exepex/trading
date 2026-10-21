@@ -79,3 +79,54 @@ def test_a_morning_posted_in_time_still_sends_its_stored_alerts_on_a_late_rerun(
     records.mark_posted(MON, "posted")
     run, alerts, _ = morning(9, 20, records=records)
     assert not run.run(MON).failed and alerts.sent == ["F&O forecast lab 2026-10-26: a stored finding"]
+
+
+class Raising(Composer):
+    def compose(self, day, now):
+        raise ValueError("a damaged record")
+
+
+def test_a_failure_before_the_post_is_alerted_once_and_fails_the_run():
+    from fno.forecast_lab.edition_run import guarded
+
+    alerts = RecordingAlerts()
+    run = EditionRun(Edition("evening", MON), Raising(), Records(), Poster(), alerts, SESSIONS.is_regular,
+                     partial(at, MON, 20, 5))  # fmt: skip
+    result = guarded("evening", MON, lambda: run, alerts)
+    assert result.failed and result.lines == ["lab close 2026-10-26: the evening report was not made (ValueError); "
+                                              "nothing was posted"]  # fmt: skip
+    assert alerts.sent == ["F&O forecast lab 2026-10-26: the evening report was not made (ValueError); nothing was "
+                           "posted"]  # fmt: skip
+
+
+def test_a_build_that_fails_is_alerted_and_an_unsent_alert_is_printed_with_its_text():
+    from fno.alerts.sender import NoAlertSender
+    from fno.forecast_lab.edition_run import guarded
+
+    def build():
+        raise RuntimeError("G13b's records could not be read verified from Drive")
+
+    result = guarded("morning", MON, build, NoAlertSender())
+    assert result.failed and result.lines[1] == (
+        "alert NOT sent: FNO_SLACK_BOT_TOKEN is not set: F&O forecast lab 2026-10-26: the morning report was not made "
+        "(RuntimeError); nothing was posted")  # fmt: skip
+
+
+def test_a_morning_whose_making_ran_past_9_15_is_not_posted():
+    class Slow(Composer):
+        def compose(self, day, now):
+            clock.now = at(MON, 9, 16)
+            return WrittenReport("today's forecast\\n", ())
+
+    class Clock:
+        now = at(MON, 9, 14)
+
+        def __call__(self):
+            return self.now
+
+    clock, poster, alerts = Clock(), Poster(), RecordingAlerts()
+    run = EditionRun(Edition("morning", MON, MORNING_BY), Slow(), Records(), poster, alerts, SESSIONS.is_regular,
+                     clock)  # fmt: skip
+    result = run.run(MON)
+    assert result.failed and "not posted: it is 09:16" in result.lines[0] and poster.posts == []
+    assert len(alerts.sent) == 1
