@@ -10,20 +10,21 @@ from fno.constants import DAILY_RUN_STEPS, STEP_FAILED, STEP_NOT_LIVE, STEP_REFU
 from fno.daily.steps import Alerted, CommandStep, LiveFrom
 from fno.price_distribution.folders import receipt_pathspecs
 from tests.daily.fakes import FakeProcesses
+from tests.daily.live_dates import without_live_dates
 from tests.timetable.fakes import Clock
 
 DAY = date(2026, 10, 16)
 ARGUMENTS = ("pricedist", "record", "--day", DAY.isoformat(), "--live")
 
 
-def built_step(monkeypatch):
+def built_step(monkeypatch, cfg=None):
     from fno.daily import wiring
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
-    wiring.build_day_runner(load_app_config())
+    wiring.build_day_runner(cfg or load_app_config())
     return seen["day_steps"]["price_distribution"]
 
 
@@ -37,8 +38,8 @@ def test_the_step_is_wired_after_the_card_with_g13_s_receipts_only(monkeypatch):
 
 
 def test_without_a_live_date_the_step_is_not_live_and_calls_nothing(monkeypatch):
-    step = built_step(monkeypatch)
-    assert step.step.live_from is None  # config.yaml daily.live_from.price_distribution: null
+    step = built_step(monkeypatch, without_live_dates())
+    assert step.step.live_from is None
     assert step.run(DAY).result["status"] == STEP_NOT_LIVE
 
 

@@ -63,15 +63,16 @@ def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
     assert alerts.sent == ["F&O daily run 2026-10-14: step quotes_done failed: OSError: disk; the run goes on"]
 
 
-def test_the_live_dates_come_from_config_and_none_is_set_today():
+def test_the_live_dates_come_from_config_phase_1_from_22_oct():
     assert "daily" in ALLOWED_APP_KEYS
+    phase_1 = date(2026, 10, 22)  # owner, 21 Oct (DESK_DECISIONS c58788bc): G13, G13b and FL1-1 live
     assert live_dates(load_app_config()) == {
         "margin_check": None, "weather": None, "forecasts_v4": None, "card": None, "owner_timing_fills": None,
-        "price_distribution": None,  # story G13
-        "price_distribution_scores": None,  # G13's daily scores
-        "price_ranges": None,  # story G13b
-        "price_range_scores": None,  # G13b's daily scores and seals
-        "lab_close": None,  # story FL1-1
+        "price_distribution": phase_1,  # story G13
+        "price_distribution_scores": phase_1,  # G13's daily scores
+        "price_ranges": phase_1,  # story G13b
+        "price_range_scores": phase_1,  # G13b's daily scores and seals
+        "lab_close": phase_1,  # story FL1-1
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
