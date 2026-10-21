@@ -1,0 +1,54 @@
+{
+ "day": "2026-10-21",
+ "kind": "daily_run",
+ "steps": {
+  "quotes": {
+   "started_at": "2026-10-21T14:35:37.328082+05:30",
+   "finished_at": "2026-10-21T14:35:37.328122+05:30",
+   "inputs": {
+    "parts": [
+     "nifty",
+     "nse",
+     "indices"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "started nifty, nse; indices after nifty"
+   }
+  },
+  "margin_check": {
+   "started_at": "2026-10-21T14:35:41.471779+05:30",
+   "finished_at": "2026-10-21T14:35:41.471805+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  },
+  "weather": {
+   "started_at": "2026-10-21T14:35:44.902480+05:30",
+   "finished_at": "2026-10-21T14:35:44.902505+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  },
+  "forecasts_v4": {
+   "started_at": "2026-10-21T14:35:48.174554+05:30",
+   "finished_at": "2026-10-21T14:35:48.174581+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  }
+ }
+}
