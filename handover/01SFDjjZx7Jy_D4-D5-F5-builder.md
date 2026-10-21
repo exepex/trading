@@ -155,6 +155,11 @@ I was judged, never a judge. Open findings for others:
    numeric ID, used by R1 and by D5. Book 3's row would then name its strategy in `description` and `protocol_path`,
    and R1's `int()` scan would no longer be needed. The alternative, R1 skipping non-numeric IDs, is a patch that
    leaves two ID schemes in one ledger. Agree it with R1's owner (01XFXpbk) before Book 3 is switched on.
+
+   R1's owner partly agrees (21 Oct). The shared allocator is the end state, and would also replace S1's freeze's own
+   `isdigit` scan, a second copy. R1's minimal fix (numbered rows only, S1's rule) is the safe floor if D5 is switched
+   on first: `story/r1-book3-trial-ids` `df158875`, parked for the post-phase-1 judge queue. Both options are also in
+   `handover/01XFXpbkyixX_A21-R1-builder.md` (`story/a21-announcements`).
 7. **The Innovation Lab design** (`docs/stories/IL-innovation-lab.md`, with judge E) depends on LR3's CUSUM for
    automatic demotion. LR3's code was never started (see (d)).
 
