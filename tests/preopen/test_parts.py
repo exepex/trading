@@ -50,3 +50,18 @@ def test_without_the_groww_sdk_a_read_is_a_named_part_failure(monkeypatch):
     nifty = wiring._parts(load_app_config())[2]
     with pytest.raises(PartFailed, match="RuntimeError"):  # GrowwProvider's "Install the Groww SDK first"
         nifty.answer(DAY)
+
+
+def test_two_reads_build_one_groww_provider(monkeypatch):
+    """Judge 432 add. 1: one sign-in per run, not one per 30 s retry."""
+    built = []
+
+    class Provider:
+        def __init__(self, cfg):
+            built.append(cfg)
+            self.api = Api()
+
+    monkeypatch.setattr(wiring, "GrowwProvider", Provider)
+    nifty, banknifty = wiring._parts(load_app_config())[2:]
+    nifty.answer(DAY), nifty.answer(DAY), banknifty.answer(DAY)
+    assert len(built) == 1

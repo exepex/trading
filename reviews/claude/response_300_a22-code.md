@@ -108,3 +108,9 @@ before-midnight test, which now catches it.
 - O8 nit 1 (indentation in the live-from table) is fixed. Nit 2: `DATA_AREA` and `RECEIPTS_FOLDER` exist only in
   `fno/storage/data_wiring.py`. Moving O9's constants is outside A22, so they stay, as the reviewer allowed.
 - A16b's builder agrees with `symbol=` (the source still takes only a `ReadOnlyGroww`).
+
+## Addendum 2: judge 432 add. 1 (PASS) minor
+
+- Two reads build one Groww provider: `tests/preopen/test_parts.py::test_two_reads_build_one_groww_provider`. The
+  judge's plant (a new provider on every read) now fails it. The first live day's receipt push time against 09:15 will
+  be stated here after the first live morning, with criterion 7.
