@@ -156,9 +156,9 @@ def test_an_issue_with_no_push_evidence_is_late():
 
 
 def test_today_s_issue_is_shown_only_once_pushed_by_the_report_s_time():
-    for sealed, shown in ((at(REPORT_DAY, 15, 46), True), (at(REPORT_DAY, 15, 48), False)):
+    for sealed, shown in ((at(REPORT_DAY, 20, 4), True), (at(REPORT_DAY, 20, 6), False)):
         run, poster, _ = lab(Forecasts((*on_time(DAY, REPORT_DAY), issue(REPORT_DAY, sealed)), SCORES))
-        run.run(REPORT_DAY)  # the report is built at 15:47
+        run.run(REPORT_DAY)  # the evening report is built at 20:05
         assert ("NIFTY next sessions: today's 15:45 issue is not sealed yet; not shown" in poster.posts[0]) is not shown
 
 

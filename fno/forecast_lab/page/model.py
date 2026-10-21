@@ -1,5 +1,5 @@
-"""What the 15:45 page shows (story FL1-1c v2), as plain values: the renderer draws it and never computes a number,
-so the page and the text report cannot disagree about one."""
+"""What a report page shows (stories FL1-1c and FL1-1d, both editions), as plain values: the renderer draws it and
+never computes a number, so the page and the text report cannot disagree about one."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ class RangeView:
     target_day: date
     band: Band
     p_up: float | None
-    when: str = ""  # in words: "tomorrow", "next trading day, Mon 26 Oct", "in 3 trading days, Wed 28 Oct"
+    when: str = ""  # in words: "today", "tomorrow", "next trading day, Mon 26 Oct", "in 3 trading days, Wed 28 Oct"
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,7 @@ class Outcome:
     inside_50: bool
     inside_90: bool
     live: bool  # a sealed live forecast; False for G13b's back-fill (history)
+    provisional: bool = False  # the evening's own close (NSE's index list), until the official file confirms it
 
 
 @dataclass(frozen=True)
@@ -134,3 +135,5 @@ class PageView:
     system: tuple[str, ...] = field(default=())  # system problems (data late, a forecast missing): the message's line
     checks: tuple[str, ...] = field(default=())  # seal and coverage lines
     alerts: tuple[str, ...] = field(default=())
+    edition: str = "evening"  # "morning" (today's forecast, 08:50) or "evening" (was it right, 20:05): FL1-1d
+    confirmation: tuple[str, ...] = field(default=())  # morning: the last evening's close confirmed, or corrected

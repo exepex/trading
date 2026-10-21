@@ -1,5 +1,6 @@
-"""Story FL1-1's `lab close` (judge 422): the report written once and posted once, its alerts sent once, every alert's
-outcome printed (an unsent one with its text, for the routine to post by hand), a refused post the step's failure."""
+"""Stories FL1-1 and FL1-1d, `lab close` (the evening edition; judge 422): the report written once and posted once, its
+alerts sent once, every alert's outcome printed (an unsent one with its text, for the routine to post by hand), a
+refused post the step's failure."""
 
 from datetime import date
 
@@ -60,16 +61,18 @@ def test_a_rerun_after_a_crash_between_the_post_and_the_alerts_sends_only_the_al
     assert poster.posts == [] and alerts.sent == ["F&O forecast lab 2026-10-26: a stored finding"]
 
 
-def test_a_refused_post_fails_the_step_without_its_own_alert_and_the_rerun_retries_only_the_post():
-    """O1's exit contract: the step fails (non-zero) and O1's `Alerted` alerts it once; the data alerts go once."""
+def test_a_refused_post_fails_the_run_alerts_it_once_with_the_day_s_alerts_and_the_rerun_retries_only_the_post():
+    """The editions run outside O1's `Alerted` (FL1-1d): the run alerts its own failed post, once."""
     records, alerts = Records(), RecordingAlerts()
     run, poster, _ = lab(MISSING, records=records, alerts=alerts, poster=Poster(Delivery("alert NOT sent: x")))
     result = run.run(REPORT_DAY)
-    assert result.failed and "the 15:45 report was not posted to #fno-forecast (alert NOT sent: x)" in result.lines
-    assert not records.posted(REPORT_DAY) and len(alerts.sent) == 2
+    failure = "the evening report was not posted to #fno-forecast (alert NOT sent: x)"
+    assert result.failed and failure in result.lines
+    assert not records.posted(REPORT_DAY) and len(alerts.sent) == 3
+    assert alerts.sent[-1] == f"F&O forecast lab 2026-10-26: {failure}"
     again = run.run(REPORT_DAY)
     assert not again.failed and again.lines[-1] == "lab close 2026-10-26: alerts already sent; none sent again"
-    assert len(poster.posts) == 2 and records.posted(REPORT_DAY) and len(alerts.sent) == 2
+    assert len(poster.posts) == 2 and records.posted(REPORT_DAY) and len(alerts.sent) == 3
 
 
 def test_a_maybe_posted_report_is_never_posted_again_and_says_which_channel_to_check():
