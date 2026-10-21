@@ -1,0 +1,100 @@
+{
+ "data_health": {
+  "a16_sessions": 1,
+  "days": [
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-12",
+    "day": "2026-10-12",
+    "weather": "yes"
+   },
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-13",
+    "day": "2026-10-13",
+    "weather": "yes"
+   },
+   {
+    "capture": "complete=True, finished 2.7 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-14",
+    "day": "2026-10-14",
+    "weather": "yes"
+   },
+   {
+    "capture": "complete=True, finished 10.7 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-15",
+    "day": "2026-10-15",
+    "weather": "missing"
+   },
+   {
+    "capture": "complete=True, finished 2.9 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-16",
+    "day": "2026-10-16",
+    "weather": "missing"
+   }
+  ]
+ },
+ "exploratory": true,
+ "forecasts": {
+  "g4_report": "research/forecasts/scores/2026-10-17.json",
+  "v4_report": "research/forecasts/v4_scores/2026-10-17.json"
+ },
+ "sessions": [
+  "2026-10-12",
+  "2026-10-13",
+  "2026-10-14",
+  "2026-10-15",
+  "2026-10-16"
+ ],
+ "weather": {
+  "days": [
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-12",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-13",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-14",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "no",
+    "colour": "missing",
+    "day": "2026-10-15",
+    "label": "missing",
+    "status": "missing",
+    "v0_colour": "missing"
+   },
+   {
+    "big_move": "unresolved",
+    "colour": "missing",
+    "day": "2026-10-16",
+    "label": "missing",
+    "status": "missing",
+    "v0_colour": "missing"
+   }
+  ],
+  "misses": []
+ },
+ "week_ending": "2026-10-17"
+}
