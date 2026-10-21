@@ -6,6 +6,16 @@
 
 **Agreed with:** the orchestrator, the O1 builder (014zYLf1) and the designer (014fc2LA).
 
+**Two parts (orchestrator, 22 Oct), each judged on its own:**
+- **FL1-1d-1:** editions, the two commands, records per edition, the evening close through A4h's port, the morning
+  confirmation, and O1's `lab_close` removal. Design items 1, 2, 4 (without `cues`, `why` and `levels`), 7 and 8;
+  acceptance criteria 1, 2, 5, 6 and 7.
+- **FL1-1d-2:** the Sections and key points, the evening levels table and the data fetches. Design items 3, 4 (`cues`,
+  `why`, `levels`), 6 and 9; acceptance criteria 3, 4 and 8.
+  - The release check waits for the owner the orchestrator assigns to A8's job. Until then, anything with no
+    release evidence shows "not out yet", and no new schedule is added.
+- **Design sign-off:** the designer's renderer is not wired until the owner signs off the design (orchestrator).
+
 **Owner decisions (DESK_DECISIONS):**
 - **c3231785:** forecast before the open, check after the close.
 - **bcbbc454:**
@@ -223,6 +233,6 @@ A9 and A8 (through the orchestrator, since A8 has no register row), P8 and A17 (
 4. That every other story's command this story calls is agreed by its owner, and run unchanged.
 5. That nothing posts outside the three F&O channels.
 
-**Size estimate:** about 900 lines of code and 1,000 lines of tests. Two branches if the judge prefers:
-- FL1-1d-1: editions, commands, O1 removal;
-- FL1-1d-2: Sections, levels, release check.
+**Size estimate:**
+- FL1-1d-1: about 400 lines of code and 450 lines of tests.
+- FL1-1d-2: about 500 lines of code and 550 lines of tests.
