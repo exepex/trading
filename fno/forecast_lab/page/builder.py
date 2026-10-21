@@ -50,10 +50,11 @@ def _mean_error(points: list[ScorePoint]) -> float:
 class PageBuilder:
     def __init__(self, ranges: RangeSource, history: HistorySource, facts: FactsSource, sessions: RegularSessions,
                  underlyings: tuple[str, ...] = UNDERLYINGS, official: Outcomes | None = None,
-                 today_closes: TodayCloses | None = None, sections: tuple[Section, ...] = ()):  # fmt: skip
+                 today_closes: TodayCloses | None = None, sections: tuple[Section, ...] = (),
+                 levels=None):  # fmt: skip
         self.ranges, self.history, self.facts, self.sessions = ranges, history, facts, sessions
         self.underlyings, self.official, self.today_closes = underlyings, official, today_closes or NoTodayCloses()
-        self.sections = sections
+        self.sections, self.levels = sections, levels  # `levels`: the evening's table (`sections.levels.Levels`)
 
     def build(self, day: date, now: datetime, edition: str = EVENING, alerts: tuple[str, ...] = (),
               checks: tuple[str, ...] = (), confirmation: tuple[str, ...] = ()) -> PageView:  # fmt: skip
@@ -67,11 +68,22 @@ class PageBuilder:
                 system.append(NO_ISSUE.format(underlying=underlying, now=now) if edition == EVENING
                               else NO_FORECAST.format(underlying=underlying, issued=issued))  # fmt: skip
             index, problems = self._index(underlying, day, edition, issue, facts, cues)
+            if edition == EVENING and self.levels is not None:
+                index, failed = self._levels(index, day)
+                cues, system = cues + failed, system + [f.why for f in failed]
             indices.append(index)
             drift += [p for p in problems if p.method != "data"]
             system += [f"{p.group}: {p.text}" for p in problems if p.method == "data"]
         return PageView(day, LIVE, tuple(indices), tuple(drift), tuple(system), checks, alerts, edition,
                         confirmation, cues)  # fmt: skip
+
+    def _levels(self, index: IndexView, day: date) -> tuple[IndexView, tuple[SectionView, ...]]:
+        """The evening's levels table; a read error is a `failed` Section (said and alerted), never a crash."""
+        try:
+            return replace(index, levels=self.levels.levels(index.underlying, day)), ()
+        except Exception as error:  # noqa: BLE001  a damaged file is that table's problem, never the page's
+            name = f"{index.underlying} levels"
+            return index, (SectionView(name, FAILED, why=READ_FAILED.format(name=name, error=type(error).__name__)),)
 
     def _cues(self, day: date, edition: str) -> tuple[SectionView, ...]:
         """Every Section in its one state; a read error is `failed` (said in the system line), never a crash."""

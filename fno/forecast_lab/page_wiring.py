@@ -20,6 +20,7 @@ from .page.render import InterimRenderer
 from .ranges import NoTodayCloses, Outcomes, RangeSource
 from .sections.global_cues import SPECS, GlobalCueSection
 from .sections.india import FlagsSection, PendingSection, VixSection
+from .sections.levels import Levels
 from .sessions import RegularSessions
 
 PICTURE_WIDTH = 600  # CSS pixels: the picture page's own width, so a phone does not shrink it to unreadable
@@ -38,6 +39,7 @@ def flows_reader(calendar: SessionCalendar):
     return flows
 
 
+PARTICIPANT_OI = "participant-oi"
 GIFT, GIFT_PENDING = "GIFT Nifty", "A22b's early GIFT file is not merged yet"
 
 
@@ -57,10 +59,22 @@ def build_sections(facts: RepositoryFacts, sessions: RegularSessions) -> tuple[S
     )
 
 
+def build_levels(calendar: SessionCalendar, sessions: RegularSessions) -> Levels:
+    """The evening's levels and flows: NSE's F&O files and A8's participant OI through the raw-file libraries (stores
+    first, then NSE), P8's flows archive; all read-only here (the evening routine archives them first)."""
+    from ..storage.raw_source import ParticipantOiSource
+    from ..storage.wiring import build_nifty_panel_files, build_participant_oi_library, daily_files
+
+    fo_files, _ = build_nifty_panel_files()
+    participant = daily_files(PARTICIPANT_OI, ParticipantOiSource, build_participant_oi_library())
+    return Levels(fo_files, participant, flows_reader(calendar), sessions.previous)
+
+
 def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar,
                        official: Outcomes) -> ReportMaker:  # fmt: skip
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
     facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official,
-                        today_closes=NoTodayCloses(), sections=build_sections(facts, sessions))  # fmt: skip
+                        today_closes=NoTodayCloses(), sections=build_sections(facts, sessions),
+                        levels=build_levels(calendar, sessions))  # fmt: skip
     return ReportMaker(pages, InterimRenderer(), ChromiumCamera(width=PICTURE_WIDTH))
