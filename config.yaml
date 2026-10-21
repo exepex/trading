@@ -9,6 +9,10 @@ provider: nse
 # The 3 pm quote recorder (story A4) has its own source, independent of `provider` above.
 quotes:
   provider: auto
+  # Story A4e: named capture windows, each in its own dataset (quote-snapshots-<name>); `quotes record --window v4`.
+  # The default capture (no --window) is A4's 14:55-15:10 and is not set here.
+  windows:
+    v4: {start: "14:30", end: "14:40", max_early_wait_minutes: 30}
 
 underlyings: [NIFTY, BANKNIFTY]
 
@@ -193,6 +197,17 @@ budget:
   stop_rule:
     v4_freeze_date: null
     projected_v4_freeze_month: "2026-11"  # design v2 section 8.2: "if v4 freezes in early November 2026"
+
+# Story O1: the daily run's own steps (`python -m fno daily run`) start live only from these dates (YYYY-MM-DD); null:
+# not live, the step is recorded `not_live`. Set by the owner or a freeze, never by the run (a first live weather
+# record ends M1's back-fill; live v4 rows before the G6 freeze would mix with it).
+daily:
+  live_from:
+    margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
+    weather: null
+    forecasts_v4: null
+    card: null
+
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
 # that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).
 health:

@@ -166,7 +166,18 @@ the code's re-screen of R2, FT1 and B0 with their cards.
   change.
 
 **Depends:** B4 (done), C1 (done), D1 (done), A4 (done); R3 for R1c's adapter. **Size:** L in total (three M rounds).
-**Status:** R1a next (story text with judge G).
+**Known limits (R1c, agreed with R3's owner, 16 Oct 2026):**
+- A counterexample study (`FACTORY_RULES.md` section 3, rule 2) is frozen by hand until a real one exists: `fno
+  factory freeze` refuses any idea whose last gate is not G3, so a `screened_out` idea is never frozen by code.
+- The verdict's p uses completed positions only. A "shadow: would trade" decision that is never filled (missed, no
+  card, price cap) is not a position, so clustered misses would bias the sample. The miss share is printed as "not
+  reported" until E6b's missed-execution counter is merged; then it is read from there (one counter, not two). R1c
+  therefore reads no decision records.
+- Until E8 part 1b and R3 part B merge, every shadow has zero positions: no verdict is given and the stop rule's Test B
+  stays undecided.
+
+**Status:** R1a done (judge 261 PASS, 29a0707a); R1b done (judge 266 addendum 1 PASS, 9a20155a); R1c (shadows and
+families) with judge G.
 
 ---
 
@@ -250,13 +261,18 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     - E8 never creates an account. A pending order for an account that does not exist fails loudly, so R3's opening
       step must run first;
   - until E8's part 1b is merged, nothing fills a shadow (no second, earlier fill rule is built).
-- **The registration procedure** (written in this story; R1's code, `CostWall` and `IdeaCard`, is not built):
-  1. an idea card from `research/ideas/TEMPLATE.md` with its G0 and G1 sections, the cost wall worked by hand under
-     `FACTORY_RULES.md` (expected net after costs and tail losses above zero on the conservative bound), or the label
-     `measurement` (B0 only);
-  2. a ledger row first (`research/ledger.csv` via B4's guard; the trial count includes screened-out ideas);
+- **The registration procedure** (written in this story; steps 1 and 2 run by R1's code since R1b):
+  1. an idea card from `research/ideas/TEMPLATE.md` with its `factory` block, screened by R1's `CostWall` with
+     `python -m fno factory screen <id>` once its registration is committed (`FACTORY_RULES.md` section 2: expected net
+     after costs and tail losses above zero on the conservative bound), or the label `measurement` (B0 only), which
+     is registered but never screened;
+  2. a ledger row first, written with the card's `idea` row by `python -m fno factory register <id>`
+     (`research/ledger.csv` via B4's guard; the trial count includes screened-out ideas);
   3. the frozen playbook version (SF, SC or BF only until STR1b-2), registered `research` with
-     `python -m fno playbook set-status` (owner or desk, `fno/playbook/transitions.py`);
+     `python -m fno playbook set-status` (owner or desk, `fno/playbook/transitions.py`), only for a card whose G1
+     screen passed (`python -m fno factory status <id>`), or a measurement. A `screened_out` idea gets no research
+     version, so no shadow account, unless a registered counterexample study shadows it (`FACTORY_RULES.md` section
+     3, rule 2). R1b's code does not enforce this at `set-status` (D1's command); the owner or desk checks the status;
   4. a measurement shadow's card and ledger row say "never promoted". Approving it to paper needs the owner's own
      decision, which this label does not grant.
 - **Results:** the shadow accounts' closed trades, net after costs, feed:
@@ -289,7 +305,8 @@ Out (each with where it goes):
   and STR1b-2 for V2. A v4 forecast feature in the playbook is R3's to build then (the A16/G8/G10 builder agrees;
   playbook is D1's function). It reads through G8's `V4ForecastSource.values`, wrapped in `LateDaysOut`, live rows of
   the decision day only (final at the 14:30 cutoff).
-- **R1's code** (`CostWall`, `IdeaCard`, `SamplePlan`, `fno/factory/`): R1. R3 applies the cost wall by hand.
+- **R1's code** (`CostWall`, `IdeaCard`, `SamplePlan`, `fno/factory/`): R1. R3 applied the cost wall by hand until R1b;
+  since R1b, step 1 calls `CostWall` (`fno factory screen`).
 - **S6's measures on shadow accounts:** a separate small story, if the owner wants it (S6 builder: S3 and S6 read no
   shadow account today).
 - **Promotion to paper:** the owner (rung 3, S1).

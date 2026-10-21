@@ -42,5 +42,10 @@ def fired_path(day: date) -> str:
     return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_fired.json"
 
 
+def timing_path(day: date, book: str) -> str:
+    """The run's own timing (BG1's self-timed record, story F8c), published by `reveal`."""
+    return f"{AI_FOLDER}/timing/{day:%Y}/{day.isoformat()}_{book}.timing.json"
+
+
 def transcript_audit_path(day: date, book: str) -> str:
     return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_{book}_transcript_audit.json"

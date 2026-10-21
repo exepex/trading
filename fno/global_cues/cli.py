@@ -1,7 +1,8 @@
 """`python -m fno global-cues <fill|check|verify|adopt> [--cue NAME ...] [--from DATE] [--to DATE]` (story A17).
 
 - fill: downloads each cue's files, archives them in the owner's Drive, extends the tables, rewrites the checks. The
-  first run back-fills from each source's first date; later runs look back 31 days. Not scheduled.
+  first run back-fills from each source's first date; later runs look back 31 days. Scheduled by
+  .github/workflows/global-cues.yml (03:41, 04:41 and 14:11 IST).
 - check: rewrites the checks from the tables (the public ones offline; with the Drive settings also the private
   ones, whose gaps are written to Drive).
 - verify: recomputes every table row from the archived copy it names (read-only).

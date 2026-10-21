@@ -81,46 +81,275 @@ isolation test of criterion 1 on a non-counted day, recorded in the conversation
 
 ---
 
-## F2. Role agents and finding cards
+## F2. Analyst roles and finding cards
 
 **Repository:** trading
 
-**Description:** As the head of desk, I want each judgement role in an AI book to produce its finding card
-independently before seeing any other card, so that each field's expertise reaches the decision without groupthink
-and every claim can be checked.
+**Description:** As the head of desk, I want the AI team's analyst roles (volatility, macro and global cues,
+positioning, equity research), added one at a time, each to write a short, checkable finding card from point-in-time
+data, sealed before the books decide and handed to Books 2 and 3, so that each field's view reaches the decision
+independently, every number in it can be traced to captured data, and F9 can measure whether each role earns its cost.
 
-**Context and why:** Design 3.1 (finding cards: observation with data, source and when it was known; interpretation;
-measurable implication; confidence strong / some / reasoning only; counter-evidence; what would prove it wrong; or
-"not applicable", never invented numbers), 3.3 (independent findings first), 3.4 (roles), 6 (historical AI replays
-are exploratory only). Roles for the AI books: macro economist, market research analyst, positioning analyst
-(after A8), volatility trader (interpretation), options strategist, F&O trader, behavioural finance, regulation.
+**Context and why:** Design v2 `07_ai_team.md` section 7.2 (one routine prompt per role, versioned; analysts feed Books
+2-3 and never decide trades), 7.5 (what an AI role must never do), 7.6 (cost, F9 value, BG1's stop order: analysts stop
+first). `DESK_DESIGN.md` step 4: AI roles are added one at a time, each kept only if it adds net value. REPLAN cut F2
+to these analyst roles (the first-plan text with eight roles inside the book's session is replaced). Owner, 16 Oct
+2026: Books 2 and 3 engines are built and judged now and stay switched off until a strategy or idea qualifies; the
+core engine is "validated end-to-end, tested end-to-end", "no surprises", "do not over-engineer"; every failure alerts
+and is recorded; every data file is write-once in Drive with a SHA-256 receipt in the repository (O9). Orchestrator's
+answers to the text's open questions (16 Oct 2026, response 264): 14:00 cutoff; the books' model; F9's cost rule agreed
+with F9's owner; inputs and cards through O9's `DataStore`.
 
-**Scope.** In: role prompts, card schema, independent collection inside a book's session, card validation. Out: the
-book's final decision (F5, F6), red team (F3), judge (F4).
+**Honest note (reasoning only):** there is no evidence that analyst cards improve a decision; the books could read the
+same data themselves. The cards' value is that each view is independent, written down before the outcome and
+separately removable, so F9's paired ablation can test it. If F9 finds no value after its cost, the owner drops the
+role. The roles cost AI minutes every session they run, so they stay off until the books trade (criterion 12).
 
-**Expected design:** prompts versioned in `agents/prompts/<role>-v<n>.md` (part of the version, D6). Inside the book's
-isolated session (F1), each role runs as a separate sub-agent given only the export and its prompt; all cards are
-collected before the book's decider reads any, and returned in the session's output. **Role matrix:**
-`agents/roles.yaml` lists every role of design 3.4 with how it is implemented (code story, AI card, decision
-authority, or not applicable for a book) so that no approved perspective disappears by accident. Card JSON (schema versioned in `fno/ai/cards.py`): `schema_version,
-book, role, decision_cutoff, observations[] (claim, value, source (pack path or URL), source_time, retrieved_at),
-interpretation, implication (measurable condition and direction), confidence, counter_evidence[], missing_data[],
-not_applicable (bool, reason), prompt_version, input_hashes`. Validation in code after collection.
+**Why one analyst first (response 264).** F9 removes one unit per decision day in turn (`k mod n`), and a unit gets a
+verdict only after 30 changed opportunities. With n units, each needs about n times as many decision days: if a card
+changes the decision on one day in five (an assumption, reasoning only), one unit needs about 150 decision days (about
+7 months) and three units about 450 (about 21 months) before the first verdict. One analyst also costs one session a
+day, not three. So v1 enables **one role, volatility** (the closest to an options structure choice, and its inputs are
+all captured today); the code takes any number of roles, and each later role is added as a new registry entry and a
+new book version (D6) on the owner's word, with its own input adapters and prompt then.
 
-**Acceptance criteria:**
-1. A card with an observation without a source, or a `source_time` after the cutoff, fails validation and is excluded.
-2. A card asserting a value for an input listed as missing fails.
-3. The collection order proves independence: every card's file is written before the decider's first read of any card
-   (from the event log), and no role sub-agent receives another card (test on the orchestration with fakes).
-4. A role with nothing applicable returns `not_applicable` with a reason.
-5. External sources (if the version allows any) are only those listed in the book's source contract (E2).
-6. `agents/roles.yaml` accounts for every role in design 3.4 (a test compares it with the design's role table).
+**Scope.** In: the roles registry and the volatility prompt, the volatility inputs (point-in-time), the finding-card
+schema and its validator, firing, sealing and collection through the existing `fno/ai` mechanism, the day's cards file
+the books' trading runner (F1 trading part, "F1t", session_01PLbKH15BXYucP6cT9xtoxK) reads, alerts and records for every
+missing or refused card, the live switch. Out: the other three roles' inputs and prompts (added one at a time, above),
+the book's decision and how it uses cards (F1t, F5, F6), F9b's shadow decision with one card withheld (F9b), F9's cost
+rule (F9's owner, item 10), the devil's advocate on the daily trade card (T3), red team (F3), AI judge (F4), screens and
+any UI-facing API (owner, 16 Oct 2026).
 
-**Test plan:** schema tests; orchestration tests with fake sub-agents.
+### Expected design
 
-**Judge verifies:** samples a day's cards and checks that sources exist and say what the card claims.
+**1. Roles registry.** `fno/analysts/roles.py` holds one `RoleVersion` per role and version, in the pattern of
+`fno/ai/versions.py`: `role`, `number`, `prompt_file` (`agents/analysts/<role>_v<n>.md`), `prompt_sha256`,
+`registered_model` (the books' model), `inputs` (the input item kinds it may see), `unit_id` (`analyst_<role>`, F9's
+unit name). v1 registers `volatility` v1 only; the planned roles and their order (macro, positioning, equity research)
+are listed in the module's docstring, not registered, so nothing unbuilt can be fired. A prompt changes only as a new
+version; the routine refuses a prompt whose bytes differ from the registered hash.
 
-**Depends:** F1 · **Size:** L · **Status:** later
+**2. Inputs, point-in-time.** `fno/analysts/inputs.py` defines `AnalystInput` (interface): `items(day, cutoff) ->
+list[InputItem]`, each item with `item_id`, `kind`, `source`, `first_seen_at` and `lines` (plain text, one fact per
+line, built by code). An item is admitted only when its **first-seen time** (when this project first recorded it: a
+`first_seen_at` column, an O9 receipt's time, an A4 sidecar's `finished_at`) is at or before the cutoff; a content date
+never stands in for it. An input with no first-seen time, or none at or before the cutoff, is `missing` with its reason,
+never filled. v1 adapters for volatility (one class each, wired in `fno/analysts/wiring.py`), read through O9's
+verified Drive cache once their files have moved there and from the checkout until then (one adapter line each):
+
+| Item | Content (computed by code) | Source and first-seen time |
+|---|---|---|
+| `vix_daily` | India VIX closes, last 60 sessions before the day | A15 `india_vix_daily.csv`, its `first_seen_at` |
+| `previous_pack` | The previous session's 15:00 fields: ATM IV per expiry, futures, VIX | G2's v2 pack, its committed time (the pack's receipt after O9) |
+| `vol_summary` | Trailing RV20 from official closes; the VIX and front ATM IV percentile over the 60 sessions shown | warm-up closes and the two items above |
+
+**Skew** is not in v1: no daily skew summary is captured (E2b dropped per-contract items); it comes as a new input and
+a new prompt version once captured. Same-day intraday data is not in v1 (A16's slots are not a committed summary yet).
+
+**3. The day's analyst input.** The Actions job (item 7) builds every registered role's items at the cutoff and saves
+one file through O9's `DataStore` (`fno/storage/data_wiring.py`, writer `analyst-cards`): `analysts/<YYYY>/<d>_input.json`
+in Drive's `data` area, with its receipt committed under `receipts/` before any role is fired. The file holds, per role,
+its items and a manifest (item id, kind, source, first-seen time, SHA-256 of its lines), the cutoff and the missing
+inputs with their reasons; derived summaries only, never raw broker quote rows (A4b). **A routine session has no Drive
+credentials (F1t's rule, as F1's isolation), so each role's own items travel in its pointer** (F2's own pointer,
+`fno/analysts/pointer.py`, one line of JSON, capped at 64 KiB like F1t's; an input over the cap is `not_fired`, never
+truncated), with the role's `input_sha256` (canonical JSON of that role's part of the input file). The collection checks
+that hash against the Drive file read through the verified cache, which refuses bytes that differ from the receipt.
+
+**4. The finding card.** The routine writes only the draft; code adds the labels (`role`, `day`, `as_of` = the cutoff,
+`version`, `input_sha256`, `card_id`) so the model cannot mislabel them. Schema version 1:
+
+```
+{"schema_version": 1, "role": "...", "day": "YYYY-MM-DD", "as_of": "<cutoff, ISO>", "version": "<role version label>",
+ "input_sha256": "...", "card_id": "<role>/v<n>/<day>", "model_reported": "...",
+ "not_applicable": null | "<one-line reason>",
+ "claims": [{"text": "<one line>", "evidence": ["<item_id>", ...], "label": "strong" | "some" | "reasoning"}],
+ "view": {"direction": "up" | "down" | "range" | "no_view", "volatility": "rising" | "falling" | "stable" | "no_view",
+          "horizon_sessions": 1-20 | null},
+ "confidence": "strong" | "some" | "reasoning",
+ "counter_evidence": "<one line>", "proves_wrong": "<one line: the measurable condition that would prove the view wrong>"}
+```
+
+**5. The validator** (`fno/analysts/card_check.py`; the same check at seal and at collection, as `fno/ai/answer.py`
+does). A card is refused, with the first rule it breaks in F2's own words, when:
+1. its fields or labels differ from the pointer and the input (exact field set; labels equal);
+2. it has 0 claims and no `not_applicable` reason, more than 5 claims, or claims together with `not_applicable`;
+3. a claim's text is not one line of 1 to 40 words, or holds a link, mention or code block (`fno/advocate/numbers.py`
+   `form_failure`, imported, unchanged; its message is reworded for the card);
+4. a `strong` or `some` claim cites no evidence, or any evidence pointer is not an item id of this role's input;
+5. a number in a claim is not a whole number token of the cited items' lines, or a number is written in words ("one",
+   "half"; the prompt says to write digits) (`number_tokens`, `number_failure`, imported, unchanged); a claim citing no
+   item may hold no number;
+6. `confidence` is above the best claim label (strong > some > reasoning);
+7. `view` values are outside their lists, `horizon_sessions` is outside 1-20 while a direction or volatility view is
+   given, or a view other than `no_view` is given with `not_applicable`;
+8. `counter_evidence` or `proves_wrong` is missing, empty or not one line (both may say "none found");
+9. `model_reported` is not short text (as F1's answer check).
+A `not_applicable` card (claims empty, view `no_view`) is valid: "nothing applies today" is an answer, never a number
+invented to fill the card.
+
+**6. Sealing (the books' mechanism, unchanged).** Before the commitment deadline the routine pushes only a commitment
+(the SHA-256 of a random salt and its card, `fno/ai/seal.py`) to `main` with `fno/ai`'s `GitMainTransport`, at
+`research/analysts/submissions/<YYYY>/<d>_<role>.commitment.json`; after the reveal time it pushes the reveal (card and
+salt) beside it. This is the same path the AI books use (G5 today, F1t for decisions), because a routine cannot write to
+Drive; when O9's step 4 moves the AI books' seal files to Drive receipts, the roles' move with them, in the same
+change. Receipt times come from the same `PushReceipts` adapter the books use (F1t's `ObservedPushes`: a `git fetch` at
+each deadline, no token), and a later rewrite never counts (`submissions.py`, first publication). So no role can read
+another role's card before its own commitment is in, and no card can change once sealed.
+
+**7. Firing and collection: the existing `fno/ai` mechanism, extended, never copied.** The trigger (`RoutineTrigger`,
+one routine per role, two repository secrets each, an unconfigured role is `UnconfiguredTrigger`), the seal, the
+transport, the receipts, the first-publication reading, the model check (`outcome.model_check`) and the fire-once log
+are shared. F1t builds three generic pieces in `fno/ai/` (agreed 16 Oct 2026; names may change in its review):
+`SealedPublisher` (commitment, wait, reveal; extracted from `BookSession`), `ObservedPushes(PushReceipts)` and
+`FireOnceLog` (writes `firing` entries before any trigger call, records results, turns a leftover `firing` into
+`fire_unknown`). F2 uses them and never makes another copy; G5's `fno/ai/fire.py` stays untouched. F2's code round
+starts after they are on `main`. The routine runs
+`python -m fno.analysts brief '<pointer>'`, `seal <card.json>`, `reveal` (standard library only, as `python -m fno.ai`).
+The input file, the cards file and the audit files are saved by the Actions job through `DataStore`; records are
+written once.
+
+**8. Timetable (IST, `config.yaml` `analysts.timetable`, PROPOSED until S1 freezes it, like `desk.timetable`).** Cutoff
+14:00; latest fire start 14:15 (a run starting later fires nothing: "late start", recorded and alerted); commitment
+receipt pushed by 14:40:00; reveal from 14:40:10; reveal deadline 14:50; the day's cards file and its receipt pushed
+by 14:55, before the desk's common pack at 14:58 (`desk.timetable.pack`) and the books' decision deadline 15:12. The
+job is scheduled well before the cutoff and waits for it, because GitHub's schedule has started hours late (14 Oct,
+response 67 addendum 5). Only days the session calendar marks as recorded sessions are run; any other day records
+"not a trading day" and fires nothing.
+
+**9. The day's cards file and the books.** The collection saves `analysts/<YYYY>/<d>_cards.json` once through
+`DataStore` (receipt pushed): per role its status (`valid`, `not_applicable`, `refused`, `late`, `not_revealed`,
+`no_submission`, `not_fired`, `fire_unknown`, `model_mismatch`, `exposed`), the reason, the receipt times, and the card itself only
+when `valid` or `not_applicable`; the refused draft goes in the audit file beside it (`<d>_<role>_audit.json`, also
+through `DataStore`). `CardsOfDay` (interface) with one adapter reading that file through the verified cache gives F1t
+`cards(day) -> {role: CardStatus}`, the input file's SHA-256 and `role_set_version`. **The hand-off (agreed with F1t
+and F6, 16 Oct 2026):** cards are not part of a book's answer. F1t's export gives each AI book one item,
+`analyst_cards`: every registered role's status line, and the card when `valid` or `not_applicable`, the same for
+Books 2 and 3. Each card carries a stable `card_id` (`<role>/v<n>/<day>`, set by code); a book's answer may cite only
+those ids (F6's `cards_used`, refused otherwise by the book's own check). `role_set_version` is the registered role
+versions in role order (`volatility/v1`; a later set `macro/v1+volatility/v1`), or `none` when no role is registered;
+it names the registered set, never the day's availability, and goes into D6 version rows and Book 3's registry. F1t
+records `consulted_units` (F9's column): the unit ids of the roles whose card was in the book's `analyst_cards` item
+(given, whatever the book says it used; F9b's ablation withholds exactly that). A missing, late or refused card is a
+status line, never a block: the books decide without it.
+
+**10. F9 fit.** Each registered role is one F9 unit (`unit_id`, never a control role); F2 adds the entries to
+`agents/role_units.yaml` when F1t registers the trading versions of Books 2 and 3 (D6), and a test checks that every
+registered role's unit id is accepted by F9's `RoleSet`. The cards file and `consulted_units` are F9b's inputs.
+F9a's declared cost split assumes roles run inside the book's session; here each role has its own session, shared by
+both books, so its cost is that session's own usage. That is F9's rule to change (text agreed with F9's owner,
+session_01SFDjjZx7JYziM3jqJytG2z; response 264); F2 changes no F9 code.
+
+**11. Alerts and records (owner, 16 Oct 2026).** Every role whose day is not `valid` or `not_applicable` gets one
+#fno-desk line through `AlertSender` (`FNO_SLACK_BOT_TOKEN`), naming the role, the status and the reason, never card
+text. A missing input, a Drive save that fails, or a receipt push that fails is one line too, and the run ends with a
+failure status. Every case is in the cards file, or, when the cards file itself cannot be saved, in the run's alert
+and log, never silent.
+
+**12. Budget and the live switch.** The firer reads BG1's month signal (`accounting/budget/<YYYY-MM>_signal.json`);
+when it says `stop_ai_roles`, no role is fired ("analysts" are first in `AI_ROLE_STOP_ORDER`), recorded and alerted;
+an unknown level fires as normal and says so in the fire log. The fire log keeps each session's link for F8's usage
+capture. `config.yaml` `analysts.live_from` (a date or null, null on merge): before it, the job runs only with
+`--dry-run` (no fire, no save, prints the input and what would be fired). Setting the date is the owner's call when
+Books 2-3 trade.
+
+**13. What a role never does (7.5).** Places or prepares an order, reads a credential (the routine has no Drive,
+Slack or broker settings and receives only its pointer), sees an outcome (the card is sealed before the books decide),
+edits a record (write-once store and first-publication reading; a later collection only says whether it would differ),
+changes a rule, posts anywhere (alerts come from the Actions job only), names a model on a screen.
+
+### Gap list (design requirement → criterion, or out with the reason)
+
+| Requirement (source) | Where |
+|---|---|
+| Volatility analyst: chain, term structure, realised vs implied (7.2) | 2, crit. 3; skew and intraday out (not captured as summaries; added with a new version) |
+| Macro and global-cues, positioning, equity research analysts (7.2) | Out of v1: added one at a time (`DESK_DESIGN.md` step 4; the F9 sample argument above), each a new registry entry, input adapters and prompt, on the owner's word |
+| Writes a finding card; never decides trades (7.2) | 4, 5, crit. 4-6; crit. 13 |
+| One routine prompt per role, versioned in D6's registry (7.2) | 1, crit. 1; D6 rows: F1t registers book versions naming the role versions (crit. 10) |
+| Feeds Books 2-3 (7.2) | 9, crit. 9 |
+| Feeds idea cards and weather drivers (7.2) | Out: v1 feeds the books only; R1 and M1 take cards later as new inputs |
+| Analysts start only with the books' trading (7.2; owner 16 Oct: built now, off) | 12, crit. 12 |
+| Never: orders, credentials, outcomes, editing records, rules, posting, model on a screen (7.5) | 13, crit. 13 |
+| Cost allocation F8, value F9, budget stop order (7.6) | 10, 12, crit. 10, 14; F8 usage capture of role sessions out (F8 part 2's owner; the fire log keeps the links) |
+| Fired from GitHub Actions, routines on the owner's plan (7.1) | 7, crit. 7 |
+| Point-in-time data only (brief) | 2, crit. 2 |
+| Card: role, as_of, claims with evidence pointer and label, view, confidence (brief) | 4, crit. 4-5 |
+| Sealed before the decision deadline (brief) | 6, 8, crit. 7-8 |
+| Fire and collect through `fno/ai`, no second mechanism (brief) | 7, crit. 15 |
+| Missing or invalid card: alert and record, never blocks the books (brief; owner 16 Oct) | 9, 11, crit. 8-9 |
+| Cards scored later through F9 (brief) | 10, crit. 10; scoring each card's view against outcomes: out (descriptive only, a later story if wanted) |
+| Data files write-once in Drive with receipts (O9; orchestrator's answer d) | 3, 9, crit. 16; the seal files follow the AI books' git path until O9's step 4 moves both (item 6) |
+| Independence between roles (design 3.3) | 6, crit. 7 (matters from the second role on; built and tested now) |
+| Observation, source and time known; counter-evidence; what proves it wrong; "not applicable", never invented numbers (design 3.1) | 4-5, crit. 4-6 |
+| Role matrix of every design 3.4 role (old F2 criterion 6) | Out: design v2's 7.2 table replaced it |
+| T3 boundary: devil's advocate on the trade card | Out: T3's owner; F2 imports `fno/advocate/numbers.py` only, unchanged (agreed with its owner, 16 Oct) |
+
+### Acceptance criteria
+
+1. **Registry.** The registered role's prompt file has the registered SHA-256; `brief` refuses a changed prompt, an
+   unknown role and an unknown version. Tests: good; one byte changed; unknown role; unknown version.
+2. **Point-in-time inputs.** An item first seen after the cutoff is not admitted; one exactly at the cutoff is; one
+   without a first-seen time is `missing` with its reason; an empty source gives `missing`, not an empty item. A
+   role's input holds only the kinds its registry entry lists (a planted item of another kind is refused). Tests per
+   adapter with fixture files: before, at and one second after the cutoff, and empty.
+3. **Input content.** Each v1 item's lines are computed by code and checked by hand on a fixture (RV20, VIX percentile,
+   ATM IV percentile, the previous pack's fields); no raw quote row appears in the input.
+4. **Card validator.** Each of the nine rules of item 5 refuses a card breaking only that rule and passes the same card
+   without the break (one test per rule, plus boundaries: 5 and 6 claims, 40 and 41 words, `40%` against `4`, horizon
+   1, 20, 0 and 21).
+5. **Not applicable.** A `not_applicable` card with empty claims and `no_view` is valid; with any claim or view it is
+   refused.
+6. **Labels fixed by code.** A draft cannot set `role`, `day`, `as_of`, `version`, `input_sha256` or `card_id`; a reveal whose
+   labels differ from the pointer and input is refused at collection.
+7. **Sealing and independence.** A card counts only when its commitment was visible on `main` at the commitment
+   deadline's observation, its reveal by the reveal deadline's, and the reveal hashes to the commitment; no reveal is
+   pushed before the reveal time; a commitment pushed after another role's reveal was readable is `exposed`. Tests with fake
+   receipts at, before and one second after each deadline, and an unknown receipt time (late).
+8. **Every failure is recorded and alerted.** Not fired (unconfigured trigger, fire refused, late start, budget stop),
+   fire outcome unknown (a leftover `firing` entry),
+   no submission, late, not revealed, refused (with the rule), model mismatch, exposed: each gives one status in the
+   cards file and one #fno-desk line (fake sender) without card text. A missing input, a failed Drive save, a failed
+   receipt push and an input over the pointer cap each give one line and a failure exit.
+9. **Never blocks the books.** `CardsOfDay` returns every registered role's status even when no card exists or the
+   cards file is missing, fails its receipt check, or cannot be read within 30 seconds (`no_submission` with the
+   reason, and one #fno-desk line through the alert sender it is given: the caller's, e.g. O1's one `ReportedAlerts`,
+   never one it builds), and never raises for a missing card. Its `card_id`s are unique and stable (same file, same ids), and `role_set_version` is `none` with an empty
+   registry and `volatility/v1` with the v1 registry (tests).
+10. **F9 fit.** Every registered role's `unit_id` is accepted by F9's `RoleSet.of` and is not a control role (test
+    against the imported F9 code).
+11. **Only registered roles fire.** A role not in the registry is never fired and a pointer naming one is refused.
+12. **Live switch.** With `analysts.live_from` null or after the day, a run fires nothing and saves nothing (only
+    `--dry-run` output); from the date on, it fires. A malformed key is refused at config load.
+13. **Never-do rules.** The pointer carries no secret (O5 scan on a real pointer); the routine side of `fno/analysts`
+    imports no Slack, Drive, Groww or order code (import test); records are write-once (a second collection that differs
+    says so and saves nothing).
+14. **Budget.** A month signal with `stop_ai_roles: true` fires no role and records `not_fired: budget stop`; an unknown
+    or missing signal fires and says so in the fire log.
+15. **One mechanism.** No second trigger, seal, receipt, submission or model-check code: `fno/analysts` imports them
+    from `fno/ai` (test); G5's existing forecast tests pass unedited after any extraction.
+16. **O9.** The input, cards and audit files are saved only through `DataStore` (one receipt each, matching SHA-256);
+    a planted changed file in the cache is refused with an alert; the only analyst files in the repository are those
+    receipts and the seal files of item 6 (the AI books' own exception until O9's step 4).
+17. **Not a trading day / late start.** A closed day records "not a trading day" and fires nothing; a run that starts
+    after the latest fire start fires nothing and alerts once.
+18. **End to end (fake AI).** One test runs a whole day with a fake Drive, fake triggers and fake routine answers (a
+    valid card, a not-applicable card, a refused card, a late one, across test-only roles) from input to cards file and
+    alert lines; the real-data dry run (`--dry-run` on the latest session) is recorded in the claims file.
+
+**Test plan:** unit tests per adapter, rule and status; the day-long test of criterion 18 with fakes; for each
+criterion the builder breaks its code on purpose and shows the test failing (quality rule 4); positive, negative,
+boundary and empty cases as listed per criterion (rule 5). Real output sample: one dry-run input and one fake-answer
+cards file, labelled as made by a test or a dry run (rule 6).
+
+**Judge verifies:** plants mutations in the validator, the cutoff rule, the deadlines and the status writer; reads a
+dry-run input and checks each item against its source and first-seen time; confirms nothing is fired while
+`live_from` is null and that G5's tests are unedited.
+
+**Depends:** F1 (forecast part, merged), F1t's `SealedPublisher`, `ObservedPushes` and `FireOnceLog` (on `main` before
+F2's code round), O9 parts 1 (`DataStore`, verified cache), A15, G2, BG1; F1t reads the cards
+file · **Size:** M (one role) · **Status:** story text rewritten to design v2 (16 Oct 2026), revised for the
+orchestrator's answers (response 264); waiting for the judge's text check; code after its PASS
 
 ---
 
@@ -158,42 +387,43 @@ Daily objections are committed with the decision; research objections in the res
 
 ---
 
-## F4. AI judge (parts 2 and 3), owner overrides and the monthly audit
+## F4. AI judge (parts 2 and 3) and the monthly audit
 
 **Repository:** trading
 
 **Description:** As the owner, I want research sufficiency and interpretation checked by a model different from the
-author, my written overrides recorded and scored separately, and the judge itself audited monthly, so that the judge
-stays honest and I keep control.
+author and the judge itself audited monthly, so that the judge stays honest. I never override a paper decision
+(owner, 16 Oct 2026, DESK_DECISIONS "D4/D5: the five design questions accepted as recommended" item 4).
 
-**Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no
-trade or back to the author; only the owner can overrule a judgement (checks 2 or 3), in writing, and overridden
-trades are scored separately; no one overrules hard validity; monthly audit of a stratified sample plus seeded
-known-answer cases. Per book: Book 2's judge failure means no trade (the account keeps no position; the rule default
-is recorded as a shadow); Book 3's judge verdicts are recorded evidence, not blocks (12.3); Book 1's strategies were
-judged at approval and its daily trades are checked by C4 only.
+**Context and why:** Design 7: three checks (hard validity is code, C4); the judge can block anything; fail = no trade
+or back to the author; no one overrules hard validity or a judge verdict on a paper decision (DESK_DECISIONS "D4/D5: the
+five design questions accepted as recommended" item 4; design v2 03 leaves the owner only S1's safety stop; C2's written
+restart of a stopped book's drawdown brake is a risk control, not a decision override; both stay, outside this story);
+monthly audit of a stratified sample plus seeded known-answer cases. Per book: Book 2's judge failure means no trade
+(the account keeps no position; the rule default is recorded as a shadow); Book 3's judge verdicts are recorded
+evidence, not blocks (12.3); Book 1's strategies were judged at approval and its daily trades are checked by C4 only.
 
-**Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the override
-record; the audit. Out: hard validity (C4).
+**Scope.** In: verdicts for Book-2 and Book-3 decisions inside the deadline and for research theses; the audit. Out:
+hard validity (C4); owner overrides (none on paper: D3 refuses a non-empty `owner_override` in every book).
 
 **Expected design:** `fno/ai/judge.py` as its own session (different model from the author); verdict JSON `check
-(sufficiency | interpretation), pass, reasons, what_to_redo, model`. Overrides: `journal/<book>/owner_overrides.csv`
-rows (`date, decision_id, check, reason, entered_by`) committed by the owner; an override can never target a C4 failure
-(code refuses). Monthly audit command `python -m fno judge audit <month>`: 20% of approvals, 20% of rejections, 20% of
-abstentions (at least 5 of each when available) plus every override, re-checked by the other model against
+(sufficiency | interpretation), pass, reasons, what_to_redo, model`. No override path: a judge verdict stands, and
+D3's record keeps `owner_override` null. (`journal/<book>/owner_overrides.csv` is C2's file for the owner's written
+brake restart, not a judge override.) Monthly audit command `python -m fno judge audit <month>`: 20% of approvals, 20%
+of rejections, 20% of abstentions (at least 5 of each when available), re-checked by the other model against
 recalculated evidence; plus 10 seeded known-answer cases. A failed audit (any false approval on a seeded case, or a
 false-approval rate above 10%) suspends the AI judge's approvals: Book 2 then takes no new AI-chosen trades until fixed.
 
 **Acceptance criteria:**
 1. A judge model equal to the author's model is refused.
 2. A Book-2 decision failing the judge opens no trade; the same failure on Book 3 is recorded and does not block.
-3. An override of a C4 failure is refused by code; an override of a check-2 or check-3 failure is recorded and the
-   trade is tagged so S2 and S3 score it separately.
+3. There is no override of a judge verdict or a C4 failure on any paper decision: a record with a non-empty
+   `owner_override` is refused (D3), and nothing in F4 writes one.
 4. The audit reports false approvals and false rejections on the seeded cases; a failed audit suspends approvals
    (test).
 5. A judge missing the deadline counts as a failed check for Book 2 (no trade) and "judge unavailable" for Book 3.
 
-**Test plan:** tests with fake verdicts, overrides and seeded cases.
+**Test plan:** tests with fake verdicts and seeded cases.
 
 **Judge verifies:** (by the other model) the monthly audit numbers.
 
@@ -203,36 +433,8 @@ false-approval rate above 10%) suspends the AI judge's approvals: Book 2 then ta
 
 ## F5. Book 2: AI decisions inside the envelope
 
-**Repository:** trading
-
-**Description:** As the owner, I want Book 2's AI to take, each day, the rule default or one permitted alternative
-with its reason, so that scoreboard A can show whether AI judgement adds value within the same tested strategies.
-
-**Context and why:** Design 12.1, 12.2 and 12.9 (Book 2: the actions in its envelope). Book 2 trades only strategies
-that passed the historical test (12.11). Every record holds the rule default and the AI action with its reason.
-
-**Scope.** In: Book 2's decider inside its session, use of cards and red-team objections, the envelope check, the
-record. Out: changing the envelope (a new version, D4, D6).
-
-**Expected design:** inside Book 2's session (F1): read the packs, the rule default (D2, precomputed by code into the
-private pack), the role cards (F2); choose an action from the envelope's allowed set; the decision draft goes to the
-red team (F3) and the judge (F4); the final record (D3) holds `rule_default`, `chosen_action`, `reason`,
-`authority_check`, card and objection links, judge verdict. Code then runs C2 and C4 (playbook mode, envelope check)
-before the deadline.
-
-**Acceptance criteria:**
-1. Every Book-2 record has both `rule_default` and `chosen_action` with a reason; a missing reason fails validation.
-2. An action outside the envelope is blocked by C4 and the account takes no trade (or the rule default if the
-   envelope says so); the attempted action is recorded.
-3. `shadow-only` actions are recorded for scoreboard A while the account follows the rule default.
-4. With no `paper` strategy, Book 2 records "no approved strategy" daily, like Book 1.
-5. End-to-end negative test: a Book-2 decision failing C4 never becomes a fill.
-
-**Test plan:** tests with fake sessions covering each envelope action.
-
-**Judge verifies:** replays three Book-2 records against their envelope and packs.
-
-**Depends:** C4, D2, D4, F1, F2, F3, F4 · **Size:** M · **Status:** later
+Rewritten to design v2 in `docs/stories/F5-book2.md` (16 Oct 2026), which replaces the text that stood here: Book 2's
+day sheet in its private pack, the answer shape, and the decider writing one D3 run with C2 and C4 inside.
 
 ---
 

@@ -33,7 +33,7 @@ class ValidityResult:
 class TradeValidator(Protocol):
     def validate(
         self, day: date, outcome: Outcome, market: Market, playbook: Playbook, book: RiskBook,
-        earlier: tuple[Outcome, ...],
+        earlier: tuple[Outcome, ...], eligible: frozenset[tuple[str, int]],
     ) -> ValidityResult: ...  # fmt: skip
 
     def log_failures(self, day: date, results: Mapping[str, ValidityResult]) -> None:
@@ -44,7 +44,8 @@ def validate_chosen(
     evaluation: DayEvaluation, validator: TradeValidator | None, market: Market, playbook: Playbook, book: RiskBook
 ) -> Mapping[str, ValidityResult]:
     """Each chosen book trade's C4 result by opportunity ID (empty without a validator), in opportunity-ID order. The
-    trades chosen before it that passed count as entered, as D2 counts them. The day is the evaluation's own, never the
+    trades chosen before it that passed count as entered, as D2 counts them; D2's eligible versions go with each (Book
+    2's envelope chooses only among them, story D4). The day is the evaluation's own, never the
     market's: a stale market is then checked against the day's capture and fails."""
     if validator is None:
         return {}
@@ -53,7 +54,7 @@ def validate_chosen(
     )
     day, results, passed = date.fromisoformat(evaluation.day), {}, []
     for outcome in chosen:
-        result = validator.validate(day, outcome, market, playbook, book, tuple(passed))
+        result = validator.validate(day, outcome, market, playbook, book, tuple(passed), evaluation.eligible)
         results[outcome.opportunity.opportunity_id] = result
         if result.ok:
             passed.append(outcome)

@@ -1,6 +1,5 @@
-"""`python -m fno desk book1 [--day D]` and `python -m fno desk run [--day D]` (story E5): Book 1's decision for a day
-(D2 through D3, committed), and E3's daily run for a day with Book 1's orders and exit rules. Paper only: nothing here
-places an order. No routine starts them yet; run them by hand before 15:12 and from 14:58 IST."""
+"""`python -m fno desk book1 [--day D]` (story E5): Book 1's decision for a day (D2 through D3, committed). Paper only:
+nothing here places an order. The daily run (`python -m fno daily run`, story O1) runs it right after the pack."""
 
 from __future__ import annotations
 
@@ -22,12 +21,6 @@ def add_book1_command(actions) -> None:
     decide.add_argument("--day", type=date.fromisoformat, help="the session day (default: today in IST)")
     decide.add_argument("--commit-run", metavar="RUN_ID", help="commit a run on disk only, as recorded (story E5b)")
     decide.set_defaults(func=cmd_book1)
-
-
-def add_run_command(actions) -> None:
-    run = actions.add_parser("run", help="E3's daily run for a day: packs, decisions, capture, fills, exits (paper)")
-    run.add_argument("--day", type=date.fromisoformat, help="the session day (default: today in IST)")
-    run.set_defaults(func=cmd_run)
 
 
 def cmd_book1(args) -> int:
@@ -64,21 +57,3 @@ def _alerted(alerts, text: str) -> int:
     alerts.send(text)
     print(text)
     return 1
-
-
-def cmd_run(args) -> int:
-    from ..config import load_app_config
-    from ..desk.daily_run import RunStopped
-    from ..desk.daily_wiring import build_daily_run
-    from ..models import now_ist
-    from .book1_wiring import build_book1_exit_rules, build_book1_orders
-
-    cfg = load_app_config()
-    try:
-        log = build_daily_run(cfg, build_book1_orders(cfg), build_book1_exit_rules()).run(args.day or now_ist().date())
-    except RunStopped as stopped:
-        print(stopped)
-        return 1
-    for name, step in log.steps.items():
-        print(f"{name}: {step['started_at']} -> {step['finished_at']}: {step['result']}")
-    return 0

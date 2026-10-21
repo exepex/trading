@@ -1,13 +1,13 @@
-"""C4's two modes (story C4, design 12.4). `PlaybookMode` (books 1 and 2) checks the trade against the version it
-claims: the version's fingerprint, that the version may trade on the day, its structure code, wing widths and lots,
-and that the legs have that structure's shape (`validity_shapes.py`). Book 2's authority envelope (D4) and Book 3's
-constitution (D5) are not built: until they are, their checks fail closed (`WaitsFor`), so no Book 2 or Book 3 trade
-can pass hard validity."""
+"""C4's modes (story C4, design 12.4). `PlaybookMode` checks the trade against the version it claims: the version's
+fingerprint, that the version may trade on the day, its structure code, wing widths and lots, and that the legs have
+that structure's shape (`validity_shapes.py`). Book 2's mode (`EnvelopeMode`, story D4) reuses it with "at most the
+version's lots" and adds the authority envelope; Book 3's (`ConstitutionMode`, story D5) checks its registered
+strategy and constitution. A book without a mode has no trade path."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from .validity_evidence import Evidence
 from .validity_proposal import CheckResult, ValidityProposal
@@ -22,11 +22,16 @@ class ValidityMode(ABC):
         """The mode's own checks, each with its result; `evidence` is the committed snapshot (None if untrusted)."""
 
 
+def exact_lots(lots: int, version_lots: int) -> bool:
+    return lots == version_lots
+
+
 class PlaybookMode(ValidityMode):
     name = "playbook"
 
-    def __init__(self, shapes: Mapping[str, Shape]):
+    def __init__(self, shapes: Mapping[str, Shape], lots_rule: Callable[[int, int], bool] = exact_lots):
         self.shapes = dict(shapes)  # structure code -> its shape rule (validity_shapes.py)
+        self.lots_rule = lots_rule  # Book 1: exactly the version's lots; Book 2's envelope: at most (story D4)
 
     def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
         strategy = proposal.strategy
@@ -45,16 +50,8 @@ class PlaybookMode(ValidityMode):
             ),
             CheckResult("structure", proposal.structure == spec.code, f"{proposal.structure} vs {spec.code}"),
             CheckResult("width", proposal.width in spec.widths, f"{proposal.width:g} in {list(spec.widths)}"),
-            CheckResult("lots", proposal.lots == spec.lots, f"{proposal.lots} vs the version's {spec.lots}"),
+            CheckResult(
+                "lots", self.lots_rule(proposal.lots, spec.lots), f"{proposal.lots} vs the version's {spec.lots}"
+            ),
             CheckResult("shape", not shape, shape or "legs have the structure's shape"),
         ]
-
-
-class WaitsFor(ValidityMode):
-    """A mode whose story is not built: every trade fails it, so nothing passes unchecked."""
-
-    def __init__(self, name: str, story: str):
-        self.name, self.story = name, story
-
-    def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
-        return [CheckResult(self.name, False, f"waits for story {self.story}: not checkable yet, so the trade fails")]

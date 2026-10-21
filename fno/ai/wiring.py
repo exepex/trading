@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 
+from ..budget.wiring import build_usage_ledger
 from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import (
@@ -31,6 +32,8 @@ from .history import RepoHistory
 from .paths import CLOSES_FILE
 from .receipts import GitHubActivityReceipts
 from .record_writer import AiRecordWriter
+from .usage_gaps import alert_usage_gaps
+from .usage_record import BookUsageRecorder
 
 ROUTINES = {
     BOOK2_HYBRID: (ENV_ROUTINE_BOOK2_TRIGGER_ID, ENV_ROUTINE_BOOK2_TOKEN),
@@ -55,6 +58,13 @@ def build_ai_collector(env=os.environ) -> AiForecastCollector:
     history = RepoHistory(ROOT)
     receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
     return AiForecastCollector(ROOT, history, receipts, AiRecordWriter(ROOT), now_ist)
+
+
+def record_book_usage(day) -> list[str]:
+    """Story F8c: every timing file into BG1's usage ledger, then one alert per run of `day` still not captured."""
+    ledger = build_usage_ledger(ROOT)
+    recorded = BookUsageRecorder(ROOT, ledger).record(now_ist().date())
+    return recorded + alert_usage_gaps(ROOT, ledger, day, build_alert_sender())
 
 
 def build_audit_seeds(root=ROOT, env=os.environ) -> tuple[dict, list[str]]:

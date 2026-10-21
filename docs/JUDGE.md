@@ -56,7 +56,7 @@ unsure, the change is lane 1.
 |---|---|---|
 | 1 | Every new story. Any change, of any size, touching money or risk (margins, funds at entry, limits), fills, exits or anything that decides a trade, scoring or forecast and evaluation records, frozen files, secrets or outside services (Slack, Groww, Drive, NSE), schedules and GitHub workflows, or the dashboard's privacy rule (strategy internals stay private) | Judge PASS on the branch before merge, as in the loop above |
 | 2 | Only new tests (added files or cases) and docs outside the rule documents (`README.md`, `reports/`, `research_notes/`, `docs/` outside the rule documents) | The orchestrator re-runs the full checks and compares the builder's claim with the diff, then merges. The judge audits that day's lane-2 merges once, at a fixed time; a FAIL is fixed first, before new work |
-| 3 | Judge files, conversation logs, decision and status rows, data commits by scheduled jobs | None |
+| 3 | Judge files, conversation logs, decision and status rows, number claims (`numbers/<category>.csv` rows, story O12), data commits by scheduled jobs | None |
 
 ### Refinements (judge 91, accepted by the orchestrator under the owner's lanes decision, 14 Oct 2026)
 
@@ -136,21 +136,25 @@ gaps." These rules add to the loop above; none of them replaces the judge's own 
    because of that review returns to the judge before the merge.
 
 **Merge procedure: when the gates run (owner, 16 Oct 2026; story X fast checks).**
-- The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools`, `python tools/check_imports.py`) run once,
-  on the final merged tree, before the merge is pushed.
+- The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools`, `python tools/check_imports.py`,
+  `python tools/check_numbers.py`) run once, on the final merged tree, before the merge is pushed.
 - The gates need the whole git history: the freeze and back-fill tests read past commits. In a shallow clone
   (`git rev-parse --is-shallow-repository` says `true`, as in some cloud sessions) those tests fail with "shallow
   clone: run git fetch --unshallow origin main"; run that command, then the gates again. It is never a code failure.
-- A `git pull --no-rebase` just before the push that brings only lane-3 files (`reviews/`, `conversations/`,
-  `docs/DESK_DECISIONS.md`, `docs/WORK_REGISTER.md`: the paths `tools/ci_scope.sh` names) needs no rerun: no gate reads
-  them. A pull that brings anything else means the gates run again on the new tree.
+- A `git pull --no-rebase` just before the push that brings only lane-3 files (`reviews/`, `numbers/`,
+  `conversations/`, `docs/DESK_DECISIONS.md`, `docs/WORK_REGISTER.md`: the paths `tools/ci_scope.sh` names) needs no
+  rerun of pytest, ruff or the import check: none reads them. The number check reads `reviews/` and `numbers/`, so it
+  runs again (under a second). A pull that brings anything else means every gate runs again on the new tree.
 - A merge that moves data (a table moved out of the repository, rows adopted into Drive, a migration) also needs one
   run of the moved data's own command in a fresh clone of the merged `main`, with the Drive settings (as A17d's rule-8
   fill).
 - CI (`checks.yml`) mirrors this: a push of lane-3 files only skips pytest, ruff and the import check; the record scan
-  runs on every push.
+  and the number check run on every push.
 
 **Several judges (owner decision, 15 Oct 2026).** Several judge sessions may run at once, each with a dedicated, limited
-set of stories named by the orchestrator, so no judge's load grows too large. Each follows this file in full. By the
-orchestrator's convention (not an owner rule), the verdict number equals the story's response number; a change with no
-response file gets a number the orchestrator reserves for it.
+set of stories named by the orchestrator, so no judge's load grows too large. Each follows this file in full. Every
+judge number and addendum number is claimed in the central registry before the file or section is written (story
+O12): `python tools/claim_number.py judge-report <slug> --session <id>` and `python tools/claim_number.py
+judge-addendum <label> --session <id> --report <n>`; the report names the response it judges in its title. (The
+orchestrator's old convention, verdict number equal to the response number, ends with O12: the two series had already
+run apart, judges up to 274 against responses up to 253, so the equal number is often taken.)

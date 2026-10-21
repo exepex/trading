@@ -4,12 +4,10 @@ commits nothing and raises `RunStopped`; never an unhandled refusal."""
 
 import shutil
 import subprocess
-from argparse import Namespace
 
 import pytest
 
 from fno.books.account import PaperAccount
-from fno.books.book1_cli import cmd_run
 from fno.constants import BOOK1_RULES
 from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import RunStopped
@@ -104,17 +102,3 @@ def test_a_failed_commit_inside_a_step_stops_the_run_at_that_step(root, tmp_path
     (sent,) = alerts.sent
     assert "run STOPPED at step snapshot" in sent and "Execution capture" in sent
     assert PaperAccount(root, BOOK1_RULES).fills() == []  # no fill and no exit step after it
-
-
-def test_the_command_ends_on_the_alert_line_with_a_non_zero_exit(monkeypatch, capsys):
-    import fno.desk.daily_wiring as wiring
-
-    class Stopping:
-        def run(self, day):
-            raise RunStopped("F&O paper desk 2026-10-14: run STOPPED at step versions, no later step runs: x")
-
-    monkeypatch.setattr(wiring, "build_daily_run", lambda *args, **kwargs: Stopping())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda: None)
-    assert cmd_run(Namespace(day=NORMAL)) == 1
-    assert capsys.readouterr().out == "F&O paper desk 2026-10-14: run STOPPED at step versions, no later step runs: x\n"

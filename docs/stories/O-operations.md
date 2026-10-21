@@ -8,37 +8,10 @@ the owner doing anything, fails safely and visibly, and is proven to work across
 
 ## O1. The daily desk routine
 
-**Repository:** trading
+**Changed by REPLAN (line 61, issue #76):** the story text is now `docs/stories/O1-daily-run.md` (one daily run:
+weather, v4 forecasts, quotes, data checks, desk, card). The earlier text is in this file's history.
 
-**Description:** As the owner, I want one scheduled cloud routine that runs the whole day (quotes, packs, decisions,
-deadline, execution snapshot, fills, exits, publication, Slack) and commits every record, so that the desk runs every
-trading day without me.
-
-**Context and why:** Design 13.5 (a scheduled Claude Code cloud session started before 15:00 IST on a frozen
-timetable), CLAUDE.md's routine sections (the 3 pm recorder routine `F&O 3 pm quote recorder (weekdays 14:48 IST)`
-already runs this way and pushes to `main`). One routine avoids two schedules racing; the recorder becomes the first
-step of the day.
-
-**Scope.** In: the routine's prompt, its CLAUDE.md section, schedule, environment needs (credential names only),
-commit and push rules, merging with the existing recorder routine. Out: the steps themselves (E3 and others).
-
-**Expected design:** CLAUDE.md section "Daily desk routine" replacing the recorder section once E3 exists: install,
-`python -m fno desk run` (E3's `DailyRun`), commit `journal/`, `research/data/quotes/`, `reports/dashboard/`, push to
-`main` after `git pull --no-rebase`; failures alert through P4. The existing recorder routine is updated (not deleted)
-to the new prompt on the day E3 goes live, so quote history has no gap. Never places orders; never prints credentials.
-**Across containers (13 Oct 2026, from E1):** E1's operating-system lock protects one machine only; cloud routines run in separate checkouts. Every account write therefore runs as: pull, write under `AccountLock`, commit, push; if the push is rejected, drop the unpushed local account commit, reset to the new `origin/main` and re-apply the same fills (E1 makes fills idempotent by fill ID; a plain pull merge-conflicts on `cash_ledger.csv`, judge 1). E1's 600-second lock lease can block a retry in the same container inside the fills window: set the lease for E3's timetable, not by default.
-
-**Acceptance criteria:**
-1. A dry run on a non-counted day completes every step and commits every record (recorded in the conversation log).
-2. The quote recording of that day is identical in format to A4's (baseline test still passes).
-3. A failure at any step produces an alert and leaves exits running (O2 tests).
-4. The routine's stored prompt matches the CLAUDE.md section (checked after each change).
-
-**Test plan:** dry run; O2's tests.
-
-**Judge verifies:** reads the routine definition and one day's commits.
-
-**Depends:** E3, P3, P4, A7 · **Size:** S · **Status:** later
+**Depends:** E3, E2c, T1, M1, G7, A4, A7 · **Size:** M · **Status:** story text (`reviews/claude/response_165_o1-daily-run.md`)
 
 ---
 

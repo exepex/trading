@@ -73,7 +73,7 @@ def test_no_forecast_for_a_day_reads_that_days_own_close_or_vix():
 
 def test_v7_outcome_is_strictly_higher_five_sessions_later():
     vix = [DayValue(d, v) for d, v in zip(days(7), (15.0, 1, 1, 1, 1, 15.0, 15.01), strict=True)]
-    tie, up = vix_up_outcomes(vix, 5)
+    tie, up = vix_up_outcomes(vix, 5, [v.day for v in vix])
     assert (tie.day, tie.value, tie.resolved_on) == (vix[0].day, False, vix[5].day)  # a tie is "no"
     assert (up.value, up.resolved_on) == (True, vix[6].day)
 
@@ -92,20 +92,26 @@ class CommittedSeries(OutcomeSeries):
     def big_move_outcomes(self, question):
         return {}
 
+    def vix_up_outcomes(self):
+        r = self.rows  # G8's former own V7 rule (before it read G7's): VIX(t+5) > VIX(t), the reference here
+        return {r[i][0]: r[i + 5][2] > r[i][2] for i in range(len(r) - 5)}
+
     def intraday_rv(self):
         return {}
 
 
 def test_the_shared_v7_rule_reproduces_g8s_v7_outcomes_on_the_committed_closes():
     g8 = SeriesOutcomes(CommittedSeries()).outcomes(V7_VIX_UP_5S)
-    ours = {o.day: o.value for o in vix_up_outcomes(vix_closes(closes_rows(TEXT)), 5)}
+    rows = closes_rows(TEXT)
+    sessions = [c.day for c in regular_closes(rows)]
+    ours = {o.day: o.value for o in vix_up_outcomes(vix_closes(rows), 5, sessions)}
     assert len(g8) > 2_400 and all(g8[d].value == ours[d] for d in g8)
     assert set(g8) == set(ours)
 
 
 def outcome_series(n: int):
     vix = [DayValue(d, 10.0 + (i % 7)) for i, d in enumerate(days(n))]
-    return vix, vix_up_outcomes(vix, 5)
+    return vix, vix_up_outcomes(vix, 5, [v.day for v in vix])
 
 
 def test_v7_base_rate_needs_500_resolved_outcomes():
@@ -116,7 +122,7 @@ def test_v7_base_rate_needs_500_resolved_outcomes():
 
 def test_vix_side_rule_is_the_lagged_two_cell_rate_with_its_fallback():
     vix, outcomes = outcome_series(600)
-    rule = VixSideRate(vix, outcomes)
+    rule = VixSideRate(vix, outcomes, [v.day for v in vix])
     d = vix[-1].day
     window = [o for o in outcomes if o.resolved_on < d][-750:]
     side = vix[-2].value < sum(v.value for v in vix[-21:-1]) / 20  # the side at d-1, mean over d-20..d-1
@@ -125,18 +131,32 @@ def test_vix_side_rule_is_the_lagged_two_cell_rate_with_its_fallback():
     assert rule.forecast(d).value == pytest.approx(sum(o.value for o in cell) / len(cell))
     assert rule.side_before(vix[19].day) is None and rule.side_before(vix[20].day) is not None  # 20 sessions needed
     flat = [DayValue(v.day, 12.0) for v in vix]  # always equal to its mean: "not below" (strict), one cell
-    assert VixSideRate(flat, vix_up_outcomes(flat, 5)).forecast(d).value == 0.0
+    sessions = [v.day for v in vix]
+    assert VixSideRate(flat, vix_up_outcomes(flat, 5, sessions), sessions).forecast(d).value == 0.0
     rare = [DayValue(v.day, 30.0 if i == 590 else 12.0) for i, v in enumerate(vix)]  # a spike: 8 "below" days
-    rare_out = vix_up_outcomes(rare, 5)
-    rare_rule = VixSideRate(rare, rare_out)
+    rare_out = vix_up_outcomes(rare, 5, sessions)
+    rare_rule = VixSideRate(rare, rare_out, sessions)
     assert rare_rule.side_before(d) is True  # 12 sits below a mean lifted by the spike
     known = [o for o in rare_out if o.resolved_on < d][-750:]
     assert rare_rule.forecast(d).value == pytest.approx(sum(o.value for o in known) / len(known))  # plain share
 
 
+def test_a_missing_vix_close_voids_v7_instead_of_stretching_the_horizon():
+    """Judge 267: with session 10's VIX close missing, days 5 and 10 have no outcome (one end is missing), day 4
+    still compares sessions 4 and 9, and every 20-session window holding session 10 has no side."""
+    vix = [DayValue(d, 10.0 + i) for i, d in enumerate(days(40))]
+    sessions = [v.day for v in vix]
+    gappy = vix[:10] + vix[11:]
+    outcomes = {o.day: o for o in vix_up_outcomes(gappy, 5, sessions)}
+    assert sessions[5] not in outcomes and sessions[10] not in outcomes
+    assert outcomes[sessions[4]].resolved_on == sessions[9] and outcomes[sessions[6]].resolved_on == sessions[11]
+    rule = VixSideRate(gappy, list(outcomes.values()), sessions)
+    assert [rule.side_before(sessions[i + 1]) is None for i in (19, 29, 30)] == [True, True, False]
+
+
 def test_v7_side_rule_and_base_rate_are_not_eligible_below_500():
     vix, outcomes = outcome_series(400)
-    assert VixSideRate(vix, outcomes).forecast(vix[-1].day).status == NOT_ELIGIBLE
+    assert VixSideRate(vix, outcomes, [v.day for v in vix]).forecast(vix[-1].day).status == NOT_ELIGIBLE
 
 
 def test_records_validate_v2_v3_as_variances_and_v7_as_a_probability():
@@ -179,3 +199,15 @@ def test_every_committed_g7_record_row_carries_this_trees_method_hash():
             files += 1
             assert {r.method_sha256 for r in records.read(file).values()} == {expected}, file
     assert files == 14  # V6 4, V2 and V3 8, V7 2 (V1 has not started)
+
+
+def test_record_folders_name_every_g7_forecaster_folder_and_no_weather_folder():
+    from fno.forecast_v4_rules.capture import FORECASTERS
+    from fno.forecast_v4_rules.wiring import record_folders
+
+    folders = record_folders()
+    assert folders == sorted(set(folders)) and all(f.startswith("research/forecasts/v4/") for f in folders)
+    assert {f.split("/")[3] for f in folders} == {f for f, _ in FORECASTERS} and len(folders) == 10
+    assert not any("weather" in f for f in folders) and all(f.endswith("/") for f in folders)
+    written = {p.parent.name for p in (ROOT / "research" / "forecasts" / "v4").glob("*/*.csv")}
+    assert written - {"weather", "weather_vix_v1", "weather_checklist_v0"} <= {f.split("/")[3] for f in folders}
