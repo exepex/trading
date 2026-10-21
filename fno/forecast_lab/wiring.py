@@ -62,9 +62,9 @@ def records(edition: str, env=os.environ) -> DriveReportRecords:
 def build_edition(edition: str, env=os.environ) -> EditionRun:
     from ..price_ranges import wiring as g13b
     from ..price_ranges.closes import IndexFileCloses, Outcomes
-    from ..storage.wiring import build_index_close_files
     from ..price_ranges.folders import BACKFILL, LIVE, SCORES, drive
     from ..price_ranges.reader import RangeForecasts, RangeScores
+    from ..storage.wiring import build_index_close_files
 
     cache = build_drive_cache(env)
     problems = [p for prefix in (drive(LIVE), drive(SCORES), drive(BACKFILL)) for p in cache.sync(prefix).problems]
