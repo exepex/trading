@@ -63,6 +63,19 @@ member, `fno/rates/failures.py` (job parameter, `has`), `fno/cli.py`, `.gitignor
 6. **Minor:** the raw file name has no run_id; `SourceCoolingOff` is mapped as `unreachable`; the 3 s read timeout is
    per read; `DayState.kinds()` is dead code.
 
+### Added 21 Oct: R1 and D5 ledger trial ids
+
+- **The bug:** D5 writes `book3:<id>` trial ids into `research/ledger.csv`, and R1's G0 did `int()` on every id, so
+  the first Book 3 registration would break every later factory registration (found by FL1's builder; confirmed by
+  D5's owner).
+- **The fix:** `story/r1-book3-trial-ids` at df158875 counts numbered rows only, as S1's freeze already does. Its test
+  fails on main's code and passes with the fix; full suite 8942 passed. Parked by the orchestrator for the
+  post-phase-1 judge queue, and must land before D5 is switched on.
+- **Alternative (D5's owner, reasoning only):** one allocator, B4's `Ledger.next_trial_id()`, used by R1, S1's freeze
+  and D5, with Book 3 rows given plain numbers. It is cleaner (one id scheme, one scan instead of two copies), but it
+  changes B4, S1's freeze and D5's registry. Whoever resumes picks one with the orchestrator. My view: the allocator
+  is the better end state; df158875 is the safe minimum if D5 is switched on first.
+
 ## (e) Reviews and judging
 
 No judging by me. Self-review agents ran on A21 part 1 (8 findings, all fixed before judge 402) and part 2 (the open
