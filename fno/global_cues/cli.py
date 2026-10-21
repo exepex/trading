@@ -57,15 +57,16 @@ def cmd_global_cues(args) -> int:
 
 
 def _fill(args) -> int:
-    from .wiring import build_job, sources_named
+    from .wiring import build_behind_check, build_job, sources_named
 
     end = args.end or now_ist().date()
     if args.start and args.start > end:
         print(f"--from {args.start} is after --to {end}: nothing asked for")
         return 1
     lines, ok = build_job().run(sources_named(args.cue), args.start, end)
-    print("\n".join(lines))
-    return 0 if ok else 1
+    behind_lines, on_time = build_behind_check().run(now_ist().date())
+    print("\n".join(lines + behind_lines))
+    return 0 if ok and on_time else 1
 
 
 def _check(args) -> int:

@@ -12,6 +12,7 @@ import os
 from collections.abc import Callable
 from datetime import date, datetime
 
+from ..circulars.episodes import OpenProblems
 from ..constants import DERIVED_AREA, RESEARCH_USER_AGENT
 from ..http_pacing import PacedSession
 from ..models import now_ist
@@ -21,6 +22,7 @@ from ..storage.creation_times import GoogleDriveCreationTimes
 from ..storage.raw_store import AreaStore, RawFileStore
 from .as_of import OPEN
 from .asia_sources import CsindexShanghaiSource, NikkeiSource, TwseTaiexSource
+from .behind import BehindCheck
 from .check_files import CueChecks
 from .collector import CueCollector
 from .cue_calendars import CueCalendar, NseSessionCalendar, NyseCalendar, WeekdayCalendar
@@ -43,7 +45,7 @@ from .markets import (
 )
 from .other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
 from .preopen import PreopenReader
-from .reading import CueReader
+from .reading import CueReader, CueReading
 from .row_log import CsvRowLog, DrivePartsRowLog, DriveSnapshots
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
@@ -59,10 +61,12 @@ SNAPSHOT_LOG_FOLDER = storage.MANIFEST_FOLDER / "global-cues"  # one row per arc
 REVISIONS_FILE = "revisions.csv"  # the public cues' shared revision log
 CLOSURES_FILE = CUES_FOLDER / "us_market_closures.csv"  # NYSE's unscheduled whole-day closures, each sourced
 TRADING_DATES_FILE = CUES_FOLDER / "us_trading_dates.csv"  # dates only, from the Drive-only index tables
+BEHIND_EPISODES = CHECKS_FOLDER / "behind_alerted.txt"  # names only (judge 351 add. 2)
 PRIVATE_FOLDER = "global-cues"  # in Drive's derived area: <cue>/rows, <cue>/revisions, <cue>/checks
 YAHOO_SUFFIX = "_yahoo"
 PREOPEN_INDEXES = ("nikkei225", "kospi", "asx200", "taiex", "hang_seng", "sse_composite", "sti")  # open by 08:50 IST
 PREOPEN_TABLE = "preopen"
+BEHIND_NAMES = (CboeSp500Source.cue, RbiUsdInrSource.cue, "nasdaq100", "vix_us")  # NYSE or NSE session calendars
 # A17e: (index, Yahoo symbol, market, max age in days, the official cue or None); max age covers each market's longest
 # usual closure (China's October and New Year weeks: 10 days)
 WORLD_INDEXES = (
@@ -150,6 +154,19 @@ def build_reader(include_private: bool = True, env=os.environ) -> CueReader:
     tables = build_tables(include_private, env)
     calendars = build_calendars(storage.build_session_calendar())
     return CueReader(tables, {s.cue: s for s in SOURCES if s.cue in tables}, calendars)
+
+
+def build_behind_check(env=os.environ) -> BehindCheck:
+    """Judge 351 add. 2: the names judged `behind` at 09:15 (each with a real session calendar), read through the index
+    reading where the name is an index (the official value, or Yahoo's when newer)."""
+    indexes = build_index_reader(env=env)
+
+    def read(name: str, day: date) -> CueReading:
+        if name in INDEX_PAIRS:
+            return indexes.read(name, day, OPEN, live_only=True).reading
+        return indexes.reader.read(name, day, OPEN, live_only=True)
+
+    return BehindCheck(read, BEHIND_NAMES, OpenProblems(BEHIND_EPISODES))
 
 
 def build_preopen(env=os.environ) -> tuple[PreopenReader, list[tuple[str, YahooChartSource]]]:

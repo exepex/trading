@@ -31,10 +31,11 @@ their terms (quoted below), with these conditions:
   `save_failed`, or `stopped` for an unexpected failure). After 3 attempts or 1 saved copy on one IST date nothing
   more is downloaded that day (the run says so). Limit: both rules read logs in the repository, so run from a checkout
   that has pulled the last run's logs, and **commit and push the logs after every run, failed ones too**: a run whose
-  attempt rows are lost resets the cap in the next checkout (no scheduled job runs this yet);
+  attempt rows are lost resets the cap in the next checkout (`global-cues.yml` commits them on every run);
 - a US index file read during the US session may hold the day's price so far: a value not yet final when the file
   was fetched (before 16:00 US Eastern on its date) never becomes a row;
-- **the card and the dashboard show nothing from them until the owner approves a display (open item).**
+- display (owner decision bcbbc454, 21 Oct 2026): the closes may be shown in the owner's Slack reports and private
+  dashboard, never in this public repository (the 15 Oct hold is lifted for the S&P 500 and the Nasdaq-100).
 
 | Private cue | Drive (derived area) | Days | Dates | Source |
 |---|---|---|---|---|
