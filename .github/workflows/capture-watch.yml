@@ -14,6 +14,7 @@ on:
     workflows:
       - filings-archive
       - flows-download
+      - fo-masters
       - forecast-capture
       - forecast-scores
       - global-cues
