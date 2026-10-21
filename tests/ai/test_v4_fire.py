@@ -183,3 +183,14 @@ def test_the_fire_log_is_in_the_folder_v4_fire_yml_commits():
     """v4-fire.yml commits `research/forecasts/ai_v4` after the fire (judge 282): the path is pinned here."""
     assert V4_TERMS.fired_path(DAY) == "research/forecasts/ai_v4/2026/2026-10-26_fired.json"
     assert V4_TERMS.audit_path(DAY, BOOK3_AI).startswith("research/forecasts/ai_v4/")  # collect's commit covers it
+
+
+def test_the_ai_books_go_live_on_their_own_key_never_forecasts_v4s_date():
+    """Orchestrator, 21 Oct: O1's rule forecasts going live must not fire the books (their v4 steps are not built), so
+    an accidental merge does nothing; the repository's config keeps the books' key null until step 7 and round 2c."""
+    from fno.ai.wiring import v4_live_from
+    from fno.config import load_app_config
+
+    assert v4_live_from({"daily": {"live_from": {"forecasts_v4": "2026-10-22"}}}) is None
+    assert v4_live_from({"daily": {"live_from": {"ai_books_v4": "2026-11-02"}}}) == date(2026, 11, 2)
+    assert v4_live_from(load_app_config()) is None

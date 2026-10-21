@@ -41,6 +41,7 @@ from .v4_collect import V4BookCollector
 from .v4_fire import V4BookFirer
 from .v4_settle import V4RowSettler
 
+AI_V4_KEY = "ai_books_v4"  # config.yaml daily.live_from: the AI books' v4 go-live
 ROUTINES = {
     BOOK2_HYBRID: (ENV_ROUTINE_BOOK2_TRIGGER_ID, ENV_ROUTINE_BOOK2_TOKEN),
     BOOK3_AI: (ENV_ROUTINE_BOOK3_TRIGGER_ID, ENV_ROUTINE_BOOK3_TOKEN),
@@ -56,12 +57,13 @@ def build_book_trigger(book: str, env=os.environ) -> RoutineTrigger:
 
 
 def v4_live_from(cfg: dict | None = None) -> date | None:
-    """The v4 go-live date (`daily.live_from.forecasts_v4`): the v4 AI fire runs from it, and the v2 AI fire stops
-    (owner's choice A: one run cannot serve both)."""
+    """The AI books' own v4 go-live date (`daily.live_from.ai_books_v4`): the v4 AI fire runs from it and the v2 AI
+    fire stops (owner's choice A). Its own key, never O1's `forecasts_v4` (orchestrator, 21 Oct): null until the
+    books' v4 steps exist, so nothing here turns on with the rule forecasts."""
     from ..config import load_app_config
-    from ..daily.wiring import live_dates
 
-    return live_dates(cfg if cfg is not None else load_app_config())["forecasts_v4"]
+    raw = ((cfg if cfg is not None else load_app_config()).get("daily", {}).get("live_from", {}) or {}).get(AI_V4_KEY)
+    return date.fromisoformat(str(raw)) if raw else None
 
 
 def build_v4_firer(env=os.environ) -> V4BookFirer:

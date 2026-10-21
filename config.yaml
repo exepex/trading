@@ -206,6 +206,9 @@ daily:
     margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
     weather: "2026-10-22"  # owner, 21 Oct 2026 (response 299 item 15): on before the v4 freeze, routine at 14:05
     forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
+    # G11: the AI books' own v4 go-live (the v4 AI fire runs and the v2 AI fire stops from it); null until the
+    # books' v4 steps (step 7) and round 2c land, never forecasts_v4's date (orchestrator, 21 Oct)
+    ai_books_v4: null
     card: null
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
