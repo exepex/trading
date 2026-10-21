@@ -11,6 +11,7 @@ __all__ = [
     "REVIEWS_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
+    "OWNER_TIMING_STEP",
     "STEP_OK",
     "STEP_FAILED",
     "STEP_REFUSED",
@@ -41,8 +42,10 @@ DESK_RUN_STEPS = (
     RUN_LOG_EXITS_STEP,
     RUN_LOG_TRADE_MARKS_STEP,
 )
+OWNER_TIMING_STEP = "owner_timing_fills"  # story E8: right after the quote parts start, before every other step
 DAILY_RUN_STEPS = (
     "quotes",
+    OWNER_TIMING_STEP,
     "margin_check",
     "weather",
     "forecasts_v4",
@@ -52,6 +55,8 @@ DAILY_RUN_STEPS = (
     REVIEWS_STEP,
     "quotes_done",
     "card",
+    "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
+    "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
 )  # fmt: skip; the quote parts start first (judge 178)
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status

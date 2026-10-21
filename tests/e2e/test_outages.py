@@ -101,20 +101,11 @@ def test_drive_down_at_the_download_stops_the_desk_but_the_parts_still_record_an
     assert sum(owner_alerts(day, printed).values()) >= 1  # the next session: test_never_starts.py
 
 
-CHILD_ALERT_TEXT_GAP = (
-    "gap (O2, reported 16 Oct; owner A4/A4c): a child command prints only the outcome of an unsent alert "
-    '("alert NOT sent: <reason>", fno/quotes/cli.py record_today), not its text, so the routine cannot post it'
-)
-
-
 def raw_down(day):
     day.drive.down_areas = {"raw"}
 
 
-@pytest.mark.parametrize(
-    "slack_down", [False, pytest.param(True, marks=pytest.mark.xfail(strict=True, reason=CHILD_ALERT_TEXT_GAP))],
-    ids=["slack-up", "slack-down"],
-)  # fmt: skip
+@pytest.mark.parametrize("slack_down", [False, True], ids=["slack-up", "slack-down"])
 def test_drive_down_for_raw_files_gives_no_canonical_no_pack_and_no_snapshot(tmp_path, monkeypatch, capsys, slack_down):
     day, (code, line), printed = run_day(tmp_path, monkeypatch, capsys, slack_down, raw_down)
     assert code == 1 and day.step("pack")["built"] is False and day.step("snapshot")["valid"] is False

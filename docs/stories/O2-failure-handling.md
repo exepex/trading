@@ -110,7 +110,17 @@ Out:
 | Drive, Slack, Groww/NSE outages, a routine that never starts, a partial run (orchestrator, 16 Oct) | 1, 3, 4 |
 | No new alert classes (orchestrator) | Scope: only existing alerts |
 
-## Known limits (one line each)
+## Scope split (21 Oct, orchestrator; owner's phase-1 freeze)
+
+- **O2, merged** (main cdd59db6, judge 412): the git limits, the e2e harness, the outages with Slack up and down,
+  never-starts, and the G1 fix.
+- **O2, phase 1 still:** the gaps O2 found (F1, G4, and the double-alert regression after A4) are fixed as O1 changes,
+  each judged on its own. Round 4a/4b's kill-and-rerun and hang rows, on `story/o2-failure-handling`, join main with
+  those fixes, their strict xfails turned into real assertions.
+- **O2b, paused** (until the owner's phase-1 review; due before the first paper approval): the trade rows (exits held,
+  E4c, data and limits, Drive (b), the shadow cases (a)-(c) with (c) as a strict xfail on the D2 gap) and the
+  source-tree unchanged test. Revision 6's text stays their contract.
+
 
 - The routine that never starts is reported at O8's 17:51 run (cron, can be late); that session's decision is lost
   anyway.
