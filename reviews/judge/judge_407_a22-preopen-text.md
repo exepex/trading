@@ -65,3 +65,22 @@ The new owner timing (committed by 09:12 for the 09:15 report) narrows the pre-o
 still covers NSE's 09:08 close of order entry; the `lastUpdateTime` seen in step 0 was 09:08:44. Step 0b (whether
 NIFTY/BANKNIFTY pre-open and BANKNIFTY's Groww pre-open candle answer at 09:08) stays open, and criterion 3 needs one
 index source proven before the code round.
+
+## Addendum 2: step 0b at 41e3591d
+
+**Verdict: the PASS stands at 41e3591d.** This is a text change only. It records step 0b and moves the index value from
+"the 09:07 or 09:08 candle" to the 09:09 candle.
+
+Step 0b, as the builder read it through A16's `ReadOnlyGroww`, printing differences and times only:
+- NIFTY and BANKNIFTY 1-minute candles exist for 09:00-09:14;
+- over 21 regular sessions (21 Sep-21 Oct 2026) the close settles at the 09:08 candle (10 sessions) or the 09:09
+  candle (11);
+- on 21 of 21 sessions, for both indices, the 09:09 close equals `ind_close_all`'s Open Index Value exactly.
+
+This satisfies criterion 3's "one index source proven" [strong as reported]. **I did not reproduce it:** this session
+holds no Groww key. The code round's claims must include the comparison script's output, so a reader can re-run it.
+
+**A risk to measure on the first live morning [reasoning only]:** the 09:09 candle closes at 09:10:00, and the window
+gives Groww until 09:10:59 to serve it. If Groww serves 1-minute candles later than about 60 s, the index part fails
+every day. The first live week's claims must give the serving delay per day. If it is close to the limit, widen the
+window toward 09:11:30, which still meets the 09:12 commit.
