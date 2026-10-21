@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from pathlib import Path
 
+from ..alerts.output import announce
 from ..models import IST, now_ist
 from ..research_data.calendar import CalendarError
 from .backfill_cli import COMMANDS as BACKFILL_COMMANDS
@@ -42,18 +43,20 @@ def cmd_intraday(args) -> int:
     from ..alerts.sender import NoAlertSender
     from ..composition import build_alert_sender
     from ..config import load_app_config
+    from ..daily.alerts import ReportedAlerts
     from ..storage.wiring import build_session_calendar
     from .wiring import DRY_RUN_ALERTS, build_heartbeat, build_intraday_recorder
 
     if args.intraday_cmd in BACKFILL_COMMANDS:
         return cmd_backfill(args)
     if args.intraday_cmd == "heartbeat-check":
-        return heartbeat_check(build_heartbeat(), build_session_calendar(), build_alert_sender(), now_ist())
+        alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
+        return heartbeat_check(build_heartbeat(), build_session_calendar(), alerts, now_ist())
     folder = getattr(args, "dry_run", None)
     if folder is not None and inside_repository(folder):
         print(INSIDE_REPOSITORY.format(folder=folder))
         return 1
-    alerts = NoAlertSender(DRY_RUN_ALERTS) if folder is not None else build_alert_sender()
+    alerts = ReportedAlerts(NoAlertSender(DRY_RUN_ALERTS) if folder is not None else build_alert_sender())
     try:
         recorder = build_intraday_recorder(load_app_config(args.config), folder)
         if args.intraday_cmd == "rv":
@@ -68,7 +71,7 @@ def cmd_intraday(args) -> int:
     except Exception as error:  # the class name only: an exception's text could carry a credential
         message = STOPPED.format(reason=type(error).__name__)
         print(message)
-        print(alerts.send(message))
+        announce(alerts, message)
         return 1
     return report(outcomes)
 
@@ -91,7 +94,7 @@ def heartbeat_check(heartbeat, calendar, alerts, now: datetime) -> int:
     print(state.line)
     if state.status != SILENT:
         return 0
-    print(alerts.send(SILENT_ALERT.format(detail=state.line)))
+    announce(alerts, SILENT_ALERT.format(detail=state.line))
     return 1
 
 
@@ -101,7 +104,7 @@ def _calendar_stop(error: CalendarError, alerts) -> int:
 
     message = CALENDAR_STOP.format(error=error, file=CALENDAR_FILE.relative_to(ROOT).as_posix())
     print(message)
-    print(alerts.send(message))
+    announce(alerts, message)
     return 1
 
 
