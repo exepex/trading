@@ -54,3 +54,17 @@ Fix expected:
 
 NSDL FPI (terms: "Reproduction, redistribution and transmission ... strictly prohibited"; the archive is a form):
 skipping it until needed is the right default. The `xlrd` pin follows the `pypdf` precedent.
+
+## Addendum 1: re-judge at fdc3b2b0
+
+**Verdict: PASS for the A23 story text.** Code may start.
+
+| Finding | Answer in the text | My check | Result |
+|---|---|---|---|
+| SF1: rewritten history not flagged | A8's `LastWriteSweep` (`fno/research_data/write_sweep.py`, built through `build_last_write_sweep` in `fno/composition.py`) records every file's `Last-Modified`. A session whose file was written after the next session's 09:15 open is `rewritten` and is available only from the first session after that write. Boundaries: 09:15:00 is not rewritten, 09:15:01 is; a missing `Last-Modified` counts as rewritten. Criterion 2b reports the count and share per dataset | Both classes exist on main. Treating an unknown write time as rewritten is the safe default | **Accepted** |
+| Minor 1: where the back-fill runs | a `workflow_dispatch` of the librarian, about 35 minutes per dataset, resumable | about 1,940 files at one request a second is about 32 minutes plus Drive writes; consistent | **Accepted** |
+| Minor 2: daily slot and a witness | 21:30 IST plus a 07:15 IST retry; an O8 row "archived by 09:00 IST of the next session" | read | **Accepted** |
+
+For the code round: the daily copy is archived on its first fetch, so its `Last-Modified` is the original write. A
+later NSE rewrite of a recent file is A11's revision sweep's job (keep the later version beside the original). The
+claims should say whether these two datasets join A11's sweep, as participant OI does.
