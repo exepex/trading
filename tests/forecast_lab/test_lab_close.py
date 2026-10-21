@@ -25,13 +25,13 @@ def lab(forecasts, records=None, poster=None, alerts=None, archived=True, underl
 
 def test_a_closed_day_posts_nothing():
     run, poster, alerts = lab(Forecasts(ON_TIME, SCORES))
-    assert run.run(date(2026, 10, 24)) == ["lab close 2026-10-24: not a trading day; nothing posted"]
+    assert run.run(date(2026, 10, 24)).lines == ["lab close 2026-10-24: not a trading day; nothing posted"]
     assert poster.posts == [] and alerts.sent == []
 
 
 def test_forecasts_sealed_in_time_are_shown_with_g13bs_own_scores_and_the_trust_line():
     run, poster, alerts = lab(Forecasts(ON_TIME, SCORES, days=[N1_ISSUE, DAY]))
-    assert run.run(DAY) == ["lab close 2026-10-23: #fno-forecast: alert sent; 0 alert(s) to #fno-desk"]
+    assert run.run(DAY).lines == ["lab close 2026-10-23: #fno-forecast: alert sent; 0 alert(s) to #fno-desk"]
     (text,) = poster.posts
     assert " N1, issued 2026-10-22 15:45 at 25250.00:" in text and " N3, issued 2026-10-19 15:45 at 25250.00:" in text
     assert "close 25350.00: 25-75 in, 5-95 in, median direction right, quantile score 12.50" in text
@@ -74,7 +74,8 @@ def test_a_rerun_after_the_post_posts_nothing():
     records = Records()
     run, poster, _ = lab(Forecasts(ON_TIME, SCORES), records=records)
     run.run(DAY)
-    assert run.run(DAY) == ["lab close 2026-10-23: already posted; nothing posted again"] and len(poster.posts) == 1
+    assert run.run(DAY).lines == ["lab close 2026-10-23: already posted; nothing posted again"]
+    assert len(poster.posts) == 1
 
 
 def test_a_rerun_after_a_crash_before_the_post_posts_the_written_report_and_its_alerts():
@@ -86,20 +87,25 @@ def test_a_rerun_after_a_crash_before_the_post_posts_the_written_report_and_its_
     assert alerts.sent == ["F&O forecast lab 2026-10-23: NIFTY N3 (issued 2026-10-19): no forecast was sealed"]
 
 
-def test_a_refused_post_is_alerted_and_retried_by_the_rerun_but_a_maybe_posted_one_never_is():
+def test_a_refused_post_fails_the_step_without_its_own_alert_and_the_rerun_retries_it():
+    """O1's exit contract: the step fails (non-zero) and O1's `Alerted` alerts it once; the command never alerts it."""
     records = Records()
     refused = PostReceipt("alert NOT sent: channel_not_found")
     run, poster, alerts = lab(Forecasts(ON_TIME, SCORES), records=records, poster=Poster(refused))
-    run.run(DAY)
-    assert not records.posted(DAY) and alerts.sent[-1].endswith("(alert NOT sent: channel_not_found)")
-    run.run(DAY)
-    assert len(poster.posts) == 2 and records.posted(DAY)
+    result = run.run(DAY)
+    assert result.failed and result.lines[-1].endswith("(alert NOT sent: channel_not_found)")
+    assert not records.posted(DAY) and alerts.sent == []
+    assert not run.run(DAY).failed and len(poster.posts) == 2 and records.posted(DAY)
+
+
+def test_a_maybe_posted_report_is_never_posted_again():
+    records = Records()
     maybe = PostReceipt("alert NOT sent: " + UNKNOWN.format(failure="ReadTimeout"))
-    records, alerts = Records(), RecordingAlerts()
-    run, poster, alerts = lab(Forecasts(ON_TIME, SCORES), records=records, poster=Poster(maybe), alerts=alerts)
-    run.run(DAY)
-    run.run(DAY)
-    assert len(poster.posts) == 1 and records.posted(DAY) and "Slack may still have posted it" in alerts.sent[-1]
+    run, poster, _ = lab(Forecasts(ON_TIME, SCORES), records=records, poster=Poster(maybe))
+    first = run.run(DAY)
+    assert first.failed and "Slack may still have posted it" in first.lines[-1]
+    assert run.run(DAY).lines == ["lab close 2026-10-23: already posted; nothing posted again"]
+    assert len(poster.posts) == 1 and records.posted(DAY)
     assert MAY_HAVE_POSTED in UNKNOWN  # T1's wording: the guard against a double post follows it
 
 

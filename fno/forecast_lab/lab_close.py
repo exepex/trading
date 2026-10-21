@@ -1,12 +1,15 @@
 """`lab close` (story FL1-1): the 15:45 report, written once and posted once to #fno-forecast. A rerun after the
 report was written posts the stored text and alerts, never rebuilt ones (scores may have moved since). A rerun after
-the post posts nothing. Each missing or late forecast is one alert to #fno-desk, and so is a report not posted. A post
-Slack may have made without answering is never retried (no double post); the alert says to check the channel."""
+the post posts nothing. Each missing or late forecast is one alert to #fno-desk (a finding of a written report). A
+report not posted is the step's failure: the command exits non-zero and O1's `Alerted` alerts it once (O1's exit
+contract: a step never alerts its own failure). A post Slack may have made without answering is never retried (no
+double post), so it is marked posted and the failure says to check the channel."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime
 
 from ..alerts.sender import AlertSender
@@ -75,17 +78,23 @@ class CloseReport:
         return "\n".join(lines) + "\n", alerts
 
 
+@dataclass(frozen=True)
+class LabResult:
+    lines: list[str]
+    failed: bool = False
+
+
 class LabClose:
     def __init__(self, report: CloseReport, records: ReportRecords, poster: CardPoster, desk: AlertSender,
                  session_kind: Callable[[date], str | None], clock: Callable[[], datetime]):  # fmt: skip
         self.report, self.records, self.poster, self.desk = report, records, poster, desk
         self.session_kind, self.clock = session_kind, clock
 
-    def run(self, day: date) -> list[str]:
+    def run(self, day: date) -> LabResult:
         if self.session_kind(day) not in RECORDED_SESSION_KINDS:
-            return [NOT_A_SESSION.format(day=day)]
+            return LabResult([NOT_A_SESSION.format(day=day)])
         if self.records.posted(day):
-            return [ALREADY_POSTED.format(day=day)]
+            return LabResult([ALREADY_POSTED.format(day=day)])
         written = self.records.report(day)
         if written is None:
             written = self.report.build(day, self.clock())
@@ -94,7 +103,8 @@ class LabClose:
         receipt = self.poster.post(text)
         if receipt.sent or MAY_HAVE_POSTED in receipt.outcome:
             self.records.mark_posted(day, receipt.outcome)
-        if not receipt.sent:
-            alerts = [*alerts, NOT_POSTED.format(outcome=receipt.outcome)]
         sent = [self.desk.send(ALERT.format(day=day, what=what)) for what in alerts]
-        return [POSTED.format(day=day, outcome=receipt.outcome, alerts=len(sent))]
+        line = POSTED.format(day=day, outcome=receipt.outcome, alerts=len(sent))
+        if receipt.sent:
+            return LabResult([line])
+        return LabResult([line, NOT_POSTED.format(outcome=receipt.outcome)], failed=True)

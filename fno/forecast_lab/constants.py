@@ -8,6 +8,7 @@ UNDERLYINGS = ("NIFTY", "BANKNIFTY")  # owner, 21 Oct 2026 (DESK_DECISIONS row 2
 ISSUE_CLOSE = "1545"  # phase 1's one issue (owner, "Lab universe, report times and phasing")
 HORIZON_SESSIONS = {"N1": 1, "N3": 3}  # sessions after the issue day; N0 comes with the 09:15 issue (FL1-2)
 LEVELS = (0.05, 0.25, 0.50, 0.75, 0.95)
+REPORT_AT = time(15, 45)  # O1's `lab_close` waits for it: after the 15:30 close, G13b's 15:45 issue and `candles`
 SEAL_BY = time(9, 15)  # a forecast counts for a target day only if sealed before that day's open
 CALIBRATION_DAYS, EDGE_WINDOW = 60, "6-12 months"
 REPORT_AREA = "forecast_lab/v1/close"  # under O9's Drive data area: the report text and its posted marker
