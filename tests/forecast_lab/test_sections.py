@@ -1,6 +1,6 @@
 """FL1-1d-2: each Section in exactly one state, inside its expected as-of rule (judge 438): A17's US cues and the
 RBI rate only when current at the 09:15 cutoff, Brent as its last print up to 10 days old, India VIX as the previous
-session's official close in the morning and never in the evening, the day's flags, and a source not built yet said so.
+session's official close in the morning and never in the evening, the day's flags.
 Made-up levels only: the S&P 500 and the Nasdaq-100 are private cues (owner bcbbc454)."""
 
 from datetime import date, time, timedelta
@@ -10,7 +10,7 @@ import pytest
 from fno.forecast_lab.page.cues import AVAILABLE, NOT_AVAILABLE, NOT_OUT_YET
 from fno.forecast_lab.page.reasons import Facts
 from fno.forecast_lab.sections.global_cues import CueSpec, GlobalCueSection
-from fno.forecast_lab.sections.india import FlagsSection, PendingSection, VixSection
+from fno.forecast_lab.sections.india import FlagsSection, VixSection
 from fno.forecast_lab.sections.spread import changes, size
 from fno.global_cues.reading import CueReading
 from fno.research_data.nifty_panel import DailyFiles
@@ -100,8 +100,3 @@ def test_the_day_s_flags_are_the_day_s_own_events_and_expiry():
     view = FlagsSection(lambda day: facts).read(MON, "morning")
     assert [c.text for c in view.items] == ["RBI policy decision", "NIFTY F&O expiry today"]
     assert FlagsSection(lambda day: Facts()).read(MON, "morning").items == ()
-
-
-def test_a_source_not_built_yet_says_so():
-    view = PendingSection("GIFT Nifty", "A22b's early GIFT file is not merged yet").read(MON, "morning")
-    assert (view.status, view.why) == (NOT_AVAILABLE, "A22b's early GIFT file is not merged yet")

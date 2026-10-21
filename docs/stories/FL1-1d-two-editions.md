@@ -327,9 +327,11 @@ Each difference below was decided by the orchestrator or by measurement; none is
    the list's value is never passed off as the close. The morning shows the previous session's official VIX, read
    from the archived file.
 6. **GIFT Nifty (owner, (c) "Both").**
-   - At 08:50 GIFT Nifty is a context Section that reads A22b's early file (`preopen/gift/...`), once A22b merges.
-     Until then it says "not available" with why. A missing file at 08:50 is named in the edition itself
-     ("GIFT Nifty: not available"), so O8 needs no 08:50 row (judge 445's minor).
+   - At 08:50 GIFT Nifty is a context Section (`sections/gift.py`) that reads A22b's early file
+     (`data/preopen/gift/...`) verified through O9's cache, after the routine pulls its receipt. It shows the level
+     and its gap to the previous official NIFTY close, after the flags in the key points (it has no history here to
+     size it against). A missing, damaged or level-less file is named in the edition itself ("GIFT Nifty: ..."), so
+     O8 needs no 08:50 row (judge 445's minor).
    - The 09:12 post with N0 and the pre-open price belongs to FL1-2 (the 09:15 report), so no second builder makes
      it.
 7. **Levels.**
@@ -342,5 +344,4 @@ Each difference below was decided by the orchestrator or by measurement; none is
 
 Not built yet, waiting on others:
 - A4h's `TodayCloses` adapter, which reads `closes/<yyyy>/<mm>/<day>.json` once A4h merges;
-- the GIFT adapter, once A22b merges;
 - the designer's renderer, which the designer ports and I wire with one line.

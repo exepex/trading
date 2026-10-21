@@ -116,7 +116,8 @@ modifies or cancels orders, and neither uses Groww.
 1b. The morning only, before `lab open`: `python -m fno data-librarian index-close --from "$(TZ=Asia/Kolkata date -d
    '-7 days' +%F)"` archives the previous sessions' official index-close files in Drive (A9's command, unchanged;
    orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
-   failure of the routine: the morning then says "not archived yet".
+   failure of the routine: the morning then says "not archived yet". Then `git pull --no-rebase origin main`, so
+   A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
 1c. The evening only, before `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
    dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
    data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot

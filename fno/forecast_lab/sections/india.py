@@ -4,7 +4,7 @@
   and the index list's own value differed from it on 21 Oct (15.70 against 15.68), so it is never passed off as the
   close.
 - The day's flags: an RBI policy decision or the Union Budget (A6's events) and a NIFTY F&O expiry, dated the day.
-- A cue whose source is not built yet (GIFT Nifty until A22b merges) says so, never a guess."""
+"""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from datetime import date
 
 from ...fo_bhavcopy import BadFile, read_index_closes
 from ...research_data.nifty_panel import DailyFiles
-from ..page.cues import AVAILABLE, CONTEXT, NOT_AVAILABLE, Cue, Section, SectionView, missing
+from ..page.cues import AVAILABLE, CONTEXT, Cue, Section, SectionView, missing
 from ..page.reasons import Facts
 from .spread import changes, size
 
@@ -65,13 +65,3 @@ class FlagsSection(Section):
         flags = [Cue(text, text=text, as_of=day) for d, text in known.events.items() if d == day]
         flags += [Cue(EXPIRY, text=EXPIRY, as_of=day)] if day in known.expiries else []
         return SectionView(self.name, AVAILABLE, day, tuple(flags))
-
-
-class PendingSection(Section):
-    """A cue whose source is not built yet: always "not available", with why."""
-
-    def __init__(self, name: str, why: str):
-        self.name, self.why = name, why
-
-    def read(self, day: date, edition: str) -> SectionView:
-        return SectionView(self.name, NOT_AVAILABLE, why=self.why)

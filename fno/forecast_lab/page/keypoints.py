@@ -1,6 +1,7 @@
 """The 2-4 key points per index (story FL1-1d-2), chosen by a stated order, never by a model:
 - the morning ("why this forecast"): what the forecast is built from (the one `used` point), then the day's flags,
-  then the context cues by the size of their move against their own usual moves;
+  then GIFT Nifty's gap when shown (the one pre-open level; it has no history here to size it against), then the
+  other context cues by the size of their move against their own usual moves;
 - the evening ("why it was right or wrong"): on a miss, its after-the-fact reasons (FL1-1c's direction-aware facts),
   then the US equity cues that moved the same way as the miss, then the other context cues by size.
 Context is never a cause: the page labels it so."""
@@ -19,7 +20,7 @@ INPUTS = {
     "ewma_t4": "recent moves, the newest weighted most",
     "no_change": "no move from the last level",
 }
-EQUITIES = ("S&P 500", "Nasdaq-100")
+EQUITIES, GIFT = ("S&P 500", "Nasdaq-100"), "GIFT Nifty"
 REASON = "Reason (after the fact)"
 
 
@@ -35,7 +36,8 @@ def morning_points(method: str, sections: tuple[SectionView, ...]) -> tuple[Cue,
     cues = _shown(sections)
     used = Cue(BUILT_FROM, text=INPUTS.get(method, method), role=USED)
     flags = [c for c in cues if c.text is not None]
-    return (used, *flags, *_by_size([c for c in cues if c.text is None]))[:MAX_POINTS]
+    gift = [c for c in cues if c.name == GIFT]
+    return (used, *flags, *gift, *_by_size([c for c in cues if c.text is None]))[:MAX_POINTS]
 
 
 def evening_points(

@@ -69,3 +69,9 @@ def test_the_page_carries_the_why_of_each_index():
     view = build("evening", (implied(FRI), implied(MON)), read=25700.0, at_time=(20, 5))
     assert view.indices[0].why[0].name == "Reason (after the fact)"
     assert view.indices[0].why[0].text == "no clear reason in our data"
+
+
+def test_gift_nifty_s_gap_follows_the_flags_in_the_morning():
+    gift = SectionView("GIFT Nifty", AVAILABLE, MON, (Cue("GIFT Nifty", 25125.5, 0.5, "%", MON),))
+    points = morning_points("rv20", (*CUES, gift, FLAG))
+    assert [p.name for p in points] == ["Built from", "RBI policy decision", "GIFT Nifty", "Brent"]
