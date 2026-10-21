@@ -187,6 +187,7 @@ def printed(action) -> list[str]:
 def quote_parts_script(day_: Day) -> dict:
     """The 3 pm parts: NIFTY by A4's real `record_today` over the fake Groww, NSE's chain at 14:57, the three indices
     by 15:13 (their window), each in its own time."""
+    from fno.daily.alerts import ReportedAlerts
     from fno.quotes.cli import record_today
     from fno.storage.wiring import build_quote_store
 
@@ -194,7 +195,8 @@ def quote_parts_script(day_: Day) -> dict:
         day_.provider.clock = clock
         build = lambda: QuoteSnapshotRecorder(day_.provider, build_quote_store(staging), clock, clock.advance,  # noqa: E731
                                               calendar=CALENDAR)  # fmt: skip
-        return printed(lambda: record_today(build, day_.slack, False, CALENDAR_NAME))
+        alerts = ReportedAlerts(day_.slack)  # as `cmd_quotes` wires it: an unsent alert prints with its text
+        return printed(lambda: record_today(build, alerts, False, CALENDAR_NAME))
 
     def nse(clock, staging):
         clock.set(max(clock(), datetime.combine(day_.day, time(14, 57), IST)))

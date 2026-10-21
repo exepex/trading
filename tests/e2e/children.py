@@ -57,7 +57,7 @@ class ScriptedProcess(Process):
         return self.code
 
     def lines(self):
-        return self.printed[-KEPT_LINES:]
+        return [line for line in self.printed if UNSENT not in line][-KEPT_LINES:]  # as ChildProcess keeps them
 
     def alerted(self):
         return alerted_in(self.printed)
