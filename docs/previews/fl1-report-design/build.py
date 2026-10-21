@@ -1,14 +1,18 @@
-"""Builds the two preview pages (the picture and the details) from data_v4.json. Standard library only:
-`python build.py` writes fl1-report-picture.html and fl1-report-details.html next to it."""
+"""Builds the v6 preview pages from data_v4.json: `python build.py` writes fl1-report-picture.html (the overview
+strip and one line chart per index) and fl1-report-details.html (everything). Standard library only."""
 
 import json
 from pathlib import Path
 
-from chart import Layout, RangeColumnChart, fmt, fmt_high, fmt_low
+from contracts import SESSIONS_TO_EXPIRY, contract_rows
+from linechart import ForecastLineChart, Layout, fmt, fmt_high, fmt_low, status
 
 HERE = Path(__file__).parent
-PICTURE_DAYS = 10
-ZOOM_SCRIPT = (HERE / "zoom.js").read_text()
+PICTURE_DAYS = 8
+GRID_STEP = {"NIFTY": 100, "BANKNIFTY": 250}
+WORD = {"green": "Correct", "amber": "Close call", "red": "Missed"}
+GLYPH = {"green": "✓", "amber": "⚠", "red": "✗"}
+MEANS = {"green": "inside “most likely”", "amber": "inside “almost certainly” only", "red": "outside both"}
 
 
 def _head(title, body_class=""):
@@ -19,74 +23,73 @@ def _head(title, body_class=""):
 
 
 def _header(data):
-    return (f'<header><h1>Forecast <span>{data["report_day"]}, {data["report_time"]}</span></h1>'
+    return (f'<header><h1>Forecast report <span>{data["report_day"]} · {data["report_time"]}</span></h1>'
             f'<span class="tag">{data["preview_note"]}</span></header>')
 
 
-def _range(f):
-    return f'{fmt_low(f["lo50"])} – {fmt_high(f["hi50"])}', f'{fmt_low(f["lo90"])} – {fmt_high(f["hi90"])}'
-
-
-def _forecast_block(idx):
-    likely, sure = _range(idx["next"])
-    likely3, sure3 = _range(idx["three"])
-    return (f'<div class="fc"><div class="next"><div class="h">Next trading day · {idx["next"]["date"]}</div>'
-            f'<div class="big"><span>most likely</span>{likely}</div>'
-            f'<div class="sure"><span>almost certainly</span>{sure}</div></div>'
-            f'<div class="three"><div class="h">In 3 trading days · {idx["three"]["date"]}</div>'
-            f'<div class="big"><span>most likely</span>{likely3}</div>'
-            f'<div class="sure"><span>almost certainly</span>{sure3}</div></div></div>')
+def _range(f, key="50"):
+    return f'{fmt_low(f["lo" + key])} – {fmt_high(f["hi" + key])}'
 
 
 def _light(idx):
     word = {"green": "Good", "amber": "Watch", "red": "Poor"}[idx["light"]]
-    return f'<span class="light {idx["light"]}"><i></i>{word}: right {idx["right30"]} of the last 30 days</span>'
+    return f'<span class="light {idx["light"]}"><i></i>{word}: {idx["right30"]} of 30 days</span>'
+
+
+def _chip(st):
+    return f'<span class="chip {st}">{GLYPH[st]} {WORD[st]}</span>'
+
+
+def _reason(idx, day):
+    for m in idx["misses7"]:
+        if m["date"].split(" ", 1)[1] == day["date"]:
+            return f'<div class="why1">Why: {m["reason"]}.</div>'
+    return ""
+
+
+def _overview_row(idx):
+    today = idx["days"][-1]
+    st = status(today)
+    return (f'<div class="ov"><div class="ov-head"><b>{idx["name"]}</b>{_light(idx)}</div>'
+            f'<div class="ov-line"><span class="k">Today’s call</span>'
+            f'<span>{_range(today)} · closed <b>{fmt(today["close"])}</b></span>{_chip(st)}</div>'
+            f'<div class="ov-sub">{MEANS[st]} ({_range(today, "90")})</div>'
+            f'{_reason(idx, today) if st == "red" else ""}'
+            f'<div class="ov-line"><span class="k">Next</span><span><b>{idx["next"]["date"]}</b>: most likely '
+            f'<b class="big">{_range(idx["next"])}</b> · almost certainly {_range(idx["next"], "90")}</span></div></div>')
+
+
+def _overview(data):
+    return ('<div class="card glance"><div class="h first">At a glance</div>'
+            + "".join(_overview_row(idx) for idx in data["indices"]) + "</div>")
+
+
+def _chart(idx, days, width):
+    chart = ForecastLineChart(days, idx["next"], Layout(width=width, grid_step=GRID_STEP[idx["name"]]))
+    return chart.svg(f'{idx["name"]}: forecast high and low, the close, and the next-day forecast')
 
 
 def _key():
-    return ('<p class="key"><span><i class="r50"></i>most likely</span><span><i class="r90"></i>almost certainly</span>'
-            '<span><i class="dot"></i>where it closed</span>'
-            '<span><b class="ok">✓</b> inside · <b class="miss">✗</b> outside “almost certainly”</span></p>'
-            '<p class="plain">Most likely = a normal day’s move (1 day in 2). '
-            'Almost certainly = covers even a jumpy day (9 days in 10).</p>')
+    return ('<p class="key"><span><i class="ln hi"></i>forecast high</span><span><i class="ln lo"></i>forecast low</span>'
+            '<span><i class="ln close"></i>actual close</span><span><i class="dot green"></i>✓ inside “most likely”</span>'
+            '<span><i class="dot amber"></i>⚠ inside “almost certainly” only</span>'
+            '<span><i class="dot red"></i>✗ outside both</span></p>')
 
 
-def _wrong_line(idx, days):
-    misses = [d["date"] for d in reversed(days) if not d["right"]]
-    if not misses:
-        return f'<p class="wrong"><b class="ok">Right on all of the last {len(days)} trading days.</b></p>'
-    return (f'<p class="wrong">Wrong on <b class="miss">{len(misses)} of the last {len(days)} trading days</b>: '
-            f'{", ".join(misses)}. Right on every other day.</p>')
+def _tally(idx, days):
+    counts = {s: sum(status(d) == s for d in days) for s in ("green", "amber", "red")}
+    reds = [d["date"] for d in reversed(days) if status(d) == "red"]
+    red_dates = f' ({", ".join(reds)})' if reds else ""
+    return (f'<p class="tally">Last {len(days)} days: <b class="green">{counts["green"]} ✓ correct</b> · '
+            f'<b class="amber">{counts["amber"]} ⚠ close call</b> · <b class="red">{counts["red"]} ✗ missed</b>'
+            f'{red_dates}.</p>')
 
 
-def _why_missed(idx):
-    items = idx["misses7"]
-    if not items:
-        body = '<ul class="why"><li>No misses in the last 7 trading days.</li></ul>'
-    else:
-        body = '<ul class="why">' + "".join(
-            f'<li><b>{m["date"]}</b>: closed {m["points"]} points {m["side"]} “almost certainly”. '
-            f'<span>Likely reason, after the fact: {m["reason"]}.</span></li>' for m in items) + "</ul>"
-    return '<div class="h">Why it missed · last 7 trading days</div>' + body
-
-
-def _chart(idx, days, width, label_every):
-    forecasts = [("next day", idx["next"]), ("in 3 days", idx["three"])]
-    chart = RangeColumnChart(days, forecasts, Layout(width=width), label_every=label_every)
-    aria = f'{idx["name"]}: each day’s forecast range and where it closed, then the forecasts'
-    return chart.svg(aria)
-
-
-def _card_top(idx):
-    return (f'<div class="top"><h2>{idx["name"]}<small>closed today at {fmt(idx["today"])}</small></h2>'
-            f'{_light(idx)}</div>')
-
-
-def picture_card(idx):
-    days = idx["days"][-PICTURE_DAYS:]
-    return (f'<div class="card">{_card_top(idx)}{_forecast_block(idx)}'
-            f'<div class="h">Last {PICTURE_DAYS} trading days · forecast range and where it closed</div>'
-            f'{_chart(idx, days, 568, 1)}{_key()}{_wrong_line(idx, idx["days"])}{_why_missed(idx)}</div>')
+def chart_card(idx, days, width):
+    grid = GRID_STEP[idx["name"]]
+    return (f'<div class="card"><div class="top"><h2>{idx["name"]}</h2><span class="sub">closed today at '
+            f'{fmt(idx["today"])} · gridlines every {grid} points</span></div>'
+            f'<div class="scroll">{_chart(idx, days, width)}</div>{_key()}{_tally(idx, idx["days"])}</div>')
 
 
 def _foot(data):
@@ -94,38 +97,50 @@ def _foot(data):
             f'<span class="research">{data["research_line"]}</span></div>')
 
 
-def picture(data, only=None):
-    """The whole picture, or one index's picture when `only` names it (one image per index previews better in Slack)."""
-    cards = "".join(picture_card(idx) for idx in data["indices"] if only in (None, idx["name"]))
-    return _head(f'Forecast, {data["report_day"]}') + _header(data) + cards + _foot(data) + "</div></body></html>"
+def picture(data):
+    cards = "".join(chart_card(idx, idx["days"][-PICTURE_DAYS:], 568) for idx in data["indices"])
+    return (_head(f'Forecast, {data["report_day"]}') + _header(data) + _overview(data) + cards + _foot(data)
+            + "</div></body></html>")
+
+
+def _three(idx):
+    t = idx["three"]
+    return (f'<div class="h">In 3 trading days · {t["date"]}</div><p class="plain big">most likely '
+            f'<b>{_range(t)}</b> · almost certainly {_range(t, "90")} · middle {fmt(t["mid"])}</p>')
+
+
+def _why_missed(idx):
+    items = idx["misses7"]
+    body = "".join(
+        f'<li><b>{m["date"]}</b>: closed {m["points"]} points {m["side"]} “almost certainly”. '
+        f'<span>Likely reason, after the fact: {m["reason"]}.</span></li>' for m in items) or \
+        "<li>No misses in the last 7 trading days.</li>"
+    return f'<div class="h">Why it missed · last 7 trading days</div><ul class="why">{body}</ul>'
 
 
 def _days_table(idx):
     rows = []
     for d in reversed(idx["days"]):
-        cls = "ok" if d["right"] else "miss"
-        mark = "✓ inside" if d["right"] else "✗ outside"
-        rows.append(f'<tr class="{cls}"><td>{d["date"]}</td><td>{fmt(d["lo90"])} – {fmt(d["hi90"])}</td>'
-                    f'<td>{fmt(d["lo50"])} – {fmt(d["hi50"])}</td><td>{fmt(d["mid"])}</td>'
-                    f'<td>{fmt(d["close"])}</td><td class="{cls}">{mark}</td></tr>')
-    return ('<div class="h">Every day in numbers · forecast made the session before</div><div class="scroll">'
-            '<table class="days"><thead><tr><th>Day</th><th>Almost certainly</th><th>Most likely</th>'
-            '<th>Middle</th><th>Closed</th><th>Right?</th></tr></thead><tbody>'
+        st = status(d)
+        rows.append(f'<tr><td>{d["date"]}</td><td>{fmt(d["lo50"])} – {fmt(d["hi50"])}</td>'
+                    f'<td>{fmt(d["lo90"])} – {fmt(d["hi90"])}</td><td>{fmt(d["mid"])}</td><td><b>{fmt(d["close"])}</b></td>'
+                    f'<td class="{st}">{GLYPH[st]} {WORD[st]}</td></tr>')
+    return ('<div class="h">Every day in numbers · each forecast made the session before</div><div class="scroll">'
+            '<table class="days"><thead><tr><th>Day</th><th>Most likely</th><th>Almost certainly</th>'
+            '<th>Middle</th><th>Closed</th><th>Result</th></tr></thead><tbody>'
             + "".join(rows) + "</tbody></table></div>")
 
 
 def _methods(idx, horizon):
     block = idx["methods"][horizon]
     dates = [d["date"] for d in idx["days"]]
-    head = "".join(f"<th>{d.split()[0]}</th>" for d in dates)
     glyph = {"in50": "✓", "in90": "✓", "miss": "✗", "none": "·"}
-    grid = "".join(
-        f'<tr><th class="m">{m}{" ★" if m == "implied" else ""}</th>'
-        + "".join(f'<td class="{c}">{glyph[c]}</td>' for c in cells) + "</tr>"
-        for m, cells in block["grid"].items())
-    scores = "".join(
-        f'<tr><td>{s["method"]}{" ★" if s["method"] == "implied" else ""}</td><td>{s["in50"]}</td>'
-        f'<td>{s["in90"]}</td><td>{s["err"]}</td></tr>' for s in block["scores"])
+    head = "".join(f"<th>{d.split()[0]}</th>" for d in dates)
+    grid = "".join(f'<tr><th class="m">{m}{" ★" if m == "implied" else ""}</th>'
+                   + "".join(f'<td class="{c}">{glyph[c]}</td>' for c in cells) + "</tr>"
+                   for m, cells in block["grid"].items())
+    scores = "".join(f'<tr><td>{s["method"]}{" ★" if s["method"] == "implied" else ""}</td><td>{s["in50"]}</td>'
+                     f'<td>{s["in90"]}</td><td>{s["err"]}</td></tr>' for s in block["scores"])
     months = f'{dates[0].split()[1]} → {dates[-1].split()[1]}'
     return (f'<details class="more"><summary>Every method, {horizon} (for the curious)</summary><div class="inner">'
             f'<div class="scroll"><table class="hits"><thead><tr><th class="m">{months}</th>{head}</tr></thead>'
@@ -134,59 +149,60 @@ def _methods(idx, horizon):
             '★ = the method shown in the report: best on history, not yet proven live.</p>'
             '<div class="scroll"><table class="scores"><thead><tr><th>Method</th>'
             '<th>In 50% range<br>7 · 14 · 30 days</th><th>In 90% range<br>7 · 14 · 30 days</th>'
-            f'<th>Avg error, points</th></tr></thead><tbody>{scores}</tbody>'
-            '</table></div></div></details>')
+            f'<th>Avg error, points</th></tr></thead><tbody>{scores}</tbody></table></div></div></details>')
 
 
-def _exact(idx):
-    n, t = idx["next"], idx["three"]
-    def line(f):
-        return (f'50% {f["lo50"]:,.2f}–{f["hi50"]:,.2f} · middle {f["mid"]:,.2f} · '
-                f'90% {f["lo90"]:,.2f}–{f["hi90"]:,.2f}')
-    return (f'<details class="more"><summary>Exact forecast numbers</summary><div class="inner"><dl class="words">'
-            f'<dt>Next session, {n["date"]}</dt><dd>{line(n)}</dd><dt>In 3 sessions, {t["date"]}</dt><dd>{line(t)}</dd>'
-            f'<dt>Today, 3 pm</dt><dd>{idx["today"]:,}</dd></dl></div></details>')
+def _contracts(idx):
+    rows = "".join(
+        f'<tr><td><b>{r["strike"]:,}</b></td><td><i class="bar" style="--p:{r["call"]:.2f}"></i>{r["call"]:.0%}</td>'
+        f'<td><i class="bar" style="--p:{r["put"]:.2f}"></i>{r["put"]:.0%}</td>'
+        f'<td class="{"green" if r["call_check"] else "red"}">{"✓" if r["call_check"] else "✗"}</td>'
+        f'<td class="{"green" if r["put_check"] else "red"}">{"✓" if r["put_check"] else "✗"}</td></tr>'
+        for r in contract_rows(idx))
+    return (f'<div class="card"><div class="top"><h2>{idx["name"]} contracts <span class="tag">proposal, data to '
+            f'confirm</span></h2><span class="sub">nearest expiry (mock: {SESSIONS_TO_EXPIRY} sessions away)</span></div>'
+            '<div class="scroll"><table class="days contracts"><thead><tr><th>Strike</th><th>Call: chance in the money</th>'
+            '<th>Put: chance in the money</th><th>Today’s call check</th><th>Today’s put check</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>'
+            '<p class="plain">Chance = the forecast range’s probability that the index finishes above (call) or below '
+            '(put) the strike at expiry, from the 3-day forecast stretched to the expiry. Today’s check: did the contract '
+            'finish on the side the forecast made the session before implied? Mock numbers from a normal fit; '
+            'production reads G13’s per-strike implied probabilities and fair values. Paper only.</p></div>')
 
 
 def details_card(idx):
-    return (f'<div class="card">{_card_top(idx)}{_forecast_block(idx)}'
-            f'<div class="h">Last 30 trading days · forecast range and where it closed</div>'
-            f'<div class="scroll">{_chart(idx, idx["days"], 1060, 1)}</div>{_key()}'
-            '<p class="zoom">Zoom: scroll or pinch on the chart, drag to move, double-tap to reset. '
-            'On a phone the chart also scrolls sideways.</p>'
-            f'{_wrong_line(idx, idx["days"])}{_why_missed(idx)}'
-            f'<p class="plain">{idx["direction"]}</p>'
-            f'{_days_table(idx)}{_exact(idx)}{_methods(idx, "next session")}{_methods(idx, "in 3 sessions")}</div>')
+    return (f'{chart_card(idx, idx["days"], 1510)}<div class="card">{_three(idx)}{_why_missed(idx)}'
+            f'<p class="plain">{idx["direction"]}</p>{_days_table(idx)}'
+            f'{_methods(idx, "next session")}{_methods(idx, "in 3 sessions")}</div>{_contracts(idx)}')
 
 
 def _words(data):
     w = data["words"]
-    return ('<div class="card"><div class="h" style="margin-top:0">The words, in numbers</div><dl class="words">'
+    return ('<div class="card"><div class="h first">The words, in numbers</div><dl class="words">'
             f'<dt>most likely</dt><dd>the 50% range: {w["most likely"]}.</dd>'
             f'<dt>almost certainly</dt><dd>the 90% range: {w["almost certainly"]}.</dd>'
-            f'<dt>right</dt><dd>{w["right"]}. The light is {data["light_rule"]}.</dd></dl>'
+            f'<dt>the light</dt><dd>counts days the close stayed inside “almost certainly”: {data["light_rule"]}.</dd></dl>'
             f'<p class="plain">Reasons not checked yet for a miss: {data["not_checked"]}.</p></div>')
 
 
 def _system(data):
     lines = "".join(f"<li>{s}</li>" for s in data["stricter"])
-    return ('<div class="card"><div class="h" style="margin-top:0">System</div>'
+    return ('<div class="card"><div class="h first">System</div>'
             f'<p class="plain">Seal checks: {data["seal"]}<br>Alerts: {data["alerts"]}</p>'
             f'<details class="more"><summary>Stricter checks, last 20 sessions</summary><div class="inner">'
             f'<ul class="lines">{lines}</ul></div></details></div>')
 
 
 def details(data):
+    zoom = (HERE / "zoom.js").read_text()
     cards = "".join(details_card(idx) for idx in data["indices"])
-    return (_head(f'Forecast details, {data["report_day"]}', "details") + _header(data) + _foot(data) + cards
-            + _words(data) + _system(data) + _foot(data) + f"</div><script>{ZOOM_SCRIPT}</script></body></html>")
+    return (_head(f'Forecast details, {data["report_day"]}', "details") + _header(data) + _overview(data) + cards
+            + _words(data) + _system(data) + _foot(data) + f"</div><script>{zoom}</script></body></html>")
 
 
 def main():
     data = json.loads((HERE / "data_v4.json").read_text())
     (HERE / "fl1-report-picture.html").write_text(picture(data))
-    for idx in data["indices"]:
-        (HERE / f"fl1-report-picture-{idx['name'].lower()}.html").write_text(picture(data, only=idx["name"]))
     (HERE / "fl1-report-details.html").write_text(details(data))
 
 

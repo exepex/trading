@@ -1,85 +1,62 @@
-# FL1 report design v5: the rationale
+# FL1 report design v6: the rationale
 
-Written by the designer session (21 Oct 2026) after the owner rejected v1 to v4 as cluttered and not understandable.
-v4's data, wording and content stay; only the picture changes. Reasoning only unless marked otherwise.
+Written by the designer session, 21 Oct 2026, after the owner rejected v5 (the overview was not on top, the
+columns had no values, 500-point gridlines were too coarse, "make it just line, numbers on top"). The data and words
+are v4's; the layout is the owner's v6 brief, relayed by the orchestrator. Reasoning only unless marked.
 
-## What failed in v4, in one sentence each
+## The page, top to bottom
 
-- **One jagged ribbon chart for 30 days.** Each day's range was forecast the session before, so the ribbon jumps every
-  day and the eye reads 30 zig-zags, two shaded bands, a dashed line, a solid line and 30 ticks at once.
-- **Thirteen gridlines and six date ticks** that line up with nothing the reader cares about.
-- **A grid of 30 tiny boxes** with 9.5 px dates under the chart: a second copy of the same 30 answers.
-- **A seven-item legend** that wrapped onto two lines, so the reader had to learn seven marks before reading.
-- **Type too small for a phone**: 11 px axis labels and 13 px body in a picture that Slack shrinks to about 0.6.
+1. **At a glance** (5 to 10 seconds), one block per index, like a broker's morning note:
+   - the 30-day light as a pill (`Good: 25 of 30 days`, word and colour);
+   - **Today's call**: the "most likely" range forecast the session before, the close, and a chip:
+     green `✓ Correct` = inside "most likely", amber `⚠ Close call` = inside "almost certainly" only,
+     red `✗ Missed` = outside both; one grey line says which range held; on a red day one line gives the reason;
+   - **Next**: the date, "most likely" in large bold, "almost certainly" after it.
+2. **One line chart per index** (the picture shows the last 8 trading days, the attached file 30):
+   - three lines: the forecast **high** and **low** (the edges of "most likely", accent colour) and the **actual
+     close** (ink, thicker); each close has a dot coloured green, amber or red by the rule above;
+   - **numbers on top**: the close is written at every point; the high and low are written at the first point, the
+     last point and on every red day (the brief's "ends and misses"); under the dates, three aligned rows give
+     **every** day's high, close (coloured by its result) and low, so every value on the graph is readable even
+     where the lines cross;
+   - **gridlines every 100 points for NIFTY**. For BANKNIFTY every 250: its 8-day span is about 2,000 points, so
+     100-point lines would be 20 lines 15 px apart with 11 px labels (unreadable); 250 gives 9 lines 33 px apart.
+     The card's subtitle states the step;
+   - the **forecast zone** on the right: the lines continue dashed into a tinted zone to the next day's high, middle
+     and low, each written with its word;
+   - a key, then `Last 30 days: 12 ✓ correct · 13 ⚠ close call · 5 ✗ missed (dates)`.
+3. **Details** (attached file only): the 3-day forecast, "why it missed" for the last 7 days, every day in numbers
+   (now with the three-colour result), every method in collapsed sections, the words in numbers, the system card.
+4. **Contracts (proposal, data to confirm)**, one card per index below its details: the nearest expiry, five strikes
+   around today's price, for each the chance that the call and the put finish in the money, read off the forecast
+   range, and today's check (did the contract finish on the side the forecast made the session before implied?).
+   The mock fits a normal curve to the forecast quantiles and assumes an expiry six sessions away; production
+   reads G13's per-strike implied probabilities and fair values and the real expiry from the F&O masters. The FL1
+   and G13 builders confirm the data.
 
-## The rule for v5: one question, one element, nothing twice
+## Why these choices
 
-The reader is a beginner with a phone, 30 seconds, five questions (USER_NEEDS.md). Every element on the page answers
-exactly one of them, in order, and nothing is shown twice.
-
-| Element | Question it answers | Why this form |
-|---|---|---|
-| `NIFTY · closed today at 22,871` | the starting point | small, one line |
-| Light pill `Good: right 25 of the last 30 days` | 3 and 4 | the only coloured badge; its word is always written, never colour alone (dashboard rule) |
-| `most likely 22,750 – 23,000`, 26 px bold | 1 and 2 | the single biggest thing on the page; "almost certainly" under it at 17 px |
-| The same for "in 3 trading days", smaller | 1 and 2 | the owner asked for both horizons; smaller so it never competes with tomorrow |
-| **One chart: 10 columns, 2 forecast columns** | 3, with a date on every day, and 1 on the right | below |
-| `Wrong on 5 of the last 30 trading days: 15 Oct, 13 Oct, 8 Oct, 28 Sep, 24 Sep.` | 3, with dates for the other 20 days | one sentence replaces the 30-box grid: the right days are "every other day" |
-| `Why it missed · last 7 trading days` | 3, the reason | two plain bullets, as in v4 |
-| `✓ All systems normal · Research only. Not a trade tip.` | 4 and 5 | one line, once, at the bottom |
-
-Cut from the picture: the middle-guess dashed line, the 30-day timeline, the ✓/✗ date grid, the "It cannot tell up
-from down yet" line (details only), the method names, the percentages. Everything cut is in the details file.
-
-## The chart: a column per trading day
-
-For each of the last 10 trading days, one vertical column shows **the range forecast the session before** (pale =
-"almost certainly", solid = "most likely") and **a dot where the index closed**. A dot inside the pale column was a
-right day; a dot outside is drawn red. Under each column: the date on two lines (14 px day, 12 px month) and a
-green ✓ or red ✗. To the right, on a light "future" panel, the same column shape for **next day** and **in 3 days**,
-with the five numbers written beside each (upper and lower "most likely" in bold, the middle in the accent colour,
-the "almost certainly" edges in grey). So the reader checks one day in one glance: "was the dot inside the box?"
-
-Why columns, not ribbons: each day is an independent forecast, so a shape per day is the honest form; the eye never
-has to follow a line. Why 10 days in the picture and 30 in the details: at 600 px wide, 10 columns leave 40 px each,
-enough for a 14 px date and a 17 px mark with air between; 30 columns would need 11 px type (v4's mistake). Why no
-numbers on past columns: a number on every point is noise (dataviz rule: label selectively); the exact numbers are a
-table in the details file. Why only three or four gridlines: round steps (every 500 points for NIFTY, every 1,000 for
-BANKNIFTY) and hairline, solid, so the columns stay the loudest thing.
-
-## Colours, type, spacing
-
-- **Two colours plus two status colours**, all from the dashboard's design system (exepex/omenix-dashboard,
-  `design/system/tokens.css`): the accent `#5a5ee6` for every range (45% for "most likely", 14% for "almost
-  certainly"), the ink `#4b465c` for the close and all text, green `#15803d` only for ✓ and the light, red `#dc2626`
-  only for ✗ and the light. The dataviz validator passes the three (adjacent ΔE 8.6 deutan, 30.5 normal); red and
-  green also carry a glyph and a word, never colour alone.
-- **Type**: 16 px body, 26 px headline number, 14 px chart labels, 12 px smallest (the month under a date). v4's
-  smallest was 9.5 px.
-- **Layout**: the dashboard's page grey `#f7f7f9`, white cards with its soft shadow and 4 px corners, 16 px gutters,
-  one card per index, generous space between blocks. No legend box: a one-line key under the chart (two swatches, a
-  dot and the two marks), then the one sentence that defines the words.
-
-## What the two files are
-
-- `fl1-report-picture.html`: the static picture, drawn at 600 px wide (2x) for the Slack message. No script.
-  It is 1,786 px tall for both indices. **Recommendation:** post one picture per index
-  (`fl1-report-picture-nifty.html`, `fl1-report-picture-banknifty.html`, about 600 × 990 each): Slack's phone
-  preview crops a tall image, and a picture per index keeps the headline numbers and the whole chart in the first
-  preview. The combined picture is kept for the case the owner prefers one image.
-- `fl1-report-details.html`: the attached file. The same cards with the chart over 30 days (zoom with the mouse wheel
-  or pinch, drag to move, double-tap to reset; it also scrolls sideways on a phone), a table of every day in numbers,
-  the exact forecast numbers, every method's ✓/✗ by day and its scores in collapsed sections "for the curious", the
-  words in numbers, the stricter checks, seal checks and alerts. Self-contained: no request, no CDN, one small inline
-  script.
+- **Overview first, detail below**: the owner's rule. The picture is the overview strip plus the two charts; nothing
+  in the picture needs the attached file to be understood.
+- **8 days in the picture, not 10**: at 600 px wide each day gets 48 px, enough for an 11.5 px bold close label and the
+  value rows without overlap; 10 days gave 38 px and labels collided (tried, rejected in self-review).
+- **Value rows under the chart rather than 24 labels inside it**: the three lines cross often (each day's range is
+  centred on the previous close, the close moves on), so labelling high, low and close at every point inside the
+  plot overlapped in every render. The rows carry every number, aligned with its date; the plot keeps the close at
+  every point and the high and low where they matter.
+- **Colours**: the dashboard tokens (exepex/omenix-dashboard `design/system/tokens.css`): accent `#5a5ee6` for the
+  forecast lines and zone, ink `#4b465c` for the close, green `#15803d`, amber `#e07b00`, red `#dc2626` for the
+  result, always with a glyph (✓ ⚠ ✗) and a word. The dataviz validator passes the set; amber and red carry glyphs
+  so the tritan pair never relies on colour.
+- **Type**: 16 px body, 20 px headline numbers in the overview, 12 px dates, 10.5 px the smallest (the value rows).
+  Smaller than v5 because the owner asked for every number on the graph; the picture is drawn at 2x.
 
 ## Checked
 
-Rendered with the pre-installed Chromium through Playwright at 2x: the picture at 600 and 390 px, the details at
-1100 and 390 px, with every collapsed section opened as well. No sideways overflow at any width (one 73 px overflow
-from the score table at 390 px was found and fixed), no console errors, no external request. Looked at every render:
-no label overlaps another, the smallest type is 12 px, the five questions read top to bottom.
+Rendered with the pre-installed Chromium through Playwright at 2x: the picture at 600 and 390 px, the attached file
+at 1100 and 390 px. No sideways overflow (the 30-day chart scrolls inside its card and zooms), no console errors, no
+external request. Looked at every render: no label over another label, every value in the rows readable.
 
-Honest limits: the numbers behind the 30 columns were recovered from v4's chart coordinates (see README.md), so a
-value may be off by up to about 20 points; the builder draws from the real records. The headline ranges round outward to 10 (low down, high
-up), the builder's rule in `fno/forecast_lab/page/plain.py`, so the picture and the three text lines agree.
+Honest limits: the 30 daily ranges and closes behind the chart were recovered from v4's chart coordinates (±20
+points, see README.md); the contracts card is a mock with a normal fit and an assumed expiry; the headline ranges
+round outward to 10 (the builder's rule).
