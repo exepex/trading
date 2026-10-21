@@ -13,9 +13,17 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from ..alerts.sender import NOT_SENT
+from ..alerts.sender import NOT_SENT, SENT
 
 UNSENT = NOT_SENT.split(":")[0]  # "alert NOT sent": a child's own unsent alert, printed for the routine's connector
+ALERT_OUTCOMES = (SENT, UNSENT)  # a line a command's own alert left, sent or not
+
+
+def alerted_in(printed: Sequence[str]) -> bool:
+    """True when a command's whole output holds its own alert's outcome line, sent or not."""
+    return any(outcome in line for line in printed for outcome in ALERT_OUTCOMES)
+
+
 KEPT_LINES = 10  # the run log keeps the last lines a command printed (result lines; never a secret, O5's scan)
 
 
@@ -27,6 +35,11 @@ class Process(ABC):
     @abstractmethod
     def lines(self) -> list[str]:
         """The last `KEPT_LINES` non-empty lines it printed (read once, after it has ended)."""
+
+    @abstractmethod
+    def alerted(self) -> bool:
+        """True when it sent an alert of its own, Slack up or down: read from its whole output, which `lines` is not
+        (an unsent alert's text never reaches the committed run log)."""
 
     @abstractmethod
     def stop(self) -> None:
@@ -61,6 +74,9 @@ class ChildProcess(Process):
         """The last result lines, never an unsent alert: its text goes to the routine only (it can hold what is meant
         for Slack alone, such as a Drive error's text), never into the committed run record."""
         return [line for line in self._read() if UNSENT not in line][-KEPT_LINES:]
+
+    def alerted(self) -> bool:
+        return alerted_in(self._read())
 
     def _read(self) -> list[str]:
         if self.printed is None:
