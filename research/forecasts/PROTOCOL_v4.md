@@ -58,14 +58,15 @@ V2, V3, V5, V6, V7: from the freeze (close proxy, A4 quotes, official closes). V
 V4: when A16 records weekly ATM quotes. A question that has not started shows "not enough data yet", never a failure.
 
 ### 1.4 V4, exact terms and units
-P(realised volatility of `d+1..d+5` < the pack's ATM implied volatility (section 1.6) of the nearest weekly expiry at least 5 scored
-sessions after `d`).
+P(realised volatility of `d+1..d+5` < the pack's ATM implied volatility (section 1.6) of the nearest weekly expiry at
+least 5 scored sessions after `d`).
 - **Expiry:** the nearest listed NIFTY expiry `e` with at least 5 scored sessions in `(d, e]`; `S_e` = that count,
   `C_e` = calendar days from `d` to `e`.
 - **ATM:** the listed strike nearest the pack's spot (a tie goes to the lower strike, as G1). The call and the put need
-  a live two-sided quote in the pack, each with its `observed_at`, with `(ask - bid) / mid <= 5%` each, priced at mid; otherwise the day is void. Some
-  evidence for 5%: on 14 Oct 2026's 14:55 capture, the 10 strikes nearest spot of both monthly expiries had spreads of
-  0.14-0.99% of mid (one session, monthly only); G7 reports weekly spreads before the freeze.
+  a live two-sided quote in the pack, each with its `observed_at`, with `(ask - bid) / mid <= 5%` each, priced at mid;
+  otherwise the day is void. Some evidence for 5%: on 14 Oct 2026's 14:55 capture, the 10 strikes nearest spot of both
+  monthly expiries had spreads of 0.14-0.99% of mid (one session, monthly only); G7 reports weekly spreads before the
+  freeze.
 - **IV:** each leg's Black-76 IV (B1's `implied_vol.py`, rate 6.5%, calendar time `C_e / 365`) on the forward from put-call
   parity at K, `F = K + e^(r C_e / 365) (C_mid - P_mid)`, because weekly expiries have no future (reasoning only); the ATM
   IV is the mean of the two.
@@ -83,8 +84,8 @@ sessions after `d`).
 ### 1.5 V5, exact terms and outcome source
 P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 - **Frozen from the pack of `d` (section 1.6):** `e` (the nearest monthly expiry strictly after `d`, from the pack's
-  futures), `K` (the listed strike nearest the pack's spot, tie to the lower) and `P` (the pack's mids of the `e` K call plus the K put,
-  each under the 5% spread limit of 1.4; else void).
+  futures), `K` (the listed strike nearest the pack's spot, tie to the lower) and `P` (the pack's mids of the `e` K
+  call plus the K put, each under the 5% spread limit of 1.4; else void).
 - **Outcome (`settlement.py`):** inside when `abs(level - K) < P` (strict; break-even counts as outside). `level` is the
   index's **final settlement price of `e`**, read by E7's `NseFinalSettlement` from NSE's daily F&O file of the expiry
   day only (`SttlmPric`, every expiring NIFTY row agreeing; E7 checked it on 25 Jan 2024's file, strong evidence).
@@ -152,7 +153,8 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   RV of the last 1, 5 and 22 sessions; most recent 750 rows resolved before the refit (at least 500); refit on the first
   scored session of each month; forecast `h x prediction`. **HAR (intraday):** the same on intraday `RV_s`, from 250
   A16 sessions (all available up to 750).
-- **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the pack (section 1.6; G1 v2's live estimator on the pack's quotes).
+- **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the pack (section 1.6; G1 v2's live
+  estimator on the pack's quotes).
   **A flagged IV30** (single expiry, `AtmIv30.flagged`) gives no raw and no premium-adjusted value that day: missing
   and counted, never filled, as the ratio window below drops flagged days (G7b).
 - **Premium-adjusted implied:** raw implied times the median of `RV_h(t) / raw implied_h(t)` over the most recent 750
