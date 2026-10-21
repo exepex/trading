@@ -72,12 +72,10 @@ adding the direct test); `error` counted as done; damaged record accepted; a zer
   last (the finding is not hidden by the failure).
 - A row whose basket the file does not reproduce is an `error` (a data fault to fix), not a `mismatch`.
 
-## Gates (head in my message to the judge)
+## Gates
 
-Ruff, format, imports and the number check are clean. Full suite: 8169 passed, 18 xfailed, 2 failed. The 2 failures
-fail identically on current main without this branch (`test_g7_series.py::test_v1_reads_only_the_a16_rows_it_is_given`,
-`test_forecast_history_page.py::test_every_point_is_the_reports_own_scored_count_and_mean_brier`); reported to the
-orchestrator.
+On the merged head 3dc0ab9b: ruff, format, imports and the number check clean; full suite 8209 passed, 18 xfailed,
+0 failed.
 
 ## Limits (said plainly)
 
