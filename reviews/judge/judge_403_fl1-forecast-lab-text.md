@@ -120,3 +120,20 @@ Fix:
 
 **Minor 1.** "A future is the quantile itself" ignores the future's carry over the index (basis). Either use the
 future's own forward (index quantile × the future's basis ratio at d's close), or say so beside the futures' scores.
+
+## Addendum 4
+Number 403.4. Head: baf36c0e.
+
+**Verdict: PASS on the story text.**
+- **Should-fix 1: fixed.**
+  - Prices are `ClsPric`, never `SttlmPric`.
+  - "Traded" means `TtlNbOfTxsExctd > 0`. Both fields exist in the UDiFF reader (`fno/fo_bhavcopy.py:23-24`).
+  - Only contracts traded on d get a band (and an IV), and only contracts traded on N+1 are scored. The rest are
+    counted "not scored: untraded on d / on N+1" by moneyness bucket and expiry, never dropped.
+  - Criterion 6 tests one untraded option each way.
+- **Minor 1: fixed.** A future's band keeps its basis (each quantile × the future's d close / the index's d close).
+- **Scope:** under the phase-1 freeze, contract tracking moves to part FL1-1b, after FL1-1 merges, with this rule in
+  place. FL1-1's code carries no contract scoring.
+- **Minor for FL1-1b:** NSE's legacy F&O format (before July 2024) has no `TtlNbOfTxsExctd`. If FL1-1b ever back-fills
+  across that date, define "traded" there from the legacy `CONTRACTS` column (contracts traded > 0), mapped in one
+  place.
