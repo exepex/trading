@@ -1,5 +1,6 @@
 """`python -m fno margins nse-span` (story A14's daily margin rows) and `margins stress-factor` (story A14c's stress
-factor recompute), both from NSE's archived SPAN files (research only)."""
+factor recompute), both from NSE's archived SPAN files, and `margins stress-broker-check` (A14c part 2: the day's rows
+against Groww's read-only margin calculator, in O1's routine only). Research only."""
 
 from __future__ import annotations
 
@@ -18,6 +19,10 @@ def add_margins_parser(subparsers) -> None:
         "--approve-fall", metavar="COMMIT", help="apply a lower factor: the owner's DESK_DECISIONS commit"
     )
     stress.set_defaults(func=cmd_margins_stress_factor)
+    check = actions.add_parser(
+        "stress-broker-check", help="check today's A14 rows against Groww's read-only margin calculator (A14c part 2)"
+    )
+    check.set_defaults(func=cmd_margins_stress_broker_check)
 
 
 def cmd_margins_nse_span(args) -> int:
@@ -35,3 +40,10 @@ def cmd_margins_stress_factor(args) -> int:
     from .wiring import build_stress_factor_run
 
     return build_stress_factor_run(load_app_config(args.config)).run(args.full, args.approve_fall)
+
+
+def cmd_margins_stress_broker_check(args) -> int:
+    from ..config import load_app_config
+    from .broker_wiring import build_broker_check
+
+    return build_broker_check(load_app_config(args.config)).run()

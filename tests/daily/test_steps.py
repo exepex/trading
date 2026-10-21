@@ -92,9 +92,10 @@ def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
-    assert DAILY_RUN_STEPS[:2] == ("quotes", "margin_check") and wiring.MARGIN_CHECKS.endswith(
-        "stress_broker_check.csv"
-    )
+    assert DAILY_RUN_STEPS[:2] == ("quotes", "margin_check")
+    check = seen["day_steps"]["margin_check"].step.step  # Alerted(LiveFrom(CommandStep)): A14c part 2's receipts only
+    assert check.arguments(None) == ("margins", "stress-broker-check")
+    assert tuple(check.pathspecs) == ("receipts/data/margins/broker_checks/",)
 
 
 def test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holding_the_day():

@@ -19,7 +19,6 @@ V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fn
 WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
-MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card")
 
 
@@ -37,6 +36,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..desk.wiring import build_execution_snapshots
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
+    from ..nse_margins.broker_record import receipt_pathspecs as margin_check_receipts
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
     from .history import WholeHistory
@@ -66,8 +66,13 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     card = command(lambda day: ("card", "daily", "--on", day.isoformat(), "--post"), CARD_DELIVERIES_FOLDER)
     steps = {
         "margin_check": Alerted(
-            "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
-        ),  # A14c's command does not exist yet: live from the date its code lands
+            "margin_check",
+            LiveFrom(
+                CommandStep(processes, lambda day: MARGIN_CHECK, margin_check_receipts(), git.changed, waiting),
+                live["margin_check"],
+            ),
+            alerts,
+        ),  # A14c part 2: commits its own receipts only (O9), live from the owner's date
         "weather": Alerted("weather", LiveFrom(command(lambda day: WEATHER, V4_RECORDS), live["weather"]), alerts),
         "forecasts_v4": Alerted(
             "forecasts_v4", LiveFrom(command(lambda day: FORECASTS_V4, V4_RECORDS), live["forecasts_v4"]), alerts

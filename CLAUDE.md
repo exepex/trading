@@ -174,7 +174,8 @@ commit with `--no-verify`.
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
   `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1),
   `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
-  scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
+  scored forecaster, story M1), `fno/nse_margins/broker_wiring.py` (A14c part 2: the daily read-only
+  Groww margin check of A14's rows, O1's routine only), `fno/intraday/wiring.py` (the 15-minute quote recorder:
   Groww source behind a read-only allow-list, Drive store, clock check, story A16),
   `fno/storage/data_wiring.py` (story O9: every data file write-once in Drive's `data` area, its SHA-256 receipt
   under `receipts/`, the verified Drive cache; apart because `wiring.py` is at the size limit),
