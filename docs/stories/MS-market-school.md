@@ -711,4 +711,7 @@ public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_
 | Acceptance 1's wording | Criterion 1 in this story now says the stop and the brake refuse at their limit | no code change |
 
 - **MS-P1j note:** j switches d's settlement store to b's `build_archive_stores` once both parts are on main.
+- **Judge 488.1 (tests only):** `test_a_credit_spread_worth_more_than_its_width_at_the_mids_is_refused`: a 100-point
+  put spread worth 100.5 at the mids, but inside its payoff at the touch, is refused. Plant: the vertical's upper bound
+  dropped (`0 <= v` only) is caught.
 

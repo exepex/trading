@@ -151,3 +151,11 @@ def test_a_vertical_worth_zero_passes_and_less_than_zero_refuses(c1200, passed):
               b.key(1100.0, call): b.quote(1.5, 2.5), b.key(1200.0, call): b.quote(*c1200)}  # fmt: skip
     result = check(ImpossiblePriceLaw(), replace(b.put_spread(), legs=legs), snapshot=b.snapshot(quotes=quotes))
     assert result.passed is passed
+
+
+def test_a_credit_spread_worth_more_than_its_width_at_the_mids_is_refused():
+    """Judge 488.1: a 100-point put spread whose mids say 100.5 (1000 put 99/104, 900 put 0.5/1.5) is impossible,
+    though at the touch (credit 97.5) it sits inside its payoff bounds; the vertical's upper bound catches it."""
+    quotes = {b.key(1000.0): b.quote(99.0, 104.0), b.key(900.0): b.quote(0.5, 1.5)}
+    refused = check(ImpossiblePriceLaw(), snapshot=b.snapshot(quotes=quotes))
+    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and (refused.value, refused.limit) == (100.5, 100.0)
