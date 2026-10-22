@@ -98,6 +98,18 @@ That is 3 x 4 = **12 variants** per index.
   - BANKNIFTY goes through the calculator's `symbol` parameter, which is unproven. The build's first step tests it on
     a few days against NSE's published margin.
   - C2's stress factor k = 2.1 for a stressed figure.
+  - **The A14c owner's points (22 Oct), adopted:**
+    - SPAN files are read through `prefetch.in_order(per_thread(build_drive_span_files), ...)`, with A14's
+      point-in-time checks: the SHA-256 must equal A9's manifest, and the file must be created before 09:00 IST that day.
+    - Margin is built per entry day with that day's lot (lots changed: NIFTY 75, 50, 25, 75, 65; BANKNIFTY several
+      times). Today's lot is never used on old files.
+    - An entry whose NOV per unit is not strictly inside `payoff_bounds(legs)` is skipped. B2's BAD_PRICES test catches
+      the impossible April 2020 rows.
+    - A missing series (e.g. 1 Aug 2025's file, without 25 Sep 2025) raises `MarginOutsideModel`. It is counted and
+      named, never filled.
+    - BANKNIFTY's monthly pick in files that also list weeklies (before Nov 2024) is checked, NIFTY and BANKNIFTY are
+      kept apart, and a few days a year are checked against NSE's published figures before any result.
+    - All variants here are credits, so NOV does not zero the SPAN as it does for a bought fly.
 
 ## Registration (R1's factory; nothing new)
 
