@@ -10,6 +10,7 @@ from fno.numbering.categories import CLAUDE_RESPONSE, JUDGE_ADDENDUM, JUDGE_REPO
 from fno.numbering.claim import Claim, ClaimNotPushed, ClaimRefused, ClaimRequest, NumberClaimer
 from fno.numbering.git_main import GitFailed, GitMain
 from tests.numbering.helpers import HEADER, git, origin_and_clones, origin_file
+from tools import claim_number
 
 NOW = datetime(2026, 10, 16, 10, 0, 0, tzinfo=UTC)
 MAIN = {
@@ -194,3 +195,31 @@ def test_a_reserved_number_is_taken(tmp_path):
     assert claimer(clone).claim(request()).number == "10"
     with pytest.raises(ClaimRefused, match="claude-response 9 is already taken"):
         claimer(clone).claim(request(exact="9"))
+
+
+@pytest.mark.parametrize(
+    ("hook", "printed"),
+    [
+        # a crashing hook, as when this Python lacks a package (judge B, 22 Oct: xlrd)
+        ("echo 'Traceback: ImportError: No module named xlrd' >&2; exit 1", "No module named xlrd"),
+        # the record scan refusing: its findings are on stdout, which must not be lost
+        ("echo 'numbers/x.csv:2: AWS access key'; echo 'record scan: REFUSED, 1 finding(s)'; exit 1", "REFUSED"),
+    ],
+)
+def test_a_refused_commit_stops_loudly_with_the_hooks_own_words_and_pushes_nothing(tmp_path, capsys, hook, printed):
+    clone, _ = origin_and_clones(tmp_path, MAIN)
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    (hooks / "pre-commit").write_text(f"#!/bin/sh\n{hook}\n")
+    (hooks / "pre-commit").chmod(0o755)
+    git(clone, "config", "core.hooksPath", str(hooks))
+    with pytest.raises(GitFailed) as failed:
+        claimer(clone).claim(request())
+    assert failed.value.step == "commit" and printed in failed.value.output
+    assert origin_file(tmp_path, "numbers/claude-response.csv") == MAIN["numbers/claude-response.csv"].strip()
+    assert len(git(clone, "worktree", "list").splitlines()) == 1
+    assert claim_number.main(["claude-response", "x", "--session", "s", "--root", str(clone)]) == 1
+    out = capsys.readouterr().out.strip().splitlines()
+    assert printed in "\n".join(out[:-1])  # the hook's own words first
+    assert out[-1].startswith("number claim: NOT claimed (the commit was refused, by the record-scan hook")
+    assert out[-1].endswith("Nothing was pushed: do not write the file; fix it and claim again.")
