@@ -4,11 +4,12 @@ clipped as a proxy; skipped trigger days are counted; the naked measurements are
 
 from datetime import timedelta
 
+import pytest
 from edge1study.structures import NS, SC2, structure
 from edge1study.trade import IMPOSSIBLE, SL2, T21, TAKEN, run_trade
 from edge1study.verticals import clipped, proxy_value, valid, verticals
 
-from fno.research_engine.structures import BOUGHT, SOLD, Leg
+from fno.research_engine.structures import BOUGHT, SOLD, Leg, position_value
 
 from .edge1_fakes import DAYS, ENTRY, EXIT, cycle, flat_prices, panel, terms
 
@@ -78,3 +79,31 @@ def test_the_proxy_also_keeps_the_position_inside_its_bounds():
     prices = [250.0, 330.0, 50.0, 100.0]  # call vertical 200 (valid alone), put vertical 230: clipped to 200
     assert not valid(CONDOR, [250.0, 300.0, 50.0, 100.0])  # both verticals at 200: the condor's total breaks its bound
     assert proxy_value(CONDOR, prices) == -200.0  # worth at most one width, never two
+
+
+def test_an_inverted_vertical_alone_is_caught_though_the_total_looks_possible():
+    prices = [50.0, 150.0, 70.0, 100.0]  # call vertical -20, put vertical 50: the position (-30) is inside its bounds
+    assert not valid(CONDOR, prices)
+
+
+def test_an_impossible_exits_proxy_gross_is_the_clipped_value_less_the_entry_value():
+    base = run(SC2, T21)
+    raw = broken(base, flat_prices(23000.0), offset=False)
+    trade = run(SC2, T21, {EXIT: (23000.0, raw, set())})
+    entry = [flat_prices(23000.0)[leg.contract] for leg in trade.legs]
+    exit_raw = [raw[leg.contract] for leg in trade.legs]
+    gross = (proxy_value(trade.legs, exit_raw) - position_value(trade.legs, entry)) * 65
+    assert trade.gross == pytest.approx(gross) and gross < 0  # a loss: the short put spread rose to its width
+
+
+def test_impossible_prices_at_one_width_try_the_next():
+    def at(lot, prices=None):
+        return run_trade(structure(SC2), panel({ENTRY: (23000.0, prices, set())} if prices else {}), cycle(),
+                         terms(lot, 1.0), T21, DAYS, lambda expiry: 23000.0)  # fmt: skip
+
+    wide = at(25)
+    assert wide.width == 300.0
+    wing = next(leg.contract for leg in wide.legs if leg.bought and leg.kind == "PE")
+    short = next(leg.contract for leg in wide.legs if not leg.bought and leg.kind == "PE")
+    prices = {**flat_prices(23000.0), wing: flat_prices(23000.0)[short] + 10.0}  # the 300 wing dearer than its short
+    assert at(25, prices).status == TAKEN and at(25, prices).width == 200.0
