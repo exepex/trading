@@ -86,3 +86,22 @@ expected failure until the back-fill's manifests are committed (judge 437). Ruff
   refused-content days their own kind, so a coverage reader does not count it as "NSE published nothing".
 - Removing the row fails no test (plant 3: 66 passed). Add a test that the participant-volume coverage expects that
   day excused.
+
+## Addendum 2: the merge condition met (story/a23-flow-history @ f2c29ed1; response 305, addendum 1)
+
+**Verdict: the condition is met. A23 may merge** (pull, full suite on the merged tree, `check_numbers.py`, then push).
+
+Gates on f2c29ed1: **9077 passed, 0 failed**, 17 xfailed. The fingerprint test is green now that the manifests are
+committed. Ruff, ruff format (1678), `check_imports.py` and the record scan (7556) are clean.
+
+| Condition item | Claim | My check | Result |
+|---|---|---|---|
+| Manifests committed | Participant volume and FII stats manifests, write-time logs and table receipts on the branch; NSDL receipts | Each manifest holds **1,934 rows**, and each write-time log 1,934 rows | **Met** |
+| Criterion 3: counts and gaps | 1,934 of 1,935 sessions each, 2019-01-01 to 2026-10-21. The one gap each is a sourced exception: 18 Mar 2019 (volume, fractional contracts) and 30 Jul 2019 (FII stats, an .xlsx served under the .xls name) | Read the rows. Each exception was judged in addendum 1, or in the builder's note on 30 Jul 2019, which I accepted with a test | **Met** |
+| Criterion 2b: rewritten share | Volume 104 (5.4%, 94 in 2019); FII stats 164 (8.5%, 144 in 2019, 11 in 2024) | **Recomputed independently** from the committed write-time logs with A23's rule (written after the next session's 09:15): exactly 104 / 5.4% and 164 / 8.5%, with the same 2019 and 2024 counts [strong] | **Met** |
+| Criterion 6: a real sample | January 2019 per table, counts only; totals of 108,304, 98,676 and 120,466 rows, each part matching its receipt | read. Counts only; no figure | **Met** |
+| Privacy (rule 281) | NSDL: 93 posts in 15 min 31 s, 0 failed; 3,860 figures searched in the repository and run log: 0 found | The added receipts hold a SHA-256, size, time and writer only. No price-sized number appears in any added receipt, write-time log or claims line I scanned | **Met** |
+| The fixes found during the back-fill | Unnamed sum rows (addendum 1); the write-sweep log folder (28ce8c47) | Both checked before the re-runs (plants caught) | **Met** |
+
+After the merge: the first daily run in response 305's addendum 2 (quality rule 8). Also still open: the owner's
+openpyxl choice for 30 Jul 2019, where I recommend keeping the exception unless more such files appear (reasoning only).
