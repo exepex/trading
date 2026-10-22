@@ -71,7 +71,7 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
         "weather": phase_1,  # M1, on before the v4 freeze (owner, 21 Oct, DESK_DECISIONS 3a24ba24; response 299)
         "forecasts_v4": phase_1,  # G7's rule forecasts, the same; uncounted until the day after `Frozen on:`
         "price_distribution": phase_1,  # story G13
-        "premium_ranges": date(2026, 10, 27),  # story G13d: judge 465.2 PASS, merged on Mon 26 Oct
+        "premium_ranges": date(2026, 10, 23),  # story G13d: judge 465.2 PASS, merged on 22 Oct evening
         "premium_range_scores": None,  # G13d's scores: off until their own go-live
         "price_distribution_scores": phase_1,  # G13's daily scores
         "price_ranges": phase_1,  # story G13b
