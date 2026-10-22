@@ -4,7 +4,10 @@ displayed size could not have served together.
 
 `allocate` serves whole fills, never part of one (fills are all legs or none), against what each contract and side
 showed at one road's snapshot (orchestrator's rulings on judge 481, 22 Oct 2026):
-- account fills first, tickets only from what is left: a ticket never takes an account's size;
+- entries first, exits of held positions only from what is left (MS-P1d limit 2: an entry never counts on size an
+  exit will take; an exit that finds too little waits);
+- within entries and within exits, account fills first, tickets only from what is left: a ticket never takes an
+  account's size;
 - within each group, owners in an order seeded from SHA-256(session, slot, road), as RC1 is seeded, so no driver
   wins or loses by its name; the seed and the order are recorded; one owner's fills keep their given order.
 An account entry the size could not serve is `unavailable: size_shared` (`fill_status`) and stays in every
@@ -25,12 +28,13 @@ class OwnedFill:
     owner: str  # the driver version whose fill it is
     fill: FillResult
     is_ticket: bool = False
+    is_exit: bool = False
 
 
 @dataclass(frozen=True)
 class SizeAllocation:
     seed: str  # SHA-256 hex of "session|slot|road"
-    order: tuple[str, ...]  # the owners in the order served: accounts, then tickets
+    order: tuple[str, ...]  # the owners in the order served: entries (accounts, then tickets), then exits
     servable: tuple[OwnedFill, ...]
     unservable: tuple[OwnedFill, ...]  # each would need size an earlier fill already used
 
@@ -49,7 +53,7 @@ def allocate(fills: Iterable[OwnedFill], snapshot: SlotSnapshot, slot: str) -> S
     no size and are left out."""
     seed = allocation_seed(snapshot, slot)
     filled = [owned for owned in fills if owned.fill.filled]
-    ranked = sorted(filled, key=lambda o: (o.is_ticket, _rank(seed, o.owner)))  # stable within one owner
+    ranked = sorted(filled, key=lambda o: (o.is_exit, o.is_ticket, _rank(seed, o.owner)))  # stable within one owner
     left: dict[tuple[ContractKey, str], int] = {}
     servable, unservable = [], []
     for owned in ranked:

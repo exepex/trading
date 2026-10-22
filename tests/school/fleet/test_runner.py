@@ -22,6 +22,7 @@ from fno.school.contracts.fleet import RunMode
 from fno.school.contracts.records import DecisionRecord, ExitRecord, OutcomeRecord
 from fno.school.contracts.roads import ROADS
 from fno.school.fakes import FakeDriver, FakeMaxLossLaw
+from fno.school.fleet.ledgers import open_positions
 from fno.school.fleet.records import ERROR_INPUT
 from tests.school.contracts import builders as b
 from tests.school.contracts import conformance as c
@@ -135,7 +136,15 @@ def test_an_expired_position_settles_before_the_session_s_view_and_its_outcome_i
     rig.snapshots[(OPEN_ROAD, later)] = replace(b.snapshot(), session=later)
     rig.fleet.catalogue.days[later] = tuple(replace(d, session=later) for d in rig.fleet.catalogue.days[b.SESSION])
     rig.fleet.drivers = (FakeDriver(CS1),)
+    held_at_view, real_view = [], rig.accounts.view
+
+    def view(driver_id, marks, session):
+        held_at_view.append(len(open_positions(tuple(rig.accounts.ledgers.get(driver_id, ())))))
+        return real_view(driver_id, marks, session)
+
+    rig.accounts.view = view
     rig.at(later).fleet.run(later, RunMode.REPLAY)
+    assert held_at_view == [0], "the session's view came before the settlement"
     exits = [r for r in records(rig, later) if isinstance(r, ExitRecord)]
     assert [e.exit_reason for e in exits] == [ExitReason.EXPIRY]
     [outcome] = records(rig, later, RecordKind.OUTCOMES)

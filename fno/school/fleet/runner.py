@@ -2,11 +2,13 @@
 is the only switch: off, it prints the school-off line and touches nothing.
 
 1. Expired positions settle before the session's first account view (judge 486's note).
-2. If the session's decisions file is already sealed, nothing is decided or sealed again: the fills the run did not
-   finish (a crash between the seal and the fills) are made, each skipped when its ledger already holds it.
+2. If the session's decisions file is already sealed, nothing is decided or sealed again; the finish below runs
+   once more, so a crash anywhere between the seal and the counts' commit is completed, never doubled.
 3. Otherwise: the roads and the quality gate (`plan_slot`); each driver isolated (`DriverStep`); one decisions file
    sealed with every decision and exit record before any fill; then the fills (`FillStep`).
-4. The outcomes and drift files are sealed, and the counts written and committed once, by this one runner."""
+4. The finish (`_finish`), rebuilt from the sealed records and the ledgers on every run: the fills not yet recorded
+   (`FillStep`), the outcomes and drift files each sealed once, and the counts written and committed by this one
+   runner. A session whose outcomes, drift and counts all exist only commits what is still uncommitted."""
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -28,12 +30,12 @@ from .books import Books, EntryMids
 from .counts_file import SessionCounts
 from .decide import DriverStep
 from .fill import FillStep, SlotFills
-from .ledgers import open_positions
+from .ledgers import open_positions, recorded
 from .outcomes import outcomes_of
-from .rerun import not_yet_filled
 from .settle import settle_expired
 from .slot import QualityGate, SlotRoads, plan_slot
 
+FINISHED = (RecordKind.OUTCOMES, RecordKind.DRIFT)
 LawsFor = Callable[[Mapping[RoadCode, SlotSnapshot]], object]  # the slot's `SafetyLaws`, built on its marks
 
 
@@ -98,17 +100,26 @@ class SchoolFleet:
         return tuple(d.card.driver_id for d in self.drivers)
 
     def _finish(self, roads, records, exits, seal) -> SlotFills:
+        """Rebuilt from the sealed records and the ledgers on every run, so a rerun after a crash at any point between
+        the seal and the counts' commit makes what is missing and nothing twice."""
         session = roads.scheduled[0].session
-        if self.dashcam.find(session, SLOT_1500, RecordKind.OUTCOMES) is not None:
-            return SlotFills({}, frozenset(), frozenset(), ())  # the session is complete
+        if self._sealed_once(session) and self.counts.written(session, SLOT_1500):
+            self.counts.commit(session)  # a crash between the counts' write and their commit
+            return SlotFills({}, frozenset(), ())
+        held = recorded(self.books, self._ids())
         slot_exits = tuple(e for e in exits if e.exit_reason != ExitReason.EXPIRY)
-        todo, todo_exits = not_yet_filled(self.books, self._ids(), records, slot_exits)
-        step = FillStep(self.books, self.capture_1515(session), self.entry_mids)
-        fills = step.run(roads, todo, todo_exits, seal, self.clock.now())
-        outcomes = outcomes_of(self.books, exits, roads.marks, self.entry_mids)
-        self.dashcam.seal(session, SLOT_1500, RecordKind.OUTCOMES, outcomes)
-        self.dashcam.seal(session, SLOT_1500, RecordKind.DRIFT, fills.drift)
+        fills = FillStep(self.books, self.capture_1515(session)).run(roads, records, slot_exits, seal,
+                                                                      self.clock.now(), held)  # fmt: skip
+        self._seal_once(session, RecordKind.OUTCOMES, outcomes_of(self.books, exits, roads.marks, self.entry_mids))
+        self._seal_once(session, RecordKind.DRIFT, fills.drift)
         counts = tuple(counts_for(r.decision, r.law_results, fills.entries.get((r.road, r.decision.driver_id)),
                                   (r.road, r.decision.driver_id) in fills.size_shared) for r in records)  # fmt: skip
         self.counts.write(session, SLOT_1500, records, counts)
         return fills
+
+    def _sealed_once(self, session: date) -> bool:
+        return all(self.dashcam.find(session, SLOT_1500, kind) is not None for kind in FINISHED)
+
+    def _seal_once(self, session: date, kind: RecordKind, rows: tuple) -> None:
+        if self.dashcam.find(session, SLOT_1500, kind) is None:
+            self.dashcam.seal(session, SLOT_1500, kind, rows)

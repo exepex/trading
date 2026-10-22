@@ -1,10 +1,13 @@
 """After the seal (story MS-P1j; order: seal, fills, exits): every sealed trade fills at its road's touch, every ticket
-through the ticket book; then the exits the cards called. Per road, MS-P1f's `allocate` serves the slot's fills against
-the displayed size, accounts first in a seeded order; only servable account entries are recorded, each other one is
-`unavailable: size_shared` and stays in every denominator. Exits are recorded as filled (each account is measured on
-its own); an unservable exit leaves its outcome out of the rupee sum (`unservable`). Outcomes are rebuilt from the
-ledgers afterwards (`outcomes.outcomes_of`). NIFTY fills get their 15:15
-drift rows, never a fill."""
+through the ticket book's own laws; then the exits the cards called. Per road, MS-P1f's `allocate` serves the slot's
+fills against the displayed size: entries first (accounts, then tickets, each in a seeded order), exits only from
+what is left (MS-P1d limit 2). Only what it can serve is recorded: an account entry it cannot is `size_shared` and
+stays in every denominator, a ticket it cannot is not opened, an exit it cannot waits for a later slot. So no ledger
+ever holds a fill the shared size could not serve, and no outcome rests on one.
+
+The step is rebuilt from the sealed records and the ledgers on every run: a fill already recorded is read back, not
+made again, so a rerun after a crash records only what is missing and serves the size exactly as one clean run would.
+NIFTY entries get their 15:15 drift rows, never a fill."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,8 +19,8 @@ from ..contracts.records import DecisionRecord, DriftRow, ExitRecord
 from ..contracts.seal import Seal
 from ..execution.drift import drift_rows
 from ..tickets.shared_size import OwnedFill, allocate
-from .books import Books, EntryMids
-from .ledgers import open_positions
+from .books import Books
+from .ledgers import Recorded, ledger_id
 from .outcomes import TICKET_PREFIX
 from .running_view import opened_position, position_id
 from .slot import SlotRoads
@@ -27,7 +30,6 @@ from .slot import SlotRoads
 class SlotFills:
     entries: dict[tuple, FillResult]  # (road, driver id) -> the entry fill of its sealed trade or ticket
     size_shared: frozenset[tuple]  # (road, driver id) of the account entries the displayed size could not serve
-    unservable: frozenset[tuple[str, FillResult]]  # for `account_net`
     drift: tuple[DriftRow, ...]
 
     @property
@@ -39,59 +41,68 @@ class SlotFills:
 class FillStep:
     books: Books
     capture_1515: ExecutionSnapshot | None
-    entry_mids: EntryMids
 
     def run(self, roads: SlotRoads, records: tuple[DecisionRecord, ...], exits: tuple[ExitRecord, ...], seal: Seal,
-            at: datetime) -> SlotFills:  # fmt: skip
-        snapshots = roads.marks
-        entered = [(r, self._enter(r, snapshots[r.road], seal, at)) for r in records
+            at: datetime, held: Recorded) -> SlotFills:  # fmt: skip
+        """`exits`: the slot's exit records (not settlements); `held`: the ledgers as they stood before this step."""
+        marks = roads.marks
+        entered = [(r, held.openings.get(ledger_id(r)) or self._price(r, marks[r.road], seal, at)) for r in records
                    if r.decision.outcome in (Outcome.TRADE, Outcome.TICKET)]  # fmt: skip
-        closings = [self._exit(e, snapshots[e.road], seal, at) for e in exits]
+        closing = [(e, held.closings.get(e.position_id) or self._exit_fill(e, marks[e.road], seal, at, held))
+                   for e in exits if e.position_id in held.closings or e.position_id in held.still_open]  # fmt: skip
+        unservable = self._unservable(entered, closing, marks)
+        served = [(r, f) for r, f in entered if f.filled and (r.decision.driver_id, f) not in unservable]
+        for record, fill in served:
+            if ledger_id(record) not in held.openings:
+                self._open(record, fill, seal)
+        for exit_, fill in closing:
+            if fill.filled and (exit_.driver_id, fill) not in unservable and exit_.position_id not in held.closings:
+                self._close(exit_, fill, held)
+        shared = frozenset(_key(r) for r, f in entered if r.decision.outcome == Outcome.TRADE and f.filled
+                           and (r.decision.driver_id, f) in unservable)  # fmt: skip
+        session = roads.scheduled[0].session
+        drift = tuple(
+            row for r, f in served if r.decision.outcome == Outcome.TRADE for row in self._drift(session, r, f)
+        )
+        return SlotFills({_key(r): f for r, f in entered}, shared, drift)
+
+    @staticmethod
+    def _unservable(entered, closing, marks) -> frozenset[tuple[str, FillResult]]:
         owned: dict = {}
         for record, fill in entered:
             is_ticket = record.decision.outcome == Outcome.TICKET
             owned.setdefault(record.road, []).append(OwnedFill(record.decision.driver_id, fill, is_ticket))
-        for closing, is_ticket in closings:
-            if closing is not None:
-                owned.setdefault(closing.position.road, []).append(
-                    OwnedFill(closing.position.driver_id, closing.fill, is_ticket))  # fmt: skip
-        allocations = [allocate(fills, snapshots[road], SLOT_1500) for road, fills in owned.items()]
-        unservable = frozenset().union(*(a.unservable_fills for a in allocations))
-        accounts = [(r, f) for r, f in entered if r.decision.outcome == Outcome.TRADE]
-        shared = frozenset(_key(r) for r, f in accounts if (r.decision.driver_id, f) in unservable)
-        served = [(r, f) for r, f in accounts if f.filled and _key(r) not in shared]
-        for record, fill in served:
-            self.books.accounts.record(
-                record.decision.driver_id, LedgerEntry(opened_position(record.decision, fill.cash), fill, closes=False)
-            )
-        session = roads.scheduled[0].session
-        drift = tuple(row for r, f in served for row in self._drift(session, r, f))
-        return SlotFills({_key(r): f for r, f in entered}, shared, unservable, drift)
+        for exit_, fill in closing:
+            is_ticket = exit_.position_id.startswith(TICKET_PREFIX)
+            owned.setdefault(exit_.road, []).append(OwnedFill(exit_.driver_id, fill, is_ticket, is_exit=True))
+        allocations = [allocate(fills, marks[road], SLOT_1500) for road, fills in owned.items()]
+        return frozenset().union(*(a.unservable_fills for a in allocations))
+
+    def _price(self, record: DecisionRecord, snapshot, seal: Seal, at: datetime) -> FillResult:
+        if record.decision.outcome == Outcome.TICKET:
+            return self.books.tickets.price(record, seal.sha256, snapshot, seal, at)
+        return self.books.fills.enter(SealedDecision(record.decision, seal.sha256), snapshot, seal, at)
+
+    def _exit_fill(self, exit_: ExitRecord, snapshot, seal: Seal, at: datetime, held: Recorded) -> FillResult:
+        return self.books.fills.exit(held.still_open[exit_.position_id], snapshot, seal.sha256, seal, at)
+
+    def _open(self, record: DecisionRecord, fill: FillResult, seal: Seal) -> None:
+        if record.decision.outcome == Outcome.TICKET:
+            self.books.tickets.open(record, seal.sha256, fill)
+        else:
+            entry = LedgerEntry(opened_position(record.decision, fill.cash), fill, closes=False)
+            self.books.accounts.record(record.decision.driver_id, entry)
+
+    def _close(self, exit_: ExitRecord, fill: FillResult, held: Recorded) -> None:
+        position = held.still_open[exit_.position_id]
+        if exit_.position_id.startswith(TICKET_PREFIX):
+            self.books.tickets.close(position, fill, exit_.exit_reason)
+        else:
+            closing = LedgerEntry(position, fill, closes=True, exit_reason=exit_.exit_reason)
+            self.books.accounts.record(position.driver_id, closing)
 
     def _drift(self, session, record: DecisionRecord, fill: FillResult) -> tuple[DriftRow, ...]:
         return drift_rows(session, position_id(record.decision), record.road, fill, self.capture_1515)
-
-    def _enter(self, record: DecisionRecord, snapshot, seal: Seal, at: datetime) -> FillResult:
-        if record.decision.outcome == Outcome.TICKET:
-            return self.books.tickets.enter(record, seal.sha256, snapshot, seal, at)
-        return self.books.fills.enter(SealedDecision(record.decision, seal.sha256), snapshot, seal, at)
-
-    def _exit(self, exit_: ExitRecord, snapshot, seal: Seal, at: datetime):
-        """(closing entry or None, is_ticket): the ticket book records its own closes; an account's is recorded here."""
-        is_ticket = exit_.position_id.startswith(TICKET_PREFIX)
-        reader = self.books.ticket_entries if is_ticket else self.books.account_entries
-        position = next(p for p in open_positions(reader.entries(exit_.driver_id))
-                        if p.position_id == exit_.position_id)  # fmt: skip
-        if is_ticket:
-            fill = self.books.tickets.exit(position, exit_.exit_reason, snapshot, seal.sha256, seal, at)
-        else:
-            fill = self.books.fills.exit(position, snapshot, seal.sha256, seal, at)
-        if not fill.filled:
-            return None, is_ticket
-        closing = LedgerEntry(position, fill, closes=True, exit_reason=exit_.exit_reason)
-        if not is_ticket:
-            self.books.accounts.record(position.driver_id, closing)
-        return closing, is_ticket
 
 
 def _key(record: DecisionRecord) -> tuple:

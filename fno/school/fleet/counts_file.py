@@ -54,4 +54,13 @@ class SessionCounts:
             raise ReplayConflict(f"rule broken: {opportunity_path(session, slot)} holds other counts")
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(text)
+        return self.commit(session)
+
+    def written(self, session: date, slot: str) -> bool:
+        return all(
+            (self.root / path).is_file() for path in (counts_path(session, slot), opportunity_path(session, slot))
+        )
+
+    def commit(self, session: date) -> str:
+        """Commits whatever of the counts folder is not yet committed (nothing to commit is a no-op)."""
         return self.committer.commit(COMMIT_WHAT.format(session=session)) if self.committer else ""
