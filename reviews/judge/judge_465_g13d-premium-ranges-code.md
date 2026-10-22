@@ -95,3 +95,36 @@ Each day's coverage is what a correct rule gives for that move.
 | `ruff check fno tests tools` | clean |
 | `ruff format --check` | clean |
 | `check_imports` | clean |
+
+## Addendum 2
+
+**Scope:** G13d's go-live request (builder session_01UkTaDeTRF9ksDgQB9cTU5C). It answers 465's condition 3: measure
+the step's runtime before go-live. The change requested is `config.yaml` `daily.live_from.premium_ranges` from null to
+a date.
+
+**Verdict: PASS**, with the merge timing below.
+
+**Runtime against the 15:30 seal.**
+- O1's record (journal/runs/2026-10-22.json) shows `price_distribution` ending 15:22:23 and `premium_ranges` reached
+  15:22:27. That leaves 7 min 33 s before the seal.
+- G13d's own step has not run live, so I timed it on today's real G13 records. A hand run of `premrange issue` refuses
+  before computing, so I called the step's own reads and `premium_record` directly, writing nothing.
+- Result: setup 1.2 s; NIFTY reads 2.1 s, 176 contracts ranged (4 with no contract IV); BANKNIFTY reads 0.7 s, 216
+  ranged (3 with no IV); compute under 0.1 s each; 4.1 s in all.
+- The step also writes 2 records, a few seconds in Drive, and the earlier issues' seals, a few reads. A few seconds
+  against 7.5 minutes is over 50x headroom [some evidence: one day, 2 underlyings].
+- A slow day is safe by design: at or after 15:30 the issuer refuses and writes nothing (`PAST_SEAL`). So a late run
+  loses that day's record and never seals a late one.
+
+**Not a G13d issue.** G13's step exited 1 today on FINNIFTY's 23 Nov expiry: no strike had a two-sided call and put at
+15:04. G13d reads NIFTY and BANKNIFTY only, and O1 still reached `premium_ranges` after that exit. The builder's
+proposal to record a no-forward expiry as a no-forecast is a separate lane-1 change.
+
+**Merge timing.**
+- Turning a step live touches the live daily run. DESK_DECISIONS rows 293 and 300: nothing touching it merges before
+  Mon 26 Oct, and nothing merges 14:00-16:15 IST.
+- So merge on or after Mon 26 Oct, outside 14:00-16:15, and set `live_from` to the first trading day on or after the
+  merge day whose 15:22 run comes after the merge. The orchestrator owns that timing.
+- `premium_range_scores` stays off until its own go-live: its first score needs a 3 pm record of the next session.
+
+**Next:** none from me. The first live day's journal line for `premium_ranges` (end time and "issued") confirms it.
