@@ -94,6 +94,7 @@ class UnavailableReason(StrEnum):
     DRIVER_ERROR = "driver_error"
     DEADLINE = "deadline"
     SEAL_FAILED = "seal_failed"
+    SIZE_SHARED = "size_shared"  # an entry the displayed size could not serve beside the other accounts (MS-P1f)
 
 
 class ExitState(StrEnum):
