@@ -1,0 +1,72 @@
+# Judge 467: EDGE1 story text, has any simple rule-based NIFTY or BANKNIFTY option trade made money after costs (12c1f0c2)
+
+Judge B, 22 Oct 2026. Lane 1: a new story with research records and the ledger.
+- Builder: G13/G13b (session_01UkTaDeTRF9ksDgQB9cTU5C).
+- Branch: `story/edge1-text`.
+- The owner chose this study through the orchestrator.
+- Number claimed with `tools/claim_number.py`.
+
+## Verdict: FAIL (2 should-fix)
+
+The text is honest and well built. Points in its favour:
+- It starts from the four failed tests and does not re-run them as new.
+- It reuses the engine, the costs, the margin calculator and the settlement chain, with no second simulator.
+- It registers through R1's factory with a GR1-style freeze and two runs.
+- It fixes the pass rule now, and positive at both pad levels is the right extra condition.
+- It states in advance that 46 trades will most likely be too few. This checks out: G3's code uses z = 1.28 at a 0.10
+  pass level, so (1.28 x 4,000 / 300)² is about 291.
+
+Two things decide whether the result can be read at all, and both must be settled in the text first.
+
+## Should-fix 1: the "held-back" BANKNIFTY 2023-26 has already been looked at for the very quantity that drives this P&L
+
+The text calls BANKNIFTY options "exposed, not spent" and makes 2023-01 to 2026-10 the one confirmatory set. But
+premium selling earns exactly when implied ranges are wider than what happens. GR1 already measured that on
+BANKNIFTY, over the held-back years:
+- In 2024, implied's own 50% band held **0.624** of BANKNIFTY N1 closes, so it was too wide (judge 442.2, from
+  `selection.json`).
+- In 2025-26, implied's 90% coverage was **0.927** on BANKNIFTY N1. A constant shrink scored 0.20% better and made the
+  band 7% narrower (judge 459, `final.json`).
+- G13b's own back-fill scores for every year were read before GR1.
+
+**Why this is normal running, not imagined:** the desk has seen evidence, in the held-back years, that BANKNIFTY
+implied ran wide. That is the variance risk premium a short condor or fly harvests. A held-back pass would then
+partly confirm something already seen. That is the forking path FACTORY_RULES section 4 guards against.
+
+**Fix (pick one, and write the facts above into the text either way).** Either:
+- **(a)** label the BANKNIFTY held-back test `exploratory` too, so that only the forward shadow (R3) can confirm. This
+  is cleaner, and given G3's sample size the label is likely in any case; or
+- **(b)** keep it as the confirmatory set, but say plainly that the direction was partly foreseen from GR1. A pass
+  then earns *some evidence* at most, never *strong*.
+
+Put this to the owner in Q2.
+
+## Should-fix 2: how untraded legs (settlement-price proxies) count is not stated, and that is what sank experiment 1
+
+The engine prices a leg that did not trade that day at its settlement price, flagged
+(`fno/research_engine/leg_prices.py`: "Settlement is a valuation proxy, not an executable price"). The text's own
+table says experiment 1's "positive totals rest on stale exits".
+
+**Why this is normal running:** BANKNIFTY's far monthly wings in 2019-22 often did not trade, so this is not rare.
+SL2's and TP50's triggers can also fire on proxy prices.
+
+**Fix: state the rule now.** Either:
+- an entry or exit with any settlement-priced leg is "unfillable" and not taken (counted, as the report lists); or
+- it is kept but flagged, the pass rule is computed on trades whose every leg traded, and the all-trades figure is
+  shown beside it, never decided on.
+
+Also say that a stop or target is checked only on traded closes. Finally, report the share of proxy-priced legs per
+variant and period.
+
+## Notes (one line each)
+
+1. **Wing width with historical lots.** The rule (the largest width with worst loss within Rs 10,000) follows each
+   expiry's lot size, so the structure changes with the lot. Say so, and show the width per year.
+2. **BANKNIFTY's expiry day changed.** Thursday to Wednesday in Sep 2023, then the monthly moved again in 2025; the
+   weeklies ended on 14 Nov 2024. The cycle window counts sessions, so this is fine, but list the dates in the report.
+3. **`derived_lot()` before 2024 is a computed lot.** Cross-check it against NSE's circular lots on a few expiries in
+   the build.
+4. **The BANKNIFTY SPAN `symbol` path is unproven.** The text already plans to test it against NSE's published margin
+   first. Keep that as a build gate: no return-on-margin figure without it.
+5. **Q2's trade-off, plainly for the owner:** opening BANKNIFTY 2023-26 now spends the last untested history for a
+   test G3 will likely call too small. Holding it back costs nothing except time.
