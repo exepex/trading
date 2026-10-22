@@ -1061,8 +1061,13 @@ practised before forward days exist. A practice result is never evidence: it lic
 - **Three labelled scenarios** per bucket: the median, the 75th and the 95th percentile of the session values,
   shown as `median`, `p75`, `p95`. Every practice run is shown under all three; none is "the" result.
 - **Fewer than 30 quoted sessions in a bucket reads `insufficient spread data`.**
-- **Displayed size** for a synthetic quote is the bucket's median displayed size over the same sessions (same 30-session
-  rule), so E4d's size gate still bites. The history holds no sizes; this is labelled.
+- **Displayed size: the size gate is not tested in practice** (orchestrator, 22 Oct 2026, Q5, ruling on design A). History
+  holds no sizes and none is invented, and no placeholder number is used. A practice quote keeps `bid_qty` and `ask_qty`
+  as `None` with `sizes_measured=False` (a field MS-P1a3 adds to `SlotQuote`). Only the practice composition root's
+  `QuoteRules(practice=True)` (MS-P1d's seam, imported only by `fno/school/simulator/`) lets such a quote through the size
+  and sell-back checks, with the note "size gate not tested in practice". Without that flag the pilot's live laws and
+  `SchoolFills` refuse an unmeasured quote, so a practice quote reaching a live path fails closed. Every practice output
+  carries the same label.
 - **Honest consequence [strong evidence: arithmetic on the recorded days].** On 22 Oct only 8 NIFTY monthly sessions
   and 3 sessions for each other road are recorded. Every bucket therefore reads `insufficient spread data` until about
   24 Nov for the busiest NIFTY monthly buckets, and **much later** for the short-dated and far-strike buckets: the
@@ -1076,7 +1081,7 @@ practised before forward days exist. A practice result is never evidence: it lic
 | Component | Interface | Reuses |
 |---|---|---|
 | `windows.py` | `PracticeWindows.check(road, session) -> None or RefusalReason.NOT_IN_DATA_SPEND` | the allow-list of 7.1 item 2 |
-| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapters: `PanelChain` (NIFTY panel) and `BhavcopyChain` (archived F&O files, UDiFF and legacy) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
+| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapter: `BhavcopyChain` (archived F&O files, UDiFF and legacy; one code path for all three roads) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
 | `terms.py` | `DatedTerms`: lot, STT and C1 costs on a date | EDGE1's lot schedule and `stt_history`; C1 |
 | `spreads/` | `SpreadModel.scenarios(bucket) -> Scenarios or InsufficientSpreadData`; `SpreadLearner` over the quote store; `SpreadBucket` | MS-P1b's hash-checked store |
 | `source.py` | `HistoricalRoadSource(chain, spreads, scenario)` implements `SnapshotSource`; `HistoricalCatalogue` implements `RoadCatalogue` (history sessions, A7 calendar, dated lots) | `SnapshotSource`, `RoadCatalogue`, `quality.prices` |
@@ -1095,7 +1100,7 @@ cases and a test that fails when the named code is broken on purpose.
   1. `PracticeWindows`: a spent day passes; a day after 12 Oct 2026, a day on or after `first_counted`, FINNIFTY and
      MIDCPNIFTY refuse with `not_in_data_spend` (boundary: 12 and 13 Oct).
   2. The allow-list agrees with `research/DATA_SPEND.md` (the test parses the doc; a row turned `fresh` fails it).
-  3. `PanelChain` and `BhavcopyChain` return the same closes for a day both hold (cross-check on recorded days).
+  3. `BhavcopyChain` returns the same monthly rows as EDGE1's own reader on the same records (parity test).
   4. A day with no file gives `None` (empty case); a muhurat or special session follows A7.
   5. `DatedTerms`: NIFTY lot 75 before the July 2021 expiry and 50 after; BANKNIFTY 20, 25, 15 at its change
      dates; STT 0.05% on 31 Mar 2023 and 0.0625% on 1 Apr 2023 (both sides of each change).
@@ -1120,7 +1125,8 @@ cases and a test that fails when the named code is broken on purpose.
   2. A leg with no volume that day has an invalid quote (good traded, bad untraded, boundary volume 1).
   3. A planted impossible vertical (a 300-wide spread priced at 392, from EDGE1's results) is flagged: the driver
      reaches `refused` or `no_trade`, never a fill; an impossible exit waits.
-  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero.
+  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero; both sizes are
+     `None` with `sizes_measured=False` and nothing else (no number); a live-mode fill refuses the quote.
   5. Look-ahead: changing any record dated after the session leaves the session's snapshot and every driver's
      decision byte-identical (a mutation test over the chain).
   6. An insufficient bucket gives `unavailable` for that leg's trade, never a zero spread.
@@ -1163,7 +1169,7 @@ FINNIFTY and MIDCPNIFTY history (not in DATA_SPEND); fitted slippage between the
 (response 325 8.3; needs the A16 quotes, which do not exist yet); a daily Rs 25,000 stop between slots (a known limit,
 as in 3.6).
 
-### 7.6 Questions for the orchestrator (answers needed before SIM-a code unless marked)
+### 7.6 Questions for the orchestrator (answered 22 Oct 2026)
 
 1. **Reuse of EDGE1's readers** (`research/edge1/edge1study`: `day_files`, `lots`, `stt_history`). They sit under a
    frozen `research/` folder and import by a path trick. My default: one adapter module imports them read-only; I never
@@ -1176,12 +1182,87 @@ as in 3.6).
    (7.2). I keep the rule as agreed. If you want a coarser first bucket grid (for example two DTE bands), that is a
    decision for the owner and a card change, not mine.
 4. **The close slot** (7.1 item 4) departs from the 15:00 slot. It is the only slot history holds; confirm.
-5. **Displayed sizes** (7.2): the bucket median stands in for the unknown history. Confirm, or say the size gate is
-   waived in practice and labelled so.
+5. **Displayed sizes** (7.2): design A. Sizes stay `None` with `sizes_measured=False`; only the practice flag passes the size checks, labelled "size gate not tested in practice". The first ruling (a sentinel) was withdrawn by the orchestrator.
+
+**Answers (orchestrator, 22 Oct 2026):** Q1 import EDGE1's readers read-only through ONE adapter, never edit or copy
+them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P1d's builder
+(session_014VUoPfMfRWNXyJSnXxB5NL) and copy the orchestrator. Q3 keep the 30-session rule, no pooling (review 139).
+Q4 the close slot, labelled "practice at the close; the pilot trades 15:00". Q5 waived and labelled, no synthetic size.
+SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 
 ### 7.7 Claims
 
-Empty until a part is built; each part keeps its own Claims subsection under the pilot's `## Claims` below.
+#### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhavcopy_chain,edge1}.py`, tests under
+`tests/school/simulator/`. Changes to story text: the Q5 ruling (design A) and test 3 below.
+
+| Criterion (7.4 SIM-a) | Code | Tests (all in `tests/school/simulator/`) | Broken-code proof (mutation, caught) |
+|---|---|---|---|
+| 1 windows: spent day passes, 12/13 Oct boundary, FINNIFTY/MIDCPNIFTY refused, `first_counted` | `windows.py` | `test_windows.py` (7 tests) | `<=` to `<` on the last day; `first_counted - 1 day` to `first_counted`; BANKNIFTY entry renamed |
+| 2 allow-list agrees with DATA_SPEND | `windows.py` rows | `test_every_allowed_window_rests_on_a_spent_or_exposed_register_row`, plus a planted `fresh` row | the planted row is read as `fresh` |
+| 3 chain: rows, monthly/weekly, board lot never derived, empty and damaged files, index close | `bhavcopy_chain.py`, `ports.py` | `history/test_bhavcopy_chain.py` (8 tests, incl. parity with EDGE1's own `rows_of` on the same records) | monthly flag inverted; `board >= 0`; `want_monthly` inverted |
+| 5 dated lots and STT on both sides of each change | `terms.py`, `history/edge1.py` | `history/test_dated_terms.py` (10 cases) | file lot ignored; STT always the 2026 rate; schedule check removed |
+| 6 no NSE, Groww, order, Slack, store-wiring, counting or report import | (all of `simulator/`) | `test_isolation.py`, one case per file, plus a planted banner import | n/a (planted import caught) |
+
+- **Test 3 changed.** The story said "`PanelChain` and `BhavcopyChain` return the same closes". I dropped `PanelChain`: the committed
+  panel holds NIFTY monthlies only and no lots, so a second chain would duplicate one code path for three roads. The
+  parity check is against EDGE1's own reader on the same records.
+- **9 of 9 mutations caught.**
+- **Real-data run (round 2, with Drive read access, stores only, no NSE fetch; a throwaway script, not committed):**
+  `BhavcopyChain` over the archived files read, in 2-4 s a day:
+  - NIFTY 2 Jun 2025: current format, 1,620 rows, close 24,716.6, the files state lot 75 (the case judge 500 raised);
+  - NIFTY 4 Mar 2024: current format, 1,507 rows, close 22,405.6, monthly 28 Mar and 25 Apr, weeklies 7 and 14 Mar;
+  - NIFTY 9 Oct 2026: 1,888 rows, lot 65;
+  - NIFTY 24 Jun 2021 and BANKNIFTY 31 Mar 2023: legacy format, 2,070 and 1,152 rows, no lot in the file (so the circular schedule applies), and **no index close**.
+  The earlier Claim "no Drive settings in this container" was wrong: I had not checked the environment. Corrected.
+  - **Finding for SIM-d:** legacy-format files carry no underlying price, so those days have `index_close=None` and the road closes
+    (`capture_missing`) unless the wiring passes `BhavcopyChain(index_close=...)` from NSE's archived index-close files (A10).
+    SIM-d's wiring must do that and test it.
+- **Round 2 (judge 500):** (1) the circular lot schedule now applies to legacy-format days only; a current-format day with no stated lot has no lot
+  (test on 2 Jun 2025: none; with the file's 75: 75). (2) The size sentinel constant is removed from this branch and 7.2 and test 4 describe design A.
+  (3) EDGE1 is loaded by file path under the unique package name `ms_sim_edge1study`; `research/edge1` is not on `sys.path` (tests pin both).
+- **A requirement for SIM-d (found while reading `fno/storage/wiring.py`):** `build_nse_fo_library` reads the stores
+  first and then falls back to NSE. The simulator's wiring must build `DailyFiles` from the stores only, with a test
+  whose NSE fallback raises, or "no new NSE read" breaks on a missing day.
+- **A finding for SIM-d on dated STT (Q2).** The charges are a mapping passed at wiring (`cfg["charges"]`) and EDGE1's
+  `charges_on(date)` already returns one per date, so no seam is needed to price a fill. The risk is
+  `accounts/ledger_fills.py`, which recomputes a past fill's charges from the mapping it is given and checks them against
+  the stored leg: a position opened under one STT rate and re-read under another would fail that check. Wiring one fleet per session
+  with that session's mapping is not enough for an account that spans 31 Mar and 1 Apr 2023. I will test it in SIM-d and
+  message MS-P1d's builder only if it fails.
+- **Gates at this tip (full run on the SIM-a files):** `pytest -n auto`: 11,733 passed, 16 xfailed, 1 failed:
+  `tests/ai/test_fire_and_collect.py::test_a_reveal_that_never_came_or_does_not_match_records_no_forecast`. It passes alone
+  and passes on the branch's parent with my files stashed, so it is a load-dependent flake outside this story; I did not
+  touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
+- Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
+
+#### SIM-b Claims (round 1, branch `story/ms-sim-b` on `story/ms-sim-a`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests in `tests/school/simulator/spreads/`.
+
+| Criterion (7.4 SIM-b) | Code | Tests | Broken-code proof (mutation, caught) |
+|---|---|---|---|
+| 1 29 sessions insufficient, 30 give three scenarios | `model.py` | `test_29_quoted_sessions_are_insufficient_and_30_give_three_scenarios` | the limit 30 to 29; `<` to `<=` |
+| 2 median, 75th, 95th percentile with a known answer; all-one-sided and empty are insufficient | `model.py`, `learner.py` | `test_the_scenarios_are_the_median_75th_and_95th_percentile...`, `test_an_all_one_sided_bucket_and_an_empty_input_are_insufficient`, `test_an_unknown_bucket_is_insufficient...` | 0.95 to 0.9; 0.75 to 0.5 |
+| 3 a session counts once; a big session does not dominate; two roads of one underlying on one day count once | `learner.py` | `test_a_session_counts_once...`, `test_two_roads_of_one_underlying...`, `test_a_session_value_is_the_median_of_its_quotes` | session median to max |
+| 4 only verified recorded captures; a tampered, missing or incomplete one is skipped with its reason | `recorded.py` over MS-P1b's `CaptureReader` | `test_recorded.py` (4 tests) | the caught exception type changed |
+| bucket edges on both sides (1% and 2% and 4% moneyness; 7, 8, 21, 22, 45, 46 days) | `bucket.py` | `test_the_moneyness_band_edges`, `test_the_days_to_expiry_band_edges` | `>=` to `>`; day edges not shifted by one |
+| half a tick floor; uncrossed, valid, two-sided only | `learner.py` | `test_a_quote_is_its_half_gap...`, `test_a_one_sided_invalid_or_crossed...` | floor removed; crossed check removed |
+| 5 relative against rupee spread, with numbers | none (a measurement) | the run below | n/a |
+
+- **11 of 11 mutations caught.**
+- **Criterion 5, round 2 (judge 502 asked for it in the Claims).** My earlier statement that this container had no Drive access was wrong: I had
+  not checked the environment. I re-ran the comparison myself (throwaway script, not committed) over MS-P1b's verified `CaptureReader`
+  on the recorded sessions of 13-22 Oct 2026, all five roads (16 verified captures read; 39 road-days had none and were skipped).
+  For each bucket with at least 3 quotes I took the coefficient of variation of the half-spread (half-tick floor) over all its valid two-sided quotes:
+  - the relative half-spread varies less than the rupee one in **41 of 48 buckets**, the same as Judge H's run;
+  - the 7 exceptions are FINNIFTY and MIDCPNIFTY far or deep strikes, for example MIDCPNIFTY 2-4% from the money, 22-45 days: 1.17 against 0.81 (115 quotes, 3 sessions);
+  - every bucket has only 1-6 sessions. **Some evidence** for the relative choice, not strong evidence; revisit at 30 sessions.
+- **Capture period in the label (judge 502, minor a).** `SPREAD_LABEL` now reads "spread learned from forward captures since 13 Oct 2026, measured at 15:00".
+  Reasoning only: spreads were probably wider in earlier years, so practice is optimistic. This is why the three scenarios are always shown together.
+- **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
+  the code returns exactly that and nothing else.
 
 ## Claims
 
