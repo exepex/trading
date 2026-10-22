@@ -9,15 +9,15 @@ from pathlib import Path
 import pytest
 
 from fno.desk.daily_ports import CommitFailed
-from fno.desk.git_limit import GIT_CALL_LIMIT_SECONDS, GitLocks, LimitedRun
+from fno.desk.git_limit import GitLocks, LimitedRun
 from fno.desk.git_sync import Git, GitCallStopped, GitCommitter, GitError, PushNotConfirmed
 
 from .fakes import QuietLocks
+from .hung_calls import HungCallRun
 
 LIMIT = 1.0
 HOOK_SLEEP = 600
 HANGING_HOOK = '#!/bin/sh\necho $$ > "{pid_file}"\nsleep {sleep}\n'
-HOOK_START_WAIT = 120.0  # how long a loaded machine may take to reach the hook; a test error past it, never a pass
 
 
 def _git(repo, *args):
@@ -43,33 +43,6 @@ def _hang_hook(repo, name, tmp_path):
     (hooks / name).write_text(HANGING_HOOK.format(pid_file=tmp_path / f"{name}.pid", sleep=HOOK_SLEEP))
     (hooks / name).chmod(0o755)
     _git(repo, "config", "core.hooksPath", str(hooks))
-
-
-class HungCallRun(LimitedRun):
-    """The test's short limit for the hung call only, counted from the moment its hook runs: it has written its pid,
-    so git holds its lock (a commit takes `index.lock` before its hook). Every other call keeps the run's own limit, so
-    neither a slow `git add` nor git's own start on a loaded machine can meet the short limit (judge E, 22 Oct: a flake
-    in a full parallel run). `calls`: how many calls of `name` hang (None: every one)."""
-
-    def __init__(self, name: str, pid_file: Path, calls: int | None = None):
-        super().__init__(QuietLocks, started=self._wait_for_hook)
-        self.name, self.pid_file, self.calls, self.hook_at, self.waiting = name, pid_file, calls, None, False
-
-    def __call__(self, command, *, timeout, **options):
-        hung = self.waiting = self.name in command and self.calls != 0
-        if hung:
-            self.pid_file.unlink(missing_ok=True)  # this call's hook writes it afresh
-            self.calls = None if self.calls is None else self.calls - 1
-        return super().__call__(command, timeout=timeout if hung else GIT_CALL_LIMIT_SECONDS, **options)
-
-    def _wait_for_hook(self, command) -> None:
-        if not self.waiting:
-            return
-        deadline = time.monotonic() + HOOK_START_WAIT
-        while not (self.pid_file.is_file() and self.pid_file.read_text().strip()):
-            assert time.monotonic() < deadline, f"the {self.name} hook never started"
-            time.sleep(0.01)
-        self.hook_at = time.monotonic()
 
 
 def _hung(root, run):
