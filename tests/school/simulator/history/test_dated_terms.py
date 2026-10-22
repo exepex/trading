@@ -29,6 +29,14 @@ def test_the_circular_lot_changes_on_both_sides_of_each_change(underlying, expir
     assert found.units == lot and CIRCULAR_LOT in found.source
 
 
+def test_a_current_format_day_with_no_stated_lot_has_no_lot_whatever_the_schedule_says():
+    """Judge 500: 2 Jun 2025 once gave 50 from a schedule that ends in 2023; NSE's lot then was 75."""
+    udiff = DayChain(date(2025, 6, 2), "NIFTY", 24000.0, (), {}, "udiff")
+    assert TERMS.lot(udiff, date(2025, 6, 26)) is None
+    assert TERMS.lot(DayChain(date(2025, 6, 2), "NIFTY", 24000.0, (), {date(2025, 6, 26): 75}, "udiff"),
+                     date(2025, 6, 26)).units == 75  # fmt: skip
+
+
 def test_the_files_own_board_lot_wins_over_the_schedule():
     found = TERMS.lot(chain(lots={date(2021, 6, 30): 99}), date(2021, 6, 30))
     assert found.units == 99 and FILE_LOT in found.source

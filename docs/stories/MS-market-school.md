@@ -776,10 +776,13 @@ practised before forward days exist. A practice result is never evidence: it lic
 - **Three labelled scenarios** per bucket: the median, the 75th and the 95th percentile of the session values,
   shown as `median`, `p75`, `p95`. Every practice run is shown under all three; none is "the" result.
 - **Fewer than 30 quoted sessions in a bucket reads `insufficient spread data`.**
-- **Displayed size: the size gate is waived in practice** (orchestrator, 22 Oct 2026, Q5). History holds no sizes and none
-  is invented. The pilot's fill code needs a size on every two-sided quote, so a synthetic quote carries the named
-  sentinel `SIZE_GATE_WAIVED` (far above any lot count). It is a switch, not data: every practice output says "size gate
-  not tested in practice", and no record shows it as a displayed size.
+- **Displayed size: the size gate is not tested in practice** (orchestrator, 22 Oct 2026, Q5, ruling on design A). History
+  holds no sizes and none is invented, and no placeholder number is used. A practice quote keeps `bid_qty` and `ask_qty`
+  as `None` with `sizes_measured=False` (a field MS-P1a3 adds to `SlotQuote`). Only the practice composition root's
+  `QuoteRules(practice=True)` (MS-P1d's seam, imported only by `fno/school/simulator/`) lets such a quote through the size
+  and sell-back checks, with the note "size gate not tested in practice". Without that flag the pilot's live laws and
+  `SchoolFills` refuse an unmeasured quote, so a practice quote reaching a live path fails closed. Every practice output
+  carries the same label.
 - **Honest consequence [strong evidence: arithmetic on the recorded days].** On 22 Oct only 8 NIFTY monthly sessions
   and 3 sessions for each other road are recorded. Every bucket therefore reads `insufficient spread data` until about
   24 Nov for the busiest NIFTY monthly buckets, and **much later** for the short-dated and far-strike buckets: the
@@ -838,7 +841,7 @@ cases and a test that fails when the named code is broken on purpose.
   3. A planted impossible vertical (a 300-wide spread priced at 392, from EDGE1's results) is flagged: the driver
      reaches `refused` or `no_trade`, never a fill; an impossible exit waits.
   4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero; both sizes are
-     `SIZE_GATE_WAIVED` and nothing else.
+     `None` with `sizes_measured=False` and nothing else (no number); a live-mode fill refuses the quote.
   5. Look-ahead: changing any record dated after the session leaves the session's snapshot and every driver's
      decision byte-identical (a mutation test over the chain).
   6. An insufficient bucket gives `unavailable` for that leg's trade, never a zero spread.
@@ -894,7 +897,7 @@ as in 3.6).
    (7.2). I keep the rule as agreed. If you want a coarser first bucket grid (for example two DTE bands), that is a
    decision for the owner and a card change, not mine.
 4. **The close slot** (7.1 item 4) departs from the 15:00 slot. It is the only slot history holds; confirm.
-5. **Displayed sizes** (7.2): the size gate is waived in practice and labelled "size gate not tested in practice".
+5. **Displayed sizes** (7.2): design A. Sizes stay `None` with `sizes_measured=False`; only the practice flag passes the size checks, labelled "size gate not tested in practice". The first ruling (a sentinel) was withdrawn by the orchestrator.
 
 **Answers (orchestrator, 22 Oct 2026):** Q1 import EDGE1's readers read-only through ONE adapter, never edit or copy
 them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P1d's builder
@@ -907,7 +910,7 @@ SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 #### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
 
 Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhavcopy_chain,edge1}.py`, tests under
-`tests/school/simulator/`. Changes to story text: the Q5 answer (size gate waived) and test 3 below.
+`tests/school/simulator/`. Changes to story text: the Q5 ruling (design A) and test 3 below.
 
 | Criterion (7.4 SIM-a) | Code | Tests (all in `tests/school/simulator/`) | Broken-code proof (mutation, caught) |
 |---|---|---|---|
@@ -921,8 +924,19 @@ Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhav
   panel holds NIFTY monthlies only and no lots, so a second chain would duplicate one code path for three roads. The
   parity check is against EDGE1's own reader on the same records.
 - **9 of 9 mutations caught.**
-- **Not run, honestly:** no real-data run of `BhavcopyChain` here. The archived F&O files are in Drive and this container
-  has no Drive settings. The parsing is tested on UDiFF-shaped records and EDGE1's reader as the oracle.
+- **Real-data run (round 2, with Drive read access, stores only, no NSE fetch; a throwaway script, not committed):**
+  `BhavcopyChain` over the archived files read, in 2-4 s a day:
+  - NIFTY 2 Jun 2025: current format, 1,620 rows, close 24,716.6, the files state lot 75 (the case judge 500 raised);
+  - NIFTY 4 Mar 2024: current format, 1,507 rows, close 22,405.6, monthly 28 Mar and 25 Apr, weeklies 7 and 14 Mar;
+  - NIFTY 9 Oct 2026: 1,888 rows, lot 65;
+  - NIFTY 24 Jun 2021 and BANKNIFTY 31 Mar 2023: legacy format, 2,070 and 1,152 rows, no lot in the file (so the circular schedule applies), and **no index close**.
+  The earlier Claim "no Drive settings in this container" was wrong: I had not checked the environment. Corrected.
+  - **Finding for SIM-d:** legacy-format files carry no underlying price, so those days have `index_close=None` and the road closes
+    (`capture_missing`) unless the wiring passes `BhavcopyChain(index_close=...)` from NSE's archived index-close files (A10).
+    SIM-d's wiring must do that and test it.
+- **Round 2 (judge 500):** (1) the circular lot schedule now applies to legacy-format days only; a current-format day with no stated lot has no lot
+  (test on 2 Jun 2025: none; with the file's 75: 75). (2) The size sentinel constant is removed from this branch and 7.2 and test 4 describe design A.
+  (3) EDGE1 is loaded by file path under the unique package name `ms_sim_edge1study`; `research/edge1` is not on `sys.path` (tests pin both).
 - **A requirement for SIM-d (found while reading `fno/storage/wiring.py`):** `build_nse_fo_library` reads the stores
   first and then falls back to NSE. The simulator's wiring must build `DailyFiles` from the stores only, with a test
   whose NSE fallback raises, or "no new NSE read" breaks on a missing day.

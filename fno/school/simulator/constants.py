@@ -6,12 +6,8 @@ from enum import StrEnum
 PRACTICE_LABEL = "practice (simulator)"  # on every output and every record the simulator makes
 SLOT_LABEL = "practice at the close; the pilot trades 15:00"
 SIZE_GATE_NOT_TESTED_LABEL = "size gate not tested in practice"
-SPREAD_LABEL = "spread measured at 15:00"
+SPREAD_LABEL = "spread learned from forward captures since 13 Oct 2026, measured at 15:00"
 INSUFFICIENT_SPREAD_LINE = "insufficient spread data"
-
-# History holds no displayed size and none is invented (orchestrator, 22 Oct 2026). The pilot's fill code needs a size
-# on every two-sided quote, so a synthetic quote carries this switch value: above any lot count, not a measurement.
-SIZE_GATE_WAIVED = 10**9
 
 TICK = 0.05  # NSE's option tick
 MIN_QUOTED_SESSIONS = 30  # a spread bucket below this reads "insufficient spread data" (response 327, correction 6)

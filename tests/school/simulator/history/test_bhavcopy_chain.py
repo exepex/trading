@@ -1,6 +1,5 @@
 """The archived F&O files as the simulator's chain (MS-SIM-a)."""
 
-import sys
 from datetime import date
 
 import pytest
@@ -8,11 +7,9 @@ import pytest
 from fno.constants import INDEX_FUTURE, INDEX_OPTION
 from fno.research_data.nifty_panel import DailyFiles
 from fno.school.constants import ExpiryKind, OptionKind
-from fno.school.simulator.history import bhavcopy_chain
+from fno.school.simulator.history import bhavcopy_chain, edge1
 from fno.school.simulator.history.bhavcopy_chain import BhavcopyChain
 from fno.school.simulator.history.ports import HistoricalChain
-
-sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[4] / "research" / "edge1"))
 
 DAY, MONTHLY, WEEKLY = date(2024, 3, 4), date(2024, 3, 28), date(2024, 3, 7)
 
@@ -92,9 +89,7 @@ def test_a_legacy_day_without_an_underlying_price_takes_the_index_close_it_is_gi
 
 
 def test_the_monthly_rows_match_edge1s_own_reader_on_the_same_records(chain):
-    from edge1study.day_files import rows_of
-
-    theirs = rows_of(DAY, RECORDS, "NIFTY", "udiff")
+    theirs = edge1.module("day_files").rows_of(DAY, RECORDS, "NIFTY", "udiff")
     ours = [r for r in chain.day("NIFTY", DAY).rows if r.monthly]
     assert sorted((q.expiry, q.strike, q.kind, q.close, q.volume, q.open_interest) for q in theirs.options) == sorted(
         (r.expiry, r.strike, str(r.kind), r.close, r.volume, r.open_interest) for r in ours)  # fmt: skip
