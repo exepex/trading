@@ -793,7 +793,7 @@ practised before forward days exist. A practice result is never evidence: it lic
 | Component | Interface | Reuses |
 |---|---|---|
 | `windows.py` | `PracticeWindows.check(road, session) -> None or RefusalReason.NOT_IN_DATA_SPEND` | the allow-list of 7.1 item 2 |
-| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapters: `PanelChain` (NIFTY panel) and `BhavcopyChain` (archived F&O files, UDiFF and legacy) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
+| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapter: `BhavcopyChain` (archived F&O files, UDiFF and legacy; one code path for all three roads) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
 | `terms.py` | `DatedTerms`: lot, STT and C1 costs on a date | EDGE1's lot schedule and `stt_history`; C1 |
 | `spreads/` | `SpreadModel.scenarios(bucket) -> Scenarios or InsufficientSpreadData`; `SpreadLearner` over the quote store; `SpreadBucket` | MS-P1b's hash-checked store |
 | `source.py` | `HistoricalRoadSource(chain, spreads, scenario)` implements `SnapshotSource`; `HistoricalCatalogue` implements `RoadCatalogue` (history sessions, A7 calendar, dated lots) | `SnapshotSource`, `RoadCatalogue`, `quality.prices` |
@@ -812,7 +812,7 @@ cases and a test that fails when the named code is broken on purpose.
   1. `PracticeWindows`: a spent day passes; a day after 12 Oct 2026, a day on or after `first_counted`, FINNIFTY and
      MIDCPNIFTY refuse with `not_in_data_spend` (boundary: 12 and 13 Oct).
   2. The allow-list agrees with `research/DATA_SPEND.md` (the test parses the doc; a row turned `fresh` fails it).
-  3. `PanelChain` and `BhavcopyChain` return the same closes for a day both hold (cross-check on recorded days).
+  3. `BhavcopyChain` returns the same monthly rows as EDGE1's own reader on the same records (parity test).
   4. A day with no file gives `None` (empty case); a muhurat or special session follows A7.
   5. `DatedTerms`: NIFTY lot 75 before the July 2021 expiry and 50 after; BANKNIFTY 20, 25, 15 at its change
      dates; STT 0.05% on 31 Mar 2023 and 0.0625% on 1 Apr 2023 (both sides of each change).
@@ -904,7 +904,39 @@ SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 
 ### 7.7 Claims
 
-Empty until a part is built; each part keeps its own Claims subsection under the pilot's `## Claims` below.
+#### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhavcopy_chain,edge1}.py`, tests under
+`tests/school/simulator/`. Changes to story text: the Q5 answer (size gate waived) and test 3 below.
+
+| Criterion (7.4 SIM-a) | Code | Tests (all in `tests/school/simulator/`) | Broken-code proof (mutation, caught) |
+|---|---|---|---|
+| 1 windows: spent day passes, 12/13 Oct boundary, FINNIFTY/MIDCPNIFTY refused, `first_counted` | `windows.py` | `test_windows.py` (7 tests) | `<=` to `<` on the last day; `first_counted - 1 day` to `first_counted`; BANKNIFTY entry renamed |
+| 2 allow-list agrees with DATA_SPEND | `windows.py` rows | `test_every_allowed_window_rests_on_a_spent_or_exposed_register_row`, plus a planted `fresh` row | the planted row is read as `fresh` |
+| 3 chain: rows, monthly/weekly, board lot never derived, empty and damaged files, index close | `bhavcopy_chain.py`, `ports.py` | `history/test_bhavcopy_chain.py` (8 tests, incl. parity with EDGE1's own `rows_of` on the same records) | monthly flag inverted; `board >= 0`; `want_monthly` inverted |
+| 5 dated lots and STT on both sides of each change | `terms.py`, `history/edge1.py` | `history/test_dated_terms.py` (10 cases) | file lot ignored; STT always the 2026 rate; schedule check removed |
+| 6 no NSE, Groww, order, Slack, store-wiring, counting or report import | (all of `simulator/`) | `test_isolation.py`, one case per file, plus a planted banner import | n/a (planted import caught) |
+
+- **Test 3 changed.** The story said "`PanelChain` and `BhavcopyChain` return the same closes". I dropped `PanelChain`: the committed
+  panel holds NIFTY monthlies only and no lots, so a second chain would duplicate one code path for three roads. The
+  parity check is against EDGE1's own reader on the same records.
+- **9 of 9 mutations caught.**
+- **Not run, honestly:** no real-data run of `BhavcopyChain` here. The archived F&O files are in Drive and this container
+  has no Drive settings. The parsing is tested on UDiFF-shaped records and EDGE1's reader as the oracle.
+- **A requirement for SIM-d (found while reading `fno/storage/wiring.py`):** `build_nse_fo_library` reads the stores
+  first and then falls back to NSE. The simulator's wiring must build `DailyFiles` from the stores only, with a test
+  whose NSE fallback raises, or "no new NSE read" breaks on a missing day.
+- **A finding for SIM-d on dated STT (Q2).** The charges are a mapping passed at wiring (`cfg["charges"]`) and EDGE1's
+  `charges_on(date)` already returns one per date, so no seam is needed to price a fill. The risk is
+  `accounts/ledger_fills.py`, which recomputes a past fill's charges from the mapping it is given and checks them against
+  the stored leg: a position opened under one STT rate and re-read under another would fail that check. Wiring one fleet per session
+  with that session's mapping is not enough for an account that spans 31 Mar and 1 Apr 2023. I will test it in SIM-d and
+  message MS-P1d's builder only if it fails.
+- **Gates at this tip (full run on the SIM-a files):** `pytest -n auto`: 11,733 passed, 16 xfailed, 1 failed:
+  `tests/ai/test_fire_and_collect.py::test_a_reveal_that_never_came_or_does_not_match_records_no_forecast`. It passes alone
+  and passes on the branch's parent with my files stashed, so it is a load-dependent flake outside this story; I did not
+  touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
+- Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
 
 ## Claims
 
