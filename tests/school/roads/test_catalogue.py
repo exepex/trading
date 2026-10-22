@@ -188,3 +188,20 @@ def test_conformance_of_the_catalogue_and_the_snapshot_source():
     opened = next(d for d in catalogue.day(SESSION) if d.road.code is BANK)
     assert closed.status.closed_by is ClosureReason.HASH_MISMATCH
     c.check_snapshot_source(RecordedSnapshotSource(reader), opened, closed)
+
+
+def test_a_road_day_carries_each_recorded_expiry_s_own_step():
+    store = DictStore()
+    strikes = {MONTHLIES[0]: tuple(float(s) for s in range(800, 1301, 50)),
+               MONTHLIES[1]: tuple(float(s) for s in range(700, 1401, 100))}  # fmt: skip
+    Plant(road(BANK), strikes=strikes).write(store)
+    day = next(d for d in catalogue_over(store)[0].day(SESSION) if d.road.code is BANK)
+    assert day.strike_step == 50.0 and dict(day.strike_steps) == {MONTHLIES[0]: 50.0, MONTHLIES[1]: 100.0}
+    assert day.step_for(MONTHLIES[1]) == 100.0
+
+
+def test_every_open_road_day_names_a_step_for_each_expiry_it_records():
+    store = DictStore()
+    all_roads_planted(store)
+    for day in catalogue_over(store)[0].day(SESSION):
+        assert set(day.strike_steps) == set(day.expiries) and day.strike_steps[day.expiries[0]] == day.strike_step

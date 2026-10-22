@@ -20,7 +20,7 @@ from collections.abc import Callable
 from datetime import date, datetime, timedelta
 
 from ..alerts.sender import AlertSender
-from ..constants import MARGIN_SOURCE_NSE_SPAN, SPAN_BOD_CREATED_BEFORE
+from ..constants import MARGIN_SOURCE_NSE_SPAN
 from ..fo_bhavcopy import BadFile
 from .broker_approvals import NOT_PASSED, BrokerApprovals
 from .calculator import MarginOutsideModel
@@ -98,8 +98,8 @@ class NseMarginJob:
             span = read_span_file(data, filename)
         except BadFile as exc:
             raise MarginDayProblem(str(exc)) from exc
-        deadline = datetime.combine(day, SPAN_BOD_CREATED_BEFORE, tzinfo=span.created.tzinfo)
-        if span.created >= deadline:
+        if not span.written_in_time(day):
+            deadline = span.deadline(day)
             raise MarginDayProblem(f"{filename} was written {span.created:%Y-%m-%d %H:%M}, not before {deadline:%H:%M}")
         try:
             found = self.builder.rows(span, hashlib.sha256(data).hexdigest(), day)

@@ -31,7 +31,7 @@ class RecordedRoadCatalogue:
     def _road_day(self, road: Road, session: date) -> RoadDay:
         try:
             capture = self.captures.read(road, session)
-            step = capture.strike_step()
+            steps = capture.strike_steps()
         except CaptureProblem as problem:
             return _closed(road, session, problem.reason)
         try:
@@ -43,7 +43,7 @@ class RecordedRoadCatalogue:
         lot = self.lots.lot(road.underlying, session, capture.expiries)
         if lot is None:
             return _closed(road, session, ClosureReason.LOT_MISMATCH)
-        return RoadDay(road, session, capture.expiries, lot, step, OPEN)
+        return RoadDay(road, session, capture.expiries, lot, steps[capture.expiries[0]], OPEN, steps)
 
 
 def _closed(road: Road, session: date, reason: ClosureReason) -> RoadDay:

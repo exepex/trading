@@ -1,0 +1,8 @@
+# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+code: N0
+version: "1"
+family: nothing
+role: control
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W]
+band_steps: 0
+parameters: {}

@@ -51,13 +51,16 @@ class Capture:
     def expiries(self) -> tuple[date, ...]:
         return tuple(sorted({key.expiry for key in self.quotes}))
 
-    def strike_step(self) -> float:
-        """The nearest expiry's strike step (`RoadDay.strike_step`); every expiry must have one, and each has its own
-        (`quality.strikes.strike_steps`)."""
+    def strike_steps(self) -> dict[date, float]:
+        """Each recorded expiry's own strike step (`quality.strikes.strike_steps`); every expiry must have one."""
         steps = strike_steps(self.quotes)
         if set(steps) != set(self.expiries):
             raise CaptureProblem(ClosureReason.CAPTURE_INCOMPLETE, NOT_ENOUGH_STRIKES)
-        return steps[self.expiries[0]]
+        return steps
+
+    def strike_step(self) -> float:
+        """The nearest expiry's strike step (`RoadDay.strike_step`)."""
+        return self.strike_steps()[self.expiries[0]]
 
     def snapshot(self) -> SlotSnapshot:
         return SlotSnapshot(self.road.code, self.session, self.snapshot_id, self.sha256, self.started_at,
