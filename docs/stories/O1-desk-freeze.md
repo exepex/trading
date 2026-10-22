@@ -95,3 +95,41 @@ G13b's steps and scores, the candles and A4h's close reads. The risk manager and
 - A frozen step records no decision, so D3's decision records, scoreboard B and E6's scorecards have a gap for the
   frozen sessions. That is intended: nothing was decided.
 - The card (T1) does not go to #fno-desk while frozen. The owner sees the forecasts in #fno-forecast.
+
+## Build claims (for judge D)
+
+- **The owner's answer** (`docs/DESK_DECISIONS.md`, 22 Oct, "Two owner answers" (2)): exits and marks keep running
+  while any position is open, and the desk freezes fully from the first session with none. Built as answered, with
+  three steps more, each named here so the owner can refuse them:
+  - `pack` and `snapshot` (strong evidence: `tests/daily/test_desk_freeze.py`, the open-trade test). Without them
+    the exits' data gate has no execution capture and no spot: the held trade was "not reviewed" and alerted every
+    session, so "exits keep running" would close nothing.
+  - `reviews` (reasoning only): E6's catastrophic- and cumulative-loss rules judge the held position, and the
+    cut-list keeps risk unchanged. If the owner wants the literal answer, it is one name out of
+    `OPEN_POSITION_STEPS` (`fno/constants_operations.py`).
+- **Acceptance 1-3** (`tests/e2e/test_desk_freeze.py`, the real wiring against the no-failure twin):
+  - every desk step records `frozen` / `desk:FROZEN`, and no `desk book1` child starts;
+  - Drive's private files are byte for byte the same before and after the run;
+  - every step's `started_at` equals the twin's, and the quote tree equals the twin's. The one exception is the
+    desk's own 15:15 capture, which the frozen `snapshot` step never takes;
+  - every non-desk step's result equals the twin's, apart from commit hashes (each names a different parent);
+  - the day ends `day done` with no alert.
+- **Acceptance 4.**
+  - The e2e restart test: frozen 13 Oct, then the switch off for 14 Oct. The full desk runs, nothing is blocked
+    and nothing is alerted.
+  - The unit test on E3's `DailyRun`: without the `_unreviewed` guard the restart day crashes (`AttributeError`, a
+    frozen exits result has no per-book entries), so the guard is needed. Mutation run: the test fails without it.
+- **Acceptance 5** (`tests/daily/test_desk_freeze_readers.py`).
+  - Health: a frozen session reads `not expected`, but a failed step or a stop before the end still reads `missed`.
+  - Scoreboard B: no missed decision is counted. A missed exit review with a held trade still shows.
+  - The card: "last session (<day>): desk frozen by the owner: no execution snapshot taken".
+  - Each reader's change was mutated, and its test fails.
+- **Acceptance 7.**
+  - Without the switch, or with it false, the existing suite passes untouched.
+  - A non-boolean switch is refused.
+  - The frozen set is pinned to the desk's ten steps, with no quote, forecast, score, candle or close step in it.
+- **Gates on the tree merged with `main`:**
+  - 9843 passed and 16 xfailed (pytest -n auto, with FNO_SLACK_BOT_TOKEN unset);
+  - ruff check, ruff format --check, check_imports, check_records and check_numbers are all clean.
+- **Not touched:** the risk manager, the data checks and `desk.timetable`. The latter is the S1 freeze's hashed
+  section, and `frozen` sits beside it, not in it.
