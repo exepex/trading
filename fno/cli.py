@@ -37,6 +37,7 @@ from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
+from .premium_ranges.cli import add_premrange_parser
 from .preopen.cli import add_preopen_parser
 from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
@@ -245,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
     add_factory_parser(sub)
     add_pricedist_parser(sub)
+    add_premrange_parser(sub)
     add_itmchance_parser(sub)
     add_pricerange_parser(sub)
     add_closes_parser(sub)

@@ -22,14 +22,20 @@ MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
-              "price_distribution_scores", "price_ranges", "price_range_scores", "close_read",
-              "close_recheck")  # fmt: skip
+              "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
+              "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
+PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
 
 
 def range_issue(day: date) -> tuple[str, ...]:
     """G13b's live 15:45 issue (O1's `price_ranges` step)."""
     return ("pricerange", "issue", "--at", "1545", "--day", day.isoformat(), "--live")
+
+
+def premium_issue(day: date) -> tuple[str, ...]:
+    """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
+    return ("premrange", "issue", "--day", day.isoformat(), "--live")
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -52,6 +58,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..desk.wiring import build_entry_desk, build_execution_snapshots
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
+    from ..premium_ranges.folders import receipt_pathspecs as premium_receipts
     from ..price_distribution.folders import receipt_pathspecs
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
     from ..scorecard.wiring import build_scorecard_run
@@ -89,6 +96,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
                                      receipt_pathspecs(), git.changed, waiting, locks)  # fmt: skip
     price_ranges = CommandStep(processes, range_issue, range_receipts(), git.changed, waiting, locks)
+    premium_ranges = CommandStep(processes, premium_issue, premium_receipts(), git.changed, waiting, locks)
 
     def close_step(name: str, arguments: tuple[str, ...], gate) -> DayStep:
         """A4h's reads: LiveFrom outside NotBefore (a day before the live date never waits), its receipts only."""
@@ -96,7 +104,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         return Alerted(name, LiveFrom(NotBefore(step, gate, waiter), live[name]), alerts)
 
     def scores(arguments: tuple[str, ...], pathspecs: tuple[str, ...], name: str) -> DayStep:
-        """G13's and G13b's scorers: their own receipts only (the scores file; G13b's seals too)."""
+        """G13's, G13b's and G13d's scorers: their own receipts only (the scores file; G13b's and G13d's seals too)."""
         step = CommandStep(processes, lambda day: arguments, pathspecs, git.changed, waiting, locks)
         return Alerted(name, LiveFrom(step, live[name]), alerts)
 
@@ -132,9 +140,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         "price_distribution": Alerted(
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
+        "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),
+        "premium_range_scores": scores(PREMIUM_SCORES, premium_receipts(), "premium_range_scores"),
         "candles": Alerted(
             "candles",
             NotBefore(

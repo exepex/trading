@@ -71,6 +71,7 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
         "weather": phase_1,  # M1, on before the v4 freeze (owner, 21 Oct, DESK_DECISIONS 3a24ba24; response 299)
         "forecasts_v4": phase_1,  # G7's rule forecasts, the same; uncounted until the day after `Frozen on:`
         "price_distribution": phase_1,  # story G13
+        "premium_ranges": None, "premium_range_scores": None,  # story G13d: null until a judged go-live
         "price_distribution_scores": phase_1,  # G13's daily scores
         "price_ranges": phase_1,  # story G13b
         "price_range_scores": phase_1,  # G13b's daily scores and seals
