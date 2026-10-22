@@ -48,3 +48,19 @@ Plants: none (text round).
 
 For the code round: show criterion 8's request count and pacer key with fakes, and the live `hosts` lines for one day
 (quality rule 6).
+
+**Note after addendum 1 (no new number; the builder's correction before any code).** The builder found that the text's
+"manifest rows already carry the full URL" is false. I confirmed it: `FingerprintingStore.put`
+(`fno/storage/manifest_folder.py`) records `Fingerprint.of(source, path, data)`, built from the class's `url_for`, so
+the row always names `nsearchives` [strong]. The proposed fix is accepted:
+- a provenance row per second-host fetch in `research/data/manifests/second-host/<dataset>.csv` (path, SHA-256,
+  size, URL, fetched_at), committed by the librarian's existing manifest committer;
+- criterion 9 is reworded to that row.
+
+Conditions:
+- put it in the story text as a short amendment before the code, saying that the manifest row's URL is the canonical
+  URL, not the serving host;
+- keep `tests/test_fingerprints.py`'s one-folder rule green, or change it only by adding the subfolder to its known
+  exceptions, as `revisions/` is.
+
+I check it in the code round; it is not a third text round.
