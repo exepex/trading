@@ -938,6 +938,29 @@ Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhav
   touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
 - Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
 
+#### SIM-b Claims (round 1, branch `story/ms-sim-b` on `story/ms-sim-a`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests in `tests/school/simulator/spreads/`.
+
+| Criterion (7.4 SIM-b) | Code | Tests | Broken-code proof (mutation, caught) |
+|---|---|---|---|
+| 1 29 sessions insufficient, 30 give three scenarios | `model.py` | `test_29_quoted_sessions_are_insufficient_and_30_give_three_scenarios` | the limit 30 to 29; `<` to `<=` |
+| 2 median, 75th, 95th percentile with a known answer; all-one-sided and empty are insufficient | `model.py`, `learner.py` | `test_the_scenarios_are_the_median_75th_and_95th_percentile...`, `test_an_all_one_sided_bucket_and_an_empty_input_are_insufficient`, `test_an_unknown_bucket_is_insufficient...` | 0.95 to 0.9; 0.75 to 0.5 |
+| 3 a session counts once; a big session does not dominate; two roads of one underlying on one day count once | `learner.py` | `test_a_session_counts_once...`, `test_two_roads_of_one_underlying...`, `test_a_session_value_is_the_median_of_its_quotes` | session median to max |
+| 4 only verified recorded captures; a tampered, missing or incomplete one is skipped with its reason | `recorded.py` over MS-P1b's `CaptureReader` | `test_recorded.py` (4 tests) | the caught exception type changed |
+| bucket edges on both sides (1% and 2% and 4% moneyness; 7, 8, 21, 22, 45, 46 days) | `bucket.py` | `test_the_moneyness_band_edges`, `test_the_days_to_expiry_band_edges` | `>=` to `>`; day edges not shifted by one |
+| half a tick floor; uncrossed, valid, two-sided only | `learner.py` | `test_a_quote_is_its_half_gap...`, `test_a_one_sided_invalid_or_crossed...` | floor removed; crossed check removed |
+| 5 relative against rupee spread, with numbers | none | **not done** | |
+
+- **11 of 11 mutations caught.**
+- **Criterion 5 is not met in this tip, and I do not claim it.** It needs the recorded quote files, which live in Drive
+  only, and this container has no Drive settings. The relative half-spread (a share of the mid) stays "reasoning only".
+  What would settle it: for each bucket on the recorded days, whether the coefficient of variation of the relative
+  half-spread is below that of the rupee half-spread. Someone with Drive access can run `SpreadLearner` on
+  `recorded_snapshots(...)` and compare; I will write that small script in SIM-d's dry run if Drive is available.
+- **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
+  the code returns exactly that and nothing else.
+
 ## Claims
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
