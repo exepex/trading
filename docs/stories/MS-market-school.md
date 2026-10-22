@@ -658,3 +658,48 @@ Review and decisions (reasoning, with evidence):
 - **Expiry-day entries (orchestrator, 22 Oct 2026; margin data has no row on an expiry day):** no driver enters on an expiry day. WS1 needs its expiry strictly after the session, so its first entry day is the session before expiry (`test_on_the_expiry_day_itself_there_is_no_entry`, `test_it_enters_one_to_three_sessions_before_the_weekly_expiry[1-True]`); REF and RC1 need `min_dte: 2`; CS1, DB1, DR1, PS2-4, PS5 and KL1 enter 20 or more days out. No card change was needed.
 **Round 2 (judge J's 14 surviving plants, tip in the commit carrying this text).** `tests/school/drivers/test_oracles.py` kills each with an independent oracle (hand-worked numbers or the story's table, never the code under test); all 14 plants are caught (plant script run on this tip):
 cap at exactly Rs 10,000 (`>=`) by building the same plan under a cap equal to its loss and one paisa less; score ignoring `expected_net_rs` by 500 / max loss, also through a ranked card with 500; the exit value priced on the wrong side by a hand-worked fixture (short bought back at the ask 11, long sold at the bid 4, lot 30, entry Rs 95, net -115); RC1's twin mapping (condor on monthly roads follows the ladder, on the weekly road WS1, vertical and fly follow CS1, DR1) by exits that differ between the twins; the WS1, DB1 and PS5 calendar-gap entries; `own_positions` ignoring the road; RC1's `min_dte` (never an expiry with under 2 days left); DB1 at exact equality (no trade) and just above (trade); `MAX_ATM_STEPS` at 2 against 3; PS3's wing at 3 steps (PS2 100, PS3 300, PS4 wider); and the payoff-bounds check at the touch (a fly never costs more than its wing width). DRY: `session_days.py` now uses `TradingDays.next_after` and `last_on_or_before`; only the counting and stepping back remain (`TradingDays` has none), and the tests use the real `TradingDays` over a fixture `SessionCalendar`.
+### MS-P1g Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-sections`)
+Round 1, built on a's tip 756e6545. Files: `fno/school/reports/` (inputs, banner, lines, today, evening, maker,
+wiring), `tests/school/reports/` (with golden files), and the reserved lines in `fno/forecast_lab/page_wiring.py`:
+the import of `with_school_sections` and the `return` of `build_report_maker` wrapped in it (two lines: Python needs
+the import).
+| Criterion | Code | Test |
+| 1 flag off: both editions byte-identical (golden) | `wiring.with_school_sections` returns the maker itself when `school.reports` is false | `test_with_the_flag_off_the_edition_is_byte_identical_to_the_golden_files[morning, evening]`, `test_with_the_flag_off_the_maker_itself_is_returned_unwrapped`; the golden files were made from the unwrapped `ReportMaker` before any change (text, SHA-256 of the picture and of the details page, alerts, verdicts) |
+| 2 flag on: sections appear and say Paper | `SchoolReportMaker.make`, `lines.paper_title` | `test_with_the_flag_on_the_edition_text_gains_its_section_and_the_page_files_stay_identical`, `test_both_sections_are_report_sections_and_say_paper` |
+| 3 no green reachable | `Banner` has two members (a); `banner.banner_for` | `test_banner_has_no_green_and_every_input_maps_to_red_or_amber`, `test_the_banner_is_red_on_a_closed_road_or_no_candidate_else_amber` |
+| 4 a planted refusal appears in the evening section | `evening._problems` | `test_a_refusal_planted_in_the_input_appears_in_the_evening_section` |
+| 5 no contract, strike or card internal | the sections print codes, rupees and counts only | `test_no_contract_strike_price_or_card_internal_appears_in_either_section` (plants strikes, expiry, bid, premium, card and snapshot hashes) |
+| 6 NSE-terms line and no-latency label in both | `lines.footer` | `test_both_sections_carry_the_nse_terms_line_and_the_no_latency_label` |
+Broken-code proof: 8 mutations (flag check, banner rule, footer, ticket in rupees, controls shown, the exception
+guard, a strike in a line, counts of controls) each fail a named test.
+Design points to judge:
+- The sections go into the Slack message text only; the picture and the details page are the signed-off page,
+  untouched, so the signed-off design needs no change. A section that raises never stops the edition: one alert names
+  the exception class (`school {edition} section not made (...)`), the plain edition is posted.
+- "Today" is a plan from yesterday's data (response 325 section 9.21): its input port gives the roads and the planned
+  trades; only `role: rule` drivers are shown, controls and measurement-only drivers never are. The fleet total counts
+  every non-ticket outcome (controls included) and is labelled as separate hypothetical accounts; tickets are never in
+  rupees and appear only in the counts.
+- The day's inputs (`TodayInputs`, `DayInputs`) are ports: roads, the dashcam's records (c's replay reader), the
+  counts (f) and the driver roles (e). They are wired by MS-P1j. Until then, a flag turned on gives the alert
+  "the school's day inputs are wired by MS-P1j" and no section (`test_a_flag_turned_on_before_the_inputs_are_wired...`).
+- Banner words (red: do not trade real money today; amber: paper only) are response 325 section 7.3's.
+MS-P1g round 2 (judge 484 FAIL, round 1; each finding checked against the code and fixed):
+1. **The school must never stop an edition (accepted):** `with_school_sections` now lives in `guard.py`, which imports
+   nothing of the school at load time; the school's wiring and the `school` settings are read inside its `try`. A bad
+   block, a missing or unknown key, a wrong kind, no block, an unreadable config or an import failure gives the plain
+   signed-off edition (identical bytes) and one alert. `page_wiring.py` imports the guard (still the two reserved
+   lines). Tests: `test_a_bad_school_block_gives_the_plain_edition_and_one_alert_naming_the_class` (5 cases x 2
+   editions, including the judge's three plants), `test_an_import_failure_of_the_school_wiring...`,
+   `test_a_bad_real_config_never_stops_the_edition`.
+2. **Controls and the fleet total (accepted; orchestrator's decision, 22 Oct):** the evening candidates, the banner and
+   the fleet total are rule drivers only; controls and measurement-only drivers have their own labelled lines
+   ("Control (not in the fleet total)", "Measurement only (not in the fleet total)"). Tests:
+   `test_when_only_a_control_trades_the_evening_is_red_and_the_fleet_total_stays_zero` (the judge's case),
+   `test_measurement_only_drivers_have_their_own_line...`, `test_a_rule_drivers_trade_keeps_the_evening_amber...`.
+3. **Minors (accepted):** `test_the_real_report_maker_is_built_through_the_school_guard` runs the real
+   `build_report_maker` with its heavy parts stubbed and shows it goes through the guard (removing the call fails it);
+   the failure alert carries only the exception class and a fixed text, never its message
+   (`test_a_failure_alert_never_repeats_the_exceptions_message` plants a contract key and a strike).
+Broken-code proof: 7 mutations of the new code (the guard's `except`, the candidate role filter, the fleet total, the
+alert text, the `page_wiring` call, the flag check, the controls' lines) each fail a named test.
