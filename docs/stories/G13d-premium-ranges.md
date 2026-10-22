@@ -60,7 +60,8 @@ over plain carry.
 ## Sealing, files, timing
 
 - Issue at the 3 pm chain's record time (G13's step). Sealed the same way G13b seals (GitHub push time of the receipt;
-  late if after 15:30 IST on d, the session's close, so no later price of d is known at the seal). A late record is scored but marked late.
+  late if after 15:30 IST on d, the session's close, so no later price of d is known at the seal).
+  A late record is scored but marked late.
 - Files: `data/premium_ranges/live/<underlying>/<day>.json.gz` and `.../scores/...` in Drive, write-once, O9
   receipts. Schema `g13d_premium_v1`, with the rule's method hash.
 - Steps: `premium_ranges` right after `price_distribution`, and `premium_range_scores` after it on the next day.
