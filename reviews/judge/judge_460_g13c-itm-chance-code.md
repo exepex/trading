@@ -68,3 +68,30 @@ Every file is under 101 lines.
    points below the market's chance in the middle bins. This fits the negative-skew premium, where the risk-neutral
    median sits above the forward. Its intervals still include the chance in the bin I checked (0.340-0.516 against
    0.500): reasoning only, from spent data.
+
+## Addendum 1: the review checks at 25d45c89 (number 460.1, claimed with `tools/claim_number.py`)
+
+**PASS. This is the head to run and merge.** It supersedes 108faff8 for the merge.
+
+| Change | Result |
+|---|---|
+| The label | E7's settlements are now labelled `udiff` |
+| `Settled.outcome` and the report's `outcome_counts` | they count `udiff`, `futidx_settle` (marked "(no_close)" when no close existed), `close_mismatch`, `unsettled` and `refused` |
+| New tests | E7's real reader over a fake library, the chain order (E7 first, legacy only without an E7 file), option rows equal to the future or 0 accepted, and a different non-zero price refused. This closes note 1 |
+
+**The overlap check.** The builder reports, from real files, that E7 and the legacy reader give the same price on all
+six NIFTY expiries of Jan-Jun 2024. I did not re-run this. It is consistent with my run, where all 93 settlements
+equal the close.
+
+**My checks on 25d45c89:**
+
+| Check | Result |
+|---|---|
+| plant: the chain order reversed | fails 1 test (note 1 closed) |
+| plant: a close mismatch counted as "refused" | fails 1 test |
+| `fno/desk/` | no diff against main |
+| `tests/itm_chance` | 42 passed |
+| full suite | 9,614 passed, 16 xfailed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | clean |
+| `check_imports` | clean |
