@@ -86,3 +86,19 @@ additive `UnavailableReason.SIZE_SHARED`).
     and constants differ from `main` by the one additive line only.
   - j's three new f requirements (allocate before recording, `size_shared` to counts, `is_ticket` on ticket
     outcomes) are what make this hold end to end; j's judge must check them.
+
+## Addendum 2: re-check at b40cf1cf (code cad9a608, judge 490's fixes)
+
+**Verdict: PASS confirmed** (first judge). Scope: f's own change since a50caf62 (`rules.py`, `book.py`, `counts.py`
+and their tests), not the merged `main` code.
+- **Reason order:** `named_refusal` picks a driver stop first, then a trade-validity law, and an account limit
+  only when limits alone refused. `first_binding_refusal` uses the same order. Plants caught: stops-or-any,
+  validity before stops, the binding filter dropped.
+- **Fails closed:** empty law results raise in `classify`, `first_binding_refusal` and `counts_for` (for a trade or
+  ticket), and `ticket_laws_pass(())` is False. Plants removing each are caught. `TicketBook.enter` now reads the law
+  results from the sealed `DecisionRecord`, so a caller cannot hand it other results (plant caught).
+- **Earlier fixes still hold:** tickets out of `accepted` and the seeded order are both still caught.
+- **Plants: 11 planted, 10 caught.** The survivor is again the untested exit half of `account_net`'s filter
+  (minor, addendum 1). Its behaviour is unchanged.
+- **Gates (my run):** pytest -n auto 10,626 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.

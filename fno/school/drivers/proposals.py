@@ -8,7 +8,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 
 from ...constants import SIDE_BUY, SIDE_SELL, PlaybookStatus
-from ...playbook.candidates import CandidateBuilder, NotBuilt
+from ...playbook.candidates import CandidateBuilder, NotBuilt, live_chain
 from ...playbook.opportunities import SHADOW, Opportunity
 from ...playbook.schema import Evidence, Strategy
 from ...playbook.structure_spec import ExpiryRule, StructureSpec
@@ -52,6 +52,13 @@ class ProposalBuilder:
             if proposal is not None:
                 return proposal
         return None
+
+    def quotes_missing(self, plan: Plan, snapshot: SlotSnapshot) -> bool:
+        """True when no width of the plan has all its legs listed with valid quotes: the structure cannot be built
+        for want of quotes, whatever the cap (D2's own listing test)."""
+        market = snapshot_market(snapshot, plan.expiry).market
+        chain = frozenset(live_chain(market, plan.expiry))
+        return all(plan.structure.legs(chain, snapshot.spot, width) is None for width in plan.widths)
 
     def _at_touch(self, risk_proposal, view: SnapshotMarket, plan: Plan, units: int) -> Proposal | None:
         legs = [p.leg for p in risk_proposal.legs]

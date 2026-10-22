@@ -58,3 +58,66 @@ checked that tip only for whether each still holds (see the end).
   - Finding 3 is addressed: a seeded order, accounts before tickets.
   - Finding 1 is partly addressed: stops are named first, but `[open_risk, max_loss]` still gives `open_risk`.
   - Finding 2 is unchanged.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-p1-tickets at a50caf62 (the round 2 after Judge K's judge 481; I still haven't read K's
+verdict), tickets diff f591ba21..a50caf62. **Verdict: FAIL.** 2 should-fix still open, 1 minor. This was my last
+round: the owner decides (JUDGE.md, two judges for money pieces).
+
+**Gates (my run):** pytest -n auto: 10,369 passed, 16 xfailed. ruff check/format, check_imports and check_records
+are clean.
+
+**Round-1 findings:**
+1. **Refusal reason: PARTLY fixed, still a should-fix.**
+   - Stops are named first: `[bucket_cap, daily_stop]` now gives `refused: daily_stop` (my run; plant caught).
+   - But `[open_risk, max_loss]` still gives `refused: open_risk` (my run). A trade the Rs 10,000 loss law refused is
+     recorded as a cap refusal, the one reason that would have made it a ticket.
+   - Expected, unchanged: never name an account limit when a binding law refused, e.g.
+     `(stops or binding or refusals)[0]`, with a test for the pair.
+2. **Empty law results pass: NOT fixed, still a should-fix.**
+   - `classify` with `check -> ()` gives `trade`. `ticket_laws_pass(())` is True and `first_binding_refusal(())` is
+     None (my run, at a50caf62).
+   - Expected, unchanged: an empty result set refuses or raises in `classify`, `TicketBook.enter` and `counts_for`.
+3. **Size by owner name: ACCEPTED.**
+   - The order is seeded from SHA-256(session, slot, road), with accounts before tickets. The seed and the order are
+     recorded.
+   - An unservable account entry becomes `unavailable: size_shared`: fillable, not executed, left out of
+     `account_net`.
+   - Plants caught: order by name, no account-first group, a constant seed, `fill_status` ignoring the allocation,
+     `size_shared` ignored in the counts.
+- **Minor (a): not changed.** Results are still passed beside the `SealedDecision`; j must pass the sealed ones.
+
+**New minor:** an outcome whose exit was unservable isn't tested: removing the `o.exit` term in `rupees.py:22`
+survived. The code is right; add the test.
+
+**Plants:** 7 on the new code, 6 caught, 1 survived (the new minor).
+
+## Addendum 2
+
+**Round 2 of 2, at the right tip:** story/ms-p1-tickets at b40cf1cf (code cad9a608 / ec9128b6), tickets diff
+a50caf62..b40cf1cf. The orchestrator ruled that Addendum 1 judged a superseded tip and doesn't use up the round. This
+addendum replaces it as my round 2. **Verdict: PASS** as second judge, with 1 minor. I still haven't read Judge K's
+verdict.
+
+**Gates (my run):** pytest -n auto: 10,626 passed, 16 xfailed. ruff check/format, check_imports and check_records
+are clean.
+
+**Findings:**
+1. **Refusal reason: ACCEPTED.** `named_refusal` names a stop, then a trade-validity law, then an account limit.
+   My runs:
+   - `[bucket_cap, daily_stop]` gives `daily_stop`;
+   - `[open_risk, max_loss]` gives `max_loss`;
+   - `[open_risk, bucket_cap]` gives `ticket: account_limit`.
+   Plant (`binding` dropped) caught.
+2. **Empty law results: ACCEPTED.** `classify` raises on `()`, `ticket_laws_pass(())` is False,
+   `first_binding_refusal(())` raises, and `counts_for` raises for a trade or ticket with no results. All 4 plants
+   caught.
+3. **Size order: accepted in Addendum 1, unchanged.**
+- **Minor (a), results from the caller: ACCEPTED.** `TicketBook.enter` now takes the sealed `DecisionRecord` and reads
+  its `law_results` (plant setting `binding = None` caught).
+
+**Still open, minor:** no test covers an outcome whose exit was unservable (removing `o.exit` in `rupees.py` survives
+again). The code is right. Add the test before j relies on it.
+
+**Plants:** 7, 6 caught, 1 survived (the minor).

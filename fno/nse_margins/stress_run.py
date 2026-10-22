@@ -14,11 +14,10 @@ import hashlib
 import traceback
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
-from ..constants import SPAN_BOD_CREATED_BEFORE
 from ..fo_bhavcopy import BadFile
 from .held_rise import HeldRiseTracker, Holding
 from .job import DayFile
@@ -107,8 +106,7 @@ class StressFactorRun:
         if hashlib.sha256(data).hexdigest() != sha256:
             raise StressRowRefused(f"{filename} differs from its manifest SHA-256 (not the first-archived copy)")
         span = read_span_file(data, filename, allow_short_option_minimum=True)
-        deadline = datetime.combine(day, SPAN_BOD_CREATED_BEFORE, tzinfo=span.created.tzinfo)
-        if span.created >= deadline:
+        if not span.written_in_time(day):
             raise StressRowRefused(f"{filename} was written {span.created:%Y-%m-%d %H:%M}, not before 09:00 on its day")
         return span
 

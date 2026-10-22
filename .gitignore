@@ -10,6 +10,8 @@ nse_raw_download.zip
 # Drive"): the local copies are downloaded for reading only; the public record keeps journal/<book>/daily_totals.csv
 journal/*/account/
 journal/shadow/*/account/
+# Story MS-P1d: the market school's driver accounts, the same Drive-only rule
+journal/school/
 journal/*/packs/*/private.json
 research/scoreboards/B/
 research/scoreboards/A/
