@@ -645,6 +645,11 @@ minutes can be replaced without a second paid source.
   named in a test), and any `place_`, `modify_`, `cancel_` or `create_` name. `GrowwFeed(groww_api)` takes the full
   trading client, so it is built and wrapped only in the composition root (`fno/intraday/feed_wiring.py`, new); the
   probe holds only the wrapper.
+- **Which instruments:** the feed subscribes by `exchange`, `segment` and `exchange_token`, which the option chain does
+  not carry (checked 22 Oct: a chain leg holds `trading_symbol`, `ltp`, `open_interest`, `volume`, `greeks` only). The
+  tokens come from Groww's public instrument list (the SDK's own `INSTRUMENT_CSV_URL`, about 143,000 rows: index
+  values, futures and options with expiry, strike and type), downloaded once per run, read-only; the ATM strike of each
+  index comes from one `get_quote` of its index value through A16's existing `ReadOnlyGroww` (no allow-list change).
 - **`python -m fno intraday feed-probe --plan <coverage|ramp|alongside> --minutes N`**: a probe, not a recorder. It
   keeps counts and times only (per instrument: ticks, first and last receipt time, latency figures); no tick value is
   printed, committed or posted. The probe note is written by hand from its printed summary.
