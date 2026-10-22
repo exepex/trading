@@ -1,2 +1,3 @@
 fetched_at,path,url,form,sha256,size_bytes
 2026-10-22T06:10:50.076738+05:30,yahoo/indices/ftse-chart/2026/10/22/061050_ftse-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EFTSE?period1=1546214400&period2=1792713600&interval=1d,,591b25efc7cf1f84dd2ebf6900b0de8d6113d4cbabb3eb8c9d7c0a5d306cb05b,185763
+2026-10-22T07:00:01.164072+05:30,yahoo/indices/ftse-chart/2026/10/22/070001_ftse-chart_20260919_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EFTSE?period1=1789689600&period2=1792713600&interval=1d,,6bc90de86fa85ea4ad84b629d3f73506acd2da23c0370af90bb22dd9cd328fec,3420

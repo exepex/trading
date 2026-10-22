@@ -1,2 +1,3 @@
 fetched_at,path,url,form,sha256,size_bytes
 2026-10-22T06:10:38.004513+05:30,yahoo/indices/sti-chart/2026/10/22/061038_sti-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?period1=1546214400&period2=1792713600&interval=1d,,44693a509d88a0932c9fda15edb1c2744a34169de4d5d71ca44e91e4b096320d,205147
+2026-10-22T06:59:41.011175+05:30,yahoo/indices/sti-chart/2026/10/22/065941_sti-chart_20260919_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?period1=1789689600&period2=1792713600&interval=1d,,f76d9ee38c9606cc018b96c671ba4623c8ac7fa26688e64d539d623c7a702bcf,3632
