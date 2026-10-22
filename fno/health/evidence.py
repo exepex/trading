@@ -16,8 +16,8 @@ from .model import EvidenceUnknown
 class HealthHistory(RepoHistory):
     def first_commit_adding_text(self, path: str, text: str, since: date) -> str | None:
         """The earliest commit since `since` whose change to `path` added `text` (git's pickaxe)."""
-        found = self._run("log", "--format=%H", "--reverse", f"--since={since.isoformat()}", "-S", text, "--", path)
-        commits = found.stdout.split()
+        found = self._out("log", "--format=%H", "--reverse", f"--since={since.isoformat()}", "-S", text, "--", path)
+        commits = found.split()
         return commits[0] if commits else None
 
 

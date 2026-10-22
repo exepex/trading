@@ -5,12 +5,11 @@ and cache, O8's GitHub push evidence for the seal, and O1's `live_from` date."""
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import date, timedelta
 
 from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
-from ..constants import DEFAULT_REPOSITORY, ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, NIFTY_SYMBOL
+from ..constants import DEFAULT_REPOSITORY, ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, NIFTY_SYMBOL, PUBLISH_BRANCH
 from ..forecast_v4_rules.wiring import CLOSES_FILE
 from ..health.evidence import Evidence, HealthHistory
 from ..models import now_ist
@@ -18,6 +17,7 @@ from ..price_distribution.horizons import previous_regular_session
 from ..price_distribution.sources import PanelEodChains, SnapshotChains
 from ..price_distribution.store import DriveDistributionStore
 from ..research_data.panel_reader import read_nifty_panel
+from ..research_engine.ledger import Git
 from ..storage.data_wiring import DRIVE_CACHE_FOLDER, build_data_store, build_drive_cache, receipt_folder
 from ..storage.wiring import (
     PANEL_FOLDER,
@@ -115,12 +115,11 @@ def build_table_update() -> tuple[CloseTables, IndexFileCloses]:
 
 def deep_enough(root=ROOT, days: int = 10) -> None:
     """In a shallow clone, git's "first commit adding the file" is the clone's boundary commit, so the push time
-    found would be wrong: the history of the last `days` days is fetched first (review finding 1)."""
-    run = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=root, capture_output=True, text=True)
-    if run.stdout.strip() == "true":
-        since = (now_ist().date() - timedelta(days=days)).isoformat()
-        subprocess.run(["git", "fetch", "--quiet", f"--shallow-since={since}", "origin", "main"], cwd=root,
-                       capture_output=True, text=True, check=False)  # fmt: skip
+        found would be wrong: the history of the last `days` days is fetched first (review finding 1). Through B4's
+    `Git`, so a failure raises instead of passing as "not shallow" or a fetch that never happened."""
+    git = Git(root)
+    if git.is_shallow():  # a failed read or fetch raises GitFailed: a wrong push time would seal a record wrongly
+        git.deepen_since(now_ist().date() - timedelta(days=days), PUBLISH_BRANCH)
 
 
 def build_seal_check(env=os.environ, deadline_of=None) -> SealCheck:
