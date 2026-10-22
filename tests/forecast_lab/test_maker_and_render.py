@@ -4,9 +4,9 @@ never stops the report (the file and the text go, and one alert says why); both 
 from datetime import date, datetime
 from pathlib import Path
 
+from fno.forecast_lab.design.renderer import DesignRenderer
 from fno.forecast_lab.maker import ReportMaker
 from fno.forecast_lab.page.camera import ChromiumCamera, PageCamera, PictureFailed
-from fno.forecast_lab.page.render import InterimRenderer
 
 from .page_builders import days, index, outcome, page
 
@@ -42,7 +42,7 @@ def view_with_history():
 
 def test_the_text_picture_and_details_come_from_one_page_model():
     pages = Pages(view_with_history())
-    made = ReportMaker(pages, InterimRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "evening",
+    made = ReportMaker(pages, DesignRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "evening",
                                                                 ("an alert",), "a\n\nb")  # fmt: skip
     assert made.text.endswith("Research only. Not a trade tip.") and made.alerts == ()
     assert [f.name for f in made.files] == ["forecast-evening-2026-10-23.png", "forecast-evening-2026-10-23.html"]
@@ -51,7 +51,7 @@ def test_the_text_picture_and_details_come_from_one_page_model():
 
 
 def test_a_picture_that_cannot_be_made_sends_the_file_and_the_text_with_one_alert():
-    maker = ReportMaker(Pages(view_with_history()), InterimRenderer(), Camera(fail=True))
+    maker = ReportMaker(Pages(view_with_history()), DesignRenderer(), Camera(fail=True))
     made = maker.make(date(2026, 10, 23), datetime.now(), "morning")
     assert [f.name for f in made.files] == ["forecast-morning-2026-10-23.html"] and made.text
     assert made.alerts == ("the morning picture was not made (no Chromium at /nowhere); the text and the details file "
@@ -59,11 +59,10 @@ def test_a_picture_that_cannot_be_made_sends_the_file_and_the_text_with_one_aler
 
 
 def test_both_pages_are_self_contained_and_carry_the_research_line():
-    renderer, view = InterimRenderer(), view_with_history()
+    renderer, view = DesignRenderer(), view_with_history()
     for html in (renderer.picture(view), renderer.details(view)):
-        assert "http://" not in html and "https://" not in html and "<link" not in html
-        assert "Research only. Not a trade tip." in html or "Paper research only" in html
-    assert "<script>" in renderer.details(view) and "<script>" not in renderer.picture(view)
+        assert "http://" not in html and "https://" not in html and "<link" not in html and "<script" not in html
+        assert "Research only. Not a trade tip." in html
 
 
 def test_the_camera_says_why_when_chromium_is_missing(tmp_path):
@@ -76,14 +75,14 @@ def test_the_camera_says_why_when_chromium_is_missing(tmp_path):
 
 
 def test_the_real_camera_draws_the_picture_page_at_its_width_and_trims_the_bottom(tmp_path):
-    camera = ChromiumCamera(width=600)
+    camera = ChromiumCamera(width=1100)
     if not camera.executable.exists():  # the routine's environment has it (/opt/pw-browsers); a laptop may not
         return
     from PIL import Image
 
-    out = camera.picture(InterimRenderer().picture(view_with_history()), tmp_path / "p.png")
+    out = camera.picture(DesignRenderer().picture(view_with_history()), tmp_path / "p.png")
     with Image.open(out) as image:
-        assert image.format == "PNG" and image.size[0] == 1200 and image.size[1] < 4000 * 2
+        assert image.format == "PNG" and image.size[0] == 2200 and image.size[1] < 4000 * 2
 
 
 def test_a_verdict_is_kept_only_for_today_s_own_provisional_check():
@@ -107,5 +106,5 @@ def test_a_failed_section_is_alerted_once_with_the_report():
     from fno.forecast_lab.page.cues import FAILED, SectionView
 
     view = replace(view_with_history(), cues=(SectionView("S&P 500", FAILED, why="S&P 500: the read failed (X)"),))
-    made = ReportMaker(Pages(view), InterimRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "morning")
+    made = ReportMaker(Pages(view), DesignRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "morning")
     assert made.alerts == ("S&P 500: the read failed (X)",)
