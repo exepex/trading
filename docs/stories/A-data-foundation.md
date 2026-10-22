@@ -2448,8 +2448,16 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
     never turns into a second host's answer.
   - When the secondary also fails, the error raised names both hosts' failures.
 - **`FallbackSource.last_written(path)`** delegates to the primary only, never the secondary (limit above).
-- **The record.** Manifest rows already carry the full URL, so a file from the second host is recorded with its
-  host. Its bytes go through the same write-once store and SHA-256 receipt (A10, O9).
+- **The record** (amended at the code round, judge 471 note: the first wording was wrong).
+  - **The manifest URL is the canonical URL, not the serving host.** A10's `FingerprintingStore.put` builds each
+    row's URL from the class's `url_for`, so it always names `nsearchives`; it is the row's key `(day, url)`, and
+    stays so.
+  - The bytes go through the same write-once store, manifest row and SHA-256 receipt (A10, O9).
+  - **Provenance rows.** Every file the second host serves gets one row in
+    `research/data/manifests/second-host/<dataset>.csv`: `path, sha256, size_bytes, url, fetched_at`. They are
+    written by `FallbackSource` through a `ProvenanceLog` port (`CsvProvenanceLog`).
+  - The folder sits inside the manifests folder, as `revisions/` does, so the librarian's existing manifest commit
+    carries the rows. The SHA-256 joins a provenance row to its manifest row.
 - **Retry cost: the secondary gets one try, not a second retry series** (judge 471 minor 2; the A20 builder's point
   3).
   - Tries are counted per call and per host: `RETRY_WAITS` (5, 15 and 45 s) run inside one call on one instance, and
@@ -2470,7 +2478,8 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
     - So the fallback adds at most 1 minute per missing file to a morning that is already that slow today; on a
       normal morning, with the file stored or the primary answering, it adds nothing. (Arithmetic from the
       constants; reasoning only for how often files are missing.)
-- **The live check.** `python -m fno data-librarian hosts --day D` (read-only) prints, per dataset, both hosts'
+- **The live check.** `python -m fno data-hosts --day D` (read-only; its own command, because `data-librarian`
+  takes the dataset as its first argument) prints, per dataset, both hosts'
   status and SHA-256 and `same` or `DIFFERENT`. It exits 1 on any `DIFFERENT`, and stores nothing.
 
 - **If a later primary copy differs from the secondary's bytes** (judge 471 minor 1):
@@ -2479,10 +2488,10 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
     as a revision (`REVISION <day> <path>: ...`) with an index row. The point-in-time reader keeps returning the first
     archived copy, and the latest reader returns the newer one. That is A11's existing path for an NSE rewrite.
   - The sweep prints that line and sends no alert, as for any rewrite today.
-  - The manifest row's URL names the host the first copy came from, so a revision of a second-host file can be told
-    apart from a real NSE rewrite.
+  - The file's provenance row names the host the first copy came from, so a revision of a second-host file can be
+    told apart from a real NSE rewrite.
   - This A9c test proves the path: a file fetched through the secondary, then a differing primary copy, gives one
-    revision, and the manifest URL names `archives.nseindia.com`.
+    revision, and the provenance row names `archives.nseindia.com`.
 
 **Gap list (every requirement to a criterion or to Out):**
 
@@ -2524,8 +2533,11 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
    on a 503 (counted), while the primary still makes 4. With a fake clock, a primary that fails slowly to its
    600 s worst case plus the secondary's one 60 s timeout ends at 660 s, never more. The secondary's pacer key is
    `archives.nseindia.com`.
-9. **A differing later primary copy** (the path above): one A11 revision, the first copy still returned by the
-   point-in-time reader, and the manifest URL naming the second host.
+9. **A differing later primary copy** (the path above): one A11 revision, and the first copy kept in the raw store.
+   The file's provenance row names `archives.nseindia.com` with the stored SHA-256, and its manifest row keeps the
+   canonical URL.
+10. **The one-folder rule stays green** (judge 471 condition 2). `second-host/` sits beside the dataset files, as
+    `revisions/` does; each dataset's own manifest reads only its own rows (test).
 
 **Depends:** A9b (retry policy), A10, A11 (revision path), A20a (snapshot sources, out of scope), O9, FL1-1d (the
 morning librarian) · **Size:** S-M (about 130 code lines, 200 test lines) · **Status:** story text for judge F, round 2

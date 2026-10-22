@@ -208,3 +208,18 @@ def test_the_hosts_check_passes_only_on_same_or_neither(first, second, verdict, 
     lines = []
     result = compare_hosts([NseIndexCloseSource], DAY, Built({PRIMARY_HOST: first, SECOND_HOST: second}), lines.append)
     assert result == code and lines[0].endswith(f"-> {verdict}")
+
+
+def test_the_provenance_subfolder_never_mixes_with_the_dataset_s_own_manifest(tmp_path):
+    """Judge 471 condition 2: `second-host/` sits beside the dataset files, as `revisions/` does; the dataset's
+    manifest (the one-folder rule) reads only its own rows, under the canonical primary URL."""
+    manifests = ManifestFolder(tmp_path / "manifests")
+    store = FingerprintingStore(LocalFolderStore(tmp_path / "drive"), manifests, RAW_SOURCES)
+    source = FallbackSource(NseIndexCloseSource(Session([requests.ConnectionError("down")] * 4), sleep=lambda s: None),
+                            NseIndexCloseSource(Session([FILE]), host=SECOND_HOST, retry_waits=()),
+                            CsvProvenanceLog(tmp_path / "manifests" / "second-host"))  # fmt: skip
+    store.put(PATH, source.fetch(PATH))
+    assert manifests.path_for(NseIndexCloseSource) == tmp_path / "manifests" / "index-close.csv"
+    assert (tmp_path / "manifests" / "second-host" / "index-close.csv").is_file()
+    [row] = manifests.read(NseIndexCloseSource)
+    assert row.url == NseIndexCloseSource.url_for(PATH) and len(manifests.fingerprints(NseIndexCloseSource)) == 1
