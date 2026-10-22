@@ -212,4 +212,4 @@ def test_a_straddle_far_from_the_money_is_not_an_expected_move():
         quotes={k: q for k, q in snapshot.quotes.items() if k.expiry != expiry or abs(k.strike - b.SPOT) > 500},
     )
     assert b.move(far, expiry, 200.0) is None and b.move(far, expiry, 600.0) is not None
-    assert not_fired(decide("PS4", road_day, far, ()), NoTradeReason.NO_STRUCTURE_UNDER_CAP)
+    assert not_fired(decide("PS4", road_day, far, ()), NoTradeReason.NO_VALID_QUOTES)

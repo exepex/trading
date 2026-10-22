@@ -88,7 +88,7 @@ def test_a_missing_atm_quote_moves_the_straddle_to_the_next_strike_with_both_sid
     assert decision.outcome == Outcome.TRADE and all(leg.key.strike != b.SPOT for leg in decision.proposal.legs)
 
 
-def test_no_two_sided_straddle_at_all_is_no_structure_under_cap_never_a_guess():
+def test_no_two_sided_straddle_at_all_is_no_valid_quotes_never_a_guess():
     road_day, snapshot = b.scene()
     first = road_day.expiries[0]
     puts_only = replace(
@@ -96,7 +96,7 @@ def test_no_two_sided_straddle_at_all_is_no_structure_under_cap_never_a_guess():
     )
     assert b.move(puts_only, first) is None
     decision = decide("PS4", road_day, puts_only)
-    assert (decision.outcome, decision.reason) == (Outcome.NO_TRADE, NoTradeReason.NO_STRUCTURE_UNDER_CAP)
+    assert (decision.outcome, decision.reason) == (Outcome.NO_TRADE, NoTradeReason.NO_VALID_QUOTES)
 
 
 def test_an_invalid_quote_is_never_priced_the_leg_moves_to_a_valid_strike():

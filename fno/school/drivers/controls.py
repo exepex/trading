@@ -70,7 +70,9 @@ class RandomDriver:
             return no_trade(self.card, road_day, NoTradeReason.NO_EXPIRY_IN_WINDOW)
         expiry = rng.choice(eligible)
         move = ctx.move(expiry)
-        for _ in range(REDRAWS if move is not None else 0):
+        if move is None:
+            return no_trade(self.card, road_day, NoTradeReason.NO_VALID_QUOTES)
+        for _ in range(REDRAWS):
             plan = Plan(expiry, self._draw_shape(rng, road_day.strike_step, ctx.spot, move),
                         ctx.wing_widths(self.max_wing_steps))  # fmt: skip
             proposal = self.builder.build(plan, road_day, snapshot)

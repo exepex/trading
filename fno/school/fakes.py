@@ -6,8 +6,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from ..constants import SIDE_BUY, SIDE_SELL
 from .constants import (
+    SIDE_BUY,
+    SIDE_SELL,
     ClosureReason,
     ExitReason,
     ExitState,
@@ -87,10 +88,6 @@ class FakeMaxLossLaw:
         return LawResult(self.name, passed, None if passed else RefusalReason.MAX_LOSS, self.limit, proposal.max_loss)
 
 
-def _cash(fill: FillResult) -> float:
-    return sum((leg.price if leg.side == SIDE_SELL else -leg.price) * leg.units - leg.charges for leg in fill.legs)
-
-
 @dataclass
 class FakeAccounts:
     """Cash only: open positions are valued at zero (no marking), which is all a fake needs."""
@@ -102,7 +99,7 @@ class FakeAccounts:
         entries = self.ledgers.get(driver_id, [])
         closed = {e.position.position_id for e in entries if e.closes}
         open_ = tuple(e.position for e in entries if not e.closes and e.position.position_id not in closed)
-        cash = self.capital + sum(_cash(e.fill) for e in entries)
+        cash = self.capital + sum(e.fill.cash for e in entries)
         today = tuple(p for p in open_ if p.opened == session)
         return AccountView(driver_id, self.capital, cash, cash, max(cash, self.capital), 0.0, today, open_, None, None)
 
@@ -171,9 +168,16 @@ class FakeDashcam:
         if key in self.files and self.files[key] != payload:
             raise ReplayConflict(f"{session} {slot} {kind}")
         self.files[key] = payload
+        return self._seal(session, slot, kind, payload)
+
+    def _seal(self, session: date, slot: str, kind: RecordKind, payload: bytes) -> Seal:
         path = f"school/dashcam/{session:%Y/%m/%d}/{slot.replace(':', '')}.{kind}.jsonl.gz"
         when = self.pushed_at or datetime.fromisoformat(f"{session}T{slot}:00+05:30")
         return Seal(path, hashlib.sha256(payload).hexdigest(), when, "fake")
+
+    def find(self, session: date, slot: str, kind: RecordKind) -> Seal | None:
+        payload = self.files.get((session, slot, kind))
+        return None if payload is None else self._seal(session, slot, kind, payload)
 
     def read(self, seal: Seal) -> tuple[SlotRecord, ...]:
         found = [data for data in self.files.values() if hashlib.sha256(data).hexdigest() == seal.sha256]

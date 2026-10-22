@@ -35,7 +35,7 @@ class CappedSeller(_Windowed):
             return NoTradeReason.RULE_NOT_FIRED
         move = ctx.move(expiry)
         if move is None:
-            return NoTradeReason.NO_STRUCTURE_UNDER_CAP
+            return NoTradeReason.NO_VALID_QUOTES
         above = ctx.spot > window.mean
         shape = credit_vertical(OPTION_PUT, ctx.spot - move.straddle_mid) if above else credit_vertical(
             OPTION_CALL, ctx.spot + move.straddle_mid)  # fmt: skip
@@ -54,7 +54,7 @@ class DebitBuyer(_Windowed):
             return NoTradeReason.NO_EXPIRY_IN_WINDOW
         move = ctx.move(expiry)
         if move is None:
-            return NoTradeReason.NO_STRUCTURE_UNDER_CAP
+            return NoTradeReason.NO_VALID_QUOTES
         try:
             sessions = sessions_between(ctx.calendar, ctx.session, expiry)
         except CalendarError:

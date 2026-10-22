@@ -18,5 +18,8 @@ class DashcamStore(Protocol):
         """Encode with `encode_slot_file`, save once and push its receipt; the same records again return the same seal,
         other records for the same key raise `ReplayConflict`."""
 
+    def find(self, session: date, slot: str, kind: RecordKind) -> Seal | None:
+        """The seal of that file if it was sealed (a rerun skips it; reports and the replay comparator read it)."""
+
     def read(self, seal: Seal) -> tuple[SlotRecord, ...]:
         """The sealed records, their bytes checked against the seal's SHA-256 (`StaleSeal` if they differ)."""

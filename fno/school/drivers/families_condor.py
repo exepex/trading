@@ -19,7 +19,7 @@ FLY, CONDOR = "fly", "condor"
 def _condor_plan(ctx: EntryContext, expiry, sizing: Sizing) -> Plan | NoTradeReason:
     move = ctx.move(expiry)
     if move is None:
-        return NoTradeReason.NO_STRUCTURE_UNDER_CAP
+        return NoTradeReason.NO_VALID_QUOTES
     shape = ExpectedMoveCondor(ctx.spot, move.straddle_mid)
     return Plan(expiry, shape, ctx.wing_widths(sizing.max_wing_steps), sizing.expected_net_rs)
 
@@ -69,7 +69,7 @@ class Reference:
         if not eligible:
             return NoTradeReason.NO_EXPIRY_IN_WINDOW
         return next((p for e in eligible if not isinstance(p := _condor_plan(ctx, e, self.sizing), NoTradeReason)),
-                    NoTradeReason.NO_STRUCTURE_UNDER_CAP)  # fmt: skip
+                    NoTradeReason.NO_VALID_QUOTES)  # fmt: skip
 
 
 class Edge1Control:

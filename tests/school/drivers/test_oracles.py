@@ -205,7 +205,7 @@ def test_the_atm_strike_may_sit_two_steps_from_spot_but_not_three():
         return replace(snapshot, quotes=kept)
 
     assert decide("PS4", road_day, without_near_strikes(200.0)).outcome == Outcome.TRADE
-    assert decide("PS4", road_day, without_near_strikes(300.0)).reason == NoTradeReason.NO_STRUCTURE_UNDER_CAP
+    assert decide("PS4", road_day, without_near_strikes(300.0)).reason == NoTradeReason.NO_VALID_QUOTES
 
 
 def test_the_ladder_wings_are_one_three_and_the_widest_that_fits():

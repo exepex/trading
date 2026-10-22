@@ -70,6 +70,13 @@ Quote a builder claim only when it is wrong. No praise, no restating the story.
    owner; no third round.
 4. On PASS the builder merges under the merge procedure below and marks its register row done.
 
+## Two judges for money pieces (owner, 22 Oct 2026)
+
+A lane-1 change that touches money, limits, fills, exits or the safety laws is judged by **two different judges**,
+each independently, each with its own judge file and its own two-round limit; it merges only after **both** PASS. If
+the two disagree after their rounds, the owner decides. Other lane-1 changes keep one judge. The orchestrator names
+the second judge when it routes the change.
+
 ## Quality rules for every lane-1 story (owner, 15 Oct 2026: "rules yes")
 
 1. **Story text first**, pushed alone and checked by the judge against the design and the owner's decisions before
