@@ -1186,6 +1186,29 @@ cases and a test that fails when the named code is broken on purpose.
 
 **SIM-d The practice runner and its labels** · depends on a-c and on MS-P1j's fleet runner
 - Files: `practice/`, `wiring.py`, the reserved CLI line.
+- **Plan (22 Oct 2026, builder; the interface names of MS-P1j's runner are confirmed when it is on main):**
+  - **d1 Inputs.** A stores-only `RawFileLibrary` over `build_archive_stores()` with `StoredFilesOnly`; `BhavcopyChain` over the UDiFF and
+    legacy files with `index_close` from A10's archived index-close files (criteria 9, 10); `DatedTerms` with EDGE1's circular lots and
+    `dated_charges`; the A7 calendar; `PracticeWindows(first_counted)` from the configured `school.first_counted`; a `SpreadModel` learned by
+    `SpreadLearner` from `recorded_snapshots` over the recorded sessions. Files: `practice/inputs.py`, `practice/spots.py` (the closes up to the
+    session as the drivers' `SpotPoint` history: nothing after the session).
+  - **d2 The fleet.** MS-P1j's `FleetRunner` built a second time, in this package's own wiring, with: three `HistoricalRoadSource`s (median,
+    p75, p95); `build_practice_safety_laws` and `QuoteRules(practice=True)` (criterion 12); accounts under a practice root that is not
+    `journal/school`; a practice dashcam dataset; the pilot's drivers from `research/school/cards/` minus any AI-role card (criterion 5).
+    Files: `practice/fleet.py`, `wiring.py`. Replay mode, fixed clock, local store: nothing is pushed.
+  - **d3 The run and its report.** `PracticeRunner.run(window, roads, drivers)` loops the sessions of a window the catalogue opens, one fleet per
+    scenario, and returns a `PracticeReport` with: per scenario and driver the counts (eligible, fillable, executed) and the net after costs;
+    the insufficient-bucket list; the unpriceable and unsellable legs; the impossible share per road-day (criterion 14); the label
+    `practice (simulator)`, the slot label and `size gate not tested in practice` on every line. Files: `practice/runner.py`, `practice/report.py`,
+    `practice/labels.py`.
+  - **d4 The command and the real-data dry run.** `python -m fno school practice run --from --to --roads` (one reserved line in `fno/cli.py`, agreed
+    with MS-P1j's owner). A dry run on a recorded window on the Drive archive (the container has read access), its output in the Claims with
+    counts only. With 8 recorded NIFTY sessions every bucket reads `insufficient spread data`, so the first real run proves the plumbing, the
+    labels and the unpriceable counts, not a result.
+  - **Order and dependencies.** d1 needs nothing new. d2 needs MS-P1j (the runner) and MS-P1d part 4 (on main). Criterion 13 needs MS-P1a's
+    `RoadDay.lots` follow-up (asked of its owner, 22 Oct) and a one-line change in `drivers/proposals.py`. d3 and d4 follow d2. Every file stays under 350
+    lines; the runner and the report are separate classes.
+- Files: `practice/`, `wiring.py`, the reserved CLI line.
 - Tests:
   1. The pilot's rule drivers run unchanged: the driver modules are imported from `fno/school/drivers/`, a test checks
      no driver file is edited by this story (diff-based) and that a practice run and the same card on a recorded
