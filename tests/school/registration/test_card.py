@@ -20,7 +20,7 @@ CARD = (ROOT / CARD_PATH).read_text()
 
 def test_read_card_accepts_the_card_as_a_measurement():
     card = read_card(ROOT, CARD_PATH)
-    assert (card.idea_id, card.version, card.measurement, card.hypothesis) == ("CARD_P1", 1, True, False)
+    assert (card.idea_id, card.version, card.measurement, card.hypothesis) == ("CARD_P1", 2, True, False)
 
 
 def test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version():
@@ -53,8 +53,9 @@ FROZEN_WORDS = (
     "first_counted_not_frozen_before",
     "new card version",
     "ImpossiblePriceLaw",
-    "expiry-day ELM is not modelled",
-    "account_limit",
+    "SEBI 2024/132",
+    "k = 2.1",
+    "A14c",
     "margin_room",
     "impossible_leg_price",
 )

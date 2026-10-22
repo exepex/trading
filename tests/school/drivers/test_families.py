@@ -1,5 +1,5 @@
 """Each family fires at its threshold and not just below it; history needs its full window (story MS-P1e, criteria
-1 and 2). The thresholds are the numbers of story 3.2's table, read from the draft cards."""
+1 and 2). The thresholds are the numbers of story 3.2's table, read from the frozen cards."""
 
 from dataclasses import replace
 from datetime import timedelta

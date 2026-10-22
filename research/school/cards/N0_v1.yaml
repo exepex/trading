@@ -1,8 +1,8 @@
-# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+# FROZEN card (stories MS-P1e and MS-P1h): registered in journal/versions.csv with this file's SHA-256; a change is a new version (a new file), never an edit. Numbers are first guesses [reasoning only].
 code: N0
 version: "1"
 family: nothing
 role: control
 roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W]
-band_steps: 0
+band_steps: 10
 parameters: {}
