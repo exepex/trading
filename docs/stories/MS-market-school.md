@@ -776,10 +776,13 @@ practised before forward days exist. A practice result is never evidence: it lic
 - **Three labelled scenarios** per bucket: the median, the 75th and the 95th percentile of the session values,
   shown as `median`, `p75`, `p95`. Every practice run is shown under all three; none is "the" result.
 - **Fewer than 30 quoted sessions in a bucket reads `insufficient spread data`.**
-- **Displayed size: the size gate is waived in practice** (orchestrator, 22 Oct 2026, Q5). History holds no sizes and none
-  is invented. The pilot's fill code needs a size on every two-sided quote, so a synthetic quote carries the named
-  sentinel `SIZE_GATE_WAIVED` (far above any lot count). It is a switch, not data: every practice output says "size gate
-  not tested in practice", and no record shows it as a displayed size.
+- **Displayed size: the size gate is not tested in practice** (orchestrator, 22 Oct 2026, Q5, ruling on design A). History
+  holds no sizes and none is invented, and no placeholder number is used. A practice quote keeps `bid_qty` and `ask_qty`
+  as `None` with `sizes_measured=False` (a field MS-P1a3 adds to `SlotQuote`). Only the practice composition root's
+  `QuoteRules(practice=True)` (MS-P1d's seam, imported only by `fno/school/simulator/`) lets such a quote through the size
+  and sell-back checks, with the note "size gate not tested in practice". Without that flag the pilot's live laws and
+  `SchoolFills` refuse an unmeasured quote, so a practice quote reaching a live path fails closed. Every practice output
+  carries the same label.
 - **Honest consequence [strong evidence: arithmetic on the recorded days].** On 22 Oct only 8 NIFTY monthly sessions
   and 3 sessions for each other road are recorded. Every bucket therefore reads `insufficient spread data` until about
   24 Nov for the busiest NIFTY monthly buckets, and **much later** for the short-dated and far-strike buckets: the
@@ -838,7 +841,7 @@ cases and a test that fails when the named code is broken on purpose.
   3. A planted impossible vertical (a 300-wide spread priced at 392, from EDGE1's results) is flagged: the driver
      reaches `refused` or `no_trade`, never a fill; an impossible exit waits.
   4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero; both sizes are
-     `SIZE_GATE_WAIVED` and nothing else.
+     `None` with `sizes_measured=False` and nothing else (no number); a live-mode fill refuses the quote.
   5. Look-ahead: changing any record dated after the session leaves the session's snapshot and every driver's
      decision byte-identical (a mutation test over the chain).
   6. An insufficient bucket gives `unavailable` for that leg's trade, never a zero spread.
@@ -894,7 +897,7 @@ as in 3.6).
    (7.2). I keep the rule as agreed. If you want a coarser first bucket grid (for example two DTE bands), that is a
    decision for the owner and a card change, not mine.
 4. **The close slot** (7.1 item 4) departs from the 15:00 slot. It is the only slot history holds; confirm.
-5. **Displayed sizes** (7.2): the size gate is waived in practice and labelled "size gate not tested in practice".
+5. **Displayed sizes** (7.2): design A. Sizes stay `None` with `sizes_measured=False`; only the practice flag passes the size checks, labelled "size gate not tested in practice". The first ruling (a sentinel) was withdrawn by the orchestrator.
 
 **Answers (orchestrator, 22 Oct 2026):** Q1 import EDGE1's readers read-only through ONE adapter, never edit or copy
 them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P1d's builder
@@ -907,7 +910,7 @@ SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 #### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
 
 Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhavcopy_chain,edge1}.py`, tests under
-`tests/school/simulator/`. Changes to story text: the Q5 answer (size gate waived) and test 3 below.
+`tests/school/simulator/`. Changes to story text: the Q5 ruling (design A) and test 3 below.
 
 | Criterion (7.4 SIM-a) | Code | Tests (all in `tests/school/simulator/`) | Broken-code proof (mutation, caught) |
 |---|---|---|---|
@@ -971,7 +974,7 @@ Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.
 | 1 conformance of catalogue and source | `catalogue.py`, `snapshots.py` | `test_the_catalogue_and_source_pass_the_pilots_conformance_checks` | n/a (a's checks) |
 | 2 traded that day; volume 1 is traded, 0 is not | `snapshots.py` | `test_a_leg_that_did_not_trade...` | `volume > 0` to `>= 0` |
 | 3 impossible vertical flagged, both legs unquoted | `snapshots.py` over `quality.prices.impossible_keys` | `test_a_planted_impossible_vertical...` | the flag branch removed |
-| 4 close -/+ half-spread, tick-outward, no bid below zero, waiver sizes | `quotes.py` | `test_quotes_and_steps.py` (10 tests, incl. 7.5 at 2%, which floors wrongly without the epsilon) | floor to round; epsilon 0; floor at half a tick removed; sizes changed |
+| 4 close -/+ half-spread, tick-outward, no bid below zero, sizes unmeasured (code still on the withdrawn sentinel: rework waits for MS-P1a3 and MS-P1d) | `quotes.py` | `test_quotes_and_steps.py` (10 tests, incl. 7.5 at 2%, which floors wrongly without the epsilon) | floor to round; epsilon 0; floor at half a tick removed; sizes changed |
 | 5 look-ahead: only the session's own chain is asked for; same day, same bytes; changed close, changed bytes | `snapshots.py` | `test_only_the_sessions_own_chain_is_read`, `test_the_same_day...`, `test_the_digest_covers_the_close...` | the day asked for shifted by one |
 | 6 insufficient bucket: no quote, counted, never zero spread | `snapshots.py` | `test_an_insufficient_bucket...` | zero-spread quote substituted |
 | 7 dated lot and dated STT | `terms.py` (a), used by `catalogue.py` | `test_a_2022_trade_is_charged_the_2022_stt...`, lot tests | lot ignored in a; STT date fixed in a |
