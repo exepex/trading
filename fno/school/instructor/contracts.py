@@ -62,6 +62,7 @@ class Measure(StrEnum):
 class DataFault(StrEnum):
     """Why a closed path cannot be attributed: it is tagged "bad price or data", never given numbers."""
 
+    SEALED_FILE_DAMAGED = "sealed_file_damaged"  # a decisions file whose bytes differ from its seal
     ENTRY_DECISION_MISSING = "entry_decision_missing"
     ENTRY_SEAL_MISMATCH = "entry_seal_mismatch"
     SESSION_NOT_SEALED = "session_not_sealed"  # a trading session held with no sealed decisions file
@@ -99,6 +100,15 @@ class HeldPath:
     @property
     def attributable(self) -> bool:
         return not self.faults
+
+
+@dataclass(frozen=True)
+class ClosedRead:
+    """The closed paths of a range of sessions, and the sessions whose outcomes file could not be read (its bytes
+    differ from its seal): those are an alert in every report, never a guess."""
+
+    paths: tuple[HeldPath, ...]
+    unreadable: tuple[date, ...]
 
 
 @dataclass(frozen=True)

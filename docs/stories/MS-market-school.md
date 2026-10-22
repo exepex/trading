@@ -692,8 +692,17 @@ sessions a real edge of a given size needs to show.
   if any, and the snapshots of every session held, entry to exit), `Attribution`, `Cause`, `Classification`,
   `PairedRow`, `MapStatus`;
 - `MapStatus` has exactly three members: `exploratory`, `watching`, `not_established` (327 correction 3);
-- `PathReader.closed_on(session) -> tuple[HeldPath, ...]`: the trades and tickets whose outcome was sealed that
-  session. A corrected outcome is read through its latest correction; the original stays on file;
+- `PathReader.closed_between(first, last) -> ClosedRead` and `closed_on(session)` (= `closed_between(session,
+  session)`, one resolver; orchestrator's ruling on judge 501): the trades and tickets closed on those sessions.
+  - An original is read on its own close day as its latest correction, sealed on any session up to today. The original
+    stays on file.
+  - A correction is never a path on the day its own file was sealed.
+  - So the days' `closed_on` add up to `closed_between` over the range.
+  - A day's tally recomputed after a correction can change. The 20:05 line keeps what was known at 20:05; later
+    reviews use the corrected figure.
+  - A decisions file whose bytes differ from its seal is a `sealed_file_damaged` fault on each path that needs it.
+  - An outcomes file that cannot be read is listed in `ClosedRead.unreadable`: an alert in every report, never a
+    guess. The other days still read;
 - ports, each with an in-memory fake that passes `conformance.py`:
   - `SnapshotArchive`: over b's `SnapshotSource`;
   - `EventCalendar`: over A6;
@@ -1990,4 +1999,20 @@ From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates 
 | `SchoolAccounts.entries(driver_id) -> tuple[LedgerEntry, ...]` for j's `LedgerReader` (a3), so settlement can run before the session's first `view` | `accounts/school_accounts.py`: under the account's lock, pulled from Drive once per run (`_locked`, shared with the writer), reads `PositionBook.entries()` in the order recorded, after the same unit-for-unit ledger check `view` makes; writes nothing (no account opened, no equity row, no push); an account never opened gives () | `test_entries.py`: entries match the ledger in order (plant: order reversed); nothing written and no push, the next session's row still written by `view` afterwards (plant: entries opening the account); one pull per run under the lock, a held lock refuses (plant: no pull); a failed pull stops with E2c's `PrivateFilesUnavailable`; half a record raises (plant: the check dropped) |
 
 - **Plants:** 4 planted, 4 caught. The Protocol's conformance check is added once a3 (j's builder) is on main.
+
+#### INS-a Claims, round 2 (judge 501 FAIL round 1: two should-fixes, four minors; orchestrator's ruling on SF2)
+
+| Finding | Fix | Test (`tests/school/instructor/`) |
+|---|---|---|
+| SF1: a damaged sealed file crashed the reader | `PathReader._read` catches `StaleSeal`. A damaged decisions file is `sealed_file_damaged` on each path that needs it (the entry day or a held day); a damaged outcomes file goes in `ClosedRead.unreadable`, and the other days still read | `test_reader`: `a_damaged_held_day_is_a_fault...`, `a_damaged_entry_day_is_a_fault_not_a_crash` (and not "entry missing"), `a_damaged_outcomes_file_is_reported_and_the_other_days_still_come_back` |
+| SF2: per-day reads counted a correction twice | One resolver, per the ruling: `closed_on(d)` is `closed_between(d, d)`. An original is read on its close day as its latest correction sealed up to today (the reader's clock), and a correction is never a path on its own day | `the_days_closed_on_add_up_to_closed_between_over_the_range` (a correction inside the range and one after it); `a_correction_sealed_later_replaces_its_original_on_the_original_close_day`; `a_chain_of_corrections_ends_at_the_latest`; `a_correction_sealed_after_today_is_not_yet_read` |
+| (a) mid-range outcome | none needed | `an_outcome_sealed_mid_range_is_read` |
+| (b) the trading-day filter | none needed | `a_muhurat_only_session_inside_a_hold_is_not_required` |
+| (c) the exit-day check, the snapshot ID, the adapter's closed road | none needed | `an_exit_day_closed_for_the_road_is_a_missing_snapshot`, `a_snapshot_with_the_right_hash_but_another_id_is_a_mismatch`, `test_ports`: `the_archive_itself_refuses_a_closed_roads_capture` |
+| (d) pinned bytes | none needed | `test_types`: `an_instructor_file_has_pinned_bytes...` (gzip time zero, no name) |
+
+- **The judge's six surviving plants and six new ones, all caught.** The new ones: the `StaleSeal` catch; corrections emitted on their own day; "today" cut to `last`; days after `last` emitted; one correction followed instead of the chain; `unreadable` emptied.
+- One extra plant survived on the first run: removing the entry-day damaged check. The test now also requires the fault to say "damaged", not "entry missing".
+- **The clock:** the reader takes a's `Clock`. The wiring passes `IstClock` (`now_ist`) and the tests a `FixedClock`.
+- **Known effect, as the ruling says:** a day's tally recomputed after a later correction can change.
 

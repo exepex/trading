@@ -2,8 +2,9 @@
 the captures, A6's events file for the scheduled events. Neither reads anything live."""
 
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, datetime
 
+from ...models import now_ist
 from ...research_data.events import Event, in_window
 from ..constants import RoadCode
 from ..contracts.roads import RoadCatalogue
@@ -30,3 +31,10 @@ class RecordedEventCalendar:
 
     def known_between(self, decided_on: date, after: date, through: date) -> tuple[date, ...]:
         return tuple(sorted({e.day for e in in_window(self.events, decided_on, after, through)}))
+
+
+class IstClock:
+    """The real clock, in IST: the reader's "today", up to which corrections are read."""
+
+    def now(self) -> datetime:
+        return now_ist()

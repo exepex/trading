@@ -7,14 +7,14 @@ from ...storage.wiring import EVENTS_FILE
 from ..dashcam.wiring import build_dashcam
 from ..execution.wiring import build_settlement_source
 from ..roads.wiring import build_road_services
-from .adapters import RecordedEventCalendar, RecordedSnapshotArchive
+from .adapters import IstClock, RecordedEventCalendar, RecordedSnapshotArchive
 from .reader import PathReader
 
 
 def build_path_reader() -> PathReader:
     roads = build_road_services()
     archive = RecordedSnapshotArchive(roads.catalogue, roads.snapshots)
-    return PathReader(build_dashcam(), archive, build_settlement_source(), roads.calendar)
+    return PathReader(build_dashcam(), archive, build_settlement_source(), roads.calendar, IstClock())
 
 
 def build_event_calendar() -> RecordedEventCalendar:

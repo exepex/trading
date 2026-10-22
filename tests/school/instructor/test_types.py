@@ -2,6 +2,7 @@
 identical bytes."""
 
 import dataclasses
+import hashlib
 
 import pytest
 
@@ -141,3 +142,9 @@ def test_the_school_import_boundary_covers_the_instructor():
 
     names = {p.name for p in FILES if "instructor" in p.parts}
     assert {"reader.py", "adapters.py", "wiring.py", "contracts.py"} <= names
+
+
+def test_an_instructor_file_has_pinned_bytes_so_a_rerun_writes_the_same_file():
+    data = encode_instructor_file((attribution(),))
+    assert data[4:8] == b"\0\0\0\0" and data[3] & 0x08 == 0  # gzip time zero and no file name
+    assert hashlib.sha256(encode_instructor_file((attribution(),))).hexdigest() == hashlib.sha256(data).hexdigest()

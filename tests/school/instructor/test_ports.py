@@ -68,3 +68,16 @@ def test_the_composition_root_builds_the_event_calendar_from_a6s_file():
     from fno.school.instructor.wiring import build_event_calendar
 
     assert isinstance(build_event_calendar(), EventCalendar)
+
+
+class AlwaysGivesSource:
+    """A source that would hand back a capture even for a closed road: the archive itself must refuse it."""
+
+    def for_road(self, road_day):
+        return snap(road_day.session)
+
+
+def test_the_archive_itself_refuses_a_closed_roads_capture():
+    closed = replace(road_day(ROAD, RoadStatus(ClosureReason.CAPTURE_MISSING)), session=SESSIONS[0])
+    archive = RecordedSnapshotArchive(FakeRoadCatalogue({SESSIONS[0]: (closed,)}), AlwaysGivesSource())
+    assert archive.snapshot(ROAD, SESSIONS[0]) is None
