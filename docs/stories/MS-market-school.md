@@ -483,6 +483,9 @@ Runs on a's fakes here; story j must pass it with the real wiring.
   `counts_for`, and passes `unservable_fills` to `account_net`;
 - **requirement from MS-P1f (judge 481 note):** every outcome record of a position from the ticket ledger has
   `is_ticket=True`, or `account_net` would sum it;
+- **requirement (Judge B, judge 479.2):** any after-the-fact "sealed before fill" check (replay, audit, j's harness
+  on old seals) uses O8's push evidence for the receipt, never `Seal.pushed_at`: that is the receipt commit's time, a
+  lower bound on the push, and is trustworthy only at the moment `DashcamStore.seal` returns after a successful push;
 - **requirement (orchestrator, 22 Oct):** the daily and the 30-session reports show, per road, the share of scheduled
   decisions refused for quotes (law 5: `missing_quote`, `one_sided_quote`, `size_above_displayed`,
   `protection_unsellable`). The capture gate's band is about 10 steps of the money while the shorts sit about 20 steps
