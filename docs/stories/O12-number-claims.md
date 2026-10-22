@@ -154,7 +154,7 @@ Tests: `tests/numbering/test_tools.py` (the cases above, and the workflow's trig
 verdict was easy to miss.
 
 **Change.** A failed git step prints git's whole output first, then one last line: "number claim: NOT claimed (the
-commit was refused, by the record-scan hook: its output is above; a missing package means this Python lacks the
+commit was refused, usually by the record-scan hook: git's output is above; a missing package means this Python lacks the
 requirements, so run `sh tools/routine_setup.sh`). Nothing was pushed: do not write the file; fix it and claim again."
 Every refusal ends with "Nothing was pushed: do not write the file". Exit 1 as before; nothing is pushed.
 

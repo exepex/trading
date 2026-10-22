@@ -202,7 +202,7 @@ def test_a_reserved_number_is_taken(tmp_path):
     [
         # a crashing hook, as when this Python lacks a package (judge B, 22 Oct: xlrd)
         ("echo 'Traceback: ImportError: No module named xlrd' >&2; exit 1", "No module named xlrd"),
-        # the record scan refusing: its findings are on stdout, which must not be lost
+        # the record scan refusing with a finding (git passes a hook's stdout on through its own stderr)
         ("echo 'numbers/x.csv:2: AWS access key'; echo 'record scan: REFUSED, 1 finding(s)'; exit 1", "REFUSED"),
     ],
 )
@@ -221,5 +221,5 @@ def test_a_refused_commit_stops_loudly_with_the_hooks_own_words_and_pushes_nothi
     assert claim_number.main(["claude-response", "x", "--session", "s", "--root", str(clone)]) == 1
     out = capsys.readouterr().out.strip().splitlines()
     assert printed in "\n".join(out[:-1])  # the hook's own words first
-    assert out[-1].startswith("number claim: NOT claimed (the commit was refused, by the record-scan hook")
+    assert out[-1].startswith("number claim: NOT claimed (the commit was refused, usually by the record-scan hook")
     assert out[-1].endswith("Nothing was pushed: do not write the file; fix it and claim again.")
