@@ -7,18 +7,21 @@ school's types.
   contract's strike, type, expiry and mid. A mid comes only from this slot's snapshot of the contract's own index,
   at a valid two-sided quote; a contract without one raises C2's own `RiskInputError` when its mid is read, so the
   rule refuses (fails closed). Implied volatility, which C2's stress rules need, is not offered: the school runs none.
-- C2's margin terms: the structure code and its width (the widest gap between a bought and a sold strike of one
-  type), one lot count for every leg (a leg ratio C2 cannot size is refused)."""
+- C2's terms are MS-P1m's `RoadTradeTerms` (the structure code, its width, one lot count for every leg, the index,
+  the one expiry, the legs and the units per lot, checked against the structure's shape), and C2's proposal and open
+  trades are built from them by MS-P1m's factories, so C2's margin and C2's units read one source. A leg ratio, two
+  expiries or a shape the code does not name is refused."""
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
 from ...books.equity import AccountState
+from ...nse_margins.road_trades import RoadTradeTerms, road_open_trade, road_proposal
 from ...research_engine.structures import BOUGHT, SOLD, Leg
-from ...risk.inputs import OpenTrade, ProposedLeg, RiskBook, RiskInputError, SessionTrade, TradeTerms
+from ...risk.inputs import OpenTrade, RiskBook, RiskInputError, SessionTrade
 from ...risk.inputs import Proposal as RiskProposal
-from ..constants import SIDE_BUY, RoadCode
+from ..constants import SIDE_BUY, OptionKind, RoadCode
 from ..contracts.decisions import LegSpec, OpenPosition, Proposal
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.safety import AccountView
@@ -89,8 +92,8 @@ def _book(account: AccountView) -> RiskBook:
 
 
 def _open_trade(position: OpenPosition) -> OpenTrade:
-    terms = _risk_proposal(position.position_id, position.road, position.structure, position.legs, position.lot).terms
-    return OpenTrade(position.position_id, terms, _signed_units(position), position.entry_net)
+    terms = road_terms(position.position_id, position.road, position.structure, position.legs, position.lot)
+    return road_open_trade(position.position_id, terms, _contract_of, position.entry_net)
 
 
 def _signed_units(position: OpenPosition) -> dict[str, int]:
@@ -98,12 +101,23 @@ def _signed_units(position: OpenPosition) -> dict[str, int]:
 
 
 def _risk_proposal(trade_id: str, road: RoadCode, structure: str, legs: tuple[LegSpec, ...], lot: int) -> RiskProposal:
-    lots = {leg.lots for leg in legs}
-    if len(lots) != 1:
-        raise RiskInputError(f"{trade_id}: legs of {sorted(lots)} lots; C2 sizes one lot count for every leg")
+    return road_proposal(trade_id, road_terms(trade_id, road, structure, legs, lot), _contract_of)
+
+
+def road_terms(trade_id: str, road: RoadCode, structure: str, legs: tuple[LegSpec, ...], lot: int) -> RoadTradeTerms:
+    """MS-P1m's terms of one school trade: its index, its one expiry, one unit per leg and its lots, checked against
+    its structure's shape. C2's proposal and open trade are built from them by MS-P1m's factories, so the margin and
+    the units can never disagree."""
+    lots, expiries = {leg.lots for leg in legs}, {leg.key.expiry for leg in legs}
+    if len(lots) != 1 or len(expiries) != 1:
+        raise RiskInputError(f"{trade_id}: legs of {sorted(lots)} lots on {len(expiries)} expiries; C2 sizes one each")
+    one_unit = tuple(_leg(leg) for leg in legs)
     underlying = ROADS_BY_CODE[road].underlying
-    proposed = tuple(ProposedLeg(contract_symbol(underlying, leg.key), _leg(leg)) for leg in legs)
-    return RiskProposal(trade_id, TradeTerms(structure, structure_width(legs), lots.pop()), lot, proposed)
+    return RoadTradeTerms(structure, structure_width(legs), lots.pop(), underlying, expiries.pop(), one_unit, lot)
+
+
+def _contract_of(underlying: str, expiry: date, leg: Leg) -> str:
+    return contract_symbol(underlying, ContractKey(expiry, leg.strike, OptionKind(leg.kind)))
 
 
 def _leg(leg: LegSpec) -> Leg:

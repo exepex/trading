@@ -514,6 +514,9 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
 - a rerun skips sealed decisions;
+- **requirement (orchestrator, 22 Oct 2026, judge 494):** a law result's `note` can name contracts or legs (MS-P1m's
+  margin causes do), so it is never posted to Slack; the reports count "margin not checked" refusals by their cause
+  (`margin_not_checked`, the cause after the prefix), never by quoting the note;
 - MS-P1d limit 2 (orchestrator, 22 Oct 2026): a driver account's shared displayed size (E4d) counts its entries
   at the snapshot, not its exits of older positions there (`AccountView` cannot show them). Exits therefore run after
   the slot's entries, as the order above has it: an exit that then finds too little size waits
@@ -1404,3 +1407,20 @@ first, and a test was added for each). Tests: 42 in `tests/school/acceptance/`.
 **Limits that remain:** the counts file, section inputs and denominator on the fakes are derived from the sealed
 decisions file (f, g and j supply the real ones); a missing quote is accepted as a law refusal or a refused fill; the
 replay-conflict fault is checked at the dashcam.
+### MS-P1d follow-up Claims (branch `story/ms-p1d-margin`; part 1, on MS-P1m; the MS-P1b part follows once b is on main)
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+|---|---|---|
+| Law 3 on MS-P1m's margin per trade | `safety/margin_law.py`: C2's `MarginRoom`, unedited, on the `StressedMargin` the fleet builds once per run (`safety/wiring.build_margin(cfg)` = MS-P1m's `build_road_margin`). The margin-row file check (`MarginRows`) is gone. An unreadable margin refuses, with the note "margin not checked: <MS-P1m's named cause>" (`C2Law.unchecked_note`) | `test_margin_law.py` (plants: note dropped, unreadable input passes, C2's own refusal reported as no data) |
+| C2's inputs from MS-P1m's terms and factories | `safety/c2_inputs.road_terms`: a `RoadTradeTerms` per trade (index, one expiry, one unit per leg, lots, lot, its shape checked by MS-P1m); C2's proposal and open trades come from `road_proposal`/`road_open_trade`, so C2's units and margin read one source | `test_c2_s_units_and_margin_come_from_one_set_of_terms` (plant: the terms' lot set to 1, MS-P1m's 840 vs 54,600 case); `test_equal_c2_terms_on_two_indices_get_their_own_margins`; `test_terms_of_two_expiries_or_a_leg_ratio_are_refused_before_c2` (plant: the expiry guard dropped) |
+| School terms never reach the desk's two `TradeTerms(**asdict(...))` codecs | no code; pinned | `test_terms_never_reach_desk_codecs.py`: the round trip fails on school terms, no school module imports either codec, and the school's three composition roots load neither (fresh interpreter) |
+- **Expiry day:** MS-P1m now prices a held trade on its own expiry day with SEBI's extra 2% ELM (`expiry_day_exposure.py`)
+  instead of refusing it, so the expiry-day known limit planned for MS-P1j no longer applies; nothing is added there.
+- **Structure codes:** MS-P1m's terms accept only SF, SC, BF, PCS, CCS, CDS and PDS in their own shapes; any other
+  refuses under every C2 law (routed to e by the orchestrator).
+- **Still to come, once MS-P1b is on main:** `_verticals` on b's vertical-range function with its 1e-9 tolerance
+  (tests at the bounds +/- 1e-12), and settlement on b's `build_archive_stores`.
+- **Plants:** 6 planted on this part, 6 caught.
+- **Judge 494 (Judge I, round 1) should-fix, test only:** `test_a_held_trade_s_entry_net_is_its_cash_flow_in_c2_s_max_loss`:
+  a held credit spread counts in the open-risk cap at C2's own held maximum loss for its `entry_net`; at the cap, no
+  credit refuses and twice the credit passes. Plant: `entry_net` replaced by 0 in `c2_inputs` is caught. The MS-P1j
+  requirement on `LawResult.note` (never to Slack; counted by cause) is added.

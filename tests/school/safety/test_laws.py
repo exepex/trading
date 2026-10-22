@@ -9,15 +9,13 @@ from dataclasses import FrozenInstanceError, replace
 
 import pytest
 
-from fno.risk.rules import MarginRoom
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.school.constants import ExitState, RefusalReason, RoadCode
 from fno.school.contracts.decisions import LegSpec
 from fno.school.contracts.snapshot import ContractKey
 from fno.school.safety.account_laws import BrakeLaw, DailyStopLaw, ProtectedLaw
-from fno.school.safety.c2_laws import C2Law, margin_numbers
 from fno.school.safety.law_set import SafetyLaws, refusals
-from fno.school.safety.margin_law import margin_not_checked
+from fno.school.safety.margin_law import margin_not_checked, margin_room_law
 from fno.school.safety.quote_laws import GATE_REASONS, ImpossiblePriceLaw, QuoteGateLaw
 from fno.school.safety.wiring import build_safety_laws
 from tests.school.accounts.account_builders import NEXT, accounts, marks, opening, spread_quotes
@@ -25,9 +23,10 @@ from tests.school.contracts import builders as b
 from tests.school.contracts import conformance as c
 from tests.school.execution.school_builders import AT, fills
 
-from .law_builders import CFG, SETTINGS, FixedMargin, held, view
+from .law_builders import CFG, SETTINGS, FixedMargin, NoMargin, held, view
 
-ALL = build_safety_laws(CFG, SETTINGS, {RoadCode.BANKNIFTY_MONTHLY: b.snapshot()})
+ALL = build_safety_laws(CFG, SETTINGS, {RoadCode.BANKNIFTY_MONTHLY: b.snapshot()}, NoMargin())
+WITH_MARGIN = build_safety_laws(CFG, SETTINGS, {RoadCode.BANKNIFTY_MONTHLY: b.snapshot()}, FixedMargin())
 
 
 def test_the_laws_in_their_fixed_order():
@@ -54,10 +53,17 @@ def test_every_reason_is_kept():
             RefusalReason.MISSING_QUOTE} <= set(found)  # fmt: skip
 
 
-def test_a_clean_proposal_passes_every_law_but_margin_room_without_margin_rows():
-    """Orchestrator, 22 Oct 2026 (revised): no usable margin row refuses, noted, never a guessed margin."""
+def test_a_clean_proposal_passes_every_law_with_a_readable_margin():
+    assert refusals(WITH_MARGIN.check(b.put_spread(), view(), b.snapshot(), b.SESSION)) == ()
+
+
+def test_without_a_readable_margin_margin_room_refuses_with_the_named_cause():
+    """Story section 6 item 7 (revised): no usable margin, no new entry; the note names MS-P1m's reason."""
     results = ALL.check(b.put_spread(), view(), b.snapshot(), b.SESSION)
     assert refusals(results) == (RefusalReason.MARGIN_ROOM,) and margin_not_checked(results[5])
+    assert (
+        results[5].note == "margin not checked: school margin: no beginning-of-day SPAN file archived for the session"
+    )
 
 
 @pytest.mark.parametrize(
@@ -175,8 +181,7 @@ def test_every_law_conforms(law):
 
 
 def test_margin_room_conforms_with_a_margin_it_can_read():
-    law = C2Law("margin_room", MarginRoom(FixedMargin(), SimulatorTradeCosts(CFG["charges"])),
-                RefusalReason.MARGIN_ROOM, margin_numbers, {})  # fmt: skip
+    law = margin_room_law(FixedMargin(), SimulatorTradeCosts(CFG["charges"]), {})
     c.check_safety_law(law, (b.put_spread(), view()), (b.put_spread(), view(cash=1_000.0, equity=1_000.0)),
                        b.snapshot())  # fmt: skip
 

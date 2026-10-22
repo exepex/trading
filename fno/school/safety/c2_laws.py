@@ -30,15 +30,17 @@ class C2Law:
     another road is marked at its own road's quotes."""
 
     def __init__(self, name: str, rule: RiskRule, reason: RefusalReason, numbers: Numbers,
-                 slot: Mapping[RoadCode, SlotSnapshot]):  # fmt: skip
+                 slot: Mapping[RoadCode, SlotSnapshot], unchecked_note: str = ""):  # fmt: skip
         self.name, self.rule, self.reason, self.numbers, self.slot = name, rule, reason, numbers, dict(slot)
+        self.unchecked_note = unchecked_note  # with it, an input C2 cannot check is refused with this note and why
 
     def check(self, proposal: Proposal, account: AccountView, snapshot: SlotSnapshot, session: date) -> LawResult:
         try:
             inputs = c2_inputs(proposal, snapshot.road, account, {**self.slot, snapshot.road: snapshot}, session)
             verdict = self.rule.check(inputs.proposal, inputs.book, inputs.market)
-        except UNCHECKABLE:
-            return LawResult(self.name, False, self.reason)
+        except UNCHECKABLE as unusable:
+            note = f"{self.unchecked_note}{unusable}" if self.unchecked_note else ""
+            return LawResult(self.name, False, self.reason, note=note)
         limit, value = self.numbers(verdict)
         return LawResult(self.name, verdict.ok, None if verdict.ok else self.reason, limit, value)
 

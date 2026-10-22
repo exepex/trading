@@ -1,10 +1,11 @@
-"""The MS-P1d laws on fixtures: the repository's charges and C2's books profile, with a fixed stressed margin in
-place of C2's margins file (which has NIFTY rows only)."""
+"""The MS-P1d laws on fixtures: the repository's charges and C2's books profile, with fixed stressed margins in place
+of MS-P1m's margin per trade (which reads Drive's archived SPAN files)."""
 
 from dataclasses import replace
 from datetime import date
 
 from fno.config import ROOT, load_config
+from fno.risk.inputs import RiskInputError
 from fno.risk.margins import StressedMargin
 from fno.school.constants import RoadCode
 from fno.school.contracts.decisions import LegSpec, OpenPosition
@@ -42,3 +43,28 @@ def held(position_id: str, strikes=(1000.0, 900.0), road=RoadCode.BANKNIFTY_MONT
     short, long = strikes
     legs = (LegSpec(b.key(short), "sell", 1), LegSpec(b.key(long), "buy", 1))
     return replace(b.position(position_id), legs=legs, road=road, opened=opened)
+
+
+class NoMargin(FixedMargin):
+    """MS-P1m's margin when the session's SPAN file is not archived: every read refuses by name."""
+
+    def margin(self, terms, day: date) -> float:
+        raise RiskInputError("school margin: no beginning-of-day SPAN file archived for the session")
+
+    margin_at_entry = broker_margin = margin
+
+
+class MarginByIndex(FixedMargin):
+    """Rs 5,000 a lot on NIFTY, Rs 9,000 on BANKNIFTY (stressed; at entry +1,000; broker -1,000), read from the
+    trade's own terms, as MS-P1m's margin is: equal C2 terms on two indices get different margins."""
+
+    PER_LOT = {"NIFTY": 5_000.0, "BANKNIFTY": 9_000.0}
+
+    def margin(self, terms, day: date) -> float:
+        return self.PER_LOT[terms.underlying] * terms.lots
+
+    def margin_at_entry(self, terms, day: date) -> float:
+        return (self.PER_LOT[terms.underlying] + 1_000.0) * terms.lots
+
+    def broker_margin(self, terms, day: date) -> float:
+        return (self.PER_LOT[terms.underlying] - 1_000.0) * terms.lots
