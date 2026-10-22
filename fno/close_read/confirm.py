@@ -39,9 +39,11 @@ class Confirmer:
         self.now = now
 
     def run(self, today: date, started: datetime | None = None) -> None:
-        """`started`: when the command began; no new day starts after the time budget (the rest wait a run)."""
+        """`started`: when the command began; no new day starts after the time budget (the rest wait a run). Newest
+        first (judge 447 add. 2): an old day the archive keeps failing never takes the only slot from newer days."""
         written = self.store.written()
-        days = sorted(d for d in map(day_of, written) if d is not None and d < today and confirm_path(d) not in written)
+        pending = (d for d in map(day_of, written) if d is not None and d < today and confirm_path(d) not in written)
+        days = sorted(pending, reverse=True)
         for done, day in enumerate(days):
             if started is not None and self._out_of_time(started):
                 self.log(LEFT_FOR_NEXT_RUN.format(count=len(days) - done))

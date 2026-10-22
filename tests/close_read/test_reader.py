@@ -6,7 +6,7 @@ from datetime import date, timedelta
 import pytest
 
 from fno.close_read.constants import READ, RECHECK
-from fno.close_read.records import encode, raw_path, recheck_path, record_path
+from fno.close_read.records import confirm_path, encode, raw_path, recheck_path, record_path
 from fno.constants_operations import STEP_REFUSED
 from fno.daily.steps import outcome
 from tests.close_read.fakes import (
@@ -169,3 +169,16 @@ def test_a_slow_archive_never_turns_a_good_read_into_a_failure():
     assert code == 0 and record_path(DAY) in store.files and official.calls == 1
     assert lines[-1] == "close confirm: 1 earlier day(s) left for the next run (time budget)"
     assert (clock.now_at - at(15, 40)).total_seconds() <= 600
+
+
+def test_the_newest_unconfirmed_day_takes_the_time_budget_first():
+    """Judge 447 add. 2: while the archive keeps failing slowly on an old day, newer days are still confirmed."""
+    store, newest = MemoryStore(), date(2026, 10, 19)
+    for day in (date(2026, 10, 16), newest):
+        store.put(
+            record_path(day), encode({"indices": {n: {"last": 1.0} for n in ("NIFTY 50", "NIFTY BANK", "INDIA VIX")}})
+        )
+    clock = Clock(at(15, 40))
+    official = SlowOfficial(clock, {newest: {"Nifty 50": 1.0, "Nifty Bank": 1.0, "India VIX": 1.0}})
+    reader(store, Answers(answer()), clock, official, lines=[]).run(READ)
+    assert confirm_path(newest) in store.files and confirm_path(date(2026, 10, 16)) not in store.files
