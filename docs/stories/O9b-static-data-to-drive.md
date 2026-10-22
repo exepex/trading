@@ -390,3 +390,5 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - Minor accepted: the umbrella's "one way, not two" line (section 2) now says step 1b moves only the public cues,
   and that the two ways stand side by side until **step 1c**. Step 1c, the private cues onto the receipt-backed
   classes with the A17 owner, is a named row in section 3's table and is cited in step 1b's files paragraph.
+- **Judge 478 addendum 1: round 2 PASS at a2f96e5f.** It may merge from Mon 26 Oct, outside 14:00-16:15 IST, with no
+  global-cues run queued or running and `global-cues move` run just before and just after the merge.
