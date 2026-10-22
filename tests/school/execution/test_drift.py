@@ -8,10 +8,9 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from fno.constants import SIDE_BUY, SIDE_SELL
 from fno.desk.snapshot import ExecutionQuote, ExecutionSnapshot, SnapshotError
 from fno.models import IST
-from fno.school.constants import RoadCode
+from fno.school.constants import SIDE_BUY, SIDE_SELL, RoadCode
 from fno.school.execution.capture_1515 import RecordedCapture1515
 from fno.school.execution.drift import drift_rows
 from tests.school.contracts import builders as b

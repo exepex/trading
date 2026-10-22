@@ -5,9 +5,8 @@ from dataclasses import replace
 
 import pytest
 
-from fno.constants import SIDE_BUY, SIDE_SELL
 from fno.costs import settlement_charges_breakdown
-from fno.school.constants import ExitState, OptionKind, RoadCode
+from fno.school.constants import SIDE_BUY, SIDE_SELL, ExitState, OptionKind, RoadCode
 from fno.school.contracts.accounts import SettlementUnavailable
 from fno.school.contracts.decisions import LegSpec
 from fno.school.contracts.snapshot import ContractKey

@@ -7,11 +7,10 @@ then named by one school refusal reason, from E4's own `price_leg` answer, never
 from collections import Counter
 from collections.abc import Iterable, Mapping
 
-from ...constants import SIDE_SELL
 from ...desk.entry_check import entry_problems
 from ...desk.pricing import price_leg
 from ...desk.snapshot import ExecutionSnapshot
-from ..constants import RefusalReason
+from ..constants import SIDE_SELL, RefusalReason
 from ..contracts.decisions import OpenPosition
 from .desk_view import SchoolLeg, school_legs
 

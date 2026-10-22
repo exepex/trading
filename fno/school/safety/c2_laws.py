@@ -9,14 +9,13 @@ will take (ask to buy, bid to sell) with the pad. At the touch the spread is pai
 from collections.abc import Callable, Mapping
 from datetime import date
 
-from ...constants import SIDE_BUY
 from ...research_engine.cycle_costs import PAD, CycleTerms, PositionCosts
 from ...research_engine.structures import NakedShortLeg
 from ...risk.inputs import Proposal as RiskProposal
 from ...risk.inputs import RiskInputError
 from ...risk.rules import MaxLossPerTrade
 from ...risk.verdict import RiskRule, RiskVerdict
-from ..constants import RefusalReason, RoadCode
+from ..constants import SIDE_BUY, RefusalReason, RoadCode
 from ..contracts.decisions import Proposal
 from ..contracts.safety import AccountView, LawResult
 from ..contracts.snapshot import SlotSnapshot

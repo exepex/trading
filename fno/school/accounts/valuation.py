@@ -7,8 +7,7 @@ stop safe; the brake never engages on such a session (`brake.py`)."""
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from ...constants import SIDE_BUY
-from ..constants import RoadCode
+from ..constants import SIDE_BUY, RoadCode
 from ..contracts.decisions import OpenPosition
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.snapshot import SlotSnapshot

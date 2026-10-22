@@ -54,9 +54,10 @@ def test_every_reason_is_kept():
             RefusalReason.MISSING_QUOTE} <= set(found)  # fmt: skip
 
 
-def test_a_clean_proposal_passes_every_law():
+def test_a_clean_proposal_passes_every_law_but_margin_room_without_margin_rows():
+    """Orchestrator, 22 Oct 2026 (revised): no usable margin row refuses, noted, never a guessed margin."""
     results = ALL.check(b.put_spread(), view(), b.snapshot(), b.SESSION)
-    assert refusals(results) == () and margin_not_checked(results[5]), "BANKNIFTY has no margin rows: not checked"
+    assert refusals(results) == (RefusalReason.MARGIN_ROOM,) and margin_not_checked(results[5])
 
 
 @pytest.mark.parametrize(

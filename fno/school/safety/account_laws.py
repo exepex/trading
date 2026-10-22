@@ -11,9 +11,8 @@ own brake acts at its limit too): they pass one rupee short of it.
 
 from datetime import date
 
-from ...constants import SIDE_BUY
 from ...research_engine.structures import BOUGHT, SOLD, Leg, NakedShortLeg, require_covered
-from ..constants import RefusalReason
+from ..constants import SIDE_BUY, RefusalReason
 from ..contracts.decisions import Proposal
 from ..contracts.safety import AccountView, LawResult
 from ..contracts.snapshot import SlotSnapshot

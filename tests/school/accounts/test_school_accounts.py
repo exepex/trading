@@ -44,7 +44,7 @@ def test_an_entry_moves_cash_by_its_fills_and_is_recorded_once(tmp_path):
     port.record("CS1@1", entry)
     rows = [r for r in ledger(tmp_path) if r["kind"] == LEDGER_FILL]
     assert len(rows) == 2 and {r["trade_id"] for r in rows} == {"p1"}
-    received = sum(leg.price * leg.units * (1 if leg.side == "sell" else -1) - leg.charges for leg in entry.fill.legs)
+    received = entry.fill.cash  # a's FillResult.cash: premium received less paid and charges
     assert port.view("CS1@1", marks(), b.SESSION).cash == pytest.approx(ACCOUNT_RS + received)
 
 

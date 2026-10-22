@@ -10,9 +10,8 @@ cannot win, which only bad quotes do. It is judged once every leg has a touch; u
 
 from datetime import date
 
-from ...constants import SIDE_BUY
 from ...research_engine.structures import BOUGHT, SOLD, Leg, payoff_bounds, position_value
-from ..constants import RefusalReason
+from ..constants import SIDE_BUY, RefusalReason
 from ..contracts.decisions import Proposal
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.safety import AccountView, LawResult

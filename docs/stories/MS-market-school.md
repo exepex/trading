@@ -184,6 +184,7 @@ Rules for every story:
 - `fno/school/fakes.py`: in-memory fakes of every port, for every story's tests;
 - `tests/school/contracts/`;
 - one empty package per later story, each with a `wiring.py` whose docstring names its story and nothing else;
+- `fno/school/fake_fleet.py`: the fake fleet for MS-P1i's harness;
 - shared files, one line each:
   - `fno/config.py`: add `school` to `ALLOWED_APP_KEYS`;
   - `config.yaml`: the `school` block (below);
@@ -202,13 +203,15 @@ Rules for every story:
 | `DriverCard`, `SpotPoint`, `OpenPosition` | card `code`, `version`, `family`, `role`, `roads`, `band_steps`, `parameters`, `card_sha256`; history of recorded 15:00 spots; open position with `structure`, legs, `lot`, `opened`, `entry_net`, `max_loss` |
 | `Driver` | `decide(road_day, snapshot, history, positions) -> Decision`; `review_exit(position, snapshot, history) -> ExitReason | None` |
 | `Decision` | `driver_id`, `road`, `session`, `outcome`, `reason` (from that outcome's enum), `proposal` (exactly for trade, ticket and refused) |
-| `SafetyLaw`, `LawResult`, `AccountView` (`safety.py`) | `check(proposal, account, snapshot, session) -> LawResult`; the view holds equity, its high, loss since the previous slot, positions, `brake_engaged_on`, `brake_lifted_on`. Law 6 (no record, no trade) is `FillPort.enter`'s seal check |
+| `SafetyLaw`, `LawResult`, `AccountView` (`safety.py`) | `check(proposal, account, snapshot, session) -> LawResult` (`passed`, `reason`, `limit`, `value`, `note`); the view holds equity, its high, loss since the previous slot, positions, `brake_engaged_on`, `brake_lifted_on`. Law 6 (no record, no trade) is `FillPort.enter`'s seal check |
 | `AccountPort`, `LedgerEntry` (`accounts.py`) | `view(driver_id, marks by road, session)`; `record(driver_id, LedgerEntry)`: an opening or closing (with its `ExitReason`) filled result, idempotent |
-| `FillPort`, `FillResult`, `FilledLeg`, `SealedDecision` | `enter(sealed, snapshot, seal, at)` (refuses `stale_seal` unless the seal covers the decision file at `at`); `exit(position, snapshot, file_sha256, seal, at)`; `settle(position, expiry)`. A result is exactly one of: filled legs (with time and the file they rest on), a refusal, or a state |
+| `FillPort`, `FillResult`, `FilledLeg`, `SealedDecision` | `FillResult.cash`: rupees moved, after charges. `enter(sealed, snapshot, seal, at)` (refuses `stale_seal` unless the seal covers the decision file at `at`); `exit(position, snapshot, file_sha256, seal, at)`; `settle(position, expiry)`. A result is exactly one of: filled legs (with time and the file they rest on), a refusal, or a state |
 | `IndexSettlementSource`, `SettlementPrice` | `price(underlying, expiry)` with the settlement file's SHA-256, or `SettlementUnavailable` |
 | `DecisionRecord`, `ExitRecord`, `OutcomeRecord`, `DriftRow` (`records.py`) | the fields of 3.4; a closed road is exactly a `road_closed` decision with the same reason; `DriftRow` is the NIFTY diagnostic, never a fill |
 | `encode_slot_file`, `decode_slot_file` (`slot_file.py`) | one gzip (time zero, no name) of canonical JSON lines per (session, slot, kind): equal records, equal bytes |
-| `DashcamStore`, `Seal` (`dashcam.py`, `seal.py`) | `seal(session, slot, kind, records) -> Seal`; `read(seal) -> records`; write-once per (session, slot, kind): other records raise `ReplayConflict` |
+| `DashcamStore`, `Seal` (`dashcam.py`, `seal.py`) | `seal(session, slot, kind, records) -> Seal`; `find(session, slot, kind) -> Seal | None`; `read(seal) -> records`; write-once per (session, slot, kind): other records raise `ReplayConflict` |
+| `FleetRunner`, `SessionRun`, `RunMode` (`fleet.py`) | `run(session, mode) -> SessionRun`: one sealed decision per scheduled (road, driver version), sealed before any fill; a rerun seals nothing new; off: `SCHOOL_OFF_LINE` and nothing recorded. Fake: `fno/school/fake_fleet.py` |
+| The law split (`constants.py`) | `ACCOUNT_LIMITS` (bucket, open risk, new risk a day, margin room: relaxed for tickets), `DRIVER_STOPS` (daily stop, brake: a stopped or braked driver issues no tickets that day), `TRADE_VALIDITY` (every other refusal) |
 | `OpportunityCounts` (`tickets.py`) | `eligible >= fillable >= executed >= 0` per (session, road, driver) |
 | `ReportSection`, `SectionText`, `Banner` (`reports.py`) | `render(session)`; the banner is red or amber, no other value |
 | `Clock`, `FixedClock` (`clock.py`) | `now()`, aware; fixed in replay |
@@ -435,7 +438,10 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - the reserved line in `fno/cli.py` that registers `python -m fno school`;
 - later (blocked) the new step rows in `DAILY_RUN_STEPS`, after v4's, never inside its frozen files.
 
-**Implements:** `FleetRunner.run(session, mode)`:
+**Implements:** `FleetRunner.run(session, mode)` (a's contract; it passes `check_fleet` and MS-P1i's harness):
+- **requirement from MS-P1f:** the `check(decision, accepted)` given to `tickets.rules.classify` builds its
+  `AccountView` with the trades already accepted in that slot, so the bucket, open-risk, new-risk and margin laws add
+  them up before any fill;
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
@@ -495,12 +501,13 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 
 **MS-P1d's questions (orchestrator, 22 Oct 2026, to builder session_014VUoPfMfRWNXyJSnXxB5NL):**
 
-7. **Margin room (law 3):** C2's margins file holds NIFTY rows only (SF, SC, BF, widths 100-300). Option (c) now:
-   where any position of the check (the proposal or a held one) has no margin row, law 3 passes labelled "margin not
-   checked: no data", counted in the dashcam and the reports, and no margin is ever invented; where every position has
-   rows, C2's `MarginRoom` runs and fails closed (a stale row refuses). Option (b), school margin rows from the archived
-   SPAN files, is a follow-up story. Reason: Rs 20 lakh per driver against at most Rs 1.5 lakh of open maximum loss,
-   so margin rarely binds [reasoning only].
+7. **Margin room (law 3), revised by the orchestrator the same day:** C2's margins file holds NIFTY rows only (SF, SC,
+   BF, widths 100-300). Where every position of the check (the proposal and each held one) has a sourced row, C2's
+   `MarginRoom` runs and fails closed (a stale row refuses). Where any position has no usable row, law 3 **refuses**
+   (`margin_room`, note "margin not checked: no data"), never inventing a margin: design 6.1a, no usable margin, no new
+   entry. The first answer (pass labelled) was withdrawn because it weakened an agreed safety law. The fix is data:
+   school margin rows for BANKNIFTY, FINNIFTY, MIDCPNIFTY and the missing structures and widths, a separate piece
+   opened by the orchestrator. Until it lands, those roads' entries are refused by law 3.
 8. **Bucket groups:** {NIFTY}, {BANKNIFTY, FINNIFTY}, {MIDCPNIFTY}: FINNIFTY's largest weights are BANKNIFTY's banks,
    so one shock hits both [some evidence: index composition]. Kept as data in the school's `BucketMap`.
 9. **Boundaries:** the daily stop and the brake refuse when the loss reaches their limit (>=); every other law passes
@@ -565,7 +572,39 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
 
+### MS-P1a Claims, round 2 (judge 479, FAIL round 1: four should-fixes)
+
+| Judge 479 finding | Fix | Test (and the plants it catches) |
+|---|---|---|
+| 1. The import test missed relative imports, and the contracts loaded `requests`, `fno.providers` and `fno.intraday` | `test_boundaries.py` resolves relative imports. The contracts, constants, settings and both fakes import only the stdlib and `fno/school`: the order sides and the two dataset names are now school constants, pinned equal to their sources | `test_a_planted_relative_import_is_caught` (the judge's two plants); `test_the_contracts_load_only_the_standard_library_and_the_school` (a fresh interpreter: nothing loaded outside the stdlib but the empty `fno` package); `test_shared_values.py`. Plants: both relative imports in `roads/__init__.py`, a recorder import in `contracts/roads.py`, a changed dataset name |
+| 2. No dashcam lookup | `DashcamStore.find(session, slot, kind) -> Seal \| None` (additive) | `check_dashcam`: None before the seal, the seal after, None for another kind. Plant: a fake `find` that always says None |
+| 3. No frozen law split | `ACCOUNT_LIMITS`, `DRIVER_STOPS` and `TRADE_VALIDITY` in `constants.py`; `TicketReason.ACCOUNT_LIMIT` replaces `DRIVER_STOPPED` (orchestrator's ruling, checked against reviews 138 and 139: "relax only account-level cash/bucket limits") | `test_law_split.py`: exact sets, a partition of every refusal, never protection, max loss, quotes, prices or the seal. Plants: max loss added to the limits, the brake dropped from the stops |
+| 4. No fleet contract | `contracts/fleet.py` (`FleetRunner`, `SessionRun`, `RunMode`) and `fake_fleet.py` | `check_fleet` and `check_fleet_off` on the fake; `test_fake_fleet.py`. Plants: a wrong seal SHA at fill, no rerun skip, the switch ignored, `SessionRun` consistency removed |
+
+- **Also, from MS-P1f's questions (orchestrator, 22 Oct):** a `FillResult.cash` property. The fakes use it; f will
+  use it. Test: `test_a_fill_s_cash_is_premium_received_less_paid_and_charges`. Plant: the sign flipped.
+- **Changes for the b-e builders**, listed for the orchestrator. Everything else is additive.
+  - **(i) Renamed:** `TicketReason.DRIVER_STOPPED` is now `ACCOUNT_LIMIT`.
+  - **(ii) Moved:** `Road.dataset` values are unchanged, but the import source changed. `SIDE_BUY`, `SIDE_SELL` and
+    `SIDES` now also live in `fno.school.constants`, so school code should import them from there.
+  - **(iii) New method:** `DashcamStore.find` must now be implemented by c's store.
+  - **(iv) New field (for d, orchestrator, 22 Oct):** `LawResult.note: str = ""` is a plain label recorded with the
+    result. It never changes `passed`: a law with unusable input still refuses (fails closed, as C2 does).
+- **Judge's notes (no action):**
+  - `OpportunityCounts` has no scheduled count. MS-P1f's `CountTotals.scheduled` carries the denominator.
+  - A refused ticket and a refused trade look the same in a `Decision`. That is deliberate: both are `refused`, with
+    the law results in the record.
+- **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
+  `check_records` are clean.
+- **Plants:** 36 planted, 36 caught over a's tests.
+
 ### MS-P1d Claims (round 1, branch `story/ms-p1-fills`; the SHA is in the commit that carries this text)
+
+**Merged a's round 2 (32fdbdde):** school `SIDE_BUY`/`SIDE_SELL` from `fno.school.constants`; `LawResult.note` carries
+the margin label; `FillResult.cash` replaces the test's own cash sum (the school code had none of its own: E1's
+ledger moves cash); no `TicketReason` is used here; every law's refusal reason falls in exactly one of a's
+`ACCOUNT_LIMITS` (bucket, open risk, new risk, margin room), `DRIVER_STOPS` (daily stop, brake) and `TRADE_VALIDITY`
+(the rest).
 
 Builder session_014VUoPfMfRWNXyJSnXxB5NL. Based on `story/ms-p1-contracts` at 756e6545. Built against a's contracts
 and conformance checks only, with no second version of any type. Nothing in fno/desk, fno/books, fno/risk,
@@ -586,7 +625,7 @@ fno/checks or fno/costs.py is edited. The one shared line is `.gitignore`'s `jou
 | 11 | Conformance for each port | all | `check_fill_port`, `check_fill_port_missing_quote`, `check_account_port`, `check_settlement_source`, and `check_safety_law` for every law, including margin room |
 
 **Orchestrator's answers (section 6, items 7-12), built:**
-- Margin room is labelled "not checked" where there are no rows (`margin_law.py`: `MARGIN_NOT_CHECKED`, `margin_not_checked(result)`).
+- Margin room refuses where any position has no usable row, with `LawResult.note` = `MARGIN_NOT_CHECKED` (`margin_law.py`, `margin_not_checked(result)`); C2 refuses a stale row, a missing or a malformed file itself.
 - NIFTY's rows are never used for another index.
 - A stale row, a missing file or a malformed file refuses.
 - FINNIFTY shares BANKNIFTY's bucket.
@@ -600,7 +639,7 @@ fno/checks or fno/costs.py is edited. The one shared line is `.gitignore`'s `jou
 - `ruff check` and `ruff format --check` (fno, tests, tools), `check_imports` (2,095 files) and `check_records` (8,136 files) are clean.
 - No file is over 350 lines; the largest is 128.
 
-**Plants:** 36 planted and 36 caught. The script is in the builder's scratchpad; each plant was restored after its run. One plant first survived ("brake high reset from an unmarked row"); its test was made sharper.
+**Plants:** 37 planted and 37 caught (after the merge with a and the revised margin rule). The script is in the builder's scratchpad; each plant was restored after its run. One plant first survived ("brake high reset from an unmarked row"); its test was made sharper.
 
 **Self-review** (one independent review agent, on the uncommitted tree): 3 blocking, 5 should-fix and 7 minor findings, each checked by me.
 - Fixed:
@@ -629,6 +668,7 @@ public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_
 **Known limits (reasoning only):**
 - The daily stop compares this slot with the previous session's row, which was taken before its fills. It therefore also counts that slot's entry costs, so it acts sooner.
 - An unmarkable position counts at its maximum loss for the stop, but never engages the brake.
-- Margin label: `LawResult` has no text field. "Not checked" is a pass with no limit and no value; a `note` field would be a's change.
+- **Until the margin-data piece lands, law 3 refuses every BANKNIFTY, FINNIFTY and MIDCPNIFTY entry, and every NIFTY
+  structure or width without a row** (all PCS, CCS, CDS and PDS today). The pilot cannot trade those until then.
 
-**Real output sample:** none from a recorded day. A real snapshot needs b's `SnapshotSource` and j's fleet, and neither exists on this branch. On the fixture snapshot, a 1-lot BANKNIFTY bull put spread passes all 13 laws, with margin room "not checked". It fills at a bid of 10 and an ask of 5 (30 units each) with C1's charges, and its maximum loss at the touch is above the figure at the mids (`test_max_loss_counts_the_touch_the_fill_pays_not_only_the_mid`).
+**Real output sample:** none from a recorded day. A real snapshot needs b's `SnapshotSource` and j's fleet, and neither exists on this branch. On the fixture snapshot, a 1-lot BANKNIFTY bull put spread passes 12 of the 13 laws and is refused by margin room (no BANKNIFTY margin rows, noted "margin not checked: no data"). It fills at a bid of 10 and an ask of 5 (30 units each) with C1's charges, and its maximum loss at the touch is above the figure at the mids (`test_max_loss_counts_the_touch_the_fill_pays_not_only_the_mid`).

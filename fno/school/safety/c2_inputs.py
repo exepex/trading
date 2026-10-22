@@ -15,11 +15,10 @@ from dataclasses import dataclass
 from datetime import date
 
 from ...books.equity import AccountState
-from ...constants import SIDE_BUY
 from ...research_engine.structures import BOUGHT, SOLD, Leg
 from ...risk.inputs import OpenTrade, ProposedLeg, RiskBook, RiskInputError, SessionTrade, TradeTerms
 from ...risk.inputs import Proposal as RiskProposal
-from ..constants import RoadCode
+from ..constants import SIDE_BUY, RoadCode
 from ..contracts.decisions import LegSpec, OpenPosition, Proposal
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.safety import AccountView

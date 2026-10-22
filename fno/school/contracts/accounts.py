@@ -6,8 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol, runtime_checkable
 
-from ...constants import SIDES
-from ..constants import ExitReason, ExitState, RefusalReason, RoadCode
+from ..constants import SIDE_SELL, SIDES, ExitReason, ExitState, RefusalReason, RoadCode
 from .decisions import Decision, OpenPosition
 from .safety import AccountView
 from .seal import Seal
@@ -46,6 +45,11 @@ class FillResult:
     @property
     def filled(self) -> bool:
         return bool(self.legs)
+
+    @property
+    def cash(self) -> float:
+        """Rupees the fill moves: premium (or settlement value) received minus paid, less every charge."""
+        return sum((leg.price if leg.side == SIDE_SELL else -leg.price) * leg.units - leg.charges for leg in self.legs)
 
 
 @dataclass(frozen=True)

@@ -6,10 +6,9 @@ from collections.abc import Mapping
 from datetime import date, datetime
 
 from ...accounting.ledgers import Order
-from ...constants import SIDE_BUY, SIDE_SELL
 from ...desk.settlement import SETTLEMENT_TIME
 from ...models import IST
-from ..constants import ExitState
+from ..constants import SIDE_BUY, SIDE_SELL, ExitState
 from ..contracts.accounts import FilledLeg, FillResult, IndexSettlementSource, SettlementUnavailable
 from ..contracts.decisions import LegSpec, OpenPosition
 from ..contracts.roads import ROADS_BY_CODE

@@ -8,10 +8,10 @@ none), so every quote is `quote_age_unknown`, as A4 records it."""
 
 from dataclasses import dataclass
 
-from ...constants import SIDE_BUY
 from ...desk.pricing import DeskLeg
 from ...desk.snapshot import ExecutionQuote, ExecutionSnapshot
 from ...research_engine.structures import BOUGHT, SOLD, Leg
+from ..constants import SIDE_BUY
 from ..contracts.decisions import LegSpec
 from ..contracts.snapshot import ContractKey, SlotQuote, SlotSnapshot
 

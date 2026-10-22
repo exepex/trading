@@ -7,9 +7,8 @@ from datetime import timedelta
 
 import pytest
 
-from fno.constants import SIDE_BUY, SIDE_SELL
 from fno.costs import order_charges
-from fno.school.constants import ExitState, Outcome, RefusalReason
+from fno.school.constants import SIDE_BUY, SIDE_SELL, ExitState, Outcome, RefusalReason
 from fno.school.contracts.accounts import SealedDecision
 from fno.school.contracts.decisions import Decision
 from tests.school.contracts import builders as b
