@@ -155,7 +155,9 @@ Run 1 writes `research/edge1/selection.json`: every variant's numbers and its G1
 trades a year that G3 needs.
 It also prints each G1 passer's **expected run-2 trade count** (judge 468 note 1): run 2's monthly expiries, counted
 from NSE's session calendar and expiry listings only (no price read), times the variant's run-1 share of cycles
-traded. A variant expected under 30 is named before run 2 as likely untestable (p = 1). It is committed before run 2. Judge B reproduces it.
+traded. A variant expected under 30 is named before run 2 as likely untestable (p = 1).
+
+It is committed before run 2. Judge B reproduces it.
 
 ## 11. Run 2: test the G1 passers once, and nominate
 
@@ -171,7 +173,8 @@ Only run 1's G1 passers are tested, on run 2's cycles:
     means at least as far above 0 as D.
   - **Fewer than 30 trades: not tested, p = 1.** G4's minimum of 40 is twice its block of 20. With a block of 1,
     30 trades is the floor I state for a mean's bootstrap to be usable [reasoning only].
-- **Holm** at 0.05 across every variant run 2 tests, **both indices in one family** (`fno/scoreboard/uncertainty.holm`), and registered as the family
+- **Holm** at 0.05 across every variant run 2 tests, **both indices in one family**
+  (`fno/scoreboard/uncertainty.holm`), and registered as the family
   of the one research question in R1's factory.
 
 **Nomination rule** (at most two, in order of Holm-adjusted p). All of these must hold:
@@ -218,4 +221,5 @@ build gate's result are listed too.
 ## 14. Deviations
 
 Revision 1 (before the freeze, judge 468): the bootstrap block is 1 trade with a floor of 30 trades; Holm spans both
-indices; run 1 prints expected run-2 counts. Any change after the freeze is written here, before any result it could affect, and sent to judge B.
+indices; run 1 prints expected run-2 counts. Any change after the freeze is written here, before any result it could
+affect, and sent to judge B.
