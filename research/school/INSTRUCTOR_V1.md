@@ -48,8 +48,11 @@ The comparison is paired against N0, RC1 and REF on h's common road-days, with o
 - **A card's hold:** the shortest bound its card states. That is sessions held, calendar days held, sessions before
   expiry, or days to expiry at entry less its last exit day. With no such bound, the hold is the expiry cycle (36 days
   monthly, 7 weekly). Days become sessions at 5 a week, rounded up. N0 holds nothing.
-- **The statuses:** Exploratory below 30 sessions, Watching when the bound is above 0 (not a claim, no licence), Not
-  established otherwise. No others.
+- **The statuses in v1:** Exploratory below 30 sessions, Not established from 30, and never Watching (orchestrator's
+  ruling D). A sparse, negatively skewed seller makes the bound look positive falsely up to 18.9% of the time (upper
+  end 20.7%), against a 10% gate. The mean and the bound are printed as descriptive numbers, "descriptive, not a test".
+  Seller-shaped rows add "this method can falsely look positive up to 21% for this payoff shape". Watching returns only
+  with a v2 card whose own null gate passes the skewed shapes.
 
 ```thresholds
 range_z: 1.645
@@ -67,6 +70,7 @@ min_sessions: 30
 min_batches: 2
 batch_hold_multiple: 1.5
 min_batch: 10
+seller_false_positive_pct: 21
 sessions_per_week: 5
 monthly_cycle_days: 36
 weekly_cycle_days: 7

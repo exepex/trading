@@ -25,3 +25,21 @@ def test_a_driver_with_no_slots_yet_is_paired_on_unavailable_days_not_a_crash():
     common = {("DB1@1", "RC1@1"): set(CONTROL)}
     rows = compare(CARDS["DB1"], (CARDS["RC1"],), CARDS.values(), {"RC1@1": CONTROL}, common, RULES)
     assert rows[0].sessions == 0 and rows[0].unavailable == 6
+
+
+def test_a_seller_shaped_drivers_rows_carry_its_false_rate_and_a_buyers_do_not():
+    slots = {"CS1@1": DRIVER, "DB1@1": DRIVER, "RC1@1": CONTROL}
+    common = {("CS1@1", "RC1@1"): set(DRIVER), ("DB1@1", "RC1@1"): set(DRIVER)}
+    seller = compare(CARDS["CS1"], (CARDS["RC1"],), CARDS.values(), slots, common, RULES)
+    buyer = compare(CARDS["DB1"], (CARDS["RC1"],), CARDS.values(), slots, common, RULES)
+    assert all("falsely look positive" in r.note for r in seller)
+    assert not any("falsely" in r.note for r in buyer)
+
+
+SELLERS = {"CS1", "WS1", "PS2", "PS3", "PS4", "PS5", "KL1", "REF", "RC1"}
+
+
+def test_each_cards_payoff_shape():
+    from fno.school.instructor.paired.shapes import is_seller
+
+    assert {code for code, card in CARDS.items() if is_seller(card)} == SELLERS

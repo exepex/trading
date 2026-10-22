@@ -7,9 +7,10 @@ import math
 import random
 from dataclasses import dataclass
 from datetime import date, timedelta
+from statistics import NormalDist
 
 from ...constants import RoadCode
-from ..contracts import MapStatus, Measure
+from ..contracts import Measure
 from .series import paired_series
 from .status import paired_row
 from .values import RoadSlot, SlotStatus
@@ -44,16 +45,50 @@ def simulated_slots(seed: int, sessions: int, edge: float, market: Market | None
     return driver, control
 
 
-def share_watching(edge: float, sessions: int, seeds: range, batch: int, market: Market | None = None) -> float:
-    """The share of seeded simulations whose paired row against N0 reads "watching" after `sessions` sessions."""
-    watching = 0
+@dataclass(frozen=True)
+class SellerShape:
+    """A sparse, negatively skewed seller at zero edge: one open trade per road at a time (held `hold` sessions), the
+    full maximum loss (return on risk -1) with probability `loss_chance`, else the small win that makes the mean 0."""
+
+    loss_chance: float
+    hold: int = 10
+    shared: float = 0.6
+
+
+def seller_slots(seed: int, sessions: int, shape: SellerShape):
+    draw, cut = random.Random(seed), NormalDist().inv_cdf(shape.loss_chance)
+    win = shape.loss_chance / (1 - shape.loss_chance)
+    shocks = [draw.gauss(0, 1) for _ in range(sessions + shape.hold)]
+    next_entry = {road: draw.randrange(shape.hold) for road in ROADS}
+    driver, control = {}, {}
+    for i in range(sessions):
+        day, common = FIRST_SESSION + timedelta(days=i), sum(shocks[i : i + shape.hold]) / shape.hold**0.5
+        for road in ROADS:
+            control[(day, road)] = RoadSlot(day, road, "N0@1", SlotStatus.ABSTAINED)
+            if i < next_entry[road]:
+                driver[(day, road)] = RoadSlot(day, road, "D@1", SlotStatus.ABSTAINED)
+                continue
+            latent = shape.shared**0.5 * common + (1 - shape.shared) ** 0.5 * draw.gauss(0, 1)
+            driver[(day, road)] = RoadSlot(day, road, "D@1", SlotStatus.CLOSED, -1.0 if latent < cut else win)
+            next_entry[road] = i + shape.hold
+    return driver, control
+
+
+def share_positive(make_slots, seeds: range, batch: int) -> float:
+    """The share of seeded simulations whose bound against N0 is above 0: how often the descriptive bound falsely looks
+    positive (v1 shows it, labelled "descriptive, not a test", and never turns it into a status)."""
+    positive = 0
     for seed in seeds:
-        driver, control = simulated_slots(seed, sessions, edge, market)
+        driver, control = make_slots(seed)
         series = paired_series(driver, control, set(driver), Measure.PER_OPPORTUNITY)
-        watching += (
-            paired_row("D@1", "N0@1", Measure.PER_OPPORTUNITY, series, batch, "simulation").status == MapStatus.WATCHING
-        )
-    return watching / len(seeds)
+        bound = paired_row("D@1", "N0@1", Measure.PER_OPPORTUNITY, series, batch, "simulation").bound
+        positive += bound is not None and bound > 0
+    return positive / len(seeds)
+
+
+def share_watching(edge: float, sessions: int, seeds: range, batch: int, market: Market | None = None) -> float:
+    """The Gaussian market's share of a positive bound (the planted-edge power and the Gaussian null)."""
+    return share_positive(lambda seed: simulated_slots(seed, sessions, edge, market), seeds, batch)
 
 
 def wilson_upper(share: float, n: int, z: float = 1.96) -> float:

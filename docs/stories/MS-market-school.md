@@ -879,11 +879,16 @@ reverted when the method changed (orchestrator's ruling b).
     monthly, 7 weekly). Days become sessions at 5 a week, rounded up, and N0 holds nothing;
   - the real holds: WS1 3, CS1, DB1 and DR1 10, PS2-4 15, PS5 18, REF and RC1 25, KL1 33;
   - batch = hold was measured first and failed the gate at holds 10-25 (upper ends 10.4-11.0%), hence the 1.5.
-- **Status (`MapStatus`):**
-  - `exploratory`: below 30 valid counted sessions;
-  - `watching`: 30 or more and the bound above 0, labelled "not a claim, no licence";
-  - `not_established`: 30 or more otherwise. With fewer than 2 whole batches there is no bound, and the row says "too
-    few independent batches" in words.
+- **Status (`MapStatus`), v1 (orchestrator's ruling D, 22 Oct 2026):**
+  - `exploratory` below 30 valid counted sessions, `not_established` from 30;
+  - v1 never assigns `watching`. A sparse, negatively skewed seller (the shape of CS1, PS2-4, WS1, REF) makes the
+    batch-t bound look positive falsely in up to 18.9% of runs (upper end 20.7%), far above the 10% gate, and no t
+    level or batch length fixes it;
+  - the mean and the bound are shown as descriptive numbers, labelled "descriptive, not a test";
+  - a seller-shaped driver's row says "this method can falsely look positive up to 21% for this payoff shape";
+  - a row without a bound says "too few independent batches: no bound before N sessions";
+  - Watching returns only with a v2 card (the model-variance floor, option B) whose own null gate passes the skewed
+    shapes (loss chance 0.1 and 0.2) and the Gaussian ones.
 - **Live null:** every review also compares RC1 with N0 on the same days, so the null's own rate of looking good is
   visible.
 
@@ -892,17 +897,16 @@ reverted when the method changed (orchestrator's ruling b).
 2. A session's five roads make one series point (series length = sessions).
 3. An abstention counts as 0 and in the abstention count.
 4. The cut at an open pair.
-5. Status boundaries: 29 and 30 sessions, and a lower end of exactly 0.
+5. The v1 ladder at 29 and 30 sessions; v1 never assigns Watching, even on a clearly positive series (and no module
+   but the type names it).
 6. `MapStatus` has exactly three members, so no Supported or Confirmed can be built.
-7. **Null calibration (327 correction 3; orchestrator's conditions 1-3):** a zero-edge driver against N0 on fakes,
-   with roads sharing a session shock and outcomes overlapping over their hold. At 2,000 seeds a configuration, the
-   upper end of the 95% interval of the false-`watching` share must be 10% or less:
-   - at holds 5, 10 and 20, and at the cards' real holds;
-   - at 30, 60 and 120 sessions where two batches exist;
-   - in the sensitivity markets (shared shock 0.3 and 0.9, return spread 1.0), reported as some evidence.
+7. **Null calibration (327 correction 3; orchestrator's conditions 1-3):**
+   - the Gaussian null's false-positive share of the bound, at 2,000 seeds, has the upper end of its 95% interval at
+     10% or less at every hold the cards hold, read from the cards at test time;
+   - the skewed-seller null is measured too. It fails, which is why v1 assigns no Watching, and its rate is the one
+     printed on seller rows.
 8. **Planted edge (325 section 6.2; orchestrator's ruling c):** the power table goes in the Claims and in the 30-session
-   review: the share of seeds reaching `watching` by edge and sessions. A test shows that +1.0 is found: half the
-   seeds or more at 30 sessions, and 95% or more at 60.
+   review. A test shows +1.0 gives a positive bound in half the seeds at 30 sessions and 95% at 60.
 9. Empty: no common road-day gives no row.
 
 #### INS-e Outputs: records, the 30-session review and the "why" line · `story/ms-ins-outputs`
@@ -2379,43 +2383,42 @@ eight plants were re-run, 8 of 8 caught.
 
 #### INS-d Claims (round 1, branch `story/ms-ins-paired`, on INS-c; the SHA is in the commit that carries this text)
 
-**What the owner should read first [some evidence: a simulation run through the real comparison code; its market is
-assumed, not measured]:** the 30-session P2 review will read Exploratory or Not established for any realistic edge.
+**What the owner should read first [some evidence: simulations run through the real comparison code; the markets are
+assumed, not measured].** In v1 no driver can read Watching (ruling D). The 30-session P2 review will show every
+driver as Exploratory or Not established, with the mean and the bound as descriptive numbers. The edges below would
+take this long to show a positive bound (hold 10, batch 15, 500 seeds; the share of runs with a bound above 0):
 
-| Edge per trade (return on risk), hold 10, batch 15 | 30 sessions | 60 | 120 | 250 | 500 |
+| Edge per trade (return on risk) | 30 sessions | 60 | 120 | 250 | 500 |
 |---|---|---|---|---|---|
 | +1.0 | 61% | 100% | 100% | 100% | 100% |
 | +0.3 (Rs 3,000 per Rs 10,000 maximum loss) | 22% | 51% | 85% | 98% | 100% |
 | +0.1 | 11% | 17% | 27% | 42% | 66% |
 | +0.03 (325's "+Rs 300 a trade") | 7% | 10% | 13% | 13% | 18% |
 
-The cells are the share of 500 seeds reading Watching.
+- **+Rs 300 a trade needs many years.** +0.1 needs more than 500 sessions.
+- **No bound before N sessions** (from the cards: 2 batches of 1.5 x the pair's longer hold, at least 10 sessions):
+  - against N0: WS1 20; CS1, DB1 and DR1 30; PS2-4 and RC1 46; PS5 54; REF 78; KL1 100;
+  - against RC1 (hold 15): 46, PS5 54, KL1 100;
+  - against REF (hold 26): 78, KL1 100.
+  - The review prints these in those words.
 
-- **How long an edge takes:**
-  - +Rs 300 a trade is not found in 500 sessions (two years): it needs many years;
-  - +0.1 needs more than 500 sessions;
-  - even +0.3 needs about 120 sessions for 80%.
-- **Pairs with REF or RC1** (hold 25, batch 38) have no bound before 76 sessions. Their power at 120 sessions is 40% for
-  +0.3 and 15% for +0.1.
-- **Simulated market:**
-  - the driver trades all 5 roads every session against N0;
-  - each trade's return on risk has a standard deviation of 0.5;
-  - the roads share 60% of a session shock;
-  - outcomes sum the shocks over their hold.
+**Why no Watching in v1: the skewed-seller null [some evidence].** The fake driver is a credit seller at zero edge: 4
+roads, one open trade per road, hold 10, the full maximum loss with probability p and a small win otherwise, sharing
+60% of a session shock. Its share of runs with a bound above 0 (2,000 seeds, batch 15; upper end of the 95% Wilson
+interval):
 
-**WITHDRAWN PENDING THE ORCHESTRATOR'S RULING (self-review finding 1, reproduced by the builder).** The gate below
-holds for the Gaussian null only. A sparse, negatively skewed seller fails it. That seller loses its full maximum loss
-with probability p and otherwise makes a small gain, at zero edge (2,000 seeds, batch 15):
+| p | 30 sessions | 60 | 120 | 250 |
+|---|---|---|---|---|
+| 0.2 | 10.9% (12.3%) | 14.4% (16.0%) | 11.7% (13.2%) | 8.4% (9.6%) |
+| 0.1 | 14.9% (16.5%) | 16.6% (18.3%) | 18.9% (20.7%) | 12.4% (14.0%) |
 
-| p | 30 sessions | 60 | 120 |
-|---|---|---|---|
-| 0.2 | 10.9% (upper end 12.3%) | 14.4% (16.0%) | 11.7% (13.2%) |
-| 0.1 | 14.9% (16.5%) | 16.6% (18.3%) | 18.9% (20.7%) |
+- **What does not fix it:** batches of 20 or 30, a 97.5% t and a 99% t; p = 0.1 still fails up to 120 sessions.
+- **The cause is the skew, not the sparseness:** a symmetric ±1 payoff gives 4-5%, a positive skew 2%.
+- **Seller rows:** v1 prints "this method can falsely look positive up to 21% for this payoff shape". A test checks the
+  measured worst case stays under 21%.
 
-Longer batches, a 97.5% t and a 99% t all still fail at p = 0.1. Options (A)-(D) are with the orchestrator; the
-builder recommends (D), no Watching in v1. The Gaussian table follows as measured:
-
-**Null calibration (criterion 7), false-Watching share, 2,000 seeds a cell (upper end of its 95% Wilson interval):**
+**The Gaussian null, Gaussian only (2,000 seeds a cell; upper end in brackets).** It passes at the batch rule. It does
+not cover skewed payoffs.
 
 | Hold, batch | 30 sessions | 60 | 120 |
 |---|---|---|---|
@@ -2427,42 +2430,38 @@ builder recommends (D), no Watching in v1. The Gaussian table follows as measure
 | 25, 38 | no bound | no bound | 7.0% (8.3%) |
 | 33, 50 | no bound | no bound | 6.1% (7.2%) |
 
-- **Sensitivity (some evidence):** with shared shock 0.3 or 0.9, or return spread 1.0, every cell is at or under 9.0%
-  (upper end), the worst being hold 18 at 120 sessions with spread 1.0. No configuration is over 10%.
-- **The rejected rule, batch = hold:** upper ends of 10.3% (hold 5), 10.4% (hold 10), 10.8% (hold 15) and 11.0% (holds
-  18 and 20) at 120 sessions. A test pins hold 15's failure.
-- **The first method, S2's bootstrap with 5-session blocks:** 27% false Watching at 30 sessions.
+- **Sensitivity:** shared shock 0.3 or 0.9, or return spread 1.0, stays at or under 9.0% (upper end).
+- **Batch = hold** fails: 10.3-11.0% at 120 sessions. A test pins hold 15.
+- **The first method** (S2's bootstrap, 5-session blocks): 27%.
+- **Live test:** `test_nulls` re-checks the Gaussian gate at every hold the cards hold, read at test time (today 3,
+  10, 15, 18, 26 and 33), so a v2 card re-runs it.
 
 | Criterion | Met by | Test (`tests/school/instructor/paired/`) |
 |---|---|---|
-| 1 hand-computed pairs | `series.paired_series` | `test_series`: `the_hand_computed_pairs_over_three_sessions_and_two_roads` (both measures) |
+| 1 hand-computed pairs | `series.paired_series` | `test_series`: `the_hand_computed_pairs...` (both measures) |
 | 2 one point per session | `paired_series` | `five_roads_on_one_session_are_one_point` |
-| 3 abstention 0 and counted | `series.value` | the hand test (counts) |
-| 4 the cut | `paired_series` | `the_series_stops_at_the_first_open_pair...` |
-| 5 status boundaries | `status.status` | `test_status`: `the_status_boundaries` (29 and 30 sessions, bound 0 and just above), `a_row_says_too_few_independent_batches_in_words` |
-| 6 three statuses | a's `MapStatus` | `test_types` |
-| 7 null calibration | `nulls.share_watching`, `wilson_upper` | `test_nulls`: three cells at 2,000 seeds, plus the rejected rule's failure |
-| 8 planted edge | `nulls` | `a_planted_edge_of_one_is_found`; the power table above |
-| 9 empty | `paired_series`, `paired_row` | `only_the_common_road_days...`, the empty row in `test_status` |
-| bound | `status.batch_bound` | `the_hand_computed_bound_on_three_batches` (worked in its docstring) |
-| holds and batch | `holds.py` | `each_cards_frozen_hold` (10 cards), `a_pairs_batch_is...` |
-| slot values | `values.road_slot` | `each_decision_outcome_maps_to_its_slot`, `a_closed_entry_takes...` |
-| entry point | `compare.compare` | `test_compare` |
+| 3 abstention 0 and counted | `series.value` | the hand test |
+| 4 the cut | `paired_series` | `the_series_stops_at_the_first_open_pair...`, `an_open_ticket_cuts_the_per_opportunity_series_but_not_the_executed_only_one` |
+| 5 the v1 ladder; never Watching | `status.status` | `test_status`: `the_v1_ladder...`, `v1_never_assigns_watching...`, `no_v1_module_assigns_watching`, `a_row_says_in_words...` |
+| 6 three statuses in the type | a's `MapStatus` | `test_types` |
+| 7 null calibration | `nulls.py` | `test_nulls` (the Gaussian gate at the cards' holds, the skewed seller, the rejected rule) |
+| 8 planted edge | `nulls.share_watching` | `a_planted_edge_of_one_shows_a_positive_bound`; the power table |
+| 9 empty | `compare` (no common day, no row) | `test_compare`, `test_series`: `only_the_common_road_days...` |
+| bound | `status.batch_bound` | `the_hand_computed_bound_on_three_batches` |
+| holds and batch | `holds.py`, `shapes.py` | `each_cards_frozen_hold`, `a_pairs_batch...`, `rc1_holds_as_long_as_its_longest_rule_twin...` |
+| robustness | `values.py`, `series.py`, `compare.py` | `a_road_day_missing_from_a_map_is_unavailable...`, `a_non_finite_return_is_refused`, `a_driver_with_no_slots_yet...` |
 
-- **Contract change (a's file, additive):** `PairedRow` now holds a one-sided `bound`, the `batch` and a `note`, in
-  place of the two-sided interval. Watching without a positive bound is refused.
-- **Live null:** RC1 against N0 is a pair like any other (`compare` with RC1 as the driver). INS-e prints it in every
-  review.
-- **Broken-code proof:** 14 plants, all caught:
-  - the bound's batches counted from the start, or its degrees of freedom;
-  - the 30-session and the zero-bound boundaries;
-  - the note;
-  - the 1.5 multiple;
-  - the day rounding;
-  - the last exit day, the sessions-before-expiry bound and N0's hold;
-  - the cut;
-  - tickets under executed-only;
-  - the per-session mean;
-  - unfilled entries.
-- **S2:** untouched (reverted to `main`).
+**Self-review (one independent agent).** One blocking finding, the skewed null, led to ruling D above. The other
+findings were all fixed:
+- no row for a pair without common days, and a missing driver handled;
+- a missing slot is unavailable, never a crash;
+- non-finite returns refused;
+- an open ticket does not cut the executed-only series;
+- RC1's hold from its rule twins (15);
+- the monthly cycle is 36 days, so REF's hold is 26;
+- unavailable slots after the cut are documented as counted in `unavailable`.
 
+**Contracts:** `PairedRow` holds a one-sided `bound`, the `batch` and a `note`. S2's files are untouched.
+
+**Broken-code proof:** 14 plants before the ruling, all caught. The ruling's own pieces are pinned by the tests above:
+the ladder, no Watching anywhere, the notes and the seller flag.

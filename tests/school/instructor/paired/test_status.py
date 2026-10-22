@@ -11,7 +11,7 @@ from fno.school.drivers.cards import CARDS_FOLDER, load_cards
 from fno.school.instructor.contracts import MapStatus, Measure
 from fno.school.instructor.paired.holds import hold_sessions, pair_batch
 from fno.school.instructor.paired.series import PairedSeries
-from fno.school.instructor.paired.status import TOO_FEW_BATCHES, batch_bound, paired_row, status
+from fno.school.instructor.paired.status import DESCRIPTIVE, batch_bound, paired_row, status
 from tests.school.instructor.builders import RULES
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -33,26 +33,36 @@ def test_below_two_whole_batches_there_is_no_bound():
     assert batch_bound((0.1,) * 19, 10) is None and batch_bound((0.1, 0.2) * 10, 10) is not None
 
 
-@pytest.mark.parametrize("sessions, bound, expected", [
-    (29, 1.0, MapStatus.EXPLORATORY), (30, 0.0001, MapStatus.WATCHING), (30, 0.0, MapStatus.NOT_ESTABLISHED),
-    (30, None, MapStatus.NOT_ESTABLISHED), (0, None, MapStatus.EXPLORATORY),
-])  # fmt: skip
-def test_the_status_boundaries(sessions, bound, expected):
-    assert status(sessions, bound) == expected
+LADDER = [(0, MapStatus.EXPLORATORY), (29, MapStatus.EXPLORATORY), (30, MapStatus.NOT_ESTABLISHED),
+          (500, MapStatus.NOT_ESTABLISHED)]  # fmt: skip
 
 
-def test_a_row_says_too_few_independent_batches_in_words():
-    row = paired_row("REF@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.5] * 30), 38, RULES)
-    assert (row.status, row.bound, row.note) == (MapStatus.NOT_ESTABLISHED, None, TOO_FEW_BATCHES)
-    short = paired_row("REF@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.5] * 29), 38, RULES)
-    assert (short.status, short.note) == (MapStatus.EXPLORATORY, "")
-    empty = paired_row("REF@1", "N0@1", Measure.PER_OPPORTUNITY, series([]), 38, RULES)
-    assert (empty.sessions, empty.mean, empty.status) == (0, None, MapStatus.EXPLORATORY)
+@pytest.mark.parametrize("sessions, expected", LADDER)
+def test_the_v1_ladder_is_exploratory_then_not_established(sessions, expected):
+    assert status(sessions) == expected
 
 
-def test_a_clear_positive_series_reads_watching():
-    row = paired_row("CS1@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.3, 0.5] * 15), 10, RULES)
-    assert row.status == MapStatus.WATCHING and row.bound > 0 and row.mean == pytest.approx(0.4)
+def test_v1_never_assigns_watching_even_on_a_clearly_positive_series():
+    """Ruling D: the bound is shown, labelled descriptive, and never turned into Watching."""
+    row = paired_row("CS1@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.3, 0.5] * 30), 10, RULES)
+    assert row.bound > 0 and row.status == MapStatus.NOT_ESTABLISHED and row.note.startswith(DESCRIPTIVE)
+
+
+def test_no_v1_module_assigns_watching():
+    sources = (ROOT / "fno" / "school" / "instructor").rglob("*.py")
+    assigning = [p.name for p in sources if "MapStatus.WATCHING" in p.read_text(encoding="utf-8")]
+    assert assigning == ["contracts.py"]  # only the type's own guard names it
+
+
+def test_a_row_says_in_words_when_there_is_no_bound_and_when_its_shape_can_mislead():
+    row = paired_row("REF@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.5] * 30), 39, RULES, seller=True)
+    assert (row.status, row.bound) == (MapStatus.NOT_ESTABLISHED, None)
+    assert "no bound before 78 sessions" in row.note and "falsely look positive up to 21%" in row.note
+    short = paired_row("DB1@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.5] * 29), 15, RULES)
+    assert short.status == MapStatus.EXPLORATORY and "no bound before 30 sessions" in short.note
+    assert "falsely" not in short.note  # a debit buyer is not seller-shaped
+    empty = paired_row("REF@1", "N0@1", Measure.PER_OPPORTUNITY, series([]), 39, RULES)
+    assert (empty.sessions, empty.mean, empty.status, empty.note) == (0, None, MapStatus.EXPLORATORY, DESCRIPTIVE)
 
 
 @pytest.mark.parametrize("code, hold", [("CS1", 10), ("DB1", 10), ("DR1", 10), ("PS2", 15), ("PS5", 18), ("KL1", 33),

@@ -7,6 +7,7 @@ from ...contracts.decisions import DriverCard
 from ..contracts import Measure, PairedRow
 from .holds import pair_batch
 from .series import RoadDay, paired_series
+from .shapes import is_seller
 from .status import paired_row
 from .values import RoadSlot
 
@@ -26,5 +27,5 @@ def compare(driver: DriverCard, controls: Collection[DriverCard], cards: Collect
         batch = pair_batch(driver, control, cards)
         for measure in Measure:
             series = paired_series(slots.get(pair[0], {}), slots.get(pair[1], {}), common[pair], measure)
-            rows.append(paired_row(*pair, measure, series, batch, rules_sha256))
+            rows.append(paired_row(*pair, measure, series, batch, rules_sha256, is_seller(driver)))
     return tuple(rows)
