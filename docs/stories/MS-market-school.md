@@ -453,6 +453,75 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 4. i's harness passes on the real wiring, including one recorded session replayed twice with identical records.
 5. The end-to-end dry run on a recorded day, recorded in Claims.
 
+### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
+
+Owner: the A14 builder (session 01Vm1WnH8i9waM8EJG8zwWqg; orchestrator, 22 Oct 2026). Law 3 asks C2's `MarginRoom` on
+each driver account. Today C2 has margins for NIFTY's monthly ATM-shaped rows only (`margins.csv`, SF, SC and BF, widths
+100-300). The pilot needs a margin for every position its drivers propose: four indices' monthlies and NIFTY's weeklies,
+seven structures, any width, and shorts one expected move out.
+
+**Why per proposal, not rows (orchestrator's rule: measure first; strong evidence).** A14-style rows were compared
+with the pilot's real legs on 37 archived sessions (every 12th session, 6 Jan 2025 - 6 Oct 2026), widths 1-8 strike
+steps, 13,736 comparisons. The figure is C2's stressed margin at k 2.1, per unit. The row is A14's own structure (SC
+shorts at spot ±2%, spreads at ATM); the real legs are the pilot's (shorts one expected move out, the ATM straddle in
+the file; debit spreads one step out). The table gives the share of cases where the row is below the real position,
+and the lowest row/real ratio:
+
+| Road | SC | PCS | CCS | CDS | PDS |
+|---|---|---|---|---|---|
+| NIFTY-M | 75% below, min 0.86 | 98% below, min 0.90 | 97% below, min 0.88 | 1% below, min 0.82 | 13% below, min 0.88 |
+| BANKNIFTY-M | 70% below, min 0.81 | 94% below, min 0.85 | 89% below, min 0.87 | 3% below, min 0.85 | 11% below, min 0.87 |
+| FINNIFTY-M | 66% below, min 0.82 | 96% below, min 0.87 | 92% below, min 0.88 | 10% below, min 0.88 | 12% below, min 0.90 |
+| MIDCPNIFTY-M | 83% below, min 0.76 | 97% below, min 0.85 | 92% below, min 0.88 | 8% below, min 0.84 | 12% below, min 0.84 |
+| NIFTY-W | 31% below, min 0.92 | 97% below, min 0.91 | 98% below, min 0.88 | 2% below, min 0.91 | 11% below, min 0.88 |
+
+A spread sold further out collects less premium, and C2's margin subtracts the premium received (`min(0, NOV)`), so
+ATM rows understate the school's credit trades by up to 24%. So the school computes each proposal's margin on its own
+legs, with the same calculator and the same archived file. No rows are added anywhere.
+
+**Source (no new read; strong evidence, the archived 21 Oct file):** the session's beginning-of-day SPAN file, as
+A14 reads it: A9's first-archived copy in Drive, its SHA-256 equal to the manifest's, created before 09:00 IST on its
+day. That file holds NIFTY (18 expiries, the weeklies included), BANKNIFTY (6), FINNIFTY (3) and MIDCPNIFTY (3); every
+expiry checked is in exactly one scan tier, and the strike steps are 50, 100, 50 and 25. The lot is the day's market lot
+from A20a's master files.
+
+**Builds:**
+- `ProposalMargin` (port): `parts(underlying, expiry, legs, structure, day) -> MarginParts`, one lot. Its adapter
+  `ArchivedSpanMargin` reads the day's file once per session and underlying through `read_span_file(..., symbol=...)`,
+  then A14's `SpanMarginCalculator` with `NseIndexOptionExposure` and the day's lot. It applies C2's STR1 cap
+  (`stress_cap_per_lot`) for the one-side codes.
+- `ProposalStressedMargin`: C2's `StressedMargin` for one proposal, so MS-P1d reuses C2's `MarginRoom` unchanged. It
+  gives `margin`, `margin_at_entry` and `broker_margin` at k 2.1, the factor in force from A14c's file.
+- `record()`: the file name, its SHA-256, the underlying, expiry, legs, lot, scan, NOV, exposure, the factor and the
+  label "k measured on NIFTY monthly only [reasoning only]" (orchestrator, 22 Oct 2026). The dashcam (MS-P1c) seals it
+  with the decision.
+- Its composition root `fno/nse_margins/proposal_wiring.py` (Drive archive, A9 manifest, A20a lots, A7 calendar).
+
+**Fails closed, by name** (law 3 then refuses the trade, as `RiskInputError`): no archived file for the day; a SHA-256
+other than the manifest's; created at or after 09:00; an expiry-day or out-of-model expiry (the calculator refuses
+expiry day: the extra 2% ELM of P0 probe 4 is not modelled, so no expiry-day entry); a leg not in the file; no lot for
+the day and underlying; an index outside the four.
+
+**Unchanged:** `margins.csv`, A14's daily job and workflow, and C2's and C4's NIFTY path, byte for byte.
+
+**Known limits:**
+- k 2.1 was measured on NIFTY monthly history only [reasoning only for the other indices and the weeklies];
+  per-underlying k is an A14c follow-up after the freeze.
+- Our calculator matches Groww on NIFTY (A14c part 2 rehearsal, 21 Oct 2026: 15 of 15 baskets within tolerance), but
+  the other three indices have no broker check yet [reasoning only].
+- The file is the beginning-of-day one: a 15:00 decision uses the morning's scan arrays and prices, as A14's rows do.
+
+**Acceptance tests:**
+1. For each of the four indices and one NIFTY weekly on the real 21 Oct file, one structure is reproduced by hand
+   (scan, NOV, exposure).
+2. Each refusal above, one test each, with its name.
+3. The day's lot comes from the master; a changed lot changes the figure, and no master refuses.
+4. `ProposalStressedMargin` inside C2's own `MarginRoom` refuses at the room's limit plus Rs 1 and passes at it.
+5. `margins.csv` and the C2/C4 outputs on NIFTY's real rows are byte-identical before and after.
+6. The file is parsed once per session and index (a counting fake).
+7. The gap measure above is reproducible from its script, with the same counts.
+8. Mutations on every rule above.
+
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
 | Requirement | Story |
@@ -473,6 +542,7 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 | Capture gate per road, denominator first | 3.5; b |
 | Planted faults and replay twice | i (harness), j (real run) |
 | Fleet runner and daily-run wiring after v4's freeze | j |
+| C2's margin room for every road, structure and width (per proposal, from the archived SPAN file) | 3.3 law 3; m |
 
 **Out of scope, with reason:**
 - futures, calendars and diagonals: probe 5 found no payoff or margin model;
