@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from typing import Protocol
 
+from ..constants import PUBLISH_BRANCH
 from ..research_engine.ledger import Git
 
 
@@ -47,9 +48,9 @@ class PlaybookGit(Git):
         return commit, moment
 
     def observed(self) -> str:
-        """Pulls the branch and returns the commit now checked out: what a reader at this moment can see."""
-        branch = self._run("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-        self._run("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
+        """Pulls main (every run publishes there, whatever the checkout's branch) and returns the commit now checked
+        out: what a reader at this moment can see."""
+        self._run("pull", "-q", "--no-rebase", "--no-edit", "origin", PUBLISH_BRANCH)
         return self.head()
 
     def tree_matches(self, commit: str, paths: tuple[str, ...]) -> bool:
