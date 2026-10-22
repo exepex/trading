@@ -17,7 +17,7 @@ MIN_BATCHES = 2  # part d: fewer whole batches give no bound ("too few independe
 BATCH_HOLD_MULTIPLE = 1.5  # part d: batch = 1.5 x the pair's longest hold (batch = hold failed the 10% null gate)
 MIN_BATCH = 10  # part d: and never under 10 sessions
 SESSIONS_PER_WEEK = 5  # part d: calendar days to sessions for a card's hold
-MONTHLY_CYCLE_DAYS = 35  # part d: the longest hold to the nearest monthly expiry, when a card states no bound
+MONTHLY_CYCLE_DAYS = 36  # part d: the longest hold to the nearest monthly expiry (REF can enter at 36 days)
 WEEKLY_CYCLE_DAYS = 7  # part d: the same for a weekly expiry
 
 THRESHOLDS = {

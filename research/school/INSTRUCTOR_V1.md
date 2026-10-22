@@ -46,7 +46,7 @@ The comparison is paired against N0, RC1 and REF on h's common road-days, with o
   false-"Watching" share is 10% or less at every real hold (3, 10, 15, 18, 25 and 33 sessions; worst 9.0%), with
   shared shocks 0.3, 0.6 and 0.9 and return spreads 0.5 and 1.0. Some evidence: a simulation, not data.
 - **A card's hold:** the shortest bound its card states. That is sessions held, calendar days held, sessions before
-  expiry, or days to expiry at entry less its last exit day. With no such bound, the hold is the expiry cycle (35 days
+  expiry, or days to expiry at entry less its last exit day. With no such bound, the hold is the expiry cycle (36 days
   monthly, 7 weekly). Days become sessions at 5 a week, rounded up. N0 holds nothing.
 - **The statuses:** Exploratory below 30 sessions, Watching when the bound is above 0 (not a claim, no licence), Not
   established otherwise. No others.
@@ -68,6 +68,6 @@ min_batches: 2
 batch_hold_multiple: 1.5
 min_batch: 10
 sessions_per_week: 5
-monthly_cycle_days: 35
+monthly_cycle_days: 36
 weekly_cycle_days: 7
 ```

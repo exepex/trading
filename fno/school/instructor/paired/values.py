@@ -1,6 +1,7 @@
 """The value of one driver's decision on one road-slot (story MS-INS, part d): a closed entry's return on risk, an
 abstention's 0 (kept and counted), or no value yet (open) or at all (unavailable, road closed, entry never filled)."""
 
+import math
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -31,6 +32,8 @@ class RoadSlot:
     def __post_init__(self):
         if (self.status == SlotStatus.CLOSED) != (self.return_on_risk is not None):
             raise ValueError("a return on risk exactly for a closed entry")
+        if self.return_on_risk is not None and not math.isfinite(self.return_on_risk):
+            raise ValueError("a return on risk is a finite number")
 
 
 def road_slot(
@@ -46,7 +49,8 @@ def road_slot(
     if decision.outcome not in (Outcome.TRADE, Outcome.TICKET) or key in unfilled:
         return slot
     outcome = closed.get(key)
-    if outcome is None:
-        return RoadSlot(record.session, record.road, decision.driver_id, SlotStatus.OPEN)
+    if outcome is None:  # a ticket stays a ticket while open: executed-only already values it at 0
+        return RoadSlot(record.session, record.road, decision.driver_id, SlotStatus.OPEN, None,
+                        decision.outcome == Outcome.TICKET)  # fmt: skip
     return RoadSlot(record.session, record.road, decision.driver_id, SlotStatus.CLOSED, outcome.return_on_risk,
                     outcome.is_ticket)  # fmt: skip

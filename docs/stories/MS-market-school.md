@@ -2403,6 +2403,18 @@ The cells are the share of 500 seeds reading Watching.
   - the roads share 60% of a session shock;
   - outcomes sum the shocks over their hold.
 
+**WITHDRAWN PENDING THE ORCHESTRATOR'S RULING (self-review finding 1, reproduced by the builder).** The gate below
+holds for the Gaussian null only. A sparse, negatively skewed seller fails it. That seller loses its full maximum loss
+with probability p and otherwise makes a small gain, at zero edge (2,000 seeds, batch 15):
+
+| p | 30 sessions | 60 | 120 |
+|---|---|---|---|
+| 0.2 | 10.9% (upper end 12.3%) | 14.4% (16.0%) | 11.7% (13.2%) |
+| 0.1 | 14.9% (16.5%) | 16.6% (18.3%) | 18.9% (20.7%) |
+
+Longer batches, a 97.5% t and a 99% t all still fail at p = 0.1. Options (A)-(D) are with the orchestrator; the
+builder recommends (D), no Watching in v1. The Gaussian table follows as measured:
+
 **Null calibration (criterion 7), false-Watching share, 2,000 seeds a cell (upper end of its 95% Wilson interval):**
 
 | Hold, batch | 30 sessions | 60 | 120 |

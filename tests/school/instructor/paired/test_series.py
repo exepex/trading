@@ -98,3 +98,23 @@ def test_a_road_slot_has_a_return_exactly_when_closed():
         RoadSlot(S1, A, "D@1", C)
     with pytest.raises(ValueError):
         RoadSlot(S1, A, "D@1", AB, 0.0)
+
+
+def test_an_open_ticket_cuts_the_per_opportunity_series_but_not_the_executed_only_one():
+    open_ticket = {**DRIVER, (S2, A): RoadSlot(S2, A, "CS1@1", OP, None, True)}
+    assert paired_series(open_ticket, CONTROL, set(DRIVER), Measure.PER_OPPORTUNITY).days == (S1,)
+    assert paired_series(open_ticket, CONTROL, set(DRIVER), Measure.EXECUTED).days == (S1, S2, S3)
+
+
+def test_a_road_day_missing_from_a_map_is_unavailable_not_a_crash():
+    series = paired_series({}, CONTROL, {(S1, A)}, Measure.PER_OPPORTUNITY)
+    assert series.unavailable == 1 and series.days == ()
+
+
+def test_a_non_finite_return_is_refused():
+    with pytest.raises(ValueError):
+        RoadSlot(S1, A, "D@1", C, float("nan"))
+
+
+def test_an_open_ticket_slot_carries_its_ticket_mark():
+    assert road_slot(_record(Outcome.TICKET), {}, ()).is_ticket is True

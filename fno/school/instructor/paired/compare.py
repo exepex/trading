@@ -14,13 +14,17 @@ Slots = Mapping[str, Mapping[RoadDay, RoadSlot]]  # each driver's road-slots, by
 Common = Mapping[tuple[str, str], Collection[RoadDay]]  # the counted road-days of each (driver, control)
 
 
-def compare(driver: DriverCard, controls: Collection[DriverCard], slots: Slots, common: Common,
-            rules_sha256: str) -> tuple[PairedRow, ...]:  # fmt: skip
+def compare(driver: DriverCard, controls: Collection[DriverCard], cards: Collection[DriverCard], slots: Slots,
+            common: Common, rules_sha256: str) -> tuple[PairedRow, ...]:  # fmt: skip
+    """A row per control and measure on its counted road-days; a pair with none gives no row (criterion 9). `cards`
+    are every card in force, for RC1's hold (its twins')."""
     rows = []
     for control in controls:
         pair = (driver.driver_id, control.driver_id)
-        batch = pair_batch(driver, control)
+        if not common.get(pair):
+            continue
+        batch = pair_batch(driver, control, cards)
         for measure in Measure:
-            series = paired_series(slots[pair[0]], slots.get(pair[1], {}), common.get(pair, ()), measure)
+            series = paired_series(slots.get(pair[0], {}), slots.get(pair[1], {}), common[pair], measure)
             rows.append(paired_row(*pair, measure, series, batch, rules_sha256))
     return tuple(rows)

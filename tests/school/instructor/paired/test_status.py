@@ -56,12 +56,18 @@ def test_a_clear_positive_series_reads_watching():
 
 
 @pytest.mark.parametrize("code, hold", [("CS1", 10), ("DB1", 10), ("DR1", 10), ("PS2", 15), ("PS5", 18), ("KL1", 33),
-                                        ("REF", 25), ("RC1", 25), ("WS1", 3), ("N0", 0)])  # fmt: skip
+                                        ("REF", 26), ("RC1", 26), ("WS1", 3), ("N0", 0)])  # fmt: skip
 def test_each_cards_frozen_hold(code, hold):
     assert hold_sessions(CARDS[code]) == hold
 
 
-@pytest.mark.parametrize("pair, batch", [(("CS1", "N0"), 15), (("WS1", "N0"), 10), (("CS1", "REF"), 38),
-                                         (("PS2", "N0"), 23), (("KL1", "RC1"), 50)])  # fmt: skip
+@pytest.mark.parametrize("pair, batch", [(("CS1", "N0"), 15), (("WS1", "N0"), 10), (("CS1", "REF"), 39),
+                                         (("PS2", "N0"), 23), (("KL1", "RC1"), 50), (("CS1", "RC1"), 23)])  # fmt: skip
 def test_a_pairs_batch_is_one_and_a_half_times_its_longer_hold_and_at_least_ten(pair, batch):
-    assert pair_batch(CARDS[pair[0]], CARDS[pair[1]]) == batch
+    assert pair_batch(CARDS[pair[0]], CARDS[pair[1]], CARDS.values()) == batch
+
+
+def test_rc1_holds_as_long_as_its_longest_rule_twin_and_without_twins_its_cycle():
+    """RC1 drives every road with a random rule family's structure and exit: PS2-4's 21 days (15 sessions) is the
+    longest twin; with no cards given it falls back to the 36-day monthly cycle (26 sessions)."""
+    assert hold_sessions(CARDS["RC1"], CARDS.values()) == 15 and hold_sessions(CARDS["RC1"]) == 26
