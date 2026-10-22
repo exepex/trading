@@ -48,3 +48,21 @@ commit is refused. `pip install -r requirements.txt` or `sh tools/routine_setup.
 earlier today.
 
 No Drive, Groww or Slack access was used for this verdict.
+
+## Addendum 1
+
+**O12d, the two notes (story/o12d-claim-wording at 184ef5ca, one commit on main bf1c78e2): PASS, merge go. Lane 1.**
+
+| Note | Result | Evidence |
+|---|---|---|
+| 2: the commit reason names the hook only as the usual cause | MET | `GIT_REASONS["commit"]`: "the commit was refused, usually by the record-scan hook: git's output is above; ..."; the O12c story text says the same; no other "by the record-scan hook" wording is left in code or docs |
+| 1: the test comment matches git's behaviour | MET | "git passes a hook's stdout on through its own stderr" |
+
+- Plant: back to the old wording, and 2 tests fail. The assertion pins the new wording.
+- Gates on 184ef5ca: `tests/numbering` 63 passed; `ruff check` and `ruff format --check` clean; `check_imports`
+  clean.
+- I did not run the full suite myself: the diff is two message strings, one comment and one story line. The steward's
+  full run (9,809 passed) is the one run for this merge.
+- Main has moved 10 commits past bf1c78e2. None touch `tools/claim_number.py`, `tests/numbering/` or the O12 story,
+  so the merge cannot conflict on judged lines.
+- Cosmetic: the changed story line is longer than its neighbours, not re-wrapped. Not blocking.
