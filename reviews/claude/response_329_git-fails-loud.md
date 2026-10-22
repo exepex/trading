@@ -83,9 +83,7 @@ silently; now each stops loudly.
    - `research run` (`mark_run`), the playbook status change (lifecycle.py:63-65) and the desk's `write_no_decision`
      (daily_steps.py:103).
    - The row includes the recovery for a half-done state.
-2. **The desk run** (row "Desk GitFailed alert"): `_guarded` in fno/desk/daily_run.py catches only CommitFailed, so a
-   GitFailed in E3's `versions` or `decisions` stops `fno daily run` before the exits with no "exits missed" alert.
-   This was already true of any non-commit exception.
+2. **The desk run** (row "Desk GitFailed alert"): fixed in this branch in round 2 (section 7).
 3. **G13b's seals** (row "G13b evidence vs late"): by design, any evidence failure becomes "late", and a seal 8 days
    old is stored permanently.
 4. **v3's frozen `last_commit`** (fno/forecast_scoring/wiring.py:64-67, hashed in FREEZE_v3.md) still reads a failed
@@ -117,3 +115,55 @@ Plus the AI collector, C4 and v3 `last_commit` tests above.
 On the branch with latest main merged: `pytest -q -n auto` 11,678 passed, 16 xfailed, 0 failed (5:55); `ruff check`
 and `ruff format --check` clean; `check_imports` clean. `check_numbers` runs on main, where response 329's claim row
 lives.
+
+## 7. Round 2 (judge 505 and the orchestrator)
+
+**Five moved call sites now have an injected-failure test each** (real git, then one failing subcommand, exit 128),
+all in `tests/research_engine/test_git_fails_loud.py`:
+- `HealthHistory.first_commit_adding_text`;
+- `FactoryGit.staged_paths`;
+- `PlaybookGit.added_in` and `PlaybookGit.added_at`;
+- `tree_matches`' diff.
+
+Each test also checks the real answers first: a found commit, and None or [] when nothing is there.
+
+**Revert plants (strong evidence: each was run).** Each plant was applied alone, its test run, and the file restored.
+Every plant fails its test:
+- `first_commit_adding_text` back to `_run(...).stdout`;
+- the same method made "always None" (`found = ""`), the judge's case;
+- `staged_paths` back to `_run(...).stdout`;
+- `added_in` and `added_at` back to `_run(...).stdout`;
+- `tree_matches`' diff back to `returncode != 0`;
+- the desk's `except GitFailed` removed.
+
+**LC_ALL=C.** `Git._run` passes `env={**os.environ, "LC_ALL": "C"}`, because the "not there" answers are matched by
+git's English text. The test sets `LC_ALL=de_DE.UTF-8` and checks that every git call gets `C`. What is not proven:
+this container has no translated git, so a real German answer was not run.
+
+**The desk (orchestrator's item 3).** This branch makes two of E3's steps raise on a git failure:
+- `PlaybookGit.observed()`, the pull in the `decisions` step;
+- `added_in`, through `D3CommittedDecisions.recorded`, in the `fills` step.
+
+`_guarded` in `fno/desk/daily_run.py` now catches `GitFailed` beside `CommitFailed`. It sends one alert, "run STOPPED
+at step fills, no later step runs; exits not reviewed today: a git read failed: <git's command, exit code and stderr>.
+Fix: ... rerun `fno daily run` ...", then raises `RunStopped`. The stop and alert code is shared in `_stop`. The test,
+in `tests/timetable/test_commit_failure_run.py`, injects a GitFailed into the fill step. It checks that exactly one
+alert is sent, that it names the fills step, the missed exits and git's error, and that no fill is written.
+
+**Where I differ from the ruling, and why.** The orchestrator asked for the run to end "day done with problems". Treated
+like `CommitFailed`, the run instead ends on its stop line: "...; no card today", exit 1. Both are exit 1, and both
+are named in CLAUDE.md's routine step 3. I kept the stop rather than letting the later steps run, for two reasons:
+- every later step commits through the same git, so a broken repository fails them too;
+- a stop makes the rerun start from a known point.
+
+The cost, said plainly: the day's risk-reducing exits do not run until the owner reruns. The alert says so. Running
+the exits after a git failure would need a design change, and that is E3's decision, not this branch's.
+
+**E3's owner.** E3 has no live owner session, which the orchestrator noted at judge 448. I am telling:
+- the orchestrator;
+- O1's desk-freeze builder, 014zYLf18PgCzR7YoHs1X5Dp, whose held branch `story/o1-desk-freeze` also changes
+  `daily_run.py`. The change is small: one more `except` and the `_stop` helper.
+
+The register row "Desk GitFailed alert" is updated in this branch.
+
+**Gates on the merged tree:** see the message to the judge.

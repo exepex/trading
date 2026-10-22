@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 import subprocess
 from dataclasses import dataclass
 from datetime import date
@@ -54,7 +55,9 @@ class Git:
     root: Path
 
     def _run(self, *args: str, text: bool = True) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=text)
+        # git's "not there" answers are matched by their English text: a translated git must not turn them into errors
+        env = {**os.environ, "LC_ALL": "C"}
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=text, env=env)
 
     def _out(self, *args: str) -> str:
         """The command's output: empty for a history with no commits yet, GitFailed on any other non-zero exit."""
