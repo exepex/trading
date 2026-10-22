@@ -159,6 +159,25 @@ are named in CLAUDE.md's routine step 3. I kept the stop rather than letting the
 The cost, said plainly: the day's risk-reducing exits do not run until the owner reruns. The alert says so. Running
 the exits after a git failure would need a design change, and that is E3's decision, not this branch's.
 
+**The alternative, raised by O1/O2's builder (014zYLf18PgCzR7YoHs1X5Dp) after round 2 was sent.** A failed git *read*
+is only one step's input, and `exits` reads the Drive accounts and the snapshot, not git. So `fills` could be recorded
+as refused ("a git read failed: ...", no new entries) while the exits, marks and reviews still run, and the run would
+stop only if a later commit also fails. This is reasoning only on both sides. I agree it would keep the exit review on
+a day with a passing read failure.
+
+I keep the stop here for three reasons:
+- the orchestrator accepted it, and it is CommitFailed's existing, judged path;
+- refusing the fills is a new outcome for E3's steps, which the scope freeze leaves to E3's design;
+- after a read failure, every later step's own commit goes through the same, possibly broken, repository.
+
+The cost is named in the alert ("exits not reviewed today"). "Refuse the fills, run the exits" is a candidate for E3's
+next design change, for the owner to decide.
+
+**Fix text.** Also from that builder: the rerun text for a git read failure is now `READ_RERUN`, "remove the cause,
+then rerun `fno daily run` (it skips the steps already recorded)". The old commit text promised to commit files "as
+recorded", but after a failed read there may be nothing pending. Accepted: `PendingCommitter.recover` has nothing to
+commit after a read failure, so the old text was not exact.
+
 **E3's owner.** E3 has no live owner session, which the orchestrator noted at judge 448. I am telling:
 - the orchestrator;
 - O1's desk-freeze builder, 014zYLf18PgCzR7YoHs1X5Dp, whose held branch `story/o1-desk-freeze` also changes

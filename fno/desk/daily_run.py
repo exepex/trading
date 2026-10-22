@@ -62,6 +62,7 @@ COMMIT_FAILED = "the commit failed"
 GIT_FAILED = "a git read failed"
 EXITS_MISSED = "; exits not reviewed today"
 RERUN = "Fix: remove the cause, then rerun `fno daily run` (it commits these files as recorded, never repeating a step)"
+READ_RERUN = "Fix: remove the cause, then rerun `fno daily run` (it skips the steps already recorded)"
 PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
@@ -199,7 +200,7 @@ class DailyRun:
             fix = "" if isinstance(failed, PendingChanged) else RERUN + (PUSHES if failed.unpushed else "")
             self._stop(day, where, COMMIT_FAILED, failed, fix)
         except GitFailed as failed:
-            self._stop(day, where, GIT_FAILED, failed, RERUN)
+            self._stop(day, where, GIT_FAILED, failed, READ_RERUN)
 
     def _stop(self, day: date, where: str, what: str, failed: Exception, fix: str) -> None:
         missed = "" if where in AFTER_EXITS else EXITS_MISSED

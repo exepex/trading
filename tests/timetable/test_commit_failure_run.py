@@ -122,5 +122,5 @@ def test_a_failed_git_read_in_the_fill_step_stops_the_run_with_one_alert_naming_
         run_day(run, clock, NORMAL)
     (sent,) = alerts.sent
     assert "run STOPPED at step fills" in sent and EXITS_MISSED in sent
-    assert "a git read failed: git log failed (exit 128)" in sent and "rerun `fno daily run`" in sent
+    assert "a git read failed: git log failed (exit 128)" in sent and "(it skips the steps already recorded)" in sent
     assert PaperAccount(root, BOOK1_RULES).fills() == []
