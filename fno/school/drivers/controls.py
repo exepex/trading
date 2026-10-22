@@ -87,7 +87,7 @@ class RandomDriver:
             code = FLIPS[code]
         anchor = move.atm_strike + rng.randint(-WINDOW_STEPS, WINDOW_STEPS) * step
         if code == SC:
-            reach = abs(anchor - move.atm_strike)
+            reach = abs(anchor - move.atm_strike) or step  # at least one step: both shorts on one strike is SF
             return TargetCondor(move.atm_strike + reach, move.atm_strike - reach)
         if code == BF:
             return TargetFly(BOUGHT, anchor)
