@@ -177,3 +177,22 @@ for j's settlement before the first view. Money piece: first of two judges, inde
   on every call.
   - Survived, equivalent: the "never opened gives ()" short cut removed. A never-opened account has no files, so
     the general path also returns (), and `test_entries_write_nothing...` proves nothing is created.
+
+## Addendum 5
+
+**Scope:** MS-P1d law order, story/ms-p1d-law-order at 2de9c037 (from main). The quote gates and `impossible_price`
+now run before the risk laws: protected, the 4 quote gates, impossible_price, max_loss, bucket_cap, open_risk,
+new_risk_day, margin_room, daily_stop, brake. Money piece: first of two judges, independent of judge I. Round 1 of 2.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 11663 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **Only the order changes.** Every law still runs and `refusals()` keeps every reason, so no outcome changes. Who
+  refuses is the same; only the first-named reason moves.
+  - A ticket's `ticket_laws_pass` reads all results, not their order.
+  - f's `named_refusal` still puts a driver stop first, then the first trade-validity reason, so a missing or
+    one-sided quote is now named before `max_loss` (the BANKNIFTY missing-mid case).
+- **Pinned tests.** `test_the_laws_in_their_fixed_order` pins the new order. Two tests check that a missing and a
+  one-sided quote are named first while `max_loss` is still in the list, and one checks that a valid quote with too
+  large a loss still names `max_loss` alone.
+- **Plants: 3, 3 caught.** The old order restored; impossible_price before the gates; impossible_price dropped.

@@ -612,3 +612,6 @@ number,name,session,claimed_at_utc
 499.4,a16h-instruments,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T21:06:37Z
 500.1,ms-sim-a-r2,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-22T21:41:19Z
 502.1,ms-sim-b-r2,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-22T21:41:26Z
+488.5,ms-p1d-law-order,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T21:47:33Z
+501.1,ms-ins-a-r2,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-22T21:47:41Z
+499.5,a16h-code-round-1,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T21:52:41Z
