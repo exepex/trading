@@ -129,5 +129,8 @@ the drawdown]
 - The impossible-price check assumes credit verticals (true of every EDGE1 structure; a shared side-neutral version
   is the A4 builder's RECHECK1 work).
 - Lots before 2024 come from NSE's circular schedule (`LOT_CHECK.md`); BANKNIFTY's 2020 circular number was not found.
+- Deviation from protocol section 13: ledger rows 71-98 name the cards' commit (e7a2029d) as `protocol_commit`, not
+  FREEZE.md's, because the ledger guard checks that commit against each row's `protocol_path` (its idea card), which
+  the branch freeze does not contain; the frozen protocol and code are in FREEZE.md (bf2d9e4e), kept in history.
 - Today's-lot figures are for the passer only, post-hoc (section 12 asked for them beside every variant; the output
   files do not carry them).
