@@ -21,6 +21,7 @@ from ..constants import SIDE_BUY, Outcome, UnavailableReason
 from ..contracts.accounts import FillResult
 from ..contracts.decisions import Decision
 from ..contracts.snapshot import ContractKey, SlotSnapshot
+from ..execution.quote_rules import LIVE, QuoteRules
 
 
 @dataclass(frozen=True)
@@ -48,9 +49,10 @@ def allocation_seed(snapshot: SlotSnapshot, slot: str) -> str:
     return hashlib.sha256(f"{snapshot.session}|{slot}|{snapshot.road}".encode()).hexdigest()
 
 
-def allocate(fills: Iterable[OwnedFill], snapshot: SlotSnapshot, slot: str) -> SizeAllocation:
+def allocate(fills: Iterable[OwnedFill], snapshot: SlotSnapshot, slot: str, rules: QuoteRules = LIVE) -> SizeAllocation:
     """`fills`: every account and ticket fill (entries and exits) at this road's snapshot; refusals and states use
-    no size and are left out."""
+    no size and are left out. `rules`: d's one rule for a displayed size (live: an unmeasured or missing size serves
+    nothing; practice: an unmeasured size has no limit); only a practice root passes practice rules."""
     seed = allocation_seed(snapshot, slot)
     filled = [owned for owned in fills if owned.fill.filled]
     ranked = sorted(filled, key=lambda o: (o.is_exit, o.is_ticket, _rank(seed, o.owner)))  # stable within one owner
@@ -59,7 +61,7 @@ def allocate(fills: Iterable[OwnedFill], snapshot: SlotSnapshot, slot: str) -> S
     for owned in ranked:
         needs = [((leg.key, leg.side), leg.units) for leg in owned.fill.legs]
         for place, _ in needs:
-            left.setdefault(place, _displayed(snapshot, *place))
+            left.setdefault(place, _displayed(snapshot, rules, *place))
         if all(units <= left[place] for place, units in needs):
             for place, units in needs:
                 left[place] -= units
@@ -85,7 +87,9 @@ def _rank(seed: str, owner: str) -> str:
     return hashlib.sha256(f"{seed}|{owner}".encode()).hexdigest()
 
 
-def _displayed(snapshot: SlotSnapshot, key: ContractKey, side: str) -> int:
+def _displayed(snapshot: SlotSnapshot, rules: QuoteRules, key: ContractKey, side: str) -> float:
     quote = snapshot.quote(key)
-    size = None if quote is None else (quote.ask_qty if side == SIDE_BUY else quote.bid_qty)
-    return size or 0
+    if quote is None:
+        return 0
+    bid, ask = rules.sizes(quote)
+    return (ask if side == SIDE_BUY else bid) or 0  # no size is no fill, never unlimited

@@ -2366,3 +2366,9 @@ Replaces the earlier part 4 (744299d6, never merged), which waived the size laws
   - 22 Oct dry run: 42 decisions and 16 fills; two replays give 69 byte-identical files;
   - plants: 3 planted (the guard off, the laws inside the limit, the fast path removed), 3 caught;
   - `pytest -n auto` 12097 passed; ruff, format and `check_imports` clean.
+
+### MS-P1j Claims, round 5 (d's part 4 on main: sizes through `QuoteRules`)
+| Item (Judge B 507 note 2; orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+|---|---|---|
+| `allocate` and f's shared size read sizes through d's one rule | `tickets/shared_size.allocate(..., rules=LIVE)` reads each displayed size with `QuoteRules.sizes`: live, an unmeasured or missing size serves nothing (no fill, no ticket; never unlimited, never a crash); practice, an unmeasured size has no limit. The fleet passes `LIVE` by name; only a practice root may pass practice rules | `test_under_live_rules_an_unmeasured_size_serves_no_fill_and_no_ticket`, `test_under_practice_rules_an_unmeasured_size_has_no_limit`, `test_a_measured_size_is_the_same_limit_under_either_rules` (plants: the old direct read, a missing size read as unlimited, practice as the default) |
+| Round 2's ranking of exits after entries had no unit test of its own | — | `test_an_exit_is_served_only_from_what_the_entries_leave` |

@@ -18,6 +18,7 @@ from ..contracts.accounts import FillResult, LedgerEntry, SealedDecision
 from ..contracts.records import DecisionRecord, DriftRow, ExitRecord
 from ..contracts.seal import Seal
 from ..execution.drift import drift_rows
+from ..execution.quote_rules import LIVE
 from ..tickets.shared_size import OwnedFill, allocate
 from .books import Books, account_call
 from .ledgers import Recorded, ledger_id
@@ -75,7 +76,7 @@ class FillStep:
         for exit_, fill in closing:
             is_ticket = exit_.position_id.startswith(TICKET_PREFIX)
             owned.setdefault(exit_.road, []).append(OwnedFill(exit_.driver_id, fill, is_ticket, is_exit=True))
-        allocations = [allocate(fills, marks[road], SLOT_1500) for road, fills in owned.items()]
+        allocations = [allocate(fills, marks[road], SLOT_1500, LIVE) for road, fills in owned.items()]
         return frozenset().union(*(a.unservable_fills for a in allocations))
 
     def _price(self, record: DecisionRecord, snapshot, seal: Seal, at: datetime) -> FillResult:
