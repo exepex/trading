@@ -8,8 +8,9 @@ protocol section 2); rupees are for 1 lot of the time, after C1's charges and a 
 
 ## Answer
 
-**No simple rule-based variant made money after real costs out of sample. Nothing is nominated for a forward
-shadow.** [strong evidence for "no edge found among these 24 variants"; it does not prove that no edge exists]
+**None of the 24 variants passed both runs, and nothing is nominated for a forward shadow.** 23 failed run 1's cost
+screen and were therefore not tested out of sample (protocol section 11); the one run-1 passer lost money in run 2.
+[strong evidence that these 24 variants show no edge after costs; it does not prove that no edge exists]
 
 - Run 1 (decisions 2019-2022) screened 24 tradeable variants; 23 failed G1 (a conservative lower bound of the mean
   gross minus costs). Every NIFTY variant lost money on average, from Rs -632 to Rs -2,085 a trade.
@@ -17,8 +18,9 @@ shadow.** [strong evidence for "no edge found among these 24 variants"; it does 
   1,839 a trade, G1 net on the bound +Rs 608.
 - Run 2 (decisions 2023 to Sep 2026, read once) tested it: **40 complete trades, mean Rs -337 a trade** (Rs -530 at a
   Rs 2 pad), win share 40%, one-sided p = 0.91, Holm: not significant. It failed every nomination condition. Its take
-  profit never fired once in 43 trades: in the 11-16 sessions between entry and the 21-day exit, the fly's mark never
-  fell below 0.52 of the credit (median of the lowest marks about 0.93). In run 1 it fired in volatile 2020-2021.
+  profit never fired in 43 trades (`final.json`, exits all planned). Post-hoc, after run 2, not decided on
+  (`research/edge1-posthoc/tp_check.py`): in the 11-16 sessions between entry and the 21-day exit, the fly's lowest
+  mark was 0.52 of the credit at best and about 0.93 in the median trade.
 - The factory's sample plan (G3) for that variant needed 133 trades, about 25 years at 5.25 trades a year: even a
   genuine edge of its run-1 size could not have been confirmed in a forward shadow in any useful time.
 
@@ -57,7 +59,8 @@ mean, its all-trades value a clipped proxy.
 | NIFTY SF TP50 | 41 / 41, -1,037 | 39, 2, -632, -836 | -1,134 | -563 | -4,077 | -29,062 | -1,012 |
 
 **The passer with and without the +Rs 21,533 trade** (the 16 Nov 2021 cycle, whose target fired on an impossible
-mark in the original run):
+mark in the original run; the owner asked for this comparison; post-hoc, not decided on:
+`research/edge1-posthoc/passer.py` on a checkout of 3152ed44 and of 81f02afe):
 
 | | Original run 1 | Corrected run 1 |
 |---|---|---|
@@ -77,7 +80,7 @@ untraded legs), so the passer rested on 21 trades in three years, two of them vo
 | Decided mean (Rs 2 pad) | 1,839 (1,639) | -337 (-530) |
 | All-trades mean, proxy for impossible exits (Rs 2 pad) | 1,557 | -432 (-623) |
 | Historical-STT mean | 1,931 | -295 |
-| Today's lot (30) re-run, decided mean | 2,244 | -473 |
+| Today's lot (30) re-run, decided mean (post-hoc, after run 2, not decided on: `research/edge1-posthoc/today_lot.py`) | 2,244 | -473 |
 | Win share | 71% | 40% |
 | Worst trade / max drawdown | -2,830 / -4,838 | -4,363 / -21,589 |
 | Impossible exits / trigger days skipped | 1 / 27 | 3 / 9 |
@@ -126,4 +129,5 @@ the drawdown]
 - The impossible-price check assumes credit verticals (true of every EDGE1 structure; a shared side-neutral version
   is the A4 builder's RECHECK1 work).
 - Lots before 2024 come from NSE's circular schedule (`LOT_CHECK.md`); BANKNIFTY's 2020 circular number was not found.
-- Today's-lot figures are for the passer only.
+- Today's-lot figures are for the passer only, post-hoc (section 12 asked for them beside every variant; the output
+  files do not carry them).
