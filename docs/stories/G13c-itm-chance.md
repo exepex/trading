@@ -66,6 +66,11 @@ contract that G13 valued:
   BANKNIFTY's close table) are a cross-check: where both exist they must be equal (to the paisa); an expiry where they
   differ is listed in the report with both values and left out, never guessed (judge 452 note 1). An expiry with no
   settlement price yet is not settled and is left out, counted.
+- **Old-format check first (judge 452.1).** Before July 2024 NSE's file was the old format, whose option rows carry
+  the option's own `SETTLE_PR`, so E7's all-rows-agree rule may refuse every old-format expiry (about 66 of 93). The
+  build runs E7 on one old-format expiry first; if it refuses, those expiries take the FUTIDX row's `SETTLE_PR` for
+  the expiring month (labelled `futidx_settle`), cross-checked against the close the same way, never dropped
+  silently. The report counts expiries per settlement source.
 - **Horizon buckets.** Days to expiry 1-7, 8-21, 22-45, over 45: the same strike means different things far from
   expiry.
 - **Bins.** `p` in [0, 0.05), [0.05, 0.15), ..., [0.85, 0.95), [0.95, 1]: per bin and bucket the mean `p`, the
