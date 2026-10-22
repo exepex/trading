@@ -120,12 +120,13 @@ followed as the files list them. The report lists each change with its first exp
 
 ## 8. Lots
 
-- **The lot of each cycle is its contract's market lot:**
-  - from 2024, UDiFF's `NewBrdLotQty` on the entry day;
-  - before, R2's `derived_lot()`: the same-expiry future's turnover over contracts times settlement price, rounded to
-    the nearest whole lot.
-- **Cross-check:** every change in the derived series is checked against NSE's lot-size circular for that date. A
-  disagreement is listed, and the circular's lot is used, with the circular named.
+- **The lot of each cycle is its contract's market lot on the entry day (revision 5):**
+  - from 2024, UDiFF's `NewBrdLotQty`;
+  - before, NSE's circular schedule (`edge1study/lots.py`, sources in `LOT_CHECK.md`). R2's `derived_lot()` (the
+    same-expiry future's turnover over contracts times settlement price) only checks it: the build found it wanders
+    one or two units around the true lot, so it is never used as the lot.
+- **Cross-check:** every legacy-file derived lot more than 5% from the schedule is listed (`lot_changes.py`), with the
+  result in `LOT_CHECK.md`.
 - **Reporting:** results are given for 1 lot of the time (rupees) and per unit. Today's lot (NIFTY 65, BANKNIFTY 30)
   is a second column, never decided on.
 - The wing width the cap picks moves with the lot, so the report shows the width used per year and index.
@@ -248,6 +249,9 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
+- Revision 5 (before the freeze, the lot cross-check): the derived lot wanders 72-77 around NIFTY's 75 (turnover is
+  at the average price, not the settlement price), so legacy-file lots come from NSE's circular schedule and the
+  derived lot only checks it (section 8, `LOT_CHECK.md`).
 - Revision 4 (before the freeze): section 13's order follows the factory's gates (G1 screen, then G2 spend and G3
   plan for passers only; the old order put spend and plan before the screen, which the factory refuses), and the 4
   measurement rows are measurement cards registered like the others.

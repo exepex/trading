@@ -1,7 +1,7 @@
 """The two indices' daily option panels in the engine's `NiftyPanel` shape (protocol section 3), and each expiry's lot.
 
 - NIFTY: the committed end-of-day panel (`read_nifty_panel`), unchanged. Its lots come from the same F&O files as
-  BANKNIFTY's, read on the days a cycle needs.
+  BANKNIFTY's (`lots.py`).
 - BANKNIFTY: every session's rows from the archived F&O files (`day_files.py`), with the index close from G13b's close
   table. The first build reads every file once (slow, through Drive), and is cached in `work/edge1/` (git-ignored);
   the cache is keyed by the day list, so a different period rebuilds."""
@@ -29,11 +29,6 @@ def panel_from_rows(rows: Iterable[DayRows], closes: Callable[[date], float | No
     ordered = sorted(rows, key=lambda r: r.day)
     sessions = tuple(SessionClose(r.day, kinds.get(r.day, "regular"), closes(r.day), None) for r in ordered)
     return NiftyPanel(sessions, {r.day: r.options for r in ordered}, {r.day: r.futures for r in ordered})
-
-
-def lots_from_rows(rows: Iterable[DayRows]) -> dict[date, dict[date, int]]:
-    """day -> expiry -> units per lot, as each day's file states or implies it."""
-    return {r.day: dict(r.lots) for r in rows}
 
 
 def _key(days: Sequence[date]) -> str:

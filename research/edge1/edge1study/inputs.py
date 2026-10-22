@@ -23,7 +23,8 @@ from fno.storage.wiring import (
     build_session_calendar,
 )
 
-from .panels import cached_rows, lots_from_rows, panel_from_rows
+from .lots import market_lots
+from .panels import cached_rows, panel_from_rows
 from .runner import BANKNIFTY, NIFTY, Market, sealed
 
 FIRST_DAY, LAST_FILE_DAY = date(2019, 1, 1), date(2026, 10, 20)
@@ -61,8 +62,8 @@ def markets(through: date | None = None) -> dict[str, Market]:
         nifty_panel = sealed(nifty_panel, through)
     bank_panel = panel_from_rows(rows[BANKNIFTY], lambda day: outcomes.close(BANKNIFTY, day), {})
     return {
-        NIFTY: Market(NIFTY, nifty_panel, lots_from_rows(rows[NIFTY]), settled(NIFTY)),
-        BANKNIFTY: Market(BANKNIFTY, bank_panel, lots_from_rows(rows[BANKNIFTY]), settled(BANKNIFTY)),
+        NIFTY: Market(NIFTY, nifty_panel, market_lots(NIFTY, rows[NIFTY]), settled(NIFTY)),
+        BANKNIFTY: Market(BANKNIFTY, bank_panel, market_lots(BANKNIFTY, rows[BANKNIFTY]), settled(BANKNIFTY)),
     }
 
 

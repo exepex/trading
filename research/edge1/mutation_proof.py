@@ -58,6 +58,8 @@ M = [
     ("stt_history.py", "(date(2024, 10, 1), 0.1, 0.125)", "(date(2024, 10, 1), 0.1, 0.15)", "exercise STT early"),
     ("day_files.py", "if board > 0:\n            lots.setdefault(expiry, board)\n", "", "board lot ignored"),
     ("day_files.py", "q.expiry in monthly", "True", "weekly options kept"),
+    ("lots.py", "(date(2023, 7, 1), 15,", "(date(2023, 8, 1), 15,", "lot change a month late"),
+    ("lots.py", "dict(r.lots) if r.source == UDIFF else", "dict(r.lots) if True else", "derived lot used as the lot"),
     ("margin.py", "if span.created >= datetime.combine", "if span.created > datetime.combine", "09:00 file allowed"),
     ("margin.py", "if hashlib.sha256(data).hexdigest() != sha256[day]:", "if False:", "no first-copy check"),
     (

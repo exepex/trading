@@ -1,6 +1,7 @@
-"""Protocol section 8's lot cross-check, its input: every change in each index's lot series, from the cached F&O rows
-(`edge1study/panels.py`). Prints, per index, each monthly expiry's lot when first listed and every change during its
-life; LOT_CHECK.md compares each change with NSE's circular.
+"""Protocol section 8's lot cross-check (revision 5), from the cached F&O rows (`edge1study/panels.py`): per index,
+every legacy-file derived lot more than 5% from the circular schedule (`edge1study/lots.py`), then each expiry's
+board lot in the UDiFF files when first listed and every change during its life; LOT_CHECK.md compares each change
+with NSE's circular.
 
     python research/edge1/lot_changes.py   # needs the cache
 """
@@ -13,6 +14,7 @@ sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
 
 from edge1study.inputs import sessions  # noqa: E402
+from edge1study.lots import UDIFF, disagreements  # noqa: E402
 from edge1study.panels import cached_rows  # noqa: E402
 from edge1study.runner import BANKNIFTY, INDICES  # noqa: E402
 
@@ -34,9 +36,13 @@ def main() -> int:
     fo_files, _ = build_nifty_panel_files()
     rows = cached_rows(INDICES, sessions(build_session_calendar()), fo_files, options_for=(BANKNIFTY,))
     for index in INDICES:
-        print(f"## {index}")
+        found = disagreements(index, rows[index])
+        print(f"## {index}: {len(found)} legacy-file lots more than 5% from the circular schedule")
+        for day, expiry, derived, circular in found:
+            print(f"  {day} expiry {expiry}: derived {derived}, circular {circular}")
+        print(f"## {index}: NSE's board lot (UDiFF files), each expiry's first lot and every change")
         previous = None
-        for expiry, life in sorted(lot_lives(rows[index]).items()):
+        for expiry, life in sorted(lot_lives([r for r in rows[index] if r.source == UDIFF]).items()):
             first = life[0][1]
             if first != previous or len(life) > 1:
                 changes = ", ".join(f"{d} {lot}" for d, lot in life)
