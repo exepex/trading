@@ -60,14 +60,24 @@ class PathReader:
     def closed_between(self, first: date, last: date) -> ClosedRead:
         """Every original closed from `first` to `last`, each as its latest correction sealed up to today."""
         today = max(self.clock.now().astimezone(IST).date(), last)
-        files = {d: self._read(d, RecordKind.OUTCOMES) for d in self._sessions(first, today)}
+        files = {d: self._read(d, RecordKind.OUTCOMES) for d in self.sessions(first, today)}
         outcomes = {d: [r for r in f.records if isinstance(r, OutcomeRecord)] for d, f in files.items() if f}
         corrections = {r.corrects: r for d in sorted(outcomes) for r in outcomes[d] if r.corrects}
         paths = tuple(self._path(latest(r, corrections)) for d in sorted(outcomes) if d <= last
                       for r in outcomes[d] if not r.corrects)  # fmt: skip
         return ClosedRead(paths, tuple(d for d, f in files.items() if f and f.damaged))
 
-    def _sessions(self, first: date, last: date) -> list[date]:
+    def orphan_corrections(self, origin: date) -> tuple[OutcomeRecord, ...]:
+        """Corrections sealed from `origin` to today whose `corrects` names no outcome sealed in that time: counted
+        and alerted by every report, never dropped silently (judge 501 addendum 1)."""
+        today = self.clock.now().astimezone(IST).date()
+        files = (self._read(d, RecordKind.OUTCOMES) for d in self.sessions(origin, today))
+        outcomes = [r for f in files if f for r in f.records if isinstance(r, OutcomeRecord)]
+        known = {record_sha256(r) for r in outcomes}
+        return tuple(r for r in outcomes if r.corrects and r.corrects not in known)
+
+    def sessions(self, first: date, last: date) -> list[date]:
+        """The trading sessions from `first` to `last`, by A7's calendar."""
         return [d for d in self.calendar.sessions(first, last) if is_trading_day(self.calendar, d)]
 
     def _read(self, session: date, kind: RecordKind) -> SealedFile | None:
@@ -84,7 +94,7 @@ class PathReader:
         faults: list[DataFault] = []
         entry = self._entry(outcome, entry_day, faults)
         snapshots, skipped, exit_record = [], 0, None
-        for day in self._sessions(entry_day, exit_day):
+        for day in self.sessions(entry_day, exit_day):
             sealed = self._read(day, RecordKind.DECISIONS)
             if sealed is None or sealed.damaged:
                 faults.append(DataFault.SESSION_NOT_SEALED if sealed is None else DataFault.SEALED_FILE_DAMAGED)
