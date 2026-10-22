@@ -227,15 +227,18 @@ build gate's result are listed too.
 ## 13. Registration and counting
 
 - **Trials:** 24 consecutive trials from the next free ledger number, one per variant and index, each with its own idea
-  card (`research/ideas/EDGE1-<index>-<structure>-<exit>.md`). Then 4 measurement rows (NS and NT per index), with
-  ledger `hypothesis` no, as GR1's N0 rows were. The count is honest:
-  every card is a trial whether or not it passes G1.
-- **Order:**
+  card (`research/ideas/EDGE1-<index>-<structure>-<exit>.md`). Then 4 measurement cards (NS and NT per index,
+  `hypothesis: no`, `measurement: yes`; the factory never screens a measurement). All 28 cards are written by
+  `research/edge1/cards.py`. The count is honest: every card is a trial whether or not it passes G1.
+- **Order (revision 4: the factory's own gate order, G1 before G2 and G3):**
   1. the DATA_SPEND rows are committed first, naming the trials;
   2. then each card through `factory register`, one per commit after a pull;
-  3. then `factory spend` (it will say exploratory) and `factory plan`;
-  4. then `factory question <id> "<text>" --alpha 0.05` for the family, with every card's `pass_level` at 0.05;
-  5. then `factory screen` after run 1.
+  3. then `factory question <id> "<text>" --alpha 0.05` for the family, with every card's `pass_level` at 0.05;
+  4. run 1; its G1 inputs (gross, tail, cost) and G3 inputs (sd per trade, frequency) are copied from
+     `selection.json` into each tradeable card and committed;
+  5. then `factory screen` on each tradeable card; for each G1 passer only, `factory spend` (it will say
+     exploratory) and `factory plan`;
+  6. run 2.
 - G4 is this file frozen (`research/edge1/FREEZE.md`, SHA-256 of this file and of the analysis code) and named as each
   ledger row's `protocol_commit`. G6 is the results file. The factory's shadow-only `freeze` and `verdict` are not
   used, so the gate log ends at G3 (or at G1 for a screened-out card).
@@ -244,6 +247,9 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
+- Revision 4 (before the freeze): section 13's order follows the factory's gates (G1 screen, then G2 spend and G3
+  plan for passers only; the old order put spend and plan before the screen, which the factory refuses), and the 4
+  measurement rows are measurement cards registered like the others.
 - Revision 3 (before the freeze): the seal is stated as 14 Feb 2023 and enforced at load (section 3); the
   historical-STT dates are sourced, exercise STT added, the higher pre-Oct-2024 exchange charge stated (section 9);
   the margin build gate, which had no independent source, is replaced by an "unchecked" label (section 9).
