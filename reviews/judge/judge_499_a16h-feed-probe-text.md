@@ -60,3 +60,12 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
   - The after-close ramp must not start until that day's catch-up step is recorded done in `journal/runs/<date>.json`.
   - A ramp started early refuses with one named line, with a test.
   - I will plant faults on it in the code round. The builder may add the line to the text then.
+
+## Addendum 3: the orchestrator's two questions on f1b4fca9
+
+1. **Does 15:45 collide with other Groww users? Yes, possibly.** A16b's catch-up starts at 15:33 on the same key. That is Addendum 2's condition for the code: the ramp starts only once the day's catch-up is recorded done.
+2. **Is a refusal at 500, twice, a sound reading of "market closed"? Not by itself.** It cannot tell a closed market from a real limit under 500. That day's `coverage` run already held about 400 subscriptions, so a limit between 400 and 500 would look exactly like "closed". Second condition for the code:
+   - The after-close ramp's first step is small (50). A refusal at 50, twice, reads as "closed market".
+   - 50 accepted but 500 refused reads as a limit under 500. The ramp then halves its way down from there (e.g. 250, 375, ...) and reports the bounds; it is never read as "closed".
+   - In the fallback window, a refusal at the first step is reported as a limit, since the market is open.
+   - Tests: a fake feed that refuses everything gives "closed"; one that refuses at 450 gives "limit between 400 and 450" (or the bounds reached).
