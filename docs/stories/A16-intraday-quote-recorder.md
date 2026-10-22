@@ -652,16 +652,20 @@ minutes can be replaced without a second paid source.
   sign-in or any call answers 429 or the plan's hard end time is reached):
   - `coverage`: about 400 instruments, 10:20-10:40. It overlaps A16's 10:30 mark on purpose: that mark is the first
     market-hours test of two sign-ins on one key (judge 499).
-  - `ramp`: 500, 1,000, 1,500, 2,000, 3,000, stopping at the first refusal or error; **between A16's marks only**:
-    11:17:00 to a hard stop at 11:28:00 (A16's 11:15 mark ends about 11:16, its 11:30 mark starts at 11:30; judge 499:
-    a mark with no usable level voids the session's RV). Unfinished steps go to the next day's same window.
+  - `ramp`: 500, 1,000, 1,500, 2,000, 3,000, stopping at the first refusal or error; **never overlapping an A16 mark**
+    (judge 499, orchestrator: a mark with no usable level voids the session's RV, which feeds v4 and G14). **First choice:
+    after the close**, from 15:45 IST once A16's last mark (15:30, committed about 15:35) is on `main`: accepting a
+    subscription needs no live ticks. If Groww refuses subscriptions after hours (a refusal already at the first step,
+    500, with the same error at 500 on a retry, is read as "closed market", not as the limit), the probe note says so
+    and the ramp runs on a later session between A16's marks only, **10:50:00 to a hard stop at 10:58:00**, one or two
+    steps per 8-minute chunk, until done.
   - `alongside`: **at most 1,000 instruments whatever the ramp showed** (orchestrator: the 3 pm data feeds G13, so
     losing it costs a day), behind a **go/no-go gate** (judge 499): it runs only if that day's `coverage` run left A16's
     10:30 and 10:45 marks clean (ledger status good, no 429 failure, no missing quote); it signs in and subscribes before
     14:50 and makes no new sign-in between 14:55 and 15:13 (the 3 pm recorders' window); any condition missed means no
     `alongside` that day, noted in the probe note with the reason.
 - **Schedule (IST, from Tue 27 Oct; 28 Oct if the code is not passed by then):** `coverage` 10:20-10:40, `ramp`
-  11:17-11:28, `alongside` from before 14:50 to 15:20 (gate permitting). Run by the builder by hand; no schedule or
+  from 15:45 (or 10:50-10:58 chunks), `alongside` from before 14:50 to 15:20 (gate permitting). Run by the builder by hand; no schedule or
   workflow is created.
 
 **Acceptance criteria:**
