@@ -67,3 +67,8 @@ def test_drawdown_and_worst_month():
     trades = [trade(net, start + timedelta(days=31 * i)) for i, net in enumerate([100, -300, 50, -100, 400])]
     assert drawdown(trades) == pytest.approx(-350.0)  # from +100 down to -250
     assert worst_month(trades) == ("2025-03", -300.0)
+
+
+def test_p_counts_the_observed_mean_itself_so_it_is_never_zero():
+    nets = [900.0 + 10 * (i % 21) for i in range(40)]  # no resampled mean can reach twice the observed mean
+    assert one_sided_p(nets, 0) == pytest.approx(1 / (stats.RESAMPLES + 1))
