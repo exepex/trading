@@ -66,7 +66,7 @@ class FactoryFreeze:
             raise GateStepError(f"trial {card.trial_id}'s ledger row does not name {card.path} as its protocol")
         frozen, git = row["protocol_commit"], self.order.git
         if frozen:
-            if not (git.commit_exists(frozen) and git.unchanged_since(frozen, card.path)):
+            if not (git.is_ancestor(frozen, git.head()) and git.unchanged_since(frozen, card.path)):
                 raise GateStepError(f"trial {card.trial_id} is already frozen at {frozen[:10]}, which is not "
                                     f"{card.path} as it is now")  # fmt: skip
             return frozen, lambda: None

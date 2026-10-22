@@ -54,6 +54,8 @@ class IdeaRegistration:
         if row["protocol_path"] != card.path:
             return False
         self._require_same(card, row)
+        if row["kind"] != IDEA_KIND:
+            raise RegistrationError(f"trial {card.trial_id}'s ledger row is kind {row['kind']!r}, not a factory idea")
         if self.git.first_commit_containing(f"\n{card.trial_id},", LEDGER_FILE) is not None:
             raise RegistrationError(f"trial {card.trial_id}'s ledger row is committed without its gate row: run "
                                     "`factory backfill`")  # fmt: skip

@@ -128,3 +128,27 @@ def test_a_half_frozen_card_changed_since_its_commit_is_refused(tmp_path):
     commit(root, "the card changed after the half freeze")
     with pytest.raises(GateStepError, match="already frozen at .*, which is not research/ideas/X1.md as it is now"):
         freeze(root)
+
+
+def test_a_half_registration_of_another_kind_is_refused_never_adopted(tmp_path):
+    root = unregistered(tmp_path / "repo")
+    card = read_idea("X1", root)
+    Ledger(root).register("3", card.experiment, card.description, "retrospective", card.hypothesis,
+                          protocol_path=card.path, today=DAY)  # fmt: skip
+    with pytest.raises(RegistrationError, match="kind 'retrospective', not a factory idea"):
+        register(root)
+    assert parts(root)[0].gates.rows() == []
+
+
+def test_a_half_freeze_at_a_commit_outside_the_history_is_refused(tmp_path):
+    root = planned(tmp_path / "repo")
+    git(root, "checkout", "-q", "-b", "elsewhere")
+    (root / "other.txt").write_text("x\n")
+    elsewhere = commit(root, "a commit on another branch")
+    git(root, "checkout", "-q", "-")
+    ledger = parts(root)[1]
+    ledger.file.write_text(write_ledger([r | {"protocol_commit": elsewhere} if r["trial_id"] == "3" else r
+                                         for r in ledger.rows()]))  # fmt: skip
+    commit(root, "the half freeze names a commit outside the history")
+    with pytest.raises(GateStepError, match="already frozen at"):
+        freeze(root)
