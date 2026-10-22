@@ -129,3 +129,12 @@ def test_the_honesty_labels_are_printed_and_never_dropped():
     for html in (render_morning(broken), render_evening(broken)):
         assert "⚠ a forecast is missing: data late" in html and "All systems normal" not in html
     assert "All systems normal" in render_evening(page("evening"))
+
+
+def test_the_result_words_come_from_one_source_shared_with_the_text_lines():
+    from fno.forecast_lab.design.formats import AMBER, GLYPH, GREEN, RED, WORD
+    from fno.forecast_lab.page.plain import RESULTS
+
+    assert f"{GLYPH[GREEN]} {WORD[GREEN]}" == RESULTS[(True, True)] == "✓ Correct"
+    assert f"{GLYPH[AMBER]} {WORD[AMBER]}" == RESULTS[(False, True)] == "⚠ Close call"
+    assert f"{GLYPH[RED]} {WORD[RED]}" == RESULTS[(False, False)] == "✗ Missed"
