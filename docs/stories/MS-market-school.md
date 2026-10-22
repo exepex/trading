@@ -1244,6 +1244,12 @@ cases and a test that fails when the named code is broken on purpose.
       contract's own lot is missing or contradictory. This needs the road day to carry a lot per expiry (a small additive
       follow-up to MS-P1a's `RoadDay`, as `strike_steps` was in MS-P1a2), asked of its owner first. Test with 2 Jun 2025: BANKNIFTY-M open
       with each expiry's own lot, a proposal's units follow the leg's expiry.
+      Agreed with MS-P1a's owner (22 Oct): `RoadDay.lots` and `lot_for(expiry)` are built exactly like `strike_steps`/`step_for` (a4, additive,
+      `lot` stays the nearest expiry's lot, `lot_for` raises for an expiry it does not name), after MS-P1j merges. MS-P1e's owner changes both
+      reads in `drivers/proposals.py` (lines 44 and 45) to `lot_for(plan.expiry)`; fills and margin follow because they read `Proposal.lot`.
+      The live catalogue keeps closing a road on mixed lots until a4 is on main, e reads `lot_for`, and a test on the 2 Jun 2025 archive shows
+      BANKNIFTY-M's near and far monthlies proposing with their own lots, units, fill costs and margin; turning it on for live is the orchestrator's decision.
+      Until then only the practice catalogue fills `lots`.
   14. The report shows the share of impossible legs per road-day, separate from refusals (judge 509: 42-177 of 260-436 traded
       legs on closes, mostly the closes' own staleness). Named test: `test_the_report_counts_impossible_legs_apart_from_refusals`.
       Without it a practice result reads as a full chain.
