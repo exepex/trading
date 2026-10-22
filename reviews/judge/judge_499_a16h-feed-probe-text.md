@@ -38,3 +38,13 @@ marks, and with them the forecasts, at risk.
 
 ## Notes
 - The terms question (whether Groww allows read-only use) stays open by the owner's choice (22 Oct). The text says so.
+
+## Addendum 1: text round 2 at 59069906
+
+**Verdict: PASS (text).** The code may start; the code round is judged against criteria 1-6 as now written.
+
+- **Finding 1: ACCEPTED.** The ramp runs only from 11:17:00 to a hard stop at 11:28:00, and stops on any 429. A16's mark measures 53-57 s (A16 story, "One snapshot, measured"), so it clears the 11:15 mark with about a minute to spare, and the 11:30 mark by 2 minutes. Unfinished steps move to the next day. Choosing between marks over after-hours is reasoned: whether a refusal shows with the market closed is unknown.
+- **Finding 2: ACCEPTED.** `alongside` runs only after a clean 10:30 and 10:45 A16 mark from that day's `coverage` run, signs in and subscribes before 14:50, and makes no new sign-in during 14:55-15:13. A missed condition means no run that day, with the reason noted. Criterion 3 now tests the refusal.
+- **Beyond the ask:** every plan stops on its own 429 or at its hard end time (criterion 3).
+- **Minors (a), (b): ACCEPTED.** The test supplies the trading names itself; coverage is reported by class.
+- **For the code round:** I will plant faults on the gate (a 429 in the ledger, a missing mark, a start at 14:51), on the hard end times, and on each allowed and refused name.
