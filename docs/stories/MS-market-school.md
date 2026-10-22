@@ -842,3 +842,77 @@ public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_
   `test_a_stale_vertical_never_hides_behind_another_in_the_total` (B's condor, refused at -2 on ranges),
   `test_a_vertical_whose_range_overlaps_its_payoff_is_valid` (I's condor: 1.5/2.5 against 1.0/4.0, not refused), and
   one boundary test for each bound. Plants: each bound dropped in turn, both caught.
+### MS-P1h Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-card`)
+Round 1, built on a's tip 756e6545. Not finished: the D6 rows and the ledger row wait (see "Open" below).
+| 1 a card registered after a decision makes that day not counted | `counting.CountingRule._frozen_before` | `test_a_card_registered_after_the_decision_makes_that_day_not_counted`, `test_a_card_committed_in_the_decisions_own_commit...`, and on real git `test_a_card_edited_after_the_decision_makes_the_decision_not_counted` |
+| 2 a changed card SHA-256 refuses counting | `CountingRule.verdict` (driver card vs its D6 row) | `test_a_changed_driver_card_sha256_refuses_counting`; a row registered after the decision: `test_a_version_row_committed_after_the_decision_is_not_counted` (real D6 `Versions`) |
+| 3 five roads on one day are one cluster | `clusters.session_clusters`, `common_road_days` | `test_five_roads_on_one_day_form_one_cluster_and_count_as_one_session`, `test_the_common_group_holds_only_road_days_every_control_has_counted` |
+| 4 `read_card` accepts the card | `research/school/CARD_P1.md` | `test_read_card_accepts_the_card_as_a_measurement`; the cost block hash: `test_the_card_names_the_charges_block_that_config_yaml_holds` |
+Broken-code proof: 3 mutations (own-commit rule, driver card SHA check, first counted session) each fail a named test.
+D6 change (orchestrator-approved 22 Oct 2026, flagged for the judge: it touches D6's `fno/books/version_registry.py`,
+`fno/books/versions_cli.py`): `is_known_book` accepts the three books or `school:<driver code>@<version>`
+(`SCHOOL_BOOK_PREFIX` named at the top; `BOOKS` untouched). Tests `tests/versions/test_school_books.py`: a school id is
+accepted, a malformed one refused, the three books and the existing rows parse and render byte-identically, each
+school version has its own order. The existing 308 tests of `tests/versions`, `tests/school`, `tests/decisions` pass.
+Trial accounting (orchestrator, 22 Oct): one measurement card, one ledger trial, no Holm family; PS5 and KL1 point at
+their EDGE1 trials 94 (BANKNIFTY SF TP50) and 76 (NIFTY SC3 EXP), read from `research/ledger.csv`.
+Open: part e's card files do not exist yet, so no driver card SHA-256 or D6 row can be written; the ledger row
+(trial 99) is written by `factory register` when the orchestrator says. First counted session: unset by design.
+MS-P1h round 2 (judge 480 FAIL, round 1; each finding checked against the code and fixed):
+1. **First counted session (blocking, accepted):** `CountingRule` no longer takes the date from settings. It reads
+   `school.first_counted` from `config.yaml` as committed at the decision's own commit and requires the commit that
+   first wrote that value (git pickaxe, the research engine's `Git`) to be a strict ancestor of the decision's commit
+   (`first_counted_not_frozen_before`, `no_first_counted_session`, `before_first_counted_session`). Tests on real git,
+   including the judge's plant: `test_a_first_counted_session_moved_back_after_the_decision_never_re_counts_it`,
+   `..._moved_later_after_the_decision_never_un_counts_it`, `..._set_after_the_decision_does_not_count_it`,
+   `..._written_in_the_decisions_own_commit_is_refused` (fake-history twins in `test_counting.py`).
+2. **Card versions (accepted):** a decision counts under the card's last commit strictly before it
+   (`CountVerdict.card_commit`); a later version applies to later decisions only
+   (`test_a_later_card_version_applies_only_to_later_decisions`, `test_a_card_edited_after_the_decision_leaves_it_counted...`).
+   The test forcing a card edit on a `charges:` change is removed; the card's cost hash is now checked against
+   `config.yaml` as committed at the card's last commit (`test_the_cost_block_named_by_the_card_...`).
+3. **Card text (accepted):** "EDGE1: 24 variants (trials 71-98) found no edge after costs; this does not prove no edge
+   exists" replaces "98 counted trials"; the band and the impossible-price bound are frozen as part b's own
+   (orchestrator, 22 Oct: one source of truth): 10 strike steps (`fno/school/quality/band.py` `DEFAULT_BAND_STEPS`,
+   b's tip 183783bd) and `impossible_keys` (`fno/school/quality/prices.py`, judged on bid-ask ranges, not mids);
+   PS5's road (BANKNIFTY-M) and KL1's (NIFTY-M) are named (`test_the_card_freezes_the_pieces_judge_480_named`).
+   Part e's cards must carry `band_steps: 10`. b is not on this branch, so the pin test
+   (`test_the_cards_band_is_the_quality_gates_constant`) skips here and runs once main holds b: j should check it
+   ran. Whether 10 steps is wide enough for the 1-expected-move shorts is reasoning only (a leg outside the band is
+   still checked by the quote gate when the trade is made).
+4. **DRY (accepted):** `GitCardHistory` and the test's `RegistryHistory` are gone; one adapter, `GitCountingHistory`,
+   wraps `fno/research_engine/ledger.Git` (`is_ancestor`, `commits_touching`, `committed_text`,
+   `first_commit_containing`), and the tests use `Git` itself, also for D6's `Versions`.
+Minors: (a) and (b) the two weak tests are replaced by `test_the_card_says_how_the_first_counted_session_is_set_and_proved`
+and a pinned `CARD_COMPONENT` (`test_the_version_component_name_part_e_must_use_is_pinned`; also kills the renamed
+constant plant); (c) the CLI `_book` is tested (`tests/versions/test_school_books_cli.py`); (d) the common group is no
+longer called "frozen once": the card and `clusters.py` say it is computed at report time, per card version.
+Broken-code proof: 8 mutations of the new code (tree read at HEAD, strict check, card version selection, date check,
+driver SHA check, the CLI guard, the component name, the pickaxe) each fail a named test.
+MS-P1h round 3 (judge 480 addendum 1, owner: "fix, then Judge H re-checks only those fixes"; each point checked and fixed):
+1. **Should-fix, a charges change without a new card version (accepted):** `test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version`
+   compares the `charges:` block of `config.yaml` at HEAD with the hash in the current card; a change fails CI until a
+   new card version is cut. Versions apply forward only, so no earlier decision is touched. Checked by changing a
+   charge in `config.yaml`: the test fails; restored: passes.
+2. **Minor (a), one spelling (accepted):** `GitCountingHistory.first_counted_at` no longer pickaxes one spelling. It
+   reads the parsed value at every commit of the history that touched `config.yaml` and takes the commit that began
+   the value's current run, so aligned, commented and quoted lines are found. A value that is in the tree but whose
+   writing commit is not found raises `FirstCountedError`, a value that is not a date raises, and a shallow clone
+   stops by name; nothing counts silently. Tests: `test_the_value_is_found_whatever_its_spelling` (5 spellings),
+   `test_an_aligned_value_counts_decisions_after_it`, `test_a_value_that_is_not_a_date_raises...`,
+   `test_a_value_in_the_tree_that_no_commit_of_the_history_wrote_raises`, `test_a_shallow_clone_stops_counting_by_name`,
+   `test_a_value_set_again_after_a_change_is_dated_by_its_latest_run`.
+3. **Minor (b), traded legs outside the band (accepted):** the card now says the impossible-price rule on the band's
+   legs measures capture quality, and that a traded leg outside the band is checked per proposal at the touch by part
+   d's `ImpossiblePriceLaw` (`fno/school/safety/quote_laws.py`, on story/ms-p1-fills; refusal `impossible_leg_price`),
+   beside law 5's quote gate. The judge's point that law 5 itself does not check impossible prices is right and the
+   card says so. d is not on this branch: `test_the_law_the_card_names_for_traded_legs_exists_in_part_d` skips here
+   and runs once d is on main (j should check it ran).
+4. **Minor (c), quoted date (accepted):** `test_a_quoted_date_counts_like_a_bare_one` and the quoted spellings above
+   (plant on `_as_date` caught).
+Broken-code proof: 5 mutations of the new code (text kept as text, the run reset, the not-found raise, the shallow
+stop, the unreadable raise) each fail a named test.
+5. **Card known limits (orchestrator, 22 Oct):** §6 of the card states that the expiry-day ELM is not modelled, so a
+   driver holding a position into its expiry day gets a `margin_room` refusal on every new entry that day; the blocked
+   entries become `account_limit` tickets; reports show the `margin_room` share per road on expiry days; the fix is P2's
+   (P0 probe 4). Pinned by `test_the_card_freezes_the_pieces_judge_480_named`.
