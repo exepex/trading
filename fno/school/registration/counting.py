@@ -1,6 +1,7 @@
 """The counting rule (story MS-P1h, D6's rule): a decision counts only if, strictly before the decision's own commit,
 the first counted session was set, the comparison card was frozen and the driver's version row was registered; the
-driver's card is the one its row names; and the session is on or after the first counted session. Each decision is
+driver's card is the one its row names; the row names the comparison card version in force; and the session is on or
+after the first counted session. Each decision is
 judged against the card version and the first counted session in force at its own commit, so a later change applies
 only to later decisions and never re-counts or un-counts an earlier one. Anything else is kept in the denominator."""
 
@@ -20,6 +21,7 @@ class NotCounted(StrEnum):
     FIRST_COUNTED_NOT_FROZEN_BEFORE = "first_counted_not_frozen_before"
     BEFORE_FIRST_COUNTED_SESSION = "before_first_counted_session"
     CARD_NOT_FROZEN_BEFORE = "card_not_frozen_before"
+    COMPARISON_CARD_MISMATCH = "comparison_card_mismatch"
     VERSION_NOT_REGISTERED_BEFORE = "version_not_registered_before"
     DRIVER_CARD_CHANGED = "driver_card_changed"
 
@@ -50,6 +52,14 @@ class FirstCounted:
     set_in: str | None
 
 
+@dataclass(frozen=True)
+class RegisteredVersion:
+    """What a driver version's D6 row names: its driver card and the comparison card it was registered under."""
+
+    card_sha256: str | None
+    comparison_card_sha256: str | None
+
+
 class CountingHistory(Protocol):
     def is_ancestor(self, older: str, newer: str) -> bool: ...
 
@@ -59,11 +69,14 @@ class CountingHistory(Protocol):
     def first_counted_at(self, commit: str) -> FirstCounted:
         """`school.first_counted` as committed at `commit`."""
 
+    def card_sha256_at(self, commit: str) -> str:
+        """The SHA-256 of the comparison card as committed at `commit`."""
+
 
 class VersionLookup(Protocol):
-    def card_sha256_registered_before(self, driver_id: str, session: date, decision_commit: str) -> str | None:
-        """The card SHA-256 of the driver's active version whose row and components were committed strictly before the
-        decision's commit (D6's ancestry rule), or None when there is none."""
+    def registered_before(self, driver_id: str, session: date, decision_commit: str) -> RegisteredVersion | None:
+        """The driver's active version whose row and components were committed strictly before the decision's commit
+        (D6's ancestry rule), or None when there is none."""
 
 
 class CountingRule:
@@ -81,13 +94,13 @@ class CountingRule:
         card = self._card_in_force(candidate.commit)
         if card is None:
             return CountVerdict(False, NotCounted.CARD_NOT_FROZEN_BEFORE)
-        registered = self.versions.card_sha256_registered_before(
-            candidate.driver_id, candidate.session, candidate.commit
-        )
+        registered = self.versions.registered_before(candidate.driver_id, candidate.session, candidate.commit)
         if registered is None:
             return CountVerdict(False, NotCounted.VERSION_NOT_REGISTERED_BEFORE, card)
-        if registered != candidate.card_sha256:
+        if registered.card_sha256 != candidate.card_sha256:
             return CountVerdict(False, NotCounted.DRIVER_CARD_CHANGED, card)
+        if registered.comparison_card_sha256 != self.history.card_sha256_at(card):
+            return CountVerdict(False, NotCounted.COMPARISON_CARD_MISMATCH, card)
         return CountVerdict(True, card_commit=card)
 
     def _card_in_force(self, decision_commit: str) -> str | None:

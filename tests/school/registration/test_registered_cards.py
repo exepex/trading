@@ -83,3 +83,46 @@ def test_every_row_names_the_comparison_card_as_it_was_when_the_row_was_register
         committed = git.committed_text(CARD_PATH, row["registered_in_commit"])
         assert json.loads(row["components"])[COMPARISON_COMPONENT] == hashlib.sha256(committed.encode()).hexdigest()
         assert "version: 2" in committed, "the rows name version 2 of the comparison card"
+
+
+def test_the_ledger_row_of_trial_99_names_the_commit_that_froze_card_version_2():
+    git = Git(ROOT)
+    if git.is_shallow():
+        pytest.skip("a shallow clone cannot show the commit")
+    with (ROOT / "research/ledger.csv").open() as handle:
+        row = next(r for r in csv.DictReader(handle) if r["trial_id"] == "99")
+    committed = git.committed_text(CARD_PATH, row["protocol_commit"])
+    assert committed is not None and "\nversion: 2\n" in committed
+    assert git.is_ancestor(row["protocol_commit"], "HEAD")
+    for registered in d6_rows().values():
+        assert (
+            json.loads(registered["components"])[COMPARISON_COMPONENT] == hashlib.sha256(committed.encode()).hexdigest()
+        )
+
+
+def test_the_real_rows_and_the_real_card_pass_the_counting_rule_once_a_first_counted_session_is_set():
+    """Everything registered here, judged by the real rule on the real history, with only the first counted session
+    (unset by design until the 10-session gate) supplied."""
+    from datetime import date
+
+    from fno.books.version_registry import parse_versions
+    from fno.books.versions import Versions
+    from fno.school.constants import RoadCode
+    from fno.school.registration.counting import CountCandidate, CountingRule, FirstCounted
+    from fno.school.registration.wiring import D6VersionLookup, GitCountingHistory
+
+    git = Git(ROOT)
+    if git.is_shallow():
+        pytest.skip("a shallow clone cannot show the history")
+
+    class WithFirstCounted(GitCountingHistory):
+        def first_counted_at(self, commit):
+            return FirstCounted(date(2026, 10, 22), git.commits_touching("journal/versions.csv")[0])
+
+    rows = parse_versions((ROOT / "journal/versions.csv").read_text())
+    rule = CountingRule(WithFirstCounted(git), D6VersionLookup(Versions(rows, git)))
+    head = git.head()
+    for card in CARDS:
+        sha = hashlib.sha256(card.read_bytes()).hexdigest()
+        verdict = rule.verdict(CountCandidate(date(2026, 11, 30), RoadCode.NIFTY_MONTHLY, driver_id(card), sha, head))
+        assert verdict.counted, (card.name, verdict.reason)
