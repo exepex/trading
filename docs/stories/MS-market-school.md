@@ -539,3 +539,34 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Deliberate duplication:** the `school` limits copy today's book caps rather than reading `risk.profiles.books`, so a desk change cannot move the pilot mid-count. `test_the_school_limits_equal_the_books_caps_today` makes any divergence a visible decision.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
+
+### MS-P1c Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-dashcam`)
+
+Round 1, built on a's tip 756e6545. Files: `fno/school/dashcam/` (names, publisher, reader, store, seals, counts,
+replay, wiring), `tests/school/dashcam/` (a real git remote and a local-folder Drive; production classes otherwise).
+
+| Criterion | Code | Test (fails when the code is broken on purpose) |
+|---|---|---|
+| 1 write-once; `ReplayConflict` "rule broken" | `store.DriveDashcamStore.seal` | `test_the_same_records_again_are_a_no_op_with_the_same_seal`, `test_other_records_for_a_sealed_key_are_a_replay_conflict_reported_as_rule_broken`, `test_a_conflict_in_the_receipt_alone...` (Drive untouched) |
+| 2 stale seal: not pushed, pushed late, other SHA-256 | `seals.SealChecker.check` | `test_seals.py` (6 tests incl. a forged commit and an earlier time) |
+| 3 counts file: scan clean, no strike, price or symbol | `counts.PublicCountsFile` | `test_the_file_passes_the_record_scan_and_holds_only_codes_and_whole_numbers` |
+| 4 replay reads exactly what was sealed | `replay.ReplayReader`, `reader.VerifiedDriveReader` | `test_replay_reads_back_exactly_the_records_sealed`, tamper and stale-cache tests |
+| 5 conformance | `check_dashcam` | `test_the_conformance_check` |
+
+Broken-code proof: 10 mutations (conflict handler, each seal check, the push check, the read-back hash, the counts
+rewrite guard, a price leaking into the counts, the reader's own-file check) each fail a named test; one survivor
+(reader) was found and a test added.
+
+Self-review (an independent review agent, read-only) found 8 points. Accepted and fixed, with tests: a seal is now
+checked against the remote's receipt (commit, SHA-256 and time), not trusted (2, 6); a failed push is pushed by the
+rerun (3); a conflict is judged on the remote receipt before Drive is touched (4); a rerun in a fresh checkout
+returns the existing seal and writes no second receipt (5); the counts slot is validated (7). Partly accepted (1):
+`pushed_at` is the receipt commit's own time, which is never later than the push; it stays so because a rerun must
+return an equal seal. A fill is made only after `seal` returns (so after the push); the fill port (d) must also
+call `SealChecker` with its own fill time. Not done (7, 8): the counts file's exists-then-write is not atomic across
+two processes (one writer per session in the fleet), and counts are not tied to a sealed SHA-256.
+
+Limits for others: `ReceiptPublisher` pushes `receipts/data/school/` only, to `main`, through A16f's committer
+(refuses a checkout carrying other unpushed changes). Nothing commits the counts file; the join-up (j) must commit
+`research/school/counts/` with its own push. No Drive or git is touched when `school.enabled` is false (nothing here
+runs until j calls it).

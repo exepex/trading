@@ -36,7 +36,7 @@ def build_dashcam(run_id: str | None = None, env=os.environ) -> DriveDashcamStor
 
 
 def build_seal_checker(store: DriveDashcamStore) -> SealChecker:
-    return SealChecker(store.publisher)
+    return SealChecker(store.publisher, store.data.area)
 
 
 def build_replay_reader(store: DriveDashcamStore) -> ReplayReader:

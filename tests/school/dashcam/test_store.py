@@ -51,6 +51,9 @@ def test_a_conflict_in_the_receipt_alone_is_also_a_replay_conflict(cam):
     (cam.drive.folder / "data" / slot_file_path(b.SESSION, SLOT, RecordKind.DECISIONS)).unlink()  # Drive lost it
     with pytest.raises(ReplayConflict, match="rule broken"):
         cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, OTHER)
+    assert not (cam.drive.folder / "data" / slot_file_path(b.SESSION, SLOT, RecordKind.DECISIONS)).exists(), (
+        "the conflict is judged before Drive is touched"
+    )
 
 
 def test_the_seal_names_the_pushed_receipt_commit(cam):
@@ -128,3 +131,28 @@ def test_the_reader_alone_refuses_a_stale_cached_copy(cam):
     next((cam.repository.parent / "cache").rglob("*.jsonl.gz")).write_bytes(b"also tampered")
     with pytest.raises(StaleSeal, match="SHA-256"):
         cam.store.reader.read(seal.path)
+
+
+def test_a_push_that_failed_earlier_is_pushed_by_the_rerun(tmp_path):
+    cam = harness.build(tmp_path, push_to_remote=False)
+    with pytest.raises(SealNotPushed):
+        cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)  # committed locally, push failed
+    harness.git(cam.repository, "remote", "set-url", "origin", str(cam.remote))
+    seal = cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
+    assert seal.commit in harness.git(cam.remote, "rev-list", "main")
+
+
+def test_a_fresh_checkout_returns_the_existing_seal_and_makes_no_second_receipt(tmp_path):
+    cam = harness.build(tmp_path)
+    first = cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
+    other = tmp_path / "other"
+    other.mkdir()
+    fresh = harness.build(other)  # a second container: its own checkout, the same Drive and remote
+    fresh_drive = cam.drive
+    harness.git(fresh.repository, "remote", "set-url", "origin", str(cam.remote))
+    harness.git(fresh.repository, "pull", "-q", "--no-rebase", "--allow-unrelated-histories", "origin", "main")
+    (fresh.repository / "receipts" / "data" / f"{first.path}.sha256").unlink()  # its checkout lacks the receipt
+    fresh.store.data.drive = fresh_drive
+    assert fresh.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS) == first
+    with pytest.raises(ReplayConflict):
+        fresh.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, OTHER)

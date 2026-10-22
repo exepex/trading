@@ -1,5 +1,6 @@
 """Where the dashcam's files live: one Drive path per (session, slot, kind), one counts file per session and slot."""
 
+import re
 from datetime import date
 from pathlib import PurePosixPath
 
@@ -18,4 +19,6 @@ def slot_file_path(session: date, slot: str, kind: RecordKind) -> str:
 
 
 def counts_path(session: date, slot: str) -> PurePosixPath:
+    if not re.fullmatch(r"\d\d:\d\d", slot):
+        raise ValueError(f"not a slot time: {slot!r}")
     return PurePosixPath(COUNTS_FOLDER, f"{session:%Y/%m}", f"{session:%Y%m%d}_{slot.replace(':', '')}.{COUNTS_SUFFIX}")

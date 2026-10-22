@@ -17,7 +17,7 @@ from tests.school.dashcam import harness
 def sealed(tmp_path):
     cam = harness.build(tmp_path)
     seal = cam.store.seal(b.SESSION, "15:00", RecordKind.DECISIONS, (trade_record(),))
-    return SealChecker(cam.publisher), seal
+    return SealChecker(cam.publisher, harness.AREA), seal
 
 
 def test_a_pushed_seal_before_the_fill_is_accepted(sealed):
@@ -54,4 +54,14 @@ def test_a_commit_made_locally_but_not_pushed_is_refused(tmp_path):
     local = harness.git(cam.repository, "rev-parse", "HEAD").strip()
     seal = replace(b.seal(), commit=local)
     with pytest.raises(StaleSeal, match="not on the remote"):
-        SealChecker(cam.publisher).check(seal, seal.sha256, seal.pushed_at + timedelta(hours=1))
+        SealChecker(cam.publisher, harness.AREA).check(seal, seal.sha256, seal.pushed_at + timedelta(hours=1))
+
+
+def test_a_forged_seal_naming_an_old_commit_or_an_earlier_time_is_refused(sealed):
+    checker, seal = sealed
+    late = seal.pushed_at + timedelta(hours=1)
+    old_commit = harness.git(checker.publisher.repository, "rev-list", "--max-parents=0", "HEAD").strip()
+    with pytest.raises(StaleSeal, match="does not hold"):
+        checker.check(replace(seal, commit=old_commit), seal.sha256, late)
+    with pytest.raises(StaleSeal, match="does not hold"):
+        checker.check(replace(seal, pushed_at=seal.pushed_at - timedelta(days=1)), seal.sha256, late)
