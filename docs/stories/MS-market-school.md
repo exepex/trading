@@ -898,6 +898,9 @@ sessions a real edge of a given size needs to show.
 5. The review shows every count's denominator, refusals included.
 6. A planted cause on the fake fleet appears in the review's counts and in that session's "why" line.
 7. Off-switch: with `school.enabled` false the command prints "school off" and writes nothing.
+8. An orphan correction (Judge K, judge 501 addendum 1; orchestrator, 22 Oct 2026): a correction whose `corrects`
+   SHA-256 names no original the reader can find is counted and alerted in the review and the day's output, never
+   dropped silently. Part a's reader exposes such corrections for this.
 
 #### Gap list (the design's requirements for v1)
 
