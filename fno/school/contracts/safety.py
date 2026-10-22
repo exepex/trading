@@ -1,4 +1,6 @@
-"""Safety laws (story 3.3): only these stop a paper trade. A law reads; it never resizes or changes a proposal."""
+"""Safety laws (story 3.3): only these stop a paper trade. A law reads; it never resizes or changes a proposal.
+Law 6 ("no record, no trade") is the fill port's seal check (`FillPort.enter`), not a `SafetyLaw`: a law sees no
+seal."""
 
 from dataclasses import dataclass
 from datetime import date
@@ -21,6 +23,7 @@ class AccountView:
     loss_since_previous_slot: float  # realised plus marked, rupees, zero or more
     opened_this_session: tuple[OpenPosition, ...]
     open_positions: tuple[OpenPosition, ...]
+    brake_engaged_on: date | None  # set when equity first fell `brake_rs` below its high; held until a review lifts it
     brake_lifted_on: date | None  # the latest monthly review row that lifted this driver's brake
 
 

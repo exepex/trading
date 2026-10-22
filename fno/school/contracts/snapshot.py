@@ -51,6 +51,8 @@ class SlotSnapshot:
             raise ValueError("snapshot times must be time-zone aware")
         if self.finished_at < self.started_at:
             raise ValueError("a snapshot cannot finish before it starts")
+        if tuple(sorted(self.expiries)) != self.expiries:
+            raise ValueError("expiries must be nearest first")
 
     def quote(self, key: ContractKey) -> SlotQuote | None:
         return self.quotes.get(key)

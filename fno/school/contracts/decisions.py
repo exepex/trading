@@ -6,7 +6,7 @@ from datetime import date
 from typing import Protocol, runtime_checkable
 
 from ...constants import SIDES
-from ..constants import REASONS_BY_OUTCOME, DriverRole, Outcome, RoadCode
+from ..constants import REASONS_BY_OUTCOME, DriverRole, ExitReason, Outcome, RoadCode
 from .roads import RoadDay
 from .snapshot import ContractKey, SlotSnapshot
 
@@ -29,11 +29,12 @@ class Proposal:
     lot: int  # units per lot, from the road day's dated lot
     net_premium: float  # rupees for all units: positive is a credit received, negative a debit paid
     max_loss: float  # rupees, every charge and pad included (C2's model)
+    costs: float  # rupees: modelled entry and worst exit charges plus pads, inside `max_loss`
     score: float  # the card's frozen ranking score
 
     def __post_init__(self):
-        if not self.legs or self.lot < 1 or self.max_loss <= 0:
-            raise ValueError("a proposal needs legs, a lot and a positive maximum loss")
+        if not self.legs or self.lot < 1 or self.max_loss <= 0 or not 0 <= self.costs <= self.max_loss:
+            raise ValueError("a proposal needs legs, a lot, a positive maximum loss and costs inside it")
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,7 @@ class OpenPosition:
     position_id: str
     driver_id: str
     road: RoadCode
+    structure: str  # C2's bucket map reads it
     legs: tuple[LegSpec, ...]
     lot: int
     opened: date
@@ -70,7 +72,7 @@ class OpenPosition:
     max_loss: float
 
 
-_WITH_PROPOSAL = (Outcome.TRADE, Outcome.TICKET)
+_WITH_PROPOSAL = (Outcome.TRADE, Outcome.TICKET, Outcome.REFUSED)  # a refusal keeps the proposal the laws refused
 
 
 @dataclass(frozen=True)
@@ -85,10 +87,8 @@ class Decision:
     def __post_init__(self):
         if self.reason not in REASONS_BY_OUTCOME[self.outcome]:
             raise ValueError(f"reason {self.reason!r} does not belong to outcome {self.outcome}")
-        if self.outcome in _WITH_PROPOSAL and self.proposal is None:
-            raise ValueError("a trade or ticket carries its proposal")
-        if self.outcome not in (*_WITH_PROPOSAL, Outcome.REFUSED) and self.proposal is not None:
-            raise ValueError("only a trade, ticket or refused decision carries a proposal")
+        if (self.outcome in _WITH_PROPOSAL) != (self.proposal is not None):
+            raise ValueError("a trade, ticket or refusal carries its proposal; no other outcome does")
 
 
 @runtime_checkable
@@ -98,3 +98,7 @@ class Driver(Protocol):
     def decide(self, road_day: RoadDay, snapshot: SlotSnapshot, history: tuple[SpotPoint, ...],
                positions: tuple[OpenPosition, ...]) -> Decision:  # fmt: skip
         """One decision for this road and session from the snapshot and earlier sessions only (no look-ahead)."""
+
+    def review_exit(self, position: OpenPosition, snapshot: SlotSnapshot,
+                    history: tuple[SpotPoint, ...]) -> ExitReason | None:  # fmt: skip
+        """The card's exit rule reached at this slot, or None; prices it cannot judge (no valid quote) never fire."""

@@ -14,7 +14,8 @@ _PLAIN = (bool, int, float, str)
 
 def to_plain(value: Any) -> Any:
     if is_dataclass(value) and not isinstance(value, type):
-        return {f.name: to_plain(getattr(value, f.name)) for f in fields(value)}
+        hints = get_type_hints(type(value))
+        return {f.name: to_plain(_as_declared(hints[f.name], getattr(value, f.name))) for f in fields(value)}
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, (date, datetime)):
@@ -25,9 +26,20 @@ def to_plain(value: Any) -> Any:
         return {key: to_plain(item) for key, item in value.items()}
     if isinstance(value, (tuple, list)):
         return [to_plain(item) for item in value]
-    if value is None or isinstance(value, (bool, int, float, str)):
+    if isinstance(value, float):
+        return 0.0 if value == 0 else value  # -0.0 and 0.0 are equal records: one spelling
+    if value is None or isinstance(value, (bool, int, str)):
         return value
     raise TypeError(f"cannot write {type(value).__name__} into a record")
+
+
+def _as_declared(hint: Any, value: Any) -> Any:
+    """An int given to a field declared float (alone or with None) is written as a float, as it reads back."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        members = get_args(hint) if get_origin(hint) in (Union, types.UnionType) else (hint,)
+        if float in members and int not in members:
+            return float(value)
+    return value
 
 
 def canonical_bytes(record: Any) -> bytes:
@@ -73,3 +85,14 @@ def _first_fitting(kinds: list, value: Any) -> Any:
         except (TypeError, ValueError, KeyError):
             continue
     raise ValueError(f"no member of the union reads {value!r}")
+
+
+class CanonicalRecord:
+    """Gives a frozen record dataclass its canonical bytes and the reader back."""
+
+    def to_bytes(self) -> bytes:
+        return canonical_bytes(self)
+
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        return from_bytes(cls, data)

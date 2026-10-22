@@ -1,13 +1,14 @@
-"""The dashcam's records (story 3.4). One decision record per scheduled (session, slot, road, driver version), one
-outcome record when a trade or ticket closes. Never edited: a correction is a new record naming the old one."""
+"""The dashcam's records (story 3.4). Before fills: one decision record per scheduled (session, slot, road, driver
+version) and one exit record per position an exit rule closes. After fills: outcome records and NIFTY drift rows.
+Never edited: a correction is a new record naming the old one."""
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 
-from ..constants import RECORD_SCHEMA_VERSION, ClosureReason, RoadCode
-from .accounts import FillResult
-from .codec import canonical_bytes, from_bytes
+from ..constants import RECORD_SCHEMA_VERSION, ClosureReason, ExitReason, Outcome, RoadCode
+from .accounts import FilledLeg, FillResult
+from .codec import CanonicalRecord
 from .decisions import Decision
 from .safety import LawResult
 from .snapshot import ContractKey, SlotQuote
@@ -20,12 +21,12 @@ class WitnessedQuote:
 
 
 @dataclass(frozen=True)
-class DecisionRecord:
+class DecisionRecord(CanonicalRecord):
     session: date
     slot: str
     road: RoadCode
     card_sha256: str
-    snapshot_id: str  # empty when the road had no usable snapshot
+    snapshot_id: str  # empty only when the road had no snapshot to read
     snapshot_sha256: str
     road_closed_by: ClosureReason | None
     decision: Decision
@@ -37,24 +38,34 @@ class DecisionRecord:
     def __post_init__(self):
         if self.decision.session != self.session or self.decision.road != self.road:
             raise ValueError("the record's session and road are its decision's")
-
-    def to_bytes(self) -> bytes:
-        return canonical_bytes(self)
-
-    @classmethod
-    def from_bytes(cls, data: bytes) -> "DecisionRecord":
-        return from_bytes(cls, data)
+        closed = self.decision.outcome == Outcome.ROAD_CLOSED
+        if closed != (self.road_closed_by is not None) or (closed and self.decision.reason != self.road_closed_by):
+            raise ValueError("a closed road is exactly a road_closed decision with the same reason")
+        if not closed and not (self.snapshot_id and self.snapshot_sha256):
+            raise ValueError("a decision on an open road names its snapshot")
 
 
 @dataclass(frozen=True)
-class OutcomeRecord:
+class ExitRecord(CanonicalRecord):
+    session: date
+    slot: str
+    position_id: str
+    driver_id: str
+    road: RoadCode
+    exit_reason: ExitReason
+    snapshot_id: str
+    schema: int = RECORD_SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
+class OutcomeRecord(CanonicalRecord):
     position_id: str
     driver_id: str
     road: RoadCode
     decision_sha256: str  # the sealed decision file the entry rests on
     entry: FillResult
     exit: FillResult
-    exit_reason: str
+    exit_reason: ExitReason
     gross: float
     costs: float
     net: float
@@ -68,9 +79,21 @@ class OutcomeRecord:
         if not (self.entry.filled and self.exit.filled):
             raise ValueError("an outcome closes a position that was filled at entry and at exit (or settlement)")
 
-    def to_bytes(self) -> bytes:
-        return canonical_bytes(self)
 
-    @classmethod
-    def from_bytes(cls, data: bytes) -> "OutcomeRecord":
-        return from_bytes(cls, data)
+@dataclass(frozen=True)
+class DriftRow(CanonicalRecord):
+    """The NIFTY diagnostic (story 3.6), never a fill: a filled leg's touch against the same contract at 15:15."""
+
+    session: date
+    position_id: str
+    leg: FilledLeg
+    price_1515: float | None  # the same side's touch in E3's 15:15 capture; None when the leg is absent there
+    schema: int = RECORD_SCHEMA_VERSION
+
+    @property
+    def unknown(self) -> bool:
+        return self.price_1515 is None
+
+    @property
+    def drift(self) -> float | None:
+        return None if self.unknown else self.price_1515 - self.leg.price

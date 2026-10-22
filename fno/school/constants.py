@@ -76,7 +76,7 @@ class RefusalReason(StrEnum):
     ONE_SIDED_QUOTE = "one_sided_quote"
     SIZE_ABOVE_DISPLAYED = "size_above_displayed"
     PROTECTION_UNSELLABLE = "protection_unsellable"
-    IMPOSSIBLE_PRICE = "impossible_price"
+    IMPOSSIBLE_LEG_PRICE = "impossible_leg_price"
     STALE_SEAL = "stale_seal"
 
 
@@ -91,7 +91,26 @@ class ExitState(StrEnum):
 
     EXIT_WAITING_QUOTE = "exit_waiting_quote"
     SETTLEMENT_NEEDED = "settlement_needed"
-    DRIFT_UNKNOWN = "drift_unknown"  # the NIFTY drift diagnostic found the leg absent from the 15:15 capture
+
+
+class ExitReason(StrEnum):
+    """Why a driver's card closes a position (story 3.2's exit column)."""
+
+    PROFIT_TARGET = "profit_target"
+    LOSS_LIMIT = "loss_limit"
+    SESSIONS_HELD = "sessions_held"
+    DAYS_HELD = "days_held"
+    DAYS_BEFORE_EXPIRY = "days_before_expiry"
+    SPOT_THROUGH_MEAN = "spot_through_mean"
+    EXPIRY = "expiry"  # held to expiry: settled at intrinsic (E7)
+
+
+class RecordKind(StrEnum):
+    """The dashcam's files per session and slot: decisions are sealed before any fill; outcomes and drift rows after."""
+
+    DECISIONS = "decisions"
+    OUTCOMES = "outcomes"
+    DRIFT = "drift"
 
 
 class DriverRole(StrEnum):
