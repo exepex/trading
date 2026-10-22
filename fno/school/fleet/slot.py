@@ -10,6 +10,8 @@ from ..constants import ClosureReason, RoadCode
 from ..contracts.roads import RoadCatalogue, RoadDay, RoadStatus
 from ..contracts.snapshot import SlotSnapshot, SnapshotSource, SnapshotUnavailable
 
+UNMEASURED = "a quote with no measured displayed size"
+
 
 class QualityGate(Protocol):
     def check(self, road_day: RoadDay, snapshot: SlotSnapshot) -> RoadStatus: ...
@@ -61,6 +63,9 @@ def plan_slot(session: date, catalogue: RoadCatalogue, snapshots: SnapshotSource
         except SnapshotUnavailable as unavailable:
             closed.append(ClosedRoad(road_day, unavailable.reason, str(unavailable)))
             continue
+        if not all(quote.sizes_measured for quote in snapshot.quotes.values()):
+            closed.append(ClosedRoad(road_day, ClosureReason.SIZES_NOT_MEASURED, UNMEASURED, snapshot))
+            continue  # the fleet is live: it never trades on a quote with no measured size (judge 506)
         status = gate.check(road_day, snapshot)
         if status.open:
             opened.append(OpenRoad(road_day, snapshot))

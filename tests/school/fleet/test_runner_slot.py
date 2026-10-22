@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 
 from fno.school.constants import (
     SLOT_1500,
+    ClosureReason,
     ExitReason,
     NoTradeReason,
     Outcome,
@@ -148,3 +149,15 @@ def test_the_same_road_is_never_ticketed_twice(tmp_path):
 
 def decision_on(rig, session):
     return next(r.decision for r in sealed(rig, session) if r.road == OPEN_ROAD)
+
+
+def test_a_live_road_whose_capture_holds_an_unmeasured_quote_closes_by_name_and_never_trades(tmp_path):
+    unmeasured = {
+        k: replace(q, bid_qty=None, ask_qty=None, sizes_measured=False) for k, q in b.snapshot().quotes.items()
+    }
+    snapshots = {(OPEN_ROAD, s): replace(b.snapshot(quotes=unmeasured), session=s) for s in (b.SESSION, DAY2)}
+    rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),), snapshots=snapshots)
+    run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    [mine] = [r for r in run.decisions if r.road == OPEN_ROAD]
+    assert (mine.decision.outcome, mine.decision.reason) == (Outcome.ROAD_CLOSED, ClosureReason.SIZES_NOT_MEASURED)
+    assert run.fills == () and rig.accounts.ledgers == {}

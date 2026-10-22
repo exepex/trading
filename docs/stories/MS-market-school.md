@@ -2270,3 +2270,16 @@ From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates 
 - **Gates:** `pytest -n auto` 12087 passed; ruff, format, `check_imports` and `check_records` clean.
 - **Plants (round 3):** 17 planted, 17 caught (the first run missed the ticket settlement; its test was added).
 - **Not changed, with the reason:** a missing entry mid while the outcomes are built still stops them; a ledger and dashcam that disagree are a stop, not a guess.
+
+### MS-P1j Claims, round 4 (Judge B's notes, judge 507; Judge I's judge 506 on the live fleet; a3 696f2db7 merged in)
+| Note | Change | Test (and the plant it catches) |
+|---|---|---|
+| Judge 506: a live run never trades on an unmeasured quote | `slot.plan_slot` closes a road whose snapshot holds any quote with `sizes_measured` False, as `road_closed: sizes_not_measured` (a's new `ClosureReason`), before the quality gate and before any driver sees it | `test_a_live_road_whose_capture_holds_an_unmeasured_quote_closes_by_name_and_never_trades` (plant: the guard off) |
+| Judge 507 note 2: a slow first SPAN read must never be a driver's deadline | Not a warm-up: the root cause is that the limit timed the fleet's own laws. `DriverStep` now isolates and times only the driver's code: its decisions (with the hypothetical ticket asks), then its exit reviews, each with the limit. The laws run between them untimed. A law that raises is now the fleet's own loud error, never a false `driver_error`. A failed SPAN read already refuses each entry by name (`margin_room`, "margin not checked: <cause>") while exits go on, so closing the road would only block exits | `test_a_slow_law_never_counts_against_the_driver_s_time_limit` (plant: round 3's `decide.py`, laws inside the limit), `test_a_driver_s_exit_reviews_have_their_own_time_limit` |
+| Judge 507 note 1: the commit-only branch | killed by round 3's `test_a_rerun_of_a_complete_session_after_15_30_adds_no_mark` (plant: the whole fast path removed, which fails it) | as named |
+| Judge 507 note 2 / the orchestrator: `allocate` reads sizes through d's `QuoteRules` | **waits for d's part 4** (`QuoteRules` is on `story/ms-p1d-practice`, not on `main`). Until then `allocate` reads a missing size as 0: no size, no fill, which is right for the live fleet; and the live fleet now never sees an unmeasured quote (above) | built after d's part 4 merges |
+- **Evidence (round 4):**
+  - real acceptance on the real wiring: 9 of 9;
+  - 22 Oct dry run: 42 decisions and 16 fills; two replays give 69 byte-identical files;
+  - plants: 3 planted (the guard off, the laws inside the limit, the fast path removed), 3 caught;
+  - `pytest -n auto` 12097 passed; ruff, format and `check_imports` clean.

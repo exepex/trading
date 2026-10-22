@@ -97,6 +97,38 @@ def test_a_driver_past_its_time_limit_is_sealed_deadline(tmp_path):
     assert rig.accounts.ledgers == {}
 
 
+class SlowMargin(FakeMaxLossLaw):
+    """A law as slow as the first SPAN download and parse (about 19 s on 21 Oct, judge 507), scaled down."""
+
+    def check(self, *args):
+        time.sleep(0.2)
+        return super().check(*args)
+
+
+def test_a_slow_law_never_counts_against_the_driver_s_time_limit(tmp_path):
+    rig = Rig(tmp_path, (trader(),), (SlowMargin(10_000),), seconds=0.1)
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    assert decision_of(rig, b.SESSION).decision.outcome == Outcome.TRADE and len(rig.accounts.ledgers["CS1@1"]) == 1
+
+
+class SlowExit(FakeDriver):
+    def review_exit(self, *args):
+        time.sleep(0.3)
+        return ExitReason.SESSIONS_HELD
+
+
+def test_a_driver_s_exit_reviews_have_their_own_time_limit(tmp_path):
+    rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),), seconds=0.1)
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    rig.fleet.drivers = (SlowExit(CS1, b.put_spread()),)
+    rig.at(DAY2).fleet.run(DAY2, RunMode.REPLAY)
+    late = decision_of(rig, DAY2)
+    assert (late.decision.outcome, late.decision.reason) == (Outcome.UNAVAILABLE, UnavailableReason.DEADLINE)
+    assert [r for r in records(rig, DAY2) if isinstance(r, ExitRecord)] == [] and len(
+        rig.accounts.ledgers["CS1@1"]
+    ) == 1
+
+
 def test_a_refused_trade_is_sealed_with_its_law_results_and_never_fills(tmp_path):
     rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(1_000),))
     run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
