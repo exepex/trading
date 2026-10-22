@@ -570,3 +570,7 @@ Limits for others: `ReceiptPublisher` pushes `receipts/data/school/` only, to `m
 (refuses a checkout carrying other unpushed changes). Nothing commits the counts file; the join-up (j) must commit
 `research/school/counts/` with its own push. No Drive or git is touched when `school.enabled` is false (nothing here
 runs until j calls it).
+
+Round 1 follow-up (orchestrator, 22 Oct 2026; both open items accepted):
+- The proof that a seal came before its fill is that the seal's receipt exists on the remote, with the sealed SHA-256, when `SealChecker` runs at fill time; `pushed_at` is labelled "commit time, not push time" and is a secondary check only.
+- Assumption: the counts file is written by one process only (the join-up's single runner); j tests it.

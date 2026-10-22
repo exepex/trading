@@ -21,7 +21,7 @@ class SealNotPushed(Exception):
 @dataclass(frozen=True)
 class PushedReceipt:
     commit: str
-    pushed_at: datetime  # the commit's own time: never later than the push, so a seal is never dated early
+    pushed_at: datetime  # commit time, not push time (never later than the push); the proof is the receipt on the remote
     sha256: str  # the SHA-256 the receipt holds in that commit
 
 
