@@ -57,7 +57,7 @@ data:
 BANKNIFTY's monthly expiry is read from its own listed futures, never from a weekday rule, so its weekday changes are
 followed as the files list them. The report lists each change with its first expiry.
 
-## 5. Structures (defined risk only; Q1 default)
+## 5. Structures (defined risk, the tradeable set; naked ones measured only)
 
 | Code | Shorts | Wings |
 |---|---|---|
@@ -72,9 +72,20 @@ followed as the files list them. The report lists each change with its first exp
   width fits, the trade is `no_trade_cap`, counted.
 - **Building the legs.** SC2 and SF are the engine's `ShortCondor` and `ShortIronFly`. SC3 is `ShortCondor` with the
   offset passed as a parameter, default 0.02 (build part 3: one argument, no change for existing callers).
-- **Naked legs.** If the owner chooses Q1 (b), the naked strangle (SC2's shorts without wings) and the naked straddle
-  (SF's body without wings) are measured outside the pass family, labelled "cannot be traded under the house rules",
-  with their worst loss unbounded. They are never nominated.
+- **Naked measurements (owner's Q1 answer, 22 Oct: "also measure").** Two structures per index, each with the T21
+  exit only, so 4 measurements:
+  - NS: the naked strangle, SC2's two shorts without wings;
+  - NT: the naked straddle, SF's ATM body without wings.
+
+  They are labelled **"not tradeable under the house rules"**. They are outside the pass family and the Holm family,
+  and are never nominated without an explicit owner rule change. For each, the report shows:
+  - P&L as for the other variants;
+  - the worst loss per trade and per lot, unbounded, with no cap applied;
+  - the margin each would need: SPAN plus exposure from the same calculator, which accepts naked legs.
+
+  The engine's `require_covered` refusal stays as it is for every tradeable structure. The measurements go through a
+  research-only structure in `research/edge1/` that builds the same legs without wings and is never registered with
+  the engine's tradable list. The fill, untraded-leg and pad rules of section 7 apply to them unchanged.
 
 ## 6. Exits
 
@@ -207,7 +218,8 @@ build gate's result are listed too.
 ## 13. Registration and counting
 
 - **Trials:** 24 consecutive trials from the next free ledger number, one per variant and index, each with its own idea
-  card (`research/ideas/EDGE1-<index>-<structure>-<exit>.md`). Plus 2 measurements if Q1 is (b). The count is honest:
+  card (`research/ideas/EDGE1-<index>-<structure>-<exit>.md`). Then 4 measurement rows (NS and NT per index), with
+  ledger `hypothesis` no, as GR1's N0 rows were. The count is honest:
   every card is a trial whether or not it passes G1.
 - **Order:**
   1. the DATA_SPEND rows are committed first, naming the trials;
@@ -223,7 +235,9 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
-Revision 1 (before the freeze, judges 468 and 468.1): the bootstrap block is 2 trades (EXP trades overlap) with a
+Revision 2 (before the freeze): the owner's Q1 answer, with the naked strangle and straddle measured outside every
+family (section 5); Q2 accepted (screen and nominate). Revision 1 (before the freeze, judges 468 and 468.1): the
+bootstrap block is 2 trades (EXP trades overlap) with a
 floor of 30 trades; Holm spans both
 indices; run 1 prints expected run-2 counts. Any change after the freeze is written here, before any result it could
 affect, and sent to judge B.
