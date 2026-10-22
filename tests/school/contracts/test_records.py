@@ -53,6 +53,14 @@ def test_a_closed_road_and_a_refusal_round_trip():
     assert DecisionRecord.from_bytes(trade_record(decision=refused).to_bytes()).decision == refused
 
 
+def test_a_law_result_s_note_is_recorded_and_read_back():
+    noted = LawResult("margin_room", False, RefusalReason.MARGIN_ROOM, note="margin not checked: no data")
+    record = trade_record(law_results=(noted,))
+    assert DecisionRecord.from_bytes(record.to_bytes()).law_results == (noted,)
+    assert record.to_bytes() != trade_record(law_results=(replace(noted, note=""),)).to_bytes()
+    assert LawResult("x", True, None).note == ""
+
+
 def test_ints_stay_ints_and_floats_stay_floats_in_inputs():
     record = trade_record(inputs={"history": 20, "move": 20.0, "note": "x"})
     assert DecisionRecord.from_bytes(record.to_bytes()).to_bytes() == record.to_bytes()

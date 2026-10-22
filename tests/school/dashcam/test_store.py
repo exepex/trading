@@ -156,3 +156,18 @@ def test_a_fresh_checkout_returns_the_existing_seal_and_makes_no_second_receipt(
     assert fresh.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS) == first
     with pytest.raises(ReplayConflict):
         fresh.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, OTHER)
+
+
+def test_find_names_the_seal_of_a_sealed_key_and_nothing_for_another(cam):
+    assert cam.store.find(b.SESSION, SLOT, RecordKind.DECISIONS) is None
+    seal = cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
+    assert cam.store.find(b.SESSION, SLOT, RecordKind.DECISIONS) == seal
+    assert cam.store.find(b.SESSION, SLOT, RecordKind.OUTCOMES) is None
+    assert cam.store.find(b.SESSION, "15:01", RecordKind.DECISIONS) is None
+
+
+def test_find_is_none_for_a_file_whose_receipt_never_reached_the_remote(tmp_path):
+    cam = harness.build(tmp_path, push_to_remote=False)
+    with pytest.raises(SealNotPushed):
+        cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
+    assert cam.store.find(b.SESSION, SLOT, RecordKind.DECISIONS) is None, "unpushed means unsealed: a rerun must seal"

@@ -26,7 +26,7 @@ class DriveDashcamStore:
 
     def seal(self, session: date, slot: str, kind: RecordKind, records: tuple[SlotRecord, ...]) -> Seal:
         path, payload = slot_file_path(session, slot, kind), encode_slot_file(records)
-        existing = self.sealed(session, slot, kind)
+        existing = self.find(session, slot, kind)
         if existing is not None:  # judged on the remote's receipt, before Drive is touched
             if existing.sha256 != hashlib.sha256(payload).hexdigest():
                 raise ReplayConflict(RULE_BROKEN.format(path=path))
@@ -44,7 +44,7 @@ class DriveDashcamStore:
             raise StaleSeal(DAMAGED.format(path=seal.path))
         return decode_slot_file(data)
 
-    def sealed(self, session: date, slot: str, kind: RecordKind) -> Seal | None:
+    def find(self, session: date, slot: str, kind: RecordKind) -> Seal | None:
         """The seal already made for this key, or None: a rerun can skip what is sealed."""
         path = slot_file_path(session, slot, kind)
         drive_path = f"{self.data.area}/{path}"

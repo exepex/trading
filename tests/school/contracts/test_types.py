@@ -7,7 +7,19 @@ from datetime import datetime, timedelta
 import pytest
 
 from fno.school import constants as k
-from fno.school.contracts import accounts, clock, decisions, records, reports, roads, safety, seal, snapshot, tickets
+from fno.school.contracts import (
+    accounts,
+    clock,
+    decisions,
+    fleet,
+    records,
+    reports,
+    roads,
+    safety,
+    seal,
+    snapshot,
+    tickets,
+)
 from fno.school.contracts.accounts import FillResult
 from fno.school.contracts.decisions import Decision, LegSpec, Proposal
 from fno.school.contracts.reports import Banner
@@ -17,7 +29,7 @@ from fno.school.contracts.seal import Seal
 from fno.school.contracts.tickets import OpportunityCounts
 from tests.school.contracts import builders as b
 
-MODULES = (accounts, clock, decisions, records, reports, roads, safety, seal, snapshot, tickets)
+MODULES = (accounts, clock, decisions, fleet, records, reports, roads, safety, seal, snapshot, tickets)
 DATACLASSES = [obj for m in MODULES for _, obj in inspect.getmembers(m, inspect.isclass)
                if dataclasses.is_dataclass(obj) and obj.__module__ == m.__name__]  # fmt: skip
 
@@ -50,6 +62,7 @@ def test_the_banner_has_red_and_amber_only():
 def test_every_outcome_has_its_reason_codes_and_codes_are_unique_across_families():
     assert set(k.REASONS_BY_OUTCOME) == set(k.Outcome)
     families = (k.TicketReason, k.NoTradeReason, k.ClosureReason, k.RefusalReason, k.UnavailableReason)
+    assert k.TicketReason.ACCOUNT_LIMIT not in k.REASONS_BY_OUTCOME[k.Outcome.REFUSED]
     values = [member.value for family in families for member in family]
     assert len(values) == len(set(values))
 
@@ -116,6 +129,13 @@ def test_a_fill_result_is_filled_or_refused_never_both_or_neither():
     with pytest.raises(ValueError):
         FillResult(refused=(k.RefusalReason.MISSING_QUOTE,), state=k.ExitState.EXIT_WAITING_QUOTE)
     assert FillResult(state=k.ExitState.EXIT_WAITING_QUOTE).filled is False
+
+
+def test_a_fill_s_cash_is_premium_received_less_paid_and_charges():
+    sell = accounts.FilledLeg(b.key(1000.0), "sell", 30, 10.0, 21.0)
+    buy = accounts.FilledLeg(b.key(900.0), "buy", 30, 4.0, 20.0)
+    assert FillResult((sell, buy), filled_at=b.SLOT_AT, rests_on="x").cash == 300.0 - 120.0 - 41.0
+    assert FillResult(refused=(k.RefusalReason.MISSING_QUOTE,)).cash == 0
 
 
 def test_a_seal_covers_only_its_file_and_fills_after_its_push():

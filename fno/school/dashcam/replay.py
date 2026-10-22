@@ -16,7 +16,7 @@ class ReplayReader:
         self.store = store
 
     def records(self, session: date, slot: str, kind: RecordKind) -> tuple[SlotRecord, ...]:
-        seal = self.store.sealed(session, slot, kind)
+        seal = self.store.find(session, slot, kind)
         if seal is None:
             raise StaleSeal(NOTHING_SEALED.format(kind=kind, session=session, slot=slot))
         return self.store.read(seal)

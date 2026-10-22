@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from fno.constants import SIDE_BUY
-from fno.school.constants import ExitState, RecordKind, RefusalReason
+from fno.school.constants import SCHOOL_OFF_LINE, ExitState, Outcome, RecordKind, RefusalReason
 from fno.school.contracts.accounts import (
     AccountPort,
     FillPort,
@@ -19,6 +19,7 @@ from fno.school.contracts.accounts import (
 from fno.school.contracts.clock import Clock
 from fno.school.contracts.dashcam import DashcamStore, ReplayConflict
 from fno.school.contracts.decisions import Decision, Driver, OpenPosition, Proposal
+from fno.school.contracts.fleet import FleetRunner, RunMode
 from fno.school.contracts.reports import Banner, ReportSection, SectionText
 from fno.school.contracts.roads import ROADS, RoadCatalogue, RoadDay
 from fno.school.contracts.safety import AccountView, LawResult, SafetyLaw
@@ -107,7 +108,10 @@ def check_fill_port_missing_quote(port, sealed: SealedDecision, empty: SlotSnaps
 def check_dashcam(store, session: date, slot: str, records: tuple[SlotRecord, ...],
                   other: tuple[SlotRecord, ...]) -> None:  # fmt: skip
     assert isinstance(store, DashcamStore)
+    assert store.find(session, slot, RecordKind.DECISIONS) is None, "nothing sealed yet"
     first = store.seal(session, slot, RecordKind.DECISIONS, records)
+    assert store.find(session, slot, RecordKind.DECISIONS) == first
+    assert store.find(session, slot, RecordKind.OUTCOMES) is None
     assert store.seal(session, slot, RecordKind.DECISIONS, records) == first, "the same records again change nothing"
     with pytest.raises(ReplayConflict):
         store.seal(session, slot, RecordKind.DECISIONS, other)
@@ -133,3 +137,25 @@ def check_settlement_source(source, known: tuple[str, date], unknown: tuple[str,
     assert isinstance(price, SettlementPrice) and price.price > 0 and price.file_sha256
     with pytest.raises(SettlementUnavailable):
         source.price(*unknown)
+
+
+def check_fleet(runner, session: date, scheduled: set[tuple], mode: RunMode = RunMode.REPLAY) -> None:
+    """`scheduled`: every (road code, driver id) of the session. One sealed decision each, sealed before any fill,
+    every entry resting on that seal; a second run seals nothing new."""
+    assert isinstance(runner, FleetRunner)
+    run = runner.run(session, mode)
+    keys = [(r.road, r.decision.driver_id) for r in run.decisions]
+    assert run.status == "" and len(keys) == len(set(keys)) and set(keys) == scheduled
+    assert run.decisions_seal is not None and all(r.session == session for r in run.decisions)
+    trades = sum(r.decision.outcome == Outcome.TRADE for r in run.decisions)
+    assert len(run.fills) == trades
+    seal = run.decisions_seal
+    for fill in (f for f in run.fills if f.filled):
+        assert fill.rests_on == seal.sha256 and fill.filled_at >= seal.pushed_at, "sealed before any fill"
+    again = runner.run(session, mode)
+    assert again.decisions == run.decisions and again.decisions_seal == run.decisions_seal and again.fills == ()
+
+
+def check_fleet_off(runner, session: date) -> None:
+    run = runner.run(session, RunMode.RECORD)
+    assert run.status == SCHOOL_OFF_LINE and run.decisions == () and run.fills == ()
