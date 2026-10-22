@@ -4,7 +4,7 @@
 session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Branch:**
 `story/edge1-text` (text), then `story/edge1-<part>` (code) · **Owner's choice:** `docs/DESK_DECISIONS.md`, 22 Oct
 ("Edge study ... through R1's factory") · **Status:** story text for the judge; two owner questions open (Q1, Q2) with
-written defaults.
+written defaults. Revision 2: all history is exploratory (R1's owner's point, accepted); one card per variant.
 
 **Description.** As the desk (the trader, the strategist, the risk manager and the statistician), I want one honest,
 pre-registered answer to "has any simple, rule-based option trade on NIFTY or BANKNIFTY made money after every real
@@ -33,18 +33,22 @@ and return on margin. It does not re-run the failed NIFTY variants as if they we
 
 - **NIFTY options 2019-2026 (monthly and weekly) are `spent`** (`research/DATA_SPEND.md`, trials 1-31, 42, 43-52). Any
   NIFTY history result is **exploratory by rule**: it can screen ideas out, never pass G6.
-- **BANKNIFTY options have never been P&L-tested.** Their closes were read for G13b's ranges, so they count as `exposed`,
-  not spent. BANKNIFTY is the only history that can give a confirmatory answer.
-- **Default plan (Q2, the owner's to confirm):**
-  - *Development:* NIFTY monthly 2019 - Oct 2026 (exploratory) and BANKNIFTY monthly 2019-01 to 2022-12.
-  - *Held back, opened once:* BANKNIFTY monthly expiries 2023-01 to 2026-10 (about 46 cycles), sealed at load as GR1
-    did.
-  - *Weeklies:* exploratory only. NIFTY's are spent, and BANKNIFTY's weeklies ended on 14 Nov 2024.
-- **Power, said in advance:** 46 monthly trades is small. Take an SD of about Rs 4,000 a trade and a true net of Rs 300.
-  G3's plan then needs n = (1.28 x 4,000 / 300)^2, about 290 trades. So G3 will most likely rule even BANKNIFTY's
-  held-back test `exploratory_shadow` [reasoning only: the SD is assumed from experiment 1's spread]. History is
-  expected to kill ideas or nominate a shadow, not to prove an edge. The forward shadow (R3) is the only fresh test for
-  NIFTY.
+- **BANKNIFTY's option closes are spent too** (revision 2, R1's owner, 22 Oct). G13b's implied back-fill read them for
+  2019 to 20 Oct 2026 (the DATA_SPEND row "NIFTY and BANKNIFTY ranges from option daily closes", `spent`). The factory
+  counts `spent` and `exposed` alike (`fno/factory/data_spend.py`: either makes a test exploratory). My first draft
+  called BANKNIFTY's 2023-26 monthlies held back; that was wrong, and is withdrawn.
+- **So every historical result in EDGE1 is exploratory.** EDGE1 is a screen: it can rule variants out, and it can
+  nominate at most two variants for a registered forward shadow (R3). That shadow is the only test that can confirm
+  anything.
+- **The two-run split is kept anyway, against overfitting:**
+  - *run 1:* 2019-01 to 2022-12, both indices; selects and applies G1;
+  - *run 2:* 2023-01 to 2026-10, opened once, sealed at load as GR1 did; only run 1's G1 passers.
+  - A variant that wins run 1 and loses run 2 is reported as such. Both runs are labelled exploratory.
+- **Weeklies:** NIFTY weeklies only, exploratory as everything else; BANKNIFTY's weeklies ended on 14 Nov 2024.
+- **Power, said in advance:** run 2 has about 46 monthly trades per index. Take an SD of about Rs 4,000 a trade and a
+  true net of Rs 300. G3's plan then needs n = (1.28 x 4,000 / 300)^2, about 290 trades [reasoning only: the SD is
+  assumed from experiment 1]. So history can at best nominate; the shadow's own G3 plan sets how long the forward test
+  must run.
 
 Sources: NIFTY from the panel (`fno/research_data/panel_reader.py`). BANKNIFTY from NSE's F&O bhavcopy in Drive (legacy
 and UDiFF, `fno/fo_bhavcopy.py`, through G13b's `BhavcopyChains`). Expiry-day settlement from G13c's settlement chain
@@ -113,21 +117,27 @@ That is 3 x 4 = **12 variants** per index.
 
 ## Registration (R1's factory; nothing new)
 
-- **Ledger:** trials 71-82 (the 12 variants), plus 83-84 if Q1 is (b) (measurements). Registered before any result, with
-  `research/edge1/PROTOCOL.md` frozen and hashed as GR1's was. The B4 guard (`Ledger.register`, `require_registered`)
-  is enforced.
+- **Ledger:** one trial per variant per index, because every one is tested: trials 71-94 (12 variants x 2 indices), plus
+  2 if Q1 is (b) (measurements). Registered before any result, with `research/edge1/PROTOCOL.md` frozen and hashed as
+  GR1's was. The B4 guard (`Ledger.register`, `require_registered`) is enforced.
 - **Factory:**
-  - one idea card per structure (`research/ideas/EDGE1-*.md`, the template's G0 table and `factory` block);
-  - G0 registration through `python -m fno factory register`;
-  - G1 CostWall on the development numbers: a variant must clear its cost and tail on the bound to be tested on the
-    held-back data;
-  - G2 `factory spend` for every data set;
-  - G3 `factory plan` with the SD and frequency measured on development;
-  - one research question for the family (`factory question`), with cumulative Holm (`uncertainty.holm`).
+  - **one card per variant and index** (R1's rule: an exit, a structure or an underlying is a new idea), so 24 cards
+    in `research/ideas/EDGE1-*.md`;
+  - G0 through `python -m fno factory register`, **one card per commit, after `git pull`**, because the trial number
+    must be the next ledger number at that moment;
+  - the DATA_SPEND rows are committed first, on their own, naming the trial numbers in "Used by";
+  - G1 CostWall on run 1's numbers only, with each card's `gross.source` saying so (never run 2's outcomes);
+  - G2 `factory spend` (it will say exploratory, as above);
+  - G3 `factory plan` with run 1's SD and frequency;
+  - one research question for the family (`factory question <id> "<text>" --alpha 0.05`; every card's `pass_level`
+    equals it), with cumulative Holm.
+  - **G4 and G6 by hand**, as GR1 did: G4 is the ledger's protocol_commit plus the frozen PROTOCOL.md, and G6 is the
+    results file. The factory's `freeze` and `verdict` are shadow-only, so the gate log shows G3 as each card's last
+    gate. No G4 or G6 row is written by hand.
 - **Two runs, as GR1:**
   - Run 1 (development): fits nothing, because every variant is fixed. It measures each variant and applies G1. It
     writes `selection.json` and is committed.
-  - Run 2 (held back, once): only G1-passing variants, Holm across them.
+  - Run 2 (2023-26, once): only G1-passing variants, Holm across them.
   - Judge B reproduces both runs before the results are read.
 
 ## What the report shows (each with an evidence label)
@@ -140,14 +150,18 @@ Per variant, index and period:
 - costs and pads as a share of gross;
 - trades not taken, by reason (missing strikes, unfillable, bad prices, no trade under the cap).
 
-Labels:
-- *strong* only for a held-back Holm pass with G3's sample met;
-- *some evidence* for a held-back pass that G3 rules short;
-- *reasoning only* or *exploratory* for everything on spent data.
+Labels: every result is *exploratory* (spent data), and the strength word is said beside it:
+- *some evidence* for a variant that passes run 2's Holm test and was also positive in run 1;
+- *reasoning only* for the rest.
 
-The pass rule is fixed now. On the held-back data, the one-sided p of mean net per trade > 0 (block bootstrap by month,
-G4's code), Holm-adjusted across the variants tested, must be at most 0.05, and the mean net must be positive at both
-pad levels.
+**Nomination rule, fixed now.** A variant is nominated for a forward shadow (at most two, by run 2's Holm-adjusted p)
+only when all of these hold:
+- run 2's one-sided p of mean net per trade > 0 (block bootstrap by month, G4's code), Holm-adjusted across the variants
+  run 2 tests, is at most 0.05;
+- run 2's mean net is positive at both pad levels;
+- run 1's mean net was positive.
+
+A nomination is a proposal to the owner, never a trade.
 
 ## Build (after text PASS; nothing merges before Mon 26 Oct unless it is fno/-free)
 
@@ -163,5 +177,5 @@ planted-bug proof.
 ## Open questions for the owner
 
 - Q1: defined-risk only (default a), or also measure the naked strangle and straddle (b)?
-- Q2: BANKNIFTY 2023-01 to 2026-10 as the one held-back test (default), knowing that G3 will likely call it too small to
-  prove anything?
+- Q2 (revised): accept that EDGE1 can only screen and nominate (all history is spent), and that the confirmatory test
+  of any nominee is a forward shadow through R3?
