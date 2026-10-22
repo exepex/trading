@@ -1,6 +1,7 @@
 """A report edition's message content (stories FL1-1c and FL1-1d): the text lines, the picture and the details file,
 from one page model, so all three tell the same numbers. A picture that cannot be made never stops the report: the
-message goes with the details file only, and one alert says why (never silently). The evening edition's verdicts
+message goes with the details file only, and one alert says why (never silently). A Section whose read failed is
+alerted once the same way (FL1-1d-2). The evening edition's verdicts
 (today's close against the forecast for today) come from the same page, so the record keeps what the message said."""
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from pathlib import Path
 from .delivery import Attachment
 from .page.builder import PageBuilder
 from .page.camera import PageCamera, PictureFailed
+from .page.cues import FAILED
 from .page.model import PageView
 from .page.plain import slack_lines
 from .page.render import PageRenderer
@@ -54,12 +56,13 @@ class ReportMaker:
         view = self.pages.build(day, now, edition, alerts, lines, confirmation)
         name = f"forecast-{edition}-{day.isoformat()}"
         details = Attachment(f"{name}.html", self.renderer.details(view).encode("utf-8"), DETAILS_TITLE)
-        text = "\n".join(slack_lines(view))
+        text, failed_reads = "\n".join(slack_lines(view)), tuple(s.why for s in view.cues if s.status == FAILED)
         try:
             picture = self._picture(self.renderer.picture(view))
         except PictureFailed as failed:
-            return Made(text, (details,), (PICTURE_FAILED.format(edition=edition, reason=failed),), verdicts(view))
-        return Made(text, (Attachment(f"{name}.png", picture, PICTURE_TITLE), details), (), verdicts(view))
+            alerts = (*failed_reads, PICTURE_FAILED.format(edition=edition, reason=failed))
+            return Made(text, (details,), alerts, verdicts(view))
+        return Made(text, (Attachment(f"{name}.png", picture, PICTURE_TITLE), details), failed_reads, verdicts(view))
 
     def _picture(self, html: str) -> bytes:
         with tempfile.TemporaryDirectory() as folder:

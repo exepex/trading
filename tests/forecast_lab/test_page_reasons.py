@@ -31,14 +31,16 @@ def test_a_flow_pushing_against_the_miss_is_no_reason_for_it():
     assert reasons(TUE, MON, facts, above=True) == ("DIIs bought a net Rs 4,100 crore that day",)
 
 
-def test_the_last_7_sessions_misses_newest_first_with_how_far_outside():
-    sessions = days(9)
+def test_the_last_30_sessions_misses_newest_first_with_how_far_outside():
+    sessions = days(32)
     points = [outcome(d, 1000.0) for d in sessions]
-    points[-1], points[-3], points[0] = (
+    points[-1], points[-3], points[2], points[1] = (
         outcome(sessions[-1], 1031.0),
         outcome(sessions[-3], 960.0),
-        outcome(sessions[0], 900.0),
-    )  # the first is older than 7 sessions
+        outcome(sessions[2], 970.0),  # the 30th session back: still in the window
+        outcome(sessions[1], 900.0),  # the 31st: older than the window
+    )
     misses = recent_misses(points, lambda d: sessions[sessions.index(d) - 1], Facts())
     assert [(m.day, m.side, round(m.points), m.reasons) for m in misses] == [
-        (sessions[-1], "above", 11, (NO_REASON,)), (sessions[-3], "below", 20, (NO_REASON,))]  # fmt: skip
+        (sessions[-1], "above", 11, (NO_REASON,)), (sessions[-3], "below", 20, (NO_REASON,)),
+        (sessions[2], "below", 10, (NO_REASON,))]  # fmt: skip

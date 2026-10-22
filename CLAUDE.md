@@ -113,12 +113,24 @@ routines'." at 19:53 IST, both every day: NSE's calendar decides the day. Each e
 `forecast_lab.live_from` date in `config.yaml` ("not live" before it). Research and paper trading only: never places,
 modifies or cancels orders, and neither uses Groww.
 1. `sh tools/routine_setup.sh` (prints "routine setup ok").
+1b. The morning only, before `lab open`: `python -m fno data-librarian index-close --from "$(TZ=Asia/Kolkata date -d
+   '-7 days' +%F)"` archives the previous sessions' official index-close files in Drive (A9's command, unchanged;
+   orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
+   failure of the routine: the morning then says "not archived yet". Then `git pull --no-rebase origin main`, so
+   A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
+1c. The evening only, before `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
+   dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
+   data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
+   fii-dii-cash-by-session`. A librarian line "not published by the source <day>" means "not out yet" (the edition
+   says so); any other problem line ("damaged in store", "rejected from source", "stopped:", a Drive sign-in
+   refusal) is noted and posted to #fno-desk. After `lab close`, `python -m fno lab release-check` (read-only, never
+   fails) appends to `research/data/forecast_lab/release/`; commit those logs with the receipts in step 3.
 2. The morning: `python -m fno lab open` posts today's forecast to #fno-forecast before 09:15, with the earlier
    evenings' checks confirmed against NSE's official closes; at or after 09:15 it posts nothing and alerts once. The
    evening: `python -m fno lab close` checks today's forecast against today's close and posts to #fno-forecast. Each
    prints its lines and exits 1 when its report was not posted (it alerts #fno-desk itself).
 3. Commit only that edition's receipts: `git pull --no-rebase origin main`, then `git add
-   receipts/data/forecast_lab/v1/<morning|evening>/`, commit and `git push origin HEAD:main` (record scan on, never
+   receipts/data/forecast_lab/v1/<morning|evening>/` (the evening also `research/data/forecast_lab/release/`), commit and `git push origin HEAD:main` (record scan on, never
    `--no-verify`). If the push is refused, pull and push once more; if it fails again, post "receipt NOT pushed" with
    the edition and day to #fno-desk (`C0C89E8QCCD`) with the Slack connector: the Drive copy is the record.
 4. If it printed "alert NOT sent", post those lines to #fno-desk with the Slack connector. Note any failure in
@@ -239,6 +251,7 @@ commit with `--no-verify`.
   file (owner, 16 Oct 2026; story O9, built step by step).
 - F&O output goes only to three Slack channels, all with `FNO_SLACK_BOT_TOKEN` (owner, 21 Oct 2026; story FL1):
   #fno-desk (`C0C89E8QCCD`) takes every alert and the daily card; #fno-forecast (`C0CAZS76WBC`) the forecast lab's
-  morning (08:50) and evening (20:05) editions (story FL1-1d); #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and hourly lines. Never the market-brief
-  tool's `SLACK_*` variables or #market-brief, and no other channel (the record scan allows only these three IDs).
+  morning (08:50) and evening (20:05) editions (story FL1-1d); #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and
+  hourly lines. Never the market-brief tool's `SLACK_*` variables or #market-brief, and no other channel (the record
+  scan allows only these three IDs).
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.
