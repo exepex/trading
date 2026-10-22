@@ -52,7 +52,7 @@ the calculator.
 | A missing manifest row read as "differs from its SHA-256" | reproduced | its own message | "no manifest row" case |
 | Structure and legs were not checked against each other (PDS legs labelled PCS, a ratio leg) | reproduced | `RoadTradeTerms` checks each code's shape | 8 new cases |
 | E8's owner-timing record would drop the legs | read | stated as a limit in the story (the pilot has no owner timing) | - |
-| The gap script skipped unlisted combinations silently | read | it counts and prints them | its rerun below |
+| The gap script skipped unlisted combinations silently | read | it counts and prints them | rerun: the same 13,736 rows; 760 not listed, 304 outside the model |
 
 New mutations, all 16 caught: the factories' lot and units; each shape rule (one unit, the sold leg, the width, the
 type, the wings inside, the wings out, the condor's order, the fly's body, unknown codes); daily mode; the manifest

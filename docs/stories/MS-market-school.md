@@ -462,7 +462,8 @@ seven structures, any width, and shorts one expected move out.
 
 **Why per proposal, not rows (orchestrator's rule: measure first; strong evidence).** A14-style rows were compared
 with the pilot's real legs on 37 archived sessions (every 12th session, 6 Jan 2025 - 6 Oct 2026), widths 1-8 strike
-steps, 13,736 comparisons. The figure is C2's stressed margin at k 2.1, per unit. The row is A14's own structure (SC
+steps, 13,736 comparisons (1,064 combinations not measured: 760 whose row legs the file does not list, 304
+outside the calculator's model; the script counts them). The figure is C2's stressed margin at k 2.1, per unit. The row is A14's own structure (SC
 shorts at spot ±2%, spreads at ATM); the real legs are the pilot's (shorts one expected move out, the ATM straddle in
 the file; debit spreads one step out). The table gives the share of cases where the row is below the real position,
 and the lowest row/real ratio:
