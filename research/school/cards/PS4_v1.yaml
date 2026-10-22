@@ -1,4 +1,4 @@
-# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+# FROZEN card (stories MS-P1e and MS-P1h): registered in journal/versions.csv with this file's SHA-256; a change is a new version (a new file), never an edit. Numbers are first guesses [reasoning only].
 # PS3 and PS4 collapse into the same trade on a road where the widest wing under the cap is under 3 strike steps;
 # both are recorded, they are one family and are not counted twice (orchestrator, 22 Oct 2026).
 code: PS4
@@ -6,7 +6,7 @@ version: "1"
 family: width_ladder
 role: rule
 roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M]
-band_steps: 40
+band_steps: 10
 parameters:
   dte_min: 30
   dte_max: 45

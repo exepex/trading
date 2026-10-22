@@ -1,4 +1,4 @@
-"""The draft card files load, carry the roles and roads of story 3.2, and build every driver (story MS-P1e)."""
+"""The frozen card files load, carry the roles and roads of story 3.2, and build every driver (story MS-P1e)."""
 
 import pytest
 
