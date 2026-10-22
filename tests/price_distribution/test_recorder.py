@@ -13,7 +13,7 @@ from fno.price_distribution.chain import ExpiryChain
 from fno.price_distribution.folders import live_path
 from fno.price_distribution.recorder import HAND_RUN, NOT_TRADING, LiveRecorder
 from fno.price_distribution.sources import ChainUnavailable
-from fno.price_distribution.valuation import NO_FORWARD
+from fno.price_distribution.valuation import NO_FORWARD, NO_QUOTES
 from fno.research_data.calendar import CsvSessionCalendar
 from tests.price_distribution.builders import DAY, NEAR, NEXT, RATE, Chains, chain_day, drive_store, expiry_chain
 
@@ -188,3 +188,29 @@ def test_the_nearest_expiry_too_thin_still_fails(tmp_path):
     built, _, _, _ = recorder(tmp_path, chains={("NIFTY", DAY): chain_day(), ("BANKNIFTY", DAY): bank})
     code, lines = built.record(DAY)
     assert code == 1 and f"BANKNIFTY {NEAR}: {NO_FORWARD}" in lines[-1]
+
+
+def bank_record(tmp_path, expiries):
+    bank = chain_day(expiries, underlying="BANKNIFTY")
+    built, _, _, _ = recorder(tmp_path, chains={("NIFTY", DAY): chain_day(), ("BANKNIFTY", DAY): bank})
+    return built.record(DAY)
+
+
+def test_a_later_expiry_with_no_quotes_used_is_a_note_too(tmp_path):
+    code, lines = bank_record(tmp_path, (expiry_chain(NEAR), ExpiryChain(NEXT, (), None)))
+    assert code == 0 and [line for line in lines if line.startswith("note:")] == [
+        f"note: BANKNIFTY {NEXT}: {NO_QUOTES} (no forecast for that expiry)"
+    ]
+
+
+def test_an_expiry_on_the_day_is_never_the_nearest(tmp_path):
+    """The day's own expiry is not eligible: the nearest eligible one is NEAR, so the thin NEXT is still a note."""
+    on_the_day = ExpiryChain(DAY, expiry_chain(NEAR).quotes, None)
+    code, lines = bank_record(tmp_path, (on_the_day, expiry_chain(NEAR), thin(NEXT, 23_100.0)))
+    assert code == 0 and lines[-2] == f"note: BANKNIFTY {NEXT}: {NO_FORWARD} (no forecast for that expiry)"
+
+
+def test_with_no_usable_nearest_expiry_every_thin_expiry_fails(tmp_path):
+    code, lines = bank_record(tmp_path, (thin(NEAR, 23_000.0), thin(NEXT, 23_100.0)))
+    assert code == 1 and not [line for line in lines if line.startswith("note:")]
+    assert f"BANKNIFTY {NEAR}: {NO_FORWARD}" in lines[-1] and f"BANKNIFTY {NEXT}: {NO_FORWARD}" in lines[-1]
