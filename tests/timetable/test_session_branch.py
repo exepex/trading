@@ -36,7 +36,10 @@ def test_a_session_branch_pulls_main_before_it_commits(checkouts):  # noqa: F811
     git(b, "push", "-q", "origin", "main")
     on_session_branch(a)
     (a / "run.json").write_text("{}")
-    GitCommitter(Git(a)).commit([a / "run.json"], "Desk run step quotes")
+    other = git(b, "rev-parse", "HEAD").strip()
+    commit = GitCommitter(Git(a)).commit([a / "run.json"], "Desk run step quotes")
+    parents = git(a, "rev-list", "--parents", "-n", "1", commit).split()[1:]
+    assert parents == [other]  # built on main's newest commit: no rejected push and no retry's merge (judge 474)
     git(b, "pull", "-q", "origin", "main")
     assert (b / "run.json").is_file() and (a / "other.txt").is_file()
 
