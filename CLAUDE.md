@@ -174,7 +174,9 @@ damage, not by its size; when unsure, lane 1.
   `story/<id>-<short>`, tell the orchestrator, merge after the PASS (merge procedure in `docs/JUDGE.md`). At most two
   judge rounds; after that the owner decides.
 - **Lane 2, the orchestrator's check before `main`, the lane-2 auditor after:** everything else outside lane 3 (tools,
-  CI, tests, docs, rule documents, stories outside lane 1) when it changes no record.
+  CI, tests, docs, rule documents, stories outside lane 1) when it changes no record. A rule-document change that
+  narrows lane 1 or touches a hard line (no orders, secrets, privacy, write-once data, frozen files) stays lane 1
+  (owner, 22 Oct 2026; DESK_DECISIONS "Rule-document guard").
 - **Lane 3, no judge:** judge files, conversation logs, decision and status rows, number claims (`numbers/`), and data
   commits by scheduled jobs.
 
@@ -209,7 +211,7 @@ commit with `--no-verify`.
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services) and
   each package's `wiring.py` (or `<part>_wiring.py` where a freeze or the size limit keeps a second one apart); the
-  root's docstring says what it wires and for which story.
+  root's docstring says what it wires (and for which story, where it has one).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
