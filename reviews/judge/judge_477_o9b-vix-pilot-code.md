@@ -46,3 +46,7 @@ without those rows. The move command catches this (`DIFFERS`), so:
 - don't let the window cross 1 Nov.
 
 After the merge (quality rule 8): cite the first scheduled run and the first `data-checks` run.
+
+**Note (no new number): head dafedbe3.** Beyond merges of `main` (other judges' changes), the only change since 05543aae is one
+import line in `fno/storage/row_log.py` (`from .raw_store import RawFileStore`, the A17 owner's nit). Checked by diff. The
+PASS stands at dafedbe3, and the G7 failure is gone now that `main` is merged in.
