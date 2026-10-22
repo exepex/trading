@@ -112,10 +112,10 @@ def test_sell_back_size_equal_to_the_units_passes_and_one_unit_short_refuses():
 def test_a_price_inside_the_payoff_passes_and_one_at_its_bound_refuses():
     law = ImpossiblePriceLaw()
 
-    def credit(bid):
-        return b.snapshot(quotes={b.key(1000.0): b.quote(bid, bid + 1), b.key(900.0): b.quote(4.0, 5.0)})
+    def credit(bid):  # tight quotes, so the vertical at the mids stays within its 100-point width
+        return b.snapshot(quotes={b.key(1000.0): b.quote(bid, bid + 0.01), b.key(900.0): b.quote(4.99, 5.0)})
 
-    assert check(law, snapshot=credit(104.99)).passed  # worth -99.99 a unit: within -100 and 0
+    assert check(law, snapshot=credit(104.99)).passed  # worth -99.99 a unit: within -100 and 0 (vertical 100.0 at mids)
     refused = check(law, snapshot=credit(105.0))  # a credit of the full width: it cannot lose
     assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and refused.value == -100.0
 
@@ -124,3 +124,30 @@ def test_a_leg_ratio_c2_cannot_size_is_refused():
     ratio = replace(b.put_spread(), legs=(LegSpec(b.key(1000.0), "sell", 1), LegSpec(b.key(900.0), "buy", 2)))
     law = MaxLossLaw(1e9, CFG["charges"], MaxLossPerTrade(COSTS, 1e9))
     assert check(law, ratio).reason == RefusalReason.MAX_LOSS
+
+
+def test_a_stale_vertical_never_hides_behind_another_in_the_total():
+    """Judge 488 (Judge B): a condor whose call vertical is worth less than nothing at the mids (C1100 2 < C1200 5) is
+    impossible, though the position's total at the touch sits inside its payoff bounds."""
+    call = b.OptionKind.CALL
+    legs = (LegSpec(b.key(1000.0), "sell", 1), LegSpec(b.key(900.0), "buy", 1),
+            LegSpec(b.key(1100.0, call), "sell", 1), LegSpec(b.key(1200.0, call), "buy", 1))  # fmt: skip
+    condor = replace(b.put_spread(), structure="SC", legs=legs)
+    quotes = {b.key(1000.0): b.quote(10.0, 11.0), b.key(900.0): b.quote(4.0, 5.0),
+              b.key(1100.0, call): b.quote(1.5, 2.5), b.key(1200.0, call): b.quote(4.5, 5.5)}  # fmt: skip
+    refused = check(ImpossiblePriceLaw(), condor, snapshot=b.snapshot(quotes=quotes))
+    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and (refused.value, refused.limit) == (-3.0, 100.0)
+    fair = {**quotes, b.key(1200.0, call): b.quote(0.5, 1.5)}
+    assert check(ImpossiblePriceLaw(), condor, snapshot=b.snapshot(quotes=fair)).passed
+
+
+@pytest.mark.parametrize(("c1200", "passed"), [((1.5, 2.5), True), ((1.52, 2.5), False)])
+def test_a_vertical_worth_zero_passes_and_less_than_zero_refuses(c1200, passed):
+    """[0, width] at the mids: the call vertical 1100/1200 worth exactly 0 (equal mids) passes; worth -0.01 refuses."""
+    call = b.OptionKind.CALL
+    legs = (LegSpec(b.key(1000.0), "sell", 1), LegSpec(b.key(900.0), "buy", 1),
+            LegSpec(b.key(1100.0, call), "sell", 1), LegSpec(b.key(1200.0, call), "buy", 1))  # fmt: skip
+    quotes = {b.key(1000.0): b.quote(10.0, 11.0), b.key(900.0): b.quote(4.0, 5.0),
+              b.key(1100.0, call): b.quote(1.5, 2.5), b.key(1200.0, call): b.quote(*c1200)}  # fmt: skip
+    result = check(ImpossiblePriceLaw(), replace(b.put_spread(), legs=legs), snapshot=b.snapshot(quotes=quotes))
+    assert result.passed is passed

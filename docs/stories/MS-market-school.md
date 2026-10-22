@@ -287,7 +287,8 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
   indices; `fno/desk/settlement.py` is reused, not edited.
 
 **Acceptance tests:**
-1. Each law passes at its limit and refuses at limit + Rs 1.
+1. Each law passes at its limit and refuses at limit + Rs 1; the daily stop and the brake refuse when the loss reaches
+   their limit (3.3: "reaches", "falls ... below"; section 6 item 9), so they pass at limit - Rs 1 and refuse at it.
 2. No law changes a proposal (test over all laws).
 3. Daily stop:
    - entries are refused after Rs 25,000 of loss;
@@ -463,6 +464,9 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - judge 486's note (orchestrator, 22 Oct 2026): expiry settlement runs before the session's first account `view`. An
   expired position has no mark in the next capture, so a view taken before its settlement counts it at minus its
   maximum loss, and that can trip the daily stop.
+- settlement's store (orchestrator, 22 Oct 2026): once MS-P1b and MS-P1d are both on `main`, j's composition root
+  builds d's settlement source on b's `build_archive_stores` (the service account's Drive, else the owner's, else
+  `RawFilesNotConfigured`); d's own `SettlementStoresNotConfigured` stays until then.
 
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
@@ -697,5 +701,14 @@ public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_
 | Minor: no test of the charges cross-check | none needed | `test_school_accounts.py::test_a_leg_whose_charges_differ_from_c1_s_is_refused_before_any_write`. Plant: the check removed |
 
 - **MS-P1j note:** settlement runs before the session's first `view` (added under MS-P1j).
-- **Plants:** 40 planted, 40 caught.
+- **Plants:** 41 planted, 41 caught (with the per-vertical plant below).
+
+**Judge 488 (Judge B, PASS in round 1 at 96704ef8) notes, built at the orchestrator's request:**
+
+| Note | Change | Test (and the plant it catches) |
+|---|---|---|
+| The impossible-price check must test each vertical, not only the total | `safety/quote_laws.py`: each bought-sold pair of one type and expiry is checked at the mids, and must lie within [0, width] (EDGE1). The total at the touch stays strict | `test_limits.py::test_a_stale_vertical_never_hides_behind_another_in_the_total` (a condor whose call vertical is worth -3 at the mids, while the total sits inside its bounds) and `test_a_vertical_worth_zero_passes_and_less_than_zero_refuses` (boundary). Plant: the vertical check removed |
+| Acceptance 1's wording | Criterion 1 in this story now says the stop and the brake refuse at their limit | no code change |
+
+- **MS-P1j note:** j switches d's settlement store to b's `build_archive_stores` once both parts are on main.
 

@@ -6,12 +6,15 @@ the same gate, so a proposal these laws pass is one the fill can take.
 
 Beside it, EDGE1's impossible-price rule: at the touch the fill would take, the position must be worth strictly more
 than its worst payoff at expiry and strictly less than its best; anything else promises a trade that cannot lose or
-cannot win, which only bad quotes do. It is judged once every leg has a touch; until then the gate refuses."""
+cannot win, which only bad quotes do. And each vertical inside it (a bought and a sold leg of one type and expiry)
+must be worth between 0 and its width at the mids (EDGE1: outside [0, width] is invalid), so one stale vertical never
+hides behind another in the total (Judge B, judge 488). It is judged once every leg has a touch; until then the gate
+refuses."""
 
 from datetime import date
 
 from ...research_engine.structures import BOUGHT, SOLD, Leg, payoff_bounds, position_value
-from ..constants import SIDE_BUY, RefusalReason
+from ..constants import SIDE_BUY, OptionKind, RefusalReason
 from ..contracts.decisions import Proposal
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.safety import AccountView, LawResult
@@ -60,5 +63,24 @@ class ImpossiblePriceLaw:
                 prices.append(quote.ask if bought else quote.bid)
         lowest, highest = payoff_bounds(legs)
         value = position_value(legs, prices)
-        passed = lowest < value < highest
-        return LawResult(self.name, passed, None if passed else RefusalReason.IMPOSSIBLE_LEG_PRICE, None, value)
+        if not lowest < value < highest:
+            return LawResult(self.name, False, RefusalReason.IMPOSSIBLE_LEG_PRICE, None, value)
+        bad = next((v for v in _verticals(proposal, snapshot) if not 0 <= v[0] <= v[1]), None)
+        if bad is not None:
+            return LawResult(self.name, False, RefusalReason.IMPOSSIBLE_LEG_PRICE, bad[1], bad[0])
+        return LawResult(self.name, True, None, None, value)
+
+
+def _verticals(proposal: Proposal, snapshot: SlotSnapshot) -> list[tuple[float, float]]:
+    """(value at the mids, width) of every bought-sold pair of one type and expiry, valued as the pair that is worth
+    more at expiry: the lower call less the higher call, the higher put less the lower put."""
+    found = []
+    for long in (leg for leg in proposal.legs if leg.side == SIDE_BUY):
+        for short in (leg for leg in proposal.legs if leg.side != SIDE_BUY):
+            if (long.key.kind, long.key.expiry) != (short.key.kind, short.key.expiry):
+                continue
+            low, high = sorted((long.key, short.key), key=lambda key: key.strike)
+            richer, poorer = (low, high) if low.kind == OptionKind.CALL else (high, low)
+            mids = snapshot.quote(richer).mid, snapshot.quote(poorer).mid
+            found.append((mids[0] - mids[1], high.strike - low.strike))
+    return found
