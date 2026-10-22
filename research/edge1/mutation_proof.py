@@ -11,6 +11,12 @@ S = HERE / "edge1study"
 ROOT = HERE.parents[1]
 M = [
     ("runner.py", "{d: q for d, q in panel.options.items() if d <= last}", "dict(panel.options)", "seal leaks options"),
+    (
+        "runner.py",
+        "tuple(s for s in panel.sessions if s.day <= last)",
+        "tuple(s for s in panel.sessions if s.day <= date(last.year, last.month + 1, last.day))",
+        "seal loosened for sessions",
+    ),  # fmt: skip
     ("inputs.py", "[r for r in found if r.day <= through]", "list(found)", "rows not sealed at load"),
     ("trade.py", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.5", "STOP_MULTIPLE, TARGET_SHARE = 2.0, 0.5", "SL2 at 2x"),
     ("trade.py", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.5", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.4", "TP at 40%"),
@@ -77,8 +83,8 @@ def main() -> int:
             continue
         path.write_text(text.replace(old, new))
         try:
-            run = subprocess.run([sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider",
-                                  "tests/research_edge1"], cwd=ROOT, capture_output=True, text=True, env=env)  # fmt: skip
+            command = [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider", "tests/research_edge1"]
+            run = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, env=env)
             caught = run.returncode != 0
             print(("caught   " if caught else "SURVIVED ") + label)
             failures += not caught

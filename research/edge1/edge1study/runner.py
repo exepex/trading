@@ -1,9 +1,9 @@
 """Every variant of one index through its cycles (protocol sections 3-8), one lot of the cycle's own size.
 
 The periods and the seal (section 3): run 1 is the cycles decided in 2019-2022. A decision day is 30-45 days before
-expiry, so its last cycles expire by early February 2023. Run 1 sees the panel only up to RUN1_SEAL, 14 Feb 2023:
-nothing later is loaded into it. Run 2 is the cycles decided from 1 Jan 2023 whose expiry is on or before the index's
-last data day."""
+expiry, so its last cycle is the January 2023 expiry (25 Jan; judge 468.4). Run 1 sees the panel only up to
+RUN1_SEAL, 14 Feb 2023: nothing later is loaded into it. Run 2 is the cycles decided from 1 Jan 2023 whose expiry is
+on or before the index's last data day."""
 
 from __future__ import annotations
 
