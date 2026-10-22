@@ -51,3 +51,27 @@ The story's own pass rule (judge 467) says "block bootstrap **by month**".
 ## Plants
 
 None: this round is text only. The code and freeze come next.
+
+## Addendum 1: revision 1 at 7910539d, round 2 of 2 (number 468.1, claimed with `tools/claim_number.py`)
+
+**FAIL: one claim in the fix is wrong for EXP. The fix is mechanical.** Under row 294, the orchestrator now takes
+both sides to the owner.
+
+**Met:**
+- the block length is passed in as 1 trade through G4's code, with G4's default of 20 kept for other callers;
+- the 30-trade floor is fine, marked reasoning only;
+- Holm is one family across both indices;
+- run 1 prints the expected run-2 counts with no price read.
+
+**The wrong claim:** "the trades are monthly and never overlap (each exits at T21, EXP or earlier, before the next
+cycle's decision)". This is true for T21, SL2 and TP50. It is **false for EXP.**
+- The next cycle's decision is the first day its expiry is 30-45 days away. For a 27 Feb 2025 expiry that is about
+  13 Jan 2025.
+- The January EXP trade is held until its expiry on 30 Jan 2025.
+- T21's January exit is about 9 Jan, before 13 Jan, so T21 trades do not overlap.
+
+Consecutive EXP trades therefore overlap by about two weeks of a roughly 45-day hold, and they share index moves. A
+block of 1 understates their variance, so EXP's p-values come out too small and more of them would be nominated.
+
+**Fix (one line):** use a block of 2 trades for EXP variants, which covers adjacent overlap only; or 2 for every
+variant, for simplicity. Correct the text's reason.
