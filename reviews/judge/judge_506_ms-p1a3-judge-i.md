@@ -42,3 +42,9 @@ second judge (money piece); Judge B passed it (479.3), and I did not read that v
 - **Merge-order condition (unchanged):** d's real `SchoolFills` answers `one_sided_quote` today, so it passes the new check only with d's part 4, which must run `check_fill_port_unmeasured` against it.
 - **Minor:** my plant that weakens the check to "not filled" survives. Add one bad port that refuses with `one_sided_quote` and must fail the check (the shape of d's port today), as `check_ledger_reader` has.
 - **Gates (my run):** full `pytest -n auto` 11,667 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+
+## Addendum 2: the minor at 8d4d6fb2 (story/ms-p1j-fleet)
+
+**Minor: FIXED.** One test file (`test_fakes_conform.py`) adds two bad ports that `check_fill_port_unmeasured` must
+reject: one that refuses as `one_sided_quote` (d's port's old shape), and one that fills on prices alone. My plant
+(the check weakened to "not filled") now fails it, and 457 contract tests pass. No code changed.
