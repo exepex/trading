@@ -1,8 +1,9 @@
 # FL1 report design: signed off at d8f0440 (owner, 21 Oct 2026; DESK_DECISIONS 11ef1b23)
 
 The owner signed off the report design at commit d8f0440: two editions, separate plain charts, no shaded bands and
-no bars. The design is frozen at that commit: no visual change unless the owner asks. The FL1 builder wires it
-(story FL1-1d) from the files in the first table. Rationale in `DESIGN.md`; research in `REFERENCES.md`. Design only: the FL1 builder wires it to the real records and
+no bars. The design is frozen at that commit: no visual change unless the owner asks. It is production code in
+`fno/forecast_lab/design/` (merged to `main` at 1cc68007, judge 446.1 PASS, response 310); this folder is the signed-off
+preview it was ported from, kept as the reference. Rationale in `DESIGN.md`; research in `REFERENCES.md`. Design only: the FL1 builder wires it to the real records and
 to Slack; nothing under `fno/` is touched.
 
 ## The signed-off design (d8f0440)
