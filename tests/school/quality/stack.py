@@ -8,7 +8,16 @@ from fno.school.quality.gate import RoadQualityGate
 from fno.school.roads.capture import CaptureReader
 from fno.school.roads.catalogue import RecordedRoadCatalogue
 from fno.school.roads.snapshots import RecordedSnapshotSource
-from tests.school.roads.capture_builder import CALENDAR, SESSION, DictStore, FixedExpiries, FixedLots, Plant, road
+from tests.school.roads.capture_builder import (
+    CALENDAR,
+    SESSION,
+    DictStore,
+    FixedExpiries,
+    FixedLots,
+    FixtureListing,
+    Plant,
+    road,
+)
 
 BANK = RoadCode.BANKNIFTY_MONTHLY
 
@@ -37,4 +46,4 @@ def good(**faults) -> Stack:
     return stack(Plant(road(BANK), **faults))
 
 
-GATE = RoadQualityGate()
+GATE = RoadQualityGate(FixtureListing())

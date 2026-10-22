@@ -23,9 +23,11 @@ from ...storage.wiring import (
 )
 from ..contracts.roads import RoadCatalogue
 from ..contracts.snapshot import SnapshotSource
+from ..quality.ports import ListedContracts
 from .capture import CaptureReader
 from .catalogue import RecordedRoadCatalogue
 from .expiries import ListedRoadExpiries
+from .listed_contracts import NseListedContracts
 from .lots import ArchivedLots
 from .snapshots import RecordedSnapshotSource
 from .stored_files import StoredFilesOnly
@@ -50,6 +52,7 @@ class RoadServices:
     calendar: SessionCalendar
     catalogue: RoadCatalogue
     snapshots: SnapshotSource
+    listing: ListedContracts
 
 
 def build_road_services(folder: Path = QUOTES_FOLDER, calendar: SessionCalendar | None = None) -> RoadServices:
@@ -63,4 +66,4 @@ def build_road_services(folder: Path = QUOTES_FOLDER, calendar: SessionCalendar 
     listing = NseDailyFileExpiries(library)
     expiries = ListedRoadExpiries(listing, PointInTimeMonthlies(listing))
     return RoadServices(calendar, RecordedRoadCatalogue(calendar, reader, expiries, ArchivedLots(library)),
-                        RecordedSnapshotSource(reader))  # fmt: skip
+                        RecordedSnapshotSource(reader), NseListedContracts(library))  # fmt: skip

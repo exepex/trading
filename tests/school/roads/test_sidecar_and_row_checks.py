@@ -8,7 +8,15 @@ import pytest
 from fno.school.constants import ClosureReason, RoadCode
 from fno.school.quality.gate import RoadQualityGate
 from fno.school.roads.capture import CaptureProblem, CaptureReader
-from tests.school.roads.capture_builder import MONTHLIES, SESSION, DictStore, Plant, reader_over_all, road
+from tests.school.roads.capture_builder import (
+    MONTHLIES,
+    SESSION,
+    DictStore,
+    FixtureListing,
+    Plant,
+    reader_over_all,
+    road,
+)
 
 BANK = road(RoadCode.BANKNIFTY_MONTHLY)
 
@@ -48,7 +56,7 @@ def test_a_leg_the_a4_rule_marks_invalid_is_not_a_valid_quote_and_does_not_pass_
     reader = reader_over_all(store)
     day = next(d for d in RecordedRoadCatalogue(CALENDAR, reader, FixedExpiries(), FixedLots()).day(SESSION)
                if d.road is BANK)  # fmt: skip
-    counts = RoadQualityGate(band_steps=10).legs(day, snapshot)
+    counts = RoadQualityGate(FixtureListing(), band_steps=10).legs(day, snapshot)
     assert (counts.observed, counts.passed) == (32, 31)
 
 
@@ -91,3 +99,22 @@ def test_a_capture_at_the_very_end_of_the_day_in_utc_is_the_same_session_in_ist(
     behind = timezone(timedelta(hours=-12))
     capture = read(zone=behind)
     assert capture.started_at.date() == date(2026, 11, 1) and capture.session == late
+
+
+def test_a_sidecar_whose_recorded_count_differs_from_its_expected_count_is_incomplete_though_the_rows_match_it():
+    assert reason_of(expected_contracts=40) is ClosureReason.CAPTURE_INCOMPLETE  # 32 rows, 32 recorded, 40 expected
+    assert reason_of(expected_contracts=31, recorded_contracts=32) is ClosureReason.CAPTURE_INCOMPLETE
+
+
+def test_a_capture_that_expected_and_recorded_nothing_is_incomplete_not_a_complete_empty_chain():
+    empty = {expiry: () for expiry in MONTHLIES}
+    assert reason_of(strikes=empty, expected_contracts=0, recorded_contracts=0) is ClosureReason.CAPTURE_INCOMPLETE
+
+
+@pytest.mark.parametrize("cell", ["True", "yes", "1", "", "maybe"])
+def test_only_the_exact_word_true_makes_a_leg_valid(cell):
+    def set_valid(rows):
+        rows[0]["valid"] = cell
+
+    quotes = read(change_rows=[set_valid]).quotes
+    assert sum(1 for q in quotes.values() if not q.valid) == 1

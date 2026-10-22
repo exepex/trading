@@ -12,7 +12,7 @@ from fno.school.quality.band import band_keys
 from fno.school.quality.gate import LegCounts, RoadQualityGate
 from fno.school.quality.prices import impossible_keys
 from tests.school.quality.stack import GATE, good
-from tests.school.roads.capture_builder import IST, MONTHLIES, SESSION
+from tests.school.roads.capture_builder import IST, MONTHLIES, SESSION, FixtureListing
 
 CALL = OptionKind.CALL
 
@@ -65,8 +65,10 @@ def test_an_impossible_price_in_the_band_closes_the_road():
 def test_an_impossible_price_outside_the_band_does_not():
     road_day, snapshot = opened()
     bad = with_quote(snapshot, 1400.0, bid=2000.0, ask=2001.0)  # four steps from the money; the band is two
-    assert RoadQualityGate(band_steps=2).check(road_day, bad) == OPEN
-    assert RoadQualityGate(band_steps=4).check(road_day, bad) == RoadStatus(ClosureReason.IMPOSSIBLE_PRICE)
+    assert RoadQualityGate(FixtureListing(), band_steps=2).check(road_day, bad) == OPEN
+    assert RoadQualityGate(FixtureListing(), band_steps=4).check(road_day, bad) == RoadStatus(
+        ClosureReason.IMPOSSIBLE_PRICE
+    )
 
 
 def test_every_fault_at_once_gives_the_first_reason_only():
@@ -87,33 +89,35 @@ def test_a_snapshot_of_another_road_or_day_is_an_error_not_a_verdict():
 
 def test_leg_observations_count_valid_two_sided_legs_in_the_band_of_every_expiry():
     road_day, snapshot = opened()
-    gate = RoadQualityGate(band_steps=1)  # strikes 900, 1000, 1100 around the money, both kinds, both expiries
+    gate = RoadQualityGate(
+        FixtureListing(), band_steps=1
+    )  # strikes 900, 1000, 1100 around the money, both kinds, both expiries
     assert gate.legs(road_day, snapshot) == LegCounts(12, 12)
     one_sided = with_quote(snapshot, 1000.0, ask=None, ask_qty=None)
     invalid = with_quote(one_sided, 900.0, valid=False)
     assert gate.legs(road_day, invalid) == LegCounts(12, 10)
-    assert RoadQualityGate(band_steps=10).legs(road_day, snapshot) == LegCounts(32, 32)
+    assert RoadQualityGate(FixtureListing(), band_steps=10).legs(road_day, snapshot) == LegCounts(32, 32)
 
 
 def test_an_impossible_leg_does_not_count_as_passed():
     road_day, snapshot = opened()
     bad = with_quote(snapshot, 1000.0, bid=900.0, ask=901.0)
-    counts = RoadQualityGate(band_steps=1).legs(road_day, bad)
-    assert counts == LegCounts(12, 12 - len(impossible_keys(bad, band_keys(bad, 1))))
+    counts = RoadQualityGate(FixtureListing(), band_steps=1).legs(road_day, bad)
+    assert counts == LegCounts(12, 12 - len(impossible_keys(bad, band_keys(list(bad.quotes), bad.spot, 1))))
     assert counts.passed < 12
 
 
 def test_the_band_is_a_number_of_strike_steps_around_the_strike_nearest_the_spot():
     road_day, snapshot = opened()
-    strikes = lambda steps: sorted({k.strike for k in band_keys(snapshot, steps)})  # noqa: E731
+    strikes = lambda steps: sorted({k.strike for k in band_keys(list(snapshot.quotes), snapshot.spot, steps)})  # noqa: E731
     assert strikes(0) == [1000.0]  # 1050 is level between 1000 and 1100: the lower one
     assert strikes(1) == [900.0, 1000.0, 1100.0]
     assert strikes(10) == [700.0 + 100.0 * n for n in range(8)]
     moved = replace(snapshot, spot=1051.0)
-    assert sorted({k.strike for k in band_keys(moved, 0)}) == [1100.0]
+    assert sorted({k.strike for k in band_keys(list(moved.quotes), moved.spot, 0)}) == [1100.0]
 
 
 def test_a_band_edge_is_in_and_one_strike_more_is_out():
     _, snapshot = opened()
-    strikes = {k.strike for k in band_keys(snapshot, 1)}
+    strikes = {k.strike for k in band_keys(list(snapshot.quotes), snapshot.spot, 1)}
     assert 1100.0 in strikes and 1200.0 not in strikes  # money 1000; one 100-point step each side

@@ -6,6 +6,7 @@ from fno.school.quality import command
 from fno.school.quality.capture_gate import CaptureGateReport
 from fno.school.quality.gate import RoadQualityGate
 from fno.school.quality.wiring import build_capture_gate_report, build_quality_gate
+from tests.school.roads.capture_builder import FixtureListing
 
 
 class Lines:
@@ -38,11 +39,14 @@ def test_the_default_day_is_today_once_the_captures_can_exist_else_yesterday():
 def test_the_composition_root_builds_the_real_gate_and_a_report_over_the_real_roads(monkeypatch):
     from fno.school.roads import wiring as roads_wiring
     from fno.school.roads.catalogue import RecordedRoadCatalogue
+    from fno.school.roads.listed_contracts import NseListedContracts
     from fno.school.roads.snapshots import RecordedSnapshotSource
     from tests.school.roads.capture_builder import DictStore
 
     monkeypatch.setattr(roads_wiring, "build_raw_stores", lambda: [DictStore()])
-    assert build_quality_gate(4).band_steps == 4 and isinstance(build_quality_gate(), RoadQualityGate)
+    listing = FixtureListing()
+    assert build_quality_gate(listing, 4).band_steps == 4 and isinstance(build_quality_gate(listing), RoadQualityGate)
     report = build_capture_gate_report(4)
+    assert isinstance(report.gate.listing, NseListedContracts)
     assert isinstance(report, CaptureGateReport) and report.gate.band_steps == 4
     assert isinstance(report.catalogue, RecordedRoadCatalogue) and isinstance(report.snapshots, RecordedSnapshotSource)

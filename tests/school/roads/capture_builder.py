@@ -87,6 +87,8 @@ class Plant:
     strikes: dict | None = None  # expiry -> that expiry's strikes (their own step), default STRIKES for each
     failures: list | None = None  # the sidecar's failure list, whatever `complete` says
     spot: object = SPOT  # the sidecar's spot, any value
+    expected_contracts: int | None = None  # the sidecar's expected count, whatever the rows are
+    recorded_contracts: int | None = None
     minutes: int = 2  # finished_at minus started_at; negative plants a capture that finished before it began
     start_day: int = 0  # days added to the start's date (a capture stamped on another day)
     finish_day: int = 0  # days added to the finish's date
@@ -120,8 +122,10 @@ class Plant:
         meta = {
             "snapshot_id": self.snapshot_id, "underlying": self.road.underlying, "provider": "groww",
             "started_at": self._stamp(began), "finished_at": self._stamp(ended),
-            "expiries": [e.isoformat() for e in expiries], "spot": self.spot, "expected_contracts": len(rows),
-            "recorded_contracts": len(rows), "failures": self._failures(),
+            "expiries": [e.isoformat() for e in expiries], "spot": self.spot,
+            "expected_contracts": len(rows) if self.expected_contracts is None else self.expected_contracts,
+            "recorded_contracts": len(rows) if self.recorded_contracts is None else self.recorded_contracts,
+            "failures": self._failures(),
             "complete": self.complete, "in_window": self.in_window, "csv_sha256": hashlib.sha256(data).hexdigest(),
         }  # fmt: skip
         if self.short_by:
@@ -178,3 +182,22 @@ def reader_over_all(store: RawFileStore):
     from fno.school.roads.capture import CaptureReader
 
     return CaptureReader({r.dataset: store for r in ROADS})
+
+
+class FixtureListing:
+    """ListedContracts: NSE's listing as the fixture chain (every strike of `strikes`, or STRIKES, both kinds)."""
+
+    def __init__(self, strikes: dict | None = None, keys=None, unavailable: bool = False):
+        self.strikes, self.keys, self.unavailable = strikes or {}, keys, unavailable
+
+    def contracts(self, underlying, expiries, session, spot):
+        from fno.school.constants import OptionKind
+        from fno.school.contracts.snapshot import ContractKey
+        from fno.school.quality.ports import ListingUnavailable
+
+        if self.unavailable:
+            raise ListingUnavailable("no NSE file")
+        if self.keys is not None:
+            return frozenset(k for k in self.keys if k.expiry in set(expiries))
+        return frozenset(ContractKey(e, s, kind) for e in expiries for s in self.strikes.get(e, STRIKES)
+                         for kind in OptionKind)  # fmt: skip

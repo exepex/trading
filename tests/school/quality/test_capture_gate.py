@@ -12,9 +12,10 @@ from fno.school.fakes import FakeRoadCatalogue, FakeSnapshotSource
 from fno.school.quality.capture_gate import GATE_SESSIONS, CaptureGateReport, RoadGate, SessionVerdict
 from fno.school.quality.gate import LegCounts, RoadQualityGate
 from tests.school.contracts import builders as b
-from tests.school.roads.capture_builder import CALENDAR
+from tests.school.roads.capture_builder import CALENDAR, FixtureListing
 
 BANK = RoadCode.BANKNIFTY_MONTHLY
+LISTING = FixtureListing(keys=frozenset(b.snapshot().quotes))
 DAYS = [date(2026, 10, 19) + timedelta(days=n) for n in range(10)]
 
 
@@ -93,7 +94,10 @@ def report_of(through: date, closed: dict | None = None, changed: dict | None = 
     pairs = {d: pair(d, RoadStatus((closed or {})[d]) if d in (closed or {}) else OPEN) for d in seen}
     snapshots = {(BANK, d): (changed or {}).get(d, lambda s: s)(pairs[d][1]) for d in seen}
     report = CaptureGateReport(
-        CALENDAR, FakeRoadCatalogue({d: (pairs[d][0],) for d in seen}), FakeSnapshotSource(snapshots), RoadQualityGate()
+        CALENDAR,
+        FakeRoadCatalogue({d: (pairs[d][0],) for d in seen}),
+        FakeSnapshotSource(snapshots),
+        RoadQualityGate(LISTING),
     )
     return seen, report
 
@@ -124,7 +128,7 @@ def test_the_report_builds_each_roads_verdicts_from_the_catalogue_the_snapshot_a
     got = {v.session: v.closure for v in gate.sessions}
     assert got[seen[2]] is ClosureReason.LOT_MISMATCH and got[seen[5]] is ClosureReason.IMPOSSIBLE_PRICE
     assert sum(1 for c in got.values() if c is None) == 8 and not gate.passed
-    assert gate.legs.observed == 8 * RoadQualityGate().legs(*pair(seen[0])).observed
+    assert gate.legs.observed == 8 * RoadQualityGate(LISTING).legs(*pair(seen[0])).observed
 
 
 def test_a_report_line_exists_for_each_road_of_the_latest_session():

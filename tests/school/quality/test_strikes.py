@@ -17,6 +17,7 @@ from tests.school.roads.capture_builder import (
     DictStore,
     FixedExpiries,
     FixedLots,
+    FixtureListing,
     Plant,
     reader_over_all,
     road,
@@ -56,14 +57,16 @@ def two_step_snapshot():
 
 
 def test_the_band_is_built_per_expiry_in_that_expiry_s_own_steps():
-    near = {k.strike for k in band_keys(two_step_snapshot(), 2) if k.expiry == NEAR}
-    far = {k.strike for k in band_keys(two_step_snapshot(), 2) if k.expiry == FAR}
+    near = {k.strike for k in band_keys(list(two_step_snapshot().quotes), 1050.0, 2) if k.expiry == NEAR}
+    far = {k.strike for k in band_keys(list(two_step_snapshot().quotes), 1050.0, 2) if k.expiry == FAR}
     assert near == {950.0, 1000.0, 1050.0, 1100.0, 1150.0}  # money 1050, two 50-point steps each side
     assert far == {800.0, 900.0, 1000.0, 1100.0, 1200.0}  # money 1000 (1050 is level; the lower), two 100-point steps
 
 
 def test_the_wider_expiry_keeps_a_full_band_not_the_narrow_expiry_s_reach():
-    counts = {e: sum(1 for k in band_keys(two_step_snapshot(), 10) if k.expiry == e) for e in (NEAR, FAR)}
+    counts = {
+        e: sum(1 for k in band_keys(list(two_step_snapshot().quotes), 1050.0, 10) if k.expiry == e) for e in (NEAR, FAR)
+    }
     assert counts == {NEAR: 22, FAR: 16}  # 11 and 8 strikes: all that the 800-1300 and 700-1400 chains hold, 2 kinds
 
 
@@ -77,7 +80,9 @@ def test_a_road_day_built_on_a_two_step_capture_takes_the_nearest_expiry_s_step_
     day = next(d for d in catalogue.day(SESSION) if d.road.code is RoadCode.BANKNIFTY_MONTHLY)
     assert day.status.open and day.strike_step == 50.0
     snapshot = reader.read(day.road, SESSION).snapshot()
-    assert RoadQualityGate(band_steps=2).legs(day, snapshot) == LegCounts(20, 20)  # 5 strikes x 2 kinds x 2 expiries
+    assert RoadQualityGate(FixtureListing(strikes), band_steps=2).legs(day, snapshot) == LegCounts(
+        20, 20
+    )  # 5 strikes x 2 kinds x 2 expiries
 
 
 def test_the_recorded_finnifty_shape_49_strikes_at_50_and_25_at_100_gives_a_full_band_on_each_expiry():
@@ -88,6 +93,6 @@ def test_the_recorded_finnifty_shape_49_strikes_at_50_and_25_at_100_gives_a_full
     snapshot = b.snapshot(quotes={k: b.quote() for k in near + far})
     middle = 1000 + 50 * 24
     snapshot = replace(snapshot, spot=float(middle))
-    band = band_keys(snapshot, 10)
+    band = band_keys(list(snapshot.quotes), snapshot.spot, 10)
     assert strike_steps(snapshot.quotes) == {NEAR: 50.0, FAR: 100.0}
     assert {e: sum(1 for k in band if k.expiry == e) for e in (NEAR, FAR)} == {NEAR: 42, FAR: 42}

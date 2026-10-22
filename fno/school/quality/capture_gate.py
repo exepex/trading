@@ -12,6 +12,7 @@ from ..constants import ClosureReason, RoadCode
 from ..contracts.roads import RoadCatalogue, RoadDay
 from ..contracts.snapshot import SnapshotSource, SnapshotUnavailable
 from .gate import LegCounts, RoadQualityGate
+from .ports import ListingUnavailable
 
 GATE_SESSIONS = 10
 LEG_PERCENT_ABOVE = 95  # strictly over: exactly 95.0% fails
@@ -99,4 +100,9 @@ class CaptureGateReport:
         except SnapshotUnavailable as unavailable:
             return SessionVerdict(session, unavailable.reason, NO_LEGS)
         status = self.gate.check(road_day, snapshot)
-        return SessionVerdict(session, status.closed_by, self.gate.legs(road_day, snapshot) if status.open else NO_LEGS)
+        if not status.open:
+            return SessionVerdict(session, status.closed_by, NO_LEGS)
+        try:
+            return SessionVerdict(session, None, self.gate.legs(road_day, snapshot))
+        except ListingUnavailable:  # an unreadable listing file: the legs cannot be scheduled, so the session fails
+            return SessionVerdict(session, ClosureReason.EXPIRY_MISMATCH, NO_LEGS)

@@ -4,9 +4,10 @@ from datetime import date
 from typing import Protocol, runtime_checkable
 
 from ..contracts.roads import DatedLot, Road
+from ..quality.ports import ListingUnavailable
 
 
-class ExpiryUnavailable(Exception):
+class ExpiryUnavailable(ListingUnavailable):
     """The listing that says which expiries a road records cannot be read for the session."""
 
 

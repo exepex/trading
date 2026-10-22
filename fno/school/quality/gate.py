@@ -7,6 +7,7 @@ from ..constants import ClosureReason
 from ..contracts.roads import OPEN, RoadDay, RoadStatus
 from ..contracts.snapshot import SlotSnapshot
 from .band import DEFAULT_BAND_STEPS, band_keys
+from .ports import ListedContracts
 from .prices import impossible_keys
 from .rules import expiry_problem, window_problem
 
@@ -22,8 +23,9 @@ class LegCounts:
 
 
 class RoadQualityGate:
-    def __init__(self, band_steps: int = DEFAULT_BAND_STEPS):
-        self.band_steps = band_steps
+    def __init__(self, listing: ListedContracts, band_steps: int = DEFAULT_BAND_STEPS):
+        """`listing`: what NSE listed, the source of the scheduled legs (never the capture)."""
+        self.listing, self.band_steps = listing, band_steps
 
     def check(self, road_day: RoadDay, snapshot: SlotSnapshot) -> RoadStatus:
         """Open, or closed with the first reason found: out of window, expiry mismatch, impossible price. A road the
@@ -36,19 +38,24 @@ class RoadQualityGate:
         reason = (
             window_problem(snapshot.road, snapshot.session, snapshot.started_at, snapshot.finished_at)
             or expiry_problem(snapshot.expiries, road_day.expiries)
-            or (ClosureReason.IMPOSSIBLE_PRICE if self._impossible_in_band(road_day, snapshot) else None)
+            or (ClosureReason.IMPOSSIBLE_PRICE if self._impossible_in_band(snapshot) else None)
         )
         return RoadStatus(reason) if reason else OPEN
 
     def legs(self, road_day: RoadDay, snapshot: SlotSnapshot) -> LegCounts:
-        """The band's leg observations of an open road-day."""
-        keys = self._band(road_day, snapshot)
-        impossible = impossible_keys(snapshot, keys)
-        passed = sum(1 for key in keys if snapshot.quotes[key].two_sided and key not in impossible)
-        return LegCounts(len(keys), passed)
+        """The leg observations of an open road-day. Scheduled: the contracts NSE listed that the recorder takes at this
+        spot and that fall in the band of the listed strikes. A scheduled leg the capture lacks is
+        observed and not passed. Raises `ListingUnavailable` when the listing cannot be read."""
+        listed = self.listing.contracts(road_day.road.underlying, road_day.expiries, road_day.session, snapshot.spot)
+        scheduled = band_keys(listed, snapshot.spot, self.band_steps)
+        impossible = impossible_keys(snapshot, scheduled)
+        passed = sum(1 for key in scheduled if self._counts(snapshot, key) and key not in impossible)
+        return LegCounts(len(scheduled), passed)
 
-    def _impossible_in_band(self, road_day: RoadDay, snapshot: SlotSnapshot) -> bool:
-        return bool(impossible_keys(snapshot, self._band(road_day, snapshot)))
+    @staticmethod
+    def _counts(snapshot: SlotSnapshot, key) -> bool:
+        quote = snapshot.quote(key)
+        return quote is not None and quote.two_sided
 
-    def _band(self, road_day: RoadDay, snapshot: SlotSnapshot):
-        return band_keys(snapshot, self.band_steps)
+    def _impossible_in_band(self, snapshot: SlotSnapshot) -> bool:
+        return bool(impossible_keys(snapshot, band_keys(list(snapshot.quotes), snapshot.spot, self.band_steps)))
