@@ -1,27 +1,36 @@
 """Story O2, rows "Hung git call" and "Hung command": a push that never returns, through a hanging `pre-push` hook
 in the fixture checkout (git's own hook, a real git and a real hang), and a child command that never ends. The git
-limit is the one knob the suite turns (`fno.desk.git_sync.GIT_CALL_LIMIT_SECONDS`, read when `Git` is built), so a
-120 s limit takes 2 s here; nothing else is replaced."""
+limit is the one knob the suite turns: the hung push's 120 s limit takes 2 s here, counted once its hook runs, and
+every other git call keeps the run's own limit, so a slow normal call on a loaded machine never meets the short one
+(judge E, 22 Oct; with every git call slowed past 2 s, `git ls-files` was stopped instead of the push)."""
 
 from datetime import datetime, time
 
 from fno.desk.git_limit import GitLocks
 from fno.models import IST
+from tests.daily.hung_calls import HungCallRun
 
 from .children import Foreground
 from .harness import fixture_day
 
 LIMIT = 2.0
-HANG = '#!/bin/sh\n[ -f "$(git rev-parse --git-dir)/hang-push" ] && sleep 600\nexit 0\n'
+HANG = (
+    '#!/bin/sh\nG="$(git rev-parse --git-dir)"\n'
+    'if [ -f "$G/hang-push" ]; then echo $$ > "$G/hang.pid"; sleep 600; fi\nexit 0\n'
+)
 
 
 def hanging_pushes(day, monkeypatch):
     """Every push hangs while `.git/hang-push` exists; `hang()` and `release()` switch it."""
+    flag = day.root / ".git/hang-push"
     monkeypatch.setattr("fno.desk.git_sync.GIT_CALL_LIMIT_SECONDS", LIMIT)
+    pid = day.root / ".git/hang.pid"
+    monkeypatch.setattr(
+        "fno.desk.git_sync.LimitedRun", lambda: HungCallRun("push", pid, when=flag.exists, locks=GitLocks)
+    )
     hook = day.root / ".git/hooks/pre-push"
     hook.write_text(HANG)
     hook.chmod(0o755)
-    flag = day.root / ".git/hang-push"
     return lambda: flag.write_text(""), lambda: flag.unlink(missing_ok=True)
 
 
