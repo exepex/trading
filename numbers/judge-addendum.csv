@@ -561,3 +561,5 @@ number,name,session,claimed_at_utc
 465.1,g13d-sticky-strike,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T03:59:14Z
 412.8,o2-git-limit-e2e,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-22T04:37:43Z
 466.1,o12d-claim-wording,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-22T04:42:55Z
+467.1,edge1-rev2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T05:57:21Z
+467.2,edge1-rev3,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T05:58:30Z
