@@ -776,8 +776,10 @@ practised before forward days exist. A practice result is never evidence: it lic
 - **Three labelled scenarios** per bucket: the median, the 75th and the 95th percentile of the session values,
   shown as `median`, `p75`, `p95`. Every practice run is shown under all three; none is "the" result.
 - **Fewer than 30 quoted sessions in a bucket reads `insufficient spread data`.**
-- **Displayed size** for a synthetic quote is the bucket's median displayed size over the same sessions (same 30-session
-  rule), so E4d's size gate still bites. The history holds no sizes; this is labelled.
+- **Displayed size: the size gate is waived in practice** (orchestrator, 22 Oct 2026, Q5). History holds no sizes and none
+  is invented. The pilot's fill code needs a size on every two-sided quote, so a synthetic quote carries the named
+  sentinel `SIZE_GATE_WAIVED` (far above any lot count). It is a switch, not data: every practice output says "size gate
+  not tested in practice", and no record shows it as a displayed size.
 - **Honest consequence [strong evidence: arithmetic on the recorded days].** On 22 Oct only 8 NIFTY monthly sessions
   and 3 sessions for each other road are recorded. Every bucket therefore reads `insufficient spread data` until about
   24 Nov for the busiest NIFTY monthly buckets, and **much later** for the short-dated and far-strike buckets: the
@@ -835,7 +837,8 @@ cases and a test that fails when the named code is broken on purpose.
   2. A leg with no volume that day has an invalid quote (good traded, bad untraded, boundary volume 1).
   3. A planted impossible vertical (a 300-wide spread priced at 392, from EDGE1's results) is flagged: the driver
      reaches `refused` or `no_trade`, never a fill; an impossible exit waits.
-  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero.
+  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero; both sizes are
+     `SIZE_GATE_WAIVED` and nothing else.
   5. Look-ahead: changing any record dated after the session leaves the session's snapshot and every driver's
      decision byte-identical (a mutation test over the chain).
   6. An insufficient bucket gives `unavailable` for that leg's trade, never a zero spread.
@@ -878,7 +881,7 @@ FINNIFTY and MIDCPNIFTY history (not in DATA_SPEND); fitted slippage between the
 (response 325 8.3; needs the A16 quotes, which do not exist yet); a daily Rs 25,000 stop between slots (a known limit,
 as in 3.6).
 
-### 7.6 Questions for the orchestrator (answers needed before SIM-a code unless marked)
+### 7.6 Questions for the orchestrator (answered 22 Oct 2026)
 
 1. **Reuse of EDGE1's readers** (`research/edge1/edge1study`: `day_files`, `lots`, `stt_history`). They sit under a
    frozen `research/` folder and import by a path trick. My default: one adapter module imports them read-only; I never
@@ -891,8 +894,13 @@ as in 3.6).
    (7.2). I keep the rule as agreed. If you want a coarser first bucket grid (for example two DTE bands), that is a
    decision for the owner and a card change, not mine.
 4. **The close slot** (7.1 item 4) departs from the 15:00 slot. It is the only slot history holds; confirm.
-5. **Displayed sizes** (7.2): the bucket median stands in for the unknown history. Confirm, or say the size gate is
-   waived in practice and labelled so.
+5. **Displayed sizes** (7.2): the size gate is waived in practice and labelled "size gate not tested in practice".
+
+**Answers (orchestrator, 22 Oct 2026):** Q1 import EDGE1's readers read-only through ONE adapter, never edit or copy
+them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P1d's builder
+(session_014VUoPfMfRWNXyJSnXxB5NL) and copy the orchestrator. Q3 keep the 30-session rule, no pooling (review 139).
+Q4 the close slot, labelled "practice at the close; the pilot trades 15:00". Q5 waived and labelled, no synthetic size.
+SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 
 ### 7.7 Claims
 
