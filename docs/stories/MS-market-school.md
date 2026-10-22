@@ -558,6 +558,62 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
 
+### MS-P1b Claims (round 1, code at 2ed9bbbf; builder session_01F1RVMF8MNngi97JVNs99L5)
+
+**Gates on the pushed tree:** `pytest -n auto` 10,449 passed, 16 xfailed; `ruff check`/`format`, `check_imports`,
+`check_records` clean. School tests in all: 345 (contracts, roads, quality).
+
+| Criterion | Test (all under `tests/school/`) | Broken-code proof (mutation applied, test failed) |
+|---|---|---|
+| 1. Five roads on a trading day, none on a holiday | `roads/test_catalogue.py::test_five_roads_open_…`, `test_no_road_on_a_day_that_is_not_a_trading_day[holiday, weekend, muhurat only]` | catalogue's trading-day check removed |
+| 2. Each reason from a planted fixture | `test_each_capture_fault_closes_the_road_with_its_reason[*]` (missing, incomplete, out_of_window, hash_mismatch, expiry_mismatch), `test_a_lot_the_source_cannot_find…`, `quality/test_gate.py::test_an_impossible_price_in_the_band_closes_the_road` | own hash check, lot check, expiry check, incomplete check, impossible-price closure each removed |
+| 3. Exactly one reason | `test_two_faults_give_the_earlier_reason_only` (all 10 ordered pairs), `quality/test_gate.py::test_every_fault_at_once…` | gate's "closed keeps its reason" removed |
+| 4. Capture gate boundaries | `quality/test_capture_gate.py`: 10/10 vs 9/10, <10 sessions, 949/950/951/1000 of 1,000 legs | `>` to `>=` (95.0% passed), 9-of-10 and session-count conditions weakened |
+| 5. Conformance | `check_road_catalogue`, `check_snapshot_source` in `test_catalogue.py::test_conformance…` | (a's checks) |
+
+Round 1 claimed "25 mutations, 25 caught"; judge 482 planted 33 and 9 survived, so that claim was wrong (see round 2).
+
+**Self-review (two independent review agents), what was done:**
+- *Fixed:* a store outage was turned into `expiry_mismatch` (now propagates; missing archive settings raise
+  `RawFilesNotConfigured` at build); parse errors outside the try (now `capture_incomplete`); lot of 0 accepted; an
+  absent capture cached for the run (not any more); vertical rule checked neighbours only, which a wide quote can hide
+  (now all pairs, judged among the band's legs); capture-gate report crashed on an unreadable snapshot (now a closed
+  session); a sidecar of another capture or road was not refused; quotes shared mutably (now read-only view); `in_window`
+  truthy test; float noise at a bound; line printed 95.01% as "95.0%" (two decimals); the default `--through` could be a
+  day with no captures yet.
+- *Not changed, with reason:* the order check that needs the quote file (it missing, its row count) runs after the
+  sidecar's window check (documented in `capture.py`; the file must be read to know). Expiry-day cases are not
+  separately tested (they use the recorder's own `monthlies`/`nearest_weeklies` unchanged).
+
+**Decisions for the orchestrator/judge (reasoning only, flagged openly):**
+1. *Impossible price* is EDGE1's vertical rule adapted from a single close to a **bid-ask range**: impossible only if no
+   price inside both legs' ranges satisfies 0 <= worth <= width. Judged on mids, whole chains flag 8-61 legs a road-day (neighbour pairs) and 9-87 (all pairs); in the band only
+   MIDCPNIFTY flags (15 legs on 21 Oct, 6 on 22 Oct) (judge 482's figures, reproduced; round 1 said 8-72); judged on ranges, **0 of 716 band legs on the 9 road-days of 21-22 Oct** did.
+2. A road-day **closes `impossible_price` if any leg in the road's band is impossible**; a leg observation also excludes
+   impossible legs (kept for report use, so the 95% test and the closure agree). Story 3.5 gives no day-level rule; the
+   alternative is a share threshold. The band default is 10 steps (RC1's widest) until MS-P1h freezes the card value.
+3. An unreadable NSE expiry listing closes the road `expiry_mismatch` (no other code fits; nothing is opened on
+   unconfirmed expiries). A Drive outage is never a closure.
+4. Lots come only from the **session's own** A20a copy (none before 21 Oct), so NIFTY 14-19 Oct and BANKNIFTY/FINNIFTY/
+   MIDCPNIFTY 19 Oct close `lot_mismatch`.
+5. The a-builder's fixtures start BANKNIFTY at 15:00:00; the recorder's window for the other indices opens 15:01, so such a
+   snapshot is `out_of_window` here (A4: NIFTY 14:55-15:10; A4c/A4f: 15:01-15:13, +60 s grace for the recorder's last
+   instant). No contract change needed; a/j fixtures should start inside the road's window.
+
+**Real output (read-only `python -m fno.school.quality.command --through 2026-10-22`; counts only, stored files, no
+network read of NSE or Groww; nothing written):**
+```
+NIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 4, lot_mismatch 4); legs 168 of 168 (100.00%); gate closed
+BANKNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 168 of 168 (100.00%); gate closed
+FINNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 90 of 128 (70.31%); gate closed
+MIDCPNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 167 of 168 (99.40%); gate closed
+NIFTY-W through 2026-10-22: snapshots 1 of 10 (capture_missing 9); legs 84 of 84 (100.00%); gate closed
+```
+Reading: no road can pass yet (history is short, as expected). **FINNIFTY is the one to watch: only 45 of its 64 band
+legs are two-sided and valid on each of 21 and 22 Oct (70%), so it will fail the 95% test on thin quotes unless that
+changes.** Every other road's legs are at or near 100%. [strong evidence: counts above; reasoning only: what the next
+sessions will do.]
+
 ### MS-P1a Claims, round 2 (judge 479, FAIL round 1: four should-fixes)
 
 | Judge 479 finding | Fix | Test (and the plants it catches) |
@@ -618,3 +674,84 @@ file, section-input reader, denominator reader). j writes `real_rig(scenario)` a
    g own the real ones, and j's rig must supply theirs.
 4. The replay-conflict fault is checked at the dashcam (other bytes for a sealed key raise `ReplayConflict`, the file is
    unchanged). A fleet rerun never reaches that path, because it skips what is sealed.
+
+### MS-P1b Claims, round 2 (judge 482 FAIL round 1: two should-fixes, two minors; builder session_01F1RVMF8MNngi97JVNs99L5)
+
+**SF1, strike step per expiry (done).** `quality/strikes.py::strike_steps` gives each expiry its own step (most common
+gap of its listed strikes, the smaller on a tie); `band_keys(snapshot, band_steps)` builds the band per expiry in that
+expiry's own steps, around that expiry's own money; the gate and the capture gate use it. A capture with an expiry of
+under two strikes is `capture_incomplete`. Tests: `tests/school/quality/test_strikes.py` (two steps, tie, mode not
+least-common, one step for all expiries fails, the FINNIFTY shape of 49 strikes at 50 and 25 at 100 gives 42 and 42
+band legs). Real data, read-only run of the committed code on the recorded days (21 and 22 Oct):
+
+```
+FINNIFTY-M  steps by expiry [50.0, 100.0]  band legs by expiry [42, 42]     (round 1 gave 64 legs a day)
+all other roads: one step on both expiries, band legs [42, 42]
+```
+A pytest on the Drive-only files cannot run in the suite (the test run removes every real credential, by design), so the
+real-data check is this run; the synthetic test pins the same shape.
+
+**Contract question for the orchestrator (to a's builder):** `RoadDay.strike_step` is one float, so it stays the
+*nearest expiry's* step. A driver that steps out on a later expiry needs that expiry's own step. Smallest change:
+`SlotSnapshot` (or `RoadDay`) carries `strike_steps: Mapping[date, float]` and drivers read the step of the expiry they
+use. `strike_steps(snapshot.quotes)` already computes it, so a can move it into the contract or drivers can call it.
+
+**Effect on the finding about FINNIFTY (worse, stated plainly):** with a full band on both expiries FINNIFTY has 95 of
+168 band legs valid and two-sided over 21 and 22 Oct (56.55%), not 70%. It fails the 95% bar by a wide margin. The gate
+is unchanged.
+
+**SF2, the nine surviving plants (done).** `tests/school/roads/test_sidecar_and_row_checks.py` plants each fault in the
+capture itself (oracle: the plant, not the code): an A4-invalid leg that keeps its bid, ask and sizes is not counted
+(32 band legs, 31 passed); a sidecar with failures but `complete: true`; spot 0, negative, nan, inf, None, text, a list;
+a capture that finished before it started (and one that took no time is fine); a capture stamped a day early, a day
+late, started yesterday and finished today, and finished tomorrow; times written in UTC (open) and IST wall-clock under a
+UTC label (out of window), and a zone far behind IST that dates the start a day earlier (same session in IST).
+`test_strikes.py` kills the least-common-gap plant. The locale-free month label plant is equivalent here (the locale in
+the tests is fixed; `MONTHS` is a tuple), as the judge noted.
+
+**Mutations now:** the first set (24, adapted to the new code) and the judge's seven families plus others (14), 38 in
+all, all caught, none surviving. Round 1's "25 of 25" is withdrawn: it was a smaller set than the judge's 33.
+
+**Minor (a):** corrected above. **Minor (b):** the unreadable-listing case cannot carry its detail in `RoadStatus`
+(one closure code, by contract); reports that need to tell it from a true mismatch need a field on the contract.
+
+
+### MS-P1b Claims, round 2b (judge 483 FAIL round 1: three should-fixes, two minors)
+
+1. **Leg denominator (fixed).** `RoadQualityGate(listing, band_steps)` takes the scheduled legs from
+   `ListedContracts` (`roads/listed_contracts.py`: the previous session's archived NSE F&O file, stored files only, no
+   new read): the contracts of the road's expiries inside the recorder's 5% band of the spot, then the band of the
+   listed strikes in each expiry's own step. A scheduled leg the capture lacks is observed and not passed. Tests
+   (`quality/test_scheduled_legs.py`): the judge's plant, one dropped near-money strike, gives 12 scheduled and 11 passed
+   (not 12 of 12); a whole strike dropped on both kinds and expiries gives 12 and 8; captured extras beyond the listing
+   are not scheduled; the band follows the listing when the money strike is dropped; an unreadable listing raises
+   `ListingUnavailable`, and the capture-gate report counts that session as failed (`expiry_mismatch`), not a crash.
+2. **Drive outage (fixed).** `requests.RequestException` (which includes `requests.JSONDecodeError`, also a
+   `ValueError`) now passes through the expiry source before the parse catch, so a proxy's HTML page from Drive raises
+   and closes nothing. Only an unreadable listing file (`ExpiryListUnavailable`, a damaged zip, bad rows) closes as
+   `expiry_mismatch`. Tests: `roads/test_listed_contracts.py` (non-JSON reply raises through both readers; damaged file
+   is `ExpiryUnavailable`/`ListingUnavailable`).
+3. **Capture checks without a failing test (fixed, together with judge 482's).** Each now has a plant whose oracle is the
+   plant: the failures list (`complete: true` with failures), recorded equals expected (32 rows, 32 recorded, 40
+   expected; and 31 against 32), expected above zero (an empty chain that expected and recorded nothing), spot finite and
+   above zero, finish before start, and the start and finish date checks separately (started yesterday and finished today
+   catches the start check alone). Minor (b): only the exact word `true` makes a leg valid (`True`, `yes`, `1`, empty,
+   `maybe` do not).
+4. **Minor (a)** corrected in round 2 above (8-61 neighbours, 9-87 all pairs, in the band only MIDCPNIFTY).
+
+**Mutations:** 38 (round 2) plus 9 more for this round (the denominator from the capture, two-sided on the leg count,
+expected above zero, recorded equals expected, `valid != "false"`, JSON error as closure, damaged zip, unreadable
+listing in the report, the recorder band on the listing): all caught, none surviving. One more (a redundant
+`except` in the listing reader) survived because the store is read outside the try, so the clause was dead; it is
+removed.
+
+**Real output, read-only, after the change:**
+```
+NIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 4, lot_mismatch 4); legs 168 of 168 (100.00%); gate closed
+BANKNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 168 of 168 (100.00%); gate closed
+FINNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 95 of 168 (56.55%); gate closed
+MIDCPNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 167 of 168 (99.40%); gate closed
+NIFTY-W through 2026-10-22: snapshots 1 of 10 (capture_missing 9); legs 84 of 84 (100.00%); gate closed
+```
+The scheduled legs now come from NSE's listing and equal the captured band on every road-day, as the judge saw, so the
+counts do not move; the difference is that a dropped strike would now show.
