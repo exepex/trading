@@ -695,5 +695,50 @@ one).
 **Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
 --groww` · **Size:** S · **Status:** story text round 2 for judge I (judge 499's two should-fixes and two minors, 23 Oct 2026)
 
-### Claims
-- (code round) to be filled when the code is pushed.
+### Claims (code round 1, 23 Oct 2026)
+- **Files:**
+  - `fno/intraday/read_only_feed.py`: `ReadOnlyFeed`, `FEED_CALLS` (11) and `ACCOUNT_CALLS` (9, named).
+  - `feed_universe.py`: which instruments.
+  - `feed_ticks.py`: counts, times and latency.
+  - `feed_probe.py`: plans, windows, caps, the stop on any error or the hard end time.
+  - `feed_gate.py`: the alongside gate.
+  - `feed_cli.py`: `intraday feed-probe`.
+  - `feed_wiring.py`: the composition root, the only module that names `GrowwFeed` or builds the client.
+  - `cli.py`: one parser line and one dispatch line.
+  - `tests/intraday/test_safety.py`: the composition-root list gains `feed_wiring.py`.
+- **Criterion 1** (`tests/intraday/test_feed_guard.py`):
+  - the eleven names pass and only they reach the feed;
+  - each of the 9 account names, plus `place_order`, `modify_order`, `cancel_order` and `create_smart_order`
+    supplied by the test, is refused with nothing read from the feed;
+  - the SDK's public names equal the allowed plus the refused (a new SDK name fails until it is classified);
+  - the guard cannot be changed.
+- **Criterion 2:** no module but `feed_wiring.py` names `GrowwFeed`; A16's composition-root test covers
+  `GrowwProvider`.
+- **Criterion 3** (`tests/intraday/test_feed_probe.py`):
+  - each plan starts only inside its window: coverage 10:20-10:25, alongside 14:30-14:50, ramp 15:45-16:00, ramp-day
+    10:50-10:51 (boundaries one second either side);
+  - alongside refuses 1,001 instruments and accepts 1,000;
+  - a fake 429 stops coverage and alongside at once, unsubscribes everything and names it ("rate limited (429):
+    RateLimited");
+  - the hard end time is reached and never waited past (ramp-day with 120-second steps ends at exactly 10:58:00);
+  - the gate refuses on a failed, failing, short or missing 10:30 or 10:45 row;
+  - the command checks the gate before any sign-in.
+- **Criterion 4:**
+  - the ramp stops at the first error with the count reached (1,000);
+  - it releases what the failing call asked for, because a call that raises may already have subscribed some;
+  - coverage reports by class and feed type (ltp, market_depth, index_value).
+- **Criterion 5:** the summary holds neither the fake secret nor the fake tick value; errors are named by class only.
+- **Found while building (fixed):**
+  - the chain carries no exchange token, so tokens come from Groww's public instrument list (text line, 214bdeb77);
+  - MIDCPNIFTY's index value is listed as `NIFTYMIDSELECT`;
+  - the nearest NIFTY expiry on 23 Oct (27 Oct) is the monthly, so "NIFTY's weekly" is the nearest non-monthly
+    expiry (3 Nov);
+  - two probe bugs the tests caught: a failing call's subscriptions were not released, and a wait could pass the hard
+    end time.
+- **Real counts, 23 Oct:** Groww's instrument list, plus one read-only index quote each, outside market hours; no feed
+  was connected.
+  - coverage: 226 instruments (4 index values, 12 futures, ±10 strikes of the four monthlies and NIFTY's weekly), about
+    440 feed topics with depth;
+  - ramp: 3,248 instruments at ±50 strikes on every expiry up to about 3 months.
+- **Gates:** 11,705 passed; ruff, format and imports clean; every new file is at most 166 lines.
+- **Not done before the judge:** no live feed connection. The probe's first run is Tue 27 Oct.

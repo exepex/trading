@@ -39,7 +39,8 @@ def test_concrete_classes_are_built_only_in_the_composition_root():
             "wiring.py",
             "backfill_wiring.py",
             "clock_wiring.py",
-        ):  # A16's, A16b's, the clock's (CLAUDE.md)
+            "feed_wiring.py",
+        ):  # A16's, A16b's, the clock's, A16h's feed probe (CLAUDE.md)
             continue
         calls = {n.func.id for n in ast.walk(ast.parse(path.read_text())) if isinstance(n, ast.Call)
                  and isinstance(n.func, ast.Name)}  # fmt: skip

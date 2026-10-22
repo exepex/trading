@@ -1,0 +1,43 @@
+"""`python -m fno intraday feed-probe --plan <coverage|ramp|ramp-day|alongside> [--minutes N]` (story A16h): a
+read-only probe of Groww's streaming feed, run by hand. It prints counts and times only."""
+
+from __future__ import annotations
+
+FEED_PROBE = "feed-probe"
+PLAN_SIDES = {
+    "coverage": 10,
+    "alongside": 10,
+    "ramp": 50,
+    "ramp-day": 50,
+}  # ±50 on every expiry to ~3 months: over 3,000 (23 Oct)  # strikes either side of ATM
+MAX_FOR = {"alongside": 1000}
+
+
+def add_feed_probe_parser(actions) -> None:
+    probe = actions.add_parser(FEED_PROBE, help="A16h: probe Groww's streaming feed read-only (counts and times only)")
+    probe.add_argument("--plan", required=True, choices=sorted(PLAN_SIDES))
+    probe.add_argument("--minutes", type=float, help="stop earlier than the plan's hard end time")
+
+
+def cmd_feed_probe(args) -> int:
+    from ..config import load_app_config
+    from ..models import now_ist
+    from .feed_probe import PLANS, ProbeRefused, summary
+    from .feed_wiring import build_feed_probe, build_gate, build_universe
+
+    day = now_ist().date()
+    if args.plan == "alongside":
+        blocked = build_gate()(day)
+        if blocked:
+            print(blocked)
+            return 1
+    probe, client = build_feed_probe(load_app_config(args.config))
+    instruments = build_universe(client, PLAN_SIDES[args.plan], every_expiry=args.plan.startswith("ramp"))
+    instruments = instruments[: MAX_FOR.get(args.plan, len(instruments))]
+    try:
+        outcome = probe.run(PLANS[args.plan], instruments, day, args.minutes)
+    except ProbeRefused as refused:
+        print(f"feed probe {args.plan}: refused: {refused}")
+        return 1
+    print("\n".join(summary(outcome)))
+    return 0
