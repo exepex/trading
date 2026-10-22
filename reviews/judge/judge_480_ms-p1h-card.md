@@ -111,3 +111,39 @@ check_records are clean. Largest file is 152 lines.
   survived).
 
 **Plants:** 7 on the new code, 6 caught, 1 survived (minor c).
+
+## Addendum 2
+
+**Third check (owner's decision, DESK_DECISIONS 4149eaa5; only Addendum 1's findings and the known-limits text):**
+story/ms-p1-card at 78f9b5e7, diff ecd5f9da..78f9b5e7. **Verdict: PASS.** Lane 1. This check ends h.
+
+**Gates (my run):** pytest -n auto: 10,331 passed, 2 skipped (b's band pin, d's law pin), 16 xfailed. ruff, check_imports
+and check_records are clean. `registration/wiring.py` is 94 lines.
+
+**Findings:**
+- **Should-fix 1, the charges test at HEAD: ACCEPTED.**
+  `test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version`. My plant (brokerage 20.0
+  changed to 21.0 in `config.yaml`, card left alone) fails it. Versions still apply forward only, so it forces a new
+  card and never un-counts a decision.
+- **Minor (a), spelling: ACCEPTED.**
+  - The commit is now found from the parsed value at each touching commit (the start of the value's latest run), not by
+    pickaxe.
+  - Tests cover bare, aligned, commented, double-quoted and single-quoted lines, and a value set, changed and set
+    back.
+  - A value that can't be read or traced, or a shallow clone, raises `FirstCountedError` by name instead of counting
+    nothing silently.
+  - Plants caught: run reset removed, ancestry filter removed, shallow check removed, not-found raise removed, the ISO
+    text parse removed.
+- **Minor (b), the impossible-price scope: ACCEPTED.**
+  - The card says b's rule runs on band legs only. It names d's `ImpossiblePriceLaw` for traded legs.
+  - I read that law on story/ms-p1-fills (b9900351, `fno/school/safety/quote_laws.py:53`). It is the position strictly
+    inside its payoff bounds at the touch, plus a per-vertical range check, refusing `impossible_leg_price`, as the card
+    states.
+  - The pin test skips until d lands. j should check it runs.
+- **Minor (c), a quoted date: ACCEPTED.** A quoted date counts like a bare one, and a non-date raises (tests).
+- **Known-limits text (§6): ACCEPTED.**
+  - The expiry-day ELM gap is labelled reasoning only.
+  - `margin_room` is in a's `ACCOUNT_LIMITS`, so blocked entries do become `account_limit` tickets, as stated.
+  - The P2 fix and P0 probe 4 are named.
+
+**Plants:** 6, all caught.
