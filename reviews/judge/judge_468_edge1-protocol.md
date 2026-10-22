@@ -75,3 +75,16 @@ block of 1 understates their variance, so EXP's p-values come out too small and 
 
 **Fix (one line):** use a block of 2 trades for EXP variants, which covers adjacent overlap only; or 2 for every
 variant, for simplicity. Correct the text's reason.
+
+## Addendum 2: revision 1b at 835d8677 (number 468.2, claimed with `tools/claim_number.py`)
+
+**PASS.** This is the exact fix 468.1 recommended, so nothing is left in dispute and no owner decision is needed.
+
+| Item | Result |
+|---|---|
+| The block | 2 trades for every variant, through G4's code with the default unchanged |
+| The reason in the text | corrected: T21, SL2 and TP50 exit before the next decision; EXP trades overlap by about two weeks |
+| The floor | 30 trades, or 15 blocks |
+| Commit f84dcca7 | only wraps lines |
+
+Next: the code and the freeze, before registration and run 1.
