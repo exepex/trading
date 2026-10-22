@@ -65,10 +65,49 @@ def test_a_card_outside_the_ideas_folder_that_cannot_be_read_is_an_error_not_ski
         read_all_ideas(root)
 
 
-def test_a_ledger_path_that_is_not_in_the_repository_is_ignored(tmp_path):
+def test_a_card_the_ledger_names_that_is_missing_raises_by_name_and_is_never_skipped(tmp_path):
     root = init_repo(tmp_path)
-    Ledger(root).register("3", "gone", "a path that was never written", "prospective", True, "research/gone/CARD.md")
-    assert all_card_paths(root) == []
+    Ledger(root).register("3", "gone", "a card that was never written", "prospective", False, "research/gone/CARD.md")
+    with pytest.raises(CardError, match=r"research/gone/CARD\.md: named by the ledger but not in the repository"):
+        all_card_paths(root)
+    with pytest.raises(CardError, match="not in the repository"):
+        read_all_ideas(root)
+
+
+def test_a_missing_card_in_the_ideas_folder_is_named_too(tmp_path):
+    root = init_repo(tmp_path)
+    Ledger(root).register("3", "gone", "a card removed from the ideas folder", "prospective", False, f"{CARD}")
+    with pytest.raises(CardError, match="X1.md: named by the ledger but not in the repository"):
+        all_card_paths(root)
+
+
+def test_a_missing_card_stops_the_report_instead_of_counting_its_trial_as_a_test(tmp_path):
+    root = repo_with_a_card_elsewhere(tmp_path)
+    (root / SCHOOL).unlink()
+    with pytest.raises(CardError, match="MEAS.md: named by the ledger"):
+        read_all_ideas(root)
+
+
+def test_the_same_id_in_the_ideas_folder_and_elsewhere_is_returned_once_and_the_ideas_folder_wins(tmp_path):
+    root = repo_with_a_card_elsewhere(tmp_path)
+    twin = "research/school/X1.md"
+    write_card(root, BLOCK.replace("trial: 3", "trial: 6"), twin)
+    Ledger(root).register("6", "x1-test", "X1 twin", "prospective", True, twin)
+    commit(root, "a twin")
+    cards = read_all_ideas(root)
+    assert [c.idea_id for c in cards].count("X1") == 1
+    assert next(c for c in cards if c.idea_id == "X1").path == CARD
+    assert twin not in all_card_paths(root)
+
+
+def test_two_cards_elsewhere_with_one_id_are_ambiguous_and_raise(tmp_path):
+    root = repo_with_a_card_elsewhere(tmp_path)
+    other = "research/other/MEAS.md"
+    write_card(root, MEASUREMENT.replace("trial: 3", "trial: 6"), other)
+    Ledger(root).register("6", "meas-test", "MEAS twin", "prospective", False, other)
+    commit(root, "a second MEAS")
+    with pytest.raises(CardError, match="the id 'MEAS' is also"):
+        all_card_paths(root)
 
 
 def test_the_report_lists_a_card_outside_the_ideas_folder_as_a_measurement_and_leaves_it_out_of_the_false_passes(

@@ -524,3 +524,15 @@ tests, `factory report` showing `CARD_P1 v2 (measurement): trial 99 of 99` and `
 Broken-code proof: 5 mutations (no ledger lookup in the list, none in the lookup, no block check x2, ideas-first) each
 fail a named test.
 
+**Judge H's two minors on this follow-up (judge 495; orchestrator, 22 Oct 2026; each accepted):**
+- (a) A `.md` file a ledger row names that is not in the repository now raises by name (`<path>: named by the ledger but
+  not in the repository`), for a card elsewhere and for one in the ideas folder, and stops `factory report` and every
+  reader; before, it was skipped, which would quietly leave a missing card's trial (trial 99) counted as a test. All 77
+  ledger paths that exist today were checked present. Tests: `test_a_card_the_ledger_names_that_is_missing_raises_by_name...`,
+  `test_a_missing_card_in_the_ideas_folder_is_named_too`, `test_a_missing_card_stops_the_report_instead_of_counting...`.
+- (b) The same id in `research/ideas/` and elsewhere is returned once, the ideas folder winning
+  (`test_the_same_id_in_the_ideas_folder_and_elsewhere_is_returned_once_and_the_ideas_folder_wins`). Two cards
+  elsewhere with one id are ambiguous and raise (`test_two_cards_elsewhere_with_one_id_are_ambiguous_and_raise`).
+- Broken-code proof: 4 mutations (the missing-file raise, ideas-first dedupe, the ambiguity raise, the ideas-folder
+  part of the missing check) each fail a named test.
+

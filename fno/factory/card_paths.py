@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ..research_engine.ledger import Ledger
 from .constants import CARD_FENCE, IDEAS_FOLDER, TEMPLATE_CARD
+from .fields import CardError
 
 _BLOCK_START = re.compile(rf"^```{CARD_FENCE}$", re.MULTILINE)
 
@@ -21,14 +22,31 @@ def ideas_folder_paths(root: Path) -> list[str]:
 
 
 def ledger_card_paths(root: Path) -> list[str]:
-    """Card files outside the ideas folder that the ledger names, each holding a ```factory block."""
-    named = {row["protocol_path"] for row in Ledger(root).rows() if row["protocol_path"]}
-    outside = (path for path in sorted(named) if not path.startswith(f"{IDEAS_FOLDER}/") and path.endswith(".md"))
+    """Card files outside the ideas folder that the ledger names, each holding a ```factory block. A .md file the
+    ledger names that is not in the repository raises by name: skipping it would leave a missing card's trial counted
+    as a test."""
+    named = sorted({row["protocol_path"] for row in Ledger(root).rows() if row["protocol_path"].endswith(".md")})
+    missing = [path for path in named if not (Path(root) / path).is_file()]
+    if missing:
+        raise CardError(f"{missing[0]}: named by the ledger but not in the repository")
+    outside = (path for path in named if not path.startswith(f"{IDEAS_FOLDER}/"))
     return [path for path in outside if _holds_block(Path(root) / path)]
 
 
 def all_card_paths(root: Path) -> list[str]:
-    return sorted({*ideas_folder_paths(root), *ledger_card_paths(root)})
+    """The ideas folder first; a card elsewhere whose id is also in the ideas folder is that same card (the ideas
+    folder wins, it is returned once). Two cards elsewhere with one id are ambiguous and raise."""
+    paths = ideas_folder_paths(root)
+    in_ideas = {Path(path).stem for path in paths}
+    elsewhere: dict[str, str] = {}
+    for path in ledger_card_paths(root):
+        card_id = Path(path).stem
+        if card_id in in_ideas:
+            continue
+        if card_id in elsewhere:
+            raise CardError(f"{path}: the id {card_id!r} is also {elsewhere[card_id]}")
+        elsewhere[card_id] = path
+    return [*paths, *elsewhere.values()]
 
 
 def card_path(idea_id: str, root: Path) -> str:
