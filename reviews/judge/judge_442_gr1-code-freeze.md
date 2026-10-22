@@ -200,3 +200,26 @@ one-off failure, not something attributable to this branch.
 - Run 1. Commit `selection.json` and send it to me before `--final`.
 - Then run 2 once. I reproduce `final.json` from the committed `selection.json` by calling `run_final` outside the
   CLI, and judge the results file.
+
+## Addendum 2: run 1 (`--select`) at 476aa240, reproduced by the judge (number 442.2, claimed with `tools/claim_number.py`)
+
+**Reproduced byte for byte. Run 2 (`--final`) may start, once.**
+
+- **The commit.** 476aa240 adds only `research/gr1/selection.json` on the frozen code 08731ac6 (the guard passed).
+- **The reproduction.** On a fresh worktree of 476aa240, I called `guard.check_code`, then `study.run_select()` through
+  the same `encode`, reading the inputs through the verified Drive cache. My output's SHA-256 is
+  `083756a0a80c649e02965749da25a737939a97082966446feb88a99c011de65c`, equal to the committed file.
+- **What the file holds.** No 2025-26 date appears in it, and each cell's winner is the eligible candidate with the most
+  negative paired difference.
+
+| Cell | Winner | 2024 paired difference against C0, and its share of C0's QS | Note |
+|---|---|---|---|
+| NIFTY/N1 | C8 | -3.42e-5, about 0.8% | |
+| NIFTY/N3 | C9 | -1.36e-5, about 0.2% | |
+| BANKNIFTY/N3 | C10 | -2.40e-5, about 0.3% | |
+| BANKNIFTY/N1 | none | | every candidate fails the 50% band; C0 itself has 50% coverage of 0.624 on 2024 |
+
+N0 carries N0-A: neither N0-B nor N0-C is inside the bands.
+
+**For the owner, before run 2.** NIFTY/N3's winner is C9 (weekday). NIFTY's expiry moved to Tuesday in Sep 2025,
+inside the final period. A failure there would have a known cause; the frozen split will show it.
