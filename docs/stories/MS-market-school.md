@@ -142,9 +142,24 @@ marked "unmarked", never priced from anything else.
   observations pass over those sessions. A failing road stays closed for counting while others run; P2 counts 30 valid
   counted sessions after the registered first counted date.
 
+### 3.6 Fill rule and known limits (orchestrator's answers, 22 Oct 2026)
+
+- **Fill rule:** every road fills at its own decision snapshot's touch (ask to buy, bid to sell), after the seal.
+  Every report labels it "no latency [reasoning only]".
+- **Drift diagnostic (not a fill):** on NIFTY only, for each filled leg, the touch-to-15:15 drift against E3's 15:15
+  capture, so the optimism of "no latency" is measured.
+- **NSE terms:** expiry settlement reads the already-archived F&O bhavcopy behind `IndexSettlementSource`.
+  - Owner decision 9a5f4d74 keeps the existing NSE reads while the owner writes to NSE.
+  - Every report carries one line saying NSE's "virtual trading or simulation" terms question is open.
+  - No new NSE read.
+- **Daily stop, a known limit:** checked at the slot only, from the previous slot's marks. Losses between slots are
+  not seen; option losses are bounded by the Rs 10,000 cap.
+
 ## 4. Stories (owner's change of plan, orchestrator 22 Oct: built in parallel by several builders and judges)
 
-Order: **MS-P1a** (contracts) merges first; **b-i** then start together, each depending on a only; **j** comes last.
+Contracts (**MS-P1a**) merge first. Parts **b-i** then run in parallel, each depending on a only. **j** (the join-up)
+comes last. Model tier per story follows DESK_DECISIONS "Market school pilot: parallel build and models" (788fdf75):
+**H** is the higher model (contracts, safety, accounts and fills with tickets, join-up; every judge), **S** the other.
 Rules for every story:
 - It touches only its own files below, its own tests (`tests/school/<sub>/`) and, where named, one reserved line.
 - It never edits `fno/constants.py`, `fno/config.py`, `config.yaml`, `fno/cli.py`, another story's sub-package or
@@ -157,7 +172,7 @@ Rules for every story:
 - Self-review by independent review agents, recorded in Claims.
 - Branch `story/ms-p1-<sub>`; never merged by its builder.
 
-### MS-P1a Contracts · lane 1 (money limits and the switch are config keys) · `story/ms-p1-contracts` · depends on nothing
+### MS-P1a Contracts · lane 1 (money limits and the switch are config keys) · model tier: H · `story/ms-p1-contracts` · depends on nothing
 
 **Files owned:**
 - `fno/school/__init__.py`;
@@ -226,7 +241,7 @@ Rules for every story:
 8. Every fake satisfies its `Protocol`, checked by a conformance test that each later story's real class must also
    pass (`tests/school/contracts/conformance.py`, importable).
 
-### MS-P1b Roads and the quality gate · lane 1 (closes roads, which decides trades) · depends on a
+### MS-P1b Roads and the quality gate · lane 1 (closes roads, which decides trades) · model tier: S · depends on a
 
 **Files owned:** `fno/school/roads/`, `fno/school/quality/`, `tests/school/roads/`, `tests/school/quality/`.
 
@@ -243,7 +258,7 @@ markers, A20a lots, A7 calendar), `RoadQualityGate`, `CaptureGateReport`.
 5. The conformance test.
 6. Claims: a read-only `capture-gate` run on the recorded October days (counts only).
 
-### MS-P1c The dashcam · lane 1 (records) · depends on a
+### MS-P1c The dashcam · lane 1 (records) · model tier: S · depends on a
 
 **Files owned:** `fno/school/dashcam/`, `tests/school/dashcam/`.
 
@@ -257,12 +272,21 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 4. Replay reads back exactly the records sealed.
 5. The conformance test.
 
-### MS-P1d Safety laws · lane 1 (money and limits) · depends on a
+### MS-P1d Safety laws, accounts and fills · lane 1 (money, limits, fills, exits) · model tier: H · depends on a
 
-**Files owned:** `fno/school/safety/`, `tests/school/safety/`.
+**Files owned:** `fno/school/safety/`, `fno/school/accounts/`, `fno/school/execution/`, `tests/school/safety/`,
+`tests/school/accounts/`, `tests/school/execution/`.
 
-**Implements:** one `SafetyLaw` per law 1-7 of 3.3; `SafetyLaws` runs all of them and keeps every reason. C2's rule
-classes are reused on the driver's `AccountView` through an adapter, never edited.
+**Implements:**
+- one `SafetyLaw` per law 1-7 of 3.3; `SafetyLaws` runs all of them and keeps every reason; C2's rule classes are
+  reused on the driver's `AccountView` through an adapter, never edited;
+- `AccountPort`: one `PaperAccount` per driver version (`fno/books/account.py`), private through E2c's
+  `PrivateFiles`;
+- `FillPort` (fill rule of 3.6): E4's `price_leg`, E4c/E4d's `entry_problems`, `FillMaker` and `closing_quotes`; exits
+  by E4's `ExitRule`s;
+- the NIFTY drift diagnostic of 3.6 (a diagnostic row, never a fill);
+- expiry settlement through `IndexSettlementSource`: a new class reading the archived F&O bhavcopy for all four
+  indices; `fno/desk/settlement.py` is reused, not edited.
 
 **Acceptance tests:**
 1. Each law passes at its limit and refuses at limit + Rs 1.
@@ -274,15 +298,21 @@ classes are reused on the driver's `AccountView` through an adapter, never edite
 4. Brake:
    - it pauses at Rs 1.2 lakh below the high;
    - it holds across sessions;
-   - it lifts only on a review row;
+   - it lifts only on a row in `research/school/reviews/`;
    - exits continue.
 5. Quote gate:
    - a missing or one-sided quote refuses the entry;
    - so does size above the displayed size;
    - so does a protective leg that cannot be sold back.
-6. The conformance test.
+6. A fill without a valid seal is refused.
+7. Entries fill at the decision snapshot's touch (ask to buy, bid to sell) or not at all, never partial; a missing
+   quote gives `refused: missing_quote`.
+8. An exit with a missing quote waits (`exit_waiting_quote`) and never takes a guessed price.
+9. Settlement is at intrinsic against each index's `SttlmPric`; a missing file gives `settlement_needed`.
+10. The drift row on NIFTY: a filled leg absent from the 15:15 capture gives `drift_unknown`, never a number.
+11. The conformance test for each port.
 
-### MS-P1e Rule drivers and controls · lane 1 (decides trades) · depends on a
+### MS-P1e Rule drivers and controls · lane 1 (decides trades) · model tier: S · depends on a
 
 **Files owned:**
 - `fno/school/drivers/`;
@@ -306,35 +336,28 @@ classes are reused on the driver's `AccountView` through an adapter, never edite
 6. Every `no_trade` carries a reason code from a's enum.
 7. The conformance test.
 
-### MS-P1f Accounts, fills and tickets · lane 1 (money, fills, exits) · depends on a
+### MS-P1f Tickets and the three counts · lane 1 (evaluation records) · model tier: H · depends on a
 
-**Files owned:** `fno/school/accounts/`, `fno/school/execution/`, `fno/school/tickets/`, `tests/school/accounts/`,
-`tests/school/execution/`, `tests/school/tickets/`.
+**Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `AccountPort`: one `PaperAccount` per driver version (`fno/books/account.py`), private through E2c's
-  `PrivateFiles`;
-- `FillPort`: E4's `price_leg`, E4c/E4d's `entry_problems`, `FillMaker` and `closing_quotes`, exits by E4's
-  `ExitRule`s;
-- expiry settlement through an `IndexSettlementSource`: a new class reading the archived F&O bhavcopy for all four
-  indices; `fno/desk/settlement.py` is reused, not edited;
-- `TicketBook` and `OpportunityCounts` builder;
+- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or on a driver stopped for the
+  day, priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
+  with only the account limits relaxed;
+- the `OpportunityCounts` builder (eligible, fillable, executed);
 - the shared-displayed-size count (327 item 10).
 
 **Acceptance tests:**
-1. A fill without a valid seal is refused.
-2. Entries fill at the touch or not at all (never partial); a missing quote gives `refused: missing_quote`.
-3. An exit with a missing quote waits (`exit_waiting_quote`) and never takes a guessed price.
-4. Settlement at intrinsic against each index's `SttlmPric`; a missing file gives `settlement_needed`.
-5. Tickets:
-   - the same quotes and laws as trades, with only the account limits relaxed;
+1. Tickets:
+   - the same quotes and laws as trades;
    - never in an account;
    - never summed into rupees.
-6. `eligible >= fillable >= executed` over a fixture day.
-7. A displayed size shared by two accounts is counted, and no report sums fills it could not serve.
-8. The conformance test.
+2. `eligible >= fillable >= executed` over a fixture day.
+3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve.
+4. A refused ticket stays in every count's denominator.
+5. The conformance test.
 
-### MS-P1g The 08:50 and 20:05 sections · lane 1 (Slack reports, signed-off pages) · depends on a
+### MS-P1g The 08:50 and 20:05 sections · lane 1 (Slack reports, signed-off pages) · model tier: S · depends on a
 
 **Files owned:**
 - `fno/school/reports/`;
@@ -358,8 +381,9 @@ classes are reused on the driver's `AccountView` through an adapter, never edite
 3. No green is reachable (type and test).
 4. A refusal planted in the input appears in the evening section.
 5. No contract, strike or card internal appears in either section (privacy test).
+6. Both sections carry the NSE-terms line of 3.6 and the "no latency [reasoning only]" label (test).
 
-### MS-P1h The frozen comparison card · lane 1 (evaluation records) · depends on a
+### MS-P1h The frozen comparison card · lane 1 (evaluation records) · model tier: S · depends on a
 
 **Files owned:** `research/school/CARD_P1.md` (R1 card with its factory block), `fno/school/registration/`,
 `tests/school/registration/`.
@@ -384,7 +408,7 @@ classes are reused on the driver's `AccountView` through an adapter, never edite
 3. Five roads on one day form one cluster in the comparison.
 4. `read_card` accepts the card.
 
-### MS-P1i The acceptance harness · lane 1 · depends on a
+### MS-P1i The acceptance harness · lane 1 · model tier: S · depends on a
 
 **Files owned:** `tests/school/acceptance/` (the harness and its recorded-day fixture builder), `fno/school/acceptance/`
 (fault planters only, no production path).
@@ -408,7 +432,7 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 2. The comparator fails on one changed byte.
 3. The planted refusal survives two runs and appears in both sections' inputs and every count's denominator.
 
-### MS-P1j The fleet runner and composition · lane 1 · depends on a-i · daily-run part blocked until the v4 freeze is signed
+### MS-P1j The join-up: fleet runner, switch and composition · lane 1 · model tier: H · depends on a-i · daily-run part blocked until the v4 freeze is signed
 
 **Files owned:**
 - `fno/school/fleet/`;
@@ -436,12 +460,13 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 | 5 roads at 15:00 from existing captures | 3.1; b |
 | About 5 rule families (capped seller, debit buyer, directional debit spread, weekly expiry seller, PS2-4 as one) | 3.2; e |
 | N0, RC1, one reference rule per road; PS5 and KL1 measurement only | 3.2; e |
-| Per-driver Rs 20 lakh accounts reusing fno/books and fno/desk fills (touch, E4c, E4d) | f |
+| Per-driver Rs 20 lakh accounts reusing fno/books and fno/desk fills (touch, E4c, E4d) | d |
 | Safety laws (protected, Rs 10k, Rs 25k daily stop, C2 caps, quote gate) | 3.3; d |
 | Driver brake: pause at Rs 1.2 lakh below the high until the monthly review | 3.3 law 7; d |
-| Dashcam sealed before fills; every decision a sealed outcome with a reason; refusals in the denominator | 3.4, 3.5; c, f, j |
+| Dashcam sealed before fills; every decision a sealed outcome with a reason; refusals in the denominator | 3.4, 3.5; c, d, f, j |
 | Tickets under the same rules, three counts | f |
 | Shared order book (327 item 10) | f |
+| Fill rule, NIFTY drift diagnostic, NSE-terms line | 3.6; d, g |
 | Banner red and amber only | a (type), g |
 | Own switch; sections behind a flag | a (keys), g, j |
 | Frozen comparison card before day 1 | h |
@@ -457,26 +482,17 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - E8 owner-timing fills: the pilot has no recommendation to follow;
 - the monthly review itself: P2+; P1 only reads its recorded row to lift a brake.
 
-## 6. Open questions (for the orchestrator; none blocks MS-P1a, the contracts)
+## 6. Questions answered (orchestrator, 22 Oct 2026)
 
-1. **Fill snapshot.** Only NIFTY has a second capture. Proposal: every road fills at its decision snapshot's touch,
-   after the seal, the same rule for all five roads; reports label it "no latency: fills at the quotes the driver saw"
-   [reasoning only: optimistic by about the quote drift in 1-10 minutes, unmeasured]. Using E3's 15:15 capture for
-   NIFTY only would make roads incomparable. Needs the orchestrator's (and, if it judges so, the owner's) yes.
-2. **NSE terms.** NSE's terms forbid using website data "for any gaming, virtual trading or simulation". The pilot
-   prices from Groww only, but E7's settlement price and A4's listed-contract check read NSE's archived bhavcopy, and
-   NIFTY's sidecar carries NSE levels. The owner kept the existing reads; whether paper settlement from them is a
-   permitted use is the owner's call. Until answered, settlement sits behind `IndexSettlementSource` so a Groww-based
-   source can replace it in one class.
-3. **Reference rule.** Proposal REF in 3.2 (an always-on iron condor at 1 expected move, held to expiry) as the fixed
-   per-road baseline. Alternative: the S6 random twin only. Confirm.
-4. **Daily stop with one mark a session.** With one slot a day the stop is checked at the slot, before new entries,
-   from the previous slot's marks to this one. Intraday losses between slots are not seen (A16 is NIFTY only). Confirm
-   this reading is acceptable for P1.
-5. **The monthly review that lifts a brake.** Proposal: a review row (date, driver version, decision) in a school
-   reviews file, written on or after the first Saturday of the next month (325 section 6.5); no row, no lift. Who
-   writes it in P1 (the orchestrator, from the owner's words) to confirm.
-6. **Story numbering.** This file holds the market school's stories; later stages add sections, not new files.
+1. **Fill snapshot:** accepted as 3.6 proposes, with the NIFTY drift diagnostic added.
+2. **NSE terms:** owner decision 9a5f4d74. Existing NSE reads stay while the owner writes to NSE. Settlement stays
+   behind `IndexSettlementSource`, every report carries the open-question line, and no new NSE read is added.
+3. **Reference rule:** accepted with the cap. Shorts at 1 expected move, the widest wings whose maximum loss including
+   costs is at most Rs 10,000, held to expiry. RC1 stays as the random control.
+4. **Daily stop:** accepted for P1 as a known limit (3.6).
+5. **Monthly review:** a recorded row in `research/school/reviews/`, written by the orchestrator session on or after
+   the first Saturday of the next month. No row, no lift. The owner restarts nothing.
+6. **Thin roads:** a closed thin road is an honest result.
 
 ## Claims
 
