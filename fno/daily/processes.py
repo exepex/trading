@@ -45,6 +45,11 @@ class Process(ABC):
     def stop(self) -> None:
         """Ends a command that ran past its limit."""
 
+    def errors(self) -> list[str]:
+        """The last lines it wrote to its error output (tracebacks, library logs): the private full log only, never
+        the committed run log (story O1-status-only)."""
+        return []
+
 
 class Processes(ABC):
     @abstractmethod
@@ -57,8 +62,9 @@ class ChildProcess(Process):
     """Its whole output is read once when it ends or is stopped: every unsent-alert line in it is printed as written
     (judge 178 addendum 6: CLAUDE.md's 3 pm rules have the routine post those lines), the last lines are kept."""
 
-    def __init__(self, popen: subprocess.Popen, output, report: Callable[[str], None] = print):
+    def __init__(self, popen: subprocess.Popen, output, report: Callable[[str], None] = print, error_output=None):
         self.popen, self.output, self.report, self.printed = popen, output, report, None
+        self.error_output, self.written = error_output, None
 
     def poll(self) -> int | None:
         return self.popen.poll()
@@ -79,11 +85,14 @@ class ChildProcess(Process):
     def alerted(self) -> bool:
         return alerted_in(self._read())
 
+    def errors(self) -> list[str]:
+        if self.written is None:
+            self.written = _lines(self.error_output) if self.error_output is not None else []
+        return self.written[-KEPT_LINES:]
+
     def _read(self) -> list[str]:
         if self.printed is None:
-            self.output.seek(0)
-            self.printed = [line.rstrip() for line in self.output.read().splitlines() if line.strip()]
-            self.output.close()
+            self.printed = _lines(self.output)
             for line in self.printed:
                 if UNSENT in line:
                     self.report(line)
@@ -98,8 +107,17 @@ class ChildProcesses(Processes):
 
     def start(self, arguments: Sequence[str], hold: int | None = None) -> Process:
         output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - open for the child's run, closed once read
+        error_output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - the same; kept apart from stdout
         command = [sys.executable, "-m", "fno", *arguments]
         # its own process group, so `stop` ends everything it started
-        popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=subprocess.STDOUT, text=True,
+        popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=error_output, text=True,
                                  start_new_session=True, pass_fds=() if hold is None else (hold,))  # fmt: skip
-        return ChildProcess(popen, output, self.report)
+        return ChildProcess(popen, output, self.report, error_output)
+
+
+def _lines(output) -> list[str]:
+    """Every non-empty line of a finished child's output file, which is closed once read."""
+    output.seek(0)
+    lines = [line.rstrip() for line in output.read().splitlines() if line.strip()]
+    output.close()
+    return lines

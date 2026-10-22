@@ -11,7 +11,18 @@ from pathlib import Path
 
 from .bigchart import big_chart
 from .model import IndexView, PageView, RangeView
-from .plain import LIGHT_WORDS, NORMAL, RESEARCH, certain, day_short, light, likely, record_words, when
+from .plain import (
+    EDITIONS,
+    LIGHT_WORDS,
+    NORMAL,
+    RESEARCH,
+    certain,
+    day_short,
+    light,
+    likely,
+    record_words,
+    result_words,
+)
 
 CSS = Path(__file__).with_name("simple.css")
 NO_DIRECTION = "It cannot tell up from down yet."
@@ -29,8 +40,8 @@ MISSES_TITLE = "Last 7 trading days: why it missed"
 NO_MISSES = "No misses in the last 7 trading days."
 
 
-def _when(view: RangeView, today: date) -> str:
-    return (f'<div class="when"><div class="h">{escape(when(view.horizon, view.target_day, today))}</div>'
+def _when(view: RangeView) -> str:
+    return (f'<div class="when"><div class="h">{escape(view.when)}</div>'
             f'<div class="big"><span>most likely</span> {likely(view.band)}</div>'
             f'<div class="sure"><span>almost certainly</span> {certain(view.band)}</div></div>')  # fmt: skip
 
@@ -63,22 +74,25 @@ def misses_block(index: IndexView) -> str:
 def _card(index: IndexView, today: date) -> str:
     state = light(index)
     pill = f'<span class="light {state}"><i></i>{LIGHT_WORDS[state]}: {escape(record_words(index))}</span>'
-    whens = "".join(_when(r, today) for r in index.today)
-    return (f'<div class="card"><div class="top"><h2>{escape(index.underlying)}<small>today '
-            f'{index.price:,.0f}</small></h2>{pill}</div><div class="whens">{whens}</div>'
+    whens = "".join(_when(r) for r in index.today)
+    result = result_words(index, today)
+    verdict = f'<div class="note">{escape(result)}</div>' if result else ""
+    return (f'<div class="card"><div class="top"><h2>{escape(index.underlying)}<small>{escape(index.price_at)} '
+            f'{index.price:,.0f}</small></h2>{pill}</div>{verdict}<div class="whens">{whens}</div>'
             f"{chart_block(index, PICTURE_CHART)}{days_block(index)}{misses_block(index)}"
             f'<div class="note">{NO_DIRECTION}</div></div>')  # fmt: skip
 
 
 def _status(view: PageView) -> str:
+    confirmed = "".join(f'<div class="note">{escape(line)}</div>' for line in view.confirmation)
     if not view.system:
-        return f'<div class="status good">{escape(NORMAL)}</div>'
+        return f'{confirmed}<div class="status good">{escape(NORMAL)}</div>'
     problems = " ".join(f"&#9888; {escape(problem.rstrip('.'))}." for problem in view.system)
-    return f'<div class="status bad">{problems}</div>'
+    return f'{confirmed}<div class="status bad">{problems}</div>'
 
 
 def render_simple(view: PageView) -> str:
-    status = _status(view)
+    status, (title, at) = _status(view), EDITIONS[view.edition]
     preview = (
         ""
         if view.provenance.lower().startswith("live")
@@ -88,7 +102,7 @@ def render_simple(view: PageView) -> str:
         f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
         f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>Forecast, {day_short(view.day)}'
         f'</title><style>{CSS.read_text(encoding="utf-8")}</style></head><body><div class="wrap">'
-        f"<header><h1>Forecast <span>{day_short(view.day)}, 15:45</span></h1>{preview}</header>"
+        f"<header><h1>{escape(title)} <span>{day_short(view.day)}, {at}</span></h1>{preview}</header>"
         f'{"".join(_card(i, view.day) for i in view.indices)}<div class="card">{status}'
         f'<div class="note">{escape(RESEARCH)}</div></div></div></body></html>\n'
     )

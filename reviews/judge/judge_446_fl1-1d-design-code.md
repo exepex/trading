@@ -51,3 +51,30 @@ assertion each, plus the morning chip from should-fix 1. Strong evidence: mutati
    lowest error on its own history") to the page's foot, or record the owner's word that it is dropped.
 2. **FL1-1's seal-check and match lines (`view.checks`) are no longer in any posted file.** Missing and late
    forecasts still alert #fno-desk, so nothing is lost silently. Say so in the response's limits.
+
+## Addendum 1: be8fc69f (on d901eba4; response 310 addendum)
+
+**Verdict: PASS (lane 1). The designer may merge: pull, one full run on the merged tree, push.** It is not wired;
+the one-line switch in `page_wiring.py` is the FL1 builder's.
+
+d901eba4 aligns the page with the FL1 builder's confirmed fields: `IndexView.result`, `Outcome.gap_points` and
+`gap_pct`, and the cue units and "why". be8fc69f answers this report.
+
+**Gates:** on be8fc69f merged with today's `main` (no conflicts), one run:
+- 9,279 passed, 16 xfailed;
+- `ruff check` clean; 1,740 files formatted;
+- imports clean; record scan clean (7,465 files).
+
+Strong evidence.
+
+| Finding | Answer | Judge (evidence) |
+|---|---|---|
+| SF1 the morning chip | `reliability_chip` adds "· N back-tested" on both pages; a method line names the method with its live-day and back-tested counts | Accepted. Mutations caught: the chip's count dropped, the method line's count dropped (strong) |
+| SF2 honesty labels untested | `test_the_honesty_labels_are_printed_and_never_dropped` | Accepted. My original mutations re-run: U2 (provisional note), U3 (back-tested note) and U4 (system problems) are now caught. U1 still survives (see the minor below) |
+| M1 the method | "Method: implied, lowest error on its own history, N of 60 live days scored · back-tested …" on both pages | Accepted |
+| M2 `view.checks` | Stated as a limit: the signed-off pages do not print the checks or the drift lines; alerts and the system line carry failures | Accepted |
+
+**Minor left (a test gap only; the code escapes).** Removing the `escape` on the day table's reasons
+(`blocks.py:48`, red rows) still passes. The hostile-reason test puts the markup on a miss whose day is not a red row
+of the shown day table, so it exercises only the misses table's escape (`blocks.py:75`). Make the hostile miss a
+red day inside the shown window, so both paths are pinned.

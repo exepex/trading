@@ -59,3 +59,30 @@ I check that addendum, then the merge may go.
 
 P8's dashboard already shows NSDL's latest daily FPI figure. Under row 281 that is fine only if the dashboard is
 private ("never in a public place"). If anyone else can see it, the owner decides.
+
+## Addendum 1: the back-fill's refused files, fix at story/a23-volume-fix @ cff14b5e (on the A23 branch)
+
+**Verdict: PASS for the fix. The builder may re-run `data-librarian participant-volume` for 15 Sep 2021, 14 Oct
+2022 and 18 Oct 2022 on cff14b5e.** Judge 437's merge condition stands: the back-fill manifest commit, the claims
+addendum and a full suite with the fingerprint test green, all sent for my check.
+
+The builder's report so far [as reported, not yet checked by me]:
+- NSDL: 93 months, 0 failed, no real figure found in the receipts commit or the run log.
+- Participant volume: 1,931 of 1,935 sessions archived. The content check refused 4 files; the builder found the root
+  cause of each.
+
+| Item | Change | My check | Result |
+|---|---|---|---|
+| Stray unnamed sum rows under TOTAL on 3 days | `read_participant_volume` drops body rows whose first cell is empty, then runs A8's reader unchanged; the content check uses it | Plant: unnamed rows kept: 1 failed. Plant: a named row ("Client") dropped: 7 failed. So the five named rows must still pass every identity, and a real participant row cannot be lost silently [strong] | **Accepted** |
+| 18 Mar 2019, fractional contract counts (sixths) | a sourced row in `exceptions.csv`; not archived, not in the table | read. Refusing a file that gives fractional contracts is right; guessing a rounding would invent data | **Accepted, with a minor** |
+
+Gates on cff14b5e: **9073 passed, 1 failed**: `test_every_raw_dataset_has_a_committed_manifest_in_one_folder`, the
+expected failure until the back-fill's manifests are committed (judge 437). Ruff, ruff format (1678),
+`check_imports.py` and the record scan (7551) are clean.
+
+**Minor.**
+- `build_file_exceptions` says the file lists sessions NSE "never published a file for", but 18 Mar 2019's file
+  exists and is refused for its content. Say so in the reason (it does), and either widen that docstring or give
+  refused-content days their own kind, so a coverage reader does not count it as "NSE published nothing".
+- Removing the row fails no test (plant 3: 66 passed). Add a test that the participant-volume coverage expects that
+  day excused.
