@@ -10,7 +10,7 @@ from datetime import date
 
 from ....research_data.calendar import SessionCalendar
 from ....storage.trading_days import is_trading_day
-from ...constants import ClosureReason
+from ...constants import ClosureReason, ExpiryKind
 from ...contracts.roads import OPEN, ROADS, DatedLot, Road, RoadDay, RoadStatus
 from ..history.ports import DayChain, HistoricalChain
 from ..terms import DatedTerms
@@ -36,7 +36,7 @@ class HistoricalRoadCatalogue:
         found = self.chain.day(road.underlying, session)
         if found is None or found.index_close is None:
             return _closed(road, session, ClosureReason.CAPTURE_MISSING, "no archived chain or index close")
-        expiries = tuple(e for e in found.expiries(road.expiry_kind) if e >= session)[:EXPIRIES_RECORDED]
+        expiries = _recorded(found.expiries(road.expiry_kind), road.expiry_kind, session)
         if len(expiries) < EXPIRIES_RECORDED:
             return _closed(road, session, ClosureReason.EXPIRY_MISMATCH, f"{len(expiries)} {road.expiry_kind} expiries")
         lot = self._one_lot(found, expiries)
@@ -52,6 +52,12 @@ class HistoricalRoadCatalogue:
         if any(lot is None for lot in lots) or len({lot.units for lot in lots}) != 1:
             return None
         return lots[0]
+
+
+def _recorded(listed: tuple[date, ...], kind: ExpiryKind, session: date) -> tuple[date, ...]:
+    """A4 records monthlies from today on; A4f weeklies after today only (one expiring today has minutes left)."""
+    live = [e for e in listed if (e > session if kind is ExpiryKind.WEEKLY else e >= session)]
+    return tuple(live[:EXPIRIES_RECORDED])
 
 
 def _closed(road: Road, session: date, reason: ClosureReason, detail: str) -> RoadDay:

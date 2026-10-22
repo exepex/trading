@@ -13,8 +13,9 @@ class Coverage:
     priced: int = 0
     untraded: int = 0  # no volume that day: not a quote
     impossible: int = 0  # EDGE1's rule on the closes
+    unsellable: int = 0  # priced, but the bid rounds to nothing
     insufficient: Counter = field(default_factory=Counter)
 
     @property
     def unpriced(self) -> int:
-        return self.untraded + self.impossible + sum(self.insufficient.values())
+        return self.untraded + self.impossible + self.unsellable + sum(self.insufficient.values())

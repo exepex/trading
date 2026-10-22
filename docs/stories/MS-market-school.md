@@ -961,6 +961,49 @@ Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests 
 - **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
   the code returns exactly that and nothing else.
 
+#### SIM-c Claims (round 1, branch `story/ms-sim-c` on `story/ms-sim-b`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.py`, tests in
+`tests/school/simulator/source/`. Files changed from the story: the package is `source/` (several small files), not one `source.py`.
+
+| Criterion (7.4 SIM-c) | Code | Tests | Broken-code proof (caught) |
+|---|---|---|---|
+| 1 conformance of catalogue and source | `catalogue.py`, `snapshots.py` | `test_the_catalogue_and_source_pass_the_pilots_conformance_checks` | n/a (a's checks) |
+| 2 traded that day; volume 1 is traded, 0 is not | `snapshots.py` | `test_a_leg_that_did_not_trade...` | `volume > 0` to `>= 0` |
+| 3 impossible vertical flagged, both legs unquoted | `snapshots.py` over `quality.prices.impossible_keys` | `test_a_planted_impossible_vertical...` | the flag branch removed |
+| 4 close -/+ half-spread, tick-outward, no bid below zero, waiver sizes | `quotes.py` | `test_quotes_and_steps.py` (10 tests, incl. 7.5 at 2%, which floors wrongly without the epsilon) | floor to round; epsilon 0; floor at half a tick removed; sizes changed |
+| 5 look-ahead: only the session's own chain is asked for; same day, same bytes; changed close, changed bytes | `snapshots.py` | `test_only_the_sessions_own_chain_is_read`, `test_the_same_day...`, `test_the_digest_covers_the_close...` | the day asked for shifted by one |
+| 6 insufficient bucket: no quote, counted, never zero spread | `snapshots.py` | `test_an_insufficient_bucket...` | zero-spread quote substituted |
+| 7 dated lot and dated STT | `terms.py` (a), used by `catalogue.py` | `test_a_2022_trade_is_charged_the_2022_stt...`, lot tests | lot ignored in a; STT date fixed in a |
+| window, expiries, lot, step | `catalogue.py`, `steps.py` | catalogue tests, step tests | window check; expiry count; expiry cut-off; lot-agreement; modal step; near-the-money group |
+
+- **Mutations: 23 of 23 caught** over a, b and c (two first survived; tests were added and re-run).
+- **Self-review by an independent agent** (fresh context, given the diff and the rules, not my conclusions). No blocking
+  finding. Each finding checked by me:
+  - *Accepted and fixed:*
+    1. A weekly expiring on the session is not recorded (A4f takes `e > day`, `fno/quotes/weekly.py:22`; I checked it); monthlies still from today.
+    2. The digest ignored `last` and the sizes: two different archives could share a hash. Now hashed.
+    3. `priced` counted a leg whose bid rounds to nothing: now `unsellable`.
+    4. The window is re-checked in the source, so a hand-built road day cannot read a fresh day.
+    5. The index close comes from the nearest expiry's rows, not the first row.
+    6. A malformed number makes that format unreadable instead of reading as zero.
+    7. A contract listed twice counts once.
+    8. The tick constant is shared (DRY).
+    9. The weak look-ahead test was cut to its real assertion.
+  - *Not changed, with reason:*
+    1. **Impossible prices judged on the whole chain, not the band.** Intended and conservative: the card's band is not known to the
+       source, a stale far strike can only remove quotes, never add one. The cost is that the pilot's `IMPOSSIBLE_PRICE` road
+       closure is not exercised in practice; practice shows the same cases as `coverage.impossible`. Stated here.
+    2. **`PracticeWindows(first_counted=None)` default.** The windows already end 12 Oct 2026, before any forward capture; `first_counted`
+       only moves the end earlier. SIM-d's wiring passes the configured value, and I add a wiring test there.
+    3. **`sys.path` insert in `history/edge1.py`.** The repository's own EDGE1 and school tests do the same; a collision with another
+       `edge1study` is not a realistic risk. Kept as the one adapter the orchestrator approved.
+    4. **Spread learned from Oct 2026 and applied to 2019-26; P95 of session medians.** Disclosed regime assumption, why the
+       three scenarios are always shown together. No change.
+- **Not run:** no real-data run (Drive archives are unavailable here); the chain is tested on fixtures and against EDGE1's own reader.
+- **Gates at this tip:** `ruff check`, `check_imports` (clean) and `check_records` (clean) pass. `pytest -n auto` over the whole repository was run on
+  the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the c tip is recorded in the message to the orchestrator.
+
 ## Claims
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the

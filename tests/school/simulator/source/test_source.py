@@ -33,9 +33,10 @@ def open_day(road=NIFTY_M, chain=None):
     return day
 
 
-def source(model=None, scenario=Scenario.MEDIAN, chain=None):
+def source(model=None, scenario=Scenario.MEDIAN, chain=None, windows=None):
     model = model or sb.full_model(RoadCode.NIFTY_MONTHLY)
-    return HistoricalRoadSource(chain or sb.DictChain(sb.chain("NIFTY"), sb.chain("BANKNIFTY")), model, scenario)
+    chain = chain or sb.DictChain(sb.chain("NIFTY"), sb.chain("BANKNIFTY"))
+    return HistoricalRoadSource(chain, model, scenario, windows or PracticeWindows())
 
 
 # ---- the catalogue ---------------------------------------------------------------------------------------------------
@@ -186,16 +187,61 @@ def test_a_close_that_leaves_no_bid_is_unsellable():
     assert quote.bid is None and not quote.two_sided
 
 
-def test_only_the_sessions_own_chain_is_read_and_other_days_cannot_change_the_snapshot():
+def test_only_the_sessions_own_chain_is_read():
     chain = sb.DictChain(sb.chain("NIFTY"), sb.chain("NIFTY", date(2022, 3, 8)), sb.chain("NIFTY", date(2022, 3, 9)))
-    src = source(chain=chain)
     day = open_day(chain=chain)
     chain.asked.clear()
-    first = src.for_road(day)
+    source(chain=chain).for_road(day)
     assert chain.asked == [("NIFTY", sb.SESSION)]
-    later = replace(sb.chain("NIFTY", date(2022, 3, 9)), index_close=1.0)
-    changed = sb.DictChain(sb.chain("NIFTY"), later)
-    assert source(chain=changed).for_road(day).sha256 == first.sha256
+
+
+def test_a_hand_built_open_road_day_outside_the_window_is_refused_at_the_data():
+    late = replace(open_day(), session=date(2026, 10, 20))
+    with pytest.raises(SnapshotUnavailable) as raised:
+        source(chain=sb.DictChain(sb.chain("NIFTY", late.session))).for_road(late)
+    assert raised.value.reason is ClosureReason.CAPTURE_MISSING and PracticeRefusal.NOT_IN_DATA_SPEND in str(
+        raised.value
+    )
+
+
+def test_a_weekly_expiring_on_the_session_is_not_recorded_but_a_monthly_is():
+    weekly_today = (sb.SESSION, sb.WEEKLIES[1], date(2022, 3, 24))
+    base = sb.chain("NIFTY")
+    rows = tuple(r for r in base.rows if r.monthly) + tuple(sb.rows(weekly_today, False))
+    day = open_day(NIFTY_W, sb.DictChain(replace(base, rows=rows)))
+    assert day.expiries == (sb.WEEKLIES[1], date(2022, 3, 24))
+    monthly_today = tuple(sb.rows((sb.SESSION, sb.MONTHLIES[0]), True))
+    only = replace(base, rows=monthly_today)
+    assert open_day(NIFTY_M, sb.DictChain(only)).expiries == (sb.SESSION, sb.MONTHLIES[0])
+
+
+def test_the_digest_covers_the_close_even_when_the_quote_is_unchanged():
+    day = open_day()
+    wide = sb.full_model(RoadCode.NIFTY_MONTHLY, scenario_gap=0.5)
+    base = sb.chain("NIFTY")
+    bumped = tuple(
+        replace(r, close=r.close + 0.01) if (r.strike, r.kind, r.expiry) == (sb.SPOT, CALL, sb.MONTHLIES[0]) else r
+        for r in base.rows
+    )
+    a = source(wide, chain=sb.DictChain(base)).for_road(day)
+    b = source(wide, chain=sb.DictChain(replace(base, rows=bumped))).for_road(day)
+    assert a.quotes[key(sb.SPOT)].bid == b.quotes[key(sb.SPOT)].bid and a.sha256 != b.sha256
+
+
+def test_a_contract_listed_twice_counts_once():
+    base = sb.chain("NIFTY")
+    chain = sb.DictChain(replace(base, rows=base.rows + base.rows[:3]))
+    _, coverage = source(chain=chain).build(open_day(chain=chain))
+    assert coverage.legs == len([r for r in base.rows if r.expiry in sb.MONTHLIES])
+
+
+def test_a_priced_leg_with_no_bid_is_counted_unsellable_not_priced():
+    rows = tuple(
+        replace(r, close=0.05) if (r.strike, r.kind) == (sb.SPOT + 500, CALL) else r for r in sb.chain("NIFTY").rows
+    )
+    chain = sb.DictChain(replace(sb.chain("NIFTY"), rows=rows))
+    _, coverage = source(chain=chain).build(open_day(chain=chain))
+    assert coverage.unsellable == 2 and coverage.unpriced >= 2  # both monthly expiries
 
 
 def test_the_same_day_gives_the_same_bytes_and_a_changed_close_changes_them():

@@ -14,9 +14,11 @@ from ...constants import ClosureReason
 from ...contracts.roads import RoadDay
 from ...contracts.snapshot import ContractKey, SlotQuote, SlotSnapshot, SnapshotUnavailable
 from ...quality.prices import impossible_keys
+from ..constants import PracticeRefusal
 from ..history.ports import ChainRow, HistoricalChain
 from ..spreads.bucket import bucket_of
 from ..spreads.model import InsufficientSpreadData, Scenario, SpreadModel
+from ..windows import PracticeWindows
 from .coverage import Coverage
 from .quotes import no_quote, point_quote, practice_quote
 
@@ -24,8 +26,8 @@ CLOSE = time(15, 30)  # the close: the practice slot (7.1 item 4)
 
 
 class HistoricalRoadSource:
-    def __init__(self, chain: HistoricalChain, spreads: SpreadModel, scenario: Scenario):
-        self.chain, self.spreads, self.scenario = chain, spreads, scenario
+    def __init__(self, chain: HistoricalChain, spreads: SpreadModel, scenario: Scenario, windows: PracticeWindows):
+        self.chain, self.spreads, self.scenario, self.windows = chain, spreads, scenario, windows
 
     def for_road(self, road_day: RoadDay) -> SlotSnapshot:
         return self.build(road_day)[0]
@@ -34,10 +36,12 @@ class HistoricalRoadSource:
         """The snapshot and what it could not price. The road day must be open and its chain still archived."""
         if not road_day.status.open:
             raise SnapshotUnavailable(road_day.status.closed_by, "the road is closed")
+        if self.windows.check(road_day.road.code, road_day.session):
+            raise SnapshotUnavailable(ClosureReason.CAPTURE_MISSING, str(PracticeRefusal.NOT_IN_DATA_SPEND))
         found = self.chain.day(road_day.road.underlying, road_day.session)
         if found is None or found.index_close is None:
             raise SnapshotUnavailable(ClosureReason.CAPTURE_MISSING, "no archived chain or index close")
-        rows = [r for r in found.rows if r.expiry in road_day.expiries]
+        rows = _once([r for r in found.rows if r.expiry in road_day.expiries])
         coverage = Coverage(legs=len(rows))
         quotes = self._quotes(road_day, found.index_close, rows, coverage)
         moment = datetime.combine(road_day.session, CLOSE, tzinfo=IST)
@@ -70,8 +74,12 @@ class HistoricalRoadSource:
         if not found or isinstance(found, InsufficientSpreadData):
             coverage.insufficient[str(bucket)] += 1
             return no_quote(row.close)
-        coverage.priced += 1
-        return practice_quote(row.close, found.half_spread(self.scenario))
+        quote = practice_quote(row.close, found.half_spread(self.scenario))
+        if quote.two_sided:
+            coverage.priced += 1
+        else:
+            coverage.unsellable += 1  # priced, but the bid rounds to nothing: it can be bought, never sold back
+        return quote
 
 
 def _point_snapshot(road_day: RoadDay, spot: float, traded: dict) -> SlotSnapshot:
@@ -81,5 +89,13 @@ def _point_snapshot(road_day: RoadDay, spot: float, traded: dict) -> SlotSnapsho
 
 
 def _digest(name: str, spot: float, quotes: dict) -> str:
-    body = sorted((str(k.expiry), k.strike, str(k.kind), q.bid, q.ask, q.valid) for k, q in quotes.items())
+    body = sorted(
+        (str(k.expiry), k.strike, str(k.kind), q.bid, q.ask, q.bid_qty, q.ask_qty, q.last, q.valid)
+        for k, q in quotes.items()
+    )
     return hashlib.sha256(json.dumps([name, spot, body], sort_keys=True).encode()).hexdigest()
+
+
+def _once(rows: list[ChainRow]) -> list[ChainRow]:
+    """One row per contract (the first), so a file that lists a contract twice is not counted twice."""
+    return list({(r.expiry, r.strike, r.kind): r for r in reversed(rows)}.values())[::-1]

@@ -7,9 +7,8 @@ named switch `SIZE_GATE_WAIVED`: history holds no displayed size and none is inv
 import math
 
 from ...contracts.snapshot import SlotQuote
-from ..constants import SIZE_GATE_WAIVED
+from ..constants import SIZE_GATE_WAIVED, TICK
 
-TICK = 0.05
 EPSILON = 1e-9
 
 
