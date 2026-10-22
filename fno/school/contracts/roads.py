@@ -1,6 +1,7 @@
 """Roads (story 3.1): where a decision can happen. Five fixed roads, each one capture dataset at the 15:00 slot."""
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Protocol, runtime_checkable
 
@@ -34,9 +35,15 @@ class DatedLot:
 
 @dataclass(frozen=True)
 class RoadStatus:
-    """Open, or closed with exactly one reason."""
+    """Open, or closed with exactly one reason and, if known, a plain detail (e.g. why a listing was unreadable).
+    The fleet records the detail in the decision record's `inputs` under `ROAD_DETAIL_INPUT`."""
 
     closed_by: ClosureReason | None = None
+    detail: str = ""
+
+    def __post_init__(self):
+        if self.detail and self.closed_by is None:
+            raise ValueError("only a closed road carries a detail")
 
     @property
     def open(self) -> bool:
@@ -52,14 +59,29 @@ class RoadDay:
     session: date
     expiries: tuple[date, ...]  # the expiries the road's capture records that session, nearest first
     lot: DatedLot | None
-    strike_step: float | None
+    strike_step: float | None  # the nearest expiry's step
     status: RoadStatus
+    # Each recorded expiry's own step (MS-P1a2: FINNIFTY's November monthly lists 100-point strikes, October 50).
+    strike_steps: Mapping[date, float] = field(default_factory=dict, hash=False)
 
     def __post_init__(self):
         if self.status.open and (self.lot is None or self.strike_step is None or not self.expiries):
             raise ValueError("an open road needs its expiries, dated lot and strike step")
         if tuple(sorted(self.expiries)) != self.expiries:
             raise ValueError("expiries must be nearest first")
+        if self.strike_steps:
+            if set(self.strike_steps) != set(self.expiries) or min(self.strike_steps.values()) <= 0:
+                raise ValueError("strike steps name every recorded expiry, each above zero")
+            if self.strike_steps[self.expiries[0]] != self.strike_step:
+                raise ValueError("the nearest expiry's step is `strike_step`")
+
+    def step_for(self, expiry: date) -> float:
+        """That expiry's own strike step; never another expiry's (a driver stepping out on a later expiry)."""
+        if expiry in self.strike_steps:
+            return self.strike_steps[expiry]
+        if self.expiries and expiry == self.expiries[0] and self.strike_step:
+            return self.strike_step
+        raise ValueError(f"no strike step recorded for {expiry}")
 
 
 @runtime_checkable
