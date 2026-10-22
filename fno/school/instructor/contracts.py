@@ -206,34 +206,25 @@ class PairedRow(CanonicalRecord):
     unavailable: int
     after_cut: int  # closed pairs after the first open one: shown, never part of the series
     mean: float | None
-    low: float | None  # the two-sided 90% bootstrap percentile interval: it need not hold the sample mean
-    high: float | None
-    block: int
+    bound: float | None  # one-sided 95% Student-t lower bound on the batch means; None below two whole batches
+    batch: int  # sessions per batch: the longer of the two cards' frozen holds
     status: MapStatus
     rules_sha256: str
+    note: str = ""  # e.g. "too few independent batches", printed beside the status
 
     def __post_init__(self):
-        if (
-            min(
-                self.sessions,
-                self.road_slots,
-                self.driver_abstentions,
-                self.control_abstentions,
-                self.unavailable,
-                self.after_cut,
-            )
-            < 0
-            or self.block < 1
-        ):
-            raise ValueError("counts cannot be negative and a block holds at least one session")
+        counts = (self.sessions, self.road_slots, self.driver_abstentions, self.control_abstentions, self.unavailable,
+                  self.after_cut)  # fmt: skip
+        if min(counts) < 0 or self.batch < 1:
+            raise ValueError("counts cannot be negative and a batch holds at least one session")
         if (self.mean is None) != (self.sessions == 0):
             raise ValueError("a mean exactly when the series has a session")
-        if (self.low is None) != (self.high is None) or (self.low is not None and self.mean is None):
-            raise ValueError("an interval has both ends, and only around a mean")
-        if self.low is not None and not self.low <= self.high:  # NaN fails here too
-            raise ValueError("an interval's low end is at most its high end")
-        if self.mean is not None and not math.isfinite(self.mean):
-            raise ValueError("a mean is a finite number")
+        if (self.bound is not None and self.mean is None) or not all(
+            v is None or math.isfinite(v) for v in (self.mean, self.bound)
+        ):
+            raise ValueError("a bound only beside a mean, and both finite")
+        if self.status == MapStatus.WATCHING and not (self.bound is not None and self.bound > 0):
+            raise ValueError("watching needs a bound above zero")
         if (self.first is None) != (self.sessions == 0) or (self.last is None) != (self.first is None):
             raise ValueError("a series with sessions names its first and last session")
         if self.first is not None and self.first > self.last:

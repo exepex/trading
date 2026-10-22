@@ -35,8 +35,21 @@ written. Every number below is a first guess [reasoning only].
 
 ## Comparison (part d)
 
-The comparison is paired against N0, RC1 and REF on h's common road-days, with one point per session. Its 90% interval
-comes from a moving-block bootstrap over sessions. The statuses are Exploratory, Watching and Not established only.
+The comparison is paired against N0, RC1 and REF on h's common road-days, with one point per session.
+- **The bound:** a one-sided 95% Student-t lower bound on non-overlapping batch means (S6's t table), counted back
+  from the last session. This replaces the moving-block bootstrap, which failed its own null gate: 27% false
+  "Watching" at 30 sessions (orchestrator, 22 Oct 2026).
+- **The batch length:** 1.5 times the longer of the two cards' frozen holds, in sessions, rounded up and never under
+  10. Batch = hold failed the gate below at holds 10-25 (upper ends 10.4-11.0%). Fewer than 2 whole batches give no
+  bound: "Not established, too few independent batches".
+- **The gate it passed:** the null calibration, 2,000 seeds a configuration. The upper end of the 95% interval of the
+  false-"Watching" share is 10% or less at every real hold (3, 10, 15, 18, 25 and 33 sessions; worst 9.0%), with
+  shared shocks 0.3, 0.6 and 0.9 and return spreads 0.5 and 1.0. Some evidence: a simulation, not data.
+- **A card's hold:** the shortest bound its card states. That is sessions held, calendar days held, sessions before
+  expiry, or days to expiry at entry less its last exit day. With no such bound, the hold is the expiry cycle (35 days
+  monthly, 7 weekly). Days become sessions at 5 a week, rounded up. N0 holds nothing.
+- **The statuses:** Exploratory below 30 sessions, Watching when the bound is above 0 (not a claim, no licence), Not
+  established otherwise. No others.
 
 ```thresholds
 range_z: 1.645
@@ -51,9 +64,10 @@ noise_quantiles: 201
 poor_fit_rs: 200.0
 poor_fit_share: 0.25
 min_sessions: 30
-block_sessions: 5
-sensitivity_blocks: [2, 10]
-resamples: 10000
-seed: 20261023
-interval_tail: 5
+min_batches: 2
+batch_hold_multiple: 1.5
+min_batch: 10
+sessions_per_week: 5
+monthly_cycle_days: 35
+weekly_cycle_days: 7
 ```

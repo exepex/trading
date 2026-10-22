@@ -30,23 +30,22 @@ class Uncertainty:
     reason: str
 
 
-def resampled_ratios(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLES,
-                     block: int = BLOCK_DAYS) -> list[float] | None:  # fmt: skip
+def resampled_ratios(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLES) -> list[float] | None:
     """The moving-block bootstrap's resampled ratios of means, sorted; None when the series is shorter than one block
-    or never at risk. Each resample draws blocks of `block` consecutive days (S1's BLOCK_DAYS unless a caller with
-    shorter series sets its own, as MS-INS's instructor does) until it holds as many days as the series."""
+    or never at risk. Each resample draws blocks of BLOCK_DAYS consecutive days until it holds as many days as the
+    series."""
     n = len(series.days)
-    if n < block or series.risk_days <= 0:
+    if n < BLOCK_DAYS or series.risk_days <= 0:
         return None
-    rng, starts, ratios = random.Random(seed), n - block + 1, []
+    rng, starts, ratios = random.Random(seed), n - BLOCK_DAYS + 1, []
     for _ in range(resamples):
         net = risk = 0.0
         taken = 0
         while taken < n:
             start = rng.randrange(starts)
-            for i in range(start, start + min(block, n - taken)):
+            for i in range(start, start + min(BLOCK_DAYS, n - taken)):
                 net, risk = net + series.net[i], risk + series.risk[i]
-            taken += block
+            taken += BLOCK_DAYS
         ratios.append(net / risk if risk > 0 else 0.0)  # a resample never at risk made nothing per unit of risk
     return sorted(ratios)
 

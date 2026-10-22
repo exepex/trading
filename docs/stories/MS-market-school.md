@@ -852,9 +852,9 @@ sessions a real edge of a given size needs to show.
 
 #### INS-d The paired comparison · `story/ms-ins-paired`
 
-**Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `status.py`, `nulls.py`),
-`tests/school/instructor/paired/`; shared: an optional `block` argument in `fno/scoreboard/uncertainty.py`'s
-`resampled_ratios` (default unchanged, byte-identical test).
+**Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `holds.py`, `status.py`, `compare.py`,
+`nulls.py`), `tests/school/instructor/paired/`. S2's files are untouched: the bootstrap argument once planned there was
+reverted when the method changed (orchestrator's ruling b).
 
 **Method (frozen):**
 - **Pairs:** each driver version D against each control C in {N0, RC1, REF of the road}, on h's common group of
@@ -869,14 +869,21 @@ sessions a real edge of a given size needs to show.
   point, not five.
 - **Cut:** the series stops at the first session with a pair still open (S3's rule). Later closed pairs are shown
   "after the cut, not a claim".
-- **Interval:**
-  - the mean and a two-sided 90% interval from a moving-block bootstrap over sessions;
-  - blocks of 5 sessions, 10,000 resamples, a fixed seed;
-  - blocks of 2 and 10 shown as a sensitivity.
+- **Bound (orchestrator's ruling, 22 Oct 2026; it replaces the moving-block bootstrap, which failed its own null gate
+  at 27% false "Watching"):**
+  - the mean, and a one-sided 95% Student-t lower bound on non-overlapping batch means, counted back from the last
+    session (S6's t table);
+  - batch length: 1.5 times the longer of the pair's two frozen card holds, rounded up, never under 10 sessions;
+  - a card's hold (`holds.py`) is the shortest bound its card states: sessions held, calendar days held, sessions
+    before expiry, or days to expiry at entry less its last exit day. Without one, it is the expiry cycle (35 days
+    monthly, 7 weekly). Days become sessions at 5 a week, rounded up, and N0 holds nothing;
+  - the real holds: WS1 3, CS1, DB1 and DR1 10, PS2-4 15, PS5 18, REF and RC1 25, KL1 33;
+  - batch = hold was measured first and failed the gate at holds 10-25 (upper ends 10.4-11.0%), hence the 1.5.
 - **Status (`MapStatus`):**
   - `exploratory`: below 30 valid counted sessions;
-  - `watching`: 30 or more and the interval's lower end above 0, labelled "not a claim, no licence";
-  - `not_established`: 30 or more otherwise.
+  - `watching`: 30 or more and the bound above 0, labelled "not a claim, no licence";
+  - `not_established`: 30 or more otherwise. With fewer than 2 whole batches there is no bound, and the row says "too
+    few independent batches" in words.
 - **Live null:** every review also compares RC1 with N0 on the same days, so the null's own rate of looking good is
   visible.
 
@@ -887,13 +894,15 @@ sessions a real edge of a given size needs to show.
 4. The cut at an open pair.
 5. Status boundaries: 29 and 30 sessions, and a lower end of exactly 0.
 6. `MapStatus` has exactly three members, so no Supported or Confirmed can be built.
-7. **Null calibration (327 correction 3):** 200 seeded null fleets on fakes, with zero edge, a shared market within
-   each session (correlation 0.6 across roads) and 10-session holds. The share reaching `watching` at 30 sessions is
-   reported in Claims and must be 10% or less. If it is higher, the block length is revised and re-frozen before any
-   counted session.
-8. **Planted edge (325 section 6.2):** a hidden fake driver with a known edge in return on risk (the +Rs 300-a-trade
-   example, and a large one). The sessions needed to reach `watching` in 80% of 200 seeds go into Claims, so the owner
-   sees how long such an edge takes. The large edge must reach it within 30 sessions.
+7. **Null calibration (327 correction 3; orchestrator's conditions 1-3):** a zero-edge driver against N0 on fakes,
+   with roads sharing a session shock and outcomes overlapping over their hold. At 2,000 seeds a configuration, the
+   upper end of the 95% interval of the false-`watching` share must be 10% or less:
+   - at holds 5, 10 and 20, and at the cards' real holds;
+   - at 30, 60 and 120 sessions where two batches exist;
+   - in the sensitivity markets (shared shock 0.3 and 0.9, return spread 1.0), reported as some evidence.
+8. **Planted edge (325 section 6.2; orchestrator's ruling c):** the power table goes in the Claims and in the 30-session
+   review: the share of seeds reaching `watching` by edge and sessions. A test shows that +1.0 is found: half the
+   seeds or more at 30 sessions, and 95% or more at 60.
 9. Empty: no common road-day gives no row.
 
 #### INS-e Outputs: records, the 30-session review and the "why" line · `story/ms-ins-outputs`
@@ -2367,4 +2376,81 @@ eight plants were re-run, 8 of 8 caught.
 | 6 the lognormal drift -s^2/2 | `the_noise_band_is_centred_by_the_lognormal_drift` (a long ATM call's band mean is about 0) |
 | 7 the ATM strike nearest the forward | `the_atm_volatility_is_read_at_the_strike_nearest_the_forward` (a skewed lowest strike is never read) |
 | 8 the impossible-price half of cause 10, alone | `an_impossible_price_alone_is_a_data_fault_with_fills_at_the_touch` (the fill is at the impossible touch, so the off-touch half sees nothing) |
+
+#### INS-d Claims (round 1, branch `story/ms-ins-paired`, on INS-c; the SHA is in the commit that carries this text)
+
+**What the owner should read first [some evidence: a simulation run through the real comparison code; its market is
+assumed, not measured]:** the 30-session P2 review will read Exploratory or Not established for any realistic edge.
+
+| Edge per trade (return on risk), hold 10, batch 15 | 30 sessions | 60 | 120 | 250 | 500 |
+|---|---|---|---|---|---|
+| +1.0 | 61% | 100% | 100% | 100% | 100% |
+| +0.3 (Rs 3,000 per Rs 10,000 maximum loss) | 22% | 51% | 85% | 98% | 100% |
+| +0.1 | 11% | 17% | 27% | 42% | 66% |
+| +0.03 (325's "+Rs 300 a trade") | 7% | 10% | 13% | 13% | 18% |
+
+The cells are the share of 500 seeds reading Watching.
+
+- **How long an edge takes:**
+  - +Rs 300 a trade is not found in 500 sessions (two years): it needs many years;
+  - +0.1 needs more than 500 sessions;
+  - even +0.3 needs about 120 sessions for 80%.
+- **Pairs with REF or RC1** (hold 25, batch 38) have no bound before 76 sessions. Their power at 120 sessions is 40% for
+  +0.3 and 15% for +0.1.
+- **Simulated market:**
+  - the driver trades all 5 roads every session against N0;
+  - each trade's return on risk has a standard deviation of 0.5;
+  - the roads share 60% of a session shock;
+  - outcomes sum the shocks over their hold.
+
+**Null calibration (criterion 7), false-Watching share, 2,000 seeds a cell (upper end of its 95% Wilson interval):**
+
+| Hold, batch | 30 sessions | 60 | 120 |
+|---|---|---|---|
+| 3, 10 | 5.4% (6.5%) | 5.6% (6.7%) | 5.9% (7.1%) |
+| 5, 10 | 6.5% (7.7%) | 6.4% (7.6%) | 6.7% (7.8%) |
+| 10, 15 | 7.2% (8.5%) | 6.8% (8.0%) | 7.5% (8.7%) |
+| 15, 23 | no bound | 6.5% (7.7%) | 7.6% (8.9%) |
+| 18, 27 | no bound | 5.9% (7.0%) | 7.7% (9.0%) |
+| 25, 38 | no bound | no bound | 7.0% (8.3%) |
+| 33, 50 | no bound | no bound | 6.1% (7.2%) |
+
+- **Sensitivity (some evidence):** with shared shock 0.3 or 0.9, or return spread 1.0, every cell is at or under 9.0%
+  (upper end), the worst being hold 18 at 120 sessions with spread 1.0. No configuration is over 10%.
+- **The rejected rule, batch = hold:** upper ends of 10.3% (hold 5), 10.4% (hold 10), 10.8% (hold 15) and 11.0% (holds
+  18 and 20) at 120 sessions. A test pins hold 15's failure.
+- **The first method, S2's bootstrap with 5-session blocks:** 27% false Watching at 30 sessions.
+
+| Criterion | Met by | Test (`tests/school/instructor/paired/`) |
+|---|---|---|
+| 1 hand-computed pairs | `series.paired_series` | `test_series`: `the_hand_computed_pairs_over_three_sessions_and_two_roads` (both measures) |
+| 2 one point per session | `paired_series` | `five_roads_on_one_session_are_one_point` |
+| 3 abstention 0 and counted | `series.value` | the hand test (counts) |
+| 4 the cut | `paired_series` | `the_series_stops_at_the_first_open_pair...` |
+| 5 status boundaries | `status.status` | `test_status`: `the_status_boundaries` (29 and 30 sessions, bound 0 and just above), `a_row_says_too_few_independent_batches_in_words` |
+| 6 three statuses | a's `MapStatus` | `test_types` |
+| 7 null calibration | `nulls.share_watching`, `wilson_upper` | `test_nulls`: three cells at 2,000 seeds, plus the rejected rule's failure |
+| 8 planted edge | `nulls` | `a_planted_edge_of_one_is_found`; the power table above |
+| 9 empty | `paired_series`, `paired_row` | `only_the_common_road_days...`, the empty row in `test_status` |
+| bound | `status.batch_bound` | `the_hand_computed_bound_on_three_batches` (worked in its docstring) |
+| holds and batch | `holds.py` | `each_cards_frozen_hold` (10 cards), `a_pairs_batch_is...` |
+| slot values | `values.road_slot` | `each_decision_outcome_maps_to_its_slot`, `a_closed_entry_takes...` |
+| entry point | `compare.compare` | `test_compare` |
+
+- **Contract change (a's file, additive):** `PairedRow` now holds a one-sided `bound`, the `batch` and a `note`, in
+  place of the two-sided interval. Watching without a positive bound is refused.
+- **Live null:** RC1 against N0 is a pair like any other (`compare` with RC1 as the driver). INS-e prints it in every
+  review.
+- **Broken-code proof:** 14 plants, all caught:
+  - the bound's batches counted from the start, or its degrees of freedom;
+  - the 30-session and the zero-bound boundaries;
+  - the note;
+  - the 1.5 multiple;
+  - the day rounding;
+  - the last exit day, the sessions-before-expiry bound and N0's hold;
+  - the cut;
+  - tickets under executed-only;
+  - the per-session mean;
+  - unfilled entries.
+- **S2:** untouched (reverted to `main`).
 

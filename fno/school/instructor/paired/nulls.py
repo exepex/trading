@@ -3,6 +3,7 @@ with no edge reaches "watching" (the false-claim rate under shared shocks and ov
 a planted edge needs to reach it. Both run the real series and status code on simulated road-slots, never on
 records."""
 
+import math
 import random
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -43,22 +44,20 @@ def simulated_slots(seed: int, sessions: int, edge: float, market: Market | None
     return driver, control
 
 
-def share_watching(edge: float, sessions: int, seeds: range, block: int, resamples: int, market: Market | None = None):
+def share_watching(edge: float, sessions: int, seeds: range, batch: int, market: Market | None = None) -> float:
     """The share of seeded simulations whose paired row against N0 reads "watching" after `sessions` sessions."""
     watching = 0
     for seed in seeds:
         driver, control = simulated_slots(seed, sessions, edge, market)
         series = paired_series(driver, control, set(driver), Measure.PER_OPPORTUNITY)
-        row = paired_row("D@1", "N0@1", Measure.PER_OPPORTUNITY, series, block, "simulation", resamples)
-        watching += row.status == MapStatus.WATCHING
+        watching += (
+            paired_row("D@1", "N0@1", Measure.PER_OPPORTUNITY, series, batch, "simulation").status == MapStatus.WATCHING
+        )
     return watching / len(seeds)
 
 
-def sessions_to_find(edge: float, candidates: tuple[int, ...], seeds: range, block: int, resamples: int,
-                     power: float = 0.8, market: Market | None = None) -> int | None:  # fmt: skip
-    """The fewest candidate sessions at which the planted edge reads "watching" in `power` of the seeds; None if none
-    of the candidates is enough."""
-    for sessions in candidates:
-        if share_watching(edge, sessions, seeds, block, resamples, market) >= power:
-            return sessions
-    return None
+def wilson_upper(share: float, n: int, z: float = 1.96) -> float:
+    """The upper end of the 95% Wilson interval of a share measured on n runs (the orchestrator's gate)."""
+    centre = share + z * z / (2 * n)
+    spread = z * math.sqrt(share * (1 - share) / n + z * z / (4 * n * n))
+    return (centre + spread) / (1 + z * z / n)

@@ -13,11 +13,12 @@ NOISE_QUANTILES = 201  # cause 12: the model outcome's frozen quantile grid
 POOR_FIT_RS = 200.0  # part b: the residual's floor for "poor fit"
 POOR_FIT_SHARE = 0.25  # part b: and its share of the Greek components
 MIN_SESSIONS = 30  # part d: valid counted sessions before "watching" or "not established" (327 P2)
-BLOCK_SESSIONS = 5  # part d: the moving block, in sessions
-SENSITIVITY_BLOCKS = (2, 10)  # part d: shown beside the frozen block
-RESAMPLES = 10_000  # part d
-SEED = 20261023  # part d
-INTERVAL_TAIL = 5  # part d: percent in each tail of the two-sided 90% interval, nearest rank
+MIN_BATCHES = 2  # part d: fewer whole batches give no bound ("too few independent batches")
+BATCH_HOLD_MULTIPLE = 1.5  # part d: batch = 1.5 x the pair's longest hold (batch = hold failed the 10% null gate)
+MIN_BATCH = 10  # part d: and never under 10 sessions
+SESSIONS_PER_WEEK = 5  # part d: calendar days to sessions for a card's hold
+MONTHLY_CYCLE_DAYS = 35  # part d: the longest hold to the nearest monthly expiry, when a card states no bound
+WEEKLY_CYCLE_DAYS = 7  # part d: the same for a weekly expiry
 
 THRESHOLDS = {
     "range_z": RANGE_Z,
@@ -32,9 +33,10 @@ THRESHOLDS = {
     "poor_fit_rs": POOR_FIT_RS,
     "poor_fit_share": POOR_FIT_SHARE,
     "min_sessions": MIN_SESSIONS,
-    "block_sessions": BLOCK_SESSIONS,
-    "sensitivity_blocks": list(SENSITIVITY_BLOCKS),
-    "resamples": RESAMPLES,
-    "seed": SEED,
-    "interval_tail": INTERVAL_TAIL,
+    "min_batches": MIN_BATCHES,
+    "batch_hold_multiple": BATCH_HOLD_MULTIPLE,
+    "min_batch": MIN_BATCH,
+    "sessions_per_week": SESSIONS_PER_WEEK,
+    "monthly_cycle_days": MONTHLY_CYCLE_DAYS,
+    "weekly_cycle_days": WEEKLY_CYCLE_DAYS,
 }
