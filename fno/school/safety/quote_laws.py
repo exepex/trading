@@ -6,23 +6,24 @@ the same gate, so a proposal these laws pass is one the fill can take.
 
 Beside it, EDGE1's impossible-price rule: at the touch the fill would take, the position must be worth strictly more
 than its worst payoff at expiry and strictly less than its best; anything else promises a trade that cannot lose or
-cannot win, which only bad quotes do. And each vertical inside it (a bought and a sold leg of one type and expiry) must
-have a quoted range that overlaps [0, width] (owner's decision, 22 Oct 2026, between judges 486 add. 1 and 488.1:
-"ranges", the same meaning of impossible as b's gate): impossible only when the dearer leg's ask is below the cheaper
-leg's bid (worth less than nothing whatever the price) or the dearer leg's bid exceeds the cheaper leg's ask by more
-than the width. So one stale vertical never hides behind another in the total. It is judged once every leg has a
-touch; until then the gate refuses."""
+cannot win, which only bad quotes do. And no leg of it may be impossible by b's own rule (`quality/prices.py`,
+`impossible_keys`, judged among the proposal's legs): every vertical of one type and expiry must have a quoted range
+that overlaps [0, width] within b's 1e-9 tolerance (owner's decision, 22 Oct 2026, between judges 486 add. 1 and
+488.1: "ranges"), and no bid may sit above what the option can ever be worth. One rule for the gate and the law, so one
+stale vertical never hides behind another in the total. It is judged once every leg has a touch; until then the gate
+refuses."""
 
 from datetime import date
 
 from ...research_engine.structures import BOUGHT, SOLD, Leg, payoff_bounds, position_value
-from ..constants import SIDE_BUY, OptionKind, RefusalReason
+from ..constants import SIDE_BUY, RefusalReason
 from ..contracts.decisions import Proposal
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.safety import AccountView, LawResult
 from ..contracts.snapshot import SlotSnapshot
 from ..execution.desk_view import execution_snapshot, school_legs
 from ..execution.entry_gate import entry_refusals, taken_at_snapshot
+from ..quality.prices import impossible_keys
 
 GATE_REASONS = (
     RefusalReason.MISSING_QUOTE,
@@ -67,25 +68,7 @@ class ImpossiblePriceLaw:
         value = position_value(legs, prices)
         if not lowest < value < highest:
             return LawResult(self.name, False, RefusalReason.IMPOSSIBLE_LEG_PRICE, None, value)
-        bad = next((v for v in _verticals(proposal, snapshot) if v[0] < 0 or v[1] > v[2]), None)
-        if bad is not None:
-            return LawResult(
-                self.name, False, RefusalReason.IMPOSSIBLE_LEG_PRICE, bad[2], bad[0] if bad[0] < 0 else bad[1]
-            )
+        flagged = impossible_keys(snapshot, among={leg.key for leg in proposal.legs})
+        if flagged:
+            return LawResult(self.name, False, RefusalReason.IMPOSSIBLE_LEG_PRICE, None, float(len(flagged)))
         return LawResult(self.name, True, None, None, value)
-
-
-def _verticals(proposal: Proposal, snapshot: SlotSnapshot) -> list[tuple[float, float, float]]:
-    """(highest, lowest, width) of every bought-sold pair of one type and expiry as its quotes range: the dearer leg
-    (the lower call, the higher put) is worth at most its ask less the cheaper's bid, and at least its bid less the
-    cheaper's ask."""
-    found = []
-    for long in (leg for leg in proposal.legs if leg.side == SIDE_BUY):
-        for short in (leg for leg in proposal.legs if leg.side != SIDE_BUY):
-            if (long.key.kind, long.key.expiry) != (short.key.kind, short.key.expiry):
-                continue
-            low, high = sorted((long.key, short.key), key=lambda key: key.strike)
-            dearer, cheaper = (low, high) if low.kind == OptionKind.CALL else (high, low)
-            d, c = snapshot.quote(dearer), snapshot.quote(cheaper)
-            found.append((d.ask - c.bid, d.bid - c.ask, high.strike - low.strike))
-    return found
