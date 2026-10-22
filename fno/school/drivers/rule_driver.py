@@ -32,7 +32,10 @@ class RuleDriver:
             return no_trade(self.card, road_day, plan)
         proposal = self.builder.build(plan, road_day, snapshot)
         if proposal is None:
-            return no_trade(self.card, road_day, NoTradeReason.NO_STRUCTURE_UNDER_CAP)
+            reason = NoTradeReason.NO_STRUCTURE_UNDER_CAP
+            if self.builder.quotes_missing(plan, snapshot):
+                reason = NoTradeReason.NO_VALID_QUOTES
+            return no_trade(self.card, road_day, reason)
         return trade(self.card, road_day, proposal)
 
     def review_exit(self, position: OpenPosition, snapshot: SlotSnapshot,
