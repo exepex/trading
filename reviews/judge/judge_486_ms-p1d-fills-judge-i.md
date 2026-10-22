@@ -51,3 +51,31 @@ can quietly stop working.
 - [reasoning only] NIFTY-W positions use NIFTY's margin rows (the file has no expiry), and the margin uses `config.yaml`'s NIFTY lot (65), not the road-day's A20a lot. Both are right today; short options' margin on expiry day may be higher.
 - The builder says it openly: until MS-P1m's margin rows land, law 3 refuses every BANKNIFTY, FINNIFTY and MIDCPNIFTY entry and most NIFTY structures. The pilot can trade almost nothing until then, so the first sessions will show mainly refusals.
 - For j: settlement must run before the session's first `view`, or an expired position counts at its worst case and can trip the stop.
+
+## Addendum 1: round 2 at 9ed80bc7 (diff 96704ef8..9ed80bc7)
+
+**Verdict: FAIL.** My 2 should-fixes and the minor are fixed. 1 new should-fix comes from round 2's per-vertical
+check, and 1 minor. This was the last round, so the owner decides (JUDGE.md "Rounds").
+
+**Gates (my run):** full `pytest -n auto` 10,530 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and
+check_records clean.
+
+**Round-1 findings:**
+1. **Brake lift before the monthly review: ACCEPTED** (24b20cb0).
+   - `brake.py:51-53` raises `ReviewFileError` for a row dated from the engagement to the day before the first Saturday of the next month.
+   - Tests cover 4 Dec against 5 Dec, the engagement day itself, and the December-to-January roll.
+   - My 4 plants are caught: the check removed, no Saturday shift, the boundary moved a day, and the year roll dropped.
+2. **Settlement without a store: ACCEPTED** (24b20cb0). `execution/wiring.py:24-26` raises `SettlementStoresNotConfigured`, with a test; my plant (the check removed) is caught.
+- **Minor (charges cross-check): ACCEPTED.** `test_a_leg_whose_charges_differ_from_c1_s_is_refused_before_any_write`.
+
+**New in round 2:**
+3. **Should-fix: the per-vertical check judges mids, so it refuses quotes with no impossible price as `impossible_leg_price`.**
+   - `quote_laws.py:68-69` and `_verticals` require each vertical to be worth between 0 and its width at the mids.
+   - My test: the condor's call vertical 1100/1200 quoted (1.5, 2.5) and (1.0, 4.0) is refused (value -0.5). Yet C1100 at 2.4 and C1200 at 2.0 lie inside both quotes and value the vertical at +0.4, which is legal.
+   - This is the rule that b's accepted decision 1 rejected for spread noise. On the recorded 21-22 Oct chains, mids flag MIDCPNIFTY band legs (15 and 6) where ranges flag none (judge 483).
+   - So the school would have two meanings of "impossible": the road gate opens a road that law 5b then refuses. Those refusals are recorded as bad quotes when the quotes were consistent. That mislabels the evaluation records and lowers the fillable count.
+   - Fix expected: judge each vertical on ranges, as b does: impossible only if dearer.ask - cheaper.bid < 0 or dearer.bid - cheaper.ask > width. That still refuses Judge B's case (2.5 - 4.5 = -2 < 0).
+   - Tests expected: my overlapping case passes; B's case refuses.
+- **Minor:** the vertical's upper bound (worth at most its width) has no test; my plant `0 <= v` without `<= width` survived.
+
+**Plants this round:** 7 planted, 6 caught (survivor: the minor above). Plus 1 probe, which shows finding 3.
