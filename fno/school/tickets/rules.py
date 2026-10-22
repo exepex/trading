@@ -4,21 +4,18 @@
 road order). Each is checked by the same safety laws through `check(decision, accepted)`, where `accepted` holds the
 trades already taken this slot, so a law that adds up the slot (bucket, open risk, new risk a day, margin) sees them
 before any fill (the fleet, MS-P1j, builds that running view). The first `max_new` that pass every law trade; a later
-one that passes is `ticket: trade_limit`; one refused only by account limits, a stop among them, is
-`ticket: driver_stopped`; any other refusal is `refused` with the first refusing law's reason."""
+one that passes is `ticket: trade_limit`; one refused only by account limits (`ACCOUNT_LIMITS`) is
+`ticket: account_limit`; any other refusal is `refused` with the first refusing law's reason. The daily stop and the
+brake are not account limits here: a stopped or braked driver issues no tickets that day (`DRIVER_STOPS`)."""
 
 from collections.abc import Callable
 from dataclasses import replace
 
-from ..constants import Outcome, RefusalReason, TicketReason
+from ..constants import ACCOUNT_LIMITS, Outcome, RefusalReason, TicketReason
 from ..contracts.decisions import Decision
 from ..contracts.roads import ROADS
 from ..contracts.safety import LawResult
 
-# Limits on the account, which a ticket does not have; every other law (protected, max loss, quote gate) binds it.
-ACCOUNT_LIMITS = frozenset({RefusalReason.BUCKET_CAP, RefusalReason.OPEN_RISK, RefusalReason.NEW_RISK_DAY,
-                            RefusalReason.MARGIN_ROOM, RefusalReason.DAILY_STOP, RefusalReason.BRAKE})  # fmt: skip
-STOPS = frozenset({RefusalReason.DAILY_STOP, RefusalReason.BRAKE})
 _ROAD_ORDER = {road.code: index for index, road in enumerate(ROADS)}
 
 LawCheck = Callable[[Decision, tuple[Decision, ...]], tuple[LawResult, ...]]
@@ -44,8 +41,8 @@ def _after_laws(decision: Decision, results: tuple[LawResult, ...], room: bool) 
     refusals = [r.reason for r in results if not r.passed]
     if not refusals:
         return decision if room else as_ticket(decision, TicketReason.TRADE_LIMIT)
-    if set(refusals) <= ACCOUNT_LIMITS and set(refusals) & STOPS:
-        return as_ticket(decision, TicketReason.DRIVER_STOPPED)
+    if set(refusals) <= ACCOUNT_LIMITS:
+        return as_ticket(decision, TicketReason.ACCOUNT_LIMIT)
     return replace(decision, outcome=Outcome.REFUSED, reason=refusals[0])
 
 

@@ -11,7 +11,7 @@ from fno.school.constants import ExitReason, ExitState, Outcome, RefusalReason, 
 from fno.school.contracts.accounts import SealedDecision, SettlementPrice
 from fno.school.contracts.safety import LawResult
 from fno.school.fakes import FakeAccounts, FakeFills, FakeSettlementSource
-from fno.school.tickets.book import TicketBook, TicketLedger, fill_cash
+from fno.school.tickets.book import TicketBook, TicketLedger
 from fno.school.tickets.rules import as_ticket
 from fno.school.tickets.rupees import account_net
 from tests.school.contracts import builders as b
@@ -42,7 +42,7 @@ def test_a_ticket_fills_every_leg_at_the_snapshot_s_touch():
 
 
 BINDING = (RefusalReason.MAX_LOSS, RefusalReason.UNPROTECTED, RefusalReason.SIZE_ABOVE_DISPLAYED,
-           RefusalReason.PROTECTION_UNSELLABLE)  # fmt: skip
+           RefusalReason.PROTECTION_UNSELLABLE, RefusalReason.DAILY_STOP, RefusalReason.BRAKE)  # fmt: skip
 
 
 @pytest.mark.parametrize("reason", BINDING)
@@ -63,7 +63,7 @@ def test_a_ticket_lives_in_the_ticket_ledger_never_in_an_account():
     tickets.enter(ticket(), PASS, b.snapshot(), b.seal(), AT)
     opened = ledger.view("CS1@1", MARKS, b.SESSION).open_positions
     assert [p.position_id for p in opened] == ["ticket:CS1@1:BANKNIFTY-M:2026-11-02"]
-    assert opened[0].entry_net == fill_cash(tickets.fills.enter(ticket(), b.snapshot(), b.seal(), AT))
+    assert opened[0].entry_net == tickets.fills.enter(ticket(), b.snapshot(), b.seal(), AT).cash
     assert accounts.view("CS1@1", MARKS, b.SESSION).open_positions == () and accounts.ledgers == {}
 
 

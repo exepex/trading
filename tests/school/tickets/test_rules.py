@@ -63,7 +63,7 @@ def test_a_refused_trade_frees_its_place_for_the_next_ranked_rule():
 def test_each_check_sees_the_trades_already_accepted_this_slot():
     seen = []
 
-    def bucket(decision, accepted):  # a Rs 30,000 bucket of Rs 10,000 trades: the fourth is refused
+    def bucket(decision, accepted):  # a Rs 30,000 bucket of Rs 10,000 trades: the fourth breaks it
         seen.append(len(accepted))
         total = sum(d.proposal.max_loss for d in accepted) + decision.proposal.max_loss
         return (PASS,) if total <= 30_000 else (refused(RefusalReason.BUCKET_CAP),)
@@ -73,20 +73,22 @@ def test_each_check_sees_the_trades_already_accepted_this_slot():
     decisions = tuple(fired(road, 0.5, 10_000) for road in monthlies)
     classified = classify(decisions, bucket, 5)
     assert seen == [0, 1, 2, 3]
-    assert [d.outcome for d, _ in classified] == [Outcome.TRADE] * 3 + [Outcome.REFUSED]
+    assert [d.outcome for d, _ in classified] == [Outcome.TRADE] * 3 + [Outcome.TICKET]
+    assert classified[-1][0].reason == TicketReason.ACCOUNT_LIMIT
 
 
-@pytest.mark.parametrize("stop", [RefusalReason.DAILY_STOP, RefusalReason.BRAKE])
-def test_a_stopped_driver_s_fired_rule_becomes_a_driver_stopped_ticket(stop):
-    [(out, results)] = classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),),
-                                always(PASS, refused(RefusalReason.OPEN_RISK), refused(stop)), 5)  # fmt: skip
-    assert (out.outcome, out.reason) == (Outcome.TICKET, TicketReason.DRIVER_STOPPED) and len(results) == 3
+@pytest.mark.parametrize("caps", [(RefusalReason.OPEN_RISK,), (RefusalReason.BUCKET_CAP, RefusalReason.MARGIN_ROOM),
+                                  (RefusalReason.NEW_RISK_DAY,)])  # fmt: skip
+def test_a_rule_refused_only_by_account_limits_becomes_an_account_limit_ticket(caps):
+    [(out, results)] = classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),), always(PASS, *map(refused, caps)), 5)
+    assert (out.outcome, out.reason) == (Outcome.TICKET, TicketReason.ACCOUNT_LIMIT) and len(results) == 1 + len(caps)
 
 
 @pytest.mark.parametrize("results, reason", [
-    ((refused(RefusalReason.BUCKET_CAP),), RefusalReason.BUCKET_CAP),  # an account cap without a stop
-    ((refused(RefusalReason.DAILY_STOP), refused(RefusalReason.MISSING_QUOTE)), RefusalReason.DAILY_STOP),
-    ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.BRAKE)), RefusalReason.MAX_LOSS)])  # fmt: skip
+    ((refused(RefusalReason.DAILY_STOP),), RefusalReason.DAILY_STOP),  # a stopped driver issues no ticket
+    ((refused(RefusalReason.OPEN_RISK), refused(RefusalReason.BRAKE)), RefusalReason.OPEN_RISK),  # nor a braked one
+    ((refused(RefusalReason.BUCKET_CAP), refused(RefusalReason.MISSING_QUOTE)), RefusalReason.BUCKET_CAP),
+    ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.OPEN_RISK)), RefusalReason.MAX_LOSS)])  # fmt: skip
 def test_any_other_refusal_stays_refused_with_the_first_reason(results, reason):
     [(out, _)] = classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),), always(*results), 5)
     assert (out.outcome, out.reason) == (Outcome.REFUSED, reason) and out.proposal is not None
@@ -114,13 +116,7 @@ def test_a_ticket_ignores_each_account_limit(reason):
 @pytest.mark.parametrize("reason", sorted(set(RefusalReason) - ACCOUNT_LIMITS))
 def test_a_ticket_obeys_every_other_law(reason):
     assert not ticket_laws_pass((PASS, refused(reason)))
-    assert first_binding_refusal((refused(RefusalReason.BRAKE), refused(reason))) == reason
-
-
-def test_the_account_limits_are_exactly_the_account_s_six():
-    six = (RefusalReason.BUCKET_CAP, RefusalReason.OPEN_RISK, RefusalReason.NEW_RISK_DAY, RefusalReason.MARGIN_ROOM,
-           RefusalReason.DAILY_STOP, RefusalReason.BRAKE)  # fmt: skip
-    assert set(six) == ACCOUNT_LIMITS
+    assert first_binding_refusal((refused(RefusalReason.OPEN_RISK), refused(reason))) == reason
 
 
 def test_a_ticket_is_one_lot():

@@ -346,10 +346,11 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
     running view.
   - The first `max_new` that pass every law trade.
   - A later one that passes is `ticket: trade_limit`.
-  - One refused only by account limits, with a stop among them, is `ticket: driver_stopped`.
-  - Any other refusal is `refused`, with the first reason.
+  - One refused only by `ACCOUNT_LIMITS` is `ticket: account_limit` (orchestrator, 22 Oct 2026).
+  - Any other refusal, the daily stop and the brake included, is `refused` with the first reason: a stopped or braked
+    driver issues no tickets that day.
 - `TicketBook` (`book.py`):
-  - it refuses a ticket whose sealed law results break a binding law (anything but the six account limits);
+  - it refuses a ticket whose sealed law results break a binding law (anything but `ACCOUNT_LIMITS`);
   - it fills through the same `FillPort` as trades;
   - it records only in a `TicketLedger`, its own type over an account store on its own root, never a driver's
     account.
@@ -566,14 +567,20 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 
 | # | Criterion | Code | Tests (and the plants they catch) |
 |---|---|---|---|
-| 1 | Tickets: the same quotes and laws, never in an account, never in rupees | `rules.py`, `book.py`, `rupees.py` | `test_rules.py`, `test_book.py`. Plants: the room check, the running view, rank order, ties, stop logic, the account-limit set, the first reason, accepted-only trades, one lot, the binding filter, the book's law refusal, recording only fills, tickets only, and the rupee filter |
+| 1 | Tickets: the same quotes and laws, never in an account, never in rupees | `rules.py`, `book.py`, `rupees.py` | `test_rules.py`, `test_book.py`. Plants: the room check, the running view, rank order, ties, the account-limit ticket, the brake added to a's `ACCOUNT_LIMITS`, the ticket laws, the first reason, accepted-only trades, one lot, the binding filter, the book's law refusal, recording only fills, tickets only, and the rupee filter |
 | 2 | eligible >= fillable >= executed over a fixture day | `counts.py` | `test_counts.py`. Plants: the laws term, the ticket laws, the executed rule, the denominator, uniqueness |
 | 3 | A shared displayed size is counted; no unservable fill is summed | `shared_size.py` | `test_shared_size.py`. Plants: the fit check, the size use, the side's size, the fixed order |
 | 4 | A refused ticket stays in the denominator | `counts.py` | `test_counts.py` (`TICKET, PASS, MISSING` row and the fixture day) |
 | 5 | Conformance | n/a | f implements no a port; its fakes pass a's checks |
 
 - **Gates on this tree:** reported in the hand-off message; the full suite, ruff, `check_imports` and `check_records`.
-- **Plants:** 23 planted, 23 caught. In round 0, two survivors led to one fix each: a redundant `eligible and`
+- **Round 1b (after a's round 2, orchestrator's answers of 22 Oct):**
+  - built on a's frozen split: `ACCOUNT_LIMITS` comes from `fno/school/constants.py`;
+  - a trade refused only by an account limit is now `ticket: account_limit` (Q1, yes);
+  - the daily stop and the brake refuse, with no ticket;
+  - `book.fill_cash` is replaced by a's `FillResult.cash` (Q2, yes);
+  - j's running-view requirement is written into MS-P1j (Q3).
+- **Plants:** 24 planted, 24 caught (after round 1b). In round 0, two survivors led to one fix each: a redundant `eligible and`
   removed, and a test fixture with asymmetric bid and ask sizes.
 - **Self-review** (an independent agent on `756e6545..75c12954`): 1 blocking, 6 should-fix and 4 minor findings.
   - Fixed:
@@ -588,12 +595,8 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
       - `totals` refuses duplicate rows;
       - an `unavailable` decision is documented as not eligible;
       - a two-lot proposal raises, as a driver bug the fleet isolates.
-  - Open, for the orchestrator:
-    - (a) **A trade refused only by an account cap without a stop** (bucket, open risk, new risk, margin) stays
-      `refused`, not a ticket, as the story's text says. Making it a ticket needs a new `TicketReason` in a's
-      constants. That would measure the rule on more roads [reasoning only]; it is the orchestrator's call.
-    - (b) **`fill_cash` duplicates `fakes._cash`**, which is a's file. Proposed for a's next round: a
-      `FillResult.cash` property, used by both.
+  - The two questions raised in round 1 (account-cap tickets, the duplicated cash arithmetic) were answered by the
+    orchestrator and built in round 1b.
 
 ### MS-P1a Claims, round 2 (judge 479, FAIL round 1: four should-fixes)
 

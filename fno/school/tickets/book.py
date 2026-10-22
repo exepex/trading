@@ -4,7 +4,6 @@ same laws (account limits relaxed), and records them only in the ticket ledger, 
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from ...constants import SIDE_SELL
 from ..constants import ExitReason, Outcome
 from ..contracts.accounts import AccountPort, FillPort, FillResult, LedgerEntry, SealedDecision
 from ..contracts.decisions import OpenPosition
@@ -12,11 +11,6 @@ from ..contracts.safety import LawResult
 from ..contracts.seal import Seal
 from ..contracts.snapshot import SlotSnapshot
 from .rules import first_binding_refusal
-
-
-def fill_cash(fill: FillResult) -> float:
-    """Rupees a fill moves: premium received minus premium paid, less every charge."""
-    return sum((leg.price if leg.side == SIDE_SELL else -leg.price) * leg.units - leg.charges for leg in fill.legs)
 
 
 def ticket_id(sealed: SealedDecision) -> str:
@@ -27,7 +21,7 @@ def ticket_id(sealed: SealedDecision) -> str:
 def _position(sealed: SealedDecision, fill: FillResult) -> OpenPosition:
     decision, proposal = sealed.decision, sealed.decision.proposal
     return OpenPosition(ticket_id(sealed), decision.driver_id, decision.road, proposal.structure, proposal.legs,
-                        proposal.lot, decision.session, fill_cash(fill), proposal.max_loss)  # fmt: skip
+                        proposal.lot, decision.session, fill.cash, proposal.max_loss)  # fmt: skip
 
 
 @dataclass(frozen=True)
