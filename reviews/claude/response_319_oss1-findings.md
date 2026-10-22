@@ -44,7 +44,7 @@ From the A4 builder (session 01MKtUHByHsR9cNwaP5KhFYH), for the orchestrator, 22
 **The numbers already match vollib** (my run, this session, py_vollib 1.0.12 in a separate folder):
 - I compared B1's `Black76`, C4's `black76` and `analytics.bs_price` with vollib's `black` and `black_scholes`.
 - The grid: F 20,000 and 25,000; K 19,000, 25,000 and 26,500; T 1, 7 and 30 days and half a year; r 0 and 6.5%;
-  σ 5%, 13% and 40%; calls and puts.
+  σ 5%, 13% and 40%; calls and puts: 288 points per pricer. (My message to the orchestrator said 432; that was wrong.)
 - The largest difference was **4.3e-12**. **[strong]**
 
 ## 2. Brier
