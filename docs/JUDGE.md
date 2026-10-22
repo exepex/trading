@@ -21,6 +21,9 @@ unsure, the change is lane 1.
   FAIL is fixed in place, first.
 - Deleting, skipping or loosening a test in a lane-1 area is lane 1. The auditor may move any kind of change into
   lane 1 when its audit finds problems there.
+- **Rule-document guard** (owner, 22 Oct 2026; DESK_DECISIONS "Rule-document guard"): a change to a rule document
+  (`CLAUDE.md`, `AGENTS.md`, this file) is lane 2, except that one which narrows lane 1 or touches a hard line (no
+  orders, secrets, privacy, write-once data, frozen files) stays lane 1 and needs the code judge's PASS.
 - The dashboard's own lane-1 paths are listed in its `CLAUDE.md`.
 
 ## Two judges
