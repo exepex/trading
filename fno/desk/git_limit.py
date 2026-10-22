@@ -62,8 +62,11 @@ class LimitedRun:
     it, the group is killed and reaped, the call's own new locks are removed, and `subprocess.TimeoutExpired` is raised
     with `removed` (the lock names) set on it."""
 
-    def __init__(self, locks: Callable[[Path], GitLocks] = GitLocks):
-        self.locks = locks
+    def __init__(self, locks: Callable[[Path], GitLocks] = GitLocks,
+                 started: Callable[[Sequence[str]], None] = lambda command: None):  # fmt: skip
+        """`started`: called once the call runs, before its limit counts. The run passes nothing; a test waits there
+        until a hook has been reached, so its limit never races git's own start on a loaded machine."""
+        self.locks, self.started = locks, started
 
     def __call__(self, command: Sequence[str], *, cwd: Path, timeout: float, capture_output: bool = True,
                  text: bool = False) -> subprocess.CompletedProcess:  # fmt: skip
@@ -71,6 +74,7 @@ class LimitedRun:
         before = locks.present()
         pipe = subprocess.PIPE if capture_output else None
         with subprocess.Popen(command, cwd=cwd, stdout=pipe, stderr=pipe, text=text, start_new_session=True) as popen:
+            self.started(command)
             try:
                 out, err = popen.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:

@@ -241,3 +241,30 @@ Notes:
   rather than kept as a duplicate.
 - **Merge:** O2's `NOT_IN_THIS_RUN_ALERT` (quote_steps), the whole-step alert, gives way to F1's per-part alert. Every
   part that is not recorded still alerts once, so "never silent" holds.
+
+### Fix: the hung-git test was timing-sensitive under load (judge E, 22 Oct; branch `story/o2-git-limit-test`)
+
+- **The flake (judge E):** `tests/daily/test_git_limit.py::test_a_commit_hung_in_its_hook_is_stopped_with_the_hook_and_leaves_no_lock`
+  failed once in a full parallel run (one run took 40 s against about 4 s). It passed alone 3 of 3.
+- **Root cause (strong evidence, by experiment):** the test put its 1 s limit on every git call, not only on the hung
+  one. `Git.commit_paths` makes four calls (`add`, `diff --cached` twice, `commit`), and the test's final "the next
+  commit works" makes four more.
+  - The hung call's 1 s also started at `Popen`, before git had even reached its hook.
+  - On a loaded machine, any normal call can pass 1 s, or the hook can start after it.
+  - Reproduced with a `git` shim that adds 1.2 s to every call. The test failed with `git add -- ran past 1 s and was
+    stopped with its hooks`: the limit had stopped a normal call, not the hung commit.
+  - The same shim showed the same flaw in `test_a_lock_that_was_there_before...` (its `git add`). CPU burners or a
+    concurrent full suite did not reproduce it in 2 × 40 repetitions, which fits a rare stall.
+- **Fix:**
+  - `LimitedRun(started=...)` (`fno/desk/git_limit.py`): a callback, called once the call runs and before its limit
+    counts. The daily run passes nothing, so production behaviour is unchanged.
+  - In the tests, `HungCallRun` keeps the short limit for the hung call only and starts it once that call's hook has
+    written its pid, which means git holds its lock. Every other call keeps the run's own 120 s limit. The pre-existing
+    lock test uses the run's limit.
+  - The timing assertion is now measured from the hook's start. It proves the call was stopped by the limit and not
+    by the hook's own end (`< HOOK_SLEEP / 20`, 30 s against the hook's 600 s).
+- **Proof:**
+  - All 5 tests pass with every git call slowed by 1.2 s, longer than the limit itself.
+  - Plants: removing the lock clean-up fails 1 test; killing only git instead of its group hangs the test (the hook
+    holds the pipes).
+  - Ten full parallel suite runs (results below).

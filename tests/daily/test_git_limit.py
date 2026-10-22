@@ -9,13 +9,15 @@ from pathlib import Path
 import pytest
 
 from fno.desk.daily_ports import CommitFailed
-from fno.desk.git_limit import GitLocks, LimitedRun
+from fno.desk.git_limit import GIT_CALL_LIMIT_SECONDS, GitLocks, LimitedRun
 from fno.desk.git_sync import Git, GitCallStopped, GitCommitter, GitError, PushNotConfirmed
 
 from .fakes import QuietLocks
 
 LIMIT = 1.0
-HANGING_HOOK = '#!/bin/sh\necho $$ > "{pid_file}"\nsleep 600\n'
+HOOK_SLEEP = 600
+HANGING_HOOK = '#!/bin/sh\necho $$ > "{pid_file}"\nsleep {sleep}\n'
+HOOK_START_WAIT = 120.0  # how long a loaded machine may take to reach the hook; a test error past it, never a pass
 
 
 def _git(repo, *args):
@@ -38,13 +40,40 @@ def _repo(tmp_path):
 def _hang_hook(repo, name, tmp_path):
     hooks = tmp_path / f"hooks-{name}"
     hooks.mkdir()
-    (hooks / name).write_text(HANGING_HOOK.format(pid_file=tmp_path / f"{name}.pid"))
+    (hooks / name).write_text(HANGING_HOOK.format(pid_file=tmp_path / f"{name}.pid", sleep=HOOK_SLEEP))
     (hooks / name).chmod(0o755)
     _git(repo, "config", "core.hooksPath", str(hooks))
 
 
-def _limited(root, limit=LIMIT):
-    return Git(root, run=LimitedRun(locks=QuietLocks), limit_seconds=limit)
+class HungCallRun(LimitedRun):
+    """The test's short limit for the hung call only, counted from the moment its hook runs: it has written its pid,
+    so git holds its lock (a commit takes `index.lock` before its hook). Every other call keeps the run's own limit, so
+    neither a slow `git add` nor git's own start on a loaded machine can meet the short limit (judge E, 22 Oct: a flake
+    in a full parallel run). `calls`: how many calls of `name` hang (None: every one)."""
+
+    def __init__(self, name: str, pid_file: Path, calls: int | None = None):
+        super().__init__(QuietLocks, started=self._wait_for_hook)
+        self.name, self.pid_file, self.calls, self.hook_at, self.waiting = name, pid_file, calls, None, False
+
+    def __call__(self, command, *, timeout, **options):
+        hung = self.waiting = self.name in command and self.calls != 0
+        if hung:
+            self.pid_file.unlink(missing_ok=True)  # this call's hook writes it afresh
+            self.calls = None if self.calls is None else self.calls - 1
+        return super().__call__(command, timeout=timeout if hung else GIT_CALL_LIMIT_SECONDS, **options)
+
+    def _wait_for_hook(self, command) -> None:
+        if not self.waiting:
+            return
+        deadline = time.monotonic() + HOOK_START_WAIT
+        while not (self.pid_file.is_file() and self.pid_file.read_text().strip()):
+            assert time.monotonic() < deadline, f"the {self.name} hook never started"
+            time.sleep(0.01)
+        self.hook_at = time.monotonic()
+
+
+def _hung(root, run):
+    return Git(root, run=run, limit_seconds=LIMIT)
 
 
 def _alive(pid):
@@ -60,12 +89,12 @@ def test_a_commit_hung_in_its_hook_is_stopped_with_the_hook_and_leaves_no_lock(t
     repo = _repo(tmp_path)
     _hang_hook(repo, "pre-commit", tmp_path)
     (repo / "a.txt").write_text("a")
-    git = _limited(repo)
-    started = time.monotonic()
+    run = HungCallRun("commit", tmp_path / "pre-commit.pid", calls=1)
+    git = _hung(repo, run)
     stopped = r"ran past 1 s and was stopped with its hooks; its own lock files removed: .*\.git/index\.lock"
     with pytest.raises(GitCallStopped, match=stopped):
         git.commit_paths([repo / "a.txt"], "a")
-    assert time.monotonic() - started < LIMIT + 5
+    assert time.monotonic() - run.hook_at < HOOK_SLEEP / 20  # stopped by the limit, never the hook's own end
     assert not _alive(int((tmp_path / "pre-commit.pid").read_text()))  # the hook died with its group
     assert QuietLocks(repo).present() == set()
     _git(repo, "config", "--unset", "core.hooksPath")
@@ -77,7 +106,7 @@ def test_a_lock_that_was_there_before_is_left_and_named_with_the_hand_fix(tmp_pa
     (repo / ".git" / "index.lock").write_text("")
     (repo / "a.txt").write_text("a")
     with pytest.raises(GitError, match=r"index\.lock by hand, then rerun"):
-        _limited(repo).commit_paths([repo / "a.txt"], "a")
+        Git(repo, run=LimitedRun(locks=QuietLocks)).commit_paths([repo / "a.txt"], "a")  # the run's own limit
     assert (repo / ".git" / "index.lock").exists()
 
 
@@ -98,10 +127,10 @@ def test_a_hung_push_is_not_confirmed_and_the_commit_counts_as_unpushed(tmp_path
     _hang_hook(repo, "pre-push", tmp_path)
     (repo / "a.txt").write_text("a")
     with pytest.raises(CommitFailed, match="push not confirmed: git push -q ran past 1 s") as failed:
-        GitCommitter(_limited(repo)).commit([repo / "a.txt"], "a")
+        GitCommitter(_hung(repo, HungCallRun("push", tmp_path / "pre-push.pid"))).commit([repo / "a.txt"], "a")
     assert failed.value.unpushed is True
     with pytest.raises(PushNotConfirmed):
-        _limited(repo).push()
+        _hung(repo, HungCallRun("push", tmp_path / "pre-push.pid")).push()
 
 
 def test_every_call_has_the_limit_by_default(tmp_path):
