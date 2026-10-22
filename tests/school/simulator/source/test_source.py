@@ -293,3 +293,17 @@ def test_the_live_fill_path_refuses_an_unmeasured_quote_so_a_practice_quote_fail
         execution_snapshot(snap, "NIFTY"), desk_leg("NIFTY", LegSpec(key(sb.SPOT), "sell", 1)), "sell", 50
     )
     assert not priced.fills and "no size" in priced.reason
+
+
+def test_the_digest_covers_the_quotes_themselves():
+    """Judge 509, minor a: a digest of no quotes would pass the other digest tests only by luck."""
+    day = open_day()
+    tight, wide = sb.full_model(RoadCode.NIFTY_MONTHLY, 0.01), sb.full_model(RoadCode.NIFTY_MONTHLY, 0.02)
+    assert source(tight).for_road(day).sha256 != source(wide).for_road(day).sha256  # only bid and ask differ
+    base = sb.chain("NIFTY")
+    quiet = tuple(
+        replace(r, volume=0) if (r.strike, r.kind, r.expiry) == (sb.SPOT, CALL, sb.MONTHLIES[0]) else r
+        for r in base.rows
+    )
+    other = source(chain=sb.DictChain(replace(base, rows=quiet))).for_road(day)
+    assert other.sha256 != source().for_road(day).sha256  # only one leg's validity differs

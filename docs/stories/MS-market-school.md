@@ -1208,6 +1208,15 @@ cases and a test that fails when the named code is broken on purpose.
   12. The practice rules: the fleet is built with MS-P1d's `build_practice_safety_laws` and `QuoteRules(practice=True)`
       only in this package's wiring, and a test shows that without the flag the live laws and `SchoolFills` refuse a
       quote with `sizes_measured=False`.
+  13. A lot per contract, not per road (judge 509, orchestrator): on 2 Jun 2025 BANKNIFTY-M's two monthlies carry different
+      lots after NSE's April 2025 change, and the catalogue (c) closes the road as `lot_mismatch`. SIM-d follows the way strike
+      steps are kept per expiry: each expiry keeps the lot the file states for it, and a road closes only when one
+      contract's own lot is missing or contradictory. This needs the road day to carry a lot per expiry (a small additive
+      follow-up to MS-P1a's `RoadDay`, as `strike_steps` was in MS-P1a2), asked of its owner first. Test with 2 Jun 2025: BANKNIFTY-M open
+      with each expiry's own lot, a proposal's units follow the leg's expiry.
+  14. The report shows the share of impossible legs per road-day, separate from refusals (judge 509: 42-177 of 260-436 traded
+      legs on closes, mostly the closes' own staleness). Named test: `test_the_report_counts_impossible_legs_apart_from_refusals`.
+      Without it a practice result reads as a full chain.
 
 ### 7.5 Gap list
 
@@ -1359,13 +1368,12 @@ Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.
        closure is not exercised in practice; practice shows the same cases as `coverage.impossible`. Stated here.
     2. **`PracticeWindows(first_counted=None)` default.** The windows already end 12 Oct 2026, before any forward capture; `first_counted`
        only moves the end earlier. SIM-d's wiring passes the configured value, and I add a wiring test there.
-    3. **`sys.path` insert in `history/edge1.py`.** The repository's own EDGE1 and school tests do the same; a collision with another
-       `edge1study` is not a realistic risk. Kept as the one adapter the orchestrator approved.
+    3. **`sys.path` insert in `history/edge1.py`:** accepted in round 1, then removed in SIM-a round 2: EDGE1 is loaded by file path under a unique package name and its folder never joins `sys.path` (judge 500 minor a, fixed; judge 509 minor b).
     4. **Spread learned from Oct 2026 and applied to 2019-26; P95 of session medians.** Disclosed regime assumption, why the
        three scenarios are always shown together. No change.
 - **Design A rework (22 Oct, after MS-P1a3 `9ede0d1e`):** quotes carry sizes `None` with `sizes_measured=False`; no placeholder constant exists. `test_the_live_fill_path_refuses_an_unmeasured_quote...` shows E4's `price_leg` refuses it ("quote not valid: no size") without MS-P1d's practice rules, so a practice quote reaching a live path fails closed. The practice-mode pass-through itself is MS-P1d's and is tested in SIM-d. **Not yet run on real data:** the catalogue and source are tested on fixtures; `BhavcopyChain` alone ran on the Drive archive (SIM-a Claims). SIM-d's dry run does the end-to-end run (the container does have Drive access).
 - **Gates at this tip:** `ruff check`, `check_imports` (clean) and `check_records` (clean) pass. `pytest -n auto` over the whole repository was run on
-  the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the c tip is recorded in the message to the orchestrator.
+  the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the design-A tip `3c1a3cc6` (clean worktree, `pytest -q -n auto`) is 12,001 passed, 16 xfailed, 0 failed in 510 s (judge 509 reproduced 12,001).
 
 ## Claims
 
