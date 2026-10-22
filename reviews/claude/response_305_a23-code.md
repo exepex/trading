@@ -85,3 +85,60 @@ CAPTCHAs or blocks; paced reads. The orchestrator also confirmed that the owner'
 it. I updated the text's scope 5, the NSDL docstrings and the privacy test's reason to that wording. Nothing in the
 code changes: no NSDL value enters the repository or a log, and the privacy test still makes any new reader a judged
 change. This also settles my earlier note on P8's dashboard figure, if the dashboard is private as the rule says.
+
+## Addendum 1: the back-fill (judge 437 PASS; its merge condition)
+
+All steps ran from this container on the judged branch code (446a18a9, then the two judged fixes cff14b5e/b5508fc5 and
+28ce8c47), 21-22 Oct 2026. The pushes to main were refused by design while the branch differs from main, so every
+manifest, write-time log and receipt is committed on this branch.
+
+### Criterion 3: counts, first and last, gaps [strong: manifests and NSE's calendar]
+
+| Dataset | Sessions archived | First, last | Calendar sessions | Gaps |
+|---|---|---|---|---|
+| participant volume | 1,934 | 2019-01-01, 2026-10-21 | 1,935 | 2019-03-18: sourced exception (NSE's file has fractional contracts, sixths) |
+| FII statistics | 1,934 | 2019-01-01, 2026-10-21 | 1,935 | 2019-07-30: sourced exception (NSE serves an .xlsx under the .xls name; owner-approved xlrd reads only .xls; orchestrator: no openpyxl) |
+
+Found and fixed on the way, each judged before use:
+- 3 participant-volume files (15 Sep 2021, 14 and 18 Oct 2022) had stray unnamed rows. Unnamed rows are now ignored
+  (judge 437 add. 1).
+- The first table step crashed because the write-time log's folder did not exist in a fresh checkout. The sweep now
+  creates it (28ce8c47).
+- The first NSE job hit the container's 2-hour job limit during FII statistics (1,757 of 1,935). The librarian's
+  resume path finished it: "1,757 already there and verified, 177 uploaded".
+
+### Criterion 2b: rewritten count and share [strong: NSE's Last-Modified of every file]
+
+| Dataset | Rewritten | By year (rewritten of sessions) | Session to available_from, rewritten days |
+|---|---|---|---|
+| participant volume | 104 of 1,934 (5.4%) | 2019: 94/244; 2020: 1; 2021: 3; 2022: 2; 2023: 1; 2024: 2; 2025: 1; 2026: 0 | median 21 days, max 367 |
+| FII statistics | 164 of 1,934 (8.5%) | 2019: 144/244; 2020: 1; 2021: 3; 2022: 3; 2023: 2; 2024: 11; 2025: 0; 2026: 0 | median 53 days, max 163 |
+
+Every archived session has a write time; none was entered as "unknown". For a study (statistician's view) [reasoning]:
+2019's bytes are mostly later versions (39% and 59% rewritten), not what was public the next morning. Drop 2019's
+rewritten rows or keep them labelled; from 2020 both series are clean point in time.
+
+### Criterion 6: the first back-filled month (January 2019; counts only, the repository being public)
+
+| Table (Drive, `data/flows/history/<name>/`) | All rows | Sessions | Jan 2019 | Jan 2019's dates |
+|---|---|---|---|---|
+| participant-volume | 108,304 (1,934 × 56) | 1,934 | 23 sessions, 1,288 rows, 28 series | all 23 rewritten (NSE rewrote them; 1 Jan available from 18 Jan) |
+| fii-stats | 98,676 | 1,934 | 23 sessions, 552 rows, 4 series | all 23 rewritten (1 Jan available from 7 Mar 2019) |
+| nsdl-fpi | 120,466 | 1,874 reporting dates | 23 dates, 943 rows, 11 series | `publication_time_unknown`; 1 Jan available from 2 Jan |
+
+Every table part matched its receipt (Drive cache sync: 0 problems). The first daily run (flow-history.yml, 21:30
+IST) happens after the merge and goes in addendum 2.
+
+### NSDL, judge 429 add. 2's three asks
+
+- Real post count and duration: 93 months (Jan 2019 to Sep 2026), 0 failed, 22:16:11 to 22:31:42 UTC (15 min 31 s).
+  That is 93 gaps of 10 s, so no retries were needed; the code does not count posts, so the count is from the timing
+  [some evidence].
+- No value in the repository, the log or an alert: 3,860 distinct figures from three real answers (2019-01, 2023-06,
+  2026-09) checked against the receipts commit (186 files, all under `receipts/data/`) and the run's log: 0 found.
+- Pacing test: as listed above (literal 10 s; a 1 s mutant is caught).
+
+### Gates on this branch after the back-fill
+
+Full suite: **9,077 passed, 17 xfailed, with the fingerprint test green**. ruff, format, imports and record scan clean.
+The merge to main follows your check (pull, full suite on the merged tree, check_numbers, push).
