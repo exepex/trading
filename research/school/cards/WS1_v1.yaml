@@ -1,0 +1,14 @@
+# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+code: WS1
+version: "1"
+family: weekly_seller
+role: rule
+roads: [NIFTY-W]
+band_steps: 40
+parameters:
+  sessions_before_min: 1
+  sessions_before_max: 3
+  max_wing_steps: 40
+  max_open_per_road: 1
+  exit_profit_share: 0.5
+  exit_loss_multiple: 1.5

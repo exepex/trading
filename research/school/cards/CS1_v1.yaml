@@ -1,0 +1,16 @@
+# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+code: CS1
+version: "1"
+family: capped_seller
+role: rule
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M]
+band_steps: 40
+parameters:
+  history_sessions: 20
+  dte_min: 20
+  dte_max: 45
+  max_wing_steps: 40
+  max_open_per_road: 1
+  exit_profit_share: 0.5
+  exit_loss_multiple: 2.0
+  exit_sessions_held: 10

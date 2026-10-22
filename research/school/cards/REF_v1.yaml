@@ -1,0 +1,11 @@
+# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+code: REF
+version: "1"
+family: reference
+role: control
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W]
+band_steps: 40
+parameters:
+  min_dte: 2
+  max_wing_steps: 40
+  max_open_per_road: 0
