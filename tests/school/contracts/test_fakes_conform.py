@@ -5,8 +5,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from fno.school.constants import ClosureReason, ExitReason, ExitState, RoadCode
-from fno.school.contracts.accounts import LedgerEntry, SettlementPrice
+from fno.school.constants import ClosureReason, ExitReason, ExitState, RefusalReason, RoadCode
+from fno.school.contracts.accounts import FillResult, LedgerEntry, SettlementPrice
 from fno.school.contracts.clock import FixedClock
 from fno.school.contracts.roads import ROADS, RoadStatus
 from fno.school.fakes import (
@@ -60,6 +60,30 @@ def test_fill_port():
     c.check_fill_port(FakeFills(), b.sealed(), b.snapshot(), b.seal(), AT)
     c.check_fill_port_missing_quote(FakeFills(), b.sealed(), b.snapshot(quotes={}), b.seal(), AT, b.position())
     c.check_fill_port_unmeasured(FakeFills(), b.sealed(), unmeasured(b.snapshot()), b.seal(), AT, b.position())
+
+
+class OneSidedOnUnmeasured(FakeFills):
+    """d's port before part 4: it refuses an unmeasured quote, but by the wrong name (judge 506.1's plant)."""
+
+    def enter(self, sealed, snapshot, seal, at):
+        if any(not q.sizes_measured for q in snapshot.quotes.values()):
+            return FillResult(refused=(RefusalReason.ONE_SIDED_QUOTE,))
+        return super().enter(sealed, snapshot, seal, at)
+
+
+class FillsOnUnmeasured(FakeFills):
+    """A port that trades on the prices alone: it never looks at whether a size was measured."""
+
+    def enter(self, sealed, snapshot, seal, at):
+        measured = {k: dataclasses.replace(q, bid_qty=1000, ask_qty=1000, sizes_measured=True)
+                    for k, q in snapshot.quotes.items()}  # fmt: skip
+        return super().enter(sealed, dataclasses.replace(snapshot, quotes=measured), seal, at)
+
+
+@pytest.mark.parametrize("port", [OneSidedOnUnmeasured(), FillsOnUnmeasured()], ids=["wrong reason", "fills"])
+def test_the_unmeasured_check_refuses_a_port_that_does_not_name_size_not_measured(port):
+    with pytest.raises(AssertionError):
+        c.check_fill_port_unmeasured(port, b.sealed(), unmeasured(b.snapshot()), b.seal(), AT, b.position())
 
 
 def unmeasured(snapshot):
