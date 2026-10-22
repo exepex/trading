@@ -202,6 +202,23 @@
      "results": []
     }
    }
+  },
+  "trade_marks": {
+   "started_at": "2026-10-22T15:21:34.153464+05:30",
+   "finished_at": "2026-10-22T15:21:47.182111+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    },
+    "shadow:b0-monthly-sc-v1": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    }
+   }
   }
  }
 }
