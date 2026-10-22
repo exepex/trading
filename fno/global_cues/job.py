@@ -44,7 +44,7 @@ class GlobalCueJob:
         """The checks; a failure there never hides the cue lines above it."""
         try:
             return self.checks.write(), True
-        except RUN_STOPPERS as exc:
+        except (*RUN_STOPPERS, ValueError) as exc:  # ValueError: a damaged cell (named, never shown: `positive`)
             return [f"checks FAILED ({type(exc).__name__}): {exc}"], False
 
     def _run_cue(self, source: GlobalCueSource, start: date | None, end: date) -> tuple[str, bool]:

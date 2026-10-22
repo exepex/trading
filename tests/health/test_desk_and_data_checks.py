@@ -86,7 +86,7 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     assert detail == (
         "steps not run: quotes, owner_timing_fills, margin_check, weather, forecasts_v4, book1, reviews, "
         "quotes_done, card, price_distribution, price_distribution_scores, price_ranges, price_range_scores, candles, "
-        "lab_close"
+        "close_read, close_recheck"
     )
 
 

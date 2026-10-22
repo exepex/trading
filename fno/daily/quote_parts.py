@@ -18,6 +18,7 @@ from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
 from ..quotes.indices import INDEX_WINDOW_END
 from ..quotes.recorder import DATASET, MAX_EARLY_WAIT_SECONDS, NSE_DATASET, WINDOW_END, WINDOW_START
+from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
 from .earlier_run import EarlierRun, PartMarkers
 from .part_locks import PartLocks
 from .processes import Process, Processes
@@ -68,8 +69,10 @@ QUOTE_PARTS = (
               canonicals=((DATASET, "nifty"),)),
     QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",),
               not_before=EARLIEST_START, canonicals=((NSE_DATASET, "nifty"),)),
-    QuotePart("indices", ("quotes", "record-indices"), tuple(GROWW_QUOTES.format(name=n) for n in INDICES), "nifty",
-              canonicals=tuple((DATASET, name) for name in INDICES), window_end=INDEX_WINDOW_END),
+    QuotePart("indices", ("quotes", "record-indices"),
+              tuple(GROWW_QUOTES.format(name=n) for n in (*INDICES, WEEKLY_STEM)), "nifty",
+              canonicals=(*((DATASET, name) for name in INDICES), (WEEKLY_DATASET, WEEKLY_STEM)),  # A4f's weeklies
+              window_end=INDEX_WINDOW_END),
 )  # fmt: skip
 LEAD = QUOTE_PARTS[0].name  # NIFTY commits first: no other part commits before NIFTY's commit was made or tried
 
@@ -151,7 +154,7 @@ class QuoteParts:
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
-                self._finish(self._part(name), code, process.lines(), process.alerted())
+                self._finish(self._part(name), code, process.lines(), process.alerted(), process.errors())
         for part in self.parts:
             if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
                 self._start(part)
@@ -191,9 +194,7 @@ class QuoteParts:
 
     def _earlier(self, part: QuotePart, how: str) -> None:
         day, name = self.day, part.name
-        self.running[name] = EarlierRun(lambda: self.locks.held(day, name),
-                                        lambda: self.markers.recorded(day, part.canonicals),
-                                        lambda: self.markers.missing(day, part.canonicals))  # fmt: skip
+        self.running[name] = EarlierRun(lambda: self.locks.held(day, name), self.markers, day, part.canonicals)
         self.how[name] = how
 
     def _still_running(self, name: str) -> str:
@@ -206,9 +207,9 @@ class QuoteParts:
         """How the part ran in this run and when it was started, by whichever run started it (the lock's record)."""
         return result | {"how": self.how.get(name, STARTED), "started_at": self.locks.started(self.day, name)}
 
-    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool) -> None:
+    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool, errors: list[str]) -> None:
         del self.running[part.name]
-        result = outcome(part.arguments, code, lines).result
+        result = outcome(part.arguments, code, lines, errors=errors).result
         files = self.changed(part.pathspecs)
         try:
             message = f"3 pm quotes {self.day} {part.name}"

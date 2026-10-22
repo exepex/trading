@@ -44,7 +44,7 @@ python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan:
 
 ## Routines
 
-- **Daily desk routine** (daily 14:33 IST, cloud routine; the NSE calendar decides the day): `python -m fno daily run`
+- **Daily desk routine** (daily 14:05 IST, cloud routine; the NSE calendar decides the day): `python -m fno daily run`
   records the 3 pm quotes, runs the paper desk and posts the card (see `CLAUDE.md`, "Daily desk routine"). Recorded
   files are never edited.
 

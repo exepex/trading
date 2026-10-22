@@ -73,7 +73,8 @@ def day(root, tmp_path, alerts):
                 "price_ranges": RecordedStep("price_ranges", calls),
                 "price_range_scores": RecordedStep("price_range_scores", calls),
                 "candles": RecordedStep("candles", calls),
-                "lab_close": RecordedStep("lab_close", calls),
+                "close_read": RecordedStep("close_read", calls),
+                "close_recheck": RecordedStep("close_recheck", calls),
             }
             | (steps or {}),
         )
@@ -90,7 +91,8 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
         "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card",
-        "price_distribution", "price_distribution_scores", "price_ranges", "price_range_scores", "candles", "lab_close",
+        "price_distribution", "price_distribution_scores", "price_ranges", "price_range_scores", "candles",
+        "close_read", "close_recheck",
     ]  # fmt: skip
 
 
@@ -189,7 +191,7 @@ def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_re
     steps = rerun.run(NORMAL).steps
     assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
     assert new_calls == ["card", "price_distribution", "price_distribution_scores", "price_ranges",
-                         "price_range_scores", "candles", "lab_close"]  # fmt: skip
+                         "price_range_scores", "candles", "close_read", "close_recheck"]  # fmt: skip
     assert new_parts.processes.started == [] and alerts.sent == []
     done = steps["quotes_done"]["result"]
     assert done["status"] == STEP_OK and {n: (p["how"], p["commit"]) for n, p in done["parts"].items()} == {

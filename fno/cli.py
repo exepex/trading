@@ -12,6 +12,7 @@ from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
 from .circulars.cli import add_circulars_parser
+from .close_read.cli import add_closes_parser
 from .config import ROOT, load_app_config
 from .daily.cli import add_daily_parser
 from .desk.cli import add_desk_parser
@@ -30,11 +31,13 @@ from .global_cues.cli import add_global_cues_parser
 from .health.calendar_stop import calendar_stop, command_name
 from .health.cli import add_health_parser
 from .intraday.cli import add_intraday_parser
+from .itm_chance.cli import add_itmchance_parser
 from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
+from .preopen.cli import add_preopen_parser
 from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
@@ -242,11 +245,14 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
     add_factory_parser(sub)
     add_pricedist_parser(sub)
+    add_itmchance_parser(sub)
     add_pricerange_parser(sub)
+    add_closes_parser(sub)
     add_lab_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)
     add_flows_parser(sub)
+    add_preopen_parser(sub)
 
     args = p.parse_args(argv)
     try:

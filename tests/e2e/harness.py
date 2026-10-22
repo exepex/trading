@@ -22,6 +22,7 @@ from pathlib import Path
 from fno.composition import open_account_writer
 from fno.config import ROOT, load_app_config
 from fno.constants import BOOKS, PLAYBOOK_FOLDER
+from fno.daily.full_log import FULL_LOGS
 from fno.daily.runner import DayRunner
 from fno.desk.private_files import PrivateFiles
 from fno.models import IST
@@ -32,7 +33,7 @@ from fno.storage.wiring import QUOTES_FOLDER
 from tests.checks.builders import CALENDAR, nse_files
 from tests.timetable.drive_day import fresh_container
 
-from .children import Background, Children, Foreground, groww_snapshot, nse_snapshot
+from .children import Background, Children, Foreground, groww_snapshot, nse_snapshot, weekly_snapshot
 from .outside import (
     DAY,
     START,
@@ -136,12 +137,23 @@ class Day:
         """Every commit message `origin` holds: what the run published."""
         return git(self.root.parent / "origin.git", "log", "--format=%s", "main").splitlines()
 
+    def origin_files(self) -> list[str]:
+        """Every path `origin` holds at main."""
+        return git(self.root.parent / "origin.git", "ls-tree", "-r", "--name-only", "main").splitlines()
+
     def step(self, name: str) -> dict:
+        """A step's result as committed: status only (O1-status-only)."""
         return self.log()["steps"][name]["result"]
+
+    def full_step(self, name: str) -> dict:
+        """The same step's whole result, text included, from the private git-ignored full log."""
+        path = self.root / FULL_LOGS / f"{self.day}.json"
+        return json.loads(path.read_text(encoding="utf-8"))["steps"][name]["result"]
 
     def move_to(self, day: date) -> None:
         """The next routine: a new container (no private record left locally), 14:33 on `day`, fresh child commands."""
         fresh_container(self.root)
+        shutil.rmtree(self.root / FULL_LOGS, ignore_errors=True)  # private and local: a new container has none
         self.day = day
         self.clock.set(datetime.combine(day, START.timetz()))
         self.children = children(self)
@@ -211,7 +223,8 @@ def quote_parts_script(day_: Day) -> dict:
         clock.set(max(clock(), datetime.combine(day_.day, time(15, 13), IST)))
         for name in ("banknifty", "finnifty", "midcpnifty"):
             groww_snapshot(build_quote_store(staging), day_.day, name, clock())
-        return 0, ["recorded: 3 indices"]
+        weekly_snapshot(LocalFolderStore(staging), day_.day, clock())  # A4f: the indices part's fourth marker
+        return 0, ["recorded: 3 indices and NIFTY weekly"]
 
     return {
         ("quotes", "record"): Background(nifty),

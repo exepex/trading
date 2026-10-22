@@ -50,7 +50,8 @@ API keys or tokens.
 
 ## Daily desk routine (story O1; the 3 pm quote parts: stories A4, A4c and A7)
 
-Started by the owner's scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55);
+Started by the owner's scheduled session at 14:05 IST every day (owner, 21 Oct 2026, from 22 Oct: the weather and the
+v4 forecasts must run before their 14:30 cutoff, so setup must end well before 14:30);
 its stored prompt is exactly: "Run the daily desk routine in CLAUDE.md, section 'Daily desk routine'." One command runs
 the whole desk day; the NSE session calendar (A7) decides whether it is a trading day (a closed day records only
 `skipped` and each quote part prints "not a trading day"). Research and paper trading only: never places, modifies or
@@ -62,9 +63,8 @@ cancels orders.
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
    decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
-   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww)
-   and, from 15:45 IST, FL1-1's forecast lab report to #fno-forecast (`lab close`; from its `daily.live_from` date). It
-   writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww).
+   It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done.
 3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
@@ -91,10 +91,11 @@ each part's commit in its one thread. The `git add` lines below are also the han
    itself when `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector.
    Note them in `conversations/<date>.md`.
 3b. Right after NIFTY's push, run `python -m fno quotes record-indices` (story A4c: BANKNIFTY, FINNIFTY and
-   MIDCPNIFTY; 15:01-15:13 IST, paced; raw quotes to Drive only), alongside NSE if it is still running. When it is
-   done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
-   ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'`, commit and
-   push. It alerts #fno-desk itself for any index not recorded.
+   MIDCPNIFTY, then NIFTY's two nearest weeklies, story A4f; 15:01-15:13 IST, paced; raw quotes to Drive only),
+   alongside NSE if it is still running. When it is done: `git add ':(glob)research/data/quotes/groww/**/banknifty_*'
+   ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'
+   ':(glob)research/data/quotes/groww/**/niftyweekly_*'`, commit and push. It alerts #fno-desk itself for any index
+   not recorded.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday
@@ -102,6 +103,67 @@ each part's commit in its one thread. The `git add` lines below are also the han
    expired; the day ends "none" if it lasts to 15:10). Post one line with the result to #fno-desk (`C0C89E8QCCD`)
    yourself only for any other result, or if it printed "alert NOT sent". Note every such result in
    `conversations/<date>.md`.
+
+## Morning and evening forecast routines (story FL1-1d)
+
+Started by the owner's two scheduled sessions (owner, DESK_DECISIONS lines 284 and 287; the owner creates them, no
+session does). Their stored prompts are exactly: "Run the morning routine in CLAUDE.md, section 'Morning and evening
+forecast routines'." at 08:38 IST, and "Run the evening routine in CLAUDE.md, section 'Morning and evening forecast
+routines'." at 19:53 IST, both every day: NSE's calendar decides the day. Each edition posts only from its
+`forecast_lab.live_from` date in `config.yaml` ("not live" before it). Research and paper trading only: never places,
+modifies or cancels orders, and neither uses Groww.
+1. `sh tools/routine_setup.sh` (prints "routine setup ok").
+1b. The morning only, before `lab open`: `python -m fno data-librarian index-close --from "$(TZ=Asia/Kolkata date -d
+   '-7 days' +%F)"` archives the previous sessions' official index-close files in Drive (A9's command, unchanged;
+   orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
+   failure of the routine: the morning then says "not archived yet". Then `git pull --no-rebase origin main`, so
+   A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
+1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
+   list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
+   `receipts/data/closes/`; exit 1: post every line it printed (the read's problem line and the commit line) to
+   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then, before
+   `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
+   dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
+   data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
+   fii-dii-cash-by-session`. A librarian line "not published by the source <day>" means "not out yet" (the edition
+   says so); any other problem line ("damaged in store", "rejected from source", "stopped:", a Drive sign-in
+   refusal) is noted and posted to #fno-desk. After `lab close`, `python -m fno lab release-check` (read-only, never
+   fails) appends to `research/data/forecast_lab/release/`; commit those logs with the receipts in step 3.
+2. The morning: `python -m fno lab open` posts today's forecast to #fno-forecast before 09:15, with the earlier
+   evenings' checks confirmed against NSE's official closes; at or after 09:15 it posts nothing and alerts once. The
+   evening: `python -m fno lab close` checks today's forecast against today's close and posts to #fno-forecast. Each
+   prints its lines and exits 1 when its report was not posted (it alerts #fno-desk itself).
+3. Commit only that edition's receipts: `git pull --no-rebase origin main`, then `git add
+   receipts/data/forecast_lab/v1/<morning|evening>/` (the evening also `research/data/forecast_lab/release/`), commit and `git push origin HEAD:main` (record scan on, never
+   `--no-verify`). If the push is refused, pull and push once more; if it fails again, post "receipt NOT pushed" with
+   the edition and day to #fno-desk (`C0C89E8QCCD`) with the Slack connector: the Drive copy is the record.
+4. If it printed "alert NOT sent", post those lines to #fno-desk with the Slack connector. Note any failure in
+   `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+
+## Pre-open capture (story A22)
+
+Started by the owner's scheduled session at 08:36 IST every day; its stored prompt is exactly: "Run the pre-open capture
+in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is read through the read-only allow-list.
+1. `sh tools/routine_setup.sh --groww` (prints "routine setup ok").
+2. The trading-day check, once, before anything else (judge 439): `python -c "from fno.models import now_ist;
+   from fno.storage.trading_days import is_trading_day; from fno.storage.wiring import build_session_calendar;
+   print('trading day' if is_trading_day(build_session_calendar(), now_ist().date()) else 'not a trading day')"`.
+   On "not a trading day" stop here. If it stops with a calendar error, post that one line to #fno-desk and stop.
+3. On a trading day, run both at once (each waits for its own windows and commits only its own files): first start
+   `global-cues preopen` in the background, then run `preopen record` in the foreground, then wait for the background
+   one to finish too (part B reads 08:50-09:05 while `preopen record` runs to about 09:11; started after it, part B's
+   window would be gone; judge 450):
+   - background: `python -m fno global-cues preopen` (story A17e part B: the open Asian indices' levels, 08:50-09:05
+     IST, its own commit, its own alert and O10 row on any failure).
+   - foreground: `python -m fno preopen record`. It reads GIFT Nifty (08:40-08:44:59), NSE's F&O pre-open list
+     (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09 one-minute candle from Groww (09:10:00-09:10:59), saves the
+     raw answers and the day row write-once to Drive, and itself commits and pushes `research/ops/capture_errors.csv`
+     and `receipts/` to `main` by about 09:12 (GIFT Nifty's own file and receipt already when its read ends, about
+     08:41, for the 08:50 morning edition). It ends on "pre-open recorded" or "pre-open recorded with problems: ..."
+     (exit 1; it posts that one line to #fno-desk itself).
+4. If either printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk
+   (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only
+   the files the command names, never `--no-verify`). No value is ever posted or committed.
 
 ## Branch
 
@@ -152,7 +214,8 @@ commit with `--no-verify`.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/storage/quote_wiring.py` (the 3 pm quote store: Groww's
   raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/quotes/window_wiring.py`
-  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/risk/wiring.py` (the
+  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/quotes/index_wiring.py`
+  (the other indices' 3 pm recorders and NIFTY's weeklies, stories A4c and A4f), `fno/risk/wiring.py` (the
   risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
   and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),
@@ -169,7 +232,8 @@ commit with `--no-verify`.
   private packs, story E2), `fno/scorecard/wiring.py` (strategy scorecards and pause rules, story E6),
   `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4),
   `fno/vix_history/wiring.py` (the India VIX full history: NSE's month files, its table and checks, story A15),
-  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17),
+  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17;
+  the world indexes and their pre-open Asian levels, story A17e),
   `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
@@ -190,16 +254,20 @@ commit with `--no-verify`.
   `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
   parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
   `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a),
+  `fno/preopen/wiring.py` (the morning capture: GIFT Nifty, NSE's pre-open list, Groww's 09:09 candles, story A22),
   `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b) and
   `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
   scores: A4's chains, the panel, closes, O9's Drive store, story G13) and `fno/price_ranges/wiring.py` (NIFTY's and
-  BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b).
+  BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b)
+  and `fno/itm_chance/wiring.py` (each monthly contract's market-implied ITM chance and its calibration: G13's records,
+  E7's settlement reader and the legacy-file reader behind it, G13b's closes, O9's Drive store, story G13c).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
   file (owner, 16 Oct 2026; story O9, built step by step).
 - F&O output goes only to three Slack channels, all with `FNO_SLACK_BOT_TOKEN` (owner, 21 Oct 2026; story FL1):
   #fno-desk (`C0C89E8QCCD`) takes every alert and the daily card; #fno-forecast (`C0CAZS76WBC`) the forecast lab's
-  09:15 and 15:45 reports; #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and hourly lines. Never the market-brief
-  tool's `SLACK_*` variables or #market-brief, and no other channel (the record scan allows only these three IDs).
+  morning (08:50) and evening (20:05) editions (story FL1-1d); #fno-intraday (`C0CAZRX0ZQA`) the lab's fills and
+  hourly lines. Never the market-brief tool's `SLACK_*` variables or #market-brief, and no other channel (the record
+  scan allows only these three IDs).
 - Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.

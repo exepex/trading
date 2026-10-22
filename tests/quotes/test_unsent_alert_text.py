@@ -42,7 +42,7 @@ class SlackUp:
 def _run(monkeypatch, capsys, sender, quotes_cmd="record", recorder=None):
     monkeypatch.setattr("fno.composition.build_alert_sender", lambda: sender)
     monkeypatch.setattr("fno.composition.build_quote_recorder", lambda cfg: recorder)
-    monkeypatch.setattr("fno.composition.build_index_quote_recorders", lambda cfg: {})
+    monkeypatch.setattr("fno.quotes.index_wiring.build_index_quote_recorders", lambda cfg: {})
     monkeypatch.setattr("fno.quotes.indices_cli.IndexRecording", Indices)
     args = Namespace(quotes_cmd=quotes_cmd, config=None, source="configured", window=None, outside_window=False)
     code = cmd_quotes(args)
