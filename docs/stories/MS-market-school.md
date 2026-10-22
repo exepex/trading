@@ -556,6 +556,41 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
 
+### MS-P1c Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-dashcam`)
+
+Round 1, built on a's tip 756e6545. Files: `fno/school/dashcam/` (names, publisher, reader, store, seals, counts,
+replay, wiring), `tests/school/dashcam/` (a real git remote and a local-folder Drive; production classes otherwise).
+
+| Criterion | Code | Test (fails when the code is broken on purpose) |
+|---|---|---|
+| 1 write-once; `ReplayConflict` "rule broken" | `store.DriveDashcamStore.seal` | `test_the_same_records_again_are_a_no_op_with_the_same_seal`, `test_other_records_for_a_sealed_key_are_a_replay_conflict_reported_as_rule_broken`, `test_a_conflict_in_the_receipt_alone...` (Drive untouched) |
+| 2 stale seal: not pushed, pushed late, other SHA-256 | `seals.SealChecker.check` | `test_seals.py` (6 tests incl. a forged commit and an earlier time) |
+| 3 counts file: scan clean, no strike, price or symbol | `counts.PublicCountsFile` | `test_the_file_passes_the_record_scan_and_holds_only_codes_and_whole_numbers` |
+| 4 replay reads exactly what was sealed | `replay.ReplayReader`, `reader.VerifiedDriveReader` | `test_replay_reads_back_exactly_the_records_sealed`, tamper and stale-cache tests |
+| 5 conformance | `check_dashcam` | `test_the_conformance_check` |
+
+Broken-code proof: 10 mutations (conflict handler, each seal check, the push check, the read-back hash, the counts
+rewrite guard, a price leaking into the counts, the reader's own-file check) each fail a named test; one survivor
+(reader) was found and a test added.
+
+Self-review (an independent review agent, read-only) found 8 points. Accepted and fixed, with tests: a seal is now
+checked against the remote's receipt (commit, SHA-256 and time), not trusted (2, 6); a failed push is pushed by the
+rerun (3); a conflict is judged on the remote receipt before Drive is touched (4); a rerun in a fresh checkout
+returns the existing seal and writes no second receipt (5); the counts slot is validated (7). Partly accepted (1):
+`pushed_at` is the receipt commit's own time, which is never later than the push; it stays so because a rerun must
+return an equal seal. A fill is made only after `seal` returns (so after the push); the fill port (d) must also
+call `SealChecker` with its own fill time. Not done (7, 8): the counts file's exists-then-write is not atomic across
+two processes (one writer per session in the fleet), and counts are not tied to a sealed SHA-256.
+
+Limits for others: `ReceiptPublisher` pushes `receipts/data/school/` only, to `main`, through A16f's committer
+(refuses a checkout carrying other unpushed changes). Nothing commits the counts file; the join-up (j) must commit
+`research/school/counts/` with its own push. No Drive or git is touched when `school.enabled` is false (nothing here
+runs until j calls it).
+
+Round 1 follow-up (orchestrator, 22 Oct 2026; both open items accepted):
+- The proof that a seal came before its fill is that the seal's receipt exists on the remote, with the sealed SHA-256, when `SealChecker` runs at fill time; `pushed_at` is labelled "commit time, not push time" and is a secondary check only.
+- Assumption: the counts file is written by one process only (the join-up's single runner); j tests it.
+
 ### MS-P1a Claims, round 2 (judge 479, FAIL round 1: four should-fixes)
 
 | Judge 479 finding | Fix | Test (and the plants it catches) |
@@ -583,3 +618,21 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
+
+MS-P1c round 2 (orchestrator and Judge J early findings, each checked and fixed; merged a's tip 32fdbdde):
+- **Shallow clone (defect, reproduced and accepted):** `git log --diff-filter=A` in a shallow clone returns the boundary
+  commit as the receipt's add commit, so a rerun names the wrong commit and a real seal is refused. `GitReceiptPublisher`
+  now fetches the rest once (`git fetch --unshallow`, detected with the research engine's `Git.is_shallow`) or raises
+  `ShallowClone` naming the command; `SealChecker` turns that into `StaleSeal`. Tests with a depth-1 clone:
+  `test_a_shallow_clone_names_the_real_add_commit_not_its_boundary_commit`,
+  `test_a_shallow_clone_that_cannot_be_deepened_is_refused_by_name`.
+- **Five surviving plants, now caught:** a Drive-level conflict after a failed push
+  (`test_a_rerun_with_other_records_after_a_failed_push_is_a_replay_conflict`); `published()` without its fetch
+  (`test_published_fetches_a_receipt_another_checkout_pushed_after_this_one_cloned`); no `--diff-filter=A`
+  (`test_a_receipt_file_touched_again_still_names_the_commit_that_added_it`); the counts session and slot filter
+  (`test_records_of_another_session_or_slot_are_not_counted`); the counts slot validation
+  (`test_a_slot_that_is_not_a_time_never_reaches_a_path`).
+- **Dead code removed:** `_identity` and `SealChecker.is_valid` (tests only) in `seals.py`.
+- **a's `find`:** `DriveDashcamStore.find(session, slot, kind)` (my earlier `sealed`, renamed to the contract's name): the
+  seal of a file whose receipt is on the remote, else None (`test_find_*`, and a's conformance check).
+
