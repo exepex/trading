@@ -92,3 +92,32 @@ are clean.
 survived. The code is right; add the test.
 
 **Plants:** 7 on the new code, 6 caught, 1 survived (the new minor).
+
+## Addendum 2
+
+**Round 2 of 2, at the right tip:** story/ms-p1-tickets at b40cf1cf (code cad9a608 / ec9128b6), tickets diff
+a50caf62..b40cf1cf. The orchestrator ruled that Addendum 1 judged a superseded tip and doesn't use up the round. This
+addendum replaces it as my round 2. **Verdict: PASS** as second judge, with 1 minor. I still haven't read Judge K's
+verdict.
+
+**Gates (my run):** pytest -n auto: 10,626 passed, 16 xfailed. ruff check/format, check_imports and check_records
+are clean.
+
+**Findings:**
+1. **Refusal reason: ACCEPTED.** `named_refusal` names a stop, then a trade-validity law, then an account limit.
+   My runs:
+   - `[bucket_cap, daily_stop]` gives `daily_stop`;
+   - `[open_risk, max_loss]` gives `max_loss`;
+   - `[open_risk, bucket_cap]` gives `ticket: account_limit`.
+   Plant (`binding` dropped) caught.
+2. **Empty law results: ACCEPTED.** `classify` raises on `()`, `ticket_laws_pass(())` is False,
+   `first_binding_refusal(())` raises, and `counts_for` raises for a trade or ticket with no results. All 4 plants
+   caught.
+3. **Size order: accepted in Addendum 1, unchanged.**
+- **Minor (a), results from the caller: ACCEPTED.** `TicketBook.enter` now takes the sealed `DecisionRecord` and reads
+  its `law_results` (plant setting `binding = None` caught).
+
+**Still open, minor:** no test covers an outcome whose exit was unservable (removing `o.exit` in `rupees.py` survives
+again). The code is right. Add the test before j relies on it.
+
+**Plants:** 7, 6 caught, 1 survived (the minor).
