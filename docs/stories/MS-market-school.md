@@ -528,6 +528,39 @@ Runs on a's fakes here; story j must pass it with the real wiring.
   builds d's settlement source on b's `build_archive_stores` (the service account's Drive, else the owner's, else
   `RawFilesNotConfigured`); d's own `SettlementStoresNotConfigured` stays until then.
 
+**Design (builder, 22 Oct 2026; for the orchestrator's check).** `fno/school/fleet/`:
+- `history.py` `RecordedSpotHistory`: each road's earlier recorded 15:00 spots, read from the repository's committed
+  sidecars of canonical captures (complete, in window, a spot), strictly before the session. No Drive and no new read.
+- `running_view.py`: the slot's running `AccountView`, which is the account's own view plus the trades already
+  accepted this slot (their maximum losses, as open positions opened this session). It is rebuilt after each account
+  record.
+- `slot.py` `SlotPlan`: per road, the catalogue's road days, then the snapshot, then the quality gate. A closed road
+  gives every driver `road_closed` with the road's one reason, and its detail goes in `inputs["road_detail"]`.
+- `decide.py`:
+  - each driver on each open road, isolated: an exception is sealed `unavailable: driver_error`, named by class, and
+    a driver over its time limit is sealed `unavailable: deadline`;
+  - then `tickets.rules.classify` with the running view;
+  - then each open position's `review_exit`, after the pairing check (driver and road), giving `ExitRecord`s.
+- `fill.py`:
+  - entry fills (account trades by `SchoolFills`, tickets by `TicketBook`);
+  - per road, `allocate`: only servable account entries are recorded, the rest are `size_shared`;
+  - then exit fills, then the NIFTY drift rows.
+- `outcomes.py`: an `OutcomeRecord` per closed position, with `is_ticket` set from the ledger it came from.
+- `runner.py` `SchoolFleet.run(session, mode)`:
+  1. the switch;
+  2. settlement of expired positions (accounts and tickets) before the first view;
+  3. if the session is already sealed, it fills only what is missing, idempotently, and seals nothing;
+  4. otherwise: plan, decide, seal `decisions`, fill, seal `outcomes` and `drift`, write the public counts file
+     and commit it once (the single runner).
+- `quote_share.py`: per road, the share of scheduled decisions refused by law 5's four reasons. Margin-not-checked
+  refusals are counted by their cause, never by quoting a note. Notes never leave the dashcam.
+- `fno/school/wiring.py`: the composition root (b, c, d, e, f, the settlement source on b's `build_archive_stores`,
+  and g's day inputs); `python -m fno school run [--session D] [--replay]` is the reserved CLI line. Off by
+  `school.enabled`.
+- `tests/school/acceptance/real_rig.py`: i's harness on the real fleet, with b's captures written as files and the
+  archived listing and lot files as fixtures; the dashcam is c's store on a local Drive folder and a local git remote.
+- The daily-run steps are a separate branch, `story/ms-p1j-daily-steps`, not merged until the v4 sign-off.
+
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
 2. Every scheduled road decision has exactly one sealed outcome (count = trading roads x drivers).
