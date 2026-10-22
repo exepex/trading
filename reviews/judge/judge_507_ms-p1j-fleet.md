@@ -50,3 +50,39 @@ by the orchestrator) is not re-raised.
   unmeasured history through this allocation, or every simulated fill becomes `size_shared`.
 - **The real acceptance test** (9 cases) skips until d's `SchoolAccounts.entries` (judge 488.4) merges. I did not
   see it pass. That should be shown before j merges.
+
+## Addendum 1
+
+**Scope:** MS-P1j "round 3" (the builder's numbering), story/ms-p1j-fleet at cb059340, main merged in. It applies the
+orchestrator's rulings on round 2 and judge I's note, and touches a, f, g, i and the lab's reserved line on purpose.
+This is my round 2 of 2 (first judge, independent of judge K).
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 12087 passed, 16 xfailed. `ruff check`, `ruff format`, `check_imports` and `check_records`
+  (8426 files) are clean.
+- **Real acceptance on the real wiring: 9 of 9 pass** (`test_acceptance_real.py`, run by me). My round-1 note 3 is
+  met.
+- **The new pieces, checked.**
+  - **Settlements.** `LedgerEntry.recorded_for` is a session date, kept in d's canonical position records. The
+    session's settlement exit records are rebuilt from every expiry closing recorded for that session, so a crash
+    between a settlement and the seal still seals its exit and outcome, and an earlier session's settlement is never
+    sealed again.
+  - **Late rerun.** A rerun that finishes after 15:30 writes the "rerun after 15:30, fillable may differ" mark;
+    counts already written only commit.
+  - **Accounts.** Every account and ticket-ledger call goes through `account_call`, so an unreadable account stops
+    the run by name with nothing sealed, and `school run` exits 1.
+- **Plants: 15 of my own re-run here, 14 caught.**
+  - From round 1, now caught: the commit-only branch removed (the 15:30 test kills it, as round 1 asked) and
+    recorded exits re-priced.
+  - New, caught: every session's settlements sealed; an account settlement without its session; a late rerun never
+    marked; the view unguarded.
+  - Survived, equivalent: "outcomes sealed every run" (re-sealing the same records is a no-op).
+  - One round-1 plant no longer applies, because the code changed.
+
+**Notes.**
+1. `recorded_for` joins `LedgerEntry`, and the position records decode strictly, so a line written before this field
+   fails to decode. No school account exists yet (the school is off). If one ever does before this merges, it needs
+   a schema step.
+2. My round-1 note 1 (the SPAN download inside the first driver's limit, about 19 s of 60 s) and note 2 (`allocate`
+   reads a missing size as 0, so practice fills must not go through it) still stand.
