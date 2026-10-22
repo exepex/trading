@@ -263,7 +263,10 @@ def test_the_ramp_stops_at_its_hard_end_time_and_never_waits_past_it(monkeypatch
     (None, "no run log"),
     ({"steps": {}}, "no candles step"),
     ({"steps": {"candles": {"started_at": "2026-10-27T15:32:10+05:30"}}}, "the candles step has not finished"),
-    ({"steps": {"candles": {"started_at": "x", "finished_at": "2026-10-27T15:33:17+05:30"}}}, ""),
+    ({"steps": {"candles": {"finished_at": "2026-10-27T15:33:17+05:30", "result": {"status": "failed"}}}},
+     "the candles step ended failed"),
+    ({"steps": {"candles": {"finished_at": "2026-10-27T15:33:17+05:30"}}}, "the candles step ended without a status"),
+    ({"steps": {"candles": {"finished_at": "2026-10-27T15:33:17+05:30", "result": {"status": "ok"}}}}, ""),
 ])  # fmt: skip
 def test_the_after_close_ramp_waits_for_a16bs_candle_catch_up(log, why):
     found = catch_up_gate(log, DAY)

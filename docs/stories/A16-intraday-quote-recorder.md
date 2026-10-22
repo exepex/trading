@@ -714,6 +714,8 @@ one).
   sign-in and the quotes are never reached (each stub fails the test if called).
 - **Minor 1:** `wait` returns False when no time is left, and the watch loop then returns, so a plant on its condition
   ends instead of spinning (test).
+- **Addendum 6's minor:** the catch-up gate also requires the candles step's `result.status == "ok"`, since a failed
+  catch-up may run again the same day on the same key. Tests: ended failed, and ended without a status.
 - **Minor 2:** when alongside cuts to 1,000 it prints which instruments it kept: index values, futures, then options,
   and the last kept class. With today's ±10 strikes there are 226, so the cut does not happen.
 

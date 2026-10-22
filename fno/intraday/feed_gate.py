@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
+from ..constants_operations import STEP_OK
 from .status import GOOD
 
 GATE_MARKS = ("10:30", "10:45")
@@ -49,4 +50,7 @@ def catch_up_gate(run_log: dict | None, day: date) -> str:
         return NO_CATCH_UP.format(day=day, why="no candles step")
     if not step.get("finished_at"):
         return NO_CATCH_UP.format(day=day, why="the candles step has not finished")
+    status = (step.get("result") or {}).get("status")
+    if status != STEP_OK:  # a failed catch-up may be run again the same day, on the same key (judge 499 addendum 6)
+        return NO_CATCH_UP.format(day=day, why=f"the candles step ended {status or 'without a status'}")
     return ""
