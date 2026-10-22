@@ -96,3 +96,40 @@ The Nasdaq-100 comparison is weaker than it looks:
 **Proposal:** add the key to the environment, run the ALFRED measurement for all six series, and log the morning
 "Updated" times until Mon 26 Oct. Then decide Brent, Nikkei, S&P 500 and Nasdaq-100 on that evidence. Keep
 Treasury, Cboe's VIX and RBI/FBIL now.
+
+## Addendum 1 (22 Oct, after the orchestrator's decision): nothing to build
+
+The orchestrator's decision:
+1. Nikkei's 2019-2022 history from FRED, marked as source FRED.
+2. Brent from FRED, only if it lets the EIA scraper be **deleted**.
+
+Neither holds up once the code is read. No code was committed. The branch `story/gc2-fred` was deleted unpushed.
+
+**Brent: the EIA parser cannot be deleted (strong evidence, from the code).**
+- `global-cues verify` (`fno/global_cues/verify.py`, `_values`) recomputes every table row by parsing the archived copy
+  the row names, with the cue's current source.
+- All 4,992 recorded Brent rows name EIA's HTML copies. With FRED as the source, every one of them would fail "fails the
+  publisher's check".
+- Keeping them verifiable means keeping EIA's parser. The only other way is rewriting recorded rows, which loses their
+  first-seen times and is never done.
+- So both would stay, and by the decision's own condition Brent is skipped.
+
+**Nikkei: a FRED cue would add code, and the need is met without it.**
+- The same `verify` fact rules out replacing Nikkei's own source: its 928 rows name Nikkei's CSV copies.
+- A history-only FRED source of the same cue ends in Jan 2023, so every run would mark it STALE. A separate live
+  `nikkei225_fred` cue would need IndexReader changes. Both add code, the opposite of GC2's aim.
+- The real value of FRED's history was checking Yahoo's 2019-2022 Nikkei, which IndexReader uses before Nikkei's own
+  file starts. That needs one comparison, not a cue. **Done today:**
+  - FRED and Yahoo have 976 common dates from 4 Jan 2019 to 10 Jan 2023: **all 976 exact**, none over 0.1%.
+  - One date is FRED-only: 1 Oct 2020, the day the Tokyo Stock Exchange halted all trading after a system failure.
+    FRED repeats 30 Sep's close there, a value that never traded. Yahoo correctly has no row.
+  - So Yahoo's 2019-2022 Nikkei is verified against Nikkei's own figures as mirrored by FRED. FRED is the weaker of the
+    two on a halted day.
+
+**GC2's conclusion, for the story:** FRED is exact but mostly late. Adopting it for Brent or Nikkei would keep the old
+parsers, because every recorded row must stay verifiable from its own archived copy. So it saves no code. FRED's one
+use, checking Yahoo's 2019-2022 Nikkei, is done here as a one-off comparison. All 976 dates are equal; FRED's 1 Oct 2020
+is a repeated value on a halted day. The global-cue sources stay as they are.
+
+**A general lesson, from the code:** any source swap in this module keeps the old parser for as long as recorded rows
+name its copies. A swap only removes code for a cue with no recorded rows.
