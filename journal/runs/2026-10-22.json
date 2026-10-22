@@ -28,6 +28,21 @@
     "status": "not_live",
     "reason": "owner_timing:SEALED_ONLY"
    }
+  },
+  "margin_check": {
+   "started_at": "2026-10-22T14:05:57.632234+05:30",
+   "finished_at": "2026-10-22T14:05:59.158011+05:30",
+   "inputs": {
+    "command": [
+     "margins",
+     "stress-broker-check"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_2",
+    "exit_code": 2
+   }
   }
  }
 }
