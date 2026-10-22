@@ -184,6 +184,7 @@ Rules for every story:
 - `fno/school/fakes.py`: in-memory fakes of every port, for every story's tests;
 - `tests/school/contracts/`;
 - one empty package per later story, each with a `wiring.py` whose docstring names its story and nothing else;
+- `fno/school/fake_fleet.py`: the fake fleet for MS-P1i's harness;
 - shared files, one line each:
   - `fno/config.py`: add `school` to `ALLOWED_APP_KEYS`;
   - `config.yaml`: the `school` block (below);
@@ -191,33 +192,29 @@ Rules for every story:
 
 **Interfaces and frozen data types (frozen dataclasses or `Protocol`s; field names final in a's code):**
 
-| Contract | Shape |
+| Contract (module in `fno/school/contracts/`) | Shape (the code is the authority) |
 |---|---|
-| `Road` | `code` (one of 5), `underlying`, `expiry_kind` (monthly or weekly), `dataset` |
-| `RoadDay` | `road`, `session`, `expiries`, `lot` (dated, with its source), `strike_step`, `status: RoadStatus` |
-| `RoadStatus` | `open` or `closed` plus exactly one `ClosureReason` |
-| `RoadCatalogue` | `day(session) -> tuple[RoadDay, ...]` |
-| `SlotSnapshot` | `road`, `session`, `snapshot_id`, `sha256`, `started_at`, `finished_at`, `spot`, `expiries`, `quotes: Mapping[ContractKey, SlotQuote]` |
-| `SlotQuote` | `bid`, `ask`, `bid_qty`, `ask_qty`, `last`, `valid` (A4) |
-| `SnapshotSource` | `for_road(road_day) -> SlotSnapshot` (raises `SnapshotUnavailable(reason)`) |
-| `ContractKey` | `expiry`, `strike`, `kind` (CE/PE) |
-| `LegSpec` | `key`, `side`, `lots` |
-| `Proposal` | `structure`, `legs`, `lot`, `net_premium`, `max_loss` (every charge and pad), `score` |
-| `DriverCard` | `code`, `version`, `family`, `roads`, `band`, frozen parameters, `card_sha256`, `role` (rule, control, measurement-only) |
-| `Driver` | `card`; `decide(road_day, snapshot, history, positions) -> Decision` |
-| `Decision` | `driver`, `road`, `session`, `outcome` (`trade`, `ticket`, `no_trade`, `refused`, `road_closed`, `unavailable`), `reason`, `proposal | None` |
-| `SafetyLaw` | `check(proposal, account: AccountView, session) -> LawResult` (`passed`, `reason`, `limit`, `value`) |
-| `AccountView` | open positions with their maximum losses, equity high, equity, loss since the previous slot, trades opened this session (read-only) |
-| `AccountPort` | `view(driver)`, `record_fill(fill)`; one account per driver version |
-| `FillPort` | `enter(decision, snapshot, seal) -> FillResult`, `exit(position, snapshot, reason, seal) -> FillResult`, `settle(position, expiry)` |
-| `FillResult` | filled legs or `refused` with reason codes; never partial |
-| `DecisionRecord` / `OutcomeRecord` | the fields of 3.4; `to_canonical_json()` and `from_json()` (sorted keys, fixed float format: equal input, equal bytes) |
-| `DashcamStore` | `seal(session, slot, records) -> Seal`; `read(seal)`; write-once (other bytes raise `ReplayConflict`) |
-| `Seal` | `path`, `sha256`, `pushed_at`, `commit` |
-| `OpportunityCounts` | `eligible`, `fillable`, `executed` per (road, driver, session); `eligible >= fillable >= executed` checked on build |
-| `ReportSection` | `render(session) -> SectionText` |
-| `Banner` | `RED` or `AMBER` only |
-| `Clock` | `now()`: a fixed clock in replay |
+| `Road`, `ROADS` (`roads.py`) | `code` (one of 5), `underlying`, `expiry_kind`, `dataset` (A4's and A4f's own constants), `stem` |
+| `RoadDay`, `RoadStatus`, `DatedLot` | `road`, `session`, `expiries` (nearest first), `lot` (units, source), `strike_step`, `status` (open, or closed by exactly one `ClosureReason`) |
+| `RoadCatalogue` | `day(session) -> tuple[RoadDay, ...]`: all five roads on a trading day, none on a closed day |
+| `SlotSnapshot`, `SlotQuote`, `ContractKey` (`snapshot.py`) | `road`, `session`, `snapshot_id`, `sha256`, aware `started_at`/`finished_at`, `spot`, `expiries`, `quotes`; a quote's `two_sided` and `mid` |
+| `SnapshotSource` | `for_road(road_day) -> SlotSnapshot`, or `SnapshotUnavailable(reason)` |
+| `LegSpec`, `Proposal` (`decisions.py`) | legs; `lot`; `net_premium`; `max_loss` (every charge and pad); `costs` (inside `max_loss`); `score` |
+| `DriverCard`, `SpotPoint`, `OpenPosition` | card `code`, `version`, `family`, `role`, `roads`, `band_steps`, `parameters`, `card_sha256`; history of recorded 15:00 spots; open position with `structure`, legs, `lot`, `opened`, `entry_net`, `max_loss` |
+| `Driver` | `decide(road_day, snapshot, history, positions) -> Decision`; `review_exit(position, snapshot, history) -> ExitReason | None` |
+| `Decision` | `driver_id`, `road`, `session`, `outcome`, `reason` (from that outcome's enum), `proposal` (exactly for trade, ticket and refused) |
+| `SafetyLaw`, `LawResult`, `AccountView` (`safety.py`) | `check(proposal, account, snapshot, session) -> LawResult` (`passed`, `reason`, `limit`, `value`, `note`); the view holds equity, its high, loss since the previous slot, positions, `brake_engaged_on`, `brake_lifted_on`. Law 6 (no record, no trade) is `FillPort.enter`'s seal check |
+| `AccountPort`, `LedgerEntry` (`accounts.py`) | `view(driver_id, marks by road, session)`; `record(driver_id, LedgerEntry)`: an opening or closing (with its `ExitReason`) filled result, idempotent |
+| `FillPort`, `FillResult`, `FilledLeg`, `SealedDecision` | `FillResult.cash`: rupees moved, after charges. `enter(sealed, snapshot, seal, at)` (refuses `stale_seal` unless the seal covers the decision file at `at`); `exit(position, snapshot, file_sha256, seal, at)`; `settle(position, expiry)`. A result is exactly one of: filled legs (with time and the file they rest on), a refusal, or a state |
+| `IndexSettlementSource`, `SettlementPrice` | `price(underlying, expiry)` with the settlement file's SHA-256, or `SettlementUnavailable` |
+| `DecisionRecord`, `ExitRecord`, `OutcomeRecord`, `DriftRow` (`records.py`) | the fields of 3.4; a closed road is exactly a `road_closed` decision with the same reason; `DriftRow` is the NIFTY diagnostic, never a fill |
+| `encode_slot_file`, `decode_slot_file` (`slot_file.py`) | one gzip (time zero, no name) of canonical JSON lines per (session, slot, kind): equal records, equal bytes |
+| `DashcamStore`, `Seal` (`dashcam.py`, `seal.py`) | `seal(session, slot, kind, records) -> Seal`; `find(session, slot, kind) -> Seal | None`; `read(seal) -> records`; write-once per (session, slot, kind): other records raise `ReplayConflict` |
+| `FleetRunner`, `SessionRun`, `RunMode` (`fleet.py`) | `run(session, mode) -> SessionRun`: one sealed decision per scheduled (road, driver version), sealed before any fill; a rerun seals nothing new; off: `SCHOOL_OFF_LINE` and nothing recorded. Fake: `fno/school/fake_fleet.py` |
+| The law split (`constants.py`) | `ACCOUNT_LIMITS` (bucket, open risk, new risk a day, margin room: relaxed for tickets), `DRIVER_STOPS` (daily stop, brake: a stopped or braked driver issues no tickets that day), `TRADE_VALIDITY` (every other refusal) |
+| `OpportunityCounts` (`tickets.py`) | `eligible >= fillable >= executed >= 0` per (session, road, driver) |
+| `ReportSection`, `SectionText`, `Banner` (`reports.py`) | `render(session)`; the banner is red or amber, no other value |
+| `Clock`, `FixedClock` (`clock.py`) | `now()`, aware; fixed in replay |
 
 **The `school` block in `config.yaml` (all off):**
 - `enabled: false`;
@@ -236,7 +233,8 @@ Rules for every story:
 3. A record round-trips to identical bytes, and a changed field changes the bytes.
 4. `Banner` has exactly two members.
 5. `settings` refuses an unknown or missing key and a negative limit.
-6. With `enabled: false` every fake fleet path reports "school off".
+6. The repository's settings load with `enabled` and `reports` false; `SCHOOL_OFF_LINE` ("school off") is the line
+   j prints when the switch is off (a has no fleet path to test it on).
 7. An import test: nothing under `fno/school/` imports an order call, a Slack client or the Groww SDK.
 8. Every fake satisfies its `Protocol`, checked by a conformance test that each later story's real class must also
    pass (`tests/school/contracts/conformance.py`, importable).
@@ -278,7 +276,7 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 `tests/school/accounts/`, `tests/school/execution/`.
 
 **Implements:**
-- one `SafetyLaw` per law 1-7 of 3.3; `SafetyLaws` runs all of them and keeps every reason; C2's rule classes are
+- one `SafetyLaw` per law 1-5 and 7 of 3.3 (law 6 is the fill port's seal check); `SafetyLaws` runs all of them and keeps every reason; C2's rule classes are
   reused on the driver's `AccountView` through an adapter, never edited;
 - `AccountPort`: one `PaperAccount` per driver version (`fno/books/account.py`), private through E2c's
   `PrivateFiles`;
@@ -341,8 +339,8 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 **Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or on a driver stopped for the
-  day, priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
+- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or refused only by an account limit
+  (ACCOUNT_LIMITS; a driver stopped for the day or braked gets no tickets, DRIVER_STOPS), priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
   with only the account limits relaxed;
 - the `OpportunityCounts` builder (eligible, fillable, executed);
 - the shared-displayed-size count (327 item 10).
@@ -440,7 +438,20 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - the reserved line in `fno/cli.py` that registers `python -m fno school`;
 - later (blocked) the new step rows in `DAILY_RUN_STEPS`, after v4's, never inside its frozen files.
 
-**Implements:** `FleetRunner.run(session, mode)`:
+**Implements:** `FleetRunner.run(session, mode)` (a's contract; it passes `check_fleet` and MS-P1i's harness):
+- **requirement from MS-P1f:** the `check(decision, accepted)` given to `tickets.rules.classify` builds its
+  `AccountView` with the trades already accepted in that slot, so the bucket, open-risk, new-risk and margin laws add
+  them up before any fill;
+- **requirement (orchestrator, 22 Oct):** before `review_exit`, the fleet checks that each position's driver and road
+  match the driver asked and the snapshot's road; a mismatch is that driver's `unavailable: driver_error`, never an
+  exit;
+- **requirement (orchestrator, 22 Oct):** a REF entry refused only by account limits (C2's bucket among them) becomes
+  `ticket: account_limit` through `tickets.rules.classify`, the same rule as every driver, so REF stays measured on
+  every open road-slot;
+- **requirement (orchestrator, 22 Oct):** the daily and the 30-session reports show, per road, the share of scheduled
+  decisions refused for quotes (law 5: `missing_quote`, `one_sided_quote`, `size_above_displayed`,
+  `protection_unsellable`). The capture gate's band is about 10 steps of the money while the shorts sit about 20 steps
+  out, so thin far legs stay visible here even when the road passes its gate;
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
@@ -592,3 +603,76 @@ missing settings and a refused sign-in included (by class name only).
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
 self-review findings and what was done; a real output sample (dry run on a recorded day, counts only). Empty until
 MS-P1a is built; each later story keeps its own Claims subsection here.
+
+### MS-P1a Claims (round 1, branch `story/ms-p1-contracts`; the SHA is in the commit that carries this text)
+
+| # | Criterion | Code | Test (broken-code proof: the plant it catches) |
+|---|---|---|---|
+| 1 | Every type is frozen | `fno/school/contracts/*.py` | `test_types.py::test_every_contract_type_is_frozen` (all dataclasses of 10 modules) |
+| 2 | `OpportunityCounts` refuses `fillable > eligible` | `contracts/tickets.py` | `test_counts_out_of_order_are_refused` (plant: check removed) |
+| 3 | Records round-trip to identical bytes; a change changes them | `contracts/codec.py`, `records.py`, `slot_file.py` | `test_records.py` (plants: unsorted keys, int kept in a float field, -0.0, gzip time, union int) |
+| 4 | Banner has two members | `contracts/reports.py` | `test_the_banner_has_red_and_amber_only` (plant: GREEN added) |
+| 5 | Settings refuse unknown or missing keys and negative limits | `fno/school/settings.py` | `test_settings.py` (plants: subset check, `< -1`) |
+| 6 | The repository's settings load off | `config.yaml` `school` | `test_the_repository_settings_are_off_with_todays_limits` (plant: `enabled: true`) |
+| 7 | No order, Slack, Groww or HTTP import under `fno/school/`; no production module imports the fakes | all | `test_boundaries.py` |
+| 8 | Every fake passes the conformance check its real class must pass | `fno/school/fakes.py`, `tests/school/contracts/conformance.py` | `test_fakes_conform.py` (plants: fake replay conflict removed, bid used to buy, ledger not idempotent) |
+
+- **Gates on this tree:** `pytest -q -n auto` gave 10,244 passed, 16 xfailed. `ruff check fno tests tools`, `check_imports` and `check_records` are clean.
+- **Plants:** 24 planted, 24 caught (script in the builder's scratchpad; each one restored after its run).
+- **Self-review** (one independent review agent on `8d093468..2fb6deab`): 4 blocking, 8 should-fix and 5 minor findings. All were fixed in this round except where marked:
+  - The fill port could not check which file a seal names. Fixed: `SealedDecision` plus `enter(sealed, snapshot, seal, at)`. Conformance tests a late and a wrong-SHA seal.
+  - The account could not build positions from a bare fill. Fixed: `LedgerEntry`. Conformance checks that the entry shows open and that recording it again changes nothing.
+  - `view` took one road's snapshot. Fixed: marks by road.
+  - The dashcam file format was not in the contract, and gzip was not deterministic. Fixed: `encode_slot_file` (gzip time zero) and a `RecordKind` in the key.
+  - Int-in-float and -0.0 round-trips. Fixed in `to_plain`.
+  - The safety-law check shared one account. Fixed: (proposal, account) pairs.
+  - The brake had no latched state. Fixed: `brake_engaged_on`.
+  - Record and decision consistency. Fixed:
+    - a closed road is exactly a `road_closed` decision with the same reason;
+    - an open road names its snapshot;
+    - a refusal carries its proposal;
+    - a `FillResult` is exactly one of three forms;
+    - `Proposal.costs` added.
+  - Exits. Fixed: an `ExitReason` enum, `Driver.review_exit`, and an `ExitRecord` sealed with the decisions.
+  - Drift. Fixed: a `DriftRow` type, no longer an exit state.
+  - Settlement had no seal. Fixed: `FillResult.rests_on` (the settlement file's SHA-256) and an `IndexSettlementSource` port with a conformance check.
+  - Minor, fixed:
+    - law 6 is the fill port's check (story updated);
+    - `Road.dataset` uses A4's and A4f's own constants;
+    - the catalogue check needs all five roads;
+    - the fill check verifies touch prices and units;
+    - a clock check added;
+    - `RefusalReason.IMPOSSIBLE_LEG_PRICE` keeps every reason code unique;
+    - snapshot expiries are sorted.
+  - Not changed (finding 12, partly): `SCHOOL_OFF_LINE`, `NO_LATENCY_LABEL`, `NSE_TERMS_LINE`, `FLEET_TOTAL_LABEL` and `PAPER_LABEL` stay unused in a. They are the frozen wording for g and j, so those parts cannot drift apart. Criterion 6 now claims only what a can test.
+- **Deliberate duplication:** the `school` limits copy today's book caps rather than reading `risk.profiles.books`, so a desk change cannot move the pilot mid-count. `test_the_school_limits_equal_the_books_caps_today` makes any divergence a visible decision.
+- **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
+  `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
+
+### MS-P1a Claims, round 2 (judge 479, FAIL round 1: four should-fixes)
+
+| Judge 479 finding | Fix | Test (and the plants it catches) |
+|---|---|---|
+| 1. The import test missed relative imports, and the contracts loaded `requests`, `fno.providers` and `fno.intraday` | `test_boundaries.py` resolves relative imports. The contracts, constants, settings and both fakes import only the stdlib and `fno/school`: the order sides and the two dataset names are now school constants, pinned equal to their sources | `test_a_planted_relative_import_is_caught` (the judge's two plants); `test_the_contracts_load_only_the_standard_library_and_the_school` (a fresh interpreter: nothing loaded outside the stdlib but the empty `fno` package); `test_shared_values.py`. Plants: both relative imports in `roads/__init__.py`, a recorder import in `contracts/roads.py`, a changed dataset name |
+| 2. No dashcam lookup | `DashcamStore.find(session, slot, kind) -> Seal \| None` (additive) | `check_dashcam`: None before the seal, the seal after, None for another kind. Plant: a fake `find` that always says None |
+| 3. No frozen law split | `ACCOUNT_LIMITS`, `DRIVER_STOPS` and `TRADE_VALIDITY` in `constants.py`; `TicketReason.ACCOUNT_LIMIT` replaces `DRIVER_STOPPED` (orchestrator's ruling, checked against reviews 138 and 139: "relax only account-level cash/bucket limits") | `test_law_split.py`: exact sets, a partition of every refusal, never protection, max loss, quotes, prices or the seal. Plants: max loss added to the limits, the brake dropped from the stops |
+| 4. No fleet contract | `contracts/fleet.py` (`FleetRunner`, `SessionRun`, `RunMode`) and `fake_fleet.py` | `check_fleet` and `check_fleet_off` on the fake; `test_fake_fleet.py`. Plants: a wrong seal SHA at fill, no rerun skip, the switch ignored, `SessionRun` consistency removed |
+
+- **Also, from MS-P1f's questions (orchestrator, 22 Oct):** a `FillResult.cash` property. The fakes use it; f will
+  use it. Test: `test_a_fill_s_cash_is_premium_received_less_paid_and_charges`. Plant: the sign flipped.
+- **Changes for the b-e builders**, listed for the orchestrator. Everything else is additive.
+  - **(i) Renamed:** `TicketReason.DRIVER_STOPPED` is now `ACCOUNT_LIMIT`.
+  - **(ii) Moved:** `Road.dataset` values are unchanged, but the import source changed. `SIDE_BUY`, `SIDE_SELL` and
+    `SIDES` now also live in `fno.school.constants`, so school code should import them from there.
+  - **(iii) New method:** `DashcamStore.find` must now be implemented by c's store.
+  - **(iv) New field (for d, orchestrator, 22 Oct):** `LawResult.note: str = ""` is a plain label recorded with the
+    result. It never changes `passed`: a law with unusable input still refuses (fails closed, as C2 does).
+  - **(v) New code (for e, orchestrator, 22 Oct):** `NoTradeReason.NO_VALID_QUOTES` ("no valid ATM straddle or no
+    two-sided quotes for the structure"), apart from `NO_STRUCTURE_UNDER_CAP`.
+- **Judge's notes (no action):**
+  - `OpportunityCounts` has no scheduled count. MS-P1f's `CountTotals.scheduled` carries the denominator.
+  - A refused ticket and a refused trade look the same in a `Decision`. That is deliberate: both are `refused`, with
+    the law results in the record.
+- **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
+  `check_records` are clean.
+- **Plants:** 36 planted, 36 caught over a's tests.

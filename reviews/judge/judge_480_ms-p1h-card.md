@@ -62,3 +62,52 @@ it), and the two CLI `_book` plants (minor c).
 - `build_counting_rule` has no caller yet; it waits for the join-up.
 - In a shallow clone the card check fails safe (it doesn't count). D6's pickaxe has its own shallow risk, which comes
   from D6 and isn't this diff's.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-p1-card at ecd5f9da, diff ff6c813a..ecd5f9da. **Verdict: FAIL.** 1 should-fix, which the
+fix itself introduced, and 3 minor. This was the last round, so the owner decides. (Claim row 480 now carries my
+real session id, commit 983e3735.)
+
+**Gates (my run):** pytest -n auto 10,319 passed, 1 skipped (b's band pin), 16 xfailed. ruff, check_imports and
+check_records are clean. Largest file is 152 lines.
+
+**Round-1 findings:**
+1. **First counted session: ACCEPTED.** The value is read from `config.yaml` at the decision's own commit, and the
+   commit that wrote it must be a strict ancestor (`counting.py:74-79`). Real-git tests cover a date moved back, moved
+   later, set after the decision, and set in the decision's own commit. My plants caught: the strictness check, the
+   tree read at HEAD, the date check.
+2. **Card versions: ACCEPTED.** Each decision counts under the last card commit strictly before it, and a later edit
+   leaves it counted. Plants caught: first instead of last version, no ancestry filter.
+3. **Card text: ACCEPTED.** 24 variants and trials 71-98, the RESULTS wording, the band and the impossible-price rule
+   (b's single source, pin test skips until b lands), and PS5's and KL1's roads are all on the page.
+4. **DRY: ACCEPTED.** One adapter over `ledger.Git`, and the tests use `Git`.
+- **Minors (a)-(d): ACCEPTED.** Tests replaced, the component name pinned, the CLI tested, the "frozen once" wording
+  gone.
+
+**New findings:**
+1. **Should-fix: a charges change without a new card version is no longer caught.**
+   - Round 1's HEAD test is removed. The remaining test checks the cost block only at the card's own last commit
+     (`test_card.py:28-36`).
+   - The card says "A changed charge schedule is a new card version" (§3), but if someone changes `charges:` in
+     `config.yaml` and leaves the card alone, CI stays green. Later decisions then count under a card whose frozen
+     cost hash no longer matches the costs they were priced with.
+   - Since versions are now forward only, putting back a HEAD check costs nothing: a charges change then forces a
+     new card version, which never touches earlier decisions.
+   - Expected: a test (or the rule) that fails when the `charges:` block at HEAD (or at the decision's commit) differs
+     from the hash frozen in the card version in force.
+
+**Minor:**
+- (a) **The pickaxe needs one exact spelling.** `first_commit_containing("first_counted: <date>")` misses a value
+  aligned with spaces. In my temp repo, `first_counted:   2026-11-30` gives `set_in=None`, so nothing ever counts,
+  silently. Today's line is column-aligned (`first_counted:            # ...`). Normalise the spacing, or find the
+  commit through the parsed value; and test it.
+- (b) **The impossible-price check covers only band legs.** The card's band paragraph (the orchestrator's ruling) is
+  honest that the band measures capture completeness only, and it labels its width "reasoning only". It doesn't say
+  that `impossible_keys` also runs only on band legs, and law 5 checks two-sidedness and size, not impossible prices.
+  So a traded leg outside the band (shorts about 20 steps out) is never checked for an impossible price. Say so on
+  the card.
+- (c) The `isinstance(value, date)` guard is untested: a quoted date would reach `.isoformat()` on a string (plant
+  survived).
+
+**Plants:** 7 on the new code, 6 caught, 1 survived (minor c).
