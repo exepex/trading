@@ -43,5 +43,5 @@ def build_close_reader(env=os.environ) -> CloseReader:
     store = DriveClosesStore(drive, build_data_store(WRITER, env=env), receipt_folder())
     calendar = build_session_calendar()
     alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
-    confirmer = Confirmer(store, ArchivedIndexCloses(build_index_close_files()), calendar, alerts)
+    confirmer = Confirmer(store, ArchivedIndexCloses(build_index_close_files()), calendar, alerts, now=now_ist)
     return CloseReader(NseIndexList(PublicData().nse_json), store, confirmer, calendar, now_ist, time.sleep)

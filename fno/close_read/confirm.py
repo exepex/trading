@@ -8,15 +8,17 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import SessionCalendar
 from .constants import (
     CONFIRM_LINE,
+    CONFIRM_STARTS_UNTIL_SECONDS,
     DIFFERS_ALERT,
     INDICES,
+    LEFT_FOR_NEXT_RUN,
     NOT_YET,
     OVERDUE,
     OVERDUE_ALERT,
@@ -32,13 +34,18 @@ FAILED = "close confirm {day}: not confirmed ({kind}, message withheld); tried a
 
 class Confirmer:
     def __init__(self, store: ClosesStore, official: OfficialCloses, calendar: SessionCalendar, alerts: AlertSender,
-                 log: Callable[[str], None] = print):  # fmt: skip
+                 log: Callable[[str], None] = print, now: Callable[[], datetime] | None = None):  # fmt: skip
         self.store, self.official, self.calendar, self.alerts, self.log = store, official, calendar, alerts, log
+        self.now = now
 
-    def run(self, today: date) -> None:
+    def run(self, today: date, started: datetime | None = None) -> None:
+        """`started`: when the command began; no new day starts after the time budget (the rest wait a run)."""
         written = self.store.written()
-        days = sorted(d for d in map(day_of, written) if d is not None and d < today)
-        for day in (d for d in days if confirm_path(d) not in written):
+        days = sorted(d for d in map(day_of, written) if d is not None and d < today and confirm_path(d) not in written)
+        for done, day in enumerate(days):
+            if started is not None and self._out_of_time(started):
+                self.log(LEFT_FOR_NEXT_RUN.format(count=len(days) - done))
+                return
             try:
                 self._confirm(day, today, written)
             except Exception as error:  # noqa: BLE001 - one day's failure never stops the others or the read
@@ -61,6 +68,9 @@ class Confirmer:
         self.log(CONFIRM_LINE.format(day=day, results=text))
         if any(results[n.listed] != "confirmed" for n in INDICES if n.checked):
             announce(self.alerts, DIFFERS_ALERT.format(day=day, results=text))
+
+    def _out_of_time(self, started: datetime) -> bool:
+        return self.now is not None and (self.now() - started).total_seconds() >= CONFIRM_STARTS_UNTIL_SECONDS
 
     def _overdue(self, day: date, today: date, written: set[str]) -> bool:
         """True from the second session after the day on; the first such run writes the mark and alerts once."""

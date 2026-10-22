@@ -12,6 +12,10 @@ STAMP_FROM = time(15, 30)  # a list counts only when NSE stamped it today at or 
 TRIES, TRY_GAP_SECONDS = 3, 60
 TOLERANCE = 0.01  # points: "confirmed" within it (the official file has two decimals)
 OVERDUE_SESSIONS = 2  # a day still unconfirmed at the second session after it alerts once
+# A new day's confirm starts only this long after the run began (judge 447 add. 1): one day's archive retries can take
+# about 5 minutes (5/15/45 s pauses and a 60 s timeout per try), so 240 + 300 s stays inside O1's 600 s command limit
+# and a good read never ends "failed" (reasoning only, from the library's retry policy).
+CONFIRM_STARTS_UNTIL_SECONDS = 240
 
 ALL_INDICES_PATH = "/api/allIndices"  # the endpoint A4's market levels read (fno/quotes/market_levels.py)
 STAMP_FORMAT = "%d-%b-%Y %H:%M"  # NSE's `timestamp`, e.g. "21-Oct-2026 15:30"
@@ -45,6 +49,7 @@ AT_RECHECK = " at recheck (no first read to compare)"
 RECHECK_LINE = "close recheck {day}: {results}, NSE stamp {stamp}, {path} sha256 {sha}"
 CONFIRM_LINE = "close confirm {day}: {results}"
 NOT_YET = "close confirm {day}: no official index-close file in Drive yet"
+LEFT_FOR_NEXT_RUN = "close confirm: {count} earlier day(s) left for the next run (time budget)"
 OVERDUE = "close confirm {day}: still not confirmed on {today} (no official index-close file); one alert"
 DIFFERS_ALERT = "Omenix F&O close read: {day}'s provisional close differs from NSE's official file: {results}"
 OVERDUE_ALERT = "Omenix F&O close read: {day}'s provisional close is still unconfirmed on {today}: no official file"

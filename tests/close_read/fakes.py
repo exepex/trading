@@ -101,5 +101,5 @@ class Clock:
 
 def reader(store, source, clock, official=None, alerts=None, lines=None):
     log = lines.append if lines is not None else print
-    confirmer = Confirmer(store, official or Official(), CALENDAR, alerts or Alerts(), log)
+    confirmer = Confirmer(store, official or Official(), CALENDAR, alerts or Alerts(), log, clock.now)
     return CloseReader(source, store, confirmer, CALENDAR, clock.now, clock.sleep, log)

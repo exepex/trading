@@ -50,7 +50,7 @@ class CloseReader:
     def run(self, which: str = READ) -> int:
         started = self.now()
         code = self._read_day(started, which)
-        self.confirmer.run(started.date())
+        self.confirmer.run(started.date(), started)
         return code
 
     def _read_day(self, started: datetime, which: str) -> int:
