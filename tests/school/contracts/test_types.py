@@ -26,6 +26,7 @@ from fno.school.contracts.reports import Banner
 from fno.school.contracts.roads import RoadStatus
 from fno.school.contracts.safety import LawResult
 from fno.school.contracts.seal import Seal
+from fno.school.contracts.snapshot import SlotQuote
 from fno.school.contracts.tickets import OpportunityCounts
 from tests.school.contracts import builders as b
 
@@ -158,6 +159,20 @@ def test_a_quote_is_two_sided_only_when_valid_with_both_prices_and_sizes():
     assert not dataclasses.replace(b.quote(), valid=False).two_sided
     assert not dataclasses.replace(b.quote(), bid_qty=0).two_sided
     assert dataclasses.replace(b.quote(), ask=None).mid is None
+
+
+def test_a_quote_whose_sizes_were_not_measured_is_two_sided_on_its_prices_alone():
+    unmeasured = SlotQuote(10.0, 11.0, None, None, 10.5, True, sizes_measured=False)
+    assert unmeasured.two_sided and unmeasured.mid == 10.5
+    assert not dataclasses.replace(unmeasured, valid=False).two_sided
+    assert dataclasses.replace(unmeasured, ask=None).mid is None
+    assert not SlotQuote(10.0, 11.0, None, None, 10.5, True).two_sided, "a measured quote still needs both sizes"
+
+
+@pytest.mark.parametrize("sizes", [(1000, None), (None, 1000), (1000, 1000), (0, 0)])
+def test_an_unmeasured_quote_carrying_any_size_is_refused_at_construction(sizes):
+    with pytest.raises(ValueError):
+        SlotQuote(10.0, 11.0, *sizes, 10.5, True, sizes_measured=False)
 
 
 def test_snapshot_expiries_are_nearest_first():
