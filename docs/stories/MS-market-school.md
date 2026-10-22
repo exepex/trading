@@ -755,3 +755,43 @@ NIFTY-W through 2026-10-22: snapshots 1 of 10 (capture_missing 9); legs 84 of 84
 ```
 The scheduled legs now come from NSE's listing and equal the captured band on every road-day, as the judge saw, so the
 counts do not move; the difference is that a dropped strike would now show.
+
+### MS-P1i Claims, round 2 (judge 487 FAIL round 1: one blocking, one should-fix, two minors)
+
+Built on `main` (a merged) plus part b's round-2b tip fdbea6c7, because the planters now sit on b's real input types.
+
+**1. Blocking, the closure planters (fixed; the orchestrator's ruling).** A `Scenario` is now the data the detectors read,
+not a verdict: `snapshots` (what each road's capture holds), `listed_expiries` (what the archived NSE listing says each
+road records), `lots` (the session's dated lot copy, units per expiry), the drivers and the seal timing. There is no
+road status in it.
+- *Expiry mismatch:* the capture's contracts and expiry list carry dates a week later than the listing's.
+- *Lot mismatch:* the lot copy gives the later expiry another lot than the earlier one, so there is no single lot.
+- *Impossible price:* two strikes of one expiry and type are quoted so that the dearer leg's whole bid-ask range sits
+  below the cheaper leg's bid (b's `impossible_keys`: the vertical cannot be worth 0 to its width).
+The same reason codes are expected. The fake rig runs b's real classes over them: the scenario's snapshots are written as
+the recorder writes them (sidecar, quote file, canonical marker) and read back by `CaptureReader`; `RecordedRoadCatalogue`
+compares the expiries with the listing and the lot copy; `RoadQualityGate` closes the road on the price. Tests:
+`test_the_closure_planters_change_the_data_the_detectors_read_never_a_verdict` (the planted data differs, and the clean
+chain has no impossible leg while the planted one has) and
+`test_the_real_detectors_name_the_planted_reason_before_any_driver_decides` (b's catalogue says `expiry_mismatch` and
+`lot_mismatch`; its gate says `impossible_price`). **For j:** `real_rig(scenario)` writes `snapshots` as captures through
+the real recorder writers, `listed_expiries` as the archived F&O file and `lots` as the archived `fo_mktlots.csv`, then
+runs the real fleet; the planters are used unchanged.
+
+**2. Should-fix, the nine unproven checks (fixed).** `tests/school/acceptance/test_harness_checks.py` feeds a bad run or
+rig to each and sees it fail: the closure leak, a position opened for a refused entry, stale-seal fills reaching the
+ledger, a rerun that fills again or seals other decisions, a scheduled decision with no sealed outcome, a trade
+decision over the cap, the refused entry's exact reason, the fill-path reason, and a partial fill.
+
+**3. Minors (fixed).** (a) The fill-path reason is matched on the planted driver's own fill (fills are one per trade
+decision, in decision order; conformance's `check_fleet` holds the counts equal), and a test shows a reason on another
+driver's fill does not count. (b) `check_no_invented_fills` now covers exits (at the touch of the road's snapshot);
+a settlement (exit reason `expiry`) is priced at intrinsic against NSE's file, not a quote, and stays with part d's
+settlement tests, said in the check's docstring and tested to be skipped.
+
+**Mutations:** 16 applied to the harness, planters, scenario and capture writer (the nine checks, exits, the own-fill
+tie, the three planters as no-ops, the key shift, the writer's valid flag), 16 caught, none surviving (two survived
+first, and a test was added for each). Tests: 42 in `tests/school/acceptance/`.
+**Limits that remain:** the counts file, section inputs and denominator on the fakes are derived from the sealed
+decisions file (f, g and j supply the real ones); a missing quote is accepted as a law refusal or a refused fill; the
+replay-conflict fault is checked at the dashcam.

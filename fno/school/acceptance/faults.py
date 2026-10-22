@@ -8,8 +8,9 @@ from datetime import timedelta
 from enum import StrEnum
 
 from ...constants import SIDE_SELL
-from ..constants import ClosureReason, DriverRole, RefusalReason, RoadCode
+from ..constants import ClosureReason, DriverRole, OptionKind, RefusalReason, RoadCode
 from ..contracts.decisions import DriverCard, LegSpec, Proposal
+from ..contracts.snapshot import ContractKey
 from .scenario import DriverPlan, Scenario
 
 
@@ -47,20 +48,40 @@ def missing_quote(road: RoadCode) -> Fault:
     return Fault("missing quote", plant, Expect.REFUSED_OR_UNFILLED, RefusalReason.MISSING_QUOTE, road, None)
 
 
-def closed_road(name: str, road: RoadCode, reason: ClosureReason) -> Fault:
-    return Fault(name, lambda s: s.with_road_closed(road, reason), Expect.ROAD_CLOSED, reason, road)
+def expiry_mismatch(road: RoadCode, days: int = 7) -> Fault:
+    """The capture's contracts carry expiries a week later than the archived listing says the road records."""
+    return Fault("expiry mismatch", lambda s: s.with_expiries_shifted(road, days), Expect.ROAD_CLOSED,
+                 ClosureReason.EXPIRY_MISMATCH, road)  # fmt: skip
 
 
-def expiry_mismatch(road: RoadCode) -> Fault:
-    return closed_road("expiry mismatch", road, ClosureReason.EXPIRY_MISMATCH)
+def lot_mismatch(road: RoadCode, units: int = 35) -> Fault:
+    """The dated lot copy gives the road's later expiry another lot than its earlier one: no single lot."""
 
+    def plant(scenario: Scenario) -> Scenario:
+        later = scenario.snapshots[road].expiries[-1]
+        return scenario.with_lot(road, later, units)
 
-def lot_mismatch(road: RoadCode) -> Fault:
-    return closed_road("lot mismatch", road, ClosureReason.LOT_MISMATCH)
+    return Fault("lot mismatch", plant, Expect.ROAD_CLOSED, ClosureReason.LOT_MISMATCH, road)
 
 
 def impossible_price(road: RoadCode) -> Fault:
-    return closed_road("impossible price", road, ClosureReason.IMPOSSIBLE_PRICE)
+    """Two strikes of one expiry and type quoted so that no prices inside their bid-ask ranges fit a vertical worth
+    0 to its width (`quality.prices.impossible_keys`): the dearer leg's whole range sits below the cheaper leg's bid."""
+
+    def plant(scenario: Scenario) -> Scenario:
+        snapshot = scenario.snapshots[road]
+        expiry = snapshot.expiries[0]
+        kind = next(k.kind for k in snapshot.quotes if k.expiry == expiry)
+        strikes = sorted(k.strike for k in snapshot.quotes if k.expiry == expiry and k.kind is kind)
+        low, high = (ContractKey(expiry, strike, kind) for strike in strikes[:2])
+        dearer, cheaper = (
+            (low, high) if kind is OptionKind.CALL else (high, low)
+        )  # calls fall with the strike, puts rise
+        floor = snapshot.quotes[cheaper].bid
+        broken = replace(snapshot.quotes[dearer], bid=floor / 4, ask=floor / 2)
+        return scenario.with_quote(road, dearer, broken)
+
+    return Fault("impossible price", plant, Expect.ROAD_CLOSED, ClosureReason.IMPOSSIBLE_PRICE, road)
 
 
 def stale_seal() -> Fault:

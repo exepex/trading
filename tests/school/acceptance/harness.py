@@ -9,7 +9,7 @@ import pytest
 from fno.constants import SIDE_BUY
 from fno.school.acceptance.faults import Expect, Fault
 from fno.school.acceptance.scenario import Scenario
-from fno.school.constants import SLOT_1500, Outcome, RecordKind, RefusalReason
+from fno.school.constants import SLOT_1500, ExitReason, Outcome, RecordKind, RefusalReason
 from fno.school.contracts.accounts import LedgerEntry
 from fno.school.contracts.dashcam import ReplayConflict
 from fno.school.contracts.fleet import RunMode, SessionRun
@@ -42,8 +42,10 @@ def check_no_over_cap_trades(rig: Rig, run: SessionRun) -> None:
 
 
 def check_no_invented_fills(rig: Rig) -> None:
-    """Every entry leg fills at the touch of a two-sided quote of its road's snapshot (ask to buy, bid to sell)."""
-    for entry in (e for e in rig.ledger() if not e.closes):
+    """Every entry and exit leg fills at the touch of a two-sided quote of its road's snapshot (ask to buy, bid to
+    sell). A settlement (exit reason `expiry`) is priced at intrinsic against NSE's file, not a quote; part d's tests
+    own that check."""
+    for entry in (e for e in rig.ledger() if e.exit_reason != ExitReason.EXPIRY):
         snapshot = rig.snapshot_for(entry.position.road)
         assert len(entry.fill.legs) == len(entry.position.legs), "a partial fill"
         for leg in entry.fill.legs:
@@ -89,7 +91,7 @@ def verify_fault(fault: Fault, rig: Rig, run: SessionRun, baseline: SessionRun) 
             assert decision.reason == fault.reason and decision.proposal is not None
         else:
             assert decision.outcome == Outcome.TRADE
-            assert any(fault.reason in fill.refused for fill in run.fills), "no fill refused with the reason"
+            assert fault.reason in own_fill(run, fault.road, driver).refused, "no refusal on the driver's own fill"
     elif fault.expect is Expect.ALL_FILLS_STALE:
         assert run.decisions_seal is not None and run.fills
         assert all(fill.refused == (RefusalReason.STALE_SEAL,) for fill in run.fills)
@@ -101,6 +103,13 @@ def verify_fault(fault: Fault, rig: Rig, run: SessionRun, baseline: SessionRun) 
         assert rig.dashcam.read(run.decisions_seal) == before, "a sealed file changed"
     assert len(run.decisions) == len(rig.scenario.scheduled), "a scheduled road decision has no sealed outcome"
     assert baseline.decisions, "the clean day sealed nothing"
+
+
+def own_fill(run: SessionRun, road, driver_id):
+    """The fill of one trade decision: fills are one per trade decision, in decision order (conformance's
+    `check_fleet` holds the counts equal)."""
+    trades = [(r.road, r.decision.driver_id) for r in run.decisions if r.decision.outcome == Outcome.TRADE]
+    return run.fills[trades.index((road, driver_id))]
 
 
 def run_fault(fault: Fault, build: BuildRig, clean: Scenario) -> tuple[Rig, SessionRun]:

@@ -24,7 +24,9 @@ from fno.school.contracts.decisions import OpenPosition
 from fno.school.contracts.fleet import RunMode
 from fno.school.contracts.seal import StaleSeal
 from fno.school.contracts.slot_file import encode_slot_file
+from fno.school.contracts.snapshot import SnapshotUnavailable
 from fno.school.fakes import FakeDashcam
+from fno.school.quality.prices import impossible_keys
 from tests.school.acceptance import harness as h
 from tests.school.acceptance.recorded_day import CAP_RS, FILL_AT, recorded_day
 from tests.school.acceptance.rig import fake_rig
@@ -69,13 +71,41 @@ def test_the_planters_name_the_story_s_codes():
     assert refused_entry(ROAD).reason == RefusalReason.MAX_LOSS and replay_conflict().reason == ""
 
 
-def test_a_planter_changes_only_its_own_road_and_driver():
-    closed = expiry_mismatch(ROAD).plant(CLEAN)
-    assert [d.road.code for d in closed.road_days if not d.status.open] == [ROAD]
-    assert closed.snapshots == CLEAN.snapshots and closed.drivers == CLEAN.drivers
-    quoteless = missing_quote(ROAD).plant(CLEAN)
-    assert len(quoteless.snapshots[ROAD].quotes) == len(CLEAN.snapshots[ROAD].quotes) - 1
-    assert all(quoteless.snapshots[r] == CLEAN.snapshots[r] for r in CLEAN.snapshots if r != ROAD)
+def test_the_closure_planters_change_the_data_the_detectors_read_never_a_verdict():
+    expiry = expiry_mismatch(ROAD).plant(CLEAN)
+    assert expiry.snapshots[ROAD] != CLEAN.snapshots[ROAD] and expiry.listed_expiries == CLEAN.listed_expiries
+    assert expiry.snapshots[ROAD].expiries != CLEAN.listed_expiries[ROAD]
+    assert {k.expiry for k in expiry.snapshots[ROAD].quotes} == set(expiry.snapshots[ROAD].expiries)
+    assert expiry.lots == CLEAN.lots and expiry.drivers == CLEAN.drivers
+    lot = lot_mismatch(ROAD).plant(CLEAN)
+    assert lot.lots[ROAD] != CLEAN.lots[ROAD] and len(set(lot.lots[ROAD].values())) == 2
+    assert lot.snapshots == CLEAN.snapshots and lot.listed_expiries == CLEAN.listed_expiries
+    price = impossible_price(ROAD).plant(CLEAN)
+    assert price.snapshots[ROAD] != CLEAN.snapshots[ROAD] and price.lots == CLEAN.lots
+    assert impossible_keys(CLEAN.snapshots[ROAD]) == frozenset() and impossible_keys(price.snapshots[ROAD])
+    for planted in (expiry, lot, price):  # no other road is touched
+        assert all(planted.snapshots[r] == CLEAN.snapshots[r] for r in CLEAN.snapshots if r != ROAD)
+
+
+@pytest.mark.parametrize(
+    "fault,reason",
+    [(expiry_mismatch(ROAD), ClosureReason.EXPIRY_MISMATCH), (lot_mismatch(ROAD), ClosureReason.LOT_MISMATCH),
+     (impossible_price(ROAD), ClosureReason.IMPOSSIBLE_PRICE)],
+    ids=lambda v: getattr(v, "name", str(v)),
+)  # fmt: skip
+def test_the_real_detectors_name_the_planted_reason_before_any_driver_decides(fault, reason):
+    rig = fake_rig(fault.plant(CLEAN))
+    days = {d.road.code: d for d in rig.fleet.catalogue.day(CLEAN.session)}
+    clean_days = {d.road.code: d for d in fake_rig(CLEAN).fleet.catalogue.day(CLEAN.session)}
+    assert all(d.status.open for d in clean_days.values())
+    if reason is ClosureReason.IMPOSSIBLE_PRICE:  # the catalogue opens the road; the quality gate closes it
+        assert days[ROAD].status.open
+        with pytest.raises(SnapshotUnavailable) as raised:
+            rig.fleet.snapshots.for_road(days[ROAD])
+        assert raised.value.reason is reason
+    else:
+        assert days[ROAD].status.closed_by is reason
+    assert all(d.status.open for code, d in days.items() if code != ROAD)
 
 
 def test_a_fault_check_fails_when_the_fleet_does_not_catch_the_fault():
@@ -250,3 +280,23 @@ def test_the_counts_file_marks_executed_entries():
     rows = json.loads(rig.count_file(CLEAN.session))
     assert sum(row["executed"] for row in rows) == 10 and len(rows) == 15
     assert {row["driver"] for row in rows if row["executed"]} == {"CS1@1", "DR1@1"}
+
+
+def test_the_capture_writer_round_trips_a_scenario_through_the_real_reader_including_an_invalid_leg():
+    from fno.school.contracts.roads import ROADS_BY_CODE
+    from fno.school.roads.capture import CaptureReader
+    from tests.school.acceptance.rig import write_captures
+    from tests.school.roads.capture_builder import DictStore
+
+    key = next(iter(CLEAN.snapshots[ROAD].quotes))
+    scenario = CLEAN.with_quote(ROAD, key, replace(CLEAN.snapshots[ROAD].quotes[key], valid=False))
+    store = DictStore()
+    write_captures(store, scenario)
+    road = ROADS_BY_CODE[ROAD]
+    read = CaptureReader({r.dataset: store for r in ROADS_BY_CODE.values()}).read(road, scenario.session).snapshot()
+    assert dict(read.quotes) == dict(scenario.snapshots[ROAD].quotes) and not read.quotes[key].valid
+    assert (read.spot, read.expiries, read.started_at) == (
+        scenario.snapshots[ROAD].spot,
+        scenario.snapshots[ROAD].expiries,
+        scenario.snapshots[ROAD].started_at,
+    )
