@@ -4,18 +4,20 @@
 Live builds `LIVE`, refuses the same quote as `size_not_measured`, and cannot reach the practice path: no module
 outside the simulator imports a `practice_wiring`, and only the two safety wiring modules call `laws_with`."""
 
+import ast
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from fno.school.constants import RefusalReason, RoadCode
-from fno.school.execution.quote_rules import LIVE, PRACTICE_SIZE_NOTE
+from fno.school.execution.quote_rules import LIVE, PRACTICE_SIZE_NOTE, QuoteRules
 from fno.school.safety.law_set import refusals
 from fno.school.safety.practice_wiring import build_practice_safety_laws
 from fno.school.safety.quote_laws import SIZE_REASONS, QuoteGateLaw
 from fno.school.safety.wiring import build_safety_laws
 from tests.school.contracts import builders as b
-from tests.school.contracts.test_boundaries import FILES, SCHOOL, imports
+from tests.school.contracts.test_boundaries import SCHOOL, imports
 from tests.school.execution.test_practice_fills import UNMEASURED, unmeasured
 
 from .law_builders import CFG, SETTINGS, FixedMargin, view
@@ -24,7 +26,10 @@ SLOT = {RoadCode.BANKNIFTY_MONTHLY: b.snapshot()}
 LIVE_LAWS = build_safety_laws(CFG, SETTINGS, SLOT, FixedMargin())
 PRACTICE_LAWS = build_practice_safety_laws(CFG, SETTINGS, SLOT, FixedMargin())
 SHORT = b.snapshot(quotes={b.key(1000.0): b.quote(size=1), b.key(900.0): replace(b.quote(4.0, 5.0), bid_qty=1)})
-PRACTICE_ONLY = ("simulator/", "safety/practice_wiring.py", "execution/practice_wiring.py")
+FNO = SCHOOL.parent
+PRACTICE_ROOT = "school/execution/practice_wiring.py"
+PRACTICE_ONLY = ("school/simulator/", "school/safety/practice_wiring.py", PRACTICE_ROOT)
+FNO_FILES = sorted(p for p in FNO.rglob("*.py") if "__pycache__" not in p.parts)
 
 
 def by_name(results):
@@ -71,13 +76,28 @@ def test_the_live_root_builds_live_rules_only():
     assert len(quote_laws) == 5 and all(law.rules == LIVE and not law.rules.practice for law in quote_laws)
 
 
-@pytest.mark.parametrize("path", FILES, ids=lambda p: p.relative_to(SCHOOL).as_posix())
+def test_quote_rules_take_practice_by_name_only():
+    """Judge 488.6 note 1: a positional `QuoteRules(True)` would slip past the text scan below, so it cannot exist."""
+    with pytest.raises(TypeError):
+        QuoteRules(True)  # type: ignore[misc]
+
+
+def quote_rules_calls(path: Path) -> int:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return sum(isinstance(n, ast.Call) and getattr(n.func, "id", getattr(n.func, "attr", "")) == "QuoteRules"
+               for n in ast.walk(tree))  # fmt: skip
+
+
+@pytest.mark.parametrize("path", FNO_FILES, ids=lambda p: p.relative_to(FNO).as_posix())
 def test_no_live_module_reaches_the_practice_path(path):
-    relative = path.relative_to(SCHOOL).as_posix()
+    """Across all of `fno/`, not only the school (judge 488.6 note 1)."""
+    relative = path.relative_to(FNO).as_posix()
     names = imports(path)
     if not relative.startswith(PRACTICE_ONLY):
         assert not [n for n in names if "practice_wiring" in n], f"{relative} imports a practice composition"
-    if relative not in ("safety/wiring.py", "safety/practice_wiring.py"):
+    if relative not in ("school/safety/wiring.py", "school/safety/practice_wiring.py"):
         assert not [n for n in names if n.endswith(".laws_with")], f"{relative} builds laws with chosen rules"
-    if relative != "execution/practice_wiring.py":
+    if relative != PRACTICE_ROOT:
         assert "practice=True" not in path.read_text(encoding="utf-8"), f"{relative} builds practice rules"
+    if relative not in (PRACTICE_ROOT, "school/execution/quote_rules.py"):
+        assert not quote_rules_calls(path), f"{relative} builds its own quote rules"

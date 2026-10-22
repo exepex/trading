@@ -12,9 +12,9 @@ from ..contracts.snapshot import SlotQuote
 PRACTICE_SIZE_NOTE = "size gate not tested in practice"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class QuoteRules:
-    practice: bool
+    practice: bool  # keyword-only: a practice root names it, so the isolation test can find every one
 
     def sizes(self, quote: SlotQuote) -> tuple[float | None, float | None]:
         """(bid size, ask size) as E4 reads them."""

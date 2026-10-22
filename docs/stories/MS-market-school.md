@@ -1987,6 +1987,11 @@ Replaces the earlier part 4 (744299d6, never merged), which waived the size laws
 | Live cannot reach practice; no sentinel | `PRACTICE` built only in `execution/practice_wiring.py` (`build_practice_fill_port`); `safety/practice_wiring.py` builds the laws with it through `laws_with` | AST test: only `simulator/` and the two practice roots import a `practice_wiring`, only the two safety roots call `laws_with`, `practice=True` only in the execution practice root; the live root's five quote laws are all `LIVE`; no `10**9` or `SIZE_GATE_WAIVED` in `fno/` |
 
 - **Plants:** 6 planted, 6 caught (listed above).
+- **Judge 488.6 note 1 (Judge B: PASS), fixed at the root:** `QuoteRules` is keyword-only (`kw_only=True`), so a
+  positional `QuoteRules(True)` raises `TypeError` (tested). The isolation scan covers all of `fno/`, not only the
+  school, and now also refuses any `QuoteRules(...)` call outside `quote_rules.py` (LIVE) and the practice root, so a
+  computed `practice=` cannot slip past the text check. Plants: a module outside the school building
+  `QuoteRules(practice=bool(1))`, one importing the practice root, and the positional form allowed: 3 caught.
 - **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
 - **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
 
