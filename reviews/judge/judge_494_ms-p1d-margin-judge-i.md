@@ -28,3 +28,14 @@
 - The margin note now carries MS-P1m's or C2's message, which can name a contract or legs. No report reads `LawResult.note` today, and the records are Drive-only. g and j must not show the note in Slack: the privacy rule bans live strikes.
 - A missing mid inside `MarginRoom` (a quote problem) is now also noted "margin not checked: ...", so `margin_not_checked` counts it as no margin. The cause text tells the two apart; a report that counts "no margin data" should read the cause.
 - Still to come in part 2, as the Claims say: `_verticals` on b's function with its 1e-9 tolerance, and settlement on b's `build_archive_stores`.
+
+## Addendum 1: round 2 at 4d5ac7f6 (diff 6ef6f40b..4d5ac7f6)
+
+**Verdict: PASS** (Judge I, second judge; Judge B passed 6ef6f40b).
+
+- **Finding 1: FIXED.** `test_a_held_trade_s_entry_net_is_its_cash_flow_in_c2_s_max_loss` checks two things:
+  - the held trade counts at C2's own held maximum loss for its `entry_net`;
+  - the open-risk verdict at the cap moves with it: no credit breaks the cap, a double credit lowers the loss.
+  My two plants (entry net set to 0, entry net doubled) now both fail it.
+- **The diff is tests and story only:** `tests/school/safety/test_margin_law.py` and the story's MS-P1j note requirement. No code changed since 6ef6f40b, whose full suite I ran (11,266 passed).
+- 934 school tests pass at 4d5ac7f6, and ruff is clean.
