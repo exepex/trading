@@ -2,6 +2,7 @@
 cash spend, the cap basis and its limits, and missing captures of fired AI book sessions."""
 
 import json
+import subprocess
 from datetime import date
 
 import pytest
@@ -95,6 +96,7 @@ def test_session_links_and_ids_match_on_the_part_after_the_prefix():
 
 
 def test_the_stop_rule_lines_say_projected_days_left_and_missing_inputs(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)  # the root is a repository, as in production
     calendar = CsvSessionCalendar("date,kind,description,source_url\n2026-01-26,holiday,R,https://example.org/c\n")
     lines = stop_rule_lines(tmp_path, review_date(None, "2026-11", calendar), date(2026, 10, 15))
     text = "\n".join(lines)

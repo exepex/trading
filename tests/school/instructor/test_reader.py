@@ -4,21 +4,16 @@ dashcam below refuses any write once the fixtures are laid, and every other port
 the whole instructor run is checked on the fake fleet again when part e joins the parts."""
 
 from dataclasses import replace
-from datetime import date, datetime
+from datetime import date
 
 import pytest
 
-from fno.school.constants import SLOT_1500, ExitReason, Outcome, RecordKind, RoadCode
+from fno.school.constants import SLOT_1500, ExitReason, Outcome, RecordKind
 from fno.school.contracts.accounts import SettlementPrice
-from fno.school.contracts.clock import FixedClock
 from fno.school.contracts.records import DecisionRecord, ExitRecord
-from fno.school.contracts.seal import StaleSeal
 from fno.school.fakes import FakeDashcam, FakeSettlementSource
 from fno.school.instructor.contracts import DataFault
 from fno.school.instructor.fakes import FakeSnapshotArchive
-from fno.school.instructor.reader import PathReader, record_sha256
-from tests.school.contracts.builders import IST
-from tests.school.drivers.builders import WeekdayCalendar
 from tests.school.instructor.builders import (
     DRIVER,
     OTHER,
@@ -30,33 +25,7 @@ from tests.school.instructor.builders import (
     outcome,
     snap,
 )
-
-LATER = date(2026, 11, 5)
-CLOCK = FixedClock(datetime(2026, 11, 30, 21, 0, tzinfo=IST))  # "today": after every fixture's file
-OTHER_ROAD = RoadCode.NIFTY_MONTHLY
-
-
-class WriteRefusingDashcam(FakeDashcam):
-    """The read-only proof: any seal after the fixtures are laid fails the test. A file named in `damaged` reads as
-    the real store reads bytes that differ from their seal: `StaleSeal`."""
-
-    locked = False
-    damaged: frozenset = frozenset()
-
-    def seal(self, *args, **kwargs):
-        assert not self.locked, "the instructor wrote into the dashcam"
-        return super().seal(*args, **kwargs)
-
-    def read(self, seal):
-        if any(seal.path.endswith(f"{d:%Y/%m/%d}/1500.{kind}.jsonl.gz") for d, kind in self.damaged):
-            raise StaleSeal(seal.path)
-        return super().read(seal)
-
-
-def reader(dashcam, archive=None, settlements=None) -> PathReader:
-    archive = archive or FakeSnapshotArchive({(ROAD, d): snap(d) for d in SESSIONS})
-    dashcam.locked = True
-    return PathReader(dashcam, archive, settlements or FakeSettlementSource(), WeekdayCalendar(), CLOCK)
+from tests.school.instructor.reading import OTHER_ROAD, WriteRefusingDashcam, reader
 
 
 def test_a_trade_held_three_sessions_has_its_three_snapshots_in_order():
@@ -81,54 +50,6 @@ def test_a_closed_road_mid_hold_skips_that_session_without_a_fault():
     (path,) = reader(dashcam).closed_on(SESSIONS[2]).paths
     assert path.attributable and path.sessions_skipped == 1
     assert [s.session for s in path.snapshots] == [SESSIONS[0], SESSIONS[2]]
-
-
-def correct_later(dashcam, record, day=LATER, net=-96.0):
-    fixed = replace(record, net=net, corrects=record_sha256(record))
-    dashcam.locked = False
-    dashcam.seal(day, SLOT_1500, RecordKind.OUTCOMES, (fixed,))  # its own session: the first file is never rewritten
-    return fixed
-
-
-def test_a_correction_sealed_later_replaces_its_original_on_the_original_close_day():
-    dashcam = WriteRefusingDashcam()
-    fixed = correct_later(dashcam, held_trade(dashcam))
-    read = reader(dashcam)
-    assert [p.outcome for p in read.closed_on(SESSIONS[2]).paths] == [fixed]
-    assert read.closed_on(LATER).paths == ()  # never a path on the day the correction was sealed
-
-
-@pytest.mark.parametrize("last", [SESSIONS[2], LATER], ids=["correction after the range", "inside it"])
-def test_the_days_closed_on_add_up_to_closed_between_over_the_range(last):
-    dashcam = WriteRefusingDashcam()
-    fixed = correct_later(dashcam, held_trade(dashcam))
-    read = reader(dashcam)
-    days = WeekdayCalendar().sessions(SESSIONS[0], last)
-    by_day = [p.outcome for d in days for p in read.closed_on(d).paths]
-    assert by_day == [p.outcome for p in read.closed_between(SESSIONS[0], last).paths] == [fixed]
-
-
-def test_a_chain_of_corrections_ends_at_the_latest():
-    dashcam = WriteRefusingDashcam()
-    fixed = correct_later(dashcam, held_trade(dashcam))
-    final = correct_later(dashcam, fixed, day=date(2026, 11, 6), net=-97.0)
-    assert [p.outcome for p in reader(dashcam).closed_on(SESSIONS[2]).paths] == [final]
-
-
-def test_a_correction_sealed_after_today_is_not_yet_read():
-    dashcam = WriteRefusingDashcam()
-    record = held_trade(dashcam)
-    correct_later(dashcam, record, day=date(2026, 12, 1))  # after CLOCK's day
-    assert [p.outcome for p in reader(dashcam).closed_on(SESSIONS[2]).paths] == [record]
-
-
-def test_a_correction_in_the_same_file_is_read_once():
-    dashcam = WriteRefusingDashcam()
-    seal = dashcam.seal(SESSIONS[0], SLOT_1500, RecordKind.DECISIONS, (decision_record(SESSIONS[0]),))
-    first = outcome(seal.sha256, exit_day=SESSIONS[0])
-    fixed = replace(first, net=-96.0, corrects=record_sha256(first))
-    dashcam.seal(SESSIONS[0], SLOT_1500, RecordKind.OUTCOMES, (first, fixed))
-    assert [p.outcome for p in reader(dashcam).closed_on(SESSIONS[0]).paths] == [fixed]
 
 
 def test_a_snapshot_whose_hash_differs_from_its_decision_record_is_a_data_fault():
@@ -254,61 +175,6 @@ def test_an_exit_rule_close_needs_its_own_exit_record(record, fault):
     dashcam.seal(SESSIONS[0], SLOT_1500, RecordKind.OUTCOMES, (outcome(seal.sha256, exit_day=SESSIONS[0]),))
     (path,) = reader(dashcam).closed_on(SESSIONS[0]).paths
     assert path.faults == ((fault,) if fault else ())
-
-
-def test_a_damaged_held_day_is_a_fault_on_its_path_and_the_rest_still_reads():
-    dashcam = WriteRefusingDashcam()
-    held_trade(dashcam)
-    dashcam.damaged = frozenset({(SESSIONS[1], RecordKind.DECISIONS)})
-    (path,) = reader(dashcam).closed_on(SESSIONS[2]).paths
-    assert path.faults == (DataFault.SEALED_FILE_DAMAGED,)
-
-
-def test_a_damaged_entry_day_is_a_fault_not_a_crash():
-    dashcam = WriteRefusingDashcam()
-    held_trade(dashcam)
-    dashcam.damaged = frozenset({(SESSIONS[0], RecordKind.DECISIONS)})
-    (path,) = reader(dashcam).closed_on(SESSIONS[2]).paths
-    assert path.entry is None and DataFault.SEALED_FILE_DAMAGED in path.faults
-    assert DataFault.ENTRY_DECISION_MISSING not in path.faults  # damaged, not missing: the fault says which
-
-
-def test_a_damaged_outcomes_file_is_reported_and_the_other_days_still_come_back():
-    dashcam = WriteRefusingDashcam()
-    held_trade(dashcam)
-    early = dashcam.seal(SESSIONS[0], SLOT_1500, RecordKind.OUTCOMES, (outcome(
-        dashcam.find(SESSIONS[0], SLOT_1500, RecordKind.DECISIONS).sha256, exit_day=SESSIONS[0]),))  # fmt: skip
-    assert early
-    dashcam.damaged = frozenset({(SESSIONS[0], RecordKind.OUTCOMES)})
-    read = reader(dashcam).closed_between(SESSIONS[0], SESSIONS[2])
-    assert read.unreadable == (SESSIONS[0],) and [p.outcome.exit.filled_at.date() for p in read.paths] == [SESSIONS[2]]
-
-
-def test_an_outcome_sealed_mid_range_is_read():
-    dashcam = WriteRefusingDashcam()
-    held_trade(dashcam)
-    seal = dashcam.find(SESSIONS[0], SLOT_1500, RecordKind.DECISIONS)
-    middle = replace(outcome(seal.sha256, exit_day=SESSIONS[0]), position_id="p0")
-    dashcam.seal(SESSIONS[1], SLOT_1500, RecordKind.OUTCOMES, (middle,))
-    ids = [p.outcome.position_id for p in reader(dashcam).closed_between(SESSIONS[0], SESSIONS[2]).paths]
-    assert ids == ["p0", "p1"]
-
-
-class MuhuratCalendar(WeekdayCalendar):
-    """The middle fixture session is a muhurat-only evening: a session, but not a trading day."""
-
-    def session_kind(self, day):
-        return "muhurat" if day == SESSIONS[1] else super().session_kind(day)
-
-
-def test_a_muhurat_only_session_inside_a_hold_is_not_required():
-    dashcam = WriteRefusingDashcam()
-    held_trade(dashcam)
-    del dashcam.files[(SESSIONS[1], SLOT_1500, RecordKind.DECISIONS)]
-    plain = reader(dashcam)
-    muhurat = PathReader(dashcam, plain.snapshots, FakeSettlementSource(), MuhuratCalendar(), CLOCK)
-    (path,) = muhurat.closed_on(SESSIONS[2]).paths
-    assert path.attributable and [s.session for s in path.snapshots] == [SESSIONS[0], SESSIONS[2]]
 
 
 def test_an_exit_day_closed_for_the_road_is_a_missing_snapshot():

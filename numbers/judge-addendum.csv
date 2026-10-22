@@ -618,3 +618,12 @@ number,name,session,claimed_at_utc
 499.6,a16h-code-4abcf179,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T22:04:32Z
 499.7,a16h-code-round-2,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T22:22:11Z
 479.3,ms-p1a3,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T22:31:09Z
+503.1,ms-ins-b-r2,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-22T22:38:04Z
+505.1,git-fails-loud-round2,session_01Qg4Gxun1NvGRrtS9C68Dc1,2026-10-22T22:51:27Z
+509.1,ms-sim-c-followup,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-22T22:53:57Z
+488.6,ms-p1d-practice,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T22:55:06Z
+505.2,git-fails-loud-read-rerun,session_01Qg4Gxun1NvGRrtS9C68Dc1,2026-10-22T22:55:16Z
+506.1,a3-round-2,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T23:12:05Z
+507.1,ms-p1j-r3,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T23:12:41Z
+507.2,ms-p1j-r4,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T23:25:23Z
+506.2,a3-minor,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T23:25:41Z

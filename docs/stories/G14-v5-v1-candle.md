@@ -95,7 +95,8 @@ The question is what the forecast for day `d` may read, point in time, at `d`'s 
 - `fno/forecast_v5_v1/` (new package, every file under 350 lines):
   - `history.py`: the splice;
   - `capture.py`: one day's five values;
-  - `records.py`: G7's record format plus `input_measure` and `input_sources` columns;
+  - `records.py`: G7's record format plus `input_measure`, `input_sources` and `platform` columns (`platform`:
+    Python, numpy and libc versions of the capture; judge 508's glibc finding, orchestrator 23 Oct);
   - `gap.py`: the measure-gap table;
   - `report.py`: QLIKE per forecaster against the live A16 target, the gap table and void counts;
   - `wiring.py` and `cli.py`: `python -m fno forecast-v5-v1 capture`, `report`.

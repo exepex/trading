@@ -24,7 +24,7 @@ from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.seal import StaleSeal
 from ..contracts.slot_file import SlotRecord
 from ..contracts.snapshot import SlotSnapshot
-from .contracts import ClosedRead, DataFault, HeldPath
+from .contracts import ClosedRead, DataFault, HeldPath, net_matches_fills
 from .ports import SnapshotArchive
 
 
@@ -98,6 +98,8 @@ class PathReader:
             faults.append(DataFault.SNAPSHOT_MISSING)
         if not settled:
             _check_exit(outcome, exit_record, faults)
+        if not net_matches_fills(outcome):
+            faults.append(DataFault.NET_MISMATCH_FILLS)
         settlement = self._settlement(outcome, exit_day, faults) if settled else None
         unique = tuple(dict.fromkeys(faults))
         return HeldPath(outcome, entry, exit_record, tuple(snapshots), settlement, skipped, unique)

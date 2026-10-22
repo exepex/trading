@@ -46,3 +46,47 @@ passed the test paths as one argument, so no test ran. I re-ran with the paths s
   alert" should name this raise point.
 - The three other-owner items (writes before git, the desk alert, G13b's seal) are register rows by the
   orchestrator's ruling. Each now stops loudly where it used to write a wrong record silently.
+
+## Addendum 1
+
+**Scope:** round 2 of 2, story/git-run-fails-loud at bba55d09 (latest main merged in). The branch's own round-2
+changes are `fno/research_engine/ledger.py`, `fno/desk/daily_run.py`, `tests/research_engine/test_git_fails_loud.py`
+and `tests/timetable/test_commit_failure_run.py`. The claims are response 329, section 7.
+
+**Verdict: PASS.** No blocking and no should-fix findings.
+
+- **Should-fix 1, accepted (fixed).** Each moved call site has an injected-failure test on real git: the health
+  pickaxe, `staged_paths`, `added_in`, `added_at` and `tree_matches`' diff. All 6 of my plants on them are now
+  caught: my four round-1 survivors (the health method made "always None" among them), the health method back to
+  `_run(...).stdout`, and `added_at`.
+- **Minor (a), accepted (fixed).** `Git._run` pins `LC_ALL=C`; un-pinning it is caught. As the builder says, no
+  translated git was run here.
+- **The desk (orchestrator's item 3).** `_guarded` now stops the run on `GitFailed` as it does on `CommitFailed`
+  (decision 44): one alert that names the step, "exits not reviewed today" and git's error, then `RunStopped`. Plants
+  on the catch and on the exits-missed text are both caught.
+  - The builder ends the run on its stop line, not "day done with problems" as ruled. Both exit 1. The reasons hold:
+    later steps commit through the same failing git, and a stop gives the rerun a known start point. The cost is
+    stated: exits wait for the rerun.
+  - **For the orchestrator:** confirm this departure from your ruling. E3 has no live owner session, and O1's held
+    `story/o1-desk-freeze` also edits `daily_run.py`.
+- **Gates (my run, a separate worktree):** pytest -n auto: 11,938 passed, 16 xfailed. ruff check and format,
+  `check_imports` and `check_records` are clean.
+- **Plants:** 9 on round 2, 9 caught.
+
+## Addendum 2
+
+**Scope:** the post-PASS commit d238b0e3 (parent bba55d09), at the branch tip bc3ac6e5 (d238b0e3 with main merged in).
+`git diff bba55d09 d238b0e3` touches `fno/desk/daily_run.py`, one assertion in `tests/timetable/test_commit_failure_run.py`
+and response 329, section 7.
+
+**Verdict: PASS.**
+
+- **What changed:** a failed git read's alert now ends with `READ_RERUN`, "rerun `fno daily run` (it skips the steps
+  already recorded)". It replaces `RERUN`, which promised to commit pending files that may not exist after a read
+  failure.
+- **Accuracy:** the new text matches the module's own rule, "a restarted run skips every step already recorded".
+  `CommitFailed` keeps `RERUN`.
+- **Tests:** the assertion pins the new text; my plant restoring `RERUN` at the call site is caught.
+- **My run at bc3ac6e5:** `tests/timetable`, `tests/desk`, `tests/daily` and `tests/e2e` give 388 passed; ruff check
+  and format are clean. I did not re-run the full suite for this wording change; the builder reports 12,006 passed,
+  16 xfailed on the tip.
