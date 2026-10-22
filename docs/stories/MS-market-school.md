@@ -2096,4 +2096,8 @@ From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates 
 - One extra plant survived on the first run: removing the entry-day damaged check. The test now also requires the fault to say "damaged", not "entry missing".
 - **The clock:** the reader takes a's `Clock`. The wiring passes `IstClock` (`now_ist`) and the tests a `FixedClock`.
 - **Known effect, as the ruling says:** a day's tally recomputed after a later correction can change.
+### MS-P1d follow-up Claims, law order (branch `story/ms-p1d-law-order`, from main)
+| Item (orchestrator, 22 Oct 2026, on j's finding) | Change | Test (and the plant it catches) |
+| The first named reason is the root cause: on BANKNIFTY-M a missing quote came out as `max_loss` (it fails closed without the leg's mid) ahead of `missing_quote` | `safety/wiring.py`: protected, the four quote-gate laws, impossible price, then max loss, bucket, open risk, new risk per day, margin room, daily stop, brake. Every law still runs and every reason is kept; only the order changes | `test_laws.py`: the order pinned (plant: the old order); a missing and a one-sided quote name their quote reason first, with `max_loss` still in the list (plant: the gates after max loss); a valid quote with too large a loss still names `max_loss` alone (plant: a gate that refuses a valid quote); the margin test reads results by law name, not by position |
+- **Plants:** 2 planted (old order; a gate refusing a valid quote), 2 caught. f's `named_refusal` (first in order within a group) now names the quote reason within trade validity too.
 
