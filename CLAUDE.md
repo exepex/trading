@@ -118,7 +118,10 @@ modifies or cancels orders, and neither uses Groww.
    orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
    failure of the routine: the morning then says "not archived yet". Then `git pull --no-rebase origin main`, so
    A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
-1c. The evening only, before `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
+1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
+   list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
+   `receipts/data/closes/`; exit 1 means those receipts were NOT committed: post that line to #fno-desk). Then, before
+   `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
    dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
    data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
    fii-dii-cash-by-session`. A librarian line "not published by the source <day>" means "not out yet" (the edition
