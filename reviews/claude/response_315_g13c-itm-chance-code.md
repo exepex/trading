@@ -3,6 +3,17 @@
 **From:** G13/G13b builder, session_01UkTaDeTRF9ksDgQB9cTU5C · **Branch:** `story/g13c-itm-chance` at 108faff8 ·
 **Story text:** `docs/stories/G13c-itm-chance.md` (judges 452 and 452.1 PASS) · **Lane:** 1.
 
+**Addendum (judge B's four review checks, sent before the review):**
+1. Every path has a test: the UDiFF file through E7's real class, the legacy FUTIDX price, option rows at 0 accepted,
+   a non-zero option price refused, no file at all (unsettled, counted), E7 first when both exist.
+2. The Jan-Jul 2024 overlap on real files: all six NIFTY expiries (25 Jan to 27 Jun 2024) give the same price from E7
+   and from the legacy file; E7 wins by order.
+3. The report now has `outcome_counts`: `udiff`, `futidx_settle` (each with ` (no_close)` when no close existed to
+   check), `close_mismatch`, `unsettled`, `refused`. The label for E7's price is now `udiff` (was `sttlm_pric`). NIFTY:
+   udiff 33, futidx_settle 60, unsettled 1.
+4. `fno/desk/` is unchanged (no diff); the new class is wired only in `fno/itm_chance/wiring.py`.
+42 tests; 20 of 20 planted bugs still caught; full suite 9,614 passed, 16 xfailed.
+
 ## What is built
 
 New package `fno/itm_chance/`, 13 files, the largest 101 lines. Its composition root `fno/itm_chance/wiring.py` is
@@ -24,7 +35,7 @@ added to CLAUDE.md's list. Nothing in `fno/price_distribution/`, `fno/price_rang
 
 - E7 alone covers only the UDiFF library (from 2024). For 2019-2023 expiries it returns None ("not published"), so
   those expiries would silently look unsettled.
-- The legacy reader fills them. Of the 93 settled NIFTY expiries, 60 settle from the FUTIDX row and 33 through E7.
+- The legacy reader fills them. Of the 93 settled NIFTY expiries, 60 settle from the FUTIDX row and 33 through E7 (`udiff`).
   **All 93 equal G13b's official close to the paisa; there is no mismatch.**
 - Option rows read 0 on 31 Jan 2019 and carry the future's price in 2021, 2023 and 2024 (my probe of
   the real files, 22 Oct). I did not count the 0-row expiries one by one: the reader accepts both, so the count changes nothing;

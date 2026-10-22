@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from fno.desk.settlement import SettlementError
+from fno.desk.settlement import NseFinalSettlement, SettlementError
 from fno.itm_chance.settlement import (
     DIFFERS,
     NO_CLOSE,
@@ -17,7 +17,7 @@ from fno.itm_chance.settlement import (
     LegacyFileSettlement,
     settle,
 )
-from fno.storage.raw_source import NseLegacyFoSource
+from fno.storage.raw_source import NseDailyFoSource, NseLegacyFoSource
 
 from .builders import REFUSED, FakePrices
 
@@ -103,3 +103,51 @@ def test_no_file_is_not_settled_and_a_refusal_is_left_out_with_its_reason():
     assert settle("NIFTY", EXPIRY, prices(None), lambda u, d: 1.0).problem == NOT_SETTLED
     refused = settle("NIFTY", EXPIRY, prices(REFUSED), lambda u, d: 1.0)
     assert not refused.usable and refused.problem == str(REFUSED)
+
+
+UDIFF_DAY = date(2024, 1, 25)
+
+
+def udiff_file(price: str) -> bytes:
+    from fno.fo_bhavcopy import COLUMNS
+
+    def line(kind, strike, option):
+        values = dict.fromkeys(COLUMNS, "")
+        values.update(TradDt="2024-01-25", BizDt="2024-01-25", FinInstrmTp=kind, TckrSymb="NIFTY",
+                      XpryDt="2024-01-25", StrkPric=strike, OptnTp=option, SttlmPric=price)  # fmt: skip
+        return ",".join(values[c] for c in COLUMNS)
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as z:
+        text = "\n".join([",".join(COLUMNS), line("IDF", "", ""), line("IDO", "21300", "CE")]) + "\n"
+        z.writestr(NseDailyFoSource.filename_for(UDIFF_DAY).removesuffix(".zip"), text)
+    return buffer.getvalue()
+
+
+def chained(files: dict[str, bytes]) -> FirstSettlement:
+    library = FakeLibrary(files)
+    return FirstSettlement([("udiff", NseFinalSettlement(library)), ("futidx_settle", LegacyFileSettlement(library))])
+
+
+def test_the_udiff_file_settles_through_e7_unchanged():
+    label, found = chained({NseDailyFoSource.path_for(UDIFF_DAY): udiff_file("21352.6")}).final_settlement(
+        "NIFTY", UDIFF_DAY
+    )
+    assert (label, found.price) == ("udiff", 21352.6)
+
+
+def test_legacy_settles_only_when_e7_has_no_file():
+    label, found = chained({NseLegacyFoSource.path_for(EXPIRY): legacy_file("10830.95", "0")}).final_settlement(
+        "NIFTY", EXPIRY
+    )
+    assert (label, found.price) == ("futidx_settle", 10830.95)
+    assert chained({}).final_settlement("NIFTY", EXPIRY) is None
+
+
+def test_each_outcome_is_counted_by_its_kind():
+    kinds = [settle("NIFTY", EXPIRY, prices(10.0), lambda u, d: 10.0).outcome,
+             settle("NIFTY", EXPIRY, prices(10.0), lambda u, d: None).outcome,
+             settle("NIFTY", EXPIRY, prices(10.0), lambda u, d: 11.0).outcome,
+             settle("NIFTY", EXPIRY, prices(None), lambda u, d: 10.0).outcome,
+             settle("NIFTY", EXPIRY, prices(REFUSED), lambda u, d: 10.0).outcome]  # fmt: skip
+    assert kinds == ["e7", "e7 (no_close)", "close_mismatch", "unsettled", "refused"]

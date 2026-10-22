@@ -77,6 +77,7 @@ def calibration_report(underlying: str, records: Iterable[dict], settle: Callabl
         "settled_expiries": [e.isoformat() for e in usable],
         "last_settled_expiry": usable[-1].isoformat() if usable else None,
         "outcome_sources": dict(sorted(Counter(settled[e].source for e in usable).items())),
+        "outcome_counts": dict(sorted(Counter(s.outcome for s in settled.values()).items())),
         "settlements": list(entries.values()),
         "left_out": [entries[e] for e, s in settled.items() if not s.usable],
         "expiry_day_change": start.isoformat() if start else None,
@@ -88,7 +89,7 @@ def calibration_report(underlying: str, records: Iterable[dict], settle: Callabl
 def summary_lines(report: dict) -> list[str]:
     together = report["slices"][SOURCE_ALL]
     lines = [f"{report['underlying']}: {len(report['settled_expiries'])} settled expiries "
-             f"({report['outcome_sources']}), {len(report['left_out'])} left out; "
+             f"({report['outcome_counts']}), {len(report['left_out'])} left out; "
              f"{together['rows']} rows over {together['expiries']} expiries; {MEASURE}"]  # fmt: skip
     lines += [f"  left out {s['expiry']}: {s['problem']} ({s['issue_days']} issue days)" for s in report["left_out"]]
     for b in together["buckets"]:

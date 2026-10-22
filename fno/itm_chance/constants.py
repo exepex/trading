@@ -15,7 +15,8 @@ DRAWS, SEED = 2000, 20261022  # the cluster bootstrap over expiries (fixed seed:
 INTERVAL = (2.5, 97.5)  # percentiles of the 95% interval
 PAISA = 0.005  # settlement and close agree when they differ by less than half a paisa
 
-SETTLED_STTLM, SETTLED_FUTIDX = "sttlm_pric", "futidx_settle"  # E7's UDiFF reader; the legacy FUTIDX row
+SETTLED_STTLM, SETTLED_FUTIDX = "udiff", "futidx_settle"  # E7's UDiFF reader; the legacy FUTIDX row
+CLOSE_MISMATCH, NOT_SETTLED_YET, REFUSED, NO_CLOSE_CHECK = "close_mismatch", "unsettled", "refused", "no_close"
 
 SCHEMA = "g13c_calibration_v1"
 EXPLORATORY = (

@@ -20,7 +20,7 @@ from ..desk.settlement import FinalSettlement, SettlementError, SettlementPrices
 from ..fo_bhavcopy import read_fo_file
 from ..storage.raw_library import RawFileLibrary
 from ..storage.raw_source import NseLegacyFoSource
-from .constants import PAISA
+from .constants import CLOSE_MISMATCH, NO_CLOSE_CHECK, NOT_SETTLED_YET, PAISA, REFUSED
 
 NO_FUTURE = "no expiring index future traded on the expiry day for {what}"
 OPTIONS_DISAGREE = "an expiring option's settle price is neither the future's nor 0 for {what}: {prices}"
@@ -78,6 +78,15 @@ class Settled:
     @property
     def usable(self) -> bool:
         return self.price is not None
+
+    @property
+    def outcome(self) -> str:
+        """What the report counts: the settlement's source when used, else why it was left out."""
+        if self.usable:
+            return self.source if self.problem is None else f"{self.source} ({NO_CLOSE_CHECK})"
+        if self.problem == NOT_SETTLED:
+            return NOT_SETTLED_YET
+        return CLOSE_MISMATCH if self.source is not None else REFUSED
 
 
 def settle(underlying: str, expiry: date, prices: FirstSettlement,
