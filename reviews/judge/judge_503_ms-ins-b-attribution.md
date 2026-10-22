@@ -53,3 +53,18 @@ exit spread, complete-point filter, `iv_unsolved`, `closed_on` from entry, theta
 - The deviation (wrapping B1's `Black76` directly for minutes) is accepted by the orchestrator's ruling and keeps one
   pricer. The integer-day parity forward is negligible, as `points.py` says.
 - INS-e criterion 8 (orphan corrections counted and alerted) records judge 501.1's minor; no code yet, as stated.
+
+## Addendum 1: round 2 at e1fdbca0
+
+**Verdict: PASS.** Lane 1, one judge. Scope: the single commit f5d30e50..e1fdbca0.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 net trusted | ACCEPTED | `net_matches_fills` (`contracts.py:80`) requires net = entry.cash + exit.cash to Rs 0.01. The reader adds `net_mismatch_fills`, and `attribute` returns None. My round-1 probe (net moved by Rs -500) now gives None. Plants caught: the check removed from `attribute`, the check removed from the reader, a strict `<` tolerance, and exit cash dropped from the sum |
+| Minor docstring | ACCEPTED | it now says the spread is measured from the fills and `slippage_vs_mid` is not read |
+
+- **Side effects checked:**
+  - The fixtures' nets are now their fills' cash, so the hand test's numbers are unchanged.
+  - The `test_reader.py` split keeps 88 instructor tests (my run: 88 passed). The largest test file is 197 lines.
+- **Gates (my run):** pytest -n auto 11,821 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.
