@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:10:43.900368+05:30,yahoo/indices/twii-chart/2026/10/22/061043_twii-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?period1=1546214400&period2=1792713600&interval=1d,,41fbe19e0edf784a720866935d35208532f1c43544c049721d1bd645cdacc072,180825

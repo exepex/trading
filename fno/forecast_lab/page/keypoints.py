@@ -11,7 +11,8 @@ from __future__ import annotations
 from .cues import AVAILABLE, USED, Cue, SectionView
 from .model import Outcome
 
-MAX_POINTS = 4
+MIN_POINTS, MAX_POINTS = 2, 4
+QUIET = "no notable moves in our data"  # said when fewer than 2 points exist (judge 449), never padded with guesses
 BUILT_FROM = "Built from"
 INPUTS = {
     "implied": "option prices (the range the options imply)",
@@ -45,7 +46,8 @@ def evening_points(
 ) -> tuple[Cue, ...]:
     cues = [c for c in _shown(sections) if c.text is None]
     if today is None or today.inside_90:
-        return tuple(_by_size(cues)[: MAX_POINTS - 2])
+        moves = _by_size(cues)[: MAX_POINTS - 2]
+        return tuple(moves) if len(moves) >= MIN_POINTS else (*moves, Cue(QUIET, text=QUIET))
     up = today.close > today.band.q95
     said = [Cue(REASON, text=r) for r in reasons]
     same_way = [c for c in cues if c.name in EQUITIES and c.change is not None and (c.change > 0) == up]

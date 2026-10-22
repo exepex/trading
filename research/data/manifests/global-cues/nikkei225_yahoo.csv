@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:10:07.527429+05:30,yahoo/indices/n225-chart/2026/10/22/061007_n225-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EN225?period1=1546214400&period2=1792713600&interval=1d,,470033ac96b7bf0a77ba09191c5bd0d9e6e1e1ed52be34fa2898081ec69f2489,177587

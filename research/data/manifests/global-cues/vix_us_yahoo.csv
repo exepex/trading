@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:11:06.158953+05:30,yahoo/indices/vix-chart/2026/10/22/061106_vix-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?period1=1546214400&period2=1792713600&interval=1d,,adbdc44be795b137b1dda1c501b681da397fe053507da7b5fc73db9d2a6b9296,208216
