@@ -2396,3 +2396,89 @@ request-identical.
 
 **Depends:** A1, A9, A11, A12, A15, P8 · **Size:** M · **Status:** story text passed (judge 119); code round for the
 judge (response 119)
+
+## A9c. A second NSE archive host for the librarian's dated files (OSS1 part b)
+
+**Repository:** trading · **Lane:** 1 (NSE downloads, the raw archive's sources) · **Branch:** `story/oss1-second-host` ·
+**Judge:** F · **Owner of `raw_source.py`:** the A20 builder (session 013u1Ac2), who agreed the design (22 Oct)
+
+**Description:** As the data engineer, I want the librarian's dated NSE files to come from a second NSE host when the
+first one is unreachable, with the same bytes, the same SHA-256 and the same write-once store, so that an edge or DNS
+fault of `nsearchives.nseindia.com` does not leave a day's file missing.
+
+**Context and why:**
+- The orchestrator chose this on 22 Oct, in place of nselib (response 319). nselib fetches the same files from the
+  same host, so it fails when we fail.
+- **Evidence** (checked 22 Oct; one day, so some evidence):
+  - `archives.nseindia.com` serves the eight librarian datasets for 21 Oct **byte for byte**: the same SHA-256 for
+    participant OI, index close, CM bhavcopy, security delivery, F&O bhavcopy, SPAN BOD, participant volume and FII
+    stats.
+  - A file not yet published (22 Oct's F&O bhavcopy and index close) is a 404 on both hosts.
+  - The two hosts are on different Akamai edges, `e9776.dscb` and `e164355.dsca`. So the second host survives an edge
+    or DNS fault, but probably not an outage of NSE's origin. (Reasoning only.)
+
+**Scope.**
+- In:
+  - an `NseArchiveSource` `host` parameter (default `nsearchives.nseindia.com`), so every dated source's `BASE_URL`
+    is built from it;
+  - a `FallbackSource(RawFileSource)` holding a primary and a secondary;
+  - two composition-root uses in `fno/storage/wiring.py`: `build_librarian` (the eight `LIBRARIAN_DATASETS`) and
+    `build_nse_library` (the readers' "from the stores, else NSE");
+  - a read-only live check command that compares both hosts' SHA-256 for one file per dataset.
+- Out (the A20 builder's limits, each with its reason):
+  - **write times:** `last_written` and Last-Modified feed point-in-time evidence (A8's release recorder, A8's and
+    A23's LastWriteSweep, A9's creation times). Equal bytes do not prove equal write times across edges;
+  - **A11's revision sweep** (`RevisionCapturingSource`): a second edge's stale or newer cache would make false
+    revisions or hide real ones;
+  - **files NSE replaces in place** (A20a's `SnapshotSource`: `fo_secban.csv`, `fo_mktlots.csv`): a CDN copy can lag,
+    and the lot file carries no date;
+  - every other `build_nse_source` user: filings, fingerprints, intraday, A16b back-fill, composition's participant
+    OI;
+  - `www.nseindia.com` (the 3 pm chain, `allIndices`), which has no second host.
+
+**Expected design (the simplest that covers the real cases):**
+- **The host.** `NseArchiveSource.__init__(..., host=PRIMARY_HOST)`. `url_for` puts the host into each class's
+  `BASE_URL` path (each class keeps its path; only the host changes). `PRIMARY_HOST` and `SECOND_HOST` are named
+  constants in `raw_source.py`.
+- **`FallbackSource.fetch(path)` and `fetch_published(path)`:**
+  - They ask the primary first.
+  - Only when the primary raises `RawSourceUnavailable`, and not its subclasses `RawFileRefused` or
+    `RawSourceCoolingOff`, do they ask the secondary.
+  - A primary `None` (404, not published) is returned as `None`, and the secondary is never asked. So "not out yet"
+    never turns into a second host's answer.
+  - When the secondary also fails, the error raised names both hosts' failures.
+- **`FallbackSource.last_written(path)`** delegates to the primary only, never the secondary (limit above).
+- **The record.** Manifest rows already carry the full URL, so a file from the second host is recorded with its
+  host. Its bytes go through the same write-once store and SHA-256 receipt (A10, O9).
+- **Retry cost** (the A20 builder's point 3):
+  - Tries are counted per call and per host: `RETRY_WAITS` run inside one call on one instance, and the pacer and
+    cooling-off are keyed by hostname.
+  - So the secondary gets its own full retry budget after the primary's is spent, and the worst case per file is
+    about **double** today's wait.
+  - Every user in scope is an evening or morning archive job with no deadline in minutes. The morning librarian runs
+    before 08:50 and is the closest to a deadline; its worst case is to be stated with the measured number in the
+    claims.
+- **The live check.** `python -m fno data-librarian hosts --day D` (read-only) prints, per dataset, both hosts'
+  status and SHA-256 and `same` or `DIFFERENT`. It exits 1 on any `DIFFERENT`, and stores nothing.
+
+**Acceptance criteria:**
+1. **Fallback only on unavailable.** Fakes cover each case:
+   - the primary raises `RawSourceUnavailable`: the secondary answers, with the same bytes;
+   - the primary raises `RawFileRefused` or `RawSourceCoolingOff`: no secondary call, and the error propagates;
+   - the primary returns `None`: `None`, with no secondary call;
+   - both fail: one error naming both hosts.
+2. **Write times are primary-only.** `last_written` never calls the secondary. This is tested with a secondary
+   that raises if called.
+3. **Hosts.** Every one of the eight librarian classes builds its URL on `nsearchives` by default and on `archives`
+   with `host=SECOND_HOST`; the path is identical. `tests/test_fingerprints.py`'s assertion that `NseDailyFoSource`
+   URLs start with `nsearchives` stays true for the default host, and gains the second host's case.
+4. **Wiring.** `build_librarian` and `build_nse_library` return a `FallbackSource`. `build_revision_capturing_source`,
+   the snapshot takers and the other `build_nse_source` users still get a single primary source (a test lists them).
+5. **Write-once is unchanged.** A file fetched through the secondary goes into the same store under the same path,
+   with the same receipt. A later primary fetch of the same bytes is a no-op.
+6. **The live check** passes on a recorded pair of answers and fails on a pair that differs. A live run on the go-live
+   day is in the claims.
+7. **Gates:** no file over 350 lines (`wiring.py` is at 303); ruff, imports and the full suite pass.
+
+**Depends:** A9b (retry policy), A10, A20a (snapshot sources, out of scope), O9 · **Size:** S-M (about 120 code lines,
+150 test lines) · **Status:** story text for judge F (22 Oct 2026)
