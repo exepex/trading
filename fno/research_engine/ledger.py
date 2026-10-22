@@ -91,7 +91,8 @@ class Git:
         return found[0] if found else None
 
     def committed_text(self, path: str, commit: str = "HEAD") -> str | None:
-        """The file as committed at `commit` (None if not committed there)."""
+        """The file as committed at `commit` (None if not committed there). git gives the same answer for a full SHA
+        that is no commit at all, so a caller that needs the commit to exist asks `commit_exists` first."""
         done = self._found("show", f"{commit}:{path}", not_there=FILE_NOT_THERE)
         return None if done is None else done.stdout
 
