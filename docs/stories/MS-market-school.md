@@ -543,7 +543,7 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 ### MS-P1b Claims (round 1, code at 2ed9bbbf; builder session_01F1RVMF8MNngi97JVNs99L5)
 
 **Gates on the pushed tree:** `pytest -n auto` 10,449 passed, 16 xfailed; `ruff check`/`format`, `check_imports`,
-`check_records` clean. School tests: 345 (roads 76 incl. conformance, quality 60).
+`check_records` clean. School tests in all: 345 (contracts, roads, quality).
 
 | Criterion | Test (all under `tests/school/`) | Broken-code proof (mutation applied, test failed) |
 |---|---|---|
@@ -565,13 +565,13 @@ zero, capture cache, strike step), 25 caught, 0 survived.
   truthy test; float noise at a bound; line printed 95.01% as "95.0%" (two decimals); the default `--through` could be a
   day with no captures yet.
 - *Not changed, with reason:* the order check that needs the quote file (it missing, its row count) runs after the
-  sidecar's window check (documented in `capture.py`; the file must be read to know). A25 expiry-day cases are not
+  sidecar's window check (documented in `capture.py`; the file must be read to know). Expiry-day cases are not
   separately tested (they use the recorder's own `monthlies`/`nearest_weeklies` unchanged).
 
 **Decisions for the orchestrator/judge (reasoning only, flagged openly):**
 1. *Impossible price* is EDGE1's vertical rule adapted from a single close to a **bid-ask range**: impossible only if no
    price inside both legs' ranges satisfies 0 <= worth <= width. Judged on mids, 8-72 legs a day broke it by spread noise
-   (up to a third of MIDCPNIFTY, 21-22 Oct); judged on ranges, **0 of 1,764 band legs on the 9 recorded road-days** did.
+   (up to a third of MIDCPNIFTY, 21-22 Oct); judged on ranges, **0 of 716 band legs on the 9 road-days of 21-22 Oct** did.
 2. A road-day **closes `impossible_price` if any leg in the road's band is impossible**; a leg observation also excludes
    impossible legs (kept for report use, so the 95% test and the closure agree). Story 3.5 gives no day-level rule; the
    alternative is a share threshold. The band default is 10 steps (RC1's widest) until MS-P1h freezes the card value.
