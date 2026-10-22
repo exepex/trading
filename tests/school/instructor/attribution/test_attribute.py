@@ -7,6 +7,8 @@ from datetime import date
 
 import pytest
 
+from fno.school.constants import OptionKind
+from fno.school.contracts.snapshot import ContractKey
 from fno.school.instructor.attribution.attribute import Components, add_step, attribute, is_poor_fit
 from fno.school.instructor.attribution.points import snapshot_point
 from fno.school.instructor.contracts import DataFault
@@ -64,8 +66,8 @@ def test_a_pure_time_step_has_only_theta():
 
 
 def test_on_random_paths_the_residual_is_the_mid_to_mid_pnl_less_the_greeks():
-    """The identity holds by construction; what this checks is that the costs measured from the fills and the recorded
-    spread leave exactly the mid-to-mid market P&L, on 200 random paths."""
+    """The identity holds by construction; this checks that the costs measured from the fills leave exactly the
+    mid-to-mid market P&L in the residual, on 200 random paths whose middle snapshot moves the market too."""
     draw = random.Random(20261023)
     for _ in range(200):
         moves = [(1000.0 * draw.uniform(0.95, 1.05), draw.uniform(0.12, 0.35)) for _ in range(3)]
@@ -134,7 +136,45 @@ def test_a_faulted_path_or_a_missing_entry_or_exit_mid_is_not_attributed():
     assert attribute(replace(path(shots), snapshots=no_exit_quote), 0.0, RULES) is None
 
 
-def test_a_rate_moves_the_forward_and_the_identity_still_holds():
+def test_at_a_652_rate_theta_carries_its_rate_term():
+    """r = 0.065: theta +24.70 by finite differences on B1's price at the path's own forward and volatilities (the
+    parity forward reads 1000.00 and 980.00007); the residual pinned beside it."""
     shots = (model_snapshot(ENTRY_DAY, 1000.0, 0.20, rate=0.065), model_snapshot(EXIT_DAY, 980.0, 0.22, rate=0.065))
     result = attribute(path(shots), 0.065, RULES)
-    assert result.steps == 1 and abs(result.residual) < 15.0
+    assert (round(result.theta, 2), round(result.residual, 2), result.steps) == (24.70, 10.57, 1)
+
+
+def test_the_spread_is_measured_from_the_fills_on_the_paths_own_mids_not_taken_from_the_record():
+    shots = (model_snapshot(ENTRY_DAY, 1000.0, 0.20), model_snapshot(EXIT_DAY, 980.0, 0.22))
+    clean = path(shots)
+    other_basis = replace(clean, outcome=replace(clean.outcome, slippage_vs_mid=999.0))
+    assert attribute(other_basis, 0.0, RULES) == attribute(clean, 0.0, RULES)
+    assert round(attribute(clean, 0.0, RULES).spread, 2) == 6.0
+
+
+def test_a_nan_price_on_an_unrelated_strike_does_not_spoil_the_forward():
+    shots = (model_snapshot(ENTRY_DAY, 1000.0, 0.20), model_snapshot(EXIT_DAY, 980.0, 0.22))
+    far_call = ContractKey(SHORT.expiry, 1100.0, OptionKind.CALL)
+    bad = replace(shots[0].quote(far_call), bid=float("nan"))
+    spoiled = (replace(shots[0], quotes={**shots[0].quotes, far_call: bad}), shots[1])
+    result, clean = attribute(path(spoiled), 0.0, RULES), attribute(path(shots), 0.0, RULES)
+    assert result.iv_unsolved == 0 and round(result.delta, 2) == round(clean.delta, 2)
+
+
+def test_legs_on_two_expiries_are_not_attributed():
+    """Every quote of both expiries is there, so only the one-expiry rule can refuse it."""
+    later = date(2026, 12, 28)
+
+    def both(day, forward, sigma):
+        near, far_shot = model_snapshot(day, forward, sigma), model_snapshot(day, forward, sigma, expiry=later)
+        return replace(near, expiries=(near.expiries[0], later), quotes={**near.quotes, **far_shot.quotes})
+
+    clean = path((both(ENTRY_DAY, 1000.0, 0.20), both(EXIT_DAY, 980.0, 0.22)))
+    far = replace(clean.outcome.entry.legs[1], key=replace(LONG, expiry=later))
+    two = replace(clean.outcome.entry, legs=(clean.outcome.entry.legs[0], far))
+    assert attribute(replace(clean, outcome=replace(clean.outcome, entry=two)), 0.0, RULES) is None
+
+
+def test_a_session_the_road_was_closed_counts_as_a_merged_step():
+    shots = (model_snapshot(ENTRY_DAY, 1000.0, 0.20), model_snapshot(EXIT_DAY, 980.0, 0.22))
+    assert attribute(replace(path(shots), sessions_skipped=1), 0.0, RULES).steps_merged == 1

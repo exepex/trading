@@ -20,19 +20,19 @@ HALF_SPREAD, CHARGE, UNITS = 0.05, 20.0, 30
 SHORT, LONG = ContractKey(EXPIRY, 1000.0, OptionKind.PUT), ContractKey(EXPIRY, 900.0, OptionKind.PUT)
 
 
-def model_snapshot(day: date, forward: float, sigma: float, rate: float = 0.0, drop=()) -> SlotSnapshot:
+def model_snapshot(day: date, forward: float, sigma: float, rate: float = 0.0, drop=(), expiry=EXPIRY) -> SlotSnapshot:
     finished = datetime(day.year, day.month, day.day, 15, 2, tzinfo=IST)
-    years = years_left(finished, EXPIRY)
+    years = years_left(finished, expiry)
     quotes = {}
     for strike in STRIKES:
         for kind in OptionKind:
-            key = ContractKey(EXPIRY, strike, kind)
+            key = ContractKey(expiry, strike, kind)
             if key not in drop:
                 mid = price(forward, strike, kind.value, years, rate, sigma)
                 half = min(HALF_SPREAD, mid / 2)  # a cheap far leg keeps a positive bid around the same mid
                 quotes[key] = SlotQuote(mid - half, mid + half, 1000, 1000, mid, True)
     return SlotSnapshot(ROAD, day, f"fixture_{day:%Y%m%d}", f"{day.day:02d}" * 32, finished.replace(minute=0),
-                        finished, forward, (EXPIRY,), quotes)  # fmt: skip
+                        finished, forward, (expiry,), quotes)  # fmt: skip
 
 
 def touch(snapshot: SlotSnapshot, key: ContractKey, side: str) -> float:

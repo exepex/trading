@@ -34,8 +34,8 @@ class Components:
 def attribute(path: HeldPath, rate: float, rules_sha256: str) -> Attribution | None:
     """None when the path cannot be attributed: a data fault, or no mid at entry or exit (fills rest on two-sided
     quotes, so that is a data fault too, and part c tags it so)."""
-    if not path.attributable:
-        return None
+    if not path.attributable or len({leg.key.expiry for leg in path.outcome.entry.legs}) != 1:
+        return None  # a fault, or legs on two expiries: law 1 refuses those, and no payoff model values them
     units = {leg.key: leg.units * (1 if leg.side == SIDE_BUY else -1) for leg in path.outcome.entry.legs}
     keys = tuple(sorted(units))
     points = [snapshot_point(s, keys, rate) for s in path.snapshots]
@@ -47,7 +47,8 @@ def attribute(path: HeldPath, rate: float, rules_sha256: str) -> Attribution | N
     parts = Components()
     for start, end in zip(kept, kept[1:]):
         add_step(parts, start, end, units, rate)
-    return _record(path, parts, len(kept) - 1, len(points) - len(kept), rules_sha256)
+    merged = len(points) - len(kept) + path.sessions_skipped  # quotes missing, or the road closed that session
+    return _record(path, parts, points[0], points[-1], len(kept) - 1, merged, rules_sha256)
 
 
 def add_step(parts: Components, start: Point, end: Point, units: dict, rate: float) -> None:
@@ -70,10 +71,15 @@ def add_step(parts: Components, start: Point, end: Point, units: dict, rate: flo
         parts.theta += signed * g.theta * (start.years[key.expiry] - end.years[key.expiry])
 
 
-def _record(path: HeldPath, parts: Components, steps: int, merged: int, rules_sha256: str) -> Attribution:
+def spread_paid(legs, point: Point) -> float:
+    """Rupees paid against the point's mids: above the mid to buy, below it to sell."""
+    return sum((leg.price - point.mids[leg.key]) * leg.units * (1 if leg.side == SIDE_BUY else -1) for leg in legs)
+
+
+def _record(path, parts: Components, first: Point, last: Point, steps: int, merged: int, rules_sha256: str):
     outcome = path.outcome
     charges = sum(leg.charges for leg in outcome.entry.legs + outcome.exit.legs)
-    spread = outcome.slippage_vs_mid
+    spread = spread_paid(outcome.entry.legs, first) + spread_paid(outcome.exit.legs, last)
     residual = outcome.net + charges + spread - parts.total
     poor = is_poor_fit(residual, parts.size)
     closed_on = outcome.exit.filled_at.astimezone(IST).date()
