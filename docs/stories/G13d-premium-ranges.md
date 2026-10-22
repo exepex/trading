@@ -3,7 +3,8 @@
 **Repository:** trading · **Lane:** 1 (new story; forecast and evaluation records; Drive) · **Judge:** B ·
 **Builder:** session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Branch:**
 `story/g13d-premium-ranges` · **Depends on:** G13 (`fno/price_distribution/`), G13b's sealing (`fno/price_ranges/`
-seals) · **Status:** story text for the judge (no code yet; built after G13c)
+seals) · **Status:** story text, revision 2 for judge
+B after judge 453 (no code yet; built after G13c)
 
 **Description.** As the options trader and the risk manager, I want, for every NIFTY and BANKNIFTY monthly contract
 on today's 3 pm chain, a range (5/25/50/75/95%) for its mid at the next session's 3 pm. The range comes from one
@@ -29,7 +30,8 @@ For one contract (strike K, side CE/PE, expiry T) on day d's 3 pm chain, with G1
    order, and the put's are the same values in reverse order (the 5% premium comes from the 95% forward). The range
    is monotone by construction; nothing is re-sorted.
 5. **Not ranged.** No contract IV, the expiry is d+ itself or earlier (then the next 3 pm is expiry day: out of
-   scope), or no G13 distribution for the expiry. Each such contract is counted by reason, never guessed.
+   scope), no G13 distribution for the expiry, or d+ is a special session with no 3 pm chain recorded (reason "d+ has
+   no 3 pm chain"). Each such contract is counted by reason, never guessed.
 
 What the rule leaves out, said in advance: IV changes (a fall in the index usually lifts IV, so put ranges should come
 out too narrow on down days), the skew's movement, and the bid-ask spread. The scores will show how much this costs.
@@ -46,16 +48,29 @@ over plain carry.
 
 - **Outcome.** The contract's mid at d+'s 3 pm from A4's canonical chain (same source as d: Groww for Groww, NSE for
   NSE), only a valid two-sided quote (`LiveQuote.mid`). No valid quote at d+ means the row is unscored, counted.
-- **Per row.** Pinball/QS in rupees (G13's `scoring.py`), inside 50%, inside 90%. Per row also QS divided by d's mid
-  (relative), reported beside the rupee figure, because cheap options dominate one and dear ones the other.
+- **Per row.** Pinball/QS in rupees (G13's `scoring.py`), inside 50%, inside 90%. Per row also QS divided by
+  `max(d's mid, ₹2)` (relative; the ₹2 floor keeps near-zero premiums from dominating, judge 453 note), reported
+  beside the rupee figure, because cheap options dominate one and dear ones the other. Relative QS is descriptive
+  only; the verdict below uses rupee QS.
 - **Buckets.** By |delta| at d: below 0.15, 0.15-0.35, 0.35-0.65, above 0.65; and by days to expiry: 2-7, 8-21,
   over 21.
 - **Unit = session.** All contracts of one day share one index move, so coverage and the paired QS difference
   (rule minus baseline) are first averaged per session, then over sessions. Intervals come from G4's block bootstrap
   over sessions; rows are never treated as independent. The report prints the number of sessions beside every figure.
-- **No verdict before enough sessions.** The report shows numbers from day one but states "too few sessions to
-  judge" until 60 scored sessions per underlying (about three months) [reasoning only: chosen for a bootstrap that can
-  tell a 10% QS gap; the judge may set it].
+- **Verdict rule, written before any score (judge 453 SF1, option a).** Per underlying, on all ranged contracts
+  (buckets descriptive only, never decided on):
+  - *covers well*: the session-averaged 90% coverage's block-bootstrap 95% interval lies inside [0.85, 0.95], and
+    the 50% coverage's inside [0.40, 0.60];
+  - *beats carry*: the session-averaged paired rupee-QS difference (rule minus `decay_only`) has its 95% interval
+    below 0 (against `no_change` it is reported, not decided on);
+  - *fails*: a coverage interval lies wholly outside its band, or the QS interval lies wholly above 0;
+  - otherwise *not yet decided*.
+  - Looks are fixed in advance: at 60, 120 and 250 scored sessions per underlying, and at no other count. The report
+    shows numbers from day one but prints "not yet decided (next look at n sessions)" between looks. Three looks
+    with a containment rule slightly raise the chance of a lucky pass; the 250-session look is the one Q1 relies on
+    unless the earlier pass repeats there [reasoning only].
+  - Said in advance: with a day-to-day spread of session coverage near 0.2, 60 sessions give an interval about
+    ±0.05 wide, as wide as the band, so the first look will most likely say "not yet decided" [reasoning only].
 
 ## Sealing, files, timing
 
@@ -85,12 +100,17 @@ over plain carry.
 2. Each "not ranged" reason is produced by its case and counted; the expiry-on-d+ case is out.
 3. Scores match hand values for an outcome below, inside and above, and the session-first averaging is tested (a day
    with 100 contracts weighs the same as a day with 10).
+3b. The verdict rule gives each of its four answers on a synthetic case, only at 60, 120 and 250 sessions, and
+   "not yet decided (next look at n sessions)" between; the ₹2 floor applies below a ₹2 mid.
 4. Seal and late flag behave as G13b's (reuse, not copy).
 5. Real-data run on two consecutive sessions' chains (16 and 19 Oct NSE) gives a report that the judge can rerun.
 6. Gates: full suite, ruff, format, imports, records scan; every file under 350 lines.
 
 ## Open questions for the owner
 
-- Q1. If the rule's ranges cover well, may the paper desk use them for stop distances? (Not in this story.)
+- Q1. If the rule's ranges reach *covers well* at a fixed look (above), may the paper desk use them for stop
+  distances? (Not in this story.)
 - Q2. A second rule with IV moving against the index (a stated "spot-vol" slope from history) is the natural next
-  candidate. Build it only if the first rule's put ranges are too narrow on down days, as expected?
+  candidate. Build it only if the first rule's put ranges are too narrow on down days, as expected? If built, its
+  slope is fitted on history, and the sessions it is shown are recorded in `research/DATA_SPEND.md` (judge 453
+  note).
