@@ -459,6 +459,12 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - **requirement from MS-P1f:** the `check(decision, accepted)` given to `tickets.rules.classify` builds its
   `AccountView` with the trades already accepted in that slot, so the bucket, open-risk, new-risk and margin laws add
   them up before any fill;
+- **requirement (orchestrator, 22 Oct):** before `review_exit`, the fleet checks that each position's driver and road
+  match the driver asked and the snapshot's road; a mismatch is that driver's `unavailable: driver_error`, never an
+  exit;
+- **requirement (orchestrator, 22 Oct):** a REF entry refused only by account limits (C2's bucket among them) becomes
+  `ticket: account_limit` through `tickets.rules.classify`, the same rule as every driver, so REF stays measured on
+  every open road-slot;
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
@@ -616,6 +622,8 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
   - **(iii) New method:** `DashcamStore.find` must now be implemented by c's store.
   - **(iv) New field (for d, orchestrator, 22 Oct):** `LawResult.note: str = ""` is a plain label recorded with the
     result. It never changes `passed`: a law with unusable input still refuses (fails closed, as C2 does).
+  - **(v) New code (for e, orchestrator, 22 Oct):** `NoTradeReason.NO_VALID_QUOTES` ("no valid ATM straddle or no
+    two-sided quotes for the structure"), apart from `NO_STRUCTURE_UNDER_CAP`.
 - **Judge's notes (no action):**
   - `OpportunityCounts` has no scheduled count. MS-P1f's `CountTotals.scheduled` carries the denominator.
   - A refused ticket and a refused trade look the same in a `Decision`. That is deliberate: both are `refused`, with
