@@ -38,3 +38,17 @@ Trial merge with main at 64ea6be4 (removed):
 2. **"main" is now a constant in five places:** `PUBLISH_BRANCH`, `TARGET_BRANCH`, numbering's `BRANCH`, the AI
    transport's `BRANCH` and the heartbeat's default. One shared constant would stop them drifting. That's a later
    clean-up, not this urgent fix.
+
+## Addendum 1
+
+**Test-only follow-up 0e807720 (story/o1-main-branch): PASS. Note 1 closed.**
+
+- **The test now proves "before".** The diff touches only `tests/timetable/test_session_branch.py`: the run's commit
+  must have exactly one parent, the other writer's newest main commit.
+- **Survivor now caught.** At 0e807720 the 4 tests pass. With the pre-commit pull removed (the plant that survived
+  judge 474), 1 test fails.
+- ruff is clean.
+- Note 2 (the five "main" constants) stays a later clean-up, agreed by the builder.
+- **Merge timing:** the orchestrator's decision (wait for a green main; the red-main exception only with the one known,
+  independent failure). My reading of the code, sent to the orchestrator: the first run this bug affects is Friday's
+  14:05 desk run, not the 08:36 pre-open, which commits through `GitManifestRecorder` (already "main").
