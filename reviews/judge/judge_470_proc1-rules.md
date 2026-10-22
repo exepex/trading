@@ -39,3 +39,19 @@ Merge not between 14:00 and 16:15 IST.
 3. **The merge procedure says "lane-3 files" but lists no paths.** The old text named `tools/ci_scope.sh`'s paths. A
    docs file that tests read (CLAUDE.md's routine sections) is lane 2, not lane 3, so it still needs the full run.
    Naming `ci_scope.sh` again would remove the doubt.
+
+## Addendum 1
+
+**The rule-document guard line (story/proc1-minors, commit 49f0a154): CONFIRMED. Lane 1, this line only.**
+
+- **Matches the owner's row.** DESK_DECISIONS "Rule-document guard" (1f039213, line 297, owner: "Yes, judge those")
+  says rule documents are lane 2, except a change that narrows lane 1 or touches a hard line. That change stays lane 1
+  and needs a judge PASS; the hard lines are no orders, secrets, privacy, write-once data and frozen files.
+- **Same wording in both files.** `docs/JUDGE.md`'s new lanes bullet and the sentence added to `CLAUDE.md`'s lane-2
+  line say the same, with the same five hard lines, and cite the row. They do not contradict the PASS of 470.
+- **Note (not blocking):** JUDGE.md names the rule documents as "`CLAUDE.md`, `AGENTS.md`, this file". The old list
+  also counted protocol and freeze documents, owner checklists and stories' acceptance criteria. Freeze and protocol
+  documents fall under "frozen files" in any case. Whether an owner checklist is a rule document is now the
+  auditor's call; "e.g." would keep the list open.
+- **Not judged here:** 4015ae09, judge 470's three minors (docs, lane 2, the orchestrator's check), and the branch's
+  later commit d6217efd (PROC1 story part 4).

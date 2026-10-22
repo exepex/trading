@@ -36,3 +36,35 @@ Two notes, not blocking. Merge timing as the story says: after Monday 26 Oct's r
 - Health and scoreboard B show the day as frozen.
 - No alert, and the day ends "day done".
 - An absent or false switch leaves the suite untouched.
+
+## Addendum 1
+
+**O1-desk-freeze code (story/o1-desk-freeze at f7ad40e0): PASS. Lane 1, round 1 of 2.** Merge only after Mon 26
+Oct's run, never 14:00-16:15 IST. `desk.frozen` stays false; setting it to true is its own judged commit.
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| 1. Frozen day keeps the timetable and quotes; no desk child or private write | MET | `DailyRun.run` keeps every wait and swaps only the action (`_frozen`). The e2e twin test compares `started_at` and the quote tree. P1 (a frozen step skips its wait) is caught |
+| 2. Non-desk steps unchanged | MET | e2e `test_every_step_outside_the_desk_has_the_twin_s_result`; `DESK_FROZEN_STEPS` is the desk plus book1, owner_timing, reviews and card. P5 (quotes_done added to the set) is caught |
+| 3. No alert; "day done" | MET | `frozen` is not in the runner's PROBLEMS; the e2e and unit tests check that no alert is sent |
+| 4. Restart day blocks nothing | MET | `_unreviewed` returns early on a frozen exits step; `_unscored` passes `frozen`. P2 (guard removed) is caught: a crash on the restart day |
+| 5. Health and scoreboard B read frozen | MET | `RunLogCheck` gives NOT_EXPECTED, or MISSED when another step failed; `missed_runs` counts a frozen decisions step as collected and still counts a missed exit review while a trade was held. P6 and P7 are caught |
+| 6. Open-position exception (owner, option A) | MET, extended | `DeskFreeze` keeps `OPEN_POSITION_STEPS` while `open_trades` > 0 (shadow accounts included). Exits fill inside the exit review (`daily_steps.py` 196-218), so a frozen `fills` never stops a close. P4 and P8 are caught; P3 (snapshot dropped) is caught by the open-trade test |
+| 7. The switch is the only control | MET | absent switch means false, and a non-bool is refused; the existing suite is untouched. P10 (absent counts as frozen) is caught |
+| Judge 469 note 1 (the card's last-session line) | MET | `_verdict` gives "desk frozen by the owner"; P9 is caught |
+
+**Gates** on a trial merge with main (3c6a95bb, removed):
+- 9,843 passed, 16 xfailed;
+- ruff check clean, format clean;
+- check_imports clean, check_records clean (7,872 files), check_numbers clean.
+
+**Plants:** 10 planted, 10 caught.
+
+**Notes (not blocking)**
+1. **Beyond the owner's literal answer:** the open-position set also keeps `pack` and `snapshot` (strong evidence:
+   the exits' data gate needs the capture and spot) and `reviews` (reasoning only: E6's loss rules on a held trade). All
+   three are more protective, consistent with "risk checks unchanged", and named in the story so they can be refused.
+   The orchestrator should put `reviews` to the owner in one line; dropping it means removing one name from
+   `OPEN_POSITION_STEPS`.
+2. The open-trade count is read once, at the run's start, after the private files are downloaded. A trade cannot open
+   during a frozen run (`fills` is frozen), so one read is enough.
