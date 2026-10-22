@@ -59,6 +59,12 @@ def test_the_banner_has_red_and_amber_only():
     assert {banner.value for banner in Banner} == {"red", "amber"}
 
 
+def test_no_valid_quotes_is_its_own_no_trade_reason():
+    assert k.NoTradeReason.NO_VALID_QUOTES == "no_valid_quotes"
+    assert k.NoTradeReason.NO_VALID_QUOTES != k.NoTradeReason.NO_STRUCTURE_UNDER_CAP
+    Decision("X@1", k.RoadCode.NIFTY_MONTHLY, b.SESSION, k.Outcome.NO_TRADE, k.NoTradeReason.NO_VALID_QUOTES)
+
+
 def test_every_outcome_has_its_reason_codes_and_codes_are_unique_across_families():
     assert set(k.REASONS_BY_OUTCOME) == set(k.Outcome)
     families = (k.TicketReason, k.NoTradeReason, k.ClosureReason, k.RefusalReason, k.UnavailableReason)

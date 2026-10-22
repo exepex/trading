@@ -34,6 +34,7 @@ class LawResult:
     reason: RefusalReason | None  # set exactly when refused
     limit: float | None = None
     value: float | None = None
+    note: str = ""  # a plain label for the record, e.g. "margin not checked: no data"; never changes `passed`
 
     def __post_init__(self):
         if self.passed == (self.reason is not None):
