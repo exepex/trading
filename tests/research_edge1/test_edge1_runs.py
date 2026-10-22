@@ -4,10 +4,13 @@ naked measurements are reported, never tested); Holm and the nomination see only
 from datetime import date, timedelta
 
 import edge1study.runs as runs
-from edge1study.runner import RUN1_SEAL, Market
-from edge1study.runs import run1, run2
+from edge1study.runner import RUN1_SEAL, Market, sealed
+from edge1study.runs import g1, run1, run2
+from edge1study.trade import TAKEN, Trade
 
 from fno.research_data.panel_reader import FutureQuote, NiftyPanel, OptionQuote, SessionClose
+
+from .edge1_fakes import cycle
 
 CHARGES = {"brokerage_per_order": 20.0, "stt_sell_pct": 0.15, "stt_exercise_pct": 0.15, "exchange_txn_pct": 0.03503,
            "sebi_per_crore": 10, "ipft_per_crore": 50, "stamp_duty_buy_pct": 0.003, "gst_pct": 18}  # fmt: skip
@@ -64,3 +67,27 @@ def test_run2_tests_only_g1_passers_and_holm_and_nomination_see_only_them(monkey
     assert set(found["variants"]) == {"NIFTY SC2 T21", "NIFTY NS T21", "NIFTY NT T21"}
     assert found["variants"]["NIFTY SC2 T21"]["holm"] is True and "holm" not in found["variants"]["NIFTY NS T21"]
     assert found["nominated"] in ([], ["NIFTY SC2 T21"])  # the nomination's own conditions decide the rest
+
+
+def test_the_seal_drops_every_session_option_and_future_after_it():
+    panel = sealed(market().panel, RUN1_SEAL)
+    assert max(s.day for s in panel.sessions) <= RUN1_SEAL
+    assert max(panel.options) <= RUN1_SEAL and max(panel.futures) <= RUN1_SEAL
+
+
+def profitable(n: int) -> list[Trade]:
+    return [Trade(TAKEN, cycle(), "T21", credit=60.0, lot=25, gross=1000.0 + (i % 3) * 10, charges=10.0, pads=5.0,
+                  net=985.0 + (i % 3) * 10) for i in range(n)]  # fmt: skip
+
+
+def test_g1_needs_20_run1_trades_however_profitable():
+    assert g1(profitable(19)) == {**g1(profitable(19)), "passed": False, "reason": "too few run-1 trades"}
+    assert g1(profitable(20))["passed"] is True
+
+
+def test_holm_reads_each_variants_own_p(monkeypatch):
+    selection = run1({"NIFTY": market()}, Calendar(), CHARGES, no_margin, {"NIFTY": 8})
+    selection["NIFTY SC2 T21"]["g1"]["passed"] = True
+    monkeypatch.setattr(runs, "one_sided_p", lambda nets, k: 0.5)
+    found = run2({"NIFTY": market()}, Calendar(), CHARGES, no_margin, selection, {"NIFTY": date(2023, 8, 31)})
+    assert found["variants"]["NIFTY SC2 T21"]["holm"] is False and found["nominated"] == []

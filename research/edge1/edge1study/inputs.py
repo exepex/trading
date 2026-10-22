@@ -33,6 +33,11 @@ def sessions(calendar, first: date = FIRST_DAY, last: date = LAST_FILE_DAY) -> l
     return [d for d in calendar.sessions(first, last) if calendar.session_kind(d) == "regular"]
 
 
+def rows_through(rows: dict[str, list], through: date) -> dict[str, list]:
+    """Run 1's seal at load: every index's day rows dated after `through` are dropped."""
+    return {symbol: [r for r in found if r.day <= through] for symbol, found in rows.items()}
+
+
 def markets(through: date | None = None) -> dict[str, Market]:
     """Both markets; with `through` (run 1's seal) nothing dated later is loaded: NIFTY's panel years stop at that
     year and every BANKNIFTY row, lot and NIFTY lot after it is dropped before a panel is built."""
@@ -40,7 +45,7 @@ def markets(through: date | None = None) -> dict[str, Market]:
     fo_files, _ = build_nifty_panel_files()
     rows = cached_rows((NIFTY, BANKNIFTY), sessions(calendar), fo_files, options_for=(BANKNIFTY,))
     if through is not None:
-        rows = {s: [r for r in found if r.day <= through] for s, found in rows.items()}
+        rows = rows_through(rows, through)
     outcomes = Outcomes(g13b.build_closes(g13b.build_tables(g13b.build_store())))
     chain = settlement_chain(build_nse_fo_library(), build_nse_legacy_fo_library())
 

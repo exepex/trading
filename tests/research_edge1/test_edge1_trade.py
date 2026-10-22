@@ -53,7 +53,8 @@ def test_sl2_exits_at_the_first_fully_traded_close_with_a_loss_of_twice_the_cred
     base = run(SC2, SL2)
     crash = ENTRY + timedelta(days=5)
     untraded_day = ENTRY + timedelta(days=3)
-    moves = {untraded_day: (21000.0, flat_prices(21000.0), {base.legs[1].contract}),  # fires, but a leg is untraded
+    wing = next(leg.contract for leg in base.legs if leg.side == 1 and leg.contract[1] == "PE")
+    moves = {untraded_day: (21000.0, flat_prices(21000.0), {wing}),  # fires, but a leg is untraded
              crash: (21000.0, flat_prices(21000.0), set())}  # fmt: skip
     trade = run(SC2, SL2, moves)
     assert trade.exit_day == crash and trade.exit_how == "trigger"
@@ -68,6 +69,22 @@ def test_tp50_exits_when_half_the_credit_is_earned():
     assert trade.exit_day == calm and trade.exit_how == "trigger" and trade.gross > 0
 
 
+def marked(multiple: float) -> dict:
+    """Entry-day prices with the short call moved so the position's mark (cost to close) is `multiple` x credit."""
+    base, prices = run(SC2, T21), dict(flat_prices(23000.0))
+    short_call = next(leg.contract for leg in base.legs if leg.side == -1 and leg.contract[1] == "CE")
+    prices[short_call] += (multiple - 1.0) * base.credit
+    return prices
+
+
+@pytest.mark.parametrize(("rule", "multiple", "fires"), [(SL2, 2.5, False), (SL2, 3.0, True), (TP50, 0.45, True),
+                                                         (TP50, 0.55, False)])  # fmt: skip
+def test_the_triggers_fire_at_exactly_3x_and_half_the_credit(rule, multiple, fires):
+    day = ENTRY + timedelta(days=4)
+    trade = run(SC2, rule, {day: (23000.0, marked(multiple), set())})
+    assert (trade.exit_day == day) is fires and (trade.exit_how == "trigger") is fires
+
+
 def test_no_trigger_means_the_planned_close_never_another_day():
     trade = run(SC2, SL2)
     assert trade.exit_day == EXIT and trade.exit_how == "planned"
@@ -78,6 +95,7 @@ def test_exp_settles_at_intrinsic_with_settlement_charges_and_no_exit_pad():
     assert trade.exit_day == EXPIRY and trade.exit_how == "settlement"
     assert trade.gross == pytest.approx(trade.credit * 65)  # every leg expires worthless at 23,000
     assert trade.pads == pytest.approx(4 * 1.0 * 65)
+    assert trade.net == pytest.approx(trade.gross - trade.charges - trade.pads)
     breach = run(SC2, EXP, settle=24500.0)
     assert breach.gross < 0 and breach.charges > trade.charges  # settlement charges on in-the-money legs
 
