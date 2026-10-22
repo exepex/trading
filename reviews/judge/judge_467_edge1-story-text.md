@@ -70,3 +70,41 @@ variant and period.
    first. Keep that as a build gate: no return-on-margin figure without it.
 5. **Q2's trade-off, plainly for the owner:** opening BANKNIFTY 2023-26 now spends the last untested history for a
    test G3 will likely call too small. Holding it back costs nothing except time.
+
+## Addendum 1: revision 2 at 9d49ef16, with 2e6759c3 (number 467.1, claimed with `tools/claim_number.py`)
+
+**FAIL. Should-fix 1 is met; should-fix 2 is still open.**
+
+### Should-fix 1: met, more strongly than either option I gave
+- All history is now exploratory. The R1 owner's point is accepted: G13b's back-fill read BANKNIFTY's 2019-26 option
+  closes, and `fno/factory/data_spend.py` treats `exposed` and `spent` alike.
+- EDGE1 is now a screen:
+  - run 1 (2019-22) selects and applies G1;
+  - run 2 (2023-26) is opened once and tests only run 1's passers, with Holm.
+- A fixed nomination rule sends at most two variants on as a proposal for an R3 forward shadow, the only confirmatory
+  test.
+- The labels say exploratory, with *some evidence* at most.
+
+### Should-fix 2: not addressed
+The new text adds the A14c owner's bad-price skip: an entry whose NOV is outside `payoff_bounds` is skipped. That
+catches impossible prices, not stale ones. The text still does not say:
+- how a leg the engine prices at **settlement**, because it did not trade that day (`leg_prices.py`, flagged), counts
+  in run 1, in run 2 and in the nomination rule;
+- that SL2's and TP50's triggers read **traded closes only**;
+- the share of proxy-priced legs per variant and period.
+
+With a nomination rule now in place, this matters more: a nomination built on settlement proxies would send a false
+positive to the owner, exactly as experiment 1's "positive totals rest on stale exits".
+
+**Fix: choose one rule and write it in.** Either:
+- **(a)** any settlement-priced leg makes that entry or exit unfillable: not taken, counted by reason; or
+- **(b)** proxy legs are kept but flagged, and every pass and nomination condition is computed on trades whose every
+  leg traded, with the all-trades figures shown beside them and never decided on.
+
+Plus the traded-close rule for SL2 and TP50, and the proxy share in the report.
+
+### Margin points (2e6759c3): sound, all of them
+- point-in-time SPAN with the manifest SHA-256 and a created-before-09:00 check;
+- each day's own lot;
+- missing series named and never filled;
+- BANKNIFTY's monthly pick checked, and NSE's figures checked before any result.
