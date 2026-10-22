@@ -11,13 +11,13 @@ from datetime import date, time
 from ..config import ROOT
 from ..constants import NIFTY_SYMBOL
 from ..research_data.calendar import SessionCalendar
+from .design.renderer import DesignRenderer
 from .g13b_history import G13bHistory
 from .maker import ReportMaker
 from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
 from .page.cues import Section
 from .page.facts import RepositoryFacts
-from .page.render import InterimRenderer
 from .ranges import NoTodayCloses, Outcomes, RangeSource
 from .sections.gift import GiftSection
 from .sections.global_cues import SPECS, GlobalCueSection
@@ -25,7 +25,7 @@ from .sections.india import FlagsSection, VixSection
 from .sections.levels import Levels
 from .sessions import RegularSessions
 
-PICTURE_WIDTH = 600  # CSS pixels: the picture page's own width, so a phone does not shrink it to unreadable
+PICTURE_WIDTH = 1100  # CSS pixels: the owner's signed-off design (DESK_DECISIONS 11ef1b23), drawn at 2x
 
 
 def flows_reader(calendar: SessionCalendar):
@@ -80,4 +80,4 @@ def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: Session
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official,
                         today_closes=NoTodayCloses(), sections=build_sections(facts, sessions, official),
                         levels=build_levels(calendar, sessions))  # fmt: skip
-    return ReportMaker(pages, InterimRenderer(), ChromiumCamera(width=PICTURE_WIDTH))
+    return ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH))
