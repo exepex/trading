@@ -524,10 +524,22 @@ from A20a's master files.
 
 **Fails closed, by name** (law 3 then refuses the trade, as `RiskInputError`; C2's manager turns it into a refusal):
 terms without legs; a day with no archived file or no manifest row; a SHA-256 other than the manifest's; written at or
-after 09:00; a damaged file, no part for the index, or a change of margin method; an expiry-day or out-of-model expiry
-(the calculator refuses expiry day: the extra 2% ELM of P0 probe 4 is not modelled, so no expiry-day entry, and an open
-trade on its own expiry day refuses every entry of that account that day); a leg not in the file; any Drive failure,
-missing settings and a refused sign-in included (by class name only).
+after 09:00; a damaged file, no part for the index, or a change of margin method; an out-of-model expiry (a day after
+it, beyond 9 months, or an expiry day before 20 Nov 2024); a leg not in the file; any Drive failure, missing settings
+and a refused sign-in included, and an unreadable manifest (by class name only).
+
+**Expiry day is priced, not refused (round 2; judge 491, orchestrator's ruling (a), 22 Oct 2026).** C2's room prices
+every open trade first, so refusing an expiring trade froze its whole account that day: REF holds a NIFTY weekly on
+every weekly expiry day, so REF and RC1 would lose their entries on all roads about one session in five, which biases
+the controls. `ExpiryDayIndexExposure` (`fno/nse_margins/expiry_day_exposure.py`, a new `ExposureRule`; A14's own rule
+is unchanged) adds SEBI's extra 2% ELM to each short index option expiring that day: SEBI/HO/MRD/TPD-1/P/CIR/2024/132
+of 1 Oct 2024, para 5.6, from 20 Nov 2024; NSE Clearing NCL/CMPT/64639 levies it "on short index options contracts"
+(P0 probe 4, checked). So an at-the-money short carries 4%, and one more than 10% out of the money 5%. The archived
+beginning-of-day file still holds the expiring series in one scan tier (strong evidence: 29 Sep 2026 monthly, 13 Oct
+2026 weekly). `trade_record` names the extra when it applies. Known limit [reasoning only]: C2's factor k also
+multiplies the exposure, so k 2.1 on top of SEBI's doubled ELM roughly doubles an expiring fly's stressed margin
+(NIFTY weekly SF 100 on 13 Oct 2026: Rs 2,48,443 a lot); whether k should stress an expiry-day ELM is for A14c's
+per-underlying follow-up.
 
 **Unchanged:** `margins.csv`, A14's daily job and workflow, and C2's and C4's NIFTY path, byte for byte.
 
@@ -553,8 +565,11 @@ missing settings and a refused sign-in included (by class name only).
 5. `margins.csv`, C2's and C4's NIFTY path are untouched (no file of theirs changes; the existing suite passes).
 6. The file is downloaded once per session and parsed once per index (counting fakes).
 7. Every shape refusal of `RoadTradeTerms`; `road_proposal` and `road_open_trade` carry the terms' lot, legs and units.
-8. The gap measure above is reproducible from its script, with the same counts.
-9. Mutations on every rule above.
+8. Expiry day: 2% + 2% (and 3% + 2% deep out of the money) worked by hand; any other day is A14's rule; an expiry day
+   before 20 Nov 2024 and a day after expiry still refuse; an account holding an expiring trade still enters another
+   road that day (C2's own room).
+9. The gap measure above is reproducible from its script, with the same counts.
+10. Mutations on every rule above.
 
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
@@ -676,3 +691,21 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
+
+### MS-P1m Claims (round 2, branch `story/ms-p1m-margin-rows`; round 1 claims are response 328)
+
+Judge 491 (J, round 1) FAIL: one should-fix and three minors, each checked and fixed. Judge B's round 1 verdict:
+answered in the same round.
+
+| Finding | Check | Fix | Test (plant caught) |
+|---|---|---|---|
+| Should-fix: an open trade on its own expiry day froze its account (REF and RC1 lose about one session in five) | agreed: `rules.py:143` prices open trades first; `calculator.py:62` refused expiry day | expiry day priced with SEBI's extra 2% ELM (above) | `tests/nse_margins/test_expiry_day.py`: hand-worked 104,000 and 64,675 a lot; any other day unchanged; before 20 Nov 2024 and after expiry refuse; an account holding an expiring trade enters another road (plants: extra 0, its date, `<=` for `==`, longs charged, a flat rate, the wiring on A14's rule, the record's label dropped) |
+| Minor 1: `nov_per_lot_rs` untested | agreed | - | `test_the_record_carries_each_per_lot_figure_in_its_own_field` (3,250.00 / -975.00 / 26,000.00) |
+| Minor 2: the unset factor file untested | agreed | - | `test_no_factor_file_in_config_refuses_by_name_never_a_default_factor` |
+| Minor 3: `manifest()` outside the named refusals | agreed | wrapped, class name only | `test_an_unreadable_manifest_refuses_by_its_class_name_only` (plant: `except KeyError`) |
+
+- **Real data:** NIFTY weekly SF 100 expiring 13 Oct 2026 (index 22,363.35): exposure 1,16,289.42 a lot from the
+  adapter, the same as a hand computation (4% on each at-the-money short x 65).
+- **Plants this round:** 8 of 8 caught, plus judge 491's two survivors now caught.
+- **Gates:** on the head named in the message to the judges.
+

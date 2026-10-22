@@ -2,13 +2,14 @@
 A14's figure for those legs, the trade's own lot, C2's cap and factor; every way it cannot be that refuses by name."""
 
 import hashlib
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
 from fno.constants import OPTION_CALL, OPTION_PUT
 from fno.nse_margins import road_margin
 from fno.nse_margins.calculator import NseIndexOptionExposure, SpanMarginCalculator
+from fno.nse_margins.expiry_day_exposure import ExpiryDayIndexExposure
 from fno.nse_margins.road_margin import BROKER_LABEL, FACTOR_LABEL, ArchivedSpanMargin, ArchivedSpanSource
 from fno.nse_margins.road_trades import RoadTradeTerms
 from fno.nse_margins.span_file import read_span_file
@@ -40,7 +41,7 @@ def source(files=None, manifest=None, calls=None):
         return NAME, files.get(day)
 
     shas = {d: hashlib.sha256(data).hexdigest() for d, data in files.items()} if manifest is None else manifest
-    return ArchivedSpanSource(day_file, lambda: shas, NseIndexOptionExposure(), lambda day: FACTOR)
+    return ArchivedSpanSource(day_file, lambda: shas, ExpiryDayIndexExposure(), lambda day: FACTOR)  # the school's
 
 
 def terms(structure="SF", width=100.0, lots=2, underlying="NIFTY", expiry=EXPIRY, legs=SF_LEGS, lot=65):
@@ -93,14 +94,14 @@ def test_another_index_is_read_from_its_own_part_of_the_file():
         (None, {DAY: "0" * 64}, DAY, terms(), "differs from its manifest SHA-256"),
         ({DAY: span_zip(created="202610140900")}, None, DAY, terms(), "not before 09:00 on 2026-10-14"),
         (None, None, EXPIRY, terms(), "not in the archive"),
-        ({EXPIRY: FILE}, None, EXPIRY, terms(), "expiry-day"),
+        ({EXPIRY + timedelta(days=1): FILE}, None, EXPIRY + timedelta(days=1), terms(), "expiry-day"),
         (None, None, DAY, terms(legs=UNLISTED_FLY), "not in the"),
         ({DAY: b"not a zip"}, None, DAY, terms(), "school margin nsccl"),
         (None, {}, DAY, terms(), "has no row in A9's manifest"),
         ({DAY: span_zip(som="0.50", som_method="GROSS")}, None, DAY, terms(), "school margin nsccl"),
         ({DAY: span_zip(tiers=None)}, None, DAY, terms(), "school margin nsccl"),
     ],
-    ids=["not archived", "not the first copy", "written at 09:00", "no file that day", "expiry day", "leg not listed",
+    ids=["not archived", "not the first copy", "written at 09:00", "no file that day", "after expiry", "leg not listed",
          "damaged file", "no manifest row", "a short-option minimum (A14 refuses it)", "no scan tiers (A14 refuses)"],
 )  # fmt: skip
 def test_every_way_the_figure_cannot_be_had_refuses_by_name(files, manifest, day, trade, said):
@@ -188,6 +189,10 @@ def test_the_records_name_the_file_the_factor_and_its_label():
     assert found["span_file"] == NAME and found["span_sha256"] == hashlib.sha256(FILE).hexdigest()
     assert found["stress_factor_row"]["factor"] == "2.1" and found["factor_label"] == FACTOR_LABEL
     assert found["legs"] == "-1x19700PE +1x19600PE" and found["lot"] == "65" and found["expiry"] == "2026-11-23"
+    parts = margin.parts(terms("PCS", 100.0, 1, legs=PCS_LEGS), DAY)
+    figures = (found["scan_per_lot_rs"], found["nov_per_lot_rs"], found["exposure_per_lot_rs"])
+    assert figures == (f"{parts.scan:.2f}", f"{parts.nov:.2f}", f"{parts.exposure:.2f}")
+    assert found["expiry_day_extra_elm"] == "none"
     assert FACTOR_LABEL == "k measured on NIFTY monthly only [reasoning only]"
     assert found["broker_check_label"] == "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY"
 
@@ -214,3 +219,22 @@ def test_the_day_s_file_is_downloaded_once_whatever_asks_for_it():
         margin.margin(terms(underlying="MIDCPNIFTY", lot=120), DAY)
     margin.trade_record(terms(), DAY)
     assert calls == [DAY]
+
+
+def test_no_factor_file_in_config_refuses_by_name_never_a_default_factor():
+    from fno.config import load_app_config
+    from fno.nse_margins.road_wiring import build_road_margin
+
+    margin = build_road_margin(load_app_config(overrides={"risk": {"stressed_margin": {"factor_file": ""}}}), env={})
+    with pytest.raises(RiskInputError, match="risk.stressed_margin.factor_file is not set"):
+        margin.source.factor(DAY)
+
+
+def test_an_unreadable_manifest_refuses_by_its_class_name_only():
+    def broken():
+        raise OSError("disk says secret")
+
+    source = ArchivedSpanSource(lambda day: (NAME, FILE), broken, ExpiryDayIndexExposure(), lambda day: FACTOR)
+    with pytest.raises(RiskInputError, match=r"manifest could not be read \(OSError\)") as caught:
+        ArchivedSpanMargin(source).margin(terms(), DAY)
+    assert "secret" not in str(caught.value)

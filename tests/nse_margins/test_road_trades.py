@@ -61,3 +61,12 @@ def test_c2_s_proposal_and_open_trade_carry_the_terms_own_lot_and_legs():
     held = road_open_trade("t1", trade, contract_of, -450.0)
     assert held.terms is trade and held.cash_flow == -450.0
     assert held.units == {"BANKNIFTY26112319700PE": -90, "BANKNIFTY26112319600PE": 90}  # side x 30 x 3
+
+
+def test_the_record_carries_each_per_lot_figure_in_its_own_field(monkeypatch):
+    found = margin_on(planted_spread(monkeypatch)).trade_record(
+        RoadTradeTerms("PCS", 100.0, 1, "NIFTY", EXPIRY, LEGS, 65), DAY
+    )
+    assert (found["scan_per_lot_rs"], found["nov_per_lot_rs"], found["exposure_per_lot_rs"]) == (
+        "3250.00", "-975.00", "26000.00"
+    )  # fmt: skip

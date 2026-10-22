@@ -21,6 +21,7 @@ from ..risk.inputs import RiskInputError, TradeTerms
 from ..risk.margins import MarginParts, StressedMargin
 from ..risk.stress_factor import FactorRow
 from .calculator import ExposureRule, MarginOutsideModel, SpanMarginCalculator
+from .expiry_day_exposure import applies
 from .road_trades import RoadTradeTerms
 from .span_file import SpanFile, read_span_file
 
@@ -29,6 +30,7 @@ FACTOR_LABEL = "k measured on NIFTY monthly only [reasoning only]"  # orchestrat
 BROKER_LABEL = "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY"  # the same; NIFTY matched Groww 21 Oct
 NOT_A_ROAD_TRADE = "school margin: {terms} carries no legs (RoadTradeTerms is required)"
 REFUSED = "school margin {what}: {why}"
+EXTRA_ELM = "+2% on short options expiring today (SEBI 2024/132 para 5.6)"
 
 
 @dataclass(frozen=True)
@@ -71,7 +73,8 @@ class ArchivedSpanMargin(StressedMargin):
         return self.record(day) | {"underlying": road.underlying, "expiry": road.expiry.isoformat(), "legs": legs,
                                    "lot": str(road.lot), "scan_per_lot_rs": f"{parts.scan:.2f}",
                                    "nov_per_lot_rs": f"{parts.nov:.2f}",
-                                   "exposure_per_lot_rs": f"{parts.exposure:.2f}"}  # fmt: skip
+                                   "exposure_per_lot_rs": f"{parts.exposure:.2f}",
+                                   "expiry_day_extra_elm": _extra(road, day)}  # fmt: skip
 
     def parts(self, terms: TradeTerms, day: date) -> MarginParts:
         road = _road(terms)
@@ -108,13 +111,23 @@ class ArchivedSpanMargin(StressedMargin):
                 ) from exc
             if data is None:
                 raise RiskInputError(REFUSED.format(what=name, why="not in the archive"))
-            sha256, expected = hashlib.sha256(data).hexdigest(), self.source.manifest().get(day)
+            try:
+                expected = self.source.manifest().get(day)
+            except Exception as exc:  # the local manifest folder unreadable: named, the class only
+                raise RiskInputError(
+                    REFUSED.format(what=name, why=f"A9's manifest could not be read ({type(exc).__name__})")
+                ) from exc
+            sha256 = hashlib.sha256(data).hexdigest()
             if expected is None:
                 raise RiskInputError(REFUSED.format(what=name, why="has no row in A9's manifest"))
             if sha256 != expected:
                 raise RiskInputError(REFUSED.format(what=name, why="differs from its manifest SHA-256"))
             self._files[day] = (name, sha256, data)
         return self._files[day]
+
+
+def _extra(road: RoadTradeTerms, day: date) -> str:
+    return EXTRA_ELM if applies(road.expiry, day) else "none"
 
 
 def _road(terms: TradeTerms) -> RoadTradeTerms:
