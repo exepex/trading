@@ -32,3 +32,28 @@ pads. The 0-point and 1-point tests cover it. Strong evidence: read plus the tes
 
 I did not run the full suite for this verdict: the finding is in the design, and the diff is 34 lines. The next
 submission gets one full run.
+
+## Addendum 1: 6a419dab
+
+**Verdict: PASS (lane 1). The builder may merge: pull, one full run on the merged tree, push.**
+
+**Gates:** on 6a419dab merged with today's `main` (no conflicts), one run:
+- 9,361 passed, 16 xfailed;
+- `ruff check` clean; 1,755 files formatted;
+- imports clean; record scan clean (7,486 files).
+
+**The fix: accepted.** Each cue takes ordered cutoffs per edition: the morning `(OPEN)`, the evening `(20:05, OPEN)`.
+The first reading inside its rule wins.
+- The evening shows D's RBI rate when A17 has committed it by 20:05.
+- Otherwise it shows the morning's previous-session rate, with its date and the words "today's value is not out yet;
+  the previous one is shown, with its date".
+
+This matches the 438.1 table. The builder also checked my evidence against A17's own commits of `usdinr_rbi.csv`
+(19:37 IST on 21 Oct, 21:23 IST on 19 Oct). Strong evidence.
+
+**Minor (a test gap only).** I planted two mutations in `page_wiring.py`, and both still pass (133 forecast-lab tests):
+- the evening's cutoffs reduced to `(EVENING_RUN,)` (fallback dropped);
+- the order reversed to `(OPEN, EVENING_RUN)`, so the evening would always show the previous rate.
+
+The Section's own test covers the fallback logic, but not the wiring that feeds it. Add one assertion on
+`build_sections`' evening cutoffs: run time first, `OPEN` second.
