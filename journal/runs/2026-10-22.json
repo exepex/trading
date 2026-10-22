@@ -337,6 +337,17 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "close_read": {
+   "started_at": "2026-10-22T15:33:21.263163+05:30",
+   "finished_at": "2026-10-22T15:33:21.263227+05:30",
+   "inputs": {
+    "live_from": "2026-10-23"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NOT_LIVE"
+   }
   }
  }
 }
