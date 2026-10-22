@@ -439,7 +439,11 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
-- a rerun skips sealed decisions.
+- a rerun skips sealed decisions;
+- MS-P1d limit 2 (orchestrator, 22 Oct 2026): a driver account's shared displayed size (E4d) counts its entries
+  at the snapshot, not its exits of older positions there (`AccountView` cannot show them). Exits therefore run after
+  the slot's entries, as the order above has it: an exit that then finds too little size waits
+  (`exit_waiting_quote`), and an entry never counts on size an exit will take.
 
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
@@ -617,10 +621,14 @@ fno/checks or fno/costs.py is edited. The one shared line is `.gitignore`'s `jou
   - E2c's pull overwrites local files (inherited, unchanged).
 - Ruled: M9 (the stop and brake boundary) is section 6 item 9.
 
+**Privacy change for the judge (separate commit, orchestrator's request):** `fno/record_scan/forbidden_files.py` adds
+`journal/school/` to `PAPER_ACCOUNT_FILES`, so a forced `git add -f` of a school account file is refused by the
+public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_scan/test_school_account_files.py`
+(plant: the pattern removed, 5 tests fail).
+
 **Known limits (reasoning only):**
 - The daily stop compares this slot with the previous session's row, which was taken before its fills. It therefore also counts that slot's entry costs, so it acts sooner.
 - An unmarkable position counts at its maximum loss for the stop, but never engages the brake.
 - Margin label: `LawResult` has no text field. "Not checked" is a pass with no limit and no value; a `note` field would be a's change.
-- The record scan's `PAPER_ACCOUNT_FILES` does not cover `journal/school/`. Only `.gitignore` guards it; this is the scan owner's file.
 
 **Real output sample:** none from a recorded day. A real snapshot needs b's `SnapshotSource` and j's fleet, and neither exists on this branch. On the fixture snapshot, a 1-lot BANKNIFTY bull put spread passes all 13 laws, with margin room "not checked". It fills at a bid of 10 and an ask of 5 (30 units each) with C1's charges, and its maximum loss at the touch is above the figure at the mids (`test_max_loss_counts_the_touch_the_fill_pays_not_only_the_mid`).
