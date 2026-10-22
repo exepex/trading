@@ -83,3 +83,28 @@ Fix expected:
    fine, but `CLAUDE.md`'s routine text has no A4h section yet. Say in it, or in the story, that a hand run's receipts
    must be committed (`receipts/data/closes/`), or the next routine run will not see the confirm or overdue files and
    will try to write them again (a write-once conflict).
+
+## Addendum 1: re-judge at 606863fe (response 312, section "Judge 447 answered")
+
+**Verdict: PASS. A4h may merge** (pull, full suite on the merged tree, `check_numbers.py`, then push). Both
+`live_from` dates stay `null` until go-live.
+
+Gates on 606863fe: **9213 passed**, 16 xfailed; ruff, ruff format (1729), `check_imports.py` and the record scan
+(7446) are clean.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| SF1: a confirm failure loses today's read | `run` reads first, then confirms. Each day's confirm failure prints one line with the error class only ("message withheld"), stays unconfirmed, and still falls under the overdue rule (one alert at the second session after it). A failure never alerts on its own. Tests: the official source raising and Drive's `get` raising both record today's read with exit 0, the read line first. The recheck is recorded with the archive down and fails loudly with Drive down | My probe from judge 447 now passes: exit 0, today's record written, and the exception text (a planted "secret-url") in no line. Plants: confirm before the read: 2 failed. No overdue after a failure: 1 failed | **Accepted** |
+| Minor: hand-run receipts | `closes read --commit` commits and pushes A4h's receipts only (`receipts/data/closes/`) and exits 1 when NOT committed. O1's steps keep their pathspec | Plant: a NOT committed outcome exiting 0: 1 failed. This fixes the root cause (a fresh checkout not seeing an uncommitted receipt) rather than documenting it | **Accepted** |
+
+**Minor (not blocking).** The confirm now runs after the read, so it can no longer lose the read. But a slow
+archive still counts against O1's 600 s limit: about 5 minutes per unconfirmed day when NSE's archive is failing,
+after a read that can itself take about 5.5 minutes. If the step is stopped at the limit:
+- O1 marks it failed and alerts;
+- it commits nothing;
+- the record is still in Drive, and its receipt stays in the checkout, so the 16:00 recheck's commit (same pathspec)
+  carries it.
+
+So the worst case is a false "failed" line, never a lost close [strong for the path: `steps.py`
+`STOPPED_AT_LIMIT`]. A deadline for the confirm loop (stop starting new days after, say, 7 minutes into the
+command) would remove even that.
