@@ -539,3 +539,36 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Deliberate duplication:** the `school` limits copy today's book caps rather than reading `risk.profiles.books`, so a desk change cannot move the pilot mid-count. `test_the_school_limits_equal_the_books_caps_today` makes any divergence a visible decision.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
+
+### MS-P1g Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-sections`)
+
+Round 1, built on a's tip 756e6545. Files: `fno/school/reports/` (inputs, banner, lines, today, evening, maker,
+wiring), `tests/school/reports/` (with golden files), and the reserved lines in `fno/forecast_lab/page_wiring.py`:
+the import of `with_school_sections` and the `return` of `build_report_maker` wrapped in it (two lines: Python needs
+the import).
+
+| Criterion | Code | Test |
+|---|---|---|
+| 1 flag off: both editions byte-identical (golden) | `wiring.with_school_sections` returns the maker itself when `school.reports` is false | `test_with_the_flag_off_the_edition_is_byte_identical_to_the_golden_files[morning, evening]`, `test_with_the_flag_off_the_maker_itself_is_returned_unwrapped`; the golden files were made from the unwrapped `ReportMaker` before any change (text, SHA-256 of the picture and of the details page, alerts, verdicts) |
+| 2 flag on: sections appear and say Paper | `SchoolReportMaker.make`, `lines.paper_title` | `test_with_the_flag_on_the_edition_text_gains_its_section_and_the_page_files_stay_identical`, `test_both_sections_are_report_sections_and_say_paper` |
+| 3 no green reachable | `Banner` has two members (a); `banner.banner_for` | `test_banner_has_no_green_and_every_input_maps_to_red_or_amber`, `test_the_banner_is_red_on_a_closed_road_or_no_candidate_else_amber` |
+| 4 a planted refusal appears in the evening section | `evening._problems` | `test_a_refusal_planted_in_the_input_appears_in_the_evening_section` |
+| 5 no contract, strike or card internal | the sections print codes, rupees and counts only | `test_no_contract_strike_price_or_card_internal_appears_in_either_section` (plants strikes, expiry, bid, premium, card and snapshot hashes) |
+| 6 NSE-terms line and no-latency label in both | `lines.footer` | `test_both_sections_carry_the_nse_terms_line_and_the_no_latency_label` |
+
+Broken-code proof: 8 mutations (flag check, banner rule, footer, ticket in rupees, controls shown, the exception
+guard, a strike in a line, counts of controls) each fail a named test.
+
+Design points to judge:
+- The sections go into the Slack message text only; the picture and the details page are the signed-off page,
+  untouched, so the signed-off design needs no change. A section that raises never stops the edition: one alert names
+  the exception class (`school {edition} section not made (...)`), the plain edition is posted.
+- "Today" is a plan from yesterday's data (response 325 section 9.21): its input port gives the roads and the planned
+  trades; only `role: rule` drivers are shown, controls and measurement-only drivers never are. The fleet total counts
+  every non-ticket outcome (controls included) and is labelled as separate hypothetical accounts; tickets are never in
+  rupees and appear only in the counts.
+- The day's inputs (`TodayInputs`, `DayInputs`) are ports: roads, the dashcam's records (c's replay reader), the
+  counts (f) and the driver roles (e). They are wired by MS-P1j. Until then, a flag turned on gives the alert
+  "the school's day inputs are wired by MS-P1j" and no section (`test_a_flag_turned_on_before_the_inputs_are_wired...`).
+- Banner words (red: do not trade real money today; amber: paper only) are response 325 section 7.3's.
+

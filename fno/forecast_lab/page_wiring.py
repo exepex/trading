@@ -11,6 +11,7 @@ from datetime import date, time
 from ..config import ROOT
 from ..constants import NIFTY_SYMBOL
 from ..research_data.calendar import SessionCalendar
+from ..school.reports.wiring import with_school_sections
 from .a4h_closes import A4hTodayCloses
 from .design.renderer import DesignRenderer
 from .g13b_history import G13bHistory
@@ -83,4 +84,4 @@ def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: Session
     today, sections = A4hTodayCloses(build_drive_cache()), build_sections(facts, sessions, official)
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official, today_closes=today,
                         sections=sections, levels=build_levels(calendar, sessions))  # fmt: skip
-    return ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH))
+    return with_school_sections(ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH)))
