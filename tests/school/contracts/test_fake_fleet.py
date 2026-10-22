@@ -69,3 +69,13 @@ def test_a_session_run_is_consistent():
         SessionRun(b.SESSION, RunMode.RECORD, SCHOOL_OFF_LINE, fills=(b.filled(),))
     with pytest.raises(ValueError):
         SessionRun(b.SESSION, RunMode.RECORD, "", decisions=(object(),))  # decisions without their seal
+
+
+def test_a_live_road_whose_capture_holds_an_unmeasured_quote_closes_by_name_and_never_trades():
+    quotes = {k: dataclasses.replace(q, bid_qty=None, ask_qty=None, sizes_measured=False)
+              for k, q in b.snapshot().quotes.items()}  # fmt: skip
+    runner = fleet()
+    runner.snapshots = FakeSnapshotSource({(RoadCode.BANKNIFTY_MONTHLY, b.SESSION): b.snapshot(quotes=quotes)})
+    run = runner.run(b.SESSION, RunMode.REPLAY)
+    on_road = {(r.decision.outcome, r.decision.reason) for r in run.decisions if r.road == RoadCode.BANKNIFTY_MONTHLY}
+    assert on_road == {(Outcome.ROAD_CLOSED, ClosureReason.SIZES_NOT_MEASURED)} and run.fills == ()

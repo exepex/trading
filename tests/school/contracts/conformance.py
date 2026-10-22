@@ -108,6 +108,17 @@ def check_fill_port_missing_quote(port, sealed: SealedDecision, empty: SlotSnaps
     assert not exit_.filled and exit_.state == ExitState.EXIT_WAITING_QUOTE
 
 
+def check_fill_port_unmeasured(port, sealed: SealedDecision, unmeasured: SlotSnapshot, seal: Seal, at: datetime,
+                               position: OpenPosition) -> None:  # fmt: skip
+    """`unmeasured`: every leg two-sided on its prices, no displayed size measured (judge 506). A live fill port never
+    trades on it: the entry is refused as `size_not_measured`, and the exit waits."""
+    assert all(q.two_sided and not q.sizes_measured for q in (unmeasured.quote(leg.key) for leg in position.legs))
+    entry = port.enter(sealed, unmeasured, seal, at)
+    assert not entry.filled and entry.refused == (RefusalReason.SIZE_NOT_MEASURED,)
+    exit_ = port.exit(position, unmeasured, sealed.file_sha256, seal, at)
+    assert not exit_.filled and exit_.state == ExitState.EXIT_WAITING_QUOTE
+
+
 def check_dashcam(store, session: date, slot: str, records: tuple[SlotRecord, ...],
                   other: tuple[SlotRecord, ...]) -> None:  # fmt: skip
     assert isinstance(store, DashcamStore)

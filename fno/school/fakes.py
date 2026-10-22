@@ -143,12 +143,16 @@ class FakeFills:
 
     @staticmethod
     def _fill(legs, lot, snapshot, file_sha256, seal, at, missing) -> FillResult:
+        """A live fill needs a measured displayed size (judge 506): an unmeasured quote refuses the entry by name, and
+        an exit on one waits, as on a missing quote."""
         if not seal.covers(file_sha256, at):
             return FillResult(refused=(RefusalReason.STALE_SEAL,))
         filled = []
         for leg in legs:
             quote = snapshot.quote(leg.key)
-            if quote is None or not quote.two_sided:
+            if quote is not None and not quote.sizes_measured and not isinstance(missing, ExitState):
+                return FillResult(refused=(RefusalReason.SIZE_NOT_MEASURED,))
+            if quote is None or not quote.two_sided or not quote.sizes_measured:
                 return FillResult(state=missing) if isinstance(missing, ExitState) else FillResult(refused=(missing,))
             price = quote.ask if leg.side == SIDE_BUY else quote.bid
             filled.append(FilledLeg(leg.key, leg.side, leg.lots * lot, price, 0.0))
