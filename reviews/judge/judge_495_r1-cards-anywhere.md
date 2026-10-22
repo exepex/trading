@@ -33,3 +33,38 @@ the set union in `all_card_paths` removes the duplicate path.
 
 ## Notes
 - Merge order, as the orchestrator says: registration (judge 493) first. Until then the trial-99 report test skips.
+
+## Addendum 1
+
+**Re-check:** story/r1-cards-anywhere at 47fe7f97. The branch's own diff against main (the registration is already
+on main) covers `card_paths.py`, `counting.py`, `registration/wiring.py`, ledger row 99 and the tests. **Verdict:
+PASS.** Lane 1.
+
+**Gates (my run):** pytest -n auto: 11,198 passed, 1 skipped, 16 xfailed. ruff check/format, check_imports and
+check_records are clean. `factory report` lists 99 among the measurements left out.
+
+**CountingRule, `comparison_card_mismatch` (judge 493 note b): ACCEPTED.**
+- A decision counts only if its D6 row's `comparison_card_sha256` equals the SHA-256 of `CARD_P1.md` at the card
+  version in force (`counting.py`).
+- A row without the component, or a card nobody committed (empty hash), doesn't count.
+- On the real tree, the card in force (0c0f1b24) hashes to `15ee4ab5...`, the value in all 12 rows. The real rule on
+  CS1 at HEAD says `no_first_counted_session`, as designed.
+- Plants caught: the check removed, the hash taken at the decision's commit instead of the card version's, the
+  driver-card SHA read in place of the comparison SHA.
+- **Consequence, correctly stated in the story's Claims:** any later card version (including the one the HEAD
+  charges test forces on a fee change) counts only after new D6 rows naming it are registered. Until then decisions
+  are `comparison_card_mismatch`, which fails closed. j's runbook should name that step.
+
+**Ledger row 99 (note a): ACCEPTED.** `protocol_commit` is 0c0f1b24. That is the card's last change on this tip, and
+a test pins it.
+
+**Judge 495 minors: ACCEPTED.**
+- (a) A ledger-named `.md` missing from the repository raises `CardError` by name.
+- (b) An id found in the ideas folder and elsewhere is returned once, with the ideas folder winning.
+- New: two cards elsewhere with one id raise.
+- All three plants caught.
+
+**Minor:** `card_sha256_at`'s empty string for a missing card is load-bearing only when a row also lacks the
+component. Replacing it with `None` survived. A test with both missing would pin it.
+
+**Plants:** 7, 6 caught, 1 survived (the minor).
