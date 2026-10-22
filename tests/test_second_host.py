@@ -223,3 +223,22 @@ def test_the_provenance_subfolder_never_mixes_with_the_dataset_s_own_manifest(tm
     assert (tmp_path / "manifests" / "second-host" / "index-close.csv").is_file()
     [row] = manifests.read(NseIndexCloseSource)
     assert row.url == NseIndexCloseSource.url_for(PATH) and len(manifests.fingerprints(NseIndexCloseSource)) == 1
+
+
+@pytest.mark.parametrize(
+    ("answer", "error"), [(403, RawFileRefused), (SourceCoolingOff("archives paused"), RawSourceCoolingOff)]
+)
+def test_a_second_host_that_refuses_or_pauses_keeps_its_kind_and_names_both_hosts(tmp_path, answer, error):
+    """The A20 builder's review: a refusal is never reported as "unreachable"."""
+    with pytest.raises(error) as failed:
+        _fallback(Session([requests.ConnectionError("down")] * 4), Session([answer]), tmp_path).fetch(PATH)
+    assert f"second host {SECOND_HOST}:" in str(failed.value) and "down" in str(failed.value)
+
+
+def test_a_source_off_the_primary_host_is_never_moved_to_another_host():
+    class Elsewhere(NseIndexCloseSource):
+        BASE_URL = "https://example.nseindia.com/content/indices/"
+
+    assert Elsewhere(Session([])).requested_url(PATH).startswith("https://example.nseindia.com/")
+    with pytest.raises(ValueError, match="is not on nsearchives.nseindia.com"):
+        Elsewhere(Session([]), host=SECOND_HOST).requested_url(PATH)

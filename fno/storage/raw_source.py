@@ -120,8 +120,12 @@ class NseArchiveSource(RawFileSource):
         return cls.BASE_URL + path.rsplit("/", 1)[-1]
 
     def requested_url(self, path: str) -> str:
-        """The URL this instance asks: `url_for` with its own host in place of the primary one."""
-        return self.url_for(path).replace(f"//{PRIMARY_HOST}/", f"//{self.host}/", 1)
+        """The URL this instance asks: `url_for` with its own host in place of the primary one. A source whose URL is
+        not on the primary host cannot be moved to another host (it would ask the same host twice)."""
+        url = self.url_for(path)
+        if self.host != PRIMARY_HOST and f"//{PRIMARY_HOST}/" not in url:
+            raise ValueError(f"{url} is not on {PRIMARY_HOST}: it cannot be asked on {self.host}")
+        return url.replace(f"//{PRIMARY_HOST}/", f"//{self.host}/", 1)
 
     @classmethod
     def day_for_path(cls, path: str) -> date:

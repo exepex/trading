@@ -61,7 +61,8 @@ class FallbackSource(RawFileSource):
         self.first_day, self.last_day = primary.first_day, primary.last_day
 
     def __getattr__(self, name: str):
-        """The dataset's naming (`path_for`, `filename_for`, `url_for`, ...) is the primary's."""
+        """Only for the dataset's naming class methods (`path_for`, `filename_for`, `url_for`, ...), which are the
+        primary's. Never rely on it for instance state: read `primary` or `secondary` by name."""
         return getattr(self.primary, name)
 
     def fetch(self, path: str) -> bytes | None:
@@ -94,6 +95,6 @@ class FallbackSource(RawFileSource):
     def _second(self, path: str, first: RawSourceUnavailable, fetch: Callable[[str], bytes | None]) -> bytes | None:
         try:
             return fetch(path)
-        except RawSourceUnavailable as second:
+        except RawSourceUnavailable as second:  # its own kind kept: a refusal or a pause is never called "unreachable"
             message = BOTH_FAILED.format(first=first, host=self.secondary.host, second=second)
-            raise RawSourceUnavailable(message, second.status, first.tries + second.tries) from second
+            raise type(second)(message, second.status, first.tries + second.tries) from second
