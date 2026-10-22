@@ -7,6 +7,8 @@ import csv
 import io
 from datetime import UTC, date, datetime
 
+import pytest
+
 from fno.flow_history import cli
 from fno.flow_history.nsdl_backfill import NsdlArchiveForm, NsdlBackfill, NsdlUnavailable
 from fno.flow_history.table import COLUMNS
@@ -115,7 +117,23 @@ def test_month_ends_from_january_2019_through_a_month():
     assert len(cli.month_ends(date(2019, 1, 31), date(2026, 9, 30))) == 93
 
 
-def test_the_command_prints_and_alerts_counts_and_months_only(tmp_path, monkeypatch):
+ACTIONS_RUN = {"GITHUB_SERVER_URL": "https://github.com", "GITHUB_REPOSITORY": "exepex/trading", "GITHUB_RUN_ID": "7"}
+
+
+# The alert names where the run's lines are (fno/alerts/run_location.py), read from the environment: each case sets
+# it in full, so the test means the same locally and inside GitHub Actions, which sets these variables itself.
+@pytest.mark.parametrize(
+    ("environment", "where"),
+    [
+        ({}, "the command's output (not a GitHub Actions run)"),
+        (ACTIONS_RUN, "https://github.com/exepex/trading/actions/runs/7"),
+    ],
+)
+def test_the_command_prints_and_alerts_counts_and_months_only(tmp_path, monkeypatch, environment, where):
+    for name in ACTIONS_RUN:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in environment.items():
+        monkeypatch.setenv(name, value)
     desk = Desk(tmp_path, {JAN: [NsdlUnavailable("HTTP 503"), NsdlUnavailable("HTTP 503")], FEB: PAGES[FEB]})
     sent, lines = [], []
 
@@ -137,8 +155,7 @@ def test_the_command_prints_and_alerts_counts_and_months_only(tmp_path, monkeypa
     args = type("Args", (), {"through": FEB})()
     assert cli.cmd_nsdl_backfill(args, out=lines.append) == 1
     assert lines[0].startswith("nsdl-backfill: 1 month(s) saved (29 rows, 0 with no reporting date)")
-    assert sent == ["Omenix F&O NSDL FPI back-fill: 1 month(s) failed twice: 2019-01; see "
-                    "the command's output (not a GitHub Actions run)"]  # fmt: skip
+    assert sent == [f"Omenix F&O NSDL FPI back-fill: 1 month(s) failed twice: 2019-01; see {where}"]
     printed = "\n".join(lines + sent)
     committed = "\n".join(p.read_text() for p in (tmp_path / "receipts").rglob("*") if p.is_file())
     assert not any(value in printed or value in committed for value in VALUES)
