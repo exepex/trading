@@ -1783,7 +1783,9 @@ MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct
   - no-trade reasons: 12 not enough history, 3 no expiry in window, 3 no structure under the cap, 3 no valid quotes,
     5 N0;
   - 0 quote refusals;
-  - replayed twice: all 45 files byte-identical.
-  It ran on j's round-1 code. It will be run again on round 2 before the judges.
+  - replayed twice: all 45 files byte-identical (round 1).
+  Round 2 (e56b5622, merged with d's entries branch) gives the same 42 and 16. Two replays give 69 byte-identical
+  files (round 2 also lists the replay's account and ticket files). A rerun into the same folder seals nothing,
+  fills nothing and changes no file.
 - **Gates:** `pytest -n auto` 11795 passed; `ruff check`, `ruff format --check`, `check_imports`, `check_records`
   clean.
