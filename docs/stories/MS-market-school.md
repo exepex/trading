@@ -597,3 +597,27 @@ longer called "frozen once": the card and `clusters.py` say it is computed at re
 Broken-code proof: 8 mutations of the new code (tree read at HEAD, strict check, card version selection, date check,
 driver SHA check, the CLI guard, the component name, the pickaxe) each fail a named test.
 
+MS-P1h round 3 (judge 480 addendum 1, owner: "fix, then Judge H re-checks only those fixes"; each point checked and fixed):
+1. **Should-fix, a charges change without a new card version (accepted):** `test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version`
+   compares the `charges:` block of `config.yaml` at HEAD with the hash in the current card; a change fails CI until a
+   new card version is cut. Versions apply forward only, so no earlier decision is touched. Checked by changing a
+   charge in `config.yaml`: the test fails; restored: passes.
+2. **Minor (a), one spelling (accepted):** `GitCountingHistory.first_counted_at` no longer pickaxes one spelling. It
+   reads the parsed value at every commit of the history that touched `config.yaml` and takes the commit that began
+   the value's current run, so aligned, commented and quoted lines are found. A value that is in the tree but whose
+   writing commit is not found raises `FirstCountedError`, a value that is not a date raises, and a shallow clone
+   stops by name; nothing counts silently. Tests: `test_the_value_is_found_whatever_its_spelling` (5 spellings),
+   `test_an_aligned_value_counts_decisions_after_it`, `test_a_value_that_is_not_a_date_raises...`,
+   `test_a_value_in_the_tree_that_no_commit_of_the_history_wrote_raises`, `test_a_shallow_clone_stops_counting_by_name`,
+   `test_a_value_set_again_after_a_change_is_dated_by_its_latest_run`.
+3. **Minor (b), traded legs outside the band (accepted):** the card now says the impossible-price rule on the band's
+   legs measures capture quality, and that a traded leg outside the band is checked per proposal at the touch by part
+   d's `ImpossiblePriceLaw` (`fno/school/safety/quote_laws.py`, on story/ms-p1-fills; refusal `impossible_leg_price`),
+   beside law 5's quote gate. The judge's point that law 5 itself does not check impossible prices is right and the
+   card says so. d is not on this branch: `test_the_law_the_card_names_for_traded_legs_exists_in_part_d` skips here
+   and runs once d is on main (j should check it ran).
+4. **Minor (c), quoted date (accepted):** `test_a_quoted_date_counts_like_a_bare_one` and the quoted spellings above
+   (plant on `_as_date` caught).
+Broken-code proof: 5 mutations of the new code (text kept as text, the run reset, the not-found raise, the shallow
+stop, the unreadable raise) each fail a named test.
+

@@ -12,7 +12,7 @@ from fno.books.version_registry import VersionRow, render
 from fno.books.versions import Versions
 from fno.research_engine.ledger import Git
 from fno.school.registration.counting import CARD_PATH, CONFIG_PATH, CountingRule, NotCounted
-from fno.school.registration.wiring import CARD_COMPONENT, D6VersionLookup, GitCountingHistory
+from fno.school.registration.wiring import CARD_COMPONENT, D6VersionLookup, FirstCountedError, GitCountingHistory
 from tests.school.registration.fakes import CARD_SHA, SESSION, candidate
 
 FIRST = "2026-11-30"
@@ -150,3 +150,85 @@ def test_the_card_commit_list_and_ancestry_come_from_the_engines_git(repo):
     history = GitCountingHistory(repo.git)
     assert history.card_commits() == [one, two] and history.is_ancestor(one, two) and not history.is_ancestor(two, one)
     assert date(2026, 11, 30) == SESSION
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "first_counted: 2026-11-30",
+        "first_counted:   2026-11-30",
+        "first_counted: 2026-11-30  # set by the orchestrator",
+        'first_counted: "2026-11-30"',
+        "first_counted: '2026-11-30'   # quoted",
+    ],
+)
+def test_the_value_is_found_whatever_its_spelling(repo, line):
+    set_in = commit(repo.path, CONFIG_PATH, f"school:\n  enabled: false\n  {line}\n")
+    found = GitCountingHistory(repo.git).first_counted_at(set_in)
+    assert (found.day, found.set_in) == (date(2026, 11, 30), set_in)
+
+
+def test_an_aligned_value_counts_decisions_after_it(repo):
+    commit(repo.path, "journal/versions.csv", render([repo.row]))
+    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CONFIG_PATH, "school:\n  first_counted:            2026-11-30   # aligned\n")
+    assert repo.verdict(repo.decide()).counted
+
+
+def test_a_quoted_date_counts_like_a_bare_one(repo):
+    commit(repo.path, "journal/versions.csv", render([repo.row]))
+    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CONFIG_PATH, 'school:\n  first_counted: "2026-11-30"\n')
+    assert repo.verdict(repo.decide()).counted
+
+
+def test_a_value_that_is_not_a_date_raises_by_name_and_never_counts_nothing_silently(repo):
+    bad = commit(repo.path, CONFIG_PATH, "school:\n  first_counted: soon\n")
+    with pytest.raises(FirstCountedError, match="not a date"):
+        GitCountingHistory(repo.git).first_counted_at(bad)
+
+
+def test_a_value_set_again_after_a_change_is_dated_by_its_latest_run(repo):
+    one = commit(repo.path, CONFIG_PATH, config(FIRST))
+    commit(repo.path, CONFIG_PATH, config("2026-12-15"))
+    three = commit(repo.path, CONFIG_PATH, config(FIRST))
+    four = commit(repo.path, CONFIG_PATH, config(FIRST) + "# a comment\n")  # touched again, same value
+    history = GitCountingHistory(repo.git)
+    assert history.first_counted_at(four).set_in == three != one
+
+
+def test_a_value_in_the_tree_that_no_commit_of_the_history_wrote_raises(repo):
+    class CutShort:
+        """A history that has lost the writing commit (what a cut-short clone looks like to the walk)."""
+
+        def __init__(self, git):
+            self.git = git
+
+        def is_shallow(self):
+            return False
+
+        def commits_touching(self, path):
+            return []
+
+        def committed_text(self, path, commit):
+            return config(FIRST)
+
+        def is_ancestor(self, older, newer):
+            return True
+
+    with pytest.raises(FirstCountedError, match="no commit of the history wrote it"):
+        GitCountingHistory(CutShort(repo.git)).first_counted_at("anything")
+
+
+def test_a_shallow_clone_stops_counting_by_name(tmp_path):
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    full = Repo(origin)
+    full.register()
+    full.decide()
+    full.decide("two")
+    clone = tmp_path / "clone"
+    git(tmp_path, "clone", "-q", "--depth", "1", f"file://{origin}", str(clone))
+    head = git(clone, "rev-parse", "HEAD")
+    with pytest.raises(FirstCountedError, match="git fetch --unshallow"):
+        GitCountingHistory(Git(clone)).first_counted_at(head)

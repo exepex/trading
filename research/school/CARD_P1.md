@@ -87,6 +87,11 @@ changed charge schedule is a new card version that applies to later decisions on
   revision 7, judge 473.1):** a vertical (a sold leg with the bought leg of its type) is impossible when no price
   inside both legs' bid-ask ranges can put it between 0 and its width; each leg also may not break the bounds no market
   can break (a call's bid above the index, a put's bid above its strike). Both legs of a broken vertical are flagged.
+  Like the band, this runs on the band's legs only, so it measures capture quality. A leg a driver trades outside the
+  band (the 1-expected-move shorts, about 20 steps out) is checked for an impossible price per proposal, at the touch
+  the fill would take, by part d's `ImpossiblePriceLaw` (`fno/school/safety/quote_laws.py`: the position must be worth
+  strictly more than its worst payoff and strictly less than its best; refusal `impossible_leg_price`), which runs
+  beside law 5's quote gate on every proposal. Law 5's own checks are two-sidedness, size and sell-back.
 - **Gate per road:** the snapshot passes (present, complete, in window, hash matching, expiries matching A7's, lot
   found) on 10 of 10 consecutive sessions **and** over 95% of the band's leg observations are valid (A4), two-sided
   and not impossible over those sessions. A failing road stays closed for counting while others run.
@@ -102,6 +107,14 @@ changed charge schedule is a new card version that applies to later decisions on
 and the commit that first wrote that value is strictly before the decision's commit (`first_counted_not_frozen_before`
 otherwise): moving the date later or earlier afterwards never re-counts or un-counts a past decision. Until it is set
 nothing counts (`no_first_counted_session`).
+
+### 6. Known limits (orchestrator, 22 Oct 2026)
+
+- **Expiry-day margin (reasoning only):** the expiry-day ELM is not modelled. A driver holding a position into its
+  expiry day therefore gets a `margin_room` refusal on every new entry that day.
+- The blocked entries become `account_limit` tickets; they stay in every denominator and never in an account.
+- Reports show the `margin_room` share per road on expiry days, so the effect stays visible.
+- The fix belongs to P2: model the expiry-day ELM (P0 probe 4, `research/school/probes/`).
 
 ## Machine block (story R1)
 

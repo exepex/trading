@@ -23,6 +23,13 @@ def test_read_card_accepts_the_card_as_a_measurement():
     assert (card.idea_id, card.version, card.measurement, card.hypothesis) == ("CARD_P1", 1, True, False)
 
 
+def test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version():
+    """A charge change fails here until a new card version is cut; versions apply forward only, so no decision made
+    under an earlier version is touched (judge 480, addendum 1)."""
+    block = CHARGES.search((ROOT / CONFIG_PATH).read_text())
+    assert hashlib.sha256(block.group(0).encode()).hexdigest() in CARD, "cut a new card version for the new charges"
+
+
 def test_the_cost_block_named_by_the_card_is_the_one_config_held_at_the_cards_last_commit():
     git = Git(ROOT)
     if git.is_shallow():
@@ -45,6 +52,11 @@ FROZEN_WORDS = (
     "NIFTY-M)",
     "first_counted_not_frozen_before",
     "new card version",
+    "ImpossiblePriceLaw",
+    "expiry-day ELM is not modelled",
+    "account_limit",
+    "margin_room",
+    "impossible_leg_price",
 )
 
 
@@ -65,3 +77,8 @@ def test_the_version_component_name_part_e_must_use_is_pinned():
 def test_the_cards_band_is_the_quality_gates_constant():
     band = pytest.importorskip("fno.school.quality.band", reason="part b (MS-P1b) is not on this branch yet")
     assert f"{band.DEFAULT_BAND_STEPS} strike steps" in CARD, "the card must freeze exactly part b's band"
+
+
+def test_the_law_the_card_names_for_traded_legs_exists_in_part_d():
+    quote_laws = pytest.importorskip("fno.school.safety.quote_laws", reason="part d (MS-P1d) is not on this branch yet")
+    assert hasattr(quote_laws, "ImpossiblePriceLaw") and "ImpossiblePriceLaw" in CARD
