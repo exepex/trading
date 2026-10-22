@@ -45,3 +45,40 @@ quoted below as written. Research and paper trading only; no order, no secret, n
 - c: nothing commits `research/school/counts/`; j's single runner must.
 - g: until j wires the day's inputs, a flag turned on gives one alert and no section.
 - The ChatGPT loop is paused (no review files written).
+
+## Addendum, later on 22 Oct 2026 (still no owner messages; orchestrator messages quoted as written)
+
+- **c, g and h merged:** "h and g are MERGED to main, and c was merged earlier. Please mark their register rows done."
+  Done (lane 3). c's follow-up (judge 485.1) PASSed and is on main: "_push_unpushed must refuse, by name, to push a
+  checkout that carries other unpushed commits to main." The refusal did not name the foreign file, so
+  `_push_unpushed` now raises with the pull's reason (a small code change beyond "tests only", flagged), plus the
+  one-writer line in `counts.py`.
+- **h registration** (judge 493 PASS): "the D6 rows in journal/versions.csv for every pilot driver version, naming the
+  card SHA-256s; the trial 99 ledger row via `factory register`, re-checking the trial number against main".
+  Built: the 12 part-e cards frozen (`band_steps` 10, DRAFT removed; this edits part e's files, flagged), card v2
+  ("cut card version 2 now, before any counted day ... the expiry-day ELM is modelled per SEBI 2024/132 para 5.6, and
+  k=2.1 stacks on it conservatively (A14c open item)"), 12 D6 rows naming `card_sha256` and `comparison_card_sha256`,
+  trial 99 in the ledger, gate log, LEDGER.md and DATA_SPEND (the ledger guard test bumped to 1..99). The branch was
+  rebuilt in order (cards, card v2, rows, ledger) because D6 is append-only.
+- **R1 "cards anywhere"** (judge 495 PASS at 6fcbd6dc, Addendum 1 PASS at 47fe7f97; orchestrator: "the root fix is that
+  R1's read_idea/read_all_ideas find every registered card wherever the ledger says it lives"): `factory register
+  CARD_P1` could not work and `factory report` counted trial 99 as a test. Fixed in `fno/factory/card_paths.py`. Judge
+  H's notes folded in: ledger row 99 `protocol_commit` is card v2's commit; `CountingRule` now checks each D6 row's
+  `comparison_card_sha256` against the card version in force (`comparison_card_mismatch`); a ledger-named card that is
+  missing raises by name; the ideas folder wins a duplicate id.
+
+### Decisions so far (added)
+
+- Card changes are forward only; a new card version needs new D6 rows naming it before decisions count.
+- The fleet total and the evening banner count rule drivers only; controls and measurement-only drivers have their own
+  labelled lines (orchestrator's decision on judge 484).
+- The first counted session is read from git history at each decision's commit, never from the working tree.
+
+### Open questions (added)
+
+- Orchestrator, for my next change: "write the named j runbook step into MS-P1j: any new card version needs new D6 rows
+  registered before decisions count, until then everything is comparison_card_mismatch" and "pin the empty-hash case
+  for a missing card with a test" (`card_sha256_at` gives an empty hash when the card is missing at a commit).
+- h: the D6 rows' `comparison_card_sha256` check means any edit of CARD_P1 needs 12 new rows; j must do this step.
+- j: wire the day's inputs for g (until then flag on gives one alert and the plain edition), commit the dashcam's
+  counts file, and check that the b-band pin test ran once b is on main.

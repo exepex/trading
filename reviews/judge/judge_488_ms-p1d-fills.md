@@ -142,3 +142,22 @@ two judges, independent of judge I. Round 1 of 2.
 **Note.** Now that law 3 uses this margin, any held position whose margin cannot be read refuses every entry of
 that account until it closes. Examples: an expiry past, a missing day file, an out-of-model expiry. This is fail
 closed and stated in MS-P1m. The owner should expect a driver's account to sit idle on such days.
+
+## Addendum 3
+
+**Scope:** MS-P1d follow-up part 2, story/ms-p1d-verticals, diff 390d7131..c3f75f28. Money piece: first of two
+judges, independent of judge I. Round 1 of 2.
+- `ImpossiblePriceLaw` now calls b's `impossible_keys` on the proposal's legs only. d's own vertical copy is removed.
+- Settlement reads b's `build_archive_stores`.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 11632 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **One rule for the gate and the law, as the owner decided ("ranges").** A pair of the proposal's legs of one type
+  and expiry is impossible only when no price inside both bid-ask ranges fits [0, width] (1e-9 tolerance). A bid
+  above what the option can ever be worth is also flagged. Only the proposal's own legs are judged, so a stale far
+  strike elsewhere in the chain cannot refuse a trade. The strict position bound at the touch stays.
+- **Settlement.** It reads the service account's Drive, else the owner's, else `RawFilesNotConfigured` by name. So
+  settlement still never waits forever on a store nobody can read.
+- **Plants: 4, 4 caught.** The per-vertical check off; the whole chain judged instead of the proposal's legs; the
+  position bound off; an empty store list built without an error.
