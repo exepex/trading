@@ -10,6 +10,7 @@ from fno.nse_margins.calculator import NseIndexOptionExposure
 from fno.nse_margins.road_margin import ArchivedSpanMargin, ArchivedSpanSource
 from fno.nse_margins.road_trades import RoadTradeTerms, road_open_trade, road_proposal
 from fno.research_engine.structures import Leg
+from fno.risk.inputs import RiskInputError
 
 from . import span_builder
 from .span_builder import DAY, EXPIRY, default_options, risk, span_zip
@@ -70,3 +71,32 @@ def test_the_record_carries_each_per_lot_figure_in_its_own_field(monkeypatch):
     assert (found["scan_per_lot_rs"], found["nov_per_lot_rs"], found["exposure_per_lot_rs"]) == (
         "3250.00", "-975.00", "26000.00"
     )  # fmt: skip
+
+
+C, P = "CE", "PE"
+SPREADS = {  # code: (the right legs, the same strikes with the other leg sold)
+    "PCS": ((Leg(19_700.0, P, -1), Leg(19_600.0, P, 1)), (Leg(19_700.0, P, 1), Leg(19_600.0, P, -1))),
+    "CCS": ((Leg(20_300.0, C, -1), Leg(20_400.0, C, 1)), (Leg(20_300.0, C, 1), Leg(20_400.0, C, -1))),
+    "CDS": ((Leg(20_000.0, C, 1), Leg(20_100.0, C, -1)), (Leg(20_000.0, C, -1), Leg(20_100.0, C, 1))),
+    "PDS": ((Leg(20_000.0, P, 1), Leg(19_900.0, P, -1)), (Leg(20_000.0, P, -1), Leg(19_900.0, P, 1))),
+}
+
+
+@pytest.mark.parametrize("code", sorted(SPREADS))
+def test_each_spread_accepts_its_own_shape_and_refuses_the_other_leg_sold(code):
+    right, wrong = SPREADS[code]
+    RoadTradeTerms(code, 100.0, 1, "NIFTY", EXPIRY, right, 65)  # judge 492: each rule caught by its own plant
+    with pytest.raises(RiskInputError, match="the wrong leg is sold"):
+        RoadTradeTerms(code, 100.0, 1, "NIFTY", EXPIRY, wrong, 65)
+
+
+@pytest.mark.parametrize(
+    ("code", "call", "put"),
+    [("SF", 20_000.0, 20_000.0), ("SC", 20_300.0, 19_700.0), ("BF", 20_000.0, 20_000.0)],
+)
+def test_a_fly_or_condor_with_only_its_put_wing_off_width_is_refused(code, call, put):
+    body = -1 if code in ("SF", "SC") else 1
+    legs = (Leg(call, C, body), Leg(put, P, body), Leg(call + 100.0, C, -body), Leg(put - 150.0, P, -body))
+    with pytest.raises(RiskInputError, match="wings not 100 out"):
+        RoadTradeTerms(code, 100.0, 1, "NIFTY", EXPIRY, legs, 65)
+    RoadTradeTerms(code, 100.0, 1, "NIFTY", EXPIRY, (*legs[:3], Leg(put - 100.0, P, -body)), 65)

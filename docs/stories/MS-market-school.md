@@ -473,8 +473,8 @@ seven structures, any width, and shorts one expected move out.
 
 **Why per proposal, not rows (orchestrator's rule: measure first; strong evidence).** A14-style rows were compared
 with the pilot's real legs on 37 archived sessions (every 12th session, 6 Jan 2025 - 6 Oct 2026), widths 1-8 strike
-steps, 13,736 comparisons (1,064 combinations not measured: 760 whose row legs the file does not list, 304
-outside the calculator's model; the script counts them). The figure is C2's stressed margin at k 2.1, per unit. The row is A14's own structure (SC
+steps (each expiry's own step, read from its listed strikes near the index; judge 492), 14,800 comparisons, every
+combination measured. The figure is C2's stressed margin at k 2.1, per unit. The row is A14's own structure (SC
 shorts at spot ±2%, spreads at ATM); the real legs are the pilot's (shorts one expected move out, the ATM straddle in
 the file; debit spreads one step out). The table gives the share of cases where the row is below the real position,
 and the lowest row/real ratio:
@@ -483,7 +483,7 @@ and the lowest row/real ratio:
 |---|---|---|---|---|---|
 | NIFTY-M | 75% below, min 0.86 | 98% below, min 0.90 | 97% below, min 0.88 | 1% below, min 0.82 | 13% below, min 0.88 |
 | BANKNIFTY-M | 70% below, min 0.81 | 94% below, min 0.85 | 89% below, min 0.87 | 3% below, min 0.85 | 11% below, min 0.87 |
-| FINNIFTY-M | 66% below, min 0.82 | 96% below, min 0.87 | 92% below, min 0.88 | 10% below, min 0.88 | 12% below, min 0.90 |
+| FINNIFTY-M | 75% below, min 0.82 | 97% below, min 0.85 | 94% below, min 0.88 | 5% below, min 0.87 | 10% below, min 0.87 |
 | MIDCPNIFTY-M | 83% below, min 0.76 | 97% below, min 0.85 | 92% below, min 0.88 | 8% below, min 0.84 | 12% below, min 0.84 |
 | NIFTY-W | 31% below, min 0.92 | 97% below, min 0.91 | 98% below, min 0.88 | 2% below, min 0.91 | 11% below, min 0.88 |
 
@@ -694,8 +694,8 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 
 ### MS-P1m Claims (round 2, branch `story/ms-p1m-margin-rows`; round 1 claims are response 328)
 
-Judge 491 (J, round 1) FAIL: one should-fix and three minors, each checked and fixed. Judge B's round 1 verdict:
-answered in the same round.
+Judge 491 (J, round 1) FAIL: one should-fix and three minors. Judge 492 (B, round 1) FAIL: one should-fix (tests
+only) and a note. Each was checked and fixed in this one round 2.
 
 | Finding | Check | Fix | Test (plant caught) |
 |---|---|---|---|
@@ -704,8 +704,11 @@ answered in the same round.
 | Minor 2: the unset factor file untested | agreed | - | `test_no_factor_file_in_config_refuses_by_name_never_a_default_factor` |
 | Minor 3: `manifest()` outside the named refusals | agreed | wrapped, class name only | `test_an_unreadable_manifest_refuses_by_its_class_name_only` (plant: `except KeyError`) |
 
+| Judge 492 should-fix: four shape plants survived (PDS, CDS, CCS with the other leg sold; a wing checked on the call side only) | agreed | - | `test_each_spread_accepts_its_own_shape_and_refuses_the_other_leg_sold` [4], `test_a_fly_or_condor_with_only_its_put_wing_off_width_is_refused` [SF, SC, BF]; all 5 plants now caught |
+| Judge 492 note: the gap script fixed FINNIFTY at a 50-point step (November's strikes are 100 apart) | agreed | each expiry's own step from its listed strikes near the index | rerun: 14,800 comparisons, none skipped (the 1,064 skipped before were FINNIFTY's); only the FINNIFTY row moves (SC 66% to 75%, PCS 96% to 97% and min 0.87 to 0.85, CCS 92% to 94%, CDS 10% to 5% and 0.88 to 0.87, PDS 12% to 10% and 0.90 to 0.87); the lowest ratio stays 0.76, so the decision holds |
+
 - **Real data:** NIFTY weekly SF 100 expiring 13 Oct 2026 (index 22,363.35): exposure 1,16,289.42 a lot from the
   adapter, the same as a hand computation (4% on each at-the-money short x 65).
-- **Plants this round:** 8 of 8 caught, plus judge 491's two survivors now caught.
+- **Plants this round:** 8 of 8 caught, plus judge 491's two and judge 492's five survivors now caught.
 - **Gates:** on the head named in the message to the judges.
 

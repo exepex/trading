@@ -28,7 +28,8 @@ from fno.risk.inputs import RiskInputError  # noqa: E402
 from fno.risk.margins import MarginParts  # noqa: E402
 
 FACTOR, WORKERS, MAX_STEPS = 2.1, 8, 8
-STRIKE_STEPS = {"NIFTY": 50, "BANKNIFTY": 100, "FINNIFTY": 50, "MIDCPNIFTY": 25}
+ROADS = ("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY")
+NEAR_SPOT = 0.05  # the strike step is read from the strikes listed within 5% of the index (judge 492)
 COLUMNS = ("day", "road", "expiry", "kind", "structure", "width", "row_initial", "real_initial", "row_stressed",
            "real_stressed", "row_entry", "real_entry", "expected_move")  # fmt: skip
 STRUCTURES = {s.code: s for s in build_tradable_structures()}
@@ -38,6 +39,13 @@ SKIPPED: Counter[str] = Counter()  # combinations not measured, by reason, print
 
 def nearest(strikes, level: float) -> float:
     return min(strikes, key=lambda strike: abs(strike - level))
+
+
+def strike_step(strikes, spot: float) -> float:
+    """The expiry's own step: the most common gap between listed strikes near the index (ties: the smaller)."""
+    near = [k for k in strikes if abs(k - spot) <= NEAR_SPOT * spot]
+    gaps = Counter(round(b - a, 2) for a, b in zip(near, near[1:]))
+    return min(gaps, key=lambda gap: (-gaps[gap], gap))
 
 
 def pilot_legs(strikes, spot: float, move: float, width: float, step: float) -> dict[str, list[Leg]]:
@@ -70,7 +78,8 @@ def measure_expiry(span, road: str, expiry: date, kind: str, day: date):
     atm = nearest(strikes, span.underlying)
     if (atm, OPTION_CALL) not in options or (atm, OPTION_PUT) not in options:
         return
-    move, step = options[(atm, OPTION_CALL)].price + options[(atm, OPTION_PUT)].price, STRIKE_STEPS[road]
+    move = options[(atm, OPTION_CALL)].price + options[(atm, OPTION_PUT)].price
+    step = strike_step(strikes, span.underlying)
     for width in (n * step for n in range(1, MAX_STEPS + 1)):
         for code, real in pilot_legs(strikes, span.underlying, move, width, step).items():
             row = STRUCTURES[code].legs(frozenset(options), span.underlying, width)
@@ -86,7 +95,7 @@ def measure_expiry(span, road: str, expiry: date, kind: str, day: date):
 
 
 def measure_day(day: date, name: str, data: bytes):
-    for road in STRIKE_STEPS:
+    for road in ROADS:
         span = read_span_file(data, name, symbol=road, allow_short_option_minimum=True)
         monthly = [e for e in span.monthly_expiries if e > day][:2]
         weekly = [e for e in sorted(span.series) if e > day and e not in span.monthly_expiries][:2]
