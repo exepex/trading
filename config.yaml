@@ -230,3 +230,19 @@ health:
   window_days: 6
   # Story O8b: one line, once per calendar version, when NSE's calendar ends within this many days
   calendar_horizon_days: 45
+# Story MS-P1a: the market school pilot (docs/stories/MS-market-school.md). Its own switches, apart from the desk's and
+# v4's: `enabled` gates every paper decision, `reports` the 08:50 and 20:05 sections; both stay off until the
+# orchestrator turns them on. The limits are the school's own copy of today's values (response 325 section 9.1,
+# DESK_DECISIONS "Market school pilot: report sections and brake"), so a desk change never moves the pilot mid-count.
+school:
+  enabled: false
+  reports: false
+  first_counted:            # set from the frozen comparison card (MS-P1h) before the first counted session
+  account_rs: 2000000       # each driver version's paper account
+  max_loss_rs: 10000        # one trade, every charge and pad included
+  daily_stop_rs: 25000      # loss since the previous slot that stops new entries for the session
+  brake_rs: 120000          # equity this far below its high: no new trades until a monthly review row lifts it
+  max_new_trades_per_slot: 5
+  bucket_rs: 30000
+  open_risk_rs: 150000
+  new_risk_day_rs: 50000
