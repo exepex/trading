@@ -72,3 +72,59 @@ re-freeze. Recommended, not required.
    (re-freeze).
 
 **Next:** run 1. I reproduce selection.json byte for byte and check the cards; then run 2.
+
+## Addendum 1
+
+**Scope:** run 1 (selection.json at d4ea08d6, from frozen 3152ed44; 5fc0c445 adds tests only) and the builder's
+proposed deviation after the freeze, for exit prices that cannot be real. Round 1 of 2 on this deviation. Run 2 has not
+been read.
+
+**Verdict on the deviation: ACCEPTED IN PRINCIPLE, with three changes (below) before the re-freeze.**
+
+**The problem is real.** I checked 2 of the 3 cases against the committed NIFTY panel:
+- 8 Aug 2019, the 29 Aug expiry:
+  - 11650 PE closes at 715.20 on a volume of 3 contracts, while NSE's settlement price is 600.35;
+  - 11350 PE closes at 323.10;
+  - the put spread is 392.1 on a width of 300.
+- 21 Dec 2020, the 28 Jan expiry:
+  - 13300 PE closes at 339.60 on 5,176 contracts;
+  - 13150 PE closes at 183.15 on 3 contracts;
+  - the spread is 156.45 on a width of 150.
+
+The root cause is the engine's `leg_price`: a traded leg uses `close`, the last trade, which on a fast day can be hours
+old for a thin strike. NSE's settlement price is no cure: in the 2020 case it equals the stale close. A validity check
+is the right fix.
+
+**Why I accept it after the freeze.**
+- It is a validity rule, not tuning. It is triggered by prices that cannot exist, and it removes wins and losses alike
+  (the +21,533 trade is above its own maximum gain of 18,850; the -15,810 trade is beyond the cap).
+- Run 2 is unread.
+- Run 1 is already exploratory. The re-run is a labelled second look, and both selection.json files stay committed.
+- Keeping the frozen result (option B) would send BANKNIFTY SF TP50 to run 2. It was picked partly on one impossible
+  trade: without that trade, its mean falls from 2,250 to 1,286. That is the worse error.
+
+**Changes required (each a should-fix for the re-freeze):**
+1. **Check each vertical, not only the position.** For every bought-sold pair of the same type (SF and SC each have a
+   put spread and a call spread), require 0 <= spread value <= width. A position total can hide two violations that
+   offset each other: a put spread inverted by 100 plus a call spread at 150 sums to 50, inside the position's bounds.
+   Apply this one rule identically at entry (today's `bad_prices` is position-level only), at every trigger day and at
+   the T21 exit.
+2. **No impossible price in the "all trades" figure.** A T21 exit on an invalid day is flagged `incomplete_exit` and
+   kept out of the decided mean, as proposed. But nomination condition 3 and `all_mean_net` include incomplete exits.
+   There, value each failing vertical clipped into [0, width], labelled as a proxy, never at the raw close.
+   Otherwise -15,810 (beyond the cap) and +21,533 (beyond the maximum gain) still enter condition 3.
+3. **Report the bias of the exclusion.** Stale prices come from fast days, which are mostly losing days for short
+   premium, so dropping those exits flatters the decided mean. Each variant reports its invalid-day count (entry,
+   trigger days skipped, exits) and the decided mean beside the clipped all-trades mean.
+
+**Limits to state in section 14:**
+- A stale price inside its bounds cannot be detected.
+- NS and NT have no bounds, so this rule does not touch them.
+- `leg_price` is shared: the simulator, STR1 and FT1 use the same last-trade close. The orchestrator should decide
+  whether experiment 1's results need the same check. That is outside EDGE1.
+
+**Next:**
+1. The builder writes section 14 and the code, with tests and plants for changes 1-3, and re-freezes.
+2. I judge that (round 1 of the code deviation).
+3. Run 1 is re-run, and I reproduce both selection.json files.
+4. Run 2 follows.
