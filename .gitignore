@@ -31,3 +31,4 @@ research/data/quotes/groww/**/*.csv
 # Story O9: the local Drive cache (data is read from Drive, never committed)
 /work/drive-cache/
 /work/gr1/
+/work/edge1/
