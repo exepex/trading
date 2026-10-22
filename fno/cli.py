@@ -47,6 +47,7 @@ from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
 from .role_value.cli import add_role_value_parser
+from .school.cli import add_school_parser
 from .scoreboard.cli import add_scoreboard_parser
 from .storage.cache_cli import add_cache_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
@@ -257,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     add_circulars_parser(sub)
     add_flows_parser(sub)
     add_preopen_parser(sub)
+    add_school_parser(sub)
 
     args = p.parse_args(argv)
     try:

@@ -1,0 +1,61 @@
+"""Per road, the share of scheduled decisions refused for quotes (story MS-P1j, orchestrator 22 Oct 2026): law 5's four
+reasons, read from each record's own law results (a refusal named by a stop still counts here when a quote law also
+refused). The capture gate's band is about 10 steps while the shorts sit about 20 out, so thin far legs stay visible.
+
+Margin-not-checked refusals are counted by their cause, the cause's name only: a law result's note can name a
+contract or a leg (MS-P1m's causes do), so a note is never quoted and never leaves the dashcam (judge 494)."""
+
+from collections import Counter
+from collections.abc import Iterable
+from dataclasses import dataclass
+
+from ..constants import RoadCode
+from ..contracts.records import DecisionRecord
+from ..safety.margin_law import MARGIN_NOT_CHECKED, margin_not_checked
+from ..safety.quote_laws import GATE_REASONS
+
+
+@dataclass(frozen=True)
+class QuoteShare:
+    road: RoadCode
+    scheduled: int
+    quote_refused: int
+
+    @property
+    def share(self) -> float:
+        return self.quote_refused / self.scheduled if self.scheduled else 0.0
+
+
+def quote_shares(records: Iterable[DecisionRecord]) -> tuple[QuoteShare, ...]:
+    scheduled, refused = Counter(), Counter()
+    for record in records:
+        scheduled[record.road] += 1
+        refused[record.road] += any(not r.passed and r.reason in GATE_REASONS for r in record.law_results)
+    return tuple(QuoteShare(road, scheduled[road], refused[road]) for road in sorted(scheduled))
+
+
+def margin_unchecked_causes(records: Iterable[DecisionRecord]) -> Counter:
+    """(road, cause name) -> count; the cause name is the note's text after the prefix up to its first colon."""
+    causes = Counter()
+    for record in records:
+        for result in record.law_results:
+            if margin_not_checked(result):
+                causes[(record.road, cause_name(result.note))] += 1
+    return causes
+
+
+def cause_name(note: str) -> str:
+    return note.removeprefix(MARGIN_NOT_CHECKED).split(":", 1)[0].strip()
+
+
+QUOTE_LINE = "{road}: {refused} of {scheduled} refused for quotes ({share:.0%})"
+MARGIN_LINE = "{road}: margin not checked ({cause}) x{count}"
+
+
+def share_lines(records: tuple[DecisionRecord, ...]) -> tuple[str, ...]:
+    """Counts only, for the run's printout and the reports."""
+    lines = [QUOTE_LINE.format(road=s.road, refused=s.quote_refused, scheduled=s.scheduled, share=s.share)
+             for s in quote_shares(records)]  # fmt: skip
+    causes = sorted(margin_unchecked_causes(records).items())
+    lines += [MARGIN_LINE.format(road=road, cause=cause, count=n) for (road, cause), n in causes]
+    return tuple(lines)
