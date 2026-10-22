@@ -298,3 +298,66 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - Reader index: cited from section 1 (judge 475 add. 1). Nothing outside `fno/vix_history` reads VIX.
 - Not yet: the move, the data tests on the moved data, the first scheduled run, and the removal commit (the order
   above). They follow the PASS, and the claims will record each.
+
+**Step 1b, global cues (code, for the A17 owner, the FL1 builder and Judge F):**
+- Built as in step 1b's text above. Files:
+  - `fno/global_cues/{drive_wiring (new), wiring, check_files, cli}.py`
+  - `fno/storage/{receipted_rows, moving, report_files, row_log}.py`
+  - FL1's `fno/forecast_lab/page/facts.py` and `page_wiring.py`
+  - `.github/workflows/{global-cues, data-checks}.yml`
+  - `research/data/global-cues/README.md`
+  - tests: `tests/o9b/test_global_cues_drive.py` (new), `tests/o9b/{test_moving, test_receipted_rows}.py`, the
+    `tests/global_cues` files that call `CueChecks`, `tests/forecast_lab/test_page_facts.py` and
+    `tests/test_capture_schedules.py`
+- `CueChecks` now writes its two public reports and `us_trading_dates` through the `Report` port. `DriveSnapshots` is
+  a `Report` too. The wiring writes them as `ReceiptedSnapshots`; tests write them with `csv_reports`.
+- **Two design changes found while building, both in step 1's shared classes:**
+  1. **A move catches up.** `global-cues.yml` on main keeps appending to the repository files until the merge, so the
+     merge-day re-run would have refused ("Drive already holds other bytes"). `move_into` now asks the series:
+     - a table whose Drive copy is a whole-line start of the file gets the later rows as one new part, under the
+       header;
+     - a report gets a new snapshot;
+     - anything else is still refused, and the bytes must read back equal.
+  2. **Parts must sort in order.** Part names are a run id (time to the second plus a random suffix). Two runs in the
+     same second could therefore read back out of order. My own test caught this as an unequal read-back. A new part
+     that would not sort after every receipted part of its series is now refused (`PartOutOfOrder`); nothing is
+     written.
+- FL1, agreed with its builder (22 Oct):
+  - `RepositoryFacts(root, flows, cue_rows)` keeps its contract: brent and USD/INR are `{value_date: value}` up to
+    the report's day.
+  - `page_wiring.cue_rows()` reads each table once per process. A table Drive cannot give (settings missing, a copy
+    unverified, sign-in refused: all `RuntimeError`) gives no rows, as a missing file did before.
+  - No `live_only` filter was added.
+- The real move (22 Oct, from this session) read back equal for all six files:
+
+  | File | Bytes | SHA-256 starts |
+  |---|---|---|
+  | us10y | 618,938 | 0053dbe0 |
+  | brent | 631,009 | ce69a512 |
+  | usdinr_rbi | 493,096 | 83508820 |
+  | us_trading_dates | 76,002 | 1969b82e |
+  | gaps | 90,770 | c5a89239 |
+  | overlap | 10 | 62132041 |
+
+  `revisions.csv` does not exist yet, so it was not moved.
+- Evidence on the moved data:
+  - From a cold cache: "6 downloaded and verified", and 7 `data` tests passed.
+  - Each table rebuilt through the real wiring equals its repository file byte for byte.
+  - `global-cues verify --cue us10y --cue brent --cue usdinr_rbi` on the moved tables printed "every cue row equals
+    the archived copy it names" (exit 0).
+  - Criterion 3 for FL1: the facts' brent and USD/INR series, old path against new, over the 30 sessions from
+    8 Sep to 22 Oct 2026 showed 0 differences.
+  - The weather reads the same `rows()` and needed the Drive settings already (`build_reader(include_private=True)`).
+- **Mutations: 9 of 9 caught.** Three survived at first and their tests were added:
+  - the revisions log left out of the move;
+  - the overlap check not written;
+  - the order check's `>=` weakened to `>`. The second series of one run reusing a held part name is now refused
+    by name, not by Drive's write-once conflict.
+- Changed behaviour, stated plainly: `global-cues check` (and `verify`) now need the Drive settings, because every
+  table is in Drive. No schedule calls `check`.
+- Not yet:
+  - the A17 owner's and FL1's reviews of this diff, then Judge F;
+  - the merge from Mon 26 Oct, outside 14:00-16:15 IST and away from the 03:41, 04:41 and 14:11 runs, with
+    `global-cues move` re-run just before it (it says "already in Drive, equal" or "caught up and read back equal");
+  - the first scheduled run on the new path;
+  - the removal commit.

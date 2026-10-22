@@ -17,10 +17,15 @@ from .row_log import RowLog
 
 PART = "{folder}/{run_id}{n}.csv"  # one part per run; a second write in the same run gets "_02" (sorts after ".csv")
 TABLE_UNREADABLE = "{folder}: the Drive copies could not be verified: {problems}"
+OUT_OF_ORDER = "{path}: would sort before {held}, so its rows would be read out of order; nothing written"
 
 
 class DriveDataUnavailable(RuntimeError):
     """A receipted file was missing from Drive or held other bytes: nothing of the table is read."""
+
+
+class PartOutOfOrder(RuntimeError):
+    """A new file would not sort after the series' files (two runs in one second, or a clock behind): not written."""
 
 
 class _ReceiptedSeries:
@@ -33,7 +38,11 @@ class _ReceiptedSeries:
         """One new write-once file of this run (the move of an existing file uses it for the first part)."""
         self._writes += 1
         n = "" if self._writes == 1 else f"_{self._writes:02d}"
-        self.store.put(PART.format(folder=self.folder, run_id=self.store.run_id, n=n), data)
+        part = PART.format(folder=self.folder, run_id=self.store.run_id, n=n)
+        last = max((r.path for r in self.cache.receipts.under(f"{self.store.area}/{self.folder}")), default="")
+        if last >= f"{self.store.area}/{part}":
+            raise PartOutOfOrder(OUT_OF_ORDER.format(path=part, held=last))
+        self.store.put(part, data)
 
     def files(self) -> list[bytes]:
         """Every receipted file of the series, verified, in name order."""
@@ -59,6 +68,15 @@ class ReceiptedRowLog(_ReceiptedSeries, RowLog):
     def check_appendable(self) -> None:
         """Every append is a new write-once part: nothing existing can change."""
 
+    def catch_up(self, held: bytes, data: bytes) -> bytes | None:
+        """The part that makes the table equal `data`: all of it when Drive holds nothing, the rows after `held`
+        (under `data`'s header) when `held` is a whole-line start of `data`, else None (they disagree)."""
+        if not held:
+            return data
+        if not (held.endswith(b"\n") and data.startswith(held)):
+            return None
+        return data.split(b"\n", 1)[0] + b"\n" + data[len(held) :]
+
     def append(self, fields: tuple[str, ...], rows: list[tuple]) -> None:
         if rows:
             self.write_bytes(_csv(fields, rows))
@@ -69,6 +87,10 @@ class ReceiptedSnapshots(_ReceiptedSeries, Report):
 
     def write(self, fields: tuple[str, ...], rows: list[tuple]) -> None:
         self.write_bytes(_csv(fields, rows))
+
+    def catch_up(self, held: bytes, data: bytes) -> bytes:
+        """A report is replaced whole: `data` becomes the newest snapshot."""
+        return data
 
     def latest_bytes(self) -> bytes | None:
         files = self.files()

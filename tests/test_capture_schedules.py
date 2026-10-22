@@ -118,3 +118,12 @@ def test_the_vix_job_asks_for_the_previous_ist_month(tmp_path):
     subprocess.run(["bash", "-c", line], env={"GITHUB_ENV": str(env_file), "PATH": "/usr/bin:/bin"}, check=True)
     previous = now_ist().date().replace(day=1) - timedelta(days=1)
     assert env_file.read_text().strip() == f"MONTH={previous:%Y-%m}"
+
+
+def test_the_cue_job_commits_receipts_logs_and_alert_state_never_the_moved_tables():
+    """O9b step 1b: the public tables and checks are in Drive; the job commits their receipts, never the folder."""
+    commit = next(r for r in _runs("global-cues.yml") if "git commit" in r)
+    env = next(job["env"] for job in _workflow("global-cues.yml")["jobs"].values())
+    assert env["RECEIPTS"] == "receipts/data/global-cues" and env["BEHIND"].endswith("checks/behind_alerted.txt")
+    assert 'git add "$MANIFESTS" "$BEHIND"' in commit and 'git add "$RECEIPTS"' in commit
+    assert "research/data/global-cues" not in " ".join(v for k, v in env.items() if k != "BEHIND")

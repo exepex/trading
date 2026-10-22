@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import io
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
 
 
@@ -29,3 +30,8 @@ class CsvReportFile(Report):
         temporary = self.path.with_name(f".{self.path.name}.part")
         temporary.write_text(out.getvalue(), encoding="utf-8")
         temporary.replace(self.path)  # never a half-written report
+
+
+def csv_reports(folder: Path, names: Iterable[str]) -> dict[str, Report]:
+    """Each named report as a file in `folder` (tests, and a group's files before it moves)."""
+    return {name: CsvReportFile(Path(folder) / name) for name in names}

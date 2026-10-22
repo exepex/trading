@@ -10,7 +10,7 @@ import pytest
 from fno.storage.data_store import DataStore
 from fno.storage.drive_cache import DriveCache
 from fno.storage.raw_store import LocalFolderStore
-from fno.storage.receipted_rows import DriveDataUnavailable, ReceiptedRowLog, ReceiptedSnapshots
+from fno.storage.receipted_rows import DriveDataUnavailable, PartOutOfOrder, ReceiptedRowLog, ReceiptedSnapshots
 from fno.storage.receipts import ReceiptFolder
 
 TODAYS_FILE = b"date,close\n2026-10-19,11.25\n2026-10-20,11.50\n"
@@ -92,3 +92,18 @@ def test_a_file_in_the_cache_folder_without_a_receipt_is_never_read(drive):
     stray = drive.cache_root / "data/vix/india_vix_daily/20261023T000000Z-zzzzzz.csv"
     stray.write_bytes(b"date,close\n2026-10-21,99\n")
     assert table.rebuilt() == TODAYS_FILE
+
+
+def test_a_part_that_would_sort_before_a_held_one_is_never_written(drive):
+    """Two runs in one second (or a clock behind) would read rows out of order: the later write is refused."""
+    drive.series(ReceiptedRowLog, "20261022T100000Z-bbbbbb").write_bytes(TODAYS_FILE)
+    early = drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa")
+    with pytest.raises(PartOutOfOrder, match="would sort before data/vix/india_vix_daily/20261022T100000Z-bbbbbb.csv"):
+        early.append(FIELDS, [("2026-10-21", "11.75")])
+    assert len(drive.receipts.under("data/vix/india_vix_daily")) == 1
+
+
+def test_a_second_series_of_the_same_run_never_reuses_a_held_part_name(drive):
+    drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa").write_bytes(TODAYS_FILE)
+    with pytest.raises(PartOutOfOrder, match="would sort before"):
+        drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa").append(FIELDS, [("2026-10-21", "11.75")])

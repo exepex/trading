@@ -18,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .raw_store import RawFileStore
+from .report_files import Report
 
 PART_NAME = "{at:%Y%m%dT%H%M%S%f}.csv"  # sorts in append order
 
@@ -101,7 +102,7 @@ class DrivePartsRowLog(RowLog):
                 self._rows += list(csv.DictReader(text.splitlines()))
 
 
-class DriveSnapshots:
+class DriveSnapshots(Report):
     """A report rewritten every run, kept in Drive as one new write-once file per run: the newest file is current (a
     gap that later clears is gone from it; nothing older is changed)."""
 

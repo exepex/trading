@@ -1,17 +1,24 @@
 """Story A17b, criterion 2: the US stock-market calendar's expected date on holidays, closures and both US clocks,
-checked in CI against the committed dates-only list of US trading days, and the US 10-year's missing weekdays never
-treated as sessions."""
+checked against the dates-only list of US trading days, and the US 10-year's missing weekdays never treated as
+sessions. The list, the us10y table and its gaps are in Drive since O9b: those two tests are `data` tests on the
+verified cache (`python -m fno data-cache sync data/global-cues`)."""
 
 import csv
 from datetime import date, time, timedelta
 
+import pytest
+
 from fno.global_cues import wiring
 from fno.global_cues.as_of import DECISION, OPEN
-from fno.global_cues.check_files import GAPS_FILE, CueChecks
+from fno.global_cues.check_files import CHECK_FILES, GAPS_FILE, CueChecks
 from fno.global_cues.cue_calendars import NyseCalendar, WeekdayCalendar
+from fno.global_cues.drive_wiring import CHECK, TABLE, TRADING_DATES
 from fno.global_cues.reading import BEHIND, STALE, expected_date, reading_for
 from fno.global_cues.treasury_source import TreasuryTenYearSource
 from fno.global_cues.us_index_sources import CboeSp500Source
+from fno.storage.receipted_rows import ReceiptedRowLog, ReceiptedSnapshots
+from fno.storage.report_files import CsvReportFile, csv_reports
+from tests.data_cache import cached_series
 
 NYSE = NyseCalendar(wiring.us_market_closures())
 SP500 = CboeSp500Source()
@@ -60,10 +67,10 @@ def test_us_summer_and_winter_time_at_both_cutoffs():
 
 
 def trading_dates() -> list[dict[str, str]]:
-    with open(wiring.TRADING_DATES_FILE, encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+    return cached_series(ReceiptedSnapshots, TRADING_DATES).latest()
 
 
+@pytest.mark.data
 def test_the_calendar_matches_every_committed_sp500_trading_date_since_2007():
     listed = trading_dates()
     sp500 = {date.fromisoformat(r["date"]) for r in listed if r["in_sp500"] == "1"}
@@ -78,10 +85,11 @@ def test_the_calendar_matches_every_committed_sp500_trading_date_since_2007():
     assert nasdaq_only and not any(NYSE.is_session(date.fromisoformat(d)) for d in nasdaq_only)
 
 
+@pytest.mark.data
 def test_every_missing_us10y_weekday_is_a_listed_gap_and_never_read_as_a_session():
-    rows = wiring.build_tables(include_private=False)["us10y"].rows()
-    with open(wiring.CHECKS_FOLDER / GAPS_FILE, encoding="utf-8") as f:
-        gaps = {r["date"] for r in csv.DictReader(f) if r["cue"] == "us10y" and r["kind"] == "weekday_without_value"}
+    rows = cached_series(ReceiptedRowLog, TABLE.format(cue="us10y")).rows()
+    listed = cached_series(ReceiptedSnapshots, CHECK.format(stem=GAPS_FILE.rsplit(".", 1)[0])).latest()
+    gaps = {r["date"] for r in listed if r["cue"] == "us10y" and r["kind"] == "weekday_without_value"}
     held = {r["value_date"] for r in rows}
     first, last = date.fromisoformat(rows[0]["value_date"]), date.fromisoformat(rows[-1]["value_date"])
     missing = [d for d in (first + timedelta(n) for n in range((last - first).days)) if d.weekday() < 5]
@@ -104,14 +112,15 @@ class Table:
 def test_check_writes_the_dates_of_both_us_tables_and_nothing_without_them(tmp_path):
     out = tmp_path / "us_trading_dates.csv"
     tables = {"sp500": Table("2026-01-16", "2026-01-20"), "nasdaq100": Table("2026-01-16", "2026-01-19")}
-    lines = CueChecks(tables, tmp_path / "checks", trading_dates=out).write()
+    lines = CueChecks(tables, csv_reports(tmp_path / "checks", CHECK_FILES), trading_dates=CsvReportFile(out)).write()
     assert out.read_text() == (
         "date,in_sp500,in_nasdaq100\n2026-01-16,1,1\n2026-01-19,0,1\n2026-01-20,1,0\n"
     )  # dates and flags only, never a value
     assert lines[0] == "US trading dates: 2 S&P 500 dates, 1 Nasdaq-only dates listed"
     other = tmp_path / "other.csv"
-    CueChecks({"sp500": tables["sp500"]}, tmp_path / "checks", trading_dates=other).write()
-    assert not other.exists()  # without the Drive tables (no settings) the committed list is left alone
+    CueChecks({"sp500": tables["sp500"]}, csv_reports(tmp_path / "checks", CHECK_FILES),
+              trading_dates=CsvReportFile(other)).write()  # fmt: skip
+    assert not other.exists()  # without both US tables the list is left alone
 
 
 def test_expected_date_turns_over_strictly_after_the_close_is_out():

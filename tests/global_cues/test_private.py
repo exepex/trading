@@ -6,7 +6,7 @@ from datetime import date, datetime
 
 import pytest
 
-from fno.global_cues.check_files import GAPS_FILE, CueChecks
+from fno.global_cues.check_files import CHECK_FILES, GAPS_FILE, CueChecks
 from fno.global_cues.collection import SourcedValue
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.job import GlobalCueJob
@@ -17,6 +17,7 @@ from fno.global_cues.us_index_sources import CboeSp500Source, NasdaqNdxSource
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.report_files import csv_reports
 from fno.storage.row_log import DrivePartsRowLog, DriveSnapshots
 from tests.global_cues.fakes import FakeCreationTimes, cboe, fbil, nasdaq
 
@@ -83,7 +84,11 @@ def test_a_copy_already_in_drive_is_adopted_at_its_own_fetch_time(tmp_path):
     raw, log = LocalFolderStore(tmp_path / "raw"), SnapshotLog(tmp_path / "log")
     raw.put(COPY, cboe(*FAKE))
     table = drive_table(LocalFolderStore(tmp_path / "derived"))
-    checks = CueChecks({"sp500": table}, tmp_path / "checks", {"sp500": DriveSnapshots(raw, "checks", lambda: SEEN)})
+    checks = CueChecks(
+        {"sp500": table},
+        csv_reports(tmp_path / "checks", CHECK_FILES),
+        {"sp500": DriveSnapshots(raw, "checks", lambda: SEEN)},
+    )
     job = GlobalCueJob(CueCollector(None, raw, log, None, FakeCreationTimes()), {"sp500": table}, checks)
     lines, ok = job.adopt(CboeSp500Source(), COPY, date(2007, 1, 1), date(2026, 10, 15))
     assert ok and lines[0].startswith("sp500: 2 dates added")
@@ -118,12 +123,14 @@ def test_a_private_cues_gaps_go_to_drive_never_to_the_repositorys_checks(tmp_pat
     table.merge(collect.collect(gapped, date(2026, 1, 1), date(2026, 12, 31)).values, SEEN)
     times = iter([SEEN, datetime(2026, 10, 15, 7, 0, tzinfo=IST)])
     snapshots = DriveSnapshots(drive, "global-cues/sp500/checks", lambda: next(times))
-    lines = CueChecks({"sp500": table}, tmp_path / "checks", {"sp500": snapshots}).write()
+    lines = CueChecks({"sp500": table}, csv_reports(tmp_path / "checks", CHECK_FILES), {"sp500": snapshots}).write()
     assert "sp500 weekday_without_value 2" in lines[0]  # Monday 12 and Tuesday 13 Oct
     assert "sp500" not in (tmp_path / "checks" / GAPS_FILE).read_text()
     assert [r["date"] for r in snapshots.latest()] == ["2026-10-12", "2026-10-13"]
     CueChecks(
-        {"sp500": drive_table(LocalFolderStore(tmp_path / "other"))}, tmp_path / "checks", {"sp500": snapshots}
+        {"sp500": drive_table(LocalFolderStore(tmp_path / "other"))},
+        csv_reports(tmp_path / "checks", CHECK_FILES),
+        {"sp500": snapshots},
     ).write()
     assert snapshots.latest() == []  # the newest snapshot is current: cleared gaps are gone from it
 
@@ -135,7 +142,9 @@ def test_a_second_copy_of_the_same_bytes_is_logged_too_and_adds_no_row(tmp_path)
     raw.put(second, cboe(*FAKE))
     table = drive_table(LocalFolderStore(tmp_path / "derived"))
     job = GlobalCueJob(
-        CueCollector(None, raw, log, None, FakeCreationTimes()), {"sp500": table}, CueChecks({}, tmp_path / "checks")
+        CueCollector(None, raw, log, None, FakeCreationTimes()),
+        {"sp500": table},
+        CueChecks({}, csv_reports(tmp_path / "checks", CHECK_FILES)),
     )
     job.adopt(CboeSp500Source(), COPY, date(2007, 1, 1), date(2026, 10, 15))
     lines, _ = job.adopt(CboeSp500Source(), second, date(2007, 1, 1), date(2026, 10, 15))
@@ -189,7 +198,10 @@ def test_fbil_is_private_and_its_table_and_revisions_go_to_drive_never_to_the_re
     from fno.global_cues import wiring
 
     drive = LocalFolderStore(tmp_path / "drive")
+    from fno.storage import data_wiring
+
     monkeypatch.setattr(wiring.storage, "build_owner_drive", lambda env: drive)
+    monkeypatch.setattr(data_wiring, "build_owner_drive", lambda env: drive)  # the public tables' data store (O9b)
     assert FbilUsdInrSource().private and not FbilUsdInrSource().once_a_day
     assert "usdinr_fbil" not in wiring.build_tables(include_private=False)
     table = wiring.build_tables()["usdinr_fbil"]

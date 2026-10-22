@@ -42,6 +42,21 @@ def flows_reader(calendar: SessionCalendar):
     return flows
 
 
+def cue_rows():
+    """An A17 public cue table's rows by cue name, read once per process from Drive's verified cache (O9b); a table
+    that cannot be read (Drive settings missing, a copy unverified) gives no rows, as a missing file did before."""
+    from ..global_cues.wiring import build_tables
+
+    @functools.cache
+    def rows(cue: str) -> list[dict]:
+        try:
+            return build_tables(include_private=False)[cue].rows()
+        except RuntimeError:  # settings missing, DriveDataUnavailable, DriveSignInRefused
+            return []
+
+    return rows
+
+
 PARTICIPANT_OI = "participant-oi"
 EVENING_RUN = time(20, 5)  # the evening edition's time (owner, DESK_DECISIONS line 287): what A17 had by then
 
@@ -79,7 +94,7 @@ def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: Session
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
     from ..storage.data_wiring import build_drive_cache
 
-    facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
+    facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar), cue_rows()), RegularSessions(calendar)
     today, sections = A4hTodayCloses(build_drive_cache()), build_sections(facts, sessions, official)
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official, today_closes=today,
                         sections=sections, levels=build_levels(calendar, sessions))  # fmt: skip

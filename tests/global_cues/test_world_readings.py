@@ -5,7 +5,7 @@ missing sessions by date and kind only. Every level here is made up."""
 from datetime import date
 
 from fno.global_cues.as_of import OPEN
-from fno.global_cues.check_files import CueChecks
+from fno.global_cues.check_files import CHECK_FILES, CueChecks
 from fno.global_cues.cue_calendars import WeekdayCalendar
 from fno.global_cues.index_reader import IndexPair, IndexReader
 from fno.global_cues.markets import NEW_YORK
@@ -13,6 +13,7 @@ from fno.global_cues.pair_checks import DIFFERS, ONLY_OFFICIAL, ONLY_YAHOO, pair
 from fno.global_cues.reading import CURRENT, NONE, CueReader
 from fno.global_cues.us_index_sources import NasdaqNdxSource
 from fno.global_cues.yahoo_source import UNVERIFIED, YahooChartSource
+from fno.storage.report_files import csv_reports
 
 
 class Table:
@@ -98,7 +99,7 @@ def test_the_checks_print_counts_only_write_dates_to_drive_and_name_the_unverifi
     tables = {"vix_us": Table(official), "vix_us_yahoo": Table(yahoo), "hang_seng_yahoo": Table(yahoo)}
     pairs = {"vix_us": IndexPair("vix_us", "vix_us_yahoo"), "hang_seng": IndexPair(None, "hang_seng_yahoo")}
     private = {cue: Snapshots() for cue in tables}
-    lines = CueChecks(tables, tmp_path, private, None, pairs, {"vix_us": Snapshots()}).write()
+    lines = CueChecks(tables, csv_reports(tmp_path, CHECK_FILES), private, None, pairs, {"vix_us": Snapshots()}).write()
     assert "vix_us official against Yahoo: 2 dates compared, {'differs_over_0.1pct': 1}" in lines
     assert "unverified (Yahoo only): hang_seng" in lines
     assert written["rows"][1] == [("vix_us", "2026-02-06", DIFFERS)]

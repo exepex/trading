@@ -1,8 +1,8 @@
 # Story A17 on a schedule (audit Part A2, owner 16 Oct 2026: external data up to date every day): the global cues as a
-# plain job (no AI session). Research data only; never trades. `global-cues fill` downloads every cue (US closes and
-# FBIL to Drive only, the others into research/data/global-cues/), archives each copy in Drive with its log row,
-# extends the tables from 31 days before their last date and rewrites the checks; a cue that fails, or whose newest
-# value is older than its limit (STALE), is named and the run fails. The logs and tables are committed even then.
+# plain job (no AI session). Research data only; never trades. `global-cues fill` downloads every cue, archives each
+# copy in Drive with its log row, extends the tables from 31 days before their last date (every table in Drive: the
+# public ones as write-once parts with receipts, story O9b) and rewrites the checks; a cue that fails, or whose newest
+# value is older than its limit (STALE), is named and the run fails. The receipts and logs are committed even then.
 # Three runs a day. GitHub starts this repository's morning crons 4 h 40 min to 5 h 01 min late (judge 351, 14-16 Oct
 # 2026), so the main run is set early enough to land before the 09:15 open even 5 hours late. Cboe and Nasdaq are
 # downloaded at most once an IST day (the owner's condition) and a copy drops the US day still running (A17's
@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # commits the cue tables, logs and checks
+  contents: write # commits the receipts of the public tables and checks (O9b), the copy logs and the alert state
 
 concurrency:
   group: global-cues
@@ -41,8 +41,9 @@ jobs:
       FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
-      CUES: research/data/global-cues
+      RECEIPTS: receipts/data/global-cues
       MANIFESTS: research/data/manifests/global-cues
+      BEHIND: research/data/global-cues/checks/behind_alerted.txt
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,10 +63,11 @@ jobs:
         run: |
           set -o pipefail
           python -m fno global-cues fill | tee "$RUNNER_TEMP/fill.txt"
-      - name: Commit the cue tables, logs and checks (also after a failed cue)
+      - name: Commit the receipts (the data is in Drive, O9b), the copy logs and the alert state (also after a failed cue)
         id: commit
         run: |
-          git add "$CUES" "$MANIFESTS"
+          git add "$MANIFESTS" "$BEHIND"
+          if [ -d "$RECEIPTS" ]; then git add "$RECEIPTS"; fi
           git diff --cached --quiet || git commit -m "A17 Actions: global cues $(TZ=Asia/Kolkata date '+%F %H:%M')"
           for try in 1 2 3; do  # another job may push between the pull and the push
             git pull --no-rebase --no-edit origin main && git push origin HEAD:main && exit 0
