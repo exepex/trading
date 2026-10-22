@@ -29,3 +29,16 @@ second judge (money piece); Judge B passed it (479.3), and I did not read that v
 
 ## Notes
 - b's quality gate and the drivers also read `two_sided`, so unmeasured quotes from the simulator count as observed and tradeable there. That is intended for practice only, and it is safe only while no live source sets the flag. j should refuse a live run that receives such a quote.
+
+## Addendum 1: round 2 at 696f2db7 (diff 9ede0d1e..696f2db7)
+
+**Verdict: PASS** (Judge I, second judge; Judge B passed 479.3).
+
+- **Finding 1: FIXED.**
+  - `FakeFills` refuses an unmeasured entry as `SIZE_NOT_MEASURED`, and an exit on one waits.
+  - `conformance.check_fill_port_unmeasured` pins both, and the fake passes it.
+  - `FakeFleet` closes a road whose snapshot holds an unmeasured quote, with the new `ClosureReason.SIZES_NOT_MEASURED`. `REASONS_BY_OUTCOME` takes every `ClosureReason`, so the closed-road record accepts it.
+  - My plants are caught: the fake's refusal dropped, the fake's exit wait dropped, and the fleet's closure dropped.
+- **Merge-order condition (unchanged):** d's real `SchoolFills` answers `one_sided_quote` today, so it passes the new check only with d's part 4, which must run `check_fill_port_unmeasured` against it.
+- **Minor:** my plant that weakens the check to "not filled" survives. Add one bad port that refuses with `one_sided_quote` and must fail the check (the shape of d's port today), as `check_ledger_reader` has.
+- **Gates (my run):** full `pytest -n auto` 11,667 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
