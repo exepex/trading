@@ -7,11 +7,13 @@ from __future__ import annotations
 from datetime import date
 
 from ..page.model import Outcome
-from ..page.plain import STEP, outward
+from ..page.plain import RESULTS, STEP, outward
 
 GREEN, AMBER, RED = "green", "amber", "red"
-WORD = {GREEN: "Correct", AMBER: "Close call", RED: "Missed"}
-GLYPH = {GREEN: "✓", AMBER: "⚠", RED: "✗"}
+FLAGS = {GREEN: (True, True), AMBER: (False, True), RED: (False, False)}  # (inside_50, inside_90) per colour
+# One source for the result words: plain.RESULTS carries "✓ Correct", "⚠ Close call", "✗ Missed" (glyph, word)
+GLYPH = {colour: RESULTS[flags].split(" ", 1)[0] for colour, flags in FLAGS.items()}
+WORD = {colour: RESULTS[flags].split(" ", 1)[1] for colour, flags in FLAGS.items()}
 DASH = " – "
 
 
