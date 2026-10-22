@@ -57,3 +57,21 @@ def build(tmp_path: Path, push_to_remote: bool = True) -> Dashcam:
     cache = DriveCache(drive, receipts, tmp_path / "cache")
     return Dashcam(repository, remote, drive, DriveDashcamStore(data, publisher, VerifiedDriveReader(cache, AREA)),
                    publisher)  # fmt: skip
+
+
+def another_checkout(cam: Dashcam, tmp_path: Path, name: str, depth: int | None = None) -> Dashcam:
+    """A second container on the same Drive and remote, cloned now (`depth`: a shallow clone, as the routines make)."""
+    repository = tmp_path / name
+    shallow = ["--depth", str(depth)] if depth else []
+    git(tmp_path, "clone", "-q", *shallow, f"file://{cam.remote}", str(repository))
+    hooks = tmp_path / f"{name}-hooks"
+    hooks.mkdir()
+    for setting in (("core.hooksPath", str(hooks)), ("user.name", "t"), ("user.email", "t@example.invalid")):
+        git(repository, "config", *setting)
+    receipts = ReceiptFolder(repository / "receipts")
+    data = DataStore(cam.drive, AREA, receipts, "test", name, clock=lambda: NOW)
+    recorder = GitManifestRecorder(repository, repository / "receipts" / AREA / SCHOOL_AREA)
+    publisher = GitReceiptPublisher(recorder, receipts, repository)
+    cache = DriveCache(cam.drive, receipts, tmp_path / f"{name}-cache")
+    store = DriveDashcamStore(data, publisher, VerifiedDriveReader(cache, AREA))
+    return Dashcam(repository, cam.remote, cam.drive, store, publisher)

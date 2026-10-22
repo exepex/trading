@@ -2,6 +2,7 @@
 
 import csv
 from dataclasses import replace
+from datetime import timedelta
 
 import pytest
 
@@ -65,3 +66,22 @@ def test_other_counts_for_a_written_file_are_a_replay_conflict(tmp_path):
     changed = (*RECORDS, replace(trade_record(), slot=SLOT))
     with pytest.raises(ReplayConflict, match="rule broken"):
         counts.write(b.SESSION, SLOT, changed)
+
+
+def test_records_of_another_session_or_slot_are_not_counted():
+    next_day = b.SESSION + timedelta(days=1)
+    other_session = replace(
+        trade_record(), session=next_day, decision=replace(trade_record().decision, session=next_day)
+    )
+    other_slot = replace(trade_record(), slot="15:01")
+    assert count_rows(b.SESSION, SLOT, [other_session, other_slot]) == []
+    assert len(count_rows(b.SESSION, SLOT, [trade_record(), other_session, other_slot])) == 1
+
+
+@pytest.mark.parametrize("slot", ["15:00/../x", "../15:00", "1500", "15:0", "", "15:00\n"])
+def test_a_slot_that_is_not_a_time_never_reaches_a_path(slot, tmp_path):
+    with pytest.raises(ValueError, match="not a slot time"):
+        counts_path(b.SESSION, slot)
+    with pytest.raises(ValueError):
+        PublicCountsFile(tmp_path).write(b.SESSION, slot, RECORDS)
+    assert not list(tmp_path.rglob("*"))

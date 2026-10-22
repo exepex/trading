@@ -4,7 +4,7 @@ was pushed after the fill time or names another file's SHA-256 is refused (`stal
 from datetime import datetime
 
 from ..contracts.seal import Seal, StaleSeal
-from .publisher import ReceiptPublisher
+from .publisher import ReceiptPublisher, SealNotPushed
 
 OTHER_FILE = "seal {path} names another file than the decisions the fill rests on"
 PUSHED_LATE = "seal {path} was pushed at {pushed}, after the fill time {fill}"
@@ -21,21 +21,13 @@ class SealChecker:
             raise StaleSeal(OTHER_FILE.format(path=seal.path))
         if not seal.covers(file_sha256, fill_time):
             raise StaleSeal(PUSHED_LATE.format(path=seal.path, pushed=seal.pushed_at, fill=fill_time))
-        pushed = self.publisher.published(f"{self.area}/{seal.path}")
+        try:
+            pushed = self.publisher.published(f"{self.area}/{seal.path}")
+        except SealNotPushed as unreadable:  # a shallow clone that cannot be deepened: refused by name
+            raise StaleSeal(str(unreadable)) from unreadable
         if pushed is None or (pushed.commit, pushed.sha256, pushed.pushed_at) != (
             seal.commit,
             seal.sha256,
             seal.pushed_at,
         ):
             raise StaleSeal(NOT_PUSHED.format(path=seal.path, commit=seal.commit))
-
-    def is_valid(self, seal: Seal, file_sha256: str, fill_time: datetime) -> bool:
-        try:
-            self.check(seal, file_sha256, fill_time)
-        except StaleSeal:
-            return False
-        return True
-
-
-def _identity(of) -> tuple:
-    return of.commit, of.sha256, of.pushed_at

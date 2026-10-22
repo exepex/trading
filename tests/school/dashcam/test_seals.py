@@ -23,7 +23,7 @@ def sealed(tmp_path):
 def test_a_pushed_seal_before_the_fill_is_accepted(sealed):
     checker, seal = sealed
     checker.check(seal, seal.sha256, seal.pushed_at + timedelta(seconds=1))
-    assert checker.is_valid(seal, seal.sha256, seal.pushed_at)  # boundary: pushed at the fill time itself
+    checker.check(seal, seal.sha256, seal.pushed_at)  # boundary: pushed at the fill time itself
 
 
 def test_a_seal_pushed_after_the_fill_time_is_refused(sealed):
@@ -43,7 +43,6 @@ def test_a_seal_whose_commit_is_not_on_the_remote_is_refused(sealed):
     unpushed = replace(seal, commit="1" * 40)
     with pytest.raises(StaleSeal, match="not on the remote"):
         checker.check(unpushed, seal.sha256, seal.pushed_at + timedelta(hours=1))
-    assert not checker.is_valid(unpushed, seal.sha256, seal.pushed_at + timedelta(hours=1))
 
 
 def test_a_commit_made_locally_but_not_pushed_is_refused(tmp_path):
