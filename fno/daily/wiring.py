@@ -22,7 +22,8 @@ MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
-              "price_distribution_scores", "price_ranges", "price_range_scores")  # fmt: skip
+              "price_distribution_scores", "price_ranges", "price_range_scores", "close_read",
+              "close_recheck")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 
 
@@ -40,6 +41,8 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
 def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep) -> DayRunner:
     """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock)."""
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
+    from ..close_read.constants import CLOSE_READ_FROM, CLOSE_RECHECK_FROM
+    from ..close_read.wiring import receipt_pathspecs as close_receipts
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_limit import GitLocks
@@ -86,6 +89,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
                                      receipt_pathspecs(), git.changed, waiting, locks)  # fmt: skip
     price_ranges = CommandStep(processes, range_issue, range_receipts(), git.changed, waiting, locks)
+
+    def close_step(name: str, arguments: tuple[str, ...], gate) -> DayStep:
+        """A4h's reads: LiveFrom outside NotBefore (a day before the live date never waits), its receipts only."""
+        step = CommandStep(processes, lambda day: arguments, close_receipts(), git.changed, waiting, locks)
+        return Alerted(name, LiveFrom(NotBefore(step, gate, waiter), live[name]), alerts)
 
     def scores(arguments: tuple[str, ...], pathspecs: tuple[str, ...], name: str) -> DayStep:
         """G13's and G13b's scorers: their own receipts only (the scores file; G13b's seals too)."""
@@ -136,6 +144,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             ),
             alerts,
         ),  # A16b-d: yesterday's candles, after A16's last mark
+        "close_read": close_step("close_read", ("closes", "read"), CLOSE_READ_FROM),  # A4h
+        "close_recheck": close_step("close_recheck", ("closes", "read", "--recheck"), CLOSE_RECHECK_FROM),
     }
     cfg_orders, exit_rules = build_book1_orders(cfg, root), build_book1_exit_rules(root, alerts)
     entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
