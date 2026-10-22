@@ -642,6 +642,311 @@ per-underlying follow-up.
 9. The gap measure above is reproducible from its script, with the same counts.
 10. Mutations on every rule above.
 
+### MS-INS The instructor v1 · lane 1 (evaluation records) · model tier: H · `story/ms-ins-<part>` · depends on a, c, d, f, h (on `main`); reads b and e
+
+**Builder:** session_01LH7m9r5TCAKgZbeHVYkiTD · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Sources:**
+DESK_DECISIONS "Simulator and Instructor v1 start now" (owner: "Yes, start now (Recommended)"); response 325 sections
+6.1, 6.2 and 6.3b; response 327 corrections 2, 3 and 4; reviews 138 (sections 2-4) and 139 (points 2-4).
+
+**Description:** As the statistician, the options strategist and the risk manager, I want every closed paper trade and
+every closed ticket explained (where its rupees came from, and a code-built cause), and every driver compared with
+the controls that drove the same road on the same session and slot, so that the 30-session review and the 20:05 line
+say honestly why a result happened and whether a driver did better than doing nothing, a random driver and the
+reference rule. Descriptive only: no licence, no claim, no recommendation.
+
+**What to expect [reasoning only]:** with 30 sessions, holds of up to about 30 sessions and five roads sharing one
+market, the paired intervals will be wide. Most rows will read "Exploratory" or "Not established". That is the
+honest result, not a defect. The planted-edge test (INS-d) tells the owner, before the count starts, how many
+sessions a real edge of a given size needs to show.
+
+#### Boundaries
+
+- **Reads, never writes:** the sealed dashcam files (decision, exit and outcome records) through c's `ReplayReader`,
+  each checked against its seal; f's counts (`counts_for`, `totals`); h's `CountingRule`, `common_road_days` and
+  `session_clusters`. For the attribution only, these recorded inputs, all read-only:
+  - each session's recorded snapshot of the position's road, through b's `SnapshotSource`, checked against the
+    `snapshot_sha256` that session's sealed decision record names;
+  - d's `IndexSettlementSource`, for settlement exits and the hold-to-plan check (cause 11);
+  - A6's events (`fno/research_data/events.py`, `known_on` rule), for cause 7;
+  - the frozen card files and e's drivers, for the stop level (cause 6) and the replay (cause 13);
+  - `config.yaml`'s `risk_free_rate`, G13's rate.
+- It never writes into the dashcam, an account, the ticket ledger, a card or `journal/versions.csv`, and never
+  changes, reorders or delays a decision. No new Groww or NSE read; no order path; nothing to Slack (the "why" line is
+  text that j's wiring hands to g's 20:05 section); no scheduled task.
+- **Its own records:** write-once through O9's `DataStore` (dataset `school-instructor`, one gzip canonical JSON lines
+  file per session and kind: `attribution`, `causes`, `paired`). Equal inputs give equal bytes; other bytes for a
+  written key are refused. A correction is a new record naming the old one. GitHub gets the receipts and a public
+  counts file: cause tags per driver and session, no rupees, contract, strike, price or card internal (E2c's rule).
+- **Frozen rules:** every threshold below lives in `research/school/INSTRUCTOR_V1.md` and in
+  `fno/school/instructor/thresholds.py`; a test pins the two together. Each record carries the card's SHA-256. A change
+  is a new instructor version (v2), committed before the first session it reads, never applied to sessions already
+  written.
+
+#### INS-a Contracts and the reader · `story/ms-ins-contracts`
+
+**Files owned:** `fno/school/instructor/{__init__,contracts,ports,reader,records_file,adapters,fakes,wiring}.py`,
+`tests/school/instructor/{__init__,builders,conformance,test_reader,test_ports,test_types}.py`.
+
+**Implements:**
+- frozen types: `HeldPath` (one closed trade or ticket: its outcome record, its entry decision record, its exit record
+  if any, and the snapshots of every session held, entry to exit), `Attribution`, `Cause`, `Classification`,
+  `PairedRow`, `MapStatus`;
+- `MapStatus` has exactly three members: `exploratory`, `watching`, `not_established` (327 correction 3);
+- `PathReader.closed_between(first, last) -> ClosedRead` and `closed_on(session)` (= `closed_between(session,
+  session)`, one resolver; orchestrator's ruling on judge 501): the trades and tickets closed on those sessions.
+  - An original is read on its own close day as its latest correction, sealed on any session up to today. The original
+    stays on file.
+  - A correction is never a path on the day its own file was sealed.
+  - So the days' `closed_on` add up to `closed_between` over the range.
+  - A day's tally recomputed after a correction can change. The 20:05 line keeps what was known at 20:05; later
+    reviews use the corrected figure.
+  - A decisions file whose bytes differ from its seal is a `sealed_file_damaged` fault on each path that needs it.
+  - An outcomes file that cannot be read is listed in `ClosedRead.unreadable`: an alert in every report, never a
+    guess. The other days still read;
+- ports, each with an in-memory fake that passes `conformance.py`:
+  - `SnapshotArchive`: over b's `SnapshotSource`;
+  - `EventCalendar`: over A6;
+  - `CardReplay`: over e's drivers;
+  - `InstructorStore`: over O9's `DataStore`.
+
+**Acceptance tests:**
+1. A trade held 3 sessions gives one path with 3 snapshots in session order, and a ticket gives a path marked ticket.
+2. A corrected outcome is read once, as its correction.
+3. A snapshot whose SHA-256 differs from its decision record's gives a path flagged `data_fault`, never numbers.
+4. A session with no closed outcome gives an empty tuple.
+5. The read-only test: every dashcam, account, ticket and card fake used raises on any write, and a full instructor
+   run on the fake fleet completes.
+6. The import test: nothing under `fno/school/instructor/` imports an order call, a Slack client or the Groww SDK.
+7. The conformance test for each port.
+
+#### INS-b The P&L attribution · `story/ms-ins-attribution`
+
+**Files owned:** `fno/school/instructor/attribution/` (`greeks.py`, `steps.py`, `attribute.py`),
+`tests/school/instructor/attribution/`.
+
+**Method (frozen; reuses G13's pricing, `fno/price_distribution/pricing.py` and `forward.py`; nothing re-derived):**
+- **Steps:** one step per pair of consecutive recorded snapshots of the position's road while it was held, from the
+  entry snapshot to the exit snapshot. A settlement exit's last step ends at expiry, at the settlement price.
+- **At each snapshot:**
+  - forward `F`: each expiry's G13 `averaged_forward` from two-sided mids, at G13's rate;
+  - time `T`: minutes from the snapshot's `finished_at` to 15:30 IST on expiry day, divided by 365 x 1440;
+  - each leg's `sigma`: the Black-76 implied volatility of its mid.
+- **Per leg and step**, with signed units `q` (buy +, sell -) and Black-76 Greeks at the step's start:
+  - delta P&L = `q x delta x dF`;
+  - gamma P&L = `q x 1/2 x gamma x dF^2`;
+  - vega P&L = `q x vega x d(sigma)`;
+  - theta P&L = `q x theta x dt` (calendar time).
+- **Market P&L:** the sum over legs of `q x (mid at exit - mid at entry)`. At expiry the mid is the intrinsic value
+  against the settlement price.
+- **Residual:** market P&L minus the four Greek components. It is the balancing item and is always shown.
+- **Costs:** every leg's C1 charges (entry and exit `FilledLeg.charges`) plus the spread paid against the mids (the
+  outcome record's `slippage_vs_mid`).
+- **The identity** holds for every path: delta + gamma + vega + theta + residual - costs = the outcome record's `net`,
+  to Rs 0.01.
+- **Gaps:**
+  - a leg without a two-sided quote at an intermediate snapshot merges that step with the next (`steps_merged` counted);
+  - an implied volatility that cannot be solved puts that leg's step wholly in the residual (`iv_unsolved`);
+  - the last step of a settlement has vega 0 (no volatility at expiry).
+- **Poor fit:** a path is flagged `poor_fit` when the absolute residual is above both Rs 200 and 25% of the sum of the
+  absolute Greek components. It is shown beside its causes, never hidden.
+
+**Acceptance tests:**
+1. Hand-computed: a 2-leg bull put spread over 2 snapshots, every intermediate value written out in the test's
+   docstring, matched to Rs 0.01.
+2. A pure forward move (sigma and T unchanged) gives vega = theta = 0.
+3. A pure time step (F and sigma unchanged) gives delta = gamma = vega = 0.
+4. The identity on every fixture path and on 200 random fake paths.
+5. Step merging over a missing quote.
+6. An unsolvable IV goes to the residual.
+7. A settlement last step.
+8. `poor_fit` at Rs 200 and 25%, and just beyond each (boundary).
+9. An empty path (entry and exit on one snapshot) gives zero Greek components and costs-only.
+10. Broken-code proof: flipping the sign of `q`, or using the step's end Greeks, fails test 1.
+
+#### INS-c Root causes · `story/ms-ins-causes`
+
+**Files owned:** `fno/school/instructor/causes/` (`terms.py`, `thresholds.py`, one module per rule group, `classify.py`),
+`research/school/INSTRUCTOR_V1.md`, `tests/school/instructor/causes/`.
+
+**Terms (frozen):**
+- **Move `z`:** `ln(S_exit / S_entry) / (sigma_atm x sqrt(T_held))`. `S` is the snapshot's spot, or the settlement
+  price. `sigma_atm` is the entry snapshot's ATM straddle implied volatility of the position's nearest expiry.
+  `T_held` is the calendar time held. The 90% range is `|z| <= 1.645`. 325 said "the forecast's 90% range"; v1 uses
+  the option-implied range, one rule on all five roads, because v4's forecast covers NIFTY only.
+- **Stance:** from the entry Greeks, never from the family label, so RC1's random structures are classed the same way:
+  - short volatility: net vega < 0; long volatility: net vega > 0;
+  - directional: a 1% move in `F` changes the position's value by at least 20% of its maximum loss;
+  - long premium: a debit at entry; short premium: a credit.
+- **Loser:** net < 0. **Winner:** net >= 0 (a winner takes the "helped" form of a tag).
+
+**The 13 tags (325 section 6.1, thresholds frozen, all reasoning only):**
+
+| # | Tag | Loser rule | Winner form |
+|---|---|---|---|
+| 1 | Move beyond range | `|z| > 1.645` | the same fact |
+| 2 | Wrong direction | directional, delta P&L < 0, `|z| <= 1.645` | right direction: directional, delta P&L > 0 |
+| 3 | Volatility rose | short volatility, vega P&L <= -40% of the loss | volatility fell: short volatility, vega P&L >= 40% of the gain |
+| 4 | Volatility collapsed | long volatility, vega P&L <= -40% of the loss | volatility rose: long volatility, vega P&L >= 40% of the gain |
+| 5 | Time decay | long premium, theta P&L <= -40% of the loss, settlement or exit level inside the entry breakevens | decay earned: short premium, theta P&L >= 40% of the gain |
+| 6 | Gap through stop | exit `loss_limit`, loss above 1.25x the card's stop (`exit_loss_multiple` x the entry credit or debit). 325's futures rule (0.3%) has no use in v1: no futures | none |
+| 7 | Scheduled event shock | an A6 event known at entry falls after entry and on or before exit, and `|z| > 2` | the same fact |
+| 8 | Unscheduled shock | no such event, and at least 3 of the 4 underlyings moved `|z| > 2` over the same sessions (each on its own entry ATM volatility). With fewer than 3 measurable: "not testable", counted | the same fact |
+| 9 | Costs ate the edge | gross >= 0 and net < 0 | none |
+| 10 | Bad price or data | a snapshot SHA-256 mismatch, an impossible price (b's `impossible_keys`) on a filled or attributed leg, or a fill outside its snapshot's touch | the same fact |
+| 11 | Exit whipsaw | exit `loss_limit` or `profit_target`, and holding to the card's last exit (settled through d's `settle`, computed, never recorded) would have netted more than the actual by over 1x the loss | exit cost the gain: a target exit, holding would have netted more by over 1x the gain |
+| 12 | Normal noise | net within 1 standard deviation of the position's own model outcome: entry volatilities held (sticky strike), lognormal over `T_held`, 201 frozen quantiles | the same rule |
+| 13 | Rule broken | replaying the frozen card (h's SHA-256) on the recorded snapshot and history gives another decision (outcome, reason or proposal) | the same fact |
+
+- **Primary:** the first tag that fires in this frozen order: 13, 10, 6, 7, 8, 1, 11, then 2-5 by the largest
+  absolute component, then 9, then 12. Tags 13 and 10 first, because those outcomes teach nothing about the market.
+- **Secondary:** the next two that fire, in the same order. When none fires the path is `unclassified`: counted and
+  shown, never forced into a tag.
+- **Cause 11 waits** for the expiry's settlement. Until then it is "not yet testable". When the settlement arrives, a
+  new classification record names the earlier one and may change the primary.
+- **Modifiers (327 correction 2, which replaces 325's median of the drivers who chose to trade):** on the entry
+  road-slot:
+  - **hard road:** REF and RC1 both closed there with net < 0;
+  - **bad driver:** the driver lost while REF and RC1 both closed with net >= 0;
+  - "not testable" when either control abstained, was refused or is still open.
+
+**Acceptance tests:**
+1. One plant per tag (13 fixtures), each giving its tag as primary.
+2. At and just beyond each threshold (1.645, 2, 40%, 1.25x, 1x, 1 standard deviation, 20% of maximum loss, 3 of 4).
+3. Winners get the winner forms; tags 6 and 9 never fire on a winner.
+4. The precedence on a fixture where four tags fire.
+5. `unclassified` when nothing fires.
+6. Cause 11's later record names the first one.
+7. Both modifiers and "not testable".
+8. The thresholds file and the card agree (test).
+9. Empty: no closed path gives no record.
+
+#### INS-d The paired comparison · `story/ms-ins-paired`
+
+**Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `status.py`, `nulls.py`),
+`tests/school/instructor/paired/`; shared: an optional `block` argument in `fno/scoreboard/uncertainty.py`'s
+`resampled_ratios` (default unchanged, byte-identical test).
+
+**Method (frozen):**
+- **Pairs:** each driver version D against each control C in {N0, RC1, REF of the road}, on h's common group of
+  road-days where both are counted, at the same session, road and slot.
+- **Value of a road-slot:**
+  - an entry decided there and closed (trade or ticket): its outcome's `return_on_risk`;
+  - `no_trade` or `refused`: 0. Abstentions are kept and counted;
+  - `unavailable`: left out of the pair and counted.
+- **Measure:** the primary measure is per opportunity, tickets included (idea quality, review 138 section 11). The
+  executed-only measure is shown beside it.
+- **Clustering:** one value per session, the mean over that session's roads of (D - C). Five roads on one day are one
+  point, not five.
+- **Cut:** the series stops at the first session with a pair still open (S3's rule). Later closed pairs are shown
+  "after the cut, not a claim".
+- **Interval:**
+  - the mean and a two-sided 90% interval from a moving-block bootstrap over sessions;
+  - blocks of 5 sessions, 10,000 resamples, a fixed seed;
+  - blocks of 2 and 10 shown as a sensitivity.
+- **Status (`MapStatus`):**
+  - `exploratory`: below 30 valid counted sessions;
+  - `watching`: 30 or more and the interval's lower end above 0, labelled "not a claim, no licence";
+  - `not_established`: 30 or more otherwise.
+- **Live null:** every review also compares RC1 with N0 on the same days, so the null's own rate of looking good is
+  visible.
+
+**Acceptance tests:**
+1. Hand-computed: 3 sessions x 2 roads, with abstentions, against each control.
+2. A session's five roads make one series point (series length = sessions).
+3. An abstention counts as 0 and in the abstention count.
+4. The cut at an open pair.
+5. Status boundaries: 29 and 30 sessions, and a lower end of exactly 0.
+6. `MapStatus` has exactly three members, so no Supported or Confirmed can be built.
+7. **Null calibration (327 correction 3):** 200 seeded null fleets on fakes, with zero edge, a shared market within
+   each session (correlation 0.6 across roads) and 10-session holds. The share reaching `watching` at 30 sessions is
+   reported in Claims and must be 10% or less. If it is higher, the block length is revised and re-frozen before any
+   counted session.
+8. **Planted edge (325 section 6.2):** a hidden fake driver with a known edge in return on risk (the +Rs 300-a-trade
+   example, and a large one). The sessions needed to reach `watching` in 80% of 200 seeds go into Claims, so the owner
+   sees how long such an edge takes. The large edge must reach it within 30 sessions.
+9. Empty: no common road-day gives no row.
+
+#### INS-e Outputs: records, the 30-session review and the "why" line · `story/ms-ins-outputs`
+
+**Files owned:** `fno/school/instructor/outputs/` (`store.py`, `review.py`, `why_line.py`, `command.py`),
+`tests/school/instructor/outputs/`.
+
+**Implements:**
+- `InstructorRun.for_session(session)`: reads, attributes, classifies and pairs; writes the three record files
+  write-once; idempotent.
+- `DescriptiveReview.build(first, last)`, the P2 review's input, labelled "descriptive, not a claim, no licence".
+  Per driver version:
+  - scheduled, eligible, fillable and executed counts, and abstentions;
+  - net after costs, maximum drawdown, worst day and worst trade (325 section 6.3b);
+  - the attribution sums;
+  - primary and secondary tag counts;
+  - `poor_fit` and `unclassified` counts;
+  - each paired row with its status.
+- `WhyLineSource.lines(session)`: one line per trade or ticket closed that session, for example "CS1@v1 NIFTY-M:
+  net -Rs 2,340; why: volatility rose (also: costs ate the edge); hard road". No contract, strike, price or card
+  internal.
+- The command: `python -m fno school instructor --session <date>` (and `--review <first> <last>`), dry run by
+  default.
+
+**Acceptance tests:**
+1. Write-once: the same bytes again is a no-op; other bytes are refused.
+2. Two runs on the same day give identical bytes.
+3. The public counts file passes the record scan and holds no rupee, strike, price or symbol.
+4. The "why" lines pass the same privacy test.
+5. The review shows every count's denominator, refusals included.
+6. A planted cause on the fake fleet appears in the review's counts and in that session's "why" line.
+7. Off-switch: with `school.enabled` false the command prints "school off" and writes nothing.
+
+#### Gap list (the design's requirements for v1)
+
+| Requirement | Part |
+|---|---|
+| P&L attribution (delta, gamma, vega, theta, costs, residual) for every closed trade and ticket, from the recorded snapshots | b (reader a) |
+| 13 code-built causes, one primary and up to two secondary, frozen thresholds, winners too | c |
+| Hard road and bad driver measured with the controls on every road-slot, abstentions kept (327 correction 2) | c (modifiers), d |
+| Paired against N0, RC1 and REF on the same road, day and slot, clustered by session | d |
+| Statuses Exploratory, Watching and Not established only (327 correction 3) | a (type), d |
+| A measured false-claim rate on null data before trusting a test (325 section 6.2, 327 correction 3) | d test 7 |
+| Planted-edge test | d test 8 |
+| Feeds the 30-session review and the 20:05 "why" line | e |
+| Read-only on records; never changes a decision | a test 5, Boundaries |
+
+**Out of scope, with reason:**
+- licences, and the Supported and Confirmed statuses: 327 corrections 3-4 and the owner's decision;
+- the condition map's cells by condition tag: they need the frozen tag list and the minimum sample of 325 section
+  6.3b, so they wait for v2;
+- the regime detector and the recommender: the owner's decision;
+- calibration (325 section 6.4): 327 correction 4 allows it only at 100 or more outcomes over 60 or more sessions;
+- the Sharpe-like ratio: it needs a capital base per rupee-day, not yet defined for paper accounts; asked below;
+- lesson cards and monthly cadence (325 section 6.5): P2+;
+- futures causes: no futures in P1.
+
+#### Questions answered (orchestrator, 22 Oct 2026; story text merged at 80625b19)
+
+1. **Reads beyond the dashcam records:** yes. b's snapshots, d's settlement source, A6's events and e's cards are
+   recorded, read-only inputs tied to the decision record by SHA-256, so they are within "reads only".
+2. **The block bootstrap:** add an optional `block` argument to S2's `resampled_ratios`, its default unchanged, with a
+   test that the default output is byte-identical. No second resampler (DRY). `fno/scoreboard/uncertainty.py` is
+   therefore one shared file of INS-d.
+3. **The command:** a module entry point (`python -m fno.school.instructor`) now, registered under j's `fno school`
+   group when j lands. j's builder (session_01CmKJ6taCLzfEGg7wt6RC4N) has been told.
+4. **The 20:05 line:** `WhyLineSource` is a port, joined to g's 20:05 section by one line in j's wiring. j's builder
+   has been told.
+5. **Tickets in the primary paired measure:** the builder's call, as the orchestrator asked. Tickets stay in the
+   primary measure, with executed-only beside it. Reason: a ticket is the same idea under the same quotes and laws
+   (327 correction 1), refused only by an account limit or the 5-trade cap. Leaving tickets out would make the
+   comparison depend on the account limits, not on the rule.
+6. **Lane:** lane 1, one judge: Judge K (session_019ZApRwkUiNMKDsf1k4W44z); not a money piece. The two deviations
+   from 325 (cause 1's option-implied range, cause 6 on option stops) are accepted as stated.
+
+**Settled in INS-a's build (builder):**
+- A cause is a plain `Cause` member: a winner (net >= 0) reads it in its winner form, so the sign of the net is the
+  form and no separate flag can disagree with it. `Classification` refuses causes 6 and 9 on a winner.
+- The settlement price is read through d's own `IndexSettlementSource` and the records through c's `DashcamStore`,
+  unchanged: no wrapper port for either (KISS).
+- `CardReplay` and `InstructorStore` are ports with fakes in a. Their real adapters come with the parts that first
+  use them: c (the replay over e's drivers) and e (the store over O9's `DataStore`).
+
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
 | Requirement | Story |
@@ -668,7 +973,8 @@ per-underlying follow-up.
 - futures, calendars and diagonals: probe 5 found no payoff or margin model;
 - stocks and extra slots: P3+, and NSE's terms block the survey;
 - AI drivers: 327 item 7, after a dry run;
-- the instructor, condition map, licences, recommender top 3 and simulator: P2+;
+- the instructor (v1 is MS-INS above, built in parallel by the owner's decision of 23 Oct), condition map,
+  licences, recommender top 3 and simulator: P2+;
 - E8 owner-timing fills: the pilot has no recommendation to follow;
 - the monthly review itself: P2+; P1 only reads its recorded row to lift a brake.
 
@@ -1777,4 +2083,73 @@ MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct
 | b's 1e-9 tolerance at both bounds | b's `TOLERANCE` (no copy) | `test_the_lower_bound_has_b_s_tolerance`, `test_the_upper_bound_has_b_s_tolerance`: bound +/- 1e-12 passes, 2e-9 beyond refuses (plants on b's constant: 0 and 1e-6, both caught) |
 | Settlement on b's stores | `execution/wiring.build_settlement_source` reads `roads.wiring.build_archive_stores` (the service account's Drive, else the owner's, else `RawFilesNotConfigured`); d's `SettlementStoresNotConfigured` is gone | `test_settlement_with_no_store_stops_by_name_never_waits_forever` (plant: no store) |
 - **Plants:** 5 planted, 5 caught.
+
+### MS-INS Claims (the instructor v1)
+
+Empty until INS-a is built. Each part's round adds its subsection here: the criteria met with test names and
+broken-code proof, the self-review findings, and a real output sample (counts only).
+
+#### INS-a Claims (round 1, branch `story/ms-ins-contracts`; the SHA is in the commit that carries this text)
+
+| Criterion | Met by | Test (`tests/school/instructor/`) |
+|---|---|---|
+| 1 path with its snapshots in order; a ticket read as a ticket | `reader.PathReader._path` | `test_reader`: `..._three_snapshots_in_order`, `a_ticket_is_read_as_a_ticket...`, `a_weekend_inside_the_hold...` |
+| 2 a correction read once | `reader.latest_outcomes`, `PathReader.closed_between` | `test_reader`: `a_correction_sealed_on_a_later_session...` (two separate seals), `..._in_the_same_file_is_read_once` |
+| 3 a snapshot hash mismatch is a data fault, never numbers | `PathReader._snapshot` | `test_reader`: `a_snapshot_whose_hash_differs...` and every fault case below |
+| 4 empty | `PathReader.closed_on` | `test_reader`: `a_session_with_no_outcome_file_gives_nothing` |
+| 5 reads only | the reader holds no write path; the dashcam fake refuses writes after the fixtures | every `test_reader` test (`WriteRefusingDashcam`); the whole run again in INS-e |
+| 6 imports | the school's import test walks `fno/school/` | `test_types`: `the_school_import_boundary_covers_the_instructor` |
+| 7 conformance | `fakes.py`, `adapters.py` | `test_ports` (fakes, `RecordedSnapshotArchive`, `RecordedEventCalendar`) |
+| types refuse the impossible | `contracts.py` | `test_types` (identity to Rs 0.01 at the boundary, NaN, 2 secondaries, 3 statuses, 13 causes, loser-only causes, interval and dates) |
+
+**Data faults (each a test):**
+- entry decision missing or not a trade or ticket of its kind;
+- entry seal mismatch;
+- a held trading session with no sealed decisions file;
+- a snapshot missing on a session with no closure record for the road;
+- a snapshot hash mismatch;
+- settlement missing or naming another file;
+- an exit record that is missing, or that names another driver or reason.
+
+A road closed by a sealed closure record is not a fault: its step merges (`sessions_skipped`).
+
+**Broken-code proof:** 13 plants, each run against the instructor tests, 13 caught. The plants: the snapshot, entry-seal and settlement hash checks removed; corrections kept; the entry-kind check loosened; the closure rule, the unsealed-session fault and both exit-record faults removed; calendar days walked instead of NSE sessions; the identity's NaN guard reversed; the paired-row date order and the path's road check removed. A first round left the entry-kind plant alive; the parametrized `an_outcome_whose_decision_was_not_its_kind...` test was added for it.
+
+**Self-review (one independent review agent on the diff).** Six findings:
+1. **Blocking: corrections across files.** Accepted. A dashcam file is written once, so a correction can only be sealed on a later session. `closed_between` now applies corrections across a range, tested with two separate seals; the old test rewrote a sealed file, which the real store cannot do.
+2. **Should fix: a missing road record treated as a closure.** Accepted. Only a sealed closure record now merges a step; otherwise the session is `snapshot_missing`.
+3. **Should fix: missed sessions.** Accepted. The reader walks A7's calendar, and a trading session without a decisions file is `session_not_sealed`.
+4. **Should fix: NaN passed the identity check.** Accepted. NaN is now refused, and `PairedRow` also checks its interval, mean and dates.
+5. **Minor: exit records not checked.** Accepted. An exit record that is missing or mismatched is now a fault.
+6. **Should fix: test and spec gaps.** Accepted. Criterion 5's docstring now says the full run is checked again in e; the import pointer test was added; the files-owned list and the story text were updated.
+
+From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates were done. The double read of the entry day's file is left as is: one extra cached read, and merging the two reads would join two single-purpose functions.
+
+**Real output sample:** none possible yet. The fleet (MS-P1j) has sealed no dashcam file, so `build_path_reader().closed_on(<day>)` has nothing to read. The first real sample comes with INS-e's dry run once j seals a day. The fixture run gives counts only: 1 path, 3 snapshots, 0 faults (`test_reader`).
+
+**Gates:** the full gate run on the merged tree is in the push message to the orchestrator.
+
+### MS-P1d follow-up Claims, part 3 (branch `story/ms-p1d-entries`): the read-only ledger read for j
+
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+|---|---|---|
+| `SchoolAccounts.entries(driver_id) -> tuple[LedgerEntry, ...]` for j's `LedgerReader` (a3), so settlement can run before the session's first `view` | `accounts/school_accounts.py`: under the account's lock, pulled from Drive once per run (`_locked`, shared with the writer), reads `PositionBook.entries()` in the order recorded, after the same unit-for-unit ledger check `view` makes; writes nothing (no account opened, no equity row, no push); an account never opened gives () | `test_entries.py`: entries match the ledger in order (plant: order reversed); nothing written and no push, the next session's row still written by `view` afterwards (plant: entries opening the account); one pull per run under the lock, a held lock refuses (plant: no pull); a failed pull stops with E2c's `PrivateFilesUnavailable`; half a record raises (plant: the check dropped) |
+
+- **Plants:** 4 planted, 4 caught. The Protocol's conformance check is added once a3 (j's builder) is on main.
+
+#### INS-a Claims, round 2 (judge 501 FAIL round 1: two should-fixes, four minors; orchestrator's ruling on SF2)
+
+| Finding | Fix | Test (`tests/school/instructor/`) |
+|---|---|---|
+| SF1: a damaged sealed file crashed the reader | `PathReader._read` catches `StaleSeal`. A damaged decisions file is `sealed_file_damaged` on each path that needs it (the entry day or a held day); a damaged outcomes file goes in `ClosedRead.unreadable`, and the other days still read | `test_reader`: `a_damaged_held_day_is_a_fault...`, `a_damaged_entry_day_is_a_fault_not_a_crash` (and not "entry missing"), `a_damaged_outcomes_file_is_reported_and_the_other_days_still_come_back` |
+| SF2: per-day reads counted a correction twice | One resolver, per the ruling: `closed_on(d)` is `closed_between(d, d)`. An original is read on its close day as its latest correction sealed up to today (the reader's clock), and a correction is never a path on its own day | `the_days_closed_on_add_up_to_closed_between_over_the_range` (a correction inside the range and one after it); `a_correction_sealed_later_replaces_its_original_on_the_original_close_day`; `a_chain_of_corrections_ends_at_the_latest`; `a_correction_sealed_after_today_is_not_yet_read` |
+| (a) mid-range outcome | none needed | `an_outcome_sealed_mid_range_is_read` |
+| (b) the trading-day filter | none needed | `a_muhurat_only_session_inside_a_hold_is_not_required` |
+| (c) the exit-day check, the snapshot ID, the adapter's closed road | none needed | `an_exit_day_closed_for_the_road_is_a_missing_snapshot`, `a_snapshot_with_the_right_hash_but_another_id_is_a_mismatch`, `test_ports`: `the_archive_itself_refuses_a_closed_roads_capture` |
+| (d) pinned bytes | none needed | `test_types`: `an_instructor_file_has_pinned_bytes...` (gzip time zero, no name) |
+
+- **The judge's six surviving plants and six new ones, all caught.** The new ones: the `StaleSeal` catch; corrections emitted on their own day; "today" cut to `last`; days after `last` emitted; one correction followed instead of the chain; `unreadable` emptied.
+- One extra plant survived on the first run: removing the entry-day damaged check. The test now also requires the fault to say "damaged", not "entry missing".
+- **The clock:** the reader takes a's `Clock`. The wiring passes `IstClock` (`now_ist`) and the tests a `FixedClock`.
+- **Known effect, as the ruling says:** a day's tally recomputed after a later correction can change.
 
