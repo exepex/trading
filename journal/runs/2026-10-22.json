@@ -176,6 +176,21 @@
     ],
     "reason": "unlisted"
    }
+  },
+  "fills": {
+   "started_at": "2026-10-22T15:21:23.346391+05:30",
+   "finished_at": "2026-10-22T15:21:23.478539+05:30",
+   "inputs": {
+    "snapshot_valid": false,
+    "decisions": {
+     "book1_rules": {
+      "run_id": "2026-10-22-r1",
+      "commit": "4b7106646b9eae93de736f870f8f25e610519420",
+      "committed_at": "2026-10-22T15:02:23+05:30"
+     }
+    }
+   },
+   "result": {}
   }
  }
 }
