@@ -2460,7 +2460,8 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
     (default `RETRY_WAITS`), and the secondary is built with `()`: one try, adding at most **60 s**. The worst case
     becomes **660 s per file**, against 600 s today.
   - The secondary has its own pacer and cooling-off (keyed by its hostname, rule 281 item 3), so pacing stays polite
-    on both hosts.
+    on both hosts. An unlisted host already gets `DEFAULT_SPACING_SECONDS` (1.0 s) in `fno/http_pacing.py`; A9c also
+    lists `archives.nseindia.com` at 1.0 s in `HOST_SPACING_SECONDS`, so the pace is explicit, not left to a default.
   - **Against the morning edition's 08:50 (FL1-1d step 1b):** the morning librarian starts about 08:39, after the
     08:38 routine's setup. It fetches only the index-close files missing from the store, normally none or one.
     - One missing file, both hosts failing in the slowest way: 08:39 + 660 s = **08:50:00**. Today's 600 s gives
