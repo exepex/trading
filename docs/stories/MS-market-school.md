@@ -569,3 +569,36 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
+
+### MS-P1i Claims (round 1, code at 0b655751; builder session_01F1RVMF8MNngi97JVNs99L5)
+
+Built on a's round-2 tip 8c7ba1d9 (not 756e6545): round 2 added the fleet contract and `FakeFleet` this harness needs.
+Gates on the tree: `pytest -n auto` 10,310 passed, 16 xfailed (before the last test-only edits; school tests rerun
+green), ruff, `check_imports`, `check_records` clean.
+
+| Criterion | Test (`tests/school/acceptance/test_acceptance.py`) | Broken-code proof |
+|---|---|---|
+| 1. Each planter gives its exact reason code | `test_each_planter_gives_its_exact_reason_code_and_opens_nothing_for_it[*]` (7 faults), `test_a_wrong_reason_code_is_not_accepted`, `test_a_fault_check_fails_when_the_fleet_does_not_catch_the_fault` | stale seal made on time, refused entry under the cap, quote removal and road closure made no-ops: each fails |
+| 2. Comparator fails on one changed byte | `test_the_comparator_fails_on_one_changed_byte_in_a_record_file_or_the_counts_file`, `test_two_runs_of_one_recorded_day_are_byte_identical…` | comparator returning no differences fails |
+| 3. Planted refusal survives two runs, in both sections' inputs and every denominator | `test_the_planted_refusal_survives_two_runs_and_is_in_both_sections_inputs_and_every_denominator`, `test_the_refusal_is_in_the_counts_file_as_not_executed` | counts file's "executed" forced to 0 fails |
+| Four fill checks | `test_an_unsealed_fill_is_caught`, `…over_cap…`, `…away_from_the_touch_or_without_a_quote…`, `…duplicate_fill…` (each plants a bad ledger entry) | each check replaced by `assert True` fails |
+
+11 harness/planter mutations applied, 11 caught (the first run left 2 alive, "sealed file unchanged" and the counts
+file; a test was added for each and both are now caught).
+
+**For story j:** `tests/school/acceptance/rig.py` defines `Rig` (fleet, dashcam, ledger reader, snapshot reader, counts
+file, section-input reader, denominator reader). j writes `real_rig(scenario)` and calls the same functions in
+`harness.py`: `run_fault` for each of `all_faults()`, `check_fills`, `check_replay_twice`. The scenario is plain data
+(`fno/school/acceptance/scenario.py`); `recorded_day()` (5 roads, CS1 and DR1 trading, N0 not) starts every snapshot at
+15:02, inside all five roads' windows.
+
+**Limits, said plainly [reasoning only for what j will find]:**
+1. On the fake fleet the closure faults (expiry mismatch, lot mismatch, impossible price) are planted as the road's
+   status; the real detection of those is part b's tests, and j's real rig must plant them as bad captures through
+   b's classes so the same expectation (every driver on the road: `road_closed` with that reason) holds.
+2. A missing quote is accepted either as a `refused/missing_quote` decision (law 5) or as a refused fill, because the
+   fake fleet has only the max-loss law; the real fleet may use either path.
+3. The counts file, section inputs and denominator on the fakes are derived from the sealed decisions file; parts f and
+   g own the real ones, and j's rig must supply theirs.
+4. The replay-conflict fault is checked at the dashcam (other bytes for a sealed key raise `ReplayConflict`, the file is
+   unchanged). A fleet rerun never reaches that path, because it skips what is sealed.
