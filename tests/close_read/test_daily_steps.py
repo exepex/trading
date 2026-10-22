@@ -1,6 +1,7 @@
 """A4h criteria 5 and 6: O1's `close_read` (15:40) and `close_recheck` (16:00) are the run's last two steps, after
-`lab_close` while it exists (judge 440 add. 1: FL1-1's 15:45 report never waits); each Alerted(LiveFrom(NotBefore(
-CommandStep))) on A4h's own receipts, not live until its date; the reader never reaches Groww."""
+`candles` (FL1-1d removed `lab_close`; while it existed they followed it, judge 440 add. 1); each
+Alerted(LiveFrom(NotBefore(CommandStep))) on A4h's own receipts, not live until its date; the reader never reaches
+Groww."""
 
 import ast
 from datetime import date, time
@@ -29,11 +30,8 @@ def _steps(monkeypatch, cfg=None):
     return seen["day_steps"]
 
 
-def test_both_reads_are_last_in_the_real_tuple_after_lab_close_while_it_exists():
-    assert DAILY_RUN_STEPS[-2:] == ("close_read", "close_recheck")
-    if "lab_close" in DAILY_RUN_STEPS:
-        assert DAILY_RUN_STEPS.index("lab_close") < DAILY_RUN_STEPS.index("close_read")
-    assert DAILY_RUN_STEPS.index("candles") < DAILY_RUN_STEPS.index("close_read")
+def test_both_reads_are_the_real_tuple_s_last_two_after_the_candles():
+    assert DAILY_RUN_STEPS[-3:] == ("candles", "close_read", "close_recheck")
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 """`python -m fno closes read [--recheck]` (story A4h), run by O1's `close_read` (15:40) and `close_recheck` (16:00)
-steps after `lab_close`; a hand run the same evening counts too (the NSE stamp decides, not the clock). A run outside
-O1 (by hand, or the owner's evening task) adds `--commit`: it then commits and pushes A4h's own receipts itself, and
-exits 1 when they are NOT committed."""
+steps, the run's last two after `candles`; a hand run the same evening counts too (the NSE stamp decides, not the
+clock). A run outside O1 (by hand, or the owner's evening task) adds `--commit`: it then commits and pushes A4h's own
+receipts itself, and exits 1 when they are NOT committed."""
 
 from __future__ import annotations
 
