@@ -924,8 +924,19 @@ Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhav
   panel holds NIFTY monthlies only and no lots, so a second chain would duplicate one code path for three roads. The
   parity check is against EDGE1's own reader on the same records.
 - **9 of 9 mutations caught.**
-- **Not run, honestly:** no real-data run of `BhavcopyChain` here. The archived F&O files are in Drive and this container
-  has no Drive settings. The parsing is tested on UDiFF-shaped records and EDGE1's reader as the oracle.
+- **Real-data run (round 2, with Drive read access, stores only, no NSE fetch; a throwaway script, not committed):**
+  `BhavcopyChain` over the archived files read, in 2-4 s a day:
+  - NIFTY 2 Jun 2025: current format, 1,620 rows, close 24,716.6, the files state lot 75 (the case judge 500 raised);
+  - NIFTY 4 Mar 2024: current format, 1,507 rows, close 22,405.6, monthly 28 Mar and 25 Apr, weeklies 7 and 14 Mar;
+  - NIFTY 9 Oct 2026: 1,888 rows, lot 65;
+  - NIFTY 24 Jun 2021 and BANKNIFTY 31 Mar 2023: legacy format, 2,070 and 1,152 rows, no lot in the file (so the circular schedule applies), and **no index close**.
+  The earlier Claim "no Drive settings in this container" was wrong: I had not checked the environment. Corrected.
+  - **Finding for SIM-d:** legacy-format files carry no underlying price, so those days have `index_close=None` and the road closes
+    (`capture_missing`) unless the wiring passes `BhavcopyChain(index_close=...)` from NSE's archived index-close files (A10).
+    SIM-d's wiring must do that and test it.
+- **Round 2 (judge 500):** (1) the circular lot schedule now applies to legacy-format days only; a current-format day with no stated lot has no lot
+  (test on 2 Jun 2025: none; with the file's 75: 75). (2) The size sentinel constant is removed from this branch and 7.2 and test 4 describe design A.
+  (3) EDGE1 is loaded by file path under the unique package name `ms_sim_edge1study`; `research/edge1` is not on `sys.path` (tests pin both).
 - **A requirement for SIM-d (found while reading `fno/storage/wiring.py`):** `build_nse_fo_library` reads the stores
   first and then falls back to NSE. The simulator's wiring must build `DailyFiles` from the stores only, with a test
   whose NSE fallback raises, or "no new NSE read" breaks on a missing day.
@@ -953,14 +964,18 @@ Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests 
 | 4 only verified recorded captures; a tampered, missing or incomplete one is skipped with its reason | `recorded.py` over MS-P1b's `CaptureReader` | `test_recorded.py` (4 tests) | the caught exception type changed |
 | bucket edges on both sides (1% and 2% and 4% moneyness; 7, 8, 21, 22, 45, 46 days) | `bucket.py` | `test_the_moneyness_band_edges`, `test_the_days_to_expiry_band_edges` | `>=` to `>`; day edges not shifted by one |
 | half a tick floor; uncrossed, valid, two-sided only | `learner.py` | `test_a_quote_is_its_half_gap...`, `test_a_one_sided_invalid_or_crossed...` | floor removed; crossed check removed |
-| 5 relative against rupee spread, with numbers | none | **not done** | |
+| 5 relative against rupee spread, with numbers | none (a measurement) | the run below | n/a |
 
 - **11 of 11 mutations caught.**
-- **Criterion 5 is not met in this tip, and I do not claim it.** It needs the recorded quote files, which live in Drive
-  only, and this container has no Drive settings. The relative half-spread (a share of the mid) stays "reasoning only".
-  What would settle it: for each bucket on the recorded days, whether the coefficient of variation of the relative
-  half-spread is below that of the rupee half-spread. Someone with Drive access can run `SpreadLearner` on
-  `recorded_snapshots(...)` and compare; I will write that small script in SIM-d's dry run if Drive is available.
+- **Criterion 5, round 2 (judge 502 asked for it in the Claims).** My earlier statement that this container had no Drive access was wrong: I had
+  not checked the environment. I re-ran the comparison myself (throwaway script, not committed) over MS-P1b's verified `CaptureReader`
+  on the recorded sessions of 13-22 Oct 2026, all five roads (16 verified captures read; 39 road-days had none and were skipped).
+  For each bucket with at least 3 quotes I took the coefficient of variation of the half-spread (half-tick floor) over all its valid two-sided quotes:
+  - the relative half-spread varies less than the rupee one in **41 of 48 buckets**, the same as Judge H's run;
+  - the 7 exceptions are FINNIFTY and MIDCPNIFTY far or deep strikes, for example MIDCPNIFTY 2-4% from the money, 22-45 days: 1.17 against 0.81 (115 quotes, 3 sessions);
+  - every bucket has only 1-6 sessions. **Some evidence** for the relative choice, not strong evidence; revisit at 30 sessions.
+- **Capture period in the label (judge 502, minor a).** `SPREAD_LABEL` now reads "spread learned from forward captures since 13 Oct 2026, measured at 15:00".
+  Reasoning only: spreads were probably wider in earlier years, so practice is optimistic. This is why the three scenarios are always shown together.
 - **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
   the code returns exactly that and nothing else.
 

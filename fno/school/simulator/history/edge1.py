@@ -1,25 +1,46 @@
 """The one place the simulator reads EDGE1's frozen study (orchestrator, 22 Oct 2026: read-only, one adapter, never
-copied or edited): NSE's circular lot schedule and the dated STT rates. `research/edge1` is not a package, so its folder
-goes on the path as EDGE1's own tests do."""
+copied or edited): NSE's circular lot schedule, the dated STT rates and, for tests, its day-file reader.
 
+`research/edge1/edge1study` is not an installed package. It is loaded by file path under its own unique package name, so
+its folder never joins `sys.path` and none of its neighbours (`cards.py`, `study.py`) can shadow another import."""
+
+import importlib
+import importlib.util
 import sys
 from collections.abc import Callable, Mapping
 from datetime import date
 from pathlib import Path
+from types import ModuleType
 
-STUDY = Path(__file__).resolve().parents[4] / "research" / "edge1"
-if str(STUDY) not in sys.path:
-    sys.path.insert(0, str(STUDY))
+PACKAGE = "ms_sim_edge1study"
+STUDY = Path(__file__).resolve().parents[4] / "research" / "edge1" / "edge1study"
 
-from edge1study.lots import SCHEDULE, circular_lot  # noqa: E402
-from edge1study.stt_history import charges_on  # noqa: E402
+
+def _load_package() -> ModuleType:
+    if PACKAGE in sys.modules:
+        return sys.modules[PACKAGE]
+    spec = importlib.util.spec_from_file_location(
+        PACKAGE, STUDY / "__init__.py", submodule_search_locations=[str(STUDY)]
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[PACKAGE] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def module(name: str) -> ModuleType:
+    """One of EDGE1's modules (`lots`, `stt_history`, `day_files`), imported inside the unique package."""
+    _load_package()
+    return importlib.import_module(f"{PACKAGE}.{name}")
 
 
 def circular_lot_or_none(underlying: str, expiry: date) -> int | None:
-    """NSE's circular lot for an index EDGE1 has a schedule for (NIFTY, BANKNIFTY); None for any other."""
-    return circular_lot(underlying, expiry) if underlying in SCHEDULE else None
+    """NSE's circular lot for an index EDGE1 has a schedule for (NIFTY, BANKNIFTY); None for any other. The schedule
+    ends with the legacy files (29 Dec 2023): the caller asks it for legacy-format days only."""
+    lots = module("lots")
+    return lots.circular_lot(underlying, expiry) if underlying in lots.SCHEDULE else None
 
 
 def dated_charges(charges: Mapping[str, float]) -> Callable[[date], dict]:
     """C1's charges with the two STT rates of a trade date (EDGE1's `stt_history`); every other charge as decided."""
-    return charges_on(charges)
+    return module("stt_history").charges_on(charges)
