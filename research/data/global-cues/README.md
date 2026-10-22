@@ -9,7 +9,8 @@ fill: 15 Oct 2026, 06:15 IST.
 in Drive's `data/global-cues/` area. Each file has a SHA-256 receipt under `receipts/data/global-cues/`. A table is its
 parts in name order (the first part is the moved file, and each later fill adds one); a report's newest snapshot is the
 current one. Readers go through the verified cache (`python -m fno data-cache sync data/global-cues`). The files below
-in this folder are the copies as moved; they are read only by `global-cues move` until their removal commit. The
+in this folder are the copies as moved. They stop updating at the step's merge (Drive is the record), and only
+`global-cues move` reads them until their removal commit. The
 following stay here: this README, `us_market_closures.csv` (hand-kept, sourced) and `checks/behind_alerted.txt` (alert
 state, names only). The table below describes the public tables, wherever they live.
 

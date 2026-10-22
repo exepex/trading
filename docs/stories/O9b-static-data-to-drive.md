@@ -352,6 +352,12 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   - Criterion 3 for FL1: the facts' brent and USD/INR series, old path against new, over the 30 sessions from
     8 Sep to 22 Oct 2026 showed 0 differences.
   - The weather reads the same `rows()` and needed the Drive settings already (`build_reader(include_private=True)`).
+- **A17 owner's review (22 Oct): OK, no blocker.** 2,323 tests passed on their checkout, all 5 points met, and the
+  reader grep found GR1's `inputs.py` too (it reads through `build_tables`, so it follows the move). Merge-day item 1
+  (the race) is accepted, above. Item 2 is accepted: the README says the repository copies stop updating at the
+  merge. Their note is accepted as a later step, for VIX as well. Every run's fresh runner downloads every part once,
+  about 1,000 small files per run after a year, so the step is an `actions/cache` of `work/drive-cache` keyed on the
+  receipts. This step does not build it.
 - **Mutations: 9 of 9 caught.** Three survived at first and their tests were added:
   - the revisions log left out of the move;
   - the overlap check not written;
@@ -361,7 +367,12 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   table is in Drive. No schedule calls `check`.
 - Not yet:
   - the A17 owner's and FL1's reviews of this diff, then Judge F;
-  - the merge from Mon 26 Oct, outside 14:00-16:15 IST and away from the 03:41, 04:41 and 14:11 runs, with
-    `global-cues move` re-run just before it (it says "already in Drive, equal" or "caught up and read back equal");
+  - the merge from Mon 26 Oct, outside 14:00-16:15 IST, and only while global-cues.yml has no queued or running
+    run. GitHub starts its crons late: the morning ones land around 05:30-06:40 IST, and the 14:11 one lands 17:50-21:00
+    or later (A17 owner's measurement). `global-cues move` runs just before the merge, and **once more right after it,
+    before the next scheduled run**. Otherwise a run that lands between the last catch-up and the merge adds rows to
+    the repository files only, and the next run on Drive would re-add them with a later `first_seen_at` (the A17
+    owner's merge-day item 1, accepted: I traced it in `CueTable.merge`). Each move says "already in Drive, equal" or
+    "caught up and read back equal";
   - the first scheduled run on the new path;
   - the removal commit.
