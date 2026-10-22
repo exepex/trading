@@ -33,4 +33,10 @@ hypothesis: yes
 measurement: no
 data_sets: ["BANKNIFTY monthly options | NSE daily closes | 2019 - 20 Oct 2026"]
 measures: "mean net per complete trade after C1's charges and the Rs 1 pad, one lot (protocol sections 7-11)"
+gross: {kind: measured, mean: 1165.5921052631577, sd: 2361.456940832594, n: 19, source: "EDGE1 run 1, research/edge1/selection.json at 81f02afe (story/edge1-build), g1.inputs; exploratory (sd_gross)"}
+tail: {probability: 0.0, loss: 0.0, in_gross: yes}
+cost: {measured: 599.3093013098685, source: "EDGE1 run 1, research/edge1/selection.json at 81f02afe (story/edge1-build), g1.inputs; exploratory (mean charges plus pads, Rs 1 pad)"}
+sd_per_trade: 2363.7654128390704
+frequency_per_year: 4.75
+pass_level: 0.05
 ```
