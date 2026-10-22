@@ -49,6 +49,7 @@ from .research_engine.research_cli import add_research_parser
 from .role_value.cli import add_role_value_parser
 from .scoreboard.cli import add_scoreboard_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
+from .storage.hosts_cli import add_hosts_parser
 from .storage.librarian_cli import add_librarian_parser
 from .storage.revisions_cli import add_revisions_parser
 from .vix_history.cli import add_vix_history_parser
@@ -250,6 +251,7 @@ def main(argv: list[str] | None = None) -> int:
     add_itmchance_parser(sub)
     add_pricerange_parser(sub)
     add_closes_parser(sub)
+    add_hosts_parser(sub)
     add_lab_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)

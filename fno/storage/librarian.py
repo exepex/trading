@@ -56,7 +56,7 @@ class RawDataLibrarian:
         self.calendar, self.exceptions, self.log = calendar, exceptions, log
 
     def fill(self, start: date | None, end: date) -> FillReport:
-        start, end = archive_range(type(self.source), start, end)
+        start, end = archive_range(self.source, start, end)  # the dataset's days, through any source wrapper (A9c)
         report = FillReport(self.source.dataset, start, end)
         sessions = [day for day in days_between(start, end) if self.calendar.is_session(day)]
         report.sessions = len(sessions)

@@ -17,7 +17,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from ..research_data.calendar import SessionCalendar
-from .raw_source import NseArchiveSource
+from .raw_source import NseArchiveSource, RawFileSource
 from .raw_store import RawFileStore
 
 EXCEPTION_FIELDS = ("dataset", "date", "reason", "source_url")
@@ -80,7 +80,7 @@ def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
     return exceptions
 
 
-def archive_range(source: type[NseArchiveSource], start: date | None, end: date) -> tuple[date, date]:
+def archive_range(source: type[NseArchiveSource] | RawFileSource, start: date | None, end: date) -> tuple[date, date]:
     """The requested range clipped to the days the source's archive keeps files for (start None: its first day)."""
     start = start or source.first_day
     return max(start, source.first_day or start), min(end, source.last_day or end)

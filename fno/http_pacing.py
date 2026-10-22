@@ -17,6 +17,7 @@ DEFAULT_SPACING_SECONDS = 1.0
 HOST_SPACING_SECONDS = {
     "www.nseindia.com": 1.0,
     "nsearchives.nseindia.com": 1.0,
+    "archives.nseindia.com": 1.0,  # story A9c's second archive host, paced as the first
 }
 REFUSAL_STATUS_CODES = (403, 429)
 REFUSALS_BEFORE_PAUSE = 2  # NSE can refuse once until its cookies are set; two in a row means we are blocked

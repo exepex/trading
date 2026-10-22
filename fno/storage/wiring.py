@@ -24,6 +24,7 @@ from ..research_data.nifty_panel import DailyFiles
 from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
 from .content_checks import COVERED_SESSION, VALIDATORS
 from .coverage import CoverageCheck, CoverageDataset, read_exceptions
+from .fallback_source import CsvProvenanceLog, FallbackSource
 from .google_drive import GoogleDriveStore, service_account_token
 from .google_drive_upload import GoogleDriveUploadStore
 from .librarian import RawDataLibrarian
@@ -32,6 +33,7 @@ from .manifest_folder import FingerprintingStore, ManifestFolder
 from .owner_token import OwnerAccessToken
 from .raw_library import RawFileLibrary
 from .raw_source import (
+    SECOND_HOST,
     NseArchiveSource,
     NseDailyFoSource,
     NseIndexCloseSource,
@@ -61,6 +63,7 @@ COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REPOSITORY = Path(__file__).resolve().parents[2]
 MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
 REVISION_INDEX_FOLDER = MANIFEST_FOLDER / "revisions"  # one row per archived later version (A11)
+SECOND_HOST_FOLDER = MANIFEST_FOLDER / "second-host"  # one row per file the second NSE host served (A9c)
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -151,14 +154,20 @@ def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path 
     archive = build_owner_drive_store()
     if archive is None and project_folder:
         archive = AreaStore(LocalFolderStore(project_folder), RAW_AREA)
-    return RawFileLibrary(build_raw_stores(project_folder), build_nse_source(source_type), archive)
+    return RawFileLibrary(build_raw_stores(project_folder), build_fallback_source(source_type), archive)
 
 
-def build_nse_source(source_type: type[NseArchiveSource]) -> NseArchiveSource:
-    """One NSE dataset straight from NSE's archive, through the shared polite session."""
+def build_nse_source(source_type: type[NseArchiveSource], **host) -> NseArchiveSource:
+    """One NSE dataset straight from NSE's archive, through the shared polite session (`host`: A9c's second host)."""
     session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
-    return source_type(session)
+    return source_type(session, **host)
+
+
+def build_fallback_source(source_type: type[NseArchiveSource]) -> FallbackSource:
+    """A9c: the dated files from NSE's second archive host when the first is unreachable, one try, each file logged."""
+    secondary = build_nse_source(source_type, host=SECOND_HOST, retry_waits=())
+    return FallbackSource(build_nse_source(source_type), secondary, CsvProvenanceLog(SECOND_HOST_FOLDER))
 
 
 def build_nse_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
@@ -242,7 +251,7 @@ def build_librarian(name: str, log=print) -> RawDataLibrarian:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
     source_type = LIBRARIAN_DATASETS[name]
     dataset = next(d for d in coverage_datasets() if d.source is source_type)
-    source = build_nse_source(source_type)
+    source = build_fallback_source(source_type)
     return RawDataLibrarian(store, source, dataset, build_session_calendar(), build_file_exceptions(), log)
 
 

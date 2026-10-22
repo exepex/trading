@@ -27,6 +27,8 @@ from .retry_policy import (
 )
 
 NOT_PUBLISHED_REASON = "not served (HTTP 404)"
+PRIMARY_HOST = "nsearchives.nseindia.com"  # every dated source's BASE_URL is on this host
+SECOND_HOST = "archives.nseindia.com"  # the same files byte for byte on another Akamai edge (story A9c)
 COOLING_OFF_STOP = "{error}; {left} file(s) not read: run again after the pause"  # a pass over many files stops
 
 
@@ -89,9 +91,12 @@ class NseArchiveSource(RawFileSource):
     FILENAME = ""  # format string of the original file name for a day
     TIMEOUT_SECONDS = 60
 
-    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: datetime.now(UTC)):
-        """`clock`: the time an HTTP-date `Retry-After` is measured from."""
+    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: datetime.now(UTC),
+                 host: str = PRIMARY_HOST, retry_waits: tuple[int, ...] = RETRY_WAITS):  # fmt: skip
+        """`clock`: the time an HTTP-date `Retry-After` is measured from. `host`: the NSE host asked (A9c's second host
+        serves the same paths); `retry_waits`: the pauses between tries (A9c's second host gets one try)."""
         self.session, self.sleep, self.clock = session, sleep, clock
+        self.host, self.retry_waits = host, tuple(retry_waits)
 
     @classmethod
     def filename_for(cls, day: date) -> str:
@@ -113,6 +118,10 @@ class NseArchiveSource(RawFileSource):
     def url_for(cls, path: str) -> str:
         """NSE's URL for an archive path: the folder's URL and the original file name."""
         return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+    def requested_url(self, path: str) -> str:
+        """The URL this instance asks: `url_for` with its own host in place of the primary one."""
+        return self.url_for(path).replace(f"//{PRIMARY_HOST}/", f"//{self.host}/", 1)
 
     @classmethod
     def day_for_path(cls, path: str) -> date:
@@ -142,9 +151,9 @@ class NseArchiveSource(RawFileSource):
 
     def _response(self, path: str, head: bool = False) -> requests.Response | None:
         send, too_many = (self.session.head if head else self.session.get), 0
-        for tries, scheduled in enumerate((*RETRY_WAITS, None), start=1):
+        for tries, scheduled in enumerate((*self.retry_waits, None), start=1):
             try:
-                response = send(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
+                response = send(self.requested_url(path), timeout=self.TIMEOUT_SECONDS)
             except SourceCoolingOff as exc:  # the host is paused: waiting here would only wait into the pause
                 raise RawSourceCoolingOff(f"{self.name}: {path}: {exc}", tries=tries - 1) from exc
             except UNBUILDABLE as exc:

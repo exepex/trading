@@ -199,8 +199,10 @@ def test_old_format_and_index_close_sources_use_nse_names_and_addresses():
     assert path == "nse/indices/index-close/2026/10/ind_close_all_09102026.csv"
     assert NseIndexCloseSource.url_for(path).endswith("/content/indices/ind_close_all_09102026.csv")
     assert NseLegacyFoSource(Flaky([Answer(404)]), sleep=lambda s: None).fetch(path) is None
-    assert isinstance(build_nse_legacy_fo_library().source, NseLegacyFoSource)
-    assert isinstance(build_nse_index_close_library().source, NseIndexCloseSource)
+    legacy = build_nse_legacy_fo_library().source  # A9c: the dataset's source behind its second-host fallback
+    assert isinstance(legacy.primary, NseLegacyFoSource) and legacy.primary.host == "nsearchives.nseindia.com"
+    assert isinstance(legacy.secondary, NseLegacyFoSource) and legacy.secondary.host == "archives.nseindia.com"
+    assert isinstance(build_nse_index_close_library().source.primary, NseIndexCloseSource)
 
 
 class ExpiringDrive:
