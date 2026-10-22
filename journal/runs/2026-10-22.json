@@ -311,6 +311,17 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "premium_range_scores": {
+   "started_at": "2026-10-22T15:32:09.891004+05:30",
+   "finished_at": "2026-10-22T15:32:09.891043+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
   }
  }
 }
