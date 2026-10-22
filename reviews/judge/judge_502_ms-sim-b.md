@@ -1,4 +1,4 @@
-# Judge 501: MS-SIM-b, spread buckets and scenarios
+# Judge 502: MS-SIM-b, spread buckets and scenarios
 
 **Scope:** story/ms-sim-b at cc2c5f15 (stacked on story/ms-sim-a), b's own diff b481ab70..cc2c5f15. Story section
 7.2 and 7.4 SIM-b, Claims 7.7. Lane 1 (practice records). Round 1 of 2. Judge H (session_01KNkZVoWvXMkoihKrrXk5Xa).
