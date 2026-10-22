@@ -9,6 +9,7 @@ import pytest
 from fno.config import load_app_config
 from fno.constants import DAILY_RUN_STEPS, STEP_NOT_LIVE
 from fno.daily.steps import Alerted, CommandStep, LiveFrom
+from fno.premium_ranges.folders import receipt_pathspecs as premium_receipts
 from fno.price_distribution.folders import receipt_pathspecs as distribution_receipts
 from fno.price_ranges.folders import receipt_pathspecs as range_receipts
 from tests.daily.live_dates import without_live_dates
@@ -30,8 +31,10 @@ def day_steps(monkeypatch, cfg=None) -> dict:
 @pytest.mark.parametrize(
     ("name", "after", "arguments", "pathspecs"),
     [
-        ("price_distribution_scores", "price_distribution", ("pricedist", "score"), distribution_receipts()),
+        # G13d's issue sits between G13's record and G13's scores (O1's owner, 22 Oct: its 15:30 seal comes first)
+        ("price_distribution_scores", "premium_ranges", ("pricedist", "score"), distribution_receipts()),
         ("price_range_scores", "price_ranges", ("pricerange", "score"), range_receipts()),
+        ("premium_range_scores", "price_range_scores", ("premrange", "score"), premium_receipts()),
     ],
 )
 def test_each_score_step_follows_its_issue_with_its_own_receipts_and_is_not_live(monkeypatch, name, after, arguments,
@@ -51,7 +54,8 @@ def test_the_range_scores_run_before_the_last_steps_of_the_day():
 def test_each_score_step_reads_its_own_live_date_never_its_issue_step_s(monkeypatch):
     """Judge 423 minor 1: with every key null, a step reading another step's key would pass; distinct dates catch it."""
     dates = {"price_distribution": "2026-11-02", "price_distribution_scores": "2026-11-03",
-             "price_ranges": "2026-11-04", "price_range_scores": "2026-11-05"}  # fmt: skip
+             "price_ranges": "2026-11-04", "price_range_scores": "2026-11-05", "premium_ranges": "2026-11-06",
+             "premium_range_scores": "2026-11-09"}  # fmt: skip
     cfg = without_live_dates()
     cfg = {**cfg, "daily": {**cfg["daily"], "live_from": {**cfg["daily"]["live_from"], **dates}}}
     steps = day_steps(monkeypatch, cfg)

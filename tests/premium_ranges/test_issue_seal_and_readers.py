@@ -105,3 +105,9 @@ def test_premium_scores_reader_takes_the_latest_report(tmp_path):
     assert PremiumScores(tmp_path).latest("NIFTY") == {"sessions": 2}
     assert PremiumScores(tmp_path).latest("BANKNIFTY") is None
     assert PremiumScores(tmp_path / "none").latest("NIFTY") is None
+
+
+def test_at_or_after_1530_nothing_is_written():
+    store = with_g13()
+    code, lines = issuer(store, now=datetime(2026, 10, 16, 15, 30, tzinfo=IST)).issue(D)
+    assert code == 0 and lines == ["nothing written: past the 15:30 seal (now 15:30:00)"] and len(store.files) == 1

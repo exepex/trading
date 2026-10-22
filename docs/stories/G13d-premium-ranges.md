@@ -77,6 +77,12 @@ over plain carry.
 - Issue at the 3 pm chain's record time (G13's step). Sealed the same way G13b seals (GitHub push time of the receipt;
   late if after 15:30 IST on d, the session's close, so no later price of d is known at the seal).
   A late record is scored but marked late.
+- **Build note (O1's owner, 22 Oct): the command itself refuses at or after 15:30** ("nothing written: past the 15:30
+  seal"; O1 records it refused and alerts once), so no issue is ever written that cannot be sealed. A late seal now
+  happens only when an issue written before 15:30 is pushed after it; it is scored and marked late as above.
+  - The timetable: on 19 and 21 Oct the card ended at about 15:19 IST, so G13's step and this one share about 11
+    minutes. G13's runtime is first measured on its live day (22 Oct). The budget (minutes used against 11) is
+    stated before G13d's go-live.
 - Files: `data/premium_ranges/live/<underlying>/<day>.json.gz` and `.../scores/...` in Drive, write-once, O9
   receipts. Schema `g13d_premium_v1`, with the rule's method hash.
 - Steps: `premium_ranges` right after `price_distribution`, and `premium_range_scores` after it on the next day.

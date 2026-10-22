@@ -1,6 +1,7 @@
 """The live issue, run by O1's `premium_ranges` step right after G13's `price_distribution` (which alone writes the
 day's 3 pm record G13d reads). G13's exit contract: not live or a hand run -> `nothing written: ...`, exit 0; a closed
-day -> `not a trading day`; an issued day is never rebuilt; no G13 record for an underlying -> a problem line, no
+day -> `not a trading day`; at or after 15:30 -> `nothing written: past the 15:30 seal` (O1's owner, 22 Oct:
+never a late issue); an issued day is never rebuilt; no G13 record for an underlying -> a problem line, no
 file, exit 1 (a rerun after G13's step can still issue). The command never alerts."""
 
 from __future__ import annotations
@@ -15,13 +16,14 @@ from ..price_distribution.records import encode
 from ..price_distribution.store import DistributionStore
 from ..research_data.calendar import SessionCalendar
 from .build import premium_record
-from .constants import ISSUE
+from .constants import DEADLINE, ISSUE
 from .folders import live_path
 
 NOT_LIVE = "nothing written: not live on {day} (config.yaml daily.live_from.premium_ranges: {live_from})"
 HAND_RUN = "nothing written: only O1's daily step writes live rows (--live)"
 NOT_TODAY = "nothing written: {day} is not today ({today})"
 NOT_TRADING = "not a trading day"
+PAST_SEAL = "nothing written: past the {deadline} seal (now {now})"  # O1 records it refused and alerts once
 NO_G13 = "{underlying}: no G13 3 pm record for {day}"
 ALREADY = "{underlying}: already issued"
 ISSUED = "{underlying}: issued ({rows} contracts ranged; not ranged {not_ranged})"
@@ -68,4 +70,6 @@ class PremiumIssuer:
             return NOT_LIVE.format(day=day, live_from=self.live_from)
         if day != now.date():
             return NOT_TODAY.format(day=day, today=now.date())
+        if now.time() >= DEADLINE:  # issued after the seal's deadline it could never count
+            return PAST_SEAL.format(deadline=DEADLINE.strftime("%H:%M"), now=now.strftime("%H:%M:%S"))
         return None if self.calendar.session_kind(day) == SESSION_REGULAR else NOT_TRADING
