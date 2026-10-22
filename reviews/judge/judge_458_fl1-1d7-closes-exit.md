@@ -21,3 +21,17 @@ uncommitted receipts outside O1". The alternative is a code change in A4h's CLI,
 not needed if the routine posts all lines.
 
 This is text only; one more round, and it must merge before Fri 19:53 IST.
+
+## Addendum 1: 2eca4ad8
+
+**Verdict: PASS (lane 1, rule document). The builder may merge: pull, the fast checks, push.** The diff against
+`main` is 2 lines of `CLAUDE.md` and no code. Step 1c now reads: "exit 1: post every line it printed (the read's
+problem line and the commit line) to #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else
+outside O1".
+
+It is now true to `cmd_closes` in both failure cases:
+- a failed read posts the read's own problem line;
+- an uncommitted receipt posts the "NOT committed" line.
+
+No full suite is needed for a text-only change; the merge runs the fast checks (ruff, `check_imports`,
+`check_records`, `check_numbers`). It must be on `main` before Fri 19:53 IST.
