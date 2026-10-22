@@ -68,3 +68,9 @@ def test_a_second_row_for_one_decision_is_refused():
 def test_an_entry_the_shared_size_could_not_serve_is_fillable_not_executed():
     counts = counts_for(TRADE, PASS, b.filled(), size_shared=True)
     assert (counts.eligible, counts.fillable, counts.executed) == (1, 1, 0)
+
+
+@pytest.mark.parametrize("decision", [TRADE, TICKET])
+def test_a_trade_or_ticket_without_law_results_is_never_counted(decision):
+    with pytest.raises(ValueError):
+        counts_for(decision, (), b.filled())

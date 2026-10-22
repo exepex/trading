@@ -89,7 +89,13 @@ def test_a_rule_refused_only_by_account_limits_becomes_an_account_limit_ticket(c
     ((refused(RefusalReason.OPEN_RISK), refused(RefusalReason.BRAKE)), RefusalReason.BRAKE),  # nor a braked one: the
     # stop is named first, so a report shows why the driver stopped (judge 481 minor b)
     ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.DAILY_STOP)), RefusalReason.DAILY_STOP),
-    ((refused(RefusalReason.BUCKET_CAP), refused(RefusalReason.MISSING_QUOTE)), RefusalReason.BUCKET_CAP),
+    ((refused(RefusalReason.BUCKET_CAP), refused(RefusalReason.MISSING_QUOTE)), RefusalReason.MISSING_QUOTE),
+    ((refused(RefusalReason.OPEN_RISK), refused(RefusalReason.MAX_LOSS)), RefusalReason.MAX_LOSS),  # judge 490
+    ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.UNPROTECTED)), RefusalReason.MAX_LOSS),  # first in order
+    ((refused(RefusalReason.DAILY_STOP), refused(RefusalReason.BRAKE)), RefusalReason.DAILY_STOP),
+    ((refused(RefusalReason.BUCKET_CAP), refused(RefusalReason.DAILY_STOP)), RefusalReason.DAILY_STOP),
+    ((refused(RefusalReason.MARGIN_ROOM), refused(RefusalReason.UNPROTECTED), refused(RefusalReason.BRAKE)),
+     RefusalReason.BRAKE),
     ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.OPEN_RISK)), RefusalReason.MAX_LOSS)])  # fmt: skip
 def test_any_other_refusal_stays_refused_with_the_first_reason(results, reason):
     [(out, _)] = classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),), always(*results), 5)
@@ -140,3 +146,19 @@ def test_a_ticket_is_one_lot():
     two = replace(decision.proposal, legs=tuple(LegSpec(leg.key, leg.side, 2) for leg in decision.proposal.legs))
     with pytest.raises(ValueError):
         as_ticket(replace(decision, proposal=two), TicketReason.TRADE_LIMIT)
+
+
+def test_no_law_results_never_pass():
+    with pytest.raises(ValueError):
+        classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),), lambda decision, accepted: (), 5)
+    assert not ticket_laws_pass(())
+    with pytest.raises(ValueError):
+        first_binding_refusal(())
+
+
+def test_an_account_limit_is_named_only_when_account_limits_alone_refused():
+    [(out, _)] = classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),),
+                          always(refused(RefusalReason.OPEN_RISK), refused(RefusalReason.BUCKET_CAP)), 5)  # fmt: skip
+    assert (out.outcome, out.reason) == (Outcome.TICKET, TicketReason.ACCOUNT_LIMIT)
+    assert first_binding_refusal((refused(RefusalReason.OPEN_RISK), refused(RefusalReason.MAX_LOSS),
+                                  refused(RefusalReason.DAILY_STOP))) == RefusalReason.DAILY_STOP  # fmt: skip

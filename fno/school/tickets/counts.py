@@ -20,6 +20,8 @@ def counts_for(decision: Decision, results: tuple[LawResult, ...], fill: FillRes
     An account entry the shared displayed size could not serve (`size_shared`) is fillable but not executed.
     A decision `unavailable` after its rule fired (e.g. a seal failure) carries no proposal: not eligible, but it
     stays in `scheduled`."""
+    if decision.outcome in (Outcome.TRADE, Outcome.TICKET) and not results:
+        raise ValueError("a trade or ticket is counted with its law results: none means the laws never ran")
     eligible = decision.proposal is not None
     filled = fill is not None and fill.filled
     laws = ticket_laws_pass(results) if decision.outcome == Outcome.TICKET else all(r.passed for r in results)

@@ -7,7 +7,7 @@ from datetime import date, datetime
 from ..constants import ExitReason, Outcome
 from ..contracts.accounts import AccountPort, FillPort, FillResult, LedgerEntry, SealedDecision
 from ..contracts.decisions import OpenPosition
-from ..contracts.safety import LawResult
+from ..contracts.records import DecisionRecord
 from ..contracts.seal import Seal
 from ..contracts.snapshot import SlotSnapshot
 from .rules import first_binding_refusal
@@ -36,13 +36,15 @@ class TicketBook:
     fills: FillPort
     ledger: TicketLedger
 
-    def enter(self, sealed: SealedDecision, results: tuple[LawResult, ...], snapshot: SlotSnapshot, seal: Seal,
+    def enter(self, record: DecisionRecord, file_sha256: str, snapshot: SlotSnapshot, seal: Seal,
               at: datetime) -> FillResult:  # fmt: skip
-        """`results`: the decision's sealed law results. A law that binds a ticket refuses it before any fill."""
+        """`record`: the ticket's sealed decision record, read back from the dashcam file `file_sha256`; its own law
+        results decide (judge 490). A law that binds a ticket refuses it before any fill; missing results raise."""
+        sealed = SealedDecision(record.decision, file_sha256)
         decision = sealed.decision
         if decision.outcome != Outcome.TICKET:
             raise ValueError("the ticket book enters tickets only")
-        binding = first_binding_refusal(results)
+        binding = first_binding_refusal(record.law_results)
         if binding is not None:
             return FillResult(refused=(binding,))
         fill = self.fills.enter(sealed, snapshot, seal, at)

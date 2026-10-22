@@ -348,10 +348,14 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
   - A later one that passes is `ticket: trade_limit`.
   - One refused only by `ACCOUNT_LIMITS` is `ticket: account_limit` (orchestrator, 22 Oct 2026).
   - Any other refusal, the daily stop and the brake included, is `refused`. A stopped or braked driver issues no
-    tickets that day, and its refusal names the stop first.
+    tickets that day.
+  - The reason a refusal records: a stop first, then a trade-validity law; an account limit only when account limits
+    alone refused (judge 490).
+  - No law results at all raise, in `classify`, `TicketBook.enter` and `counts_for`: a wiring fault never passes.
   - Only trades enter `accepted`: a ticket never takes a place or adds risk to the running view.
 - `TicketBook` (`book.py`):
-  - it refuses a ticket whose sealed law results break a binding law (anything but `ACCOUNT_LIMITS`);
+  - it takes the ticket's sealed `DecisionRecord` and refuses on a binding law (anything but `ACCOUNT_LIMITS`) in that
+    record's own `law_results`, never results passed beside it (judge 490);
   - it fills through the same `FillPort` as trades;
   - it records only in a `TicketLedger`, its own type over an account store on its own root, never a driver's
     account.
@@ -665,3 +669,16 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Shared file:** `fno/school/constants.py` gains one additive line, `UnavailableReason.SIZE_SHARED`, by the
   orchestrator's ruling 2(c). Part a is not on `main` yet, so it rides with f.
 - **Plants:** 33 planted, 33 caught, the judge's two survivors among them.
+
+### MS-P1f Claims, round 2 addendum (judge 490, Judge H)
+
+| Judge 490 finding | Fix | Test (plant caught) |
+|---|---|---|
+| 1. A refusal could be named by an account limit when a binding law also refused | `rules.named_refusal`: a stop, else a trade-validity law, else the first account limit | rows in `test_any_other_refusal_stays_refused_with_the_first_reason`: open risk with max loss gives `max_loss`; bucket with daily stop gives `daily_stop`; margin, unprotected and brake give `brake`; first in order within a group. Also `test_an_account_limit_is_named_only_when_account_limits_alone_refused`. Plants: binding dropped, stops dropped, last instead of first |
+| 2. Empty law results passed | `classify` raises; `ticket_laws_pass(())` is False; `first_binding_refusal(())` raises; `counts_for` raises for a trade or ticket without results | `test_no_law_results_never_pass`; `test_a_ticket_record_without_law_results_is_never_filled`; `test_a_trade_or_ticket_without_law_results_is_never_counted`. Plants: each guard removed |
+| 3. A name-biased order | already fixed in round 2 (judge 481): the seeded order, accounts before tickets | `test_shared_size.py` |
+| Minor (a): results came from the caller | `TicketBook.enter(record, file_sha256, snapshot, seal, at)` reads the sealed `DecisionRecord.law_results` | `test_book.py`. Plant: only the first result read |
+
+- **Signature change**, for j: `TicketBook.enter` now takes the sealed decision record and its file's SHA-256. It no
+  longer takes `(sealed, results)`.
+- **Plants:** 39 planted, 39 caught over f's tests.
