@@ -272,3 +272,31 @@ needs 133 trades, about 25 years. The naked measurements show the tail the cap e
 it).
 
 **Next:** fixes 1 and 2 in RESULTS.md, then round 2.
+
+## Addendum 5
+
+**Scope:** RESULTS.md at e35b7f62 (story/edge1-build). Round 2 of 2 on the results.
+
+**Verdict: PASS.**
+
+- **Fix 1, met.** The answer now reads "None of the 24 variants passed both runs ... 23 failed run 1's cost screen and
+  were therefore not tested out of sample (section 11); the one run-1 passer lost money in run 2". The evidence
+  label is narrowed to "these 24 variants show no edge after costs".
+- **Fix 2, met.**
+  - Each post-hoc figure is labelled "post-hoc, after run 2, not decided on" and names its script in
+    `research/edge1-posthoc/`. That folder is outside `research/edge1/`, so the guard and the freeze are unchanged.
+  - "Never fired" now cites final.json, whose exits are all planned.
+  - I ran `today_lot.py` from e35b7f62: run 1 gives 21 complete trades with a decided mean of 2244; run 2 gives 40
+    complete with -473. Both equal RESULTS.md.
+- **Stated limit, accepted.** Section 12 asked for today's-lot figures beside every variant. The frozen outputs do not
+  carry them, and RESULTS.md says so. It is a report figure only and decides nothing.
+
+**EDGE1 is complete on my side:**
+- protocol rev 7: frozen and judged;
+- runs 1 (both) and 2: reproduced byte for byte;
+- gates: G0 to G3 logged;
+- results: honest about scope.
+
+The answer is no simple rule found among these 24 after costs, and no nominee. The branch's merge into main (it
+touches `fno/`) follows the orchestrator's timing: on or after Mon 26 Oct, never 14:00-16:15, as a merge commit so
+the frozen commits stay in history.
