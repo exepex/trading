@@ -20,8 +20,11 @@ rounds, and the paper desk ran daily with 0 trades. The main steward builds the 
 2. Cron cuts: participant-OI watch 28 to 3 runs a day, margins 4 to 1, circulars 15 to 2; the AI books' daily runs
    stopped (Books 2 and 3 stay paused, not closed).
 3. Docs archive: about 7.6k lines of stale docs to `docs/archive/` with a README (response 318, section 6).
-4. The paper desk's daily steps skipped until a version is registered: built by the O1/O2 builder
-   (session_014zYLf18PgCzR7YoHs1X5Dp), coordinated here.
+4. The paper desk's daily steps frozen until the edge study shows an edge: built by the O1/O2 builder
+   (session_014zYLf18PgCzR7YoHs1X5Dp) on `story/o1-desk-freeze` (f7ad40e0; story `docs/stories/O1-desk-freeze.md`,
+   judge 469 text PASS). One `desk.frozen` switch; each frozen step waits for its own time and records `frozen`
+   (keeping the timetable and O8's health check truthful); exits keep running while any book holds a position.
+   Agreed with the main steward on 22 Oct.
 5. Numbering removed once each story has one judge file and one story file named by its story id.
 
 **Unchanged (hard lines).** No orders; secrets never in files; the record scan; privacy (public repository);
