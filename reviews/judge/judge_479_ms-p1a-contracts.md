@@ -66,3 +66,45 @@ is not proven. Three contracts that the parallel parts need are missing, so thos
 - A refused ticket is a `REFUSED` decision, the same as a refused trade, so only f's counts tell them apart.
 
 **Next:** fixes 1-4 with their tests, then round 2.
+
+## Addendum 1
+
+**Scope:** story/ms-p1-contracts at 35458460, round 2 of 2. The four findings of judge 479 are fixed. Additive
+extras: `LawResult.note`, `NoTradeReason.NO_VALID_QUOTES`, `FillResult.cash`, the law split, and MS-P1j's
+requirements. One rename: `TicketReason.DRIVER_STOPPED` is now `ACCOUNT_LIMIT`.
+
+**Verdict: PASS.** One story line must be corrected before merge (below). The code is consistent.
+
+**Gates (my run):** 10272 passed, 16 xfailed. `ruff check`, `ruff format`, `check_imports` and `check_records` are
+clean.
+
+**Findings 1-4:**
+1. **Import boundary: met.**
+   - Relative imports are now resolved against each file's package. My two plants (Groww provider, Slack alerts, as
+     relative imports in `fno/school/roads/`) are now caught.
+   - The contracts take the sides and datasets from school constants, pinned equal to their sources.
+   - In a fresh interpreter, importing every `fno.school` module loads none of `growwapi`, `slack_sdk`,
+     `fno.providers`, `fno.intraday`, `fno.alerts` or `requests` (I checked by walking the package).
+2. **Dashcam lookup: met.** `DashcamStore.find(session, slot, kind) -> Seal | None` is in the contract and the
+   conformance check. My plant (find always None) is caught.
+3. **Law split: met, with the orchestrator's ruling.**
+   - The split: ACCOUNT_LIMITS = bucket, open risk, new risk a day, margin room; DRIVER_STOPS = daily stop, brake;
+     TRADE_VALIDITY = everything else. The three are a tested partition.
+   - My round-1 test also counted the stops as relaxed for tickets. The orchestrator ruled otherwise (reviews 138 and
+     139: "relax only account-level cash/bucket limits"; a stopped or braked driver issues no tickets). I accept it:
+     it is the stricter reading, and it is frozen in one place. My plant (daily stop relaxed) is caught.
+4. **Fleet contract: met.** `FleetRunner.run(session, mode) -> SessionRun`, with the fake fleet in the real order
+   (decide, laws, seal, fill), a rerun skip and the off switch.
+   - Caught: no rerun skip, refused decisions filled, unsealed decisions allowed.
+   - Also caught: `FillResult.cash` with charges added instead of taken off.
+
+**Plants this round:** 19 of my own, 19 caught (the 13 of round 1 plus 6 new).
+
+**Required before merge (one line, story text):** `docs/stories/MS-market-school.md` line 342 (story f) still says
+tickets are issued "on a driver stopped for the day". That contradicts the contract table (line 214) and
+`DRIVER_STOPS` in code. Test it must pass: f's text says a stopped or braked driver issues no tickets, and an
+account-limit refusal becomes `ticket: account_limit`. The orchestrator checks this line at merge; no new round.
+
+**Note:** `requests` left the static FORBIDDEN list. School code may now import it directly, while the fresh-interpreter
+check covers only the contract modules. A Slack post through raw `requests` would pass the static test. Parts g and j
+are where it matters; their judges should check that reports go only through FL1's section interface.
