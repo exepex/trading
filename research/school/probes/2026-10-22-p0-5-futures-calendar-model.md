@@ -16,7 +16,7 @@ only**.
    28-day, buy the 63-day) costs about Rs 6,435 but can lose about **Rs 15,644 at mid prices**, 2.4 times the debit,
    before any bid discount. Above the Rs 10,000 cap. **[reasoning only: Black-Scholes arithmetic, inputs stated]**
 4. One NIFTY futures lot is Rs 14.8 lakh of exposure: a 1% move is Rs 14,827, a 5.9% gap Rs 87,480. A round trip
-   costs about Rs __FUT_RT__ in charges. **[strong evidence for the arithmetic; charge rates labelled below]**
+   costs about **Rs 886 (13.6 points)** in charges, 60% of it STT. **[strong evidence for the arithmetic; charge rates labelled below]**
 
 ## 1. What our code has
 
@@ -95,4 +95,91 @@ the debit.
 
 ## 4. Futures worked example
 
-__FUTURES_SECTION__
+### Charge rates for futures (in force 22 Oct 2026)
+
+| Charge | Rate | Source | Label |
+|---|---|---|---|
+| STT | **0.05% of the sell side** (0.02% up to 31 Mar 2026) | NSE circular NSE/FATAX/73524, 31 Mar 2026, item (c): "Sale of a futures in securities has been revised to 0.05% (upto March 31, 2026 – 0.02%)." https://nsearchives.nseindia.com/content/circulars/FATAX73524.pdf | strong |
+| NSE transaction charge + IPFT | **Rs 183 per crore each side** (Rs 182.99 + Rs 0.01 IPFT from 1 Mar 2026; was Rs 173 + Rs 10) | NSE circular NSE/FA/73061, 27 Feb 2026, table row "Equity Futures ... Rs. 183 each side"; "applicable with effect from March 1, 2026." https://nsearchives.nseindia.com/content/circulars/FA73061.pdf | strong |
+| SEBI turnover fee | Rs 10 per crore, both sides | Groww https://groww.in/pricing/futures-and-options ("0.0001%"); Zerodha https://zerodha.com/charges/ | some |
+| Stamp duty | 0.002%, buy side | Groww and Zerodha pages above | some |
+| Brokerage | Rs 20 per executed order | Groww: "Futures & Options Brokerage ... 20 per executed order" | strong (Groww's own page) |
+| GST | 18% on brokerage, exchange charge, IPFT and SEBI fee | Groww pricing page | strong |
+
+The same NSE circular moved the **options** split to Rs 3,552.99 + Rs 0.01 IPFT per crore of premium. Our
+`config.yaml:31-33` still uses the old split (0.03503% + Rs 50/crore); the **total is the same Rs 3,553 per crore**,
+so our options costs are unchanged to the rupee. Only the labels are stale. **[strong evidence: circular table row
+"Equity Options ... Rs. 3,553"]**
+
+### One NIFTY futures lot at 22,811, bought and later sold at the same price [arithmetic on the rates above]
+
+Notional 22,811 x 65 = **Rs 14,82,715** (0.148 crore).
+
+| Item | Rupees |
+|---|---|
+| STT, 0.05% of the sell | 741.36 |
+| NSE charge + IPFT, Rs 183/crore x 2 sides | 54.27 |
+| SEBI fee, Rs 10/crore x 2 | 2.97 |
+| Stamp, 0.002% of the buy | 29.65 |
+| Brokerage, 2 orders | 40.00 |
+| GST, 18% of brokerage + NSE + SEBI | 17.50 |
+| **Round trip** | **885.75 = 13.6 NIFTY points** |
+
+(A research agent's draft gave about Rs 235 here; it took 0.05% of Rs 16.25 lakh as Rs 81.25 instead of Rs 812.50.
+Rejected after re-computing.)
+
+### Moves, gaps and margin [arithmetic strong; margin level some evidence]
+
+| | Rupees per lot |
+|---|---|
+| 1% move | 14,827 |
+| 5.9% gap (response 327) | 87,480 |
+| Initial margin, about 11.3% of notional (SPAN about 9.3%, ELM 2%) | about 1,67,500 (SPAN about 1,37,900 + ELM 29,654) |
+
+- ELM: "Index Derivatives 2% of the notional value | Stock Derivatives 3.5% of the notional value"
+  (https://www.nseclearing.in/risk-management/equity-derivatives/margins). **[strong]**
+- SPAN price scan for index derivatives: "Six standard deviations (6 sigma) scaled up by √2 subject to 9.3% of
+  underlying price" (NSE SPAN parameters page, updated 4 Jul 2024). **[strong, but the page is old]**
+- About 11.3% in total: Zerodha's public margin feed showed NIFTY April-June 2026 futures at 11.32-11.34% of notional.
+  **[some evidence: secondary, not today's]** Today's figure can be read exactly from the SPAN file's `futPf`, which
+  our parser already loads (`fno/nse_margins/span_file.py:4`). A futures story should do that, not use 11.3%.
+- **The margin does not cap the loss.** A 5.9% gap costs Rs 87,480, half the margin; a day beyond 9.3%, such as NIFTY's fall of about
+  13% on 23 Mar 2020 [some evidence: widely reported close-to-close], would pass through the whole margin. A future has no maximum loss: the owner's futures policy
+  (response 327, section 5, item 2) must set a stress loss per lot, not lean on a stop.
+
+### Calendar spread margin rules the model must carry [strong evidence: quoted]
+
+- SPAN calendar-spread charge: "Index Derivatives 1.75% of the far month contract | Stock Derivatives 2.2% of the far
+  month contract ... A calendar spread position will be granted calendar spread treatment till the expiry of the near
+  month contract." (NSE SPAN parameters page, 4 Jul 2024.)
+- Futures calendar ELM: "extreme loss margin is levied on one third of the value of the open position of the far month
+  futures contract." (NSE Clearing margins page.)
+- **Expiry day, index derivatives:** "the benefit of offsetting positions across different expiries ('calendar spread')
+  shall not be available on the day of expiry for contracts expiring on that day." SEBI circular
+  SEBI/HO/MRD/TPD-1/P/CIR/2024/132, 1 Oct 2024, para 5.2.1, effective 1 Feb 2025 (para 5.2.4).
+  https://www.sebi.gov.in/sebi_data/attachdocs/oct-2024/1727786261636.pdf
+- **Expiry day, single stocks:** the same removal, SEBI circular HO/47/15/11(2)2025-MRD-TPD1/I/4226/2026, 5 Feb 2026,
+  "effective from three months from the date of the circular" (about 5 May 2026).
+  https://www.sebi.gov.in/sebi_data/attachdocs/feb-2026/1770288869049.pdf
+- **Expiry day, short index options:** "an additional extreme loss margin of 2% shall be levied on short index options
+  contracts" (NSE Clearing margins page; SEBI 2024/132). Probe 4 has the details.
+
+So on the near leg's expiry day the calendar's short leg is margined as a naked short option, plus 2% of notional
+extra ELM: for one NIFTY lot that is at least Rs 29,654 + Rs 29,654 of ELM alone, before SPAN. A calendar held into
+the near expiry needs that cash on that day.
+
+### Lot size [strong evidence]
+
+NIFTY 75 -> 65, BANKNIFTY 35 -> 30, FINNIFTY 65 -> 60, MIDCPNIFTY 140 -> 120: NSE circular NSE/FAOP/70616 (Ref.
+176/2025), 3 Oct 2025, effective from the January 2026 contracts.
+https://nsearchives.nseindia.com/content/circulars/FAOP70616.pdf. No later 2026 revision found (not proven absent):
+use the dated lot from NSE's contract file, as P0b's record fields already require.
+
+## Not verified
+
+- Today's NIFTY futures SPAN (read from the SPAN file in the futures story).
+- SEBI's own turnover-fee schedule and the Stamp Act schedule (broker pages only).
+- Any NSE charge change after 1 Mar 2026.
+- The flat 13% volatility in section 3: real far-month IV and its fall on a big move change the numbers; the put bound
+  (debit + `K (1 - e^(-rT))`) does not depend on volatility.
+
