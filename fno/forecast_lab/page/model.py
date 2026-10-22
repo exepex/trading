@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
+from .cues import Cue, SectionView
+
 
 @dataclass(frozen=True)
 class Band:
@@ -40,6 +42,12 @@ class Outcome:
     inside_90: bool
     live: bool  # a sealed live forecast; False for G13b's back-fill (history)
     provisional: bool = False  # the evening's own close (NSE's index list), until the official file confirms it
+    gap_points: float = field(init=False)  # close minus the forecast's middle: the page shows it, never computes it
+    gap_pct: float = field(init=False)  # the same gap as a percentage of the middle
+
+    def __post_init__(self):
+        object.__setattr__(self, "gap_points", round(self.close - self.band.q50, 2))
+        object.__setattr__(self, "gap_pct", round((self.close - self.band.q50) / self.band.q50 * 100, 3))
 
 
 @dataclass(frozen=True)
@@ -119,11 +127,14 @@ class IndexView:
     horizons: tuple[Horizon, ...]  # N1 first
     right: int = 0  # of the last `scored` sessions, closes inside the "almost certainly" (90%) range, next session
     scored: int = 0
-    misses: tuple[Miss, ...] = ()  # the last 7 sessions' misses, newest first
+    misses: tuple[Miss, ...] = ()  # the last 30 sessions' misses, newest first
     light: str = "none"  # the 30-day light: "green", "amber", "red" or "none" (too few days)
     light_word: str = ""  # its word: "Good", "Watch", "Check" or "Too few days"
     wrong_days: tuple[date, ...] = ()  # of the last `scored` sessions, those outside "almost certainly", newest first
     backtested: int = 0  # of the last `scored` sessions, those scored on a back-fill, not a live sealed forecast
+    why: tuple[Cue, ...] = ()  # the 2-4 key points (FL1-1d-2), in the stated order; context is never a cause
+    levels: tuple[Cue, ...] = ()  # the evening's levels and flows table (FL1-1d-2)
+    result: Outcome | None = None  # the edition's own check: today's (evening) or the previous session's (morning)
 
 
 @dataclass(frozen=True)
@@ -137,3 +148,4 @@ class PageView:
     alerts: tuple[str, ...] = field(default=())
     edition: str = "evening"  # "morning" (today's forecast, 08:50) or "evening" (was it right, 20:05): FL1-1d
     confirmation: tuple[str, ...] = field(default=())  # morning: the last evening's close confirmed, or corrected
+    cues: tuple[SectionView, ...] = field(default=())  # every Section in its one state (FL1-1d-2)
