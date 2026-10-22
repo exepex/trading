@@ -120,7 +120,8 @@ modifies or cancels orders, and neither uses Groww.
    A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
 1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
    list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
-   `receipts/data/closes/`; exit 1 means those receipts were NOT committed: post that line to #fno-desk). Then, before
+   `receipts/data/closes/`; exit 1: post every line it printed (the read's problem line and the commit line) to
+   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then, before
    `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
    dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
    data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
