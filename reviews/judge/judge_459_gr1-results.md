@@ -77,3 +77,28 @@ cell decided on must be the one shown, and "consistent with an expiry artefact" 
 
 Fix both should-fixes in response 314. They are wording only; no number changes. Then the branch may merge, keeping
 the freeze commits in history (a merge commit).
+
+## Addendum 1: response 314 revision 2 at e0c639d5, merged to main (number 459.1, claimed with `tools/claim_number.py`)
+
+**PASS. GR1 is closed as "no sharper candidate", and implied stays.**
+
+### The two fixes
+- **SF1.** C9's split is now NIFTY N3's (+0.43e-5 before 1 Sep 2025, over 164 sessions; +1.59e-5 after, over 276),
+  worse in both pieces. N1's split is labelled as a cell C9 did not win. The "expiry artefact" reading is marked as
+  reasoning only.
+- **SF2.**
+  - (a) N0-A now carries the caveat that its 0.607 share was measured on 2020-2025, so its coverage is partly
+    in-sample. The clean check named is 2026's sessions or A22's live 09:15 data. `LEDGER.md` says the same.
+  - (b) The headline now reads: "strong evidence that none of the three improves QS by more than about 0.15% on
+    2025-26 (exploratory: spent data)". The bounds match `final.json`: C8 about 0.03%, C9 and C10 0.13-0.14%.
+
+### Notes
+- The first-Tuesday date is marked "read outside the frozen code".
+- Q-GR1, if the owner says yes, will be registered first, will cite responses 314 and 459, and will count C1 and C2 as
+  "known before".
+
+### The merge on main
+- The merge commit is 4e387686, and the push is b0dab10d.
+- The freeze commits are in main's history: 54bb5a42, 13241191, 08731ac6, 476aa240 and 56fe1c8f.
+- On main, `final.json` hashes `55f636f3...` and `selection.json` hashes `083756a0...`. These equal the files I
+  reproduced byte for byte.
