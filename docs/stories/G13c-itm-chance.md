@@ -3,7 +3,8 @@
 **Repository:** trading · **Lane:** 1 (new story; forecast and evaluation records; Drive) · **Judge:** B ·
 **Builder:** session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Branch:**
 `story/g13c-itm-chance` · **Depends on:** G13 (`fno/price_distribution/`, merged and live), G13b's close tables
-(`fno/price_ranges/closes.py`) · **Status:** story text for the judge (no code yet)
+(`fno/price_ranges/closes.py`) · **Status:** story text PASS (judge 452, notes written in);
+no code yet
 
 **Description.** As the options strategist and the risk manager, I want, for every NIFTY and BANKNIFTY monthly
 contract on the 3 pm chain, the chance the market's own prices give it of expiring in the money, labelled plainly as
@@ -60,9 +61,11 @@ contract that G13 valued:
 - **Rows.** For every record (live or back-fill) and every monthly expiry in it with a usable distribution, every
   strike in G13's CDF body, one row: predicted `p = P(S_T > K)` (the call's chance; the put's is `1 - p`, so the two
   sides are one test, counted once) and outcome `y = 1` if the expiry's settlement close is above K.
-- **Outcome.** The index's official close on the expiry date (NSE's final settlement price for index options is the
-  underlying's closing value on expiry day) from G13b's close tables (NIFTY panel closes; BANKNIFTY's close table). An
-  expiry whose close is not yet in the table is not settled and is left out, counted.
+- **Outcome.** The authority is NSE's final settlement price: `SttlmPric` in the expiry day's own F&O file, read by
+  E7's existing reader (`fno/desk/settlement.py`, used, not copied). G13b's close tables (NIFTY panel closes,
+  BANKNIFTY's close table) are a cross-check: where both exist they must be equal (to the paisa); an expiry where they
+  differ is listed in the report with both values and left out, never guessed (judge 452 note 1). An expiry with no
+  settlement price yet is not settled and is left out, counted.
 - **Horizon buckets.** Days to expiry 1-7, 8-21, 22-45, over 45: the same strike means different things far from
   expiry.
 - **Bins.** `p` in [0, 0.05), [0.05, 0.15), ..., [0.85, 0.95), [0.95, 1]: per bin and bucket the mean `p`, the
@@ -79,6 +82,9 @@ contract that G13 valued:
 - **Regime check.** NIFTY's expiry weekday changed (Thursday to Tuesday from 1 Sep 2025, NSE's circular as recalled:
   reasoning only; the build reads the first Tuesday expiry from G13's records and uses that date): the report splits
   at that date too.
+- **Header.** The report says it is exploratory: NIFTY's 2019-26 monthlies are already marked spent in
+  `research/DATA_SPEND.md` (judge 452 note 2); any later forecaster built on this (Q1) records this use there. It also
+  says tail strikes are shown per contract but not calibrated (judge 452 note 4).
 - **File.** `data/itm_chance/calibration/<underlying>_<last settled expiry>.json` in Drive, write-once, O9 receipt; a
   rerun with no new settled expiry writes nothing.
 - **When.** A CLI `python -m fno itmchance calibrate`. Running it as an O1 step after a monthly expiry is a later
@@ -104,8 +110,9 @@ contract that G13 valued:
 4. The bootstrap resamples expiries, not rows: a test with one expiry duplicated across many rows gives the same
    interval as that expiry once.
 5. Report file write-once with receipt; a rerun with no new settled expiry writes nothing.
-6. Real-data run on NIFTY's back-fill: the report states the settled-expiry count, the rows per bucket, and the first
-   and last expiry; the judge can rerun it.
+6. Real-data run on NIFTY's back-fill: the report states the settled-expiry count (about 93 expected), BANKNIFTY's
+   first settled expiry, the settlement/close mismatches, the rows per bucket, and the first and last expiry; the
+   build's note confirms each; the judge can rerun it.
 7. Gates: full suite, ruff, format, imports, records scan; every file under 350 lines.
 
 ## Open questions for the owner
