@@ -865,11 +865,11 @@ cases and a test that fails when the named code is broken on purpose.
      dataset in Drive (write-once, receipt in GitHub), never to the repository.
   9. Stores only: the F&O files and index closes are read through MS-P1b's `StoredFilesOnly` source inside a `RawFileLibrary`
      (`fno/school/roads/wiring.py`), never `build_nse_fo_library`, which falls back to an NSE fetch. A test builds the
-     library with a source whose fetch raises and runs a missing day: the road closes, nothing is fetched.
+     library with a source whose fetch raises and runs a missing day: the road closes, nothing is fetched. Named test: `test_a_missing_day_closes_the_road_and_nothing_is_fetched`.
   10. The index close: legacy-format F&O files carry no underlying price, so `BhavcopyChain` is built with `index_close`
       from NSE's archived index-close files (A10, `build_index_close_files` read through the same stores-only library).
-      A test on a legacy day (24 Jun 2021) shows an open road with the close from that file, and a test with the file
-      missing shows `capture_missing`.
+      Named tests: `test_a_legacy_day_takes_its_index_close_from_the_archived_file` (24 Jun 2021: open road) and
+      `test_a_legacy_day_with_no_index_close_closes_the_road` (`capture_missing`).
   11. Dated STT across a regime change: a position opened on 31 Mar 2023 and closed on 3 Apr 2023 keeps its two
       fills' own charges and passes `accounts/ledger_fills.py`'s recomputation check; if it does not, MS-P1d's builder
       is asked for a follow-up before SIM-d is offered for judging.
