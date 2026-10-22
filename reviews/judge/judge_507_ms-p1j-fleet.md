@@ -112,3 +112,18 @@ guard.
   `allocate`) moot for live runs until d's QuoteRules reaches it.
 - **Plants: 4, 4 caught.** An unmeasured road left open; exit reviews untimed; the laws timed with the driver; a road
   ticketed twice.
+
+## Addendum 3
+
+**Scope:** 8d4d6fb2..5395948a on story/ms-p1j-fleet. Most of it is main merged in (d's part 4, judged in 488.6). The
+builder's own change is 5395948a: `allocate` and f's shared size read sizes through d's `QuoteRules`.
+
+**Verdict: PASS.** My note 2 is closed.
+
+- **Gates (my run):** 13511 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **The rule.** `_displayed` reads each size through `rules.sizes`.
+  - Under LIVE, a missing or unmeasured size serves nothing: it is no fill and no ticket, never unlimited.
+  - Under PRACTICE, an unmeasured size has no limit (`inf`).
+  - The fleet passes `LIVE` by name; the default is also `LIVE`.
+- **Plants: 4, 4 caught.** The rules ignored (raw size); bid and ask swapped; a missing size made unlimited; the fleet
+  passing practice rules (caught by the practice-isolation test).
