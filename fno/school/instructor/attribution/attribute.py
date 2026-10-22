@@ -1,13 +1,15 @@
 """The P&L attribution of one closed path (story MS-INS, part b; method frozen in the story). Per step between
 consecutive complete points and per leg, with signed units and Black-76 Greeks at the step's start: delta x dF,
 1/2 gamma x dF^2, vega x d(sigma), theta x dt. Costs are the fills' C1 charges plus the spread paid against the mids
-(the outcome record's `slippage_vs_mid`). The residual balances, so the components less the costs are the net."""
+of the path's own first and last snapshots, measured here from the fills (the outcome record's `slippage_vs_mid` is
+not read). The residual balances, so the components less the costs are the net. A net that is not its fills' cash is
+never attributed (judge 503): the residual would hide the gap."""
 
 from dataclasses import dataclass
 
 from ....constants import SIDE_BUY
 from ....models import IST
-from ..contracts import Attribution, HeldPath
+from ..contracts import Attribution, HeldPath, net_matches_fills
 from .greeks import greeks
 from .points import Point, settlement_point, snapshot_point
 
@@ -34,8 +36,10 @@ class Components:
 def attribute(path: HeldPath, rate: float, rules_sha256: str) -> Attribution | None:
     """None when the path cannot be attributed: a data fault, or no mid at entry or exit (fills rest on two-sided
     quotes, so that is a data fault too, and part c tags it so)."""
-    if not path.attributable or len({leg.key.expiry for leg in path.outcome.entry.legs}) != 1:
-        return None  # a fault, or legs on two expiries: law 1 refuses those, and no payoff model values them
+    if not path.attributable or not net_matches_fills(path.outcome):
+        return None  # a fault (a net that is not its fills' cash among them): never forced into the residual
+    if len({leg.key.expiry for leg in path.outcome.entry.legs}) != 1:
+        return None  # legs on two expiries: law 1 refuses those, and no payoff model values them
     units = {leg.key: leg.units * (1 if leg.side == SIDE_BUY else -1) for leg in path.outcome.entry.legs}
     keys = tuple(sorted(units))
     points = [snapshot_point(s, keys, rate) for s in path.snapshots]

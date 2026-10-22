@@ -178,3 +178,10 @@ def test_legs_on_two_expiries_are_not_attributed():
 def test_a_session_the_road_was_closed_counts_as_a_merged_step():
     shots = (model_snapshot(ENTRY_DAY, 1000.0, 0.20), model_snapshot(EXIT_DAY, 980.0, 0.22))
     assert attribute(replace(path(shots), sessions_skipped=1), 0.0, RULES).steps_merged == 1
+
+
+def test_a_net_that_is_not_its_fills_cash_is_never_attributed():
+    """Judge 503's case: the hand-test path with its net moved by Rs -500 would have read as residual -494.59."""
+    held = path((model_snapshot(ENTRY_DAY, 1000.0, 0.20), model_snapshot(EXIT_DAY, 980.0, 0.22)))
+    assert attribute(held, 0.0, RULES) is not None
+    assert attribute(replace(held, outcome=replace(held.outcome, net=held.outcome.net - 500.0)), 0.0, RULES) is None

@@ -2,8 +2,8 @@
 attributed once, as its correction, on its original close day, and nothing on the correction's own day."""
 
 from fno.school.instructor.attribution.attribute import attribute
-from tests.school.instructor.builders import RULES, SESSIONS
-from tests.school.instructor.test_reader import LATER, WriteRefusingDashcam, correct_later, held_trade, reader
+from tests.school.instructor.builders import RULES, SESSIONS, held_trade
+from tests.school.instructor.reading import LATER, WriteRefusingDashcam, correct_later, reader
 
 
 def test_a_corrected_trade_is_attributed_once_on_its_original_day():

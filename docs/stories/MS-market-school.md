@@ -2065,3 +2065,17 @@ one pricing model rather than adding a second, and G13's helpers take whole days
 
 **Real output sample:** none yet, as in INS-a (no sealed day). Fixture: the hand-computed spread gives delta -286.32, gamma -45.61, vega -52.53, theta +24.99, residual +10.74, costs 86.00 and net -434.73.
 
+#### INS-b Claims, round 2 (judge 503 FAIL round 1: one should-fix, one minor; orchestrator's ruling)
+
+| Finding | Fix | Test |
+|---|---|---|
+| SF: the residual trusted `outcome.net`. A net moved by Rs -500 read as residual -494.59 | `contracts.net_matches_fills`: the net must be its fills' cash to Rs 0.01. Otherwise the reader gives the path the named fault `net_mismatch_fills`, and `attribute` returns None, never forcing the gap into the residual | `test_reader`: `an_outcome_whose_net_is_not_its_fills_cash_is_a_fault` (the Rs -500 case), `the_net_is_checked_to_a_paisa` (Rs 0.01 passes, Rs 0.011 is a fault); `test_attribute`: `a_net_that_is_not_its_fills_cash_is_never_attributed` |
+| Minor: a stale docstring | `attribute.py`'s module docstring now says the spread is measured from the fills and `slippage_vs_mid` is not read | none needed |
+
+- **Fixtures.** The test outcomes' nets were arbitrary numbers. They are now their fills' cash: `builders.outcome` computes it, and a correction is `builders.refilled`, another exit price with the net that follows from it. That is how the new check showed every fixture had been inconsistent.
+- **Size limit.** With the new tests, `test_reader.py` passed 350 lines. It is split, unchanged: the shared fakes go to `reading.py`, the correction and net tests to `test_corrections.py`, the damaged-file, mid-range and muhurat tests to `test_damaged.py`. The test names cited for INS-a now live in those files. 88 instructor tests before and after the split.
+- **Plants: 3 of 3 caught.**
+  - the check removed from `attribute`;
+  - the check removed from the reader;
+  - the tolerance made strict.
+
