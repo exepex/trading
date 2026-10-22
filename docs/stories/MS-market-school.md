@@ -980,8 +980,11 @@ reverted when the method changed (orchestrator's ruling b).
 
 #### INS-e Outputs: records, the 30-session review and the "why" line · `story/ms-ins-outputs`
 
-**Files owned:** `fno/school/instructor/outputs/` (`store.py`, `review.py`, `why_line.py`, `command.py`),
-`tests/school/instructor/outputs/`.
+**Files owned:** `fno/school/instructor/outputs/` (`store.py`, `run.py`, `controls.py`, `comparison.py`, `review.py`,
+`review_text.py`, `labels.py`, `why_line.py`, `public_counts.py`, `command.py`), `fno/school/instructor/__main__.py`,
+the part-e builders in `fno/school/instructor/wiring.py`, `PathReader.orphan_corrections` (criterion 8),
+`tests/school/instructor/outputs/`. The public counts file goes to `research/school/instructor_counts/`, written by
+`--write` and committed by MS-P1j's runner with the session's other public files.
 
 **Implements:**
 - `InstructorRun.for_session(session)`: reads, attributes, classifies and pairs; writes the three record files
@@ -2695,3 +2698,48 @@ monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day l
     decimals.
 - **Why 14.9% did not reproduce:** it came from a separate 4-road script. The shipped `seller_slots` drives all 5 roads
   and gives 22.6%.
+
+
+#### INS-e Claims (round 1, branch `story/ms-ins-outputs`, on INS-d; the SHA is in the commit that carries this text)
+
+| Criterion | Met by | Test (`tests/school/instructor/outputs/`) |
+|---|---|---|
+| 1 write-once | `store.DriveInstructorStore` (receipt per file, same bytes a no-op, others refused, damaged bytes never read) | `test_store` (conformance, the folder, damaged bytes, a refused Drive write); `test_run`: `a_session_is_attributed...written_once` |
+| 2 two runs, identical bytes | `run.InstructorRun` | `test_run` (a rerun leaves every file identical) |
+| 3 the public counts file | `public_counts.InstructorCountsFile` | `test_counts_and_command`: `the_counts_file_holds_codes...passes_the_record_scan`, `..._written_once` |
+| 4 the "why" lines' privacy | `why_line.py`, `labels.py` | `test_run`: `the_why_line_names...no_contract`; `a_winners_why_line_reads_the_winner_form...` |
+| 5 every denominator, refusals included | `comparison.SealedDecisions.outcome_counts`, `review.py` | `test_review`: `the_review_shows_every_denominator...` |
+| 6 a planted cause in the review and the "why" line | `review.driver_summary`, `WhyLineSource` | the same test; `test_run` |
+| 7 off-switch | `command.run` | `the_switch_off_prints_school_off_and_does_nothing` |
+| 8 orphan corrections counted and alerted | `PathReader.orphan_corrections`; the review's last line | `test_corrections`: `a_correction_naming_nothing_is_listed_as_an_orphan...`; `test_review` (its count printed) |
+
+**Also built (from the boundaries and the rulings):**
+- **Re-checks.** A classification waiting for its expiry's settlement (cause 11), or for its controls to close (the modifier), is classified again on each later run. A changed one is written as a new record naming the first (`test_run`: `a_classification_waiting_for_its_expiry...`). Cause 13 never triggers a re-check: it waits for MS-P1j.
+- **The comparison over sealed decisions.**
+  - h's `CountingRule` judges each decision at its seal's commit.
+  - `common_road_days` gives the pairs.
+  - RC1 against N0 is the live null in every review (`rc1_is_compared_with_n0_only_as_the_live_null`).
+  - A session with no readable decisions file is listed, never skipped silently.
+- **Rupees.** Account trades only: net, maximum drawdown, worst day and worst trade. Tickets are never summed in (`tickets_are_never_summed_into_rupees`).
+- **The review text** starts with the plain P2 line (orchestrator's condition 4). Every paired row carries its notes: "descriptive, not a test", "no bound before N sessions", and the seller-shape false rate.
+- **The command.** `python -m fno.school.instructor --session D [--write]` and `--review FIRST LAST [--write]`, a dry run by default. Its real run on today's main prints "school off" (the school's switch is off). That is the honest result; no real record exists to read yet.
+
+**Known limits:**
+- **Unfilled entries.** An entry decided as a trade that never filled stays open until MS-P1j reports its fill status. `CountedComparison.rows` takes the `unfilled` set; j's wiring supplies it.
+- **The three counts.** f's eligible, fillable and executed counts need j's fills. The review shows every decision's outcome code, the denominator with refusals, until j supplies them.
+
+**Broken-code proof:** 15 plants, all caught after one added test:
+- the store's conflict and damage checks;
+- the dry run;
+- the re-check trigger and its `corrects`;
+- tickets in rupees;
+- RC1's single pair;
+- the unsealed list;
+- the counts' correction filter;
+- the off-switch;
+- the write-only counts file;
+- the winner labels (survived until the winner "why" test was added);
+- orphans (caught in `test_corrections`).
+
+**Real output sample:** the fixture's "why" line, `CS1@1 BANKNIFTY-M: net Rs -140; why: ...`. On real data: "school off".
+
