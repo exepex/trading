@@ -50,4 +50,10 @@ noise_sds: 1.0
 noise_quantiles: 201
 poor_fit_rs: 200.0
 poor_fit_share: 0.25
+min_sessions: 30
+block_sessions: 5
+sensitivity_blocks: [2, 10]
+resamples: 10000
+seed: 20261023
+interval_tail: 5
 ```

@@ -103,7 +103,7 @@ def test_a_paired_row_has_a_mean_exactly_with_sessions_and_an_interval_around_it
     some = dict(sessions=3, first=SESSIONS[0], last=SESSIONS[2])
     assert paired(**some, mean=0.1, low=-0.2, high=0.3).status == MapStatus.EXPLORATORY
     assert paired(**some, mean=0.1).low is None  # an interval is optional (too few sessions to resample)
-    for bad in (dict(some), dict(some, mean=0.5, low=-0.2, high=0.3), dict(some, mean=0.1, low=-0.2),
+    for bad in (dict(some), dict(some, mean=0.1, low=0.3, high=-0.2), dict(some, mean=0.1, low=-0.2),
                 dict(some, mean=float("nan")), dict(some, mean=0.1, low=float("nan"), high=0.3),
                 dict(some, mean=0.1, first=SESSIONS[2], last=SESSIONS[0]), dict(some, mean=0.1, last=None),
                 dict(block=0), dict(low=0.0, high=0.0)):  # fmt: skip

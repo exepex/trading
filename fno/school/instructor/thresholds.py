@@ -12,6 +12,12 @@ NOISE_SDS = 1.0  # cause 12
 NOISE_QUANTILES = 201  # cause 12: the model outcome's frozen quantile grid
 POOR_FIT_RS = 200.0  # part b: the residual's floor for "poor fit"
 POOR_FIT_SHARE = 0.25  # part b: and its share of the Greek components
+MIN_SESSIONS = 30  # part d: valid counted sessions before "watching" or "not established" (327 P2)
+BLOCK_SESSIONS = 5  # part d: the moving block, in sessions
+SENSITIVITY_BLOCKS = (2, 10)  # part d: shown beside the frozen block
+RESAMPLES = 10_000  # part d
+SEED = 20261023  # part d
+INTERVAL_TAIL = 5  # part d: percent in each tail of the two-sided 90% interval, nearest rank
 
 THRESHOLDS = {
     "range_z": RANGE_Z,
@@ -25,4 +31,10 @@ THRESHOLDS = {
     "noise_quantiles": NOISE_QUANTILES,
     "poor_fit_rs": POOR_FIT_RS,
     "poor_fit_share": POOR_FIT_SHARE,
+    "min_sessions": MIN_SESSIONS,
+    "block_sessions": BLOCK_SESSIONS,
+    "sensitivity_blocks": list(SENSITIVITY_BLOCKS),
+    "resamples": RESAMPLES,
+    "seed": SEED,
+    "interval_tail": INTERVAL_TAIL,
 }

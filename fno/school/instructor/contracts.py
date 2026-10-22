@@ -206,7 +206,7 @@ class PairedRow(CanonicalRecord):
     unavailable: int
     after_cut: int  # closed pairs after the first open one: shown, never part of the series
     mean: float | None
-    low: float | None  # the two-sided 90% interval
+    low: float | None  # the two-sided 90% bootstrap percentile interval: it need not hold the sample mean
     high: float | None
     block: int
     status: MapStatus
@@ -230,8 +230,8 @@ class PairedRow(CanonicalRecord):
             raise ValueError("a mean exactly when the series has a session")
         if (self.low is None) != (self.high is None) or (self.low is not None and self.mean is None):
             raise ValueError("an interval has both ends, and only around a mean")
-        if self.low is not None and not self.low <= self.mean <= self.high:  # NaN fails here too
-            raise ValueError("the interval holds the mean")
+        if self.low is not None and not self.low <= self.high:  # NaN fails here too
+            raise ValueError("an interval's low end is at most its high end")
         if self.mean is not None and not math.isfinite(self.mean):
             raise ValueError("a mean is a finite number")
         if (self.first is None) != (self.sessions == 0) or (self.last is None) != (self.first is None):
