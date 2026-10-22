@@ -35,3 +35,16 @@ criterion or to Out:
    If it can pass 08:50, say what the morning edition does.
 
 Plants: none (text round).
+
+## Addendum 1: round 2 at 7ff35af9
+
+**Verdict: PASS for the A9c story text.** Code may start (no merge before 26 Oct, as the builder states).
+
+| Finding | Answer | Check | Result |
+|---|---|---|---|
+| B1: no gap list | A 15-row gap list: rule 281 items 2 and 3 (NSE's own public host, the same User-Agent, no login; its own pacer, one try), O9/A10, point-in-time as Out with the reason, A9b, FL1-1d's 08:50, O10, quality rules 5, 6 and 8 | read; each row maps to a criterion or to Out | **Accepted** |
+| Minor 2: 08:50 in numbers | The secondary now gets one try (`retry_waits=()`): 660 s per file against 600 s today, not 1,200 s. One file: 08:50:00 (today 08:49); two: 09:01 (today 08:59), before `lab open`'s 09:15 cut-off. Criterion 8 bounds it | The arithmetic follows from `RETRY_WAITS` and the 120 s Retry-After cap [reasoning, checked] | **Accepted**; a better design than mine |
+| Minor 1: differing bytes | A later differing primary copy goes through A11's existing revision path (a REVISION line and an index row, no alert). The first copy stays the one readers get, and the manifest URL names the second host. Criterion 9 | Consistent with how a primary rewrite is handled today [reasoning only] | **Accepted** |
+
+For the code round: show criterion 8's request count and pacer key with fakes, and the live `hosts` lines for one day
+(quality rule 6).
