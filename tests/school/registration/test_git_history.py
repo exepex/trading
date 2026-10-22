@@ -2,6 +2,7 @@
 decides, not dates. Includes judge 480's plants: the first counted session moved after the decisions, and a later
 card version."""
 
+import hashlib
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -12,10 +13,21 @@ from fno.books.version_registry import VersionRow, render
 from fno.books.versions import Versions
 from fno.research_engine.ledger import Git
 from fno.school.registration.counting import CARD_PATH, CONFIG_PATH, CountingRule, NotCounted
-from fno.school.registration.wiring import CARD_COMPONENT, D6VersionLookup, FirstCountedError, GitCountingHistory
+from fno.school.registration.wiring import (
+    CARD_COMPONENT,
+    COMPARISON_COMPONENT,
+    D6VersionLookup,
+    FirstCountedError,
+    GitCountingHistory,
+)
 from tests.school.registration.fakes import CARD_SHA, SESSION, candidate
 
 FIRST = "2026-11-30"
+CARD_TEXT = "the frozen comparison card"
+
+
+def sha(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def git(repo: Path, *args: str) -> str:
@@ -44,11 +56,19 @@ class Repo:
             git(path, "config", *setting)
         self.path, self.git = path, Git(path)
         self.components = commit(path, "research/school/cards/CS1.md", "cs1 v1")
-        self.row = VersionRow("school:CS1@1", "1", date(2026, 11, 1), self.components, {CARD_COMPONENT: CARD_SHA}, "p")
+        self.rows = [self.row_naming(CARD_TEXT, "1", date(2026, 11, 1))]
+
+    def row_naming(self, card_text: str, version: str, starts: date) -> VersionRow:
+        components = {CARD_COMPONENT: CARD_SHA, COMPARISON_COMPONENT: sha(card_text)}
+        return VersionRow("school:CS1@1", version, starts, self.components, components, "p")
+
+    @property
+    def row(self) -> VersionRow:
+        return self.rows[0]
 
     def register(self, first: str | None = FIRST) -> None:
-        commit(self.path, "journal/versions.csv", render([self.row]))
-        commit(self.path, CARD_PATH, "the frozen comparison card")
+        commit(self.path, "journal/versions.csv", render(self.rows))
+        commit(self.path, CARD_PATH, CARD_TEXT)
         commit(self.path, CONFIG_PATH, config(first))
 
     def decide(self, name: str = "decision") -> str:
@@ -56,7 +76,7 @@ class Repo:
 
     def verdict(self, decision: str, **changes):
         history = GitCountingHistory(self.git)
-        rule = CountingRule(history, D6VersionLookup(Versions([self.row], self.git)))
+        rule = CountingRule(history, D6VersionLookup(Versions(self.rows, self.git)))
         return rule.verdict(candidate(commit=decision, **changes))
 
 
@@ -86,7 +106,7 @@ def test_a_first_counted_session_moved_later_after_the_decision_never_un_counts_
 
 def test_a_first_counted_session_set_after_the_decision_does_not_count_it(repo):
     commit(repo.path, "journal/versions.csv", render([repo.row]))
-    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CARD_PATH, CARD_TEXT)
     decision = repo.decide()
     commit(repo.path, CONFIG_PATH, config(FIRST))
     assert repo.verdict(decision).reason == NotCounted.NO_FIRST_COUNTED_SESSION
@@ -94,31 +114,45 @@ def test_a_first_counted_session_set_after_the_decision_does_not_count_it(repo):
 
 def test_a_first_counted_session_written_in_the_decisions_own_commit_is_refused(repo):
     commit(repo.path, "journal/versions.csv", render([repo.row]))
-    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CARD_PATH, CARD_TEXT)
     decision = commit(repo.path, CONFIG_PATH, config(FIRST))
     assert repo.verdict(decision).reason == NotCounted.FIRST_COUNTED_NOT_FROZEN_BEFORE
 
 
-def test_a_card_edited_after_the_decision_leaves_it_counted_under_the_version_in_force(repo):
+def test_a_card_edited_after_the_decision_leaves_it_counted_and_later_decisions_need_rows_that_name_the_new_version(
+    repo,
+):
     repo.register()
     decision = repo.decide()
     version_1 = repo.git.commits_touching(CARD_PATH)[-1]
     version_2 = commit(repo.path, CARD_PATH, "the card, new version")
     later = repo.decide("later")
-    assert repo.verdict(decision).card_commit == version_1
-    assert repo.verdict(later).card_commit == version_2 and repo.verdict(later).counted
+    assert (repo.verdict(decision).counted, repo.verdict(decision).card_commit) == (True, version_1)
+    stale = repo.verdict(later)
+    assert (stale.counted, stale.reason, stale.card_commit) == (False, NotCounted.COMPARISON_CARD_MISMATCH, version_2)
+    repo.rows.append(repo.row_naming("the card, new version", "2", date(2026, 11, 20)))
+    commit(repo.path, "journal/versions.csv", render(repo.rows))
+    renamed = repo.decide("renamed")
+    assert repo.verdict(renamed).counted, "rows registered naming version 2 before the decision"
+    assert not repo.verdict(later).counted, "a decision already made keeps the verdict of its own history"
+
+
+def test_a_row_naming_a_comparison_card_that_never_existed_does_not_count(repo):
+    repo.rows[0] = repo.row_naming("a card nobody committed", "1", date(2026, 11, 1))
+    repo.register()
+    assert repo.verdict(repo.decide()).reason == NotCounted.COMPARISON_CARD_MISMATCH
 
 
 def test_a_card_committed_after_the_decision_makes_it_not_counted(repo):
     commit(repo.path, "journal/versions.csv", render([repo.row]))
     commit(repo.path, CONFIG_PATH, config(FIRST))
     decision = repo.decide()
-    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CARD_PATH, CARD_TEXT)
     assert repo.verdict(decision).reason == NotCounted.CARD_NOT_FROZEN_BEFORE
 
 
 def test_a_version_row_committed_after_the_decision_is_not_counted(repo):
-    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CARD_PATH, CARD_TEXT)
     commit(repo.path, CONFIG_PATH, config(FIRST))
     decision = repo.decide()
     commit(repo.path, "journal/versions.csv", render([repo.row]))
@@ -170,14 +204,14 @@ def test_the_value_is_found_whatever_its_spelling(repo, line):
 
 def test_an_aligned_value_counts_decisions_after_it(repo):
     commit(repo.path, "journal/versions.csv", render([repo.row]))
-    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CARD_PATH, CARD_TEXT)
     commit(repo.path, CONFIG_PATH, "school:\n  first_counted:            2026-11-30   # aligned\n")
     assert repo.verdict(repo.decide()).counted
 
 
 def test_a_quoted_date_counts_like_a_bare_one(repo):
     commit(repo.path, "journal/versions.csv", render([repo.row]))
-    commit(repo.path, CARD_PATH, "the frozen comparison card")
+    commit(repo.path, CARD_PATH, CARD_TEXT)
     commit(repo.path, CONFIG_PATH, 'school:\n  first_counted: "2026-11-30"\n')
     assert repo.verdict(repo.decide()).counted
 

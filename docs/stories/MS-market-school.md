@@ -1192,3 +1192,20 @@ Built from main (card v1 and the 12 part-e cards on main), in this order so each
 - `tests/research/test_ledger_guard.py` pins the ledger's trial ids (1..98); bumped to 1..99 with the registration (the
   full suite on the first push of this branch failed only there).
 
+MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct 2026; on `story/r1-cards-anywhere`):
+1. **Ledger row 99, `protocol_commit`** (note a): filled with 0c0f1b24, the commit that froze comparison card v2.
+   `test_the_ledger_row_of_trial_99_names_the_commit_that_froze_card_version_2`: the card at that commit is version 2,
+   the commit is an ancestor of HEAD, and every D6 row's `comparison_card_sha256` is that card's SHA-256.
+2. **`comparison_card_sha256` is now checked** (note b; the orchestrator chose to enforce it): `CountingRule` compares
+   each D6 row's `comparison_card_sha256` with the SHA-256 of the comparison card as committed at the card version in
+   force at the decision (`CountingHistory.card_sha256_at`, one more `git show`), and a mismatch, or a row with no such
+   component, does not count (`comparison_card_mismatch`; the verdict still names the card version). A later card
+   version therefore counts only for decisions made after rows naming it are registered; a decision already made keeps
+   the verdict of its own history. The card text is unchanged by this (any edit to it is a new version, so it would
+   need new rows). Tests: three in `test_counting.py` (a mismatch, a row without the hash, a later version needing
+   rows that name it), two on real git (a card edited later: earlier decisions keep counting, later ones do not until
+   rows naming the new version are registered; a row naming a card nobody committed), and
+   `test_the_real_rows_and_the_real_card_pass_the_counting_rule_once_a_first_counted_session_is_set` (the 12 real rows
+   and the real card judged by the real rule on the real history, with only the unset first counted session
+   supplied). Plants: dropping the comparison check fails 5 tests; changing one real row's comparison hash fails 3.
+

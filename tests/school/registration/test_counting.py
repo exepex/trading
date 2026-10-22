@@ -4,8 +4,16 @@ counted; a changed driver card refuses; a later card version applies only to lat
 from dataclasses import replace
 from datetime import timedelta
 
-from fno.school.registration.counting import CountingRule, FirstCounted, NotCounted
-from tests.school.registration.fakes import CHAIN, SESSION, FakeHistory, FakeLookup, candidate
+from fno.school.registration.counting import CountingRule, FirstCounted, NotCounted, RegisteredVersion
+from tests.school.registration.fakes import (
+    CARD_SHA,
+    CHAIN,
+    COMPARISON_SHA,
+    SESSION,
+    FakeHistory,
+    FakeLookup,
+    candidate,
+)
 
 
 def rule(history=CHAIN, lookup=None) -> CountingRule:
@@ -79,3 +87,29 @@ def test_a_first_counted_session_written_on_a_branch_the_decision_does_not_desce
 def test_a_first_counted_session_never_written_to_git_is_refused():
     history = replace(CHAIN, default=FirstCounted(SESSION, None))
     assert rule(history).verdict(candidate()).reason == NotCounted.FIRST_COUNTED_NOT_FROZEN_BEFORE
+
+
+def test_a_row_naming_another_comparison_card_than_the_version_in_force_does_not_count():
+    lookup = FakeLookup({"CS1@1": RegisteredVersion(CARD_SHA, "00" * 32)})
+    verdict = rule(lookup=lookup).verdict(candidate())
+    assert (verdict.counted, verdict.reason, verdict.card_commit) == (
+        False,
+        NotCounted.COMPARISON_CARD_MISMATCH,
+        "card",
+    )
+
+
+def test_a_row_without_a_comparison_card_hash_does_not_count():
+    lookup = FakeLookup({"CS1@1": RegisteredVersion(CARD_SHA, None)})
+    assert rule(lookup=lookup).verdict(candidate()).reason == NotCounted.COMPARISON_CARD_MISMATCH
+
+
+def test_a_later_card_version_needs_rows_that_name_it():
+    graph = {"c1": (), "d1": ("c1",), "c2": ("d1",), "d2": ("c2",)}
+    history = FakeHistory(graph, cards=("c1", "c2"), card_sha256={"c1": COMPARISON_SHA, "c2": "22" * 32},
+                          default=FirstCounted(SESSION, "c1"))  # fmt: skip
+    first, second = rule(history).verdict(candidate(commit="d1")), rule(history).verdict(candidate(commit="d2"))
+    assert first.counted, "the earlier decision still counts under version 1"
+    assert (second.counted, second.reason) == (False, NotCounted.COMPARISON_CARD_MISMATCH), "no row names version 2"
+    renamed = FakeLookup({"CS1@1": RegisteredVersion(CARD_SHA, "22" * 32)})
+    assert rule(history, renamed).verdict(candidate(commit="d2")).counted
