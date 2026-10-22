@@ -66,7 +66,7 @@ class EvidenceBuilder:
             gross=outcome.gross,
             exit_reason=outcome.exit_reason,
             attribution=attribution,
-            data_fault=bool(path.faults) or attribution is None or (terms is not None and terms.off_market()),
+            data_fault=bool(path.faults) or (terms is not None and terms.off_market()),
             z=terms.z if terms else None,
             market=self._market(path),
             event_in_window=bool(self.events.known_between(first_day, first_day, last_day)),

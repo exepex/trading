@@ -25,9 +25,13 @@ def rules_sha256() -> str:
     return hashlib.sha256(RULES_CARD.read_bytes()).hexdigest()
 
 
+def _archive(roads) -> RecordedSnapshotArchive:
+    return RecordedSnapshotArchive(roads.catalogue, roads.snapshots)
+
+
 def build_path_reader() -> PathReader:
     roads = build_road_services()
-    archive = RecordedSnapshotArchive(roads.catalogue, roads.snapshots)
+    archive = _archive(roads)
     return PathReader(build_dashcam(), archive, build_settlement_source(), roads.calendar, IstClock())
 
 
@@ -37,8 +41,7 @@ def build_event_calendar() -> RecordedEventCalendar:
 
 def build_classifier(config: dict | None = None) -> Classifier:
     cfg = config if config is not None else load_app_config()
-    roads = build_road_services()
-    archive = RecordedSnapshotArchive(roads.catalogue, roads.snapshots)
+    archive = _archive(build_road_services())
     stops = CardStops(load_cards(ROOT / CARDS_FOLDER).values())
     evidence = EvidenceBuilder(archive, build_event_calendar(), stops, NotYetReplayable(), build_fill_port(cfg),
                                float(cfg["risk_free_rate"]))  # fmt: skip

@@ -129,7 +129,6 @@ def test_missing_inputs_are_not_testable_never_guessed():
         Cause.VOLATILITY_ROSE,
         Cause.VOLATILITY_COLLAPSED,
         Cause.TIME_DECAY,
-        Cause.SCHEDULED_EVENT_SHOCK,
         Cause.UNSCHEDULED_SHOCK,
         Cause.EXIT_WHIPSAW,
         Cause.NORMAL_NOISE,
@@ -168,3 +167,18 @@ def test_causes_2_to_5_are_ranked_by_the_size_of_their_component():
         Cause.VOLATILITY_ROSE, (Cause.WRONG_DIRECTION,))  # fmt: skip
     assert causes_of(with_parts(both, delta=-950.0, vega=-900.0))[:2] == (
         Cause.WRONG_DIRECTION, (Cause.VOLATILITY_ROSE,))  # fmt: skip
+
+
+def test_a_known_answer_is_given_even_when_the_move_is_unknown():
+    no_move = evidence(z=None)
+    assert verdicts(no_move)[Cause.SCHEDULED_EVENT_SHOCK] is False  # no event in the window: certainly not cause 7
+    assert verdicts(replace(no_move, event_in_window=True))[Cause.SCHEDULED_EVENT_SHOCK] is None
+    assert verdicts(no_move)[Cause.WRONG_DIRECTION] is False  # not directional: certainly not cause 2
+    assert verdicts(replace(no_move, stance=DIRECTIONAL))[Cause.WRONG_DIRECTION] is None
+
+
+def test_a_flat_result_fires_no_component_cause():
+    flat = with_parts(evidence(net=0.0, gross=80.0, stance=SHORT_VOL), vega=10.0, theta=5.0)
+    assert not any(verdicts(flat)[c] for c in (Cause.VOLATILITY_ROSE, Cause.TIME_DECAY, Cause.VOLATILITY_COLLAPSED))
+    tiny_gain = with_parts(evidence(net=0.01, gross=80.0, stance=SHORT_VOL), vega=10.0)
+    assert verdicts(tiny_gain)[Cause.VOLATILITY_ROSE] is True  # any gain, however small, can be explained

@@ -103,3 +103,30 @@ def test_a_settled_path_measures_its_move_to_the_settlement_price():
     held = spread_path(settlement=985.0)
     ev = gathered(held, settlement=985.0)
     assert ev.z < 0 and ev.hold_net is None  # settled at expiry: nothing left to hold
+
+
+def test_a_missing_attribution_is_not_a_data_fault():
+    """No mid at the exit leaves the Greek causes untestable; it is not "bad price or data" (self-review)."""
+    held = spread_path()
+    assert gathered(held).data_fault is False
+    assert builder().build(held, None, None).data_fault is False
+
+
+def test_a_path_without_an_entry_or_snapshots_gathers_nothing_and_does_not_crash():
+    held = spread_path()
+    no_entry = builder().build(replace(held, entry=None), None, None)
+    assert (no_entry.z, no_entry.stance, no_entry.hold_net, no_entry.replay_matches) == (None, None, None, None)
+    empty = builder().build(replace(held, snapshots=(), entry=None), None, None)
+    assert (empty.z, empty.market, empty.noise) == (None, (), None)
+
+
+def test_the_market_move_uses_an_expiry_alive_over_the_window_and_the_clock_time_held():
+    shots = market_snapshots({RoadCode.NIFTY_MONTHLY: 0.01})
+    start, end = shots[(RoadCode.NIFTY_MONTHLY, ENTRY_DAY)], shots[(RoadCode.NIFTY_MONTHLY, EXIT_DAY)]
+    dying = date(2026, 11, 3)  # expires inside the window: its volatility must not be used
+    shots[(RoadCode.NIFTY_MONTHLY, ENTRY_DAY)] = replace(start, expiries=(dying, EXPIRY))
+    (z,) = gathered(archive=FakeSnapshotArchive(shots)).market
+    held = (end.finished_at - start.finished_at).total_seconds() / 60 / (365 * 1440)
+    assert z == pytest.approx(math.log(1.01) / (0.20 * math.sqrt(held)), rel=1e-6)
+    only_dying = {**shots, (RoadCode.NIFTY_MONTHLY, ENTRY_DAY): replace(start, expiries=(dying,))}
+    assert gathered(archive=FakeSnapshotArchive(only_dying)).market == ()

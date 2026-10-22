@@ -21,7 +21,17 @@ written. Every number below is a first guess [reasoning only].
 
 **Primary order:** 13, 10, 6, 7, 8, 1, 11, then 2-5 by the largest component, then 9, then 12.
 
-**Simplification:** cause 11's "holding to plan" is held to expiry and settled through d's settlement, in v1.
+**Precise readings in v1:**
+- **Cause 11:** "holding to plan" means held to expiry and settled through d's settlement.
+- **Cause 12:** compares the position's mid-to-mid P&L (the Greek components plus the residual, before costs) with
+  its model band. The band is lognormal at the entry ATM volatility over the time held, each leg kept at its entry
+  volatility, with 201 quantiles. Costs are left out on both sides.
+- **Cause 8:** each index's move runs between the path's first and last recorded snapshots, on the ATM volatility of
+  its nearest expiry still alive after the window, over the clock time between the two captures. A settled path's
+  own move runs to the settlement price.
+- **Flat results:** a result of exactly zero fires no component cause (2-5).
+- **Cause 13 is not testable in v1** until MS-P1j's fleet can replay a sealed session. Every record counts it as not
+  testable; it is never guessed.
 
 ## Comparison (part d)
 

@@ -26,7 +26,7 @@ def verdicts(ev: Evidence) -> dict[Cause, Verdict]:
         Cause.VOLATILITY_COLLAPSED: _volatility(ev, short=False),
         Cause.TIME_DECAY: _time_decay(ev),
         Cause.GAP_THROUGH_STOP: _gap_through_stop(ev),
-        Cause.SCHEDULED_EVENT_SHOCK: None if ev.z is None else ev.event_in_window and abs(ev.z) > SHOCK_Z,
+        Cause.SCHEDULED_EVENT_SHOCK: _event_shock(ev),
         Cause.UNSCHEDULED_SHOCK: _market_shock(ev),
         Cause.COSTS_ATE_EDGE: not ev.won and ev.gross >= 0,
         Cause.BAD_PRICE_OR_DATA: ev.data_fault,
@@ -37,11 +37,22 @@ def verdicts(ev: Evidence) -> dict[Cause, Verdict]:
 
 
 def _share(ev: Evidence, component: float) -> bool:
-    """The component made at least its share of the loss (a loser) or of the gain (a winner)."""
-    return component >= COMPONENT_SHARE * ev.net if ev.won else component <= -COMPONENT_SHARE * abs(ev.net)
+    """The component made at least its share of the loss (a loser) or of the gain (a winner). A flat result (net 0)
+    has no share to explain: no component cause fires on it."""
+    if ev.won:
+        return ev.net > 0 and component >= COMPONENT_SHARE * ev.net
+    return component <= -COMPONENT_SHARE * abs(ev.net)
+
+
+def _event_shock(ev: Evidence) -> Verdict:
+    if not ev.event_in_window:
+        return False
+    return None if ev.z is None else abs(ev.z) > SHOCK_Z
 
 
 def _direction(ev: Evidence) -> Verdict:
+    if ev.stance is not None and not ev.stance.directional:
+        return False
     if ev.stance is None or ev.attribution is None or (not ev.won and ev.z is None):
         return None
     if ev.won:
