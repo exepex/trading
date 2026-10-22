@@ -282,3 +282,11 @@ Notes:
     holds the pipes).
   - Ten full parallel suite runs (`pytest -q -n auto`) on a708fbc0, back to back: 9479 passed, 16 xfailed, 0 failed
     in every run (5:14 to 5:56 each).
+- **The same flaw in the e2e hang tests (judge D's go-ahead in 412 add. 7):** `tests/e2e/test_hangs.py` set a 2 s
+  limit on every git call of a whole fixture day.
+  - Reproduced: with every git call slowed by 2.5 s, the test failed with `git ls-files -z ran past 2 s`, a normal
+    call stopped instead of the hung push.
+  - Fix, test-only (002d64c5): `HungCallRun` moves to `tests/daily/hung_calls.py`, with `when=` and `locks=`. The e2e
+    day gives the short limit only to a push made while `.git/hang-push` exists, counted once that push's hook has
+    written its pid. Every other call keeps the run's own limit. The hook now writes the pid.
+  - Proof: with every git call slowed by 2.5 s, all 3 e2e hang tests pass (28:49 of slowed git).
