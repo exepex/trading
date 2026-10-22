@@ -3,7 +3,9 @@ serves the same files byte for byte on another Akamai edge. The second host is a
 `RawSourceUnavailable`, never on a refusal or a cooling-off (the host refused us; asking another edge is no way
 around that) and never when the first said "not published" (None stays None). Write times always come from the first
 host: they are point-in-time evidence, and equal bytes do not prove equal write times. Every file the second host
-serves is logged with its SHA-256 (the manifest row keeps the primary URL, A10's key)."""
+serves is logged with its SHA-256 when it is served, before any store holds it (the manifest row keeps the primary
+URL, A10's key). A row therefore records what the second host served, not what was stored: a put the store refuses
+leaves a row with no manifest row of that SHA-256, and the SHA-256 join shows it (judge 472)."""
 
 from __future__ import annotations
 
@@ -31,7 +33,7 @@ PROVENANCE_FIELDS = ("path", "sha256", "size_bytes", "url", "fetched_at")
 class ProvenanceLog(ABC):
     @abstractmethod
     def record(self, source: NseArchiveSource, path: str, data: bytes) -> None:
-        """One row for a file the second host served."""
+        """One row for a file the second host served (at fetch time, whether or not a store then keeps it)."""
 
 
 class CsvProvenanceLog(ProvenanceLog):
