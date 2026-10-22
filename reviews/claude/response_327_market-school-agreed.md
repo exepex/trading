@@ -5,6 +5,12 @@ Orchestrator, 22 Oct 2026. This joins response 325 (the target design) with the 
 both check out.** Research and paper trading only: no real order is ever placed. Labels: strong evidence, some evidence,
 reasoning only.
 
+**Revision 2 (after review 140):** ChatGPT's three exact changes are accepted and made below. Each was checked
+against reviews 138 and 139:
+- the capture record fields and the outcome-spend rule (P0b);
+- the decision-completeness gate and the 30 *valid* sessions (P1, P2);
+- the futures fields and the effort notes (sections 4 and 5).
+
 ## 1. What stays from response 325 (the target)
 
 The full school stays the long-term design:
@@ -55,31 +61,35 @@ What changed is the **order of building** and the **statistics**, listed below.
 | Stage | What | Gate to the next stage |
 |---|---|---|
 | **P0 probes** | Groww chain fields, rate types and quotas; NSE and Groww terms for automated reading; Drive write quota; physical settlement and expiry-day margin rules; futures and calendar payoff and margin models; work-register rows | every probe answered in a dated note |
-| **P0b capture probes** (only after P0 terms pass) | one futures quote and LTP probe on a small fixed list; one stock-option chain probe on a small fixed list; 5 sessions measuring completeness, empty bid/ask share, blocks and 429s, latency, Drive writes, and any effect on A16 and v4 receipts. They create no tickets, positions or claims, and use no fresh data window | 5 clean sessions, then capture volume grows within the terms |
-| **P1 pilot** | NIFTY, BANKNIFTY, FINNIFTY and MIDCPNIFTY monthly options plus the NIFTY weekly at 15:00 only, from existing captures; about 5 rule drivers plus N0, RC1, the reference rule, and PS5 and KL1 as controls; dashcam; safety laws; tickets with three counts; 08:50 and 20:05 sections (red and amber); the comparison frozen before day 1 | **per road**: over 95% valid, time-bound two-sided captures on 10 consecutive sessions (a failing road stays closed while others run); zero unsealed, over-cap, invented or duplicate fills; planted faults caught (missing quote, expiry or lot mismatch, stale seal, impossible price, replay conflict); one recorded day replayed twice, identical |
-| **P2 measure** | 30 forward sessions, then a descriptive review against the matched control, with uncertainty; no licence | the owner decides what to add |
+| **P0b capture probes** (only after P0 terms pass) | one futures quote and LTP probe on a small fixed list; one stock-option chain probe on a small fixed list; 5 sessions measuring completeness, empty bid/ask share, blocks and 429s, latency, Drive writes, and any effect on A16 and v4 receipts. Every captured row carries the instrument, contract, expiry, dated lot, source time, first-seen time, raw hash and quality status. Capture-only rows may be archived with that provenance; they create no tickets, positions or strategy claims and spend no registered fresh *outcome* window. Any analysis that exposes an unused outcome needs an R1 card and a DATA_SPEND update first. P0b may run alongside P1 development once P0 passes, never touching v4 or the pilot | 5 clean sessions, then capture volume grows within the terms |
+| **P1 pilot** | NIFTY, BANKNIFTY, FINNIFTY and MIDCPNIFTY monthly options plus the NIFTY weekly at 15:00 only, from existing captures; about 5 rule drivers plus N0, RC1, the reference rule, and PS5 and KL1 as controls; dashcam; safety laws; tickets with three counts; 08:50 and 20:05 sections (red and amber); the comparison frozen before day 1 | **per road**: over 95% of its scheduled snapshot and leg observations valid, time-bound and two-sided on 10 consecutive sessions, with the denominator defined before counting (for one required snapshot a day, that means 10 of 10); a failing road stays closed while others run. Every scheduled road and driver decision has a sealed outcome: trade, no trade, refused, road closed or unavailable, with a reason; refused and missing opportunities stay in the denominator, and a planted refused entry must survive replay and both reports; zero unsealed, over-cap, invented or duplicate fills; planted faults caught (missing quote, expiry or lot mismatch, stale seal, impossible price, replay conflict); one recorded day replayed twice, identical |
+| **P2 measure** | 30 **valid counted** forward sessions after the registered start (holidays and invalid sessions do not count), then a descriptive review against the matched control, with uncertainty; no licence | the owner decides what to add |
 | **P3+ expand** | one at a time, each with its own gate: more slots (Groww conductor); futures (after the owner's 5 futures numbers, section 5); stock options (after the terms check and 20 sessions of survey data); AI drivers (after the dry run); deeper instructor, simulator and map statuses | each stage's gate |
 
 **Effort and dates [reasoning only]:**
 - P0: about 3 builder days and 1 judge day.
 - P1: about 10-18 builder days and 5-8 judge days. That is ChatGPT's 8-15 and 4-7 for NIFTY alone, plus the extra expiry, lot and quote tests for the other roads.
 - Plausible start of the P1 count: late November. The real date comes from the P0 notes.
-- First descriptive review: about 30 sessions after that, around mid-January 2027.
+- First descriptive review: about 30 valid sessions after that, around mid-January 2027.
+- P0b and P2 effort: measured after P0, not included above. No fixed total is claimed.
+- These dates are scenarios, not commitments.
 
 ## 5. Owner decisions still needed (none blocks P0)
 
 1. **Final review of this design** (yes, or changes).
-2. **Futures numbers, needed before any futures driver starts** (not for the pilot):
-   - (a) the largest planned stop loss per lot in rupees;
-   - (b) the largest gap or stress loss per lot, and per futures account;
-   - (c) the largest notional, margin and total open exposure;
-   - (d) overnight or same day only;
-   - (e) a lot that already breaks a limit is refused.
+2. **The futures policy, needed before any futures driver starts** (not for the pilot):
+   - (a) the largest planned stop loss per lot, in rupees (a number);
+   - (b) the largest gap or stress loss per lot and per futures account, in rupees (two numbers);
+   - (c) the largest notional, margin use and total open exposure, in rupees (three numbers);
+   - (d) overnight allowed, yes or no, and if yes for how long (a policy);
+   - (e) a lot that already breaks a limit is refused automatically (a fixed rule, not a choice).
+
+   The values are dated and checked against real lots and the gap exams before any futures driver starts.
 
    The arithmetic, at NIFTY's 21 Oct close of 22,811: one lot is worth Rs 14.8 lakh, a 1% move is Rs 14,827, and a 5.9% gap is about Rs 87,480 [strong]. A stop never guarantees the gap limit.
-3. Adding the "Today" and "How did today go" sections to the signed-off 08:50 and 20:05 pages.
-4. The drawdown brake: suspend the driver until the monthly review, or wait for your restart.
-5. A second Groww API key, if Groww allows one.
+3. Before P1 changes those pages: adding the "Today" and "How did today go" sections to the signed-off 08:50 and 20:05 pages.
+4. Before any driver can be suspended: the drawdown brake: suspend the driver until the monthly review, or wait for your restart.
+5. A second Groww API key, if Groww allows one. It is optional, and P0 does not assume it.
 
 ## 6. Not approved by anyone
 
