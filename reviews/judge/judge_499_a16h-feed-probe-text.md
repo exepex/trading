@@ -106,3 +106,27 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
 - `feed_cli.py` cuts `alongside` to its first 1,000 instruments instead of refusing more. That is safe, but the sample is whatever comes first in the universe; the note should say which classes it holds.
 
 **Plants:** 11 planted: 10 caught, 1 hangs (minor above).
+
+## Addendum 6: code round 1 at 4abcf179 (the orchestrator counts ef896e21's Addendum 5 as no round)
+
+**Verdict: FAIL.** 1 should-fix, 1 minor. Addenda 2 and 3 are built and right; Addendum 4's key point is not.
+
+- **Addendum 2: MET.** `feed_gate.catch_up_gate` reads `journal/runs/<date>.json` (`steps.candles.finished_at`, the same shape as the real 22 Oct log), and the command checks it before any sign-in. Plants caught: the finished check removed, the gate not wired for `ramp`.
+- **Addendum 3: MET.** `feed_ramp.py`:
+  - the steps run 50, 500, ...;
+  - after the close, 50 refused twice means a closed market; between marks, the first refusal is a limit;
+  - a refused batch is released, and a limit is halved down to within 50;
+  - a 429 stops the run.
+  Plants caught: no retry at 50, no halving, steps from 500, a 429 swallowed, the release dropped, a partial batch accepted.
+- **Gates (my run):** full `pytest -n auto` 11,716 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+
+**Finding:**
+1. **Should-fix: a late start still signs in before its window is checked (Addendum 4; the orchestrator's point).**
+   - `cmd_feed_probe` calls `build_feed_probe` first. Its `GrowwFeed(provider.api)` evaluates `provider.api`, which calls `get_access_token`: a sign-in on the shared key (`providers/groww.py:140-157`). Only then does it call `probe.check_start`.
+   - An `alongside` started at 14:56 signs in inside the recorders' 14:55-15:13 window and only then refuses. The instrument list and the quotes now wait, but the sign-in does not.
+   - My plant (the command's `check_start` removed) survives: no test checks the order at all.
+   - Fix expected: check the plan's window in the command before `build_feed_probe` (a clock-only check, as the gates are). Test: at 14:56 the command refuses and builds no client (a fake `build_feed_probe` that fails if called).
+
+**Minor:** the catch-up gate accepts a `candles` step that finished as failed. A rerun of the daily run may then retry it beside the ramp. Requiring `result.status == "ok"` closes that.
+
+**Plants:** 9 planted, 8 caught. The survivor is finding 1.
