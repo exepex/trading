@@ -79,3 +79,30 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
 
 - **The URL is read in the composition root (or copied into a named constant there), never by naming `GrowwAPI` elsewhere** (criterion 2).
 - **In `alongside`, the instrument list and the 4 `get_quote` calls happen before 14:50**, with the sign-in. Nothing touches the key during 14:55-15:13.
+
+## Addendum 5: code round 1 at ef896e21 (diff 214bdeb7..ef896e21)
+
+**Verdict: FAIL.** 3 should-fixes: the three code conditions of Addenda 2-4 are not in the code. Criteria 1, 2, 4 and
+5 are met, and criterion 3 partly.
+
+**Met (my checks):**
+- **The guard:** `ReadOnlyFeed` lets exactly the 11 names through; the 9 account names and 4 supplied trading names are refused; it cannot be changed. The test pins the SDK's own name list. 4 plants caught.
+- **The gate:** `feed_gate.py` reads A16's ledger (`mark_ist` "10:30"/"10:45", status, failures, recorded against expected) and runs before any sign-in. 3 plants caught.
+- **The plans:** each plan's window and cap are checked; any error, a 429 included, stops the plan, unsubscribes everything and is named by class only. Plants caught: the window moved to 14:51, the cap at +1, the unsubscribe dropped, a wait past the end.
+- **Gates (my run):** full `pytest -n auto` 11,705 passed, 16 xfailed, 0 failed; ruff check and format, check_imports clean.
+
+**Findings:**
+1. **Should-fix: the after-close ramp does not wait for A16b's catch-up (Addendum 2).** Nothing in `feed_cli.py` or `feed_probe.py` reads `journal/runs/<date>.json`. The `ramp` plan may start at 15:45 while the catch-up still uses the shared key.
+   - Fix expected: refuse to start until that day's catch-up step is recorded done, with one named line and a test.
+2. **Should-fix: the ramp cannot tell a closed market from a limit under 500 (Addendum 3).** `RAMP_STEPS` starts at 500, and a refusal at 500 is reported as plain "failed".
+   - Fix expected: start at 50 after the close; a refusal at 50, twice, is "closed market"; 50 accepted with a later refusal halves down to its bounds.
+   - Tests: a feed that refuses everything, and one that refuses above 450.
+3. **Should-fix: a late `alongside` start signs in and quotes inside 14:55-15:13 before it is refused (Addendum 4).** `cmd_feed_probe` builds the client (`build_feed_probe`, a sign-in) and calls `get_quote` four times (`build_universe`) before `probe.run` checks the window.
+   - Started at 14:56, it touches the shared key in the recorders' window and only then refuses.
+   - Fix expected: check the plan's window in the command before any sign-in, as the gate already is, with a test whose clock reads 14:56 and which shows no sign-in.
+
+**Minor:**
+- Plant `while clock < end + 1 minute` hangs the tests instead of failing them (the fake clock stops at the end). A hard-end test should fail, not hang.
+- `feed_cli.py` cuts `alongside` to its first 1,000 instruments instead of refusing more. That is safe, but the sample is whatever comes first in the universe; the note should say which classes it holds.
+
+**Plants:** 11 planted: 10 caught, 1 hangs (minor above).
