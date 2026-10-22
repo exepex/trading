@@ -285,6 +285,24 @@
     "reason": "recorded",
     "exit_code": 0
    }
+  },
+  "premium_ranges": {
+   "started_at": "2026-10-22T15:22:29.716867+05:30",
+   "finished_at": "2026-10-22T15:22:31.866763+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "issue",
+     "unlisted",
+     "2026-10-22",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "refused",
+    "reason": "command:nothing_written",
+    "exit_code": 0
+   }
   }
  }
 }
