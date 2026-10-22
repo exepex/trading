@@ -448,6 +448,10 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - **requirement (orchestrator, 22 Oct):** a REF entry refused only by account limits (C2's bucket among them) becomes
   `ticket: account_limit` through `tickets.rules.classify`, the same rule as every driver, so REF stays measured on
   every open road-slot;
+- **requirement (orchestrator, 22 Oct):** the daily and the 30-session reports show, per road, the share of scheduled
+  decisions refused for quotes (law 5: `missing_quote`, `one_sided_quote`, `size_above_displayed`,
+  `protection_unsellable`). The capture gate's band is about 10 steps of the money while the shorts sit about 20 steps
+  out, so thin far legs stay visible here even when the road passes its gate;
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
