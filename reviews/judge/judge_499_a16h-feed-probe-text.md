@@ -79,3 +79,65 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
 
 - **The URL is read in the composition root (or copied into a named constant there), never by naming `GrowwAPI` elsewhere** (criterion 2).
 - **In `alongside`, the instrument list and the 4 `get_quote` calls happen before 14:50**, with the sign-in. Nothing touches the key during 14:55-15:13.
+
+## Addendum 5: code round 1 at ef896e21 (diff 214bdeb7..ef896e21)
+
+**Verdict: FAIL.** 3 should-fixes: the three code conditions of Addenda 2-4 are not in the code. Criteria 1, 2, 4 and
+5 are met, and criterion 3 partly.
+
+**Met (my checks):**
+- **The guard:** `ReadOnlyFeed` lets exactly the 11 names through; the 9 account names and 4 supplied trading names are refused; it cannot be changed. The test pins the SDK's own name list. 4 plants caught.
+- **The gate:** `feed_gate.py` reads A16's ledger (`mark_ist` "10:30"/"10:45", status, failures, recorded against expected) and runs before any sign-in. 3 plants caught.
+- **The plans:** each plan's window and cap are checked; any error, a 429 included, stops the plan, unsubscribes everything and is named by class only. Plants caught: the window moved to 14:51, the cap at +1, the unsubscribe dropped, a wait past the end.
+- **Gates (my run):** full `pytest -n auto` 11,705 passed, 16 xfailed, 0 failed; ruff check and format, check_imports clean.
+
+**Findings:**
+1. **Should-fix: the after-close ramp does not wait for A16b's catch-up (Addendum 2).** Nothing in `feed_cli.py` or `feed_probe.py` reads `journal/runs/<date>.json`. The `ramp` plan may start at 15:45 while the catch-up still uses the shared key.
+   - Fix expected: refuse to start until that day's catch-up step is recorded done, with one named line and a test.
+2. **Should-fix: the ramp cannot tell a closed market from a limit under 500 (Addendum 3).** `RAMP_STEPS` starts at 500, and a refusal at 500 is reported as plain "failed".
+   - Fix expected: start at 50 after the close; a refusal at 50, twice, is "closed market"; 50 accepted with a later refusal halves down to its bounds.
+   - Tests: a feed that refuses everything, and one that refuses above 450.
+3. **Should-fix: a late `alongside` start signs in and quotes inside 14:55-15:13 before it is refused (Addendum 4).** `cmd_feed_probe` builds the client (`build_feed_probe`, a sign-in) and calls `get_quote` four times (`build_universe`) before `probe.run` checks the window.
+   - Started at 14:56, it touches the shared key in the recorders' window and only then refuses.
+   - Fix expected: check the plan's window in the command before any sign-in, as the gate already is, with a test whose clock reads 14:56 and which shows no sign-in.
+
+**Minor:**
+- Plant `while clock < end + 1 minute` hangs the tests instead of failing them (the fake clock stops at the end). A hard-end test should fail, not hang.
+- `feed_cli.py` cuts `alongside` to its first 1,000 instruments instead of refusing more. That is safe, but the sample is whatever comes first in the universe; the note should say which classes it holds.
+
+**Plants:** 11 planted: 10 caught, 1 hangs (minor above).
+
+## Addendum 6: code round 1 at 4abcf179 (the orchestrator counts ef896e21's Addendum 5 as no round)
+
+**Verdict: FAIL.** 1 should-fix, 1 minor. Addenda 2 and 3 are built and right; Addendum 4's key point is not.
+
+- **Addendum 2: MET.** `feed_gate.catch_up_gate` reads `journal/runs/<date>.json` (`steps.candles.finished_at`, the same shape as the real 22 Oct log), and the command checks it before any sign-in. Plants caught: the finished check removed, the gate not wired for `ramp`.
+- **Addendum 3: MET.** `feed_ramp.py`:
+  - the steps run 50, 500, ...;
+  - after the close, 50 refused twice means a closed market; between marks, the first refusal is a limit;
+  - a refused batch is released, and a limit is halved down to within 50;
+  - a 429 stops the run.
+  Plants caught: no retry at 50, no halving, steps from 500, a 429 swallowed, the release dropped, a partial batch accepted.
+- **Gates (my run):** full `pytest -n auto` 11,716 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+
+**Finding:**
+1. **Should-fix: a late start still signs in before its window is checked (Addendum 4; the orchestrator's point).**
+   - `cmd_feed_probe` calls `build_feed_probe` first. Its `GrowwFeed(provider.api)` evaluates `provider.api`, which calls `get_access_token`: a sign-in on the shared key (`providers/groww.py:140-157`). Only then does it call `probe.check_start`.
+   - An `alongside` started at 14:56 signs in inside the recorders' 14:55-15:13 window and only then refuses. The instrument list and the quotes now wait, but the sign-in does not.
+   - My plant (the command's `check_start` removed) survives: no test checks the order at all.
+   - Fix expected: check the plan's window in the command before `build_feed_probe` (a clock-only check, as the gates are). Test: at 14:56 the command refuses and builds no client (a fake `build_feed_probe` that fails if called).
+
+**Minor:** the catch-up gate accepts a `candles` step that finished as failed. A rerun of the daily run may then retry it beside the ramp. Requiring `result.status == "ok"` closes that.
+
+**Plants:** 9 planted, 8 caught. The survivor is finding 1.
+
+## Addendum 7: code round 2 at 947aee82 (diff 4abcf179..947aee82)
+
+**Verdict: PASS.** The code may merge under the merge procedure; the first probe is Tue 27 Oct, by hand.
+
+- **Finding 1 (Addendum 6): FIXED.** `cmd_feed_probe` first calls `window_refusal(plan, day, now)`, clock-only, before the gates, `build_feed_probe` (so before `provider.api` and `get_access_token`) and `build_universe`. `test_a_start_outside_the_window_is_refused_before_any_sign_in_or_quote` traps the sign-in, quotes and gates at 10:26, 14:56 and 16:01. My round-1 survivor (the check removed) is now caught.
+- **Minor: FIXED.** The catch-up gate requires `result.status == "ok"` (plant caught); a cut names what it kept.
+- **Plants this round:** 5 planted, 3 caught. Both survivors are equivalent, not gaps:
+  - the second `check_start` after the sign-in, removed: the first check and `run`'s own window check still refuse;
+  - the watch loop running past its end: `wait()` returns False at the hard end, so the loop stops there anyway.
+- **Gates (my run):** full `pytest -n auto` 11,722 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.

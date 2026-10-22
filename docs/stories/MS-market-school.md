@@ -684,19 +684,27 @@ sessions a real edge of a given size needs to show.
 
 #### INS-a Contracts and the reader · `story/ms-ins-contracts`
 
-**Files owned:** `fno/school/instructor/{__init__,contracts,ports,reader,fakes,wiring}.py`,
-`tests/school/instructor/test_reader.py`, `tests/school/instructor/conformance.py`.
+**Files owned:** `fno/school/instructor/{__init__,contracts,ports,reader,records_file,adapters,fakes,wiring}.py`,
+`tests/school/instructor/{__init__,builders,conformance,test_reader,test_ports,test_types}.py`.
 
 **Implements:**
 - frozen types: `HeldPath` (one closed trade or ticket: its outcome record, its entry decision record, its exit record
-  if any, and the snapshots of every session held, entry to exit), `Attribution`, `CauseTag`, `Classification`,
+  if any, and the snapshots of every session held, entry to exit), `Attribution`, `Cause`, `Classification`,
   `PairedRow`, `MapStatus`;
 - `MapStatus` has exactly three members: `exploratory`, `watching`, `not_established` (327 correction 3);
-- `PathReader.closed_on(session) -> tuple[HeldPath, ...]`: the trades and tickets whose outcome was sealed that
-  session. A corrected outcome is read through its latest correction; the original stays on file;
+- `PathReader.closed_between(first, last) -> ClosedRead` and `closed_on(session)` (= `closed_between(session,
+  session)`, one resolver; orchestrator's ruling on judge 501): the trades and tickets closed on those sessions.
+  - An original is read on its own close day as its latest correction, sealed on any session up to today. The original
+    stays on file.
+  - A correction is never a path on the day its own file was sealed.
+  - So the days' `closed_on` add up to `closed_between` over the range.
+  - A day's tally recomputed after a correction can change. The 20:05 line keeps what was known at 20:05; later
+    reviews use the corrected figure.
+  - A decisions file whose bytes differ from its seal is a `sealed_file_damaged` fault on each path that needs it.
+  - An outcomes file that cannot be read is listed in `ClosedRead.unreadable`: an alert in every report, never a
+    guess. The other days still read;
 - ports, each with an in-memory fake that passes `conformance.py`:
   - `SnapshotArchive`: over b's `SnapshotSource`;
-  - `SettlementArchive`: over d's `IndexSettlementSource`;
   - `EventCalendar`: over A6;
   - `CardReplay`: over e's drivers;
   - `InstructorStore`: over O9's `DataStore`.
@@ -815,7 +823,8 @@ sessions a real edge of a given size needs to show.
 #### INS-d The paired comparison · `story/ms-ins-paired`
 
 **Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `status.py`, `nulls.py`),
-`tests/school/instructor/paired/`.
+`tests/school/instructor/paired/`; shared: an optional `block` argument in `fno/scoreboard/uncertainty.py`'s
+`resampled_ratios` (default unchanged, byte-identical test).
 
 **Method (frozen):**
 - **Pairs:** each driver version D against each control C in {N0, RC1, REF of the road}, on h's common group of
@@ -912,19 +921,31 @@ sessions a real edge of a given size needs to show.
 - lesson cards and monthly cadence (325 section 6.5): P2+;
 - futures causes: no futures in P1.
 
-#### Questions for the orchestrator (before code)
+#### Questions answered (orchestrator, 22 Oct 2026; story text merged at 80625b19)
 
-1. **Reads beyond the dashcam records:** the attribution needs b's snapshots, d's settlement source, A6's events and
-   e's cards. All are read-only recorded inputs. Is that within "reads only the sealed dashcam records and counts"?
-2. **The block bootstrap:** S2's `resampled_ratios` fixes 20-day blocks, which is too long for 30 sessions. Should I
-   add an optional `block` argument to S2's function (S2's lane-1 file, its default unchanged), or keep a separate
-   20-line resampler in `paired/series.py`? I propose the argument (DRY).
-3. **The command:** `python -m fno school` is j's reserved line. Should INS-e register `instructor` under j's group
-   when j merges, with a module entry point until then?
-4. **The 20:05 line:** `WhyLineSource` is a port. Joining it to g's evening section is one line in j's wiring, agreed
-   with g's and j's owners. Agreed?
-5. **Tickets in the primary paired measure** (idea quality), with executed-only beside it: confirm.
-6. **Lane:** one judge (evaluation records; no money, fill, limit or exit path). Confirm.
+1. **Reads beyond the dashcam records:** yes. b's snapshots, d's settlement source, A6's events and e's cards are
+   recorded, read-only inputs tied to the decision record by SHA-256, so they are within "reads only".
+2. **The block bootstrap:** add an optional `block` argument to S2's `resampled_ratios`, its default unchanged, with a
+   test that the default output is byte-identical. No second resampler (DRY). `fno/scoreboard/uncertainty.py` is
+   therefore one shared file of INS-d.
+3. **The command:** a module entry point (`python -m fno.school.instructor`) now, registered under j's `fno school`
+   group when j lands. j's builder (session_01CmKJ6taCLzfEGg7wt6RC4N) has been told.
+4. **The 20:05 line:** `WhyLineSource` is a port, joined to g's 20:05 section by one line in j's wiring. j's builder
+   has been told.
+5. **Tickets in the primary paired measure:** the builder's call, as the orchestrator asked. Tickets stay in the
+   primary measure, with executed-only beside it. Reason: a ticket is the same idea under the same quotes and laws
+   (327 correction 1), refused only by an account limit or the 5-trade cap. Leaving tickets out would make the
+   comparison depend on the account limits, not on the rule.
+6. **Lane:** lane 1, one judge: Judge K (session_019ZApRwkUiNMKDsf1k4W44z); not a money piece. The two deviations
+   from 325 (cause 1's option-implied range, cause 6 on option stops) are accepted as stated.
+
+**Settled in INS-a's build (builder):**
+- A cause is a plain `Cause` member: a winner (net >= 0) reads it in its winner form, so the sign of the net is the
+  form and no separate flag can disagree with it. `Classification` refuses causes 6 and 9 on a winner.
+- The settlement price is read through d's own `IndexSettlementSource` and the records through c's `DashcamStore`,
+  unchanged: no wrapper port for either (KISS).
+- `CardReplay` and `InstructorStore` are ports with fakes in a. Their real adapters come with the parts that first
+  use them: c (the replay over e's drivers) and e (the store over O9's `DataStore`).
 
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
@@ -1061,8 +1082,13 @@ practised before forward days exist. A practice result is never evidence: it lic
 - **Three labelled scenarios** per bucket: the median, the 75th and the 95th percentile of the session values,
   shown as `median`, `p75`, `p95`. Every practice run is shown under all three; none is "the" result.
 - **Fewer than 30 quoted sessions in a bucket reads `insufficient spread data`.**
-- **Displayed size** for a synthetic quote is the bucket's median displayed size over the same sessions (same 30-session
-  rule), so E4d's size gate still bites. The history holds no sizes; this is labelled.
+- **Displayed size: the size gate is not tested in practice** (orchestrator, 22 Oct 2026, Q5, ruling on design A). History
+  holds no sizes and none is invented, and no placeholder number is used. A practice quote keeps `bid_qty` and `ask_qty`
+  as `None` with `sizes_measured=False` (a field MS-P1a3 adds to `SlotQuote`). Only the practice composition root's
+  `QuoteRules(practice=True)` (MS-P1d's seam, imported only by `fno/school/simulator/`) lets such a quote through the size
+  and sell-back checks, with the note "size gate not tested in practice". Without that flag the pilot's live laws and
+  `SchoolFills` refuse an unmeasured quote, so a practice quote reaching a live path fails closed. Every practice output
+  carries the same label.
 - **Honest consequence [strong evidence: arithmetic on the recorded days].** On 22 Oct only 8 NIFTY monthly sessions
   and 3 sessions for each other road are recorded. Every bucket therefore reads `insufficient spread data` until about
   24 Nov for the busiest NIFTY monthly buckets, and **much later** for the short-dated and far-strike buckets: the
@@ -1076,7 +1102,7 @@ practised before forward days exist. A practice result is never evidence: it lic
 | Component | Interface | Reuses |
 |---|---|---|
 | `windows.py` | `PracticeWindows.check(road, session) -> None or RefusalReason.NOT_IN_DATA_SPEND` | the allow-list of 7.1 item 2 |
-| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapters: `PanelChain` (NIFTY panel) and `BhavcopyChain` (archived F&O files, UDiFF and legacy) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
+| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapter: `BhavcopyChain` (archived F&O files, UDiFF and legacy; one code path for all three roads) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
 | `terms.py` | `DatedTerms`: lot, STT and C1 costs on a date | EDGE1's lot schedule and `stt_history`; C1 |
 | `spreads/` | `SpreadModel.scenarios(bucket) -> Scenarios or InsufficientSpreadData`; `SpreadLearner` over the quote store; `SpreadBucket` | MS-P1b's hash-checked store |
 | `source.py` | `HistoricalRoadSource(chain, spreads, scenario)` implements `SnapshotSource`; `HistoricalCatalogue` implements `RoadCatalogue` (history sessions, A7 calendar, dated lots) | `SnapshotSource`, `RoadCatalogue`, `quality.prices` |
@@ -1095,7 +1121,7 @@ cases and a test that fails when the named code is broken on purpose.
   1. `PracticeWindows`: a spent day passes; a day after 12 Oct 2026, a day on or after `first_counted`, FINNIFTY and
      MIDCPNIFTY refuse with `not_in_data_spend` (boundary: 12 and 13 Oct).
   2. The allow-list agrees with `research/DATA_SPEND.md` (the test parses the doc; a row turned `fresh` fails it).
-  3. `PanelChain` and `BhavcopyChain` return the same closes for a day both hold (cross-check on recorded days).
+  3. `BhavcopyChain` returns the same monthly rows as EDGE1's own reader on the same records (parity test).
   4. A day with no file gives `None` (empty case); a muhurat or special session follows A7.
   5. `DatedTerms`: NIFTY lot 75 before the July 2021 expiry and 50 after; BANKNIFTY 20, 25, 15 at its change
      dates; STT 0.05% on 31 Mar 2023 and 0.0625% on 1 Apr 2023 (both sides of each change).
@@ -1120,7 +1146,8 @@ cases and a test that fails when the named code is broken on purpose.
   2. A leg with no volume that day has an invalid quote (good traded, bad untraded, boundary volume 1).
   3. A planted impossible vertical (a 300-wide spread priced at 392, from EDGE1's results) is flagged: the driver
      reaches `refused` or `no_trade`, never a fill; an impossible exit waits.
-  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero.
+  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero; both sizes are
+     `None` with `sizes_measured=False` and nothing else (no number); a live-mode fill refuses the quote.
   5. Look-ahead: changing any record dated after the session leaves the session's snapshot and every driver's
      decision byte-identical (a mutation test over the chain).
   6. An insufficient bucket gives `unavailable` for that leg's trade, never a zero spread.
@@ -1163,7 +1190,7 @@ FINNIFTY and MIDCPNIFTY history (not in DATA_SPEND); fitted slippage between the
 (response 325 8.3; needs the A16 quotes, which do not exist yet); a daily Rs 25,000 stop between slots (a known limit,
 as in 3.6).
 
-### 7.6 Questions for the orchestrator (answers needed before SIM-a code unless marked)
+### 7.6 Questions for the orchestrator (answered 22 Oct 2026)
 
 1. **Reuse of EDGE1's readers** (`research/edge1/edge1study`: `day_files`, `lots`, `stt_history`). They sit under a
    frozen `research/` folder and import by a path trick. My default: one adapter module imports them read-only; I never
@@ -1176,12 +1203,87 @@ as in 3.6).
    (7.2). I keep the rule as agreed. If you want a coarser first bucket grid (for example two DTE bands), that is a
    decision for the owner and a card change, not mine.
 4. **The close slot** (7.1 item 4) departs from the 15:00 slot. It is the only slot history holds; confirm.
-5. **Displayed sizes** (7.2): the bucket median stands in for the unknown history. Confirm, or say the size gate is
-   waived in practice and labelled so.
+5. **Displayed sizes** (7.2): design A. Sizes stay `None` with `sizes_measured=False`; only the practice flag passes the size checks, labelled "size gate not tested in practice". The first ruling (a sentinel) was withdrawn by the orchestrator.
+
+**Answers (orchestrator, 22 Oct 2026):** Q1 import EDGE1's readers read-only through ONE adapter, never edit or copy
+them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P1d's builder
+(session_014VUoPfMfRWNXyJSnXxB5NL) and copy the orchestrator. Q3 keep the 30-session rule, no pooling (review 139).
+Q4 the close slot, labelled "practice at the close; the pilot trades 15:00". Q5 waived and labelled, no synthetic size.
+SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 
 ### 7.7 Claims
 
-Empty until a part is built; each part keeps its own Claims subsection under the pilot's `## Claims` below.
+#### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhavcopy_chain,edge1}.py`, tests under
+`tests/school/simulator/`. Changes to story text: the Q5 ruling (design A) and test 3 below.
+
+| Criterion (7.4 SIM-a) | Code | Tests (all in `tests/school/simulator/`) | Broken-code proof (mutation, caught) |
+|---|---|---|---|
+| 1 windows: spent day passes, 12/13 Oct boundary, FINNIFTY/MIDCPNIFTY refused, `first_counted` | `windows.py` | `test_windows.py` (7 tests) | `<=` to `<` on the last day; `first_counted - 1 day` to `first_counted`; BANKNIFTY entry renamed |
+| 2 allow-list agrees with DATA_SPEND | `windows.py` rows | `test_every_allowed_window_rests_on_a_spent_or_exposed_register_row`, plus a planted `fresh` row | the planted row is read as `fresh` |
+| 3 chain: rows, monthly/weekly, board lot never derived, empty and damaged files, index close | `bhavcopy_chain.py`, `ports.py` | `history/test_bhavcopy_chain.py` (8 tests, incl. parity with EDGE1's own `rows_of` on the same records) | monthly flag inverted; `board >= 0`; `want_monthly` inverted |
+| 5 dated lots and STT on both sides of each change | `terms.py`, `history/edge1.py` | `history/test_dated_terms.py` (10 cases) | file lot ignored; STT always the 2026 rate; schedule check removed |
+| 6 no NSE, Groww, order, Slack, store-wiring, counting or report import | (all of `simulator/`) | `test_isolation.py`, one case per file, plus a planted banner import | n/a (planted import caught) |
+
+- **Test 3 changed.** The story said "`PanelChain` and `BhavcopyChain` return the same closes". I dropped `PanelChain`: the committed
+  panel holds NIFTY monthlies only and no lots, so a second chain would duplicate one code path for three roads. The
+  parity check is against EDGE1's own reader on the same records.
+- **9 of 9 mutations caught.**
+- **Real-data run (round 2, with Drive read access, stores only, no NSE fetch; a throwaway script, not committed):**
+  `BhavcopyChain` over the archived files read, in 2-4 s a day:
+  - NIFTY 2 Jun 2025: current format, 1,620 rows, close 24,716.6, the files state lot 75 (the case judge 500 raised);
+  - NIFTY 4 Mar 2024: current format, 1,507 rows, close 22,405.6, monthly 28 Mar and 25 Apr, weeklies 7 and 14 Mar;
+  - NIFTY 9 Oct 2026: 1,888 rows, lot 65;
+  - NIFTY 24 Jun 2021 and BANKNIFTY 31 Mar 2023: legacy format, 2,070 and 1,152 rows, no lot in the file (so the circular schedule applies), and **no index close**.
+  The earlier Claim "no Drive settings in this container" was wrong: I had not checked the environment. Corrected.
+  - **Finding for SIM-d:** legacy-format files carry no underlying price, so those days have `index_close=None` and the road closes
+    (`capture_missing`) unless the wiring passes `BhavcopyChain(index_close=...)` from NSE's archived index-close files (A10).
+    SIM-d's wiring must do that and test it.
+- **Round 2 (judge 500):** (1) the circular lot schedule now applies to legacy-format days only; a current-format day with no stated lot has no lot
+  (test on 2 Jun 2025: none; with the file's 75: 75). (2) The size sentinel constant is removed from this branch and 7.2 and test 4 describe design A.
+  (3) EDGE1 is loaded by file path under the unique package name `ms_sim_edge1study`; `research/edge1` is not on `sys.path` (tests pin both).
+- **A requirement for SIM-d (found while reading `fno/storage/wiring.py`):** `build_nse_fo_library` reads the stores
+  first and then falls back to NSE. The simulator's wiring must build `DailyFiles` from the stores only, with a test
+  whose NSE fallback raises, or "no new NSE read" breaks on a missing day.
+- **A finding for SIM-d on dated STT (Q2).** The charges are a mapping passed at wiring (`cfg["charges"]`) and EDGE1's
+  `charges_on(date)` already returns one per date, so no seam is needed to price a fill. The risk is
+  `accounts/ledger_fills.py`, which recomputes a past fill's charges from the mapping it is given and checks them against
+  the stored leg: a position opened under one STT rate and re-read under another would fail that check. Wiring one fleet per session
+  with that session's mapping is not enough for an account that spans 31 Mar and 1 Apr 2023. I will test it in SIM-d and
+  message MS-P1d's builder only if it fails.
+- **Gates at this tip (full run on the SIM-a files):** `pytest -n auto`: 11,733 passed, 16 xfailed, 1 failed:
+  `tests/ai/test_fire_and_collect.py::test_a_reveal_that_never_came_or_does_not_match_records_no_forecast`. It passes alone
+  and passes on the branch's parent with my files stashed, so it is a load-dependent flake outside this story; I did not
+  touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
+- Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
+
+#### SIM-b Claims (round 1, branch `story/ms-sim-b` on `story/ms-sim-a`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests in `tests/school/simulator/spreads/`.
+
+| Criterion (7.4 SIM-b) | Code | Tests | Broken-code proof (mutation, caught) |
+|---|---|---|---|
+| 1 29 sessions insufficient, 30 give three scenarios | `model.py` | `test_29_quoted_sessions_are_insufficient_and_30_give_three_scenarios` | the limit 30 to 29; `<` to `<=` |
+| 2 median, 75th, 95th percentile with a known answer; all-one-sided and empty are insufficient | `model.py`, `learner.py` | `test_the_scenarios_are_the_median_75th_and_95th_percentile...`, `test_an_all_one_sided_bucket_and_an_empty_input_are_insufficient`, `test_an_unknown_bucket_is_insufficient...` | 0.95 to 0.9; 0.75 to 0.5 |
+| 3 a session counts once; a big session does not dominate; two roads of one underlying on one day count once | `learner.py` | `test_a_session_counts_once...`, `test_two_roads_of_one_underlying...`, `test_a_session_value_is_the_median_of_its_quotes` | session median to max |
+| 4 only verified recorded captures; a tampered, missing or incomplete one is skipped with its reason | `recorded.py` over MS-P1b's `CaptureReader` | `test_recorded.py` (4 tests) | the caught exception type changed |
+| bucket edges on both sides (1% and 2% and 4% moneyness; 7, 8, 21, 22, 45, 46 days) | `bucket.py` | `test_the_moneyness_band_edges`, `test_the_days_to_expiry_band_edges` | `>=` to `>`; day edges not shifted by one |
+| half a tick floor; uncrossed, valid, two-sided only | `learner.py` | `test_a_quote_is_its_half_gap...`, `test_a_one_sided_invalid_or_crossed...` | floor removed; crossed check removed |
+| 5 relative against rupee spread, with numbers | none (a measurement) | the run below | n/a |
+
+- **11 of 11 mutations caught.**
+- **Criterion 5, round 2 (judge 502 asked for it in the Claims).** My earlier statement that this container had no Drive access was wrong: I had
+  not checked the environment. I re-ran the comparison myself (throwaway script, not committed) over MS-P1b's verified `CaptureReader`
+  on the recorded sessions of 13-22 Oct 2026, all five roads (16 verified captures read; 39 road-days had none and were skipped).
+  For each bucket with at least 3 quotes I took the coefficient of variation of the half-spread (half-tick floor) over all its valid two-sided quotes:
+  - the relative half-spread varies less than the rupee one in **41 of 48 buckets**, the same as Judge H's run;
+  - the 7 exceptions are FINNIFTY and MIDCPNIFTY far or deep strikes, for example MIDCPNIFTY 2-4% from the money, 22-45 days: 1.17 against 0.81 (115 quotes, 3 sessions);
+  - every bucket has only 1-6 sessions. **Some evidence** for the relative choice, not strong evidence; revisit at 30 sessions.
+- **Capture period in the label (judge 502, minor a).** `SPREAD_LABEL` now reads "spread learned from forward captures since 13 Oct 2026, measured at 15:00".
+  Reasoning only: spreads were probably wider in earlier years, so practice is optimistic. This is why the three scenarios are always shown together.
+- **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
+  the code returns exactly that and nothing else.
 
 ## Claims
 
@@ -1931,6 +2033,46 @@ MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct
 Empty until INS-a is built. Each part's round adds its subsection here: the criteria met with test names and
 broken-code proof, the self-review findings, and a real output sample (counts only).
 
+#### INS-a Claims (round 1, branch `story/ms-ins-contracts`; the SHA is in the commit that carries this text)
+
+| Criterion | Met by | Test (`tests/school/instructor/`) |
+|---|---|---|
+| 1 path with its snapshots in order; a ticket read as a ticket | `reader.PathReader._path` | `test_reader`: `..._three_snapshots_in_order`, `a_ticket_is_read_as_a_ticket...`, `a_weekend_inside_the_hold...` |
+| 2 a correction read once | `reader.latest_outcomes`, `PathReader.closed_between` | `test_reader`: `a_correction_sealed_on_a_later_session...` (two separate seals), `..._in_the_same_file_is_read_once` |
+| 3 a snapshot hash mismatch is a data fault, never numbers | `PathReader._snapshot` | `test_reader`: `a_snapshot_whose_hash_differs...` and every fault case below |
+| 4 empty | `PathReader.closed_on` | `test_reader`: `a_session_with_no_outcome_file_gives_nothing` |
+| 5 reads only | the reader holds no write path; the dashcam fake refuses writes after the fixtures | every `test_reader` test (`WriteRefusingDashcam`); the whole run again in INS-e |
+| 6 imports | the school's import test walks `fno/school/` | `test_types`: `the_school_import_boundary_covers_the_instructor` |
+| 7 conformance | `fakes.py`, `adapters.py` | `test_ports` (fakes, `RecordedSnapshotArchive`, `RecordedEventCalendar`) |
+| types refuse the impossible | `contracts.py` | `test_types` (identity to Rs 0.01 at the boundary, NaN, 2 secondaries, 3 statuses, 13 causes, loser-only causes, interval and dates) |
+
+**Data faults (each a test):**
+- entry decision missing or not a trade or ticket of its kind;
+- entry seal mismatch;
+- a held trading session with no sealed decisions file;
+- a snapshot missing on a session with no closure record for the road;
+- a snapshot hash mismatch;
+- settlement missing or naming another file;
+- an exit record that is missing, or that names another driver or reason.
+
+A road closed by a sealed closure record is not a fault: its step merges (`sessions_skipped`).
+
+**Broken-code proof:** 13 plants, each run against the instructor tests, 13 caught. The plants: the snapshot, entry-seal and settlement hash checks removed; corrections kept; the entry-kind check loosened; the closure rule, the unsealed-session fault and both exit-record faults removed; calendar days walked instead of NSE sessions; the identity's NaN guard reversed; the paired-row date order and the path's road check removed. A first round left the entry-kind plant alive; the parametrized `an_outcome_whose_decision_was_not_its_kind...` test was added for it.
+
+**Self-review (one independent review agent on the diff).** Six findings:
+1. **Blocking: corrections across files.** Accepted. A dashcam file is written once, so a correction can only be sealed on a later session. `closed_between` now applies corrections across a range, tested with two separate seals; the old test rewrote a sealed file, which the real store cannot do.
+2. **Should fix: a missing road record treated as a closure.** Accepted. Only a sealed closure record now merges a step; otherwise the session is `snapshot_missing`.
+3. **Should fix: missed sessions.** Accepted. The reader walks A7's calendar, and a trading session without a decisions file is `session_not_sealed`.
+4. **Should fix: NaN passed the identity check.** Accepted. NaN is now refused, and `PairedRow` also checks its interval, mean and dates.
+5. **Minor: exit records not checked.** Accepted. An exit record that is missing or mismatched is now a fault.
+6. **Should fix: test and spec gaps.** Accepted. Criterion 5's docstring now says the full run is checked again in e; the import pointer test was added; the files-owned list and the story text were updated.
+
+From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates were done. The double read of the entry day's file is left as is: one extra cached read, and merging the two reads would join two single-purpose functions.
+
+**Real output sample:** none possible yet. The fleet (MS-P1j) has sealed no dashcam file, so `build_path_reader().closed_on(<day>)` has nothing to read. The first real sample comes with INS-e's dry run once j seals a day. The fixture run gives counts only: 1 path, 3 snapshots, 0 faults (`test_reader`).
+
+**Gates:** the full gate run on the merged tree is in the push message to the orchestrator.
+
 ### MS-P1d follow-up Claims, part 3 (branch `story/ms-p1d-entries`): the read-only ledger read for j
 
 | Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
@@ -1938,4 +2080,24 @@ broken-code proof, the self-review findings, and a real output sample (counts on
 | `SchoolAccounts.entries(driver_id) -> tuple[LedgerEntry, ...]` for j's `LedgerReader` (a3), so settlement can run before the session's first `view` | `accounts/school_accounts.py`: under the account's lock, pulled from Drive once per run (`_locked`, shared with the writer), reads `PositionBook.entries()` in the order recorded, after the same unit-for-unit ledger check `view` makes; writes nothing (no account opened, no equity row, no push); an account never opened gives () | `test_entries.py`: entries match the ledger in order (plant: order reversed); nothing written and no push, the next session's row still written by `view` afterwards (plant: entries opening the account); one pull per run under the lock, a held lock refuses (plant: no pull); a failed pull stops with E2c's `PrivateFilesUnavailable`; half a record raises (plant: the check dropped) |
 
 - **Plants:** 4 planted, 4 caught. The Protocol's conformance check is added once a3 (j's builder) is on main.
+
+#### INS-a Claims, round 2 (judge 501 FAIL round 1: two should-fixes, four minors; orchestrator's ruling on SF2)
+
+| Finding | Fix | Test (`tests/school/instructor/`) |
+|---|---|---|
+| SF1: a damaged sealed file crashed the reader | `PathReader._read` catches `StaleSeal`. A damaged decisions file is `sealed_file_damaged` on each path that needs it (the entry day or a held day); a damaged outcomes file goes in `ClosedRead.unreadable`, and the other days still read | `test_reader`: `a_damaged_held_day_is_a_fault...`, `a_damaged_entry_day_is_a_fault_not_a_crash` (and not "entry missing"), `a_damaged_outcomes_file_is_reported_and_the_other_days_still_come_back` |
+| SF2: per-day reads counted a correction twice | One resolver, per the ruling: `closed_on(d)` is `closed_between(d, d)`. An original is read on its close day as its latest correction sealed up to today (the reader's clock), and a correction is never a path on its own day | `the_days_closed_on_add_up_to_closed_between_over_the_range` (a correction inside the range and one after it); `a_correction_sealed_later_replaces_its_original_on_the_original_close_day`; `a_chain_of_corrections_ends_at_the_latest`; `a_correction_sealed_after_today_is_not_yet_read` |
+| (a) mid-range outcome | none needed | `an_outcome_sealed_mid_range_is_read` |
+| (b) the trading-day filter | none needed | `a_muhurat_only_session_inside_a_hold_is_not_required` |
+| (c) the exit-day check, the snapshot ID, the adapter's closed road | none needed | `an_exit_day_closed_for_the_road_is_a_missing_snapshot`, `a_snapshot_with_the_right_hash_but_another_id_is_a_mismatch`, `test_ports`: `the_archive_itself_refuses_a_closed_roads_capture` |
+| (d) pinned bytes | none needed | `test_types`: `an_instructor_file_has_pinned_bytes...` (gzip time zero, no name) |
+
+- **The judge's six surviving plants and six new ones, all caught.** The new ones: the `StaleSeal` catch; corrections emitted on their own day; "today" cut to `last`; days after `last` emitted; one correction followed instead of the chain; `unreadable` emptied.
+- One extra plant survived on the first run: removing the entry-day damaged check. The test now also requires the fault to say "damaged", not "entry missing".
+- **The clock:** the reader takes a's `Clock`. The wiring passes `IstClock` (`now_ist`) and the tests a `FixedClock`.
+- **Known effect, as the ruling says:** a day's tally recomputed after a later correction can change.
+### MS-P1d follow-up Claims, law order (branch `story/ms-p1d-law-order`, from main)
+| Item (orchestrator, 22 Oct 2026, on j's finding) | Change | Test (and the plant it catches) |
+| The first named reason is the root cause: on BANKNIFTY-M a missing quote came out as `max_loss` (it fails closed without the leg's mid) ahead of `missing_quote` | `safety/wiring.py`: protected, the four quote-gate laws, impossible price, then max loss, bucket, open risk, new risk per day, margin room, daily stop, brake. Every law still runs and every reason is kept; only the order changes | `test_laws.py`: the order pinned (plant: the old order); a missing and a one-sided quote name their quote reason first, with `max_loss` still in the list (plant: the gates after max loss); a valid quote with too large a loss still names `max_loss` alone (plant: a gate that refuses a valid quote); the margin test reads results by law name, not by position |
+- **Plants:** 2 planted (old order; a gate refusing a valid quote), 2 caught. f's `named_refusal` (first in order within a group) now names the quote reason within trade validity too.
 
