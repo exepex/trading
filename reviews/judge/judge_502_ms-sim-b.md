@@ -43,3 +43,17 @@
 
 ## Notes
 - b is stacked on a, which fails (judge 500). Re-judge b on a's fixed tip.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-sim-b at b62bc0b5 (merges a's 662447ee; b's `spreads/` code unchanged). **Verdict: PASS.**
+Lane 1.
+
+**Gates (my run):** pytest -n auto: 11,802 passed, 16 xfailed. ruff check/format, check_imports and check_records are
+clean.
+
+**Findings:**
+1. **Criterion 5 in Claims: ACCEPTED.** The Claims carry the builder's own re-run: 41 of 48 buckets, the 7 exceptions,
+   1-6 sessions a bucket, labelled "some evidence", revisit at 30 sessions. That matches my run.
+- **Minor (a): ACCEPTED.** `SPREAD_LABEL` now names the capture period: "spread learned from forward captures since
+  13 Oct 2026, measured at 15:00".
