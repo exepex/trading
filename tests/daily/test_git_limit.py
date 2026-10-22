@@ -26,8 +26,9 @@ def _git(repo, *args):
 
 def _repo(tmp_path):
     origin, repo = tmp_path / "origin.git", tmp_path / "repo"
-    _git(tmp_path, "init", "-q", "--bare", str(origin))
+    _git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))  # the run publishes to main (PUBLISH_BRANCH)
     _git(tmp_path, "clone", "-q", str(origin), str(repo))
+    _git(repo, "checkout", "-q", "-b", "main")
     for key, value in (("user.email", "t@example.com"), ("user.name", "t"), ("commit.gpgsign", "false")):
         _git(repo, "config", key, value)
     (repo / "seed.txt").write_text("seed")
