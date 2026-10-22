@@ -348,6 +348,17 @@
     "status": "not_live",
     "reason": "o1:NOT_LIVE"
    }
+  },
+  "close_recheck": {
+   "started_at": "2026-10-22T15:33:25.114472+05:30",
+   "finished_at": "2026-10-22T15:33:25.114519+05:30",
+   "inputs": {
+    "live_from": "2026-10-23"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NOT_LIVE"
+   }
   }
  }
 }
