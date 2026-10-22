@@ -236,7 +236,8 @@ Rules for every story:
 3. A record round-trips to identical bytes, and a changed field changes the bytes.
 4. `Banner` has exactly two members.
 5. `settings` refuses an unknown or missing key and a negative limit.
-6. With `enabled: false` every fake fleet path reports "school off".
+6. The repository's settings load with `enabled` and `reports` false; `SCHOOL_OFF_LINE` ("school off") is the line
+   j prints when the switch is off (a has no fleet path to test it on).
 7. An import test: nothing under `fno/school/` imports an order call, a Slack client or the Groww SDK.
 8. Every fake satisfies its `Protocol`, checked by a conformance test that each later story's real class must also
    pass (`tests/school/contracts/conformance.py`, importable).
