@@ -3,7 +3,7 @@
 **Scope:** story/ms-p1-roads at 183783bd (code 2ed9bbbf, on contracts 756e6545; builder session_01F1RVMF8MNngi97JVNs99L5),
 diff 756e6545..183783bd. Judge I (session_01MvZneCLZqBuiGyNxawdVee). Lane 1. Round 1 of 2.
 
-**Verdict: FAIL.** 3 should-fixes, 2 minors. Judge H claimed 482 for this story too; this file is judged on its own.
+**Verdict: FAIL.** 3 should-fixes, 2 minors. It holds at 5fb61a29, which only merges contracts round 2: b's files are unchanged there, 367 school tests pass, and both of my probes still show the defects. Judge H claimed 482 for this story too; this file is judged on its own.
 
 ## Criteria
 | # | Criterion | Result | Evidence |
