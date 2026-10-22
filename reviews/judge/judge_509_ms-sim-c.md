@@ -54,3 +54,22 @@ None blocking or should-fix.
 
 ## Notes
 - Merge order, as the orchestrator says: a3, then d's part 4, then SIM-c.
+
+## Addendum 1
+
+**Follow-up:** story/ms-sim-c at fde1dd95 (one test file and the story text, on 3c1a3cc6). **Verdict: PASS**, unchanged.
+`tests/school/simulator` passes (118) and ruff is clean.
+
+- **Minor (a), withdrawn: my plant was wrong.** `body = sorted([]) or sorted(...)` is the original expression,
+  because an empty list is falsy. It changed nothing, so it couldn't fail a test.
+  - A real plant (the comprehension filtered to no quotes) is caught at 3c1a3cc6 and at this tip. The builder was
+    right.
+  - The new test `test_the_digest_covers_the_quotes_themselves` pins it further.
+- **The builder's noted survivor (bid left out of the digest): ACCEPTED as a noted gap.** I reproduced it.
+  - A practice quote's bid and ask both come from one close and one half-spread, so a bid-only change with the same ask
+    is a tick-rounding edge. The case where the bid rounds to nothing changes `last` and validity counts elsewhere.
+  - It's a minor test gap, not a defect. The code hashes the bid.
+- **Minor (b), ACCEPTED:** the stale `sys.path` line is corrected.
+- **Minor (c), ACCEPTED:** the full run at 3c1a3cc6 (12,001 passed) is now in the Claims and matches mine.
+- **New SIM-d criteria:** 13, a lot per expiry (the 2 Jun 2025 BANKNIFTY case), and 14, the impossible-leg share in the
+  report. They record my real-run observations correctly.
