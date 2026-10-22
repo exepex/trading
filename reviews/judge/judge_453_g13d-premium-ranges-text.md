@@ -59,3 +59,28 @@ avoids everywhere else.
    reason.
 3. **Premium floor.** Relative QS (QS divided by d's mid) explodes for near-zero premiums. State a floor or report it
    only for mids above a stated level.
+
+## Addendum 1: revision 2 at 9f9618e4 (number 453.1, claimed with `tools/claim_number.py`)
+
+**PASS.** Should-fix 1 is met with option (a), written before any score.
+
+### The verdict rule
+Per underlying, on all ranged contracts (the buckets are descriptive only):
+- **covers well:** the session-averaged 90% coverage's block-bootstrap 95% interval lies inside [0.85, 0.95], and the
+  50% coverage's inside [0.40, 0.60];
+- **beats carry:** the paired rupee-QS difference against `decay_only` has its interval below 0 (against `no_change` it
+  is only reported);
+- **fails:** an interval lies wholly outside its band, or the QS interval wholly above 0;
+- otherwise **not yet decided**.
+
+### The looks
+- They are fixed at 60, 120 and 250 sessions and at no other count, and Q1 relies on the 250-session look. The extra
+  chance of a lucky pass from three looks is stated.
+- The stated power arithmetic checks out: an SD of 0.2 over the square root of 60 is 0.026, so the 95% interval is about
+  ±0.05, the band's own width. That holds if sessions are independent; autocorrelation would widen it.
+- Criterion 3b tests the rule.
+
+### The notes
+- A special-session d+ with no chain has its own reason.
+- Relative QS uses max(mid, Rs 2) and is descriptive only; the verdict uses rupee QS.
+- If Q2 is built, its sessions are recorded in DATA_SPEND.

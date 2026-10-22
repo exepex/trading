@@ -41,3 +41,22 @@ Judge B, 22 Oct 2026. Lane 1: a new story that writes evaluation records and a D
    Oct are marked unconfirmed. The build's first run must state them, as criterion 6 says.
 4. **The far tail is left out of the calibration.** Rows use body strikes only, so the far tail (often the crash-premium
    strikes) is shown but not calibrated. Say so in the report's header.
+
+## Addendum 1: notes written in at fad73292 (number 452.1, claimed with `tools/claim_number.py`)
+
+**PASS stands.** All four notes are in the text:
+- E7's `SttlmPric` reader (`fno/desk/settlement.py`, reused) is the authority, and G13b's closes are the to-the-paisa
+  cross-check. A mismatch is listed with both values and the expiry left out.
+- The header says the report is exploratory and points to DATA_SPEND.
+- Criterion 6 confirms the counts and the mismatches.
+- The tail strikes are shown but not calibrated.
+
+**One build-time check, new from reading E7's code.**
+- E7's reader goes through `read_fo_file`, which maps the old format's `SETTLE_PR` to `SttlmPric` (`fno/fo_bhavcopy.py`;
+  NSE used that format up to 5 Jul 2024).
+- E7 then requires every expiring row to agree. In the old format, an option row's `SETTLE_PR` is that option's own
+  settle price, so E7 may refuse every pre-July-2024 expiry. That would quietly cut the about 93 expiries to about 27.
+- The build must run E7's reader on one old-format expiry first and report what it gives. If it refuses, take the
+  `FUTIDX` row's `SETTLE_PR`, or the close, labelled as such and cross-checked, rather than dropping more than half the
+  sample.
+- Criterion 6's counts will show this either way.
