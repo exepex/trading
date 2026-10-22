@@ -368,6 +368,21 @@
     "reason": "raised:STOPPED",
     "exit_code": 1
    }
+  },
+  "v4_deadline": {
+   "started_at": "2026-10-22T15:24:18.682357+05:30",
+   "finished_at": "2026-10-22T15:24:20.698536+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "deadline"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "v4_deadline:NOT_LIVE",
+    "exit_code": 0
+   }
   }
  }
 }
