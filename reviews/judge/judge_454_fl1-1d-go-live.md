@@ -47,3 +47,9 @@ Strong evidence.
    `DesignRenderer`. **Accepted as a follow-up**, not in this go-live commit: tests still use it, and removing a
    renderer the day before go-live adds risk for no gain. Under the no-dead-code rule it gets a register row and
    lands within the week.
+
+## Note: e31e46ce (the merge head)
+e31e46ce is 6610395a plus 20 lines in `tests/forecast_lab/test_wiring_editions.py`, which pin `build_sections`'
+cutoffs. I planted both of my 451.1 variants, `(EVENING_RUN,)` and `(OPEN, EVENING_RUN)`: each now fails that test
+(148 forecast-lab tests otherwise pass). Minor 1 is closed. **The PASS covers e31e46ce.** The merge runs its own full
+suite on the merged tree.
