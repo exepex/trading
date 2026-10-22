@@ -277,6 +277,28 @@
      }
     }
    }
+  },
+  "card": {
+   "started_at": "2026-10-22T15:21:48.688446+05:30",
+   "finished_at": "2026-10-22T15:22:11.735689+05:30",
+   "inputs": {
+    "command": [
+     "card",
+     "daily",
+     "unlisted",
+     "2026-10-22",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
