@@ -353,3 +353,9 @@ Not built yet, waiting on others:
   `lab close`. A4h accepts any read stamped 15:30 or later. The routine then commits `receipts/data/closes/` only:
   pull first, add only that path, commit and push. This step is added to CLAUDE.md with A4h's `TodayCloses` adapter,
   not before, since the command does not exist yet.
+
+**Judge 449's minors (22 Oct, story/fl1-1d3-minors).**
+- **USD/INR at the edition's time:** each A17 cue is read at the edition's own cutoff, `OPEN` (09:15) in the morning
+  and `DECISION` (15:00) in the evening. The evening thus shows the day's own RBI rate, as the table says.
+- **A quiet day is said, never padded:** on a right or unchecked evening with fewer than 2 points, the page adds "no
+  notable moves in our data".

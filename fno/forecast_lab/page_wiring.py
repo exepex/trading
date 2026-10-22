@@ -47,14 +47,14 @@ PARTICIPANT_OI = "participant-oi"
 def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: Outcomes) -> tuple[Section, ...]:
     """The cues' Sections, one source each: A17's overnight cues (read only), India VIX from NSE's archived file, the
     day's flags, and GIFT Nifty (A22b's early file). A new source is one class and one line here."""
-    from ..global_cues.as_of import OPEN
+    from ..global_cues.as_of import DECISION, OPEN
     from ..global_cues.wiring import build_reader
     from ..storage.data_wiring import build_drive_cache
     from ..storage.wiring import build_index_close_files
 
     reader, known = functools.cache(build_reader), functools.cache(facts.facts)
     return (
-        *(GlobalCueSection(reader, spec, OPEN) for spec in SPECS),
+        *(GlobalCueSection(reader, spec, {"morning": OPEN, "evening": DECISION}) for spec in SPECS),
         VixSection(build_index_close_files(), sessions.previous, lambda day: known(day).vix),
         FlagsSection(known),
         GiftSection(build_drive_cache(), lambda day: official.close(NIFTY_SYMBOL, sessions.previous(day))),

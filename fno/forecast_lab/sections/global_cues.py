@@ -2,16 +2,17 @@
 builder, 22 Oct): never fetched here, never a second writer. A cue is shown only inside its as-of rule:
 - the S&P 500, the Nasdaq-100 and the US 10-year: the last US session before the day's 09:15 IST open (A17's
   `current` or `ahead` at `OPEN`); a `behind` or older reading is not shown as current;
-- the RBI's USD/INR reference rate: the same reading (its expected date is the previous session at 09:15);
+- the RBI's USD/INR reference rate: the same reading, at the edition's own time (A17's `OPEN` in the morning, when the
+  previous session's rate is expected; `DECISION`, 15:00, in the evening, which adds the day's own rate: judge 449);
 - Brent: no calendar (EIA prints lag days); the latest print at most `BRENT_DAYS` old, shown with its own date.
 The S&P 500 and the Nasdaq-100 are private cues (owner a927390): their values go to Slack and the Drive record only,
 never to a repository file (owner bcbbc454)."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 
 from ..page.cues import AVAILABLE, CONTEXT, Cue, Section, SectionView, missing
 from .spread import changes, size
@@ -40,10 +41,10 @@ SPECS = (
 
 
 class GlobalCueSection(Section):
-    def __init__(self, reader: Callable, spec: CueSpec, cutoff):
+    def __init__(self, reader: Callable, spec: CueSpec, cutoffs: Mapping[str, time]):
         """`reader`: makes A17's `CueReader` (once; it needs the Drive settings, so a missing one fails this Section's
-        read, never the page); `cutoff`: A17's `OPEN` (09:15 IST), what was known before the open."""
-        self.reader, self.spec, self.cutoff, self.name = reader, spec, cutoff, spec.label
+        read, never the page); `cutoffs`: each edition's A17 cutoff (what was known by then)."""
+        self.reader, self.spec, self.cutoffs, self.name = reader, spec, cutoffs, spec.label
 
     def _shown(self, reading) -> bool:
         if reading.row is None:
@@ -54,7 +55,7 @@ class GlobalCueSection(Section):
 
     def read(self, day: date, edition: str) -> SectionView:
         reader = self.reader()
-        reading = reader.read(self.spec.cue, day, self.cutoff, live_only=True)
+        reading = reader.read(self.spec.cue, day, self.cutoffs[edition], live_only=True)
         if not self._shown(reading):
             return missing(self.name, edition, NOT_SHOWN.format(label=self.name, status=reading.status))
         as_of = date.fromisoformat(reading.row["value_date"])

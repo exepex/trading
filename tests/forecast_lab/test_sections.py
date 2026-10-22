@@ -16,7 +16,7 @@ from fno.global_cues.reading import CueReading
 from fno.research_data.nifty_panel import DailyFiles
 
 MON, FRI = date(2026, 10, 26), date(2026, 10, 23)
-OPEN = time(9, 15)
+OPEN, DECISION = time(9, 15), time(15, 0)
 
 
 class Table:
@@ -40,7 +40,9 @@ class Reader:
 
 
 def section(reader, calendar=True, unit="%"):
-    return GlobalCueSection(lambda: reader, CueSpec("x", "S&P 500", unit, calendar), OPEN)
+    return GlobalCueSection(
+        lambda: reader, CueSpec("x", "S&P 500", unit, calendar), {"morning": OPEN, "evening": DECISION}
+    )
 
 
 @pytest.mark.parametrize("status", ["current", "ahead"])
@@ -100,3 +102,9 @@ def test_the_day_s_flags_are_the_day_s_own_events_and_expiry():
     view = FlagsSection(lambda day: facts).read(MON, "morning")
     assert [c.text for c in view.items] == ["RBI policy decision", "NIFTY F&O expiry today"]
     assert FlagsSection(lambda day: Facts()).read(MON, "morning").items == ()
+
+
+def test_each_edition_reads_at_its_own_time_so_the_evening_has_the_day_s_rbi_rate():
+    reader = Reader("current")
+    section(reader).read(MON, "evening")
+    assert reader.calls == [("x", MON, DECISION, True)]  # judge 449: the evening is not the 09:15 view
