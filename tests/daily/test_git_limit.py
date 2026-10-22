@@ -137,3 +137,32 @@ def test_every_call_has_the_limit_by_default(tmp_path):
     repo = _repo(tmp_path)
     git = Git(repo)
     assert isinstance(git.run, LimitedRun) and git.limit_seconds == 120.0
+
+
+def _fake_proc(tmp_path, members: dict[int, tuple[str, int]]) -> Path:
+    """A /proc with one `stat` per pid: (state, process group)."""
+    proc = tmp_path / "proc"
+    for pid, (state, group) in members.items():
+        (proc / str(pid)).mkdir(parents=True)
+        (proc / str(pid) / "stat").write_text(f"{pid} (sh) {state} 1 {group} {group} 0 -1\n")
+    return proc
+
+
+def test_a_stopped_group_counts_as_running_while_a_live_member_is_left_never_a_zombie(tmp_path):
+    """A4 builder, 22 Oct: SIGKILL ends each member when the kernel reaches it; a hook is git's grandchild, which
+    `communicate` does not wait for, so the call waits until no live member of its group is left."""
+    from fno.desk.git_limit import running_in_group
+
+    assert running_in_group(7, _fake_proc(tmp_path / "a", {8: ("S", 7), 9: ("R", 3)})) is True
+    assert (
+        running_in_group(7, _fake_proc(tmp_path / "b", {8: ("Z", 7), 9: ("R", 3)})) is False
+    )  # a zombie holds nothing
+    assert running_in_group(7, tmp_path / "absent") is False  # cannot tell: never wait forever
+
+
+def test_the_wait_for_a_stopped_group_is_bounded(tmp_path, monkeypatch):
+    monkeypatch.setattr("fno.desk.git_limit.GROUP_GONE_SECONDS", 0.2)
+    run = LimitedRun(proc=_fake_proc(tmp_path, {8: ("S", 7)}))  # a member that never ends
+    started = time.monotonic()
+    run._until_gone(7)
+    assert 0.2 <= time.monotonic() - started < 5

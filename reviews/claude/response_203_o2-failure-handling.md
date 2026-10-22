@@ -263,8 +263,21 @@ Notes:
     lock test uses the run's limit.
   - The timing assertion is now measured from the hook's start. It proves the call was stopped by the limit and not
     by the hook's own end (`< HOOK_SLEEP / 20`, 30 s against the hook's 600 s).
+- **A second failure mode, found by the A4 builder (22 Oct, one failure in 5 full runs on main):**
+  `assert not _alive(pid)` saw the hook still alive right after the call.
+  - Cause (strong evidence, from the code): `killpg` only sends SIGKILL, and each member ends when the kernel reaches
+    it. `communicate()` waits for git, the group's leader, and its pipes, but not for the hook, git's grandchild.
+    So "stopped with its hooks" could be said while the hook was still dying.
+  - Fix, the A4 builder's option (a), refined: `LimitedRun._until_gone` waits until no live member of the group is
+    left (`running_in_group`, read from `/proc`), at most `GROUP_GONE_SECONDS` (5 s).
+  - A zombie counts as gone: it holds nothing, and in a container its new parent may never reap it. Polling
+    `killpg(pgid, 0)`, which also counts zombies, could then wait the full 5 s on every stop.
+  - Tests: on a fake `/proc`, a live member counts, a zombie does not, another group does not, and no `/proc` means
+    no wait. The wait is bounded when the group never ends.
+  - Limit (stated plainly): a plant that removes `_until_gone` is not caught deterministically. The race it closes
+    shows only under load, so the unit tests guard `running_in_group` and the bound instead.
 - **Proof:**
-  - All 5 tests pass with every git call slowed by 1.2 s, longer than the limit itself.
+  - All 7 tests pass with every git call slowed by 1.2 s, longer than the limit itself.
   - Plants: removing the lock clean-up fails 1 test; killing only git instead of its group hangs the test (the hook
     holds the pipes).
   - Ten full parallel suite runs (results below).
