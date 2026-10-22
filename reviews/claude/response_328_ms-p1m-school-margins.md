@@ -41,7 +41,26 @@ day's archived file. Re-running the committed script reproduced all 13,736 rows 
 of the money) of the index per short leg. Each is computed in the script straight from the parsed arrays, not by
 the calculator.
 
-## Mutations (strong evidence: 19 of 19 caught)
+## Self-review round (22 Oct, before the judges): two blocking and five minor findings, each checked
+
+| Finding | Check | Fix | Test |
+|---|---|---|---|
+| **Blocking:** C2 prices the margin from the terms but counts units from the `Proposal`/`OpenTrade`; nothing tied them (a lot of 1 inside a 65-unit proposal passed, Rs 840 needed instead of Rs 54,600) | reproduced by the reviewer | `road_proposal` and `road_open_trade` build C2's trade from the same terms; the story makes them a must for MS-P1d (its own acceptance test) | `test_c2_s_proposal_and_open_trade_carry_the_terms_own_lot_and_legs`; `MarginRoom` tests now use them |
+| **Blocking:** the planted credit spread had zero risk arrays and prices, so the credit and the cap were never exercised | reproduced | a planted bull put spread with arrays and prices, rupees worked by hand in the test's docstring; the cap binds | `test_a_credit_spread_in_rupees_worked_by_hand_with_c2_s_cap_binding` (removing the cap or the `min(0, NOV)` term in C2 fails it) |
+| History mode (`allow_short_option_minimum=True`) would price a file A14's daily job refuses | read; 16 recent sessions x 4 indices read in daily mode, none refused | daily mode | two new refusal cases (a GROSS minimum, no scan tiers) |
+| A refused Drive sign-in or two same-named items (`RuntimeError`s) escaped the named refusal | read | any Drive failure refuses by class name | `test_a_drive_failure_refuses_by_its_class_name_only` [2] |
+| A missing manifest row read as "differs from its SHA-256" | reproduced | its own message | "no manifest row" case |
+| Structure and legs were not checked against each other (PDS legs labelled PCS, a ratio leg) | reproduced | `RoadTradeTerms` checks each code's shape | 8 new cases |
+| E8's owner-timing record would drop the legs | read | stated as a limit in the story (the pilot has no owner timing) | - |
+| The gap script skipped unlisted combinations silently | read | it counts and prints them | its rerun below |
+
+New mutations, all 16 caught: the factories' lot and units; each shape rule (one unit, the sold leg, the width, the
+type, the wings inside, the wings out, the condor's order, the fly's body, unknown codes); daily mode; the manifest
+row; the Drive catch; and in C2, the cap and the credit term.
+
+On the real 21 Oct file in daily mode, the five checks above give the same figures.
+
+## Mutations, round 1 (strong evidence: 19 of 19 caught)
 
 Factor dropped from the stressed margin; from the margin at entry; the broker margin stressed; a fixed lot; no cap; the
 09:00 rule off (in the adapter, and `<=` in `written_in_time`); the SHA check off; the missing-file check off; plain
@@ -52,7 +71,7 @@ test was added); the symbol fixed to NIFTY; each of the three exception wraps na
 
 - An open trade on its own expiry day makes the calculator refuse, so that driver account opens nothing that day.
   This is conservative: the expiry-day extra 2% ELM is not modelled (P0 probe 4).
-- Missing Drive settings raise a configuration error (`RuntimeError`), not a refusal. MS-P1j isolates each driver.
+- Any Drive failure, missing settings included, is a named refusal (class name only).
 - The beginning-of-day file prices a 15:00 decision, as A14's rows do.
 
 ## Limits
@@ -60,7 +79,8 @@ test was added); the symbol fixed to NIFTY; each of the three exception wraps na
 - k 2.1 is measured on NIFTY monthly only; for the other indices and the weeklies it is reasoning only, labelled in
   every record (orchestrator, 22 Oct).
 - The other three indices have no broker check yet; NIFTY matched Groww on 21 Oct (A14c part 2's rehearsal).
-- MS-P1d must pass `RoadTradeTerms` for every school trade; this is the seam to agree with its builder.
+- MS-P1d must build every school proposal and open trade through `road_proposal` and `road_open_trade` (proposed to
+  its builder on 22 Oct; their reply pending).
 
 ## Gates
 

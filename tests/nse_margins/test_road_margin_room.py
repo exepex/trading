@@ -4,7 +4,8 @@ their own legs; it passes with the room exactly enough and refuses one rupee sho
 import pytest
 
 from fno.nse_margins.road_margin import ArchivedSpanMargin
-from fno.risk.inputs import OpenTrade, Proposal, ProposedLeg, RiskInputError, TradeTerms
+from fno.nse_margins.road_trades import RoadTradeTerms, road_open_trade, road_proposal
+from fno.risk.inputs import OpenTrade, RiskInputError, TradeTerms
 from fno.risk.rules import MarginRoom
 from tests.risk.builders import book, contract, market
 from tests.risk.test_rules import FixedCosts
@@ -12,16 +13,22 @@ from tests.risk.test_rules import FixedCosts
 from .span_builder import DAY, EXPIRY
 from .test_road_margin import PCS_LEGS, SF_LEGS, source, terms
 
+
+def CONTRACT(underlying, expiry, leg):  # the market builder's contract ids
+    return contract(leg.strike, leg.kind, expiry)
+
+
 HELD, NEW = terms("SF", 100.0, 1, legs=SF_LEGS), terms("PCS", 100.0, 2, legs=PCS_LEGS)
 
 
 def _check(cash: float, held_terms=HELD):
     margin = ArchivedSpanMargin(source())
-    units = {contract(leg.strike, leg.kind, EXPIRY): leg.side * 65 for leg in SF_LEGS}
-    held = OpenTrade("held", held_terms, units, 0.0)
-    legs = tuple(ProposedLeg(contract(leg.strike, leg.kind, EXPIRY), leg) for leg in NEW.legs)
+    if isinstance(held_terms, RoadTradeTerms):
+        held = road_open_trade("held", held_terms, CONTRACT, 0.0)
+    else:  # a trade the school margin cannot price
+        held = OpenTrade("held", held_terms, {CONTRACT("NIFTY", EXPIRY, leg): leg.side * 65 for leg in SF_LEGS}, 0.0)
     prices = {(leg.strike, leg.kind): 0.0 for leg in (*SF_LEGS, *NEW.legs)}
-    verdict = MarginRoom(margin, FixedCosts(0.0)).check(Proposal("new", NEW, 65, legs),
+    verdict = MarginRoom(margin, FixedCosts(0.0)).check(road_proposal("new", NEW, CONTRACT),
                                                        book([held], cash=cash, marked=cash),
                                                        market(20_000.0, prices, EXPIRY, day=DAY))  # fmt: skip
     return verdict, margin.margin(HELD, DAY) + margin.margin(NEW, DAY)

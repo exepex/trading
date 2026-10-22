@@ -9,13 +9,15 @@ import pytest
 from fno.constants import OPTION_CALL, OPTION_PUT
 from fno.nse_margins import road_margin
 from fno.nse_margins.calculator import NseIndexOptionExposure, SpanMarginCalculator
-from fno.nse_margins.road_margin import FACTOR_LABEL, ArchivedSpanMargin, ArchivedSpanSource, RoadTradeTerms
+from fno.nse_margins.road_margin import BROKER_LABEL, FACTOR_LABEL, ArchivedSpanMargin, ArchivedSpanSource
+from fno.nse_margins.road_trades import RoadTradeTerms
 from fno.nse_margins.span_file import read_span_file
 from fno.research_engine.structures import Leg, ShortIronFly
 from fno.risk.capital import stress_cap_per_lot
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margins import MarginParts
 from fno.risk.stress_factor import FactorRow
+from fno.storage.owner_token import DriveSignInRefused
 
 from .span_builder import DAY, EXPIRY, span_xml, span_zip
 
@@ -25,6 +27,8 @@ FACTOR = FactorRow(date(2026, 10, 13), 2.1, "applied", "e" * 64)
 SPAN = read_span_file(FILE, NAME)
 SF_LEGS = tuple(ShortIronFly().legs(frozenset(SPAN.series[EXPIRY]), SPAN.underlying, 100.0))
 PCS_LEGS = (Leg(19_700.0, OPTION_PUT, -1), Leg(19_600.0, OPTION_PUT, 1))  # one expected move out, not ATM
+UNLISTED_FLY = (Leg(30_000.0, OPTION_CALL, -1), Leg(30_000.0, OPTION_PUT, -1), Leg(30_100.0, OPTION_CALL, 1),
+                Leg(29_900.0, OPTION_PUT, 1))  # a well-shaped fly on strikes the file does not list  # fmt: skip
 
 
 def source(files=None, manifest=None, calls=None):
@@ -90,11 +94,14 @@ def test_another_index_is_read_from_its_own_part_of_the_file():
         ({DAY: span_zip(created="202610140900")}, None, DAY, terms(), "not before 09:00 on 2026-10-14"),
         (None, None, EXPIRY, terms(), "not in the archive"),
         ({EXPIRY: FILE}, None, EXPIRY, terms(), "expiry-day"),
-        (None, None, DAY, terms(legs=(Leg(30_000.0, OPTION_CALL, -1), *SF_LEGS[1:])), "not in the"),
+        (None, None, DAY, terms(legs=UNLISTED_FLY), "not in the"),
         ({DAY: b"not a zip"}, None, DAY, terms(), "school margin nsccl"),
+        (None, {}, DAY, terms(), "has no row in A9's manifest"),
+        ({DAY: span_zip(som="0.50", som_method="GROSS")}, None, DAY, terms(), "school margin nsccl"),
+        ({DAY: span_zip(tiers=None)}, None, DAY, terms(), "school margin nsccl"),
     ],
     ids=["not archived", "not the first copy", "written at 09:00", "no file that day", "expiry day", "leg not listed",
-         "damaged file"],
+         "damaged file", "no manifest row", "a short-option minimum (A14 refuses it)", "no scan tiers (A14 refuses)"],
 )  # fmt: skip
 def test_every_way_the_figure_cannot_be_had_refuses_by_name(files, manifest, day, trade, said):
     with pytest.raises(RiskInputError, match=said):
@@ -108,8 +115,39 @@ def test_every_way_the_figure_cannot_be_had_refuses_by_name(files, manifest, day
         ({"lot": 0}, "lot 0"),
         ({"legs": ()}, "0 legs"),
         ({"structure": "PCS", "legs": (Leg(19_700.0, OPTION_PUT, -1), Leg(19_500.0, OPTION_PUT, 1))}, "200 wide"),
+        ({"structure": "PCS", "legs": (Leg(19_700.0, OPTION_PUT, 1), Leg(19_600.0, OPTION_PUT, -1))}, "wrong leg"),
+        ({"structure": "PCS", "legs": (Leg(19_700.0, OPTION_PUT, -2), Leg(19_600.0, OPTION_PUT, 1))}, "one unit"),
+        ({"structure": "CCS", "legs": PCS_LEGS}, "bought and one sold CE"),
+        ({"structure": "BF"}, "the wrong legs are sold"),
+        ({"structure": "SC"}, "condor's sold call is above"),
+        ({"width": 200.0}, "wings not 200 out"),
+        (
+            {
+                "legs": (
+                    Leg(20_100.0, OPTION_CALL, -1),
+                    Leg(19_900.0, OPTION_PUT, -1),
+                    Leg(20_200.0, OPTION_CALL, 1),
+                    Leg(19_800.0, OPTION_PUT, 1),
+                )
+            },
+            "a fly's body is one strike",
+        ),
+        ({"structure": "LC"}, "LC is not a school structure"),
     ],
-    ids=["index outside the four", "no lot", "no legs", "width not the legs'"],
+    ids=[
+        "index outside the four",
+        "no lot",
+        "no legs",
+        "width not the legs'",
+        "PDS labelled PCS",
+        "ratio leg",
+        "puts labelled CCS",
+        "SF legs labelled BF",
+        "SF legs labelled SC",
+        "wrong wing",
+        "a condor labelled SF",
+        "not a school code",
+    ],
 )
 def test_a_school_trade_s_terms_refuse_what_the_margin_cannot_price(kwargs, said):
     with pytest.raises(RiskInputError, match=said):
@@ -121,12 +159,13 @@ def test_terms_without_legs_are_refused_by_name():
         ArchivedSpanMargin(source()).margin(TradeTerms("SF", 100.0, 1), DAY)
 
 
-def test_a_drive_failure_refuses_by_its_class_name_only():
+@pytest.mark.parametrize("failure", [ConnectionError("token=secret"), DriveSignInRefused("invalid_grant secret")])
+def test_a_drive_failure_refuses_by_its_class_name_only(failure):
     def down(day):
-        raise ConnectionError("token=secret")
+        raise failure
 
     margin = ArchivedSpanMargin(ArchivedSpanSource(down, dict, NseIndexOptionExposure(), lambda day: FACTOR))
-    with pytest.raises(RiskInputError, match=r"could not be read \(ConnectionError\)") as caught:
+    with pytest.raises(RiskInputError, match=rf"could not be read \({type(failure).__name__}\)") as caught:
         margin.margin(terms(), DAY)
     assert "secret" not in str(caught.value)
 
@@ -143,12 +182,14 @@ def test_the_file_is_read_once_per_session_and_parsed_once_per_index(monkeypatch
 
 def test_the_records_name_the_file_the_factor_and_its_label():
     margin = ArchivedSpanMargin(source())
-    assert margin.record() == {"method": "archived_span_per_trade", "factor_label": FACTOR_LABEL}
+    assert margin.record() == {"method": "archived_span_per_trade", "factor_label": FACTOR_LABEL,
+                               "broker_check_label": BROKER_LABEL}  # fmt: skip
     found = margin.trade_record(terms("PCS", 100.0, 1, legs=PCS_LEGS), DAY)
     assert found["span_file"] == NAME and found["span_sha256"] == hashlib.sha256(FILE).hexdigest()
     assert found["stress_factor_row"]["factor"] == "2.1" and found["factor_label"] == FACTOR_LABEL
     assert found["legs"] == "-1x19700PE +1x19600PE" and found["lot"] == "65" and found["expiry"] == "2026-11-23"
     assert FACTOR_LABEL == "k measured on NIFTY monthly only [reasoning only]"
+    assert found["broker_check_label"] == "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY"
 
 
 def test_the_wiring_needs_no_drive_until_a_margin_is_asked_and_reads_c2_s_factor_file():
@@ -159,7 +200,7 @@ def test_the_wiring_needs_no_drive_until_a_margin_is_asked_and_reads_c2_s_factor
     margin = build_road_margin(load_app_config(), env={})
     assert margin.record()["method"] == "archived_span_per_trade"
     assert margin.source.factor(date(2026, 10, 15)).factor == 1.45  # the owner's seed, the day after it
-    with pytest.raises(RuntimeError, match="Drive"):  # no settings: refused when a figure is first asked
+    with pytest.raises(RiskInputError, match=r"could not be read \(RuntimeError\)"):  # no Drive settings: refused
         margin.margin(terms(), DAY)
     assert build_risk_manager(load_app_config()).rules  # the desk's own C2 path builds as before
 

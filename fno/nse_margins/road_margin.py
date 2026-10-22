@@ -1,11 +1,12 @@
 """Story MS-P1m: C2's stressed margin for the market school's trades, each on its own legs (the pilot's shorts sit
 one expected move out, where A14's ATM rows read up to 24% too low; the measure is in the story).
 
-A trade's terms carry its index, expiry, legs and lot (`RoadTradeTerms`, a `TradeTerms`), so C2's `MarginRoom` asks
+A trade's terms carry its index, expiry, legs and lot (`RoadTradeTerms`, `road_trades.py`), so C2's `MarginRoom` asks
 the margin of every open trade and of the proposal through this one `StressedMargin`, unchanged. Each figure comes from
-the session's beginning-of-day SPAN file as A14 reads it: A9's first-archived copy (its SHA-256 equal to the
-manifest's), written before 09:00 IST, A14's calculator and exposure rule, C2's STR1 cap and the factor in force from
-A14c's file. Anything else refuses by name (`RiskInputError`), so law 3 refuses the trade: no guess, no fallback."""
+the session's beginning-of-day SPAN file read as A14's daily job reads it (a change of margin method refuses): A9's
+first-archived copy (its SHA-256 equal to the manifest's), written before 09:00 IST, A14's calculator and exposure
+rule, C2's STR1 cap and the factor in force from A14c's file. Anything else refuses by name (`RiskInputError`), so
+law 3 refuses the trade: no guess, no fallback."""
 
 from __future__ import annotations
 
@@ -14,44 +15,20 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import NIFTY_SYMBOL, RECORDED_INDEX_OPTIONS, STRUCTURES_ONE_SIDE
 from ..fo_bhavcopy import BadFile
-from ..research_engine.structures import Leg
 from ..risk.capital import stress_cap_per_lot
 from ..risk.inputs import RiskInputError, TradeTerms
 from ..risk.margins import MarginParts, StressedMargin
 from ..risk.stress_factor import FactorRow
 from .calculator import ExposureRule, MarginOutsideModel, SpanMarginCalculator
+from .road_trades import RoadTradeTerms
 from .span_file import SpanFile, read_span_file
 
 METHOD = "archived_span_per_trade"
-ROAD_UNDERLYINGS = (NIFTY_SYMBOL, *RECORDED_INDEX_OPTIONS)
 FACTOR_LABEL = "k measured on NIFTY monthly only [reasoning only]"  # orchestrator, 22 Oct 2026, for every record
+BROKER_LABEL = "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY"  # the same; NIFTY matched Groww 21 Oct
 NOT_A_ROAD_TRADE = "school margin: {terms} carries no legs (RoadTradeTerms is required)"
 REFUSED = "school margin {what}: {why}"
-
-
-@dataclass(frozen=True)
-class RoadTradeTerms(TradeTerms):
-    """A school trade: C2's terms plus the index, the expiry, the legs and the units per lot it was entered with."""
-
-    underlying: str
-    expiry: date
-    legs: tuple[Leg, ...]
-    lot: int
-
-    def __post_init__(self):
-        super().__post_init__()
-        if self.underlying not in ROAD_UNDERLYINGS or self.lot <= 0 or not self.legs:
-            raise RiskInputError(f"school margin: {self.underlying} lot {self.lot} with {len(self.legs)} legs")
-        strikes = sorted({leg.strike for leg in self.legs})
-        if self.structure in STRUCTURES_ONE_SIDE and strikes[-1] - strikes[0] != self.width:
-            raise RiskInputError(f"school margin: {self.structure} legs are {strikes[-1] - strikes[0]:g} wide, not "
-                                 f"{self.width:g} (C2's cap reads the width)")  # fmt: skip
-
-    @property
-    def what(self) -> str:
-        return f"{self.underlying} {self.structure} {self.width:g} {self.expiry}"
 
 
 @dataclass(frozen=True)
@@ -81,7 +58,7 @@ class ArchivedSpanMargin(StressedMargin):
 
     def record(self, day: date | None = None) -> dict[str, str]:
         """The method, the factor row in force and its label; with a day, the file it reads."""
-        found = {"method": self.method, "factor_label": FACTOR_LABEL}
+        found = {"method": self.method, "factor_label": FACTOR_LABEL, "broker_check_label": BROKER_LABEL}
         if day is None:
             return found
         name, sha256, _ = self._file(day)
@@ -111,7 +88,7 @@ class ArchivedSpanMargin(StressedMargin):
         if (day, underlying) not in self._spans:
             name, _, data = self._file(day)
             try:
-                span = read_span_file(data, name, symbol=underlying, allow_short_option_minimum=True)
+                span = read_span_file(data, name, symbol=underlying)  # A14's daily mode: a method change refuses
             except BadFile as exc:  # damaged, or the index's margin method is not the one modelled
                 raise RiskInputError(REFUSED.format(what=name, why=exc)) from exc
             if not span.written_in_time(day):
@@ -125,13 +102,15 @@ class ArchivedSpanMargin(StressedMargin):
         if day not in self._files:
             try:
                 name, data = self.source.day_file(day)
-            except OSError as exc:  # Drive unreachable or refusing: the class name only
+            except Exception as exc:  # Drive down, a refused or expired sign-in, two same-named items: by class only
                 raise RiskInputError(
                     REFUSED.format(what=day, why=f"the archive could not be read ({type(exc).__name__})")
                 ) from exc
             if data is None:
                 raise RiskInputError(REFUSED.format(what=name, why="not in the archive"))
             sha256, expected = hashlib.sha256(data).hexdigest(), self.source.manifest().get(day)
+            if expected is None:
+                raise RiskInputError(REFUSED.format(what=name, why="has no row in A9's manifest"))
             if sha256 != expected:
                 raise RiskInputError(REFUSED.format(what=name, why="differs from its manifest SHA-256"))
             self._files[day] = (name, sha256, data)

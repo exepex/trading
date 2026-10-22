@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -32,6 +33,7 @@ COLUMNS = ("day", "road", "expiry", "kind", "structure", "width", "row_initial",
            "real_stressed", "row_entry", "real_entry", "expected_move")  # fmt: skip
 STRUCTURES = {s.code: s for s in build_tradable_structures()}
 CALCULATOR = SpanMarginCalculator(NseIndexOptionExposure(), 1)
+SKIPPED: Counter[str] = Counter()  # combinations not measured, by reason, printed at the end
 
 
 def nearest(strikes, level: float) -> float:
@@ -73,10 +75,12 @@ def measure_expiry(span, road: str, expiry: date, kind: str, day: date):
         for code, real in pilot_legs(strikes, span.underlying, move, width, step).items():
             row = STRUCTURES[code].legs(frozenset(options), span.underlying, width)
             if row is None:
+                SKIPPED["the row's legs are not listed"] += 1
                 continue
             try:
                 found = figures(parts(span, expiry, row, code, width, day), parts(span, expiry, real, code, width, day))
-            except (MarginOutsideModel, RiskInputError, KeyError):
+            except (MarginOutsideModel, RiskInputError, KeyError) as exc:
+                SKIPPED[type(exc).__name__] += 1
                 continue
             yield [day, road, expiry, kind, code, f"{width:g}", *found, f"{move:.2f}"]
 
@@ -109,6 +113,7 @@ def main() -> int:
                 print(f"{day}: not in the archive")
                 continue
             writer.writerows(measure_day(day, name, data))
+    print("not measured:", dict(SKIPPED) or "none")
     return 0
 
 
