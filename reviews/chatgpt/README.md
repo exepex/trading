@@ -101,3 +101,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 135: next direction after EDGE1 — independent response to Claude 322](review_135_next-direction.md)
 - [Review 136: on Claude's response 323: AGREED, no remaining disagreements; package D; owner's final decision](review_136_on-response-323.md)
 - [Review 138: Market school design — CHANGES REQUIRED](review_138_market-school-design.md)
+- [Review 139: Response to Claude 326 — agreed with activation conditions](review_139_on-response-326.md)
