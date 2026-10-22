@@ -41,14 +41,16 @@ def _key(days: Sequence[date]) -> str:
 
 
 def cached_rows(symbols: Sequence[str], days: Sequence[date], fo_files: Sequence[DailyFiles],
-                cache: Path = CACHE) -> dict[str, list[DayRows]]:  # fmt: skip
-    """Each symbol's rows on every day (days with no file are left out), each file read once, the result cached."""
-    path = cache / f"{'_'.join(s.lower() for s in symbols)}_{_key(days)}.pkl.gz"
+                options_for: Sequence[str] = (), cache: Path = CACHE) -> dict[str, list[DayRows]]:  # fmt: skip
+    """Each symbol's rows on every day (days with no file are left out), each file read once, the result cached;
+    monthly options only for the symbols in `options_for`."""
+    name = "_".join(s.lower() + ("+o" if s in options_for else "") for s in symbols)
+    path = cache / f"{name}_{_key(days)}.pkl.gz"
     if path.is_file():
         return pickle.loads(gzip.decompress(path.read_bytes()))
     found = {s: [] for s in symbols}
     for day in days:
-        for symbol, rows in day_rows(fo_files, day, symbols).items():
+        for symbol, rows in day_rows(fo_files, day, symbols, options_for).items():
             found[symbol].append(rows)
     cache.mkdir(parents=True, exist_ok=True)
     path.write_bytes(gzip.compress(pickle.dumps(found)))

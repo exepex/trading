@@ -44,7 +44,9 @@ def derived_lot(turnover: float, contracts: int, settle: float) -> int | None:
     return round(turnover / (contracts * settle))
 
 
-def rows_of(day: date, records: Sequence[dict], symbol: str, source: str) -> DayRows:
+def rows_of(day: date, records: Sequence[dict], symbol: str, source: str, with_options: bool = True) -> DayRows:
+    """Monthly options only (an expiry with a future listed that day, the engine's monthly rule); none when
+    `with_options` is False (NIFTY: the panel has them, only its lots are read here)."""
     options, futures, lots = [], [], {}
     for r in records:
         if r["TckrSymb"] != symbol or r["FinInstrmTp"] not in (INDEX_OPTION, INDEX_FUTURE):
@@ -63,10 +65,13 @@ def rows_of(day: date, records: Sequence[dict], symbol: str, source: str) -> Day
                 found = derived_lot(_number(r["TtlTrfVal"]), volume, settle)
                 if found:
                     lots[expiry] = found
-    return DayRows(day, tuple(options), tuple(futures), lots, source)
+    monthly = {f.expiry for f in futures}
+    kept = tuple(q for q in options if with_options and q.expiry in monthly)
+    return DayRows(day, kept, tuple(futures), lots, source)
 
 
-def day_rows(fo_files: Sequence[DailyFiles], day: date, symbols: Sequence[str]) -> dict[str, DayRows]:
+def day_rows(fo_files: Sequence[DailyFiles], day: date, symbols: Sequence[str],
+             options_for: Sequence[str] = ()) -> dict[str, DayRows]:  # fmt: skip
     """Each symbol's rows from the first archived file that has the day; an empty dict when no file has it."""
     for files in fo_files:
         if not files.covers(day):
@@ -78,7 +83,7 @@ def day_rows(fo_files: Sequence[DailyFiles], day: date, symbols: Sequence[str]) 
             records = read_fo_file(name, data)
         except BadFile:
             continue
-        found = {s: rows_of(day, records, s, files.label) for s in symbols}
+        found = {s: rows_of(day, records, s, files.label, s in options_for) for s in symbols}
         if any(r.options or r.futures for r in found.values()):
             return found
     return {}
