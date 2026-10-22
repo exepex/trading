@@ -120,7 +120,8 @@ modifies or cancels orders, and neither uses Groww.
    A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
 1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
    list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
-   `receipts/data/closes/`; exit 1 means those receipts were NOT committed: post that line to #fno-desk). Then, before
+   `receipts/data/closes/`; exit 1: post every line it printed (the read's problem line and the commit line) to
+   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then, before
    `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
    dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
    data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
@@ -257,7 +258,9 @@ commit with `--no-verify`.
   `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b) and
   `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
   scores: A4's chains, the panel, closes, O9's Drive store, story G13) and `fno/price_ranges/wiring.py` (NIFTY's and
-  BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b).
+  BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b)
+  and `fno/itm_chance/wiring.py` (each monthly contract's market-implied ITM chance and its calibration: G13's records,
+  E7's settlement reader and the legacy-file reader behind it, G13b's closes, O9's Drive store, story G13c).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
