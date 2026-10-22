@@ -194,3 +194,22 @@ def test_the_run_command_with_the_switch_off_prints_the_off_line_and_builds_noth
     said = []
     assert cli.cmd_run(Namespace(session=b.SESSION, replay=None), said.append) == 0
     assert said == [SCHOOL_OFF_LINE]
+
+
+def test_no_ledger_ever_holds_more_than_the_displayed_size_could_serve(tmp_path):
+    """Orchestrator's ruling c: by construction, every account and ticket fill recorded at one snapshot fits its
+    displayed size together; three accounts and their tickets compete on 60 units, then exits beside new entries."""
+    drivers = (trader(), trader(REF), trader(all_roads("DR1")))
+    rig = Rig(tmp_path, drivers, LAWS, snapshots=thin(60), max_new=0)
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    rig.fleet.drivers, rig.fleet.settings = (*(trader(d.card, exit_reason=ExitReason.SESSIONS_HELD) for d in drivers),
+                                             ), replace(rig.fleet.settings, max_new_trades_per_slot=5)  # fmt: skip
+    rig.at(DAY2).fleet.run(DAY2, RunMode.REPLAY)
+    for session in (b.SESSION, DAY2):
+        used: dict = {}
+        for store in (rig.accounts, rig.ticket_accounts):
+            for entry in (e for ledger in store.ledgers.values() for e in ledger):
+                if entry.fill.filled_at.date() == session:
+                    for leg in entry.fill.legs:
+                        used[(leg.key, leg.side)] = used.get((leg.key, leg.side), 0) + leg.units
+        assert used and max(used.values()) <= 60, session

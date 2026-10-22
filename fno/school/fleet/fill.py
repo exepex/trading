@@ -19,7 +19,7 @@ from ..contracts.records import DecisionRecord, DriftRow, ExitRecord
 from ..contracts.seal import Seal
 from ..execution.drift import drift_rows
 from ..tickets.shared_size import OwnedFill, allocate
-from .books import Books
+from .books import Books, account_call
 from .ledgers import Recorded, ledger_id
 from .outcomes import TICKET_PREFIX
 from .running_view import opened_position, position_id
@@ -87,19 +87,23 @@ class FillStep:
         return self.books.fills.exit(held.still_open[exit_.position_id], snapshot, seal.sha256, seal, at)
 
     def _open(self, record: DecisionRecord, fill: FillResult, seal: Seal) -> None:
+        driver_id = record.decision.driver_id
         if record.decision.outcome == Outcome.TICKET:
-            self.books.tickets.open(record, seal.sha256, fill)
+            account_call(driver_id, self.books.tickets.open, record, seal.sha256, fill)
         else:
-            entry = LedgerEntry(opened_position(record.decision, fill.cash), fill, closes=False)
-            self.books.accounts.record(record.decision.driver_id, entry)
+            entry = LedgerEntry(opened_position(record.decision, fill.cash), fill, closes=False,
+                                recorded_for=record.session)  # fmt: skip
+            account_call(driver_id, self.books.accounts.record, driver_id, entry)
 
     def _close(self, exit_: ExitRecord, fill: FillResult, held: Recorded) -> None:
         position = held.still_open[exit_.position_id]
         if exit_.position_id.startswith(TICKET_PREFIX):
-            self.books.tickets.close(position, fill, exit_.exit_reason)
+            account_call(position.driver_id, self.books.tickets.close, position, fill, exit_.exit_reason, exit_.session)
         else:
-            closing = LedgerEntry(position, fill, closes=True, exit_reason=exit_.exit_reason)
-            self.books.accounts.record(position.driver_id, closing)
+            closing = LedgerEntry(
+                position, fill, closes=True, exit_reason=exit_.exit_reason, recorded_for=exit_.session
+            )
+            account_call(position.driver_id, self.books.accounts.record, position.driver_id, closing)
 
     def _drift(self, session, record: DecisionRecord, fill: FillResult) -> tuple[DriftRow, ...]:
         return drift_rows(session, position_id(record.decision), record.road, fill, self.capture_1515)

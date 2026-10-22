@@ -29,6 +29,9 @@ class TodayInputs(Protocol):
     def plan(self, session: date) -> tuple[PlannedTrade, ...]:
         """The paper trades planned for the session's 15:00 slot."""
 
+    def source(self, session: date) -> date:
+        """The session whose 15:00 data the roads and the plan come from (at 08:50, the previous session's)."""
+
 
 class DayInputs(Protocol):
     def records(self, session: date) -> tuple[SlotRecord, ...]:
@@ -39,3 +42,6 @@ class DayInputs(Protocol):
 
     def role_of(self, driver_id: str) -> DriverRole:
         """The driver card's role: only rule drivers are shown as trades."""
+
+    def marks(self, session: date) -> tuple[str, ...]:
+        """The run's marks on the session's record, shown as written (e.g. a rerun after 15:30: MS-P1j)."""

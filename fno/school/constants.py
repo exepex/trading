@@ -90,6 +90,9 @@ class RefusalReason(StrEnum):
     STALE_SEAL = "stale_seal"
 
 
+FLEET_STOPPED = "stopped:"  # MS-P1j: how a fleet run that stopped loudly begins its status (its CLI then exits 1)
+
+
 class UnavailableReason(StrEnum):
     DRIVER_ERROR = "driver_error"
     DEADLINE = "deadline"

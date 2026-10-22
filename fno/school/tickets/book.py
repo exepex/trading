@@ -61,17 +61,22 @@ class TicketBook:
         sealed = SealedDecision(record.decision, file_sha256)
         if sealed.decision.outcome != Outcome.TICKET or not fill.filled:
             raise ValueError("the ticket book opens filled tickets only")
-        self.ledger.store.record(sealed.decision.driver_id, LedgerEntry(_position(sealed, fill), fill, closes=False))
+        entry = LedgerEntry(_position(sealed, fill), fill, closes=False, recorded_for=sealed.decision.session)
+        self.ledger.store.record(sealed.decision.driver_id, entry)
 
     def exit(self, position: OpenPosition, reason: ExitReason, snapshot: SlotSnapshot, file_sha256: str, seal: Seal,
              at: datetime) -> FillResult:  # fmt: skip
-        return self.close(position, self.fills.exit(position, snapshot, file_sha256, seal, at), reason)
+        fill = self.fills.exit(position, snapshot, file_sha256, seal, at)
+        return self.close(position, fill, reason, snapshot.session)
 
-    def settle(self, position: OpenPosition, expiry: date) -> FillResult:
-        return self.close(position, self.fills.settle(position, expiry), ExitReason.EXPIRY)
+    def settle(self, position: OpenPosition, expiry: date, session: date | None = None) -> FillResult:
+        """`session`: the session whose run settles it (`LedgerEntry.recorded_for`)."""
+        return self.close(position, self.fills.settle(position, expiry), ExitReason.EXPIRY, session)
 
-    def close(self, position: OpenPosition, fill: FillResult, reason: ExitReason) -> FillResult:
+    def close(self, position: OpenPosition, fill: FillResult, reason: ExitReason,
+              session: date | None = None) -> FillResult:  # fmt: skip
         """Records the closing when `fill` filled (the fleet's exits after the shared size, settlement here)."""
         if fill.filled:
-            self.ledger.store.record(position.driver_id, LedgerEntry(position, fill, closes=True, exit_reason=reason))
+            closing = LedgerEntry(position, fill, closes=True, exit_reason=reason, recorded_for=session)
+            self.ledger.store.record(position.driver_id, closing)
         return fill

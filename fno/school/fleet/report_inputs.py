@@ -13,7 +13,7 @@ from ..contracts.roads import RoadCatalogue, RoadDay
 from ..contracts.slot_file import SlotRecord
 from ..contracts.tickets import OpportunityCounts
 from ..reports.inputs import PlannedTrade
-from .counts_file import opportunity_path
+from .counts_file import SessionCounts, opportunity_path
 from .isolate import isolated
 from .slot import plan_slot
 
@@ -41,6 +41,9 @@ class SealedDayInputs:
     def role_of(self, driver_id: str) -> DriverRole:
         return self.roles[driver_id]
 
+    def marks(self, session: date) -> tuple[str, ...]:
+        return SessionCounts(self.root, None).marks(session, SLOT_1500)
+
 
 class PreviousSlotToday:
     """The 08:50 section's inputs (325 9.21, "plan at 08:50, booking at the slot"): today's captures do not
@@ -54,10 +57,13 @@ class PreviousSlotToday:
         self.drivers, self.history, self.seconds = drivers, history, seconds
 
     def roads(self, session: date) -> tuple[RoadDay, ...]:
-        return self.catalogue.day(self.calendar.previous_session(session))
+        return self.catalogue.day(self.source(session))
+
+    def source(self, session: date) -> date:
+        return self.calendar.previous_session(session)
 
     def plan(self, session: date) -> tuple[PlannedTrade, ...]:
-        previous = self.calendar.previous_session(session)
+        previous = self.source(session)
         slot = plan_slot(previous, self.catalogue, self.snapshots, self.gate)
         planned = []
         for driver in (d for d in self.drivers if d.card.role is DriverRole.RULE):

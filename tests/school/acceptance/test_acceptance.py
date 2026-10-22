@@ -240,7 +240,15 @@ def test_the_refusal_is_in_the_counts_file_as_not_executed():
     rig = fake_rig(fault.plant(CLEAN))
     rig.fleet.run(CLEAN.session, RunMode.REPLAY)
     rows = [row for row in json.loads(rig.count_file(CLEAN.session)) if row["driver"] == fault.driver_id]
-    assert len(rows) == 5 and {(r["outcome"], r["executed"]) for r in rows} == {("refused", 0)}
+    assert len(rows) == 1 and {(r["outcome"], r["executed"]) for r in rows} == {("refused", 0)}  # its card's one road
+
+
+def test_a_card_limited_to_one_road_is_scheduled_only_there_by_the_harness_and_the_fleet():
+    scenario = refused_entry(ROAD).plant(CLEAN)
+    planted = {key for key in scenario.scheduled if key[1] == "OVR@1"}
+    assert planted == {(ROAD, "OVR@1")} and len(scenario.scheduled) == 3 * 5 + 1
+    run = fake_rig(scenario).fleet.run(scenario.session, RunMode.REPLAY)
+    assert {(r.road, r.decision.driver_id) for r in run.decisions} == scenario.scheduled
 
 
 def test_every_fault_leaves_every_scheduled_decision_sealed():

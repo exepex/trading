@@ -1,6 +1,7 @@
 """Judge 479 finding 4: the fleet contract and its fake, for MS-P1i's harness; MS-P1j's real fleet passes the same
 checks. Also criterion 6: with the switch off the fleet prints the school-off line and records nothing."""
 
+import dataclasses
 from datetime import timedelta
 
 import pytest
@@ -26,11 +27,15 @@ AT = b.SLOT_AT + timedelta(minutes=4)
 CLOSED = RoadStatus(ClosureReason.HASH_MISMATCH)
 
 
+def every_road(code: str):
+    return dataclasses.replace(b.card(code), roads=tuple(r.code for r in ROADS))
+
+
 def fleet(enabled: bool = True, limit: float = 10_000, dashcam: FakeDashcam | None = None) -> FakeFleet:
     days = tuple(b.road_day(r.code) if r.code == RoadCode.BANKNIFTY_MONTHLY else b.road_day(r.code, CLOSED)
                  for r in ROADS)  # fmt: skip
     snapshots = FakeSnapshotSource({(RoadCode.BANKNIFTY_MONTHLY, b.SESSION): b.snapshot()})
-    drivers = (FakeDriver(b.card("CS1"), b.put_spread()), FakeDriver(b.card("N0")))
+    drivers = (FakeDriver(every_road("CS1"), b.put_spread()), FakeDriver(every_road("N0")))
     return FakeFleet(enabled, FakeRoadCatalogue({b.SESSION: days}), snapshots, drivers, (FakeMaxLossLaw(limit),),
                      FakeAccounts(2_000_000), FakeFills(), dashcam or FakeDashcam(), FixedClock(AT))  # fmt: skip
 

@@ -2,6 +2,10 @@
 reasons, read from each record's own law results (a refusal named by a stop still counts here when a quote law also
 refused). The capture gate's band is about 10 steps while the shorts sit about 20 out, so thin far legs stay visible.
 
+The "why refused" breakdown counts every reason a decision carried (Judge I's note, orchestrator 22 Oct 2026): the
+three counts use the one named refusal per decision so their totals add up, while this line shows a risk law that
+failed only because a quote was missing as the consequence it is. It is labelled so nobody sums it to decisions.
+
 Margin-not-checked refusals are counted by their cause, the cause's name only: a law result's note can name a
 contract or a leg (MS-P1m's causes do), so a note is never quoted and never leaves the dashcam (judge 494)."""
 
@@ -48,8 +52,18 @@ def cause_name(note: str) -> str:
     return note.removeprefix(MARGIN_NOT_CHECKED).split(":", 1)[0].strip()
 
 
+def reason_counts(records: Iterable[DecisionRecord]) -> Counter:
+    """(road, reason) -> the number of decisions that carried that refusal among their law results."""
+    counts = Counter()
+    for record in records:
+        for reason in {r.reason for r in record.law_results if not r.passed and r.reason is not None}:
+            counts[(record.road, reason)] += 1
+    return counts
+
+
 QUOTE_LINE = "{road}: {refused} of {scheduled} refused for quotes ({share:.0%})"
 MARGIN_LINE = "{road}: margin not checked ({cause}) x{count}"
+REASONS_LINE = "{road}: refusal reasons, a decision can have several: {reasons}"
 
 
 def share_lines(records: tuple[DecisionRecord, ...]) -> tuple[str, ...]:
@@ -58,4 +72,8 @@ def share_lines(records: tuple[DecisionRecord, ...]) -> tuple[str, ...]:
              for s in quote_shares(records)]  # fmt: skip
     causes = sorted(margin_unchecked_causes(records).items())
     lines += [MARGIN_LINE.format(road=road, cause=cause, count=n) for (road, cause), n in causes]
+    by_road: dict = {}
+    for (road, reason), n in sorted(reason_counts(records).items()):
+        by_road.setdefault(road, []).append(f"{reason} x{n}")
+    lines += [REASONS_LINE.format(road=road, reasons=", ".join(reasons)) for road, reasons in by_road.items()]
     return tuple(lines)

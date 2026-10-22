@@ -3,7 +3,17 @@
 import csv
 from dataclasses import dataclass, replace
 
-from fno.school.constants import SLOT_1500, ExitReason, Outcome, RecordKind, RefusalReason, RoadCode, TicketReason
+from fno.school.constants import (
+    SLOT_1500,
+    ExitReason,
+    NoTradeReason,
+    Outcome,
+    RecordKind,
+    RefusalReason,
+    RoadCode,
+    TicketReason,
+)
+from fno.school.contracts.decisions import Decision
 from fno.school.contracts.fleet import RunMode
 from fno.school.contracts.records import DecisionRecord, OutcomeRecord
 from fno.school.contracts.safety import LawResult
@@ -101,3 +111,40 @@ def test_both_counts_files_are_written_with_every_scheduled_decision(tmp_path):
     opportunity = list(csv.DictReader((tmp_path / opportunity_path(b.SESSION, SLOT_1500)).open()))
     assert len(opportunity) == 10 and all(not set(row) - {"session", "road", "driver", "eligible", "fillable",
                                                           "executed"} for row in opportunity)  # fmt: skip
+
+
+@dataclass
+class OnePerRoad(FakeDriver):
+    """A card's own "already holding" rule: no new position on a road it holds one on."""
+
+    def decide(self, road_day, snapshot, history, positions):
+        if positions:
+            return Decision(self.card.driver_id, road_day.road.code, road_day.session, Outcome.NO_TRADE,
+                            NoTradeReason.POSITION_OPEN)  # fmt: skip
+        return super().decide(road_day, snapshot, history, positions)
+
+
+def limit(rig, max_new: int):
+    rig.fleet.settings = replace(rig.fleet.settings, max_new_trades_per_slot=max_new)
+
+
+def test_a_held_ticket_never_blocks_a_real_entry_on_its_road(tmp_path):
+    rig = Rig(tmp_path, (OnePerRoad(CS1, b.put_spread()),), (FakeMaxLossLaw(10_000),), max_new=0)
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    assert len(rig.ticket_accounts.ledgers["CS1@1"]) == 1 and "CS1@1" not in rig.accounts.ledgers
+    limit(rig, 5)
+    rig.at(DAY2).fleet.run(DAY2, RunMode.REPLAY)
+    assert decision_on(rig, DAY2).outcome == Outcome.TRADE and len(rig.accounts.ledgers["CS1@1"]) == 1
+
+
+def test_the_same_road_is_never_ticketed_twice(tmp_path):
+    rig = Rig(tmp_path, (OnePerRoad(CS1, b.put_spread()),), (FakeMaxLossLaw(10_000),), max_new=0)
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    rig.at(DAY2).fleet.run(DAY2, RunMode.REPLAY)
+    second = decision_on(rig, DAY2)
+    assert (second.outcome, second.reason) == (Outcome.NO_TRADE, NoTradeReason.POSITION_OPEN)
+    assert len(rig.ticket_accounts.ledgers["CS1@1"]) == 1
+
+
+def decision_on(rig, session):
+    return next(r.decision for r in sealed(rig, session) if r.road == OPEN_ROAD)

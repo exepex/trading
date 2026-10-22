@@ -60,6 +60,10 @@ class LedgerEntry:
     fill: FillResult
     closes: bool
     exit_reason: ExitReason | None = None
+    # The session whose run recorded it (MS-P1j; orchestrator's ruling b, 22 Oct 2026): a session date, not a clock
+    # time, so a replay stays byte-identical; a rerun rebuilds that session's settlements from it. The fleet always
+    # sets it; None only for entries made outside a session's run.
+    recorded_for: date | None = None
 
     def __post_init__(self):
         if not self.fill.filled:

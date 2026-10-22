@@ -12,7 +12,6 @@ scenario's `fill_at`. The stale-seal fault is then a fill before the real receip
 
 import csv
 import os
-from dataclasses import replace
 from datetime import date
 
 from fno.config import ROOT, load_config
@@ -42,7 +41,6 @@ from tests.school.roads.capture_builder import CALENDAR, DictStore, FixtureListi
 from tests.school.safety.law_builders import FixedMargin
 
 CFG = load_config(ROOT / "config.yaml")
-ALL_ROADS = tuple(road.code for road in ROADS)
 
 
 class DatedFleet:
@@ -88,7 +86,7 @@ def real_rig(scenario, tmp_path) -> Rig:
     (tmp_path / "dashcam").mkdir(parents=True)
     dashcam = cam.build(tmp_path / "dashcam").store
     counts_root = tmp_path / "counts"
-    drivers = tuple(FakeDriver(replace(plan.card, roads=ALL_ROADS), plan.proposal) for plan in scenario.drivers)
+    drivers = tuple(FakeDriver(plan.card, plan.proposal) for plan in scenario.drivers)
     margin = FixedMargin()
     fleet = SchoolFleet(
         settings, catalogue, RecordedSnapshotSource(reader), RoadQualityGate(listing), NoHistory(), drivers,

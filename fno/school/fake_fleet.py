@@ -37,7 +37,10 @@ class FakeFleet:
             records = tuple(r for r in self.dashcam.read(sealed) if isinstance(r, DecisionRecord))
             return SessionRun(session, mode, "", records, sealed)
         planned = [
-            self._decide(road_day, driver) for road_day in self.catalogue.day(session) for driver in self.drivers
+            self._decide(road_day, driver)
+            for road_day in self.catalogue.day(session)
+            for driver in self.drivers
+            if road_day.road.code in driver.card.roads  # only the card's own roads, as the real fleet schedules
         ]
         records = tuple(record for record, _ in planned)
         if not records:

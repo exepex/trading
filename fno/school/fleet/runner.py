@@ -12,11 +12,13 @@ is the only switch: off, it prints the school-off line and touches nothing.
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Protocol
 
+from ...desk.settlement import SETTLEMENT_TIME as SESSION_CLOSE
 from ...desk.snapshot import ExecutionSnapshot
-from ..constants import SCHOOL_OFF_LINE, SLOT_1500, ExitReason, RecordKind, RoadCode
+from ...models import IST
+from ..constants import FLEET_STOPPED, SCHOOL_OFF_LINE, SLOT_1500, ExitReason, RecordKind, RoadCode
 from ..contracts.clock import Clock
 from ..contracts.dashcam import DashcamStore
 from ..contracts.decisions import Driver, SpotPoint
@@ -26,7 +28,7 @@ from ..contracts.roads import ROADS_BY_CODE, Road, RoadCatalogue
 from ..contracts.snapshot import SlotSnapshot, SnapshotSource
 from ..settings import SchoolSettings
 from ..tickets.counts import counts_for
-from .books import Books, EntryMids
+from .books import AccountUnreadable, Books, EntryMids, account_call
 from .counts_file import SessionCounts
 from .decide import DriverStep
 from .fill import FillStep, SlotFills
@@ -36,6 +38,8 @@ from .settle import settle_expired
 from .slot import QualityGate, SlotRoads, plan_slot
 
 FINISHED = (RecordKind.OUTCOMES, RecordKind.DRIFT)
+LATE_RERUN = "rerun after 15:30, fillable may differ"  # ruling b's accepted limit, marked on the session's record
+ACCOUNT_STOP = FLEET_STOPPED + " account unreadable {reason}"  # the run's status; the CLI exits 1: an alert
 LawsFor = Callable[[Mapping[RoadCode, SlotSnapshot]], object]  # the slot's `SafetyLaws`, built on its marks
 
 
@@ -63,13 +67,19 @@ class SchoolFleet:
     def run(self, session: date, mode: RunMode) -> SessionRun:
         if not self.settings.enabled:
             return SessionRun(session, mode, SCHOOL_OFF_LINE)
+        try:
+            return self._run(session, mode)
+        except AccountUnreadable as stop:
+            return SessionRun(session, mode, ACCOUNT_STOP.format(reason=stop))
+
+    def _run(self, session: date, mode: RunMode) -> SessionRun:
         roads = plan_slot(session, self.catalogue, self.snapshots, self.gate)
         if not roads.scheduled:
             return SessionRun(session, mode, "")
         found = self.dashcam.find(session, SLOT_1500, RecordKind.DECISIONS)
         if found is not None:
             records, exits = self._sealed(found)
-            self._finish(roads, records, exits, found)
+            self._finish(roads, records, exits, found, rerun=True)
             return SessionRun(session, mode, "", records, found)
         settled = settle_expired(self.books, self._ids(), session)
         records, exits = self._decide(roads, session)
@@ -84,8 +94,8 @@ class SchoolFleet:
         records, exits = [], []
         for driver in self.drivers:
             driver_id = driver.card.driver_id
-            view = self.books.accounts.view(driver_id, roads.marks, session)
-            tickets = open_positions(self.books.ticket_entries.entries(driver_id))
+            view = account_call(driver_id, self.books.accounts.view, driver_id, roads.marks, session)
+            tickets = open_positions(account_call(driver_id, self.books.ticket_entries.entries, driver_id))
             slot = step.run(driver, roads, view, view.open_positions, tickets)
             records.extend(slot.records)
             exits.extend(slot.exits)
@@ -99,13 +109,15 @@ class SchoolFleet:
     def _ids(self) -> tuple[str, ...]:
         return tuple(d.card.driver_id for d in self.drivers)
 
-    def _finish(self, roads, records, exits, seal) -> SlotFills:
+    def _finish(self, roads, records, exits, seal, rerun: bool = False) -> SlotFills:
         """Rebuilt from the sealed records and the ledgers on every run, so a rerun after a crash at any point between
         the seal and the counts' commit makes what is missing and nothing twice."""
         session = roads.scheduled[0].session
         if self._sealed_once(session) and self.counts.written(session, SLOT_1500):
             self.counts.commit(session)  # a crash between the counts' write and their commit
             return SlotFills({}, frozenset(), ())
+        if rerun and self.clock.now() > datetime.combine(session, SESSION_CLOSE, IST):
+            self.counts.mark(session, SLOT_1500, LATE_RERUN)  # law 6 refuses every fill priced again now
         held = recorded(self.books, self._ids())
         slot_exits = tuple(e for e in exits if e.exit_reason != ExitReason.EXPIRY)
         fills = FillStep(self.books, self.capture_1515(session)).run(roads, records, slot_exits, seal,

@@ -11,7 +11,7 @@ from ..contracts.accounts import FillResult, LedgerEntry, SealedDecision
 from ..contracts.decisions import OpenPosition
 from ..contracts.records import DecisionRecord
 from ..tickets.book import ticket_id
-from .books import Books
+from .books import Books, account_call
 from .running_view import position_id
 
 
@@ -40,7 +40,7 @@ def recorded(books: Books, driver_ids: Iterable[str]) -> Recorded:
     openings, closings, still_open = {}, {}, {}
     for driver_id in driver_ids:
         for reader in (books.account_entries, books.ticket_entries):
-            entries = reader.entries(driver_id)
+            entries = account_call(driver_id, reader.entries, driver_id)
             for entry in entries:
                 (closings if entry.closes else openings)[entry.position.position_id] = entry.fill
             still_open |= {p.position_id: p for p in open_positions(entries)}

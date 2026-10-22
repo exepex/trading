@@ -3,9 +3,11 @@
 import time
 from dataclasses import replace
 from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
 
+from fno.school import cli, wiring
 from fno.school.constants import (
     ROAD_DETAIL_INPUT,
     SLOT_1500,
@@ -18,14 +20,16 @@ from fno.school.constants import (
     UnavailableReason,
 )
 from fno.school.contracts.accounts import SettlementPrice
-from fno.school.contracts.fleet import RunMode
+from fno.school.contracts.fleet import RunMode, SessionRun
 from fno.school.contracts.records import DecisionRecord, ExitRecord, OutcomeRecord
 from fno.school.contracts.roads import ROADS
 from fno.school.fakes import FakeDriver, FakeMaxLossLaw
 from fno.school.fleet.ledgers import open_positions
 from fno.school.fleet.records import ERROR_INPUT
+from fno.school.fleet.settle import settle_expired
 from tests.school.contracts import builders as b
 from tests.school.contracts import conformance as c
+from tests.school.contracts.test_settings import GOOD
 from tests.school.fleet.rig import DAY2, OPEN_ROAD, Rig, all_roads
 
 CS1, N0 = all_roads("CS1"), all_roads("N0")
@@ -129,13 +133,7 @@ def test_a_position_of_another_driver_makes_the_driver_unavailable_never_an_exit
 
 
 def test_an_expired_position_settles_before_the_session_s_view_and_its_outcome_is_sealed(tmp_path):
-    rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),),
-              settlements={("BANKNIFTY", b.EXPIRY): SettlementPrice(1_050.0, "ee" * 32)})  # fmt: skip
-    rig.fleet.run(b.SESSION, RunMode.REPLAY)
-    later = b.EXPIRY + timedelta(days=1)
-    rig.snapshots[(OPEN_ROAD, later)] = replace(b.snapshot(), session=later)
-    rig.fleet.catalogue.days[later] = tuple(replace(d, session=later) for d in rig.fleet.catalogue.days[b.SESSION])
-    rig.fleet.drivers = (FakeDriver(CS1),)
+    rig, later = expiring_rig(tmp_path)
     held_at_view, real_view = [], rig.accounts.view
 
     def view(driver_id, marks, session):
@@ -143,7 +141,7 @@ def test_an_expired_position_settles_before_the_session_s_view_and_its_outcome_i
         return real_view(driver_id, marks, session)
 
     rig.accounts.view = view
-    rig.at(later).fleet.run(later, RunMode.REPLAY)
+    rig.fleet.run(later, RunMode.REPLAY)
     assert held_at_view == [0], "the session's view came before the settlement"
     exits = [r for r in records(rig, later) if isinstance(r, ExitRecord)]
     assert [e.exit_reason for e in exits] == [ExitReason.EXPIRY]
@@ -156,3 +154,64 @@ def test_a_driver_is_scheduled_only_on_its_card_s_roads(tmp_path):
     run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
     mine = {r.road for r in run.decisions if r.decision.driver_id == "CS1@1"}
     assert mine == {OPEN_ROAD} and len([r for r in run.decisions if r.decision.driver_id == "N0@1"]) == 5
+
+
+def expiring_rig(tmp_path, max_new: int = 5):
+    rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),), max_new=max_new,
+              settlements={("BANKNIFTY", b.EXPIRY): SettlementPrice(1_050.0, "ee" * 32)})  # fmt: skip
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    later = b.EXPIRY + timedelta(days=1)
+    rig.snapshots[(OPEN_ROAD, later)] = replace(b.snapshot(), session=later)
+    rig.fleet.catalogue.days[later] = tuple(replace(d, session=later) for d in rig.fleet.catalogue.days[b.SESSION])
+    rig.fleet.drivers = (FakeDriver(CS1),)
+    return rig.at(later), later
+
+
+def test_a_crash_between_a_settlement_and_the_seal_still_seals_its_exit_and_outcome_on_the_rerun(tmp_path):
+    rig, later = expiring_rig(tmp_path)
+    settle_expired(rig.fleet.books, ("CS1@1",), later)  # the crashed run got this far: settled, nothing sealed
+    assert records(rig, later) == ()
+    rig.fleet.run(later, RunMode.REPLAY)
+    assert [e.exit_reason for e in records(rig, later) if isinstance(e, ExitRecord)] == [ExitReason.EXPIRY]
+    [outcome] = records(rig, later, RecordKind.OUTCOMES)
+    assert outcome.exit_reason == ExitReason.EXPIRY and outcome.exit.rests_on == "ee" * 32
+
+
+def test_an_unreadable_account_stops_the_session_by_name_and_seals_nothing(tmp_path):
+    rig = Rig(tmp_path, (trader(), FakeDriver(N0)), (FakeMaxLossLaw(10_000),))
+
+    def broken(driver_id, marks, session):
+        raise ValueError("ledger and position records disagree")
+
+    rig.accounts.view = broken
+    run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    assert run.status == "stopped: account unreadable CS1@1 (ValueError)" and run.decisions == ()
+    assert rig.dashcam.files == {} and "disagree" not in run.status
+
+
+def test_the_run_command_exits_1_on_a_stop_so_the_daily_run_alerts(monkeypatch):
+    stopped = SessionRun(b.SESSION, RunMode.RECORD, "stopped: account unreadable CS1@1 (ValueError)")
+    monkeypatch.setattr(wiring, "build_fleet", lambda *a, **k: SimpleNamespace(run=lambda session, mode: stopped))
+    monkeypatch.setattr(cli, "load_app_config", lambda: {"school": {**GOOD, "enabled": True}})
+    said = []
+    assert cli.cmd_run(SimpleNamespace(session=b.SESSION, replay=None), said.append) == 1
+    assert said == [stopped.status]
+
+
+def test_a_settlement_recorded_for_an_earlier_session_is_never_sealed_again(tmp_path):
+    rig, later = expiring_rig(tmp_path)
+    rig.fleet.run(later, RunMode.REPLAY)
+    after = later + timedelta(days=1)
+    rig.snapshots[(OPEN_ROAD, after)] = replace(b.snapshot(), session=after)
+    rig.fleet.catalogue.days[after] = tuple(replace(d, session=after) for d in rig.fleet.catalogue.days[b.SESSION])
+    rig.at(after).fleet.run(after, RunMode.REPLAY)
+    assert [r for r in records(rig, after) if isinstance(r, ExitRecord)] == []
+
+
+def test_an_expired_ticket_settles_in_its_own_ledger_and_its_outcome_is_sealed_as_a_ticket(tmp_path):
+    rig, later = expiring_rig(tmp_path, max_new=0)
+    rig.fleet.run(later, RunMode.REPLAY)
+    [exit_] = [r for r in records(rig, later) if isinstance(r, ExitRecord)]
+    assert exit_.exit_reason == ExitReason.EXPIRY and exit_.position_id.startswith("ticket:")
+    [outcome] = records(rig, later, RecordKind.OUTCOMES)
+    assert outcome.is_ticket and rig.accounts.ledgers == {}

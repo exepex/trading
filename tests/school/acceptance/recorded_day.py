@@ -34,6 +34,11 @@ def recorded_snapshot(code: RoadCode) -> SlotSnapshot:
                    finished_at=STARTED + timedelta(minutes=2), expiries=EXPIRIES, quotes=quotes)  # fmt: skip
 
 
+def every_road(card):
+    """The day's cards drive all five roads (a's builder card names BANKNIFTY only)."""
+    return replace(card, roads=tuple(road.code for road in ROADS))
+
+
 def recorded_day() -> Scenario:
     """All five roads open; CS1 and DR1 trade on each, N0 never does."""
     codes = [road.code for road in ROADS]
@@ -43,9 +48,9 @@ def recorded_day() -> Scenario:
         listed_expiries=dict.fromkeys(codes, EXPIRIES),
         lots={code: dict.fromkeys(EXPIRIES, LOT_UNITS) for code in codes},
         drivers=(
-            DriverPlan(b.card("CS1"), b.put_spread()),
-            DriverPlan(b.card("DR1"), b.put_spread(max_loss=1800.0)),
-            DriverPlan(b.card("N0")),
+            DriverPlan(every_road(b.card("CS1")), b.put_spread()),
+            DriverPlan(every_road(b.card("DR1")), b.put_spread(max_loss=1800.0)),
+            DriverPlan(every_road(b.card("N0"))),
         ),
         cap_rs=CAP_RS,
         fill_at=FILL_AT,

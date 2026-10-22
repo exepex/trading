@@ -2,8 +2,13 @@
 - only the card's own roads are scheduled for the driver (its `roads`; CARD_P1 section 1): each open one gets the
   driver's decision on its snapshot and its own earlier spots, each closed one a sealed `road_closed` with the road's
   reason;
-- the fired trades go through `tickets.rules.classify`, whose law check sees the slot's running view (the trades
-  already accepted), so the slot's caps add up before any fill;
+- the driver decides on the account's own positions only, so a virtual ticket never blocks a real entry; the fired
+  trades go through `tickets.rules.classify`, whose law check sees the slot's running view (the trades already
+  accepted), so the slot's caps add up before any fill;
+- a ticket is the hypothetical account without the account limits, holding the real positions and the open tickets:
+  on a road where the driver already holds a ticket, the card is asked again with both, and when it would not trade
+  there (its own "already holding" rule) no second ticket is made; its record is that decision (orchestrator's
+  ruling d, 22 Oct 2026);
 - each open position the driver holds on an open road gets the card's exit review, after the pairing check: a
   position of another driver is a wiring fault, and the driver's whole slot is `unavailable: driver_error`, never an
   exit.
@@ -57,7 +62,7 @@ class DriverStep:
         closed = tuple(closed_record(card, road) for road in roads.closed)
         if not roads.open:
             return DriverSlot(_in_order(roads, closed), ())  # nothing to decide or review on this slot
-        done = isolated(lambda: self._open_roads(driver, roads, view, (*held, *tickets)), self.seconds)
+        done = isolated(lambda: self._open_roads(driver, roads, view, held, tickets), self.seconds)
         if done.failed:
             failed = tuple(decision_record(card, unavailable(card, r.road_day, done.failed), r.snapshot, (),
                                            len(self.history(r.road_day.road.code)), done.error_class)
@@ -66,16 +71,13 @@ class DriverStep:
         records, exits = done.value
         return DriverSlot(_in_order(roads, records + closed), exits)
 
-    def _open_roads(self, driver: Driver, roads: SlotRoads, view: AccountView, positions: tuple[OpenPosition, ...]):
+    def _open_roads(self, driver: Driver, roads: SlotRoads, view: AccountView, held: tuple[OpenPosition, ...],
+                    tickets: tuple[OpenPosition, ...]):  # fmt: skip
         session, card = view_session(roads), driver.card
         snapshots = roads.marks
         decided = {}
         for road in roads.open:
-            code = road.road_day.road.code
-            mine = tuple(p for p in positions if p.road == code)
-            decision = driver.decide(road.road_day, road.snapshot, self.history(code), mine)
-            _check_identity(decision, card.driver_id, code, session)
-            decided[code] = decision
+            decided[road.road_day.road.code] = self._ask(driver, road, held, session)
         fired = tuple(d for d in decided.values() if d.outcome == Outcome.TRADE)
 
         def check(decision: Decision, accepted: tuple[Decision, ...]) -> tuple[LawResult, ...]:
@@ -83,11 +85,22 @@ class DriverStep:
 
         laws: dict[RoadCode, tuple[LawResult, ...]] = {}
         for final, results in classify(fired, check, self.max_new):
+            if final.outcome == Outcome.TICKET and any(t.road == final.road for t in tickets):
+                road = next(r for r in roads.open if r.road_day.road.code == final.road)
+                again = self._ask(driver, road, (*held, *tickets), session)
+                final, results = (final, results) if again.outcome == Outcome.TRADE else (again, ())
             decided[final.road], laws[final.road] = final, results
         records = tuple(decision_record(card, decided[r.road_day.road.code], r.snapshot,
                                         laws.get(r.road_day.road.code, ()), len(self.history(r.road_day.road.code)))
                         for r in roads.open)  # fmt: skip
-        return records, self._exits(driver, roads, positions)
+        return records, self._exits(driver, roads, (*held, *tickets))
+
+    def _ask(self, driver: Driver, road, positions: tuple[OpenPosition, ...], session: date) -> Decision:
+        code = road.road_day.road.code
+        mine = tuple(p for p in positions if p.road == code)
+        decision = driver.decide(road.road_day, road.snapshot, self.history(code), mine)
+        _check_identity(decision, driver.card.driver_id, code, session)
+        return decision
 
     def _exits(self, driver: Driver, roads: SlotRoads, positions: tuple[OpenPosition, ...]) -> tuple[ExitRecord, ...]:
         exits = []

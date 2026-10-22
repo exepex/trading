@@ -37,6 +37,7 @@ class HowDidTodayGoSection:
         banner = banner_for(len(closed_roads), candidates)
         lines = (
             banner_line(banner),
+            *self.inputs.marks(session),
             *self._trades(rule),
             *self._counts(session),
             *_problems(decisions),

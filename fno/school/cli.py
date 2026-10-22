@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..config import load_app_config
 from ..models import now_ist
-from .constants import SCHOOL_OFF_LINE, SETTINGS_KEY
+from .constants import FLEET_STOPPED, SCHOOL_OFF_LINE, SETTINGS_KEY
 from .settings import school_settings
 
 NOT_A_SESSION = "not a trading day: nothing scheduled"
@@ -47,7 +47,7 @@ def cmd_run(args, out=print) -> int:
     run = build_fleet(cfg, mode, session, replay_folder=args.replay).run(session, mode)
     for line in run_lines(run, share_lines):
         out(line)
-    return 0
+    return 1 if run.status.startswith(FLEET_STOPPED) else 0  # a stop fails the daily run's step, which alerts #fno-desk
 
 
 def run_lines(run, share_lines) -> list[str]:
