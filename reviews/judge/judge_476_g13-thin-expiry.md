@@ -45,3 +45,16 @@ an uncaught plant on what decides a result is a should-fix; tests need no re-fre
 
 **Next:** tests 1-3 with the plants caught, then round 2. Merge after Mon 26 Oct's run, outside 14:00-16:15
 (orchestrator's call).
+
+## Addendum 1
+
+**Scope:** story/g13-thin-expiry at 9cc3169c, round 2 of 2. The builder's message named 74ff3fd7; the branch head is
+9cc3169c. The change is tests only (`test_recorder.py` +27/-1) and the code is unchanged from 3e493108.
+
+**Verdict: PASS.** It may merge (orchestrator's call on timing).
+
+- The three required tests are present: a NO_QUOTES later expiry is a note; an ineligible expiry is never the
+  nearest; with no usable nearest expiry, every thin expiry fails.
+- My 7 plants re-run: 6 caught. The one survivor, "nearest itself in the slice", is equivalent: the nearest-OK guard
+  returns before the slice whenever the nearest is not OK, and that guard is now tested.
+- tests/price_distribution: 116 passed. `ruff check` and format are clean.
