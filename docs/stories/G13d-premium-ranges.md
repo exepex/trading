@@ -69,8 +69,11 @@ over plain carry.
     shows numbers from day one but prints "not yet decided (next look at n sessions)" between looks. Three looks
     with a containment rule slightly raise the chance of a lucky pass; the 250-session look is the one Q1 relies on
     unless the earlier pass repeats there [reasoning only].
-  - Said in advance: with a day-to-day spread of session coverage near 0.2, 60 sessions give an interval about
-    ±0.05 wide, as wide as the band, so the first look will most likely say "not yet decided" [reasoning only].
+  - Said in advance (corrected by judge 464 note 2): every contract of a session shares one index move, so a
+    session's coverage is near 0 or 1. Its SD is about 0.3 at 90% and 0.5 at 50%, not 0.2. Even under exact
+    calibration, the bands become reachable only from about 96 sessions (50%) and 138 sessions (90%). So the 60-session
+    look will almost surely say "not yet decided", and the 120 and 250 looks are the real ones [reasoning only:
+    judge's arithmetic, independent sessions assumed; autocorrelation would widen it further].
 
 ## Sealing, files, timing
 
