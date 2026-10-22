@@ -84,10 +84,9 @@ class FeedProbe:
         self._may_start(plan, day, 0)
 
     def _may_start(self, plan: Plan, day: date, count: int) -> None:
-        now = self.clock().astimezone(IST)
-        first, last = (datetime.combine(day, t, IST) for t in (plan.start, plan.latest_start))
-        if not first <= now <= last:
-            raise ProbeRefused(f"{plan.name} may start only {plan.start:%H:%M}-{plan.latest_start:%H:%M} IST")
+        refused = window_refusal(plan, day, self.clock())
+        if refused:
+            raise ProbeRefused(refused)
         if count > plan.cap:
             raise ProbeRefused(f"{plan.name} may hold at most {plan.cap} subscriptions, asked for {count}")
 
@@ -114,15 +113,18 @@ class FeedProbe:
 
     def _watch(self, end: datetime) -> None:
         while self.clock() < end:
-            self.wait(SAMPLE_SECONDS, end)
+            if not self.wait(SAMPLE_SECONDS, end):
+                return  # no time left to wait: never loop on the spot
             self.ticks.sample(self.feed.get_ltp(), LTP)
             self.ticks.sample(self.feed.get_index_value(), INDEX_VALUE)
 
-    def wait(self, seconds: float, end: datetime) -> None:
-        """Never past the plan's hard end time."""
+    def wait(self, seconds: float, end: datetime) -> bool:
+        """Never past the plan's hard end time; False when no time is left."""
         left = (end - self.clock()).total_seconds()
-        if left > 0:
-            self.sleep(min(seconds, left))
+        if left <= 0:
+            return False
+        self.sleep(min(seconds, left))
+        return True
 
     def release(self, instruments: Sequence[FeedInstrument]) -> list[str]:
         """Unsubscribes these instruments (every topic they hold) and forgets them; one line per failed call."""
@@ -146,6 +148,14 @@ class FeedProbe:
     @staticmethod
     def rate_limited(error: Exception) -> bool:
         return _rate_limited(error)
+
+
+def window_refusal(plan: Plan, day: date, now: datetime) -> str:
+    """'' inside the plan's start window, else why not: checked before any sign-in (judge 499 addendum 5)."""
+    first, last = (datetime.combine(day, t, IST) for t in (plan.start, plan.latest_start))
+    if first <= now.astimezone(IST) <= last:
+        return ""
+    return f"{plan.name} may start only {plan.start:%H:%M}-{plan.latest_start:%H:%M} IST"
 
 
 def _created(answer) -> int:

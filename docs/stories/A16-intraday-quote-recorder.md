@@ -705,6 +705,18 @@ one).
 **Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
 --groww` · **Size:** S · **Status:** story text round 2 for judge I (judge 499's two should-fixes and two minors, 23 Oct 2026)
 
+### Claims (code round 2, 23 Oct 2026: judge 499 addendum 5)
+- **Should-fixes 1 and 2** were already met at 4abcf179f, pushed after the reviewed ef896e21: the catch-up gate and the
+  ramp from 50 with halving. The tests and lines are in "Claims (code round 1 update)" below.
+- **Should-fix 3:** `feed_probe.window_refusal(plan, day, now)` is checked by the command **first**, before the gates,
+  any sign-in or any quote; the probe checks again after the sign-in and before the instrument list, and once more in
+  `run`. Test: clocks at 14:56 (alongside), 10:26 (coverage) and 16:01 (ramp) refuse with one line, and the gate, the
+  sign-in and the quotes are never reached (each stub fails the test if called).
+- **Minor 1:** `wait` returns False when no time is left, and the watch loop then returns, so a plant on its condition
+  ends instead of spinning (test).
+- **Minor 2:** when alongside cuts to 1,000 it prints which instruments it kept: index values, futures, then options,
+  and the last kept class. With today's ±10 strikes there are 226, so the cut does not happen.
+
 ### Claims (code round 1 update, 23 Oct 2026: judge 499 addenda 2-4)
 - **Ramp** (`fno/intraday/feed_ramp.py`, new): steps from 50; refusal means a raised call (not 429) or fewer topics
   created; refused batches released; after-close double refusal at 50 means `CLOSED`; between marks a first refusal is

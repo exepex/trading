@@ -179,6 +179,7 @@ def test_the_command_checks_the_gate_before_any_sign_in(monkeypatch, capsys):
 
     from fno.intraday import feed_cli, feed_wiring
 
+    monkeypatch.setattr("fno.models.now_ist", Clock(14, 45))  # inside alongside's window
     monkeypatch.setattr(feed_wiring, "build_gate", lambda: lambda day: "no alongside today: A16's 10:30 mark ...")
     monkeypatch.setattr(feed_wiring, "build_feed_probe", lambda cfg: pytest.fail("signed in before the gate"))
     assert feed_cli.cmd_feed_probe(Namespace(plan="alongside", minutes=None, config=None)) == 1
@@ -275,7 +276,29 @@ def test_the_ramp_command_checks_the_catch_up_before_any_sign_in(monkeypatch, ca
 
     from fno.intraday import feed_cli, feed_wiring
 
+    monkeypatch.setattr("fno.models.now_ist", Clock(15, 50))  # inside the after-close ramp's window
     monkeypatch.setattr(feed_wiring, "build_catch_up_gate", lambda: lambda day: "no ramp today: ...")
     monkeypatch.setattr(feed_wiring, "build_feed_probe", lambda cfg: pytest.fail("signed in before the gate"))
     assert feed_cli.cmd_feed_probe(Namespace(plan="ramp", minutes=None, config=None)) == 1
     assert capsys.readouterr().out.startswith("no ramp today")
+
+
+@pytest.mark.parametrize(("plan", "moment"), [("alongside", (14, 56)), ("coverage", (10, 26)), ("ramp", (16, 1))])
+def test_a_start_outside_the_window_is_refused_before_any_sign_in_or_quote(monkeypatch, capsys, plan, moment):
+    from argparse import Namespace
+
+    from fno.intraday import feed_cli, feed_wiring
+
+    monkeypatch.setattr("fno.models.now_ist", Clock(*moment))
+    monkeypatch.setattr(feed_wiring, "build_gate", lambda: pytest.fail("the gate before the window"))
+    monkeypatch.setattr(feed_wiring, "build_catch_up_gate", lambda: pytest.fail("the gate before the window"))
+    monkeypatch.setattr(feed_wiring, "build_feed_probe", lambda cfg: pytest.fail("signed in outside the window"))
+    assert feed_cli.cmd_feed_probe(Namespace(plan=plan, minutes=None, config=None)) == 1
+    assert capsys.readouterr().out.startswith(f"feed probe {plan}: refused: {plan} may start only")
+
+
+def test_the_watch_loop_never_spins_once_no_time_is_left():
+    clock = Clock(10, 20)
+    probe = FeedProbe(Feed(), clock, clock.sleep)
+    end = datetime(2026, 10, 27, 10, 20, tzinfo=IST)
+    assert probe.wait(5, end) is False and clock.now == end  # the loop returns instead of sampling on the spot

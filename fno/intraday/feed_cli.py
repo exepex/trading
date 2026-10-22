@@ -11,6 +11,11 @@ PLAN_SIDES = {
     "ramp-day": 50,
 }  # ±50 on every expiry to ~3 months: over 3,000 (23 Oct)  # strikes either side of ATM
 MAX_FOR = {"alongside": 1000}
+# The universe lists index values, futures, then options index by index: a cut keeps those first (judge 499 addendum 5)
+CUT = (
+    "feed probe {plan}: kept the first {kept} of {found} instruments (index values, futures, then options; "
+    "the last kept: {last})"
+)
 
 
 def add_feed_probe_parser(actions) -> None:
@@ -22,10 +27,15 @@ def add_feed_probe_parser(actions) -> None:
 def cmd_feed_probe(args) -> int:
     from ..config import load_app_config
     from ..models import now_ist
-    from .feed_probe import PLANS, ProbeRefused, summary
+    from .feed_probe import PLANS, ProbeRefused, summary, window_refusal
     from .feed_wiring import build_catch_up_gate, build_feed_probe, build_gate, build_universe
 
-    day = now_ist().date()
+    now = now_ist()
+    day, plan = now.date(), PLANS[args.plan]
+    refused = window_refusal(plan, day, now)  # before any sign-in or quote (judge 499 addendum 5)
+    if refused:
+        print(f"feed probe {args.plan}: refused: {refused}")
+        return 1
     gate = {"alongside": build_gate, "ramp": build_catch_up_gate}.get(args.plan)
     blocked = gate()(day) if gate else ""
     if blocked:
@@ -33,10 +43,12 @@ def cmd_feed_probe(args) -> int:
         return 1
     probe, client = build_feed_probe(load_app_config(args.config))
     try:
-        probe.check_start(PLANS[args.plan], day)  # the instrument list and the index quotes come inside the window
+        probe.check_start(plan, day)  # again after the sign-in: the list and the quotes come inside the window too
         instruments = build_universe(client, PLAN_SIDES[args.plan], every_expiry=args.plan.startswith("ramp"))
-        instruments = instruments[: MAX_FOR.get(args.plan, len(instruments))]
-        outcome = probe.run(PLANS[args.plan], instruments, day, args.minutes)
+        kept = instruments[: MAX_FOR.get(args.plan, len(instruments))]
+        if len(kept) < len(instruments):
+            print(CUT.format(plan=args.plan, kept=len(kept), found=len(instruments), last=kept[-1].feed_class()))
+        outcome = probe.run(plan, kept, day, args.minutes)
     except ProbeRefused as refused:
         print(f"feed probe {args.plan}: refused: {refused}")
         return 1
