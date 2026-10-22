@@ -17,8 +17,8 @@ IndexCloses = Callable[[date], float | None]
 def _number(text: str) -> float:
     try:
         return float(text) if text not in ("", "-") else 0.0
-    except ValueError:
-        return 0.0
+    except ValueError as error:
+        raise BadFile(f"not a number: {text!r}") from error
 
 
 class BhavcopyChain:
@@ -33,10 +33,9 @@ class BhavcopyChain:
             if data is None:
                 continue
             try:
-                records = read_fo_file(name, data)
+                chain = self._chain(session, underlying, read_fo_file(name, data), files.label)
             except BadFile:
-                continue
-            chain = self._chain(session, underlying, records, files.label)
+                continue  # a damaged file, or a number that is not one, is never read partly
             if chain.rows:
                 return chain
         return None
@@ -44,7 +43,7 @@ class BhavcopyChain:
     def _chain(self, session: date, underlying: str, records: Sequence[dict], source: str) -> DayChain:
         mine = [r for r in records if r["TckrSymb"] == underlying and r["FinInstrmTp"] in (INDEX_OPTION, INDEX_FUTURE)]
         monthly = {_expiry(r) for r in mine if r["FinInstrmTp"] == INDEX_FUTURE}
-        rows, lots, underlying_prices = [], {}, []
+        rows, lots, underlying_prices = [], {}, {}
         for r in mine:
             expiry = _expiry(r)
             board = int(_number(r.get("NewBrdLotQty") or ""))
@@ -52,11 +51,13 @@ class BhavcopyChain:
                 lots.setdefault(expiry, board)
             if r["FinInstrmTp"] == INDEX_OPTION:
                 rows.append(_row(r, expiry in monthly))
-                underlying_prices.append(_number(r.get("UndrlygPric") or ""))
+                underlying_prices.setdefault(expiry, []).append(_number(r.get("UndrlygPric") or ""))
         return DayChain(session, underlying, self._close(session, underlying_prices), tuple(rows), lots, source)
 
-    def _close(self, session: date, prices: list[float]) -> float | None:
-        stated = next((p for p in prices if p > 0), None)
+    def _close(self, session: date, prices: dict[date, list[float]]) -> float | None:
+        """The underlying price the nearest expiry's rows state, so the row order of far expiries cannot change it."""
+        nearest = prices[min(prices)] if prices else []
+        stated = next((p for p in nearest if p > 0), None)
         return stated if stated is not None else (self.index_close(session) if self.index_close else None)
 
 
@@ -66,6 +67,6 @@ def _expiry(record: dict) -> date:
 
 def _row(record: dict, monthly: bool) -> ChainRow:
     return ChainRow(
-        _expiry(record), float(record["StrkPric"]), OptionKind(record["OptnTp"]), _number(record["ClsPric"]),
+        _expiry(record), _number(record["StrkPric"]), OptionKind(record["OptnTp"]), _number(record["ClsPric"]),
         int(_number(record["TtlTradgVol"])), int(_number(record["OpnIntrst"])), monthly,
     )  # fmt: skip
