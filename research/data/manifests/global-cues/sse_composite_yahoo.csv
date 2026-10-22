@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:10:32.058187+05:30,yahoo/indices/000001.ss-chart/2026/10/22/061032_000001.ss-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/000001.SS?period1=1546214400&period2=1792713600&interval=1d,,c9a5ddab75e4674c9cbbdeecd28ee18bfb8da482a893b5e01ce25a438769c92c,194618

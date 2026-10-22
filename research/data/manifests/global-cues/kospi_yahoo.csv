@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:10:14.277440+05:30,yahoo/indices/ks11-chart/2026/10/22/061014_ks11-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?period1=1546214400&period2=1792713600&interval=1d,,e58a2eaadd97772a4f7b113155f59baf0005dae2f10eb61f99cfae62e7bd1e07,195394
