@@ -12,10 +12,9 @@ from statistics import median
 
 from ...contracts.roads import ROADS_BY_CODE
 from ...contracts.snapshot import SlotQuote, SlotSnapshot
+from ..constants import TICK
 from .bucket import SpreadBucket, bucket_of
 from .model import SpreadModel
-
-TICK = 0.05  # NSE's option tick; a quote tighter than one tick wide is read as one tick wide
 
 
 def relative_half_spread(quote: SlotQuote) -> float | None:
