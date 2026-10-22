@@ -39,12 +39,18 @@ G13b's steps and scores, the candles and A4h's close reads. The risk manager and
    - Today no book holds a position (the committed logs since 19 Oct show no trades), so in practice the whole desk
      freezes.
    - **Question for the owner, through the orchestrator:** this exception, or a plain freeze of `exits` too?
+   - **Default until the owner answers: the exception** (judge 469 note 2). It is the safer side: a plain freeze can
+     leave a trade unclosed, while the exception changes nothing on a day with no position. Judge D judges the code
+     only once the owner's answer is in `docs/DESK_DECISIONS.md` (judge 469's condition).
 4. **What reads the desk steps on a later day treats a frozen step as "not a desk day", never as a failure.**
    - O1's block readers (`_unreviewed`, `_unscored`, `_unfilled`) block nothing after a frozen day. Without this,
      the restart day would refuse every entry, because the previous session's exits were "not reviewed".
    - O8's health check (`RunLogCheck`) shows a frozen day as frozen, not as missed or late decisions.
    - Scoreboard B (`CommittedRuns.missed_runs`) counts no missed decision on a frozen day. Otherwise every frozen day
      would count against Book 1.
+   - The card's "last session" line (`fno/cards/rule_checks.py`, `ExecutionOutcome`, which reads the previous
+     session's `snapshot`) says the last session was frozen, never "no valid execution snapshot" (judge 469 note 1).
+     It matters on the restart day, the first card after a frozen session.
    - Each of these reads only `status`, with `.get`, as O1-status-only already requires.
 5. **The restart is the next session after the switch is set to false.** That session runs the full desk. Its block
    readers look at the last frozen session and block nothing, because nothing was open.
@@ -52,7 +58,8 @@ G13b's steps and scores, the candles and A4h's close reads. The risk manager and
 ## Owners whose code this touches (agreed through the orchestrator before the code, under the one-builder rule)
 
 - E3: `fno/desk/daily_run.py` (the frozen set, recording `frozen` in place of the action, and the block readers).
-- O8: `fno/health/desk_checks.py`. S2: `fno/scoreboard/committed_runs.py`. Both only read `status`.
+- O8: `fno/health/desk_checks.py`. S2: `fno/scoreboard/committed_runs.py`. T1: `fno/cards/rule_checks.py`. Each only
+  reads `status`.
 - `config.yaml`: `desk.frozen: false` until the owner's date. The orchestrator sets it to true after Monday 26 Oct's
   run, in a judged commit.
 - O1-status-only's registry gains `desk:FROZEN`.
@@ -68,7 +75,8 @@ G13b's steps and scores, the candles and A4h's close reads. The risk manager and
 3. **No alert on a frozen day**, and the day ends "day done".
 4. **The restart day blocks nothing.** The session after a frozen one, with the switch set to false, runs the full
    desk; `fills` is not blocked by `_unreviewed`, `_unscored` or `_unfilled`.
-5. **Health and scoreboard B read a frozen day as frozen**: no missed run, no late decision.
+5. **Health, scoreboard B and the card read a frozen day as frozen**: no missed run, no late decision, and no "no
+   valid execution snapshot" on the restart day's card.
 6. **The open-position exception** (if the owner chooses it): with an open trade, `exits` and `trade_marks` run and
    the other desk steps freeze.
 7. **The switch is the only control.** `desk.frozen` absent or false gives today's run unchanged (the existing suite
