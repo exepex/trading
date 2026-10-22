@@ -225,3 +225,50 @@ several lines. Neither CI nor JUDGE.md gates format on research/, and a fix woul
 
 **Next:** re-run run 1 from bf2d9e4e. I reproduce both selection files and check that the cards' G1 inputs come from
 the new one; then run 2 under the same code.
+
+## Addendum 4
+
+**Scope:** EDGE1's three run outputs, the factory gates and the results file. The outputs are run 1, original and
+corrected (selection_rev6.json at d4ea08d6, selection.json at 81f02afe), and run 2 (final.json at 1e43260c). The
+gates are on main; RESULTS.md is at c259a454. Round 1 of 2 on RESULTS.md.
+
+**Verdict: runs REPRODUCED; RESULTS.md FAIL** (two wording and label fixes; no number is wrong).
+
+## Reproduction (my runs, through Drive, guard passing)
+- **Run 1, corrected:** `study.py --select` at 81f02afe matches byte for byte (sha256 1f398d57...).
+- **Run 1, original:** at 3152ed44 it matches byte for byte (edc4fd83...).
+- **Run 2:** `study.py --final` at cee43008, in a clean clone so the read-once check applies, matches byte for byte
+  (61f308f2...).
+- **Code between the runs:** bf2d9e4e..cee43008 changes tests only, and `fno/` and `config.yaml` are unchanged, so
+  473's condition 1 holds.
+
+## Factory and cards
+- The 24 cards match selection.json: every G1 input, by script (e7a2029d).
+- gates.csv: 28 G0 rows; G1 23 screened_out and 1 passed (trial 94: bound 1214.4, cost 606.3, net 608.1, as
+  selection.json says); G2 exploratory; G3 exploratory_shadow with n = (1.6449 x 4250.57 / 608.1)^2 = 132.2, so 133,
+  which is 25.33 years at 5.25 trades a year.
+- final.json: tested [BANKNIFTY SF TP50]: n 40, mean -337 (Rs 2 pad -530), all-trades -432, p 0.9091, Holm
+  false; nominated [].
+- RESULTS.md's run-2 and naked-measurement tables equal final.json.
+
+## Should-fixes in RESULTS.md
+1. **The answer overstates its scope.**
+   - Defect: "No simple rule-based variant made money after real costs out of sample." Only 1 of the 24 variants was
+     run out of sample. The other 23 failed G1 on run 1 and, by section 11, were never run in run 2.
+   - Test it must pass: the answer says that the one run-1 passer lost money in run 2, and that the other 23 failed
+     run 1 and were not tested out of sample. The bracketed "no edge found among these 24 variants" can stay.
+2. **Figures with no committed source are not labelled.**
+   - Defect: the "Today's lot (30) re-run" row (2,244 and -473) and the take-profit marks (lowest mark over credit,
+     median 0.93, min 0.52) appear in neither selection.json nor final.json and are not in the protocol. The builder
+     says the marks were checked after final.json was committed.
+   - Test it must pass: each is labelled "post-hoc, after run 2, not decided on", with the commit or script that
+     reproduces it. Otherwise remove it.
+
+**Note (no action):** the statistician's "about 2.4 passes by chance" is labelled reasoning only and is right as an
+upper figure (10% x 24).
+
+**What stands:** no variant is nominated. The one candidate reversed out of sample (p 0.91), and its sample plan
+needs 133 trades, about 25 years. The naked measurements show the tail the cap exists for (single losses 2.6-8.5x
+it).
+
+**Next:** fixes 1 and 2 in RESULTS.md, then round 2.
