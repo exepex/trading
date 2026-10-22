@@ -29,7 +29,8 @@ def quote(bid: float = 10.0, ask: float = 11.0, size: int = 1000) -> SlotQuote:
 def road_day(code: RoadCode = RoadCode.BANKNIFTY_MONTHLY, status: RoadStatus = OPEN) -> RoadDay:
     lot = DatedLot(30, "fixture") if status.open else None
     step = 100.0 if status.open else None
-    return RoadDay(ROADS_BY_CODE[code], SESSION, (EXPIRY,) if status.open else (), lot, step, status)
+    steps = {EXPIRY: step} if status.open else {}
+    return RoadDay(ROADS_BY_CODE[code], SESSION, (EXPIRY,) if status.open else (), lot, step, status, steps)
 
 
 def snapshot(code: RoadCode = RoadCode.BANKNIFTY_MONTHLY, quotes: dict | None = None) -> SlotSnapshot:

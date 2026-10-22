@@ -12,7 +12,9 @@ class StaleSeal(Exception):
 class Seal:
     path: str  # the record file's Drive path
     sha256: str
-    pushed_at: datetime  # when its receipt reached the remote
+    # The receipt commit's time. The proof that it was pushed is the receipt on the remote: `DashcamStore.seal`
+    # returns a Seal only after that push succeeded, so a Seal in hand means pushed, committed at `pushed_at`.
+    pushed_at: datetime
     commit: str  # the receipt's commit
 
     def __post_init__(self):

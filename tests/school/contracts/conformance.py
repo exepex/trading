@@ -34,6 +34,8 @@ def check_road_catalogue(catalogue, trading_day: date, closed_day: date) -> None
     days = catalogue.day(trading_day)
     assert sorted(d.road.code for d in days) == sorted(r.code for r in ROADS)
     assert all(isinstance(d, RoadDay) and d.session == trading_day for d in days)
+    for day in (d for d in days if d.status.open):  # MS-P1a2: every recorded expiry has its own step
+        assert set(day.strike_steps) == set(day.expiries) and all(day.step_for(e) > 0 for e in day.expiries)
     assert catalogue.day(closed_day) == ()
 
 

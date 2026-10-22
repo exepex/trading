@@ -17,8 +17,15 @@ from pathlib import Path
 
 from ..constants import BOOKS
 
+SCHOOL_BOOK_PREFIX = "school:"  # a market school driver version's book: `school:<driver code>@<version>` (story MS-P1h)
+SCHOOL_BOOK = re.compile(rf"{SCHOOL_BOOK_PREFIX}[A-Z][A-Z0-9]*@[1-9][0-9]*")
 COLUMNS = ("book", "version_id", "starts_on", "registered_in_commit", "components", "reason")
 FULL_COMMIT = re.compile(r"[0-9a-f]{40}")
+
+
+def is_known_book(book: str) -> bool:
+    """One of the three books, or a school driver version's id."""
+    return book in BOOKS or SCHOOL_BOOK.fullmatch(book) is not None
 
 
 class VersionError(ValueError):
@@ -60,7 +67,7 @@ def _row(raw: dict, line: int) -> VersionRow:
                          raw["registered_in_commit"], components, raw["reason"])  # fmt: skip
     except (TypeError, ValueError) as bad:
         raise VersionError(f"{where}: unreadable row: {bad}") from None
-    if row.book not in BOOKS:
+    if not is_known_book(row.book):
         raise VersionError(f"{where}: unknown book {row.book!r}")
     if not row.version_id.strip() or not row.reason.strip():
         raise VersionError(f"{where}: version_id and reason must be filled")
