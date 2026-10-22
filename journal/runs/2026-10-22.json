@@ -317,6 +317,28 @@
     "reason": "recorded",
     "exit_code": 0
    }
+  },
+  "premium_ranges": {
+   "started_at": "2026-10-22T15:22:34.809460+05:30",
+   "finished_at": "2026-10-22T15:22:37.314188+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "issue",
+     "unlisted",
+     "2026-10-22",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "refused",
+     "reason": "command:nothing_written",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
