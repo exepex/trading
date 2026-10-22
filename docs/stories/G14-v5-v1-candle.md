@@ -95,6 +95,18 @@ The question is what the forecast for day `d` may read, point in time, at `d`'s 
 - O1 step `forecasts_v5_v1`: right after `forecasts_v4`, the same 14:30 cutoff. It is only a `LiveFrom` row in
   `fno/daily/wiring.py` and `DAILY_RUN_STEPS`, agreed with the O1 builder first.
 - Its `daily.live_from` date is set only after the owner signs v4 (about Tue 27 Oct). Its code merges once judged.
+- **Agreed with the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp, 23 Oct).** I add the step on this branch, in
+  `fno/daily/wiring.py`, `fno/constants_operations.py`, `config.yaml` and `tests/daily/test_steps.py`. Terms:
+  - Wiring: copy `forecasts_v4`'s pattern exactly, with the command and pathspecs as named constants beside
+    `FORECASTS_V4`, and the name added to `LIVE_STEPS`. Any `receipts/` folder the capture writes goes in the
+    pathspecs too.
+  - The 14:30 refusal exits non-zero, so the run records it as refused and alerts.
+  - These tests change with the step list: `tests/daily/test_day_run.py`, `tests/daily/test_steps.py`,
+    `tests/health/test_desk_and_data_checks.py` and O11's `tests/e2e_acceptance/replay.py`. The whole e2e folder is
+    run.
+  - The committed run log holds status only (`command:ok`); values live in this story's own records.
+  - Judge D judges the O1 parts. The branch is never merged between 14:00 and 16:15 IST.
+  - Timing: v4 ran 14:11:25-14:11:27 on 22 Oct, so this step starts at about 14:12.
 - Freeze: before its first live day, a short `FREEZE_v5_v1.md` hashes this package's files and the imported G7
   files, with a `Frozen on:` line, the same rule as v4.
 
