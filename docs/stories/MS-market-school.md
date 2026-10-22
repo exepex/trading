@@ -1,7 +1,7 @@
 # Story MS-P1: the market school pilot
 
 **Repository:** trading · **Lane:** 1 for every part that decides, fills, exits, records or reports (each part's lane
-below) · **Size:** L, split into 9 parts plus one blocked part · **Builder:** session_01CmKJ6taCLzfEGg7wt6RC4N ·
+below) · **Size:** L, split into 10 stories (a contracts first, b-i in parallel, j last) · **Builder:** session_01CmKJ6taCLzfEGg7wt6RC4N ·
 **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Sources:** response 327 revision 2 (agreed design, stage P1),
 response 325 (target design: sections 3, 4.1, 4.2, 5.1, 9.1, 9.3, 9.5, 9.9, 9.14, 9.19-9.21), DESK_DECISIONS "Market
 school approved" and "NSE terms and Groww terms (P0 probe 2)", `research/school/probes/` (P0), `research/edge1/RESULTS.md`.
@@ -35,7 +35,7 @@ costs. The pilot's job is to measure, not to make money; the banner is red or am
 
 1. No change to `DAILY_RUN_STEPS`, the weather, v4 or any frozen file until the orchestrator says the owner signed v4's
    freeze (expected after Mon 26 Oct). Everything is built behind the school's own switch and run by its own command;
-   joining the daily run is part MS-P1j, which waits.
+   the fleet runner (MS-P1j) joins the daily run only after that.
 2. The owner approved the two sections (22 Oct 2026, "Yes, add them"; DESK_DECISIONS "Market school pilot: report
    sections and brake"): built behind their own flag, off, and live only with the pilot; the signed-off pages stay
    byte-identical while the flag is off.
@@ -74,7 +74,7 @@ A driver is a frozen card file plus one D6 row; a new driver needs no engine cod
 an expiry its road records that day; a position whose expiry leaves the capture before it closes is settled (E7) or
 marked "unmarked", never priced from anything else.
 
-### 3.2 Drivers and controls (cards frozen in MS-P1g before day 1; numbers are first guesses, reasoning only)
+### 3.2 Drivers and controls (cards frozen in MS-P1h before day 1; numbers are first guesses, reasoning only)
 
 | Code | Family | Roads | Entry | Structure | Exit |
 |---|---|---|---|---|---|
@@ -129,7 +129,7 @@ marked "unmarked", never priced from anything else.
 - **Privacy:** the repository gets receipts and public counts (outcome codes per road and driver per session), never a
   contract, strike, price or card internal (E2c's rule).
 
-### 3.5 Denominator and the capture gate (defined here, frozen in MS-P1g before counting)
+### 3.5 Denominator and the capture gate (defined here, frozen in MS-P1h before counting)
 
 - **Scheduled road decision:** every (session, road, driver version) where the session is a trading day by A7's
   calendar. Every one has exactly one sealed outcome; `refused`, `road_closed` and `unavailable` stay in the
@@ -142,129 +142,322 @@ marked "unmarked", never priced from anything else.
   observations pass over those sessions. A failing road stays closed for counting while others run; P2 counts 30 valid
   counted sessions after the registered first counted date.
 
-## 4. Parts (one branch each, `story/ms-p1-<part>`; built in this order)
+## 4. Stories (owner's change of plan, orchestrator 22 Oct: built in parallel by several builders and judges)
 
-Every part: good, bad, boundary and empty cases per criterion; a named test that fails when its code is broken on
-purpose (quality rule 4); no file or class over 350 lines; gates `pytest -n auto`, `ruff`, `check_imports`,
-`check_records` before each push; self-review by independent review agents recorded in Claims.
+Order: **MS-P1a** (contracts) merges first; **b-i** then start together, each depending on a only; **j** comes last.
+Rules for every story:
+- It touches only its own files below, its own tests (`tests/school/<sub>/`) and, where named, one reserved line.
+- It never edits `fno/constants.py`, `fno/config.py`, `config.yaml`, `fno/cli.py`, another story's sub-package or
+  any frozen file.
+- A type a story needs that a lacks is asked of a's builder (one small lane-1 follow-up of a), never defined twice.
+- Each criterion has good, bad, boundary and empty cases, and a named test that fails when its code is broken on
+  purpose (quality rule 4).
+- No file or class over 350 lines.
+- Gates before each push: `pytest -n auto`, `ruff`, `check_imports`, `check_records`.
+- Self-review by independent review agents, recorded in Claims.
+- Branch `story/ms-p1-<sub>`; never merged by its builder.
 
-### MS-P1a Roads and the quality gate · lane 1 (closes roads, which decides trades) · `story/ms-p1-roads`
+### MS-P1a Contracts · lane 1 (money limits and the switch are config keys) · `story/ms-p1-contracts` · depends on nothing
 
-1. `RoadCatalogue.day(session)` returns the 5 roads with expiries, dated lot (A20a) and strike step from recorded
-   files only; a non-trading day returns no road; a missing capture gives `road_closed: capture_missing`.
-2. `RoadQualityGate` closes a road with exactly one reason code for: capture missing, incomplete, out of window, hash
-   mismatch, expiry not listed by A7 (`expiry_mismatch`), lot missing or two sources disagreeing (`lot_mismatch`), an
-   impossible price in the band (`impossible_price`). Planted-fault tests for each.
-3. `python -m fno school capture-gate --from --to` prints per road: sessions, snapshots passed, leg observations
-   passed / scheduled, consecutive clean sessions, gate pass or not; read-only, run on the recorded October days in
-   Claims.
+**Files owned:**
+- `fno/school/__init__.py`;
+- `fno/school/constants.py`: road codes, outcome codes, every reason code of 3.3-3.5 as frozen enums, record schema
+  version;
+- `fno/school/settings.py`: reads and checks the `school` block;
+- `fno/school/contracts/` (`roads.py`, `snapshot.py`, `decisions.py`, `records.py`, `safety.py`, `accounts.py`,
+  `dashcam.py`, `tickets.py`, `reports.py`, `clock.py`);
+- `fno/school/fakes.py`: in-memory fakes of every port, for every story's tests;
+- `tests/school/contracts/`;
+- one empty package per later story, each with a `wiring.py` whose docstring names its story and nothing else;
+- shared files, one line each:
+  - `fno/config.py`: add `school` to `ALLOWED_APP_KEYS`;
+  - `config.yaml`: the `school` block (below);
+  - `tools/check_imports.py`: a rule if needed (school imports no order, Slack or Groww client).
 
-### MS-P1b The dashcam · lane 1 (records) · `story/ms-p1-dashcam`
+**Interfaces and frozen data types (frozen dataclasses or `Protocol`s; field names final in a's code):**
 
-1. Decision and outcome records round-trip through canonical JSON; equal inputs give byte-identical files.
-2. `DashcamStore` saves through O9's `DataStore`; a second save of other bytes at the same key raises (replay
-   conflict) and is reported as "rule broken", never overwritten.
-3. `Seal` is valid only when the receipt is committed and pushed; a fill step given an unsealed, late or other-hash
-   decision refuses every fill of it (`stale_seal`). Planted-fault tests.
-4. Public counts file: outcome codes only; a test runs the record scan over it and asserts no strike, price or symbol.
+| Contract | Shape |
+|---|---|
+| `Road` | `code` (one of 5), `underlying`, `expiry_kind` (monthly or weekly), `dataset` |
+| `RoadDay` | `road`, `session`, `expiries`, `lot` (dated, with its source), `strike_step`, `status: RoadStatus` |
+| `RoadStatus` | `open` or `closed` plus exactly one `ClosureReason` |
+| `RoadCatalogue` | `day(session) -> tuple[RoadDay, ...]` |
+| `SlotSnapshot` | `road`, `session`, `snapshot_id`, `sha256`, `started_at`, `finished_at`, `spot`, `expiries`, `quotes: Mapping[ContractKey, SlotQuote]` |
+| `SlotQuote` | `bid`, `ask`, `bid_qty`, `ask_qty`, `last`, `valid` (A4) |
+| `SnapshotSource` | `for_road(road_day) -> SlotSnapshot` (raises `SnapshotUnavailable(reason)`) |
+| `ContractKey` | `expiry`, `strike`, `kind` (CE/PE) |
+| `LegSpec` | `key`, `side`, `lots` |
+| `Proposal` | `structure`, `legs`, `lot`, `net_premium`, `max_loss` (every charge and pad), `score` |
+| `DriverCard` | `code`, `version`, `family`, `roads`, `band`, frozen parameters, `card_sha256`, `role` (rule, control, measurement-only) |
+| `Driver` | `card`; `decide(road_day, snapshot, history, positions) -> Decision` |
+| `Decision` | `driver`, `road`, `session`, `outcome` (`trade`, `ticket`, `no_trade`, `refused`, `road_closed`, `unavailable`), `reason`, `proposal | None` |
+| `SafetyLaw` | `check(proposal, account: AccountView, session) -> LawResult` (`passed`, `reason`, `limit`, `value`) |
+| `AccountView` | open positions with their maximum losses, equity high, equity, loss since the previous slot, trades opened this session (read-only) |
+| `AccountPort` | `view(driver)`, `record_fill(fill)`; one account per driver version |
+| `FillPort` | `enter(decision, snapshot, seal) -> FillResult`, `exit(position, snapshot, reason, seal) -> FillResult`, `settle(position, expiry)` |
+| `FillResult` | filled legs or `refused` with reason codes; never partial |
+| `DecisionRecord` / `OutcomeRecord` | the fields of 3.4; `to_canonical_json()` and `from_json()` (sorted keys, fixed float format: equal input, equal bytes) |
+| `DashcamStore` | `seal(session, slot, records) -> Seal`; `read(seal)`; write-once (other bytes raise `ReplayConflict`) |
+| `Seal` | `path`, `sha256`, `pushed_at`, `commit` |
+| `OpportunityCounts` | `eligible`, `fillable`, `executed` per (road, driver, session); `eligible >= fillable >= executed` checked on build |
+| `ReportSection` | `render(session) -> SectionText` |
+| `Banner` | `RED` or `AMBER` only |
+| `Clock` | `now()`: a fixed clock in replay |
 
-### MS-P1c Drivers and controls · lane 1 (decides trades) · `story/ms-p1-drivers`
+**The `school` block in `config.yaml` (all off):**
+- `enabled: false`;
+- `reports: false`;
+- `first_counted: null`;
+- `account_rs: 2000000`;
+- `max_loss_rs: 10000`;
+- `daily_stop_rs: 25000`;
+- `brake_rs: 120000`;
+- `max_new_trades_per_slot: 5`;
+- `bucket_rs`, `open_risk_rs` and `new_risk_day_rs`, at C2's values.
 
-1. `RuleDriver` reads a card (entry, structure, exit, roads, band, score) and builds through D2's `CandidateBuilder`;
-   each family of 3.2 fires on a fixture at its threshold and not just below it.
-2. N0 always seals `no_trade: n0`; RC1 is reproducible from its seed and obeys the same caps; PS5 and KL1 match
-   EDGE1's frozen definitions (a test against `research/edge1/` parameters).
-3. `no_trade` reasons are codes from one enum (not enough history, no expiry in window, no structure under the cap,
-   rule not fired, position already open).
+**Acceptance tests:**
+1. Every type is frozen.
+2. `OpportunityCounts` refuses `fillable > eligible`.
+3. A record round-trips to identical bytes, and a changed field changes the bytes.
+4. `Banner` has exactly two members.
+5. `settings` refuses an unknown or missing key and a negative limit.
+6. With `enabled: false` every fake fleet path reports "school off".
+7. An import test: nothing under `fno/school/` imports an order call, a Slack client or the Groww SDK.
+8. Every fake satisfies its `Protocol`, checked by a conformance test that each later story's real class must also
+   pass (`tests/school/contracts/conformance.py`, importable).
 
-### MS-P1d Safety laws, accounts and fills · lane 1 (money, fills, exits) · `story/ms-p1-fills`
+### MS-P1b Roads and the quality gate · lane 1 (closes roads, which decides trades) · depends on a
 
-1. One `PaperAccount` per driver version (Rs 20 lakh), private through `PrivateFiles`; the school's risk profile in
-   `config.yaml` (allowed keys added to `fno/config.py`).
-2. Every law of 3.3 refuses at limit + Rs 1 and passes at the limit; all reasons kept; no law can resize a trade. The
-   brake (law 7) pauses at Rs 1.2 lakh below the high, stays paused across sessions, and lifts only on a review row.
-3. Daily stop: after Rs 25,000 of loss, new entries are refused, planned exits fill, a risk-reducing close fills only
-   at valid two-sided quotes; a missing quote leaves the position open with `exit_waiting_quote`, never a guessed price.
-4. Entries and exits fill at the slot's touch by E4/E4c/E4d; expiry legs settle by E7 generalised to all four indices
-   (`IndexSettlementSource` reading the already-archived F&O bhavcopy; no new read).
-5. Planted faults: missing quote (entry refused, sealed `refused: missing_quote`), impossible price, size above
-   displayed quantity (refused, never partial).
+**Files owned:** `fno/school/roads/`, `fno/school/quality/`, `tests/school/roads/`, `tests/school/quality/`.
 
-### MS-P1e Tickets and the three counts · lane 1 (evaluation records) · `story/ms-p1-tickets`
+**Implements:** `RoadCatalogue`, `SnapshotSource` (over the hash-checked quote store, A4/A4c/A4f sidecars, canonical
+markers, A20a lots, A7 calendar), `RoadQualityGate`, `CaptureGateReport`.
 
-1. A fired rule beyond the 5-trade limit, or on a driver stopped for the day, is a 1-lot ticket at the same quotes and
-   laws (account limits relaxed only); tickets are never in an account and never summed into rupees shown to the owner.
-2. Per road, driver and session: eligible (rule fired and a structure built), fillable (passes every law and the quote
-   gate), executed (filled in the account). Eligible >= fillable >= executed always (test).
-3. Shared displayed size (327 item 10): per contract and side, units wanted by all accounts against the displayed
-   size are counted; a report never sums fills the same displayed size could not serve.
+**Acceptance tests:**
+1. 5 roads on a trading day, none on a holiday.
+2. Each closure reason of 3.5 from a planted fixture: missing, incomplete, out of window, hash mismatch, expiry
+   mismatch, lot mismatch, impossible price.
+3. Exactly one reason per closed road.
+4. The capture gate on fixtures at 10 of 10 and 9 of 10 sessions, and at 95.0% and 95.1% of leg observations
+   (boundary).
+5. The conformance test.
+6. Claims: a read-only `capture-gate` run on the recorded October days (counts only).
 
-### MS-P1f The fleet runner, the switch and the command · lane 1 (decides trades; a config switch) · `story/ms-p1-fleet`
+### MS-P1c The dashcam · lane 1 (records) · depends on a
 
-1. `school.enabled` (default false) gates every paper decision; with it off the command prints "school off" and
-   writes nothing. Separate keys `school.reports` (sections, default false) and `school.first_counted` (from the card).
-2. `python -m fno school run [--session D] [--dry-run]`: roads, gate, drivers, seal, fills, exits, tickets, counts, in
-   that order; one driver's exception is caught, named by class, and sealed as `unavailable` for its roads; others go on.
-3. Every scheduled road decision has exactly one sealed outcome (test over a whole fixture day: count = roads x drivers).
-4. A rerun of the same session skips sealed decisions; it never seals twice.
+**Files owned:** `fno/school/dashcam/`, `tests/school/dashcam/`.
 
-### MS-P1g The frozen comparison card · lane 1 (evaluation records) · `story/ms-p1-card`
+**Implements:** `DashcamStore` over O9's `DataStore` (one gz JSONL file per slot and session; receipt committed and
+pushed before `seal` returns); seal checking; public counts file; replay reader.
 
-1. An R1 factory card (`fno/factory/card.py` block) names: each driver version and its matched control (N0, RC1, REF of
-   its road), the 5 roads, the 15:00 slot, the cost model version (C1), the denominator of 3.5, the bands, and the
-   first counted session; one D6 row per driver version in `journal/versions.csv`.
-2. A decision counts only if the card's and its version row's commits are ancestors of the decision's commit (D6's
-   rule); a test plants a later card and sees every decision of the day as not counted.
-3. Comparisons run on one frozen common group of road-days; five roads on one day are reported as one session, not five
-   independent tests.
+**Acceptance tests:**
+1. Write-once: the same bytes again is a no-op; other bytes raise `ReplayConflict`, reported as "rule broken".
+2. A seal not yet pushed, pushed after the fill time, or naming another file's SHA-256 is refused (`stale_seal`).
+3. The public counts file passes the record scan and holds no strike, price or symbol (test).
+4. Replay reads back exactly the records sealed.
+5. The conformance test.
 
-### MS-P1h The 08:50 and 20:05 sections and the banner · lane 1 (Slack reports) · `story/ms-p1-sections`
+### MS-P1d Safety laws · lane 1 (money and limits) · depends on a
 
-1. Sections built behind `school.reports` (off): "Today" (open roads, planned trades with worst loss, banner) and "How
-   did today go" (each trade's net, the three counts, fleet total labelled "separate hypothetical accounts, not one
-   budget", refusals and closures shown).
-2. `Banner` returns red (any capture or quality failure on a shown road, or no candidate) or amber; there is no green
-   value in the type (test).
-3. With the flag off the signed-off pages render byte-identical to today (golden-file test).
+**Files owned:** `fno/school/safety/`, `tests/school/safety/`.
 
-### MS-P1i Acceptance on recorded days · lane 1 · `story/ms-p1-acceptance`
+**Implements:** one `SafetyLaw` per law 1-7 of 3.3; `SafetyLaws` runs all of them and keeps every reason. C2's rule
+classes are reused on the driver's `AccountView` through an adapter, never edited.
 
-1. One recorded session replayed twice in dry run (local store): every decision, outcome and count file byte-identical.
-2. The planted-fault suite in one place: missing quote, expiry mismatch, lot mismatch, stale seal, impossible price,
-   replay conflict; and a planted refused entry that survives replay and appears in both report sections and every
-   count's denominator.
-3. Zero unsealed, over-cap, invented or duplicate fills over the replayed day (asserted).
+**Acceptance tests:**
+1. Each law passes at its limit and refuses at limit + Rs 1.
+2. No law changes a proposal (test over all laws).
+3. Daily stop:
+   - entries are refused after Rs 25,000 of loss;
+   - an exit is never refused by it;
+   - a risk-reducing close needs valid two-sided quotes.
+4. Brake:
+   - it pauses at Rs 1.2 lakh below the high;
+   - it holds across sessions;
+   - it lifts only on a review row;
+   - exits continue.
+5. Quote gate:
+   - a missing or one-sided quote refuses the entry;
+   - so does size above the displayed size;
+   - so does a protective leg that cannot be sold back.
+6. The conformance test.
 
-### MS-P1j Joining the daily run · lane 1 · **blocked** until the orchestrator says the owner signed v4's freeze
+### MS-P1e Rule drivers and controls · lane 1 (decides trades) · depends on a
 
-New step(s) after v4's in `DAILY_RUN_STEPS`, never inside its frozen files; their own status; the switch still decides.
+**Files owned:**
+- `fno/school/drivers/`;
+- `research/school/cards/` (one card file per driver version, draft until h freezes them);
+- `tests/school/drivers/`.
+
+**Implements:**
+- `RuleDriver(card)` for CS1, DB1, DR1, WS1 and PS2-4, built through D2's `CandidateBuilder` (widest width under the
+  cap);
+- `ReferenceDriver` (REF, per road);
+- `NothingDriver` (N0);
+- `RandomDriver` (RC1, seeded by SHA-256(session, driver, road));
+- PS5 and KL1 as `role: measurement-only`.
+
+**Acceptance tests:**
+1. Each family fires at its threshold and not just below it.
+2. "Not enough history" with 19 sessions, a trade with 20.
+3. N0 always gives `no_trade: n0`.
+4. RC1 gives the same draw for the same seed and a different one for another seed, under the same caps.
+5. PS5 and KL1 match EDGE1's frozen parameters (a test against `research/edge1/`).
+6. Every `no_trade` carries a reason code from a's enum.
+7. The conformance test.
+
+### MS-P1f Accounts, fills and tickets · lane 1 (money, fills, exits) · depends on a
+
+**Files owned:** `fno/school/accounts/`, `fno/school/execution/`, `fno/school/tickets/`, `tests/school/accounts/`,
+`tests/school/execution/`, `tests/school/tickets/`.
+
+**Implements:**
+- `AccountPort`: one `PaperAccount` per driver version (`fno/books/account.py`), private through E2c's
+  `PrivateFiles`;
+- `FillPort`: E4's `price_leg`, E4c/E4d's `entry_problems`, `FillMaker` and `closing_quotes`, exits by E4's
+  `ExitRule`s;
+- expiry settlement through an `IndexSettlementSource`: a new class reading the archived F&O bhavcopy for all four
+  indices; `fno/desk/settlement.py` is reused, not edited;
+- `TicketBook` and `OpportunityCounts` builder;
+- the shared-displayed-size count (327 item 10).
+
+**Acceptance tests:**
+1. A fill without a valid seal is refused.
+2. Entries fill at the touch or not at all (never partial); a missing quote gives `refused: missing_quote`.
+3. An exit with a missing quote waits (`exit_waiting_quote`) and never takes a guessed price.
+4. Settlement at intrinsic against each index's `SttlmPric`; a missing file gives `settlement_needed`.
+5. Tickets:
+   - the same quotes and laws as trades, with only the account limits relaxed;
+   - never in an account;
+   - never summed into rupees.
+6. `eligible >= fillable >= executed` over a fixture day.
+7. A displayed size shared by two accounts is counted, and no report sums fills it could not serve.
+8. The conformance test.
+
+### MS-P1g The 08:50 and 20:05 sections · lane 1 (Slack reports, signed-off pages) · depends on a
+
+**Files owned:**
+- `fno/school/reports/`;
+- `tests/school/reports/`;
+- one reserved line in `fno/forecast_lab/page_wiring.py`, adding the school's sections only when `school.reports` is
+  true.
+
+**Implements:**
+- `ReportSection` for "Today": open and closed roads, the planned paper trades with worst loss, the banner, labelled
+  Paper;
+- `ReportSection` for "How did today go":
+  - each trade's net;
+  - the three counts;
+  - refusals and closures;
+  - the fleet total labelled "separate hypothetical accounts, not one budget";
+- `Banner` rule: red on any capture or quality failure of a shown road, or no candidate; else amber.
+
+**Acceptance tests:**
+1. With the flag off, both editions render byte-identical to today (golden files).
+2. With it on, the sections appear and say Paper.
+3. No green is reachable (type and test).
+4. A refusal planted in the input appears in the evening section.
+5. No contract, strike or card internal appears in either section (privacy test).
+
+### MS-P1h The frozen comparison card · lane 1 (evaluation records) · depends on a
+
+**Files owned:** `research/school/CARD_P1.md` (R1 card with its factory block), `fno/school/registration/`,
+`tests/school/registration/`.
+
+**Shared file, one row per driver version:** `journal/versions.csv` (D6), appended only, at registration.
+
+**Implements:**
+- the card names:
+  - each driver version and its matched controls (N0, RC1, REF of its road);
+  - the 5 roads;
+  - the 15:00 slot;
+  - C1's cost version;
+  - the denominator and bands of 3.5;
+  - the first counted session;
+- `CountingRule`: a decision counts only if the card's and its version row's commits are ancestors of the decision's
+  commit (D6's rule);
+- the common group of road-days, with one session counted as one session, not five tests.
+
+**Acceptance tests:**
+1. A card registered after a decision makes that day not counted.
+2. A changed card SHA-256 refuses counting.
+3. Five roads on one day form one cluster in the comparison.
+4. `read_card` accepts the card.
+
+### MS-P1i The acceptance harness · lane 1 · depends on a
+
+**Files owned:** `tests/school/acceptance/` (the harness and its recorded-day fixture builder), `fno/school/acceptance/`
+(fault planters only, no production path).
+
+**Implements:**
+- planters for the 6 faults:
+  - missing quote;
+  - expiry mismatch;
+  - lot mismatch;
+  - stale seal;
+  - impossible price;
+  - replay conflict;
+- a planted refused entry;
+- a two-run comparator (byte equality of every record and count file);
+- checks for zero unsealed, over-cap, invented or duplicate fills.
+
+Runs on a's fakes here; story j must pass it with the real wiring.
+
+**Acceptance tests:**
+1. Each planter makes the fake fleet give its exact reason code.
+2. The comparator fails on one changed byte.
+3. The planted refusal survives two runs and appears in both sections' inputs and every count's denominator.
+
+### MS-P1j The fleet runner and composition · lane 1 · depends on a-i · daily-run part blocked until the v4 freeze is signed
+
+**Files owned:**
+- `fno/school/fleet/`;
+- `fno/school/wiring.py` (the composition root);
+- the reserved line in `fno/cli.py` that registers `python -m fno school`;
+- later (blocked) the new step rows in `DAILY_RUN_STEPS`, after v4's, never inside its frozen files.
+
+**Implements:** `FleetRunner.run(session, mode)`:
+- order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
+- each driver isolated: an exception is named by class and sealed `unavailable`;
+- a time limit per driver;
+- a rerun skips sealed decisions.
+
+**Acceptance tests:**
+1. `school.enabled: false` prints "school off" and writes nothing.
+2. Every scheduled road decision has exactly one sealed outcome (count = trading roads x drivers).
+3. A rerun seals nothing twice.
+4. i's harness passes on the real wiring, including one recorded session replayed twice with identical records.
+5. The end-to-end dry run on a recorded day, recorded in Claims.
 
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
-| Requirement | Where |
+| Requirement | Story |
 |---|---|
-| 5 roads at 15:00 from existing captures | 3.1, P1a-1 |
-| About 5 rule families (capped seller, debit buyer, directional debit spread, weekly expiry seller, PS2-4 as one) | 3.2, P1c-1 |
-| N0, RC1, one reference rule per road; PS5 and KL1 measurement only | 3.2, P1c-2 |
-| Per-driver Rs 20 lakh accounts reusing fno/books and fno/desk fills (touch, E4c, E4d) | P1d-1, P1d-4 |
-| Safety laws (protected, Rs 10k, Rs 25k daily stop, C2 caps, quote gate) | 3.3, P1d-2, P1d-3 |
-| Dashcam sealed before fills; every decision a sealed outcome with a reason; refusals in the denominator | 3.4, 3.5, P1b, P1f-3 |
-| Tickets under the same rules, three counts | P1e |
-| Shared order book (327 item 10) | P1e-3 |
-| Banner red and amber only | P1h-2 |
-| Driver brake: pause at Rs 1.2 lakh below the high until the monthly review | 3.3 law 7, P1d-2 |
-| Own switch; sections behind a flag | P1f-1, P1h-1 |
-| Frozen comparison card before day 1 | P1g |
-| Capture gate per road, denominator first | 3.5, P1a-3 |
-| Planted faults and replay twice | P1i |
-| Daily run wiring after v4's freeze | P1j (blocked) |
+| 5 roads at 15:00 from existing captures | 3.1; b |
+| About 5 rule families (capped seller, debit buyer, directional debit spread, weekly expiry seller, PS2-4 as one) | 3.2; e |
+| N0, RC1, one reference rule per road; PS5 and KL1 measurement only | 3.2; e |
+| Per-driver Rs 20 lakh accounts reusing fno/books and fno/desk fills (touch, E4c, E4d) | f |
+| Safety laws (protected, Rs 10k, Rs 25k daily stop, C2 caps, quote gate) | 3.3; d |
+| Driver brake: pause at Rs 1.2 lakh below the high until the monthly review | 3.3 law 7; d |
+| Dashcam sealed before fills; every decision a sealed outcome with a reason; refusals in the denominator | 3.4, 3.5; c, f, j |
+| Tickets under the same rules, three counts | f |
+| Shared order book (327 item 10) | f |
+| Banner red and amber only | a (type), g |
+| Own switch; sections behind a flag | a (keys), g, j |
+| Frozen comparison card before day 1 | h |
+| Capture gate per road, denominator first | 3.5; b |
+| Planted faults and replay twice | i (harness), j (real run) |
+| Fleet runner and daily-run wiring after v4's freeze | j |
 
-**Out of scope, with reason:** futures, calendars, diagonals (probe 5: no model); stocks and extra slots (P3+; NSE
-terms block the survey); AI drivers (327 item 7: after a dry run); instructor, condition map, licences, recommender
-top 3, simulator (P2+); E8 owner-timing fills (the pilot has no recommendation to follow); the monthly review itself (P2+;
-P1 only reads its recorded row to lift a brake).
+**Out of scope, with reason:**
+- futures, calendars and diagonals: probe 5 found no payoff or margin model;
+- stocks and extra slots: P3+, and NSE's terms block the survey;
+- AI drivers: 327 item 7, after a dry run;
+- the instructor, condition map, licences, recommender top 3 and simulator: P2+;
+- E8 owner-timing fills: the pilot has no recommendation to follow;
+- the monthly review itself: P2+; P1 only reads its recorded row to lift a brake.
 
-## 6. Open questions (for the orchestrator; none blocks MS-P1a or MS-P1b)
+## 6. Open questions (for the orchestrator; none blocks MS-P1a, the contracts)
 
 1. **Fill snapshot.** Only NIFTY has a second capture. Proposal: every road fills at its decision snapshot's touch,
    after the seal, the same rule for all five roads; reports label it "no latency: fills at the quotes the driver saw"
@@ -289,4 +482,4 @@ P1 only reads its recorded row to lift a brake).
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
 self-review findings and what was done; a real output sample (dry run on a recorded day, counts only). Empty until
-MS-P1a is built.
+MS-P1a is built; each later story keeps its own Claims subsection here.
