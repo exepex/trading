@@ -250,6 +250,8 @@ Asked by the orchestrator, 22 Oct 2026, for b and e.
   fleet records it in the decision record's `inputs` under `ROAD_DETAIL_INPUT`, so the record layout and its bytes
   do not change.
 - Conformance: `check_road_catalogue` now requires every open road's steps for every recorded expiry.
+- `Seal.pushed_at`'s comment (judge 485, Judge J): it is the receipt commit's time; the proof of the push is the
+  receipt on the remote, since `DashcamStore.seal` returns only after the push succeeded. Comment only.
 
 ### MS-P1b Roads and the quality gate · lane 1 (closes roads, which decides trades) · model tier: S · depends on a
 
