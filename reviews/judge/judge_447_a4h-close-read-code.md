@@ -135,3 +135,17 @@ reach its overdue check.
 
 After go-live, the claims must show the first 5 sessions: read, recheck and confirm lines, with no level in them
 (quality rule 8).
+
+## Addendum 3: newest first (story/a4h-newest-first @ 2a3d6677, one commit on main 9a0f8bcc)
+
+**Verdict: PASS. It may merge.** The go-live itself is merged (9a0f8bcc, builder's report).
+
+Gates on 2a3d6677: **9481 passed**, 16 xfailed; ruff, ruff format (1789) and `check_imports.py` are clean.
+
+| Finding | Change | My check | Result |
+|---|---|---|---|
+| Add. 2 minor: an old day the archive keeps failing takes the only slot in every run | The pending days are sorted newest first. Test: 16 and 19 Oct pending with a 300 s archive; 19 Oct is confirmed and 16 Oct waits a run | Plant: back to oldest first: 1 failed | **Accepted** |
+
+Reasoning only: in a long archive outage the newest days now take the slots, so the oldest wait. Their overdue
+alerts are late, but the newest days' alerts still fire after two sessions, so the outage is never silent. A new
+day arrives each session, so no day is starved for good once the archive recovers.
