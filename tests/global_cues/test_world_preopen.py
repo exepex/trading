@@ -12,11 +12,11 @@ from fno.global_cues import preopen_cli
 from fno.global_cues import wiring as global_cues_wiring
 from fno.global_cues.markets import SEOUL, TOKYO
 from fno.global_cues.preopen import CLOSED, LIVE, LUNCH, ROW_FIELDS, STALE, PreopenReader, level_status, newest_level
-from fno.global_cues.row_log import CsvRowLog
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.yahoo_source import YahooBlocked, YahooChartSource
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.row_log import CsvRowLog
 from tests.global_cues.world_fakes import CannedResponse, CountingSession, utc, yahoo_chart
 
 TOKYO_ZONE = ZoneInfo("Asia/Tokyo")

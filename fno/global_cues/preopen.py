@@ -22,8 +22,8 @@ from zoneinfo import ZoneInfo
 import requests
 
 from ..models import IST
+from ..storage.row_log import RowLog
 from .markets import MarketClose
-from .row_log import RowLog
 from .snapshot_log import SnapshotLog, SnapshotRow
 from .source import CueRequest, positive
 from .yahoo_source import YahooChartSource, chart_result

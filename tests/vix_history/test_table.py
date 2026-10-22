@@ -8,6 +8,7 @@ import pytest
 
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.row_log import CsvRowLog
 from fno.vix_history.month_file import NseVixJsonReader, VixDay
 from fno.vix_history.source import NseVixHistorySource as Source
 from fno.vix_history.table import VixDailyTable, VixRow, VixTableConflict
@@ -41,25 +42,25 @@ def builder(raw, table, clock=lambda: SEEN, manifest=None):
 
 
 def test_appending_keeps_earlier_bytes_and_skips_a_day_already_held(tmp_path):
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     assert table.append([row(date(2010, 7, 19), 20.71)]) == 1
-    before = table.path.read_bytes()
+    before = table.log.path.read_bytes()
     assert table.append([row(date(2010, 7, 19), 20.71), row(date(2010, 7, 20), 20.38)]) == 1
-    assert table.path.read_bytes().startswith(before)
+    assert table.log.path.read_bytes().startswith(before)
     assert [r["close"] for r in table.rows()] == ["20.71", "20.38"]
 
 
 def test_a_day_present_is_never_rewritten(tmp_path):
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     table.append([row(date(2010, 7, 19), 20.71)])
-    before = table.path.read_bytes()
+    before = table.log.path.read_bytes()
     with pytest.raises(VixTableConflict, match="2010-07-19: the table already holds other values"):
         table.append([row(date(2010, 7, 19), 20.72)])
-    assert table.path.read_bytes() == before
+    assert table.log.path.read_bytes() == before
 
 
 def test_a_hole_is_never_filled_from_behind(tmp_path):
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     table.append([row(date(2010, 7, 19), 20.71), row(date(2010, 7, 21), 20.0)])
     with pytest.raises(VixTableConflict, match="a hole is never filled"):
         table.append([row(date(2010, 7, 20), 20.38)])
@@ -67,7 +68,7 @@ def test_a_hole_is_never_filled_from_behind(tmp_path):
 
 def test_the_table_is_built_from_the_archived_files_with_their_sha_and_first_seen_time(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010(), AUGUST: august_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     result = builder(raw, table).extend([JULY, AUGUST])
     assert result.added == 3 and not result.stopped_at
     first = table.rows()[0]
@@ -85,7 +86,7 @@ def test_the_table_is_built_from_the_archived_files_with_their_sha_and_first_see
 
 def test_a_month_missing_from_the_archive_stops_the_table_there_and_is_named(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010(), SEPTEMBER: august_2010().replace(b"AUG", b"SEP")})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     result = builder(raw, table).extend([JULY, AUGUST, SEPTEMBER])
     assert result.stopped_at == "2010-08: not in the archive"
     assert table.last_day() == date(2010, 7, 20)  # September waits: no hole is left to fill from behind
@@ -94,17 +95,17 @@ def test_a_month_missing_from_the_archive_stops_the_table_there_and_is_named(tmp
 
 def test_a_second_run_adds_nothing_and_changes_no_byte(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     builder(raw, table).extend([JULY])
-    before = table.path.read_bytes()
+    before = table.log.path.read_bytes()
     later = datetime(2026, 11, 1, tzinfo=IST)
     assert builder(raw, table, clock=lambda: later).extend([JULY]).added == 0
-    assert table.path.read_bytes() == before  # first_seen_at stays the first time
+    assert table.log.path.read_bytes() == before  # first_seen_at stays the first time
 
 
 def test_recomputing_from_the_archive_gives_the_table_and_finds_a_planted_change(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010(), AUGUST: august_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     builder(raw, table).extend([JULY, AUGUST])
     manifest = {JULY: hashlib.sha256(july_2010()).hexdigest(), AUGUST: hashlib.sha256(august_2010()).hexdigest()}
     verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), manifest)
@@ -122,7 +123,7 @@ def test_recomputing_from_the_archive_gives_the_table_and_finds_a_planted_change
 
 def test_verify_names_every_day_of_a_month_the_table_lacks_and_a_table_cut_short(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010(), AUGUST: august_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     builder(raw, table).extend([JULY, AUGUST])
     manifest = {JULY: hashlib.sha256(july_2010()).hexdigest(), AUGUST: hashlib.sha256(august_2010()).hexdigest()}
     verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), manifest)
@@ -135,7 +136,7 @@ def test_verify_names_every_day_of_a_month_the_table_lacks_and_a_table_cut_short
 
 def test_verify_names_a_month_the_manifest_does_not_hold(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     builder(raw, table).extend([JULY])
     verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), {})
     assert verifier.problems(table.rows())[0] == "2010-07: no manifest row for the archived file"
@@ -143,7 +144,7 @@ def test_verify_names_a_month_the_manifest_does_not_hold(tmp_path):
 
 def test_a_month_whose_bytes_differ_from_its_manifest_row_stops_the_table(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     wrong = builder(raw, table, manifest={JULY: "0" * 64}).extend([JULY])
     assert wrong.stopped_at == "2010-07: archived file's SHA-256 differs from the manifest" and table.rows() == []
     missing = builder(raw, table, manifest={}).extend([JULY])
@@ -151,20 +152,20 @@ def test_a_month_whose_bytes_differ_from_its_manifest_row_stops_the_table(tmp_pa
 
 
 def test_an_empty_table_file_gets_its_header_and_a_file_without_a_final_newline_is_refused(tmp_path):
-    table = VixDailyTable(tmp_path / "vix.csv")
-    table.path.write_text("")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
+    table.log.path.write_text("")
     table.append([row(date(2010, 7, 19), 20.71)])
     assert table.rows()[0]["date"] == "2010-07-19"
-    table.path.write_text(table.path.read_text().rstrip("\n"))
-    before = table.path.read_bytes()
+    table.log.path.write_text(table.log.path.read_text().rstrip("\n"))
+    before = table.log.path.read_bytes()
     with pytest.raises(VixTableConflict, match="does not end with a new line"):
         table.append([row(date(2010, 7, 20), 20.38)])
-    assert table.path.read_bytes() == before
+    assert table.log.path.read_bytes() == before
 
 
 def test_verify_names_a_day_held_twice_and_rows_out_of_order(tmp_path):
     raw = archive_with(tmp_path, {JULY: july_2010()})
-    table = VixDailyTable(tmp_path / "vix.csv")
+    table = VixDailyTable(CsvRowLog(tmp_path / "vix.csv"))
     builder(raw, table).extend([JULY])
     verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), manifest_of(raw, (JULY,)))
     first, second = table.rows()

@@ -154,6 +154,57 @@ record:
    the switch; a receipt pushed after the deadline is `late` and a missing one `missed`, as the data file was (the
    same for v4 scoring's per-day flags and the owner-timing desk's marks).
 
+## Step 1: the VIX pilot (`story/o9b-vix`)
+
+**Files that move** (`research/data/vix/`): `india_vix_daily.csv` (789,682 bytes, 4,019 days from 19 Jul 2010) and
+`checks/{gaps,level_flags,overlap_index_close}.csv`. `README.md` stays.
+**Writer:** `vix-history.yml` (`python -m fno vix-history fill`, then `sweep`). **Readers:** only `fno/vix_history`
+(its `fill`, `check` and `verify` commands) and its tests (`docs/DATA_USE_MAP.md`; reader index above). No push-time
+reader; no live reader; VIX's overlap check reads G1's `warmup_closes.csv`, which stays until step 5.
+
+**Design (one new class behind each existing port, one line per composition root):**
+- A17's `RowLog` port moves, unchanged, from `fno/global_cues/row_log.py` to `fno/storage/row_log.py` (shared by
+  every append table; global cues' imports follow, nothing else changes).
+- `fno/storage/receipted_rows.py`: `ReceiptedRowLog` (an append table as write-once Drive parts named by the run id,
+  through `DataStore`, read through the verified `DriveCache`; the rows are the parts' rows in name order) and
+  `ReceiptedSnapshots` (a report as one new Drive file per run, the newest current). A file in Drive without a
+  receipt is never read; a missing or changed one raises `DriveDataUnavailable`.
+- `fno/storage/report_files.py`: the `Report` port (`write(fields, rows)`) with `CsvReportFile` (an atomic file
+  rewrite) and `ReceiptedSnapshots`.
+- `VixDailyTable` takes a `RowLog` (its rules unchanged: no day twice, no hole filled, a broken log refused as
+  `VixTableConflict`); `VixCheckFiles` takes one `Report` per check file. `fno/vix_history/wiring.py` picks the
+  receipt-backed classes under Drive's `data/vix/`.
+- `fno/storage/moving.py` and `python -m fno vix-history move`: each committed file becomes its series' first file,
+  read back equal through the cache; again is a no-op; Drive holding other bytes stops the move, nothing overwritten.
+- `vix-history.yml` commits `receipts/data/vix/` and the manifests instead of the data folder.
+- `data` tests: `pytest.ini` keeps the `data` marker out of the default run; `python -m fno data-cache sync <prefix>`
+  fills the verified cache; `tests/data_cache.py` reads only that cache (a Drive stand-in refuses every call, so a
+  missing file fails with the sync command); `tests/vix_history/test_committed.py` runs on it. `data-checks.yml`
+  (daily, and on pushes touching receipts, tests or `fno/storage/`) syncs the moved prefixes and runs `pytest -m data`,
+  with an alert step, on O10's capture-watch list.
+
+**Order:** judge PASS → `vix-history move` from this container on the judged branch (receipts committed on the
+branch) → `data-cache sync data/vix` and `pytest -m data` green → merge (full suite) → the first scheduled run on
+the new path → a removal commit: the four files out of HEAD, `research/data/vix/*.csv` and `checks/` in `.gitignore`
+and in the commit hook's refusal list.
+
+**Gap list (step 1):**
+
+| Requirement | Where |
+|---|---|
+| Upload the existing bytes, one receipt each, verified by download | `vix-history move` (`move_into`); `tests/o9b/test_moving.py` |
+| Rebuilt table equals today's file byte for byte | `ReceiptedRowLog.rebuilt`; move reads back equal; `test_receipted_rows.py` |
+| Writer writes Drive only | `wiring.py` (receipt-backed classes); `vix-history.yml` commits receipts |
+| A run adding no rows writes no part; two runs never collide | `test_a_run_that_adds_no_rows_writes_no_part`, `test_two_writes_in_one_run_keep_their_order` (run-id names) |
+| A changed or missing Drive copy stops the reader | `test_a_changed_drive_copy_stops_the_reader`, `test_a_missing_drive_copy_stops_the_reader` |
+| A Drive file without a receipt is never read | `test_a_file_in_drive_without_a_receipt_is_never_read` |
+| The table's rules unchanged | `tests/vix_history/test_table.py` (12, on `CsvRowLog`) |
+| Reader outputs identical | `test_committed.py` (`data`): the checks the code writes from the Drive table equal the Drive checks byte for byte |
+| Tests on real data | `data` marker, `data-cache sync`, `data-checks.yml` |
+| No push-time reader, no live reader | inventory above; nothing outside `fno/vix_history` reads it |
+| Removal from HEAD, refusal in the hook | the removal commit after the first scheduled run |
+| One builder per function | `RowLog` moved, not copied; A17's owner told; global cues untouched otherwise |
+
 ## Gap list
 
 | Requirement | Where |
@@ -191,3 +242,19 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   (`us_market_closures()` and `NyseCalendar`).
 - A full reader index per group (`grep` on main, 22 Oct) is in section 1. It covers every module, not only the judge's
   examples.
+
+**Step 1, the VIX pilot (code, for Judge F):**
+- Built as in step 1's text above. Files: `fno/storage/{row_log (moved), receipted_rows, report_files, moving, cache_cli}.py`;
+  `fno/vix_history/{table, check_files, wiring, cli}.py`; `.github/workflows/{vix-history, data-checks, capture-watch}.yml`;
+  `pytest.ini` (the `data` marker); `tests/data_cache.py`; `tests/o9b/`; `tests/vix_history/{test_table, test_committed}.py`.
+- Tests: 13 in `tests/o9b/` (a moved table rebuilds byte for byte; no rows means no part; same-run order; changed,
+  missing and unreceipted copies; snapshots; moves, a second move, refusal, an unequal read-back); VIX's 12 table
+  tests on `CsvRowLog`; 4 `data` tests on the verified cache.
+- **Mutations: 8 of 8 caught.** Two survived at first and their tests were added: a stray file in the cache folder
+  without a receipt, and a read-back unequal after the move.
+- Gates: ruff, format, imports and record scan are clean. Full suite: 9,837 passed with 1 failure, and that failure
+  is on main too (`tests/forecast_v4_rules/test_v4rules_phase2.py::test_every_committed_g7_record_row_carries_this_trees_method_hash`,
+  G7's records, already reported to the orchestrator). The 4 `data` tests run after the move.
+- Reader index: cited from section 1 (judge 475 add. 1). Nothing outside `fno/vix_history` reads VIX.
+- Not yet: the move, the data tests on the moved data, the first scheduled run, and the removal commit (the order
+  above). They follow the PASS, and the claims will record each.

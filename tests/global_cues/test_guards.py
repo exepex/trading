@@ -9,7 +9,6 @@ import pytest
 from fno.global_cues.archived_copies import ADOPT_WINDOW
 from fno.global_cues.attempt_log import FIELDS, MAX_ATTEMPTS
 from fno.global_cues.collector import ATTEMPTS_FOLDER, CueCollector
-from fno.global_cues.row_log import TableFileBroken
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.table import BACKFILLED, LIVE, provenance
 from fno.global_cues.us_index_sources import CboeSp500Source
@@ -17,6 +16,7 @@ from fno.global_cues.wiring import next_nse_session
 from fno.models import IST
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.row_log import TableFileBroken
 from tests.global_cues.fakes import REFUSED, FakeCreationTimes, FakeSource, cboe, fake_file
 
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/example.pdf"

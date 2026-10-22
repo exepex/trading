@@ -1,20 +1,22 @@
 """Composition root of story A15, the India VIX full history: the only place that picks its concrete parts. NSE's
 month files through the shared polite session, the owner's Drive raw area with its manifest rows (A9), A11's revisions
-area and index, the table and its checks in the repository, NSE's session calendar and the committed index-close
-closes (A10) for the overlap check."""
+area and index, the table and its checks in Drive with receipts (O9b's pilot), NSE's session calendar and the
+committed index-close closes (A10) for the overlap check."""
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from ..models import now_ist
 from ..research_data.panel_store import WARMUP_FILE
 from ..storage import wiring as storage
+from ..storage.data_wiring import build_data_store, build_drive_cache
 from ..storage.manifest_folder import FingerprintingStore, ManifestFolder
+from ..storage.moving import move_into
 from ..storage.raw_store import AreaStore, RawFileStore
+from ..storage.receipted_rows import ReceiptedRowLog, ReceiptedSnapshots
 from ..storage.revisions import RevisionArchive, RevisionIndex
-from .check_files import VixCheckFiles, committed_vix_closes
+from .check_files import CHECK_FILES, VixCheckFiles, committed_vix_closes
 from .librarian import VixHistoryLibrarian
 from .month_file import NseVixJsonReader
 from .source import NseVixHistorySource
@@ -23,9 +25,11 @@ from .table import VixDailyTable
 from .table_builder import VixTableBuilder
 from .verify import VixTableVerifier
 
-VIX_FOLDER = storage.REPOSITORY / "research" / "data" / "vix"
+VIX_FOLDER = storage.REPOSITORY / "research" / "data" / "vix"  # the repository copies, read only by `move` (O9b)
 TABLE_FILE = VIX_FOLDER / "india_vix_daily.csv"
 CHECKS_FOLDER = VIX_FOLDER / "checks"
+WRITER = "vix-history"
+DRIVE_TABLE, DRIVE_CHECKS = "vix/india_vix_daily", "vix/checks/{stem}"  # inside Drive's `data` area
 REFERENCE_CLOSES = storage.PANEL_FOLDER / WARMUP_FILE  # India VIX closes from NSE's daily index-close files (A10)
 SOURCES = (NseVixHistorySource,)
 DRIVE_SETTINGS_MISSING = f"set {', '.join(storage.OWNER_UPLOAD_SETTINGS)} to use the India VIX archive in Drive"
@@ -55,8 +59,18 @@ def build_vix_librarian(raw: RawFileStore, log=print) -> VixHistoryLibrarian:
     return VixHistoryLibrarian(store, _source(), path_for, NseVixJsonReader(), _fingerprints(manifests), log)
 
 
+def _table_log() -> ReceiptedRowLog:
+    return ReceiptedRowLog(build_data_store(WRITER), build_drive_cache(), DRIVE_TABLE)
+
+
+def _check_reports() -> dict[str, ReceiptedSnapshots]:
+    store, cache = build_data_store(WRITER), build_drive_cache()
+    folders = {name: DRIVE_CHECKS.format(stem=name.rsplit(".", 1)[0]) for name in CHECK_FILES}
+    return {name: ReceiptedSnapshots(store, cache, folder) for name, folder in folders.items()}
+
+
 def build_vix_table() -> VixDailyTable:
-    return VixDailyTable(TABLE_FILE)
+    return VixDailyTable(_table_log())
 
 
 def build_vix_table_builder(raw: RawFileStore) -> VixTableBuilder:
@@ -69,9 +83,18 @@ def _committed_fingerprints() -> dict:
     return _fingerprints(storage.build_manifest_folder())
 
 
-def build_vix_checks(folder: Path = CHECKS_FOLDER) -> VixCheckFiles:
+def build_vix_checks(reports=None) -> VixCheckFiles:
+    """`reports`: the check reports by file name (default: Drive snapshots with receipts)."""
     calendar = storage.build_session_calendar()
-    return VixCheckFiles(folder, calendar, calendar.first, lambda: committed_vix_closes(REFERENCE_CLOSES))
+    return VixCheckFiles(reports or _check_reports(), calendar, calendar.first,
+                         lambda: committed_vix_closes(REFERENCE_CLOSES))  # fmt: skip
+
+
+def move_vix_to_drive() -> list[str]:
+    """O9b's pilot: the committed table and checks into their Drive series, each read back equal."""
+    lines = [move_into(_table_log(), TABLE_FILE.read_bytes(), TABLE_FILE.name)]
+    reports = _check_reports()
+    return lines + [move_into(reports[name], (CHECKS_FOLDER / name).read_bytes(), name) for name in CHECK_FILES]
 
 
 def build_vix_verifier(raw: RawFileStore) -> VixTableVerifier:

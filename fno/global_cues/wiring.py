@@ -21,6 +21,7 @@ from ..storage import wiring as storage
 from ..storage.creation_times import GoogleDriveCreationTimes
 from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.raw_store import AreaStore, RawFileStore
+from ..storage.row_log import CsvRowLog, DrivePartsRowLog, DriveSnapshots
 from .as_of import OPEN
 from .asia_sources import CsindexShanghaiSource, NikkeiSource, TwseTaiexSource
 from .behind import BehindCheck
@@ -47,7 +48,6 @@ from .markets import (
 from .other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
 from .preopen import PreopenReader
 from .reading import CueReader, CueReading
-from .row_log import CsvRowLog, DrivePartsRowLog, DriveSnapshots
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
 from .table import CueTable

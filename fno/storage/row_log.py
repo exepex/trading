@@ -1,4 +1,5 @@
-"""Where a cue table's rows live (story A17): an append-only log of CSV rows behind one interface.
+"""Where an append-only table's rows live (story A17; shared since O9b, which moved it here from `fno/global_cues/` for
+the India VIX table too): an append-only log of CSV rows behind one interface.
 
 - `CsvRowLog`: one CSV file in the repository, appended to (old bytes stay a prefix). For public-domain cues.
 - `DrivePartsRowLog`: a folder in the owner's Drive holding one new CSV part per append, never rewritten (Drive's

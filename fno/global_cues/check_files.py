@@ -17,11 +17,11 @@ import io
 from collections import Counter
 from pathlib import Path
 
+from ..storage.row_log import DriveSnapshots
 from .checks import GAP_FIELDS, OVERLAP_FIELDS, gap_rows, overlap_rows
 from .cue_calendars import CueCalendar
 from .index_reader import IndexPair
 from .pair_checks import PAIR_FIELDS, compared_dates, pair_rows, pair_summary
-from .row_log import DriveSnapshots
 from .table import CueTable
 from .trading_dates import FIELDS as TRADING_DATE_FIELDS
 from .trading_dates import NASDAQ100_CUE, SP500_CUE, us_trading_dates
