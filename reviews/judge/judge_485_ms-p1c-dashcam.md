@@ -5,7 +5,7 @@
 (35458460); a's later commits change story text only. Lane 1 (records). Round 1 of 2, after early findings that I sent
 on 4bfbba77. Judge J (session_01Qg4Gxun1NvGRrtS9C68Dc1).
 
-**Verdict: PASS.** No blocking and no should-fix findings; 2 minor.
+**Verdict: PASS.** No blocking and no should-fix findings; 3 minor.
 
 ## Criteria
 | # | Criterion | Result | Evidence |
@@ -27,6 +27,9 @@ on 4bfbba77. Judge J (session_01Qg4Gxun1NvGRrtS9C68Dc1).
    remote". c fills it with the commit time, as the orchestrator accepted. d's fill port reads `Seal`, so the
    contract's comment should say "commit time; the remote receipt is the proof".
 
+3. No test covers `_push_unpushed` refusing to push when the pull is refused (a checkout with other unpushed
+   changes). The code is right, but the guard that keeps unjudged work off `main` is untested.
+
 ## Plants
 22 planted on eddd7d3a, 22 caught:
 - 18 from round 1, re-planted on the new code (one of them, "no fetch", rewritten to fit it);
@@ -39,5 +42,14 @@ On 4bfbba77, 5 of 18 had survived; all 5 are now caught.
 ## Notes
 - My first full suite on this tip showed 22 failures. That run overlapped my plant run in the same worktree, which
   edits files mid-run. The clean re-run above is the result.
+- The orchestrator asked whether c's tests prove that `seal()` returns only after a successful push. Confirmed at
+  eddd7d3a:
+  - `test_a_receipt_that_cannot_be_pushed_gives_no_seal`, `test_a_push_that_failed_earlier_is_pushed_by_the_rerun`
+    and `test_find_is_none_for_a_file_whose_receipt_never_reached_the_remote` raise or return None on a committed
+    but unpushed receipt.
+  - Plants caught: a seal made without the push, `published()` reading the local HEAD, and `publish` falling back to
+    the local commit.
+  - One survivor, in another property: dropping `_push_unpushed`'s pull-refusal check, which would push a checkout
+    carrying other unpushed commits. The code is right; a test is worth adding with j (minor 3).
 - `_push_unpushed` pulls and pushes once beside A16f's own retrying `_publish`. It is small, and the remote check
   decides the result, so this is not a finding.
