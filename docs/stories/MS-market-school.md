@@ -1021,3 +1021,35 @@ stop, the unreadable raise) each fail a named test.
 
 **Follow-up `story/ms-p1-drivers-tests` (judge 489 minors).** `test_quotes_and_estimates.py`: every ranked card's `expected_net_rs` is pinned at 0.0 (CS1 at 500 fails it; plant caught) and every family says `no_valid_quotes` when its road has no quotes while the same day trades with them (11 drivers; plant: `quotes_missing` off, caught for DR1, PS5 and KL1). One small code change came with it, because the test showed a gap: DR1, PS5 and KL1 do not read the expected move, so a road with no quotes was reported as `no_structure_under_cap`; `ProposalBuilder.quotes_missing` (D2's own listing test) now tells the rule driver to say `no_valid_quotes`. A structure listed but over the cap still says `no_structure_under_cap` (tested).
 **Structure codes (orchestrator, 22 Oct 2026; MS-P1m accepts only SC, SF, BF, PCS, CCS, CDS, PDS).** `test_structure_codes.py` checks every proposal of every driver (and 80 RC1 days) against the definition of each structure: accepted code, leg count, kinds and sides, far leg further out, equal wings, fly on one strike, condor on two. Per family: PS5 SF; KL1, REF, WS1, PS2-4 SC; DB1 BF; DR1 CDS or PDS; CS1 PCS or CCS; RC1 all six. One fix came out of it: RC1's condor could draw both shorts on the same strike (reach 0), which is an SF fly labelled SC; it now draws at least one step (plant caught).
+
+### MS-P1h registration follow-up (orchestrator, 22 Oct 2026; branch `story/ms-p1-card-registration`, lane 1)
+
+Built from main (card v1 and the 12 part-e cards on main), in this order so each row names what is already committed:
+1. **Driver cards frozen** (commit 0deda30b): the 12 cards of part e carry `band_steps: 10`, the band the comparison card
+   freezes (part b's `DEFAULT_BAND_STEPS`); they had 0, 5, 20 and 40, which the card says must be 10, and nothing in
+   `fno/school` reads the field. The "DRAFT" line becomes a frozen line. This edits part e's files: it is the freeze
+   step the story gave h ("draft until h freezes them"); e's tests pass unchanged.
+2. **Comparison card version 2** (0c0f1b24; orchestrator's decision, 22 Oct, before any counted day, none exists): §6
+   now says each proposal's margin models the expiry-day ELM (SEBI 2024/132 para 5.6; part m), priced rather than
+   refused, with k = 2.1 stacked on it conservatively (A14c's open item); the factory block is `version: 2`; §1 lists
+   every driver card with its SHA-256; the ledger trial is named. v1 (merged earlier, never registered or counted) said
+   the ELM was not modelled. Part m was passed by both judges but may not be on main when this merges: the text states
+   the decision, not code that exists on this branch.
+3. **D6 rows** (c0c2775d): 12 rows `school:<driver id>`, version 1, from 22 Oct 2026, `registered_in_commit` the commit
+   that holds the cards and card v2, components `card_sha256` (the driver card file) and `comparison_card_sha256`
+   (CARD_P1 v2's SHA-256), reason naming trial 99 and "CARD_P1 v2"; written with `python -m fno versions register`.
+   First counted session stays unset (`config.yaml` untouched).
+4. **Ledger row, trial 99** (the code `factory register` calls, `IdeaRegistration.register`): ledger, gate-log `idea`
+   row, `research/LEDGER.md` (row and total 99), `research/DATA_SPEND.md` (a `registered` row for the pilot's quotes and 99
+   on the NIFTY A4 row). Trial 99 was still free on main (maximum 98) when written; re-check at merge.
+- **Gap for the orchestrator:** `python -m fno factory register CARD_P1` cannot be used: `read_idea` reads only
+  `research/ideas/<id>.md`, and the card lives in `research/school/`. `factory report` (`read_all_ideas`) therefore does
+  not see CARD_P1: trial 99 is not listed among the measurements and the expected-false-passes line counts it as a
+  test (0.01 more at alpha 0.01). Fix options: move the card into `research/ideas/` or let `read_all_ideas` also read
+  `research/school/CARD_P1.md` (an R1 change). Not done here.
+- **Tests** (`test_registered_cards.py`, `test_card.py`): every card carries the frozen band and is not DRAFT; every card
+  file is in D6 with its own SHA-256, in the card's table, and in the registration commit as it is; every row names
+  the comparison card as committed at its own registration commit, version 2; trial 99 is in the ledger, the gate log
+  and the data-spend register; the card's §6 text is pinned to v2. Plants: a changed D6 driver hash fails one test, an
+  edited card file fails three, a changed comparison hash fails one.
+
