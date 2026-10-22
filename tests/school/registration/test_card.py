@@ -34,9 +34,22 @@ def test_the_cost_block_named_by_the_card_is_the_one_config_held_at_the_cards_la
     assert hashlib.sha256(block.group(0).encode()).hexdigest() in git.committed_text(CARD_PATH, commits[-1])
 
 
+FROZEN_WORDS = (
+    "24 variants (trials 71-98)",
+    "does not prove no edge exists",
+    "10 strike steps",
+    "DEFAULT_BAND_STEPS",
+    "impossible_keys",
+    "revision 7",
+    "BANKNIFTY-M)",
+    "NIFTY-M)",
+    "first_counted_not_frozen_before",
+    "new card version",
+)
+
+
 def test_the_card_freezes_the_pieces_judge_480_named():
-    for words in ("24 variants (trials 71-98)", "does not prove no edge exists", "25 strike steps", "revision 7",
-                  "BANKNIFTY-M)", "NIFTY-M)", "first_counted_not_frozen_before", "new card version"):  # fmt: skip
+    for words in FROZEN_WORDS:
         assert words in CARD, words
     assert "98 counted trials" not in CARD
 
@@ -47,3 +60,8 @@ def test_the_card_says_how_the_first_counted_session_is_set_and_proved():
 
 def test_the_version_component_name_part_e_must_use_is_pinned():
     assert CARD_COMPONENT == "card_sha256" and f"`{CARD_COMPONENT}`" in CARD
+
+
+def test_the_cards_band_is_the_quality_gates_constant():
+    band = pytest.importorskip("fno.school.quality.band", reason="part b (MS-P1b) is not on this branch yet")
+    assert f"{band.DEFAULT_BAND_STEPS} strike steps" in CARD, "the card must freeze exactly part b's band"

@@ -579,11 +579,14 @@ MS-P1h round 2 (judge 480 FAIL, round 1; each finding checked against the code a
    The test forcing a card edit on a `charges:` change is removed; the card's cost hash is now checked against
    `config.yaml` as committed at the card's last commit (`test_the_cost_block_named_by_the_card_...`).
 3. **Card text (accepted):** "EDGE1: 24 variants (trials 71-98) found no edge after costs; this does not prove no edge
-   exists" replaces "98 counted trials"; the band (25 strike steps, a first guess, reasoning only) and EDGE1's
-   impossible-price bound (PROTOCOL revision 7, judge 473.1; applying it to quotes is reasoning only) are frozen;
+   exists" replaces "98 counted trials"; the band and the impossible-price bound are frozen as part b's own
+   (orchestrator, 22 Oct: one source of truth): 10 strike steps (`fno/school/quality/band.py` `DEFAULT_BAND_STEPS`,
+   b's tip 183783bd) and `impossible_keys` (`fno/school/quality/prices.py`, judged on bid-ask ranges, not mids);
    PS5's road (BANKNIFTY-M) and KL1's (NIFTY-M) are named (`test_the_card_freezes_the_pieces_judge_480_named`).
-   Part e's cards must carry `band_steps: 25`; the story's text of 3.5 does not name a number, so this is a new
-   freeze for the orchestrator to confirm.
+   Part e's cards must carry `band_steps: 10`. b is not on this branch, so the pin test
+   (`test_the_cards_band_is_the_quality_gates_constant`) skips here and runs once main holds b: j should check it
+   ran. Whether 10 steps is wide enough for the 1-expected-move shorts is reasoning only (a leg outside the band is
+   still checked by the quote gate when the trade is made).
 4. **DRY (accepted):** `GitCardHistory` and the test's `RegistryHistory` are gone; one adapter, `GitCountingHistory`,
    wraps `fno/research_engine/ledger.Git` (`is_ancestor`, `commits_touching`, `committed_text`,
    `first_commit_containing`), and the tests use `Git` itself, also for D6's `Versions`.

@@ -74,13 +74,17 @@ changed charge schedule is a new card version that applies to later decisions on
   `refused`, `road_closed` and `unavailable` stay in the denominator of every report.
 - **Original opportunities:** a ticket (a fired rule beyond the 5-trade limit or on a stopped driver) is counted in
   the eligible, fillable and executed counts, never summed into rupees and never in an account.
-- **Band:** the strikes within 25 strike steps of the money on each side, on the expiries the road records that
-  session (a first guess, about 5% of spot on each road, so the 1-expected-move shorts and the cap-sized wings are
-  inside it; **reasoning only**). Every driver card's `band_steps` must be 25.
-- **Impossible price (EDGE1's bound, `research/edge1/PROTOCOL.md`, revision 7, judge 473.1):** a leg observation
-  fails when its vertical (a sold leg with the bought leg of its type one step out) is worth less than 0 or more than
-  its width at the quoted mids, or the structure leaves its payoff bounds. Applying it to quotes is **reasoning only**;
-  the rule itself is EDGE1's.
+- **Band (one source: part b's `DEFAULT_BAND_STEPS` in `fno/school/quality/band.py`, 10 strike steps):** the strikes
+  within 10 steps of the money on each side (the money: the strike nearest the spot on the nearest expiry), on every
+  expiry the road records that session. The card freezes b's number and does not define its own: if the constant
+  moves, this card is out of date and a new card version is needed (`test_the_cards_band_is_the_quality_gates_constant`
+  checks it once b is on the branch). The band is the gate's observation set only: a driver leg outside it is still
+  checked by the quote gate (law 5) when the trade is made. Every driver card's `band_steps` must be 10 (RC1's widest
+  short strike, as b notes). Whether 10 steps is wide enough for the 1-expected-move shorts is **reasoning only**.
+- **Impossible price (one source: part b's `impossible_keys` in `fno/school/quality/prices.py`, EDGE1's rule, protocol
+  revision 7, judge 473.1):** a vertical (a sold leg with the bought leg of its type) is impossible when no price
+  inside both legs' bid-ask ranges can put it between 0 and its width; each leg also may not break the bounds no market
+  can break (a call's bid above the index, a put's bid above its strike). Both legs of a broken vertical are flagged.
 - **Gate per road:** the snapshot passes (present, complete, in window, hash matching, expiries matching A7's, lot
   found) on 10 of 10 consecutive sessions **and** over 95% of the band's leg observations are valid (A4), two-sided
   and not impossible over those sessions. A failing road stays closed for counting while others run.
