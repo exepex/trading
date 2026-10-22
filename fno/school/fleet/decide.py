@@ -1,6 +1,7 @@
 """One driver at the slot (story MS-P1j; order: drivers, laws, then the exit reviews), isolated as one unit:
-- every open road gets the driver's decision on its snapshot and its own earlier spots; every closed road a sealed
-  `road_closed` with the road's reason;
+- only the card's own roads are scheduled for the driver (its `roads`; CARD_P1 section 1): each open one gets the
+  driver's decision on its snapshot and its own earlier spots, each closed one a sealed `road_closed` with the road's
+  reason;
 - the fired trades go through `tickets.rules.classify`, whose law check sees the slot's running view (the trades
   already accepted), so the slot's caps add up before any fill;
 - each open position the driver holds on an open road gets the card's exit review, after the pairing check: a
@@ -52,7 +53,10 @@ class DriverStep:
         """`view`: the account at the slot (after settlement); `held` its open positions; `tickets` the driver's open
         tickets, reviewed by the same card."""
         card = driver.card
+        roads = roads.only(card.roads)
         closed = tuple(closed_record(card, road) for road in roads.closed)
+        if not roads.open:
+            return DriverSlot(_in_order(roads, closed), ())  # nothing to decide or review on this slot
         done = isolated(lambda: self._open_roads(driver, roads, view, (*held, *tickets)), self.seconds)
         if done.failed:
             failed = tuple(decision_record(card, unavailable(card, r.road_day, done.failed), r.snapshot, (),

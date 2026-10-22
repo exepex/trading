@@ -43,6 +43,12 @@ class SlotRoads:
     def scheduled(self) -> tuple[RoadDay, ...]:
         return tuple(r.road_day for r in (*self.open, *self.closed))
 
+    def only(self, codes) -> "SlotRoads":
+        """The roads among `codes` (a card's own roads), in the same order."""
+        keep = set(codes)
+        return SlotRoads(tuple(r for r in self.open if r.road_day.road.code in keep),
+                         tuple(r for r in self.closed if r.road_day.road.code in keep))  # fmt: skip
+
 
 def plan_slot(session: date, catalogue: RoadCatalogue, snapshots: SnapshotSource, gate: QualityGate) -> SlotRoads:
     opened, closed = [], []

@@ -30,6 +30,11 @@ CLOSED = RoadStatus(ClosureReason.CAPTURE_MISSING, "no canonical marker")
 OPEN_ROAD = RoadCode.BANKNIFTY_MONTHLY
 
 
+def all_roads(code: str):
+    """A card that drives every road, so one test sees every road scheduled for it."""
+    return replace(b.card(code), roads=tuple(r.code for r in ROADS))
+
+
 class OpenGate:
     def check(self, road_day, snapshot):
         return OPEN

@@ -25,9 +25,9 @@ from fno.school.fakes import FakeDriver, FakeMaxLossLaw
 from fno.school.fleet.records import ERROR_INPUT
 from tests.school.contracts import builders as b
 from tests.school.contracts import conformance as c
-from tests.school.fleet.rig import DAY2, OPEN_ROAD, Rig
+from tests.school.fleet.rig import DAY2, OPEN_ROAD, Rig, all_roads
 
-CS1, N0 = b.card("CS1"), b.card("N0")
+CS1, N0 = all_roads("CS1"), all_roads("N0")
 
 
 def trader(**kwargs) -> FakeDriver:
@@ -140,3 +140,10 @@ def test_an_expired_position_settles_before_the_session_s_view_and_its_outcome_i
     assert [e.exit_reason for e in exits] == [ExitReason.EXPIRY]
     [outcome] = records(rig, later, RecordKind.OUTCOMES)
     assert outcome.exit_reason == ExitReason.EXPIRY and outcome.exit.rests_on == "ee" * 32
+
+
+def test_a_driver_is_scheduled_only_on_its_card_s_roads(tmp_path):
+    rig = Rig(tmp_path, (FakeDriver(b.card("CS1"), b.put_spread()), FakeDriver(N0)), (FakeMaxLossLaw(10_000),))
+    run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    mine = {r.road for r in run.decisions if r.decision.driver_id == "CS1@1"}
+    assert mine == {OPEN_ROAD} and len([r for r in run.decisions if r.decision.driver_id == "N0@1"]) == 5

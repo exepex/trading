@@ -11,9 +11,9 @@ from fno.school.dashcam.names import counts_path
 from fno.school.fakes import FakeDriver, FakeMaxLossLaw
 from fno.school.fleet.counts_file import opportunity_path
 from tests.school.contracts import builders as b
-from tests.school.fleet.rig import DAY2, OPEN_ROAD, Rig
+from tests.school.fleet.rig import DAY2, OPEN_ROAD, Rig, all_roads
 
-CS1, REF = b.card("CS1"), b.card("REF")
+CS1, REF = all_roads("CS1"), all_roads("REF")
 TWO = (RoadCode.BANKNIFTY_MONTHLY, RoadCode.FINNIFTY_MONTHLY)
 
 
@@ -94,7 +94,7 @@ def test_two_accounts_on_one_displayed_size_one_entry_is_size_shared_and_stays_c
 
 
 def test_both_counts_files_are_written_with_every_scheduled_decision(tmp_path):
-    rig = Rig(tmp_path, (trader(), FakeDriver(b.card("N0"))), (FakeMaxLossLaw(10_000),))
+    rig = Rig(tmp_path, (trader(), FakeDriver(all_roads("N0"))), (FakeMaxLossLaw(10_000),))
     rig.fleet.run(b.SESSION, RunMode.REPLAY)
     outcomes = list(csv.DictReader((tmp_path / counts_path(b.SESSION, SLOT_1500)).open()))
     assert sum(int(row["count"]) for row in outcomes) == 10  # 5 roads x 2 drivers
