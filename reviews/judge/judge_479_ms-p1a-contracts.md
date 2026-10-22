@@ -134,3 +134,31 @@ receipt (`seal` returns only after the push). In a live run, fills come after `s
 But a replay or audit that checks `covers` on old seals compares commit time, not push time. A commit made before the
 fill but pushed after it would pass there. Any after-the-fact check of "sealed before fill" should use O8's push
 evidence, not `pushed_at` [reasoning only].
+
+## Addendum 3
+
+**Scope:** MS-P1a3, story/ms-p1-contracts-a3 at 9ede0d1e. It adds the `LedgerReader` port with its conformance check
+and fake, `SlotQuote.sizes_measured`, and `RefusalReason.SIZE_NOT_MEASURED`. Lane 1, money piece (it changes what a
+valid quote is): first of two judges, independent of judge I.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 11666 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The `sizes_measured` invariant.** An unmeasured quote must carry no size: `__post_init__` raises if `bid_qty` or
+  `ask_qty` is set. The default stays True, so every existing quote and capture keeps today's meaning.
+- **`two_sided` and `mid` for unmeasured quotes.** Such a quote is two-sided on valid, bid and ask alone; a measured
+  one still needs both sizes. `mid` is unchanged.
+- **SIZE_NOT_MEASURED** falls in TRADE_VALIDITY (not an account limit, not a stop), and `test_law_split` pins the
+  partition.
+- **The decoder stays strict: I agree.** `from_plain(SlotQuote, {...})` without `sizes_measured` raises
+  `KeyError('sizes_measured')`, which I checked. No real school record exists yet, so nothing on file breaks. A
+  silent default on decode would let an old record pass as "measured" without saying so.
+  - Had records existed, this layout change would have needed `RECORD_SCHEMA_VERSION` 2.
+- **`LedgerReader`** matches d's `SchoolAccounts.entries`: read-only, in recorded order, () for an account never
+  opened. The fake and its conformance check pass.
+- **Plants: 6, 6 caught.** An unmeasured quote with sizes; measured sizes ignored; unmeasured never two-sided; the
+  default flipped to unmeasured; SIZE_NOT_MEASURED counted as a stop; fake entries out of order.
+
+**Note for d part 4 and SIM-c.** An unmeasured quote is now `two_sided`. So the refusal of a live fill on it must be
+d's (`size_not_measured`), and E4's size check must never treat a missing size as enough. That belongs in d part 4's
+tests.

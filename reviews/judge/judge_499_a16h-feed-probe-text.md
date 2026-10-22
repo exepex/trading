@@ -130,3 +130,14 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
 **Minor:** the catch-up gate accepts a `candles` step that finished as failed. A rerun of the daily run may then retry it beside the ramp. Requiring `result.status == "ok"` closes that.
 
 **Plants:** 9 planted, 8 caught. The survivor is finding 1.
+
+## Addendum 7: code round 2 at 947aee82 (diff 4abcf179..947aee82)
+
+**Verdict: PASS.** The code may merge under the merge procedure; the first probe is Tue 27 Oct, by hand.
+
+- **Finding 1 (Addendum 6): FIXED.** `cmd_feed_probe` first calls `window_refusal(plan, day, now)`, clock-only, before the gates, `build_feed_probe` (so before `provider.api` and `get_access_token`) and `build_universe`. `test_a_start_outside_the_window_is_refused_before_any_sign_in_or_quote` traps the sign-in, quotes and gates at 10:26, 14:56 and 16:01. My round-1 survivor (the check removed) is now caught.
+- **Minor: FIXED.** The catch-up gate requires `result.status == "ok"` (plant caught); a cut names what it kept.
+- **Plants this round:** 5 planted, 3 caught. Both survivors are equivalent, not gaps:
+  - the second `check_start` after the sign-in, removed: the first check and `run`'s own window check still refuse;
+  - the watch loop running past its end: `wait()` returns False at the hard end, so the loop stops there anyway.
+- **Gates (my run):** full `pytest -n auto` 11,722 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
