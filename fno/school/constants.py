@@ -1,9 +1,18 @@
 """The school's fixed names (story MS-P1a): roads, outcome and reason codes, report labels and the settings keys.
-Frozen here so the parallel parts b-j share one vocabulary; a new code is a small follow-up of MS-P1a, never a copy."""
+Frozen here so the parallel parts b-j share one vocabulary; a new code is a small follow-up of MS-P1a, never a copy.
+
+Standard library only, like every contract module: the contracts load nothing outside the stdlib and `fno/school`
+(judge 479). Three values the rest of the repository also defines are written here and pinned equal to theirs by
+`tests/school/contracts/test_shared_values.py`: the order sides (`fno.constants`) and the two quote datasets
+(`fno/quotes/recorder.py` `DATASET`, `fno/quotes/weekly.py` `WEEKLY_DATASET`)."""
 
 from datetime import time
 from enum import StrEnum
 
+SIDE_BUY, SIDE_SELL = "buy", "sell"  # = fno.constants SIDE_BUY, SIDE_SELL (the ledgers' and charges' sides)
+SIDES = (SIDE_BUY, SIDE_SELL)
+MONTHLY_DATASET = "groww/derivatives/quote-snapshots"  # = fno.quotes.recorder.DATASET (A4, A4c)
+WEEKLY_DATASET = "groww/derivatives/quote-snapshots-weekly"  # = fno.quotes.weekly.WEEKLY_DATASET (A4f)
 RECORD_SCHEMA_VERSION = 1  # every decision and outcome record carries it; a layout change is a new version
 SLOT_1500 = "15:00"  # the pilot's only slot: each road's canonical 3 pm capture of the session
 SLOT_TIME = time(15, 0)
@@ -59,8 +68,8 @@ class NoTradeReason(StrEnum):
 
 
 class TicketReason(StrEnum):
-    TRADE_LIMIT = "trade_limit"  # fired beyond the slot's max new trades
-    DRIVER_STOPPED = "driver_stopped"  # fired while the daily stop or the brake holds the account
+    TRADE_LIMIT = "trade_limit"  # passed every law, beyond the slot's max new trades
+    ACCOUNT_LIMIT = "account_limit"  # refused only by ACCOUNT_LIMITS (below), which a ticket does not have
 
 
 class RefusalReason(StrEnum):
@@ -117,6 +126,14 @@ class DriverRole(StrEnum):
     RULE = "rule"
     CONTROL = "control"  # N0, RC1, REF: matched controls
     MEASUREMENT_ONLY = "measurement_only"  # PS5, KL1: never ranked, recommended or shown as candidates
+
+
+# The frozen split of the safety laws' refusals (judge 479; reviews 138 and 139: tickets "relax only account-level
+# cash/bucket limits"; orchestrator, 22 Oct: a stopped or braked driver issues no tickets that day).
+ACCOUNT_LIMITS = frozenset({RefusalReason.BUCKET_CAP, RefusalReason.OPEN_RISK, RefusalReason.NEW_RISK_DAY,
+                            RefusalReason.MARGIN_ROOM})  # fmt: skip
+DRIVER_STOPS = frozenset({RefusalReason.DAILY_STOP, RefusalReason.BRAKE})  # bind tickets too: no ticket that day
+TRADE_VALIDITY = frozenset(RefusalReason) - ACCOUNT_LIMITS - DRIVER_STOPS  # protection, max loss, quotes, prices, seal
 
 
 REASONS_BY_OUTCOME = {

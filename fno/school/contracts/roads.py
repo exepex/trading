@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Protocol, runtime_checkable
 
-from ...quotes.recorder import DATASET
-from ...quotes.weekly import WEEKLY_DATASET
-from ..constants import ClosureReason, ExpiryKind, RoadCode
+from ..constants import MONTHLY_DATASET, WEEKLY_DATASET, ClosureReason, ExpiryKind, RoadCode
 
 
 @dataclass(frozen=True)
@@ -14,15 +12,15 @@ class Road:
     code: RoadCode
     underlying: str
     expiry_kind: ExpiryKind
-    dataset: str  # the quote store's dataset (A4's `recorder.DATASET`, A4f's `weekly.WEEKLY_DATASET`)
+    dataset: str  # the quote store's dataset (`MONTHLY_DATASET` or `WEEKLY_DATASET`)
     stem: str  # the capture file stem (`<stem>_<YYYYMMDD>.canonical`)
 
 
 ROADS = (
-    Road(RoadCode.NIFTY_MONTHLY, "NIFTY", ExpiryKind.MONTHLY, DATASET, "nifty"),
-    Road(RoadCode.BANKNIFTY_MONTHLY, "BANKNIFTY", ExpiryKind.MONTHLY, DATASET, "banknifty"),
-    Road(RoadCode.FINNIFTY_MONTHLY, "FINNIFTY", ExpiryKind.MONTHLY, DATASET, "finnifty"),
-    Road(RoadCode.MIDCPNIFTY_MONTHLY, "MIDCPNIFTY", ExpiryKind.MONTHLY, DATASET, "midcpnifty"),
+    Road(RoadCode.NIFTY_MONTHLY, "NIFTY", ExpiryKind.MONTHLY, MONTHLY_DATASET, "nifty"),
+    Road(RoadCode.BANKNIFTY_MONTHLY, "BANKNIFTY", ExpiryKind.MONTHLY, MONTHLY_DATASET, "banknifty"),
+    Road(RoadCode.FINNIFTY_MONTHLY, "FINNIFTY", ExpiryKind.MONTHLY, MONTHLY_DATASET, "finnifty"),
+    Road(RoadCode.MIDCPNIFTY_MONTHLY, "MIDCPNIFTY", ExpiryKind.MONTHLY, MONTHLY_DATASET, "midcpnifty"),
     Road(RoadCode.NIFTY_WEEKLY, "NIFTY", ExpiryKind.WEEKLY, WEEKLY_DATASET, "niftyweekly"),
 )
 ROADS_BY_CODE = {road.code: road for road in ROADS}
