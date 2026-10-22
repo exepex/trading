@@ -1930,3 +1930,12 @@ MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct
 
 Empty until INS-a is built. Each part's round adds its subsection here: the criteria met with test names and
 broken-code proof, the self-review findings, and a real output sample (counts only).
+
+### MS-P1d follow-up Claims, part 3 (branch `story/ms-p1d-entries`): the read-only ledger read for j
+
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+|---|---|---|
+| `SchoolAccounts.entries(driver_id) -> tuple[LedgerEntry, ...]` for j's `LedgerReader` (a3), so settlement can run before the session's first `view` | `accounts/school_accounts.py`: under the account's lock, pulled from Drive once per run (`_locked`, shared with the writer), reads `PositionBook.entries()` in the order recorded, after the same unit-for-unit ledger check `view` makes; writes nothing (no account opened, no equity row, no push); an account never opened gives () | `test_entries.py`: entries match the ledger in order (plant: order reversed); nothing written and no push, the next session's row still written by `view` afterwards (plant: entries opening the account); one pull per run under the lock, a held lock refuses (plant: no pull); a failed pull stops with E2c's `PrivateFilesUnavailable`; half a record raises (plant: the check dropped) |
+
+- **Plants:** 4 planted, 4 caught. The Protocol's conformance check is added once a3 (j's builder) is on main.
+

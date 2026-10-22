@@ -2,6 +2,7 @@
 `account_rs` on first use, written only under its single-writer lock (`AccountLock`), mirrored to Drive through E2c's
 private files (never committed). E1's ledger keeps cash and units; `PositionBook` keeps what the laws read.
 
+`entries` reads every recorded entry without writing anything (j's settlement runs before the first view).
 `view` marks every open position at its road's snapshot and writes the session's equity row once, at the first view
 of the session (the slot's marks before its fills), so the daily stop and the brake read fixed rows on any rerun.
 Known limit (story 3.6): the loss since the previous slot compares this slot with the previous session's row, so it
@@ -90,15 +91,32 @@ class SchoolAccounts:
             book.add(entry)
             self._push(driver_id)
 
+    def entries(self, driver_id: str) -> tuple[LedgerEntry, ...]:
+        """Every recorded entry, in the order recorded (j's settlement runs before the session's first `view`, which
+        writes the equity row). Read-only: under the lock, pulled once per run, nothing written; an account never
+        opened gives (); a ledger that disagrees with the position records raises, never returning half a record."""
+        with self._locked(driver_id) as (_, account):
+            if not account.started:
+                return ()
+            book = PositionBook(account.file(POSITIONS_FILE))
+            _check_consistent(driver_id, book.open_positions(), trade_positions(account.fills()))
+            return tuple(book.entries())
+
     @contextmanager
-    def _writer(self, driver_id: str):
-        """The account's writer under its lock, its files pulled from Drive once per run."""
+    def _locked(self, driver_id: str):
+        """The account under its lock, its files pulled from Drive once per run (a failed pull stops, by name)."""
         name = account_name(driver_id)
         with self.lock(self.root, name) as held:
             if self.sync is not None and name not in self._pulled:
                 self.sync.pull(account_files(self.root, driver_id))
                 self._pulled.add(name)
-            yield AccountWriter(PaperAccount(self.root, name), held, self.account_rs)
+            yield held, PaperAccount(self.root, name)
+
+    @contextmanager
+    def _writer(self, driver_id: str):
+        """The account's writer under its lock."""
+        with self._locked(driver_id) as (held, account):
+            yield AccountWriter(account, held, self.account_rs)
 
     def _push(self, driver_id: str) -> None:
         """After a write, under the lock: every file back to Drive."""
