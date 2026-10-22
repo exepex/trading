@@ -17,10 +17,12 @@ rounds, and the paper desk ran daily with 0 trades. The main steward builds the 
 - `number-alert.yml`: the hourly cron removed; the push alert and the manual run stay.
 
 **Later parts (from Mon 26 Oct, after the v4 freeze's three clean runs; each its own small change).**
-2. Cron cuts: participant-OI watch 28 to 3 runs a day, margins 4 to 1, circulars 15 to 2; the AI books' daily runs
-   stopped (Books 2 and 3 stay paused, not closed).
+2. Cron cuts: participant-OI watch 28 to 3 runs a day, margins 4 to 1, circulars 15 to 2. (The AI books' runs are
+   **on hold**, not stopped: DESK_DECISIONS "Product direction: recommend, record, learn", 22 Oct.)
 3. Docs archive: about 7.6k lines of stale docs to `docs/archive/` with a README (response 318, section 6).
-4. The paper desk's daily steps frozen until the edge study shows an edge: built by the O1/O2 builder
+4. **On hold** (DESK_DECISIONS "Product direction: recommend, record, learn", 22 Oct: the new plan needs the paper
+   desk and un-pauses Books 2 and 3; nothing merges until ChatGPT's review, Claude's answer and the owner's review).
+   Was: the paper desk's daily steps frozen until the edge study shows an edge: built by the O1/O2 builder
    (session_014zYLf18PgCzR7YoHs1X5Dp) on `story/o1-desk-freeze` (f7ad40e0; story `docs/stories/O1-desk-freeze.md`,
    judge 469 text PASS). One `desk.frozen` switch; each frozen step waits for its own time and records `frozen`
    (keeping the timetable and O8's health check truthful); exits keep running while any book holds a position.
