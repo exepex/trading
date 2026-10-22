@@ -1,8 +1,8 @@
 # G14. v5 side by side: V1's forecasters started now on the stored candle RV history
 
 **Repository:** trading. **Owner:** R2/G7 builder (session 0185gR5DmoDh2zBAvgRU4CEB). **Lane 1** (forecast records),
-one judge: Judge J (session_01Qg4Gxun1NvGRrtS9C68Dc1); judge D for the O1 parts. **Status:** text, round 2 (judge 497
-FAIL answered).
+one judge: Judge J (session_01Qg4Gxun1NvGRrtS9C68Dc1); judge D for the O1 parts. **Status:** text PASS (judge
+497.1, round 2); code after v4's piece 4.
 
 **Description:** As the quantitative modeller, I want v4's five V1 forecasters (trailing, EWMA, HAR daily, HAR
 intraday and the close blend) run every session from now on, on the candle-based intraday RV history A16b already
@@ -109,8 +109,10 @@ The question is what the forecast for day `d` may read, point in time, at `d`'s 
   - The O1 step (`DAILY_RUN_STEPS`, `fno/daily/wiring.py`, `config.yaml`, the step-list tests) is a separate commit,
     merged only after the owner signs v4, with its `daily.live_from` date. A `not_live` row before then is not
     enough.
-- **Agreed with the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp, 23 Oct).** I add the step on this branch, in
-  `fno/daily/wiring.py`, `fno/constants_operations.py`, `config.yaml` and `tests/daily/test_steps.py`. Terms:
+- **Agreed with the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp, 23 Oct).** I add the step on its own branch,
+  `story/g14-o1-step`, cut from `main` after the package has merged (judge 497.1 minor), so a package merge can never
+  carry it early. It changes `fno/daily/wiring.py`, `fno/constants_operations.py`, `config.yaml` and
+  `tests/daily/test_steps.py`. Terms:
   - Wiring: copy `forecasts_v4`'s pattern exactly, with the command and pathspecs as named constants beside
     `FORECASTS_V4`, and the name added to `LIVE_STEPS`. Any `receipts/` folder the capture writes goes in the
     pathspecs too.
