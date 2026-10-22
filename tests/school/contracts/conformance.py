@@ -12,6 +12,7 @@ from fno.school.contracts.accounts import (
     FillPort,
     IndexSettlementSource,
     LedgerEntry,
+    LedgerReader,
     SealedDecision,
     SettlementPrice,  # fmt: skip
     SettlementUnavailable,
@@ -107,6 +108,17 @@ def check_fill_port_missing_quote(port, sealed: SealedDecision, empty: SlotSnaps
     assert not exit_.filled and exit_.state == ExitState.EXIT_WAITING_QUOTE
 
 
+def check_fill_port_unmeasured(port, sealed: SealedDecision, unmeasured: SlotSnapshot, seal: Seal, at: datetime,
+                               position: OpenPosition) -> None:  # fmt: skip
+    """`unmeasured`: every leg two-sided on its prices, no displayed size measured (judge 506). A live fill port never
+    trades on it: the entry is refused as `size_not_measured`, and the exit waits."""
+    assert all(q.two_sided and not q.sizes_measured for q in (unmeasured.quote(leg.key) for leg in position.legs))
+    entry = port.enter(sealed, unmeasured, seal, at)
+    assert not entry.filled and entry.refused == (RefusalReason.SIZE_NOT_MEASURED,)
+    exit_ = port.exit(position, unmeasured, sealed.file_sha256, seal, at)
+    assert not exit_.filled and exit_.state == ExitState.EXIT_WAITING_QUOTE
+
+
 def check_dashcam(store, session: date, slot: str, records: tuple[SlotRecord, ...],
                   other: tuple[SlotRecord, ...]) -> None:  # fmt: skip
     assert isinstance(store, DashcamStore)
@@ -161,3 +173,18 @@ def check_fleet(runner, session: date, scheduled: set[tuple], mode: RunMode = Ru
 def check_fleet_off(runner, session: date) -> None:
     run = runner.run(session, RunMode.RECORD)
     assert run.status == SCHOOL_OFF_LINE and run.decisions == () and run.fills == ()
+
+
+def check_ledger_reader(reader, port, opening: LedgerEntry, closing: LedgerEntry, marks: dict, session: date) -> None:
+    """MS-P1a3: `reader` reads `port`'s accounts. Never-opened gives (); then the opening, then both in order; reading
+    changes nothing and writes no equity row (a view before and after a read is equal)."""
+    assert isinstance(reader, LedgerReader)
+    driver_id = opening.position.driver_id
+    assert reader.entries(driver_id) == ()
+    port.view(driver_id, marks, session)
+    port.record(driver_id, opening)
+    assert reader.entries(driver_id) == (opening,)
+    port.record(driver_id, closing)
+    before = port.view(driver_id, marks, session)
+    assert reader.entries(driver_id) == (opening, closing) == reader.entries(driver_id)
+    assert port.view(driver_id, marks, session) == before, "a read writes nothing"

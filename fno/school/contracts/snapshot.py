@@ -24,10 +24,16 @@ class SlotQuote:
     ask_qty: int | None
     last: float | None
     valid: bool  # A4's rule (`fno/quotes/quote_validity.py`): a usable market, traded that session
+    sizes_measured: bool = True  # False: the source holds no displayed size (the simulator's history); sizes stay None
+
+    def __post_init__(self):
+        if not self.sizes_measured and (self.bid_qty is not None or self.ask_qty is not None):
+            raise ValueError("a quote whose sizes were not measured carries no size")
 
     @property
     def two_sided(self) -> bool:
-        return self.valid and bool(self.bid) and bool(self.ask) and bool(self.bid_qty) and bool(self.ask_qty)
+        sized = not self.sizes_measured or (bool(self.bid_qty) and bool(self.ask_qty))
+        return self.valid and bool(self.bid) and bool(self.ask) and sized
 
     @property
     def mid(self) -> float | None:

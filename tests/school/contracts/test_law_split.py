@@ -21,7 +21,7 @@ def test_the_three_groups_split_every_refusal_once():
 def test_protection_max_loss_quotes_prices_and_the_seal_are_never_account_limits():
     never = {RefusalReason.UNPROTECTED, RefusalReason.MAX_LOSS, RefusalReason.MISSING_QUOTE,
              RefusalReason.ONE_SIDED_QUOTE, RefusalReason.SIZE_ABOVE_DISPLAYED, RefusalReason.PROTECTION_UNSELLABLE,
-             RefusalReason.IMPOSSIBLE_LEG_PRICE, RefusalReason.STALE_SEAL}  # fmt: skip
+             RefusalReason.IMPOSSIBLE_LEG_PRICE, RefusalReason.STALE_SEAL, RefusalReason.SIZE_NOT_MEASURED}  # fmt: skip
     assert never == TRADE_VALIDITY
 
 

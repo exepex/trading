@@ -86,3 +86,29 @@ This is my round 2 of 2 (first judge, independent of judge K).
    a schema step.
 2. My round-1 note 1 (the SPAN download inside the first driver's limit, about 19 s of 60 s) and note 2 (`allocate`
    reads a missing size as 0, so practice fills must not go through it) still stand.
+
+## Addendum 2
+
+**Scope:** the delta `7f757504..1da5ffcd` on story/ms-p1j-fleet, as the orchestrator asked. Round 3 (cb059340) is
+already judged in addendum 1. This covers round 4 (1da5ffcd): the builder's answers to my notes, and judge 506's live
+guard.
+
+**Verdict: PASS.** My round-1 notes 1 and 2 are closed at their root.
+
+- **Gates (my run):** 12097 passed, 16 xfailed; real acceptance 9 of 9. `ruff check`, `ruff format` and
+  `check_imports` are clean.
+- **Only the driver's code is timed.** The builder rejected my "warm-up" suggestion with a better root cause: the
+  60-second limit timed the fleet's own laws.
+  - `DriverStep` now isolates and times only the driver's code: its decisions (real, plus the hypothetical ones on
+    roads where it holds a ticket), then its exit reviews, each with its own limit. The laws run untimed between
+    them, so a slow margin read is never a driver's deadline.
+  - A law that throws unexpectedly is now the fleet's loud error, never the driver's. A failed SPAN read still
+    refuses each entry by name inside C2's law.
+  - I accept this. It is the right fix, and mine was a patch.
+- **A road is never ticketed twice.** A ticket on a road where the driver already holds one stands only if the
+  driver, deciding again with its tickets, still trades. That answer is now asked inside the timed driver call.
+- **Live guard (judge 506).** `plan_slot` closes any road whose capture holds an unmeasured quote
+  (`sizes_not_measured`), so the live fleet never trades on one. That makes my note 2 (missing sizes read as 0 in
+  `allocate`) moot for live runs until d's QuoteRules reaches it.
+- **Plants: 4, 4 caught.** An unmeasured road left open; exit reviews untimed; the laws timed with the driver; a road
+  ticketed twice.
