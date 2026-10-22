@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from fno.constants import (
+    V1_RV_1S,
     V2_RV_5S,
     V3_RV_20S,
     V4_BASELINE_BASE_RATE,
@@ -193,14 +194,15 @@ def test_every_committed_g7_record_row_carries_this_trees_method_hash():
     from fno.forecast_v4_rules.capture import FORECASTERS
     from fno.forecast_v4_rules.wiring import V4_FOLDER, method_sha256
 
-    expected, files = method_sha256(), 0
+    expected, backfilled = method_sha256(), set()
     for forecaster, question in FORECASTERS:
         file = records.path(V4_FOLDER, forecaster, question)
-        if file.exists():
-            files += 1
-            backfill = [r for r in records.read(file).values() if r.label == records.BACKFILL]
-            assert backfill and {r.method_sha256 for r in backfill} == {expected}, file
-    assert files == 14  # V6 4, V2 and V3 8, V7 2 (V1 has not started)
+        backfill = [r for r in records.read(file).values() if r.label == records.BACKFILL] if file.exists() else []
+        assert {r.method_sha256 for r in backfill} <= {expected}, file
+        backfilled |= {(forecaster, question)} if backfill else set()
+    # Back-filled: V6 4, V2 and V3 8, V7 2. V1 never is: it starts live after 20 A16 sessions (protocol 1.3), so its
+    # files hold live rows only (22 Oct 2026: `not_started`). A V1 back-fill, or a lost back-fill, fails here.
+    assert backfilled == {(f, q) for f, q in FORECASTERS if q != V1_RV_1S} and len(backfilled) == 14
 
 
 def test_record_folders_name_every_g7_forecaster_folder_and_no_weather_folder():
