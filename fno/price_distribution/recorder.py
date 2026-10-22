@@ -12,7 +12,9 @@ failed or refused step.
 - a chain recorded but unreadable (Drive down) or a build that fails: no file for that underlying, so a rerun can
   still record it; with any other problem, every other file is written (a chain not captured as a `missing` record),
   one line per problem, last line `written with problems: ...`, exit 1 (O1 records `failed`, one alert, and commits
-  the receipts)."""
+  the receipts);
+- a later expiry too thin to value (`thin_expiry.py`): kept in the record's problems, named in a `note:` line, and
+  not a failure on its own."""
 
 from __future__ import annotations
 
@@ -29,6 +31,7 @@ from .folders import live_path
 from .records import Stamp, encode
 from .sources import ChainUnavailable
 from .store import DistributionStore
+from .thin_expiry import thin_problems
 
 NOT_LIVE = "nothing written: not live on {day} (config.yaml daily.live_from.price_distribution: {live_from})"
 HAND_RUN = "nothing written: only O1's daily step writes live rows (--live); past days go through `pricedist backfill`"
@@ -42,6 +45,7 @@ ALREADY = "{underlying}: already recorded"
 ALREADY_WITH_PROBLEMS = "{underlying}: already recorded with {problems} problems"
 RECORDED = "{underlying}: recorded ({problems} problems)"
 PROBLEM = "problem: {problem}"
+NOTE = "note: {note} (no forecast for that expiry)"
 WITH_PROBLEMS = "written with problems: {problems}"
 DONE = "recorded"
 RECORDED_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)
@@ -58,14 +62,15 @@ class LiveRecorder:
         refusal = self._refusal(day, now, live)
         if refusal:
             return 0, [refusal]
-        lines, problems, absent, retry = [], [], {}, {}
+        lines, problems, absent, retry, notes = [], [], {}, {}, []
         for underlying in self.underlyings:
             path = live_path(underlying, day)
             existing = self.store.get(path)
             if existing is not None:
                 self.store.put(path, existing)
-                stored = json.loads(existing).get("problems") or []  # a rerun never turns a problem day into ok
-                problems += [f"{underlying} {p}" for p in stored]
+                stored_record = json.loads(existing)
+                stored = stored_record.get("problems") or []  # a rerun never turns a problem day into ok
+                self._sort(underlying, stored_record, stored, problems, notes)
                 line = ALREADY_WITH_PROBLEMS if stored else ALREADY
                 lines.append(line.format(underlying=underlying, problems=len(stored)))
                 continue
@@ -84,19 +89,26 @@ class LiveRecorder:
                 continue
             self.store.put(path, encode(record))
             lines.append(RECORDED.format(underlying=underlying, problems=len(record["problems"])))
-            problems += [f"{underlying} {p}" for p in record["problems"]]
+            self._sort(underlying, record, record["problems"], problems, notes)
         if len(absent) == len(self.underlyings):
             return 0, [NO_CHAIN_ANYWHERE.format(reasons="; ".join(f"{u}: {r}" for u, r in absent.items()))]
         stamp = Stamp(LIVE, self.builder.method, "", now.isoformat())
         for underlying, reason in absent.items():
             self.store.put(live_path(underlying, day), encode(missing_record(underlying, day, reason, stamp)))
         problems += [f"{u} {r}" for u, r in {**absent, **retry}.items()]
+        noted = [NOTE.format(note=n) for n in notes]
         if not problems:
-            return 0, [*lines, DONE]
+            return 0, [*lines, *noted, DONE]
         listed = [PROBLEM.format(problem=p) for p in problems]
         if not lines and not absent:  # every chain unreadable or failed: nothing written, and a rerun may succeed
             return 1, [*listed, NOTHING.format(reasons="; ".join(problems))]
-        return 1, [*lines, *listed, WITH_PROBLEMS.format(problems="; ".join(problems))]
+        return 1, [*lines, *noted, *listed, WITH_PROBLEMS.format(problems="; ".join(problems))]
+
+    @staticmethod
+    def _sort(underlying: str, record: dict, found: list[str], problems: list[str], notes: list[str]) -> None:
+        thin = thin_problems(record)
+        problems += [f"{underlying} {p}" for p in found if p not in thin]
+        notes += [f"{underlying} {p}" for p in found if p in thin]
 
     def _refusal(self, day: date, now: datetime, live: bool) -> str | None:
         if not live:

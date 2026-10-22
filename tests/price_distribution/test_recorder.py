@@ -9,11 +9,13 @@ from datetime import date, datetime, timedelta
 from fno.forecast_v4_rules.series import DayValue
 from fno.models import IST
 from fno.price_distribution.build import DayBuilder
+from fno.price_distribution.chain import ExpiryChain
 from fno.price_distribution.folders import live_path
 from fno.price_distribution.recorder import HAND_RUN, NOT_TRADING, LiveRecorder
 from fno.price_distribution.sources import ChainUnavailable
+from fno.price_distribution.valuation import NO_FORWARD
 from fno.research_data.calendar import CsvSessionCalendar
-from tests.price_distribution.builders import DAY, RATE, Chains, chain_day, drive_store
+from tests.price_distribution.builders import DAY, NEAR, NEXT, RATE, Chains, chain_day, drive_store, expiry_chain
 
 CALENDAR = CsvSessionCalendar(
     "date,kind,description,source_url\n2026-12-25,holiday,Christmas,https://example.invalid\n"
@@ -159,3 +161,30 @@ def test_a_rerun_of_a_problem_day_still_fails_with_the_stored_problems(tmp_path)
         "BANKNIFTY: already recorded with 1 problems"
     )
     assert lines[-1].startswith("written with problems: NIFTY ") and "BANKNIFTY no canonical 3 pm chain" in lines[-1]
+
+
+def thin(expiry, forward):
+    """Calls only above and puts only below the forward: no strike with both, so no parity forward."""
+    full = expiry_chain(expiry, forward=forward)
+    kept = tuple(q for q in full.quotes if (q.kind == "CE") == (q.strike > forward))
+    return ExpiryChain(expiry, kept, full.future)
+
+
+def test_a_thin_later_expiry_is_named_in_a_note_and_does_not_fail_the_step(tmp_path):
+    """22 Oct 2026: FINNIFTY's next monthly had no strike with both sides quoted; one note line, exit 0."""
+    bank = chain_day((expiry_chain(NEAR), thin(NEXT, 23_100.0)), underlying="BANKNIFTY")
+    built, drive, _, _ = recorder(tmp_path, chains={("NIFTY", DAY): chain_day(), ("BANKNIFTY", DAY): bank})
+    code, lines = built.record(DAY)
+    assert code == 0 and lines[-1] == "recorded"
+    assert lines[-2] == f"note: BANKNIFTY {NEXT}: {NO_FORWARD} (no forecast for that expiry)"
+    stored = json.loads(drive.files[f"data/{live_path('BANKNIFTY', DAY)}"])
+    assert stored["status"] == "problems" and stored["problems"] == [f"{NEXT}: {NO_FORWARD}"]  # still on file
+    again, rerun = built.record(DAY)
+    assert again == 0 and rerun[-2:] == lines[-2:]  # a rerun says the same
+
+
+def test_the_nearest_expiry_too_thin_still_fails(tmp_path):
+    bank = chain_day((thin(NEAR, 23_000.0), expiry_chain(NEXT, forward=23_100.0)), underlying="BANKNIFTY")
+    built, _, _, _ = recorder(tmp_path, chains={("NIFTY", DAY): chain_day(), ("BANKNIFTY", DAY): bank})
+    code, lines = built.record(DAY)
+    assert code == 1 and f"BANKNIFTY {NEAR}: {NO_FORWARD}" in lines[-1]
