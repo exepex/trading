@@ -226,3 +226,36 @@ until `pip install -r requirements.txt`. Routines use `routine_setup.sh`, which 
 
 **Named, not changed:** `tests/e2e/test_hangs.py` sets a 2 s limit for every git call of a whole fixture day, the same
 class of risk. The builder will test it under the slow-git shim next.
+
+## Addendum 8
+
+**O2 e2e hang tests, test-only follow-up (story/o2-git-limit-test at 8e766fe6): PASS. Merge after the orchestrator's
+14:00-16:15 IST window today.**
+
+The head holds:
+- 138c135b (passed in addendum 7);
+- 002d64c5 (test-only);
+- a merge of main;
+- the claims in response_203.
+
+`fno/desk/git_limit.py` is byte-identical to 138c135b. Against main, the branch changes only that file (already
+judged), `tests/daily/hung_calls.py`, `tests/daily/test_git_limit.py`, `tests/e2e/test_hangs.py` and response_203.
+
+| Claim | Result | Evidence |
+|---|---|---|
+| The e2e hang tests' day-wide 2 s limit stops a slow normal call | CONFIRMED | 138c135b's `test_hangs.py`, with every git call slowed by 2.5 s (my own shim on PATH): both push-hang tests failed with "git ls-files -z ran past 2 s" |
+| With the fix, the short limit goes only to a push made while the hang is on | CONFIRMED | same shim, same run, the new file: both push-hang tests passed (2 failed, 2 passed in 29:15). The command-hang test needs no git timing and was left out |
+| `HungCallRun` moved unchanged apart from `when=` and `locks=`; the unit tests are unchanged in substance | MET | diff 138c135b..002d64c5 |
+| Nothing in `fno/` changed after 138c135b | MET | `git diff 138c135b 8e766fe6 -- fno/desk/git_limit.py` is empty; the other `fno/` lines in that range come from main's merge |
+
+**Plants**
+
+| Plant | Caught |
+|---|---|
+| `when=lambda: True`: a push with no hang is treated as hung | yes, 2 failed: "the push hook never started" (the 120 s hook-start wait gives a test error, never a pass) |
+| The hung call given the run's 120 s instead of the short limit | yes, by `test_git_limit` (the hook-start timing check). Not by the e2e tests, which pass at 120 s: they check the outcome (stopped, alerted, recovered), not the limit's size. Acceptable, since the unit test owns the timing |
+
+**Gates on a trial merge with main** (57993d8c, scratchpad worktree, removed):
+- 9,810 passed, 16 xfailed;
+- ruff check clean, format clean;
+- check_imports clean, check_numbers clean.
