@@ -70,7 +70,7 @@ def test_a_record_ranges_every_contract_with_an_iv_and_counts_the_rest_by_reason
 
 
 def test_each_contract_keeps_its_own_iv_not_the_atm_iv():
-    """Sticky strike (judge 464 note 1): the contract's IV of d prices its range; the ATM IV only moves the forward."""
+    """Sticky strike (judge 465 note 1): the contract's IV of d prices its range; the ATM IV only moves the forward."""
     record = g13_record(D, [expiry(E1, 11, [contract(23500.0, "CE", 40.0, iv_points=17.5)], atm=12.0)])
     (row,) = premium_record(record, NEXT, "m" * 64, None)["rows"]
     own = ContractInputs(23500.0, "CE", 40.0, 0.175, 23000.0, 0.12, 11, 0.065)
