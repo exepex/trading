@@ -111,3 +111,12 @@ def test_nothing_new_writes_no_part(tmp_path, entered):
     desk = Desk(tmp_path, {MON: ist(MON, 19, 14)})
     desk.job.run([MON] if entered else [], entered)
     assert desk.drive.checksums("data/flows/history/participant-volume/2026/10") == {}  # no part, not an empty one
+
+
+def test_the_first_write_time_log_is_created_with_its_folder(tmp_path):
+    """Back-fill, 22 Oct 2026: research/data/flow_history/ does not exist in a fresh checkout."""
+    desk = Desk(tmp_path, {MON: ist(MON, 19, 14)})
+    desk.log = tmp_path / "fresh" / "flow_history" / "write_times.csv"
+    desk.job.sweep = LastWriteSweep(desk.nse, SOURCE.path_for, desk.log, clock=lambda: ist(WED, 21, 30))
+    desk.job.logged = lambda: read_sweeps(desk.log)
+    assert desk.job.run([MON], set()).entered == [MON] and desk.log.is_file()
