@@ -49,8 +49,8 @@ build what it judges and shares no context with the builders.
 ## The verdict file: a fixed template, 40-60 lines
 
 `reviews/judge/judge_<n>_<story>.md` (number claimed with `python tools/claim_number.py judge-report <slug> --session
-<id>`; a later round is a `## Addendum <k>` in the same file, claimed with `judge-addendum <label> --report <n>`), indexed
-in `reviews/judge/README.md`:
+<id>`; a later round is a `## Addendum <k>` in the same file, claimed with `judge-addendum <label> --report
+<n>`), indexed in `reviews/judge/README.md`:
 
 1. Title: story, branch, SHA. One line: PASS or FAIL, lane.
 2. Criteria: one row each, MET / NOT MET / PARTLY, with your evidence in a few words.
