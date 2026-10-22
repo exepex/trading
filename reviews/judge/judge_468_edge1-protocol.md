@@ -88,3 +88,26 @@ variant, for simplicity. Correct the text's reason.
 | Commit f84dcca7 | only wraps lines |
 
 Next: the code and the freeze, before registration and run 1.
+
+## Addendum 3: revision 2 at 4277fba5, the owner's Q1 and Q2 answers (number 468.3, claimed with `tools/claim_number.py`)
+
+**PASS. The protocol is ready to freeze**, together with the analysis code, as GR1 was.
+
+**Matches DESK_DECISIONS row 295 (22 Oct):**
+- **Q1, "also measure".** 4 measurements: NS, the naked strangle, and NT, the naked straddle, T21 exit only, per
+  index.
+  - They are labelled "not tradeable under the house rules", and they sit outside both the pass family and the Holm
+    family.
+  - They are never nominated without an owner rule change.
+  - The report shows their worst loss per trade and per lot, uncapped, and the margin each would need.
+  - Their ledger rows carry `hypothesis` no.
+- **Q2.** Screen and nominate.
+
+**The engine is untouched.** `require_covered` stays as it is. The naked legs are built by a research-only structure
+in `research/edge1/`, never added to the engine's tradable list. Section 7's fill, untraded-leg and pad rules apply
+to them unchanged.
+
+**One note.** In each measurement's report row, show the largest realised loss next to Rs 10,000, so the owner sees
+by how much the house cap would have been breached.
+
+**Next:** the code and the freeze. I check them before registration and run 1.
