@@ -90,3 +90,4 @@ trial_id,experiment,description,kind,hypothesis,registered_on,protocol_path,prot
 89,edge1-rule-based-option-trades-2026-10-22,EDGE1 BANKNIFTY SC3 SL2: short iron condor (exploratory: spent data),prospective,yes,2026-10-22,research/ideas/EDGE1-BANKNIFTY-SC3-SL2.md,,,
 90,edge1-rule-based-option-trades-2026-10-22,EDGE1 BANKNIFTY SC3 TP50: short iron condor (exploratory: spent data),prospective,yes,2026-10-22,research/ideas/EDGE1-BANKNIFTY-SC3-TP50.md,,,
 91,edge1-rule-based-option-trades-2026-10-22,EDGE1 BANKNIFTY SF T21: short iron fly (exploratory: spent data),prospective,yes,2026-10-22,research/ideas/EDGE1-BANKNIFTY-SF-T21.md,,,
+92,edge1-rule-based-option-trades-2026-10-22,EDGE1 BANKNIFTY SF EXP: short iron fly (exploratory: spent data),prospective,yes,2026-10-22,research/ideas/EDGE1-BANKNIFTY-SF-EXP.md,,,
