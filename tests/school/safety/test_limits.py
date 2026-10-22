@@ -142,7 +142,7 @@ def test_a_stale_vertical_never_hides_behind_another_in_the_total():
     """Judge 488's condor: the call vertical 1100/1200 quoted 1.5/2.5 against 4.5/5.5 is worth less than nothing on
     any price in its range (2.5 - 4.5 = -2), though the condor's total at the touch sits inside its payoff bounds."""
     refused = condor_at((1.5, 2.5), (4.5, 5.5))
-    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and (refused.value, refused.limit) == (-2.0, 100.0)
+    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and refused.value == 2.0  # both legs of the vertical
     assert condor_at((1.5, 2.5), (0.5, 1.5)).passed
 
 
@@ -166,4 +166,34 @@ def test_the_upper_bound_dearer_bid_less_cheaper_ask_at_the_width_passes_above_r
     quotes = {b.key(1000.0): b.quote(p1000_bid, 101.5), b.key(900.0): b.quote(0.5, 1.0),
               b.key(1100.0, CALL): b.quote(50.0, 51.0), b.key(1200.0, CALL): b.quote(0.5, 1.0)}  # fmt: skip
     result = check(ImpossiblePriceLaw(), replace(b.put_spread(), legs=legs), snapshot=b.snapshot(quotes=quotes))
-    assert result.passed is passed and (passed or result.value == pytest.approx(100.01))
+    assert result.passed is passed and (passed or result.value == 2.0)
+
+
+@pytest.mark.parametrize(
+    ("c1200_bid", "passed"),
+    [(2.5 + 1e-12, True), (2.5 - 1e-12, True), (2.5 + 2e-9, False)],
+)
+def test_the_lower_bound_has_b_s_tolerance(c1200_bid, passed):
+    """b's 1e-9 (a tick's fraction): dearer.ask - cheaper.bid at 0 +/- 1e-12 is float noise, never impossible; 2e-9
+    below 0 is a broken vertical."""
+    assert condor_at((1.5, 2.5), (c1200_bid, 3.0)).passed is passed
+
+
+@pytest.mark.parametrize(
+    ("p1000_bid", "passed"),
+    [(101.0 + 1e-12, True), (101.0 - 1e-12, True), (101.0 + 2e-9, False)],
+)
+def test_the_upper_bound_has_b_s_tolerance(p1000_bid, passed):
+    """dearer.bid - cheaper.ask at the width (100) +/- 1e-12 passes; 2e-9 above it is impossible."""
+    legs = (LegSpec(b.key(1000.0), "buy", 1), LegSpec(b.key(900.0), "sell", 1),
+            LegSpec(b.key(1100.0, CALL), "sell", 1), LegSpec(b.key(1200.0, CALL), "buy", 1))  # fmt: skip
+    quotes = {b.key(1000.0): b.quote(p1000_bid, 101.5), b.key(900.0): b.quote(0.5, 1.0),
+              b.key(1100.0, CALL): b.quote(50.0, 51.0), b.key(1200.0, CALL): b.quote(0.5, 1.0)}  # fmt: skip
+    result = check(ImpossiblePriceLaw(), replace(b.put_spread(), legs=legs), snapshot=b.snapshot(quotes=quotes))
+    assert result.passed is passed
+
+
+def test_the_law_judges_only_the_proposal_s_own_legs():
+    """b's rule is applied among the proposal's legs: a broken vertical elsewhere in the chain never refuses it."""
+    quotes = {**PUTS, b.key(700.0): b.quote(9.0, 9.5), b.key(600.0): b.quote(20.0, 21.0)}  # 700/600 puts inverted
+    assert check(ImpossiblePriceLaw(), snapshot=b.snapshot(quotes=quotes)).passed

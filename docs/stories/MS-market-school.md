@@ -1441,3 +1441,11 @@ MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct
    and the real card judged by the real rule on the real history, with only the unset first counted session
    supplied). Plants: dropping the comparison check fails 5 tests; changing one real row's comparison hash fails 3.
 
+### MS-P1d follow-up Claims, part 2 (branch `story/ms-p1d-verticals`, from main 390d7131 with MS-P1b merged)
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+|---|---|---|
+| DRY: the per-vertical check calls b's function | `safety/quote_laws.py`: `ImpossiblePriceLaw` calls b's `impossible_keys(snapshot, among=<the proposal's legs>)` (`quality/prices.py`); d's own `_verticals` copy is gone. One rule for b's gate and d's law: every same-type pair of one expiry within [0, width] on the quoted ranges, and no bid above what the option can be worth. Judged on the proposal's own legs only, so a broken vertical elsewhere in the chain never refuses it. The law's value is now the count of flagged legs | `test_limits.py`: B's and I's condors, both bounds, `test_the_law_judges_only_the_proposal_s_own_legs` (plants: the whole chain judged; b's rule ignored) |
+| b's 1e-9 tolerance at both bounds | b's `TOLERANCE` (no copy) | `test_the_lower_bound_has_b_s_tolerance`, `test_the_upper_bound_has_b_s_tolerance`: bound +/- 1e-12 passes, 2e-9 beyond refuses (plants on b's constant: 0 and 1e-6, both caught) |
+| Settlement on b's stores | `execution/wiring.build_settlement_source` reads `roads.wiring.build_archive_stores` (the service account's Drive, else the owner's, else `RawFilesNotConfigured`); d's `SettlementStoresNotConfigured` is gone | `test_settlement_with_no_store_stops_by_name_never_waits_forever` (plant: no store) |
+- **Plants:** 5 planted, 5 caught.
+
