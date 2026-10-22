@@ -1150,3 +1150,20 @@ stop, the unreadable raise) each fail a named test.
 
 **Follow-up `story/ms-p1-drivers-tests` (judge 489 minors).** `test_quotes_and_estimates.py`: every ranked card's `expected_net_rs` is pinned at 0.0 (CS1 at 500 fails it; plant caught) and every family says `no_valid_quotes` when its road has no quotes while the same day trades with them (11 drivers; plant: `quotes_missing` off, caught for DR1, PS5 and KL1). One small code change came with it, because the test showed a gap: DR1, PS5 and KL1 do not read the expected move, so a road with no quotes was reported as `no_structure_under_cap`; `ProposalBuilder.quotes_missing` (D2's own listing test) now tells the rule driver to say `no_valid_quotes`. A structure listed but over the cap still says `no_structure_under_cap` (tested).
 **Structure codes (orchestrator, 22 Oct 2026; MS-P1m accepts only SC, SF, BF, PCS, CCS, CDS, PDS).** `test_structure_codes.py` checks every proposal of every driver (and 80 RC1 days) against the definition of each structure: accepted code, leg count, kinds and sides, far leg further out, equal wings, fly on one strike, condor on two. Per family: PS5 SF; KL1, REF, WS1, PS2-4 SC; DB1 BF; DR1 CDS or PDS; CS1 PCS or CCS; RC1 all six. One fix came out of it: RC1's condor could draw both shorts on the same strike (reach 0), which is an SF fly labelled SC; it now draws at least one step (plant caught).
+
+### MS-P1d follow-up Claims (branch `story/ms-p1d-margin`; part 1, on MS-P1m; the MS-P1b part follows once b is on main)
+
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+|---|---|---|
+| Law 3 on MS-P1m's margin per trade | `safety/margin_law.py`: C2's `MarginRoom`, unedited, on the `StressedMargin` the fleet builds once per run (`safety/wiring.build_margin(cfg)` = MS-P1m's `build_road_margin`). The margin-row file check (`MarginRows`) is gone. An unreadable margin refuses, with the note "margin not checked: <MS-P1m's named cause>" (`C2Law.unchecked_note`) | `test_margin_law.py` (plants: note dropped, unreadable input passes, C2's own refusal reported as no data) |
+| C2's inputs from MS-P1m's terms and factories | `safety/c2_inputs.road_terms`: a `RoadTradeTerms` per trade (index, one expiry, one unit per leg, lots, lot, its shape checked by MS-P1m); C2's proposal and open trades come from `road_proposal`/`road_open_trade`, so C2's units and margin read one source | `test_c2_s_units_and_margin_come_from_one_set_of_terms` (plant: the terms' lot set to 1, MS-P1m's 840 vs 54,600 case); `test_equal_c2_terms_on_two_indices_get_their_own_margins`; `test_terms_of_two_expiries_or_a_leg_ratio_are_refused_before_c2` (plant: the expiry guard dropped) |
+| School terms never reach the desk's two `TradeTerms(**asdict(...))` codecs | no code; pinned | `test_terms_never_reach_desk_codecs.py`: the round trip fails on school terms, no school module imports either codec, and the school's three composition roots load neither (fresh interpreter) |
+
+- **Expiry day:** MS-P1m now prices a held trade on its own expiry day with SEBI's extra 2% ELM (`expiry_day_exposure.py`)
+  instead of refusing it, so the expiry-day known limit planned for MS-P1j no longer applies; nothing is added there.
+- **Structure codes:** MS-P1m's terms accept only SF, SC, BF, PCS, CCS, CDS and PDS in their own shapes; any other
+  refuses under every C2 law (routed to e by the orchestrator).
+- **Still to come, once MS-P1b is on main:** `_verticals` on b's vertical-range function with its 1e-9 tolerance
+  (tests at the bounds +/- 1e-12), and settlement on b's `build_archive_stores`.
+- **Plants:** 6 planted on this part, 6 caught.
+
