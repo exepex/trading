@@ -205,12 +205,13 @@ class Ledger:
             raise NotRegistered(f"trial {trial_id}: {row['protocol_path']} changed after it was frozen")
         return row
 
-    def mark_run(self, trial_id: str, today: date | None = None) -> None:
-        """Records the first run once (date and commit); later runs never change it."""
+    def mark_run(self, trial_id: str, commit: str, today: date | None = None) -> None:
+        """Records the first run once (date and the commit it ran at, read by the caller before it wrote anything);
+        later runs never change it."""
         rows = self.rows()
         for row in rows:
             if row["trial_id"] == trial_id and not row["first_run_on"]:
-                row["first_run_on"], row["run_commit"] = (today or date.today()).isoformat(), self.git.head()
+                row["first_run_on"], row["run_commit"] = (today or date.today()).isoformat(), commit
         self.file.write_text(write_ledger(rows))
 
     def count(self, experiment: str) -> dict[str, int]:

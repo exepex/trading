@@ -32,9 +32,35 @@ class IdeaRegistration:
         self.ledger, self.gates, self.git = ledger, gates, git
 
     def register(self, card: IdeaCard, today: date) -> tuple[str, ...]:
-        """Writes the ledger row and the `idea` row; returns the files to commit together."""
+        """Writes the ledger row and the `idea` row; returns the files to commit together. Every git read comes before
+        the first write. A rerun after a stop between the two writes (its ledger row written, not committed, no gate
+        row) completes the `idea` row instead of refusing the trial."""
         files = self._ready(card)
-        rows = self.ledger.rows()
+        rows, head = self.ledger.rows(), self.git.head()
+        written = next((row for row in rows if row["trial_id"] == card.trial_id), None)
+        if written is not None and self._stopped_half_done(card, written):
+            self.gates.append(self._idea_row(card.trial_id, written["registered_on"], head, ""))
+            return files
+        self._require_next(card, rows)
+        append_idea = self.gates.prepare(self._idea_row(card.trial_id, today.isoformat(), head, ""))
+        self.ledger.register(card.trial_id, card.experiment, card.description, IDEA_KIND, card.hypothesis,
+                             protocol_path=card.path, today=today)  # fmt: skip
+        append_idea()
+        return files
+
+    def _stopped_half_done(self, card: IdeaCard, row: dict) -> bool:
+        """This card's own ledger row, uncommitted (a register that stopped before its gate row). A committed row with
+        no gate row is a hand registration: `factory backfill` dates it by its commit."""
+        if row["protocol_path"] != card.path:
+            return False
+        self._require_same(card, row)
+        if self.git.first_commit_containing(f"\n{card.trial_id},", LEDGER_FILE) is not None:
+            raise RegistrationError(f"trial {card.trial_id}'s ledger row is committed without its gate row: run "
+                                    "`factory backfill`")  # fmt: skip
+        return True
+
+    @staticmethod
+    def _require_next(card: IdeaCard, rows: list[dict]) -> None:
         if any(row["trial_id"] == card.trial_id for row in rows):
             raise RegistrationError(f"trial {card.trial_id} is already in {LEDGER_FILE}")
         if any(row["protocol_path"] == card.path for row in rows):
@@ -44,10 +70,6 @@ class IdeaRegistration:
             raise RegistrationError(
                 f"{card.path}: field 'trial' is {card.trial_id}, the next ledger trial is {expected}"
             )
-        self.ledger.register(card.trial_id, card.experiment, card.description, IDEA_KIND, card.hypothesis,
-                             protocol_path=card.path, today=today)  # fmt: skip
-        self.gates.append(self._idea_row(card.trial_id, today.isoformat(), self.git.head(), ""))
-        return files
 
     def backfill(self, card: IdeaCard) -> tuple[str, ...]:
         """The `idea` row of a card whose ledger row was written by hand before R1's code."""
@@ -55,10 +77,7 @@ class IdeaRegistration:
         row = next((r for r in self.ledger.rows() if r["trial_id"] == card.trial_id), None)
         if row is None:
             raise RegistrationError(f"{card.path}: trial {card.trial_id} is not in {LEDGER_FILE}; register it")
-        for field, card_value in (("experiment", card.experiment), ("description", card.description),
-                                  ("hypothesis", "yes" if card.hypothesis else "no")):  # fmt: skip
-            if row[field] != card_value:
-                raise RegistrationError(f"{card.path}: field {field!r} differs from trial {card.trial_id}'s ledger row")
+        self._require_same(card, row)
         commit = self.git.first_commit_containing(f"\n{card.trial_id},", LEDGER_FILE)
         if commit is None:
             raise RegistrationError(f"trial {card.trial_id}: its ledger row is not committed")
@@ -75,6 +94,13 @@ class IdeaRegistration:
         if self.gates.last(card.trial_id) is not None:
             raise RegistrationError(f"trial {card.trial_id} already has a gate-log row")
         return files
+
+    @staticmethod
+    def _require_same(card: IdeaCard, row: dict) -> None:
+        for field, card_value in (("experiment", card.experiment), ("description", card.description),
+                                  ("hypothesis", "yes" if card.hypothesis else "no")):  # fmt: skip
+            if row[field] != card_value:
+                raise RegistrationError(f"{card.path}: field {field!r} differs from trial {card.trial_id}'s ledger row")
 
     @staticmethod
     def _idea_row(trial_id: str, on: str, commit: str, numbers: str) -> GateRow:

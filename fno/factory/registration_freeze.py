@@ -7,6 +7,7 @@ measurement version is refused by its playbook file's `edge_family` (`is_measure
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from typing import Protocol
 
@@ -41,10 +42,13 @@ class FactoryFreeze:
         if is_measurement(self._strategy(inputs.playbook_name, inputs.playbook_version, tag)):
             raise GateStepError(f"{tag} is a measurement (edge_family): never frozen as a shadow to judge")
         sample = figures(self.order.row(card.trial_id, Gate.SAMPLE_PLAN))["n"]
-        self._set_protocol_commit(card)
         numbers = (f"version={tag};sample={sample};pass_level={level.pass_level:g};"
                    f"min_net={inputs.minimum_useful_net:g};question={question.question_id}")  # fmt: skip
-        return self.order.log(card, Gate.REGISTRATION, Outcome.REGISTERED, today, numbers)
+        commit, write_ledger_row = self._protocol_commit(card)
+        registered, append = self.order.prepare(card, Gate.REGISTRATION, Outcome.REGISTERED, today, numbers, commit)
+        write_ledger_row()  # every git read is done: a failed one leaves nothing half written
+        append()
+        return registered
 
     def _strategy(self, name: str, version: int, tag: str) -> Strategy:
         try:
@@ -52,14 +56,21 @@ class FactoryFreeze:
         except PlaybookError as missing:
             raise GateStepError(f"playbook version {tag} cannot be read: {missing}") from missing
 
-    def _set_protocol_commit(self, card: IdeaCard) -> None:
-        """The card, committed and unchanged at HEAD, is the frozen protocol (B4's require_registered checks it)."""
+    def _protocol_commit(self, card: IdeaCard) -> tuple[str, Callable[[], None]]:
+        """The frozen protocol commit and the write that records it in the ledger row. The card, committed and
+        unchanged at HEAD, is the frozen protocol (B4's require_registered checks it). A row whose commit is already
+        set is a freeze that stopped before its gate row: it is completed at that commit, never refrozen."""
         rows = self.ledger.rows()
         row = next((r for r in rows if r["trial_id"] == card.trial_id), None)
         if row is None or row["protocol_path"] != card.path:
             raise GateStepError(f"trial {card.trial_id}'s ledger row does not name {card.path} as its protocol")
-        if row["protocol_commit"]:
-            raise GateStepError(f"trial {card.trial_id} is already frozen at {row['protocol_commit'][:10]}")
-        head = self.order.git.head()
+        frozen, git = row["protocol_commit"], self.order.git
+        if frozen:
+            if not (git.commit_exists(frozen) and git.unchanged_since(frozen, card.path)):
+                raise GateStepError(f"trial {card.trial_id} is already frozen at {frozen[:10]}, which is not "
+                                    f"{card.path} as it is now")  # fmt: skip
+            return frozen, lambda: None
+        head = git.head()
         updated = [r | {"protocol_commit": head} if r is row else r for r in rows]
-        self.ledger.file.write_text(write_ledger(read_ledger(write_ledger(updated))))
+        text = write_ledger(read_ledger(write_ledger(updated)))  # validated before any write
+        return head, lambda: self.ledger.file.write_text(text)
