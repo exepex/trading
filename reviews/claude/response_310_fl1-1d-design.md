@@ -89,3 +89,13 @@ Each point checked against the code before accepting; all four accepted.
 
 Known limit added: `view.checks` and `view.drift` are not printed by the signed-off design; alerts and the system
 line carry failures; the stricter 20-session checks live in the model only.
+
+## Addendum: follow-up branch `story/fl1-1d-result-words` (lane 1, with Judge E)
+
+After the FL1 builder's go-live (main 43d9e360 wires `DesignRenderer`; judge 454), `design/formats.py` derives its
+result glyphs and words from `plain.RESULTS` ("✓ Correct", "⚠ Close call", "✗ Missed") instead of its own copy, so
+the three Slack text lines and the pages have one source (agreed with the builder, who leaves that line to me). Two
+files: `fno/forecast_lab/design/formats.py` (the two dicts now built from `RESULTS` through the colour-to-flags map)
+and `tests/forecast_lab/test_design_pages.py` (one test pins the three strings equal to `RESULTS`). No visual
+change: the strings are identical. Gates on the branch: ruff, check_imports clean; full suite 9,480 passed, 16
+xfailed, 0 failed.
