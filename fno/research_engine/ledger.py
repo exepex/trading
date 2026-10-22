@@ -30,12 +30,13 @@ class NotRegistered(RuntimeError):
     """The trial may not run: it is missing, not committed, or its protocol is not frozen and unchanged."""
 
 
-# git's own answers for "that path, commit or history is not there": a real answer (None, False, nothing), never an
-# error; any other non-zero exit is a failure and raises (measured 22 Oct 2026 on git 2.43.0: all exit 128)
-NOT_THERE = (
-    "does not exist in", "exists on disk, but not in", "invalid object name", "Not a valid object name",
-    "Not a valid commit name", "bad object", "does not have any commits yet",
-)  # fmt: skip
+# git's own "not there" answers (measured 22 Oct 2026 on git 2.43.0: all exit 128), each true only for its own kind
+# of question; any other non-zero exit is a failure and raises. A file's: not at that revision (`show`; a revision git
+# cannot resolve is a wrong question and raises, D5 builder). An object's: no such commit (the yes/no questions). A
+# history's: no commits yet (`log` in a new repository).
+FILE_NOT_THERE = ("does not exist in", "exists on disk, but not in")
+OBJECT_NOT_THERE = ("invalid object name", "Not a valid object name", "Not a valid commit name", "bad object")
+NO_HISTORY_YET = ("does not have any commits yet",)
 FAILED = "git {command} failed (exit {code}): {why}"
 
 
@@ -56,20 +57,20 @@ class Git:
         return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=text)
 
     def _out(self, *args: str) -> str:
-        """The command's output: empty when git answers "not there" (a history with no commits yet), GitFailed on
-        any other non-zero exit."""
-        done = self._found(*args)
+        """The command's output: empty for a history with no commits yet, GitFailed on any other non-zero exit."""
+        done = self._found(*args, not_there=NO_HISTORY_YET)
         return "" if done is None else done.stdout
 
-    def _found(self, *args: str, text: bool = True) -> subprocess.CompletedProcess | None:
-        """The finished command, or None when git answers that the path or commit is not there."""
+    def _found(self, *args: str, not_there: tuple[str, ...], text: bool = True) -> subprocess.CompletedProcess | None:
+        """The finished command, or None when git gives one of the `not_there` answers."""
         done = self._run(*args, text=text)
-        return None if _not_there(done) else self._checked(done, args)
+        return None if _says(done, not_there) else self._checked(done, args)
 
     def _yes(self, *args: str) -> bool:
-        """A question git answers by its exit code: 0 yes, 1 no (or "not there"); anything else raises."""
+        """A question git answers by its exit code: 0 yes, 1 no (or no such object); anything else raises."""
         done = self._run(*args)
-        return done.returncode == 0 or (done.returncode != 1 and not _not_there(done) and self._checked(done, args))
+        return done.returncode == 0 or (done.returncode != 1 and not _says(done, OBJECT_NOT_THERE)
+                                        and self._checked(done, args))  # fmt: skip
 
     @staticmethod
     def _checked(done: subprocess.CompletedProcess, args: tuple[str, ...]) -> subprocess.CompletedProcess:
@@ -91,7 +92,7 @@ class Git:
 
     def committed_text(self, path: str, commit: str = "HEAD") -> str | None:
         """The file as committed at `commit` (None if not committed there)."""
-        done = self._found("show", f"{commit}:{path}")
+        done = self._found("show", f"{commit}:{path}", not_there=FILE_NOT_THERE)
         return None if done is None else done.stdout
 
     def commits_touching(self, path: str) -> list[str]:
@@ -122,8 +123,8 @@ def _stderr(done: subprocess.CompletedProcess) -> str:
     return err.decode("utf-8", "replace") if isinstance(err, bytes) else err
 
 
-def _not_there(done: subprocess.CompletedProcess) -> bool:
-    return done.returncode != 0 and any(answer in _stderr(done) for answer in NOT_THERE)
+def _says(done: subprocess.CompletedProcess, answers: tuple[str, ...]) -> bool:
+    return done.returncode != 0 and any(answer in _stderr(done) for answer in answers)
 
 
 def read_ledger(text: str) -> list[dict]:

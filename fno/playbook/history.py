@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from ..constants import PUBLISH_BRANCH
-from ..research_engine.ledger import Git
+from ..research_engine.ledger import FILE_NOT_THERE, Git
 
 
 class History(Protocol):
@@ -28,7 +28,7 @@ class PlaybookGit(Git):
 
     def committed_bytes(self, path: str, commit: str) -> bytes | None:
         """The file's exact bytes at `commit` (None if not committed there)."""
-        done = self._found("show", f"{commit}:{path}", text=False)
+        done = self._found("show", f"{commit}:{path}", not_there=FILE_NOT_THERE, text=False)
         return None if done is None else done.stdout
 
     def added_at(self, path: str) -> str | None:

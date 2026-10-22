@@ -69,8 +69,10 @@ def test_committed_text_is_none_only_when_git_says_it_is_not_there(tmp_path, fai
     first, head = repo(tmp_path)
     git = PlaybookGit(tmp_path)
     assert git.committed_text("a.txt") == "one\n" and git.committed_bytes("a.txt", head) == b"one\n"
-    assert git.committed_text("b.txt", first) is None and git.committed_text("a.txt", "HEAD~9") is None
-    assert git.committed_text("a.txt", "0" * 40) is None
+    assert git.committed_text("b.txt", first) is None and git.committed_text("never.txt") is None
+    assert git.committed_text("a.txt", "0" * 40) is None  # git: "exists on disk, but not in" that revision
+    with pytest.raises(GitFailed, match="invalid object name"):  # a revision git cannot resolve: a wrong question
+        git.committed_text("a.txt", "HEAD~9")
     failing("show")
     with pytest.raises(GitFailed):
         git.committed_text("a.txt")
