@@ -41,3 +41,32 @@ The 4 survivors are minors 1 and 2.
   `account_limit` tickets, which is a j requirement (orchestrator's ruling).
 - "Loss 2x credit" is read as a net loss of 2x the credit. The card is a draft; h should confirm this reading when it
   freezes the cards.
+
+## Addendum 1
+
+**Scope:** the MS-P1e follow-up, story/ms-p1-drivers-tests at b49271a0. The diff against main is the follow-up only:
+`ProposalBuilder.quotes_missing`, RC1's condor reach, two new test files and the story lines.
+
+**Verdict: PASS.** No blocking and no should-fix findings; 2 minor.
+
+- **`quotes_missing` (changes a decision label): MET.** It is D2's own listing test (`live_chain`, then `legs()` is
+  None for every width). A plan with some width listed but over the cap stays `no_structure_under_cap`. Plants caught:
+  always False, always True, and the label reversed in `RuleDriver`.
+- **RC1's condor shorts at least one step apart: MET.** `reach or step`: a draw at the money becomes one step each
+  side, so an SC is never an SF. The "reach may be 0" plant is caught by `test_every_proposal_uses_an_accepted_code_...`.
+  The draw stays seeded and replayable; the reach of 1 step is now 3 in 21 likely, not 2 in 21.
+- **Structure-code test: MET.** Every driver's proposals use only SC, SF, BF, PCS, CCS, CDS and PDS, with legs checked
+  against each code's definition, and each family has its table's code. RC1 draws all six of its shapes in 80 days.
+- **My two minors from round 1: MET.**
+  - the cards' `expected_net_rs` is pinned at 0 (CS1 at 500 and PS2 at 1 both caught);
+  - `no_valid_quotes` is pinned for RC1, CS1 and DB1 (all three reverts caught).
+- **Gates (my run):** pytest -n auto: 10,557 passed, 16 xfailed. ruff check and format, `check_imports` and
+  `check_records` are clean. Largest file 231 lines.
+- **Plants:** 11 planted, 9 caught.
+
+**Minor:**
+- (a) `quotes_missing` with `any` in place of `all` survives. No test has some widths listed and others not, and only
+  the reason label would change.
+- (b) RC1's minimum reach is pinned only as "not zero": 2 steps survives. RC1 still says `no_structure_under_cap`
+  after 20 failed draws even when quotes were the cause. That label differs from the rule drivers', and the story
+  could say so.
