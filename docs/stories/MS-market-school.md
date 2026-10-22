@@ -1200,6 +1200,28 @@ cases and a test that fails when the named code is broken on purpose.
   7. The import-list test: no banner, report, registration, map or licence module, no order call, no Slack.
   8. The privacy test: public output holds counts only; strikes, prices and card internals go to the practice
      dataset in Drive (write-once, receipt in GitHub), never to the repository.
+  9. Stores only: the F&O files and index closes are read through MS-P1b's `StoredFilesOnly` source inside a `RawFileLibrary`
+     (`fno/school/roads/wiring.py`), never `build_nse_fo_library`, which falls back to an NSE fetch. A test builds the
+     library with a source whose fetch raises and runs a missing day: the road closes, nothing is fetched. Named test: `test_a_missing_day_closes_the_road_and_nothing_is_fetched`.
+  10. The index close: legacy-format F&O files carry no underlying price, so `BhavcopyChain` is built with `index_close`
+      from NSE's archived index-close files (A10, `build_index_close_files` read through the same stores-only library).
+      Named tests: `test_a_legacy_day_takes_its_index_close_from_the_archived_file` (24 Jun 2021: open road) and
+      `test_a_legacy_day_with_no_index_close_closes_the_road` (`capture_missing`).
+  11. Dated STT across a regime change: a position opened on 31 Mar 2023 and closed on 3 Apr 2023 keeps its two
+      fills' own charges and passes `accounts/ledger_fills.py`'s recomputation check; if it does not, MS-P1d's builder
+      is asked for a follow-up before SIM-d is offered for judging.
+  12. The practice rules: the fleet is built with MS-P1d's `build_practice_safety_laws` and `QuoteRules(practice=True)`
+      only in this package's wiring, and a test shows that without the flag the live laws and `SchoolFills` refuse a
+      quote with `sizes_measured=False`.
+  13. A lot per contract, not per road (judge 509, orchestrator): on 2 Jun 2025 BANKNIFTY-M's two monthlies carry different
+      lots after NSE's April 2025 change, and the catalogue (c) closes the road as `lot_mismatch`. SIM-d follows the way strike
+      steps are kept per expiry: each expiry keeps the lot the file states for it, and a road closes only when one
+      contract's own lot is missing or contradictory. This needs the road day to carry a lot per expiry (a small additive
+      follow-up to MS-P1a's `RoadDay`, as `strike_steps` was in MS-P1a2), asked of its owner first. Test with 2 Jun 2025: BANKNIFTY-M open
+      with each expiry's own lot, a proposal's units follow the leg's expiry.
+  14. The report shows the share of impossible legs per road-day, separate from refusals (judge 509: 42-177 of 260-436 traded
+      legs on closes, mostly the closes' own staleness). Named test: `test_the_report_counts_impossible_legs_apart_from_refusals`.
+      Without it a practice result reads as a full chain.
 
 ### 7.5 Gap list
 
@@ -1285,7 +1307,7 @@ Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhav
   message MS-P1d's builder only if it fails.
 - **Gates at this tip (full run on the SIM-a files):** `pytest -n auto`: 11,733 passed, 16 xfailed, 1 failed:
   `tests/ai/test_fire_and_collect.py::test_a_reveal_that_never_came_or_does_not_match_records_no_forecast`. It passes alone
-  and passes on the branch's parent with my files stashed, so it is a load-dependent flake outside this story; I did not
+  and passes on the branch's parent with my files stashed, so it fails only under load. Whether that is a flake or a real defect is not established: the orchestrator said it is a real issue to root-cause and is routing it separately. Outside this story; I did not
   touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
 - Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
 
@@ -1315,6 +1337,48 @@ Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests 
   Reasoning only: spreads were probably wider in earlier years, so practice is optimistic. This is why the three scenarios are always shown together.
 - **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
   the code returns exactly that and nothing else.
+
+#### SIM-c Claims (round 1, branch `story/ms-sim-c` on `story/ms-sim-b`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.py`, tests in
+`tests/school/simulator/source/`. Files changed from the story: the package is `source/` (several small files), not one `source.py`.
+
+| Criterion (7.4 SIM-c) | Code | Tests | Broken-code proof (caught) |
+|---|---|---|---|
+| 1 conformance of catalogue and source | `catalogue.py`, `snapshots.py` | `test_the_catalogue_and_source_pass_the_pilots_conformance_checks` | n/a (a's checks) |
+| 2 traded that day; volume 1 is traded, 0 is not | `snapshots.py` | `test_a_leg_that_did_not_trade...` | `volume > 0` to `>= 0` |
+| 3 impossible vertical flagged, both legs unquoted | `snapshots.py` over `quality.prices.impossible_keys` | `test_a_planted_impossible_vertical...` | the flag branch removed |
+| 4 close -/+ half-spread, tick-outward, no bid below zero, sizes `None` with `sizes_measured=False` (design A; reworked on MS-P1a3) | `quotes.py` | `test_quotes_and_steps.py` (10 tests, incl. 7.5 at 2%, which floors wrongly without the epsilon) | floor to round; epsilon 0; floor at half a tick removed; sizes changed |
+| 5 look-ahead: only the session's own chain is asked for; same day, same bytes; changed close, changed bytes | `snapshots.py` | `test_only_the_sessions_own_chain_is_read`, `test_the_same_day...`, `test_the_digest_covers_the_close...` | the day asked for shifted by one |
+| 6 insufficient bucket: no quote, counted, never zero spread | `snapshots.py` | `test_an_insufficient_bucket...` | zero-spread quote substituted |
+| 7 dated lot and dated STT | `terms.py` (a), used by `catalogue.py` | `test_a_2022_trade_is_charged_the_2022_stt...`, lot tests | lot ignored in a; STT date fixed in a |
+| window, expiries, lot, step | `catalogue.py`, `steps.py` | catalogue tests, step tests | window check; expiry count; expiry cut-off; lot-agreement; modal step; near-the-money group |
+
+- **Mutations: 23 of 23 caught** over a, b and c (two first survived; tests were added and re-run).
+- **Self-review by an independent agent** (fresh context, given the diff and the rules, not my conclusions). No blocking
+  finding. Each finding checked by me:
+  - *Accepted and fixed:*
+    1. A weekly expiring on the session is not recorded (A4f takes `e > day`, `fno/quotes/weekly.py:22`; I checked it); monthlies still from today.
+    2. The digest ignored `last` and the sizes: two different archives could share a hash. Now hashed.
+    3. `priced` counted a leg whose bid rounds to nothing: now `unsellable`.
+    4. The window is re-checked in the source, so a hand-built road day cannot read a fresh day.
+    5. The index close comes from the nearest expiry's rows, not the first row.
+    6. A malformed number makes that format unreadable instead of reading as zero.
+    7. A contract listed twice counts once.
+    8. The tick constant is shared (DRY).
+    9. The weak look-ahead test was cut to its real assertion.
+  - *Not changed, with reason:*
+    1. **Impossible prices judged on the whole chain, not the band.** Intended and conservative: the card's band is not known to the
+       source, a stale far strike can only remove quotes, never add one. The cost is that the pilot's `IMPOSSIBLE_PRICE` road
+       closure is not exercised in practice; practice shows the same cases as `coverage.impossible`. Stated here.
+    2. **`PracticeWindows(first_counted=None)` default.** The windows already end 12 Oct 2026, before any forward capture; `first_counted`
+       only moves the end earlier. SIM-d's wiring passes the configured value, and I add a wiring test there.
+    3. **`sys.path` insert in `history/edge1.py`:** accepted in round 1, then removed in SIM-a round 2: EDGE1 is loaded by file path under a unique package name and its folder never joins `sys.path` (judge 500 minor a, fixed; judge 509 minor b).
+    4. **Spread learned from Oct 2026 and applied to 2019-26; P95 of session medians.** Disclosed regime assumption, why the
+       three scenarios are always shown together. No change.
+- **Design A rework (22 Oct, after MS-P1a3 `9ede0d1e`):** quotes carry sizes `None` with `sizes_measured=False`; no placeholder constant exists. `test_the_live_fill_path_refuses_an_unmeasured_quote...` shows E4's `price_leg` refuses it ("quote not valid: no size") without MS-P1d's practice rules, so a practice quote reaching a live path fails closed. The practice-mode pass-through itself is MS-P1d's and is tested in SIM-d. **Not yet run on real data:** the catalogue and source are tested on fixtures; `BhavcopyChain` alone ran on the Drive archive (SIM-a Claims). SIM-d's dry run does the end-to-end run (the container does have Drive access).
+- **Gates at this tip:** `ruff check`, `check_imports` (clean) and `check_records` (clean) pass. `pytest -n auto` over the whole repository was run on
+  the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the design-A tip `3c1a3cc6` (clean worktree, `pytest -q -n auto`) is 12,001 passed, 16 xfailed, 0 failed in 510 s (judge 509 reproduced 12,001).
 
 ## Claims
 
