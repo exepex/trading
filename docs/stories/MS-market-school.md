@@ -934,7 +934,7 @@ Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhav
   message MS-P1d's builder only if it fails.
 - **Gates at this tip (full run on the SIM-a files):** `pytest -n auto`: 11,733 passed, 16 xfailed, 1 failed:
   `tests/ai/test_fire_and_collect.py::test_a_reveal_that_never_came_or_does_not_match_records_no_forecast`. It passes alone
-  and passes on the branch's parent with my files stashed, so it is a load-dependent flake outside this story; I did not
+  and passes on the branch's parent with my files stashed, so it fails only under load. Whether that is a flake or a real defect is not established: the orchestrator said it is a real issue to root-cause and is routing it separately. Outside this story; I did not
   touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
 - Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
 
