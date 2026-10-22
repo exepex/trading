@@ -55,3 +55,4 @@ trial_id,gate,outcome,on,commit,numbers
 81,G1,screened_out,2026-10-22,3197d9ba0f5411d9932d1c6ebbb6a1f602887de2,bound=-276.6;expected=-3.3;cost=854.8;tail=0.0;net=-1131.4;ratio=-0.00;thin_margin=yes
 79,G1,screened_out,2026-10-22,afdf56f69e0bd34f30d3623d017c65fea15fc2b3,bound=-276.6;expected=-3.3;cost=854.8;tail=0.0;net=-1131.4;ratio=-0.00;thin_margin=yes
 82,G1,screened_out,2026-10-22,703231a1bd5b7f307295846f2ac7ae2fda5fe03a,bound=-157.6;expected=222.6;cost=854.8;tail=0.0;net=-1012.4;ratio=0.26;thin_margin=yes
+94,G2,exploratory,2026-10-22,0618f52fff4175de73dfb6342e85905258968f2f,rows=1;not_fresh=1
