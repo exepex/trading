@@ -863,6 +863,19 @@ cases and a test that fails when the named code is broken on purpose.
   7. The import-list test: no banner, report, registration, map or licence module, no order call, no Slack.
   8. The privacy test: public output holds counts only; strikes, prices and card internals go to the practice
      dataset in Drive (write-once, receipt in GitHub), never to the repository.
+  9. Stores only: the F&O files and index closes are read through MS-P1b's `StoredFilesOnly` source inside a `RawFileLibrary`
+     (`fno/school/roads/wiring.py`), never `build_nse_fo_library`, which falls back to an NSE fetch. A test builds the
+     library with a source whose fetch raises and runs a missing day: the road closes, nothing is fetched.
+  10. The index close: legacy-format F&O files carry no underlying price, so `BhavcopyChain` is built with `index_close`
+      from NSE's archived index-close files (A10, `build_index_close_files` read through the same stores-only library).
+      A test on a legacy day (24 Jun 2021) shows an open road with the close from that file, and a test with the file
+      missing shows `capture_missing`.
+  11. Dated STT across a regime change: a position opened on 31 Mar 2023 and closed on 3 Apr 2023 keeps its two
+      fills' own charges and passes `accounts/ledger_fills.py`'s recomputation check; if it does not, MS-P1d's builder
+      is asked for a follow-up before SIM-d is offered for judging.
+  12. The practice rules: the fleet is built with MS-P1d's `build_practice_safety_laws` and `QuoteRules(practice=True)`
+      only in this package's wiring, and a test shows that without the flag the live laws and `SchoolFills` refuse a
+      quote with `sizes_measured=False`.
 
 ### 7.5 Gap list
 
