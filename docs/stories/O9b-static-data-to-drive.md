@@ -30,6 +30,44 @@ needed": every fetched data file goes to Drive. Decided the same day:
 
 The README files, code, FREEZE texts and study write-ups stay in GitHub.
 
+**Readers whose evidence is git's push time** (judge 475 SF1). They judge a file by when GitHub received the commit
+that added it, so they move with their group and must give the same answer afterwards:
+- O8's health check: `fno/health/expectations.py` (`INTRADAY_FOLDER` for A16's marks, `warmup_closes.csv` for the
+  index closes, the panel's `manifest.json` for the panel day) and `fno/health/quote_checks.py` (`quotes/`, the
+  `.canonical` markers; G5 moves only the NSE chains, the markers stay); `fno/health/desk_checks.py` (A16's
+  `SlotLedger`).
+- v4 scoring: `fno/forecast_scoring/v4/wiring.py` (`RvTable` on `intraday/rv/`, A16's 15:30 flag per day).
+- The owner-timing desk: `fno/desk/owner_timing/wiring.py` (`SlotLedger` on `intraday/slots/`, E8's fills).
+
+**Design line:** push-time evidence moves to the push time of the file's receipt (`receipts/<drive path>.sha256`,
+committed by the writer in the same run), the role the data commit has today; each check changes the path it looks at,
+never its rule. A receipt pushed after the deadline is late exactly as the data file is today.
+
+**Global cues' own path readers** (judge 475 minor): `fno/global_cues/wiring.py` (`CUES_FOLDER`: the cue tables through
+`CsvRowLog`, the shared revisions log, `CHECKS_FOLDER`, `TRADING_DATES_FILE`, `BEHIND_EPISODES`), `check_files.py`
+(writes `checks/` and `us_trading_dates.csv`), `cue_calendars.py` and `wiring.py`'s `us_market_closures()` (the hand
+list `us_market_closures.csv`, which **stays** in GitHub, read by `NyseCalendar`), and FL1's
+`fno/forecast_lab/page/facts.py` and `fno/forecast_lab/sections/global_cues.py`. `checks/behind_alerted.txt` is alert
+state (names only, judge 351 add. 2) and stays, like the other alert states in `research/ops/alerts/`.
+
+**Reader index** (every `fno/` module that names a group's paths, `grep` on main, 22 Oct; a few are writers or name a
+constant only; each step re-checks and lists its exact readers and writers):
+- G1 (34): `ai/paths.py`, `composition.py`, `desk/pack_wiring.py`, `forecast/{wiring,baseline_wiring}.py` (frozen),
+  `forecast_lab/page/facts.py`, `forecast_scoring/{wiring,replay,resolution}.py`, `forecast_scoring/v4/{wiring,g7_series}.py`,
+  `forecast_v4_rules/{series,wiring}.py`, `health/expectations.py`, `pipeline/{index_closes,panel_days,panel_wiring,wiring}.py`,
+  `price_distribution/wiring.py`, `price_ranges/{closes,tables,wiring}.py`, `research_data/{nifty_panel,panel_append,panel_reader,panel_store,warmup_closes}.py`,
+  `research_engine/{close_series,cycles,leg_prices}.py`, `storage/wiring.py`, and VIX's own overlap check
+  (`vix_history/{check_files,wiring}.py` read `warmup_closes.csv`).
+- G2 (26): `intraday/*` (recorder, ledger, rv and candle tables, back-fill, settle, wiring), `desk/owner_timing/{wiring,mark_snapshots}.py`,
+  `forecast_scoring/v4/wiring.py`, `forecast_v4_rules/{series,wiring}.py`, `health/{expectations,desk_checks}.py`,
+  `learning/{readers,wiring}.py`, `market_read_models/weather_block.py`.
+- G4 (15): `nse_margins/{job,margin_log,stress_log,wiring,cli}.py`, `risk/{margins,stress_factor,settings,wiring}.py`,
+  `checks/{validity_margin,validity_factor,validity_settings}.py`, `scoreboard/entry_facts.py`, `daily/wiring.py`.
+- G5 (NSE chains; 30 modules name `quotes/`, most for Groww's markers, which stay): `quotes/{recorder,compare,cli}.py`,
+  `price_distribution/sources.py`, `forecast/capture.py`, `forecast_scoring/{wiring,replay}.py`, `health/{expectations,quote_checks}.py`,
+  `market_read_models/chain_blocks.py`, `scorecard/wiring.py`, `desk/{daily_wiring,git_sync}.py`, `daily/*`.
+- G3: the global-cues readers above; VIX: `vix_history/*` only.
+
 ## 2. How a group moves (the same five steps each time)
 
 1. **Upload the existing bytes** through `DataStore` under `data/<group path>`, one receipt each, and verify by
@@ -75,8 +113,9 @@ the same global-cues module (FRED where it is on time and equal). So the pilot i
 tables move either inside GC2, by its builder through O9b's adapters, or right after GC2 merges, as agreed with that
 builder; never two versions of the module at once.
 
-Each step's text names its files, writers, readers, the reader owners agreed (most have no live owner; the
-orchestrator agrees on their behalf), its tests and its removal list.
+Each step's text names its files, writers, readers (push-time readers first), the reader owners agreed (most have no
+live owner; the orchestrator agrees on their behalf), its tests, its removal list and **its own gap list** (judge 475
+B1): every requirement of this text and of the step, and where the step meets it.
 
 ## 4. Git history (honest constraint; owner decided: leave it)
 
@@ -111,7 +150,44 @@ record:
 4. No workflow, routine or CLI writes into a moved folder; the hook refuses a commit adding one.
 5. After removal from HEAD: the full suite (both markers) and every freeze check pass.
 6. The first scheduled run after each switch is cited in the step's claims.
+7. **O8 is unchanged:** on a recorded day, the health check's rows for the moved group are identical before and after
+   the switch; a receipt pushed after the deadline is `late` and a missing one `missed`, as the data file was (the
+   same for v4 scoring's per-day flags and the owner-timing desk's marks).
+
+## Gap list
+
+| Requirement | Where |
+|---|---|
+| Every fetched or read-only data file out of GitHub into Drive (owner, 22 Oct) | sections 1-3; the kept groups named in the owner's decision 1 |
+| Write-once Drive, SHA-256 receipts, verified cache (O9 rules 2-4) | section 2 steps 1-3; criteria 1-2 |
+| Inventory with sizes, per dataset | section 1 |
+| Each reader switched to the verified cache | section 2 step 3; reader index (section 1) |
+| Readers whose evidence is git push time | section 1 (push-time readers, design line); criterion 7 |
+| Receipts kept in GitHub; files then removed from the tree | section 2 steps 1 and 5; criteria 4-5 |
+| Agree each dataset with its reader's owner | section 3 (orchestrator for readers without a live owner; GC2 and FL1 named) |
+| Never break a live reader; nothing live before Mon 26 Oct or 14:00-16:15 IST | section 3 table; criterion 3 |
+| Story text first, then small steps, one group each | section 3 |
+| Frozen readers keep working | section 2 step 3 (restore-to-path, O9 4.1); criterion 5 |
+| Tests on real data | section 2 step 4; criterion 5 |
+| Git history stays public; the options and their cost | section 4 |
+| Kept in GitHub: manifests, receipts, evidence logs, hand-curated settings, sealed records (owner, 22 Oct) | owner's decision 1; `us_market_closures.csv` and `behind_alerted.txt` named |
+| Each step's own requirements | each step's gap list (section 3) |
 
 ## Open questions
 
 None for the owner: the 22 Oct decisions above settle scope and history.
+
+## Claims
+
+**Judge 475 (FAIL, round 1 of 2), all accepted:**
+- B1 accepted: a gap list for this text (above), and the rule that each step's text carries its own.
+- SF1 accepted: the push-time readers (O8's `expectations.py`, `quote_checks.py` and `desk_checks.py`, v4 scoring's
+  `RvTable`, the owner-timing desk's `SlotLedger`) are in section 1. The design line says that push-time evidence moves
+  to the push time of the file's receipt. Criterion 7 says O8 is identical and a late receipt is still late. While
+  checking, I found three more readers and added them: VIX's own overlap check reads G1's `warmup_closes.csv` (so it
+  moves with G1); FL1's `forecast_lab/sections/global_cues.py` reads the cue tables; and `checks/behind_alerted.txt` is
+  alert state, so it stays.
+- Minor accepted: global cues' own path readers are named, with the readers of the hand list that stays
+  (`us_market_closures()` and `NyseCalendar`).
+- A full reader index per group (`grep` on main, 22 Oct) is in section 1. It covers every module, not only the judge's
+  examples.
