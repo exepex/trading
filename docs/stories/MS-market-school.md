@@ -386,6 +386,11 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
   - `UnavailableReason.SIZE_SHARED` is added to a's constants, additively.
 - `account_net` (`rupees.py`): the only rupee sum. It leaves out tickets and every account outcome whose entry or exit
   was unservable, keyed by (driver, fill), and names those positions.
+- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or refused only by an account limit
+  (ACCOUNT_LIMITS; a driver stopped for the day or braked gets no tickets, DRIVER_STOPS), priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
+  with only the account limits relaxed;
+- the `OpportunityCounts` builder (eligible, fillable, executed);
+- the shared-displayed-size count (327 item 10).
 
 **Acceptance tests:**
 1. Tickets:
@@ -902,6 +907,38 @@ Round 1 follow-up (orchestrator, 22 Oct 2026; both open items accepted):
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
 
+### MS-P1i Claims (round 1, code at 0b655751; builder session_01F1RVMF8MNngi97JVNs99L5)
+
+Built on a's round-2 tip 8c7ba1d9 (not 756e6545): round 2 added the fleet contract and `FakeFleet` this harness needs.
+Gates on the tree: `pytest -n auto` 10,310 passed, 16 xfailed (before the last test-only edits; school tests rerun
+green), ruff, `check_imports`, `check_records` clean.
+
+| Criterion | Test (`tests/school/acceptance/test_acceptance.py`) | Broken-code proof |
+|---|---|---|
+| 1. Each planter gives its exact reason code | `test_each_planter_gives_its_exact_reason_code_and_opens_nothing_for_it[*]` (7 faults), `test_a_wrong_reason_code_is_not_accepted`, `test_a_fault_check_fails_when_the_fleet_does_not_catch_the_fault` | stale seal made on time, refused entry under the cap, quote removal and road closure made no-ops: each fails |
+| 2. Comparator fails on one changed byte | `test_the_comparator_fails_on_one_changed_byte_in_a_record_file_or_the_counts_file`, `test_two_runs_of_one_recorded_day_are_byte_identical…` | comparator returning no differences fails |
+| 3. Planted refusal survives two runs, in both sections' inputs and every denominator | `test_the_planted_refusal_survives_two_runs_and_is_in_both_sections_inputs_and_every_denominator`, `test_the_refusal_is_in_the_counts_file_as_not_executed` | counts file's "executed" forced to 0 fails |
+| Four fill checks | `test_an_unsealed_fill_is_caught`, `…over_cap…`, `…away_from_the_touch_or_without_a_quote…`, `…duplicate_fill…` (each plants a bad ledger entry) | each check replaced by `assert True` fails |
+
+11 harness/planter mutations applied, 11 caught (the first run left 2 alive, "sealed file unchanged" and the counts
+file; a test was added for each and both are now caught).
+
+**For story j:** `tests/school/acceptance/rig.py` defines `Rig` (fleet, dashcam, ledger reader, snapshot reader, counts
+file, section-input reader, denominator reader). j writes `real_rig(scenario)` and calls the same functions in
+`harness.py`: `run_fault` for each of `all_faults()`, `check_fills`, `check_replay_twice`. The scenario is plain data
+(`fno/school/acceptance/scenario.py`); `recorded_day()` (5 roads, CS1 and DR1 trading, N0 not) starts every snapshot at
+15:02, inside all five roads' windows.
+
+**Limits, said plainly [reasoning only for what j will find]:**
+1. On the fake fleet the closure faults (expiry mismatch, lot mismatch, impossible price) are planted as the road's
+   status; the real detection of those is part b's tests, and j's real rig must plant them as bad captures through
+   b's classes so the same expectation (every driver on the road: `road_closed` with that reason) holds.
+2. A missing quote is accepted either as a `refused/missing_quote` decision (law 5) or as a refused fill, because the
+   fake fleet has only the max-loss law; the real fleet may use either path.
+3. The counts file, section inputs and denominator on the fakes are derived from the sealed decisions file; parts f and
+   g own the real ones, and j's rig must supply theirs.
+4. The replay-conflict fault is checked at the dashcam (other bytes for a sealed key raise `ReplayConflict`, the file is
+   unchanged). A fleet rerun never reaches that path, because it skips what is sealed.
 
 ### MS-P1b Claims, round 2 (judge 482 FAIL round 1: two should-fixes, two minors; builder session_01F1RVMF8MNngi97JVNs99L5)
 
@@ -1333,3 +1370,37 @@ On `story/ms-p1-roads-followup`: `main` merged (a2 included); the catalogue fill
 expiry's own step from `quality/strikes.py` (`Capture.strike_steps()`; `strike_step` stays the nearest expiry's), tested
 for a two-step chain (`day.step_for`) and for every road on a good day; `prices.py` carries the judge's mids figures;
 an expiry with fewer than two strikes makes the capture `capture_incomplete` (tested).
+### MS-P1i Claims, round 2 (judge 487 FAIL round 1: one blocking, one should-fix, two minors)
+Built on `main` (a merged) plus part b's round-2b tip fdbea6c7, because the planters now sit on b's real input types.
+**1. Blocking, the closure planters (fixed; the orchestrator's ruling).** A `Scenario` is now the data the detectors read,
+not a verdict: `snapshots` (what each road's capture holds), `listed_expiries` (what the archived NSE listing says each
+road records), `lots` (the session's dated lot copy, units per expiry), the drivers and the seal timing. There is no
+road status in it.
+- *Expiry mismatch:* the capture's contracts and expiry list carry dates a week later than the listing's.
+- *Lot mismatch:* the lot copy gives the later expiry another lot than the earlier one, so there is no single lot.
+- *Impossible price:* two strikes of one expiry and type are quoted so that the dearer leg's whole bid-ask range sits
+  below the cheaper leg's bid (b's `impossible_keys`: the vertical cannot be worth 0 to its width).
+The same reason codes are expected. The fake rig runs b's real classes over them: the scenario's snapshots are written as
+the recorder writes them (sidecar, quote file, canonical marker) and read back by `CaptureReader`; `RecordedRoadCatalogue`
+compares the expiries with the listing and the lot copy; `RoadQualityGate` closes the road on the price. Tests:
+`test_the_closure_planters_change_the_data_the_detectors_read_never_a_verdict` (the planted data differs, and the clean
+chain has no impossible leg while the planted one has) and
+`test_the_real_detectors_name_the_planted_reason_before_any_driver_decides` (b's catalogue says `expiry_mismatch` and
+`lot_mismatch`; its gate says `impossible_price`). **For j:** `real_rig(scenario)` writes `snapshots` as captures through
+the real recorder writers, `listed_expiries` as the archived F&O file and `lots` as the archived `fo_mktlots.csv`, then
+runs the real fleet; the planters are used unchanged.
+**2. Should-fix, the nine unproven checks (fixed).** `tests/school/acceptance/test_harness_checks.py` feeds a bad run or
+rig to each and sees it fail: the closure leak, a position opened for a refused entry, stale-seal fills reaching the
+ledger, a rerun that fills again or seals other decisions, a scheduled decision with no sealed outcome, a trade
+decision over the cap, the refused entry's exact reason, the fill-path reason, and a partial fill.
+**3. Minors (fixed).** (a) The fill-path reason is matched on the planted driver's own fill (fills are one per trade
+decision, in decision order; conformance's `check_fleet` holds the counts equal), and a test shows a reason on another
+driver's fill does not count. (b) `check_no_invented_fills` now covers exits (at the touch of the road's snapshot);
+a settlement (exit reason `expiry`) is priced at intrinsic against NSE's file, not a quote, and stays with part d's
+settlement tests, said in the check's docstring and tested to be skipped.
+**Mutations:** 16 applied to the harness, planters, scenario and capture writer (the nine checks, exits, the own-fill
+tie, the three planters as no-ops, the key shift, the writer's valid flag), 16 caught, none surviving (two survived
+first, and a test was added for each). Tests: 42 in `tests/school/acceptance/`.
+**Limits that remain:** the counts file, section inputs and denominator on the fakes are derived from the sealed
+decisions file (f, g and j supply the real ones); a missing quote is accepted as a law refusal or a refused fill; the
+replay-conflict fault is checked at the dashcam.
