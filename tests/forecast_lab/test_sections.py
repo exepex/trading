@@ -16,7 +16,7 @@ from fno.global_cues.reading import CueReading
 from fno.research_data.nifty_panel import DailyFiles
 
 MON, FRI = date(2026, 10, 26), date(2026, 10, 23)
-OPEN, DECISION = time(9, 15), time(15, 0)
+OPEN, RUN = time(9, 15), time(20, 5)
 
 
 class Table:
@@ -40,9 +40,8 @@ class Reader:
 
 
 def section(reader, calendar=True, unit="%"):
-    return GlobalCueSection(
-        lambda: reader, CueSpec("x", "S&P 500", unit, calendar), {"morning": OPEN, "evening": DECISION}
-    )
+    cutoffs = {"morning": (OPEN,), "evening": (RUN, OPEN)}
+    return GlobalCueSection(lambda: reader, CueSpec("x", "S&P 500", unit, calendar), cutoffs)
 
 
 @pytest.mark.parametrize("status", ["current", "ahead"])
@@ -104,7 +103,20 @@ def test_the_day_s_flags_are_the_day_s_own_events_and_expiry():
     assert FlagsSection(lambda day: Facts()).read(MON, "morning").items == ()
 
 
-def test_each_edition_reads_at_its_own_time_so_the_evening_has_the_day_s_rbi_rate():
-    reader = Reader("current")
-    section(reader).read(MON, "evening")
-    assert reader.calls == [("x", MON, DECISION, True)]  # judge 449: the evening is not the 09:15 view
+class ByCutoff(Reader):
+    """The day's RBI rate is not in A17's table at the evening's run time; the previous session's is, at 09:15."""
+
+    def read(self, cue, day, cutoff, live_only):
+        self.calls.append((cue, day, cutoff, live_only))
+        row = self.tables[cue].rows()[-1]
+        return CueReading(row, "behind" if cutoff == RUN else "current", 1, None)
+
+
+def test_the_evening_shows_the_day_s_value_when_out_else_the_previous_one_said_so():
+    current = section(Reader("current")).read(MON, "evening")
+    assert (current.status, current.why) == (AVAILABLE, "")
+    reader = ByCutoff("current")
+    view = section(reader).read(MON, "evening")
+    assert [c[2] for c in reader.calls] == [RUN, OPEN]  # judge 451: the run's time first, never 15:00
+    assert (view.status, view.items[0].as_of) == (AVAILABLE, FRI)
+    assert view.why == "S&P 500: today's value is not out yet; the previous one is shown, with its date"
