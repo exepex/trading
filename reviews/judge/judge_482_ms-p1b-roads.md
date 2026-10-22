@@ -70,3 +70,38 @@ recorded legs of passed sessions, fixed by `DEFAULT_BAND_STEPS`, but see finding
   closure".
 - This part closes roads, so it decides trades. Under JUDGE.md "Two judges for money pieces" the orchestrator decides
   whether a second judge is needed.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-p1-roads at fdbea6c7, b's files diff 183783bd..fdbea6c7 (it answers judges 482 and 483
+together; Judge I judges separately). **Verdict: PASS**, lane 1.
+
+**Gates (my run):** pytest -n auto: 10,539 passed, 16 xfailed. ruff check/format, check_imports and check_records
+are clean. Largest file is 183 lines.
+
+**Real data (my run of `python -m fno.school.quality.command --through 2026-10-22`):**
+- The output equals the Claims block byte for byte.
+- FINNIFTY now has 168 scheduled legs (21 strikes on each expiry in its own step), 95 passed (56.55%).
+- `git status` is clean. A request log shows only `oauth2.googleapis.com` (3) and `www.googleapis.com` (115): no NSE
+  or Groww host.
+
+**Round-1 findings:**
+1. **One strike step: ACCEPTED for b's part.**
+   - `quality/strikes.strike_steps` gives each expiry its own step. `band_keys` reaches N steps of each expiry's own
+     step from that expiry's money.
+   - Plants caught: the least common gap, and the smallest step across expiries.
+   - The scheduled legs now come from NSE's listing (`NseListedContracts`), so a dropped strike counts as observed and
+     not passed. Plant (denominator taken from the capture again) caught.
+   - `RoadDay.strike_step` is still the nearest expiry's. Per-expiry steps on `RoadDay` wait for a2, and b fills them
+     as the orchestrator's known follow-up. That isn't this verdict's.
+2. **The surviving plants: ACCEPTED.** All 9 of my round-1 survivors are caught now:
+   - both date checks, the IST conversion, the sidecar failures, the spot check, the time order;
+   - `valid == "true"`, the step choice.
+   - Also caught: the new Drive-outage pass-through (`requests.RequestException` before the parse catch) and the
+     recorder's 5% band on the listing.
+- **Minors (a) and (b): ACCEPTED.**
+  - (a): the mids figure is corrected in the Claims.
+  - (b): an unreadable listing is now `ListingUnavailable` (`ExpiryUnavailable` is a subclass). It still closes as
+    `expiry_mismatch`, and the reason text says why.
+
+**Plants:** 12 this round, 12 caught.
