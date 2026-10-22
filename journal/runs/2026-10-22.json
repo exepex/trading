@@ -356,6 +356,21 @@
     "reason": "school:OFF",
     "exit_code": 0
    }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-22T15:22:39.354212+05:30",
+   "finished_at": "2026-10-22T15:23:14.376773+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
