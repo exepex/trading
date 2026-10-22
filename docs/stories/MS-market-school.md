@@ -620,4 +620,8 @@ MS-P1h round 3 (judge 480 addendum 1, owner: "fix, then Judge H re-checks only t
    (plant on `_as_date` caught).
 Broken-code proof: 5 mutations of the new code (text kept as text, the run reset, the not-found raise, the shallow
 stop, the unreadable raise) each fail a named test.
+5. **Card known limits (orchestrator, 22 Oct):** §6 of the card states that the expiry-day ELM is not modelled, so a
+   driver holding a position into its expiry day gets a `margin_room` refusal on every new entry that day; the blocked
+   entries become `account_limit` tickets; reports show the `margin_room` share per road on expiry days; the fix is P2's
+   (P0 probe 4). Pinned by `test_the_card_freezes_the_pieces_judge_480_named`.
 
