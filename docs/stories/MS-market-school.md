@@ -697,3 +697,44 @@ all, all caught, none surviving. Round 1's "25 of 25" is withdrawn: it was a sma
 
 **Minor (a):** corrected above. **Minor (b):** the unreadable-listing case cannot carry its detail in `RoadStatus`
 (one closure code, by contract); reports that need to tell it from a true mismatch need a field on the contract.
+
+
+### MS-P1b Claims, round 2b (judge 483 FAIL round 1: three should-fixes, two minors)
+
+1. **Leg denominator (fixed).** `RoadQualityGate(listing, band_steps)` takes the scheduled legs from
+   `ListedContracts` (`roads/listed_contracts.py`: the previous session's archived NSE F&O file, stored files only, no
+   new read): the contracts of the road's expiries inside the recorder's 5% band of the spot, then the band of the
+   listed strikes in each expiry's own step. A scheduled leg the capture lacks is observed and not passed. Tests
+   (`quality/test_scheduled_legs.py`): the judge's plant, one dropped near-money strike, gives 12 scheduled and 11 passed
+   (not 12 of 12); a whole strike dropped on both kinds and expiries gives 12 and 8; captured extras beyond the listing
+   are not scheduled; the band follows the listing when the money strike is dropped; an unreadable listing raises
+   `ListingUnavailable`, and the capture-gate report counts that session as failed (`expiry_mismatch`), not a crash.
+2. **Drive outage (fixed).** `requests.RequestException` (which includes `requests.JSONDecodeError`, also a
+   `ValueError`) now passes through the expiry source before the parse catch, so a proxy's HTML page from Drive raises
+   and closes nothing. Only an unreadable listing file (`ExpiryListUnavailable`, a damaged zip, bad rows) closes as
+   `expiry_mismatch`. Tests: `roads/test_listed_contracts.py` (non-JSON reply raises through both readers; damaged file
+   is `ExpiryUnavailable`/`ListingUnavailable`).
+3. **Capture checks without a failing test (fixed, together with judge 482's).** Each now has a plant whose oracle is the
+   plant: the failures list (`complete: true` with failures), recorded equals expected (32 rows, 32 recorded, 40
+   expected; and 31 against 32), expected above zero (an empty chain that expected and recorded nothing), spot finite and
+   above zero, finish before start, and the start and finish date checks separately (started yesterday and finished today
+   catches the start check alone). Minor (b): only the exact word `true` makes a leg valid (`True`, `yes`, `1`, empty,
+   `maybe` do not).
+4. **Minor (a)** corrected in round 2 above (8-61 neighbours, 9-87 all pairs, in the band only MIDCPNIFTY).
+
+**Mutations:** 38 (round 2) plus 9 more for this round (the denominator from the capture, two-sided on the leg count,
+expected above zero, recorded equals expected, `valid != "false"`, JSON error as closure, damaged zip, unreadable
+listing in the report, the recorder band on the listing): all caught, none surviving. One more (a redundant
+`except` in the listing reader) survived because the store is read outside the try, so the clause was dead; it is
+removed.
+
+**Real output, read-only, after the change:**
+```
+NIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 4, lot_mismatch 4); legs 168 of 168 (100.00%); gate closed
+BANKNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 168 of 168 (100.00%); gate closed
+FINNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 95 of 168 (56.55%); gate closed
+MIDCPNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 167 of 168 (99.40%); gate closed
+NIFTY-W through 2026-10-22: snapshots 1 of 10 (capture_missing 9); legs 84 of 84 (100.00%); gate closed
+```
+The scheduled legs now come from NSE's listing and equal the captured band on every road-day, as the judge saw, so the
+counts do not move; the difference is that a dropped strike would now show.
