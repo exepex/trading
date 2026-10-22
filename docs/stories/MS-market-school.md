@@ -2118,3 +2118,19 @@ one pricing model rather than adding a second, and G13's helpers take whole days
 
 **Real output sample:** none yet (no sealed day). Fixture: the model-priced put spread closing at F = 980 classifies with cause 11 not testable until its expiry settles, and the modifier `hard_road` when both controls lost (`test_classify`).
 
+#### INS-c Claims, round 2 (judge 510 FAIL round 1: one should-fix, eight branches; one minor)
+
+All in `tests/school/instructor/causes/test_branches.py`. Each test fails when its branch is broken; the judge's
+eight plants were re-run, 8 of 8 caught.
+
+| Judge 510 branch | Test |
+|---|---|
+| 1 cause 2's range edge `|z| <= 1.645` (the boundary named: 1.645 fires, 1.6451 does not) | `cause_2_holds_up_to_and_including_the_range_edge` |
+| 2 cause 5's winner form needs "not long premium" | `a_winning_debit_never_reads_time_decay_earned` |
+| 3 cause 11's winner form needs a target exit | `a_winner_closed_by_its_stop_is_never_a_whipsaw` |
+| 4 the tail order, 9 before 12 | `costs_rank_before_noise_in_the_tail` |
+| 5 the directional boundary is inclusive (the boundary named: the 1% dollar delta at exactly the share of the maximum loss, with a binary-exact share so floating point cannot blur it) | `the_directional_boundary_is_inclusive` |
+| 6 the lognormal drift -s^2/2 | `the_noise_band_is_centred_by_the_lognormal_drift` (a long ATM call's band mean is about 0) |
+| 7 the ATM strike nearest the forward | `the_atm_volatility_is_read_at_the_strike_nearest_the_forward` (a skewed lowest strike is never read) |
+| 8 the impossible-price half of cause 10, alone | `an_impossible_price_alone_is_a_data_fault_with_fills_at_the_touch` (the fill is at the impossible touch, so the off-touch half sees nothing) |
+
