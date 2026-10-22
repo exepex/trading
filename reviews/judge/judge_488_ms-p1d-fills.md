@@ -161,3 +161,19 @@ judges, independent of judge I. Round 1 of 2.
   settlement still never waits forever on a store nobody can read.
 - **Plants: 4, 4 caught.** The per-vertical check off; the whole chain judged instead of the proposal's legs; the
   position bound off; an empty store list built without an error.
+
+## Addendum 4
+
+**Scope:** MS-P1d follow-up part 3, story/ms-p1d-entries, diff 80625b19..fdd64766: `SchoolAccounts.entries(driver_id)`
+for j's settlement before the first view. Money piece: first of two judges, independent of judge I. Round 1 of 2.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 11660 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **Read-only, under the lock.** `_locked` is the shared lock-and-pull and `_writer` wraps it, so `entries` takes
+  the same lock and the same once-per-run Drive pull, and writes nothing (no equity row, no account opened).
+- **Never half a record.** A ledger that disagrees with the position records raises before anything is returned.
+- **Plants: 4, 3 caught.** Caught: the consistency check skipped; `entries` starting the account (a write); a pull
+  on every call.
+  - Survived, equivalent: the "never opened gives ()" short cut removed. A never-opened account has no files, so
+    the general path also returns (), and `test_entries_write_nothing...` proves nothing is created.
