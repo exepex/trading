@@ -648,21 +648,32 @@ minutes can be replaced without a second paid source.
 - **`python -m fno intraday feed-probe --plan <coverage|ramp|alongside> --minutes N`**: a probe, not a recorder. It
   keeps counts and times only (per instrument: ticks, first and last receipt time, latency figures); no tick value is
   printed, committed or posted. The probe note is written by hand from its printed summary.
-- **Plans and limits:** `coverage` (about 400 instruments, 20 minutes); `ramp` (stops at the first refusal or error);
-  `alongside`: **at most 1,000 instruments whatever the ramp showed, and if its own sign-in or any call answers 429 it
-  unsubscribes everything and stops at once** (orchestrator: the 3 pm data feeds G13, so losing it costs a day).
-- **Schedule (IST, from Tue 27 Oct; 28 Oct if the code is not passed by then):** `coverage` 10:20-10:40 (overlapping
-  A16's 10:30 mark), `ramp` 11:05-11:25 (away from 3 pm), `alongside` 14:50-15:20 (beside the 3 pm recorders and A16's
-  15:00 and 15:15 marks). Run by the builder by hand; no schedule or workflow is created.
+- **Plans and limits** (every plan unsubscribes everything and stops at once, with one named line, when its own
+  sign-in or any call answers 429 or the plan's hard end time is reached):
+  - `coverage`: about 400 instruments, 10:20-10:40. It overlaps A16's 10:30 mark on purpose: that mark is the first
+    market-hours test of two sign-ins on one key (judge 499).
+  - `ramp`: 500, 1,000, 1,500, 2,000, 3,000, stopping at the first refusal or error; **between A16's marks only**:
+    11:17:00 to a hard stop at 11:28:00 (A16's 11:15 mark ends about 11:16, its 11:30 mark starts at 11:30; judge 499:
+    a mark with no usable level voids the session's RV). Unfinished steps go to the next day's same window.
+  - `alongside`: **at most 1,000 instruments whatever the ramp showed** (orchestrator: the 3 pm data feeds G13, so
+    losing it costs a day), behind a **go/no-go gate** (judge 499): it runs only if that day's `coverage` run left A16's
+    10:30 and 10:45 marks clean (ledger status good, no 429 failure, no missing quote); it signs in and subscribes before
+    14:50 and makes no new sign-in between 14:55 and 15:13 (the 3 pm recorders' window); any condition missed means no
+    `alongside` that day, noted in the probe note with the reason.
+- **Schedule (IST, from Tue 27 Oct; 28 Oct if the code is not passed by then):** `coverage` 10:20-10:40, `ramp`
+  11:17-11:28, `alongside` from before 14:50 to 15:20 (gate permitting). Run by the builder by hand; no schedule or
+  workflow is created.
 
 **Acceptance criteria:**
-1. `ReadOnlyFeed` passes exactly the eleven market-data names; each account-reading name above and every
-   `place_|modify_|cancel_|create_` name in the SDK's `dir(GrowwFeed)` is refused with nothing reaching the feed; the
-   wrapper cannot be changed after it is built.
+1. `ReadOnlyFeed` passes exactly the eleven market-data names; each account-reading name above, and trading names the
+   test supplies itself (`place_order`, `modify_order`, `cancel_order`, `create_smart_order`; today's `dir(GrowwFeed)`
+   has none, judge 499), are refused with nothing reaching the feed; the wrapper cannot be changed after it is built.
 2. No module outside the composition root names `GrowwFeed` or `GrowwAPI` (the import-closure test A16 already has).
-3. `alongside` refuses more than 1,000 instruments; a fake feed answering 429 makes it unsubscribe all and stop with
-   one named line.
-4. `ramp` stops at the first error and reports the count reached; `coverage` reports per instrument whether ticks came.
+3. `alongside` refuses more than 1,000 instruments and refuses to start when the gate is not met (a fake ledger with a
+   429 or a missing 10:30 or 10:45 mark; a start after 14:50); every plan, on a fake feed answering 429 or at its hard
+   end time, unsubscribes all and stops with one named line.
+4. `ramp` stops at the first error and reports the count reached; `coverage` reports whether ticks came by class (index
+   value, future, and per index, expiry and option type), with the counts per class (judge 499).
 5. Nothing the probe prints holds a token, a key or a tick value (a test over its summary lines).
 6. Gates: the full suite, ruff, imports, code size.
 
@@ -673,7 +684,7 @@ ask, 22 Oct); the probe says nothing about how a feed-based recorder would be bu
 one).
 
 **Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
---groww` · **Size:** S · **Status:** story text for judge I (22 Oct 2026)
+--groww` · **Size:** S · **Status:** story text round 2 for judge I (judge 499's two should-fixes and two minors, 23 Oct 2026)
 
 ### Claims
 - (code round) to be filled when the code is pushed.
