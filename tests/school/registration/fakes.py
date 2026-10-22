@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from fno.school.constants import RoadCode
-from fno.school.registration.counting import CountCandidate
+from fno.school.registration.counting import CountCandidate, FirstCounted
 
 SESSION = date(2026, 11, 30)
 CARD_SHA = "ab" * 32
@@ -13,10 +13,15 @@ CARD_SHA = "ab" * 32
 @dataclass
 class FakeHistory:
     parents: dict[str, tuple[str, ...]]  # commit -> its parents
-    card_commit: str | None = "card"
+    cards: tuple[str, ...] = ("card",)  # commits that changed the card, oldest first
+    first_counted: dict[str, FirstCounted] = field(default_factory=dict)  # decision commit -> value in its tree
+    default: FirstCounted = FirstCounted(SESSION, "card")
 
-    def last_commit(self, path: str) -> str | None:
-        return self.card_commit
+    def card_commits(self) -> list[str]:
+        return list(self.cards)
+
+    def first_counted_at(self, commit: str) -> FirstCounted:
+        return self.first_counted.get(commit, self.default)
 
     def is_ancestor(self, older: str, newer: str) -> bool:
         seen, todo = set(), [newer]

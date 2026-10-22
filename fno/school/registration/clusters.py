@@ -1,6 +1,8 @@
 """The comparison's unit (story MS-P1h): the five roads of one session are one cluster, so a session counts as one
 session, not five tests. The common group is the road-days on which a driver and every one of its matched controls
-have a counted decision, frozen once before counting so no driver is compared on days its control missed."""
+have a counted decision, so no driver is compared on days its control missed. It is computed from the counted
+decisions at report time, per card version (`CountVerdict.card_commit`): the rule that decides which decisions count is
+what the card freezes, so the group cannot be chosen after the results."""
 
 from collections.abc import Iterable, Sequence
 from datetime import date

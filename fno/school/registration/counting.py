@@ -1,6 +1,8 @@
-"""The counting rule (story MS-P1h, D6's rule): a decision counts only if the comparison card and the driver's version
-row were frozen in commits strictly before the decision's own commit, the driver's card is the one its row names, and
-the session is on or after the first counted session. Anything else is kept in the denominator, never dropped."""
+"""The counting rule (story MS-P1h, D6's rule): a decision counts only if, strictly before the decision's own commit,
+the first counted session was set, the comparison card was frozen and the driver's version row was registered; the
+driver's card is the one its row names; and the session is on or after the first counted session. Each decision is
+judged against the card version and the first counted session in force at its own commit, so a later change applies
+only to later decisions and never re-counts or un-counts an earlier one. Anything else is kept in the denominator."""
 
 from dataclasses import dataclass
 from datetime import date
@@ -10,10 +12,12 @@ from typing import Protocol
 from ..constants import RoadCode
 
 CARD_PATH = "research/school/CARD_P1.md"
+CONFIG_PATH = "config.yaml"
 
 
 class NotCounted(StrEnum):
     NO_FIRST_COUNTED_SESSION = "no_first_counted_session"
+    FIRST_COUNTED_NOT_FROZEN_BEFORE = "first_counted_not_frozen_before"
     BEFORE_FIRST_COUNTED_SESSION = "before_first_counted_session"
     CARD_NOT_FROZEN_BEFORE = "card_not_frozen_before"
     VERSION_NOT_REGISTERED_BEFORE = "version_not_registered_before"
@@ -35,13 +39,25 @@ class CountCandidate:
 class CountVerdict:
     counted: bool
     reason: NotCounted | None = None
+    card_commit: str | None = None  # the comparison card version it counted under: results group by it
 
 
-class CardHistory(Protocol):
-    def last_commit(self, path: str) -> str | None:
-        """The newest commit that changed the file, or None when it was never committed."""
+@dataclass(frozen=True)
+class FirstCounted:
+    """The value of `school.first_counted` in a commit's tree, and the commit that first wrote that value."""
 
+    day: date | None
+    set_in: str | None
+
+
+class CountingHistory(Protocol):
     def is_ancestor(self, older: str, newer: str) -> bool: ...
+
+    def card_commits(self) -> list[str]:
+        """Every commit that changed the comparison card, oldest first."""
+
+    def first_counted_at(self, commit: str) -> FirstCounted:
+        """`school.first_counted` as committed at `commit`."""
 
 
 class VersionLookup(Protocol):
@@ -51,26 +67,34 @@ class VersionLookup(Protocol):
 
 
 class CountingRule:
-    def __init__(self, first_counted: date | None, history: CardHistory, versions: VersionLookup):
-        self.first_counted, self.history, self.versions = first_counted, history, versions
+    def __init__(self, history: CountingHistory, versions: VersionLookup):
+        self.history, self.versions = history, versions
 
     def verdict(self, candidate: CountCandidate) -> CountVerdict:
-        if self.first_counted is None:
+        first = self.history.first_counted_at(candidate.commit)
+        if first.day is None:
             return CountVerdict(False, NotCounted.NO_FIRST_COUNTED_SESSION)
-        if candidate.session < self.first_counted:
+        if not self._strictly_before(first.set_in, candidate.commit):
+            return CountVerdict(False, NotCounted.FIRST_COUNTED_NOT_FROZEN_BEFORE)
+        if candidate.session < first.day:
             return CountVerdict(False, NotCounted.BEFORE_FIRST_COUNTED_SESSION)
-        if not self._frozen_before(CARD_PATH, candidate.commit):
+        card = self._card_in_force(candidate.commit)
+        if card is None:
             return CountVerdict(False, NotCounted.CARD_NOT_FROZEN_BEFORE)
         registered = self.versions.card_sha256_registered_before(
             candidate.driver_id, candidate.session, candidate.commit
         )
         if registered is None:
-            return CountVerdict(False, NotCounted.VERSION_NOT_REGISTERED_BEFORE)
+            return CountVerdict(False, NotCounted.VERSION_NOT_REGISTERED_BEFORE, card)
         if registered != candidate.card_sha256:
-            return CountVerdict(False, NotCounted.DRIVER_CARD_CHANGED)
-        return CountVerdict(True)
+            return CountVerdict(False, NotCounted.DRIVER_CARD_CHANGED, card)
+        return CountVerdict(True, card_commit=card)
 
-    def _frozen_before(self, path: str, decision_commit: str) -> bool:
-        """Strictly before: the card's last change is an ancestor of, and not, the decision's own commit."""
-        frozen = self.history.last_commit(path)
-        return frozen is not None and frozen != decision_commit and self.history.is_ancestor(frozen, decision_commit)
+    def _card_in_force(self, decision_commit: str) -> str | None:
+        """The card's last change strictly before the decision: later versions apply only to later decisions."""
+        frozen = [c for c in self.history.card_commits() if self._strictly_before(c, decision_commit)]
+        return frozen[-1] if frozen else None
+
+    def _strictly_before(self, commit: str | None, decision_commit: str) -> bool:
+        """An ancestor of, and not, the decision's own commit (a change in the decision's commit does not count it)."""
+        return commit is not None and commit != decision_commit and self.history.is_ancestor(commit, decision_commit)

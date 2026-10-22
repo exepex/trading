@@ -14,7 +14,7 @@ Labels: **strong evidence**, **some evidence**, **reasoning only**.
 | Ledger trial | 99 (the next free number at writing; the ledger row is written by `factory register` and may move) |
 | Registered research question | Does any pilot rule driver beat N0 (do nothing), RC1 (random) and REF (the road's reference rule) after every cost, per road, over 30 valid counted sessions? Descriptive, with uncertainty, no licence (response 327 P2) |
 | Proposed by (role or AI) and date | portfolio manager and statistician, market school pilot (Claude MS-P1h builder), 22 Oct 2026 |
-| Who pays and why | none claimed. EDGE1 found no simple option rule beating costs inside the Rs 10,000 cap (98 counted trials; **strong evidence**); most pilot drivers are expected to lose a little after costs (**reasoning only**) |
+| Who pays and why | none claimed. EDGE1: 24 variants (trials 71-98) found no edge after costs; this does not prove no edge exists (**strong evidence** for those 24 variants); most pilot drivers are expected to lose a little after costs (**reasoning only**) |
 | Forecast it rests on | none |
 | Instrument and structure | NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY monthly options and NIFTY weekly options; defined-risk structures only (credit and debit spreads, iron condors, iron flies), never a naked short leg |
 | Entry rule | each driver's own card at the road's 15:00 slot (its canonical capture of the session), fills at that snapshot's touch after the seal; no latency (**reasoning only**) |
@@ -26,6 +26,11 @@ Labels: **strong evidence**, **some evidence**, **reasoning only**.
 | Frequency | up to one decision per road, driver and session; 30 valid counted sessions |
 
 ## What this card freezes (before any counted session)
+
+**How counting is judged.** Each decision is judged against the card version and the first counted session in force at
+its own commit: the card's last commit, and `config.yaml` as committed, strictly before the decision's commit. A later
+card version applies only to later decisions and never re-counts or un-counts an earlier one. A changed cost model,
+road, slot, band, denominator or driver is a new card version, forward only.
 
 ### 1. Rule versions and their matched controls
 
@@ -42,8 +47,8 @@ before the decision's own commit; a changed driver card SHA-256 refuses counting
 | WS1@1 | weekly expiry seller | NIFTY-W | N0@1, RC1@1, REF@1 |
 | PS2@1, PS3@1, PS4@1 | width ladder, one family of three versions | the 4 monthlies | N0@1, RC1@1, REF@1 |
 
-PS5@1 (EDGE1 BANKNIFTY SF TP50, ledger trial 94) and KL1@1 (EDGE1 NIFTY SC3 EXP, ledger trial 76) are measurement-only controls
-(EDGE1's rules as frozen, their data spent; this card adds no trial for them), and N0, RC1 and REF are controls: none is a
+PS5@1 (EDGE1 BANKNIFTY SF TP50, ledger trial 94, road BANKNIFTY-M) and KL1@1 (EDGE1 NIFTY SC3 EXP, ledger trial 76, road
+NIFTY-M) are measurement-only controls (EDGE1's rules as frozen, their data spent; this card adds no trial for them), and N0, RC1 and REF are controls: none is a
 candidate and none is ever ranked or recommended. Their card SHA-256s and the D6 rows are written when MS-P1e's cards
 are frozen; until the rows exist nothing counts (`version_not_registered_before`).
 
@@ -59,8 +64,8 @@ are frozen; until the rows exist nothing counts (`version_not_registered_before`
 ### 3. Cost model
 
 C1's charges (`fno/costs.py`), read from the `charges:` block of `config.yaml` (9 lines, SHA-256
-`5177fb366c49ac3b5ba420c34930a0978eefe463a525b24d5bee79982d1e1889` at this card's freeze) plus the Rs 1 pad. A test
-(`tests/school/registration/test_card.py`) fails if that block changes: a new charge schedule is a new card version.
+`5177fb366c49ac3b5ba420c34930a0978eefe463a525b24d5bee79982d1e1889` at this card's freeze) plus the Rs 1 pad. A
+changed charge schedule is a new card version that applies to later decisions only.
 
 ### 4. Denominator and capture gate
 
@@ -69,17 +74,28 @@ C1's charges (`fno/costs.py`), read from the `charges:` block of `config.yaml` (
   `refused`, `road_closed` and `unavailable` stay in the denominator of every report.
 - **Original opportunities:** a ticket (a fired rule beyond the 5-trade limit or on a stopped driver) is counted in
   the eligible, fillable and executed counts, never summed into rupees and never in an account.
+- **Band:** the strikes within 25 strike steps of the money on each side, on the expiries the road records that
+  session (a first guess, about 5% of spot on each road, so the 1-expected-move shorts and the cap-sized wings are
+  inside it; **reasoning only**). Every driver card's `band_steps` must be 25.
+- **Impossible price (EDGE1's bound, `research/edge1/PROTOCOL.md`, revision 7, judge 473.1):** a leg observation
+  fails when its vertical (a sold leg with the bought leg of its type one step out) is worth less than 0 or more than
+  its width at the quoted mids, or the structure leaves its payoff bounds. Applying it to quotes is **reasoning only**;
+  the rule itself is EDGE1's.
 - **Gate per road:** the snapshot passes (present, complete, in window, hash matching, expiries matching A7's, lot
-  found) on 10 of 10 consecutive sessions **and** over 95% of the road's band legs are valid, two-sided and not
-  impossible over those sessions. A failing road stays closed for counting while others run.
+  found) on 10 of 10 consecutive sessions **and** over 95% of the band's leg observations are valid (A4), two-sided
+  and not impossible over those sessions. A failing road stays closed for counting while others run.
 - **Unit of comparison:** the common group of road-days on which a driver and all its matched controls have a counted
-  decision, frozen once; the five roads of one session are one cluster, so a session counts as one session, not five
-  tests (`fno/school/registration/clusters.py`).
+  decision, computed from the counted decisions at report time and per card version, so it cannot be chosen after the
+  results; the five roads of one session are one cluster, so a session counts as one session, not five tests
+  (`fno/school/registration/clusters.py`).
 
 ### 5. First counted session
 
 **Not set.** It is set by the orchestrator when P1's 10-session gate passes, as `school.first_counted` in
-`config.yaml`, in a commit made before that session's decisions. Until then nothing counts (`no_first_counted_session`).
+`config.yaml`. A decision counts only if `config.yaml`, as committed in the decision's own history, holds the value
+and the commit that first wrote that value is strictly before the decision's commit (`first_counted_not_frozen_before`
+otherwise): moving the date later or earlier afterwards never re-counts or un-counts a past decision. Until it is set
+nothing counts (`no_first_counted_session`).
 
 ## Machine block (story R1)
 
