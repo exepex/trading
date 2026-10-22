@@ -2189,4 +2189,24 @@ one pricing model rather than adding a second, and G13's helpers take whole days
   - the check removed from `attribute`;
   - the check removed from the reader;
   - the tolerance made strict.
+### MS-P1d follow-up Claims, part 4 (branch `story/ms-p1d-practice`, on the law order and a3 9ede0d1e): practice quote rules, design A
+Replaces the earlier part 4 (744299d6, never merged), which waived the size laws outright. Built on a3's
+`SlotQuote.sizes_measured` and `RefusalReason.SIZE_NOT_MEASURED` (a3 must merge first, then the law order, then this).
+| Item (orchestrator, 22 Oct 2026, design A) | Change | Test (and the plant it catches) |
+| Only practice rules map an unmeasured size to "no size limit", at the E4 boundary | `execution/quote_rules.py`: `QuoteRules.sizes` passes a measured size as recorded; unmeasured gives `math.inf` (no limit) under practice and `None` live; `desk_view.execution_snapshot(..., rules)` reads sizes through it. No sentinel number | `test_practice_fills.py`: a practice entry on an unmeasured quote fills at the same touch, units and charges as a measured one, and a practice exit closes (plant: practice gives no size; plant: the fill ignores its rules) |
+| Live refuses an unmeasured quote at the fill with its own reason | `QuoteRules.size_not_measured` (live, unmeasured, and two-sided by a's rule); `desk_view.size_unmeasured` names those contracts; `entry_gate` names them `size_not_measured` before A4's problem; a fifth quote-gate law; `SchoolFills(..., rules=LIVE)` | the live port refuses the same entry `(size_not_measured,)` and a live exit waits; the live laws refuse it alone; conformance row for the new law (plant: the check dropped) |
+| A quote missing a side's price stays one-sided | the reason needs `two_sided`, so a missing bid or ask (or `valid=False`) stays `one_sided_quote` under either rules | missing bid and missing ask on both ports; missing, no-ask and invalid under the practice laws (plant: the two-sided condition dropped) |
+| Practice size and sell-back laws pass with the note | `QuoteGateLaw._note`: `size gate not tested in practice` only when a size law passed under practice rules on an unmeasured quote; a measured size is judged as live and carries no note | practice on unmeasured passes with the note on both size laws; measured too small refuses and measured enough passes, under both rules, with no note (plants: note dropped; note on measured sizes) |
+| Live cannot reach practice; no sentinel | `PRACTICE` built only in `execution/practice_wiring.py` (`build_practice_fill_port`); `safety/practice_wiring.py` builds the laws with it through `laws_with` | AST test: only `simulator/` and the two practice roots import a `practice_wiring`, only the two safety roots call `laws_with`, `practice=True` only in the execution practice root; the live root's five quote laws are all `LIVE`; no `10**9` or `SIZE_GATE_WAIVED` in `fno/` |
+- **Plants:** 6 planted, 6 caught (listed above).
+- **Judge 488.6 note 1 (Judge B: PASS), fixed at the root:** `QuoteRules` is keyword-only (`kw_only=True`), so a
+  positional `QuoteRules(True)` raises `TypeError` (tested). The isolation scan covers all of `fno/`, not only the
+  school, and now also refuses any `QuoteRules(...)` call outside `quote_rules.py` (LIVE) and the practice root, so a
+  computed `practice=` cannot slip past the text check. Plants: a module outside the school building
+  `QuoteRules(practice=bool(1))`, one importing the practice root, and the positional form allowed: 3 caught.
+- **a3 round 2's `check_fill_port_unmeasured` (judge 506) on the real live port** (a3 696f2db7 merged in):
+  `test_practice_fills.py::test_the_live_port_passes_a3s_unmeasured_check` on `SchoolFills` with `LIVE`: entry refused
+  `(size_not_measured,)`, exit waits. Plant: `LIVE` built with practice rules, caught.
+- **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
+- **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
 
