@@ -53,3 +53,23 @@ On 4bfbba77, 5 of 18 had survived; all 5 are now caught.
     carrying other unpushed commits. The code is right; a test is worth adding with j (minor 3).
 - `_push_unpushed` pulls and pushes once beside A16f's own retrying `_publish`. It is small, and the remote check
   decides the result, so this is not a finding.
+
+## Addendum 1
+
+**Scope:** the MS-P1c follow-up, story/ms-p1-dashcam-followup at 71ddc707 (diff against main: `counts.py`,
+`publisher.py`, one test).
+
+**Verdict: PASS.** No findings.
+
+- **Minor 1, fixed.** `counts.py`'s docstring states the one-writer assumption (MS-P1j's single runner, which also
+  commits the file) and why: the exists-then-write is not atomic.
+- **Minor 3, fixed.** `_push_unpushed` now raises `SealNotPushed` carrying the pull's own refusal text, where it used
+  to return None. The test commits unjudged work on top of an unpushed receipt and reruns `seal()`. The refusal names
+  `unjudged.txt`, the remote's `main` is unchanged, and the foreign commit is not on it.
+  - Plants caught: back to `return None`; the pull refusal ignored, which pushes the foreign commit; the refusal text
+    dropped.
+  - The fourth plant, `abort_merge` dropped, survives. It matters only when the pull starts a merge and that merge
+    conflicts; this refusal comes earlier. Not a finding.
+- **Minor 2** (a's `Seal.pushed_at` comment) is a's, outside this branch.
+- **Gates (my run):** pytest -n auto: 10,952 passed, 1 skipped (part d's test), 16 xfailed. ruff check and format,
+  `check_imports` and `check_records` are clean.
