@@ -2,6 +2,7 @@
 and the EDGE1 measurement controls PS5 and KL1. Shorts sit one expected move out, except the controls, which keep
 EDGE1's frozen strikes."""
 
+from ...research_data.calendar import CalendarError
 from ...research_engine.structures import ShortCondor, ShortIronFly, Structure
 from ..constants import NoTradeReason
 from .card_params import CardError, CardParams
@@ -30,9 +31,16 @@ class WeeklySeller:
         self.low, self.high = params.whole(SESSIONS_MIN_KEY), params.whole(SESSIONS_MAX_KEY)
         self.sizing = Sizing.from_params(params)
 
+    @staticmethod
+    def _sessions(ctx: EntryContext, expiry) -> int:
+        try:
+            return sessions_between(ctx.calendar, ctx.session, expiry)
+        except CalendarError:
+            return -1  # the calendar cannot count them: outside the window
+
     def plan(self, ctx: EntryContext) -> Plan | NoTradeReason:
         expiry = next((e for e in ctx.snapshot.expiries if e > ctx.session), None)
-        if expiry is None or not self.low <= sessions_between(ctx.calendar, ctx.session, expiry) <= self.high:
+        if expiry is None or not self.low <= self._sessions(ctx, expiry) <= self.high:
             return NoTradeReason.NO_EXPIRY_IN_WINDOW
         return _condor_plan(ctx, expiry, self.sizing)
 
@@ -70,8 +78,13 @@ class Edge1Control:
 
     def __init__(self, params: CardParams):
         self.low, self.high = params.whole(DTE_MIN_KEY), params.whole(DTE_MAX_KEY)
-        self.first_in_window = params.whole(FIRST_IN_WINDOW_KEY) == 1
+        flag = params.whole(FIRST_IN_WINDOW_KEY)
+        if flag not in (0, 1):
+            raise CardError(f"`{FIRST_IN_WINDOW_KEY}` must be 0 or 1, not {flag}")
+        self.first_in_window = flag == 1
         self.widths = tuple(float(w) for w in params.text(WIDTHS_KEY).split(","))
+        if list(self.widths) != sorted(set(self.widths), reverse=True):
+            raise CardError(f"`{WIDTHS_KEY}` must be widest first, without repeats")
         self.shape = params.text(SHAPE_KEY)
         if self.shape not in (FLY, CONDOR):
             raise CardError(f"`{SHAPE_KEY}` must be {FLY} or {CONDOR}, not {self.shape!r}")

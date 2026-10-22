@@ -15,7 +15,7 @@ class ExpectedMove:
     straddle_mid: float  # rupees per unit: the expected move in index points
 
 
-def expected_move(snapshot: SlotSnapshot, expiry: date) -> ExpectedMove | None:
+def expected_move(snapshot: SlotSnapshot, expiry: date, max_distance: float) -> ExpectedMove | None:
     strikes = sorted({k.strike for k, q in snapshot.quotes.items() if k.expiry == expiry and q.two_sided})
     both = [
         s for s in strikes if _mid(snapshot, expiry, s, OptionKind.CALL) and _mid(snapshot, expiry, s, OptionKind.PUT)
@@ -23,6 +23,8 @@ def expected_move(snapshot: SlotSnapshot, expiry: date) -> ExpectedMove | None:
     if not both:
         return None
     atm = min(both, key=lambda s: (abs(s - snapshot.spot), s))
+    if abs(atm - snapshot.spot) > max_distance:
+        return None  # a straddle this far from the money is mostly intrinsic value, not an expected move
     return ExpectedMove(atm, _mid(snapshot, expiry, atm, OptionKind.CALL) + _mid(snapshot, expiry, atm, OptionKind.PUT))
 
 

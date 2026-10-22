@@ -11,7 +11,6 @@ from fno.research_engine.cycle_costs import CycleTerms, PositionCosts
 from fno.research_engine.structures import BOUGHT, SOLD, Leg
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.school.constants import NoTradeReason, Outcome
-from fno.school.drivers.expected_move import expected_move
 from fno.school.drivers.proposals import ProposalBuilder
 from tests.risk.builders import ZERO_CHARGES
 from tests.school.drivers import builders as b
@@ -83,8 +82,8 @@ def test_a_missing_atm_quote_moves_the_straddle_to_the_next_strike_with_both_sid
     stripped = replace(
         snapshot, quotes={k: q for k, q in snapshot.quotes.items() if k.expiry != first or k.strike != b.SPOT}
     )
-    assert expected_move(stripped, first).atm_strike == b.SPOT - 100  # the lower of two equally near strikes
-    assert expected_move(snapshot, first).atm_strike == b.SPOT
+    assert b.move(stripped, first).atm_strike == b.SPOT - 100  # the lower of two equally near strikes
+    assert b.move(snapshot, first).atm_strike == b.SPOT
     decision = decide("PS4", road_day, stripped)
     assert decision.outcome == Outcome.TRADE and all(leg.key.strike != b.SPOT for leg in decision.proposal.legs)
 
@@ -95,7 +94,7 @@ def test_no_two_sided_straddle_at_all_is_no_structure_under_cap_never_a_guess():
     puts_only = replace(
         snapshot, quotes={k: q for k, q in snapshot.quotes.items() if k.expiry != first or str(k.kind) == "PE"}
     )
-    assert expected_move(puts_only, first) is None
+    assert b.move(puts_only, first) is None
     decision = decide("PS4", road_day, puts_only)
     assert (decision.outcome, decision.reason) == (Outcome.NO_TRADE, NoTradeReason.NO_STRUCTURE_UNDER_CAP)
 

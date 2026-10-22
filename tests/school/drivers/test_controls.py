@@ -54,8 +54,8 @@ class TestRandomControl:
         sessions = [b.SESSION + timedelta(days=n) for n in range(10)]
         draws = {self.decisions(s).proposal.legs for s in sessions}
         assert len(draws) > 3
-        roads = {self.decisions(b.SESSION, code).proposal.structure for code in ROAD_SCENES}
-        assert len(roads) >= 1
+        by_road = {code: self.decisions(b.SESSION, code).proposal for code in ROAD_SCENES}
+        assert len({p.legs for p in by_road.values()}) == len(ROAD_SCENES)
 
     def test_the_seed_is_the_sha256_of_session_driver_and_road(self):
         expected = int.from_bytes(hashlib.sha256(b"2026-11-02|RC1@1|BANKNIFTY-M").digest(), "big")
@@ -136,7 +136,7 @@ def test_kl1_shorts_sit_at_three_percent_from_spot():
 
 def test_measurement_only_cards_carry_no_ranking_estimate():
     for code in ("PS5", "KL1"):
-        assert not CardParams(b.cards()[code]).has("expected_net_rs")
+        assert "expected_net_rs" not in b.cards()[code].parameters
 
 
 def test_a_driver_is_not_called_on_a_closed_road_or_a_road_it_does_not_drive():

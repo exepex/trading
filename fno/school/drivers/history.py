@@ -39,5 +39,5 @@ class SpotWindow:
 
 def spot_window(history: tuple[SpotPoint, ...], session: date, length: int) -> SpotWindow | None:
     """The last `length` recorded spots strictly before `session`, or None when there are fewer."""
-    earlier = sorted((p for p in history if p.session < session), key=lambda p: p.session)
+    earlier = sorted({p.session: p for p in history if p.session < session}.values(), key=lambda p: p.session)
     return SpotWindow(tuple(p.spot for p in earlier[-length:])) if len(earlier) >= length else None

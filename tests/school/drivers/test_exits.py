@@ -1,12 +1,13 @@
-"""The cards' exit rules (story MS-P1e): profit and loss at the mid of the slot, time rules, expiry, and the rule that
-a price which cannot be judged never fires."""
+"""The cards' exit rules (story MS-P1e): profit and loss at the touch of the slot (E4's rules),
+time rules, expiry, and the rule that a price which cannot be judged never fires."""
 
 from dataclasses import replace
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
-from fno.school.constants import ExitReason
+from fno.research_data.calendar import CalendarError
+from fno.school.constants import ExitReason, RoadCode
 from fno.school.contracts.snapshot import SlotQuote
 from fno.school.drivers.exits import ExitPlan, net_if_closed
 from tests.school.drivers import builders as b
@@ -120,3 +121,55 @@ def test_a_position_past_its_expiry_still_ends_in_expiry(days_after):
     driver, position = opened_ps4()
     _, snapshot = b.scene(session=b.SESSION + timedelta(days=days_after), days=(35,))
     assert driver.review_exit(position, snapshot, ()) == ExitReason.EXPIRY
+
+
+class EndsAtYearEnd:
+    """A calendar like the real one: it answers up to 31 Dec 2026 and refuses after."""
+
+    def is_trading_day(self, day):
+        if day > date(2026, 12, 31):
+            raise CalendarError("calendar ends 2026-12-31")
+        return day.weekday() < 5
+
+
+def test_a_calendar_that_ends_does_not_stop_the_price_or_expiry_rules():
+    from fno.school.drivers.card_params import CardParams
+
+    cs1 = b.drivers()["CS1"]
+    plan = ExitPlan.from_params(CardParams(cs1.card))
+    session = date(2026, 12, 22)
+    road_day, snapshot = b.scene(session=session, days=(30, 60))
+    position = b.position_from(cs1.decide(road_day, snapshot, b.history([b.SPOT - 1] * 20, session), ()), cs1, session)
+    later = replace(snapshot, session=date(2026, 12, 23))
+    # ten sessions after 22 Dec falls in 2027: the calendar cannot say, so that rule is not reached, nothing raises
+    assert plan.review(position, later, (), EndsAtYearEnd()) is None
+    crashed = replace(later, quotes={k: SlotQuote(q.bid * 0.01, q.ask * 0.01, q.bid_qty, q.ask_qty, q.last, True)
+                                     for k, q in later.quotes.items()})  # fmt: skip
+    assert plan.review(position, crashed, (), EndsAtYearEnd()) == ExitReason.PROFIT_TARGET
+
+
+def test_ws1_closes_at_exactly_one_and_a_half_times_its_credit_not_two():
+    ws1 = b.drivers()["WS1"]
+    road_day, snapshot = b.scene(RoadCode.NIFTY_WEEKLY, 25_000.0, 50.0, 75, (3,), vol=0.4)
+    position = b.position_from(ws1.decide(road_day, snapshot, (), ()), ws1)
+    basis = abs(position.entry_net)
+    low, high = 1.0, 20.0  # the loss grows with prices: find the level where it reaches 1.5 x the credit
+    for _ in range(60):
+        mid = (low + high) / 2
+        low, high = (mid, high) if -net_if_closed(position, repriced(snapshot, mid)) < 1.5 * basis else (low, mid)
+    assert ws1.review_exit(position, repriced(snapshot, high + 1e-3), ()) == ExitReason.LOSS_LIMIT
+    assert ws1.review_exit(position, repriced(snapshot, low - 1e-3), ()) is None
+    assert -net_if_closed(position, repriced(snapshot, high)) < 2.0 * basis  # CS1's 2x is a different rule
+
+
+def test_a_bear_put_spread_closes_when_spot_is_back_above_the_window_mean():
+    dr1 = b.drivers()["DR1"]
+    road_day, snapshot = b.scene()
+    position = b.position_from(dr1.decide(road_day, snapshot, b.history([b.SPOT + 500] * 19 + [b.SPOT]), ()), dr1)
+    assert position.structure == "PDS"
+    tomorrow = b.SESSION + timedelta(days=1)
+    mean_history = b.history([b.SPOT] * 20, tomorrow)
+    _, above = b.scene(spot=b.SPOT + 1, session=tomorrow, days=(29, 59))
+    _, level = b.scene(spot=b.SPOT, session=tomorrow, days=(29, 59))
+    assert dr1.review_exit(position, above, mean_history) == ExitReason.SPOT_THROUGH_MEAN
+    assert dr1.review_exit(position, level, mean_history) is None

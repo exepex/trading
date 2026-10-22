@@ -9,6 +9,7 @@ parameters:
   history_sessions: 20
   dte_min: 20
   dte_max: 45
+  expected_net_rs: 0.0  # no honest estimate: EDGE1 found no edge, so scores tie and the tie-break ranks
   max_wing_steps: 40
   max_open_per_road: 1
   exit_profit_share: 1.0

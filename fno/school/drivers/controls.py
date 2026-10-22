@@ -17,13 +17,13 @@ from .card_params import CardParams
 from .entry import MAX_WING_STEPS_KEY, EntryContext
 from .exits import ExitPlan
 from .expected_move import ExpectedMove
+from .families_condor import MIN_DTE_KEY
 from .proposals import Plan, ProposalBuilder
 from .scope import check_scope, no_trade, trade
 from .session_days import TradingCalendar
 from .shapes import BF, CCS, CDS, PCS, PDS, SC, TargetCondor, TargetFly, credit_vertical, debit_vertical
 
 BASE_SHAPES = (PCS, CDS, BF, SC)  # one per family above; a flip gives the other direction (PCS<->CCS, CDS<->PDS)
-MIN_DTE_KEY = "min_dte"
 
 
 class NothingDriver:

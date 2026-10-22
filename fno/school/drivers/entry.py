@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Protocol
 
+from ...research_data.calendar import CalendarError
 from ..constants import NoTradeReason
 from ..contracts.decisions import SpotPoint
 from ..contracts.roads import RoadDay
@@ -19,6 +20,7 @@ from .session_days import TradingCalendar, previous_session
 WINDOW_LENGTH_KEY, MAX_WING_STEPS_KEY = "history_sessions", "max_wing_steps"
 DTE_MIN_KEY, DTE_MAX_KEY = "dte_min", "dte_max"
 EXPECTED_NET_KEY = "expected_net_rs"
+MAX_ATM_STEPS = 2  # the ATM strike may sit at most this many strike steps from spot
 
 
 @dataclass(frozen=True)
@@ -43,7 +45,7 @@ class EntryContext:
         return spot_window(self.history, self.session, length)
 
     def move(self, expiry: date) -> ExpectedMove | None:
-        return expected_move(self.snapshot, expiry)
+        return expected_move(self.snapshot, expiry, MAX_ATM_STEPS * self.road_day.strike_step)
 
     def expiry_in(self, low: int, high: int, first_in_window: bool = False) -> date | None:
         """The nearest recorded expiry `low` to `high` calendar days away; with `first_in_window`, only on the
@@ -54,7 +56,10 @@ class EntryContext:
         return None
 
     def _first_day_in(self, expiry: date, high: int) -> bool:
-        return (expiry - previous_session(self.calendar, self.session)).days > high
+        try:
+            return (expiry - previous_session(self.calendar, self.session)).days > high
+        except CalendarError:
+            return False  # the calendar cannot say which session came before: no entry on a guess
 
     def wing_widths(self, max_steps: int) -> tuple[float, ...]:
         """Wing widths in points, widest first, from `max_steps` strike steps down to one."""
@@ -77,4 +82,4 @@ class Sizing:
 
     @classmethod
     def from_params(cls, params: CardParams) -> "Sizing":
-        return cls(params.whole(MAX_WING_STEPS_KEY), params.number_or_none(EXPECTED_NET_KEY) or 0.0)
+        return cls(params.whole(MAX_WING_STEPS_KEY), params.number(EXPECTED_NET_KEY))

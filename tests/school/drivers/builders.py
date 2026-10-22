@@ -11,6 +11,7 @@ from fno.school.contracts.decisions import OpenPosition, SpotPoint
 from fno.school.contracts.roads import OPEN, ROADS_BY_CODE, DatedLot, RoadDay
 from fno.school.contracts.snapshot import ContractKey, SlotQuote, SlotSnapshot
 from fno.school.drivers.cards import CARDS_FOLDER, load_cards
+from fno.school.drivers.expected_move import expected_move
 from fno.school.drivers.proposals import ProposalBuilder
 from fno.school.drivers.wiring import build_drivers
 from tests.risk.builders import ZERO_CHARGES
@@ -114,3 +115,7 @@ def position_from(decision, driver, session: date = SESSION, position_id: str = 
     proposal = decision.proposal
     return OpenPosition(position_id, driver.card.driver_id, decision.road, proposal.structure, proposal.legs,
                         proposal.lot, session, proposal.net_premium, proposal.max_loss)  # fmt: skip
+
+
+def move(snapshot, expiry, max_distance: float = 1e9):
+    return expected_move(snapshot, expiry, max_distance)

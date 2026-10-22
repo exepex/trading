@@ -1,13 +1,13 @@
 """Each family fires at its threshold and not just below it; history needs its full window (story MS-P1e, criteria
 1 and 2). The thresholds are the numbers of story 3.2's table, read from the draft cards."""
 
+from dataclasses import replace
 from datetime import timedelta
 
 import pytest
 
 from fno.school.constants import NoTradeReason, Outcome, RoadCode
 from fno.school.contracts.decisions import SpotPoint
-from fno.school.drivers.expected_move import expected_move
 from fno.school.drivers.history import SpotWindow
 from fno.school.drivers.session_days import sessions_between
 from tests.school.drivers import builders as b
@@ -39,7 +39,7 @@ class TestCappedSeller:
 
     def test_the_short_strike_is_one_expected_move_from_spot(self):
         road_day, snapshot = b.scene()
-        move = expected_move(snapshot, road_day.expiries[0]).straddle_mid
+        move = b.move(snapshot, road_day.expiries[0]).straddle_mid
         proposal = decide("CS1", road_day, snapshot, b.history([b.SPOT - 1] * 20)).proposal
         short = next(leg for leg in proposal.legs if leg.side == "sell")
         assert abs(short.key.strike - (b.SPOT - move)) <= road_day.strike_step / 2
@@ -78,7 +78,7 @@ class TestDebitBuyer:
     def history_at(scale: float, road_day, snapshot):
         """A zigzag window whose realised straddle-equivalent is `scale` times the implied straddle."""
         expiry = road_day.expiries[0]
-        implied = expected_move(snapshot, expiry).straddle_mid
+        implied = b.move(snapshot, expiry).straddle_mid
         sessions = sessions_between(b.CALENDAR, b.SESSION, expiry)
         trial = [b.SPOT * (1.01 if i % 2 else 0.99) for i in range(20)]
         realised = SpotWindow(tuple(trial)).straddle_equivalent(b.SPOT, sessions)
@@ -114,7 +114,7 @@ class TestWeeklySeller:
 
     def test_it_sells_an_iron_condor_with_shorts_one_expected_move_out(self):
         road_day, snapshot = b.scene(RoadCode.NIFTY_WEEKLY, 25_000.0, 50.0, 75, (3,), vol=0.4)
-        move = expected_move(snapshot, road_day.expiries[0]).straddle_mid
+        move = b.move(snapshot, road_day.expiries[0]).straddle_mid
         proposal = decide("WS1", road_day, snapshot, ()).proposal
         shorts = sorted(leg.key.strike for leg in proposal.legs if leg.side == "sell")
         assert proposal.structure == "SC"
@@ -189,3 +189,27 @@ def test_a_spot_recorded_for_the_day_itself_is_not_history():
     past = b.history(spots[-19:])
     with_today = (*past, SpotPoint(b.SESSION, b.SPOT))
     assert not_fired(decide("CS1", road_day, snapshot, with_today), NoTradeReason.NOT_ENOUGH_HISTORY)
+
+
+def test_a_duplicated_session_does_not_make_a_longer_window():
+    road_day, snapshot = b.scene()
+    spots = [b.SPOT * (1.01 if i % 2 else 0.99) for i in range(20)]
+    past = b.history(spots[-19:])
+    assert not_fired(decide("CS1", road_day, snapshot, (*past, past[-1])), NoTradeReason.NOT_ENOUGH_HISTORY)
+
+
+def test_the_weekly_count_is_in_sessions_not_calendar_days():
+    friday = b.SESSION + timedelta(days=4)  # Friday to Tuesday is 2 sessions but 4 calendar days
+    road_day, snapshot = b.scene(RoadCode.NIFTY_WEEKLY, 25_000.0, 50.0, 75, (4,), session=friday, vol=0.4)
+    assert decide("WS1", road_day, snapshot, ()).outcome == Outcome.TRADE
+
+
+def test_a_straddle_far_from_the_money_is_not_an_expected_move():
+    road_day, snapshot = b.scene()
+    expiry = road_day.expiries[0]
+    far = replace(
+        snapshot,
+        quotes={k: q for k, q in snapshot.quotes.items() if k.expiry != expiry or abs(k.strike - b.SPOT) > 500},
+    )
+    assert b.move(far, expiry, 200.0) is None and b.move(far, expiry, 600.0) is not None
+    assert not_fired(decide("PS4", road_day, far, ()), NoTradeReason.NO_STRUCTURE_UNDER_CAP)

@@ -2,6 +2,7 @@
 debit spread. Each needs its full window of earlier sessions and says "not enough history" until it has it."""
 
 from ...constants import OPTION_CALL, OPTION_PUT
+from ...research_data.calendar import CalendarError
 from ...research_engine.structures import LongIronFly
 from ..constants import NoTradeReason
 from .card_params import CardParams
@@ -54,7 +55,10 @@ class DebitBuyer(_Windowed):
         move = ctx.move(expiry)
         if move is None:
             return NoTradeReason.NO_STRUCTURE_UNDER_CAP
-        sessions = sessions_between(ctx.calendar, ctx.session, expiry)
+        try:
+            sessions = sessions_between(ctx.calendar, ctx.session, expiry)
+        except CalendarError:
+            return NoTradeReason.NO_EXPIRY_IN_WINDOW  # the calendar cannot count the sessions to this expiry
         if window.straddle_equivalent(ctx.spot, sessions) <= move.straddle_mid:
             return NoTradeReason.RULE_NOT_FIRED
         return Plan(expiry, LongIronFly(), ctx.wing_widths(self.sizing.max_wing_steps), self.sizing.expected_net_rs)

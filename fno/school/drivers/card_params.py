@@ -39,9 +39,6 @@ class CardParams:
     def whole_or_none(self, key: str) -> int | None:
         return self.whole(key) if key in self._values else None
 
-    def has(self, key: str) -> bool:
-        return key in self._values
-
     def _require(self, key: str):
         if key not in self._values:
             raise CardError(f"{self.card_id}: the card has no `{key}`")

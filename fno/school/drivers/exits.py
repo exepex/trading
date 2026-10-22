@@ -5,11 +5,13 @@ the school position is passed as is. Price rules judge the net if every leg clos
 without exit charges, which the school fill adds); with no two-sided quote on a leg the value is None and they never
 fire. The one rule E4 lacks, DR1's "spot back through the window mean", is a small predicate here."""
 
+import contextlib
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import date, timedelta
 
 from ...constants import SIDE_BUY
 from ...desk.exit_rules import ExitContext, ExitOnDay, ExitRule, ProfitTarget, StopLoss
+from ...research_data.calendar import CalendarError
 from ..constants import ExitReason
 from ..contracts.decisions import OpenPosition, SpotPoint
 from ..contracts.snapshot import SlotSnapshot
@@ -21,7 +23,6 @@ from .shapes import CDS, PDS
 PROFIT_TARGET, LOSS_MULTIPLE = "exit_profit_share", "exit_loss_multiple"
 MAX_SESSIONS, MAX_DAYS = "exit_sessions_held", "exit_days_held"
 LAST_SESSION_DTE, SPOT_MEAN_WINDOW = "exit_last_session_dte", "exit_spot_mean_window"
-EXIT_KEYS = (PROFIT_TARGET, LOSS_MULTIPLE, MAX_SESSIONS, MAX_DAYS, LAST_SESSION_DTE, SPOT_MEAN_WINDOW)
 
 
 @dataclass(frozen=True)
@@ -56,18 +57,25 @@ class ExitPlan:
             rules.append((StopLoss(self.loss_multiple * basis), ExitReason.LOSS_LIMIT))
         if self._through_mean(position, snapshot, history):
             rules.append((ExitOnDay(snapshot.session, "spot back through its mean"), ExitReason.SPOT_THROUGH_MEAN))
-        opened = position.opened
-        if self.sessions_held is not None:
-            day = nth_session_after(calendar, opened, self.sessions_held)
-            rules.append((ExitOnDay(day, f"{self.sessions_held} sessions held"), ExitReason.SESSIONS_HELD))
-        if self.days_held is not None:
-            day = opened + timedelta(days=self.days_held)
-            rules.append((ExitOnDay(day, f"{self.days_held} days held"), ExitReason.DAYS_HELD))
-        if self.last_session_dte is not None:
-            day = last_session_on_or_before(calendar, expiry - timedelta(days=self.last_session_dte))
-            rules.append((ExitOnDay(day, f"last session {self.last_session_dte} days before expiry"),
-                          ExitReason.DAYS_BEFORE_EXPIRY))  # fmt: skip
+        for reason, why, exit_day in self._dated_rules(position, expiry, calendar):
+            with contextlib.suppress(CalendarError):  # a day the calendar cannot work out is not reached
+                rules.append((ExitOnDay(exit_day(), why), reason))
         return rules
+
+    def _dated_rules(self, position: OpenPosition, expiry: date, calendar: TradingCalendar) -> list:
+        """(reason, why, day) for each time rule the card names; the day is worked out only when the rule is built."""
+        opened, dated = position.opened, []
+        if self.sessions_held is not None:
+            dated.append((ExitReason.SESSIONS_HELD, f"{self.sessions_held} sessions held",
+                          lambda: nth_session_after(calendar, opened, self.sessions_held)))  # fmt: skip
+        if self.days_held is not None:
+            dated.append((ExitReason.DAYS_HELD, f"{self.days_held} days held",
+                          lambda: opened + timedelta(days=self.days_held)))  # fmt: skip
+        if self.last_session_dte is not None:
+            floor = expiry - timedelta(days=self.last_session_dte)
+            dated.append((ExitReason.DAYS_BEFORE_EXPIRY, f"last session {self.last_session_dte} days before expiry",
+                          lambda: last_session_on_or_before(calendar, floor)))  # fmt: skip
+        return dated
 
     def _through_mean(self, position: OpenPosition, snapshot: SlotSnapshot, history: tuple[SpotPoint, ...]) -> bool:
         if self.spot_mean_window is None or position.structure not in (CDS, PDS):

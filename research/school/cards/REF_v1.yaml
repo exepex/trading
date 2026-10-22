@@ -7,5 +7,6 @@ roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W]
 band_steps: 40
 parameters:
   min_dte: 2
+  expected_net_rs: 0.0  # no honest estimate: EDGE1 found no edge, so scores tie and the tie-break ranks
   max_wing_steps: 40
   max_open_per_road: 0
