@@ -148,6 +148,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "decisions": {
+   "started_at": "2026-10-22T15:12:00.001158+05:30",
+   "finished_at": "2026-10-22T15:12:00.156266+05:30",
+   "inputs": {
+    "deadline": "2026-10-22T15:12:00+05:30",
+    "origin": "f168fa9d5401851affe3d28f3ae6cfeb501122f8"
+   },
+   "result": {
+    "book1_rules": {
+     "run_id": "2026-10-22-r1",
+     "commit": "4b7106646b9eae93de736f870f8f25e610519420",
+     "committed_at": "2026-10-22T15:02:23+05:30"
+    }
+   }
   }
  }
 }
