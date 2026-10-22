@@ -339,26 +339,11 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 **Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `classify(fired, check, max_new)` (`rules.py`): one driver's fired decisions at one slot, in rank order (frozen
-  score, ties by the fixed road order).
-  - Each is checked by the same safety laws through `check(decision, accepted)`. `accepted` holds the trades already
-    taken this slot, so the bucket, open-risk, new-risk and margin laws see them before any fill; MS-P1j builds that
-    running view.
-  - The first `max_new` that pass every law trade.
-  - A later one that passes is `ticket: trade_limit`.
-  - One refused only by `ACCOUNT_LIMITS` is `ticket: account_limit` (orchestrator, 22 Oct 2026).
-  - Any other refusal, the daily stop and the brake included, is `refused` with the first reason: a stopped or braked
-    driver issues no tickets that day.
-- `TicketBook` (`book.py`):
-  - it refuses a ticket whose sealed law results break a binding law (anything but `ACCOUNT_LIMITS`);
-  - it fills through the same `FillPort` as trades;
-  - it records only in a `TicketLedger`, its own type over an account store on its own root, never a driver's
-    account.
-- `counts_for` and `totals` (`counts.py`): eligible, fillable and executed per decision; `scheduled` (every sealed
-  decision) is the denominator; one row per (session, road, driver).
-- `allocate` (`shared_size.py`, 327 item 10): whole fills are served in a fixed order against each contract's and
-  side's displayed size. A report sums only the servable fills and names the rest.
-- `account_net` (`rupees.py`): the only rupee sum, and it never includes a ticket.
+- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or refused only by an account limit
+  (ACCOUNT_LIMITS; a driver stopped for the day or braked gets no tickets, DRIVER_STOPS), priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
+  with only the account limits relaxed;
+- the `OpportunityCounts` builder (eligible, fillable, executed);
+- the shared-displayed-size count (327 item 10).
 
 **Acceptance tests:**
 1. Tickets:
