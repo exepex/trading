@@ -42,5 +42,5 @@ def _folder_regex(pattern: str) -> re.Pattern:
 
 PAPER_ACCOUNT_FILES = ForbiddenFolders(
     "private paper account file (Google Drive only, stories E2c and E2d)",
-    ("journal/*/account/", "journal/shadow/*/account/"),
+    ("journal/*/account/", "journal/shadow/*/account/", "journal/school/"),  # MS-P1d: every school driver account
 )
