@@ -95,3 +95,4 @@ trial_id,experiment,description,kind,hypothesis,registered_on,protocol_path,prot
 94,edge1-rule-based-option-trades-2026-10-22,EDGE1 BANKNIFTY SF TP50: short iron fly (exploratory: spent data),prospective,yes,2026-10-22,research/ideas/EDGE1-BANKNIFTY-SF-TP50.md,,,
 95,edge1-rule-based-option-trades-2026-10-22,EDGE1 NIFTY NS T21: naked short strangle (exploratory: spent data),prospective,no,2026-10-22,research/ideas/EDGE1-NIFTY-NS-T21.md,,,
 96,edge1-rule-based-option-trades-2026-10-22,EDGE1 NIFTY NT T21: naked short straddle (exploratory: spent data),prospective,no,2026-10-22,research/ideas/EDGE1-NIFTY-NT-T21.md,,,
+97,edge1-rule-based-option-trades-2026-10-22,EDGE1 BANKNIFTY NS T21: naked short strangle (exploratory: spent data),prospective,no,2026-10-22,research/ideas/EDGE1-BANKNIFTY-NS-T21.md,,,
