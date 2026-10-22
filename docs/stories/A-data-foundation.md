@@ -2450,16 +2450,56 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
 - **`FallbackSource.last_written(path)`** delegates to the primary only, never the secondary (limit above).
 - **The record.** Manifest rows already carry the full URL, so a file from the second host is recorded with its
   host. Its bytes go through the same write-once store and SHA-256 receipt (A10, O9).
-- **Retry cost** (the A20 builder's point 3):
-  - Tries are counted per call and per host: `RETRY_WAITS` run inside one call on one instance, and the pacer and
-    cooling-off are keyed by hostname.
-  - So the secondary gets its own full retry budget after the primary's is spent, and the worst case per file is
-    about **double** today's wait.
-  - Every user in scope is an evening or morning archive job with no deadline in minutes. The morning librarian runs
-    before 08:50 and is the closest to a deadline; its worst case is to be stated with the measured number in the
-    claims.
+- **Retry cost: the secondary gets one try, not a second retry series** (judge 471 minor 2; the A20 builder's point
+  3).
+  - Tries are counted per call and per host: `RETRY_WAITS` (5, 15 and 45 s) run inside one call on one instance, and
+    the pacer and cooling-off are keyed by hostname.
+  - One host's worst case today is 4 tries x the 60 s timeout, plus 3 waits each stretched by `Retry-After` to
+    `MAX_RETRY_AFTER_SECONDS` = 120 s: **600 s** per file.
+  - A second full series would double that to 1,200 s. So `NseArchiveSource` gains a `retry_waits` parameter
+    (default `RETRY_WAITS`), and the secondary is built with `()`: one try, adding at most **60 s**. The worst case
+    becomes **660 s per file**, against 600 s today.
+  - The secondary has its own pacer and cooling-off (keyed by its hostname, rule 281 item 3), so pacing stays polite
+    on both hosts.
+  - **Against the morning edition's 08:50 (FL1-1d step 1b):** the morning librarian starts about 08:39, after the
+    08:38 routine's setup. It fetches only the index-close files missing from the store, normally none or one.
+    - One missing file, both hosts failing in the slowest way: 08:39 + 660 s = **08:50:00**. Today's 600 s gives
+      08:49.
+    - Two missing files: 09:01, after 08:50 but before `lab open`'s hard 09:15 cut-off. Today: 08:59.
+    - So the fallback adds at most 1 minute per missing file to a morning that is already that slow today; on a
+      normal morning, with the file stored or the primary answering, it adds nothing. (Arithmetic from the
+      constants; reasoning only for how often files are missing.)
 - **The live check.** `python -m fno data-librarian hosts --day D` (read-only) prints, per dataset, both hosts'
   status and SHA-256 and `same` or `DIFFERENT`. It exits 1 on any `DIFFERENT`, and stores nothing.
+
+- **If a later primary copy differs from the secondary's bytes** (judge 471 minor 1):
+  - The raw store is write-once, and readers read the store first, so no later primary fetch replaces the file.
+  - A11's revision sweep, which is primary-only, then reads NSE's current copy in full. A different SHA-256 is stored
+    as a revision (`REVISION <day> <path>: ...`) with an index row. The point-in-time reader keeps returning the first
+    archived copy, and the latest reader returns the newer one. That is A11's existing path for an NSE rewrite.
+  - The sweep prints that line and sends no alert, as for any rewrite today.
+  - The manifest row's URL names the host the first copy came from, so a revision of a second-host file can be told
+    apart from a real NSE rewrite.
+  - This A9c test proves the path: a file fetched through the secondary, then a differing primary copy, gives one
+    revision, and the manifest URL names `archives.nseindia.com`.
+
+**Gap list (every requirement to a criterion or to Out):**
+
+| Requirement (source) | Where |
+|---|---|
+| No getting around blocks, no false identity (rule 281 item 2): the second host is NSE's own public host, with the same User-Agent (`RESEARCH_USER_AGENT`) and no login | design; criterion 3 |
+| Paced, polite downloads (rule 281 item 3), the second host included: its own pacer and cooling-off, one try only | design (retry cost); criterion 8 |
+| Data write-once in Drive with a SHA-256 receipt and manifest row (O9, A10) | criterion 5 |
+| Point-in-time evidence (A8 release times, A8/A23 LastWriteSweep, A9 creation times, A11 revisions) never from the second host | Out (write times, A11); criteria 2 and 4 |
+| A later primary copy that differs | design; criterion 9 |
+| One retry policy (A9b): unchanged on the primary, one try on the secondary | criteria 1 and 8 |
+| FL1-1d's 08:50 morning librarian | design (retry cost: 660 s worst case per file); criterion 8 |
+| Both hosts failing is not silent (O10): the error names both hosts; the librarian's existing problem line and exit code carry it, and the routines post it | criterion 1 |
+| Every case tested: positive, negative, boundary, empty (quality rule 5) | criteria 1, 2, 8 and 9 |
+| A real output sample (quality rule 6): the `hosts` check's live lines for one day | criterion 6 (claims) |
+| An end-to-end run after the merge (quality rule 8): the orchestrator runs `data-librarian index-close` and `data-librarian hosts` on real data | claims after merge |
+| Snapshot files, other `build_nse_source` users, `www.nseindia.com` | Out |
+| No file over 350 lines | criterion 7 |
 
 **Acceptance criteria:**
 1. **Fallback only on unavailable.** Fakes cover each case:
@@ -2479,6 +2519,13 @@ fault of `nsearchives.nseindia.com` does not leave a day's file missing.
 6. **The live check** passes on a recorded pair of answers and fails on a pair that differs. A live run on the go-live
    day is in the claims.
 7. **Gates:** no file over 350 lines (`wiring.py` is at 303); ruff, imports and the full suite pass.
+8. **The secondary's one try and its own pacing.** A secondary built with `retry_waits=()` makes exactly one request
+   on a 503 (counted), while the primary still makes 4. With a fake clock, a primary that fails slowly to its
+   600 s worst case plus the secondary's one 60 s timeout ends at 660 s, never more. The secondary's pacer key is
+   `archives.nseindia.com`.
+9. **A differing later primary copy** (the path above): one A11 revision, the first copy still returned by the
+   point-in-time reader, and the manifest URL naming the second host.
 
-**Depends:** A9b (retry policy), A10, A20a (snapshot sources, out of scope), O9 · **Size:** S-M (about 120 code lines,
-150 test lines) · **Status:** story text for judge F (22 Oct 2026)
+**Depends:** A9b (retry policy), A10, A11 (revision path), A20a (snapshot sources, out of scope), O9, FL1-1d (the
+morning librarian) · **Size:** S-M (about 130 code lines, 200 test lines) · **Status:** story text for judge F, round 2
+(judge 471)
