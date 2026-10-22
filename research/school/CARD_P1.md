@@ -10,8 +10,8 @@ Labels: **strong evidence**, **some evidence**, **reasoning only**.
 
 | Field | Value |
 |---|---|
-| Id and version | CARD_P1 v1 (a changed driver, road, cost model, denominator or slot is a new card version, never an edit) |
-| Ledger trial | 99 (the next free number at writing; the ledger row is written by `factory register` and may move) |
+| Id and version | CARD_P1 v2 (a changed driver, road, cost model, denominator or slot is a new card version, never an edit). v1 was merged on 22 Oct 2026 and never registered or counted; v2 changes only §6 (the expiry-day margin) and adds the registration (§1's table, the ledger trial) |
+| Ledger trial | 99: registered 22 Oct 2026 (`research/ledger.csv`, kind `prospective`, hypothesis no; G0 `idea` row in `research/factory/gates.csv`; data-spend row in `research/DATA_SPEND.md`); the D6 rows of the driver versions name it |
 | Registered research question | Does any pilot rule driver beat N0 (do nothing), RC1 (random) and REF (the road's reference rule) after every cost, per road, over 30 valid counted sessions? Descriptive, with uncertainty, no licence (response 327 P2) |
 | Proposed by (role or AI) and date | portfolio manager and statistician, market school pilot (Claude MS-P1h builder), 22 Oct 2026 |
 | Who pays and why | none claimed. EDGE1: 24 variants (trials 71-98) found no edge after costs; this does not prove no edge exists (**strong evidence** for those 24 variants); most pilot drivers are expected to lose a little after costs (**reasoning only**) |
@@ -49,8 +49,26 @@ before the decision's own commit; a changed driver card SHA-256 refuses counting
 
 PS5@1 (EDGE1 BANKNIFTY SF TP50, ledger trial 94, road BANKNIFTY-M) and KL1@1 (EDGE1 NIFTY SC3 EXP, ledger trial 76, road
 NIFTY-M) are measurement-only controls (EDGE1's rules as frozen, their data spent; this card adds no trial for them), and N0, RC1 and REF are controls: none is a
-candidate and none is ever ranked or recommended. Their card SHA-256s and the D6 rows are written when MS-P1e's cards
-are frozen; until the rows exist nothing counts (`version_not_registered_before`).
+candidate and none is ever ranked or recommended. Each version is a D6 row of the book `school:<driver id>` in
+`journal/versions.csv` (registered 22 Oct 2026 with these cards, whose `band_steps` is the band below), its component
+`card_sha256` the SHA-256 of the card file and `comparison_card_sha256` the SHA-256 of this card as of v2; each row's
+reason names the measurement trial, 99. A decision counts only
+under the SHA-256 its row names (`driver_card_changed` otherwise).
+
+| Driver id | Card file | SHA-256 |
+|---|---|---|
+| CS1@1 | `research/school/cards/CS1_v1.yaml` | `930077b06e0b424f0f0a0d0a825500983a0c25507937cbe41419f7ea2493d6b8` |
+| DB1@1 | `research/school/cards/DB1_v1.yaml` | `9986fe574529db94ae01b657e481220518953722dd3bc986b761bb2cb9290629` |
+| DR1@1 | `research/school/cards/DR1_v1.yaml` | `acd5c561a1952de238e7ea51214a1c74bb74a51a4b82b9285e89bd2862b16f80` |
+| KL1@1 | `research/school/cards/KL1_v1.yaml` | `a9638f021d5c5674dbccb793d62076cf97f5e7410c276c36d0b93befcdcfc35e` |
+| N0@1 | `research/school/cards/N0_v1.yaml` | `785a19030b4601fccb5dce8b3237e8661647c0425eaab9dfec9b3821d5b480f5` |
+| PS2@1 | `research/school/cards/PS2_v1.yaml` | `7801d32173b2cbe9a1c61411a0c31c21850b9af428f33129d09beb470145ae8b` |
+| PS3@1 | `research/school/cards/PS3_v1.yaml` | `e19c156e2818f20e5644c260768e418050537192983895a1c724632d222c9d21` |
+| PS4@1 | `research/school/cards/PS4_v1.yaml` | `9dbf12b46a7fbadb8595d90ccfef2177c16edd9baa160b26963a7554d978c1c0` |
+| PS5@1 | `research/school/cards/PS5_v1.yaml` | `ac99cffcf965e41320a5aee0b2ccaf790c87512da9ffe7f224f3abc6627b89d4` |
+| RC1@1 | `research/school/cards/RC1_v1.yaml` | `1e37c362eab05ab855c47370c0bdb1126b9a14c07a0b5268cfe112edd56e2b98` |
+| REF@1 | `research/school/cards/REF_v1.yaml` | `f874e57b6800fa25f0d422704d4cde11a5cc11fd8bf13047b7346ceed7e0357c` |
+| WS1@1 | `research/school/cards/WS1_v1.yaml` | `054dbb5ec4f8942e494784db62b84e4fb8b9e0c5b80ba6b79cba2707ca980e37` |
 
 ### 2. Roads, slot and fills
 
@@ -108,13 +126,14 @@ and the commit that first wrote that value is strictly before the decision's com
 otherwise): moving the date later or earlier afterwards never re-counts or un-counts a past decision. Until it is set
 nothing counts (`no_first_counted_session`).
 
-### 6. Known limits (orchestrator, 22 Oct 2026)
+### 6. Known limits (orchestrator, 22 Oct 2026; v2)
 
-- **Expiry-day margin (reasoning only):** the expiry-day ELM is not modelled. A driver holding a position into its
-  expiry day therefore gets a `margin_room` refusal on every new entry that day.
-- The blocked entries become `account_limit` tickets; they stay in every denominator and never in an account.
-- Reports show the `margin_room` share per road on expiry days, so the effect stays visible.
-- The fix belongs to P2: model the expiry-day ELM (P0 probe 4, `research/school/probes/`).
+- **Expiry-day margin:** each proposal's margin models the expiry-day ELM (SEBI 2024/132, para 5.6; part m), priced
+  rather than refused. The k = 2.1 multiplier stacks on it, which is conservative (A14c's open item), so a
+  `margin_room` refusal can come from that stacking. v1 said the ELM was not modelled and that expiry-day entries
+  would be refused as `account_limit` tickets; that no longer holds.
+- Reports show the `margin_room` share per road, so any such refusals stay visible, and a refusal stays in every
+  denominator (never in an account).
 
 ## Machine block (story R1)
 
@@ -122,7 +141,7 @@ Read by `python -m fno factory` (G0 fields only: a measurement is never screened
 
 ```factory
 id: CARD_P1
-version: 1
+version: 2
 trial: 99
 experiment: market-school-pilot-2026-10-22
 description: "Market school pilot P1: rule drivers vs N0, RC1 and REF on five index option roads at 15:00; measurement, never promoted, no licence"

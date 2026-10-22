@@ -17,6 +17,7 @@ from ..constants import SETTINGS_KEY
 from .counting import CARD_PATH, CONFIG_PATH, CountingRule, FirstCounted
 
 CARD_COMPONENT = "card_sha256"
+COMPARISON_COMPONENT = "comparison_card_sha256"  # the comparison card as of the version the row was registered under
 FIRST_COUNTED_KEY = "first_counted"
 UNREADABLE = "school.first_counted {value!r} is not a date (YYYY-MM-DD)"
 NOT_FOUND = "school.first_counted {value} is in the tree of {commit} but no commit of the history wrote it"

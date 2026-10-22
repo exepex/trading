@@ -1,10 +1,10 @@
-# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+# FROZEN card (stories MS-P1e and MS-P1h): registered in journal/versions.csv with this file's SHA-256; a change is a new version (a new file), never an edit. Numbers are first guesses [reasoning only].
 code: WS1
 version: "1"
 family: weekly_seller
 role: rule
 roads: [NIFTY-W]
-band_steps: 40
+band_steps: 10
 parameters:
   sessions_before_min: 1
   sessions_before_max: 3
