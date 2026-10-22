@@ -203,7 +203,7 @@ Rules for every story:
 | `DriverCard`, `SpotPoint`, `OpenPosition` | card `code`, `version`, `family`, `role`, `roads`, `band_steps`, `parameters`, `card_sha256`; history of recorded 15:00 spots; open position with `structure`, legs, `lot`, `opened`, `entry_net`, `max_loss` |
 | `Driver` | `decide(road_day, snapshot, history, positions) -> Decision`; `review_exit(position, snapshot, history) -> ExitReason | None` |
 | `Decision` | `driver_id`, `road`, `session`, `outcome`, `reason` (from that outcome's enum), `proposal` (exactly for trade, ticket and refused) |
-| `SafetyLaw`, `LawResult`, `AccountView` (`safety.py`) | `check(proposal, account, snapshot, session) -> LawResult`; the view holds equity, its high, loss since the previous slot, positions, `brake_engaged_on`, `brake_lifted_on`. Law 6 (no record, no trade) is `FillPort.enter`'s seal check |
+| `SafetyLaw`, `LawResult`, `AccountView` (`safety.py`) | `check(proposal, account, snapshot, session) -> LawResult` (`passed`, `reason`, `limit`, `value`, `note`); the view holds equity, its high, loss since the previous slot, positions, `brake_engaged_on`, `brake_lifted_on`. Law 6 (no record, no trade) is `FillPort.enter`'s seal check |
 | `AccountPort`, `LedgerEntry` (`accounts.py`) | `view(driver_id, marks by road, session)`; `record(driver_id, LedgerEntry)`: an opening or closing (with its `ExitReason`) filled result, idempotent |
 | `FillPort`, `FillResult`, `FilledLeg`, `SealedDecision` | `FillResult.cash`: rupees moved, after charges. `enter(sealed, snapshot, seal, at)` (refuses `stale_seal` unless the seal covers the decision file at `at`); `exit(position, snapshot, file_sha256, seal, at)`; `settle(position, expiry)`. A result is exactly one of: filled legs (with time and the file they rest on), a refusal, or a state |
 | `IndexSettlementSource`, `SettlementPrice` | `price(underlying, expiry)` with the settlement file's SHA-256, or `SettlementUnavailable` |
@@ -339,21 +339,38 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 **Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or on a driver stopped for the
-  day, priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
-  with only the account limits relaxed;
-- the `OpportunityCounts` builder (eligible, fillable, executed);
-- the shared-displayed-size count (327 item 10).
+- `classify(fired, check, max_new)` (`rules.py`): one driver's fired decisions at one slot, in rank order (frozen
+  score, ties by the fixed road order).
+  - Each is checked by the same safety laws through `check(decision, accepted)`. `accepted` holds the trades already
+    taken this slot, so the bucket, open-risk, new-risk and margin laws see them before any fill; MS-P1j builds that
+    running view.
+  - The first `max_new` that pass every law trade.
+  - A later one that passes is `ticket: trade_limit`.
+  - One refused only by `ACCOUNT_LIMITS` is `ticket: account_limit` (orchestrator, 22 Oct 2026).
+  - Any other refusal, the daily stop and the brake included, is `refused` with the first reason: a stopped or braked
+    driver issues no tickets that day.
+- `TicketBook` (`book.py`):
+  - it refuses a ticket whose sealed law results break a binding law (anything but `ACCOUNT_LIMITS`);
+  - it fills through the same `FillPort` as trades;
+  - it records only in a `TicketLedger`, its own type over an account store on its own root, never a driver's
+    account.
+- `counts_for` and `totals` (`counts.py`): eligible, fillable and executed per decision; `scheduled` (every sealed
+  decision) is the denominator; one row per (session, road, driver).
+- `allocate` (`shared_size.py`, 327 item 10): whole fills are served in a fixed order against each contract's and
+  side's displayed size. A report sums only the servable fills and names the rest.
+- `account_net` (`rupees.py`): the only rupee sum, and it never includes a ticket.
 
 **Acceptance tests:**
 1. Tickets:
-   - the same quotes and laws as trades;
+   - the same quotes and laws as trades, with only the account limits relaxed (`test_rules.py`, `test_book.py`);
    - never in an account;
    - never summed into rupees.
-2. `eligible >= fillable >= executed` over a fixture day.
-3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve.
-4. A refused ticket stays in every count's denominator.
-5. The conformance test.
+2. `eligible >= fillable >= executed` over a fixture day (`test_counts.py`).
+3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve
+   (`test_shared_size.py`).
+4. A refused ticket stays in every count's denominator (`test_counts.py`).
+5. f implements no port of a, so there is no conformance check of its own. Its tests run on a's fakes, which pass
+   `conformance.py`.
 
 ### MS-P1g The 08:50 and 20:05 sections · lane 1 (Slack reports, signed-off pages) · model tier: S · depends on a
 
@@ -442,6 +459,16 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - **requirement from MS-P1f:** the `check(decision, accepted)` given to `tickets.rules.classify` builds its
   `AccountView` with the trades already accepted in that slot, so the bucket, open-risk, new-risk and margin laws add
   them up before any fill;
+- **requirement (orchestrator, 22 Oct):** before `review_exit`, the fleet checks that each position's driver and road
+  match the driver asked and the snapshot's road; a mismatch is that driver's `unavailable: driver_error`, never an
+  exit;
+- **requirement (orchestrator, 22 Oct):** a REF entry refused only by account limits (C2's bucket among them) becomes
+  `ticket: account_limit` through `tickets.rules.classify`, the same rule as every driver, so REF stays measured on
+  every open road-slot;
+- **requirement (orchestrator, 22 Oct):** the daily and the 30-session reports show, per road, the share of scheduled
+  decisions refused for quotes (law 5: `missing_quote`, `one_sided_quote`, `size_above_displayed`,
+  `protection_unsellable`). The capture gate's band is about 10 steps of the money while the shorts sit about 20 steps
+  out, so thin far legs stay visible here even when the road passes its gate;
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
@@ -562,6 +589,10 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
   - **(ii) Moved:** `Road.dataset` values are unchanged, but the import source changed. `SIDE_BUY`, `SIDE_SELL` and
     `SIDES` now also live in `fno.school.constants`, so school code should import them from there.
   - **(iii) New method:** `DashcamStore.find` must now be implemented by c's store.
+  - **(iv) New field (for d, orchestrator, 22 Oct):** `LawResult.note: str = ""` is a plain label recorded with the
+    result. It never changes `passed`: a law with unusable input still refuses (fails closed, as C2 does).
+  - **(v) New code (for e, orchestrator, 22 Oct):** `NoTradeReason.NO_VALID_QUOTES` ("no valid ATM straddle or no
+    two-sided quotes for the structure"), apart from `NO_STRUCTURE_UNDER_CAP`.
 - **Judge's notes (no action):**
   - `OpportunityCounts` has no scheduled count. MS-P1f's `CountTotals.scheduled` carries the denominator.
   - A refused ticket and a refused trade look the same in a `Decision`. That is deliberate: both are `refused`, with
