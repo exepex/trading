@@ -527,6 +527,113 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 4. i's harness passes on the real wiring, including one recorded session replayed twice with identical records.
 5. The end-to-end dry run on a recorded day, recorded in Claims.
 
+### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
+
+Owner: the A14 builder (session 01Vm1WnH8i9waM8EJG8zwWqg; orchestrator, 22 Oct 2026). Law 3 asks C2's `MarginRoom` on
+each driver account. Today C2 has margins for NIFTY's monthly ATM-shaped rows only (`margins.csv`, SF, SC and BF, widths
+100-300). The pilot needs a margin for every position its drivers propose: four indices' monthlies and NIFTY's weeklies,
+seven structures, any width, and shorts one expected move out.
+
+**Why per proposal, not rows (orchestrator's rule: measure first; strong evidence).** A14-style rows were compared
+with the pilot's real legs on 37 archived sessions (every 12th session, 6 Jan 2025 - 6 Oct 2026), widths 1-8 strike
+steps (each expiry's own step, read from its listed strikes near the index; judge 492), 14,800 comparisons, every
+combination measured. The figure is C2's stressed margin at k 2.1, per unit. The row is A14's own structure (SC
+shorts at spot ±2%, spreads at ATM); the real legs are the pilot's (shorts one expected move out, the ATM straddle in
+the file; debit spreads one step out). The table gives the share of cases where the row is below the real position,
+and the lowest row/real ratio:
+
+| Road | SC | PCS | CCS | CDS | PDS |
+|---|---|---|---|---|---|
+| NIFTY-M | 75% below, min 0.86 | 98% below, min 0.90 | 97% below, min 0.88 | 1% below, min 0.82 | 13% below, min 0.88 |
+| BANKNIFTY-M | 70% below, min 0.81 | 94% below, min 0.85 | 89% below, min 0.87 | 3% below, min 0.85 | 11% below, min 0.87 |
+| FINNIFTY-M | 75% below, min 0.82 | 97% below, min 0.85 | 94% below, min 0.88 | 5% below, min 0.87 | 10% below, min 0.87 |
+| MIDCPNIFTY-M | 83% below, min 0.76 | 97% below, min 0.85 | 92% below, min 0.88 | 8% below, min 0.84 | 12% below, min 0.84 |
+| NIFTY-W | 31% below, min 0.92 | 97% below, min 0.91 | 98% below, min 0.88 | 2% below, min 0.91 | 11% below, min 0.88 |
+
+A spread sold further out collects less premium, and C2's margin subtracts the premium received (`min(0, NOV)`), so
+ATM rows understate the school's credit trades by up to 24%. So the school computes each proposal's margin on its own
+legs, with the same calculator and the same archived file. No rows are added anywhere.
+
+**Source (no new read; strong evidence, the archived 21 Oct file):** the session's beginning-of-day SPAN file, as
+A14 reads it: A9's first-archived copy in Drive, its SHA-256 equal to the manifest's, created before 09:00 IST on its
+day. That file holds NIFTY (18 expiries, the weeklies included), BANKNIFTY (6), FINNIFTY (3) and MIDCPNIFTY (3); every
+expiry checked is in exactly one scan tier, and the strike steps are 50, 100, 50 and 25. The lot is the day's market lot
+from A20a's master files.
+
+**Builds** (`fno/nse_margins/road_trades.py`, `road_margin.py`, the root `road_wiring.py`):
+- `RoadTradeTerms`: C2's `TradeTerms` plus the index, the expiry, the legs (one unit each) and the units per lot the
+  trade was entered with (the road day's dated lot from MS-P1b, A20a; an open trade keeps its own). It refuses an index
+  outside the four, no legs, no lot, and legs that are not its structure's shape. A spread is one bought and one sold
+  leg of its type, `width` apart, with the right leg sold; a fly or condor is a body of one call and one put on the
+  body's side with wings `width` out, a fly's body on one strike, a condor's sold call above its sold put; one unit per
+  leg; only SF, SC, BF, PCS, CCS, CDS and PDS.
+- `road_proposal` and `road_open_trade`: C2's `Proposal` and `OpenTrade` built from the same terms (lot size, legs, and
+  units = side x lot x lots), so the margin and the trade cannot disagree. **MS-P1d must build every school proposal
+  and open trade through them** (its own acceptance test). C2's `MarginRoom` prices from the terms but counts units
+  from the trade: a hand-built pair with a lot of 1 inside a 65-unit proposal passed with Rs 840 needed instead of Rs
+  54,600 (self-review, 22 Oct 2026).
+- `ArchivedSpanMargin`: C2's `StressedMargin` for those terms. C2's `MarginRoom` asks it the margin of every open trade
+  and of the proposal, unchanged. Each figure is A14's `SpanMarginCalculator` with `NseIndexOptionExposure` on the
+  trade's own legs and lot, read from the session's file in A14's daily mode (`read_span_file(..., symbol=...)`: a
+  change of margin method refuses, as it stops A14's job; checked on 16 recent sessions x 4 indices, none refused). It
+  applies C2's STR1 cap (`stress_cap_per_lot`) and the factor in force from A14c's file. The file is downloaded once per
+  session and parsed once per index.
+- `record(day)` and `trade_record(terms, day)`: the method, the factor row, the labels "k measured on NIFTY monthly
+  only [reasoning only]" and "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY" (orchestrator, 22 Oct 2026),
+  the file name and SHA-256, and per trade the index, expiry, legs, lot and per-lot scan, NOV and exposure. The dashcam
+  (MS-P1c) seals them with the decision.
+- A14's point-in-time rule (written before 09:00 IST) becomes one `SpanFile.written_in_time`, used by A14's job, A14c's
+  run and this margin (it was copied in the first two).
+
+**Fails closed, by name** (law 3 then refuses the trade, as `RiskInputError`; C2's manager turns it into a refusal):
+terms without legs; a day with no archived file or no manifest row; a SHA-256 other than the manifest's; written at or
+after 09:00; a damaged file, no part for the index, or a change of margin method; an out-of-model expiry (a day after
+it, beyond 9 months, or an expiry day before 20 Nov 2024); a leg not in the file; any Drive failure, missing settings
+and a refused sign-in included, and an unreadable manifest (by class name only).
+
+**Expiry day is priced, not refused (round 2; judge 491, orchestrator's ruling (a), 22 Oct 2026).** C2's room prices
+every open trade first, so refusing an expiring trade froze its whole account that day: REF holds a NIFTY weekly on
+every weekly expiry day, so REF and RC1 would lose their entries on all roads about one session in five, which biases
+the controls. `ExpiryDayIndexExposure` (`fno/nse_margins/expiry_day_exposure.py`, a new `ExposureRule`; A14's own rule
+is unchanged) adds SEBI's extra 2% ELM to each short index option expiring that day: SEBI/HO/MRD/TPD-1/P/CIR/2024/132
+of 1 Oct 2024, para 5.6, from 20 Nov 2024; NSE Clearing NCL/CMPT/64639 levies it "on short index options contracts"
+(P0 probe 4, checked). So an at-the-money short carries 4%, and one more than 10% out of the money 5%. The archived
+beginning-of-day file still holds the expiring series in one scan tier (strong evidence: 29 Sep 2026 monthly, 13 Oct
+2026 weekly). `trade_record` names the extra when it applies. Known limit [reasoning only]: C2's factor k also
+multiplies the exposure, so k 2.1 on top of SEBI's doubled ELM roughly doubles an expiring fly's stressed margin
+(NIFTY weekly SF 100 on 13 Oct 2026: Rs 2,48,443 a lot); whether k should stress an expiry-day ELM is for A14c's
+per-underlying follow-up.
+
+**Unchanged:** `margins.csv`, A14's daily job and workflow, and C2's and C4's NIFTY path, byte for byte.
+
+**Known limits:**
+- k 2.1 was measured on NIFTY monthly history only [reasoning only for the other indices and the weeklies];
+  per-underlying k is an A14c follow-up after the freeze.
+- Our calculator matches Groww on NIFTY (A14c part 2 rehearsal, 21 Oct 2026: 15 of 15 baskets within tolerance), but
+  the other three indices have no broker check yet [reasoning only].
+- The file is the beginning-of-day one: a 15:00 decision uses the morning's scan arrays and prices, as A14's rows do.
+- A school proposal must never go through E8's owner-timing record (`fno/desk/owner_timing/order_record.py` writes the
+  terms with `asdict` and reads them back as plain `TradeTerms`, which would drop the legs). The pilot has no owner
+  timing (out of scope above).
+
+**Acceptance tests:**
+1. The figure is A14's calculator on the trade's own legs at C2's factor (stressed, at entry, broker), on a planted
+   file; on the real 21 Oct file, NIFTY's ATM SF 100 equals that day's `margins.csv` row, and one structure of each
+   other index and one NIFTY weekly is reproduced by hand in the claims.
+2. Each refusal above, one test each, with its name.
+3. The trade's own lot is used; a different lot changes the figure. A credit spread in rupees worked by hand: the
+   credit's `min(0, NOV)` and C2's cap binding (planted arrays and prices).
+4. C2's own `MarginRoom` on this margin, with an open trade and a proposal: it passes with the room exactly enough and
+   refuses one rupee short; an open trade without legs refuses.
+5. `margins.csv`, C2's and C4's NIFTY path are untouched (no file of theirs changes; the existing suite passes).
+6. The file is downloaded once per session and parsed once per index (counting fakes).
+7. Every shape refusal of `RoadTradeTerms`; `road_proposal` and `road_open_trade` carry the terms' lot, legs and units.
+8. Expiry day: 2% + 2% (and 3% + 2% deep out of the money) worked by hand; any other day is A14's rule; an expiry day
+   before 20 Nov 2024 and a day after expiry still refuse; an account holding an expiring trade still enters another
+   road that day (C2's own room).
+9. The gap measure above is reproducible from its script, with the same counts.
+10. Mutations on every rule above.
+
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
 | Requirement | Story |
@@ -547,6 +654,7 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 | Capture gate per road, denominator first | 3.5; b |
 | Planted faults and replay twice | i (harness), j (real run) |
 | Fleet runner and daily-run wiring after v4's freeze | j |
+| C2's margin room for every road, structure and width (per proposal, from the archived SPAN file) | 3.3 law 3; m |
 
 **Out of scope, with reason:**
 - futures, calendars and diagonals: probe 5 found no payoff or margin model;
@@ -738,6 +846,27 @@ Round 1 follow-up (orchestrator, 22 Oct 2026; both open items accepted):
 - **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
+
+### MS-P1m Claims (round 2, branch `story/ms-p1m-margin-rows`; round 1 claims are response 328)
+
+Judge 491 (J, round 1) FAIL: one should-fix and three minors. Judge 492 (B, round 1) FAIL: one should-fix (tests
+only) and a note. Each was checked and fixed in this one round 2.
+
+| Finding | Check | Fix | Test (plant caught) |
+|---|---|---|---|
+| Should-fix: an open trade on its own expiry day froze its account (REF and RC1 lose about one session in five) | agreed: `rules.py:143` prices open trades first; `calculator.py:62` refused expiry day | expiry day priced with SEBI's extra 2% ELM (above) | `tests/nse_margins/test_expiry_day.py`: hand-worked 104,000 and 64,675 a lot; any other day unchanged; before 20 Nov 2024 and after expiry refuse; an account holding an expiring trade enters another road (plants: extra 0, its date, `<=` for `==`, longs charged, a flat rate, the wiring on A14's rule, the record's label dropped) |
+| Minor 1: `nov_per_lot_rs` untested | agreed | - | `test_the_record_carries_each_per_lot_figure_in_its_own_field` (3,250.00 / -975.00 / 26,000.00) |
+| Minor 2: the unset factor file untested | agreed | - | `test_no_factor_file_in_config_refuses_by_name_never_a_default_factor` |
+| Minor 3: `manifest()` outside the named refusals | agreed | wrapped, class name only | `test_an_unreadable_manifest_refuses_by_its_class_name_only` (plant: `except KeyError`) |
+
+| Judge 492 should-fix: four shape plants survived (PDS, CDS, CCS with the other leg sold; a wing checked on the call side only) | agreed | - | `test_each_spread_accepts_its_own_shape_and_refuses_the_other_leg_sold` [4], `test_a_fly_or_condor_with_only_its_put_wing_off_width_is_refused` [SF, SC, BF]; all 5 plants now caught |
+| Judge 492 note: the gap script fixed FINNIFTY at a 50-point step (November's strikes are 100 apart) | agreed | each expiry's own step from its listed strikes near the index | rerun: 14,800 comparisons, none skipped (the 1,064 skipped before were FINNIFTY's); only the FINNIFTY row moves (SC 66% to 75%, PCS 96% to 97% and min 0.87 to 0.85, CCS 92% to 94%, CDS 10% to 5% and 0.88 to 0.87, PDS 12% to 10% and 0.90 to 0.87); the lowest ratio stays 0.76, so the decision holds |
+
+- **Real data:** NIFTY weekly SF 100 expiring 13 Oct 2026 (index 22,363.35): exposure 1,16,289.42 a lot from the
+  adapter, the same as a hand computation (4% on each at-the-money short x 65).
+- **Plants this round:** 8 of 8 caught, plus judge 491's two and judge 492's five survivors now caught.
+- **Gates:** on the head named in the message to the judges.
+
 
 ### MS-P1f Claims, round 2 (judge 481, FAIL round 1: two should-fixes and two minor findings)
 
