@@ -51,3 +51,21 @@ The G3 global-cues row names FL1's `facts.py:19` path read. Name `fno/global_cue
 `us_market_closures.csv`, which stays in GitHub; say which.
 
 Plants: none (text round).
+
+## Addendum 1: round 2 at fb69fec2
+
+**Verdict: PASS for the O9b umbrella text.** Each step's text is judged on its own, with its own gap list.
+
+| Finding | Answer | Check | Result |
+|---|---|---|---|
+| B1: no gap list | A gap list here, plus the rule that each step's text carries its own | read | **Accepted** |
+| SF1: push-time readers missing | Section 1 names O8's `expectations.py`, `quote_checks.py` and `desk_checks.py`, v4 scoring's `RvTable`, and the owner-timing desk's `SlotLedger`. A design line moves push-time evidence to the receipt's push time. Criterion 7: O8 identical on a recorded day, a late receipt still late, a missing one missed | read; matches the readers I found, plus `desk_checks.py` | **Accepted** |
+| Minor: global-cues path readers | Named; `us_market_closures.csv` stays as a hand list | read | **Accepted** |
+
+The builder's own per-group reader index (from a grep of every `fno/` module) found three more readers I had not
+named:
+- VIX's overlap check reads G1's `warmup_closes.csv`;
+- FL1's `sections/global_cues.py`;
+- `behind_alerted.txt`, which is alert state and stays.
+
+That is good practice. Each step's claims should cite that index for its group.
