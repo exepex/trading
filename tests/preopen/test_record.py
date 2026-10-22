@@ -62,6 +62,16 @@ class Committer:
         return self.outcome
 
 
+class EarlyCommitter(Committer):
+    def __init__(self, clock, outcome="receipts committed and pushed (2 file(s))"):
+        super().__init__(outcome)
+        self.clock, self.at = clock, []
+
+    def commit(self, what):
+        self.at.append(self.clock.now())
+        return super().commit(what)
+
+
 class Sender:
     def __init__(self):
         self.sent = []
@@ -84,6 +94,7 @@ class Desk:
                       GrowwIndexPreopen("banknifty", Candles(self.clock, candles(close_0909=6666.5)))]  # fmt: skip
         self.errors = CaptureErrorLog(self.root / "research/ops/capture_errors.csv")
         self.committers, self.sender, self.out = [Committer(), Committer()], Sender(), []
+        self.early = EarlyCommitter(self.clock)
         self.trading, self.clock_warning = trading, clock_warning
 
     def recorder(self) -> PreopenRecorder:
@@ -94,7 +105,7 @@ class Desk:
             return PreopenRun(self.parts, self.clock.now, self.clock.sleep, done)
 
         return PreopenRecorder(self._trading, run, store, self.errors, self.committers, self.sender,
-                               lambda: self.clock_warning, self.out.append)  # fmt: skip
+                               lambda: self.clock_warning, self.early, self.out.append)  # fmt: skip
 
     def _trading(self, day):
         if isinstance(self.trading, Exception):
@@ -103,6 +114,10 @@ class Desk:
 
     def day_row(self) -> dict:
         data = self.drive.get("data/preopen/day/2026/10/2026-10-22.csv")
+        return next(csv.DictReader(io.StringIO(data.decode())))
+
+    def gift_row(self) -> dict:
+        data = self.drive.get("data/preopen/gift/2026/10/2026-10-22.csv")
         return next(csv.DictReader(io.StringIO(data.decode())))
 
     def committed_text(self) -> str:
@@ -194,3 +209,38 @@ def test_drive_down_names_each_unsaved_file(tmp_path):
     alert = desk.sender.sent[0]
     assert "gift raw not saved to Drive: RuntimeError" in alert and "day row not saved to Drive: RuntimeError" in alert
     assert not (desk.root / "receipts").exists()
+
+
+def test_gift_gets_its_own_file_pushed_when_its_part_ends_for_the_0850_edition(tmp_path):
+    desk = Desk(tmp_path)
+    assert desk.recorder().record(DAY) == 0
+    row = desk.gift_row()
+    assert (row["date"], row["gift_status"], row["gift_seen_at"], row["gift_level"], row["gift_contracts"]) == (
+        "2026-10-22", "ok", "08:40:00", "1234.5", "4321")  # fmt: skip
+    assert desk.early.calls == ["pre-open gift 2026-10-22"] and desk.early.at == [ist(8, 40)]  # before 08:42
+    assert (desk.root / "receipts/data/preopen/gift/2026/10/2026-10-22.csv.sha256").is_file()
+    assert "receipts committed and pushed (2 file(s))" in desk.out
+
+
+def test_a_gift_that_never_freshens_is_written_with_its_status_and_no_value(tmp_path):
+    desk = Desk(tmp_path, nse={GIFT_URL: gift("22-Oct-2026 07:00")})
+    desk.recorder().record(DAY)
+    row = desk.gift_row()
+    assert (row["gift_status"], row["gift_level"]) == ("incomplete", "") and row["gift_detail"].startswith("stale")
+    assert desk.early.at == [ist(8, 44, 59)]  # pushed after the window's last read, still before 08:50
+
+
+def test_an_early_push_that_fails_is_named_in_the_alert(tmp_path):
+    desk = Desk(tmp_path)
+    desk.early.outcome = "receipts NOT committed: push failed: rejected. Commit receipts/ by hand"
+    assert desk.recorder().record(DAY) == 1
+    assert "gift file commit failed: receipts NOT committed" in desk.sender.sent[0]
+    assert not any(v in desk.sender.sent[0] for v in VALUES)
+
+
+def test_a_second_run_finds_the_gift_file_taken(tmp_path):
+    Desk(tmp_path).recorder().record(DAY)
+    late = Desk(tmp_path, start=ist(9, 30), nse={GIFT_URL: gift("22-Oct-2026 09:29")})
+    late.recorder().record(DAY)
+    assert "gift file taken" in late.sender.sent[0] and late.gift_row()["gift_status"] == "ok"
+    assert late.early.calls == []  # nothing new to push

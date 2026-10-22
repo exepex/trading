@@ -30,7 +30,8 @@ def point(method: str, target: date, close: float = 1000.0, horizon: str = "N1",
 
 
 def index(right: int = 26, scored: int = 30, today=None) -> IndexView:
-    ranges = today if today is not None else (RangeView("N1", DAY + timedelta(days=3), BAND, 0.5),)
+    monday = RangeView("N1", DAY + timedelta(days=3), BAND, 0.5, "next trading day, Mon 26 Oct")
+    ranges = today if today is not None else (monday,)
     return IndexView("NIFTY", 1001.0, "3 pm price", "implied", ranges, False, 0, 60, (), right, scored)
 
 

@@ -111,3 +111,18 @@ with a traceback, with no alert and no O10 row. A4's 3 pm capture alerts "stoppe
 so the owner still hears of it [strong for the path, `calendar.py:98-100`]. Catching `CalendarError` into the one
 alert would make part B's own record complete. Still open after the merge: A22's routine line that starts
 `global-cues preopen`.
+
+## Addendum 2: the calendar minor, story/a17e-preopen-calendar @ eb9e7fb2
+
+**Verdict: PASS. It may merge.** A17e itself is merged (bc21f17f, builder's report).
+
+When NSE's calendar cannot answer for the day, `cmd_preopen` now:
+- catches the `CalendarError`;
+- prints a `STOPPED` line;
+- writes one O10 row and sends one alert ("NSE calendar cannot answer for today", class name only);
+- exits 1 having read nothing.
+
+The new test covers it. My plant (the O10 row dropped) fails 1 test.
+
+Gates on eb9e7fb2: **9236 passed**, 16 xfailed; ruff, ruff format (1725), `check_imports.py` and the record scan
+(7445) are clean.

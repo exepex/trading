@@ -196,8 +196,7 @@ class Replay:
         marking = marking_step(root, (BOOK1_RULES,), quotes, self.alerts)
         lab = self.out.lab = LabReplay(root, self.cfg, clock, self.alerts)
         commands = {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide,
-                    "price_distribution": self.price_distribution, "price_ranges": lab.price_ranges,
-                    "lab_close": lab.lab_close}  # fmt: skip
+                    "price_distribution": self.price_distribution, "price_ranges": lab.price_ranges}  # fmt: skip
         o1 = day_steps(commands, build_scorecard_run(self.cfg, root, self.alerts), build_execution_snapshots(
             root / rd.QUOTES), root, self.alerts)  # fmt: skip
         return DailyRun(steps, CALENDAR, PendingCommitter(self.run_commits, root), clock, clock, marking,

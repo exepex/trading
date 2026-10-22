@@ -1,5 +1,6 @@
-"""The 15:45 report's records in O9's data store (stories FL1-1 and FL1-1c): the report (text, alerts, what it
-covered, and the picture and details file as base64, so a rerun posts exactly what was made), its posted marker and
+"""A report edition's records in O9's data store (stories FL1-1, FL1-1c and FL1-1d, one area per edition): the report
+(text, alerts, what it covered, the evening's verdicts, and the picture and details file as base64, so a rerun posts
+exactly what was made), its posted marker and
 its alerts' marker, each a write-once JSON file in Drive's data area with its receipt under
 `receipts/`. A report is read back verified against its receipt's SHA-256 (the Drive cache's check, for one file; the
 cache syncs whole folders): a missing or damaged copy stops the run, never a silent rebuild."""
@@ -13,21 +14,19 @@ from datetime import date
 
 from ..storage.data_store import DataStore
 from ..storage.receipts import ReceiptFolder
-from .constants import REPORT_AREA
 from .delivery import Attachment
-from .lab_close import ReportRecords
-from .written import WrittenReport
+from .edition_run import ReportRecords
+from .written import Verdict, WrittenReport
 
-UNREADABLE = "the written 15:45 report of {day} cannot be read back verified: {problems}"
+UNREADABLE = "the written {area} report of {day} cannot be read back verified: {problems}"
 
 
 class DriveReportRecords(ReportRecords):
-    def __init__(self, store: DataStore, receipts: ReceiptFolder):
-        self.store, self.receipts = store, receipts
+    def __init__(self, store: DataStore, receipts: ReceiptFolder, area: str):
+        self.store, self.receipts, self.area = store, receipts, area
 
-    @staticmethod
-    def _path(day: date, suffix: str = "") -> str:
-        return f"{REPORT_AREA}/{day:%Y}/{day.isoformat()}{suffix}.json"
+    def _path(self, day: date, suffix: str = "") -> str:
+        return f"{self.area}/{day:%Y}/{day.isoformat()}{suffix}.json"
 
     def _drive_path(self, path: str) -> str:
         return f"{self.store.area}/{path}"
@@ -39,17 +38,22 @@ class DriveReportRecords(ReportRecords):
             return None
         data = self.store.drive.get(drive_path)
         if data is None or hashlib.sha256(data).hexdigest() != receipt.sha256:
-            raise RuntimeError(UNREADABLE.format(day=day, problems="missing" if data is None else "damaged"))
+            raise RuntimeError(UNREADABLE.format(area=self.area, day=day,
+                                                 problems="missing" if data is None else "damaged"))  # fmt: skip
         body = json.loads(data)
         files = tuple(Attachment(f["name"], base64.b64decode(f["data"]), f["title"]) for f in body.get("files", []))
+        verdicts = tuple(Verdict(v["underlying"], date.fromisoformat(v["day"]), v["method"], v["close"], v["inside_50"],
+                                 v["inside_90"], tuple(v["band"])) for v in body.get("verdicts", []))  # fmt: skip
         return WrittenReport(body["text"], tuple(body["alerts"]), tuple(body["checked"]), tuple(body["matched"]),
-                             files)  # fmt: skip
+                             files, verdicts)  # fmt: skip
 
     def write_report(self, day: date, report: WrittenReport) -> None:
         files = [{"name": f.name, "title": f.title, "data": base64.b64encode(f.data).decode("ascii")}
                  for f in report.attachments]  # fmt: skip
         body = {"day": day.isoformat(), "text": report.text, "alerts": list(report.alerts),
-                "checked": list(report.checked), "matched": list(report.matched), "files": files}  # fmt: skip
+                "checked": list(report.checked), "matched": list(report.matched), "files": files,
+                "verdicts": [{**v.__dict__, "day": v.day.isoformat(), "band": list(v.band)}
+                             for v in report.verdicts]}  # fmt: skip
         self.store.put(self._path(day), _json(body))
 
     def posted(self, day: date) -> bool:
