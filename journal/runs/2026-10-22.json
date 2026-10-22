@@ -68,6 +68,14 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "versions": {
+   "started_at": "2026-10-22T14:58:00.000421+05:30",
+   "finished_at": "2026-10-22T14:58:00.016957+05:30",
+   "inputs": {},
+   "result": {
+    "line": "versions:NONE_YET"
+   }
   }
  }
 }
