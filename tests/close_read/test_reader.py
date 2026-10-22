@@ -1,7 +1,7 @@
 """A4h criteria 1-3 and 9: the read, its tries, the calendar and the gate, write-once records, and the 16:00 recheck."""
 
 import json
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -142,3 +142,30 @@ def test_a_failing_confirm_of_an_earlier_day_never_stops_today_s_read(store_kind
     recheck_lines = []
     assert reader(store, Answers(answer()), Clock(at(16, 0)), official, lines=recheck_lines).run(RECHECK) == 0
     assert recheck_lines[0].startswith("close recheck 2026-10-21: ") and recheck_path(DAY) in store.files
+
+
+class SlowOfficial(Official):
+    """Each archive call takes 300 s on the shared clock (judge 447 add. 1's retries)."""
+
+    def __init__(self, clock, closes):
+        super().__init__(closes)
+        self.clock, self.calls = clock, 0
+
+    def closes(self, day):
+        self.calls += 1
+        self.clock.now_at = self.clock.now_at + timedelta(seconds=300)
+        return super().closes(day)
+
+
+def test_a_slow_archive_never_turns_a_good_read_into_a_failure():
+    """The confirm loop starts no new day 240 s after the run began, so the step ends inside O1's 600 s limit."""
+    store = MemoryStore()
+    earlier = (date(2026, 10, 16), date(2026, 10, 19))
+    for day in earlier:
+        store.put(record_path(day), encode({"indices": {}}))
+    lines, clock = [], Clock(at(15, 40))
+    official = SlowOfficial(clock, {})
+    code = reader(store, Answers(answer()), clock, official, lines=lines).run(READ)
+    assert code == 0 and record_path(DAY) in store.files and official.calls == 1
+    assert lines[-1] == "close confirm: 1 earlier day(s) left for the next run (time budget)"
+    assert (clock.now_at - at(15, 40)).total_seconds() <= 600
