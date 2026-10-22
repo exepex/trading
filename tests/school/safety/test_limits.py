@@ -126,36 +126,44 @@ def test_a_leg_ratio_c2_cannot_size_is_refused():
     assert check(law, ratio).reason == RefusalReason.MAX_LOSS
 
 
+CALL = b.OptionKind.CALL
+CONDOR = replace(b.put_spread(), structure="SC", legs=(
+    LegSpec(b.key(1000.0), "sell", 1), LegSpec(b.key(900.0), "buy", 1),
+    LegSpec(b.key(1100.0, CALL), "sell", 1), LegSpec(b.key(1200.0, CALL), "buy", 1)))  # fmt: skip
+PUTS = {b.key(1000.0): b.quote(10.0, 11.0), b.key(900.0): b.quote(4.0, 5.0)}
+
+
+def condor_at(c1100: tuple, c1200: tuple):
+    quotes = {**PUTS, b.key(1100.0, CALL): b.quote(*c1100), b.key(1200.0, CALL): b.quote(*c1200)}
+    return check(ImpossiblePriceLaw(), CONDOR, snapshot=b.snapshot(quotes=quotes))
+
+
 def test_a_stale_vertical_never_hides_behind_another_in_the_total():
-    """Judge 488 (Judge B): a condor whose call vertical is worth less than nothing at the mids (C1100 2 < C1200 5) is
-    impossible, though the position's total at the touch sits inside its payoff bounds."""
-    call = b.OptionKind.CALL
-    legs = (LegSpec(b.key(1000.0), "sell", 1), LegSpec(b.key(900.0), "buy", 1),
-            LegSpec(b.key(1100.0, call), "sell", 1), LegSpec(b.key(1200.0, call), "buy", 1))  # fmt: skip
-    condor = replace(b.put_spread(), structure="SC", legs=legs)
-    quotes = {b.key(1000.0): b.quote(10.0, 11.0), b.key(900.0): b.quote(4.0, 5.0),
-              b.key(1100.0, call): b.quote(1.5, 2.5), b.key(1200.0, call): b.quote(4.5, 5.5)}  # fmt: skip
-    refused = check(ImpossiblePriceLaw(), condor, snapshot=b.snapshot(quotes=quotes))
-    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and (refused.value, refused.limit) == (-3.0, 100.0)
-    fair = {**quotes, b.key(1200.0, call): b.quote(0.5, 1.5)}
-    assert check(ImpossiblePriceLaw(), condor, snapshot=b.snapshot(quotes=fair)).passed
+    """Judge 488's condor: the call vertical 1100/1200 quoted 1.5/2.5 against 4.5/5.5 is worth less than nothing on
+    any price in its range (2.5 - 4.5 = -2), though the condor's total at the touch sits inside its payoff bounds."""
+    refused = condor_at((1.5, 2.5), (4.5, 5.5))
+    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and (refused.value, refused.limit) == (-2.0, 100.0)
+    assert condor_at((1.5, 2.5), (0.5, 1.5)).passed
 
 
-@pytest.mark.parametrize(("c1200", "passed"), [((1.5, 2.5), True), ((1.52, 2.5), False)])
-def test_a_vertical_worth_zero_passes_and_less_than_zero_refuses(c1200, passed):
-    """[0, width] at the mids: the call vertical 1100/1200 worth exactly 0 (equal mids) passes; worth -0.01 refuses."""
-    call = b.OptionKind.CALL
-    legs = (LegSpec(b.key(1000.0), "sell", 1), LegSpec(b.key(900.0), "buy", 1),
-            LegSpec(b.key(1100.0, call), "sell", 1), LegSpec(b.key(1200.0, call), "buy", 1))  # fmt: skip
-    quotes = {b.key(1000.0): b.quote(10.0, 11.0), b.key(900.0): b.quote(4.0, 5.0),
-              b.key(1100.0, call): b.quote(1.5, 2.5), b.key(1200.0, call): b.quote(*c1200)}  # fmt: skip
+def test_a_vertical_whose_range_overlaps_its_payoff_is_valid():
+    """Judge 486 add. 1 (the owner's decision: ranges): 1.5/2.5 against 1.0/4.0 is worth -0.5 at the mids but can be
+    worth 2.5 - 1.0 = 1.5, so the quotes are not impossible."""
+    assert condor_at((1.5, 2.5), (1.0, 4.0)).passed
+
+
+@pytest.mark.parametrize(("c1200", "passed"), [((2.5, 3.0), True), ((2.51, 3.0), False)])
+def test_the_lower_bound_dearer_ask_less_cheaper_bid_at_zero_passes_below_refuses(c1200, passed):
+    assert condor_at((1.5, 2.5), c1200).passed is passed
+
+
+@pytest.mark.parametrize(("p1000_bid", "passed"), [(101.0, True), (101.01, False)])
+def test_the_upper_bound_dearer_bid_less_cheaper_ask_at_the_width_passes_above_refuses(p1000_bid, passed):
+    """A bought put vertical (1000/900, width 100) with a sold call vertical, so the total stays inside its bounds:
+    101.0 - 1.0 = 100 is possible, 100.01 is not."""
+    legs = (LegSpec(b.key(1000.0), "buy", 1), LegSpec(b.key(900.0), "sell", 1),
+            LegSpec(b.key(1100.0, CALL), "sell", 1), LegSpec(b.key(1200.0, CALL), "buy", 1))  # fmt: skip
+    quotes = {b.key(1000.0): b.quote(p1000_bid, 101.5), b.key(900.0): b.quote(0.5, 1.0),
+              b.key(1100.0, CALL): b.quote(50.0, 51.0), b.key(1200.0, CALL): b.quote(0.5, 1.0)}  # fmt: skip
     result = check(ImpossiblePriceLaw(), replace(b.put_spread(), legs=legs), snapshot=b.snapshot(quotes=quotes))
-    assert result.passed is passed
-
-
-def test_a_credit_spread_worth_more_than_its_width_at_the_mids_is_refused():
-    """Judge 488.1: a 100-point put spread whose mids say 100.5 (1000 put 99/104, 900 put 0.5/1.5) is impossible,
-    though at the touch (credit 97.5) it sits inside its payoff bounds; the vertical's upper bound catches it."""
-    quotes = {b.key(1000.0): b.quote(99.0, 104.0), b.key(900.0): b.quote(0.5, 1.5)}
-    refused = check(ImpossiblePriceLaw(), snapshot=b.snapshot(quotes=quotes))
-    assert refused.reason == RefusalReason.IMPOSSIBLE_LEG_PRICE and (refused.value, refused.limit) == (100.5, 100.0)
+    assert result.passed is passed and (passed or result.value == pytest.approx(100.01))

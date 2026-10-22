@@ -707,11 +707,16 @@ public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_
 
 | Note | Change | Test (and the plant it catches) |
 |---|---|---|
-| The impossible-price check must test each vertical, not only the total | `safety/quote_laws.py`: each bought-sold pair of one type and expiry is checked at the mids, and must lie within [0, width] (EDGE1). The total at the touch stays strict | `test_limits.py::test_a_stale_vertical_never_hides_behind_another_in_the_total` (a condor whose call vertical is worth -3 at the mids, while the total sits inside its bounds) and `test_a_vertical_worth_zero_passes_and_less_than_zero_refuses` (boundary). Plant: the vertical check removed |
+| The impossible-price check must test each vertical, not only the total | `safety/quote_laws.py`: each bought-sold pair of one type and expiry is checked (on its quoted range since the owner's decision below; first at the mids). The total at the touch stays strict | `test_limits.py::test_a_stale_vertical_never_hides_behind_another_in_the_total` (a condor whose call vertical is worth -3 at the mids, while the total sits inside its bounds) and `test_a_vertical_worth_zero_passes_and_less_than_zero_refuses` (boundary). Plant: the vertical check removed |
 | Acceptance 1's wording | Criterion 1 in this story now says the stop and the brake refuse at their limit | no code change |
 
 - **MS-P1j note:** j switches d's settlement store to b's `build_archive_stores` once both parts are on main.
-- **Judge 488.1 (tests only):** `test_a_credit_spread_worth_more_than_its_width_at_the_mids_is_refused`: a 100-point
-  put spread worth 100.5 at the mids, but inside its payoff at the touch, is refused. Plant: the vertical's upper bound
-  dropped (`0 <= v` only) is caught.
+- **Owner's decision (22 Oct 2026, relayed by the orchestrator) between judge 486 addendum 1 (Judge I) and judge 488.1
+  (Judge B): "ranges".** A vertical is impossible only when the dearer leg's ask less the cheaper leg's bid is below 0,
+  or the dearer leg's bid less the cheaper leg's ask is above the width: the same meaning of impossible as b's gate.
+  The mid rule of 9ed80bc7 is replaced, and B's 488.1 test (mid above the width, touch inside) is withdrawn, since that
+  data is valid under ranges and the touch check still governs the fill. Tests in `test_limits.py`:
+  `test_a_stale_vertical_never_hides_behind_another_in_the_total` (B's condor, refused at -2 on ranges),
+  `test_a_vertical_whose_range_overlaps_its_payoff_is_valid` (I's condor: 1.5/2.5 against 1.0/4.0, not refused), and
+  one boundary test for each bound. Plants: each bound dropped in turn, both caught.
 
