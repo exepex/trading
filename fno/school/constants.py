@@ -88,6 +88,7 @@ class RefusalReason(StrEnum):
     PROTECTION_UNSELLABLE = "protection_unsellable"
     IMPOSSIBLE_LEG_PRICE = "impossible_leg_price"
     STALE_SEAL = "stale_seal"
+    SIZE_NOT_MEASURED = "size_not_measured"  # a live fill on a quote whose displayed size was never measured
 
 
 class UnavailableReason(StrEnum):
