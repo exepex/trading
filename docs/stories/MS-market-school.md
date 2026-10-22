@@ -587,6 +587,30 @@ Runs on a's fakes here; story j must pass it with the real wiring.
   archived listing and lot files as fixtures; the dashcam is c's store on a local Drive folder and a local git remote.
 - The daily-run steps are a separate branch, `story/ms-p1j-daily-steps`, not merged until the v4 sign-off.
 
+**Runbook: a new card version (Judge H, judge 495 addendum 1; orchestrator, 22 Oct 2026).** Any new comparison-card
+version needs new D6 rows that name it. That covers a charges change (which `config.yaml` makes CI demand) and any
+change to the roads, slot, band or drivers. The rows must be registered and pushed BEFORE the next counted session's
+15:00 slot. Until then every decision is `comparison_card_mismatch`: it does not count, so the rule fails closed.
+
+1. Edit `research/school/CARD_P1.md`:
+   - raise its version (the header table and the factory block's `version:`);
+   - say what changed;
+   - commit and push it.
+   Note that commit as `CARD_COMMIT`.
+2. The card's hash: `git show CARD_COMMIT:research/school/CARD_P1.md | sha256sum`.
+3. Each driver card's hash, for every driver version in the card's section 1:
+   `sha256sum research/school/cards/<CODE>_v<N>.yaml`.
+4. For each driver version, one row, using the book's next version id (`python -m fno versions check` lists them):
+   `python -m fno versions register school:<CODE>@<N> <next id> --starts-on <next counted session> --components
+   '{"card_sha256": "<driver card hash>", "comparison_card_sha256": "<card hash>"}' --reason "Market school pilot P1
+   driver version, comparison card CARD_P1 v<version>"`. The command commits `journal/versions.csv` at once; push it.
+5. Check:
+   - `python -m fno versions check` shows every driver version with the new hash;
+   - `python -m pytest -q tests/school/registration` passes. That includes h's
+     `test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version`, which fails CI while
+     `config.yaml`'s `charges:` block differs from the hash frozen in the current card version.
+6. A row registered after a decision never counts that decision (D6's ancestor rule). Versions apply forward only.
+
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
 2. Every scheduled road decision has exactly one sealed outcome (count = trading roads x drivers).
