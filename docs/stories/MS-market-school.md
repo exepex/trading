@@ -1992,6 +1992,9 @@ Replaces the earlier part 4 (744299d6, never merged), which waived the size laws
   school, and now also refuses any `QuoteRules(...)` call outside `quote_rules.py` (LIVE) and the practice root, so a
   computed `practice=` cannot slip past the text check. Plants: a module outside the school building
   `QuoteRules(practice=bool(1))`, one importing the practice root, and the positional form allowed: 3 caught.
+- **a3 round 2's `check_fill_port_unmeasured` (judge 506) on the real live port** (a3 696f2db7 merged in):
+  `test_practice_fills.py::test_the_live_port_passes_a3s_unmeasured_check` on `SchoolFills` with `LIVE`: entry refused
+  `(size_not_measured,)`, exit waits. Plant: `LIVE` built with practice rules, caught.
 - **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
 - **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
 

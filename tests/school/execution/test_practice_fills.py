@@ -12,6 +12,7 @@ from fno.school.constants import ExitState, RefusalReason
 from fno.school.execution.practice_wiring import PRACTICE
 from fno.school.execution.school_fills import SchoolFills
 from tests.school.contracts import builders as b
+from tests.school.contracts import conformance as c
 
 from .school_builders import AT, CHARGES, fills, settlement_source
 
@@ -39,6 +40,11 @@ def test_a_practice_entry_on_an_unmeasured_quote_fills_at_the_touch(practice, tm
 def test_the_live_port_refuses_the_same_entry_as_size_not_measured(tmp_path):
     result = fills(tmp_path).enter(b.sealed(), UNMEASURED, b.seal(), AT)
     assert result.refused == (RefusalReason.SIZE_NOT_MEASURED,) and not result.legs
+
+
+def test_the_live_port_passes_a3s_unmeasured_check(tmp_path):
+    """Judge 506: a3's own conformance check on the real live port."""
+    c.check_fill_port_unmeasured(fills(tmp_path), b.sealed(), UNMEASURED, b.seal(), AT, b.position())
 
 
 def test_a_practice_exit_closes_and_a_live_exit_waits(practice, tmp_path):
