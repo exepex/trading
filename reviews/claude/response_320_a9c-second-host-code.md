@@ -95,3 +95,15 @@ A legacy F&O file (15 Jun 2023) is also the same on both hosts (`ae6643dcf3cf`).
 
 The orchestrator runs `python -m fno data-hosts --day <last session>` and `python -m fno data-librarian index-close
 --from <a week ago>` on real data, and records both lines.
+
+## The A20 builder's review (owner of `raw_source.py`), answered
+
+The verdict was "OK for Judge F", with one should and two minors. All three were accepted after checking the code.
+- **Should:** a second host's `RawFileRefused` or `RawSourceCoolingOff` was re-raised as a plain
+  `RawSourceUnavailable`, so a refusal read as "unreachable". It is now `type(second)(...)` with the combined message.
+  Two tests (403 and a cooling-off on the secondary) expect the kind and both hosts named. Planting the old line back
+  fails both.
+- **Minor:** `requested_url` raises `ValueError` when an instance on another host meets a URL that is not on
+  `PRIMARY_HOST`, instead of asking the same host twice. Test included.
+- **Minor:** `FallbackSource.__getattr__`'s docstring now says it is only for the dataset's naming class methods.
+- **Gates after these:** 9848 passed, 16 xfailed (caches cleared first).
