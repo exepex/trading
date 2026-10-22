@@ -50,3 +50,8 @@ After the merge (quality rule 8): cite the first scheduled run and the first `da
 **Note (no new number): head dafedbe3.** Beyond merges of `main` (other judges' changes), the only change since 05543aae is one
 import line in `fno/storage/row_log.py` (`from .raw_store import RawFileStore`, the A17 owner's nit). Checked by diff. The
 PASS stands at dafedbe3, and the G7 failure is gone now that `main` is merged in.
+
+**Merge check (ef9e976b, no new number).**
+- The table's receipt SHA-256 `8d77cb52…` (789,682 bytes) equals `sha256sum` of the committed `india_vix_daily.csv`.
+- The first `data-checks` run, 39769005484 on the merge commit, concluded **success** (read through GitHub's API).
+- Still owed: the first scheduled `vix-history` run on 23 Oct, then the removal commit.
