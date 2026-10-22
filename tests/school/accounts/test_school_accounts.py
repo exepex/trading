@@ -2,6 +2,7 @@
 only through its lock, fills recorded once with C1's charges, positions marked at their road's mids (worst case when a
 leg cannot be marked), one equity row per session, and the files mirrored through E2c's private files."""
 
+from dataclasses import replace
 from datetime import timedelta
 
 import pytest
@@ -193,3 +194,14 @@ def test_a_close_of_a_position_never_opened_or_a_reused_id_is_refused_before_any
                                          closes=True, exit_reason=ExitReason.PROFIT_TARGET))  # fmt: skip
     with pytest.raises(EntryConflict, match="already recorded differently"):  # p1 reused for another position
         port.record("CS1@1", opening(tmp_path, lots=2))
+
+
+def test_a_leg_whose_charges_differ_from_c1_s_is_refused_before_any_write(tmp_path):
+    """The fill port and the account price charges one way (C1): a fill carrying other charges is never recorded."""
+    port, entry = accounts(tmp_path), opening(tmp_path)
+    port.view("CS1@1", marks(), b.SESSION)
+    first, *rest = entry.fill.legs
+    cheaper = replace(entry.fill, legs=(replace(first, charges=first.charges - 1.0), *rest))
+    with pytest.raises(EntryMismatch, match="charges differ"):
+        port.record("CS1@1", LedgerEntry(entry.position, cheaper, closes=False))
+    assert not [r for r in ledger(tmp_path) if r["kind"] == LEDGER_FILL]

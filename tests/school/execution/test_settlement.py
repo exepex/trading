@@ -76,3 +76,15 @@ def test_another_index_or_expiry_is_refused(tmp_path):
         settlement_source(settlement_folder(tmp_path)).price("SENSEX", REAL_DAY)
     with pytest.raises(ValueError, match="does not expire wholly"):
         fills(tmp_path).settle(spread("NIFTY", 21400.0, 21300.0), REAL_DAY.replace(day=24))
+
+
+def test_settlement_with_no_store_stops_by_name_never_waits_forever(monkeypatch):
+    """Judge 486 finding 2: no readable store would leave every expired position `settlement_needed` for ever, counted
+    at its worst case, with no alert; the wiring refuses to build instead."""
+    from fno.school.execution import wiring
+
+    monkeypatch.setattr(wiring, "build_raw_stores", lambda project_folder=None: [])
+    with pytest.raises(wiring.SettlementStoresNotConfigured, match="archived F&O files"):
+        wiring.build_settlement_source()
+    monkeypatch.setattr(wiring, "build_raw_stores", lambda project_folder=None: ["a store"])
+    assert wiring.build_settlement_source() is not None

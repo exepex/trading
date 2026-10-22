@@ -6,12 +6,15 @@ from datetime import date, timedelta
 
 import pytest
 
-from fno.school.accounts.brake import EquityRow, brake_state
+from fno.school.accounts.brake import EquityRow, brake_state, first_review_day
 from fno.school.accounts.reviews import ReviewFile, ReviewFileError
 
 from .account_builders import NEXT, Reviews, accounts, marks, opening, spread_quotes
 
-D = [date(2026, 11, 2) + timedelta(days=n) for n in range(10)]
+# Sessions: 2 and 3 Nov, then from Mon 7 Dec. A brake engaged on 3 Nov waits for the monthly review on or after the
+# first Saturday of December (5 Dec).
+D = [date(2026, 11, 2), date(2026, 11, 3)] + [date(2026, 12, 7) + timedelta(days=n) for n in range(8)]
+REVIEW = date(2026, 12, 5)
 BRAKE = 120_000.0
 
 
@@ -36,8 +39,8 @@ def test_it_holds_across_sessions_after_equity_recovers():
 
 
 def test_a_review_row_lifts_it_from_the_next_session_and_restarts_the_high():
-    state = brake_state(rows(2_000_000, 1_870_000, 1_860_000, 1_850_000), (D[1],), BRAKE)
-    assert state.engaged_on is None and state.lifted_on == D[1] and state.high == 1_860_000
+    state = brake_state(rows(2_000_000, 1_870_000, 1_860_000, 1_850_000), (REVIEW,), BRAKE)
+    assert state.engaged_on is None and state.lifted_on == REVIEW and state.high == 1_860_000
 
 
 def test_a_review_before_the_fall_or_without_a_brake_lifts_nothing():
@@ -46,13 +49,32 @@ def test_a_review_before_the_fall_or_without_a_brake_lifts_nothing():
 
 
 def test_after_a_lift_the_high_restarts_at_the_next_fully_marked_row():
-    state = brake_state(rows(2_000_000, 1_870_000, 3_000_000, 1_860_000, stale=(2,)), (D[1],), BRAKE)
+    state = brake_state(rows(2_000_000, 1_870_000, 3_000_000, 1_860_000, stale=(2,)), (REVIEW,), BRAKE)
     assert state.high == 1_860_000 and state.engaged_on is None, "never from the worst-case row"
 
 
+@pytest.mark.parametrize(
+    ("engaged", "review"),
+    [(date(2026, 11, 3), date(2026, 12, 5)), (date(2026, 10, 22), date(2026, 11, 7)),
+     (date(2026, 12, 31), date(2027, 1, 2)), (date(2026, 11, 7), date(2026, 12, 5))],
+)  # fmt: skip
+def test_the_review_is_the_first_saturday_of_the_next_month(engaged, review):
+    assert first_review_day(engaged) == review and review.weekday() == 5
+
+
+def test_a_row_before_the_monthly_review_is_an_error_never_a_lift():
+    """Owner, 22 Oct 2026: "Pause till monthly review". Engaged on 3 Nov: a row of 4 Dec (the day before the first
+    Saturday of December) is refused; one of 5 Dec lifts; a row of the engagement day itself is refused too."""
+    fallen = rows(2_000_000, 1_870_000, 1_870_000)
+    for early in (date(2026, 12, 4), D[1]):
+        with pytest.raises(ReviewFileError, match="before the monthly review"):
+            brake_state(fallen, (early,), BRAKE)
+    assert brake_state(fallen, (REVIEW,), BRAKE).lifted_on == REVIEW
+
+
 def test_it_engages_again_after_a_lift():
-    state = brake_state(rows(2_000_000, 1_870_000, 1_870_000, 1_750_000), (D[1],), BRAKE)
-    assert state.engaged_on == D[3] and state.lifted_on == D[1]
+    state = brake_state(rows(2_000_000, 1_870_000, 1_870_000, 1_750_000), (REVIEW,), BRAKE)
+    assert state.engaged_on == D[3] and state.lifted_on == REVIEW
 
 
 def test_an_unmarked_session_never_engages_it_or_sets_the_high():
@@ -69,6 +91,9 @@ def test_the_account_view_carries_the_latch_and_the_review_lifts_it(tmp_path):
     assert fallen.equity_high - fallen.equity >= BRAKE and fallen.brake_engaged_on == NEXT
     recovered = port.view("CS1@1", marks(spread_quotes(10.5, 4.5), D[2]), D[2])
     assert recovered.brake_engaged_on == NEXT, "held across sessions though equity recovered"
+    reviews.rows["CS1@1"] = [date(2026, 12, 4)]
+    with pytest.raises(ReviewFileError, match="before the monthly review"):
+        port.view("CS1@1", marks(spread_quotes(10.5, 4.5), D[2]), D[2])
     reviews.rows["CS1@1"] = [D[2]]
     assert port.view("CS1@1", marks(spread_quotes(10.5, 4.5), D[2]), D[2]).brake_engaged_on == NEXT, "not yet"
     lifted = port.view("CS1@1", marks(spread_quotes(10.5, 4.5), D[3]), D[3])

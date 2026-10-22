@@ -14,8 +14,17 @@ from .school_fills import SchoolFills
 from .settlement_source import ArchivedOnly, BhavcopySettlement
 
 
+class SettlementStoresNotConfigured(RuntimeError):
+    """No store can be read for NSE's archived F&O files: settlement would wait forever while expired positions count
+    at their worst case, so the run stops here, by name (judge 486 finding 2). b's `build_archive_stores` (the owner's
+    Drive as a fallback) replaces this check once MS-P1b is merged."""
+
+
 def build_settlement_source(project_folder: Path | None = None) -> BhavcopySettlement:
-    return BhavcopySettlement(NseFinalSettlement(RawFileLibrary(build_raw_stores(project_folder), ArchivedOnly())))
+    stores = build_raw_stores(project_folder)
+    if not stores:
+        raise SettlementStoresNotConfigured("no store holds NSE's archived F&O files: set the Drive settings")
+    return BhavcopySettlement(NseFinalSettlement(RawFileLibrary(stores, ArchivedOnly())))
 
 
 def build_fill_port(cfg: dict, project_folder: Path | None = None) -> SchoolFills:

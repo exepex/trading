@@ -460,6 +460,9 @@ Runs on a's fakes here; story j must pass it with the real wiring.
   at the snapshot, not its exits of older positions there (`AccountView` cannot show them). Exits therefore run after
   the slot's entries, as the order above has it: an exit that then finds too little size waits
   (`exit_waiting_quote`), and an entry never counts on size an exit will take.
+- judge 486's note (orchestrator, 22 Oct 2026): expiry settlement runs before the session's first account `view`. An
+  expired position has no mark in the next capture, so a view taken before its settlement counts it at minus its
+  maximum loss, and that can trip the daily stop.
 
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
@@ -684,3 +687,15 @@ public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_
   structure or width without a row** (all PCS, CCS, CDS and PDS today). The pilot cannot trade those until then.
 
 **Real output sample:** none from a recorded day. A real snapshot needs b's `SnapshotSource` and j's fleet, and neither exists on this branch. On the fixture snapshot, a 1-lot BANKNIFTY bull put spread passes 12 of the 13 laws and is refused by margin room (no BANKNIFTY margin rows, noted "margin not checked: no data"). It fills at a bid of 10 and an ask of 5 (30 units each) with C1's charges, and its maximum loss at the touch is above the figure at the mids (`test_max_loss_counts_the_touch_the_fill_pays_not_only_the_mid`).
+
+### MS-P1d Claims, round 2 (judge 486 by Judge I: FAIL in round 1, 2 should-fixes and 1 minor; Judge B's findings follow)
+
+| Judge 486 finding | Fix | Test (and the plant it catches) |
+|---|---|---|
+| 1. Any review row lifted the brake | "Pause till monthly review": a row dated from the engagement up to the day before the first Saturday of the next month is a `ReviewFileError`, never a lift (`accounts/brake.py`, `first_review_day`) | `test_brake_state.py::test_a_row_before_the_monthly_review_is_an_error_never_a_lift` (engaged 3 Nov: 4 Dec and 3 Nov refused, 5 Dec lifts), `test_the_review_is_the_first_saturday_of_the_next_month` (year end included), and the account view raising on an early row. Plant: the check removed |
+| 2. No store meant settlement waited for ever, with no alert | `execution/wiring.py`: no store raises `SettlementStoresNotConfigured`, by name. To avoid a second version, b's `build_archive_stores` (the owner's Drive as a fallback) replaces this check once MS-P1b merges | `test_settlement.py::test_settlement_with_no_store_stops_by_name_never_waits_forever`. Plant: the check removed |
+| Minor: no test of the charges cross-check | none needed | `test_school_accounts.py::test_a_leg_whose_charges_differ_from_c1_s_is_refused_before_any_write`. Plant: the check removed |
+
+- **MS-P1j note:** settlement runs before the session's first `view` (added under MS-P1j).
+- **Plants:** 40 planted, 40 caught.
+
