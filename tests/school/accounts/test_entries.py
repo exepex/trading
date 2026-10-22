@@ -11,6 +11,7 @@ from fno.desk.private_files import PrivateFilesUnavailable
 from fno.school.accounts.ledger_fills import ledger_fills
 from fno.school.accounts.names import account_name
 from tests.school.contracts import builders as b
+from tests.school.contracts import conformance as c
 from tests.school.execution.school_builders import CHARGES
 
 from .account_builders import ACCOUNT_RS, NEXT, Sync, accounts, closing, marks, opening
@@ -79,3 +80,8 @@ def test_half_a_record_is_never_returned(tmp_path):
         AccountWriter(PaperAccount(tmp_path, account_name("CS1@1")), lock, ACCOUNT_RS).apply_fill(half)
     with pytest.raises(AccountError, match="disagree"):
         port.entries("CS1@1")
+
+
+def test_school_accounts_pass_a3s_ledger_reader_check(tmp_path):
+    port, entry = accounts(tmp_path), opening(tmp_path)
+    c.check_ledger_reader(port, port, entry, closing(tmp_path, entry), marks(), b.SESSION)

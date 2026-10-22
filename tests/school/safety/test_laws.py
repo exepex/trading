@@ -174,6 +174,7 @@ def ladder(count: int) -> tuple:
 BAD_700 = {
     "quote_gate:missing_quote": None,
     "quote_gate:one_sided_quote": replace(b.quote(1.0, 2.0), ask=None),
+    "quote_gate:size_not_measured": replace(b.quote(1.0, 2.0), bid_qty=None, ask_qty=None, sizes_measured=False),
     "quote_gate:size_above_displayed": b.quote(1.0, 2.0, size=1),
     "quote_gate:protection_unsellable": replace(b.quote(1.0, 2.0), bid_qty=1),
     "impossible_price": b.quote(9.5, 10.0),  # bought for the credit received: a spread that cannot win

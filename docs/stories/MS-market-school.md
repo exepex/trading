@@ -1186,6 +1186,31 @@ cases and a test that fails when the named code is broken on purpose.
 
 **SIM-d The practice runner and its labels** · depends on a-c and on MS-P1j's fleet runner
 - Files: `practice/`, `wiring.py`, the reserved CLI line.
+- **Plan (22 Oct 2026, builder; the interface names of MS-P1j's runner are confirmed when it is on main):**
+  - **d1 Inputs.** A stores-only `RawFileLibrary` over `build_archive_stores()` with `StoredFilesOnly`; `BhavcopyChain` over the UDiFF and
+    legacy files with `index_close` from A10's archived index-close files (criteria 9, 10); `DatedTerms` with EDGE1's circular lots and
+    `dated_charges`; the A7 calendar; `PracticeWindows(first_counted)` from the configured `school.first_counted`; a `SpreadModel` learned by
+    `SpreadLearner` from `recorded_snapshots` over the recorded sessions. Files: `practice/inputs.py`, `practice/spots.py` (the closes up to the
+    session as the drivers' `SpotPoint` history: nothing after the session).
+  - **d2 The fleet.** A second instance of MS-P1j's own `FleetRunner` class (no second runner implementation, orchestrator 22 Oct), wired in this
+    package's composition root with injected practice dependencies. If j's runner cannot take them as injected dependencies, MS-P1j's builder is asked to open that seam;
+    nothing is worked around or copied. The dependencies are: three `HistoricalRoadSource`s (median,
+    p75, p95); `build_practice_safety_laws` and `QuoteRules(practice=True)` (criterion 12); accounts under a practice root that is not
+    `journal/school`; a practice dashcam dataset; the pilot's drivers from `research/school/cards/` minus any AI-role card (criterion 5).
+    Files: `practice/fleet.py`, `wiring.py`. Replay mode, fixed clock, local store: nothing is pushed.
+  - **d3 The run and its report.** `PracticeRunner.run(window, roads, drivers)` loops the sessions of a window the catalogue opens, one fleet per
+    scenario, and returns a `PracticeReport` with: per scenario and driver the counts (eligible, fillable, executed) and the net after costs;
+    the insufficient-bucket list; the unpriceable and unsellable legs; the impossible share per road-day (criterion 14); the label
+    `practice (simulator)`, the slot label and `size gate not tested in practice` on every line. Files: `practice/runner.py`, `practice/report.py`,
+    `practice/labels.py`.
+  - **d4 The command and the real-data dry run.** `python -m fno school practice run --from --to --roads` (one reserved line in `fno/cli.py`, agreed
+    with MS-P1j's owner). A dry run on a recorded window on the Drive archive (the container has read access), its output in the Claims with
+    counts only. With 8 recorded NIFTY sessions every bucket reads `insufficient spread data`, so the first real run proves the plumbing, the
+    labels and the unpriceable counts, not a result.
+  - **Order and dependencies.** d1 needs nothing new. d2 needs MS-P1j (the runner) and MS-P1d part 4 (on main). Criterion 13 needs MS-P1a's
+    `RoadDay.lots` follow-up (asked of its owner, 22 Oct) and a one-line change in `drivers/proposals.py`. d3 and d4 follow d2. Every file stays under 350
+    lines; the runner and the report are separate classes.
+- Files: `practice/`, `wiring.py`, the reserved CLI line.
 - Tests:
   1. The pilot's rule drivers run unchanged: the driver modules are imported from `fno/school/drivers/`, a test checks
      no driver file is edited by this story (diff-based) and that a practice run and the same card on a recorded
@@ -1200,6 +1225,36 @@ cases and a test that fails when the named code is broken on purpose.
   7. The import-list test: no banner, report, registration, map or licence module, no order call, no Slack.
   8. The privacy test: public output holds counts only; strikes, prices and card internals go to the practice
      dataset in Drive (write-once, receipt in GitHub), never to the repository.
+  9. Stores only: the F&O files and index closes are read through MS-P1b's `StoredFilesOnly` source inside a `RawFileLibrary`
+     (`fno/school/roads/wiring.py`), never `build_nse_fo_library`, which falls back to an NSE fetch. A test builds the
+     library with a source whose fetch raises and runs a missing day: the road closes, nothing is fetched. Named test: `test_a_missing_day_closes_the_road_and_nothing_is_fetched`.
+  10. The index close: legacy-format F&O files carry no underlying price, so `BhavcopyChain` is built with `index_close`
+      from NSE's archived index-close files (A10, `build_index_close_files` read through the same stores-only library).
+      Named tests: `test_a_legacy_day_takes_its_index_close_from_the_archived_file` (24 Jun 2021: open road) and
+      `test_a_legacy_day_with_no_index_close_closes_the_road` (`capture_missing`).
+  11. Dated STT across a regime change: a position opened on 31 Mar 2023 and closed on 3 Apr 2023 keeps its two
+      fills' own charges and passes `accounts/ledger_fills.py`'s recomputation check; if it does not, MS-P1d's builder
+      is asked for a follow-up before SIM-d is offered for judging.
+  12. The practice rules: the fleet is built with MS-P1d's `build_practice_safety_laws` and `QuoteRules(practice=True)`
+      only in this package's wiring, and a test shows that without the flag the live laws and `SchoolFills` refuse a
+      quote with `sizes_measured=False`.
+  13. A lot per contract, not per road (judge 509, orchestrator): on 2 Jun 2025 BANKNIFTY-M's two monthlies carry different
+      lots after NSE's April 2025 change, and the catalogue (c) closes the road as `lot_mismatch`. SIM-d follows the way strike
+      steps are kept per expiry: each expiry keeps the lot the file states for it, and a road closes only when one
+      contract's own lot is missing or contradictory. This needs the road day to carry a lot per expiry (a small additive
+      follow-up to MS-P1a's `RoadDay`, as `strike_steps` was in MS-P1a2), asked of its owner first. Test with 2 Jun 2025: BANKNIFTY-M open
+      with each expiry's own lot, a proposal's units follow the leg's expiry.
+  14. The report shows the share of impossible legs per road-day, separate from refusals (judge 509: 42-177 of 260-436 traded
+      legs on closes, mostly the closes' own staleness). Named test: `test_the_report_counts_impossible_legs_apart_from_refusals`.
+      Without it a practice result reads as a full chain.
+  15. Separation by test, not convention (orchestrator, 22 Oct): a practice run writes nothing under the pilot's dashcam, accounts, tickets or
+      counts paths, and the pilot's readers never read the practice dataset. Two named tests plant a practice record and a pilot record and show
+      neither reader sees the other (`test_a_practice_run_writes_nothing_under_the_pilots_paths`,
+      `test_the_pilots_readers_never_read_the_practice_dataset`). Every practice record carries `practice (simulator)` in the record itself,
+      not only in the report (`test_every_practice_record_carries_the_label`).
+  16. Data spend, by name: a window that DATA_SPEND does not list as spent or exposed is refused naming the road and `not_in_data_spend`
+      (FINNIFTY and MIDCPNIFTY refused, NIFTY accepted); a run over such a window raises before any session is read, and no
+      record is written. Named test: `test_a_window_over_an_unregistered_road_is_refused_by_name`. Practice never consumes a fresh outcome window.
 
 ### 7.5 Gap list
 
@@ -1285,7 +1340,7 @@ Built: `fno/school/simulator/{constants,windows,terms}.py`, `history/{ports,bhav
   message MS-P1d's builder only if it fails.
 - **Gates at this tip (full run on the SIM-a files):** `pytest -n auto`: 11,733 passed, 16 xfailed, 1 failed:
   `tests/ai/test_fire_and_collect.py::test_a_reveal_that_never_came_or_does_not_match_records_no_forecast`. It passes alone
-  and passes on the branch's parent with my files stashed, so it is a load-dependent flake outside this story; I did not
+  and passes on the branch's parent with my files stashed, so it fails only under load. Whether that is a flake or a real defect is not established: the orchestrator said it is a real issue to root-cause and is routing it separately. Outside this story; I did not
   touch it. `ruff check`, `check_imports` (clean, 2,249 files) and `check_records` (clean) pass.
 - Self-review by independent review agents: not yet run; I run them on the SIM-c tip, over all three parts.
 
@@ -1315,6 +1370,48 @@ Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests 
   Reasoning only: spreads were probably wider in earlier years, so practice is optimistic. This is why the three scenarios are always shown together.
 - **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
   the code returns exactly that and nothing else.
+
+#### SIM-c Claims (round 1, branch `story/ms-sim-c` on `story/ms-sim-b`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.py`, tests in
+`tests/school/simulator/source/`. Files changed from the story: the package is `source/` (several small files), not one `source.py`.
+
+| Criterion (7.4 SIM-c) | Code | Tests | Broken-code proof (caught) |
+|---|---|---|---|
+| 1 conformance of catalogue and source | `catalogue.py`, `snapshots.py` | `test_the_catalogue_and_source_pass_the_pilots_conformance_checks` | n/a (a's checks) |
+| 2 traded that day; volume 1 is traded, 0 is not | `snapshots.py` | `test_a_leg_that_did_not_trade...` | `volume > 0` to `>= 0` |
+| 3 impossible vertical flagged, both legs unquoted | `snapshots.py` over `quality.prices.impossible_keys` | `test_a_planted_impossible_vertical...` | the flag branch removed |
+| 4 close -/+ half-spread, tick-outward, no bid below zero, sizes `None` with `sizes_measured=False` (design A; reworked on MS-P1a3) | `quotes.py` | `test_quotes_and_steps.py` (10 tests, incl. 7.5 at 2%, which floors wrongly without the epsilon) | floor to round; epsilon 0; floor at half a tick removed; sizes changed |
+| 5 look-ahead: only the session's own chain is asked for; same day, same bytes; changed close, changed bytes | `snapshots.py` | `test_only_the_sessions_own_chain_is_read`, `test_the_same_day...`, `test_the_digest_covers_the_close...` | the day asked for shifted by one |
+| 6 insufficient bucket: no quote, counted, never zero spread | `snapshots.py` | `test_an_insufficient_bucket...` | zero-spread quote substituted |
+| 7 dated lot and dated STT | `terms.py` (a), used by `catalogue.py` | `test_a_2022_trade_is_charged_the_2022_stt...`, lot tests | lot ignored in a; STT date fixed in a |
+| window, expiries, lot, step | `catalogue.py`, `steps.py` | catalogue tests, step tests | window check; expiry count; expiry cut-off; lot-agreement; modal step; near-the-money group |
+
+- **Mutations: 23 of 23 caught** over a, b and c (two first survived; tests were added and re-run).
+- **Self-review by an independent agent** (fresh context, given the diff and the rules, not my conclusions). No blocking
+  finding. Each finding checked by me:
+  - *Accepted and fixed:*
+    1. A weekly expiring on the session is not recorded (A4f takes `e > day`, `fno/quotes/weekly.py:22`; I checked it); monthlies still from today.
+    2. The digest ignored `last` and the sizes: two different archives could share a hash. Now hashed.
+    3. `priced` counted a leg whose bid rounds to nothing: now `unsellable`.
+    4. The window is re-checked in the source, so a hand-built road day cannot read a fresh day.
+    5. The index close comes from the nearest expiry's rows, not the first row.
+    6. A malformed number makes that format unreadable instead of reading as zero.
+    7. A contract listed twice counts once.
+    8. The tick constant is shared (DRY).
+    9. The weak look-ahead test was cut to its real assertion.
+  - *Not changed, with reason:*
+    1. **Impossible prices judged on the whole chain, not the band.** Intended and conservative: the card's band is not known to the
+       source, a stale far strike can only remove quotes, never add one. The cost is that the pilot's `IMPOSSIBLE_PRICE` road
+       closure is not exercised in practice; practice shows the same cases as `coverage.impossible`. Stated here.
+    2. **`PracticeWindows(first_counted=None)` default.** The windows already end 12 Oct 2026, before any forward capture; `first_counted`
+       only moves the end earlier. SIM-d's wiring passes the configured value, and I add a wiring test there.
+    3. **`sys.path` insert in `history/edge1.py`:** accepted in round 1, then removed in SIM-a round 2: EDGE1 is loaded by file path under a unique package name and its folder never joins `sys.path` (judge 500 minor a, fixed; judge 509 minor b).
+    4. **Spread learned from Oct 2026 and applied to 2019-26; P95 of session medians.** Disclosed regime assumption, why the
+       three scenarios are always shown together. No change.
+- **Design A rework (22 Oct, after MS-P1a3 `9ede0d1e`):** quotes carry sizes `None` with `sizes_measured=False`; no placeholder constant exists. `test_the_live_fill_path_refuses_an_unmeasured_quote...` shows E4's `price_leg` refuses it ("quote not valid: no size") without MS-P1d's practice rules, so a practice quote reaching a live path fails closed. The practice-mode pass-through itself is MS-P1d's and is tested in SIM-d. **Not yet run on real data:** the catalogue and source are tested on fixtures; `BhavcopyChain` alone ran on the Drive archive (SIM-a Claims). SIM-d's dry run does the end-to-end run (the container does have Drive access).
+- **Gates at this tip:** `ruff check`, `check_imports` (clean) and `check_records` (clean) pass. `pytest -n auto` over the whole repository was run on
+  the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the design-A tip `3c1a3cc6` (clean worktree, `pytest -q -n auto`) is 12,001 passed, 16 xfailed, 0 failed in 510 s (judge 509 reproduced 12,001).
 
 ## Claims
 
@@ -2189,4 +2286,24 @@ one pricing model rather than adding a second, and G13's helpers take whole days
   - the check removed from `attribute`;
   - the check removed from the reader;
   - the tolerance made strict.
+### MS-P1d follow-up Claims, part 4 (branch `story/ms-p1d-practice`, on the law order and a3 9ede0d1e): practice quote rules, design A
+Replaces the earlier part 4 (744299d6, never merged), which waived the size laws outright. Built on a3's
+`SlotQuote.sizes_measured` and `RefusalReason.SIZE_NOT_MEASURED` (a3 must merge first, then the law order, then this).
+| Item (orchestrator, 22 Oct 2026, design A) | Change | Test (and the plant it catches) |
+| Only practice rules map an unmeasured size to "no size limit", at the E4 boundary | `execution/quote_rules.py`: `QuoteRules.sizes` passes a measured size as recorded; unmeasured gives `math.inf` (no limit) under practice and `None` live; `desk_view.execution_snapshot(..., rules)` reads sizes through it. No sentinel number | `test_practice_fills.py`: a practice entry on an unmeasured quote fills at the same touch, units and charges as a measured one, and a practice exit closes (plant: practice gives no size; plant: the fill ignores its rules) |
+| Live refuses an unmeasured quote at the fill with its own reason | `QuoteRules.size_not_measured` (live, unmeasured, and two-sided by a's rule); `desk_view.size_unmeasured` names those contracts; `entry_gate` names them `size_not_measured` before A4's problem; a fifth quote-gate law; `SchoolFills(..., rules=LIVE)` | the live port refuses the same entry `(size_not_measured,)` and a live exit waits; the live laws refuse it alone; conformance row for the new law (plant: the check dropped) |
+| A quote missing a side's price stays one-sided | the reason needs `two_sided`, so a missing bid or ask (or `valid=False`) stays `one_sided_quote` under either rules | missing bid and missing ask on both ports; missing, no-ask and invalid under the practice laws (plant: the two-sided condition dropped) |
+| Practice size and sell-back laws pass with the note | `QuoteGateLaw._note`: `size gate not tested in practice` only when a size law passed under practice rules on an unmeasured quote; a measured size is judged as live and carries no note | practice on unmeasured passes with the note on both size laws; measured too small refuses and measured enough passes, under both rules, with no note (plants: note dropped; note on measured sizes) |
+| Live cannot reach practice; no sentinel | `PRACTICE` built only in `execution/practice_wiring.py` (`build_practice_fill_port`); `safety/practice_wiring.py` builds the laws with it through `laws_with` | AST test: only `simulator/` and the two practice roots import a `practice_wiring`, only the two safety roots call `laws_with`, `practice=True` only in the execution practice root; the live root's five quote laws are all `LIVE`; no `10**9` or `SIZE_GATE_WAIVED` in `fno/` |
+- **Plants:** 6 planted, 6 caught (listed above).
+- **Judge 488.6 note 1 (Judge B: PASS), fixed at the root:** `QuoteRules` is keyword-only (`kw_only=True`), so a
+  positional `QuoteRules(True)` raises `TypeError` (tested). The isolation scan covers all of `fno/`, not only the
+  school, and now also refuses any `QuoteRules(...)` call outside `quote_rules.py` (LIVE) and the practice root, so a
+  computed `practice=` cannot slip past the text check. Plants: a module outside the school building
+  `QuoteRules(practice=bool(1))`, one importing the practice root, and the positional form allowed: 3 caught.
+- **a3 round 2's `check_fill_port_unmeasured` (judge 506) on the real live port** (a3 696f2db7 merged in):
+  `test_practice_fills.py::test_the_live_port_passes_a3s_unmeasured_check` on `SchoolFills` with `LIVE`: entry refused
+  `(size_not_measured,)`, exit waits. Plant: `LIVE` built with practice rules, caught.
+- **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
+- **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
 

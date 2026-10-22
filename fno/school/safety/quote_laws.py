@@ -1,8 +1,9 @@
 """Law 5, the quote gate (story 3.3), as one law per reason so every reason is kept: a leg with no quote, a leg
-without a valid two-sided A4 quote, an opening side whose displayed size does not cover the units (with the units this
-account already took at this snapshot, E4d), and a protective leg that cannot be sold back there (E4c). The one gate
-(`execution/entry_gate.py`, on E4's `price_leg` and E4c/E4d's `entry_problems`) judges all four; the fill port uses
-the same gate, so a proposal these laws pass is one the fill can take.
+without a valid two-sided A4 quote, a live quote whose displayed size was never measured, an opening side whose
+displayed size does not cover the units (with the units this account already took at this snapshot, E4d), and a
+protective leg that cannot be sold back there (E4c). The one gate (`execution/entry_gate.py`, on E4's `price_leg` and
+E4c/E4d's `entry_problems`) judges all five under the same `QuoteRules` as the fill port, so a proposal these laws pass
+is one the fill can take.
 
 Beside it, EDGE1's impossible-price rule: at the touch the fill would take, the position must be worth strictly more
 than its worst payoff at expiry and strictly less than its best; anything else promises a trade that cannot lose or
@@ -21,34 +22,47 @@ from ..contracts.decisions import Proposal
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.safety import AccountView, LawResult
 from ..contracts.snapshot import SlotSnapshot
-from ..execution.desk_view import execution_snapshot, school_legs
+from ..execution.desk_view import execution_snapshot, school_legs, size_unmeasured
 from ..execution.entry_gate import entry_refusals, taken_at_snapshot
+from ..execution.quote_rules import LIVE, PRACTICE_SIZE_NOTE, QuoteRules
 from ..quality.prices import impossible_keys
 
 GATE_REASONS = (
     RefusalReason.MISSING_QUOTE,
     RefusalReason.ONE_SIDED_QUOTE,
+    RefusalReason.SIZE_NOT_MEASURED,
     RefusalReason.SIZE_ABOVE_DISPLAYED,
     RefusalReason.PROTECTION_UNSELLABLE,
 )
+SIZE_REASONS = frozenset({RefusalReason.SIZE_ABOVE_DISPLAYED, RefusalReason.PROTECTION_UNSELLABLE})
 
 
-def gate_refusals(proposal: Proposal, account: AccountView, snapshot: SlotSnapshot) -> tuple[RefusalReason, ...]:
+def gate_refusals(proposal: Proposal, account: AccountView, snapshot: SlotSnapshot,
+                  rules: QuoteRules = LIVE) -> tuple[RefusalReason, ...]:  # fmt: skip
     underlying = ROADS_BY_CODE[snapshot.road].underlying
     here = [p for p in account.opened_this_session if p.road == snapshot.road and p.opened == snapshot.session]
     legs = school_legs(underlying, proposal.legs, proposal.lot)
-    return entry_refusals(execution_snapshot(snapshot, underlying), legs, taken_at_snapshot(underlying, here))
+    desk, unmeasured = execution_snapshot(snapshot, underlying, rules), size_unmeasured(snapshot, underlying, rules)
+    return entry_refusals(desk, legs, taken_at_snapshot(underlying, here), unmeasured)
 
 
 class QuoteGateLaw:
-    def __init__(self, reason: RefusalReason):
+    def __init__(self, reason: RefusalReason, rules: QuoteRules = LIVE):
         if reason not in GATE_REASONS:
             raise ValueError(f"{reason} is not a quote-gate reason")
-        self.reason, self.name = reason, f"quote_gate:{reason}"
+        self.reason, self.name, self.rules = reason, f"quote_gate:{reason}", rules
 
     def check(self, proposal: Proposal, account: AccountView, snapshot: SlotSnapshot, session: date) -> LawResult:
-        passed = self.reason not in gate_refusals(proposal, account, snapshot)
-        return LawResult(self.name, passed, None if passed else self.reason)
+        passed = self.reason not in gate_refusals(proposal, account, snapshot, self.rules)
+        return LawResult(
+            self.name, passed, None if passed else self.reason, note=self._note(passed, proposal, snapshot)
+        )
+
+    def _note(self, passed: bool, proposal: Proposal, snapshot: SlotSnapshot) -> str:
+        """A size check passed under practice rules on a size nobody measured says it was not tested."""
+        quotes = [snapshot.quote(leg.key) for leg in proposal.legs]
+        untested = self.rules.practice and any(q is not None and not q.sizes_measured for q in quotes)
+        return PRACTICE_SIZE_NOTE if passed and self.reason in SIZE_REASONS and untested else ""
 
 
 class ImpossiblePriceLaw:

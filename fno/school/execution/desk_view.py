@@ -14,6 +14,7 @@ from ...research_engine.structures import BOUGHT, SOLD, Leg
 from ..constants import SIDE_BUY
 from ..contracts.decisions import LegSpec
 from ..contracts.snapshot import ContractKey, SlotQuote, SlotSnapshot
+from .quote_rules import LIVE, QuoteRules
 
 NOT_VALID = "not valid by A4's rule (no trade today)"
 
@@ -52,15 +53,23 @@ def school_legs(underlying: str, legs: tuple[LegSpec, ...], lot: int) -> tuple[S
     return tuple(sorted(built, key=lambda leg: not leg.desk.protective))
 
 
-def execution_snapshot(snapshot: SlotSnapshot, underlying: str) -> ExecutionSnapshot:
-    """The road's verified capture as E4's execution snapshot: same ID, hash and times; quotes with A4's validity."""
-    quotes = {(key.expiry, float(key.strike), str(key.kind)): _quote(underlying, key, quote)
+def execution_snapshot(snapshot: SlotSnapshot, underlying: str, rules: QuoteRules = LIVE) -> ExecutionSnapshot:
+    """The road's verified capture as E4's execution snapshot: same ID, hash and times; quotes with A4's validity and
+    their sizes as `rules` pass them."""
+    quotes = {(key.expiry, float(key.strike), str(key.kind)): _quote(underlying, key, quote, rules)
               for key, quote in snapshot.quotes.items()}  # fmt: skip
     return ExecutionSnapshot(snapshot.session, snapshot.snapshot_id, snapshot.sha256, "", snapshot.started_at,
                              snapshot.finished_at, True, quotes)  # fmt: skip
 
 
-def _quote(underlying: str, key: ContractKey, quote: SlotQuote) -> ExecutionQuote:
+def size_unmeasured(snapshot: SlotSnapshot, underlying: str, rules: QuoteRules) -> frozenset[str]:
+    """The contracts `rules` refuse for an unmeasured size alone (none under practice rules)."""
+    return frozenset(contract_symbol(underlying, key) for key, quote in snapshot.quotes.items()
+                     if rules.size_not_measured(quote))  # fmt: skip
+
+
+def _quote(underlying: str, key: ContractKey, quote: SlotQuote, rules: QuoteRules) -> ExecutionQuote:
+    bid_size, ask_size = rules.sizes(quote)
     return ExecutionQuote(contract_symbol(underlying, key), key.expiry, float(key.strike), str(key.kind), quote.bid,
-                          quote.ask, quote.bid_qty, quote.ask_qty, quote.valid, "" if quote.valid else NOT_VALID,
+                          quote.ask, bid_size, ask_size, quote.valid, "" if quote.valid else NOT_VALID,
                           True)  # fmt: skip
