@@ -30,6 +30,7 @@ from .global_cues.cli import add_global_cues_parser
 from .health.calendar_stop import calendar_stop, command_name
 from .health.cli import add_health_parser
 from .intraday.cli import add_intraday_parser
+from .itm_chance.cli import add_itmchance_parser
 from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
@@ -243,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
     add_factory_parser(sub)
     add_pricedist_parser(sub)
+    add_itmchance_parser(sub)
     add_pricerange_parser(sub)
     add_closes_parser(sub)
     add_lab_parser(sub)
