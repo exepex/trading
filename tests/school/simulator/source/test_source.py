@@ -9,8 +9,9 @@ from fno.research_data.calendar import CsvSessionCalendar
 from fno.school.constants import ClosureReason, OptionKind, RoadCode
 from fno.school.contracts.roads import ROADS_BY_CODE
 from fno.school.contracts.snapshot import ContractKey, SnapshotUnavailable
-from fno.school.simulator.constants import SIZE_GATE_WAIVED, PracticeRefusal
+from fno.school.simulator.constants import PracticeRefusal
 from fno.school.simulator.source.catalogue import HistoricalRoadCatalogue
+from fno.school.simulator.source.quotes import SIZE_GATE_WAIVED
 from fno.school.simulator.source.snapshots import HistoricalRoadSource
 from fno.school.simulator.spreads.model import Scenario, SpreadModel
 from fno.school.simulator.terms import DatedTerms

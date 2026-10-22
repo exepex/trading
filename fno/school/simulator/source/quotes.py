@@ -7,9 +7,12 @@ named switch `SIZE_GATE_WAIVED`: history holds no displayed size and none is inv
 import math
 
 from ...contracts.snapshot import SlotQuote
-from ..constants import SIZE_GATE_WAIVED, TICK
+from ..constants import TICK
 
 EPSILON = 1e-9
+# TEMPORARY (design A, orchestrator 22 Oct): removed in the rework onto `sizes_measured=False` and `None` sizes, which
+# waits for MS-P1a3 and MS-P1d's practice rules. This branch is not offered for judging until then.
+SIZE_GATE_WAIVED = 10**9
 
 
 def point_quote(close: float) -> SlotQuote:

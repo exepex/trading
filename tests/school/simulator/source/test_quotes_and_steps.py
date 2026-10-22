@@ -2,8 +2,7 @@
 
 import pytest
 
-from fno.school.simulator.constants import SIZE_GATE_WAIVED
-from fno.school.simulator.source.quotes import no_quote, point_quote, practice_quote
+from fno.school.simulator.source.quotes import SIZE_GATE_WAIVED, no_quote, point_quote, practice_quote
 from fno.school.simulator.source.steps import strike_step
 
 
