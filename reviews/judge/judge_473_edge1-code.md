@@ -172,3 +172,56 @@ the clip come with the fix.
 
 **Next:** fix 1 and 2 plus the skipped-day count, then re-freeze. Round 2 of 2 on revision 7. Run 1 is not re-run
 before that.
+
+## Addendum 3
+
+**Scope:** EDGE1 revision 7, re-frozen at bf2d9e4e (code 0cad8879). It replaces 312c10c4 and answers 473.1 and 473.2.
+This is round 2 of 2 on revision 7.
+
+**Verdict: PASS.** Run 1 may be re-run from bf2d9e4e.
+
+**Gates (my run, on bf2d9e4e):**
+- pytest: 9922 passed, 16 xfailed.
+- `ruff check`: clean. `check_imports`: clean. `guard.check_code`: passes.
+- No diff in `fno/` or `config.yaml` since 3152ed44, so condition 1 holds.
+- `selection_rev6.json` = d4ea08d6's selection.json (sha256 edc4fd83...).
+- The rev-6 hash table is kept in FREEZE.md as history; the guard reads only the "## Analysis code" table, which
+  matches the files.
+
+**473.1 and 473.2 are met.**
+- **Each vertical, plus the position.** `verticals.valid` requires every sold-and-bought pair of the same type to lie
+  in [0, width], and also the position bound. It runs at entry (`impossible_prices_at_entry`, then the next width, as
+  for untraded legs), on every trigger day (skipped and counted) and at the T21 exit.
+- **The builder's push-back is correct, and I accept it.** For a condor, each vertical can be valid while the
+  position is worth more than one width, because only one side can finish in the money. So keeping both checks is
+  right; my word "replacing" was wrong.
+- **The all-trades figure.** An impossible T21 exit uses `proxy_value`: each failing vertical clipped, then the
+  position clipped into its bounds. `raw_net` keeps the raw figure. `all_mean_net` and condition 3 never see the raw
+  close.
+- **Reports.** Each variant reports invalid entries in `not_taken`, `trigger_days_skipped`, `impossible_exits` with
+  their raw mean, and the decided mean beside all-trades.
+- **No variant branch.** NS and NT have no verticals, so `valid` returns True. The orchestrator's question is
+  answered again: one general rule.
+
+**Read and correct:** the proxy gross (proxy_value minus the entry value) x lot equals `PositionCosts.gross`'s
+convention (sum of side x (exit - entry) x lot).
+
+**Plants: 10 of my own, 6 caught.**
+- **Caught:** verticals across types, clip only below, no position clip, proxy not applied, skipped days not
+  counted, no entry check.
+- **Survived:**
+  - the vertical's upper bound dropped (redundant: with both verticals at 0 or more, a vertical above its width puts
+    the position above its bounds);
+  - the vertical's lower bound dropped;
+  - the proxy gross sign flipped;
+  - entry stopping instead of trying the next width.
+
+  The lower-bound survivor is the offsetting case from 473.2 (one inverted spread hidden by the other). It is correct
+  as read and frozen, so it is not a should-fix, but it is worth a test: tests are outside the guard, so no
+  re-freeze is needed. Add tests for the sign and the next width too.
+
+**Note:** `ruff format --check` would reformat `mutation_proof.py`: `# fmt: skip` does not cover a tuple spread over
+several lines. Neither CI nor JUDGE.md gates format on research/, and a fix would change a frozen hash. Leave it.
+
+**Next:** re-run run 1 from bf2d9e4e. I reproduce both selection files and check that the cards' G1 inputs come from
+the new one; then run 2 under the same code.
