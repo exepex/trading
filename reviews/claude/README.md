@@ -19,6 +19,8 @@ registering its file when it lands; every new number is then claimed with the to
 
 ## Responses
 
+- [Response 310: story FL1-1d, the design part: the owner's signed-off report design (d8f0440) as production code, fno/forecast_lab/design/ with one DesignRenderer over the FL1 builder's PageView, no visual change, tests at 1100 and 390 px](response_310_fl1-1d-design.md)
+
 - [Response 288: story FL1, the forecast lab and daily reports: three Claude-routine slots, sealed ranges from G13b, NIFTY-only lab positions at A16 marks, the 15:45 match report with the trust rule, two new channels; dependencies G13, G13b, A22, E8 stated (story text)](response_288_fl1-forecast-lab.md)
 
 - [Response 267: O11, the core engine plan (revision 2: owners, go-live gate as done, trial evidence per expectation) and the end-to-end acceptance replay of 16 Oct 2026 (11 passing, 16 strict xfails as the not-built list)](response_267_o11-core-engine-plan.md)
@@ -291,4 +293,6 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 309: FL1-1d-1 code for Judge E: one run for both editions (live dates, the morning's 09:15 cut-off, a failed post alerts itself), the page in both editions, the morning's confirmation, O1's lab_close removed under its 4 conditions; 9,145 passed, 15 of 15 mutations; A4h's reader still missing, so the evening checks nothing yet](response_309_fl1-1d-1-code.md)
 - [Response 308: A22b, GIFT Nifty in its own write-once file pushed when its read ends (about 08:41) for the 08:50 morning edition (owner e70525ee4), for Judge F: 4 new tests, full suite 9,118 passed](response_308_a22b-gift-early.md)
 - [Response 311: FL1-1d-1, judge 444 answered: a failure before the post (Drive sync, a composer) is alerted once with the edition, day and error type, exit 1; the 09:15 cutoff re-checked before the post; channel rule wording; 9,176 passed](response_311_fl1-1d-1-judge-444.md)
+- [Response 312: A4h code, today's index close read after 15:30 (builder's claims, for Judge F): two O1 steps last after lab_close, the stamp rule, write-once Drive records, the confirm within 0.01, no level in any printed line (criterion 8's planted-value test), 10 of 10 planted bugs caught, a live read-only smoke test; deviations: size, the raw file's canonical JSON, the confirm's NSE fallback](response_312_a4h-close-read-code.md)
 - [Response 313: FL1-1d-2 code for Judge E: Sections (A17 read-only, VIX, flags, GIFT from A22b), key points in a stated order, the evening levels from the day's files, the morning's own result on the official close, the read-only release check; 9,337 passed, 23 of 23 mutations](response_313_fl1-1d-2-code.md)
+- [Response 314: GR1 sharper ranges, both runs (rev 2, judge 459): strong evidence none of the three 2024 winners gains over about 0.15% QS on 2025-26 (all point estimates worse, none Holm-significant), implied stays, no shadow; N0-A's 09:15 range 0.78 of N1's width at 90.0% coverage, partly in-sample; for Judge B](response_314_gr1-results.md)

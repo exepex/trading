@@ -1,31 +1,32 @@
 """Composition root of the report editions' content (stories FL1-1c and FL1-1d): the page builder over FL1's G13b
-adapter, G13b's history and official closes, the evening's own close (none until A4h's reader), the reasons' facts
+adapter, G13b's history and official closes, the evening's own close (A4h's record), the reasons' facts
 (the repository's tables and P8's FII/DII flows archive), the renderer (the interim drawing until the designer's is
 signed off) and headless Chromium for the picture."""
 
 from __future__ import annotations
 
 import functools
-from datetime import date
+from datetime import date, time
 
 from ..config import ROOT
 from ..constants import NIFTY_SYMBOL
 from ..research_data.calendar import SessionCalendar
+from .a4h_closes import A4hTodayCloses
+from .design.renderer import DesignRenderer
 from .g13b_history import G13bHistory
 from .maker import ReportMaker
 from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
 from .page.cues import Section
 from .page.facts import RepositoryFacts
-from .page.render import InterimRenderer
-from .ranges import NoTodayCloses, Outcomes, RangeSource
+from .ranges import Outcomes, RangeSource
 from .sections.gift import GiftSection
 from .sections.global_cues import SPECS, GlobalCueSection
 from .sections.india import FlagsSection, VixSection
 from .sections.levels import Levels
 from .sessions import RegularSessions
 
-PICTURE_WIDTH = 600  # CSS pixels: the picture page's own width, so a phone does not shrink it to unreadable
+PICTURE_WIDTH = 1100  # CSS pixels: the owner's signed-off design (DESK_DECISIONS 11ef1b23), drawn at 2x
 
 
 def flows_reader(calendar: SessionCalendar):
@@ -42,6 +43,7 @@ def flows_reader(calendar: SessionCalendar):
 
 
 PARTICIPANT_OI = "participant-oi"
+EVENING_RUN = time(20, 5)  # the evening edition's time (owner, DESK_DECISIONS line 287): what A17 had by then
 
 
 def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: Outcomes) -> tuple[Section, ...]:
@@ -54,7 +56,7 @@ def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: 
 
     reader, known = functools.cache(build_reader), functools.cache(facts.facts)
     return (
-        *(GlobalCueSection(reader, spec, OPEN) for spec in SPECS),
+        *(GlobalCueSection(reader, spec, {"morning": (OPEN,), "evening": (EVENING_RUN, OPEN)}) for spec in SPECS),
         VixSection(build_index_close_files(), sessions.previous, lambda day: known(day).vix),
         FlagsSection(known),
         GiftSection(build_drive_cache(), lambda day: official.close(NIFTY_SYMBOL, sessions.previous(day))),
@@ -75,8 +77,10 @@ def build_levels(calendar: SessionCalendar, sessions: RegularSessions) -> Levels
 def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar,
                        official: Outcomes) -> ReportMaker:  # fmt: skip
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
+    from ..storage.data_wiring import build_drive_cache
+
     facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
-    pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official,
-                        today_closes=NoTodayCloses(), sections=build_sections(facts, sessions, official),
-                        levels=build_levels(calendar, sessions))  # fmt: skip
-    return ReportMaker(pages, InterimRenderer(), ChromiumCamera(width=PICTURE_WIDTH))
+    today, sections = A4hTodayCloses(build_drive_cache()), build_sections(facts, sessions, official)
+    pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official, today_closes=today,
+                        sections=sections, levels=build_levels(calendar, sessions))  # fmt: skip
+    return ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH))

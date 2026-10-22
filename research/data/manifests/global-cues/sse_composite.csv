@@ -1,0 +1,3 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:09:18.438738+05:30,csindex/indices/000001-perf/2026/10/22/060918_000001-perf_20181222_20261022.json,https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000001&startDate=20181222&endDate=20261022,,f61e74544a368fc923bf606d3294b056ddad85d066f35fe0bff3e196485e476e,667059
+2026-10-22T06:58:28.541189+05:30,csindex/indices/000001-perf/2026/10/22/065828_000001-perf_20260910_20261022.json,https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000001&startDate=20260910&endDate=20261022,,a1ed7a005ef6da81b1f6176000131c2292b989eefe12c3a04389387465223dd8,8499
