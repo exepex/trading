@@ -120,6 +120,9 @@ followed as the files list them. The report lists each change with its first exp
     them out.
 - **Bad prices:** an entry is skipped (`bad_prices`) unless its credit per unit is strictly inside the structure's
   payoff bounds (B2's test, lowest < value < highest).
+- **Impossible exit prices (revision 7):** a day whose position mark is outside its payoff bounds (lowest <= value
+  <= highest) is not a usable price day: SL2 and TP50 never fire on it, and a planned T21 exit on it is kept, flagged
+  `impossible_exit` and counted as an incomplete exit.
 - **Pads:** Rs 1 a unit a leg at entry and at exit (the engine's `PAD`), against the position; and a second run at
   Rs 2. EXP's settlement takes no exit pad.
 - **Exit charges are taken off every exit,** including stops, targets and incomplete exits.
@@ -255,6 +258,24 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
+- **Revision 7 (after run 1, owner's decision of 22 Oct 2026: "fix and re-run, report both").** Run 1 at 3152ed44
+  (`selection_rev6.json`, committed d4ea08d6) exposed impossible exit prices: NSE's option close is each strike's last
+  trade, at different times, so an illiquid strike's close can put the position outside its own payoff bounds.
+  Examples, one per type:
+  - a spread worth more than its width: NIFTY SF T21, 16 Jul to 8 Aug 2019, put spread 11650/11350 at 715.20 and
+    323.10 = 392 against a 300 width (net -15,810 on a Rs 10,000 cap);
+  - a stop fired on it: NIFTY SC2 SL2, 15 to 21 Dec 2020, put spread 13300/13150 at 156 against a 150 width (net
+    -12,096);
+  - a lower strike dearer than a higher one: BANKNIFTY SF TP50, 16 to 30 Nov 2021, put 37400 at 1960.40 above put 38300
+    at 1755.65, mark -131.75 < 0, the target fired (net +21,533, above the trade's maximum gain of 18,850).
+  Affected complete trades in run 1 (exit mark outside the bounds): NIFTY SC2 SL2 1; NIFTY SF T21, SL2, TP50 2 each;
+  BANKNIFTY SF T21, SL2 2 each; BANKNIFTY SF TP50 1; every other variant 0 (EXP settles and is unaffected).
+  **The rule, one for every variant and both runs:** a day whose position mark is outside `payoff_bounds(legs)` is not
+  a usable price day; a trigger never fires on it, and a planned exit on it is kept, flagged `impossible_exit` and
+  counted as an incomplete exit (out of the decided mean, in the all-trades mean). Entry already refused such prices
+  (`bad_prices`). No variant-specific change. Known limit: a stale close inside the bounds cannot be detected. Run 1
+  is re-run from the re-frozen code; the results file shows both runs 1 side by side, and the passer's result with and
+  without the +21,533 trade; run 2 then runs once under the same code.
 - Revision 6 (before the freeze, the input probe: counts and dates only): four run-2 expiries had no settlement
   (NIFTY and BANKNIFTY 29 Jun 2023, BANKNIFTY 28 Mar 2024 and 29 Jan 2025) because NSE moved those contracts' dates;
   each monthly contract now keeps its final date (section 3). BANKNIFTY's files end on 19 Oct 2026, not 20 Oct.

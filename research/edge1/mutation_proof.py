@@ -22,8 +22,8 @@ M = [
     ("trade.py", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.5", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.4", "TP at 40%"),
     (
         "trade.py",
-        "        if not _all_traded(prices):\n            continue\n        mark",
-        "        mark",
+        "if not _all_traded(prices) or not _possible(",
+        "if not _possible(",
         "trigger fires on an untraded leg",
     ),  # fmt: skip
     (
@@ -62,6 +62,13 @@ M = [
     ("lots.py", "dict(r.lots) if r.source == UDIFF else", "dict(r.lots) if True else", "derived lot used as the lot"),
     ("expiries.py", "if key not in last or day > last[key][0]:", "if key not in last:", "first date kept, not last"),
     ("expiries.py", "if q.expiry in moved else q", "if True else q", "weeklies relabelled too"),
+    (
+        "trade.py",
+        "if not _all_traded(prices) or not _possible(legs, [p.price for p in prices]):",
+        "if not _all_traded(prices):",
+        "a trigger fires on an impossible mark",
+    ),  # fmt: skip
+    ("trade.py", "incomplete = impossible or any(", "incomplete = any(", "an impossible exit in the decided mean"),
     ("margin.py", "if span.created >= datetime.combine", "if span.created > datetime.combine", "09:00 file allowed"),
     ("margin.py", "if hashlib.sha256(data).hexdigest() != sha256[day]:", "if False:", "no first-copy check"),
     (

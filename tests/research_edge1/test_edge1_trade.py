@@ -53,8 +53,8 @@ def test_sl2_exits_at_the_first_fully_traded_close_with_a_loss_of_twice_the_cred
     base = run(SC2, SL2)
     crash = ENTRY + timedelta(days=5)
     untraded_day = ENTRY + timedelta(days=3)
-    wing = next(leg.contract for leg in base.legs if leg.side == 1 and leg.contract[1] == "PE")
-    moves = {untraded_day: (21000.0, flat_prices(21000.0), {wing}),  # fires, but a leg is untraded
+    far_call = next(leg.contract for leg in base.legs if leg.side == 1 and leg.contract[1] == "CE")
+    moves = {untraded_day: (21000.0, flat_prices(21000.0), {far_call}),  # fires, possible, but a leg is untraded
              crash: (21000.0, flat_prices(21000.0), set())}  # fmt: skip
     trade = run(SC2, SL2, moves)
     assert trade.exit_day == crash and trade.exit_how == "trigger"
@@ -126,3 +126,32 @@ def test_the_naked_measurements_have_no_wings_and_no_cap():
 def test_impossible_entry_prices_are_skipped():
     flat = {k: 50.0 for k in flat_prices(23000.0)}  # shorts no dearer than wings: a credit of 0, not strictly inside
     assert run(SC2, T21, {ENTRY: (23000.0, flat, set())}).status == BAD
+
+
+def impossible(prices: dict, base) -> dict:
+    """The put wing priced above the short put: a put spread worth more than its width (stale closes)."""
+    short_put = next(leg.contract for leg in base.legs if leg.side == -1 and leg.contract[1] == "PE")
+    wing = next(leg.contract for leg in base.legs if leg.side == 1 and leg.contract[1] == "PE")
+    return {**prices, short_put: prices[wing] + base.width + 50.0}
+
+
+def test_a_planned_exit_at_an_impossible_mark_is_kept_and_flagged_out_of_the_decided_mean():
+    base = run(SC2, T21)
+    trade = run(SC2, T21, {EXIT: (23000.0, impossible(flat_prices(23000.0), base), set())})
+    assert trade.status == TAKEN and trade.impossible_exit and trade.incomplete_exit
+    assert not base.impossible_exit and not base.incomplete_exit
+
+
+def test_a_trigger_never_fires_on_an_impossible_mark():
+    base = run(SC2, SL2)
+    day = ENTRY + timedelta(days=4)
+    trade = run(SC2, SL2, {day: (23000.0, impossible(flat_prices(23000.0), base), set())})
+    assert trade.exit_day == EXIT and trade.exit_how == "planned"  # it would fire at 3 x credit if it were believed
+
+
+def test_a_possible_mark_with_an_untraded_leg_never_fires():
+    """The short call untraded: its settlement proxy puts the mark inside the bounds and above 3 x credit."""
+    base, day = run(SC2, SL2), ENTRY + timedelta(days=4)
+    short_call = next(leg.contract for leg in base.legs if leg.side == -1 and leg.contract[1] == "CE")
+    trade = run(SC2, SL2, {day: (23000.0, marked(3.6), {short_call})})
+    assert trade.exit_day == EXIT and trade.exit_how == "planned"

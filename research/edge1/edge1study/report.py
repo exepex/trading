@@ -39,6 +39,7 @@ def figures(trades: Sequence[Trade], margins: Sequence[EntryMargin] | None = Non
         "taken": len(took),
         "complete": len(done),
         "incomplete_exits": len(incomplete),
+        "impossible_exits": sum(t.impossible_exit for t in took),  # revision 7, part of incomplete_exits
         "incomplete_mean_net": mean_net(incomplete),
         "proxy_share": finite(len(incomplete) / len(took)) if took else None,
         "not_taken": dict(sorted(Counter(t.status for t in trades if not t.taken).items())),

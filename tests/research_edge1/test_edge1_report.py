@@ -13,8 +13,8 @@ from fno.research_engine.cycles import Cycle
 
 def trade(net, month=1, incomplete=False, status=TAKEN):
     cycle = Cycle(date(2021, month, 28), date(2020, 12, 1), date(2020, 12, 2), date(2021, month, 7))
-    return Trade(status, cycle, T21, 200.0, 25, (), 60.0, date(2021, month, 7), "planned", incomplete, net + 50.0,
-                 30.0, 20.0, net)  # fmt: skip
+    return Trade(status, cycle, T21, 200.0, 25, (), 60.0, date(2021, month, 7), "planned", incomplete, False,
+                 net + 50.0, 30.0, 20.0, net)  # fmt: skip
 
 
 def test_incomplete_exits_are_counted_kept_out_of_the_decided_mean_and_in_the_all_trades_mean():
