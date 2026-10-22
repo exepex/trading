@@ -9,8 +9,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from ..ai.history import RepoHistory
-from ..ai.receipts import PushReceipts, ReceiptUnknown
-from .model import EvidenceUnknown
+from ..ai.receipts import PushReceipts, ReceiptNotFound, ReceiptOutsideLog, ReceiptUnknown
+from .model import EvidenceNotCommitted, EvidenceNotPushed, EvidenceOutsideLog, EvidenceUnknown
+
+ANSWERS = {ReceiptNotFound: EvidenceNotPushed, ReceiptOutsideLog: EvidenceOutsideLog}
 
 
 class HealthHistory(RepoHistory):
@@ -51,8 +53,9 @@ class Evidence:
 
     def _received(self, commit: str | None, path: str) -> datetime:
         if not commit:
-            raise EvidenceUnknown(f"no commit adding it to {Path(path).name}")
+            raise EvidenceNotCommitted(f"no commit adding it to {Path(path).name}")
         try:
             return self.receipts.received_at(commit)
         except ReceiptUnknown as unknown:
-            raise EvidenceUnknown(f"push time unknown: {unknown}") from None
+            kind = ANSWERS.get(type(unknown), EvidenceUnknown)  # a failed read stays a plain unknown
+            raise kind(f"push time unknown: {unknown}") from None

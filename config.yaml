@@ -225,7 +225,7 @@ forecast_lab:
     evening: "2026-10-23"
 
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
-# that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).
+# that date (judge 164). The receipt search reads GitHub's log back to each commit's date (story receipts-reach).
 health:
   window_days: 6
   # Story O8b: one line, once per calendar version, when NSE's calendar ends within this many days
