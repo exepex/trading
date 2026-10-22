@@ -4,6 +4,9 @@ gives no fact."""
 import gzip
 from datetime import date, datetime
 
+import pytest
+import requests
+
 from fno.forecast_lab.design.renderer import DesignRenderer
 from fno.forecast_lab.maker import ReportMaker
 from fno.forecast_lab.page.builder import PageBuilder
@@ -52,25 +55,30 @@ class Table:
 
 
 class Unreadable(Table):
+    def __init__(self, error):
+        self.error = error
+
     def rows(self):
-        raise RuntimeError("data/global-cues/brent/x.csv: in the receipts, not returned by Drive")
+        raise self.error("data/global-cues/brent/x.csv: in the receipts, not returned by Drive")
 
 
-def test_a_cue_table_drive_cannot_give_is_said_and_alerted_once_and_the_other_facts_stay(tmp_path):
+@pytest.mark.parametrize("error", [RuntimeError, requests.ConnectionError, requests.HTTPError])
+def test_a_cue_table_drive_cannot_give_is_said_and_alerted_once_and_the_other_facts_stay(tmp_path, error):
     """O9b, agreed with FL1: a table that cannot be read gives no rows and is named (error type only, never the
-    message), so the page shows one failed view in its system line and the report alerts it once."""
+    message), so the page shows one failed view in its system line and the report alerts it once; a Drive network
+    failure (`requests`' errors, which are OSError) too, never a lost edition (judge 478 SF1)."""
     cues = CueRows(
-        lambda: {"brent": Unreadable([]), "usdinr_rbi": Table([{"value_date": "2026-10-14", "value": "88"}])}
+        lambda: {"brent": Unreadable(error), "usdinr_rbi": Table([{"value_date": "2026-10-14", "value": "88"}])}
     )
     source = RepositoryFacts(tmp_path, lambda day: {DAY: (-5000.0, 3000.0)}, cues)
     facts = source.facts(DAY)
     assert facts.brent == {} and facts.usdinr == {date(2026, 10, 14): 88.0} and facts.flows
     source.facts(DAY)  # read once: the second report day names it no second time
-    assert source.problems() == ("brent: RuntimeError",)
+    assert source.problems() == (f"brent: {error.__name__}",)  # judge 478 SF1: Drive's network errors too
     pages = PageBuilder(Forecasts(()), History(), source, SESSIONS, underlyings=("NIFTY",))
     view = pages.build(REPORT_DAY, at(REPORT_DAY, 15, 47))
     failed = [c for c in view.cues if c.status == FAILED]
-    said = "Reasons' facts: brent: RuntimeError (that table's reasons are missing today)"
+    said = f"Reasons' facts: brent: {error.__name__} (that table's reasons are missing today)"
     assert [c.why for c in failed] == [said] and said in view.system and "receipts" not in said
     made = ReportMaker(Pages(view), DesignRenderer(), Camera()).make(REPORT_DAY, datetime.now(), "evening")
     assert made.alerts == (said,)

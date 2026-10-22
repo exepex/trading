@@ -80,8 +80,10 @@ constant only; each step re-checks and lists its exact readers and writers):
    - a static file (one per session, closed years, study results) is one Drive file.
    O9b adds one receipt-backed append-table adapter and one receipt-backed snapshot series, reading through the
    verified cache (receipts are the index, Drive is never listed: O9 rule 4). A17's `RowLog` port already has Drive
-   classes (`DrivePartsRowLog`, `DriveSnapshots`) that list Drive instead; when global cues move (step 1b) they move
-   to the receipt-backed classes too (one way, not two).
+   classes (`DrivePartsRowLog`, `DriveSnapshots`) that list Drive instead. Step 1b moves only the public cues. Until
+   **step 1c** (the private cues, S&P 500, Nasdaq 100, FBIL and A17e's world indexes and pre-open rows, onto the
+   receipt-backed classes, agreed with the A17 owner), two ways stand side by side; step 1c ends that (one way,
+   not two).
 3. **Readers read through the verified cache.** A reader that goes through a port (the cue tables, the VIX table)
    changes one line in its composition root. A reader that opens a path (FL1's facts, the frozen panel readers) gets
    either the same port (agreed with its owner) or, where the code cannot change (frozen files), the files restored
@@ -102,6 +104,7 @@ constant only; each step re-checks and lists its exact readers and writers):
 |---|---|---|---|
 | 1 (pilot) | G3 VIX (`research/data/vix/`) | no: only its own CLI reads it | text and code may be judged and merged before Mon 26 Oct (no live reader) |
 | 1b | G3 global cues | FL1's report reads two tables (agreed with its builder first) | after or inside GC2 (below); from Mon 26 Oct, outside 14:00-16:15 IST |
+| 1c | G3 global cues, private: the S&P 500, Nasdaq 100, FBIL, A17e's world indexes and pre-open rows, from `DrivePartsRowLog`/`DriveSnapshots` (derived area, Drive listed) to the receipt-backed classes | yes (A17's checks, the weather, FL1) | with the A17 owner; from Mon 26 Oct, outside 14:00-16:15 IST |
 | 2 | G4 margins | yes (desk risk, C4) | from Mon 26 Oct, outside 14:00-16:15 IST |
 | 3 | G2 intraday: `rv-candle/` first (static), then the live A16 files | yes (E8, v4 RV) | as step 2 |
 | 4 | G5 NSE chains | yes (price distribution, capture) | as step 2 |
@@ -216,7 +219,7 @@ each run `us_trading_dates.csv` (76,002) and `checks/{gaps,overlap_usdinr}.csv`.
 **Stay in GitHub:** `README.md`; `us_market_closures.csv` (hand-kept, sourced, owner decision 1); `checks/behind_alerted.txt`
 (alert episodes, names only); `research/data/manifests/global-cues/**` and its `attempts/` (G7, G6). **Already in
 Drive, unchanged:** the private cues (S&P 500, Nasdaq 100, FBIL's USD/INR, the world indexes, A17e's pre-open rows),
-through `DrivePartsRowLog` and `DriveSnapshots`; moving them onto receipts is a later step, agreed with the A17 owner.
+through `DrivePartsRowLog` and `DriveSnapshots`; moving them onto receipts is step 1c (section 3), agreed with the A17 owner.
 **Writer:** `global-cues.yml` (`fill`, `check`). **Readers:** `build_tables`/`build_reader` (`fno/global_cues/wiring.py`)
 serve the cue tables to A17's checks and `verify.py`, the index reader, the weather (M1, `fno/weather/wiring.py`
 `build_cue_reader`, `drivers.py`), and FL1's report (`fno/forecast_lab/page_wiring.py`,
@@ -376,3 +379,14 @@ None for the owner: the 22 Oct decisions above settle scope and history.
     "caught up and read back equal";
   - the first scheduled run on the new path;
   - the removal commit.
+
+**Judge 478 (FAIL, round 1 of 2), both accepted:**
+- SF1 accepted. I checked it: `requests.ConnectionError` and `HTTPError` are `OSError` subclasses
+  (`issubclass(..., OSError)` is True). `CueRows` caught only `RuntimeError`, so a Drive network failure would have
+  escaped through the unguarded `facts.facts(day)` and lost the edition. `CueRows` now catches
+  `(RuntimeError, OSError)`, naming the class only. The test is parametrized over `RuntimeError`,
+  `requests.ConnectionError` and `requests.HTTPError`. Each gives one failed "Reasons' facts" view, the line in the
+  system line, one alert, and the other facts kept. A mutation back to `RuntimeError` alone fails 2 of the 3 cases.
+- Minor accepted: the umbrella's "one way, not two" line (section 2) now says step 1b moves only the public cues,
+  and that the two ways stand side by side until **step 1c**. Step 1c, the private cues onto the receipt-backed
+  classes with the A17 owner, is a named row in section 3's table and is cited in step 1b's files paragraph.

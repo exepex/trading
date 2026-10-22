@@ -41,7 +41,7 @@ class CueRows:
         if cue not in self._rows:
             try:
                 self._rows[cue] = self.tables()[cue].rows()
-            except RuntimeError as error:  # settings missing, DriveDataUnavailable, DriveSignInRefused
+            except (RuntimeError, OSError) as error:  # settings, unverified copy, sign-in; Drive's network (requests)
                 self._rows[cue] = []
                 self.problems.append(f"{cue}: {type(error).__name__}")
         return self._rows[cue]
