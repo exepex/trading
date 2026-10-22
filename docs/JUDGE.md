@@ -70,7 +70,8 @@ Quote a builder claim only when it is wrong. No praise, no restating the story.
 
 1. **Story text first**, pushed alone and checked by the judge against the design and the owner's decisions before
    code starts.
-2. **Gap list:** each requirement of the design is covered by a named criterion or listed out of scope with its reason.
+2. **Gap list:** each requirement of the design is covered by a named criterion or listed out of scope with its reason;
+   a requirement in neither list is a blocking finding.
 3. **Builder self-review:** independent code-review agents on the diff; the Claims section says what they found and
    what was fixed or why not.
 4. **Broken-code proof:** each criterion names its code and a test that fails when that code is broken on purpose. The
@@ -97,8 +98,10 @@ The judge also confirms the words with the owner directly; no file counts as pro
 
 - The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools`, `python tools/check_imports.py`, `python
   tools/check_records.py`, `python tools/check_numbers.py`) run **once, on the merged tree**. Never push on red.
-- If `main` then moves only by lane-3 files, merge it in and push after the fast checks (ruff, `check_imports`,
-  `check_records`, `check_numbers`, the code-size test). Any code or test change on `main` in between means a full run
+- If `main` then moves only by lane-3 files (the paths `tools/ci_scope.sh` names: `reviews/`, `numbers/`,
+  `conversations/`, `docs/DESK_DECISIONS.md`, `docs/WORK_REGISTER.md`; and scheduled jobs' data receipts, row 271),
+  merge it in and push after the fast checks (ruff, `check_imports`, `check_records`, `check_numbers`, the code-size
+  test). Any code or test change on `main` in between means a full run
   again before the push.
 - The gates need the whole git history: in a shallow clone the freeze and back-fill tests fail with "shallow clone:
   run git fetch --unshallow origin main"; run that, then the gates again. It is never a code failure.

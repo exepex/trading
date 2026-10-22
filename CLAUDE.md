@@ -209,7 +209,7 @@ commit with `--no-verify`.
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services) and
   each package's `wiring.py` (or `<part>_wiring.py` where a freeze or the size limit keeps a second one apart); the
-  root's docstring says what it wires and for which story.
+  root's docstring says what it wires (and for which story, where it has one).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive
