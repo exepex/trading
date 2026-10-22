@@ -27,6 +27,17 @@
     "status": "not_live",
     "reason": "owner_timing:SEALED_ONLY"
    }
+  },
+  "margin_check": {
+   "started_at": "2026-10-22T14:10:40.918805+05:30",
+   "finished_at": "2026-10-22T14:10:40.918846+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
   }
  }
 }
