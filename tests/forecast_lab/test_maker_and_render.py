@@ -99,3 +99,13 @@ def test_a_verdict_is_kept_only_for_today_s_own_provisional_check():
     today = replace(other, day=view.day)
     view = page(indices=(replace(index(), horizons=(Horizon(Timeline("N1", "implied", (today,)), ()),)),))
     assert [(v.day, v.close, v.band) for v in verdicts(view)] == [(view.day, 1001.0, (980.0, 995.0, 1005.0, 1020.0))]
+
+
+def test_a_failed_section_is_alerted_once_with_the_report():
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.cues import FAILED, SectionView
+
+    view = replace(view_with_history(), cues=(SectionView("S&P 500", FAILED, why="S&P 500: the read failed (X)"),))
+    made = ReportMaker(Pages(view), InterimRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "morning")
+    assert made.alerts == ("S&P 500: the read failed (X)",)

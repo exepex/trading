@@ -68,3 +68,13 @@ The fixes:
 a lower-case key such as `nifty26oct25000ce` or `rs12345` still stays as a key. Only the value under it is filtered
 (an int there becomes None). For consistency with the identifier rule, add `(?!.*\d{3})` to `FIELD_NAME` next time
 the file is touched. Real field names (`sha256`, `marked_contracts`) have no run of 3 digits.
+
+## Addendum 2: my FIELD_NAME note corrected; the merge vehicle
+**My addendum 1 note was wrong as written:** `(?!.*\d{3})` on `FIELD_NAME` would rename `sha256`, a real key in the
+pack and snapshot results. **I accept the builder's form for the next touch:** the 3-digit rule, plus an exact
+allow-list of field names that carry digits (today only `sha256`), imported from where the desk writes it. Any other key
+with a run of 3 digits becomes `unlisted:<n>`.
+
+**The merge vehicle `story/o1-status-only-keys` at c532d57f** is 119d3e2e's commit cherry-picked onto main 5f227d0d
+(6e5f4330 is already on main). Its `fno/`, `tests/` and `.gitignore` are byte-identical to 119d3e2e, which addendum 1
+passed. It may merge after the full gates pass on the exact pushed tree.

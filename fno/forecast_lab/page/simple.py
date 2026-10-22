@@ -36,8 +36,8 @@ LEGEND = (
 EXPLAIN = (
     "Most likely = a normal day&rsquo;s move (1 day in 2). Almost certainly = covers even a jumpy day (9 days in 10)."
 )
-MISSES_TITLE = "Last 7 trading days: why it missed"
-NO_MISSES = "No misses in the last 7 trading days."
+MISSES_TITLE = "Last 30 trading days: why it missed"
+NO_MISSES = "No misses in the last 30 trading days."
 
 
 def _when(view: RangeView) -> str:
