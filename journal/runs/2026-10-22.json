@@ -95,6 +95,25 @@
      "exit_code": 0
     }
    }
+  },
+  "forecasts_v4_pack": {
+   "started_at": "2026-10-22T14:29:16.464848+05:30",
+   "finished_at": "2026-10-22T14:29:27.502470+05:30",
+   "inputs": {
+    "command": [
+     "forecast-v4",
+     "capture-pack"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
