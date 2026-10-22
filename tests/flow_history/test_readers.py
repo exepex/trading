@@ -109,3 +109,11 @@ def test_the_18_march_2019_volume_file_is_a_sourced_exception():
 
     reason = build_file_exceptions()[(ParticipantVolumeSource.dataset, date(2019, 3, 18))]
     assert "fractional contract counts" in reason
+
+
+def test_the_30_july_2019_fii_file_is_a_sourced_exception():
+    """NSE serves an .xlsx under the .xls name that day; the explained day must not become a silent gap."""
+    from fno.storage.raw_source import FiiDerivativeStatsSource
+    from fno.storage.wiring import build_file_exceptions
+
+    assert "Excel 2007+" in build_file_exceptions()[(FiiDerivativeStatsSource.dataset, date(2019, 7, 30))]
