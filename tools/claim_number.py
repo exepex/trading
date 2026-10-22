@@ -24,7 +24,13 @@ from fno.numbering.git_main import GitFailed  # noqa: E402
 from fno.numbering.wiring import build_number_claimer  # noqa: E402
 
 CLAIMED = "claimed: {category} {number} -> {name}\nnext: {step}"
-NOT_CLAIMED = "number claim: NOT claimed ({reason})"
+NOT_CLAIMED = "number claim: NOT claimed ({reason}). Nothing was pushed: do not write the file; fix it and claim again."
+# The last line is the verdict, so a reader of the output's tail never misses a failure (judge B, 22 Oct)
+GIT_REASONS = {
+    "commit": "the commit was refused, by the record-scan hook: its output is above; a missing package means this "
+    "Python lacks the requirements, so run `sh tools/routine_setup.sh`",
+    "push": "main refused the push for a reason other than a lost race: git's output is above",
+}
 
 
 def main(argv: list[str] | None = None, claimer=None) -> int:
@@ -39,7 +45,11 @@ def main(argv: list[str] | None = None, claimer=None) -> int:
     request = ClaimRequest(CATEGORIES[args.category], args.slug, args.session, args.report, args.exact)
     try:
         claim = (claimer or build_number_claimer(args.root)).claim(request)
-    except (ValueError, ClaimNotPushed, GitFailed) as reason:  # ValueError: a refused request or a broken registry
+    except GitFailed as failed:
+        print(failed.output)
+        print(NOT_CLAIMED.format(reason=GIT_REASONS.get(failed.step, f"git {failed.step} failed: its output is above")))
+        return 1
+    except (ValueError, ClaimNotPushed) as reason:  # ValueError: a refused request or a broken registry
         print(NOT_CLAIMED.format(reason=reason))
         return 1
     step = CATEGORIES[claim.category].next_step(claim.number, claim.name)

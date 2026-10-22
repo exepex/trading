@@ -39,9 +39,10 @@ def test_a_claim_prints_the_number_and_the_file_to_write(capsys):
 def test_a_refused_or_lost_claim_exits_1(capsys):
     for failure in (ClaimRefused("judge-report 66 is already claimed"), ClaimNotPushed("8 pushes refused")):
         assert claim_number.main(["judge-report", "x", "--session", "s", "--number", "66"], Claimer(failure)) == 1
+    tail = ". Nothing was pushed: do not write the file; fix it and claim again."
     assert capsys.readouterr().out.splitlines() == [
-        "number claim: NOT claimed (judge-report 66 is already claimed)",
-        "number claim: NOT claimed (8 pushes refused)",
+        "number claim: NOT claimed (judge-report 66 is already claimed)" + tail,
+        "number claim: NOT claimed (8 pushes refused)" + tail,
     ]
 
 
