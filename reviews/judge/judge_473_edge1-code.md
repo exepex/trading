@@ -152,7 +152,7 @@ while the other spread offsets it.
 - Had the call spread closed 206 instead of about 73, the mark would be about +2. That is inside [0, 754], so the
   impossible put inversion passes and the target can still fire on it.
 - Fix: for each bought-sold pair of the same type, require 0 <= spread value <= width. Apply the same check at entry:
-  today's `bad_prices` is position-level only, so revision 14's line "entry already refused such prices" is true only
+  today's `bad_prices` is position-level only, so section 14's line "entry already refused such prices" is true only
   for the total.
 
 **Should-fix 2: the all-trades mean still uses the impossible prices (473.1 change 2).**
