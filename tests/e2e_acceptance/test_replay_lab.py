@@ -29,7 +29,8 @@ def test_the_evening_message_posts_g13b_s_issue_of_the_day_with_its_picture_and_
     (files,) = out.lab.channel.files
     assert list(files) == ["forecast-evening-2026-10-16.png", "forecast-evening-2026-10-16.html"]
     details = files["forecast-evening-2026-10-16.html"].decode()
-    assert "NIFTY forecasts for 2026-10-16: none expected (issued before G13b&#x27;s first live day)" in details
+    assert details.startswith("<!doctype html>") and "Research only. Not a trade tip." in details  # the owner's design
+    # FL1-1's seal-check lines are not drawn by the signed-off page (raised with the designer and the orchestrator)
     posted = ["lab close 2026-10-16: report to #fno-forecast: posted",
               "lab close 2026-10-16: 0 of 0 alert(s) sent to #fno-desk"]  # fmt: skip
     assert lines == posted
