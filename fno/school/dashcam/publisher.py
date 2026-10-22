@@ -13,6 +13,7 @@ from ...storage.receipts import Receipt, ReceiptFolder
 
 COMMIT_FORMAT = "%H %cI"  # commit id, committer time (the pushed commit's own time is the seal's pushed_at)
 NOT_ON_REMOTE = "the receipt of {path} is not on {target} ({outcome})"
+PULL_FAILED = "the receipt of {path} was not pushed: main could not be pulled first"
 SHALLOW = "this checkout is a shallow clone and could not be deepened: run git fetch --unshallow origin {target}"
 
 
@@ -77,9 +78,10 @@ class GitReceiptPublisher:
 
     def _push_unpushed(self, drive_path: str) -> PushedReceipt | None:
         """A receipt committed by an earlier run whose push failed: nothing is pending, so push it now."""
-        if self.recorder.pull().returncode != 0:
+        pulled = self.recorder.pull()
+        if pulled.returncode != 0:  # e.g. the checkout carries other unpushed commits: never pushed to main
             self.recorder.abort_merge()
-            return None
+            raise SealNotPushed(pulled.stderr.strip() or PULL_FAILED.format(path=drive_path))
         self._git("push", "origin", f"HEAD:{TARGET_BRANCH}")
         return self.published(drive_path)
 

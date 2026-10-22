@@ -1811,6 +1811,16 @@ measured; the first full run reads every session since 2 Jan 2020 and may set k 
 (1.265, 1.407, 1.127) were a different measure, scan plus exposure read to the window's end; the evidence table shows
 them beside this run's needed factor for reference only.
 
+**Open items for when A14c resumes (after the phase-1 freeze):**
+- **k per underlying.** The factor is measured on NIFTY monthly history only. The market school (MS-P1m) applies it to
+  BANKNIFTY, FINNIFTY, MIDCPNIFTY and NIFTY's weeklies, labelled "measured on NIFTY monthly only [reasoning only]"
+  (orchestrator, 22 Oct 2026).
+- **k times the expiry-day ELM.** MS-P1m prices a school trade on its own expiry day with SEBI's extra 2% ELM
+  (2024/132 para 5.6). C2's k also multiplies the exposure, so k 2.1 on the doubled ELM roughly doubles an expiring
+  fly's stressed margin: NIFTY weekly SF 100 on 13 Oct 2026 needed Rs 2,48,443 a lot. That overstates the margin
+  [reasoning only], which is conservative and accepted for P1 (orchestrator, 22 Oct 2026). The follow-up decides
+  whether k should stress an expiry-day ELM at all, measured like the rest of k.
+
 **Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 

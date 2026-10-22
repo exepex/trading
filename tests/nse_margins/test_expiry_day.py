@@ -92,3 +92,11 @@ def test_an_account_holding_an_expiring_trade_still_enters_another_road_that_day
     verdict = MarginRoom(margin, FixedCosts(0.0)).check(road_proposal("new", new, contract_of),
                                                        book([held], cash=needed, marked=needed), quotes)  # fmt: skip
     assert verdict.ok and verdict.numbers["needed_rs"] == pytest.approx(needed)
+
+
+def test_the_school_s_wiring_prices_with_the_expiry_day_rule():
+    """Judge 491.1: dropping the expiry-day rule from the wiring must fail a test (it would refuse expiring trades)."""
+    from fno.config import load_app_config
+    from fno.nse_margins.road_wiring import build_road_margin
+
+    assert type(build_road_margin(load_app_config(), env={}).source.exposure) is ExpiryDayIndexExposure
