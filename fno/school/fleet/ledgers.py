@@ -1,15 +1,9 @@
-"""What the fleet reads of a ledger (story MS-P1j): its recorded entries, read-only. Open positions and each
-position's opening fill are derived from them, so settlement runs before the session's first `view` (judge 486's
-note: a view writes the session's equity row) and an outcome names its own entry fill."""
-
-from typing import Protocol
+"""What the fleet derives from a ledger's recorded entries (a3's `LedgerReader`, read-only): its open positions and
+each position's opening entry, so settlement runs before the session's first `view` (judge 486's note: a view writes
+the session's equity row) and an outcome names its own entry fill."""
 
 from ..contracts.accounts import LedgerEntry
 from ..contracts.decisions import OpenPosition
-
-
-class LedgerReader(Protocol):
-    def entries(self, driver_id: str) -> tuple[LedgerEntry, ...]: ...
 
 
 def open_positions(entries: tuple[LedgerEntry, ...]) -> tuple[OpenPosition, ...]:

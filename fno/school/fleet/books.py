@@ -4,11 +4,10 @@ with its read-only entries, and the one fill port both are filled through."""
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ..contracts.accounts import AccountPort, FillPort
+from ..contracts.accounts import AccountPort, FillPort, LedgerReader
 from ..contracts.decisions import OpenPosition
 from ..contracts.snapshot import ContractKey
 from ..tickets.book import TicketBook
-from .ledgers import LedgerReader
 
 EntryMids = Callable[[OpenPosition], dict[ContractKey, float]]  # the mids an entry met, from its sealed record
 

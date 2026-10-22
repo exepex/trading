@@ -40,14 +40,6 @@ class NoHistory:
         return ()
 
 
-@dataclass
-class FakeLedger:
-    accounts: FakeAccounts
-
-    def entries(self, driver_id):
-        return tuple(self.accounts.ledgers.get(driver_id, ()))
-
-
 def days(session: date, open_roads=(OPEN_ROAD,)) -> tuple:
     return tuple(replace(b.road_day(r.code), session=session) if r.code in open_roads
                  else replace(b.road_day(r.code, CLOSED), session=session) for r in ROADS)  # fmt: skip
@@ -72,7 +64,7 @@ class Rig:
         self.snapshots = self.snapshots or {(road, s): replace(b.snapshot(road), session=s)
                                             for road in self.open_roads for s in (b.SESSION, DAY2)}  # fmt: skip
         tickets = TicketBook(fills, TicketLedger(self.ticket_accounts))
-        books = Books(self.accounts, FakeLedger(self.accounts), tickets, FakeLedger(self.ticket_accounts), fills)
+        books = Books(self.accounts, self.accounts, tickets, self.ticket_accounts, fills)
         block = {**GOOD, "enabled": self.enabled, "max_new_trades_per_slot": self.max_new}
         catalogue = FakeRoadCatalogue({s: days(s, self.open_roads) for s in (b.SESSION, DAY2)})
         self.fleet = SchoolFleet(
