@@ -1181,4 +1181,6 @@ Built from main (card v1 and the 12 part-e cards on main), in this order so each
   the comparison card as committed at its own registration commit, version 2; trial 99 is in the ledger, the gate log
   and the data-spend register; the card's §6 text is pinned to v2. Plants: a changed D6 driver hash fails one test, an
   edited card file fails three, a changed comparison hash fails one.
+- `tests/research/test_ledger_guard.py` pins the ledger's trial ids (1..98); bumped to 1..99 with the registration (the
+  full suite on the first push of this branch failed only there).
 
