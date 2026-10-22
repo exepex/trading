@@ -501,3 +501,26 @@ requires them in this text.
 - D1's fields are unchanged; only the new predicate is added.
 - E8's builder (session 01H1CmuWzBtbtjzoQNJUz2Dz) confirmed that E8 adds no caller of the two record readers
   (condition 11 is R3's).
+
+## R1 follow-up: cards anywhere (orchestrator, 22 Oct 2026; branch `story/r1-cards-anywhere`, lane 1)
+
+**Why:** the market school's comparison card (`research/school/CARD_P1.md`, trial 99) lives beside its own story, and
+`read_idea` and `read_all_ideas` read only `research/ideas/`, so `factory register CARD_P1` could not be used and
+`factory report` did not list trial 99 as a measurement: its expected-false-passes line counted it as a test.
+
+**What:** `fno/factory/card_paths.py`: a card is `research/ideas/<id>.md`, or a file the ledger row names in
+`protocol_path` that holds a ```factory block (protocol files hold none and are ignored). The ideas folder is looked
+at first and works unchanged; a named card that cannot be read is an error, never skipped; a ledger path that is not
+in the repository is ignored. `wiring.read_idea` and `read_all_ideas` use it, so `register`, `backfill`, the gates and
+`report` all find the card.
+
+**Tests** (`tests/factory/test_cards_anywhere.py`): a card elsewhere is read with those inside; one idea is found by id
+in the ideas folder first, then by the ledger; an unknown id still names the ideas path; an unreadable card is an
+error; a missing ledger path is ignored; the report lists a card outside the ideas folder as a measurement and leaves
+it out of the false passes; the ideas folder wins an id found in both; every block-holding card the ledger names in
+the real repository is read; and, once trial 99 is registered, the real report lists CARD_P1 as a measurement with 99
+left out (skipped before; it ran and passed on this branch merged with `story/ms-p1-card-registration`: 118 factory
+tests, `factory report` showing `CARD_P1 v2 (measurement): trial 99 of 99` and `measurement trials left out: ... 99`).
+Broken-code proof: 5 mutations (no ledger lookup in the list, none in the lookup, no block check x2, ideas-first) each
+fail a named test.
+

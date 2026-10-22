@@ -9,7 +9,8 @@ from pathlib import Path
 from ..config import ROOT
 from ..research_engine.ledger import Ledger
 from .card import IdeaCard, read_card
-from .constants import DATA_SPEND_FILE, IDEAS_FOLDER, TEMPLATE_CARD
+from .card_paths import all_card_paths, card_path
+from .constants import DATA_SPEND_FILE
 from .gate_log import GateLog
 from .gate_order import GateOrder
 from .gate_steps import GateSteps
@@ -22,17 +23,13 @@ from .trial_count import TrialCount
 from .verdict import ShadowResults, ShadowVerdicts
 
 
-def card_path(idea_id: str) -> str:
-    return f"{IDEAS_FOLDER}/{idea_id}.md"
-
-
 def read_idea(idea_id: str, root: Path = ROOT) -> IdeaCard:
-    return read_card(root, card_path(idea_id))
+    return read_card(root, card_path(idea_id, root))
 
 
 def read_all_ideas(root: Path = ROOT) -> list[IdeaCard]:
-    paths = sorted(p for p in (Path(root) / IDEAS_FOLDER).glob("*.md") if p.name != TEMPLATE_CARD)
-    return [read_card(root, p.relative_to(root).as_posix()) for p in paths]
+    """Every registered card: the ideas folder and the cards the ledger names elsewhere (card_paths)."""
+    return [read_card(root, path) for path in all_card_paths(Path(root))]
 
 
 def build_gate_log(root: Path = ROOT) -> GateLog:
