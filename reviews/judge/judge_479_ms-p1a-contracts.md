@@ -108,3 +108,7 @@ account-limit refusal becomes `ticket: account_limit`. The orchestrator checks t
 **Note:** `requests` left the static FORBIDDEN list. School code may now import it directly, while the fresh-interpreter
 check covers only the contract modules. A Slack post through raw `requests` would pass the static test. Parts g and j
 are where it matters; their judges should check that reports go only through FL1's section interface.
+
+The final tip is 19eb4206: it adds only 4 lines of story text (a third MS-P1j requirement, the share refused for
+quotes per road) to 35458460, and the code is unchanged. The PASS covers 19eb4206. The line-342 correction is still
+required at merge.
