@@ -559,8 +559,7 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 | 4. Capture gate boundaries | `quality/test_capture_gate.py`: 10/10 vs 9/10, <10 sessions, 949/950/951/1000 of 1,000 legs | `>` to `>=` (95.0% passed), 9-of-10 and session-count conditions weakened |
 | 5. Conformance | `check_road_catalogue`, `check_snapshot_source` in `test_catalogue.py::test_conformance…` | (a's checks) |
 
-25 mutations in all (also window edges, price bounds, ranges-not-mids, all-pairs, band edge, own-day lot copy, lot above
-zero, capture cache, strike step), 25 caught, 0 survived.
+Round 1 claimed "25 mutations, 25 caught"; judge 482 planted 33 and 9 survived, so that claim was wrong (see round 2).
 
 **Self-review (two independent review agents), what was done:**
 - *Fixed:* a store outage was turned into `expiry_mismatch` (now propagates; missing archive settings raise
@@ -576,8 +575,8 @@ zero, capture cache, strike step), 25 caught, 0 survived.
 
 **Decisions for the orchestrator/judge (reasoning only, flagged openly):**
 1. *Impossible price* is EDGE1's vertical rule adapted from a single close to a **bid-ask range**: impossible only if no
-   price inside both legs' ranges satisfies 0 <= worth <= width. Judged on mids, 8-72 legs a day broke it by spread noise
-   (up to a third of MIDCPNIFTY, 21-22 Oct); judged on ranges, **0 of 716 band legs on the 9 road-days of 21-22 Oct** did.
+   price inside both legs' ranges satisfies 0 <= worth <= width. Judged on mids, whole chains flag 8-61 legs a road-day (neighbour pairs) and 9-87 (all pairs); in the band only
+   MIDCPNIFTY flags (15 legs on 21 Oct, 6 on 22 Oct) (judge 482's figures, reproduced; round 1 said 8-72); judged on ranges, **0 of 716 band legs on the 9 road-days of 21-22 Oct** did.
 2. A road-day **closes `impossible_price` if any leg in the road's band is impossible**; a leg observation also excludes
    impossible legs (kept for report use, so the 95% test and the closure agree). Story 3.5 gives no day-level rule; the
    alternative is a share threshold. The band default is 10 steps (RC1's widest) until MS-P1h freezes the card value.
@@ -626,3 +625,44 @@ sessions will do.]
 - **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
+
+
+### MS-P1b Claims, round 2 (judge 482 FAIL round 1: two should-fixes, two minors; builder session_01F1RVMF8MNngi97JVNs99L5)
+
+**SF1, strike step per expiry (done).** `quality/strikes.py::strike_steps` gives each expiry its own step (most common
+gap of its listed strikes, the smaller on a tie); `band_keys(snapshot, band_steps)` builds the band per expiry in that
+expiry's own steps, around that expiry's own money; the gate and the capture gate use it. A capture with an expiry of
+under two strikes is `capture_incomplete`. Tests: `tests/school/quality/test_strikes.py` (two steps, tie, mode not
+least-common, one step for all expiries fails, the FINNIFTY shape of 49 strikes at 50 and 25 at 100 gives 42 and 42
+band legs). Real data, read-only run of the committed code on the recorded days (21 and 22 Oct):
+
+```
+FINNIFTY-M  steps by expiry [50.0, 100.0]  band legs by expiry [42, 42]     (round 1 gave 64 legs a day)
+all other roads: one step on both expiries, band legs [42, 42]
+```
+A pytest on the Drive-only files cannot run in the suite (the test run removes every real credential, by design), so the
+real-data check is this run; the synthetic test pins the same shape.
+
+**Contract question for the orchestrator (to a's builder):** `RoadDay.strike_step` is one float, so it stays the
+*nearest expiry's* step. A driver that steps out on a later expiry needs that expiry's own step. Smallest change:
+`SlotSnapshot` (or `RoadDay`) carries `strike_steps: Mapping[date, float]` and drivers read the step of the expiry they
+use. `strike_steps(snapshot.quotes)` already computes it, so a can move it into the contract or drivers can call it.
+
+**Effect on the finding about FINNIFTY (worse, stated plainly):** with a full band on both expiries FINNIFTY has 95 of
+168 band legs valid and two-sided over 21 and 22 Oct (56.55%), not 70%. It fails the 95% bar by a wide margin. The gate
+is unchanged.
+
+**SF2, the nine surviving plants (done).** `tests/school/roads/test_sidecar_and_row_checks.py` plants each fault in the
+capture itself (oracle: the plant, not the code): an A4-invalid leg that keeps its bid, ask and sizes is not counted
+(32 band legs, 31 passed); a sidecar with failures but `complete: true`; spot 0, negative, nan, inf, None, text, a list;
+a capture that finished before it started (and one that took no time is fine); a capture stamped a day early, a day
+late, started yesterday and finished today, and finished tomorrow; times written in UTC (open) and IST wall-clock under a
+UTC label (out of window), and a zone far behind IST that dates the start a day earlier (same session in IST).
+`test_strikes.py` kills the least-common-gap plant. The locale-free month label plant is equivalent here (the locale in
+the tests is fixed; `MONTHS` is a tuple), as the judge noted.
+
+**Mutations now:** the first set (24, adapted to the new code) and the judge's seven families plus others (14), 38 in
+all, all caught, none surviving. Round 1's "25 of 25" is withdrawn: it was a smaller set than the judge's 33.
+
+**Minor (a):** corrected above. **Minor (b):** the unreadable-listing case cannot carry its detail in `RoadStatus`
+(one closure code, by contract); reports that need to tell it from a true mismatch need a field on the contract.

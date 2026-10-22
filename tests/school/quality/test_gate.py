@@ -99,25 +99,21 @@ def test_an_impossible_leg_does_not_count_as_passed():
     road_day, snapshot = opened()
     bad = with_quote(snapshot, 1000.0, bid=900.0, ask=901.0)
     counts = RoadQualityGate(band_steps=1).legs(road_day, bad)
-    assert counts == LegCounts(12, 12 - len(impossible_keys(bad, band_keys(bad, 100.0, 1))))
+    assert counts == LegCounts(12, 12 - len(impossible_keys(bad, band_keys(bad, 1))))
     assert counts.passed < 12
 
 
 def test_the_band_is_a_number_of_strike_steps_around_the_strike_nearest_the_spot():
     road_day, snapshot = opened()
-    strikes = lambda steps: sorted({k.strike for k in band_keys(snapshot, 100.0, steps)})  # noqa: E731
+    strikes = lambda steps: sorted({k.strike for k in band_keys(snapshot, steps)})  # noqa: E731
     assert strikes(0) == [1000.0]  # 1050 is level between 1000 and 1100: the lower one
     assert strikes(1) == [900.0, 1000.0, 1100.0]
     assert strikes(10) == [700.0 + 100.0 * n for n in range(8)]
     moved = replace(snapshot, spot=1051.0)
-    assert sorted({k.strike for k in band_keys(moved, 100.0, 0)}) == [1100.0]
+    assert sorted({k.strike for k in band_keys(moved, 0)}) == [1100.0]
 
 
 def test_a_band_edge_is_in_and_one_strike_more_is_out():
     _, snapshot = opened()
-
-    def strikes(step, steps):
-        return {k.strike for k in band_keys(snapshot, step, steps)}
-
-    assert 1100.0 in strikes(100.0, 1) and 1200.0 not in strikes(100.0, 1)
-    assert 1200.0 in strikes(50.0, 4) and 1200.0 not in strikes(50.0, 3)  # 200 from the money is exactly 4 steps of 50
+    strikes = {k.strike for k in band_keys(snapshot, 1)}
+    assert 1100.0 in strikes and 1200.0 not in strikes  # money 1000; one 100-point step each side

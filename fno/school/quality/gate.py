@@ -51,4 +51,4 @@ class RoadQualityGate:
         return bool(impossible_keys(snapshot, self._band(road_day, snapshot)))
 
     def _band(self, road_day: RoadDay, snapshot: SlotSnapshot):
-        return band_keys(snapshot, road_day.strike_step, self.band_steps)
+        return band_keys(snapshot, self.band_steps)

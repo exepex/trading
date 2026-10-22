@@ -11,7 +11,6 @@ import hashlib
 import io
 import json
 import math
-from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -24,8 +23,9 @@ from ..constants import ClosureReason, OptionKind
 from ..contracts.roads import Road
 from ..contracts.snapshot import ContractKey, SlotQuote, SlotSnapshot
 from ..quality.rules import window_problem
+from ..quality.strikes import strike_steps
 
-NOT_ENOUGH_STRIKES = "fewer than two strikes: no strike step"
+NOT_ENOUGH_STRIKES = "an expiry with fewer than two strikes: no strike step"
 
 
 class CaptureProblem(Exception):
@@ -52,13 +52,12 @@ class Capture:
         return tuple(sorted({key.expiry for key in self.quotes}))
 
     def strike_step(self) -> float:
-        """The usual gap between listed strikes of the nearest expiry (its most common gap; the smaller on a tie)."""
-        nearest = self.expiries[0]
-        strikes = sorted({key.strike for key in self.quotes if key.expiry == nearest})
-        gaps = Counter(round(b - a, 6) for a, b in zip(strikes, strikes[1:], strict=False))
-        if not gaps:
+        """The nearest expiry's strike step (`RoadDay.strike_step`); every expiry must have one, and each has its own
+        (`quality.strikes.strike_steps`)."""
+        steps = strike_steps(self.quotes)
+        if set(steps) != set(self.expiries):
             raise CaptureProblem(ClosureReason.CAPTURE_INCOMPLETE, NOT_ENOUGH_STRIKES)
-        return min(gaps, key=lambda gap: (-gaps[gap], gap))
+        return steps[self.expiries[0]]
 
     def snapshot(self) -> SlotSnapshot:
         return SlotSnapshot(self.road.code, self.session, self.snapshot_id, self.sha256, self.started_at,

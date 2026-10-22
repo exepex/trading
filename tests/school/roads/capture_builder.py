@@ -4,7 +4,7 @@ of story 3.5, for the roads and quality tests. Fixed values only: no live strike
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone, tzinfo
 
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.quotes.snapshot_rows import COLUMNS, snapshot_csv
@@ -51,10 +51,11 @@ def price(strike: float, kind: str, spot: float = SPOT) -> float:
     return round(intrinsic + 30.0 * 0.9 ** (abs(strike - spot) / STEP), 2)
 
 
-def chain_rows(snapshot_id: str, expiries: tuple[date, ...], spot: float = SPOT, spread: float = 1.0) -> list[dict]:
+def chain_rows(snapshot_id: str, expiries: tuple[date, ...], spot: float = SPOT, spread: float = 1.0,
+               strikes: dict | None = None) -> list[dict]:  # fmt: skip
     rows = []
     for expiry in expiries:
-        for strike in STRIKES:
+        for strike in (strikes or {}).get(expiry, STRIKES):
             for kind in ("CE", "PE"):
                 mid = price(strike, kind, spot)
                 row = dict.fromkeys(COLUMNS, "")
@@ -83,24 +84,44 @@ class Plant:
     tamper: bool = False  # the quote file's bytes change after the sidecar recorded their SHA-256
     short_by: int = 0  # rows the file lacks against the sidecar's count
     change_rows: list = field(default_factory=list)  # callables (rows) -> None, to plant a bad price
+    strikes: dict | None = None  # expiry -> that expiry's strikes (their own step), default STRIKES for each
+    failures: list | None = None  # the sidecar's failure list, whatever `complete` says
+    spot: object = SPOT  # the sidecar's spot, any value
+    minutes: int = 2  # finished_at minus started_at; negative plants a capture that finished before it began
+    start_day: int = 0  # days added to the start's date (a capture stamped on another day)
+    finish_day: int = 0  # days added to the finish's date
+    zone: tzinfo | None = None  # write the times converted to this zone (the same instants)
+    relabel: tzinfo | None = None  # write the IST wall-clock times under this zone label (other instants)
 
     @property
     def snapshot_id(self) -> str:
         return f"{self.road.stem}_{self.session:%Y%m%d}_{self.started[0]:02d}{self.started[1]:02d}00"
 
+    def _stamp(self, moment: datetime) -> str:
+        if self.relabel is not None:
+            return moment.replace(tzinfo=self.relabel).isoformat()
+        return (moment.astimezone(self.zone) if self.zone else moment).isoformat()
+
+    def _failures(self) -> list:
+        if self.failures is not None:
+            return self.failures
+        return [] if self.complete else ["one contract failed"]
+
     def write(self, stores: dict[str, RawFileStore] | RawFileStore) -> "Plant":
         store = stores[self.road.dataset] if isinstance(stores, dict) else stores
         expiries = self.expiries or expiries_of(self.road)
-        rows = chain_rows(self.snapshot_id, expiries)
+        rows = chain_rows(self.snapshot_id, expiries, strikes=self.strikes)
         for change in self.change_rows:
             change(rows)
         data = snapshot_csv(rows)
         began = datetime(self.session.year, self.session.month, self.session.day, *self.started, 0, tzinfo=IST)
+        began += timedelta(days=self.start_day)
+        ended = began + timedelta(minutes=self.minutes, days=self.finish_day)
         meta = {
             "snapshot_id": self.snapshot_id, "underlying": self.road.underlying, "provider": "groww",
-            "started_at": began.isoformat(), "finished_at": (began + timedelta(minutes=2)).isoformat(),
-            "expiries": [e.isoformat() for e in expiries], "spot": SPOT, "expected_contracts": len(rows),
-            "recorded_contracts": len(rows), "failures": [] if self.complete else ["one contract failed"],
+            "started_at": self._stamp(began), "finished_at": self._stamp(ended),
+            "expiries": [e.isoformat() for e in expiries], "spot": self.spot, "expected_contracts": len(rows),
+            "recorded_contracts": len(rows), "failures": self._failures(),
             "complete": self.complete, "in_window": self.in_window, "csv_sha256": hashlib.sha256(data).hexdigest(),
         }  # fmt: skip
         if self.short_by:
@@ -150,3 +171,10 @@ class FixedLots:
     def lot(self, underlying: str, session: date, expiries: tuple[date, ...]):
         self.asked.append((underlying, session, expiries))
         return self.lot_for_all
+
+
+def reader_over_all(store: RawFileStore):
+    """A CaptureReader whose every road dataset is `store`."""
+    from fno.school.roads.capture import CaptureReader
+
+    return CaptureReader({r.dataset: store for r in ROADS})
