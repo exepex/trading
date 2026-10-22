@@ -77,15 +77,21 @@ def test_the_evening_shows_each_rule_trades_net_the_counts_and_the_labelled_flee
         f.net_record("CS1@1", 999.0, True),
     ]
     lines = "\n".join(evening(records, [f.counts(), f.counts("N0@1")]).lines)
-    assert "CS1@1 BANKNIFTY-M: net Rs +138 (profit_target)" in lines and "N0@1 BANKNIFTY-M: net" not in lines
+    assert "CS1@1 BANKNIFTY-M: net Rs +138 (profit_target)" in lines
     assert "CS1@1 BANKNIFTY-M: 3 / 2 / 1" in lines and "N0@1 BANKNIFTY-M: 3" not in lines
-    assert "Fleet total: Rs +88 (separate hypothetical accounts, not one budget)" in lines  # the ticket's 999 is out
+    total = "Fleet total, rule drivers only: Rs +138 (separate hypothetical accounts, not one budget)"
+    assert total in lines, "the control's -50 and the ticket's 999 are not in it"
+    assert "Control (not in the fleet total): N0@1 BANKNIFTY-M net Rs -50" in lines
 
 
 def test_an_empty_day_says_none_and_is_red():
     text = evening()
     lines = "\n".join(text.lines)
-    assert text.banner is Banner.RED and "Trades closed: none" in lines and "Fleet total: Rs +0" in lines
+    assert (
+        text.banner is Banner.RED
+        and "Trades closed: none" in lines
+        and "Fleet total, rule drivers only: Rs +0" in lines
+    )
 
 
 def test_both_sections_carry_the_nse_terms_line_and_the_no_latency_label():
@@ -104,3 +110,24 @@ def test_no_contract_strike_price_or_card_internal_appears_in_either_section():
         body = "\n".join((text.title, *text.lines))
         assert not [p for p in planted if p in body], f"leaked: {[p for p in planted if p in body]}"
         assert not re.search(r"\b\d{4,}(\.\d+)?\s?(CE|PE)\b", body)
+
+
+def test_when_only_a_control_trades_the_evening_is_red_and_the_fleet_total_stays_zero():
+    records = [f.trade_by("N0@1"), f.net_record("N0@1", 5000.0)]
+    text = evening(records)
+    lines = "\n".join(text.lines)
+    assert text.banner is Banner.RED, "no rule driver is a candidate, as in the morning"
+    assert "Trades closed: none" in lines and "Fleet total, rule drivers only: Rs +0" in lines
+    assert "Control (not in the fleet total): N0@1 BANKNIFTY-M net Rs +5,000" in lines
+
+
+def test_measurement_only_drivers_have_their_own_line_and_are_not_in_the_fleet_total():
+    records = [trade_record(), f.net_record("CS1@1", 100.0), f.net_record("PS5@1", -400.0)]
+    lines = "\n".join(evening(records).lines)
+    assert "Measurement only (not in the fleet total): PS5@1 BANKNIFTY-M net Rs -400" in lines
+    assert "Fleet total, rule drivers only: Rs +100" in lines
+
+
+def test_a_rule_drivers_trade_keeps_the_evening_amber_whatever_the_controls_do():
+    records = [trade_record(), f.trade_by("N0@1"), f.net_record("CS1@1", 100.0)]
+    assert evening(records).banner is Banner.AMBER

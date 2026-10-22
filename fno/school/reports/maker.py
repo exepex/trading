@@ -12,6 +12,11 @@ from ..contracts.reports import ReportSection
 SECTION_FAILED = "school {edition} section not made ({failure}); the edition was posted without it"
 
 
+def failure_alert(edition: str, failed: Exception) -> str:
+    """The exception's class and a fixed text, never its message: no strike or value can reach #fno-desk."""
+    return SECTION_FAILED.format(edition=edition, failure=type(failed).__name__)
+
+
 class SchoolReportMaker:
     def __init__(self, inner, sections: Mapping[str, ReportSection]):
         self.inner, self.sections = inner, sections
@@ -25,7 +30,18 @@ class SchoolReportMaker:
         try:
             text = section.render(day)
         except Exception as failed:  # isolation: the school never stops an edition
-            failure = f"{type(failed).__name__}: {failed}"
-            return replace(made, alerts=(*made.alerts, SECTION_FAILED.format(edition=edition, failure=failure)))
+            return replace(made, alerts=(*made.alerts, failure_alert(edition, failed)))
         block = "\n".join((text.title, *text.lines))
         return replace(made, text=f"{made.text}\n\n{block}")
+
+
+class FailedSchoolMaker:
+    """The plain edition with one alert, when the school could not even be set up (settings, import)."""
+
+    def __init__(self, inner, failed: Exception):
+        self.inner, self.failed = inner, failed
+
+    def make(self, day: date, now: datetime, edition: str, alerts: tuple[str, ...] = (), checks: str = "",
+             confirmation: tuple[str, ...] = ()) -> Made:  # fmt: skip
+        made = self.inner.make(day, now, edition, alerts, checks, confirmation)
+        return replace(made, alerts=(*made.alerts, failure_alert(edition, self.failed)))

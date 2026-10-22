@@ -572,3 +572,23 @@ Design points to judge:
   "the school's day inputs are wired by MS-P1j" and no section (`test_a_flag_turned_on_before_the_inputs_are_wired...`).
 - Banner words (red: do not trade real money today; amber: paper only) are response 325 section 7.3's.
 
+MS-P1g round 2 (judge 484 FAIL, round 1; each finding checked against the code and fixed):
+1. **The school must never stop an edition (accepted):** `with_school_sections` now lives in `guard.py`, which imports
+   nothing of the school at load time; the school's wiring and the `school` settings are read inside its `try`. A bad
+   block, a missing or unknown key, a wrong kind, no block, an unreadable config or an import failure gives the plain
+   signed-off edition (identical bytes) and one alert. `page_wiring.py` imports the guard (still the two reserved
+   lines). Tests: `test_a_bad_school_block_gives_the_plain_edition_and_one_alert_naming_the_class` (5 cases x 2
+   editions, including the judge's three plants), `test_an_import_failure_of_the_school_wiring...`,
+   `test_a_bad_real_config_never_stops_the_edition`.
+2. **Controls and the fleet total (accepted; orchestrator's decision, 22 Oct):** the evening candidates, the banner and
+   the fleet total are rule drivers only; controls and measurement-only drivers have their own labelled lines
+   ("Control (not in the fleet total)", "Measurement only (not in the fleet total)"). Tests:
+   `test_when_only_a_control_trades_the_evening_is_red_and_the_fleet_total_stays_zero` (the judge's case),
+   `test_measurement_only_drivers_have_their_own_line...`, `test_a_rule_drivers_trade_keeps_the_evening_amber...`.
+3. **Minors (accepted):** `test_the_real_report_maker_is_built_through_the_school_guard` runs the real
+   `build_report_maker` with its heavy parts stubbed and shows it goes through the guard (removing the call fails it);
+   the failure alert carries only the exception class and a fixed text, never its message
+   (`test_a_failure_alert_never_repeats_the_exceptions_message` plants a contract key and a strike).
+Broken-code proof: 7 mutations of the new code (the guard's `except`, the candidate role filter, the fleet total, the
+alert text, the `page_wiring` call, the flag check, the controls' lines) each fail a named test.
+

@@ -35,6 +35,11 @@ def refused_record(reason=RefusalReason.MAX_LOSS) -> DecisionRecord:
     return replace(trade_record(), road=RoadCode.NIFTY_MONTHLY, decision=decision)
 
 
+def trade_by(driver: str) -> DecisionRecord:
+    base = trade_record()
+    return replace(base, decision=replace(base.decision, driver_id=driver))
+
+
 def net_record(driver="CS1@1", net=137.7, ticket=False) -> OutcomeRecord:
     return replace(outcome_record(), driver_id=driver, net=net, is_ticket=ticket)
 
