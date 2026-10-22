@@ -5,7 +5,7 @@ session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuM
 `story/edge1-text` (text), then `story/edge1-<part>` (code) · **Owner's choice:** `docs/DESK_DECISIONS.md`, 22 Oct
 ("Edge study ... through R1's factory") · **Status:** story text for the judge; two owner questions open (Q1, Q2) with
 written defaults. Revision 2: all history is exploratory (R1's owner's point, accepted); one card per variant.
-Revision 3: judge 467's two should-fixes (SF1 option a with GR1's facts; SF2 the untraded-leg rule) and notes.
+Revision 4: judge 467.2 (the exact exit day; all trades must be positive too). Revision 3: judge 467's two should-fixes (SF1 option a with GR1's facts; SF2 the untraded-leg rule) and notes.
 
 **Description.** As the desk (the trader, the strategist, the risk manager and the statistician), I want one honest,
 pre-registered answer to "has any simple, rule-based option trade on NIFTY or BANKNIFTY made money after every real
@@ -92,13 +92,20 @@ That is 3 x 4 = **12 variants** per index.
 - **Untraded legs (judge 467 SF2).** The engine prices a leg with no trades at its settlement price, flagged
   (`leg_prices.py`: "a valuation proxy, not an executable price"). Those proxies made experiment 1's positives stale.
   The rule here:
-  - A trade is taken only when **every leg traded** (volume > 0) on its entry day, and closed only at a close where
-    every leg traded. If no leg-complete close exists by the exit day, the trade is recorded at the exit day with its
-    proxies flagged, and it is **left out of the pass and nomination figures**.
+  - A trade is taken only when **every leg traded** (volume > 0) on its entry day.
+  - **Exit day, exactly** (judge 467.2): a stop or target exits at the close of the day it triggers, and such days
+    always have every leg traded (below). Otherwise the exit is the planned exit day's close: T21's day, or the
+    expiry for EXP, which is cash-settled at the final settlement price, a real price. No earlier or later day is ever
+    searched for. If a leg did not trade at the planned exit close, its settlement proxy is used and the trade is
+    marked **incomplete exit**.
+  - Incomplete-exit trades are kept and flagged. In a big move the far wing often stops trading, so dropping them
+    would bias a short-premium screen upward.
   - SL2 and TP50 are checked only on days when every leg traded.
   - Not-taken trades are counted by reason (an untraded leg at entry, missing strikes, bad prices, over the cap).
-  - The report shows, per variant and period, the share of trades with any proxy price, and all trades (proxies
-    included) beside the traded-only figures.
+  - The report shows, per variant and period, the share of trades with any proxy price, the count of
+    incomplete-exit trades and their mean proxy P&L, and all trades (proxies included) beside the traded-only figures.
+  - The pass and nomination figures are computed on trades with a complete exit, and the nomination rule's all-trades check must
+    hold too.
 
 ## Costs (G1) and margin
 
@@ -185,6 +192,8 @@ only when all of these hold:
   run 2 tests, is at most 0.05;
 - run 2's mean net is positive at both pad levels;
 - run 1's mean net was positive.
+- run 2's mean net is also positive on **all** trades, incomplete exits with their proxy prices included, at both pad
+  levels (judge 467.2).
 
 A nomination is a proposal to the owner, never a trade.
 
