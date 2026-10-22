@@ -1,9 +1,12 @@
 """Shared displayed size (327 item 10): many paper accounts do not share one order book. Each account's fill is
 priced on its own against the full displayed size (E4d per account), so a report must never sum fills that the same
-displayed size could not have served together. This counts, per contract and side at one snapshot, the units all
-accounts took against the size shown."""
+displayed size could not have served together.
 
-from collections.abc import Mapping
+`allocate` serves whole fills, never part of one (fills are all legs or none): in a fixed order (owner, then the
+order given), each fill is servable only if every leg's units still fit in what its contract and side showed. A
+report sums only the servable fills and names the rest."""
+
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from ...constants import SIDE_BUY
@@ -12,36 +15,38 @@ from ..contracts.snapshot import ContractKey, SlotSnapshot
 
 
 @dataclass(frozen=True)
-class SizeClaim:
-    key: ContractKey
-    side: str
-    displayed: int  # the ask size for a buy, the bid size for a sell
-    wanted: int  # units every account filled there
-    accounts: tuple[str, ...]
+class OwnedFill:
+    owner: str  # the driver version (or a ticket ledger's label) whose fill it is
+    fill: FillResult
+
+
+@dataclass(frozen=True)
+class SizeAllocation:
+    servable: tuple[OwnedFill, ...]
+    unservable: tuple[OwnedFill, ...]  # each would need size an earlier fill already used
 
     @property
-    def servable(self) -> int:
-        return min(self.wanted, self.displayed)
-
-    @property
-    def excess(self) -> int:
-        return self.wanted - self.servable
+    def contended(self) -> bool:
+        return bool(self.unservable)
 
 
-def size_claims(fills: Mapping[str, FillResult], snapshot: SlotSnapshot) -> tuple[SizeClaim, ...]:
-    """`fills`: each driver version's filled entries or exits at this snapshot (refusals add nothing)."""
-    taken: dict[tuple, tuple[int, list[str]]] = {}
-    for driver_id in sorted(fills):
-        for leg in fills[driver_id].legs:
-            units, who = taken.get((leg.key, leg.side), (0, []))
-            taken[(leg.key, leg.side)] = (units + leg.units, [*who, driver_id])
-    return tuple(SizeClaim(key, side, _displayed(snapshot, key, side), units, tuple(dict.fromkeys(who)))
-                 for (key, side), (units, who) in sorted(taken.items()))  # fmt: skip
-
-
-def servable_units(claims: tuple[SizeClaim, ...]) -> int:
-    """The fleet's units a report may sum: never more than each contract and side showed."""
-    return sum(claim.servable for claim in claims)
+def allocate(fills: Iterable[OwnedFill], snapshot: SlotSnapshot) -> SizeAllocation:
+    """`fills`: every filled entry or exit at this snapshot (an exit and a re-entry of one owner may both be there);
+    refusals and states use no size and are left out."""
+    left: dict[tuple[ContractKey, str], int] = {}
+    servable, unservable = [], []
+    filled = [owned for owned in fills if owned.fill.filled]
+    for owned in sorted(filled, key=lambda o: o.owner):  # stable: one owner's fills keep their given order
+        needs = [((leg.key, leg.side), leg.units) for leg in owned.fill.legs]
+        for place, _ in needs:
+            left.setdefault(place, _displayed(snapshot, *place))
+        if all(units <= left[place] for place, units in needs):
+            for place, units in needs:
+                left[place] -= units
+            servable.append(owned)
+        else:
+            unservable.append(owned)
+    return SizeAllocation(tuple(servable), tuple(unservable))
 
 
 def _displayed(snapshot: SlotSnapshot, key: ContractKey, side: str) -> int:

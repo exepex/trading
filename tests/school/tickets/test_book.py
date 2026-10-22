@@ -6,10 +6,12 @@ from datetime import timedelta
 
 import pytest
 
+from fno.constants import SIDE_BUY
 from fno.school.constants import ExitReason, ExitState, Outcome, RefusalReason, RoadCode, TicketReason
 from fno.school.contracts.accounts import SealedDecision, SettlementPrice
+from fno.school.contracts.safety import LawResult
 from fno.school.fakes import FakeAccounts, FakeFills, FakeSettlementSource
-from fno.school.tickets.book import TicketBook, fill_cash
+from fno.school.tickets.book import TicketBook, TicketLedger, fill_cash
 from fno.school.tickets.rules import as_ticket
 from fno.school.tickets.rupees import account_net
 from tests.school.contracts import builders as b
@@ -17,6 +19,7 @@ from tests.school.contracts.test_records import outcome_record
 
 AT = b.SLOT_AT + timedelta(minutes=4)
 MARKS = {RoadCode.BANKNIFTY_MONTHLY: b.snapshot()}
+PASS = (LawResult("max_loss", True, None),)
 
 
 def ticket(file_sha256: str = "cd" * 32) -> SealedDecision:
@@ -26,19 +29,38 @@ def ticket(file_sha256: str = "cd" * 32) -> SealedDecision:
 def book() -> tuple[TicketBook, FakeAccounts, FakeAccounts]:
     accounts, ledger = FakeAccounts(2_000_000), FakeAccounts(0)
     source = FakeSettlementSource({("BANKNIFTY", b.EXPIRY): SettlementPrice(950.0, "ee" * 32)})
-    return TicketBook(FakeFills(source), ledger), accounts, ledger
+    return TicketBook(FakeFills(source), TicketLedger(ledger)), accounts, ledger
 
 
-def test_a_ticket_fills_at_the_same_touch_a_trade_would():
+def test_a_ticket_fills_every_leg_at_the_snapshot_s_touch():
     tickets, _, _ = book()
-    as_ticket_fill = tickets.enter(ticket(), b.snapshot(), b.seal(), AT)
-    as_trade_fill = FakeFills().enter(b.sealed(), b.snapshot(), b.seal(), AT)
-    assert as_ticket_fill == as_trade_fill and as_ticket_fill.filled
+    fill = tickets.enter(ticket(), PASS, b.snapshot(), b.seal(), AT)
+    snapshot, proposal = b.snapshot(), ticket().decision.proposal
+    expected = [snapshot.quote(leg.key).ask if leg.side == SIDE_BUY else snapshot.quote(leg.key).bid
+                for leg in proposal.legs]  # fmt: skip
+    assert [leg.price for leg in fill.legs] == expected and fill.rests_on == "cd" * 32
+
+
+BINDING = (RefusalReason.MAX_LOSS, RefusalReason.UNPROTECTED, RefusalReason.SIZE_ABOVE_DISPLAYED,
+           RefusalReason.PROTECTION_UNSELLABLE)  # fmt: skip
+
+
+@pytest.mark.parametrize("reason", BINDING)
+def test_a_ticket_that_breaks_a_binding_law_is_refused_and_records_nothing(reason):
+    tickets, _, ledger = book()
+    fill = tickets.enter(ticket(), (*PASS, LawResult(str(reason), False, reason)), b.snapshot(), b.seal(), AT)
+    assert fill.refused == (reason,) and ledger.ledgers == {}
+
+
+def test_an_account_limit_does_not_stop_a_ticket():
+    tickets, _, _ = book()
+    cap = (LawResult("open_risk", False, RefusalReason.OPEN_RISK),)
+    assert tickets.enter(ticket(), cap, b.snapshot(), b.seal(), AT).filled
 
 
 def test_a_ticket_lives_in_the_ticket_ledger_never_in_an_account():
     tickets, accounts, ledger = book()
-    tickets.enter(ticket(), b.snapshot(), b.seal(), AT)
+    tickets.enter(ticket(), PASS, b.snapshot(), b.seal(), AT)
     opened = ledger.view("CS1@1", MARKS, b.SESSION).open_positions
     assert [p.position_id for p in opened] == ["ticket:CS1@1:BANKNIFTY-M:2026-11-02"]
     assert opened[0].entry_net == fill_cash(tickets.fills.enter(ticket(), b.snapshot(), b.seal(), AT))
@@ -47,8 +69,8 @@ def test_a_ticket_lives_in_the_ticket_ledger_never_in_an_account():
 
 def test_a_ticket_with_a_stale_seal_or_a_missing_quote_records_nothing():
     tickets, _, ledger = book()
-    stale = tickets.enter(ticket("00" * 32), b.snapshot(), b.seal(), AT)
-    missing = tickets.enter(ticket(), b.snapshot(quotes={}), b.seal(), AT)
+    stale = tickets.enter(ticket("00" * 32), PASS, b.snapshot(), b.seal(), AT)
+    missing = tickets.enter(ticket(), PASS, b.snapshot(quotes={}), b.seal(), AT)
     assert RefusalReason.STALE_SEAL in stale.refused and RefusalReason.MISSING_QUOTE in missing.refused
     assert ledger.ledgers == {}
 
@@ -56,12 +78,12 @@ def test_a_ticket_with_a_stale_seal_or_a_missing_quote_records_nothing():
 def test_a_trade_is_not_entered_as_a_ticket():
     tickets, _, _ = book()
     with pytest.raises(ValueError):
-        tickets.enter(b.sealed(), b.snapshot(), b.seal(), AT)
+        tickets.enter(b.sealed(), PASS, b.snapshot(), b.seal(), AT)
 
 
 def test_a_ticket_closes_at_the_touch_or_waits_and_settles_at_expiry():
     tickets, _, ledger = book()
-    tickets.enter(ticket(), b.snapshot(), b.seal(), AT)
+    tickets.enter(ticket(), PASS, b.snapshot(), b.seal(), AT)
     position = ledger.view("CS1@1", MARKS, b.SESSION).open_positions[0]
     waiting = tickets.exit(position, ExitReason.PROFIT_TARGET, b.snapshot(quotes={}), "cd" * 32, b.seal(), AT)
     assert waiting.state == ExitState.EXIT_WAITING_QUOTE
@@ -73,7 +95,7 @@ def test_a_ticket_closes_at_the_touch_or_waits_and_settles_at_expiry():
 
 def test_a_ticket_exit_fills_and_closes():
     tickets, _, ledger = book()
-    tickets.enter(ticket(), b.snapshot(), b.seal(), AT)
+    tickets.enter(ticket(), PASS, b.snapshot(), b.seal(), AT)
     position = ledger.view("CS1@1", MARKS, b.SESSION).open_positions[0]
     closed = tickets.exit(position, ExitReason.SESSIONS_HELD, b.snapshot(), "cd" * 32, b.seal(), AT)
     assert closed.filled and ledger.view("CS1@1", MARKS, b.SESSION).open_positions == ()

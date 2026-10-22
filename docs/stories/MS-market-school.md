@@ -336,21 +336,37 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 **Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or on a driver stopped for the
-  day, priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
-  with only the account limits relaxed;
-- the `OpportunityCounts` builder (eligible, fillable, executed);
-- the shared-displayed-size count (327 item 10).
+- `classify(fired, check, max_new)` (`rules.py`): one driver's fired decisions at one slot, in rank order (frozen
+  score, ties by the fixed road order).
+  - Each is checked by the same safety laws through `check(decision, accepted)`. `accepted` holds the trades already
+    taken this slot, so the bucket, open-risk, new-risk and margin laws see them before any fill; MS-P1j builds that
+    running view.
+  - The first `max_new` that pass every law trade.
+  - A later one that passes is `ticket: trade_limit`.
+  - One refused only by account limits, with a stop among them, is `ticket: driver_stopped`.
+  - Any other refusal is `refused`, with the first reason.
+- `TicketBook` (`book.py`):
+  - it refuses a ticket whose sealed law results break a binding law (anything but the six account limits);
+  - it fills through the same `FillPort` as trades;
+  - it records only in a `TicketLedger`, its own type over an account store on its own root, never a driver's
+    account.
+- `counts_for` and `totals` (`counts.py`): eligible, fillable and executed per decision; `scheduled` (every sealed
+  decision) is the denominator; one row per (session, road, driver).
+- `allocate` (`shared_size.py`, 327 item 10): whole fills are served in a fixed order against each contract's and
+  side's displayed size. A report sums only the servable fills and names the rest.
+- `account_net` (`rupees.py`): the only rupee sum, and it never includes a ticket.
 
 **Acceptance tests:**
 1. Tickets:
-   - the same quotes and laws as trades;
+   - the same quotes and laws as trades, with only the account limits relaxed (`test_rules.py`, `test_book.py`);
    - never in an account;
    - never summed into rupees.
-2. `eligible >= fillable >= executed` over a fixture day.
-3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve.
-4. A refused ticket stays in every count's denominator.
-5. The conformance test.
+2. `eligible >= fillable >= executed` over a fixture day (`test_counts.py`).
+3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve
+   (`test_shared_size.py`).
+4. A refused ticket stays in every count's denominator (`test_counts.py`).
+5. f implements no port of a, so there is no conformance check of its own. Its tests run on a's fakes, which pass
+   `conformance.py`.
 
 ### MS-P1g The 08:50 and 20:05 sections · lane 1 (Slack reports, signed-off pages) · model tier: S · depends on a
 
@@ -539,3 +555,36 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Deliberate duplication:** the `school` limits copy today's book caps rather than reading `risk.profiles.books`, so a desk change cannot move the pilot mid-count. `test_the_school_limits_equal_the_books_caps_today` makes any divergence a visible decision.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
+
+### MS-P1f Claims (round 1, branch `story/ms-p1-tickets`, on top of `story/ms-p1-contracts`; the SHA is in the commit carrying this text)
+
+| # | Criterion | Code | Tests (and the plants they catch) |
+|---|---|---|---|
+| 1 | Tickets: the same quotes and laws, never in an account, never in rupees | `rules.py`, `book.py`, `rupees.py` | `test_rules.py`, `test_book.py`. Plants: the room check, the running view, rank order, ties, stop logic, the account-limit set, the first reason, accepted-only trades, one lot, the binding filter, the book's law refusal, recording only fills, tickets only, and the rupee filter |
+| 2 | eligible >= fillable >= executed over a fixture day | `counts.py` | `test_counts.py`. Plants: the laws term, the ticket laws, the executed rule, the denominator, uniqueness |
+| 3 | A shared displayed size is counted; no unservable fill is summed | `shared_size.py` | `test_shared_size.py`. Plants: the fit check, the size use, the side's size, the fixed order |
+| 4 | A refused ticket stays in the denominator | `counts.py` | `test_counts.py` (`TICKET, PASS, MISSING` row and the fixture day) |
+| 5 | Conformance | n/a | f implements no a port; its fakes pass a's checks |
+
+- **Gates on this tree:** reported in the hand-off message; the full suite, ruff, `check_imports` and `check_records`.
+- **Plants:** 23 planted, 23 caught. In round 0, two survivors led to one fix each: a redundant `eligible and`
+  removed, and a test fixture with asymmetric bid and ask sizes.
+- **Self-review** (an independent agent on `756e6545..75c12954`): 1 blocking, 6 should-fix and 4 minor findings.
+  - Fixed:
+    - **Blocking:** a ticket filled with no law check. `TicketBook.enter` now takes the sealed law results and
+      refuses on a binding law; tickets are only made by `classify`, after the same laws.
+    - **Ordering:** each check now sees the trades accepted this slot, and a refused trade frees its place for the
+      next-ranked rule.
+    - **Shared size:** per-leg minimums were wrong for structures. Now whole fills are allocated, any number per owner.
+    - **Weak tests:** two tests that could not fail are replaced; the conformance claim is corrected.
+    - **Minor:**
+      - `TicketLedger` is its own type;
+      - `totals` refuses duplicate rows;
+      - an `unavailable` decision is documented as not eligible;
+      - a two-lot proposal raises, as a driver bug the fleet isolates.
+  - Open, for the orchestrator:
+    - (a) **A trade refused only by an account cap without a stop** (bucket, open risk, new risk, margin) stays
+      `refused`, not a ticket, as the story's text says. Making it a ticket needs a new `TicketReason` in a's
+      constants. That would measure the rule on more roads [reasoning only]; it is the orchestrator's call.
+    - (b) **`fill_cash` duplicates `fakes._cash`**, which is a's file. Proposed for a's next round: a
+      `FillResult.cash` property, used by both.

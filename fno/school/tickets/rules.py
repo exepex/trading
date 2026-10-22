@@ -1,7 +1,13 @@
-"""Which fired decisions become tickets (story MS-P1f). The fleet (MS-P1j) calls these in this order for one driver
-at one slot: `limit_trades` on the fired decisions, then the safety laws on each trade in rank order, then
-`after_laws` on each result; a ticket's own laws are the same laws, read by `ticket_laws_pass`."""
+"""Which fired decisions trade, become tickets or are refused (story MS-P1f).
 
+`classify` walks one driver's fired decisions at one slot in rank order (the card's frozen score, ties by the fixed
+road order). Each is checked by the same safety laws through `check(decision, accepted)`, where `accepted` holds the
+trades already taken this slot, so a law that adds up the slot (bucket, open risk, new risk a day, margin) sees them
+before any fill (the fleet, MS-P1j, builds that running view). The first `max_new` that pass every law trade; a later
+one that passes is `ticket: trade_limit`; one refused only by account limits, a stop among them, is
+`ticket: driver_stopped`; any other refusal is `refused` with the first refusing law's reason."""
+
+from collections.abc import Callable
 from dataclasses import replace
 
 from ..constants import Outcome, RefusalReason, TicketReason
@@ -15,25 +21,29 @@ ACCOUNT_LIMITS = frozenset({RefusalReason.BUCKET_CAP, RefusalReason.OPEN_RISK, R
 STOPS = frozenset({RefusalReason.DAILY_STOP, RefusalReason.BRAKE})
 _ROAD_ORDER = {road.code: index for index, road in enumerate(ROADS)}
 
-
-def limit_trades(fired: tuple[Decision, ...], max_new: int) -> tuple[Decision, ...]:
-    """The best `max_new` by the card's frozen score stay trades (ties: the fixed road order); the rest become
-    `ticket: trade_limit`. Decisions that did not fire pass through unchanged, in the given order."""
-    trades = [d for d in fired if d.outcome == Outcome.TRADE]
-    ranked = sorted(trades, key=lambda d: (-d.proposal.score, _ROAD_ORDER[d.road]))
-    kept = {id(d) for d in ranked[:max_new]}
-    return tuple(d if d.outcome != Outcome.TRADE or id(d) in kept else as_ticket(d, TicketReason.TRADE_LIMIT)
-                 for d in fired)  # fmt: skip
+LawCheck = Callable[[Decision, tuple[Decision, ...]], tuple[LawResult, ...]]
 
 
-def after_laws(decision: Decision, results: tuple[LawResult, ...]) -> Decision:
-    """A trade every law passed stays a trade. One refused only by account limits, a stop among them, becomes
-    `ticket: driver_stopped`. Any other refusal is `refused` with the first refusing law's reason (law order)."""
-    if decision.outcome != Outcome.TRADE:
-        raise ValueError("only a trade goes through the account's laws")
+def classify(fired: tuple[Decision, ...], check: LawCheck, max_new: int) -> tuple[tuple[Decision, tuple], ...]:
+    """(decision after the laws, its law results) for every fired trade, in rank order. Decisions that are not
+    trades (no trade, closed road, unavailable) are not passed here: they have no proposal to check."""
+    if any(d.outcome != Outcome.TRADE for d in fired):
+        raise ValueError("only fired trades are classified")
+    accepted: list[Decision] = []
+    out = []
+    for decision in sorted(fired, key=lambda d: (-d.proposal.score, _ROAD_ORDER[d.road])):
+        results = check(decision, tuple(accepted))
+        final = _after_laws(decision, results, room=len(accepted) < max_new)
+        if final.outcome == Outcome.TRADE:
+            accepted.append(final)
+        out.append((final, results))
+    return tuple(out)
+
+
+def _after_laws(decision: Decision, results: tuple[LawResult, ...], room: bool) -> Decision:
     refusals = [r.reason for r in results if not r.passed]
     if not refusals:
-        return decision
+        return decision if room else as_ticket(decision, TicketReason.TRADE_LIMIT)
     if set(refusals) <= ACCOUNT_LIMITS and set(refusals) & STOPS:
         return as_ticket(decision, TicketReason.DRIVER_STOPPED)
     return replace(decision, outcome=Outcome.REFUSED, reason=refusals[0])
@@ -44,7 +54,14 @@ def ticket_laws_pass(results: tuple[LawResult, ...]) -> bool:
     return all(r.passed or r.reason in ACCOUNT_LIMITS for r in results)
 
 
+def first_binding_refusal(results: tuple[LawResult, ...]) -> RefusalReason | None:
+    """The first refusal that binds a ticket (not an account limit), or None."""
+    return next((r.reason for r in results if not r.passed and r.reason not in ACCOUNT_LIMITS), None)
+
+
 def as_ticket(decision: Decision, reason: TicketReason) -> Decision:
+    """Raises on a proposal of more than one lot: a driver bug (response 325 4.1 sizes every structure at one lot),
+    which the fleet isolates as that driver's `unavailable: driver_error`."""
     if any(leg.lots != 1 for leg in decision.proposal.legs):
-        raise ValueError("a ticket is one lot: the drivers size every structure at one lot (response 325 4.1)")
+        raise ValueError("a ticket is one lot")
     return replace(decision, outcome=Outcome.TICKET, reason=reason)

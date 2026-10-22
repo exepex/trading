@@ -1,7 +1,7 @@
 """Criteria 2 and 4 (story MS-P1f): the three counts over a fixture day keep eligible >= fillable >= executed, and
 refusals, closed roads and refused tickets stay in the denominator."""
 
-from datetime import timedelta
+from dataclasses import replace
 
 import pytest
 
@@ -49,7 +49,7 @@ def test_each_case_counts_as_expected(decision, results, fill, expected):
 
 
 def test_a_fixture_day_keeps_the_order_and_every_decision_in_the_denominator():
-    day = totals(counts_for(*case[:3]) for case in CASES)
+    day = totals(replace(counts_for(*case[:3]), driver_id=f"D{i}@1") for i, case in enumerate(CASES))
     assert day == CountTotals(scheduled=9, eligible=7, fillable=2, executed=1)
     assert day.scheduled >= day.eligible >= day.fillable >= day.executed
 
@@ -58,6 +58,7 @@ def test_a_day_with_no_decision_counts_nothing():
     assert totals([]) == CountTotals(0, 0, 0, 0)
 
 
-def test_a_late_fill_still_counts_as_filled():
-    late = b.filled(b.SLOT_AT + timedelta(minutes=9))
-    assert counts_for(TRADE, PASS, late).executed == 1
+def test_a_second_row_for_one_decision_is_refused():
+    row = counts_for(TRADE, PASS, b.filled())
+    with pytest.raises(ValueError):
+        totals([row, row])

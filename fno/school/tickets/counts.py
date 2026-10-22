@@ -15,7 +15,9 @@ from .rules import ticket_laws_pass
 
 def counts_for(decision: Decision, results: tuple[LawResult, ...], fill: FillResult | None) -> OpportunityCounts:
     """Eligible: the rule fired and a structure was built. Fillable: its laws passed (a ticket's with the account
-    limits relaxed) and it filled at the touch, in the account or the ticket ledger. Executed: filled in the account."""
+    limits relaxed) and it filled at the touch, in the account or the ticket ledger. Executed: filled in the account.
+    A decision `unavailable` after its rule fired (e.g. a seal failure) carries no proposal: not eligible, but it
+    stays in `scheduled`."""
     eligible = decision.proposal is not None
     filled = fill is not None and fill.filled
     laws = ticket_laws_pass(results) if decision.outcome == Outcome.TICKET else all(r.passed for r in results)
@@ -34,6 +36,9 @@ class CountTotals:
 
 
 def totals(counts: Iterable[OpportunityCounts]) -> CountTotals:
+    """Refuses a second row for one (session, road, driver): it would inflate the denominator."""
     rows = list(counts)
+    if len({(c.session, c.road, c.driver_id) for c in rows}) != len(rows):
+        raise ValueError("one counts row per (session, road, driver version)")
     return CountTotals(len(rows), sum(c.eligible for c in rows), sum(c.fillable for c in rows),
                        sum(c.executed for c in rows))  # fmt: skip

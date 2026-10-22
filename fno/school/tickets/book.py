@@ -1,5 +1,5 @@
-"""The ticket book (story MS-P1f): opens, closes and settles tickets with the same fill port as trades, and records
-them only in the ticket ledger: an `AccountPort` the composition root keeps apart from every driver's account."""
+"""The ticket book (story MS-P1f): opens, closes and settles tickets with the same fill port as trades, after the
+same laws (account limits relaxed), and records them only in the ticket ledger, never in a driver's account."""
 
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -8,8 +8,10 @@ from ...constants import SIDE_SELL
 from ..constants import ExitReason, Outcome
 from ..contracts.accounts import AccountPort, FillPort, FillResult, LedgerEntry, SealedDecision
 from ..contracts.decisions import OpenPosition
+from ..contracts.safety import LawResult
 from ..contracts.seal import Seal
 from ..contracts.snapshot import SlotSnapshot
+from .rules import first_binding_refusal
 
 
 def fill_cash(fill: FillResult) -> float:
@@ -29,17 +31,29 @@ def _position(sealed: SealedDecision, fill: FillResult) -> OpenPosition:
 
 
 @dataclass(frozen=True)
+class TicketLedger:
+    """Its own type, so the composition root cannot hand a driver's account to the ticket book by mistake."""
+
+    store: AccountPort  # an account store on its own root, apart from every driver account
+
+
+@dataclass(frozen=True)
 class TicketBook:
     fills: FillPort
-    ledger: AccountPort  # the ticket ledger; never a driver's account
+    ledger: TicketLedger
 
-    def enter(self, sealed: SealedDecision, snapshot: SlotSnapshot, seal: Seal, at: datetime) -> FillResult:
+    def enter(self, sealed: SealedDecision, results: tuple[LawResult, ...], snapshot: SlotSnapshot, seal: Seal,
+              at: datetime) -> FillResult:  # fmt: skip
+        """`results`: the decision's sealed law results. A law that binds a ticket refuses it before any fill."""
         decision = sealed.decision
         if decision.outcome != Outcome.TICKET:
             raise ValueError("the ticket book enters tickets only")
+        binding = first_binding_refusal(results)
+        if binding is not None:
+            return FillResult(refused=(binding,))
         fill = self.fills.enter(sealed, snapshot, seal, at)
         if fill.filled:
-            self.ledger.record(decision.driver_id, LedgerEntry(_position(sealed, fill), fill, closes=False))
+            self.ledger.store.record(decision.driver_id, LedgerEntry(_position(sealed, fill), fill, closes=False))
         return fill
 
     def exit(self, position: OpenPosition, reason: ExitReason, snapshot: SlotSnapshot, file_sha256: str, seal: Seal,
@@ -51,5 +65,5 @@ class TicketBook:
 
     def _close(self, position: OpenPosition, fill: FillResult, reason: ExitReason) -> FillResult:
         if fill.filled:
-            self.ledger.record(position.driver_id, LedgerEntry(position, fill, closes=True, exit_reason=reason))
+            self.ledger.store.record(position.driver_id, LedgerEntry(position, fill, closes=True, exit_reason=reason))
         return fill
