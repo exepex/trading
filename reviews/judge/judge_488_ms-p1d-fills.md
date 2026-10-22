@@ -1,0 +1,70 @@
+# Judge 488: MS-P1d, safety laws, accounts and fills (first judge)
+
+**Scope:** story/ms-p1-fills at 96704ef8 (builder session_014VUoPfMfRWNXyJSnXxB5NL), on MS-P1a's round-2 contracts.
+Lane 1, money piece: first of two independent judges (JUDGE.md "Two judges for money pieces"). I did not read
+judge I's verdict. Round 1 of 2.
+
+**Verdict: PASS.** Nothing blocking, no should-fix. Three notes, one of them for the owner.
+
+## Gates (my run, full suite as asked)
+- pytest -n auto: **10519 passed, 16 xfailed, 0 failed.** The builder's 4 failures do not reproduce at this tip.
+- `ruff check`, `ruff format`, `check_imports` and `check_records` (8179 files) are clean.
+
+## The orchestrator's checks
+- **Law partition.** One law per reason, in a fixed order: protected, max loss, bucket, open risk, new risk a day,
+  margin room, daily stop, the 4 quote-gate laws, impossible price, brake. `refusals()` keeps every reason once. The
+  reasons map onto a's ACCOUNT_LIMITS, DRIVER_STOPS and TRADE_VALIDITY.
+- **The Rs 10k cap on three figures.** The cap is the largest of the proposal's figure, C2's figure at mids with the
+  pad, and B2's figure at the touch the fill takes. It passes at the limit and refuses at limit + 1, and it fails
+  closed on any uncheckable leg.
+- **Law 3 fails closed.** A C2 `RiskInputError` or `NakedShortLeg` refuses.
+  - Margin room refuses with `MARGIN_NOT_CHECKED` unless every position has a sourced row in C2's margins file,
+    which holds NIFTY only. A missing or malformed file runs C2, and C2 refuses.
+- **Stop and brake at the limit or above.**
+  - The daily stop refuses at a loss of 25,000 or more.
+  - The brake engages on a fully marked row 1.2 lakh or more below the high. It holds while engaged until a review
+    row dated on or after the engagement. The high restarts after a lift, and an unmarked session never engages it.
+- **The brake-lift file.** `research/school/reviews/brake_lifts.csv` must have exactly its 3 columns; a row needs a
+  review reference; rows dated on or after the session are ignored; a malformed file raises an error, never a lift.
+- **The bucket.** {NIFTY}, {BANKNIFTY+FINNIFTY}, {MIDCPNIFTY} through C2's `BucketMap`, unedited. Any other index or
+  structure fails closed.
+- **Fills at the touch, all legs or none.**
+  - Entry only after the seal covers the file and by the session's 15:30 close, never before its snapshot finished,
+    through E4's `price_leg`/`entry_problems` and `FillMaker`. Any gate refusal fills nothing.
+  - An exit with any leg unquoted waits (`exit_waiting_quote`).
+- **Bhavcopy settlement.** E7's `NseFinalSettlement` reads the stores only (`ArchivedOnly` never fetches). It returns
+  intrinsic value with C1's settlement charges, or `settlement_needed`.
+- **Privacy (00cc5786).** `journal/school/` is in the record scan's forbidden account paths and in `.gitignore`.
+  Accounts are mirrored through E2c's private files and committed nowhere.
+
+## Plants: 25 of my own, 24 caught
+- **Caught:**
+  - the touch dropped from the cap; the proposal's figure dropped; the cap refusing at the limit; a C2 law failing
+    open;
+  - the stop and the brake passing at the limit; the brake latch ignored; the brake engaging only above the limit;
+  - a review before the engagement lifting; the high not restarted; unmarked rows engaging the brake; a review row
+    without a reference; a review look-ahead;
+  - margin passing without data; NIFTY margin rows used for other indices; FINNIFTY in its own bucket;
+  - impossible price made inclusive; two expiries allowed;
+  - a fill despite a gate refusal; a partial exit; a fill after the close; the wrong settlement state; the
+    archived-only source returning bytes; the stop measured from the first session.
+- **Survived (equivalent):** "C2 at mids" dropped from the cap. At the touch, the sold legs fill at the bid and the
+  bought legs at the ask, so B2's touch figure is never below C2's mid figure on the same cost model (the builder's
+  `test_max_loss_counts_the_touch...` shows touch > mids) [reasoning only]. Not a should-fix.
+
+## Notes
+1. **For the owner: margin room will make most of the pilot tickets.**
+   - C2's margins file holds rows only for NIFTY SC, SF and BF at widths 100-300.
+   - Under the orchestrator's revised ruling (no margin data, no new entry), every BANKNIFTY, FINNIFTY and
+     MIDCPNIFTY proposal is refused `margin_room`. So is every credit or debit spread (PCS, CCS, CDS, PDS) and every
+     NIFTY width outside 100-300.
+   - These become `ticket: account_limit`. So until margin data exists for other indices and structures, the paper
+     accounts hold NIFTY condors and flies only.
+2. **Impossible price, per vertical.** `ImpossiblePriceLaw` checks the position total at the touch.
+   - EDGE1's revision-7 rule also checks each vertical. At the touch, a vertical sold for more than its width (a stale
+     bid) could hide behind a negative other vertical in a condor.
+   - That needs two bad quotes at once, so it is a note, not a should-fix [reasoning only]. If it is added, only the
+     per-vertical upper bound applies: at the touch a negative vertical is a costly trade, not an impossible one.
+3. **Story wording.** Story d's acceptance 1 says "passes at its limit". Story 3.3 says the stop acts when the loss
+   "reaches" its limit, and the brake on equity "falls ... below". The code follows 3.3 and the orchestrator ("at the
+   limit or above"); acceptance 1's line should say so.
