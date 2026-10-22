@@ -9,7 +9,7 @@ from fno.school.constants import ClosureReason, ExitReason, NoTradeReason, Outco
 from fno.school.contracts.roads import RoadStatus
 from fno.school.drivers.card_params import CardParams
 from fno.school.drivers.controls import draw_seed
-from fno.school.drivers.exits import ExitRule
+from fno.school.drivers.exits import ExitPlan
 from fno.school.drivers.scope import OutOfScope
 from tests.school.contracts.builders import road_day as closed_road_day
 from tests.school.drivers import builders as b
@@ -111,7 +111,7 @@ def test_ps5_and_kl1_keep_edge1s_frozen_parameters():
     assert kl1.number("short_offset") == edge1_structure("SC3").offset == 0.03
     assert tuple(float(w) for w in kl1.text("widths").split(",")) == WIDTHS_BY_INDEX["NIFTY"]
     assert isinstance(edge1_structure("SC3"), ShortCondor) and kl1.text("shape") == "condor"
-    assert ExitRule.from_params(kl1) == ExitRule()  # no exit but expiry
+    assert ExitPlan.from_params(kl1) == ExitPlan()  # no exit but expiry
     for control in (ps5, kl1):
         assert (control.whole("dte_min"), control.whole("dte_max")) == (30, 45)  # EDGE1's entry window
     assert cards["PS5"].roads == (RoadCode.BANKNIFTY_MONTHLY,) and cards["KL1"].roads == (RoadCode.NIFTY_MONTHLY,)

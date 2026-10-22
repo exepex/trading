@@ -26,3 +26,15 @@ def next_session(calendar: TradingCalendar, day: date) -> date:
     while not calendar.is_trading_day(day):
         day += timedelta(days=1)
     return day
+
+
+def nth_session_after(calendar: TradingCalendar, day: date, n: int) -> date:
+    for _ in range(n):
+        day = next_session(calendar, day)
+    return day
+
+
+def last_session_on_or_before(calendar: TradingCalendar, day: date) -> date:
+    while not calendar.is_trading_day(day):
+        day -= timedelta(days=1)
+    return day

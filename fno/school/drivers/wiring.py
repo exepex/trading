@@ -10,7 +10,7 @@ from .card_params import CardError, CardParams
 from .cards import CARDS_FOLDER, load_cards
 from .controls import NothingDriver, RandomDriver
 from .entry import Family
-from .exits import ExitRule
+from .exits import ExitPlan
 from .families_condor import Edge1Control, Reference, WeeklySeller, WidthLadder
 from .families_directional import CappedSeller, DebitBuyer, DirectionalDebit
 from .proposals import ProposalBuilder
@@ -53,14 +53,14 @@ def _rule_driver(card: DriverCard, builder: ProposalBuilder, calendar: TradingCa
         raise CardError(f"{card.driver_id}: unknown family {card.family!r}")
     params = CardParams(card)
     kind = ReferenceDriver if card.family == REFERENCE else RuleDriver
-    return kind(card, FAMILIES[card.family](params), ExitRule.from_params(params), builder, calendar)
+    return kind(card, FAMILIES[card.family](params), ExitPlan.from_params(params), builder, calendar)
 
 
-def _twin_exits(cards: Mapping[str, DriverCard]) -> dict[str, ExitRule]:
+def _twin_exits(cards: Mapping[str, DriverCard]) -> dict[str, ExitPlan]:
     missing = sorted({code for code in TWIN_CARDS.values() if code not in cards})
     if missing:
         raise CardError(f"RC1 copies the exits of {missing}, whose cards are missing")
-    return {shape: ExitRule.from_params(CardParams(cards[code])) for shape, code in TWIN_CARDS.items()}
+    return {shape: ExitPlan.from_params(CardParams(cards[code])) for shape, code in TWIN_CARDS.items()}
 
 
 def build_school_drivers(cfg: dict, root: Path) -> tuple[Driver, ...]:

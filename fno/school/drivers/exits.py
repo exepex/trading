@@ -1,18 +1,21 @@
-"""A card's exit rule (story MS-P1e, story 3.2's exit column). One data class holds every kind of exit a card can
-name; a card writes only the ones it uses. Price rules judge the position at the mid of every leg at the slot and
-never fire without a two-sided quote on every leg; time rules need no price. The close itself fills at the touch
-(MS-P1f/g), so the mid here only decides whether the rule is reached."""
+"""A card's exit plan (story MS-P1e, story 3.2's exit column). The exits themselves are E4's `ExitRule` classes
+(`fno/desk/exit_rules.py`): `ProfitTarget`, `StopLoss` and `ExitOnDay`, built per position from the card's numbers and
+asked through their `reached` interface; no exit logic is rewritten here. They ignore the position they are given, so
+the school position is passed as is. Price rules judge the net if every leg closed now at the touch (E4's value,
+without exit charges, which the school fill adds); with no two-sided quote on a leg the value is None and they never
+fire. The one rule E4 lacks, DR1's "spot back through the window mean", is a small predicate here."""
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import timedelta
 
 from ...constants import SIDE_BUY
+from ...desk.exit_rules import ExitContext, ExitOnDay, ExitRule, ProfitTarget, StopLoss
 from ..constants import ExitReason
 from ..contracts.decisions import OpenPosition, SpotPoint
 from ..contracts.snapshot import SlotSnapshot
 from .card_params import CardParams
 from .history import spot_window
-from .session_days import TradingCalendar, next_session, sessions_between
+from .session_days import TradingCalendar, last_session_on_or_before, nth_session_after
 from .shapes import CDS, PDS
 
 PROFIT_TARGET, LOSS_MULTIPLE = "exit_profit_share", "exit_loss_multiple"
@@ -22,78 +25,66 @@ EXIT_KEYS = (PROFIT_TARGET, LOSS_MULTIPLE, MAX_SESSIONS, MAX_DAYS, LAST_SESSION_
 
 
 @dataclass(frozen=True)
-class ExitRule:
-    profit_share: float | None = None  # close when the open profit reaches this share of the entry credit or debit
-    loss_multiple: float | None = None  # close when the open loss reaches this multiple of it
+class ExitPlan:
+    profit_share: float | None = None  # close when the net if closed reaches this share of the entry credit or debit
+    loss_multiple: float | None = None  # close when the net loss reaches this multiple of it
     sessions_held: int | None = None
     days_held: int | None = None  # calendar days
-    last_session_dte: int | None = (
-        None  # close on the last session with at least this many days to expiry (EDGE1's T21)
-    )
-    spot_mean_window: int | None = None  # a directional position closes when spot is back through this window's mean
+    last_session_dte: int | None = None  # close on the last session with this many days to expiry (EDGE1's T21)
+    spot_mean_window: int | None = None  # a directional position closes when spot is back through its mean
 
     @classmethod
-    def from_params(cls, params: CardParams) -> "ExitRule":
+    def from_params(cls, params: CardParams) -> "ExitPlan":
         return cls(params.number_or_none(PROFIT_TARGET), params.number_or_none(LOSS_MULTIPLE),
                    params.whole_or_none(MAX_SESSIONS), params.whole_or_none(MAX_DAYS),
                    params.whole_or_none(LAST_SESSION_DTE), params.whole_or_none(SPOT_MEAN_WINDOW))  # fmt: skip
 
     def review(self, position: OpenPosition, snapshot: SlotSnapshot, history: tuple[SpotPoint, ...],
                calendar: TradingCalendar) -> ExitReason | None:  # fmt: skip
-        session, expiry = snapshot.session, min(leg.key.expiry for leg in position.legs)
-        if session >= expiry:
-            return ExitReason.EXPIRY  # every position ends here; a rule that waits for expiry has no other exit
-        return (
-            self._price_exit(position, snapshot)
-            or self._spot_exit(position, snapshot, history)
-            or self._time_exit(position, session, expiry, calendar)
-        )
-
-    def _price_exit(self, position: OpenPosition, snapshot: SlotSnapshot) -> ExitReason | None:
-        basis = abs(position.entry_net)
-        profit = open_profit(position, snapshot)
-        if profit is None or basis == 0:
-            return None
-        if self.profit_share is not None and profit >= self.profit_share * basis:
-            return ExitReason.PROFIT_TARGET
-        if self.loss_multiple is not None and -profit >= self.loss_multiple * basis:
-            return ExitReason.LOSS_LIMIT
+        context = ExitContext(snapshot.session, net_if_closed(position, snapshot))
+        for rule, reason in self._rules(position, history, snapshot, calendar):
+            if rule.reached(position, context):
+                return reason
         return None
 
-    def _spot_exit(self, position: OpenPosition, snapshot: SlotSnapshot,
-                   history: tuple[SpotPoint, ...]) -> ExitReason | None:  # fmt: skip
+    def _rules(self, position, history, snapshot, calendar) -> list[tuple[ExitRule, ExitReason]]:
+        expiry, basis = min(leg.key.expiry for leg in position.legs), abs(position.entry_net)
+        rules: list[tuple[ExitRule, ExitReason]] = [(ExitOnDay(expiry, "expiry"), ExitReason.EXPIRY)]
+        if basis > 0 and self.profit_share is not None:
+            rules.append((ProfitTarget(self.profit_share * basis), ExitReason.PROFIT_TARGET))
+        if basis > 0 and self.loss_multiple is not None:
+            rules.append((StopLoss(self.loss_multiple * basis), ExitReason.LOSS_LIMIT))
+        if self._through_mean(position, snapshot, history):
+            rules.append((ExitOnDay(snapshot.session, "spot back through its mean"), ExitReason.SPOT_THROUGH_MEAN))
+        opened = position.opened
+        if self.sessions_held is not None:
+            day = nth_session_after(calendar, opened, self.sessions_held)
+            rules.append((ExitOnDay(day, f"{self.sessions_held} sessions held"), ExitReason.SESSIONS_HELD))
+        if self.days_held is not None:
+            day = opened + timedelta(days=self.days_held)
+            rules.append((ExitOnDay(day, f"{self.days_held} days held"), ExitReason.DAYS_HELD))
+        if self.last_session_dte is not None:
+            day = last_session_on_or_before(calendar, expiry - timedelta(days=self.last_session_dte))
+            rules.append((ExitOnDay(day, f"last session {self.last_session_dte} days before expiry"),
+                          ExitReason.DAYS_BEFORE_EXPIRY))  # fmt: skip
+        return rules
+
+    def _through_mean(self, position: OpenPosition, snapshot: SlotSnapshot, history: tuple[SpotPoint, ...]) -> bool:
         if self.spot_mean_window is None or position.structure not in (CDS, PDS):
-            return None
+            return False
         window = spot_window(history, snapshot.session, self.spot_mean_window)
         if window is None:
-            return None
-        through = snapshot.spot < window.mean if position.structure == CDS else snapshot.spot > window.mean
-        return ExitReason.SPOT_THROUGH_MEAN if through else None
-
-    def _time_exit(self, position: OpenPosition, session: date, expiry: date,
-                   calendar: TradingCalendar) -> ExitReason | None:  # fmt: skip
-        if (
-            self.sessions_held is not None
-            and sessions_between(calendar, position.opened, session) >= self.sessions_held
-        ):
-            return ExitReason.SESSIONS_HELD
-        if self.days_held is not None and (session - position.opened).days >= self.days_held:
-            return ExitReason.DAYS_HELD
-        if (
-            self.last_session_dte is not None
-            and (expiry - next_session(calendar, session)).days < self.last_session_dte
-        ):
-            return ExitReason.DAYS_BEFORE_EXPIRY
-        return None
+            return False  # the mean cannot be judged
+        return snapshot.spot < window.mean if position.structure == CDS else snapshot.spot > window.mean
 
 
-def open_profit(position: OpenPosition, snapshot: SlotSnapshot) -> float | None:
-    """Rupees the position would show closed at the mids of the slot, entry charges counted; None when any leg has no
-    two-sided quote (a price that cannot be judged never fires a rule)."""
-    value = 0.0
+def net_if_closed(position: OpenPosition, snapshot: SlotSnapshot) -> float | None:
+    """Rupees the position would net if every leg closed now at the touch (bid for bought legs, ask for sold ones),
+    entry charges counted; None when any leg has no two-sided quote."""
+    cash = 0.0
     for leg in position.legs:
         quote = snapshot.quote(leg.key)
         if quote is None or not quote.two_sided:
             return None
-        value += (quote.mid if leg.side == SIDE_BUY else -quote.mid) * leg.lots
-    return position.entry_net + value * position.lot
+        cash += (quote.bid if leg.side == SIDE_BUY else -quote.ask) * leg.lots
+    return position.entry_net + cash * position.lot

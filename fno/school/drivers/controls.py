@@ -15,7 +15,7 @@ from ..contracts.roads import RoadDay
 from ..contracts.snapshot import SlotSnapshot
 from .card_params import CardParams
 from .entry import MAX_WING_STEPS_KEY, EntryContext
-from .exits import ExitRule
+from .exits import ExitPlan
 from .expected_move import ExpectedMove
 from .proposals import Plan, ProposalBuilder
 from .scope import check_scope, no_trade, trade
@@ -55,7 +55,7 @@ class RandomDriver:
     `code@road` where a road differs) to the exit rule of the rule driver it copies."""
 
     def __init__(self, card: DriverCard, builder: ProposalBuilder, calendar: TradingCalendar,
-                 twin_exits: Mapping[str, ExitRule]):  # fmt: skip
+                 twin_exits: Mapping[str, ExitPlan]):  # fmt: skip
         params = CardParams(card)
         self.card, self.builder, self.calendar, self.twin_exits = card, builder, calendar, dict(twin_exits)
         self.min_dte, self.max_wing_steps = params.whole(MIN_DTE_KEY), params.whole(MAX_WING_STEPS_KEY)

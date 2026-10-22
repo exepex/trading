@@ -8,7 +8,7 @@ from ..contracts.roads import RoadDay
 from ..contracts.snapshot import SlotSnapshot
 from .card_params import CardParams
 from .entry import EntryContext, Family
-from .exits import ExitRule
+from .exits import ExitPlan
 from .proposals import ProposalBuilder
 from .scope import check_scope, no_trade, own_positions, trade
 from .session_days import TradingCalendar
@@ -17,7 +17,7 @@ MAX_OPEN_KEY = "max_open_per_road"  # open positions of this driver version on o
 
 
 class RuleDriver:
-    def __init__(self, card: DriverCard, family: Family, exits: ExitRule, builder: ProposalBuilder,
+    def __init__(self, card: DriverCard, family: Family, exits: ExitPlan, builder: ProposalBuilder,
                  calendar: TradingCalendar):  # fmt: skip
         self.card, self.family, self.exits, self.builder, self.calendar = card, family, exits, builder, calendar
         self.max_open = CardParams(card).whole(MAX_OPEN_KEY)

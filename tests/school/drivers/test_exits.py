@@ -8,7 +8,7 @@ import pytest
 
 from fno.school.constants import ExitReason
 from fno.school.contracts.snapshot import SlotQuote
-from fno.school.drivers.exits import ExitRule, open_profit
+from fno.school.drivers.exits import ExitPlan, net_if_closed
 from tests.school.drivers import builders as b
 
 
@@ -40,7 +40,7 @@ def test_a_credit_position_closes_at_half_its_credit_and_not_just_short_of_it():
     low, high = 0.0, 1.0  # profit falls as prices rise: bisect the price level where it equals the target
     for _ in range(60):
         mid = (low + high) / 2
-        low, high = (mid, high) if open_profit(position, repriced(snapshot, mid)) >= target else (low, mid)
+        low, high = (mid, high) if net_if_closed(position, repriced(snapshot, mid)) >= target else (low, mid)
     reached, short = repriced(snapshot, low - 1e-4), repriced(snapshot, high + 1e-3)
     assert driver.review_exit(position, reached, ()) == ExitReason.PROFIT_TARGET
     assert driver.review_exit(position, short, ()) is None
@@ -54,7 +54,7 @@ def test_a_loss_of_twice_the_credit_closes_a_ws1_position_only_at_its_own_multip
     assert losing and ws1.review_exit(position, repriced(snapshot, 1.0), ()) is None
     first = ws1.review_exit(position, repriced(snapshot, losing[0]), ())
     assert first == ExitReason.LOSS_LIMIT
-    profit = open_profit(position, repriced(snapshot, losing[0]))
+    profit = net_if_closed(position, repriced(snapshot, losing[0]))
     assert -profit >= 1.5 * abs(position.entry_net)
 
 
@@ -102,14 +102,14 @@ def test_a_price_that_cannot_be_judged_never_fires_a_price_rule():
     leg = position.legs[0].key
     broken = replace(snapshot, quotes={**snapshot.quotes, leg: SlotQuote(None, 5.0, None, 100, None, False)})
     wrecked = repriced(broken, 0.01)  # a profit target would be reached on every other leg
-    assert open_profit(position, wrecked) is None
+    assert net_if_closed(position, wrecked) is None
     assert driver.review_exit(position, wrecked, ()) is None
     missing = replace(snapshot, quotes={k: q for k, q in snapshot.quotes.items() if k != leg})
     assert driver.review_exit(position, missing, ()) is None
 
 
 def test_an_exit_rule_with_no_numbers_waits_for_expiry():
-    rule = ExitRule()
+    rule = ExitPlan()
     driver, position = opened_ps4()
     assert rule.review(position, on_day(25), (), b.CALENDAR) is None
     assert rule.review(position, on_day(30), (), b.CALENDAR) == ExitReason.EXPIRY
