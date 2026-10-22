@@ -1,0 +1,2 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-22T06:09:43.634479+05:30,cboe/indices/vix-history/2026/10/22/060943_vix-history.json,https://cdn.cboe.com/api/global/delayed_quotes/charts/historical/_VIX.json,,3f491538e630c93054c4515cdf2f1efe08599d137f05714a35cc1f540a87cae9,1162032

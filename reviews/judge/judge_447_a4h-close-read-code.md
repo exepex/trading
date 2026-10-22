@@ -108,3 +108,44 @@ after a read that can itself take about 5.5 minutes. If the step is stopped at t
 So the worst case is a false "failed" line, never a lost close [strong for the path: `steps.py`
 `STOPPED_AT_LIMIT`]. A deadline for the confirm loop (stop starting new days after, say, 7 minutes into the
 command) would remove even that.
+
+## Addendum 2: go-live and the confirm deadline (story/a4h-golive @ a4a1b910, one commit on main 628c6030)
+
+**Verdict: PASS. It may merge.** Both steps go live on 23 Oct 2026, record-only for their first 5 sessions.
+
+Gates on a4a1b910: **9437 passed**, 16 xfailed; ruff, ruff format (1774), `check_imports.py` and the record scan
+(7506) are clean.
+
+**The confirm deadline (judge 447 add. 1 minor) [reasoning, checked against the retry policy].**
+- `Confirmer` starts no new day once 240 s have passed since the command began. Days not reached print one line
+  ("left for the next run (time budget)"), with no alert.
+- One day's archive retries take at most about 300 s (`RETRY_WAITS = (5, 15, 45)` and a 60 s timeout per try), so
+  the worst case is 240 + 300 = 540 s, inside O1's 600 s limit.
+- A read slower than 240 s leaves all confirms to the next run. The read itself is never cut short.
+- The builder's test covers two pending days and a 300 s archive. My plant (a 400 s budget) fails it.
+
+**Config.** `daily.live_from.close_read` and `close_recheck` are "2026-10-23", a regular session in A7's calendar.
+`test_steps`' live dates are updated.
+
+**Minor (not blocking).** Days are confirmed oldest first, so the next run starts again with the same day. While
+NSE's archive keeps failing on one old day, that day takes the only slot in each run (15:46 and 16:00), and newer
+days are never reached. Their overdue alerts then wait until the old day clears. The old day's own overdue alert
+still fires once, so the owner hears of it. Trying the newest day first, or rotating the start, would let every day
+reach its overdue check.
+
+After go-live, the claims must show the first 5 sessions: read, recheck and confirm lines, with no level in them
+(quality rule 8).
+
+## Addendum 3: newest first (story/a4h-newest-first @ 2a3d6677, one commit on main 9a0f8bcc)
+
+**Verdict: PASS. It may merge.** The go-live itself is merged (9a0f8bcc, builder's report).
+
+Gates on 2a3d6677: **9481 passed**, 16 xfailed; ruff, ruff format (1789) and `check_imports.py` are clean.
+
+| Finding | Change | My check | Result |
+|---|---|---|---|
+| Add. 2 minor: an old day the archive keeps failing takes the only slot in every run | The pending days are sorted newest first. Test: 16 and 19 Oct pending with a 300 s archive; 19 Oct is confirmed and 16 Oct waits a run | Plant: back to oldest first: 1 failed | **Accepted** |
+
+Reasoning only: in a long archive outage the newest days now take the slots, so the oldest wait. Their overdue
+alerts are late, but the newest days' alerts still fire after two sessions, so the outage is never silent. A new
+day arrives each session, so no day is starved for good once the archive recovers.

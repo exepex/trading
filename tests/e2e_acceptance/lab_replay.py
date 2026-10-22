@@ -14,6 +14,7 @@ from pathlib import Path
 from fno.forecast_lab.composers import EveningComposer
 from fno.forecast_lab.constants import EVENING, REPORT_AREAS
 from fno.forecast_lab.delivery import Attachment, Delivery, ReportPoster
+from fno.forecast_lab.design.renderer import DesignRenderer
 from fno.forecast_lab.edition_run import Edition, EditionRun
 from fno.forecast_lab.g13b_adapter import G13bCloses, G13bRanges
 from fno.forecast_lab.g13b_history import G13bHistory
@@ -23,7 +24,6 @@ from fno.forecast_lab.page.builder import PageBuilder
 from fno.forecast_lab.page.camera import PageCamera
 from fno.forecast_lab.page.facts import FactsSource
 from fno.forecast_lab.page.reasons import Facts
-from fno.forecast_lab.page.render import InterimRenderer
 from fno.forecast_lab.records import DriveReportRecords
 from fno.forecast_lab.report import CloseReport
 from fno.forecast_lab.sessions import RegularSessions
@@ -125,7 +125,7 @@ class LabReplay:
         records = DriveReportRecords(self._store("forecast-lab"), ReceiptFolder(self.root / "receipts"),
                                      REPORT_AREAS[EVENING])  # fmt: skip
         pages = PageBuilder(ranges, G13bHistory(*self._reader(store)), NoFacts(), sessions, UNDERLYINGS)
-        composer = EveningComposer(report, ReportMaker(pages, InterimRenderer(), FixedCamera()), records.report)
+        composer = EveningComposer(report, ReportMaker(pages, DesignRenderer(), FixedCamera()), records.report)
         result = EditionRun(Edition(EVENING, day), composer, records, self.channel, self.alerts, sessions.is_regular,
                             self.clock).run(day)  # fmt: skip
         if result.failed:

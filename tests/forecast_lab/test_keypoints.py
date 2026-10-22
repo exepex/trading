@@ -42,6 +42,10 @@ def test_a_right_day_or_an_unchecked_one_gives_the_two_largest_context_moves():
     inside = Outcome(MON, 25350.0, BAND, True, True, True, provisional=True)
     assert [p.name for p in evening_points(inside, (), CUES)] == ["Brent", "S&P 500"]
     assert [p.name for p in evening_points(None, (), CUES)] == ["Brent", "S&P 500"]
+    quiet = evening_points(inside, (), CUES[2:3])  # nothing shown: said, never padded
+    assert [p.text for p in quiet] == ["no notable moves in our data"]
+    one = evening_points(inside, (), CUES[3:])
+    assert [p.name for p in one] == ["India VIX", "no notable moves in our data"]
 
 
 class Broken(Section):
