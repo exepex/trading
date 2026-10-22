@@ -235,9 +235,8 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
-Revision 2 (before the freeze): the owner's Q1 answer, with the naked strangle and straddle measured outside every
-family (section 5); Q2 accepted (screen and nominate). Revision 1 (before the freeze, judges 468 and 468.1): the
-bootstrap block is 2 trades (EXP trades overlap) with a
-floor of 30 trades; Holm spans both
-indices; run 1 prints expected run-2 counts. Any change after the freeze is written here, before any result it could
-affect, and sent to judge B.
+- Revision 2 (before the freeze): the owner's Q1 answer, with the naked strangle and straddle measured outside every
+  family (section 5); Q2 accepted (screen and nominate).
+- Revision 1 (before the freeze, judges 468 and 468.1): the bootstrap block is 2 trades (EXP trades overlap), with a
+  floor of 30 trades; Holm spans both indices; run 1 prints expected run-2 counts.
+- Any change after the freeze is written here, before any result it could affect, and sent to judge B.
