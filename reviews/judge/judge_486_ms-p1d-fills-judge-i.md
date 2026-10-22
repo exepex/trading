@@ -79,3 +79,18 @@ check_records clean.
 - **Minor:** the vertical's upper bound (worth at most its width) has no test; my plant `0 <= v` without `<= width` survived.
 
 **Plants this round:** 7 planted, 6 caught (survivor: the minor above). Plus 1 probe, which shows finding 3.
+
+## Addendum 2: the owner's ranges fix at b9900351 (diff 9ed80bc7..b9900351)
+
+**Verdict: PASS (confirmed).** The owner chose the ranges rule and counts this confirmation as d's pass (orchestrator,
+22 Oct 2026). No `docs/DESK_DECISIONS.md` row records that choice yet; the orchestrator should add one.
+
+- **Finding 3: FIXED.** `quote_laws.py:70-91` refuses a vertical only when the dearer leg's ask is below the cheaper leg's bid, or when the dearer leg's bid less the cheaper leg's ask exceeds the width. That is b's meaning of impossible.
+  - My overlapping condor (worth -0.5 at the mids, +1.5 possible) now passes.
+  - Judge B's case is still refused at -2.
+- **Minor (upper bound untested): FIXED.** Both bounds are tested at the edge and one paisa past it.
+- **Plants:** 5 of 5 caught: either bound dropped, the strict edge, mids restored, the put direction lost.
+- **Gates (my run):** full `pytest -n auto` 10,533 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+- **Notes for j** (not findings):
+  - b's `prices.py` and d's `_verticals` now hold the same rule twice. Once b merges, one should use the other.
+  - b compares with a 1e-9 tolerance and d does not, so float noise at an exact bound could refuse a legal vertical in d.
