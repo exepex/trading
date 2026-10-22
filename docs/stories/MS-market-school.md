@@ -684,19 +684,18 @@ sessions a real edge of a given size needs to show.
 
 #### INS-a Contracts and the reader · `story/ms-ins-contracts`
 
-**Files owned:** `fno/school/instructor/{__init__,contracts,ports,reader,fakes,wiring}.py`,
-`tests/school/instructor/test_reader.py`, `tests/school/instructor/conformance.py`.
+**Files owned:** `fno/school/instructor/{__init__,contracts,ports,reader,records_file,adapters,fakes,wiring}.py`,
+`tests/school/instructor/{__init__,builders,conformance,test_reader,test_ports,test_types}.py`.
 
 **Implements:**
 - frozen types: `HeldPath` (one closed trade or ticket: its outcome record, its entry decision record, its exit record
-  if any, and the snapshots of every session held, entry to exit), `Attribution`, `CauseTag`, `Classification`,
+  if any, and the snapshots of every session held, entry to exit), `Attribution`, `Cause`, `Classification`,
   `PairedRow`, `MapStatus`;
 - `MapStatus` has exactly three members: `exploratory`, `watching`, `not_established` (327 correction 3);
 - `PathReader.closed_on(session) -> tuple[HeldPath, ...]`: the trades and tickets whose outcome was sealed that
   session. A corrected outcome is read through its latest correction; the original stays on file;
 - ports, each with an in-memory fake that passes `conformance.py`:
   - `SnapshotArchive`: over b's `SnapshotSource`;
-  - `SettlementArchive`: over d's `IndexSettlementSource`;
   - `EventCalendar`: over A6;
   - `CardReplay`: over e's drivers;
   - `InstructorStore`: over O9's `DataStore`.
@@ -815,7 +814,8 @@ sessions a real edge of a given size needs to show.
 #### INS-d The paired comparison · `story/ms-ins-paired`
 
 **Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `status.py`, `nulls.py`),
-`tests/school/instructor/paired/`.
+`tests/school/instructor/paired/`; shared: an optional `block` argument in `fno/scoreboard/uncertainty.py`'s
+`resampled_ratios` (default unchanged, byte-identical test).
 
 **Method (frozen):**
 - **Pairs:** each driver version D against each control C in {N0, RC1, REF of the road}, on h's common group of
@@ -912,19 +912,31 @@ sessions a real edge of a given size needs to show.
 - lesson cards and monthly cadence (325 section 6.5): P2+;
 - futures causes: no futures in P1.
 
-#### Questions for the orchestrator (before code)
+#### Questions answered (orchestrator, 22 Oct 2026; story text merged at 80625b19)
 
-1. **Reads beyond the dashcam records:** the attribution needs b's snapshots, d's settlement source, A6's events and
-   e's cards. All are read-only recorded inputs. Is that within "reads only the sealed dashcam records and counts"?
-2. **The block bootstrap:** S2's `resampled_ratios` fixes 20-day blocks, which is too long for 30 sessions. Should I
-   add an optional `block` argument to S2's function (S2's lane-1 file, its default unchanged), or keep a separate
-   20-line resampler in `paired/series.py`? I propose the argument (DRY).
-3. **The command:** `python -m fno school` is j's reserved line. Should INS-e register `instructor` under j's group
-   when j merges, with a module entry point until then?
-4. **The 20:05 line:** `WhyLineSource` is a port. Joining it to g's evening section is one line in j's wiring, agreed
-   with g's and j's owners. Agreed?
-5. **Tickets in the primary paired measure** (idea quality), with executed-only beside it: confirm.
-6. **Lane:** one judge (evaluation records; no money, fill, limit or exit path). Confirm.
+1. **Reads beyond the dashcam records:** yes. b's snapshots, d's settlement source, A6's events and e's cards are
+   recorded, read-only inputs tied to the decision record by SHA-256, so they are within "reads only".
+2. **The block bootstrap:** add an optional `block` argument to S2's `resampled_ratios`, its default unchanged, with a
+   test that the default output is byte-identical. No second resampler (DRY). `fno/scoreboard/uncertainty.py` is
+   therefore one shared file of INS-d.
+3. **The command:** a module entry point (`python -m fno.school.instructor`) now, registered under j's `fno school`
+   group when j lands. j's builder (session_01CmKJ6taCLzfEGg7wt6RC4N) has been told.
+4. **The 20:05 line:** `WhyLineSource` is a port, joined to g's 20:05 section by one line in j's wiring. j's builder
+   has been told.
+5. **Tickets in the primary paired measure:** the builder's call, as the orchestrator asked. Tickets stay in the
+   primary measure, with executed-only beside it. Reason: a ticket is the same idea under the same quotes and laws
+   (327 correction 1), refused only by an account limit or the 5-trade cap. Leaving tickets out would make the
+   comparison depend on the account limits, not on the rule.
+6. **Lane:** lane 1, one judge: Judge K (session_019ZApRwkUiNMKDsf1k4W44z); not a money piece. The two deviations
+   from 325 (cause 1's option-implied range, cause 6 on option stops) are accepted as stated.
+
+**Settled in INS-a's build (builder):**
+- A cause is a plain `Cause` member: a winner (net >= 0) reads it in its winner form, so the sign of the net is the
+  form and no separate flag can disagree with it. `Classification` refuses causes 6 and 9 on a winner.
+- The settlement price is read through d's own `IndexSettlementSource` and the records through c's `DashcamStore`,
+  unchanged: no wrapper port for either (KISS).
+- `CardReplay` and `InstructorStore` are ports with fakes in a. Their real adapters come with the parts that first
+  use them: c (the replay over e's drivers) and e (the store over O9's `DataStore`).
 
 ## 5. Gap list (response 327 P1 and the orchestrator's scope)
 
@@ -1930,3 +1942,44 @@ MS-P1h, Judge H's two notes on the registration (judge 493; orchestrator, 22 Oct
 
 Empty until INS-a is built. Each part's round adds its subsection here: the criteria met with test names and
 broken-code proof, the self-review findings, and a real output sample (counts only).
+
+#### INS-a Claims (round 1, branch `story/ms-ins-contracts`; the SHA is in the commit that carries this text)
+
+| Criterion | Met by | Test (`tests/school/instructor/`) |
+|---|---|---|
+| 1 path with its snapshots in order; a ticket read as a ticket | `reader.PathReader._path` | `test_reader`: `..._three_snapshots_in_order`, `a_ticket_is_read_as_a_ticket...`, `a_weekend_inside_the_hold...` |
+| 2 a correction read once | `reader.latest_outcomes`, `PathReader.closed_between` | `test_reader`: `a_correction_sealed_on_a_later_session...` (two separate seals), `..._in_the_same_file_is_read_once` |
+| 3 a snapshot hash mismatch is a data fault, never numbers | `PathReader._snapshot` | `test_reader`: `a_snapshot_whose_hash_differs...` and every fault case below |
+| 4 empty | `PathReader.closed_on` | `test_reader`: `a_session_with_no_outcome_file_gives_nothing` |
+| 5 reads only | the reader holds no write path; the dashcam fake refuses writes after the fixtures | every `test_reader` test (`WriteRefusingDashcam`); the whole run again in INS-e |
+| 6 imports | the school's import test walks `fno/school/` | `test_types`: `the_school_import_boundary_covers_the_instructor` |
+| 7 conformance | `fakes.py`, `adapters.py` | `test_ports` (fakes, `RecordedSnapshotArchive`, `RecordedEventCalendar`) |
+| types refuse the impossible | `contracts.py` | `test_types` (identity to Rs 0.01 at the boundary, NaN, 2 secondaries, 3 statuses, 13 causes, loser-only causes, interval and dates) |
+
+**Data faults (each a test):**
+- entry decision missing or not a trade or ticket of its kind;
+- entry seal mismatch;
+- a held trading session with no sealed decisions file;
+- a snapshot missing on a session with no closure record for the road;
+- a snapshot hash mismatch;
+- settlement missing or naming another file;
+- an exit record that is missing, or that names another driver or reason.
+
+A road closed by a sealed closure record is not a fault: its step merges (`sessions_skipped`).
+
+**Broken-code proof:** 13 plants, each run against the instructor tests, 13 caught. The plants: the snapshot, entry-seal and settlement hash checks removed; corrections kept; the entry-kind check loosened; the closure rule, the unsealed-session fault and both exit-record faults removed; calendar days walked instead of NSE sessions; the identity's NaN guard reversed; the paired-row date order and the path's road check removed. A first round left the entry-kind plant alive; the parametrized `an_outcome_whose_decision_was_not_its_kind...` test was added for it.
+
+**Self-review (one independent review agent on the diff).** Six findings:
+1. **Blocking: corrections across files.** Accepted. A dashcam file is written once, so a correction can only be sealed on a later session. `closed_between` now applies corrections across a range, tested with two separate seals; the old test rewrote a sealed file, which the real store cannot do.
+2. **Should fix: a missing road record treated as a closure.** Accepted. Only a sealed closure record now merges a step; otherwise the session is `snapshot_missing`.
+3. **Should fix: missed sessions.** Accepted. The reader walks A7's calendar, and a trading session without a decisions file is `session_not_sealed`.
+4. **Should fix: NaN passed the identity check.** Accepted. NaN is now refused, and `PairedRow` also checks its interval, mean and dates.
+5. **Minor: exit records not checked.** Accepted. An exit record that is missing or mismatched is now a fault.
+6. **Should fix: test and spec gaps.** Accepted. Criterion 5's docstring now says the full run is checked again in e; the import pointer test was added; the files-owned list and the story text were updated.
+
+From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates were done. The double read of the entry day's file is left as is: one extra cached read, and merging the two reads would join two single-purpose functions.
+
+**Real output sample:** none possible yet. The fleet (MS-P1j) has sealed no dashcam file, so `build_path_reader().closed_on(<day>)` has nothing to read. The first real sample comes with INS-e's dry run once j seals a day. The fixture run gives counts only: 1 path, 3 snapshots, 0 faults (`test_reader`).
+
+**Gates:** the full gate run on the merged tree is in the push message to the orchestrator.
+
