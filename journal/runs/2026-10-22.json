@@ -73,6 +73,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "v4_release": {
+   "started_at": "2026-10-22T14:06:35.073275+05:30",
+   "finished_at": "2026-10-22T14:27:08.179253+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "release"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "v4_release:NOT_LIVE",
+    "exit_code": 0
+   }
   }
  }
 }
