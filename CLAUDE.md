@@ -260,7 +260,9 @@ commit with `--no-verify`.
   scores: A4's chains, the panel, closes, O9's Drive store, story G13) and `fno/price_ranges/wiring.py` (NIFTY's and
   BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b)
   and `fno/itm_chance/wiring.py` (each monthly contract's market-implied ITM chance and its calibration: G13's records,
-  E7's settlement reader and the legacy-file reader behind it, G13b's closes, O9's Drive store, story G13c).
+  E7's settlement reader and the legacy-file reader behind it, G13b's closes, O9's Drive store, story G13c)
+  and `fno/premium_ranges/wiring.py` (each monthly contract's next-session 3 pm premium range: G13's 3 pm records,
+  O9's Drive store and cache, G13b's seal check with G13d's 15:30 deadline, story G13d).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive

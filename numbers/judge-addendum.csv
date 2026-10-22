@@ -557,3 +557,5 @@ number,name,session,claimed_at_utc
 460.1,g13c-review-checks,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T02:36:17Z
 460.2,g13c-settlement-chain,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T02:43:17Z
 437.2,a23-backfill-condition,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-22T03:08:47Z
+412.7,git-limit-flake,session_01Pb8z2koLuxty7mbujFpgZa,2026-10-22T03:33:35Z
+465.1,g13d-sticky-strike,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T03:59:14Z

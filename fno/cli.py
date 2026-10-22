@@ -20,6 +20,7 @@ from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
 from .factory.cli import add_factory_parser
 from .filings.cli import add_filings_parser
+from .flow_history.cli import add_flows_parser
 from .fo_masters.cli import add_fo_masters_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_lab.cli import add_lab_parser
@@ -36,6 +37,7 @@ from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
+from .premium_ranges.cli import add_premrange_parser
 from .preopen.cli import add_preopen_parser
 from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
@@ -244,12 +246,14 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
     add_factory_parser(sub)
     add_pricedist_parser(sub)
+    add_premrange_parser(sub)
     add_itmchance_parser(sub)
     add_pricerange_parser(sub)
     add_closes_parser(sub)
     add_lab_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)
+    add_flows_parser(sub)
     add_preopen_parser(sub)
 
     args = p.parse_args(argv)

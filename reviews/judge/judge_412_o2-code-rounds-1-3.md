@@ -200,3 +200,29 @@ Then send that head; I check that diff.
 - **Gates on a trial merge with main (F1 included):** 8849 passed, 16 xfailed, 0 failed; ruff clean.
 
 This closes O2's kill-and-rerun and hang rows in phase 1. O2b (the trade rows) stays paused.
+
+## Addendum 7: the hung-git test flake fixed (story/o2-git-limit-test at 138c135b)
+**Verdict: PASS. Lane 1 (`fno/desk/git_limit.py`). It may merge after the full gates pass on the exact pushed tree.**
+This also answers my addendum 5 note: the killpg plant used to hang.
+
+**Root cause 1 (judge E's report; reproduced by the builder with a slow-git shim): the test's 1 s limit applied to every
+git call.** The fix:
+- `LimitedRun(started=...)`, a callback before the limit counts (production passes nothing, so production is
+  unchanged);
+- the test gives the short limit only to the hung call, starting once its hook is reached; all other calls keep 120 s.
+
+**Root cause 2 (the A4 builder): "stopped with its hooks" was said while the hook, git's grandchild, could still be
+dying.** `_until_gone` now waits, at most `GROUP_GONE_SECONDS` = 5, until no live member of the group remains, read from
+`/proc`. A zombie counts as gone, and the stat field parsing is correct: state, ppid, pgrp after the last `)`.
+
+**My checks:**
+- `tests/daily/test_git_limit.py` three times in a row: 7 passed each time.
+- The `started` callback removed (the limit races git's start): caught, 1 failed.
+- Zombies counted as live (the wait would hang the full 5 s every time): caught, 1 failed.
+- Trial merge with main: 9751 passed, 16 xfailed, 0 failed; ruff clean.
+
+**Environment note:** main now needs `xlrd`, which this container lacked. The first gate run failed on import errors
+until `pip install -r requirements.txt`. Routines use `routine_setup.sh`, which installs it.
+
+**Named, not changed:** `tests/e2e/test_hangs.py` sets a 2 s limit for every git call of a whole fixture day, the same
+class of risk. The builder will test it under the slow-git shim next.

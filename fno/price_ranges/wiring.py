@@ -123,9 +123,10 @@ def deep_enough(root=ROOT, days: int = 10) -> None:
                        capture_output=True, text=True, check=False)  # fmt: skip
 
 
-def build_seal_check(env=os.environ) -> SealCheck:
+def build_seal_check(env=os.environ, deadline_of=None) -> SealCheck:
+    """`deadline_of`: G13b's 15:45 deadline when None; G13d passes its own (`fno/premium_ranges/wiring.py`)."""
     deep_enough()
     history = HealthHistory(ROOT)
     repository = env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
     receipts = GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history)
-    return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar())
+    return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar(), deadline_of)
