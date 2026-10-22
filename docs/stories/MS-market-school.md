@@ -509,6 +509,9 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
 - a rerun skips sealed decisions;
+- **requirement (orchestrator, 22 Oct 2026, judge 494):** a law result's `note` can name contracts or legs (MS-P1m's
+  margin causes do), so it is never posted to Slack; the reports count "margin not checked" refusals by their cause
+  (`margin_not_checked`, the cause after the prefix), never by quoting the note;
 - MS-P1d limit 2 (orchestrator, 22 Oct 2026): a driver account's shared displayed size (E4d) counts its entries
   at the snapshot, not its exits of older positions there (`AccountView` cannot show them). Exits therefore run after
   the slot's entries, as the order above has it: an exit that then finds too little size waits
@@ -1166,4 +1169,8 @@ stop, the unreadable raise) each fail a named test.
 - **Still to come, once MS-P1b is on main:** `_verticals` on b's vertical-range function with its 1e-9 tolerance
   (tests at the bounds +/- 1e-12), and settlement on b's `build_archive_stores`.
 - **Plants:** 6 planted on this part, 6 caught.
+- **Judge 494 (Judge I, round 1) should-fix, test only:** `test_a_held_trade_s_entry_net_is_its_cash_flow_in_c2_s_max_loss`:
+  a held credit spread counts in the open-risk cap at C2's own held maximum loss for its `entry_net`; at the cap, no
+  credit refuses and twice the credit passes. Plant: `entry_net` replaced by 0 in `c2_inputs` is caught. The MS-P1j
+  requirement on `LawResult.note` (never to Slack; counted by cause) is added.
 

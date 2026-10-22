@@ -8,9 +8,13 @@ from dataclasses import replace
 import pytest
 
 from fno.nse_margins.road_trades import RoadTradeTerms
+from fno.risk.caps import OpenRiskCap
 from fno.risk.inputs import RiskInputError
+from fno.risk.open_risk import HeldMaxLoss, PositionRisks
+from fno.risk.profile_settings import profile_settings
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.school.constants import RefusalReason, RoadCode
+from fno.school.safety.buckets import SchoolBuckets
 from fno.school.safety.c2_inputs import c2_inputs
 from fno.school.safety.margin_law import MARGIN_NOT_CHECKED, margin_not_checked, margin_room_law
 from tests.school.contracts import builders as b
@@ -94,3 +98,27 @@ def test_terms_of_two_expiries_or_a_leg_ratio_are_refused_before_c2():
     for odd in (calendar, ratio):
         with pytest.raises(RiskInputError, match="C2 sizes one each"):
             c2_inputs(odd, BANKNIFTY, view(), {BANKNIFTY: b.snapshot()}, b.SESSION)
+
+
+def test_a_held_trade_s_entry_net_is_its_cash_flow_in_c2_s_max_loss():
+    """Judge 494: a held credit spread counts in the open-risk cap at C2's own held maximum loss for its entry_net
+    (the cash the entry moved), so a smaller credit is a larger risk and the verdict at the cap moves with it."""
+    risks = PositionRisks(SchoolBuckets(profile_settings(CFG, "books").bucket_sides), HeldMaxLoss(CFG["charges"]),
+                          COSTS)  # fmt: skip
+    slot = {BANKNIFTY: b.snapshot()}
+
+    def counted(entry_net: float, limit: float = 1e12):
+        account = view(open_positions=(replace(held("h1", (1100.0, 1000.0)), entry_net=entry_net),))
+        inputs = c2_inputs(b.put_spread(), BANKNIFTY, account, slot, b.SESSION)
+        verdict = OpenRiskCap(risks, limit).check(inputs.proposal, inputs.book, inputs.market)
+        held_loss = verdict.numbers["groups"]["all open positions"]["counted_max_loss_rs"]["h1"]
+        expected = risks.held.max_loss(inputs.book.open_trades[0].units, entry_net, inputs.market)
+        return held_loss, expected, verdict
+
+    credit = 2_850.0  # 95 a unit on 30 units
+    loss, expected, verdict = counted(credit)
+    assert loss == pytest.approx(expected) and counted(0.0)[0] > loss
+    at_cap = verdict.numbers["groups"]["all open positions"]["total_rs"]
+    assert counted(credit, at_cap)[2].ok
+    assert not counted(0.0, at_cap)[2].ok, "no credit received: a larger held loss breaks the same cap"
+    assert counted(2 * credit, at_cap)[2].ok and counted(2 * credit)[0] < loss, "twice the credit: a smaller loss"
