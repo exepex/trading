@@ -36,8 +36,9 @@ costs. The pilot's job is to measure, not to make money; the banner is red or am
 1. No change to `DAILY_RUN_STEPS`, the weather, v4 or any frozen file until the orchestrator says the owner signed v4's
    freeze (expected after Mon 26 Oct). Everything is built behind the school's own switch and run by its own command;
    joining the daily run is part MS-P1j, which waits.
-2. No change to the signed-off 08:50 and 20:05 pages until the orchestrator confirms the owner's approval of the new
-   sections. The sections are built behind their own flag, off.
+2. The owner approved the two sections (22 Oct 2026, "Yes, add them"; DESK_DECISIONS "Market school pilot: report
+   sections and brake"): built behind their own flag, off, and live only with the pilot; the signed-off pages stay
+   byte-identical while the flag is off.
 3. Existing captures only: no new Groww or NSE read, no new endpoint. No futures, calendars, diagonals, AI drivers,
    stocks or extra slots.
 4. Hard lines: no order path anywhere in `fno/school/` (a test lists its imports); no secret in a file; Slack only
@@ -108,6 +109,10 @@ marked "unmarked", never priced from anything else.
 5. Quote gate: every leg valid and two-sided by A4's rule, its displayed size covering the units (E4d, per account),
    and every protective leg sellable back (E4c).
 6. No record, no trade (325 section 9.14): a decision whose seal is missing or late is refused.
+7. Driver brake (owner, 22 Oct 2026, DESK_DECISIONS "Market school pilot: report sections and brake": "Pause till
+   monthly review"): a driver version whose paper equity falls Rs 1.2 lakh below its high opens nothing from the next
+   decision until the next monthly review lifts it by a recorded review row; no owner restart is needed; planned
+   exits continue. The desk's own brake rule (C2, `owner_overrides.csv`) is unchanged and not read by the school.
 
 ### 3.4 The dashcam (write-once, Drive only, receipts in GitHub)
 
@@ -176,7 +181,8 @@ purpose (quality rule 4); no file or class over 350 lines; gates `pytest -n auto
 
 1. One `PaperAccount` per driver version (Rs 20 lakh), private through `PrivateFiles`; the school's risk profile in
    `config.yaml` (allowed keys added to `fno/config.py`).
-2. Every law of 3.3 refuses at limit + Rs 1 and passes at the limit; all reasons kept; no law can resize a trade.
+2. Every law of 3.3 refuses at limit + Rs 1 and passes at the limit; all reasons kept; no law can resize a trade. The
+   brake (law 7) pauses at Rs 1.2 lakh below the high, stays paused across sessions, and lifts only on a review row.
 3. Daily stop: after Rs 25,000 of loss, new entries are refused, planned exits fill, a risk-reducing close fills only
    at valid two-sided quotes; a missing quote leaves the position open with `exit_waiting_quote`, never a guessed price.
 4. Entries and exits fill at the slot's touch by E4/E4c/E4d; expiry legs settle by E7 generalised to all four indices
@@ -246,6 +252,7 @@ New step(s) after v4's in `DAILY_RUN_STEPS`, never inside its frozen files; thei
 | Tickets under the same rules, three counts | P1e |
 | Shared order book (327 item 10) | P1e-3 |
 | Banner red and amber only | P1h-2 |
+| Driver brake: pause at Rs 1.2 lakh below the high until the monthly review | 3.3 law 7, P1d-2 |
 | Own switch; sections behind a flag | P1f-1, P1h-1 |
 | Frozen comparison card before day 1 | P1g |
 | Capture gate per road, denominator first | 3.5, P1a-3 |
@@ -254,8 +261,8 @@ New step(s) after v4's in `DAILY_RUN_STEPS`, never inside its frozen files; thei
 
 **Out of scope, with reason:** futures, calendars, diagonals (probe 5: no model); stocks and extra slots (P3+; NSE
 terms block the survey); AI drivers (327 item 7: after a dry run); instructor, condition map, licences, recommender
-top 3, simulator (P2+); E8 owner-timing fills (the pilot has no recommendation to follow); drawdown-brake suspension
-(owner question 5.4 of 327: until decided, a driver at the C2 brake simply opens nothing, as C2 does today).
+top 3, simulator (P2+); E8 owner-timing fills (the pilot has no recommendation to follow); the monthly review itself (P2+;
+P1 only reads its recorded row to lift a brake).
 
 ## 6. Open questions (for the orchestrator; none blocks MS-P1a or MS-P1b)
 
@@ -273,7 +280,10 @@ top 3, simulator (P2+); E8 owner-timing fills (the pilot has no recommendation t
 4. **Daily stop with one mark a session.** With one slot a day the stop is checked at the slot, before new entries,
    from the previous slot's marks to this one. Intraday losses between slots are not seen (A16 is NIFTY only). Confirm
    this reading is acceptable for P1.
-5. **Story numbering.** This file holds the market school's stories; later stages add sections, not new files.
+5. **The monthly review that lifts a brake.** Proposal: a review row (date, driver version, decision) in a school
+   reviews file, written on or after the first Saturday of the next month (325 section 6.5); no row, no lift. Who
+   writes it in P1 (the orchestrator, from the owner's words) to confirm.
+6. **Story numbering.** This file holds the market school's stories; later stages add sections, not new files.
 
 ## Claims
 
