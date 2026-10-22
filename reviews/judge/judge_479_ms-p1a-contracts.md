@@ -112,3 +112,25 @@ are where it matters; their judges should check that reports go only through FL1
 The final tip is 19eb4206: it adds only 4 lines of story text (a third MS-P1j requirement, the share refused for
 quotes per road) to 35458460, and the code is unchanged. The PASS covers 19eb4206. The line-342 correction is still
 required at merge.
+
+## Addendum 2
+
+**Scope:** MS-P1a2, story/ms-p1-contracts-a2 at 6a9dfde6. It branches from main, is additive, and is a short lane-1
+check. The additions are `RoadDay.strike_steps` (each expiry's own step, after judge 482 SF1), `RoadStatus.detail`,
+a stricter catalogue conformance check, and a comment on `Seal.pushed_at`.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 10283 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **Strike steps.** `strike_steps` must name every recorded expiry, each step above zero, with the nearest equal to
+  `strike_step`. `step_for(expiry)` never falls back to another expiry's step. It is optional, so existing callers
+  are unchanged. The conformance check now requires a real catalogue (part b) to fill it for every open road.
+- **Detail.** Only a closed road carries one; the fleet records it under `ROAD_DETAIL_INPUT`.
+- **Plants: 3, 3 caught.** Nearest step not equal to `strike_step`; detail on an open road; steps not covering every
+  expiry.
+
+**Note: what `Seal.pushed_at` now means.** It is the receipt commit's time, and the proof of the push is the remote
+receipt (`seal` returns only after the push). In a live run, fills come after `seal` returns, so the order is kept.
+But a replay or audit that checks `covers` on old seals compares commit time, not push time. A commit made before the
+fill but pushed after it would pass there. Any after-the-fact check of "sealed before fill" should use O8's push
+evidence, not `pushed_at` [reasoning only].

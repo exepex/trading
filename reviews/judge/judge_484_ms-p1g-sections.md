@@ -55,3 +55,35 @@ editions); the real picture is covered by the unwrapped-maker identity, not by t
 ## Notes
 - The goldens come from the forecast-lab test fakes, not a live edition. Identity (`is maker`) is the stronger
   proof, and it holds.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-p1-sections at 5a7bd5b7, diff 947cc128..5a7bd5b7. **Verdict: PASS.** Lane 1.
+
+**Gates (my run):** pytest -n auto: 10,316 passed, 16 xfailed. ruff check/format, check_imports and check_records
+are clean. `fno/forecast_lab/` still has 2 lines changed against a (the import, now of `guard`, and the `return`).
+
+**Round-1 findings:**
+1. **School stops an edition: ACCEPTED.**
+   - Settings and wiring are now read inside `guard.with_school_sections`'s `try`.
+   - My three plants (a bad date, an unknown key, no block) on both editions give text byte-identical to the golden,
+     plus one alert `school <edition> section not made (SchoolSettingsError)`.
+   - Importing `page_wiring` now loads only `fno.school.contracts.reports`, `reports.guard` and `reports.maker`
+     (checked with `sys.modules`).
+   - Plant caught: the guard narrowed to `ImportError`.
+2. **Controls in the evening: ACCEPTED (orchestrator's ruling: rule drivers only).**
+   - My case (only N0 trades, Rs +5,000) is now RED, with "Fleet total, rule drivers only: Rs +0". The control's
+     net is on its own labelled line, "not in the fleet total".
+   - Plants caught: the role filter on candidates, the total summed over all money, and the other-roles lines.
+
+**Minors:**
+- (a) **ACCEPTED:** a test runs the real `build_report_maker` through the guard.
+- (b) **ACCEPTED:** the alert carries the class only (plant putting the message back caught).
+
+**Orchestrator's check (Judge B's note):** `fno/school/reports/` has no `requests`, no HTTP and no Slack client. The
+sections reach Slack only as text in FL1's `Made`, and their alerts go through the composers' `alerts`.
+
+**Plants:** 6 on the new code, 6 caught.
+
+**Note:** `guard.py`'s docstring says it loads "nothing of the school": it loads `maker`, and so
+`contracts.reports`, which is stdlib-only since a's round 2. Wording only.

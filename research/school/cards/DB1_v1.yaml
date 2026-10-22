@@ -1,0 +1,17 @@
+# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+code: DB1
+version: "1"
+family: debit_buyer
+role: rule
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M]
+band_steps: 5
+parameters:
+  history_sessions: 20
+  dte_min: 20
+  dte_max: 45
+  expected_net_rs: 0.0  # no honest estimate: EDGE1 found no edge, so scores tie and the tie-break ranks
+  max_wing_steps: 40
+  max_open_per_road: 1
+  exit_profit_share: 1.0
+  exit_sessions_held: 10
+  exit_last_session_dte: 5

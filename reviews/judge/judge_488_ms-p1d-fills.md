@@ -68,3 +68,46 @@ judge I's verdict. Round 1 of 2.
 3. **Story wording.** Story d's acceptance 1 says "passes at its limit". Story 3.3 says the stop acts when the loss
    "reaches" its limit, and the brake on equity "falls ... below". The code follows 3.3 and the orchestrator ("at the
    limit or above"); acceptance 1's line should say so.
+
+## Addendum 1
+
+**Scope:** story/ms-p1-fills at 9ed80bc7, the diff since 96704ef8. Round 2 of 2 (first judge).
+- 7064a030 only merged a's `NO_VALID_QUOTES`.
+- 9ed80bc7 adds judge I's two fixes (the brake-lift date, the no-store settlement) and the per-vertical check from my
+  note 2.
+
+**Verdict: FAIL on one test-only should-fix** (the code is correct as read). My PASS of round 1 is withdrawn until
+the test is in.
+
+**Gates (my run):** 10530 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+
+**The diff, checked:**
+- **Brake-lift date.** `first_review_day` is the first Saturday of the month after the engagement; December rolls to
+  January of the next year. A lift row dated before that day is a `ReviewFileError`, never a lift.
+- **No store.** `build_settlement_source` stops by name (`SettlementStoresNotConfigured`) when no store can be read,
+  instead of waiting forever with expired positions at their worst case.
+- **Per vertical.** Each bought-sold pair of one type and expiry is valued at the mids as the pair worth more at
+  expiry (lower call less higher call, higher put less lower put). It must lie in [0, width], and the position total
+  stays strict at the touch.
+  - I accept the builder's answer to my "upper bound only" remark. At the mids, a negative vertical is impossible,
+    unlike at the touch, so both bounds belong there.
+- **Plants: 7 new, 6 caught.** Caught: the vertical's lower bound dropped, a put vertical oriented as a call, an
+  early review lifting, the review day on the 1st of the month, December rolling into the same year, the no-store
+  check removed. My 25 earlier plants: still caught, except the equivalent "C2 at mids" one.
+
+**Should-fix.**
+- Defect: dropping the vertical's upper bound (`0 <= v[0]` only) passes every test.
+- It is not equivalent. For a credit spread (CS1's PCS or CCS) the position bound is checked at the touch. So a
+  spread whose mids are worth more than its width (a stale mid, the case this check exists for) passes when the
+  bid-ask makes the touch total fall inside the bounds.
+- Test it must pass: a two-leg credit spread whose mid value is above its width while its touch value is inside the
+  payoff bounds is refused `impossible_leg_price`. The plant above then fails it.
+
+**Next:** that one test. The orchestrator decides whether confirming it counts as a round. I will re-run the plant
+and confirm in one line; nothing else is reopened.
+
+**Closed (orchestrator, 22 Oct 2026, relaying the owner).** The owner decided the d dispute in favour of judge I's
+ranges rule: a per-vertical check at the mids would flag valid wide quotes and contradict b's accepted gate. The test
+asked in 488.1 is therefore not added. My per-vertical intent stands, judged by judge I on ranges. I have nothing more
+to judge on d. The builder had added the 488.1 test at 6019ab44 and reported my plant caught, but the owner's ruling
+supersedes it. I did not judge the ranges version.
