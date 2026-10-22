@@ -163,6 +163,19 @@
      "committed_at": "2026-10-22T15:02:23+05:30"
     }
    }
+  },
+  "snapshot": {
+   "started_at": "2026-10-22T15:15:00.000607+05:30",
+   "finished_at": "2026-10-22T15:21:24.898213+05:30",
+   "inputs": {},
+   "result": {
+    "valid": false,
+    "attempts": [
+     null,
+     "nifty_20261022_151824"
+    ],
+    "reason": "unlisted"
+   }
   }
  }
 }
