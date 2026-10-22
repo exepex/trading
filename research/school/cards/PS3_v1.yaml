@@ -1,0 +1,17 @@
+# DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+# PS3 and PS4 collapse into the same trade on a road where the widest wing under the cap is under 3 strike steps;
+# both are recorded, they are one family and are not counted twice (orchestrator, 22 Oct 2026).
+code: PS3
+version: "1"
+family: width_ladder
+role: rule
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M]
+band_steps: 40
+parameters:
+  dte_min: 30
+  dte_max: 45
+  expected_net_rs: 0.0  # no honest estimate: EDGE1 found no edge, so scores tie and the tie-break ranks
+  max_wing_steps: 3
+  max_open_per_road: 1
+  exit_profit_share: 0.5
+  exit_days_held: 21
