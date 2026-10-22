@@ -72,6 +72,12 @@ class DataFault(StrEnum):
     SETTLEMENT_MISMATCH = "settlement_mismatch"
     EXIT_RECORD_MISSING = "exit_record_missing"  # an exit rule closed it, but no exit record was sealed
     EXIT_RECORD_MISMATCH = "exit_record_mismatch"  # the exit record names another driver, road or reason
+    NET_MISMATCH_FILLS = "net_mismatch_fills"  # the outcome's net is not its fills' cash (judge 503)
+
+
+def net_matches_fills(outcome: OutcomeRecord) -> bool:
+    """The outcome's net is the cash its fills moved, to Rs 0.01; else the residual would hide the gap."""
+    return abs(round(outcome.net - (outcome.entry.cash + outcome.exit.cash), 6)) <= IDENTITY_TOLERANCE_RS
 
 
 @dataclass(frozen=True)

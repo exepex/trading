@@ -721,7 +721,7 @@ sessions a real edge of a given size needs to show.
 
 #### INS-b The P&L attribution · `story/ms-ins-attribution`
 
-**Files owned:** `fno/school/instructor/attribution/` (`greeks.py`, `steps.py`, `attribute.py`),
+**Files owned:** `fno/school/instructor/attribution/` (`greeks.py`, `points.py`, `attribute.py`),
 `tests/school/instructor/attribution/`.
 
 **Method (frozen; reuses G13's pricing, `fno/price_distribution/pricing.py` and `forward.py`; nothing re-derived):**
@@ -739,8 +739,10 @@ sessions a real edge of a given size needs to show.
 - **Market P&L:** the sum over legs of `q x (mid at exit - mid at entry)`. At expiry the mid is the intrinsic value
   against the settlement price.
 - **Residual:** market P&L minus the four Greek components. It is the balancing item and is always shown.
-- **Costs:** every leg's C1 charges (entry and exit `FilledLeg.charges`) plus the spread paid against the mids (the
-  outcome record's `slippage_vs_mid`).
+- **Costs:** every leg's C1 charges (entry and exit `FilledLeg.charges`) plus the spread paid against the mids.
+  The spread is measured here from the fills, against the mids of the path's own first and last snapshots (none at a
+  settlement). It is not taken from the outcome record's `slippage_vs_mid`, whose basis is not fixed, so the residual
+  never absorbs a cost measured on other mids (INS-b self-review).
 - **The identity** holds for every path: delta + gamma + vega + theta + residual - costs = the outcome record's `net`,
   to Rs 0.01.
 - **Gaps:**
@@ -896,6 +898,9 @@ sessions a real edge of a given size needs to show.
 5. The review shows every count's denominator, refusals included.
 6. A planted cause on the fake fleet appears in the review's counts and in that session's "why" line.
 7. Off-switch: with `school.enabled` false the command prints "school off" and writes nothing.
+8. An orphan correction (Judge K, judge 501 addendum 1; orchestrator, 22 Oct 2026): a correction whose `corrects`
+   SHA-256 names no original the reader can find is counted and alerted in the review and the day's output, never
+   dropped silently. INS-e adds this to the reader's `ClosedRead` (today the reader does not list them).
 
 #### Gap list (the design's requirements for v1)
 
@@ -2100,4 +2105,62 @@ From the reviewer's minor list, `HeldPath`'s road check and `PairedRow`'s dates 
 | Item (orchestrator, 22 Oct 2026, on j's finding) | Change | Test (and the plant it catches) |
 | The first named reason is the root cause: on BANKNIFTY-M a missing quote came out as `max_loss` (it fails closed without the leg's mid) ahead of `missing_quote` | `safety/wiring.py`: protected, the four quote-gate laws, impossible price, then max loss, bucket, open risk, new risk per day, margin room, daily stop, brake. Every law still runs and every reason is kept; only the order changes | `test_laws.py`: the order pinned (plant: the old order); a missing and a one-sided quote name their quote reason first, with `max_loss` still in the list (plant: the gates after max loss); a valid quote with too large a loss still names `max_loss` alone (plant: a gate that refuses a valid quote); the margin test reads results by law name, not by position |
 - **Plants:** 2 planted (old order; a gate refusing a valid quote), 2 caught. f's `named_refusal` (first in order within a group) now names the quote reason within trade validity too.
+
+#### INS-b Claims (round 1, branch `story/ms-ins-attribution`, on INS-a; the SHA is in the commit that carries this text)
+
+| Criterion | Met by | Test (`tests/school/instructor/attribution/`) |
+|---|---|---|
+| 1 hand-computed spread | `attribute.attribute`, `greeks.greeks`, `points.snapshot_point` | `test_attribute`: `the_hand_computed_put_spread` (every intermediate value in its docstring; found independently by finite differences, and again by the review agent with its own Black-76) |
+| 2 pure forward move | `add_step` | `a_pure_forward_move_has_no_vega_and_no_theta` |
+| 3 pure time step | `add_step` | `a_pure_time_step_has_only_theta` |
+| 4 identity | `Attribution.__post_init__`; the residual from fill-measured costs | `on_random_paths_the_residual_is_the_mid_to_mid_pnl_less_the_greeks` (200 paths) |
+| 5 merging | `attribute` (incomplete middle points, plus closed-road sessions) | `a_middle_snapshot_missing_a_leg_merges_its_step`, `a_session_the_road_was_closed_counts_as_a_merged_step` |
+| 6 unsolvable volatility | `add_step` | `an_unsolvable_volatility_puts_that_legs_step_in_the_residual`, `..._at_the_steps_end...` |
+| 7 settlement last step | `points.settlement_point` | `a_settled_positions_last_step_ends_at_intrinsic_with_no_vega` |
+| 8 poor fit at the boundaries | `is_poor_fit` | `poor_fit_needs_both_rs_200_and_a_quarter_of_the_components` (Rs 200 and 25%, at and beyond) |
+| 9 one snapshot | `attribute` | `entry_and_exit_on_one_snapshot_is_costs_only` |
+| 10 broken-code proof | below | |
+| Greeks with a rate | `greeks.greeks` | `test_greeks` (finite differences, both kinds, r = 6.5%); `at_a_652_rate_theta_carries_its_rate_term` (pinned) |
+| no attribution without data | `attribute` | `a_faulted_path_or_a_missing_entry_or_exit_mid_is_not_attributed`, `legs_on_two_expiries_are_not_attributed`, `a_nan_price_on_an_unrelated_strike_does_not_spoil_the_forward` |
+
+**One deviation from the text:** `greeks.py` wraps B1's `Black76`, the project's one pricer and inverter, directly. It does not call G13's `pricing.black76_price` and `pricing.implied_vol`, because those take whole days and the attribution needs minutes to 15:30. The Black-76 gamma, vega and theta are new. The delta repeats G13's formula in years.
+
+**Broken-code proof:** 17 plants over two rounds, all caught. They cover the leg signs, Greeks taken at the step's end, the theta time sign, the half in gamma, the merge rule, the spread, vega at expiry, the theta rate term, the expiry close time, the poor-fit boundary, the exit-mid check, the finite filter, the two-expiry guard, closed-road merges, the spread sign and the exit spread's snapshot. In round 1 the theta rate-term plant survived; `test_greeks` (r = 6.5%) was added for it. In round 2 the two-expiry plant survived, because missing quotes refused the path first; the test now quotes both expiries.
+
+**Self-review (one independent review agent; it re-derived the hand numbers itself):** no blocking finding.
+1. **Should fix: the spread came from the record, whose basis is not fixed.** Accepted. The spread is now measured from the fills against the path's own mids, and a test shows the record's value is ignored.
+2. **Should fix: a NaN price on any strike spoiled the forward.** Accepted. Mids and forwards are now finite or None.
+3. **Should fix: a settlement treated every leg as being on the near expiry.** Accepted. Paths with legs on two expiries are not attributed (law 1 refuses those anyway).
+4. **Minor: closed-road sessions were not counted in `steps_merged`.** Accepted.
+5. **Minor: the rate test was loose.** Accepted. It is pinned to Rs 0.01.
+6. **Minor: the random test proved less than claimed.** Accepted. Its docstring now says what it checks.
+7. **Minor: spec and DRY.** Accepted. The file list and the deviation above are recorded.
+
+The integer-day parity forward was checked and is negligible (about 0.0003 points per 100 of call minus put). It is noted in `points.py`.
+
+**Thresholds:** `POOR_FIT_RS = 200` and `POOR_FIT_SHARE = 0.25` sit in `attribute.py`. INS-c writes `research/school/INSTRUCTOR_V1.md` and its test pins every threshold to the card, these two included.
+
+**Rebased onto INS-a round 2 (a2c26465), as the orchestrator ordered.** A corrected trade is attributed once, as its
+correction, on its original close day, and nothing is attributed on the correction's own day
+(`test_corrected.py::test_a_corrected_trade_is_attributed_once_on_its_original_day`, through a's real resolver).
+b reads only `HeldPath`, so a's new `ClosedRead` result changes nothing in b's code.
+
+**Orchestrator's ruling on the deviation (22 Oct 2026):** wrapping B1's `Black76` directly is accepted. It reuses the
+one pricing model rather than adding a second, and G13's helpers take whole days, not minutes.
+
+**Real output sample:** none yet, as in INS-a (no sealed day). Fixture: the hand-computed spread gives delta -286.32, gamma -45.61, vega -52.53, theta +24.99, residual +10.74, costs 86.00 and net -434.73.
+
+#### INS-b Claims, round 2 (judge 503 FAIL round 1: one should-fix, one minor; orchestrator's ruling)
+
+| Finding | Fix | Test |
+|---|---|---|
+| SF: the residual trusted `outcome.net`. A net moved by Rs -500 read as residual -494.59 | `contracts.net_matches_fills`: the net must be its fills' cash to Rs 0.01. Otherwise the reader gives the path the named fault `net_mismatch_fills`, and `attribute` returns None, never forcing the gap into the residual | `test_reader`: `an_outcome_whose_net_is_not_its_fills_cash_is_a_fault` (the Rs -500 case), `the_net_is_checked_to_a_paisa` (Rs 0.01 passes, Rs 0.011 is a fault); `test_attribute`: `a_net_that_is_not_its_fills_cash_is_never_attributed` |
+| Minor: a stale docstring | `attribute.py`'s module docstring now says the spread is measured from the fills and `slippage_vs_mid` is not read | none needed |
+
+- **Fixtures.** The test outcomes' nets were arbitrary numbers. They are now their fills' cash: `builders.outcome` computes it, and a correction is `builders.refilled`, another exit price with the net that follows from it. That is how the new check showed every fixture had been inconsistent.
+- **Size limit.** With the new tests, `test_reader.py` passed 350 lines. It is split, unchanged: the shared fakes go to `reading.py`, the correction and net tests to `test_corrections.py`, the damaged-file, mid-range and muhurat tests to `test_damaged.py`. The test names cited for INS-a now live in those files. 88 instructor tests before and after the split.
+- **Plants: 3 of 3 caught.**
+  - the check removed from `attribute`;
+  - the check removed from the reader;
+  - the tolerance made strict.
 

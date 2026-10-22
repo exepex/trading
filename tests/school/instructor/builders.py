@@ -61,12 +61,14 @@ def outcome(
     exit_day: date = SESSIONS[-1],
     is_ticket: bool = False,
     exit_reason: ExitReason = ExitReason.PROFIT_TARGET,
-    net: float = -95.0,
+    exit_price: float = 12.0,
     corrects: str = "",
     exit_rests_on: str = "00" * 32,
 ) -> OutcomeRecord:
+    """The net is its fills' cash, as every real outcome's is (judge 503)."""
     entry = fill(entry_day, SIDE_SELL, 10.0, entry_sha)
-    leaving = fill(exit_day, SIDE_BUY, 12.0, exit_rests_on)
+    leaving = fill(exit_day, SIDE_BUY, exit_price, exit_rests_on)
+    net = entry.cash + leaving.cash
     return OutcomeRecord(
         "p1",
         DRIVER,
@@ -83,6 +85,14 @@ def outcome(
         is_ticket,
         corrects,
     )
+
+
+def refilled(record: OutcomeRecord, exit_price: float, **changes) -> OutcomeRecord:
+    """The same outcome with its exit at another price and the net that follows from it: a valid correction."""
+    legs = (replace(record.exit.legs[0], price=exit_price),) + record.exit.legs[1:]
+    leaving = replace(record.exit, legs=legs)
+    net = record.entry.cash + leaving.cash
+    return replace(record, exit=leaving, net=net, return_on_risk=net / 2500.0, **changes)
 
 
 def held_trade(dashcam: FakeDashcam, ticket: bool = False, closed_middle: bool = False) -> OutcomeRecord:
