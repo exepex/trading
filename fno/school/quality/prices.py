@@ -4,12 +4,12 @@ strikes of one expiry and type is judged (neighbours are not enough once a leg i
 tight ones can hide a broken wider vertical).
 
 EDGE1 judged last-trade closes, one price a leg. A quote is a range, so a vertical is impossible only when no price
-inside both legs' bid-ask ranges can satisfy the bounds. Judged on mids instead, 8-72 legs a day (up to a third of
-MIDCPNIFTY) broke the rule through spread noise alone, on the recorded 21 and 22 October chains; judged on ranges, none
-did. Both legs of a broken vertical are flagged, since the chain cannot say which of the two is stale. Single legs
-get the bounds no market can break: a call's bid is not above the index, a put's bid not above its strike. Those
-are loose (they seldom bind); the vertical rule is the one with teeth. Prices are compared to a tick's fraction (1e-9)
-so float noise never flags a legal vertical."""
+inside both legs' bid-ask ranges can satisfy the bounds. Judged on mids instead, 8-61 legs a road-day (neighbour pairs)
+and 9-87 (all pairs) of the whole chain broke the rule through spread noise alone on the recorded 21 and 22 October
+chains, and inside the band MIDCPNIFTY's 15 and 6; judged on ranges, none did. Both legs of a broken vertical are
+flagged, since the chain cannot say which of the two is stale. Single legs get the bounds no market can break: a call's
+bid is not above the index, a put's bid not above its strike. Those are loose (they seldom bind); the vertical rule is
+the one with teeth. Prices are compared to a tick's fraction (1e-9) so float noise never flags a legal vertical."""
 
 from collections import defaultdict
 from collections.abc import Collection

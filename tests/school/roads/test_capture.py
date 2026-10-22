@@ -166,3 +166,13 @@ def test_strike_step_is_the_most_common_gap_of_the_nearest_expiry():
     store = DictStore()
     Plant(BANK).write(store)
     assert reader_over(store).read(BANK, SESSION).strike_step() == 100.0
+
+
+def test_an_expiry_with_fewer_than_two_strikes_makes_the_capture_incomplete():
+    one_strike = {MONTHLIES[0]: (900.0, 1000.0), MONTHLIES[1]: (1000.0,)}
+    store = DictStore()
+    Plant(BANK, strikes=one_strike).write(store)
+    capture = reader_over(store).read(BANK, SESSION)
+    with pytest.raises(CaptureProblem) as raised:
+        capture.strike_step()
+    assert raised.value.reason is ClosureReason.CAPTURE_INCOMPLETE
