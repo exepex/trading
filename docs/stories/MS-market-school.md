@@ -900,7 +900,7 @@ sessions a real edge of a given size needs to show.
 7. Off-switch: with `school.enabled` false the command prints "school off" and writes nothing.
 8. An orphan correction (Judge K, judge 501 addendum 1; orchestrator, 22 Oct 2026): a correction whose `corrects`
    SHA-256 names no original the reader can find is counted and alerted in the review and the day's output, never
-   dropped silently. Part a's reader exposes such corrections for this.
+   dropped silently. INS-e adds this to the reader's `ClosedRead` (today the reader does not list them).
 
 #### Gap list (the design's requirements for v1)
 
