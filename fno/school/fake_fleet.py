@@ -5,7 +5,7 @@ conformance check. No production path imports this module."""
 from dataclasses import dataclass, replace
 from datetime import date
 
-from .constants import SCHOOL_OFF_LINE, SLOT_1500, Outcome, RecordKind
+from .constants import SCHOOL_OFF_LINE, SLOT_1500, ClosureReason, Outcome, RecordKind
 from .contracts.accounts import AccountPort, FillPort, LedgerEntry, SealedDecision
 from .contracts.clock import Clock
 from .contracts.dashcam import DashcamStore
@@ -51,6 +51,8 @@ class FakeFleet:
         code, session = road_day.road.code, road_day.session
         try:
             snapshot = self.snapshots.for_road(road_day)
+            if not all(q.sizes_measured for q in snapshot.quotes.values()):  # never traded on live (judge 506)
+                raise SnapshotUnavailable(ClosureReason.SIZES_NOT_MEASURED, "a quote with no measured size")
         except SnapshotUnavailable as closed:
             decision = Decision(driver.card.driver_id, code, session, Outcome.ROAD_CLOSED, closed.reason)
             return DecisionRecord(

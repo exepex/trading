@@ -103,6 +103,9 @@ class FakeAccounts:
         today = tuple(p for p in open_ if p.opened == session)
         return AccountView(driver_id, self.capital, cash, cash, max(cash, self.capital), 0.0, today, open_, None, None)
 
+    def entries(self, driver_id: str) -> tuple[LedgerEntry, ...]:
+        return tuple(self.ledgers.get(driver_id, ()))
+
     def record(self, driver_id: str, entry: LedgerEntry) -> None:
         ledger = self.ledgers.setdefault(driver_id, [])
         if entry not in ledger:
@@ -140,12 +143,16 @@ class FakeFills:
 
     @staticmethod
     def _fill(legs, lot, snapshot, file_sha256, seal, at, missing) -> FillResult:
+        """A live fill needs a measured displayed size (judge 506): an unmeasured quote refuses the entry by name, and
+        an exit on one waits, as on a missing quote."""
         if not seal.covers(file_sha256, at):
             return FillResult(refused=(RefusalReason.STALE_SEAL,))
         filled = []
         for leg in legs:
             quote = snapshot.quote(leg.key)
-            if quote is None or not quote.two_sided:
+            if quote is not None and not quote.sizes_measured and not isinstance(missing, ExitState):
+                return FillResult(refused=(RefusalReason.SIZE_NOT_MEASURED,))
+            if quote is None or not quote.two_sided or not quote.sizes_measured:
                 return FillResult(state=missing) if isinstance(missing, ExitState) else FillResult(refused=(missing,))
             price = quote.ask if leg.side == SIDE_BUY else quote.bid
             filled.append(FilledLeg(leg.key, leg.side, leg.lots * lot, price, 0.0))

@@ -56,6 +56,9 @@ class ClosureReason(StrEnum):
     EXPIRY_MISMATCH = "expiry_mismatch"
     LOT_MISMATCH = "lot_mismatch"
     IMPOSSIBLE_PRICE = "impossible_price"
+    SIZES_NOT_MEASURED = (
+        "sizes_not_measured"  # a live road whose capture holds a quote with no measured size (judge 506)
+    )
 
 
 class NoTradeReason(StrEnum):
@@ -88,6 +91,7 @@ class RefusalReason(StrEnum):
     PROTECTION_UNSELLABLE = "protection_unsellable"
     IMPOSSIBLE_LEG_PRICE = "impossible_leg_price"
     STALE_SEAL = "stale_seal"
+    SIZE_NOT_MEASURED = "size_not_measured"  # a live fill on a quote whose displayed size was never measured
 
 
 class UnavailableReason(StrEnum):
