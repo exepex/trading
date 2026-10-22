@@ -4,6 +4,7 @@ records which components a book runs on; it changes no rule and places no order.
 
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import date
 
@@ -12,12 +13,22 @@ from ..constants import BOOKS
 EXIT_REFUSED = 2
 
 
+def _book(text: str) -> str:
+    from .version_registry import is_known_book
+
+    if not is_known_book(text):
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is not one of {', '.join(BOOKS)} or a school:<driver code>@<version>"
+        )
+    return text
+
+
 def add_versions_parser(subparsers) -> None:
     versions = subparsers.add_parser("versions", help="the books' version registry (story D6)")
     actions = versions.add_subparsers(dest="versions_cmd", required=True)
     actions.add_parser("check", help="read journal/versions.csv and list each book's versions")
     register = actions.add_parser("register", help="append a version row (commit journal/versions.csv at once)")
-    register.add_argument("book", choices=BOOKS)
+    register.add_argument("book", type=_book)
     register.add_argument("version_id")
     register.add_argument("--starts-on", type=date.fromisoformat, required=True)
     register.add_argument("--components", required=True, help='JSON object, e.g. {"model": "...", "playbook": "..."}')

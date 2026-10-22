@@ -553,7 +553,14 @@ Round 1, built on a's tip 756e6545. Not finished: the D6 rows and the ledger row
 
 Broken-code proof: 3 mutations (own-commit rule, driver card SHA check, first counted session) each fail a named test.
 
-Open (need the orchestrator, asked 22 Oct): D6's `_row` refuses a book outside `BOOKS`, so a `school:<driver id>` row
-cannot be registered until D6 accepts that book id (a small lane-1 change outside this part); the part e card files do
-not exist yet, so no driver card SHA-256 can be written; the ledger row (trial 99) is written by `factory register`
-only when the orchestrator says. First counted session: unset by design (`school.first_counted`).
+D6 change (orchestrator-approved 22 Oct 2026, flagged for the judge: it touches D6's `fno/books/version_registry.py`,
+`fno/books/versions_cli.py`): `is_known_book` accepts the three books or `school:<driver code>@<version>`
+(`SCHOOL_BOOK_PREFIX` named at the top; `BOOKS` untouched). Tests `tests/versions/test_school_books.py`: a school id is
+accepted, a malformed one refused, the three books and the existing rows parse and render byte-identically, each
+school version has its own order. The existing 308 tests of `tests/versions`, `tests/school`, `tests/decisions` pass.
+
+Trial accounting (orchestrator, 22 Oct): one measurement card, one ledger trial, no Holm family; PS5 and KL1 point at
+their EDGE1 trials 94 (BANKNIFTY SF TP50) and 76 (NIFTY SC3 EXP), read from `research/ledger.csv`.
+
+Open: part e's card files do not exist yet, so no driver card SHA-256 or D6 row can be written; the ledger row
+(trial 99) is written by `factory register` when the orchestrator says. First counted session: unset by design.

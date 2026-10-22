@@ -42,7 +42,8 @@ before the decision's own commit; a changed driver card SHA-256 refuses counting
 | WS1@1 | weekly expiry seller | NIFTY-W | N0@1, RC1@1, REF@1 |
 | PS2@1, PS3@1, PS4@1 | width ladder, one family of three versions | the 4 monthlies | N0@1, RC1@1, REF@1 |
 
-PS5@1 and KL1@1 are measurement-only controls (EDGE1's rules as frozen), and N0, RC1 and REF are controls: none is a
+PS5@1 (EDGE1 BANKNIFTY SF TP50, ledger trial 94) and KL1@1 (EDGE1 NIFTY SC3 EXP, ledger trial 76) are measurement-only controls
+(EDGE1's rules as frozen, their data spent; this card adds no trial for them), and N0, RC1 and REF are controls: none is a
 candidate and none is ever ranked or recommended. Their card SHA-256s and the D6 rows are written when MS-P1e's cards
 are frozen; until the rows exist nothing counts (`version_not_registered_before`).
 
