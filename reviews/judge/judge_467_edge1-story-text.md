@@ -108,3 +108,36 @@ Plus the traded-close rule for SL2 and TP50, and the proxy share in the report.
 - each day's own lot;
 - missing series named and never filled;
 - BANKNIFTY's monthly pick checked, and NSE's figures checked before any result.
+
+## Addendum 2: revision 3 at 28c35558 (number 467.2, claimed with `tools/claim_number.py`)
+
+**FAIL. One narrow should-fix is left, from should-fix 2.**
+
+### What is now met
+- **Should-fix 1.** Option (a), with my facts written in as a second reason for "exploratory": 0.624 in 2024, 0.927 in
+  2025-26, and G13b's yearly scores read. Q2 now asks the owner to accept screen-and-nominate.
+- **Should-fix 2, mostly.**
+  - Entry only when every leg traded (volume > 0).
+  - SL2 and TP50 checked only on days when every leg traded.
+  - Trades not taken are counted by reason.
+  - The proxy share and all trades are shown beside the traded-only figures.
+- **All five notes**, plus the R1 owner's and A14c owner's precisions: the bad-price test is strictly inside, so a
+  credit of 0 or of the full width is skipped.
+
+### Remaining should-fix: the exit rule is ambiguous, and dropping trades with no fully traded exit can flatter the screen
+
+The text says a trade is "closed only at a close where every leg traded. If no leg-complete close exists by the exit
+day, the trade is recorded at the exit day with its proxies flagged, and it is left out of the pass and nomination
+figures."
+
+1. **"By the exit day" does not say which close is used.** Is it the last fully traded close on or before the planned
+   exit day? Picking an earlier day after seeing the exit day is a hindsight choice. Is it the planned exit day only?
+   Write the exact rule.
+2. **Leaving those trades out biases a short-premium screen upward.** It is the normal case, not a rare one: in a big
+   move the far wing often stops trading, so a losing condor or fly is the trade most likely to have no fully traded
+   exit, and so the one most likely to be dropped.
+
+**Fix.** Define the exit close exactly; the planned exit day's close is the simplest. Then:
+- the nomination rule also requires run 2's mean net to be positive on **all** trades, with proxies included, as well
+  as on the traded-only set, at both pad levels;
+- report how many trades each variant drops for an incomplete exit, and their mean proxy P&L.
