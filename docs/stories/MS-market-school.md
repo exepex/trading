@@ -301,7 +301,8 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
   indices; `fno/desk/settlement.py` is reused, not edited.
 
 **Acceptance tests:**
-1. Each law passes at its limit and refuses at limit + Rs 1.
+1. Each law passes at its limit and refuses at limit + Rs 1; the daily stop and the brake refuse when the loss reaches
+   their limit (3.3: "reaches", "falls ... below"; section 6 item 9), so they pass at limit - Rs 1 and refuse at it.
 2. No law changes a proposal (test over all laws).
 3. Daily stop:
    - entries are refused after Rs 25,000 of loss;
@@ -469,7 +470,17 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - order: roads, gate, drivers, laws, seal, fills, exits, tickets, counts;
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
-- a rerun skips sealed decisions.
+- a rerun skips sealed decisions;
+- MS-P1d limit 2 (orchestrator, 22 Oct 2026): a driver account's shared displayed size (E4d) counts its entries
+  at the snapshot, not its exits of older positions there (`AccountView` cannot show them). Exits therefore run after
+  the slot's entries, as the order above has it: an exit that then finds too little size waits
+  (`exit_waiting_quote`), and an entry never counts on size an exit will take.
+- judge 486's note (orchestrator, 22 Oct 2026): expiry settlement runs before the session's first account `view`. An
+  expired position has no mark in the next capture, so a view taken before its settlement counts it at minus its
+  maximum loss, and that can trip the daily stop.
+- settlement's store (orchestrator, 22 Oct 2026): once MS-P1b and MS-P1d are both on `main`, j's composition root
+  builds d's settlement source on b's `build_archive_stores` (the service account's Drive, else the owner's, else
+  `RawFilesNotConfigured`); d's own `SettlementStoresNotConfigured` stays until then.
 
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
@@ -518,6 +529,28 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 5. **Monthly review:** a recorded row in `research/school/reviews/`, written by the orchestrator session on or after
    the first Saturday of the next month. No row, no lift. The owner restarts nothing.
 6. **Thin roads:** a closed thin road is an honest result.
+
+**MS-P1d's questions (orchestrator, 22 Oct 2026, to builder session_014VUoPfMfRWNXyJSnXxB5NL):**
+
+7. **Margin room (law 3), revised by the orchestrator the same day:** C2's margins file holds NIFTY rows only (SF, SC,
+   BF, widths 100-300). Where every position of the check (the proposal and each held one) has a sourced row, C2's
+   `MarginRoom` runs and fails closed (a stale row refuses). Where any position has no usable row, law 3 **refuses**
+   (`margin_room`, note "margin not checked: no data"), never inventing a margin: design 6.1a, no usable margin, no new
+   entry. The first answer (pass labelled) was withdrawn because it weakened an agreed safety law. The fix is data:
+   school margin rows for BANKNIFTY, FINNIFTY, MIDCPNIFTY and the missing structures and widths, a separate piece
+   opened by the orchestrator. Until it lands, those roads' entries are refused by law 3.
+8. **Bucket groups:** {NIFTY}, {BANKNIFTY, FINNIFTY}, {MIDCPNIFTY}: FINNIFTY's largest weights are BANKNIFTY's banks,
+   so one shock hits both [some evidence: index composition]. Kept as data in the school's `BucketMap`.
+9. **Boundaries:** the daily stop and the brake refuse when the loss reaches their limit (>=); every other law passes
+   at its limit and refuses beyond it. Tests pin both.
+10. **Account storage:** `PaperAccount(<repo>/journal/school, "shadow:school-<code>-v<version>")`, mirrored through
+    E2c's `PrivateFiles` under its repository path (outside the desk's `journal/shadow/`, which the desk's marking and
+    scorecards read). The one shared-file line is `.gitignore`'s `journal/school/`.
+11. **Brake lift rows:** `research/school/reviews/brake_lifts.csv`, columns `reviewed_on, driver_id, review_ref`,
+    written by the orchestrator. A row dated strictly before a session lifts the brake from that session and restarts
+    the equity high.
+12. **Maximum loss (law 2):** the largest of the proposal's own figure, C2's at the mids and B2's at the touch with
+    the Rs 1 pad, refused above Rs 10,000. **Law 1** refuses legs on two expiries (no calendar model).
 
 ## Claims
 
@@ -726,3 +759,86 @@ alert text, the `page_wiring` call, the flag check, the controls' lines) each fa
 - **Plants:** 7 planted, 7 caught.
 - **Change for b:** `check_road_catalogue` now needs `strike_steps` for every recorded expiry on every open road.
 - **Records:** neither layout nor bytes change.
+### MS-P1d Claims (round 1, branch `story/ms-p1-fills`; the SHA is in the commit that carries this text)
+**Merged a's round 2 (32fdbdde):** school `SIDE_BUY`/`SIDE_SELL` from `fno.school.constants`; `LawResult.note` carries
+the margin label; `FillResult.cash` replaces the test's own cash sum (the school code had none of its own: E1's
+ledger moves cash); no `TicketReason` is used here; every law's refusal reason falls in exactly one of a's
+`ACCOUNT_LIMITS` (bucket, open risk, new risk, margin room), `DRIVER_STOPS` (daily stop, brake) and `TRADE_VALIDITY`
+(the rest).
+Builder session_014VUoPfMfRWNXyJSnXxB5NL. Based on `story/ms-p1-contracts` at 756e6545. Built against a's contracts
+and conformance checks only, with no second version of any type. Nothing in fno/desk, fno/books, fno/risk,
+fno/checks or fno/costs.py is edited. The one shared line is `.gitignore`'s `journal/school/` (section 6 item 10).
+| # | Criterion | Code | Test (broken-code proof: the plant it catches) |
+| 1 | Each law passes at its limit and refuses at limit + Rs 1. The stop and the brake refuse at reaching the limit (section 6 item 9) | `safety/*_laws.py`, `margin_law.py` | `safety/test_limits.py` (plants: stop `<=`, brake `>`, impossible bound not strict, touch loss ignored); caps and margin room tested at their own computed totals |
+| 2 | No law changes a proposal | `safety/law_set.py` | `test_laws.py::test_no_law_changes_a_proposal`, over all 13 laws. **Honest note:** this is guaranteed by the frozen types, so the test cannot fail by construction. It pins that guarantee; it does not prove anything beyond it |
+| 3 | Daily stop: entries refused after Rs 25,000 of loss; an exit never refused; a risk-reducing close needs valid two-sided quotes | `account_laws.DailyStopLaw`, `accounts/school_accounts.py`, `execution/school_fills.exit` | `test_laws.py::test_the_daily_stop_refuses_entries_after_a_real_loss_but_never_an_exit` (real account, real loss); `test_accounts::test_the_loss_since_the_previous_slot` (plant: loss zero) |
+| 4 | Brake: pauses at Rs 1.2 lakh below the high; holds across sessions; lifts only on a `research/school/reviews/` row; exits continue | `accounts/brake.py`, `reviews.py`, `account_laws.BrakeLaw` | `accounts/test_brake_state.py`, `test_laws.py::test_the_brake_*`, `test_exits_continue_under_the_brake` (plants: latch ignored, stale rows engage, pre-fall review lifts, same-day row lifts, high reset from an unmarked row) |
+| 5 | Quote gate: missing or one-sided quote, size above the displayed size (E4d, per account), protection not sellable back | `execution/entry_gate.py` (E4c/E4d's `entry_problems` as the authority), `safety/quote_laws.py` | `test_laws.py::test_the_quote_gate_*`, `test_the_size_this_account_already_took_here_counts` (plants: taken ignored, taken from other roads or sessions) |
+| 6 | A fill without a valid seal is refused | `school_fills._sealed_in_time` | `test_fills.py::test_no_valid_seal_no_fill`, `test_a_seal_or_fill_after_the_session_s_close_is_stale` (plants: seal check removed, late seal fills) |
+| 7 | Entries fill at the decision snapshot's touch or not at all, never partial; a missing quote gives `refused: missing_quote` | `school_fills.enter` (E4's `price_leg`, `FillMaker`, C1's charges) | `test_fills.py` (plants: touch swapped, gate ignored) |
+| 8 | An exit with a missing quote waits (`exit_waiting_quote`), never at a guessed price | `school_fills.exit` (`closing_quotes`, all legs or none) | `test_an_exit_with_any_leg_unquotable_waits_and_fills_nothing` (plant: partial closes) |
+| 9 | Settlement at intrinsic against each index's `SttlmPric`; a missing file gives `settlement_needed` | `execution/settlement_fills.py`, `settlement_source.py` (E7's `NseFinalSettlement` unedited; `ArchivedOnly`: stores only, never a new NSE read) | `test_settlement.py`, run on a 4-index fixture built from NSE's real 25 Jan 2024 file (plants: settles at zero, `settlement_needed` dropped, no-file not refused) |
+| 10 | NIFTY drift: a leg absent from the 15:15 capture gives `drift_unknown` | `execution/drift.py`, `capture_1515.py` | `test_drift.py` (plant: unknown becomes 0.0) |
+| 11 | Conformance for each port | all | `check_fill_port`, `check_fill_port_missing_quote`, `check_account_port`, `check_settlement_source`, and `check_safety_law` for every law, including margin room |
+**Orchestrator's answers (section 6, items 7-12), built:**
+- Margin room refuses where any position has no usable row, with `LawResult.note` = `MARGIN_NOT_CHECKED` (`margin_law.py`, `margin_not_checked(result)`); C2 refuses a stale row, a missing or a malformed file itself.
+- NIFTY's rows are never used for another index.
+- A stale row, a missing file or a malformed file refuses.
+- FINNIFTY shares BANKNIFTY's bucket.
+- The stop and the brake act at the limit (>=).
+- Accounts are in `journal/school/`, with brake lifts in `research/school/reviews/brake_lifts.csv`.
+- Law 2 takes the largest of the three maximum losses.
+- Law 1 refuses legs that span two expiries.
+**Gates on this tree:**
+- Full `pytest -n auto` on the final tree: 10,486 passed, 16 xfailed.
+- `ruff check` and `ruff format --check` (fno, tests, tools), `check_imports` (2,095 files) and `check_records` (8,136 files) are clean.
+- No file is over 350 lines; the largest is 128.
+**Plants:** 37 planted and 37 caught (after the merge with a and the revised margin rule). The script is in the builder's scratchpad; each plant was restored after its run. One plant first survived ("brake high reset from an unmarked row"); its test was made sharper.
+**Self-review** (one independent review agent, on the uncommitted tree): 3 blocking, 5 should-fix and 7 minor findings, each checked by me.
+- Fixed:
+  - B1: NIFTY margin rows were applied to other indices. Fixed by `margin_law.py`.
+  - B2: a late seal could fill at an old touch. A seal or fill after the session's 15:30 close is now `stale_seal`.
+  - B3: a crash part way through a close was not seen. The ledger and the position records are now compared unit for unit.
+  - S4: a view of an earlier session used later data. It is now refused.
+  - S5: duplicate contract legs could over-fill. They are refused in `enter`, in the ledger and by C2's proposal; C2 units are now summed.
+  - S7: a close of a position never opened, or a reused ID, was accepted. Both are refused before any fill.
+  - M11: the brake high was reset from an unmarked row. Fixed.
+  - M15: the docstring path was wrong. Fixed.
+- Accepted as known limits (reported to the orchestrator):
+  - S6: E4d per account counts this account's entries at the snapshot, not its exits of older positions there. The fill port's own `enter` checks size without the account (`FillPort.enter` has no account). The fleet (j) must take a new `view` after each `record` before the next proposal's laws.
+  - S8: a held NIFTY position with margin rows but no mark makes margin room refuse.
+  - M10: the bucket, open-risk and new-risk caps add C2's maximum loss at the mids, as the desk does, while law 2 also checks the touch.
+  - M12: `one_sided_quote` names every A4 problem (crossed, no size, no trade today). A finer code would be a change to a.
+  - M14: a gate disagreement between E4c and the school raises rather than refusing (a bug signal), so j's isolation seals it as `unavailable`.
+  - E2c's pull overwrites local files (inherited, unchanged).
+- Ruled: M9 (the stop and brake boundary) is section 6 item 9.
+**Privacy change for the judge (separate commit, orchestrator's request):** `fno/record_scan/forbidden_files.py` adds
+`journal/school/` to `PAPER_ACCOUNT_FILES`, so a forced `git add -f` of a school account file is refused by the
+public-record scan. The desk's two patterns are unchanged. Tests: `tests/record_scan/test_school_account_files.py`
+(plant: the pattern removed, 5 tests fail).
+**Known limits (reasoning only):**
+- The daily stop compares this slot with the previous session's row, which was taken before its fills. It therefore also counts that slot's entry costs, so it acts sooner.
+- An unmarkable position counts at its maximum loss for the stop, but never engages the brake.
+- **Until the margin-data piece lands, law 3 refuses every BANKNIFTY, FINNIFTY and MIDCPNIFTY entry, and every NIFTY
+  structure or width without a row** (all PCS, CCS, CDS and PDS today). The pilot cannot trade those until then.
+**Real output sample:** none from a recorded day. A real snapshot needs b's `SnapshotSource` and j's fleet, and neither exists on this branch. On the fixture snapshot, a 1-lot BANKNIFTY bull put spread passes 12 of the 13 laws and is refused by margin room (no BANKNIFTY margin rows, noted "margin not checked: no data"). It fills at a bid of 10 and an ask of 5 (30 units each) with C1's charges, and its maximum loss at the touch is above the figure at the mids (`test_max_loss_counts_the_touch_the_fill_pays_not_only_the_mid`).
+### MS-P1d Claims, round 2 (judge 486 by Judge I: FAIL in round 1, 2 should-fixes and 1 minor; Judge B's findings follow)
+| Judge 486 finding | Fix | Test (and the plant it catches) |
+| 1. Any review row lifted the brake | "Pause till monthly review": a row dated from the engagement up to the day before the first Saturday of the next month is a `ReviewFileError`, never a lift (`accounts/brake.py`, `first_review_day`) | `test_brake_state.py::test_a_row_before_the_monthly_review_is_an_error_never_a_lift` (engaged 3 Nov: 4 Dec and 3 Nov refused, 5 Dec lifts), `test_the_review_is_the_first_saturday_of_the_next_month` (year end included), and the account view raising on an early row. Plant: the check removed |
+| 2. No store meant settlement waited for ever, with no alert | `execution/wiring.py`: no store raises `SettlementStoresNotConfigured`, by name. To avoid a second version, b's `build_archive_stores` (the owner's Drive as a fallback) replaces this check once MS-P1b merges | `test_settlement.py::test_settlement_with_no_store_stops_by_name_never_waits_forever`. Plant: the check removed |
+| Minor: no test of the charges cross-check | none needed | `test_school_accounts.py::test_a_leg_whose_charges_differ_from_c1_s_is_refused_before_any_write`. Plant: the check removed |
+- **MS-P1j note:** settlement runs before the session's first `view` (added under MS-P1j).
+- **Plants:** 41 planted, 41 caught (with the per-vertical plant below).
+**Judge 488 (Judge B, PASS in round 1 at 96704ef8) notes, built at the orchestrator's request:**
+| Note | Change | Test (and the plant it catches) |
+| The impossible-price check must test each vertical, not only the total | `safety/quote_laws.py`: each bought-sold pair of one type and expiry is checked (on its quoted range since the owner's decision below; first at the mids). The total at the touch stays strict | `test_limits.py::test_a_stale_vertical_never_hides_behind_another_in_the_total` (a condor whose call vertical is worth -3 at the mids, while the total sits inside its bounds) and `test_a_vertical_worth_zero_passes_and_less_than_zero_refuses` (boundary). Plant: the vertical check removed |
+| Acceptance 1's wording | Criterion 1 in this story now says the stop and the brake refuse at their limit | no code change |
+- **MS-P1j note:** j switches d's settlement store to b's `build_archive_stores` once both parts are on main.
+- **Owner's decision (22 Oct 2026, relayed by the orchestrator) between judge 486 addendum 1 (Judge I) and judge 488.1
+  (Judge B): "ranges".** A vertical is impossible only when the dearer leg's ask less the cheaper leg's bid is below 0,
+  or the dearer leg's bid less the cheaper leg's ask is above the width: the same meaning of impossible as b's gate.
+  The mid rule of 9ed80bc7 is replaced, and B's 488.1 test (mid above the width, touch inside) is withdrawn, since that
+  data is valid under ranges and the touch check still governs the fill. Tests in `test_limits.py`:
+  `test_a_stale_vertical_never_hides_behind_another_in_the_total` (B's condor, refused at -2 on ranges),
+  `test_a_vertical_whose_range_overlaps_its_payoff_is_valid` (I's condor: 1.5/2.5 against 1.0/4.0, not refused), and
+  one boundary test for each bound. Plants: each bound dropped in turn, both caught.
