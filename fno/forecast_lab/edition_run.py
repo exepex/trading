@@ -104,7 +104,7 @@ class EditionRun:
             written = self.composer.compose(day, self.clock())
             self.records.write_report(day, written)
         if not posted and self._too_late():  # making it took time: the open may have come meanwhile
-            return self._late(day, alerted)
+            return self._late(day, alerted, written.alerts)
         lines, problem = [REPORT_ALREADY.format(name=self.name, day=day)], None
         if not posted:
             lines, problem = self._post(day, written)
@@ -116,12 +116,14 @@ class EditionRun:
         cutoff = self.edition.post_before
         return cutoff is not None and self.clock().time() >= cutoff
 
-    def _late(self, day: date, alerted: bool) -> LabResult:
+    def _late(self, day: date, alerted: bool, report_alerts: tuple[str, ...] = ()) -> LabResult:
+        """Not posted after the cutoff: the late alert, with the report's own alerts when it was made (a CORRECTION
+        is never dropped because the morning ran late: judge 444.1)."""
         now = self.clock()
         lines = [TOO_LATE.format(name=self.name, day=day, now=now)]
         if alerted:
             return LabResult(lines + [ALERTS_ALREADY.format(name=self.name, day=day)], True)
-        return LabResult(lines + self._alert(day, (LATE_ALERT.format(now=now),)), True)
+        return LabResult(lines + self._alert(day, (*report_alerts, LATE_ALERT.format(now=now))), True)
 
     def _post(self, day: date, written: WrittenReport) -> tuple[list[str], str | None]:
         """(the lines, the failure to alert, or None when it was posted)."""

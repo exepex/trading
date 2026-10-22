@@ -5,17 +5,24 @@ signed off) and headless Chromium for the picture."""
 
 from __future__ import annotations
 
+import functools
 from datetime import date
 
 from ..config import ROOT
+from ..constants import NIFTY_SYMBOL
 from ..research_data.calendar import SessionCalendar
 from .g13b_history import G13bHistory
 from .maker import ReportMaker
 from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
+from .page.cues import Section
 from .page.facts import RepositoryFacts
 from .page.render import InterimRenderer
 from .ranges import NoTodayCloses, Outcomes, RangeSource
+from .sections.gift import GiftSection
+from .sections.global_cues import SPECS, GlobalCueSection
+from .sections.india import FlagsSection, VixSection
+from .sections.levels import Levels
 from .sessions import RegularSessions
 
 PICTURE_WIDTH = 600  # CSS pixels: the picture page's own width, so a phone does not shrink it to unreadable
@@ -34,9 +41,42 @@ def flows_reader(calendar: SessionCalendar):
     return flows
 
 
+PARTICIPANT_OI = "participant-oi"
+
+
+def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: Outcomes) -> tuple[Section, ...]:
+    """The cues' Sections, one source each: A17's overnight cues (read only), India VIX from NSE's archived file, the
+    day's flags, and GIFT Nifty (A22b's early file). A new source is one class and one line here."""
+    from ..global_cues.as_of import OPEN
+    from ..global_cues.wiring import build_reader
+    from ..storage.data_wiring import build_drive_cache
+    from ..storage.wiring import build_index_close_files
+
+    reader, known = functools.cache(build_reader), functools.cache(facts.facts)
+    return (
+        *(GlobalCueSection(reader, spec, OPEN) for spec in SPECS),
+        VixSection(build_index_close_files(), sessions.previous, lambda day: known(day).vix),
+        FlagsSection(known),
+        GiftSection(build_drive_cache(), lambda day: official.close(NIFTY_SYMBOL, sessions.previous(day))),
+    )
+
+
+def build_levels(calendar: SessionCalendar, sessions: RegularSessions) -> Levels:
+    """The evening's levels and flows: NSE's F&O files and A8's participant OI through the raw-file libraries (stores
+    first, then NSE), P8's flows archive; all read-only here (the evening routine archives them first)."""
+    from ..storage.raw_source import ParticipantOiSource
+    from ..storage.wiring import build_nifty_panel_files, build_participant_oi_library, daily_files
+
+    fo_files, _ = build_nifty_panel_files()
+    participant = daily_files(PARTICIPANT_OI, ParticipantOiSource, build_participant_oi_library())
+    return Levels(fo_files, participant, flows_reader(calendar), sessions.previous)
+
+
 def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar,
                        official: Outcomes) -> ReportMaker:  # fmt: skip
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
-    pages = PageBuilder(ranges, G13bHistory(forecasts, scores), RepositoryFacts(ROOT, flows_reader(calendar)),
-                        RegularSessions(calendar), official=official, today_closes=NoTodayCloses())  # fmt: skip
+    facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
+    pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official,
+                        today_closes=NoTodayCloses(), sections=build_sections(facts, sessions, official),
+                        levels=build_levels(calendar, sessions))  # fmt: skip
     return ReportMaker(pages, InterimRenderer(), ChromiumCamera(width=PICTURE_WIDTH))

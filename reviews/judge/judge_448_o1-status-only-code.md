@@ -47,3 +47,34 @@ expecting no match) would pin the end-anchoring.
    accepts digits only. No producer writes a bare digit string. Requiring at least one `a-f` letter would refuse a real
    short hash about 4% of the time, so leave it and note it.
 3. The known limit stays: two-digit tokens beside letters (`VIX15`) pass.
+
+## Addendum 1: head 119d3e2e (the notes fixed)
+**Verdict: PASS; it may merge after the full gates pass on the exact pushed tree.**
+
+The fixes:
+- **Keys are judged.** A key stays if it is a field name or in the vocabulary; any other key becomes
+  `unlisted:<position>`. I checked: `{"NIFTY26OCT25000CE": true}` gives `{"unlisted:0": true}`.
+- **Digits alone are never a hash.** The hash pattern needs one a-f letter.
+- **Whole-text match tested.** A new test appends text to every template that ends in a literal.
+
+**Planted mutations, all three caught now:**
+- keys unfiltered: 1 failed;
+- the digit-only hash: 1 failed;
+- `match` instead of `fullmatch`: 1 failed (the survivor of the first round is now caught).
+
+**Gates on a trial merge with main:** 9300 passed, 16 xfailed, 0 failed.
+
+**Note (not should-fix; no producer writes such a key):** `FIELD_NAME` (`[a-z][a-z0-9_]*`) has no digit-run rule, so
+a lower-case key such as `nifty26oct25000ce` or `rs12345` still stays as a key. Only the value under it is filtered
+(an int there becomes None). For consistency with the identifier rule, add `(?!.*\d{3})` to `FIELD_NAME` next time
+the file is touched. Real field names (`sha256`, `marked_contracts`) have no run of 3 digits.
+
+## Addendum 2: my FIELD_NAME note corrected; the merge vehicle
+**My addendum 1 note was wrong as written:** `(?!.*\d{3})` on `FIELD_NAME` would rename `sha256`, a real key in the
+pack and snapshot results. **I accept the builder's form for the next touch:** the 3-digit rule, plus an exact
+allow-list of field names that carry digits (today only `sha256`), imported from where the desk writes it. Any other key
+with a run of 3 digits becomes `unlisted:<n>`.
+
+**The merge vehicle `story/o1-status-only-keys` at c532d57f** is 119d3e2e's commit cherry-picked onto main 5f227d0d
+(6e5f4330 is already on main). Its `fno/`, `tests/` and `.gitignore` are byte-identical to 119d3e2e, which addendum 1
+passed. It may merge after the full gates pass on the exact pushed tree.
