@@ -1,0 +1,40 @@
+# Judge 499: A16h story text, a read-only probe of Groww's websocket feed
+
+**Scope:** story/a16h-feed-probe at 2385ac62 (A16 builder session 01VK88LxJvV1Gi7Wbr3D4fzp), the story text only:
+`docs/stories/A16-intraday-quote-recorder.md` section A16h and its register row. Judge I. Lane 1 (an outside service,
+Groww), text first. Round 1 of 2.
+
+**Verdict: FAIL.** 2 should-fixes, 2 minors. The design and the read-only guard are right; two windows put A16's own
+marks, and with them the forecasts, at risk.
+
+## Checked against the sources
+| Point | Result | Evidence |
+|---|---|---|
+| The owner's decision | MET | DESK_DECISIONS 23 Oct, "Live data: test the Groww feed first"; research note `research/school/probes/2026-10-23-live-data-feeds.md`: buy nothing, a probe from Tue 27 Oct, never on 23 or 26 Oct |
+| The allow-list matches the SDK | MET | the installed `growwapi.GrowwFeed` has exactly 20 public names: the 11 the text allows plus the 9 account-reading names it refuses. `__init__(self, groww_api: GrowwAPI)` takes the trading client, so building it only in the composition root is right |
+| The pattern to reuse | MET | `fno/intraday/read_only.py` `ReadOnlyGroww` (a `__getattr__` allow-list, frozen `__setattr__`) |
+| The orchestrator's two conditions | MET | `alongside` is capped at 1,000 and stops on any 429; the account names are named in a test (criterion 1) |
+| No values, no schedule | MET | counts and times only; the note is written by hand; no schedule or workflow |
+
+## Findings
+1. **Should-fix: the `ramp` window sits on A16's 11:15 mark, while the text expects throttling.**
+   - A16 marks every 15 minutes (A16 story line 141). A mark with no usable level voids that session's RV (line 201), the input of v4 and G14's forecasts.
+   - The text's own known limit says a ramp to 3,000 "may draw throttling on Groww's side". On one shared key, that can cost the 11:15 mark, and so the day.
+   - Fix expected, either:
+     - ramp outside market hours, if a subscription refusal can be seen then (the text says how that is judged); or
+     - ramp between two marks with a hard stop at least 2 minutes before the next one (e.g. 11:16-11:28), also stopping at once on any 429.
+2. **Should-fix: `alongside` needs a go/no-go gate set by that day's morning evidence.**
+   - Its 429 stop sees only the probe's own calls; the recorders' failures are invisible to it.
+   - Its sign-in shares the recorders' key. Coexistence was seen only outside market hours (15 Oct).
+   - A lost 3 pm capture costs a session of the desk, the school's five roads and G13.
+   - Fix expected:
+     - run `alongside` only if the same day's `coverage` run (which overlaps A16's 10:30 mark on purpose) left that mark and the 10:45 mark clean: no 429, nothing missing;
+     - the probe signs in before 14:50 and never during 14:55-15:13;
+     - a missed condition means no `alongside` that day, written in the note.
+
+**Minor:**
+- (a) `dir(GrowwFeed)` has no `place_`, `modify_`, `cancel_` or `create_` name today, so criterion 1's test of them is empty. It should also try such names itself (e.g. `place_order`).
+- (b) The probe note should give coverage by class (index × expiry × option type: subscribed, ticked), not a per-strike list.
+
+## Notes
+- The terms question (whether Groww allows read-only use) stays open by the owner's choice (22 Oct). The text says so.
