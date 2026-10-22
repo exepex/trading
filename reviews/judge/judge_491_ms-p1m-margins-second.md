@@ -53,3 +53,41 @@ import, which counts as caught.
   only. Both accepted as stated.
 - MS-P1d must build every school proposal and open trade through `road_proposal` and `road_open_trade`. That is d's
   acceptance test, not checked here.
+
+## Addendum 1
+
+**Scope:** round 2 of 2 at 0c0447f8 (commits 868ce478 and 1021ccb8; the rest of the range is main merged in). I did
+not read the first judge's verdict.
+
+**Verdict: PASS.** No blocking and no should-fix findings; 1 minor. The orchestrator chose option (a) for the
+should-fix.
+
+- **Should-fix 1, accepted (fixed).** `ExpiryDayIndexExposure` adds SEBI 2024/132 para 5.6's 2% to each short index
+  option on its own expiry day, from 20 Nov 2024; P0 probe 4 had already checked the circular and NCL/CMPT/64639. It
+  is wired only into the school's root; A14's job keeps `NseIndexOptionExposure` (my plant on the calculator is
+  caught).
+  - **Real data (my run):** the archived 13 Oct file through `build_road_margin`, NIFTY weekly SF 100 expiring that
+    day. Exposure is 1,16,289.42 a lot, equal to my own 4% x 22,363.35 x 2 shorts x 65; scan 2,016.95 and NOV
+    -4,936.75.
+  - **Tests:** hand-worked 104,000 (2% + 2%) and 64,675 (3% + 2%); any other day unchanged; before 20 Nov 2024 or
+    after expiry still refuses; an account holding an expiring trade enters another road under C2's own room. Every
+    record carries `expiry_day_extra_elm`.
+- **Minors 1-3, accepted.** `nov_per_lot_rs`, the unset factor file and the manifest wrap are each tested, and my
+  three plants on them are caught.
+- **Gap measure (changed by the first judge's note):** my rerun gives 14,800 comparisons, none skipped. Every cell
+  equals the story's table, including the moved FINNIFTY row; the lowest ratio stays 0.76.
+- **Gates (my run):** pytest -n auto: 11,018 passed, 1 skipped (part d's test, by design), 16 xfailed. ruff check and
+  format, `check_imports` and `check_records` are clean. Largest file 240 lines.
+- **Plants:** 15 on round 2, 14 caught.
+
+**Minor:**
+- (a) The claims list "the wiring on A14's rule" among the plants caught. At 0c0447f8 it survives: `road_wiring`
+  building the source with `NseIndexOptionExposure` passes all 188 tests in `tests/nse_margins`. No test asserts that
+  the real root uses the expiry-day rule. The wiring itself is right (my real-wiring probe above). Add one assertion
+  on `build_road_margin(...).source.exposure`, or one expiry-day figure through it, with the merge.
+
+**Note for the orchestrator (not m's file):** the frozen comparison card `research/school/CARD_P1.md` §6 still says
+"the expiry-day ELM is not modelled": a holder "gets a `margin_room` refusal on every new entry that day", and the fix
+"belongs to P2". `test_the_card_freezes_the_pieces_judge_480_named` pins that text. Once m merges, the card describes
+a limit that no longer exists. The card's own rule makes a change a new card version, so this needs your decision
+before counting starts.

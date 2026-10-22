@@ -56,3 +56,30 @@ claims in response 328. Lane 1, money piece: first of two independent judges (ju
   apart. Such widths fall into the 760 "not listed", so the table is right on what it measured, not on every width.
 - **Not reproduced.** I did not reproduce the claims' real-file checks (NIFTY SF 100 equal to `margins.csv`, and
   four hand-worked spreads). Judge J may.
+
+## Addendum 1
+
+**Scope:** story/ms-p1m-margin-rows at 0c0447f8, round 2 of 2 (first judge, independent of judge J).
+- My should-fix: wrong-leg-sold tests for each spread, put-wing-only tests for SF, SC and BF.
+- My note: the gap script now reads each expiry's own strike step.
+- Judge J's finding: the expiry-day ELM is now priced (`ExpiryDayIndexExposure`) instead of refused. Being new
+  pricing, I judged it too.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 11018 passed, 1 skipped, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The should-fix is met.** All four round-1 survivors are now caught: PDS, CDS and CCS orientation, and the put
+  wing alone off-width. All 15 of my round-1 plants are caught.
+- **Expiry-day ELM.** On its own expiry day (from 20 Nov 2024), a short index option carries its usual 2% (3% beyond
+  10% out of the money) plus 2% of the index (SEBI/HO/MRD/TPD-1/P/CIR/2024/132 para 5.6, effective 20 Nov 2024, as
+  cited). Bought legs carry none. Any other day uses A14's rule unchanged. An earlier expiry day, or a day after
+  expiry, is still refused. Each trade record names the extra.
+  - **4 new plants, 4 caught:** no extra; the extra before 20 Nov 2024; the extra on bought legs; the extra not
+    recorded.
+- **The gap measure, re-run by me through Drive.** 14,800 comparisons, "not measured: none". Only the FINNIFTY-M row
+  changes: SC 75% below, min 0.82; PCS 97%, 0.85; CCS 94%, 0.88; CDS 5%, 0.87; PDS 10%, 0.87. All 25 cells equal the
+  story's revised table, and the lowest ratio stays 0.76.
+
+**Still open from round 1, for the orchestrator (not this story's):** MS-P1d must build every school proposal and
+open trade through `road_proposal`/`road_open_trade` and use `ArchivedSpanMargin` before any non-NIFTY trade is
+possible.

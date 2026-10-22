@@ -354,21 +354,50 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 **Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or refused only by an account limit
-  (ACCOUNT_LIMITS; a driver stopped for the day or braked gets no tickets, DRIVER_STOPS), priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
-  with only the account limits relaxed;
-- the `OpportunityCounts` builder (eligible, fillable, executed);
-- the shared-displayed-size count (327 item 10).
+- `classify(fired, check, max_new)` (`rules.py`): one driver's fired decisions at one slot, in rank order (frozen
+  score, ties by the fixed road order).
+  - Each is checked by the same safety laws through `check(decision, accepted)`. `accepted` holds the trades already
+    taken this slot, so the bucket, open-risk, new-risk and margin laws see them before any fill; MS-P1j builds that
+    running view.
+  - The first `max_new` that pass every law trade.
+  - A later one that passes is `ticket: trade_limit`.
+  - One refused only by `ACCOUNT_LIMITS` is `ticket: account_limit` (orchestrator, 22 Oct 2026).
+  - Any other refusal, the daily stop and the brake included, is `refused`. A stopped or braked driver issues no
+    tickets that day.
+  - The reason a refusal records: a stop first, then a trade-validity law; an account limit only when account limits
+    alone refused (judge 490).
+  - No law results at all raise, in `classify`, `TicketBook.enter` and `counts_for`: a wiring fault never passes.
+  - Only trades enter `accepted`: a ticket never takes a place or adds risk to the running view.
+- `TicketBook` (`book.py`):
+  - it takes the ticket's sealed `DecisionRecord` and refuses on a binding law (anything but `ACCOUNT_LIMITS`) in that
+    record's own `law_results`, never results passed beside it (judge 490);
+  - it fills through the same `FillPort` as trades;
+  - it records only in a `TicketLedger`, its own type over an account store on its own root, never a driver's
+    account.
+- `counts_for` and `totals` (`counts.py`): eligible, fillable and executed per decision; `scheduled` (every sealed
+  decision) is the denominator; one row per (session, road, driver).
+- `allocate` (`shared_size.py`, 327 item 10; orchestrator's rulings on judge 481): whole fills are served against each
+  contract's and side's displayed size at one road's snapshot.
+  - Account fills are served first; tickets get only what is left.
+  - Within each group, owners are ordered by a seed from SHA-256(session, slot, road), so no name biases the
+    comparison. The seed and the order are recorded.
+  - `fill_status` marks an account entry the size could not serve `unavailable: size_shared`; it stays in every
+    denominator (`counts_for(..., size_shared=True)`: fillable, not executed).
+  - `UnavailableReason.SIZE_SHARED` is added to a's constants, additively.
+- `account_net` (`rupees.py`): the only rupee sum. It leaves out tickets and every account outcome whose entry or exit
+  was unservable, keyed by (driver, fill), and names those positions.
 
 **Acceptance tests:**
 1. Tickets:
-   - the same quotes and laws as trades;
+   - the same quotes and laws as trades, with only the account limits relaxed (`test_rules.py`, `test_book.py`);
    - never in an account;
    - never summed into rupees.
-2. `eligible >= fillable >= executed` over a fixture day.
-3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve.
-4. A refused ticket stays in every count's denominator.
-5. The conformance test.
+2. `eligible >= fillable >= executed` over a fixture day (`test_counts.py`).
+3. A displayed size shared by two accounts is counted, and no report sums fills it could not serve
+   (`test_shared_size.py`).
+4. A refused ticket stays in every count's denominator (`test_counts.py`).
+5. f implements no port of a, so there is no conformance check of its own. Its tests run on a's fakes, which pass
+   `conformance.py`.
 
 ### MS-P1g The 08:50 and 20:05 sections · lane 1 (Slack reports, signed-off pages) · model tier: S · depends on a
 
@@ -463,6 +492,15 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - **requirement (orchestrator, 22 Oct):** a REF entry refused only by account limits (C2's bucket among them) becomes
   `ticket: account_limit` through `tickets.rules.classify`, the same rule as every driver, so REF stays measured on
   every open road-slot;
+- **requirement from MS-P1f (judge 481):** after a road's entry fills and before any account records them, the fleet
+  runs `tickets.shared_size.allocate` over that snapshot's account and ticket fills. It records only the servable
+  account entries, gives each unservable one `fill_status`'s `unavailable: size_shared`, passes `size_shared` to
+  `counts_for`, and passes `unservable_fills` to `account_net`;
+- **requirement from MS-P1f (judge 481 note):** every outcome record of a position from the ticket ledger has
+  `is_ticket=True`, or `account_net` would sum it;
+- **requirement (Judge B, judge 479.2):** any after-the-fact "sealed before fill" check (replay, audit, j's harness
+  on old seals) uses O8's push evidence for the receipt, never `Seal.pushed_at`: that is the receipt commit's time, a
+  lower bound on the push, and is trustworthy only at the moment `DashcamStore.seal` returns after a successful push;
 - **requirement (orchestrator, 22 Oct):** the daily and the 30-session reports show, per road, the share of scheduled
   decisions refused for quotes (law 5: `missing_quote`, `one_sided_quote`, `size_above_displayed`,
   `protection_unsellable`). The capture gate's band is about 10 steps of the money while the shorts sit about 20 steps
@@ -711,6 +749,41 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
 
+### MS-P1f Claims (round 1, branch `story/ms-p1-tickets`, on top of `story/ms-p1-contracts`; the SHA is in the commit carrying this text)
+
+| # | Criterion | Code | Tests (and the plants they catch) |
+|---|---|---|---|
+| 1 | Tickets: the same quotes and laws, never in an account, never in rupees | `rules.py`, `book.py`, `rupees.py` | `test_rules.py`, `test_book.py`. Plants: the room check, the running view, rank order, ties, the account-limit ticket, the brake added to a's `ACCOUNT_LIMITS`, the ticket laws, the first reason, accepted-only trades, one lot, the binding filter, the book's law refusal, recording only fills, tickets only, and the rupee filter |
+| 2 | eligible >= fillable >= executed over a fixture day | `counts.py` | `test_counts.py`. Plants: the laws term, the ticket laws, the executed rule, the denominator, uniqueness |
+| 3 | A shared displayed size is counted; no unservable fill is summed | `shared_size.py` | `test_shared_size.py`. Plants: the fit check, the size use, the side's size, the fixed order |
+| 4 | A refused ticket stays in the denominator | `counts.py` | `test_counts.py` (`TICKET, PASS, MISSING` row and the fixture day) |
+| 5 | Conformance | n/a | f implements no a port; its fakes pass a's checks |
+
+- **Gates on this tree:** reported in the hand-off message; the full suite, ruff, `check_imports` and `check_records`.
+- **Round 1b (after a's round 2, orchestrator's answers of 22 Oct):**
+  - built on a's frozen split: `ACCOUNT_LIMITS` comes from `fno/school/constants.py`;
+  - a trade refused only by an account limit is now `ticket: account_limit` (Q1, yes);
+  - the daily stop and the brake refuse, with no ticket;
+  - `book.fill_cash` is replaced by a's `FillResult.cash` (Q2, yes);
+  - j's running-view requirement is written into MS-P1j (Q3).
+- **Plants:** 24 planted, 24 caught (after round 1b). In round 0, two survivors led to one fix each: a redundant `eligible and`
+  removed, and a test fixture with asymmetric bid and ask sizes.
+- **Self-review** (an independent agent on `756e6545..75c12954`): 1 blocking, 6 should-fix and 4 minor findings.
+  - Fixed:
+    - **Blocking:** a ticket filled with no law check. `TicketBook.enter` now takes the sealed law results and
+      refuses on a binding law; tickets are only made by `classify`, after the same laws.
+    - **Ordering:** each check now sees the trades accepted this slot, and a refused trade frees its place for the
+      next-ranked rule.
+    - **Shared size:** per-leg minimums were wrong for structures. Now whole fills are allocated, any number per owner.
+    - **Weak tests:** two tests that could not fail are replaced; the conformance claim is corrected.
+    - **Minor:**
+      - `TicketLedger` is its own type;
+      - `totals` refuses duplicate rows;
+      - an `unavailable` decision is documented as not eligible;
+      - a two-lot proposal raises, as a driver bug the fleet isolates.
+  - The two questions raised in round 1 (account-cap tickets, the duplicated cash arithmetic) were answered by the
+    orchestrator and built in round 1b.
+
 ### MS-P1c Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-dashcam`)
 
 Round 1, built on a's tip 756e6545. Files: `fno/school/dashcam/` (names, publisher, reader, store, seals, counts,
@@ -794,6 +867,35 @@ only) and a note. Each was checked and fixed in this one round 2.
 - **Plants this round:** 8 of 8 caught, plus judge 491's two and judge 492's five survivors now caught.
 - **Gates:** on the head named in the message to the judges.
 
+
+### MS-P1f Claims, round 2 (judge 481, FAIL round 1: two should-fixes and two minor findings)
+
+| Judge 481 finding | Fix | Test (plant caught) |
+|---|---|---|
+| 1. No test pinned that tickets stay out of the running view | none needed in the code (only trades enter `accepted`); the rule is now in the docstring | `test_a_ticket_never_enters_the_slot_s_running_view` (the judge's plant 2: a non-refused decision appended) |
+| 2. Shared size: no rupee path, a name-biased order, tickets could take an account's size | `allocate` serves accounts first, in a seeded order recorded with its seed. `fill_status` gives `unavailable: size_shared`. `counts_for(size_shared=)` makes it fillable, not executed. `account_net` leaves out and names unservable outcomes, keyed by (driver, fill). Two MS-P1j requirements added | `test_shared_size.py` (seeded order, independent of the given order; no name wins every session; accounts before tickets; equal fills of two owners); `test_two_accounts_on_one_displayed_size_sum_only_the_servable_one`; plants: sort by name, tickets mixed in, session dropped from the seed, size_shared ignored, wrong set, no exclusion |
+| Minor (a): plant 21 survived | a trade row with an account-limit refusal | the `(TRADE, CAP, filled)` counts row (plant 21 caught) |
+| Minor (b): a braked driver was shown `open_risk` | `DRIVER_STOPS` reasons are named first | two rows in `test_any_other_refusal_stays_refused_with_the_first_reason`; plant: the stop-first rule removed |
+
+- **Found while fixing:** two accounts filling one structure at one touch give equal `FillResult` values, so a set of
+  fills could not tell them apart. Unservable fills are keyed by (owner, fill). The test asserts the two fills are
+  equal and that only one is left out.
+- **Shared file:** `fno/school/constants.py` gains one additive line, `UnavailableReason.SIZE_SHARED`, by the
+  orchestrator's ruling 2(c). Part a is not on `main` yet, so it rides with f.
+- **Plants:** 33 planted, 33 caught, the judge's two survivors among them.
+
+### MS-P1f Claims, round 2 addendum (judge 490, Judge H)
+
+| Judge 490 finding | Fix | Test (plant caught) |
+|---|---|---|
+| 1. A refusal could be named by an account limit when a binding law also refused | `rules.named_refusal`: a stop, else a trade-validity law, else the first account limit | rows in `test_any_other_refusal_stays_refused_with_the_first_reason`: open risk with max loss gives `max_loss`; bucket with daily stop gives `daily_stop`; margin, unprotected and brake give `brake`; first in order within a group. Also `test_an_account_limit_is_named_only_when_account_limits_alone_refused`. Plants: binding dropped, stops dropped, last instead of first |
+| 2. Empty law results passed | `classify` raises; `ticket_laws_pass(())` is False; `first_binding_refusal(())` raises; `counts_for` raises for a trade or ticket without results | `test_no_law_results_never_pass`; `test_a_ticket_record_without_law_results_is_never_filled`; `test_a_trade_or_ticket_without_law_results_is_never_counted`. Plants: each guard removed |
+| 3. A name-biased order | already fixed in round 2 (judge 481): the seeded order, accounts before tickets | `test_shared_size.py` |
+| Minor (a): results came from the caller | `TicketBook.enter(record, file_sha256, snapshot, seal, at)` reads the sealed `DecisionRecord.law_results` | `test_book.py`. Plant: only the first result read |
+
+- **Signature change**, for j: `TicketBook.enter` now takes the sealed decision record and its file's SHA-256. It no
+  longer takes `(sealed, results)`.
+- **Plants:** 39 planted, 39 caught over f's tests.
 
 MS-P1c round 2 (orchestrator and Judge J early findings, each checked and fixed; merged a's tip 32fdbdde):
 - **Shallow clone (defect, reproduced and accepted):** `git log --diff-filter=A` in a shallow clone returns the boundary
@@ -1045,3 +1147,6 @@ stop, the unreadable raise) each fail a named test.
    driver holding a position into its expiry day gets a `margin_room` refusal on every new entry that day; the blocked
    entries become `account_limit` tickets; reports show the `margin_room` share per road on expiry days; the fix is P2's
    (P0 probe 4). Pinned by `test_the_card_freezes_the_pieces_judge_480_named`.
+
+**Follow-up `story/ms-p1-drivers-tests` (judge 489 minors).** `test_quotes_and_estimates.py`: every ranked card's `expected_net_rs` is pinned at 0.0 (CS1 at 500 fails it; plant caught) and every family says `no_valid_quotes` when its road has no quotes while the same day trades with them (11 drivers; plant: `quotes_missing` off, caught for DR1, PS5 and KL1). One small code change came with it, because the test showed a gap: DR1, PS5 and KL1 do not read the expected move, so a road with no quotes was reported as `no_structure_under_cap`; `ProposalBuilder.quotes_missing` (D2's own listing test) now tells the rule driver to say `no_valid_quotes`. A structure listed but over the cap still says `no_structure_under_cap` (tested).
+**Structure codes (orchestrator, 22 Oct 2026; MS-P1m accepts only SC, SF, BF, PCS, CCS, CDS, PDS).** `test_structure_codes.py` checks every proposal of every driver (and 80 RC1 days) against the definition of each structure: accepted code, leg count, kinds and sides, far leg further out, equal wings, fly on one strike, condor on two. Per family: PS5 SF; KL1, REF, WS1, PS2-4 SC; DB1 BF; DR1 CDS or PDS; CS1 PCS or CCS; RC1 all six. One fix came out of it: RC1's condor could draw both shorts on the same strike (reach 0), which is an SF fly labelled SC; it now draws at least one step (plant caught).
