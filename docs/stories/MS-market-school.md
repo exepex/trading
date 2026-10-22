@@ -539,3 +539,60 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Deliberate duplication:** the `school` limits copy today's book caps rather than reading `risk.profiles.books`, so a desk change cannot move the pilot mid-count. `test_the_school_limits_equal_the_books_caps_today` makes any divergence a visible decision.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
+
+### MS-P1b Claims (round 1, code at 2ed9bbbf; builder session_01F1RVMF8MNngi97JVNs99L5)
+
+**Gates on the pushed tree:** `pytest -n auto` 10,449 passed, 16 xfailed; `ruff check`/`format`, `check_imports`,
+`check_records` clean. School tests: 345 (roads 76 incl. conformance, quality 60).
+
+| Criterion | Test (all under `tests/school/`) | Broken-code proof (mutation applied, test failed) |
+|---|---|---|
+| 1. Five roads on a trading day, none on a holiday | `roads/test_catalogue.py::test_five_roads_open_…`, `test_no_road_on_a_day_that_is_not_a_trading_day[holiday, weekend, muhurat only]` | catalogue's trading-day check removed |
+| 2. Each reason from a planted fixture | `test_each_capture_fault_closes_the_road_with_its_reason[*]` (missing, incomplete, out_of_window, hash_mismatch, expiry_mismatch), `test_a_lot_the_source_cannot_find…`, `quality/test_gate.py::test_an_impossible_price_in_the_band_closes_the_road` | own hash check, lot check, expiry check, incomplete check, impossible-price closure each removed |
+| 3. Exactly one reason | `test_two_faults_give_the_earlier_reason_only` (all 10 ordered pairs), `quality/test_gate.py::test_every_fault_at_once…` | gate's "closed keeps its reason" removed |
+| 4. Capture gate boundaries | `quality/test_capture_gate.py`: 10/10 vs 9/10, <10 sessions, 949/950/951/1000 of 1,000 legs | `>` to `>=` (95.0% passed), 9-of-10 and session-count conditions weakened |
+| 5. Conformance | `check_road_catalogue`, `check_snapshot_source` in `test_catalogue.py::test_conformance…` | (a's checks) |
+
+25 mutations in all (also window edges, price bounds, ranges-not-mids, all-pairs, band edge, own-day lot copy, lot above
+zero, capture cache, strike step), 25 caught, 0 survived.
+
+**Self-review (two independent review agents), what was done:**
+- *Fixed:* a store outage was turned into `expiry_mismatch` (now propagates; missing archive settings raise
+  `RawFilesNotConfigured` at build); parse errors outside the try (now `capture_incomplete`); lot of 0 accepted; an
+  absent capture cached for the run (not any more); vertical rule checked neighbours only, which a wide quote can hide
+  (now all pairs, judged among the band's legs); capture-gate report crashed on an unreadable snapshot (now a closed
+  session); a sidecar of another capture or road was not refused; quotes shared mutably (now read-only view); `in_window`
+  truthy test; float noise at a bound; line printed 95.01% as "95.0%" (two decimals); the default `--through` could be a
+  day with no captures yet.
+- *Not changed, with reason:* the order check that needs the quote file (it missing, its row count) runs after the
+  sidecar's window check (documented in `capture.py`; the file must be read to know). A25 expiry-day cases are not
+  separately tested (they use the recorder's own `monthlies`/`nearest_weeklies` unchanged).
+
+**Decisions for the orchestrator/judge (reasoning only, flagged openly):**
+1. *Impossible price* is EDGE1's vertical rule adapted from a single close to a **bid-ask range**: impossible only if no
+   price inside both legs' ranges satisfies 0 <= worth <= width. Judged on mids, 8-72 legs a day broke it by spread noise
+   (up to a third of MIDCPNIFTY, 21-22 Oct); judged on ranges, **0 of 1,764 band legs on the 9 recorded road-days** did.
+2. A road-day **closes `impossible_price` if any leg in the road's band is impossible**; a leg observation also excludes
+   impossible legs (kept for report use, so the 95% test and the closure agree). Story 3.5 gives no day-level rule; the
+   alternative is a share threshold. The band default is 10 steps (RC1's widest) until MS-P1h freezes the card value.
+3. An unreadable NSE expiry listing closes the road `expiry_mismatch` (no other code fits; nothing is opened on
+   unconfirmed expiries). A Drive outage is never a closure.
+4. Lots come only from the **session's own** A20a copy (none before 21 Oct), so NIFTY 14-19 Oct and BANKNIFTY/FINNIFTY/
+   MIDCPNIFTY 19 Oct close `lot_mismatch`.
+5. The a-builder's fixtures start BANKNIFTY at 15:00:00; the recorder's window for the other indices opens 15:01, so such a
+   snapshot is `out_of_window` here (A4: NIFTY 14:55-15:10; A4c/A4f: 15:01-15:13, +60 s grace for the recorder's last
+   instant). No contract change needed; a/j fixtures should start inside the road's window.
+
+**Real output (read-only `python -m fno.school.quality.command --through 2026-10-22`; counts only, stored files, no
+network read of NSE or Groww; nothing written):**
+```
+NIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 4, lot_mismatch 4); legs 168 of 168 (100.00%); gate closed
+BANKNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 168 of 168 (100.00%); gate closed
+FINNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 90 of 128 (70.31%); gate closed
+MIDCPNIFTY-M through 2026-10-22: snapshots 2 of 10 (capture_missing 7, lot_mismatch 1); legs 167 of 168 (99.40%); gate closed
+NIFTY-W through 2026-10-22: snapshots 1 of 10 (capture_missing 9); legs 84 of 84 (100.00%); gate closed
+```
+Reading: no road can pass yet (history is short, as expected). **FINNIFTY is the one to watch: only 45 of its 64 band
+legs are two-sided and valid on each of 21 and 22 Oct (70%), so it will fail the 95% test on thin quotes unless that
+changes.** Every other road's legs are at or near 100%. [strong evidence: counts above; reasoning only: what the next
+sessions will do.]
