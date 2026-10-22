@@ -12,6 +12,7 @@ from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
 from .circulars.cli import add_circulars_parser
+from .close_read.cli import add_closes_parser
 from .config import ROOT, load_app_config
 from .daily.cli import add_daily_parser
 from .desk.cli import add_desk_parser
@@ -243,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     add_factory_parser(sub)
     add_pricedist_parser(sub)
     add_pricerange_parser(sub)
+    add_closes_parser(sub)
     add_lab_parser(sub)
     add_fo_masters_parser(sub)
     add_circulars_parser(sub)

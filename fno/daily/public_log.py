@@ -22,13 +22,14 @@ NOT_FILLED = "not filled"  # E3's fills outcome, a literal in fno/desk/daily_ste
 WORDS = frozenset({STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE, NO_DECISION_LATE, STARTED, RESTARTED, ADOPTED,
                    EARLIER, NOT_FILLED})  # fmt: skip
 VOCABULARY = tuple(re.compile(pattern) for pattern in (
-    r"[0-9a-f]{7,40}|[0-9a-f]{64}",  # commit and file hashes
+    r"(?=[0-9]*[a-f])([0-9a-f]{7,40}|[0-9a-f]{64})",  # commit and file hashes: never digits alone (judge 448)
     r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?([+-]\d{2}:\d{2}|Z)?)?",  # ISO dates and times
     r"\d{4}-\d{2}-\d{2}-r\d+",  # D3 run ids
     r"[a-z]+_\d{8}_\d{6}",  # quote snapshot ids
     r"(?!.*\d{3})[A-Za-z][A-Za-z0-9_:-]*",  # ids and words: a letter first, no run of 3 digits (strikes, amounts)
 ))  # fmt: skip
 EXCEPTION = re.compile(r"([A-Z][A-Za-z0-9]+): ")  # "OSError: ...", as `Alerted` and the desk record a raise
+FIELD_NAME = re.compile(r"[a-z][a-z0-9_]*")  # a key that names a field (`sha256`, `marked_contracts`)
 PLACEHOLDER = re.compile(r"\{[^{}]*\}")
 LITERAL = re.compile(r"[A-Za-z]")
 
@@ -73,7 +74,8 @@ class PublicResult:
 
     def public(self, step: str, value: object, key: str = "") -> object:
         if isinstance(value, Mapping):
-            public = {k: self.public(step, v, str(k)) for k, v in value.items() if k not in DROPPED_KEYS}
+            kept = [(k, v) for k, v in value.items() if k not in DROPPED_KEYS]
+            public = {self._key(str(k), n): self.public(step, v, str(k)) for n, (k, v) in enumerate(kept)}
             return public | self._command_reason(value, public)
         if isinstance(value, list | tuple):
             return [self.public(step, item, key) for item in value]
@@ -93,6 +95,12 @@ class PublicResult:
             return {}
         code = result["exit_code"]
         return {"reason": COMMAND.get(result.get("status"), f"command:exit_{code}")}
+
+    @classmethod
+    def _key(cls, key: str, position: int) -> str:
+        """Keys are judged too (judge 448): a field name, a book or an id stays; any other key, a contract symbol for
+        one, becomes `unlisted:<position>`, unique within its dict."""
+        return key if FIELD_NAME.fullmatch(key) or cls._listed(key) else f"{UNLISTED}:{position}"
 
     @staticmethod
     def _listed(text: str) -> bool:
