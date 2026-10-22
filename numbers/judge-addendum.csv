@@ -590,3 +590,6 @@ number,name,session,claimed_at_utc
 479.2,ms-p1a2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-22T17:56:52Z
 483.1,b-round-2,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T18:01:50Z
 490.1,ms-p1f-second-round2,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-22T18:07:04Z
+486.2,d-ranges-confirm,session_01MvZneCLZqBuiGyNxawdVee,2026-10-22T18:11:02Z
+487.1,ms-p1i-r2,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-22T18:18:18Z
+480.2,ms-p1h-third-check,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-22T18:18:34Z

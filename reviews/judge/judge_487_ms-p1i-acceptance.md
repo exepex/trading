@@ -66,3 +66,26 @@ filtering refusals.
 - **Gates (my run, python3 after routine setup):** pytest -n auto 10,310 passed, 16 xfailed; ruff check and format, check_imports, check_records clean; largest file 252 lines (the test module).
 - Limits 2 (missing quote by law or at the fill), 3 (counts, sections, denominator from f/g in j) and 4 (replay
   conflict at the dashcam) are acceptable as stated. Limit 1 is not (finding 1).
+
+## Addendum 1: round 2 at 2b9b45c8
+
+**Verdict: PASS.** Lane 1. Scope: i's commit 2b9b45c8 over 647983f5 (b's round-2b code arrives by merge; b's own
+judges cover it). **Merge waits for b's PASS and b's merge**, since i now runs on b's real classes.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| Blocking: closure planters set a verdict | ACCEPTED | `Scenario` has no road status. Planters shift the capture's expiries and keys, give the later expiry another lot, and quote a vertical outside 0..width. The rig writes captures as the recorder does and runs b's real `CaptureReader`, `RecordedRoadCatalogue` and `RoadQualityGate`. Breaking each detector fails the harness (plants 1-3), and so does each planter turned into a no-op (16-18) |
+| Should-fix: 9 unproven checks | ACCEPTED | all 9 deletions from round 1 are now caught by `test_harness_checks.py` (plants 5-13) |
+| Minor a: own fill | ACCEPTED | `own_fill` by decision order; plant returning another driver's fill caught (15) |
+| Minor b: exits | ACCEPTED | exits checked at the touch, settlements left to d by name; plant restoring entries-only caught (14) |
+
+- **Plants: 18 planted, 17 caught.** The survivor is b's own second expiry check in `RoadQualityGate.check`.
+  The catalogue already closes the road first on the same comparison, so deleting it changes nothing here. That
+  check is b's defence in depth, not i's code, and not a finding.
+- **j's `real_rig` contract is now clear** (Claims round 2). It writes `snapshots` as captures, `listed_expiries` as
+  the archived F&O listing and `lots` as the archived `fo_mktlots.csv`, then runs the real fleet with the planters
+  unchanged.
+- **Note for j's judge:** the fake rig's `ScenarioLots` re-states `ArchivedLots`' one-lot rule. The lot-mismatch
+  plant is fully proven only when j's rig reads a written lot file through `ArchivedLots`.
+- **Gates (my run, python3 after routine setup):** pytest -n auto 10,595 passed, 16 xfailed. ruff check and format,
+  check_imports and check_records are clean. The largest file is `test_acceptance.py` at 302 lines.
