@@ -5,6 +5,7 @@ Change a value here, not where it is used."""
 from __future__ import annotations
 
 __all__ = [
+    "PUBLISH_BRANCH",
     "RUN_LOG_DECISIONS_STEP",
     "RUN_LOG_EXITS_STEP",
     "RUN_LOG_TRADE_MARKS_STEP",
@@ -65,6 +66,9 @@ DAILY_RUN_STEPS = (
     "close_read",  # story A4h: today's closes from NSE's index list, 15:40, after the candles
     "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
 )  # fmt: skip; the quote parts start first (judge 178)
+# Every scheduled run publishes to main, whatever branch its checkout is on (a scheduled session runs on its own
+# unpublished session branch: 22 Oct 2026, "couldn't find remote ref claude/...")
+PUBLISH_BRANCH = "main"
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record

@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..config import ROOT
+from ..constants import PUBLISH_BRANCH
 from ..storage.wiring import QUOTES_FOLDER
 from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
 from .daily_ports import AccountWriteRefused, CommitFailed, Committer, OwnCommit
@@ -45,9 +46,12 @@ STRAY = "the checkout holds {count} unpushed commit(s) the run did not make ({wh
 
 
 class Git:
-    def __init__(self, root: Path, run=None, guard: RawQuoteGuard | None = None, limit_seconds: float | None = None):
-        """`limit_seconds`: every call's hard limit, `GIT_CALL_LIMIT_SECONDS` unless given (read when built)."""
-        self.root, self.run = Path(root), run or LimitedRun()
+    def __init__(self, root: Path, run=None, guard: RawQuoteGuard | None = None, limit_seconds: float | None = None,
+                 target: str = PUBLISH_BRANCH):  # fmt: skip
+        """`limit_seconds`: every call's hard limit, `GIT_CALL_LIMIT_SECONDS` unless given (read when built).
+        `target`: the one branch every fetch, compare and push uses, never the checkout's own (a scheduled session's
+        branch is not on origin)."""
+        self.root, self.run, self.target = Path(root), run or LimitedRun(), target
         self.limit_seconds = GIT_CALL_LIMIT_SECONDS if limit_seconds is None else limit_seconds
         self.guard = guard or RawQuoteGuard(self.root, self.root / QUOTES_FOLDER.relative_to(ROOT))
 
@@ -70,16 +74,13 @@ class Git:
             what = " ".join(command[1:3])
             raise GitCallStopped(STOPPED.format(what=what, seconds=self.limit_seconds, removed=names)) from None
 
-    def branch(self) -> str:
-        return self("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-
     def unshallow(self) -> bool:
         """Fetches the whole history when the checkout is shallow (story O1: commit times are dates); False when it
         was whole already. `GitError` when the fetch fails or runs past the hard limit every call has, so a hung fetch
         never holds the day."""
         if self("rev-parse", "--is-shallow-repository").stdout.strip() != "true":
             return False
-        self("fetch", "-q", "--unshallow", "origin", self.branch())
+        self("fetch", "-q", "--unshallow", "origin", self.target)
         return True
 
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
@@ -113,9 +114,8 @@ class Git:
         return [self.root / name for name in names if name]
 
     def push(self) -> bool:
-        branch = self.branch()
         try:
-            return self("push", "-q", "origin", f"HEAD:{branch}", check=False).returncode == 0
+            return self("push", "-q", "origin", f"HEAD:{self.target}", check=False).returncode == 0
         except GitCallStopped as stopped:
             raise PushNotConfirmed(f"push not confirmed: {stopped}") from None
 
@@ -125,12 +125,12 @@ class Git:
     def unpushed(self, *options: str) -> list[str]:
         """Commits on HEAD that origin does not have (after a fetch): what a push would publish. The one rule both the
         account writes and the run's commits start from (decision 51)."""
-        self("fetch", "-q", "origin", self.branch())
-        return self.ahead_of(f"origin/{self.branch()}", *options)
+        self("fetch", "-q", "origin", self.target)
+        return self.ahead_of(f"origin/{self.target}", *options)
 
     def unpushed_files(self) -> list[Path]:
         """Every file a push would change on origin (a deletion too), whoever made the commits."""
-        names = self("diff", "--name-only", "-z", f"origin/{self.branch()}", "HEAD").stdout.split("\0")
+        names = self("diff", "--name-only", "-z", f"origin/{self.target}", "HEAD").stdout.split("\0")
         return [self.root / name for name in names if name]
 
     def subject(self, commit: str) -> str:
@@ -174,7 +174,7 @@ class GitCommitter(Committer):
     def _commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None) -> str:
         self.git.guard.check(paths)
         self._refuse_stray(own_unpushed)
-        branch = self.git.branch()
+        branch = self.git.target
         self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
         if self.git.commit_paths(paths, message):
             self.own.remember(self._recorded("HEAD"))  # until a push carries it (G4)
