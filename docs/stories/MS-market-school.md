@@ -539,3 +539,21 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Deliberate duplication:** the `school` limits copy today's book caps rather than reading `risk.profiles.books`, so a desk change cannot move the pilot mid-count. `test_the_school_limits_equal_the_books_caps_today` makes any divergence a visible decision.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
+
+### MS-P1h Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-card`)
+
+Round 1, built on a's tip 756e6545. Not finished: the D6 rows and the ledger row wait (see "Open" below).
+
+| Criterion | Code | Test (fails when the code is broken on purpose) |
+|---|---|---|
+| 1 a card registered after a decision makes that day not counted | `counting.CountingRule._frozen_before` | `test_a_card_registered_after_the_decision_makes_that_day_not_counted`, `test_a_card_committed_in_the_decisions_own_commit...`, and on real git `test_a_card_edited_after_the_decision_makes_the_decision_not_counted` |
+| 2 a changed card SHA-256 refuses counting | `CountingRule.verdict` (driver card vs its D6 row) | `test_a_changed_driver_card_sha256_refuses_counting`; a row registered after the decision: `test_a_version_row_committed_after_the_decision_is_not_counted` (real D6 `Versions`) |
+| 3 five roads on one day are one cluster | `clusters.session_clusters`, `common_road_days` | `test_five_roads_on_one_day_form_one_cluster_and_count_as_one_session`, `test_the_common_group_holds_only_road_days_every_control_has_counted` |
+| 4 `read_card` accepts the card | `research/school/CARD_P1.md` | `test_read_card_accepts_the_card_as_a_measurement`; the cost block hash: `test_the_card_names_the_charges_block_that_config_yaml_holds` |
+
+Broken-code proof: 3 mutations (own-commit rule, driver card SHA check, first counted session) each fail a named test.
+
+Open (need the orchestrator, asked 22 Oct): D6's `_row` refuses a book outside `BOOKS`, so a `school:<driver id>` row
+cannot be registered until D6 accepts that book id (a small lane-1 change outside this part); the part e card files do
+not exist yet, so no driver card SHA-256 can be written; the ledger row (trial 99) is written by `factory register`
+only when the orchestrator says. First counted session: unset by design (`school.first_counted`).
