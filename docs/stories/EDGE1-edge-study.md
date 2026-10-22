@@ -5,6 +5,7 @@ session_01UkTaDeTRF9ksDgQB9cTU5C · **Orchestrator:** session_01VG1RqxLFUVdvvPuM
 `story/edge1-text` (text), then `story/edge1-<part>` (code) · **Owner's choice:** `docs/DESK_DECISIONS.md`, 22 Oct
 ("Edge study ... through R1's factory") · **Status:** story text for the judge; two owner questions open (Q1, Q2) with
 written defaults. Revision 2: all history is exploratory (R1's owner's point, accepted); one card per variant.
+Revision 3: judge 467's two should-fixes (SF1 option a with GR1's facts; SF2 the untraded-leg rule) and notes.
 
 **Description.** As the desk (the trader, the strategist, the risk manager and the statistician), I want one honest,
 pre-registered answer to "has any simple, rule-based option trade on NIFTY or BANKNIFTY made money after every real
@@ -37,6 +38,13 @@ and return on margin. It does not re-run the failed NIFTY variants as if they we
   2019 to 20 Oct 2026 (the DATA_SPEND row "NIFTY and BANKNIFTY ranges from option daily closes", `spent`). The factory
   counts `spent` and `exposed` alike (`fno/factory/data_spend.py`: either makes a test exploratory). My first draft
   called BANKNIFTY's 2023-26 monthlies held back; that was wrong, and is withdrawn.
+- **The direction was also partly foreseen (judge 467 SF1, option a taken).** Premium selling pays when implied runs
+  wide, and GR1 measured exactly that on these years:
+  - BANKNIFTY's N1 implied 50% band held 0.624 of closes in 2024 (judge 442.2's reproduction);
+  - its 90% coverage in 2025-26 was 0.927, and a constant shrink beat it (response 314, judge 459);
+  - G13b's yearly scores were read as well.
+  So even a clean split would have known that selling was favoured. This is a second reason why no historical pass can
+  be more than exploratory.
 - **So every historical result in EDGE1 is exploratory.** EDGE1 is a screen: it can rule variants out, and it can
   nominate at most two variants for a registered forward shadow (R3). That shadow is the only test that can confirm
   anything.
@@ -81,6 +89,16 @@ That is 3 x 4 = **12 variants** per index.
     loss shown unbounded. They would be outside the pass family, so they can never pass.
 - Stops and targets are checked on end-of-day closes only. An intraday breach that recovers by the close is missed;
   the report says so.
+- **Untraded legs (judge 467 SF2).** The engine prices a leg with no trades at its settlement price, flagged
+  (`leg_prices.py`: "a valuation proxy, not an executable price"). Those proxies made experiment 1's positives stale.
+  The rule here:
+  - A trade is taken only when **every leg traded** (volume > 0) on its entry day, and closed only at a close where
+    every leg traded. If no leg-complete close exists by the exit day, the trade is recorded at the exit day with its
+    proxies flagged, and it is **left out of the pass and nomination figures**.
+  - SL2 and TP50 are checked only on days when every leg traded.
+  - Not-taken trades are counted by reason (an untraded leg at entry, missing strikes, bad prices, over the cap).
+  - The report shows, per variant and period, the share of trades with any proxy price, and all trades (proxies
+    included) beside the traded-only figures.
 
 ## Costs (G1) and margin
 
@@ -94,21 +112,27 @@ That is 3 x 4 = **12 variants** per index.
 - **Lot sizes:**
   - historical lots per expiry: UDiFF's `NewBrdLotQty` from 2024, and R2's `derived_lot()` before (turnover / (contracts
     x settlement price) of the same-expiry future);
-  - results in rupees for 1 lot of the time and per unit. Today's lot (NIFTY 65, BANKNIFTY 30) is a second column.
+  - results in rupees for 1 lot of the time and per unit. Today's lot (NIFTY 65, BANKNIFTY 30) is a second column;
+  - `derived_lot()` is cross-checked against NSE's lot-size circulars at every change date, and any mismatch is listed;
+  - the wing width that the Rs 10,000 rule picks moves with the lot, so the width chosen is shown per year and index.
+- **BANKNIFTY's expiry-day changes** are listed in the report as read from the files (monthly expiry weekday per year;
+  the weeklies' end on 14 Nov 2024), with each change's first expiry.
 - **Margin:**
   - C2/A14's SPAN calculator (`fno/nse_margins/calculator.py`, `read_span_file(..., allow_short_option_minimum=True)`)
     on each entry day's archived SPAN file, plus NSE's exposure rule;
   - SPAN files exist from 2 Jan 2020, so return on margin is reported from 2020 only;
-  - BANKNIFTY goes through the calculator's `symbol` parameter, which is unproven. The build's first step tests it on
-    a few days against NSE's published margin.
+  - BANKNIFTY goes through the calculator's `symbol` parameter, which is unproven. **A build gate:** before any
+    result, a few days a year are checked against NSE's published margin for both indices. A mismatch stops the margin
+    figures, which are reported as missing, never guessed.
   - C2's stress factor k = 2.1 for a stressed figure.
   - **The A14c owner's points (22 Oct), adopted:**
     - SPAN files are read through `prefetch.in_order(per_thread(build_drive_span_files), ...)`, with A14's
       point-in-time checks: the SHA-256 must equal A9's manifest, and the file must be created before 09:00 IST that day.
     - Margin is built per entry day with that day's lot (lots changed: NIFTY 75, 50, 25, 75, 65; BANKNIFTY several
       times). Today's lot is never used on old files.
-    - An entry whose NOV per unit is not strictly inside `payoff_bounds(legs)` is skipped. B2's BAD_PRICES test catches
-      the impossible April 2020 rows.
+    - An entry is skipped unless its NOV per unit is strictly inside `payoff_bounds(legs)` (lowest < value < highest),
+      as B2's BAD_PRICES test does. A credit equal to the full width, or of 0, is skipped too. This catches the
+      impossible April 2020 rows.
     - A missing series (e.g. 1 Aug 2025's file, without 25 Sep 2025) raises `MarginOutsideModel`. It is counted and
       named, never filled.
     - BANKNIFTY's monthly pick in files that also list weeklies (before Nov 2024) is checked, NIFTY and BANKNIFTY are
@@ -117,8 +141,9 @@ That is 3 x 4 = **12 variants** per index.
 
 ## Registration (R1's factory; nothing new)
 
-- **Ledger:** one trial per variant per index, because every one is tested: trials 71-94 (12 variants x 2 indices), plus
-  2 if Q1 is (b) (measurements). Registered before any result, with `research/edge1/PROTOCOL.md` frozen and hashed as
+- **Ledger:** one trial per variant per index, because every one is tested: **24 consecutive trials from the next free
+  ledger number** (71-94 if nothing else registers first), plus 2 if Q1 is (b) (measurements). Each card's `trial` is
+  written just before its own `register`. Registered before any result, with `research/edge1/PROTOCOL.md` frozen and hashed as
   GR1's was. The B4 guard (`Ledger.register`, `require_registered`) is enforced.
 - **Factory:**
   - **one card per variant and index** (R1's rule: an exit, a structure or an underlying is a new idea), so 24 cards
@@ -177,5 +202,6 @@ planted-bug proof.
 ## Open questions for the owner
 
 - Q1: defined-risk only (default a), or also measure the naked strangle and straddle (b)?
-- Q2 (revised): accept that EDGE1 can only screen and nominate (all history is spent), and that the confirmatory test
-  of any nominee is a forward shadow through R3?
+- Q2 (revised): accept that EDGE1 can only screen and nominate, and that any nominee's confirmatory test is a forward
+  shadow through R3? All history is spent, and the direction was partly foreseen by GR1; the judge notes that holding
+  data back costs only time.
