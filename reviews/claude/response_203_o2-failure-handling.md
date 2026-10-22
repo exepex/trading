@@ -280,4 +280,5 @@ Notes:
   - All 7 tests pass with every git call slowed by 1.2 s, longer than the limit itself.
   - Plants: removing the lock clean-up fails 1 test; killing only git instead of its group hangs the test (the hook
     holds the pipes).
-  - Ten full parallel suite runs (results below).
+  - Ten full parallel suite runs (`pytest -q -n auto`) on a708fbc0, back to back: 9479 passed, 16 xfailed, 0 failed
+    in every run (5:14 to 5:56 each).
