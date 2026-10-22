@@ -2052,5 +2052,13 @@ The integer-day parity forward was checked and is negligible (about 0.0003 point
 
 **Thresholds:** `POOR_FIT_RS = 200` and `POOR_FIT_SHARE = 0.25` sit in `attribute.py`. INS-c writes `research/school/INSTRUCTOR_V1.md` and its test pins every threshold to the card, these two included.
 
+**Rebased onto INS-a round 2 (a2c26465), as the orchestrator ordered.** A corrected trade is attributed once, as its
+correction, on its original close day, and nothing is attributed on the correction's own day
+(`test_corrected.py::test_a_corrected_trade_is_attributed_once_on_its_original_day`, through a's real resolver).
+b reads only `HeldPath`, so a's new `ClosedRead` result changes nothing in b's code.
+
+**Orchestrator's ruling on the deviation (22 Oct 2026):** wrapping B1's `Black76` directly is accepted. It reuses the
+one pricing model rather than adding a second, and G13's helpers take whole days, not minutes.
+
 **Real output sample:** none yet, as in INS-a (no sealed day). Fixture: the hand-computed spread gives delta -286.32, gamma -45.61, vega -52.53, theta +24.99, residual +10.74, costs 86.00 and net -434.73.
 
