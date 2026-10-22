@@ -14,6 +14,7 @@ COMMON = (
     ("o1:NOT_LIVE", steps.NOT_LIVE),
     ("o1:NO_DATE", steps.NO_DATE),
     ("o1:STOPPED_AT_LIMIT", steps.STOPPED_AT_LIMIT),
+    ("desk:FROZEN", daily_run.FROZEN),  # story O1-desk-freeze: any desk step the owner froze
 )
 BLOCKS = (
     ("desk:NO_LOG", daily_run.NO_LOG),

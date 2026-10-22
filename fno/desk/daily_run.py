@@ -42,6 +42,7 @@ from ..constants import (
     RUN_LOG_EXITS_STEP,
     RUN_LOG_TRADE_MARKS_STEP,
     STEP_FAILED,
+    STEP_FROZEN,
     STEP_REFUSED,
 )
 from ..quotes.recorder import RECORDED_SESSION_KINDS
@@ -68,6 +69,7 @@ NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
 UNSCORED = "the scorecards and automatic pauses of {day} did not run ({reason})"
 UNFILLED = "today's owner-timing fills {status} ({reason})"
+FROZEN = "frozen by the owner (config.yaml desk.frozen): nothing of this step runs"  # story O1-desk-freeze
 # a stop at the exits or any later step leaves the day's exits reviewed (E2d's marking and O1's steps after them)
 AFTER_EXITS = tuple(f"step {name}" for name in DAILY_RUN_STEPS[DAILY_RUN_STEPS.index(RUN_LOG_EXITS_STEP) :])
 
@@ -79,12 +81,14 @@ class RunStopped(Exception):
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
                  clock: Callable[[], datetime], marking: MarkingStep, files: PrivateFiles | None = None,
-                 day_steps: Mapping[str, DayStep] | None = None, recorder: StepRecorder | None = None):  # fmt: skip
+                 day_steps: Mapping[str, DayStep] | None = None, recorder: StepRecorder | None = None,
+                 frozen: Callable[[date], frozenset[str]] = lambda day: frozenset()):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
         self.marking = marking  # story E2d
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
         self.day_steps = dict(day_steps or {})  # story O1's steps around the desk's
         self.recorder = recorder or AsGiven()  # story O1-status-only: the committed log holds status only
+        self.frozen = frozen  # story O1-desk-freeze: the desk steps the owner froze today (none by default)
 
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
@@ -96,13 +100,13 @@ class DailyRun:
             if not log.done(SKIPPED):
                 self._step(log, SKIPPED, lambda: StepOutcome({"session": kind}, {"reason": "not a session day"}))
             return log
-        plan = self._plan(day, log)
+        plan, frozen = self._plan(day, log), self.frozen(day)
         for name in DAILY_RUN_STEPS:
             if name in plan and not log.done(name):
                 moment, action = plan[name]
-                if moment is not None:
+                if moment is not None:  # a frozen step keeps its time: the 3 pm parts are serviced in these waits
                     self.waiter.until(self.steps.timetable.at(day, moment))
-                self._step(log, name, action)
+                self._step(log, name, _frozen if name in frozen else action)
         return log
 
     def _plan(self, day: date, log: RunLog) -> dict[str, tuple[time | None, Callable[[], StepOutcome]]]:
@@ -139,6 +143,8 @@ class DailyRun:
             return {}
         if "exits" not in log.steps:
             return dict.fromkeys(self.steps.books, BEFORE_EXITS.format(day=last))
+        if log.result("exits").get("status") == STEP_FROZEN:  # a frozen session reviewed nothing and held nothing
+            return {}
         unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
                       for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
         return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
@@ -163,7 +169,7 @@ class DailyRun:
         if RUN_LOG_EXITS_STEP not in steps:  # no run, a closed day or a stop before the exits: `_unreviewed`'s rule
             return {}
         result = steps.get(REVIEWS_STEP, {}).get("result", {"status": STEP_FAILED, "reason": "not run"})
-        if result.get("status") not in (STEP_FAILED, STEP_REFUSED):
+        if result.get("status") not in (STEP_FAILED, STEP_REFUSED):  # a frozen session's reviews included
             return {}
         return dict.fromkeys(self.steps.books, UNSCORED.format(day=last, reason=result.get("reason", "")))
 
@@ -196,3 +202,8 @@ class DailyRun:
             text = STOPPED.format(day=day, where=where, missed=missed, reason=failed, fix=fix).rstrip(" ")
             self.steps.alerts.send(text)
             raise RunStopped(text) from failed
+
+
+def _frozen() -> StepOutcome:
+    """A frozen desk step: nothing of it runs; the log names why (story O1-desk-freeze)."""
+    return StepOutcome({}, {"status": STEP_FROZEN, "reason": FROZEN})

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP, RUN_LOG_EXITS_STEP
+from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP, RUN_LOG_EXITS_STEP, STEP_FROZEN
 from ..desk.run_log import RUNS_FOLDER
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 from ..playbook.opportunities import SHADOW
@@ -81,13 +81,14 @@ class CommittedRuns:
         collected is `missed_decision`; one with no exit review while a trade was held at the previous session's close
         is `missed_exit_review`, as is an exits step where the book's review failed (`error`) or its exits were held up
         (`waiting`), the daily run's own rule (daily_run.py). Closed days are never listed, since `sessions` holds
-        sessions only."""
+        sessions only; a session whose decisions the owner froze (story O1-desk-freeze) misses no decision."""
         logs, found = dict(self.logs()), []
         for i, day in enumerate(sessions):
             if i == len(sessions) - 1 and day not in logs:
                 continue  # the report day before its run: not run yet, not missed
             steps = logs.get(day, {})
-            collected = "run_id" in steps.get(DECISIONS_STEP, {}).get("result", {}).get(book, {})
+            decisions = steps.get(DECISIONS_STEP, {}).get("result", {})
+            collected = decisions.get("status") == STEP_FROZEN or "run_id" in decisions.get(book, {})
             why = _unreviewed(steps, book) if i > 0 and held(sessions[i - 1]) else ""
             if not collected or why:
                 found.append({"day": day.isoformat(), "missed_decision": not collected,

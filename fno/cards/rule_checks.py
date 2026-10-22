@@ -20,6 +20,7 @@ from ..constants import (
     CARD_HARD_RULE_BREACH,
     JOURNAL_FOLDER,
     RUN_LOG_DECISIONS_STEP,
+    STEP_FROZEN,
     VALIDITY_FAILURES_FILE,
 )
 from ..desk.run_log import RUNS_FOLDER
@@ -31,6 +32,7 @@ SNAPSHOT_STEP = "snapshot"  # the desk's execution capture, where C3's checks ru
 NOT_RUN = "not yet decided: the desk has not run today"
 PENDING = "not yet decided (final at {at:%H:%M} IST)"
 UNREADABLE = "{path}: not readable ({why})"
+DESK_FROZEN = "desk frozen by the owner: no execution snapshot taken"
 
 
 @dataclass(frozen=True)
@@ -147,6 +149,8 @@ class ExecutionOutcome(RuleSource):
 
 
 def _verdict(result: dict) -> tuple[str, str]:
+    if result.get("status") == STEP_FROZEN:  # story O1-desk-freeze: a session the owner froze, not a failed capture
+        return DESK_FROZEN, ""
     if result.get("valid"):
         return "valid execution snapshot", ""
     return f"no valid execution snapshot ({result.get('reason', 'no reason recorded')})", CARD_DATA_CHECK_FAILED

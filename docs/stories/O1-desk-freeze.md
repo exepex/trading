@@ -34,8 +34,15 @@ G13b's steps and scores, the candles and A4h's close reads. The risk manager and
 3. **Open positions are the one exception (reasoning only; the owner decides).**
    - Freezing `exits` and `trade_marks` while a book holds an open trade would leave that trade unclosed and unmarked
      until the restart. That is a risk the cut-list's "risk and data checks unchanged" does not intend.
-   - Proposal: `exits` and `trade_marks` keep running while any book holds an open position. The day's log then
-     names why ("open positions: <count>"), and they freeze from the first session with none.
+   - Proposal: the steps an open position needs keep running while any book holds one, and they freeze from the
+     first session with none. Those steps are `pack`, `snapshot`, `exits`, `trade_marks` and `reviews`.
+   - **Corrected in the code (strong evidence, a test on E3's real `DailyRun`).** The first text kept only `exits`
+     and `trade_marks`. With `snapshot` and `pack` frozen, the exits' data gate finds no execution capture and no
+     spot, so the open trade was "not reviewed" and alerted every session: the exception closed nothing. With
+     `pack` and `snapshot` kept, the same trade is reviewed ("held: no exit rule reached") and nothing is alerted.
+   - `reviews` (E6) stays too: its catastrophic- and cumulative-loss rules judge open positions, and the cut-list
+     keeps risk unchanged. `versions`, `decisions`, `fills`, `book1`, `owner_timing_fills` and `card` stay frozen:
+     nothing new opens.
    - Today no book holds a position (the committed logs since 19 Oct show no trades), so in practice the whole desk
      freezes.
    - **Question for the owner, through the orchestrator:** this exception, or a plain freeze of `exits` too?
@@ -77,8 +84,9 @@ G13b's steps and scores, the candles and A4h's close reads. The risk manager and
    desk; `fills` is not blocked by `_unreviewed`, `_unscored` or `_unfilled`.
 5. **Health, scoreboard B and the card read a frozen day as frozen**: no missed run, no late decision, and no "no
    valid execution snapshot" on the restart day's card.
-6. **The open-position exception** (if the owner chooses it): with an open trade, `exits` and `trade_marks` run and
-   the other desk steps freeze.
+6. **The open-position exception** (if the owner chooses it): with an open trade, `pack`, `snapshot`, `exits`,
+   `trade_marks` and `reviews` run, the trade is reviewed at the snapshot with no alert, and the other desk steps
+   freeze.
 7. **The switch is the only control.** `desk.frozen` absent or false gives today's run unchanged (the existing suite
    passes untouched). A planted freeze of a non-desk step (`quotes_done`) is refused by a test of the frozen set.
 

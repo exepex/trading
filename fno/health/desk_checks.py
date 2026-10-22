@@ -3,7 +3,8 @@
 - Desk: `journal/runs/<date>.json` holds every step of `DAILY_RUN_STEPS` (story O1's tuple, the one the run loops
   over); the `decisions` step finished by the timetable's decision deadline (its in-file time); an O1 step whose status
   is `failed` or `refused` is a problem shown with its reason, `not_live` is present and counts as neither; a `skipped`
-  run (not a session day) is not expected.
+  run (not a session day) is not expected, and so is a frozen desk (story O1-desk-freeze: its decisions step is
+  `frozen`), unless another step failed.
 - A16: the day's ledger has every mark with status `good`. A16's own per-mark status (its 120 s rule) is final: this
   check only counts it, with no deadline of its own beyond the session's last mark."""
 
@@ -20,6 +21,7 @@ from ..constants import (
     HEALTH_OK,
     RUN_LOG_DECISIONS_STEP,
     STEP_FAILED,
+    STEP_FROZEN,
     STEP_REFUSED,
 )
 from ..desk.run_log import RunLog
@@ -30,6 +32,7 @@ from ..models import IST
 from .model import CheckResult, Deadline, EvidenceUnknown, SessionCheck, absent, judged
 
 SKIPPED_STEP = "skipped"  # the run's closed-day step
+DESK_FROZEN = "desk frozen by the owner: no decisions expected"
 
 
 class RunLogCheck(SessionCheck):
@@ -44,6 +47,9 @@ class RunLogCheck(SessionCheck):
             return CheckResult(HEALTH_NOT_EXPECTED, "run skipped: not a session day")
         if not log.done(RUN_LOG_DECISIONS_STEP):
             return absent(now, self.deadline.on(session), "no decisions step")
+        if log.result(RUN_LOG_DECISIONS_STEP).get("status") == STEP_FROZEN:
+            problems = _problems(log)
+            return CheckResult(HEALTH_MISSED, problems) if problems else CheckResult(HEALTH_NOT_EXPECTED, DESK_FROZEN)
         try:
             decided = datetime.fromisoformat(log.steps[RUN_LOG_DECISIONS_STEP]["finished_at"])
         except (KeyError, TypeError, ValueError):

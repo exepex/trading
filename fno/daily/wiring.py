@@ -11,7 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP
+from ..constants import BOOK1_RULES, CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP
 from ..desk.daily_ports import DayStep
 from .runner import DayRunner
 
@@ -163,7 +163,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
-                                git_committer=committer, recorder=public_recorder(root))  # fmt: skip
+                                git_committer=committer, recorder=public_recorder(root),
+                                frozen=desk_freeze(cfg, root, (BOOK1_RULES,)))  # fmt: skip
     archive = full_log_archive(root, committer, alerts)
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts), archive.archive)
 
@@ -175,6 +176,14 @@ def public_recorder(root: Path):
     from .reason_codes import COMMON, STEP_TEMPLATES
 
     return PublicRecorder(PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES)), FullRunLog(root / FULL_LOGS))
+
+
+def desk_freeze(cfg: dict, root: Path, books: tuple[str, ...]):
+    """Story O1-desk-freeze: the owner's switch, and the books' open trades (their shadow accounts included)."""
+    from ..desk.trade_marking import marked_accounts
+    from .desk_freeze import DeskFreeze, desk_frozen, open_trades
+
+    return DeskFreeze(desk_frozen(cfg), lambda: open_trades(root, marked_accounts(root, books)))
 
 
 def full_log_archive(root: Path, committer, alerts):

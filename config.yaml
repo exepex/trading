@@ -158,6 +158,9 @@ scorecard_review:
 # 72); decisions are collected at the deadline; the execution snapshot is a second recorder capture; fills and exits
 # finish by `fills_by`. The account lock lease covers one book's write inside the fills window, not E1's 600 seconds.
 desk:
+  # story O1-desk-freeze: true freezes the paper desk's daily steps (owner, 22 Oct 2026: until the edge study shows
+  # an edge after costs); false restarts them the next session. Exits and marks still run while a position is open.
+  frozen: false
   timetable:
     status: proposed until S1
     pack: "14:58"  # first try; retried until `pack_wait_until` while the canonical snapshot is not committed yet

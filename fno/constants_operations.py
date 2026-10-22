@@ -16,6 +16,9 @@ __all__ = [
     "STEP_FAILED",
     "STEP_REFUSED",
     "STEP_NOT_LIVE",
+    "STEP_FROZEN",
+    "DESK_FROZEN_STEPS",
+    "OPEN_POSITION_STEPS",
     "HEALTH_OK",
     "HEALTH_LATE",
     "HEALTH_MISSED",
@@ -66,6 +69,12 @@ DAILY_RUN_STEPS = (
     "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
 )  # fmt: skip; the quote parts start first (judge 178)
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
+STEP_FROZEN = "frozen"  # story O1-desk-freeze: a desk step the owner froze (config.yaml desk.frozen); not a failure
+# The paper desk's daily steps the freeze stops (owner's cut-list, 22 Oct); every other step of the day runs as ever
+DESK_FROZEN_STEPS = (*DESK_RUN_STEPS, "book1", OWNER_TIMING_STEP, REVIEWS_STEP, "card")
+# What an open position needs, so they run while any book holds one: its prices (the pack's spot and the execution
+# snapshot, which the exits' data gate reads), its exits, its marks and E6's loss rules on it
+OPEN_POSITION_STEPS = ("pack", "snapshot", RUN_LOG_EXITS_STEP, RUN_LOG_TRADE_MARKS_STEP, REVIEWS_STEP)
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record
 HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"
