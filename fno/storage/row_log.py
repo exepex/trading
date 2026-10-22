@@ -17,7 +17,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from ..storage.raw_store import RawFileStore
+from .raw_store import RawFileStore
 
 PART_NAME = "{at:%Y%m%dT%H%M%S%f}.csv"  # sorts in append order
 
