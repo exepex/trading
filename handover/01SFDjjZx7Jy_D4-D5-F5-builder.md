@@ -166,6 +166,15 @@ I was judged, never a judge. Open findings for others:
 7. **The Innovation Lab design** (`docs/stories/IL-innovation-lab.md`, with judge E) depends on LR3's CUSUM for
    automatic demotion. LR3's code was never started (see (d)).
 
+8. **`Git._run` ignores git's exit code** (G11/F1 owner, 013xqaNT, 22 Oct; fix on `story/git-run-fails-loud`, judge
+   J). A failed `git log` reads as "nothing found", which could pass D5's registry checks. I agreed that the methods
+   reading output raise `GitFailed`, and asked for:
+   - `ConstitutionMode` to catch `GitFailed` beside `NotRegistered` and fail the named "constitution" check, with a
+     test;
+   - `committed_text` to keep None for git's two "does not exist" answers.
+
+   Check that both are in the merged fix.
+
 ## (h) The successor's first three actions
 
 1. Read `docs/WORK_REGISTER.md` and DESK_DECISIONS's 21 Oct rows on `main`: is F5, D4/D5 or LR3 in phase 1? If not,
