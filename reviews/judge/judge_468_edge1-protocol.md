@@ -111,3 +111,45 @@ to them unchanged.
 by how much the house cap would have been breached.
 
 **Next:** the code and the freeze. I check them before registration and run 1.
+
+## Addendum 4
+
+**Scope:** EDGE1 protocol revision 3 (story/edge1-build at 1896d9b3, sections 3, 9 and 14), a set of changes made
+before the freeze. Under the orchestrator's instruction I opened no new round on points already settled.
+
+**Verdict: PASS.** Nothing blocking, nothing to fix.
+
+**Checked:**
+- **Seal (section 3).** 31 Dec 2022 + 45 days = 14 Feb 2023, correct. A decision day falls 30-45 days before expiry,
+  so run 1's last cycle is the January 2023 expiry (25 Jan, decided 11-26 Dec 2022). The February expiry (23 Feb) is
+  decided in January 2023, inside run 2. `cycles_of(..., expiry_by=RUN1_SEAL)` therefore drops no run-1 cycle.
+  `inputs.markets(through=)` cuts the rows before any panel is built, and `run1` seals the panel again
+  (`runner.sealed`).
+- **Historical STT (section 9).** Premium 0.05% to 31 Mar 2023, 0.0625% to 30 Sep 2024, 0.1% to 31 Mar 2026, then
+  0.15%. Exercise 0.125%, then 0.15% from 1 Apr 2026. These match the Finance Acts' dates as I know them, and the
+  0.15% matches `config.yaml`. Every order is charged at its own trade date's rate. The results are reported as
+  `pad1_stt_history` and never decided on.
+- **Exchange charge, stated but not modelled.** I re-did the arithmetic for the worst case, a spread whose bought
+  legs cost as much as its sold legs:
+  - under-charge: at most 0.018% × 2 sides × (sold + bought premium) = 0.072% of sold premium;
+  - over-charge on STT: 0.10% of sold premium before Apr 2023, 0.0875% from Apr 2023 to Sep 2024.
+  
+  The over-charge is larger in every window, so "the decided run stays conservative overall" holds per trade, not
+  only on average.
+- **Margin label.** "calculator only, unchecked" is honest: `margins.csv` comes from the same calculator, so it
+  cannot check it. Margin is not a pass condition, so the old build gate's removal changes no decision.
+
+**Gates (partial, for the protocol only):** `tests/research_edge1` passed, 38 of 38, at 1896d9b3. The full gates run
+on the code verdict.
+
+**Plants:**
+- **STT date moved one day** (1 Apr 2023 → 2 Apr 2023): caught by
+  `test_the_schedule_changes_on_each_acts_first_day`.
+- **The seal's session filter loosened by 30 days** (`runner.sealed`): **not caught.** Both run tests still passed.
+  It is not a protocol defect. For the code verdict, a test must show that a session after RUN1_SEAL never reaches
+  run 1: the panel's sessions, not only its option prices.
+
+**Note:** the runner docstring says run 1's cycles expire "by early February 2023". That is the 45-day upper bound;
+the real last expiry is 25 Jan 2023. It is wording only.
+
+**Next:** the code, the mutation proof and FREEZE.md, judged before registration and run 1.
