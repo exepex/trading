@@ -13,6 +13,7 @@ INSUFFICIENT_SPREAD_LINE = "insufficient spread data"
 # on every two-sided quote, so a synthetic quote carries this switch value: above any lot count, not a measurement.
 SIZE_GATE_WAIVED = 10**9
 
+TICK = 0.05  # NSE's option tick
 MIN_QUOTED_SESSIONS = 30  # a spread bucket below this reads "insufficient spread data" (response 327, correction 6)
 DATA_END = date(2026, 10, 12)  # the day before the first forward capture of an index monthly (13 Oct 2026)
 

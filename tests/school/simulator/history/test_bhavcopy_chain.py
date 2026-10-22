@@ -98,3 +98,18 @@ def test_the_monthly_rows_match_edge1s_own_reader_on_the_same_records(chain):
     ours = [r for r in chain.day("NIFTY", DAY).rows if r.monthly]
     assert sorted((q.expiry, q.strike, q.kind, q.close, q.volume, q.open_interest) for q in theirs.options) == sorted(
         (r.expiry, r.strike, str(r.kind), r.close, r.volume, r.open_interest) for r in ours)  # fmt: skip
+
+
+def test_a_number_that_is_not_one_makes_the_file_unreadable_for_that_format(monkeypatch):
+    bad = [record(close="12x"), record(kind=INDEX_FUTURE, strike="", side="")]
+    monkeypatch.setattr(bhavcopy_chain, "read_fo_file", lambda name, data: bad)
+    assert BhavcopyChain([files_of(bad)]).day("NIFTY", DAY) is None
+
+
+def test_the_index_close_comes_from_the_nearest_expiry_whatever_the_row_order(monkeypatch):
+    far = record(expiry=date(2024, 4, 25), under="22300")
+    near = record(under="22100")
+    fut = record(kind=INDEX_FUTURE, strike="", side="")
+    for order in ([far, near, fut], [near, far, fut]):
+        monkeypatch.setattr(bhavcopy_chain, "read_fo_file", lambda name, data, rows=order: rows)
+        assert BhavcopyChain([files_of(order)]).day("NIFTY", DAY).index_close == 22100.0
