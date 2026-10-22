@@ -152,6 +152,7 @@ NO_LATENCY_LABEL = "no latency [reasoning only]: fills at the quotes the driver 
 NSE_TERMS_LINE = "Open question: NSE's terms on 'virtual trading or simulation' (settlement uses NSE's archived file)"
 FLEET_TOTAL_LABEL = "separate hypothetical accounts, not one budget"
 SCHOOL_OFF_LINE = "school off"
+ROAD_DETAIL_INPUT = "road_detail"  # the decision record's `inputs` key for a closed road's `RoadStatus.detail`
 
 # The `school` block of config.yaml (fno/school/settings.py reads exactly these keys).
 SETTINGS_KEY = "school"

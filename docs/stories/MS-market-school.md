@@ -239,6 +239,20 @@ Rules for every story:
 8. Every fake satisfies its `Protocol`, checked by a conformance test that each later story's real class must also
    pass (`tests/school/contracts/conformance.py`, importable).
 
+### MS-P1a2 Contracts follow-up · lane 1 · model tier: H · `story/ms-p1-contracts-a2` · additive only
+
+Asked by the orchestrator, 22 Oct 2026, for b and e.
+- `RoadDay.strike_steps: Mapping[date, float]` holds each recorded expiry's own step (FINNIFTY's November monthly
+  lists 100-point strikes against October's 50). It is optional; when given it names every expiry, each above zero,
+  and the nearest is `strike_step`. `RoadDay.step_for(expiry)` returns that expiry's step and never borrows another.
+  The field is left out of the hash, so `RoadDay` stays hashable.
+- `RoadStatus.detail: str = ""` is a plain detail for a closed road only (e.g. why a listing was unreadable). The
+  fleet records it in the decision record's `inputs` under `ROAD_DETAIL_INPUT`, so the record layout and its bytes
+  do not change.
+- Conformance: `check_road_catalogue` now requires every open road's steps for every recorded expiry.
+- `Seal.pushed_at`'s comment (judge 485, Judge J): it is the receipt commit's time; the proof of the push is the
+  receipt on the remote, since `DashcamStore.seal` returns only after the push succeeded. Comment only.
+
 ### MS-P1b Roads and the quality gate · lane 1 (closes roads, which decides trades) · model tier: S · depends on a
 
 **Files owned:** `fno/school/roads/`, `fno/school/quality/`, `tests/school/roads/`, `tests/school/quality/`.
@@ -703,3 +717,12 @@ MS-P1g round 2 (judge 484 FAIL, round 1; each finding checked against the code a
    (`test_a_failure_alert_never_repeats_the_exceptions_message` plants a contract key and a strike).
 Broken-code proof: 7 mutations of the new code (the guard's `except`, the candidate role filter, the fleet total, the
 alert text, the `page_wiring` call, the flag check, the controls' lines) each fail a named test.
+### MS-P1a2 Claims (round 1)
+| Item | Code | Test (plant caught) |
+|---|---|---|
+| Per-expiry steps | `contracts/roads.py` `RoadDay.strike_steps`, `step_for` | `test_road_steps.py`: a later expiry's own step; no borrowing; wrong steps refused (a missing expiry, zero, a wrong nearest step, an extra expiry); still hashable. Plants: each check removed, borrowing allowed, the field hashed |
+| Closed-road detail | `RoadStatus.detail`, `constants.ROAD_DETAIL_INPUT` | `test_a_closed_road_carries_its_detail_and_an_open_one_none`; `test_the_detail_is_recorded_in_the_decision_inputs`. Plant: an open road with a detail allowed |
+| Conformance | `check_road_catalogue` | `test_the_catalogue_check_refuses_an_open_road_without_every_expiry_s_step`. Plant: the steps check removed from conformance |
+- **Plants:** 7 planted, 7 caught.
+- **Change for b:** `check_road_catalogue` now needs `strike_steps` for every recorded expiry on every open road.
+- **Records:** neither layout nor bytes change.
