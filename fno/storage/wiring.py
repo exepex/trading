@@ -299,5 +299,5 @@ def build_session_calendar() -> SessionCalendar:
 
 
 def build_file_exceptions() -> dict:
-    """(dataset, day) -> reason, for sessions NSE never published a file for (sourced; A1)."""
+    """(dataset, day) -> reason, for sessions with no archived file: never published (A1) or refused content (A23)."""
     return read_exceptions(COVERAGE_EXCEPTIONS)

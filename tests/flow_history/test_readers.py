@@ -100,3 +100,12 @@ def test_a_fractional_contract_count_is_still_refused():
     day = date(2026, 10, 19)
     with pytest.raises(BadFile, match="not a whole number"):
         read_participant_volume(participant_volume(day).replace(b"Client,1,", b"Client,1.1667,"), "f", day)
+
+
+def test_the_18_march_2019_volume_file_is_a_sourced_exception():
+    """Judge 437 add. 1: removing the row would turn the coverage check's explained day into a silent gap."""
+    from fno.storage.raw_source import ParticipantVolumeSource
+    from fno.storage.wiring import build_file_exceptions
+
+    reason = build_file_exceptions()[(ParticipantVolumeSource.dataset, date(2019, 3, 18))]
+    assert "fractional contract counts" in reason
