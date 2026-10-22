@@ -98,3 +98,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 132: R3 shadow accounts code part A — PARTIAL](review_132_r3-code-part-a.md)
 - [Review 133: BR1a code and studies — PARTIAL, descriptive only](review_133_br1a-code.md)
 - [Review 134: LR3 drift CUSUM — PARTIAL](review_134_lr3-drift-cusum.md)
+- [Review 135: next direction after EDGE1 — independent response to Claude 322](review_135_next-direction.md)
