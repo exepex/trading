@@ -95,9 +95,10 @@ def test_with_a_baseline_only_new_problems_are_posted(tmp_path):
     assert "1 new problem(s)" in alerts.sent[0] and "response_1_a" not in alerts.sent[0]
 
 
-def test_the_alert_workflow_runs_on_every_push_and_hourly_with_the_push_baseline():
+def test_the_alert_workflow_runs_on_every_push_with_the_push_baseline_and_no_schedule():
     steps = (Path(__file__).resolve().parents[2] / ".github" / "workflows" / "number-alert.yml").read_text()
-    assert '  push:\n    branches: [main]\n  schedule:\n    - cron: "17 * * * *"' in steps
+    assert "  push:\n    branches: [main]\n  workflow_dispatch:" in steps
+    assert "schedule:" not in steps and "cron:" not in steps  # the hourly reminder is off (owner, 22 Oct 2026)
     assert "run: python tools/check_numbers.py --alert ${{ steps.baseline.outputs.args }}" in steps
     assert "FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}" in steps
 
