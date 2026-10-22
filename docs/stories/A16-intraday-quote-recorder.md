@@ -612,3 +612,68 @@ refused, the outcome names the path, and `main` is untouched. (e) Every existing
 **Routine prompt (owner edits; agents cannot edit API-created routines):** a step 0 that puts the checkout on `main`
 (`git fetch origin main && git checkout -B main origin/main`), and a last step that checks nothing recorded is left
 unpushed. With fix 2 the step 0 is belt-and-braces; it is needed until A16f merges.
+
+## A16h. A read-only probe of Groww's streaming feed (lane 1, 22 Oct 2026; owner decision of 23 Oct, orchestrator's go)
+
+**Owner and builder:** the A16 builder (session 01VK88LxJvV1Gi7Wbr3D4fzp). **Judge:** I (`session_01MvZneCLZqBuiGyNxawdVee`),
+text first, then the code. **Research note:** `research/school/probes/2026-10-23-live-data-feeds.md` (the owner's
+decision: buy nothing; probe the Groww feed already paid for, from Tue 27 Oct, never on v4's clean days 23 and 26 Oct).
+
+**Description:** As the statistician and the Groww intraday owner, I want four facts about Groww's websocket feed
+(`growwapi.GrowwFeed`) measured in market hours, read-only, so that the owner can decide whether polling every 15
+minutes can be replaced without a second paid source.
+
+**Questions the probe answers (in a dated probe note, each with an evidence label):**
+1. **Coverage:** do LTP and market depth stream for the four indices' (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY) monthly
+   near-money options (±10 strikes around ATM), NIFTY's weekly near-money options, the current, next and far futures,
+   and the four index values?
+2. **Subscription limit:** the docs say 1,000, Groww's blog 3,000. A ramp of 500, 1,000, 1,500, 2,000 and 3,000 stops at
+   the first refusal or error and records the count reached and the error's class name.
+3. **Separate budget:** is the feed apart from the REST limits (10 a second, 300 a minute)? The probe runs while A16's
+   marks and the 3 pm recorders run; that day's A16 ledger and A4, A4c and A4f sidecars are compared for 429s and
+   missing quotes against the clean days, 23 and 26 Oct.
+4. **Rate and latency:** messages per second per instrument; latency = our receipt time minus the tick's own exchange
+   time where the tick carries one (median and 95th percentile), else "no exchange time in the tick".
+
+**Design:**
+- **`ReadOnlyFeed`** (`fno/intraday/read_only_feed.py`, new), built like `ReadOnlyGroww`: it holds the feed and lets
+  through only the market-data names `subscribe_ltp`, `subscribe_market_depth`, `subscribe_index_value`, `get_ltp`,
+  `get_market_depth`, `get_index_value`, `get_all_feed`, `consume`, `unsubscribe_ltp`, `unsubscribe_market_depth` and
+  `unsubscribe_index_value`. It refuses everything else before it reaches the SDK, including the account-reading
+  methods `subscribe_fno_order_updates`, `subscribe_fno_position_updates`, `subscribe_equity_order_updates`,
+  `get_fno_order_update`, `get_fno_position_update`, `get_equity_order_update` and their `unsubscribe_` pairs (each
+  named in a test), and any `place_`, `modify_`, `cancel_` or `create_` name. `GrowwFeed(groww_api)` takes the full
+  trading client, so it is built and wrapped only in the composition root (`fno/intraday/feed_wiring.py`, new); the
+  probe holds only the wrapper.
+- **`python -m fno intraday feed-probe --plan <coverage|ramp|alongside> --minutes N`**: a probe, not a recorder. It
+  keeps counts and times only (per instrument: ticks, first and last receipt time, latency figures); no tick value is
+  printed, committed or posted. The probe note is written by hand from its printed summary.
+- **Plans and limits:** `coverage` (about 400 instruments, 20 minutes); `ramp` (stops at the first refusal or error);
+  `alongside`: **at most 1,000 instruments whatever the ramp showed, and if its own sign-in or any call answers 429 it
+  unsubscribes everything and stops at once** (orchestrator: the 3 pm data feeds G13, so losing it costs a day).
+- **Schedule (IST, from Tue 27 Oct; 28 Oct if the code is not passed by then):** `coverage` 10:20-10:40 (overlapping
+  A16's 10:30 mark), `ramp` 11:05-11:25 (away from 3 pm), `alongside` 14:50-15:20 (beside the 3 pm recorders and A16's
+  15:00 and 15:15 marks). Run by the builder by hand; no schedule or workflow is created.
+
+**Acceptance criteria:**
+1. `ReadOnlyFeed` passes exactly the eleven market-data names; each account-reading name above and every
+   `place_|modify_|cancel_|create_` name in the SDK's `dir(GrowwFeed)` is refused with nothing reaching the feed; the
+   wrapper cannot be changed after it is built.
+2. No module outside the composition root names `GrowwFeed` or `GrowwAPI` (the import-closure test A16 already has).
+3. `alongside` refuses more than 1,000 instruments; a fake feed answering 429 makes it unsubscribe all and stop with
+   one named line.
+4. `ramp` stops at the first error and reports the count reached; `coverage` reports per instrument whether ticks came.
+5. Nothing the probe prints holds a token, a key or a tick value (a test over its summary lines).
+6. Gates: the full suite, ruff, imports, code size.
+
+**Known limits (one line each):** the probe signs in from its own process, so two sign-ins share one key (they
+coexisted outside market hours on 15 Oct; the probe tests it in market hours); a ramp to 3,000 may draw throttling on
+Groww's side, so it stops at the first error; Groww's terms do not clearly allow read-only use (owner chose not to
+ask, 22 Oct); the probe says nothing about how a feed-based recorder would be built (a later story, if the owner wants
+one).
+
+**Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
+--groww` · **Size:** S · **Status:** story text for judge I (22 Oct 2026)
+
+### Claims
+- (code round) to be filled when the code is pushed.
