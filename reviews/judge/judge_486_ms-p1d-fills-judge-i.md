@@ -4,7 +4,7 @@
 (session_01MvZneCLZqBuiGyNxawdVee), the second judge under JUDGE.md "Two judges for money pieces". I did not read
 Judge B's verdict. Lane 1. Round 1 of 2.
 
-**Verdict: FAIL.** 2 should-fixes, 1 minor. Every criterion passes; both should-fixes are paths where a protection
+**Verdict: FAIL.** 2 should-fixes, 1 minor. It holds at 7064a030, which only merges a's final: no file under d's packages or tests changed, and both defects are unchanged there. Every criterion passes; both should-fixes are paths where a protection
 can quietly stop working.
 
 ## Criteria
