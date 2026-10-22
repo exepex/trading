@@ -164,15 +164,18 @@ It is committed before run 2. Judge B reproduces it.
 Only run 1's G1 passers are tested, on run 2's cycles:
 - **D:** mean net per trade (after charges and pads) on complete-exit trades, at the Rs 1 pad.
 - **One-sided p of D > 0:** G4's bootstrap code (`fno/forecast_scoring/block_bootstrap.resampled_means`, 10,000
-  resamples, seeded by the variant's index k in a fixed list), with the **block length passed in as 1 trade** (judge
-  468 SF1). G4's 20 suits daily data. Here the trades are monthly and never overlap (each exits at T21, EXP or earlier,
-  before the next cycle's decision), so one trade is the natural block. A 20-trade block on about 45 trades would leave
-  about 3 blocks per resample, a near-degenerate null. The build adds `block` as a keyword argument to
-  `resampled_means`, defaulting to G4's 20, so no existing caller changes.
+  resamples, seeded by the variant's index k in a fixed list), with the **block length passed in as 2 trades** for
+  every variant (judge 468 SF1, 468.1). G4's 20 suits daily data; here a trade is one monthly cycle.
+  - T21, SL2 and TP50 trades exit before the next cycle's decision.
+  - EXP trades are held to expiry, past the next decision (about 13 Jan for the 27 Feb 2025 expiry, against a 30 Jan
+    exit), so consecutive EXP trades overlap by about two weeks and share index moves.
+  - A block of 2 keeps such neighbours together, and is used for all variants alike.
+  - The build adds `block` as a keyword argument to `resampled_means`, defaulting to G4's 20, so no existing caller
+    changes.
   - The test: p = (1 + #{b : M*_b - D >= D}) / (B + 1), with M* the resampled means; that is, the share of re-centred
     means at least as far above 0 as D.
-  - **Fewer than 30 trades: not tested, p = 1.** G4's minimum of 40 is twice its block of 20. With a block of 1,
-    30 trades is the floor I state for a mean's bootstrap to be usable [reasoning only].
+  - **Fewer than 30 trades: not tested, p = 1.** G4's minimum of 40 is twice its block of 20. With a block of 2,
+    30 trades (15 blocks) is the floor I state for a mean's bootstrap to be usable [reasoning only].
 - **Holm** at 0.05 across every variant run 2 tests, **both indices in one family**
   (`fno/scoreboard/uncertainty.holm`), and registered as the family
   of the one research question in R1's factory.
@@ -220,6 +223,7 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
-Revision 1 (before the freeze, judge 468): the bootstrap block is 1 trade with a floor of 30 trades; Holm spans both
+Revision 1 (before the freeze, judges 468 and 468.1): the bootstrap block is 2 trades (EXP trades overlap) with a
+floor of 30 trades; Holm spans both
 indices; run 1 prints expected run-2 counts. Any change after the freeze is written here, before any result it could
 affect, and sent to judge B.
