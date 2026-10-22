@@ -14,6 +14,7 @@ from fno.school.fakes import FakeAccounts, FakeFills, FakeSettlementSource
 from fno.school.tickets.book import TicketBook, TicketLedger
 from fno.school.tickets.rules import as_ticket
 from fno.school.tickets.rupees import account_net
+from fno.school.tickets.shared_size import OwnedFill, allocate
 from tests.school.contracts import builders as b
 from tests.school.contracts.test_records import outcome_record
 
@@ -103,8 +104,21 @@ def test_a_ticket_exit_fills_and_closes():
 
 def test_ticket_rupees_never_reach_the_owner_total():
     trade, ticket_outcome = outcome_record(), replace(outcome_record(), is_ticket=True, net=99_999.0)
-    assert account_net([trade, ticket_outcome]) == trade.net
-    assert account_net([ticket_outcome]) == 0 and account_net([]) == 0
+    assert account_net([trade, ticket_outcome]).net == trade.net
+    assert account_net([ticket_outcome]).net == 0 and account_net([]).net == 0
+
+
+def test_two_accounts_on_one_displayed_size_sum_only_the_servable_one():
+    quotes = {b.key(1000.0): b.quote(size=30), b.key(900.0): b.quote(4.0, 5.0, size=30)}
+    snapshot = b.snapshot(quotes=quotes)
+    first = FakeFills().enter(b.sealed(), snapshot, b.seal(), AT)
+    second = FakeFills().enter(b.sealed(), snapshot, b.seal(), AT)  # REF's own fill: equal to CS1's, another owner
+    allocation = allocate([OwnedFill("CS1@1", first), OwnedFill("REF@1", second)], snapshot, "15:00")
+    lost = allocation.unservable[0]
+    outcomes = [replace(outcome_record(), position_id=owner, driver_id=owner, entry=fill, net=100.0)
+                for owner, fill in (("CS1@1", first), ("REF@1", second))]  # fmt: skip
+    total = account_net(outcomes, allocation.unservable_fills)
+    assert first == second and total.net == 100.0 and total.left_out == (lost.owner,)
 
 
 def test_the_ticket_outcome_keeps_its_ticket_outcome_code():

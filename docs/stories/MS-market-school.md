@@ -347,8 +347,9 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
   - The first `max_new` that pass every law trade.
   - A later one that passes is `ticket: trade_limit`.
   - One refused only by `ACCOUNT_LIMITS` is `ticket: account_limit` (orchestrator, 22 Oct 2026).
-  - Any other refusal, the daily stop and the brake included, is `refused` with the first reason: a stopped or braked
-    driver issues no tickets that day.
+  - Any other refusal, the daily stop and the brake included, is `refused`. A stopped or braked driver issues no
+    tickets that day, and its refusal names the stop first.
+  - Only trades enter `accepted`: a ticket never takes a place or adds risk to the running view.
 - `TicketBook` (`book.py`):
   - it refuses a ticket whose sealed law results break a binding law (anything but `ACCOUNT_LIMITS`);
   - it fills through the same `FillPort` as trades;
@@ -356,9 +357,16 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
     account.
 - `counts_for` and `totals` (`counts.py`): eligible, fillable and executed per decision; `scheduled` (every sealed
   decision) is the denominator; one row per (session, road, driver).
-- `allocate` (`shared_size.py`, 327 item 10): whole fills are served in a fixed order against each contract's and
-  side's displayed size. A report sums only the servable fills and names the rest.
-- `account_net` (`rupees.py`): the only rupee sum, and it never includes a ticket.
+- `allocate` (`shared_size.py`, 327 item 10; orchestrator's rulings on judge 481): whole fills are served against each
+  contract's and side's displayed size at one road's snapshot.
+  - Account fills are served first; tickets get only what is left.
+  - Within each group, owners are ordered by a seed from SHA-256(session, slot, road), so no name biases the
+    comparison. The seed and the order are recorded.
+  - `fill_status` marks an account entry the size could not serve `unavailable: size_shared`; it stays in every
+    denominator (`counts_for(..., size_shared=True)`: fillable, not executed).
+  - `UnavailableReason.SIZE_SHARED` is added to a's constants, additively.
+- `account_net` (`rupees.py`): the only rupee sum. It leaves out tickets and every account outcome whose entry or exit
+  was unservable, keyed by (driver, fill), and names those positions.
 
 **Acceptance tests:**
 1. Tickets:
@@ -465,6 +473,12 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - **requirement (orchestrator, 22 Oct):** a REF entry refused only by account limits (C2's bucket among them) becomes
   `ticket: account_limit` through `tickets.rules.classify`, the same rule as every driver, so REF stays measured on
   every open road-slot;
+- **requirement from MS-P1f (judge 481):** after a road's entry fills and before any account records them, the fleet
+  runs `tickets.shared_size.allocate` over that snapshot's account and ticket fills. It records only the servable
+  account entries, gives each unservable one `fill_status`'s `unavailable: size_shared`, passes `size_shared` to
+  `counts_for`, and passes `unservable_fills` to `account_net`;
+- **requirement from MS-P1f (judge 481 note):** every outcome record of a position from the ticket ledger has
+  `is_ticket=True`, or `account_net` would sum it;
 - **requirement (orchestrator, 22 Oct):** the daily and the 30-session reports show, per road, the share of scheduled
   decisions refused for quotes (law 5: `missing_quote`, `one_sided_quote`, `size_above_displayed`,
   `protection_unsellable`). The capture gate's band is about 10 steps of the money while the shorts sit about 20 steps
@@ -635,3 +649,19 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Gates on this tree:** `pytest -q -n auto` gave 10,270 passed, 16 xfailed. `ruff`, `check_imports` and
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
+
+### MS-P1f Claims, round 2 (judge 481, FAIL round 1: two should-fixes and two minor findings)
+
+| Judge 481 finding | Fix | Test (plant caught) |
+|---|---|---|
+| 1. No test pinned that tickets stay out of the running view | none needed in the code (only trades enter `accepted`); the rule is now in the docstring | `test_a_ticket_never_enters_the_slot_s_running_view` (the judge's plant 2: a non-refused decision appended) |
+| 2. Shared size: no rupee path, a name-biased order, tickets could take an account's size | `allocate` serves accounts first, in a seeded order recorded with its seed. `fill_status` gives `unavailable: size_shared`. `counts_for(size_shared=)` makes it fillable, not executed. `account_net` leaves out and names unservable outcomes, keyed by (driver, fill). Two MS-P1j requirements added | `test_shared_size.py` (seeded order, independent of the given order; no name wins every session; accounts before tickets; equal fills of two owners); `test_two_accounts_on_one_displayed_size_sum_only_the_servable_one`; plants: sort by name, tickets mixed in, session dropped from the seed, size_shared ignored, wrong set, no exclusion |
+| Minor (a): plant 21 survived | a trade row with an account-limit refusal | the `(TRADE, CAP, filled)` counts row (plant 21 caught) |
+| Minor (b): a braked driver was shown `open_risk` | `DRIVER_STOPS` reasons are named first | two rows in `test_any_other_refusal_stays_refused_with_the_first_reason`; plant: the stop-first rule removed |
+
+- **Found while fixing:** two accounts filling one structure at one touch give equal `FillResult` values, so a set of
+  fills could not tell them apart. Unservable fills are keyed by (owner, fill). The test asserts the two fills are
+  equal and that only one is left out.
+- **Shared file:** `fno/school/constants.py` gains one additive line, `UnavailableReason.SIZE_SHARED`, by the
+  orchestrator's ruling 2(c). Part a is not on `main` yet, so it rides with f.
+- **Plants:** 33 planted, 33 caught, the judge's two survivors among them.

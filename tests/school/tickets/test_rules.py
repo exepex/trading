@@ -86,12 +86,28 @@ def test_a_rule_refused_only_by_account_limits_becomes_an_account_limit_ticket(c
 
 @pytest.mark.parametrize("results, reason", [
     ((refused(RefusalReason.DAILY_STOP),), RefusalReason.DAILY_STOP),  # a stopped driver issues no ticket
-    ((refused(RefusalReason.OPEN_RISK), refused(RefusalReason.BRAKE)), RefusalReason.OPEN_RISK),  # nor a braked one
+    ((refused(RefusalReason.OPEN_RISK), refused(RefusalReason.BRAKE)), RefusalReason.BRAKE),  # nor a braked one: the
+    # stop is named first, so a report shows why the driver stopped (judge 481 minor b)
+    ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.DAILY_STOP)), RefusalReason.DAILY_STOP),
     ((refused(RefusalReason.BUCKET_CAP), refused(RefusalReason.MISSING_QUOTE)), RefusalReason.BUCKET_CAP),
     ((refused(RefusalReason.MAX_LOSS), refused(RefusalReason.OPEN_RISK)), RefusalReason.MAX_LOSS)])  # fmt: skip
 def test_any_other_refusal_stays_refused_with_the_first_reason(results, reason):
     [(out, _)] = classify((fired(RoadCode.NIFTY_MONTHLY, 0.5),), always(*results), 5)
     assert (out.outcome, out.reason) == (Outcome.REFUSED, reason) and out.proposal is not None
+
+
+def test_a_ticket_never_enters_the_slot_s_running_view():
+    seen = {}
+
+    def check(decision, accepted):  # the top rule breaks an account cap; the next one is a valid trade
+        seen[decision.road] = accepted
+        return (refused(RefusalReason.BUCKET_CAP),) if decision.road == RoadCode.BANKNIFTY_MONTHLY else (PASS,)
+
+    decisions = (fired(RoadCode.BANKNIFTY_MONTHLY, 0.9), fired(RoadCode.NIFTY_MONTHLY, 0.1))
+    classified = classify(decisions, check, 1)
+    assert [(d.outcome, d.reason) for d, _ in classified] == [(Outcome.TICKET, TicketReason.ACCOUNT_LIMIT),
+                                                             (Outcome.TRADE, "")]  # fmt: skip
+    assert seen[RoadCode.NIFTY_MONTHLY] == (), "the ticket took no place and added no risk"
 
 
 def test_a_rule_beyond_the_limit_that_breaks_a_binding_law_is_refused_not_ticketed():

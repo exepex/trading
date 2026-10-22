@@ -32,6 +32,7 @@ CASES = [  # decision, law results, fill, expected (eligible, fillable, executed
     (TRADE, PASS, b.filled(), (1, 1, 1)),
     (TRADE, PASS, MISSING, (1, 0, 0)),  # passed the laws, then no quote at the fill
     (TRADE, PASS, None, (1, 0, 0)),
+    (TRADE, CAP, b.filled(), (1, 0, 0)),  # a trade's laws are not relaxed (judge 481 minor a)
     (TICKET, CAP, b.filled(), (1, 1, 0)),  # an account limit does not bind a ticket
     (TICKET, QUOTE, b.filled(), (1, 0, 0)),
     (TICKET, PASS, MISSING, (1, 0, 0)),  # a refused ticket: still counted
@@ -50,7 +51,7 @@ def test_each_case_counts_as_expected(decision, results, fill, expected):
 
 def test_a_fixture_day_keeps_the_order_and_every_decision_in_the_denominator():
     day = totals(replace(counts_for(*case[:3]), driver_id=f"D{i}@1") for i, case in enumerate(CASES))
-    assert day == CountTotals(scheduled=9, eligible=7, fillable=2, executed=1)
+    assert day == CountTotals(scheduled=10, eligible=8, fillable=2, executed=1)
     assert day.scheduled >= day.eligible >= day.fillable >= day.executed
 
 
@@ -62,3 +63,8 @@ def test_a_second_row_for_one_decision_is_refused():
     row = counts_for(TRADE, PASS, b.filled())
     with pytest.raises(ValueError):
         totals([row, row])
+
+
+def test_an_entry_the_shared_size_could_not_serve_is_fillable_not_executed():
+    counts = counts_for(TRADE, PASS, b.filled(), size_shared=True)
+    assert (counts.eligible, counts.fillable, counts.executed) == (1, 1, 0)

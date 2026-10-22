@@ -13,16 +13,18 @@ from ..contracts.tickets import OpportunityCounts
 from .rules import ticket_laws_pass
 
 
-def counts_for(decision: Decision, results: tuple[LawResult, ...], fill: FillResult | None) -> OpportunityCounts:
+def counts_for(decision: Decision, results: tuple[LawResult, ...], fill: FillResult | None,
+               size_shared: bool = False) -> OpportunityCounts:  # fmt: skip
     """Eligible: the rule fired and a structure was built. Fillable: its laws passed (a ticket's with the account
     limits relaxed) and it filled at the touch, in the account or the ticket ledger. Executed: filled in the account.
+    An account entry the shared displayed size could not serve (`size_shared`) is fillable but not executed.
     A decision `unavailable` after its rule fired (e.g. a seal failure) carries no proposal: not eligible, but it
     stays in `scheduled`."""
     eligible = decision.proposal is not None
     filled = fill is not None and fill.filled
     laws = ticket_laws_pass(results) if decision.outcome == Outcome.TICKET else all(r.passed for r in results)
     fillable = decision.outcome in (Outcome.TRADE, Outcome.TICKET) and laws and filled  # both carry a proposal
-    executed = fillable and decision.outcome == Outcome.TRADE
+    executed = fillable and decision.outcome == Outcome.TRADE and not size_shared
     return OpportunityCounts(decision.session, decision.road, decision.driver_id, int(eligible), int(fillable),
                              int(executed))  # fmt: skip
 

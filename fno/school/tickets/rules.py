@@ -5,13 +5,15 @@ road order). Each is checked by the same safety laws through `check(decision, ac
 trades already taken this slot, so a law that adds up the slot (bucket, open risk, new risk a day, margin) sees them
 before any fill (the fleet, MS-P1j, builds that running view). The first `max_new` that pass every law trade; a later
 one that passes is `ticket: trade_limit`; one refused only by account limits (`ACCOUNT_LIMITS`) is
-`ticket: account_limit`; any other refusal is `refused` with the first refusing law's reason. The daily stop and the
-brake are not account limits here: a stopped or braked driver issues no tickets that day (`DRIVER_STOPS`)."""
+`ticket: account_limit`; any other refusal is `refused` with its reason. The daily stop and the brake are not account
+limits here: a stopped or braked driver issues no tickets that day (`DRIVER_STOPS`), and its refusal names the stop
+first, so a report shows why the driver stopped. Only trades enter `accepted`: a ticket never takes a place or adds
+risk to the slot's running view."""
 
 from collections.abc import Callable
 from dataclasses import replace
 
-from ..constants import ACCOUNT_LIMITS, Outcome, RefusalReason, TicketReason
+from ..constants import ACCOUNT_LIMITS, DRIVER_STOPS, Outcome, RefusalReason, TicketReason
 from ..contracts.decisions import Decision
 from ..contracts.roads import ROADS
 from ..contracts.safety import LawResult
@@ -43,7 +45,8 @@ def _after_laws(decision: Decision, results: tuple[LawResult, ...], room: bool) 
         return decision if room else as_ticket(decision, TicketReason.TRADE_LIMIT)
     if set(refusals) <= ACCOUNT_LIMITS:
         return as_ticket(decision, TicketReason.ACCOUNT_LIMIT)
-    return replace(decision, outcome=Outcome.REFUSED, reason=refusals[0])
+    stops = [reason for reason in refusals if reason in DRIVER_STOPS]
+    return replace(decision, outcome=Outcome.REFUSED, reason=(stops or refusals)[0])
 
 
 def ticket_laws_pass(results: tuple[LawResult, ...]) -> bool:
