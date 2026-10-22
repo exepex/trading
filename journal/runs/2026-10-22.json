@@ -219,6 +219,19 @@
      "trades": []
     }
    }
+  },
+  "reviews": {
+   "started_at": "2026-10-22T15:21:51.467237+05:30",
+   "finished_at": "2026-10-22T15:21:51.486706+05:30",
+   "inputs": {
+    "snapshot_id": null
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "marked_contracts": 0,
+    "open_positions": 0
+   }
   }
  }
 }
