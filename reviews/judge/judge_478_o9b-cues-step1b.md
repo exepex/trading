@@ -39,3 +39,17 @@ text (line 84) still says the global cues move to the receipt-backed classes "on
 and add the private cues' move as a named later step in section 3, so it is tracked.
 
 Plants: the probe above. Mutations: the builder's 12 of 12 (read, not rerun, given SF1).
+
+## Addendum 1: round 2 at a2f96e5f
+
+**Verdict: PASS. Step 1b may merge** from Mon 26 Oct, outside 14:00-16:15 IST, only while `global-cues.yml` has no
+queued or running run, with `global-cues move` run before and after the merge.
+
+The delta from 44ef74ad is one code line, a parametrized test and the story text.
+
+| Finding | Fix | Check | Result |
+|---|---|---|---|
+| SF1: a Drive network error ends FL1's report | `CueRows` catches `(RuntimeError, OSError)` and names the class only. The test covers `RuntimeError`, `requests.ConnectionError` and `requests.HTTPError`: one failed facts view, its system line, one alert, the other facts kept, no path in the line | Plant: back to `RuntimeError` alone: 2 of 3 cases fail. forecast_lab, global_cues and o9b: 345 passed. Ruff clean; the record scan clean (8018 files, the scan I skipped in round 1) | **Accepted** |
+| Minor: "one way, not two" | Section 2 says step 1b moves the public cues only; step 1c (the private cues, with the A17 owner) is a named row in section 3 | read | **Accepted** |
+
+Round 1's full suite (9,860 passed) stands for the unchanged code. The builder reports 9,862 on a2f96e5f.
