@@ -261,6 +261,21 @@
     "status": "not_live",
     "reason": "o1:NO_DATE"
    }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-22T15:22:31.041106+05:30",
+   "finished_at": "2026-10-22T15:23:33.079627+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
