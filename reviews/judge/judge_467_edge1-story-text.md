@@ -141,3 +141,33 @@ figures."
 - the nomination rule also requires run 2's mean net to be positive on **all** trades, with proxies included, as well
   as on the traded-only set, at both pad levels;
 - report how many trades each variant drops for an incomplete exit, and their mean proxy P&L.
+
+## Addendum 3: revision 4 at a219747f (number 467.3, claimed with `tools/claim_number.py`)
+
+**PASS. The text may go to the build** (parts behind the existing interfaces, each agreed with its owner, with nothing
+merging into `fno/` before Monday 26 Oct, as the text says). The owner's answers to Q1 and Q2 are still open; the text
+has defaults for both.
+
+| Point from 467.2 | Result | Where |
+|---|---|---|
+| (1) The exit day is exact | MET | see "The exit rule" below |
+| (2) No survivorship | MET | see "Incomplete exits" below |
+
+### The exit rule
+- A stop or target exits at the close of the day it triggers. Such days have every leg traded, because SL2 and TP50
+  are only checked on those days.
+- Otherwise the exit is the planned exit day's close: T21's day, or the expiry for EXP, cash-settled at the final
+  settlement price, which is a real price.
+- No earlier or later day is ever searched for.
+- An untraded leg at that close takes its settlement proxy, and the trade is marked "incomplete exit".
+
+### Incomplete exits
+- They are kept and flagged, never dropped, and the text gives the reason.
+- The pass and nomination figures use trades with a complete exit, and the nomination also needs run 2's mean net to
+  be positive on all trades, proxies included, at both pad levels.
+- The report shows each variant's incomplete-exit count and their mean proxy P&L.
+
+### Next from me
+- The study's protocol and freeze, before run 1, as for GR1.
+- The code with its synthetic tests.
+- Then I reproduce both runs.
