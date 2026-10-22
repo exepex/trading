@@ -205,6 +205,46 @@ and in the commit hook's refusal list.
 | Removal from HEAD, refusal in the hook | the removal commit after the first scheduled run |
 | One builder per function | `RowLog` moved, not copied; A17's owner told; global cues untouched otherwise |
 
+## Step 1b: global cues (`story/o9b-cues`; merges from Mon 26 Oct, outside 14:00-16:15 IST)
+
+**GC2 closed with nothing built** (A17 owner, 22 Oct; response 321 addendum 1): `fno/global_cues` has no open change,
+so this step moves the public cue tables, with the A17 owner reviewing the diff before Judge F.
+
+**Files that move** (`research/data/global-cues/`): the public append tables `brent.csv` (631,009 bytes),
+`us10y.csv` (618,938) and `usdinr_rbi.csv` (493,096), the shared `revisions.csv` once written; the reports rewritten
+each run `us_trading_dates.csv` (76,002) and `checks/{gaps,overlap_usdinr}.csv`.
+**Stay in GitHub:** `README.md`; `us_market_closures.csv` (hand-kept, sourced, owner decision 1); `checks/behind_alerted.txt`
+(alert episodes, names only); `research/data/manifests/global-cues/**` and its `attempts/` (G7, G6). **Already in
+Drive, unchanged:** the private cues (S&P 500, Nasdaq 100, FBIL's USD/INR, the world indexes, A17e's pre-open rows),
+through `DrivePartsRowLog` and `DriveSnapshots`; moving them onto receipts is a later step, agreed with the A17 owner.
+**Writer:** `global-cues.yml` (`fill`, `check`). **Readers:** `build_tables`/`build_reader` (`fno/global_cues/wiring.py`)
+serve the cue tables to A17's checks and `verify.py`, the index reader, the weather (M1, `fno/weather/wiring.py`
+`build_cue_reader`, `drivers.py`), and FL1's report (`fno/forecast_lab/page_wiring.py`,
+`sections/global_cues.py`); FL1's `fno/forecast_lab/page/facts.py:19` reads `brent.csv` and `usdinr_rbi.csv` by path.
+**Push-time readers:** none (`fno/health/` reads no global-cues file).
+
+**Design:** in `fno/global_cues/wiring.py`, each public cue's `CsvRowLog(CUES_FOLDER / "<cue>.csv")` and the shared
+revisions log become `ReceiptedRowLog(store, cache, "global-cues/<cue>")` (step 1's class, behind A17's `RowLog`
+port); `CueChecks` writes its reports through the `Report` port (`CsvReportFile` in tests, `ReceiptedSnapshots` in
+the wiring), as VIX's checks do. FL1's `facts.py` reads the two tables through `build_tables()` instead of by path
+(agreed with the FL1 builder; one line in its wiring). `global-cues.yml` commits `receipts/data/global-cues/` and the
+manifests instead of `$CUES` in the same change. `python -m fno global-cues move` moves the files as step 1 did, and
+the same re-run "already in Drive, equal" gates the merge.
+
+**Gap list (step 1b):**
+
+| Requirement | Where |
+|---|---|
+| verify.py's chain (`source_sha256` to the archived copy through the snapshot log), `first_seen_at` and provenance kept row for row (A17 owner point 1) | rows move byte for byte (rebuilt equals the file); receipts only add; `verify` run on the moved tables in the claims |
+| Only the public tables move; the private cues stay in their Drive classes (point 2) | files list above |
+| `behind_alerted.txt` stays (point 3) | stays list |
+| `global-cues.yml`'s commit step switches with the move (point 4) | design; a workflow test |
+| Every path reader traced from `build_tables`/`build_reader` (point 5) | readers list; FL1's `facts.py` switched with its builder |
+| Hand list `us_market_closures.csv` stays and its readers keep reading it | stays list (`us_market_closures()`, `NyseCalendar`) |
+| Upload, rebuild byte for byte, writer to Drive only, readers through the cache, removal after one scheduled run | as step 1 (section 2) |
+| Live readers (weather, FL1) not broken | merges from Mon 26 Oct outside 14:00-16:15; the weather's and FL1's outputs on a recorded day equal before and after (criterion 3) |
+| Data tests | `tests/global_cues/test_committed.py` and `test_us_calendar.py` move to the `data` marker; `data-checks.yml` adds `data/global-cues` |
+
 ## Gap list
 
 | Requirement | Where |
