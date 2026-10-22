@@ -3,3 +3,4 @@ trial_id,gate,outcome,on,commit,numbers
 54,G0,idea,2026-10-15,245934abc0f0c10ed3c1f499443531a64226f933,backfilled=yes
 55,G0,idea,2026-10-16,496e74fd1d1934ee8110c033e2031e026fdb4d43,backfilled=yes
 53,G1,screened_out,2026-10-16,3305eabc6490817e1b974904eff36774d7c2e11d,reason=no_stated_edge;assumed_hurdle=yes
+71,G0,idea,2026-10-22,433c3aee0f272a0319d2eb4ebbfd01adbfb03c49,
