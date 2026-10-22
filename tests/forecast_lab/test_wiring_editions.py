@@ -46,3 +46,12 @@ def test_the_evening_reads_a17_at_its_run_time_then_falls_back_to_the_morning_s_
     sections = build_sections(Facts(), SESSIONS, None)
     cues = [s for s in sections if isinstance(s, GlobalCueSection)]
     assert cues and all(s.cutoffs == {"morning": (OPEN,), "evening": (EVENING_RUN, OPEN)} for s in cues)
+
+
+def test_the_evening_reads_today_s_close_from_a4h_s_record():
+    """Judge 455: the wiring itself is pinned, so a revert to `NoTodayCloses` fails."""
+    import inspect
+
+    from fno.forecast_lab import page_wiring
+
+    assert "A4hTodayCloses(build_drive_cache())" in inspect.getsource(page_wiring.build_report_maker)
