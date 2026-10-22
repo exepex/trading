@@ -485,22 +485,28 @@ day. That file holds NIFTY (18 expiries, the weeklies included), BANKNIFTY (6), 
 expiry checked is in exactly one scan tier, and the strike steps are 50, 100, 50 and 25. The lot is the day's market lot
 from A20a's master files.
 
-**Builds:**
-- `ProposalMargin` (port): `parts(underlying, expiry, legs, structure, day) -> MarginParts`, one lot. Its adapter
-  `ArchivedSpanMargin` reads the day's file once per session and underlying through `read_span_file(..., symbol=...)`,
-  then A14's `SpanMarginCalculator` with `NseIndexOptionExposure` and the day's lot. It applies C2's STR1 cap
-  (`stress_cap_per_lot`) for the one-side codes.
-- `ProposalStressedMargin`: C2's `StressedMargin` for one proposal, so MS-P1d reuses C2's `MarginRoom` unchanged. It
-  gives `margin`, `margin_at_entry` and `broker_margin` at k 2.1, the factor in force from A14c's file.
-- `record()`: the file name, its SHA-256, the underlying, expiry, legs, lot, scan, NOV, exposure, the factor and the
-  label "k measured on NIFTY monthly only [reasoning only]" (orchestrator, 22 Oct 2026). The dashcam (MS-P1c) seals it
-  with the decision.
-- Its composition root `fno/nse_margins/proposal_wiring.py` (Drive archive, A9 manifest, A20a lots, A7 calendar).
+**Builds** (`fno/nse_margins/road_margin.py`, its root `fno/nse_margins/road_wiring.py`):
+- `RoadTradeTerms`: C2's `TradeTerms` plus the index, the expiry, the legs and the units per lot the trade was entered
+  with. MS-P1d passes it for every school trade, open or proposed. The lot is the road day's dated lot from MS-P1b
+  (A20a); an open trade keeps its own. It refuses an index outside the four, no legs, no lot, and a one-side spread
+  whose legs are not `width` apart (C2's cap reads the width).
+- `ArchivedSpanMargin`: C2's `StressedMargin` for those terms. C2's `MarginRoom` asks it the margin of every open trade
+  and of the proposal, unchanged. Each figure is A14's `SpanMarginCalculator` with `NseIndexOptionExposure` on the
+  trade's own legs and lot, read from the session's file (`read_span_file(..., symbol=...)`), with C2's STR1 cap
+  (`stress_cap_per_lot`) and the factor in force from A14c's file. The file is downloaded once per session and parsed
+  once per index.
+- `record(day)` and `trade_record(terms, day)`: the method, the factor row, the label "k measured on NIFTY monthly
+  only [reasoning only]" (orchestrator, 22 Oct 2026), the file name and SHA-256, and per trade the index, expiry, legs,
+  lot and per-lot scan, NOV and exposure. The dashcam (MS-P1c) seals them with the decision.
+- A14's point-in-time rule (written before 09:00 IST) becomes one `SpanFile.written_in_time`, used by A14's job, A14c's
+  run and this margin (it was copied in the first two).
 
-**Fails closed, by name** (law 3 then refuses the trade, as `RiskInputError`): no archived file for the day; a SHA-256
-other than the manifest's; created at or after 09:00; an expiry-day or out-of-model expiry (the calculator refuses
-expiry day: the extra 2% ELM of P0 probe 4 is not modelled, so no expiry-day entry); a leg not in the file; no lot for
-the day and underlying; an index outside the four.
+**Fails closed, by name** (law 3 then refuses the trade, as `RiskInputError`): terms without legs; no archived file
+for the day; a SHA-256 other than the manifest's; created at or after 09:00; a damaged file or no part for the index;
+an expiry-day or out-of-model expiry (the calculator refuses expiry day: the extra 2% ELM of P0 probe 4 is not
+modelled, so no expiry-day entry, and an open trade on its own expiry day refuses every entry of that account that day);
+a leg not in the file; Drive unreachable (the class name only). Missing Drive settings stop the run as a configuration
+error (`RuntimeError`), which MS-P1j isolates per driver.
 
 **Unchanged:** `margins.csv`, A14's daily job and workflow, and C2's and C4's NIFTY path, byte for byte.
 
@@ -512,13 +518,15 @@ the day and underlying; an index outside the four.
 - The file is the beginning-of-day one: a 15:00 decision uses the morning's scan arrays and prices, as A14's rows do.
 
 **Acceptance tests:**
-1. For each of the four indices and one NIFTY weekly on the real 21 Oct file, one structure is reproduced by hand
-   (scan, NOV, exposure).
+1. The figure is A14's calculator on the trade's own legs at C2's factor (stressed, at entry, broker), on a planted
+   file; on the real 21 Oct file, NIFTY's ATM SF 100 equals that day's `margins.csv` row, and one structure of each
+   other index and one NIFTY weekly is reproduced by hand in the claims.
 2. Each refusal above, one test each, with its name.
-3. The day's lot comes from the master; a changed lot changes the figure, and no master refuses.
-4. `ProposalStressedMargin` inside C2's own `MarginRoom` refuses at the room's limit plus Rs 1 and passes at it.
-5. `margins.csv` and the C2/C4 outputs on NIFTY's real rows are byte-identical before and after.
-6. The file is parsed once per session and index (a counting fake).
+3. The trade's own lot is used; a different lot changes the figure.
+4. C2's own `MarginRoom` on this margin, with an open trade and a proposal: it passes with the room exactly enough and
+   refuses one rupee short; an open trade without legs refuses.
+5. `margins.csv`, C2's and C4's NIFTY path are untouched (no file of theirs changes; the existing suite passes).
+6. The file is downloaded once per session and parsed once per index (counting fakes).
 7. The gap measure above is reproducible from its script, with the same counts.
 8. Mutations on every rule above.
 
