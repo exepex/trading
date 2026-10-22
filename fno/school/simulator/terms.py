@@ -3,6 +3,7 @@
 from collections.abc import Callable, Mapping
 from datetime import date
 
+from ...constants import PANEL_FORMAT_LEGACY
 from ..contracts.roads import DatedLot
 from .history.ports import DayChain
 
@@ -16,10 +17,13 @@ class DatedTerms:
         self.circular_lot, self.charges_on = circular_lot, charges_on
 
     def lot(self, chain: DayChain, expiry: date) -> DatedLot | None:
-        """NSE's board lot where that day's file states it, else the circular schedule; None when neither knows it
-        (the road is then closed, never filled with a guess)."""
+        """NSE's board lot where that day's file states it. A legacy-format file states none, so only there the circular
+        schedule is used (it ends with the legacy files); a current-format day with no stated lot, or an index with no
+        schedule, gives None and the road is closed, never filled with a guess."""
         if chain.lots.get(expiry):
             return DatedLot(chain.lots[expiry], f"{FILE_LOT} ({chain.source}), {chain.session}")
+        if chain.source != PANEL_FORMAT_LEGACY:
+            return None
         scheduled = self.circular_lot(chain.underlying, expiry)
         return DatedLot(scheduled, f"{CIRCULAR_LOT}, {chain.session}") if scheduled else None
 
