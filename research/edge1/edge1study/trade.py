@@ -4,9 +4,11 @@
   the cap for the cycle's own lot, with the credit strictly inside the payoff bounds (`bad_prices`);
 - exit at the trigger close (SL2, TP50), the planned T21 close, or the final settlement (EXP); never another day;
 - a leg untraded at the T21 close takes its settlement proxy and the trade is `incomplete_exit`, kept and flagged;
-- revision 7 (owner, 22 Oct, after run 1): a day whose position mark is outside the position's payoff bounds is an
-  impossible price (stale last-trade closes): a trigger never fires on it, and a planned exit on it is kept and
-  flagged `impossible_exit` and `incomplete_exit` (out of the decided mean)."""
+- revision 7 (owner, 22 Oct, after run 1; judge 473.1): a day on which a vertical is outside [0, width] or the
+  position outside its payoff bounds (`verticals.py`) has impossible prices: no entry on it
+  (`impossible_prices_at_entry`), no trigger fires on it (the skipped days are counted), and a planned exit on it is
+  kept, flagged `impossible_exit` and `incomplete_exit` (out of the decided mean); its gross is a proxy
+  (`verticals.proxy_value`, charges at the raw closes), and `raw_net` keeps the raw figure."""
 
 from __future__ import annotations
 
@@ -22,11 +24,13 @@ from fno.research_engine.cycles import Cycle
 from fno.research_engine.leg_prices import LegPrice, contracts_on, leg_price
 from fno.research_engine.structures import Leg, Structure, payoff_bounds, position_value
 
+from .verticals import proxy_value, valid
+
 T21, EXP, SL2, TP50 = "T21", "EXP", "SL2", "TP50"
 EXITS = (T21, EXP, SL2, TP50)
 STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.5  # SL2: mark >= 3 x credit (a loss of 2 x credit); TP50: mark <= half the credit
 TAKEN, NOT_LISTED, UNTRADED = "taken", "missing_strikes", "untraded_leg_at_entry"
-BAD, CAP = "bad_prices", "no_trade_cap"
+BAD, CAP, IMPOSSIBLE = "bad_prices", "no_trade_cap", "impossible_prices_at_entry"
 NO_ENTRY, NO_EXIT_PRICE, NO_SETTLEMENT = "no_entry_data", "no_exit_price", "no_settlement"
 ChargesOn = Callable[[date], Mapping[str, float]]  # a trade date -> that date's charges table
 
@@ -43,11 +47,13 @@ class Trade:
     exit_day: date | None = None
     exit_how: str = ""  # trigger, planned, settlement
     incomplete_exit: bool = False
-    impossible_exit: bool = False  # revision 7: the planned exit's mark was outside the payoff bounds
+    impossible_exit: bool = False  # revision 7: a vertical was outside [0, width] at the planned exit (proxy net)
     gross: float = 0.0  # rupees for one lot
     charges: float = 0.0
     pads: float = 0.0
     net: float = 0.0
+    skipped_days: int = 0  # revision 7: trigger days skipped for impossible prices
+    raw_net: float | None = None  # revision 7: the impossible exit's net at the raw closes
 
     @property
     def taken(self) -> bool:
@@ -80,6 +86,9 @@ def open_legs(structure: Structure, panel: NiftyPanel, cycle: Cycle, terms: Cycl
             last = UNTRADED
             continue
         entry = [p.price for p in prices]
+        if not valid(legs, entry):
+            last = IMPOSSIBLE
+            continue
         lowest, highest = payoff_bounds(legs)
         if not lowest < position_value(legs, entry) < highest:
             last = BAD
@@ -96,27 +105,26 @@ def _mark(legs: Sequence[Leg], prices: Sequence[LegPrice]) -> float:
     return -position_value(legs, [p.price for p in prices])
 
 
-def _trigger(legs, credit, panel, cycle, exit_rule, days: Sequence[date]) -> tuple[date, list[float]] | None:
-    """The first fully traded day before the T21 exit on which SL2 or TP50 fires, with that day's closes."""
+def _trigger(legs, credit, panel, cycle, exit_rule, days: Sequence[date]) -> tuple[date | None, list[float], int]:
+    """The first fully traded, valid day before the T21 exit on which SL2 or TP50 fires, with that day's closes (no
+    day: None), and the number of fully traded days skipped for impossible prices."""
+    skipped = 0
     if exit_rule not in (SL2, TP50):
-        return None
+        return None, [], skipped
     for day in days:
         if not cycle.entry_day < day < cycle.exit_day:
             continue
         prices = _prices(panel, day, cycle.expiry, legs)
-        if not _all_traded(prices) or not _possible(legs, [p.price for p in prices]):
+        if not _all_traded(prices):
+            continue
+        if not valid(legs, [p.price for p in prices]):
+            skipped += 1
             continue
         mark = _mark(legs, prices)
         stopped = exit_rule == SL2 and mark >= STOP_MULTIPLE * credit
         if stopped or (exit_rule == TP50 and mark <= TARGET_SHARE * credit):
-            return day, [p.price for p in prices]
-    return None
-
-
-def _possible(legs: Sequence[Leg], prices: Sequence[float]) -> bool:
-    """No-arbitrage: a position is worth between its worst and best payoff at expiry (revision 7)."""
-    lowest, highest = payoff_bounds(legs)
-    return lowest <= position_value(legs, prices) <= highest
+            return day, [p.price for p in prices], skipped
+    return None, [], skipped
 
 
 def _settlement_costs(legs: Sequence[Leg], level: float, terms: CycleTerms) -> float:
@@ -148,18 +156,23 @@ def run_trade(structure: Structure, panel: NiftyPanel, cycle: Cycle, terms: Cycl
         charges = opening + _settlement_costs(legs, level, _terms_on(terms, cycle.expiry, charges_on))
         return Trade(TAKEN, cycle, exit_rule, width, terms.lot, tuple(legs), credit, cycle.expiry, "settlement", False,
                      False, gross, charges, entry_pads, gross - charges - entry_pads)  # fmt: skip
-    fired = _trigger(legs, credit, panel, cycle, exit_rule, days)
-    if fired is not None:
-        exit_day, exit_prices, how, incomplete, impossible = fired[0], fired[1], "trigger", False, False
-    else:
-        planned = _prices(panel, cycle.exit_day, cycle.expiry, legs)
-        if any(p.price is None for p in planned):
-            return Trade(NO_EXIT_PRICE, cycle, exit_rule, width, terms.lot, tuple(legs), credit, cycle.exit_day)
-        exit_day, exit_prices, how = cycle.exit_day, [p.price for p in planned], "planned"
-        impossible = not _possible(legs, exit_prices)
-        incomplete = impossible or any(p.on_settlement for p in planned)
-    gross = costs.gross(legs, entry, exit_prices)
-    charges = opening + PositionCosts(_terms_on(terms, exit_day, charges_on)).charges(legs, exit_prices, False)
-    pads = costs.pads(legs)
-    return Trade(TAKEN, cycle, exit_rule, width, terms.lot, tuple(legs), credit, exit_day, how, incomplete,
-                 impossible, gross, charges, pads, gross - charges - pads)  # fmt: skip
+
+    def closed(day: date, prices: list[float], how: str, incomplete: bool, impossible: bool, skipped: int) -> Trade:
+        gross = costs.gross(legs, entry, prices)
+        charges = opening + PositionCosts(_terms_on(terms, day, charges_on)).charges(legs, prices, False)
+        pads = costs.pads(legs)
+        return Trade(TAKEN, cycle, exit_rule, width, terms.lot, tuple(legs), credit, day, how, incomplete, impossible,
+                     gross, charges, pads, gross - charges - pads, skipped)  # fmt: skip
+
+    fired_day, fired_prices, skipped = _trigger(legs, credit, panel, cycle, exit_rule, days)
+    if fired_day is not None:
+        return closed(fired_day, fired_prices, "trigger", False, False, skipped)
+    planned = _prices(panel, cycle.exit_day, cycle.expiry, legs)
+    if any(p.price is None for p in planned):
+        return Trade(NO_EXIT_PRICE, cycle, exit_rule, width, terms.lot, tuple(legs), credit, cycle.exit_day)
+    raw = [p.price for p in planned]
+    if valid(legs, raw):
+        return closed(cycle.exit_day, raw, "planned", any(p.on_settlement for p in planned), False, skipped)
+    raw_trade = closed(cycle.exit_day, raw, "planned", True, True, skipped)
+    gross = (proxy_value(legs, raw) - position_value(legs, entry)) * terms.lot
+    return replace(raw_trade, gross=gross, net=gross - raw_trade.charges - raw_trade.pads, raw_net=raw_trade.net)

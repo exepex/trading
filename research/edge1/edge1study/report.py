@@ -39,7 +39,9 @@ def figures(trades: Sequence[Trade], margins: Sequence[EntryMargin] | None = Non
         "taken": len(took),
         "complete": len(done),
         "incomplete_exits": len(incomplete),
-        "impossible_exits": sum(t.impossible_exit for t in took),  # revision 7, part of incomplete_exits
+        "impossible_exits": sum(t.impossible_exit for t in took),  # revision 7: part of incomplete_exits, proxy net
+        "impossible_exits_raw_mean_net": _mean([t.raw_net for t in took if t.impossible_exit]),
+        "trigger_days_skipped": sum(t.skipped_days for t in took),  # revision 7: impossible prices
         "incomplete_mean_net": mean_net(incomplete),
         "proxy_share": finite(len(incomplete) / len(took)) if took else None,
         "not_taken": dict(sorted(Counter(t.status for t in trades if not t.taken).items())),

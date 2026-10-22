@@ -33,3 +33,14 @@ def test_return_on_margin_is_net_over_initial_margin_and_labelled_unchecked():
     assert found["label"] == MARGIN_LABEL == "calculator only, unchecked"
     assert found["trades_with_margin"] == 1 and found["mean_return_on_margin"] == pytest.approx(0.1)
     assert found["no_margin"] == {"no SPAN file": 1}
+
+
+def test_impossible_exits_and_skipped_trigger_days_are_counted():
+    from dataclasses import replace
+
+    trades = [replace(trade(100.0, incomplete=True), impossible_exit=True, raw_net=-900.0, skipped_days=2),
+              replace(trade(50.0, 2), skipped_days=1)]  # fmt: skip
+    found = figures(trades)
+    assert found["impossible_exits"] == 1 and found["trigger_days_skipped"] == 3
+    assert found["impossible_exits_raw_mean_net"] == -900.0 and found["mean_net"] == 50.0
+    assert found["all_mean_net"] == 75.0  # the proxy net, never the raw close

@@ -70,10 +70,12 @@ def test_tp50_exits_when_half_the_credit_is_earned():
 
 
 def marked(multiple: float) -> dict:
-    """Entry-day prices with the short call moved so the position's mark (cost to close) is `multiple` x credit."""
+    """Entry-day prices with both shorts moved alike: the mark (cost to close) is `multiple` x credit and each
+    vertical stays inside [0, width]."""
     base, prices = run(SC2, T21), dict(flat_prices(23000.0))
-    short_call = next(leg.contract for leg in base.legs if leg.side == -1 and leg.contract[1] == "CE")
-    prices[short_call] += (multiple - 1.0) * base.credit
+    for leg in base.legs:
+        if leg.side == -1:
+            prices[leg.contract] += (multiple - 1.0) * base.credit / 2
     return prices
 
 

@@ -22,8 +22,8 @@ M = [
     ("trade.py", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.5", "STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.4", "TP at 40%"),
     (
         "trade.py",
-        "if not _all_traded(prices) or not _possible(",
-        "if not _possible(",
+        "        if not _all_traded(prices):\n            continue\n        if not valid(",
+        "        if not valid(",
         "trigger fires on an untraded leg",
     ),  # fmt: skip
     (
@@ -34,7 +34,7 @@ M = [
     ),  # fmt: skip
     (
         "trade.py",
-        "_terms_on(terms, exit_day, charges_on)",
+        "_terms_on(terms, day, charges_on)",
         "_terms_on(terms, cycle.entry_day, charges_on)",
         "exit charged at the entry date's STT",
     ),  # fmt: skip
@@ -64,11 +64,34 @@ M = [
     ("expiries.py", "if q.expiry in moved else q", "if True else q", "weeklies relabelled too"),
     (
         "trade.py",
-        "if not _all_traded(prices) or not _possible(legs, [p.price for p in prices]):",
-        "if not _all_traded(prices):",
-        "a trigger fires on an impossible mark",
+        "        if not valid(legs, [p.price for p in prices]):\n            skipped += 1\n            continue\n",
+        "",
+        "a trigger fires on impossible prices",
     ),  # fmt: skip
-    ("trade.py", "incomplete = impossible or any(", "incomplete = any(", "an impossible exit in the decided mean"),
+    ("trade.py", "    if valid(legs, raw):", "    if True:", "an impossible exit in the decided mean"),
+    (
+        "trade.py",
+        "gross = (proxy_value(legs, raw) - position_value(legs, entry)) * terms.lot",
+        "gross = raw_trade.gross",
+        "the raw impossible close in the all-trades mean",
+    ),  # fmt: skip
+    (
+        "trade.py",
+        "        if not valid(legs, entry):\n            last = IMPOSSIBLE\n            continue\n",
+        "",
+        "entry on impossible prices",
+    ),  # fmt: skip
+    ("verticals.py", "        all(0.0 <= prices[i] - prices[j] <= w for i, j, w in pairs)\n        and lowest",
+     "        lowest", "position total instead of each vertical"),  # fmt: skip
+    ("verticals.py", "\n        and lowest <= position_value(legs, prices) <= highest", "",
+     "verticals without the position bound"),  # fmt: skip
+    ("verticals.py", "if not pairs:\n        return True\n", "", "naked measurements touched"),
+    (
+        "report.py",
+        '"trigger_days_skipped": sum(t.skipped_days for t in took)',
+        '"trigger_days_skipped": 0',
+        "skipped days not counted",
+    ),  # fmt: skip
     ("margin.py", "if span.created >= datetime.combine", "if span.created > datetime.combine", "09:00 file allowed"),
     ("margin.py", "if hashlib.sha256(data).hexdigest() != sha256[day]:", "if False:", "no first-copy check"),
     (
