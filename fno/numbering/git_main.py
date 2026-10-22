@@ -27,14 +27,24 @@ RACE_LOST = ("[rejected]", "non-fast-forward", "fetch first", "cannot lock ref",
 
 
 class GitFailed(RuntimeError):
-    """A git step other than the push failed (no network, no remote, no main): the claim stops."""
+    """A git step failed for a reason other than a lost race (no network, no remote, a refused commit): the claim
+    stops. `output` is everything git printed (a hook's own stdout reaches it through git's stderr), shown in full
+    before the claim's one-line verdict."""
+
+    def __init__(self, step: str, output: str):
+        super().__init__(f"git {step} failed: {output}")
+        self.step, self.output = step, output
 
 
 def _git(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
     done = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
     if check and done.returncode != 0:
-        raise GitFailed(f"git {' '.join(args)} failed: {done.stderr.strip()}")
+        raise GitFailed(args[0], _printed(done))
     return done
+
+
+def _printed(done: subprocess.CompletedProcess) -> str:
+    return "\n".join(part.strip() for part in (done.stdout, done.stderr) if part.strip())
 
 
 class MainCopy:
@@ -58,7 +68,7 @@ class MainCopy:
             return True
         if any(sign in pushed.stderr for sign in RACE_LOST):
             return False
-        raise GitFailed(f"git push failed: {pushed.stderr.strip()}")
+        raise GitFailed("push", _printed(pushed))
 
     def reset_to_main(self) -> None:
         _git(self.path, *FETCH_MAIN)

@@ -145,3 +145,20 @@ the alert sender is imported only when something is posted. Lane 1 (a workflow a
    claim prints the next step word for word: the file to write, or for an addendum the heading `## Addendum <k>` with
    only the addendum's own number; `numbers/README.md` says the same.
 Tests: `tests/numbering/test_tools.py` (the cases above, and the workflow's triggers and command).
+
+## O12c: a refused claim ends on its verdict (judge B, 22 Oct 2026)
+
+**Why.** Judge B wrote `judge_464` after a claim whose commit the record-scan hook refused (this Python lacked
+`xlrd`, now imported by the scan's code). The tool did exit 1, but its first line was "NOT claimed (git commit -q -m
+...", then the multi-line commit message and the hook's traceback, so the output ended on "ImportError: ...)" and the
+verdict was easy to miss.
+
+**Change.** A failed git step prints git's whole output first, then one last line: "number claim: NOT claimed (the
+commit was refused, by the record-scan hook: its output is above; a missing package means this Python lacks the
+requirements, so run `sh tools/routine_setup.sh`). Nothing was pushed: do not write the file; fix it and claim again."
+Every refusal ends with "Nothing was pushed: do not write the file". Exit 1 as before; nothing is pushed.
+
+**Criteria.** A planted failing pre-commit hook (crashing, or refusing with findings) makes the claim stop with exit 1,
+the hook's own words before a last line that starts "number claim: NOT claimed", `main` unchanged and the worktree
+removed (`tests/numbering/test_claim.py`).
+
