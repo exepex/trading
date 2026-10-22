@@ -1,4 +1,6 @@
 # DRAFT card (story MS-P1e). Numbers are first guesses [reasoning only]; MS-P1h freezes the cards before day 1.
+# Deviation from EDGE1: enters at the 15:00 slot of the first session in the window, EDGE1 entered the next trading
+# day. Kept for comparability with the other drivers; measurement only (orchestrator, 22 Oct 2026).
 code: KL1
 version: "1"
 family: edge1_control
