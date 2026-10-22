@@ -47,3 +47,26 @@ MS-market-school.md section 7 (7.1, 7.4 SIM-a) and Claims 7.7. Lane 1 (practice 
 ## Notes
 - The Claims' SIM-d requirement is right: `build_nse_fo_library` falls back to NSE. SIM-d must build `DailyFiles`
   from stores only.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-sim-a at 662447ee, diff b481ab70..662447ee. **Verdict: PASS.** Lane 1.
+
+**Gates (my run, on b's tip b62bc0b5, which holds a):** pytest -n auto: 11,802 passed, 16 xfailed. ruff check/format,
+check_imports and check_records are clean.
+
+**Findings:**
+1. **UDiFF lot fallback: ACCEPTED.** `DatedTerms.lot` uses the circular schedule only when `chain.source` is
+   `PANEL_FORMAT_LEGACY` (`"legacy"`, the label `DailyFiles` gives).
+   - A UDiFF day of 2 Jun 2025 with no stated lot gives None.
+   - A legacy day of 2 Jun 2020 gives 75.
+   - Plant (legacy check removed) caught.
+   - The Claims' real read of 2 Jun 2025 shows the file's own lot 75.
+2. **Size sentinel: ACCEPTED.** `SIZE_GATE_WAIVED` is gone from `fno/` and from the story, and 7.2 describes design A.
+- **Minor (a): ACCEPTED.** EDGE1 is loaded by file path as `ms_sim_edge1study`. After loading, `research/edge1` isn't
+  on `sys.path` and `cards` isn't imported (my run). Plant (path inserted again) caught.
+- **Minor (b): ACCEPTED.** The Drive claim is corrected, and there is a real-data run in Claims.
+- The new SIM-d finding in the Claims is right and should become a SIM-d criterion: legacy files carry no underlying
+  price, so the wiring must pass A10's index closes.
+
+**Plants:** 2, both caught.

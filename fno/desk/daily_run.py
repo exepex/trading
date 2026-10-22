@@ -22,8 +22,9 @@ step given (E3's tests) is passed over.
 
 Each step's start, end, inputs and result go to `journal/runs/<date>.json`, committed after the step; a restarted run
 skips every step already recorded, so nothing is done twice. A commit that fails (a refused raw quote file, a failed
-pull, a push rejected every time) stops the run at that step: one alert naming why, what is missed and the hand fix,
-no later step, nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
+pull, a push rejected every time) or a git read that fails (`GitFailed`, e.g. the decisions' pull or a run's commit
+read in the fills) stops the run at that step: one alert naming why, what is missed and the hand fix, no later step,
+nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
 first commits that failed commit's files exactly as they were recorded, and never repeats the step that made them
 (`PendingCommitter`, decision 47).
 """
@@ -46,6 +47,7 @@ from ..constants import (
 )
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
+from ..research_engine.ledger import GitFailed
 from .daily_ports import CommitFailed, DayStep, Waiter
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
@@ -55,9 +57,12 @@ from .step_recorder import AsGiven, StepRecorder
 from .trade_marking import MarkingStep
 
 SKIPPED = "skipped"
-STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: the commit failed: {reason}. {fix}"
+STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: {what}: {reason}. {fix}"
+COMMIT_FAILED = "the commit failed"
+GIT_FAILED = "a git read failed"
 EXITS_MISSED = "; exits not reviewed today"
 RERUN = "Fix: remove the cause, then rerun `fno daily run` (it commits these files as recorded, never repeating a step)"
+READ_RERUN = "Fix: remove the cause, then rerun `fno daily run` (it skips the steps already recorded)"
 PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
@@ -73,7 +78,7 @@ AFTER_EXITS = tuple(f"step {name}" for name in DAILY_RUN_STEPS[DAILY_RUN_STEPS.i
 
 
 class RunStopped(Exception):
-    """The run stopped at a failed commit; the message is the alert sent."""
+    """The run stopped at a failed commit or git read; the message is the alert sent."""
 
 
 class DailyRun:
@@ -187,12 +192,18 @@ class DailyRun:
         self._guarded(log.day, f"step {name}", step)
 
     def _guarded(self, day: date, where: str, action: Callable[[], object]) -> None:
-        """The one place a failed commit is handled: the rerun's recovery, a step's own commit and any inside it."""
+        """The one place a failed commit or git read is handled: the rerun's recovery, a step's own commit and any
+        inside it. A git read cannot be trusted to answer later steps either, so it stops the run the same way."""
         try:
             action()
         except CommitFailed as failed:
-            missed = "" if where in AFTER_EXITS else EXITS_MISSED
             fix = "" if isinstance(failed, PendingChanged) else RERUN + (PUSHES if failed.unpushed else "")
-            text = STOPPED.format(day=day, where=where, missed=missed, reason=failed, fix=fix).rstrip(" ")
-            self.steps.alerts.send(text)
-            raise RunStopped(text) from failed
+            self._stop(day, where, COMMIT_FAILED, failed, fix)
+        except GitFailed as failed:
+            self._stop(day, where, GIT_FAILED, failed, READ_RERUN)
+
+    def _stop(self, day: date, where: str, what: str, failed: Exception, fix: str) -> None:
+        missed = "" if where in AFTER_EXITS else EXITS_MISSED
+        text = STOPPED.format(day=day, where=where, missed=missed, what=what, reason=failed, fix=fix).rstrip(" ")
+        self.steps.alerts.send(text)
+        raise RunStopped(text) from failed

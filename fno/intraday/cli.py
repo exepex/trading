@@ -13,6 +13,7 @@ from ..research_data.calendar import CalendarError
 from .backfill_cli import COMMANDS as BACKFILL_COMMANDS
 from .backfill_cli import add_backfill_parsers, cmd_backfill
 from .dry_run import inside_repository
+from .feed_cli import FEED_PROBE, add_feed_probe_parser, cmd_feed_probe
 from .recorder import GOOD_OUTCOMES, SettleRefused, SlotOutcome
 
 DEFAULT_UNTIL = "15:35"
@@ -36,6 +37,7 @@ def add_intraday_parser(subparsers) -> None:
     rv.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the latest finished session)")
     actions.add_parser("heartbeat-check", help="alert when the recorder has been silent for 30 minutes")
     add_backfill_parsers(actions)  # story A16b
+    add_feed_probe_parser(actions)  # story A16h
     intraday.set_defaults(func=cmd_intraday)
 
 
@@ -49,6 +51,8 @@ def cmd_intraday(args) -> int:
 
     if args.intraday_cmd in BACKFILL_COMMANDS:
         return cmd_backfill(args)
+    if args.intraday_cmd == FEED_PROBE:
+        return cmd_feed_probe(args)
     if args.intraday_cmd == "heartbeat-check":
         alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
         return heartbeat_check(build_heartbeat(), build_session_calendar(), alerts, now_ist())

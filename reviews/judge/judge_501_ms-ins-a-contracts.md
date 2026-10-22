@@ -62,3 +62,24 @@ stops the whole reader, and a corrected trade is counted twice when read day by 
   review cut at `last`; worth one line in the docstring.
 - The orchestrator's answers (reads beyond the dashcam, tickets in the primary measure, one judge) are recorded in
   the story, and the code keeps to them.
+
+## Addendum 1: round 2 at a2c26465
+
+**Verdict: PASS.** Lane 1, one judge. Scope: the single commit a2c26465. The merge of `main` before it is not part
+of this judgment.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 damaged file crashes | ACCEPTED | My round-1 probe (held middle day's decisions file raising `StaleSeal`) now gives a path with `sealed_file_damaged`, no crash. A damaged outcomes day is listed in `ClosedRead.unreadable`. Plants caught: the catch narrowed, damaged reported as not sealed, the entry-day damaged check removed, `unreadable` emptied |
+| SF2 corrections counted twice | ACCEPTED | `closed_on(d)` is `closed_between(d, d)`. An original is read on its own close day as its latest correction sealed up to today, and a correction is never a path on its own day. My probe: per day `[-96]`, range `[-96]`. Plants caught: today = last, corrections kept as paths, the chain cut to one step, the `d <= last` cut dropped |
+| Minors a-d | ACCEPTED | my round-1 survivors (calendar filter, exit-day check, snapshot-id match, adapter's closed road, `mtime=0`) are all caught now |
+
+- **Plants: 15 planted, 15 caught.**
+- **Minor (no action this round):** a correction whose original exists in no readable file (its `corrects` SHA
+  names nothing) is dropped silently. My run: an orphan correction gives no path, and `unreadable` is `()`. A real
+  original in a damaged file is still signalled through `unreadable`. Only a malformed `corrects` vanishes. When
+  INS-e lands, count orphans in `ClosedRead` or alert on them.
+- **Note:** `closed_on` now reads every outcomes file from the day to today. That's fine at 30 sessions; INS-e
+  should not call it in a loop over long ranges (use `closed_between`).
+- **Gates (my run):** pytest -n auto 11,763 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean. The largest file is `test_reader.py` at 331 lines.
