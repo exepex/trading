@@ -17,6 +17,11 @@ NO_EVIDENCE = "late: push time unknown ({why})"
 PAST_DEADLINE = "late: pushed {pushed} after the deadline {deadline}"
 
 
+def next_session_0915(calendar: SessionCalendar, day: date) -> datetime:
+    """09:15 IST of the next regular session (a 15:45 issue)."""
+    return datetime.combine(nth_regular_session(calendar, day, 1), DEADLINE, IST)
+
+
 @dataclass(frozen=True)
 class Seal:
     sealed_at: datetime | None
@@ -26,15 +31,16 @@ class Seal:
 
 
 class SealCheck:
-    def __init__(self, pushed_at: Callable[[str], datetime], calendar: SessionCalendar):
+    def __init__(self, pushed_at: Callable[[str], datetime], calendar: SessionCalendar,
+                 deadline_of: Callable[[SessionCalendar, date], datetime] | None = None):  # fmt: skip
         """`pushed_at(repository path)`: GitHub's receipt time of the commit that first added the file; raises when
-        unknown."""
-        self.pushed_at, self.calendar = pushed_at, calendar
+        unknown. `deadline_of(calendar, day)`: the issue's deadline (default: a 15:45 issue's, `next_session_0915`);
+        G13d passes its own."""
+        self.pushed_at, self.calendar, self.deadline_of = pushed_at, calendar, deadline_of or next_session_0915
 
     def deadline(self, day: date) -> datetime | None:
-        """09:15 IST of the next regular session (a 15:45 issue)."""
         try:
-            return datetime.combine(nth_regular_session(self.calendar, day, 1), DEADLINE, IST)
+            return self.deadline_of(self.calendar, day)
         except CalendarError:
             return None
 

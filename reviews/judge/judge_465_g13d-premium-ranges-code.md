@@ -81,3 +81,17 @@ Each day's coverage is what a correct rule gives for that move.
    Measure them before asking for go-live, as the builder says.
 4. **The outcome is read from G13's record, not A4's chain directly.** Quotes G13 drops appear as unscored. This is
    disclosed; the counts will show the size.
+
+## Addendum 1: the sticky-strike test at 05059295 (number 465.1, claimed with `tools/claim_number.py`)
+
+**PASS. The merge may go ahead with a merge commit:** pull first, then run the full suite on the merged tree.
+
+| Item | Result |
+|---|---|
+| The new test | `test_each_contract_keeps_its_own_iv_not_the_atm_iv`: the contract's IV is 17.5 and the ATM IV is 12.0. It closes note 1 |
+| My plant (the contract's IV replaced by the ATM IV in `build.py`) | now fails 1 test |
+| Note 2 | the story's sample-size line is corrected with my figures |
+| Full suite on 05059295 | 9,672 passed, 16 xfailed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | clean |
+| `check_imports` | clean |

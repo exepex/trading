@@ -37,22 +37,25 @@ def _decode(data: bytes) -> Seal:
 
 class Seals:
     def __init__(self, check: SealCheck, store: DistributionStore, receipt_of: Callable[[str], str],
-                 now: Callable[[], datetime]):  # fmt: skip
-        """`receipt_of(drive path)`: the repository path of that file's receipt."""
+                 now: Callable[[], datetime], live_path_of: Callable[[str, date, str], str] = live_path,
+                 seal_path_of: Callable[[str, date, str], str] = seal_path):  # fmt: skip
+        """`receipt_of(drive path)`: the repository path of that file's receipt. `live_path_of` and `seal_path_of`
+        (underlying, day, issue): where sealed records and their seals live (default G13b's; G13d gives its own)."""
         self.check, self.store, self.receipt_of, self.now = check, store, receipt_of, now
+        self.live_path_of, self.seal_path_of = live_path_of, seal_path_of
 
     def seal(self, underlying: str, day: date, issue: str) -> Seal:
-        stored = self.store.get(seal_path(underlying, day, issue))
+        stored = self.store.get(self.seal_path_of(underlying, day, issue))
         if stored is not None:
             return _decode(stored)
-        return self.check.seal(self.receipt_of(live_path(underlying, day, issue)), day)
+        return self.check.seal(self.receipt_of(self.live_path_of(underlying, day, issue)), day)
 
     def record(self, underlying: str, day: date, issue: str) -> str | None:
         """Stores the seal when it is final; returns a line, or None when it was already stored."""
-        path = seal_path(underlying, day, issue)
+        path = self.seal_path_of(underlying, day, issue)
         if self.store.get(path) is not None:
             return None
-        seal = self.check.seal(self.receipt_of(live_path(underlying, day, issue)), day)
+        seal = self.check.seal(self.receipt_of(self.live_path_of(underlying, day, issue)), day)
         if seal.sealed_at is None:
             if self.now().date() - day <= LOG_REACH:
                 return PENDING.format(underlying=underlying, day=day, issue=issue, why=seal.reason)
