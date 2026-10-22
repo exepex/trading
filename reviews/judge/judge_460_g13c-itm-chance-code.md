@@ -95,3 +95,21 @@ equal the close.
 | `ruff check fno tests tools` | clean |
 | `ruff format --check` | clean |
 | `check_imports` | clean |
+
+## Addendum 2: d776b6c1, the settlement chain as a tested function (number 460.2, claimed with `tools/claim_number.py`)
+
+**PASS. This is the head to run calibrate on once and to merge.** It supersedes 25d45c89.
+
+**What changed.** `wiring.settlement_chain(udiff_library, legacy_library)` builds the chain, and both `build_settle`
+and the tests call it. This closes note 1, the one plant that survived in the first review (E7 dropped from the
+chain).
+
+**My checks on d776b6c1:**
+
+| Check | Result |
+|---|---|
+| plant: E7 removed from `settlement_chain` | fails 1 test |
+| full suite | 9,614 passed, 16 xfailed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | clean |
+| `check_imports` | clean |
