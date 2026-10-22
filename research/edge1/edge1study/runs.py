@@ -30,6 +30,7 @@ from .runner import (
 )
 from .stats import MIN_RUN1, MIN_TESTED, complete, g1_inputs, holm_family, mean_net, nominated, one_sided_p, taken
 from .structures import TRADEABLE
+from .stt_history import charges_on
 
 RUN1_YEARS = 4.0
 Margins = Callable[[str, Sequence], Sequence[EntryMargin] | None]  # (index, trades) -> margins, or None
@@ -46,6 +47,11 @@ def g1(trades) -> dict:
             "inputs": found.__dict__}  # fmt: skip
 
 
+def stt_history(market: Market, cycles, code: str, rule: str, charges: dict) -> dict:
+    """Section 9's side run: pad 1 with each order's own trade-date STT; reported, never decided on."""
+    return figures(run_variant(market, cycles, code, rule, charges, PADS[0], charges_on(charges)))
+
+
 def run1(markets: Mapping[str, Market], calendar, charges: dict, margins: Margins, run2_cycles: Mapping[str, int]):
     out = {}
     for index, market in markets.items():
@@ -55,7 +61,8 @@ def run1(markets: Mapping[str, Market], calendar, charges: dict, margins: Margin
             by_pad = {pad: run_variant(sealed_market, cycles, code, rule, charges, pad) for pad in PADS}
             base = by_pad[PADS[0]]
             entry = {"index": index, "structure": code, "exit": rule, "tradeable": code in TRADEABLE,
-                     "pad1": figures(base, margins(index, base)), "pad2": figures(by_pad[PADS[1]])}  # fmt: skip
+                     "pad1": figures(base, margins(index, base)), "pad2": figures(by_pad[PADS[1]]),
+                     "pad1_stt_history": stt_history(sealed_market, cycles, code, rule, charges)}  # fmt: skip
             if code in TRADEABLE:
                 entry["g1"] = g1(base)
                 share = len(taken(base)) / len(base) if base else 0.0
@@ -77,7 +84,8 @@ def run2(markets: Mapping[str, Market], calendar, charges: dict, margins: Margin
         base, wide = by_pad[PADS[0]], by_pad[PADS[1]]
         row = {"index": chosen["index"], "structure": chosen["structure"], "exit": chosen["exit"],
                "tradeable": chosen["tradeable"], "pad1": figures(base, margins(chosen["index"], base)),
-               "pad2": figures(wide)}  # fmt: skip
+               "pad2": figures(wide), "pad1_stt_history": stt_history(market, cycles, chosen["structure"],
+                                                                         chosen["exit"], charges)}  # fmt: skip
         if chosen["tradeable"]:
             nets = [t.net for t in complete(base)]
             row |= {"p": one_sided_p(nets, k), "k": k, "n": len(nets), "mean_net": mean_net(complete(base)),

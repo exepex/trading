@@ -12,6 +12,8 @@ from .margin import EntryMargin
 from .stats import complete, drawdown, finite, mean_net, taken, worst_month
 from .trade import Trade
 
+MARGIN_LABEL = "calculator only, unchecked"  # protocol section 9, revision 3: no independent margin source
+
 
 def _mean(values: Sequence[float]) -> float | None:
     return finite(float(np.mean(values))) if values else None
@@ -23,9 +25,9 @@ def margin_figures(trades: Sequence[Trade], margins: Sequence[EntryMargin]) -> d
     returns = [t.net / m.initial for t, m in pairs]
     reasons = Counter(m.reason for m in margins if m.initial is None)
     median = finite(float(np.median(returns))) if returns else None
-    return {"trades_with_margin": len(pairs), "mean_margin": _mean([m.initial for _, m in pairs]),
-            "mean_return_on_margin": _mean(returns), "median_return_on_margin": median,
-            "no_margin": dict(sorted(reasons.items()))}  # fmt: skip
+    return {"label": MARGIN_LABEL, "trades_with_margin": len(pairs),
+            "mean_margin": _mean([m.initial for _, m in pairs]), "mean_return_on_margin": _mean(returns),
+            "median_return_on_margin": median, "no_margin": dict(sorted(reasons.items()))}  # fmt: skip
 
 
 def figures(trades: Sequence[Trade], margins: Sequence[EntryMargin] | None = None) -> dict:

@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, replace
 from datetime import date
 
 from fno.constants import SIDE_BUY, SIDE_SELL
@@ -25,6 +25,7 @@ STOP_MULTIPLE, TARGET_SHARE = 3.0, 0.5  # SL2: mark >= 3 x credit (a loss of 2 x
 TAKEN, NOT_LISTED, UNTRADED = "taken", "missing_strikes", "untraded_leg_at_entry"
 BAD, CAP = "bad_prices", "no_trade_cap"
 NO_ENTRY, NO_EXIT_PRICE, NO_SETTLEMENT = "no_entry_data", "no_exit_price", "no_settlement"
+ChargesOn = Callable[[date], Mapping[str, float]]  # a trade date -> that date's charges table
 
 
 @dataclass(frozen=True)
@@ -113,15 +114,20 @@ def _settlement_costs(legs: Sequence[Leg], level: float, terms: CycleTerms) -> f
                                                 dict(terms.charges)).values()) for leg in legs)  # fmt: skip
 
 
+def _terms_on(terms: CycleTerms, day: date, charges_on: ChargesOn | None) -> CycleTerms:
+    return terms if charges_on is None else replace(terms, charges=charges_on(day))
+
+
 def run_trade(structure: Structure, panel: NiftyPanel, cycle: Cycle, terms: CycleTerms, exit_rule: str,
-              days: Sequence[date], settlement: Callable[[date], float | None],
-              capped: bool = True) -> Trade:  # fmt: skip
-    """`days`: the index's sessions in date order; `settlement(expiry)`: the final settlement price, or None."""
+              days: Sequence[date], settlement: Callable[[date], float | None], capped: bool = True,
+              charges_on: ChargesOn | None = None) -> Trade:  # fmt: skip
+    """`days`: the index's sessions in date order; `settlement(expiry)`: the final settlement price, or None;
+    `charges_on(day)`: the charges of an order's own trade date (the historical-STT side run), else `terms.charges`."""
     status, width, legs, entry = open_legs(structure, panel, cycle, terms, capped)
     if status != TAKEN:
         return Trade(status, cycle, exit_rule)
     costs, credit = PositionCosts(terms), -position_value(legs, entry)
-    opening = costs.charges(legs, entry, True)
+    opening = PositionCosts(_terms_on(terms, cycle.entry_day, charges_on)).charges(legs, entry, True)
     entry_pads = len(legs) * terms.pad * terms.lot
     if exit_rule == EXP:
         level = settlement(cycle.expiry)
@@ -129,7 +135,7 @@ def run_trade(structure: Structure, panel: NiftyPanel, cycle: Cycle, terms: Cycl
             return Trade(NO_SETTLEMENT, cycle, exit_rule, width, terms.lot, tuple(legs), credit)
         exit_prices = [leg.intrinsic(level) for leg in legs]
         gross = costs.gross(legs, entry, exit_prices)
-        charges = opening + _settlement_costs(legs, level, terms)
+        charges = opening + _settlement_costs(legs, level, _terms_on(terms, cycle.expiry, charges_on))
         return Trade(TAKEN, cycle, exit_rule, width, terms.lot, tuple(legs), credit, cycle.expiry, "settlement", False,
                      gross, charges, entry_pads, gross - charges - entry_pads)  # fmt: skip
     fired = _trigger(legs, credit, panel, cycle, exit_rule, days)
@@ -142,7 +148,7 @@ def run_trade(structure: Structure, panel: NiftyPanel, cycle: Cycle, terms: Cycl
         exit_day, exit_prices, how = cycle.exit_day, [p.price for p in planned], "planned"
         incomplete = any(p.on_settlement for p in planned)
     gross = costs.gross(legs, entry, exit_prices)
-    charges = opening + costs.charges(legs, exit_prices, False)
+    charges = opening + PositionCosts(_terms_on(terms, exit_day, charges_on)).charges(legs, exit_prices, False)
     pads = costs.pads(legs)
     return Trade(TAKEN, cycle, exit_rule, width, terms.lot, tuple(legs), credit, exit_day, how, incomplete, gross,
                  charges, pads, gross - charges - pads)  # fmt: skip

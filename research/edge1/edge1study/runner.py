@@ -17,7 +17,7 @@ from fno.research_engine.cycle_costs import LOSS_CAP, WIDTHS, CycleTerms
 from fno.research_engine.cycles import Cycle, monthly_cycles
 
 from .structures import MEASURED, TRADEABLE, structure
-from .trade import EXITS, T21, Trade, run_trade
+from .trade import EXITS, T21, ChargesOn, Trade, run_trade
 
 NIFTY, BANKNIFTY = "NIFTY", "BANKNIFTY"
 INDICES = (NIFTY, BANKNIFTY)
@@ -63,7 +63,7 @@ def lot_of(market: Market, cycle: Cycle) -> int | None:
 
 
 def run_variant(market: Market, cycles: Sequence[Cycle], code: str, exit_rule: str, charges: dict,
-                pad: float) -> list[Trade]:  # fmt: skip
+                pad: float, charges_on: ChargesOn | None = None) -> list[Trade]:  # fmt: skip
     built, trades = structure(code), []
     for cycle in cycles:
         lot = lot_of(market, cycle)
@@ -72,7 +72,7 @@ def run_variant(market: Market, cycles: Sequence[Cycle], code: str, exit_rule: s
             continue
         terms = CycleTerms(lot, charges, pad, LOSS_CAP, WIDTHS_BY_INDEX[market.index])
         trades.append(run_trade(built, market.panel, cycle, terms, exit_rule, market.days, market.settlement,
-                                capped=code in TRADEABLE))  # fmt: skip
+                                capped=code in TRADEABLE, charges_on=charges_on))  # fmt: skip
     return trades
 
 

@@ -39,8 +39,9 @@ This section comes first, because it limits what any result can mean.
 - **Run 2:** cycles with a decision day from 1 Jan 2023 whose expiry is on or before the index's last data day (the
   NIFTY panel's last day; 20 Oct 2026 for BANKNIFTY's files), so every variant of a cycle can complete, EXP included.
   The same cycles are used for all 12 variants of an index.
-- **The seal:** run 1 loads no price dated after its last cycle's planned exit. Its December 2022 cycles exit by late
-  January 2023, so run 1 reads at most January 2023's closes; this is stated, not hidden. Run 2 runs once, after run
+- **The seal:** run 1 loads no row dated after 14 Feb 2023 (its last decision day, 31 Dec 2022, plus 45 days): its
+  December 2022 cycles expire in late January 2023, so every run-1 trade can complete, and run 1 reads at most these
+  six weeks of 2023; this is stated, not hidden. The rows are cut before any panel is built. Run 2 runs once, after run
   1's selection is committed.
 - **Weeklies are out of this protocol.** The engine's cycles are monthly, every NIFTY weekly is spent, and BANKNIFTY's
   weeklies ended on 14 Nov 2024. A weekly study would be a separate story.
@@ -134,10 +135,16 @@ followed as the files list them. The report lists each change with its first exp
 - **Charges:** C1's `fno.costs` with `config.yaml`'s `charges` table, at every order, as the engine does.
   - That table's 0.15% STT is applied to every date, so history is charged more than it paid. This is conservative
     and is the decided figure.
-  - A historical-STT run is reported beside it, never decided on. It uses NSE's rates by trade date: 0.05% of premium
-    on sold options before 1 Apr 2023, 0.0625% to 30 Sep 2024, 0.1% to 31 Mar 2026, then 0.15% [reasoning only:
-    rates from the Finance Acts as I recall them; each date is checked against the Act or NSE's circular in the build,
-    and any correction is listed].
+  - A historical-STT run (pad 1) is reported beside it, never decided on. Each order is charged at its own trade
+    date's rate (entry on the entry day, the exit on its exit day, settlement on expiry): on sold premium 0.05% before
+    1 Apr 2023, 0.0625% to 30 Sep 2024, 0.1% to 31 Mar 2026, then 0.15%; on exercise 0.125% to 31 Mar 2026, then
+    0.15%. Checked in the build: Finance Act 2023 (NSE circular FATAX56235), Finance (No. 2) Act 2024, Budget 2026
+    (NSE/FATAX/73524).
+  - Only STT is made historical. NSE's options transaction charge was higher before 1 Oct 2024 (about 0.053% of
+    premium against today's 0.03503%) [some evidence: broker charge pages, not a circular read in the build], so
+    the decided run under-charges that part of history by about 0.018% of premium per side. STT's gap is larger
+    (0.10% of sold premium before Apr 2023), so the decided run stays conservative overall; this is stated, not
+    modelled.
 - **Margin, return on margin only (not a pass condition):**
   - SPAN plus exposure per lot at entry, from that day's archived SPAN file and C2/A14's calculator, read only;
   - the file is read with `read_span_file(..., allow_short_option_minimum=True)` and checked point in time (A9's
@@ -145,8 +152,10 @@ followed as the files list them. The report lists each change with its first exp
   - the cycle's own lot, NSE's index exposure rule, and C2's stress factor k = 2.1 for a stressed figure beside it.
   - SPAN files start on 2 Jan 2020, so 2019's cycles have no margin figure.
   - A `MarginOutsideModel` case is counted and named.
-  - **Build gate:** a few days a year for each index are compared with NSE's published margin before any margin result
-    is used. If they do not match, the margin figures are reported as missing.
+  - **Check (revision 3):** no independent historical margin exists (NSE publishes the SPAN files, not a margin per
+    position; `margins.csv` comes from the same calculator, so it cannot check it; A14c part 2's Groww check is
+    paused). Every margin figure is therefore labelled "calculator only, unchecked" [reasoning only]. If A14c part
+    2's read-only broker check is live before run 1, one recent day per index is compared and the result reported.
 - Return on margin = net P&L / (SPAN + exposure at entry), per trade; the report also shows the mean over trades.
 
 ## 10. Run 1: measure and screen (G1)
@@ -235,6 +244,9 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
+- Revision 3 (before the freeze): the seal is stated as 14 Feb 2023 and enforced at load (section 3); the
+  historical-STT dates are sourced, exercise STT added, the higher pre-Oct-2024 exchange charge stated (section 9);
+  the margin build gate, which had no independent source, is replaced by an "unchecked" label (section 9).
 - Revision 2 (before the freeze): the owner's Q1 answer, with the naked strangle and straddle measured outside every
   family (section 5); Q2 accepted (screen and nominate).
 - Revision 1 (before the freeze, judges 468 and 468.1): the bootstrap block is 2 trades (EXP trades overlap), with a

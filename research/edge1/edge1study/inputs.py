@@ -24,7 +24,7 @@ from fno.storage.wiring import (
 )
 
 from .panels import cached_rows, lots_from_rows, panel_from_rows
-from .runner import BANKNIFTY, NIFTY, Market
+from .runner import BANKNIFTY, NIFTY, Market, sealed
 
 FIRST_DAY, LAST_FILE_DAY = date(2019, 1, 1), date(2026, 10, 20)
 
@@ -33,10 +33,14 @@ def sessions(calendar, first: date = FIRST_DAY, last: date = LAST_FILE_DAY) -> l
     return [d for d in calendar.sessions(first, last) if calendar.session_kind(d) == "regular"]
 
 
-def markets() -> dict[str, Market]:
+def markets(through: date | None = None) -> dict[str, Market]:
+    """Both markets; with `through` (run 1's seal) nothing dated later is loaded: NIFTY's panel years stop at that
+    year and every BANKNIFTY row, lot and NIFTY lot after it is dropped before a panel is built."""
     calendar = build_session_calendar()
     fo_files, _ = build_nifty_panel_files()
     rows = cached_rows((NIFTY, BANKNIFTY), sessions(calendar), fo_files, options_for=(BANKNIFTY,))
+    if through is not None:
+        rows = {s: [r for r in found if r.day <= through] for s, found in rows.items()}
     outcomes = Outcomes(g13b.build_closes(g13b.build_tables(g13b.build_store())))
     chain = settlement_chain(build_nse_fo_library(), build_nse_legacy_fo_library())
 
@@ -46,7 +50,10 @@ def markets() -> dict[str, Market]:
 
         return price
 
-    nifty_panel: NiftyPanel = read_nifty_panel(PANEL_FOLDER, keep=cycle_rows)
+    years = range(FIRST_DAY.year, through.year + 1) if through is not None else None
+    nifty_panel: NiftyPanel = read_nifty_panel(PANEL_FOLDER, years, keep=cycle_rows)
+    if through is not None:
+        nifty_panel = sealed(nifty_panel, through)
     bank_panel = panel_from_rows(rows[BANKNIFTY], lambda day: outcomes.close(BANKNIFTY, day), {})
     return {
         NIFTY: Market(NIFTY, nifty_panel, lots_from_rows(rows[NIFTY]), settled(NIFTY)),
