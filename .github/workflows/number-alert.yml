@@ -2,15 +2,14 @@
 # used twice), so a stray file cannot sit unseen behind checks.yml's red cross. It fixes nothing and changes nothing.
 # - On every push to main: alert only the problems the commit before the push did not have, so a red main is announced
 #   by the push that made it red, not again by every later push.
-# - Every hour: alert every problem while main stays red (a reminder; also covers a push this workflow missed).
+# - By hand (workflow_dispatch): alert every problem, with no baseline. The hourly reminder was cut by the owner on
+#   22 Oct 2026 (DESK_DECISIONS "Cut-list accepted": up to 24 posts a day while red); the push alert stays.
 # Secret: FNO_SLACK_BOT_TOKEN only; it is never printed or written to a file.
 name: number-alert
 
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
