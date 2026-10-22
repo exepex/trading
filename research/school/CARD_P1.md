@@ -78,8 +78,10 @@ changed charge schedule is a new card version that applies to later decisions on
   within 10 steps of the money on each side (the money: the strike nearest the spot on the nearest expiry), on every
   expiry the road records that session. The card freezes b's number and does not define its own: if the constant
   moves, this card is out of date and a new card version is needed (`test_the_cards_band_is_the_quality_gates_constant`
-  checks it once b is on the branch). The band is the gate's observation set only: a driver leg outside it is still
-  checked by the quote gate (law 5) when the trade is made. Every driver card's `band_steps` must be 10 (RC1's widest
+  checks it once b is on the branch). The band is the gate's observation set only: it measures whether two-sided quotes
+  were captured (capture completeness), not whether every leg a driver may trade is inside it. Law 5 checks each traded
+  leg when the trade is made, and a refusal stays in every denominator; part j's report shows, per road, the share of
+  trades refused for quotes, so thin far legs stay visible. Every driver card's `band_steps` must be 10 (RC1's widest
   short strike, as b notes). Whether 10 steps is wide enough for the 1-expected-move shorts is **reasoning only**.
 - **Impossible price (one source: part b's `impossible_keys` in `fno/school/quality/prices.py`, EDGE1's rule, protocol
   revision 7, judge 473.1):** a vertical (a sold leg with the bought leg of its type) is impossible when no price
