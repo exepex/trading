@@ -5,6 +5,8 @@ import math
 from datetime import date, timedelta
 from pathlib import Path
 
+from fno.research_data.calendar import CalendarError, SessionCalendar
+from fno.research_engine.cycles import TradingDays
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.school.constants import OptionKind, RoadCode
 from fno.school.contracts.decisions import OpenPosition, SpotPoint
@@ -24,14 +26,22 @@ SPOT = 50_000.0
 VOL = 0.15
 
 
-class Weekdays:
-    """A calendar whose sessions are Monday to Friday."""
+class WeekdayCalendar(SessionCalendar):
+    """Monday to Friday are regular sessions; like the real calendar, it refuses days after `ends`."""
 
-    def is_trading_day(self, day: date) -> bool:
-        return day.weekday() < 5
+    def __init__(self, ends: date | None = None):
+        self.ends = ends
+
+    def session_kind(self, day: date) -> str | None:
+        if self.ends is not None and day > self.ends:
+            raise CalendarError(f"the calendar ends {self.ends}")
+        return "regular" if day.weekday() < 5 else None
+
+    def calendar_sha256(self) -> str:
+        return "fixture"
 
 
-CALENDAR = Weekdays()
+CALENDAR = TradingDays(WeekdayCalendar())
 BUILDER = ProposalBuilder(SimulatorTradeCosts(ZERO_CHARGES), CAP)
 
 

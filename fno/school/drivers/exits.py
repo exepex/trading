@@ -17,7 +17,7 @@ from ..contracts.decisions import OpenPosition, SpotPoint
 from ..contracts.snapshot import SlotSnapshot
 from .card_params import CardParams
 from .history import spot_window
-from .session_days import TradingCalendar, last_session_on_or_before, nth_session_after
+from .session_days import TradingCalendar, nth_session_after
 from .shapes import CDS, PDS
 
 PROFIT_TARGET, LOSS_MULTIPLE = "exit_profit_share", "exit_loss_multiple"
@@ -74,7 +74,7 @@ class ExitPlan:
         if self.last_session_dte is not None:
             floor = expiry - timedelta(days=self.last_session_dte)
             dated.append((ExitReason.DAYS_BEFORE_EXPIRY, f"last session {self.last_session_dte} days before expiry",
-                          lambda: last_session_on_or_before(calendar, floor)))  # fmt: skip
+                          lambda: calendar.last_on_or_before(floor)))  # fmt: skip
         return dated
 
     def _through_mean(self, position: OpenPosition, snapshot: SlotSnapshot, history: tuple[SpotPoint, ...]) -> bool:

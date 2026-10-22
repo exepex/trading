@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from fno.research_data.calendar import CalendarError
+from fno.research_engine.cycles import TradingDays
 from fno.school.constants import ExitReason, RoadCode
 from fno.school.contracts.snapshot import SlotQuote
 from fno.school.drivers.exits import ExitPlan, net_if_closed
@@ -123,13 +123,7 @@ def test_a_position_past_its_expiry_still_ends_in_expiry(days_after):
     assert driver.review_exit(position, snapshot, ()) == ExitReason.EXPIRY
 
 
-class EndsAtYearEnd:
-    """A calendar like the real one: it answers up to 31 Dec 2026 and refuses after."""
-
-    def is_trading_day(self, day):
-        if day > date(2026, 12, 31):
-            raise CalendarError("calendar ends 2026-12-31")
-        return day.weekday() < 5
+YEAR_END = TradingDays(b.WeekdayCalendar(date(2026, 12, 31)))
 
 
 def test_a_calendar_that_ends_does_not_stop_the_price_or_expiry_rules():
@@ -142,10 +136,10 @@ def test_a_calendar_that_ends_does_not_stop_the_price_or_expiry_rules():
     position = b.position_from(cs1.decide(road_day, snapshot, b.history([b.SPOT - 1] * 20, session), ()), cs1, session)
     later = replace(snapshot, session=date(2026, 12, 23))
     # ten sessions after 22 Dec falls in 2027: the calendar cannot say, so that rule is not reached, nothing raises
-    assert plan.review(position, later, (), EndsAtYearEnd()) is None
+    assert plan.review(position, later, (), YEAR_END) is None
     crashed = replace(later, quotes={k: SlotQuote(q.bid * 0.01, q.ask * 0.01, q.bid_qty, q.ask_qty, q.last, True)
                                      for k, q in later.quotes.items()})  # fmt: skip
-    assert plan.review(position, crashed, (), EndsAtYearEnd()) == ExitReason.PROFIT_TARGET
+    assert plan.review(position, crashed, (), YEAR_END) == ExitReason.PROFIT_TARGET
 
 
 def test_ws1_closes_at_exactly_one_and_a_half_times_its_credit_not_two():
