@@ -63,3 +63,36 @@ check out against the repository.
 - The measure mix (candle history, a live last lag, a live target) is honest only because every record counts its
   sources and the gap table grows daily. Keep both as criteria, not just design.
 - No code yet: no gates or plants this round.
+
+## Addendum 1
+
+**Scope:** round 2 of 2, story/g14-v5-v1-candle at 68564773 (diff c648a1d5..68564773 of the story file).
+
+**Verdict: PASS (story text).** No blocking and no should-fix findings; 1 minor. Code may start after v4's piece 4.
+
+- **Blocking, accepted (fixed).**
+  - Criterion 8: the card, ledger and gate-log commit is a strict ancestor of the first `fno/forecast_v5_v1/`
+    commit, tested on real git.
+  - Criterion 9: the capture refuses a live day when `FREEZE_v5_v1.md` is missing, lacks a `Frozen on:` line or
+    shows a hash mismatch.
+  - Criterion 6: the report prints the label and the gap table.
+- **Should-fix 2, accepted.** The orchestrator's ruling: the package, card and freeze record merge once judged; the
+  O1 step is its own commit, merged only after the owner signs v4. This matches the decision row's "its daily step
+  merged only after the v4 sign-off".
+- **Should-fix 3, accepted.** Criterion 2 takes `freeze_check.byte_checked(root)`, the one list, against the merge
+  base.
+- **Should-fix 4, accepted.** Candle first, point in time, with 16 Oct worked through: missing for `d` = 19 Oct,
+  5.82224e-5 (candle) from 21 Oct.
+  - My check: the candle row's `first_seen_at` is 2026-10-19T10:03:17Z, i.e. 15:33 IST, after 19 Oct's cutoff and
+    before 21 Oct's; 20 Oct is the Dussehra holiday.
+  - Criterion 1 carries both values.
+- **Minors, accepted.**
+  - The session count is timed (14:11 run: 3 rows, 2 usable; after 15:31: 4 rows, 3 usable), matching `rv/`.
+  - `v5c_trailing` is stated to read the live row and to be a control; only `v5c_har_intraday` tests the candle
+    input.
+  - The header names Judge J, and judge D for the O1 parts.
+
+**Minor:**
+- (a) "I add the step on this branch" sits beside "a separate commit, merged only after the owner signs v4".
+  Merging the branch takes all its commits. Push the step commit only after the package merge, or on its own
+  branch, so a merge of the package can never carry it early.
