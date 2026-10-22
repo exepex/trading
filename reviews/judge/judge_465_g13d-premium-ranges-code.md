@@ -1,4 +1,4 @@
-# Judge 464: G13d code, each contract's next-session premium range (caeebfcd, response 317)
+# Judge 465: G13d code, each contract's next-session premium range (caeebfcd, response 317)
 
 Judge B, 22 Oct 2026. Lane 1: a new story with forecast and score records, two O1 steps (null `live_from`), and
 G13b's seal code made parameterisable.
