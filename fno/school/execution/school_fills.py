@@ -5,7 +5,8 @@ position settles at intrinsic against the index's final settlement price. Prices
 
 A seal or fill after the session's 15:30 close is `stale_seal` (law 6): a late record never trades at an old touch.
 Never partial (story 3.6): an exit with any leg it cannot close now fills nothing and waits (`exit_waiting_quote`),
-so a position is never left short without its protection and never priced from anything but its road's snapshot."""
+so a position is never left short without its protection and never priced from anything but its road's snapshot.
+Sizes reach E4 through `QuoteRules`: `LIVE` here and in `wiring.py`; practice rules only from `practice_wiring.py`."""
 
 from collections.abc import Mapping
 from datetime import date, datetime
@@ -22,16 +23,17 @@ from ..contracts.decisions import LegSpec, OpenPosition
 from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.seal import Seal
 from ..contracts.snapshot import ContractKey, SlotSnapshot
-from .desk_view import desk_leg, execution_snapshot, school_legs
+from .desk_view import desk_leg, execution_snapshot, school_legs, size_unmeasured
 from .entry_gate import entry_refusals
+from .quote_rules import LIVE, QuoteRules
 from .settlement_fills import settlement_fill
 
 FILLED_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)  # a ticket is priced by the same rule (response 327 item 1)
 
 
 class SchoolFills:
-    def __init__(self, charges: Mapping[str, float], settlements: IndexSettlementSource):
-        self.charges, self.settlements = dict(charges), settlements
+    def __init__(self, charges: Mapping[str, float], settlements: IndexSettlementSource, rules: QuoteRules = LIVE):
+        self.charges, self.settlements, self.rules = dict(charges), settlements, rules
 
     def enter(self, sealed: SealedDecision, snapshot: SlotSnapshot, seal: Seal, at: datetime) -> FillResult:
         decision = sealed.decision
@@ -43,8 +45,9 @@ class SchoolFills:
         proposal, underlying = decision.proposal, ROADS_BY_CODE[decision.road].underlying
         if len({leg.key for leg in proposal.legs}) != len(proposal.legs):
             raise ValueError(f"{decision.driver_id}: a proposal names a contract twice (the laws refuse it)")
-        desk = execution_snapshot(snapshot, underlying)
-        refused = entry_refusals(desk, school_legs(underlying, proposal.legs, proposal.lot), {})
+        desk = execution_snapshot(snapshot, underlying, self.rules)
+        legs = school_legs(underlying, proposal.legs, proposal.lot)
+        refused = entry_refusals(desk, legs, {}, size_unmeasured(snapshot, underlying, self.rules))
         if refused:
             return FillResult(refused=refused)
         maker = self._maker(desk, decision.driver_id, sealed.file_sha256)
@@ -59,7 +62,7 @@ class SchoolFills:
         if not _sealed_in_time(seal, file_sha256, snapshot, at):
             return FillResult(refused=(RefusalReason.STALE_SEAL,))
         legs = school_legs(ROADS_BY_CODE[position.road].underlying, position.legs, position.lot)
-        desk = execution_snapshot(snapshot, ROADS_BY_CODE[position.road].underlying)
+        desk = execution_snapshot(snapshot, ROADS_BY_CODE[position.road].underlying, self.rules)
         closing, pending = closing_quotes(desk, [(leg.desk, leg.units) for leg in legs])
         if pending:
             return FillResult(state=ExitState.EXIT_WAITING_QUOTE)
