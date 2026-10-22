@@ -16,7 +16,7 @@ from fno.global_cues.reading import CueReading
 from fno.research_data.nifty_panel import DailyFiles
 
 MON, FRI = date(2026, 10, 26), date(2026, 10, 23)
-OPEN = time(9, 15)
+OPEN, RUN = time(9, 15), time(20, 5)
 
 
 class Table:
@@ -40,7 +40,8 @@ class Reader:
 
 
 def section(reader, calendar=True, unit="%"):
-    return GlobalCueSection(lambda: reader, CueSpec("x", "S&P 500", unit, calendar), OPEN)
+    cutoffs = {"morning": (OPEN,), "evening": (RUN, OPEN)}
+    return GlobalCueSection(lambda: reader, CueSpec("x", "S&P 500", unit, calendar), cutoffs)
 
 
 @pytest.mark.parametrize("status", ["current", "ahead"])
@@ -100,3 +101,22 @@ def test_the_day_s_flags_are_the_day_s_own_events_and_expiry():
     view = FlagsSection(lambda day: facts).read(MON, "morning")
     assert [c.text for c in view.items] == ["RBI policy decision", "NIFTY F&O expiry today"]
     assert FlagsSection(lambda day: Facts()).read(MON, "morning").items == ()
+
+
+class ByCutoff(Reader):
+    """The day's RBI rate is not in A17's table at the evening's run time; the previous session's is, at 09:15."""
+
+    def read(self, cue, day, cutoff, live_only):
+        self.calls.append((cue, day, cutoff, live_only))
+        row = self.tables[cue].rows()[-1]
+        return CueReading(row, "behind" if cutoff == RUN else "current", 1, None)
+
+
+def test_the_evening_shows_the_day_s_value_when_out_else_the_previous_one_said_so():
+    current = section(Reader("current")).read(MON, "evening")
+    assert (current.status, current.why) == (AVAILABLE, "")
+    reader = ByCutoff("current")
+    view = section(reader).read(MON, "evening")
+    assert [c[2] for c in reader.calls] == [RUN, OPEN]  # judge 451: the run's time first, never 15:00
+    assert (view.status, view.items[0].as_of) == (AVAILABLE, FRI)
+    assert view.why == "S&P 500: today's value is not out yet; the previous one is shown, with its date"
