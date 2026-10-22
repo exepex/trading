@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
+from ....constants import SIDE_BUY
 from ....models import IST
 from ....price_distribution.forward import averaged_forward
 from ...constants import OptionKind
@@ -39,7 +40,7 @@ def years_left(at: datetime, expiry: date) -> float:
 def snapshot_point(snapshot: SlotSnapshot, keys: tuple[ContractKey, ...], rate: float) -> Point:
     expiries = sorted({k.expiry for k in keys})
     years = {e: years_left(snapshot.finished_at, e) for e in expiries}
-    forwards = {e: _finite(averaged_forward(_pairs(snapshot, e), rate, (e - snapshot.session).days)) for e in expiries}
+    forwards = {e: forward_of(snapshot, e, rate) for e in expiries}
     mids = {k: finite_mid(snapshot, k) for k in keys}
     sigmas = {k: _sigma(mids[k], forwards[k.expiry], k, years[k.expiry], rate) for k in keys}
     return Point(years, forwards, mids, sigmas)
@@ -49,6 +50,16 @@ def settlement_point(settlement: float, keys: tuple[ContractKey, ...]) -> Point:
     expiries = {k.expiry for k in keys}
     return Point({e: 0.0 for e in expiries}, {e: settlement for e in expiries},
                  {k: intrinsic(k, settlement) for k in keys}, {k: None for k in keys})  # fmt: skip
+
+
+def forward_of(snapshot: SlotSnapshot, expiry: date, rate: float) -> float | None:
+    """G13's parity forward of the expiry at the snapshot, or None without a call and put pair."""
+    return _finite(averaged_forward(_pairs(snapshot, expiry), rate, (expiry - snapshot.session).days))
+
+
+def signed_units(legs) -> dict[ContractKey, int]:
+    """Each filled leg's units, bought positive and sold negative."""
+    return {leg.key: leg.units * (1 if leg.side == SIDE_BUY else -1) for leg in legs}
 
 
 def finite_mid(snapshot: SlotSnapshot, key: ContractKey) -> float | None:

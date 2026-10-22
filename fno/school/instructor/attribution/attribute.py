@@ -10,10 +10,9 @@ from dataclasses import dataclass
 from ....constants import SIDE_BUY
 from ....models import IST
 from ..contracts import Attribution, HeldPath, net_matches_fills
+from ..thresholds import POOR_FIT_RS, POOR_FIT_SHARE
 from .greeks import greeks
-from .points import Point, settlement_point, snapshot_point
-
-POOR_FIT_RS, POOR_FIT_SHARE = 200.0, 0.25  # frozen: research/school/INSTRUCTOR_V1.md
+from .points import Point, settlement_point, signed_units, snapshot_point
 
 
 @dataclass
@@ -40,7 +39,7 @@ def attribute(path: HeldPath, rate: float, rules_sha256: str) -> Attribution | N
         return None  # a fault (a net that is not its fills' cash among them): never forced into the residual
     if len({leg.key.expiry for leg in path.outcome.entry.legs}) != 1:
         return None  # legs on two expiries: law 1 refuses those, and no payoff model values them
-    units = {leg.key: leg.units * (1 if leg.side == SIDE_BUY else -1) for leg in path.outcome.entry.legs}
+    units = signed_units(path.outcome.entry.legs)
     keys = tuple(sorted(units))
     points = [snapshot_point(s, keys, rate) for s in path.snapshots]
     if path.settlement is not None:

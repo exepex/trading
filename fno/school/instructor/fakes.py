@@ -40,6 +40,14 @@ class FakeCardReplay:
 
 
 @dataclass
+class FakeStopSource:
+    multiples: dict[str, float] = field(default_factory=dict)  # driver ID -> its card's loss multiple
+
+    def loss_multiple(self, driver_id: str) -> float | None:
+        return self.multiples.get(driver_id)
+
+
+@dataclass
 class FakeInstructorStore:
     files: dict[tuple[date, InstructorKind], bytes] = field(default_factory=dict)
 
