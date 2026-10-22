@@ -60,6 +60,8 @@ M = [
     ("day_files.py", "q.expiry in monthly", "True", "weekly options kept"),
     ("lots.py", "(date(2023, 7, 1), 15,", "(date(2023, 8, 1), 15,", "lot change a month late"),
     ("lots.py", "dict(r.lots) if r.source == UDIFF else", "dict(r.lots) if True else", "derived lot used as the lot"),
+    ("expiries.py", "if key not in last or day > last[key][0]:", "if key not in last:", "first date kept, not last"),
+    ("expiries.py", "if q.expiry in moved else q", "if True else q", "weeklies relabelled too"),
     ("margin.py", "if span.created >= datetime.combine", "if span.created > datetime.combine", "09:00 file allowed"),
     ("margin.py", "if hashlib.sha256(data).hexdigest() != sha256[day]:", "if False:", "no first-copy check"),
     (

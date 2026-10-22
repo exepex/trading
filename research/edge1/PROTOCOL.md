@@ -33,12 +33,18 @@ This section comes first, because it limits what any result can mean.
   entry day's index close.
 - **Final settlement (EXP):** G13c's settlement chain (`fno/itm_chance/wiring.settlement_chain`: E7, then the legacy
   FUTIDX row), cross-checked against the index close.
+- **Moved expiries (revision 6):** NSE moved the expiry of contracts already listed (the 29 Jun 2023 holiday to 28
+  Jun; BANKNIFTY to Wednesday in Mar-Apr 2024 and back to Thursday in Jan-Mar 2025; both indices to Tuesday in Sep
+  2025). Each monthly contract keeps one date, the one it carried on its last listed day (`edge1study/expiries.py`),
+  so a cycle entered before a move still finds its prices and settlement. It is applied after the seal, to the rows
+  each run may read.
 - **Lots:** section 8. **Margin:** section 9. **Calendar:** NSE's session calendar (A7); muhurat sessions are never
   decision, entry or exit days.
 - **Run 1:** cycles with a decision day from 1 Jan 2019 to 31 Dec 2022.
 - **Run 2:** cycles with a decision day from 1 Jan 2023 whose expiry is on or before the index's last data day (the
-  NIFTY panel's last day; 20 Oct 2026 for BANKNIFTY's files), so every variant of a cycle can complete, EXP included.
-  The same cycles are used for all 12 variants of an index.
+  NIFTY panel's last day; BANKNIFTY's last F&O file day, 19 Oct 2026 at the build, as NSE's 20 Oct file was not yet
+  archived), so every variant of a cycle can complete, EXP included. The same cycles are used for all 12 variants of
+  an index.
 - **The seal:** run 1 loads no row dated after 14 Feb 2023 (its last decision day, 31 Dec 2022, plus 45 days): its
   December 2022 cycles expire in late January 2023, so every run-1 trade can complete, and run 1 reads at most these
   six weeks of 2023; this is stated, not hidden. The rows are cut before any panel is built. Run 2 runs once, after run
@@ -249,6 +255,9 @@ build gate's result are listed too.
 
 ## 14. Deviations
 
+- Revision 6 (before the freeze, the input probe: counts and dates only): four run-2 expiries had no settlement
+  (NIFTY and BANKNIFTY 29 Jun 2023, BANKNIFTY 28 Mar 2024 and 29 Jan 2025) because NSE moved those contracts' dates;
+  each monthly contract now keeps its final date (section 3). BANKNIFTY's files end on 19 Oct 2026, not 20 Oct.
 - Revision 5 (before the freeze, the lot cross-check): the derived lot wanders 72-77 around NIFTY's 75 (turnover is
   at the average price, not the settlement price), so legacy-file lots come from NSE's circular schedule and the
   derived lot only checks it (section 8, `LOT_CHECK.md`).

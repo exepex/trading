@@ -23,6 +23,7 @@ from fno.storage.wiring import (
     build_session_calendar,
 )
 
+from .expiries import relabelled_panel, relabelled_rows
 from .lots import market_lots
 from .panels import cached_rows, panel_from_rows
 from .runner import BANKNIFTY, NIFTY, Market, sealed
@@ -47,6 +48,7 @@ def markets(through: date | None = None) -> dict[str, Market]:
     rows = cached_rows((NIFTY, BANKNIFTY), sessions(calendar), fo_files, options_for=(BANKNIFTY,))
     if through is not None:
         rows = rows_through(rows, through)
+    rows = {symbol: relabelled_rows(found) for symbol, found in rows.items()}  # after the seal: no later date leaks
     outcomes = Outcomes(g13b.build_closes(g13b.build_tables(g13b.build_store())))
     chain = settlement_chain(build_nse_fo_library(), build_nse_legacy_fo_library())
 
@@ -60,6 +62,7 @@ def markets(through: date | None = None) -> dict[str, Market]:
     nifty_panel: NiftyPanel = read_nifty_panel(PANEL_FOLDER, years, keep=cycle_rows)
     if through is not None:
         nifty_panel = sealed(nifty_panel, through)
+    nifty_panel = relabelled_panel(nifty_panel)
     bank_panel = panel_from_rows(rows[BANKNIFTY], lambda day: outcomes.close(BANKNIFTY, day), {})
     return {
         NIFTY: Market(NIFTY, nifty_panel, market_lots(NIFTY, rows[NIFTY]), settled(NIFTY)),
