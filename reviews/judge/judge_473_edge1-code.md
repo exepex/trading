@@ -128,3 +128,47 @@ is the right fix.
 2. I judge that (round 1 of the code deviation).
 3. Run 1 is re-run, and I reproduce both selection.json files.
 4. Run 2 follows.
+
+## Addendum 2
+
+**Scope:** EDGE1 revision 7, re-frozen at 312c10c4 (rule commit f43006c0). Round 1 of 2 on revision 7. The
+orchestrator asked: is it one general rule, and is it not tuned to the passer?
+
+**Verdict: FAIL.** The rule is general, but it leaves out two of 473.1's three required changes. The builder's message
+crossed 473.1, so this is the first time these points reach that code.
+
+**Passes the orchestrator's question.**
+- `_possible(legs, prices)` has no index, structure, exit-rule or date branch.
+- The same `run_trade` serves run 1 and run 2.
+- EXP is untouched.
+- `fno/` and `config.yaml` have no diff since 3152ed44, so 473's run condition 1 holds.
+- On NS and NT the bounds are (-inf, 0], so the rule never bites there, as 473.1 expected.
+- `selection_rev6.json` is kept with its hash in FREEZE.
+
+**Should-fix 1: check each vertical, not only the position (473.1 change 1).** A stale price can invert one spread
+while the other spread offsets it.
+- The run's own case, BANKNIFTY SF TP50, Nov 2021: the put spread is inverted by 204.75 (long 37400 at 1960.40 above
+  short 38300 at 1755.65), and the mark is -131.75.
+- Had the call spread closed 206 instead of about 73, the mark would be about +2. That is inside [0, 754], so the
+  impossible put inversion passes and the target can still fire on it.
+- Fix: for each bought-sold pair of the same type, require 0 <= spread value <= width. Apply the same check at entry:
+  today's `bad_prices` is position-level only, so revision 14's line "entry already refused such prices" is true only
+  for the total.
+
+**Should-fix 2: the all-trades mean still uses the impossible prices (473.1 change 2).**
+- Section 14 says an impossible exit is "in the all-trades mean". That mean feeds nomination condition 3
+  (`all_mean_net`, `all_mean_net_pad2`).
+- So NIFTY SF T21's -15,810 (beyond the Rs 10,000 cap, at a spread of 392 on a 300 width) still enters a deciding
+  condition at a price that cannot exist.
+- Fix: in the all-trades figures, value an impossible exit with each failing vertical clipped into [0, width],
+  labelled as a proxy.
+
+**Note: reporting (473.1 change 3), done in part.** `impossible_exits` is counted. Add the number of trigger days
+skipped as impossible, per variant, so the owner can see how often a stop or target was suppressed. The decided mean
+sits beside `incomplete_mean_net` already.
+
+**Plants:** none run this round, because the design gaps decide the verdict. The plants on the vertical check and
+the clip come with the fix.
+
+**Next:** fix 1 and 2 plus the skipped-day count, then re-freeze. Round 2 of 2 on revision 7. Run 1 is not re-run
+before that.
