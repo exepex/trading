@@ -81,3 +81,19 @@ def test_a_rerun_with_other_records_after_a_failed_push_is_a_replay_conflict(tmp
         cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)  # on Drive, receipt committed, push failed
     with pytest.raises(ReplayConflict, match="rule broken"):
         cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, OTHER)
+
+
+def test_a_checkout_carrying_other_unpushed_commits_is_refused_by_name_and_never_pushed_to_main(tmp_path):
+    cam = harness.build(tmp_path, push_to_remote=False)
+    with pytest.raises(SealNotPushed):
+        cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)  # receipt committed here, push failed
+    (cam.repository / "unjudged.txt").write_text("work on a story branch")
+    harness.git(cam.repository, "add", "unjudged.txt")
+    harness.git(cam.repository, "commit", "-q", "-m", "unjudged work")
+    foreign = harness.git(cam.repository, "rev-parse", "HEAD").strip()
+    harness.git(cam.repository, "remote", "set-url", "origin", str(cam.remote))
+    main_before = harness.git(cam.remote, "rev-parse", "main").strip()
+    with pytest.raises(SealNotPushed, match="unjudged.txt"):
+        cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
+    assert harness.git(cam.remote, "rev-parse", "main").strip() == main_before, "nothing was pushed to main"
+    assert foreign not in harness.git(cam.remote, "rev-list", "main")

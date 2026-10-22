@@ -1,6 +1,9 @@
 """The public counts file (story 3.4, privacy): how many decisions ended in each outcome per road and driver for one
 session and slot. Codes and whole numbers only, never a contract, a strike, a price or a card internal (E2c's rule).
-Write-once like every record: the same text again is a no-op, other text is a replay conflict."""
+Write-once like every record: the same text again is a no-op, other text is a replay conflict.
+
+Assumption: one process writes a session's counts file (the fleet's single runner, MS-P1j, which also commits it). The
+exists-then-write below is not atomic, so two concurrent writers with different counts could overwrite each other."""
 
 import csv
 import io
