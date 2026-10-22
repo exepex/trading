@@ -1,8 +1,9 @@
 """One archived close as a practice quote (story MS-SIM-c, 7.1 item 3).
 
 The bid and ask are the close less and plus the scenario half-spread, rounded outward to a tick (the bid down, the ask
-up), the half floored at half a tick. A bid that would not be above zero leaves the leg unsellable. Both sizes are the
-named switch `SIZE_GATE_WAIVED`: history holds no displayed size and none is invented."""
+up), the half floored at half a tick. A bid that would not be above zero leaves the leg unsellable. Sizes are
+`None` with `sizes_measured=False`: history holds no displayed size and none is invented. Only the practice rules of
+MS-P1d's seam let such a quote through the size checks; the live laws and fills refuse it."""
 
 import math
 
@@ -10,14 +11,11 @@ from ...contracts.snapshot import SlotQuote
 from ..constants import TICK
 
 EPSILON = 1e-9
-# TEMPORARY (design A, orchestrator 22 Oct): removed in the rework onto `sizes_measured=False` and `None` sizes, which
-# waits for MS-P1a3 and MS-P1d's practice rules. This branch is not offered for judging until then.
-SIZE_GATE_WAIVED = 10**9
 
 
 def point_quote(close: float) -> SlotQuote:
     """The close as a quote of no width, for the impossible-price rule, which judges prices not ranges."""
-    return SlotQuote(close, close, SIZE_GATE_WAIVED, SIZE_GATE_WAIVED, close, True)
+    return SlotQuote(close, close, None, None, close, True, sizes_measured=False)
 
 
 def practice_quote(close: float, relative_half_spread: float) -> SlotQuote:
@@ -25,9 +23,9 @@ def practice_quote(close: float, relative_half_spread: float) -> SlotQuote:
     bid = math.floor((close - half) / TICK + EPSILON) * TICK
     ask = math.ceil((close + half) / TICK - EPSILON) * TICK
     bid = round(max(bid, 0.0), 2)
-    return SlotQuote(bid or None, round(ask, 2), SIZE_GATE_WAIVED, SIZE_GATE_WAIVED, close, True)
+    return SlotQuote(bid or None, round(ask, 2), None, None, close, True, sizes_measured=False)
 
 
 def no_quote(close: float | None = None) -> SlotQuote:
     """A leg that cannot be priced: invalid, so the pilot's own gates refuse any trade that needs it."""
-    return SlotQuote(None, None, None, None, close, False)
+    return SlotQuote(None, None, None, None, close, False, sizes_measured=False)

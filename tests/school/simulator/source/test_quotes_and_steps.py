@@ -2,7 +2,7 @@
 
 import pytest
 
-from fno.school.simulator.source.quotes import SIZE_GATE_WAIVED, no_quote, point_quote, practice_quote
+from fno.school.simulator.source.quotes import no_quote, point_quote, practice_quote
 from fno.school.simulator.source.steps import strike_step
 
 
@@ -37,15 +37,16 @@ def test_a_bid_that_would_be_zero_or_negative_is_no_bid():
     assert not practice_quote(1.0, 2.0).two_sided
 
 
-def test_the_sizes_are_the_waiver_switch_and_a_point_quote_has_no_width():
-    assert practice_quote(100.0, 0.01).bid_qty == SIZE_GATE_WAIVED == practice_quote(100.0, 0.01).ask_qty
+def test_the_sizes_are_unmeasured_and_a_point_quote_has_no_width():
+    quote = practice_quote(100.0, 0.01)
+    assert (quote.bid_qty, quote.ask_qty, quote.sizes_measured) == (None, None, False) and quote.two_sided
     point = point_quote(7.5)
     assert point.bid == point.ask == 7.5 and point.valid
 
 
 def test_a_leg_with_no_price_is_an_invalid_quote():
     quote = no_quote(12.0)
-    assert not quote.valid and not quote.two_sided and quote.last == 12.0
+    assert not quote.valid and not quote.two_sided and quote.last == 12.0 and quote.sizes_measured is False
 
 
 def test_the_step_is_the_most_common_gap_near_the_money():

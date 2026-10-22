@@ -11,7 +11,6 @@ from fno.school.contracts.roads import ROADS_BY_CODE
 from fno.school.contracts.snapshot import ContractKey, SnapshotUnavailable
 from fno.school.simulator.constants import PracticeRefusal
 from fno.school.simulator.source.catalogue import HistoricalRoadCatalogue
-from fno.school.simulator.source.quotes import SIZE_GATE_WAIVED
 from fno.school.simulator.source.snapshots import HistoricalRoadSource
 from fno.school.simulator.spreads.model import Scenario, SpreadModel
 from fno.school.simulator.terms import DatedTerms
@@ -133,10 +132,11 @@ def test_the_quote_is_the_close_less_and_plus_the_half_spread_rounded_outward_to
     )
 
 
-def test_both_sizes_are_the_waiver_switch_and_nothing_else():
+def test_sizes_are_unmeasured_and_no_number_stands_in_for_them():
     snap = source().for_road(open_day())
-    sizes = {s for q in snap.quotes.values() if q.valid for s in (q.bid_qty, q.ask_qty)}
-    assert sizes == {SIZE_GATE_WAIVED}
+    priced = [q for q in snap.quotes.values() if q.valid]
+    assert priced and all(q.sizes_measured is False and q.bid_qty is None and q.ask_qty is None for q in priced)
+    assert all(q.two_sided for q in priced if q.bid)
 
 
 def rising_model() -> SpreadModel:
@@ -280,3 +280,16 @@ def test_a_2022_trade_is_charged_the_2022_stt_and_a_2026_trade_the_2026_one():
     assert credit_spread_max_loss(date(2023, 3, 31)) < credit_spread_max_loss(
         date(2023, 4, 3)
     )  # both sides of a change
+
+
+def test_the_live_fill_path_refuses_an_unmeasured_quote_so_a_practice_quote_fails_closed():
+    """E4's `price_leg` has no size to compare, so without MS-P1d's practice rules nothing fills (design A)."""
+    from fno.desk.pricing import price_leg
+    from fno.school.contracts.decisions import LegSpec
+    from fno.school.execution.desk_view import desk_leg, execution_snapshot
+
+    snap = source().for_road(open_day())
+    priced = price_leg(
+        execution_snapshot(snap, "NIFTY"), desk_leg("NIFTY", LegSpec(key(sb.SPOT), "sell", 1)), "sell", 50
+    )
+    assert not priced.fills and "no size" in priced.reason
