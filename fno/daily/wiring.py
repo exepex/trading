@@ -33,6 +33,11 @@ def range_issue(day: date) -> tuple[str, ...]:
     return ("pricerange", "issue", "--at", "1545", "--day", day.isoformat(), "--live")
 
 
+def school_run(day: date) -> tuple[str, ...]:
+    """MS-P1j's slot: it seals, fills and commits its own records; with `school.enabled` off it prints "school off"."""
+    return ("school", "run", "--session", day.isoformat())
+
+
 def premium_issue(day: date) -> tuple[str, ...]:
     """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
     return ("premrange", "issue", "--day", day.isoformat(), "--live")
@@ -136,6 +141,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             alerts,
         ),  # E6's pauses  # fmt: skip
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
+        "school": Alerted("school", CommandStep(processes, school_run, (), git.changed, waiting, locks), alerts),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
         "price_distribution": Alerted(
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts

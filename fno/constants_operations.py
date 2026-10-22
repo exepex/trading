@@ -55,6 +55,7 @@ DAILY_RUN_STEPS = (
     *DESK_RUN_STEPS[2:],
     REVIEWS_STEP,
     "quotes_done",
+    "school",  # story MS-P1j: the school's 15:00 slot once all five roads are recorded; `school.enabled` gates it
     "card",
     "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
     "premium_ranges",  # story G13d: from G13's record, at once (sealed by 15:30; the command refuses after it)

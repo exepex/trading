@@ -67,6 +67,7 @@ def day(root, tmp_path, alerts):
                 "book1": RecordedStep("book1", calls),
                 "reviews": RecordedStep("reviews", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
+                "school": RecordedStep("school", calls),
                 "card": RecordedStep("card", calls),
                 "price_distribution": RecordedStep("price_distribution", calls),
                 "premium_ranges": RecordedStep("premium_ranges", calls),
@@ -92,9 +93,9 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
-        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card",
-        "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
-        "premium_range_scores", "candles", "close_read", "close_recheck",
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "school",
+        "card", "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
+        "price_range_scores", "premium_range_scores", "candles", "close_read", "close_recheck",
     ]  # fmt: skip
 
 
@@ -192,8 +193,8 @@ def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_re
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
     assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
-    assert new_calls == ["card", "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
-                         "price_range_scores", "premium_range_scores", "candles", "close_read",
+    assert new_calls == ["school", "card", "price_distribution", "premium_ranges", "price_distribution_scores",
+                         "price_ranges", "price_range_scores", "premium_range_scores", "candles", "close_read",
                          "close_recheck"]  # fmt: skip
     assert new_parts.processes.started == [] and alerts.sent == []
     done = steps["quotes_done"]["result"]
