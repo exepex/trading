@@ -63,6 +63,7 @@ class NoTradeReason(StrEnum):
     NOT_ENOUGH_HISTORY = "not_enough_history"
     NO_EXPIRY_IN_WINDOW = "no_expiry_in_window"
     NO_STRUCTURE_UNDER_CAP = "no_structure_under_cap"
+    NO_VALID_QUOTES = "no_valid_quotes"  # no valid ATM straddle, or no two-sided quotes for the structure
     RULE_NOT_FIRED = "rule_not_fired"
     POSITION_OPEN = "position_open"
 
