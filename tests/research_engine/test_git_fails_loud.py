@@ -3,6 +3,7 @@ published AI reveal into a permanent miss). Each method family keeps git's real 
 raises `GitFailed` on any other failure."""
 
 import subprocess
+from datetime import date
 
 import pytest
 
@@ -105,3 +106,21 @@ def test_a_refused_pull_raises_instead_of_showing_a_stale_checkout_as_current(tm
     repo(tmp_path)  # no remote: the pull is refused
     with pytest.raises(GitFailed, match="git pull failed"):
         PlaybookGit(tmp_path).observed()
+
+
+def test_g13bs_deep_enough_raises_when_the_shallow_check_or_the_fetch_fails(tmp_path, failing):
+    """price_ranges/wiring.py's `deep_enough` (G13b) now goes through B4's Git: a failed shallow check or a refused
+    fetch raises, never "not shallow" or a fetch that silently did not happen."""
+    from fno.price_ranges.wiring import deep_enough
+
+    repo(tmp_path)
+    deep_enough(tmp_path)  # a full clone: nothing to fetch
+    failing("rev-parse")
+    with pytest.raises(GitFailed, match="git rev-parse failed"):
+        deep_enough(tmp_path)
+
+
+def test_a_refused_shallow_fetch_raises(tmp_path):
+    repo(tmp_path)  # no remote "origin": the fetch is refused
+    with pytest.raises(GitFailed, match="git fetch failed"):
+        Git(tmp_path).deepen_since(date(2026, 10, 12), "main")

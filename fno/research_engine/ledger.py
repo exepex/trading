@@ -110,6 +110,11 @@ class Git:
         """A shallow clone lacks the older history, so a history check would pass on what it cannot see."""
         return self._out("rev-parse", "--is-shallow-repository").strip() != "false"
 
+    def deepen_since(self, since: date, branch: str) -> None:
+        """Fetches `branch`'s history back to `since` into a shallow clone, so a "first commit adding the file" is the
+        real one, not the clone's boundary commit; a refused fetch raises."""
+        self._out("fetch", "--quiet", f"--shallow-since={since.isoformat()}", "origin", branch)
+
     def commit_exists(self, commit: str) -> bool:
         return bool(commit) and self._yes("cat-file", "-e", f"{commit}^{{commit}}")
 
