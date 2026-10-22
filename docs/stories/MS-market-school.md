@@ -1186,6 +1186,31 @@ cases and a test that fails when the named code is broken on purpose.
 
 **SIM-d The practice runner and its labels** · depends on a-c and on MS-P1j's fleet runner
 - Files: `practice/`, `wiring.py`, the reserved CLI line.
+- **Plan (22 Oct 2026, builder; the interface names of MS-P1j's runner are confirmed when it is on main):**
+  - **d1 Inputs.** A stores-only `RawFileLibrary` over `build_archive_stores()` with `StoredFilesOnly`; `BhavcopyChain` over the UDiFF and
+    legacy files with `index_close` from A10's archived index-close files (criteria 9, 10); `DatedTerms` with EDGE1's circular lots and
+    `dated_charges`; the A7 calendar; `PracticeWindows(first_counted)` from the configured `school.first_counted`; a `SpreadModel` learned by
+    `SpreadLearner` from `recorded_snapshots` over the recorded sessions. Files: `practice/inputs.py`, `practice/spots.py` (the closes up to the
+    session as the drivers' `SpotPoint` history: nothing after the session).
+  - **d2 The fleet.** A second instance of MS-P1j's own `FleetRunner` class (no second runner implementation, orchestrator 22 Oct), wired in this
+    package's composition root with injected practice dependencies. If j's runner cannot take them as injected dependencies, MS-P1j's builder is asked to open that seam;
+    nothing is worked around or copied. The dependencies are: three `HistoricalRoadSource`s (median,
+    p75, p95); `build_practice_safety_laws` and `QuoteRules(practice=True)` (criterion 12); accounts under a practice root that is not
+    `journal/school`; a practice dashcam dataset; the pilot's drivers from `research/school/cards/` minus any AI-role card (criterion 5).
+    Files: `practice/fleet.py`, `wiring.py`. Replay mode, fixed clock, local store: nothing is pushed.
+  - **d3 The run and its report.** `PracticeRunner.run(window, roads, drivers)` loops the sessions of a window the catalogue opens, one fleet per
+    scenario, and returns a `PracticeReport` with: per scenario and driver the counts (eligible, fillable, executed) and the net after costs;
+    the insufficient-bucket list; the unpriceable and unsellable legs; the impossible share per road-day (criterion 14); the label
+    `practice (simulator)`, the slot label and `size gate not tested in practice` on every line. Files: `practice/runner.py`, `practice/report.py`,
+    `practice/labels.py`.
+  - **d4 The command and the real-data dry run.** `python -m fno school practice run --from --to --roads` (one reserved line in `fno/cli.py`, agreed
+    with MS-P1j's owner). A dry run on a recorded window on the Drive archive (the container has read access), its output in the Claims with
+    counts only. With 8 recorded NIFTY sessions every bucket reads `insufficient spread data`, so the first real run proves the plumbing, the
+    labels and the unpriceable counts, not a result.
+  - **Order and dependencies.** d1 needs nothing new. d2 needs MS-P1j (the runner) and MS-P1d part 4 (on main). Criterion 13 needs MS-P1a's
+    `RoadDay.lots` follow-up (asked of its owner, 22 Oct) and a one-line change in `drivers/proposals.py`. d3 and d4 follow d2. Every file stays under 350
+    lines; the runner and the report are separate classes.
+- Files: `practice/`, `wiring.py`, the reserved CLI line.
 - Tests:
   1. The pilot's rule drivers run unchanged: the driver modules are imported from `fno/school/drivers/`, a test checks
      no driver file is edited by this story (diff-based) and that a practice run and the same card on a recorded
@@ -1222,6 +1247,14 @@ cases and a test that fails when the named code is broken on purpose.
   14. The report shows the share of impossible legs per road-day, separate from refusals (judge 509: 42-177 of 260-436 traded
       legs on closes, mostly the closes' own staleness). Named test: `test_the_report_counts_impossible_legs_apart_from_refusals`.
       Without it a practice result reads as a full chain.
+  15. Separation by test, not convention (orchestrator, 22 Oct): a practice run writes nothing under the pilot's dashcam, accounts, tickets or
+      counts paths, and the pilot's readers never read the practice dataset. Two named tests plant a practice record and a pilot record and show
+      neither reader sees the other (`test_a_practice_run_writes_nothing_under_the_pilots_paths`,
+      `test_the_pilots_readers_never_read_the_practice_dataset`). Every practice record carries `practice (simulator)` in the record itself,
+      not only in the report (`test_every_practice_record_carries_the_label`).
+  16. Data spend, by name: a window that DATA_SPEND does not list as spent or exposed is refused naming the road and `not_in_data_spend`
+      (FINNIFTY and MIDCPNIFTY refused, NIFTY accepted); a run over such a window raises before any session is read, and no
+      record is written. Named test: `test_a_window_over_an_unregistered_road_is_refused_by_name`. Practice never consumes a fresh outcome window.
 
 ### 7.5 Gap list
 
