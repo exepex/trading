@@ -12,5 +12,5 @@ from ..research_engine.ledger import Git
 @dataclass(frozen=True)
 class RepoHistory(Git):
     def first_commit_adding(self, path: str) -> str | None:
-        found = self._run("log", "--format=%H", "--reverse", "--diff-filter=A", "--", path).stdout.split()
+        found = self._out("log", "--format=%H", "--reverse", "--diff-filter=A", "--", path).split()
         return found[0] if found else None

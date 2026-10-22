@@ -30,52 +30,100 @@ class NotRegistered(RuntimeError):
     """The trial may not run: it is missing, not committed, or its protocol is not frozen and unchanged."""
 
 
+# git's own answers for "that path, commit or history is not there": a real answer (None, False, nothing), never an
+# error; any other non-zero exit is a failure and raises (measured 22 Oct 2026 on git 2.43.0: all exit 128)
+NOT_THERE = (
+    "does not exist in", "exists on disk, but not in", "invalid object name", "Not a valid object name",
+    "Not a valid commit name", "bad object", "does not have any commits yet",
+)  # fmt: skip
+FAILED = "git {command} failed (exit {code}): {why}"
+
+
+class GitFailed(RuntimeError):
+    """A git command failed for a reason other than "not there" (a broken repository, no memory, a refused pull).
+    Raised, never read as an empty answer: an empty answer would become a wrong record (a real submission read as
+    missing)."""
+
+
 @dataclass(frozen=True)
 class Git:
-    """The few git questions the guard asks, against one repository folder."""
+    """The few git questions the guard asks, against one repository folder. Every question either gets git's real
+    answer or raises `GitFailed`; a failed command is never read as "nothing found"."""
 
     root: Path
 
-    def _run(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
+    def _run(self, *args: str, text: bool = True) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=text)
+
+    def _out(self, *args: str) -> str:
+        """The command's output: empty when git answers "not there" (a history with no commits yet), GitFailed on
+        any other non-zero exit."""
+        done = self._found(*args)
+        return "" if done is None else done.stdout
+
+    def _found(self, *args: str, text: bool = True) -> subprocess.CompletedProcess | None:
+        """The finished command, or None when git answers that the path or commit is not there."""
+        done = self._run(*args, text=text)
+        return None if _not_there(done) else self._checked(done, args)
+
+    def _yes(self, *args: str) -> bool:
+        """A question git answers by its exit code: 0 yes, 1 no (or "not there"); anything else raises."""
+        done = self._run(*args)
+        return done.returncode == 0 or (done.returncode != 1 and not _not_there(done) and self._checked(done, args))
+
+    @staticmethod
+    def _checked(done: subprocess.CompletedProcess, args: tuple[str, ...]) -> subprocess.CompletedProcess:
+        if done.returncode != 0:
+            why = _stderr(done).strip()[-300:] or "no message"
+            raise GitFailed(FAILED.format(command=args[0], code=done.returncode, why=why))
+        return done
 
     def head(self) -> str:
-        return self._run("rev-parse", "HEAD").stdout.strip()
+        return self._out("rev-parse", "HEAD").strip()
 
     def is_ancestor(self, older: str, newer: str) -> bool:
-        return bool(older) and self._run("merge-base", "--is-ancestor", older, newer).returncode == 0
+        return bool(older) and self._yes("merge-base", "--is-ancestor", older, newer)
 
     def first_commit_containing(self, text: str, path: str) -> str | None:
         """The earliest commit whose change to `path` added `text` (git's pickaxe search)."""
-        found = self._run("log", "--format=%H", "--reverse", "-S", text, "--", path).stdout.split()
+        found = self._out("log", "--format=%H", "--reverse", "-S", text, "--", path).split()
         return found[0] if found else None
 
     def committed_text(self, path: str, commit: str = "HEAD") -> str | None:
         """The file as committed at `commit` (None if not committed there)."""
-        result = self._run("show", f"{commit}:{path}")
-        return result.stdout if result.returncode == 0 else None
+        done = self._found("show", f"{commit}:{path}")
+        return None if done is None else done.stdout
 
     def commits_touching(self, path: str) -> list[str]:
         """Every commit that changed `path`, oldest first (story D5: the strategy registry's append-only check)."""
-        return self._run("log", "--format=%H", "--reverse", "--", path).stdout.split()
+        return self._out("log", "--format=%H", "--reverse", "--", path).split()
 
     def changes_with_parents(self, path: str, revision: str = "HEAD") -> list[tuple[str, tuple[str, ...]]]:
         """Every commit in `revision`'s history that changed `path` against any of its parents, merges included, each
         with its real parents (story D5: a merge of parallel registrations is two appends, not an edit)."""
-        lines = self._run("log", "--format=%H %P", "--full-history", revision, "--", path).stdout.splitlines()
+        lines = self._out("log", "--format=%H %P", "--full-history", revision, "--", path).splitlines()
         return [(line.split()[0], tuple(line.split()[1:])) for line in lines if line.strip()]
 
     def is_shallow(self) -> bool:
         """A shallow clone lacks the older history, so a history check would pass on what it cannot see."""
-        return self._run("rev-parse", "--is-shallow-repository").stdout.strip() != "false"
+        return self._out("rev-parse", "--is-shallow-repository").strip() != "false"
 
     def commit_exists(self, commit: str) -> bool:
-        return bool(commit) and self._run("cat-file", "-e", f"{commit}^{{commit}}").returncode == 0
+        return bool(commit) and self._yes("cat-file", "-e", f"{commit}^{{commit}}")
 
     def unchanged_since(self, commit: str, path: str) -> bool:
-        tracked = self._run("diff", "--quiet", commit, "HEAD", "--", path).returncode == 0
-        untouched = self._run("diff", "--quiet", "HEAD", "--", path).returncode == 0
+        tracked = self._yes("diff", "--quiet", commit, "HEAD", "--", path)
+        untouched = self._yes("diff", "--quiet", "HEAD", "--", path)
         return tracked and untouched
+
+
+def _stderr(done: subprocess.CompletedProcess) -> str:
+    err = done.stderr or ""
+    return err.decode("utf-8", "replace") if isinstance(err, bytes) else err
+
+
+def _not_there(done: subprocess.CompletedProcess) -> bool:
+    return done.returncode != 0 and any(answer in _stderr(done) for answer in NOT_THERE)
 
 
 def read_ledger(text: str) -> list[dict]:
