@@ -5,8 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Protocol, runtime_checkable
 
-from ...constants import SIDES
-from ..constants import REASONS_BY_OUTCOME, DriverRole, ExitReason, Outcome, RoadCode
+from ..constants import REASONS_BY_OUTCOME, SIDES, DriverRole, ExitReason, Outcome, RoadCode
 from .roads import RoadDay
 from .snapshot import ContractKey, SlotSnapshot
 
