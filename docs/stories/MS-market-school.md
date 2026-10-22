@@ -339,8 +339,8 @@ pushed before `seal` returns); seal checking; public counts file; replay reader.
 **Files owned:** `fno/school/tickets/`, `tests/school/tickets/`.
 
 **Implements:**
-- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or on a driver stopped for the
-  day, priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
+- `TicketBook`: a 1-lot virtual trade for every fired rule beyond the 5-trade limit, or refused only by an account limit
+  (ACCOUNT_LIMITS; a driver stopped for the day or braked gets no tickets, DRIVER_STOPS), priced at the same quotes and checked by the same laws (through a's `SafetyLaw` and `FillPort` contracts),
   with only the account limits relaxed;
 - the `OpportunityCounts` builder (eligible, fillable, executed);
 - the shared-displayed-size count (327 item 10).
@@ -556,6 +556,41 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 - **Real output sample:** a fixture decision record's canonical bytes (fixture strikes, not live):
   `{"card_sha256":"efef...","decision":{"driver_id":"CS1@1","outcome":"trade","proposal":{"costs":85.0,"legs":[{"key":{"expiry":"2026-11-23","kind":"PE","strike":1000.0},"lots":1,"side":"sell"},...`
 
+### MS-P1c Claims (builder session_01WeFYCqffRe7et1nfSJyuv5, branch `story/ms-p1-dashcam`)
+
+Round 1, built on a's tip 756e6545. Files: `fno/school/dashcam/` (names, publisher, reader, store, seals, counts,
+replay, wiring), `tests/school/dashcam/` (a real git remote and a local-folder Drive; production classes otherwise).
+
+| Criterion | Code | Test (fails when the code is broken on purpose) |
+|---|---|---|
+| 1 write-once; `ReplayConflict` "rule broken" | `store.DriveDashcamStore.seal` | `test_the_same_records_again_are_a_no_op_with_the_same_seal`, `test_other_records_for_a_sealed_key_are_a_replay_conflict_reported_as_rule_broken`, `test_a_conflict_in_the_receipt_alone...` (Drive untouched) |
+| 2 stale seal: not pushed, pushed late, other SHA-256 | `seals.SealChecker.check` | `test_seals.py` (6 tests incl. a forged commit and an earlier time) |
+| 3 counts file: scan clean, no strike, price or symbol | `counts.PublicCountsFile` | `test_the_file_passes_the_record_scan_and_holds_only_codes_and_whole_numbers` |
+| 4 replay reads exactly what was sealed | `replay.ReplayReader`, `reader.VerifiedDriveReader` | `test_replay_reads_back_exactly_the_records_sealed`, tamper and stale-cache tests |
+| 5 conformance | `check_dashcam` | `test_the_conformance_check` |
+
+Broken-code proof: 10 mutations (conflict handler, each seal check, the push check, the read-back hash, the counts
+rewrite guard, a price leaking into the counts, the reader's own-file check) each fail a named test; one survivor
+(reader) was found and a test added.
+
+Self-review (an independent review agent, read-only) found 8 points. Accepted and fixed, with tests: a seal is now
+checked against the remote's receipt (commit, SHA-256 and time), not trusted (2, 6); a failed push is pushed by the
+rerun (3); a conflict is judged on the remote receipt before Drive is touched (4); a rerun in a fresh checkout
+returns the existing seal and writes no second receipt (5); the counts slot is validated (7). Partly accepted (1):
+`pushed_at` is the receipt commit's own time, which is never later than the push; it stays so because a rerun must
+return an equal seal. A fill is made only after `seal` returns (so after the push); the fill port (d) must also
+call `SealChecker` with its own fill time. Not done (7, 8): the counts file's exists-then-write is not atomic across
+two processes (one writer per session in the fleet), and counts are not tied to a sealed SHA-256.
+
+Limits for others: `ReceiptPublisher` pushes `receipts/data/school/` only, to `main`, through A16f's committer
+(refuses a checkout carrying other unpushed changes). Nothing commits the counts file; the join-up (j) must commit
+`research/school/counts/` with its own push. No Drive or git is touched when `school.enabled` is false (nothing here
+runs until j calls it).
+
+Round 1 follow-up (orchestrator, 22 Oct 2026; both open items accepted):
+- The proof that a seal came before its fill is that the seal's receipt exists on the remote, with the sealed SHA-256, when `SealChecker` runs at fill time; `pushed_at` is labelled "commit time, not push time" and is a secondary check only.
+- Assumption: the counts file is written by one process only (the join-up's single runner); j tests it.
+
 ### MS-P1a Claims, round 2 (judge 479, FAIL round 1: four should-fixes)
 
 | Judge 479 finding | Fix | Test (and the plants it catches) |
@@ -584,8 +619,24 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
   `check_records` are clean.
 - **Plants:** 36 planted, 36 caught over a's tests.
 
-### MS-P1e Claims (round 1, branch `story/ms-p1-drivers`, built on a's tip 756e6545; the SHA is in the commit that carries this text)
+MS-P1c round 2 (orchestrator and Judge J early findings, each checked and fixed; merged a's tip 32fdbdde):
+- **Shallow clone (defect, reproduced and accepted):** `git log --diff-filter=A` in a shallow clone returns the boundary
+  commit as the receipt's add commit, so a rerun names the wrong commit and a real seal is refused. `GitReceiptPublisher`
+  now fetches the rest once (`git fetch --unshallow`, detected with the research engine's `Git.is_shallow`) or raises
+  `ShallowClone` naming the command; `SealChecker` turns that into `StaleSeal`. Tests with a depth-1 clone:
+  `test_a_shallow_clone_names_the_real_add_commit_not_its_boundary_commit`,
+  `test_a_shallow_clone_that_cannot_be_deepened_is_refused_by_name`.
+- **Five surviving plants, now caught:** a Drive-level conflict after a failed push
+  (`test_a_rerun_with_other_records_after_a_failed_push_is_a_replay_conflict`); `published()` without its fetch
+  (`test_published_fetches_a_receipt_another_checkout_pushed_after_this_one_cloned`); no `--diff-filter=A`
+  (`test_a_receipt_file_touched_again_still_names_the_commit_that_added_it`); the counts session and slot filter
+  (`test_records_of_another_session_or_slot_are_not_counted`); the counts slot validation
+  (`test_a_slot_that_is_not_a_time_never_reaches_a_path`).
+- **Dead code removed:** `_identity` and `SealChecker.is_valid` (tests only) in `seals.py`.
+- **a's `find`:** `DriveDashcamStore.find(session, slot, kind)` (my earlier `sealed`, renamed to the contract's name): the
+  seal of a file whose receipt is on the remote, else None (`test_find_*`, and a's conformance check).
 
+### MS-P1e Claims (round 1, branch `story/ms-p1-drivers`, built on a's tip 756e6545; the SHA is in the commit that carries this text)
 | # | Criterion | Code (`fno/school/drivers/`) | Test in `tests/school/drivers/` (broken-code proof: the plant it catches) |
 |---|---|---|---|
 | 1 | Each family fires at its threshold, not just below | `families_directional.py`, `families_condor.py` | `test_families.py` per family: CS1 mean, DR1 high/low, DB1 at 1.0001x and 0.9999x of the implied straddle, WS1 1-3 sessions, PS 30-45 days (plants: equal mean fires, strict high, DB1 session count, WS1 window +1) |
@@ -597,7 +648,6 @@ MS-P1a is built; each later story keeps its own Claims subsection here.
 | 7 | Conformance | all drivers | `test_the_driver_passes_the_conformance_check` per driver and road (a's `check_driver`) |
 | 8 | Exits are E4's `ExitRule` classes | `exits.py` (`ProfitTarget`, `StopLoss`, `ExitOnDay`) | `test_exits.py`: half credit exact, WS1 1.5x not 2x, T21 day, 10 sessions, 21 days held, expiry, un-judgeable prices never fire, year-end calendar (plant: target x1.1) |
 | 9 | Cap holds at the touch the fill uses | `proposals.py` | `test_proposals.py` (independent B2 recompute at the touch; wide spreads force narrower wings; plant: touch check removed) |
-
 Review and decisions (reasoning, with evidence):
 - **Independent review agent found, and I fixed:** (a) calendar ending 31 Dec 2026 raised `CalendarError` in exits and in DB1/WS1/PS5/KL1 entry: a rule whose day the calendar cannot work out is now not reached and never blocks price or expiry rules; entry returns `no_expiry_in_window`. Exits are tested with a year-end calendar (`test_exits.py`), entry for WS1, DB1 and PS5 in `test_oracles.py` (before round 2 only exits were tested; the first Claims text said entry too, which was wrong). (b) The ATM strike could be far from spot: it must now be within 2 steps, else no expected move. (c) A duplicated session made a longer window: de-duplicated. (d) Ranked cards had no `expected_net_rs`, silently scoring 0: now a required card number, 0.0 with a stated reason (EDGE1 found no edge), so scores tie and the fleet's tie-break ranks. (e) Vacuous and loose tests tightened; dead code removed.
 - **Not changed:** `review_exit` does not check a position against the driver or road: a's conformance check hands every driver one fixture position, and pairing is the fleet's job. PS5 and KL1 enter on the decision slot, EDGE1 entered the next trading day: a known difference, the slot design has no later fill.
@@ -606,7 +656,6 @@ Review and decisions (reasoning, with evidence):
 - **Gates:** pytest, ruff, `check_imports`, `check_records` on the pushed SHA (suite count in the message to the orchestrator).
 - **Orchestrator's answers (22 Oct 2026):** the one-open-position limit on CS1, DB1, DR1 and WS1, unlimited REF and RC1 (REF entries refused by C2's bucket become `account_limit` tickets, a j requirement), PS5 and KL1 entering at the slot, and the driver-and-road pairing check left to j are accepted. PS3 and PS4 collapse into one trade on a road where the widest wing under the cap is under 3 strike steps: both are recorded, the cards say so, and they are one family, not counted twice. The `NO_VALID_QUOTES` code came with a's final tip and is now used (`no_structure_under_cap` stays for a structure that cannot be built under the cap).
 - **Expiry-day entries (orchestrator, 22 Oct 2026; margin data has no row on an expiry day):** no driver enters on an expiry day. WS1 needs its expiry strictly after the session, so its first entry day is the session before expiry (`test_on_the_expiry_day_itself_there_is_no_entry`, `test_it_enters_one_to_three_sessions_before_the_weekly_expiry[1-True]`); REF and RC1 need `min_dte: 2`; CS1, DB1, DR1, PS2-4, PS5 and KL1 enter 20 or more days out. No card change was needed.
-
 **Round 2 (judge J's 14 surviving plants, tip in the commit carrying this text).** `tests/school/drivers/test_oracles.py` kills each with an independent oracle (hand-worked numbers or the story's table, never the code under test); all 14 plants are caught (plant script run on this tip):
 cap at exactly Rs 10,000 (`>=`) by building the same plan under a cap equal to its loss and one paisa less; score ignoring `expected_net_rs` by 500 / max loss, also through a ranked card with 500; the exit value priced on the wrong side by a hand-worked fixture (short bought back at the ask 11, long sold at the bid 4, lot 30, entry Rs 95, net -115); RC1's twin mapping (condor on monthly roads follows the ladder, on the weekly road WS1, vertical and fly follow CS1, DR1) by exits that differ between the twins; the WS1, DB1 and PS5 calendar-gap entries; `own_positions` ignoring the road; RC1's `min_dte` (never an expiry with under 2 days left); DB1 at exact equality (no trade) and just above (trade); `MAX_ATM_STEPS` at 2 against 3; PS3's wing at 3 steps (PS2 100, PS3 300, PS4 wider); and the payoff-bounds check at the touch (a fly never costs more than its wing width). DRY: `session_days.py` now uses `TradingDays.next_after` and `last_on_or_before`; only the counting and stepping back remain (`TradingDays` has none), and the tests use the real `TradingDays` over a fixture `SessionCalendar`.
 
