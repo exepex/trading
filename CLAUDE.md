@@ -20,14 +20,13 @@ cost real money later, so:
   Claude, ChatGPT or a judge) with your own reasoning and, where possible, data: re-run the numbers, read the code,
   test the claim. Accept it only when the check shows it is correct; push back when it is not. Every acceptance and
   every rejection states its reason and evidence. Partial agreement is fine: say which part and why.
-- **Everything for the other AI goes in the repository.** Questions, proposals, solutions, suggestions and feedback
-  meant for ChatGPT (or from it) are written as Markdown files in the repository, never only in chat, so each side
-  reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
-  `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
-  Take `<n>` from the central registry, never "highest plus one": `python tools/claim_number.py <category> <name>
-  --session <id>` (or by hand, as `numbers/README.md` says: the row alone, pushed to `main` before the file from a
-  separate copy of `main`, never your own checkout; if the push is refused, never merge: refresh that copy and take the
-  next number). Story O12.
+- **Everything for the other AI goes in the repository.** Questions, proposals and feedback meant for ChatGPT (or
+  from it) are Markdown files in the repository, never only in chat: ChatGPT writes `reviews/chatgpt/review_<n>_<name>.md`,
+  Claude `reviews/claude/response_<n>_<name>.md`, each folder with a README index. Take `<n>` from the central registry:
+  `python tools/claim_number.py <category> <name> --session <id>` (story O12; by hand, as `numbers/README.md` says).
+  The ChatGPT loop is **paused** while ChatGPT is inactive (owner, 22 Oct 2026): no review requests are written and no
+  merge waits for one. A builder's claims for the judge live in the story file's **Claims** section, not in a
+  response file.
 - **Own limits too.** This applies to Claude's own limits and boundaries, not only tools: always give the fullest, most
   direct answer possible. If a limit ever shapes an answer, say so openly (what was limited and why), give everything
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
@@ -43,10 +42,10 @@ cost real money later, so:
 
 ## Keep a conversation log (every session)
 
-Before ending any working session with the user, write or append to `conversations/YYYY-MM-DD.md`
-(IST date): quote the user's messages as written, condense your replies to their substance, and update the
-"Decisions so far" and "Open questions" sections. Commit and push it. Never include email addresses,
-API keys or tokens.
+Before ending any working session with the user, write or append to `conversations/YYYY-MM-DD.md` (IST date): the
+user's messages quoted as written and the decisions they lead to, then the "Decisions so far" and "Open questions"
+sections (owner, 22 Oct 2026: owner quotes plus decisions, no condensed replies). Commit and push it. Never include
+email addresses, API keys or tokens.
 
 ## Daily desk routine (story O1; the 3 pm quote parts: stories A4, A4c and A7)
 
@@ -167,20 +166,17 @@ in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is r
 
 ## Branch
 
-**Judge lanes (owner, 14 Oct 2026, `docs/DESK_DECISIONS.md`; details in `docs/JUDGE.md`).** A change's lane is set by
-what it can damage, not by its size; when unsure, lane 1. Lane 1 is decided by the path list in `docs/JUDGE.md`
-(judge 91 refinements), whatever a change's description.
-- **Lane 1, judge PASS before `main`:** every new story, and any change of any size touching money or risk (margins,
-  funds, limits), fills, exits or anything that decides a trade, scoring or forecast and evaluation records, frozen
-  files, secrets or outside services (Slack, Groww, Drive, NSE), schedules and workflows, or the dashboard's privacy
-  rule. Push to a branch `story/<id>-<short>`, tell the orchestrator, merge only after the PASS (pull, full suite on the
-  merged tree, then push).
-- **Lane 2, orchestrator check before `main`, judge audit after:** only new tests and docs outside the rule documents
-  (list in `docs/JUDGE.md`). Everything not in lane 2 or 3 is lane 1. The orchestrator re-runs the checks and compares
-  the builder's claim with the diff before merging; the judge audits each day's lane-2 merges once, and a FAIL is
-  fixed first.
-- **Lane 3, no judge:** judge files, conversation logs, decision and status rows, number claims (`numbers/`, story O12),
-  and data commits by scheduled jobs.
+**Judge lanes (owner, 14 and 22 Oct 2026; details in `docs/JUDGE.md`).** A change's lane is set by what it can
+damage, not by its size; when unsure, lane 1.
+- **Lane 1, the code judge's PASS before `main`:** money and risk (margins, funds, limits), fills, exits, anything that
+  decides a trade; forecast, score and evaluation records; frozen files; secrets; outside services (Slack, Groww,
+  Drive, NSE) and the schedules and workflows that call them; the dashboard's privacy rule. Push to a branch
+  `story/<id>-<short>`, tell the orchestrator, merge after the PASS (merge procedure in `docs/JUDGE.md`). At most two
+  judge rounds; after that the owner decides.
+- **Lane 2, the orchestrator's check before `main`, the lane-2 auditor after:** everything else outside lane 3 (tools,
+  CI, tests, docs, rule documents, stories outside lane 1) when it changes no record.
+- **Lane 3, no judge:** judge files, conversation logs, decision and status rows, number claims (`numbers/`), and data
+  commits by scheduled jobs.
 
 A checkout on a detached HEAD pushes with `git push origin HEAD:<branch>`.
 
@@ -211,58 +207,9 @@ commit with `--no-verify`.
 - Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing
   interface (`Provider`, `RawFileStore`, `RawFileSource`, `FoFileFormat`, `ListedExpiries`, and those the stories add)
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
-- Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
-  `fno/storage/wiring.py` (raw data stores and sources), `fno/storage/quote_wiring.py` (the 3 pm quote store: Groww's
-  raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/quotes/window_wiring.py`
-  (a named 3 pm capture window, protocol v4's 14:30-14:40, in its own dataset, story A4e), `fno/quotes/index_wiring.py`
-  (the other indices' 3 pm recorders and NIFTY's weeklies, stories A4c and A4f), `fno/risk/wiring.py` (the
-  risk manager, story C2),
-  `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
-  and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),
-  `fno/forecast_v4_rules/wiring.py` (protocol v4's baselines and rule forecasters, story G7; apart because the v2 freeze
-  pins every file of `fno/forecast/`), `fno/filings/wiring.py` (the
-  company filings archive, story A12), `fno/pipeline/wiring.py` (fetch-and-trigger jobs, story O6),
-  `fno/pipeline/panel_wiring.py` (the daily NIFTY panel job, story A13; apart so G1 v3 can freeze it without O6),
-  `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),
-  `fno/forecast_scoring/wiring.py` (forecast scoring and reports, story G4; outside the frozen `fno/forecast/`),
-  `fno/forecast_scoring/v4/wiring.py` (protocol v4 scores, comparisons and the two looks, story G8),
-  `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5), `fno/ai/book_wiring.py` (the AI books'
-  routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1),
-  `fno/desk/wiring.py` (the paper desk's fills and exits, story E4), `fno/desk/pack_wiring.py` (the daily common and
-  private packs, story E2), `fno/scorecard/wiring.py` (strategy scorecards and pause rules, story E6),
-  `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4),
-  `fno/vix_history/wiring.py` (the India VIX full history: NSE's month files, its table and checks, story A15),
-  `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17;
-  the world indexes and their pre-open Asian levels, story A17e),
-  `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
-  pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
-  freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
-  `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1),
-  `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
-  scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
-  Groww source behind a read-only allow-list, Drive store, clock check, story A16),
-  `fno/storage/data_wiring.py` (story O9: every data file write-once in Drive's `data` area, its SHA-256 receipt
-  under `receipts/`, the verified Drive cache; apart because `wiring.py` is at the size limit),
-  `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
-  A16b), `fno/intraday/clock_wiring.py` (A16's checked clock, shared by A16 and A4e), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
-  run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
-  its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
-  paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a),
-  `fno/v4_pack/wiring.py` (protocol v4's released packs through the verified Drive cache and the 15:10
-  deadline on GitHub's receipt time, story G10 part 2),
-  `fno/book3/wiring.py` (Book 3's strategy registry: git history, the research ledger, the IST clock, story D5),
-  `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the 3 pm quote
-  parts and the card around it, story O1), `fno/numbering/wiring.py` (number claims on `main`, story O12),
-  `fno/fo_masters/wiring.py` (NSE's daily F&O master files: the ban list and market lots, story A20a),
-  `fno/preopen/wiring.py` (the morning capture: GIFT Nifty, NSE's pre-open list, Groww's 09:09 candles, story A22),
-  `fno/circulars/wiring.py` (NSE's and SEBI's circular lists, first-seen times and F&O files in Drive, story A20b) and
-  `fno/price_distribution/wiring.py` (the daily valuation record and NIFTY's price-distribution forecasts and their
-  scores: A4's chains, the panel, closes, O9's Drive store, story G13) and `fno/price_ranges/wiring.py` (NIFTY's and
-  BANKNIFTY's 15:45 price ranges: A4/A4c chains, the archived F&O and index-close files, O8's push evidence, story G13b)
-  and `fno/itm_chance/wiring.py` (each monthly contract's market-implied ITM chance and its calibration: G13's records,
-  E7's settlement reader and the legacy-file reader behind it, G13b's closes, O9's Drive store, story G13c)
-  and `fno/premium_ranges/wiring.py` (each monthly contract's next-session 3 pm premium range: G13's 3 pm records,
-  O9's Drive store and cache, G13b's seal check with G13d's 15:30 deadline, story G13d).
+- Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services) and
+  each package's `wiring.py` (or `<part>_wiring.py` where a freeze or the size limit keeps a second one apart); the
+  root's docstring says what it wires and for which story.
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. Every data file (fetched or derived) lives write-once in
   Google Drive and is read through the verified Drive cache; GitHub keeps code, docs and one SHA-256 receipt per Drive

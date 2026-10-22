@@ -33,7 +33,7 @@ In GitHub's web editor (or its contents API) the same holds: edit the file on `m
 refused save (the file changed meanwhile) means someone claimed first, so reload and take the next number.
 Claims are lane 3 (status rows).
 
-`python tools/check_numbers.py` (CI, every push; `number-alert.yml` posts new problems to #fno-desk on each push and hourly while red, story O12b) fails when a numbered file or heading has no row, a number is used
+`python tools/check_numbers.py` (CI, every push; `number-alert.yml` posts new problems to #fno-desk on each push, story O12b) fails when a numbered file or heading has no row, a number is used
 twice outside the history, or a row is malformed. Never edit or delete someone else's row: the check protects the
 seeded history (pinned) and catches a reused number, but it cannot see a claimed row edited or deleted before its file
 exists (git history and the judge's lane-3 audit can).
