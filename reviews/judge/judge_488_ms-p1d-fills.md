@@ -111,3 +111,34 @@ ranges rule: a per-vertical check at the mids would flag valid wide quotes and c
 asked in 488.1 is therefore not added. My per-vertical intent stands, judged by judge I on ranges. I have nothing more
 to judge on d. The builder had added the 488.1 test at 6019ab44 and reported my plant caught, but the owner's ruling
 supersedes it. I did not judge the ranges version.
+
+## Addendum 2
+
+**Scope:** MS-P1d follow-up part 1, story/ms-p1d-margin at 6ef6f40b (based on main a275a0ff). Money piece: first of
+two judges, independent of judge I. Round 1 of 2.
+- Law 3 now runs C2's `MarginRoom`, unedited, on MS-P1m's `build_road_margin`.
+- C2's inputs are built through `road_terms`, `road_proposal` and `road_open_trade`.
+- `MarginRows` is removed.
+- The desk-codec boundary is pinned.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 11266 passed, 1 skipped, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **One set of terms for margin and units.** Every C2 law's proposal and every held position go through
+  `RoadTradeTerms`, built from the trade's own index, single expiry, one-unit legs and lot. A leg ratio or two
+  expiries is refused before C2. So C2's margin (priced from the terms) and C2's units (counted from the
+  trade) read the same lot.
+- **Fail closed, with the cause.** A margin that cannot be read, for the proposal or any held trade, is a
+  `margin_room` refusal with the note "margin not checked: <named cause>", never a number.
+- **The desk codecs.** No school module imports either desk codec, the composition roots load neither, and
+  `TradeTerms(**asdict(RoadTradeTerms))` raises, so a school trade cannot be silently stripped of its legs there.
+- **Plants: 7 new, 7 caught.**
+  - The terms' lot set to 1 (the 840 vs 54,600 case); every trade priced as NIFTY; contracts named as NIFTY (the
+    two-index case).
+  - Two expiries accepted; an unreadable margin passing; the cause not named; an open trade carrying no units.
+  - My earlier d plants still hold. The "C2 at mids" plant is still equivalent; four no longer apply (their code
+    was replaced).
+
+**Note.** Now that law 3 uses this margin, any held position whose margin cannot be read refuses every entry of
+that account until it closes. Examples: an expiry past, a missing day file, an out-of-model expiry. This is fail
+closed and stated in MS-P1m. The owner should expect a driver's account to sit idle on such days.
