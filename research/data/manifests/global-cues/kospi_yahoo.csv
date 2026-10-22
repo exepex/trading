@@ -1,3 +1,4 @@
 fetched_at,path,url,form,sha256,size_bytes
 2026-10-22T06:10:14.277440+05:30,yahoo/indices/ks11-chart/2026/10/22/061014_ks11-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?period1=1546214400&period2=1792713600&interval=1d,,e58a2eaadd97772a4f7b113155f59baf0005dae2f10eb61f99cfae62e7bd1e07,195394
 2026-10-22T06:59:11.285800+05:30,yahoo/indices/ks11-chart/2026/10/22/065911_ks11-chart_20260919_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?period1=1789689600&period2=1792713600&interval=1d,,00e3eaab4297eb5155a0f1b0e2c5ec2c92c495fde5aa04c274da8770159efceb,3241
+2026-10-22T19:36:22.174785+05:30,yahoo/indices/ks11-chart/2026/10/22/193622_ks11-chart_20260920_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?period1=1789776000&period2=1792713600&interval=1d,,54ab3ba8fafa039f0b854cc8fbbcb53871f0bf77bc6da7ae103519d69e66d301,3154

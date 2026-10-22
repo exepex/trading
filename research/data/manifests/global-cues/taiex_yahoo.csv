@@ -1,3 +1,4 @@
 fetched_at,path,url,form,sha256,size_bytes
 2026-10-22T06:10:43.900368+05:30,yahoo/indices/twii-chart/2026/10/22/061043_twii-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?period1=1546214400&period2=1792713600&interval=1d,,41fbe19e0edf784a720866935d35208532f1c43544c049721d1bd645cdacc072,180825
 2026-10-22T06:59:48.256881+05:30,yahoo/indices/twii-chart/2026/10/22/065948_twii-chart_20260919_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?period1=1789689600&period2=1792713600&interval=1d,,64b92b31f87108dd7f68fedaf33f2fe82d3b5ff100b66898d25ed4e0b6a31edd,3158
+2026-10-22T19:37:06.510923+05:30,yahoo/indices/twii-chart/2026/10/22/193706_twii-chart_20260920_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?period1=1789776000&period2=1792713600&interval=1d,,5256438ecf2864e524ca2b280bacfa7c1e5ece3f73d00c09517d010148e502a7,3090

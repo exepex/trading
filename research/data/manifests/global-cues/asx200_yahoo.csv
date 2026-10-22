@@ -1,3 +1,4 @@
 fetched_at,path,url,form,sha256,size_bytes
 2026-10-22T06:10:19.849224+05:30,yahoo/indices/axjo-chart/2026/10/22/061019_axjo-chart_20190101_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EAXJO?period1=1546214400&period2=1792713600&interval=1d,,9cbaacd5fa3832ce998f6205cde811b28269ba07ac15960f7bc3bf5859de1d06,179765
 2026-10-22T06:59:19.334419+05:30,yahoo/indices/axjo-chart/2026/10/22/065919_axjo-chart_20260919_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EAXJO?period1=1789689600&period2=1792713600&interval=1d,,b8d84df95a64f3e2212b7b44764ad16af9cea1136f75d4b7ce2a881868cb9c89,3524
+2026-10-22T19:36:30.874696+05:30,yahoo/indices/axjo-chart/2026/10/22/193630_axjo-chart_20260920_20261022.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EAXJO?period1=1789776000&period2=1792713600&interval=1d,,54391992f7effb140a88a93f35433212dcd7ae185c1a2d4616421ba971d0c28a,3436
