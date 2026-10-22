@@ -1,5 +1,6 @@
 """Criterion 8 (story MS-P1a): every fake passes the conformance check its real class must pass."""
 
+import dataclasses
 from datetime import date, timedelta
 
 import pytest
@@ -58,6 +59,14 @@ def test_account_port():
 def test_fill_port():
     c.check_fill_port(FakeFills(), b.sealed(), b.snapshot(), b.seal(), AT)
     c.check_fill_port_missing_quote(FakeFills(), b.sealed(), b.snapshot(quotes={}), b.seal(), AT, b.position())
+    c.check_fill_port_unmeasured(FakeFills(), b.sealed(), unmeasured(b.snapshot()), b.seal(), AT, b.position())
+
+
+def unmeasured(snapshot):
+    """The same prices with no displayed size measured, as the simulator's history holds them."""
+    quotes = {key: dataclasses.replace(q, bid_qty=None, ask_qty=None, sizes_measured=False)
+              for key, q in snapshot.quotes.items()}  # fmt: skip
+    return dataclasses.replace(snapshot, quotes=quotes)
 
 
 def test_settlement_at_intrinsic_or_needed():
