@@ -33,4 +33,10 @@ hypothesis: yes
 measurement: no
 data_sets: ["NIFTY monthly options | NSE daily closes | 2019-2023", "NIFTY monthly options | NSE daily closes | 2024-2026"]
 measures: "mean net per complete trade after C1's charges and the Rs 1 pad, one lot (protocol sections 7-11)"
+gross: {kind: measured, mean: -43.068181818181145, sd: 2713.918499542513, n: 33, source: "EDGE1 run 1, research/edge1/selection.json at 81f02afe (story/edge1-build), g1.inputs; exploratory (sd_gross)"}
+tail: {probability: 0.0, loss: 0.0, in_gross: yes}
+cost: {measured: 788.4395649111364, source: "EDGE1 run 1, research/edge1/selection.json at 81f02afe (story/edge1-build), g1.inputs; exploratory (mean charges plus pads, Rs 1 pad)"}
+sd_per_trade: 2748.9798603162008
+frequency_per_year: 8.25
+pass_level: 0.05
 ```

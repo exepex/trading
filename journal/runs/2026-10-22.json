@@ -76,6 +76,32 @@
    "result": {
     "line": "versions:NONE_YET"
    }
+  },
+  "pack": {
+   "started_at": "2026-10-22T14:58:05.012792+05:30",
+   "finished_at": "2026-10-22T15:01:50.259961+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "e8594862d20feac7fd8998c1bc867ba6830f1581657502866279b1edee8ec7e1"
+   }
+  },
+  "book1": {
+   "started_at": "2026-10-22T15:01:54.877697+05:30",
+   "finished_at": "2026-10-22T15:02:27.900869+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "unlisted",
+     "2026-10-22"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }

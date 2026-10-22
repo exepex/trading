@@ -6,3 +6,4 @@ date,job,step,kind,message,run_url
 2026-10-20,filings-archive,"archive / Results and shareholding XBRL (backfill, then daily)",failure,"archive / Results and shareholding XBRL (backfill, then daily): failure",https://github.com/exepex/trading/actions/runs/39334115362
 2026-10-21,forecast-capture,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39577172005
 2026-10-21,fo-masters,masters / Ban list and market lots (the job alerts,failure,masters / Ban list and market lots (the job alerts: failure,https://github.com/exepex/trading/actions/runs/39615323749
+2026-10-22,forecast-capture,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39756124809
