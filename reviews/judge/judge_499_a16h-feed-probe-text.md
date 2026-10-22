@@ -69,3 +69,13 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
    - 50 accepted but 500 refused reads as a limit under 500. The ramp then halves its way down from there (e.g. 250, 375, ...) and reports the bounds; it is never read as "closed".
    - In the fallback window, a refusal at the first step is reported as a limit, since the market is open.
    - Tests: a fake feed that refuses everything gives "closed"; one that refuses at 450 gives "limit between 400 and 450" (or the bounds reached).
+
+## Addendum 4: instrument tokens at 214bdeb7
+
+**PASS (text).** The tokens come from the SDK's `INSTRUMENT_CSV_URL`. In the installed SDK that is
+`https://growwapi-assets.groww.in/instruments/instrument.csv`, read with a plain `requests.get` and no credentials
+(`growwapi/groww/client.py:115,179`), so it spends none of the key's limits. The at-the-money strike comes from 4
+`get_quote` calls through the existing `ReadOnlyGroww`, with no change to the allow-list. Two conditions for the code:
+
+- **The URL is read in the composition root (or copied into a named constant there), never by naming `GrowwAPI` elsewhere** (criterion 2).
+- **In `alongside`, the instrument list and the 4 `get_quote` calls happen before 14:50**, with the sign-in. Nothing touches the key during 14:55-15:13.
