@@ -23,18 +23,19 @@ def cmd_feed_probe(args) -> int:
     from ..config import load_app_config
     from ..models import now_ist
     from .feed_probe import PLANS, ProbeRefused, summary
-    from .feed_wiring import build_feed_probe, build_gate, build_universe
+    from .feed_wiring import build_catch_up_gate, build_feed_probe, build_gate, build_universe
 
     day = now_ist().date()
-    if args.plan == "alongside":
-        blocked = build_gate()(day)
-        if blocked:
-            print(blocked)
-            return 1
+    gate = {"alongside": build_gate, "ramp": build_catch_up_gate}.get(args.plan)
+    blocked = gate()(day) if gate else ""
+    if blocked:
+        print(blocked)
+        return 1
     probe, client = build_feed_probe(load_app_config(args.config))
-    instruments = build_universe(client, PLAN_SIDES[args.plan], every_expiry=args.plan.startswith("ramp"))
-    instruments = instruments[: MAX_FOR.get(args.plan, len(instruments))]
     try:
+        probe.check_start(PLANS[args.plan], day)  # the instrument list and the index quotes come inside the window
+        instruments = build_universe(client, PLAN_SIDES[args.plan], every_expiry=args.plan.startswith("ramp"))
+        instruments = instruments[: MAX_FOR.get(args.plan, len(instruments))]
         outcome = probe.run(PLANS[args.plan], instruments, day, args.minutes)
     except ProbeRefused as refused:
         print(f"feed probe {args.plan}: refused: {refused}")

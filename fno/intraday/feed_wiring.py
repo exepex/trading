@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import time as clock_module
 import urllib.request
 
+from ..config import ROOT
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
-from .feed_gate import alongside_gate
+from .feed_gate import alongside_gate, catch_up_gate
 from .feed_probe import FeedProbe
 from .feed_universe import INDICES, universe
 from .index_reading import quote_reading
@@ -22,6 +24,7 @@ from .read_only_feed import ReadOnlyFeed
 from .wiring import INTRADAY_FOLDER
 
 INSTRUMENTS_TIMEOUT_SECONDS = 60
+RUN_LOGS = ROOT / "journal" / "runs"  # O1's daily run log, one file per day
 
 
 def build_feed_probe(cfg: dict) -> tuple[FeedProbe, ReadOnlyGroww]:
@@ -49,3 +52,13 @@ def build_universe(client: ReadOnlyGroww, side: int, every_expiry: bool = False)
 def build_gate():
     ledger = SlotLedger(INTRADAY_FOLDER)
     return lambda day: alongside_gate(ledger.rows, day)
+
+
+def build_catch_up_gate():
+    """Reads the checkout's run log: pull `main` first (the routine commits it)."""
+
+    def gate(day):
+        path = RUN_LOGS / f"{day.isoformat()}.json"
+        return catch_up_gate(json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None, day)
+
+    return gate

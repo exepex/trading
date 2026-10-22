@@ -33,3 +33,20 @@ def _problem(row: dict | None) -> str:
     if row["recorded_contracts"] != row["expected_contracts"]:
         return "quotes missing"
     return ""
+
+
+CANDLE_STEP = "candles"  # A16b's catch-up step in the daily run log (fno/constants_operations.py)
+NO_CATCH_UP = "no ramp today: A16b's candle catch-up is not recorded done in journal/runs/{day}.json ({why})"
+
+
+def catch_up_gate(run_log: dict | None, day: date) -> str:
+    """'' once that day's A16b candle catch-up has finished (judge 499 addendum 2: it uses the same Groww key from
+    15:33); else the one line that says why there is no after-close ramp."""
+    if run_log is None:
+        return NO_CATCH_UP.format(day=day, why="no run log")
+    step = (run_log.get("steps") or {}).get(CANDLE_STEP)
+    if not step:
+        return NO_CATCH_UP.format(day=day, why="no candles step")
+    if not step.get("finished_at"):
+        return NO_CATCH_UP.format(day=day, why="the candles step has not finished")
+    return ""

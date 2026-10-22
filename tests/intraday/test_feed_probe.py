@@ -6,8 +6,9 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from fno.intraday.feed_gate import alongside_gate
+from fno.intraday.feed_gate import alongside_gate, catch_up_gate
 from fno.intraday.feed_probe import ENDED, PLANS, FeedProbe, ProbeRefused, summary
+from fno.intraday.feed_ramp import CLOSED
 from fno.intraday.feed_universe import FeedInstrument, universe
 from fno.models import IST
 
@@ -119,21 +120,6 @@ def test_a_429_stops_at_once_unsubscribes_and_names_it_without_its_text(plan):
     assert SECRET not in text and str(PRICE) not in text
 
 
-def test_the_ramp_stops_at_the_first_error_and_reports_the_count_reached():
-    outcome, feed = run("ramp", Clock(15, 45), Feed(fail_at=1000), options(3000))
-    assert outcome.reached == 1000 and outcome.stop == "failed: RuntimeError"
-    assert ("unsubscribe_ltp", 1500) in feed.calls  # everything it asked for is released
-    assert SECRET not in "\n".join(summary(outcome))
-
-
-def test_the_ramp_stops_at_its_hard_end_time_and_never_waits_past_it(monkeypatch):
-    monkeypatch.setattr("fno.intraday.feed_probe.STEP_SECONDS", 120)  # five steps no longer fit in 10:51-10:58
-    clock = Clock(10, 51)
-    outcome, feed = run("ramp-day", clock, Feed(), options(3000))
-    assert clock.now == datetime(2026, 10, 27, 10, 58, tzinfo=IST) and outcome.reached < 3000
-    assert outcome.stop == ENDED and ("unsubscribe_ltp", outcome.reached) in feed.calls
-
-
 def test_the_latency_line_uses_the_ticks_own_exchange_time():
     outcome, _ = run("coverage", Clock(10, 20), minutes=1)
     assert any(line.startswith("latency (receipt minus exchange time): median") for line in outcome.lines)
@@ -197,3 +183,99 @@ def test_the_command_checks_the_gate_before_any_sign_in(monkeypatch, capsys):
     monkeypatch.setattr(feed_wiring, "build_feed_probe", lambda cfg: pytest.fail("signed in before the gate"))
     assert feed_cli.cmd_feed_probe(Namespace(plan="alongside", minutes=None, config=None)) == 1
     assert capsys.readouterr().out.startswith("no alongside today")
+
+
+class CappedFeed(Feed):
+    """Creates topics up to `cap` held at once; past it, `False` (not created); `refuse_all` raises on every call."""
+
+    def __init__(self, cap=10_000, refuse_all=False, rate_limit_at=None):
+        super().__init__()
+        self.cap, self.refuse_all, self.rate_limit_at, self.tokens = cap, refuse_all, rate_limit_at, set()
+
+    @property
+    def holding(self):
+        return len(self.tokens)
+
+    def _subscribe(self, name, items, callback):
+        self.calls.append((name, len(items)))
+        if self.refuse_all:
+            raise RuntimeError(SECRET)
+        if self.rate_limit_at is not None and self.holding + len(items) > self.rate_limit_at:
+            raise RateLimited()
+        created = {}
+        for item in items:
+            created[item["exchange_token"]] = self.holding < self.cap
+            if created[item["exchange_token"]]:
+                self.tokens.add(item["exchange_token"])
+        return {"NSE": {"FNO": created}}
+
+    def __getattr__(self, name):
+        if name.startswith("unsubscribe_"):
+
+            def release(items):
+                self.calls.append((name, len(items)))
+                self.tokens -= {item["exchange_token"] for item in items}
+
+            return release
+        raise AttributeError(name)
+
+
+def test_after_the_close_a_refusal_at_50_twice_means_a_closed_market():
+    outcome, feed = run("ramp", Clock(15, 45), CappedFeed(refuse_all=True), options(3000))
+    assert CLOSED in outcome.lines and outcome.reached == 0
+    assert [c for c in feed.calls if c[0] == "subscribe_ltp"] == [("subscribe_ltp", 50), ("subscribe_ltp", 50)]
+    assert SECRET not in "\n".join(summary(outcome))
+
+
+def test_a_limit_at_450_is_found_by_halving_and_every_refused_batch_is_released():
+    outcome, feed = run("ramp", Clock(15, 45), CappedFeed(cap=450), options(3000))
+    line = next(line for line in outcome.lines if line.startswith("subscription limit:"))
+    low, high = (int(word) for word in line.replace(",", "").split() if word.isdigit())
+    assert low <= 450 < high and high - low <= 50 and outcome.reached == low
+    assert feed.holding == 0  # everything released at the end
+
+
+def test_between_marks_a_first_refusal_is_a_limit_not_a_closed_market():
+    outcome, _ = run("ramp-day", Clock(10, 50), CappedFeed(refuse_all=True), options(3000))
+    assert "subscription limit: 0 accepted, 50 refused" in outcome.lines and CLOSED not in outcome.lines
+
+
+def test_a_429_in_the_ramp_stops_the_run_at_once():
+    outcome, feed = run("ramp", Clock(15, 45), CappedFeed(rate_limit_at=600), options(3000))
+    assert outcome.stop == "rate limited (429): RateLimited" and feed.holding == 0
+
+
+def test_with_no_limit_the_ramp_reaches_3000():
+    outcome, _ = run("ramp", Clock(15, 45), CappedFeed(), options(3000))
+    assert "no limit up to 3000" in outcome.lines and outcome.reached == 3000
+
+
+def test_the_ramp_stops_at_its_hard_end_time_and_never_waits_past_it(monkeypatch):
+    monkeypatch.setattr("fno.intraday.feed_ramp.STEP_SECONDS", 120)  # the steps no longer fit in 10:50-10:58
+    clock = Clock(10, 50)
+    outcome, feed = run("ramp-day", clock, CappedFeed(), options(3000))
+    assert clock.now == datetime(2026, 10, 27, 10, 58, tzinfo=IST) and outcome.reached < 3000
+    assert outcome.stop == ENDED and feed.holding == 0
+
+
+@pytest.mark.parametrize(("log", "why"), [
+    (None, "no run log"),
+    ({"steps": {}}, "no candles step"),
+    ({"steps": {"candles": {"started_at": "2026-10-27T15:32:10+05:30"}}}, "the candles step has not finished"),
+    ({"steps": {"candles": {"started_at": "x", "finished_at": "2026-10-27T15:33:17+05:30"}}}, ""),
+])  # fmt: skip
+def test_the_after_close_ramp_waits_for_a16bs_candle_catch_up(log, why):
+    found = catch_up_gate(log, DAY)
+    assert found == ("" if not why else f"no ramp today: A16b's candle catch-up is not recorded done in "
+                     f"journal/runs/2026-10-27.json ({why})")  # fmt: skip
+
+
+def test_the_ramp_command_checks_the_catch_up_before_any_sign_in(monkeypatch, capsys):
+    from argparse import Namespace
+
+    from fno.intraday import feed_cli, feed_wiring
+
+    monkeypatch.setattr(feed_wiring, "build_catch_up_gate", lambda: lambda day: "no ramp today: ...")
+    monkeypatch.setattr(feed_wiring, "build_feed_probe", lambda cfg: pytest.fail("signed in before the gate"))
+    assert feed_cli.cmd_feed_probe(Namespace(plan="ramp", minutes=None, config=None)) == 1
+    assert capsys.readouterr().out.startswith("no ramp today")

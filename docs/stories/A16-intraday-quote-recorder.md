@@ -657,7 +657,14 @@ minutes can be replaced without a second paid source.
   sign-in or any call answers 429 or the plan's hard end time is reached):
   - `coverage`: about 400 instruments, 10:20-10:40. It overlaps A16's 10:30 mark on purpose: that mark is the first
     market-hours test of two sign-ins on one key (judge 499).
-  - `ramp`: 500, 1,000, 1,500, 2,000, 3,000, stopping at the first refusal or error; **never overlapping an A16 mark**
+  - `ramp`: **50**, 500, 1,000, 1,500, 2,000, 3,000 (judge 499 addendum 3: 50 first, so a closed market and a limit
+    under 500 can be told apart; coverage holds about 440 topics). A step is refused when a call raises (a 429 stops the
+    run instead) or the feed creates fewer topics than asked; a refused batch is released at once. After the close, a
+    refusal at 50 twice means a closed market; between marks, a first refusal is a limit; once 50 is accepted, a refused
+    step is a limit and the ramp halves its way down to it, to within 50 subscriptions. **The after-close ramp starts
+    only once that day's A16b candle catch-up (same Groww key, from 15:33) is recorded finished in
+    `journal/runs/<date>.json`** (judge 499 addendum 2; pull `main` first); otherwise no ramp that day, one named line.
+    **Never overlapping an A16 mark**
     (judge 499, orchestrator: a mark with no usable level voids the session's RV, which feeds v4 and G14). **First choice:
     after the close**, from 15:45 IST once A16's last mark (15:30, committed about 15:35) is on `main`: accepting a
     subscription needs no live ticks. If Groww refuses subscriptions after hours (a refusal already at the first step,
@@ -668,7 +675,10 @@ minutes can be replaced without a second paid source.
     losing it costs a day), behind a **go/no-go gate** (judge 499): it runs only if that day's `coverage` run left A16's
     10:30 and 10:45 marks clean (ledger status good, no 429 failure, no missing quote); it signs in and subscribes before
     14:50 and makes no new sign-in between 14:55 and 15:13 (the 3 pm recorders' window); any condition missed means no
-    `alongside` that day, noted in the probe note with the reason.
+    `alongside` that day, noted in the probe note with the reason. Its instrument list and index quotes are taken after
+    the sign-in and before 14:50 (judge 499 addendum 4).
+- **The instrument list's URL** is read only in the composition root (`feed_wiring.py`, from the SDK's own constant);
+  no other module names `GrowwAPI` or `GrowwFeed` (judge 499 addendum 4).
 - **Schedule (IST, from Tue 27 Oct; 28 Oct if the code is not passed by then):** `coverage` 10:20-10:40, `ramp`
   from 15:45 (or 10:50-10:58 chunks), `alongside` from before 14:50 to 15:20 (gate permitting). Run by the builder by hand; no schedule or
   workflow is created.
@@ -694,6 +704,18 @@ one).
 
 **Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
 --groww` · **Size:** S · **Status:** story text round 2 for judge I (judge 499's two should-fixes and two minors, 23 Oct 2026)
+
+### Claims (code round 1 update, 23 Oct 2026: judge 499 addenda 2-4)
+- **Ramp** (`fno/intraday/feed_ramp.py`, new): steps from 50; refusal means a raised call (not 429) or fewer topics
+  created; refused batches released; after-close double refusal at 50 means `CLOSED`; between marks a first refusal is
+  a limit; halving to within 50. Tests: a feed refusing everything (after close: 50 twice, then "closed market"; between
+  marks: "0 accepted, 50 refused"), a feed capped at 450 (limit found with low <= 450 < high, gap <= 50, all
+  released), a 429 mid-ramp (stops, all released), no limit (3,000 reached), the hard end time (exactly 10:58:00).
+- **Catch-up gate** (`feed_gate.catch_up_gate`): no run log, no candles step or an unfinished one refuses with one
+  line naming the cause; the command checks it before any sign-in (test).
+- **Alongside before 14:50:** the command calls `check_start` after the sign-in and before the instrument list and
+  the index quotes; `run` checks again.
+- **URL:** read only in `feed_wiring.py` from `GrowwAPI.INSTRUMENT_CSV_URL`.
 
 ### Claims (code round 1, 23 Oct 2026)
 - **Files:**

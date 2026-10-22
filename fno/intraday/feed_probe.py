@@ -9,11 +9,11 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
 from ..models import IST
+from .feed_ramp import RAMP_STEPS, Ramp
 from .feed_ticks import TickCounter
 from .feed_universe import INDEX, FeedInstrument
 
-RAMP_STEPS = (500, 1000, 1500, 2000, 3000)
-SAMPLE_SECONDS, STEP_SECONDS = 5, 45
+SAMPLE_SECONDS = 5
 RATE_LIMITED, FAILED, ENDED = "rate limited (429)", "failed", "hard end time reached"
 LTP, INDEX_VALUE = "ltp", "index_value"  # the feed types whose answers carry an exchange time
 
@@ -67,17 +67,21 @@ class FeedProbe:
             end = min(end, self.clock() + timedelta(minutes=minutes))
         try:
             if _is_ramp(plan):
-                self._ramp(instruments, end, outcome)
+                Ramp(self, after_close=plan.name == "ramp").run(instruments, end, outcome)
             else:
-                self._subscribe(instruments, outcome, plan.depth)
+                self.subscribe(instruments, outcome, plan.depth)
                 self._watch(end)
         except Exception as error:  # every failure stops the run: the class name only (its text could hold a secret)
             outcome.stop = f"{RATE_LIMITED if _rate_limited(error) else FAILED}: {type(error).__name__}"
         finally:
-            outcome.lines += self._unsubscribe_all()
+            outcome.lines += self.release(self.held)
         outcome.stop = outcome.stop or ENDED
         outcome.lines = self.ticks.report(self.ticks.classes) + outcome.lines
         return outcome
+
+    def check_start(self, plan: Plan, day: date) -> None:
+        """Refuses outside the plan's start window (alongside: the instrument list and quotes come before 14:50)."""
+        self._may_start(plan, day, 0)
 
     def _may_start(self, plan: Plan, day: date, count: int) -> None:
         now = self.clock().astimezone(IST)
@@ -87,7 +91,9 @@ class FeedProbe:
         if count > plan.cap:
             raise ProbeRefused(f"{plan.name} may hold at most {plan.cap} subscriptions, asked for {count}")
 
-    def _subscribe(self, instruments: Sequence[FeedInstrument], outcome: Outcome, depth: bool = False) -> None:
+    def subscribe(self, instruments: Sequence[FeedInstrument], outcome: Outcome, depth: bool = False) -> int:
+        """The topics the feed says it created (also added to `outcome.accepted`)."""
+        before = outcome.accepted
         indices = [i for i in instruments if i.kind == INDEX]
         others = [i for i in instruments if i.kind != INDEX]
         self.held += list(instruments)  # before the call: a call that raises may already have subscribed some
@@ -104,44 +110,42 @@ class FeedProbe:
         if others and depth:
             outcome.accepted += _created(self.feed.subscribe_market_depth([i.subscription() for i in others],
                                                                           self.ticks.on_tick))  # fmt: skip
+        return outcome.accepted - before
 
     def _watch(self, end: datetime) -> None:
         while self.clock() < end:
-            self._wait(SAMPLE_SECONDS, end)
+            self.wait(SAMPLE_SECONDS, end)
             self.ticks.sample(self.feed.get_ltp(), LTP)
             self.ticks.sample(self.feed.get_index_value(), INDEX_VALUE)
 
-    def _ramp(self, instruments: Sequence[FeedInstrument], end: datetime, outcome: Outcome) -> None:
-        for step in RAMP_STEPS:
-            if self.clock() >= end:
-                return
-            self._subscribe(instruments[len(self.held) : step], outcome)
-            outcome.reached = len(self.held)
-            outcome.lines.append(f"ramp: {outcome.reached} subscriptions held")
-            self._wait(STEP_SECONDS, end)
-            self.feed.get_ltp()  # a refused or dropped subscription set shows here as a raised error
-
-    def _wait(self, seconds: float, end: datetime) -> None:
+    def wait(self, seconds: float, end: datetime) -> None:
         """Never past the plan's hard end time."""
         left = (end - self.clock()).total_seconds()
         if left > 0:
             self.sleep(min(seconds, left))
 
-    def _unsubscribe_all(self) -> list[str]:
+    def release(self, instruments: Sequence[FeedInstrument]) -> list[str]:
+        """Unsubscribes these instruments (every topic they hold) and forgets them; one line per failed call."""
+        batch = list(instruments)
+        tokens = {i.token for i in batch}
+        depth = [i for i in self.depth_held if i.token in tokens]
         lines = []
-        plan = (("unsubscribe_index_value", [i for i in self.held if i.kind == INDEX]),
-                ("unsubscribe_ltp", [i for i in self.held if i.kind != INDEX]),
-                ("unsubscribe_market_depth", self.depth_held))  # fmt: skip
-        for call, instruments in plan:
-            held = [i.subscription() for i in instruments]
-            if not held:
+        for call, members in (("unsubscribe_index_value", [i for i in batch if i.kind == INDEX]),
+                              ("unsubscribe_ltp", [i for i in batch if i.kind != INDEX]),
+                              ("unsubscribe_market_depth", depth)):  # fmt: skip
+            if not members:
                 continue
             try:
-                getattr(self.feed, call)(held)
+                getattr(self.feed, call)([i.subscription() for i in members])
             except Exception as error:
                 lines.append(f"{call} failed: {type(error).__name__}")
-        self.held, self.depth_held = [], []
+        self.held = [i for i in self.held if i.token not in tokens]
+        self.depth_held = [i for i in self.depth_held if i.token not in tokens]
         return lines
+
+    @staticmethod
+    def rate_limited(error: Exception) -> bool:
+        return _rate_limited(error)
 
 
 def _created(answer) -> int:
