@@ -78,7 +78,8 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
     assert detail == (
         "steps not run: quotes, owner_timing_fills, margin_check, weather, forecasts_v4, book1, reviews, "
-        "quotes_done, card, price_distribution, price_distribution_scores, price_ranges, price_range_scores, candles"
+        "quotes_done, card, price_distribution, price_distribution_scores, price_ranges, price_range_scores, candles, "
+        "close_read, close_recheck"
     )
 
 
