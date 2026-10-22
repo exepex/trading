@@ -4,7 +4,7 @@
 MS-market-school.md section 7 (7.1, 7.4 SIM-a) and Claims 7.7. Lane 1 (practice records). Round 1 of 2. Judge H
 (session_01KNkZVoWvXMkoihKrrXk5Xa).
 
-**Verdict: FAIL.** 1 should-fix, 2 minor.
+**Verdict: FAIL.** 2 should-fix, 2 minor.
 
 ## Criteria
 | # | Criterion | Result | Evidence |
@@ -28,6 +28,11 @@ MS-market-school.md section 7 (7.1, 7.4 SIM-a) and Claims 7.7. Lane 1 (practice 
      NSE's lot then was 75, so P&L and the cap width would be off by a factor of 1.5.
    - Expected: the circular lot only for legacy-format days (`chain.source`). A UDiFF day without its board lot gives
      None, so the road closes and never takes a guessed lot. Add a test on a 2025 UDiFF day.
+
+2. **Should-fix (orchestrator's size rule, design A, 22 Oct 2026): the size sentinel is defined.**
+   `constants.py:14` sets `SIZE_GATE_WAIVED = 10**9`. Nothing uses it yet in a or b, but the rule says sizes stay
+   `None` with `SlotQuote.sizes_measured=False` and any such sentinel is a FAIL. Expected: remove the constant, and
+   correct the story text in 7.2 that describes it.
 
 **Minor:**
 - (a) `history/edge1.py` puts `research/edge1` at `sys.path[0]` for the whole process. That folder also holds
