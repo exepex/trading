@@ -48,3 +48,15 @@ marks, and with them the forecasts, at risk.
 - **Beyond the ask:** every plan stops on its own 429 or at its hard end time (criterion 3).
 - **Minors (a), (b): ACCEPTED.** The test supplies the trading names itself; coverage is reported by class.
 - **For the code round:** I will plant faults on the gate (a 429 in the ledger, a missing mark, a start at 14:51), on the hard end times, and on each allowed and refused name.
+
+## Addendum 2: the ramp's new window at f1b4fca9
+
+**Verdict: PASS (text), with one condition for the code round.** f1b4fca9 changes only the ramp's window, as the
+orchestrator directed. First choice: after the close, from 15:45, once A16's 15:30 mark is on `main`. Fallback, if Groww
+refuses subscriptions after hours: 10:50:00-10:58:00 chunks, between the 10:45 mark (about 53-57 s) and the 11:00 mark.
+Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed market", not as the limit, is sound.
+
+- **Condition (to hold in the code):** A16b's candle catch-up (`intraday backfill`) also uses Groww on the shared key, from 15:33 in the daily run (CLAUDE.md, O1 step 2).
+  - The after-close ramp must not start until that day's catch-up step is recorded done in `journal/runs/<date>.json`.
+  - A ramp started early refuses with one named line, with a test.
+  - I will plant faults on it in the code round. The builder may add the line to the text then.
