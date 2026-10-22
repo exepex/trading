@@ -189,7 +189,8 @@ Only run 1's G1 passers are tested, on run 2's cycles:
   - T21, SL2 and TP50 trades exit before the next cycle's decision.
   - EXP trades are held to expiry, past the next decision (about 13 Jan for the 27 Feb 2025 expiry, against a 30 Jan
     exit), so consecutive EXP trades overlap by about two weeks and share index moves.
-  - A block of 2 keeps such neighbours together, and is used for all variants alike.
+  - A block of 2 keeps such neighbours together, and is used for every exit rule alike, EXP or not (owner, 22 Oct
+    2026: judge B's block 2 accepted; one block for all exits is the simpler choice).
   - The build adds `block` as a keyword argument to `resampled_means`, defaulting to G4's 20, so no existing caller
     changes.
   - The test: p = (1 + #{b : M*_b - D >= D}) / (B + 1), with M* the resampled means; that is, the share of re-centred

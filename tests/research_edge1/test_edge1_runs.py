@@ -56,6 +56,8 @@ def test_run1_never_sees_a_price_after_its_seal():
     assert normal == crazy and normal["NIFTY SC2 T21"]["pad1"]["cycles"] > 0
     assert normal["NIFTY SC2 T21"]["g1"]["passed"] is False  # far fewer than 20 run-1 trades
     assert "g1" not in normal["NIFTY NS T21"] and normal["NIFTY NS T21"]["tradeable"] is False
+    assert normal["NIFTY NS T21"]["worst_loss_against_cap"]["cap"] == 10_000.0
+    assert "worst_loss_against_cap" not in normal["NIFTY SC2 T21"]
 
 
 def test_run2_tests_only_g1_passers_and_holm_and_nomination_see_only_them(monkeypatch):
@@ -91,3 +93,8 @@ def test_holm_reads_each_variants_own_p(monkeypatch):
     monkeypatch.setattr(runs, "one_sided_p", lambda nets, k: 0.5)
     found = run2({"NIFTY": market()}, Calendar(), CHARGES, no_margin, selection, {"NIFTY": date(2023, 8, 31)})
     assert found["variants"]["NIFTY SC2 T21"]["holm"] is False and found["nominated"] == []
+
+
+def test_a_measurements_largest_loss_is_shown_beside_the_cap():
+    losing = [Trade(TAKEN, cycle(), "T21", exit_day=cycle().exit_day, net=n) for n in (500.0, -12_500.0, -300.0)]
+    assert runs.against_cap(losing) == {"largest_loss_per_lot": 12_500.0, "cap": 10_000.0}

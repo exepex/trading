@@ -12,6 +12,7 @@ from collections.abc import Callable, Mapping, Sequence
 from fno.factory.constants import BOUND_LEVEL
 from fno.factory.cost_wall import Tail
 from fno.factory.t_bound import lower_bound
+from fno.research_engine.cycle_costs import LOSS_CAP
 
 from .margin import EntryMargin
 from .report import figures
@@ -52,6 +53,13 @@ def stt_history(market: Market, cycles, code: str, rule: str, charges: dict) -> 
     return figures(run_variant(market, cycles, code, rule, charges, PADS[0], charges_on(charges)))
 
 
+def against_cap(trades) -> dict:
+    """A naked measurement's largest realised loss for one lot, beside the Rs 10,000 cap it is not held to (judge
+    468.3)."""
+    worst = min((t.net for t in complete(trades)), default=None)
+    return {"largest_loss_per_lot": None if worst is None else max(0.0, -worst), "cap": LOSS_CAP}
+
+
 def run1(markets: Mapping[str, Market], calendar, charges: dict, margins: Margins, run2_cycles: Mapping[str, int]):
     out = {}
     for index, market in markets.items():
@@ -63,6 +71,8 @@ def run1(markets: Mapping[str, Market], calendar, charges: dict, margins: Margin
             entry = {"index": index, "structure": code, "exit": rule, "tradeable": code in TRADEABLE,
                      "pad1": figures(base, margins(index, base)), "pad2": figures(by_pad[PADS[1]]),
                      "pad1_stt_history": stt_history(sealed_market, cycles, code, rule, charges)}  # fmt: skip
+            if code not in TRADEABLE:
+                entry["worst_loss_against_cap"] = against_cap(base)
             if code in TRADEABLE:
                 entry["g1"] = g1(base)
                 share = len(taken(base)) / len(base) if base else 0.0
@@ -86,6 +96,8 @@ def run2(markets: Mapping[str, Market], calendar, charges: dict, margins: Margin
                "tradeable": chosen["tradeable"], "pad1": figures(base, margins(chosen["index"], base)),
                "pad2": figures(wide), "pad1_stt_history": stt_history(market, cycles, chosen["structure"],
                                                                          chosen["exit"], charges)}  # fmt: skip
+        if not chosen["tradeable"]:
+            row["worst_loss_against_cap"] = against_cap(base)
         if chosen["tradeable"]:
             nets = [t.net for t in complete(base)]
             row |= {"p": one_sided_p(nets, k), "k": k, "n": len(nets), "mean_net": mean_net(complete(base)),
