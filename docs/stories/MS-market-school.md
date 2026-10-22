@@ -964,14 +964,18 @@ Built: `fno/school/simulator/spreads/{bucket,model,learner,recorded}.py`, tests 
 | 4 only verified recorded captures; a tampered, missing or incomplete one is skipped with its reason | `recorded.py` over MS-P1b's `CaptureReader` | `test_recorded.py` (4 tests) | the caught exception type changed |
 | bucket edges on both sides (1% and 2% and 4% moneyness; 7, 8, 21, 22, 45, 46 days) | `bucket.py` | `test_the_moneyness_band_edges`, `test_the_days_to_expiry_band_edges` | `>=` to `>`; day edges not shifted by one |
 | half a tick floor; uncrossed, valid, two-sided only | `learner.py` | `test_a_quote_is_its_half_gap...`, `test_a_one_sided_invalid_or_crossed...` | floor removed; crossed check removed |
-| 5 relative against rupee spread, with numbers | none | **not done** | |
+| 5 relative against rupee spread, with numbers | none (a measurement) | the run below | n/a |
 
 - **11 of 11 mutations caught.**
-- **Criterion 5 is not met in this tip, and I do not claim it.** It needs the recorded quote files, which live in Drive
-  only, and this container has no Drive settings. The relative half-spread (a share of the mid) stays "reasoning only".
-  What would settle it: for each bucket on the recorded days, whether the coefficient of variation of the relative
-  half-spread is below that of the rupee half-spread. Someone with Drive access can run `SpreadLearner` on
-  `recorded_snapshots(...)` and compare; I will write that small script in SIM-d's dry run if Drive is available.
+- **Criterion 5, round 2 (judge 502 asked for it in the Claims).** My earlier statement that this container had no Drive access was wrong: I had
+  not checked the environment. I re-ran the comparison myself (throwaway script, not committed) over MS-P1b's verified `CaptureReader`
+  on the recorded sessions of 13-22 Oct 2026, all five roads (16 verified captures read; 39 road-days had none and were skipped).
+  For each bucket with at least 3 quotes I took the coefficient of variation of the half-spread (half-tick floor) over all its valid two-sided quotes:
+  - the relative half-spread varies less than the rupee one in **41 of 48 buckets**, the same as Judge H's run;
+  - the 7 exceptions are FINNIFTY and MIDCPNIFTY far or deep strikes, for example MIDCPNIFTY 2-4% from the money, 22-45 days: 1.17 against 0.81 (115 quotes, 3 sessions);
+  - every bucket has only 1-6 sessions. **Some evidence** for the relative choice, not strong evidence; revisit at 30 sessions.
+- **Capture period in the label (judge 502, minor a).** `SPREAD_LABEL` now reads "spread learned from forward captures since 13 Oct 2026, measured at 15:00".
+  Reasoning only: spreads were probably wider in earlier years, so practice is optimistic. This is why the three scenarios are always shown together.
 - **Consequence stated in 7.2 stands:** with 8 recorded NIFTY sessions every bucket reads `insufficient spread data`;
   the code returns exactly that and nothing else.
 
