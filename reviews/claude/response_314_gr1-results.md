@@ -1,5 +1,8 @@
 # Response 314: GR1 sharper ranges, results of both runs (for judge B)
 
+**Revision 2 (judge 459, two wording should-fixes, both accepted):** SF1, C9's split is now NIFTY N3's, the cell C9
+won; SF2, the N0-A caveat (its 0.607 share was measured on 2020-2025) and a headline bounded by the intervals.
+
 **From:** G13/G13b builder, session_01UkTaDeTRF9ksDgQB9cTU5C · **Branch:** `story/gr1-sharper-ranges` · **Protocol:**
 `research/gr1/PROTOCOL.md` (deviations 1-4), code frozen at 08731ac6 (judge 442.1 PASS) · **Run 1:** 476aa240,
 `selection.json` sha256 `083756a0...de65c`, reproduced byte for byte by judge B (442.2) · **Run 2:** 56fe1c8f, run
@@ -7,9 +10,11 @@ once, `final.json` sha256 `55f636f3...4f62` · **Records:** back-fill sha256 `6f
 
 ## The answer
 
-**No conditioned scaling makes G13b's implied range sharper. Implied stays as it is; nothing goes live, so there is
-no sealed-shadow proposal (owner rule f2293cea applies only to a passing winner)** [strong evidence for these
-candidates on 2025-26; exploratory, because the data was spent before the study].
+**Strong evidence that none of the three 2024 winners improves the quantile score by more than about 0.15% on
+2025-26** (exploratory: spent data). The 95% intervals bound the best possible gain at about 0.03% for C8 (NIFTY N1)
+and 0.13-0.14% for C9 (NIFTY N3) and C10 (BANKNIFTY N3); the point estimates are all worse than implied. **Implied
+stays as it is; nothing goes live, so there is no sealed-shadow proposal** (owner rule f2293cea applies only to a
+passing winner).
 
 | Cell | 2024 winner | 2025 - 20 Oct 2026: paired mean QS, winner minus implied | Two-sided p (bootstrap) | Holm | Verdict |
 |---|---|---|---|---|---|
@@ -33,9 +38,12 @@ summaries sit on either side of the 5% line).
   [reasoning only]. A shrink like this is what the variance risk premium would predict; it is worth a fresh,
   prospective trial only on data not yet seen (from 21 Oct 2026), if the owner wants one.
 - **BANKNIFTY N1's best on 2025-26 was C9 / C11(C4+C9)** (-0.5% QS). These are post-hoc, so they are not evidence.
-- **C9's split at the expiry breaks** (reported, never decided on): NIFTY N1 -3.2e-5 before 1 Sep 2025 and +0.8e-5
-  after. The weekday effect changes sign with the expiry day, which is consistent with an expiry artefact rather than
-  a stable weekday rule.
+- **C9's split at the expiry break, in NIFTY N3, the cell C9 won** (reported, never decided on): +0.43e-5 before 1 Sep
+  2025 (164 sessions) and +1.59e-5 after (276). It is worse than implied in both pieces, and more so after the move to
+  Tuesday expiries.
+  - In NIFTY N1, where C9 was **not** the winner, its split is -3.2e-5 before and +0.8e-5 after: the sign changes with
+    the expiry day.
+  - Both are consistent with an expiry artefact rather than a stable weekday rule [reasoning only].
 
 ## N0: how much a 09:15 range narrows (measurement, NIFTY)
 
@@ -46,10 +54,15 @@ summaries sit on either side of the 5% line).
 | N0-B (+ one fitted scale) | 442 | 0.889 | 0.484 | 458 | 0.751 |
 | N0-C (+ gap and S&P overnight) | 442 | 0.869 | 0.471 | 448 | 0.730 (CI 0.726-0.737) |
 
-N0-A was carried from 2024 as the rule says and is the honest one: same coverage as N1, 22% narrower, no fitted
-parameter. N0-B and N0-C are narrower only by giving up coverage. N0-C's 0.869 is below the 0.87 band, as it was on
-2024 (0.861). This supports phase 2's 09:15 issue (A22) using N0-A's rule [some evidence: one index, 442 days, a
-measurement, not a contest].
+N0-A was carried from 2024 as the rule says. It is the honest one among the three, with one caveat: it fits no
+parameter in this study, but its 0.607 variance share was measured on 2020-2025 (G13b's overnight share), and that
+overlaps the final period's 2025. So its 0.900 / 0.507 coverage is partly in-sample. With that caveat it gives the
+same coverage as N1 at 22% less width. N0-B and N0-C are narrower only by giving up coverage. N0-C's 0.869 is below
+the 0.87 band, as it was on 2024 (0.861).
+
+This points phase 2's 09:15 issue (A22) to N0-A's rule [some evidence: one index, 442 days, a measurement, partly
+in-sample]. The clean check is on sessions after the share's measurement: 2026's sessions, or A22's live 09:15 data
+once it runs.
 
 ## Checks and notes
 
@@ -57,8 +70,9 @@ measurement, not a contest].
    29 Aug 2025 (expiry 2 Sep 2025); before it the nearest is a Thursday. The pinned break (1 Sep 2025) is right for
    target days. The 29 Aug row falls in the old piece; it is one day and only matters for C9's descriptive split. One
    gap: `splits.py`'s docstring says run 2 "reports the first Tuesday expiry it reads", but `final.json` does not
-   carry it. I read it from run 2's own expiry cache (`work/gr1/expiries.json`, from the same files) for this note.
-   The code is frozen, so I have not changed it; the docstring promised more than the code does.
+   carry it. I read it **outside the frozen code**, with a one-off script over run 2's own expiry cache
+   (`work/gr1/expiries.json`, built from the same files), for this note only. The code is frozen, so I have not
+   changed it; the docstring promised more than the code does.
 2. **Late-Dec 2024 rows (judge note 1).** The seal works by issue day, so select-period rows issued in the last
    sessions of 2024 have target closes in early Jan 2025, inside the final period: N3 rows of 27, 30 and 31 Dec, and
    the N1 row of 31 Dec (target 1 Jan 2025). Run 1 read those outcomes. That is at most three rows per cell, it touched
@@ -73,6 +87,8 @@ measurement, not a contest].
 
 - Close GR1 as "no sharper candidate". Merge the branch (research files, tests, results) to `main` after your PASS.
 - No live change. G13b's implied stays the range of record.
-- Owner question (Q-GR1): a prospective trial of one constant N1 shrink (about 5%) on data from 21 Oct 2026 on,
-  registered before any of it is read. It is cheap; it has a reason (implied runs slightly wide on N1) but no
-  evidence yet.
+- Owner question (Q-GR1): a prospective trial of one constant N1 shrink (about 5%) on data from 21 Oct 2026 on. It is
+  cheap; it has a reason (implied runs slightly wide on N1) but no evidence yet. If the owner says yes:
+  - it is registered in the ledger before any data from 21 Oct is read;
+  - it cites this result (response 314, judge 459);
+  - C1 and C2 count as "known before" candidates, because this study showed their 2025-26 numbers.
