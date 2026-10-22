@@ -32,11 +32,15 @@ def build_margin(cfg: dict) -> StressedMargin:
 
 def build_safety_laws(cfg: dict, settings: SchoolSettings, slot: Mapping[RoadCode, SlotSnapshot],
                       margin: StressedMargin) -> SafetyLaws:  # fmt: skip
+    """The data checks before the limits, so a refusal's first reason is its root cause: a risk law that fails only
+    because a quote is missing is a consequence of it (orchestrator, 22 Oct 2026)."""
     books = profile_settings(cfg, RISK_PROFILE_BOOKS)
     costs = SimulatorTradeCosts(cfg["charges"])
     risks = PositionRisks(SchoolBuckets(books.bucket_sides), HeldMaxLoss(cfg["charges"]), costs)
     return SafetyLaws((
         ProtectedLaw(),
+        *(QuoteGateLaw(reason) for reason in GATE_REASONS),
+        ImpossiblePriceLaw(),
         MaxLossLaw(settings.max_loss_rs, cfg["charges"], MaxLossPerTrade(costs, settings.max_loss_rs)),
         C2Law("bucket_cap", BucketCap(risks, settings.bucket_rs), RefusalReason.BUCKET_CAP, cap_numbers, slot),
         C2Law("open_risk", OpenRiskCap(risks, settings.open_risk_rs), RefusalReason.OPEN_RISK, cap_numbers, slot),
@@ -44,7 +48,5 @@ def build_safety_laws(cfg: dict, settings: SchoolSettings, slot: Mapping[RoadCod
               slot),
         margin_room_law(margin, costs, slot),
         DailyStopLaw(settings.daily_stop_rs),
-        *(QuoteGateLaw(reason) for reason in GATE_REASONS),
-        ImpossiblePriceLaw(),
         BrakeLaw(settings.brake_rs),
     ))  # fmt: skip
