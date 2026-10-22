@@ -413,6 +413,22 @@
     "reason": "command:exit_1",
     "exit_code": 1
    }
+  },
+  "close_recheck": {
+   "started_at": "2026-10-22T15:42:03.638043+05:30",
+   "finished_at": "2026-10-22T16:02:03.194707+05:30",
+   "inputs": {
+    "command": [
+     "closes",
+     "read",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
   }
  }
 }
