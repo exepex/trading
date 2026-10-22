@@ -72,3 +72,21 @@ and `tests/timetable/test_commit_failure_run.py`. The claims are response 329, s
 - **Gates (my run, a separate worktree):** pytest -n auto: 11,938 passed, 16 xfailed. ruff check and format,
   `check_imports` and `check_records` are clean.
 - **Plants:** 9 on round 2, 9 caught.
+
+## Addendum 2
+
+**Scope:** the post-PASS commit d238b0e3 (parent bba55d09), at the branch tip bc3ac6e5 (d238b0e3 with main merged in).
+`git diff bba55d09 d238b0e3` touches `fno/desk/daily_run.py`, one assertion in `tests/timetable/test_commit_failure_run.py`
+and response 329, section 7.
+
+**Verdict: PASS.**
+
+- **What changed:** a failed git read's alert now ends with `READ_RERUN`, "rerun `fno daily run` (it skips the steps
+  already recorded)". It replaces `RERUN`, which promised to commit pending files that may not exist after a read
+  failure.
+- **Accuracy:** the new text matches the module's own rule, "a restarted run skips every step already recorded".
+  `CommitFailed` keeps `RERUN`.
+- **Tests:** the assertion pins the new text; my plant restoring `RERUN` at the call site is caught.
+- **My run at bc3ac6e5:** `tests/timetable`, `tests/desk`, `tests/daily` and `tests/e2e` give 388 passed; ruff check
+  and format are clean. I did not re-run the full suite for this wording change; the builder reports 12,006 passed,
+  16 xfailed on the tip.
