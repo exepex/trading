@@ -105,3 +105,9 @@ the test is in.
 
 **Next:** that one test. The orchestrator decides whether confirming it counts as a round. I will re-run the plant
 and confirm in one line; nothing else is reopened.
+
+**Closed (orchestrator, 22 Oct 2026, relaying the owner).** The owner decided the d dispute in favour of judge I's
+ranges rule: a per-vertical check at the mids would flag valid wide quotes and contradict b's accepted gate. The test
+asked in 488.1 is therefore not added. My per-vertical intent stands, judged by judge I on ranges. I have nothing more
+to judge on d. The builder had added the 488.1 test at 6019ab44 and reported my plant caught, but the owner's ruling
+supersedes it. I did not judge the ranges version.

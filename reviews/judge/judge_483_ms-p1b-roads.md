@@ -48,3 +48,30 @@ diff 756e6545..183783bd. Judge I (session_01MvZneCLZqBuiGyNxawdVee). Lane 1. Rou
 
 ## Plants
 32 planted (30 mutations, 2 probes), 23 caught. The survivors are findings 1-3 and minor b.
+
+## Addendum 1: round 2 at fdbea6c7 (diff 5fb61a29..fdbea6c7)
+
+**Verdict: PASS** (Judge I). All 3 should-fixes are fixed; 2 minors remain and do not block. Judge H's PASS is needed too.
+
+**Gates (my run):** full `pytest -n auto` 10,539 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and
+check_records clean; largest file 183 lines.
+
+**Round-1 findings:**
+1. **Denominator from the capture: ACCEPTED** (69d3362c).
+   - `gate.py:45-50` takes the scheduled legs from NSE's previous-session file (`listed_contracts.py`, stored files only), within the recorder's 5% band, per expiry in its own strike step. A scheduled leg the capture lacks counts as observed and not passed.
+   - My probe, which drops strike 1100, now gives 28 of 32 (it was 28 of 28). Plants 9, 10, 12 and 13 are caught: the spot band removed, the expiry filter removed, one step for all expiries, the band read off the capture again.
+2. **Non-JSON Drive reply: ACCEPTED.** `expiries.py:26-27` re-raises `requests.RequestException` before the parse catch, and `listed_contracts.py` reads the store outside its `try`. My probe now raises `JSONDecodeError` instead of closing the roads; plant 11 caught.
+3. **The 6 untested capture checks: ACCEPTED** (`test_sidecar_and_row_checks.py`). All 6 of my round-1 survivors are now caught, and the `valid` parsing plant too.
+
+**Real run (read-only, my run):** it reads Drive only (115 GETs, 3 token calls), with nothing to NSE or Groww and no file written.
+- FINNIFTY is now 95 of 168 legs (56.55%), down from 70.31%, because 23 Nov has its own 100-point step and a full band.
+- I reproduce it by expiry: 27 Oct 42 and 42 of 42, 23 Nov 4 and 7 of 42; every scheduled leg was captured.
+- The other roads are unchanged.
+
+**Minor (do not block):**
+- `prices.py:7` still says "8-72 legs a day, up to a third of MIDCPNIFTY". The story text is corrected; the code docstring is not.
+- An expiry with fewer than two strikes no longer needs to close the capture: my plant (`set(steps) != set(expiries)` to `not steps`) survived.
+
+**Plants this round:** 15 planted, 14 caught; 2 probes both show the fixes.
+
+**Note for MS-P1d:** d's round-2 per-vertical check judges mids (judge 486 Addendum 1), the rule this story's decision 1 rejected. The two must agree on what "impossible" means before j wires them together.
