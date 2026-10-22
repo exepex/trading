@@ -103,6 +103,9 @@ class FakeAccounts:
         today = tuple(p for p in open_ if p.opened == session)
         return AccountView(driver_id, self.capital, cash, cash, max(cash, self.capital), 0.0, today, open_, None, None)
 
+    def entries(self, driver_id: str) -> tuple[LedgerEntry, ...]:
+        return tuple(self.ledgers.get(driver_id, ()))
+
     def record(self, driver_id: str, entry: LedgerEntry) -> None:
         ledger = self.ledgers.setdefault(driver_id, [])
         if entry not in ledger:

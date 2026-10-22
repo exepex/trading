@@ -103,6 +103,14 @@ class AccountPort(Protocol):
 
 
 @runtime_checkable
+class LedgerReader(Protocol):
+    def entries(self, driver_id: str) -> tuple[LedgerEntry, ...]:
+        """Every entry recorded in the driver's account, in the order recorded: each opening, then its closing (with
+        its ExitReason) once closed. Read-only: it opens no account and writes no equity row. An account never opened
+        gives ()."""
+
+
+@runtime_checkable
 class FillPort(Protocol):
     def enter(self, sealed: SealedDecision, snapshot: SlotSnapshot, seal: Seal, at: datetime) -> FillResult:
         """Refuses `stale_seal` unless `seal.covers(sealed.file_sha256, at)`; else every leg at the touch or none."""

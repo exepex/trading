@@ -12,6 +12,7 @@ from fno.school.contracts.accounts import (
     FillPort,
     IndexSettlementSource,
     LedgerEntry,
+    LedgerReader,
     SealedDecision,
     SettlementPrice,  # fmt: skip
     SettlementUnavailable,
@@ -161,3 +162,18 @@ def check_fleet(runner, session: date, scheduled: set[tuple], mode: RunMode = Ru
 def check_fleet_off(runner, session: date) -> None:
     run = runner.run(session, RunMode.RECORD)
     assert run.status == SCHOOL_OFF_LINE and run.decisions == () and run.fills == ()
+
+
+def check_ledger_reader(reader, port, opening: LedgerEntry, closing: LedgerEntry, marks: dict, session: date) -> None:
+    """MS-P1a3: `reader` reads `port`'s accounts. Never-opened gives (); then the opening, then both in order; reading
+    changes nothing and writes no equity row (a view before and after a read is equal)."""
+    assert isinstance(reader, LedgerReader)
+    driver_id = opening.position.driver_id
+    assert reader.entries(driver_id) == ()
+    port.view(driver_id, marks, session)
+    port.record(driver_id, opening)
+    assert reader.entries(driver_id) == (opening,)
+    port.record(driver_id, closing)
+    before = port.view(driver_id, marks, session)
+    assert reader.entries(driver_id) == (opening, closing) == reader.entries(driver_id)
+    assert port.view(driver_id, marks, session) == before, "a read writes nothing"

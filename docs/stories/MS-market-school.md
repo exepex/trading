@@ -253,6 +253,32 @@ Asked by the orchestrator, 22 Oct 2026, for b and e.
 - `Seal.pushed_at`'s comment (judge 485, Judge J): it is the receipt commit's time; the proof of the push is the
   receipt on the remote, since `DashcamStore.seal` returns only after the push succeeded. Comment only.
 
+### MS-P1a3 Contracts follow-up: the ledger reader · lane 1 · model tier: H · `story/ms-p1-contracts-a3` · additive only
+
+Asked for by j (orchestrator, 22 Oct 2026). The shape was agreed with d's builder, who implements it on
+`SchoolAccounts`.
+- **The reader:** `LedgerReader.entries(driver_id) -> tuple[LedgerEntry, ...]` (`contracts/accounts.py`). It returns
+  every entry recorded in the driver's account, in the order recorded: each opening, then its closing once closed.
+  - It is read-only: it opens no account and writes no equity row.
+  - An account never opened gives ().
+- **Why j needs it:**
+  - settlement runs before the session's first `view` (judge 486's note);
+  - an outcome names its own entry fill.
+- **Conformance:** `check_ledger_reader(reader, port, opening, closing, marks, session)`.
+- **Fake:** `FakeAccounts.entries`.
+
+**Claims (round 1):**
+- `test_ledger_reader` checks the fake against the conformance check.
+- `test_the_ledger_reader_check_refuses_a_wrong_reader` feeds the check five bad readers:
+  - one ahead of its ledger;
+  - one that never answers;
+  - one in reversed order;
+  - one with a phantom entry for an empty account;
+  - one a step late.
+- **Plants:** 4 planted, 4 caught: the fake's reader, and each of the check's three entry assertions.
+- **Limit:** the "a read writes nothing" assertion has no plant on the fakes, because a fake view keeps no state. d's
+  real `SchoolAccounts` is where that assertion bites.
+
 ### MS-P1b Roads and the quality gate · lane 1 (closes roads, which decides trades) · model tier: S · depends on a
 
 **Files owned:** `fno/school/roads/`, `fno/school/quality/`, `tests/school/roads/`, `tests/school/quality/`.
