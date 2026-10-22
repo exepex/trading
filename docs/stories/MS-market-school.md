@@ -706,6 +706,198 @@ per-underlying follow-up.
 12. **Maximum loss (law 2):** the largest of the proposal's own figure, C2's at the mids and B2's at the touch with
     the Rs 1 pad, refused above Rs 10,000. **Law 1** refuses legs on two expiries (no calendar model).
 
+## 7. MS-SIM: the simulator (practice only)
+
+**Lane:** 1 (evaluation records: it prices, fills and scores trades, though only as practice) · **Builder:** session_01W2JE3W9xYftEDWTysHkdVC ·
+**Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH · **Sources:** response 325 section 8, response 327 correction 6, DESK_DECISIONS
+"Simulator and Instructor v1 start now", `research/DATA_SPEND.md`, `research/edge1/RESULTS.md` (impossible-price rule),
+`fno/research_engine/simulator.py` (B2's cycle simulator: the pricing-validity ancestor, not reused as an engine).
+
+**Description:** As the statistician and the options strategist, I want the pilot's rule drivers to run unchanged on
+history, behind the same `SnapshotSource` interface, so that their plumbing, sample sizes and cost sensitivity can be
+practised before forward days exist. A practice result is never evidence: it licenses nothing and counts for nothing.
+
+### 7.1 Fixed rules (owner and orchestrator; each has a named test in 7.4)
+
+1. **Practice only.** No result licenses a driver, counts toward any card or RM1, sets a banner, or moves a map status
+   past Exploratory. Every output (stdout, files, records) carries the label `practice (simulator)`. Nothing under
+   `fno/school/simulator/` imports the banner, the report sections, `registration` (counting), the instructor's map
+   or the licence code, and its records go to a dataset the pilot never reads.
+2. **Fresh data stays fresh.** Default windows are a frozen allow-list (`PRACTICE_WINDOWS`) of data DATA_SPEND lists
+   as `spent` or `exposed`; anything else is refused with `not_in_data_spend`. A fresh window needs an R1 card and a
+   DATA_SPEND update first (outside this story). On 22 Oct 2026 that gives:
+
+   | Road | Window | DATA_SPEND row |
+   |---|---|---|
+   | NIFTY-M | 2019 to 12 Oct 2026 | NIFTY monthly options, daily closes, `spent` (2019-23 and 2024-26) |
+   | NIFTY-W | Feb 2019 to 9 Oct 2026 | NIFTY weekly options, `spent` |
+   | BANKNIFTY-M | 2019 to 12 Oct 2026 | BANKNIFTY monthly options, `exposed` |
+   | FINNIFTY-M, MIDCPNIFTY-M | none | **not in the register**: closed with `not_in_data_spend`. Reading them would expose unread data. They open only after an R1 card and a DATA_SPEND row (not this story) |
+
+   Windows end at the earlier of 12 Oct 2026 and the day before `school.first_counted`, so the simulator never reads
+   the closes of a day the pilot will count (those days are `forward`/`registered` for P1). The 2019-23 15-minute
+   candles are `fresh` and are not used (the pilot has only the 15:00 slot). A test reads `research/DATA_SPEND.md`
+   and fails if any allow-listed row there is `fresh`.
+3. **Pricing honesty.** From daily records (a last-trade close, no bid, no ask, no sizes) the source builds a quote
+   only when all hold; otherwise the leg's quote is invalid and the pilot's own gates refuse the trade:
+   - the leg **traded that day** (volume above zero; a settlement price is not a trade);
+   - the chain passes **EDGE1's impossible-price rule** on the closes (protocol section 7, via `quality.prices
+     .impossible_keys`, applied to point quotes: every vertical in [0, width], single-leg bounds). A flagged leg is
+     invalid for entry, trigger and exit alike; an exit leg that is invalid waits (`exit_waiting_quote`), stricter than
+     EDGE1, which traded impossible exits and flagged them;
+   - the bid and ask are the close less and plus the **scenario half-spread** (7.2); a bucket with fewer than 30
+     quoted sessions gives `insufficient spread data`: the leg has no quote and the trade is `unavailable`, never a
+     zero-spread fill and never borrowed from another bucket;
+   - costs come from **C1** with the **Rs 1 pad**, **dated lots** (UDiFF `NewBrdLotQty` from 2024, NSE's circular
+     schedule before, the same sources as EDGE1's `lots.py`) and **dated STT** (EDGE1's `stt_history.SCHEDULE`);
+   - **no data after the decision time.** A day's snapshot is built from that day's records alone; the driver's history
+     is the closes up to and including that day; expiry settlement is read on the expiry day only.
+4. **The slot is the close.** History holds one price per leg per day, the last trade (about 15:30). The practice slot
+   is therefore "the close", not the pilot's 15:00 capture. Every output says "close slot, not the 15:00 slot". The
+   drivers receive the index close as the road's `spot` and the closes as their `SpotPoint` history. This is the
+   honest limit of history [strong evidence: the files hold no intraday option price], and it is why a practice
+   result can never stand in for a forward one.
+5. **AI drivers are never simulated** (the model has seen 2019-26). The runner accepts only `role` rule, control or
+   measurement-only cards; any other card is refused with `ai_driver_not_simulated`.
+6. **No new NSE or Groww read.** History comes from what we already archive: the NIFTY panel, the archived F&O
+   bhavcopy files (UDiFF and legacy) through the hash-checked library, the forward quote store for spreads. A test
+   lists the module's imports (no NSE or Groww client, no order call, no Slack).
+
+### 7.2 The spread scenarios (response 327 correction 6)
+
+- **Learned only from our forward captures** (the hash-checked quote store of MS-P1b; NIFTY monthly from 13 Oct 2026,
+  the others from 19 Oct, NIFTY weekly from 22 Oct). Never from history, never invented.
+- **Bucket** = road underlying x moneyness band x days-to-expiry band. First values (card-frozen, reasoning only):
+  moneyness |strike - spot| / spot in [0,1%), [1,2%), [2,4%), [4%, inf); days to expiry 0-7, 8-21, 22-45, 46+.
+- **Quantity** = relative half-spread (ask - bid) / 2 / mid, floored at half a tick. A session's value is the median
+  over the bucket's two-sided, valid quotes that session, so one session with 200 strikes cannot outweigh the rest.
+  Relative, not rupees, because the index level moved 2019-26 (reasoning only; 7.4 test 5 checks that the relative
+  spread varies less than the rupee spread inside buckets on the recorded days, or the choice is reversed in Claims).
+- **Three labelled scenarios** per bucket: the median, the 75th and the 95th percentile of the session values,
+  shown as `median`, `p75`, `p95`. Every practice run is shown under all three; none is "the" result.
+- **Fewer than 30 quoted sessions in a bucket reads `insufficient spread data`.**
+- **Displayed size** for a synthetic quote is the bucket's median displayed size over the same sessions (same 30-session
+  rule), so E4d's size gate still bites. The history holds no sizes; this is labelled.
+- **Honest consequence [strong evidence: arithmetic on the recorded days].** On 22 Oct only 8 NIFTY monthly sessions
+  and 3 sessions for each other road are recorded. Every bucket therefore reads `insufficient spread data` until about
+  24 Nov for the busiest NIFTY monthly buckets, and **much later** for the short-dated and far-strike buckets: the
+  0-7 day band only exists in the last week of a cycle (about 5 sessions a month). Until then the simulator can run
+  plumbing and sizes (it reports how many legs were unpriceable) but produces no priced result. This story does not
+  pool buckets or lower 30 to hide that.
+- Forward spreads are measured at 15:00; the practice slot is the close. Labelled: "spread measured at 15:00".
+
+### 7.3 Design (new package `fno/school/simulator/`, one `wiring.py`)
+
+| Component | Interface | Reuses |
+|---|---|---|
+| `windows.py` | `PracticeWindows.check(road, session) -> None or RefusalReason.NOT_IN_DATA_SPEND` | the allow-list of 7.1 item 2 |
+| `history/` | `HistoricalChain` port: `day(road, session) -> DayChain or None` (closes, volume, open interest, expiries, index close). Adapters: `PanelChain` (NIFTY panel) and `BhavcopyChain` (archived F&O files, UDiFF and legacy) | `NiftyPanel`, `research_data`, the F&O library of `fno.storage.wiring`; EDGE1's day-file and lot readers by one adapter module (see question 1) |
+| `terms.py` | `DatedTerms`: lot, STT and C1 costs on a date | EDGE1's lot schedule and `stt_history`; C1 |
+| `spreads/` | `SpreadModel.scenarios(bucket) -> Scenarios or InsufficientSpreadData`; `SpreadLearner` over the quote store; `SpreadBucket` | MS-P1b's hash-checked store |
+| `source.py` | `HistoricalRoadSource(chain, spreads, scenario)` implements `SnapshotSource`; `HistoricalCatalogue` implements `RoadCatalogue` (history sessions, A7 calendar, dated lots) | `SnapshotSource`, `RoadCatalogue`, `quality.prices` |
+| `practice/` | `PracticeRunner.run(window, roads, drivers) -> PracticeReport` for the three scenarios; `PracticeLabel`; the isolated store | a's `FleetRunner` (MS-P1j) built by the simulator's own wiring with its own source, accounts root and store |
+| `wiring.py` | the composition root; `python -m fno school practice` | one reserved line in `fno/cli.py`, added with MS-P1j's owner |
+
+### 7.4 Sub-parts, files, order and acceptance tests
+
+Each sub-part is its own branch `story/ms-sim-<part>`, built in order, each judged in lane 1. Files owned are under
+`fno/school/simulator/<part>` and `tests/school/simulator/<part>`. Every criterion has good, bad, boundary and empty
+cases and a test that fails when the named code is broken on purpose.
+
+**SIM-a Windows and history** · depends on the pilot's contracts (on main)
+- Files: `windows.py`, `history/`, `terms.py`.
+- Tests:
+  1. `PracticeWindows`: a spent day passes; a day after 12 Oct 2026, a day on or after `first_counted`, FINNIFTY and
+     MIDCPNIFTY refuse with `not_in_data_spend` (boundary: 12 and 13 Oct).
+  2. The allow-list agrees with `research/DATA_SPEND.md` (the test parses the doc; a row turned `fresh` fails it).
+  3. `PanelChain` and `BhavcopyChain` return the same closes for a day both hold (cross-check on recorded days).
+  4. A day with no file gives `None` (empty case); a muhurat or special session follows A7.
+  5. `DatedTerms`: NIFTY lot 75 before the July 2021 expiry and 50 after; BANKNIFTY 20, 25, 15 at its change
+     dates; STT 0.05% on 31 Mar 2023 and 0.0625% on 1 Apr 2023 (both sides of each change).
+  6. No import of an NSE or Groww client (import-list test).
+
+**SIM-b Spreads** · depends on the pilot's quote store (MS-P1b, on main)
+- Files: `spreads/`.
+- Tests:
+  1. A bucket with 29 quoted sessions gives `insufficient spread data`, with 30 gives three scenarios (boundary).
+  2. The scenarios are the median, 75th and 95th percentile of the session values on a planted bucket with known
+     answer (good); an all-one-sided bucket gives insufficient (bad); no data gives insufficient (empty).
+  3. A session counts once however many strikes it has (one session with 200 quotes plus 29 with 1 is 30 sessions
+     but not dominated by the large one).
+  4. Learning reads the recorded quote store only and refuses a hash mismatch (reuses b's checks).
+  5. The relative versus rupee spread choice, with the numbers from the recorded days, in Claims.
+
+**SIM-c The historical road source** · depends on a and b
+- Files: `source.py`.
+- Tests:
+  1. `HistoricalRoadSource` and `HistoricalCatalogue` pass a's conformance checks (`check_road_catalogue` and the
+     snapshot-source check).
+  2. A leg with no volume that day has an invalid quote (good traded, bad untraded, boundary volume 1).
+  3. A planted impossible vertical (a 300-wide spread priced at 392, from EDGE1's results) is flagged: the driver
+     reaches `refused` or `no_trade`, never a fill; an impossible exit waits.
+  4. The quote is close -/+ the scenario half-spread, floored at half a tick; bid is never below zero.
+  5. Look-ahead: changing any record dated after the session leaves the session's snapshot and every driver's
+     decision byte-identical (a mutation test over the chain).
+  6. An insufficient bucket gives `unavailable` for that leg's trade, never a zero spread.
+  7. Dated lot and dated STT enter the proposal's `max_loss` (a 2022 trade is charged the 2022 STT).
+
+**SIM-d The practice runner and its labels** · depends on a-c and on MS-P1j's fleet runner
+- Files: `practice/`, `wiring.py`, the reserved CLI line.
+- Tests:
+  1. The pilot's rule drivers run unchanged: the driver modules are imported from `fno/school/drivers/`, a test checks
+     no driver file is edited by this story (diff-based) and that a practice run and the same card on a recorded
+     fixture day take the same code path.
+  2. Three scenarios per run, each labelled; an insufficient bucket is listed, never dropped; the counts of legs
+     unpriceable are printed.
+  3. Every output string and record carries `practice (simulator)` (a test over every printer and record builder).
+  4. Isolation: the runner's dataset, account root and receipts folder differ from the pilot's; a test plants a
+     practice record and proves the pilot's counting rule, banner, sections, tickets and capture gate do not see it.
+  5. An AI-role card is refused with `ai_driver_not_simulated`.
+  6. Twice, same bytes (replay determinism) as MS-P1i's comparator.
+  7. The import-list test: no banner, report, registration, map or licence module, no order call, no Slack.
+  8. The privacy test: public output holds counts only; strikes, prices and card internals go to the practice
+     dataset in Drive (write-once, receipt in GitHub), never to the repository.
+
+### 7.5 Gap list
+
+| Requirement (task and responses 325 s8, 327 c6) | Covered by |
+|---|---|
+| Rule drivers unchanged on history behind `SnapshotSource` | c, d |
+| Practice only; never licenses, counts, banners or moves a map status | 7.1 item 1; d tests 3, 4, 7 |
+| Fresh data stays fresh; R1 card and DATA_SPEND update for any fresh window | 7.1 item 2; a tests 1, 2 |
+| EDGE1 validity rule; leg traded that day | c tests 2, 3 |
+| Three labelled spread scenarios; 30-session rule | 7.2; b tests 1-3; d test 2 |
+| C1 costs, Rs 1 pad, dated lots and STT | a test 5; c test 7 |
+| No data after the decision time | c test 5 |
+| AI drivers never simulated | d test 5 |
+| No new NSE or Groww read | a test 6; d test 7 |
+
+**Out of scope, with reason:** the instructor and the condition map (their own stories); futures, stocks, calendars
+(no verified payoff or margin model, P3+); 15-minute slots (the 2019-23 candles are fresh, and the pilot has one slot);
+FINNIFTY and MIDCPNIFTY history (not in DATA_SPEND); fitted slippage between the witness quote and the next snapshot
+(response 325 8.3; needs the A16 quotes, which do not exist yet); a daily Rs 25,000 stop between slots (a known limit,
+as in 3.6).
+
+### 7.6 Questions for the orchestrator (answers needed before SIM-a code unless marked)
+
+1. **Reuse of EDGE1's readers** (`research/edge1/edge1study`: `day_files`, `lots`, `stt_history`). They sit under a
+   frozen `research/` folder and import by a path trick. My default: one adapter module imports them read-only; I never
+   copy or edit them. The alternative is promoting them into `fno/` first, which is another builder's frozen area.
+   Say if you prefer the promotion.
+2. **Dated costs seam.** The pilot's cost model may read today's STT. If so, dated STT needs a seam in MS-P1d's code (a
+   small lane-1 follow-up to its owner). I will check the merged code first and report; I will not edit another
+   story's sub-package.
+3. **Pooling.** With the 30-session rule and 8 recorded sessions, almost every bucket is insufficient for months
+   (7.2). I keep the rule as agreed. If you want a coarser first bucket grid (for example two DTE bands), that is a
+   decision for the owner and a card change, not mine.
+4. **The close slot** (7.1 item 4) departs from the 15:00 slot. It is the only slot history holds; confirm.
+5. **Displayed sizes** (7.2): the bucket median stands in for the unknown history. Confirm, or say the size gate is
+   waived in practice and labelled so.
+
+### 7.7 Claims
+
+Empty until a part is built; each part keeps its own Claims subsection under the pilot's `## Claims` below.
+
 ## Claims
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
