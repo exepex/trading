@@ -10,7 +10,7 @@ import os
 from datetime import date
 
 from ..composition import build_alert_sender, build_session_calendar
-from ..config import load_app_config
+from ..config import ROOT, load_app_config
 from ..constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_FORECAST_CHANNEL_ID
 from ..models import now_ist
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, build_data_store, build_drive_cache, receipt_folder
@@ -21,12 +21,15 @@ from .delivery import NoReportPoster, ReportPoster, SlackFilesPoster
 from .edition_run import Edition, EditionRun
 from .g13b_adapter import G13bCloses, G13bRanges
 from .match import MatchSection
+from .official_closes import ArchivedCloses
 from .page_wiring import build_report_maker
 from .records import DriveReportRecords
+from .release import FlowsRelease, ReleaseChecks
 from .report import CloseReport
 from .sessions import RegularSessions
 
 WRITER = "forecast-lab"
+RELEASE_FOLDER, RELEASE_LOG = ROOT / "research" / "data" / "forecast_lab" / "release", "release_checks.csv"
 UNSYNCED = "G13b's records could not be read verified from Drive: {problems}"
 
 
@@ -58,11 +61,27 @@ def records(edition: str, env=os.environ) -> DriveReportRecords:
     return DriveReportRecords(build_data_store(WRITER, env=env), receipt_folder(), REPORT_AREAS[edition])
 
 
+def build_release_checks() -> ReleaseChecks:
+    """The evening's read-only release check: the F&O bhavcopy through A8's recorder, FII and DII cash by session."""
+    from ..composition import build_session_calendar as calendar
+    from ..research_data.release_times import ReleaseLog, ReleaseTimeRecorder
+    from ..storage.raw_source import NseDailyFoSource
+    from ..storage.snapshot_source import FiiDiiCashBySessionSource
+    from ..storage.wiring import build_nse_source
+
+    fo = ReleaseTimeRecorder(build_nse_source(NseDailyFoSource), NseDailyFoSource.path_for, calendar(),
+                             ReleaseLog(RELEASE_FOLDER / "fo-bhavcopy" / RELEASE_LOG))  # fmt: skip
+    flows = FlowsRelease(build_nse_source(FiiDiiCashBySessionSource), FiiDiiCashBySessionSource.path_for,
+                         ReleaseLog(RELEASE_FOLDER / "fii-dii-cash" / RELEASE_LOG))  # fmt: skip
+    return ReleaseChecks({"fo-bhavcopy": fo, "fii-dii-cash": flows})
+
+
 def build_edition(edition: str, env=os.environ) -> EditionRun:
     from ..price_ranges import wiring as g13b
-    from ..price_ranges.closes import Outcomes
+    from ..price_ranges.closes import IndexFileCloses, Outcomes
     from ..price_ranges.folders import BACKFILL, LIVE, SCORES, drive
     from ..price_ranges.reader import RangeForecasts, RangeScores
+    from ..storage.wiring import build_index_close_files
 
     cache = build_drive_cache(env)
     problems = [p for prefix in (drive(LIVE), drive(SCORES), drive(BACKFILL)) for p in cache.sync(prefix).problems]
@@ -71,8 +90,9 @@ def build_edition(edition: str, env=os.environ) -> EditionRun:
     store = g13b.build_store(env)
     forecasts, scores = RangeForecasts(g13b.CACHE_ROOT, g13b.build_seals(store)), RangeScores(g13b.CACHE_ROOT)
     ranges = G13bRanges(forecasts, scores)
-    closes = G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store))))
     calendar, cfg = build_session_calendar(), load_app_config()
+    closes = ArchivedCloses(G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store)))),
+                            IndexFileCloses(build_index_close_files(), calendar))  # fmt: skip
     sessions, live = RegularSessions(calendar), live_from(cfg)
     maker = build_report_maker(ranges, forecasts, scores, calendar, closes)
     evenings, own = records(EVENING, env), records(edition, env)
