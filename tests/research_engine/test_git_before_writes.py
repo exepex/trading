@@ -152,3 +152,18 @@ def test_a_half_freeze_at_a_commit_outside_the_history_is_refused(tmp_path):
     commit(root, "the half freeze names a commit outside the history")
     with pytest.raises(GateStepError, match="already frozen at"):
         freeze(root)
+
+
+@pytest.mark.parametrize("field", ["description", "hypothesis"])
+def test_a_half_registration_that_no_longer_matches_its_card_is_refused_naming_the_field(tmp_path, field):
+    root = unregistered(tmp_path / "repo")
+    card = read_idea("X1", root)
+    Ledger(root).register("3", card.experiment, card.description, IDEA_KIND, card.hypothesis, protocol_path=card.path,
+                          today=DAY)  # fmt: skip
+    changed = {"description": ('"X1: a planted idea"', '"X1: changed after the stop"'),
+               "hypothesis": ("hypothesis: yes", "hypothesis: no")}[field]  # fmt: skip
+    path = root / card.path
+    path.write_text(path.read_text().replace(*changed))
+    with pytest.raises(RegistrationError, match=f"field '{field}' differs from trial 3's ledger row"):
+        register(root)
+    assert parts(root)[0].gates.rows() == []

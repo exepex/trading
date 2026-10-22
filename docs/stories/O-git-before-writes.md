@@ -73,3 +73,15 @@ Recovery from a half-done state: a rerun completes it rather than refusing it. R
      half state. That state is the same one the reruns above complete, for (a) and (b).
    - (e) is out of scope, as said above.
 6. **Gates:** in the message to the judge.
+
+## Round 2 (judge 513)
+
+- **Should-fix: R1's field condition is now pinned.**
+  - The new test, `test_a_half_registration_that_no_longer_matches_its_card_is_refused_naming_the_field`, runs once
+    with the description and once with the hypothesis. In each case it changes the card after a half register.
+  - It checks that the rerun is refused, naming the field, and that no gate row is written.
+  - Plant: removing `_require_same` from `_stopped_half_done` now fails both cases.
+- **Minor: the gate log's whole-log check is now pinned.**
+  - `test_a_malformed_earlier_row_refuses_a_new_append` (tests/factory/test_gate_log.py) commits a malformed row (gate
+    G9). The history stays append-only, and the next append is refused with the file unchanged.
+  - Plant: dropping `self.rows()` from `GateLog.prepare` now fails it.
