@@ -31,8 +31,8 @@ WITH_MARGIN = build_safety_laws(CFG, SETTINGS, {RoadCode.BANKNIFTY_MONTHLY: b.sn
 
 def test_the_laws_in_their_fixed_order():
     assert [law.name for law in ALL.laws] == [
-        "protected", "max_loss", "bucket_cap", "open_risk", "new_risk_day", "margin_room", "daily_stop",
-        *(f"quote_gate:{reason}" for reason in GATE_REASONS), "impossible_price", "brake",
+        "protected", *(f"quote_gate:{reason}" for reason in GATE_REASONS), "impossible_price", "max_loss",
+        "bucket_cap", "open_risk", "new_risk_day", "margin_room", "daily_stop", "brake",
     ]  # fmt: skip
 
 
@@ -59,10 +59,28 @@ def test_a_clean_proposal_passes_every_law_with_a_readable_margin():
 
 def test_without_a_readable_margin_margin_room_refuses_with_the_named_cause():
     """Story section 6 item 7 (revised): no usable margin, no new entry; the note names MS-P1m's reason."""
-    results = ALL.check(b.put_spread(), view(), b.snapshot(), b.SESSION)
-    assert refusals(results) == (RefusalReason.MARGIN_ROOM,) and margin_not_checked(results[5])
-    assert (
-        results[5].note == "margin not checked: school margin: no beginning-of-day SPAN file archived for the session"
+    results = {r.law: r for r in ALL.check(b.put_spread(), view(), b.snapshot(), b.SESSION)}
+    assert refusals(results.values()) == (RefusalReason.MARGIN_ROOM,) and margin_not_checked(results["margin_room"])
+    assert results["margin_room"].note == (
+        "margin not checked: school margin: no beginning-of-day SPAN file archived for the session"
+    )
+
+
+@pytest.mark.parametrize(
+    ("bought", "reason"),
+    [(None, RefusalReason.MISSING_QUOTE), (b.quote(0.0, 5.0), RefusalReason.ONE_SIDED_QUOTE)],
+    ids=["missing", "one_sided"],
+)
+def test_a_leg_without_a_mid_names_its_quote_first_not_a_risk_law_it_starves(bought, reason):
+    """The root cause first: max loss fails closed without the leg's mid, but only as a consequence."""
+    quotes = {b.key(1000.0): b.quote()} | ({} if bought is None else {b.key(900.0): bought})
+    found = refusals(WITH_MARGIN.check(b.put_spread(), view(), b.snapshot(quotes=quotes), b.SESSION))
+    assert found[0] == reason and RefusalReason.MAX_LOSS in found
+
+
+def test_a_valid_quote_with_too_large_a_loss_still_names_max_loss():
+    assert refusals(WITH_MARGIN.check(b.put_spread(10_001), view(), b.snapshot(), b.SESSION)) == (
+        RefusalReason.MAX_LOSS,
     )
 
 
