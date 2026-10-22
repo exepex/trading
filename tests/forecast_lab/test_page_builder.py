@@ -5,6 +5,7 @@ scores as a system problem."""
 from datetime import date
 
 from fno.forecast_lab.page.builder import PageBuilder
+from fno.forecast_lab.page.facts import FactsSource
 from fno.forecast_lab.page.history import HistorySource
 from fno.forecast_lab.page.reasons import Facts
 from fno.forecast_lab.ranges import STATUS_OK, RangeRow
@@ -30,7 +31,7 @@ class History(HistorySource):
         return out
 
 
-class NoFacts:
+class NoFacts(FactsSource):
     def facts(self, day):
         return Facts()
 

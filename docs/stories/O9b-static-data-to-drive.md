@@ -325,8 +325,12 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - FL1, agreed with its builder (22 Oct):
   - `RepositoryFacts(root, flows, cue_rows)` keeps its contract: brent and USD/INR are `{value_date: value}` up to
     the report's day.
-  - `page_wiring.cue_rows()` reads each table once per process. A table Drive cannot give (settings missing, a copy
-    unverified, sign-in refused: all `RuntimeError`) gives no rows, as a missing file did before.
+  - The new `CueRows` (`page/facts.py`, wired by `page_wiring.cue_rows()`) reads each table once per process. A table
+    Drive cannot give (settings missing, a copy unverified, sign-in refused: all `RuntimeError`) gives no rows. It is
+    named, never skipped silently (the FL1 builder's request, 22 Oct): `FactsSource.problems()` names it, and
+    `PageBuilder._cues` adds one failed "Reasons' facts" view per problem. That view lands in the page's system
+    line, and `maker.py` alerts it once with the report. The text gives the error type only, because a message can
+    hold paths. The VIX and flows reasons stay. Three mutations on these lines were caught.
   - No `live_only` filter was added.
 - The real move (22 Oct, from this session) read back equal for all six files:
 

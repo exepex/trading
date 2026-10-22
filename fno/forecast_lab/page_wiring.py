@@ -18,7 +18,7 @@ from .maker import ReportMaker
 from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
 from .page.cues import Section
-from .page.facts import RepositoryFacts
+from .page.facts import CueRows, RepositoryFacts
 from .ranges import Outcomes, RangeSource
 from .sections.gift import GiftSection
 from .sections.global_cues import SPECS, GlobalCueSection
@@ -42,19 +42,11 @@ def flows_reader(calendar: SessionCalendar):
     return flows
 
 
-def cue_rows():
-    """An A17 public cue table's rows by cue name, read once per process from Drive's verified cache (O9b); a table
-    that cannot be read (Drive settings missing, a copy unverified) gives no rows, as a missing file did before."""
+def cue_rows() -> CueRows:
+    """A17's public cue tables, read once per process from Drive's verified cache (O9b)."""
     from ..global_cues.wiring import build_tables
 
-    @functools.cache
-    def rows(cue: str) -> list[dict]:
-        try:
-            return build_tables(include_private=False)[cue].rows()
-        except RuntimeError:  # settings missing, DriveDataUnavailable, DriveSignInRefused
-            return []
-
-    return rows
+    return CueRows(functools.cache(lambda: build_tables(include_private=False)))
 
 
 PARTICIPANT_OI = "participant-oi"

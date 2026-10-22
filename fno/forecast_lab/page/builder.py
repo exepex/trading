@@ -35,6 +35,8 @@ DEFAULT_METHOD = "implied"  # with no scored history yet (owner, 21 Oct 2026: th
 NO_ISSUE = "{underlying}: today's forecast is missing (none written by {now:%H:%M})"
 NO_FORECAST = "{underlying}: today's forecast is missing (none sealed on {issued:%a %d %b})"
 READ_FAILED = "{name}: the read failed ({error})"
+FACTS_SECTION = "Reasons' facts"
+FACTS_FAILED = "Reasons' facts: {problem} (that table's reasons are missing today)"
 PRICE_AT = {"close": "close {day}", "read": "close today", "3pm": "3 pm price {day}"}
 
 
@@ -82,7 +84,8 @@ class PageBuilder:
             return index, (SectionView(name, FAILED, why=READ_FAILED.format(name=name, error=type(error).__name__)),)
 
     def _cues(self, day: date, edition: str) -> tuple[SectionView, ...]:
-        """Every Section in its one state; a read error is `failed` (said in the system line), never a crash."""
+        """Every Section in its one state; a read error is `failed` (said in the system line), never a crash. Each
+        table the reasons' facts could not read is a `failed` view too (O9b: the cue tables are in Drive)."""
         views = []
         for section in self.sections:
             try:
@@ -90,6 +93,7 @@ class PageBuilder:
             except Exception as error:  # noqa: BLE001  any source error is that Section's, never the page's
                 why = READ_FAILED.format(name=section.name, error=type(error).__name__)
                 views.append(SectionView(section.name, FAILED, why=why))
+        views += [SectionView(FACTS_SECTION, FAILED, why=FACTS_FAILED.format(problem=p)) for p in self.facts.problems()]
         return tuple(views)
 
     def _points(self, underlying: str, day: date) -> dict[tuple[str, str], list[ScorePoint]]:
