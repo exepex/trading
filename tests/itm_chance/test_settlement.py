@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from fno.desk.settlement import NseFinalSettlement, SettlementError
+from fno.desk.settlement import SettlementError
 from fno.itm_chance.settlement import (
     DIFFERS,
     NO_CLOSE,
@@ -17,6 +17,7 @@ from fno.itm_chance.settlement import (
     LegacyFileSettlement,
     settle,
 )
+from fno.itm_chance.wiring import settlement_chain
 from fno.storage.raw_source import NseDailyFoSource, NseLegacyFoSource
 
 from .builders import REFUSED, FakePrices
@@ -125,8 +126,9 @@ def udiff_file(price: str) -> bytes:
 
 
 def chained(files: dict[str, bytes]) -> FirstSettlement:
+    """The composition root's own chain (judge 460 note 1), over fake libraries."""
     library = FakeLibrary(files)
-    return FirstSettlement([("udiff", NseFinalSettlement(library)), ("futidx_settle", LegacyFileSettlement(library))])
+    return settlement_chain(library, library)
 
 
 def test_the_udiff_file_settles_through_e7_unchanged():

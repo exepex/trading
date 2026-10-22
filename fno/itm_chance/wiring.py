@@ -40,10 +40,15 @@ def build_store(env=os.environ) -> DriveDistributionStore:
     return DriveDistributionStore(drive, build_data_store(WRITER, env=env))
 
 
+def settlement_chain(udiff_library, legacy_library) -> FirstSettlement:
+    """E7's UDiFF reader first; the old-format file's index future only where E7 has no file (judge 452.1)."""
+    return FirstSettlement([(SETTLED_STTLM, NseFinalSettlement(udiff_library)),
+                            (SETTLED_FUTIDX, LegacyFileSettlement(legacy_library))])  # fmt: skip
+
+
 def build_settle():
     """`settle(underlying, expiry) -> Settled`: E7 first, the legacy file when E7 has none, G13b's close to check."""
-    prices = FirstSettlement([(SETTLED_STTLM, NseFinalSettlement(build_nse_fo_library())),
-                              (SETTLED_FUTIDX, LegacyFileSettlement(build_nse_legacy_fo_library()))])  # fmt: skip
+    prices = settlement_chain(build_nse_fo_library(), build_nse_legacy_fo_library())
     outcomes = Outcomes(g13b.build_closes(g13b.build_tables(g13b.build_store())))
 
     def settled(underlying: str, expiry: date) -> Settled:
