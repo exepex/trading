@@ -148,7 +148,6 @@ def test_a_bad_real_config_never_stops_the_edition(monkeypatch):
 
 def test_the_real_report_maker_is_built_through_the_school_guard(monkeypatch):
     from fno.forecast_lab import page_wiring
-    from fno.storage import data_wiring
 
     class Stub:
         def __init__(self, *args, **kwargs):
@@ -166,7 +165,7 @@ def test_the_real_report_maker_is_built_through_the_school_guard(monkeypatch):
     monkeypatch.setattr(page_wiring, "flows_reader", lambda calendar: None)
     monkeypatch.setattr(page_wiring, "build_sections", lambda *a: ())
     monkeypatch.setattr(page_wiring, "build_levels", lambda *a: None)
-    monkeypatch.setattr(data_wiring, "build_drive_cache", lambda *a, **k: None)
+    monkeypatch.setattr(page_wiring, "verified_files", lambda: None)  # FL1-1e: single files by their receipts
     monkeypatch.setattr(page_wiring, "with_school_sections", spy)
     assert page_wiring.build_report_maker(None, None, None, None, None) == "wrapped"
     assert isinstance(built["inner"], Stub), "the report maker goes through the school guard"

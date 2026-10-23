@@ -79,3 +79,14 @@ Lane 1. Builder: session_01FWkBH4zNAEFSEpjUzVEgnd. Asked by the orchestrator aft
   module name.
 - Real data, read-only, on 23 Oct: the fixed reader returns NIFTY 22,687.65 and BANKNIFTY 54,925.70 for 22 Oct, and
   22,600.00 and 54,287.35 for 23 Oct. For 24 Oct (no session) it returns nothing.
+
+## Other stories' tests touched (the text change only)
+
+- MS-P1g's goldens, `tests/school/reports/golden/{morning,evening}.txt`, pin the unwrapped lab maker's text. They were
+  regenerated from that same maker, and the regeneration first asserted that the picture hashes, the alerts and the
+  verdict count in `files.json` are unchanged. The diff is the title's definition and the record's words only.
+- `tests/school/reports/test_editions.py`: the real-maker wiring test stubs `page_wiring.verified_files`, in place
+  of O9's `build_drive_cache`.
+- `tests/e2e_acceptance/test_replay_lab.py`: the replay's Drive holds no 15 Oct issue. Its evening now says "today:
+  not checked (no forecast was issued for today)", and its status line gives the gap wording, both correct for that
+  data.
