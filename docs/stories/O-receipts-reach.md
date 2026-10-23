@@ -124,3 +124,11 @@ All of them are `EvidenceUnknown`, so the health check is unchanged.
 7. **G13d's owner asked for its side to behave the same.** It does, and it is tested on that side. No signature changed
    for G13d: `SealCheck`'s new `now`, `attempts` and `pause` parameters all have defaults.
 8. **Gates:** in the message to the judge.
+
+## Judge 514's minors (story/receipts-reach-minors, tests only)
+
+- **`SEAL_READ_ATTEMPTS` is pinned.** `test_the_wiring_reads_a_failed_seal_evidence_three_times` requires
+  `build_seal_check` to read a failed evidence read 3 times. Plant: setting it to 1 fails that test.
+- **`PAGE_CAP` is pinned.** `test_the_page_cap_stops_a_log_that_runs_on_and_says_so` caps a 30-page log at 3 pages. It
+  requires `ReceiptUnavailable` ("ran past 3 pages") and exactly 3 pages read. Plant: removing the cap check fails that
+  test (the log is finite, so the planted run ends and does not hang).
