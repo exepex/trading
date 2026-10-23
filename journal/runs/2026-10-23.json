@@ -383,6 +383,21 @@
     "reason": "v4_deadline:CHECKED",
     "exit_code": 0
    }
+  },
+  "candles": {
+   "started_at": "2026-10-23T15:21:35.631932+05:30",
+   "finished_at": "2026-10-23T15:33:31.035933+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
