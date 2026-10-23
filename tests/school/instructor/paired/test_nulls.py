@@ -3,6 +3,7 @@ the Gaussian null's false-positive share of the descriptive bound, at the holds 
 time, so a card change re-checks the gate), with the upper end of its 95% interval at 10% or less; the skewed seller's
 far higher share, which is why v1 shows no Watching (ruling D) and prints that rate on seller rows; a planted edge."""
 
+import csv
 import math
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from fno.school.instructor.paired.holds import hold_sessions
 from fno.school.instructor.paired.nulls import (
     Market,
     SellerShape,
+    seller_cell,
+    seller_cells,
     seller_slots,
     share_positive,
     share_watching,
@@ -21,6 +24,7 @@ from fno.school.instructor.paired.nulls import (
 from fno.school.instructor.thresholds import BATCH_HOLD_MULTIPLE, MIN_BATCH, MIN_BATCHES, SELLER_FALSE_POSITIVE_PCT
 
 CARDS = load_cards(Path(__file__).resolve().parents[4] / CARDS_FOLDER)
+GRID = Path(__file__).resolve().parents[4] / "research" / "school" / "instructor_seller_null.csv"
 HOLDS = sorted({h for c in CARDS.values() if (h := hold_sessions(c, CARDS.values()))})
 
 
@@ -33,11 +37,22 @@ def test_the_gaussian_null_passes_at_every_hold_the_cards_hold_today(hold):
         assert wilson_upper(share, 2000) <= 0.10, (hold, sessions, share)
 
 
-def test_the_skewed_seller_null_fails_the_gate_and_its_worst_case_is_the_rate_printed_on_seller_rows():
-    """The worst cell of the round-2 grid (loss chance 5%, hold 26, batch 39, 120 sessions: 43.4%, upper end 45.6%) is
-    pinned: above 40%, and at or under the printed 46%."""
-    share = share_positive(lambda seed: seller_slots(seed, 120, SellerShape(0.05, hold=26)), range(2000), 39)
-    assert share > 0.40 and wilson_upper(share, 2000) <= SELLER_FALSE_POSITIVE_PCT / 100
+def test_the_printed_seller_rate_is_the_committed_grids_worst_upper_end_and_the_grid_covers_the_cards():
+    """research/school/instructor_seller_null.csv is `tools/ins_seller_null.py`'s seeded output: its cells are the
+    grid for the holds the cards hold today, and its worst upper end, rounded up, is the rate seller rows print."""
+    rows = list(csv.DictReader(GRID.read_text().splitlines()))
+    cells = [(int(r["hold"]), float(r["loss_chance"]), int(r["sessions"]), int(r["batch"])) for r in rows]
+    assert cells == seller_cells(HOLDS)
+    assert math.ceil(max(float(r["wilson_upper"]) for r in rows) * 100) == SELLER_FALSE_POSITIVE_PCT
+
+
+def test_the_grids_worst_cell_recomputes_from_the_same_seeded_runs():
+    rows = list(csv.DictReader(GRID.read_text().splitlines()))
+    worst = max(rows, key=lambda r: float(r["wilson_upper"]))
+    cell = (int(worst["hold"]), float(worst["loss_chance"]), int(worst["sessions"]), int(worst["batch"]))
+    share, upper = seller_cell(*cell)
+    assert (f"{share:.4f}", f"{upper:.4f}") == (worst["share"], worst["wilson_upper"])
+    assert math.ceil(upper * 100) == SELLER_FALSE_POSITIVE_PCT
 
 
 def test_the_round_1_table_cell_measured_with_the_shipped_code():

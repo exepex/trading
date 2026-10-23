@@ -228,3 +228,64 @@ are judged in addendum 6.
   every school module except `execution/practice_wiring.py`.
 - **Plants: 4, 4 caught.** The guard inverted; the guard removed; the fleet defaulting to practice; the rules not
   passed into `plan_slot`.
+
+## Addendum 9
+
+**Scope:** story/ms-p1j-ins-wiring at bcf9ab21, diff eb5ec57a..bcf9ab21: the builder's fix for my 507.5 note.
+- The counts commit now names the session's files instead of the folder (`SessionFilesCommitter` over a's
+  `OwnedPathsCommitter`).
+- `.gitignore` ignores `research/school/counts/**/.*.part`.
+
+**Verdict: FAIL on one test-only should-fix.** The design is right and fixes the cause, not only the symptom.
+
+- **Gates (my run):** 14034 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **Checked.**
+  - `SessionCounts.files(session)` names the three own files plus the files the record root names. Missing files are
+    skipped by `OwnedPathsCommitter` (git refuses a pathspec that matches nothing).
+  - The real-git test commits the named files and leaves both a stray `.part` and an un-ignored stray uncommitted.
+- **Plants: 3, 2 caught.** Caught: the extra (instructor) files not committed; the whole folder committed.
+
+**Should-fix.**
+- **Defect:** the record root can stop naming the instructor's counts file. Dropping the
+  `lambda session: (str(instructor_counts_path(session)),)` from `wiring.build_fleet` passes every test. In the real
+  run, the instructor's public counts would then be written each session and never committed.
+- **Test it must pass:** `build_fleet`'s `SessionCounts.files(session)` includes `instructor_counts_path(session)`.
+  `test_wiring.py` builds the record root already.
+
+## Addendum 10
+
+**Scope:** story/ms-p1j-sim-seams, 6d3aa180..54ef5d40 (6d3aa180 is judged in addendum 8). Two changes:
+- `FillStep.rules` (no default) now carries the fleet's own rules. This fixes the SIM builder's bug: a practice entry
+  was judged `size_shared` under LIVE.
+- `school.enabled` moves out of `SchoolFleet.run()` to the record root (`SwitchedOff`, the school-off line, nothing
+  built), on the orchestrator's ruling.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13803 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **The switch.**
+  - The record root reads `school.enabled` first and returns `SwitchedOff` before any store is built.
+  - The replay root has no switch: it writes only under its folder, so the CLI no longer forces the switch on a
+    copy of the config.
+  - The fleet itself has no switch, so the simulator's practice command runs the same fleet.
+- **The fill step.** It uses the fleet's rules, and `allocate` receives them.
+- **Plants: 3, 3 caught.** The record root ignoring the switch; the fill step always LIVE; `allocate` given the
+  default rules.
+
+## Addendum 11
+
+**Scope:** story/ms-p1j-sim-seams, 54ef5d40..1f767528 (6d3aa180..54ef5d40 is judged in addendum 10): the
+first-ticket bug the SIM builder found. A driver's first ticket stopped the run, because the ticket ledger was never
+viewed and d's store refuses a record before the first view. The fake had accepted one, which hid it.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13807 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **The fix.**
+  - `Books.stores` lists every store the fleet records into (the driver account, then the ticket ledger).
+    `SchoolFleet._open` views each before any fill, and the laws read the driver account's view.
+  - a's `AccountPort.record` docstring now states the rule. `FakeAccounts` and the conformance check enforce it, so
+    the fake can no longer hide the bug. The new test runs on d's real stores.
+  - A rerun's fills find the ledger already opened: d's `started` is the persisted cash file.
+- **Plants: 3, 3 caught.** The ticket ledger never viewed; the fake accepting a record before a view; the laws reading
+  the ticket ledger's view.

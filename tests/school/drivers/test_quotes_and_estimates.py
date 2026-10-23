@@ -6,6 +6,7 @@ from dataclasses import replace
 import pytest
 
 from fno.school.constants import NoTradeReason, Outcome, RoadCode
+from fno.school.contracts.roads import DatedLot
 from tests.school.drivers import builders as b
 
 RANKED = ("CS1", "DB1", "DR1", "WS1", "PS2", "PS3", "PS4", "REF")  # cards that carry an estimate
@@ -66,3 +67,14 @@ def test_a_structure_that_is_listed_but_over_the_cap_is_not_a_quote_problem():
     driver.builder = type(driver.builder)(driver.builder.costs, 100.0)
     decision = driver.decide(road_day, snapshot, (), ())
     assert decision.reason == NoTradeReason.NO_STRUCTURE_UNDER_CAP
+
+
+def test_a_proposal_on_the_later_expiry_is_sized_with_that_expiry_s_own_lot():
+    """MS-P1a4: NSE changed the lot from the later expiry; the nearest's lot is never borrowed."""
+    (road_day, snapshot), _ = CASES["REF"]
+    near, far = road_day.expiries[0], road_day.expiries[1]
+    later_lot = DatedLot(road_day.lot.units * 2, "lot file, from the later expiry")
+    mixed = replace(road_day, lots={**dict.fromkeys(road_day.expiries, road_day.lot), far: later_lot})
+    decision = b.drivers()["REF"].decide(mixed, without_quotes(snapshot, {near}), (), ())
+    assert decision.outcome == Outcome.TRADE and {leg.key.expiry for leg in decision.proposal.legs} == {far}
+    assert decision.proposal.lot == later_lot.units
