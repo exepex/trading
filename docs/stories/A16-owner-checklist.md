@@ -40,6 +40,8 @@ simplest choice is the same environment.
 
 > Omenix F&O 15-minute recorder (story A16). Research data only: never place, modify or cancel orders; never print or
 > store a secret. In `exepex/trading` on `main`:
+> 0. First, before anything else: `git fetch -q origin main && git checkout -q --detach origin/main`. If it fails,
+>    post its error line to #fno-desk (`C0C89E8QCCD`) and stop (story DR1, owner 23 Oct 2026).
 > 1. `sh tools/routine_setup.sh --groww` (installs and checks the Groww SDK; it stops loudly if it cannot).
 > 2. `git pull --no-rebase origin main`.
 > 3. Work out the end time and run the recorder in the background, then wait for it to finish:
@@ -49,7 +51,7 @@ simplest choice is the same environment.
 >    mark it also writes the session's realised variance. On a day that is not a session it prints "not a trading day"
 >    and stops.
 > 4. If a line says "NOT committed" (and not "NOT pulled or committed"), commit and push only the recorder's own paths
->    by hand: `git pull --no-rebase origin main`, then
+>    by hand: `git pull --no-rebase origin main`, then (push with `git push origin HEAD:main`)
 >    `git add -- research/data/intraday/slots research/data/intraday/rv research/data/intraday/heartbeat.json`, commit,
 >    push. Never add the whole folder; never bypass the record scan (`--no-verify`).
 > 5. If a line says "NOT pulled or committed: ... staged that are not the recorder's", change nothing: the run has

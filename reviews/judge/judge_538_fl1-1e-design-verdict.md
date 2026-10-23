@@ -45,3 +45,21 @@
 ## To pass (round 2)
 F1, F2 and F3, with the full suite green on the branch merged with main. F4 can be answered in the
 today-verdict branch.
+
+## Addendum 1
+
+- **Head judged:** a8ed3186 (6c7495f8 plus a8ed3186), round 2 of 2
+- **Verdict: PASS. Merge only after story/ms-p1g-editions-test (c115ff2b)**
+- **Gates:** run on a8ed3186 merged with main 3d1afd85 and c115ff2b:
+  - pytest -n auto: 14587 passed, 0 failed;
+  - ruff check, ruff format --check, check_imports, check_records: all clean.
+  - Without c115ff2b, 14 page-hash assertions fail in tests/school/reports/test_editions.py (48 passed). These tests pin the old design's bytes. The golden text is byte-identical again. So the merge order is a condition of this PASS.
+- **F1 fixed:** the fakes carry a check only when asked (`page(..., checked=True)`). The school text needs no golden change.
+- **F2 fixed:** red line < "last checked" < method line is pinned. Plant P4 (named line above the red line) now fails 1 test.
+- **F3 fixed:** one close call is pinned: "most likely: no", "almost certainly: yes", "✓ right" in green, before the amber chip. Plant P3 now fails 1 test.
+- **F4 fixed in code, the claimed test is missing (minor):** `morning_check` labels a provisional close "the official file has not confirmed it yet". Two plants survived, both 3823 passed:
+  - P11: back to the report's name;
+  - P12: provisional called "NSE's official close".
+
+  Response 330 says "with a test", but no morning test sets `provisional`. Not blocking: on main, own_check.py:66 builds the morning's check with `provisional=False` always, so the path cannot be reached today. Add the pin in the FL1 builder's today-verdict branch or the next design change.
+- **Plants:** 2 of 2 round-1 survivors now caught; 2 new F4 plants survived (above).
