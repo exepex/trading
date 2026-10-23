@@ -2976,6 +2976,50 @@ guard.
 - every decision counted regardless of h's verdict.
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
 
+#### INS-e follow-up, round 2: each session computed as of itself (branch `story/ms-ins-adopt`, lane 1; judge 525 FAIL round 1; orchestrator's ruling of 23 Oct 2026: build the cut-off, drop adoption)
+
+**The defect** (found by MS-P1j's builder):
+- `DriveInstructorStore.write` puts the file on Drive first and publishes its receipt after.
+- If a run stopped between the two, the rerun recomputed, and it read "today": corrections up to the clock, controls' corrected results, settlements published since.
+- Its bytes then differed, and write-once Drive refused them for good.
+
+**The root cause and fix:** the file was not a pure function of fixed inputs. Each session's run now reads only what was sealed or known by that session:
+- `PathReader.closed_on` and `closed_between` take `as_of`: corrections come only from outcome files of sessions up to it, never the clock. The run passes its own session for the day's paths, the controls (`_nets`) and every re-check.
+- `EvidenceBuilder.build` and `Classifier.classify` take `as_of`: the hold-to-expiry value (cause 11) counts only for an expiry before that session, because its settlement is published after the expiry day's close.
+- A rerun therefore computes the same bytes. The write-once store takes equal bytes as a no-op and publishes the missing receipt. No unreceipted file is ever trusted.
+- Round 1's `recover`/adoption is removed: the port, store, fake and conformance check are back as on main.
+- A later correction reaches a later session's file as a re-check (part e's design), never the earlier session's.
+
+| Criterion | Test (`tests/school/instructor/outputs/test_cutoff.py` unless named) |
+|---|---|
+| A crash between the Drive write and the receipt, then a later correction and a published settlement, then a rerun: the same bytes, one receipt per file, no conflict | `a_run_stopped_before_its_receipt_reruns_after_more_records_to_the_same_bytes_and_one_receipt_each` (on main's code: `InstructorConflict` on the attribution file) |
+| A later correction leaves the earlier session's result unchanged and reaches the later session's file | `a_later_correction_reaches_a_later_sessions_file_never_the_earlier_sessions` (fails on main's code) |
+| A re-check reads only corrections sealed by its own session | `a_re_check_reads_only_corrections_sealed_by_its_own_session` |
+| The controls are read as of the session (REF corrected afterwards: the same result) | `the_controls_are_read_as_of_the_session` |
+| The reader's cut-off; no session given reads up to today (the review) | `the_reader_reads_corrections_sealed_up_to_the_session_it_is_given` |
+| Hold to expiry counts only from the session after the expiry | `holding_to_expiry_counts_only_from_the_session_after_the_expiry`; `test_run::a_classification_waiting_for_its_expiry...` (written again at the first session after the expiry, not before) |
+| A rerun after the settlement is recomputed to the same result | `test_run::a_rerun_after_later_sessions_returns_the_session_as_written` |
+| A written session's unreadable files are reported as of that session; a later session's damaged file is that session's (judge 525.2's minor; test only, lane 2) | `a_written_sessions_unreadable_files_are_read_as_of_that_session` |
+
+**Broken-code proof:** 5 plants, all caught:
+- the day's paths read up to today;
+- the re-check's paths read up to today;
+- the controls read up to today;
+- the hold allowed on the expiry day;
+- the reader ignoring `as_of`.
+
+The re-check and controls plants survived until their own tests were added.
+
+**What is still not pure [reasoning only, not tested]:**
+- **Late or failed source reads.**
+  - The fleet's own sealed settled outcome proves the settlement was archived by its session, so a settled path's settlement is always there.
+  - But a hold for an expiry before the session reads d's settlement source, and the reader reads the snapshot archive. If either is missing at the first run (an evening archive that failed and was backfilled, or Drive unreachable and read as "missing"), and the run also stopped before its receipt, the rerun can differ. That ends in a loud `InstructorConflict`, never a silent rewrite.
+  - Making these pure needs "known at" times in d's settlement source and the archive, which are other stories' ports.
+- **Out-of-order runs.** A re-check reads earlier sessions' instructor files by their receipts. If session S runs before S-1's file has its receipt, and S is then rerun after S-1 is fixed, S can differ. MS-P1j runs sessions in order.
+- **Orphans** are read up to today, but they are an alert line only, never written into a file.
+
+**For MS-P1j's deferred store:** it needs no `recover`; it rebases on this once it lands.
+
 
 ### MS-P1j follow-up: the instructor wired in (MS-INS part e; orchestrator's hand-off, 22 Oct 2026; branch `story/ms-p1j-ins-wiring`, on part e's 63cabe67)
 Signatures agreed with the INS builder (session_01LH7m9r5TCAKgZbeHVYkiTD). Lane 1 (the fleet's record path), so two
