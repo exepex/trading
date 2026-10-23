@@ -127,3 +127,22 @@ builder's own change is 5395948a: `allocate` and f's shared size read sizes thro
   - The fleet passes `LIVE` by name; the default is also `LIVE`.
 - **Plants: 4, 4 caught.** The rules ignored (raw size); bid and ask swapped; a missing size made unlimited; the fleet
   passing practice rules (caught by the practice-isolation test).
+
+## Addendum 4
+
+**Scope:** 5395948a..fec42868 on story/ms-p1j-fleet, answering judge K's judge 512. The composition root is split so
+a replay cannot build a real store.
+- `fleet_wiring.fleet_on` wires what both roots share, over the stores handed in.
+- `wiring.build_fleet` is the record root: the Drive dashcam, the account sync and the committer.
+- `replay_wiring.build_replay_fleet` uses a local dashcam, accounts and counts under its folder, with no commit and a
+  fixed clock.
+- `cli.py` picks the root. Tests are added; no fleet logic changed.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13535 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **A refactor only.** The removed `build_fleet` body is the same wiring, now in `fleet_on`. The record root builds
+  the same three real stores as before, and the replay root imports none of them. The mode switch is gone, so a
+  replay is a different root, not a flag.
+- **Plants: 2, 2 caught.** The replay root using the Drive dashcam; the replay writing accounts at the repository
+  root.
