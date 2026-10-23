@@ -1,7 +1,7 @@
 # DR1 design: staging, certification and the as-seen record (for the owner's review)
 
-**Builder:** session_01SPR8hz6AY8S99wE6ypFRik. **Status:** design only; nothing in it is built before the owner's
-review and the orchestrator's go (DR1 build steps 3 onwards). It replaces sections 2, 3 and 6 of
+**Builder:** session_01SPR8hz6AY8S99wE6ypFRik. **Status:** approved by the owner (23 Oct 2026, about 22:10 IST, relayed
+by the orchestrator); built one dataset at a time, every step judged, the A4h closes first. It replaces sections 2, 3 and 6 of
 `DR1-data-reliability.md` (the observation/publication split is withdrawn). The audit (section 1 there), DR1-0 and
 the routine line stay as they are.
 
@@ -20,6 +20,14 @@ the routine line stay as they are.
 
 The orchestrator's three additions (accepted by the owner): two certification levels (provisional, certified), the
 as-seen pointer, and the source split (Groww live feed intraday, pending Tuesday's probe; NSE's final files at day end).
+
+**The owner's decisions on this design (23 Oct 2026, about 22:10 IST), on section 6's points:**
+1. "Yes, provisional for 15:15 (Recommended)": the same-day 15:15 decisions use labelled provisional records and are
+   graded on certified outcomes.
+2. "Yes, with that label (Recommended)": GIFT Nifty, the pre-open auction and the intraday marks are "certified without
+   an official file" after the other checks.
+3. "Approve, start building (Recommended)": one dataset at a time, a 5-session shadow run before each switch, the A4h
+   closes first, every step judged.
 
 ## 2. The model
 
