@@ -73,15 +73,10 @@ def nifty(n: int = 30, checked: bool = False) -> IndexView:
 
 def unchecked(index: IndexView, why: str) -> IndexView:
     """An index whose edition could not check today: no result, the timeline ends on the previous session, and the
-    builder's reason (FL1-1e's `IndexView.unchecked`; read with a default on the model before it)."""
+    builder's key (FL1-1e's `IndexView.unchecked`: `model.CLOSE_NOT_READ` or `NO_FORECAST_TODAY`)."""
     timeline = index.horizons[0].timeline
     horizons = (Horizon(replace(timeline, points=timeline.points[:-1]), index.horizons[0].methods),)
-    bare = replace(index, horizons=horizons, result=None)
-    try:
-        return replace(bare, unchecked=why)
-    except TypeError:  # the model before FL1-1e
-        bare.__dict__["unchecked"] = why  # a frozen dataclass; the renderer reads it with getattr
-        return bare
+    return replace(index, horizons=horizons, result=None, unchecked=why)
 
 
 def scaled(band: Band, scale: float) -> Band:

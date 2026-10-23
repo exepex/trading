@@ -92,3 +92,14 @@ and pinned by `test_the_chip_counts_over_its_own_window_and_a_cues_unit_goes_on_
 The merged tree main + the MS-P1g test fix (c115ff2b) + a8ed3186: 14,587 passed, 0 failed. After the builder's
 branch lands, one commit swaps the page's word copies for `plain.py`'s (`YES_NO`, `VERDICTS`, `UNCHECKED` keyed by
 `IndexView.unchecked`, `PROVISIONAL`, `OFFICIAL`, `morning_report`), prepared and tested on the scratch merge.
+
+## Addendum: the swap to `plain.py`'s words (after FL1-1e's builder branch merged at a19b74bb)
+
+`design/verdict.py` imports `YES_NO`, `VERDICTS`, `UNCHECKED`, `PROVISIONAL`, `OFFICIAL` and `morning_report` from
+`plain.py`; its own copies and its own `morning_report` are gone (one source, no duplicate on `main`; the wording
+follows plain's, "tomorrow's morning report"). The red line renders `plain.UNCHECKED[index.unchecked]` with the
+report's name, never the raw code (judge 545's note): "⚠ today: not checked yet (NSE close not read); result in
+Monday's morning report" / "⚠ today: not checked (no forecast was issued for today)", both pinned; an empty code
+prints "today: not checked (no verdict)". `IndexView.unchecked` and `PageView.next_session` are read directly (the
+model carries them now). Three words have no text-line twin and stay in the page: "today: not checked (no verdict)",
+"last checked: …", and the provisional morning label.
