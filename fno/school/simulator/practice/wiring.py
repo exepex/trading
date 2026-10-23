@@ -5,7 +5,7 @@ What it reads, all read-only: NSE's archived F&O and index-close files from the 
 recorded 15:00 captures through MS-P1b's `CaptureReader` (the hash-checked Drive quote stores), the pilot's
 configuration and the NSE session calendar. It writes nothing: the runner writes under the practice home."""
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from ....composition import build_session_calendar
@@ -35,7 +35,7 @@ def learn_spreads(calendar, today: date, quotes_folder: Path) -> tuple[SpreadMod
         {dataset: build_drive_only_quote_store(quotes_folder, dataset=dataset) for dataset in (DATASET, WEEKLY_DATASET)}
     )
     skipped = Skipped()
-    sessions = calendar.sessions(FIRST_CAPTURE, today)
+    sessions = calendar.sessions(FIRST_CAPTURE, today - timedelta(days=1))  # today's 15:00 capture is not yet taken
     return SpreadLearner().learn(recorded_snapshots(reader, ROADS, sessions, skipped)), skipped
 
 

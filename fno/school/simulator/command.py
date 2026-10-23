@@ -53,4 +53,6 @@ def cmd_practice_run(args, out=print) -> int:
     for text in render(report):
         out(text)
     out(line(f"{len(skipped.reasons)} recorded captures were left out of the spread model (missing or failed a check)"))
+    for text in skipped.lines():
+        out(line(f"  left out: {text}"))
     return 0
