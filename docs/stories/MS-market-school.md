@@ -2553,3 +2553,12 @@ eight plants were re-run, 8 of 8 caught.
 | Minor: four survivors are equivalent or replay-only | — | Equivalent today (reasoning only, not tested): (1) all of a driver's positions passed to `decide` (every driver's card filters by road and holding itself); (2) the 08:50 plan's rule-only filter (g's section filters by role again); (3) a missing mid read as 0.0 (no path reaches it: a refused leg has no fill, and an outcome needs its entry's sealed mids, else it stops). Replay-only: (4) the replay store's conflict check, which never runs in the record (c's dashcam has its own, judged in MS-P1c) |
 - **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
 - **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.
+
+### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B alone; branch `story/ms-p1j-sim-seams`)
+| Seam | Change | Test (and the plant it catches) |
+|---|---|---|
+| One construction of the books | `fleet_wiring.books_on(cfg, stores, fills)`: the driver accounts and the ticket ledger under `stores.home`, filled through the given port; `fleet_on` calls it with the pilot's fill port, and the practice root will call it with its own | `test_books_on_builds_the_accounts_and_tickets_under_the_home_with_the_given_fill_port`, `test_fleet_on_builds_its_books_through_books_on` (plants: books_on ignoring its port; fleet_on building its own) |
+| The replay dashcam's encoding is overridable | `ReplayDashcam.encode` and `decode` (defaults `encode_slot_file` and `decode_slot_file`); `seal` and `read` go through them; the write-once and seal logic is not copied | a labelled subclass writes `"label": "practice (simulator)"` on every line, the pilot's `decode_slot_file` and a plain `ReplayDashcam` read the same records, write-once still holds; `read` uses a subclass's `decode` (plants: seal or read bypassing them) |
+
+- **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files); full suite 13798 passed.
+- **Plants:** 4 planted, 4 caught.
