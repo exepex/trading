@@ -329,6 +329,21 @@
     "status": "not_live",
     "reason": "o1:NO_DATE"
    }
+  },
+  "candles": {
+   "started_at": "2026-10-23T15:22:43.366318+05:30",
+   "finished_at": "2026-10-23T15:33:20.033160+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
