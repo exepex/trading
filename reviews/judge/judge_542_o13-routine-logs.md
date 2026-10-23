@@ -74,3 +74,45 @@ Trial merge with `origin/main` (28cf227d):
   - the alert-line scrub removed;
   - `EARLY_MINUTES = 0`;
   - the participant-oi start moved.
+
+## Addendum 1
+
+Round 2, at 4f21d0f1 (branch merged with main). **Verdict: FAIL on one new finding.**
+- All three round-1 must-fixes are accepted.
+- The new finding is one I should have raised in round 1: the watcher goes live with nothing logging yet.
+- This is the second round, so under `docs/JUDGE.md` ("Rounds: at most two") the owner decides. There is no third round.
+
+### Round-1 must-fixes: accepted, each checked
+| # | Fix | My check | Result |
+|---|---|---|---|
+| 1 | The watcher reads yesterday and today. Each marker is keyed by the day of the expected start. | My midnight probe is now a test. My mutation making the watcher read today only is caught. | accepted |
+| 2 | Scrub tested at the point of use, and `WATCH_FAILED` scrubbed | All three of my mutations (step file, in-run line, watcher error) are now caught | accepted |
+| 3 | `type=name_argument` on `--routine` and `--step` | Removing it from `run --routine` is caught. A bad name exits 2 before the command starts. | accepted |
+
+### Follow-ups 4-8: done, each caught by my mutations
+- 4: an orphan step closes its own run.
+- 7: a stale state file is not reused.
+- 5: the schedule is pinned.
+- 6: a signal kill exits 128+n.
+
+### New must-fix: the watcher alerts on routines that do not log yet
+- The routine-instruction change is still waiting for the owner's approval (`O13-routine-instructions.md`), so today no routine runs `routine-log begin`.
+- Merging `routine-watch.yml` makes it live hourly at once, and every expected start is reported **missing**.
+- My probe: the real `ROUTINES`, an empty Drive area, a trading day, checks every hour at :17. That gives **26 lines on #fno-desk** on the first day (13 starts yesterday and 13 today), then **13 a day**.
+  - The 13 starts are a16-backup, pre-open, morning-forecast, 7 a16-recorder slots, daily-desk, participant-oi and evening-forecast.
+- This continues until every routine's prompt is changed. The owner pastes the API-created prompts one at a time, so a routine not yet switched over keeps alerting.
+- False alarms on the alert channel teach everyone to ignore it, which defeats the story's purpose.
+- **Fix, in the design:** each routine is expected only from its own go-live date, for example a `routine_logs.live_from` per routine in `config.yaml` (the pattern the daily run already uses). Before that date the watcher prints "not live" for it.
+- Required test: no finding for a routine before its date.
+- The alternative is to merge without the schedule trigger and add it in the change that applies the routine instructions. That is weaker, because routines go live one by one.
+
+### Follow-ups (new, not blocking)
+- My mutation keying the watcher's marker by today's date survives. So does keying the in-run marker by the clock's date instead of the run's day. The code is right, but no test covers a finding alerted before midnight and seen again after it. Add one.
+
+### Gates
+Trial merge with `origin/main` (d974f0ed):
+- `pytest -n auto`: 14697 passed, 1 skipped, 16 xfailed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: clean.
+- `check_numbers`: clean.
+- 29 tests in `tests/routine_logs/`.
