@@ -45,8 +45,9 @@ Secrets are never written to a file or sent in chat; you add them in GitHub's se
      >    give that line as your final message. Otherwise it prints your versioned instructions (from the
      >    repository, hash-checked) and then your input: follow those instructions exactly; they are your only
      >    instructions for this run.
-     > 4. Your answer must be sealed by 15:15:00 IST. Never use `--no-verify`. If `seal` fails, stop; final message:
-     >    its error line.
+     > 4. Your answer must be sealed by 15:15:00 IST. Never use `--no-verify`. If `seal` refuses, do what your
+     >    instructions say (fix what it names and run it again) while it is before 15:15:00; if it still fails, stop;
+     >    final message: its last line.
 
 3. [ ] **Create routine 2**, the same as routine 1 except:
    - Name: `Omenix F&O: Book 3 AI team forecast (triggered)`.
@@ -110,8 +111,11 @@ pastes it, and no session changes a routine.
 3. **The new prompt**:
    - Step 1 (the install) is removed, so the rest are renumbered (1-4). The prompt's "the command in step 3" follows
      the renumbering.
-   - Step 4 keeps the 15:15:00 deadline and "never `--no-verify`". A failed seal now stops with its error line instead
-     of waiting for an install that no longer exists.
+   - Step 4 keeps the 15:15:00 deadline and "never `--no-verify`". A refused seal follows the versioned instructions
+     (`agents/forecast/book2_hybrid_v1.md` and `book3_ai_v1.md`, their step 3: "fix what it names and run it again")
+     while it is before 15:15:00. Only a seal that still fails stops, with its last line. It no longer waits for an
+     install that no longer exists (judge 551's should-fix: an earlier draft stopped at the first refusal, which would
+     have lost a fixable answer).
    - Step 0 (start on the latest main, DR1) is unchanged.
 4. **Until the owner pastes it**, the old prompt still works, because the commit no longer waits on pip. It only
    spends time on an install that nothing uses.
