@@ -38,7 +38,9 @@ class PracticeRunner:
         roads = tuple(ROADS_BY_CODE[code] for code in window.roads)
         report = PracticeReport(window.first, window.last, window.roads,
                                 margin_label=margin_label(latest_row(self.parts.factor_file)),
-                                sessions_without_span=len(sessions) - len(archived))  # fmt: skip
+                                sessions_without_span=len(sessions) - len(archived),
+                                best_bucket_sessions=max(map(len, self.parts.spreads.by_session.values()),
+                                                         default=0))  # fmt: skip
         for position, scenario in enumerate(self.scenarios):
             result = report.scenarios.setdefault(scenario, ScenarioResult())
             for session in archived:

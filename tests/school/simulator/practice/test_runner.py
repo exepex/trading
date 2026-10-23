@@ -10,9 +10,10 @@ from fno.school.execution import practice_wiring
 from fno.school.fakes import FakeSettlementSource
 from fno.school.simulator.constants import PRACTICE_LABEL, PracticeRefusal
 from fno.school.simulator.practice.render import LABELS, render
+from fno.school.simulator.practice.report import PracticeReport, RoadDayCoverage
 from fno.school.simulator.practice.runner import PracticeRunner
 from fno.school.simulator.practice.window import RunWindow, WindowRefused
-from fno.school.simulator.spreads.model import Scenario
+from fno.school.simulator.spreads.model import Scenario, SpreadModel
 from tests.school.safety.law_builders import FixedMargin
 from tests.school.simulator.practice import test_fleet as tf
 from tests.school.simulator.source import builders as sb
@@ -277,3 +278,33 @@ def test_the_report_header_says_practice_is_never_used_to_tune_a_counted_driver(
 
     lines = render(runner(tmp_path).run(ONE_SESSION))
     assert lines[1] == f"{PRACTICE_LABEL} | {NEVER_TUNES}" and "never used to choose, tune or rank" in lines[1]
+
+
+def thin_model(sessions: int):
+    """Every bucket of the full model, cut to `sessions` recorded sessions (the real archive has about 8)."""
+    full = tf.parts().spreads
+    return SpreadModel({bucket: dict(list(days.items())[:sessions]) for bucket, days in full.by_session.items()})
+
+
+def test_a_run_with_too_few_recorded_sessions_says_so_plainly_with_the_count_it_has(tmp_path):
+    """Dry run 1 (23 Oct): 0 of 39,422 legs priced looked like a silent zero. It is the 30-session rule at work."""
+    report = runner(tmp_path, tf.parts(spreads=thin_model(8))).run(ONE_SESSION)
+    assert report.best_bucket_sessions == 8
+    insufficient = sum(c.insufficient for c in report.coverage)
+    legs = sum(c.legs for c in report.coverage)
+    expected = (f"{PRACTICE_LABEL} | not enough sessions yet: the best-quoted spread bucket has 8 of the 30 recorded "
+                f"sessions a bucket needs, so {insufficient} of {legs} legs read 'insufficient spread data' and are "
+                "not priced")  # fmt: skip
+    assert insufficient and expected in render(report)
+
+
+def test_with_no_recorded_session_at_all_the_best_bucket_has_zero(tmp_path):
+    report = runner(tmp_path, tf.parts(spreads=SpreadModel({}))).run(ONE_SESSION)
+    assert report.best_bucket_sessions == 0
+    assert any("the best-quoted spread bucket has 0 of the 30" in text for text in render(report))
+
+
+def test_the_line_is_absent_when_every_leg_could_be_priced():
+    report = PracticeReport(sb.SESSION, sb.SESSION, (), best_bucket_sessions=30)
+    report.coverage.append(RoadDayCoverage(sb.SESSION, RoadCode.NIFTY_MONTHLY, 10, 10, 0, 0, 0, 0))
+    assert not any("not enough sessions yet" in text for text in render(report))

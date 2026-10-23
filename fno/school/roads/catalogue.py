@@ -13,7 +13,7 @@ from ..constants import ClosureReason
 from ..contracts.roads import OPEN, ROADS, Road, RoadDay, RoadStatus
 from ..quality.rules import expiry_problem
 from .capture import CaptureProblem, CaptureReader
-from .ports import ExpirySource, ExpiryUnavailable, LotSource
+from .ports import ExpirySource, ExpiryUnavailable, LotProblem, LotSource
 
 
 class RecordedRoadCatalogue:
@@ -41,8 +41,8 @@ class RecordedRoadCatalogue:
         if expiry_problem(capture.expiries, expected):
             return _closed(road, session, ClosureReason.EXPIRY_MISMATCH)
         lot = self.lots.lot(road.underlying, session, capture.expiries)
-        if lot is None:
-            return _closed(road, session, ClosureReason.LOT_MISMATCH)
+        if isinstance(lot, LotProblem):
+            return _closed(road, session, lot.reason)
         return RoadDay(road, session, capture.expiries, lot, steps[capture.expiries[0]], OPEN, steps)
 
 
