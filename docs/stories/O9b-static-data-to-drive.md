@@ -258,3 +258,26 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - Reader index: cited from section 1 (judge 475 add. 1). Nothing outside `fno/vix_history` reads VIX.
 - Not yet: the move, the data tests on the moved data, the first scheduled run, and the removal commit (the order
   above). They follow the PASS, and the claims will record each.
+- **After the PASS (judge 477), in order:**
+  - The move read back equal, and its re-run just before the merge said "already in Drive, equal" for all four files.
+  - Merged at ef9e976b.
+  - First data-checks run 39769005484: "4 downloaded and verified", 4 passed.
+  - **First scheduled run on the new path:** vix-history.yml run 39911658650, 23 Oct 06:28 UTC (the 07:11 IST cron,
+    landed 4 h 47 min late). Every step succeeded and there was no alert. Its commit 6964334 holds only three receipts,
+    `receipts/data/vix/checks/{gaps,level_flags,overlap_index_close}/20261023T062835Z-4b0c64.csv.sha256`: no table
+    part, because September was already archived, so no rows were added. It added no repository data file.
+    [strong: run log]
+  - **Removal commit** (`story/o9b-vix-removal`, for Judge F):
+    - `research/data/vix/*.csv` and `checks/` are out of HEAD; the README stays and says where the data is.
+    - Both paths are in `.gitignore`.
+    - The record scan refuses them by path even past `git add -f` (`MOVED_VIX_FILES`, `fno/record_scan/forbidden_files.py`,
+      wired in `build_record_scanner`). A test commits a force-added file in a real checkout and sees it refused,
+      and sees the README still commit.
+    - The `vix-history move` action and its repository paths are deleted, as nothing can move any more.
+    - The data tests still pass on the cache.
+  - **Judge 477 addendum 1: PASS at 9c2ac0b6; merged to main at d0c22a05 (23 Oct, 16:3x IST).** Gates on the merged
+    tree: 14,548 passed and 16 xfailed, with ruff, imports, record scan and check_numbers clean. The post-push rerun
+    was the same.
+  - Found on the way, for a later step and not built here: every run writes three new check snapshots even when
+    they are unchanged (3 receipts a day for VIX). A repository file rewritten with the same bytes used to make no
+    commit. Writing a snapshot only when it differs from the latest one would restore that.

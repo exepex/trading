@@ -30,6 +30,11 @@ journal/runs/.own/
 # attempt's sidecar and the day's canonical marker
 research/data/quotes/groww/**/*.csv
 
+# Story O9b: data moved to Drive (write-once, one receipt per file under receipts/data/); the record scan also
+# refuses these paths
+research/data/vix/*.csv
+research/data/vix/checks/
+
 # Story O9: the local Drive cache (data is read from Drive, never committed)
 /work/drive-cache/
 /work/gr1/

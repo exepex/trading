@@ -43,6 +43,7 @@ FLOW_HISTORY_MANIFESTS = {"A23 participant volume": "research/data/manifests/par
 INTRADAY_FOLDER = "research/data/intraday"
 ALL_SESSION_KINDS = (*RECORDED_SESSION_KINDS, SESSION_MUHURAT)  # NSE publishes the evening files for muhurat too
 FIRST_RECORDED, FIRST_SEALED, DATA_JOBS_FROM = date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 13)
+FLOW_HISTORY_FROM = date(2026, 10, 22)  # A23: flow-history.yml's first scheduled run entered this session (addendum 2)
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,6 @@ def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> 
                     DATA_JOBS_FROM),
         Expectation("FII/DII flows", SessionRowCheck(evidence, FLOWS_MANIFEST, FLOWS_BY), everything,
                     DATA_JOBS_FROM),
-        *[Expectation(name, SessionRowCheck(evidence, path, FLOW_HISTORY_BY), everything, None)
+        *[Expectation(name, SessionRowCheck(evidence, path, FLOW_HISTORY_BY), everything, FLOW_HISTORY_FROM)
           for name, path in FLOW_HISTORY_MANIFESTS.items()],
     ]  # fmt: skip

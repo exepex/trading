@@ -1,6 +1,6 @@
 """Files that must never be committed whatever they hold (story A4b): the public-record scan (story O5) refuses them by
-path, as one finding naming the kind, so a raw Groww quote file or a private paper account file (story E2d) is refused
-even when added with `git add -f`."""
+path, as one finding naming the kind, so a raw Groww quote file, a private paper account file (story E2d) or a data
+file moved to Drive (story O9b) is refused even when added with `git add -f`."""
 
 from __future__ import annotations
 
@@ -20,6 +20,9 @@ class ForbiddenFiles:
 
 RAW_GROWW_QUOTES = ForbiddenFiles(
     "raw Groww quote file (Google Drive only, story A4b)", "research/data/quotes/groww/", ".csv"
+)
+MOVED_VIX_FILES = ForbiddenFiles(  # O9b step 1: the table and checks are write-once in Drive, their receipts here
+    "India VIX data moved to Drive (receipts only, story O9b)", "research/data/vix/", ".csv"
 )
 
 

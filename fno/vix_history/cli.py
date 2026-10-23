@@ -1,11 +1,10 @@
-"""`python -m fno vix-history <fill|sweep|check|verify|move>` (story A15; Drive since O9b).
+"""`python -m fno vix-history <fill|sweep|check|verify>` (story A15; Drive since O9b).
 
 - fill: archives the missing month files from NSE to the owner's Drive (with manifest rows), extends the table from
   them, then writes the checks. Resumable: run it again and only missing months are fetched.
 - sweep: reads every month again from NSE and keeps a changed one as an A11 revision, named day by day.
 - check: rewrites the checks from the committed table (no network).
 - verify: recomputes the table from the month files in Drive and lists every difference (read-only).
-- move: O9b's one-off move of the committed table and checks into Drive, each read back equal.
 The table and its checks live in Drive with receipts (O9b): commit `receipts/` and `research/data/manifests/` after a
 run, as the rows are evidence only once their receipts are committed.
 """
@@ -44,7 +43,7 @@ def _month(text: str) -> date:
 
 def add_vix_history_parser(subparsers) -> None:
     vix = subparsers.add_parser("vix-history", help="India VIX daily history from NSE (story A15)")
-    vix.add_argument("action", choices=("fill", "sweep", "check", "verify", "move"))
+    vix.add_argument("action", choices=("fill", "sweep", "check", "verify"))
     vix.add_argument("--from", dest="start", type=_month, default=None, help="YYYY-MM (default: NSE's first month)")
     vix.add_argument("--to", dest="end", type=_month, default=None, help="YYYY-MM (default: the last ended month)")
     vix.set_defaults(func=cmd_vix_history)
@@ -52,7 +51,7 @@ def add_vix_history_parser(subparsers) -> None:
 
 def cmd_vix_history(args) -> int:
     """Every action; a Drive, network or setup failure stops it with a named line and exit 1, never a traceback."""
-    action = {"fill": _fill, "sweep": _sweep, "check": _check, "verify": _verify, "move": _move}[args.action]
+    action = {"fill": _fill, "sweep": _sweep, "check": _check, "verify": _verify}[args.action]
     try:
         return action(args)
     except STOPPING_FAILURES as exc:
@@ -101,19 +100,6 @@ def _check(args) -> int:
     from .wiring import build_vix_checks, build_vix_table
 
     print("\n".join(build_vix_checks().write(build_vix_table().rows())))
-    return 0
-
-
-def _move(args) -> int:
-    from ..storage.moving import MoveRefused
-    from .wiring import move_vix_to_drive
-
-    try:
-        print("\n".join(move_vix_to_drive()))
-    except (MoveRefused, *STOPPING_FAILURES) as exc:
-        print(f"India VIX move stopped: {exc}")
-        return 1
-    print(COMMIT_REMINDER)
     return 0
 
 
