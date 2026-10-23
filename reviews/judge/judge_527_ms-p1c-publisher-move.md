@@ -36,3 +36,19 @@ Gates on 0a60ddd0 (run by me): 13,984 passed, 16 xfailed; ruff, format and check
   it, and the import is a small stdlib-only helper.
 - The story file has no Claims entry and the work register has no row for this move (CLAUDE.md asks for a row in the
   first commit).
+
+## Addendum 1
+
+**Verdict: PASS** on the merge tip f4d54311 (0a60ddd0..f4d54311: current main merged in, and the three importers main
+gained). This meets merge condition 1.
+
+- **Still a pure move:** `git diff origin/main...f4d54311` covers 10 files. The only changes are import lines, the
+  file's rename (its 3 imports turned relative) and the golden test. `git grep "dashcam.publisher\|dashcam import
+  publisher"` finds nothing, and there is no re-export.
+- **Gates on f4d54311 (run by me):** 14,275 passed, 16 xfailed; ruff, format and check_imports clean. It merges
+  cleanly with current main.
+- **Plant:** `--diff-filter=M` in the moved file fails 20 tests and errors 5 in `tests/school/dashcam` and
+  `tests/school/instructor`.
+- **Condition 2 still holds:** a merge-tree with story/ms-p1j-ins-wiring (bda6a49d, FAIL in 507.13) still reports
+  conflicts. Whichever merges second carries `RemoteReceipts` and the two new importers (`run_receipts.py`,
+  `instructor_step_wiring.py`) to `fno.storage.receipt_publisher` unchanged. I will check that merge tip.
