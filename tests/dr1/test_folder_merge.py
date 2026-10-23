@@ -113,3 +113,33 @@ def test_the_command_names_a_missing_path_in_one_line(tmp_path):
     lines = []
     assert cmd_merge_folders(SimpleNamespace(path=FULL, apply=True), lines.append, merge) == 1
     assert lines == [f"no Drive folder 'data' on the way to {FULL}"]
+
+
+@pytest.mark.parametrize("damage, why", [("missing", "missing"), ("other bytes", "other bytes")])
+def test_a_receipted_file_that_does_not_read_back_after_the_merge_is_named_and_fails(tmp_path, damage, why):
+    drive, runs, merge, kept = raced(tmp_path)
+    receipted = next(i for i, item in drive.items.items() if item["name"].endswith("f224c7.json"))
+    plan = merge.plan(FULL)
+    if damage == "missing":
+        drive.items[receipted]["parent"] = "elsewhere"  # the file left the kept folder: the path finds nothing
+    else:
+        drive.items[receipted]["data"] = b"other bytes"
+    assert merge.apply(plan, date(2026, 10, 23)) == [f"{RECEIPTED_PATH}: receipt not matched after the merge ({why})"]
+    lines = []
+    drive_again, _, merge_again, _ = raced(tmp_path / "again")
+    receipted_again = next(i for i, item in drive_again.items.items() if item["name"].endswith("f224c7.json"))
+    move = merge_again.items.move
+
+    def move_and_damage(item, source, target):  # the receipted file changes while the merge runs
+        move(item, source, target)
+        drive_again.items[receipted_again]["data"] = b"other bytes"
+
+    merge_again.items.move = move_and_damage
+    assert cmd_merge_folders(SimpleNamespace(path=FULL, apply=True), lines.append, merge_again) == 1
+    assert lines[-1] == f"{RECEIPTED_PATH}: receipt not matched after the merge (other bytes)"
+
+
+def test_a_clean_merge_reads_every_receipt_back_and_exits_0(tmp_path):
+    _, _, merge, _ = raced(tmp_path)
+    plan = merge.plan(FULL)
+    assert merge.apply(plan, date(2026, 10, 23)) == [] and merge.check(FULL) == []

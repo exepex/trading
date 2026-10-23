@@ -169,6 +169,9 @@ data/daily_runs/full/2026-10-22/20261022T100328Z-39767f.json --writer daily-run 
 2. The copy holding the receipt-verified file is kept whichever copy is older (both orders tested); after `--apply`
    one `full` remains, both logs read back by path, the other copy is renamed, nothing is deleted.
 3. A plan changes nothing; a tie or a same-name file clash is refused and `apply` then changes nothing.
+6. (Round 2, judge 540 SF1.) After `--apply`, a receipted file under the path that is missing or holds other bytes
+   is returned by `apply` and named by `merge-folders --apply`, which exits 1; a clean merge returns nothing and
+   exits 0 (the plant "apply returns [] instead of check()" now fails 2 tests).
 4. The receipt repair writes the file's own SHA-256, size and Drive creation time; never replaces a receipt; refuses
    none or two files or a doubled folder in one line; a refused commit fails the command.
 5. Gates: ruff, `tools/check_imports.py`, full suite (14,595 passed; the 10 history tests need an unshallowed clone).
