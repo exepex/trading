@@ -44,6 +44,9 @@ INTRADAY_FOLDER = "research/data/intraday"
 ALL_SESSION_KINDS = (*RECORDED_SESSION_KINDS, SESSION_MUHURAT)  # NSE publishes the evening files for muhurat too
 FIRST_RECORDED, FIRST_SEALED, DATA_JOBS_FROM = date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 13)
 FLOW_HISTORY_FROM = date(2026, 10, 22)  # A23: flow-history.yml's first scheduled run entered this session (addendum 2)
+# A16's marks are checked from the first session after the 16 Oct trial days (a late first fire; duplicate takers);
+# the table never listed it, so 23 Oct's three lost marks were reported by nothing in the evening check (story A16i)
+MARKS_FROM = date(2026, 10, 19)
 
 
 @dataclass(frozen=True)
@@ -75,7 +78,7 @@ def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> 
         *[Expectation(f"{BOOK_DISPLAY_NAMES[book]} sealed forecast", AiBookCheck(evidence, book), recorded,
                       FIRST_SEALED) for book in AI_BOOKS],
         Expectation("Desk daily run", RunLogCheck(root, Deadline(timetable.decision_deadline)), recorded, None),
-        Expectation("A16 15-minute marks", MarksCheck(root / INTRADAY_FOLDER), recorded, None),
+        Expectation("A16 15-minute marks", MarksCheck(root / INTRADAY_FOLDER), recorded, MARKS_FROM),
         Expectation("A22 pre-open data", PreopenCheck(evidence, Deadline(PREOPEN_RECEIPT_BY)), recorded, None),
         Expectation("A8 participant OI", SessionRowCheck(evidence, PARTICIPANT_OI_MANIFEST, A8_RELEASE_BY),
                     everything, DATA_JOBS_FROM),
