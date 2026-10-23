@@ -69,9 +69,12 @@ def check_safety_law(law, passing: tuple[Proposal, AccountView], refusing: tuple
 
 
 def check_account_port(port, entry: LedgerEntry, marks: dict, session: date) -> None:
-    """`entry` opens a position: recording it shows it open; recording it again changes nothing."""
+    """An account no view has opened refuses a record (MS-P1j: the first ticket on a fresh ledger); `entry` opens a
+    position: recording it shows it open; recording it again changes nothing."""
     assert isinstance(port, AccountPort)
     driver_id = entry.position.driver_id
+    with pytest.raises(Exception):  # noqa: B017 - d's store raises AccountError, the fake ValueError: refused either way
+        port.record(driver_id, entry)
     before = port.view(driver_id, marks, session)
     assert isinstance(before, AccountView) and before.driver_id == driver_id and not before.open_positions
     port.record(driver_id, entry)

@@ -30,7 +30,6 @@ def runner(tmp_path, parts=None):
     return PracticeRunner(parts or tf.parts(), tmp_path, margin_for=lambda cfg: FixedMargin())
 
 
-@pytest.mark.xfail(strict=True, reason="session 2 stops on the first ticket: MS-P1j ticket-account bug, reported")
 def test_a_window_runs_every_scenario_over_every_session(tmp_path):
     report = runner(tmp_path).run(WINDOW)
     assert list(report.scenarios) == [Scenario.MEDIAN, Scenario.P75, Scenario.P95]
