@@ -15,8 +15,8 @@ from .delivery import Attachment
 from .page.builder import PageBuilder
 from .page.camera import PageCamera, PictureFailed
 from .page.cues import FAILED
+from .page.message import slack_lines
 from .page.model import PageView
-from .page.plain import slack_lines
 from .page.render import PageRenderer
 from .written import Verdict
 
