@@ -16,6 +16,10 @@ from .model import MethodRecord, Problem
 MIN_90 = 0.80
 BAND_50 = (0.35, 0.65)
 HORIZON_WORDS = {"N1": "next session", "N3": "3 sessions"}
+GAP = (
+    "no forecast was issued for {expected}, so it has no score "
+    "(a gap in the record, not a late score; newest scored close {latest})"
+)
 
 
 def _trailing(record: MethodRecord):
@@ -50,8 +54,11 @@ def method_problems(underlying: str, horizon: str, record: MethodRecord, history
     return problems
 
 
-def stale(underlying: str, latest: date | None, expected: date) -> list[Problem]:
-    """The newest scored session must be `expected` (the session before the report day)."""
-    if latest is None or latest < expected:
-        return [Problem(underlying, "data", f"newest scored close is {latest or 'none'}, expected {expected} (stale)")]
-    return []
+def stale(underlying: str, latest: date | None, expected: date, issued: bool = True) -> list[Problem]:
+    """The newest scored session must be `expected` (the edition's newest scorable session). When no forecast was
+    issued for it, nothing can score it: that is a gap in the record, said as such, not a late score (FL1-1e)."""
+    if latest is not None and latest >= expected:
+        return []
+    if not issued:
+        return [Problem(underlying, "data", GAP.format(expected=expected, latest=latest or "none"))]
+    return [Problem(underlying, "data", f"newest scored close is {latest or 'none'}, expected {expected} (stale)")]

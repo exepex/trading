@@ -33,20 +33,32 @@ def test_the_light_is_green_from_25_amber_at_24_red_at_23_or_fewer_and_grey_with
 
 def test_the_message_is_one_line_per_index_then_the_status_line():
     title, *lines = slack_lines(page())
-    assert title == "*Was today's forecast right?* (Fri 23 Oct, 20:05)"
+    right = "Right = the close fell inside the “almost certainly” range."
+    assert title == f"*Was today's forecast right?* (Fri 23 Oct, 20:05) {right}"
     assert lines[0].startswith("*NIFTY* · next trading day, Mon 26 Oct: most likely 990–1,010 (almost certainly")
-    assert lines[0].endswith("🟢 right 26 of the last 30 days")
+    assert lines[0].endswith("🟢 past 30 days: inside “almost certainly” 26 of 30")
     assert lines[-1] == "✅ All systems normal. Research only. Not a trade tip."
     missing = slack_lines(page(system=("NIFTY: today's forecast is missing (none written by 15:47)",)))[-1]
     assert missing == "⚠️ NIFTY: today's forecast is missing (none written by 15:47). Research only. Not a trade tip."
 
 
 def test_a_day_without_a_forecast_still_says_how_right_it_has_been():
-    assert slack_lines(page(indices=(index(today=()),)))[1] == "*NIFTY* · 🟢 right 26 of the last 30 days"
+    assert (
+        slack_lines(page(indices=(index(today=()),)))[1]
+        == "*NIFTY* · 🟢 past 30 days: inside “almost certainly” 26 of 30"
+    )
 
 
 def test_back_tested_days_are_said_in_the_record_until_the_window_is_all_live():
     from dataclasses import replace
 
     line = slack_lines(page(indices=(replace(index(today=()), backtested=26),)))[1]
-    assert line == "*NIFTY* · 🟢 right 26 of the last 30 days (26 back-tested)"
+    assert line == "*NIFTY* · 🟢 past 30 days (back-tested 26): inside “almost certainly” 26 of 30"
+
+
+def test_the_morning_report_that_confirms_a_day_is_the_next_session_s_by_name():
+    from fno.forecast_lab.page.plain import morning_report
+
+    assert morning_report(date(2026, 10, 22), FRI) == "tomorrow's morning report"
+    assert morning_report(FRI, MON) == "Monday's morning report"
+    assert morning_report(FRI, None) == "the next morning report"

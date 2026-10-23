@@ -43,6 +43,13 @@ class G13bHistory(HistorySource):
         return {(r["label"], r["day"], r["issue"]): {(row["forecaster"], row["horizon"]): row for row in r["rows"]}
                 for r in records if r["method_sha256"] == method}  # fmt: skip
 
+    def targets(self, underlying: str, method: str, horizon: str) -> set[date]:
+        records = self._records(underlying)
+        version = self._current(records)
+        return {date.fromisoformat(row["target_day"]) for r in records if r["method_sha256"] == version
+                for row in r["rows"] if (row["forecaster"], row["horizon"]) == (method, horizon)
+                and row.get("status") == "ok" and row.get("target_day")}  # fmt: skip
+
     def points(self, underlying: str) -> list[ScorePoint]:
         records = self._records(underlying)
         method = self._current(records)

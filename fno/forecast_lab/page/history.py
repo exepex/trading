@@ -38,6 +38,11 @@ class HistorySource(ABC):
     @abstractmethod
     def points(self, underlying: str) -> list[ScorePoint]: ...
 
+    def targets(self, underlying: str, method: str, horizon: str) -> set[date]:
+        """Every day a forecast by `method` at `horizon` was made for, live or back-filled, scored or not (FL1-1e: a
+        day without one is a gap in the record, never a late score). Empty when the source cannot tell."""
+        return set()
+
 
 def _share(flags: Sequence[bool | None]) -> float | None:
     known = [f for f in flags if f is not None]
