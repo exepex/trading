@@ -3,8 +3,8 @@ was pushed after the fill time or names another file's SHA-256 is refused (`stal
 
 from datetime import datetime
 
+from ...storage.receipt_publisher import ReceiptPublisher, SealNotPushed
 from ..contracts.seal import Seal, StaleSeal
-from .publisher import ReceiptPublisher, SealNotPushed
 
 OTHER_FILE = "seal {path} names another file than the decisions the fill rests on"
 PUSHED_LATE = "seal {path} was pushed at {pushed}, after the fill time {fill}"

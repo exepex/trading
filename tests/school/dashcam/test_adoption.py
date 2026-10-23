@@ -14,7 +14,7 @@ from fno.school.contracts.dashcam import DashcamStuck, ReplayConflict
 from fno.school.contracts.slot_file import encode_slot_file
 from fno.school.dashcam.adoption import adoptable
 from fno.school.dashcam.names import slot_file_path
-from fno.school.dashcam.publisher import SealNotPushed
+from fno.storage.receipt_publisher import SealNotPushed
 from tests.school.contracts import builders as b
 from tests.school.contracts.test_records import closed_record, outcome_record, trade_record
 from tests.school.dashcam import harness

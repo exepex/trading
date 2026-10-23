@@ -7,13 +7,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fno.school.dashcam.names import SCHOOL_AREA
-from fno.school.dashcam.publisher import GitReceiptPublisher
 from fno.school.dashcam.reader import VerifiedDriveReader
 from fno.school.dashcam.store import DriveDashcamStore
 from fno.storage.data_store import DataStore
 from fno.storage.drive_cache import DriveCache
 from fno.storage.manifest_commit import GitManifestRecorder
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.receipt_publisher import GitReceiptPublisher
 from fno.storage.receipts import ReceiptFolder
 
 AREA = "data"
