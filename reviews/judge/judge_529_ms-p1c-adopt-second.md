@@ -34,3 +34,16 @@
 - `pytest -n auto`: 14366 passed, 16 xfailed, 2 failed.
 - The 2 failures are `tests/intraday/test_feed_tls.py`, which fail on main itself here (`growwapi` is not installed and the test does not skip). They are not from this branch.
 - ruff check, ruff format, check_imports, check_records (8641 files) and check_numbers: clean.
+
+## Addendum 1: merge tip b8f72a3d (ins-wiring 98d16fcd merged in)
+
+**Verdict: PASS.** The verdict above stands for the merged tip.
+- **Resolution (`fleet/runner.py`):** both sides are kept.
+  - From adoption: `recover` for the decisions and in `_seal_once`, `_belongs`, the `DashcamStuck` catch, and `_sealed_once` still a pure `find`.
+  - From ins-wiring: `_finish` returns `(SlotFills, refused)`; the refusal reaches `warnings` on both paths; `after_outcomes` sits on both paths.
+  - No line of either side is lost.
+- **Plants on the merged code:** this report's 13 adoption plants are all caught, and 523.4's 9 counts-commit plants are all caught.
+- **Gates (a trial merge with main afe5255d):**
+  - `pytest -n auto`: 14438 passed, 16 xfailed, 2 failed.
+  - The 2 failures are main's own `tests/intraday/test_feed_tls.py`: `growwapi` is not installed here and the test does not skip.
+  - ruff check, ruff format, check_imports, check_records (8658 files) and check_numbers: clean.
