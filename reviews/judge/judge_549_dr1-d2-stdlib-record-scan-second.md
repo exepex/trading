@@ -33,3 +33,18 @@ judged independently and did not read 548 first. Judge K (session_019ZApRwkUiNMK
 ## Gates (my run, a trial merge of 29d3c9d8 with main 2b267aa0)
 - `pytest -n auto`: 14725 passed, 1 skipped, 16 xfailed.
 - ruff check, ruff format, check_imports, check_records (8866 files) and check_numbers: clean.
+
+## Addendum 1: DR1-d2b at 3225c5a22 (the minor)
+
+**Verdict: PASS.** The minor is closed.
+- **The change:** `send_alert` catches every `Exception` from loading and building the sender. The line names the error's class and, for an error with a `.name` (an ImportError), that name. Otherwise it says "load failed", because the message may hold a path.
+- **My probes on the branch:**
+  - A fake `numpy` raising RuntimeError at import: "alert NOT sent ... (RuntimeError: load failed) | <text>", exit 1. In 549 the same probe gave a traceback.
+  - `python -S`: "(ModuleNotFoundError: numpy)", exit 1.
+  - A nested missing module: "(ModuleNotFoundError: numpy.missing_thing_xyz)".
+  - No value printed in any of them.
+- **Plant:** putting back `except ImportError` fails the new test.
+- **The stated limit is accepted:** a BaseException such as pyo3's PanicException is not caught. The hook then exits non-zero, so the commit is still refused, only without the text.
+- **Gates (a trial merge with main 511edf2a5):**
+  - `pytest -n auto`: 14770 passed, 1 skipped, 16 xfailed.
+  - ruff check, ruff format, check_imports, check_records (8879 files) and check_numbers: clean.
