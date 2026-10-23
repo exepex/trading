@@ -24,7 +24,17 @@ from .drift import method_problems, stale
 from .facts import FactsSource
 from .history import HistorySource, ScorePoint, method_record
 from .keypoints import evening_points, morning_points
-from .model import Horizon, IndexView, Outcome, PageView, Problem, RangeView, Timeline
+from .model import (
+    CLOSE_NOT_READ,
+    NO_FORECAST_TODAY,
+    Horizon,
+    IndexView,
+    Outcome,
+    PageView,
+    Problem,
+    RangeView,
+    Timeline,
+)
 from .own_check import OwnCheck, band_of
 from .plain import LIGHT_WORDS, day_short, light, when
 from .reasons import reasons, recent_misses
@@ -71,7 +81,7 @@ class PageBuilder:
             drift += [p for p in problems if p.method != "data"]
             system += [f"{p.group}: {p.text}" for p in problems if p.method == "data"]
         return PageView(day, LIVE, tuple(indices), tuple(drift), tuple(system), checks, alerts, edition,
-                        confirmation, cues)  # fmt: skip
+                        confirmation, cues, self.sessions.next(day))  # fmt: skip
 
     def _levels(self, index: IndexView, day: date) -> tuple[IndexView, tuple[SectionView, ...]]:
         """The evening's levels table; a read error is a `failed` Section (said and alerted), never a crash."""
@@ -139,8 +149,11 @@ class PageBuilder:
             points += (checked,) if horizon == "N1" and checked else ()
             horizons.append(Horizon(Timeline(horizon, best, points, row.target_day if row else None,
                                              band_of(row) if row else None), records))  # fmt: skip
-        n1 = horizons[0].timeline.points
-        problems += stale(underlying, _last_scored(n1, day), self._expected_score(day, edition))
+        n1, expected = horizons[0].timeline.points, self._expected_score(day, edition)
+        issued = expected in self.history.targets(underlying, best, "N1") or self.checks.issued(
+            underlying, expected, best
+        )
+        problems += stale(underlying, _last_scored(n1, day), expected, issued)
         today = tuple(RangeView(r.horizon, r.target_day, band_of(r), r.p_up,
                                 when(self.sessions.ahead(day, r.target_day), r.target_day, day))
                       for r in (issue.rows if issue else ())
@@ -154,6 +167,7 @@ class PageBuilder:
         wrong = tuple(p.day for p in reversed(last) if not p.inside_90)
         return replace(index, light=state, light_word=LIGHT_WORDS[state], wrong_days=wrong,
                        backtested=sum(not p.live for p in last), result=checked,
+                       unchecked=_unchecked(edition, checked, unread),
                        why=self._why(day, edition, best, checked, facts, cues)), problems  # fmt: skip
 
     def _why(self, day: date, edition: str, best: str, checked: Outcome | None, facts,
@@ -163,6 +177,13 @@ class PageBuilder:
         missed = checked is not None and not checked.inside_90
         said = reasons(day, self.sessions.previous(day), facts, checked.close > checked.band.q95) if missed else ()
         return evening_points(checked, tuple(said), cues)
+
+
+def _unchecked(edition: str, checked: Outcome | None, unread: str | None) -> str:
+    """Why the evening has no result for today: the close was not read, or no forecast was issued for today."""
+    if edition != EVENING or checked is not None:
+        return ""
+    return CLOSE_NOT_READ if unread else NO_FORECAST_TODAY
 
 
 def _last_scored(points: tuple[Outcome, ...], day: date) -> date | None:

@@ -14,21 +14,26 @@ from .ranges import TodayCloses
 
 LISTED = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK"}
 NOT_READ = "A4h has no close read of {day} stamped after 15:30 (its 15:40 read, its 16:00 recheck)"
+UNREAD = "A4h's close of {day} was not read ({problems})"
 
 
 class A4hTodayCloses(TodayCloses):
     def __init__(self, cache):
-        """`cache`: O9's verified `DriveCache` over the checkout's receipts."""
-        self.cache = cache
+        """`cache`: O9's verified `DriveCache`; a sync of one file's path brings that file, and a sync that brings
+        nothing is a problem (O9, 23 Oct): each problem is kept for `why_missing`, never dropped."""
+        self.cache, self.problems = cache, {}
 
     def _document(self, day: date) -> dict | None:
+        problems = []
         for path in (record_path(day), recheck_path(day)):
             drive_path = f"{DATA_AREA}/{path}"
-            if self.cache.sync(drive_path).problems:
+            report, local = self.cache.sync(drive_path), self.cache.local(drive_path)
+            if report.problems or not local.is_file():  # an older copy on disk is never used past a problem
+                problems += report.problems or [f"{drive_path}: not on disk after its sync"]
                 continue
-            local = self.cache.local(drive_path)
-            if local.is_file():
-                return json.loads(local.read_text(encoding="utf-8"))
+            self.problems.pop(day, None)
+            return json.loads(local.read_text(encoding="utf-8"))
+        self.problems[day] = problems
         return None
 
     @staticmethod
@@ -50,4 +55,5 @@ class A4hTodayCloses(TodayCloses):
         return float(last) if last is not None else None
 
     def why_missing(self, day: date) -> str:
-        return NOT_READ.format(day=day)
+        problems = self.problems.get(day)
+        return UNREAD.format(day=day, problems="; ".join(problems)) if problems else NOT_READ.format(day=day)

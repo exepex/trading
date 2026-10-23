@@ -53,3 +53,14 @@ def test_no_file_a_damaged_one_or_no_level_is_named_in_the_edition(tmp_path):
 
 def test_the_evening_does_not_show_a_pre_open_cue(tmp_path):
     assert gift(Cache(tmp_path)).read(MON, "evening").status == NOT_AVAILABLE
+
+
+def test_a22b_s_file_is_read_through_o9_s_real_cache_by_its_own_path(tmp_path):
+    """FL1-1e: a fake cache that accepted a file's path hid that the real one did not (fixed by O9, 23 Oct)."""
+    from .drive_files import DriveFiles
+
+    parts = DriveFiles(tmp_path)
+    assert gift(parts.cache).read(MON, "morning").status == NOT_AVAILABLE  # no receipt yet: not out yet
+    parts.put("data/preopen/gift/2026/10/2026-10-26.csv", (HEADER + "2026-10-26,ok,1,,,,25125.5,1,\n").encode())
+    view = gift(parts.cache).read(MON, "morning")
+    assert view.status == AVAILABLE and view.items[0].value == 25125.5
