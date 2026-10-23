@@ -1507,7 +1507,8 @@ Tests: `tests/school/simulator/practice/test_inputs.py`, `tests/school/simulator
   - NIFTY 2 Jun 2025 (current format): 24,716.6, 1,620 rows; BANKNIFTY: 55,903.4, 928 rows.
   - BANKNIFTY's 42 sessions of spot history before 24 Jun 2021 (26 Apr to 23 Jun 2021): the first call took 131 s (about 3 s a day, uncached). With the cache every later session reads one new day.
 - **Isolation test.** `practice/stores.py` imports `fno.storage.wiring` and `fno.storage.raw_source` to name the NSE datasets (their file names and archive paths). The isolation test allows these two imports for that one file only, with its reason; the file builds no fetching library.
-- Gates at this tip: `tests/school/simulator` 133 passed, ruff and check_imports clean; the record scan passed on commit. The full suite is run at the d2 tip.
+- Gates at the tested tip `01bf888d`: full `pytest -q -n auto` in a clean worktree: **13,841 passed, 16 xfailed, 0 failed** in 522 s; `tests/school/simulator` 133 passed; ruff and check_imports clean; the record scan passed on commit.
+- **Question for Judge H (orchestrator's suggestion):** `practice/stores.py` needs the NSE datasets' file names and archive paths. They are class attributes of the NSE source classes in `fno/storage/raw_source.py`, and `daily_files` that wraps them is in `fno/storage/wiring.py`. Moving them to a constants module would change those frozen-adjacent files, which I do not own. Should they move, or does the one-file exception stand?
 
 ## Claims
 
