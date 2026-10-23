@@ -207,3 +207,33 @@ def test_the_code_commit_is_named_only_for_committed_code(tmp_path):
     (tmp_path / "fno" / "newpkg" / "b.py").write_text("y = 1\n")
     with pytest.raises(CodeNotCommitted, match="newpkg/b.py"):  # the file itself is named, not only its new folder
         code_commit(tmp_path)
+
+
+def test_data_and_receipt_commits_do_not_change_the_code_commit_but_a_code_commit_does(tmp_path):
+    """The run's own receipt commits move HEAD; a rerun of the same code must still name the same run."""
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.test")
+    git("config", "user.name", "t")
+    (tmp_path / "fno").mkdir()
+    (tmp_path / "fno" / "a.py").write_text("x = 1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "code")
+    first = code_commit(tmp_path)
+    (tmp_path / "receipts").mkdir()
+    (tmp_path / "receipts" / "r.sha256").write_text("x\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "a receipt")
+    assert code_commit(tmp_path) == first
+    (tmp_path / "fno" / "a.py").write_text("x = 2\n")
+    git("commit", "-q", "-am", "more code")
+    assert code_commit(tmp_path) != first
+
+
+def test_a_repository_whose_code_was_never_committed_has_no_code_commit(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, capture_output=True)
+    with pytest.raises(CodeNotCommitted):
+        code_commit(tmp_path)

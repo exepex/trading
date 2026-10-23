@@ -20,6 +20,10 @@ class CodeNotCommitted(Exception):
 
 
 def code_commit(repository: Path, run=subprocess.run) -> str:
+    """The last commit that changed the code, not the checkout's HEAD: each receipt commit and each pull of other
+    sessions' data moves HEAD, which would give a rerun of the same code another run id (found by the first real
+    archived run, SIM-e3)."""
+
     def git(*args: str) -> list[str]:
         done = run(["git", *args], cwd=repository, capture_output=True, text=True)
         if done.returncode != 0:
@@ -29,7 +33,10 @@ def code_commit(repository: Path, run=subprocess.run) -> str:
     changed = git("status", "--porcelain", "--untracked-files=all", "--", *CODE_PATHS)
     if changed:
         raise CodeNotCommitted(DIRTY.format(paths=", ".join(line[3:] for line in changed[:3])))
-    return git("rev-parse", "HEAD")[0][:COMMIT_CHARS]
+    last = git("log", "-1", "--format=%H", "--", *CODE_PATHS)
+    if not last:
+        raise CodeNotCommitted(NO_COMMIT.format(reason="no commit holds the code"))
+    return last[0][:COMMIT_CHARS]
 
 
 def inputs_digest(spreads: SpreadModel, margin_label: str) -> str:
