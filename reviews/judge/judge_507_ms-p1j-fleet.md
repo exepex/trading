@@ -228,3 +228,26 @@ are judged in addendum 6.
   every school module except `execution/practice_wiring.py`.
 - **Plants: 4, 4 caught.** The guard inverted; the guard removed; the fleet defaulting to practice; the rules not
   passed into `plan_slot`.
+
+## Addendum 9
+
+**Scope:** story/ms-p1j-ins-wiring at bcf9ab21, diff eb5ec57a..bcf9ab21: the builder's fix for my 507.5 note.
+- The counts commit now names the session's files instead of the folder (`SessionFilesCommitter` over a's
+  `OwnedPathsCommitter`).
+- `.gitignore` ignores `research/school/counts/**/.*.part`.
+
+**Verdict: FAIL on one test-only should-fix.** The design is right and fixes the cause, not only the symptom.
+
+- **Gates (my run):** 14034 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **Checked.**
+  - `SessionCounts.files(session)` names the three own files plus the files the record root names. Missing files are
+    skipped by `OwnedPathsCommitter` (git refuses a pathspec that matches nothing).
+  - The real-git test commits the named files and leaves both a stray `.part` and an un-ignored stray uncommitted.
+- **Plants: 3, 2 caught.** Caught: the extra (instructor) files not committed; the whole folder committed.
+
+**Should-fix.**
+- **Defect:** the record root can stop naming the instructor's counts file. Dropping the
+  `lambda session: (str(instructor_counts_path(session)),)` from `wiring.build_fleet` passes every test. In the real
+  run, the instructor's public counts would then be written each session and never committed.
+- **Test it must pass:** `build_fleet`'s `SessionCounts.files(session)` includes `instructor_counts_path(session)`.
+  `test_wiring.py` builds the record root already.
