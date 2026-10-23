@@ -8,9 +8,9 @@ from datetime import date
 
 from ....storage.data_store import DataStore
 from ....storage.raw_store import RawFileConflict
+from ....storage.receipt_publisher import ReceiptPublisher
 from ...contracts.seal import StaleSeal
 from ...dashcam.names import SCHOOL_AREA
-from ...dashcam.publisher import ReceiptPublisher
 from ...dashcam.reader import SlotFileReader
 from ..ports import InstructorConflict, InstructorKind, InstructorRecord
 from ..records_file import decode_instructor_file, encode_instructor_file
