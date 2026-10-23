@@ -116,3 +116,24 @@ Trial merge with `origin/main` (d974f0ed):
 - `check_imports`: clean.
 - `check_numbers`: clean.
 - 29 tests in `tests/routine_logs/`.
+
+## Addendum 2
+
+Advisory read for the owner at 37c68aab. This is not a third round: the owner decides the merge (`docs/JUDGE.md`). **My advice: the addendum-1 must-fix is fixed, so merging is safe.** One small follow-up.
+
+| Item | My check | Result |
+|---|---|---|
+| Addendum-1 must-fix: the watcher only expects a routine from its own `routine_logs.live_from` date (`config.yaml`, all null) | My probe with the real config, the real `ROUTINES`, an empty Drive and a trading day, checked every hour: **0 alerts** (it was 26). With only `a16-recorder` live from today: 7 alerts, all for today. Yesterday is not expected before the go-live date, so going live does not raise an alarm for the day before. | fixed |
+| Marker-day follow-up | The builder reports both of my surviving mutations are now caught. I did not re-plant them this time. | taken as reported |
+| `step_tail("")` crash, found by the builder | `step_tail` now returns no lines when the failed step's file is not in Drive | fixed |
+| The in-run failure line does not depend on `live_from` | `cmd_run` does not read the config, so a failing command still alerts at once | holds |
+
+**Follow-up (not blocking):** `live_dates` takes any name. A misspelled key (my probe: `a16_recorder`) is never watched and gives no warning. Refuse names that are not in `ROUTINES`, and test that.
+
+**Owner's step after merging:** set each routine's date on the day its prompt or CLAUDE.md section starts logging. Until then, a routine gives only the in-run failure line and no watcher alerts.
+
+**Gates.** Trial merge with `origin/main` (c7580848):
+- `pytest -n auto`: 14782 passed, 1 skipped, 16 xfailed.
+- `ruff check` and `ruff format --check`: clean.
+- `check_imports`: clean.
+- `check_numbers`: clean.
