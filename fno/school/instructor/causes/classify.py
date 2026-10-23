@@ -2,6 +2,8 @@
 `research/school/INSTRUCTOR_V1.md`, causes 2-5 ranked by the size of their component; and the hard-road or bad-driver
 modifier from the controls on the same road-slot (327 correction 2)."""
 
+from datetime import date
+
 from ....models import IST
 from ..contracts import MAX_SECONDARY, Attribution, Cause, Classification, HeldPath, Modifier, record_sha256
 from .evidence import Controls, Evidence, EvidenceBuilder
@@ -44,9 +46,10 @@ class Classifier:
     def __init__(self, evidence: EvidenceBuilder, rules_sha256: str):
         self.evidence, self.rules_sha256 = evidence, rules_sha256
 
-    def classify(self, path: HeldPath, attribution: Attribution | None, controls: Controls | None,
+    def classify(self, path: HeldPath, attribution: Attribution | None, controls: Controls | None, as_of: date,
                  corrects: str = "") -> Classification:  # fmt: skip
-        primary, secondary, not_testable = causes_of(self.evidence.build(path, attribution, controls))
+        """`as_of`: the session whose run classifies, the cut-off of what the evidence may know."""
+        primary, secondary, not_testable = causes_of(self.evidence.build(path, attribution, controls, as_of))
         outcome = path.outcome
         return Classification(
             position_id=outcome.position_id,

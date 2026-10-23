@@ -16,6 +16,7 @@ from tests.school.contracts.builders import IST, key, put_spread, snapshot
 ROAD = RoadCode.BANKNIFTY_MONTHLY
 DRIVER, OTHER = "CS1@1", "REF@1"
 SESSIONS = (date(2026, 11, 2), date(2026, 11, 3), date(2026, 11, 4))
+AFTER_EXPIRY = date(2026, 11, 24)  # the first session after the fixtures' expiry: its settlement is known
 RULES = "ef" * 32
 
 

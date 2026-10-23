@@ -43,10 +43,8 @@ def check_card_replay(replay, record) -> None:
 def check_instructor_store(store, session: date, records: tuple, other: tuple) -> None:
     assert isinstance(store, InstructorStore)
     assert store.read(session, InstructorKind.CAUSES) is None
-    assert store.recover(session, InstructorKind.CAUSES) is None
     first = store.write(session, InstructorKind.CAUSES, records)
     assert store.write(session, InstructorKind.CAUSES, records) == first  # the same bytes: a no-op
     with pytest.raises(InstructorConflict):
         store.write(session, InstructorKind.CAUSES, other)
     assert store.read(session, InstructorKind.CAUSES) == records
-    assert store.recover(session, InstructorKind.CAUSES) == records

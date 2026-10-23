@@ -61,6 +61,3 @@ class FakeInstructorStore:
     def read(self, session: date, kind: InstructorKind) -> tuple[InstructorRecord, ...] | None:
         payload = self.files.get((session, kind))
         return None if payload is None else decode_instructor_file(payload)
-
-    def recover(self, session: date, kind: InstructorKind) -> tuple[InstructorRecord, ...] | None:
-        return self.read(session, kind)  # a fake write is never left without its receipt
