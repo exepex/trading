@@ -85,3 +85,22 @@ def test_a_winners_why_line_reads_the_winner_form_and_an_update_says_so():
                              " (updated)")  # fmt: skip
     loss = classification(primary=None, secondary=(), modifier=Modifier.NOT_TESTABLE)
     assert why_line(loss) == "CS1@1 BANKNIFTY-M: net Rs -95; why: unclassified; road not compared yet"
+
+
+def test_the_counts_file_sits_inside_ms_p1js_counts_folder_so_one_commit_takes_both():
+    from fno.school.instructor.outputs.public_counts import counts_path
+
+    assert str(counts_path(DAY)) == "research/school/counts/instructor/2026/11/20261104.csv"
+
+
+def test_ms_p1js_entry_point_runs_the_session_and_writes_the_counts_file(tmp_path, monkeypatch):
+    from fno.school.instructor import wiring
+
+    fake = Wiring(tmp_path)
+    monkeypatch.setattr(wiring, "build_instructor_run", fake.build_instructor_run)
+    monkeypatch.setattr(wiring, "build_counts_file", fake.build_counts_file)
+    result = wiring.run_instructor_session({}, DAY)
+    assert fake.calls == [(DAY, True)] and result.classifications == RECORDS[:1]
+    assert len(list(tmp_path.rglob("*.csv"))) == 1
+    wiring.run_instructor_session({}, DAY, write=False)
+    assert fake.calls[-1] == (DAY, False)

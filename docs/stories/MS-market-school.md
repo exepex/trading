@@ -983,8 +983,8 @@ reverted when the method changed (orchestrator's ruling b).
 **Files owned:** `fno/school/instructor/outputs/` (`store.py`, `run.py`, `controls.py`, `comparison.py`, `review.py`,
 `review_text.py`, `labels.py`, `why_line.py`, `public_counts.py`, `command.py`), `fno/school/instructor/__main__.py`,
 the part-e builders in `fno/school/instructor/wiring.py`, `PathReader.orphan_corrections` (criterion 8),
-`tests/school/instructor/outputs/`. The public counts file goes to `research/school/instructor_counts/`, written by
-`--write` and committed by MS-P1j's runner with the session's other public files.
+`tests/school/instructor/outputs/`. The public counts file goes to `research/school/counts/instructor/`, inside
+MS-P1j's counts folder, so j's one counts commit takes both.
 
 **Implements:**
 - `InstructorRun.for_session(session)`: reads, attributes, classifies and pairs; writes the three record files
@@ -2742,4 +2742,15 @@ monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day l
 - orphans (caught in `test_corrections`).
 
 **Real output sample:** the fixture's "why" line, `CS1@1 BANKNIFTY-M: net Rs -140; why: ...`. On real data: "school off".
+
+**The interfaces agreed with MS-P1j's builder (23 Oct 2026; j wires them after j merges):**
+- `run_instructor_session(config, session, write=True)`: j's one entry point. j calls it after the session's outcomes
+  file is sealed and before its counts commit. It attributes, classifies, writes the instructor's files and the public
+  counts file. Tested with fakes.
+- `build_why_lines(config=None) -> WhyLineSource`, with `lines(session)`. It reaches g's 20:05 section through a `why`
+  port in g's day inputs; the render line is g's.
+- `CountedComparison.rows(..., unfilled=)`: keys `(driver_id, road, entry session)` of every fired entry that never
+  fills, both size-shared and refused fills.
+- `build_review(..., counts=)`: any `counts(session) -> tuple[OpportunityCounts, ...]`, which j's sealed day inputs
+  satisfy. The review prints eligible, fillable and executed per driver, or "three counts not supplied".
 

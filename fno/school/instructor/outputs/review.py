@@ -4,10 +4,12 @@ worst day, worst trade; tickets never summed in), its attribution sums and its c
 session it could not read. Descriptive only: no claim, no licence."""
 
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
+from typing import Protocol
 
 from ....models import IST
+from ...contracts.tickets import OpportunityCounts
 from ..contracts import Attribution, Classification, ClosedRead, PairedRow
 from ..ports import InstructorKind, InstructorStore
 from .comparison import SealedDecisions
@@ -32,6 +34,7 @@ class DriverSummary:
     modifiers: dict[str, int]
     poor_fit: int
     unclassified: int
+    three_counts: tuple[int, int, int] | None = None  # f's eligible, fillable, executed; None when not supplied
 
 
 @dataclass(frozen=True)
@@ -81,15 +84,33 @@ def driver_summary(driver_id: str, read: ClosedRead, outcomes: Counter, attribut
     )
 
 
+class OpportunityCountsSource(Protocol):
+    def counts(self, session: date) -> tuple[OpportunityCounts, ...]:
+        """f's eligible, fillable and executed per (road, driver) for the session (MS-P1j's sealed day inputs)."""
+
+
+def three_counts(source: OpportunityCountsSource | None, sessions: list[date]) -> dict[str, tuple[int, int, int]]:
+    totals: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
+    for session in sessions if source else ():
+        for c in source.counts(session):
+            total = totals[c.driver_id]
+            total[0], total[1], total[2] = total[0] + c.eligible, total[1] + c.fillable, total[2] + c.executed
+    return {driver: tuple(t) for driver, t in totals.items()}
+
+
 def build_review(first: date, last: date, sessions: list[date], read: ClosedRead, decisions: SealedDecisions,
-                 store: InstructorStore, paired: tuple[PairedRow, ...], orphans: int) -> Review:  # fmt: skip
+                 store: InstructorStore, paired: tuple[PairedRow, ...], orphans: int,
+                 counts: OpportunityCountsSource | None = None) -> Review:  # fmt: skip
     attributions = latest_records(store, sessions, InstructorKind.ATTRIBUTION).values()
     causes = latest_records(store, sessions, InstructorKind.CAUSES).values()
-    counts = decisions.outcome_counts()
-    drivers = sorted(set(counts) | {p.outcome.driver_id for p in read.paths})
-    summaries = tuple(driver_summary(d, read, counts.get(d, Counter()),
-                                     [a for a in attributions if a.driver_id == d],
-                                     [c for c in causes if c.driver_id == d]) for d in drivers)  # fmt: skip
+    outcome_counts = decisions.outcome_counts()
+    drivers = sorted(set(outcome_counts) | {p.outcome.driver_id for p in read.paths})
+    supplied = three_counts(counts, sessions) if counts else None
+    summaries = tuple(replace(driver_summary(d, read, outcome_counts.get(d, Counter()),
+                                             [a for a in attributions if a.driver_id == d],
+                                             [c for c in causes if c.driver_id == d]),
+                              three_counts=None if supplied is None else supplied.get(d, (0, 0, 0)))
+                      for d in drivers)  # fmt: skip
     return Review(first, last, summaries, paired, read.unreadable, decisions.unsealed, orphans, sessions)
 
 

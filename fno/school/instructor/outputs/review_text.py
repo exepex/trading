@@ -30,7 +30,7 @@ def _driver(d: DriverSummary) -> list[str]:
     primary = ", ".join(f"{cause_words(Cause(c), False)} {n}" for c, n in d.primary.items()) or "none"
     return [
         f"{d.driver_id}: decisions {sum(d.outcomes.values())} ({outcomes});"
-        f" closed trades {d.trades}, tickets {d.tickets}",
+        f" closed trades {d.trades}, tickets {d.tickets}; {_three(d.three_counts)}",
         f"  account trades: net Rs {d.net_rs:,.0f}, max drawdown Rs {d.max_drawdown_rs:,.0f}, worst day"
         f" {_rs(d.worst_day_rs)}, worst trade {_rs(d.worst_trade_rs)} (tickets never summed in)",
         f"  attribution (Rs): {parts}; poor fit {d.poor_fit}",
@@ -54,6 +54,12 @@ def _row(r) -> str:
         cut=r.after_cut,
         note=r.note,
     )
+
+
+def _three(counts) -> str:
+    if counts is None:
+        return "three counts not supplied"
+    return "eligible {}, fillable {}, executed {}".format(*counts)
 
 
 def _num(value) -> str:

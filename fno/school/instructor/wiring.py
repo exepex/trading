@@ -6,6 +6,7 @@ D6's versions, and the "why" line source (part e)."""
 
 import hashlib
 import os
+from datetime import date
 from pathlib import Path
 
 from ...books.versions import Versions
@@ -37,7 +38,7 @@ from .causes.classify import Classifier
 from .causes.evidence import EvidenceBuilder
 from .outputs.comparison import CountedComparison
 from .outputs.public_counts import InstructorCountsFile
-from .outputs.run import InstructorRun
+from .outputs.run import InstructorRun, SessionResult
 from .outputs.store import DriveInstructorStore
 from .outputs.why_line import WhyLineSource
 from .reader import PathReader
@@ -97,9 +98,19 @@ def build_comparison(versions: Versions | None = None) -> CountedComparison:
     return CountedComparison(counting, load_cards(ROOT / CARDS_FOLDER), rules_sha256())
 
 
-def build_why_lines() -> WhyLineSource:
-    """For MS-P1j's wiring: g's 20:05 section reads `lines(session)` (one line there, agreed with j's builder)."""
+def build_why_lines(config: dict | None = None) -> WhyLineSource:
+    """For MS-P1j's wiring: g's 20:05 section reads `lines(session)` through a `why` port in its day inputs (agreed
+    with j's builder, 23 Oct 2026). `config` is accepted for that wiring's shape; the store needs none."""
     return WhyLineSource(build_instructor_store())
+
+
+def run_instructor_session(config: dict, session: date, write: bool = True) -> SessionResult:
+    """MS-P1j's one entry point, after the session's outcomes file is sealed and before its counts commit: attribute,
+    classify, write the instructor's files and its public counts file (which j's commit then takes)."""
+    result = build_instructor_run(config).for_session(session, write)
+    if write:
+        build_counts_file().write(session, result.classifications)
+    return result
 
 
 def build_counts_file() -> InstructorCountsFile:

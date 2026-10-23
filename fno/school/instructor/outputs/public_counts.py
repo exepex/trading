@@ -1,7 +1,7 @@
 """The instructor's public counts file (story MS-INS, part e; E2c's privacy rule): how many closed trades and tickets
 of each driver and road got each primary cause and modifier in one session. Codes and whole numbers only: no rupee,
 contract, strike, price or card internal. Write-once: the same text again is a no-op, other text is refused. The
-fleet's runner (MS-P1j) commits it with the session's other public files."""
+fleet's runner (MS-P1j) commits it with the session's other public files (agreed with j's builder, 23 Oct 2026)."""
 
 import csv
 import io
@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 from ..contracts import Classification
 from ..ports import InstructorConflict
 
-COUNTS_FOLDER = "research/school/instructor_counts"
+COUNTS_FOLDER = "research/school/counts/instructor"  # inside MS-P1j's counts folder: one commit takes both
 HEADER = ("session", "driver", "road", "ticket", "primary", "modifier", "count")
 UNCLASSIFIED = "unclassified"
 CHANGED = "{path} holds other counts than these; a counts file is never rewritten"

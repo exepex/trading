@@ -106,3 +106,25 @@ def test_the_review_command_prints_the_review_and_writes_the_paired_file_only_wi
     assert instructor.store.read(SESSIONS[2], InstructorKind.PAIRED) is None
     command(argv + ["--write"], school(True), wiring)
     assert instructor.store.read(SESSIONS[2], InstructorKind.PAIRED)
+
+
+def test_the_review_prints_fs_three_counts_when_supplied_and_says_so_when_not():
+    from fno.school.contracts.tickets import OpportunityCounts
+    from fno.school.instructor.outputs.review_text import review_lines as text
+
+    _, read, instructor, _ = scenario()
+    sessions = read.sessions(SESSIONS[0], SESSIONS[2])
+    decisions = sealed_decisions(read.dashcam, sessions)
+    closed = read.closed_between(SESSIONS[0], SESSIONS[2])
+
+    class Counts:
+        def counts(self, session):
+            return (OpportunityCounts(session, closed.paths[0].outcome.road, DRIVER, 2, 1, 1),)
+
+    plain = build_review(SESSIONS[0], SESSIONS[2], sessions, closed, decisions, instructor.store, (), 0)
+    supplied = build_review(SESSIONS[0], SESSIONS[2], sessions, closed, decisions, instructor.store, (), 0, Counts())
+    assert any("three counts not supplied" in line for line in text(plain))
+    mine = next(d for d in supplied.drivers if d.driver_id == DRIVER)
+    assert mine.three_counts == (6, 3, 3) and any(
+        "eligible 6, fillable 3, executed 3" in line for line in text(supplied)
+    )
