@@ -94,3 +94,10 @@ def test_an_answer_is_never_retried(tmp_path):
     evidence, pauses = Evidence(last=EvidenceNotCommitted("no commit adding it")), []
     check = SealCheck(evidence, CALENDAR, now=lambda: at_16(1), attempts=3, pause=pauses.append)
     assert check.seal("receipts/x.sha256", DAY).waiting == NOT_YET and evidence.reads == 1 and pauses == []
+
+
+def test_the_wiring_reads_a_failed_seal_evidence_three_times(monkeypatch):
+    from fno.price_ranges import wiring
+
+    monkeypatch.setattr(wiring, "deep_enough", lambda *a, **k: None)  # no fetch: only the check's terms are read
+    assert wiring.build_seal_check(env={}).attempts == 3

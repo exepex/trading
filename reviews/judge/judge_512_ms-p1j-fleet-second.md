@@ -64,3 +64,28 @@ replay isolation, and six guards on record and fill paths, can be broken with ev
   `main`. Until then a missing size reads as 0 (no fill), which fails safe.
 - A late rerun prices entries again at the 15:00 snapshot. That is accepted by ruling b, and the run marks it in the
   evening section.
+
+## Addendum 1: round 2 at 83b0caec
+
+**Verdict: PASS** (second judge). Lane 1, a money piece. Scope: 8d4d6fb2..83b0caec. That is round 5 (5395948a:
+`allocate` reads sizes through d's `QuoteRules`, `main` merged in) and round 6 (83b0caec: tests only).
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 composition root untested | ACCEPTED | `test_wiring.py` builds `build_fleet(REPLAY)` with `build_dashcam`, `build_account_sync` and `GitManifestRecorder` patched to raise, and checks every store under the folder. My plant (the real dashcam in replay) is caught |
+| SF2 six guards | ACCEPTED | `test_guards.py`: all six of my plants caught (identity, counts write-once, drift for served entries only, ticket entries before account exits, quote share behind a stop, expiry `<`) |
+| Minor: four survivors named | ACCEPTED | they are named in round 6's Claims. Three are equivalent (reasoning only), one is replay-only |
+
+- **Round 5 (`QuoteRules` in `allocate`):**
+  - Live, an unmeasured or missing size reads as 0, which is no fill, never unlimited.
+  - The parameter defaults to `LIVE`, and the fleet passes `LIVE` by name.
+  - Plants caught: practice rules passed in the fleet's fill step, and a missing size read as unlimited.
+- **Plants: 42 planted (my 40 again plus 2 on round 5), 38 caught.** The 4 survivors are exactly the minors above.
+- **Replay on the new tip:** 42 decisions, 16 fills, 69 files. A second replay is byte-identical, and `git status`
+  is clean.
+  - Against my round-1 replay, 5 files differ. The decisions file now records one more passing law result per
+    decision, `quote_gate:size_not_measured` (d's part 4, from `main`).
+  - That changes its hash, and so four account files' `rests_on`. The outcomes are unchanged.
+- **Real acceptance:** 9 of 9 (in the suite).
+- **Gates (my run):** pytest -n auto 13,522 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.

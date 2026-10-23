@@ -79,3 +79,14 @@ def test_a_committer_date_set_after_the_real_push_finds_no_push_and_fails_closed
     receipts = GitHubActivityReceipts("exepex/trading", "token", Chain(forged), PagedLog())
     with pytest.raises(ReceiptNotFound):
         receipts.received_at("c1500")  # every later push's `before` already holds it: never a later push's time
+
+
+def test_the_page_cap_stops_a_log_that_runs_on_and_says_so(monkeypatch):
+    from fno.ai import activity_log
+    from fno.ai.receipts import ReceiptUnavailable
+
+    monkeypatch.setattr(activity_log, "PAGE_CAP", 3)
+    receipts = GitHubActivityReceipts("exepex/trading", "token", Chain(), PagedLog())
+    with pytest.raises(ReceiptUnavailable, match="ran past 3 pages"):
+        receipts.received_at("c1")  # 30 pages back: stopped at the cap, never read on
+    assert receipts.pages == 3
