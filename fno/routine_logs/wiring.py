@@ -21,6 +21,7 @@ from .watch import RoutineWatcher
 STATE_FOLDER = ROOT / "work" / "routine-logs"
 NO_DRIVE = "Drive settings missing ({names})"
 CONFIG_KEY = "routine_logs"
+UNKNOWN_ROUTINES = "config routine_logs.live_from names routines the watcher does not know: {names}"
 
 
 class NoDriveStore(RawFileStore):
@@ -47,6 +48,9 @@ def build_run_log(env=os.environ) -> RoutineRunLog:
 def live_dates(cfg: dict) -> dict[str, date | None]:
     """config `routine_logs.live_from`: one date per routine (YYYY-MM-DD) or null, which means not watched yet."""
     raw = (cfg.get(CONFIG_KEY) or {}).get("live_from") or {}
+    unknown = sorted(set(raw) - {spec.name for spec in ROUTINES})
+    if unknown:  # a misspelt name would never be watched, silently
+        raise ValueError(UNKNOWN_ROUTINES.format(names=", ".join(unknown)))
     return {name: date.fromisoformat(str(value)) if value else None for name, value in raw.items()}
 
 

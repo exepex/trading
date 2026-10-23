@@ -3,6 +3,8 @@ until each routine's instructions log; and an alert sent before midnight is not 
 
 from datetime import date, time
 
+import pytest
+
 from fno.config import load_app_config
 from fno.routine_logs.schedule import ROUTINES, TRADING_DAYS, RoutineSpec
 from fno.routine_logs.watch import RoutineWatcher
@@ -65,3 +67,8 @@ def test_a_step_failing_after_midnight_marks_its_runs_day(run_log, store, clock)
     args = Namespace(routine="participant-oi", step="watch", last=False, command=["false"])
     cmd_run(args, out=lambda _: None, log=run_log, sender=Sent(), runner=lambda c: (1, "absent\n"))
     assert store.get(alert_marker(date(2026, 10, 23), f"participant-oi-{run.folder.run}-failed")) is not None
+
+
+def test_a_misspelt_routine_name_in_config_is_refused():
+    with pytest.raises(ValueError, match="a16_recorder"):
+        live_dates({"routine_logs": {"live_from": {"a16_recorder": "2026-10-24"}}})

@@ -89,4 +89,5 @@ The new must-fix is correct. With no routine logging yet, a live watcher would p
 The follow-up is done too: alerts sent before midnight (failed and missing) are not sent again after it, and a step
 that fails after midnight marks its run's day. Both marker-day mutations are now caught. Found while writing these:
 a failed run whose step file never reached Drive crashed the watcher (`step_tail` on an empty path). It is now
-alerted without lines, with a test. Tests: 35.
+alerted without lines, with a test. Judge 542 addendum 2 (advisory, merge safe): a routine name in `live_from` that is
+not in `ROUTINES` is refused (a misspelt key would never be watched). Tests: 36.
