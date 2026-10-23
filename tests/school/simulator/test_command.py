@@ -64,6 +64,7 @@ def test_a_run_prints_only_labelled_lines_and_writes_under_the_given_home(tmp_pa
     lines = []
     assert command.cmd_practice_run(namespace(home=tmp_path), out=lines.append) == 0
     assert len(lines) > 10 and all(text.startswith(PRACTICE_LABEL) for text in lines)
+    assert not any("left out:" in text for text in lines)
     assert isinstance(parts, PracticeParts) and any(tmp_path.rglob("*.jsonl.gz"))
 
 
@@ -83,3 +84,15 @@ def test_the_first_line_of_a_report_says_local_only_not_archived():
 
     lines = render(PracticeReport(sb.SESSION, sb.SESSION, ()))
     assert lines[0] == f"{PRACTICE_LABEL} | {NOT_ARCHIVED}" and "not archived" in lines[0]
+
+
+def test_each_left_out_capture_is_named_in_the_output(monkeypatch, tmp_path):
+    skipped = Skipped([("NIFTY-W", date(2026, 10, 13), "capture_missing")])
+    monkeypatch.setattr(command, "build_practice_parts", lambda cfg, today, folder: (None, skipped))
+    from fno.school.simulator.practice.report import PracticeReport
+
+    empty = PracticeReport(sb.SESSION, sb.SESSION, ())
+    monkeypatch.setattr(command, "PracticeRunner", lambda parts, home: type("R", (), {"run": lambda s, w: empty})())
+    lines = []
+    command.cmd_practice_run(namespace(home=tmp_path), out=lines.append)
+    assert any(text.endswith("left out: NIFTY-W capture_missing: 2026-10-13") for text in lines)

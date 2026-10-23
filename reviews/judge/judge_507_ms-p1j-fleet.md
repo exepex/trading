@@ -304,3 +304,64 @@ one should-fix, so ins-wiring now has no open finding.
 
 Gates on 4f5f8297 (run by me): 14,035 passed, 16 xfailed; ruff clean; format clean; check_imports clean.
 No code changed, so 507.9's other findings stand as judged there.
+
+## Addendum 13
+
+**Verdict: FAIL, one should-fix.** Story/ms-p1j-ins-wiring, judged as the change it adds to main: merge-base
+2f3833de to tip bda6a49d (I was asked to judge 4f5f8297..94d3acb1; the branch has moved on to bda6a49d). This is the
+second judge on the round-2 code. I did not read judge K's 523.1 or 523.2 before writing this.
+
+### What meets the brief
+
+- **One committer per run:** the instructor's work runs on its thread over `DeferredInstructorStore` and
+  `RunReceipts`. It keeps its writes and runs only read-only git (`log`, `show`). `prepare`, the one fetch, and the
+  writes (`flush`, then the counts file) run on the run's own thread, and only when the work ended in time. On a
+  deadline, `isolated` returns `Isolated(None, DEADLINE)`, so a late thread has nothing to write.
+- **Commit and order:** `SessionCounts.files` names the counts, the instructor's counts file and its two session
+  receipts (`instructor_files`), and one `NamedFiles` commit takes exactly those. The step runs after the outcomes and
+  drift seals and before `counts.write`; a rerun runs it again.
+- **Plants:**
+
+  | Plant | Result |
+  |---|---|
+  | deferred write writes through | caught (3 failed) |
+  | deferred read ignores pending | caught |
+  | the receipts left out of `instructor_files` | caught |
+  | no `prepare` | caught |
+  | `RunReceipts.publish` fetches on the thread | caught |
+  | `extra` dropped from `files` | caught (4 failed) |
+  | late writes run after a time-out | equivalent: the value is `None` on a deadline |
+
+- **Gates on bda6a49d:** 14,340 passed, 16 xfailed; ruff, format and check_imports clean; the largest file is 106
+  lines. It merges cleanly with current main.
+
+### SF1 (should-fix): a refused counts commit is silent, and it now carries the instructor's receipts
+
+- **Path:** `SessionCounts.write` and `commit` return `GitManifestRecorder`'s outcome line. `runner.py` drops it
+  (line 131, and the `counts.write` call after `after_outcomes`), and `cli.py` `cmd_run` exits 0 on an empty
+  status with no warnings.
+- **Before this branch:** the instructor's store pushed its own receipts, and a receipt not on main raised
+  `SealNotPushed`, which the isolated step alerted.
+- **Now:** those receipts ride on the counts commit. A normal failure (three lost push races, the pull refused
+  because the checkout carries other unpushed changes, or the hook refusing) leaves them unpushed with no line,
+  no alert and exit 0. The next session's re-checks then read `None` for that session (`store.read` looks only at
+  main) and skip it silently.
+- **bda6a49d makes it worse:** `NamedFiles.owns` is now the exact names, so a leftover unpushed commit blocks every
+  later counts commit in that checkout, still silently.
+- **Reproduced:** a scratch test on bda6a49d with a committer returning "school session files NOT committed: push
+  failed" gives `status=''`, `warnings=()` and no alert.
+- **The same silence held for the counts files alone on main.** I passed that in 507.5 and 507.9 without seeing it.
+  That miss is mine.
+- **Test it must pass:** with a counts committer whose outcome contains "NOT committed", `fleet.run` reports that line
+  (as a status or a warning), so `school run` prints it and exits 1. This holds on the first run and on the rerun
+  branch (line 131).
+- **Fix (reasoning only):** carry the commit outcome into `SessionRun.warnings` when it is not committed.
+
+### Note
+
+- **Collision with story/ms-p1c-publisher-move (judge 527):** this branch edits `fno/school/dashcam/publisher.py`
+  (`RemoteReceipts`) and adds two importers of it (`run_receipts.py`, `instructor_step_wiring.py`), while that branch
+  moves the file to `fno/storage/receipt_publisher.py`. A merge-tree of the two reports conflicts. Whichever merges
+  second must carry the other's change.
+- **Round count:** this is my third look at ins-wiring (507.9 FAIL, 507.12 PASS, now 507.13). The orchestrator
+  decides whether this counts as a round over the limit, which goes to the owner.

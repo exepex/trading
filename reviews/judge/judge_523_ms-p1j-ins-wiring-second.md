@@ -45,3 +45,40 @@ as round 2 together with part e's.
 
 ## Plants
 None planted this round: the branch sits on part e's pre-rebase base, and the rebased tip is what merges.
+
+## Addendum 1: round 2 at 7d76b05d
+
+**Verdict: PASS** (second judge). It is rebuilt on MS-INS part e's passed tip 136f5890 (an ancestor; part e is on
+`main`). I judged its own changes against `main` (14 files, `git diff origin/main 7d76b05d -- fno`).
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 a timed-out instructor racing the counts commit in git | ACCEPTED, by construction | `StagedSessionStep` runs `prepare` (one fetch) on the run's thread, then the work on a thread. The work returns its writes, which run on the run's thread only when the work ended in time. `DeferredInstructorStore` keeps writes until `flush`. `RunReceipts` only calls `RemoteReceipts.find` (`git log`/`show`, read-only) and never refreshes or commits on the thread. One `NamedFiles` commit takes the counts and `instructor_files(session)`. Plants caught: a flush inside the work, the time-out branch removed, the writes never run, `prepare` skipped, a refresh inside `publish`, deferred reads ignoring pending writes, a deferred write going straight through |
+| Minor (a) `StaleSeal` in `UnfilledEntries` | ACCEPTED | caught (plant narrowing the catch) |
+| Minor (b) `build_unfilled_entries` | ACCEPTED | builds the dashcam and books itself, not through `build_fleet` |
+
+- **Plants:** 9 planted, 8 caught. The survivor is `NamedFiles.owns` forced to True. That guard stops the commit's
+  pull from also pushing someone else's unpushed local commits to `main`. The code is right, and the base recorder's
+  own guard is tested, but not this subclass. **Minor:** add one test.
+- **Merge:** `git merge-tree` with current `main` conflicts only in `docs/stories/MS-market-school.md`. The code merges
+  cleanly. A doc-only resolution needs no new judgment.
+- **Limit accepted [reasoning only]:** the writes on the run's thread have no step limit beyond Drive's own
+  time-outs, as the builder states. Adding one would bring back a late write.
+- **Gates (my run):** pytest -n auto 14,338 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.
+
+## Addendum 2: the final tip 94d3acb1
+
+**PASS confirmed** (second judge). 7d76b05d..94d3acb1 adds one test, that every session call builds its own path
+reader (`test_instructor_receipts_wiring.py`), plus a merge of `main`. No other code changes. `git merge-tree` with
+current `main`: clean. The fleet and instructor tests pass (354). The `NamedFiles.owns` minor (addendum 1) is still
+open, as a minor.
+**Note:** `recover()` (story/ms-ins-adopt) failed judge 525. If it lands later, the deferred store must implement it
+and adopt only on the run's own thread.
+
+## Addendum 3: bda6a49d
+
+**PASS, last minor closed.** 94d3acb1..bda6a49d is test and doc only:
+`test_an_unpushed_commit_of_another_writer_still_blocks_the_push`. My plant (`NamedFiles.owns` forced to True) fails
+it (1 failed, 103 passed); without the plant, `tests/school/fleet` gives 104 passed. `git merge-tree` with current
+`main` is clean.

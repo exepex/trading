@@ -38,3 +38,12 @@ def test_a_missing_capture_and_an_incomplete_one_are_skipped():
 def test_no_sessions_is_empty():
     found, skipped = read([], [])
     assert found == [] and not skipped.reasons
+
+
+def test_every_left_out_session_is_named_by_road_reason_and_date():
+    other = SESSION.replace(day=4)
+    _, skipped = read([Plant(BANK, other, tamper=True)], [SESSION, other])
+    assert skipped.lines() == [
+        f"{RoadCode.BANKNIFTY_MONTHLY} capture_missing: {SESSION.isoformat()}",
+        f"{RoadCode.BANKNIFTY_MONTHLY} hash_mismatch: {other.isoformat()}",
+    ]
