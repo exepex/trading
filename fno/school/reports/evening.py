@@ -3,6 +3,7 @@ closures, and the fleet total labelled as separate hypothetical accounts. The fl
 drivers only (orchestrator, 22 Oct 2026: separate experiments are never merged into one figure); controls and
 measurement-only drivers have their own labelled lines. Tickets are never summed into rupees."""
 
+import re
 from collections.abc import Iterable
 from datetime import date
 
@@ -15,6 +16,7 @@ from .lines import SIGNED_RUPEE, footer, paper_title
 
 TITLE = "How did today go"
 NONE_TODAY = "none"
+TICKET_LINE = re.compile(r"^\S+ \S+ ticket:")  # MS-INS part e's format: "{driver} {road} ticket: net Rs ..."
 WHY_HEADER = "Why (the instructor's words):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
@@ -65,8 +67,13 @@ class HowDidTodayGoSection:
 
     def _why(self, session: date) -> list[str]:
         """The instructor's cause lines for the rule drivers' trades, verbatim under one header; none, no header. A line
-        whose leading driver id is a control or a measurement-only driver is left out (they have their own lines)."""
-        kept = [line for line in self.inputs.why(session) if self._leads_with_a_rule_driver(line)]
+        whose leading driver id is a control or a measurement-only driver is left out (they have their own lines), and
+        so is a ticket's line (`<driver> <road> ticket: net Rs ...`): a ticket is never shown in rupees."""
+        kept = [
+            line
+            for line in self.inputs.why(session)
+            if self._leads_with_a_rule_driver(line) and not TICKET_LINE.match(line)
+        ]
         return [WHY_HEADER, *kept] if kept else []
 
     def _leads_with_a_rule_driver(self, line: str) -> bool:

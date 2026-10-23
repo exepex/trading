@@ -164,3 +164,19 @@ def test_a_line_about_a_control_or_a_measurement_only_driver_is_left_out_of_the_
 
 def test_only_controls_in_the_why_lines_leave_no_header():
     assert "Why (the instructor's words):" not in "\n".join(with_why("N0@1 BANKNIFTY-M: net Rs +5000; why: x").lines)
+
+
+def test_a_tickets_line_is_not_shown_because_a_ticket_is_never_in_rupees():
+    ticket = "CS1@1 BANKNIFTY-M ticket: net Rs -90; why: wrong direction"
+    updated = "CS1@1 BANKNIFTY-M: net Rs -140; why: wrong direction (updated)"
+    lines = with_why(ticket, updated).lines
+    assert ticket not in lines and updated in lines
+
+
+def test_the_pinned_format_is_what_the_instructors_why_line_writes():
+    """MS-INS part e's `why_line` starts with the driver id, a space and the road (the MS-P1j builder's contract)."""
+    outputs = pytest.importorskip(
+        "fno.school.instructor.outputs.why_line", reason="MS-INS part e is not on this branch"
+    )
+    assert outputs.LINE.startswith("{driver} {road}{ticket}: net Rs ")
+    assert WHY.startswith("CS1@1 BANKNIFTY-M: net Rs ") and "ticket" in outputs.LINE
