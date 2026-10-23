@@ -155,7 +155,7 @@ def test_a_file_without_the_label_on_every_line_is_refused():
 
 
 def test_a_file_that_is_not_canonical_record_lines_is_refused():
-    for data in (b"plain text", gzip.compress(b"not json\n"), gzip.compress(b"[1]\n")):
+    for data in (b"plain text", b"", gzip.compress(b"not json\n"), gzip.compress(b"[1]\n")):
         with pytest.raises(PracticeArchiveError):
             check_labelled(PATH, data)
     with pytest.raises(PracticeArchiveError):

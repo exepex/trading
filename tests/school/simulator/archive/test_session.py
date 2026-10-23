@@ -3,6 +3,7 @@ line, and the default that archives nothing."""
 
 import gzip
 import subprocess
+from datetime import date
 
 import pytest
 
@@ -14,6 +15,7 @@ from fno.school.simulator.archive.archive import PracticeArchive
 from fno.school.simulator.archive.files import run_files
 from fno.school.simulator.archive.inputs import CodeNotCommitted, code_commit, inputs_digest
 from fno.school.simulator.constants import PRACTICE_LABEL
+from fno.school.simulator.practice.render import left_out_lines
 from fno.school.simulator.spreads.model import SpreadModel
 from fno.school.simulator.spreads.recorded import Skipped
 from fno.storage.data_store import DataStore
@@ -22,6 +24,8 @@ from tests.school.safety.law_builders import FixedMargin
 from tests.school.simulator.archive.test_archive import DictDrive, FakePublisher, Reader
 from tests.school.simulator.practice import test_fleet as tf
 from tests.school.simulator.test_command import namespace
+
+LEFT_OUT = Skipped([("NIFTY-W", date(2026, 10, 13), "capture_missing")])
 
 
 class World:
@@ -47,11 +51,14 @@ def world(tmp_path, monkeypatch):
             super().__init__(parts, home, margin_for=margin)
 
     monkeypatch.setattr(command, "PracticeRunner", Runner)
-    monkeypatch.setattr(command, "build_practice_parts", lambda cfg, today, folder: (parts, Skipped()))
+    monkeypatch.setattr(command, "build_practice_parts", lambda cfg, today, folder: (parts, LEFT_OUT))
     monkeypatch.setattr(command, "code_commit", lambda root: "abc1234")
     made = World(tmp_path / "world")
     monkeypatch.setattr(command, "build_practice_archive", made.archive)
     return made
+
+
+LEFT_OUT_LINES = left_out_lines(LEFT_OUT)
 
 
 def run(tmp_path, **kw) -> tuple[int, list[str]]:
@@ -82,6 +89,7 @@ def test_the_report_text_is_the_last_file_and_carries_the_run_and_every_result_l
     assert saved[0].startswith(f"{PRACTICE_LABEL} | report text of run {run_id}")
     assert any("practice results are never used to choose, tune or rank" in text for text in saved)
     assert all(text.startswith(PRACTICE_LABEL) for text in saved) and not any("archived:" in t for t in saved)
+    assert saved[-2:] == [t for t in LEFT_OUT_LINES]
     assert list(world.drive.files)[-1].endswith("report.txt")
 
 
@@ -195,6 +203,7 @@ def test_the_code_commit_is_named_only_for_committed_code(tmp_path):
     with pytest.raises(CodeNotCommitted, match="fno/a.py"):
         code_commit(tmp_path)
     git("checkout", "--", "fno")
-    (tmp_path / "fno" / "new.py").write_text("y = 1\n")
-    with pytest.raises(CodeNotCommitted, match="new.py"):
+    (tmp_path / "fno" / "newpkg").mkdir()
+    (tmp_path / "fno" / "newpkg" / "b.py").write_text("y = 1\n")
+    with pytest.raises(CodeNotCommitted, match="newpkg/b.py"):  # the file itself is named, not only its new folder
         code_commit(tmp_path)

@@ -52,3 +52,9 @@ def _coverage_lines(report: PracticeReport) -> list[str]:
     for bucket, count in report.insufficient_buckets.most_common(TOP_BUCKETS):
         lines.append(line(f"insufficient spread data: {bucket}: {count} legs"))
     return lines
+
+
+def left_out_lines(skipped) -> list[str]:
+    """The recorded captures the spread model could not use, one line per road and reason with the dates."""
+    head = f"{len(skipped.reasons)} recorded captures were left out of the spread model (missing or failed a check)"
+    return [line(head), *(line(f"  left out: {text}") for text in skipped.lines())]

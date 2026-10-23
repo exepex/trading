@@ -3,6 +3,8 @@ publisher on the run's own receipts folder, and the verified Drive cache for the
 commits only `receipts/data/school-practice/<run id>/`, so a practice commit can never carry another file."""
 
 import os
+import subprocess
+from pathlib import Path
 
 from ....storage.data_wiring import DATA_AREA, REPOSITORY, build_data_store, build_drive_cache, receipt_folder
 from ....storage.manifest_commit import GitManifestRecorder
@@ -16,9 +18,11 @@ RECEIPTS_MESSAGE = "Receipts: school practice run ({what})"
 RECEIPTS_LABEL = "practice receipts"
 
 
-def build_practice_archive(run: str, env=os.environ) -> PracticeArchive:
+def build_practice_archive(run: str, env=os.environ, repository: Path = REPOSITORY,
+                           git=subprocess.run) -> PracticeArchive:  # fmt: skip
+    """`repository` and `git` are the checkout and its git runner, handed in so a test can watch every git command."""
     data = build_data_store(WRITER, run, env)
-    recorder = GitManifestRecorder(REPOSITORY, REPOSITORY / receipts_folder(run), message=RECEIPTS_MESSAGE,
+    recorder = GitManifestRecorder(repository, repository / receipts_folder(run), run=git, message=RECEIPTS_MESSAGE,
                                    label=RECEIPTS_LABEL)  # fmt: skip
-    publisher = GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY)
+    publisher = GitReceiptPublisher(recorder, receipt_folder(), repository, run=git)
     return PracticeArchive(data, publisher, VerifiedDriveReader(build_drive_cache(env), DATA_AREA))

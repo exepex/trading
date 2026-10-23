@@ -19,7 +19,7 @@ from ..settings import school_settings
 from .archive.inputs import CodeNotCommitted, code_commit
 from .archive.session import archive_practice
 from .archive.wiring import build_practice_archive
-from .practice.render import line, render
+from .practice.render import left_out_lines, line, render
 from .practice.runner import PracticeRunner
 from .practice.window import RunWindow, WindowRefused
 from .practice.wiring import build_practice_parts
@@ -58,10 +58,11 @@ def cmd_practice_run(args, out=print) -> int:
     except (WindowRefused, CodeNotCommitted) as refused:
         out(line(f"refused: {refused}"))
         return REFUSED_EXIT
-    outcome = archive_practice(report, window, runner, commit, build_practice_archive) if args.archive else None
+    outcome = (
+        archive_practice(report, window, runner, commit, build_practice_archive, skipped) if args.archive else None
+    )
     for text in render(report, outcome.status_lines() if outcome else None):
         out(text)
-    out(line(f"{len(skipped.reasons)} recorded captures were left out of the spread model (missing or failed a check)"))
-    for text in skipped.lines():
-        out(line(f"  left out: {text}"))
+    for text in left_out_lines(skipped):
+        out(text)
     return 1 if outcome and not outcome.archived else 0
