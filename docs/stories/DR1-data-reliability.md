@@ -135,9 +135,43 @@ against the official close within 0.01; O8's evening health check and O10's capt
 
 ## 4. DR1-0: merge the two `daily_runs/full` folders (owner: "DR1 merges, judged")
 
-A one-off command, dry-run first, then applied with the judge's PASS: move run 20261022T100328Z-39767f's log from the
-second `full` folder into the first, write its receipt, check both 22 Oct logs read back with their SHA-256, then move
-the empty second folder to Drive's bin (restorable). Never deletes a file.
+**What Drive holds (read-only look, 23 Oct):** `data/daily_runs/full` created 10:03:30.564Z holds
+`2026-10-22/20261022T100328Z-39767f.json` (13,149 bytes, no receipt); `full` created 10:03:30.679Z holds
+`2026-10-22/20261022T100329Z-f224c7.json` (13,475 bytes, receipt in `receipts/data/daily_runs/full/2026-10-22/`).
+
+**Build (branch story/dr1-0-merge-folders):** `python -m fno data-repair merge-folders <path>` and `python -m fno
+data-repair receipt <path> --writer W --run-id R`, each printing only, until `--apply`.
+- `fno/storage/drive_items.py`: Drive items with IDs and creation times (every copy of a name, which the path-based
+  store refuses to see), move and rename; never a delete.
+- `fno/storage/folder_merge.py`: the copy kept is the one holding the most files whose bytes match their receipts
+  (by content, never by time: the owner's rule); a tie, or two files with one name, is refused before anything moves;
+  same-named subfolders merge the same way; each emptied copy is renamed `<name>.merged-<day>` in place (no delete, no
+  trash: the earlier trash attempt was refused as a mass delete, and a rename needs none); afterwards every receipt
+  under the path is read back through the path-based store.
+- `fno/storage/receipt_repair.py`: a receipt for a saved but unreceipted file from its own bytes and Drive's creation
+  time; refused when the path already has a receipt, has no file or two, or runs through a doubled folder.
+- `fno/storage/repair_cli.py`, `fno/storage/repair_wiring.py` (composition root), one line in `fno/cli.py`.
+
+**Dry run on the real Drive (23 Oct, read-only):** `data/daily_runs/full: keep the copy created
+2026-10-22T10:03:30.679Z (holds the most files matching their receipts); 1 other copy(ies) emptied and renamed` /
+`move data/daily_runs/full/2026-10-22/20261022T100328Z-39767f.json`. The kept copy is the newer one: the older holds
+only the unreceipted log (the orchestrator's text said "into folder 1"; by the owner's content rule it is folder 2).
+
+**Steps after the PASS and merge (on main, in this order):** (1) `data-repair merge-folders data/daily_runs/full
+--apply` (ends "merged; every receipt under it reads back"); (2) `data-repair receipt
+data/daily_runs/full/2026-10-22/20261022T100328Z-39767f.json --writer daily-run --run-id 20261022T100328Z-39767f
+--apply` (commits the receipt to main); (3) the owner may move `full.merged-<day>` (empty) to the bin by hand.
+
+### Claims (DR1-0)
+
+1. Through the real `GoogleDriveUploadStore`, `DriveItems` and `ReceiptFolder` over an in-memory Drive HTTP fake
+   (tests/dr1/fake_drive.py), 22 Oct's state is reproduced: a path through the doubled folder raises RawFileConflict.
+2. The copy holding the receipt-verified file is kept whichever copy is older (both orders tested); after `--apply`
+   one `full` remains, both logs read back by path, the other copy is renamed, nothing is deleted.
+3. A plan changes nothing; a tie or a same-name file clash is refused and `apply` then changes nothing.
+4. The receipt repair writes the file's own SHA-256, size and Drive creation time; never replaces a receipt; refuses
+   none or two files or a doubled folder in one line; a refused commit fails the command.
+5. Gates: ruff, `tools/check_imports.py`, full suite (14,595 passed; the 10 history tests need an unshallowed clone).
 
 ## 5. Routines: the first line each needs (for the owner to paste)
 

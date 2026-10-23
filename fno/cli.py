@@ -52,6 +52,7 @@ from .scoreboard.cli import add_scoreboard_parser
 from .storage.cache_cli import add_cache_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
+from .storage.repair_cli import add_repair_parser
 from .storage.revisions_cli import add_revisions_parser
 from .vix_history.cli import add_vix_history_parser
 from .weather.cli import add_weather_parser
@@ -227,6 +228,7 @@ def main(argv: list[str] | None = None) -> int:
     add_librarian_parser(sub)
     add_fingerprints_parser(sub)
     add_cache_parser(sub)
+    add_repair_parser(sub)
     add_revisions_parser(sub)
     add_market_parser(sub)
     add_research_parser(sub)
