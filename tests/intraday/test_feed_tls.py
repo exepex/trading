@@ -3,11 +3,13 @@
 handshake), and a feed that does not connect ends in seconds with one plain line."""
 
 import datetime as dt
+import inspect
 import socket
 import ssl
+import sys
 import threading
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import certifi
 import pytest
@@ -147,12 +149,23 @@ def test_the_command_prints_one_line_and_stops_when_the_feed_does_not_connect(mo
     assert capsys.readouterr().out == "feed probe coverage: stopped: the feed did not connect within 30 s\n"
 
 
+def _stand_in_sdk(monkeypatch, feed_class):
+    """growwapi's two names build_feed_probe imports, as stand-in modules: the test runs without the Groww SDK
+    (requirements.txt, as in CI and for the judges); the real module's shape is pinned by the test below."""
+    nats_client = ModuleType("growwapi.groww.nats_client")
+    nats_client.certifi = certifi
+    groww = ModuleType("growwapi.groww")
+    groww.nats_client = nats_client
+    sdk = ModuleType("growwapi")
+    sdk.GrowwFeed, sdk.groww = feed_class, groww
+    for name, module in (("growwapi", sdk), ("growwapi.groww", groww), ("growwapi.groww.nats_client", nats_client)):
+        monkeypatch.setitem(sys.modules, name, module)
+    return nats_client
+
+
 @pytest.mark.parametrize("with_bundle", [True, False])
 def test_the_built_probe_connects_with_the_combined_roots_only_when_a_bundle_is_set(with_bundle, pki, monkeypatch):
     """Judge 499 addendum 8: build_feed_probe itself must hand the SDK the combined file (or leave certifi alone)."""
-    import growwapi
-    from growwapi.groww import nats_client
-
     from fno.intraday import feed_wiring
 
     seen = []
@@ -161,8 +174,7 @@ def test_the_built_probe_connects_with_the_combined_roots_only_when_a_bundle_is_
         def __init__(self, api):
             seen.append(nats_client.certifi.where())  # what the SDK's TLS context would load at connect time
 
-    monkeypatch.setattr(nats_client, "certifi", nats_client.certifi)  # restored after the test
-    monkeypatch.setattr(growwapi, "GrowwFeed", FakeFeed)
+    nats_client = _stand_in_sdk(monkeypatch, FakeFeed)
     monkeypatch.setattr(feed_wiring, "GrowwProvider", lambda cfg: SimpleNamespace(api=object()))
     env = {"SSL_CERT_FILE": str(pki / "ca.pem")} if with_bundle else {}
     feed_wiring.build_feed_probe({}, env)
@@ -171,3 +183,11 @@ def test_the_built_probe_connects_with_the_combined_roots_only_when_a_bundle_is_
         assert data.startswith(Path(certifi.where()).read_bytes()) and (pki / "ca.pem").read_bytes() in data
     else:
         assert nats_client.certifi is certifi and seen == [certifi.where()]
+
+
+def test_the_real_sdk_builds_its_feed_context_from_its_own_certifi_name():
+    """The fix replaces `nats_client.certifi`: it works only while the SDK reads that name at connect time."""
+    pytest.importorskip("growwapi")
+    from growwapi.groww import nats_client
+
+    assert nats_client.certifi is certifi and "certifi.where()" in inspect.getsource(nats_client)
