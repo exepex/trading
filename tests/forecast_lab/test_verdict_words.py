@@ -88,3 +88,23 @@ def test_the_message_passes_the_evening_s_missing_sources_and_never_the_morning_
     assert ("Context: not available (Brent: no reading yet (nothing recorded); Flags: the read failed (OSError)).") in (
         slack_lines(view)
     )
+
+
+def test_the_page_gets_each_piece_as_plain_words_without_slack_s_bold():
+    """The designer's page lays each piece out as its own row (FL1-1f): no "*NIFTY*" markup in any piece."""
+    from fno.forecast_lab.page import verdict_words as words
+    from fno.forecast_lab.page.model import NO_FORECAST_TODAY
+
+    assert (words.edge_words(1000.0, 1000.4, 1199.6), words.range_words(1000.4, 1199.6)) == (
+        "❌ outside by 0.40 points (below)", "1,000–1,200")  # fmt: skip
+    hit = checked(1100.0, DayShape(1100.0, 1110.0, 1090.0, 1090.0), why=(Cue("Brent", 80.0, 1.5, "%"),))
+    assert words.day_line(hit).startswith("Day (measured): opened 1,100 (+10 on the previous close)")
+    assert words.size_line(hit).startswith("Size (measured): swing 20 points")
+    assert words.cause_lines(hit) == ["Context (measured, not a cause): Brent +1.50%."]
+    none = replace(index(), unchecked=NO_FORECAST_TODAY, unchecked_why="no issue")
+    said = "❌ today: no verdict. No forecast was issued for today (no issue), so there is nothing to check."
+    assert words.no_verdict_words(none, DAY, MON) == said
+    assert words.no_verdict_line(none, DAY, MON).startswith("❌ *NIFTY* today: no verdict.")
+    assert not any(
+        "*" in piece for piece in (words.day_line(hit), words.size_line(hit), words.no_verdict_words(none, DAY, MON))
+    )

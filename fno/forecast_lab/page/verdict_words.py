@@ -20,23 +20,25 @@ from .plain import LIGHTS, OFFICIAL, PROVISIONAL, VERDICTS, day_short, light, mo
 from .reasons import NO_REASON
 
 NARROW = 0.25  # a hit within a quarter of the "almost certainly" half-width of its edge is narrow (reasoning only)
-NO_VERDICT = {
-    CLOSE_NOT_READ: "⚠️ *{u}* today: no verdict. Today's close could not be read ({why}). The result comes in {report}.",
-    NO_FORECAST_TODAY: "❌ *{u}* today: no verdict. No forecast was issued for today ({why}), so there is nothing to "
-    "check.",
+NO_VERDICT = {  # (glyph, sentence): the page prints "<glyph> <sentence>", Slack puts the index in bold between them
+    CLOSE_NOT_READ: ("⚠️", "today: no verdict. Today's close could not be read ({why}). The result comes in {report}."),
+    NO_FORECAST_TODAY: (
+        "❌",
+        "today: no verdict. No forecast was issued for today ({why}), so there is nothing to check.",
+    ),
 }
 NO_CAUSE = "Missed (reasoning): no measured cause in our data, so likely noise."
 QUIET_CONTEXT = f"Context (measured): {QUIET}."
 
 
-def _edge(close: float, low: float, high: float) -> str:
+def edge_words(close: float, low: float, high: float) -> str:
     if low <= close <= high:
         return "✅ inside"
     side, gap = ("below", low - close) if close < low else ("above", close - high)
     return f"❌ outside by {gap:,.2f} points ({side})"
 
 
-def _range(low: float, high: float) -> str:
+def range_words(low: float, high: float) -> str:
     return f"{low:,.0f}–{high:,.0f}"
 
 
@@ -44,17 +46,27 @@ def verdict_line(index: IndexView, today: date, next_session: date | None) -> st
     r, b = index.result, index.result.band
     label = PROVISIONAL.format(report=morning_report(today, next_session)) if r.provisional else OFFICIAL
     when = "today" if r.day == today else day_short(r.day)
-    return (f"*{index.underlying}* {when}: closed {r.close:,.2f} ({label}) | most likely {_range(b.q25, b.q75)} → "
-            f"{_edge(r.close, b.q25, b.q75)} | almost certainly {_range(b.q05, b.q95)} → "
-            f"{_edge(r.close, b.q05, b.q95)} → {VERDICTS[r.inside_90]}")  # fmt: skip
+    return (f"*{index.underlying}* {when}: closed {r.close:,.2f} ({label}) | most likely {range_words(b.q25, b.q75)} → "
+            f"{edge_words(r.close, b.q25, b.q75)} | almost certainly {range_words(b.q05, b.q95)} → "
+            f"{edge_words(r.close, b.q05, b.q95)} → {VERDICTS[r.inside_90]}")  # fmt: skip
+
+
+def _no_verdict(index: IndexView, today: date, next_session: date | None) -> tuple[str, str]:
+    glyph, sentence = NO_VERDICT[index.unchecked]
+    return glyph, sentence.format(why=index.unchecked_why, report=morning_report(today, next_session))
+
+
+def no_verdict_words(index: IndexView, today: date, next_session: date | None) -> str:
+    """The no-verdict sentence with its glyph, without the index's name (the page's red line)."""
+    return " ".join(_no_verdict(index, today, next_session))
 
 
 def no_verdict_line(index: IndexView, today: date, next_session: date | None) -> str:
-    report = morning_report(today, next_session)
-    return NO_VERDICT[index.unchecked].format(u=index.underlying, why=index.unchecked_why, report=report)
+    glyph, sentence = _no_verdict(index, today, next_session)
+    return f"{glyph} *{index.underlying}* {sentence}"
 
 
-def _path(index: IndexView) -> str | None:
+def day_line(index: IndexView) -> str | None:
     s, b = index.shape, index.result.band
     if s is None:
         return None
@@ -63,7 +75,7 @@ def _path(index: IndexView) -> str | None:
         gap = f" ({s.open - s.previous_close:+,.0f} on the previous close)" if s.previous_close else ""
         parts.append(f"opened {s.open:,.0f}{gap}")
     if s.high is not None and s.low is not None:
-        parts.append(f"ranged {_range(s.low, s.high)}")
+        parts.append(f"ranged {range_words(s.low, s.high)}")
     parts.append(f"closed {index.result.close:,.0f}")
     return (f"Day (measured): {', '.join(parts)}; the forecast's centre was {b.q50:,.0f} and its “most likely” width "
             f"{b.q75 - b.q25:,.0f} points.")  # fmt: skip
@@ -77,7 +89,7 @@ def _swing(index: IndexView) -> str:
     return f"swing {s.high - s.low:,.0f} points = {ratio:.1f}× the “most likely” width"
 
 
-def _size(index: IndexView) -> str | None:
+def size_line(index: IndexView) -> str | None:
     r, b, swing = index.result, index.result.band, _swing(index)
     if not r.inside_90:
         return f"Size (measured): {swing}." if swing else None
@@ -93,7 +105,7 @@ def _cue(cue: Cue) -> str:
     return cue.text if cue.text is not None else f"{cue.name} {cue.change:+.2f}{cue.unit}"
 
 
-def _causes(index: IndexView, unavailable: tuple[str, ...]) -> list[str]:
+def cause_lines(index: IndexView, unavailable: tuple[str, ...] = ()) -> list[str]:
     """A miss's measured reasons (or that there is none), then the context: its measured values, "no notable moves",
     or "not available" with each source's reason; never a placeholder."""
     said = [c.text for c in index.why if c.name == REASON and c.text != NO_REASON]
@@ -118,6 +130,6 @@ def top_block(index: IndexView, today: date, next_session: date | None,
     if index.result is None:
         lines = [no_verdict_line(index, today, next_session)] if index.unchecked else [f"*{index.underlying}*"]
     else:
-        lines = [verdict_line(index, today, next_session), *(line for line in (_path(index), _size(index)) if line),
-                 *_causes(index, unavailable)]  # fmt: skip
+        why = (line for line in (day_line(index), size_line(index)) if line)
+        lines = [verdict_line(index, today, next_session), *why, *cause_lines(index, unavailable)]
     return [*lines, f"{LIGHTS[light(index)]} {record_words(index)}"]

@@ -77,7 +77,9 @@ The footer (the status line) stays, but nothing that changes a verdict lives onl
 ## Design
 
 - `page/today_view.py`: values only. The day's shape, the record (`TrackRecord`) and the cause of no verdict.
-- `page/verdict_words.py`: the top block's words, built from `plain.py`'s shared words (`VERDICTS`, `PROVISIONAL`,
+- `page/verdict_words.py`: the top block's words, as public pieces for the designer's page (`edge_words`, `range_words`,
+  `day_line`, `size_line`, `cause_lines`, `no_verdict_words`; plain text, no Slack bold) and as Slack lines, built from
+  `plain.py`'s shared words (`VERDICTS`, `PROVISIONAL`,
   `OFFICIAL`, `morning_report`, `record_words`).
 - `page/message.py`: the message's text. It moved out of `plain.py`, so that `plain.py` (shared words) and
   `verdict_words.py` (the evening block) do not import each other.
