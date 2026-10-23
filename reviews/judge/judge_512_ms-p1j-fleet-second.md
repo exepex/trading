@@ -89,3 +89,23 @@ replay isolation, and six guards on record and fill paths, can be broken with ev
 - **Real acceptance:** 9 of 9 (in the suite).
 - **Gates (my run):** pytest -n auto 13,522 passed, 16 xfailed. ruff check and format, check_imports and
   check_records are clean.
+
+## Addendum 2: the final tip fec42868
+
+**Verdict: PASS confirmed** (second judge). Scope: 83b0caec..fec42868, the composition root split in three on the
+orchestrator's ruling. Replay isolation now holds by construction, not only by a test.
+
+- **The split:**
+  - `fleet_wiring.fleet_on` wires what both roots share over the stores it is handed, and builds no writing store.
+  - `wiring.build_fleet(cfg)` is the record root, and the only one that builds `build_dashcam`, `build_account_sync`
+    and `GitManifestRecorder`.
+  - `replay_wiring.build_replay_fleet` hands in a `ReplayDashcam`, no committer and no sync, all under its folder,
+    and imports none of the three.
+  - The CLI picks the root; `RunMode` no longer reaches a builder. The only callers of `build_fleet` are the CLI's
+    record path and its test (grep).
+- **Plants (mine), both caught by `test_wiring.py`:** the replay root sealing through `build_dashcam`, and the replay
+  root passing `build_account_sync`.
+- **Replay through the new root:** my `school run --replay` for 22 Oct gives 42 decisions and 16 fills, and its 69
+  files are byte-identical to my round-5 replay. `git status` is clean.
+- **Gates (my run):** pytest -n auto 13,535 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.
