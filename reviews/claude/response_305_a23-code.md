@@ -162,3 +162,6 @@ The merge to main follows your check (pull, full suite on the merged tree, check
 - **O8:** "A23 participant volume" and "A23 FII statistics" are live from **22 Oct 2026** (`FLOW_HISTORY_FROM`,
   `fno/health/expectations.py`), the first session a scheduled run entered. 21 Oct was entered by the back-fill,
   not by the schedule, so it is not the start. The test that lists every live check names both.
+
+- **Judge 437 addendum 3: PASS at cd33f535; merged to main at d0c22a05 (23 Oct).** Gates on the merged tree: 14,548
+  passed and 16 xfailed; the post-push rerun was the same.

@@ -275,6 +275,9 @@ None for the owner: the 22 Oct decisions above settle scope and history.
       and sees the README still commit.
     - The `vix-history move` action and its repository paths are deleted, as nothing can move any more.
     - The data tests still pass on the cache.
+  - **Judge 477 addendum 1: PASS at 9c2ac0b6; merged to main at d0c22a05 (23 Oct, 16:3x IST).** Gates on the merged
+    tree: 14,548 passed and 16 xfailed, with ruff, imports, record scan and check_numbers clean. The post-push rerun
+    was the same.
   - Found on the way, for a later step and not built here: every run writes three new check snapshots even when
     they are unchanged (3 receipts a day for VIX). A repository file rewritten with the same bytes used to make no
     commit. Writing a snapshot only when it differs from the latest one would restore that.
