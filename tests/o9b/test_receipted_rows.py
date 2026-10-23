@@ -116,3 +116,10 @@ def test_a_part_without_its_last_new_line_is_refused_at_read_by_name(drive):
     series.store.put("vix/india_vix_daily/20261022T100000Z-aaaaaa.csv", TODAYS_FILE.rstrip(b"\n"))
     with pytest.raises(TableFileBroken, match="a part of vix/india_vix_daily does not end with a new line"):
         series.rows()
+
+
+def test_a_series_with_nothing_written_yet_reads_empty_not_unreadable(drive):
+    """The sync reports a prefix without receipts as a problem; a new series (no part yet) is simply empty."""
+    series = drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa", folder="global-cues/revisions")
+    assert series.rows() == [] and series.rebuilt() == b""
+    assert drive.series(ReceiptedSnapshots, "r1", folder="vix/checks/new").latest() == []

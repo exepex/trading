@@ -1,8 +1,18 @@
 # Global cues (story A17)
 
-Daily cues an NSE session may know at its 09:15 IST open or its 15:00 IST decision time. Derived tables (public cues
-here, private cues in Drive only); the raw copies are in Google Drive (`fno-research/raw/<publisher>/...`, one copy
-per fetch, filed under the fetch time). First fill: 15 Oct 2026, 06:15 IST.
+Daily cues an NSE session may know at its 09:15 IST open or its 15:00 IST decision time. Derived tables; the raw
+copies are in Google Drive (`fno-research/raw/<publisher>/...`, one copy per fetch, filed under the fetch time). First
+fill: 15 Oct 2026, 06:15 IST.
+
+**Story O9b step 1b: the public tables and checks are in Drive, with receipts.** The public tables (`us10y`, `brent`,
+`usdinr_rbi`), the shared `revisions` log, `us_trading_dates` and `checks/{gaps,overlap_usdinr}` are write-once files
+in Drive's `data/global-cues/` area. Each file has a SHA-256 receipt under `receipts/data/global-cues/`. A table is its
+parts in name order (the first part is the moved file, and each later fill adds one); a report's newest snapshot is the
+current one. Readers go through the verified cache (`python -m fno data-cache sync data/global-cues`). The files below
+in this folder are the copies as moved. They stop updating at the step's merge (Drive is the record), and only
+`global-cues move` reads them until their removal commit. The
+following stay here: this README, `us_market_closures.csv` (hand-kept, sourced) and `checks/behind_alerted.txt` (alert
+state, names only). The table below describes the public tables, wherever they live.
 
 | Table | Cue | Rows | Dates | Source |
 |---|---|---|---|---|
@@ -206,13 +216,13 @@ storage of these index levels.
 
 ```
 python -m fno global-cues fill     # download, archive in Drive, extend the tables, rewrite checks (first run back-fills)
-python -m fno global-cues check    # rewrite checks/ (and, with Drive, us_trading_dates.csv) from the tables
+python -m fno global-cues check    # rewrite the checks and us_trading_dates in Drive from the tables (Drive settings)
 python -m fno global-cues verify   # recompute every row from the archived copy it names (read-only)
 python -m fno global-cues adopt --cue sp500 --copy <raw path> [--from] [--to]   # a copy already in Drive into its table
+python -m fno global-cues move     # O9b: the files here into their Drive series, read back equal (a grown file caught up)
 ```
 
-`check` covers the private cues only when the Drive settings are present (their tables are in Drive); without them it
-rewrites the public cues' checks alone.
+Every command needs the Drive settings: every table is in Drive (O9b).
 
 `.github/workflows/global-cues.yml` runs `fill` at 03:41, 04:41 and 14:11 IST every day (A17 schedules, 16 Oct 2026); its
 commits are a scheduled job's data (lane 3). A failed or stale cue posts one #fno-desk line naming it.

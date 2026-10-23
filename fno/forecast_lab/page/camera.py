@@ -40,7 +40,7 @@ class ChromiumCamera(PageCamera):
             try:
                 trim(raw, out, MARGIN * self.scale)
             except (OSError, ValueError, ImportError) as error:  # no Pillow, or a picture it cannot read
-                raise PictureFailed(f"the picture could not be trimmed: {type(error).__name__}") from error
+                raise PictureFailed(f"the picture could not be trimmed: {_named(error)}") from error
         return out
 
     def _shoot(self, page: Path, raw: Path) -> None:
@@ -53,6 +53,12 @@ class ChromiumCamera(PageCamera):
             raise PictureFailed(f"Chromium did not finish: {type(error).__name__}") from error
         if not raw.exists():
             raise PictureFailed(f"Chromium wrote no picture (exit {done.returncode})")
+
+
+def _named(error: Exception) -> str:
+    """The error's kind, and for an import the module that is missing (23 Oct: a bare "ImportError" hid which)."""
+    module = error.name if isinstance(error, ImportError) else None
+    return f"{type(error).__name__} (module {module})" if module else type(error).__name__
 
 
 def trim(raw: Path, out: Path, margin: int) -> None:

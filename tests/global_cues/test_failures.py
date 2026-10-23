@@ -9,7 +9,7 @@ import pytest
 
 from fno.global_cues import wiring
 from fno.global_cues.as_of import DECISION, value_for
-from fno.global_cues.check_files import CueChecks
+from fno.global_cues.check_files import CHECK_FILES, CueChecks
 from fno.global_cues.cli import cmd_global_cues
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.job import GlobalCueJob
@@ -20,6 +20,7 @@ from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.research_data.calendar import CalendarError
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
+from fno.storage.report_files import csv_reports
 from fno.storage.row_log import TableFileBroken
 from tests.global_cues.fakes import EIA, RBI, FakeSource, csv_table, fake_file
 
@@ -159,7 +160,7 @@ def test_a_stale_cue_and_a_run_stopped_midway_are_reported_with_what_came_before
         def download(self, session, request):
             raise RuntimeError("Drive settings missing")
 
-    job = GlobalCueJob(collect, tables, CueChecks(tables, tmp_path / "checks"))
+    job = GlobalCueJob(collect, tables, CueChecks(tables, csv_reports(tmp_path / "checks", CHECK_FILES)))
     lines, ok = job.run([FakeSource({"a.csv": GOOD}), Broken({"b.csv": GOOD})], date(2026, 1, 1), date(2026, 10, 30))
     assert not ok and "STALE: older than 7 days on 2026-10-30" in lines[0]
     assert lines[1].startswith("broken: FAILED, run stopped (RuntimeError): Drive settings missing")

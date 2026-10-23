@@ -1,9 +1,10 @@
 """Composition root of story A17, the global cues: the only place that picks the concrete sources (Cboe, Nasdaq, US
 Treasury, EIA, RBI, FBIL), the shared polite HTTP session, the owner's Drive raw area, the snapshot logs, the tables in
-the repository (public cues) or Drive's derived area (private cues: the S&P 500 and Nasdaq 100, owner decision a927390;
-FBIL's USD/INR rate, story A17d), NSE's session calendar for the `live` rule, and each cue's calendar for its readings
-(story A17b); story A17e's world indexes (official files where they answer without a login, Yahoo for the rest and
-the history, one reading per index, every value private). Swapping a source is one line in SOURCES."""
+Drive: the public cues' with receipts in the `data` area (story O9b, `drive_wiring.py`), the private cues' in the
+derived area (the S&P 500 and Nasdaq 100, owner decision a927390; FBIL's USD/INR rate, story A17d), NSE's session
+calendar for the `live` rule, and each cue's calendar for its readings (story A17b); story A17e's world indexes
+(official files where they answer without a login, Yahoo for the rest and the history, one reading per index, every
+value private). Swapping a source is one line in SOURCES."""
 
 from __future__ import annotations
 
@@ -19,15 +20,17 @@ from ..models import now_ist
 from ..research_data.calendar import SessionCalendar
 from ..storage import wiring as storage
 from ..storage.creation_times import GoogleDriveCreationTimes
+from ..storage.moving import move_into
 from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.raw_store import AreaStore, RawFileStore
-from ..storage.row_log import CsvRowLog, DrivePartsRowLog, DriveSnapshots
+from ..storage.row_log import DrivePartsRowLog, DriveSnapshots
 from .as_of import OPEN
 from .asia_sources import CsindexShanghaiSource, NikkeiSource, TwseTaiexSource
 from .behind import BehindCheck
-from .check_files import CueChecks
+from .check_files import CHECK_FILES, CueChecks
 from .collector import CueCollector
 from .cue_calendars import CueCalendar, NseSessionCalendar, NyseCalendar, WeekdayCalendar
+from .drive_wiring import PublicCueSeries
 from .europe_sources import CboeVixSource, StoxxSource
 from .index_reader import IndexPair, IndexReader
 from .job import GlobalCueJob
@@ -56,12 +59,12 @@ from .us_index_sources import CboeSp500Source, NasdaqNdxSource
 from .verify import CueTableVerifier
 from .yahoo_source import YahooChartSource, YahooGate
 
-CUES_FOLDER = storage.REPOSITORY / "research" / "data" / "global-cues"
+CUES_FOLDER = storage.REPOSITORY / "research" / "data" / "global-cues"  # tables and checks: read only by `move` (O9b)
 CHECKS_FOLDER = CUES_FOLDER / "checks"
 SNAPSHOT_LOG_FOLDER = storage.MANIFEST_FOLDER / "global-cues"  # one row per archived copy, like the manifests
 REVISIONS_FILE = "revisions.csv"  # the public cues' shared revision log
 CLOSURES_FILE = CUES_FOLDER / "us_market_closures.csv"  # NYSE's unscheduled whole-day closures, each sourced
-TRADING_DATES_FILE = CUES_FOLDER / "us_trading_dates.csv"  # dates only, from the Drive-only index tables
+TRADING_DATES_FILE = CUES_FOLDER / "us_trading_dates.csv"  # dates only, from the private index tables
 BEHIND_EPISODES = CHECKS_FOLDER / "behind_alerted.txt"  # names only (judge 351 add. 2)
 PRIVATE_FOLDER = "global-cues"  # in Drive's derived area: <cue>/rows, <cue>/revisions, <cue>/checks
 YAHOO_SUFFIX = "_yahoo"
@@ -233,13 +236,9 @@ def _private_log(env, cue: str, kind: str) -> DrivePartsRowLog:
 
 
 def build_tables(include_private: bool = True, env=os.environ) -> dict[str, CueTable]:
-    """Public cues' tables in the repository; private cues' in Drive (needs the Drive settings)."""
-    after, shared_revisions = _after(), CsvRowLog(CUES_FOLDER / REVISIONS_FILE)
-    tables = {
-        s.cue: CueTable(s.cue, CsvRowLog(CUES_FOLDER / f"{s.cue}.csv"), shared_revisions, after)
-        for s in SOURCES
-        if not s.private
-    }
+    """Every table is in Drive (needs the Drive settings): the public cues' with receipts, the private cues' apart."""
+    after, public = _after(), PublicCueSeries(env)
+    tables = {s.cue: CueTable(s.cue, public.table(s.cue), public.revisions, after) for s in SOURCES if not s.private}
     for s in SOURCES if include_private else ():
         if s.private:
             tables[s.cue] = CueTable(
@@ -265,7 +264,8 @@ def _checks(tables: dict[str, CueTable], env=os.environ) -> CueChecks:
     sessions = {
         i: calendars[p.official] for i, p in INDEX_PAIRS.items() if p.official and by_cue[p.official].holiday_rows
     }
-    return CueChecks(tables, CHECKS_FOLDER, private, TRADING_DATES_FILE, INDEX_PAIRS, pairs, sessions)
+    public = PublicCueSeries(env)
+    return CueChecks(tables, public.checks(), private, public.trading_dates(), INDEX_PAIRS, pairs, sessions)
 
 
 def build_raw_area(env=os.environ) -> RawFileStore:
@@ -287,10 +287,21 @@ def build_job(env=os.environ) -> GlobalCueJob:
 
 
 def build_checks(env=os.environ) -> CueChecks:
-    """The checks from the tables: public ones only when the Drive settings are missing (no network otherwise)."""
-    with_drive = storage.build_owner_drive(env) is not None
-    tables = build_tables(include_private=with_drive, env=env)
-    return _checks(tables, env)
+    """The checks from the tables, every one read from Drive (O9b: the public tables are there too)."""
+    return _checks(build_tables(env=env), env)
+
+
+def move_public_cues_to_drive(env=os.environ) -> list[str]:
+    """O9b step 1b: the committed public tables, the shared revision log (once written) and the reports into their
+    Drive series, each read back equal (a file grown since an earlier move is caught up)."""
+    public = PublicCueSeries(env)
+    moves = [(public.table(s.cue), CUES_FOLDER / f"{s.cue}.csv") for s in SOURCES if not s.private]
+    if (CUES_FOLDER / REVISIONS_FILE).is_file():
+        moves.append((public.revisions, CUES_FOLDER / REVISIONS_FILE))
+    moves.append((public.trading_dates(), TRADING_DATES_FILE))
+    checks = public.checks()
+    moves += [(checks[name], CHECKS_FOLDER / name) for name in CHECK_FILES]
+    return [move_into(series, path.read_bytes(), path.relative_to(CUES_FOLDER).as_posix()) for series, path in moves]
 
 
 def build_verifier(env=os.environ) -> CueTableVerifier:

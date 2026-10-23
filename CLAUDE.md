@@ -65,9 +65,12 @@ cancels orders.
    A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww).
    It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
-   same day skips the steps already done.
+   same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
+   hang: never stop the run while it waits. A second run beside a living one prints "another daily run of <day> is
+   running" and does nothing (story O1-day-lock): then wait for the first run's last line.
 3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
-   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin
+   main` first, then `git push origin HEAD:main`).
 
 ### What the run does for the 3 pm quote parts (A4c's routine steps, word for word)
 
@@ -82,7 +85,8 @@ each part's commit in its one thread. The `git add` lines below are also the han
    weekend session is recorded. It prints the result line. Groww's raw quote rows go to Google Drive only (story A4b;
    needs the four `FNO_GDRIVE_*` settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive
    file's SHA-256) and the day's `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
-3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase` first); never
+3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase origin main`
+   first, then `git push origin HEAD:main`); never
    `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed: `git add
    ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`. Never edit
    or delete a recorded attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never
@@ -117,10 +121,19 @@ modifies or cancels orders, and neither uses Groww.
    orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
    failure of the routine: the morning then says "not archived yet". Then `git pull --no-rebase origin main`, so
    A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
+   After `lab open` (step 2), DR1-1's shadow: `python -m fno records certify closes --since 7 --level certified
+   --commit` certifies every recent session's A4h close against the official file just archived and commits only
+   `receipts/records/`; a session not recorded yet is retried by the next morning. It alerts a record not pushed
+   or a conflict itself. Note any "NOT recorded" line in `conversations/<date>.md` and post it to #fno-desk unless
+   its reason contains "no official index-close file in Drive yet" (A4h's overdue rule alerts that gap); post the text of
+   any "alert NOT sent" line.
 1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
    list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
    `receipts/data/closes/`; exit 1: post every line it printed (the read's problem line and the commit line) to
-   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then, before
+   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then DR1-1's shadow:
+   `python -m fno records certify closes --level provisional --commit` (commits only `receipts/records/`; it alerts
+   a record not pushed or a conflict itself; a "NOT recorded" line is noted in `conversations/<date>.md` and posted
+   to #fno-desk, as is the text of any "alert NOT sent" line). Then, before
    `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
    dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
    data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
@@ -137,7 +150,8 @@ modifies or cancels orders, and neither uses Groww.
    `--no-verify`). If the push is refused, pull and push once more; if it fails again, post "receipt NOT pushed" with
    the edition and day to #fno-desk (`C0C89E8QCCD`) with the Slack connector: the Drive copy is the record.
 4. If it printed "alert NOT sent", post those lines to #fno-desk with the Slack connector. Note any failure in
-   `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+   `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin main` first, then `git push origin
+   HEAD:main`).
 
 ## Pre-open capture (story A22)
 
@@ -161,7 +175,8 @@ in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is r
      08:41, for the 08:50 morning edition). It ends on "pre-open recorded" or "pre-open recorded with problems: ..."
      (exit 1; it posts that one line to #fno-desk itself).
 4. If either printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk
-   (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only
+   (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase origin main`
+   first, then `git push origin HEAD:main`; only
    the files the command names, never `--no-verify`). No value is ever posted or committed.
 
 ## Branch
@@ -181,6 +196,11 @@ damage, not by its size; when unsure, lane 1.
   commits by scheduled jobs.
 
 A checkout on a detached HEAD pushes with `git push origin HEAD:<branch>`.
+
+**Every scheduled routine starts on latest main (story DR1, owner 23 Oct 2026).** The first line of each routine's
+stored prompt, before setup: `git fetch -q origin main && git checkout -q --detach origin/main`; if it fails, post its
+error line to #fno-desk (`C0C89E8QCCD`) and stop. Every push in a routine is `git pull --no-rebase origin main`, then
+`git push origin HEAD:main` (22 Oct: a routine on its own session branch could not commit the day's quotes).
 
 Work on `main` (`git pull --no-rebase origin main` before every push: ChatGPT also pushes to `main`).
 Every session commits with the public-record scan on (story O5): `.claude/settings.json` runs

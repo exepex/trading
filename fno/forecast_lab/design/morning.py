@@ -1,32 +1,23 @@
-"""Edition A, 08:50 IST, "Today's forecast": the key, the cues strip, then per index the three big numbers, chart 1
-over the last 10 sessions with today's forecast on the right, "why this forecast" and the reliability chip."""
+"""Edition A, 08:50 IST, "Today's forecast": the key, the cues strip, then per index the three big numbers, the previous
+session's check when the model carries one (FL1-1e), chart 1 over the last 10 sessions with today's forecast on the
+right, "why this forecast" and the reliability chip."""
 
 from __future__ import annotations
 
 from ..page.model import IndexView, PageView
-from .formats import fmt, fmt_mid, fmt_range
+from .blocks import big_numbers
+from .formats import fmt
 from .lines_chart import LinesChart, LinesLayout
-from .page import KEY, PHONE, WIDE, both, cues_strip, foot, head, header, method_line, reliability_chip, why_block
-from .values import days_of, today_of
+from .page import KEY, PHONE, WIDE, both, cues_strip, foot, head, header, method_line, record_pill, why_block
+from .values import days_of, result_of, today_of
+from .verdict import morning_check
 
 TITLE, ISSUED = "Today’s forecast", "08:50"
 GRID = {"NIFTY": 100, "BANKNIFTY": 250}
 DEFAULT_GRID = 100
 SHOWN = 10
+TODAY = "Today’s forecast"
 NO_FORECAST = "no forecast sealed for today"
-
-
-def big_numbers(index: IndexView) -> str:
-    n1, n3 = today_of(index, "N1"), today_of(index, "N3")
-    if n1 is None:
-        return f'<div class="lab first">Today’s forecast</div><div class="line">{NO_FORECAST}</div>'
-    outlook = f"in 3 days most likely {fmt_range(n3.lo50, n3.hi50)}" if n3 else ""
-    return (
-        f'<div class="lab first">Today’s forecast · close {n1.date}</div><div class="three big">'
-        f"<div><small>Most likely</small><b>{fmt_range(n1.lo50, n1.hi50)}</b><span>1 day in 2</span></div>"
-        f"<div><small>Almost certainly</small><b>{fmt_range(n1.lo90, n1.hi90)}</b><span>9 days in 10</span></div>"
-        f"<div><small>Forecast middle</small><b>{fmt_mid(n1.mid)}</b><span>{outlook}</span></div></div>"
-    )
 
 
 def chart_card(index: IndexView) -> str:
@@ -51,13 +42,14 @@ def chart_card(index: IndexView) -> str:
     )
 
 
-def section(index: IndexView) -> str:
-    name, days = index.underlying, days_of(index, SHOWN)
+def section(index: IndexView, view: PageView) -> str:
+    name = index.underlying
     return (
         f'<div class="card"><h2>{name}<small>last close {fmt(index.price)} ({index.price_at})</small></h2>'
-        f"{big_numbers(index)}</div>{chart_card(index)}"
+        f"{big_numbers(index, TODAY, NO_FORECAST)}{morning_check(index, view, result_of(index))}</div>"
+        f"{chart_card(index)}"
         f'<div class="card">{why_block("Why this forecast", [], index)}'
-        f'<div class="record">{reliability_chip(index, days)}</div>{method_line(index)}</div>'
+        f'<div class="record">{record_pill(index)}</div>{method_line(index)}</div>'
     )
 
 
@@ -65,7 +57,7 @@ def render_morning(view: PageView) -> str:
     n1 = next((today_of(i, "N1") for i in view.indices if today_of(i, "N1")), None)
     day = n1.date if n1 else f"{view.day:%a} {view.day.day} {view.day:%b}"
     confirmation = "".join(f'<p class="confirm">{line}</p>' for line in getattr(view, "confirmation", ()))
-    body = "".join(section(index) for index in view.indices)
+    body = "".join(section(index, view) for index in view.indices)
     return (
         head(f"Morning forecast, {day}")
         + header(TITLE, day, ISSUED, view)

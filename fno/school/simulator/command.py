@@ -16,7 +16,7 @@ from ...models import now_ist
 from ..constants import RoadCode
 from ..contracts.roads import ROADS
 from ..settings import school_settings
-from .archive.inputs import CodeNotCommitted, code_commit
+from .archive.inputs import CodeNotCommitted, code_identity
 from .archive.session import archive_practice
 from .archive.wiring import build_practice_archive
 from .practice.render import left_out_lines, line, render
@@ -51,16 +51,14 @@ def cmd_practice_run(args, out=print) -> int:
     try:
         window = RunWindow(args.first, args.last, tuple(RoadCode(code) for code in args.roads))
         window.check(PracticeWindows(school_settings(cfg).first_counted))  # before anything is read or built
-        commit = code_commit(ROOT) if args.archive else None  # a run id names a commit: before the long run, not after
+        code = code_identity(ROOT) if args.archive else None  # a run id names the code: before the long run, not after
         parts, skipped = build_practice_parts(cfg, now_ist().date(), ROOT / "research" / "data" / "quotes")
         runner = PracticeRunner(parts, Path(args.home) / f"{args.first}_{args.last}")
         report = runner.run(window)
     except (WindowRefused, CodeNotCommitted) as refused:
         out(line(f"refused: {refused}"))
         return REFUSED_EXIT
-    outcome = (
-        archive_practice(report, window, runner, commit, build_practice_archive, skipped) if args.archive else None
-    )
+    outcome = archive_practice(report, window, runner, code, build_practice_archive, skipped) if args.archive else None
     for text in render(report, outcome.status_lines() if outcome else None):
         out(text)
     for text in left_out_lines(skipped):

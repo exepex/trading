@@ -1,14 +1,15 @@
-"""`python -m fno global-cues <fill|check|verify|adopt> [--cue NAME ...] [--from DATE] [--to DATE]` (story A17).
+"""`python -m fno global-cues <fill|check|verify|adopt|preopen|move> [--cue NAME ...] [--from DATE] [--to DATE]` (A17).
 
 - fill: downloads each cue's files, archives them in the owner's Drive, extends the tables, rewrites the checks. The
   first run back-fills from each source's first date; later runs look back 31 days. Scheduled by
   .github/workflows/global-cues.yml (03:41, 04:41 and 14:11 IST).
-- check: rewrites the checks from the tables (the public ones offline; with the Drive settings also the private
-  ones, whose gaps are written to Drive).
+- check: rewrites the checks from the tables (every table and check is in Drive: needs the Drive settings).
 - verify: recomputes every table row from the archived copy it names (read-only).
 - adopt: takes a copy already in Drive's raw area into its cue's log and table, first seen at its own fetch time.
 - preopen: the Asian index levels before 09:15 IST (story A17e part B), called by A22's pre-open routine.
-Commit `research/data/global-cues/` and `research/data/manifests/global-cues/` after a run.
+- move: O9b step 1b's move of the committed public tables and checks into Drive, each read back equal.
+The public tables and checks live in Drive with receipts (O9b): commit `receipts/data/global-cues/`,
+`research/data/manifests/global-cues/` and `research/data/global-cues/checks/behind_alerted.txt` after a run.
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ def add_global_cues_parser(subparsers) -> None:
     cues = subparsers.add_parser(
         "global-cues", help="US closes, world indexes, US 10-year, Brent and USD/INR (A17, A17e)"
     )
-    cues.add_argument("action", choices=("fill", "check", "verify", "adopt", "preopen"))
+    cues.add_argument("action", choices=("fill", "check", "verify", "adopt", "preopen", "move"))
     cues.add_argument("--cue", action="append", choices=[s.cue for s in SOURCES], help="one cue (repeatable)")
     cues.add_argument("--from", dest="start", type=date.fromisoformat, default=None, help="YYYY-MM-DD")
     cues.add_argument("--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default: today)")
@@ -48,7 +49,8 @@ def add_global_cues_parser(subparsers) -> None:
 
 def cmd_global_cues(args) -> int:
     """Every action; a Drive or setup failure stops it with one named line and exit 1, never a traceback."""
-    action = {"fill": _fill, "check": _check, "verify": _verify, "adopt": _adopt, "preopen": _preopen}[args.action]
+    actions = {"fill": _fill, "check": _check, "verify": _verify, "adopt": _adopt, "preopen": _preopen, "move": _move}
+    action = actions[args.action]
     try:
         return action(args)
     except STOPPING_FAILURES as exc:
@@ -85,6 +87,19 @@ def _verify(args) -> int:
     problems += [p for s in sources for p in verifier.problems(s, tables[s.cue].rows())]
     print("\n".join(problems) or "every cue row equals the archived copy it names")
     return 1 if problems else 0
+
+
+def _move(args) -> int:
+    from ..storage.moving import MoveRefused
+    from .wiring import move_public_cues_to_drive
+
+    try:
+        print("\n".join(move_public_cues_to_drive()))
+    except MoveRefused as exc:
+        print(f"global cues move REFUSED (nothing overwritten): {exc}")
+        return 1
+    print("commit receipts/data/global-cues/ (the rows are evidence once their receipts are committed)")
+    return 0
 
 
 def _preopen(args) -> int:

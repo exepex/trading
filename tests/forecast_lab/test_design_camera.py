@@ -18,7 +18,7 @@ WIDTHS = (1100, 390)
 @pytest.mark.parametrize("width", WIDTHS)
 @pytest.mark.parametrize("edition", ("morning", "evening"))
 def test_both_editions_draw_at_the_picture_width_and_on_a_phone(tmp_path: Path, width: int, edition: str):
-    html = (render_morning if edition == "morning" else render_evening)(page(edition))
+    html = (render_morning if edition == "morning" else render_evening)(page(edition, checked=True))
     out = ChromiumCamera(width=width).picture(html, tmp_path / f"{edition}-{width}.png")
     from PIL import Image
 

@@ -678,3 +678,17 @@ number,name,session,claimed_at_utc
 477.3,o9b-data-checks-replaceable,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-23T11:25:18Z
 532.1,a16i-round-2,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T11:49:09Z
 533.1,ms-sim-e3-code-commit-r2,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-23T11:59:56Z
+535.1,receipt-same-second,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-23T14:36:35Z
+541.1,a4h2-text-round2,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-23T16:41:20Z
+540.1,dr1-0-round2,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-23T16:46:08Z
+538.1,fl1-1e-design-verdict,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-23T16:49:36Z
+542.1,o13-round2,session_01CNXXxiayQW9B1qYZzNTnAv,2026-10-23T17:33:22Z
+543.1,dr1-1-r2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T17:37:16Z
+538.2,fl1-1e-design-delta,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-23T17:52:05Z
+542.2,o13-advisory,session_01CNXXxiayQW9B1qYZzNTnAv,2026-10-23T18:03:28Z
+547.1,fl1-1f-round2,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-23T18:18:43Z
+546.1,dr1-1-shadow-r2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T18:23:08Z
+549.1,dr1-d2b-alert-any-failure,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T19:16:31Z
+551.1,round-2,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T19:20:54Z
+550.1,fl1-1f-design-page-r2,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-23T19:21:02Z
+551.2,round-2-tip,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T19:25:31Z

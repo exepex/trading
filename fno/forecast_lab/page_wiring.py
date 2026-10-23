@@ -20,7 +20,7 @@ from .maker import ReportMaker
 from .page.builder import PageBuilder
 from .page.camera import ChromiumCamera
 from .page.cues import Section
-from .page.facts import RepositoryFacts
+from .page.facts import CueRows, RepositoryFacts
 from .ranges import Outcomes, RangeSource
 from .sections.gift import GiftSection
 from .sections.global_cues import SPECS, GlobalCueSection
@@ -42,6 +42,13 @@ def flows_reader(calendar: SessionCalendar):
         return {c.day: (c.fii.net, c.dii.net) for c in reader.on(day).cash}
 
     return flows
+
+
+def cue_rows() -> CueRows:
+    """A17's public cue tables, read once per process from Drive's verified cache (O9b)."""
+    from ..global_cues.wiring import build_tables
+
+    return CueRows(functools.cache(lambda: build_tables(include_private=False)))
 
 
 PARTICIPANT_OI = "participant-oi"
@@ -81,7 +88,7 @@ def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: Session
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
     from ..storage.data_wiring import build_drive_cache
 
-    facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
+    facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar), cue_rows()), RegularSessions(calendar)
     today, sections = A4hTodayCloses(build_drive_cache()), build_sections(facts, sessions, official)
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official, today_closes=today,
                         sections=sections, levels=build_levels(calendar, sessions))  # fmt: skip

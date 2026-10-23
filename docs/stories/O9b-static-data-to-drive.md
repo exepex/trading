@@ -80,8 +80,10 @@ constant only; each step re-checks and lists its exact readers and writers):
    - a static file (one per session, closed years, study results) is one Drive file.
    O9b adds one receipt-backed append-table adapter and one receipt-backed snapshot series, reading through the
    verified cache (receipts are the index, Drive is never listed: O9 rule 4). A17's `RowLog` port already has Drive
-   classes (`DrivePartsRowLog`, `DriveSnapshots`) that list Drive instead; when global cues move (step 1b) they move
-   to the receipt-backed classes too (one way, not two).
+   classes (`DrivePartsRowLog`, `DriveSnapshots`) that list Drive instead. Step 1b moves only the public cues. Until
+   **step 1c** (the private cues, S&P 500, Nasdaq 100, FBIL and A17e's world indexes and pre-open rows, onto the
+   receipt-backed classes, agreed with the A17 owner), two ways stand side by side; step 1c ends that (one way,
+   not two).
 3. **Readers read through the verified cache.** A reader that goes through a port (the cue tables, the VIX table)
    changes one line in its composition root. A reader that opens a path (FL1's facts, the frozen panel readers) gets
    either the same port (agreed with its owner) or, where the code cannot change (frozen files), the files restored
@@ -102,6 +104,7 @@ constant only; each step re-checks and lists its exact readers and writers):
 |---|---|---|---|
 | 1 (pilot) | G3 VIX (`research/data/vix/`) | no: only its own CLI reads it | text and code may be judged and merged before Mon 26 Oct (no live reader) |
 | 1b | G3 global cues | FL1's report reads two tables (agreed with its builder first) | after or inside GC2 (below); from Mon 26 Oct, outside 14:00-16:15 IST |
+| 1c | G3 global cues, private: the S&P 500, Nasdaq 100, FBIL, A17e's world indexes and pre-open rows, from `DrivePartsRowLog`/`DriveSnapshots` (derived area, Drive listed) to the receipt-backed classes | yes (A17's checks, the weather, FL1) | with the A17 owner; from Mon 26 Oct, outside 14:00-16:15 IST |
 | 2 | G4 margins | yes (desk risk, C4) | from Mon 26 Oct, outside 14:00-16:15 IST |
 | 3 | G2 intraday: `rv-candle/` first (static), then the live A16 files | yes (E8, v4 RV) | as step 2 |
 | 4 | G5 NSE chains | yes (price distribution, capture) | as step 2 |
@@ -205,6 +208,46 @@ and in the commit hook's refusal list.
 | Removal from HEAD, refusal in the hook | the removal commit after the first scheduled run |
 | One builder per function | `RowLog` moved, not copied; A17's owner told; global cues untouched otherwise |
 
+## Step 1b: global cues (`story/o9b-cues`; merges from Mon 26 Oct, outside 14:00-16:15 IST)
+
+**GC2 closed with nothing built** (A17 owner, 22 Oct; response 321 addendum 1): `fno/global_cues` has no open change,
+so this step moves the public cue tables, with the A17 owner reviewing the diff before Judge F.
+
+**Files that move** (`research/data/global-cues/`): the public append tables `brent.csv` (631,009 bytes),
+`us10y.csv` (618,938) and `usdinr_rbi.csv` (493,096), the shared `revisions.csv` once written; the reports rewritten
+each run `us_trading_dates.csv` (76,002) and `checks/{gaps,overlap_usdinr}.csv`.
+**Stay in GitHub:** `README.md`; `us_market_closures.csv` (hand-kept, sourced, owner decision 1); `checks/behind_alerted.txt`
+(alert episodes, names only); `research/data/manifests/global-cues/**` and its `attempts/` (G7, G6). **Already in
+Drive, unchanged:** the private cues (S&P 500, Nasdaq 100, FBIL's USD/INR, the world indexes, A17e's pre-open rows),
+through `DrivePartsRowLog` and `DriveSnapshots`; moving them onto receipts is step 1c (section 3), agreed with the A17 owner.
+**Writer:** `global-cues.yml` (`fill`, `check`). **Readers:** `build_tables`/`build_reader` (`fno/global_cues/wiring.py`)
+serve the cue tables to A17's checks and `verify.py`, the index reader, the weather (M1, `fno/weather/wiring.py`
+`build_cue_reader`, `drivers.py`), and FL1's report (`fno/forecast_lab/page_wiring.py`,
+`sections/global_cues.py`); FL1's `fno/forecast_lab/page/facts.py:19` reads `brent.csv` and `usdinr_rbi.csv` by path.
+**Push-time readers:** none (`fno/health/` reads no global-cues file).
+
+**Design:** in `fno/global_cues/wiring.py`, each public cue's `CsvRowLog(CUES_FOLDER / "<cue>.csv")` and the shared
+revisions log become `ReceiptedRowLog(store, cache, "global-cues/<cue>")` (step 1's class, behind A17's `RowLog`
+port); `CueChecks` writes its reports through the `Report` port (`CsvReportFile` in tests, `ReceiptedSnapshots` in
+the wiring), as VIX's checks do. FL1's `facts.py` reads the two tables through `build_tables()` instead of by path
+(agreed with the FL1 builder; one line in its wiring). `global-cues.yml` commits `receipts/data/global-cues/` and the
+manifests instead of `$CUES` in the same change. `python -m fno global-cues move` moves the files as step 1 did, and
+the same re-run "already in Drive, equal" gates the merge.
+
+**Gap list (step 1b):**
+
+| Requirement | Where |
+|---|---|
+| verify.py's chain (`source_sha256` to the archived copy through the snapshot log), `first_seen_at` and provenance kept row for row (A17 owner point 1) | rows move byte for byte (rebuilt equals the file); receipts only add; `verify` run on the moved tables in the claims |
+| Only the public tables move; the private cues stay in their Drive classes (point 2) | files list above |
+| `behind_alerted.txt` stays (point 3) | stays list |
+| `global-cues.yml`'s commit step switches with the move (point 4) | design; a workflow test |
+| Every path reader traced from `build_tables`/`build_reader` (point 5) | readers list; FL1's `facts.py` switched with its builder |
+| Hand list `us_market_closures.csv` stays and its readers keep reading it | stays list (`us_market_closures()`, `NyseCalendar`) |
+| Upload, rebuild byte for byte, writer to Drive only, readers through the cache, removal after one scheduled run | as step 1 (section 2) |
+| Live readers (weather, FL1) not broken | merges from Mon 26 Oct outside 14:00-16:15; the weather's and FL1's outputs on a recorded day equal before and after (criterion 3) |
+| Data tests | `tests/global_cues/test_committed.py` and `test_us_calendar.py` move to the `data` marker; `data-checks.yml` adds `data/global-cues` |
+
 ## Step 2: G4 margins (`story/o9b-margins`; merges from Tue 27 Oct, 11:00-13:30 IST)
 
 **The split (orchestrator, 23 Oct, on the owner's 22 Oct rule):**
@@ -261,7 +304,6 @@ The school's road margin and practice wiring read only the factor file, which st
 | Fail closed, no fallback, one test per reader (owner, 23 Oct) | design |
 | Upload, rebuild byte for byte, writer to Drive only, readers through the cache, removal after one scheduled run | as steps 1 and 1b |
 | Merge window outside 14:00-16:15, the Groww probe (10:15-10:45 and 14:00-16:20 on 27 Oct) and the nse-margins slots (03:30, 05:00, 06:30, 07:45, 08:30 IST, plus GitHub's lateness); never Sunday 10:00-13:00 (stress-factor.yml) | header: Tue 27 Oct, 11:00-13:30 IST |
-
 ## Gap list
 
 | Requirement | Where |
@@ -280,6 +322,7 @@ The school's road margin and practice wiring read only the factor file, which st
 | Git history stays public; the options and their cost | section 4 |
 | Kept in GitHub: manifests, receipts, evidence logs, hand-curated settings, sealed records (owner, 22 Oct) | owner's decision 1; `us_market_closures.csv` and `behind_alerted.txt` named |
 | Each step's own requirements | each step's gap list (section 3) |
+| A new dataset read straight through `DriveCache.sync` (as `circulars` and `flow_history` do) stops before its first receipt: write first, or read through `ReceiptedRowLog`, whose empty series reads empty (judge 536 minor) | each step's design and gap list |
 
 ## Open questions
 
@@ -315,6 +358,97 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - Reader index: cited from section 1 (judge 475 add. 1). Nothing outside `fno/vix_history` reads VIX.
 - Not yet: the move, the data tests on the moved data, the first scheduled run, and the removal commit (the order
   above). They follow the PASS, and the claims will record each.
+
+**Step 1b, global cues (code, for the A17 owner, the FL1 builder and Judge F):**
+- Built as in step 1b's text above. Files:
+  - `fno/global_cues/{drive_wiring (new), wiring, check_files, cli}.py`
+  - `fno/storage/{receipted_rows, moving, report_files, row_log}.py`
+  - FL1's `fno/forecast_lab/page/facts.py` and `page_wiring.py`
+  - `.github/workflows/{global-cues, data-checks}.yml`
+  - `research/data/global-cues/README.md`
+  - tests: `tests/o9b/test_global_cues_drive.py` (new), `tests/o9b/{test_moving, test_receipted_rows}.py`, the
+    `tests/global_cues` files that call `CueChecks`, `tests/forecast_lab/test_page_facts.py` and
+    `tests/test_capture_schedules.py`
+- `CueChecks` now writes its two public reports and `us_trading_dates` through the `Report` port. `DriveSnapshots` is
+  a `Report` too. The wiring writes them as `ReceiptedSnapshots`; tests write them with `csv_reports`.
+- **Two design changes found while building, both in step 1's shared classes:**
+  1. **A move catches up.** `global-cues.yml` on main keeps appending to the repository files until the merge, so the
+     merge-day re-run would have refused ("Drive already holds other bytes"). `move_into` now asks the series:
+     - a table whose Drive copy is a whole-line start of the file gets the later rows as one new part, under the
+       header;
+     - a report gets a new snapshot;
+     - anything else is still refused, and the bytes must read back equal.
+  2. **Parts must sort in order.** Part names are a run id (time to the second plus a random suffix). Two runs in the
+     same second could therefore read back out of order. My own test caught this as an unequal read-back. A new part
+     that would not sort after every receipted part of its series is now refused (`PartOutOfOrder`); nothing is
+     written.
+- FL1, agreed with its builder (22 Oct):
+  - `RepositoryFacts(root, flows, cue_rows)` keeps its contract: brent and USD/INR are `{value_date: value}` up to
+    the report's day.
+  - The new `CueRows` (`page/facts.py`, wired by `page_wiring.cue_rows()`) reads each table once per process. A table
+    Drive cannot give (settings missing, a copy unverified, sign-in refused: all `RuntimeError`) gives no rows. It is
+    named, never skipped silently (the FL1 builder's request, 22 Oct): `FactsSource.problems()` names it, and
+    `PageBuilder._cues` adds one failed "Reasons' facts" view per problem. That view lands in the page's system
+    line, and `maker.py` alerts it once with the report. The text gives the error type only, because a message can
+    hold paths. The VIX and flows reasons stay. Three mutations on these lines were caught.
+  - No `live_only` filter was added.
+- The real move (22 Oct, from this session) read back equal for all six files:
+
+  | File | Bytes | SHA-256 starts |
+  |---|---|---|
+  | us10y | 618,938 | 0053dbe0 |
+  | brent | 631,009 | ce69a512 |
+  | usdinr_rbi | 493,096 | 83508820 |
+  | us_trading_dates | 76,002 | 1969b82e |
+  | gaps | 90,770 | c5a89239 |
+  | overlap | 10 | 62132041 |
+
+  `revisions.csv` does not exist yet, so it was not moved.
+- Evidence on the moved data:
+  - From a cold cache: "6 downloaded and verified", and 7 `data` tests passed.
+  - Each table rebuilt through the real wiring equals its repository file byte for byte.
+  - `global-cues verify --cue us10y --cue brent --cue usdinr_rbi` on the moved tables printed "every cue row equals
+    the archived copy it names" (exit 0).
+  - Criterion 3 for FL1: the facts' brent and USD/INR series, old path against new, over the 30 sessions from
+    8 Sep to 22 Oct 2026 showed 0 differences.
+  - The weather reads the same `rows()` and needed the Drive settings already (`build_reader(include_private=True)`).
+- **A17 owner's review (22 Oct): OK, no blocker.** 2,323 tests passed on their checkout, all 5 points met, and the
+  reader grep found GR1's `inputs.py` too (it reads through `build_tables`, so it follows the move). Merge-day item 1
+  (the race) is accepted, above. Item 2 is accepted: the README says the repository copies stop updating at the
+  merge. Their note is accepted as a later step, for VIX as well. Every run's fresh runner downloads every part once,
+  about 1,000 small files per run after a year, so the step is an `actions/cache` of `work/drive-cache` keyed on the
+  receipts. This step does not build it.
+- **Mutations: 9 of 9 caught.** Three survived at first and their tests were added:
+  - the revisions log left out of the move;
+  - the overlap check not written;
+  - the order check's `>=` weakened to `>`. The second series of one run reusing a held part name is now refused
+    by name, not by Drive's write-once conflict.
+- Changed behaviour, stated plainly: `global-cues check` (and `verify`) now need the Drive settings, because every
+  table is in Drive. No schedule calls `check`.
+- Not yet:
+  - the A17 owner's and FL1's reviews of this diff, then Judge F;
+  - the merge from Mon 26 Oct, outside 14:00-16:15 IST, and only while global-cues.yml has no queued or running
+    run. GitHub starts its crons late: the morning ones land around 05:30-06:40 IST, and the 14:11 one lands 17:50-21:00
+    or later (A17 owner's measurement). `global-cues move` runs just before the merge, and **once more right after it,
+    before the next scheduled run**. Otherwise a run that lands between the last catch-up and the merge adds rows to
+    the repository files only, and the next run on Drive would re-add them with a later `first_seen_at` (the A17
+    owner's merge-day item 1, accepted: I traced it in `CueTable.merge`). Each move says "already in Drive, equal" or
+    "caught up and read back equal";
+  - the first scheduled run on the new path;
+  - the removal commit.
+
+**Judge 478 (FAIL, round 1 of 2), both accepted:**
+- SF1 accepted. I checked it: `requests.ConnectionError` and `HTTPError` are `OSError` subclasses
+  (`issubclass(..., OSError)` is True). `CueRows` caught only `RuntimeError`, so a Drive network failure would have
+  escaped through the unguarded `facts.facts(day)` and lost the edition. `CueRows` now catches
+  `(RuntimeError, OSError)`, naming the class only. The test is parametrized over `RuntimeError`,
+  `requests.ConnectionError` and `requests.HTTPError`. Each gives one failed "Reasons' facts" view, the line in the
+  system line, one alert, and the other facts kept. A mutation back to `RuntimeError` alone fails 2 of the 3 cases.
+- Minor accepted: the umbrella's "one way, not two" line (section 2) now says step 1b moves only the public cues,
+  and that the two ways stand side by side until **step 1c**. Step 1c, the private cues onto the receipt-backed
+  classes with the A17 owner, is a named row in section 3's table and is cited in step 1b's files paragraph.
+- **Judge 478 addendum 1: round 2 PASS at a2f96e5f.** It may merge from Mon 26 Oct, outside 14:00-16:15 IST, with no
+  global-cues run queued or running and `global-cues move` run just before and just after the merge.
 - **After the PASS (judge 477), in order:**
   - The move read back equal, and its re-run just before the merge said "already in Drive, equal" for all four files.
   - Merged at ef9e976b.
@@ -438,3 +572,62 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   first desk day's margin reads.
 - **Not yet:** Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
   and after, the first scheduled runs, and the removal commit.
+**`DriveCache.sync` on a single file (story/o9-sync-file, for Judge F; assigned by the orchestrator, 23 Oct):**
+- **The defect:** `ReceiptFolder.under()` treated every prefix as a folder. For one file's path it returned `[]`, so
+  `sync(<file>)` answered `SyncReport(present=0, problems=[])`, an empty success. The FL1 builder proved this is
+  the root cause of the broken evening check on 23 Oct.
+- **The fix, in O9's store (`fno/storage`):**
+  - `under(prefix)` returns that one receipt when `prefix` names a receipted file, so a single-file sync now
+    brings exactly that file, verified.
+  - `sync()` reports "`<prefix>`: no receipts under it (neither a receipted file nor a folder holding one)" when
+    nothing matches, so a wrong path is never an empty success.
+  - A receipt-backed series with nothing written yet (a new table, say the global cues' revisions log) checks for
+    receipts first and reads as empty, not unreadable.
+- **The callers, checked on main:**
+  - Single-file paths: only FL1's `forecast_lab/a4h_closes.py` and `forecast_lab/sections/gift.py`. They now get
+    their file. The FL1 builder is changing them anyway; this fix makes the old call correct, not a second fix.
+  - Every other caller passes a folder: `price_ranges`, `price_distribution`, `premium_ranges`, `itm_chance`,
+    `circulars`, `flow_history`, `v4_pack/release` (a dirname), `school/dashcam` (a folder), `forecast_lab/wiring`,
+    `cache_cli` and the receipted series.
+  - The folders those callers sync from their own outputs all hold receipts today (premium_ranges 2,
+    itm_chance 1, price_distribution 21), so the new problem line changes no live answer.
+- **Tests:** a single file is synced alone; three wrong prefixes each give exactly the new problem, with nothing
+  downloaded; an empty row log and an empty snapshot series read as empty. All 3 mutations, one per change, are
+  caught.
+- **Judge 536: PASS at 494d97df.** It may merge before FL1's branch, on the orchestrator's go. The judge listed all 13
+  sync callers: every one that must succeed has receipts today. Their minor is accepted as a row in the umbrella gap
+  list: a new dataset read straight through `sync()` must write first, or read through `ReceiptedRowLog`.
+
+**DRY1's findings on step 1b (orchestrator, 24 Oct; `docs/dryruns/DRY1_2026-10-23.md` rows g1 and g7):**
+- **g1, conflicts with main:** main is merged into `story/o9b-cues`, keeping both sides. Judge 536's empty-series
+  guard in `receipted_rows.py` merged in by itself, beside step 1b's catch-up and part-order code. The tests of both
+  stay: tests/o9b, o9_store, global_cues and forecast_lab gave 409 passed on the merged tree.
+- **g7 (P-g2), Drive lags main and nothing alerts:** confirmed. Main's job kept appending to the repository CSVs
+  after the 22 Oct move, so the lab read 21 Oct's USD/INR.
+  - **The root fix stays the merge step:** `global-cues move` runs just before the merge and just after it (above).
+  - **New check so a lag cannot stay silent:** `test_no_drive_table_lags_its_repository_copy_while_the_copy_exists`
+    (a `data` test, run daily by data-checks, which alerts on failure). While a moved file is still in the
+    repository, it must be a whole-line start of its Drive table.
+  - **Proof:** the test failed on 24 Oct (Drive behind). `global-cues move` then caught up us10y, usdinr_rbi and
+    us_trading_dates, each read back equal. The test then passed (8 data tests). The new receipts are on this branch.
+- **Who merges:** the orchestrator, not me (24 Oct). The steps above stand for whoever merges: no global-cues run
+  queued or running, `global-cues move` just before and just after, then the full gates.
+
+**DRY1's finding g2 on step 2 (orchestrator, 24 Oct): rebuilt on the merged step 1b.**
+- `story/o9b-margins` now has `story/o9b-cues` merged in (61a0eee5: step 1b with main and judge 536's guard), in place
+  of its own copy of step 1b's files. The conflicts and how each was resolved:
+  - `moving.py`: this step's `exact` line kept.
+  - `receipted_rows.py`: this step's newline-guard constant kept.
+  - `data-checks.yml`: `MOVED: data/vix data/global-cues data/margins`.
+  - `tests/o9b/test_moving.py`: this step's stricter mid-line test kept, replacing step 1b's "other bytes" version.
+  - `tests/o9b/test_receipted_rows.py`: both sides' tests kept.
+  - The story and the register: both sides kept, and the sections reordered (1b before 2).
+- **`fno/storage/receipted_rows.py` against main** (`git diff origin/main -- fno/storage/receipted_rows.py`): only
+  additions, and judge 536's two-line empty-series guard in `files()` is untouched. The only removed line is the
+  `RowLog` import, extended with `TableFileBroken`. The additions:
+  - step 1b's: `OUT_OF_ORDER` and `PartOutOfOrder`, the part-order check in `write_bytes`, and `catch_up` on both
+    series;
+  - this step's: `NO_LAST_NEWLINE`, `ReceiptedRowLog.write_bytes` refusing a part without its last new line, and
+    `rebuilt()` refusing one at read.
+- Affected areas on the rebuilt tree: tests/o9b, o9_store, global_cues, nse_margins, risk and checks gave 1,226
+  passed. This goes back to Judge F as a delta.

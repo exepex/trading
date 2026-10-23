@@ -1,7 +1,7 @@
 """The checks of the cue tables, rewritten on every run (story A17; reports, not records).
 
-Public cues' gaps and the RBI/FBIL comparison (dates and kinds only, never a rate: story A17d) go to
-`research/data/global-cues/checks/`. A private cue's gaps (dates,
+Public cues' gaps and the RBI/FBIL comparison (dates and kinds only, never a rate: story A17d) go to their reports
+(Drive snapshots with receipts since O9b; `Report` port, so the composition root picks). A private cue's gaps (dates,
 never values, but still kept out of this public repository by the owner's rule) go to its own Drive log; only their
 counts are printed. Each run writes a full new snapshot there; the newest is current. When both US index tables are
 read (the Drive settings present), the dates-only list of US trading days is rewritten too (story A17b); from it the
@@ -12,12 +12,10 @@ only are named as unverified.
 
 from __future__ import annotations
 
-import csv
-import io
 from collections import Counter
-from pathlib import Path
+from collections.abc import Mapping
 
-from ..storage.row_log import DriveSnapshots
+from ..storage.report_files import Report
 from .checks import GAP_FIELDS, OVERLAP_FIELDS, gap_rows, overlap_rows
 from .cue_calendars import CueCalendar
 from .index_reader import IndexPair
@@ -27,6 +25,7 @@ from .trading_dates import FIELDS as TRADING_DATE_FIELDS
 from .trading_dates import NASDAQ100_CUE, SP500_CUE, us_trading_dates
 
 GAPS_FILE, OVERLAP_FILE = "gaps.csv", "overlap_usdinr.csv"
+CHECK_FILES = (GAPS_FILE, OVERLAP_FILE)
 RBI_CUE, FBIL_CUE = "usdinr_rbi", "usdinr_fbil"
 
 
@@ -34,16 +33,17 @@ class CueChecks:
     def __init__(
         self,
         tables: dict[str, CueTable],
-        folder: Path,
-        private_gaps: dict[str, DriveSnapshots] | None = None,
-        trading_dates: Path | None = None,
+        reports: Mapping[str, Report],
+        private_gaps: Mapping[str, Report] | None = None,
+        trading_dates: Report | None = None,
         pairs: dict[str, IndexPair] | None = None,
-        pair_snapshots: dict[str, DriveSnapshots] | None = None,
+        pair_snapshots: Mapping[str, Report] | None = None,
         pair_sessions: dict[str, CueCalendar] | None = None,
     ):
-        """`private_gaps`: cue -> where its gaps go in Drive (those cues never reach the repository's files).
-        `trading_dates`: where the dates-only US trading days go, when both US index tables are given."""
-        self.tables, self.checks_folder, self.private_gaps = tables, Path(folder), private_gaps or {}
+        """`reports`: the public checks by file name (`CHECK_FILES`). `private_gaps`: cue -> where its gaps go in
+        Drive's derived area (never with the public checks). `trading_dates`: where the dates-only US trading days
+        go, when both US index tables are given."""
+        self.tables, self.reports, self.private_gaps = tables, reports, private_gaps or {}
         self.trading_dates = trading_dates
         self.pairs, self.pair_snapshots, self.pair_sessions = pairs or {}, pair_snapshots or {}, pair_sessions or {}
 
@@ -54,8 +54,8 @@ class CueChecks:
             snapshots.write(GAP_FIELDS, gaps.get(cue, []))
         rbi, fbil = (_by_date(self.tables[c].rows()) if c in self.tables else {} for c in (RBI_CUE, FBIL_CUE))
         overlap = overlap_rows(rbi, fbil)
-        _write(self.checks_folder / GAPS_FILE, GAP_FIELDS, public)
-        _write(self.checks_folder / OVERLAP_FILE, OVERLAP_FIELDS, overlap)
+        self.reports[GAPS_FILE].write(GAP_FIELDS, public)
+        self.reports[OVERLAP_FILE].write(OVERLAP_FIELDS, overlap)
         counts = Counter((g[0], g[2]) for rows in gaps.values() for g in rows)
         return (
             self._write_trading_dates()
@@ -87,21 +87,10 @@ class CueChecks:
         if self.trading_dates is None or not {SP500_CUE, NASDAQ100_CUE} <= set(self.tables):
             return []
         days = us_trading_dates(self.tables[SP500_CUE].rows(), self.tables[NASDAQ100_CUE].rows())
-        _write(self.trading_dates, TRADING_DATE_FIELDS, days)
+        self.trading_dates.write(TRADING_DATE_FIELDS, days)
         nasdaq_only = sum(1 for _, in_sp500, _ in days if not in_sp500)
         return [f"US trading dates: {len(days) - nasdaq_only} S&P 500 dates, {nasdaq_only} Nasdaq-only dates listed"]
 
 
 def _by_date(rows: list[dict[str, str]]) -> dict[str, str]:
     return {r["value_date"]: r["value"] for r in rows}
-
-
-def _write(path: Path, fields: tuple[str, ...], rows: list[tuple]) -> None:
-    out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\n")
-    writer.writerow(fields)
-    writer.writerows(rows)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.part")
-    temporary.write_text(out.getvalue(), encoding="utf-8")
-    temporary.replace(path)  # never a half-written report
