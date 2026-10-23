@@ -24,7 +24,7 @@ class SessionRun:
     decisions: tuple[DecisionRecord, ...] = ()  # one per scheduled (road, driver version), sealed before any fill
     decisions_seal: Seal | None = None
     fills: tuple[FillResult, ...] = ()  # every fill of the session, account entries first
-    warnings: tuple[str, ...] = ()  # lines the run must make loud (MS-P1j: a comparison card mismatch); exit 1
+    warnings: tuple[str, ...] = ()  # lines the run must make loud (a card mismatch, counts not pushed); exit 1
 
     def __post_init__(self):
         if self.status and (self.decisions or self.decisions_seal or self.fills or self.warnings):

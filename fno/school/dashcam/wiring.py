@@ -13,7 +13,7 @@ from ...storage.data_wiring import (
     receipt_folder,
 )
 from ...storage.manifest_commit import GitManifestRecorder
-from ...storage.receipt_publisher import GitReceiptPublisher
+from ...storage.receipt_publisher import GitReceiptPublisher, ReceiptPublisher
 from .counts import PublicCountsFile
 from .names import SCHOOL_AREA
 from .reader import VerifiedDriveReader
@@ -26,13 +26,20 @@ RECEIPTS_MESSAGE = "Receipts: school dashcam files ({what})"
 RECEIPTS_LABEL = "dashcam receipts"
 
 
-def build_dashcam(run_id: str | None = None, env=os.environ) -> DriveDashcamStore:
-    """The real store: Drive through the owner's credential, receipts committed to the checkout's `main`."""
+def build_dashcam(run_id: str | None = None, env=os.environ,
+                  publisher: ReceiptPublisher | None = None) -> DriveDashcamStore:  # fmt: skip
+    """The real store: Drive through the owner's credential, receipts committed to the checkout's `main`.
+    `publisher`: another way to the receipts (a fleet step's reads go through its run's, which never fetches)."""
     data = build_data_store(WRITER, run_id, env)
+    return DriveDashcamStore(data, publisher or build_receipt_publisher(),
+                             VerifiedDriveReader(build_drive_cache(env), DATA_AREA))  # fmt: skip
+
+
+def build_receipt_publisher() -> GitReceiptPublisher:
+    """The school's receipts, committed and pushed to the checkout's `main`."""
     folder = REPOSITORY / RECEIPTS_FOLDER / DATA_AREA / SCHOOL_AREA  # only the school's receipts
     recorder = GitManifestRecorder(REPOSITORY, folder, message=RECEIPTS_MESSAGE, label=RECEIPTS_LABEL)
-    publisher = GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY)
-    return DriveDashcamStore(data, publisher, VerifiedDriveReader(build_drive_cache(env), DATA_AREA))
+    return GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY)
 
 
 def build_seal_checker(store: DriveDashcamStore) -> SealChecker:
