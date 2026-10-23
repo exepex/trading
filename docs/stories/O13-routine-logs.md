@@ -44,7 +44,8 @@ confirms it, including each routine's time.
 
 1. Code in `fno/routine_logs/` (8 modules, all under 350 lines), CLI registered in `fno/cli.py`, state folder
    `work/routine-logs/` git-ignored.
-2. Tests `tests/routine_logs/` (15): layout, failed run, Drive failure never stops, secrets removed and channels kept,
+2. Tests `tests/routine_logs/` (17; also: the last step closes the run, parallel steps all counted): layout, failed run, Drive failure never stops, secrets removed and channels kept,
    live pass-through and exit codes, immediate alert with marker, watcher missing / ok / failed / stuck / hourly slots /
    closed and monthly days / once-only alerts / unsent retried.
-3. Gates: full suite, ruff, check_imports (results in the handover to the judge).
+3. `routine-watch` is added to O10's capture-watch list (its own failure alerts too).
+4. Gates: full suite, ruff, check_imports (results in the handover to the judge).
