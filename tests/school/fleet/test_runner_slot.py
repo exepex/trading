@@ -179,3 +179,22 @@ def test_only_the_practice_rules_open_a_road_whose_capture_holds_unmeasured_quot
         outcomes[name] = (mine.decision.outcome, mine.decision.reason)
     assert outcomes["live"] == (Outcome.ROAD_CLOSED, ClosureReason.SIZES_NOT_MEASURED)
     assert outcomes["practice"][0] == Outcome.TRADE
+
+
+def test_under_the_practice_rules_an_entry_on_unmeasured_sizes_is_executed_not_size_shared(tmp_path):
+    """The SIM builder's finding (23 Oct 2026): the fill step judged the shared size under the live rules whatever the
+    fleet's own, so every practice entry was `size_shared` (executed 0). The fleet's rules reach the shared size."""
+    rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),), snapshots=unmeasured_snapshots())
+    rig.fleet.rules = QuoteRules(practice=True)
+    fills, plain = rig.fleet.books.fills, rig.fleet.books.fills.enter
+
+    def on_prices(sealed, snapshot, seal, at):  # a practice port fills on the prices (MS-P1d part 4)
+        sized = {k: replace(q, bid_qty=10**9, ask_qty=10**9, sizes_measured=True) for k, q in snapshot.quotes.items()}
+        return plain(sealed, replace(snapshot, quotes=sized), seal, at)
+
+    fills.enter = on_prices
+    rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    assert len(rig.accounts.ledgers["CS1@1"]) == 1, "the entry is recorded, not size_shared"
+    rows = list(csv.DictReader((tmp_path / opportunity_path(b.SESSION, SLOT_1500)).open()))
+    [mine] = [r for r in rows if r["road"] == OPEN_ROAD and r["driver"] == "CS1@1"]
+    assert (mine["fillable"], mine["executed"]) == ("1", "1")

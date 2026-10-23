@@ -28,3 +28,13 @@ verdict. Lane 1. Round 1 of 2.
 - **`FillStep.rules` carries the fleet's rules: MET.** The shared-size allocation no longer hard-codes `LIVE`. The rules field has no default, so a step never assumes live ones. Plants caught: live hard-coded in the allocation, and in the runner's `FillStep`.
 - **Gates (my run):** full `pytest -n auto` 13,803 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
 - **For j's daily-run step:** it must enter through `build_fleet` (or read `school.enabled` itself). `fleet_on` has no switch now.
+
+## Addendum 2: the first-ticket fix 54ef5d40..1f767528
+
+**Verdict: PASS.**
+
+- Every store the fleet records into (the driver account, then its ticket ledger) is opened by the session's view before any fill (`runner._open` over `Books.stores`). So a driver's first ticket is no longer refused by d's store (`AccountError`, a record before a view).
+- `FakeAccounts` and `check_account_port` now enforce the same rule as d's real store.
+- Plants caught: the ticket ledger left out of `stores`, the fake's rule dropped, the runner viewing the driver account only.
+- **Gates (my run):** full `pytest -n auto` 13,807 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+- **Note:** the ticket ledger's view now writes its own equity row each session, in the private ticket account. Tickets are never summed into rupees (story f), so no report reads that row.
