@@ -1,10 +1,11 @@
 """The simulator reads no new source and touches no counting path (MS-SIM, 7.1 items 1 and 6)."""
 
+import ast
 from pathlib import Path
 
 import pytest
 
-from tests.school.contracts.test_boundaries import ROOT, forbidden, imports
+from tests.school.contracts.test_boundaries import ROOT, forbidden, imports, module_name
 
 SIMULATOR = ROOT / "fno" / "school" / "simulator"
 FILES = sorted(p for p in SIMULATOR.rglob("*.py") if "__pycache__" not in p.parts)
@@ -17,26 +18,53 @@ NEVER = (
 
 
 # `practice/stores.py` names the NSE datasets (their file names and archive paths) to read the archive, and only these:
-# `daily_files` and the three source classes, never a library builder, which would fetch. A test (`test_inputs.py`)
+# `daily_files` and the three source classes, never a library builder, which would fetch. It may import them only as
+# `from <module> import <name>`: a bare `import fno.storage.wiring` or `from fno.storage import wiring` would make every
+# builder in the module reachable without an import the test could see (judge 515 addendum). A test (`test_inputs.py`)
 # pins that nothing is requested from NSE.
 DATASET_NAMES = {
     "practice/stores.py": frozenset({
-        "fno.storage.wiring", "fno.storage.wiring.daily_files",
-        "fno.storage.raw_source", "fno.storage.raw_source.NseDailyFoSource",
+        "fno.storage.wiring.daily_files", "fno.storage.raw_source.NseDailyFoSource",
         "fno.storage.raw_source.NseLegacyFoSource", "fno.storage.raw_source.NseIndexCloseSource",
     }),
 }  # fmt: skip
+
+
+def _is_never(name: str) -> bool:
+    return any(name == f or name.startswith(f + ".") for f in NEVER)
+
+
+def _resolved(node: ast.ImportFrom, package: list[str]) -> str:
+    base = package[: len(package) - node.level + 1] if node.level else []
+    return ".".join(base + ([node.module] if node.module else []))
+
+
+def _banned_with_exception(path: Path, package: list[str], allowed: frozenset) -> list[str]:
+    """Each forbidden import, judged as written: a `from` import is judged by the names it brings in, so only the
+    allowed names pass; a plain `import` of a forbidden module, or a `from` import of the module itself, is refused."""
+    found = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Import):
+            found += [a.name for a in node.names if _is_never(a.name)]
+        elif isinstance(node, ast.ImportFrom):
+            module = _resolved(node, package)
+            found += [
+                f"{module}.{a.name}"
+                for a in node.names
+                if _is_never(f"{module}.{a.name}") and f"{module}.{a.name}" not in allowed
+            ]
+    return found
 
 
 def banned(path: Path, package: list[str] | None = None, name: str | None = None) -> list[str]:
     """The path's forbidden imports; `name` (its place under the simulator package) selects an exact-name exception."""
     if name is None and SIMULATOR in path.parents:
         name = path.relative_to(SIMULATOR).as_posix()
-    allowed = DATASET_NAMES.get(name, frozenset())
-    return [
-        n for n in imports(path, package)
-        if n not in allowed and any(n == f or n.startswith(f + ".") for f in NEVER)
-    ]  # fmt: skip
+    if package is None:
+        package = module_name(path)[:-1] if path.name != "__init__.py" else module_name(path)
+    if name in DATASET_NAMES:
+        return _banned_with_exception(path, package, DATASET_NAMES[name])
+    return [n for n in imports(path, package) if _is_never(n)]
 
 
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.relative_to(SIMULATOR).as_posix())
@@ -70,3 +98,16 @@ def test_a_library_builder_import_in_stores_is_caught_while_the_dataset_names_pa
     other = tmp_path / "other.py"
     other.write_text("from ....storage.wiring import daily_files\n")  # the exception is for stores.py only
     assert banned(other, package, name="practice/other.py") != []
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["import fno.storage.wiring", "from ....storage import wiring", "from fno.storage import wiring as w",
+     "import fno.storage.raw_source as raw", "from ....storage.raw_source import RawFileSource",
+     "from ....storage.wiring import build_nse_fo_library"],
+)  # fmt: skip
+def test_a_bare_module_import_in_stores_is_caught_too(tmp_path, line):
+    """Judge 515 addendum: the module itself would make every builder in it reachable without a visible import."""
+    planted = tmp_path / "planted_stores.py"
+    planted.write_text(line + "\n")
+    assert banned(planted, ["fno", "school", "simulator", "practice"], name="practice/stores.py") != []
