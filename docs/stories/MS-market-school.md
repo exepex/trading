@@ -1440,13 +1440,19 @@ path builder, label check, `PracticeArchive` with a fake store in the tests); **
 9. e3: a real archived window, a rerun with no new commit, every receipt's SHA equal to the Drive file's, counted in the Claims
    (counts and SHA prefixes only).
 
-**Questions for the orchestrator:**
+**Questions for the orchestrator (answered 23 Oct 2026, below):**
 1. **The receipts commit and push to `main` by the command**, as the pilot's dashcam does (a data commit). Do you accept
    that for a manual command, or should practice receipts go to a branch?
 2. **`ReceiptPublisher` lives in the pilot's dashcam package** (`fno/school/dashcam/publisher.py`), which the simulator's
    isolation test bans. I would import exactly `GitReceiptPublisher` and `ReceiptPublisher` there, one file, by name; or
    MS-P1c's owner moves the publisher to a neutral module (`fno/storage/`). Which?
 3. **Run id with the code commit** (above) or a name the owner gives: I recommend the commit, so a changed result is a new run.
+
+**Answers (orchestrator, 23 Oct 2026, text approved):**
+1. **Receipts go to `main`** as a data commit, like the pilot's. The command commits only `receipts/data/school-practice/<run id>/` by exact path, never a folder glob, with the record scan on. It pulls before the push; on a refused push it pulls and retries once, then reports "receipts NOT pushed" and leaves the Drive copy as the record.
+2. **The publisher moves to a neutral module under `fno/storage/`** (one shared mechanism, no isolation exception). MS-P1c's owner is asked first; if no live owner answers, the move is done here as a pure move, with the old import kept as a re-export only until the dashcam imports from the new place, then removed. Lane 1 for the move (Judge B), with a test that the pilot's dashcam receipts are byte-identical before and after. The archive core takes the publisher through a protocol, so e1 does not wait.
+3. **The run id includes the code commit and the digest of the input datasets' receipts**, so new captures also make a new run; it is short in paths (a hash: `<first>_<last>_<12 hex>`). **Retention:** archived runs are never deleted; a run is archived only by explicit `--archive`.
+4. Counts files are not archived: they are derived, carry no label and are reproduced by the report, which is archived.
 
 ### 7.7 Claims
 
@@ -1641,6 +1647,23 @@ Built: `fno/school/simulator/practice/{clock,dated,dashcam,gate,margin,drivers,f
 - Plants (mine, this round): `cfg_on` bypass, `failed_margin` not counted, reasons dropped, the 2019 line removed: **4 of 4 caught**.
 - **Criterion 13 (a lot per expiry), as its own commit after the first verdict:** `HistoricalRoadCatalogue` keeps each expiry's lot in `RoadDay.lots` (MS-P1a4, on main) and closes a road only when one expiry has no lot of its own. Tests: `test_two_expiries_with_different_lots_open_the_road_with_each_expirys_own_lot` (2 Jun 2025, BANKNIFTY-M: 35 and 30, `lot` the nearest's), `test_one_expiry_without_a_lot_of_its_own_closes_the_road...`, `test_the_same_lot_on_both_expiries_still_opens_as_before`, and end to end `test_a_proposals_lot_follows_the_lot_of_its_own_expiry` (every proposal's `lot` is the lot of its legs' expiry, through the pilot's own drivers, which read `lot_for`). Plants (`lots` not passed; the missing-lot closure removed): 2 of 2 caught. The old test that a mixed-lot day closes the road was replaced.
 - `tests/school/simulator`: 215 passed; ruff, check_imports and check_records clean. **Full suite at the round-2 tip `32195d2c` (clean worktree, `pytest -q -n auto`, main and MS-P1j's follow-up merged): 14,144 passed, 16 xfailed, 0 failed** in 575 s.
+
+#### SIM-e1 Claims (round 1, branch `story/ms-sim-e1` on SIM-d's passed tip `08bfbc1d` and the approved SIM-e text; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/archive/{names,archive}.py`, tests in `tests/school/simulator/archive/test_archive.py`. The publisher, the data store and the reader come in by protocol, so e1 does not import the pilot's dashcam package.
+
+| Acceptance test (7.8) | Test | Broken-code proof (caught) |
+|---|---|---|
+| 1 names never collide | `test_a_practice_path_never_starts_with_a_pilot_path_and_the_reverse`, `test_a_run_id_with_a_slash_dots_or_nothing_is_refused`, `test_a_file_place_that_climbs_or_is_absolute_is_refused` | area renamed to `school`; run-id pattern removed; `..` check removed |
+| 2 label inside every line | `test_a_file_without_the_label_on_every_line_is_refused`, `test_a_file_that_is_not_canonical_record_lines_is_refused`, `test_a_text_file_needs_the_label...` | label comparison removed; the check not called |
+| 3 idempotent, write-once | `test_archiving_twice_with_the_same_bytes...no_second_commit`, `test_other_bytes_for_an_archived_key_are_refused...`, `test_a_drive_conflict_without_a_pushed_receipt_is_refused_too` | SHA comparison removed; early return removed; `RawFileConflict` handling removed |
+| 4 report text archived | `test_the_report_text_is_archived_and_its_sha_is_in_a_receipt` | n/a |
+| run id follows what the run depended on | `test_the_run_id_is_short_and_follows_everything_the_run_depended_on` | input digest left out of the hash; hash truncated |
+| read-back | `test_a_damaged_read_back_is_named` | check removed |
+| a path outside the run refused | `test_a_path_outside_the_run_is_refused_before_anything_is_written` | check removed |
+
+- Mutations: **12 of 12 caught.** `tests/school/simulator`: 48 passed in the files I ran (archive and isolation); ruff and check_imports clean. The full suite is run at the e3 tip.
+- Not in e1 (e2 and e3): the real stores' wiring, the command's `--archive`, the report's first line, the exact-path receipt commit, and the real Drive run.
 
 ## Claims
 
