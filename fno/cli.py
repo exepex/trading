@@ -34,6 +34,7 @@ from .intraday.cli import add_intraday_parser
 from .itm_chance.cli import add_itmchance_parser
 from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
+from .models import today_local
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
@@ -194,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         "--to",
         dest="end",
         type=date.fromisoformat,
-        default=date.today() - timedelta(days=1),
+        default=today_local() - timedelta(days=1),
         help="YYYY-MM-DD (default: yesterday)",
     )
     v.add_argument("--filings", action="store_true", help="the company filings archive instead (story A12)")

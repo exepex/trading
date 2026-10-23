@@ -7,6 +7,8 @@ from __future__ import annotations
 import calendar
 from datetime import date, datetime, timedelta
 
+from ..models import today_local
+
 SUMMARY = "flows table {name}: {entered} session(s) entered ({rewritten} rewritten), {waiting} waiting"
 ALERT = "Omenix F&O flow history {name}: {count} problem(s): {first}; see {where}"
 NOT_COMMITTED = " NOT committed"
@@ -70,7 +72,7 @@ def cmd_nsdl_backfill(args, out=print, today=None) -> int:
     from ..storage.data_wiring import build_receipt_committer
     from .wiring import build_alerts, build_nsdl_backfill
 
-    current = today or date.today()
+    current = today or today_local()
     through = args.through or date(current.year, current.month, 1) - timedelta(days=1)
     result = build_nsdl_backfill().run(month_ends(NSDL_FIRST_MONTH, through))
     out(NSDL_SUMMARY.format(saved=len(result.saved), rows=result.rows, empty=len(result.empty),

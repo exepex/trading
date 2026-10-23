@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from ..models import today_local
+
 LEDGER_FILE = "research/ledger.csv"
 COLUMNS = (
     "trial_id", "experiment", "description", "kind", "hypothesis", "registered_on", "protocol_path",
@@ -173,7 +175,7 @@ class Ledger:
             raise ValueError(f"trial {trial_id} is already registered")
         row = dict.fromkeys(COLUMNS, "")
         row.update(trial_id=trial_id, experiment=experiment, description=description, kind=kind,
-                   hypothesis="yes" if hypothesis else "no", registered_on=(today or date.today()).isoformat(),
+                   hypothesis="yes" if hypothesis else "no", registered_on=(today or today_local()).isoformat(),
                    protocol_path=protocol_path)  # fmt: skip
         read_ledger(write_ledger([*rows, row]))  # validates
         self.file.write_text(write_ledger([*rows, row]))
@@ -211,7 +213,7 @@ class Ledger:
         rows = self.rows()
         for row in rows:
             if row["trial_id"] == trial_id and not row["first_run_on"]:
-                row["first_run_on"], row["run_commit"] = (today or date.today()).isoformat(), commit
+                row["first_run_on"], row["run_commit"] = (today or today_local()).isoformat(), commit
         self.file.write_text(write_ledger(rows))
 
     def count(self, experiment: str) -> dict[str, int]:

@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 
+from ..models import now_utc
 from ..storage.data_store import DataStore
 from ..storage.part_table import PartTable
 from .feeds import CircularFeed
@@ -45,7 +46,7 @@ def latest_rows(rows: Sequence[dict]) -> dict[str, tuple[str, dict]]:
 class CircularCapture:
     def __init__(self, feeds: Mapping[str, CircularFeed], freshness: Mapping[str, Freshness],
                  relevant: Callable[[Circular], bool], store: DataStore,
-                 clock: Callable[[], datetime] = lambda: datetime.now(UTC), out=print):  # fmt: skip
+                 clock: Callable[[], datetime] = lambda: now_utc(), out=print):  # fmt: skip
         self.feeds, self.freshness, self.relevant, self.store = feeds, freshness, relevant, store
         self.clock, self.out = clock, out
         self.table = PartTable(store, LIST_TABLE, COLUMNS)
