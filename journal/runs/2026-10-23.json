@@ -1,0 +1,22 @@
+{
+ "day": "2026-10-23",
+ "kind": "daily_run",
+ "steps": {
+  "quotes": {
+   "started_at": "2026-10-23T14:05:52.919305+05:30",
+   "finished_at": "2026-10-23T14:05:52.919478+05:30",
+   "inputs": {
+    "parts": [
+     "nifty",
+     "nse",
+     "indices",
+     "v4"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted"
+   }
+  }
+ }
+}
