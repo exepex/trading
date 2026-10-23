@@ -1,7 +1,11 @@
 """Story MS-P1d criteria 9 and 11: expiring legs settle at intrinsic against each index's `SttlmPric` from the
 already-archived F&O file (stores only: the school never fetches from NSE); no file gives `settlement_needed`."""
 
+import hashlib
+import time
+import zipfile
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -11,6 +15,7 @@ from fno.school.contracts.accounts import SettlementUnavailable
 from fno.school.contracts.decisions import LegSpec
 from fno.school.contracts.snapshot import ContractKey
 from fno.school.execution.settlement_source import ArchivedOnly
+from fno.storage.raw_source import NseDailyFoSource
 from fno.storage.raw_store import LocalFolderStore
 from tests.school.contracts import builders as b
 from tests.school.contracts import conformance as c
@@ -95,3 +100,14 @@ def test_settlement_with_no_store_stops_by_name_never_waits_forever(monkeypatch,
     folder = settlement_folder(tmp_path)
     monkeypatch.setattr(wiring, "build_archive_stores", lambda: [LocalFolderStore(folder)])
     assert wiring.build_settlement_source().price("FINNIFTY", REAL_DAY).price == SETTLEMENTS["FINNIFTY"]
+
+
+def test_the_settlement_fixture_is_the_same_bytes_at_any_wall_clock_time(tmp_path, monkeypatch):
+    """Judge K's one-off SHA mismatch under -n auto: a zip entry named without a stamp takes the wall clock (2-second
+    resolution), so two builds straddling a boundary differed. The fixture now stamps its entry with the file's day."""
+    digests = []
+    for n, now in enumerate((1_700_000_000.0, 1_800_000_007.0)):
+        monkeypatch.setattr(zipfile, "time", SimpleNamespace(time=lambda now=now: now, localtime=time.localtime))
+        file = settlement_folder(tmp_path / str(n)) / NseDailyFoSource.path_for(REAL_DAY)
+        digests.append(hashlib.sha256(file.read_bytes()).hexdigest())
+    assert digests[0] == digests[1]

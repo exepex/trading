@@ -148,7 +148,8 @@ def test_the_spread_is_measured_from_the_fills_on_the_paths_own_mids_not_taken_f
     shots = (model_snapshot(ENTRY_DAY, 1000.0, 0.20), model_snapshot(EXIT_DAY, 980.0, 0.22))
     clean = path(shots)
     other_basis = replace(clean, outcome=replace(clean.outcome, slippage_vs_mid=999.0))
-    assert attribute(other_basis, 0.0, RULES) == attribute(clean, 0.0, RULES)
+    same = replace(attribute(other_basis, 0.0, RULES), outcome_sha256="")  # only the record's own identity differs
+    assert same == replace(attribute(clean, 0.0, RULES), outcome_sha256="")
     assert round(attribute(clean, 0.0, RULES).spread, 2) == 6.0
 
 
