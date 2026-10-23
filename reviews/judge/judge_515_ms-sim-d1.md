@@ -30,3 +30,28 @@ origin/main...6b6d18c6. SIM-d1 Claims in MS-market-school.md. Lane 1 (practice).
 ## Plants
 5 planted, 4 caught. The survivor widens `except BadFile` to `except ValueError`. That is nearly equivalent, since
 `BadFile` is a `ValueError`; the damaged-file case still gives None.
+
+## Addendum 1
+
+**Follow-up:** story/ms-sim-d1 at 6afa4848 (only `tests/school/simulator/test_isolation.py` and the Claims changed).
+**Verdict: PASS**, unchanged. The minor is partly closed.
+
+- A planted `from ....storage.wiring import build_nse_fo_library` in the real `practice/stores.py` is now caught (my
+  plant, reproduced).
+- **Still open (minor):** the allow-list keeps the bare module names `fno.storage.wiring` and `fno.storage.raw_source`.
+  So `import fno.storage.wiring` or `from ....storage import wiring`, then `wiring.build_nse_fo_library(...)`, both
+  pass the import test (my plants, both survived). Only the runtime no-NSE test stands behind them.
+- Fix: accept a bare module name only as the parent of an allowed `from X import name`. For example, refuse a plain
+  `import X` or `from pkg import X` in that file.
+
+## Addendum 2
+
+**Follow-up:** story/ms-sim-d1 at 91bb8c23 (only `test_isolation.py` changed). **Verdict: PASS. The minor is closed.**
+- My plants caught: `import fno.storage.wiring`, `from ....storage import wiring`, and an allowed-plus-builder
+  `from ....storage.wiring import daily_files, build_nse_fo_library`.
+- `tests/school/simulator` passes (140) and ruff is clean.
+- Three deliberate evasions still pass. No static import check can close them, and they are not findings:
+  - `import fno.storage`, then attribute access;
+  - `from .... import storage`;
+  - `__import__("fno.storage.wiring")`.
+  The runtime no-NSE test is the guard there.

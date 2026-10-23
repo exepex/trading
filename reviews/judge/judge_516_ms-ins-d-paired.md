@@ -55,3 +55,30 @@ nothing tests a pair present with no road-days. Add one test.
   check_imports and check_records are clean.
 - Ruling D (no Watching in v1) makes finding 1 a reporting error, not a status error. My numbers support ruling D
   more strongly than the Claims do.
+
+## Addendum 1: round 2 at 5bdc8fb0
+
+**Verdict: PASS.** Lane 1, one judge. Scope: the single commit c40ed950..5bdc8fb0.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 the printed seller rate | ACCEPTED | The rate is now 46% in code, card and test, plus "(rarer full losses can be worse)". The builder's worst cell (p 0.05, hold 26, 120 sessions: 43.4%, upper end 45.6%) agrees with mine (44.0%, upper end 47.1% at 1,000 seeds; the same within noise). My spot checks of the holds I had not run are all under it: hold 18 at 54, 120 and 250 sessions; hold 33 at 100, 120 and 250; hold 26 at 78 and 156; p 0.05, upper ends at most 41.5%. A test pins the worst cell (above 40%, at or under 46%) and my round-1 cell (22.6%) |
+| SF2 frozen texts | ACCEPTED | The card's hold list reads REF 26. The story says a 36-day cycle, RC1 15 from its twins, REF 26, matching `hold_sessions` on the cards |
+| Minor: empty common set | ACCEPTED | `test_a_pair_present_with_an_empty_common_set_gives_no_row`; my `in common` plant is now caught |
+
+- **Gates (my run):** pytest -n auto 13,667 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.
+
+## Addendum 2: the follow-up 5bdc8fb0..960a03a2
+
+**Verdict: PASS.** Scope: the seeded grid tool `tools/ins_seller_null.py`, its output
+`research/school/instructor_seller_null.csv` (96 cells), `nulls.seller_cells` and `nulls.seller_cell`, and two
+tests that derive the printed 46 from the file.
+
+- **Reproducible:** I recomputed two cells with `seller_cell` and they match the CSV to 4 decimals: hold 3, p 0.1,
+  20 sessions gives 0.1595 / 0.1762; hold 18, p 0.05, 54 sessions gives 0.3715 / 0.3929. The worst cell (hold 26,
+  p 0.05, 120 sessions: 0.4340 / 0.4558) agrees with my round-1 run within noise.
+- **Plants, both caught:** `SELLER_FALSE_POSITIVE_PCT` lowered to 40, and the worst CSV row edited down.
+- The grid's cells must equal `seller_cells` for the holds the cards hold today, so a card change forces a re-run.
+- **Gates (my run):** pytest -n auto 13,669 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.

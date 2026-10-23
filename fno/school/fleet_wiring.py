@@ -13,6 +13,7 @@ from .accounts.names import school_root
 from .accounts.reviews import REVIEWS_FILE, ReviewFile
 from .accounts.school_accounts import SchoolAccounts
 from .accounts.wiring import build_account_port
+from .contracts.accounts import FillPort
 from .contracts.clock import Clock
 from .contracts.dashcam import DashcamStore
 from .drivers.wiring import build_school_drivers
@@ -43,14 +44,20 @@ class FleetStores:
     clock: Clock
 
 
-def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, card_check=no_check) -> SchoolFleet:
-    """`card_check`: the record's comparison-card mismatch check (MS-P1j runbook); a replay passes none."""
+def books_on(cfg: dict, stores: FleetStores, fills: FillPort, root: Path = ROOT) -> Books:
+    """The driver accounts and the ticket ledger under `stores.home`, filled through `fills`: one construction for
+    the pilot's roots and the simulator's practice root, which passes its own fill port."""
     settings = school_settings(cfg)
     accounts = build_account_port(cfg, settings, stores.home, stores.sync)
     tickets = SchoolAccounts(school_root(stores.home) / TICKETS_FOLDER, settings.account_rs, settings.brake_rs,
                              cfg["charges"], ReviewFile(Path(root) / REVIEWS_FILE), stores.sync)  # fmt: skip
-    fills = build_fill_port(cfg)
-    books = Books(accounts, accounts, TicketBook(fills, TicketLedger(tickets)), tickets, fills)
+    return Books(accounts, accounts, TicketBook(fills, TicketLedger(tickets)), tickets, fills)
+
+
+def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, card_check=no_check) -> SchoolFleet:
+    """`card_check`: the record's comparison-card mismatch check (MS-P1j runbook); a replay passes none."""
+    settings = school_settings(cfg)
+    books = books_on(cfg, stores, build_fill_port(cfg), root)
     services, margin = build_road_services(), build_margin(cfg)
     return SchoolFleet(
         settings, services.catalogue, services.snapshots, build_quality_gate(services.listing),

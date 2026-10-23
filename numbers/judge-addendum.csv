@@ -634,3 +634,17 @@ number,name,session,claimed_at_utc
 507.4,ms-p1j-r6,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T00:28:12Z
 512.1,ms-p1j-r2-k,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T00:41:47Z
 512.2,ms-p1j-r3-k,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T00:55:05Z
+479.4,ms-p1a4,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T01:49:16Z
+515.1,ms-sim-d1-isolation,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-23T01:51:33Z
+515.2,ms-sim-d1-isolation-2,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-23T01:53:09Z
+507.5,ms-p1j-instructor,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:04:08Z
+491.2,ms-p1m-factor-seam,session_01Qg4Gxun1NvGRrtS9C68Dc1,2026-10-23T02:11:18Z
+516.1,ms-ins-d-r2,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T02:18:02Z
+507.6,ms-p1j-sim-seams,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:22:31Z
+507.7,ms-p1j-card-mismatch,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:23:54Z
+507.8,ms-p1j-sim-seams-rules,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:35:40Z
+516.2,ms-ins-d-grid,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T02:39:01Z
+507.9,ms-p1j-counts-commit,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:48:38Z
+519.1,sim-seams-follow-up,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T02:50:36Z
+507.10,ms-p1j-sim-seams-fill,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:58:17Z
+520.1,ms-p1j-cm-minor,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T03:03:37Z

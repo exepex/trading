@@ -1,6 +1,7 @@
 """Story MS-P1m: the school's margin per trade, on its own legs, from the archived beginning-of-day SPAN file. It is
 A14's figure for those legs, the trade's own lot, C2's cap and factor; every way it cannot be that refuses by name."""
 
+import dataclasses
 import hashlib
 from datetime import date, timedelta
 
@@ -238,3 +239,24 @@ def test_an_unreadable_manifest_refuses_by_its_class_name_only():
     with pytest.raises(RiskInputError, match=r"manifest could not be read \(OSError\)") as caught:
         ArchivedSpanMargin(source).margin(terms(), DAY)
     assert "secret" not in str(caught.value)
+
+
+def test_the_default_factor_still_refuses_a_session_before_the_factor_file_s_first_row():
+    from fno.config import load_app_config
+    from fno.nse_margins.road_wiring import build_road_margin
+
+    with pytest.raises(RiskInputError, match="has no factor row before 2026-10-14"):
+        build_road_margin(load_app_config(), env={}).source.factor(date(2026, 10, 14))
+
+
+def test_a_given_factor_is_used_for_an_old_session_and_named_in_the_record():
+    """The practice run's seam (orchestrator, 23 Oct 2026): its own factor row for a session before the file's first."""
+    from fno.config import load_app_config
+    from fno.nse_margins.road_wiring import build_road_margin
+
+    old, given = date(2025, 3, 3), FactorRow(date(2026, 10, 16), 2.1, "applied", "f" * 64)
+    margin = build_road_margin(load_app_config(), env={}, factor=lambda day: given)
+    assert margin.source.factor(old) is given
+    priced = ArchivedSpanMargin(dataclasses.replace(source(), factor=margin.source.factor))  # the planted file
+    assert priced.record(DAY)["stress_factor_row"]["as_of"] == "2026-10-16"
+    assert priced.margin(terms(), DAY) == pytest.approx(priced.parts(terms(), DAY).stressed(2.1) * 2)
