@@ -92,3 +92,17 @@ The fix:
 **For the orchestrator:** `data-checks` in O10's `REPLACEABLE` set is O10's call. It is reasonable while the job can
 still cancel a pending run on a burst of test pushes, which is far rarer now. The 24 existing rows are false losses,
 not failed data checks.
+
+## Addendum 3: data-checks in O10's REPLACEABLE (story/o9b-data-checks-trigger @ ccfc340a)
+
+**Verdict: PASS. Both parts (the trigger, addendum 2, and this) may merge together.**
+
+- `fno/health/run_failures.py`: `REPLACEABLE = ("news-capture", "data-checks")`, with the O10 builder's condition
+  beside it. It holds only while data-checks records nothing per push or per day.
+- The reasoning is sound: GitHub cancels the older pending run, and the newest pending one runs and checks the same
+  committed state, so a run cancelled before any step is replaced, not lost. A run cancelled after a step is still
+  one row and one alert, and the new test covers both.
+- Checks:
+  - tests/health and tests/o9b: 163 passed;
+  - my plant (the old one-entry tuple) fails 1 test;
+  - the code delta from 5a423497 is this tuple and its comment only.
