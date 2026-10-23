@@ -32,6 +32,10 @@ DATASET_NAMES = {
     # `account_net` is the one rupee sum a report may use (327 item 1): a pure function over outcome records that
     # touches no ticket book, ledger or count
     "practice/runner.py": frozenset({"fno.school.tickets.rupees.account_net"}),
+    # the read-back goes through the pilot's verified Drive reader (a receipt-checked read, no record, count or seal)
+    "archive/wiring.py": frozenset({"fno.school.dashcam.reader.VerifiedDriveReader"}),
+    # where the dashcam's files sit and what they are called: two constants, to find the files the fleet wrote
+    "archive/files.py": frozenset({"fno.school.dashcam.names.DASHCAM_FOLDER", "fno.school.dashcam.names.SLOT_FILE_SUFFIX"}),
 }  # fmt: skip
 
 

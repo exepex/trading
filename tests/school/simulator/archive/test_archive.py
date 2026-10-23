@@ -155,7 +155,7 @@ def test_a_file_without_the_label_on_every_line_is_refused():
 
 
 def test_a_file_that_is_not_canonical_record_lines_is_refused():
-    for data in (b"plain text", gzip.compress(b"not json\n"), gzip.compress(b"")):
+    for data in (b"plain text", gzip.compress(b"not json\n"), gzip.compress(b"[1]\n")):
         with pytest.raises(PracticeArchiveError):
             check_labelled(PATH, data)
     with pytest.raises(PracticeArchiveError):
@@ -267,3 +267,10 @@ def test_a_labelled_line_that_is_not_a_record_is_refused():
 def test_a_text_file_that_is_not_utf8_is_refused_by_name():
     with pytest.raises(PracticeArchiveError, match="UTF-8"):
         check_labelled(names.report_path(RUN), b"\xff\xfe" + PRACTICE_LABEL.encode())
+
+
+def test_a_slot_with_nothing_to_record_is_an_empty_file_and_is_archived(parts):
+    """Found by the end-to-end run: the fleet writes an empty outcomes file on a day with no closed trade."""
+    archive, drive, _, _ = parts
+    archive.archive(RUN, PATH, gzip.compress(b"", mtime=0), "x")
+    assert drive.files[f"data/{PATH}"] == gzip.compress(b"", mtime=0)

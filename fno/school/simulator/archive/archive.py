@@ -123,13 +123,12 @@ def _decoded(path: str, row: dict) -> None:
 
 
 def _lines(path: str, data: bytes) -> list[bytes]:
+    """The record lines of a gzip file; a slot with nothing to record (no closed trade) is an empty file, as the fleet
+    writes it, and holds no line to label."""
     try:
-        lines = [line for line in gzip.decompress(data).splitlines() if line]
+        return [line for line in gzip.decompress(data).splitlines() if line]
     except (OSError, EOFError) as error:
         raise PracticeArchiveError(NOT_RECORDS.format(path=path)) from error
-    if not lines:
-        raise PracticeArchiveError(NOT_RECORDS.format(path=path))
-    return lines
 
 
 def _inside(run: str, path: str) -> bool:

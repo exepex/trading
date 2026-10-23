@@ -18,7 +18,7 @@ from tests.school.simulator.source import builders as sb
 
 def namespace(**kw) -> argparse.Namespace:
     base = {"first": sb.SESSION.replace(day=3), "last": sb.SESSION, "roads": ["NIFTY-M", "NIFTY-W"],
-            "home": None, "config": None}  # fmt: skip
+            "home": None, "config": None, "archive": False}  # fmt: skip
     return argparse.Namespace(**{**base, **kw})
 
 

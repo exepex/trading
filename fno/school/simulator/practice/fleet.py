@@ -29,7 +29,7 @@ from ..spreads.model import Scenario, SpreadModel
 from ..terms import DatedTerms
 from ..windows import PracticeWindows
 from .clock import practice_clock
-from .dashcam import PracticeDashcam
+from .dashcam import DASHCAM_HOME, PracticeDashcam
 from .dated import cfg_on
 from .drivers import simulable
 from .gate import PracticeQualityGate
@@ -75,7 +75,7 @@ def build_practice_fleet(
     _refuse_pilot_paths(home, parts.root)
     cfg = cfg_on(parts.cfg, parts.terms, session)
     settings, clock = school_settings(cfg), practice_clock(session)
-    dashcam = PracticeDashcam(Path(home) / "dashcam", clock)
+    dashcam = PracticeDashcam(Path(home) / DASHCAM_HOME, clock)
     books = books_on(
         cfg, FleetStores(Path(home), dashcam, None, None, clock), build_practice_fill_port(cfg), parts.root
     )

@@ -18,9 +18,14 @@ def line(text: str) -> str:
     return f"{PRACTICE_LABEL} | {text}"
 
 
-def render(report: PracticeReport) -> list[str]:
+def render(report: PracticeReport, status: list[str] | None = None) -> list[str]:
+    """`status`: the report's first line(s), already labelled (the archive's); local only, not archived by default."""
     roads = ", ".join(str(road) for road in report.roads)
-    lines = [line(NOT_ARCHIVED), line(NEVER_TUNES), line(f"window {report.first} to {report.last}; roads {roads}")]
+    lines = [
+        *(status or [line(NOT_ARCHIVED)]),
+        line(NEVER_TUNES),
+        line(f"window {report.first} to {report.last}; roads {roads}"),
+    ]
     lines += [line(label) for label in (*LABELS, report.margin_label) if label]
     if report.sessions_without_span:
         lines.append(line(NO_SPAN_LINE.format(count=report.sessions_without_span)))
