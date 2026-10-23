@@ -7,10 +7,10 @@ from dataclasses import replace
 
 import pytest
 
-from fno.school.constants import FLEET_STOPPED, SLOT_1500, Outcome, RecordKind, RoadCode
+from fno.school.constants import FLEET_STOPPED, SLOT_1500, ExitReason, Outcome, RecordKind, RoadCode
 from fno.school.contracts.clock import FixedClock
 from fno.school.contracts.fleet import RunMode
-from fno.school.contracts.records import DecisionRecord
+from fno.school.contracts.records import DecisionRecord, ExitRecord
 from fno.school.contracts.slot_file import decode_slot_file, encode_slot_file
 from fno.school.fakes import FakeDashcam, FakeDriver, FakeMaxLossLaw
 from fno.school.fleet.entry_mids import DashcamEntryMids
@@ -84,6 +84,45 @@ def test_a_rerun_after_a_stop_at_the_drift_file_adopts_it_and_writes_the_counts(
     run = rig.fleet.run(b.SESSION, RunMode.RECORD)
     assert run.status == "" and rig.dashcam.read(rig.dashcam.find(*key)) == stored
     assert rig.fleet.counts.written(b.SESSION, SLOT_1500)
+
+
+OUTSIDER = "ZZ9@1"  # a driver this fleet does not have
+
+
+def with_outsider_exit(rows):
+    return (*rows, ExitRecord(b.SESSION, SLOT_1500, f"{OUTSIDER}:{RoadCode.BANKNIFTY_MONTHLY}:{b.SESSION}", OUTSIDER,
+                              RoadCode.BANKNIFTY_MONTHLY, ExitReason.LOSS_LIMIT, "fixture"))  # fmt: skip
+
+
+def outsider_outcome(rows):
+    return (replace(outcome_record(), driver_id=OUTSIDER),)
+
+
+def outsider_drift(rows):
+    return tuple(replace(row, position_id=f"{OUTSIDER}:{row.position_id.split(':', 1)[1]}") for row in rows)
+
+
+@pytest.mark.parametrize(
+    "kind, outsider, roads",
+    [
+        (RecordKind.DECISIONS, with_outsider_exit, (RoadCode.BANKNIFTY_MONTHLY,)),
+        (RecordKind.OUTCOMES, outsider_outcome, (RoadCode.BANKNIFTY_MONTHLY,)),
+        (RecordKind.DRIFT, outsider_drift, (RoadCode.NIFTY_MONTHLY,)),
+    ],
+    ids=["exit", "outcome", "drift"],
+)
+def test_a_stored_row_of_a_driver_outside_the_fleet_stops_the_rerun_and_seals_nothing_of_its_kind(
+    tmp_path, kind, outsider, roads
+):
+    """Judge 528's SF1: the fleet's own check on exit, outcome and drift rows, each reached through the rerun."""
+    rig = stopped_rig(tmp_path, kind, open_roads=roads)
+    key = (b.SESSION, SLOT_1500, kind)
+    rows = outsider(decode_slot_file(rig.dashcam.stored[key]))
+    assert rows, "a row to judge"
+    rig.dashcam.stored[key] = encode_slot_file(rows)
+    run = rig.fleet.run(b.SESSION, RunMode.RECORD)
+    assert run.status.startswith(f"{FLEET_STOPPED} dashcam stuck: stored file unverifiable")
+    assert "not this fleet's" in run.status and rig.dashcam.find(*key) is None
 
 
 def test_the_replay_dashcam_conforms_and_recovers_only_what_it_sealed(tmp_path):

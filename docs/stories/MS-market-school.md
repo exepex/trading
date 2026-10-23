@@ -2915,3 +2915,9 @@ archived SPAN file or the 15:15 capture landing between the two runs [some evide
 - **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files).
 - **Plants:** 13 planted, 13 caught (the drift plant first survived on a BANKNIFTY test, whose drift is empty; the
   test now uses a NIFTY road with differing rows).
+- **Round 2 (Judge B, judge 528 SF1): the fleet's own check on every row kind, tested.**
+  `test_a_stored_row_of_a_driver_outside_the_fleet_stops_the_rerun_and_seals_nothing_of_its_kind` (exit, outcome,
+  drift): a stored, unreceipted file with one row of a driver outside the fleet stops the rerun as "stopped: dashcam
+  stuck: stored file unverifiable ... (a record that is not this fleet's ...)" and nothing of that kind is sealed
+  (plants: `_belongs` true for every non-decision row, all three fail; the drift row's driver misread, the drift one
+  fails). Test-only change.
