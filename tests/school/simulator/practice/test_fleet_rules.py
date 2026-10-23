@@ -11,6 +11,7 @@ from fno.costs import order_charges
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.school.constants import ClosureReason, RoadCode
 from fno.school.contracts.fleet import RunMode
+from fno.school.contracts.roads import ROADS
 from fno.school.execution import practice_wiring
 from fno.school.execution.quote_rules import LIVE
 from fno.school.fakes import FakeSettlementSource
@@ -160,3 +161,28 @@ def test_the_charge_steps_up_across_the_change_for_the_same_premium(tmp_path):
     same_premium = order_charges(before.price, before.units, "sell", sb.TERMS.charges(date(2023, 4, 3)))
     assert same_premium > order_charges(before.price, before.units, "sell", sb.TERMS.charges(date(2023, 3, 31)))
     assert after.charges > 0 and before.charges > 0
+
+
+# ---- criterion 13 end to end: a proposal's units follow its expiry's lot ----------------------------------
+
+
+def test_a_proposals_lot_follows_the_lot_of_its_own_expiry(tmp_path):
+    """2 Jun 2025: the near BANKNIFTY monthly has lot 35 and the far one 30; a proposal uses its legs' expiry lot."""
+    from tests.school.simulator.source.test_source import CALENDAR_2025, JUN_2025, MONTHLIES_2025, WEEKLIES_2025
+
+    lots = {MONTHLIES_2025[0]: 35, MONTHLIES_2025[1]: 30}
+    days = [JUN_2025 - timedelta(days=i) for i in range(0, 31) if (JUN_2025 - timedelta(days=i)).weekday() < 5]
+    chain = sb.DictChain(*[
+        replace(sb.chain("BANKNIFTY", d, MONTHLIES_2025, WEEKLIES_2025), source="udiff", lots=lots) for d in days
+    ])  # fmt: skip
+    model = sb.full_model(RoadCode.BANKNIFTY_MONTHLY, 0.01, JUN_2025, MONTHLIES_2025, WEEKLIES_2025)
+    parts = PracticeParts(tf.CFG, ROOT, tf.FACTOR_FILE, CALENDAR_2025, chain, sb.TERMS, PracticeWindows(), model)
+    fleet = build_practice_fleet(parts, JUN_2025, Scenario.MEDIAN, tmp_path, lambda cfg: FixedMargin(),
+                                 [r for r in ROADS if r.code is RoadCode.BANKNIFTY_MONTHLY])  # fmt: skip
+    run = fleet.run(JUN_2025, RunMode.REPLAY)
+    proposals = [r.decision.proposal for r in run.decisions if r.decision.proposal is not None]
+    assert proposals
+    for proposal in proposals:
+        assert {leg.key.expiry for leg in proposal.legs} <= set(lots)
+        assert {lots[leg.key.expiry] for leg in proposal.legs} == {proposal.lot}
+    assert {p.lot for p in proposals} <= {30, 35}

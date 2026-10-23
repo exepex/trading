@@ -1577,7 +1577,8 @@ Built: `fno/school/simulator/practice/{clock,dated,dashcam,gate,margin,drivers,f
 | d 2019 has no SPAN file | the report says so for any window starting before 2 Jan 2020 (`NO_SPAN_LINE`); a test pins the date to `NseSpanBodSource.first_day` | `test_a_window_starting_in_2019_says_there_is_no_span_file_before_2020`, `test_the_span_archive_starts_where_the_practice_says`; plant caught |
 
 - Plants (mine, this round): `cfg_on` bypass, `failed_margin` not counted, reasons dropped, the 2019 line removed: **4 of 4 caught**.
-- `tests/school/simulator`: 211 passed; ruff, check_imports and check_records clean. The full suite is run on the final tip.
+- **Criterion 13 (a lot per expiry), as its own commit after the first verdict:** `HistoricalRoadCatalogue` keeps each expiry's lot in `RoadDay.lots` (MS-P1a4, on main) and closes a road only when one expiry has no lot of its own. Tests: `test_two_expiries_with_different_lots_open_the_road_with_each_expirys_own_lot` (2 Jun 2025, BANKNIFTY-M: 35 and 30, `lot` the nearest's), `test_one_expiry_without_a_lot_of_its_own_closes_the_road...`, `test_the_same_lot_on_both_expiries_still_opens_as_before`, and end to end `test_a_proposals_lot_follows_the_lot_of_its_own_expiry` (every proposal's `lot` is the lot of its legs' expiry, through the pilot's own drivers, which read `lot_for`). Plants (`lots` not passed; the missing-lot closure removed): 2 of 2 caught. The old test that a mixed-lot day closes the road was replaced.
+- `tests/school/simulator`: 217 passed; ruff, check_imports and check_records clean. The full suite is run on the final tip (below).
 
 ## Claims
 

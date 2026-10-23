@@ -109,11 +109,6 @@ def test_a_lot_that_neither_the_file_nor_the_schedule_states_closes_the_road():
     assert day.status.closed_by is ClosureReason.LOT_MISMATCH
 
 
-def test_two_different_lots_close_the_road():
-    two = replace(sb.chain("NIFTY"), lots={sb.MONTHLIES[0]: 50, sb.MONTHLIES[1]: 75})
-    assert open_day_status(sb.DictChain(two)) is ClosureReason.LOT_MISMATCH
-
-
 # ---- the snapshot --------------------------------------------------------------------------------------------------
 
 
@@ -307,3 +302,40 @@ def test_the_digest_covers_the_quotes_themselves():
     )
     other = source(chain=sb.DictChain(replace(base, rows=quiet))).for_road(day)
     assert other.sha256 != source().for_road(day).sha256  # only one leg's validity differs
+
+
+# ---- criterion 13: a lot per expiry (MS-P1a4 on main) ----------------------------------------------
+
+CALENDAR_2025 = CsvSessionCalendar("date,kind,description,source_url\n2025-01-27,holiday,t,https://example.test/c\n")
+JUN_2025 = date(2025, 6, 2)
+MONTHLIES_2025 = (date(2025, 6, 26), date(2025, 7, 31))
+WEEKLIES_2025 = (date(2025, 6, 5), date(2025, 6, 12))
+
+
+def chain_2025(lots: dict, underlying="BANKNIFTY"):
+    base = sb.chain(underlying, JUN_2025, MONTHLIES_2025, WEEKLIES_2025)
+    return sb.DictChain(replace(base, source="udiff", lots=lots))
+
+
+def road_2025(lots: dict):
+    cat = HistoricalRoadCatalogue(CALENDAR_2025, chain_2025(lots), sb.TERMS, PracticeWindows())
+    return next(d for d in cat.day(JUN_2025) if d.road.code is RoadCode.BANKNIFTY_MONTHLY)
+
+
+def test_two_expiries_with_different_lots_open_the_road_with_each_expirys_own_lot():
+    """2 Jun 2025: BANKNIFTY's two monthlies carry different lots after NSE's April 2025 change; the road stays open."""
+    day = road_2025({MONTHLIES_2025[0]: 35, MONTHLIES_2025[1]: 30})
+    assert day.status.open and day.lot_for(MONTHLIES_2025[0]).units == 35 and day.lot_for(MONTHLIES_2025[1]).units == 30
+    assert day.lot.units == 35  # `lot` stays the nearest expiry's
+
+
+def test_one_expiry_without_a_lot_of_its_own_closes_the_road_and_nothing_is_borrowed():
+    day = road_2025(
+        {MONTHLIES_2025[0]: 35}
+    )  # the later monthly has no stated lot and a current-format day has no schedule
+    assert day.status.closed_by is ClosureReason.LOT_MISMATCH
+
+
+def test_the_same_lot_on_both_expiries_still_opens_as_before():
+    day = road_2025({MONTHLIES_2025[0]: 30, MONTHLIES_2025[1]: 30})
+    assert day.status.open and {day.lot_for(e).units for e in MONTHLIES_2025} == {30}
