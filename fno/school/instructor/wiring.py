@@ -23,7 +23,7 @@ from ...storage.data_wiring import (
     receipt_folder,
 )
 from ...storage.manifest_commit import GitManifestRecorder
-from ...storage.receipt_publisher import GitReceiptPublisher
+from ...storage.receipt_publisher import GitReceiptPublisher, ReceiptPublisher
 from ...storage.wiring import EVENTS_FILE
 from ..dashcam.names import SCHOOL_AREA
 from ..dashcam.reader import VerifiedDriveReader
@@ -41,6 +41,7 @@ from .outputs.public_counts import InstructorCountsFile
 from .outputs.run import InstructorRun, SessionResult
 from .outputs.store import DriveInstructorStore
 from .outputs.why_line import WhyLineSource
+from .ports import InstructorStore
 from .reader import PathReader
 
 WRITER = "school instructor"
@@ -59,10 +60,12 @@ def _archive(roads) -> RecordedSnapshotArchive:
     return RecordedSnapshotArchive(roads.catalogue, roads.snapshots)
 
 
-def build_path_reader() -> PathReader:
+def build_path_reader(publisher: ReceiptPublisher | None = None) -> PathReader:
+    """`publisher`: the dashcam's way to its receipts (MS-P1j's session step passes its run's, which never fetches)."""
     roads = build_road_services()
     archive = _archive(roads)
-    return PathReader(build_dashcam(), archive, build_settlement_source(), roads.calendar, IstClock())
+    return PathReader(build_dashcam(publisher=publisher), archive, build_settlement_source(), roads.calendar,
+                      IstClock())  # fmt: skip
 
 
 def build_event_calendar() -> RecordedEventCalendar:
@@ -78,18 +81,26 @@ def build_classifier(config: dict | None = None) -> Classifier:
     return Classifier(evidence, rules_sha256())
 
 
-def build_instructor_store(run_id: str | None = None, env=os.environ) -> DriveInstructorStore:
-    """Drive through the owner's credential, receipts beside the dashcam's in the school's receipt folder."""
-    folder = REPOSITORY / RECEIPTS_FOLDER / DATA_AREA / SCHOOL_AREA
-    recorder = GitManifestRecorder(REPOSITORY, folder, message=RECEIPTS_MESSAGE, label=RECEIPTS_LABEL)
-    publisher = GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY)
+def build_instructor_store(run_id: str | None = None, env=os.environ,
+                           publisher: ReceiptPublisher | None = None) -> DriveInstructorStore:  # fmt: skip
+    """Drive through the owner's credential, receipts beside the dashcam's in the school's receipt folder, committed
+    and pushed by this store unless `publisher` says otherwise (MS-P1j's session step: by its run's counts commit)."""
+    publisher = publisher or _instructor_publisher()
     reader = VerifiedDriveReader(build_drive_cache(env), DATA_AREA)
     return DriveInstructorStore(build_data_store(WRITER, run_id, env), publisher, reader)
 
 
-def build_instructor_run(config: dict) -> InstructorRun:
+def _instructor_publisher() -> GitReceiptPublisher:
+    folder = REPOSITORY / RECEIPTS_FOLDER / DATA_AREA / SCHOOL_AREA
+    recorder = GitManifestRecorder(REPOSITORY, folder, message=RECEIPTS_MESSAGE, label=RECEIPTS_LABEL)
+    return GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY)
+
+
+def build_instructor_run(config: dict, store: InstructorStore | None = None,
+                         publisher: ReceiptPublisher | None = None) -> InstructorRun:  # fmt: skip
+    """`store` and `publisher`: MS-P1j's session step passes its deferred store and its run's receipts."""
     first_counted = school_settings(config).first_counted
-    return InstructorRun(build_path_reader(), build_classifier(config), build_instructor_store(),
+    return InstructorRun(build_path_reader(publisher), build_classifier(config), store or build_instructor_store(),
                          float(config["risk_free_rate"]), rules_sha256(), first_counted)  # fmt: skip
 
 

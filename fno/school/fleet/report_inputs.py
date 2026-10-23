@@ -6,6 +6,7 @@ import csv
 from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
+from typing import Protocol
 
 from ..constants import SLOT_1500, DriverRole, Outcome, RecordKind, RoadCode
 from ..contracts.dashcam import DashcamStore
@@ -18,9 +19,14 @@ from .isolate import isolated
 from .slot import plan_slot
 
 
+class WhyLines(Protocol):
+    def lines(self, session: date) -> tuple[str, ...]: ...
+
+
 class SealedDayInputs:
-    def __init__(self, dashcam: DashcamStore, root: Path, roles: Mapping[str, DriverRole]):
-        self.dashcam, self.root, self.roles = dashcam, Path(root), dict(roles)
+    def __init__(self, dashcam: DashcamStore, root: Path, roles: Mapping[str, DriverRole], why: WhyLines | None = None):
+        """`why`: MS-INS part e's line per closed trade (driver, road, net and cause words; never a contract)."""
+        self.dashcam, self.root, self.roles, self.why_lines = dashcam, Path(root), dict(roles), why
 
     def records(self, session: date) -> tuple[SlotRecord, ...]:
         found = []
@@ -40,6 +46,9 @@ class SealedDayInputs:
 
     def role_of(self, driver_id: str) -> DriverRole:
         return self.roles[driver_id]
+
+    def why(self, session: date) -> tuple[str, ...]:
+        return () if self.why_lines is None else tuple(self.why_lines.lines(session))
 
     def marks(self, session: date) -> tuple[str, ...]:
         return SessionCounts(self.root, None).marks(session, SLOT_1500)
