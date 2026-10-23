@@ -58,3 +58,18 @@ the Claims table once they are tested.
   - cause 13 not testable in v1.
 
   Each is stated in `INSTRUCTOR_V1.md` and matches the code.
+
+## Addendum 1: round 2 at ffd76737
+
+**Verdict: PASS.** Lane 1, one judge. Scope: the single commit f78b9e55..ffd76737, which adds tests and Claims
+only; no code changed.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 eight untested branches | ACCEPTED | `test_branches.py` has one test per branch. I re-ran my whole round-1 plant set: 38 of 38 caught (none survive) |
+| Minor: the boundaries named | ACCEPTED | both are in the round-2 Claims table |
+
+- The directional test uses a share of 0.25 so that the boundary is exact in floating point. That is a fair way to
+  pin `>=`. The production share (0.20) is still pinned to the card by `test_card.py`.
+- **Gates (my run):** pytest -n auto 11,948 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.
