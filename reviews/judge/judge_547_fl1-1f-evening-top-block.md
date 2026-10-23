@@ -56,3 +56,24 @@
 ## Note
 After this merges, the designer's red line should use `no_verdict_words`, so the page gives the reader's
 own reason too (judge 538.2).
+
+## Addendum 1
+
+- **Head checked:** b801bc28, round 2 of 2, a delta check of b3586bb4. Merged with main for testing as a1b0f736.
+- **Verdict: PASS. Merge go.**
+- **Gates:**
+  - tests/forecast_lab, tests/school and tests/e2e_acceptance: 3887 passed;
+  - ruff check, ruff format --check, check_imports: clean;
+  - the builder's full suite: 14,742 passed. The orchestrator's merge run is the one full run.
+- **F1 fixed:** the back-test counts the back-tested sessions among the last 30, and its label says so.
+  - The round-1 probe (30 back-filled, then 10 live) now reads "Back-test (20 of the last 30 days): 20 of 20".
+  - S1 (back to the last 30 back-tested) is caught, 2 failed; S4 (the label always "last 30") is caught.
+- **F2 fixed, and more than asked:** the light is rated on live checks only, "⚪ too few live days to rate"
+  below 30 live.
+  - S2 (rated over the mixed days) is caught, 5 failed.
+  - No alert or decision reads the light; `light` and `light_word` are display only (grep).
+  - The design page's chip now shows the "Too few live days to rate" pill until 30 live days, which hides
+    its mixed counts. That is consistent with the rule; the method line still gives the back-tested count.
+- **Minor, not blocking:** S3 (the light over all live checks instead of the newest 30) survived, 3887 passed.
+  - It cannot matter before an index has more than 30 live checks, about early December.
+  - Pin `live_recent_right` over the newest 30 before then.
