@@ -415,6 +415,21 @@
     "reason": "v4_deadline:CHECKED",
     "exit_code": 0
    }
+  },
+  "candles": {
+   "started_at": "2026-10-23T15:22:02.716803+05:30",
+   "finished_at": "2026-10-23T15:33:30.023862+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
