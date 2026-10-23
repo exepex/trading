@@ -190,7 +190,7 @@ def test_the_run_command_with_the_switch_off_prints_the_off_line_and_builds_noth
     def refuse(*args, **kwargs):
         raise AssertionError("a store was built with the switch off")
 
-    for name in ("fleet_on", "build_dashcam", "build_account_sync", "GitManifestRecorder"):
+    for name in ("fleet_on", "build_dashcam", "build_account_sync", "SessionFilesCommitter"):
         monkeypatch.setattr(wiring, name, refuse)
     monkeypatch.setattr(cli, "load_app_config", lambda: {"school": {**GOOD, "enabled": False}})
     said = []
