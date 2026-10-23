@@ -115,7 +115,8 @@ pastes it, and no session changes a routine.
      (`agents/forecast/book2_hybrid_v1.md` and `book3_ai_v1.md`, their step 3: "fix what it names and run it again")
      while it is before 15:15:00. A seal that fails any other way (no "refused" line: `fno/ai/__main__.py` prints
      "refused: ..." only for `BookStepRefused`, `PublishFailed`, `ValueError` and `OSError`; anything else, a
-     `GitFailed` for one, ends in a traceback), or still refuses at 15:15:00, stops with its last line. It no longer waits for an
+     code fault such as a `KeyError`, ends in a traceback; a git failure is `PublishFailed`, so a refused push prints
+     "refused: git ... failed" and is sealed again under step 4, judge 551 addendum 2), or still refuses at 15:15:00, stops with its last line. It no longer waits for an
      install that no longer exists (judge 551's should-fix: an earlier draft stopped at the first refusal, which would
      have lost a fixable answer).
    - Step 0 (start on the latest main, DR1) is unchanged.
