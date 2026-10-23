@@ -352,6 +352,27 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "recommend": {
+   "started_at": "2026-10-23T15:25:08.331776+05:30",
+   "finished_at": "2026-10-23T15:25:18.354805+05:30",
+   "inputs": {
+    "command": [
+     "recommend",
+     "decide",
+     "unlisted",
+     "2026-10-23"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNTIL",
+    "exercised": {
+     "status": "ok",
+     "reason": "recommend:POSTED",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
