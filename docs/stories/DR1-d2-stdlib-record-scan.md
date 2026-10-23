@@ -31,3 +31,13 @@ to the F1/G5 owner.
 3. The plant "the hook imports `fno.composition` again" fails 2 of the 3 new tests.
 4. Every existing scan test is unchanged and passes (the re-export keeps `fno.composition.build_record_scanner`).
 5. Gates: ruff, `tools/check_imports.py`, full suite 14,646 passed.
+
+### Plants (one per claim, each reverted after the run)
+
+| Claim | Plant | Caught by |
+|---|---|---|
+| 1, refusal | `check_records.main` returns 0 on findings | `test_a_planted_credential_is_refused...` fails |
+| 1, alert text | the unloadable sender's line drops the text (`"alert NOT sent"` only) | the same test fails |
+| 2 | `import requests` at the top of `fno/record_scan/wiring.py` | all 3 tests in `test_stdlib_only.py` fail |
+| 3 | `tools/check_records.py` imports `build_record_scanner` from `fno.composition` again | 2 of 3 fail |
+| 4 | the scanner built without its record and credential patterns | 35 tests in `test_stdlib_only.py` and `test_patterns.py` fail |
