@@ -127,8 +127,10 @@ def check_dashcam(store, session: date, slot: str, records: tuple[SlotRecord, ..
                   other: tuple[SlotRecord, ...]) -> None:  # fmt: skip
     assert isinstance(store, DashcamStore)
     assert store.find(session, slot, RecordKind.DECISIONS) is None, "nothing sealed yet"
+    assert store.recover(session, slot, RecordKind.DECISIONS, lambda record: True) is None, "nothing stored either"
     first = store.seal(session, slot, RecordKind.DECISIONS, records)
     assert store.find(session, slot, RecordKind.DECISIONS) == first
+    assert store.recover(session, slot, RecordKind.DECISIONS, lambda record: True) == first, "a seal is recovered"
     assert store.find(session, slot, RecordKind.OUTCOMES) is None
     assert store.seal(session, slot, RecordKind.DECISIONS, records) == first, "the same records again change nothing"
     with pytest.raises(ReplayConflict):
