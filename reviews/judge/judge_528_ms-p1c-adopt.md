@@ -43,3 +43,18 @@ lane 1.
 ## Gates (run by me on 743eadca)
 
 14,299 passed, 16 xfailed; ruff, format and check_imports clean. It merges cleanly with current main.
+
+## Addendum 1
+
+**Verdict: PASS** on story/ms-p1c-adopt at fdb57abc: 66cf5c89 (test only), then a merge of main. Round 2 of 2, and it
+closes SF1. Against main, the code is unchanged from 743eadca; only `SealNotPushed`'s import moved to
+`fno.storage.receipt_publisher`.
+
+- **The new test:** `test_a_stored_row_of_a_driver_outside_the_fleet_stops_the_rerun_and_seals_nothing_of_its_kind`,
+  with one case each for an exit, an outcome and a drift row. Each stores an unreceipted file holding a row of driver
+  `ZZ9@1` and goes through the fleet's rerun (no lambda passed to the store). It asserts the "dashcam stuck ... not this
+  fleet's" stop and that nothing of that kind is sealed.
+- **My SF1 plant** (`_belongs` returning True for non-decision rows) now fails all 3 cases (3 failed, 4 passed in
+  `test_adopt_rerun.py`).
+- **Gates on fdb57abc (run by me):** 14,357 passed, 16 xfailed; ruff, format and check_imports clean. It merges cleanly
+  with current main.
