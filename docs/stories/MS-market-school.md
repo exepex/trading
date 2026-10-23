@@ -2915,6 +2915,7 @@ guard.
 | The reader's cut-off; no session given reads up to today (the review) | `the_reader_reads_corrections_sealed_up_to_the_session_it_is_given` |
 | Hold to expiry counts only from the session after the expiry | `holding_to_expiry_counts_only_from_the_session_after_the_expiry`; `test_run::a_classification_waiting_for_its_expiry...` (written again at the first session after the expiry, not before) |
 | A rerun after the settlement is recomputed to the same result | `test_run::a_rerun_after_later_sessions_returns_the_session_as_written` |
+| A written session's unreadable files are reported as of that session; a later session's damaged file is that session's (judge 525.2's minor; test only, lane 2) | `a_written_sessions_unreadable_files_are_read_as_of_that_session` |
 
 **Broken-code proof:** 5 plants, all caught:
 - the day's paths read up to today;
