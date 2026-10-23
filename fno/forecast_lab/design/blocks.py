@@ -1,12 +1,14 @@
-"""The pages' text blocks: a forecast's three big numbers, the result card (three big numbers), the day-by-day
-table, the counts with percentages and the misses table. Every number is read from the `Day` values; the blocks
-compute only shares."""
+"""The pages' text blocks: a forecast's three big numbers (rounded outward, the morning text's rule), the result card
+and the day-by-day table (the forecast's own edges to the point, FL1-1f's rule: a close a few points outside is never
+shown inside a rounded range), the counts with percentages and the misses table. Every number is read from the `Day`
+values; the blocks compute only shares."""
 
 from __future__ import annotations
 
 from html import escape
 
 from ..page.model import IndexView
+from ..page.verdict_words import range_words
 from .formats import AMBER, GLYPH, GREEN, RED, WORD, fmt, fmt_mid, fmt_range, signed, signed_pct
 from .values import Day, reason_for, today_of
 
@@ -49,7 +51,7 @@ def result_card(d: Day, report: str = NEXT_MORNING) -> str:
     return (
         f'<div class="result"><div class="three">'
         f"<div><small>Forecast middle</small><b>{fmt(d.mid)}</b>"
-        f"<span>most likely {fmt_range(d.lo50, d.hi50)}</span></div>"
+        f"<span>most likely {range_words(d.lo50, d.hi50)}</span></div>"
         f"<div><small>Actual close</small><b>{fmt(d.close)}</b><span>{note}</span></div>"
         f'<div><small>Gap</small><b class="{d.result}">{signed(d.gap)} pts</b>'
         f"<span>{signed_pct(d.gap_pct)}</span></div>"
@@ -64,8 +66,8 @@ def day_table(index: IndexView, days: list[Day]) -> str:
         sign = "pos" if d.gap >= 0 else "neg"
         reason = escape(reason_for(index, d)) if d.result == RED else ""
         rows.append(
-            f"<tr><td>{d.date}</td><td>{fmt(d.mid)}</td><td>{fmt_range(d.lo50, d.hi50)}</td>"
-            f"<td>{fmt_range(d.lo90, d.hi90)}</td><td><b>{fmt(d.close)}</b></td>"
+            f"<tr><td>{d.date}</td><td>{fmt(d.mid)}</td><td>{range_words(d.lo50, d.hi50)}</td>"
+            f"<td>{range_words(d.lo90, d.hi90)}</td><td><b>{fmt(d.close)}</b></td>"
             f'<td class="{sign}">{signed(d.gap)}</td><td class="{sign}">{signed_pct(d.gap_pct)}</td>'
             f'<td class="{d.result}">{GLYPH[d.result]} {WORD[d.result]}</td><td class="reason">{reason}</td></tr>'
         )

@@ -8,7 +8,7 @@ from ..page.model import IndexView, PageView
 from .blocks import big_numbers
 from .formats import fmt
 from .lines_chart import LinesChart, LinesLayout
-from .page import KEY, PHONE, WIDE, both, cues_strip, foot, head, header, method_line, reliability_chip, why_block
+from .page import KEY, PHONE, WIDE, both, cues_strip, foot, head, header, method_line, record_pill, why_block
 from .values import days_of, result_of, today_of
 from .verdict import morning_check
 
@@ -43,13 +43,13 @@ def chart_card(index: IndexView) -> str:
 
 
 def section(index: IndexView, view: PageView) -> str:
-    name, days = index.underlying, days_of(index, SHOWN)
+    name = index.underlying
     return (
         f'<div class="card"><h2>{name}<small>last close {fmt(index.price)} ({index.price_at})</small></h2>'
         f"{big_numbers(index, TODAY, NO_FORECAST)}{morning_check(index, view, result_of(index))}</div>"
         f"{chart_card(index)}"
         f'<div class="card">{why_block("Why this forecast", [], index)}'
-        f'<div class="record">{reliability_chip(index, days)}</div>{method_line(index)}</div>'
+        f'<div class="record">{record_pill(index)}</div>{method_line(index)}</div>'
     )
 
 

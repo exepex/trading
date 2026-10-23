@@ -9,6 +9,7 @@ from datetime import timedelta
 from fno.forecast_lab.page.model import (
     Band,
     Cell,
+    DayShape,
     Horizon,
     IndexView,
     MethodRecord,
@@ -16,6 +17,7 @@ from fno.forecast_lab.page.model import (
     PageView,
     RangeView,
     Timeline,
+    TrackRecord,
     Window,
 )
 
@@ -66,17 +68,25 @@ def nifty(n: int = 30, checked: bool = False) -> IndexView:
     right = sum(p.inside_90 for p in points)
     horizons = (Horizon(Timeline("N1", "implied", points), (method(points),)),)
     result = points[-1] if checked else None
+    shape = (
+        DayShape(points[-1].close - 40, points[-1].close + 90, points[-1].close - 120, points[-2].close)
+        if checked
+        else None
+    )
+    live = int(points[-1].inside_90)
+    track = TrackRecord(1, live, 29, right - live, 30, live) if checked else None  # the default stays as before
     return IndexView("NIFTY", float(points[-1].close), "close", "implied", today, False, 0, 60, horizons, right, n,
                      misses, "green" if right >= 25 else "amber", "Good" if right >= 25 else "Watch",
-                     tuple(points[i].day for i in reversed(MISS_DAYS)), result=result)  # fmt: skip
+                     tuple(points[i].day for i in reversed(MISS_DAYS)), result=result, shape=shape,
+                     track=track)  # fmt: skip
 
 
-def unchecked(index: IndexView, why: str) -> IndexView:
-    """An index whose edition could not check today: no result, the timeline ends on the previous session, and the
-    builder's key (FL1-1e's `IndexView.unchecked`: `model.CLOSE_NOT_READ` or `NO_FORECAST_TODAY`)."""
+def unchecked(index: IndexView, why: str, words: str = "") -> IndexView:
+    """An index whose edition could not check today: no result, the timeline ends on the previous session, the
+    builder's key (`model.CLOSE_NOT_READ` or `NO_FORECAST_TODAY`) and its cause in words (FL1-1f)."""
     timeline = index.horizons[0].timeline
     horizons = (Horizon(replace(timeline, points=timeline.points[:-1]), index.horizons[0].methods),)
-    return replace(index, horizons=horizons, result=None, unchecked=why)
+    return replace(index, horizons=horizons, result=None, shape=None, unchecked=why, unchecked_why=words)
 
 
 def scaled(band: Band, scale: float) -> Band:
