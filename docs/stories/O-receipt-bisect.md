@@ -49,3 +49,23 @@ All figures below are measured, strong evidence: read-only on main 75147474, 23 
 4. **Not covered:** whether tonight's health run fits inside 15 minutes depends on its other steps too. That will be
    shown by the run itself (the orchestrator's part 2).
 5. **Gates:** in the message to the judge.
+
+## Same-second pushes (judge 535's minor; story/o-receipt-same-second)
+
+**The assumption, and its evidence.** The activity log's timestamps are whole seconds. Within a second, push order is
+GitHub's activity `id`: it rises with every entry. This is strong evidence, measured on 23 Oct: across all 3,929
+entries since 11 Oct, the ids fall strictly in page order (pages are newest first). So the sort key is `(time, id)`.
+Page order is not trusted.
+
+**What the log holds today** (strong evidence, measured):
+- 12 seconds have more than one entry.
+- All 12 are one push logged more than once: the same `before`, `after`, actor and second (for example, three entries
+  for c1583a80 → d46773cd at 21 Oct 14:15:18 UTC).
+- For those, any copy gives the same receipt. Judge F's "unknown" can only happen with two different pushes in one
+  second, which has not happened yet but can.
+
+**Claims.**
+1. `test_two_pushes_in_one_second_are_ordered_by_githubs_id` pushes two different commits in the same second, paged
+   newest first. It requires both to get that second's receipt. Plant: sorting by time alone gives `ReceiptNotFound`
+   for the first commit.
+2. Fakes without an `id` sort as before (`id` 0), so every earlier receipt test is unchanged.
