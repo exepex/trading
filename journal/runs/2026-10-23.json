@@ -368,6 +368,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "v4_deadline": {
+   "started_at": "2026-10-23T15:21:49.806436+05:30",
+   "finished_at": "2026-10-23T15:21:51.840756+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "deadline"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "v4_deadline:NOT_LIVE",
+    "exit_code": 0
+   }
   }
  }
 }
