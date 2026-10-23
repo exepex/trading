@@ -37,14 +37,18 @@ def cmd_run(args, out=print) -> int:
     if args.replay is None and not school_settings(cfg).enabled:
         out(SCHOOL_OFF_LINE)
         return 0
+    from . import wiring
     from .contracts.fleet import RunMode
     from .fleet.quote_share import share_lines
-    from .wiring import build_fleet
 
-    mode = RunMode.REPLAY if args.replay else RunMode.RECORD
-    if mode is RunMode.REPLAY:
+    if args.replay is None:
+        mode, fleet = RunMode.RECORD, wiring.build_fleet(cfg)
+    else:
+        from .replay_wiring import build_replay_fleet
+
         cfg = {**cfg, SETTINGS_KEY: {**cfg[SETTINGS_KEY], "enabled": True}}
-    run = build_fleet(cfg, mode, session, replay_folder=args.replay).run(session, mode)
+        mode, fleet = RunMode.REPLAY, build_replay_fleet(cfg, session, args.replay)
+    run = fleet.run(session, mode)
     for line in run_lines(run, share_lines):
         out(line)
     return 1 if run.status.startswith(FLEET_STOPPED) else 0  # a stop fails the daily run's step, which alerts #fno-desk

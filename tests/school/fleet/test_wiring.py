@@ -1,6 +1,9 @@
-"""Story MS-P1j's composition root (Judge K, judge 512 should-fix 1): a replay builds no Drive dashcam, no account
-sync and no committer, and every store it writes lives under its own folder; the record mode builds each of them."""
+"""Story MS-P1j's two roots (Judge K, judge 512 should-fix 1; orchestrator: by construction, not by convention): the
+replay root and the shared fleet builder import none of the pilot's real stores, a replay built while those stores
+refuse to exist still builds, and every store it writes lives under its folder; the record root builds all three."""
 
+import ast
+import inspect
 from datetime import date, datetime
 from types import SimpleNamespace
 
@@ -8,14 +11,17 @@ import pytest
 
 from fno.config import ROOT, load_config
 from fno.models import IST
-from fno.school import wiring
-from fno.school.contracts.fleet import RunMode
+from fno.school import fleet_wiring, replay_wiring, wiring
 from fno.school.fleet.replay_store import ReplayDashcam
 
 CFG = load_config(ROOT / "config.yaml")
 ON = {**CFG, "school": {**CFG["school"], "enabled": True}}
 SESSION = date(2026, 10, 22)
-OUTWARD = ("build_dashcam", "build_account_sync", "GitManifestRecorder")
+REAL_STORES = {  # the pilot's real stores: where each one's builder is defined
+    "build_dashcam": "fno.school.dashcam.wiring",
+    "build_account_sync": "fno.school.accounts.wiring",
+    "GitManifestRecorder": "fno.storage.manifest_commit",
+}
 READ_ONLY = {  # what the fleet only reads (captures, NSE's archives, the margin file), stubbed: no store is built here
     "build_road_services": lambda: SimpleNamespace(catalogue=None, snapshots=None, listing=None),
     "build_quality_gate": lambda listing: None,
@@ -28,36 +34,46 @@ READ_ONLY = {  # what the fleet only reads (captures, NSE's archives, the margin
 @pytest.fixture(autouse=True)
 def read_only(monkeypatch):
     for name, stub in READ_ONLY.items():
-        monkeypatch.setattr(wiring, name, stub)
+        monkeypatch.setattr(fleet_wiring, name, stub)
 
 
-def refuse(name):
-    def builder(*args, **kwargs):
-        raise AssertionError(f"a replay built {name}")
+def imported(module) -> set[str]:
+    """Every module and name the module's source imports."""
+    names = set()
+    for node in ast.walk(ast.parse(inspect.getsource(module))):
+        if isinstance(node, ast.ImportFrom):
+            names |= {node.module or ""} | {alias.name for alias in node.names}
+        elif isinstance(node, ast.Import):
+            names |= {alias.name for alias in node.names}
+    return names
 
-    return builder
+
+@pytest.mark.parametrize("module", [replay_wiring, fleet_wiring], ids=lambda m: m.__name__)
+def test_the_replay_root_and_the_shared_builder_cannot_reach_a_real_store(module):
+    names = imported(module)
+    assert not names & set(REAL_STORES), "a real store's builder imported"
+    assert not names & {"wiring", "dashcam.wiring", "storage.manifest_commit"}, "the record root or a real store"
 
 
-def test_a_replay_builds_nothing_outward_and_writes_only_under_its_folder(monkeypatch, tmp_path):
-    for name in OUTWARD:
-        monkeypatch.setattr(wiring, name, refuse(name))
-    fleet = wiring.build_fleet(ON, RunMode.REPLAY, SESSION, replay_folder=tmp_path)
+def test_a_replay_builds_with_every_real_store_refusing_and_writes_only_under_its_folder(monkeypatch, tmp_path):
+    def refuse(*args, **kwargs):
+        raise AssertionError("a replay built a real store")
+
+    for name, home in REAL_STORES.items():
+        monkeypatch.setattr(f"{home}.{name}", refuse)
+        monkeypatch.setattr(wiring, name, refuse)
+    fleet = replay_wiring.build_replay_fleet(ON, SESSION, tmp_path)
     assert isinstance(fleet.dashcam, ReplayDashcam) and fleet.dashcam.folder.is_relative_to(tmp_path)
     for store in (fleet.books.accounts, fleet.books.ticket_entries):
         assert store.root.is_relative_to(tmp_path) and store.sync is None
     assert fleet.counts.root == tmp_path and fleet.counts.committer is None
-    assert fleet.clock.now() == datetime.combine(SESSION, wiring.REPLAY_FILL_TIME, IST)
+    assert fleet.clock.now() == datetime.combine(SESSION, replay_wiring.REPLAY_FILL_TIME, IST)
 
 
-def test_a_replay_needs_its_folder():
-    with pytest.raises(ValueError):
-        wiring.build_fleet(ON, RunMode.REPLAY, SESSION)
-
-
-def test_the_record_mode_builds_the_drive_dashcam_the_sync_and_the_committer(monkeypatch, tmp_path):
+def test_the_record_root_builds_the_drive_dashcam_the_sync_and_the_committer(monkeypatch, tmp_path):
     built = {}
-    for name in OUTWARD:
+    for name in REAL_STORES:
         monkeypatch.setattr(wiring, name, lambda *a, name=name, **k: built.setdefault(name, object()))
-    fleet = wiring.build_fleet(ON, RunMode.RECORD, SESSION, root=tmp_path)
+    fleet = wiring.build_fleet(ON, root=tmp_path)
     assert fleet.dashcam is built["build_dashcam"] and fleet.counts.committer is built["GitManifestRecorder"]
-    assert fleet.books.accounts.sync is built["build_account_sync"]
+    assert fleet.books.accounts.sync is built["build_account_sync"] and fleet.counts.root == tmp_path
