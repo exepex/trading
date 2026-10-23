@@ -131,6 +131,23 @@
     "built": true,
     "sha256": "af69a43ba6bcfd71e888786cb902b96e8af6c93f11b7c0fedc9f79961e93c8f9"
    }
+  },
+  "book1": {
+   "started_at": "2026-10-23T14:58:12.980903+05:30",
+   "finished_at": "2026-10-23T14:58:48.993518+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "unlisted",
+     "2026-10-23"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
