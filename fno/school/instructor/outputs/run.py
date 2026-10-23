@@ -3,12 +3,7 @@ classified, with REF's and RC1's results on its road-slot; then every earlier po
 classification was waiting for data (cause 11 before its expiry settled, or a modifier before the controls closed) or
 its outcome has been corrected since (judge 522). A changed result is written as a new record naming the old: a new
 classification, and for a corrected outcome a new attribution too. Orphan corrections are listed on every run.
-Written write-once to the instructor's own files; a dry run writes nothing.
-
-Each session is computed as of itself (judge 525, orchestrator's ruling): corrections, controls and settlements as
-sealed or known by that session, never "today". So a rerun computes the same bytes, and a run that stopped between a
-Drive write and its receipt reruns to a no-op write that publishes the missing receipt; no unreceipted file is ever
-trusted. A later correction reaches later sessions' files as a re-check, never the earlier session's."""
+Written write-once to the instructor's own files; a dry run writes nothing."""
 
 from collections import defaultdict
 from dataclasses import dataclass, replace
@@ -47,17 +42,19 @@ class InstructorRun:
         self.rules_sha256, self.first_counted = rules_sha256, first_counted
 
     def for_session(self, session: date, write: bool = False) -> SessionResult:
-        """A session already written is returned as written, unread again: its files are what that session knew."""
+        """A session already written (or stored by a run that stopped before its receipt) is returned as written,
+        whenever it is rerun: later runs see more (re-checks, closed controls), so recomputing could differ, and a
+        written file is never rewritten. A later change arrives as a re-check correction on the next session's run."""
         orphans = self.reader.orphan_corrections()
-        written = self.store.read(session, InstructorKind.CAUSES) if write else None
+        written = self.store.recover(session, InstructorKind.CAUSES) if write else None
         if written is not None:
-            kept = self.store.read(session, InstructorKind.ATTRIBUTION) or ()
-            unreadable = self.reader.closed_on(session, session).unreadable
-            return SessionResult(session, tuple(kept), tuple(written), unreadable, orphans)
-        closed = self.reader.closed_on(session, session)
+            kept = self.store.recover(session, InstructorKind.ATTRIBUTION) or ()
+            return SessionResult(session, tuple(kept), tuple(written), self.reader.closed_on(session).unreadable,
+                                 orphans)  # fmt: skip
+        closed = self.reader.closed_on(session)
         attributions = {p.outcome.position_id: self._attribute(p) for p in closed.paths}
         nets = self._nets(closed.paths, session)
-        found = [self.classifier.classify(p, attributions[p.outcome.position_id], controls_for(p, nets), session)
+        found = [self.classifier.classify(p, attributions[p.outcome.position_id], controls_for(p, nets))
                  for p in closed.paths]  # fmt: skip
         new_attributions, new_causes = self._rechecks(session)
         kept = tuple(a for a in attributions.values() if a is not None) + new_attributions
@@ -73,7 +70,7 @@ class InstructorRun:
     def _nets(self, paths: tuple[HeldPath, ...], session: date) -> dict:
         """The controls' closed results from the earliest entry among `paths` up to `session`."""
         first = min((p.outcome.entry.filled_at.astimezone(IST).date() for p in paths), default=session)
-        return control_nets(self.reader.closed_between(first, session, session).paths)
+        return control_nets(self.reader.closed_between(first, session).paths)
 
     def _latest(self, session: date, kind: InstructorKind) -> dict[str, object]:
         origin = self.first_counted or session - timedelta(days=RECHECK_DAYS)
@@ -93,7 +90,7 @@ class InstructorRun:
             by_day[old.closed_on].append(old)
         new_attributions, new_causes = [], []
         for day, olds in sorted(by_day.items()):
-            paths = {p.outcome.position_id: p for p in self.reader.closed_on(day, session).paths}
+            paths = {p.outcome.position_id: p for p in self.reader.closed_on(day).paths}
             for old in olds:
                 path = paths.get(old.position_id)
                 corrected = path is not None and record_sha256(path.outcome) != old.outcome_sha256
@@ -103,8 +100,8 @@ class InstructorRun:
                 if corrected and attribution is not None:
                     before = attributions.get(old.position_id)
                     new_attributions.append(replace(attribution, corrects=record_sha256(before) if before else ""))
-                controls = controls_for(path, self._nets((path,), session))
-                new = self.classifier.classify(path, attribution, controls, session, corrects=record_sha256(old))
+                new = self.classifier.classify(path, attribution, controls_for(path, self._nets((path,), session)),
+                                               corrects=record_sha256(old))  # fmt: skip
                 if replace(new, corrects=old.corrects) != old:
                     new_causes.append(new)
         return tuple(new_attributions), tuple(new_causes)

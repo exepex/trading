@@ -4,11 +4,9 @@ whatever cannot be verified becomes a `DataFault` on the path, never a guess, an
 
 Corrections (orchestrator's ruling on judge 501): a dashcam file is written once, so a correction is sealed on a later
 session than its original. There is one resolver: an original closed on day d is read on day d as its latest
-correction, wherever and whenever that correction was sealed up to today, or up to the session `as_of` names (a
-session's instructor run reads only files sealed by then, so a rerun reads the same; judge 525). A correction is never
-a path on the day its own file was sealed. So the paths of `closed_on` over each day of a range are exactly
-`closed_between` over the range. A day's tally recomputed after a correction can change; the 20:05 line keeps what was
-known at 20:05."""
+correction, wherever and whenever that correction was sealed (up to today), and a correction is never a path on the
+day its own file was sealed. So the paths of `closed_on` over each day of a range are exactly `closed_between` over
+the range. A day's tally recomputed after a correction can change; the 20:05 line keeps what was known at 20:05."""
 
 from dataclasses import dataclass
 from datetime import date
@@ -54,14 +52,13 @@ class PathReader:
         self.calendar, self.clock, self.record_start = calendar, clock, record_start
         self._files: dict[tuple[date, RecordKind], SealedFile | None] = {}  # one read per file per run
 
-    def closed_on(self, session: date, as_of: date | None = None) -> ClosedRead:
-        return self.closed_between(session, session, as_of)
+    def closed_on(self, session: date) -> ClosedRead:
+        return self.closed_between(session, session)
 
-    def closed_between(self, first: date, last: date, as_of: date | None = None) -> ClosedRead:
-        """Every original closed from `first` to `last`, each as its latest correction sealed up to `as_of` (None:
-        today), never before `last`."""
-        upto = max(as_of or self.clock.now().astimezone(IST).date(), last)
-        files = {d: self._read(d, RecordKind.OUTCOMES) for d in self.sessions(first, upto)}
+    def closed_between(self, first: date, last: date) -> ClosedRead:
+        """Every original closed from `first` to `last`, each as its latest correction sealed up to today."""
+        today = max(self.clock.now().astimezone(IST).date(), last)
+        files = {d: self._read(d, RecordKind.OUTCOMES) for d in self.sessions(first, today)}
         outcomes = {d: [r for r in f.records if isinstance(r, OutcomeRecord)] for d, f in files.items() if f}
         corrections = {r.corrects: r for d in sorted(outcomes) for r in outcomes[d] if r.corrects}
         paths = tuple(self._path(latest(r, corrections)) for d in sorted(outcomes) if d <= last

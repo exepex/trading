@@ -22,7 +22,10 @@ class FakeData:
     area = "data"
 
     def __init__(self):
-        self.files = {}
+        self.files, self.drive = {}, self  # `drive`: the whole project folder, as DataStore's
+
+    def get(self, drive_path):
+        return self.files.get(drive_path.removeprefix(f"{self.area}/"))
 
     def put(self, path, payload):
         if self.files.get(path, payload) != payload:
@@ -34,9 +37,10 @@ class FakeData:
 
 class FakePublisher:
     def __init__(self):
-        self.pushed = {}
+        self.pushed, self.messages = {}, []
 
     def publish(self, drive_path, what):
+        self.messages.append(what)
         sha = self.data.files[drive_path.split("/", 1)[1]]
         self.pushed[drive_path] = PushedReceipt("c0ffee", datetime(2026, 11, 4, tzinfo=UTC),
                                                 hashlib.sha256(sha).hexdigest())  # fmt: skip

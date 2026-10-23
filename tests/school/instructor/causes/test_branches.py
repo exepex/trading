@@ -16,7 +16,7 @@ from fno.school.instructor.causes.classify import causes_of
 from fno.school.instructor.causes.rules import verdicts
 from fno.school.instructor.contracts import Cause
 from tests.school.instructor.attribution.fixtures import EXPIRY, SHORT, model_snapshot, path
-from tests.school.instructor.builders import AFTER_EXPIRY, RULES
+from tests.school.instructor.builders import RULES
 from tests.school.instructor.causes.evidence_builders import FLAT, evidence, with_parts
 from tests.school.instructor.causes.paths import ENTRY_DAY, entry_record
 from tests.school.instructor.causes.test_evidence import builder
@@ -86,4 +86,4 @@ def test_an_impossible_price_alone_is_a_data_fault_with_fills_at_the_touch():
     impossible = replace(first, quotes={**first.quotes, SHORT: replace(first.quote(SHORT), bid=1500.0, ask=1501.0)})
     held = replace(path((impossible, model_snapshot(date(2026, 11, 4), 980.0, 0.22))), entry=entry_record())
     assert held.outcome.entry.legs[0].price == 1500.0  # filled at that touch: the off-touch half sees nothing
-    assert builder().build(held, attribute(held, 0.0, RULES), None, AFTER_EXPIRY).data_fault is True
+    assert builder().build(held, attribute(held, 0.0, RULES), None).data_fault is True

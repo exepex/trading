@@ -1,8 +1,6 @@
 """What the cause rules read about one closed path (story MS-INS, part c), gathered once through the ports: the move
 against the entry volatility, the market's moves, a known event, the stance, the stop, the hold-to-expiry outcome, the
-card's replay, data faults and the model noise band. A value the inputs cannot give is None: "not testable".
-Gathered as of a session (judge 525, orchestrator's ruling): a settlement counts only for an expiry before it, so the
-same session's evidence is the same on every run, however late the run."""
+card's replay, data faults and the model noise band. A value the inputs cannot give is None: "not testable"."""
 
 from dataclasses import dataclass
 from datetime import date
@@ -59,8 +57,7 @@ class EvidenceBuilder:
         self.archive, self.events, self.stops, self.replay, self.fills, self.rate = (
             archive, events, stops, replay, fills, rate)  # fmt: skip
 
-    def build(self, path: HeldPath, attribution: Attribution | None, controls: Controls | None,
-              as_of: date) -> Evidence:  # fmt: skip
+    def build(self, path: HeldPath, attribution: Attribution | None, controls: Controls | None) -> Evidence:
         outcome = path.outcome
         terms = _Terms(path, self.rate) if path.snapshots and path.entry is not None else None
         first_day, last_day = _day(outcome.entry.filled_at), _day(outcome.exit.filled_at)
@@ -76,7 +73,7 @@ class EvidenceBuilder:
             stance=terms.stance if terms else None,
             inside_breakevens=terms.inside_breakevens() if terms else None,
             stop_rs=self._stop(path),
-            hold_net=self._hold(path, as_of),
+            hold_net=self._hold(path),
             replay_matches=self._replayed(path),
             noise=terms.noise() if terms else None,
             controls=controls,
@@ -91,15 +88,12 @@ class EvidenceBuilder:
         multiple = self.stops.loss_multiple(path.outcome.driver_id)
         return None if multiple is None else multiple * abs(path.outcome.entry.cash)
 
-    def _hold(self, path: HeldPath, as_of: date) -> float | None:
-        """The net had the position been held to expiry and settled; None until a session after the expiry (its
-        settlement is published after the close) and until the settlement exists."""
+    def _hold(self, path: HeldPath) -> float | None:
+        """The net had the position been held to expiry and settled; None until its settlement exists."""
         if path.outcome.exit_reason not in PLAN_EXITS or path.entry is None:
             return None
         proposal, outcome = path.entry.decision.proposal, path.outcome
         expiry = proposal.legs[0].key.expiry
-        if expiry >= as_of:
-            return None
         position = OpenPosition(
             outcome.position_id,
             outcome.driver_id,
