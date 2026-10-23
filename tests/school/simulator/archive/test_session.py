@@ -13,7 +13,7 @@ from fno.school.simulator import command
 from fno.school.simulator.archive import names
 from fno.school.simulator.archive.archive import PracticeArchive
 from fno.school.simulator.archive.files import run_files
-from fno.school.simulator.archive.inputs import CodeNotCommitted, code_commit, inputs_digest
+from fno.school.simulator.archive.inputs import CodeNotCommitted, code_identity, inputs_digest
 from fno.school.simulator.constants import PRACTICE_LABEL
 from fno.school.simulator.practice.render import left_out_lines
 from fno.school.simulator.spreads.model import SpreadModel
@@ -52,7 +52,7 @@ def world(tmp_path, monkeypatch):
 
     monkeypatch.setattr(command, "PracticeRunner", Runner)
     monkeypatch.setattr(command, "build_practice_parts", lambda cfg, today, folder: (parts, LEFT_OUT))
-    monkeypatch.setattr(command, "code_commit", lambda root: "abc1234")
+    monkeypatch.setattr(command, "code_identity", lambda root: "abc1234")
     made = World(tmp_path / "world")
     monkeypatch.setattr(command, "build_practice_archive", made.archive)
     return made
@@ -143,7 +143,7 @@ def test_uncommitted_code_is_refused_before_anything_runs(world, tmp_path, monke
     def dirty(root):
         raise CodeNotCommitted("the code is not committed (fno/x.py)")
 
-    monkeypatch.setattr(command, "code_commit", dirty)
+    monkeypatch.setattr(command, "code_identity", dirty)
     monkeypatch.setattr(command, "build_practice_parts", lambda *a: pytest.fail("the run started"))
     code, lines = run(tmp_path, archive=True)
     assert code == command.REFUSED_EXIT and "not committed" in lines[0] and world.built == []
@@ -185,62 +185,105 @@ def test_the_inputs_digest_follows_every_spread_value_and_the_margin_label():
     assert inputs_digest(model(0.02), "factor 1.5") != base and inputs_digest(model(0.01), "factor 1.6") != base
 
 
-def test_the_code_commit_is_named_only_for_committed_code(tmp_path):
-    def git(*args):
-        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+def git(repo, *args) -> str:
+    done = subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True)
+    return done.stdout
 
-    git("init", "-q")
-    git("config", "user.email", "t@example.test")
-    git("config", "user.name", "t")
-    (tmp_path / "fno").mkdir()
-    (tmp_path / "fno" / "a.py").write_text("x = 1\n")
-    (tmp_path / "config.yaml").write_text("a: 1\n")
-    git("add", "-A")
-    git("commit", "-q", "-m", "one")
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True).stdout.strip()
-    assert code_commit(tmp_path) == head[:12]
-    (tmp_path / "fno" / "a.py").write_text("x = 2\n")
+
+def code_repo(path):
+    """A repository whose HEAD holds all four code paths."""
+    path.mkdir()
+    git(path, "init", "-q")
+    git(path, "config", "user.email", "t@example.test")
+    git(path, "config", "user.name", "t")
+    (path / "fno").mkdir()
+    (path / "fno" / "a.py").write_text("x = 1\n")
+    (path / "tools").mkdir()
+    (path / "tools" / "t.py").write_text("t = 1\n")
+    (path / "config.yaml").write_text("a: 1\n")
+    (path / "requirements.txt").write_text("numpy>=2\n")
+    git(path, "add", "-A")
+    git(path, "commit", "-q", "-m", "code")
+    return path
+
+
+def data_commit(repo, name="r"):
+    (repo / "receipts").mkdir(exist_ok=True)
+    (repo / "receipts" / f"{name}.sha256").write_text(f"{name}\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", f"a receipt {name}")
+
+
+def test_the_code_is_named_only_when_committed_and_untracked_files_are_named(tmp_path):
+    repo = code_repo(tmp_path / "r")
+    assert len(code_identity(repo)) == 12
+    (repo / "fno" / "a.py").write_text("x = 2\n")
     with pytest.raises(CodeNotCommitted, match="fno/a.py"):
-        code_commit(tmp_path)
-    git("checkout", "--", "fno")
-    (tmp_path / "fno" / "newpkg").mkdir()
-    (tmp_path / "fno" / "newpkg" / "b.py").write_text("y = 1\n")
+        code_identity(repo)
+    git(repo, "checkout", "--", "fno")
+    (repo / "fno" / "newpkg").mkdir()
+    (repo / "fno" / "newpkg" / "b.py").write_text("y = 1\n")
     with pytest.raises(CodeNotCommitted, match="newpkg/b.py"):  # the file itself is named, not only its new folder
-        code_commit(tmp_path)
+        code_identity(repo)
 
 
-def test_data_and_receipt_commits_do_not_change_the_code_commit_but_a_code_commit_does(tmp_path):
+def test_data_and_receipt_commits_do_not_change_the_identity_but_code_and_requirements_do(tmp_path):
     """The run's own receipt commits move HEAD; a rerun of the same code must still name the same run."""
-
-    def git(*args):
-        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
-
-    git("init", "-q")
-    git("config", "user.email", "t@example.test")
-    git("config", "user.name", "t")
-    (tmp_path / "fno").mkdir()
-    (tmp_path / "fno" / "a.py").write_text("x = 1\n")
-    git("add", "-A")
-    git("commit", "-q", "-m", "code")
-    first = code_commit(tmp_path)
-    (tmp_path / "receipts").mkdir()
-    (tmp_path / "receipts" / "r.sha256").write_text("x\n")
-    git("add", "-A")
-    git("commit", "-q", "-m", "a receipt")
-    assert code_commit(tmp_path) == first
-    (tmp_path / "fno" / "a.py").write_text("x = 2\n")
-    git("commit", "-q", "-am", "more code")
-    second = code_commit(tmp_path)
-    assert second != first
-    (tmp_path / "requirements.txt").write_text("numpy==1\n")  # a library change can change a result
+    repo = code_repo(tmp_path / "r")
+    first = code_identity(repo)
+    data_commit(repo)
+    git(repo, "commit", "-q", "--allow-empty", "-m", "nothing")
+    assert code_identity(repo) == first
+    (repo / "fno" / "a.py").write_text("x = 2\n")
+    git(repo, "commit", "-q", "-am", "more code")
+    second = code_identity(repo)
+    (repo / "requirements.txt").write_text("numpy>=2.1\n")  # a library change can change a result
     with pytest.raises(CodeNotCommitted, match="requirements.txt"):
-        code_commit(tmp_path)
-    git("add", "-A")
-    git("commit", "-q", "-m", "a library")
-    assert code_commit(tmp_path) not in (first, second)
+        code_identity(repo)
+    git(repo, "commit", "-q", "-am", "a library")
+    assert len({first, second, code_identity(repo)}) == 3
 
 
-def test_a_repository_whose_code_was_never_committed_has_no_code_commit(tmp_path):
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, capture_output=True)
+@pytest.mark.parametrize("path", ["fno/a.py", "tools/t.py", "config.yaml", "requirements.txt"])
+def test_a_committed_change_to_any_one_code_path_changes_the_identity_and_an_uncommitted_one_is_refused(tmp_path, path):
+    repo = code_repo(tmp_path / "r")
+    before = code_identity(repo)
+    (repo / path).write_text("changed\n")
+    with pytest.raises(CodeNotCommitted, match=path):
+        code_identity(repo)
+    git(repo, "commit", "-q", "-am", "changed")
+    assert code_identity(repo) != before
+
+
+def test_a_shallow_clone_gives_the_same_identity_as_the_full_one_before_and_after_unshallowing(tmp_path):
+    """Judge 533: the container clones at depth 50 and the run's own publisher unshallows it."""
+    origin = code_repo(tmp_path / "origin")
+    expected = code_identity(origin)
+    for number in range(4):
+        data_commit(origin, f"r{number}")
+    shallow = tmp_path / "shallow"
+    git(tmp_path, "clone", "-q", "--depth", "2", origin.as_uri(), str(shallow))
+    assert git(shallow, "rev-parse", "--is-shallow-repository").strip() == "true"
+    assert code_identity(shallow) == expected
+    data_commit(shallow, "own")  # the run's own receipt commit
+    assert code_identity(shallow) == expected
+    git(shallow, "fetch", "-q", "--unshallow")
+    assert code_identity(shallow) == expected
+
+
+def test_a_repository_whose_commits_hold_none_of_the_code_is_refused_by_the_missing_path(tmp_path):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    git(repo, "init", "-q")
+    git(repo, "config", "user.email", "t@example.test")
+    git(repo, "config", "user.name", "t")
+    data_commit(repo)  # a commit exists, but it holds only a receipt
+    with pytest.raises(CodeNotCommitted, match="path 'fno' does not exist"):
+        code_identity(repo)
+
+
+def test_a_repository_with_no_commit_at_all_is_refused(tmp_path):
+    (tmp_path / "r").mkdir()
+    git(tmp_path / "r", "init", "-q")
     with pytest.raises(CodeNotCommitted):
-        code_commit(tmp_path)
+        code_identity(tmp_path / "r")
