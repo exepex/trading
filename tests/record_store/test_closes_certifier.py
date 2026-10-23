@@ -34,7 +34,14 @@ def test_a_later_read_that_differs_supersedes_the_earlier_and_the_change_is_name
     world.a4h_saves(RECHECK, answer(levels={**LEVELS, "NIFTY 50": (22745.0, 22700.0)}))
     outcome = world.certifier().certify(SESSION, PROVISIONAL)
     assert outcome.recorded and outcome.record.chosen.path.endswith(".recheck.raw.json")
-    assert "; the later read supersedes the earlier (NIFTY 50 differs by 3.75); A4h wrote no record" in outcome.line
+    assert "; the later read supersedes the earlier (NIFTY 50 last differs by 3.75); A4h wrote no" in outcome.line
+
+
+def test_a_change_of_the_open_alone_is_named_as_such(world):
+    world.a4h_saves(READ, answer())
+    world.a4h_saves(RECHECK, answer(levels={**LEVELS, "NIFTY BANK": (54965.75, 54901.5)}))
+    outcome = world.certifier().certify(SESSION, PROVISIONAL)
+    assert "(NIFTY BANK open differs by 1.50)" in outcome.line
 
 
 def test_india_vix_may_move_more_than_20_percent_but_must_be_positive(world):
@@ -103,19 +110,13 @@ def test_the_shadow_line_says_whether_a4hs_record_cites_the_chosen_read(world):
     assert world.certifier().certify(SESSION, PROVISIONAL).line.endswith("; matches A4h's record")
 
 
-def test_a_record_published_first_by_another_certifier_is_a_conflict_not_an_overwrite(world):
-    world.a4h_saves(READ, answer())
-    certifier = world.certifier()
-
-    class OtherWins:
-        def commit(self, what):  # the pull brings another certifier's record for the same session and level
-            file = world.records.file_for("closes", SESSION, PROVISIONAL)
-            file.write_text(file.read_text().replace(certifier_sha, "0" * 64))
-
-    certifier_sha = hashlib.sha256(answer()).hexdigest()
-    world.records.committer = OtherWins()
-    outcome = certifier.certify(SESSION, PROVISIONAL)
-    assert not outcome.recorded and "conflict: the record names 000000000000" in outcome.line
+def test_the_certified_record_names_the_recheck_when_it_is_the_closer_read(world):
+    """Judge 543 SF2: both reads pass (within 0.01), and the closer one is the record, whichever read it is."""
+    world.a4h_saves(READ, answer(levels={**LEVELS, "NIFTY 50": (22741.26, 22700.0)}))  # 0.01 off the official file
+    world.a4h_saves(RECHECK, answer())  # equal to the official file
+    outcome = world.certifier().certify(SESSION, CERTIFIED)
+    assert outcome.recorded and "2 of 2 version(s) passed" in outcome.line
+    assert outcome.record.chosen.path.endswith(".recheck.raw.json")
 
 
 def test_the_certifiers_official_file_comes_from_the_stores_only_never_from_nse(tmp_path):

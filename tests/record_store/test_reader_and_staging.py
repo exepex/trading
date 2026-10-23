@@ -72,6 +72,6 @@ def test_since_certifies_every_session_of_the_window_and_fails_while_one_is_miss
 
     lines = []
     args = SimpleNamespace(dataset="closes", day=SESSION, level=PROVISIONAL, since=7, commit=False)
-    assert cmd_certify(args, lines.append, world.certifier(), Calendar()) == 1
+    assert cmd_certify(args, lines.append, world.certifier(), calendar=Calendar()) == 1
     assert lines[0] == "closes 2026-10-22 provisional: NOT recorded: no staged version"
     assert lines[1].startswith("closes 2026-10-23 provisional: recorded ")

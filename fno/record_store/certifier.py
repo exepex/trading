@@ -10,6 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..storage.raw_store import RawFileStore
+from . import publisher
 from .constants import (
     ALREADY,
     CERTIFIED_LINE,
@@ -18,9 +19,10 @@ from .constants import (
     NO_VERSIONS,
     NONE_PASSED,
     NOT_CERTIFIED,
+    NOT_PUSHED,
 )
 from .models import CheckResult, Record, Verdict
-from .record_folder import RecordFolder
+from .record_folder import RecordFolder, chosen_in
 from .rules import DatasetRules
 from .staging import VersionSource
 
@@ -30,6 +32,7 @@ class Outcome:
     recorded: bool
     line: str
     record: Record | None = None
+    alert: bool = False  # a record not on origin's main, or a conflict: #fno-desk is told
 
 
 class Certifier:
@@ -41,8 +44,9 @@ class Certifier:
     def certify(self, session: str, level: str) -> Outcome:
         name = self.rules.name
         held = self.records.chosen(name, session, level)
-        if held is not None:
-            return Outcome(True, ALREADY.format(dataset=name, session=session, level=level, sha=held.sha256[:12]))
+        if held is not None:  # recorded here before: it counts once origin's main holds it (a refused push is retried)
+            line = ALREADY.format(dataset=name, session=session, level=level, sha=held.sha256[:12])
+            return self._published(session, level, held.sha256, Outcome(True, line))
         verdicts, passing = [], []
         for version in self.versions.versions(session):
             data, problem = self._bytes(version)
@@ -78,14 +82,25 @@ class Certifier:
     def _written(self, record: Record, passed: int, total: int) -> Outcome:
         name, session, level, sha = record.dataset, record.session, record.level, record.chosen.sha256
         held = self.records.write(record)
-        if held is None or held.sha256 != sha:
-            got = held.sha256[:12] if held else "nothing"
-            line = CONFLICT.format(dataset=name, session=session, level=level, held=got, sha=sha[:12])
-            return Outcome(False, line, record)
+        if held.sha256 != sha:
+            return self._conflict(session, level, held.sha256, sha)
         reason = record.reason + (f"; {self.note(session, record)}" if self.note else "")
         line = CERTIFIED_LINE.format(dataset=name, session=session, level=level, sha=sha[:12], passed=passed,
                                      total=total, reason=reason)  # fmt: skip
-        return Outcome(True, line, record)
+        return self._published(session, level, sha, Outcome(True, line, record))
+
+    def _published(self, session: str, level: str, sha: str, done: Outcome) -> Outcome:
+        published = self.records.publish(self.rules.name, session, level)
+        if published is None or published.state == publisher.PUSHED:
+            return done
+        if published.state == publisher.CONFLICT:
+            return self._conflict(session, level, chosen_in(published.held).sha256, sha)
+        line = NOT_PUSHED.format(dataset=self.rules.name, session=session, level=level, why=published.detail)
+        return Outcome(False, line, done.record, alert=True)
+
+    def _conflict(self, session: str, level: str, held: str, sha: str) -> Outcome:
+        line = CONFLICT.format(dataset=self.rules.name, session=session, level=level, held=held[:12], sha=sha[:12])
+        return Outcome(False, line, alert=True)
 
     def _refused(self, session: str, level: str, reason: str) -> Outcome:
         line = NOT_CERTIFIED.format(dataset=self.rules.name, session=session, level=level, reason=reason)
