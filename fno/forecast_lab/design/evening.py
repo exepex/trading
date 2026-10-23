@@ -21,20 +21,19 @@ from .page import (
     header,
     levels_table,
     method_line,
-    reliability_chip,
+    record_pill,
     trend,
     why_block,
 )
 from .trend_chart import trend_state
-from .values import Day, days_of, reason_for, result_of, rolling_90
-from .verdict import day_word, evening_verdict
+from .values import Day, days_of, result_of, rolling_90
+from .verdict import day_word, evening_verdict, why_rows
 
 TITLE, ISSUED = "Was today’s forecast right?", "20:05"
 GRID = {"NIFTY": 100, "BANKNIFTY": 250}
 DEFAULT_GRID = 100
 SHOWN, TABLE_ROWS = 30, 10
 WHY_TITLE = {GREEN: "Why it was correct", "amber": "Why a close call", RED: "Why it missed"}
-NO_CLEAR_REASON = "No clear reason in our data"
 NEXT = "Next session’s forecast"
 NO_FORECAST = "no forecast sealed for the next session"
 NOT_CHECKED = "today: not checked"
@@ -48,16 +47,6 @@ KEY_GAP = (
     'certainly edges</span><span class="nowrap"><i class="dot green"></i>✓ · <i class="dot amber"></i>⚠ · '
     '<i class="dot red"></i>✗</span></p>'
 )
-
-
-def why_lines(index: IndexView, today: Day) -> list[str]:
-    if today.result == RED:
-        return [reason_for(index, today) or NO_CLEAR_REASON]
-    size = "normal" if today.result == GREEN else "larger than usual"
-    return [
-        f"A {size}-sized day: the close moved {fmt(abs(today.gap))} points from the forecast middle; "
-        f"“almost certainly” was {fmt(today.hi90 - today.lo90)} points wide"
-    ]
 
 
 def charts(name: str, days: list[Day], grid: int) -> tuple[str, str]:
@@ -90,11 +79,11 @@ def backtested_note(index: IndexView) -> str:
 def top_block(index: IndexView, view: PageView, today: Day | None, days: list[Day]) -> str:
     """The owner's order (23 Oct): verdict or the red line, why, the record, then the next session's forecast."""
     closed = f"{day_word(today, view)} · closed {fmt(today.close)}" if today else NOT_CHECKED
-    why = why_block(WHY_TITLE[today.result], why_lines(index, today), index) if today else ""
+    why = why_block(WHY_TITLE[today.result], why_rows(index, view), index, with_cues=False) if today else ""
     return (
         f'<div class="card"><h2>{index.underlying}<small>{closed}</small></h2>'
         f"{evening_verdict(index, view, today, days)}{why}"
-        f'<div class="record">{reliability_chip(index, days)}</div>{method_line(index)}'
+        f'<div class="record">{record_pill(index)}</div>{method_line(index)}'
         f"{big_numbers(index, NEXT, NO_FORECAST)}</div>"
     )
 
