@@ -153,11 +153,25 @@ real run.
 - **Shared later, if O11 wants them:** REH1's recorded sources live in `fno/`, so O11's replay can use them in place of
   its own fakes. That is O11's call; REH1 will not edit `tests/e2e_acceptance/`.
 
+## The forecast lab's editions: one composer (agreed with O11's and FL1's owner, 24 Oct)
+
+- `rehearse morning|evening` builds each edition through `fno/forecast_lab/wiring.py`'s `build_composer`, the composer
+  the real edition and `lab preview` (FL1-1f) use. REH1 adds no second lab wiring; its label decorator wraps the
+  lab's `ReportPoster`.
+- So a rehearsal, a preview and the real edition cannot drift apart.
+- If REH1 comes to cover all of `lab preview`, the preview can become a thin call into REH1. That needs the FL1
+  owner's say first; until then both stay.
+
 ## Dependencies
 
 - **O9's read-only index-close fix (DRY1 problem 3)** must land first. Without it, `lab preview` and the lab's close
   source archive a missing file on read. In a rehearsal that write would be refused (section 3) and fail the step,
   rather than write; so REH1's acceptance run waits for that fix.
+  - The same holds for the lab's `IndexFileCloses` and `VixSection`, which fetch from NSE and archive a missing file
+    (the FL1 owner's note).
+  - In a rehearsal both are stopped twice: the HTTP guard refuses the NSE fetch before it is made, and the real
+    root's read-only wrapper would refuse the archive write. Nothing is ever written outside `dryrun/`.
+  - On a day whose file is not archived, the step reports refused until O9's fix lands.
 - **DR1's staging model** does not block REH1. Rehearsal writes go to `dryrun/<run_id>/` and never reach staging or
   the record.
 
