@@ -32,3 +32,14 @@ without reading Judge B's 507.7. Round 1 of 2. Judge K (session_019ZApRwkUiNMKDs
 **PASS, minor closed.** 4aa043df..ca847210 is test-only:
 `test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed`, on real git. With my `"HEAD"` plant it
 fails (1 failed, 6 passed); without it, 7 passed. ruff check and format are clean.
+
+## Addendum 2: the merge tip d0a9c2bf
+
+**PASS** (second judge). 59401687 merges `main` again, after sim-seams (54ef5d40, 1f767528); d0a9c2bf is a one-line
+test fix (`build_fleet` now reads `school.enabled` first).
+- Against current `main`, the tip differs only by the card-check feature: `card_check.py`, the runner's
+  `card_check` field and warnings, `fleet_on(card_check)`, `build_card_check` in the record root's `build_fleet` (after
+  its `SwitchedOff` branch), and the CLI's warnings and exit 1. `git merge-tree` with current `main`: clean.
+- My 9 round-1 plants were re-run on this tip: 9 of 9 caught.
+- **Gates (my run):** pytest -n auto 13,999 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.

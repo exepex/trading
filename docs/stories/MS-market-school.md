@@ -1387,6 +1387,67 @@ them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P
 Q4 the close slot, labelled "practice at the close; the pilot trades 15:00". Q5 waived and labelled, no synthetic size.
 SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 
+### 7.8 SIM-e: the practice archive (lane 1: records, an outside service, a push)
+
+**Why:** the owner's rule of 16 Oct is that every derived data file lives write-once in Drive with a SHA-256 receipt in
+GitHub. SIM-d's practice output is local and git-ignored, so by the orchestrator's hard limit (23 Oct) **no practice
+result may be shown to the owner, put in a report or used in a decision** until it is archived. SIM-e archives it and
+lifts the limit for archived runs only.
+
+**Design (reuse the pilot's mechanism; no new one):**
+- **A dedicated Drive area** `school-practice/`, under the same data store as the pilot's `school/`: O9's `DataStore`
+  (write-once, `RawFileConflict` on other bytes), the receipts through the same `ReceiptPublisher` pattern, one receipt per
+  file under `receipts/data/school-practice/`. The pilot's readers, seal checker and counts never read that area, and its
+  receipt folder is a different folder.
+- **A name that can never collide with the pilot's paths:** every practice path is `school-practice/<run id>/<scenario>/...`
+  and the area name is not a prefix of, and does not start with, the pilot's `school` area plus a slash or the reverse. A
+  test builds every pilot path function (dashcam slot files, counts) over a sample of sessions and proves none starts with
+  `school-practice/`, and that a run id with `/`, `..` or an empty name is refused.
+- **Run id** = `<first>_<last>_<hash of roads and scenarios>_<code commit>` (the checkout's `HEAD`, short). The same run
+  on the same code is the same id; a later commit is a new id, so an old archived run is never touched, and a result that
+  changed with the code cannot overwrite the earlier one.
+- **What is archived:** the practice dashcam files the fleet wrote (decisions, outcomes, drift per session and scenario) and
+  **the report's own text** as `report.txt.gz`, so the text the owner reads is itself archived and its SHA-256 is in a receipt.
+- **The label stays inside every record:** the archive refuses a file in which any stored line lacks `practice (simulator)`
+  (it reads the lines back with `labels`), and refuses a file that is not a gzip of canonical record lines.
+- **Idempotent reruns:** archiving the same run again with the same bytes returns the same seals and makes no commit; other
+  bytes for an existing key are refused as `rule broken`, nothing written, exactly like the pilot's dashcam.
+- **Archiving is explicit:** `school practice run --archive` (default: local only, as today). It runs first, archives
+  second, verifies third (each file read back from Drive through the verified cache and compared with its receipt).
+- **The limit lifts only for an archived run.** The report's first line says `archived: run <id>, <n> files, receipts
+  <folder>, first receipt commit <sha>` only when every file of the run has a verified receipt on the remote; otherwise it
+  says `local only, not archived` as now (a run that failed half-way archived is reported partial, never as archived).
+  Nothing else changes the limit; the never-tune sentence stays on every report.
+- **Privacy:** the repository gets receipts only (path, SHA-256, size); the records and the report are in Drive. A path
+  carries dates, a road-set hash and a commit, never a strike, price or card detail.
+
+**Sub-parts** (branches `story/ms-sim-e1`, `e2`, `e3`): **e1** the archive core (`fno/school/simulator/archive/`: run id,
+path builder, label check, `PracticeArchive` with a fake store in the tests); **e2** the command and the report line;
+**e3** the real run: a small window archived to Drive, read back, rerun to prove it is idempotent, the receipts counted.
+
+**Acceptance tests (named, each with a plant):**
+1. `test_a_practice_path_never_starts_with_a_pilot_path_and_the_reverse` (every pilot path function over sample sessions),
+   `test_a_run_id_with_a_slash_dots_or_nothing_is_refused`.
+2. `test_a_file_without_the_label_on_every_line_is_refused` and `test_a_file_that_is_not_canonical_record_lines_is_refused`.
+3. `test_archiving_twice_with_the_same_bytes_returns_the_same_seals_and_makes_no_second_commit`,
+   `test_other_bytes_for_an_archived_key_are_refused_and_nothing_is_written`.
+4. `test_the_report_text_is_archived_and_its_sha_is_in_a_receipt`.
+5. `test_the_first_line_says_archived_only_when_every_file_has_a_verified_receipt` (a missing receipt, a damaged read-back and
+   a half-finished run each give `local only, not archived`).
+6. `test_a_practice_receipt_is_in_the_practice_folder_and_the_pilots_seal_checker_never_sees_it`.
+7. `test_the_default_run_archives_nothing` (no Drive, no push without `--archive`).
+8. The import test: only the exact store and publisher names; no order, Slack or Groww path.
+9. e3: a real archived window, a rerun with no new commit, every receipt's SHA equal to the Drive file's, counted in the Claims
+   (counts and SHA prefixes only).
+
+**Questions for the orchestrator:**
+1. **The receipts commit and push to `main` by the command**, as the pilot's dashcam does (a data commit). Do you accept
+   that for a manual command, or should practice receipts go to a branch?
+2. **`ReceiptPublisher` lives in the pilot's dashcam package** (`fno/school/dashcam/publisher.py`), which the simulator's
+   isolation test bans. I would import exactly `GitReceiptPublisher` and `ReceiptPublisher` there, one file, by name; or
+   MS-P1c's owner moves the publisher to a neutral module (`fno/storage/`). Which?
+3. **Run id with the code commit** (above) or a name the owner gives: I recommend the commit, so a changed result is a new run.
+
 ### 7.7 Claims
 
 #### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
