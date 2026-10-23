@@ -38,6 +38,8 @@ class _ReceiptedSeries:
     def files(self) -> list[bytes]:
         """Every receipted file of the series, verified, in name order."""
         prefix = f"{self.store.area}/{self.folder}"
+        if not self.cache.receipts.under(prefix):
+            return []  # a series with nothing written yet is empty, not unreadable
         report = self.cache.sync(prefix)
         if not report.complete:
             raise DriveDataUnavailable(TABLE_UNREADABLE.format(folder=prefix, problems="; ".join(report.problems)))
