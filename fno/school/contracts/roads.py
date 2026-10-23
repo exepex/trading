@@ -63,6 +63,10 @@ class RoadDay:
     status: RoadStatus
     # Each recorded expiry's own step (MS-P1a2: FINNIFTY's November monthly lists 100-point strikes, October 50).
     strike_steps: Mapping[date, float] = field(default_factory=dict, hash=False)
+    # Each recorded expiry's own dated lot (MS-P1a4): NSE changes a lot from a given expiry, so for a while an index's
+    # two monthlies can carry different lots. `lot` stays the nearest expiry's. Left out, every recorded expiry
+    # carries `lot`: what a catalogue that closes a road on mixed lots states (every one today).
+    lots: Mapping[date, DatedLot] = field(default_factory=dict, hash=False)
 
     def __post_init__(self):
         if self.status.open and (self.lot is None or self.strike_step is None or not self.expiries):
@@ -74,6 +78,11 @@ class RoadDay:
                 raise ValueError("strike steps name every recorded expiry, each above zero")
             if self.strike_steps[self.expiries[0]] != self.strike_step:
                 raise ValueError("the nearest expiry's step is `strike_step`")
+        if self.lots:
+            if set(self.lots) != set(self.expiries) or min(lot.units for lot in self.lots.values()) <= 0:
+                raise ValueError("lots name every recorded expiry, each above zero")
+            if self.lots[self.expiries[0]] != self.lot:
+                raise ValueError("the nearest expiry's lot is `lot`")
 
     def step_for(self, expiry: date) -> float:
         """That expiry's own strike step; never another expiry's (a driver stepping out on a later expiry)."""
@@ -82,6 +91,17 @@ class RoadDay:
         if self.expiries and expiry == self.expiries[0] and self.strike_step:
             return self.strike_step
         raise ValueError(f"no strike step recorded for {expiry}")
+
+    def lot_for(self, expiry: date) -> DatedLot:
+        """That expiry's own lot; never another expiry's (a lot changed from a later expiry). Without `lots`, every
+        recorded expiry carries `lot`; an expiry the road did not record has none."""
+        if self.lots:
+            if expiry not in self.lots:
+                raise ValueError(f"no lot recorded for {expiry}")
+            return self.lots[expiry]
+        if expiry not in self.expiries or self.lot is None:
+            raise ValueError(f"no lot recorded for {expiry}")
+        return self.lot
 
 
 @runtime_checkable

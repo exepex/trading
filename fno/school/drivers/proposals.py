@@ -41,8 +41,9 @@ class ProposalBuilder:
 
     def build(self, plan: Plan, road_day: RoadDay, snapshot: SlotSnapshot) -> Proposal | None:
         view = snapshot_market(snapshot, plan.expiry)
-        units = road_day.lot.units * ONE_LOT
-        builder = CandidateBuilder({plan.structure.code: plan.structure}, self.costs, self.cap, road_day.lot.units)
+        lot = road_day.lot_for(plan.expiry).units  # the plan's own expiry's lot (MS-P1a4), never the nearest's
+        units = lot * ONE_LOT
+        builder = CandidateBuilder({plan.structure.code: plan.structure}, self.costs, self.cap, lot)
         for width in plan.widths:
             try:
                 candidate = builder.build(_opportunity(plan, width, snapshot), view.market, TRADE_ID)
