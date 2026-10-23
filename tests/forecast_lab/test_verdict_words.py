@@ -108,3 +108,21 @@ def test_the_page_gets_each_piece_as_plain_words_without_slack_s_bold():
     assert not any(
         "*" in piece for piece in (words.day_line(hit), words.size_line(hit), words.no_verdict_words(none, DAY, MON))
     )
+
+
+def test_judge_547_f1_thirty_back_filled_then_ten_live_counts_only_the_last_30_sessions():
+    """Judge 547 F1's probe: the back-test counts among the last 30 sessions, never the 30 before the live ones."""
+    from fno.forecast_lab.page.plain import record_words
+    from fno.forecast_lab.page.today_view import track_record
+
+    points = [Outcome(DAY, 1100.0, BAND, True, True, False)] * 30 + [Outcome(DAY, 1100.0, BAND, True, True, True)] * 10
+    track = track_record(points)
+    assert track == TrackRecord(10, 10, 20, 20, 30, 10)
+    assert record_words(replace(index(), track=track)).endswith("| Back-test (20 of the last 30 days): 20 of 20")
+
+
+def test_judge_547_f2_one_live_day_never_shows_a_colour_before_the_live_count():
+    """Judge 547 F2: a green light from mostly back-tested days never stands before "Live so far"."""
+    one_live = replace(checked(1100.0), right=29, scored=30, track=TrackRecord(1, 1, 29, 28, 30, 1))
+    record = "Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (29 of the last 30 days): 28 of 29"
+    assert top_block(one_live, DAY, MON)[-1] == f"⚪ too few live days to rate | {record}"
