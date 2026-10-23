@@ -1188,7 +1188,56 @@ parser of that answer, A4h's `read_answer`, keeps a second one out of FL1.
 earlier than Mon 26 Oct and never 14:00-16:15 IST. The fields start with the first session read after the merge;
 the claims name that date. DR1's certifier (story/dr1-design) is told the new fields, so its checks can cover them.
 
-**Size:** S · **Status:** story text for judge F (23 Oct 2026)
+**Size:** S · **Status:** text PASS (judge 541 add. 1, 7fb7d3de, on main 930cb6eb); code for judge F (23 Oct 2026)
+
+**Claims (code, branch `story/a4h2-day-range`):**
+
+| # | Criterion | Code | Tests |
+|---|---|---|---|
+| 1 | New fields in the record | `answer.py` `_values`, `records.py` | `test_day_range.py` planted values for all three indices; `test_reader.py`'s record test extended |
+| 2 | Missing, empty or unreadable field | `answer.py` `_number` | 18 cases (2 checked indices x 3 fields x missing / "" / "-"); VIX kept with `null` |
+| 2b | Range check, edges | `answer.py` `range_problems` | `last` at the high and `open` at the low accepted, 0.01 beyond refused, `low > high` refused, for NIFTY 50 and NIFTY BANK each; VIX in `problems`, named in the read line; the refusal line holds no level |
+| 3 | Confirm | `confirm.py` `_compare`, `_results`, `_previous`; `fno/fo_bhavcopy.py` `read_index_values` | high and low at 0.00 and 0.01 off confirm, 0.02 off alert once; `previous_close` 0.10 off recorded and alerted; VIX differences never alerted; the previous file missing: waits, then one overdue alert naming the previous session's file, never again |
+| 4 | Recheck | `comparison.py`, `reader.py` `_recheck` | a 0.05 change in `high` named in `fields_against_first` and the line |
+| 5 | No level | the same lines | `test_no_levels.py`: planted highs, lows and previous closes (list, moved and official) in 7 forms appear in no line or alert, and the new fields reach the lines |
+| 6 | Older records | `confirm._previous` returns `{}`, `compared` skips absent fields | 22 Oct's shape rechecked and confirmed on `last` alone, with no previous file needed |
+| 7 | Gates | | full suite 14623 passed, 16 xfailed; ruff, format, `check_imports` clean; largest file 175 lines |
+| 8 | Good, bad, boundary, empty | | as above; empty = a missing or blank field |
+
+**Planted bugs: 10 of 10 caught** (each made, the tests run, then reverted):
+
+| Planted bug | Tests failing |
+|---|---|
+| range edges excluded (`<` for `<=`) | 4 |
+| VIX refused instead of recorded | 1 |
+| no `low > high` check | 2 |
+| new fields not required for checked indices | 18 |
+| a level in the refusal text | 7 |
+| high confirmed against itself | 2 |
+| no wait for the previous session's file | 1 |
+| VIX field differences alerted | 12 |
+| recheck silent on fields | 6 |
+| an official "-" read as 0.0 | 1 |
+
+**Self-review (quality rule 3).** An independent review agent found no crash or level leak. Its four points:
+1. **One odd official cell ("NA") would fail the whole day's confirm: accepted.** The fix: `read_index_values` reads the extra columns leniently (None), so the reader that needs one says "not in the official file" and alerts. A test plants "NA" in another index's row.
+2. **The previous session may be a muhurat session: checked, no change.** Real files show NSE's previous close after muhurat is the muhurat close (4 Nov 2024: 23995.35 + 309.0 = 24304.35, 1 Nov's muhurat close; 23 Oct 2025: 25891.4 - 22.8 = 25868.6, 21 Oct 2025's), and the calendar's `previous_session` counts muhurat sessions. The calendar-start edge (2019) cannot arise for records from 2026.
+3. **The overdue alert said "no official index-close file" while the previous session's file was the one missing: accepted.** The reason is now named (`NO_FILE`, `NO_PREVIOUS_FILE`, `FAILED_RUNS`), with a test.
+4. **VIX problems were only in the record: accepted.** The read line now names them, with no level.
+
+**Output sample (quality rule 6; test fakes, the record's values replaced by `<level>`):**
+```
+close read 2026-10-21: NIFTY 50, NIFTY BANK, INDIA VIX (list) recorded, NSE stamp 21-Oct-2026 15:30, closes/2026/10/2026-10-21.json sha256 970a82653bde
+close recheck 2026-10-21: NIFTY 50 same (high differs by 0.05), NIFTY BANK same, INDIA VIX same, NSE stamp 21-Oct-2026 15:30, closes/2026/10/2026-10-21.recheck.json sha256 52c05ee0b992
+close confirm 2026-10-21: NIFTY 50 confirmed, NIFTY BANK confirmed, INDIA VIX differs by 0.02 (list value)
+record indices["NIFTY 50"]: {"high": <level>, "last": <level>, "low": <level>, "official_close": true, "open": <level>, "previous_close": <level>}
+```
+
+**Deviations and facts to know:**
+- **An interface change:** `OfficialCloses.closes(day)` is now `values(day)`, returning open, high, low and close per index. DR1-1 (story/dr1-1-closes-records) imports it; its builder has been told. Whichever merges second updates the call.
+- **One refusal text changed:** a missing `last` for VIX now reads "INDIA VIX has no readable last" instead of "...last or open", so it names the field.
+- **Record readers:** FL1's `A4hTodayCloses` reads only `nse_stamp`, `last` and `official_close`, so it is unaffected. FL1-1f reads `open`, `high` and `low` when present.
+- **After merge (quality rule 8):** the first session's read, recheck and confirm lines.
 
 ## A5. Monthly-expiry identity in the package
 

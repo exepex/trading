@@ -36,7 +36,8 @@ def test_a_read_at_15_40_records_the_raw_answer_and_the_day_s_record():
     code, lines, _ = _run(store, source, at(15, 40))
     record = json.loads(store.files[record_path(DAY)])
     assert code == 0 and source.calls == 1 and raw_path(DAY, READ) in store.files
-    assert record["indices"]["NIFTY 50"] == {"last": 22811.35, "open": 23016.0, "official_close": True}
+    assert record["indices"]["NIFTY 50"] == {"last": 22811.35, "open": 23016.0, "high": 23120.9, "low": 22649.9,
+                                             "previous_close": 22888.95, "official_close": True}  # fmt: skip
     assert record["indices"]["INDIA VIX"]["official_close"] is False and record["provisional"] is True
     assert record["read"] == READ and record["nse_stamp"] == "21-Oct-2026 15:30"
     assert lines[-1].startswith("close read 2026-10-21: NIFTY 50, NIFTY BANK, INDIA VIX (list) recorded, NSE stamp ")
@@ -115,7 +116,7 @@ def test_with_no_first_read_the_recheck_becomes_the_day_s_record():
 
 
 class Down(Official):
-    def closes(self, day):
+    def values(self, day):
         raise ConnectionError("https://nsearchives.nseindia.com/content/indices/ refused")
 
 
@@ -151,10 +152,10 @@ class SlowOfficial(Official):
         super().__init__(closes)
         self.clock, self.calls = clock, 0
 
-    def closes(self, day):
+    def values(self, day):
         self.calls += 1
         self.clock.now_at = self.clock.now_at + timedelta(seconds=300)
-        return super().closes(day)
+        return super().values(day)
 
 
 def test_a_slow_archive_never_turns_a_good_read_into_a_failure():

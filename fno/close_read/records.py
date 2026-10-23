@@ -50,14 +50,17 @@ def encode(document: dict) -> bytes:
 
 
 def read_document(day: date, read_at: str, got: ListRead, which: str, raw: tuple[str, str]) -> dict:
-    """The day's record: every index's `last` and `open` from the list, provisional until confirmed."""
+    """The day's record: every index's `last`, `open`, day range and previous close from the list (A4h-2), provisional
+    until confirmed; `problems` holds INDIA VIX's range findings (a checked index with one is never recorded)."""
     return {
         "day": day.isoformat(), "read": which, "read_at": read_at, "nse_stamp": got.stamp, "provisional": True,
-        "source": "NSE /api/allIndices", "raw_path": raw[0], "raw_sha256": raw[1],
+        "source": "NSE /api/allIndices", "raw_path": raw[0], "raw_sha256": raw[1], "problems": got.problems,
         "indices": {n.listed: {**got.values[n.listed], "official_close": n.checked} for n in INDICES},
     }  # fmt: skip
 
 
-def recheck_document(day: date, read_at: str, got: ListRead, against: dict[str, str], raw: tuple[str, str]) -> dict:
+def recheck_document(day: date, read_at: str, got: ListRead, against: tuple[dict, dict], raw: tuple[str, str]) -> dict:
+    """`against`: `last`'s comparison per index (as A4h wrote it), then each other field's (A4h-2)."""
     return {"day": day.isoformat(), "read_at": read_at, "nse_stamp": got.stamp, "raw_path": raw[0],
-            "raw_sha256": raw[1], "indices": got.values, "against_first": against}  # fmt: skip
+            "raw_sha256": raw[1], "indices": got.values, "against_first": against[0],
+            "fields_against_first": against[1], "problems": got.problems}  # fmt: skip
