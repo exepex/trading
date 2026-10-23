@@ -212,3 +212,19 @@ on the orchestrator's ruling of 23 Oct. First of two judges, independent of judg
   - Survived: the line's "N of M" with N set to M. The tests plant every decision as mismatched, so the two numbers
     are always equal. It is an alert's text, not a record or a decision, so this is a note.
   - A test with one card-mismatched decision among several would pin N [reasoning only].
+
+## Addendum 8
+
+**Scope:** story/ms-p1j-sim-seams, a02d1eb9..6d3aa180: a third seam, `SchoolFleet.rules: QuoteRules = LIVE`, passed
+into `plan_slot`. It touches the live gate, so it is lane 1: first of two judges, judge I second. The first two seams
+are judged in addendum 6.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13800 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **Live is unchanged.** `plan_slot` still closes any road whose capture holds an unmeasured quote
+  (`sizes_not_measured`), unless the rules passed are practice ones. The fleet's default and every pilot root
+  (`fleet_on`, so record and replay) leave it at `LIVE`. The practice-isolation test still bars `practice=True` from
+  every school module except `execution/practice_wiring.py`.
+- **Plants: 4, 4 caught.** The guard inverted; the guard removed; the fleet defaulting to practice; the rules not
+  passed into `plan_slot`.
