@@ -7,12 +7,12 @@ from datetime import date
 
 from ...storage.data_store import DataStore
 from ...storage.raw_store import RawFileConflict
+from ...storage.receipt_publisher import ReceiptPublisher
 from ..constants import RecordKind
 from ..contracts.dashcam import ReplayConflict
 from ..contracts.seal import Seal, StaleSeal
 from ..contracts.slot_file import SlotRecord, decode_slot_file, encode_slot_file
 from .names import slot_file_path
-from .publisher import ReceiptPublisher
 from .reader import SlotFileReader
 
 RULE_BROKEN = "rule broken: {path} is sealed with other bytes; a sealed file is never overwritten"
