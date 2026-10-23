@@ -44,9 +44,6 @@ class SealedDayInputs:
     def marks(self, session: date) -> tuple[str, ...]:
         return SessionCounts(self.root, None).marks(session, SLOT_1500)
 
-    def why(self, session: date) -> tuple[str, ...]:
-        return ()  # no instructor source yet: MS-P1j's instructor wiring (story/ms-p1j-ins-wiring) replaces this
-
 
 class PreviousSlotToday:
     """The 08:50 section's inputs (325 9.21, "plan at 08:50, booking at the slot"): today's captures do not

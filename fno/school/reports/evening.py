@@ -4,6 +4,7 @@ drivers only (orchestrator, 22 Oct 2026: separate experiments are never merged i
 measurement-only drivers have their own labelled lines. Tickets are never summed into rupees."""
 
 import re
+from collections import Counter
 from collections.abc import Iterable
 from datetime import date
 
@@ -18,6 +19,13 @@ TITLE = "How did today go"
 NONE_TODAY = "none"
 TICKET_LINE = re.compile(r"^\S+ \S+ ticket\b")  # MS-INS part e: "{driver} {road} ticket ..." (hypothetical, no rupees)
 RUPEE_FIGURE = re.compile(r"Rs\.?\s*[-+]?\d|₹|\brupees?\b", re.IGNORECASE)
+UNKNOWN_DRIVER, STRIKE_OR_PRICE = "unknown driver", "strike or price"
+WITHHELD = "{count} why line{plural} withheld: {reason}"
+# A strike with its type, the words strike or premium, a price or a fill price given as a number. Part e's cause words
+# ("bad price or data") and "net Rs ..." do not match.
+LEAK = re.compile(
+    r"\b\d{3,6}(?:\.\d+)?\s?(?:CE|PE)\b|\bstrike\b|\bpremium\b|\bprice\s*:?\s*\d|\bat\s+\d", re.IGNORECASE
+)
 WHY_HEADER = "Why (the instructor's words):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
@@ -67,16 +75,28 @@ class HowDidTodayGoSection:
         return lines or [f"Trades closed: {NONE_TODAY}"]
 
     def _why(self, session: date) -> list[str]:
-        """The instructor's cause lines for the rule drivers' trades, verbatim under one header; none, no header. A line
-        whose leading driver id is a control or a measurement-only driver is left out (they have their own lines). A
-        ticket's line is shown (it is hypothetical and informative) unless it holds a rupee figure: a ticket is never
-        shown in rupees, so such a line is refused."""
-        kept = [
-            line
-            for line in self.inputs.why(session)
-            if self._leads_with_a_rule_driver(line) and not _ticket_in_rupees(line)
+        """The instructor's cause lines for the rule drivers' trades and tickets, verbatim under one header; none, no
+        header. Left out silently: a line about a control or a measurement-only driver (they have their own lines),
+        and a ticket line holding a rupee figure (a ticket is never shown in rupees). Withheld and counted, never
+        raised: a line whose first word is not a known driver id, and a line holding a strike or a price."""
+        kept, withheld = [], Counter()
+        for line in self.inputs.why(session):
+            reason = self._withheld_for(line)
+            if reason:
+                withheld[reason] += 1
+            elif self._leads_with_a_rule_driver(line) and not _ticket_in_rupees(line):
+                kept.append(line)
+        notes = [
+            WITHHELD.format(count=n, plural="" if n == 1 else "s", reason=reason) for reason, n in withheld.items()
         ]
-        return [WHY_HEADER, *kept] if kept else []
+        return [*([WHY_HEADER, *kept] if kept else []), *notes]
+
+    def _withheld_for(self, line: str) -> str:
+        try:
+            self.inputs.role_of(line.split(" ", 1)[0])
+        except KeyError:
+            return UNKNOWN_DRIVER
+        return STRIKE_OR_PRICE if LEAK.search(line) else ""
 
     def _leads_with_a_rule_driver(self, line: str) -> bool:
         return self.inputs.role_of(line.split(" ", 1)[0]) is DriverRole.RULE

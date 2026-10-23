@@ -542,10 +542,11 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - a rerun skips sealed decisions;
 - **runbook step (orchestrator, 22 Oct 2026; judge 495):** any new comparison-card version (an edit of
   `research/school/CARD_P1.md`) needs new D6 rows registered before its decisions count: one `school:<driver id>` row per
-  driver version (12 today), version id one higher, `comparison_card_sha256` the new card's SHA-256 and `card_sha256`
-  unchanged unless the driver card changed too, committed after the card. Until then every decision made under the new
-  version is `comparison_card_mismatch` (denominator kept, nothing counted); decisions made earlier keep their own
-  verdict. The run's output should say so by name when it sees the mismatch;
+  driver version (12 today), a new version id, a `starts_on` strictly later than the book's previous row (D6 refuses an
+  equal or earlier date, so it cannot be registered the same day), `comparison_card_sha256` the new card's SHA-256 and
+  `card_sha256` unchanged unless the driver card changed too, committed after the card. Until then every decision made
+  under the new version is `comparison_card_mismatch` (denominator kept, nothing counted); decisions made earlier keep
+  their own verdict. The run's output says so by name when it sees the mismatch (orchestrator, 23 Oct 2026);
 - **requirement (orchestrator, 22 Oct 2026, judge 494):** a law result's `note` can name contracts or legs (MS-P1m's
   margin causes do), so it is never posted to Slack; the reports count "margin not checked" refusals by their cause
   (`margin_not_checked`, the cause after the prefix), never by quoting the note;
@@ -2563,3 +2564,17 @@ eight plants were re-run, 8 of 8 caught.
   `test_the_pinned_format_is_what_the_instructors_why_line_writes` pins the leading `{driver} {road}{ticket}: net Rs `
   form against `why_line.LINE` and skips until part e is on main; it is to be updated to part e's new ticket form when it
   lands (the INS builder tells the g builder).
+
+MS-P1g why lines, round 2 (judge 517 PASS with minors; orchestrator, 23 Oct 2026; each accepted):
+1. **The stub is deleted** (`SealedDayInputs.why` in `fno/school/fleet/report_inputs.py`): a merge with j's ins-wiring would
+   have left two `def why` and let the stub replace j's. This branch merges after j's ins-wiring; until then the two j
+   tests that render the evening with the real inputs fail here (they need `why`), by design.
+2. **An unknown driver is withheld and counted, never raised:** a line whose first word is not a known driver id gives
+   "N why line(s) withheld: unknown driver"; the rest of the section stays.
+3. **A line with a strike or a price is withheld and counted** ("N why line(s) withheld: strike or price"): a strike
+   with its type, the words strike or premium, a price given as a number, "at <number>". Part e's own words ("bad
+   price or data", "net Rs -1,400") are kept. Tests plant each form.
+4. **Runbook:** `starts_on` strictly later than the book's previous row (above); the by-name sentence is re-attributed
+   to the orchestrator (23 Oct) and the j builder builds it. Plants: the unknown-driver catch, the leak check and the
+   notes are each removed (all caught).
+

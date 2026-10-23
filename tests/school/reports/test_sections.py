@@ -199,3 +199,44 @@ def test_the_pinned_format_is_what_the_instructors_why_line_writes():
     )
     assert outputs.LINE.startswith("{driver} {road}{ticket}: net Rs ")
     assert WHY.startswith("CS1@1 BANKNIFTY-M: net Rs ") and "ticket" in outputs.LINE
+
+
+def test_a_line_that_starts_with_an_unknown_driver_is_withheld_and_counted_never_raised():
+    text = with_why("Overall: a quiet day", WHY, "XX9@1 BANKNIFTY-M: net Rs 1; why: x")
+    lines = text.lines
+    assert WHY in lines, "the section survives and keeps the known lines"
+    assert "2 why lines withheld: unknown driver" in lines
+    assert "Overall: a quiet day" not in lines
+
+
+def test_one_unknown_line_is_counted_in_the_singular_and_alone_leaves_no_header():
+    lines = with_why("Overall: a quiet day").lines
+    assert "1 why line withheld: unknown driver" in lines and "Why (the instructor's words):" not in lines
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: sold 51200 CE at a loss",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: the 51200.5 PE leg",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: strike 51200",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: premium collected",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: price 85.5",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: filled at 85",
+    ],
+)
+def test_a_line_with_a_strike_or_a_price_is_withheld_and_counted(line):
+    lines = with_why(line, WHY).lines
+    assert line not in lines and WHY in lines
+    assert "1 why line withheld: strike or price" in lines
+
+
+def test_the_instructors_own_words_are_not_mistaken_for_a_price():
+    kept = "CS1@1 BANKNIFTY-M: net Rs -1,400; why: bad price or data (also: costs ate the edge); hard road"
+    lines = with_why(kept).lines
+    assert kept in lines and not [line for line in lines if "withheld" in line]
+
+
+def test_a_withheld_line_does_not_stop_the_fleet_total_or_the_footer():
+    lines = with_why("Overall: a quiet day", records=[trade_record(), f.net_record("CS1@1", 100.0)]).lines
+    assert "Fleet total, rule drivers only: Rs +100 (separate hypothetical accounts, not one budget)" in lines
