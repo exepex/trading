@@ -47,3 +47,22 @@
   - `pytest -n auto`: 14438 passed, 16 xfailed, 2 failed.
   - The 2 failures are main's own `tests/intraday/test_feed_tls.py`: `growwapi` is not installed here and the test does not skip.
   - ruff check, ruff format, check_imports, check_records (8658 files) and check_numbers: clean.
+
+## Addendum 2: the minors at 6ede5d44 (story/ms-p1c-adopt-minors), lane 1 by the orchestrator
+
+**Verdict: FAIL, round 1 of 2: one should-fix in the runbook text. The code is accepted.**
+
+| Item | Result | My evidence |
+|---|---|---|
+| Minor 1: `driver_of` beside `position_id` | MET | `running_view.driver_of` = `split(":", 1)[0]`, the same result as before for ids built as `<driver>:<road>:<session>` (driver ids such as `CS1@1` hold no colon). The round-trip test is added. My plant (`[-1]`) fails 2 tests |
+| Minor 2: the runbook | NOT MET as written | The steps and the Drive path are right: `data/` + `school/dashcam/2026/10/22/1500.outcomes.jsonl.gz`, checked with `slot_file_path`. But see the should-fix |
+
+**Should-fix:**
+- The runbook says "Nothing for that session is sealed, filled or counted until a person decides." That holds only for a stop at the **decisions** file: `recover` runs before anything else.
+- A stop at the **outcomes** or **drift** file happens inside `_finish` after `FillStep.run` (runner.py lines 151-153). The decisions are then sealed and the fills are already booked in the books. Only the outcomes or drift, the instructor step and the counts are missing.
+- A person reading the runbook would wrongly conclude no paper trade was booked.
+- Expected: say it per kind. For example: "a decisions stop: nothing sealed or filled; an outcomes or drift stop: the decisions are sealed and the fills booked, while the outcomes or drift, the instructor's files and the counts wait for the decision."
+
+**Gates (my run, a trial merge with main):**
+- `tests/school`: 3569 passed.
+- ruff check, ruff format, check_imports, check_records (8664 files) and check_numbers: clean.
