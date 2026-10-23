@@ -114,6 +114,9 @@ class Miss:
     reasons: tuple[str, ...]  # facts from our own data; "no clear reason in our data" when none
 
 
+CLOSE_NOT_READ, NO_FORECAST_TODAY = "close not read", "no forecast"  # `IndexView.unchecked` (FL1-1e)
+
+
 @dataclass(frozen=True)
 class IndexView:
     underlying: str
@@ -135,6 +138,7 @@ class IndexView:
     why: tuple[Cue, ...] = ()  # the 2-4 key points (FL1-1d-2), in the stated order; context is never a cause
     levels: tuple[Cue, ...] = ()  # the evening's levels and flows table (FL1-1d-2)
     result: Outcome | None = None  # the edition's own check: today's (evening) or the previous session's (morning)
+    unchecked: str = ""  # evening, no result: why today is not checked (CLOSE_NOT_READ or NO_FORECAST_TODAY)
 
 
 @dataclass(frozen=True)
@@ -149,3 +153,4 @@ class PageView:
     edition: str = "evening"  # "morning" (today's forecast, 08:50) or "evening" (was it right, 20:05): FL1-1d
     confirmation: tuple[str, ...] = field(default=())  # morning: the last evening's close confirmed, or corrected
     cues: tuple[SectionView, ...] = field(default=())  # every Section in its one state (FL1-1d-2)
+    next_session: date | None = None  # the next regular session: its morning report confirms today (FL1-1e)
