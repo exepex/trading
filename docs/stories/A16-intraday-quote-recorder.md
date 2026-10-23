@@ -722,8 +722,12 @@ one).
   `FEED_CONNECT_SECONDS` (30 s); a timeout or an error raises `FeedNotConnected` with one plain line (the error named
   by class only, never its text). `feed_cli` prints `feed probe <plan>: stopped: <line>` and exits 1. Tests: the
   timeout ends in about 0.2 s with a short limit; an error is named by class; the command prints one line.
+- **Round 2 (judge 499 addendum 8, should-fix):** `build_feed_probe` itself is now tested with a fake provider and a
+  fake `GrowwFeed` that records `nats_client.certifi.where()` at construction (connect time): with `SSL_CERT_FILE` it
+  is the combined file (certifi's roots first, then the bundle); without it the module still holds the real `certifi`.
+  The module is restored after the test (monkeypatch). Planted removal of the `trust_for_feed` call: the test fails.
 - **Scope:** `fno/intraday/feed_wiring.py` and `feed_cli.py` only, plus the new test file; no other module, no
-  setting, no TLS check turned off, `HTTPS_PROXY` untouched. Gates on this tree: 14,333 passed, 16 xfailed; ruff,
+  setting, no TLS check turned off, `HTTPS_PROXY` untouched. Gates on round 2's tree: 14,335 passed, 16 xfailed; ruff,
   format and check_imports clean.
 
 ### Claims (code round 2, 23 Oct 2026: judge 499 addendum 5)

@@ -145,3 +145,29 @@ def test_the_command_prints_one_line_and_stops_when_the_feed_does_not_connect(mo
     monkeypatch.setattr("fno.config.load_app_config", lambda path: {})
     assert feed_cli.cmd_feed_probe(Namespace(plan="coverage", minutes=None, config=None)) == 1
     assert capsys.readouterr().out == "feed probe coverage: stopped: the feed did not connect within 30 s\n"
+
+
+@pytest.mark.parametrize("with_bundle", [True, False])
+def test_the_built_probe_connects_with_the_combined_roots_only_when_a_bundle_is_set(with_bundle, pki, monkeypatch):
+    """Judge 499 addendum 8: build_feed_probe itself must hand the SDK the combined file (or leave certifi alone)."""
+    import growwapi
+    from growwapi.groww import nats_client
+
+    from fno.intraday import feed_wiring
+
+    seen = []
+
+    class FakeFeed:
+        def __init__(self, api):
+            seen.append(nats_client.certifi.where())  # what the SDK's TLS context would load at connect time
+
+    monkeypatch.setattr(nats_client, "certifi", nats_client.certifi)  # restored after the test
+    monkeypatch.setattr(growwapi, "GrowwFeed", FakeFeed)
+    monkeypatch.setattr(feed_wiring, "GrowwProvider", lambda cfg: SimpleNamespace(api=object()))
+    env = {"SSL_CERT_FILE": str(pki / "ca.pem")} if with_bundle else {}
+    feed_wiring.build_feed_probe({}, env)
+    if with_bundle:
+        data = Path(seen[0]).read_bytes()
+        assert data.startswith(Path(certifi.where()).read_bytes()) and (pki / "ca.pem").read_bytes() in data
+    else:
+        assert nats_client.certifi is certifi and seen == [certifi.where()]
