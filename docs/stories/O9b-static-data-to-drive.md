@@ -223,6 +223,7 @@ and in the commit hook's refusal list.
 | Git history stays public; the options and their cost | section 4 |
 | Kept in GitHub: manifests, receipts, evidence logs, hand-curated settings, sealed records (owner, 22 Oct) | owner's decision 1; `us_market_closures.csv` and `behind_alerted.txt` named |
 | Each step's own requirements | each step's gap list (section 3) |
+| A new dataset read straight through `DriveCache.sync` (as `circulars` and `flow_history` do) stops before its first receipt: write first, or read through `ReceiptedRowLog`, whose empty series reads empty (judge 536 minor) | each step's design and gap list |
 
 ## Open questions
 
@@ -323,3 +324,6 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - **Tests:** a single file is synced alone; three wrong prefixes each give exactly the new problem, with nothing
   downloaded; an empty row log and an empty snapshot series read as empty. All 3 mutations, one per change, are
   caught.
+- **Judge 536: PASS at 494d97df.** It may merge before FL1's branch, on the orchestrator's go. The judge listed all 13
+  sync callers: every one that must succeed has receipts today. Their minor is accepted as a row in the umbrella gap
+  list: a new dataset read straight through `sync()` must write first, or read through `ReceiptedRowLog`.
