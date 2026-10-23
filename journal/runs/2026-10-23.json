@@ -351,6 +351,21 @@
     "reason": "issued",
     "exit_code": 0
    }
+  },
+  "price_range_scores": {
+   "started_at": "2026-10-23T15:20:26.670111+05:30",
+   "finished_at": "2026-10-23T15:21:15.697810+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
