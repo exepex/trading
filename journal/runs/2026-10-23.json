@@ -419,6 +419,21 @@
     "reason": "command:exit_1",
     "exit_code": 1
    }
+  },
+  "close_read": {
+   "started_at": "2026-10-23T15:33:03.788364+05:30",
+   "finished_at": "2026-10-23T15:40:21.017493+05:30",
+   "inputs": {
+    "command": [
+     "closes",
+     "read"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
