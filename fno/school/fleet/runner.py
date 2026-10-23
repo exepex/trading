@@ -8,8 +8,9 @@ practice command runs the same fleet without one (orchestrator, 23 Oct 2026).
 3. Otherwise: the roads and the quality gate (`plan_slot`); each driver isolated (`DriverStep`); one decisions file
    sealed with every decision and exit record before any fill; then the fills (`FillStep`).
 4. The finish (`_finish`), rebuilt from the sealed records and the ledgers on every run: the fills not yet recorded
-   (`FillStep`), the outcomes and drift files each sealed once, and the counts written and committed by this one
-   runner. A session whose outcomes, drift and counts all exist only commits what is still uncommitted."""
+   (`FillStep`), the outcomes and drift files each sealed once, the step after the outcomes (the instructor's
+   session run, isolated by its root), and the counts written and committed by this one runner. A session whose
+   outcomes, drift and counts all exist runs that step again and commits what is still uncommitted."""
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ from .decide import DriverStep
 from .fill import FillStep, SlotFills
 from .ledgers import open_positions, recorded
 from .outcomes import outcomes_of
+from .session_hook import no_step
 from .settle import settle_expired
 from .slot import QualityGate, SlotRoads, plan_slot
 
@@ -66,6 +68,7 @@ class SchoolFleet:
     clock: Clock
     seconds_per_driver: float = 60.0
     rules: QuoteRules = LIVE  # d's quote rules: only the simulator's practice root passes practice rules
+    after_outcomes: Callable[[date], None] = no_step  # e.g. the instructor's session run (isolated by its root)
 
     def run(self, session: date, mode: RunMode) -> SessionRun:
         try:
@@ -121,6 +124,7 @@ class SchoolFleet:
         the seal and the counts' commit makes what is missing and nothing twice."""
         session = roads.scheduled[0].session
         if self._sealed_once(session) and self.counts.written(session, SLOT_1500):
+            self.after_outcomes(session)  # write-once and same-bytes on a rerun; it may have failed the first time
             self.counts.commit(session)  # a crash between the counts' write and their commit
             return SlotFills({}, frozenset(), ())
         if rerun and self.clock.now() > datetime.combine(session, SESSION_CLOSE, IST):
@@ -131,6 +135,7 @@ class SchoolFleet:
                                                                       self.clock.now(), held)  # fmt: skip
         self._seal_once(session, RecordKind.OUTCOMES, outcomes_of(self.books, exits, roads.marks, self.entry_mids))
         self._seal_once(session, RecordKind.DRIFT, fills.drift)
+        self.after_outcomes(session)
         counts = tuple(counts_for(r.decision, r.law_results, fills.entries.get((r.road, r.decision.driver_id)),
                                   (r.road, r.decision.driver_id) in fills.size_shared) for r in records)  # fmt: skip
         self.counts.write(session, SLOT_1500, records, counts)

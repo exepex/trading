@@ -23,6 +23,7 @@ from .fleet.counts_file import CountsCommitter, SessionCounts
 from .fleet.entry_mids import DashcamEntryMids
 from .fleet.history import RecordedSpotHistory
 from .fleet.runner import SchoolFleet
+from .fleet.session_hook import no_step
 from .quality.wiring import build_quality_gate
 from .roads.wiring import build_road_services
 from .safety.wiring import build_margin, build_safety_laws
@@ -53,7 +54,8 @@ def books_on(cfg: dict, stores: FleetStores, fills: FillPort, root: Path = ROOT)
     return Books(accounts, accounts, TicketBook(fills, TicketLedger(tickets)), tickets, fills)
 
 
-def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT) -> SchoolFleet:
+def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, after_outcomes=no_step) -> SchoolFleet:
+    """`after_outcomes`: the record's step after the outcomes' seal (the instructor's run); a replay runs none."""
     settings = school_settings(cfg)
     books = books_on(cfg, stores, build_fill_port(cfg), root)
     services, margin = build_road_services(), build_margin(cfg)
@@ -62,5 +64,5 @@ def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT) -> SchoolFleet:
         RecordedSpotHistory(QUOTES_FOLDER), build_school_drivers(cfg, root),
         lambda marks: build_safety_laws(cfg, settings, marks, margin), books, stores.dashcam,
         SessionCounts(stores.home, stores.committer), build_capture_1515(root).for_session,
-        DashcamEntryMids(stores.dashcam), stores.clock,
+        DashcamEntryMids(stores.dashcam), stores.clock, after_outcomes=after_outcomes,
     )  # fmt: skip

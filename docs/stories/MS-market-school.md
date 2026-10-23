@@ -2794,3 +2794,21 @@ guard.
 - every decision counted regardless of h's verdict.
 
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
+
+### MS-P1j follow-up: the instructor wired in (MS-INS part e; orchestrator's hand-off, 22 Oct 2026; branch `story/ms-p1j-ins-wiring`, on part e's 63cabe67)
+Signatures agreed with the INS builder (session_01LH7m9r5TCAKgZbeHVYkiTD). Lane 1 (the fleet's record path), so two
+judges. It merges after part e.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| The instructor's session run, after the outcomes' seal and before the counts' commit | `SchoolFleet.after_outcomes` (default `no_step`): called once the outcomes and drift files are sealed, and again on a rerun of a complete session before its commit (the instructor is write-once and same-bytes). The record root passes `IsolatedSessionStep("instructor", run_instructor_session(cfg, session, write=True), #fno-desk alert)`; its counts file lands in `research/school/counts/instructor/`, inside the folder j's one commit takes | `test_session_step.py`: the step sees the sealed outcomes and no counts file yet (plants: never run; run after the counts) and runs again on a rerun (plant: skipped on a rerun) |
+| It can never stop the school's record | `IsolatedSessionStep`: a failure or a time-out (300 s) is one alert naming the class or "time limit", never the message; the counts are still written and committed | a failing and a slow step each give one alert and the counts file (plant: the step not isolated) |
+| A replay runs no instructor | The replay root passes no step and imports nothing of `instructor.wiring` (its Drive store and receipts) | `test_wiring.py`: the import check now covers `instructor.wiring`; the replay's step is `no_step`; the record root's is the instructor's run (plants: the replay running it; the record root without it) |
+| `unfilled` for the paired comparison | `fleet/unfilled.UnfilledEntries(first, last)`: every sealed trade or ticket decision whose position its ledger never opened, as (driver, road, entry session); `wiring.build_unfilled_entries(cfg)` over the record's stores | `test_unfilled.py`: the size-shared entry is unfilled and the served one is not, tickets alike, no-trades never, sessions outside the range left out (plant: everything filled) |
+| The "why" lines for g's 20:05 section | `SealedDayInputs.why(session)` from part e's `build_why_lines(cfg)`, passed in by `build_report_inputs` | `test_the_day_inputs_pass_the_instructor_s_why_lines_through_and_none_without_a_source` (plant: dropped) |
+| f's three counts in part e's review | none: `SealedDayInputs.counts(session)` already serves them | — |
+
+- **Not in this change, by agreement:** g's `DayInputs.why` and the render line in `evening.py` are g's builder's;
+  part e's `command.py` passing `unfilled=` and `counts=` is the INS builder's.
+- **Plants:** 9 planted, 8 caught; the ninth (closings counted as openings in `unfilled`) was equivalent, so the
+  redundant filter was removed rather than kept untested.
