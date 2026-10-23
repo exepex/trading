@@ -81,3 +81,16 @@ def test_the_net_is_checked_to_a_paisa(off, fault):
     dashcam.seal(*key, (replace(record, net=record.net + off),))
     (path,) = reader(dashcam).closed_on(SESSIONS[2]).paths
     assert (DataFault.NET_MISMATCH_FILLS in path.faults) is fault
+
+
+def test_an_orphan_is_a_correction_naming_no_outcome_on_file_from_the_start_of_the_record():
+    """Judge 522: a correction of an original sealed before any review window is not an orphan; only one whose
+    `corrects` names no outcome on file at all, from the start of the record, is."""
+    dashcam = WriteRefusingDashcam()
+    record = held_trade(dashcam)
+    correct_later(dashcam, record)
+    assert reader(dashcam).orphan_corrections() == ()  # its original is on file, though sealed before LATER
+    stray = refilled(record, 13.0, corrects="ee" * 32, position_id="p9")
+    dashcam.locked = False
+    dashcam.seal(date(2026, 11, 6), SLOT_1500, RecordKind.OUTCOMES, (stray,))
+    assert reader(dashcam).orphan_corrections() == (stray,)

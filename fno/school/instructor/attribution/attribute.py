@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from ....constants import SIDE_BUY
 from ....models import IST
-from ..contracts import Attribution, HeldPath, net_matches_fills
+from ..contracts import Attribution, HeldPath, net_matches_fills, record_sha256
 from ..thresholds import POOR_FIT_RS, POOR_FIT_SHARE
 from .greeks import greeks
 from .points import Point, settlement_point, signed_units, snapshot_point
@@ -88,7 +88,7 @@ def _record(path, parts: Components, first: Point, last: Point, steps: int, merg
     closed_on = outcome.exit.filled_at.astimezone(IST).date()
     return Attribution(outcome.position_id, outcome.driver_id, outcome.road, closed_on, outcome.is_ticket,
                        parts.delta, parts.gamma, parts.vega, parts.theta, residual, charges, spread, outcome.net,
-                       steps, merged, parts.iv_unsolved, poor, rules_sha256)  # fmt: skip
+                       steps, merged, parts.iv_unsolved, poor, rules_sha256, record_sha256(outcome))  # fmt: skip
 
 
 def is_poor_fit(residual: float, size: float) -> bool:
