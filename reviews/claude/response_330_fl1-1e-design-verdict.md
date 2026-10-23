@@ -77,3 +77,18 @@ Each point checked against the code before accepting; all four accepted.
 | F2 | The red line's place before "last checked" is not pinned | **Accept** | The unchecked test asserts red line < "last checked" < method line |
 | F3 | Option A's amber case is not pinned | **Accept** | One close call pinned: "most likely: no", "almost certainly: yes", "✓ right" green, before the amber chip |
 | F4 | A provisional morning check would say "tomorrow morning's report" | **Accept** (minor, fixed here: it is this branch's line) | `morning_check` labels a provisional close "NSE's close; the official file has not confirmed it yet", never a report's name; pinned by a test |
+
+## Addendum: the 23 Oct dry run (real records, composed to a scratch folder, never posted)
+
+Both editions composed from today's records on a scratch merge of the FL1 builder's branch and this one, to check
+the pictures before the owner's labelled dry run (orchestrator, 23 Oct). Two faults of the page, fixed at ffcec24f
+and pinned by `test_the_chip_counts_over_its_own_window_and_a_cues_unit_goes_on_the_change_only`:
+
+| Seen | Cause | Fix |
+|---|---|---|
+| The morning chip said "25 of 30 (✓ correct 2 · ⚠ close call 5)" | The chip counted over the 10 days the morning chart shows | The chip counts over its own window (`index.scored` sessions) on both pages |
+| "S&P 500 7,663.43% −1.21%", "GIFT Nifty 22,836% +0.65%" | A cue's level printed with the change's unit | The unit goes on the change only: "7,663.43 −1.21%" |
+
+The merged tree main + the MS-P1g test fix (c115ff2b) + a8ed3186: 14,587 passed, 0 failed. After the builder's
+branch lands, one commit swaps the page's word copies for `plain.py`'s (`YES_NO`, `VERDICTS`, `UNCHECKED` keyed by
+`IndexView.unchecked`, `PROVISIONAL`, `OFFICIAL`, `morning_report`), prepared and tested on the scratch merge.
