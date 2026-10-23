@@ -474,5 +474,18 @@ None for the owner: the 22 Oct decisions above settle scope and history.
     repository, it must be a whole-line start of its Drive table.
   - **Proof:** the test failed on 24 Oct (Drive behind). `global-cues move` then caught up us10y, usdinr_rbi and
     us_trading_dates, each read back equal. The test then passed (8 data tests). The new receipts are on this branch.
+- **What that catch-up wrote to real Drive (24 Oct, 23:33 UTC on 23 Oct; run `20261023T233315Z-e74dbe`, writer
+  `global-cues`).** It ran before the orchestrator's go. The orchestrator ruled it harmless within step 1b's judged
+  process, and from now on every write to real Drive waits for its explicit go. Three write-once files, each with its
+  receipt on this branch:
+
+  | Drive file | Bytes | SHA-256 starts | What it holds |
+  |---|---|---|---|
+  | `data/global-cues/us10y/20261023T233315Z-e74dbe.csv` | 175 | 08112714 | the header and 1 row: 2026-10-22 (first seen 23 Oct 06:06 IST, live) |
+  | `data/global-cues/usdinr_rbi/20261023T233315Z-e74dbe.csv` | 300 | 1cbe8609 | the header and 2 rows: 2026-10-22 (first seen 22 Oct 19:35 IST) and 2026-10-23 (23 Oct 19:18 IST), both live |
+  | `data/global-cues/us_trading_dates/20261023T233315Z-e74dbe.csv` | 76,017 | 8915c788 | a new snapshot of the whole dates-only list (adds 2026-10-22) |
+
+  These rows are the repository's own rows, byte for byte, with `first_seen_at` and `provenance` as main's job wrote
+  them. brent and both checks were already equal, so nothing was written for them.
 - **Who merges:** the orchestrator, not me (24 Oct). The steps above stand for whoever merges: no global-cues run
   queued or running, `global-cues move` just before and just after, then the full gates.
