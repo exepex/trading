@@ -661,3 +661,15 @@ number,name,session,claimed_at_utc
 507.13,ms-p1j-ins-wiring-r2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T05:11:19Z
 527.1,publisher-move-merge,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T05:20:51Z
 525.2,ms-ins-adopt-r3,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T05:26:22Z
+499.8,a16h-tls-fix,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T06:11:16Z
+499.9,a16h-tls-round-2,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T06:21:46Z
+507.14,ms-p1j-ins-wiring-r3,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T07:07:56Z
+528.1,ms-p1c-adopt-r2,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T07:08:03Z
+523.4,ms-p1j-ins-wiring-r3,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T07:34:19Z
+528.2,ms-p1c-adopt-merge,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T07:35:51Z
+529.1,ms-p1c-adopt-merge,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T07:51:18Z
+529.2,ms-p1c-adopt-minors,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T08:22:46Z
+477.1,o9b-vix-removal,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-23T08:25:09Z
+437.3,a23-live-from,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-23T08:25:15Z
+517.1,ms-p1g-why-lines-r2,session_01KNkZVoWvXMkoihKrrXk5Xa,2026-10-23T08:29:09Z
+529.3,ms-p1c-adopt-minors-r2,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T08:44:07Z

@@ -193,6 +193,13 @@ commit with `--no-verify`.
   `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. On `main` (after
   `git pull --no-rebase origin main`, never on a story branch alone: claim rows live on `main`),
   `python tools/check_numbers.py` must pass too. When the gates run: `docs/JUDGE.md`, "Merge procedure".
+- **Text-only changes skip the full suite (owner, 23 Oct 2026: "for doc or text file changes, we don't need to run
+  tests").** When every changed file is Markdown (`git diff --name-only <base> | grep -v '\.md$'` prints nothing),
+  the gates are the commit hook's record scan, `python tools/check_numbers.py` on `main` and, unless every file is a
+  lane-3 path (`tools/ci_scope.sh`), the doc-reading tests (about 1 minute; some tests read docs and READMEs):
+  `python -m pytest -q -n auto $(grep -rlE "docs/|\.md['\"]" tests --include=*.py)`. Never the full suite, for
+  builders, judges and the orchestrator alike. Any other file in the change (`.py`, test, config, workflow,
+  requirements, data) means the full gates above. The lane is unchanged: a text change still needs its lane's judge.
 - **Engineering standards (owner, mandatory for every agent and every session):** SOLID, DRY, KISS and clean code
   (clear names, small single-purpose functions and classes, no duplication, no dead code, comments only for the "why").
   **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose

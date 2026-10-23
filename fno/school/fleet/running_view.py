@@ -17,6 +17,11 @@ def position_id(decision: Decision) -> str:
     return f"{decision.driver_id}:{decision.road}:{decision.session}"
 
 
+def driver_of(position: str) -> str:
+    """The driver version a `position_id` names (Judge K, judge 529: read beside the one place that builds it)."""
+    return position.split(":", 1)[0]
+
+
 def opened_position(decision: Decision, entry_net: float) -> OpenPosition:
     """The position a sealed trade opens: its one ID, its proposal's legs, lot and maximum loss, and its entry cash."""
     proposal = decision.proposal

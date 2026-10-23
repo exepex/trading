@@ -64,6 +64,7 @@ class Day:
     items: tuple = ()
     rows: tuple = ()
     notes: tuple = ()
+    causes: tuple = ()
 
     def records(self, session):
         return self.items
@@ -76,6 +77,9 @@ class Day:
 
     def marks(self, session):
         return self.notes
+
+    def why(self, session):
+        return self.causes
 
 
 def counts(driver="CS1@1", eligible=3, fillable=2, executed=1) -> OpportunityCounts:

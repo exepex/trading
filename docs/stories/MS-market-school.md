@@ -540,6 +540,13 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
 - a rerun skips sealed decisions;
+- **runbook step (orchestrator, 22 Oct 2026; judge 495):** any new comparison-card version (an edit of
+  `research/school/CARD_P1.md`) needs new D6 rows registered before its decisions count: one `school:<driver id>` row per
+  driver version (12 today), a new version id, a `starts_on` strictly later than the book's previous row (D6 refuses an
+  equal or earlier date, so it cannot be registered the same day), `comparison_card_sha256` the new card's SHA-256 and
+  `card_sha256` unchanged unless the driver card changed too, committed after the card. Until then every decision made
+  under the new version is `comparison_card_mismatch` (denominator kept, nothing counted); decisions made earlier keep
+  their own verdict. The run's output says so by name when it sees the mismatch (orchestrator, 23 Oct 2026);
 - **requirement (orchestrator, 22 Oct 2026, judge 494):** a law result's `note` can name contracts or legs (MS-P1m's
   margin causes do), so it is never posted to Slack; the reports count "margin not checked" refusals by their cause
   (`margin_not_checked`, the cause after the prefix), never by quoting the note;
@@ -617,6 +624,26 @@ change to the roads, slot, band or drivers. The rows must be registered and push
      `test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version`, which fails CI while
      `config.yaml`'s `charges:` block differs from the hash frozen in the current card version.
 6. A row registered after a decision never counts that decision (D6's ancestor rule). Versions apply forward only.
+
+**Runbook: "dashcam stuck: stored file unverifiable" (Judge K, judge 529; MS-P1c follow-up).** `school run` stops with
+`stopped: dashcam stuck: stored file unverifiable <session> <slot> <kind> (<why>)` and exits 1 (the alert). Cause:
+Drive holds that key's file and `main` has no receipt for it (a run stopped between the two), and the file is not
+one this fleet could have written. What waits depends on the kind (Judge K, judge 529.2); the fleet never seals over
+the stored file:
+- `decisions`: nothing for that session is decided, sealed, filled or counted until a person decides.
+- `outcomes` or `drift`: the stop comes after the fills, so the decisions are already sealed and the fills booked in
+  the ledgers. An `outcomes` stop leaves the outcomes, the drift rows, the instructor's files and the counts waiting;
+  a `drift` stop comes after the outcomes are sealed too, so only the drift rows, the instructor's files and the
+  counts wait. A rerun after the person's decision books no fill twice (it reads the ledgers).
+1. Read the why. "not this fleet's" usually means a card or driver changed between the two runs (compare the
+   cards' commits with the stored records' `card_sha256`); "unreadable", "not canonical", "another kind", "another
+   session or slot" mean the file is damaged or misplaced.
+2. Fetch the stored file from Drive (`data/school/dashcam/<YYYY>/<MM>/<DD>/1500.<kind>.jsonl.gz`, the slot
+   without its colon) and decode it (`fno.school.contracts.slot_file.decode_slot_file`); it is never deleted or
+   overwritten (write-once).
+3. Raise it to the owner and the orchestrator with the key, the why and what the file holds; the session's record is
+   their decision (for example, a card change reverted so the file is this fleet's again, after which a rerun
+   adopts it). Never edit the file, never write its receipt by hand.
 
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
@@ -2756,6 +2783,49 @@ eight plants were re-run, 8 of 8 caught.
 - **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
 - **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.
 
+### MS-P1g follow-up: the instructor's why lines, and two items folded in (branch `story/ms-p1g-why-lines`, lane 1)
+
+- **Why lines** (asked by the MS-P1j builder; agreed with the MS-INS builder): `DayInputs.why(session)` returns MS-INS
+  part e's lines for the session's closed trades, or `()` without a source. The 20:05 section shows them verbatim under
+  the header "Why (the instructor's words):", right after the counts and before the fleet total; none, no header. A line
+  is kept only when its leading token (the driver id) is a rule driver (`role_of`); controls and measurement-only
+  drivers keep their own labelled lines (orchestrator's decision on judge 484). The section does not scan the text for
+  strikes or prices: the source's contract is that a line holds a driver id, a road, the net and cause words only.
+  Tests (`test_sections.py`): verbatim and in place, no lines no header, a control's or measurement-only line left out,
+  only controls leave no header. Plants: the role filter off, the empty-case header, the section call removed (all
+  caught).
+- **Merge order:** main's `SealedDayInputs` (j's file) gets a `why` returning `()` here (three lines), so the two
+  j tests that render the evening with the real inputs stay green; the MS-P1j builder's `story/ms-p1j-ins-wiring` has the
+  real `why` at the same place, so merging main into it takes theirs.
+- **Runbook step for MS-P1j** (orchestrator, judge 495): written into MS-P1j's "Implements" list: a new comparison-card
+  version needs new D6 rows (one per driver version) registered before its decisions count; until then every decision is
+  `comparison_card_mismatch`.
+- **Empty hash pinned** (orchestrator, judge 495): `test_a_card_deleted_after_the_rows_hashes_to_nothing_and_no_decision_counts_under_it`:
+  a commit with no card gives `""` (never the hash of nothing), and a decision under a deleted card is
+  `comparison_card_mismatch`; the plant (hashing an empty text) is caught.
+- **Tickets in the why lines (orchestrator's call, 23 Oct 2026):** part e will write a ticket's line with no rupees
+  ("ticket (hypothetical, account limits relaxed)" plus cause words). The section shows ticket lines, and keeps a guard:
+  a ticket line (`<driver> <road> ticket ...`) that holds a rupee figure (`Rs 90`, a rupee sign, "rupees") is refused,
+  because a ticket is never shown in rupees (judge 481). Tests: a ticket line without a figure is shown, five forms with
+  a figure are refused, a trade's line keeps its rupees; plants: the figure check removed, the guard off (both caught).
+  `test_the_pinned_format_is_what_the_instructors_why_line_writes` pins the leading `{driver} {road}{ticket}: net Rs `
+  form against `why_line.LINE` and skips until part e is on main; it is to be updated to part e's new ticket form when it
+  lands (the INS builder tells the g builder).
+
+MS-P1g why lines, round 2 (judge 517 PASS with minors; orchestrator, 23 Oct 2026; each accepted):
+1. **The stub is deleted** (`SealedDayInputs.why` in `fno/school/fleet/report_inputs.py`): a merge with j's ins-wiring would
+   have left two `def why` and let the stub replace j's. This branch merges after j's ins-wiring; until then the two j
+   tests that render the evening with the real inputs fail here (they need `why`), by design.
+2. **An unknown driver is withheld and counted, never raised:** a line whose first word is not a known driver id gives
+   "N why line(s) withheld: unknown driver"; the rest of the section stays.
+3. **A line with a strike or a price is withheld and counted** ("N why line(s) withheld: strike or price"): a strike
+   with its type, the words strike or premium, a price given as a number, "at <number>". Part e's own words ("bad
+   price or data", "net Rs -1,400") are kept. Tests plant each form.
+4. **Runbook:** `starts_on` strictly later than the book's previous row (above); the by-name sentence is re-attributed
+   to the orchestrator (23 Oct) and the j builder builds it. Plants: the unknown-driver catch, the leak check and the
+   notes are each removed (all caught).
+
+
 ### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B, then Judge I for the third seam, which touches the live gate; branch `story/ms-p1j-sim-seams`)
 | Seam | Change | Test (and the plant it catches) |
 |---|---|---|
@@ -3000,3 +3070,182 @@ guard.
 - the drawdown taken from zero instead of the peak;
 - every decision counted regardless of h's verdict.
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
+
+#### INS-e follow-up, round 2: each session computed as of itself (branch `story/ms-ins-adopt`, lane 1; judge 525 FAIL round 1; orchestrator's ruling of 23 Oct 2026: build the cut-off, drop adoption)
+
+**The defect** (found by MS-P1j's builder):
+- `DriveInstructorStore.write` puts the file on Drive first and publishes its receipt after.
+- If a run stopped between the two, the rerun recomputed, and it read "today": corrections up to the clock, controls' corrected results, settlements published since.
+- Its bytes then differed, and write-once Drive refused them for good.
+
+**The root cause and fix:** the file was not a pure function of fixed inputs. Each session's run now reads only what was sealed or known by that session:
+- `PathReader.closed_on` and `closed_between` take `as_of`: corrections come only from outcome files of sessions up to it, never the clock. The run passes its own session for the day's paths, the controls (`_nets`) and every re-check.
+- `EvidenceBuilder.build` and `Classifier.classify` take `as_of`: the hold-to-expiry value (cause 11) counts only for an expiry before that session, because its settlement is published after the expiry day's close.
+- A rerun therefore computes the same bytes. The write-once store takes equal bytes as a no-op and publishes the missing receipt. No unreceipted file is ever trusted.
+- Round 1's `recover`/adoption is removed: the port, store, fake and conformance check are back as on main.
+- A later correction reaches a later session's file as a re-check (part e's design), never the earlier session's.
+
+| Criterion | Test (`tests/school/instructor/outputs/test_cutoff.py` unless named) |
+|---|---|
+| A crash between the Drive write and the receipt, then a later correction and a published settlement, then a rerun: the same bytes, one receipt per file, no conflict | `a_run_stopped_before_its_receipt_reruns_after_more_records_to_the_same_bytes_and_one_receipt_each` (on main's code: `InstructorConflict` on the attribution file) |
+| A later correction leaves the earlier session's result unchanged and reaches the later session's file | `a_later_correction_reaches_a_later_sessions_file_never_the_earlier_sessions` (fails on main's code) |
+| A re-check reads only corrections sealed by its own session | `a_re_check_reads_only_corrections_sealed_by_its_own_session` |
+| The controls are read as of the session (REF corrected afterwards: the same result) | `the_controls_are_read_as_of_the_session` |
+| The reader's cut-off; no session given reads up to today (the review) | `the_reader_reads_corrections_sealed_up_to_the_session_it_is_given` |
+| Hold to expiry counts only from the session after the expiry | `holding_to_expiry_counts_only_from_the_session_after_the_expiry`; `test_run::a_classification_waiting_for_its_expiry...` (written again at the first session after the expiry, not before) |
+| A rerun after the settlement is recomputed to the same result | `test_run::a_rerun_after_later_sessions_returns_the_session_as_written` |
+| A written session's unreadable files are reported as of that session; a later session's damaged file is that session's (judge 525.2's minor; test only, lane 2) | `a_written_sessions_unreadable_files_are_read_as_of_that_session` |
+
+**Broken-code proof:** 5 plants, all caught:
+- the day's paths read up to today;
+- the re-check's paths read up to today;
+- the controls read up to today;
+- the hold allowed on the expiry day;
+- the reader ignoring `as_of`.
+
+The re-check and controls plants survived until their own tests were added.
+
+**What is still not pure [reasoning only, not tested]:**
+- **Late or failed source reads.**
+  - The fleet's own sealed settled outcome proves the settlement was archived by its session, so a settled path's settlement is always there.
+  - But a hold for an expiry before the session reads d's settlement source, and the reader reads the snapshot archive. If either is missing at the first run (an evening archive that failed and was backfilled, or Drive unreachable and read as "missing"), and the run also stopped before its receipt, the rerun can differ. That ends in a loud `InstructorConflict`, never a silent rewrite.
+  - Making these pure needs "known at" times in d's settlement source and the archive, which are other stories' ports.
+- **Out-of-order runs.** A re-check reads earlier sessions' instructor files by their receipts. If session S runs before S-1's file has its receipt, and S is then rerun after S-1 is fixed, S can differ. MS-P1j runs sessions in order.
+- **Orphans** are read up to today, but they are an alert line only, never written into a file.
+
+**For MS-P1j's deferred store:** it needs no `recover`; it rebases on this once it lands.
+
+
+### MS-P1j follow-up: the instructor wired in (MS-INS part e; orchestrator's hand-off, 22 Oct 2026; branch `story/ms-p1j-ins-wiring`, on part e's 63cabe67)
+Signatures agreed with the INS builder (session_01LH7m9r5TCAKgZbeHVYkiTD). Lane 1 (the fleet's record path), so two
+judges. It merges after part e.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| The instructor's session run, after the outcomes' seal and before the counts' commit | `SchoolFleet.after_outcomes` (default `no_step`): called once the outcomes and drift files are sealed, and again on a rerun of a complete session before its commit (the instructor is write-once and same-bytes). The record root passes `IsolatedSessionStep("instructor", run_instructor_session(cfg, session, write=True), #fno-desk alert)`; its counts file lands in `research/school/counts/instructor/`, inside the folder j's one commit takes | `test_session_step.py`: the step sees the sealed outcomes and no counts file yet (plants: never run; run after the counts) and runs again on a rerun (plant: skipped on a rerun) |
+| It can never stop the school's record | `IsolatedSessionStep`: a failure or a time-out (300 s) is one alert naming the class or "time limit", never the message; the counts are still written and committed | a failing and a slow step each give one alert and the counts file (plant: the step not isolated) |
+| A replay runs no instructor | The replay root passes no step and imports nothing of `instructor.wiring` (its Drive store and receipts) | `test_wiring.py`: the import check now covers `instructor.wiring`; the replay's step is `no_step`; the record root's is the instructor's run (plants: the replay running it; the record root without it) |
+| `unfilled` for the paired comparison | `fleet/unfilled.UnfilledEntries(first, last)`: every sealed trade or ticket decision whose position its ledger never opened, as (driver, road, entry session); `wiring.build_unfilled_entries(cfg)` over the record's stores | `test_unfilled.py`: the size-shared entry is unfilled and the served one is not, tickets alike, no-trades never, sessions outside the range left out (plant: everything filled) |
+| The "why" lines for g's 20:05 section | `SealedDayInputs.why(session)` from part e's `build_why_lines(cfg)`, passed in by `build_report_inputs` | `test_the_day_inputs_pass_the_instructor_s_why_lines_through_and_none_without_a_source` (plant: dropped) |
+| f's three counts in part e's review | none: `SealedDayInputs.counts(session)` already serves them | — |
+
+- **Judge B's note (judge 507.5), the root fix:** the counts' commit took the whole counts folder, so a timed-out
+  instructor's `.<name>.part` would have been swept in. Now `fleet/counts_commit.SessionFilesCommitter` commits only the
+  session's named files (its own three and the instructor's counts file, named by the record root) through a's
+  `OwnedPathsCommitter`; `SessionCounts.files(session)` lists them. Second guard: `.gitignore` ignores
+  `research/school/counts/**/.*.part`. Test on real git (a clone of a bare origin):
+  `test_only_the_session_s_named_files_are_committed_never_a_stray_part_file` commits the session's files and the
+  instructor's, never a stray `.part` nor an un-ignored stray file beside them (plant: the folder committed, caught).
+  Judge B's should-fix (judge 507.9): `test_the_record_root_names_the_instructor_s_counts_file_in_the_counts_commit`:
+  the record root's `SessionCounts.files(session)` names the instructor's counts file and a replay's does not (plant:
+  the record root naming no instructor file, caught).
+- **Not in this change, by agreement:** g's `DayInputs.why` and the render line in `evening.py` are g's builder's;
+  part e's `command.py` passing `unfilled=` and `counts=` is the INS builder's.
+- **Plants:** 9 planted, 8 caught; the ninth (closings counted as openings in `unfilled`) was equivalent, so the
+  redundant filter was removed rather than kept untested.
+
+#### Round 2 (Judge K, judge 523; orchestrator's ruling: one committer per run). Rebuilt on part e's 136f5890 and main
+Judge K's should-fix: past its 300 s the instructor's thread kept running and committed and pushed its receipts itself
+(`GitReceiptPublisher`), beside the run's own counts commit in the same checkout (`.git/index.lock`, an interleaved
+pull). Root cause: the step's work did its own writes and git. Now the work only reads and computes; every write runs on
+the run's own thread, and only when the work ended in time; one commit takes everything.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| The work writes nothing | `fleet/session_hook.StagedSessionStep`: `work(session)` runs under the limit and returns its writes, which run on the run's thread; a work past its limit (or failing) is one alert and its writes are never run. `instructor_step_wiring.instructor_work` runs part e's session run over `fleet/deferred_store.DeferredInstructorStore` (writes kept until `flush`) | `test_an_instructor_finishing_after_its_limit_has_nothing_committed_and_the_alert_says_time_limit` (real git: the late work's file is never written, not on `main`, the checkout clean, the alert says "time limit"); `test_the_instructor_s_work_writes_nothing_and_reads_through_its_run_s_receipts` (plants: the work writing in the thread; the writes run on the thread; the deferred store passing writes through) |
+| No git write on the thread, not even a fetch | `dashcam/publisher.RemoteReceipts` (now `fno/storage/receipt_publisher.py`, after the publisher move, judge 527): `refresh` (fetch, deepen) split from `find` (log and show only); `GitReceiptPublisher.published` is both, unchanged. `fleet/run_receipts.RunReceipts`: `published` and `publish` only `find`; the run fetches once on its own thread (`prepare`). It reaches part e's path reader's dashcam and the instructor's store through new optional `publisher`/`store` parameters on part e's builders (default: unchanged, so part e's own command still commits and pushes) | `test_the_step_s_lookups_and_publish_only_read_and_only_refresh_fetches`; `test_a_receipt_pushed_since_the_run_s_fetch_is_seen_only_after_the_next_refresh` (real git); `test_the_run_s_receipts_reach_the_path_reader_s_dashcam_and_the_store` (plants: a lookup fetching; the store, the run or the path reader without the run's receipts; no prepare) |
+| One commit takes the instructor's files | `fleet/counts_commit.SessionFilesCommitter` commits exactly the named files anywhere in the checkout (`NamedFiles` on O9's `GitManifestRecorder`); the record root names `instructor_files(session)`: the instructor's counts file and its two session receipts | `test_a_named_file_outside_the_counts_folder_is_committed_and_its_unnamed_neighbour_is_not`; `test_an_instructor_in_time_is_written_on_the_run_s_thread_and_taken_by_the_one_commit` (one commit); `test_the_step_s_files_are_its_counts_file_and_its_two_session_receipts` (plants: the folder swept; the receipts not named) |
+| A write or fetch that fails | named by class, one alert each; the school's record goes on | `test_a_failing_write_or_prepare_alerts_by_class_and_the_work_never_runs_after_a_failed_prepare` (plant: a write failure raised) |
+| Minor a: a stale decisions seal | `UnfilledEntries` leaves that session out, as part e's `sealed_decisions` leaves its decisions out of the comparison and names it unsealed | `test_a_session_whose_decisions_file_fails_its_receipt_is_left_out_as_the_comparison_leaves_it_out` (plant: not caught) |
+| Minor b: `unfilled` with the school off | `build_unfilled_entries` builds the dashcam and the books (with the account sync, as `entries` pulls from Drive) itself, never the fleet | `test_unfilled_entries_read_the_record_s_stores_even_with_the_school_off` (plant: through the fleet) |
+
+- **Limits [reasoning only]:** the writes run on the run's thread without the step's time limit, bounded by Drive's own
+  timeouts: a limit there would bring back a late write. A crash between the instructor's Drive write and the run's
+  commit leaves its receipt uncommitted, as before in part e (a rerun writes the same bytes, or alerts a conflict).
+- **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files); a replay runs no step.
+- **Judge K's note (via the INS builder): one path reader per run.** The path reader caches the files it read, so the
+  step's work builds a new one on every session call, never one held across runs:
+  `test_every_session_call_builds_its_own_path_reader_never_one_held_across_runs` (plant: a run held across calls,
+  caught).
+- **Judge K's minor (judge 523.1):** `test_an_unpushed_commit_of_another_writer_still_blocks_the_push`: a commit of
+  another writer not yet on main makes the pull refuse and nothing reaches main (plant: `NamedFiles.owns` forced to
+  True, caught).
+- **Plants:** 15 planted, 15 caught. Gates: in the commit message of the tip.
+
+#### Round 3 (Judge B, judge 507.13 SF1; owner: fix and one more check): a refused counts commit is loud
+The runner dropped the counts commit's outcome and `school run` exited 0, so a refused push (three lost races, a pull
+refused for other unpushed changes, a hook refusal) was silent; it now carries the instructor's receipts too. On main
+before this branch for the counts alone.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| Never silent | `SessionFilesCommitter.commit` returns None when the files are on `main`, else the refused line (O9's own refusal text, naming the files); `SessionCounts.commit` alerts "counts NOT pushed <session>: <line>; the next run of the session pushes them" to #fno-desk (the record root's sender) and returns it; the runner carries it in `SessionRun.warnings` on the first run and on the rerun, so `school run` prints it and exits 1; nothing says done (the CLI's lines are decisions sealed and fills only) | `test_a_refused_push_is_alerted_printed_and_exits_1_then_the_rerun_pushes_it` on real git (plants: the first run or the rerun dropping it; no alert; the refusal hidden; the record root or `fleet_on` without the alert) |
+| The rerun completes it | `NamedFiles`: with nothing new to commit, a named file committed here and not on `main` is pushed; the run's earlier unpushed commits under its run paths (the counts folder, the instructor's receipts) are its own, so they never block a later commit and go up with it (Judge B: exact names alone would block every later commit) | the same test (rerun once the push works: exit 0, the file on `main`); `test_an_earlier_session_s_unpushed_counts_never_block_a_later_session_and_go_up_with_it`; `test_the_record_root_alerts_a_refused_counts_commit_and_owns_its_earlier_unpushed_ones` (plants: the leftover never pushed; the run paths dropped, in the committer or the record root) |
+
+- **Plants:** 9 planted, 9 caught.
+
+
+### MS-P1c follow-up: a stored slot file is adopted, never sealed over (orchestrator's go, 23 Oct 2026; branch `story/ms-p1c-adopt`; Judges B then K)
+The window (found by the INS builder in the instructor's store; the same in the dashcam): `DriveDashcamStore.seal` puts
+the file on Drive, then pushes its receipt. A run that stops between the two leaves a file with no receipt on `main`;
+a fresh container's `find` is None, the runner decides again, and if its records differ every rerun is a
+`ReplayConflict` (uncaught: the session never fills, writes outcomes or counts). Reproduced on real git with the
+production store and publisher [strong evidence]. A rerun can differ, so "the inputs are frozen" cannot be proven:
+each driver's 60 s wall-clock limit [strong, from the code]; a canonical 3 pm marker, a recorded quote file, the day's
+archived SPAN file or the 15:15 capture landing between the two runs [some evidence, from the code].
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| Adopt, never seal over | `DashcamStore.recover(session, slot, kind, belongs)` (a's contract): `find`, else a stored file is adopted when `dashcam/adoption.adoptable` passes: it decodes, re-encodes to the same bytes, holds only the kind's records, of this session and slot (an outcome names no session: a settlement fills on its expiry day), and every record is the writer's own; then its receipt is written from its own bytes and published under an "adopted" commit | `test_adoption.py` on real git: `test_the_stuck_session_is_adopted_and_its_stored_records_stand` (what the rerun decides now is a `ReplayConflict`, the stored records stand); each refusal (unreadable, not canonical, another kind, another slot, another session, not this fleet's) raises with its reason and publishes nothing; a settlement's outcome is adopted (plants: no check; published before the check; another key's file; each check dropped; outcomes judged by their fill date) |
+| The fleet's own (the orchestrator's addition 1) | `SchoolFleet._belongs`: a decision's driver is this fleet's and names that driver's card SHA-256 as frozen now; an exit, outcome or drift row's driver is this fleet's | `test_a_stored_file_of_another_card_version_stops_the_run_by_name_and_fills_nothing` (plants: the card version ignored; every record accepted) |
+| Loud stop by name (addition 2) | `DashcamStuck` "dashcam stuck: stored file unverifiable <session> <slot> <kind> (<why>)": the run's status `stopped: ...`, the CLI exits 1 (the alert), nothing sealed or filled | the same test (plant: the stop not caught) |
+| The runner adopts where it writes | `recover` for the decisions (an adopted file takes the rerun path over the sealed records) and before sealing the outcomes and the drift; the "all finished" check stays a pure `find` | `test_a_rerun_completes_the_session_from_its_stored_decisions_not_what_it_would_decide_now`; `test_a_rerun_after_a_stop_at_the_drift_file_adopts_it_and_writes_the_counts` (NIFTY road, the stored rows differ from the rerun's) (plants: the decisions on `find`; the drift on `find`) |
+| Fakes as strict as Drive | a's `FakeDashcam` refuses other bytes over a stored file, receipt or not, and adopts through the same `adoptable`; `ReplayDashcam.recover` is `find` (a local file is its own seal) | `check_dashcam` now asserts `recover` for the fake, the real store and `ReplayDashcam` (plant: the fake adopting unchecked) |
+
+- **Readers never adopt:** reports, `unfilled`, the instructor's reader and the entry mids keep `find`; only the
+  writer's rerun adopts.
+- **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files).
+- **Plants:** 13 planted, 13 caught (the drift plant first survived on a BANKNIFTY test, whose drift is empty; the
+  test now uses a NIFTY road with differing rows).
+- **Round 2 (Judge B, judge 528 SF1): the fleet's own check on every row kind, tested.**
+  `test_a_stored_row_of_a_driver_outside_the_fleet_stops_the_rerun_and_seals_nothing_of_its_kind` (exit, outcome,
+  drift): a stored, unreceipted file with one row of a driver outside the fleet stops the rerun as "stopped: dashcam
+  stuck: stored file unverifiable ... (a record that is not this fleet's ...)" and nothing of that kind is sealed
+  (plants: `_belongs` true for every non-decision row, all three fail; the drift row's driver misread, the drift one
+  fails). Test-only change.
+
+MS-P1g why lines, round 3 (j's ins-wiring is on main, 486b0f4f; main merged in): the stub is gone and `SealedDayInputs` has
+one `why` (j's). `test_the_pinned_format_is_what_the_instructors_why_line_writes` now runs against part e's real
+templates (`LINE`, `TICKET_LINE`): a trade's line starts "<driver> <road>: net Rs ...", a ticket's "<driver> <road> ticket
+(hypothetical, account limits relaxed): why: ...", both are shown with no withheld note, and the ticket form holds no
+rupee figure. The two j tests that needed `why` pass again.
+
+#### INS-e follow-up: the review's sources from MS-P1j (branch `story/ms-ins-review-sources`, lane 1, Judge K; after MS-P1j's ins-wiring, 486b0f4f)
+Part e's two known limits are closed: the unfilled entries and f's three counts.
+- `review_wiring.build_review_sources(config)` builds `ReviewSources(unfilled, counts)`:
+  - `unfilled` is MS-P1j's `build_unfilled_entries`;
+  - `counts` is MS-P1j's `SealedDayInputs.counts`, which reads the counts file each session's run commits.
+  - It is a separate composition root because MS-P1j's `fno/school/wiring.py` imports the instructor's `wiring.py`. This root imports MS-P1j's, and only the command's entry point imports it, so there is no cycle.
+- `python -m fno.school.instructor --review FIRST LAST` now does two things:
+  - it passes the range's unfilled entries to `CountedComparison.rows`, so an entry that fired but never filled counts as the driver's miss, as 327 asks;
+  - it prints eligible, fillable and executed per driver instead of "three counts not supplied".
+- Without sources (a test, or a caller that passes none), the review behaves as before. Read-only: nothing new is written.
+| Criterion | Test |
+|---|---|
+| The sources are MS-P1j's unfilled entries and the committed counts file (none when none is committed) | `test_review_wiring::the_review_reads_ms_p1j_unfilled_entries_and_the_committed_three_counts` |
+| The review asks for the range's unfilled entries, passes them to the comparison and prints the supplied counts | `test_review::the_review_command_passes_the_unfilled_entries_and_prints_the_supplied_three_counts` |
+| The command's entry point gives the review its sources | `test_review_wiring::the_commands_entry_point_gives_the_review_its_sources` |
+**Broken-code proof:** 5 plants, all caught:
+- unfilled not passed to the comparison;
+- counts not passed to the review;
+- the sources not built;
+- the counts read from the repository root instead of the given one;
+- the entry point passing no sources.
+
+**Known limits (judge 530's minors, parked by the orchestrator on 23 Oct 2026; reasoning only):**
+- **A written review is not rerunnable.** `--review --write` writes the paired file under the range's last session. It depends on today's ledgers and corrections, so the same range written again after a later correction is refused by write-once, for that key, for good.
+  - The cut-off reader could bound the corrections.
+  - The unfilled entries come from MS-P1j's ledgers, which have no "as of".
+  - Until fixed: write a range's review once, after its last session's fills; a dry run is always allowed.
+- **A review that covers a session before its fills** counts that session's fired entries as unfilled. Run a review only over sessions whose run has finished.
+**Real output:** `python -m fno.school.instructor --review 2026-10-22 2026-10-23` prints "school off": the school's switch is off. That is the honest result; no sealed day exists to review yet.

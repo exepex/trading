@@ -114,3 +114,9 @@ rerun is byte-identical. The adoption variant is dropped, so ins-wiring needs no
 - `pytest -n auto`: 14333 passed, 16 xfailed.
 - ruff check: clean. ruff format: 2303 files already formatted.
 - check_imports, check_records and check_numbers: clean.
+
+**Merge tip (same verdict):** b82dbe7d on story/ms-ins-adopt carries 515da4f7's code with main merged in. Its diff to
+515da4f7 in `fno/school/instructor` and `tests/school/instructor` is empty. a5615a8a, the adoption variant, is dropped
+by the owner and was not judged. Gates on a trial merge of b82dbe7d with main 56b8be8d:
+- `pytest -n auto`: 14333 passed, 16 xfailed.
+- ruff check, ruff format, check_imports, check_records and check_numbers: clean.

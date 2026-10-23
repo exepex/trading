@@ -3,13 +3,14 @@
 `fno school` group when j lands (orchestrator, 22 Oct 2026). Nothing is posted anywhere: lines are printed."""
 
 import argparse
+from collections.abc import Callable
 from datetime import date
 
 from ...constants import SCHOOL_OFF_LINE
 from ...settings import school_settings
 from ..ports import InstructorKind
 from .comparison import sealed_decisions
-from .review import build_review
+from .review import ReviewSources, build_review
 from .review_text import review_lines
 from .why_line import why_line
 
@@ -30,14 +31,16 @@ def parser() -> argparse.ArgumentParser:
     return parse
 
 
-def run(argv, config: dict, wiring) -> list[str]:
-    """`wiring` is the instructor's composition root (a module, or a fake in tests)."""
+def run(argv, config: dict, wiring, review_sources: Callable[[dict], ReviewSources] | None = None) -> list[str]:
+    """`wiring` is the instructor's composition root (a module, or a fake in tests); `review_sources` builds what the
+    review reads from MS-P1j's record (`review_wiring.build_review_sources`); without it the review says the three
+    counts were not supplied and treats no entry as unfilled."""
     args = parser().parse_args(argv)
     if not school_settings(config).enabled:
         return [SCHOOL_OFF_LINE]
     if args.session:
         return _session(args.session, args.write, config, wiring)
-    return _review(*args.review, args.write, wiring)
+    return _review(*args.review, args.write, wiring, review_sources(config) if review_sources else None)
 
 
 def _session(session: date, write: bool, config: dict, wiring) -> list[str]:
@@ -54,13 +57,15 @@ def _session(session: date, write: bool, config: dict, wiring) -> list[str]:
     return lines + [why_line(r) for r in result.classifications]
 
 
-def _review(first: date, last: date, write: bool, wiring) -> list[str]:
+def _review(first: date, last: date, write: bool, wiring, sources: ReviewSources | None) -> list[str]:
     reader, store = wiring.build_path_reader(), wiring.build_instructor_store()
     sessions = reader.sessions(first, last)
     read = reader.closed_between(first, last)
     decisions = sealed_decisions(reader.dashcam, sessions)
-    paired = wiring.build_comparison().rows(decisions, read.paths)
-    review = build_review(first, last, sessions, read, decisions, store, paired, len(reader.orphan_corrections()))
+    unfilled = sources.unfilled(first, last) if sources else frozenset()
+    paired = wiring.build_comparison().rows(decisions, read.paths, unfilled)
+    review = build_review(first, last, sessions, read, decisions, store, paired, len(reader.orphan_corrections()),
+                          sources.counts if sources else None)  # fmt: skip
     if write:
         store.write(last, InstructorKind.PAIRED, paired)
     return review_lines(review) + ([] if write else [DRY.strip()])

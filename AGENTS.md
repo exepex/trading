@@ -122,4 +122,5 @@ Follow the code rules in `CLAUDE.md` ("Code" section), mandatory for every agent
 350 lines (break it down, never squeeze it); design for change: high cohesion and loose coupling through design
 patterns, every external service, data source, store and rule behind an interface (CLAUDE.md "Design for change"); small single-purpose modules, interfaces
 for anything that can be swapped (data sources, stores, rules), wiring only in the composition roots, tests and
-linting before pushing.
+linting before pushing. A change of Markdown files only skips the full test suite (owner, 23 Oct 2026): the record
+scan and, unless every file is lane-3, the doc-reading tests (CLAUDE.md "Code", "Text-only changes").

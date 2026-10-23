@@ -365,3 +365,33 @@ second judge on the round-2 code. I did not read judge K's 523.1 or 523.2 before
   second must carry the other's change.
 - **Round count:** this is my third look at ins-wiring (507.9 FAIL, 507.12 PASS, now 507.13). The orchestrator
   decides whether this counts as a round over the limit, which goes to the owner.
+
+## Addendum 14
+
+**Verdict: PASS** on story/ms-p1j-ins-wiring at 98d16fcd. This is the owner's one more check after 507.13: the fix is
+52cf0224, followed by merges of main (the publisher move, the instructor's cut-off). It closes 507.13's SF1 and
+condition 2 of judge 527.
+
+- **SF1 met:** `SessionFilesCommitter.commit` returns the refusal line (every `_not_committed`, including missing
+  hooks, starts with `REFUSED`), or None when the files are on main. `SessionCounts.commit` alerts "counts NOT pushed
+  <session>: ..." through `FleetStores.alert` (the record root passes `build_alert_sender().send`) and returns the line.
+  The runner carries it in `SessionRun.warnings` on the first run and on the rerun branch, so `cmd_run` prints it and
+  exits 1.
+- **Exact names no longer block:** `run_paths` (the counts folder and `receipts/data/school/instructor/`) make the
+  run's own earlier unpushed commits "own" in `pull`. With nothing new to commit, `_unpushed` still pushes a named file
+  that is not on main, so the rerun completes it. The tests run on real git with the push refused.
+- **My plants (`tests/school`):**
+
+  | Plant | Result |
+  |---|---|
+  | committer always None | 3 failed |
+  | leftover never pushed | 1 failed |
+  | no alert | 2 failed |
+  | receipts prefix dropped from the record root's run paths | 1 failed |
+  | rerun drops the line | 1 failed |
+  | refusal line not prefixed | 3 failed |
+
+- **Judge 527 condition 2:** `RemoteReceipts` now sits in `fno/storage/receipt_publisher.py`, and nothing imports
+  `fno.school.dashcam.publisher`.
+- **Gates on 98d16fcd (run by me):** 14,404 passed, 16 xfailed; ruff, format and check_imports clean; the largest
+  changed file is 152 lines. It merges cleanly with current main.

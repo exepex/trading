@@ -114,6 +114,10 @@ The judge also confirms the words with the owner directly; no file counts as pro
   merge it in and push after the fast checks (ruff, `check_imports`, `check_records`, `check_numbers`, the code-size
   test). Any code or test change on `main` in between means a full run
   again before the push.
+- A change of Markdown files only (no `.py`, test, config, workflow or requirements file) never runs the full suite
+  (owner, 23 Oct 2026): the record scan, `check_numbers`, and the doc-reading tests unless every file is lane-3
+  (CLAUDE.md "Code", "Text-only changes"). This holds for the builder, for each judge round and for the merge;
+  a round that only rewords text is judged by reading it.
 - The gates need the whole git history: in a shallow clone the freeze and back-fill tests fail with "shallow clone:
   run git fetch --unshallow origin main"; run that, then the gates again. It is never a code failure.
 - A merge that moves data (a table out of the repository, rows into Drive, a migration) also runs the moved data's own

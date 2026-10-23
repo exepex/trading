@@ -55,3 +55,21 @@ PASS stands at dafedbe3, and the G7 failure is gone now that `main` is merged in
 - The table's receipt SHA-256 `8d77cb52…` (789,682 bytes) equals `sha256sum` of the committed `india_vix_daily.csv`.
 - The first `data-checks` run, 39769005484 on the merge commit, concluded **success** (read through GitHub's API).
 - Still owed: the first scheduled `vix-history` run on 23 Oct, then the removal commit.
+
+## Addendum 1: the removal commit (story/o9b-vix-removal @ 9c2ac0b6)
+
+**Verdict: PASS. It may merge.**
+
+- **The first scheduled run on the Drive path:** `vix-history` run 39911658650 (schedule, 23 Oct 06:28 UTC),
+  **success** (read through GitHub's API). Its commit holds only three check-snapshot receipts. No table part, since
+  September was already archived.
+- **The removal:**
+  - the 4 data files leave HEAD; the README stays and says where the data is;
+  - `.gitignore` covers both paths;
+  - `MOVED_VIX_FILES` is a `ForbiddenFiles` entry wired in `build_record_scanner`, so `git add -f` is refused too.
+    My plant (the entry left out of the scanner) fails the test.
+  - The one-off `move` command and its repository paths are gone.
+- **Checks:** no `fno/`, `tests/`, `tools/` or workflow reader of `research/data/vix` remains (grep). vix_history,
+  record_scan and o9b: 150 passed. The full-tree record scan is clean (8,658 files).
+- **Reasoning only, for a later step (the builder's own note):** writing a check snapshot only when it differs from
+  the latest would bring back "no change, no commit".

@@ -53,7 +53,7 @@ def test_the_pilot_s_record_root_with_the_switch_off_prints_the_off_line_and_bui
     def refuse(*args, **kwargs):
         raise AssertionError("a store was built with the switch off")
 
-    for name in ("fleet_on", "build_dashcam", "build_account_sync", "GitManifestRecorder"):
+    for name in ("fleet_on", "build_dashcam", "build_account_sync", "SessionFilesCommitter"):
         monkeypatch.setattr(wiring, name, refuse)
     runner = wiring.build_fleet({"school": {**GOOD, "enabled": False}})
     c.check_fleet_off(runner, b.SESSION)

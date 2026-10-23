@@ -121,7 +121,7 @@ def test_the_record_root_passes_the_check_and_a_replay_has_none(monkeypatch, tmp
             "fleet_on",
             lambda cfg, stores, root, *rest, module=module, **k: seen.setdefault(module.__name__, (rest, k)),
         )
-    for name in ("build_dashcam", "build_account_sync", "GitManifestRecorder"):
+    for name in ("build_dashcam", "build_account_sync", "SessionFilesCommitter", "build_instructor_step"):
         monkeypatch.setattr(wiring, name, lambda *a, **k: None)
     wiring.build_fleet({"school": {**GOOD, "enabled": True}})
     replay_wiring.build_replay_fleet({}, b.SESSION, tmp_path)

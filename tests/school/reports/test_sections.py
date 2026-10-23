@@ -8,7 +8,7 @@ import pytest
 from fno.school.constants import NO_LATENCY_LABEL, NSE_TERMS_LINE, PAPER_LABEL, ClosureReason, DriverRole
 from fno.school.contracts.reports import Banner, ReportSection
 from fno.school.reports.banner import AMBER_MEANING, RED_MEANING, banner_for
-from fno.school.reports.evening import HowDidTodayGoSection
+from fno.school.reports.evening import RUPEE_FIGURE, TICKET_LINE, HowDidTodayGoSection
 from fno.school.reports.today import TodaySection
 from tests.school.contracts.test_records import closed_record, trade_record
 from tests.school.reports import fakes as f
@@ -131,3 +131,124 @@ def test_measurement_only_drivers_have_their_own_line_and_are_not_in_the_fleet_t
 def test_a_rule_drivers_trade_keeps_the_evening_amber_whatever_the_controls_do():
     records = [trade_record(), f.trade_by("N0@1"), f.net_record("CS1@1", 100.0)]
     assert evening(records).banner is Banner.AMBER
+
+
+WHY = "CS1@1 BANKNIFTY-M: net Rs -140; why: wrong direction (also: costs ate the edge); hard road"
+
+
+def with_why(*causes, records=()):
+    return HowDidTodayGoSection(f.Day(tuple(records), (), (), tuple(causes))).render(f.SESSION)
+
+
+def test_the_instructors_lines_are_shown_verbatim_under_a_header_after_the_counts():
+    lines = with_why(WHY, records=[trade_record(), f.net_record("CS1@1", -140.0)]).lines
+    at = lines.index("Why (the instructor's words):")
+    assert lines[at + 1] == WHY
+    counts_at = lines.index("Counts (eligible / fillable / executed):")
+    assert counts_at < at < next(i for i, line in enumerate(lines) if line.startswith("Fleet total")), (
+        "after the counts, before the fleet total"
+    )
+
+
+def test_no_instructor_lines_means_no_header_and_no_change():
+    assert "Why (the instructor's words):" not in "\n".join(with_why().lines)
+    assert with_why().lines == evening().lines
+
+
+def test_a_line_about_a_control_or_a_measurement_only_driver_is_left_out_of_the_why_lines():
+    control = "N0@1 BANKNIFTY-M: net Rs +5000; why: lucky"
+    measurement = "PS5@1 BANKNIFTY-M: net Rs -400; why: wrong direction"
+    lines = with_why(control, WHY, measurement).lines
+    assert WHY in lines and control not in lines and measurement not in lines
+
+
+def test_only_controls_in_the_why_lines_leave_no_header():
+    assert "Why (the instructor's words):" not in "\n".join(with_why("N0@1 BANKNIFTY-M: net Rs +5000; why: x").lines)
+
+
+TICKET = "CS1@1 BANKNIFTY-M ticket (hypothetical, account limits relaxed): why: wrong direction"
+
+
+def test_a_tickets_line_without_a_rupee_figure_is_shown():
+    assert TICKET in with_why(TICKET).lines
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "CS1@1 BANKNIFTY-M ticket: net Rs -90; why: wrong direction",
+        "CS1@1 BANKNIFTY-M ticket (hypothetical): lost Rs 90; why: x",
+        "CS1@1 BANKNIFTY-M ticket (hypothetical): lost \u20b990; why: x",
+        "CS1@1 BANKNIFTY-M ticket (hypothetical): lost 90 rupees; why: x",
+        "CS1@1 BANKNIFTY-M ticket: net rs-90; why: x",
+    ],
+)
+def test_a_tickets_line_with_a_rupee_figure_is_refused(line):
+    lines = with_why(line, WHY).lines
+    assert line not in lines and WHY in lines
+
+
+def test_a_trades_line_keeps_its_rupees():
+    assert WHY in with_why(WHY).lines, "only a ticket is never shown in rupees"
+
+
+def test_the_pinned_format_is_what_the_instructors_why_line_writes():
+    """MS-INS part e's templates start with the driver id, one space and the road, and a ticket's carries no rupees."""
+    from fno.school.instructor.outputs import why_line as part_e
+
+    sample = {
+        "driver": "CS1@1",
+        "road": "BANKNIFTY-M",
+        "net": -140,
+        "why": "wrong direction",
+        "also": "",
+        "modifier": "",
+    }
+    trade, ticket = part_e.LINE.format(**sample), part_e.TICKET_LINE.format(**sample)
+    assert trade.startswith("CS1@1 BANKNIFTY-M: net Rs -140; why: ") and WHY.startswith(trade.split(";")[0])
+    assert ticket.startswith("CS1@1 BANKNIFTY-M ticket (hypothetical, account limits relaxed): why: ")
+    lines = with_why(trade, ticket).lines
+    assert trade in lines and ticket in lines, "both of part e's forms are shown, with no withheld note"
+    assert not [line for line in lines if "withheld" in line]
+    assert not RUPEE_FIGURE.search(ticket) and TICKET_LINE.match(ticket)
+
+
+def test_a_line_that_starts_with_an_unknown_driver_is_withheld_and_counted_never_raised():
+    text = with_why("Overall: a quiet day", WHY, "XX9@1 BANKNIFTY-M: net Rs 1; why: x")
+    lines = text.lines
+    assert WHY in lines, "the section survives and keeps the known lines"
+    assert "2 why lines withheld: unknown driver" in lines
+    assert "Overall: a quiet day" not in lines
+
+
+def test_one_unknown_line_is_counted_in_the_singular_and_alone_leaves_no_header():
+    lines = with_why("Overall: a quiet day").lines
+    assert "1 why line withheld: unknown driver" in lines and "Why (the instructor's words):" not in lines
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: sold 51200 CE at a loss",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: the 51200.5 PE leg",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: strike 51200",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: premium collected",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: price 85.5",
+        "CS1@1 BANKNIFTY-M: net Rs -140; why: filled at 85",
+    ],
+)
+def test_a_line_with_a_strike_or_a_price_is_withheld_and_counted(line):
+    lines = with_why(line, WHY).lines
+    assert line not in lines and WHY in lines
+    assert "1 why line withheld: strike or price" in lines
+
+
+def test_the_instructors_own_words_are_not_mistaken_for_a_price():
+    kept = "CS1@1 BANKNIFTY-M: net Rs -1,400; why: bad price or data (also: costs ate the edge); hard road"
+    lines = with_why(kept).lines
+    assert kept in lines and not [line for line in lines if "withheld" in line]
+
+
+def test_a_withheld_line_does_not_stop_the_fleet_total_or_the_footer():
+    lines = with_why("Overall: a quiet day", records=[trade_record(), f.net_record("CS1@1", 100.0)]).lines
+    assert "Fleet total, rule drivers only: Rs +100 (separate hypothetical accounts, not one budget)" in lines

@@ -105,3 +105,12 @@ committed. Ruff, ruff format (1678), `check_imports.py` and the record scan (755
 
 After the merge: the first daily run in response 305's addendum 2 (quality rule 8). Also still open: the owner's
 openpyxl choice for 30 Jul 2019, where I recommend keeping the exception unless more such files appear (reasoning only).
+
+## Addendum 3: O8's flow-history checks live (story/a23-live-from @ cd33f535)
+
+**Verdict: PASS. It may merge.**
+- The first scheduled `flow-history` run, 39842023704, started 22 Oct 19:39:37 UTC (01:09 IST, 23 Oct) and concluded
+  **success** (GitHub's API). It ended 19:40:57 UTC, so its push is before O8's 09:00 IST deadline. The push time
+  itself comes from the job log, as the builder says [some].
+- `FLOW_HISTORY_FROM = 22 Oct` for both rows is right: 21 Oct came from the back-fill, not the schedule. The diff is
+  that constant, its use and the test's expected dates.

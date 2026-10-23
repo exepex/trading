@@ -128,3 +128,33 @@ def test_the_review_prints_fs_three_counts_when_supplied_and_says_so_when_not():
     assert mine.three_counts == (6, 3, 3) and any(
         "eligible 6, fillable 3, executed 3" in line for line in text(supplied)
     )
+
+
+def test_the_review_command_passes_the_unfilled_entries_and_prints_the_supplied_three_counts():
+    from fno.school.contracts.tickets import OpportunityCounts
+    from fno.school.instructor.outputs.command import run as command
+    from fno.school.instructor.outputs.review import ReviewSources
+    from tests.school.instructor.outputs.test_counts_and_command import school
+
+    _, read, instructor, _ = scenario()
+    seen = []
+
+    class Comparison:
+        def rows(self, decisions, closed, unfilled=frozenset()):
+            seen.append(unfilled)
+            return ()
+
+    class Counts:
+        def counts(self, session):
+            return (OpportunityCounts(session, read.closed_on(SESSIONS[2]).paths[0].outcome.road, DRIVER, 1, 1, 0),)
+
+    parts = {"build_path_reader": lambda: read, "build_instructor_store": lambda: instructor.store,
+             "build_comparison": Comparison}  # fmt: skip
+    entries = frozenset({("REF@1", read.closed_on(SESSIONS[2]).paths[0].outcome.road, SESSIONS[0])})
+    asked = []
+    sources = ReviewSources(lambda first, last: asked.append((first, last)) or entries, Counts())
+    argv = ["--review", str(SESSIONS[0]), str(SESSIONS[2])]
+    lines = command(argv, school(True), type("Wiring", (), parts), lambda cfg: sources)
+    assert asked == [(SESSIONS[0], SESSIONS[2])] and seen == [entries]
+    assert any("eligible 3, fillable 3, executed 0" in line for line in lines)
+    assert not any("three counts not supplied" in line for line in lines)
