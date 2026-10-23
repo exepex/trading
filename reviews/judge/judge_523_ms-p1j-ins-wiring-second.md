@@ -82,3 +82,47 @@ and adopt only on the run's own thread.
 `test_an_unpushed_commit_of_another_writer_still_blocks_the_push`. My plant (`NamedFiles.owns` forced to True) fails
 it (1 failed, 103 passed); without the plant, `tests/school/fleet` gives 104 passed. `git merge-tree` with current
 `main` is clean.
+
+## Addendum 4: round 3 at 98d16fcd (second judge, independent)
+
+**Scope:**
+- 52cf0224: judge 507.13 SF1, a refused counts commit is loud.
+- Two merges of main: the publisher move and the instructor's cut-off.
+
+Against bda6a49d (523.3), the builder's own changes are:
+- `fleet/counts_commit.py`, `counts_file.py`, `runner.py`, `contracts/fleet.py`;
+- the wiring;
+- `tests/school/fleet/test_counts_not_pushed.py`.
+
+I did not read Judge B's 507.14 first.
+
+**Verdict: PASS.** No blocking or should-fix findings.
+
+| Claim | Result | My evidence |
+|---|---|---|
+| A refused commit returns its line | MET | `SessionFilesCommitter.commit` returns None on success, else the outcome that starts with `REFUSED` ("school session files NOT committed: "). `_not_committed` names the files to commit by hand |
+| Alerted by name to #fno-desk | MET | `SessionCounts.commit` sends `counts NOT pushed <session>: <outcome>` through `alert`. `build_fleet` wires `build_alert_sender().send` |
+| Exit 1 on the first run and the rerun | MET | The runner adds the refusal to `SessionRun.warnings` on both paths. The CLI test, on real git with the remote pointed nowhere, exits 1 twice with 2 alerts, then 0 once the push works |
+| A rerun with nothing new pushes the earlier commit | MET | `NamedFiles.commit`: on "nothing new" with a named file in `origin/main...HEAD`, it runs `_publish`. The test shows the file on origin afterwards |
+| The run's own unpushed commits never block a later session | MET | `run_paths` = the counts folder plus `RECEIPTS_PREFIX`. These pass O9's off-main guard. The test: day 1 refused, day 2 pushes both |
+
+**Plants (mine, `tests/school/fleet`): 9 of 9 caught.**
+- The unpushed retry dropped.
+- The committer always silent.
+- No alert.
+- The rerun drops the refusal.
+- The first run drops it.
+- The alert not wired.
+- The receipts prefix missing from the run paths.
+- No run paths at all.
+- `_unpushed` never true.
+
+**Notes (no change needed):**
+- The alert line carries git's first error line, as O9's lines already do.
+- `_unpushed` compares against `origin/main` as last fetched. A stale ref only causes one extra pull and push, never a wrong "done".
+- A fresh container loses the local unpushed commit. The rerun then rebuilds from Drive as before (unchanged design).
+
+**Gates (my run, a trial merge of 98d16fcd with main 85ced401):**
+- `pytest -n auto`: 14413 passed, 16 xfailed, 2 failed.
+- The 2 failures are `tests/intraday/test_feed_tls.py`, and they fail on main itself in this container: `ModuleNotFoundError: growwapi`, because the test imports Groww's package without a skip. They are not from this branch; reported to the orchestrator.
+- ruff check, ruff format, check_imports, check_records (8650 files) and check_numbers: clean.

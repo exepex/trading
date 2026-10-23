@@ -58,3 +58,17 @@ closes SF1. Against main, the code is unchanged from 743eadca; only `SealNotPush
   `test_adopt_rerun.py`).
 - **Gates on fdb57abc (run by me):** 14,357 passed, 16 xfailed; ruff, format and check_imports clean. It merges cleanly
   with current main.
+
+## Addendum 2
+
+**Verdict: PASS** on the merge resolution b8f72a3d (parents fdb57abc, 528.1 PASS, and ins-wiring 98d16fcd, 507.14
+PASS). This was a quick look, as the orchestrator asked.
+
+- **Compared with git's own merge** of the two parents (`git merge-tree`): the tip differs only where git marked the
+  conflicts.
+  - `runner.py`: the resolution keeps adopt's `_belongs` and ins-wiring's `_finish -> tuple[SlotFills, tuple[str,
+    ...]]`. It drops only the conflict markers and adopt's old signature line.
+  - The story doc: the adopt section is re-added after ins-wiring's sections, and both headings are present.
+  - No other file differs.
+- **On b8f72a3d (run by me):** `tests/school` 3,568 passed; ruff and check_imports clean. It merges cleanly with
+  current main.
