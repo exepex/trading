@@ -70,8 +70,8 @@ class ClosesRules(DatasetRules):
             gaps = [max(abs(v[n.listed]["last"] - official[n.official]) for n in checked) for v in values]
             best = min(range(len(passing)), key=lambda i: (gaps[i], i))  # equal quality: the read A4h's record cites
             return Choice(passing[best][0], OFFICIAL.format(filename=filename, tolerance=TOLERANCE))
-        changes = [f"{n.listed} {difference(values[0][n.listed]['last'], values[-1][n.listed]['last'])}"
-                   for n in checked if values[0][n.listed] != values[-1][n.listed]]  # fmt: skip
+        changes = [_change(n.listed, values[0][n.listed], values[-1][n.listed]) for n in checked
+                   if values[0][n.listed] != values[-1][n.listed]]  # fmt: skip
         if changes:
             return Choice(passing[-1][0], SUPERSEDED.format(changes=", ".join(changes)))
         names = ", ".join(n.listed for n in checked)  # equal values: the first read, the one A4h's record cites
@@ -93,6 +93,13 @@ class ClosesRules(DatasetRules):
             if gap > TOLERANCE + 1e-9:
                 return CheckResult("official file", False, f"{name.listed} differs by {gap:.2f}")
         return CheckResult("official file", True)
+
+
+def _change(name: str, earlier: dict, later: dict) -> str:
+    """Which field changed and by how much (a difference, never a level); judge 543: an open-only change is named."""
+    fields = [f"{field} {difference(earlier[field], later[field])}" for field in sorted(earlier)
+              if earlier[field] != later[field]]  # fmt: skip
+    return f"{name} {', '.join(fields)}"
 
 
 def _sanity(values: dict) -> CheckResult:

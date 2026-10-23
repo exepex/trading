@@ -182,7 +182,8 @@ certified record, named, and no alert (A4h's overdue rule already alerts that ga
 - *Objection: the 20% band must not apply to INDIA VIX.* Accepted (VIX moves more than 20% around shocks; its list
   value is never certified); VIX keeps the positive check.
 
-**After A4h-2 (from Mon 26 Oct):** rules version 2 adds A4h's proposed checks of high, low and previous close (against
+**After A4h-2 (from Mon 26 Oct):** A4h-2 renames `OfficialCloses.closes(day)` to `values(day)` (`["close"]`); the
+A4h builder updates DR1-1's two calls in their merge if DR1-1 merges first. Rules version 2 adds A4h's proposed checks of high, low and previous close (against
 the official file and the previous session's close; low <= open, last <= high), VIX fields optional.
 
 **Real Drive, read-only dry run (23 Oct, records kept local, not committed; all four match A4h's record):** `closes
@@ -202,8 +203,14 @@ refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h
    (tested), and the same choice gives the same bytes, so a rerun is a no-op.
 2. Choice by quality only: a version failing any check never becomes the record; a later read that differs supersedes
    the earlier with the change named; the certified record names the read closest to NSE's official file, whichever
-   read it is; INDIA VIX may move more than 20% but must be positive.
-3. A record already published by another certifier is never overwritten: a different choice is printed as a conflict.
+   read it is (judge 543 SF2: the recheck is named when it is the closer read; the plant "always the first read"
+   fails); INDIA VIX may move more than 20% but must be positive; a change of the open alone is named.
+3. (Round 2, judge 543 SF1.) A record counts only once origin's main holds it with the same bytes (`publisher.py`
+   asks origin itself: a refused push leaves a local commit the committer would never push again). A refused push
+   prints "record NOT pushed: ...", alerts #fno-desk and exits 1; the rerun pushes the stuck record ("already
+   recorded" only once origin holds it); a record another certifier pushed first is a conflict ("a person decides"),
+   alerted, exit 1, never overwritten. Tested on real git with a bare origin, a refusing pre-receive hook and two
+   checkouts; the plant "origin always holds it" fails 2 tests.
 4. `RecordReader` returns exactly the recorded bytes or refuses by name (no record, missing, other bytes); a certified
    record serves a provisional need, never the reverse; the as-seen pointer names level, path and SHA-256.
 5. Two writers staging one session in the same second get two names (`<fetched_at>_<run_id>`).
@@ -212,4 +219,4 @@ refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h
    official file to Drive (NSE's genuine file; manifest row aa0e2ed30). Every other reader of that function (A4h's
    confirm, the panel) does the same, while `DailyFiles` and `close_read/official.py` say "never writes to Drive":
    reported to the O9 and A4h builders, not changed here.
-7. Gates: ruff, `tools/check_imports.py`, full suite 14,639 passed (23 in `tests/record_store/`).
+7. Gates: ruff, `tools/check_imports.py`, full suite 14,647 passed (27 in `tests/record_store/`).

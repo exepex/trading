@@ -7,8 +7,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..storage.manifest_commit import ManifestRecorder
 from .models import Record, StagedVersion
+from .publisher import Published, RecordPublisher
 
 
 def encode(document: dict) -> bytes:
@@ -16,9 +16,9 @@ def encode(document: dict) -> bytes:
 
 
 class RecordFolder:
-    def __init__(self, folder: Path, committer: ManifestRecorder | None = None):
-        """`committer`: commits and pushes only this folder (None: records stay local, e.g. a dry run)."""
-        self.folder, self.committer = Path(folder), committer
+    def __init__(self, folder: Path, publisher: RecordPublisher | None = None):
+        """`publisher`: puts a record on origin's main (None: records stay local, e.g. a dry run)."""
+        self.folder, self.publisher = Path(folder), publisher
 
     def file_for(self, dataset: str, session: str, level: str) -> Path:
         year, month, _ = session.split("-")
@@ -26,12 +26,10 @@ class RecordFolder:
 
     def chosen(self, dataset: str, session: str, level: str) -> StagedVersion | None:
         file = self.file_for(dataset, session, level)
-        if not file.is_file():
-            return None
-        return StagedVersion(**json.loads(file.read_text(encoding="utf-8"))["chosen"])
+        return chosen_in(file.read_bytes()) if file.is_file() else None
 
     def write(self, record: Record) -> StagedVersion:
-        """Writes once and returns the version the record names: this one, or the one an earlier record holds."""
+        """Writes once (locally) and returns the version the record names: this one, or an earlier record's."""
         held = self.chosen(record.dataset, record.session, record.level)
         if held is None:
             file = self.file_for(record.dataset, record.session, record.level)
@@ -39,6 +37,14 @@ class RecordFolder:
             temporary = file.with_name(f".{file.name}.part")
             temporary.write_bytes(encode(record.to_document()))
             temporary.replace(file)
-        if self.committer is not None:
-            self.committer.commit(f"{record.dataset} {record.session} {record.level}")
         return self.chosen(record.dataset, record.session, record.level)
+
+    def publish(self, dataset: str, session: str, level: str) -> Published | None:
+        """None when records stay local; else whether origin's main holds this record (also on a rerun)."""
+        if self.publisher is None:
+            return None
+        return self.publisher.publish(self.file_for(dataset, session, level), f"{dataset} {session} {level}")
+
+
+def chosen_in(data: bytes) -> StagedVersion:
+    return StagedVersion(**json.loads(data)["chosen"])

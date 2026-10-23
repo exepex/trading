@@ -21,6 +21,7 @@ from .certifier import Certifier
 from .closes import DATASET as CLOSES
 from .closes import A4hRecordComparison, ClosesRules, a4h_raw_paths
 from .constants import RECORDS_FOLDER, RECORDS_LABEL, RECORDS_MESSAGE
+from .publisher import GitRecordPublisher
 from .reader import RecordReader
 from .record_folder import RecordFolder
 from .staging import ReceiptedFiles
@@ -39,7 +40,8 @@ def build_record_folder(commit: bool) -> RecordFolder:
     folder = REPOSITORY / RECORDS_FOLDER
     if not commit:
         return RecordFolder(folder)
-    return RecordFolder(folder, GitManifestRecorder(REPOSITORY, folder, message=RECORDS_MESSAGE, label=RECORDS_LABEL))
+    committer = GitManifestRecorder(REPOSITORY, folder, message=RECORDS_MESSAGE, label=RECORDS_LABEL)
+    return RecordFolder(folder, GitRecordPublisher(REPOSITORY, committer))
 
 
 def stored_index_closes(stores=None) -> DailyFiles:
@@ -61,6 +63,14 @@ def build_certifier(dataset: str, commit: bool, env=os.environ) -> Certifier:
     rules = ClosesRules(ArchivedIndexCloses(stored_index_closes()))
     versions = ReceiptedFiles(receipt_folder(), a4h_raw_paths)
     return Certifier(rules, versions, drive, build_record_folder(commit), A4hRecordComparison(drive))
+
+
+def build_alerts():
+    """#fno-desk through the bot token; an alert Slack did not take is printed with its text (O1's ReportedAlerts)."""
+    from ..composition import build_alert_sender
+    from ..daily.alerts import ReportedAlerts
+
+    return ReportedAlerts(build_alert_sender())
 
 
 def build_record_reader(env=os.environ) -> RecordReader:

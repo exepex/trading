@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from .constants import LEVELS, PROVISIONAL, SEEN_LINE
+from .constants import ALERT, LEVELS, PROVISIONAL, SEEN_LINE
 
 
 def add_records_parser(subparsers) -> None:
@@ -31,12 +31,16 @@ def _session(args) -> str:
     return args.day or now_ist().date().isoformat()
 
 
-def cmd_certify(args, out=print, certifier=None) -> int:
-    from .wiring import build_certifier
+def cmd_certify(args, out=print, certifier=None, alerts=None) -> int:
+    """A record not on origin's main, or a conflict, also goes to #fno-desk (an unsent alert is printed in full)."""
+    from ..alerts.output import announce
+    from .wiring import build_alerts, build_certifier
 
     certifier = certifier or build_certifier(args.dataset, args.commit)
     outcome = certifier.certify(_session(args), args.level)
     out(outcome.line)
+    if outcome.alert:
+        announce(alerts or build_alerts(), ALERT.format(line=outcome.line))
     return 0 if outcome.recorded else 1
 
 
