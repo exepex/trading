@@ -75,3 +75,10 @@ current `main`: clean. The fleet and instructor tests pass (354). The `NamedFile
 open, as a minor.
 **Note:** `recover()` (story/ms-ins-adopt) failed judge 525. If it lands later, the deferred store must implement it
 and adopt only on the run's own thread.
+
+## Addendum 3: bda6a49d
+
+**PASS, last minor closed.** 94d3acb1..bda6a49d is test and doc only:
+`test_an_unpushed_commit_of_another_writer_still_blocks_the_push`. My plant (`NamedFiles.owns` forced to True) fails
+it (1 failed, 103 passed); without the plant, `tests/school/fleet` gives 104 passed. `git merge-tree` with current
+`main` is clean.
