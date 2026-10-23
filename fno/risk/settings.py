@@ -58,7 +58,7 @@ class RiskSettings:
 
     scenarios: tuple[Scenario, ...]  # C2's stress scenarios (the profiles that run `stress_loss`)
     stress_line: tuple[Scenario, ...]  # design 6.2's daily stress line, a report (story C5)
-    margins_file: Path
+    margins_table: str  # A14's margins table, a Drive series name (O9b step 2), shared with C4
     stressed_margin: StressedMarginSettings
 
 
@@ -151,7 +151,7 @@ def risk_settings(config: Mapping[str, Any], root: Path) -> RiskSettings:
     settings = RiskSettings(
         scenarios_at(block),
         scenarios_at(block, "stress_line"),
-        root / str(get_setting(margins, "file", ".margins")),
+        str(get_setting(margins, "table", ".margins")),
         _stressed_margin(block, root),
     )
     if settings.stressed_margin.method == STRESSED_MARGIN_MULTIPLIER and settings.stressed_margin.scenario_file:

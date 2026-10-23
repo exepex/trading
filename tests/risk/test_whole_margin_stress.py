@@ -15,6 +15,7 @@ from fno.risk.inputs import TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
 from fno.risk.settings import StressedMarginSettings
+from fno.storage.table_source import FileTable
 from tests.stress_factor_files import factor_file
 
 REAL_ROWS = Path(__file__).parent / "fixtures" / "margins_2026-10-14.csv"
@@ -25,7 +26,7 @@ KEYS = [(r["structure"], float(r["width"])) for r in REAL]
 
 def c2(factor: float) -> MultiplierMargin:
     settings = StressedMarginSettings("multiplier", factor_file(factor, DAY - timedelta(days=1)), 30, None)
-    return MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), settings)
+    return MultiplierMargin(MarginTable(FileTable(REAL_ROWS), DaysOld(7), LOT), settings)
 
 
 def c4(code: str, width: float, factor: float) -> float:

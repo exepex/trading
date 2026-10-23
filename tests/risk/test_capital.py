@@ -18,13 +18,14 @@ from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
 from fno.risk.rules import MarginRoom, capital_at_entry
 from fno.risk.settings import StressedMarginSettings
+from fno.storage.table_source import FileTable
 from tests.stress_factor_files import factor_file
 
 REAL_ROWS = Path(__file__).parent / "fixtures" / "margins_2026-10-14.csv"
 DAY, LOT, K = date(2026, 10, 14), 65, 1.45
 ROWS = list(csv.DictReader(REAL_ROWS.open(encoding="utf-8")))
 SETTINGS = StressedMarginSettings("multiplier", factor_file(K, DAY - timedelta(days=1)), 30, None)
-MARGIN = MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), SETTINGS)
+MARGIN = MultiplierMargin(MarginTable(FileTable(REAL_ROWS), DaysOld(7), LOT), SETTINGS)
 
 
 def row(code: str, width: float) -> dict[str, float]:

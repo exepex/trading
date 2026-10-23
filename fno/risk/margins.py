@@ -1,10 +1,11 @@
 """Margins as inputs (story C2): a structure's margin parts per lot, recorded with source and date.
 
-`research/data/margins/margins.csv`: `structure, width, scan_per_lot_rs, nov_per_lot_rs, exposure_per_lot_rs, source,
-as_of` (story A14, judge 75): SPAN's scanning risk, the position's net option value (its value at the prices used,
-bought legs plus, so a credit structure's is negative) and the exposure margin, stored apart and never one netted
-figure. The row used is the latest dated on or before the decision day; a missing row, or one older than the
-profile's margin age (`margin_age.py`), fails closed.
+A14's margins table (in Drive since story O9b step 2; `config.yaml` `risk.margins.table`): `structure, width,
+scan_per_lot_rs, nov_per_lot_rs, exposure_per_lot_rs, source, as_of` (story A14, judge 75): SPAN's scanning risk, the
+position's net option value (its value at the prices used, bought legs plus, so a credit structure's is negative) and
+the exposure margin, stored apart and never one netted figure. The row used is the latest dated on or before the
+decision day; a missing row, one older than the profile's margin age (`margin_age.py`) or a table that cannot be read
+fails closed.
 
 The margin C2 counts is `max(0, scan - NOV) + min(0, NOV) + exposure` (judge 75): MarginRoom already moves cash and
 marked equity by the entry and takes the lower, so this leaves exactly what a broker that nets the premium into SPAN
@@ -30,13 +31,14 @@ Stressed margin, one frozen method (`risk.stressed_margin`):
 from __future__ import annotations
 
 import csv
+import io
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import date
-from pathlib import Path
 
 from ..constants import STRESSED_MARGIN_MULTIPLIER, STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_STRESSES
+from ..storage.table_source import FileTable, TableSource, TableUnavailable
 from .capital import stress_cap_per_lot
 from .inputs import RiskInputError, TradeTerms
 from .margin_age import MarginAge
@@ -47,14 +49,16 @@ MARGIN_COLUMNS = ("structure", "width", "scan_per_lot_rs", "nov_per_lot_rs", "ex
 SCENARIO_MARGIN_COLUMNS = ("structure", "width", "scenario", "margin_per_lot_rs", "source", "as_of")
 
 
-def _rows(path: Path, columns: tuple[str, ...]) -> list[dict[str, str]]:
-    if not path.exists():
-        raise RiskInputError(f"margin file {path.name} is missing")
-    with open(path, encoding="utf-8", newline="") as fh:
-        reader = csv.DictReader(fh)
-        if tuple(reader.fieldnames or ()) != columns:
-            raise RiskInputError(f"{path.name}: columns must be {', '.join(columns)}")
-        return list(reader)
+def _rows(table: TableSource, columns: tuple[str, ...]) -> list[dict[str, str]]:
+    """A margin table's rows; a table that cannot be read refuses the trade (story O9b: fail closed)."""
+    try:
+        text = table.text()
+    except TableUnavailable as exc:
+        raise RiskInputError(f"margin table {exc}") from None
+    reader = csv.DictReader(io.StringIO(text))
+    if tuple(reader.fieldnames or ()) != columns:
+        raise RiskInputError(f"{table.name}: columns must be {', '.join(columns)}")
+    return list(reader)
 
 
 def _fresh_row(rows: list[dict[str, str]], what: str, day: date, age: MarginAge) -> dict[str, str]:
@@ -121,12 +125,13 @@ def _matches(row: dict[str, str], terms: TradeTerms) -> bool:
 
 
 class MarginTable:
-    def __init__(self, path: Path, age: MarginAge, lot_size: int):
-        self.path, self.age, self.lot_size = path, age, lot_size
+    def __init__(self, table: TableSource, age: MarginAge, lot_size: int):
+        """`table`: A14's margins table (in Drive since O9b step 2)."""
+        self.table, self.age, self.lot_size = table, age, lot_size
 
     def parts(self, terms: TradeTerms, day: date) -> MarginParts:
         """One lot's margin parts from the latest fresh row for the trade's structure and width."""
-        rows = [r for r in _rows(self.path, MARGIN_COLUMNS) if _matches(r, terms)]
+        rows = [r for r in _rows(self.table, MARGIN_COLUMNS) if _matches(r, terms)]
         what = f"{terms.structure} width {terms.width:g}"
         parts = MarginParts.from_row(_fresh_row(rows, what, day, self.age), what, terms.bought_only)
         cap = stress_cap_per_lot(terms.structure, terms.width, parts.nov, self.lot_size)
@@ -197,7 +202,7 @@ class ScenarioLookupMargin(StressedMargin):
     def margin(self, terms: TradeTerms, day: date) -> float:
         if self.settings.scenario_file is None:
             raise RiskInputError("stressed margin scenario_lookup has no scenario_file")
-        rows = [r for r in _rows(self.settings.scenario_file, SCENARIO_MARGIN_COLUMNS) if _matches(r, terms)]
+        rows = [r for r in _rows(FileTable(self.settings.scenario_file), SCENARIO_MARGIN_COLUMNS) if _matches(r, terms)]
         per_lot = [self._scenario_margin(rows, terms, name, day) for name in self.scenarios]
         return max(per_lot) * terms.lots
 

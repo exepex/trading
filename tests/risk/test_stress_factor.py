@@ -17,6 +17,7 @@ from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
 from fno.risk.settings import RiskSettingsError, StressedMarginSettings, risk_settings
 from fno.risk.stress_factor import factor_in_force
+from fno.storage.table_source import FileTable
 from tests.risk.test_whole_margin_stress import REAL, REAL_ROWS
 from tests.stress_factor_files import HEADER
 
@@ -110,7 +111,7 @@ def test_the_switch_changes_no_figure_on_the_real_rows():
     """The seed's 1.45 gives C2c's figures on NSE's real 14 Oct rows (a decision on 15 Oct), in C2 and in C4."""
     seed, day = ROOT / load_app_config()["risk"]["stressed_margin"]["factor_file"], date(2026, 10, 15)
     c2_margin = MultiplierMargin(
-        MarginTable(REAL_ROWS, DaysOld(7), 65), StressedMarginSettings("multiplier", seed, 30, None)
+        MarginTable(FileTable(REAL_ROWS), DaysOld(7), 65), StressedMarginSettings("multiplier", seed, 30, None)
     )
     c4_settings = MarginSettings(REAL_ROWS, 7, None, "multiplier", seed, 30)
     expected = {("SF", 100.0): 86_854.01, ("SC", 300.0): 98_012.27, ("BF", 300.0): 85_661.75, ("CCS", 300.0): 52_260.42}

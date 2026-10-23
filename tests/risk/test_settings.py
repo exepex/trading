@@ -41,7 +41,7 @@ def test_risk_is_an_allowed_key_and_the_repository_settings_hold_the_owners_limi
         30000,
         30000,
     )
-    assert s.margins_file == ROOT / "research" / "data" / "margins" / "margins.csv" and m.margin_age_days == 7
+    assert s.margins_table == "margins/margins" and m.margin_age_days == 7  # Drive's data area (O9b step 2)
     assert s.stressed_margin.method == "multiplier" and s.stressed_margin.max_age_days == 30
 
 

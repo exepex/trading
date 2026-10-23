@@ -21,6 +21,16 @@ RUN_DAY, THROUGH = date(2026, 11, 5), date(2026, 11, 4)
 SPIKE = date(2026, 10, 7)
 
 
+def local_csv(folder):
+    """The evidence CSV beside the other two files (the wiring's goes to Drive with a receipt, O9b step 2)."""
+
+    def save(day, data: bytes) -> None:
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"stress_evidence_{day}.csv").write_bytes(data)
+
+    return save
+
+
 def run(
     tmp_path,
     files,
@@ -41,7 +51,8 @@ def run(
     alerts, printed = Alerts(), []
     sources = StressSources(read or day_file(files), lambda: archived if archived is not None else manifest(files),
                             is_trading_day, tracker, FIRST, workers)  # fmt: skip
-    code = StressFactorRun(sources, StressFactorFile(factor), tmp_path / "evidence", alerts, run_day,
+    evidence = tmp_path / "evidence"
+    code = StressFactorRun(sources, StressFactorFile(factor), evidence, local_csv(evidence), alerts, run_day,
                            printed.append).run(full, approved)  # fmt: skip
     return code, factor.read_text(encoding="utf-8").splitlines()[-1].split(","), alerts.sent
 

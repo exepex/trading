@@ -19,11 +19,12 @@ scenario-lookup arithmetic.
 from __future__ import annotations
 
 import csv
+import io
 from collections.abc import Sequence
 from datetime import date
-from pathlib import Path
 
 from ..constants import STRESSED_MARGIN_MULTIPLIER, STRUCTURES_BOUGHT_ONLY, STRUCTURES_ONE_SIDE
+from ..storage.table_source import TableSource, TableUnavailable
 from .validity_account import Position
 from .validity_chain import PricedChain
 from .validity_factor import FactorProblem, factor_on
@@ -42,17 +43,19 @@ class MarginProblem(ValueError):
 
 
 class MarginFile:
-    def __init__(self, path: Path):
-        self.path = path
+    def __init__(self, table: TableSource):
+        """`table`: A14's margins table (in Drive since O9b step 2), read by C4's own reader."""
+        self.table = table
 
     def rows(self) -> list[dict[str, str]]:
-        if not self.path.is_file():
-            raise MarginProblem(f"{self.path.name} is missing")
-        with open(self.path, encoding="utf-8", newline="") as fh:
-            reader = csv.DictReader(fh)
-            if tuple(reader.fieldnames or ()) != COLUMNS:
-                raise MarginProblem(f"{self.path.name}: columns must be A14's {', '.join(COLUMNS)}")
-            return list(reader)
+        try:
+            text = self.table.text()
+        except TableUnavailable as exc:  # fail closed (O9b step 2): no row, no trade
+            raise MarginProblem(str(exc)) from None
+        reader = csv.DictReader(io.StringIO(text))
+        if tuple(reader.fieldnames or ()) != COLUMNS:
+            raise MarginProblem(f"{self.table.name}: columns must be A14's {', '.join(COLUMNS)}")
+        return list(reader)
 
 
 def multiplier(settings: MarginSettings, day: date) -> float:

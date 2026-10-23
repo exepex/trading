@@ -1,13 +1,14 @@
 """The evidence of one stress-factor run (story A14c): `stress_evidence_<run day>.csv` (the largest needed factor per
-structure and width, and per reproduction window), `stress_files_<run day>.csv` (every session's file and SHA-256)
-and a Markdown summary. Deterministic: the same files give byte-identical output, so a second run changes nothing."""
+structure and width, and per reproduction window; computed data, so write-once in Drive with its receipt since O9b
+step 2), `stress_files_<run day>.csv` (every session's file and SHA-256) and a Markdown summary, both in the
+repository. Deterministic: the same files give byte-identical output, so a second run changes nothing."""
 
 from __future__ import annotations
 
 import csv
 import hashlib
 import io
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -37,10 +38,12 @@ class Evidence:
     def sha256(self) -> str:
         return hashlib.sha256(self.csv_text.encode("utf-8")).hexdigest()
 
-    def write(self, folder: Path, run_day: date) -> None:
+    def write(self, folder: Path, run_day: date, save_csv: Callable[[date, bytes], None]) -> None:
+        """The CSV through `save_csv` (its bytes are the ones `sha256` names); the file list and summary in `folder`."""
+        save_csv(run_day, self.csv_text.encode("utf-8"))
         folder.mkdir(parents=True, exist_ok=True)
-        for name, text in ((f"stress_evidence_{run_day}.csv", self.csv_text), (f"stress_files_{run_day}.csv",
-                           self.files_text), (f"stress_evidence_{run_day}.md", self.markdown)):  # fmt: skip
+        for name, text in ((f"stress_files_{run_day}.csv", self.files_text), (f"stress_evidence_{run_day}.md",
+                           self.markdown)):  # fmt: skip
             (folder / name).write_text(text, encoding="utf-8")
 
 

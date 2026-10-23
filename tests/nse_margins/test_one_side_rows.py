@@ -12,13 +12,12 @@ from fno.constants import STRUCTURES_BOUGHT_ONLY
 from fno.nse_margins.broker_approvals import Approval, BrokerApprovals
 from fno.nse_margins.calculator import NseIndexOptionExposure, SpanMarginCalculator
 from fno.nse_margins.job import NseMarginJob
-from fno.nse_margins.margin_log import MarginLog
 from fno.nse_margins.rows import MarginRowBuilder
 from fno.nse_margins.span_file import read_span_file
 from fno.nse_margins.wiring import build_row_builder
 
 from .span_builder import DAY, LOT, span_zip
-from .test_job import MORNING, Alerts, done_before, margins_file, weekday
+from .test_job import MORNING, Alerts, done_before, margin_log, margins_file, weekday
 
 ATM = dict.fromkeys(STRUCTURES_BOUGHT_ONLY, (0.0,))
 
@@ -70,7 +69,7 @@ def test_rows_of_unapproved_codes_are_printed_not_written_and_the_job_does_not_f
     path, alerts, printed = margins_file(tmp_path, done_before(DAY)), Alerts(), []
     check = BrokerApprovals({c: Approval("test: broker check", date(2026, 10, 1)) for c in ("SF", "SC", "BF")})
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", {DAY: span_zip()}.get(day))  # noqa: E731
-    job = NseMarginJob(day_file, builder(), MarginLog(path), weekday, check, alerts, lambda: MORNING, printed.append)
+    job = NseMarginJob(day_file, builder(), margin_log(path), weekday, check, alerts, lambda: MORNING, printed.append)
     assert job.run() == 0 and alerts.sent == []
     written = [line.split(",")[0] for line in path.read_text().splitlines()[8:]]
     assert written == ["SF", "SC", "BF"]

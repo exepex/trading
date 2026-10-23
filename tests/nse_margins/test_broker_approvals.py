@@ -8,10 +8,9 @@ import pytest
 
 from fno.nse_margins.broker_approvals import Approval, BrokerApprovals
 from fno.nse_margins.job import NseMarginJob
-from fno.nse_margins.margin_log import MarginLog
 
 from .span_builder import DAY, span_zip
-from .test_job import MORNING, Alerts, done_before, margins_file, weekday
+from .test_job import MORNING, Alerts, done_before, margin_log, margins_file, weekday
 from .test_one_side_rows import builder
 
 GROWW = {"source": "Groww check", "passed_on": "2026-10-01"}
@@ -22,7 +21,7 @@ def run_with(tmp_path, approvals: BrokerApprovals) -> tuple[list[str], list[str]
     tmp_path.mkdir(exist_ok=True)
     path, printed = margins_file(tmp_path, done_before(DAY)), []
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", {DAY: span_zip()}.get(day))  # noqa: E731
-    job = NseMarginJob(day_file, builder(), MarginLog(path), weekday, approvals, Alerts(), lambda: MORNING,
+    job = NseMarginJob(day_file, builder(), margin_log(path), weekday, approvals, Alerts(), lambda: MORNING,
                        printed.append)  # fmt: skip
     assert job.run() == 0
     return [line.split(",")[0] for line in path.read_text().splitlines()[8:]], printed

@@ -28,6 +28,7 @@ from fno.risk.book_view import load_risk_book
 from fno.risk.inputs import TradeTerms
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.wiring import build_risk_manager
+from tests.margin_tables import local_tables
 from tests.stress_factor_files import factor_file
 
 from .builders import (
@@ -155,9 +156,11 @@ def test_c2_records_the_approved_entry_cash_with_the_same_cost_model(root, tmp_p
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-13\n")
     stressed = {"factor_file": str(factor_file(1.5, date(2026, 10, 12)))}  # the day before the decision
-    cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
+    cfg = load_app_config(overrides={"risk": {"stressed_margin": stressed}})
     proposal = fly_proposal()
     market = decision_market()
-    decision = build_risk_manager(cfg, root).evaluate(proposal, load_risk_book(root, BOOK1_RULES, market, {}), market)
+    decision = build_risk_manager(cfg, root, tables=local_tables(margins)).evaluate(
+        proposal, load_risk_book(root, BOOK1_RULES, market, {}), market
+    )
     assert decision.ok and decision.proposal == proposal
     assert decision.entry_cash_rs == approved_entry(proposal) == decision.record()["entry_cash_rs"]

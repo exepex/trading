@@ -9,6 +9,7 @@ import pytest
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MARGIN_COLUMNS, MarginParts, MarginTable
+from fno.storage.table_source import FileTable
 
 DAY = date(2026, 10, 14)
 
@@ -50,7 +51,7 @@ def test_the_margin_table_knows_a_bought_only_code_from_the_trade_terms(tmp_path
     path = tmp_path / "margins.csv"
     rows = [f"{code},{width},975.00,7800.00,0.00,NSE SPAN test,{DAY}" for code, width in (("LC", 0), ("CDS", 100))]
     path.write_text(",".join(MARGIN_COLUMNS) + "\n" + "\n".join(rows) + "\n", encoding="utf-8")
-    table = MarginTable(path, DaysOld(7), 65)
+    table = MarginTable(FileTable(path), DaysOld(7), 65)
     assert table.margin(TradeTerms("LC", 0.0, 2), DAY) == 0.0
     with pytest.raises(RiskInputError, match="must be above 0"):
         table.margin(TradeTerms("CDS", 100.0, 1), DAY)

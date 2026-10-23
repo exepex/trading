@@ -46,9 +46,11 @@ class StressSources:
 
 class StressFactorRun:
     def __init__(self, sources: StressSources, factor_file: StressFactorFile, evidence_folder: Path,
-                 alerts: AlertSender, run_day: date, print_line=print):  # fmt: skip
+                 save_csv: Callable[[date, bytes], None], alerts: AlertSender, run_day: date,
+                 print_line=print):  # fmt: skip
+        """`save_csv`: where the run's evidence CSV goes (Drive with a receipt, O9b step 2), before its factor row."""
         self.sources, self.factor_file, self.evidence_folder = sources, factor_file, evidence_folder
-        self.alerts, self.run_day, self.print_line = alerts, run_day, print_line
+        self.save_csv, self.alerts, self.run_day, self.print_line = save_csv, alerts, run_day, print_line
 
     def run(self, full: bool = False, approved_fall: str | None = None) -> int:
         try:
@@ -83,7 +85,7 @@ class StressFactorRun:
         peak = _peak(counted, new_max, carried, last.coverage_through, fell)
         evidence = build_evidence(self.run_day, counted, coverage.files, unrounded, (factor, computed, status),
                                   tracker.found.dropped, "full" if full else "incremental")  # fmt: skip
-        evidence.write(self.evidence_folder, self.run_day)
+        evidence.write(self.evidence_folder, self.run_day, self.save_csv)
         self.factor_file.append(NextRow(self.run_day, factor, computed, unrounded, status, peak, coverage.through,
                                         evidence.sha256))  # fmt: skip
         line = WRITTEN.format(run_day=self.run_day, status=status, factor=factor, computed=computed, was=last.factor,

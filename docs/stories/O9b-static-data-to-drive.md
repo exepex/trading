@@ -205,6 +205,63 @@ and in the commit hook's refusal list.
 | Removal from HEAD, refusal in the hook | the removal commit after the first scheduled run |
 | One builder per function | `RowLog` moved, not copied; A17's owner told; global cues untouched otherwise |
 
+## Step 2: G4 margins (`story/o9b-margins`; merges from Tue 27 Oct, 11:00-13:30 IST)
+
+**The split (orchestrator, 23 Oct, on the owner's 22 Oct rule):**
+- **Moves** (`research/data/margins/`):
+  - `margins.csv`: 106 rows, 15,502 bytes on 23 Oct, computed from NSE's SPAN files (hand rows naming their
+    calculator are allowed);
+  - each `stress/stress_evidence_<day>.csv`: A14c's computed result.
+- **Stays in GitHub:**
+  - `stress_factor.csv`: a risk decision record, holding the owner's 1.45 seed and A14c's `applied`/`held` rows;
+  - `stress/stress_files_<day>.csv`: every session's SPAN file name with its SHA-256, so manifest-like (G7);
+  - `stress/stress_evidence_<day>.md`: the write-up;
+  - `README.md`.
+- The never-written `stress_broker_check.csv` that `fno/daily/wiring.py` names is A14c part 2's, paused off main; that
+  owner moves it to this port when part 2 resumes.
+
+**Writers:**
+- A14's `NseMarginJob` through `build_margin_log` (`fno/nse_margins/wiring.py`), committed by `nse-margins.yml`.
+- A14c's `StressFactorRun` through `Evidence.write` (folder `STRESS_EVIDENCE`), committed by `stress-factor.yml`.
+
+**Readers of `margins.csv`** (the A14/C2/C4 owner's check, 23 Oct):
+- C2's `MarginTable` (`fno/risk/margins.py`, wired in `fno/risk/wiring.py` from `RiskSettings.margins_file`);
+- C4's `MarginFile` (`fno/checks/validity_margin.py`, wired in `fno/checks/wiring.py` from C4's `MarginSettings`; C4
+  counts a row's age in sessions, which stays);
+- A14's own `MarginLog`, which reads its rows back to refuse a second figure for a structure, width and day.
+
+The school's road margin and practice wiring read only the factor file, which stays. No desk-pack reader was found.
+**Push-time readers:** none.
+
+**Design** (the pilot's classes; one owner for all of G4, who agreed on 23 Oct):
+- `margins.csv` becomes `ReceiptedRowLog(store, cache, "margins/margins")`: one write-once part per run, with its
+  receipt under `receipts/data/margins/`. A14's `MarginLog` keeps its refusals and appends through the `RowLog` port.
+  C2's `MarginTable` and C4's `MarginFile` take their rows from that port, not from a path. C4 keeps its column check.
+- `config.yaml` keeps one key that both settings read: `risk.margins.table: margins/margins`, the Drive table, in place
+  of `file`. That way C2 and C4 read one source, and their settings tests stay meaningful (the owner's preference).
+- Each `stress_evidence_<day>.csv` is a `ReceiptedSnapshots` file in `margins/stress-evidence/<day>`. Each factor row's
+  `evidence_sha256` is the SHA-256 of that day's evidence text, and the Drive receipt holds the same bytes, so a reader
+  still checks factor row to evidence through the receipt (a test).
+- **Fail-closed, no fallback** (owner, 23 Oct: "we are going to have Google Drive for now ... let's not worry about
+  that"): when Drive cannot give the table (settings missing, a copy unverified, a network error), C2 and C4 raise their
+  existing "no margin row" refusals, so there is no trade. There is one test per reader and no other outage handling.
+  Book 1's desk is frozen from Mon 26 Oct (owner, 23 Oct), so the live cost is small.
+- `nse-margins.yml` commits `receipts/data/margins/` and the manifests instead of `margins.csv`. `stress-factor.yml`
+  commits the evidence receipts and keeps committing `stress_factor.csv` and the file lists. The one-off
+  `margins move` command moves the file and the evidence CSVs, with the same read-back and catch-up as step 1b.
+
+**Gap list (step 2):**
+
+| Requirement | Where |
+|---|---|
+| Only fetched or derived data moves; decision records, manifests and write-ups stay (orchestrator's split) | split above |
+| Every reader and writer of the moved files switched (owner's list) | readers and writers above; tests that read the real file get fixtures or the port |
+| Factor row to evidence still checked by SHA-256 | design; a test |
+| C2 and C4 read one configured source | `risk.margins.table`; settings tests |
+| Fail closed, no fallback, one test per reader (owner, 23 Oct) | design |
+| Upload, rebuild byte for byte, writer to Drive only, readers through the cache, removal after one scheduled run | as steps 1 and 1b |
+| Merge window outside 14:00-16:15, the Groww probe (10:15-10:45 and 14:00-16:20 on 27 Oct) and the nse-margins slots (03:30, 05:00, 06:30, 07:45, 08:30 IST, plus GitHub's lateness); never Sunday 10:00-13:00 (stress-factor.yml) | header: Tue 27 Oct, 11:00-13:30 IST |
+
 ## Gap list
 
 | Requirement | Where |
@@ -300,3 +357,50 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   evidence that capture-watch records cancelled runs, each with its run link and "before any step".
 - **Judge 477 addendum 2: PASS at 5a423497 (the trigger); addendum 3: PASS at ccfc340a (REPLACEABLE).** Both merged
   together with the orchestrator's go (23 Oct, after 16:15 IST).
+
+**Step 2, G4 margins (code, for the A14/C2/C4 owner and Judge F):**
+- Built as in step 2's text above.
+- **New port:** `fno/storage/table_source.py` (`TableSource`, with `FileTable` and `ReceiptedTable`; any read failure
+  is `TableUnavailable`, naming the error type only). `data_wiring.build_data_table(folder)` builds the Drive table on
+  first read, so missing settings refuse the read, never the wiring.
+- **Readers:**
+  - C2's `MarginTable` and C4's `MarginFile` take a `TableSource`, keep their column checks, and turn
+    `TableUnavailable` into `RiskInputError` and `MarginProblem` (no trade).
+  - `config.yaml` `risk.margins.table: margins/margins` replaces `file`, read by both settings (`RiskSettings.margins_table`,
+    `MarginSettings.table`).
+  - `build_risk_manager(..., tables=)` defaults to Drive. Tests pass `tests/margin_tables.local_tables(path)`.
+  - C4's `build_validity_checker` reads the same name.
+- **Writers:**
+  - A14's `MarginLog(table, log)` reads through the port and appends through `RowLog`. The wiring gives both the
+    same `ReceiptedRowLog("margins/margins")`.
+  - A14c's evidence CSV goes through `build_evidence_saver` to `ReceiptedSnapshots("margins/stress-evidence/<day>")`
+    before its factor row. The same bytes again write nothing. The file list and the `.md` stay in the repository.
+  - `nse-margins.yml` and `stress-factor.yml` commit the receipts; `data-checks.yml` adds `data/margins`.
+- **One behaviour change, stated plainly:** A14's log used to add a missing final newline to a hand-edited file
+  before appending. The `RowLog` port refuses that by name instead, and nothing is written (`MarginLogConflict`).
+  Drive parts cannot have that state.
+- **The real move (23 Oct, this session) read back equal:**
+
+  | File | Bytes | SHA-256 starts |
+  |---|---|---|
+  | `margins.csv` | 15,502 | f78e872c |
+  | `stress_evidence_2026-10-16.csv` | 3,277 | 54d0ab13 |
+  | `stress_evidence_2026-10-18.csv` | 94 | 3ea716e8 |
+
+- **Evidence:**
+  - Cold cache: "3 downloaded and verified", and 2 data tests (`tests/nse_margins/test_committed_margins.py`)
+    passed.
+  - The rebuilt table equals the file byte for byte.
+  - Criterion 3: C2's margin parts for every structure and width on 16 and 23 Oct, file against Drive, gave 30
+    compared and 0 different. C4's rows are equal.
+  - Both factor rows with evidence (16 and 18 Oct) match their receipts' SHA-256
+    (`tests/nse_margins/test_committed_evidence.py`; the owner's link check).
+- **Tests:**
+  - `tests/o9b/test_margins_drive.py` (4): the move and the reads through the real wiring; C2, C4 and the log
+    refusing by name on a Drive network error; an empty Drive table counted as missing; the evidence saved once with
+    the factor row's SHA-256.
+  - 15 existing test files moved to the ports. Their fixtures stay test fixtures. `tests/e2e_acceptance` reads a
+    frozen `fixtures/margins_to_2026-10-16.csv` (45 rows) through the patched `build_data_table`, the same precedent as
+    `tests/risk/fixtures/margins_2026-10-14.csv`.
+- **Not yet:** the owner's review, Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
+  and after, the first scheduled runs, and the removal commit.

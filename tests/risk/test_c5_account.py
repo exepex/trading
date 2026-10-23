@@ -28,6 +28,7 @@ from fno.risk.profile_settings import RULE_SETTINGS, profile_settings
 from fno.risk.settings import ExposureSettings, RiskSettingsError
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.risk.wiring import RULES, build_risk_manager, build_stress_line
+from tests.margin_tables import local_tables
 from tests.stress_factor_files import factor_file
 
 from .builders import (
@@ -171,10 +172,12 @@ def test_the_repository_books_opened_on_rs_5_lakh_are_refused_by_the_wired_manag
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
     stressed = {"factor_file": str(factor_file(1.5, date(2026, 10, 12)))}  # the day before the decision
-    cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
+    cfg = load_app_config(overrides={"risk": {"stressed_margin": stressed}})
     the_book = book()
     the_book = replace(the_book, state=replace(the_book.state, capital=500_000.0))
-    decision = build_risk_manager(cfg, tmp_path).evaluate(NEW, the_book, market(25000, PRICES, EXPIRY))
+    decision = build_risk_manager(cfg, tmp_path, tables=local_tables(margins)).evaluate(
+        NEW, the_book, market(25000, PRICES, EXPIRY)
+    )
     assert [r.split(":")[0] for r in decision.reasons] == ["paper_account"]
 
 

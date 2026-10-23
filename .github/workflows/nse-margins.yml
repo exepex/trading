@@ -3,9 +3,10 @@
 #      up to today's session (its file is written the evening before: 20:00-24:00 IST in 2026, by 03:05 since 2020);
 #   2. the A11 sweep keeps any later NSE version beside the original;
 #   3. `margins nse-span` reads each pending session's FIRST archived file, refuses one written at or after 09:00 IST
-#      on its day, and appends SF, SC and BF margins per lot (SPAN + exposure) to research/data/margins/margins.csv,
-#      never editing a row; a missing or invalid file writes nothing for that day and posts one #fno-desk line;
-#   4. the manifest rows and the margins file are committed (only valid rows are ever written).
+#      on its day, and appends SF, SC and BF margins per lot (SPAN + exposure) to the margins table in Drive (one
+#      write-once part with its receipt, story O9b step 2), never editing a row; a missing or invalid file writes
+#      nothing for that day and posts one #fno-desk line;
+#   4. the manifest rows and the table's receipts are committed (only valid rows are ever written).
 # A structure's rows are written only from the day config.yaml risk.margins.nse_span_check records its passed broker
 # check (judge 77; SF, SC and BF passed 14 Oct 2026, claims response 77); days before the first check are not pending.
 # Scheduled since the check passed (story A14 criterion 1): 03:30 IST for today's session (NSE writes it by 03:05 IST,
@@ -32,7 +33,7 @@ on:
         default: ""
 
 permissions:
-  contents: write # commits the margins file and the manifest rows
+  contents: write # commits the margins table's receipts (O9b) and the manifest rows
 
 concurrency:
   group: nse-margins
@@ -48,7 +49,7 @@ jobs:
       FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
-      MARGINS: research/data/margins/margins.csv
+      RECEIPTS: receipts/data/margins/margins
       MANIFESTS: research/data/manifests
     steps:
       - uses: actions/checkout@v4
@@ -81,9 +82,10 @@ jobs:
         id: margins
         continue-on-error: true
         run: python -m fno margins nse-span
-      - name: Commit the manifest rows and the margins file
+      - name: Commit the manifest rows and the margins table's receipts (the rows are in Drive, O9b)
         run: |
-          git add "$MANIFESTS" "$MARGINS"
+          git add "$MANIFESTS"
+          if [ -d "$RECEIPTS" ]; then git add "$RECEIPTS"; fi
           git diff --cached --quiet || git commit -m "A14 Actions: NSE margins $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: One line to #fno-desk when the librarian failed (the margins step alerts by itself)

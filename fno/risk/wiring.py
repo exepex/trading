@@ -13,6 +13,7 @@ from ..constants import NIFTY_SYMBOL, RISK_PROFILE_BOOKS, STRESSED_MARGIN_MULTIP
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.cycles import TradingDays
 from ..research_engine.implied_vol import Black76
+from ..storage.table_source import TableSource
 from .buckets import StructureBuckets
 from .caps import BucketCap, NewRiskPerDay, OpenRiskCap, PaperAccountSize
 from .drawdown import DrawdownBrake
@@ -68,10 +69,22 @@ def build_margin_age(profile: ProfileSettings, calendar: SessionCalendar | None 
     return DaysOld(profile.margin_age_days)
 
 
-def build_stressed_margin(settings: RiskSettings, age: MarginAge, lot_size: int) -> StressedMargin:
-    """The one stressed-margin method frozen in `risk.stressed_margin`."""
+Tables = Callable[[str], TableSource]  # a table's name -> where its text is read (O9b step 2)
+
+
+def drive_tables(name: str) -> TableSource:
+    """The default: the receipt-backed table in Drive's data area, read through the verified cache."""
+    from ..storage.data_wiring import build_data_table
+
+    return build_data_table(name)
+
+
+def build_stressed_margin(settings: RiskSettings, age: MarginAge, lot_size: int,
+                          tables: Tables = drive_tables) -> StressedMargin:  # fmt: skip
+    """The one stressed-margin method frozen in `risk.stressed_margin`; A14's margins from `tables`."""
     if settings.stressed_margin.method == STRESSED_MARGIN_MULTIPLIER:
-        return MultiplierMargin(MarginTable(settings.margins_file, age, lot_size), settings.stressed_margin)
+        table = MarginTable(tables(settings.margins_table), age, lot_size)
+        return MultiplierMargin(table, settings.stressed_margin)
     names = [scenario.name for scenario in settings.scenarios]
     return ScenarioLookupMargin(settings.stressed_margin, names, age)
 
@@ -89,13 +102,18 @@ def build_stress_line(cfg: dict, root: Path = ROOT) -> DailyStressLine:
 
 
 def build_risk_manager(
-    cfg: dict, root: Path = ROOT, profile: str = RISK_PROFILE_BOOKS, calendar: SessionCalendar | None = None
+    cfg: dict,
+    root: Path = ROOT,
+    profile: str = RISK_PROFILE_BOOKS,
+    calendar: SessionCalendar | None = None,
+    tables: Tables = drive_tables,
 ) -> RiskManager:
     """Stories C2 and C5: the rules of risk profile `profile` with their settings from config.yaml `risk`, and B2's
-    cost model for a trade's money."""
+    cost model for a trade's money. `tables`: where A14's margins table is read (Drive, or a file in tests)."""
     settings, chosen = risk_settings(cfg, root), all_profiles(cfg)[profile]
     costs, engine = SimulatorTradeCosts(cfg["charges"]), StressEngine(Black76())
-    stressed = build_stressed_margin(settings, build_margin_age(chosen, calendar), cfg["lot_sizes"][NIFTY_SYMBOL])
+    age, lot = build_margin_age(chosen, calendar), cfg["lot_sizes"][NIFTY_SYMBOL]
+    stressed = build_stressed_margin(settings, age, lot, tables)
     risks = build_position_risks(cfg, chosen) if chosen.bucket_sides else None
     parts = RuleParts(settings, chosen, costs, engine, stressed, risks)
     rules = [RULES[name](parts) for name in chosen.rules]

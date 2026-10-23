@@ -5,6 +5,14 @@ Clearing's own beginning-of-day SPAN file (`nsccl.<d>.i1.zip`) and NSE's exposur
 `python -m fno margins nse-span` (`fno/nse_margins/`, job `.github/workflows/nse-margins.yml`). A hand row
 needs the same three parts (a broker screen shows SPAN and exposure; the net option value is the legs' value). The tool never asks for or stores a broker login.
 
+**Since story O9b step 2, the margins table and each run's `stress_evidence_<day>.csv` are in Drive, not in this
+folder.** The table is write-once parts in Drive's `data/margins/margins/`, and the evidence is one snapshot per run
+day in `data/margins/stress-evidence/<day>/`. Each file has its SHA-256 receipt under `receipts/data/margins/`. C2, C4
+and A14 read the table through the verified cache (`config.yaml` `risk.margins.table`); if Drive cannot give it, no
+trade (fail closed). These stay here: `stress_factor.csv` (a risk decision record), the `stress/stress_files_<day>.csv`
+lists (file names with SHA-256) and the `stress/stress_evidence_<day>.md` write-ups. A factor row's `evidence_sha256`
+equals its evidence receipt's SHA-256. The table keeps its name and columns:
+
 `margins.csv`, one row per structure, wing width and date:
 
 | Column | Meaning |

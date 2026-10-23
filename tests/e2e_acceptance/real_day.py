@@ -22,13 +22,17 @@ from fno.models import IST
 from fno.playbook import wiring as playbook_wiring
 from fno.quotes.recorder import DATASET
 from fno.scorecard import wiring as scorecard_wiring
+from fno.storage import data_wiring
 from fno.storage import wiring as storage_wiring
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.table_source import FileTable
 from tests.book1.builders import book1_doc
 from tests.checks.validity_sources import NseFiles, nse_file
 from tests.decisions.builders import snapshot
 
 DAY = date(2026, 10, 16)
+# A14's margins rows up to the day, frozen from the table before it moved to Drive (O9b step 2, 23 Oct 2026)
+MARGINS = Path(__file__).parent / "fixtures" / "margins_to_2026-10-16.csv"
 NSE_FILE_DAY = date(2026, 10, 15)  # the session before: C4 reads its F&O file for listings and lot sizes
 ACCOUNTS_START = date(2026, 10, 1)
 SNAPSHOT_ID = "nifty_20261016_145500"
@@ -107,6 +111,7 @@ def replace_outside_services(monkeypatch, root: Path, playbook, listed: bool = T
         monkeypatch.setattr(module, "build_nse_fo_library", lambda *args, **kwargs: listing)
     for module in (playbook_wiring, scorecard_wiring):
         monkeypatch.setattr(module, "build_playbook_loader", lambda *args, **kwargs: FixedLoader(playbook))
+    monkeypatch.setattr(data_wiring, "build_data_table", lambda name, env=None: FileTable(MARGINS))  # C2's and C4's
 
 
 def quote_store(root: Path) -> LocalFolderStore:

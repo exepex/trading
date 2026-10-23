@@ -26,7 +26,7 @@ class Shock:
 
 @dataclass(frozen=True)
 class MarginSettings:
-    file: Path
+    table: str  # A14's margins table, a Drive series name (O9b step 2), shared with C2
     max_age_days: int | None  # the Manual profile: calendar days
     max_age_sessions: int | None  # the books (design 6.1a): trading days, counted with `session_kind`
     method: str
@@ -87,7 +87,7 @@ def _margins(risk: Mapping, profile: Mapping, root: Path, session_kind) -> Margi
     factor_file, days = stressed.get("factor_file"), profile.get("margin_max_age_days")
     sessions = profile.get("margin_max_age_sessions")
     return MarginSettings(
-        root / str(files["file"]), None if days is None else int(days), None if sessions is None else int(sessions),
+        str(files["table"]), None if days is None else int(days), None if sessions is None else int(sessions),
         str(stressed["method"]), root / str(factor_file) if factor_file else None, int(stressed["max_age_days"]),
         session_kind,
     )  # fmt: skip

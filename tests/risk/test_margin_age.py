@@ -9,6 +9,7 @@ from fno.research_engine.cycles import TradingDays
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld, SessionsOld
 from fno.risk.margins import MARGIN_COLUMNS, MarginTable
+from fno.storage.table_source import FileTable
 from fno.storage.wiring import build_session_calendar
 
 ONE_SESSION = SessionsOld(TradingDays(build_session_calendar()), 1)
@@ -42,6 +43,6 @@ def test_the_manual_account_keeps_seven_calendar_days():
 def test_a_books_margin_row_two_sessions_old_refuses_the_trade_with_the_reason(tmp_path):
     path = tmp_path / "margins.csv"
     path.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
-    assert MarginTable(path, DaysOld(7), 65).margin(TERMS, date(2026, 10, 14)) == 40_000
+    assert MarginTable(FileTable(path), DaysOld(7), 65).margin(TERMS, date(2026, 10, 14)) == 40_000
     with pytest.raises(RiskInputError, match="from 2026-10-12, older than 1 session"):
-        MarginTable(path, ONE_SESSION, 65).margin(TERMS, date(2026, 10, 14))
+        MarginTable(FileTable(path), ONE_SESSION, 65).margin(TERMS, date(2026, 10, 14))

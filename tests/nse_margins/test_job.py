@@ -17,6 +17,8 @@ from fno.research_engine.structures import LongIronFly, ShortCondor, ShortIronFl
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MARGIN_COLUMNS, MarginParts, MarginTable
+from fno.storage.row_log import CsvRowLog
+from fno.storage.table_source import FileTable
 
 from .span_builder import DAY, LOT, span_zip
 
@@ -37,6 +39,11 @@ class Alerts:
         return "alert sent"
 
 
+def margin_log(path: Path) -> MarginLog:
+    """A14's log on a local file (O9b step 2: the wiring's is a receipt-backed Drive series)."""
+    return MarginLog(FileTable(path), CsvRowLog(path))
+
+
 def margins_file(tmp_path: Path, text: str = HEADER) -> Path:
     path = tmp_path / "margins.csv"
     path.write_text(text, encoding="utf-8")
@@ -52,7 +59,7 @@ def make_job(path: Path, files: dict[date, bytes], now: datetime = MORNING, aler
                                SpanMarginCalculator(NseIndexOptionExposure(), LOT), 30)  # fmt: skip
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", files.get(day))  # noqa: E731
     out = printed.append if printed is not None else (lambda _: None)
-    return NseMarginJob(day_file, builder, MarginLog(path), weekday, check, alerts or Alerts(), lambda: now, out)
+    return NseMarginJob(day_file, builder, margin_log(path), weekday, check, alerts or Alerts(), lambda: now, out)
 
 
 def done_before(day: date) -> str:
@@ -137,16 +144,19 @@ def test_a_different_figure_for_an_existing_row_is_refused_and_nothing_is_writte
 
 def test_the_log_refuses_a_wrong_header_or_a_missing_file(tmp_path):
     with pytest.raises(MarginLogConflict, match="missing"):
-        MarginLog(tmp_path / "none.csv").append([])
+        margin_log(tmp_path / "none.csv").append([])
     with pytest.raises(MarginLogConflict, match="columns"):
-        MarginLog(margins_file(tmp_path, "structure,width\n")).append([])
+        margin_log(margins_file(tmp_path, "structure,width\n")).append([])
 
 
-def test_a_file_without_a_final_newline_gets_one_before_the_new_rows(tmp_path):
+def test_a_file_without_a_final_newline_is_refused_by_name_and_left_as_it_was(tmp_path):
+    """O9b step 2: the log appends through the RowLog port, which refuses a table it cannot extend without changing its
+    last row (a hand-edited file); a Drive series is write-once parts, so this cannot happen there."""
     path = margins_file(tmp_path, HEADER + "SF,100,1.00,0,0,x,2026-10-01")
-    MarginLog(path).append([MarginRow("SF", 100.0, MarginFigure(2.0, -1.0, 3.0), "y", DAY)])
-    lines = path.read_text().splitlines()[-2:]
-    assert lines == ["SF,100,1.00,0,0,x,2026-10-01", "SF,100,2.00,-1.00,3.00,y,2026-10-14"]
+    before = path.read_bytes()
+    with pytest.raises(MarginLogConflict, match="does not end with a new line"):
+        margin_log(path).append([MarginRow("SF", 100.0, MarginFigure(2.0, -1.0, 3.0), "y", DAY)])
+    assert path.read_bytes() == before
 
 
 @pytest.mark.parametrize("now, due", [
@@ -168,7 +178,10 @@ def test_a_calendar_without_sessions_is_an_alert_not_a_hang(tmp_path):
 def test_c2_uses_a_computed_row_from_its_day_on_and_never_before(tmp_path):
     path = margins_file(tmp_path, done_before(DAY))
     make_job(path, {DAY: span_zip()}).run()
-    table, terms = MarginTable(path, DaysOld(7), 65), TradeTerms("SF", 200.0, lots=2)  # width 200: no older row
+    table, terms = (
+        MarginTable(FileTable(path), DaysOld(7), 65),
+        TradeTerms("SF", 200.0, lots=2),
+    )  # width 200: no older row
     # sold C20000 and P20000, bought C20200 and P19800 at 10: scan max(100 - 20, -15 + 90) = 80 a unit, NOV -210
     assert table.parts(terms, DAY) == MarginParts(80 * 65.0, -210 * 65.0, 52000.0, "SF width 200")
     assert table.margin(terms, DAY) == pytest.approx(2 * (5200 + 52000))  # a credit: scan + exposure (judge 75)

@@ -14,6 +14,7 @@ from fno.risk.inputs import TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
 from fno.risk.settings import StressedMarginSettings
+from fno.storage.table_source import FileTable
 from tests.checks.test_validity_shapes import ONE_SIDE, ROWS
 from tests.checks.validity_builders import SPOT, check, committed_store
 from tests.checks.validity_proposal_builder import one_side_proposal
@@ -24,7 +25,9 @@ REAL_ROWS = Path(__file__).parents[1] / "risk" / "fixtures" / "margins_2026-10-1
 DAY, LOT, K = date(2026, 10, 14), 65, 1.45
 K_FILE = factor_file(K, DAY - timedelta(days=1))
 C4 = MarginSettings(REAL_ROWS, 7, None, "multiplier", K_FILE, 30)
-C2 = MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), StressedMarginSettings("multiplier", K_FILE, 30, None))
+C2 = MultiplierMargin(
+    MarginTable(FileTable(REAL_ROWS), DaysOld(7), LOT), StressedMarginSettings("multiplier", K_FILE, 30, None)
+)
 REAL = list(csv.DictReader(REAL_ROWS.open(encoding="utf-8")))
 
 

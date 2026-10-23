@@ -11,6 +11,7 @@ from fno.risk.manager import RiskManager
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.verdict import RiskRule
 from fno.risk.wiring import build_risk_manager
+from tests.margin_tables import local_tables
 from tests.stress_factor_files import HEADER, factor_file
 
 from .builders import DAY, FLY, book, market, open_trade, proposal, short_fly
@@ -34,8 +35,8 @@ def _manager(tmp_path, **books) -> RiskManager:
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
     stressed = {"factor_file": str(factor_file(1.5, date(2026, 10, 12)))}  # the day before the decision
     profiles = {"books": books}
-    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed, "profiles": profiles}}
-    return build_risk_manager(load_app_config(overrides=overrides), tmp_path)
+    overrides = {"risk": {"stressed_margin": stressed, "profiles": profiles}}
+    return build_risk_manager(load_app_config(overrides=overrides), tmp_path, tables=local_tables(margins))
 
 
 def _evaluate(manager, lots=1, the_book=None):
@@ -93,8 +94,8 @@ def _factor_on(tmp_path, day, factor_path):
     """A decision on `day` with `factor_path` as the factor file and a fresh margin row (A14 writes them daily)."""
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + f"\nSF,200,40000,0,0,test calculator,{day}\n")
-    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": {"factor_file": str(factor_path)}}}
-    manager = build_risk_manager(load_app_config(overrides=overrides), tmp_path)
+    overrides = {"risk": {"stressed_margin": {"factor_file": str(factor_path)}}}
+    manager = build_risk_manager(load_app_config(overrides=overrides), tmp_path, tables=local_tables(margins))
     new = proposal("new", FLY, 200, short_fly(25000, 200), day + timedelta(days=14))
     decision = manager.evaluate(new, book(), market(25000, PRICES, day + timedelta(days=14), day=day))
     return decision, next(v for v in decision.verdicts if v.rule == "margin_room")
@@ -177,7 +178,9 @@ def test_a_malformed_factor_file_refuses_the_trade_by_name(tmp_path):
     bad.write_text(HEADER + "2026-10-12,1.45\n", encoding="utf-8")
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
-    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": {"factor_file": str(bad)}}}
-    decision = _evaluate(build_risk_manager(load_app_config(overrides=overrides), tmp_path))
+    overrides = {"risk": {"stressed_margin": {"factor_file": str(bad)}}}
+    decision = _evaluate(
+        build_risk_manager(load_app_config(overrides=overrides), tmp_path, tables=local_tables(margins))
+    )
     margin = _verdict(decision, "margin_room")
     assert not decision.ok and "stress_factor.csv row 2" in margin.reason

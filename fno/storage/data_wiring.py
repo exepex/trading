@@ -10,13 +10,16 @@ from .data_store import DataStore, new_run_id
 from .drive_cache import DriveCache
 from .manifest_commit import GitManifestRecorder
 from .raw_store import RawFileStore
+from .receipted_rows import ReceiptedRowLog
 from .receipts import ReceiptFolder
+from .table_source import ReceiptedTable
 from .wiring import OWNER_UPLOAD_SETTINGS, REPOSITORY, build_owner_drive
 
 # The Drive area of every data file, the checkout's receipts tree and the git-ignored local cache (O9)
 DATA_AREA, RECEIPTS_FOLDER, DRIVE_CACHE_FOLDER = "data", "receipts", "work/drive-cache"
 RECEIPTS_MESSAGE = "Receipts: SHA-256 of Drive data files ({what})"
 RECEIPTS_LABEL = "receipts"
+TABLE_READER = "reader"  # a reader's store writes nothing; the name only labels its run
 
 
 def receipt_folder() -> ReceiptFolder:
@@ -43,3 +46,12 @@ def build_receipt_committer() -> GitManifestRecorder:
 
 def build_drive_cache(env=os.environ) -> DriveCache:
     return DriveCache(_owner_drive(env), receipt_folder(), REPOSITORY / DRIVE_CACHE_FOLDER)
+
+
+def build_data_table(folder: str, env=os.environ) -> ReceiptedTable:
+    """A receipt-backed table in the data area for a reader, built on first read (O9b step 2)."""
+
+    def series() -> ReceiptedRowLog:
+        return ReceiptedRowLog(build_data_store(TABLE_READER, env=env), build_drive_cache(env), folder)
+
+    return ReceiptedTable(series, folder)
