@@ -73,9 +73,8 @@ def nifty(n: int = 30, checked: bool = False) -> IndexView:
         if checked
         else None
     )
-    track = TrackRecord(
-        1, int(points[-1].inside_90), 29, right - int(points[-1].inside_90), 30, int(points[-1].inside_90)
-    )
+    live = int(points[-1].inside_90)
+    track = TrackRecord(1, live, 29, right - live, 30, live) if checked else None  # the default stays as before
     return IndexView("NIFTY", float(points[-1].close), "close", "implied", today, False, 0, 60, horizons, right, n,
                      misses, "green" if right >= 25 else "amber", "Good" if right >= 25 else "Watch",
                      tuple(points[i].day for i in reversed(MISS_DAYS)), result=result, shape=shape,
