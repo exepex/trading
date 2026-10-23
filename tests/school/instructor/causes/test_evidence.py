@@ -16,7 +16,7 @@ from fno.school.instructor.attribution.points import years_left
 from fno.school.instructor.causes.evidence import EvidenceBuilder
 from fno.school.instructor.fakes import FakeCardReplay, FakeEventCalendar, FakeSnapshotArchive, FakeStopSource
 from tests.school.instructor.attribution.fixtures import EXPIRY, SHORT
-from tests.school.instructor.builders import RULES
+from tests.school.instructor.builders import AFTER_EXPIRY, RULES
 from tests.school.instructor.causes.paths import ENTRY_DAY, EXIT_DAY, market_snapshots, spread_path
 
 MONTHLIES = (RoadCode.NIFTY_MONTHLY, RoadCode.BANKNIFTY_MONTHLY, RoadCode.FINNIFTY_MONTHLY, RoadCode.MIDCPNIFTY_MONTHLY)
@@ -30,7 +30,7 @@ def builder(archive=None, events=None, stops=None, replay=None, settlement: floa
 
 def gathered(held=None, **ports):
     held = held or spread_path()
-    return builder(**ports).build(held, attribute(held, 0.0, RULES), None)
+    return builder(**ports).build(held, attribute(held, 0.0, RULES), None, AFTER_EXPIRY)
 
 
 def test_the_move_is_measured_against_the_entry_atm_volatility():
@@ -87,7 +87,7 @@ def test_a_fill_away_from_the_touch_or_at_an_impossible_price_is_a_data_fault():
         replace(held.outcome.entry.legs[0], price=held.outcome.entry.legs[0].price - 0.5),
     ) + held.outcome.entry.legs[1:]
     off = replace(held, outcome=replace(held.outcome, entry=replace(held.outcome.entry, legs=legs)))
-    assert builder().build(off, attribute(held, 0.0, RULES), None).data_fault is True
+    assert builder().build(off, attribute(held, 0.0, RULES), None, AFTER_EXPIRY).data_fault is True
     first = held.snapshots[0]
     impossible = replace(first, quotes={**first.quotes, SHORT: replace(first.quote(SHORT), bid=1500.0, ask=1501.0)})
     assert gathered(replace(held, snapshots=(impossible,) + held.snapshots[1:])).data_fault is True
@@ -109,14 +109,14 @@ def test_a_missing_attribution_is_not_a_data_fault():
     """No mid at the exit leaves the Greek causes untestable; it is not "bad price or data" (self-review)."""
     held = spread_path()
     assert gathered(held).data_fault is False
-    assert builder().build(held, None, None).data_fault is False
+    assert builder().build(held, None, None, AFTER_EXPIRY).data_fault is False
 
 
 def test_a_path_without_an_entry_or_snapshots_gathers_nothing_and_does_not_crash():
     held = spread_path()
-    no_entry = builder().build(replace(held, entry=None), None, None)
+    no_entry = builder().build(replace(held, entry=None), None, None, AFTER_EXPIRY)
     assert (no_entry.z, no_entry.stance, no_entry.hold_net, no_entry.replay_matches) == (None, None, None, None)
-    empty = builder().build(replace(held, snapshots=(), entry=None), None, None)
+    empty = builder().build(replace(held, snapshots=(), entry=None), None, None, AFTER_EXPIRY)
     assert (empty.z, empty.market, empty.noise) == (None, (), None)
 
 
