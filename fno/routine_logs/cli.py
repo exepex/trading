@@ -3,7 +3,8 @@
 - begin: opens today's run of a routine and writes its `begin.json` to Drive (`logs/routines/<day>/<routine>/<run>/`).
 - run --routine R --step S -- <command ...>: runs the command with its output shown live, writes the step's log file,
   and on a non-zero exit posts one #fno-desk line at once (the step, the exit code, the log's path and its last
-  lines). Exits with the command's own code, so the routine reads it as before.
+  lines). Exits with the command's own code, so the routine reads it as before. `--last` also closes the run after
+  the step, so a run whose session ends before its last command does (the desk's `daily run`) still gets `end.json`.
 - end: writes `end.json` (`ok`, or `failed` with the failed steps) and closes the run.
 - watch: the hourly check (routine-watch.yml): every expected run of today that is missing, stuck or failed, alerted
   once. Exit 1 when an alert could not be sent or Drive could not be read.
@@ -21,6 +22,7 @@ from .step_runner import last_lines, run_command
 from .watch import LINES_SHOWN, alert_marker
 
 FAILED_NOW = "Omenix F&O routine {routine}: step {step} failed (exit {code}). Log: Drive logs/routines/{path}\n{lines}"
+LAST_NOTE = "closed after its last step {step} (exit {code})"
 WATCH_FAILED = "Omenix F&O routine watcher could not read the logs in Drive: {error}"
 
 
@@ -34,6 +36,7 @@ def add_routine_log_parser(sub) -> None:
     run = actions.add_parser("run", help="run one command and log it")
     run.add_argument("--routine", required=True)
     run.add_argument("--step", required=True, help="a short name: lower-case letters, digits, hyphens")
+    run.add_argument("--last", action="store_true", help="the routine's last step: close the run after it")
     run.add_argument("command", nargs="+", help="the command, after --")
     run.set_defaults(func=cmd_run)
     end = actions.add_parser("end", help="close a routine's run log")
@@ -65,6 +68,9 @@ def cmd_run(args, out=print, log=None, sender=None, runner=run_command) -> int:
         out(problem)
     if code != 0:
         _alert_failure(args.routine, args.step, code, path, output, log, sender or build_sender(), out)
+    if getattr(args, "last", False):
+        status, line = log.end(args.routine, LAST_NOTE.format(step=args.step, code=code))
+        out(f"routine {args.routine}: {status}; {line}")
     return code
 
 

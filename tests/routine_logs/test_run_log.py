@@ -80,3 +80,12 @@ def test_a_passing_command_sends_nothing(run_log):
     args = Namespace(routine="daily-desk", step="setup", command=["true"])
     assert cmd_run(args, out=lambda _: None, log=run_log, sender=sender, runner=lambda c: (0, "ok\n")) == 0
     assert sender.texts == []
+
+
+def test_the_last_step_closes_the_run_even_without_end(run_log, store):
+    run, _ = run_log.begin("daily-desk")
+    args = Namespace(routine="daily-desk", step="daily-run", last=True, command=["true"])
+    assert cmd_run(args, out=lambda _: None, log=run_log, sender=Sent(), runner=lambda c: (0, "day done\n")) == 0
+    end = json.loads(store.get(f"{run.folder.path}/end.json"))
+    assert end["status"] == "ok" and "last step daily-run (exit 0)" in end["note"]
+    assert RunStateFolder(run_log.state.folder).load("daily-desk") is None

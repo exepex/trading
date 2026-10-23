@@ -27,10 +27,10 @@ def _hourly(first: int, last: int, minute: int) -> tuple[time, ...]:
 
 
 ROUTINES = (
-    RoutineSpec("a16-backup", (time(8, 22),), TRADING_DAYS, 130),
+    RoutineSpec("a16-backup", (time(8, 22),), TRADING_DAYS, 185),
     RoutineSpec("pre-open", (time(8, 36),), TRADING_DAYS, 45),
     RoutineSpec("morning-forecast", (time(8, 38),), TRADING_DAYS, 40),
-    RoutineSpec("a16-recorder", _hourly(8, 14, 52), TRADING_DAYS, 150),
+    RoutineSpec("a16-recorder", _hourly(8, 14, 52), TRADING_DAYS, 160),
     RoutineSpec("daily-desk", (time(14, 5),), TRADING_DAYS, 150),
     RoutineSpec("participant-oi", (time(17, 11),), TRADING_DAYS, 400),
     RoutineSpec("evening-forecast", (time(19, 53),), TRADING_DAYS, 60),
