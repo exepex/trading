@@ -20,7 +20,7 @@ def review_lines(review: Review) -> list[str]:
         lines += _driver(driver)
         lines += [_row(r) for r in review.paired if r.driver_id == driver.driver_id]
     lines.append(f"Unreadable outcomes files: {_days(review.unreadable)}; sessions without readable decisions:"
-                 f" {_days(review.unsealed)}; corrections naming no outcome: {review.orphans}")  # fmt: skip
+                 f" {_days(review.unsealed)}; corrections naming no outcome on file: {review.orphans}")  # fmt: skip
     return lines
 
 

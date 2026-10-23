@@ -53,7 +53,7 @@ def test_the_review_shows_every_denominator_refusals_included_and_the_planted_ca
     assert other.outcomes == {"refused": 1, "trade": 3}  # every scheduled decision, the refusal kept
     lines = review_lines(review)
     assert lines[1] == P2_LINE and any("refused 1" in line for line in lines)
-    assert lines[-1].endswith("corrections naming no outcome: 1")
+    assert lines[-1].endswith("corrections naming no outcome on file: 1")
 
 
 def test_tickets_are_never_summed_into_rupees():

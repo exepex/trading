@@ -18,6 +18,7 @@ SESSION_LINE = (
 )
 DRY = " (dry run: nothing written)"
 UNREADABLE = "ALERT: outcomes files not readable: {days}"
+ORPHANS = "ALERT: corrections naming no outcome on file: {count}"
 
 
 def parser() -> argparse.ArgumentParser:
@@ -49,6 +50,7 @@ def _session(session: date, write: bool, config: dict, wiring) -> list[str]:
     )
     lines = [SESSION_LINE.format(session=session, dry="" if write else DRY, **counts)]
     lines += [UNREADABLE.format(days=", ".join(map(str, result.unreadable)))] if result.unreadable else []
+    lines += [ORPHANS.format(count=len(result.orphans))] if result.orphans else []
     return lines + [why_line(r) for r in result.classifications]
 
 
@@ -58,7 +60,7 @@ def _review(first: date, last: date, write: bool, wiring) -> list[str]:
     read = reader.closed_between(first, last)
     decisions = sealed_decisions(reader.dashcam, sessions)
     paired = wiring.build_comparison().rows(decisions, read.paths)
-    review = build_review(first, last, sessions, read, decisions, store, paired, len(reader.orphan_corrections(first)))
+    review = build_review(first, last, sessions, read, decisions, store, paired, len(reader.orphan_corrections()))
     if write:
         store.write(last, InstructorKind.PAIRED, paired)
     return review_lines(review) + ([] if write else [DRY.strip()])

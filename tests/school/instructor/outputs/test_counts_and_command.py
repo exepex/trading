@@ -46,7 +46,7 @@ def test_the_counts_file_is_written_once(tmp_path):
 
 class Wiring(SimpleNamespace):
     def __init__(self, tmp_path):
-        result = SessionResult(DAY, (), RECORDS[:1], (date(2026, 11, 3),))
+        result = SessionResult(DAY, (), RECORDS[:1], (date(2026, 11, 3),), ("orphan",))
         stub = SimpleNamespace(for_session=lambda session, write: self.calls.append((session, write)) or result)
         super().__init__(calls=[], build_instructor_run=lambda cfg: stub,
                          build_counts_file=lambda: InstructorCountsFile(tmp_path))  # fmt: skip
@@ -66,7 +66,8 @@ def test_a_dry_run_writes_nothing_and_says_so(tmp_path):
     wiring = Wiring(tmp_path)
     lines = run(["--session", str(DAY)], school(True), wiring)
     assert wiring.calls == [(DAY, False)] and DRY in lines[0] and not list(tmp_path.rglob("*.csv"))
-    assert lines[1] == "ALERT: outcomes files not readable: 2026-11-03" and lines[2].startswith("CS1@1 BANKNIFTY-M")
+    assert lines[1] == "ALERT: outcomes files not readable: 2026-11-03"
+    assert lines[2] == "ALERT: corrections naming no outcome on file: 1" and lines[3].startswith("CS1@1 BANKNIFTY-M")
 
 
 def test_write_writes_the_counts_file_too(tmp_path):

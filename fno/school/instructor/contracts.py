@@ -2,6 +2,7 @@
 refuse a record that could not be true (an attribution that does not add up to its net, a fourth cause, a status
 beyond the three 327 allows)."""
 
+import hashlib
 import math
 from dataclasses import dataclass
 from datetime import date
@@ -75,6 +76,11 @@ class DataFault(StrEnum):
     NET_MISMATCH_FILLS = "net_mismatch_fills"  # the outcome's net is not its fills' cash (judge 503)
 
 
+def record_sha256(record: CanonicalRecord) -> str:
+    """A record's identity: the SHA-256 of its canonical bytes (what a correction's `corrects` names)."""
+    return hashlib.sha256(record.to_bytes()).hexdigest()
+
+
 def net_matches_fills(outcome: OutcomeRecord) -> bool:
     """The outcome's net is the cash its fills moved, to Rs 0.01; else the residual would hide the gap."""
     return abs(round(outcome.net - (outcome.entry.cash + outcome.exit.cash), 6)) <= IDENTITY_TOLERANCE_RS
@@ -139,6 +145,8 @@ class Attribution(CanonicalRecord):
     iv_unsolved: int
     poor_fit: bool
     rules_sha256: str  # of research/school/INSTRUCTOR_V1.md
+    outcome_sha256: str = ""  # the outcome record it was computed on: a later correction of it is re-attributed
+    corrects: str = ""  # SHA-256 of the attribution this one replaces
 
     def __post_init__(self):
         explained = self.delta + self.gamma + self.vega + self.theta + self.residual - self.costs
@@ -168,7 +176,8 @@ class Classification(CanonicalRecord):
     not_testable: tuple[Cause, ...]
     modifier: Modifier
     rules_sha256: str
-    corrects: str = ""  # SHA-256 of the classification this one replaces (cause 11 after settlement)
+    corrects: str = ""  # SHA-256 of the classification this one replaces (a re-check, or a corrected outcome)
+    outcome_sha256: str = ""  # the outcome record it was classified on
 
     def __post_init__(self):
         causes = self.causes

@@ -2763,3 +2763,26 @@ trades keep "net Rs". Every line starts "<driver id> <road>", one space apart, w
 is stable. Test: `test_counts_and_command::a_ticket_line_never_carries_rupees`. g keeps its own filter as a second
 guard.
 
+
+#### INS-e Claims, round 2 (judge 522 FAIL round 1: two should-fixes, six untested branches, one minor; the SHA is in the commit that carries this text)
+
+| Finding | Fix | Test |
+|---|---|---|
+| SF1 orphans missing from the day's output; the window search raised false alarms | `PathReader.orphan_corrections()` scans every session from `RECORD_START` (22 Oct 2026, the first dashcam day) to today, so a correction is an orphan only if no outcome on file anywhere carries its id. `SessionResult.orphans` is filled on every day run, and the command prints "ALERT: corrections naming no outcome on file: N". Files are read once per run (a cache). | `test_corrections::an_orphan_is_a_correction_naming_no_outcome_on_file_from_the_start_of_the_record`; `test_round2::the_days_run_lists_orphan_corrections`; `test_counts_and_command` (the ALERT line) |
+| SF2 a corrected outcome was picked up only while its record waited, and its attribution never rewritten | Each attribution and classification now carries `outcome_sha256`, the SHA-256 of the outcome record it read. The re-check takes the latest record per position from the first counted session (or 90 days back). It runs again when that outcome's SHA changed or the record waits, writes a new attribution (`corrects` = the old attribution's SHA) for a corrected outcome, and writes a classification only if it differs. | `test_round2::a_corrected_outcome_is_re_attributed_and_re_classified_even_when_nothing_waited`; `::an_unchanged_record_is_never_written_again` |
+| SF3 six untested branches | one test each | `test_round2`: `the_modifier_alone_makes_a_record_wait`, `an_unchanged_record_is_never_written_again`, `rc1_is_one_of_the_two_controls_on_a_road_slot`, `only_counted_decisions_are_paired`, `a_damaged_decisions_file_is_listed_as_unsealed`, `the_maximum_drawdown_is_the_deepest_fall_from_a_running_peak` (100, -300, 50, -100 gives -350 by hand) |
+| Minor: sum through f's `account_net` | `review.py` takes `net_rs` from `account_net(mine).net` | `test_review` unchanged, passing |
+
+**Broken-code proof (round 2):** I planted 10 faults, one at a time, and the tests caught every one:
+- `waiting`'s modifier half removed;
+- the unchanged guard forced true;
+- the corrected check forced false;
+- the attribution's `corrects` blanked;
+- orphans left out of the day run;
+- RC1 dropped from the controls;
+- the orphan scan narrowed to today;
+- a damaged decisions file read as empty;
+- the drawdown taken from zero instead of the peak;
+- every decision counted regardless of h's verdict.
+
+**Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.

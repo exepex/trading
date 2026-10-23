@@ -83,14 +83,14 @@ def test_the_net_is_checked_to_a_paisa(off, fault):
     assert (DataFault.NET_MISMATCH_FILLS in path.faults) is fault
 
 
-def test_a_correction_naming_nothing_is_listed_as_an_orphan_never_dropped():
+def test_an_orphan_is_a_correction_naming_no_outcome_on_file_from_the_start_of_the_record():
+    """Judge 522: a correction of an original sealed before any review window is not an orphan; only one whose
+    `corrects` names no outcome on file at all, from the start of the record, is."""
     dashcam = WriteRefusingDashcam()
     record = held_trade(dashcam)
-    fixed = correct_later(dashcam, record)
-    read = reader(dashcam)
-    assert read.orphan_corrections(SESSIONS[0]) == ()
-    assert read.orphan_corrections(LATER) == (fixed,)  # its original was sealed before the origin: not found
+    correct_later(dashcam, record)
+    assert reader(dashcam).orphan_corrections() == ()  # its original is on file, though sealed before LATER
     stray = refilled(record, 13.0, corrects="ee" * 32, position_id="p9")
     dashcam.locked = False
     dashcam.seal(date(2026, 11, 6), SLOT_1500, RecordKind.OUTCOMES, (stray,))
-    assert reader(dashcam).orphan_corrections(SESSIONS[0]) == (stray,)
+    assert reader(dashcam).orphan_corrections() == (stray,)

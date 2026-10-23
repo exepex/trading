@@ -10,6 +10,7 @@ from typing import Protocol
 
 from ....models import IST
 from ...contracts.tickets import OpportunityCounts
+from ...tickets.rupees import account_net
 from ..contracts import Attribution, Classification, ClosedRead, PairedRow
 from ..ports import InstructorKind, InstructorStore
 from .comparison import SealedDecisions
@@ -70,7 +71,7 @@ def driver_summary(driver_id: str, read: ClosedRead, outcomes: Counter, attribut
         outcomes=dict(sorted(outcomes.items())),
         trades=len(trades),
         tickets=len(mine) - len(trades),
-        net_rs=round(sum(o.net for o in trades), 2),
+        net_rs=round(account_net(mine).net, 2),  # f's one rupee sum: tickets never added
         max_drawdown_rs=_drawdown([by_day[d] for d in sorted(by_day)]),
         worst_day_rs=min(by_day.values(), default=None),
         worst_trade_rs=min((o.net for o in trades), default=None),
