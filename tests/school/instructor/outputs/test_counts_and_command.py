@@ -104,3 +104,15 @@ def test_ms_p1js_entry_point_runs_the_session_and_writes_the_counts_file(tmp_pat
     assert len(list(tmp_path.rglob("*.csv"))) == 1
     wiring.run_instructor_session({}, DAY, write=False)
     assert fake.calls[-1] == (DAY, False)
+
+
+def test_a_ticket_line_never_carries_rupees():
+    """Judge 481's rule at the source (orchestrator, 23 Oct 2026): driver, road, the ticket label and causes only."""
+    from fno.school.instructor.outputs.why_line import why_line
+
+    for net in (-95.0, 0.0, 1234.0):
+        line = why_line(classification(is_ticket=True, net=net, primary=Cause.WRONG_DIRECTION if net < 0 else None,
+                                       secondary=()))  # fmt: skip
+        assert "Rs" not in line and str(int(abs(net))) not in line.replace("CS1@1", "")
+        assert line.startswith("CS1@1 BANKNIFTY-M ticket (hypothetical, account limits relaxed): why: ")
+    assert "net Rs" in why_line(classification())

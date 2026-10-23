@@ -2757,3 +2757,9 @@ monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day l
 - `build_review(..., counts=)`: any `counts(session) -> tuple[OpportunityCounts, ...]`, which j's sealed day inputs
   satisfy. The review prints eligible, fillable and executed per driver, or "three counts not supplied".
 
+**Ticket lines (orchestrator's ruling, 23 Oct 2026, from g's builder; judge 481's rule):** a ticket's "why" line
+carries no rupee figure. It reads "<driver> <road> ticket (hypothetical, account limits relaxed): why: ...". Account
+trades keep "net Rs". Every line starts "<driver id> <road>", one space apart, which g's section relies on; that format
+is stable. Test: `test_counts_and_command::a_ticket_line_never_carries_rupees`. g keeps its own filter as a second
+guard.
+
