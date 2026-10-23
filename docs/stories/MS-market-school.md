@@ -1485,6 +1485,30 @@ Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.
 - **Gates at this tip:** `ruff check`, `check_imports` (clean) and `check_records` (clean) pass. `pytest -n auto` over the whole repository was run on
   the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the design-A tip `3c1a3cc6` (clean worktree, `pytest -q -n auto`) is 12,001 passed, 16 xfailed, 0 failed in 510 s (judge 509 reproduced 12,001).
 
+#### SIM-d1 Claims (round 1, branch `story/ms-sim-d1` on main 2c42886b; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/practice/{stores,index_closes,cached_chain,spots}.py`; `BhavcopyChain`'s index-close lookup now takes `(underlying, session)`.
+Tests: `tests/school/simulator/practice/test_inputs.py`, `tests/school/simulator/history/test_bhavcopy_chain.py` (one new test).
+
+| Criterion | Code | Named test | Broken-code proof (caught) |
+|---|---|---|---|
+| 9 stores only | `stores.build_stored_library` (`StoredFilesOnly`) | `test_a_missing_day_closes_the_road_and_nothing_is_fetched`, `test_the_stores_module_never_builds_a_fetching_library` | a fetching source put behind the stores |
+| 10 legacy day takes the archived close | `index_closes.ArchivedIndexCloses` | `test_a_legacy_day_takes_its_index_close_from_the_archived_file` | the close name fixed to NIFTY's |
+| 10 no close closes the road | `bhavcopy_chain._close` over the catalogue | `test_a_legacy_day_with_no_index_close_closes_the_road` | n/a (a's rule) |
+| spot history: strictly before the session | `spots.ChainSpotHistory` | `test_the_spot_history_is_the_closes_strictly_before_the_session` | last day moved to the session; the usable-close condition removed |
+| each day read once | `cached_chain.CachedChain` | `test_the_cached_chain_reads_each_day_once` | cache removed |
+
+- **A fix to my own SIM-a code found here.** `BhavcopyChain` asked for the index close by date only, so BANKNIFTY would have received
+  NIFTY's close on a legacy day. The lookup now takes `(underlying, session)`; `test_each_underlying_gets_its_own_index_close_from_the_lookup`
+  pins it; the mutation that hard-codes NIFTY is caught.
+- **7 of 7 mutations caught** (two survived at first: the coverage check and the spot-history cut-off; a test was added for the first and the mutation string for the second was wrong).
+- **Real-data check** (throwaway script, Drive archive, stores only, source "stored files only"):
+  - NIFTY 24 Jun 2021 (legacy): index close 15,790.45, 2,070 rows (6.6 s); BANKNIFTY the same day: 34,827.0, 2,224 rows. Each index has its own close.
+  - NIFTY 2 Jun 2025 (current format): 24,716.6, 1,620 rows; BANKNIFTY: 55,903.4, 928 rows.
+  - BANKNIFTY's 42 sessions of spot history before 24 Jun 2021 (26 Apr to 23 Jun 2021): the first call took 131 s (about 3 s a day, uncached). With the cache every later session reads one new day.
+- **Isolation test.** `practice/stores.py` imports `fno.storage.wiring` and `fno.storage.raw_source` to name the NSE datasets (their file names and archive paths). The isolation test allows these two imports for that one file only, with its reason; the file builds no fetching library.
+- Gates at this tip: `tests/school/simulator` 133 passed, ruff and check_imports clean; the record scan passed on commit. The full suite is run at the d2 tip.
+
 ## Claims
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
