@@ -7,7 +7,7 @@ import pytest
 
 from fno.close_read.constants import READ, RECHECK
 from fno.record_store.constants import CERTIFIED, PROVISIONAL
-from tests.record_store.helpers import LEVELS, SESSION, Official, World, answer
+from tests.record_store.helpers import DAY, LEVELS, SESSION, Official, World, answer
 
 
 @pytest.fixture
@@ -116,3 +116,16 @@ def test_a_record_published_first_by_another_certifier_is_a_conflict_not_an_over
     world.records.committer = OtherWins()
     outcome = certifier.certify(SESSION, PROVISIONAL)
     assert not outcome.recorded and "conflict: the record names 000000000000" in outcome.line
+
+
+def test_the_certifiers_official_file_comes_from_the_stores_only_never_from_nse(tmp_path):
+    from fno.record_store.wiring import stored_index_closes
+    from fno.storage.raw_source import NseIndexCloseSource
+    from fno.storage.raw_store import LocalFolderStore
+
+    store = LocalFolderStore(tmp_path / "archive")
+    files = stored_index_closes([store])
+    assert files.get(DAY) == ("ind_close_all_23102026.csv", None)  # not archived: None, and nothing fetched or saved
+    assert not (tmp_path / "archive").exists()
+    store.put(NseIndexCloseSource.path_for(DAY), b"Index Name,Closing Index Value\n")
+    assert files.get(DAY) == ("ind_close_all_23102026.csv", b"Index Name,Closing Index Value\n")

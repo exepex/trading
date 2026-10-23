@@ -207,4 +207,9 @@ refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h
 4. `RecordReader` returns exactly the recorded bytes or refuses by name (no record, missing, other bytes); a certified
    record serves a provisional need, never the reverse; the as-seen pointer names level, path and SHA-256.
 5. Two writers staging one session in the same second get two names (`<fetched_at>_<run_id>`).
-6. Gates: ruff, `tools/check_imports.py`, full suite 14,638 passed (22 in `tests/record_store/`).
+6. The certifier only reads: its official index-close file comes from the stores, never from NSE (tested). Found in
+   the dry run: `build_index_close_files()`'s library archives a file Drive lacks, so a dry run saved 23 Oct's
+   official file to Drive (NSE's genuine file; manifest row aa0e2ed30). Every other reader of that function (A4h's
+   confirm, the panel) does the same, while `DailyFiles` and `close_read/official.py` say "never writes to Drive":
+   reported to the O9 and A4h builders, not changed here.
+7. Gates: ruff, `tools/check_imports.py`, full suite 14,639 passed (23 in `tests/record_store/`).
