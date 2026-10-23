@@ -2,7 +2,6 @@
 files made from the unwrapped maker before this part existed); with it on the sections join the message text only."""
 
 import hashlib
-import json
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -35,14 +34,23 @@ def make(maker, edition: str):
     return maker.make(DAY, NOW, edition, ("an alert",), "a\n\nb")
 
 
+def files_of(made) -> dict[str, str]:
+    return {a.name: hashlib.sha256(a.data).hexdigest() for a in made.files}
+
+
+def plain(edition: str):
+    """The edition made by the unwrapped lab maker in this same run: whatever the page design is today, the school's
+    wrapper must change nothing of it (so no frozen hash of another story's design is kept here)."""
+    return make(lab_maker(edition), edition)
+
+
 @pytest.mark.parametrize("edition", ["morning", "evening"])
-def test_with_the_flag_off_the_edition_is_byte_identical_to_the_golden_files(edition):
-    maker = with_school_sections(lab_maker(edition), OFF)
-    made = make(maker, edition)
-    golden = json.loads((GOLDEN / "files.json").read_text())[edition]
-    assert made.text == (GOLDEN / f"{edition}.txt").read_text()
-    assert {a.name: hashlib.sha256(a.data).hexdigest() for a in made.files} == golden["files"]
-    assert list(made.alerts) == golden["alerts"] and len(made.verdicts) == golden["verdicts"]
+def test_with_the_flag_off_the_edition_is_byte_identical_to_the_unwrapped_maker_and_the_text_golden(edition):
+    made, unwrapped = make(with_school_sections(lab_maker(edition), OFF), edition), plain(edition)
+    assert made.text == (GOLDEN / f"{edition}.txt").read_text(), "the text golden pins the wrapper's own output"
+    assert made.text == unwrapped.text and files_of(made) == files_of(unwrapped)
+    assert made.alerts == unwrapped.alerts and made.verdicts == unwrapped.verdicts
+    assert files_of(made), "the page files exist, so the comparison above is not vacuous"
 
 
 def test_with_the_flag_off_the_maker_itself_is_returned_unwrapped():
@@ -55,10 +63,9 @@ def test_with_the_flag_on_the_edition_text_gains_its_section_and_the_page_files_
     inner = lab_maker(edition)
     maker = with_school_sections(inner, ON, f.Today(), f.Day((f.refused_record(),), (f.counts(),)))
     made = make(maker, edition)
-    golden = json.loads((GOLDEN / "files.json").read_text())[edition]
     assert made.text.startswith((GOLDEN / f"{edition}.txt").read_text() + "\n\n")
     assert f"School pilot, {title} (Paper" in made.text
-    assert {a.name: hashlib.sha256(a.data).hexdigest() for a in made.files} == golden["files"], "the page is untouched"
+    assert files_of(made) == files_of(plain(edition)), "the page is untouched"
     assert made.alerts == ()
 
 
@@ -120,9 +127,7 @@ def bad_blocks():
 def test_a_bad_school_block_gives_the_plain_edition_and_one_alert_naming_the_class(case, edition):
     made = make(with_school_sections(lab_maker(edition), bad_blocks()[case]), edition)
     assert made.text == (GOLDEN / f"{edition}.txt").read_text()
-    assert {a.name: hashlib.sha256(a.data).hexdigest() for a in made.files} == (
-        json.loads((GOLDEN / "files.json").read_text())[edition]["files"]
-    )
+    assert files_of(made) == files_of(plain(edition))
     assert made.alerts == (
         f"school {edition} section not made (SchoolSettingsError); the edition was posted without it",
     )
