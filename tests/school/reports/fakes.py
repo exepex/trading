@@ -2,7 +2,7 @@
 so the privacy test can prove none of them reaches a section."""
 
 from dataclasses import dataclass, field, replace
-from datetime import date
+from datetime import date, timedelta
 
 from fno.school.constants import ClosureReason, DriverRole, Outcome, RefusalReason, RoadCode
 from fno.school.contracts.decisions import Decision
@@ -55,11 +55,15 @@ class Today:
     def plan(self, session):
         return self.trades
 
+    def source(self, session):
+        return session - timedelta(days=1)
+
 
 @dataclass
 class Day:
     items: tuple = ()
     rows: tuple = ()
+    notes: tuple = ()
 
     def records(self, session):
         return self.items
@@ -69,6 +73,9 @@ class Day:
 
     def role_of(self, driver_id):
         return ROLES[driver_id]
+
+    def marks(self, session):
+        return self.notes
 
 
 def counts(driver="CS1@1", eligible=3, fillable=2, executed=1) -> OpportunityCounts:

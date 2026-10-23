@@ -11,6 +11,7 @@ import pytest
 
 from fno.forecast_lab.design.renderer import DesignRenderer
 from fno.forecast_lab.maker import ReportMaker
+from fno.school.report_entry import school_report_inputs
 from fno.school.reports.guard import with_school_sections
 from fno.school.reports.maker import SchoolReportMaker
 from fno.school.reports.wiring import UNWIRED
@@ -155,8 +156,8 @@ def test_the_real_report_maker_is_built_through_the_school_guard(monkeypatch):
 
     built = {}
 
-    def spy(maker):
-        built["inner"] = maker
+    def spy(maker, inputs=None):
+        built["inner"], built["inputs"] = maker, inputs
         return "wrapped"
 
     for name in ("PageBuilder", "ReportMaker", "RepositoryFacts", "A4hTodayCloses", "G13bHistory", "RegularSessions",
@@ -169,3 +170,4 @@ def test_the_real_report_maker_is_built_through_the_school_guard(monkeypatch):
     monkeypatch.setattr(page_wiring, "with_school_sections", spy)
     assert page_wiring.build_report_maker(None, None, None, None, None) == "wrapped"
     assert isinstance(built["inner"], Stub), "the report maker goes through the school guard"
+    assert built["inputs"] is school_report_inputs, "the lab passes the school's own inputs (MS-P1j)"

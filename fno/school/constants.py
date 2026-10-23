@@ -94,6 +94,9 @@ class RefusalReason(StrEnum):
     SIZE_NOT_MEASURED = "size_not_measured"  # a live fill on a quote whose displayed size was never measured
 
 
+FLEET_STOPPED = "stopped:"  # MS-P1j: how a fleet run that stopped loudly begins its status (its CLI then exits 1)
+
+
 class UnavailableReason(StrEnum):
     DRIVER_ERROR = "driver_error"
     DEADLINE = "deadline"

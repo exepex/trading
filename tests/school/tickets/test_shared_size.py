@@ -9,6 +9,7 @@ import pytest
 
 from fno.school.constants import SIDE_BUY, SIDE_SELL, Outcome, RefusalReason, RoadCode, TicketReason, UnavailableReason
 from fno.school.contracts.accounts import FilledLeg, FillResult
+from fno.school.execution.quote_rules import LIVE, QuoteRules
 from fno.school.tickets.rules import as_ticket
 from fno.school.tickets.shared_size import OwnedFill, allocate, allocation_seed, fill_status
 from tests.school.contracts import builders as b
@@ -94,3 +95,31 @@ def test_only_an_account_trade_has_a_fill_status():
     with pytest.raises(ValueError):
         fill_status(as_ticket(b.decision(), TicketReason.TRADE_LIMIT), spread("CS1@1", 1).fill,
                     allocate([], SNAP, "15:00"))  # fmt: skip
+
+
+UNMEASURED = b.snapshot(quotes={k: replace(q, bid_qty=None, ask_qty=None, sizes_measured=False)
+                                for k, q in SNAP.quotes.items()})  # fmt: skip
+
+
+def test_under_live_rules_an_unmeasured_size_serves_no_fill_and_no_ticket():
+    allocation = allocate([spread("CS1@1", 1), spread("REF@1", 1, is_ticket=True)], UNMEASURED, "15:00")
+    assert allocation.servable == () and len(allocation.unservable) == 2
+    assert allocate([spread("CS1@1", 1)], UNMEASURED, "15:00", LIVE).servable == (), "live is the default"
+
+
+def test_under_practice_rules_an_unmeasured_size_has_no_limit():
+    fills = [spread("CS1@1", 10**6), spread("REF@1", 10**6), spread("DR1@1", 10**6, is_ticket=True)]
+    allocation = allocate(fills, UNMEASURED, "15:00", QuoteRules(practice=True))
+    assert len(allocation.servable) == 3 and allocation.unservable == ()
+
+
+def test_a_measured_size_is_the_same_limit_under_either_rules():
+    for rules in (LIVE, QuoteRules(practice=True)):
+        allocation = allocate([spread("CS1@1", 30), spread("REF@1", 30)], SNAP, "15:00", rules)
+        assert len(allocation.servable) == 1
+
+
+def test_an_exit_is_served_only_from_what_the_entries_leave():
+    exit_first_by_name = [replace(spread("A@1", 30), is_exit=True), spread("Z@1", 30)]
+    allocation = allocate(exit_first_by_name, SNAP, "15:00")
+    assert [o.owner for o in allocation.servable] == ["Z@1"] and allocation.unservable[0].is_exit

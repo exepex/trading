@@ -38,28 +38,45 @@ class TicketBook:
 
     def enter(self, record: DecisionRecord, file_sha256: str, snapshot: SlotSnapshot, seal: Seal,
               at: datetime) -> FillResult:  # fmt: skip
+        """`price`, then `open` when it filled."""
+        fill = self.price(record, file_sha256, snapshot, seal, at)
+        if fill.filled:
+            self.open(record, file_sha256, fill)
+        return fill
+
+    def price(self, record: DecisionRecord, file_sha256: str, snapshot: SlotSnapshot, seal: Seal,
+              at: datetime) -> FillResult:  # fmt: skip
         """`record`: the ticket's sealed decision record, read back from the dashcam file `file_sha256`; its own law
-        results decide (judge 490). A law that binds a ticket refuses it before any fill; missing results raise."""
+        results decide (judge 490). A law that binds a ticket refuses it before any fill; missing results raise.
+        Records nothing: the fleet records a ticket only when the shared displayed size can serve it (MS-P1j)."""
         sealed = SealedDecision(record.decision, file_sha256)
-        decision = sealed.decision
-        if decision.outcome != Outcome.TICKET:
+        if sealed.decision.outcome != Outcome.TICKET:
             raise ValueError("the ticket book enters tickets only")
         binding = first_binding_refusal(record.law_results)
         if binding is not None:
             return FillResult(refused=(binding,))
-        fill = self.fills.enter(sealed, snapshot, seal, at)
-        if fill.filled:
-            self.ledger.store.record(decision.driver_id, LedgerEntry(_position(sealed, fill), fill, closes=False))
-        return fill
+        return self.fills.enter(sealed, snapshot, seal, at)
+
+    def open(self, record: DecisionRecord, file_sha256: str, fill: FillResult) -> None:
+        sealed = SealedDecision(record.decision, file_sha256)
+        if sealed.decision.outcome != Outcome.TICKET or not fill.filled:
+            raise ValueError("the ticket book opens filled tickets only")
+        entry = LedgerEntry(_position(sealed, fill), fill, closes=False, recorded_for=sealed.decision.session)
+        self.ledger.store.record(sealed.decision.driver_id, entry)
 
     def exit(self, position: OpenPosition, reason: ExitReason, snapshot: SlotSnapshot, file_sha256: str, seal: Seal,
              at: datetime) -> FillResult:  # fmt: skip
-        return self._close(position, self.fills.exit(position, snapshot, file_sha256, seal, at), reason)
+        fill = self.fills.exit(position, snapshot, file_sha256, seal, at)
+        return self.close(position, fill, reason, snapshot.session)
 
-    def settle(self, position: OpenPosition, expiry: date) -> FillResult:
-        return self._close(position, self.fills.settle(position, expiry), ExitReason.EXPIRY)
+    def settle(self, position: OpenPosition, expiry: date, session: date | None = None) -> FillResult:
+        """`session`: the session whose run settles it (`LedgerEntry.recorded_for`)."""
+        return self.close(position, self.fills.settle(position, expiry), ExitReason.EXPIRY, session)
 
-    def _close(self, position: OpenPosition, fill: FillResult, reason: ExitReason) -> FillResult:
+    def close(self, position: OpenPosition, fill: FillResult, reason: ExitReason,
+              session: date | None = None) -> FillResult:  # fmt: skip
+        """Records the closing when `fill` filled (the fleet's exits after the shared size, settlement here)."""
         if fill.filled:
-            self.ledger.store.record(position.driver_id, LedgerEntry(position, fill, closes=True, exit_reason=reason))
+            closing = LedgerEntry(position, fill, closes=True, exit_reason=reason, recorded_for=session)
+            self.ledger.store.record(position.driver_id, closing)
         return fill

@@ -8,10 +8,12 @@ does can fail the lab's own import."""
 from .maker import FailedSchoolMaker
 
 
-def with_school_sections(maker, config: dict | None = None, today=None, day=None):
+def with_school_sections(maker, config: dict | None = None, today=None, day=None, inputs=None):
+    """`inputs(config)`: the caller's builder of the two ports (the forecast lab passes the school's own, MS-P1j), run
+    here inside the guard and only with `school.reports` on, so the reports never import the fleet."""
     try:
         from .wiring import build_school_maker
 
-        return build_school_maker(maker, config, today, day)
+        return build_school_maker(maker, config, today, day, inputs)
     except Exception as failed:  # isolation: nothing of the school may stop an edition
         return FailedSchoolMaker(maker, failed)

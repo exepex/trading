@@ -554,6 +554,70 @@ Runs on a's fakes here; story j must pass it with the real wiring.
   builds d's settlement source on b's `build_archive_stores` (the service account's Drive, else the owner's, else
   `RawFilesNotConfigured`); d's own `SettlementStoresNotConfigured` stays until then.
 
+**Design (builder, 22 Oct 2026; for the orchestrator's check).** `fno/school/fleet/`:
+- `history.py` `RecordedSpotHistory`: each road's earlier recorded 15:00 spots, read from the repository's committed
+  sidecars of canonical captures (complete, in window, a spot), strictly before the session. No Drive and no new read.
+- `running_view.py`: the slot's running `AccountView`, which is the account's own view plus the trades already
+  accepted this slot (their maximum losses, as open positions opened this session). It is rebuilt after each account
+  record.
+- `slot.py` `SlotPlan`: per road, the catalogue's road days, then the snapshot, then the quality gate. A closed road
+  gives every driver `road_closed` with the road's one reason, and its detail goes in `inputs["road_detail"]`.
+- `decide.py`:
+  - each driver on each open road, isolated: an exception is sealed `unavailable: driver_error`, named by class, and
+    a driver over its time limit is sealed `unavailable: deadline`;
+  - then `tickets.rules.classify` with the running view;
+  - then each open position's `review_exit`, after the pairing check (driver and road), giving `ExitRecord`s.
+- `fill.py` (round 2, after the self-review): rebuilt from the sealed records and the ledgers on every run:
+  - entry fills (account trades by `SchoolFills`, tickets priced by `TicketBook.price` under their own laws); a fill
+    the ledger already holds is read back, never made again;
+  - exit fills of the positions still open;
+  - per road, one `allocate`: entries first (accounts, then tickets), exits only from what is left (MS-P1d limit 2);
+  - only what it serves is recorded: an account entry it cannot serve is `size_shared` (fillable, not executed), a
+    ticket it cannot serve is not opened, and an exit it cannot serve waits. So no ledger holds an unservable fill,
+    no outcome rests on one, and `account_net`'s exclusion has nothing left to exclude (it stays as a second guard);
+  - then the NIFTY drift rows of the served account entries.
+- `outcomes.py`: an `OutcomeRecord` per closed position, with `is_ticket` set from the ledger it came from.
+- `runner.py` `SchoolFleet.run(session, mode)`:
+  1. the switch;
+  2. settlement of expired positions (accounts and tickets) before the first view;
+  3. if the session's decisions are already sealed, nothing is decided or sealed again;
+  4. otherwise: plan, decide, seal `decisions`;
+  5. the finish, on every run: fill what the ledgers lack, seal `outcomes` and `drift` each once, write the public
+     counts and commit them (the single runner). A session whose outcomes, drift and counts all exist only commits
+     what is uncommitted. So a crash anywhere between the seal and the commit is completed by a rerun, never doubled.
+- `quote_share.py`: per road, the share of scheduled decisions refused by law 5's four reasons. Margin-not-checked
+  refusals are counted by their cause, never by quoting a note. Notes never leave the dashcam.
+- `fno/school/wiring.py`: the composition root (b, c, d, e, f, the settlement source on b's `build_archive_stores`,
+  and g's day inputs); `python -m fno school run [--session D] [--replay]` is the reserved CLI line. Off by
+  `school.enabled`.
+- `tests/school/acceptance/real_rig.py`: i's harness on the real fleet, with b's captures written as files and the
+  archived listing and lot files as fixtures; the dashcam is c's store on a local Drive folder and a local git remote.
+- The daily-run steps are a separate branch, `story/ms-p1j-daily-steps`, not merged until the v4 sign-off.
+
+**Runbook: a new card version (Judge H, judge 495 addendum 1; orchestrator, 22 Oct 2026).** Any new comparison-card
+version needs new D6 rows that name it. That covers a charges change (which `config.yaml` makes CI demand) and any
+change to the roads, slot, band or drivers. The rows must be registered and pushed BEFORE the next counted session's
+15:00 slot. Until then every decision is `comparison_card_mismatch`: it does not count, so the rule fails closed.
+
+1. Edit `research/school/CARD_P1.md`:
+   - raise its version (the header table and the factory block's `version:`);
+   - say what changed;
+   - commit and push it.
+   Note that commit as `CARD_COMMIT`.
+2. The card's hash: `git show CARD_COMMIT:research/school/CARD_P1.md | sha256sum`.
+3. Each driver card's hash, for every driver version in the card's section 1:
+   `sha256sum research/school/cards/<CODE>_v<N>.yaml`.
+4. For each driver version, one row, using the book's next version id (`python -m fno versions check` lists them):
+   `python -m fno versions register school:<CODE>@<N> <next id> --starts-on <next counted session> --components
+   '{"card_sha256": "<driver card hash>", "comparison_card_sha256": "<card hash>"}' --reason "Market school pilot P1
+   driver version, comparison card CARD_P1 v<version>"`. The command commits `journal/versions.csv` at once; push it.
+5. Check:
+   - `python -m fno versions check` shows every driver version with the new hash;
+   - `python -m pytest -q tests/school/registration` passes. That includes h's
+     `test_the_charges_block_in_force_matches_the_cost_hash_frozen_in_the_current_card_version`, which fails CI while
+     `config.yaml`'s `charges:` block differs from the hash frozen in the current card version.
+6. A row registered after a decision never counts that decision (D6's ancestor rule). Versions apply forward only.
+
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
 2. Every scheduled road decision has exactly one sealed outcome (count = trading roads x drivers).
@@ -2368,3 +2432,99 @@ eight plants were re-run, 8 of 8 caught.
 | 7 the ATM strike nearest the forward | `the_atm_volatility_is_read_at_the_strike_nearest_the_forward` (a skewed lowest strike is never read) |
 | 8 the impossible-price half of cause 10, alone | `an_impossible_price_alone_is_a_data_fault_with_fills_at_the_touch` (the fill is at the impossible touch, so the off-touch half sees nothing) |
 
+### MS-P1j Claims (round 1, branch `story/ms-p1j-fleet`; builder session_01CmKJ6taCLzfEGg7wt6RC4N; the SHA is in the commit carrying this text)
+| Requirement | Where | Test (and the plant it catches) |
+| One sealed decision per scheduled (road, driver), sealed before any fill; only the card's roads are scheduled | `runner.py`, `decide.py` (`SlotRoads.only`) | `test_the_fleet_conforms` (a's `check_fleet`), `test_a_driver_is_scheduled_only_on_its_card_s_roads` (plant: every road scheduled) |
+| A rerun seals nothing twice, asks no driver again, and records nothing twice | `runner.py` `_finish`, `fill.py`, `ledgers.Recorded` | `test_rerun.py`: after the fills, after an exit, after the outcomes' seal, after the counts' write; plants: the rerun branch off, a recorded entry filled again, recorded again, a recorded exit recorded again, drift not sealed, the commit skipped |
+| A crash anywhere between the seal and the commit is completed as one clean run would | the same | `test_a_rerun_before_the_close_writes_the_clean_run_s_counts`: identical counts files and ledgers to a clean run, over a shared size |
+| The running view: a second road's laws see the first road's accepted trade | `running_view.py`, `decide.py` | `test_the_slot_s_caps_see_the_trades_already_accepted` (plant: an empty running view) |
+| The pairing check before `review_exit`: another driver's position, or another road's snapshot, is `unavailable: driver_error`, never an exit | `decide.py` | two tests (plants: each check off) |
+| Shared size: entries first (accounts, then tickets), exits from what is left; only what is served is recorded | `fill.py`, `tickets/shared_size.py` (`OwnedFill.is_exit`, ranked last) | `test_two_accounts_on_one_displayed_size_one_entry_is_size_shared_and_stays_counted`, `test_entries_take_the_shared_size_before_exits_and_an_exit_without_size_waits`, `test_a_ticket_the_shared_size_cannot_serve_is_not_opened` (plants: no allocation, an unserved entry recorded, an unserved exit closed, exits ranked with entries, an unserved ticket opened) |
+| `is_ticket` on every outcome from the ticket ledger | `outcomes.py` | `test_a_rule_beyond_the_slot_limit_is_a_ticket_in_its_own_ledger_and_its_outcome_says_so` (plant: the flag lost) |
+| Settlement before the session's first view | `runner.py`, `settle.py` | `test_an_expired_position_settles_before_the_session_s_view_and_its_outcome_is_sealed` now records the open positions at the view: none (plant: no settlement) |
+| `school.enabled` is the only switch, off by default; the CLI builds nothing when it is off | `runner.py`, `cli.py` | `test_off_prints_the_school_off_line_and_writes_nothing`, `test_the_run_command_with_the_switch_off_prints_the_off_line_and_builds_nothing` (plants: each check off) |
+| Earlier spots only from the session's own committed canonical captures before it (orchestrator's ruling) | `history.py` | the history tests (plants: the session itself taken, an incomplete capture taken) |
+| Quote-refusal share per road; margin causes by name, never a note | `quote_share.py` | `test_parts.py` |
+| i's harness on the real wiring | `tests/school/acceptance/real_rig.py`, `test_acceptance_real.py` | skips until d's `SchoolAccounts.entries` is on `main`; see the finding below |
+- **Plants:** 21 planted on the fleet, 21 caught. The first set left 4 uncaught: the rerun branch, a rerun filling
+  again, the CLI switch, the exit's snapshot check. Each now has its own test, and the "recorded twice" plants are
+  checked by counting record calls, because the fakes ignore an equal entry twice and d's store refuses one.
+- **Self-review (an independent review agent; the round-2 code is its answer).** Accepted, with the evidence:
+  1. a rerun after the fills served the shared size again over the leftovers only, so the entry that lost the size
+     on the first run was recorded too (reproduced: 2 entries on 30 units);
+  2. a rerun counted the fills recorded before a crash as not executed (reproduced);
+  3. a crash after the outcomes' seal lost the drift and the counts for good;
+  4. exits were recorded before `allocate` and competed with entries, against MS-P1d limit 2.
+  The fix is a design change, not a patch: the finish is rebuilt from the sealed records and the ledgers on every run,
+  and `rerun.py` is gone. Also accepted: `ledgers.opening_of` and `SlotFills.unservable` were dead code (both
+  removed), and the settlement test did not prove the order (it does now).
+- **Not changed, with the reason (for the judges):**
+  - an account `view` that raises (a corrupt account) stops the whole session loudly, not sealed as `driver_error`:
+    it is not the driver's fault, and a's reasons have no account-fault code;
+  - `MidUnknown` or `EntryNotSealed` raised while the outcomes are built stops the outcomes' seal: the ledger and
+    the dashcam disagree, which is a stop, not a guess. Every rerun stops the same way until it is fixed.
+- **Known limits (reasoning only):**
+  1. A crash after a settlement is recorded and before the decisions' seal leaves that settlement without an outcome
+     record; the account itself is right. Closing it needs a record time on ledger entries (a's `LedgerEntry`), so it
+     is put to the orchestrator.
+  2. A rerun after 15:30 prices the entries the size could not serve again, and law 6 makes them `stale_seal`, so
+     only their fillable count can differ from a clean run's (what executed never does; tested). A record of the
+     fill time would close it.
+- **`account_net`'s unservable set:** with the round-2 design no ledger ever holds an unservable fill, so there is
+  nothing to pass. Its exclusion stays as a second guard. Put to the judges: "passes `unservable_fills` to
+  `account_net`" is met by construction rather than by a call.
+- **Finding from the real acceptance run (d's function; put to the orchestrator):** merged with d's entries branch,
+  8 of 9 real acceptance tests pass. The "missing quote" fault comes out as `max_loss`, because the quote gates run
+  after the laws that read the missing mid (`max_loss` with no value). With the gates moved first, all 9 pass.
+- **End-to-end dry run (22 Oct 2026, recorded captures only, replay mode, no Drive write, no commit):**
+  - 42 decisions sealed, 16 trades filled;
+  - no-trade reasons: 12 not enough history, 3 no expiry in window, 3 no structure under the cap, 3 no valid quotes,
+    5 N0;
+  - 0 quote refusals;
+  - replayed twice: all 45 files byte-identical (round 1).
+  Round 2 (e56b5622, merged with d's entries branch) gives the same 42 and 16. Two replays give 69 byte-identical
+  files (round 2 also lists the replay's account and ticket files). A rerun into the same folder seals nothing,
+  fills nothing and changes no file.
+- **Gates:** `pytest -n auto` 11795 passed; `ruff check`, `ruff format --check`, `check_imports`, `check_records`
+  clean.
+### MS-P1j Claims, round 3 (the orchestrator's rulings of 22 Oct 2026 on round 2, and Judge I's note; main merged in)
+| Ruling | Change | Test (and the plant it catches) |
+| b: a settlement never lacks its outcome | a's `LedgerEntry.recorded_for` (a session date, not a clock time, so replays stay byte-identical; set on every fleet entry and on the ticket book's). `settle.settle_expired` settles, then rebuilds the session's exit records from the ledgers: every expiry closing recorded for this session, this run's and a crashed run's alike | `test_a_crash_between_a_settlement_and_the_seal_still_seals_its_exit_and_outcome_on_the_rerun`, `test_a_settlement_recorded_for_an_earlier_session_is_never_sealed_again`, `test_an_expired_ticket_settles_in_its_own_ledger_and_its_outcome_is_sealed_as_a_ticket` (plants: no rebuild, every session's settlements, an account or a ticket settlement without its session) |
+| b: the accepted limit is marked | a rerun whose finish runs after 15:30 adds "rerun after 15:30, fillable may differ" to the session's marks file (`<counts>.marks.txt`, committed with the counts); g's `DayInputs.marks` and the evening section show it under the banner | `test_a_rerun_after_15_30_is_marked_and_the_evening_section_shows_the_mark`, `test_a_rerun_of_a_complete_session_after_15_30_adds_no_mark` (plants: never marked, always marked, the evening hiding marks) |
+| c: no ledger holds an unservable fill | (by construction, round 2) | `test_no_ledger_ever_holds_more_than_the_displayed_size_could_serve`: three accounts and their tickets on 60 units, then exits beside entries; every session's recorded units fit |
+| d: a ticket never blocks a real entry; a road is never ticketed twice | the card decides on the account's own positions; on a road with an open ticket, a ticket is asked again with real plus tickets, and a "no" (the card's own holding rule) is the record | `test_a_held_ticket_never_blocks_a_real_entry_on_its_road`, `test_the_same_road_is_never_ticketed_twice` (plants: real decisions seeing tickets; no second ask) |
+| e: a loud stop, never silent | every account and ticket-ledger read and record goes through `books.account_call`; a failure stops the run with "stopped: account unreadable <driver> (<error class>)", nothing sealed; `school run` exits 1, so the daily run's step alerts #fno-desk through its existing path and the run log keeps the line | `test_an_unreadable_account_stops_the_session_by_name_and_seals_nothing`, `test_the_run_command_exits_1_on_a_stop_so_the_daily_run_alerts` (plants: the view unguarded, exit 0 on a stop) |
+| f: PreviousSlotToday | labelled on the banner, the road line and every plan line: "plan from <date> 15:00 data, indicative prices, not today's quotes" (g's `TodayInputs.source`; **touches g's today.py and inputs.py**) | `test_every_08_50_line_names_its_source_and_the_plan_writes_no_record`: dashcam, accounts, tickets and counts files hash-identical after the plan (plant: lines unlabelled) |
+| f: g's sections connected, the inputs passed in | the lab's reserved line passes `inputs=school_report_inputs` (`fno/school/report_entry.py`, which imports nothing at load); g's guard and wiring call it inside the guard only with `school.reports` on. **Touches g's guard.py and wiring.py (one parameter) and the lab's page_wiring.py reserved line.** g's reports never import the fleet | `test_both_sections_render_from_the_real_inputs_passed_in_by_the_caller` (no alert); `test_the_real_report_maker_is_built_through_the_school_guard` checks the lab passes them (plants: the inputs ignored, the lab passing none) |
+| f: i's harness reads card.roads | **touches i's `Scenario.scheduled`** and a's `FakeFleet`: only each card's own roads; real_rig's ALL_ROADS workaround is gone. The recorded day's cards now name the five roads their docstring says they drive; the planted refused entry, whose card names one road, gets one row | `test_a_card_limited_to_one_road_is_scheduled_only_there_by_the_harness_and_the_fleet`, the fleet's `test_a_driver_is_scheduled_only_on_its_card_s_roads` (plants: the scenario or the fake fleet ignoring card.roads) |
+| Judge I: every reason a decision carried | `quote_share.reason_counts` and the line "refusal reasons, a decision can have several" per road; the three counts keep the one named refusal | `test_quote_share.py` (plant: the named reason only). Round 2's Claims said `test_parts.py` covered the quote share: that was wrong, no test did; this file adds them |
+- **Real acceptance on the real wiring, main merged (d's law order and `SchoolAccounts.entries`):** 9 of 9 pass.
+- **Dry run of 22 Oct on round 3 (replay, recorded captures only):**
+  - 42 decisions sealed, 16 fills, 0 quote refusals;
+  - two replays give 69 byte-identical files;
+  - a rerun into the same folder seals and fills nothing and changes no file.
+- **Gates:** `pytest -n auto` 12087 passed; ruff, format, `check_imports` and `check_records` clean.
+- **Plants (round 3):** 17 planted, 17 caught (the first run missed the ticket settlement; its test was added).
+- **Not changed, with the reason:** a missing entry mid while the outcomes are built still stops them; a ledger and dashcam that disagree are a stop, not a guess.
+### MS-P1j Claims, round 4 (Judge B's notes, judge 507; Judge I's judge 506 on the live fleet; a3 696f2db7 merged in)
+| Note | Change | Test (and the plant it catches) |
+| Judge 506: a live run never trades on an unmeasured quote | `slot.plan_slot` closes a road whose snapshot holds any quote with `sizes_measured` False, as `road_closed: sizes_not_measured` (a's new `ClosureReason`), before the quality gate and before any driver sees it | `test_a_live_road_whose_capture_holds_an_unmeasured_quote_closes_by_name_and_never_trades` (plant: the guard off) |
+| Judge 507 note 2: a slow first SPAN read must never be a driver's deadline | Not a warm-up: the root cause is that the limit timed the fleet's own laws. `DriverStep` now isolates and times only the driver's code: its decisions (with the hypothetical ticket asks), then its exit reviews, each with the limit. The laws run between them untimed. A law that raises is now the fleet's own loud error, never a false `driver_error`. A failed SPAN read already refuses each entry by name (`margin_room`, "margin not checked: <cause>") while exits go on, so closing the road would only block exits | `test_a_slow_law_never_counts_against_the_driver_s_time_limit` (plant: round 3's `decide.py`, laws inside the limit), `test_a_driver_s_exit_reviews_have_their_own_time_limit` |
+| Judge 507 note 1: the commit-only branch | killed by round 3's `test_a_rerun_of_a_complete_session_after_15_30_adds_no_mark` (plant: the whole fast path removed, which fails it) | as named |
+| Judge 507 note 2 / the orchestrator: `allocate` reads sizes through d's `QuoteRules` | **waits for d's part 4** (`QuoteRules` is on `story/ms-p1d-practice`, not on `main`). Until then `allocate` reads a missing size as 0: no size, no fill, which is right for the live fleet; and the live fleet now never sees an unmeasured quote (above) | built after d's part 4 merges |
+- **Evidence (round 4):**
+  - real acceptance on the real wiring: 9 of 9;
+  - 22 Oct dry run: 42 decisions and 16 fills; two replays give 69 byte-identical files;
+  - plants: 3 planted (the guard off, the laws inside the limit, the fast path removed), 3 caught;
+  - `pytest -n auto` 12097 passed; ruff, format and `check_imports` clean.
+### MS-P1j Claims, round 5 (d's part 4 on main: sizes through `QuoteRules`)
+| Item (Judge B 507 note 2; orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+| `allocate` and f's shared size read sizes through d's one rule | `tickets/shared_size.allocate(..., rules=LIVE)` reads each displayed size with `QuoteRules.sizes`: live, an unmeasured or missing size serves nothing (no fill, no ticket; never unlimited, never a crash); practice, an unmeasured size has no limit. The fleet passes `LIVE` by name; only a practice root may pass practice rules | `test_under_live_rules_an_unmeasured_size_serves_no_fill_and_no_ticket`, `test_under_practice_rules_an_unmeasured_size_has_no_limit`, `test_a_measured_size_is_the_same_limit_under_either_rules` (plants: the old direct read, a missing size read as unlimited, practice as the default) |
+| Round 2's ranking of exits after entries had no unit test of its own | — | `test_an_exit_is_served_only_from_what_the_entries_leave` |
+### MS-P1j Claims, round 6 (Judge K, judge 512 FAIL round 1: two should-fixes and a minor)
+| Finding | Change | Test (and the plant it catches) |
+| Should-fix 1: `build_fleet` was never tested; a replay sealing into Drive passed every test | By construction, not by a mode switch (orchestrator): the one root became three. `fleet_wiring.fleet_on(cfg, FleetStores)` wires what both share and builds no store that writes; `wiring.build_fleet(cfg)` is the record root and the only one that builds the Drive dashcam, the account sync and the committer; `replay_wiring.build_replay_fleet(cfg, session, folder)` hands in scratch stores under its folder and imports none of the real ones. The CLI picks the root; `RunMode` no longer reaches the builder | `tests/school/fleet/test_wiring.py`: the replay root and the shared builder import none of the three builders, nor the record root; a replay built while all three refuse to exist (patched where they are defined and in the record root) still builds, with every store (dashcam, accounts, tickets, counts) under its folder, no committer, no sync and the fixed clock; the record root builds all three (plants: the replay root sealing on Drive, syncing accounts, committing, or going through the record root) |
+| Should-fix 2: six guards survived deletion | — | `tests/school/fleet/test_guards.py`, one each: a decision naming another road is the driver's error (plant: `_check_identity` removed); the opportunity file is write-once (plant: the check removed); drift rows only for served entries (plant: every entry); a ticket entry takes size before an account's exit, in either given order (plant: the two flags swapped); the quote share counts a quote refusal that the named reason (a stop) hides (plant: the share from the named reason); a position is not settled on its own expiry day, even with its price known (plant: `<` to `<=`) |
+| Minor: four survivors are equivalent or replay-only | — | Equivalent today (reasoning only, not tested): (1) all of a driver's positions passed to `decide` (every driver's card filters by road and holding itself); (2) the 08:50 plan's rule-only filter (g's section filters by role again); (3) a missing mid read as 0.0 (no path reaches it: a refused leg has no fill, and an outcome needs its entry's sealed mids, else it stops). Replay-only: (4) the replay store's conflict check, which never runs in the record (c's dashcam has its own, judged in MS-P1c) |
+- **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
+- **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.

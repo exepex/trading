@@ -40,8 +40,11 @@ class Scenario:
 
     @property
     def scheduled(self) -> set[tuple[RoadCode, str]]:
-        """Every scheduled road decision: (road, driver id), one per road and driver version."""
-        return {(road, plan.card.driver_id) for road in self.snapshots for plan in self.drivers}
+        """Every scheduled road decision: (road, driver id), one per recorded road of each driver version's card (its
+        `roads`, CARD_P1 section 1), as the fleet schedules them."""
+        return {
+            (road, plan.card.driver_id) for plan in self.drivers for road in self.snapshots if road in plan.card.roads
+        }
 
     def with_snapshot(self, road: RoadCode, snapshot: SlotSnapshot) -> "Scenario":
         return replace(self, snapshots={**self.snapshots, road: snapshot})

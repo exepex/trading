@@ -3,7 +3,8 @@
 `build_school_maker` is called through `guard.with_school_sections` (the one call `fno/forecast_lab/page_wiring.py`
 makes), which keeps any failure here from stopping an edition. With `school.reports` off it returns the maker it was
 given, so both editions stay byte-identical. The day's inputs (roads, dashcam records, counts, driver
-roles) are wired by the join-up (MS-P1j); until then a flag turned on gives an alert, never a section."""
+roles) are built by the caller's `inputs` (the forecast lab passes `fno.school.report_entry`, MS-P1j); without them a
+flag turned on gives an alert, never a section."""
 
 from ...config import load_app_config
 from ..settings import school_settings
@@ -31,8 +32,11 @@ def school_sections(today: TodayInputs, day: DayInputs) -> dict:
 
 
 def build_school_maker(maker, config: dict | None = None, today: TodayInputs | None = None,
-                         day: DayInputs | None = None):  # fmt: skip
-    settings = school_settings(config if config is not None else load_app_config())
-    if not settings.reports:
+                         day: DayInputs | None = None, inputs=None):  # fmt: skip
+    config = config if config is not None else load_app_config()
+    if not school_settings(config).reports:
         return maker
+    if inputs is not None and (today is None or day is None):
+        built_today, built_day = inputs(config)
+        today, day = today or built_today, day or built_day
     return SchoolReportMaker(maker, school_sections(today or _NotWired(), day or _NotWired()))
