@@ -76,7 +76,7 @@ Each point checked against the code before accepting; all four accepted.
 | F1 | 19 school edition tests fail: `design_builders.page()` gave every index a `result`, so the school's golden text changed | **Accept**, already fixed at 6c7495f8 (the judge read 21e9009f) | The fakes carry a check only when asked (`checked=True`); the golden text is byte-identical again. The 14 page-hash assertions that remain pin the design's bytes, not the school wrapper: the MS-P1g builder's lane-2 branch `story/ms-p1g-editions-test` (c115ff2b) compares the wrapped and unwrapped makers in one run and passes 62 of 62 against this branch; it merges first (orchestrator, 23 Oct) |
 | F2 | The red line's place before "last checked" is not pinned | **Accept** | The unchecked test asserts red line < "last checked" < method line |
 | F3 | Option A's amber case is not pinned | **Accept** | One close call pinned: "most likely: no", "almost certainly: yes", "✓ right" green, before the amber chip |
-| F4 | A provisional morning check would say "tomorrow morning's report" | **Accept** (minor, fixed here: it is this branch's line) | `morning_check` labels a provisional close "NSE's close; the official file has not confirmed it yet", never a report's name; pinned by a test |
+| F4 | A provisional morning check would say "tomorrow morning's report" | **Accept** (minor, fixed here: it is this branch's line) | `morning_check` labels a provisional close "NSE's close; the official file has not confirmed it yet", never a report's name; pinned by a test (judge 538.1: the test was missing at a8ed3186, an edit that did not apply; added at the next commit, both of the judge's plants caught) |
 
 ## Addendum: the 23 Oct dry run (real records, composed to a scratch folder, never posted)
 

@@ -247,3 +247,17 @@ def test_the_chip_counts_over_its_own_window_and_a_cues_unit_goes_on_the_change_
     assert _cue_words(Cue("S&P 500", 7000.5, -1.21, "%", date(2026, 10, 22))) == "7,000.5 −1.21%"
     assert _cue_words(Cue("US 10-year yield", 4.96, -0.17, "pts", date(2026, 10, 22))) == "4.96 −0.17pts"
     assert _cue_words(Cue("India VIX", 15.76, 0.51, "%", date(2026, 10, 22))) == "15.76 +0.51%"
+
+
+def test_a_provisional_morning_check_says_the_official_file_has_not_confirmed_it_never_a_reports_name():
+    """Judge 538 F4 / 538.1: own_check.py never makes the morning check provisional today; if it did, the label must
+    say so, not "tomorrow's morning report" (that report is the morning page itself)."""
+    from dataclasses import replace
+
+    index = nifty(checked=True)
+    provisional = replace(index, result=replace(index.result, provisional=True))
+    html = render_morning(page("morning", indices=(provisional,)))
+    assert "closed <b>" in html and "(NSE&#x27;s close; the official file has not confirmed it yet)" in html
+    assert "morning report" not in html and "official close" not in html
+    official = render_morning(page("morning", indices=(index,)))
+    assert "official close" in official and "has not confirmed" not in official
