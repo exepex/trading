@@ -27,6 +27,8 @@ DATASET_NAMES = {
         "fno.storage.wiring.daily_files", "fno.storage.raw_source.NseDailyFoSource",
         "fno.storage.raw_source.NseLegacyFoSource", "fno.storage.raw_source.NseIndexCloseSource",
     }),
+    # the margin builder reads the archived SPAN files on Drive (A9's archive), never NSE; the factor seam is MS-P1m's
+    "practice/fleet.py": frozenset({"fno.nse_margins.road_wiring.build_road_margin"}),
 }  # fmt: skip
 
 

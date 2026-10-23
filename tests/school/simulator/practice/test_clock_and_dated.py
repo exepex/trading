@@ -10,10 +10,10 @@ from tests.school.simulator.source import builders as sb
 CFG = {"charges": dict(sb.CHARGES), "other": {"kept": 1}}
 
 
-def test_the_practice_clock_is_after_the_close_the_snapshot_is_stamped_with():
+def test_the_practice_clock_is_the_close_the_snapshot_is_stamped_with():
     now = practice_clock(date(2022, 3, 7)).now()
-    assert now == datetime(2022, 3, 7, 15, 31, tzinfo=IST) and PRACTICE_TIME.minute == 31
-    assert now > datetime(2022, 3, 7, 15, 30, tzinfo=IST)  # a snapshot's finished_at
+    assert now == datetime(2022, 3, 7, 15, 30, tzinfo=IST) and PRACTICE_TIME.minute == 30
+    assert now >= datetime(2022, 3, 7, 15, 30, tzinfo=IST)  # a snapshot's finished_at: the fill is not before it
 
 
 def test_a_sessions_config_carries_that_dates_stt_and_changes_nothing_else():
