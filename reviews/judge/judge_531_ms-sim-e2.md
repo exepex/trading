@@ -59,3 +59,33 @@ Story 7.8 and the SIM-e2 Claims. Lane 1 (Drive and git, records). Round 1 of 2. 
   decompress), not counted.
 
 Two plant strings first failed to apply. I re-planted them with the exact text, and both were caught.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-sim-e2 at 00d2180f (main merged in). Against main, the branch holds only e2's files.
+**Verdict: PASS.** Lane 1.
+
+**Gates (my run):** pytest -n 6 gave 14,542 passed, 1 skipped, 16 xfailed and 1 failed. ruff check/format and
+check_imports are clean.
+- **The failure** is `tests/timetable/test_first_timely_decision.py::test_the_decisions_step_lists_the_other_runs_in_the_run_log`.
+- It isn't this branch's code: `fno/timetable` and `tests/timetable` aren't in the diff.
+- It passed alone and in three parallel reruns of `tests/timetable` (112 passed each time). That makes it a load flake
+  in another story's git-commit-time test, so it doesn't hold this verdict. The orchestrator should watch it.
+- **The skip** is growwapi not installed (environment only).
+
+**Should-fix 1: ACCEPTED.** `build_practice_archive` now takes `repository` and `git`. `test_wiring.py` (5 tests) builds
+it for real over a fake env, store, cache and git. My plants caught:
+- the recorder widened to `receipts/`;
+- the reader swapped for the store;
+- the reader's area changed.
+
+A plant dropping the publisher's own `run=git` survived. In production `git` defaults to `subprocess.run`, so that plant
+is equivalent there. It's not a finding.
+
+**Minors:**
+- (a) **ACCEPTED.** Zero bytes are refused and an empty gzip member is still accepted. Plant caught.
+- (b) **ACCEPTED.** The real-git test adds `fno/newpkg/b.py`. Plant (`--untracked-files=all` dropped) caught.
+- (c) **ACCEPTED.** The Claims say PUSH_ATTEMPTS = 3, per the orchestrator's ruling.
+- (d) **ACCEPTED.** One `left_out_lines` serves both the printed and the archived report. Plant caught.
+
+**Plants:** 8 this round, 7 caught, 1 equivalent. Round 1's verify plant was re-run here and is still caught.
