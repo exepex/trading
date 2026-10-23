@@ -1670,7 +1670,7 @@ Built: `fno/school/simulator/archive/{names,archive}.py`, tests in `tests/school
 
 #### SIM-e2 Claims (round 1, branch `story/ms-sim-e2`, on main with e1 and the publisher move; Judge H's four minors from judge 526 folded in; the SHA is in the commit carrying this text)
 
-Built: `fno/school/simulator/archive/{files,inputs,outcome,run,session,wiring}.py`, the `--archive` flag in `command.py`, `render(report, status)` taking the first line(s), `DASHCAM_HOME` shared by the fleet and the archive. Tests: `tests/school/simulator/archive/test_session.py` (16) and four more in `test_archive.py`.
+Built: `fno/school/simulator/archive/{files,inputs,outcome,run,session,wiring}.py`, the `--archive` flag in `command.py`, `render(report, status)` taking the first line(s), `DASHCAM_HOME` shared by the fleet and the archive. Tests: `tests/school/simulator/archive/test_session.py` (13) and four more in `test_archive.py`.
 
 | Criterion (7.8) | Test | Broken-code proof (caught) |
 |---|---|---|
