@@ -17,8 +17,10 @@ from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MARGIN_COLUMNS, MarginTable
 from fno.storage import data_wiring
+from fno.storage.moving import MoveRefused
 from fno.storage.raw_store import LocalFolderStore
 from fno.storage.receipted_rows import ReceiptedRowLog
+from fno.storage.row_log import TableFileBroken
 from fno.storage.table_source import ReceiptedTable
 
 DAY = date(2026, 10, 16)
@@ -77,6 +79,28 @@ def test_a_run_days_evidence_is_saved_once_with_the_factor_rows_sha256(repo):
     save(DAY, evidence.csv_text.encode("utf-8"))  # a rerun with the same bytes writes nothing
     (receipt,) = (repo / "receipts/data/margins/stress-evidence" / DAY.isoformat()).glob("*.sha256")
     assert receipt.read_text().split()[0] == evidence.sha256  # factor row -> receipt -> Drive bytes
+
+
+def test_a_table_grown_since_its_move_is_caught_up_and_a_different_one_is_refused(repo):
+    """The merge-day re-run (A14/C2/C4 owner's review, blocking 1): main's job appends rows every morning."""
+    wiring.move_margins_to_drive(CFG, repo)
+    with open(repo / wiring.MARGINS_FILE, "a") as f:
+        f.write("SC,200,30000.00,0,0,test calculator,2026-10-16\n")
+    assert "caught up and read back equal" in wiring.move_margins_to_drive(CFG, repo)[0]
+    table = MarginTable(data_wiring.build_data_table("margins/margins"), DaysOld(7), 65)
+    assert table.margin(TradeTerms("SC", 200.0, 1), DAY) == 30000.0 and receipts(repo, "margins") == 2
+    (repo / wiring.MARGINS_FILE).write_text(TABLE.replace("40000.00", "41000.00"))  # not a start of Drive's table
+    with pytest.raises(MoveRefused, match="Drive already holds other bytes"):
+        wiring.move_margins_to_drive(CFG, repo)
+    assert receipts(repo, "margins") == 2
+
+
+def test_a_table_without_its_last_new_line_is_refused_and_nothing_is_written(repo):
+    """Blocking 2: parts are joined end to end, so a last row without its new line would swallow the next part's."""
+    (repo / wiring.MARGINS_FILE).write_text(TABLE.rstrip("\n"))
+    with pytest.raises(TableFileBroken, match="does not end with a new line"):
+        wiring.move_margins_to_drive(CFG, repo)
+    assert receipts(repo, "margins") == 0
 
 
 def receipts(repo, folder: str) -> int:

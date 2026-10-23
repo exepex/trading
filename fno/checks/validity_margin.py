@@ -1,4 +1,4 @@
-"""Margin room as C4 recomputes it (story C4, judge 83), on A14's three-part margins file. Each row holds, per lot, a
+"""Margin room as C4 recomputes it (story C4, judge 83), on A14's three-part margins table. Each row holds, per lot, a
 structure and width's SPAN scan, net option value (NOV) and exposure margin, with source and date.
 
 - Stressed margin per lot: max(0, k x scan - NOV) + min(0, NOV) + k x exposure (story C2c), with k the owner's

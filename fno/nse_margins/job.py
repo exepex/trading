@@ -5,7 +5,7 @@ story STR1b); other rows are printed, not written. Days before the first approva
 written for them); with no approval at all, every day is refused by name. For every
 session from a week before the due day up to it that has no NSE row yet, the job reads the day's `i1` file as first
 archived (A9; A11 keeps later versions apart), checks it was written before 09:00 IST on that day (point in time: a
-decision on d never sees a later file), computes the rows and appends them to `margins.csv`.
+decision on d never sees a later file), computes the rows and appends them to the margins table.
 
 Fail closed: a missing or invalid file, a file written too late or a conflicting row writes nothing for that day; a
 structure that cannot be computed gets no row. Every problem is named in one #fno-desk line and the run fails, so C2

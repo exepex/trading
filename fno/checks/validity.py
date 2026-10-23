@@ -4,7 +4,7 @@ code that proposed it. Common checks:
 - NSE's listing: a monthly expiry, the lot size;
 - every leg listed, and quoted before the cutoff at the price used;
 - the maximum loss, recomputed, and fixed at entry (no naked short leg, story STR1);
-- every owner limit, recomputed from the ledger, the snapshot and the margins file.
+- every owner limit, recomputed from the ledger, the snapshot and A14's margins table.
 
 The book's mode adds its own checks. A failure is final: no path, the owner's included, turns it into a pass."""
 

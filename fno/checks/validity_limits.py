@@ -4,7 +4,7 @@ the Manual account: paper account, open trades, drawdown brake, stress, exposure
 from raw inputs:
 - the book's ledger, as C4 reads it;
 - the committed snapshot, priced by C4's own model;
-- A14's margins file.
+- A14's margins table (in Drive since O9b step 2).
 
 The book's trades chosen earlier the same day (those that passed C4) count as entered, as D2 counts them. A leg C4
 cannot price, or an account or margin it cannot read, fails the check that needs it."""

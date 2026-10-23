@@ -402,5 +402,23 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   - 15 existing test files moved to the ports. Their fixtures stay test fixtures. `tests/e2e_acceptance` reads a
     frozen `fixtures/margins_to_2026-10-16.csv` (45 rows) through the patched `build_data_table`, the same precedent as
     `tests/risk/fixtures/margins_2026-10-14.csv`.
-- **Not yet:** the owner's review, Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
+- **The A14/C2/C4 owner's review of 66a9b97d (23 Oct): two blocking points, both accepted after reproducing them.**
+  1. **The merge-day re-run of `margins move` would have refused.** The catch-up is step 1b's change (on
+     `story/o9b-cues`, not yet on main), so this branch now carries step 1b's exact `moving.py` and
+     `receipted_rows.py`, with their tests. They are identical changes, so Monday's merge of step 1b meets no
+     conflict here. A new test: the file grows by one row and is caught up (C2 then reads the new row), and a table
+     that is not a start of Drive's is refused, with nothing written.
+  2. **No final-newline guard on the Drive side.** A first part without its last new line would have joined the
+     next part's first row to its last row silently. `ReceiptedRowLog` now refuses such a part by name
+     (`TableFileBroken`) when writing it, and `rebuilt()` refuses one put there by hand when reading. New tests cover
+     the move of such a file (refused, nothing written) and a hand-put part (refused at read). One step 1b test
+     changed to match: a mid-line Drive copy is now refused at read, by name, not as "other bytes".
+  - **The old mend on hand-edited files:** the owner's answer is to keep the refusal ("a margin row is evidence").
+  - **Docstrings:** the four that still said "margins file" are fixed (`validity.py`, `validity_limits.py`,
+    `validity_margin.py`, `job.py`).
+  - **The owner's minor, for the record:** if nse-margins' push fails after its Drive part is written, the part has
+    no committed receipt, so the next run does not see those rows and writes them again as a new part. That is safe:
+    the receipts are the index, so no key is duplicated. Meanwhile C2 reads the older row, and the age rule fails
+    closed.
+- **Not yet:** the owner's re-check, Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
   and after, the first scheduled runs, and the removal commit.
