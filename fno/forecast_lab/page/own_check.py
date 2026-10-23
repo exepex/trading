@@ -15,10 +15,10 @@ from ..constants import ISSUE_CLOSE
 from ..ranges import Outcomes, RangeSource, TodayCloses
 from ..sessions import RegularSessions
 from .model import Band, Outcome
+from .plain import morning_report
 
 NOT_READ = (
-    "today's close was not read ({why}); today is not checked here, and its result appears in tomorrow morning's "
-    "report once NSE's official close is archived"
+    "today's close was not read ({why}); today's result appears in {report} once NSE's official close is archived"
 )
 
 
@@ -46,6 +46,10 @@ class OwnCheck:
         return Outcome(target, close, band, band.q25 <= close <= band.q75, band.q05 <= close <= band.q95,
                        issue.sealed_at is not None and not issue.late, provisional=provisional)  # fmt: skip
 
+    def issued(self, underlying: str, target: date, method: str) -> bool:
+        """Whether a sealed next-session forecast aimed at `target` exists (a day without one can never be scored)."""
+        return self._forecast(underlying, target, method)[1] is not None
+
     def evening(self, underlying: str, day: date, method: str) -> tuple[Outcome | None, str | None]:
         """(today's check on today's close as read, or None; why no close was read, or None)."""
         issue, row = self._forecast(underlying, day, method)
@@ -53,7 +57,8 @@ class OwnCheck:
             return None, None
         close = self.today_closes.close(underlying, day)
         if close is None:
-            return None, NOT_READ.format(why=self.today_closes.why_missing(day))
+            report = morning_report(day, self.sessions.next(day))
+            return None, NOT_READ.format(why=self.today_closes.why_missing(day), report=report)
         return self._outcome(day, close, issue, row, provisional=True), None
 
     def morning(self, underlying: str, day: date, method: str, scored: Collection[date]) -> Outcome | None:

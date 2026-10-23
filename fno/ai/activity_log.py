@@ -52,7 +52,7 @@ class ActivityLog:
         """Every push at or after `moment`, oldest first, reading pages until one is older or the log ends."""
         while not self.ended and (self.oldest is None or self.oldest >= moment):
             self._read_page()
-        return sorted((push for push in self._pushes if _moment(push) >= moment), key=_moment)
+        return sorted((push for push in self._pushes if _moment(push) >= moment), key=_order)
 
     def _read_page(self) -> None:
         if self.pages >= PAGE_CAP:
@@ -80,3 +80,10 @@ class ActivityLog:
 
 def _moment(push: dict) -> datetime:
     return datetime.fromisoformat(push["timestamp"])
+
+
+def _order(push: dict) -> tuple[datetime, int]:
+    """Push order: by time, then by GitHub's activity id for pushes in the same second (story receipt-same-second).
+    The id rises with every entry (measured 23 Oct: strictly, across all 3,929 entries since 11 Oct); timestamps are
+    whole seconds, so two pushes can share one."""
+    return _moment(push), push.get("id", 0)

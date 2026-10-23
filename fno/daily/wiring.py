@@ -71,6 +71,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .reviews import ReviewsStep, ScorecardReview
     from .steps import Alerted, CommandStep, LiveFrom, NotBefore
+    from .wait_notice import AnnouncedWaiter
 
     git, alerts, processes, live = (
         Git(root),
@@ -82,7 +83,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
     parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist, PartLocks(root / PART_LOCKS),
                        PartMarkers(root, git))  # fmt: skip
-    waiter = ServicingWaiter(parts, now_ist, sleep)
+    waiter = AnnouncedWaiter(ServicingWaiter(parts, now_ist, sleep), now_ist, lambda line: print(line, flush=True))
 
     def waiting(seconds: float) -> None:
         """A command's wait: a quote part due meanwhile starts (no git: the commits stay between the steps)."""
