@@ -40,3 +40,19 @@ Judge B, 23 Oct 2026. Story/dr1-1-shadow-steps at c4bc48e58, judged against stor
   index-close file in Drive yet; ..."), so the routine must match by substring. The CLAUDE.md wording, "unless its
   reason is", reads as an exact match; "contains" would be clearer.
 - `--since` with `--day` sets the window's end to `--day`. That is fine, but undocumented in `--help`.
+
+## Addendum 1
+
+**Verdict: PASS** on story/dr1-1-shadow-steps at f522ac795 (round 2 of 2; main with DR1-1 f7f35710 merged in). It
+closes SF1 and both notes.
+
+- **SF1 met:** `_sessions` now ends a certified window at the day before `--day` (the calendar drops non-sessions),
+  while a provisional window still ends at `--day`.
+  - The tests use NSE's real calendar: Fri 23 Oct gives 22 Oct as the last session, Mon 26 Oct gives Fri 23 Oct, and
+    21 Oct (after the 20 Oct holiday) gives 19 Oct. Each exits 0, with no line for today.
+  - The evening provisional window still includes today, and that is tested.
+  - My plant "the window ends today" fails 3 tests.
+- **Notes closed:** CLAUDE.md now says the reason "contains" the excepted text, and the `--since` help names the window
+  for each level. Against main, the CLAUDE.md change is only the two DR1 routine lines.
+- **Gates on f522ac795 (run by me):** 14,713 passed, 1 skipped, 16 xfailed; ruff, format and check_imports clean. It
+  merges cleanly with current main.
