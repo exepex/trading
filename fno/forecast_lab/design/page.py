@@ -11,7 +11,7 @@ from ..page.model import IndexView, PageView
 from ..page.plain import RESEARCH
 from .formats import AMBER, GREEN
 from .trend_chart import STEADY, TrendChart, TrendLayout, trend_state
-from .values import Day, rolling_90
+from .values import Day, days_of, rolling_90
 
 CSS = Path(__file__).with_name("design.css")
 WIDE, PHONE = 1060, 338  # one chart per row: the card's inner width on desktop and on a 390 px phone
@@ -57,13 +57,13 @@ def _cue_words(cue) -> str:
     """A cue's value with its unit and change; a cue with no value prints its text (a flag, a reason)."""
     if getattr(cue, "value", None) is None:
         return escape(str(getattr(cue, "text", "") or ""))
-    unit = escape(str(getattr(cue, "unit", "") or ""))
+    unit = escape(str(getattr(cue, "unit", "") or ""))  # the change's unit (Cue.change), never the level's
     value = f"{cue.value:,.2f}".rstrip("0").rstrip(".") if isinstance(cue.value, float) else str(cue.value)
     change = getattr(cue, "change", None)
     tail = (
-        f" {'+' if change >= 0 else '−'}{abs(change):,.2f}{unit}".rstrip("0").rstrip(".") if change is not None else ""
+        f" {'+' if change >= 0 else '−'}{abs(change):,.2f}".rstrip("0").rstrip(".") + unit if change is not None else ""
     )
-    return f"{escape(value)}{unit if unit == '%' else ''}{tail}"
+    return f"{escape(value)}{tail}"
 
 
 def cues_strip(view: PageView) -> str:
@@ -128,7 +128,7 @@ def reliability_chip(index: IndexView, days: list[Day]) -> str:
     state = trend_state(rolling_90(index))
     if index.light == "none":
         return f'<span class="pill none"><i></i>{escape(index.light_word)}</span>'
-    scored = days[-index.scored :] if index.scored else days
+    scored = days_of(index, index.scored) if index.scored else days  # the chip's window, whatever the page shows
     correct, close = sum(d.result == GREEN for d in scored), sum(d.result == AMBER for d in scored)
     colour = GREEN if state == STEADY else AMBER if state == "watch" else "none"
     tested = getattr(index, "backtested", 0)

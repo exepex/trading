@@ -1,17 +1,33 @@
-"""The evening page's text blocks: the result card (three big numbers), the day-by-day table, the counts with
-percentages and the misses table. Every number is read from the `Day` values; the blocks compute only shares."""
+"""The pages' text blocks: a forecast's three big numbers, the result card (three big numbers), the day-by-day
+table, the counts with percentages and the misses table. Every number is read from the `Day` values; the blocks
+compute only shares."""
 
 from __future__ import annotations
 
 from html import escape
 
 from ..page.model import IndexView
-from .formats import AMBER, GLYPH, GREEN, RED, WORD, fmt, fmt_range, signed, signed_pct
-from .values import Day, reason_for
+from .formats import AMBER, GLYPH, GREEN, RED, WORD, fmt, fmt_mid, fmt_range, signed, signed_pct
+from .values import Day, reason_for, today_of
 
 RESULTS = (GREEN, AMBER, RED)
 NO_REASON_KEPT = "reason not kept for this day"
-PROVISIONAL = "close as read after 15:30; the official file confirms it next morning"
+PROVISIONAL = "close as read after 15:30; the official file confirms it in {report}"
+NEXT_MORNING = "the next morning report"
+
+
+def big_numbers(index: IndexView, label: str, missing: str) -> str:
+    """The three big numbers of a forecast: the morning's for today, the evening's for the next session."""
+    n1, n3 = today_of(index, "N1"), today_of(index, "N3")
+    if n1 is None:
+        return f'<div class="lab first">{label}</div><div class="line">{missing}</div>'
+    outlook = f"in 3 days most likely {fmt_range(n3.lo50, n3.hi50)}" if n3 else ""
+    return (
+        f'<div class="lab first">{label} · close {n1.date}</div><div class="three big">'
+        f"<div><small>Most likely</small><b>{fmt_range(n1.lo50, n1.hi50)}</b><span>1 day in 2</span></div>"
+        f"<div><small>Almost certainly</small><b>{fmt_range(n1.lo90, n1.hi90)}</b><span>9 days in 10</span></div>"
+        f"<div><small>Forecast middle</small><b>{fmt_mid(n1.mid)}</b><span>{outlook}</span></div></div>"
+    )
 
 
 def where_it_closed(d: Day) -> str:
@@ -27,8 +43,9 @@ def where_it_closed(d: Day) -> str:
     return f"Closed {fmt(gap)} pts {'above' if d.close > d.hi90 else 'below'} “almost certainly”"
 
 
-def result_card(d: Day) -> str:
-    note = PROVISIONAL if d.provisional else d.date_long
+def result_card(d: Day, report: str = NEXT_MORNING) -> str:
+    """`report`: the morning report that confirms a provisional close (FL1-1e: never "tomorrow" on a Friday)."""
+    note = escape(PROVISIONAL.format(report=report)) if d.provisional else d.date_long
     return (
         f'<div class="result"><div class="three">'
         f"<div><small>Forecast middle</small><b>{fmt(d.mid)}</b>"
