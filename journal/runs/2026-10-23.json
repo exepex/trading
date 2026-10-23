@@ -180,6 +180,17 @@
     }
    },
    "result": {}
+  },
+  "exits": {
+   "started_at": "2026-10-23T15:17:52.657519+05:30",
+   "finished_at": "2026-10-23T15:18:03.059117+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "reviewed": true,
+     "results": []
+    }
+   }
   }
  }
 }
