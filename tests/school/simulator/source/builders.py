@@ -27,6 +27,11 @@ CALENDAR = CsvSessionCalendar(
 )
 
 
+CALENDAR_2021 = CsvSessionCalendar(
+    "date,kind,description,source_url\n2021-01-26,holiday,test holiday,https://example.test/circular\n"
+)
+
+
 def close_of(strike: float, kind: OptionKind, spot: float = SPOT) -> float:
     intrinsic = max(spot - strike, 0.0) if kind is OptionKind.CALL else max(strike - spot, 0.0)
     return round(intrinsic + 100.0 * 0.9 ** (abs(strike - spot) / 100), 2)
