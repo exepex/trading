@@ -28,7 +28,7 @@ def cmd_feed_probe(args) -> int:
     from ..config import load_app_config
     from ..models import now_ist
     from .feed_probe import PLANS, ProbeRefused, summary, window_refusal
-    from .feed_wiring import build_catch_up_gate, build_feed_probe, build_gate, build_universe
+    from .feed_wiring import FeedNotConnected, build_catch_up_gate, build_feed_probe, build_gate, build_universe
 
     now = now_ist()
     day, plan = now.date(), PLANS[args.plan]
@@ -41,7 +41,11 @@ def cmd_feed_probe(args) -> int:
     if blocked:
         print(blocked)
         return 1
-    probe, client = build_feed_probe(load_app_config(args.config))
+    try:
+        probe, client = build_feed_probe(load_app_config(args.config))
+    except FeedNotConnected as error:
+        print(f"feed probe {args.plan}: stopped: {error}")
+        return 1
     try:
         probe.check_start(plan, day)  # again after the sign-in: the list and the quotes come inside the window too
         instruments = build_universe(client, PLAN_SIDES[args.plan], every_expiry=args.plan.startswith("ramp"))
