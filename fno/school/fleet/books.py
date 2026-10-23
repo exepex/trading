@@ -22,6 +22,12 @@ class Books:
     ticket_entries: LedgerReader
     fills: FillPort
 
+    @property
+    def stores(self) -> tuple[AccountPort, AccountPort]:
+        """Every account store the fleet records into, the driver account first: each is opened by the session's
+        view before any fill (an unviewed store refuses a record; the first ticket ever exposed it, SIM, 23 Oct)."""
+        return self.accounts, self.tickets.ledger.store
+
 
 class AccountUnreadable(RuntimeError):
     """A driver's account or ticket ledger could not be read or written: the session stops loudly, never as that
