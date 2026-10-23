@@ -34,3 +34,6 @@ research/data/quotes/groww/**/*.csv
 /work/drive-cache/
 /work/gr1/
 /work/edge1/
+
+# Story MS-SIM: the practice simulator's records (practice only; never the paper record)
+/work/school_practice/
