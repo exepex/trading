@@ -49,3 +49,29 @@ adoption conditions is met, and the cleaner design is not discussed.
 The deferred store (story/ms-p1j-ins-wiring, judge 523.1) will need whatever `recover` becomes. Its `prepare` and
 `flush` must not adopt on the step's thread: adoption writes (a put and a publish), so it belongs in the run's
 thread like every other write.
+
+## Addendum 1: round 2 at 9e0ddcb7 (the last round)
+
+**Verdict: FAIL.** One should-fix remains, and the tip conflicts with the orchestrator's ruling. Per JUDGE.md, after two
+rounds the owner decides.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 verify before adopting, alert, record | ACCEPTED | `_check_stored`: the bytes must decode, re-encode to the same bytes, hold only that kind's records, and none closed after the session. Otherwise `InstructorConflict ... not adopted`, and nothing is published. The commit says "adopted". Minor: `rules_sha256` is not checked, so another card version's file would pass |
+| SF2 the cut-off weighed | ACCEPTED as argued [reasoning only] | the Claims: d's settlement source and c's correction reads have no as-of date. A cut-off needs as-of reads outside this story, and a crashed day-D run rerun on D+1 would still differ |
+
+**New should-fix, found with MS-P1j's builder's note and reproduced:** `recover` returns `self.read(...)` after
+publishing, so it works only when the publisher pushes at once. With MS-P1j's run receipts (publish pushes nothing;
+the run's later commit does), `recover` returns None. The rerun then recomputes and hits the very write-once refusal
+this story fixes. My probe: the branch's `StoppingPublisher` stops a run after the attribution file. A run-only
+publisher (`publish` returns None, `published` sees nothing new) gives `recover -> None`, then the rerun raises
+`InstructorConflict ... written with other bytes`. Expected:
+- `recover` returns the verified stored records itself, once their receipt is written or scheduled;
+- MS-P1j's deferred store implements `recover` with the adoption (a put and a publish) run on the run's own thread;
+- both land together, with a test through the deferred store and run-only receipts.
+
+**Conflict with the orchestrator's ruling (23 Oct):** the ruling dropped `recover()` for the cut-off. This tip keeps
+`recover()` with an argument against the cut-off. That is for the orchestrator and owner to settle. If adoption stays,
+the should-fix above and the joint landing with ins-wiring are required.
+
+**Gates (my run, `tests/school/instructor`):** 272 passed. ruff and check_imports are clean.
