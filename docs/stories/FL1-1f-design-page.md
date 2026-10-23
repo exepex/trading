@@ -52,6 +52,9 @@ The morning's "Last session's check" uses the same rows.
 - Gates: `ruff check`, `ruff format`, `python tools/check_imports.py`; the full suite's count is in the branch's
   last commit message addendum below.
 
-## Gates on the branch
+## Gates on the branch (55ef15fd, from main f2e7a4c3)
 
-Filled at the last commit.
+- `python -m pytest -q -n auto`: 14,762 passed, 0 failed, 1 skipped, 16 xfailed.
+- `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py`: clean.
+- The first run had 19 failures in the school's golden-text test: the fakes carried a track record by default, which
+  changed the builder's text line; fixed at 55ef15fd (a track only when asked, as with the check).
