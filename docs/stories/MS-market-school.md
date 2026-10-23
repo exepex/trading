@@ -1747,7 +1747,7 @@ Agreed with the code's owners before any change: MS-P1j/P1a (session_01CmKJ6taCL
 
 - **Real output, 23 Oct:** `school capture-gate --through 2026-10-22` now prints `NIFTY-M ... (capture_missing 4, lot_unavailable 4)` (it said `lot_mismatch 4` for 14-19 Oct, when there was no lot file). `school practice run --from 2024-03-04 --to 2024-03-05` prints `not enough sessions yet: the best-quoted spread bucket has 7 of the 30 recorded sessions a bucket needs, so 1085 of 2350 legs read 'insufficient spread data' and are not priced`.
 - **A finding the dry run did not state:** even with 30 sessions the practice run could not price most legs. In that real window, of 2,350 legs 716 are untraded that day and 549 impossible (23%); only 1,085 (46%) wait on spread data. So "0 priced" is not only the 30-session rule, and the line says what is waiting on sessions and nothing else.
-- **The 22 Oct replay output and every existing test are unchanged** (the quote line is byte-identical when no driver stopped on quotes).
+- **Read and replayed by the owners (both: no objection).** MS-P1b's owner read `roads/` and ran roads, quality and acceptance: 248 passed; his note (a zero lot beside a different lot) is the test added at `9d778e84a`. MS-P1j's owner ran the 22 Oct replay on `c9c3dba49`: **every record, count and account file byte-identical to main's (105 files)**; the printout gains exactly one change, `FINNIFTY-M: 0 of 9 refused for quotes (0%); 3 more ended no_valid_quotes in the driver`. Every existing test is unchanged (the quote line is byte-identical when no driver stopped on quotes).
 
 ## Claims
 
