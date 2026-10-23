@@ -11,8 +11,8 @@ from datetime import date
 from ....research_data.calendar import SessionCalendar
 from ....storage.trading_days import is_trading_day
 from ...constants import ClosureReason, ExpiryKind
-from ...contracts.roads import OPEN, ROADS, DatedLot, Road, RoadDay, RoadStatus
-from ..history.ports import DayChain, HistoricalChain
+from ...contracts.roads import OPEN, ROADS, Road, RoadDay, RoadStatus
+from ..history.ports import HistoricalChain
 from ..terms import DatedTerms
 from ..windows import PracticeWindows
 from .steps import strike_step
@@ -39,19 +39,13 @@ class HistoricalRoadCatalogue:
         expiries = _recorded(found.expiries(road.expiry_kind), road.expiry_kind, session)
         if len(expiries) < EXPIRIES_RECORDED:
             return _closed(road, session, ClosureReason.EXPIRY_MISMATCH, f"{len(expiries)} {road.expiry_kind} expiries")
-        lot = self._one_lot(found, expiries)
-        if lot is None:
-            return _closed(road, session, ClosureReason.LOT_MISMATCH, "no single dated lot for the expiries")
+        lots = {e: self.terms.lot(found, e) for e in expiries}
+        if None in lots.values():
+            return _closed(road, session, ClosureReason.LOT_MISMATCH, "an expiry has no dated lot of its own")
         steps = {e: strike_step((r.strike for r in found.rows_on(e)), found.index_close) for e in expiries}
         if None in steps.values():
             return _closed(road, session, ClosureReason.EXPIRY_MISMATCH, "an expiry lists fewer than two strikes")
-        return RoadDay(road, session, expiries, lot, steps[expiries[0]], OPEN, steps)
-
-    def _one_lot(self, found: DayChain, expiries: tuple[date, ...]) -> DatedLot | None:
-        lots = [self.terms.lot(found, e) for e in expiries]
-        if any(lot is None for lot in lots) or len({lot.units for lot in lots}) != 1:
-            return None
-        return lots[0]
+        return RoadDay(road, session, expiries, lots[expiries[0]], steps[expiries[0]], OPEN, steps, lots)
 
 
 def _recorded(listed: tuple[date, ...], kind: ExpiryKind, session: date) -> tuple[date, ...]:
