@@ -146,3 +146,85 @@ a replay cannot build a real store.
   replay is a different root, not a flag.
 - **Plants: 2, 2 caught.** The replay root using the Drive dashcam; the replay writing accounts at the repository
   root.
+
+## Addendum 5
+
+**Scope:** MS-P1j follow-up, the instructor wired into the fleet: story/ms-p1j-ins-wiring at eb5ec57a, which is
+MS-INS part e (63cabe67) merged with main. It merges after part e. Judged on the fleet side only (part e has its own
+judges): `SchoolFleet.after_outcomes`, `IsolatedSessionStep`, `UnfilledEntries`, `SealedDayInputs.why` and the
+record root's wiring. First of two judges, independent of judge K.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 14026 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The step after the outcomes.** It runs after the outcomes' (and drift's) seal and before the counts are written
+  and committed, and again on a rerun's commit-only path.
+  - The step is isolated: an exception or its 300-second limit gives one alert naming only the class, and the
+    school's own counts are still written and committed.
+  - Only the record root wires it. The replay root and the tests use `no_step`, and the replay root imports nothing
+    of `instructor.wiring`.
+- **`UnfilledEntries`.** Every sealed trade or ticket whose position neither ledger ever opened, derived read-only
+  from the dashcam and the two ledgers.
+- **Plants: 6, 5 caught.** Caught: the rerun skipping the step; the step not isolated; a failure not alerted;
+  tickets left out of unfilled; unfilled always empty.
+  - Survived, equivalent: the step run before the drift seal. Part e reads no drift (grep), so the order between
+    the two does not matter.
+
+**Note.** A step past its limit keeps running. If it is still writing when the counts are committed, part e's
+temporary file (`.<name>.part`, in the counts folder) could be caught by the commit's `git add` of that folder. The
+write is one small file, so the window is tiny, and `.gitignore` has no rule for `*.part` there [reasoning only]. An
+ignore rule for `research/school/counts/**/.*.part` would close it.
+
+## Addendum 6
+
+**Scope:** MS-P1j seams for the simulator, story/ms-p1j-sim-seams at a02d1eb9 (from main). I am the only judge
+(orchestrator: seams, not money logic).
+- `fleet_wiring.books_on(cfg, stores, fills)` is the one construction of the accounts and the ticket ledger.
+- `ReplayDashcam.encode`/`decode` are the only places a subclass changes.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13799 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **A refactor.** `fleet_on` builds its books through `books_on` with the live fill port, exactly as before.
+  `ReplayDashcam.seal` and `read` go through `encode`/`decode`, and the write-once and seal checks stay in the base
+  class. The pilot's `decode_slot_file` reads lines that carry an extra label, because it reads only `type` and
+  `record`.
+- **Plants: 3, 3 caught.** `seal` bypassing `encode`; `read` bypassing `decode`; the ticket book ignoring the given
+  fill port.
+
+## Addendum 7
+
+**Scope:** MS-P1j follow-up, a comparison-card mismatch is loud: story/ms-p1j-card-mismatch at 199017ce (from main),
+on the orchestrator's ruling of 23 Oct. First of two judges, independent of judge K.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13806 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The check.**
+  - After the decisions' seal (and again on a rerun), each sealed decision is put to h's `CountingRule` at the
+    seal's receipt commit.
+  - Only `comparison_card_mismatch` gives the line. A counted or not-yet-counted decision gives none.
+  - The line goes in `SessionRun.warnings` (additive to a's contract; a run that did not run carries none), and
+    `school run` prints it and exits 1.
+  - Only the record root wires it; a replay uses `no_check`. No record changes.
+- **Plants: 5, 4 caught.** Caught: any not-counted reason named as a mismatch; a warning exiting 0; a rerun skipping
+  the check; the record root wiring no check.
+  - Survived: the line's "N of M" with N set to M. The tests plant every decision as mismatched, so the two numbers
+    are always equal. It is an alert's text, not a record or a decision, so this is a note.
+  - A test with one card-mismatched decision among several would pin N [reasoning only].
+
+## Addendum 8
+
+**Scope:** story/ms-p1j-sim-seams, a02d1eb9..6d3aa180: a third seam, `SchoolFleet.rules: QuoteRules = LIVE`, passed
+into `plan_slot`. It touches the live gate, so it is lane 1: first of two judges, judge I second. The first two seams
+are judged in addendum 6.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13800 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **Live is unchanged.** `plan_slot` still closes any road whose capture holds an unmeasured quote
+  (`sizes_not_measured`), unless the rules passed are practice ones. The fleet's default and every pilot root
+  (`fleet_on`, so record and replay) leave it at `LIVE`. The practice-isolation test still bars `practice=True` from
+  every school module except `execution/practice_wiring.py`.
+- **Plants: 4, 4 caught.** The guard inverted; the guard removed; the fleet defaulting to practice; the rules not
+  passed into `plan_slot`.
