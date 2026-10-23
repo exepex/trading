@@ -2955,4 +2955,8 @@ the run's own thread, and only when the work ended in time; one commit takes eve
   timeouts: a limit there would bring back a late write. A crash between the instructor's Drive write and the run's
   commit leaves its receipt uncommitted, as before in part e (a rerun writes the same bytes, or alerts a conflict).
 - **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files); a replay runs no step.
-- **Plants:** 13 planted, 13 caught. Gates: 14,163 passed, 16 xfailed; ruff, format and imports clean.
+- **Judge K's note (via the INS builder): one path reader per run.** The path reader caches the files it read, so the
+  step's work builds a new one on every session call, never one held across runs:
+  `test_every_session_call_builds_its_own_path_reader_never_one_held_across_runs` (plant: a run held across calls,
+  caught).
+- **Plants:** 14 planted, 14 caught. Gates: in the commit message of the tip.
