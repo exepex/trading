@@ -46,6 +46,21 @@
      "reason": "rehearsal:NOT_BUILT"
     }
    }
+  },
+  "weather": {
+   "started_at": "2026-10-23T14:05:43.960585+05:30",
+   "finished_at": "2026-10-23T14:06:11.990154+05:30",
+   "inputs": {
+    "command": [
+     "weather",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
