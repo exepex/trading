@@ -431,5 +431,10 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   3. **Noted:** `write_bytes` lists the series' receipts on every write (the part-order check), which is cheap at
      these sizes.
 - Gates at 9f22ba3c: full suite 14,583 passed and 16 xfailed, clean.
+- **Judge 534: PASS at 162df9c8.** It may merge Tue 27 Oct 11:00-13:30 IST, after step 1b and a merge of main, with
+  `margins move` before and after, on the orchestrator's go. The judge's 4 plants were caught. The judge's note for
+  the owner: from the merge, a Drive outage or an expired sign-in refuses every trade that needs a margin (the owner's
+  no-fallback choice). After the merge, the claims will cite the first nse-margins and stress-factor runs and the
+  first desk day's margin reads.
 - **Not yet:** Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
   and after, the first scheduled runs, and the removal commit.
