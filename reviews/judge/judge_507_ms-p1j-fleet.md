@@ -174,3 +174,41 @@ record root's wiring. First of two judges, independent of judge K.
 temporary file (`.<name>.part`, in the counts folder) could be caught by the commit's `git add` of that folder. The
 write is one small file, so the window is tiny, and `.gitignore` has no rule for `*.part` there [reasoning only]. An
 ignore rule for `research/school/counts/**/.*.part` would close it.
+
+## Addendum 6
+
+**Scope:** MS-P1j seams for the simulator, story/ms-p1j-sim-seams at a02d1eb9 (from main). I am the only judge
+(orchestrator: seams, not money logic).
+- `fleet_wiring.books_on(cfg, stores, fills)` is the one construction of the accounts and the ticket ledger.
+- `ReplayDashcam.encode`/`decode` are the only places a subclass changes.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13799 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **A refactor.** `fleet_on` builds its books through `books_on` with the live fill port, exactly as before.
+  `ReplayDashcam.seal` and `read` go through `encode`/`decode`, and the write-once and seal checks stay in the base
+  class. The pilot's `decode_slot_file` reads lines that carry an extra label, because it reads only `type` and
+  `record`.
+- **Plants: 3, 3 caught.** `seal` bypassing `encode`; `read` bypassing `decode`; the ticket book ignoring the given
+  fill port.
+
+## Addendum 7
+
+**Scope:** MS-P1j follow-up, a comparison-card mismatch is loud: story/ms-p1j-card-mismatch at 199017ce (from main),
+on the orchestrator's ruling of 23 Oct. First of two judges, independent of judge K.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13806 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The check.**
+  - After the decisions' seal (and again on a rerun), each sealed decision is put to h's `CountingRule` at the
+    seal's receipt commit.
+  - Only `comparison_card_mismatch` gives the line. A counted or not-yet-counted decision gives none.
+  - The line goes in `SessionRun.warnings` (additive to a's contract; a run that did not run carries none), and
+    `school run` prints it and exits 1.
+  - Only the record root wires it; a replay uses `no_check`. No record changes.
+- **Plants: 5, 4 caught.** Caught: any not-counted reason named as a mismatch; a warning exiting 0; a rerun skipping
+  the check; the record root wiring no check.
+  - Survived: the line's "N of M" with N set to M. The tests plant every decision as mismatched, so the two numbers
+    are always equal. It is an alert's text, not a record or a decision, so this is a note.
+  - A test with one card-mismatched decision among several would pin N [reasoning only].
