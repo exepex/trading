@@ -59,14 +59,30 @@ def test_a_missing_issue_is_a_system_problem_and_the_page_still_shows_the_histor
     assert view.indices[0].today == () and view.indices[0].scored == 30
 
 
-def test_scores_older_than_the_previous_session_are_stale_data():
-    class Old(History):
-        def points(self, underlying):
-            return [p for p in super().points(underlying) if p.target_day < HISTORY_DAYS[-2]]
+class Old(History):
+    def points(self, underlying):
+        return [p for p in super().points(underlying) if p.target_day < HISTORY_DAYS[-2]]
 
-    builder = PageBuilder(Forecasts(()), Old(), NoFacts(), SESSIONS, underlyings=("NIFTY",))
-    system = builder.build(REPORT_DAY, at(REPORT_DAY, 15, 47)).system
+
+def old_scores(forecasts) -> tuple[str, ...]:
+    builder = PageBuilder(forecasts, Old(), NoFacts(), SESSIONS, underlyings=("NIFTY",))
+    return builder.build(REPORT_DAY, at(REPORT_DAY, 15, 47)).system
+
+
+def test_scores_older_than_the_previous_session_are_stale_data():
+    previous = SESSIONS.previous(REPORT_DAY)  # a forecast for it was issued, so a score is owed
+    issued = issue(SESSIONS.previous(previous), rows=(RangeRow("implied", "N1", previous, QUANTILES, 0.5, STATUS_OK),))
+    system = old_scores(Forecasts((issued,)))
     assert any(line.startswith("NIFTY: newest scored close is") and line.endswith("(stale)") for line in system)
+
+
+def test_a_session_no_forecast_was_issued_for_is_a_gap_in_the_record_never_a_stale_score():
+    """FL1-1e: 22 Oct 2026 had no forecast (G13b's back-fill ended before it, its live issues began after it)."""
+    previous = SESSIONS.previous(REPORT_DAY)
+    gap = (f"NIFTY: no forecast was issued for {previous}, so it has no score (a gap in the record, not a late score; "
+           f"newest scored close {HISTORY_DAYS[-3]})")  # fmt: skip
+    system = old_scores(Forecasts(()))
+    assert gap in system and not any("stale" in line for line in system)
 
 
 def test_the_record_counts_the_back_tested_days_in_its_window():
