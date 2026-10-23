@@ -13,5 +13,7 @@ date,job,step,kind,message,run_url
 2026-10-23,preopen,banknifty,incomplete,no pre-open value: candles only from 09:15,
 2026-10-23,forecast-capture,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39932039669
 2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39934626525
+2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941865134
+2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941852377
 2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941827039
 2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941877595
