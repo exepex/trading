@@ -1,0 +1,82 @@
+{
+ "card_sha256": "037f21270d8f63baeb2ce286c583e9261ab5df62740734b3a834d42ad6fb9822",
+ "clock": [
+  {
+   "checked": false,
+   "line": "clock NOT CHECKED: host vs Slack (rehearsal: replay clock, not checked against GitHub's and Slack's servers)",
+   "server": "Slack",
+   "skew_seconds": null,
+   "warning": false
+  },
+  {
+   "checked": false,
+   "line": "clock NOT CHECKED: host vs GitHub (rehearsal: replay clock, not checked against GitHub's and Slack's servers)",
+   "server": "GitHub",
+   "skew_seconds": null,
+   "warning": false
+  }
+ ],
+ "code_commit": "bf17353a9a057c7717c91c7ee66a8c5b5e871210",
+ "day": "2026-10-23",
+ "drive": {
+  "outcome": "card record saved to Drive: 2026/10/2026-10-23_1792864696026909.json",
+  "saved": true
+ },
+ "host_clock": {
+  "after_utc": "2026-10-23T09:48:34.490923+00:00",
+  "before_utc": "2026-10-23T09:48:33.939996+00:00"
+ },
+ "missing": [],
+ "previous_misses": [
+  "no card on record for 2026-10-22"
+ ],
+ "reason_code": "no_approved_strategy",
+ "records_used": [
+  {
+   "path": "research/data/calendar/nse_sessions.csv",
+   "sha256": "e34fbad752bb244e6116c1e474902208a72a03f5af6037c6d75bf9baa6756b4d"
+  },
+  {
+   "path": "playbook/registry.csv",
+   "sha256": "8acf2ea6cc18f6d4a96114e4505ea56e0af782de1f32ddcd85aba0b79f01bbec"
+  },
+  {
+   "path": "journal/book1_rules/account/positions.json",
+   "sha256": "1d3ab9629240629fd14658fadaf1ce7cd323722a40d3850d475b93410bd0dc4c"
+  },
+  {
+   "path": "journal/book2_hybrid/account/positions.json",
+   "sha256": "f90d78b2ea50c21eaced8c8c3ef8bf79b6e37e75225df4b4ac7eca2ae79b8453"
+  },
+  {
+   "path": "journal/book3_ai/account/positions.json",
+   "sha256": "ff47125296fb4424d2eedfacf6dd87b796e629d465486ef2357c3923718864c7"
+  },
+  {
+   "path": "journal/runs/2026-10-23.json",
+   "sha256": "2b4eeb4ff49d245f78471cb369ff0a48b0d1ce30d4c51d455bdf9346cdd5afad"
+  },
+  {
+   "path": "research/forecasts/v4/weather/2026/2026-10-23.json",
+   "sha256": "02ae68ae9f2c6b0bdb2c0fcd83de0f2a7e07bbad931add9398054a766454ecdc"
+  },
+  {
+   "path": "research/forecasts/live_v2/2026/2026-10-22_forecasts.csv",
+   "sha256": "337e65c01a3a66f5f24784d22dc028528ed9ab626819dcdedacef2fb0f027c72"
+  },
+  {
+   "path": "research/forecasts/scores/2026-10-22.json",
+   "sha256": "6241c90b9e85bc9e64951db6d102b7057e681aac2b0879b4cae0bbb70e243880"
+  }
+ ],
+ "schema": "card_delivery/v1",
+ "slack": {
+  "channel": "C0C89E8QCCD",
+  "outcome": "alert sent to #fno-desk",
+  "sent": true,
+  "server_time_utc": "2026-10-24T17:58:16.026909+00:00",
+  "ts": "1792864696.026909"
+ },
+ "status": "NO TRADE",
+ "test": false
+}
