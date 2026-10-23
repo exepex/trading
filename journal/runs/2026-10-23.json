@@ -404,6 +404,21 @@
      "exit_code": 0
     }
    }
+  },
+  "candles": {
+   "started_at": "2026-10-23T15:21:35.170263+05:30",
+   "finished_at": "2026-10-23T15:33:03.307516+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
   }
  }
 }
