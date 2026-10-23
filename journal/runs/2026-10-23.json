@@ -114,6 +114,14 @@
      "exit_code": 0
     }
    }
+  },
+  "versions": {
+   "started_at": "2026-10-23T14:58:00.000498+05:30",
+   "finished_at": "2026-10-23T14:58:00.723936+05:30",
+   "inputs": {},
+   "result": {
+    "line": "versions:NONE_YET"
+   }
   }
  }
 }
