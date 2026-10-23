@@ -48,6 +48,18 @@ def test_a_card_edited_without_rows_naming_it_is_named_once_with_its_version(tmp
     )
 
 
+def test_the_line_counts_only_the_mismatched_decisions_among_the_session_s(tmp_path):
+    """Judge B's note (judge 507.7): one mismatched decision among others not counted for another reason gives N=1."""
+    repo = Repo(tmp_path)
+    repo.register()
+    commit(repo.path, CARD_PATH, NEW_CARD)
+    records, seal = sealed_on(repo, repo.decide(), n=1)
+    unregistered = replace(records[0], decision=replace(records[0].decision, driver_id="DR1@1"))  # no D6 row at all
+    line = check(repo)((records[0], unregistered, unregistered), seal)
+    assert line == ("comparison_card_mismatch: 1 of 3 decisions do not count until D6 rows name card v3; "
+                    "see the MS-P1j runbook",)  # fmt: skip
+
+
 def test_counted_decisions_and_decisions_not_yet_counted_give_no_line(tmp_path):
     (tmp_path / "counted").mkdir()
     (tmp_path / "unset").mkdir()

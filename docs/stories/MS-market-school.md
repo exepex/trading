@@ -2541,4 +2541,4 @@ denominator, never counted. That must never be silent.
 | The record checks, a replay does not | the record root passes `build_card_check(root)` (h's rule over the repository's git and D6's versions); a replay's seals name no commit the rule could judge, so it passes none | `test_the_record_root_passes_the_check_and_a_replay_has_none` (plant: the record root without it) |
 
 - **No record changed:** the check only reads the sealed records, the repository's git and D6's rows.
-- **Plants:** 7 planted, 7 caught.
+- **Plants:** 7 planted, 7 caught. Judge B's survivor (judge 507.7: N forced to M) is now caught by `test_the_line_counts_only_the_mismatched_decisions_among_the_session_s`: one mismatched decision among three gives "1 of 3".
