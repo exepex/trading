@@ -122,6 +122,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "decisions": {
+   "started_at": "2026-10-23T15:12:00.000766+05:30",
+   "finished_at": "2026-10-23T15:12:00.168019+05:30",
+   "inputs": {
+    "deadline": "2026-10-23T15:12:00+05:30",
+    "origin": "babd528aec49f731e5bbeb1287ff9a277a9b9eed"
+   },
+   "result": {
+    "book1_rules": {
+     "run_id": "2026-10-23-r1",
+     "commit": "d89772b02a5efacf39242e76537dc156bb6a1ecb",
+     "committed_at": "2026-10-23T14:58:37+05:30"
+    }
+   }
   }
  }
 }
