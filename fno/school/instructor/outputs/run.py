@@ -42,13 +42,13 @@ class InstructorRun:
         self.rules_sha256, self.first_counted = rules_sha256, first_counted
 
     def for_session(self, session: date, write: bool = False) -> SessionResult:
-        """A session already written is returned as written, whenever it is rerun: later runs see more (re-checks,
-        closed controls), so recomputing could differ, and a written file is never rewritten. A later change arrives
-        as a re-check correction on the next session's run."""
+        """A session already written (or stored by a run that stopped before its receipt) is returned as written,
+        whenever it is rerun: later runs see more (re-checks, closed controls), so recomputing could differ, and a
+        written file is never rewritten. A later change arrives as a re-check correction on the next session's run."""
         orphans = self.reader.orphan_corrections()
-        written = self.store.read(session, InstructorKind.CAUSES) if write else None
+        written = self.store.recover(session, InstructorKind.CAUSES) if write else None
         if written is not None:
-            kept = self.store.read(session, InstructorKind.ATTRIBUTION) or ()
+            kept = self.store.recover(session, InstructorKind.ATTRIBUTION) or ()
             return SessionResult(session, tuple(kept), tuple(written), self.reader.closed_on(session).unreadable,
                                  orphans)  # fmt: skip
         closed = self.reader.closed_on(session)

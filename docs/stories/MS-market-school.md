@@ -2891,3 +2891,35 @@ guard.
 - the drawdown taken from zero instead of the peak;
 - every decision counted regardless of h's verdict.
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
+
+#### INS-e follow-up: a stopped run's stored file is recovered (branch `story/ms-ins-adopt`, lane 1; found by MS-P1j's builder, 23 Oct 2026)
+
+**The defect** (reproduced by a test before the fix):
+- `DriveInstructorStore.write` puts the file on Drive first and publishes its receipt to main after.
+- If the run stops between the two (its container ends), the rerun sees no receipt, so it recomputes.
+- A later run sees more (a settled expiry, closed controls), so its records can differ. Write-once Drive then refuses them on every rerun after: that session is stuck for good.
+- The test `the_session_stopped_before_its_receipt...` raised `InstructorConflict` on the old code.
+
+**The fix:**
+- The port gains `recover(session, kind)`: `read`, except that a file stored on Drive with no receipt on main gets its receipt written from the stored bytes and published, then its records are returned.
+  - Drive's bytes are the record; the same bytes put again are a no-op there.
+  - Readers (review, "why" line) keep `read`, which never publishes.
+- `InstructorRun.for_session` uses `recover` for the causes and attribution files when it writes. A dry run reads nothing, as before.
+
+| Criterion | Test (`tests/school/instructor/outputs/test_recover.py`) |
+|---|---|
+| A run stopped after both Drive writes: the rerun keeps the stored bytes and publishes both receipts, even though the rerun would compute other records | `a_session_stopped_before_its_receipt_is_returned_as_stored_when_a_rerun_sees_more` |
+| A run stopped after the attribution file only: its receipt is published, the causes computed | `a_run_stopped_after_its_attribution_receipts_that_file...` |
+| `recover` receipts a stored file; `read` never trusts it before that | `recover_publishes_a_stored_files_receipt_and_returns_its_records` |
+| Nothing stored: None, nothing published | `recover_returns_none_when_nothing_is_stored...`; the conformance check |
+| Already published: read, never published again | `recover_reads_a_published_file_without_publishing_again` |
+
+**Broken-code proof:** 5 plants, all caught:
+- the run's two `recover` calls back to `read`;
+- the receipt not published;
+- `recover` publishing a file already published;
+- an empty tuple in place of None.
+
+**Known limit [reasoning only]:** a run that stops between the attribution's Drive write and the causes' Drive write, with an outcome correction sealed before the rerun, gives other attribution bytes. Write-once then refuses them loudly (`InstructorConflict`), never silently. The window is two consecutive Drive puts. MS-P1j's deferred store puts both before its one commit, so that window stays two puts wide.
+
+**For MS-P1j's deferred store:** it implements the port, so it needs `recover` too (delegating to this store's).

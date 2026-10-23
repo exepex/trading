@@ -22,7 +22,10 @@ class FakeData:
     area = "data"
 
     def __init__(self):
-        self.files = {}
+        self.files, self.drive = {}, self  # `drive`: the whole project folder, as DataStore's
+
+    def get(self, drive_path):
+        return self.files.get(drive_path.removeprefix(f"{self.area}/"))
 
     def put(self, path, payload):
         if self.files.get(path, payload) != payload:

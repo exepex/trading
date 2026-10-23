@@ -1,13 +1,15 @@
 """The instructor's own write-once files (story MS-INS, part e): one gzip of canonical JSON lines per (session, kind)
 under `school/instructor/` in O9's data area, its receipt committed and pushed through the dashcam's publisher. Equal
 records give equal bytes, so a rerun is a no-op; other bytes for a written key are refused. It never writes into the
-dashcam: its paths are its own folder's."""
+dashcam: its paths are its own folder's. A run that stopped after a Drive write and before its receipt reached main is
+recovered from the stored bytes, never recomputed (MS-P1j's builder, 23 Oct 2026)."""
 
 import hashlib
 from datetime import date
 
 from ....storage.data_store import DataStore
 from ....storage.raw_store import RawFileConflict
+from ....storage.receipts import Receipt
 from ...contracts.seal import StaleSeal
 from ...dashcam.names import SCHOOL_AREA
 from ...dashcam.publisher import ReceiptPublisher
@@ -42,8 +44,23 @@ class DriveInstructorStore:
             receipt = self.data.put(path, payload)
         except RawFileConflict as conflict:
             raise InstructorConflict(OTHER_BYTES.format(path=path)) from conflict
-        self.publisher.publish(receipt.path, RECEIPT_MESSAGE.format(kind=kind, session=session))
+        self._publish(session, kind, receipt)
         return receipt.sha256
+
+    def _publish(self, session: date, kind: InstructorKind, receipt: Receipt) -> None:
+        self.publisher.publish(receipt.path, RECEIPT_MESSAGE.format(kind=kind, session=session))
+
+    def recover(self, session: date, kind: InstructorKind) -> tuple[InstructorRecord, ...] | None:
+        """The records written for that key, publishing the receipt first when Drive holds the file and main has no
+        receipt for it: a later run sees more and could compute other records, which write-once would refuse for
+        good. Drive's bytes are the record (the same bytes put again are a no-op there)."""
+        path = instructor_path(session, kind)
+        if self.publisher.published(f"{self.data.area}/{path}") is None:
+            stored = self.data.drive.get(f"{self.data.area}/{path}")
+            if stored is None:
+                return None
+            self._publish(session, kind, self.data.put(path, stored))
+        return self.read(session, kind)
 
     def read(self, session: date, kind: InstructorKind) -> tuple[InstructorRecord, ...] | None:
         path = instructor_path(session, kind)
