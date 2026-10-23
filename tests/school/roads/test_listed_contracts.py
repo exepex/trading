@@ -38,7 +38,10 @@ def zipped(day: date, rows) -> bytes:
     name = NseDailyFoSource.filename_for(day)
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as archive:
-        archive.writestr(name.removesuffix(".zip"), ("\n".join(lines) + "\n").encode())
+        archive.writestr(
+            zipfile.ZipInfo(name.removesuffix(".zip"), (day.year, day.month, day.day, 0, 0, 0)),
+            ("\n".join(lines) + "\n").encode(),
+        )
     return out.getvalue()
 
 
@@ -130,3 +133,14 @@ def test_the_expiry_source_lets_a_non_json_drive_reply_through_but_closes_on_an_
 
     with pytest.raises(ExpiryUnavailable):
         ListedRoadExpiries(Damaged({}), PointInTimeMonthlies(HistoryFake({}))).expected(road, SESSION)
+
+
+def test_the_zipped_fixture_is_the_same_bytes_at_any_wall_clock_time(monkeypatch):
+    """A zip entry stamped with the clock would give other bytes in another second, and a hash compared across two
+    builds would fail at random under -n auto."""
+    import time
+
+    first = zipped(PREVIOUS, rows())
+    real = time.localtime
+    monkeypatch.setattr(time, "localtime", lambda *a: real(1_700_000_007))
+    assert zipped(PREVIOUS, rows()) == first
