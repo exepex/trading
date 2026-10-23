@@ -94,7 +94,8 @@ def test_india_vix_outside_its_range_is_recorded_as_a_problem_and_the_read_is_ke
     reader(store, Answers(answer(ranges=_ranges("INDIA VIX", high=15.69))), Clock(at(15, 40)), lines=lines).run()
     record = json.loads(store.files[record_path(DAY)])
     assert record["problems"] == {"INDIA VIX": ["last outside the day's high-low"]}
-    assert lines[0].startswith("close read 2026-10-21: ")
+    shown = "INDIA VIX (list) recorded; INDIA VIX: last outside the day's high-low, NSE stamp"
+    assert lines[0].startswith(f"close read 2026-10-21: NIFTY 50, NIFTY BANK, {shown}")
 
 
 def test_a_refused_range_prints_its_reason_and_no_level():
@@ -160,6 +161,7 @@ def test_with_the_previous_session_s_file_missing_the_day_waits_then_alerts_once
     )
     lines, sent = _confirm(store, SECOND, missing)
     assert confirm_path(DAY) not in store.files and overdue_path(DAY) in store.files and len(sent) == 1
+    assert sent[0].endswith("still unconfirmed on 2026-10-23: no official index-close file for the previous session")
     assert _confirm(store, date(2026, 10, 26), missing) == ([], [])  # never again
 
 

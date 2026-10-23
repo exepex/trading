@@ -82,6 +82,15 @@ def _value(row: dict, column: str) -> float | None:
     return None if text in ("", "-") else float(text)
 
 
+def _lenient(row: dict, column: str) -> float | None:
+    """A column's number, None for anything else: one index's odd text (e.g. "NA") never voids the file's other rows;
+    a reader that needs a value it finds None says so (A4h-2's "not in the official file")."""
+    try:
+        return _value(row, column)
+    except ValueError:
+        return None
+
+
 def read_index_closes(data: bytes, filename: str = "index-close.csv") -> dict[str, float]:
     """Index name -> closing value, from NSE's daily index-close file."""
     closes = {name: _value(row, CLOSE_COLUMN) for name, row in _index_rows(data, filename)}
@@ -94,7 +103,7 @@ def read_index_closes(data: bytes, filename: str = "index-close.csv") -> dict[st
 def read_index_values(data: bytes, filename: str = "index-close.csv") -> dict[str, dict[str, float | None]]:
     """Index name -> its official open, high, low and close (None where NSE prints nothing or "-"), from NSE's daily
     index-close file (story A4h-2: the day range a list read is confirmed against)."""
-    values = {name: {field: _value(row, column) for field, column in INDEX_VALUE_COLUMNS.items()}
+    values = {name: {field: _lenient(row, column) for field, column in INDEX_VALUE_COLUMNS.items()}
               for name, row in _index_rows(data, filename)}  # fmt: skip
     if not any(found["close"] is not None for found in values.values()):
         raise BadFile(f"{filename}: no index closing values")

@@ -21,8 +21,11 @@ from .constants import (
     CONFIRM_STARTS_UNTIL_SECONDS,
     CONFIRMED,
     DIFFERS_ALERT,
+    FAILED_RUNS,
     INDICES,
     LEFT_FOR_NEXT_RUN,
+    NO_FILE,
+    NO_PREVIOUS_FILE,
     NOT_YET,
     NOT_YET_PREVIOUS,
     OVERDUE,
@@ -65,8 +68,9 @@ class Confirmer:
         provisional = json.loads(self.store.get(record_path(day)))["indices"] if found is not None else {}
         previous = self._previous(day, provisional) if found is not None else None
         if found is None or previous is None:
-            if not self._overdue(day, today, written):
-                self.log((NOT_YET if found is None else NOT_YET_PREVIOUS).format(day=day))
+            line, why = (NOT_YET, NO_FILE) if found is None else (NOT_YET_PREVIOUS, NO_PREVIOUS_FILE)
+            if not self._overdue(day, today, written, why):
+                self.log(line.format(day=day))
             return
         filename, official = found
         lasts, fields = _compare(provisional, official, previous)
@@ -89,19 +93,19 @@ class Confirmer:
     def _out_of_time(self, started: datetime) -> bool:
         return self.now is not None and (self.now() - started).total_seconds() >= CONFIRM_STARTS_UNTIL_SECONDS
 
-    def _overdue(self, day: date, today: date, written: set[str]) -> bool:
+    def _overdue(self, day: date, today: date, written: set[str], why: str) -> bool:
         """True from the second session after the day on; the first such run writes the mark and alerts once."""
         if len(self.calendar.sessions(day + timedelta(days=1), today)) < OVERDUE_SESSIONS:
             return False
         if overdue_path(day) not in written:
             self.store.put(overdue_path(day), encode({"day": day.isoformat(), "unconfirmed_on": today.isoformat()}))
-            self.log(OVERDUE.format(day=day, today=today))
-            announce(self.alerts, OVERDUE_ALERT.format(day=day, today=today))
+            self.log(OVERDUE.format(day=day, today=today, why=why))
+            announce(self.alerts, OVERDUE_ALERT.format(day=day, today=today, why=why))
         return True
 
     def _overdue_quietly(self, day: date, today: date, written: set[str]) -> None:
         try:
-            self._overdue(day, today, written)
+            self._overdue(day, today, written, FAILED_RUNS)
         except Exception as error:  # noqa: BLE001 - Drive down too: the next run tries the mark again
             self.log(FAILED.format(day=day, kind=type(error).__name__))
 

@@ -38,6 +38,8 @@ def test_index_values_hold_each_index_s_open_high_low_and_close():
     assert values["Nifty MidSmall Financial Services"]["open"] is None
     closes = {name: found["close"] for name, found in values.items() if found["close"] is not None}
     assert closes == read_index_closes(data)
+    odd = data.replace(b"Financial Services,02-01-2024,-,", b"Financial Services,02-01-2024,NA,", 1)
+    assert odd != data and read_index_values(odd)["Nifty 50"] == values["Nifty 50"]  # one odd row voids no other
 
 
 def test_both_formats_give_the_same_contracts_and_numbers():

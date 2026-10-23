@@ -81,7 +81,9 @@ class CloseReader:
         sha = self.store.put(record_path(day), encode(read_document(day, read_at, got, which, raw_file)))
         how = AT_RECHECK if which == RECHECK else ""
         names = ", ".join(n.listed + ("" if n.checked else " (list)") for n in INDICES)
-        line = READ_LINE.format(day=day, how=how, names=names, stamp=got.stamp, path=record_path(day), sha=sha[:12])
+        problems = "".join(f"; {name}: {', '.join(found)}" for name, found in got.problems.items())
+        line = READ_LINE.format(day=day, how=how, names=names, problems=problems, stamp=got.stamp,
+                                path=record_path(day), sha=sha[:12])  # fmt: skip
         return self._done(line, 0)
 
     def _read(self, day) -> tuple[ListRead | None, bytes, str]:
