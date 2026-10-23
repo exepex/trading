@@ -680,6 +680,10 @@ from A20a's master files.
   only [reasoning only]" and "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY" (orchestrator, 22 Oct 2026),
   the file name and SHA-256, and per trade the index, expiry, legs, lot and per-lot scan, NOV and exposure. The dashcam
   (MS-P1c) seals them with the decision.
+- `build_road_margin(cfg, env, factor=None)`: a caller may pass its own factor row per session (the practice run over
+  history, whose sessions predate the factor file's first row of 14 Oct 2026: each session's own archived file times
+  the latest factor; orchestrator, 23 Oct 2026). The default is C2's file lookup, unchanged, and it still refuses a
+  session before that first row. The row used is named in every record either way.
 - A14's point-in-time rule (written before 09:00 IST) becomes one `SpanFile.written_in_time`, used by A14's job, A14c's
   run and this margin (it was copied in the first two).
 
