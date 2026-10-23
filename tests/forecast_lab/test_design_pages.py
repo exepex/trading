@@ -18,7 +18,7 @@ TABLE_COLUMNS = ("<th>Date</th>", "<th>Forecast middle</th>", "<th>Most likely</
 
 
 def test_the_evening_page_carries_the_key_the_three_numbers_both_charts_the_table_and_the_counts():
-    html = render_evening(page("evening"))
+    html = render_evening(page("evening", checked=True))
     assert all(words in html for words in KEY_WORDS) and html.count("How to read the result") == 1
     assert "<small>Forecast middle</small>" in html and "<small>Actual close</small>" in html
     assert "<small>Gap</small>" in html and " pts</b>" in html
@@ -30,20 +30,20 @@ def test_the_evening_page_carries_the_key_the_three_numbers_both_charts_the_tabl
 
 
 def test_the_evening_result_card_says_the_result_and_how_far_outside_which_range():
-    html = render_evening(page("evening", indices=(nifty(),)))
+    html = render_evening(page("evening", indices=(nifty(checked=True),)))
     assert "⚠ Close call" in html or "✓ Correct" in html or "✗ Missed" in html
     assert "Closed " in html and ("the forecast middle" in html or "“almost certainly”" in html)
     assert "Why it was correct" in html or "Why a close call" in html or "Why it missed" in html
 
 
 def test_chart_2_writes_every_miss_with_its_signed_gap_and_chart_1_the_last_values():
-    html = render_evening(page("evening", indices=(nifty(),)))
+    html = render_evening(page("evening", indices=(nifty(checked=True),)))
     assert html.count('class="gv red"') == 2 * 3  # three misses, desk and phone
     assert ">forecast " in html and ">close " in html and "<title>" in html
 
 
 def test_the_morning_page_carries_the_big_numbers_chart_1_with_todays_forecast_and_the_chip():
-    html = render_morning(page("morning"))
+    html = render_morning(page("morning", checked=True))
     assert all(words in html for words in KEY_WORDS)
     assert "<small>Most likely</small>" in html and "<small>Almost certainly</small>" in html
     assert "<small>Forecast middle</small>" in html and "1 day in 2" in html and "9 days in 10" in html
@@ -54,7 +54,7 @@ def test_the_morning_page_carries_the_big_numbers_chart_1_with_todays_forecast_a
 
 
 def test_no_shaded_band_no_bar_no_request_and_one_definition_of_right():
-    for html in (render_morning(page("morning")), render_evening(page("evening"))):
+    for html in (render_morning(page("morning", checked=True)), render_evening(page("evening", checked=True))):
         assert "<rect" not in html.replace('<rect class="zone"', "")  # the trend's warning zone is the only rect
         assert "polygon" not in html and "http://" not in html and "https://" not in html and "<link" not in html
         assert "Right " not in html  # the three words correct / close call / missed, never a bare "right"
@@ -62,9 +62,9 @@ def test_no_shaded_band_no_bar_no_request_and_one_definition_of_right():
 
 def test_the_renderer_picks_the_edition_and_serves_the_same_page_as_picture_and_details():
     renderer = DesignRenderer()
-    evening = page("evening")
+    evening = page("evening", checked=True)
     assert renderer.picture(evening) == renderer.details(evening)
-    morning = page("morning")
+    morning = page("morning", checked=True)
     if getattr(morning, "edition", "evening") == "morning":  # the model after FL1-1d-1
         assert "Today’s forecast" in renderer.picture(morning) and "chart 2" not in renderer.picture(morning)
     assert "Was today’s forecast right?" in renderer.picture(evening)
@@ -73,7 +73,7 @@ def test_the_renderer_picks_the_edition_and_serves_the_same_page_as_picture_and_
 def test_an_index_without_scored_sessions_renders_a_plain_line_instead_of_charts():
     from dataclasses import replace
 
-    bare = replace(nifty(), horizons=(), scored=0, right=0, light="none", light_word="Too few days")
+    bare = replace(nifty(checked=True), horizons=(), scored=0, right=0, light="none", light_word="Too few days")
     html = render_evening(page("evening", indices=(bare,)))
     assert "no scored session yet" in html and "<svg" not in html
     assert "Too few days" in render_morning(page("morning", indices=(bare,)))
@@ -86,7 +86,7 @@ def test_the_result_card_reads_only_the_editions_own_check_never_an_older_day():
 
     from fno.forecast_lab.design.values import days_of, result_of
 
-    index = nifty()
+    index = nifty(checked=True)
     own = index.horizons[0].timeline.points[-5]
     assert result_of(SimpleNamespace(result=own)).day == own.day  # IndexView.result (FL1-1d-2)
     assert result_of(replace(index, result=None)) is None and days_of(index, 30)  # never days[-1] instead
@@ -101,7 +101,7 @@ def test_the_honesty_labels_are_printed_and_never_dropped():
     from fno.forecast_lab.design.values import day_of
     from fno.forecast_lab.page.model import Miss
 
-    index = nifty()
+    index = nifty(checked=True)
     # 1. a reason from the data is escaped, never injected as markup
     # the hostile reason sits on the newest miss, a red row of the shown day table AND of the misses table (446.1)
     hostile = replace(index, misses=(Miss(index.misses[-1].day, "above", 60.0, ("<b>bold</b> & co",)),))
@@ -124,10 +124,10 @@ def test_the_honesty_labels_are_printed_and_never_dropped():
     # 4. system problems are printed on both pages, and "all normal" only when there is none
     from fno.forecast_lab.page.model import PageView
 
-    broken = PageView(page().day, "Live, sealed", (index,), (), ("a forecast is missing: data late",))
+    broken = PageView(page(checked=True).day, "Live, sealed", (index,), (), ("a forecast is missing: data late",))
     for html in (render_morning(broken), render_evening(broken)):
         assert "⚠ a forecast is missing: data late" in html and "All systems normal" not in html
-    assert "All systems normal" in render_evening(page("evening"))
+    assert "All systems normal" in render_evening(page("evening", checked=True))
 
 
 def test_the_result_words_come_from_one_source_shared_with_the_text_lines():
@@ -146,7 +146,7 @@ def test_the_evening_verdict_comes_first_in_the_owners_words_then_why_record_and
 
     from fno.forecast_lab.design.verdict import VERDICTS, YES_NO
 
-    index = nifty()
+    index = nifty(checked=True)
     html = render_evening(page("evening", indices=(index,)))
     card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
     assert "today: closed <b>" in card and "(NSE&#x27;s official close)" in card
@@ -185,7 +185,7 @@ def test_the_close_label_names_the_morning_report_that_confirms_it_never_tomorro
     assert morning_report(friday, monday) == "Monday's morning report"
     assert morning_report(date(2026, 10, 22), friday) == "tomorrow morning's report"
     assert morning_report(friday, None) == "the next morning report"
-    index = nifty()
+    index = nifty(checked=True)
     provisional = replace(index, result=replace(index.result, provisional=True))
     view = page("evening", indices=(provisional,))
     try:
@@ -199,19 +199,21 @@ def test_the_close_label_names_the_morning_report_that_confirms_it_never_tomorro
 
 
 def test_the_morning_shows_the_previous_sessions_check_in_the_same_words_with_its_day():
-    html = render_morning(page("morning", indices=(nifty(),)))
+    html = render_morning(page("morning", indices=(nifty(checked=True),)))
     assert "Last session’s check" in html and "Fri 23 Oct: closed <b>" in html
     assert "inside “almost certainly”: <b>yes</b>" in html and 'verdict: <b class="green">✓ right</b>' in html
     from dataclasses import replace
 
-    assert "Last session’s check" not in render_morning(page("morning", indices=(replace(nifty(), result=None),)))
+    assert "Last session’s check" not in render_morning(
+        page("morning", indices=(replace(nifty(checked=True), result=None),))
+    )
 
 
 def test_a_past_days_check_is_never_called_today():
     """Orchestrator, 23 Oct: a past day under "today" without its date label is the fault of the 23 Oct page."""
     from dataclasses import replace
 
-    index = nifty()
+    index = nifty(checked=True)
     past = replace(index, result=index.horizons[0].timeline.points[-3])  # Wed 21 Oct on the Fri 23 Oct page
     html = render_evening(page("evening", indices=(past,)))
     assert "Wed 21 Oct: closed <b>" in html and "<small>Wed 21 Oct · closed" in html

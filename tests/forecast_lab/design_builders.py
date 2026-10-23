@@ -55,7 +55,9 @@ def method(points, best: bool = True) -> MethodRecord:
     return MethodRecord("implied", cells, windows, rolling, best)
 
 
-def nifty(n: int = 30, edition_fields: bool = False) -> IndexView:
+def nifty(n: int = 30, checked: bool = False) -> IndexView:
+    """`checked`: the index carries the edition's own check of its newest session (FL1-1d-2's `result`); the
+    default has none, so another story's golden files made from these fakes stay byte-identical."""
     points = outcomes(n)
     misses = tuple(Miss(points[i].day, "above" if i % 2 else "below", 60.0, ("a made-up reason",)) for i in MISS_DAYS)
     today = (RangeView("N1", DAY + timedelta(days=1), NIFTY_BAND, 0.5, "tomorrow"),
@@ -63,9 +65,10 @@ def nifty(n: int = 30, edition_fields: bool = False) -> IndexView:
                        "in 3 trading days, Mon 26 Oct"))  # fmt: skip
     right = sum(p.inside_90 for p in points)
     horizons = (Horizon(Timeline("N1", "implied", points), (method(points),)),)
+    result = points[-1] if checked else None
     return IndexView("NIFTY", float(points[-1].close), "close", "implied", today, False, 0, 60, horizons, right, n,
                      misses, "green" if right >= 25 else "amber", "Good" if right >= 25 else "Watch",
-                     tuple(points[i].day for i in reversed(MISS_DAYS)), result=points[-1])  # fmt: skip
+                     tuple(points[i].day for i in reversed(MISS_DAYS)), result=result)  # fmt: skip
 
 
 def unchecked(index: IndexView, why: str) -> IndexView:
@@ -85,17 +88,18 @@ def scaled(band: Band, scale: float) -> Band:
     return Band(*(q * scale for q in (band.q05, band.q25, band.q50, band.q75, band.q95)))
 
 
-def banknifty() -> IndexView:
-    index, scale = nifty(), 2.5
+def banknifty(checked: bool = False) -> IndexView:
+    index, scale = nifty(checked=checked), 2.5
     points = tuple(replace(p, close=p.close * scale, band=scaled(p.band, scale))
                    for p in index.horizons[0].timeline.points)  # fmt: skip
     today = tuple(replace(r, band=scaled(r.band, scale)) for r in index.today)
-    return replace(index, underlying="BANKNIFTY", price=points[-1].close, today=today, result=points[-1],
+    result = points[-1] if index.result else None
+    return replace(index, underlying="BANKNIFTY", price=points[-1].close, today=today, result=result,
                    horizons=(Horizon(Timeline("N1", "implied", points), (method(points),)),))  # fmt: skip
 
 
-def page(edition: str = "evening", indices=None) -> PageView:
-    view = PageView(DAY, "Live, sealed", tuple(indices or (nifty(), banknifty())), ())
+def page(edition: str = "evening", indices=None, checked: bool = False) -> PageView:
+    view = PageView(DAY, "Live, sealed", tuple(indices or (nifty(checked=checked), banknifty(checked))), ())
     try:
         return replace(view, edition=edition)
     except TypeError:  # the model before FL1-1d-1: no edition field, the renderer draws the evening
