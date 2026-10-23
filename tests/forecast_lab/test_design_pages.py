@@ -8,7 +8,7 @@ from fno.forecast_lab.design.evening import render_evening
 from fno.forecast_lab.design.morning import render_morning
 from fno.forecast_lab.design.renderer import DesignRenderer
 
-from .design_builders import nifty, page
+from .design_builders import nifty, page, unchecked
 
 KEY_WORDS = ("✓ Correct = closed inside “most likely”", "⚠ Close call = outside “most likely”",
              "✗ Missed = outside “almost certainly”")  # fmt: skip
@@ -79,18 +79,17 @@ def test_an_index_without_scored_sessions_renders_a_plain_line_instead_of_charts
     assert "Too few days" in render_morning(page("morning", indices=(bare,)))
 
 
-def test_the_result_card_reads_the_editions_own_check_when_the_model_carries_it():
+def test_the_result_card_reads_only_the_editions_own_check_never_an_older_day():
+    """Owner, 23 Oct: with no check of today, the page said 21 Oct's result under "Was today's forecast right?"."""
+    from dataclasses import replace
     from types import SimpleNamespace
 
     from fno.forecast_lab.design.values import days_of, result_of
 
     index = nifty()
-    days = days_of(index, 30)
-    assert result_of(index, days).day == days[-1].day  # main's model: the newest scored session
     own = index.horizons[0].timeline.points[-5]
-    with_result = SimpleNamespace(result=own, horizons=index.horizons)
-    assert result_of(with_result, days).day == own.day  # FL1-1d-2's model: IndexView.result
-    assert result_of(SimpleNamespace(result=None, horizons=()), []) is None
+    assert result_of(SimpleNamespace(result=own)).day == own.day  # IndexView.result (FL1-1d-2)
+    assert result_of(replace(index, result=None)) is None and days_of(index, 30)  # never days[-1] instead
 
 
 def test_the_honesty_labels_are_printed_and_never_dropped():
@@ -112,8 +111,8 @@ def test_the_honesty_labels_are_printed_and_never_dropped():
     point = index.horizons[0].timeline.points[-1]
     provisional = SimpleNamespace(day=point.day, close=point.close, band=point.band, inside_50=point.inside_50,
                                   inside_90=point.inside_90, live=False, provisional=True)  # fmt: skip
-    assert "the official file confirms it next morning" in result_card(day_of(provisional))
-    assert "the official file confirms it next morning" not in result_card(day_of(point))
+    assert "the official file confirms it in the next morning report" in result_card(day_of(provisional))
+    assert "the official file confirms it" not in result_card(day_of(point))
     # 3. the back-tested count is on both pages: the evening's note and the morning's chip, and the method line
     tested = replace(index, backtested=7)
     evening = render_evening(page("evening", indices=(tested,)))
@@ -138,3 +137,71 @@ def test_the_result_words_come_from_one_source_shared_with_the_text_lines():
     assert f"{GLYPH[GREEN]} {WORD[GREEN]}" == RESULTS[(True, True)] == "✓ Correct"
     assert f"{GLYPH[AMBER]} {WORD[AMBER]}" == RESULTS[(False, True)] == "⚠ Close call"
     assert f"{GLYPH[RED]} {WORD[RED]}" == RESULTS[(False, False)] == "✗ Missed"
+
+
+def test_the_evening_verdict_comes_first_in_the_owners_words_then_why_record_and_the_next_forecast():
+    """Owner, 23 Oct: per index, the verdict (close against both ranges, glyph plus word), why, the record with
+    back-tested apart, then the next session's forecast; the words are the FL1 builder's text lines' (FL1-1e)."""
+    from dataclasses import replace
+
+    from fno.forecast_lab.design.verdict import VERDICTS, YES_NO
+
+    index = nifty()
+    html = render_evening(page("evening", indices=(index,)))
+    card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
+    assert "today: closed <b>" in card and "(NSE&#x27;s official close)" in card
+    assert "inside “most likely”: <b>yes</b>" in card and "inside “almost certainly”: <b>yes</b>" in card
+    assert 'verdict: <b class="green">✓ right</b>' in card and VERDICTS == {True: "✓ right", False: "✗ wrong"}
+    order = ("verdict:", "<small>Forecast middle</small>", "Why it was correct", "Inside “almost certainly”",
+             "Method: implied", "Next session’s forecast · close")  # fmt: skip
+    assert [card.index(words) for words in order] == sorted(card.index(words) for words in order)
+    assert YES_NO == {True: "yes", False: "no"}
+    # a close outside "almost certainly" is wrong, in red, with "no" on both ranges
+    point = index.horizons[0].timeline.points[-1]
+    missed = replace(index, result=replace(point, close=point.band.q95 + 60, inside_50=False, inside_90=False))
+    wrong = render_evening(page("evening", indices=(missed,)))
+    assert 'verdict: <b class="red">✗ wrong</b>' in wrong and wrong.count("<b>no</b>") == 2
+
+
+def test_the_evening_without_a_check_says_so_in_red_first_and_names_the_last_checked_day():
+    why = "today: not checked yet (NSE close not read); result in Monday's morning report"
+    html = render_evening(page("evening", indices=(unchecked(nifty(), why),)))
+    card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
+    assert card.index('<p class="nocheck">⚠ today: not checked yet (NSE close not read)') < card.index("Method:")
+    assert "<small>today: not checked</small>" in card and "verdict:" not in card and "Why " not in card
+    assert "last checked: Thu 22 Oct, ✓ Correct" in card and "Next session’s forecast" in card
+    # the model before FL1-1e carries no reason: the plain line, never a guess
+    bare = unchecked(nifty(), "")
+    assert "⚠ today: not checked (no verdict)" in render_evening(page("evening", indices=(bare,)))
+
+
+def test_the_close_label_names_the_morning_report_that_confirms_it_never_tomorrow_on_a_friday():
+    from dataclasses import replace
+    from datetime import date
+
+    from fno.forecast_lab.design.verdict import morning_report
+
+    friday, monday = date(2026, 10, 23), date(2026, 10, 26)
+    assert morning_report(friday, monday) == "Monday's morning report"
+    assert morning_report(date(2026, 10, 22), friday) == "tomorrow morning's report"
+    assert morning_report(friday, None) == "the next morning report"
+    index = nifty()
+    provisional = replace(index, result=replace(index.result, provisional=True))
+    view = page("evening", indices=(provisional,))
+    try:
+        view = replace(view, next_session=monday)  # FL1-1e's PageView.next_session
+    except TypeError:
+        view.__dict__["next_session"] = monday
+    html = render_evening(view)
+    assert "(NSE&#x27;s close; the official file confirms it in Monday&#x27;s morning report)" in html
+    assert "close as read after 15:30; the official file confirms it in Monday&#x27;s morning report" in html
+    assert "next morning" not in html  # the small note under the close names the same report as the verdict line
+
+
+def test_the_morning_shows_the_previous_sessions_check_in_the_same_words_with_its_day():
+    html = render_morning(page("morning", indices=(nifty(),)))
+    assert "Last session’s check" in html and "Fri 23 Oct: closed <b>" in html
+    assert "inside “almost certainly”: <b>yes</b>" in html and 'verdict: <b class="green">✓ right</b>' in html
+    from dataclasses import replace
+
+    assert "Last session’s check" not in render_morning(page("morning", indices=(replace(nifty(), result=None),)))

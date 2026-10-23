@@ -65,7 +65,20 @@ def nifty(n: int = 30, edition_fields: bool = False) -> IndexView:
     horizons = (Horizon(Timeline("N1", "implied", points), (method(points),)),)
     return IndexView("NIFTY", float(points[-1].close), "close", "implied", today, False, 0, 60, horizons, right, n,
                      misses, "green" if right >= 25 else "amber", "Good" if right >= 25 else "Watch",
-                     tuple(points[i].day for i in reversed(MISS_DAYS)))  # fmt: skip
+                     tuple(points[i].day for i in reversed(MISS_DAYS)), result=points[-1])  # fmt: skip
+
+
+def unchecked(index: IndexView, why: str) -> IndexView:
+    """An index whose edition could not check today: no result, the timeline ends on the previous session, and the
+    builder's reason (FL1-1e's `IndexView.unchecked`; read with a default on the model before it)."""
+    timeline = index.horizons[0].timeline
+    horizons = (Horizon(replace(timeline, points=timeline.points[:-1]), index.horizons[0].methods),)
+    bare = replace(index, horizons=horizons, result=None)
+    try:
+        return replace(bare, unchecked=why)
+    except TypeError:  # the model before FL1-1e
+        bare.__dict__["unchecked"] = why  # a frozen dataclass; the renderer reads it with getattr
+        return bare
 
 
 def scaled(band: Band, scale: float) -> Band:
@@ -77,7 +90,7 @@ def banknifty() -> IndexView:
     points = tuple(replace(p, close=p.close * scale, band=scaled(p.band, scale))
                    for p in index.horizons[0].timeline.points)  # fmt: skip
     today = tuple(replace(r, band=scaled(r.band, scale)) for r in index.today)
-    return replace(index, underlying="BANKNIFTY", price=points[-1].close, today=today,
+    return replace(index, underlying="BANKNIFTY", price=points[-1].close, today=today, result=points[-1],
                    horizons=(Horizon(Timeline("N1", "implied", points), (method(points),)),))  # fmt: skip
 
 
@@ -89,4 +102,4 @@ def page(edition: str = "evening", indices=None) -> PageView:
         return view
 
 
-__all__ = ["BAND", "page", "nifty", "banknifty", "outcomes", "sessions"]
+__all__ = ["BAND", "page", "nifty", "banknifty", "outcomes", "sessions", "unchecked"]
