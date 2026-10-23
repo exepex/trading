@@ -59,3 +59,15 @@ def test_the_why_line_names_the_driver_road_net_and_causes_and_no_contract():
         assert f"{leg.key.strike:g}" not in line and str(leg.price) not in line and leg.key.kind.value not in line
     assert EXPIRY.isoformat() not in line
     assert WhyLineSource(run.store).lines(LATER) == ()
+
+
+def test_a_rerun_after_later_sessions_returns_the_session_as_written():
+    """MS-P1j may finish an interrupted session late: once its causes file exists, the run returns it unchanged,
+    even when a later run would see more (here: the expiry has settled since)."""
+    run, _ = instructor()
+    first = run.for_session(SESSIONS[2], write=True)
+    late, _ = instructor(settlement=1500.0, store=run.store)
+    files = dict(run.store.files)
+    again = late.for_session(SESSIONS[2], write=True)
+    assert again.classifications == first.classifications and run.store.files == files
+    assert late.for_session(SESSIONS[2]).classifications != first.classifications  # a dry run still recomputes

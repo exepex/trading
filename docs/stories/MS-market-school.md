@@ -2747,6 +2747,9 @@ monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day l
 - `run_instructor_session(config, session, write=True)`: j's one entry point. j calls it after the session's outcomes
   file is sealed and before its counts commit. It attributes, classifies, writes the instructor's files and the public
   counts file. Tested with fakes.
+  - j wraps it in isolation: the instructor can never stop the school's record.
+  - With write=False (j's replay) it writes nothing at all.
+  - A rerun returns a session already written, as written (`a_rerun_after_later_sessions_returns_the_session_as_written`).
 - `build_why_lines(config=None) -> WhyLineSource`, with `lines(session)`. It reaches g's 20:05 section through a `why`
   port in g's day inputs; the render line is g's.
 - `CountedComparison.rows(..., unfilled=)`: keys `(driver_id, road, entry session)` of every fired entry that never
