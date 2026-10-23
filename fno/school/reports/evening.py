@@ -15,6 +15,7 @@ from .lines import SIGNED_RUPEE, footer, paper_title
 
 TITLE = "How did today go"
 NONE_TODAY = "none"
+WHY_HEADER = "Why (the instructor's words):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
     (DriverRole.CONTROL, "Control (not in the fleet total)"),
@@ -40,6 +41,7 @@ class HowDidTodayGoSection:
             *self.inputs.marks(session),
             *self._trades(rule),
             *self._counts(session),
+            *self._why(session),
             *_problems(decisions),
             f"Fleet total, rule drivers only: {SIGNED_RUPEE.format(amount=sum(r.net for r in rule))} "
             f"({FLEET_TOTAL_LABEL})",
@@ -60,6 +62,15 @@ class HowDidTodayGoSection:
     def _trades(self, rule: Iterable[OutcomeRecord]) -> list[str]:
         lines = [f"{r.driver_id} {r.road}: net {SIGNED_RUPEE.format(amount=r.net)} ({r.exit_reason})" for r in rule]
         return lines or [f"Trades closed: {NONE_TODAY}"]
+
+    def _why(self, session: date) -> list[str]:
+        """The instructor's cause lines for the rule drivers' trades, verbatim under one header; none, no header. A line
+        whose leading driver id is a control or a measurement-only driver is left out (they have their own lines)."""
+        kept = [line for line in self.inputs.why(session) if self._leads_with_a_rule_driver(line)]
+        return [WHY_HEADER, *kept] if kept else []
+
+    def _leads_with_a_rule_driver(self, line: str) -> bool:
+        return self.inputs.role_of(line.split(" ", 1)[0]) is DriverRole.RULE
 
     def _other_accounts(self, money: Iterable[OutcomeRecord]) -> list[str]:
         """Controls and measurement-only drivers on their own labelled lines, never added to the fleet total."""

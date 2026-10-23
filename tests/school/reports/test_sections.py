@@ -131,3 +131,36 @@ def test_measurement_only_drivers_have_their_own_line_and_are_not_in_the_fleet_t
 def test_a_rule_drivers_trade_keeps_the_evening_amber_whatever_the_controls_do():
     records = [trade_record(), f.trade_by("N0@1"), f.net_record("CS1@1", 100.0)]
     assert evening(records).banner is Banner.AMBER
+
+
+WHY = "CS1@1 BANKNIFTY-M: net Rs -140; why: wrong direction (also: costs ate the edge); hard road"
+
+
+def with_why(*causes, records=()):
+    return HowDidTodayGoSection(f.Day(tuple(records), (), (), tuple(causes))).render(f.SESSION)
+
+
+def test_the_instructors_lines_are_shown_verbatim_under_a_header_after_the_counts():
+    lines = with_why(WHY, records=[trade_record(), f.net_record("CS1@1", -140.0)]).lines
+    at = lines.index("Why (the instructor's words):")
+    assert lines[at + 1] == WHY
+    counts_at = lines.index("Counts (eligible / fillable / executed):")
+    assert counts_at < at < next(i for i, line in enumerate(lines) if line.startswith("Fleet total")), (
+        "after the counts, before the fleet total"
+    )
+
+
+def test_no_instructor_lines_means_no_header_and_no_change():
+    assert "Why (the instructor's words):" not in "\n".join(with_why().lines)
+    assert with_why().lines == evening().lines
+
+
+def test_a_line_about_a_control_or_a_measurement_only_driver_is_left_out_of_the_why_lines():
+    control = "N0@1 BANKNIFTY-M: net Rs +5000; why: lucky"
+    measurement = "PS5@1 BANKNIFTY-M: net Rs -400; why: wrong direction"
+    lines = with_why(control, WHY, measurement).lines
+    assert WHY in lines and control not in lines and measurement not in lines
+
+
+def test_only_controls_in_the_why_lines_leave_no_header():
+    assert "Why (the instructor's words):" not in "\n".join(with_why("N0@1 BANKNIFTY-M: net Rs +5000; why: x").lines)

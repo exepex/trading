@@ -540,6 +540,12 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
 - a rerun skips sealed decisions;
+- **runbook step (orchestrator, 22 Oct 2026; judge 495):** any new comparison-card version (an edit of
+  `research/school/CARD_P1.md`) needs new D6 rows registered before its decisions count: one `school:<driver id>` row per
+  driver version (12 today), version id one higher, `comparison_card_sha256` the new card's SHA-256 and `card_sha256`
+  unchanged unless the driver card changed too, committed after the card. Until then every decision made under the new
+  version is `comparison_card_mismatch` (denominator kept, nothing counted); decisions made earlier keep their own
+  verdict. The run's output should say so by name when it sees the mismatch;
 - **requirement (orchestrator, 22 Oct 2026, judge 494):** a law result's `note` can name contracts or legs (MS-P1m's
   margin causes do), so it is never posted to Slack; the reports count "margin not checked" refusals by their cause
   (`margin_not_checked`, the cause after the prefix), never by quoting the note;
@@ -2528,3 +2534,25 @@ eight plants were re-run, 8 of 8 caught.
 | Minor: four survivors are equivalent or replay-only | — | Equivalent today (reasoning only, not tested): (1) all of a driver's positions passed to `decide` (every driver's card filters by road and holding itself); (2) the 08:50 plan's rule-only filter (g's section filters by role again); (3) a missing mid read as 0.0 (no path reaches it: a refused leg has no fill, and an outcome needs its entry's sealed mids, else it stops). Replay-only: (4) the replay store's conflict check, which never runs in the record (c's dashcam has its own, judged in MS-P1c) |
 - **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
 - **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.
+
+### MS-P1g follow-up: the instructor's why lines, and two items folded in (branch `story/ms-p1g-why-lines`, lane 1)
+
+- **Why lines** (asked by the MS-P1j builder; agreed with the MS-INS builder): `DayInputs.why(session)` returns MS-INS
+  part e's lines for the session's closed trades, or `()` without a source. The 20:05 section shows them verbatim under
+  the header "Why (the instructor's words):", right after the counts and before the fleet total; none, no header. A line
+  is kept only when its leading token (the driver id) is a rule driver (`role_of`); controls and measurement-only
+  drivers keep their own labelled lines (orchestrator's decision on judge 484). The section does not scan the text for
+  strikes or prices: the source's contract is that a line holds a driver id, a road, the net and cause words only.
+  Tests (`test_sections.py`): verbatim and in place, no lines no header, a control's or measurement-only line left out,
+  only controls leave no header. Plants: the role filter off, the empty-case header, the section call removed (all
+  caught).
+- **Merge order:** main's `SealedDayInputs` (j's file) gets a `why` returning `()` here (three lines), so the two
+  j tests that render the evening with the real inputs stay green; the MS-P1j builder's `story/ms-p1j-ins-wiring` has the
+  real `why` at the same place, so merging main into it takes theirs.
+- **Runbook step for MS-P1j** (orchestrator, judge 495): written into MS-P1j's "Implements" list: a new comparison-card
+  version needs new D6 rows (one per driver version) registered before its decisions count; until then every decision is
+  `comparison_card_mismatch`.
+- **Empty hash pinned** (orchestrator, judge 495): `test_a_card_deleted_after_the_rows_hashes_to_nothing_and_no_decision_counts_under_it`:
+  a commit with no card gives `""` (never the hash of nothing), and a decision under a deleted card is
+  `comparison_card_mismatch`; the plant (hashing an empty text) is caught.
+
