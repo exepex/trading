@@ -64,6 +64,9 @@ them was found by a person reading Slack, not by the system: nothing compares "e
 
 ## 2. Design: two pillars
 
+**Superseded (23 Oct): sections 2, 3 and 6 are replaced by `DR1-design-staging.md`, the owner's staging and
+certification model.** Kept below as the record of the first proposal.
+
 **Availability:** every expected dataset is present and readable through its real reader every session, or the system
 repairs it itself, or proves it gone (the source no longer serves it) and says so once. **Consistency:** no reader ever
 uses a corrupted, incomplete or stale copy; a better copy can always supersede a worse one, with its reason.
