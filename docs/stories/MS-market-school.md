@@ -625,6 +625,26 @@ change to the roads, slot, band or drivers. The rows must be registered and push
      `config.yaml`'s `charges:` block differs from the hash frozen in the current card version.
 6. A row registered after a decision never counts that decision (D6's ancestor rule). Versions apply forward only.
 
+**Runbook: "dashcam stuck: stored file unverifiable" (Judge K, judge 529; MS-P1c follow-up).** `school run` stops with
+`stopped: dashcam stuck: stored file unverifiable <session> <slot> <kind> (<why>)` and exits 1 (the alert). Cause:
+Drive holds that key's file and `main` has no receipt for it (a run stopped between the two), and the file is not
+one this fleet could have written. What waits depends on the kind (Judge K, judge 529.2); the fleet never seals over
+the stored file:
+- `decisions`: nothing for that session is decided, sealed, filled or counted until a person decides.
+- `outcomes` or `drift`: the stop comes after the fills, so the decisions are already sealed and the fills booked in
+  the ledgers. An `outcomes` stop leaves the outcomes, the drift rows, the instructor's files and the counts waiting;
+  a `drift` stop comes after the outcomes are sealed too, so only the drift rows, the instructor's files and the
+  counts wait. A rerun after the person's decision books no fill twice (it reads the ledgers).
+1. Read the why. "not this fleet's" usually means a card or driver changed between the two runs (compare the
+   cards' commits with the stored records' `card_sha256`); "unreadable", "not canonical", "another kind", "another
+   session or slot" mean the file is damaged or misplaced.
+2. Fetch the stored file from Drive (`data/school/dashcam/<YYYY>/<MM>/<DD>/1500.<kind>.jsonl.gz`, the slot
+   without its colon) and decode it (`fno.school.contracts.slot_file.decode_slot_file`); it is never deleted or
+   overwritten (write-once).
+3. Raise it to the owner and the orchestrator with the key, the why and what the file holds; the session's record is
+   their decision (for example, a card change reverted so the file is this fleet's again, after which a rerun
+   adopts it). Never edit the file, never write its receipt by hand.
+
 **Acceptance tests:**
 1. `school.enabled: false` prints "school off" and writes nothing.
 2. Every scheduled road decision has exactly one sealed outcome (count = trading roads x drivers).
