@@ -227,3 +227,23 @@ def test_a_past_days_check_is_never_called_today():
     assert "today: closed" not in html and "today · closed" not in html
     own = render_evening(page("evening", indices=(index,)))
     assert "today: closed <b>" in own and "<small>today · closed" in own
+
+
+def test_the_chip_counts_over_its_own_window_and_a_cues_unit_goes_on_the_change_only():
+    """Seen on the 23 Oct dry run: the morning chip said "25 of 30 (✓ correct 2 · ⚠ close call 5)", counted over the
+    10 days the morning chart shows; and a level printed as "7,663.43%" because the change's unit was appended."""
+    import re
+    from datetime import date
+
+    from fno.forecast_lab.design.page import _cue_words, reliability_chip
+    from fno.forecast_lab.design.values import days_of
+    from fno.forecast_lab.page.cues import Cue
+
+    index = nifty(checked=True)
+    chip = reliability_chip(index, days_of(index, 10))
+    correct, close = map(int, re.search(r"✓ correct (\d+) · ⚠ close call (\d+)", chip).groups())
+    assert correct + close == index.right == 27 and f"{index.right} of {index.scored}" in chip
+    assert chip == reliability_chip(index, days_of(index, 30))
+    assert _cue_words(Cue("S&P 500", 7000.5, -1.21, "%", date(2026, 10, 22))) == "7,000.5 −1.21%"
+    assert _cue_words(Cue("US 10-year yield", 4.96, -0.17, "pts", date(2026, 10, 22))) == "4.96 −0.17pts"
+    assert _cue_words(Cue("India VIX", 15.76, 0.51, "%", date(2026, 10, 22))) == "15.76 +0.51%"
