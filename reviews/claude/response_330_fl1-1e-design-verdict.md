@@ -66,3 +66,14 @@ fake index now carries its own check (`result`), and `unchecked(index, why)` dro
   width, before and after this change; the posted picture is 1100 px wide and is not affected. Not fixed here.
 - "Why" still comes from the builder's cues and the one measured line (gap against the range's width); when the
   builder's `why` is empty the page prints "not available yet", never a cause.
+
+## Addendum: judge 538 (FAIL, round 1; 3 blocking, 1 minor) answered at 6c7495f8 and the next commit
+
+Each point checked against the code before accepting; all four accepted.
+
+| # | Judge 538 | Decision | What changed |
+|---|---|---|---|
+| F1 | 19 school edition tests fail: `design_builders.page()` gave every index a `result`, so the school's golden text changed | **Accept**, already fixed at 6c7495f8 (the judge read 21e9009f) | The fakes carry a check only when asked (`checked=True`); the golden text is byte-identical again. The 14 page-hash assertions that remain pin the design's bytes, not the school wrapper: the MS-P1g builder's lane-2 branch `story/ms-p1g-editions-test` (c115ff2b) compares the wrapped and unwrapped makers in one run and passes 62 of 62 against this branch; it merges first (orchestrator, 23 Oct) |
+| F2 | The red line's place before "last checked" is not pinned | **Accept** | The unchecked test asserts red line < "last checked" < method line |
+| F3 | Option A's amber case is not pinned | **Accept** | One close call pinned: "most likely: no", "almost certainly: yes", "✓ right" green, before the amber chip |
+| F4 | A provisional morning check would say "tomorrow morning's report" | **Accept** (minor, fixed here: it is this branch's line) | `morning_check` labels a provisional close "NSE's close; the official file has not confirmed it yet", never a report's name; pinned by a test |

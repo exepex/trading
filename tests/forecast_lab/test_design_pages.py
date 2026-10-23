@@ -161,13 +161,20 @@ def test_the_evening_verdict_comes_first_in_the_owners_words_then_why_record_and
     missed = replace(index, result=replace(point, close=point.band.q95 + 60, inside_50=False, inside_90=False))
     wrong = render_evening(page("evening", indices=(missed,)))
     assert 'verdict: <b class="red">✗ wrong</b>' in wrong and wrong.count("<b>no</b>") == 2
+    # a close call (judge 538 F3): outside "most likely", inside "almost certainly": right, green, over the amber chip
+    amber = replace(index, result=replace(point, close=point.band.q75 + 80, inside_50=False, inside_90=True))
+    call = render_evening(page("evening", indices=(amber,)))
+    card = call[call.index("<h2>NIFTY") : call.index("chart 1")]
+    assert "inside “most likely”: <b>no</b>" in card and "inside “almost certainly”: <b>yes</b>" in card
+    assert card.index('verdict: <b class="green">✓ right</b>') < card.index('<span class="chip amber">⚠ Close call')
 
 
 def test_the_evening_without_a_check_says_so_in_red_first_and_names_the_last_checked_day():
     why = "today: not checked yet (NSE close not read); result in Monday's morning report"
     html = render_evening(page("evening", indices=(unchecked(nifty(), why),)))
     card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
-    assert card.index('<p class="nocheck">⚠ today: not checked yet (NSE close not read)') < card.index("Method:")
+    red = card.index('<p class="nocheck">⚠ today: not checked yet (NSE close not read)')
+    assert red < card.index("last checked:") < card.index("Method:")  # judge 538 F2: the red line first
     assert "<small>today: not checked</small>" in card and "verdict:" not in card and "Why " not in card
     assert "last checked: Thu 22 Oct, ✓ Correct" in card and "Next session’s forecast" in card
     # the model before FL1-1e carries no reason: the plain line, never a guess

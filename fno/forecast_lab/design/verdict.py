@@ -21,6 +21,7 @@ NEXT_MORNING = "the next morning report"
 TOMORROW_MORNING = "tomorrow morning's report"
 CLOSE_READ = "NSE's close; the official file confirms it in {report}"
 CLOSE_OFFICIAL = "NSE's official close"
+NOT_CONFIRMED = "NSE's close; the official file has not confirmed it yet"
 LAST_CHECKED = "last checked: {day}, {result}"
 
 
@@ -80,7 +81,5 @@ def morning_check(index: IndexView, view: PageView, checked: Day | None) -> str:
     """The morning's check of the previous session on NSE's official close, when the model carries one."""
     if checked is None:
         return ""
-    return (
-        f'<div class="lab">Last session’s check</div>'
-        f"{check_lines(checked, long(checked.day), close_label(checked, view))}"
-    )
+    label = NOT_CONFIRMED if checked.provisional else CLOSE_OFFICIAL  # judge 538 F4: never "tomorrow" here
+    return f'<div class="lab">Last session’s check</div>{check_lines(checked, long(checked.day), label)}'
