@@ -2944,4 +2944,7 @@ the run's own thread, and only when the work ended in time; one commit takes eve
   step's work builds a new one on every session call, never one held across runs:
   `test_every_session_call_builds_its_own_path_reader_never_one_held_across_runs` (plant: a run held across calls,
   caught).
-- **Plants:** 14 planted, 14 caught. Gates: in the commit message of the tip.
+- **Judge K's minor (judge 523.1):** `test_an_unpushed_commit_of_another_writer_still_blocks_the_push`: a commit of
+  another writer not yet on main makes the pull refuse and nothing reaches main (plant: `NamedFiles.owns` forced to
+  True, caught).
+- **Plants:** 15 planted, 15 caught. Gates: in the commit message of the tip.

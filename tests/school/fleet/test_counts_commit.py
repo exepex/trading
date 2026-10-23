@@ -61,3 +61,16 @@ def test_a_named_file_outside_the_counts_folder_is_committed_and_its_unnamed_nei
     tracked = set(git(clone, "ls-tree", "-r", "--name-only", "origin/main").split())
     assert receipt in tracked and neighbour not in tracked
     assert git(clone, "log", "-1", "--format=%s", "origin/main").strip() == f"Counts: school counts {b.SESSION}"
+
+
+def test_an_unpushed_commit_of_another_writer_still_blocks_the_push(clone):
+    """Judge K's minor (judge 523.1): the named files are this run's own; another writer's unpushed commit is not,
+    so the pull refuses and nothing reaches main (never pushed with them)."""
+    (clone / "story.md").write_text("unjudged work\n")
+    git(clone, "add", "story.md")
+    git(clone, "commit", "-q", "-m", "a story branch's work")
+    counts = SessionCounts(clone, SessionFilesCommitter(clone, "Counts: {what}"))
+    outcome = counts.write(b.SESSION, SLOT_1500, (), ())
+    tracked = set(git(clone, "ls-tree", "-r", "--name-only", "origin/main").split())
+    assert "story.md" not in tracked and str(counts.files(b.SESSION)[0]) not in tracked
+    assert "NOT committed" in outcome and "story.md" in outcome
