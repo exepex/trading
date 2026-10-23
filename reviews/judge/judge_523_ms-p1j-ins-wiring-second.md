@@ -66,3 +66,12 @@ None planted this round: the branch sits on part e's pre-rebase base, and the re
   time-outs, as the builder states. Adding one would bring back a late write.
 - **Gates (my run):** pytest -n auto 14,338 passed, 16 xfailed. ruff check and format, check_imports and
   check_records are clean.
+
+## Addendum 2: the final tip 94d3acb1
+
+**PASS confirmed** (second judge). 7d76b05d..94d3acb1 adds one test, that every session call builds its own path
+reader (`test_instructor_receipts_wiring.py`), plus a merge of `main`. No other code changes. `git merge-tree` with
+current `main`: clean. The fleet and instructor tests pass (354). The `NamedFiles.owns` minor (addendum 1) is still
+open, as a minor.
+**Note:** `recover()` (story/ms-ins-adopt) failed judge 525. If it lands later, the deferred store must implement it
+and adopt only on the run's own thread.
