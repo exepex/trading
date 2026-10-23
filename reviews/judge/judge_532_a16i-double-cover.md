@@ -28,3 +28,17 @@ recorder's run window. Round 1 of 2.
 
 ## Plants
 4 planted, 3 caught. The survivor is finding 1.
+
+## Addendum 1: round 2 at 7b2a9e45
+
+**Verdict: PASS, with one merge condition.**
+
+- **Finding 1: FIXED.** `test_the_run_command_gives_the_recorder_the_covered_end_not_the_prompts_end` gives a 12:05 end and expects 13:05. My round-1 plant (cli.py back to `recorder.run(args.until)`) now fails it.
+- **Finding 2: FIXED.** ruff check and format are clean.
+- **Minor: FIXED, and safe.** The check step now also counts `15-minute recorder stopped, nothing recorded` (cli.py's `CALENDAR_STOP`) as "the command alerted itself". It cannot hide a real failure:
+  - the line is printed only by `heartbeat_check`'s calendar stop, which announces it;
+  - a crash, an install failure or an import error prints neither line, so the fallback alert still goes.
+  - The one gap: when that announcement itself fails ("alert NOT sent"), the fallback is also held back. The same is true of the `silent:` line before this round. Minor; not new.
+- **Merge condition: the PR conflicts with main** in `fno/health/expectations.py`. Both sides add one constant on the same line: `MARKS_FROM` here, `FLOW_HISTORY_FROM` on main.
+  - The resolution keeps both lines unchanged. I tested exactly that merged tree (uncommitted, in a scratch worktree): full `pytest -n auto` 14,563 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+  - Any other resolution needs a look again.

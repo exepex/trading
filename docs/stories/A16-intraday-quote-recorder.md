@@ -803,3 +803,24 @@ one).
   - ramp: 3,248 instruments at ±50 strikes on every expiry up to about 3 months.
 - **Gates:** 11,705 passed; ruff, format and imports clean; every new file is at most 166 lines.
 - **Not done before the judge:** no live feed connection. The probe's first run is Tue 27 Oct.
+
+
+## A16i: no single lost fire may void a session (owner, 23 Oct 2026: "do whatever it takes")
+
+**What happened (23 Oct).** The 13:52 fire left no commit and no heartbeat. Marks 14:15, 14:30 and 14:45 had one fire
+each (a fire runs H:52 to (H+2):05, so only the on-the-hour marks have two), so the day's RV was void, the 5% void rule
+broke (1 of 4 sessions) and nothing alerted until the 14:52 fire wrote the gaps at 15:00. Probable cause (timing and a
+reproduced error, not proven; the fire's own transcript is not visible): `requirements.txt` gained `cryptography>=42`
+at 13:39 IST, and `routine_setup.sh` stopped on Debian's `cryptography 41.0.7` (pip cannot uninstall it), before the
+recorder, before any alert. The 14:52 fire hit the same error.
+
+**Change.** (1) `tools/routine_setup.sh` repeats the install over system packages when the plain install fails
+(O7b, on `main`). (2) `fno/intraday/cover.py`: each fire runs one hour past its `--until`, capped at 15:35, so
+every mark from 10:00 has two fires; the claims keep one taker per mark. Not covered: 09:15, 09:30 and 09:45 (no
+fire before 08:52): **owner action, add a second fire at 08:22** (cron `22 8 * * *` with the same prompt).
+(3) `.github/workflows/recorder-watch.yml`: `intraday heartbeat-check` twice an hour, 09:47-16:17 IST; GitHub's
+schedule is best effort, so this is the second witness. (4) O8's evening check lists "A16 15-minute marks" from
+19 Oct (it was `None`, i.e. unchecked).
+
+**Limits.** A fire now lasts about 2h13m; the platform's session limit is unmeasured (a fire killed early leaves the
+cover as before). The witness is a GitHub job: if GitHub drops its slot, it is silent.

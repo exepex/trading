@@ -54,3 +54,34 @@ But `git log -1 -- <paths>` is still a history position, and a shallow clone get
 ## Plants
 - At a8d668b1: 3 planted, 2 caught, 1 survived (minor a).
 - The finding is shown by a real shallow clone, not a plant.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-sim-e3-code-commit at 1d4a4217 (main merged in). Against main, the branch holds only
+`archive/{inputs,names,session}.py`, `command.py`, `test_session.py` and the Claims. **Verdict: PASS.** Lane 1.
+
+**Gates (my run):** pytest -n 6: 14,555 passed, 1 skipped (growwapi not installed), 16 xfailed. ruff check/format and
+check_imports are clean.
+
+**Should-fix 1: ACCEPTED.** `code_identity` hashes the tree ids `HEAD:fno`, `HEAD:tools`, `HEAD:config.yaml` and
+`HEAD:requirements.txt`. The uncommitted check stays.
+- My round-1 repro, rerun on this code (a code commit, 3 data commits, a depth-2 clone): the full clone, the shallow
+  clone and the clone after `--unshallow` all give `f08729cc8067`.
+- On this repository it gives `77de8ddaf487`.
+- The builder's tests cover a `--depth 2` clone, a receipt commit, unshallowing, and a change to each of the four paths.
+
+**Minors:**
+- (a) **ACCEPTED.** The old guard is gone. A commit holding none of the code is refused by the missing path, and that
+  test now reaches the failure.
+- (b) **ACCEPTED.** The Claims and the docstring say the id names the requirement text, not the installed versions.
+
+**New minor:** the id no longer points to a commit. It is a 12-hex digest of tree ids, so going from a run to its code
+means a search. Print the checkout's HEAD in the archived report as information only, outside the id, so a reader can
+check the code out. That doesn't block this verdict.
+
+**Plants:** 5 this round, 5 caught:
+- HEAD hashed instead of the trees;
+- `config.yaml` dropped from the code paths;
+- only the first tree hashed;
+- the dirty check off;
+- the code left out of `run_id`.

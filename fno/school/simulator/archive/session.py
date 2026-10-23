@@ -16,14 +16,14 @@ from .outcome import ArchiveOutcome, report_head
 from .run import archive_run
 
 
-def archive_practice(report: PracticeReport, window: RunWindow, runner: PracticeRunner, commit: str,
+def archive_practice(report: PracticeReport, window: RunWindow, runner: PracticeRunner, code: str,
                      build_archive: Callable[[str], PracticeArchive], skipped) -> ArchiveOutcome:  # fmt: skip
-    """`commit`: the checked-in code commit (`inputs.code_commit`); `build_archive`: the run's archive by its id;
+    """`code`: the committed code's identity (`inputs.code_identity`); `build_archive`: the run's archive by its id;
     `skipped`: the captures the spread model left out, which the archived text carries as the run prints them."""
     scenarios = tuple(scenario.value for scenario in runner.scenarios)
     roads = [str(code) for code in window.roads]
     digest = inputs_digest(runner.parts.spreads, report.margin_label)
-    run = run_id(window.first, window.last, roads, scenarios, commit, digest)
+    run = run_id(window.first, window.last, roads, scenarios, code, digest)
     text = "\n".join([*render(report, [report_head(run)]), *left_out_lines(skipped)]) + "\n"
     files = run_files(run, Path(runner.home), scenarios)
     return archive_run(build_archive(run), run, files, text)
