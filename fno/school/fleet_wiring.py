@@ -46,6 +46,7 @@ class FleetStores:
     sync: object | None  # d's account mirror to Drive's private area; None writes locally only
     clock: Clock
     counts_extra: Callable[[date], tuple[str, ...]] = lambda session: ()  # others' files the counts commit takes
+    alert: Callable[[str], object] = lambda line: None  # #fno-desk for the record: a refused counts commit, by name
 
 
 def books_on(cfg: dict, stores: FleetStores, fills: FillPort, root: Path = ROOT) -> Books:
@@ -69,6 +70,7 @@ def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, card_check=no_ch
         settings, services.catalogue, services.snapshots, build_quality_gate(services.listing),
         RecordedSpotHistory(QUOTES_FOLDER), build_school_drivers(cfg, root),
         lambda marks: build_safety_laws(cfg, settings, marks, margin), books, stores.dashcam,
-        SessionCounts(stores.home, stores.committer, stores.counts_extra), build_capture_1515(root).for_session,
-        DashcamEntryMids(stores.dashcam), stores.clock, card_check=card_check, after_outcomes=after_outcomes,
+        SessionCounts(stores.home, stores.committer, stores.counts_extra, stores.alert),
+        build_capture_1515(root).for_session, DashcamEntryMids(stores.dashcam), stores.clock, card_check=card_check,
+        after_outcomes=after_outcomes,
     )  # fmt: skip

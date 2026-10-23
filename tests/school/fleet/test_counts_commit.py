@@ -73,4 +73,5 @@ def test_an_unpushed_commit_of_another_writer_still_blocks_the_push(clone):
     outcome = counts.write(b.SESSION, SLOT_1500, (), ())
     tracked = set(git(clone, "ls-tree", "-r", "--name-only", "origin/main").split())
     assert "story.md" not in tracked and str(counts.files(b.SESSION)[0]) not in tracked
-    assert "NOT committed" in outcome and "story.md" in outcome
+    [line] = outcome
+    assert line.startswith("counts NOT pushed") and "NOT committed" in line and "story.md" in line

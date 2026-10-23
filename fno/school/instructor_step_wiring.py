@@ -8,19 +8,20 @@ from datetime import date
 from functools import partial
 
 from ..composition import build_alert_sender
-from ..storage.data_wiring import DATA_AREA, REPOSITORY, receipt_folder
+from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, REPOSITORY, receipt_folder
 from .dashcam.publisher import RemoteReceipts
 from .fleet.deferred_store import DeferredInstructorStore
 from .fleet.run_receipts import RunReceipts
 from .fleet.session_hook import StagedSessionStep, Writes
 from .instructor.contracts import Classification
 from .instructor.outputs.public_counts import counts_path
-from .instructor.outputs.store import instructor_path
+from .instructor.outputs.store import INSTRUCTOR_FOLDER, instructor_path
 from .instructor.ports import InstructorKind
 from .instructor.wiring import build_counts_file, build_instructor_run, build_instructor_store
 
 INSTRUCTOR = "instructor"
 SESSION_KINDS = (InstructorKind.ATTRIBUTION, InstructorKind.CAUSES)  # a session run's files; `paired` is the review's
+RECEIPTS_PREFIX = f"{RECEIPTS_FOLDER}/{DATA_AREA}/{INSTRUCTOR_FOLDER}/"  # where `instructor_files` names its receipts
 
 
 def build_instructor_step(cfg: dict) -> StagedSessionStep:

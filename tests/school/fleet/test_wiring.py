@@ -174,3 +174,16 @@ def test_unfilled_entries_read_the_record_s_stores_even_with_the_school_off(monk
     found = wiring.build_unfilled_entries(off, tmp_path)
     assert isinstance(found, UnfilledEntries) and found.dashcam is built["build_dashcam"]
     assert all(reader.sync is built["build_account_sync"] for reader in found.readers)
+
+
+def test_the_record_root_alerts_a_refused_counts_commit_and_owns_its_earlier_unpushed_ones(monkeypatch, tmp_path):
+    """Judge 507.13: the record's counts commit alerts #fno-desk by name; its run paths are the counts folder and the
+    instructor's receipts, so an earlier session's unpushed commit there goes up with the next."""
+    sent, made = object(), {}
+    for name in REAL_STORES:
+        monkeypatch.setattr(wiring, name, lambda *a, name=name, **k: made.setdefault(name, a) or object())
+    monkeypatch.setattr(wiring, "build_alert_sender", lambda: SimpleNamespace(send=sent))
+    fleet = wiring.build_fleet(ON, root=tmp_path)
+    assert fleet.counts.alert is sent
+    assert made["SessionFilesCommitter"][2] == ("research/school/counts/", instructor_step_wiring.RECEIPTS_PREFIX)
+    assert instructor_step_wiring.RECEIPTS_PREFIX == "receipts/data/school/instructor/"

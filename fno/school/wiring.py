@@ -8,7 +8,7 @@ record and the replay wire alike is `fleet_wiring.fleet_on`; a replay is `replay
 from datetime import date, datetime
 from pathlib import Path
 
-from ..composition import build_versions
+from ..composition import build_alert_sender, build_versions
 from ..config import ROOT
 from ..models import now_ist
 from ..research_engine.ledger import Git
@@ -16,6 +16,7 @@ from ..storage.wiring import QUOTES_FOLDER
 from .accounts.wiring import build_account_sync
 from .constants import SCHOOL_OFF_LINE
 from .contracts.fleet import RunMode, SessionRun
+from .dashcam.names import COUNTS_FOLDER
 from .dashcam.wiring import build_dashcam
 from .drivers.wiring import build_school_drivers
 from .execution.wiring import build_fill_port
@@ -27,7 +28,7 @@ from .fleet.runner import SchoolFleet
 from .fleet.unfilled import UnfilledEntries
 from .fleet_wiring import FleetStores, books_on, fleet_on
 from .instructor.wiring import build_why_lines
-from .instructor_step_wiring import build_instructor_step, instructor_files
+from .instructor_step_wiring import RECEIPTS_PREFIX, build_instructor_step, instructor_files
 from .quality.wiring import build_quality_gate
 from .registration.counting import CARD_PATH
 from .registration.wiring import build_counting_rule
@@ -54,9 +55,9 @@ def build_fleet(cfg: dict, root: Path = ROOT) -> SchoolFleet | SwitchedOff:
     here, at the pilot's entry, never by the fleet (a replay is `replay_wiring.build_replay_fleet`, which has none)."""
     if not school_settings(cfg).enabled:
         return SwitchedOff()
-    committer = SessionFilesCommitter(Path(root), COUNTS_MESSAGE)
+    committer = SessionFilesCommitter(Path(root), COUNTS_MESSAGE, (f"{COUNTS_FOLDER}/", RECEIPTS_PREFIX))
     stores = FleetStores(Path(root), build_dashcam(), committer, build_account_sync(root), IstClock(),
-                         instructor_files)  # fmt: skip
+                         instructor_files, build_alert_sender().send)  # fmt: skip
     return fleet_on(cfg, stores, root, card_check=build_card_check(root), after_outcomes=build_instructor_step(cfg))
 
 

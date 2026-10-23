@@ -86,13 +86,13 @@ class SchoolFleet:
         found = self.dashcam.find(session, SLOT_1500, RecordKind.DECISIONS)
         if found is not None:
             records, exits = self._sealed(found)
-            self._finish(roads, records, exits, found, rerun=True)
-            return SessionRun(session, mode, "", records, found, warnings=self.card_check(records, found))
+            _, refused = self._finish(roads, records, exits, found, rerun=True)
+            return SessionRun(session, mode, "", records, found, warnings=(*self.card_check(records, found), *refused))
         settled = settle_expired(self.books, self._ids(), session)
         records, exits = self._decide(roads, session)
         seal = self.dashcam.seal(session, SLOT_1500, RecordKind.DECISIONS, (*records, *settled, *exits))
-        fills = self._finish(roads, records, (*settled, *exits), seal)
-        return SessionRun(session, mode, "", records, seal, fills.fills, self.card_check(records, seal))
+        fills, refused = self._finish(roads, records, (*settled, *exits), seal)
+        return SessionRun(session, mode, "", records, seal, fills.fills, (*self.card_check(records, seal), *refused))
 
     def _decide(self, roads: SlotRoads, session: date) -> tuple[tuple[DecisionRecord, ...], tuple[ExitRecord, ...]]:
         laws = self.laws_for(roads.marks)
@@ -122,14 +122,15 @@ class SchoolFleet:
     def _ids(self) -> tuple[str, ...]:
         return tuple(d.card.driver_id for d in self.drivers)
 
-    def _finish(self, roads, records, exits, seal, rerun: bool = False) -> SlotFills:
+    def _finish(self, roads, records, exits, seal, rerun: bool = False) -> tuple[SlotFills, tuple[str, ...]]:
         """Rebuilt from the sealed records and the ledgers on every run, so a rerun after a crash at any point between
-        the seal and the counts' commit makes what is missing and nothing twice."""
+        the seal and the counts' commit makes what is missing and nothing twice. With the fills, the counts commit's
+        refusal line, if any (judge 507.13: never silent; the run exits 1 on it)."""
         session = roads.scheduled[0].session
         if self._sealed_once(session) and self.counts.written(session, SLOT_1500):
             self.after_outcomes(session)  # write-once and same-bytes on a rerun; it may have failed the first time
-            self.counts.commit(session)  # a crash between the counts' write and their commit
-            return SlotFills({}, frozenset(), ())
+            refused = self.counts.commit(session)  # a crash, or a refused push, after the counts' write
+            return SlotFills({}, frozenset(), ()), refused
         if rerun and self.clock.now() > datetime.combine(session, SESSION_CLOSE, IST):
             self.counts.mark(session, SLOT_1500, LATE_RERUN)  # law 6 refuses every fill priced again now
         held = recorded(self.books, self._ids())
@@ -141,8 +142,7 @@ class SchoolFleet:
         self.after_outcomes(session)
         counts = tuple(counts_for(r.decision, r.law_results, fills.entries.get((r.road, r.decision.driver_id)),
                                   (r.road, r.decision.driver_id) in fills.size_shared) for r in records)  # fmt: skip
-        self.counts.write(session, SLOT_1500, records, counts)
-        return fills
+        return fills, self.counts.write(session, SLOT_1500, records, counts)
 
     def _sealed_once(self, session: date) -> bool:
         return all(self.dashcam.find(session, SLOT_1500, kind) is not None for kind in FINISHED)

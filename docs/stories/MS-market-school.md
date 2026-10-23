@@ -3032,3 +3032,15 @@ the run's own thread, and only when the work ended in time; one commit takes eve
   another writer not yet on main makes the pull refuse and nothing reaches main (plant: `NamedFiles.owns` forced to
   True, caught).
 - **Plants:** 15 planted, 15 caught. Gates: in the commit message of the tip.
+
+#### Round 3 (Judge B, judge 507.13 SF1; owner: fix and one more check): a refused counts commit is loud
+The runner dropped the counts commit's outcome and `school run` exited 0, so a refused push (three lost races, a pull
+refused for other unpushed changes, a hook refusal) was silent; it now carries the instructor's receipts too. On main
+before this branch for the counts alone.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| Never silent | `SessionFilesCommitter.commit` returns None when the files are on `main`, else the refused line (O9's own refusal text, naming the files); `SessionCounts.commit` alerts "counts NOT pushed <session>: <line>; the next run of the session pushes them" to #fno-desk (the record root's sender) and returns it; the runner carries it in `SessionRun.warnings` on the first run and on the rerun, so `school run` prints it and exits 1; nothing says done (the CLI's lines are decisions sealed and fills only) | `test_a_refused_push_is_alerted_printed_and_exits_1_then_the_rerun_pushes_it` on real git (plants: the first run or the rerun dropping it; no alert; the refusal hidden; the record root or `fleet_on` without the alert) |
+| The rerun completes it | `NamedFiles`: with nothing new to commit, a named file committed here and not on `main` is pushed; the run's earlier unpushed commits under its run paths (the counts folder, the instructor's receipts) are its own, so they never block a later commit and go up with it (Judge B: exact names alone would block every later commit) | the same test (rerun once the push works: exit 0, the file on `main`); `test_an_earlier_session_s_unpushed_counts_never_block_a_later_session_and_go_up_with_it`; `test_the_record_root_alerts_a_refused_counts_commit_and_owns_its_earlier_unpushed_ones` (plants: the leftover never pushed; the run paths dropped, in the committer or the record root) |
+
+- **Plants:** 9 planted, 9 caught.
