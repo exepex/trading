@@ -16,7 +16,7 @@ from datetime import date
 from .cues import CONTEXT, Cue
 from .keypoints import QUIET, REASON
 from .model import CLOSE_NOT_READ, NO_FORECAST_TODAY, IndexView
-from .plain import LIGHTS, OFFICIAL, PROVISIONAL, VERDICTS, day_short, light, morning_report, record_words
+from .plain import OFFICIAL, PROVISIONAL, VERDICTS, day_short, light_words, morning_report, record_words
 from .reasons import NO_REASON
 
 NARROW = 0.25  # a hit within a quarter of the "almost certainly" half-width of its edge is narrow (reasoning only)
@@ -132,4 +132,4 @@ def top_block(index: IndexView, today: date, next_session: date | None,
     else:
         why = (line for line in (day_line(index), size_line(index)) if line)
         lines = [verdict_line(index, today, next_session), *why, *cause_lines(index, unavailable)]
-    return [*lines, f"{LIGHTS[light(index)]} {record_words(index)}"]
+    return [*lines, f"{light_words(index)} {record_words(index)}"]

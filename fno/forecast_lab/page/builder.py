@@ -165,12 +165,13 @@ class PageBuilder:
         index = IndexView(underlying, price, price_at, best, today, False, sum(p.live for p in n1), CALIBRATION_DAYS,
                           tuple(horizons), sum(p.inside_90 for p in last), len(last),
                           recent_misses(n1, self.sessions.previous, facts))  # fmt: skip
+        index = replace(index, track=track_record(n1))  # the light rates the live record (judge E on FL1-1f)
         state = light(index)
         wrong = tuple(p.day for p in reversed(last) if not p.inside_90)
         unchecked = _unchecked(edition, checked, unread)
         return replace(index, light=state, light_word=LIGHT_WORDS[state], wrong_days=wrong,
                        backtested=sum(not p.live for p in last), result=checked, unchecked=unchecked,
-                       unchecked_why=self._unchecked_why(unchecked, day), track=track_record(n1),
+                       unchecked_why=self._unchecked_why(unchecked, day),
                        shape=self._shape(underlying, day) if edition == EVENING and checked else None,
                        why=self._why(day, edition, best, checked, facts, cues)), problems  # fmt: skip
 

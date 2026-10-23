@@ -189,14 +189,15 @@ def test_the_evening_carries_the_day_s_path_and_the_record_live_and_back_tested_
     view = build("evening", (implied(FRI), implied(MON)), {FRI: 25310.5}, 25390.0, at_time=(20, 5), levels=levels)
     (index,) = view.indices
     assert index.shape == DayShape(25350.0, 25420.0, 25280.0, 25310.5)
-    assert index.track == TrackRecord(1, 1, 30, 30)  # today's own live check; History is all back-test
+    assert index.track == TrackRecord(1, 1, 29, 29, 30, 1)  # the last 30 sessions: 29 back-tested and today, live
     lines = slack_lines(view)
     assert lines[2] == ("Day (measured): opened 25,350 (+40 on the previous close), ranged 25,280–25,420, closed "
                         "25,390; the forecast's centre was 25,300 and its “most likely” width 200 points.")  # fmt: skip
     assert lines[3].startswith("Size (measured): swing 140 points = 0.7× the “most likely” width; close 210 points "
                                "inside the nearest “almost certainly” edge, comfortable")  # fmt: skip
     assert lines[4] == "Context (measured): no notable moves in our data."  # no Sections in this build
-    assert lines[5] == "🟢 Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (last 30 days): 30 of 30"
+    assert lines[5] == ("⚪ too few live days to rate | Live so far: 1 day, inside “almost certainly” 1 of 1 | "
+                        "Back-test (29 of the last 30 days): 29 of 29")  # fmt: skip
     assert lines[6].startswith("Next: tomorrow: most likely")
 
 

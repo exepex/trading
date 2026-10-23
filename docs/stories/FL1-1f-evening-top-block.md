@@ -35,10 +35,14 @@ Per index, in this order:
        reading or failed, else "Context (measured): no notable moves in our data". It is never a placeholder
        (orchestrator, 23 Oct).
      - The morning-only sources (GIFT, VIX's official file) are never listed as missing in the evening.
-4. **The record, live and back-tested apart**: "🟢 Live so far: 1 day, inside “almost certainly” 1 of 1 |
-   Back-test (last 30 days): 25 of 30".
+4. **The record, live and back-tested apart**: "⚪ too few live days to rate | Live so far: 1 day, inside “almost
+   certainly” 1 of 1 | Back-test (29 of the last 30 days): 24 of 29".
    - "Live" counts every live sealed check so far, today's own included.
-   - "Back-test" counts the back-filled sessions among the last 30.
+   - "Back-test" counts the back-tested sessions among the last 30 sessions. The label says exactly that: "last 30
+     days" only when all 30 were back-tested, else "N of the last 30 days" (judge E's finding 1).
+   - The light is rated on live checks only: the newest 30 live, with the FL1-1c thresholds. With fewer than 30
+     live checks it shows ⚪ and the words "too few live days to rate". Back-tested days never colour it (finding
+     2). The page's `light` and `light_word` follow the same rule.
    - The morning line uses the same words.
 5. **Next**: tomorrow's and the 3-session forecast, as before.
 

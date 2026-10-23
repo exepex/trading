@@ -25,7 +25,7 @@ def test_the_evening_message_posts_g13b_s_issue_of_the_day_with_its_picture_and_
     assert title == f"*Was today's forecast right?* (Fri 16 Oct, 20:05) {right}"
     assert first == ("❌ *NIFTY* today: no verdict. No forecast was issued for today (the Thu 15 Oct 15:45 issue "
                      "holds no next-session forecast for Fri 16 Oct), so there is nothing to check.")  # fmt: skip
-    assert record == "⚪ Live so far: none scored yet | Back-test: none"
+    assert record == "⚪ too few live days to rate | Live so far: none scored yet | Back-test: none"
     assert ahead.startswith(f"Next: next trading day, Mon 19 Oct: most likely {likely(band)} (almost certainly "
                             f"{certain(band)})")  # fmt: skip
     assert status == ("⚠️ NIFTY: no forecast was issued for 2026-10-15, so it has no score (a gap in the record, not "

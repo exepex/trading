@@ -63,7 +63,7 @@ def test_the_record_counts_every_live_check_and_only_back_tested_sessions_in_its
         return Outcome(DAY, 1100.0 if inside else 1300.0, BAND, inside, inside, live)
 
     points = [point(False)] * 29 + [point(True, False), point(False, False), point(True)]
-    assert track_record(points) == TrackRecord(2, 1, 30, 29)
+    assert track_record(points) == TrackRecord(2, 1, 28, 27, 30, 1)  # the window: the last 30 sessions
 
 
 def test_missing_context_says_not_available_with_each_reason_and_a_quiet_day_says_so():
