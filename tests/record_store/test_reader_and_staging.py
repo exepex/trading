@@ -62,3 +62,16 @@ def test_the_commands_print_one_line_and_exit_1_when_not_recorded(world):
     assert cmd_read(args, lines.append, RecordReader(world.records, world.drive)) == 0
     assert lines[0] == "closes 2026-10-23: no provisional record"
     assert lines[-1].startswith("closes 2026-10-23 provisional: data/closes/2026/10/2026-10-23.first.raw.json sha256 ")
+
+
+def test_since_certifies_every_session_of_the_window_and_fails_while_one_is_missing(world):
+    class Calendar:
+        def sessions(self, start, end):
+            assert (start.isoformat(), end.isoformat()) == ("2026-10-22", SESSION)  # not before the live date
+            return [start, end]
+
+    lines = []
+    args = SimpleNamespace(dataset="closes", day=SESSION, level=PROVISIONAL, since=7, commit=False)
+    assert cmd_certify(args, lines.append, world.certifier(), Calendar()) == 1
+    assert lines[0] == "closes 2026-10-22 provisional: NOT recorded: no staged version"
+    assert lines[1].startswith("closes 2026-10-23 provisional: recorded ")

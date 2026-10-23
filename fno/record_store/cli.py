@@ -1,7 +1,9 @@
 """`python -m fno records ...` (story DR1):
 
-- `certify <dataset> [--day D] [--level provisional|certified] [--commit]`: checks every version of the session and
-  writes the record (local unless `--commit`, which pushes `receipts/records/` to main). Exit 1 when not recorded.
+- `certify <dataset> [--day D | --since N] [--level provisional|certified] [--commit]`: checks every version of the
+  session and writes the record (local unless `--commit`, which pushes `receipts/records/` to main); `--since N`
+  certifies every NSE session of the last N days up to today, so a session missed on one run is caught up on the next
+  (one line each; a session already recorded says so). Exit 1 when any session is not recorded.
 - `read <dataset> [--day D] [--level ...]`: prints the as-seen pointer of what a reader would get (never a value).
   Exit 1 when no record serves the need."""
 
@@ -21,6 +23,7 @@ def add_records_parser(subparsers) -> None:
         action.add_argument("--day", help="the session, YYYY-MM-DD (default: today, IST)")
         action.add_argument("--level", choices=LEVELS, default=PROVISIONAL)
         if name == "certify":
+            action.add_argument("--since", type=int, help="every session of the last N days up to today (catch-up)")
             action.add_argument("--commit", action="store_true", help="commit and push the record to main")
         action.set_defaults(func=func)
 
@@ -31,13 +34,29 @@ def _session(args) -> str:
     return args.day or now_ist().date().isoformat()
 
 
-def cmd_certify(args, out=print, certifier=None) -> int:
+def cmd_certify(args, out=print, certifier=None, calendar=None) -> int:
     from .wiring import build_certifier
 
     certifier = certifier or build_certifier(args.dataset, args.commit)
-    outcome = certifier.certify(_session(args), args.level)
-    out(outcome.line)
-    return 0 if outcome.recorded else 1
+    recorded = True
+    for session in _sessions(args, calendar, certifier.rules.live_from):
+        outcome = certifier.certify(session, args.level)
+        out(outcome.line)
+        recorded = recorded and outcome.recorded
+    return 0 if recorded else 1
+
+
+def _sessions(args, calendar, live_from) -> list[str]:
+    if getattr(args, "since", None) is None:
+        return [_session(args)]
+    from datetime import date, timedelta
+
+    from ..storage.wiring import build_session_calendar
+
+    calendar = calendar or build_session_calendar()
+    today = date.fromisoformat(_session(args))
+    start = max(today - timedelta(days=args.since), live_from)
+    return [day.isoformat() for day in calendar.sessions(start, today)]
 
 
 def cmd_read(args, out=print, reader=None) -> int:

@@ -117,10 +117,17 @@ modifies or cancels orders, and neither uses Groww.
    orchestrator, 22 Oct). It commits its own manifest rows itself; a file NSE has not published yet is not a
    failure of the routine: the morning then says "not archived yet". Then `git pull --no-rebase origin main`, so
    A22b's GIFT Nifty receipt (pushed about 08:41) is there for `lab open` to read verified.
+   After `lab open` (step 2), DR1-1's shadow: `python -m fno records certify closes --since 7 --level certified
+   --commit` certifies every recent session's A4h close against the official file just archived and commits only
+   `receipts/records/`; a session not recorded yet is retried by the next morning. Note any "NOT recorded" or
+   "conflict" line in `conversations/<date>.md`; post it to #fno-desk only when its reason is not "no official
+   index-close file in Drive yet" (A4h's overdue rule alerts that gap).
 1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
    list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
    `receipts/data/closes/`; exit 1: post every line it printed (the read's problem line and the commit line) to
-   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then, before
+   #fno-desk, as a failed read or uncommitted receipts are alerted by nothing else outside O1). Then DR1-1's shadow:
+   `python -m fno records certify closes --level provisional --commit` (commits only `receipts/records/`; a "NOT
+   recorded" or "conflict" line is noted in `conversations/<date>.md` and posted to #fno-desk). Then, before
    `lab close`, the same way (orchestrator, 22 Oct; each unchanged, committing only its own
    dataset's rows): `python -m fno data-librarian fo-bhavcopy --from <today> --to <today>`, `python -m fno
    data-librarian participant-oi --from <today> --to <today>` and `python -m fno data-snapshot
