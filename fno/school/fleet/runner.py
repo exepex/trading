@@ -1,5 +1,6 @@
-"""The fleet runner (story MS-P1j): one session of every driver on every road, in the story's order. `school.enabled`
-is the only switch: off, it prints the school-off line and touches nothing.
+"""The fleet runner (story MS-P1j): one session of every driver on every road, in the story's order. It has no switch:
+`school.enabled` is the pilot's, read by its entry points (the record root and `school run`), so the simulator's
+practice command runs the same fleet without one (orchestrator, 23 Oct 2026).
 
 1. Expired positions settle before the session's first account view (judge 486's note).
 2. If the session's decisions file is already sealed, nothing is decided or sealed again; the finish below runs
@@ -18,7 +19,7 @@ from typing import Protocol
 from ...desk.settlement import SETTLEMENT_TIME as SESSION_CLOSE
 from ...desk.snapshot import ExecutionSnapshot
 from ...models import IST
-from ..constants import FLEET_STOPPED, SCHOOL_OFF_LINE, SLOT_1500, ExitReason, RecordKind, RoadCode
+from ..constants import FLEET_STOPPED, SLOT_1500, ExitReason, RecordKind, RoadCode
 from ..contracts.clock import Clock
 from ..contracts.dashcam import DashcamStore
 from ..contracts.decisions import Driver, SpotPoint
@@ -70,8 +71,6 @@ class SchoolFleet:
     rules: QuoteRules = LIVE  # d's quote rules: only the simulator's practice root passes practice rules
 
     def run(self, session: date, mode: RunMode) -> SessionRun:
-        if not self.settings.enabled:
-            return SessionRun(session, mode, SCHOOL_OFF_LINE)
         try:
             return self._run(session, mode)
         except AccountUnreadable as stop:
@@ -99,12 +98,18 @@ class SchoolFleet:
         records, exits = [], []
         for driver in self.drivers:
             driver_id = driver.card.driver_id
-            view = account_call(driver_id, self.books.accounts.view, driver_id, roads.marks, session)
+            view = self._open(driver_id, roads.marks, session)
             tickets = open_positions(account_call(driver_id, self.books.ticket_entries.entries, driver_id))
             slot = step.run(driver, roads, view, view.open_positions, tickets)
             records.extend(slot.records)
             exits.extend(slot.exits)
         return tuple(records), tuple(exits)
+
+    def _open(self, driver_id: str, marks, session: date):
+        """Every store the fleet records into is opened by its view before any fill, the ticket ledger by the same step
+        as the driver account; the driver account's view is the one the laws read."""
+        views = [account_call(driver_id, store.view, driver_id, marks, session) for store in self.books.stores]
+        return views[0]
 
     def _sealed(self, seal) -> tuple[tuple[DecisionRecord, ...], tuple[ExitRecord, ...]]:
         sealed = self.dashcam.read(seal)
@@ -125,7 +130,7 @@ class SchoolFleet:
             self.counts.mark(session, SLOT_1500, LATE_RERUN)  # law 6 refuses every fill priced again now
         held = recorded(self.books, self._ids())
         slot_exits = tuple(e for e in exits if e.exit_reason != ExitReason.EXPIRY)
-        fills = FillStep(self.books, self.capture_1515(session)).run(roads, records, slot_exits, seal,
+        fills = FillStep(self.books, self.capture_1515(session), self.rules).run(roads, records, slot_exits, seal,
                                                                       self.clock.now(), held)  # fmt: skip
         self._seal_once(session, RecordKind.OUTCOMES, outcomes_of(self.books, exits, roads.marks, self.entry_mids))
         self._seal_once(session, RecordKind.DRIFT, fills.drift)

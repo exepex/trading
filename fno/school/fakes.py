@@ -94,8 +94,10 @@ class FakeAccounts:
 
     capital: float
     ledgers: dict[str, list[LedgerEntry]] = field(default_factory=dict)
+    opened: set[str] = field(default_factory=set)  # accounts a view has opened: a record before one is refused
 
     def view(self, driver_id: str, marks: Mapping[RoadCode, SlotSnapshot], session: date) -> AccountView:
+        self.opened.add(driver_id)
         entries = self.ledgers.get(driver_id, [])
         closed = {e.position.position_id for e in entries if e.closes}
         open_ = tuple(e.position for e in entries if not e.closes and e.position.position_id not in closed)
@@ -107,6 +109,8 @@ class FakeAccounts:
         return tuple(self.ledgers.get(driver_id, ()))
 
     def record(self, driver_id: str, entry: LedgerEntry) -> None:
+        if driver_id not in self.opened:
+            raise ValueError(f"{driver_id}: a fill before the account's first view")  # as d's store refuses it
         ledger = self.ledgers.setdefault(driver_id, [])
         if entry not in ledger:
             ledger.append(entry)
