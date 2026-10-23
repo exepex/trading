@@ -62,7 +62,11 @@ class ReceiptFolder:
         return receipt
 
     def under(self, prefix: str) -> list[Receipt]:
-        """Every receipt whose Drive path starts with the folder `prefix`, in path order."""
+        """Every receipt under the folder `prefix`, in path order; `prefix` naming one receipted file gives that file
+        (a caller asking for one file never gets nothing silently, 23 Oct 2026)."""
+        single = self.read(prefix)
+        if single is not None:
+            return [single]
         root = self.folder.joinpath(*path_parts(prefix))
         if not root.is_dir():
             return []
