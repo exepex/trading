@@ -20,25 +20,9 @@ from tests.school.instructor.builders import RULES, SESSIONS, attribution, class
 
 
 def paired(**changes) -> PairedRow:
-    values = dict(
-        driver_id="CS1@1",
-        control_id="N0@1",
-        measure=Measure.PER_OPPORTUNITY,
-        first=None,
-        last=None,
-        sessions=0,
-        road_slots=0,
-        driver_abstentions=0,
-        control_abstentions=0,
-        unavailable=0,
-        after_cut=0,
-        mean=None,
-        low=None,
-        high=None,
-        block=5,
-        status=MapStatus.EXPLORATORY,
-        rules_sha256=RULES,
-    )
+    values = dict(driver_id="CS1@1", control_id="N0@1", measure=Measure.PER_OPPORTUNITY, first=None, last=None,
+                  sessions=0, road_slots=0, driver_abstentions=0, control_abstentions=0, unavailable=0, after_cut=0,
+                  mean=None, bound=None, batch=10, status=MapStatus.EXPLORATORY, rules_sha256=RULES)  # fmt: skip
     return PairedRow(**{**values, **changes})
 
 
@@ -98,21 +82,22 @@ def test_a_winner_never_carries_a_loser_only_cause(cause):
         classification(net=0.0, primary=cause, secondary=())  # boundary: a flat result reads as a winner
 
 
-def test_a_paired_row_has_a_mean_exactly_with_sessions_and_an_interval_around_it():
-    assert paired().mean is None
+def test_a_paired_row_has_a_mean_exactly_with_sessions_and_watching_needs_a_positive_bound():
     some = dict(sessions=3, first=SESSIONS[0], last=SESSIONS[2])
-    assert paired(**some, mean=0.1, low=-0.2, high=0.3).status == MapStatus.EXPLORATORY
-    assert paired(**some, mean=0.1).low is None  # an interval is optional (too few sessions to resample)
-    for bad in (dict(some), dict(some, mean=0.5, low=-0.2, high=0.3), dict(some, mean=0.1, low=-0.2),
-                dict(some, mean=float("nan")), dict(some, mean=0.1, low=float("nan"), high=0.3),
+    assert paired(**some, mean=0.1, bound=-0.2).status == MapStatus.EXPLORATORY
+    assert paired(**some, mean=0.1, bound=0.01, status=MapStatus.WATCHING).bound == 0.01
+    assert paired(**some, mean=0.1, note="too few independent batches").bound is None
+    for bad in (dict(some), dict(some, mean=float("nan")), dict(some, mean=0.1, bound=float("inf")),
+                dict(some, mean=0.1, bound=0.0, status=MapStatus.WATCHING),
+                dict(some, mean=0.1, status=MapStatus.WATCHING),
                 dict(some, mean=0.1, first=SESSIONS[2], last=SESSIONS[0]), dict(some, mean=0.1, last=None),
-                dict(block=0), dict(low=0.0, high=0.0)):  # fmt: skip
+                dict(batch=0), dict(bound=0.0)):  # fmt: skip
         with pytest.raises(ValueError):
             paired(**bad)
 
 
 def test_records_round_trip_to_identical_bytes_and_a_changed_field_changes_them():
-    one = dict(sessions=1, first=SESSIONS[0], last=SESSIONS[0], mean=0.0, low=0.0, high=0.0)
+    one = dict(sessions=1, first=SESSIONS[0], last=SESSIONS[0], mean=0.0, bound=-0.5)
     records = (attribution(), classification(), paired(**one))
     data = encode_instructor_file(records)
     assert decode_instructor_file(data) == records and encode_instructor_file(decode_instructor_file(data)) == data

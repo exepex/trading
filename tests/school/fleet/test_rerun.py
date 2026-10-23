@@ -6,6 +6,7 @@ import csv
 from argparse import Namespace
 from dataclasses import dataclass, replace
 from datetime import datetime, time
+from types import SimpleNamespace
 
 from fno.models import IST
 from fno.school import cli, wiring
@@ -20,7 +21,7 @@ from fno.school.constants import (
 )
 from fno.school.contracts.accounts import FillResult
 from fno.school.contracts.clock import FixedClock
-from fno.school.contracts.fleet import RunMode
+from fno.school.contracts.fleet import RunMode, SessionRun
 from fno.school.dashcam.names import counts_path
 from fno.school.fakes import FakeDriver, FakeMaxLossLaw
 from fno.school.fleet.counts_file import opportunity_path
@@ -124,7 +125,7 @@ def test_a_rerun_after_the_counts_write_commits_them(tmp_path):
     rig = Rig(tmp_path, (trader(),), LAWS)
     rig.fleet.run(b.SESSION, RunMode.REPLAY)
     commits = []
-    rig.fleet.counts.committer = Namespace(commit=commits.append)
+    rig.fleet.counts.committer = Namespace(commit=lambda what, paths: commits.append(paths))
     rig.fleet.run(b.SESSION, RunMode.REPLAY)
     assert len(commits) == 1
 
@@ -189,7 +190,8 @@ def test_the_run_command_with_the_switch_off_prints_the_off_line_and_builds_noth
     def refuse(*args, **kwargs):
         raise AssertionError("a store was built with the switch off")
 
-    monkeypatch.setattr(wiring, "build_fleet", refuse)
+    for name in ("fleet_on", "build_dashcam", "build_account_sync", "SessionFilesCommitter"):
+        monkeypatch.setattr(wiring, name, refuse)
     monkeypatch.setattr(cli, "load_app_config", lambda: {"school": {**GOOD, "enabled": False}})
     said = []
     assert cli.cmd_run(Namespace(session=b.SESSION, replay=None), said.append) == 0
@@ -213,3 +215,19 @@ def test_no_ledger_ever_holds_more_than_the_displayed_size_could_serve(tmp_path)
                     for leg in entry.fill.legs:
                         used[(leg.key, leg.side)] = used.get((leg.key, leg.side), 0) + leg.units
         assert used and max(used.values()) <= 60, session
+
+
+def test_a_replay_runs_with_the_pilot_s_switch_off_and_on_the_config_as_given(monkeypatch, tmp_path):
+    """The replay root has no switch: the config is passed as it is, never a copy with the switch forced on."""
+    off = {"school": {**GOOD, "enabled": False}}
+    given = []
+
+    def replay_fleet(cfg, session, folder):
+        given.append(cfg)
+        return SimpleNamespace(run=lambda s, mode: SessionRun(s, mode, "", ()))
+
+    monkeypatch.setattr(cli, "load_app_config", lambda: off)
+    monkeypatch.setattr("fno.school.replay_wiring.build_replay_fleet", replay_fleet)
+    said = []
+    assert cli.cmd_run(Namespace(session=b.SESSION, replay=tmp_path), said.append) == 0
+    assert given == [off] and given[0] is off and SCHOOL_OFF_LINE not in said

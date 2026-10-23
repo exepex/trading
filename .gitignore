@@ -34,3 +34,10 @@ research/data/quotes/groww/**/*.csv
 /work/drive-cache/
 /work/gr1/
 /work/edge1/
+
+# MS-P1j: a timed-out writer's temporary file in the public counts folder is never data (second guard; the counts
+# commit already names its files)
+research/school/counts/**/.*.part
+
+# Story MS-SIM: the practice simulator's records (practice only; never the paper record)
+/work/school_practice/

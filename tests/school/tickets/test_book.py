@@ -38,7 +38,14 @@ def enter(book: TicketBook, sealed: SealedDecision, results, snapshot, seal, at)
 def book() -> tuple[TicketBook, FakeAccounts, FakeAccounts]:
     accounts, ledger = FakeAccounts(2_000_000), FakeAccounts(0)
     source = FakeSettlementSource({("BANKNIFTY", b.EXPIRY): SettlementPrice(950.0, "ee" * 32)})
+    ledger.view(b.decision().driver_id, MARKS, b.SESSION)  # whoever records views first (the AccountPort contract)
     return TicketBook(FakeFills(source), TicketLedger(ledger)), accounts, ledger
+
+
+def test_a_ticket_ledger_no_view_opened_refuses_the_ticket_as_the_real_store_does():
+    tickets = TicketBook(FakeFills(), TicketLedger(FakeAccounts(0)))
+    with pytest.raises(ValueError):
+        enter(tickets, ticket(), PASS, b.snapshot(), b.seal(), AT)
 
 
 def test_a_ticket_fills_every_leg_at_the_snapshot_s_touch():

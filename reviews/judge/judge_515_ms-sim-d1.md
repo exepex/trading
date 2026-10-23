@@ -43,3 +43,15 @@ origin/main...6b6d18c6. SIM-d1 Claims in MS-market-school.md. Lane 1 (practice).
   pass the import test (my plants, both survived). Only the runtime no-NSE test stands behind them.
 - Fix: accept a bare module name only as the parent of an allowed `from X import name`. For example, refuse a plain
   `import X` or `from pkg import X` in that file.
+
+## Addendum 2
+
+**Follow-up:** story/ms-sim-d1 at 91bb8c23 (only `test_isolation.py` changed). **Verdict: PASS. The minor is closed.**
+- My plants caught: `import fno.storage.wiring`, `from ....storage import wiring`, and an allowed-plus-builder
+  `from ....storage.wiring import daily_files, build_nse_fo_library`.
+- `tests/school/simulator` passes (140) and ruff is clean.
+- Three deliberate evasions still pass. No static import check can close them, and they are not findings:
+  - `import fno.storage`, then attribute access;
+  - `from .... import storage`;
+  - `__import__("fno.storage.wiring")`.
+  The runtime no-NSE test is the guard there.

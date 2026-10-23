@@ -4,11 +4,12 @@ whatever cannot be verified becomes a `DataFault` on the path, never a guess, an
 
 Corrections (orchestrator's ruling on judge 501): a dashcam file is written once, so a correction is sealed on a later
 session than its original. There is one resolver: an original closed on day d is read on day d as its latest
-correction, wherever and whenever that correction was sealed (up to today), and a correction is never a path on the
-day its own file was sealed. So the paths of `closed_on` over each day of a range are exactly `closed_between` over
-the range. A day's tally recomputed after a correction can change; the 20:05 line keeps what was known at 20:05."""
+correction, wherever and whenever that correction was sealed up to today, or up to the session `as_of` names (a
+session's instructor run reads only files sealed by then, so a rerun reads the same; judge 525). A correction is never
+a path on the day its own file was sealed. So the paths of `closed_on` over each day of a range are exactly
+`closed_between` over the range. A day's tally recomputed after a correction can change; the 20:05 line keeps what was
+known at 20:05."""
 
-import hashlib
 from dataclasses import dataclass
 from datetime import date
 
@@ -24,12 +25,10 @@ from ..contracts.roads import ROADS_BY_CODE
 from ..contracts.seal import StaleSeal
 from ..contracts.slot_file import SlotRecord
 from ..contracts.snapshot import SlotSnapshot
-from .contracts import ClosedRead, DataFault, HeldPath, net_matches_fills
+from .contracts import ClosedRead, DataFault, HeldPath, net_matches_fills, record_sha256
 from .ports import SnapshotArchive
 
-
-def record_sha256(record: OutcomeRecord) -> str:
-    return hashlib.sha256(record.to_bytes()).hexdigest()
+RECORD_START = date(2026, 10, 22)  # the school's code exists from this day: no dashcam file can be older
 
 
 def latest(record: OutcomeRecord, corrections: dict[str, OutcomeRecord]) -> OutcomeRecord:
@@ -50,27 +49,44 @@ class SealedFile:
 
 class PathReader:
     def __init__(self, dashcam: DashcamStore, snapshots: SnapshotArchive, settlements: IndexSettlementSource,
-                 calendar: SessionCalendar, clock: Clock):  # fmt: skip
+                 calendar: SessionCalendar, clock: Clock, record_start: date = RECORD_START):  # fmt: skip
         self.dashcam, self.snapshots, self.settlements = dashcam, snapshots, settlements
-        self.calendar, self.clock = calendar, clock
+        self.calendar, self.clock, self.record_start = calendar, clock, record_start
+        self._files: dict[tuple[date, RecordKind], SealedFile | None] = {}  # one read per file per run
 
-    def closed_on(self, session: date) -> ClosedRead:
-        return self.closed_between(session, session)
+    def closed_on(self, session: date, as_of: date | None = None) -> ClosedRead:
+        return self.closed_between(session, session, as_of)
 
-    def closed_between(self, first: date, last: date) -> ClosedRead:
-        """Every original closed from `first` to `last`, each as its latest correction sealed up to today."""
-        today = max(self.clock.now().astimezone(IST).date(), last)
-        files = {d: self._read(d, RecordKind.OUTCOMES) for d in self._sessions(first, today)}
+    def closed_between(self, first: date, last: date, as_of: date | None = None) -> ClosedRead:
+        """Every original closed from `first` to `last`, each as its latest correction sealed up to `as_of` (None:
+        today), never before `last`."""
+        upto = max(as_of or self.clock.now().astimezone(IST).date(), last)
+        files = {d: self._read(d, RecordKind.OUTCOMES) for d in self.sessions(first, upto)}
         outcomes = {d: [r for r in f.records if isinstance(r, OutcomeRecord)] for d, f in files.items() if f}
         corrections = {r.corrects: r for d in sorted(outcomes) for r in outcomes[d] if r.corrects}
         paths = tuple(self._path(latest(r, corrections)) for d in sorted(outcomes) if d <= last
                       for r in outcomes[d] if not r.corrects)  # fmt: skip
         return ClosedRead(paths, tuple(d for d, f in files.items() if f and f.damaged))
 
-    def _sessions(self, first: date, last: date) -> list[date]:
+    def orphan_corrections(self) -> tuple[OutcomeRecord, ...]:
+        """Corrections whose `corrects` names no outcome on file at all, from the start of the record to today: counted
+        and alerted by every report and day's run, never dropped silently (judges 501.1 and 522)."""
+        today = self.clock.now().astimezone(IST).date()
+        files = (self._read(d, RecordKind.OUTCOMES) for d in self.sessions(self.record_start, today))
+        outcomes = [r for f in files if f for r in f.records if isinstance(r, OutcomeRecord)]
+        known = {record_sha256(r) for r in outcomes}
+        return tuple(r for r in outcomes if r.corrects and r.corrects not in known)
+
+    def sessions(self, first: date, last: date) -> list[date]:
+        """The trading sessions from `first` to `last`, by A7's calendar."""
         return [d for d in self.calendar.sessions(first, last) if is_trading_day(self.calendar, d)]
 
     def _read(self, session: date, kind: RecordKind) -> SealedFile | None:
+        if (session, kind) not in self._files:
+            self._files[(session, kind)] = self._read_sealed(session, kind)
+        return self._files[(session, kind)]
+
+    def _read_sealed(self, session: date, kind: RecordKind) -> SealedFile | None:
         seal = self.dashcam.find(session, SLOT_1500, kind)
         if seal is None:
             return None
@@ -84,7 +100,7 @@ class PathReader:
         faults: list[DataFault] = []
         entry = self._entry(outcome, entry_day, faults)
         snapshots, skipped, exit_record = [], 0, None
-        for day in self._sessions(entry_day, exit_day):
+        for day in self.sessions(entry_day, exit_day):
             sealed = self._read(day, RecordKind.DECISIONS)
             if sealed is None or sealed.damaged:
                 faults.append(DataFault.SESSION_NOT_SEALED if sealed is None else DataFault.SEALED_FILE_DAMAGED)

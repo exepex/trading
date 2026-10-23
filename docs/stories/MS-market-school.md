@@ -687,6 +687,10 @@ from A20a's master files.
   only [reasoning only]" and "no broker check yet for BANKNIFTY, FINNIFTY and MIDCPNIFTY" (orchestrator, 22 Oct 2026),
   the file name and SHA-256, and per trade the index, expiry, legs, lot and per-lot scan, NOV and exposure. The dashcam
   (MS-P1c) seals them with the decision.
+- `build_road_margin(cfg, env, factor=None)`: a caller may pass its own factor row per session (the practice run over
+  history, whose sessions predate the factor file's first row of 14 Oct 2026: each session's own archived file times
+  the latest factor; orchestrator, 23 Oct 2026). The default is C2's file lookup, unchanged, and it still refuses a
+  session before that first row. The row used is named in every record either way.
 - A14's point-in-time rule (written before 09:00 IST) becomes one `SpanFile.written_in_time`, used by A14's job, A14c's
   run and this margin (it was copied in the first two).
 
@@ -923,9 +927,9 @@ sessions a real edge of a given size needs to show.
 
 #### INS-d The paired comparison · `story/ms-ins-paired`
 
-**Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `status.py`, `nulls.py`),
-`tests/school/instructor/paired/`; shared: an optional `block` argument in `fno/scoreboard/uncertainty.py`'s
-`resampled_ratios` (default unchanged, byte-identical test).
+**Files owned:** `fno/school/instructor/paired/` (`values.py`, `series.py`, `holds.py`, `status.py`, `compare.py`,
+`nulls.py`), `tests/school/instructor/paired/`. S2's files are untouched: the bootstrap argument once planned there was
+reverted when the method changed (orchestrator's ruling b).
 
 **Method (frozen):**
 - **Pairs:** each driver version D against each control C in {N0, RC1, REF of the road}, on h's common group of
@@ -940,14 +944,27 @@ sessions a real edge of a given size needs to show.
   point, not five.
 - **Cut:** the series stops at the first session with a pair still open (S3's rule). Later closed pairs are shown
   "after the cut, not a claim".
-- **Interval:**
-  - the mean and a two-sided 90% interval from a moving-block bootstrap over sessions;
-  - blocks of 5 sessions, 10,000 resamples, a fixed seed;
-  - blocks of 2 and 10 shown as a sensitivity.
-- **Status (`MapStatus`):**
-  - `exploratory`: below 30 valid counted sessions;
-  - `watching`: 30 or more and the interval's lower end above 0, labelled "not a claim, no licence";
-  - `not_established`: 30 or more otherwise.
+- **Bound (orchestrator's ruling, 22 Oct 2026; it replaces the moving-block bootstrap, which failed its own null gate
+  at 27% false "Watching"):**
+  - the mean, and a one-sided 95% Student-t lower bound on non-overlapping batch means, counted back from the last
+    session (S6's t table);
+  - batch length: 1.5 times the longer of the pair's two frozen card holds, rounded up, never under 10 sessions;
+  - a card's hold (`holds.py`) is the shortest bound its card states: sessions held, calendar days held, sessions
+    before expiry, or days to expiry at entry less its last exit day. Without one, it is the expiry cycle (36 days
+    monthly, since REF can enter at 36 days; 7 weekly). RC1 takes its rule twins' longest hold. Days become sessions at 5 a week, rounded up, and N0 holds nothing;
+  - the real holds: WS1 3, CS1, DB1 and DR1 10, PS2-4 and RC1 15, PS5 18, REF 26, KL1 33;
+  - batch = hold was measured first and failed the gate at holds 10-25 (upper ends 10.4-11.0%), hence the 1.5.
+- **Status (`MapStatus`), v1 (orchestrator's ruling D, 22 Oct 2026):**
+  - `exploratory` below 30 valid counted sessions, `not_established` from 30;
+  - v1 never assigns `watching`. A sparse, negatively skewed seller (the shape of CS1, PS2-4, WS1, REF) makes the
+    batch-t bound look positive falsely in up to 43.4% of runs (upper end 45.6%; loss chance 5%, hold 26, 120
+    sessions), far above the 10% gate, and no t level or batch length fixes it;
+  - the mean and the bound are shown as descriptive numbers, labelled "descriptive, not a test";
+  - a seller-shaped driver's row says "this method can falsely look positive up to 46% for this payoff shape (rarer
+    full losses can be worse)";
+  - a row without a bound says "too few independent batches: no bound before N sessions";
+  - Watching returns only with a v2 card (the model-variance floor, option B) whose own null gate passes the skewed
+    shapes (loss chances 0.05 to 0.2, at the cards' holds) and the Gaussian ones.
 - **Live null:** every review also compares RC1 with N0 on the same days, so the null's own rate of looking good is
   visible.
 
@@ -956,21 +973,25 @@ sessions a real edge of a given size needs to show.
 2. A session's five roads make one series point (series length = sessions).
 3. An abstention counts as 0 and in the abstention count.
 4. The cut at an open pair.
-5. Status boundaries: 29 and 30 sessions, and a lower end of exactly 0.
+5. The v1 ladder at 29 and 30 sessions; v1 never assigns Watching, even on a clearly positive series (and no module
+   but the type names it).
 6. `MapStatus` has exactly three members, so no Supported or Confirmed can be built.
-7. **Null calibration (327 correction 3):** 200 seeded null fleets on fakes, with zero edge, a shared market within
-   each session (correlation 0.6 across roads) and 10-session holds. The share reaching `watching` at 30 sessions is
-   reported in Claims and must be 10% or less. If it is higher, the block length is revised and re-frozen before any
-   counted session.
-8. **Planted edge (325 section 6.2):** a hidden fake driver with a known edge in return on risk (the +Rs 300-a-trade
-   example, and a large one). The sessions needed to reach `watching` in 80% of 200 seeds go into Claims, so the owner
-   sees how long such an edge takes. The large edge must reach it within 30 sessions.
+7. **Null calibration (327 correction 3; orchestrator's conditions 1-3):**
+   - the Gaussian null's false-positive share of the bound, at 2,000 seeds, has the upper end of its 95% interval at
+     10% or less at every hold the cards hold, read from the cards at test time;
+   - the skewed-seller null is measured too. It fails, which is why v1 assigns no Watching, and its rate is the one
+     printed on seller rows.
+8. **Planted edge (325 section 6.2; orchestrator's ruling c):** the power table goes in the Claims and in the 30-session
+   review. A test shows +1.0 gives a positive bound in half the seeds at 30 sessions and 95% at 60.
 9. Empty: no common road-day gives no row.
 
 #### INS-e Outputs: records, the 30-session review and the "why" line · `story/ms-ins-outputs`
 
-**Files owned:** `fno/school/instructor/outputs/` (`store.py`, `review.py`, `why_line.py`, `command.py`),
-`tests/school/instructor/outputs/`.
+**Files owned:** `fno/school/instructor/outputs/` (`store.py`, `run.py`, `controls.py`, `comparison.py`, `review.py`,
+`review_text.py`, `labels.py`, `why_line.py`, `public_counts.py`, `command.py`), `fno/school/instructor/__main__.py`,
+the part-e builders in `fno/school/instructor/wiring.py`, `PathReader.orphan_corrections` (criterion 8),
+`tests/school/instructor/outputs/`. The public counts file goes to `research/school/counts/instructor/`, inside
+MS-P1j's counts folder, so j's one counts commit takes both.
 
 **Implements:**
 - `InstructorRun.for_session(session)`: reads, attributes, classifies and pairs; writes the three record files
@@ -1376,6 +1397,73 @@ them. Q2 yes: check the merged code, and if dated STT needs a seam, message MS-P
 Q4 the close slot, labelled "practice at the close; the pilot trades 15:00". Q5 waived and labelled, no synthetic size.
 SIM-a to SIM-c start now; SIM-d waits for MS-P1j.
 
+### 7.8 SIM-e: the practice archive (lane 1: records, an outside service, a push)
+
+**Why:** the owner's rule of 16 Oct is that every derived data file lives write-once in Drive with a SHA-256 receipt in
+GitHub. SIM-d's practice output is local and git-ignored, so by the orchestrator's hard limit (23 Oct) **no practice
+result may be shown to the owner, put in a report or used in a decision** until it is archived. SIM-e archives it and
+lifts the limit for archived runs only.
+
+**Design (reuse the pilot's mechanism; no new one):**
+- **A dedicated Drive area** `school-practice/`, under the same data store as the pilot's `school/`: O9's `DataStore`
+  (write-once, `RawFileConflict` on other bytes), the receipts through the same `ReceiptPublisher` pattern, one receipt per
+  file under `receipts/data/school-practice/`. The pilot's readers, seal checker and counts never read that area, and its
+  receipt folder is a different folder.
+- **A name that can never collide with the pilot's paths:** every practice path is `school-practice/<run id>/<scenario>/...`
+  and the area name is not a prefix of, and does not start with, the pilot's `school` area plus a slash or the reverse. A
+  test builds every pilot path function (dashcam slot files, counts) over a sample of sessions and proves none starts with
+  `school-practice/`, and that a run id with `/`, `..` or an empty name is refused.
+- **Run id** = `<first>_<last>_<hash of roads and scenarios>_<code commit>` (the checkout's `HEAD`, short). The same run
+  on the same code is the same id; a later commit is a new id, so an old archived run is never touched, and a result that
+  changed with the code cannot overwrite the earlier one.
+- **What is archived:** the practice dashcam files the fleet wrote (decisions, outcomes, drift per session and scenario) and
+  **the report's own text** as `report.txt.gz`, so the text the owner reads is itself archived and its SHA-256 is in a receipt.
+- **The label stays inside every record:** the archive refuses a file in which any stored line lacks `practice (simulator)`
+  (it reads the lines back with `labels`), and refuses a file that is not a gzip of canonical record lines.
+- **Idempotent reruns:** archiving the same run again with the same bytes returns the same seals and makes no commit; other
+  bytes for an existing key are refused as `rule broken`, nothing written, exactly like the pilot's dashcam.
+- **Archiving is explicit:** `school practice run --archive` (default: local only, as today). It runs first, archives
+  second, verifies third (each file read back from Drive through the verified cache and compared with its receipt).
+- **The limit lifts only for an archived run.** The report's first line says `archived: run <id>, <n> files, receipts
+  <folder>, first receipt commit <sha>` only when every file of the run has a verified receipt on the remote; otherwise it
+  says `local only, not archived` as now (a run that failed half-way archived is reported partial, never as archived).
+  Nothing else changes the limit; the never-tune sentence stays on every report.
+- **Privacy:** the repository gets receipts only (path, SHA-256, size); the records and the report are in Drive. A path
+  carries dates, a road-set hash and a commit, never a strike, price or card detail.
+
+**Sub-parts** (branches `story/ms-sim-e1`, `e2`, `e3`): **e1** the archive core (`fno/school/simulator/archive/`: run id,
+path builder, label check, `PracticeArchive` with a fake store in the tests); **e2** the command and the report line;
+**e3** the real run: a small window archived to Drive, read back, rerun to prove it is idempotent, the receipts counted.
+
+**Acceptance tests (named, each with a plant):**
+1. `test_a_practice_path_never_starts_with_a_pilot_path_and_the_reverse` (every pilot path function over sample sessions),
+   `test_a_run_id_with_a_slash_dots_or_nothing_is_refused`.
+2. `test_a_file_without_the_label_on_every_line_is_refused` and `test_a_file_that_is_not_canonical_record_lines_is_refused`.
+3. `test_archiving_twice_with_the_same_bytes_returns_the_same_seals_and_makes_no_second_commit`,
+   `test_other_bytes_for_an_archived_key_are_refused_and_nothing_is_written`.
+4. `test_the_report_text_is_archived_and_its_sha_is_in_a_receipt`.
+5. `test_the_first_line_says_archived_only_when_every_file_has_a_verified_receipt` (a missing receipt, a damaged read-back and
+   a half-finished run each give `local only, not archived`).
+6. `test_a_practice_receipt_is_in_the_practice_folder_and_the_pilots_seal_checker_never_sees_it`.
+7. `test_the_default_run_archives_nothing` (no Drive, no push without `--archive`).
+8. The import test: only the exact store and publisher names; no order, Slack or Groww path.
+9. e3: a real archived window, a rerun with no new commit, every receipt's SHA equal to the Drive file's, counted in the Claims
+   (counts and SHA prefixes only).
+
+**Questions for the orchestrator (answered 23 Oct 2026, below):**
+1. **The receipts commit and push to `main` by the command**, as the pilot's dashcam does (a data commit). Do you accept
+   that for a manual command, or should practice receipts go to a branch?
+2. **`ReceiptPublisher` lives in the pilot's dashcam package** (`fno/school/dashcam/publisher.py`), which the simulator's
+   isolation test bans. I would import exactly `GitReceiptPublisher` and `ReceiptPublisher` there, one file, by name; or
+   MS-P1c's owner moves the publisher to a neutral module (`fno/storage/`). Which?
+3. **Run id with the code commit** (above) or a name the owner gives: I recommend the commit, so a changed result is a new run.
+
+**Answers (orchestrator, 23 Oct 2026, text approved):**
+1. **Receipts go to `main`** as a data commit, like the pilot's. The command commits only `receipts/data/school-practice/<run id>/` by exact path, never a folder glob, with the record scan on. It pulls before the push; on a refused push it pulls and retries once, then reports "receipts NOT pushed" and leaves the Drive copy as the record.
+2. **The publisher moves to a neutral module under `fno/storage/`** (one shared mechanism, no isolation exception). MS-P1c's owner is asked first; if no live owner answers, the move is done here as a pure move, with the old import kept as a re-export only until the dashcam imports from the new place, then removed. Lane 1 for the move (Judge B), with a test that the pilot's dashcam receipts are byte-identical before and after. The archive core takes the publisher through a protocol, so e1 does not wait.
+3. **The run id includes the code commit and the digest of the input datasets' receipts**, so new captures also make a new run; it is short in paths (a hash: `<first>_<last>_<12 hex>`). **Retention:** archived runs are never deleted; a run is archived only by explicit `--archive`.
+4. Counts files are not archived: they are derived, carry no label and are reproduced by the report, which is archived.
+
 ### 7.7 Claims
 
 #### SIM-a Claims (round 1, branch `story/ms-sim-a`; builder session_01W2JE3W9xYftEDWTysHkdVC; the SHA is in the commit carrying this text)
@@ -1491,6 +1579,101 @@ Built: `fno/school/simulator/source/{catalogue,snapshots,quotes,steps,coverage}.
 - **Design A rework (22 Oct, after MS-P1a3 `9ede0d1e`):** quotes carry sizes `None` with `sizes_measured=False`; no placeholder constant exists. `test_the_live_fill_path_refuses_an_unmeasured_quote...` shows E4's `price_leg` refuses it ("quote not valid: no size") without MS-P1d's practice rules, so a practice quote reaching a live path fails closed. The practice-mode pass-through itself is MS-P1d's and is tested in SIM-d. **Not yet run on real data:** the catalogue and source are tested on fixtures; `BhavcopyChain` alone ran on the Drive archive (SIM-a Claims). SIM-d's dry run does the end-to-end run (the container does have Drive access).
 - **Gates at this tip:** `ruff check`, `check_imports` (clean) and `check_records` (clean) pass. `pytest -n auto` over the whole repository was run on
   the a tip (11,733 passed, one unrelated load flake, see SIM-a); at this tip `tests/school` passes (1,414 tests); the full run at the design-A tip `3c1a3cc6` (clean worktree, `pytest -q -n auto`) is 12,001 passed, 16 xfailed, 0 failed in 510 s (judge 509 reproduced 12,001).
+
+#### SIM-d1 Claims (round 1, branch `story/ms-sim-d1` on main 2c42886b; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/practice/{stores,index_closes,cached_chain,spots}.py`; `BhavcopyChain`'s index-close lookup now takes `(underlying, session)`.
+Tests: `tests/school/simulator/practice/test_inputs.py`, `tests/school/simulator/history/test_bhavcopy_chain.py` (one new test).
+
+| Criterion | Code | Named test | Broken-code proof (caught) |
+|---|---|---|---|
+| 9 stores only | `stores.build_stored_library` (`StoredFilesOnly`) | `test_a_missing_day_closes_the_road_and_nothing_is_fetched`, `test_the_stores_module_never_builds_a_fetching_library` | a fetching source put behind the stores |
+| 10 legacy day takes the archived close | `index_closes.ArchivedIndexCloses` | `test_a_legacy_day_takes_its_index_close_from_the_archived_file` | the close name fixed to NIFTY's |
+| 10 no close closes the road | `bhavcopy_chain._close` over the catalogue | `test_a_legacy_day_with_no_index_close_closes_the_road` | n/a (a's rule) |
+| spot history: strictly before the session | `spots.ChainSpotHistory` | `test_the_spot_history_is_the_closes_strictly_before_the_session` | last day moved to the session; the usable-close condition removed |
+| each day read once | `cached_chain.CachedChain` | `test_the_cached_chain_reads_each_day_once` | cache removed |
+
+- **A fix to my own SIM-a code found here.** `BhavcopyChain` asked for the index close by date only, so BANKNIFTY would have received
+  NIFTY's close on a legacy day. The lookup now takes `(underlying, session)`; `test_each_underlying_gets_its_own_index_close_from_the_lookup`
+  pins it; the mutation that hard-codes NIFTY is caught.
+- **7 of 7 mutations caught** (two survived at first: the coverage check and the spot-history cut-off; a test was added for the first and the mutation string for the second was wrong).
+- **Real-data check** (throwaway script, Drive archive, stores only, source "stored files only"):
+  - NIFTY 24 Jun 2021 (legacy): index close 15,790.45, 2,070 rows (6.6 s); BANKNIFTY the same day: 34,827.0, 2,224 rows. Each index has its own close.
+  - NIFTY 2 Jun 2025 (current format): 24,716.6, 1,620 rows; BANKNIFTY: 55,903.4, 928 rows.
+  - BANKNIFTY's 42 sessions of spot history before 24 Jun 2021 (26 Apr to 23 Jun 2021): the first call took 131 s (about 3 s a day, uncached). With the cache every later session reads one new day.
+- **Isolation test.** `practice/stores.py` imports `fno.storage.wiring` and `fno.storage.raw_source` to name the NSE datasets (their file names and archive paths). The isolation test allows these two imports for that one file only, with its reason; the file builds no fetching library.
+- Gates at the tested tip `01bf888d`: full `pytest -q -n auto` in a clean worktree: **13,841 passed, 16 xfailed, 0 failed** in 522 s; `tests/school/simulator` 133 passed; ruff and check_imports clean; the record scan passed on commit.
+- **Question for Judge H (orchestrator's suggestion):** `practice/stores.py` needs the NSE datasets' file names and archive paths. They are class attributes of the NSE source classes in `fno/storage/raw_source.py`, and `daily_files` that wraps them is in `fno/storage/wiring.py`. Moving them to a constants module would change those frozen-adjacent files, which I do not own. Should they move, or does the one-file exception stand? **Judge 515 minor, applied:** the exception now names the exact imports (`daily_files`, `NseDailyFoSource`, `NseLegacyFoSource`, `NseIndexCloseSource`, plus their two modules) for that one file; a plant that adds `build_nse_fo_library` to `stores.py` fails the isolation test (checked on the real file, and `test_a_library_builder_import_in_stores_is_caught_while_the_dataset_names_pass`).
+
+#### SIM-d2, d3 and d4 Claims (round 1, branch `story/ms-sim-d2` on `story/ms-sim-d1`, MS-P1j's seams `6d3aa180` and MS-P1m's factor seam `2992864d`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/practice/{clock,dated,dashcam,gate,margin,drivers,fleet,window,runner,report,render,wiring}.py` and
+`fno/school/simulator/command.py`; tests in `tests/school/simulator/practice/` and `tests/school/simulator/test_command.py`.
+
+| Criterion | Code | Named test | Broken-code proof (caught) |
+|---|---|---|---|
+| 1 drivers unchanged | `fleet.py` builds the pilot's `SchoolFleet` and `build_school_drivers` | `test_it_is_the_pilots_own_fleet_class_with_the_practice_rules` | `rules=PRACTICE` swapped for LIVE |
+| 2 three scenarios, insufficient listed, unpriceable counted | `runner.py`, `report.py`, `render.py` | `test_a_window_runs_every_scenario_over_every_session`, `test_every_line_carries_the_label...` | counts read dropped |
+| 3 every line labelled | `render.line` | same | label removed |
+| 4/15 isolation | `fleet._refuse_pilot_paths`, runner home | `test_a_home_inside_the_pilots_records_is_refused...`, `test_a_run_writes_nothing_under_the_pilots_paths` | guard removed |
+| 5 AI card refused | `drivers.simulable` | `test_an_ai_card_is_refused_by_name...`, `..._the_practice_fleet_refuses_an_ai_card_when_it_is_built` | `simulable` removed; family test removed |
+| 11 dated STT across a change | `dated.cfg_on` | `test_a_position_opened_before_the_stt_change_and_met_after_it_keeps_its_own_charges` (31 Mar then 3 Apr 2023, real fills, each leg's charges equal the 31 Mar mapping's) | **(correction: the plant `cfg_on` to `parts.cfg` was not caught at 6634659a; the criterion rested on a strict `xfail`, which fails whatever the cause. Round 2 below catches it.)** |
+| 12 live laws refuse unmeasured sizes | `fleet.rules` | `test_without_the_practice_rules_the_live_fleet_closes_every_road...` | n/a |
+| 14 impossible share apart from refusals | `report.RoadDayCoverage` | `test_the_impossible_line_gives_the_share_of_legs`, `test_the_impossible_share_is_legs_over_legs...` | share forced to 0 |
+| 15 label in the record itself | `dashcam.PracticeDashcam` | `test_every_stored_record_line_carries_the_practice_label`, plain `ReplayDashcam` still reads the file | label removed |
+| 16 refused by name before any read | `window.RunWindow.check`, `command.cmd_practice_run` | `test_a_window_over_an_unregistered_road_is_refused_by_name_before_any_session_is_read`, `test_a_refused_window_exits_2_names_the_road_and_builds_nothing` | check removed; last day not checked |
+
+- **Corrections to earlier rulings, found by running it:**
+  1. The practice clock is 15:30, not 15:31. At 15:31 all 7 fills of the first smoke run were `stale_seal` (law 6 refuses a fill after the close) while the run looked fine. `test_the_trades_really_fill_none_is_refused_by_a_stale_seal` pins it.
+  2. Under the practice rules `executed` read 0 although the fills happened: `fleet/fill.py:79` allocated the shared size under LIVE. MS-P1j's builder fixed it (`FillStep.rules`, 54ef5d40); `test_account_trades_are_executed_not_size_shared...` (first a strict `xfail`) now passes.
+  3. `SchoolFleet.run()` read `school.enabled`, a pilot-only switch. MS-P1j's builder moved the check to the pilot's entry points (54ef5d40); `_practice_switch` is deleted and the practice root passes the pilot's configuration unchanged.
+  4. The pilot's capture-window rule would close every road at the close (`out_of_window`), so the practice gate keeps the catalogue status and the road-day check only.
+  5. The stress-factor file has rows only from 14 Oct 2026 and each is valid for 30 days, so law 3 would refuse every historical entry. Practice uses the file's latest factor (2.1) on that session's own archived SPAN, labelled on every output; law 3 itself is unchanged (MS-P1m's `factor` seam).
+  6. The first real-data run made CS1 `unavailable: deadline` on a cold first session (the Drive read ran inside the driver's 60 s). The runner now reads the archive before the fleet runs; `test_the_archive_is_read_before_the_fleet_runs...` fails without it. The rerun had no `unavailable`.
+- **Real-data dry run** (`PracticeRunner` through `cmd_practice_run`, Drive archive stores only, recorded captures for the spreads; 4-8 Mar 2024, NIFTY-M, NIFTY-W, BANKNIFTY-M; 154 s, exit 0). Counts only:
+  - 4 sessions run (8 Mar was a holiday), 3 scenarios, 12 road-days, **4,710 legs: priced 0, untraded 1,356, impossible 1,276 (27%), unsellable 0, insufficient spread data 2,078**;
+  - every driver `no_trade` in every scenario, 0 refused by margin; 24 recorded captures were left out of the spread model (missing or failed a check);
+  - every line begins `practice (simulator) |`. No quote can be priced yet: the recorded sessions are far below 30 for every bucket, so this run proves the plumbing, the labels and the unpriceable counts, not a result.
+- **Deviations from the story, for the judge:**
+  1. Criterion 8 asked for the practice records in a Drive dataset with a receipt in GitHub. They are written locally under `work/school_practice/` (git-ignored), never in the repository, and nothing is pushed; a Drive upload is a later step for the orchestrator to schedule.
+  2. The command is registered by two lines in MS-P1j's `fno/school/cli.py`, added in this branch with its builder's agreement.
+  3. Isolation exceptions, each exact and with its reason in `test_isolation.py`: `practice/stores.py` (the NSE dataset names), `practice/fleet.py` (`build_road_margin`), `practice/runner.py` (`account_net`, a pure function).
+- **A pilot bug the practice run found (reported to MS-P1j's builder and the orchestrator, 23 Oct):** once fills really executed, session 2 of a window stopped with `account unreadable REF@1 (AccountError: a fill before the account's first view)`. `TicketBook.open` records into the ticket ledger, whose accounts are never `view`ed (only the drivers' are), so the first ticket ever recorded for a driver stops the fleet. The pilot goes through the same `books_on`. **Fixed by MS-P1j's builder at `1f767528`** (every store the fleet records into is viewed before any fill; `tests/school/fleet/test_first_ticket.py`). My two tests (criterion 11 and the multi-session runner test) were strict `xfail` until then; both are now plain passing tests, so criterion 11 really runs the 31 Mar to 3 Apr 2023 regime change with positions recorded and read back (before 54ef5d40 it had passed vacuously, because nothing was recorded).
+- **Hard limit (orchestrator, 23 Oct; the owner's rule of 16 Oct: every derived data file lives write-once in Drive with a receipt in GitHub):** practice output is local and git-ignored. **No practice result may be shown to the owner, put in any report or used in a decision until practice writes to a Drive dataset with receipts (SIM-e, next).** The report's first line says "local only, not archived: no practice result may be shown to the owner, reported or used in a decision" (`test_the_first_line_of_a_report_says_local_only_not_archived`). `school practice run` is registered in `fno/school/cli.py` by two lines in this branch (`test_school_practice_run_is_registered_in_the_main_command...`); the import sits inside the function so the main command starts as fast as before.
+- **Not done:** criterion 13 (a lot per expiry) waits for MS-P1a's follow-up; criterion 7 (diff-based "no driver file edited") is true by construction (no file under `fno/school/drivers/` is touched) and is checked in the judge's diff. **Full suite** (`pytest -q -n auto`, clean worktree, tip `6634659a`, with MS-P1j's follow-up 54ef5d40 and main merged): **14,114 passed, 18 xfailed, 0 failed** in 566 s (the 18 included the two strict xfails, now flipped). **At the tip with MS-P1j's ticket fix, `6b4409a0` (clean worktree, `pytest -q -n auto`): 14,120 passed, 16 xfailed, 0 failed** in 632 s.. ruff, check_imports and check_records clean.
+
+#### SIM-d round 2 (judge 521 FAIL round 1: 2 should-fix, 4 minor; branch `story/ms-sim-d2`, the SHA is in the commit carrying this text)
+
+| Finding | Fix | Test (and the plant it catches) |
+|---|---|---|
+| 1 criteria 2 and 11 rested on strict xfails; the plant `cfg_on(...)` to `parts.cfg` survived | MS-P1j's ticket fix (`1f767528`) landed, the xfails are plain tests, and tests that need no second session were added | `test_a_session_charges_the_stt_of_its_own_date_on_its_fills` (31 Mar 2023 at 0.05%, 3 Apr 2023 at 0.0625%, each fill's charges equal that date's mapping and are below today's), `test_the_charge_steps_up_across_the_change...`, `test_one_session_under_all_three_scenarios_is_labelled...`; **plant `cfg_on` to `parts.cfg` now caught** |
+| 2 DATA_SPEND did not name the spread read of the forward captures | `research/DATA_SPEND.md`: the notes of the A4 row (forward, trial 99) and the A4c/A4f row (registered, trial 99) say the simulator's spread model reads the bid and ask of every recorded session, counted ones included, spreads only, never an outcome, for practice only | n/a (a register edit, lane 1 as the register's rule says; the orchestrator may rule otherwise) |
+| a the margin label was fixed text | `margin.margin_label(row)` is built from the factor row actually used; the report carries it | `test_the_margin_label_is_built_from_the_factor_row_actually_used` (a row of 2.4 shows 2.4); plant caught |
+| b outcome codes without reasons | the report counts `outcome:reason` (`no_trade:no_expiry_in_window`, `no_trade:rule_not_fired`, `ticket:account_limit`) | `test_a_drivers_outcomes_show_their_reasons...`; plant caught |
+| c `refused_for_margin` untested | tested with a margin that fails law 3. **The counter itself was wrong**: a margin failure is an account limit, so the entry becomes `ticket: account_limit` and my counter of outright refusals read 0. It now counts decisions whose law results include a failed margin law, and is named `failed_margin` (the line reads "N decisions failed the margin law") | `test_margin_failures_are_counted_when_law_3_fails`; plant caught |
+| d 2019 has no SPAN file | (orchestrator's ruling) the margin-checked window starts on 2 Jan 2020: earlier sessions are refused by name ("N sessions refused: no SPAN archive before 2020"), counted, and not run; a test pins the date to `NseSpanBodSource.first_day` | `test_sessions_before_the_span_archive_are_refused_by_name_counted_and_never_run`, `test_the_span_archive_starts_where_the_practice_says`; plant caught |
+
+- **SF2, the orchestrator's ruling (23 Oct):** learning spreads from the recorded captures is allowed, as a cost input and not an outcome read. `research/DATA_SPEND.md` has a new row for it ("Bid-ask spreads of the 15:00 captures ... cost input for practice only, no outcome"), besides the two notes. **The condition that keeps it clean: practice results are never used to choose, tune or rank a counted driver.** The practice report's second line says it (`test_the_report_header_says_practice_is_never_used_to_tune_a_counted_driver`); plants (line removed; the span filter removed) caught.
+- Plants (mine, this round): `cfg_on` bypass, `failed_margin` not counted, reasons dropped, the 2019 line removed: **4 of 4 caught**.
+- **Criterion 13 (a lot per expiry), as its own commit after the first verdict:** `HistoricalRoadCatalogue` keeps each expiry's lot in `RoadDay.lots` (MS-P1a4, on main) and closes a road only when one expiry has no lot of its own. Tests: `test_two_expiries_with_different_lots_open_the_road_with_each_expirys_own_lot` (2 Jun 2025, BANKNIFTY-M: 35 and 30, `lot` the nearest's), `test_one_expiry_without_a_lot_of_its_own_closes_the_road...`, `test_the_same_lot_on_both_expiries_still_opens_as_before`, and end to end `test_a_proposals_lot_follows_the_lot_of_its_own_expiry` (every proposal's `lot` is the lot of its legs' expiry, through the pilot's own drivers, which read `lot_for`). Plants (`lots` not passed; the missing-lot closure removed): 2 of 2 caught. The old test that a mixed-lot day closes the road was replaced.
+- `tests/school/simulator`: 215 passed; ruff, check_imports and check_records clean. **Full suite at the round-2 tip `32195d2c` (clean worktree, `pytest -q -n auto`, main and MS-P1j's follow-up merged): 14,144 passed, 16 xfailed, 0 failed** in 575 s.
+
+#### SIM-e1 Claims (round 1, branch `story/ms-sim-e1` on SIM-d's passed tip `08bfbc1d` and the approved SIM-e text; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/archive/{names,archive}.py`, tests in `tests/school/simulator/archive/test_archive.py`. The publisher, the data store and the reader come in by protocol, so e1 does not import the pilot's dashcam package.
+
+| Acceptance test (7.8) | Test | Broken-code proof (caught) |
+|---|---|---|
+| 1 names never collide | `test_a_practice_path_never_starts_with_a_pilot_path_and_the_reverse`, `test_a_run_id_with_a_slash_dots_or_nothing_is_refused`, `test_a_file_place_that_climbs_or_is_absolute_is_refused` | area renamed to `school`; run-id pattern removed; `..` check removed |
+| 2 label inside every line | `test_a_file_without_the_label_on_every_line_is_refused`, `test_a_file_that_is_not_canonical_record_lines_is_refused`, `test_a_text_file_needs_the_label...` | label comparison removed; the check not called |
+| 3 idempotent, write-once | `test_archiving_twice_with_the_same_bytes...no_second_commit`, `test_other_bytes_for_an_archived_key_are_refused...`, `test_a_drive_conflict_without_a_pushed_receipt_is_refused_too` | SHA comparison removed; early return removed; `RawFileConflict` handling removed |
+| 4 report text archived | `test_the_report_text_is_archived_and_its_sha_is_in_a_receipt` | n/a |
+| run id follows what the run depended on | `test_the_run_id_is_short_and_follows_everything_the_run_depended_on` | input digest left out of the hash; hash truncated |
+| read-back | `test_a_damaged_read_back_is_named` | check removed |
+| a path outside the run refused | `test_a_path_outside_the_run_is_refused_before_anything_is_written` | check removed |
+
+- Mutations: **12 of 12 caught.** `tests/school/simulator`: 48 passed in the files I ran (archive and isolation); ruff and check_imports clean. The full suite is run at the e3 tip.
+- Not in e1 (e2 and e3): the real stores' wiring, the command's `--archive`, the report's first line, the exact-path receipt commit, and the real Drive run.
 
 ## Claims
 
@@ -2386,6 +2569,25 @@ Replaces the earlier part 4 (744299d6, never merged), which waived the size laws
 - **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
 - **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
 
+
+### MS-P1d follow-up Claims, settlement fixture determinism (branch `story/ms-p1d-settle-determinism`, from main)
+
+Judge K saw `test_settlement.py::test_each_index_settles_at_intrinsic_against_its_own_price[BANKNIFTY]` fail once
+under `-n auto`: the fill's `rests_on` and a second build of the fixture file had different SHA-256s.
+
+- **Root cause (reproduced):** the test fixture `settlement_folder` wrote its zip entry with `writestr(<name>, ...)`,
+  which stamps the entry with the wall clock (2-second resolution). The test builds the file twice (`tmp_path` and
+  `tmp_path / "again"`), so two builds straddling a 2-second boundary differ; xdist load makes that likelier. Built
+  2.1 s apart, the old fixture gave 66c22c68... and 9e8454c0...
+- **Not production:** no `writestr` in `fno/school`, `fno/desk/settlement.py` or `fno/storage/raw_source.py`; the
+  settlement fill reads the archived file's bytes as stored. The same file settled twice, 2.1 s apart, gives an equal
+  `FillResult` (`rests_on` d700cfa2...). The other zip fixture (`tests/school/roads/test_listed_contracts.py`, b's)
+  has the same pattern but compares no hashes.
+- **Fix:** the fixture stamps its entry with the file's own trading day (`ZipInfo`), so the same arguments always give
+  the same bytes.
+- **Test:** `test_the_settlement_fixture_is_the_same_bytes_at_any_wall_clock_time` builds the file under two clocks
+  (zipfile's clock patched, about 3 years apart) and requires one SHA-256. Plant: the old plain-name `writestr`,
+  caught.
 #### INS-c Claims (round 1, branch `story/ms-ins-causes`, on INS-b; the SHA is in the commit that carries this text)
 
 | Criterion | Met by | Test (`tests/school/instructor/causes/`) |
@@ -2577,4 +2779,399 @@ MS-P1g why lines, round 2 (judge 517 PASS with minors; orchestrator, 23 Oct 2026
 4. **Runbook:** `starts_on` strictly later than the book's previous row (above); the by-name sentence is re-attributed
    to the orchestrator (23 Oct) and the j builder builds it. Plants: the unknown-driver catch, the leak check and the
    notes are each removed (all caught).
+
+
+### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B, then Judge I for the third seam, which touches the live gate; branch `story/ms-p1j-sim-seams`)
+| Seam | Change | Test (and the plant it catches) |
+|---|---|---|
+| One construction of the books | `fleet_wiring.books_on(cfg, stores, fills)`: the driver accounts and the ticket ledger under `stores.home`, filled through the given port; `fleet_on` calls it with the pilot's fill port, and the practice root will call it with its own | `test_books_on_builds_the_accounts_and_tickets_under_the_home_with_the_given_fill_port`, `test_fleet_on_builds_its_books_through_books_on` (plants: books_on ignoring its port; fleet_on building its own) |
+| The replay dashcam's encoding is overridable | `ReplayDashcam.encode` and `decode` (defaults `encode_slot_file` and `decode_slot_file`); `seal` and `read` go through them; the write-once and seal logic is not copied | a labelled subclass writes `"label": "practice (simulator)"` on every line, the pilot's `decode_slot_file` and a plain `ReplayDashcam` read the same records, write-once still holds; `read` uses a subclass's `decode` (plants: seal or read bypassing them) |
+
+| The live gate's quote rules are the fleet's own (orchestrator, 23 Oct 2026, 01:50 UTC) | `SchoolFleet.rules: QuoteRules = LIVE`, passed into `plan_slot`: under the live rules (every pilot root) a road whose capture holds an unmeasured quote still closes as `sizes_not_measured` (judge 506); only `QuoteRules(practice=True)`, which the simulator's practice root passes (`execution/practice_wiring.PRACTICE`), lets it through for MS-P1d's practice laws. d's isolation test already refuses practice rules outside the practice roots | `test_only_the_practice_rules_open_a_road_whose_capture_holds_unmeasured_quotes`; the live test unchanged (plants: the guard ignoring the rules, the guard always skipped, the runner not passing its rules, practice by default) |
+
+| The fleet's rules reach the shared size (the SIM builder's finding, 23 Oct 2026) | `FillStep.rules` (no default) is the fleet's own `rules`, passed to `allocate`: under the practice rules an entry on unmeasured sizes was judged by the live rules and became `size_shared` (executed 0 while the fills happened). No other fleet code names the rules (the fill port and the ticket book use their own port's) | `test_under_the_practice_rules_an_entry_on_unmeasured_sizes_is_executed_not_size_shared` (plants: the step on the live rules; the runner passing the live rules) |
+| The fleet has no switch (orchestrator, 23 Oct 2026) | `school.enabled` moves out of `SchoolFleet.run()`: the pilot's record root returns `SwitchedOff` (the school-off line, nothing built) when it is off; the CLI no longer forces the switch on a copy of the config for a replay, whose root has none. The simulator's practice command runs the same fleet without a switch. No other reader of `settings.enabled` in `fleet/` | `test_the_pilot_s_record_root_with_the_switch_off_prints_the_off_line_and_builds_nothing` (a's `check_fleet_off`), `test_the_fleet_itself_has_no_switch_and_runs`, `test_the_run_command_with_the_switch_off_prints_the_off_line_and_builds_nothing`, `test_a_replay_runs_with_the_pilot_s_switch_off_and_on_the_config_as_given` (plants: the fleet keeping the switch, the record root ignoring it, the replay forcing it on) |
+
+- **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files).
+- **Plants:** 13 planted (4 on the first two seams, 4 on the rules at the gate, 5 on the fill rules and the switch), 13 caught.
+
+
+#### INS-d Claims (round 1, branch `story/ms-ins-paired`, on INS-c; the SHA is in the commit that carries this text)
+
+**What the owner should read first [some evidence: simulations run through the real comparison code; the markets are
+assumed, not measured].** In v1 no driver can read Watching (ruling D). The 30-session P2 review will show every
+driver as Exploratory or Not established, with the mean and the bound as descriptive numbers. The edges below would
+take this long to show a positive bound (hold 10, batch 15, 500 seeds; the share of runs with a bound above 0):
+| Edge per trade (return on risk) | 30 sessions | 60 | 120 | 250 | 500 |
+|---|---|---|---|---|---|
+| +1.0 | 61% | 100% | 100% | 100% | 100% |
+| +0.3 (Rs 3,000 per Rs 10,000 maximum loss) | 22% | 51% | 85% | 98% | 100% |
+| +0.1 | 11% | 17% | 27% | 42% | 66% |
+| +0.03 (325's "+Rs 300 a trade") | 7% | 10% | 13% | 13% | 18% |
+- **+Rs 300 a trade needs many years.** +0.1 needs more than 500 sessions.
+- **No bound before N sessions** (from the cards: 2 batches of 1.5 x the pair's longer hold, at least 10 sessions):
+  - against N0: WS1 20; CS1, DB1 and DR1 30; PS2-4 and RC1 46; PS5 54; REF 78; KL1 100;
+  - against RC1 (hold 15): 46, PS5 54, KL1 100;
+  - against REF (hold 26): 78, KL1 100.
+  - The review prints these in those words.
+**Why no Watching in v1: the skewed-seller null [some evidence], measured with the shipped code (round 2).**
+- **The fake driver** (`nulls.seller_slots`) is a credit seller at zero edge:
+  - 5 roads, one open trade per road, held for the card's hold;
+  - the full maximum loss with probability p, else a small win;
+  - 60% of a session shock shared across roads.
+- **The grid:**
+  - share of runs with a bound above 0, 2,000 seeds per cell;
+  - batch 1.5 x the hold, at least 10;
+  - every hold the cards hold, p 0.05 to 0.2;
+  - at the first session count with a bound (2 batches), at twice that, at 120 and at 250 sessions;
+  - the upper end of the 95% Wilson interval in brackets.
+| Hold (batch) | p 0.05 | p 0.1 | p 0.15 | p 0.2 |
+|---|---|---|---|---|
+| 3 (10), 20-250 sessions | 11.9-31.4% (33.5%) | 9.2-16.0% (17.6%) | 8.4-11.0% (12.4%) | 7.6-9.2% (10.5%) |
+| 10 (15), 30-250 | 18.5-36.3% (38.4%) | 13.1-22.6% (24.5%) | 10.8-16.0% (17.6%) | 9.6-14.1% (15.7%) |
+| 15 (23), 46-250 | 19.2-40.4% (42.6%) | 16.2-25.3% (27.3%) | 13.2-18.4% (20.1%) | 10.5-14.6% (16.2%) |
+| 18 (27), 54-250 | 25.1-37.1% (39.3%) | 15.6-21.6% (23.4%) | 12.8-17.0% (18.7%) | 7.7-15.0% (16.6%) |
+| 26 (39), 78-250 | 19.2-43.4% (45.6%) | 16.0-22.1% (24.0%) | 14.3-17.5% (19.3%) | 9.4-16.8% (18.5%) |
+| 33 (50), 100-250 | 25.3-37.8% (39.9%) | 17.2-23.8% (25.7%) | 13.7-17.0% (18.7%) | 9.4-14.2% (15.9%) |
+- **The worst case** is 43.4% (upper end 45.6%): p 0.05, hold 26, 120 sessions. Seller rows print "up to 46%", and add
+  that rarer full losses can be worse. A test pins that cell at or under 46% and above 40%.
+- **Correction of round 1:** the first table here came from a separate 4-road script, not the shipped 5-road code. Its
+  hold-10, p-0.1, 30-session cell (14.9%) is 22.6% (24.5%) with the shipped code, as Judge K found (judge 516).
+- **What does not fix it** (round 1, 4-road script): batches of 20 or 30, a 97.5% t and a 99% t.
+- **The cause is the skew, not the sparseness:** a symmetric ±1 payoff gives 4-5%, a positive skew 2%.
+**The Gaussian null, Gaussian only (2,000 seeds a cell; upper end in brackets).** It passes at the batch rule. It does
+not cover skewed payoffs.
+| Hold, batch | 30 sessions | 60 | 120 |
+|---|---|---|---|
+| 3, 10 | 5.4% (6.5%) | 5.6% (6.7%) | 5.9% (7.1%) |
+| 5, 10 | 6.5% (7.7%) | 6.4% (7.6%) | 6.7% (7.8%) |
+| 10, 15 | 7.2% (8.5%) | 6.8% (8.0%) | 7.5% (8.7%) |
+| 15, 23 | no bound | 6.5% (7.7%) | 7.6% (8.9%) |
+| 18, 27 | no bound | 5.9% (7.0%) | 7.7% (9.0%) |
+| 25, 38 | no bound | no bound | 7.0% (8.3%) |
+| 33, 50 | no bound | no bound | 6.1% (7.2%) |
+- **Sensitivity:** shared shock 0.3 or 0.9, or return spread 1.0, stays at or under 9.0% (upper end).
+- **Batch = hold** fails: 10.3-11.0% at 120 sessions. A test pins hold 15.
+- **The first method** (S2's bootstrap, 5-session blocks): 27%.
+- **Live test:** `test_nulls` re-checks the Gaussian gate at every hold the cards hold, read at test time (today 3,
+  10, 15, 18, 26 and 33), so a v2 card re-runs it.
+| Criterion | Met by | Test (`tests/school/instructor/paired/`) |
+|---|---|---|
+| 1 hand-computed pairs | `series.paired_series` | `test_series`: `the_hand_computed_pairs...` (both measures) |
+| 2 one point per session | `paired_series` | `five_roads_on_one_session_are_one_point` |
+| 3 abstention 0 and counted | `series.value` | the hand test |
+| 4 the cut | `paired_series` | `the_series_stops_at_the_first_open_pair...`, `an_open_ticket_cuts_the_per_opportunity_series_but_not_the_executed_only_one` |
+| 5 the v1 ladder; never Watching | `status.status` | `test_status`: `the_v1_ladder...`, `v1_never_assigns_watching...`, `no_v1_module_assigns_watching`, `a_row_says_in_words...` |
+| 6 three statuses in the type | a's `MapStatus` | `test_types` |
+| 7 null calibration | `nulls.py` | `test_nulls` (the Gaussian gate at the cards' holds, the skewed seller, the rejected rule) |
+| 8 planted edge | `nulls.share_watching` | `a_planted_edge_of_one_shows_a_positive_bound`; the power table |
+| 9 empty | `compare` (no common day, no row) | `test_compare`, `test_series`: `only_the_common_road_days...` |
+| bound | `status.batch_bound` | `the_hand_computed_bound_on_three_batches` |
+| holds and batch | `holds.py`, `shapes.py` | `each_cards_frozen_hold`, `a_pairs_batch...`, `rc1_holds_as_long_as_its_longest_rule_twin...` |
+| robustness | `values.py`, `series.py`, `compare.py` | `a_road_day_missing_from_a_map_is_unavailable...`, `a_non_finite_return_is_refused`, `a_driver_with_no_slots_yet...` |
+**Self-review (one independent agent).** One blocking finding, the skewed null, led to ruling D above. The other
+findings were all fixed:
+- no row for a pair without common days, and a missing driver handled;
+- a missing slot is unavailable, never a crash;
+- non-finite returns refused;
+- an open ticket does not cut the executed-only series;
+- RC1's hold from its rule twins (15);
+- the monthly cycle is 36 days, so REF's hold is 26;
+- unavailable slots after the cut are documented as counted in `unavailable`.
+**Contracts:** `PairedRow` holds a one-sided `bound`, the `batch` and a `note`. S2's files are untouched.
+**Broken-code proof:** 14 plants before the ruling, all caught. The ruling's own pieces are pinned by the tests above:
+the ladder, no Watching anywhere, the notes and the seller flag.
+#### INS-d Claims, round 2 (judge 516 FAIL round 1: two should-fixes, one minor)
+| Finding | Fix | Test |
+| SF1: the printed "up to 21%" was false | The cause: the round-1 table came from a separate 4-road script, never re-run with the shipped 5-road `seller_slots`. The full grid is now measured with the shipped code: every hold the cards hold, loss chances 0.05-0.2, at 2 batches, at twice that, at 120 and at 250 sessions, 2,000 seeds a cell (the table in "INS-d Claims (round 1)", rewritten). The true worst case is 43.4% (upper end 45.6%). `SELLER_FALSE_POSITIVE_PCT` is now 46 (code, card and test agree), and seller rows add "(rarer full losses can be worse)" | `test_nulls`: `the_skewed_seller_null_fails_the_gate_and_its_worst_case_is...` (the worst cell pinned above 40% and at or under 46%); `the_round_1_table_cell_measured_with_the_shipped_code` (your 22.6%) |
+| SF2: the card said REF 25, the story said 35 days and REF/RC1 25 | The card: holds 3, 10, 15, 18, 26 and 33. The story: the 36-day cycle, RC1 15 from its twins, REF 26 | none needed (the holds are tested from the cards: `each_cards_frozen_hold`) |
+| Minor: a pair present with an empty common set | none needed | `test_compare`: `a_pair_present_with_an_empty_common_set_gives_no_row` |
+**What the owner should know [some evidence: a simulation].** For a credit seller that rarely loses its full maximum
+loss (a 5% chance), this descriptive bound looks positive about 2 runs in 5 even with no edge. Rows print that rate.
+The rarer the loss, the more misleading a short sample looks. That is the peso problem, and it is why v1 has no
+Watching.
+
+| Every account the fleet records into is opened first (the SIM builder's finding, orchestrator's ruling, 23 Oct 2026) | The fleet viewed only the driver accounts, so the first ticket ever recorded for a driver stopped the run ("account unreadable ...: a fill before the account's first view"; hidden until the fill rules fix let entries be recorded). `Books.stores` names every store the fleet records into (the driver account and the ticket ledger), and one step, `SchoolFleet._open`, views each before any fill; no separate path for tickets. a's contract now says it (`AccountPort.record`: an account no view opened refuses), a's `FakeAccounts` enforces it as d's store does, and a's `check_account_port` checks it | `tests/school/fleet/test_first_ticket.py` on d's real `SchoolAccounts` and `SchoolFills`: a driver's first-ever ticket on a fresh ledger records and the session completes; session after session the ledgers stay open and record; the fleet's ticket tests now fail on a fake that refuses as the real store does; `test_a_ticket_ledger_no_view_opened_refuses_the_ticket_as_the_real_store_does` (plants: tickets not viewed, caught by both the fakes and the real stores alone; `stores` without the ticket ledger) |
+
+- **The pilot's records are unchanged:** in the 22 Oct replay every sealed record, count and driver account file is
+  byte-identical to round 5's; the new files are each driver's ticket ledger, now opened by the session's view. Two
+  replays are identical.
+- **Plants:** 16 planted (4 on the first two seams, 4 on the rules at the gate, 5 on the fill rules and the switch, 3 on the ticket ledgers), 16 caught.
+
+### MS-P1a4 Per-expiry lots · lane 1 (the lot decides size, cost and margin; Judges B then I) · builder: MS-P1a's owner (session_01CmKJ6taCLzfEGg7wt6RC4N), branch `story/ms-p1a4-lots`
+Why (the SIM builder, Judge H on the archive): NSE changes a lot from a given expiry, so for a while an index's two
+monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day loses the road for that stretch.
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+| `RoadDay.lots` and `lot_for(expiry)`, built like `strike_steps` and `step_for` | `lots: Mapping[date, DatedLot]` (hash=False): when given, it names every recorded expiry, each above zero, and the nearest's is `lot`. `lot_for` gives that expiry's own lot, never another's. Without `lots`, every recorded expiry carries `lot`, which is exactly what a catalogue that closes a road on mixed lots states (every catalogue today); an expiry the road did not record has none | `tests/school/contracts/test_road_lots.py` (plants: borrowing the nearest lot, the checks removed, an unrecorded expiry given the lot, lots in the hash) |
+| e's two reads (drivers/proposals.py) | `road_day.lot_for(plan.expiry).units` for both the units and C2's candidate builder | `test_a_proposal_on_the_later_expiry_is_sized_with_that_expiry_s_own_lot`: REF on the later expiry proposes with that expiry's doubled lot (plant: the nearest's lot) |
+| b's catalogue fills one lot per expiry | **Not needed, so not changed:** without `lots`, `lot_for` already gives every recorded expiry the catalogue's one lot, which b guarantees by closing a road on mixed lots. Changing b would add a line that says nothing new | a's conformance check now asks every open road for every recorded expiry's lot, and the nearest's is `lot`; b's real catalogue passes it unchanged |
+| The live catalogue keeps closing a road on mixed lots | unchanged | — |
+- **Plants:** 6 planted, 6 caught.
+- **Later, not in a4:** lifting the live closure needs a test on the 2 Jun 2025 archive showing BANKNIFTY-M's near
+  and far monthlies each proposing with their own lot, units, fill costs and margin (orchestrator).
+### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B, then Judge I for the third seam, which touches the live gate; branch `story/ms-p1j-sim-seams`)
+| Seam | Change | Test (and the plant it catches) |
+| One construction of the books | `fleet_wiring.books_on(cfg, stores, fills)`: the driver accounts and the ticket ledger under `stores.home`, filled through the given port; `fleet_on` calls it with the pilot's fill port, and the practice root will call it with its own | `test_books_on_builds_the_accounts_and_tickets_under_the_home_with_the_given_fill_port`, `test_fleet_on_builds_its_books_through_books_on` (plants: books_on ignoring its port; fleet_on building its own) |
+| The replay dashcam's encoding is overridable | `ReplayDashcam.encode` and `decode` (defaults `encode_slot_file` and `decode_slot_file`); `seal` and `read` go through them; the write-once and seal logic is not copied | a labelled subclass writes `"label": "practice (simulator)"` on every line, the pilot's `decode_slot_file` and a plain `ReplayDashcam` read the same records, write-once still holds; `read` uses a subclass's `decode` (plants: seal or read bypassing them) |
+| The live gate's quote rules are the fleet's own (orchestrator, 23 Oct 2026, 01:50 UTC) | `SchoolFleet.rules: QuoteRules = LIVE`, passed into `plan_slot`: under the live rules (every pilot root) a road whose capture holds an unmeasured quote still closes as `sizes_not_measured` (judge 506); only `QuoteRules(practice=True)`, which the simulator's practice root passes (`execution/practice_wiring.PRACTICE`), lets it through for MS-P1d's practice laws. d's isolation test already refuses practice rules outside the practice roots | `test_only_the_practice_rules_open_a_road_whose_capture_holds_unmeasured_quotes`; the live test unchanged (plants: the guard ignoring the rules, the guard always skipped, the runner not passing its rules, practice by default) |
+- **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files); full suite 13800 passed.
+- **Plants:** 8 planted (4 on the first two seams, 4 on the rules), 8 caught.
+
+**Round 2, addendum (the orchestrator's conditions on judge 516, sent before the round-2 push):**
+- **Reproducible seeded runs:** `tools/ins_seller_null.py` runs the seller grid (`nulls.seller_cells` and
+  `seller_cell`, fixed seeds 0-1999) through the shipped code and writes `research/school/instructor_seller_null.csv`.
+  Its rerun reproduced every one of the 96 cells exactly.
+- **The printed rate comes from those runs:**
+  - `test_the_printed_seller_rate_is_the_committed_grids_worst_upper_end_and_the_grid_covers_the_cards` checks that
+    the grid's cells are the cards' holds today and that the printed 46 is the worst upper end rounded up;
+  - `test_the_grids_worst_cell_recomputes_from_the_same_seeded_runs` re-runs the worst cell and matches the file to 4
+    decimals.
+- **Why 14.9% did not reproduce:** it came from a separate 4-road script. The shipped `seller_slots` drives all 5 roads
+  and gives 22.6%.
+
+| The fleet's rules reach the shared size (the SIM builder's finding, 23 Oct 2026) | `FillStep.rules` (no default) is the fleet's own `rules`, passed to `allocate`: under the practice rules an entry on unmeasured sizes was judged by the live rules and became `size_shared` (executed 0 while the fills happened). No other fleet code names the rules (the fill port and the ticket book use their own port's) | `test_under_the_practice_rules_an_entry_on_unmeasured_sizes_is_executed_not_size_shared` (plants: the step on the live rules; the runner passing the live rules) |
+| The fleet has no switch (orchestrator, 23 Oct 2026) | `school.enabled` moves out of `SchoolFleet.run()`: the pilot's record root returns `SwitchedOff` (the school-off line, nothing built) when it is off; the CLI no longer forces the switch on a copy of the config for a replay, whose root has none. The simulator's practice command runs the same fleet without a switch. No other reader of `settings.enabled` in `fleet/` | `test_the_pilot_s_record_root_with_the_switch_off_prints_the_off_line_and_builds_nothing` (a's `check_fleet_off`), `test_the_fleet_itself_has_no_switch_and_runs`, `test_the_run_command_with_the_switch_off_prints_the_off_line_and_builds_nothing`, `test_a_replay_runs_with_the_pilot_s_switch_off_and_on_the_config_as_given` (plants: the fleet keeping the switch, the record root ignoring it, the replay forcing it on) |
+- **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files).
+| Every account the fleet records into is opened first (the SIM builder's finding, orchestrator's ruling, 23 Oct 2026) | The fleet viewed only the driver accounts, so the first ticket ever recorded for a driver stopped the run ("account unreadable ...: a fill before the account's first view"; hidden until the fill rules fix let entries be recorded). `Books.stores` names every store the fleet records into (the driver account and the ticket ledger), and one step, `SchoolFleet._open`, views each before any fill; no separate path for tickets. a's contract now says it (`AccountPort.record`: an account no view opened refuses), a's `FakeAccounts` enforces it as d's store does, and a's `check_account_port` checks it | `tests/school/fleet/test_first_ticket.py` on d's real `SchoolAccounts` and `SchoolFills`: a driver's first-ever ticket on a fresh ledger records and the session completes; session after session the ledgers stay open and record; the fleet's ticket tests now fail on a fake that refuses as the real store does; `test_a_ticket_ledger_no_view_opened_refuses_the_ticket_as_the_real_store_does` (plants: tickets not viewed, caught by both the fakes and the real stores alone; `stores` without the ticket ledger) |
+- **The pilot's records are unchanged:** in the 22 Oct replay every sealed record, count and driver account file is
+  byte-identical to round 5's; the new files are each driver's ticket ledger, now opened by the session's view. Two
+  replays are identical.
+- **Plants:** 16 planted (4 on the first two seams, 4 on the rules at the gate, 5 on the fill rules and the switch, 3 on the ticket ledgers), 16 caught.
+
+
+### MS-P1j follow-up: a comparison card mismatch is loud (orchestrator's ruling, 23 Oct 2026; branch `story/ms-p1j-card-mismatch`; Judges B then K)
+A comparison card edited without D6 rows naming it makes every later decision `comparison_card_mismatch`: kept in the
+denominator, never counted. That must never be silent.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| One line after the decisions' seal | `fleet/card_check.CardMismatchCheck`: each sealed decision put to h's `CountingRule` at the seal's receipt commit; when any is `comparison_card_mismatch`, one line: "comparison_card_mismatch: N of M decisions do not count until D6 rows name card v<K>; see the MS-P1j runbook" (K read from the card's own `version:` at its commit). A rerun says it again | `test_card_check.py`, on real git with h's fixture: the card edited with no rows naming it gives the line with v3 (plant: the version not read); the run carries it, a rerun repeats it, no dashcam file changes (plants: the fresh run or the rerun dropping it) |
+| Only that cause | a decision not yet counted (first counted session unset), or counted, gives no line | the unset and the counted cases give no line (plant: every not-counted verdict named) |
+| Exit 1, so #fno-desk is alerted | `SessionRun.warnings` (a's contract, additive; never on a run that did not run); `school run` prints each and exits 1 | `test_the_run_command_prints_the_line_and_exits_1` (plants: exit 0, the line hidden) |
+| The record checks, a replay does not | the record root passes `build_card_check(root)` (h's rule over the repository's git and D6's versions); a replay's seals name no commit the rule could judge, so it passes none | `test_the_record_root_passes_the_check_and_a_replay_has_none` (plant: the record root without it) |
+
+- **No record changed:** the check only reads the sealed records, the repository's git and D6's rows.
+- **Plants:** 7 planted, 7 caught. Judge B's survivor (judge 507.7: N forced to M) is now caught by `test_the_line_counts_only_the_mismatched_decisions_among_the_session_s`: one mismatched decision among three gives "1 of 3".
+- **Judge K's survivor (judge 520: `seal.commit` replaced by HEAD):** caught by `test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed`: rows naming the new card, committed after the seal, would count these decisions at HEAD; at their own seal's commit they still warn.
+#### INS-e Claims (round 1, branch `story/ms-ins-outputs`, on INS-d; the SHA is in the commit that carries this text)
+| Criterion | Met by | Test (`tests/school/instructor/outputs/`) |
+| 1 write-once | `store.DriveInstructorStore` (receipt per file, same bytes a no-op, others refused, damaged bytes never read) | `test_store` (conformance, the folder, damaged bytes, a refused Drive write); `test_run`: `a_session_is_attributed...written_once` |
+| 2 two runs, identical bytes | `run.InstructorRun` | `test_run` (a rerun leaves every file identical) |
+| 3 the public counts file | `public_counts.InstructorCountsFile` | `test_counts_and_command`: `the_counts_file_holds_codes...passes_the_record_scan`, `..._written_once` |
+| 4 the "why" lines' privacy | `why_line.py`, `labels.py` | `test_run`: `the_why_line_names...no_contract`; `a_winners_why_line_reads_the_winner_form...` |
+| 5 every denominator, refusals included | `comparison.SealedDecisions.outcome_counts`, `review.py` | `test_review`: `the_review_shows_every_denominator...` |
+| 6 a planted cause in the review and the "why" line | `review.driver_summary`, `WhyLineSource` | the same test; `test_run` |
+| 7 off-switch | `command.run` | `the_switch_off_prints_school_off_and_does_nothing` |
+| 8 orphan corrections counted and alerted | `PathReader.orphan_corrections`; the review's last line | `test_corrections`: `a_correction_naming_nothing_is_listed_as_an_orphan...`; `test_review` (its count printed) |
+**Also built (from the boundaries and the rulings):**
+- **Re-checks.** A classification waiting for its expiry's settlement (cause 11), or for its controls to close (the modifier), is classified again on each later run. A changed one is written as a new record naming the first (`test_run`: `a_classification_waiting_for_its_expiry...`). Cause 13 never triggers a re-check: it waits for MS-P1j.
+- **The comparison over sealed decisions.**
+  - h's `CountingRule` judges each decision at its seal's commit.
+  - `common_road_days` gives the pairs.
+  - RC1 against N0 is the live null in every review (`rc1_is_compared_with_n0_only_as_the_live_null`).
+  - A session with no readable decisions file is listed, never skipped silently.
+- **Rupees.** Account trades only: net, maximum drawdown, worst day and worst trade. Tickets are never summed in (`tickets_are_never_summed_into_rupees`).
+- **The review text** starts with the plain P2 line (orchestrator's condition 4). Every paired row carries its notes: "descriptive, not a test", "no bound before N sessions", and the seller-shape false rate.
+- **The command.** `python -m fno.school.instructor --session D [--write]` and `--review FIRST LAST [--write]`, a dry run by default. Its real run on today's main prints "school off" (the school's switch is off). That is the honest result; no real record exists to read yet.
+**Known limits:**
+- **Unfilled entries.** An entry decided as a trade that never filled stays open until MS-P1j reports its fill status. `CountedComparison.rows` takes the `unfilled` set; j's wiring supplies it.
+- **The three counts.** f's eligible, fillable and executed counts need j's fills. The review shows every decision's outcome code, the denominator with refusals, until j supplies them.
+**Broken-code proof:** 15 plants, all caught after one added test:
+- the store's conflict and damage checks;
+- the dry run;
+- the re-check trigger and its `corrects`;
+- tickets in rupees;
+- RC1's single pair;
+- the unsealed list;
+- the counts' correction filter;
+- the off-switch;
+- the write-only counts file;
+- the winner labels (survived until the winner "why" test was added);
+- orphans (caught in `test_corrections`).
+**Real output sample:** the fixture's "why" line, `CS1@1 BANKNIFTY-M: net Rs -140; why: ...`. On real data: "school off".
+**The interfaces agreed with MS-P1j's builder (23 Oct 2026; j wires them after j merges):**
+- `run_instructor_session(config, session, write=True)`: j's one entry point. j calls it after the session's outcomes
+  file is sealed and before its counts commit. It attributes, classifies, writes the instructor's files and the public
+  counts file. Tested with fakes.
+  - j wraps it in isolation: the instructor can never stop the school's record.
+  - With write=False (j's replay) it writes nothing at all.
+  - A rerun returns a session already written, as written (`a_rerun_after_later_sessions_returns_the_session_as_written`).
+- `build_why_lines(config=None) -> WhyLineSource`, with `lines(session)`. It reaches g's 20:05 section through a `why`
+  port in g's day inputs; the render line is g's.
+- `CountedComparison.rows(..., unfilled=)`: keys `(driver_id, road, entry session)` of every fired entry that never
+  fills, both size-shared and refused fills.
+- `build_review(..., counts=)`: any `counts(session) -> tuple[OpportunityCounts, ...]`, which j's sealed day inputs
+  satisfy. The review prints eligible, fillable and executed per driver, or "three counts not supplied".
+**Ticket lines (orchestrator's ruling, 23 Oct 2026, from g's builder; judge 481's rule):** a ticket's "why" line
+carries no rupee figure. It reads "<driver> <road> ticket (hypothetical, account limits relaxed): why: ...". Account
+trades keep "net Rs". Every line starts "<driver id> <road>", one space apart, which g's section relies on; that format
+is stable. Test: `test_counts_and_command::a_ticket_line_never_carries_rupees`. g keeps its own filter as a second
+guard.
+#### INS-e Claims, round 2 (judge 522 FAIL round 1: two should-fixes, six untested branches, one minor; the SHA is in the commit that carries this text)
+| Finding | Fix | Test |
+| SF1 orphans missing from the day's output; the window search raised false alarms | `PathReader.orphan_corrections()` scans every session from `RECORD_START` (22 Oct 2026, the first dashcam day) to today, so a correction is an orphan only if no outcome on file anywhere carries its id. `SessionResult.orphans` is filled on every day run, and the command prints "ALERT: corrections naming no outcome on file: N". Files are read once per run (a cache). | `test_corrections::an_orphan_is_a_correction_naming_no_outcome_on_file_from_the_start_of_the_record`; `test_round2::the_days_run_lists_orphan_corrections`; `test_counts_and_command` (the ALERT line) |
+| SF2 a corrected outcome was picked up only while its record waited, and its attribution never rewritten | Each attribution and classification now carries `outcome_sha256`, the SHA-256 of the outcome record it read. The re-check takes the latest record per position from the first counted session (or 90 days back). It runs again when that outcome's SHA changed or the record waits, writes a new attribution (`corrects` = the old attribution's SHA) for a corrected outcome, and writes a classification only if it differs. | `test_round2::a_corrected_outcome_is_re_attributed_and_re_classified_even_when_nothing_waited`; `::an_unchanged_record_is_never_written_again` |
+| SF3 six untested branches | one test each | `test_round2`: `the_modifier_alone_makes_a_record_wait`, `an_unchanged_record_is_never_written_again`, `rc1_is_one_of_the_two_controls_on_a_road_slot`, `only_counted_decisions_are_paired`, `a_damaged_decisions_file_is_listed_as_unsealed`, `the_maximum_drawdown_is_the_deepest_fall_from_a_running_peak` (100, -300, 50, -100 gives -350 by hand) |
+| Minor: sum through f's `account_net` | `review.py` takes `net_rs` from `account_net(mine).net` | `test_review` unchanged, passing |
+**Broken-code proof (round 2):** I planted 10 faults, one at a time, and the tests caught every one:
+- `waiting`'s modifier half removed;
+- the unchanged guard forced true;
+- the corrected check forced false;
+- the attribution's `corrects` blanked;
+- orphans left out of the day run;
+- RC1 dropped from the controls;
+- the orphan scan narrowed to today;
+- a damaged decisions file read as empty;
+- the drawdown taken from zero instead of the peak;
+- every decision counted regardless of h's verdict.
+**Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
+
+#### INS-e follow-up, round 2: each session computed as of itself (branch `story/ms-ins-adopt`, lane 1; judge 525 FAIL round 1; orchestrator's ruling of 23 Oct 2026: build the cut-off, drop adoption)
+
+**The defect** (found by MS-P1j's builder):
+- `DriveInstructorStore.write` puts the file on Drive first and publishes its receipt after.
+- If a run stopped between the two, the rerun recomputed, and it read "today": corrections up to the clock, controls' corrected results, settlements published since.
+- Its bytes then differed, and write-once Drive refused them for good.
+
+**The root cause and fix:** the file was not a pure function of fixed inputs. Each session's run now reads only what was sealed or known by that session:
+- `PathReader.closed_on` and `closed_between` take `as_of`: corrections come only from outcome files of sessions up to it, never the clock. The run passes its own session for the day's paths, the controls (`_nets`) and every re-check.
+- `EvidenceBuilder.build` and `Classifier.classify` take `as_of`: the hold-to-expiry value (cause 11) counts only for an expiry before that session, because its settlement is published after the expiry day's close.
+- A rerun therefore computes the same bytes. The write-once store takes equal bytes as a no-op and publishes the missing receipt. No unreceipted file is ever trusted.
+- Round 1's `recover`/adoption is removed: the port, store, fake and conformance check are back as on main.
+- A later correction reaches a later session's file as a re-check (part e's design), never the earlier session's.
+
+| Criterion | Test (`tests/school/instructor/outputs/test_cutoff.py` unless named) |
+|---|---|
+| A crash between the Drive write and the receipt, then a later correction and a published settlement, then a rerun: the same bytes, one receipt per file, no conflict | `a_run_stopped_before_its_receipt_reruns_after_more_records_to_the_same_bytes_and_one_receipt_each` (on main's code: `InstructorConflict` on the attribution file) |
+| A later correction leaves the earlier session's result unchanged and reaches the later session's file | `a_later_correction_reaches_a_later_sessions_file_never_the_earlier_sessions` (fails on main's code) |
+| A re-check reads only corrections sealed by its own session | `a_re_check_reads_only_corrections_sealed_by_its_own_session` |
+| The controls are read as of the session (REF corrected afterwards: the same result) | `the_controls_are_read_as_of_the_session` |
+| The reader's cut-off; no session given reads up to today (the review) | `the_reader_reads_corrections_sealed_up_to_the_session_it_is_given` |
+| Hold to expiry counts only from the session after the expiry | `holding_to_expiry_counts_only_from_the_session_after_the_expiry`; `test_run::a_classification_waiting_for_its_expiry...` (written again at the first session after the expiry, not before) |
+| A rerun after the settlement is recomputed to the same result | `test_run::a_rerun_after_later_sessions_returns_the_session_as_written` |
+| A written session's unreadable files are reported as of that session; a later session's damaged file is that session's (judge 525.2's minor; test only, lane 2) | `a_written_sessions_unreadable_files_are_read_as_of_that_session` |
+
+**Broken-code proof:** 5 plants, all caught:
+- the day's paths read up to today;
+- the re-check's paths read up to today;
+- the controls read up to today;
+- the hold allowed on the expiry day;
+- the reader ignoring `as_of`.
+
+The re-check and controls plants survived until their own tests were added.
+
+**What is still not pure [reasoning only, not tested]:**
+- **Late or failed source reads.**
+  - The fleet's own sealed settled outcome proves the settlement was archived by its session, so a settled path's settlement is always there.
+  - But a hold for an expiry before the session reads d's settlement source, and the reader reads the snapshot archive. If either is missing at the first run (an evening archive that failed and was backfilled, or Drive unreachable and read as "missing"), and the run also stopped before its receipt, the rerun can differ. That ends in a loud `InstructorConflict`, never a silent rewrite.
+  - Making these pure needs "known at" times in d's settlement source and the archive, which are other stories' ports.
+- **Out-of-order runs.** A re-check reads earlier sessions' instructor files by their receipts. If session S runs before S-1's file has its receipt, and S is then rerun after S-1 is fixed, S can differ. MS-P1j runs sessions in order.
+- **Orphans** are read up to today, but they are an alert line only, never written into a file.
+
+**For MS-P1j's deferred store:** it needs no `recover`; it rebases on this once it lands.
+
+
+### MS-P1j follow-up: the instructor wired in (MS-INS part e; orchestrator's hand-off, 22 Oct 2026; branch `story/ms-p1j-ins-wiring`, on part e's 63cabe67)
+Signatures agreed with the INS builder (session_01LH7m9r5TCAKgZbeHVYkiTD). Lane 1 (the fleet's record path), so two
+judges. It merges after part e.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| The instructor's session run, after the outcomes' seal and before the counts' commit | `SchoolFleet.after_outcomes` (default `no_step`): called once the outcomes and drift files are sealed, and again on a rerun of a complete session before its commit (the instructor is write-once and same-bytes). The record root passes `IsolatedSessionStep("instructor", run_instructor_session(cfg, session, write=True), #fno-desk alert)`; its counts file lands in `research/school/counts/instructor/`, inside the folder j's one commit takes | `test_session_step.py`: the step sees the sealed outcomes and no counts file yet (plants: never run; run after the counts) and runs again on a rerun (plant: skipped on a rerun) |
+| It can never stop the school's record | `IsolatedSessionStep`: a failure or a time-out (300 s) is one alert naming the class or "time limit", never the message; the counts are still written and committed | a failing and a slow step each give one alert and the counts file (plant: the step not isolated) |
+| A replay runs no instructor | The replay root passes no step and imports nothing of `instructor.wiring` (its Drive store and receipts) | `test_wiring.py`: the import check now covers `instructor.wiring`; the replay's step is `no_step`; the record root's is the instructor's run (plants: the replay running it; the record root without it) |
+| `unfilled` for the paired comparison | `fleet/unfilled.UnfilledEntries(first, last)`: every sealed trade or ticket decision whose position its ledger never opened, as (driver, road, entry session); `wiring.build_unfilled_entries(cfg)` over the record's stores | `test_unfilled.py`: the size-shared entry is unfilled and the served one is not, tickets alike, no-trades never, sessions outside the range left out (plant: everything filled) |
+| The "why" lines for g's 20:05 section | `SealedDayInputs.why(session)` from part e's `build_why_lines(cfg)`, passed in by `build_report_inputs` | `test_the_day_inputs_pass_the_instructor_s_why_lines_through_and_none_without_a_source` (plant: dropped) |
+| f's three counts in part e's review | none: `SealedDayInputs.counts(session)` already serves them | — |
+
+- **Judge B's note (judge 507.5), the root fix:** the counts' commit took the whole counts folder, so a timed-out
+  instructor's `.<name>.part` would have been swept in. Now `fleet/counts_commit.SessionFilesCommitter` commits only the
+  session's named files (its own three and the instructor's counts file, named by the record root) through a's
+  `OwnedPathsCommitter`; `SessionCounts.files(session)` lists them. Second guard: `.gitignore` ignores
+  `research/school/counts/**/.*.part`. Test on real git (a clone of a bare origin):
+  `test_only_the_session_s_named_files_are_committed_never_a_stray_part_file` commits the session's files and the
+  instructor's, never a stray `.part` nor an un-ignored stray file beside them (plant: the folder committed, caught).
+  Judge B's should-fix (judge 507.9): `test_the_record_root_names_the_instructor_s_counts_file_in_the_counts_commit`:
+  the record root's `SessionCounts.files(session)` names the instructor's counts file and a replay's does not (plant:
+  the record root naming no instructor file, caught).
+- **Not in this change, by agreement:** g's `DayInputs.why` and the render line in `evening.py` are g's builder's;
+  part e's `command.py` passing `unfilled=` and `counts=` is the INS builder's.
+- **Plants:** 9 planted, 8 caught; the ninth (closings counted as openings in `unfilled`) was equivalent, so the
+  redundant filter was removed rather than kept untested.
+
+#### Round 2 (Judge K, judge 523; orchestrator's ruling: one committer per run). Rebuilt on part e's 136f5890 and main
+Judge K's should-fix: past its 300 s the instructor's thread kept running and committed and pushed its receipts itself
+(`GitReceiptPublisher`), beside the run's own counts commit in the same checkout (`.git/index.lock`, an interleaved
+pull). Root cause: the step's work did its own writes and git. Now the work only reads and computes; every write runs on
+the run's own thread, and only when the work ended in time; one commit takes everything.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| The work writes nothing | `fleet/session_hook.StagedSessionStep`: `work(session)` runs under the limit and returns its writes, which run on the run's thread; a work past its limit (or failing) is one alert and its writes are never run. `instructor_step_wiring.instructor_work` runs part e's session run over `fleet/deferred_store.DeferredInstructorStore` (writes kept until `flush`) | `test_an_instructor_finishing_after_its_limit_has_nothing_committed_and_the_alert_says_time_limit` (real git: the late work's file is never written, not on `main`, the checkout clean, the alert says "time limit"); `test_the_instructor_s_work_writes_nothing_and_reads_through_its_run_s_receipts` (plants: the work writing in the thread; the writes run on the thread; the deferred store passing writes through) |
+| No git write on the thread, not even a fetch | `dashcam/publisher.RemoteReceipts` (now `fno/storage/receipt_publisher.py`, after the publisher move, judge 527): `refresh` (fetch, deepen) split from `find` (log and show only); `GitReceiptPublisher.published` is both, unchanged. `fleet/run_receipts.RunReceipts`: `published` and `publish` only `find`; the run fetches once on its own thread (`prepare`). It reaches part e's path reader's dashcam and the instructor's store through new optional `publisher`/`store` parameters on part e's builders (default: unchanged, so part e's own command still commits and pushes) | `test_the_step_s_lookups_and_publish_only_read_and_only_refresh_fetches`; `test_a_receipt_pushed_since_the_run_s_fetch_is_seen_only_after_the_next_refresh` (real git); `test_the_run_s_receipts_reach_the_path_reader_s_dashcam_and_the_store` (plants: a lookup fetching; the store, the run or the path reader without the run's receipts; no prepare) |
+| One commit takes the instructor's files | `fleet/counts_commit.SessionFilesCommitter` commits exactly the named files anywhere in the checkout (`NamedFiles` on O9's `GitManifestRecorder`); the record root names `instructor_files(session)`: the instructor's counts file and its two session receipts | `test_a_named_file_outside_the_counts_folder_is_committed_and_its_unnamed_neighbour_is_not`; `test_an_instructor_in_time_is_written_on_the_run_s_thread_and_taken_by_the_one_commit` (one commit); `test_the_step_s_files_are_its_counts_file_and_its_two_session_receipts` (plants: the folder swept; the receipts not named) |
+| A write or fetch that fails | named by class, one alert each; the school's record goes on | `test_a_failing_write_or_prepare_alerts_by_class_and_the_work_never_runs_after_a_failed_prepare` (plant: a write failure raised) |
+| Minor a: a stale decisions seal | `UnfilledEntries` leaves that session out, as part e's `sealed_decisions` leaves its decisions out of the comparison and names it unsealed | `test_a_session_whose_decisions_file_fails_its_receipt_is_left_out_as_the_comparison_leaves_it_out` (plant: not caught) |
+| Minor b: `unfilled` with the school off | `build_unfilled_entries` builds the dashcam and the books (with the account sync, as `entries` pulls from Drive) itself, never the fleet | `test_unfilled_entries_read_the_record_s_stores_even_with_the_school_off` (plant: through the fleet) |
+
+- **Limits [reasoning only]:** the writes run on the run's thread without the step's time limit, bounded by Drive's own
+  timeouts: a limit there would bring back a late write. A crash between the instructor's Drive write and the run's
+  commit leaves its receipt uncommitted, as before in part e (a rerun writes the same bytes, or alerts a conflict).
+- **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files); a replay runs no step.
+- **Judge K's note (via the INS builder): one path reader per run.** The path reader caches the files it read, so the
+  step's work builds a new one on every session call, never one held across runs:
+  `test_every_session_call_builds_its_own_path_reader_never_one_held_across_runs` (plant: a run held across calls,
+  caught).
+- **Judge K's minor (judge 523.1):** `test_an_unpushed_commit_of_another_writer_still_blocks_the_push`: a commit of
+  another writer not yet on main makes the pull refuse and nothing reaches main (plant: `NamedFiles.owns` forced to
+  True, caught).
+- **Plants:** 15 planted, 15 caught. Gates: in the commit message of the tip.
+
+#### Round 3 (Judge B, judge 507.13 SF1; owner: fix and one more check): a refused counts commit is loud
+The runner dropped the counts commit's outcome and `school run` exited 0, so a refused push (three lost races, a pull
+refused for other unpushed changes, a hook refusal) was silent; it now carries the instructor's receipts too. On main
+before this branch for the counts alone.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| Never silent | `SessionFilesCommitter.commit` returns None when the files are on `main`, else the refused line (O9's own refusal text, naming the files); `SessionCounts.commit` alerts "counts NOT pushed <session>: <line>; the next run of the session pushes them" to #fno-desk (the record root's sender) and returns it; the runner carries it in `SessionRun.warnings` on the first run and on the rerun, so `school run` prints it and exits 1; nothing says done (the CLI's lines are decisions sealed and fills only) | `test_a_refused_push_is_alerted_printed_and_exits_1_then_the_rerun_pushes_it` on real git (plants: the first run or the rerun dropping it; no alert; the refusal hidden; the record root or `fleet_on` without the alert) |
+| The rerun completes it | `NamedFiles`: with nothing new to commit, a named file committed here and not on `main` is pushed; the run's earlier unpushed commits under its run paths (the counts folder, the instructor's receipts) are its own, so they never block a later commit and go up with it (Judge B: exact names alone would block every later commit) | the same test (rerun once the push works: exit 0, the file on `main`); `test_an_earlier_session_s_unpushed_counts_never_block_a_later_session_and_go_up_with_it`; `test_the_record_root_alerts_a_refused_counts_commit_and_owns_its_earlier_unpushed_ones` (plants: the leftover never pushed; the run paths dropped, in the committer or the record root) |
+
+- **Plants:** 9 planted, 9 caught.
+
+
+### MS-P1c follow-up: a stored slot file is adopted, never sealed over (orchestrator's go, 23 Oct 2026; branch `story/ms-p1c-adopt`; Judges B then K)
+The window (found by the INS builder in the instructor's store; the same in the dashcam): `DriveDashcamStore.seal` puts
+the file on Drive, then pushes its receipt. A run that stops between the two leaves a file with no receipt on `main`;
+a fresh container's `find` is None, the runner decides again, and if its records differ every rerun is a
+`ReplayConflict` (uncaught: the session never fills, writes outcomes or counts). Reproduced on real git with the
+production store and publisher [strong evidence]. A rerun can differ, so "the inputs are frozen" cannot be proven:
+each driver's 60 s wall-clock limit [strong, from the code]; a canonical 3 pm marker, a recorded quote file, the day's
+archived SPAN file or the 15:15 capture landing between the two runs [some evidence, from the code].
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| Adopt, never seal over | `DashcamStore.recover(session, slot, kind, belongs)` (a's contract): `find`, else a stored file is adopted when `dashcam/adoption.adoptable` passes: it decodes, re-encodes to the same bytes, holds only the kind's records, of this session and slot (an outcome names no session: a settlement fills on its expiry day), and every record is the writer's own; then its receipt is written from its own bytes and published under an "adopted" commit | `test_adoption.py` on real git: `test_the_stuck_session_is_adopted_and_its_stored_records_stand` (what the rerun decides now is a `ReplayConflict`, the stored records stand); each refusal (unreadable, not canonical, another kind, another slot, another session, not this fleet's) raises with its reason and publishes nothing; a settlement's outcome is adopted (plants: no check; published before the check; another key's file; each check dropped; outcomes judged by their fill date) |
+| The fleet's own (the orchestrator's addition 1) | `SchoolFleet._belongs`: a decision's driver is this fleet's and names that driver's card SHA-256 as frozen now; an exit, outcome or drift row's driver is this fleet's | `test_a_stored_file_of_another_card_version_stops_the_run_by_name_and_fills_nothing` (plants: the card version ignored; every record accepted) |
+| Loud stop by name (addition 2) | `DashcamStuck` "dashcam stuck: stored file unverifiable <session> <slot> <kind> (<why>)": the run's status `stopped: ...`, the CLI exits 1 (the alert), nothing sealed or filled | the same test (plant: the stop not caught) |
+| The runner adopts where it writes | `recover` for the decisions (an adopted file takes the rerun path over the sealed records) and before sealing the outcomes and the drift; the "all finished" check stays a pure `find` | `test_a_rerun_completes_the_session_from_its_stored_decisions_not_what_it_would_decide_now`; `test_a_rerun_after_a_stop_at_the_drift_file_adopts_it_and_writes_the_counts` (NIFTY road, the stored rows differ from the rerun's) (plants: the decisions on `find`; the drift on `find`) |
+| Fakes as strict as Drive | a's `FakeDashcam` refuses other bytes over a stored file, receipt or not, and adopts through the same `adoptable`; `ReplayDashcam.recover` is `find` (a local file is its own seal) | `check_dashcam` now asserts `recover` for the fake, the real store and `ReplayDashcam` (plant: the fake adopting unchecked) |
+
+- **Readers never adopt:** reports, `unfilled`, the instructor's reader and the entry mids keep `find`; only the
+  writer's rerun adopts.
+- **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files).
+- **Plants:** 13 planted, 13 caught (the drift plant first survived on a BANKNIFTY test, whose drift is empty; the
+  test now uses a NIFTY road with differing rows).
+- **Round 2 (Judge B, judge 528 SF1): the fleet's own check on every row kind, tested.**
+  `test_a_stored_row_of_a_driver_outside_the_fleet_stops_the_rerun_and_seals_nothing_of_its_kind` (exit, outcome,
+  drift): a stored, unreceipted file with one row of a driver outside the fleet stops the rerun as "stopped: dashcam
+  stuck: stored file unverifiable ... (a record that is not this fleet's ...)" and nothing of that kind is sealed
+  (plants: `_belongs` true for every non-decision row, all three fail; the drift row's driver misread, the drift one
+  fails). Test-only change.
+
+MS-P1g why lines, round 3 (j's ins-wiring is on main, 486b0f4f; main merged in): the stub is gone and `SealedDayInputs` has
+one `why` (j's). `test_the_pinned_format_is_what_the_instructors_why_line_writes` now runs against part e's real
+templates (`LINE`, `TICKET_LINE`): a trade's line starts "<driver> <road>: net Rs ...", a ticket's "<driver> <road> ticket
+(hypothetical, account limits relaxed): why: ...", both are shown with no withheld note, and the ticket form holds no
+rupee figure. The two j tests that needed `why` pass again.
 

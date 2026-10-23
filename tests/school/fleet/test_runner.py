@@ -49,10 +49,21 @@ def decision_of(rig: Rig, session, road=OPEN_ROAD, driver="CS1@1") -> DecisionRe
                 and r.decision.driver_id == driver)  # fmt: skip
 
 
-def test_off_prints_the_school_off_line_and_writes_nothing(tmp_path):
-    rig = Rig(tmp_path, (trader(),), enabled=False)
-    c.check_fleet_off(rig.fleet, b.SESSION)
-    assert rig.dashcam.files == {} and rig.accounts.ledgers == {} and not any(tmp_path.iterdir())
+def test_the_pilot_s_record_root_with_the_switch_off_prints_the_off_line_and_builds_nothing(monkeypatch):
+    def refuse(*args, **kwargs):
+        raise AssertionError("a store was built with the switch off")
+
+    for name in ("fleet_on", "build_dashcam", "build_account_sync", "SessionFilesCommitter"):
+        monkeypatch.setattr(wiring, name, refuse)
+    runner = wiring.build_fleet({"school": {**GOOD, "enabled": False}})
+    c.check_fleet_off(runner, b.SESSION)
+
+
+def test_the_fleet_itself_has_no_switch_and_runs(tmp_path):
+    """The simulator's practice command runs the same fleet without the pilot's switch (orchestrator, 23 Oct 2026)."""
+    rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),), enabled=False)
+    run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
+    assert run.status == "" and run.decisions and len(rig.accounts.ledgers["CS1@1"]) == 1
 
 
 def test_the_fleet_conforms(tmp_path):

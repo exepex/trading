@@ -35,8 +35,9 @@ def check_road_catalogue(catalogue, trading_day: date, closed_day: date) -> None
     days = catalogue.day(trading_day)
     assert sorted(d.road.code for d in days) == sorted(r.code for r in ROADS)
     assert all(isinstance(d, RoadDay) and d.session == trading_day for d in days)
-    for day in (d for d in days if d.status.open):  # MS-P1a2: every recorded expiry has its own step
+    for day in (d for d in days if d.status.open):  # MS-P1a2 and a4: every recorded expiry has its own step and lot
         assert set(day.strike_steps) == set(day.expiries) and all(day.step_for(e) > 0 for e in day.expiries)
+        assert all(day.lot_for(e).units > 0 for e in day.expiries) and day.lot_for(day.expiries[0]) == day.lot
     assert catalogue.day(closed_day) == ()
 
 
@@ -69,9 +70,12 @@ def check_safety_law(law, passing: tuple[Proposal, AccountView], refusing: tuple
 
 
 def check_account_port(port, entry: LedgerEntry, marks: dict, session: date) -> None:
-    """`entry` opens a position: recording it shows it open; recording it again changes nothing."""
+    """An account no view has opened refuses a record (MS-P1j: the first ticket on a fresh ledger); `entry` opens a
+    position: recording it shows it open; recording it again changes nothing."""
     assert isinstance(port, AccountPort)
     driver_id = entry.position.driver_id
+    with pytest.raises(Exception):  # noqa: B017 - d's store raises AccountError, the fake ValueError: refused either way
+        port.record(driver_id, entry)
     before = port.view(driver_id, marks, session)
     assert isinstance(before, AccountView) and before.driver_id == driver_id and not before.open_positions
     port.record(driver_id, entry)
@@ -123,8 +127,10 @@ def check_dashcam(store, session: date, slot: str, records: tuple[SlotRecord, ..
                   other: tuple[SlotRecord, ...]) -> None:  # fmt: skip
     assert isinstance(store, DashcamStore)
     assert store.find(session, slot, RecordKind.DECISIONS) is None, "nothing sealed yet"
+    assert store.recover(session, slot, RecordKind.DECISIONS, lambda record: True) is None, "nothing stored either"
     first = store.seal(session, slot, RecordKind.DECISIONS, records)
     assert store.find(session, slot, RecordKind.DECISIONS) == first
+    assert store.recover(session, slot, RecordKind.DECISIONS, lambda record: True) == first, "a seal is recovered"
     assert store.find(session, slot, RecordKind.OUTCOMES) is None
     assert store.seal(session, slot, RecordKind.DECISIONS, records) == first, "the same records again change nothing"
     with pytest.raises(ReplayConflict):

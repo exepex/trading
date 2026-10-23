@@ -8,7 +8,7 @@ import pytest
 from fno.school.constants import NO_LATENCY_LABEL, NSE_TERMS_LINE, PAPER_LABEL, ClosureReason, DriverRole
 from fno.school.contracts.reports import Banner, ReportSection
 from fno.school.reports.banner import AMBER_MEANING, RED_MEANING, banner_for
-from fno.school.reports.evening import HowDidTodayGoSection
+from fno.school.reports.evening import RUPEE_FIGURE, TICKET_LINE, HowDidTodayGoSection
 from fno.school.reports.today import TodaySection
 from tests.school.contracts.test_records import closed_record, trade_record
 from tests.school.reports import fakes as f
@@ -193,12 +193,24 @@ def test_a_trades_line_keeps_its_rupees():
 
 
 def test_the_pinned_format_is_what_the_instructors_why_line_writes():
-    """MS-INS part e's `why_line` starts with the driver id, a space and the road (the MS-P1j builder's contract)."""
-    outputs = pytest.importorskip(
-        "fno.school.instructor.outputs.why_line", reason="MS-INS part e is not on this branch"
-    )
-    assert outputs.LINE.startswith("{driver} {road}{ticket}: net Rs ")
-    assert WHY.startswith("CS1@1 BANKNIFTY-M: net Rs ") and "ticket" in outputs.LINE
+    """MS-INS part e's templates start with the driver id, one space and the road, and a ticket's carries no rupees."""
+    from fno.school.instructor.outputs import why_line as part_e
+
+    sample = {
+        "driver": "CS1@1",
+        "road": "BANKNIFTY-M",
+        "net": -140,
+        "why": "wrong direction",
+        "also": "",
+        "modifier": "",
+    }
+    trade, ticket = part_e.LINE.format(**sample), part_e.TICKET_LINE.format(**sample)
+    assert trade.startswith("CS1@1 BANKNIFTY-M: net Rs -140; why: ") and WHY.startswith(trade.split(";")[0])
+    assert ticket.startswith("CS1@1 BANKNIFTY-M ticket (hypothetical, account limits relaxed): why: ")
+    lines = with_why(trade, ticket).lines
+    assert trade in lines and ticket in lines, "both of part e's forms are shown, with no withheld note"
+    assert not [line for line in lines if "withheld" in line]
+    assert not RUPEE_FIGURE.search(ticket) and TICKET_LINE.match(ticket)
 
 
 def test_a_line_that_starts_with_an_unknown_driver_is_withheld_and_counted_never_raised():

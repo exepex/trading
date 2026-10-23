@@ -11,7 +11,7 @@ from ....research_data.nifty_panel import DailyFiles
 from ...constants import OptionKind
 from .ports import ChainRow, DayChain
 
-IndexCloses = Callable[[date], float | None]
+IndexCloses = Callable[[str, date], float | None]  # (underlying, session) -> that index's close
 
 
 def _number(text: str) -> float:
@@ -52,13 +52,15 @@ class BhavcopyChain:
             if r["FinInstrmTp"] == INDEX_OPTION:
                 rows.append(_row(r, expiry in monthly))
                 underlying_prices.setdefault(expiry, []).append(_number(r.get("UndrlygPric") or ""))
-        return DayChain(session, underlying, self._close(session, underlying_prices), tuple(rows), lots, source)
+        return DayChain(
+            session, underlying, self._close(underlying, session, underlying_prices), tuple(rows), lots, source
+        )
 
-    def _close(self, session: date, prices: dict[date, list[float]]) -> float | None:
+    def _close(self, underlying: str, session: date, prices: dict[date, list[float]]) -> float | None:
         """The underlying price the nearest expiry's rows state, so the row order of far expiries cannot change it."""
         nearest = prices[min(prices)] if prices else []
         stated = next((p for p in nearest if p > 0), None)
-        return stated if stated is not None else (self.index_close(session) if self.index_close else None)
+        return stated if stated is not None else (self.index_close(underlying, session) if self.index_close else None)
 
 
 def _expiry(record: dict) -> date:

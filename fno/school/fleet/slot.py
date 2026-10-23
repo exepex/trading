@@ -9,6 +9,7 @@ from typing import Protocol
 from ..constants import ClosureReason, RoadCode
 from ..contracts.roads import RoadCatalogue, RoadDay, RoadStatus
 from ..contracts.snapshot import SlotSnapshot, SnapshotSource, SnapshotUnavailable
+from ..execution.quote_rules import LIVE, QuoteRules
 
 UNMEASURED = "a quote with no measured displayed size"
 
@@ -52,7 +53,11 @@ class SlotRoads:
                          tuple(r for r in self.closed if r.road_day.road.code in keep))  # fmt: skip
 
 
-def plan_slot(session: date, catalogue: RoadCatalogue, snapshots: SnapshotSource, gate: QualityGate) -> SlotRoads:
+def plan_slot(session: date, catalogue: RoadCatalogue, snapshots: SnapshotSource, gate: QualityGate,
+              rules: QuoteRules = LIVE) -> SlotRoads:  # fmt: skip
+    """`rules`: d's quote rules. Live (every pilot root), a road whose capture holds a quote with no measured size
+    closes as `sizes_not_measured` (judge 506); only the practice rules (the simulator's root) let it through, for
+    MS-P1d's practice laws to judge each quote."""
     opened, closed = [], []
     for road_day in catalogue.day(session):
         if not road_day.status.open:
@@ -63,7 +68,7 @@ def plan_slot(session: date, catalogue: RoadCatalogue, snapshots: SnapshotSource
         except SnapshotUnavailable as unavailable:
             closed.append(ClosedRoad(road_day, unavailable.reason, str(unavailable)))
             continue
-        if not all(quote.sizes_measured for quote in snapshot.quotes.values()):
+        if not rules.practice and not all(quote.sizes_measured for quote in snapshot.quotes.values()):
             closed.append(ClosedRoad(road_day, ClosureReason.SIZES_NOT_MEASURED, UNMEASURED, snapshot))
             continue  # the fleet is live: it never trades on a quote with no measured size (judge 506)
         status = gate.check(road_day, snapshot)

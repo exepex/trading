@@ -27,7 +27,7 @@ from .contracts.accounts import (
     SettlementPrice,
     SettlementUnavailable,
 )
-from .contracts.dashcam import ReplayConflict
+from .contracts.dashcam import Belongs, ReplayConflict
 from .contracts.decisions import Decision, DriverCard, LegSpec, OpenPosition, Proposal, SpotPoint
 from .contracts.reports import Banner, SectionText
 from .contracts.roads import ROADS_BY_CODE, RoadDay
@@ -35,6 +35,7 @@ from .contracts.safety import AccountView, LawResult
 from .contracts.seal import Seal, StaleSeal
 from .contracts.slot_file import SlotRecord, decode_slot_file, encode_slot_file
 from .contracts.snapshot import SlotSnapshot, SnapshotUnavailable
+from .dashcam.adoption import adoptable
 
 
 @dataclass
@@ -94,8 +95,10 @@ class FakeAccounts:
 
     capital: float
     ledgers: dict[str, list[LedgerEntry]] = field(default_factory=dict)
+    opened: set[str] = field(default_factory=set)  # accounts a view has opened: a record before one is refused
 
     def view(self, driver_id: str, marks: Mapping[RoadCode, SlotSnapshot], session: date) -> AccountView:
+        self.opened.add(driver_id)
         entries = self.ledgers.get(driver_id, [])
         closed = {e.position.position_id for e in entries if e.closes}
         open_ = tuple(e.position for e in entries if not e.closes and e.position.position_id not in closed)
@@ -107,6 +110,8 @@ class FakeAccounts:
         return tuple(self.ledgers.get(driver_id, ()))
 
     def record(self, driver_id: str, entry: LedgerEntry) -> None:
+        if driver_id not in self.opened:
+            raise ValueError(f"{driver_id}: a fill before the account's first view")  # as d's store refuses it
         ledger = self.ledgers.setdefault(driver_id, [])
         if entry not in ledger:
             ledger.append(entry)
@@ -169,11 +174,14 @@ def _intrinsic(leg: LegSpec, settlement: float) -> float:
 class FakeDashcam:
     files: dict[tuple, bytes] = field(default_factory=dict)
     pushed_at: datetime | None = None  # None: the session's slot time
+    stored: dict[tuple, bytes] = field(default_factory=dict)  # on "Drive" with no receipt: a run stopped between
 
     def seal(self, session: date, slot: str, kind: RecordKind, records: tuple[SlotRecord, ...]) -> Seal:
         key, payload = (session, slot, kind), encode_slot_file(records)
-        if key in self.files and self.files[key] != payload:
+        held = self.files.get(key, self.stored.get(key))  # Drive refuses other bytes, receipt or not
+        if held is not None and held != payload:
             raise ReplayConflict(f"{session} {slot} {kind}")
+        self.stored.pop(key, None)
         self.files[key] = payload
         return self._seal(session, slot, kind, payload)
 
@@ -185,6 +193,13 @@ class FakeDashcam:
     def find(self, session: date, slot: str, kind: RecordKind) -> Seal | None:
         payload = self.files.get((session, slot, kind))
         return None if payload is None else self._seal(session, slot, kind, payload)
+
+    def recover(self, session: date, slot: str, kind: RecordKind, belongs: Belongs) -> Seal | None:
+        key = (session, slot, kind)
+        if key not in self.files and key in self.stored:
+            adoptable(self.stored[key], session, slot, kind, belongs)
+            self.files[key] = self.stored.pop(key)
+        return self.find(session, slot, kind)
 
     def read(self, seal: Seal) -> tuple[SlotRecord, ...]:
         found = [data for data in self.files.values() if hashlib.sha256(data).hexdigest() == seal.sha256]

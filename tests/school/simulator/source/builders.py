@@ -27,6 +27,11 @@ CALENDAR = CsvSessionCalendar(
 )
 
 
+CALENDAR_2021 = CsvSessionCalendar(
+    "date,kind,description,source_url\n2021-01-26,holiday,test holiday,https://example.test/circular\n"
+)
+
+
 def close_of(strike: float, kind: OptionKind, spot: float = SPOT) -> float:
     intrinsic = max(spot - strike, 0.0) if kind is OptionKind.CALL else max(strike - spot, 0.0)
     return round(intrinsic + 100.0 * 0.9 ** (abs(strike - spot) / 100), 2)
@@ -39,8 +44,8 @@ def rows(expiries, monthly: bool, strikes=None, volume: int = 10) -> list[ChainR
     ]
 
 
-def chain(underlying="NIFTY", session=SESSION, monthly=True, **kwargs) -> DayChain:
-    both = rows(MONTHLIES, True, **kwargs) + rows(WEEKLIES, False, **kwargs)
+def chain(underlying="NIFTY", session=SESSION, monthlies=MONTHLIES, weeklies=WEEKLIES, **kwargs) -> DayChain:
+    both = rows(monthlies, True, **kwargs) + rows(weeklies, False, **kwargs)
     return DayChain(session, underlying, SPOT, tuple(both), {}, "legacy")
 
 
@@ -55,11 +60,11 @@ class DictChain:
         return self.days.get((underlying, session))
 
 
-def full_model(road_code, scenario_gap: float = 0.01, session: date = SESSION) -> SpreadModel:
+def full_model(road_code, scenario_gap=0.01, session=SESSION, monthlies=MONTHLIES, weeklies=WEEKLIES) -> SpreadModel:
     """Every bucket of the road holds 30 quoted sessions, each at `scenario_gap`: the model has no gaps."""
     underlying = ROADS_BY_CODE[road_code].underlying
     buckets = {
-        bucket_of(underlying, SPOT, SPOT + 100.0 * n, session, e) for n in range(-5, 6) for e in (*MONTHLIES, *WEEKLIES)
+        bucket_of(underlying, SPOT, SPOT + 100.0 * n, session, e) for n in range(-5, 6) for e in (*monthlies, *weeklies)
     }
     days = {session - timedelta(days=i): scenario_gap for i in range(MIN_QUOTED_SESSIONS)}
     return SpreadModel({b: days for b in buckets if b})

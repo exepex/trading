@@ -2,6 +2,7 @@
 refuse a record that could not be true (an attribution that does not add up to its net, a fourth cause, a status
 beyond the three 327 allows)."""
 
+import hashlib
 import math
 from dataclasses import dataclass
 from datetime import date
@@ -75,6 +76,11 @@ class DataFault(StrEnum):
     NET_MISMATCH_FILLS = "net_mismatch_fills"  # the outcome's net is not its fills' cash (judge 503)
 
 
+def record_sha256(record: CanonicalRecord) -> str:
+    """A record's identity: the SHA-256 of its canonical bytes (what a correction's `corrects` names)."""
+    return hashlib.sha256(record.to_bytes()).hexdigest()
+
+
 def net_matches_fills(outcome: OutcomeRecord) -> bool:
     """The outcome's net is the cash its fills moved, to Rs 0.01; else the residual would hide the gap."""
     return abs(round(outcome.net - (outcome.entry.cash + outcome.exit.cash), 6)) <= IDENTITY_TOLERANCE_RS
@@ -139,6 +145,8 @@ class Attribution(CanonicalRecord):
     iv_unsolved: int
     poor_fit: bool
     rules_sha256: str  # of research/school/INSTRUCTOR_V1.md
+    outcome_sha256: str = ""  # the outcome record it was computed on: a later correction of it is re-attributed
+    corrects: str = ""  # SHA-256 of the attribution this one replaces
 
     def __post_init__(self):
         explained = self.delta + self.gamma + self.vega + self.theta + self.residual - self.costs
@@ -168,7 +176,8 @@ class Classification(CanonicalRecord):
     not_testable: tuple[Cause, ...]
     modifier: Modifier
     rules_sha256: str
-    corrects: str = ""  # SHA-256 of the classification this one replaces (cause 11 after settlement)
+    corrects: str = ""  # SHA-256 of the classification this one replaces (a re-check, or a corrected outcome)
+    outcome_sha256: str = ""  # the outcome record it was classified on
 
     def __post_init__(self):
         causes = self.causes
@@ -206,34 +215,25 @@ class PairedRow(CanonicalRecord):
     unavailable: int
     after_cut: int  # closed pairs after the first open one: shown, never part of the series
     mean: float | None
-    low: float | None  # the two-sided 90% interval
-    high: float | None
-    block: int
+    bound: float | None  # one-sided 95% Student-t lower bound on the batch means; None below two whole batches
+    batch: int  # sessions per batch: the longer of the two cards' frozen holds
     status: MapStatus
     rules_sha256: str
+    note: str = ""  # e.g. "too few independent batches", printed beside the status
 
     def __post_init__(self):
-        if (
-            min(
-                self.sessions,
-                self.road_slots,
-                self.driver_abstentions,
-                self.control_abstentions,
-                self.unavailable,
-                self.after_cut,
-            )
-            < 0
-            or self.block < 1
-        ):
-            raise ValueError("counts cannot be negative and a block holds at least one session")
+        counts = (self.sessions, self.road_slots, self.driver_abstentions, self.control_abstentions, self.unavailable,
+                  self.after_cut)  # fmt: skip
+        if min(counts) < 0 or self.batch < 1:
+            raise ValueError("counts cannot be negative and a batch holds at least one session")
         if (self.mean is None) != (self.sessions == 0):
             raise ValueError("a mean exactly when the series has a session")
-        if (self.low is None) != (self.high is None) or (self.low is not None and self.mean is None):
-            raise ValueError("an interval has both ends, and only around a mean")
-        if self.low is not None and not self.low <= self.mean <= self.high:  # NaN fails here too
-            raise ValueError("the interval holds the mean")
-        if self.mean is not None and not math.isfinite(self.mean):
-            raise ValueError("a mean is a finite number")
+        if (self.bound is not None and self.mean is None) or not all(
+            v is None or math.isfinite(v) for v in (self.mean, self.bound)
+        ):
+            raise ValueError("a bound only beside a mean, and both finite")
+        if self.status == MapStatus.WATCHING and not (self.bound is not None and self.bound > 0):
+            raise ValueError("watching needs a bound above zero")
         if (self.first is None) != (self.sessions == 0) or (self.last is None) != (self.first is None):
             raise ValueError("a series with sessions names its first and last session")
         if self.first is not None and self.first > self.last:
