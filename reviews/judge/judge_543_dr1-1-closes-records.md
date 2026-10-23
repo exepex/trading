@@ -70,3 +70,41 @@ reader outside the new package changes, and the reason text follows A4h's judged
   "NIFTY 50 same". This is cosmetic.
 - A certified run before the official file exists exits 1 ("no official index-close file in Drive yet"). The routine
   branch must decide whether that exit alerts, because the story says this gap is not alerted.
+
+## Addendum 1
+
+**Verdict: PASS** on story/dr1-1-closes-records at 4703dbc6e. Round 2 of 2: it closes SF1 and SF2, and it includes
+c751cb63d (the official file read from the stores only).
+
+- **c751cb63d:** `stored_index_closes` reads the same stores in the same order as `RawFileLibrary.get`, which did not
+  verify bytes either. It only drops the fetch and archive, and a test pins "None, nothing saved".
+- **SF1 met:** a record counts only when origin's main holds it (`GitRecordPublisher`).
+  - After the committer's commit, it fetches and runs `git show origin/main:<record>`. Same bytes means pushed; other
+    bytes means a conflict; nothing there means one pull and push, then ask origin again.
+  - The "already recorded" path publishes too, so a rerun pushes a stuck record.
+  - Not pushed and conflict both set `alert`; `cmd_certify` announces "Omenix F&O records: ..." through
+    `ReportedAlerts` and exits 1. A refused commit keeps the committer's line as the reason.
+  - Tested on real git: a refusing pre-receive hook, the rerun once it is removed, and two certifiers making different
+    choices.
+- **SF2 met:** with the recheck exact and the first read 0.01 off, the recheck is certified, and my `best = 0` plant
+  fails it.
+- **Note closed:** an open-only change now names its field.
+- **My plants (`tests/record_store`):**
+
+  | Plant | Result |
+  |---|---|
+  | a conflict not treated as a conflict | caught |
+  | any publish result accepted | 2 failed |
+  | no alert on not pushed | caught |
+  | the "already" path skipping publish | caught |
+  | no second push | caught |
+  | any bytes on origin counting as pushed | caught |
+  | the CLI never announcing | 2 failed |
+  | SF2's `best = 0` | caught |
+
+- **Gates on 4703dbc6e (run by me):** 14,647 passed, 1 skipped, 16 xfailed; ruff, format and check_imports clean.
+- **Merge condition:** a merge with current main conflicts in `fno/cli.py` only, where main added
+  `add_repair_parser(sub)` on the same line as `add_records_parser(sub)`. Keep both lines. Not a defect.
+- **Note:** after a conflict, the local checkout keeps a commit that differs from origin's record, so later record
+  pushes from that checkout fail loudly until a person settles it (the line says "a person decides"). The routine starts
+  each day on a fresh checkout of main (CLAUDE.md, DR1), so this cannot persist.
