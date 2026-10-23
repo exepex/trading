@@ -4,11 +4,12 @@ driver and session, codes and whole numbers only. Both files are write-once: the
 
 import csv
 import io
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Sequence
 from datetime import date
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Protocol
 
+from ..constants import SLOT_1500
 from ..contracts.dashcam import ReplayConflict
 from ..contracts.records import DecisionRecord
 from ..contracts.tickets import OpportunityCounts
@@ -22,7 +23,8 @@ COMMIT_WHAT = "school counts {session}"
 
 
 class CountsCommitter(Protocol):
-    def commit(self, what: str) -> str: ...
+    def commit(self, what: str, paths: Sequence[str]) -> str:
+        """Adds and commits exactly `paths` (repository-relative), nothing else in their folder."""
 
 
 def opportunity_path(session: date, slot: str) -> Path:
@@ -47,9 +49,11 @@ def opportunity_text(counts: Iterable[OpportunityCounts]) -> str:
 
 
 class SessionCounts:
-    def __init__(self, root: Path, committer: CountsCommitter | None):
-        """`committer` None writes only (tests, replays); the daily run commits and pushes."""
-        self.root, self.committer = Path(root), committer
+    def __init__(self, root: Path, committer: CountsCommitter | None,
+                 extra: Callable[[date], tuple[str, ...]] = lambda session: ()):  # fmt: skip
+        """`committer` None writes only (tests, replays); the daily run commits and pushes. `extra(session)`: other
+        writers' files in the counts folder that the same commit takes (the instructor's counts file)."""
+        self.root, self.committer, self.extra = Path(root), committer, extra
         self.outcomes = PublicCountsFile(self.root)
 
     def write(self, session: date, slot: str, records: tuple[DecisionRecord, ...],
@@ -80,5 +84,11 @@ class SessionCounts:
         )
 
     def commit(self, session: date) -> str:
-        """Commits whatever of the counts folder is not yet committed (nothing to commit is a no-op)."""
-        return self.committer.commit(COMMIT_WHAT.format(session=session)) if self.committer else ""
+        """Commits the session's own files not yet committed (nothing to commit is a no-op); never the folder."""
+        if self.committer is None:
+            return ""
+        return self.committer.commit(COMMIT_WHAT.format(session=session), self.files(session))
+
+    def files(self, session: date, slot: str = SLOT_1500) -> tuple[str, ...]:
+        paths = (counts_path(session, slot), opportunity_path(session, slot), marks_path(session, slot))
+        return tuple(str(PurePosixPath(p)) for p in paths) + tuple(self.extra(session))

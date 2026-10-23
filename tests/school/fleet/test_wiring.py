@@ -21,7 +21,7 @@ SESSION = date(2026, 10, 22)
 REAL_STORES = {  # the pilot's real stores: where each one's builder is defined
     "build_dashcam": "fno.school.dashcam.wiring",
     "build_account_sync": "fno.school.accounts.wiring",
-    "GitManifestRecorder": "fno.storage.manifest_commit",
+    "SessionFilesCommitter": "fno.school.fleet.counts_commit",
     "run_instructor_session": "fno.school.instructor.wiring",  # MS-INS's Drive store and receipts
 }
 READ_ONLY = {  # what the fleet only reads (captures, NSE's archives, the margin file), stubbed: no store is built here
@@ -54,9 +54,13 @@ def imported(module) -> set[str]:
 def test_the_replay_root_and_the_shared_builder_cannot_reach_a_real_store(module):
     names = imported(module)
     assert not names & set(REAL_STORES), "a real store's builder imported"
-    assert not names & {"wiring", "dashcam.wiring", "storage.manifest_commit", "instructor.wiring"}, (
-        "the record root or a real store"
-    )
+    assert not names & {
+        "wiring",
+        "dashcam.wiring",
+        "storage.manifest_commit",
+        "fleet.counts_commit",
+        "instructor.wiring",
+    }, "the record root or a real store"
 
 
 def test_a_replay_builds_with_every_real_store_refusing_and_writes_only_under_its_folder(monkeypatch, tmp_path):
@@ -79,7 +83,7 @@ def test_the_record_root_builds_the_drive_dashcam_the_sync_and_the_committer(mon
     for name in REAL_STORES:
         monkeypatch.setattr(wiring, name, lambda *a, name=name, **k: built.setdefault(name, object()))
     fleet = wiring.build_fleet(ON, root=tmp_path)
-    assert fleet.dashcam is built["build_dashcam"] and fleet.counts.committer is built["GitManifestRecorder"]
+    assert fleet.dashcam is built["build_dashcam"] and fleet.counts.committer is built["SessionFilesCommitter"]
     assert fleet.books.accounts.sync is built["build_account_sync"] and fleet.counts.root == tmp_path
     assert isinstance(fleet.after_outcomes, IsolatedSessionStep) and fleet.after_outcomes.name == "instructor"
     fleet.after_outcomes.work(SESSION)

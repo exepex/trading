@@ -2808,6 +2808,13 @@ judges. It merges after part e.
 | The "why" lines for g's 20:05 section | `SealedDayInputs.why(session)` from part e's `build_why_lines(cfg)`, passed in by `build_report_inputs` | `test_the_day_inputs_pass_the_instructor_s_why_lines_through_and_none_without_a_source` (plant: dropped) |
 | f's three counts in part e's review | none: `SealedDayInputs.counts(session)` already serves them | — |
 
+- **Judge B's note (judge 507.5), the root fix:** the counts' commit took the whole counts folder, so a timed-out
+  instructor's `.<name>.part` would have been swept in. Now `fleet/counts_commit.SessionFilesCommitter` commits only the
+  session's named files (its own three and the instructor's counts file, named by the record root) through a's
+  `OwnedPathsCommitter`; `SessionCounts.files(session)` lists them. Second guard: `.gitignore` ignores
+  `research/school/counts/**/.*.part`. Test on real git (a clone of a bare origin):
+  `test_only_the_session_s_named_files_are_committed_never_a_stray_part_file` commits the session's files and the
+  instructor's, never a stray `.part` nor an un-ignored stray file beside them (plant: the folder committed, caught).
 - **Not in this change, by agreement:** g's `DayInputs.why` and the render line in `evening.py` are g's builder's;
   part e's `command.py` passing `unfilled=` and `counts=` is the INS builder's.
 - **Plants:** 9 planted, 8 caught; the ninth (closings counted as openings in `unfilled`) was equivalent, so the

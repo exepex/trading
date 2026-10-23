@@ -125,7 +125,7 @@ def test_a_rerun_after_the_counts_write_commits_them(tmp_path):
     rig = Rig(tmp_path, (trader(),), LAWS)
     rig.fleet.run(b.SESSION, RunMode.REPLAY)
     commits = []
-    rig.fleet.counts.committer = Namespace(commit=commits.append)
+    rig.fleet.counts.committer = Namespace(commit=lambda what, paths: commits.append(paths))
     rig.fleet.run(b.SESSION, RunMode.REPLAY)
     assert len(commits) == 1
 

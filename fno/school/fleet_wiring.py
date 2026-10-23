@@ -4,7 +4,9 @@ no store that writes. The record root (`wiring.py`) hands in the pilot's real st
 (`replay_wiring.py`) hands in scratch stores under its folder and cannot reach the real ones (judge 512: by
 construction, not by a mode switch)."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
@@ -42,6 +44,7 @@ class FleetStores:
     committer: CountsCommitter | None
     sync: object | None  # d's account mirror to Drive's private area; None writes locally only
     clock: Clock
+    counts_extra: Callable[[date], tuple[str, ...]] = lambda session: ()  # others' files the counts commit takes
 
 
 def books_on(cfg: dict, stores: FleetStores, fills: FillPort, root: Path = ROOT) -> Books:
@@ -63,6 +66,6 @@ def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, after_outcomes=n
         settings, services.catalogue, services.snapshots, build_quality_gate(services.listing),
         RecordedSpotHistory(QUOTES_FOLDER), build_school_drivers(cfg, root),
         lambda marks: build_safety_laws(cfg, settings, marks, margin), books, stores.dashcam,
-        SessionCounts(stores.home, stores.committer), build_capture_1515(root).for_session,
+        SessionCounts(stores.home, stores.committer, stores.counts_extra), build_capture_1515(root).for_session,
         DashcamEntryMids(stores.dashcam), stores.clock, after_outcomes=after_outcomes,
     )  # fmt: skip
