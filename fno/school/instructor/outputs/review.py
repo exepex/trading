@@ -4,6 +4,7 @@ worst day, worst trade; tickets never summed in), its attribution sums and its c
 session it could not read. Descriptive only: no claim, no licence."""
 
 from collections import Counter, defaultdict
+from collections.abc import Callable, Collection
 from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Protocol
@@ -88,6 +89,15 @@ def driver_summary(driver_id: str, read: ClosedRead, outcomes: Counter, attribut
 class OpportunityCountsSource(Protocol):
     def counts(self, session: date) -> tuple[OpportunityCounts, ...]:
         """f's eligible, fillable and executed per (road, driver) for the session (MS-P1j's sealed day inputs)."""
+
+
+@dataclass(frozen=True)
+class ReviewSources:
+    """What the review reads from MS-P1j's record, beside the dashcam and the instructor's files: the fired entries
+    that never filled, (driver, road, entry session) over a range, and f's three counts per session."""
+
+    unfilled: Callable[[date, date], Collection]
+    counts: OpportunityCountsSource
 
 
 def three_counts(source: OpportunityCountsSource | None, sessions: list[date]) -> dict[str, tuple[int, int, int]]:

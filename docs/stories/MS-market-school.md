@@ -3118,3 +3118,30 @@ archived SPAN file or the 15:15 capture landing between the two runs [some evide
   stuck: stored file unverifiable ... (a record that is not this fleet's ...)" and nothing of that kind is sealed
   (plants: `_belongs` true for every non-decision row, all three fail; the drift row's driver misread, the drift one
   fails). Test-only change.
+
+#### INS-e follow-up: the review's sources from MS-P1j (branch `story/ms-ins-review-sources`, lane 1, Judge K; after MS-P1j's ins-wiring, 486b0f4f)
+
+Part e's two known limits are closed: the unfilled entries and f's three counts.
+- `review_wiring.build_review_sources(config)` builds `ReviewSources(unfilled, counts)`:
+  - `unfilled` is MS-P1j's `build_unfilled_entries`;
+  - `counts` is MS-P1j's `SealedDayInputs.counts`, which reads the counts file each session's run commits.
+  - It is a separate composition root because MS-P1j's `fno/school/wiring.py` imports the instructor's `wiring.py`. This root imports MS-P1j's, and only the command's entry point imports it, so there is no cycle.
+- `python -m fno.school.instructor --review FIRST LAST` now does two things:
+  - it passes the range's unfilled entries to `CountedComparison.rows`, so an entry that fired but never filled counts as the driver's miss, as 327 asks;
+  - it prints eligible, fillable and executed per driver instead of "three counts not supplied".
+- Without sources (a test, or a caller that passes none), the review behaves as before. Read-only: nothing new is written.
+
+| Criterion | Test |
+|---|---|
+| The sources are MS-P1j's unfilled entries and the committed counts file (none when none is committed) | `test_review_wiring::the_review_reads_ms_p1j_unfilled_entries_and_the_committed_three_counts` |
+| The review asks for the range's unfilled entries, passes them to the comparison and prints the supplied counts | `test_review::the_review_command_passes_the_unfilled_entries_and_prints_the_supplied_three_counts` |
+| The command's entry point gives the review its sources | `test_review_wiring::the_commands_entry_point_gives_the_review_its_sources` |
+
+**Broken-code proof:** 5 plants, all caught:
+- unfilled not passed to the comparison;
+- counts not passed to the review;
+- the sources not built;
+- the counts read from the repository root instead of the given one;
+- the entry point passing no sources.
+
+**Real output:** `python -m fno.school.instructor --review 2026-10-22 2026-10-23` prints "school off": the school's switch is off. That is the honest result; no sealed day exists to review yet.
