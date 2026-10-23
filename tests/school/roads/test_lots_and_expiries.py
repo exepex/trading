@@ -25,6 +25,10 @@ LOT_FILE = (
 )
 
 
+UNAVAILABLE = LotProblem(ClosureReason.LOT_UNAVAILABLE)
+MISMATCH = LotProblem(ClosureReason.LOT_MISMATCH)
+
+
 def archive(files: dict) -> ArchivedLots:
     store = DictStore()
     store.files.update(files)
@@ -45,6 +49,13 @@ def test_a_lot_of_zero_is_a_bad_file_not_a_mismatch():
     assert archive(lots_file(data=data)).lot("NIFTY", SESSION, (date(2026, 10, 27),)) == UNAVAILABLE
 
 
+def test_a_zero_lot_beside_a_different_lot_is_still_unavailable_not_a_mismatch():
+    """The bad-file check comes before the mismatch check (MS-P1b owner's note)."""
+    data = LOT_FILE.replace(b"65         ,65         ,65", b"0          ,65         ,35")
+    expiries = (date(2026, 10, 27), date(2026, 11, 24), date(2026, 12, 29))
+    assert archive(lots_file(data=data)).lot("NIFTY", SESSION, expiries) == UNAVAILABLE
+
+
 def test_an_outage_reading_the_listing_is_not_turned_into_a_closure():
     class Down(ListedFake):
         def listed(self, underlying, today):
@@ -53,10 +64,6 @@ def test_an_outage_reading_the_listing_is_not_turned_into_a_closure():
     source = ListedRoadExpiries(Down({}), PointInTimeMonthlies(HistoryFake({})))
     with pytest.raises(ConnectionError):
         source.expected(ROADS_BY_CODE[RoadCode.NIFTY_MONTHLY], SESSION)
-
-
-UNAVAILABLE = LotProblem(ClosureReason.LOT_UNAVAILABLE)
-MISMATCH = LotProblem(ClosureReason.LOT_MISMATCH)
 
 
 @pytest.mark.parametrize(
