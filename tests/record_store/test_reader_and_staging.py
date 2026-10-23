@@ -1,7 +1,7 @@
 """Story DR1: readers read only through the record (verified bytes plus the as-seen pointer), and staging gives every
 writer its own name, so two writers of one session never meet on a name."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +12,7 @@ from fno.record_store.constants import CERTIFIED, PROVISIONAL
 from fno.record_store.reader import NotRecorded, RecordReader
 from fno.record_store.staging import StagingArea
 from fno.storage.data_store import DataStore
+from fno.storage.wiring import build_session_calendar
 from tests.record_store.helpers import SESSION, World, answer
 
 
@@ -75,3 +76,38 @@ def test_since_certifies_every_session_of_the_window_and_fails_while_one_is_miss
     assert cmd_certify(args, lines.append, world.certifier(), calendar=Calendar()) == 1
     assert lines[0] == "closes 2026-10-22 provisional: NOT recorded: no staged version"
     assert lines[1].startswith("closes 2026-10-23 provisional: recorded ")
+
+
+class Recorded:
+    """A certifier that has every session it is asked for (only the window is under test)."""
+
+    def __init__(self):
+        self.rules, self.asked = SimpleNamespace(live_from=date(2026, 10, 1)), []
+
+    def certify(self, session, level):
+        self.asked.append(session)
+        return SimpleNamespace(line=f"closes {session} {level}: already recorded", recorded=True, alert=False)
+
+
+@pytest.mark.parametrize(
+    "morning, last",
+    [
+        ("2026-10-23", "2026-10-22"),  # a trading morning: today's certified record is due tomorrow
+        ("2026-10-26", "2026-10-23"),  # a Monday: the previous session is Friday
+        ("2026-10-21", "2026-10-19"),  # the day after NSE's 20 Oct holiday
+    ],
+)
+def test_the_morning_certified_catch_up_ends_at_the_previous_session(morning, last):
+    """Judge 546 SF1, on NSE's real calendar: every earlier session recorded means exit 0 and no line for today."""
+    certifier, lines = Recorded(), []
+    args = SimpleNamespace(dataset="closes", day=morning, level=CERTIFIED, since=7, commit=False)
+    assert cmd_certify(args, lines.append, certifier, calendar=build_session_calendar()) == 0
+    assert certifier.asked[-1] == last and morning not in certifier.asked
+    assert not any(morning in line for line in lines)
+
+
+def test_the_evening_provisional_catch_up_includes_today():
+    certifier = Recorded()
+    args = SimpleNamespace(dataset="closes", day="2026-10-23", level=PROVISIONAL, since=7, commit=False)
+    assert cmd_certify(args, [].append, certifier, calendar=build_session_calendar()) == 0
+    assert certifier.asked[-1] == "2026-10-23"

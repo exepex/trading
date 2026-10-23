@@ -2,14 +2,16 @@
 
 - `certify <dataset> [--day D | --since N] [--level provisional|certified] [--commit]`: checks every version of the
   session and writes the record (local unless `--commit`, which pushes `receipts/records/` to main); `--since N`
-  certifies every NSE session of the last N days up to today, so a session missed on one run is caught up on the next
-  (one line each; a session already recorded says so). Exit 1 when any session is not recorded.
+  certifies every NSE session of the last N days, so a session missed on one run is caught up on the next (one line
+  each; a session already recorded says so). The window ends at the day (`--day`, default today) for a provisional
+  record and at the session before it for a certified one: a session's certified record is due only once NSE's
+  official file is out, the next morning (judge 546). Exit 1 when any session is not recorded.
 - `read <dataset> [--day D] [--level ...]`: prints the as-seen pointer of what a reader would get (never a value).
   Exit 1 when no record serves the need."""
 
 from __future__ import annotations
 
-from .constants import ALERT, LEVELS, PROVISIONAL, SEEN_LINE
+from .constants import ALERT, CERTIFIED, LEVELS, PROVISIONAL, SEEN_LINE
 
 
 def add_records_parser(subparsers) -> None:
@@ -23,7 +25,8 @@ def add_records_parser(subparsers) -> None:
         action.add_argument("--day", help="the session, YYYY-MM-DD (default: today, IST)")
         action.add_argument("--level", choices=LEVELS, default=PROVISIONAL)
         if name == "certify":
-            action.add_argument("--since", type=int, help="every session of the last N days up to today (catch-up)")
+            action.add_argument("--since", type=int, help="every session of the N days before --day (catch-up); "
+                                "certified: up to the previous session, provisional: up to --day")  # fmt: skip
             action.add_argument("--commit", action="store_true", help="commit and push the record to main")
         action.set_defaults(func=func)
 
@@ -60,7 +63,8 @@ def _sessions(args, calendar, live_from) -> list[str]:
     calendar = calendar or build_session_calendar()
     today = date.fromisoformat(_session(args))
     start = max(today - timedelta(days=args.since), live_from)
-    return [day.isoformat() for day in calendar.sessions(start, today)]
+    end = today - timedelta(days=1) if args.level == CERTIFIED else today
+    return [day.isoformat() for day in calendar.sessions(start, end)]
 
 
 def cmd_read(args, out=print, reader=None) -> int:

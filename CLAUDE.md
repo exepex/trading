@@ -125,7 +125,7 @@ modifies or cancels orders, and neither uses Groww.
    --commit` certifies every recent session's A4h close against the official file just archived and commits only
    `receipts/records/`; a session not recorded yet is retried by the next morning. It alerts a record not pushed
    or a conflict itself. Note any "NOT recorded" line in `conversations/<date>.md` and post it to #fno-desk unless
-   its reason is "no official index-close file in Drive yet" (A4h's overdue rule alerts that gap); post the text of
+   its reason contains "no official index-close file in Drive yet" (A4h's overdue rule alerts that gap); post the text of
    any "alert NOT sent" line.
 1c. The evening only, first: `python -m fno closes read --commit` (A4h's own command, unchanged: it reads NSE's index
    list only when its 15:40 read is missing, prints "close already read" otherwise, and commits only
