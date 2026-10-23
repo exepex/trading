@@ -46,7 +46,10 @@ def cmd_run(args, out=print) -> int:
     run = fleet.run(session, mode)
     for line in run_lines(run, share_lines):
         out(line)
-    return 1 if run.status.startswith(FLEET_STOPPED) else 0  # a stop fails the daily run's step, which alerts #fno-desk
+    for line in run.warnings:
+        out(line)
+    # A stop or a warning fails the daily run's step, which alerts #fno-desk
+    return 1 if run.status.startswith(FLEET_STOPPED) or run.warnings else 0
 
 
 def run_lines(run, share_lines) -> list[str]:

@@ -8,8 +8,10 @@ record and the replay wire alike is `fleet_wiring.fleet_on`; a replay is `replay
 from datetime import date, datetime
 from pathlib import Path
 
+from ..composition import build_versions
 from ..config import ROOT
 from ..models import now_ist
+from ..research_engine.ledger import Git
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.wiring import QUOTES_FOLDER
 from .accounts.wiring import build_account_sync
@@ -18,11 +20,14 @@ from .contracts.fleet import RunMode, SessionRun
 from .dashcam.names import COUNTS_FOLDER
 from .dashcam.wiring import build_dashcam
 from .drivers.wiring import build_school_drivers
+from .fleet.card_check import CardMismatchCheck
 from .fleet.history import RecordedSpotHistory
 from .fleet.report_inputs import PreviousSlotToday, SealedDayInputs
 from .fleet.runner import SchoolFleet
 from .fleet_wiring import FleetStores, fleet_on
 from .quality.wiring import build_quality_gate
+from .registration.counting import CARD_PATH
+from .registration.wiring import build_counting_rule
 from .roads.wiring import build_road_services
 from .settings import school_settings
 
@@ -48,7 +53,14 @@ def build_fleet(cfg: dict, root: Path = ROOT) -> SchoolFleet | SwitchedOff:
         return SwitchedOff()
     committer = GitManifestRecorder(Path(root), Path(root) / COUNTS_FOLDER, message=COUNTS_MESSAGE)
     stores = FleetStores(Path(root), build_dashcam(), committer, build_account_sync(root), IstClock())
-    return fleet_on(cfg, stores, root)
+    return fleet_on(cfg, stores, root, build_card_check(root))
+
+
+def build_card_check(root: Path = ROOT) -> CardMismatchCheck:
+    """h's counting rule over the repository's git and D6's versions; the card's text at its commit for its version."""
+    git = Git(Path(root))
+    return CardMismatchCheck(build_counting_rule(git, build_versions(Path(root))),
+                             lambda commit: git.committed_text(CARD_PATH, commit))  # fmt: skip
 
 
 def build_report_inputs(cfg: dict, root: Path = ROOT) -> tuple[PreviousSlotToday, SealedDayInputs]:

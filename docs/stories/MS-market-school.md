@@ -2722,3 +2722,19 @@ monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day l
   byte-identical to round 5's; the new files are each driver's ticket ledger, now opened by the session's view. Two
   replays are identical.
 - **Plants:** 16 planted (4 on the first two seams, 4 on the rules at the gate, 5 on the fill rules and the switch, 3 on the ticket ledgers), 16 caught.
+
+
+### MS-P1j follow-up: a comparison card mismatch is loud (orchestrator's ruling, 23 Oct 2026; branch `story/ms-p1j-card-mismatch`; Judges B then K)
+A comparison card edited without D6 rows naming it makes every later decision `comparison_card_mismatch`: kept in the
+denominator, never counted. That must never be silent.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| One line after the decisions' seal | `fleet/card_check.CardMismatchCheck`: each sealed decision put to h's `CountingRule` at the seal's receipt commit; when any is `comparison_card_mismatch`, one line: "comparison_card_mismatch: N of M decisions do not count until D6 rows name card v<K>; see the MS-P1j runbook" (K read from the card's own `version:` at its commit). A rerun says it again | `test_card_check.py`, on real git with h's fixture: the card edited with no rows naming it gives the line with v3 (plant: the version not read); the run carries it, a rerun repeats it, no dashcam file changes (plants: the fresh run or the rerun dropping it) |
+| Only that cause | a decision not yet counted (first counted session unset), or counted, gives no line | the unset and the counted cases give no line (plant: every not-counted verdict named) |
+| Exit 1, so #fno-desk is alerted | `SessionRun.warnings` (a's contract, additive; never on a run that did not run); `school run` prints each and exits 1 | `test_the_run_command_prints_the_line_and_exits_1` (plants: exit 0, the line hidden) |
+| The record checks, a replay does not | the record root passes `build_card_check(root)` (h's rule over the repository's git and D6's versions); a replay's seals name no commit the rule could judge, so it passes none | `test_the_record_root_passes_the_check_and_a_replay_has_none` (plant: the record root without it) |
+
+- **No record changed:** the check only reads the sealed records, the repository's git and D6's rows.
+- **Plants:** 7 planted, 7 caught. Judge B's survivor (judge 507.7: N forced to M) is now caught by `test_the_line_counts_only_the_mismatched_decisions_among_the_session_s`: one mismatched decision among three gives "1 of 3".
+- **Judge K's survivor (judge 520: `seal.commit` replaced by HEAD):** caught by `test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed`: rows naming the new card, committed after the seal, would count these decisions at HEAD; at their own seal's commit they still warn.
