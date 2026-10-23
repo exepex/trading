@@ -32,3 +32,17 @@ records; the health check). One judge: Judge J (session_01Qg4Gxun1NvGRrtS9C68Dc1
   it, it was stored late after 7 days. The seal runs a day or more after each deadline, well after the log updates.
 - The health check's daily problem count (9-10 from 18 to 22 Oct) should fall once this merges. The story says
   plainly that the share caused by this defect is not proven.
+
+## Addendum 1
+
+**Scope:** story/receipts-reach-minors at 74706a51, off main d4de3952. Tests and story text only: two test files and
+8 lines of the story.
+
+**Verdict: PASS.**
+
+- **Minor (a), fixed.** `test_the_wiring_reads_a_failed_seal_evidence_three_times` pins `SEAL_READ_ATTEMPTS`; my plant
+  setting it to 1 is caught.
+- **Minor (b), fixed.** `test_the_page_cap_stops_a_log_that_runs_on_and_says_so` pins `PAGE_CAP`; my plant removing
+  the check is caught.
+- **My run:** `tests/ai`, `tests/health`, `tests/price_ranges` and `tests/premium_ranges` give 361 passed; ruff check
+  and format are clean. I did not re-run the full suite for a test-only change; the builder reports 13,425 passed.
