@@ -2892,34 +2892,51 @@ guard.
 - every decision counted regardless of h's verdict.
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
 
-#### INS-e follow-up: a stopped run's stored file is recovered (branch `story/ms-ins-adopt`, lane 1; found by MS-P1j's builder, 23 Oct 2026)
+#### INS-e follow-up: a stopped run's stored file is adopted, never recomputed (branch `story/ms-ins-adopt`, lane 1; found by MS-P1j's builder, orchestrator's conditions of 23 Oct 2026)
 
-**The defect** (reproduced by a test before the fix):
+**The defect** (a test reproduced it before the fix):
 - `DriveInstructorStore.write` puts the file on Drive first and publishes its receipt to main after.
-- If the run stops between the two (its container ends), the rerun sees no receipt, so it recomputes.
-- A later run sees more (a settled expiry, closed controls), so its records can differ. Write-once Drive then refuses them on every rerun after: that session is stuck for good.
-- The test `the_session_stopped_before_its_receipt...` raised `InstructorConflict` on the old code.
+- A run that stops between the two leaves no receipt, so the rerun recomputes.
+- A later run sees more (a settled expiry, closed controls), so its records can differ. Write-once Drive then refuses them on every rerun after: a permanent fault.
+- On the old code, `the_session_stopped_before_its_receipt...` raises `InstructorConflict ... is written with other bytes`.
 
-**The fix:**
-- The port gains `recover(session, kind)`: `read`, except that a file stored on Drive with no receipt on main gets its receipt written from the stored bytes and published, then its records are returned.
-  - Drive's bytes are the record; the same bytes put again are a no-op there.
-  - Readers (review, "why" line) keep `read`, which never publishes.
-- `InstructorRun.for_session` uses `recover` for the causes and attribution files when it writes. A dry run reads nothing, as before.
+**Why adoption, not a fixed cut-off** (the orchestrator's cleaner option, checked first, reasoning plus code):
+- A file that is a pure function of a per-day cut-off needs every input read "as known at that cut-off".
+- d's `IndexSettlementSource.price(underlying, expiry)` has no as-of date.
+- c's dashcam reads corrections up to today by design: judge 516's resolver.
+- The re-check exists precisely to write what a later day learns into that day's file.
+- A cut-off would need as-of reads in d's and c's ports, outside this story, and would still not make a crashed day-D run's rerun on day D+1 identical unless every source were as-of. So: adoption.
+
+**Existing pattern checked:**
+- The dashcam's `DriveDashcamStore.seal` judges only on the remote receipt and raises `ReplayConflict` on other bytes. It has no recovery step, so the same window exists there (reported to the orchestrator, not changed here).
+- O9's `DataStore` and `receipted_rows` have none either. There was nothing to reuse.
+
+**The fix:** the port gains `recover(session, kind)`, which `InstructorRun.for_session` uses when it writes. It behaves as `read`, except when Drive holds the file and main has no receipt. Then:
+- **Verify the file is this key's instructor file before adopting it.** It decodes; it re-encodes to the same bytes (canonical); it holds only that kind's records; and no record closed after the file's session (a re-check writes earlier sessions into a later file, never the reverse). Anything else raises `InstructorConflict ... not adopted` and publishes nothing.
+- Its receipt is written from the stored bytes (the same bytes put again are a no-op on Drive) and published.
+- **The adoption is recorded:** the receipt's commit says "instructor <kind> <session> adopted: stored on Drive by a run stopped before its receipt".
+- **It is read back** through `read`, against that receipt's SHA-256.
+- Readers (review, "why" line) keep `read`, which never publishes. A dry run reads nothing.
 
 | Criterion | Test (`tests/school/instructor/outputs/test_recover.py`) |
 |---|---|
-| A run stopped after both Drive writes: the rerun keeps the stored bytes and publishes both receipts, even though the rerun would compute other records | `a_session_stopped_before_its_receipt_is_returned_as_stored_when_a_rerun_sees_more` |
-| A run stopped after the attribution file only: its receipt is published, the causes computed | `a_run_stopped_after_its_attribution_receipts_that_file...` |
-| `recover` receipts a stored file; `read` never trusts it before that | `recover_publishes_a_stored_files_receipt_and_returns_its_records` |
-| Nothing stored: None, nothing published | `recover_returns_none_when_nothing_is_stored...`; the conformance check |
-| Already published: read, never published again | `recover_reads_a_published_file_without_publishing_again` |
+| Stop between the Drive write and the receipt, then a rerun after more records: no conflict, one receipt per file, the stored bytes kept, the adoption recorded (a recompute would differ, asserted) | `a_session_stopped_before_its_receipt_is_returned_as_stored_when_a_rerun_sees_more` |
+| A stop after the attribution file only: its receipt published, the causes computed | `a_run_stopped_after_its_attribution_receipts_that_file...` |
+| A stored file is unreadable through `read` before it is adopted, readable after | `recover_publishes_a_stored_files_receipt_and_returns_its_records` |
+| Never adopted: another kind's records, unreadable bytes, a record closed after the session, non-canonical bytes | `a_stored_file_that_is_not_this_keys_instructor_file_is_never_adopted` (3 cases); `..._not_in_canonical_form_...` |
+| Nothing stored: None, nothing published; already published: read, never published again | `recover_returns_none...`; `recover_reads_a_published_file...`; the conformance check |
 
-**Broken-code proof:** 5 plants, all caught:
+**Broken-code proof:** 10 plants, all caught:
 - the run's two `recover` calls back to `read`;
 - the receipt not published;
 - `recover` publishing a file already published;
-- an empty tuple in place of None.
+- None turned into an empty tuple;
+- the key check skipped;
+- the canonical check removed;
+- the type check removed;
+- the closed-after check loosened;
+- the adoption message replaced by the ordinary one.
 
-**Known limit [reasoning only]:** a run that stops between the attribution's Drive write and the causes' Drive write, with an outcome correction sealed before the rerun, gives other attribution bytes. Write-once then refuses them loudly (`InstructorConflict`), never silently. The window is two consecutive Drive puts. MS-P1j's deferred store puts both before its one commit, so that window stays two puts wide.
+**Known limit [reasoning only]:** a stop between the attribution's Drive put and the causes' Drive put, followed by an outcome correction sealed before the rerun, gives other attribution bytes. They are refused loudly (`InstructorConflict`), never silently. The window is two consecutive Drive puts.
 
 **For MS-P1j's deferred store:** it implements the port, so it needs `recover` too (delegating to this store's).

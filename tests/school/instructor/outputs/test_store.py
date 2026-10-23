@@ -37,9 +37,10 @@ class FakeData:
 
 class FakePublisher:
     def __init__(self):
-        self.pushed = {}
+        self.pushed, self.messages = {}, []
 
     def publish(self, drive_path, what):
+        self.messages.append(what)
         sha = self.data.files[drive_path.split("/", 1)[1]]
         self.pushed[drive_path] = PushedReceipt("c0ffee", datetime(2026, 11, 4, tzinfo=UTC),
                                                 hashlib.sha256(sha).hexdigest())  # fmt: skip

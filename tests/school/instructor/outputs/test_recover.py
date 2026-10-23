@@ -2,12 +2,14 @@
 follow-up; MS-P1j's builder, 23 Oct 2026): the rerun keeps the stored file and publishes its receipt, never computing
 other records that write-once would refuse for good."""
 
+import gzip
 from datetime import date
 
 import pytest
 
-from fno.school.instructor.outputs.store import DriveInstructorStore
-from fno.school.instructor.ports import InstructorKind
+from fno.school.instructor.outputs.store import DriveInstructorStore, instructor_path
+from fno.school.instructor.ports import InstructorConflict, InstructorKind
+from fno.school.instructor.records_file import encode_instructor_file
 from tests.school.instructor.builders import SESSIONS, attribution
 from tests.school.instructor.outputs.test_run import instructor
 from tests.school.instructor.outputs.test_store import FakeData, FakePublisher, FakeReader, store
@@ -41,11 +43,16 @@ def test_a_session_stopped_before_its_receipt_is_returned_as_stored_when_a_rerun
     with pytest.raises(Stopped):
         run.for_session(SESSIONS[2], write=True)
     stored = stopped.data.files.copy()
-    rerun, _ = instructor(settlement=1500.0, store=drive_store(FakePublisher(), stopped.data))  # it would differ now
+    main = FakePublisher()
+    main.pushed = stopped.publisher.pushed  # the attribution's receipt reached main before the stop
+    rerun, _ = instructor(settlement=1500.0, store=drive_store(main, stopped.data))  # the expiry has settled since
     again = rerun.for_session(SESSIONS[2], write=True)
+    assert rerun.for_session(SESSIONS[2]).classifications != again.classifications  # a recompute would differ
     assert rerun.store.data.files == stored  # the stored bytes are kept, nothing rewritten
     assert again.classifications == rerun.store.read(SESSIONS[2], InstructorKind.CAUSES)
-    assert len(rerun.store.publisher.pushed) == 2  # both receipts published from the stored bytes
+    assert len(rerun.store.publisher.pushed) == 2  # one receipt per file, published from the stored bytes
+    assert rerun.store.publisher.messages == [f"instructor causes {SESSIONS[2]} adopted: stored on Drive by a run "
+                                              "stopped before its receipt"]  # fmt: skip
 
 
 def test_recover_publishes_a_stored_files_receipt_and_returns_its_records():
@@ -79,3 +86,28 @@ def test_a_run_stopped_after_its_attribution_receipts_that_file_and_computes_the
     again = rerun.for_session(SESSIONS[2], write=True)
     assert rerun.store.read(SESSIONS[2], InstructorKind.ATTRIBUTION) == again.attributions
     assert rerun.store.read(SESSIONS[2], InstructorKind.CAUSES) == again.classifications
+
+
+@pytest.mark.parametrize(
+    ("kind", "stored"),
+    [
+        (InstructorKind.CAUSES, encode_instructor_file((attribution(),))),  # another kind's records
+        (InstructorKind.ATTRIBUTION, b"not a gzip file"),
+        (InstructorKind.ATTRIBUTION, encode_instructor_file((attribution(closed_on=date(2026, 11, 5)),))),
+    ],
+    ids=["another kind", "unreadable", "closed after its session"],
+)
+def test_a_stored_file_that_is_not_this_keys_instructor_file_is_never_adopted(kind, stored):
+    kept = store()
+    kept.data.files[instructor_path(DAY, kind)] = stored
+    with pytest.raises(InstructorConflict, match="not adopted"):
+        kept.recover(DAY, kind)
+    assert kept.publisher.pushed == {}
+
+
+def test_a_stored_file_not_in_canonical_form_is_never_adopted():
+    kept = store()
+    canonical = encode_instructor_file((attribution(),))
+    kept.data.files[instructor_path(DAY, InstructorKind.ATTRIBUTION)] = gzip.compress(gzip.decompress(canonical))
+    with pytest.raises(InstructorConflict, match="not canonical"):
+        kept.recover(DAY, InstructorKind.ATTRIBUTION)
