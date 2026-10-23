@@ -82,11 +82,12 @@ def test_a_protocol_commit_outside_history_is_refused(repo):
 def test_the_first_run_is_recorded_once(repo):
     ledger = Ledger(repo)
     ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
-    ledger.mark_run("P1", date(2026, 11, 1))
+    head = ledger.git.head()
+    ledger.mark_run("P1", head, date(2026, 11, 1))
     first = next(r for r in ledger.rows() if r["trial_id"] == "P1")
-    ledger.mark_run("P1", date(2026, 12, 1))
+    ledger.mark_run("P1", "0" * 40, date(2026, 12, 1))
     again = next(r for r in ledger.rows() if r["trial_id"] == "P1")
-    assert first["first_run_on"] == again["first_run_on"] == "2026-11-01" and again["run_commit"]
+    assert first["first_run_on"] == again["first_run_on"] == "2026-11-01" and again["run_commit"] == head
 
 
 def test_duplicates_and_bad_rows_are_refused(repo):
@@ -100,7 +101,7 @@ def test_duplicates_and_bad_rows_are_refused(repo):
 
 def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospective():
     rows = read_ledger(REPO_LEDGER.read_text())
-    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 99)] and tuple(rows[0]) == COLUMNS
+    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 100)] and tuple(rows[0]) == COLUMNS
     assert all(r["kind"] == "retrospective" for r in rows[:21])
     r2 = rows[52]  # R2 feasibility, registered after its protocol commit (story R2)
     assert (r2["kind"], r2["protocol_commit"]) == ("prospective", "93a19c318003994c6cedd070d038ee89d45dd74e")

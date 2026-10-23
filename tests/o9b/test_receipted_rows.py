@@ -107,3 +107,10 @@ def test_a_second_series_of_the_same_run_never_reuses_a_held_part_name(drive):
     drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa").write_bytes(TODAYS_FILE)
     with pytest.raises(PartOutOfOrder, match="would sort before"):
         drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa").append(FIELDS, [("2026-10-21", "11.75")])
+
+
+def test_a_series_with_nothing_written_yet_reads_empty_not_unreadable(drive):
+    """The sync reports a prefix without receipts as a problem; a new series (no part yet) is simply empty."""
+    series = drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa", folder="global-cues/revisions")
+    assert series.rows() == [] and series.rebuilt() == b""
+    assert drive.series(ReceiptedSnapshots, "r1", folder="vix/checks/new").latest() == []

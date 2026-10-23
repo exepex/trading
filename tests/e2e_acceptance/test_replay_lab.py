@@ -20,12 +20,17 @@ def test_the_evening_message_posts_g13b_s_issue_of_the_day_with_its_picture_and_
     n1 = next(r for r in record["rows"] if (r["forecaster"], r["horizon"]) == ("implied", "N1"))
     band = Band(n1["q05"], n1["q25"], n1["q50"], n1["q75"], n1["q95"])
     (text,) = out.lab.channel.posts
-    title, first, status = text.splitlines()
-    assert title == "*Was today's forecast right?* (Fri 16 Oct, 20:05)"
-    assert first.startswith(f"*NIFTY* · next trading day, Mon 19 Oct: most likely {likely(band)} (almost certainly "
-                            f"{certain(band)})") and first.endswith("⚪ no scored days yet")  # fmt: skip
-    assert status == ("⚠️ NIFTY: newest scored close is none, expected 2026-10-15 (stale). Research only. "
-                      "Not a trade tip.")  # no score exists in the replay's Drive: said, never hidden  # fmt: skip
+    title, first, record, ahead, status = text.splitlines()
+    right = "Right = the close fell inside the “almost certainly” range."
+    assert title == f"*Was today's forecast right?* (Fri 16 Oct, 20:05) {right}"
+    assert first == ("❌ *NIFTY* today: no verdict. No forecast was issued for today (the Thu 15 Oct 15:45 issue "
+                     "holds no next-session forecast for Fri 16 Oct), so there is nothing to check.")  # fmt: skip
+    assert record == "⚪ too few live days to rate | Live so far: none scored yet | Back-test: none"
+    assert ahead.startswith(f"Next: next trading day, Mon 19 Oct: most likely {likely(band)} (almost certainly "
+                            f"{certain(band)})")  # fmt: skip
+    assert status == ("⚠️ NIFTY: no forecast was issued for 2026-10-15, so it has no score (a gap in the record, not "
+                      "a late score; newest scored close none). Research only. Not a trade tip.")  # fmt: skip
+    # the replay's Drive holds no 15 Oct issue, so 15 Oct can never be scored: a gap, said, never hidden (FL1-1e)
     (files,) = out.lab.channel.files
     assert list(files) == ["forecast-evening-2026-10-16.png", "forecast-evening-2026-10-16.html"]
     details = files["forecast-evening-2026-10-16.html"].decode()

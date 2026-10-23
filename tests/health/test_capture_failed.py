@@ -279,6 +279,15 @@ def test_a_replaced_news_run_is_neither_recorded_nor_alerted(tmp_path):
     assert (code, log.rows(), sender.sent) == (0, [], []) and "nothing to record" in lines[0]
 
 
+def test_a_replaced_data_checks_run_is_neither_recorded_nor_alerted(tmp_path):
+    """O9b: a pending data-checks run cancelled for a newer one checked nothing; the newer run checks the same or a
+    later committed state (it records nothing per push or per day). 23 Oct 2026 gave 24 such rows before this."""
+    code, log, sender, lines = call(tmp_path, replaced_run("data-checks", steps_ran=False))
+    assert (code, log.rows(), sender.sent) == (0, [], []) and "nothing to record" in lines[0]
+    _, log, sender, _ = call(tmp_path, replaced_run("data-checks", steps_ran=True))
+    assert len(log.rows()) == 1 and len(sender.sent) == 1  # cancelled after a step ran: a failure, as for news
+
+
 def test_a_news_run_cancelled_after_a_step_ran_is_a_failure(tmp_path):
     _, log, sender, _ = call(tmp_path, replaced_run("news-capture", steps_ran=True))
     assert len(log.rows()) == 1 and len(sender.sent) == 1

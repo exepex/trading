@@ -1,0 +1,17 @@
+# FROZEN card (stories MS-P1e and MS-P1h): registered in journal/versions.csv with this file's SHA-256; a change is a new version (a new file), never an edit. Numbers are first guesses [reasoning only].
+# Deviation from EDGE1: enters at the 15:00 slot of the first session in the window, EDGE1 entered the next trading
+# day. Kept for comparability with the other drivers; measurement only (orchestrator, 22 Oct 2026).
+code: KL1
+version: "1"
+family: edge1_control
+role: measurement_only
+roads: [NIFTY-M]
+band_steps: 10
+parameters:
+  dte_min: 30
+  dte_max: 45
+  first_in_window: 1
+  shape: condor
+  short_offset: 0.03
+  widths: "300,250,200,150,100"
+  max_open_per_road: 1

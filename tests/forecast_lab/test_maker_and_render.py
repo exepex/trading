@@ -74,6 +74,28 @@ def test_the_camera_says_why_when_chromium_is_missing(tmp_path):
         raise AssertionError("no picture without Chromium")
 
 
+def test_a_failed_trim_names_the_missing_module(tmp_path, monkeypatch):
+    """FL1-1e: the 23 Oct morning said only "ImportError"; the alert now names what to install."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_pillow(name, *args, **kwargs):
+        if name == "PIL":
+            raise ImportError("No module named 'PIL'", name="PIL")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_pillow)
+    monkeypatch.setattr(ChromiumCamera, "_shoot", lambda self, page, raw: raw.write_bytes(b"png"))
+    camera = ChromiumCamera(executable=Path(__file__))  # any existing file: the shot itself is replaced
+    try:
+        camera.picture("<p>", tmp_path / "x.png")
+    except PictureFailed as failed:
+        assert str(failed) == "the picture could not be trimmed: ImportError (module PIL)"
+    else:
+        raise AssertionError("no picture without Pillow")
+
+
 def test_the_real_camera_draws_the_picture_page_at_its_width_and_trims_the_bottom(tmp_path):
     camera = ChromiumCamera(width=1100)
     if not camera.executable.exists():  # the routine's environment has it (/opt/pw-browsers); a laptop may not

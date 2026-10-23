@@ -1117,6 +1117,79 @@ about 1 day.
 **Depends:** A4 (market_levels' endpoint), A7, A10 (`read_index_closes`), O1, O6 (archived file, read only), O9 ·
 **Size:** M · **Status:** story text for judge F (22 Oct 2026)
 
+### A4h-2. The day's high, low and previous close in the same record (FL1-1f's request, 23 Oct 2026)
+
+**Why.** FL1-1f's evening "why" block needs each index's day range (the owner's 30-second rule; orchestrator: one
+source, A4h's 15:40 read). NSE's answer already carries `high`, `low` and `previousClose` for every index. One
+parser of that answer, A4h's `read_answer`, keeps a second one out of FL1.
+
+**What changes:**
+- **The record.** Each index in `closes/<yyyy>/<mm>/<day>.json` (and `.recheck.json`) gets `high`, `low` and
+  `previous_close` beside `open` and `last`, from the same answer.
+- **The read.** NIFTY 50 and NIFTY BANK, the checked indices, are refused like `last` when a field is missing or
+  unreadable. INDIA VIX keeps its new fields optional (`null` when NSE leaves them out), as it is recorded but never
+  checked.
+- **The range check (DR1 sanity check 5, judge 541 SF1).** For NIFTY 50 and NIFTY BANK, a read with `low > high`, or
+  with `last` or `open` outside `[low, high]` (edges included), is refused with a named reason and no level, for
+  example `NIFTY 50: last outside the day's high-low`. INDIA VIX is never refused for it: the same finding goes into
+  the record's `problems` list.
+- **The confirm.**
+  - `high` and `low` of the checked indices are checked against the official file's "High Index Value" and "Low Index
+    Value" within `TOLERANCE`.
+  - The reader of those columns is one function beside `read_index_closes` in `fno/fo_bhavcopy.py`: index name to
+    open, high, low and close.
+  - `previous_close` is checked against the previous session's official close, read from that session's file.
+    While that file is not in Drive, the field stays unconfirmed under the same overdue rule as `last`: one alert at
+    the second session after the day, never silent and never twice.
+  - Each difference is recorded in `.confirm.json` and alerted once, as `last`'s is.
+- **The recheck.** Its line names each field's difference (`same`, or `differs by X`), never a level.
+- **Nothing is rewritten.** Records before the first read after the merge lack the fields; readers say "day range
+  not recorded". The record stays `provisional: True` until confirmed.
+
+**Acceptance criteria:**
+1. A fake answer with distinct planted `high`, `low` and `previousClose` values: the record holds them for all three
+   indices.
+2. A missing or unreadable field refuses the read for NIFTY 50 or NIFTY BANK, and leaves `null` for INDIA VIX.
+2b. The range check, for NIFTY 50 and for NIFTY BANK each:
+    - `last` 0.01 above `high` is refused, and so is `open` 0.01 below `low`;
+    - `last == high` and `open == low` are accepted;
+    - `low > high` is refused.
+    For INDIA VIX the same cases are recorded in `problems` and the read is kept. No refusal line holds a level.
+3. Confirm, using the real 21 Oct official file (and a missing previous-session file: `previous_close` stays
+   unconfirmed, then alerts once at the second session after the day):
+   - `high` and `low` at the official value and at 0.01 off confirm;
+   - at 0.02 off they record the difference and alert once;
+   - a `previous_close` that differs from the previous session's official close records its difference.
+4. The recheck names a 0.05 change in `high` as `differs by 0.05`.
+5. Criterion 8's no-level test is extended to the planted new values in every format.
+6. An old record without the fields still reads (a reader test with 22 Oct's record shape).
+7. Gates as A4h's criterion 10.
+8. Each criterion has good, bad, boundary and empty cases (quality rule 5). Empty means an answer with no rows, or a
+   field present but blank.
+
+**Gap list (quality rule 2):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| The evening day range, one source: A4h's 15:40 read (FL1-1f; orchestrator, 23 Oct) | criterion 1 |
+| The owner's 30-second rule for the evening "why" block (FL1-1f) | Out: FL1-1f's display; this story only supplies the fields |
+| DR1 checks 1-4 at the provisional level (integrity, layout, stamp, completeness) | A4h's criteria 1-2, unchanged; criterion 2 here |
+| DR1 check 5, sanity: a close outside the day's high-low (judge 541 SF1) | criterion 2b |
+| DR1 check 6, agreement with the official file at confirm | criterion 3 |
+| O9 write-once: no old record rewritten; older records read "day range not recorded" | criterion 6 |
+| No level in any printed or committed line (judge 440 SF1) | criteria 2b, 5 |
+| Merge no earlier than Mon 26 Oct, never 14:00-16:15 IST | "Lane and dates" |
+| Good, bad, boundary and empty cases (quality rule 5) | criterion 8 |
+| A real output sample in the Claims section, no level (quality rule 6) | Claims at code time: one dry-run record shape with values replaced by `<level>` |
+| An end-to-end run after merge (quality rule 8) | after merge: the first session's read, recheck and confirm lines (no level), with the merge message naming the command |
+| DR1's own certifier and records | Out: DR1's story; it is told the new fields |
+
+**Lane and dates.** Lane 1 (a record feeding the forecast lab), judge F. It touches a live reader, so it merges no
+earlier than Mon 26 Oct and never 14:00-16:15 IST. The fields start with the first session read after the merge;
+the claims name that date. DR1's certifier (story/dr1-design) is told the new fields, so its checks can cover them.
+
+**Size:** S · **Status:** story text for judge F (23 Oct 2026)
+
 ## A5. Monthly-expiry identity in the package
 
 **Repository:** trading
@@ -1810,6 +1883,16 @@ Jun 2020-Dec 2023, May-Jun 2024 and Sep-Oct 2026 (entries). Jan 2024-Aug 2026 ou
 measured; the first full run reads every session since 2 Jan 2020 and may set k higher. Response 77's three figures
 (1.265, 1.407, 1.127) were a different measure, scan plus exposure read to the window's end; the evidence table shows
 them beside this run's needed factor for reference only.
+
+**Open items for when A14c resumes (after the phase-1 freeze):**
+- **k per underlying.** The factor is measured on NIFTY monthly history only. The market school (MS-P1m) applies it to
+  BANKNIFTY, FINNIFTY, MIDCPNIFTY and NIFTY's weeklies, labelled "measured on NIFTY monthly only [reasoning only]"
+  (orchestrator, 22 Oct 2026).
+- **k times the expiry-day ELM.** MS-P1m prices a school trade on its own expiry day with SEBI's extra 2% ELM
+  (2024/132 para 5.6). C2's k also multiplies the exposure, so k 2.1 on the doubled ELM roughly doubles an expiring
+  fly's stressed margin: NIFTY weekly SF 100 on 13 Oct 2026 needed Rs 2,48,443 a lot. That overstates the margin
+  [reasoning only], which is conservative and accepted for P1 (orchestrator, 22 Oct 2026). The follow-up decides
+  whether k should stress an expiry-day ELM at all, measured like the rest of k.
 
 **Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.

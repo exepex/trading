@@ -8,9 +8,8 @@ from html import escape
 from pathlib import Path
 
 from ..page.model import IndexView, PageView
-from ..page.plain import RESEARCH
-from .formats import AMBER, GREEN
-from .trend_chart import STEADY, TrendChart, TrendLayout, trend_state
+from ..page.plain import LIGHT_WORDS, RESEARCH, light, record_words
+from .trend_chart import TrendChart, TrendLayout
 from .values import Day, rolling_90
 
 CSS = Path(__file__).with_name("design.css")
@@ -57,13 +56,13 @@ def _cue_words(cue) -> str:
     """A cue's value with its unit and change; a cue with no value prints its text (a flag, a reason)."""
     if getattr(cue, "value", None) is None:
         return escape(str(getattr(cue, "text", "") or ""))
-    unit = escape(str(getattr(cue, "unit", "") or ""))
+    unit = escape(str(getattr(cue, "unit", "") or ""))  # the change's unit (Cue.change), never the level's
     value = f"{cue.value:,.2f}".rstrip("0").rstrip(".") if isinstance(cue.value, float) else str(cue.value)
     change = getattr(cue, "change", None)
     tail = (
-        f" {'+' if change >= 0 else '−'}{abs(change):,.2f}{unit}".rstrip("0").rstrip(".") if change is not None else ""
+        f" {'+' if change >= 0 else '−'}{abs(change):,.2f}".rstrip("0").rstrip(".") + unit if change is not None else ""
     )
-    return f"{escape(value)}{unit if unit == '%' else ''}{tail}"
+    return f"{escape(value)}{tail}"
 
 
 def cues_strip(view: PageView) -> str:
@@ -89,10 +88,11 @@ def cues_strip(view: PageView) -> str:
     )
 
 
-def why_block(title: str, lines: list[str], index: IndexView) -> str:
+def why_block(title: str, lines: list[str], index: IndexView, with_cues: bool = True) -> str:
+    """`with_cues`: list the builder's `why` cues after `lines` (the morning); the evening's rows carry them."""
     cues = [
         f"{escape(c.text or c.name)}" + (f": {_cue_words(c)}" if not c.text else "") + f" ({c.role})"
-        for c in getattr(index, "why", ())
+        for c in (getattr(index, "why", ()) if with_cues else ())
     ]
     items = "".join(f"<li>{line}</li>" for line in lines + cues) or f"<li>{NOT_AVAILABLE}</li>"
     return f'<div class="lab">{title} <span class="when">{CONTEXT}</span></div><ul class="why-list">{items}</ul>'
@@ -123,17 +123,9 @@ def trend(index: IndexView, days: list[Day], width: int) -> TrendChart:
     return TrendChart([d.date for d in shown], values, TrendLayout(width))
 
 
-def reliability_chip(index: IndexView, days: list[Day]) -> str:
-    """One definition of right: inside "almost certainly"; the colour follows the trend's state."""
-    state = trend_state(rolling_90(index))
-    if index.light == "none":
-        return f'<span class="pill none"><i></i>{escape(index.light_word)}</span>'
-    scored = days[-index.scored :] if index.scored else days
-    correct, close = sum(d.result == GREEN for d in scored), sum(d.result == AMBER for d in scored)
-    colour = GREEN if state == STEADY else AMBER if state == "watch" else "none"
-    tested = getattr(index, "backtested", 0)
-    back = f" · {tested} back-tested" if tested else ""  # judge 434: a back-test is never passed off as live
-    return (
-        f'<span class="pill {colour}"><i></i>Inside “almost certainly” {index.right} of {index.scored} '
-        f"(✓ correct {correct} · ⚠ close call {close}){back} · {state}</span>"
-    )
+def record_pill(index: IndexView) -> str:
+    """The record in the text line's words (plain.record_words: live and back-tested apart), coloured by the light,
+    which the builder rates on live checks only; "too few live days to rate" until it can."""
+    state = light(index)
+    head = f"{escape(LIGHT_WORDS[state])} · " if state == "none" else ""
+    return f'<span class="pill {state}"><i></i>{head}{escape(record_words(index))}</span>'

@@ -612,3 +612,215 @@ refused, the outcome names the path, and `main` is untouched. (e) Every existing
 **Routine prompt (owner edits; agents cannot edit API-created routines):** a step 0 that puts the checkout on `main`
 (`git fetch origin main && git checkout -B main origin/main`), and a last step that checks nothing recorded is left
 unpushed. With fix 2 the step 0 is belt-and-braces; it is needed until A16f merges.
+
+## A16h. A read-only probe of Groww's streaming feed (lane 1, 22 Oct 2026; owner decision of 23 Oct, orchestrator's go)
+
+**Owner and builder:** the A16 builder (session 01VK88LxJvV1Gi7Wbr3D4fzp). **Judge:** I (`session_01MvZneCLZqBuiGyNxawdVee`),
+text first, then the code. **Research note:** `research/school/probes/2026-10-23-live-data-feeds.md` (the owner's
+decision: buy nothing; probe the Groww feed already paid for, from Tue 27 Oct, never on v4's clean days 23 and 26 Oct).
+
+**Description:** As the statistician and the Groww intraday owner, I want four facts about Groww's websocket feed
+(`growwapi.GrowwFeed`) measured in market hours, read-only, so that the owner can decide whether polling every 15
+minutes can be replaced without a second paid source.
+
+**Questions the probe answers (in a dated probe note, each with an evidence label):**
+1. **Coverage:** do LTP and market depth stream for the four indices' (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY) monthly
+   near-money options (±10 strikes around ATM), NIFTY's weekly near-money options, the current, next and far futures,
+   and the four index values?
+2. **Subscription limit:** the docs say 1,000, Groww's blog 3,000. A ramp of 500, 1,000, 1,500, 2,000 and 3,000 stops at
+   the first refusal or error and records the count reached and the error's class name.
+3. **Separate budget:** is the feed apart from the REST limits (10 a second, 300 a minute)? The probe runs while A16's
+   marks and the 3 pm recorders run; that day's A16 ledger and A4, A4c and A4f sidecars are compared for 429s and
+   missing quotes against the clean days, 23 and 26 Oct.
+4. **Rate and latency:** messages per second per instrument; latency = our receipt time minus the tick's own exchange
+   time where the tick carries one (median and 95th percentile), else "no exchange time in the tick".
+
+**Design:**
+- **`ReadOnlyFeed`** (`fno/intraday/read_only_feed.py`, new), built like `ReadOnlyGroww`: it holds the feed and lets
+  through only the market-data names `subscribe_ltp`, `subscribe_market_depth`, `subscribe_index_value`, `get_ltp`,
+  `get_market_depth`, `get_index_value`, `get_all_feed`, `consume`, `unsubscribe_ltp`, `unsubscribe_market_depth` and
+  `unsubscribe_index_value`. It refuses everything else before it reaches the SDK, including the account-reading
+  methods `subscribe_fno_order_updates`, `subscribe_fno_position_updates`, `subscribe_equity_order_updates`,
+  `get_fno_order_update`, `get_fno_position_update`, `get_equity_order_update` and their `unsubscribe_` pairs (each
+  named in a test), and any `place_`, `modify_`, `cancel_` or `create_` name. `GrowwFeed(groww_api)` takes the full
+  trading client, so it is built and wrapped only in the composition root (`fno/intraday/feed_wiring.py`, new); the
+  probe holds only the wrapper.
+- **Which instruments:** the feed subscribes by `exchange`, `segment` and `exchange_token`, which the option chain does
+  not carry (checked 22 Oct: a chain leg holds `trading_symbol`, `ltp`, `open_interest`, `volume`, `greeks` only). The
+  tokens come from Groww's public instrument list (the SDK's own `INSTRUMENT_CSV_URL`, about 143,000 rows: index
+  values, futures and options with expiry, strike and type), downloaded once per run, read-only; the ATM strike of each
+  index comes from one `get_quote` of its index value through A16's existing `ReadOnlyGroww` (no allow-list change).
+- **`python -m fno intraday feed-probe --plan <coverage|ramp|alongside> --minutes N`**: a probe, not a recorder. It
+  keeps counts and times only (per instrument: ticks, first and last receipt time, latency figures); no tick value is
+  printed, committed or posted. The probe note is written by hand from its printed summary.
+- **Plans and limits** (every plan unsubscribes everything and stops at once, with one named line, when its own
+  sign-in or any call answers 429 or the plan's hard end time is reached):
+  - `coverage`: about 400 instruments, 10:20-10:40. It overlaps A16's 10:30 mark on purpose: that mark is the first
+    market-hours test of two sign-ins on one key (judge 499).
+  - `ramp`: **50**, 500, 1,000, 1,500, 2,000, 3,000 (judge 499 addendum 3: 50 first, so a closed market and a limit
+    under 500 can be told apart; coverage holds about 440 topics). A step is refused when a call raises (a 429 stops the
+    run instead) or the feed creates fewer topics than asked; a refused batch is released at once. After the close, a
+    refusal at 50 twice means a closed market; between marks, a first refusal is a limit; once 50 is accepted, a refused
+    step is a limit and the ramp halves its way down to it, to within 50 subscriptions. **The after-close ramp starts
+    only once that day's A16b candle catch-up (same Groww key, from 15:33) is recorded finished in
+    `journal/runs/<date>.json`** (judge 499 addendum 2; pull `main` first); otherwise no ramp that day, one named line.
+    **Never overlapping an A16 mark**
+    (judge 499, orchestrator: a mark with no usable level voids the session's RV, which feeds v4 and G14). **First choice:
+    after the close**, from 15:45 IST once A16's last mark (15:30, committed about 15:35) is on `main`: accepting a
+    subscription needs no live ticks. If Groww refuses subscriptions after hours (a refusal already at the first step,
+    500, with the same error at 500 on a retry, is read as "closed market", not as the limit), the probe note says so
+    and the ramp runs on a later session between A16's marks only, **10:50:00 to a hard stop at 10:58:00**, one or two
+    steps per 8-minute chunk, until done.
+  - `alongside`: **at most 1,000 instruments whatever the ramp showed** (orchestrator: the 3 pm data feeds G13, so
+    losing it costs a day), behind a **go/no-go gate** (judge 499): it runs only if that day's `coverage` run left A16's
+    10:30 and 10:45 marks clean (ledger status good, no 429 failure, no missing quote); it signs in and subscribes before
+    14:50 and makes no new sign-in between 14:55 and 15:13 (the 3 pm recorders' window); any condition missed means no
+    `alongside` that day, noted in the probe note with the reason. Its instrument list and index quotes are taken after
+    the sign-in and before 14:50 (judge 499 addendum 4).
+- **The instrument list's URL** is read only in the composition root (`feed_wiring.py`, from the SDK's own constant);
+  no other module names `GrowwAPI` or `GrowwFeed` (judge 499 addendum 4).
+- **Schedule (IST, from Tue 27 Oct; 28 Oct if the code is not passed by then):** `coverage` 10:20-10:40, `ramp`
+  from 15:45 (or 10:50-10:58 chunks), `alongside` from before 14:50 to 15:20 (gate permitting). Run by the builder by hand; no schedule or
+  workflow is created.
+
+**Acceptance criteria:**
+1. `ReadOnlyFeed` passes exactly the eleven market-data names; each account-reading name above, and trading names the
+   test supplies itself (`place_order`, `modify_order`, `cancel_order`, `create_smart_order`; today's `dir(GrowwFeed)`
+   has none, judge 499), are refused with nothing reaching the feed; the wrapper cannot be changed after it is built.
+2. No module outside the composition root names `GrowwFeed` or `GrowwAPI` (the import-closure test A16 already has).
+3. `alongside` refuses more than 1,000 instruments and refuses to start when the gate is not met (a fake ledger with a
+   429 or a missing 10:30 or 10:45 mark; a start after 14:50); every plan, on a fake feed answering 429 or at its hard
+   end time, unsubscribes all and stops with one named line.
+4. `ramp` stops at the first error and reports the count reached; `coverage` reports whether ticks came by class (index
+   value, future, and per index, expiry and option type), with the counts per class (judge 499).
+5. Nothing the probe prints holds a token, a key or a tick value (a test over its summary lines).
+6. Gates: the full suite, ruff, imports, code size.
+
+**Known limits (one line each):** the probe signs in from its own process, so two sign-ins share one key (they
+coexisted outside market hours on 15 Oct; the probe tests it in market hours); a ramp to 3,000 may draw throttling on
+Groww's side, so it stops at the first error; Groww's terms do not clearly allow read-only use (owner chose not to
+ask, 22 Oct); the probe says nothing about how a feed-based recorder would be built (a later story, if the owner wants
+one).
+
+**Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
+--groww` · **Size:** S · **Status:** story text round 2 for judge I (judge 499's two should-fixes and two minors, 23 Oct 2026)
+
+### Claims (TLS fix, 23 Oct 2026: orchestrator's go, lane 1, judge I; branch story/a16h-feed-tls)
+- **Root cause (strong evidence):** the one-minute dry run of 23 Oct (11:02-11:04 IST) failed with
+  CERTIFICATE_VERIFY_FAILED at socket-api.groww.in:443, then NoServersError after about 2 minutes of SDK retries; 0
+  ticks, nothing stored. `growwapi/groww/nats_client.py` builds its context with
+  `ssl.create_default_context(cafile=certifi.where())`, so it ignores `SSL_CERT_FILE`, while this container's proxy
+  re-signs TLS with its own CA. A bare live handshake: certifi alone fails ("self-signed certificate in chain");
+  certifi plus the `SSL_CERT_FILE` bundle: "handshake ok (TLSv1.3)".
+- **Condition 1, add, never replace:** `feed_wiring.feed_ca_file` writes certifi's roots followed by the
+  `SSL_CERT_FILE` bundle to one temporary file; `trust_for_feed` points only the SDK's `nats_client` module's
+  `certifi.where` at it (the real `certifi` module and every other caller are untouched). No bundle set or missing:
+  nothing changes. Verification stays on: `tests/intraday/test_feed_tls.py` runs real localhost TLS handshakes with the
+  SDK's own call: a certificate signed by the added CA verifies; an untrusted self-signed one is refused; certifi alone
+  refuses the proxy-signed one; `verify_mode` is CERT_REQUIRED and `check_hostname` is on.
+- **Condition 2, own connect timeout:** `open_feed` builds the feed in a daemon thread and waits at most
+  `FEED_CONNECT_SECONDS` (30 s); a timeout or an error raises `FeedNotConnected` with one plain line (the error named
+  by class only, never its text). `feed_cli` prints `feed probe <plan>: stopped: <line>` and exits 1. Tests: the
+  timeout ends in about 0.2 s with a short limit; an error is named by class; the command prints one line.
+- **Round 2 (judge 499 addendum 8, should-fix):** `build_feed_probe` itself is now tested with a fake provider and a
+  fake `GrowwFeed` that records `nats_client.certifi.where()` at construction (connect time): with `SSL_CERT_FILE` it
+  is the combined file (certifi's roots first, then the bundle); without it the module still holds the real `certifi`.
+  The module is restored after the test (monkeypatch). Planted removal of the `trust_for_feed` call: the test fails.
+- **Scope:** `fno/intraday/feed_wiring.py` and `feed_cli.py` only, plus the new test file; no other module, no
+  setting, no TLS check turned off, `HTTPS_PROXY` untouched. Gates on round 2's tree: 14,335 passed, 16 xfailed; ruff,
+  format and check_imports clean.
+
+### Claims (code round 2, 23 Oct 2026: judge 499 addendum 5)
+- **Should-fixes 1 and 2** were already met at 4abcf179f, pushed after the reviewed ef896e21: the catch-up gate and the
+  ramp from 50 with halving. The tests and lines are in "Claims (code round 1 update)" below.
+- **Should-fix 3:** `feed_probe.window_refusal(plan, day, now)` is checked by the command **first**, before the gates,
+  any sign-in or any quote; the probe checks again after the sign-in and before the instrument list, and once more in
+  `run`. Test: clocks at 14:56 (alongside), 10:26 (coverage) and 16:01 (ramp) refuse with one line, and the gate, the
+  sign-in and the quotes are never reached (each stub fails the test if called).
+- **Minor 1:** `wait` returns False when no time is left, and the watch loop then returns, so a plant on its condition
+  ends instead of spinning (test).
+- **Addendum 6's minor:** the catch-up gate also requires the candles step's `result.status == "ok"`, since a failed
+  catch-up may run again the same day on the same key. Tests: ended failed, and ended without a status.
+- **Minor 2:** when alongside cuts to 1,000 it prints which instruments it kept: index values, futures, then options,
+  and the last kept class. With today's ±10 strikes there are 226, so the cut does not happen.
+
+### Claims (code round 1 update, 23 Oct 2026: judge 499 addenda 2-4)
+- **Ramp** (`fno/intraday/feed_ramp.py`, new): steps from 50; refusal means a raised call (not 429) or fewer topics
+  created; refused batches released; after-close double refusal at 50 means `CLOSED`; between marks a first refusal is
+  a limit; halving to within 50. Tests: a feed refusing everything (after close: 50 twice, then "closed market"; between
+  marks: "0 accepted, 50 refused"), a feed capped at 450 (limit found with low <= 450 < high, gap <= 50, all
+  released), a 429 mid-ramp (stops, all released), no limit (3,000 reached), the hard end time (exactly 10:58:00).
+- **Catch-up gate** (`feed_gate.catch_up_gate`): no run log, no candles step or an unfinished one refuses with one
+  line naming the cause; the command checks it before any sign-in (test).
+- **Alongside before 14:50:** the command calls `check_start` after the sign-in and before the instrument list and
+  the index quotes; `run` checks again.
+- **URL:** read only in `feed_wiring.py` from `GrowwAPI.INSTRUMENT_CSV_URL`.
+
+### Claims (code round 1, 23 Oct 2026)
+- **Files:**
+  - `fno/intraday/read_only_feed.py`: `ReadOnlyFeed`, `FEED_CALLS` (11) and `ACCOUNT_CALLS` (9, named).
+  - `feed_universe.py`: which instruments.
+  - `feed_ticks.py`: counts, times and latency.
+  - `feed_probe.py`: plans, windows, caps, the stop on any error or the hard end time.
+  - `feed_gate.py`: the alongside gate.
+  - `feed_cli.py`: `intraday feed-probe`.
+  - `feed_wiring.py`: the composition root, the only module that names `GrowwFeed` or builds the client.
+  - `cli.py`: one parser line and one dispatch line.
+  - `tests/intraday/test_safety.py`: the composition-root list gains `feed_wiring.py`.
+- **Criterion 1** (`tests/intraday/test_feed_guard.py`):
+  - the eleven names pass and only they reach the feed;
+  - each of the 9 account names, plus `place_order`, `modify_order`, `cancel_order` and `create_smart_order`
+    supplied by the test, is refused with nothing read from the feed;
+  - the SDK's public names equal the allowed plus the refused (a new SDK name fails until it is classified);
+  - the guard cannot be changed.
+- **Criterion 2:** no module but `feed_wiring.py` names `GrowwFeed`; A16's composition-root test covers
+  `GrowwProvider`.
+- **Criterion 3** (`tests/intraday/test_feed_probe.py`):
+  - each plan starts only inside its window: coverage 10:20-10:25, alongside 14:30-14:50, ramp 15:45-16:00, ramp-day
+    10:50-10:51 (boundaries one second either side);
+  - alongside refuses 1,001 instruments and accepts 1,000;
+  - a fake 429 stops coverage and alongside at once, unsubscribes everything and names it ("rate limited (429):
+    RateLimited");
+  - the hard end time is reached and never waited past (ramp-day with 120-second steps ends at exactly 10:58:00);
+  - the gate refuses on a failed, failing, short or missing 10:30 or 10:45 row;
+  - the command checks the gate before any sign-in.
+- **Criterion 4:**
+  - the ramp stops at the first error with the count reached (1,000);
+  - it releases what the failing call asked for, because a call that raises may already have subscribed some;
+  - coverage reports by class and feed type (ltp, market_depth, index_value).
+- **Criterion 5:** the summary holds neither the fake secret nor the fake tick value; errors are named by class only.
+- **Found while building (fixed):**
+  - the chain carries no exchange token, so tokens come from Groww's public instrument list (text line, 214bdeb77);
+  - MIDCPNIFTY's index value is listed as `NIFTYMIDSELECT`;
+  - the nearest NIFTY expiry on 23 Oct (27 Oct) is the monthly, so "NIFTY's weekly" is the nearest non-monthly
+    expiry (3 Nov);
+  - two probe bugs the tests caught: a failing call's subscriptions were not released, and a wait could pass the hard
+    end time.
+- **Real counts, 23 Oct:** Groww's instrument list, plus one read-only index quote each, outside market hours; no feed
+  was connected.
+  - coverage: 226 instruments (4 index values, 12 futures, ±10 strikes of the four monthlies and NIFTY's weekly), about
+    440 feed topics with depth;
+  - ramp: 3,248 instruments at ±50 strikes on every expiry up to about 3 months.
+- **Gates:** 11,705 passed; ruff, format and imports clean; every new file is at most 166 lines.
+- **Not done before the judge:** no live feed connection. The probe's first run is Tue 27 Oct.
+
+
+## A16i: no single lost fire may void a session (owner, 23 Oct 2026: "do whatever it takes")
+
+**What happened (23 Oct).** The 13:52 fire left no commit and no heartbeat. Marks 14:15, 14:30 and 14:45 had one fire
+each (a fire runs H:52 to (H+2):05, so only the on-the-hour marks have two), so the day's RV was void, the 5% void rule
+broke (1 of 4 sessions) and nothing alerted until the 14:52 fire wrote the gaps at 15:00. Probable cause (timing and a
+reproduced error, not proven; the fire's own transcript is not visible): `requirements.txt` gained `cryptography>=42`
+at 13:39 IST, and `routine_setup.sh` stopped on Debian's `cryptography 41.0.7` (pip cannot uninstall it), before the
+recorder, before any alert. The 14:52 fire hit the same error.
+
+**Change.** (1) `tools/routine_setup.sh` repeats the install over system packages when the plain install fails
+(O7b, on `main`). (2) `fno/intraday/cover.py`: each fire runs one hour past its `--until`, capped at 15:35, so
+every mark from 10:00 has two fires; the claims keep one taker per mark. Not covered: 09:15, 09:30 and 09:45 (no
+fire before 08:52): **owner action, add a second fire at 08:22** (cron `22 8 * * *` with the same prompt).
+(3) `.github/workflows/recorder-watch.yml`: `intraday heartbeat-check` twice an hour, 09:47-16:17 IST; GitHub's
+schedule is best effort, so this is the second witness. (4) O8's evening check lists "A16 15-minute marks" from
+19 Oct (it was `None`, i.e. unchecked).
+
+**Limits.** A fire now lasts about 2h13m; the platform's session limit is unmeasured (a fire killed early leaves the
+cover as before). The witness is a GitHub job: if GitHub drops its slot, it is silent.

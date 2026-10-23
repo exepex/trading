@@ -57,7 +57,15 @@ def test_a_current_us_cue_is_shown_with_its_date_and_change_read_live_at_the_ope
                          NOT_OUT_YET), ("none", "evening", NOT_OUT_YET)])  # fmt: skip
 def test_a_us_cue_outside_its_rule_is_never_shown_as_current(status, edition, state):
     view = section(Reader(status)).read(MON, edition)
-    assert (view.status, view.items) == (state, ()) and status in view.why
+    assert (view.status, view.items) == (state, ()) and view.why.startswith("S&P 500: no reading yet (")
+
+
+def test_a_cue_not_shown_says_why_in_plain_words():
+    """FL1-1f: "no reading inside its rule (behind)" could not be read in 30 seconds (orchestrator, 23 Oct)."""
+    assert (
+        section(Reader("behind")).read(MON, "morning").why == "S&P 500: no reading yet (the last one is too old to use)"
+    )
+    assert section(Reader("none")).read(MON, "evening").why == "S&P 500: no reading yet (nothing recorded)"
 
 
 @pytest.mark.parametrize(("age", "state"), [(8, AVAILABLE), (10, AVAILABLE), (11, NOT_AVAILABLE)])

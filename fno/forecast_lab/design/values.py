@@ -71,11 +71,11 @@ def days_of(index: IndexView, last: int) -> list[Day]:
     return [day_of(p) for p in points[-last:]]
 
 
-def result_of(index: IndexView, days: list[Day]) -> Day | None:
+def result_of(index: IndexView) -> Day | None:
     """The edition's own check (`IndexView.result`, FL1-1d-2): today's close in the evening, the previous session's
-    in the morning; before that field exists, the newest scored session."""
+    in the morning. None when there is none: an older day is never shown as the edition's check (owner, 23 Oct)."""
     own = getattr(index, "result", None)
-    return day_of(own) if own is not None else (days[-1] if days else None)
+    return day_of(own) if own is not None else None
 
 
 def today_of(index: IndexView, horizon: str) -> Range | None:

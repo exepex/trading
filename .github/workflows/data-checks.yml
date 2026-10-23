@@ -1,8 +1,11 @@
 # Story O9b: the `data`-marked tests, which check data moved from the repository to Drive (write-once, receipts). They
 # never run in checks.yml (no secrets there, and the tests block the network): this job first brings every moved
-# group's receipted files into the verified cache, then runs `pytest -m data`, which reads that cache only. Daily, and
-# after a push to main that changes receipts or tests. Research only; it writes nothing. One #fno-desk line when it
-# fails. Secrets: the Drive ones (read) and Slack's; none is printed or written to a file.
+# group's receipted files into the verified cache, then runs `pytest -m data`, which reads that cache only. Daily (the
+# moved groups' new receipts are checked then), and after a push to main that changes the tests or the store's code.
+# Never on every receipt push: receipts land many times an hour from every job, and GitHub keeps one pending run per
+# concurrency group, cancelling the rest, which O10's watcher then records as lost runs (16 on 23 Oct). Research
+# only; it writes nothing. One #fno-desk line when it fails. Secrets: the Drive ones (read) and Slack's; none is
+# printed or written to a file.
 name: data-checks
 
 on:
@@ -10,7 +13,7 @@ on:
     - cron: "11 4 * * *" # 09:41 IST every day
   push:
     branches: [main]
-    paths: ["receipts/data/**", "tests/**", "fno/storage/**"]
+    paths: ["tests/**", "fno/storage/**", ".github/workflows/data-checks.yml"]
   workflow_dispatch:
 
 permissions:

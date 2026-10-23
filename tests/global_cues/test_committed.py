@@ -101,3 +101,14 @@ def test_no_private_cue_has_a_table_or_values_in_the_repository():
         log = wiring.SNAPSHOT_LOG_FOLDER / f"{cue}.csv"
         if log.is_file():
             assert log.read_text().splitlines()[0] == "fetched_at,path,url,form,sha256,size_bytes"
+
+
+@pytest.mark.data
+def test_no_drive_table_lags_its_repository_copy_while_the_copy_exists(tables):
+    """Until the removal commit the moved files stay in the repository, and main's job no longer writes them, so each
+    one must be a whole-line start of its Drive table: a Drive table missing rows the repository holds (a run landing
+    between the last move and the merge) fails here, and data-checks alerts (DRY1 P-g2, 23 Oct 2026)."""
+    for source in PUBLIC:
+        copy = wiring.CUES_FOLDER / f"{source.cue}.csv"
+        if copy.is_file():
+            assert tables[source.cue].rebuilt().startswith(copy.read_bytes()), f"{source.cue}: Drive is behind"

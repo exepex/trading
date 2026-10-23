@@ -266,6 +266,7 @@ the same re-run "already in Drive, equal" gates the merge.
 | Git history stays public; the options and their cost | section 4 |
 | Kept in GitHub: manifests, receipts, evidence logs, hand-curated settings, sealed records (owner, 22 Oct) | owner's decision 1; `us_market_closures.csv` and `behind_alerted.txt` named |
 | Each step's own requirements | each step's gap list (section 3) |
+| A new dataset read straight through `DriveCache.sync` (as `circulars` and `flow_history` do) stops before its first receipt: write first, or read through `ReceiptedRowLog`, whose empty series reads empty (judge 536 minor) | each step's design and gap list |
 
 ## Open questions
 
@@ -392,3 +393,86 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   classes with the A17 owner, is a named row in section 3's table and is cited in step 1b's files paragraph.
 - **Judge 478 addendum 1: round 2 PASS at a2f96e5f.** It may merge from Mon 26 Oct, outside 14:00-16:15 IST, with no
   global-cues run queued or running and `global-cues move` run just before and just after the merge.
+- **After the PASS (judge 477), in order:**
+  - The move read back equal, and its re-run just before the merge said "already in Drive, equal" for all four files.
+  - Merged at ef9e976b.
+  - First data-checks run 39769005484: "4 downloaded and verified", 4 passed.
+  - **First scheduled run on the new path:** vix-history.yml run 39911658650, 23 Oct 06:28 UTC (the 07:11 IST cron,
+    landed 4 h 47 min late). Every step succeeded and there was no alert. Its commit 6964334 holds only three receipts,
+    `receipts/data/vix/checks/{gaps,level_flags,overlap_index_close}/20261023T062835Z-4b0c64.csv.sha256`: no table
+    part, because September was already archived, so no rows were added. It added no repository data file.
+    [strong: run log]
+  - **Removal commit** (`story/o9b-vix-removal`, for Judge F):
+    - `research/data/vix/*.csv` and `checks/` are out of HEAD; the README stays and says where the data is.
+    - Both paths are in `.gitignore`.
+    - The record scan refuses them by path even past `git add -f` (`MOVED_VIX_FILES`, `fno/record_scan/forbidden_files.py`,
+      wired in `build_record_scanner`). A test commits a force-added file in a real checkout and sees it refused,
+      and sees the README still commit.
+    - The `vix-history move` action and its repository paths are deleted, as nothing can move any more.
+    - The data tests still pass on the cache.
+  - **Judge 477 addendum 1: PASS at 9c2ac0b6; merged to main at d0c22a05 (23 Oct, 16:3x IST).** Gates on the merged
+    tree: 14,548 passed and 16 xfailed, with ruff, imports, record scan and check_numbers clean. The post-push rerun
+    was the same.
+  - Found on the way, for a later step and not built here: every run writes three new check snapshots even when
+    they are unchanged (3 receipts a day for VIX). A repository file rewritten with the same bytes used to make no
+    commit. Writing a snapshot only when it differs from the latest one would restore that.
+
+**data-checks trigger (story/o9b-data-checks-trigger, for Judge F; assigned by the orchestrator, 23 Oct):**
+- **The defect, mine:** data-checks.yml's push filter held `receipts/data/**`, which matches every job's receipts,
+  several pushes an hour. GitHub keeps one pending run per concurrency group and cancels the others, even with
+  `cancel-in-progress: false`. On 23 Oct, O10's capture-watch recorded 24 "data-checks, before any step, cancelled"
+  rows in `research/ops/capture_errors.csv` (16 by 16:24 IST).
+- **Root fix:** the push paths are now `tests/**`, `fno/storage/**` and the workflow itself. The daily 09:41 IST run
+  checks the moved groups' new receipts. `tests/o9b/test_data_checks_workflow.py` pins this.
+- **O10's side:** `fno/health/run_failures.py` now has `REPLACEABLE = ("news-capture", "data-checks")`, with the O10
+  builder's condition beside it. That condition holds only while data-checks records nothing per push or per day that
+  a cancelled run would have had to write. The O10 builder (013YJ5gj, handed over) agreed as reasoning only; the
+  orchestrator assigned the change to me.
+  - The test `test_a_replaced_data_checks_run_is_neither_recorded_nor_alerted` checks both cases: cancelled before a
+    step means no row and no alert; cancelled after a step means one row and one alert.
+  - Mutation: the old one-entry tuple fails it.
+- **For O10's criterion 7** (response_254 is O10's file and is left alone): the 23 Oct rows are the first live
+  evidence that capture-watch records cancelled runs, each with its run link and "before any step".
+- **Judge 477 addendum 2: PASS at 5a423497 (the trigger); addendum 3: PASS at ccfc340a (REPLACEABLE).** Both merged
+  together with the orchestrator's go (23 Oct, after 16:15 IST).
+
+**`DriveCache.sync` on a single file (story/o9-sync-file, for Judge F; assigned by the orchestrator, 23 Oct):**
+- **The defect:** `ReceiptFolder.under()` treated every prefix as a folder. For one file's path it returned `[]`, so
+  `sync(<file>)` answered `SyncReport(present=0, problems=[])`, an empty success. The FL1 builder proved this is
+  the root cause of the broken evening check on 23 Oct.
+- **The fix, in O9's store (`fno/storage`):**
+  - `under(prefix)` returns that one receipt when `prefix` names a receipted file, so a single-file sync now
+    brings exactly that file, verified.
+  - `sync()` reports "`<prefix>`: no receipts under it (neither a receipted file nor a folder holding one)" when
+    nothing matches, so a wrong path is never an empty success.
+  - A receipt-backed series with nothing written yet (a new table, say the global cues' revisions log) checks for
+    receipts first and reads as empty, not unreadable.
+- **The callers, checked on main:**
+  - Single-file paths: only FL1's `forecast_lab/a4h_closes.py` and `forecast_lab/sections/gift.py`. They now get
+    their file. The FL1 builder is changing them anyway; this fix makes the old call correct, not a second fix.
+  - Every other caller passes a folder: `price_ranges`, `price_distribution`, `premium_ranges`, `itm_chance`,
+    `circulars`, `flow_history`, `v4_pack/release` (a dirname), `school/dashcam` (a folder), `forecast_lab/wiring`,
+    `cache_cli` and the receipted series.
+  - The folders those callers sync from their own outputs all hold receipts today (premium_ranges 2,
+    itm_chance 1, price_distribution 21), so the new problem line changes no live answer.
+- **Tests:** a single file is synced alone; three wrong prefixes each give exactly the new problem, with nothing
+  downloaded; an empty row log and an empty snapshot series read as empty. All 3 mutations, one per change, are
+  caught.
+- **Judge 536: PASS at 494d97df.** It may merge before FL1's branch, on the orchestrator's go. The judge listed all 13
+  sync callers: every one that must succeed has receipts today. Their minor is accepted as a row in the umbrella gap
+  list: a new dataset read straight through `sync()` must write first, or read through `ReceiptedRowLog`.
+
+**DRY1's findings on step 1b (orchestrator, 24 Oct; `docs/dryruns/DRY1_2026-10-23.md` rows g1 and g7):**
+- **g1, conflicts with main:** main is merged into `story/o9b-cues`, keeping both sides. Judge 536's empty-series
+  guard in `receipted_rows.py` merged in by itself, beside step 1b's catch-up and part-order code. The tests of both
+  stay: tests/o9b, o9_store, global_cues and forecast_lab gave 409 passed on the merged tree.
+- **g7 (P-g2), Drive lags main and nothing alerts:** confirmed. Main's job kept appending to the repository CSVs
+  after the 22 Oct move, so the lab read 21 Oct's USD/INR.
+  - **The root fix stays the merge step:** `global-cues move` runs just before the merge and just after it (above).
+  - **New check so a lag cannot stay silent:** `test_no_drive_table_lags_its_repository_copy_while_the_copy_exists`
+    (a `data` test, run daily by data-checks, which alerts on failure). While a moved file is still in the
+    repository, it must be a whole-line start of its Drive table.
+  - **Proof:** the test failed on 24 Oct (Drive behind). `global-cues move` then caught up us10y, usdinr_rbi and
+    us_trading_dates, each read back equal. The test then passed (8 data tests). The new receipts are on this branch.
+- **Who merges:** the orchestrator, not me (24 Oct). The steps above stand for whoever merges: no global-cues run
+  queued or running, `global-cues move` just before and just after, then the full gates.

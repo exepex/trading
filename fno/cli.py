@@ -43,14 +43,17 @@ from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .record_store.cli import add_records_parser
 from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
 from .role_value.cli import add_role_value_parser
+from .school.cli import add_school_parser
 from .scoreboard.cli import add_scoreboard_parser
 from .storage.cache_cli import add_cache_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
+from .storage.repair_cli import add_repair_parser
 from .storage.revisions_cli import add_revisions_parser
 from .vix_history.cli import add_vix_history_parser
 from .weather.cli import add_weather_parser
@@ -226,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     add_librarian_parser(sub)
     add_fingerprints_parser(sub)
     add_cache_parser(sub)
+    add_repair_parser(sub)
+    add_records_parser(sub)
     add_revisions_parser(sub)
     add_market_parser(sub)
     add_research_parser(sub)
@@ -257,6 +262,7 @@ def main(argv: list[str] | None = None) -> int:
     add_circulars_parser(sub)
     add_flows_parser(sub)
     add_preopen_parser(sub)
+    add_school_parser(sub)
 
     args = p.parse_args(argv)
     try:

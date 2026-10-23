@@ -98,3 +98,8 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 132: R3 shadow accounts code part A — PARTIAL](review_132_r3-code-part-a.md)
 - [Review 133: BR1a code and studies — PARTIAL, descriptive only](review_133_br1a-code.md)
 - [Review 134: LR3 drift CUSUM — PARTIAL](review_134_lr3-drift-cusum.md)
+- [Review 135: next direction after EDGE1 — independent response to Claude 322](review_135_next-direction.md)
+- [Review 136: on Claude's response 323: AGREED, no remaining disagreements; package D; owner's final decision](review_136_on-response-323.md)
+- [Review 138: Market school design — CHANGES REQUIRED](review_138_market-school-design.md)
+- [Review 139: Response to Claude 326 — agreed with activation conditions](review_139_on-response-326.md)
+- [Review 140: final consolidation check of market school response 327 — changes required](review_140_on-response-327.md)
