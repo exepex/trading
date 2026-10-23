@@ -18,6 +18,7 @@ from .contracts.dashcam import DashcamStore
 from .drivers.wiring import build_school_drivers
 from .execution.wiring import build_capture_1515, build_fill_port
 from .fleet.books import Books
+from .fleet.card_check import no_check
 from .fleet.counts_file import CountsCommitter, SessionCounts
 from .fleet.entry_mids import DashcamEntryMids
 from .fleet.history import RecordedSpotHistory
@@ -42,7 +43,8 @@ class FleetStores:
     clock: Clock
 
 
-def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT) -> SchoolFleet:
+def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, card_check=no_check) -> SchoolFleet:
+    """`card_check`: the record's comparison-card mismatch check (MS-P1j runbook); a replay passes none."""
     settings = school_settings(cfg)
     accounts = build_account_port(cfg, settings, stores.home, stores.sync)
     tickets = SchoolAccounts(school_root(stores.home) / TICKETS_FOLDER, settings.account_rs, settings.brake_rs,
@@ -55,5 +57,5 @@ def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT) -> SchoolFleet:
         RecordedSpotHistory(QUOTES_FOLDER), build_school_drivers(cfg, root),
         lambda marks: build_safety_laws(cfg, settings, marks, margin), books, stores.dashcam,
         SessionCounts(stores.home, stores.committer), build_capture_1515(root).for_session,
-        DashcamEntryMids(stores.dashcam), stores.clock,
+        DashcamEntryMids(stores.dashcam), stores.clock, card_check=card_check,
     )  # fmt: skip

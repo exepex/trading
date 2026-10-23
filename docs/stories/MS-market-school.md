@@ -2528,3 +2528,17 @@ eight plants were re-run, 8 of 8 caught.
 | Minor: four survivors are equivalent or replay-only | — | Equivalent today (reasoning only, not tested): (1) all of a driver's positions passed to `decide` (every driver's card filters by road and holding itself); (2) the 08:50 plan's rule-only filter (g's section filters by role again); (3) a missing mid read as 0.0 (no path reaches it: a refused leg has no fill, and an outcome needs its entry's sealed mids, else it stops). Replay-only: (4) the replay store's conflict check, which never runs in the record (c's dashcam has its own, judged in MS-P1c) |
 - **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
 - **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.
+
+### MS-P1j follow-up: a comparison card mismatch is loud (orchestrator's ruling, 23 Oct 2026; branch `story/ms-p1j-card-mismatch`; Judges B then K)
+A comparison card edited without D6 rows naming it makes every later decision `comparison_card_mismatch`: kept in the
+denominator, never counted. That must never be silent.
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| One line after the decisions' seal | `fleet/card_check.CardMismatchCheck`: each sealed decision put to h's `CountingRule` at the seal's receipt commit; when any is `comparison_card_mismatch`, one line: "comparison_card_mismatch: N of M decisions do not count until D6 rows name card v<K>; see the MS-P1j runbook" (K read from the card's own `version:` at its commit). A rerun says it again | `test_card_check.py`, on real git with h's fixture: the card edited with no rows naming it gives the line with v3 (plant: the version not read); the run carries it, a rerun repeats it, no dashcam file changes (plants: the fresh run or the rerun dropping it) |
+| Only that cause | a decision not yet counted (first counted session unset), or counted, gives no line | the unset and the counted cases give no line (plant: every not-counted verdict named) |
+| Exit 1, so #fno-desk is alerted | `SessionRun.warnings` (a's contract, additive; never on a run that did not run); `school run` prints each and exits 1 | `test_the_run_command_prints_the_line_and_exits_1` (plants: exit 0, the line hidden) |
+| The record checks, a replay does not | the record root passes `build_card_check(root)` (h's rule over the repository's git and D6's versions); a replay's seals name no commit the rule could judge, so it passes none | `test_the_record_root_passes_the_check_and_a_replay_has_none` (plant: the record root without it) |
+
+- **No record changed:** the check only reads the sealed records, the repository's git and D6's rows.
+- **Plants:** 7 planted, 7 caught.

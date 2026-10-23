@@ -29,6 +29,7 @@ from ..contracts.snapshot import SlotSnapshot, SnapshotSource
 from ..settings import SchoolSettings
 from ..tickets.counts import counts_for
 from .books import AccountUnreadable, Books, EntryMids, account_call
+from .card_check import no_check
 from .counts_file import SessionCounts
 from .decide import DriverStep
 from .fill import FillStep, SlotFills
@@ -40,6 +41,7 @@ from .slot import QualityGate, SlotRoads, plan_slot
 FINISHED = (RecordKind.OUTCOMES, RecordKind.DRIFT)
 LATE_RERUN = "rerun after 15:30, fillable may differ"  # ruling b's accepted limit, marked on the session's record
 ACCOUNT_STOP = FLEET_STOPPED + " account unreadable {reason}"  # the run's status; the CLI exits 1: an alert
+CardCheck = Callable[[tuple[DecisionRecord, ...], object], tuple[str, ...]]  # (sealed decisions, their seal)
 LawsFor = Callable[[Mapping[RoadCode, SlotSnapshot]], object]  # the slot's `SafetyLaws`, built on its marks
 
 
@@ -63,6 +65,7 @@ class SchoolFleet:
     entry_mids: EntryMids
     clock: Clock
     seconds_per_driver: float = 60.0
+    card_check: CardCheck = no_check  # the record's comparison-card mismatch check; a replay has none
 
     def run(self, session: date, mode: RunMode) -> SessionRun:
         if not self.settings.enabled:
@@ -80,12 +83,12 @@ class SchoolFleet:
         if found is not None:
             records, exits = self._sealed(found)
             self._finish(roads, records, exits, found, rerun=True)
-            return SessionRun(session, mode, "", records, found)
+            return SessionRun(session, mode, "", records, found, warnings=self.card_check(records, found))
         settled = settle_expired(self.books, self._ids(), session)
         records, exits = self._decide(roads, session)
         seal = self.dashcam.seal(session, SLOT_1500, RecordKind.DECISIONS, (*records, *settled, *exits))
         fills = self._finish(roads, records, (*settled, *exits), seal)
-        return SessionRun(session, mode, "", records, seal, fills.fills)
+        return SessionRun(session, mode, "", records, seal, fills.fills, self.card_check(records, seal))
 
     def _decide(self, roads: SlotRoads, session: date) -> tuple[tuple[DecisionRecord, ...], tuple[ExitRecord, ...]]:
         laws = self.laws_for(roads.marks)
