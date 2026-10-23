@@ -40,3 +40,21 @@ Pin, for the evening page:
 - **No copied words:** the page imports every one from plain.py and verdict_words.py.
 
 ## Plants: 6 planted, 3 caught (T1-T3), 3 survived (T4-T6)
+
+## Addendum 1
+
+- **Head checked:** 44666f16, round 2 of 2, a delta check. Since 55ef15fd it adds only one test in
+  tests/forecast_lab/test_design_pages.py and the story file.
+- **Verdict: PASS. Merge go.**
+- **Gates:**
+  - tests/forecast_lab, tests/school and tests/e2e_acceptance: 3899 passed;
+  - ruff check and ruff format --check: clean;
+  - the designer's full suite runs on 44666f16. The merge run is the one full run.
+- **F1 fixed:** `test_the_evening_why_rows_carry_the_cause_the_context_and_each_cue_once` pins four things
+  on the rendered evening page:
+  - a measured miss cause;
+  - the no-cause line;
+  - "Context: not available (<reason>)";
+  - each cue's name exactly once.
+- **Plants re-run by me, all caught (1 failed each):** T4 (cause rows dropped), T5 (cues listed twice), T6
+  (unavailable sources hidden).
