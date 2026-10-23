@@ -9,7 +9,7 @@ from .catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .forbidden_files import MOVED_VIX_FILES, PAPER_ACCOUNT_FILES, RAW_GROWW_QUOTES
 from .scanner import RecordScanner
 
-NO_SENDER = "alert NOT sent: the #fno-desk sender could not be loaded ({kind}: {name}) | {text}"
+NO_SENDER = "alert NOT sent: the #fno-desk sender could not be loaded ({kind}: {why}) | {text}"
 
 
 def build_record_scanner() -> RecordScanner:
@@ -21,12 +21,20 @@ def build_record_scanner() -> RecordScanner:
 
 
 def send_alert(text: str, alerts=None) -> str:
-    """The sender's outcome; when the sender cannot even be loaded (a package missing), the line says so with the text,
-    so the routine can post it: the refusal itself never depends on it."""
+    """The sender's outcome; when the sender cannot even be loaded or built (a package missing or half installed), the
+    line says so with the text, so the routine can post it: the refusal itself never depends on it. A Rust extension's
+    panic (pyo3's PanicException, a BaseException) is not caught: the hook then exits non-zero, so the commit is still
+    refused, only without the text."""
     if alerts is None:
         try:
             from ..composition import build_alert_sender
-        except ImportError as missing:
-            return NO_SENDER.format(kind=type(missing).__name__, name=missing.name, text=text)
-        alerts = build_alert_sender()
+
+            alerts = build_alert_sender()
+        except Exception as failure:  # noqa: BLE001 - a missing or half-installed package (judge 549): print the text
+            return NO_SENDER.format(kind=type(failure).__name__, why=_why(failure), text=text)
     return alerts.send(text)
+
+
+def _why(failure: Exception) -> str:
+    """The missing module's name for an ImportError; else only the error's class (its message may hold a path)."""
+    return getattr(failure, "name", None) or "load failed"

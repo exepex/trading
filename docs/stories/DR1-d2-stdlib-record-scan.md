@@ -41,3 +41,15 @@ to the F1/G5 owner.
 | 2 | `import requests` at the top of `fno/record_scan/wiring.py` | all 3 tests in `test_stdlib_only.py` fail |
 | 3 | `tools/check_records.py` imports `build_record_scanner` from `fno.composition` again | 2 of 3 fail |
 | 4 | the scanner built without its record and credential patterns | 35 tests in `test_stdlib_only.py` and `test_patterns.py` fail |
+
+## DR1-d2b: any failure loading the sender (judge 549's minor; lane 1, judge K's delta)
+
+`send_alert` catches every `Exception` while loading or building the #fno-desk sender (a half-installed package can
+fail with AttributeError or OSError, not only ImportError), printing "alert NOT sent: the #fno-desk sender could not
+be loaded (<class>: <missing module, else "load failed">) | <text>"; the message of a non-import error is withheld (it
+may hold a path). Limit, stated: a Rust extension's panic (pyo3's `PanicException`, as `cryptography` 41 raised on 23
+Oct) derives from BaseException and is not caught; the hook then exits non-zero, so the commit is still refused, only
+without the text.
+
+Claim 6: a sender that raises AttributeError while built still prints the full alert line. Plant: `except ImportError`
+again; the new test fails. Gates: ruff, `tools/check_imports.py`, full suite 14,647 passed.

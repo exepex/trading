@@ -46,3 +46,19 @@ def test_the_scan_and_its_root_import_no_third_party_module():
     result = bare_python("-c", code)
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "[]"
+
+
+def test_a_half_installed_sender_still_prints_the_alert_text(monkeypatch):
+    """Judge 549's minor: any failure loading or building the sender, not only ImportError."""
+    import fno.composition
+    from fno.record_scan.wiring import send_alert
+
+    def broken():
+        raise AttributeError("module 'urllib3' has no attribute 'util'")
+
+    monkeypatch.setattr(fno.composition, "build_alert_sender", broken)
+    line = send_alert("Public-record scan refused a commit")
+    assert line == (
+        "alert NOT sent: the #fno-desk sender could not be loaded (AttributeError: load failed) | "
+        "Public-record scan refused a commit"
+    )
