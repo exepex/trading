@@ -28,6 +28,9 @@ def add_school_parser(sub) -> None:
     gate = commands.add_parser("capture-gate", help="b's read-only capture-gate report")
     gate.add_argument("rest", nargs="*")
     gate.set_defaults(func=cmd_capture_gate)
+    from .simulator.command import add_practice_parser  # the simulator's one command (story MS-SIM-d4)
+
+    add_practice_parser(commands)
 
 
 def cmd_run(args, out=print) -> int:
