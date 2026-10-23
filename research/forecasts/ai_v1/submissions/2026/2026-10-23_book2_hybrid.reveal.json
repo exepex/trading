@@ -1,0 +1,33 @@
+{
+ "answer": {
+  "book": "book2_hybrid",
+  "day": "2026-10-23",
+  "export_sha256": "991a1c77821f5d743c1616eaebe90f4b994cb698426525af1466562f9a1d68da",
+  "forecasts": {
+   "q1_nifty_up_20d": {
+    "probability": 0.6,
+    "reason": "Book1 0.615; NIFTY -0.89% today in a downtrend (22486 vs 23146 on 16 Oct), VIX jumped to 17.02; slight trim toward base rate 0.587."
+   },
+   "q2_nifty_move_3pct_20d": {
+    "probability": 0.48,
+    "reason": "Book1 0.455; IV30 16.4 and VIX 17.02 (above recent 14-15.8 range) imply 20d sd about 4.6%, risk-neutral 0.558; nudge up."
+   },
+   "q3_rv20_above_trailing": {
+    "probability": 0.36,
+    "reason": "Book1 0.342; trailing RV20 16.4 already high but VIX rising +1.26 today; slight nudge up."
+   },
+   "q4_vix_up_10d": {
+    "probability": 0.35,
+    "reason": "Book1 0.383; VIX 17.02 is the highest since June after a +1.26 jump; mean reversion favours lower in 10 days, toward model 0.296."
+   },
+   "q5_rv20_below_atm_iv30": {
+    "probability": 0.72,
+    "reason": "Book1 0.744; IV30 16.38 equals trailing RV20 16.42, so little premium cushion; trim slightly."
+   }
+  },
+  "model_reported": "unknown",
+  "pack_sha256": "9884e35fc4729a2fe23f0b98df5eb1e283e338fcc4ab647574bd5ca0569c6ad3",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "salt": "c454e560347db0dc85beb94914869e06"
+}
