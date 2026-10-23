@@ -1,0 +1,17 @@
+# FROZEN card (stories MS-P1e and MS-P1h): registered in journal/versions.csv with this file's SHA-256; a change is a new version (a new file), never an edit. Numbers are first guesses [reasoning only].
+code: DR1
+version: "1"
+family: directional_debit
+role: rule
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M]
+band_steps: 10
+parameters:
+  history_sessions: 20
+  dte_min: 20
+  dte_max: 45
+  expected_net_rs: 0.0  # no honest estimate: EDGE1 found no edge, so scores tie and the tie-break ranks
+  max_wing_steps: 1
+  max_open_per_road: 1
+  exit_profit_share: 0.8
+  exit_sessions_held: 10
+  exit_spot_mean_window: 20

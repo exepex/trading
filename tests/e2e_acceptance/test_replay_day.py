@@ -36,13 +36,9 @@ STEPS = [
     "exits",
     "trade_marks",
     REVIEWS_STEP,
-]  # O1's DAILY_RUN_STEPS without the quote parts, the margin check and the card
-
-
-@pytest.fixture
-def day(tmp_path, monkeypatch):
-    alerts = RecordingAlerts()
-    return Replay(tmp_path, monkeypatch, alerts).run(), tmp_path, alerts
+    "price_distribution",  # G13
+    "price_ranges",  # G13b
+]  # O1's DAILY_RUN_STEPS without the quote parts, the margin check, the card and the candles
 
 
 def chosen_record(root) -> dict:
@@ -146,3 +142,15 @@ def test_the_days_trade_as_a_book2_or_book3_trade_is_refused_outside_the_envelop
     assert (book3.ok, book3.reason) == (False, "constitution: no constitution file matches the registered D6 component")
     assert isinstance(validity_modes()[BOOK2_HYBRID], EnvelopeMode)
     assert isinstance(validity_modes()[BOOK3_AI], ConstitutionMode)
+
+
+def test_the_day_has_a_price_distribution_and_valuation_record(day):
+    """G13 merged: O1's `price_distribution` step writes the day's live NIFTY record from the recorded chain: two
+    expiries valued with their implied distributions, every rule forecaster at every horizon, no problem."""
+    out, _, _ = day
+    assert out.log.result("price_distribution")["status"] == "ok"
+    (path,) = [p for p in out.distribution_drive.files if p.endswith(f"nifty_{rd.DAY.isoformat()}.json")]
+    record = json.loads(out.distribution_drive.files[path])
+    assert (record["label"], record["status"], record["problems"]) == ("live", "ok", [])
+    assert [e["distribution"]["status"] for e in record["valuation"]["expiries"]] == ["ok", "ok"]
+    assert len(record["forecasts"]) == 12 and {r["status"] for r in record["forecasts"]} == {"ok"}

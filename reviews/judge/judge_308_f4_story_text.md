@@ -69,7 +69,7 @@ private value without quoting it, which matches F1t's 3d. It also adds F6's answ
 **Both should-fix findings stand.** Minor 1 also stands: account files are whole-text items, so a pointer into them
 cannot resolve to a scalar. Even "cite without quoting" works only for `evaluation` values.
 
-## Addendum 308.1: 992a3f89
+## Addendum 1: 992a3f89
 
 **Verdict: still FAIL, on one remaining item (F1t's side of should-fix 2). Everything else is closed.**
 - **Should-fix 1: closed.** The owner chose "Code daily + AI monthly (Recommended)" (`docs/DESK_DECISIONS.md` line 257,

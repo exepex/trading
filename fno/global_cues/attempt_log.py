@@ -12,7 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..models import IST
-from .row_log import CsvRowLog
+from ..storage.row_log import CsvRowLog
 
 FIELDS = ("attempted_at", "outcome")
 MAX_ATTEMPTS = 3

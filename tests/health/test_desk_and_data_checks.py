@@ -21,7 +21,14 @@ from fno.constants import (
 from fno.desk.run_log import RUNS_FOLDER
 from fno.health.data_checks import PanelDayCheck, SessionRowCheck
 from fno.health.desk_checks import MarksCheck, RunLogCheck
-from fno.health.expectations import CLOSES_FILE, FLOWS_BY, INDEX_CLOSE_BY, PANEL_DAY_BY, PANEL_MANIFEST
+from fno.health.expectations import (
+    CLOSES_FILE,
+    FLOW_HISTORY_BY,
+    FLOWS_BY,
+    INDEX_CLOSE_BY,
+    PANEL_DAY_BY,
+    PANEL_MANIFEST,
+)
 from fno.health.model import Deadline
 from fno.intraday.slots import MARKS_PER_SESSION
 
@@ -76,9 +83,10 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     `tests/daily/test_day_run.py` proves the run writes exactly it), never a copy: a desk-only log misses O1's."""
     _run_log(repo, steps=DESK_RUN_STEPS)
     detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
-    assert (
-        detail
-        == "steps not run: quotes, margin_check, weather, forecasts_v4, book1, reviews, quotes_done, card, candles"
+    assert detail == (
+        "steps not run: quotes, owner_timing_fills, margin_check, weather, forecasts_v4, book1, reviews, "
+        "quotes_done, card, price_distribution, premium_ranges, price_distribution_scores, price_ranges, "
+        "price_range_scores, premium_range_scores, candles, close_read, close_recheck"
     )
 
 
@@ -127,6 +135,7 @@ def test_no_marks_is_not_due_before_the_last_mark_and_missed_after(repo):
 @pytest.mark.parametrize(("deadline", "on_time", "late"), [
     (INDEX_CLOSE_BY, ist(DAY + timedelta(1), 12, 0), ist(DAY + timedelta(1), 12, 0, 1)),
     (FLOWS_BY, ist(DAY + timedelta(1), 12, 0), ist(DAY + timedelta(1), 12, 0, 1)),
+    (FLOW_HISTORY_BY, ist(DAY + timedelta(1), 9, 0), ist(DAY + timedelta(1), 9, 0, 1)),  # A23: 21:30, retry 07:15
 ])  # fmt: skip
 def test_a_session_row_is_on_time_by_the_push_that_first_added_it(repo, deadline, on_time, late):
     repo.write(CLOSES_FILE, f"date,close\n2026-10-14,1\n{DAY},2\n")

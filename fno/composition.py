@@ -25,7 +25,6 @@ from .constants import (
     NIFTY_SYMBOL,
     OPTION_CALL,
     OPTION_PUT,
-    RECORDED_INDEX_OPTIONS,
     STRUCTURE_CALL_CREDIT_SPREAD,
     STRUCTURE_CALL_DEBIT_SPREAD,
     STRUCTURE_LONG_CALL,
@@ -38,14 +37,11 @@ from .providers.base import Provider
 from .providers.nse_quotes import NseQuoteProvider
 from .providers.public import PublicData
 from .quotes.expiry_listing import NseDailyFileExpiries
-from .quotes.indices import index_slot
 from .quotes.market_levels import NseLevelSource
 from .quotes.recorder import DATASET as GROWW_QUOTE_DATASET
 from .quotes.recorder import NSE_DATASET as NSE_QUOTE_DATASET
 from .quotes.recorder import QuoteSnapshotRecorder
-from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
-from .record_scan.forbidden_files import PAPER_ACCOUNT_FILES, RAW_GROWW_QUOTES
-from .record_scan.scanner import RecordScanner
+from .record_scan.wiring import build_record_scanner  # noqa: F401 - re-exported: the scan's root is stdlib-only (DR1)
 from .research_data.availability import AvailabilityRule, LastWriteBoundRule
 from .research_data.events import read_events
 from .research_data.last_written import latest_writes, read_last_modified_table
@@ -106,36 +102,12 @@ def build_nse_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     return _quote_recorder(NseQuoteProvider(cfg), NSE_QUOTE_DATASET)
 
 
-def build_index_quote_recorders(cfg: dict) -> dict[str, QuoteSnapshotRecorder]:
-    """Story A4c: one recorder per traded index after NIFTY (the owner's list), on the 3 pm recorder's own provider,
-    sharing one reader of NSE's daily files (parsed once a run) and the Drive-only quote store; no NIFTY levels."""
-    provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
-    expiries, store, calendar = (
-        NseDailyFileExpiries(build_nse_fo_library()),
-        build_quote_store(),
-        build_session_calendar(),
-    )
-    return {
-        underlying: QuoteSnapshotRecorder(
-            provider, store, fallback=expiries, calendar=calendar, history=expiries, slot=index_slot(underlying)
-        )  # fmt: skip
-        for underlying in RECORDED_INDEX_OPTIONS
-    }
-
-
 def _quote_recorder(provider: Provider, dataset: str) -> QuoteSnapshotRecorder:
     expiries, levels = NseDailyFileExpiries(build_nse_fo_library()), NseLevelSource(PublicData().nse_json)
     return QuoteSnapshotRecorder(
         provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries,
         levels=levels, dataset=dataset,
     )  # fmt: skip
-
-
-def build_record_scanner() -> RecordScanner:
-    """The public-record scan (story O5): every pattern of the catalogue for records, credential shapes for code, with
-    the #fno-desk channel ID allowed; raw Groww quote files are refused by path (story A4b)."""
-    forbidden = (RAW_GROWW_QUOTES, PAPER_ACCOUNT_FILES)
-    return RecordScanner(record_patterns(), ALLOWED_VALUES, credential_patterns(), forbidden)
 
 
 @contextmanager

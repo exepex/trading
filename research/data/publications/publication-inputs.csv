@@ -5,3 +5,11 @@ nse-2026-10-14-004826e47494,flows,nsdl/fpi/fpi-daily-by-session,2,2026-10-14,a8f
 nse-2026-10-14-004826e47494,flows,nse/flows/fii-dii-cash-by-session,2,2026-10-14,894a0ffda7625004965b600ea769851b088f354af21bf4d24f5815e9cbde87bb
 nse-2026-10-15-4bd6e900b0b7,flows,nsdl/fpi/fpi-daily-by-session,3,2026-10-15,a2fdcc0aeb87e1dec1385742b9b19729e4b1e658cedaacf5df0c877f83674ec4
 nse-2026-10-15-4bd6e900b0b7,flows,nse/flows/fii-dii-cash-by-session,3,2026-10-15,d583bf11a1a1f06cc09f48ddff36be6e9222bf223de3d317c7149a65985b7111
+nse-2026-10-16-a15b0b1c79f0,flows,nsdl/fpi/fpi-daily-by-session,4,2026-10-16,8ffee610fb41be3bf3555da8e1580d265c4275a33113713fc022de32619c6639
+nse-2026-10-16-a15b0b1c79f0,flows,nse/flows/fii-dii-cash-by-session,4,2026-10-16,69754c4dac560d33b4d7ead27c059a70f701895c980b90a812b816ac31a5dfc7
+nse-2026-10-19-7717cc557d81,flows,nsdl/fpi/fpi-daily-by-session,5,2026-10-19,a664aec400fd3091f15f02c3af99333d38eca7d71e9fb81c97159fe14659a2b4
+nse-2026-10-19-7717cc557d81,flows,nse/flows/fii-dii-cash-by-session,5,2026-10-19,4b2a3a2200f84201a8e73dca41c25c71ecb97be1c2e65265bdbf720ccf6cb947
+nse-2026-10-21-5257728e6432,flows,nsdl/fpi/fpi-daily-by-session,6,2026-10-21,02e3a59bedb300e1786c1c55e8be7ee7fe3db5bbe6e2f42830032681bdee1932
+nse-2026-10-21-5257728e6432,flows,nse/flows/fii-dii-cash-by-session,6,2026-10-21,975818eb5dbe54435abe3a4dca08d3cedf3dd2e73ad6e89ecc5eebf9a32143c1
+nse-2026-10-22-51a127477162,flows,nsdl/fpi/fpi-daily-by-session,7,2026-10-22,f6d5f61e0ec8621cb9532670a05d69482c0f2856605cd739f88e546db4829013
+nse-2026-10-22-51a127477162,flows,nse/flows/fii-dii-cash-by-session,7,2026-10-22,ae946d267114a5b6a103b44593bc47f50c589443f98f6f269c74fb1cbb7bafd1

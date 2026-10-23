@@ -129,3 +129,23 @@ def test_a_stopped_child_s_unsent_alert_is_reported_too(tmp_path, monkeypatch):
     time.sleep(1.0)  # it has printed and is sleeping
     process.stop()
     assert reported == ["alert NOT sent: FNO_SLACK_BOT_TOKEN is not set"]
+
+
+LAST_UNSENT = (
+    "print('recorded: nifty_20261019_145500 (0 contracts, complete=False)')\n"
+    "print('alert NOT sent: Slack answered HTTP 503 | 3 pm quote recorder: raw quote file NOT saved to Drive "
+    "(DriveDown: https://example.invalid/drive/v3/files?q=FAKEFOLDERID123)')\n"
+)
+
+
+def test_an_unsent_alert_printed_last_is_reported_but_never_kept_for_the_committed_run_record(tmp_path, monkeypatch):
+    """A4/O2 (21 Oct): an unsent alert's text can hold what is meant for Slack alone (a Drive error's text with the
+    private folder ID); the routine gets it, the run record (journal/runs, public) never does."""
+    real_popen = subprocess.Popen
+    monkeypatch.setattr(subprocess, "Popen", lambda command, **o: real_popen([sys.executable, "-c", LAST_UNSENT], **o))
+    reported = []
+    process = ChildProcesses(tmp_path, reported.append).start(["quotes", "record"])
+    assert wait(process, sleep=lambda seconds: time.sleep(0.05)) == 0
+    kept = process.lines()
+    assert len(reported) == 1 and "FAKEFOLDERID123" in reported[0]
+    assert kept == ["recorded: nifty_20261019_145500 (0 contracts, complete=False)"]

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 import subprocess
 from dataclasses import dataclass
 from datetime import date
@@ -30,52 +31,109 @@ class NotRegistered(RuntimeError):
     """The trial may not run: it is missing, not committed, or its protocol is not frozen and unchanged."""
 
 
+# git's own "not there" answers (measured 22 Oct 2026 on git 2.43.0: all exit 128), each true only for its own kind
+# of question; any other non-zero exit is a failure and raises. A file's: not at that revision (`show`; a revision git
+# cannot resolve is a wrong question and raises, D5 builder). An object's: no such commit (the yes/no questions). A
+# history's: no commits yet (`log` in a new repository).
+FILE_NOT_THERE = ("does not exist in", "exists on disk, but not in")
+OBJECT_NOT_THERE = ("invalid object name", "Not a valid object name", "Not a valid commit name", "bad object")
+NO_HISTORY_YET = ("does not have any commits yet",)
+FAILED = "git {command} failed (exit {code}): {why}"
+
+
+class GitFailed(RuntimeError):
+    """A git command failed for a reason other than "not there" (a broken repository, no memory, a refused pull).
+    Raised, never read as an empty answer: an empty answer would become a wrong record (a real submission read as
+    missing)."""
+
+
 @dataclass(frozen=True)
 class Git:
-    """The few git questions the guard asks, against one repository folder."""
+    """The few git questions the guard asks, against one repository folder. Every question either gets git's real
+    answer or raises `GitFailed`; a failed command is never read as "nothing found"."""
 
     root: Path
 
-    def _run(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
+    def _run(self, *args: str, text: bool = True) -> subprocess.CompletedProcess:
+        # git's "not there" answers are matched by their English text: a translated git must not turn them into errors
+        env = {**os.environ, "LC_ALL": "C"}
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=text, env=env)
+
+    def _out(self, *args: str) -> str:
+        """The command's output: empty for a history with no commits yet, GitFailed on any other non-zero exit."""
+        done = self._found(*args, not_there=NO_HISTORY_YET)
+        return "" if done is None else done.stdout
+
+    def _found(self, *args: str, not_there: tuple[str, ...], text: bool = True) -> subprocess.CompletedProcess | None:
+        """The finished command, or None when git gives one of the `not_there` answers."""
+        done = self._run(*args, text=text)
+        return None if _says(done, not_there) else self._checked(done, args)
+
+    def _yes(self, *args: str) -> bool:
+        """A question git answers by its exit code: 0 yes, 1 no (or no such object); anything else raises."""
+        done = self._run(*args)
+        return done.returncode == 0 or (done.returncode != 1 and not _says(done, OBJECT_NOT_THERE)
+                                        and self._checked(done, args))  # fmt: skip
+
+    @staticmethod
+    def _checked(done: subprocess.CompletedProcess, args: tuple[str, ...]) -> subprocess.CompletedProcess:
+        if done.returncode != 0:
+            why = _stderr(done).strip()[-300:] or "no message"
+            raise GitFailed(FAILED.format(command=args[0], code=done.returncode, why=why))
+        return done
 
     def head(self) -> str:
-        return self._run("rev-parse", "HEAD").stdout.strip()
+        return self._out("rev-parse", "HEAD").strip()
 
     def is_ancestor(self, older: str, newer: str) -> bool:
-        return bool(older) and self._run("merge-base", "--is-ancestor", older, newer).returncode == 0
+        return bool(older) and self._yes("merge-base", "--is-ancestor", older, newer)
 
     def first_commit_containing(self, text: str, path: str) -> str | None:
         """The earliest commit whose change to `path` added `text` (git's pickaxe search)."""
-        found = self._run("log", "--format=%H", "--reverse", "-S", text, "--", path).stdout.split()
+        found = self._out("log", "--format=%H", "--reverse", "-S", text, "--", path).split()
         return found[0] if found else None
 
     def committed_text(self, path: str, commit: str = "HEAD") -> str | None:
-        """The file as committed at `commit` (None if not committed there)."""
-        result = self._run("show", f"{commit}:{path}")
-        return result.stdout if result.returncode == 0 else None
+        """The file as committed at `commit` (None if not committed there). git gives the same answer for a full SHA
+        that is no commit at all, so a caller that needs the commit to exist asks `commit_exists` first."""
+        done = self._found("show", f"{commit}:{path}", not_there=FILE_NOT_THERE)
+        return None if done is None else done.stdout
 
     def commits_touching(self, path: str) -> list[str]:
         """Every commit that changed `path`, oldest first (story D5: the strategy registry's append-only check)."""
-        return self._run("log", "--format=%H", "--reverse", "--", path).stdout.split()
+        return self._out("log", "--format=%H", "--reverse", "--", path).split()
 
     def changes_with_parents(self, path: str, revision: str = "HEAD") -> list[tuple[str, tuple[str, ...]]]:
         """Every commit in `revision`'s history that changed `path` against any of its parents, merges included, each
         with its real parents (story D5: a merge of parallel registrations is two appends, not an edit)."""
-        lines = self._run("log", "--format=%H %P", "--full-history", revision, "--", path).stdout.splitlines()
+        lines = self._out("log", "--format=%H %P", "--full-history", revision, "--", path).splitlines()
         return [(line.split()[0], tuple(line.split()[1:])) for line in lines if line.strip()]
 
     def is_shallow(self) -> bool:
         """A shallow clone lacks the older history, so a history check would pass on what it cannot see."""
-        return self._run("rev-parse", "--is-shallow-repository").stdout.strip() != "false"
+        return self._out("rev-parse", "--is-shallow-repository").strip() != "false"
+
+    def deepen_since(self, since: date, branch: str) -> None:
+        """Fetches `branch`'s history back to `since` into a shallow clone, so a "first commit adding the file" is the
+        real one, not the clone's boundary commit; a refused fetch raises."""
+        self._out("fetch", "--quiet", f"--shallow-since={since.isoformat()}", "origin", branch)
 
     def commit_exists(self, commit: str) -> bool:
-        return bool(commit) and self._run("cat-file", "-e", f"{commit}^{{commit}}").returncode == 0
+        return bool(commit) and self._yes("cat-file", "-e", f"{commit}^{{commit}}")
 
     def unchanged_since(self, commit: str, path: str) -> bool:
-        tracked = self._run("diff", "--quiet", commit, "HEAD", "--", path).returncode == 0
-        untouched = self._run("diff", "--quiet", "HEAD", "--", path).returncode == 0
+        tracked = self._yes("diff", "--quiet", commit, "HEAD", "--", path)
+        untouched = self._yes("diff", "--quiet", "HEAD", "--", path)
         return tracked and untouched
+
+
+def _stderr(done: subprocess.CompletedProcess) -> str:
+    err = done.stderr or ""
+    return err.decode("utf-8", "replace") if isinstance(err, bytes) else err
+
+
+def _says(done: subprocess.CompletedProcess, answers: tuple[str, ...]) -> bool:
+    return done.returncode != 0 and any(answer in _stderr(done) for answer in answers)
 
 
 def read_ledger(text: str) -> list[dict]:
@@ -147,12 +205,13 @@ class Ledger:
             raise NotRegistered(f"trial {trial_id}: {row['protocol_path']} changed after it was frozen")
         return row
 
-    def mark_run(self, trial_id: str, today: date | None = None) -> None:
-        """Records the first run once (date and commit); later runs never change it."""
+    def mark_run(self, trial_id: str, commit: str, today: date | None = None) -> None:
+        """Records the first run once (date and the commit it ran at, read by the caller before it wrote anything);
+        later runs never change it."""
         rows = self.rows()
         for row in rows:
             if row["trial_id"] == trial_id and not row["first_run_on"]:
-                row["first_run_on"], row["run_commit"] = (today or date.today()).isoformat(), self.git.head()
+                row["first_run_on"], row["run_commit"] = (today or date.today()).isoformat(), commit
         self.file.write_text(write_ledger(rows))
 
     def count(self, experiment: str) -> dict[str, int]:

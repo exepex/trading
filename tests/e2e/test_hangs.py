@@ -1,0 +1,86 @@
+"""Story O2, rows "Hung git call" and "Hung command": a push that never returns, through a hanging `pre-push` hook
+in the fixture checkout (git's own hook, a real git and a real hang), and a child command that never ends. The git
+limit is the one knob the suite turns: the hung push's 120 s limit takes 2 s here, counted once its hook runs, and
+every other git call keeps the run's own limit, so a slow normal call on a loaded machine never meets the short one
+(judge E, 22 Oct; with every git call slowed past 2 s, `git ls-files` was stopped instead of the push)."""
+
+from datetime import datetime, time
+
+from fno.desk.git_limit import GitLocks
+from fno.models import IST
+from tests.daily.hung_calls import HungCallRun
+
+from .children import Foreground
+from .harness import fixture_day
+
+LIMIT = 2.0
+HANG = (
+    '#!/bin/sh\nG="$(git rev-parse --git-dir)"\n'
+    'if [ -f "$G/hang-push" ]; then echo $$ > "$G/hang.pid"; sleep 600; fi\nexit 0\n'
+)
+
+
+def hanging_pushes(day, monkeypatch):
+    """Every push hangs while `.git/hang-push` exists; `hang()` and `release()` switch it."""
+    flag = day.root / ".git/hang-push"
+    monkeypatch.setattr("fno.desk.git_sync.GIT_CALL_LIMIT_SECONDS", LIMIT)
+    pid = day.root / ".git/hang.pid"
+    monkeypatch.setattr(
+        "fno.desk.git_sync.LimitedRun", lambda: HungCallRun("push", pid, when=flag.exists, locks=GitLocks)
+    )
+    hook = day.root / ".git/hooks/pre-push"
+    hook.write_text(HANG)
+    hook.chmod(0o755)
+    return lambda: flag.write_text(""), lambda: flag.unlink(missing_ok=True)
+
+
+def no_lock_left(day) -> bool:
+    return GitLocks(day.root).present() == set()
+
+
+def test_a_desk_push_that_hangs_is_stopped_alerted_once_and_the_rerun_recovers_to_day_done(tmp_path, monkeypatch):
+    day = fixture_day(tmp_path, monkeypatch)
+    hang, release = hanging_pushes(day, monkeypatch)
+    day.clock.on_condition = [(lambda: day.committed(f"Desk run {day.day} step snapshot"), hang)]  # fills' push
+    code, line = day.run()
+    assert (
+        code == 1 and "run STOPPED at step fills" in line and "push not confirmed" in line and "no card today" in line
+    )
+    assert len(day.slack.sent) == 1 and no_lock_left(day)
+    release()
+    day.slack.sent.clear()
+    code, line = day.run()
+    assert f"Desk run {day.day} step fills" in day.origin_subjects()  # the stuck commit, pushed by the recovery
+    assert day.step("exits")["book1_rules"]["reviewed"] is True and "card" in day.log()["steps"]
+    parts = day.step("quotes_done")["parts"].values()  # F1: the stopped run's finish committed each part
+    assert line == "day done" and all(part["how"] == "earlier run" for part in parts)
+
+
+def test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carries_it_and_the_desk_goes_on(
+    tmp_path, monkeypatch
+):
+    """Gap G4 (O1, judge 420): the run's one committer remembers the part's own unpushed commit, so the desk's next
+    commit accepts it, checked by content, and pushes it; never refused as a stray (decision 51)."""
+    day = fixture_day(tmp_path, monkeypatch)
+    hang, release = hanging_pushes(day, monkeypatch)
+    after_parts = datetime.combine(day.day, time(14, 57, 30), IST)  # the parts' push hangs, the desk's do not
+    day.clock.on_condition = [(lambda: day.committed(f"Desk run {day.day} step forecasts_v4"), hang),
+                              (lambda: day.clock.now >= after_parts, release)]  # fmt: skip
+    code, line = day.run()
+    assert code == 1 and line.startswith("day done with problems:") and "quotes_done" in line
+    assert any("quote part nifty committed, NOT pushed (the next push carries it)" in text and "push not confirmed"
+               in text for text in day.slack.sent)  # fmt: skip
+    assert f"3 pm quotes {day.day} nifty" in day.origin_subjects()  # carried by the desk's next push
+    assert day.step("exits")["book1_rules"]["reviewed"] is True and no_lock_left(day)
+
+
+def test_a_command_that_never_ends_is_stopped_at_its_limit_and_the_day_goes_on(tmp_path, monkeypatch):
+    day = fixture_day(tmp_path, monkeypatch)
+    day.children.script[("desk", "book1")] = Foreground(24 * 60, lambda: (0, []))  # Book 1's decision never returns
+    code, line = day.run()
+    assert (code, line) == (1, "day done with problems: book1")
+    assert day.full_step("book1")["reason"].startswith("stopped after 10 minutes without ending")
+    assert day.step("book1")["reason"] == "o1:STOPPED_AT_LIMIT"  # the committed log: the code only
+    assert day.step("decisions")["book1_rules"]["decision"] == "no decision (late)"
+    assert day.step("exits")["book1_rules"]["reviewed"] is True
+    assert [text for text in day.slack.sent if "step book1 failed" in text] and no_lock_left(day)

@@ -12,6 +12,7 @@ from ..alerts.sender import AlertSender
 from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
 from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
+from ..desk.git_limit import GitLocks
 from ..models import IST
 from .processes import Process, Processes
 
@@ -23,7 +24,8 @@ POLL_SECONDS = 1.0
 COMMAND_LIMIT_SECONDS = (
     600.0  # a hung command (a Groww call that never answers) is stopped, never holds the day forever
 )
-STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed"
+STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed{removed}"
+LOCKS_REMOVED = "; the git lock files it left removed: {names}"
 
 
 def wait(process: Process, sleep: Callable[[float], None] = clock_time.sleep, limit: float | None = None) -> int | None:
@@ -39,13 +41,15 @@ def wait(process: Process, sleep: Callable[[float], None] = clock_time.sleep, li
     return code
 
 
-def outcome(arguments: Sequence[str], code: int, lines: list[str], paths=()) -> StepOutcome:
+def outcome(arguments: Sequence[str], code: int, lines: list[str], paths=(), errors: Sequence[str] = ()) -> StepOutcome:
     """A command's exit code and printed lines as a step's status: 0 is ok, or refused when it printed that it wrote
     nothing (a cutoff passed, stale closes); anything else failed. The reason is its last line."""
     refused = code == 0 and any(NOTHING_WRITTEN in line for line in lines)
     status = STEP_REFUSED if refused else STEP_OK if code == 0 else STEP_FAILED
     reason = lines[-1] if lines else f"exit code {code}, nothing printed"
     result = {"status": status, "reason": reason, "exit_code": code, "lines": lines}
+    if errors:
+        result["stderr"] = list(errors)  # the private full log only, never the committed one (O1-status-only)
     return StepOutcome({"command": list(arguments)}, result, tuple(paths))
 
 
@@ -62,23 +66,31 @@ class CommandStep(DayStep):
         pathspecs: Sequence[str],
         changed: Callable[[Sequence[str]], list],
         sleep: Callable[[float], None] = clock_time.sleep,
+        locks: GitLocks | None = None,
     ):
-        self.processes, self.arguments, self.pathspecs, self.changed, self.sleep = (
+        self.processes, self.arguments, self.pathspecs, self.changed, self.sleep, self.locks = (
             processes,
             arguments,
             pathspecs,
             changed,
             sleep,
+            locks,
         )
 
     def run(self, day: date) -> StepOutcome:
+        """A command stopped at its limit may have been inside a git commit (Book 1's `desk book1` commits its own
+        decision): the git locks it left are removed by story O2's rule, so the next commit works."""
         arguments = self.arguments(day)
+        before = self.locks.present() if self.locks else set()
         process = self.processes.start(arguments)
         code = wait(process, self.sleep, COMMAND_LIMIT_SECONDS)
         if code is None:
-            reason = STOPPED_AT_LIMIT.format(minutes=int(COMMAND_LIMIT_SECONDS // 60))
+            removed = self.locks.remove_new(before) if self.locks else []
+            names = LOCKS_REMOVED.format(names=", ".join(removed)) if removed else ""
+            reason = STOPPED_AT_LIMIT.format(minutes=int(COMMAND_LIMIT_SECONDS // 60), removed=names)
             return StepOutcome({"command": list(arguments)}, {"status": STEP_FAILED, "reason": reason})
-        return outcome(arguments, code, process.lines(), self.changed(self.pathspecs) if self.pathspecs else ())
+        paths = self.changed(self.pathspecs) if self.pathspecs else ()
+        return outcome(arguments, code, process.lines(), paths, process.errors())
 
 
 class LiveFrom(DayStep):

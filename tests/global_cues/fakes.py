@@ -7,11 +7,11 @@ from pathlib import Path
 import requests
 
 from fno.global_cues.archived_copies import COPY_TIME
-from fno.global_cues.row_log import CsvRowLog
 from fno.global_cues.source import CueRequest, CueValue, GlobalCueSource, checked, positive
 from fno.global_cues.table import CueTable
 from fno.models import IST
 from fno.storage.creation_times import CreationTimes
+from fno.storage.row_log import CsvRowLog
 
 
 class FakeSource(GlobalCueSource):

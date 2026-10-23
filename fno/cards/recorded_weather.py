@@ -18,8 +18,8 @@ SCORED, BASE_RATE, OK = "scored", "base_rate", "ok"  # M1's record values (fno/w
 NO_READING = "Weather: no reading for {day}"
 NOT_SCORED = "Weather: not scored for {day} ({why})"
 BLOCKS = "No new trades while the weather reading is missing (owner rule)."  # owner "4 A", 15 Oct 2026
-COLOUR = "Weather: {colour} ({operative}, {proof}){backfill}"
-BACKFILL = " (back-fill, exploratory)"
+COLOUR = "Weather: {colour} ({operative}, {proof})"
+NOT_LIVE = "Weather: no live reading for {day} (the record is {label}, not today's weather)"
 CHANCES = "Chance of a 2% NIFTY move: next session {p1} (base rate {b1}); within 5 sessions {p5} (base rate {b5})"
 V0 = "Checklist v0: {colour}"
 V0_NOT_SCORED = "Checklist v0: not scored ({why})"
@@ -27,6 +27,7 @@ CHANCE_MISSING = "a chance or base rate is missing"  # a guard: M1 never writes 
 NO_REASON = "no reason recorded"  # back-fills written before M1 added `v0_status` (16 Oct 2026)
 RED_BLOCKS = "RED: no new entries (owner rule)."
 MISSING_RECORD, MISSING_SCORE = "weather record for {day}", "weather not scored for {day}"
+MISSING_LIVE = "live weather record for {day}"
 NOT_SCORED_PREFIX = f"{WeatherColour.NOT_SCORED}: "
 
 
@@ -43,6 +44,8 @@ class RecordedWeather(WeatherSource):
         if record is None or record.get("day") != day.isoformat():
             return _blocked(NO_READING.format(day=day), MISSING_RECORD.format(day=day))
         used, chances, status = (UsedRecord.of(path, data),), _chances(record), record.get("status")
+        if record.get("label") != LIVE:  # a back-fill is history, never today's reading (M1's builder, 23 Oct)
+            return _blocked(NOT_LIVE.format(day=day, label=record.get("label")), MISSING_LIVE.format(day=day), used)
         if status != SCORED or record.get("colour") == WeatherColour.NOT_SCORED or chances is None:
             why = _why(status) if status != SCORED else CHANCE_MISSING
             return _blocked(NOT_SCORED.format(day=day, why=why), MISSING_SCORE.format(day=day), used)
@@ -81,9 +84,8 @@ def _chances(record: dict) -> dict[str, str] | None:
 
 
 def _scored_lines(record: dict, chances: dict[str, str]) -> tuple[str, ...]:
-    backfill = "" if record.get("label") == LIVE else BACKFILL
-    lines = [COLOUR.format(colour=record["colour"], operative=record.get("operative"), proof=record.get("proof"),
-                           backfill=backfill), CHANCES.format(**chances), _v0_line(record)]  # fmt: skip
+    lines = [COLOUR.format(colour=record["colour"], operative=record.get("operative"), proof=record.get("proof")),
+             CHANCES.format(**chances), _v0_line(record)]  # fmt: skip
     if record["colour"] == WeatherColour.RED:
         lines.append(RED_BLOCKS)
     return tuple(lines)

@@ -9,15 +9,17 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from ..ai.history import RepoHistory
-from ..ai.receipts import PushReceipts, ReceiptUnknown
-from .model import EvidenceUnknown
+from ..ai.receipts import PushReceipts, ReceiptNotFound, ReceiptOutsideLog, ReceiptUnknown
+from .model import EvidenceNotCommitted, EvidenceNotPushed, EvidenceOutsideLog, EvidenceUnknown
+
+ANSWERS = {ReceiptNotFound: EvidenceNotPushed, ReceiptOutsideLog: EvidenceOutsideLog}
 
 
 class HealthHistory(RepoHistory):
     def first_commit_adding_text(self, path: str, text: str, since: date) -> str | None:
         """The earliest commit since `since` whose change to `path` added `text` (git's pickaxe)."""
-        found = self._run("log", "--format=%H", "--reverse", f"--since={since.isoformat()}", "-S", text, "--", path)
-        commits = found.stdout.split()
+        found = self._out("log", "--format=%H", "--reverse", f"--since={since.isoformat()}", "-S", text, "--", path)
+        commits = found.split()
         return commits[0] if commits else None
 
 
@@ -51,8 +53,9 @@ class Evidence:
 
     def _received(self, commit: str | None, path: str) -> datetime:
         if not commit:
-            raise EvidenceUnknown(f"no commit adding it to {Path(path).name}")
+            raise EvidenceNotCommitted(f"no commit adding it to {Path(path).name}")
         try:
             return self.receipts.received_at(commit)
         except ReceiptUnknown as unknown:
-            raise EvidenceUnknown(f"push time unknown: {unknown}") from None
+            kind = ANSWERS.get(type(unknown), EvidenceUnknown)  # a failed read stays a plain unknown
+            raise kind(f"push time unknown: {unknown}") from None

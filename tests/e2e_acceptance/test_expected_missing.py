@@ -5,7 +5,6 @@ for `not_built`, writes the real check). The suite is complete when this file ho
 
 import pytest
 
-from fno import constants
 from fno.cards.recorded_weather import RecordedWeather
 from fno.cards.wiring import build_daily_card
 from fno.config import ROOT, load_app_config
@@ -39,7 +38,6 @@ def test_every_o1_step_has_its_live_date():
     assert all(load_app_config()["daily"]["live_from"].values())
 
 
-@missing("O1 follow-up: the 14:05 start")
 def test_the_daily_routine_starts_before_the_1430_forecast_cutoff():
     section = (ROOT / "CLAUDE.md").read_text(encoding="utf-8").split("## Daily desk routine")[1].split("\n## ")[0]
     assert "14:33" not in section
@@ -79,11 +77,6 @@ def test_each_ai_decision_records_the_model_served_and_its_session():
     not_built("F1t's model reporting (model_served, session_id) in Books 2 and 3's decision records")
 
 
-@missing("E8")
-def test_paper_fills_follow_the_owners_reaction_time():
-    assert constants.VERDICT_REACTION_MINUTES == 60 and "owner_timing" in load_app_config()["desk"]
-
-
 @missing("G6")
 def test_protocol_v4_is_frozen_so_the_days_v4_rows_are_scored():
     assert (ROOT / "research" / "forecasts" / "FREEZE_v4.md").is_file()
@@ -104,11 +97,6 @@ def test_a_scheduled_job_that_never_starts_is_alerted_as_stale():
     not_built("O10's staleness alert on a due job with no run (health-check, nse-margins' early cron, participant-OI)")
 
 
-@missing("G13")
-def test_the_day_has_a_price_distribution_and_valuation_record():
-    not_built("G13")
-
-
 @missing("F2")
 def test_an_analyst_finding_card_is_written_for_the_day():
     not_built("F2")
@@ -122,3 +110,8 @@ def test_each_ai_book_routine_records_its_own_usage_minutes():
 @missing("T3")
 def test_a_trade_card_carries_the_devils_advocate_objections():
     not_built("T3")
+
+
+@missing("FL1-2")
+def test_the_0915_lab_report_and_its_0930_paper_fills_on_the_recorded_day():
+    not_built("FL1-2's `lab open` and the 09:30 fills (waits for A22, E8 and A16's universe)")

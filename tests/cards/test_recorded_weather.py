@@ -1,9 +1,10 @@
 """Story T1c: the card's weather from M1's committed record (criteria 1-7). The base record is the repository's real
-committed record of 14 Oct 2026 (a back-fill), varied per case."""
+committed live record of 23 Oct 2026, varied per case; the back-fill of 14 Oct is the not-live case."""
 
 import copy
 import hashlib
 import json
+import re
 from datetime import date
 
 import pytest
@@ -14,11 +15,12 @@ from fno.cards.wiring import _weather
 from fno.config import ROOT
 from tests.cards.fakes import WEATHER, FakeRecords, weather_of
 
-DAY = date(2026, 10, 14)
+DAY, BACKFILL_DAY = date(2026, 10, 23), date(2026, 10, 14)
 PATH = WEATHER.format(day=DAY)
 REAL = json.loads((ROOT / PATH).read_text(encoding="utf-8"))
+COLOURS = re.compile(r"\b(GREEN|AMBER|RED)\b")
 PROOF = "not yet proven: G8 has not scored it against v0 and the base rate"
-CHANCES = "Chance of a 2% NIFTY move: next session 2% (base rate 3%); within 5 sessions 9% (base rate 10%)"
+CHANCES = "Chance of a 2% NIFTY move: next session 3% (base rate 3%); within 5 sessions 13% (base rate 10%)"
 
 
 def section(record=None, raw: bytes | None = None, day=DAY):
@@ -32,20 +34,29 @@ def varied(**changes):
     return record
 
 
-def test_a_back_fill_green_record_shows_its_colour_chances_proof_and_v0_and_is_listed_by_sha256():
+def test_a_live_green_record_shows_its_colour_chances_proof_and_v0_and_is_listed_by_sha256():
     shown = section(REAL)
-    assert shown.lines == (f"Weather: GREEN (weather_vix_v1, {PROOF}) (back-fill, exploratory)", CHANCES,
-                           "Checklist v0: AMBER")  # fmt: skip
+    assert shown.lines == (f"Weather: GREEN (weather_vix_v1, {PROOF})", CHANCES, "Checklist v0: AMBER")
     data = json.dumps(REAL).encode()
     assert [(u.path, u.sha256) for u in shown.used] == [(PATH, hashlib.sha256(data).hexdigest())]
     assert shown.missing == ()
 
 
-def test_a_live_record_has_no_back_fill_label_and_only_red_adds_no_new_entries():
-    assert section(varied(label="live")).lines[0] == f"Weather: GREEN (weather_vix_v1, {PROOF})"
+def test_only_red_adds_no_new_entries():
+    assert section(varied(colour="AMBER")).lines[0].startswith("Weather: AMBER (")
     assert section(varied(colour="AMBER")).lines[-1] == "Checklist v0: AMBER"
-    red = section(varied(colour="RED", label="live")).lines
+    red = section(varied(colour="RED")).lines
     assert red[0].startswith("Weather: RED (") and red[-1] == "RED: no new entries (owner rule)."
+
+
+def test_a_back_fill_record_is_never_today_s_weather_and_blocks_new_trades():
+    """M1's builder, 23 Oct: only a `live` label counts for the day's card; the real back-fill of 14 Oct."""
+    path = WEATHER.format(day=BACKFILL_DAY)
+    shown = weather_of(FakeRecords({path: (ROOT / path).read_bytes()})).weather(BACKFILL_DAY)
+    assert shown.lines == (f"Weather: no live reading for {BACKFILL_DAY} (the record is backfill_exploratory, not "
+                           "today's weather)", BLOCKS)  # fmt: skip
+    assert shown.missing == (f"live weather record for {BACKFILL_DAY}",)
+    assert not COLOURS.search("\n".join(shown.lines))
 
 
 @pytest.mark.parametrize("record, raw, day", [
@@ -99,7 +110,7 @@ def test_an_unscored_v0_shows_its_reason_and_an_older_record_without_one_never_r
 
 
 def test_no_driver_value_reaches_the_card():
-    text = "\n".join(section(varied(label="live")).lines)
+    text = "\n".join(section(REAL).lines)
     for name, value in REAL["drivers"]["v0_inputs"].items():
         assert name not in text and str(value["value"]) not in text
     assert "us_move" not in text and "private" not in text
@@ -107,6 +118,6 @@ def test_no_driver_value_reaches_the_card():
 
 def test_the_app_reads_the_real_committed_record_and_an_uncommitted_file_reads_as_no_reading(tmp_path):
     shown = _weather(GitHeadRecords(ROOT), ROOT).weather(DAY)
-    assert shown.lines[0].startswith("Weather: GREEN (weather_vix_v1, ") and shown.used[0].path == PATH
+    assert shown.lines[0] == f"Weather: GREEN (weather_vix_v1, {PROOF})" and shown.used[0].path == PATH
     on_disk_only = GitHeadRecords(tmp_path)  # not a git checkout: nothing is committed
     assert _weather(on_disk_only, ROOT).weather(DAY).lines[0] == f"Weather: no reading for {DAY}"

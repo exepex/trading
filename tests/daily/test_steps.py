@@ -14,7 +14,7 @@ from fno.forecast_v4_rules import cli as v4_cli
 from fno.weather import cli as weather_cli
 from tests.timetable.fakes import Clock
 
-from .fakes import FakeProcesses, RecordedStep
+from .fakes import FakeProcesses, QuietLocks, RecordedStep
 
 DAY = date(2026, 10, 14)
 
@@ -63,20 +63,32 @@ def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
     assert alerts.sent == ["F&O daily run 2026-10-14: step quotes_done failed: OSError: disk; the run goes on"]
 
 
-def test_the_live_dates_come_from_config_and_none_is_set_today():
+def test_the_live_dates_come_from_config_phase_1_from_22_oct():
     assert "daily" in ALLOWED_APP_KEYS
-    assert live_dates(load_app_config()) == {"margin_check": None, "weather": None, "forecasts_v4": None, "card": None}
+    phase_1 = date(2026, 10, 22)  # owner, 21 Oct (DESK_DECISIONS c58788bc): G13, G13b and FL1-1 live
+    assert live_dates(load_app_config()) == {
+        "margin_check": None, "card": None, "owner_timing_fills": None,
+        "weather": phase_1,  # M1, on before the v4 freeze (owner, 21 Oct, DESK_DECISIONS 3a24ba24; response 299)
+        "forecasts_v4": phase_1,  # G7's rule forecasts, the same; uncounted until the day after `Frozen on:`
+        "price_distribution": phase_1,  # story G13
+        "premium_ranges": date(2026, 10, 23),  # story G13d: judge 465.2 PASS, merged on 22 Oct evening
+        "premium_range_scores": None,  # G13d's scores: off until their own go-live
+        "price_distribution_scores": phase_1,  # G13's daily scores
+        "price_ranges": phase_1,  # story G13b
+        "price_range_scores": phase_1,  # G13b's daily scores and seals
+        "close_read": date(2026, 10, 23), "close_recheck": date(2026, 10, 23),  # A4h: record-only 5 sessions first
+    }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
 
-def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch):
+def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch, tmp_path):
     class Runner:
         def run(self, day):
             return 1, f"day done with problems: weather ({day})"
 
-    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg: Runner())
+    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg, root: Runner())
     printed = []
-    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append) == 1
+    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append, root=tmp_path) == 1
     assert printed == ["day done with problems: weather (2026-10-14)"]
 
 
@@ -88,11 +100,11 @@ def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
-    assert DAILY_RUN_STEPS[:2] == ("quotes", "margin_check") and wiring.MARGIN_CHECKS.endswith(
+    assert DAILY_RUN_STEPS[:3] == ("quotes", "owner_timing_fills", "margin_check") and wiring.MARGIN_CHECKS.endswith(
         "stress_broker_check.csv"
     )
 
@@ -107,10 +119,33 @@ def test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holdin
     done = step.run(DAY)
     assert done.result == {
         "status": STEP_FAILED,
-        "reason": "stopped after 10 minutes without ending; nothing of it committed",
+        "reason": "stopped after 10 minutes without ending; nothing of it committed",  # no locks given: none removed
     }
     assert processes.made[MARGIN_CHECK].stopped and asked == [] and done.paths == ()
     assert clock() - processes.started[0][0] == timedelta(seconds=COMMAND_LIMIT_SECONDS)
+
+
+def test_a_command_stopped_inside_its_own_git_commit_leaves_no_lock(tmp_path):
+    """Story O2 (judge 204 addendum 2): Book 1's `desk book1` commits its own decision; stopped at the limit mid-commit,
+    the locks its git took are removed (they were not there when it started), and one that was there stays."""
+    (tmp_path / ".git" / "refs").mkdir(parents=True)
+    (tmp_path / ".git" / "config.lock").write_text("")  # another writer's, older than the command
+    clock = Clock()
+    book1 = ("desk", "book1", "--day", DAY.isoformat())
+    processes = FakeProcesses(clock, {book1: (clock() + timedelta(hours=5), 0, [])})
+
+    class MidCommit(QuietLocks):
+        def present(self):
+            if processes.started:  # the command has started its commit
+                (tmp_path / ".git" / "index.lock").write_text("")
+            return super().present()
+
+    step = CommandStep(
+        processes, lambda day: book1, (), lambda specs: [], sleep=clock.advance, locks=MidCommit(tmp_path)
+    )
+    done = step.run(DAY)
+    assert done.result["reason"].endswith("; the git lock files it left removed: .git/index.lock")
+    assert not (tmp_path / ".git" / "index.lock").exists() and (tmp_path / ".git" / "config.lock").exists()
 
 
 def test_an_alert_slack_did_not_take_is_printed_for_the_connector_one_it_took_is_not():
@@ -134,7 +169,7 @@ def test_the_desk_and_o1_share_that_one_sender(monkeypatch):
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert isinstance(seen["alerts"], ReportedAlerts)

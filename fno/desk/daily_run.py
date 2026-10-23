@@ -22,8 +22,9 @@ step given (E3's tests) is passed over.
 
 Each step's start, end, inputs and result go to `journal/runs/<date>.json`, committed after the step; a restarted run
 skips every step already recorded, so nothing is done twice. A commit that fails (a refused raw quote file, a failed
-pull, a push rejected every time) stops the run at that step: one alert naming why, what is missed and the hand fix,
-no later step, nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
+pull, a push rejected every time) or a git read that fails (`GitFailed`, e.g. the decisions' pull or a run's commit
+read in the fills) stops the run at that step: one alert naming why, what is missed and the hand fix, no later step,
+nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
 first commits that failed commit's files exactly as they were recorded, and never repeats the step that made them
 (`PendingCommitter`, decision 47).
 """
@@ -36,6 +37,7 @@ from pathlib import Path
 
 from ..constants import (
     DAILY_RUN_STEPS,
+    OWNER_TIMING_STEP,
     REVIEWS_STEP,
     RUN_LOG_DECISIONS_STEP,
     RUN_LOG_EXITS_STEP,
@@ -45,17 +47,22 @@ from ..constants import (
 )
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
+from ..research_engine.ledger import GitFailed
 from .daily_ports import CommitFailed, DayStep, Waiter
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
 from .run_log import RunLog
+from .step_recorder import AsGiven, StepRecorder
 from .trade_marking import MarkingStep
 
 SKIPPED = "skipped"
-STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: the commit failed: {reason}. {fix}"
+STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: {what}: {reason}. {fix}"
+COMMIT_FAILED = "the commit failed"
+GIT_FAILED = "a git read failed"
 EXITS_MISSED = "; exits not reviewed today"
 RERUN = "Fix: remove the cause, then rerun `fno daily run` (it commits these files as recorded, never repeating a step)"
+READ_RERUN = "Fix: remove the cause, then rerun `fno daily run` (it skips the steps already recorded)"
 PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
@@ -65,22 +72,24 @@ BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
 UNSCORED = "the scorecards and automatic pauses of {day} did not run ({reason})"
+UNFILLED = "today's owner-timing fills {status} ({reason})"
 # a stop at the exits or any later step leaves the day's exits reviewed (E2d's marking and O1's steps after them)
 AFTER_EXITS = tuple(f"step {name}" for name in DAILY_RUN_STEPS[DAILY_RUN_STEPS.index(RUN_LOG_EXITS_STEP) :])
 
 
 class RunStopped(Exception):
-    """The run stopped at a failed commit; the message is the alert sent."""
+    """The run stopped at a failed commit or git read; the message is the alert sent."""
 
 
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
                  clock: Callable[[], datetime], marking: MarkingStep, files: PrivateFiles | None = None,
-                 day_steps: Mapping[str, DayStep] | None = None):  # fmt: skip
+                 day_steps: Mapping[str, DayStep] | None = None, recorder: StepRecorder | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
         self.marking = marking  # story E2d
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
         self.day_steps = dict(day_steps or {})  # story O1's steps around the desk's
+        self.recorder = recorder or AsGiven()  # story O1-status-only: the committed log holds status only
 
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
@@ -111,7 +120,8 @@ class DailyRun:
             "snapshot": (times.execution_snapshot, lambda: steps.take_snapshot(day)),
             "fills": (times.execution_snapshot, lambda: steps.fill(day, log.result("snapshot")["valid"],
                                                                    log.result(RUN_LOG_DECISIONS_STEP),
-                                                                   self._unreviewed(day) | self._unscored(day))),
+                                                                   self._unreviewed(day) | self._unscored(day)
+                                                                   | self._unfilled(log))),
             "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
             RUN_LOG_TRADE_MARKS_STEP: (times.execution_snapshot, lambda: self.marking.run(day)),  # story E2d
         }  # fmt: skip
@@ -137,6 +147,15 @@ class DailyRun:
         unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
                       for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
         return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
+
+    def _unfilled(self, log: RunLog) -> dict[str, str]:
+        """Story E8 rule 11: when today's owner-timing fills failed or were refused, C2 would see yesterday's positions
+        without this morning's fills and understate open risk, so no book opens anything new today (exits still run)."""
+        result = log.result(OWNER_TIMING_STEP) if log.done(OWNER_TIMING_STEP) else {}
+        if result.get("status") not in (STEP_FAILED, STEP_REFUSED):
+            return {}
+        reason = result.get("reason", "")  # a status-only log holds the reason's code (O1-status-only)
+        return dict.fromkeys(self.steps.books, UNFILLED.format(status=result["status"], reason=reason))
 
     def _unscored(self, day: date) -> dict[str, str]:
         """Story O1 (judge 214): when the last session reviewed its exits but its scorecards and automatic pauses (E6)
@@ -166,19 +185,25 @@ class DailyRun:
         def step() -> None:
             started = self.clock()
             outcome = action()
-            log.record(name, started, self.clock(), outcome.inputs, outcome.result)
+            self.recorder.record(log, name, started, self.clock(), outcome.inputs, outcome.result)
             paths: tuple[Path, ...] = (log.path, *outcome.paths)
             self.committer.commit(paths, f"Desk run {log.day} step {name}")
 
         self._guarded(log.day, f"step {name}", step)
 
     def _guarded(self, day: date, where: str, action: Callable[[], object]) -> None:
-        """The one place a failed commit is handled: the rerun's recovery, a step's own commit and any inside it."""
+        """The one place a failed commit or git read is handled: the rerun's recovery, a step's own commit and any
+        inside it. A git read cannot be trusted to answer later steps either, so it stops the run the same way."""
         try:
             action()
         except CommitFailed as failed:
-            missed = "" if where in AFTER_EXITS else EXITS_MISSED
             fix = "" if isinstance(failed, PendingChanged) else RERUN + (PUSHES if failed.unpushed else "")
-            text = STOPPED.format(day=day, where=where, missed=missed, reason=failed, fix=fix).rstrip(" ")
-            self.steps.alerts.send(text)
-            raise RunStopped(text) from failed
+            self._stop(day, where, COMMIT_FAILED, failed, fix)
+        except GitFailed as failed:
+            self._stop(day, where, GIT_FAILED, failed, READ_RERUN)
+
+    def _stop(self, day: date, where: str, what: str, failed: Exception, fix: str) -> None:
+        missed = "" if where in AFTER_EXITS else EXITS_MISSED
+        text = STOPPED.format(day=day, where=where, missed=missed, what=what, reason=failed, fix=fix).rstrip(" ")
+        self.steps.alerts.send(text)
+        raise RunStopped(text) from failed

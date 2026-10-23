@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from xml.etree.ElementTree import Element
 
-from ..constants import NIFTY_SYMBOL, OPTION_CALL, OPTION_PUT
+from ..constants import NIFTY_SYMBOL, OPTION_CALL, OPTION_PUT, SPAN_BOD_CREATED_BEFORE
 from ..fo_bhavcopy import BadFile
 from ..models import IST
 
@@ -59,6 +59,13 @@ class SpanFile:
 
     def tiers_holding(self, expiry: date) -> int:
         return sum(first <= expiry <= last for first, last in self.scan_tiers)
+
+    def deadline(self, day: date) -> datetime:
+        """A14's point-in-time rule: a beginning-of-day file counts for `day` only if written before 09:00 IST."""
+        return datetime.combine(day, SPAN_BOD_CREATED_BEFORE, tzinfo=self.created.tzinfo)
+
+    def written_in_time(self, day: date) -> bool:
+        return self.created < self.deadline(day)
 
 
 def read_span_file(data: bytes, filename: str, symbol: str = NIFTY_SYMBOL,

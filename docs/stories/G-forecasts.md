@@ -449,7 +449,7 @@ even if their code comes later:
 - **Flagged IV30 on a live day:** the ratio window already drops flagged days (protocol 3.1). Proposed: on a live day
   whose pack IV30 is flagged (single expiry), raw and premium-adjusted implied are **missing** (counted, never
   filled). One estimator then runs through the window and the forecast.
-  - G10 notes that an `A2` day's IV30 is usually flagged, so `A2` days lose V2's primary.
+  - G10 noted that an `A2` day's IV30 is usually flagged; `A2` is dropped (16 Oct), so this no longer arises.
   - Reasoning only. The alternative is to keep flagged values with a label, which mixes two estimators in one scored
     series.
 - **V5 and V4 base rates:** live outcomes only. V5 needs about 2 years of daily outcomes to reach 500; V4 needs about 2
@@ -744,14 +744,14 @@ answer was received, by this host's checked clock: the honest upper bound of whe
 quote timestamp (strong evidence: `fno/quotes/recorder.py:65-69`, "quote age unknown"; `fno/providers/groww.py:94-103`
 has only `last_trade_time`), so `last_trade_time` stays its own field, used only for the "traded today" check, and is
 never the observation time. A provider's own snapshot stamp is used only where one exists (NSE's page time). **Day-quality label (one per day, on every v4 record and report):** `A` the live capture,
-every required field observed by 14:40:00; `A2` A16's 14:30 mark (fallback), every required field observed by
-14:40:00; `system_late` no complete pack by 14:40:00. The label carries the pack's latest `observed_at` (for example
-"A, observed by 14:31:12"). Every report counts `A`, `A2`, `system_late` and flagged days; a protocol v4 verdict uses
-`A` and `A2` days. **One pack, one hash:** every family's record names the released pack's SHA-256; a record naming
-any other pack is refused. **Said plainly (strong evidence: `fno/intraday/expiry_plan.py`, `fno/forecast/iv30.py`):** A16 records the
-nearest weekly and the nearest monthly chain only, while IV30 interpolates the two monthlies around 30 days, so an
-`A2` day's IV30 is usually the protocol's flagged single-expiry value (or none when the monthly has under 7 days left).
-The label carries it; adding the next monthly to A16 (about 70 more quotes a mark) is the alternative, not proposed.
+every required field observed by 14:40:00; `system_late` no complete pack by 14:40:00, or no release record at all
+(written after the fact by the next publisher run). The label carries the pack's latest `observed_at` (for example
+"A, observed by 14:31:12"). Every report counts `A`, `system_late` and flagged days; a protocol v4 verdict uses `A`
+days. **`A2` dropped (orchestrator's ruling, 16 Oct; judge 274 note at 90bc4565):** A16's 14:30 mark has no India VIX,
+only one monthly beside the weekly, and no next monthly on a monthly expiry day (strong evidence:
+`fno/intraday/groww_source.py`, `expiry_plan.py`), so it can never hold a complete pack; with A4e's 14:30 capture
+the `A` path is the normal one. **One pack, one hash:** every family's record names the released pack's SHA-256; a record naming
+any other pack is refused. (The earlier note on an `A2` day's flagged IV30 is moot: `A2` is dropped, above.)
 
 **"Moved after cutoff" (flag, never a block):** a day with `abs(ln(S_15:15 / S_14:30)) > X` is flagged and reported
 apart; nothing is dropped. **X** is frozen before go-live as the 95th percentile of that move over A16b's 2020-26
@@ -822,14 +822,15 @@ protocol 1.1-1.2 define them.
 1a. **Honest-time fixture (ChatGPT review 113; revision 3):** a quote whose answer was received at 14:40:00 is in the
    pack with that time; one received at 14:40:01 is not (the field is missing; a required field missing makes the day
    `system_late`); a quote received at 14:31:05 whose last trade was at 14:29:59 carries 14:31:05, never 14:29:59; the
-   real shared-key fallback (A16's 14:30 mark, received about 14:30-14:31) keeps its own times and is labelled `A2`;
+   real A16 14:30 row (sent at 14:30:00.0004, received at 14:30:00.753 on 16 Oct) passes the 14:30 lower bound
+   (judge 277);
    no field ever carries a time earlier than its `observed_at`.
 1b. Every family's record names the released pack's SHA-256; a record with another hash is refused. The deadline check
    reads GitHub's receipt time; a commit dated 15:09 but received at 15:10:01 is late.
 2. `terms.py` holds the capture start, window end, deadline and common-snapshot times and X; G7's and M1's capture
    refuse at the capture start through one constant, `terms.V4_CAPTURE_START = time(14, 30)` (boundary: 14:29:59
    accepted, 14:30:00 refused).
-3. Each v4 record and report carries the day label; every report counts `A`, `A2`, `system_late` and flagged days; a
+3. Each v4 record and report carries the day label; every report counts `A`, `system_late` and flagged days; a
    `system_late` day is excluded for every member and counted; a commitment received at 15:10:01 is a miss, at
    15:10:00 on time (G9's caps then apply); live and close-proxy cohorts are reported apart; no v2 record is read.
 4. X is computed by a committed tool from A16b's checked levels (sample count, source revision, nearest-rank 95th
@@ -847,10 +848,10 @@ measures both together at 14:30 (request count, errors and the time each finishe
 after A16's mark (about 14:31), still inside the 14:40 window, and its fields carry their real times. Two sign-ins on
 one key coexisted once, outside market hours (some evidence, checked 15 Oct); criterion 6's dry run is the real test.
 
-**Known limits:** an `A2` day's IV30 is usually flagged (above); X rests on 2020-26 history, one crash included (some
+**Known limits:** X rests on 2020-26 history, one crash included (some
 evidence); a GitHub push delay near 15:10 counts as late (the push time is the only clock both sides trust).
 
-**Depends:** G6 (merged), G9 (merged), G7, M1, G8 (merged); A16 live for the `A2` fallback; the owner's routine change
+**Depends:** G6 (merged), G9 (merged), G7, M1, G8 (merged); A4e's named 14:30 capture; the owner's routine change
 at go-live · **Size:** M · **Status:** story text for judge A, then ChatGPT (rule 9) (`reviews/claude/response_152_g10-v4-timeline.md`)
 
 ---
@@ -877,7 +878,7 @@ SHA-256 (of the stored bytes, canonical JSON: sorted keys, UTF-8) is the pack's 
 Groww quote values never enter a repository (CLAUDE.md, A4b); GitHub holds the receipt. Fields, each with its own
 `observed_at` (this host's checked clock at the answer's receipt, protocol 1.6; `last_trade_time` only for the
 "traded today" check, never a time of observation):
-- `day`, `label` (`A` the 14:30 capture; `A2` A16's 14:30 mark as fallback), `source`, `provider`, `captured_from`,
+- `day`, `label` (`A`, the 14:30 capture; the only label a pack carries), `source`, `provider`, `captured_from`,
   `released_at`;
 - `spot` (NIFTY index), `future` (the future of expiry `e`: last, bid, ask), where `e` is the nearest monthly expiry
   strictly after `d` (protocol 1.5, V5's expiry), and `india_vix` (NSE's value with NSE's own time where NSE gives
@@ -890,7 +891,7 @@ Groww quote values never enter a repository (CLAUDE.md, A4b); GitHub holds the r
   hash), `observed_by`.
 A field received after 14:40:00 is not in the pack; a required field missing makes the day `system_late` (no pack).
 
-**2. The release record** (`v4/days/<YYYY>/<date>.json` in Drive, receipt in GitHub): `day`, `label` (`A`, `A2` or
+**2. The release record** (`v4/days/<YYYY>/<date>.json` in Drive, receipt in GitHub): `day`, `label` (`A` or
 `system_late`), `pack_path`, `pack_sha256`, `observed_by` (part 1's format plus `pack_path`). Written once, right after
 the pack. G8 syncs `v4/days/` through the DriveCache before every report and look.
 
@@ -898,10 +899,14 @@ the pack. G8 syncs `v4/days/` through the DriveCache before every report and loo
 (retries inside the window, every field with its time). That window is A4's recorder (`fno/quotes/`), not this
 builder's: A4's owner (with O1, who owns the 3 pm routine's timing: register row "Handover / routines") adds a
 `--window` setting so v2 keeps 14:55 until go-live; this part supplies the pack builder
-that reads the capture's result and writes the pack and the release record. Fallback `A2`: A16's 14:30 mark
-(through the snapshot store, SHA-checked as in part 1's flag). Same Groww key as A16: one taker per moment is O9's
-claims (section 6); the dry run (criterion 6 of the text above) measures it. **Said plainly (judge 274 add. 1):** until the routine moves (today it starts at 14:33 and
-runs setup first), `A2` is the normal path, not the fallback.
+that reads the capture's result and writes the pack and the release record. The capture is A4e's named window
+(`python -m fno quotes record --window v4`, dataset `quote-snapshots-v4`; judge 281), an extra capture beside 14:55
+(orchestrator's ruling (A), 16 Oct). Only a run whose sidecar says `clock_ok` (both clock readings, worst skew within
+A16's 5 s) gives `A`; otherwise the day is `system_late`. No fallback: `A2` is dropped (section 1.6 above). Same
+Groww key as A16's 14:30 mark: the dry run (criterion 6 of the text above) measures the load. **Every session gets a
+record (G11, 16 Oct):** each publisher run first writes `system_late` for every earlier scored session from
+`daily.live_from.forecasts_v4` to yesterday that has no record, so a day the routine never ran is settled (the look
+never stays blocked); records are write-once.
 
 **4. `pack_sha256` in the v4 records** (G7's `fno/forecast_v4_rules/records.py`, R2/G7's file; R2/G7 builds it).
 The column sits right after `inputs_sha256`; `record()` takes it as a keyword, default empty; `records.py` checks
@@ -920,7 +925,8 @@ receipt path, never the commit's own time. Behind an interface (`CommitmentTimes
 record received at 15:10:01 is no forecast that day (a miss under G9's caps).
 
 **6. The AI fire.** `terms.V4_LATEST_FIRE = time(14, 55)` (G11's latest start: a later run is recorded `not_fired`).
-A new workflow triggered by `push` of `receipts/v4/days/**` on `main` runs `python -m fno ai fire` on the released
+A new workflow triggered by `push` of `receipts/data/v4/days/**` on `main` (O9 keeps every data file
+under Drive's `data` area, so its receipt is `receipts/data/<path>.sha256`; corrected from `receipts/v4/days/**`, 16 Oct) runs `python -m fno ai fire` on the released
 pack; no cron (orchestrator, 16 Oct). The release record's receipt is pushed by the owner's routine with its own
 credentials, which starts workflows (strong evidence: 15 Oct, push bf16247a started forecast-capture run 38714143717
 within the minute); never by an Actions run's `GITHUB_TOKEN`, which starts nothing. Collect stays in

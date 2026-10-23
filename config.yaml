@@ -200,17 +200,49 @@ budget:
 
 # Story O1: the daily run's own steps (`python -m fno daily run`) start live only from these dates (YYYY-MM-DD); null:
 # not live, the step is recorded `not_live`. Set by the owner or a freeze, never by the run (a first live weather
-# record ends M1's back-fill; live v4 rows before the G6 freeze would mix with it).
+# record ends M1's back-fill; live v4 rows made on or before the G6 freeze's `Frozen on:` day are never counted).
 daily:
   live_from:
     margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
-    weather: null
-    forecasts_v4: null
+    weather: "2026-10-22"  # owner, 21 Oct 2026 (response 299 item 15): on before the v4 freeze, routine at 14:05
+    forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
     card: null
+    price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
+    price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
+    price_ranges: "2026-10-22"  # story G13b's 15:45 NIFTY and BANKNIFTY ranges
+    price_range_scores: "2026-10-22"  # G13b's daily `pricerange score` and seals; the same one-session lag
+    premium_ranges: "2026-10-23"  # story G13d's next-session 3 pm premium ranges (judge 465.2 PASS; merged 22 Oct evening)
+    premium_range_scores: null  # G13d's daily `premrange score` and seals
+    close_read: "2026-10-23"  # story A4h's 15:40 close read: record-only for its first 5 sessions (orchestrator)
+    close_recheck: "2026-10-23"  # A4h's 16:00 second read
+
+# Story FL1-1d: the forecast lab's two report editions to #fno-forecast, each from its own owner routine (`lab open`
+# at 08:38 IST, `lab close` at 19:53 IST), live only from these dates; null: not live (design signed off: DESK_DECISIONS
+# 11ef1b23).
+forecast_lab:
+  live_from:
+    morning: "2026-10-23"  # orchestrator, 22 Oct: live from Fri 23 Oct, with the owner's two scheduled tasks
+    evening: "2026-10-23"
 
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
-# that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).
+# that date (judge 164). The receipt search reads GitHub's log back to each commit's date (story receipts-reach).
 health:
   window_days: 6
   # Story O8b: one line, once per calendar version, when NSE's calendar ends within this many days
   calendar_horizon_days: 45
+# Story MS-P1a: the market school pilot (docs/stories/MS-market-school.md). Its own switches, apart from the desk's and
+# v4's: `enabled` gates every paper decision, `reports` the 08:50 and 20:05 sections; both stay off until the
+# orchestrator turns them on. The limits are the school's own copy of today's values (response 325 section 9.1,
+# DESK_DECISIONS "Market school pilot: report sections and brake"), so a desk change never moves the pilot mid-count.
+school:
+  enabled: false
+  reports: false
+  first_counted:            # set from the frozen comparison card (MS-P1h) before the first counted session
+  account_rs: 2000000       # each driver version's paper account
+  max_loss_rs: 10000        # one trade, every charge and pad included
+  daily_stop_rs: 25000      # loss since the previous slot that stops new entries for the session
+  brake_rs: 120000          # equity this far below its high: no new trades until a monthly review row lifts it
+  max_new_trades_per_slot: 5
+  bucket_rs: 30000
+  open_risk_rs: 150000
+  new_risk_day_rs: 50000

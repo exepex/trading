@@ -61,10 +61,13 @@ BROKER_FIELD = (
     rf"(?<![A-Za-z0-9]){_FIELD}(?![A-Za-z0-9])[\"']?[ \t]*[:=][ \t]*[\"']?[A-Za-z0-9][A-Za-z0-9_-]{{3,}}"
     rf"|(?m:(?:^|,)[ \t]*\"?{_FIELD}\"?[ \t]*(?=,)|,[ \t]*\"?{_FIELD}\"?[ \t]*\r?$)"
 )
-# Slack IDs of users, workspaces and channels (letter, digit, then 7-10 more): only #fno-desk is allowed
+# Slack IDs of users, workspaces and channels (letter, digit, then 7-10 more): only the three F&O channels are allowed
+# (#fno-desk, and story FL1's #fno-forecast and #fno-intraday)
 SLACK_ID = r"\b[CDGTUW]\d[A-Z0-9]{7,10}\b"
 
-ALLOWED_VALUES = frozenset({constants.FNO_DESK_CHANNEL_ID})
+ALLOWED_VALUES = frozenset(
+    {constants.FNO_DESK_CHANNEL_ID, constants.FNO_FORECAST_CHANNEL_ID, constants.FNO_INTRADAY_CHANNEL_ID}
+)
 
 
 def secret_env_names() -> list[str]:
