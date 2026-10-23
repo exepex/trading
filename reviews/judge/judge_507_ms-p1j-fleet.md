@@ -191,3 +191,24 @@ ignore rule for `research/school/counts/**/.*.part` would close it.
   `record`.
 - **Plants: 3, 3 caught.** `seal` bypassing `encode`; `read` bypassing `decode`; the ticket book ignoring the given
   fill port.
+
+## Addendum 7
+
+**Scope:** MS-P1j follow-up, a comparison-card mismatch is loud: story/ms-p1j-card-mismatch at 199017ce (from main),
+on the orchestrator's ruling of 23 Oct. First of two judges, independent of judge K.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13806 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The check.**
+  - After the decisions' seal (and again on a rerun), each sealed decision is put to h's `CountingRule` at the
+    seal's receipt commit.
+  - Only `comparison_card_mismatch` gives the line. A counted or not-yet-counted decision gives none.
+  - The line goes in `SessionRun.warnings` (additive to a's contract; a run that did not run carries none), and
+    `school run` prints it and exits 1.
+  - Only the record root wires it; a replay uses `no_check`. No record changes.
+- **Plants: 5, 4 caught.** Caught: any not-counted reason named as a mismatch; a warning exiting 0; a rerun skipping
+  the check; the record root wiring no check.
+  - Survived: the line's "N of M" with N set to M. The tests plant every decision as mismatched, so the two numbers
+    are always equal. It is an alert's text, not a record or a decision, so this is a note.
+  - A test with one card-mismatched decision among several would pin N [reasoning only].
