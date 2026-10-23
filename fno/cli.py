@@ -43,6 +43,7 @@ from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .record_store.cli import add_records_parser
 from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
@@ -229,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     add_fingerprints_parser(sub)
     add_cache_parser(sub)
     add_repair_parser(sub)
+    add_records_parser(sub)
     add_revisions_parser(sub)
     add_market_parser(sub)
     add_research_parser(sub)
