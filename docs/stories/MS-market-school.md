@@ -2891,3 +2891,27 @@ guard.
 - the drawdown taken from zero instead of the peak;
 - every decision counted regardless of h's verdict.
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
+
+
+### MS-P1c follow-up: a stored slot file is adopted, never sealed over (orchestrator's go, 23 Oct 2026; branch `story/ms-p1c-adopt`; Judges B then K)
+The window (found by the INS builder in the instructor's store; the same in the dashcam): `DriveDashcamStore.seal` puts
+the file on Drive, then pushes its receipt. A run that stops between the two leaves a file with no receipt on `main`;
+a fresh container's `find` is None, the runner decides again, and if its records differ every rerun is a
+`ReplayConflict` (uncaught: the session never fills, writes outcomes or counts). Reproduced on real git with the
+production store and publisher [strong evidence]. A rerun can differ, so "the inputs are frozen" cannot be proven:
+each driver's 60 s wall-clock limit [strong, from the code]; a canonical 3 pm marker, a recorded quote file, the day's
+archived SPAN file or the 15:15 capture landing between the two runs [some evidence, from the code].
+
+| Item | Change | Test (and the plant it catches) |
+|---|---|---|
+| Adopt, never seal over | `DashcamStore.recover(session, slot, kind, belongs)` (a's contract): `find`, else a stored file is adopted when `dashcam/adoption.adoptable` passes: it decodes, re-encodes to the same bytes, holds only the kind's records, of this session and slot (an outcome names no session: a settlement fills on its expiry day), and every record is the writer's own; then its receipt is written from its own bytes and published under an "adopted" commit | `test_adoption.py` on real git: `test_the_stuck_session_is_adopted_and_its_stored_records_stand` (what the rerun decides now is a `ReplayConflict`, the stored records stand); each refusal (unreadable, not canonical, another kind, another slot, another session, not this fleet's) raises with its reason and publishes nothing; a settlement's outcome is adopted (plants: no check; published before the check; another key's file; each check dropped; outcomes judged by their fill date) |
+| The fleet's own (the orchestrator's addition 1) | `SchoolFleet._belongs`: a decision's driver is this fleet's and names that driver's card SHA-256 as frozen now; an exit, outcome or drift row's driver is this fleet's | `test_a_stored_file_of_another_card_version_stops_the_run_by_name_and_fills_nothing` (plants: the card version ignored; every record accepted) |
+| Loud stop by name (addition 2) | `DashcamStuck` "dashcam stuck: stored file unverifiable <session> <slot> <kind> (<why>)": the run's status `stopped: ...`, the CLI exits 1 (the alert), nothing sealed or filled | the same test (plant: the stop not caught) |
+| The runner adopts where it writes | `recover` for the decisions (an adopted file takes the rerun path over the sealed records) and before sealing the outcomes and the drift; the "all finished" check stays a pure `find` | `test_a_rerun_completes_the_session_from_its_stored_decisions_not_what_it_would_decide_now`; `test_a_rerun_after_a_stop_at_the_drift_file_adopts_it_and_writes_the_counts` (NIFTY road, the stored rows differ from the rerun's) (plants: the decisions on `find`; the drift on `find`) |
+| Fakes as strict as Drive | a's `FakeDashcam` refuses other bytes over a stored file, receipt or not, and adopts through the same `adoptable`; `ReplayDashcam.recover` is `find` (a local file is its own seal) | `check_dashcam` now asserts `recover` for the fake, the real store and `ReplayDashcam` (plant: the fake adopting unchecked) |
+
+- **Readers never adopt:** reports, `unfilled`, the instructor's reader and the entry mids keep `find`; only the
+  writer's rerun adopts.
+- **The pilot's record is unchanged:** the 22 Oct replay is byte-identical (105 files).
+- **Plants:** 13 planted, 13 caught (the drift plant first survived on a BANKNIFTY test, whose drift is empty; the
+  test now uses a NIFTY road with differing rows).

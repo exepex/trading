@@ -21,10 +21,10 @@ from ...desk.snapshot import ExecutionSnapshot
 from ...models import IST
 from ..constants import FLEET_STOPPED, SLOT_1500, ExitReason, RecordKind, RoadCode
 from ..contracts.clock import Clock
-from ..contracts.dashcam import DashcamStore
+from ..contracts.dashcam import DashcamStore, DashcamStuck
 from ..contracts.decisions import Driver, SpotPoint
 from ..contracts.fleet import RunMode, SessionRun
-from ..contracts.records import DecisionRecord, ExitRecord
+from ..contracts.records import DecisionRecord, DriftRow, ExitRecord
 from ..contracts.roads import ROADS_BY_CODE, Road, RoadCatalogue
 from ..contracts.snapshot import SlotSnapshot, SnapshotSource
 from ..execution.quote_rules import LIVE, QuoteRules
@@ -43,6 +43,7 @@ from .slot import QualityGate, SlotRoads, plan_slot
 FINISHED = (RecordKind.OUTCOMES, RecordKind.DRIFT)
 LATE_RERUN = "rerun after 15:30, fillable may differ"  # ruling b's accepted limit, marked on the session's record
 ACCOUNT_STOP = FLEET_STOPPED + " account unreadable {reason}"  # the run's status; the CLI exits 1: an alert
+DASHCAM_STOP = FLEET_STOPPED + " {reason}"  # "dashcam stuck: stored file unverifiable ...": the CLI exits 1
 CardCheck = Callable[[tuple[DecisionRecord, ...], object], tuple[str, ...]]  # (sealed decisions, their seal)
 LawsFor = Callable[[Mapping[RoadCode, SlotSnapshot]], object]  # the slot's `SafetyLaws`, built on its marks
 
@@ -75,12 +76,14 @@ class SchoolFleet:
             return self._run(session, mode)
         except AccountUnreadable as stop:
             return SessionRun(session, mode, ACCOUNT_STOP.format(reason=stop))
+        except DashcamStuck as stuck:
+            return SessionRun(session, mode, DASHCAM_STOP.format(reason=stuck))
 
     def _run(self, session: date, mode: RunMode) -> SessionRun:
         roads = plan_slot(session, self.catalogue, self.snapshots, self.gate, self.rules)
         if not roads.scheduled:
             return SessionRun(session, mode, "")
-        found = self.dashcam.find(session, SLOT_1500, RecordKind.DECISIONS)
+        found = self.dashcam.recover(session, SLOT_1500, RecordKind.DECISIONS, self._belongs)
         if found is not None:
             records, exits = self._sealed(found)
             self._finish(roads, records, exits, found, rerun=True)
@@ -119,6 +122,15 @@ class SchoolFleet:
     def _ids(self) -> tuple[str, ...]:
         return tuple(d.card.driver_id for d in self.drivers)
 
+    def _belongs(self, record) -> bool:
+        """A stored record this fleet could have written: its driver is one of this fleet's, and a decision names that
+        driver's card as frozen now (a file from another card version under the same key is never adopted)."""
+        cards = {d.card.driver_id: d.card.card_sha256 for d in self.drivers}
+        if isinstance(record, DecisionRecord):
+            return cards.get(record.decision.driver_id) == record.card_sha256
+        driver_id = record.position_id.split(":")[0] if isinstance(record, DriftRow) else record.driver_id
+        return driver_id in cards
+
     def _finish(self, roads, records, exits, seal, rerun: bool = False) -> SlotFills:
         """Rebuilt from the sealed records and the ledgers on every run, so a rerun after a crash at any point between
         the seal and the counts' commit makes what is missing and nothing twice."""
@@ -140,8 +152,8 @@ class SchoolFleet:
         return fills
 
     def _sealed_once(self, session: date) -> bool:
-        return all(self.dashcam.find(session, SLOT_1500, kind) is not None for kind in FINISHED)
+        return all(self.dashcam.find(session, SLOT_1500, kind) is not None for kind in FINISHED)  # a query: no adopting
 
     def _seal_once(self, session: date, kind: RecordKind, rows: tuple) -> None:
-        if self.dashcam.find(session, SLOT_1500, kind) is None:
+        if self.dashcam.recover(session, SLOT_1500, kind, self._belongs) is None:
             self.dashcam.seal(session, SLOT_1500, kind, rows)

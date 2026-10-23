@@ -1,6 +1,7 @@
 """`DashcamStore` over O9's `DataStore` (story 3.4): one gz JSONL file per (session, slot, kind), saved write-once to
 Drive with its receipt, the receipt committed and pushed before `seal` returns. Equal records give equal bytes, so a
-rerun is a no-op that returns the same seal; other bytes for the same key are a replay conflict."""
+rerun is a no-op that returns the same seal; other bytes for the same key are a replay conflict. A file stored by a
+run that stopped before its receipt's push is adopted by the writer's rerun (`recover`), never sealed over."""
 
 import hashlib
 from datetime import date
@@ -8,15 +9,17 @@ from datetime import date
 from ...storage.data_store import DataStore
 from ...storage.raw_store import RawFileConflict
 from ..constants import RecordKind
-from ..contracts.dashcam import ReplayConflict
+from ..contracts.dashcam import Belongs, ReplayConflict
 from ..contracts.seal import Seal, StaleSeal
 from ..contracts.slot_file import SlotRecord, decode_slot_file, encode_slot_file
+from .adoption import adoptable
 from .names import slot_file_path
 from .publisher import ReceiptPublisher
 from .reader import SlotFileReader
 
 RULE_BROKEN = "rule broken: {path} is sealed with other bytes; a sealed file is never overwritten"
 RECEIPT_MESSAGE = "dashcam {kind} {session} {slot}"
+ADOPTED_MESSAGE = "dashcam {kind} {session} {slot} adopted: stored on Drive by a run stopped before its receipt"
 DAMAGED = "{path} holds other bytes than its seal's SHA-256"
 
 
@@ -36,6 +39,19 @@ class DriveDashcamStore:
         except RawFileConflict as conflict:
             raise ReplayConflict(RULE_BROKEN.format(path=path)) from conflict
         pushed = self.publisher.publish(receipt.path, RECEIPT_MESSAGE.format(kind=kind, session=session, slot=slot))
+        return Seal(path, receipt.sha256, pushed.pushed_at, pushed.commit)
+
+    def recover(self, session: date, slot: str, kind: RecordKind, belongs: Belongs) -> Seal | None:
+        found = self.find(session, slot, kind)
+        if found is not None:
+            return found
+        path = slot_file_path(session, slot, kind)
+        stored = self.data.drive.get(f"{self.data.area}/{path}")
+        if stored is None:
+            return None
+        adoptable(stored, session, slot, kind, belongs)
+        receipt = self.data.put(path, stored)  # the same bytes: a no-op on Drive, the receipt written from them
+        pushed = self.publisher.publish(receipt.path, ADOPTED_MESSAGE.format(kind=kind, session=session, slot=slot))
         return Seal(path, receipt.sha256, pushed.pushed_at, pushed.commit)
 
     def read(self, seal: Seal) -> tuple[SlotRecord, ...]:

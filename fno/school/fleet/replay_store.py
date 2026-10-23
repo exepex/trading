@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ..constants import RecordKind
 from ..contracts.clock import Clock
-from ..contracts.dashcam import ReplayConflict
+from ..contracts.dashcam import Belongs, ReplayConflict
 from ..contracts.seal import Seal, StaleSeal
 from ..contracts.slot_file import SlotRecord, decode_slot_file, encode_slot_file
 from ..dashcam.names import slot_file_path
@@ -36,6 +36,10 @@ class ReplayDashcam:
         path = slot_file_path(session, slot, kind)
         file = self.folder / path
         return self._seal(path, file.read_bytes()) if file.is_file() else None
+
+    def recover(self, session: date, slot: str, kind: RecordKind, belongs: Belongs) -> Seal | None:
+        """A local file is its own seal: nothing is pushed, so no run stops between a write and a receipt."""
+        return self.find(session, slot, kind)
 
     def read(self, seal: Seal) -> tuple[SlotRecord, ...]:
         file = self.folder / seal.path
