@@ -174,3 +174,20 @@ record root's wiring. First of two judges, independent of judge K.
 temporary file (`.<name>.part`, in the counts folder) could be caught by the commit's `git add` of that folder. The
 write is one small file, so the window is tiny, and `.gitignore` has no rule for `*.part` there [reasoning only]. An
 ignore rule for `research/school/counts/**/.*.part` would close it.
+
+## Addendum 6
+
+**Scope:** MS-P1j seams for the simulator, story/ms-p1j-sim-seams at a02d1eb9 (from main). I am the only judge
+(orchestrator: seams, not money logic).
+- `fleet_wiring.books_on(cfg, stores, fills)` is the one construction of the accounts and the ticket ledger.
+- `ReplayDashcam.encode`/`decode` are the only places a subclass changes.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13799 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **A refactor.** `fleet_on` builds its books through `books_on` with the live fill port, exactly as before.
+  `ReplayDashcam.seal` and `read` go through `encode`/`decode`, and the write-once and seal checks stay in the base
+  class. The pilot's `decode_slot_file` reads lines that carry an extra label, because it reads only `type` and
+  `record`.
+- **Plants: 3, 3 caught.** `seal` bypassing `encode`; `read` bypassing `decode`; the ticket book ignoring the given
+  fill port.
