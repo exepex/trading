@@ -21,6 +21,7 @@ from ..source.snapshots import HistoricalRoadSource
 from ..spreads.model import Scenario
 from .fleet import MarginFor, PracticeParts, build_practice_fleet
 from .report import PracticeReport, RoadDayCoverage, ScenarioResult
+from .spots import ChainSpotHistory
 from .window import RunWindow
 
 
@@ -37,12 +38,22 @@ class PracticeRunner:
         for position, scenario in enumerate(self.scenarios):
             result = report.scenarios.setdefault(scenario, ScenarioResult())
             for session in sessions:
+                self._warm(session, roads)
                 fleet = build_practice_fleet(self.parts, session, scenario, self.home / scenario.value,
                                              self.margin_for, roads)  # fmt: skip
                 self._collect(result, fleet, session, fleet.run(session, RunMode.REPLAY), self.home / scenario.value)
                 if position == 0:
                     self._coverage(report, scenario, session, roads)
         return report
+
+    def _warm(self, session: date, roads) -> None:
+        """Reads the session's own chains and the drivers' history before the fleet runs. A cold Drive read takes
+        seconds a day and the fleet gives each driver 60 s, so a cold first session made CS1 `unavailable: deadline`
+        (found in the first real-data run). The cache then serves the fleet: the deadline measures the rule."""
+        history = ChainSpotHistory(self.parts.chain, self.parts.calendar)
+        for road in roads:
+            self.parts.chain.day(road.underlying, session)
+            history.spots(road, session)
 
     def _collect(self, result: ScenarioResult, fleet: SchoolFleet, session: date, run: SessionRun, home: Path) -> None:
         if run.status or not run.decisions:

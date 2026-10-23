@@ -174,3 +174,35 @@ def test_the_impossible_line_gives_the_share_of_legs(tmp_path):
     legs = sum(c.legs for c in report.coverage)
     impossible = sum(c.impossible for c in report.coverage)
     assert f"impossible {impossible} ({impossible / legs:.0%})" in "\n".join(render(report))
+
+
+def test_the_archive_is_read_before_the_fleet_runs_so_the_drivers_deadline_measures_the_rule(tmp_path, monkeypatch):
+    """The first real-data run: a cold Drive read inside the fleet made CS1 `unavailable: deadline`."""
+    from fno.school.fleet.runner import SchoolFleet
+    from fno.school.simulator.practice.cached_chain import CachedChain
+
+    parts = tf.parts()
+    underlying = parts.chain
+    reads = {"inside": False, "cold": 0}
+
+    class Spy:
+        def day(self, name, session):
+            if reads["inside"]:
+                reads["cold"] += 1  # a read that reached the archive while the fleet was running
+            return underlying.day(name, session)
+
+    original = SchoolFleet.run
+
+    def watched(self, session, mode):
+        reads["inside"] = True
+        try:
+            return original(self, session, mode)
+        finally:
+            reads["inside"] = False
+
+    monkeypatch.setattr(SchoolFleet, "run", watched)
+    from dataclasses import replace as swap
+
+    cached = swap(parts, chain=CachedChain(Spy()))
+    runner(tmp_path, cached).run(WINDOW)
+    assert reads["cold"] == 0
