@@ -149,3 +149,41 @@ frozen file without it.
    rule for staged versions that were never chosen (e.g. 90 days) can come later, never for chosen ones.
 4. **A dataset with no certified record stops its readers.** That is the owner's rule, and it means a source outage
    now shows as a named stop instead of a silent gap. The catch-up and the alert make it visible the same day.
+
+## 7. Build step 1 (DR1-1): records for A4h's closes, built and in shadow (branch story/dr1-1-closes-records)
+
+**What it builds (new package `fno/record_store/`, no change to `fno/close_read/` or any reader):** the generic parts
+(`StagingArea` and `ReceiptedFiles` version sources, `DatasetRules`, `Certifier`, `RecordFolder` in git under
+`receipts/records/`, `RecordReader` with the as-seen pointer) and the first dataset's rules (`closes.py`). In the
+shadow phase the closes' versions are A4h's own raw answers (`<day>.first.raw.json`, `<day>.recheck.raw.json`, through
+their receipts), so A4h's writer is untouched. Command: `python -m fno records certify closes [--day D] [--level
+provisional|certified] [--commit]` and `python -m fno records read closes [--day D] [--level ...]`.
+
+**Closes rules (version 1):** provisional = integrity (bytes equal their receipt), layout (JSON), A4h's own
+`read_answer` (NSE stamp that day at or after 15:30, every index with last and open), sanity (positive; last within
+20% of open: NSE's widest index band); the passing versions must agree on NIFTY 50 and NIFTY BANK, else no provisional
+record ("the certified record decides"). Certified = the same plus NSE's official index-close file within A4h's
+0.01 tolerance (A4h's `OfficialCloses`); no official file yet means no certified record, named.
+
+**Real Drive, read-only dry run (23 Oct, records kept local, not committed):** `closes 2026-10-22 certified: recorded
+d98b58cde08f, 1 of 1 version(s) passed; agrees with NSE's official file ind_close_all_22102026.csv within 0.01;
+matches A4h's record`; `closes 2026-10-23 provisional: recorded c5c1bb4fdf47, 2 of 2 version(s) passed; 2 passing
+version(s) agree on NIFTY 50, NIFTY BANK; matches A4h's record`.
+
+**Shadow running (proposed, not in this branch: it touches routines):** the evening routine certifies the day's
+provisional record after `closes read --commit` (`records certify closes --level provisional --commit`), and the
+morning routine certifies yesterday's after step 1b archives the official file (`records certify closes --day
+<previous session> --level certified --commit`). After 5 sessions with "matches A4h's record" and no unexplained
+refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h and FL1 builders).
+
+### Claims (DR1-1)
+
+1. A record is a pointer (path, SHA-256, size, saved time) plus every version's check results; it never holds a level
+   (tested), and the same choice gives the same bytes, so a rerun is a no-op.
+2. Choice by quality only: a version failing any check never becomes the record; provisional reads that disagree make
+   no record; the certified record names the read that agrees with NSE's official file, whichever read it is.
+3. A record already published by another certifier is never overwritten: a different choice is printed as a conflict.
+4. `RecordReader` returns exactly the recorded bytes or refuses by name (no record, missing, other bytes); a certified
+   record serves a provisional need, never the reverse; the as-seen pointer names level, path and SHA-256.
+5. Two writers staging one session in the same second get two names (`<fetched_at>_<run_id>`).
+6. Gates: ruff, `tools/check_imports.py`, full suite 14,635 passed (19 new in `tests/record_store/`).
