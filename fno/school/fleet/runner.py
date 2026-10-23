@@ -95,12 +95,18 @@ class SchoolFleet:
         records, exits = [], []
         for driver in self.drivers:
             driver_id = driver.card.driver_id
-            view = account_call(driver_id, self.books.accounts.view, driver_id, roads.marks, session)
+            view = self._open(driver_id, roads.marks, session)
             tickets = open_positions(account_call(driver_id, self.books.ticket_entries.entries, driver_id))
             slot = step.run(driver, roads, view, view.open_positions, tickets)
             records.extend(slot.records)
             exits.extend(slot.exits)
         return tuple(records), tuple(exits)
+
+    def _open(self, driver_id: str, marks, session: date):
+        """Every store the fleet records into is opened by its view before any fill, the ticket ledger by the same step
+        as the driver account; the driver account's view is the one the laws read."""
+        views = [account_call(driver_id, store.view, driver_id, marks, session) for store in self.books.stores]
+        return views[0]
 
     def _sealed(self, seal) -> tuple[tuple[DecisionRecord, ...], tuple[ExitRecord, ...]]:
         sealed = self.dashcam.read(seal)

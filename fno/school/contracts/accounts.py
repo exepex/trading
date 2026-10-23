@@ -103,7 +103,8 @@ class AccountPort(Protocol):
         school's `account_rs` on first use."""
 
     def record(self, driver_id: str, entry: LedgerEntry) -> None:
-        """Append one entry to the driver's append-only ledger; the same entry again is a no-op."""
+        """Append one entry to the driver's append-only ledger; the same entry again is a no-op. An account no `view`
+        has opened refuses it (d's store raises `AccountError`): whoever records, views first (MS-P1j)."""
 
 
 @runtime_checkable
