@@ -91,3 +91,22 @@ should-fix.
 "belongs to P2". `test_the_card_freezes_the_pieces_judge_480_named` pins that text. Once m merges, the card describes
 a limit that no longer exists. The card's own rule makes a change a new card version, so this needs your decision
 before counting starts.
+
+## Addendum 2
+
+**Scope:** story/ms-p1m-factor-seam at 2992864d (one commit on main): `build_road_margin(cfg, env, factor=None)`, two
+tests and one story line. The ruling it implements is the orchestrator's (23 Oct 2026, about 01:50 UTC): a practice
+run over history prices each session's own archived SPAN file at the latest stress factor, and law 3 is never skipped.
+
+**Verdict: PASS.**
+
+- **The live path is unchanged.** The only production caller, `fno/school/safety/wiring.py:31`, passes no factor, so
+  C2's file lookup stays and still refuses a session before the factor file's first row (14 Oct 2026).
+- **A given factor is used and named.** It applies to every session, and the record's `stress_factor_row` names it;
+  the test prices a planted file at the given 2.1.
+- **Plants: 3 caught.** The seam ignored; a default 2.1 put in place of the lookup; the default lookup made to answer
+  an old session.
+  - A fourth plant of mine, clamping old sessions to 14 Oct, survived only because it equals the real lookup on that
+    test's day (rows strictly before the day): not a gap.
+  - A fifth, the lookup ignoring `max_age_days`, survives, but that line is unchanged by this commit.
+- **Gates (my run):** pytest -n auto: 13,796 passed, 16 xfailed. ruff check and format and `check_imports` are clean.
