@@ -57,7 +57,3 @@ class InstructorStore(Protocol):
 
     def read(self, session: date, kind: InstructorKind) -> tuple[InstructorRecord, ...] | None:
         """The records written for that key, or None."""
-
-    def recover(self, session: date, kind: InstructorKind) -> tuple[InstructorRecord, ...] | None:
-        """As `read`, for the writer's rerun: a file stored but not yet receipted (a run that stopped between the
-        two) is receipted from its stored bytes and returned, never recomputed."""
