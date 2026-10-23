@@ -38,6 +38,7 @@ from .decide import DriverStep
 from .fill import FillStep, SlotFills
 from .ledgers import open_positions, recorded
 from .outcomes import outcomes_of
+from .running_view import driver_of
 from .session_hook import no_step
 from .settle import settle_expired
 from .slot import QualityGate, SlotRoads, plan_slot
@@ -131,7 +132,7 @@ class SchoolFleet:
         cards = {d.card.driver_id: d.card.card_sha256 for d in self.drivers}
         if isinstance(record, DecisionRecord):
             return cards.get(record.decision.driver_id) == record.card_sha256
-        driver_id = record.position_id.split(":")[0] if isinstance(record, DriftRow) else record.driver_id
+        driver_id = driver_of(record.position_id) if isinstance(record, DriftRow) else record.driver_id
         return driver_id in cards
 
     def _finish(self, roads, records, exits, seal, rerun: bool = False) -> tuple[SlotFills, tuple[str, ...]]:
