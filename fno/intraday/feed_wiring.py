@@ -8,8 +8,14 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
+import tempfile
+import threading
 import time as clock_module
 import urllib.request
+from collections.abc import Callable, Mapping
+from pathlib import Path
+from types import SimpleNamespace
 
 from ..config import ROOT
 from ..models import now_ist
@@ -24,15 +30,68 @@ from .read_only_feed import ReadOnlyFeed
 from .wiring import INTRADAY_FOLDER
 
 INSTRUMENTS_TIMEOUT_SECONDS = 60
+FEED_CONNECT_SECONDS = 30  # the SDK retries a failed connect for about 2 minutes on its own (23 Oct): end it sooner
+NOT_CONNECTED = "the feed did not connect within {seconds:.0f} s"
+
+
+class FeedNotConnected(RuntimeError):
+    """The feed did not open in time (or its connect raised): the probe stops with one plain line."""
+
+
 RUN_LOGS = ROOT / "journal" / "runs"  # O1's daily run log, one file per day
 
 
-def build_feed_probe(cfg: dict) -> tuple[FeedProbe, ReadOnlyGroww]:
+def build_feed_probe(cfg: dict, env: Mapping[str, str] = os.environ) -> tuple[FeedProbe, ReadOnlyGroww]:
     from growwapi import GrowwFeed
+    from growwapi.groww import nats_client
 
+    ca_file = feed_ca_file(env, Path(tempfile.mkdtemp(prefix="feed-ca-")))
+    if ca_file:
+        trust_for_feed(nats_client, ca_file)
     provider = GrowwProvider(cfg)
-    feed = ReadOnlyFeed(GrowwFeed(provider.api))  # signs in once, before the plan's window check
+    feed = ReadOnlyFeed(open_feed(lambda: GrowwFeed(provider.api), FEED_CONNECT_SECONDS))
     return FeedProbe(feed, now_ist, clock_module.sleep), ReadOnlyGroww(lambda: provider.api)
+
+
+def feed_ca_file(env: Mapping[str, str], folder: Path) -> str | None:
+    """certifi's public roots **plus** the bundle in SSL_CERT_FILE (a TLS-re-terminating proxy's CA, 23 Oct) in one
+    file; None when SSL_CERT_FILE is unset or missing. Added, never replacing: a host without the proxy still verifies,
+    and verification stays on (orchestrator, 23 Oct)."""
+    import certifi
+
+    extra = env.get("SSL_CERT_FILE")
+    if not extra or not Path(extra).is_file():
+        return None
+    combined = Path(folder) / "feed-ca.pem"
+    combined.write_bytes(Path(certifi.where()).read_bytes() + b"\n" + Path(extra).read_bytes())
+    return str(combined)
+
+
+def trust_for_feed(nats_module, ca_file: str) -> None:
+    """The SDK's feed builds its TLS context from `certifi.where()` alone (growwapi/groww/nats_client.py): it is given
+    the combined file instead, in that one module only."""
+    nats_module.certifi = SimpleNamespace(where=lambda: ca_file)
+
+
+def open_feed(make: Callable[[], object], seconds: float) -> object:
+    """Builds the feed in a thread joined for at most `seconds`; a slower or failed connect raises FeedNotConnected."""
+    made: list[object] = []
+    failed: list[BaseException] = []
+
+    def build() -> None:
+        try:
+            made.append(make())
+        except Exception as error:  # named by class only by the caller
+            failed.append(error)
+
+    worker = threading.Thread(target=build, daemon=True)  # a stuck SDK retry loop is left behind, never waited for
+    worker.start()
+    worker.join(seconds)
+    if worker.is_alive():
+        raise FeedNotConnected(NOT_CONNECTED.format(seconds=seconds))
+    if failed:
+        raise FeedNotConnected(f"the feed did not connect: {type(failed[0]).__name__}")
+    return made[0]
 
 
 def build_universe(client: ReadOnlyGroww, side: int, every_expiry: bool = False):

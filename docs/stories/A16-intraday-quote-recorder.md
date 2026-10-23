@@ -705,6 +705,31 @@ one).
 **Depends:** A16 (ReadOnlyGroww's pattern, the import-closure test), the Groww SDK as installed by `routine_setup.sh
 --groww` · **Size:** S · **Status:** story text round 2 for judge I (judge 499's two should-fixes and two minors, 23 Oct 2026)
 
+### Claims (TLS fix, 23 Oct 2026: orchestrator's go, lane 1, judge I; branch story/a16h-feed-tls)
+- **Root cause (strong evidence):** the one-minute dry run of 23 Oct (11:02-11:04 IST) failed with
+  CERTIFICATE_VERIFY_FAILED at socket-api.groww.in:443, then NoServersError after about 2 minutes of SDK retries; 0
+  ticks, nothing stored. `growwapi/groww/nats_client.py` builds its context with
+  `ssl.create_default_context(cafile=certifi.where())`, so it ignores `SSL_CERT_FILE`, while this container's proxy
+  re-signs TLS with its own CA. A bare live handshake: certifi alone fails ("self-signed certificate in chain");
+  certifi plus the `SSL_CERT_FILE` bundle: "handshake ok (TLSv1.3)".
+- **Condition 1, add, never replace:** `feed_wiring.feed_ca_file` writes certifi's roots followed by the
+  `SSL_CERT_FILE` bundle to one temporary file; `trust_for_feed` points only the SDK's `nats_client` module's
+  `certifi.where` at it (the real `certifi` module and every other caller are untouched). No bundle set or missing:
+  nothing changes. Verification stays on: `tests/intraday/test_feed_tls.py` runs real localhost TLS handshakes with the
+  SDK's own call: a certificate signed by the added CA verifies; an untrusted self-signed one is refused; certifi alone
+  refuses the proxy-signed one; `verify_mode` is CERT_REQUIRED and `check_hostname` is on.
+- **Condition 2, own connect timeout:** `open_feed` builds the feed in a daemon thread and waits at most
+  `FEED_CONNECT_SECONDS` (30 s); a timeout or an error raises `FeedNotConnected` with one plain line (the error named
+  by class only, never its text). `feed_cli` prints `feed probe <plan>: stopped: <line>` and exits 1. Tests: the
+  timeout ends in about 0.2 s with a short limit; an error is named by class; the command prints one line.
+- **Round 2 (judge 499 addendum 8, should-fix):** `build_feed_probe` itself is now tested with a fake provider and a
+  fake `GrowwFeed` that records `nats_client.certifi.where()` at construction (connect time): with `SSL_CERT_FILE` it
+  is the combined file (certifi's roots first, then the bundle); without it the module still holds the real `certifi`.
+  The module is restored after the test (monkeypatch). Planted removal of the `trust_for_feed` call: the test fails.
+- **Scope:** `fno/intraday/feed_wiring.py` and `feed_cli.py` only, plus the new test file; no other module, no
+  setting, no TLS check turned off, `HTTPS_PROXY` untouched. Gates on round 2's tree: 14,335 passed, 16 xfailed; ruff,
+  format and check_imports clean.
+
 ### Claims (code round 2, 23 Oct 2026: judge 499 addendum 5)
 - **Should-fixes 1 and 2** were already met at 4abcf179f, pushed after the reviewed ef896e21: the catch-up gate and the
   ramp from 50 with halving. The tests and lines are in "Claims (code round 1 update)" below.
