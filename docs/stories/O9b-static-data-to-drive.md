@@ -300,3 +300,26 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   evidence that capture-watch records cancelled runs, each with its run link and "before any step".
 - **Judge 477 addendum 2: PASS at 5a423497 (the trigger); addendum 3: PASS at ccfc340a (REPLACEABLE).** Both merged
   together with the orchestrator's go (23 Oct, after 16:15 IST).
+
+**`DriveCache.sync` on a single file (story/o9-sync-file, for Judge F; assigned by the orchestrator, 23 Oct):**
+- **The defect:** `ReceiptFolder.under()` treated every prefix as a folder. For one file's path it returned `[]`, so
+  `sync(<file>)` answered `SyncReport(present=0, problems=[])`, an empty success. The FL1 builder proved this is
+  the root cause of the broken evening check on 23 Oct.
+- **The fix, in O9's store (`fno/storage`):**
+  - `under(prefix)` returns that one receipt when `prefix` names a receipted file, so a single-file sync now
+    brings exactly that file, verified.
+  - `sync()` reports "`<prefix>`: no receipts under it (neither a receipted file nor a folder holding one)" when
+    nothing matches, so a wrong path is never an empty success.
+  - A receipt-backed series with nothing written yet (a new table, say the global cues' revisions log) checks for
+    receipts first and reads as empty, not unreadable.
+- **The callers, checked on main:**
+  - Single-file paths: only FL1's `forecast_lab/a4h_closes.py` and `forecast_lab/sections/gift.py`. They now get
+    their file. The FL1 builder is changing them anyway; this fix makes the old call correct, not a second fix.
+  - Every other caller passes a folder: `price_ranges`, `price_distribution`, `premium_ranges`, `itm_chance`,
+    `circulars`, `flow_history`, `v4_pack/release` (a dirname), `school/dashcam` (a folder), `forecast_lab/wiring`,
+    `cache_cli` and the receipted series.
+  - The folders those callers sync from their own outputs all hold receipts today (premium_ranges 2,
+    itm_chance 1, price_distribution 21), so the new problem line changes no live answer.
+- **Tests:** a single file is synced alone; three wrong prefixes each give exactly the new problem, with nothing
+  downloaded; an empty row log and an empty snapshot series read as empty. All 3 mutations, one per change, are
+  caught.
