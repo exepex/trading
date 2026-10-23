@@ -2976,7 +2976,7 @@ guard.
 - every decision counted regardless of h's verdict.
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
 
-#### INS-e follow-up, round 2: each session computed as of itself (branch `story/ms-ins-adopt`, lane 1; judge 525 FAIL round 1; orchestrator's ruling of 23 Oct 2026: build the cut-off, drop adoption)
+#### INS-e follow-up, round 2: each session computed as of itself (branch `story/ms-ins-adopt`, lane 1; judge 525 FAIL round 1; orchestrator's ruling of 23 Oct 2026: build the cut-off, drop adoption; the owner chose this version over adoption for the third round, 23 Oct 2026)
 
 **The defect** (found by MS-P1j's builder):
 - `DriveInstructorStore.write` puts the file on Drive first and publishes its receipt after.
