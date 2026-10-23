@@ -2665,3 +2665,14 @@ the ladder, no Watching anywhere, the notes and the seller flag.
 loss (a 5% chance), this descriptive bound looks positive about 2 runs in 5 even with no edge. Rows print that rate.
 The rarer the loss, the more misleading a short sample looks. That is the peso problem, and it is why v1 has no
 Watching.
+### MS-P1a4 Per-expiry lots · lane 1 (the lot decides size, cost and margin; Judges B then I) · builder: MS-P1a's owner (session_01CmKJ6taCLzfEGg7wt6RC4N), branch `story/ms-p1a4-lots`
+Why (the SIM builder, Judge H on the archive): NSE changes a lot from a given expiry, so for a while an index's two
+monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day loses the road for that stretch.
+| Item (orchestrator, 22 Oct 2026) | Change | Test (and the plant it catches) |
+| `RoadDay.lots` and `lot_for(expiry)`, built like `strike_steps` and `step_for` | `lots: Mapping[date, DatedLot]` (hash=False): when given, it names every recorded expiry, each above zero, and the nearest's is `lot`. `lot_for` gives that expiry's own lot, never another's. Without `lots`, every recorded expiry carries `lot`, which is exactly what a catalogue that closes a road on mixed lots states (every catalogue today); an expiry the road did not record has none | `tests/school/contracts/test_road_lots.py` (plants: borrowing the nearest lot, the checks removed, an unrecorded expiry given the lot, lots in the hash) |
+| e's two reads (drivers/proposals.py) | `road_day.lot_for(plan.expiry).units` for both the units and C2's candidate builder | `test_a_proposal_on_the_later_expiry_is_sized_with_that_expiry_s_own_lot`: REF on the later expiry proposes with that expiry's doubled lot (plant: the nearest's lot) |
+| b's catalogue fills one lot per expiry | **Not needed, so not changed:** without `lots`, `lot_for` already gives every recorded expiry the catalogue's one lot, which b guarantees by closing a road on mixed lots. Changing b would add a line that says nothing new | a's conformance check now asks every open road for every recorded expiry's lot, and the nearest's is `lot`; b's real catalogue passes it unchanged |
+| The live catalogue keeps closing a road on mixed lots | unchanged | — |
+- **Plants:** 6 planted, 6 caught.
+- **Later, not in a4:** lifting the live closure needs a test on the 2 Jun 2025 archive showing BANKNIFTY-M's near
+  and far monthlies each proposing with their own lot, units, fill costs and margin (orchestrator).
