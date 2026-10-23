@@ -1,10 +1,10 @@
 """`python -m fno school ...` (story MS-P1j): the session's run, its replay, and b's capture-gate report.
 
-- `run [--session D]`: the paper record of the 15:00 slot, only when `school.enabled` is true; otherwise it prints the
-  school-off line and touches nothing (no store is even built).
+- `run [--session D]`: the paper record of the 15:00 slot, only when `school.enabled` is true; otherwise the record
+  root returns the switched-off runner, which prints the school-off line and touches nothing (no store is built).
 - `run --replay FOLDER [--session D]`: a recorded session again, every write under FOLDER (no Drive write, no push,
-  no commit, a fixed clock). A replay writes no paper record, so it runs whatever the switch says; it is how the
-  end-to-end dry run is made.
+  no commit, a fixed clock). A replay writes no paper record, so its root has no switch; it is how the end-to-end
+  dry run is made.
 - `capture-gate [...]`: b's read-only report (unchanged)."""
 
 from collections import Counter
@@ -13,8 +13,7 @@ from pathlib import Path
 
 from ..config import load_app_config
 from ..models import now_ist
-from .constants import FLEET_STOPPED, SCHOOL_OFF_LINE, SETTINGS_KEY
-from .settings import school_settings
+from .constants import FLEET_STOPPED
 
 NOT_A_SESSION = "not a trading day: nothing scheduled"
 
@@ -34,9 +33,6 @@ def add_school_parser(sub) -> None:
 def cmd_run(args, out=print) -> int:
     cfg = load_app_config(args.config) if getattr(args, "config", None) else load_app_config()
     session = args.session or now_ist().date()
-    if args.replay is None and not school_settings(cfg).enabled:
-        out(SCHOOL_OFF_LINE)
-        return 0
     from . import wiring
     from .contracts.fleet import RunMode
     from .fleet.quote_share import share_lines
@@ -46,7 +42,6 @@ def cmd_run(args, out=print) -> int:
     else:
         from .replay_wiring import build_replay_fleet
 
-        cfg = {**cfg, SETTINGS_KEY: {**cfg[SETTINGS_KEY], "enabled": True}}
         mode, fleet = RunMode.REPLAY, build_replay_fleet(cfg, session, args.replay)
     run = fleet.run(session, mode)
     for line in run_lines(run, share_lines):
