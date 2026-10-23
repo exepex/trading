@@ -18,11 +18,12 @@ from .composers import EveningComposer, MorningComposer
 from .confirm import Confirmation
 from .constants import EVENING, MORNING, MORNING_BY, REPORT_AREAS
 from .delivery import NoReportPoster, ReportPoster, SlackFilesPoster
-from .edition_run import Edition, EditionRun
+from .edition_run import Composer, Edition, EditionRun
 from .g13b_adapter import G13bCloses, G13bRanges
 from .match import MatchSection
 from .official_closes import ArchivedCloses
 from .page_wiring import build_report_maker
+from .preview import Preview
 from .records import DriveReportRecords
 from .release import FlowsRelease, ReleaseChecks
 from .report import CloseReport
@@ -76,7 +77,9 @@ def build_release_checks() -> ReleaseChecks:
     return ReleaseChecks({"fo-bhavcopy": fo, "fii-dii-cash": flows})
 
 
-def build_edition(edition: str, env=os.environ) -> EditionRun:
+def build_composer(edition: str, env=os.environ) -> tuple[Composer, RegularSessions, dict[str, date | None]]:
+    """The edition's composer over the synced Drive cache (read-only: only `EditionRun` writes records), the regular
+    sessions and each edition's live date."""
     from ..price_ranges import wiring as g13b
     from ..price_ranges.closes import IndexFileCloses, Outcomes
     from ..price_ranges.folders import BACKFILL, LIVE, SCORES, drive
@@ -97,10 +100,19 @@ def build_edition(edition: str, env=os.environ) -> EditionRun:
     maker = build_report_maker(ranges, forecasts, scores, calendar, closes)
     evenings, own = records(EVENING, env), records(edition, env)
     if edition == MORNING:
-        composer = MorningComposer(maker, Confirmation(evenings.report, own.report, closes, sessions))
-    else:
-        report = CloseReport(ranges, MatchSection(ranges, closes, sessions, g13b_issues_from(cfg)), live[EVENING])
-        composer = EveningComposer(report, maker, own.report)
+        return MorningComposer(maker, Confirmation(evenings.report, own.report, closes, sessions)), sessions, live
+    report = CloseReport(ranges, MatchSection(ranges, closes, sessions, g13b_issues_from(cfg)), live[EVENING])
+    return EveningComposer(report, maker, own.report), sessions, live
+
+
+def build_edition(edition: str, env=os.environ) -> EditionRun:
+    composer, sessions, live = build_composer(edition, env)
     cutoff = MORNING_BY if edition == MORNING else None
-    return EditionRun(Edition(edition, live[edition], cutoff), composer, own, build_forecast_poster(env),
-                      build_alert_sender(), sessions.is_regular, now_ist)  # fmt: skip
+    return EditionRun(Edition(edition, live[edition], cutoff), composer, records(edition, env),
+                      build_forecast_poster(env), build_alert_sender(), sessions.is_regular, now_ist)  # fmt: skip
+
+
+def build_preview(edition: str, env=os.environ) -> Preview:
+    """The owner's preview: the edition's composer, the #fno-forecast poster and its own records, read only."""
+    composer, _, _ = build_composer(edition, env)
+    return Preview(composer, build_forecast_poster(env), records(edition, env).report)

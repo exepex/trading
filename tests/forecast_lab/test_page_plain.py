@@ -4,12 +4,14 @@ index and the fixed research line."""
 
 from datetime import date
 
+from fno.forecast_lab.page.message import slack_lines
 from fno.forecast_lab.page.model import Band
-from fno.forecast_lab.page.plain import certain, light, likely, outward, slack_lines, when
+from fno.forecast_lab.page.plain import certain, light, likely, outward, when
 
 from .page_builders import index, page
 
 FRI, MON = date(2026, 10, 23), date(2026, 10, 26)
+RIGHT = "Right = the close fell inside the “almost certainly” range."
 
 
 def test_tomorrow_is_said_only_when_the_next_session_is_the_next_calendar_day():
@@ -31,29 +33,56 @@ def test_the_light_is_green_from_25_amber_at_24_red_at_23_or_fewer_and_grey_with
     assert light(index(right=10, scored=12)) == "none"
 
 
-def test_the_message_is_one_line_per_index_then_the_status_line():
-    title, *lines = slack_lines(page())
-    right = "Right = the close fell inside the “almost certainly” range."
-    assert title == f"*Was today's forecast right?* (Fri 23 Oct, 20:05) {right}"
+def morning(**kwargs):
+    from dataclasses import replace
+
+    return replace(page(**kwargs), edition="morning")
+
+
+def test_the_morning_is_one_line_per_index_then_the_status_line():
+    title, *lines = slack_lines(morning())
+    assert title == f"*Today's forecast* (Fri 23 Oct, 08:50) {RIGHT}"
     assert lines[0].startswith("*NIFTY* · next trading day, Mon 26 Oct: most likely 990–1,010 (almost certainly")
     assert lines[0].endswith("🟢 past 30 days: inside “almost certainly” 26 of 30")
     assert lines[-1] == "✅ All systems normal. Research only. Not a trade tip."
-    missing = slack_lines(page(system=("NIFTY: today's forecast is missing (none written by 15:47)",)))[-1]
+    missing = slack_lines(morning(system=("NIFTY: today's forecast is missing (none written by 15:47)",)))[-1]
     assert missing == "⚠️ NIFTY: today's forecast is missing (none written by 15:47). Research only. Not a trade tip."
 
 
+def test_the_evening_gives_each_index_its_block_then_its_next_forecasts():
+    title, *lines = slack_lines(page())
+    assert title == f"*Was today's forecast right?* (Fri 23 Oct, 20:05) {RIGHT}"
+    ahead = "Next: next trading day, Mon 26 Oct: most likely 990–1,010 (almost certainly 980–1,020)"
+    assert lines[:3] == ["*NIFTY*", "🟢 past 30 days: inside “almost certainly” 26 of 30", ahead]
+
+
 def test_a_day_without_a_forecast_still_says_how_right_it_has_been():
-    assert (
-        slack_lines(page(indices=(index(today=()),)))[1]
-        == "*NIFTY* · 🟢 past 30 days: inside “almost certainly” 26 of 30"
+    assert slack_lines(morning(indices=(index(today=()),)))[1] == (
+        "*NIFTY* · 🟢 past 30 days: inside “almost certainly” 26 of 30"
     )
 
 
 def test_back_tested_days_are_said_in_the_record_until_the_window_is_all_live():
     from dataclasses import replace
 
-    line = slack_lines(page(indices=(replace(index(today=()), backtested=26),)))[1]
+    line = slack_lines(morning(indices=(replace(index(today=()), backtested=26),)))[1]
     assert line == "*NIFTY* · 🟢 past 30 days (back-tested 26): inside “almost certainly” 26 of 30"
+
+
+def test_the_record_keeps_live_and_back_tested_days_apart():
+    """FL1-1f (owner, 23 Oct 2026): "Live so far" and "Back-test" are never pooled."""
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.model import TrackRecord
+    from fno.forecast_lab.page.plain import record_words
+
+    assert record_words(replace(index(), track=TrackRecord(1, 1, 30, 25))) == (
+        "Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (last 30 days): 25 of 30"
+    )
+    assert record_words(replace(index(), track=TrackRecord(0, 0, 30, 26))).startswith("Live so far: none scored yet |")
+    assert "Live so far: 3 days, inside “almost certainly” 2 of 3" in record_words(
+        replace(index(), track=TrackRecord(3, 2, 27, 25))
+    )
 
 
 def test_the_morning_report_that_confirms_a_day_is_the_next_session_s_by_name():

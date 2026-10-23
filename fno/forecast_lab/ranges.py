@@ -96,6 +96,10 @@ class TodayCloses(ABC):
     def why_missing(self, day: date) -> str:
         """Why no close was read: the page says it in words."""
 
+    def levels(self, underlying: str, day: date) -> dict[str, float]:
+        """The day's other levels read with the close ("open", "high", "low"), each only when recorded (FL1-1f)."""
+        return {}
+
 
 class NoTodayCloses(TodayCloses):
     """Until A4h's reader exists: the evening says plainly that no close was read, and checks nothing."""

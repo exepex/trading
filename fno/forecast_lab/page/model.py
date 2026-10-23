@@ -114,6 +114,31 @@ class Miss:
     reasons: tuple[str, ...]  # facts from our own data; "no clear reason in our data" when none
 
 
+@dataclass(frozen=True)
+class DayShape:
+    """Today's path as NSE's index list gave it after 15:30 (A4h's read; measured, provisional like the close), and
+    the previous session's official close. A level not recorded is None and is never shown (FL1-1f)."""
+
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    previous_close: float | None = None
+
+
+@dataclass(frozen=True)
+class TrackRecord:
+    """The next-session record, live and back-tested apart (owner, 23 Oct 2026): every live check so far (today's
+    own included) and, for the light, the newest 30 live ones; the back-tested sessions among the last 30 sessions
+    (judge E on FL1-1f: the label says what is counted)."""
+
+    live_days: int
+    live_right: int
+    backtest_days: int
+    backtest_right: int
+    window: int = 30  # the sessions the back-test counts from (fewer while the history is shorter)
+    live_recent_right: int = 0  # inside "almost certainly" among the newest 30 live checks: the light's count
+
+
 CLOSE_NOT_READ, NO_FORECAST_TODAY = "close not read", "no forecast"  # `IndexView.unchecked` (FL1-1e)
 
 
@@ -132,13 +157,16 @@ class IndexView:
     scored: int = 0
     misses: tuple[Miss, ...] = ()  # the last 30 sessions' misses, newest first
     light: str = "none"  # the 30-day light: "green", "amber", "red" or "none" (too few days)
-    light_word: str = ""  # its word: "Good", "Watch", "Check" or "Too few days"
+    light_word: str = ""  # its word: "Good", "Watch", "Check" or "Too few live days to rate"
     wrong_days: tuple[date, ...] = ()  # of the last `scored` sessions, those outside "almost certainly", newest first
     backtested: int = 0  # of the last `scored` sessions, those scored on a back-fill, not a live sealed forecast
     why: tuple[Cue, ...] = ()  # the 2-4 key points (FL1-1d-2), in the stated order; context is never a cause
     levels: tuple[Cue, ...] = ()  # the evening's levels and flows table (FL1-1d-2)
     result: Outcome | None = None  # the edition's own check: today's (evening) or the previous session's (morning)
     unchecked: str = ""  # evening, no result: why today is not checked (CLOSE_NOT_READ or NO_FORECAST_TODAY)
+    unchecked_why: str = ""  # its cause in words: the close reader's reason, or the issue that holds no forecast
+    shape: DayShape | None = None  # evening, with a result: the day's path (FL1-1f)
+    track: TrackRecord | None = None  # the record, live and back-tested apart (FL1-1f)
 
 
 @dataclass(frozen=True)

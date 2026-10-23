@@ -13,6 +13,7 @@ from ..close_read.records import recheck_path, record_path
 from .ranges import TodayCloses
 
 LISTED = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK"}
+LEVELS = ("open", "high", "low")  # A4h's record holds `open` from 22 Oct; high and low asked of A4h (FL1-1f)
 NOT_READ = "A4h has no close read of {day} stamped after 15:30 (its 15:40 read, its 16:00 recheck)"
 UNREAD = "A4h's close of {day} was not read ({problems})"
 
@@ -44,15 +45,21 @@ class A4hTodayCloses(TodayCloses):
             return False
         return stamp.date() == day and stamp.time() >= STAMP_FROM
 
-    def close(self, underlying: str, day: date) -> float | None:
+    def _index(self, underlying: str, day: date) -> dict:
+        """The index's row of a record stamped after 15:30 whose list value is its official close, else {}."""
         document = self._document(day)
         if document is None or not self._stamped(document, day):
-            return None
+            return {}
         index = (document.get("indices") or {}).get(LISTED.get(underlying, ""), {})
-        if index.get("official_close") is False:
-            return None
-        last = index.get("last")
+        return {} if index.get("official_close") is False else index
+
+    def close(self, underlying: str, day: date) -> float | None:
+        last = self._index(underlying, day).get("last")
         return float(last) if last is not None else None
+
+    def levels(self, underlying: str, day: date) -> dict[str, float]:
+        index = self._index(underlying, day)
+        return {name: float(index[name]) for name in LEVELS if index.get(name) is not None}
 
     def why_missing(self, day: date) -> str:
         problems = self.problems.get(day)

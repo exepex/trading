@@ -48,7 +48,7 @@ def test_the_lowest_error_method_is_shown_with_today_s_written_ranges_and_the_30
     assert index.method == "implied" and (index.right, index.scored) == (25, 30)
     assert [(r.horizon, r.band.q50) for r in index.today] == [("N1", 25300.0), ("N3", 25300.0)]
     assert index.price == 25250.0 and len(index.horizons[0].timeline.points) == len(HISTORY_DAYS)
-    assert view.system == () and (index.light, index.light_word) == ("green", "Good")
+    assert view.system == () and (index.light, index.light_word) == ("none", "Too few live days to rate")
     assert index.wrong_days == tuple(reversed(HISTORY_DAYS[-5:]))  # newest first
     assert [r.when for r in index.today] == ["tomorrow", "tomorrow"]  # the words follow each row's own target day
 
@@ -108,3 +108,10 @@ def test_a_back_filled_forecast_not_scored_yet_is_a_late_score_never_a_gap():
     builder = PageBuilder(Forecasts(()), BackFilled(), NoFacts(), SESSIONS, underlyings=("NIFTY",))
     system = builder.build(REPORT_DAY, at(REPORT_DAY, 15, 47)).system
     assert any(line.endswith("(stale)") for line in system) and not any("gap" in line for line in system)
+
+
+def test_the_light_rates_live_checks_only_the_newest_30():
+    """Judge E on FL1-1f: back-tested days never colour the light; 30 live checks are needed to rate."""
+    for live_last, misses, state in ((30, 5, "green"), (30, 6, "amber"), (30, 7, "red"), (29, 0, "none")):
+        (index,) = build(Forecasts(()), misses=misses, live_last=live_last).indices
+        assert index.light == state, (live_last, misses)

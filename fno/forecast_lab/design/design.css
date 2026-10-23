@@ -176,3 +176,10 @@ table.days td.red { color: var(--down-ink); font-weight: 600; }
 .confirm { font: 500 13px/19px var(--font); color: var(--ink); margin: -4px 0 12px; }
 .note { font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
 table.levels td small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+
+/* FL1-1e: the verdict lines and the red "not checked" line (owner, 23 Oct 2026) */
+.check { list-style: none; margin: 8px 0 0; padding: 0; font-size: 14px; line-height: 22px; color: var(--ink); }
+.check b { font-weight: 600; }
+.check b.green { color: var(--up-ink); }
+.check b.red { color: var(--down-ink); }
+.nocheck { font: 600 14px/20px var(--font); color: var(--down-ink); background: var(--down-tint); border-radius: 4px; padding: 8px 12px; margin: 8px 0 0; }

@@ -12,12 +12,12 @@ from __future__ import annotations
 import math
 from datetime import date
 
-from .model import CLOSE_NOT_READ, NO_FORECAST_TODAY, Band, IndexView, PageView
+from .model import CLOSE_NOT_READ, NO_FORECAST_TODAY, Band, IndexView, PageView, TrackRecord
 
 STEP = 10  # points: ranges in words are rounded outward to this
 WINDOW, GREEN_FROM, AMBER_AT = 30, 25, 24
 LIGHTS = {"green": "🟢", "amber": "🟡", "red": "🔴", "none": "⚪"}
-LIGHT_WORDS = {"green": "Good", "amber": "Watch", "red": "Check", "none": "Too few days"}
+LIGHT_WORDS = {"green": "Good", "amber": "Watch", "red": "Check", "none": "Too few live days to rate"}
 RESEARCH = "Research only. Not a trade tip."
 NORMAL = "✅ All systems normal."
 EDITIONS = {"morning": ("Today's forecast", "08:50"), "evening": ("Was today's forecast right?", "20:05")}
@@ -70,16 +70,47 @@ def certain(band: Band) -> str:
 
 
 def light(index: IndexView) -> str:
-    if index.scored < WINDOW:
+    """Rated on live checks only once the page has its record (judge E on FL1-1f: back-tested days never colour it),
+    over the newest 30; with fewer, "none" ("too few live days to rate")."""
+    if index.track is not None:
+        right, days = index.track.live_recent_right, min(index.track.live_days, WINDOW)
+    else:
+        right, days = index.right, index.scored
+    if days < WINDOW:
         return "none"
-    return "green" if index.right >= GREEN_FROM else "amber" if index.right == AMBER_AT else "red"
+    return "green" if right >= GREEN_FROM else "amber" if right == AMBER_AT else "red"
+
+
+def light_words(index: IndexView) -> str:
+    """The light before the record: its glyph, and the words when it cannot rate yet."""
+    state = light(index)
+    return f"{LIGHTS[state]} {LIGHT_WORDS[state].lower()} |" if state == "none" and index.track else LIGHTS[state]
 
 
 def record_words(index: IndexView) -> str:
+    """The record: live and back-tested apart when the page has them (FL1-1f), else the 30-day count."""
+    if index.track is not None:
+        return _track_words(index.track)
     if index.scored == 0:
         return "no scored days yet"
     tested = f" (back-tested {index.backtested})" if index.backtested else ""  # judge 434: never passed off as live
     return f"past {index.scored} days{tested}: inside “almost certainly” {index.right} of {index.scored}"
+
+
+def _track_words(track: TrackRecord) -> str:
+    days = f"{track.live_days} day{'s' if track.live_days != 1 else ''}"
+    live = (f"Live so far: {days}, inside “almost certainly” {track.live_right} of {track.live_days}"
+            if track.live_days else "Live so far: none scored yet")  # fmt: skip
+    return f"{live} | {_backtest_words(track)}"
+
+
+def _backtest_words(track: TrackRecord) -> str:
+    """The back-tested sessions among the last `window` sessions, the label saying exactly that (judge E)."""
+    if not track.backtest_days:
+        return f"Back-test: none in the last {track.window} days" if track.window else "Back-test: none"
+    whole = track.backtest_days == track.window
+    which = f"last {track.window} days" if whole else f"{track.backtest_days} of the last {track.window} days"
+    return f"Back-test ({which}): {track.backtest_right} of {track.backtest_days}"
 
 
 def result_words(index: IndexView, today: date, next_session: date | None = None) -> str:
@@ -94,23 +125,17 @@ def result_words(index: IndexView, today: date, next_session: date | None = None
             f"inside “almost certainly”: {YES_NO[result.inside_90]} → {VERDICTS[result.inside_90]}")  # fmt: skip
 
 
+def forecast_words(index: IndexView) -> list[str]:
+    return [f"{view.when}: most likely {likely(view.band)} (almost certainly {certain(view.band)})"
+            for view in index.today]  # fmt: skip
+
+
 def index_line(index: IndexView, today: date, next_session: date | None = None) -> str:
     result = result_words(index, today, next_session)
-    parts = [f"*{index.underlying}*", *([result] if result else [])]
-    for view in index.today:
-        parts.append(f"{view.when}: most likely {likely(view.band)} "
-                     f"(almost certainly {certain(view.band)})")  # fmt: skip
-    return " · ".join(parts) + f" · {LIGHTS[light(index)]} {record_words(index)}"
+    parts = [f"*{index.underlying}*", *([result] if result else []), *forecast_words(index)]
+    return " · ".join(parts) + f" · {light_words(index)} {record_words(index)}"
 
 
 def status_line(view: PageView) -> str:
     head = " ".join(f"⚠️ {problem.rstrip('.')}." for problem in view.system) if view.system else NORMAL
     return f"{head} {RESEARCH}"
-
-
-def slack_lines(view: PageView) -> list[str]:
-    """The message's text: the edition's title with what "right" means, one line per index (its own check first), the
-    morning's confirmations, the status line."""
-    title, at = EDITIONS[view.edition]
-    lines = (index_line(i, view.day, view.next_session) for i in view.indices)
-    return [f"*{title}* ({day_short(view.day)}, {at}) {RIGHT}", *lines, *view.confirmation, status_line(view)]

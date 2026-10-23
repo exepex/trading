@@ -27,6 +27,7 @@ from .keypoints import evening_points, morning_points
 from .model import (
     CLOSE_NOT_READ,
     NO_FORECAST_TODAY,
+    DayShape,
     Horizon,
     IndexView,
     Outcome,
@@ -38,6 +39,7 @@ from .model import (
 from .own_check import OwnCheck, band_of
 from .plain import LIGHT_WORDS, day_short, light, when
 from .reasons import reasons, recent_misses
+from .today_view import day_shape, track_record, unchecked_why
 
 LIVE = "Live, sealed"
 SHOWN, HORIZONS = 30, ("N1", "N3")
@@ -163,12 +165,23 @@ class PageBuilder:
         index = IndexView(underlying, price, price_at, best, today, False, sum(p.live for p in n1), CALIBRATION_DAYS,
                           tuple(horizons), sum(p.inside_90 for p in last), len(last),
                           recent_misses(n1, self.sessions.previous, facts))  # fmt: skip
+        index = replace(index, track=track_record(n1))  # the light rates the live record (judge E on FL1-1f)
         state = light(index)
         wrong = tuple(p.day for p in reversed(last) if not p.inside_90)
+        unchecked = _unchecked(edition, checked, unread)
         return replace(index, light=state, light_word=LIGHT_WORDS[state], wrong_days=wrong,
-                       backtested=sum(not p.live for p in last), result=checked,
-                       unchecked=_unchecked(edition, checked, unread),
+                       backtested=sum(not p.live for p in last), result=checked, unchecked=unchecked,
+                       unchecked_why=self._unchecked_why(unchecked, day),
+                       shape=self._shape(underlying, day) if edition == EVENING and checked else None,
                        why=self._why(day, edition, best, checked, facts, cues)), problems  # fmt: skip
+
+    def _unchecked_why(self, unchecked: str, day: date) -> str:
+        close_why = self.today_closes.why_missing(day) if unchecked == CLOSE_NOT_READ else ""
+        return unchecked_why(unchecked, close_why, self.sessions.previous(day), day)
+
+    def _shape(self, underlying: str, day: date) -> DayShape:
+        previous = self.official.close(underlying, self.sessions.previous(day)) if self.official else None
+        return day_shape(self.today_closes.levels(underlying, day), previous)
 
     def _why(self, day: date, edition: str, best: str, checked: Outcome | None, facts,
              cues: tuple[SectionView, ...]) -> tuple:  # fmt: skip

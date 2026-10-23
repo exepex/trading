@@ -96,3 +96,16 @@ def test_plain_pushes_that_contradict_themselves_give_no_receipt():
     found, _ = receipts(held, pushes)
     with pytest.raises(ReceiptUnknown, match="not one fast-forward line"):
         found.received_at("c2")
+
+
+def test_two_pushes_in_one_second_are_ordered_by_githubs_id():
+    """GitHub's timestamps are whole seconds and its pages are newest first; within a second its activity id gives the
+    order. Without it, the later push is met first and its `before` already holds the commit: an unknown."""
+    held = {"c1": {"c1"}, "c2": {"c1", "c2"}, "c3": {"c1", "c2", "c3"}}
+    same = (START + timedelta(minutes=5)).isoformat()
+    first = {"activity_type": "push", "id": 101, "before": "c1", "after": "c2", "timestamp": same}
+    second = {"activity_type": "push", "id": 102, "before": "c2", "after": "c3", "timestamp": same}
+    covered = START + timedelta(days=1, minutes=5)  # the search starts at the log's first entry: a covered window
+    found, _ = receipts(held, [first, second], covered)  # Log pages them newest first: second, then first
+    assert found.received_at("c2") == START + timedelta(minutes=5)
+    assert found.received_at("c3") == START + timedelta(minutes=5)

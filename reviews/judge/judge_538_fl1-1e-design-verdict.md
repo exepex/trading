@@ -63,3 +63,27 @@ today-verdict branch.
 
   Response 330 says "with a test", but no morning test sets `provisional`. Not blocking: on main, own_check.py:66 builds the morning's check with `provisional=False` always, so the path cannot be reached today. Add the pin in the FL1 builder's today-verdict branch or the next design change.
 - **Plants:** 2 of 2 round-1 survivors now caught; 2 new F4 plants survived (above).
+
+## Addendum 2
+
+- **Head checked:** ae13294a, a delta check since a8ed3186 (orchestrator, 23 Oct). It already contains main
+  a19b74bb, with FL1-1e's builder branch on it; main has not changed in forecast_lab since.
+- **Verdict: PASS. Merge go.**
+- **Gates:**
+  - tests/forecast_lab, tests/school and tests/e2e_acceptance: 3858 passed, 0 failed;
+  - ruff check, ruff format --check, check_imports: clean;
+  - the designer's full suite: 14,649 passed (one full run per merge: the orchestrator's merge run).
+- **Delta read:**
+  - The words come from plain.py (YES_NO, VERDICTS, UNCHECKED, PROVISIONAL, OFFICIAL, morning_report). The
+    copies are gone and so is every `getattr`.
+  - The red line prints plain's UNCHECKED sentence with the report's name, never the raw code (judge 545's
+    note).
+  - The chip counts over its own scored window, not the chart's 10 days.
+  - A cue's level no longer carries the change's unit.
+  - The F4 test exists (0b45d56e).
+- **Plants (3 of 3 caught):**
+  - R1, the raw code on the red line: 1 failed;
+  - R2, Friday reads "tomorrow": 2 failed;
+  - R3, the chip counted over the chart's window: 1 failed.
+- **Next:** FL1-1f adds `unchecked_why` (the reader's own reason, e.g. A4h's sync problem) and
+  `no_verdict_words`. Once it merges, the page's red line should use those, so it says why as well as what.
