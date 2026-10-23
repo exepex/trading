@@ -12,6 +12,8 @@ from ...contracts.slot_file import RECORD_TYPES, SlotRecord
 from ...fleet.replay_store import ReplayDashcam
 from ..constants import PRACTICE_LABEL
 
+DASHCAM_HOME = "dashcam"  # inside each scenario's home: where its practice dashcam files are
+
 
 class PracticeDashcam(ReplayDashcam):
     def encode(self, records: tuple[SlotRecord, ...]) -> bytes:

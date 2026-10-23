@@ -18,9 +18,14 @@ def line(text: str) -> str:
     return f"{PRACTICE_LABEL} | {text}"
 
 
-def render(report: PracticeReport) -> list[str]:
+def render(report: PracticeReport, status: list[str] | None = None) -> list[str]:
+    """`status`: the report's first line(s), already labelled (the archive's); local only, not archived by default."""
     roads = ", ".join(str(road) for road in report.roads)
-    lines = [line(NOT_ARCHIVED), line(NEVER_TUNES), line(f"window {report.first} to {report.last}; roads {roads}")]
+    lines = [
+        *(status or [line(NOT_ARCHIVED)]),
+        line(NEVER_TUNES),
+        line(f"window {report.first} to {report.last}; roads {roads}"),
+    ]
     lines += [line(label) for label in (*LABELS, report.margin_label) if label]
     if report.sessions_without_span:
         lines.append(line(NO_SPAN_LINE.format(count=report.sessions_without_span)))
@@ -47,3 +52,9 @@ def _coverage_lines(report: PracticeReport) -> list[str]:
     for bucket, count in report.insufficient_buckets.most_common(TOP_BUCKETS):
         lines.append(line(f"insufficient spread data: {bucket}: {count} legs"))
     return lines
+
+
+def left_out_lines(skipped) -> list[str]:
+    """The recorded captures the spread model could not use, one line per road and reason with the dates."""
+    head = f"{len(skipped.reasons)} recorded captures were left out of the spread model (missing or failed a check)"
+    return [line(head), *(line(f"  left out: {text}") for text in skipped.lines())]

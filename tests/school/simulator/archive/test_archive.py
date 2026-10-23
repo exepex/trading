@@ -8,7 +8,11 @@ from pathlib import Path
 import pytest
 
 from fno.school.constants import RecordKind
+from fno.school.contracts.codec import canonical_bytes
 from fno.school.dashcam.names import counts_path, slot_file_path
+from fno.school.fleet.counts_file import marks_path, opportunity_path
+from fno.school.instructor.outputs.store import instructor_path
+from fno.school.instructor.ports import InstructorKind
 from fno.school.simulator.archive import names
 from fno.school.simulator.archive.archive import (
     ArchiveDamaged,
@@ -22,6 +26,7 @@ from fno.school.simulator.constants import PRACTICE_LABEL
 from fno.storage.data_store import DataStore
 from fno.storage.raw_store import RawFileStore
 from fno.storage.receipts import ReceiptFolder
+from tests.school.contracts.test_records import closed_record, trade_record
 
 FIRST, LAST = date(2024, 3, 4), date(2024, 3, 6)
 RUN = names.run_id(FIRST, LAST, ["NIFTY-M", "NIFTY-W"], ["median", "p75", "p95"], "abc1234", "deadbeef")
@@ -29,8 +34,14 @@ PATH = names.file_path(RUN, "median", "2024/03/04/1500.decisions.jsonl.gz")
 
 
 def labelled_file(lines=2, label=PRACTICE_LABEL) -> bytes:
-    rows = [json.dumps({"label": label, "record": {"n": n}, "type": "DriftRow"}, sort_keys=True) for n in range(lines)]
-    return gzip.compress("".join(row + "\n" for row in rows).encode(), mtime=0)
+    """Real dashcam records, each line labelled as the practice dashcam writes it."""
+    records = [trade_record(), closed_record()]
+    rows = [
+        b'{"label":' + json.dumps(label).encode() + b',"record":' + canonical_bytes(records[n % 2])
+        + b',"type":"' + type(records[n % 2]).__name__.encode() + b'"}'
+        for n in range(lines)
+    ]  # fmt: skip
+    return gzip.compress(b"".join(row + b"\n" for row in rows), mtime=0)
 
 
 class DictDrive(RawFileStore):
@@ -94,6 +105,9 @@ def test_a_practice_path_never_starts_with_a_pilot_path_and_the_reverse():
         slot_file_path(date(2026, 10, d), slot, kind) for d in (22, 23) for slot in ("15:00",) for kind in RecordKind
     ]
     pilot += [str(counts_path(date(2026, 10, d), "15:00")) for d in (22, 23)]
+    pilot += [str(opportunity_path(date(2026, 10, d), "15:00")) for d in (22, 23)]
+    pilot += [str(marks_path(date(2026, 10, d), "15:00")) for d in (22, 23)]
+    pilot += [instructor_path(date(2026, 10, d), kind) for d in (22, 23) for kind in InstructorKind]
     for mine in (PATH, names.report_path(RUN), names.run_folder(RUN)):
         for theirs in pilot:
             assert not mine.startswith(theirs.split("/")[0] + "/") and not theirs.startswith(mine.split("/")[0] + "/")
@@ -141,7 +155,7 @@ def test_a_file_without_the_label_on_every_line_is_refused():
 
 
 def test_a_file_that_is_not_canonical_record_lines_is_refused():
-    for data in (b"plain text", gzip.compress(b"not json\n"), gzip.compress(b"")):
+    for data in (b"plain text", b"", gzip.compress(b"not json\n"), gzip.compress(b"[1]\n")):
         with pytest.raises(PracticeArchiveError):
             check_labelled(PATH, data)
     with pytest.raises(PracticeArchiveError):
@@ -225,3 +239,38 @@ def test_the_default_paths_are_in_the_practice_receipt_folder(parts):
     archive.archive(RUN, PATH, labelled_file(), "practice")
     receipt = folder.file_for(f"data/{PATH}")
     assert Path(receipt).relative_to(folder.folder).parts[:2] == ("data", "school-practice")
+
+
+# ---- Judge H's minors (526 a to c) ----------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("tail", ["../../school/x.jsonl.gz", "a/../b.jsonl.gz", "a//b.jsonl.gz", "./a.jsonl.gz"])
+def test_a_path_that_climbs_or_has_an_empty_part_is_refused_by_the_archive_itself(parts, tail):
+    archive, drive, publisher, _ = parts
+    with pytest.raises(PracticeArchiveError, match="not in the run"):
+        archive.archive(RUN, f"{names.run_folder(RUN)}/{tail}", labelled_file(), "x")
+    assert not drive.files and not publisher.pushed
+
+
+def test_a_labelled_line_that_is_not_a_record_is_refused():
+    label = {"label": PRACTICE_LABEL}
+    for row in (
+        label,
+        {**label, "type": "NoSuchRecord", "record": {}},
+        {**label, "type": "DriftRow", "record": {"n": 1}},
+    ):
+        data = gzip.compress(json.dumps(row).encode() + b"\n", mtime=0)
+        with pytest.raises(PracticeArchiveError, match="canonical record lines"):
+            check_labelled(PATH, data)
+
+
+def test_a_text_file_that_is_not_utf8_is_refused_by_name():
+    with pytest.raises(PracticeArchiveError, match="UTF-8"):
+        check_labelled(names.report_path(RUN), b"\xff\xfe" + PRACTICE_LABEL.encode())
+
+
+def test_a_slot_with_nothing_to_record_is_an_empty_file_and_is_archived(parts):
+    """Found by the end-to-end run: the fleet writes an empty outcomes file on a day with no closed trade."""
+    archive, drive, _, _ = parts
+    archive.archive(RUN, PATH, gzip.compress(b"", mtime=0), "x")
+    assert drive.files[f"data/{PATH}"] == gzip.compress(b"", mtime=0)
