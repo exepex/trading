@@ -14,14 +14,14 @@ from fno.routine_logs.schedule import FIRST_OF_MONTH, ROUTINES, TRADING_DAYS
 from fno.routine_logs.step_runner import run_command
 from fno.routine_logs.watch import RoutineWatcher
 
-from .conftest import Clock, Sent, ist
+from .conftest import LIVE, Clock, Sent, ist
 
 TOKEN = "xoxb-" + "1234567890-abcdefghijkl"
 PARTICIPANT_OI = next(spec for spec in ROUTINES if spec.name == "participant-oi")
 
 
 def _watcher(store, now, specs=(PARTICIPANT_OI,)):
-    return RoutineWatcher(store, specs, lambda day: day.day == 23, Clock(now))
+    return RoutineWatcher(store, specs, lambda day: day.day == 23, Clock(now), LIVE)
 
 
 def test_a_late_run_that_died_is_alerted_once_after_midnight(store):

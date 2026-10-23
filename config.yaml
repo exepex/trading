@@ -224,6 +224,20 @@ forecast_lab:
     morning: "2026-10-23"  # orchestrator, 22 Oct: live from Fri 23 Oct, with the owner's two scheduled tasks
     evening: "2026-10-23"
 
+# Story O13: the hourly routine watcher expects a routine's run log only from its date here (YYYY-MM-DD); null: not
+# watched yet. The owner sets each date on the day that routine's prompt or CLAUDE.md section starts logging (judge 542
+# addendum 1: without it, every not-yet-logging routine is reported missing every hour).
+routine_logs:
+  live_from:
+    a16-backup: null
+    pre-open: null
+    morning-forecast: null
+    a16-recorder: null
+    daily-desk: null
+    participant-oi: null
+    evening-forecast: null
+    participant-oi-sweep: null
+
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
 # that date (judge 164). The receipt search reads GitHub's log back to each commit's date (story receipts-reach).
 health:

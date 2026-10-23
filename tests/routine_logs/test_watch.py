@@ -5,7 +5,7 @@ from fno.routine_logs.findings import FAILED, MISSING, STUCK
 from fno.routine_logs.schedule import FIRST_OF_MONTH, TRADING_DAYS, RoutineSpec
 from fno.routine_logs.watch import RoutineWatcher
 
-from .conftest import Clock, Sent, ist
+from .conftest import LIVE, Clock, Sent, ist
 
 DESK = RoutineSpec("daily-desk", (time(14, 5),), TRADING_DAYS, 150)
 A16 = RoutineSpec("a16-recorder", (time(8, 52), time(9, 52)), TRADING_DAYS, 150)
@@ -22,7 +22,7 @@ def _run(store, routine, run, end=None, steps=()):
 
 def _watch(store, now, specs=(DESK,), session=True):
     """The 23rd is the session day under test; the 22nd (yesterday) and the 24th are closed unless a test says so."""
-    return RoutineWatcher(store, specs, lambda day: session and day.day == 23, Clock(now))
+    return RoutineWatcher(store, specs, lambda day: session and day.day == 23, Clock(now), LIVE)
 
 
 def test_a_routine_with_no_log_after_its_grace_is_missing(store):

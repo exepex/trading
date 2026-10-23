@@ -5,7 +5,7 @@ run's own failure line never repeat each other."""
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import SENT, AlertSender
@@ -25,7 +25,8 @@ def alert_marker(day: date, key: str) -> str:
 
 
 def step_tail(store: RawFileStore, path: str, count: int = LINES_SHOWN) -> tuple[str, ...]:
-    data = store.get(path)
+    """The step's last lines; none when its file never reached Drive (the run's `end.json` still names the step)."""
+    data = store.get(path) if path else None
     if data is None:
         return ()
     body = data.decode("utf-8", "replace").split(STEP_BODY, 1)[-1]
@@ -33,9 +34,17 @@ def step_tail(store: RawFileStore, path: str, count: int = LINES_SHOWN) -> tuple
 
 
 class RoutineWatcher:
+    """`live_from`: each routine is expected only from its date (config `routine_logs.live_from`, set when its
+    instructions start logging); a routine without one is never reported missing (judge 542 addendum 1)."""
+
     def __init__(self, store: RawFileStore, specs: tuple[RoutineSpec, ...], is_session: Callable[[date], bool],
-                 clock: Callable[[], datetime]):  # fmt: skip
+                 clock: Callable[[], datetime], live_from: Mapping[str, date | None]):  # fmt: skip
         self.store, self.specs, self.is_session, self.clock = store, specs, is_session, clock
+        self.live_from = live_from
+
+    def _expected(self, spec: RoutineSpec, day: date, session: bool) -> bool:
+        live = self.live_from.get(spec.name)
+        return live is not None and day >= live and spec.due_on(day, session)
 
     def findings(self) -> list[Finding]:
         """Yesterday's runs too: a run that dies late (participant-oi may run to 23:51) or a check GitHub delays
@@ -45,7 +54,7 @@ class RoutineWatcher:
         for day in (now.date() - timedelta(days=1), now.date()):
             session = self.is_session(day)
             for spec in self.specs:
-                if spec.due_on(day, session):
+                if self._expected(spec, day, session):
                     found += self._spec_findings(spec, day, now)
         return found
 

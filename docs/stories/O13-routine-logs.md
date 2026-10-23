@@ -74,3 +74,19 @@ Follow-ups, also done:
 
 Tests: 29 in `tests/routine_logs/`. The judge's 4 surviving mutations and 4 more (today-only watcher, watcher-error
 scrub, signal code, orphan run left open) are each caught.
+
+## After round 2 (judge 542 addendum 1, FAIL at 4f21d0f1; two rounds used, so the owner decides)
+
+The new must-fix is correct. With no routine logging yet, a live watcher would post every expected start as
+"missing": 26 lines on day 1 (yesterday and today), then 13 a day. The fix follows O1's pattern:
+- `config.yaml` `routine_logs.live_from` holds one date per routine, all null.
+- A routine is expected only from its date (`RoutineWatcher._expected`). Each date is set on the day that routine's
+  instructions start logging.
+- Tests: null, no key, before the date and on the date. The real config names every routine and watches none yet,
+  which is the judge's probe, now silent.
+- Mutations caught: `live_from` ignored, and `>=` turned into `>`.
+
+The follow-up is done too: alerts sent before midnight (failed and missing) are not sent again after it, and a step
+that fails after midnight marks its run's day. Both marker-day mutations are now caught. Found while writing these:
+a failed run whose step file never reached Drive crashed the watcher (`step_tail` on an empty path). It is now
+alerted without lines, with a test. Tests: 35.

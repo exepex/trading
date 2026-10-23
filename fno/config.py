@@ -29,6 +29,7 @@ ALLOWED_APP_KEYS = frozenset(
         "budget",
         "health",
         "school",
+        "routine_logs",
     }  # fmt: skip
 )
 

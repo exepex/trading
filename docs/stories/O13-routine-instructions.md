@@ -77,7 +77,13 @@ Only the lines that change. Everything else stays word for word.
 > 3. Run `python -m fno routine-log begin --routine participant-oi-sweep`, then `python -m fno routine-log run
 > --routine participant-oi-sweep --step sweep --last -- python -m fno participant-oi sweep`. ...
 
-## 4. What it costs and what it cannot do
+## 4. Go-live (judge 542 addendum 1)
+
+The hourly watcher expects a routine only from that routine's date in `config.yaml` `routine_logs.live_from`. All
+dates are null until then, so nothing is reported missing before the routine logs. On the day a routine's prompt or
+CLAUDE.md section is switched, its date is set to the next day, so a run already under way is not reported.
+
+## 5. What it costs and what it cannot do
 
 - Each command's output is written to Drive once, after the command ends (up to 2 MB kept); the live lines are
   unchanged. A command killed mid-way (the session limit) leaves `begin.json` and the earlier steps, and the watcher

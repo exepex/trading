@@ -1,12 +1,13 @@
 """Composition root of story O13: the owner's Drive `logs/routines` area, this machine's open-run state, IST time, NSE's
-session calendar and the #fno-desk alert sender."""
+session calendar, each routine's go-live date from config.yaml and the #fno-desk alert sender."""
 
 from __future__ import annotations
 
 import os
+from datetime import date
 
 from ..composition import build_alert_sender
-from ..config import ROOT
+from ..config import ROOT, load_app_config
 from ..models import now_ist
 from ..storage.raw_store import AreaStore, RawFileStore
 from ..storage.trading_days import is_trading_day
@@ -19,6 +20,7 @@ from .watch import RoutineWatcher
 
 STATE_FOLDER = ROOT / "work" / "routine-logs"
 NO_DRIVE = "Drive settings missing ({names})"
+CONFIG_KEY = "routine_logs"
 
 
 class NoDriveStore(RawFileStore):
@@ -42,9 +44,16 @@ def build_run_log(env=os.environ) -> RoutineRunLog:
     return RoutineRunLog(build_logs_store(env), RunStateFolder(STATE_FOLDER), now_ist)
 
 
+def live_dates(cfg: dict) -> dict[str, date | None]:
+    """config `routine_logs.live_from`: one date per routine (YYYY-MM-DD) or null, which means not watched yet."""
+    raw = (cfg.get(CONFIG_KEY) or {}).get("live_from") or {}
+    return {name: date.fromisoformat(str(value)) if value else None for name, value in raw.items()}
+
+
 def build_watcher(env=os.environ) -> RoutineWatcher:
     calendar = build_session_calendar()
-    return RoutineWatcher(build_logs_store(env), ROUTINES, lambda day: is_trading_day(calendar, day), now_ist)
+    return RoutineWatcher(build_logs_store(env), ROUTINES, lambda day: is_trading_day(calendar, day), now_ist,
+                          live_dates(load_app_config()))  # fmt: skip
 
 
 def build_sender():

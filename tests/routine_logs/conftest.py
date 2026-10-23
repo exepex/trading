@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 
@@ -6,7 +6,10 @@ from fno.alerts.sender import SENT, AlertSender
 from fno.models import IST
 from fno.routine_logs.run_log import RoutineRunLog
 from fno.routine_logs.run_state import RunStateFolder
+from fno.routine_logs.schedule import ROUTINES
 from fno.storage.raw_store import LocalFolderStore
+
+LIVE = {spec.name: date(2026, 10, 1) for spec in ROUTINES}  # every routine watched in the tests
 
 
 class Clock:
