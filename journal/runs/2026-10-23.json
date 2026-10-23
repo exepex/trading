@@ -316,6 +316,21 @@
     "reason": "issued",
     "exit_code": 0
    }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-23T15:19:17.194515+05:30",
+   "finished_at": "2026-10-23T15:19:59.220855+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
