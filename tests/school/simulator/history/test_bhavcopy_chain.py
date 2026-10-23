@@ -84,7 +84,7 @@ def test_a_legacy_day_without_an_underlying_price_takes_the_index_close_it_is_gi
     legacy = [record(under=""), record(kind=INDEX_FUTURE, strike="", side="", under="")]
     monkeypatch.setattr(bhavcopy_chain, "read_fo_file", lambda name, data: legacy)
     assert BhavcopyChain([files_of(legacy)]).day("NIFTY", DAY).index_close is None
-    given = BhavcopyChain([files_of(legacy)], index_close=lambda day: 22000.5)
+    given = BhavcopyChain([files_of(legacy)], index_close=lambda underlying, day: 22000.5)
     assert given.day("NIFTY", DAY).index_close == 22000.5
 
 
@@ -108,3 +108,15 @@ def test_the_index_close_comes_from_the_nearest_expiry_whatever_the_row_order(mo
     for order in ([far, near, fut], [near, far, fut]):
         monkeypatch.setattr(bhavcopy_chain, "read_fo_file", lambda name, data, rows=order: rows)
         assert BhavcopyChain([files_of(order)]).day("NIFTY", DAY).index_close == 22100.0
+
+
+def test_each_underlying_gets_its_own_index_close_from_the_lookup(monkeypatch):
+    rows = [
+        record(under=""), record(kind=INDEX_FUTURE, strike="", side="", under=""),
+        record(symbol="BANKNIFTY", under=""),
+        record(symbol="BANKNIFTY", kind=INDEX_FUTURE, strike="", side="", under=""),
+    ]  # fmt: skip
+    monkeypatch.setattr(bhavcopy_chain, "read_fo_file", lambda name, data: rows)
+    closes = {("NIFTY", DAY): 22000.0, ("BANKNIFTY", DAY): 48000.0}
+    chain = BhavcopyChain([files_of(rows)], index_close=lambda underlying, day: closes.get((underlying, day)))
+    assert chain.day("NIFTY", DAY).index_close == 22000.0 and chain.day("BANKNIFTY", DAY).index_close == 48000.0
