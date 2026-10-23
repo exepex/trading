@@ -23,9 +23,9 @@ from ...storage.data_wiring import (
     receipt_folder,
 )
 from ...storage.manifest_commit import GitManifestRecorder
+from ...storage.receipt_publisher import GitReceiptPublisher, ReceiptPublisher
 from ...storage.wiring import EVENTS_FILE
 from ..dashcam.names import SCHOOL_AREA
-from ..dashcam.publisher import GitReceiptPublisher, ReceiptPublisher
 from ..dashcam.reader import VerifiedDriveReader
 from ..dashcam.wiring import build_dashcam
 from ..drivers.cards import CARDS_FOLDER, load_cards

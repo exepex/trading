@@ -10,8 +10,8 @@ import pytest
 from fno.config import ROOT, load_config
 from fno.school import instructor_step_wiring
 from fno.school.dashcam import wiring as dashcam_wiring
-from fno.school.dashcam.publisher import GitReceiptPublisher
 from fno.school.instructor import wiring as instructor_wiring
+from fno.storage.receipt_publisher import GitReceiptPublisher
 
 CFG = load_config(ROOT / "config.yaml")
 RUN_RECEIPTS = object()  # stands for the run's `RunReceipts`

@@ -7,10 +7,10 @@ from datetime import UTC, date, datetime
 import pytest
 
 from fno.school.contracts.seal import StaleSeal
-from fno.school.dashcam.publisher import PushedReceipt
 from fno.school.instructor.outputs.store import DriveInstructorStore, instructor_path
 from fno.school.instructor.ports import InstructorConflict, InstructorKind
 from fno.storage.raw_store import RawFileConflict
+from fno.storage.receipt_publisher import PushedReceipt
 from fno.storage.receipts import Receipt
 from tests.school.instructor.builders import attribution
 from tests.school.instructor.conformance import check_instructor_store

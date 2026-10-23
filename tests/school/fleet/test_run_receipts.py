@@ -6,10 +6,10 @@ import subprocess
 
 import pytest
 
-from fno.school.dashcam.publisher import RemoteReceipts
 from fno.school.fleet.deferred_store import DeferredInstructorStore
 from fno.school.fleet.run_receipts import RunReceipts
 from fno.school.instructor.ports import InstructorConflict, InstructorKind
+from fno.storage.receipt_publisher import RemoteReceipts
 from fno.storage.receipts import Receipt, ReceiptFolder
 from tests.school.contracts import builders as b
 from tests.school.fleet.test_counts_commit import clone, git  # noqa: F401 - the real-git fixture

@@ -9,7 +9,7 @@ from functools import partial
 
 from ..composition import build_alert_sender
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, REPOSITORY, receipt_folder
-from .dashcam.publisher import RemoteReceipts
+from ..storage.receipt_publisher import RemoteReceipts
 from .fleet.deferred_store import DeferredInstructorStore
 from .fleet.run_receipts import RunReceipts
 from .fleet.session_hook import StagedSessionStep, Writes

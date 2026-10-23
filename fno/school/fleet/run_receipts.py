@@ -2,7 +2,7 @@
 the step, never fetched again, and never committed here. Every git call it makes only reads, so the step's thread can
 run beside the run's own git writer; the receipts its writes add are committed by the run's single counts commit."""
 
-from ..dashcam.publisher import PushedReceipt, RemoteReceipts
+from ...storage.receipt_publisher import PushedReceipt, RemoteReceipts
 
 
 class RunReceipts:
