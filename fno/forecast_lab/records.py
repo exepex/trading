@@ -2,12 +2,13 @@
 (text, alerts, what it covered, the evening's verdicts, and the picture and details file as base64, so a rerun posts
 exactly what was made), its posted marker and
 its alerts' marker, each a write-once JSON file in Drive's data area with its receipt under
-`receipts/`. A report is read back verified against its receipt's SHA-256 (`VerifiedFiles`, one file): a missing or
-damaged copy stops the run, never a silent rebuild."""
+`receipts/`. A report is read back verified against its receipt's SHA-256 (the Drive cache's check, for one file; the
+cache syncs whole folders): a missing or damaged copy stops the run, never a silent rebuild."""
 
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from datetime import date
 
@@ -15,7 +16,6 @@ from ..storage.data_store import DataStore
 from ..storage.receipts import ReceiptFolder
 from .delivery import Attachment
 from .edition_run import ReportRecords
-from .verified_file import Unverified, VerifiedFiles
 from .written import Verdict, WrittenReport
 
 UNREADABLE = "the written {area} report of {day} cannot be read back verified: {problems}"
@@ -24,7 +24,6 @@ UNREADABLE = "the written {area} report of {day} cannot be read back verified: {
 class DriveReportRecords(ReportRecords):
     def __init__(self, store: DataStore, receipts: ReceiptFolder, area: str):
         self.store, self.receipts, self.area = store, receipts, area
-        self.files = VerifiedFiles(store.drive, receipts)
 
     def _path(self, day: date, suffix: str = "") -> str:
         return f"{self.area}/{day:%Y}/{day.isoformat()}{suffix}.json"
@@ -33,12 +32,14 @@ class DriveReportRecords(ReportRecords):
         return f"{self.store.area}/{path}"
 
     def report(self, day: date) -> WrittenReport | None:
-        try:
-            data = self.files.read(self._drive_path(self._path(day)))
-        except Unverified as error:
-            raise RuntimeError(UNREADABLE.format(area=self.area, day=day, problems=error.problem)) from error
-        if data is None:
+        drive_path = self._drive_path(self._path(day))
+        receipt = self.receipts.read(drive_path)
+        if receipt is None:
             return None
+        data = self.store.drive.get(drive_path)
+        if data is None or hashlib.sha256(data).hexdigest() != receipt.sha256:
+            raise RuntimeError(UNREADABLE.format(area=self.area, day=day,
+                                                 problems="missing" if data is None else "damaged"))  # fmt: skip
         body = json.loads(data)
         files = tuple(Attachment(f["name"], base64.b64decode(f["data"]), f["title"]) for f in body.get("files", []))
         verdicts = tuple(Verdict(v["underlying"], date.fromisoformat(v["day"]), v["method"], v["close"], v["inside_50"],

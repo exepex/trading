@@ -23,7 +23,8 @@ NORMAL = "✅ All systems normal."
 EDITIONS = {"morning": ("Today's forecast", "08:50"), "evening": ("Was today's forecast right?", "20:05")}
 RESULTS = {(True, True): "✓ Correct", (False, True): "⚠ Close call", (False, False): "✗ Missed"}  # the designer's words
 RIGHT = "Right = the close fell inside the “almost certainly” range."
-VERDICT = {True: "✓ right", False: "✗ wrong"}  # by `inside_90`, as RIGHT defines it
+YES_NO = {True: "yes", False: "no"}
+VERDICTS = {True: "✓ right", False: "✗ wrong"}  # by `inside_90`, as RIGHT defines it (the designer's page reads both)
 PROVISIONAL = "NSE's close; the official file confirms it in {report}"
 OFFICIAL = "NSE's official close; G13b's score follows"
 UNCHECKED = {
@@ -52,10 +53,6 @@ def morning_report(today: date, next_session: date | None) -> str:
     if next_session is None:
         return "the next morning report"
     return "tomorrow's morning report" if (next_session - today).days == 1 else f"{next_session:%A}'s morning report"
-
-
-def yes(inside: bool) -> str:
-    return "yes" if inside else "no"
 
 
 def outward(low: float, high: float) -> tuple[int, int]:
@@ -93,8 +90,8 @@ def result_words(index: IndexView, today: date, next_session: date | None = None
         return UNCHECKED[index.unchecked].format(report=morning_report(today, next_session)) if index.unchecked else ""
     when = "today" if result.day == today else day_short(result.day)
     label = PROVISIONAL.format(report=morning_report(today, next_session)) if result.provisional else OFFICIAL
-    return (f"{when}: closed {result.close:,.2f} ({label}) · inside “most likely”: {yes(result.inside_50)} · "
-            f"inside “almost certainly”: {yes(result.inside_90)} → {VERDICT[result.inside_90]}")  # fmt: skip
+    return (f"{when}: closed {result.close:,.2f} ({label}) · inside “most likely”: {YES_NO[result.inside_50]} · "
+            f"inside “almost certainly”: {YES_NO[result.inside_90]} → {VERDICTS[result.inside_90]}")  # fmt: skip
 
 
 def index_line(index: IndexView, today: date, next_session: date | None = None) -> str:

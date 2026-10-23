@@ -34,7 +34,7 @@ def test_the_evening_reads_a17_at_its_run_time_then_falls_back_to_the_morning_s_
     from fno.forecast_lab.sections.global_cues import GlobalCueSection
     from fno.global_cues.as_of import OPEN
 
-    monkeypatch.setattr("fno.forecast_lab.page_wiring.verified_files", lambda: None)
+    monkeypatch.setattr("fno.storage.data_wiring.build_drive_cache", lambda env=None: None)
     monkeypatch.setattr("fno.storage.wiring.build_index_close_files", lambda project_folder=None: None)
 
     class Facts:
@@ -54,18 +54,4 @@ def test_the_evening_reads_today_s_close_from_a4h_s_record():
 
     from fno.forecast_lab import page_wiring
 
-    assert "A4hTodayCloses(verified_files())" in inspect.getsource(page_wiring.build_report_maker)
-    assert "GiftSection(verified_files()," in inspect.getsource(page_wiring.build_sections)
-
-
-def test_single_files_are_read_by_their_receipts_over_o9_s_drive_and_receipts(monkeypatch):
-    """FL1-1e: never `DriveCache.sync` of a file's path, which matched nothing (22-23 Oct)."""
-    from types import SimpleNamespace
-
-    from fno.forecast_lab.page_wiring import verified_files
-    from fno.forecast_lab.verified_file import VerifiedFiles
-
-    cache = SimpleNamespace(drive=object(), receipts=object())
-    monkeypatch.setattr("fno.storage.data_wiring.build_drive_cache", lambda env=None: cache)
-    files = verified_files()
-    assert isinstance(files, VerifiedFiles) and (files.drive, files.receipts) == (cache.drive, cache.receipts)
+    assert "A4hTodayCloses(build_drive_cache())" in inspect.getsource(page_wiring.build_report_maker)

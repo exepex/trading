@@ -150,7 +150,10 @@ class PageBuilder:
             horizons.append(Horizon(Timeline(horizon, best, points, row.target_day if row else None,
                                              band_of(row) if row else None), records))  # fmt: skip
         n1, expected = horizons[0].timeline.points, self._expected_score(day, edition)
-        problems += stale(underlying, _last_scored(n1, day), expected, self.checks.issued(underlying, expected, best))
+        issued = expected in self.history.targets(underlying, best, "N1") or self.checks.issued(
+            underlying, expected, best
+        )
+        problems += stale(underlying, _last_scored(n1, day), expected, issued)
         today = tuple(RangeView(r.horizon, r.target_day, band_of(r), r.p_up,
                                 when(self.sessions.ahead(day, r.target_day), r.target_day, day))
                       for r in (issue.rows if issue else ())

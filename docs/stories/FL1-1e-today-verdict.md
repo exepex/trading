@@ -14,10 +14,12 @@ Lane 1. Builder: session_01FWkBH4zNAEFSEpjUzVEgnd. Asked by the orchestrator aft
    - Every evening since A4h merged (22 Oct) was affected. GIFT Nifty in the morning used the same call, so it could
      never have been shown either.
    - The tests missed it because their fake cache accepted a file path.
-2. **"Newest scored close is 2026-10-21, expected 2026-10-22 (stale)" was wrong framing.**
-   - No forecast targets 22 Oct. G13b's back-fill ends with the 19 Oct issue, and its live issues begin with 22 Oct's
-     (aimed at 23 Oct). The 20 and 21 Oct issues do not exist (asked of the G13b builder).
-   - A day without a forecast can never be scored. That is a gap in the record, not a late score.
+2. **"Newest scored close is 2026-10-21, expected 2026-10-22 (stale)" had a real cause in G13b's coverage.**
+   - 20 Oct was an NSE holiday (Dussehra). The 21 Oct issue, whose N1 aims at 22 Oct, was never made: the back-fills
+     ran to 20 Oct and live issues began with 22 Oct's. (The 16 Oct issue's N3 does aim at 22 Oct.)
+   - The G13b builder back-filled the 21 Oct issue on 23 Oct evening (receipts at fe7c4099). It is not scored yet.
+   - The page could not tell "no forecast was made" from "a forecast was made and not scored". It now can, from the
+     forecasts themselves, live or back-filled.
 3. **"Its result appears in tomorrow morning's report" was wrong on a Friday.** The next morning report that checks
    the day is Monday's.
 4. **The morning picture failed with a bare "ImportError".** The run's own log is not readable from here, so the
@@ -26,18 +28,19 @@ Lane 1. Builder: session_01FWkBH4zNAEFSEpjUzVEgnd. Asked by the orchestrator aft
 
 ## What changes
 
-1. **One verified single-file read**, `fno/forecast_lab/verified_file.py` (`VerifiedFiles`):
-   - the file's own receipt, then `drive.get`, then the SHA-256 check;
-   - no receipt means "not out yet" (None);
-   - a receipted file that Drive lost or changed raises `Unverified` (missing or damaged), never a value.
-
-   A4h's close, GIFT Nifty and the editions' own records all use it, and the records lose their copy of the same
-   steps. `page_wiring.verified_files()` builds it over the Drive and receipts O9's cache uses.
-   - A damaged A4h record is named as such ("could not be read verified"), never as "not read".
-   - The storage-level guard (a `sync` that matches nothing becomes a problem) is O9's module. The orchestrator is
-     asking its owner, so it is not in this branch.
-2. **The coverage gap is said as such.** When the expected session has no issued next-session forecast, the line
-   reads: "no forecast was issued for <day>, so it has no score (a gap in the record, not a late score; newest scored
+1. **The single-file read is O9's** (story/o9-sync-file, on `main` at 787a67a6; the orchestrator: one builder per
+   function, so no second reader in `fno/forecast_lab`):
+   - `DriveCache.sync(<receipted file>)` now brings exactly that file, verified.
+   - A sync that matches nothing is now a problem, not an empty success.
+   - `A4hTodayCloses` keeps its `sync(<file>)` calls and keeps every problem for `why_missing`. The page says "A4h's
+     close of <day> was not read (<each problem>)", never a silent "not read".
+   - An older copy on disk is never used once a sync has reported a problem.
+   - `GiftSection` already treated a problem as "not out yet (or not verified)" and is unchanged.
+   - The tests now use O9's real `DriveCache` and `ReceiptFolder` with receipts written by its `DataStore`, never a
+     fake cache.
+2. **The coverage gap is said as such.** `HistorySource.targets` (G13b's live and back-fill records of the current
+   method version, scored or not) tells whether a forecast was made for the expected session. When none was, the
+   line reads: "no forecast was issued for <day>, so it has no score (a gap in the record, not a late score; newest scored
    close <day>)". When a forecast was issued and is not scored, the line still says "(stale)".
 3. **The evening answers its title first** (owner, through the orchestrator, 23 Oct). The Slack text:
    - The title line defines the word: "Right = the close fell inside the “almost certainly” range."
@@ -52,6 +55,7 @@ Lane 1. Builder: session_01FWkBH4zNAEFSEpjUzVEgnd. Asked by the orchestrator aft
    - The page model gains `IndexView.unchecked` (close not read, or no forecast) and `PageView.next_session`.
    - The picture is the designer's (frozen at d8f0440). The designer gets these exact words to adopt; the picture does
      not change in this branch.
+   - `plain.YES_NO` and `plain.VERDICTS` are exposed for the designer's page, so both read one source.
 4. **A failed trim names the missing module**: "the picture could not be trimmed: ImportError (module PIL)".
 
 ## The 23 Oct verdict, by hand (strong evidence: A4h's verified record, this morning's verified record)
@@ -63,30 +67,27 @@ Lane 1. Builder: session_01FWkBH4zNAEFSEpjUzVEgnd. Asked by the orchestrator aft
 
 ## Tests
 
-- Real O9 parts (a local Drive folder, the receipts written by O9's `DataStore`) replace the fake caches in the A4h
-  and GIFT tests.
-- New tests:
-  - verified, not out yet, missing, damaged;
-  - the damaged record's words;
-  - the wiring;
-  - the true-stale and gap wording;
-  - the Friday evening naming Monday;
+- New and changed tests:
+  - A4h's close and GIFT through O9's real cache: not out yet, damaged, the recheck, and the words for each problem;
+  - `targets`: back-fills and unscored issues count, while another method version, a not-eligible row and another
+    method do not;
+  - a back-filled but unscored day reads "(stale)", and a day with no forecast reads as a gap;
+  - the Friday evening names Monday's report;
   - no forecast for today;
   - the yes/no verdicts;
   - the trim's module name.
-- Mutations: 8 of 8 caught. They removed the SHA check, turned "missing" into None, dropped the damaged-record words,
-  ignored "issued", always reported "close not read", always said "tomorrow", judged by the 50% range, and dropped the
-  module name.
-- Real data, read-only, on 23 Oct: the fixed reader returns NIFTY 22,687.65 and BANKNIFTY 54,925.70 for 22 Oct, and
-  22,600.00 and 54,287.35 for 23 Oct. For 24 Oct (no session) it returns nothing.
+- Mutations: 10 of 10 caught (one survivor, an older disk copy used past a problem, got its test).
+- Real data, read-only, on 23 Oct evening:
+  - Closes: 22 Oct NIFTY 22,687.65 and BANKNIFTY 54,925.70; 23 Oct 22,600.00 and 54,287.35. 26 Oct names its two
+    missing receipts.
+  - `targets` now includes 22 Oct for both indices, from the back-fill. The newest scored day is still 21 Oct, so the
+    line says "(stale)" until G13b's score run, which is correct.
 
 ## Other stories' tests touched (the text change only)
 
 - MS-P1g's goldens, `tests/school/reports/golden/{morning,evening}.txt`, pin the unwrapped lab maker's text. They were
   regenerated from that same maker, and the regeneration first asserted that the picture hashes, the alerts and the
   verdict count in `files.json` are unchanged. The diff is the title's definition and the record's words only.
-- `tests/school/reports/test_editions.py`: the real-maker wiring test stubs `page_wiring.verified_files`, in place
-  of O9's `build_drive_cache`.
 - `tests/e2e_acceptance/test_replay_lab.py`: the replay's Drive holds no 15 Oct issue. Its evening now says "today:
   not checked (no forecast was issued for today)", and its status line gives the gap wording, both correct for that
   data.

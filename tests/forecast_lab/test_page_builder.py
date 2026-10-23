@@ -98,3 +98,13 @@ def test_a_score_for_the_report_day_itself_is_never_in_the_history():
     builder = PageBuilder(Forecasts(()), WithToday(), NoFacts(), SESSIONS, underlyings=("NIFTY",))
     (index,) = builder.build(REPORT_DAY, at(REPORT_DAY, 15, 47)).indices
     assert index.horizons[0].timeline.points[-1].day == HISTORY_DAYS[-1] and index.right == 30  # judge 434 Q10
+
+
+def test_a_back_filled_forecast_not_scored_yet_is_a_late_score_never_a_gap():
+    class BackFilled(Old):
+        def targets(self, underlying, method, horizon):
+            return {SESSIONS.previous(REPORT_DAY)} if (method, horizon) == ("implied", "N1") else set()
+
+    builder = PageBuilder(Forecasts(()), BackFilled(), NoFacts(), SESSIONS, underlyings=("NIFTY",))
+    system = builder.build(REPORT_DAY, at(REPORT_DAY, 15, 47)).system
+    assert any(line.endswith("(stale)") for line in system) and not any("gap" in line for line in system)

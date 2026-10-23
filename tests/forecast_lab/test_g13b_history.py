@@ -102,3 +102,24 @@ class Rebuilt:
 def test_a_rebuilt_day_pairs_the_score_with_its_own_versions_band():
     points = G13bHistory(Rebuilt(), Rebuilt()).points("NIFTY")
     assert [p.band.q95 for p in points] == [1020.0 * 1.01]
+
+
+def test_the_days_forecast_for_include_back_fills_and_unscored_issues_of_the_current_version_only():
+    """FL1-1e: G13b back-filled the 21 Oct issue (N1 aimed at 22 Oct) after the 23 Oct evening; a day a back-fill
+    covers is never called a gap in the record, scored yet or not."""
+
+    def issue(label, day, target, method=NEW, status="ok", forecaster="implied"):
+        rows = [{**ROW, "forecaster": forecaster, "target_day": target, "status": status}]
+        return {**record(label, day, method=method), "rows": rows}
+
+    class Issued:
+        def live(self):
+            return [Sealed(issue("live", "2026-10-22", "2026-10-23"))]
+
+        def backfill(self):
+            return [issue("backfill_3pm", "2026-10-21", "2026-10-22"), issue("backfill_3pm", "2026-10-19", "2026-10-21",
+                    method=OLD), issue("backfill_3pm", "2026-10-16", "2026-10-19", status="not_eligible"),
+                    issue("backfill_3pm", "2026-10-15", "2026-10-16", forecaster="rv20")]  # fmt: skip
+
+    targets = G13bHistory(Issued(), Scores()).targets("NIFTY", "implied", "N1")
+    assert targets == {date(2026, 10, 22), date(2026, 10, 23)}

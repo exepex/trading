@@ -1,5 +1,5 @@
 """FL1-1d: A4h's close read as the evening's close: NIFTY 50 and NIFTY BANK from the day's record (else the 16:00
-recheck), each read by its own receipt and verified on real O9 parts (FL1-1e), only when NSE stamped the list that
+recheck), each synced as one file through O9's real cache (FL1-1e), only when NSE stamped the list that
 day at or after 15:30; never INDIA VIX; nothing when no verified record exists. Made-up levels only."""
 
 import json
@@ -19,7 +19,7 @@ def a4h(tmp_path, files, damaged=()):
         parts.put(path, json.dumps(document).encode())
     for path in damaged:
         parts.damage(path)
-    return A4hTodayCloses(parts.files)
+    return A4hTodayCloses(parts.cache)
 
 
 def record(stamp="21-Oct-2026 15:30", nifty=1000.5):
@@ -45,16 +45,27 @@ def test_the_recheck_serves_when_the_first_read_is_missing_or_damaged(tmp_path):
     assert a4h(tmp_path / "a", {RECHECK: recheck}).close("NIFTY", WED) == 1001.0
     assert a4h(tmp_path / "b", {RECORD: record(), RECHECK: recheck}, damaged={RECORD}).close("NIFTY", WED) == 1001.0
     none = a4h(tmp_path / "c", {})
-    assert none.close("NIFTY", WED) is None and "2026-10-21" in none.why_missing(WED)
+    assert none.close("NIFTY", WED) is None and f"{RECORD}: no receipts under it" in none.why_missing(WED)
 
 
-def test_a_damaged_record_is_named_as_such_never_as_not_read(tmp_path):
+def test_a_damaged_record_names_its_problem_in_the_edition_s_words(tmp_path):
     damaged = a4h(tmp_path, {RECORD: record()}, damaged={RECORD})
     assert damaged.close("NIFTY", WED) is None
-    assert damaged.why_missing(WED) == f"A4h's record could not be read verified ({RECORD}: damaged)"
+    why = damaged.why_missing(WED)
+    assert why.startswith("A4h's close of 2026-10-21 was not read (") and f"{RECORD}: Drive's bytes do not match" in why
 
 
 def test_an_index_a4h_marks_as_not_the_official_close_is_never_used(tmp_path):
     marked = record()
     marked["indices"]["NIFTY 50"]["official_close"] = False  # A4h's own word wins over the name
     assert a4h(tmp_path, {RECORD: marked}).close("NIFTY", WED) is None
+
+
+def test_an_older_copy_on_disk_is_never_used_past_a_problem(tmp_path):
+    parts = DriveFiles(tmp_path)
+    parts.put(RECORD, json.dumps(record()).encode())
+    older = parts.cache.local(RECORD)
+    older.parent.mkdir(parents=True, exist_ok=True)
+    older.write_text(json.dumps(record(nifty=999.0)), encoding="utf-8")  # not the receipted bytes
+    parts.damage(RECORD)  # and Drive's copy fails its check
+    assert A4hTodayCloses(parts.cache).close("NIFTY", WED) is None

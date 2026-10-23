@@ -1,8 +1,7 @@
 """A4h's close read as the evening's `TodayCloses` (story FL1-1d; A4h merged 22 Oct): the day's record
-(`closes/<yyyy>/<mm>/<day>.json`, else the 16:00 recheck), each read by its own receipt and verified (FL1-1e). A
-value is used only when NSE stamped the list that day at or after 15:30, and only for an index whose list value is
-its official close (NIFTY 50 and NIFTY BANK; never INDIA VIX). It stays labelled provisional until the next morning
-confirms it."""
+(`closes/<yyyy>/<mm>/<day>.json`, else the 16:00 recheck), read verified through O9's Drive cache. A value is used only
+when NSE stamped the list that day at or after 15:30, and only for an index whose list value is its official close
+(NIFTY 50 and NIFTY BANK; never INDIA VIX). It stays labelled provisional until the next morning confirms it."""
 
 from __future__ import annotations
 
@@ -12,27 +11,29 @@ from datetime import date, datetime
 from ..close_read.constants import DATA_AREA, STAMP_FORMAT, STAMP_FROM
 from ..close_read.records import recheck_path, record_path
 from .ranges import TodayCloses
-from .verified_file import Unverified, VerifiedFiles
 
 LISTED = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK"}
 NOT_READ = "A4h has no close read of {day} stamped after 15:30 (its 15:40 read, its 16:00 recheck)"
-UNREADABLE = "A4h's record could not be read verified ({problems})"
+UNREAD = "A4h's close of {day} was not read ({problems})"
 
 
 class A4hTodayCloses(TodayCloses):
-    def __init__(self, files: VerifiedFiles):
-        self.files, self.problems = files, {}
+    def __init__(self, cache):
+        """`cache`: O9's verified `DriveCache`; a sync of one file's path brings that file, and a sync that brings
+        nothing is a problem (O9, 23 Oct): each problem is kept for `why_missing`, never dropped."""
+        self.cache, self.problems = cache, {}
 
     def _document(self, day: date) -> dict | None:
-        """The day's first record that reads verified; a damaged one is remembered for `why_missing`."""
+        problems = []
         for path in (record_path(day), recheck_path(day)):
-            try:
-                data = self.files.read(f"{DATA_AREA}/{path}")
-            except Unverified as error:
-                self.problems.setdefault(day, []).append(str(error))
+            drive_path = f"{DATA_AREA}/{path}"
+            report, local = self.cache.sync(drive_path), self.cache.local(drive_path)
+            if report.problems or not local.is_file():  # an older copy on disk is never used past a problem
+                problems += report.problems or [f"{drive_path}: not on disk after its sync"]
                 continue
-            if data is not None:
-                return json.loads(data)
+            self.problems.pop(day, None)
+            return json.loads(local.read_text(encoding="utf-8"))
+        self.problems[day] = problems
         return None
 
     @staticmethod
@@ -55,4 +56,4 @@ class A4hTodayCloses(TodayCloses):
 
     def why_missing(self, day: date) -> str:
         problems = self.problems.get(day)
-        return UNREADABLE.format(problems="; ".join(problems)) if problems else NOT_READ.format(day=day)
+        return UNREAD.format(day=day, problems="; ".join(problems)) if problems else NOT_READ.format(day=day)

@@ -27,7 +27,6 @@ from .sections.global_cues import SPECS, GlobalCueSection
 from .sections.india import FlagsSection, VixSection
 from .sections.levels import Levels
 from .sessions import RegularSessions
-from .verified_file import VerifiedFiles
 
 PICTURE_WIDTH = 1100  # CSS pixels: the owner's signed-off design (DESK_DECISIONS 11ef1b23), drawn at 2x
 
@@ -54,6 +53,7 @@ def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: 
     day's flags, and GIFT Nifty (A22b's early file). A new source is one class and one line here."""
     from ..global_cues.as_of import OPEN
     from ..global_cues.wiring import build_reader
+    from ..storage.data_wiring import build_drive_cache
     from ..storage.wiring import build_index_close_files
 
     reader, known = functools.cache(build_reader), functools.cache(facts.facts)
@@ -61,16 +61,8 @@ def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: 
         *(GlobalCueSection(reader, spec, {"morning": (OPEN,), "evening": (EVENING_RUN, OPEN)}) for spec in SPECS),
         VixSection(build_index_close_files(), sessions.previous, lambda day: known(day).vix),
         FlagsSection(known),
-        GiftSection(verified_files(), lambda day: official.close(NIFTY_SYMBOL, sessions.previous(day))),
+        GiftSection(build_drive_cache(), lambda day: official.close(NIFTY_SYMBOL, sessions.previous(day))),
     )
-
-
-def verified_files() -> VerifiedFiles:
-    """Single Drive data files read by their own receipts (FL1-1e), over the Drive and receipts O9's cache uses."""
-    from ..storage.data_wiring import build_drive_cache
-
-    cache = build_drive_cache()
-    return VerifiedFiles(cache.drive, cache.receipts)
 
 
 def build_levels(calendar: SessionCalendar, sessions: RegularSessions) -> Levels:
@@ -87,8 +79,10 @@ def build_levels(calendar: SessionCalendar, sessions: RegularSessions) -> Levels
 def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: SessionCalendar,
                        official: Outcomes) -> ReportMaker:  # fmt: skip
     """`forecasts`, `scores`: G13b's `RangeForecasts` and `RangeScores` over the synced Drive cache."""
+    from ..storage.data_wiring import build_drive_cache
+
     facts, sessions = RepositoryFacts(ROOT, flows_reader(calendar)), RegularSessions(calendar)
-    today, sections = A4hTodayCloses(verified_files()), build_sections(facts, sessions, official)
+    today, sections = A4hTodayCloses(build_drive_cache()), build_sections(facts, sessions, official)
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official, today_closes=today,
                         sections=sections, levels=build_levels(calendar, sessions))  # fmt: skip
     return with_school_sections(ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH)),

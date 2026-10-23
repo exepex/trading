@@ -1,9 +1,8 @@
 """GIFT Nifty for the 08:50 morning edition (story FL1-1d-2; owner e70525ee, "(c) Both"): A22b's own write-once file,
-pushed with its receipt about 08:41 (by 08:46 at the latest), read by its own receipt and verified (FL1-1e). Shown
-only when A22's status for it is ok or late (the only rows with a level), as context: its gap to the previous
-session's official NIFTY close, never a cause. Missing at 08:50 (no receipt yet, a damaged copy, or a failed read),
-the edition names it itself, so O8 needs no 08:50 row (judge 445). The evening does not show it: it is a pre-open
-cue."""
+pushed with its receipt about 08:41 (by 08:46 at the latest), read verified through O9's Drive cache. Shown only when
+A22's status for it is ok or late (the only rows with a level), as context: its gap to the previous session's
+official NIFTY close, never a cause. Missing at 08:50 (no receipt yet, a damaged copy, or a failed read), the edition
+names it itself, so O8 needs no 08:50 row (judge 445). The evening does not show it: it is a pre-open cue."""
 
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ from datetime import date
 from ...preopen.day_row import early_file
 from ...storage.data_wiring import DATA_AREA
 from ..page.cues import AVAILABLE, CONTEXT, NOT_AVAILABLE, Cue, Section, SectionView, missing
-from ..verified_file import Unverified, VerifiedFiles
 
 NAME = "GIFT Nifty"
 SHOWN = ("ok", "late")
@@ -27,18 +25,17 @@ EVENING = "GIFT Nifty is a pre-open cue: the morning edition only"
 class GiftSection(Section):
     name = NAME
 
-    def __init__(self, files: VerifiedFiles, previous_close: Callable[[date], float | None]):
-        """`previous_close(day)`: the previous session's official NIFTY close."""
-        self.files, self.previous_close = files, previous_close
+    def __init__(self, cache, previous_close: Callable[[date], float | None]):
+        """`cache`: O9's verified `DriveCache`; `previous_close(day)`: the previous session's official NIFTY close."""
+        self.cache, self.previous_close = cache, previous_close
 
     def _row(self, day: date) -> dict | None:
-        try:
-            data = self.files.read(f"{DATA_AREA}/{early_file('gift', day)}")
-        except Unverified:
-            return None  # named in the edition as "not out yet (or not verified)"
-        if data is None:
+        path = f"{DATA_AREA}/{early_file('gift', day)}"
+        report = self.cache.sync(path)
+        local = self.cache.local(path)
+        if report.problems or not local.is_file():
             return None
-        rows = list(csv.DictReader(io.StringIO(data.decode("utf-8"))))
+        rows = list(csv.DictReader(io.StringIO(local.read_text(encoding="utf-8"))))
         return rows[0] if rows else None
 
     def read(self, day: date, edition: str) -> SectionView:
