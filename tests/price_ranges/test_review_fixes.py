@@ -8,6 +8,7 @@ import json
 import math
 from datetime import date, datetime, time, timedelta
 
+from fno.health.model import EvidenceNotCommitted
 from fno.models import IST
 from fno.price_ranges.bhavcopy_chains import BhavcopyChains
 from fno.price_ranges.build import CAPTURE
@@ -29,7 +30,8 @@ PUSHED = datetime(2026, 10, 16, 15, 52, tzinfo=IST)
 
 
 class Pushes:
-    """GitHub's activity log as a fake: it knows only what it is given, and counts the questions."""
+    """The push evidence as a fake: it knows only what it is given (no commit adds anything else), and counts the
+    questions."""
 
     def __init__(self, known=None):
         self.known, self.asked = dict(known or {}), 0
@@ -37,7 +39,7 @@ class Pushes:
     def __call__(self, path):
         self.asked += 1
         if path not in self.known:
-            raise RuntimeError("no push of it in GitHub's activity log of main")
+            raise EvidenceNotCommitted("no commit adding it")
         return self.known[path]
 
 
@@ -62,13 +64,13 @@ def at_16(day):
     return datetime.combine(day, time(16), IST)
 
 
-def test_unknown_evidence_waits_inside_the_week_then_is_stored_late(tmp_path):
+def test_a_receipt_never_committed_waits_inside_the_week_then_is_stored_late(tmp_path):
     found, drive = seals(tmp_path, Pushes(), at_16(DAY + timedelta(days=7)))
     assert "seal pending" in found.record("NIFTY", DAY, "1545") and not drive.files
     expired, drive = seals(tmp_path / "b", Pushes(), at_16(DAY + timedelta(days=8)))
     assert "seal stored (late)" in expired.record("NIFTY", DAY, "1545")
     stored = json.loads(next(iter(drive.files.values())))
-    assert stored["late"] and stored["reason"].startswith(EXPIRED.split("(")[0])
+    assert stored["late"] and stored["reason"].startswith(EXPIRED.split("{")[0])
 
 
 def test_seal_recent_covers_the_last_eight_days_of_live_issues(tmp_path):

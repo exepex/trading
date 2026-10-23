@@ -9,7 +9,7 @@ import requests
 import yaml
 
 from fno.ai.coverage import coverage
-from fno.ai.receipts import GitHubActivityReceipts, ReceiptAccessDenied, ReceiptUnknown
+from fno.ai.receipts import GitHubActivityReceipts, ReceiptAccessDenied, ReceiptNotFound, ReceiptUnavailable
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from tests.ai.fakes import ROOT
 from tests.ai.test_fire_and_collect import Desk
@@ -30,6 +30,9 @@ class History:
     """Which commit is in which: c1 <- c2 <- c3 on main."""
 
     order = ["c1", "c2", "c3"]
+
+    def committed_at(self, commit):
+        return datetime.fromisoformat("2026-10-13T09:40:00Z")
 
     def is_ancestor(self, older, newer):
         return older in self.order and newer in self.order and self.order.index(older) <= self.order.index(newer)
@@ -78,17 +81,17 @@ def test_an_unreadable_log_or_an_unknown_commit_fails_closed():
     with pytest.raises(ReceiptAccessDenied, match="access refused: HTTP 403"):  # an access problem, named apart
         refused.received_at("c2")
     failed, _ = receipts([Response([], status=500)])
-    with pytest.raises(ReceiptUnknown, match="HTTP 500") as raised:
+    with pytest.raises(ReceiptUnavailable, match="HTTP 500") as raised:
         failed.received_at("c2")
     assert not isinstance(raised.value, ReceiptAccessDenied)
     empty, _ = receipts([Response([])])
-    with pytest.raises(ReceiptUnknown, match="no push"):
+    with pytest.raises(ReceiptNotFound, match="no push"):
         empty.received_at("c2")
 
     def down(*args, **kwargs):
         raise requests.ConnectionError("down")
 
-    with pytest.raises(ReceiptUnknown, match="not reached"):
+    with pytest.raises(ReceiptUnavailable, match="not reached"):
         GitHubActivityReceipts("exepex/trading", "token", History(), down).received_at("c2")
 
 

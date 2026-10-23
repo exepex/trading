@@ -1,7 +1,10 @@
-"""Seals recorded once (part A5; review finding 1): GitHub's activity log only reaches back a week, so a seal is read
-while it exists and kept as a write-once seal file in Drive, with its own receipt. A known push time (on time or
-late) is final; unknown evidence is retried until the record is older than the log's reach, then recorded late.
-Readers use the stored seal, and only compute one for a record not yet sealed."""
+"""Seals recorded once (part A5; review finding 1): a seal is read once its answer is final and kept as a write-once
+seal file in Drive, with its own receipt; readers use the stored seal, and only compute one for a record not yet
+sealed.
+
+Story receipts-reach: only a final seal is stored (`SealCheck`). An open one is retried by each run for SCAN_REACH
+days; after that, a file still not committed is stored late (any push now would be past its deadline), while a seal
+whose evidence could not be read is never stored late: it is reported NOT_RECORDED and readers keep computing it."""
 
 from __future__ import annotations
 
@@ -11,10 +14,11 @@ from datetime import date, datetime, timedelta
 
 from ..price_distribution.store import DistributionStore
 from .folders import live_path, seal_path
-from .sealing import Seal, SealCheck
+from .sealing import UNAVAILABLE, Seal, SealCheck
 
-LOG_REACH = timedelta(days=7)  # GitHub's activity log: `time_period=week` (fno/ai/receipts.py)
-EXPIRED = "late: no push evidence while GitHub's 7-day activity log still covered it ({why})"
+SCAN_REACH = timedelta(days=7)  # days an open seal is retried: inside `deep_enough`'s 10 days of shallow-clone history
+EXPIRED = "late: its receipt was still not committed {days} days after the issue ({why})"
+NOT_RECORDED = "{underlying} {day} {issue}: seal NOT recorded, its evidence unreadable for {days} days ({why})"
 STORED = "{underlying} {day} {issue}: seal stored ({state})"
 PENDING = "{underlying} {day} {issue}: seal pending ({why})"
 
@@ -56,10 +60,13 @@ class Seals:
         if self.store.get(path) is not None:
             return None
         seal = self.check.seal(self.receipt_of(self.live_path_of(underlying, day, issue)), day)
-        if seal.sealed_at is None:
-            if self.now().date() - day <= LOG_REACH:
-                return PENDING.format(underlying=underlying, day=day, issue=issue, why=seal.reason)
-            seal = Seal(None, seal.deadline, True, EXPIRED.format(why=seal.reason))
+        if seal.waiting is not None:
+            names = {"underlying": underlying, "day": day, "issue": issue, "why": seal.reason}
+            if self.now().date() - day <= SCAN_REACH:
+                return PENDING.format(**names)
+            if seal.waiting == UNAVAILABLE:  # a failed read is never a final "late"
+                return NOT_RECORDED.format(days=SCAN_REACH.days, **names)
+            seal = Seal(None, seal.deadline, True, EXPIRED.format(days=SCAN_REACH.days, why=seal.reason))
         self.store.put(path, _encode(seal))
         state = "late" if seal.late else f"sealed at {seal.sealed_at.isoformat()}"
         return STORED.format(underlying=underlying, day=day, issue=issue, state=state)
@@ -69,7 +76,7 @@ def seal_recent(seals: Seals, has_record: Callable[[str, date, str], bool], unde
                 day: date) -> list[str]:  # fmt: skip
     """Records every final seal of the live issues of the last 8 calendar days before `day` (inside GitHub's log)."""
     lines = []
-    for offset in range(1, LOG_REACH.days + 2):
+    for offset in range(1, SCAN_REACH.days + 2):
         past = day - timedelta(days=offset)
         for underlying in underlyings:
             if has_record(underlying, past, issue):
