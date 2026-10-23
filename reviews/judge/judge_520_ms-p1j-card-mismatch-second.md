@@ -26,3 +26,9 @@ without reading Judge B's 507.7. Round 1 of 2. Judge K (session_019ZApRwkUiNMKDs
 
 ## Plants
 9 planted, 8 caught; the survivor is the minor.
+
+## Addendum 1: ca847210
+
+**PASS, minor closed.** 4aa043df..ca847210 is test-only:
+`test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed`, on real git. With my `"HEAD"` plant it
+fails (1 failed, 6 passed); without it, 7 passed. ruff check and format are clean.
