@@ -3263,3 +3263,12 @@ Part e's two known limits are closed: the unfilled entries and f's three counts.
   - Until fixed: write a range's review once, after its last session's fills; a dry run is always allowed.
 - **A review that covers a session before its fills** counts that session's fired entries as unfilled. Run a review only over sessions whose run has finished.
 **Real output:** `python -m fno.school.instructor --review 2026-10-22 2026-10-23` prints "school off": the school's switch is off. That is the honest result; no sealed day exists to review yet.
+
+MS-P1g editions test (orchestrator and the FL1 designer, 23 Oct 2026; branch `story/ms-p1g-editions-test`, lane 2, test only):
+`tests/school/reports/test_editions.py` compared the editions' page files to frozen SHA-256s of the FL1 designer's renderer
+(`golden/files.json`), so the owner-ordered evening verdict block (story/fl1-1e-design-verdict) failed 19 of its tests though
+the school wrapper had not changed. The wrapped maker's files, alerts and verdicts are now compared with the unwrapped
+maker's, made in the same run (`plain(edition)`): "the school wrapper changes nothing" whatever the design is. The text
+goldens (`golden/morning.txt`, `evening.txt`) stay: they pin the wrapper's own output. `golden/files.json` is deleted. Plant:
+a wrapper that drops a page file fails the two flag-on tests. Checked on main and on the designer's branch.
+
