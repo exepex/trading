@@ -36,3 +36,18 @@ reversed) would remove even that. Such pushes on `main` are rare.
 
 After the merge (quality rule 8): tonight's health-workflow duration against its 15-minute limit, and its receipts
 agreeing with the push-by-push search (15 of 15 in the claims).
+
+## Addendum 1: same-second pushes (story/o-receipt-same-second @ cc33cae4)
+
+**Verdict: PASS. It may merge** (after tonight's run, as the orchestrator set).
+
+- The builder measured the whole live log first: 3,929 entries since 11 Oct, 12 seconds with more than one entry, all
+  12 being one push logged more than once. My minor's case (two different pushes in one second) had not happened
+  yet. The measurement is the builder's [some].
+- The fix sorts by `(time, GitHub's activity id)` (`_order`, `fno/ai/activity_log.py`). This is better than my
+  "reversed page order": it does not trust page order. The builder found the id rising strictly across all 3,929
+  entries. Fakes without an id keep their old order.
+- Checks:
+  - my plant (sorting by time alone) fails the new same-second test;
+  - tests/ai and tests/health: 239 passed;
+  - the full suite: **14577 passed, 0 failed**; ruff format, imports and the record scan (8809) are clean.
