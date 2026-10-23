@@ -1410,7 +1410,7 @@ lifts the limit for archived runs only.
   on the same code is the same id; a later commit is a new id, so an old archived run is never touched, and a result that
   changed with the code cannot overwrite the earlier one.
 - **What is archived:** the practice dashcam files the fleet wrote (decisions, outcomes, drift per session and scenario) and
-  **the report's own text** as `report.txt.gz`, so the text the owner reads is itself archived and its SHA-256 is in a receipt.
+  **the report's own text** as `report.txt` (plain UTF-8, every line labelled; Judge H minor c, one name in story and code), so the text the owner reads is itself archived and its SHA-256 is in a receipt.
 - **The label stays inside every record:** the archive refuses a file in which any stored line lacks `practice (simulator)`
   (it reads the lines back with `labels`), and refuses a file that is not a gzip of canonical record lines.
 - **Idempotent reruns:** archiving the same run again with the same bytes returns the same seals and makes no commit; other
