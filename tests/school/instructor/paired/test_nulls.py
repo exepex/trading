@@ -33,10 +33,17 @@ def test_the_gaussian_null_passes_at_every_hold_the_cards_hold_today(hold):
         assert wilson_upper(share, 2000) <= 0.10, (hold, sessions, share)
 
 
-def test_the_skewed_seller_null_fails_the_gate_and_stays_under_the_rate_printed_on_seller_rows():
-    """The measured worst case (loss chance 10%, hold 10, batch 15, 120 sessions: 18.9%, upper end 20.7%)."""
-    share = share_positive(lambda seed: seller_slots(seed, 120, SellerShape(0.1)), range(2000), 15)
-    assert wilson_upper(share, 2000) > 0.10 and wilson_upper(share, 2000) <= SELLER_FALSE_POSITIVE_PCT / 100
+def test_the_skewed_seller_null_fails_the_gate_and_its_worst_case_is_the_rate_printed_on_seller_rows():
+    """The worst cell of the round-2 grid (loss chance 5%, hold 26, batch 39, 120 sessions: 43.4%, upper end 45.6%) is
+    pinned: above 40%, and at or under the printed 46%."""
+    share = share_positive(lambda seed: seller_slots(seed, 120, SellerShape(0.05, hold=26)), range(2000), 39)
+    assert share > 0.40 and wilson_upper(share, 2000) <= SELLER_FALSE_POSITIVE_PCT / 100
+
+
+def test_the_round_1_table_cell_measured_with_the_shipped_code():
+    """Judge 516: loss chance 10%, hold 10, batch 15, 30 sessions is 22.6% (upper end 24.5%), not 14.9%."""
+    share = share_positive(lambda seed: seller_slots(seed, 30, SellerShape(0.1)), range(2000), 15)
+    assert share == pytest.approx(0.226, abs=0.0005)
 
 
 def test_the_rejected_rule_batch_equal_to_hold_fails_the_gate_at_hold_15():

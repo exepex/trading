@@ -43,16 +43,17 @@ The comparison is paired against N0, RC1 and REF on h's common road-days, with o
   10. Batch = hold failed the gate below at holds 10-25 (upper ends 10.4-11.0%). Fewer than 2 whole batches give no
   bound: "Not established, too few independent batches".
 - **The gate it passed:** the null calibration, 2,000 seeds a configuration. The upper end of the 95% interval of the
-  false-"Watching" share is 10% or less at every real hold (3, 10, 15, 18, 25 and 33 sessions; worst 9.0%), with
+  false-"Watching" share is 10% or less at every real hold (3, 10, 15, 18, 26 and 33 sessions; worst 9.0%), with
   shared shocks 0.3, 0.6 and 0.9 and return spreads 0.5 and 1.0. Some evidence: a simulation, not data.
 - **A card's hold:** the shortest bound its card states. That is sessions held, calendar days held, sessions before
   expiry, or days to expiry at entry less its last exit day. With no such bound, the hold is the expiry cycle (36 days
   monthly, 7 weekly). Days become sessions at 5 a week, rounded up. N0 holds nothing.
 - **The statuses in v1:** Exploratory below 30 sessions, Not established from 30, and never Watching (orchestrator's
-  ruling D). A sparse, negatively skewed seller makes the bound look positive falsely up to 18.9% of the time (upper
-  end 20.7%), against a 10% gate. The mean and the bound are printed as descriptive numbers, "descriptive, not a test".
-  Seller-shaped rows add "this method can falsely look positive up to 21% for this payoff shape". Watching returns only
-  with a v2 card whose own null gate passes the skewed shapes.
+  ruling D). A sparse, negatively skewed seller makes the bound look positive falsely up to 43.4% of the time (upper
+  end 45.6%; loss chance 5%, hold 26, 120 sessions), against a 10% gate. The mean and the bound are printed as
+  descriptive numbers, "descriptive, not a test". Seller-shaped rows add "this method can falsely look positive up to
+  46% for this payoff shape (rarer full losses can be worse)". Watching returns only with a v2 card whose own null
+  gate passes the skewed shapes (loss chances 0.05 to 0.2 at the cards' holds).
 
 ```thresholds
 range_z: 1.645
@@ -70,7 +71,7 @@ min_sessions: 30
 min_batches: 2
 batch_hold_multiple: 1.5
 min_batch: 10
-seller_false_positive_pct: 21
+seller_false_positive_pct: 46
 sessions_per_week: 5
 monthly_cycle_days: 36
 weekly_cycle_days: 7

@@ -875,20 +875,21 @@ reverted when the method changed (orchestrator's ruling b).
     session (S6's t table);
   - batch length: 1.5 times the longer of the pair's two frozen card holds, rounded up, never under 10 sessions;
   - a card's hold (`holds.py`) is the shortest bound its card states: sessions held, calendar days held, sessions
-    before expiry, or days to expiry at entry less its last exit day. Without one, it is the expiry cycle (35 days
-    monthly, 7 weekly). Days become sessions at 5 a week, rounded up, and N0 holds nothing;
-  - the real holds: WS1 3, CS1, DB1 and DR1 10, PS2-4 15, PS5 18, REF and RC1 25, KL1 33;
+    before expiry, or days to expiry at entry less its last exit day. Without one, it is the expiry cycle (36 days
+    monthly, since REF can enter at 36 days; 7 weekly). RC1 takes its rule twins' longest hold. Days become sessions at 5 a week, rounded up, and N0 holds nothing;
+  - the real holds: WS1 3, CS1, DB1 and DR1 10, PS2-4 and RC1 15, PS5 18, REF 26, KL1 33;
   - batch = hold was measured first and failed the gate at holds 10-25 (upper ends 10.4-11.0%), hence the 1.5.
 - **Status (`MapStatus`), v1 (orchestrator's ruling D, 22 Oct 2026):**
   - `exploratory` below 30 valid counted sessions, `not_established` from 30;
   - v1 never assigns `watching`. A sparse, negatively skewed seller (the shape of CS1, PS2-4, WS1, REF) makes the
-    batch-t bound look positive falsely in up to 18.9% of runs (upper end 20.7%), far above the 10% gate, and no t
-    level or batch length fixes it;
+    batch-t bound look positive falsely in up to 43.4% of runs (upper end 45.6%; loss chance 5%, hold 26, 120
+    sessions), far above the 10% gate, and no t level or batch length fixes it;
   - the mean and the bound are shown as descriptive numbers, labelled "descriptive, not a test";
-  - a seller-shaped driver's row says "this method can falsely look positive up to 21% for this payoff shape";
+  - a seller-shaped driver's row says "this method can falsely look positive up to 46% for this payoff shape (rarer
+    full losses can be worse)";
   - a row without a bound says "too few independent batches: no bound before N sessions";
   - Watching returns only with a v2 card (the model-variance floor, option B) whose own null gate passes the skewed
-    shapes (loss chance 0.1 and 0.2) and the Gaussian ones.
+    shapes (loss chances 0.05 to 0.2, at the cards' holds) and the Gaussian ones.
 - **Live null:** every review also compares RC1 with N0 on the same days, so the null's own rate of looking good is
   visible.
 
@@ -2402,20 +2403,33 @@ take this long to show a positive bound (hold 10, batch 15, 500 seeds; the share
   - against REF (hold 26): 78, KL1 100.
   - The review prints these in those words.
 
-**Why no Watching in v1: the skewed-seller null [some evidence].** The fake driver is a credit seller at zero edge: 4
-roads, one open trade per road, hold 10, the full maximum loss with probability p and a small win otherwise, sharing
-60% of a session shock. Its share of runs with a bound above 0 (2,000 seeds, batch 15; upper end of the 95% Wilson
-interval):
+**Why no Watching in v1: the skewed-seller null [some evidence], measured with the shipped code (round 2).**
+- **The fake driver** (`nulls.seller_slots`) is a credit seller at zero edge:
+  - 5 roads, one open trade per road, held for the card's hold;
+  - the full maximum loss with probability p, else a small win;
+  - 60% of a session shock shared across roads.
+- **The grid:**
+  - share of runs with a bound above 0, 2,000 seeds per cell;
+  - batch 1.5 x the hold, at least 10;
+  - every hold the cards hold, p 0.05 to 0.2;
+  - at the first session count with a bound (2 batches), at twice that, at 120 and at 250 sessions;
+  - the upper end of the 95% Wilson interval in brackets.
 
-| p | 30 sessions | 60 | 120 | 250 |
+| Hold (batch) | p 0.05 | p 0.1 | p 0.15 | p 0.2 |
 |---|---|---|---|---|
-| 0.2 | 10.9% (12.3%) | 14.4% (16.0%) | 11.7% (13.2%) | 8.4% (9.6%) |
-| 0.1 | 14.9% (16.5%) | 16.6% (18.3%) | 18.9% (20.7%) | 12.4% (14.0%) |
+| 3 (10), 20-250 sessions | 11.9-31.4% (33.5%) | 9.2-16.0% (17.6%) | 8.4-11.0% (12.4%) | 7.6-9.2% (10.5%) |
+| 10 (15), 30-250 | 18.5-36.3% (38.4%) | 13.1-22.6% (24.5%) | 10.8-16.0% (17.6%) | 9.6-14.1% (15.7%) |
+| 15 (23), 46-250 | 19.2-40.4% (42.6%) | 16.2-25.3% (27.3%) | 13.2-18.4% (20.1%) | 10.5-14.6% (16.2%) |
+| 18 (27), 54-250 | 25.1-37.1% (39.3%) | 15.6-21.6% (23.4%) | 12.8-17.0% (18.7%) | 7.7-15.0% (16.6%) |
+| 26 (39), 78-250 | 19.2-43.4% (45.6%) | 16.0-22.1% (24.0%) | 14.3-17.5% (19.3%) | 9.4-16.8% (18.5%) |
+| 33 (50), 100-250 | 25.3-37.8% (39.9%) | 17.2-23.8% (25.7%) | 13.7-17.0% (18.7%) | 9.4-14.2% (15.9%) |
 
-- **What does not fix it:** batches of 20 or 30, a 97.5% t and a 99% t; p = 0.1 still fails up to 120 sessions.
+- **The worst case** is 43.4% (upper end 45.6%): p 0.05, hold 26, 120 sessions. Seller rows print "up to 46%", and add
+  that rarer full losses can be worse. A test pins that cell at or under 46% and above 40%.
+- **Correction of round 1:** the first table here came from a separate 4-road script, not the shipped 5-road code. Its
+  hold-10, p-0.1, 30-session cell (14.9%) is 22.6% (24.5%) with the shipped code, as Judge K found (judge 516).
+- **What does not fix it** (round 1, 4-road script): batches of 20 or 30, a 97.5% t and a 99% t.
 - **The cause is the skew, not the sparseness:** a symmetric ±1 payoff gives 4-5%, a positive skew 2%.
-- **Seller rows:** v1 prints "this method can falsely look positive up to 21% for this payoff shape". A test checks the
-  measured worst case stays under 21%.
 
 **The Gaussian null, Gaussian only (2,000 seeds a cell; upper end in brackets).** It passes at the batch rule. It does
 not cover skewed payoffs.
@@ -2465,3 +2479,17 @@ findings were all fixed:
 
 **Broken-code proof:** 14 plants before the ruling, all caught. The ruling's own pieces are pinned by the tests above:
 the ladder, no Watching anywhere, the notes and the seller flag.
+
+#### INS-d Claims, round 2 (judge 516 FAIL round 1: two should-fixes, one minor)
+
+| Finding | Fix | Test |
+|---|---|---|
+| SF1: the printed "up to 21%" was false | The cause: the round-1 table came from a separate 4-road script, never re-run with the shipped 5-road `seller_slots`. The full grid is now measured with the shipped code: every hold the cards hold, loss chances 0.05-0.2, at 2 batches, at twice that, at 120 and at 250 sessions, 2,000 seeds a cell (the table in "INS-d Claims (round 1)", rewritten). The true worst case is 43.4% (upper end 45.6%). `SELLER_FALSE_POSITIVE_PCT` is now 46 (code, card and test agree), and seller rows add "(rarer full losses can be worse)" | `test_nulls`: `the_skewed_seller_null_fails_the_gate_and_its_worst_case_is...` (the worst cell pinned above 40% and at or under 46%); `the_round_1_table_cell_measured_with_the_shipped_code` (your 22.6%) |
+| SF2: the card said REF 25, the story said 35 days and REF/RC1 25 | The card: holds 3, 10, 15, 18, 26 and 33. The story: the 36-day cycle, RC1 15 from its twins, REF 26 | none needed (the holds are tested from the cards: `each_cards_frozen_hold`) |
+| Minor: a pair present with an empty common set | none needed | `test_compare`: `a_pair_present_with_an_empty_common_set_gives_no_row` |
+
+**What the owner should know [some evidence: a simulation].** For a credit seller that rarely loses its full maximum
+loss (a 5% chance), this descriptive bound looks positive about 2 runs in 5 even with no edge. Rows print that rate.
+The rarer the loss, the more misleading a short sample looks. That is the peso problem, and it is why v1 has no
+Watching.
+

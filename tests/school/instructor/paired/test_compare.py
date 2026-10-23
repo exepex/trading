@@ -43,3 +43,9 @@ def test_each_cards_payoff_shape():
     from fno.school.instructor.paired.shapes import is_seller
 
     assert {code for code, card in CARDS.items() if is_seller(card)} == SELLERS
+
+
+def test_a_pair_present_with_an_empty_common_set_gives_no_row():
+    """Judge 516 minor: the key is there, its set is empty: still no row (criterion 9)."""
+    slots = {"CS1@1": DRIVER, "RC1@1": CONTROL}
+    assert compare(CARDS["CS1"], (CARDS["RC1"],), CARDS.values(), slots, {("CS1@1", "RC1@1"): set()}, RULES) == ()

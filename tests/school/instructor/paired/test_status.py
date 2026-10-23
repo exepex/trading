@@ -57,7 +57,10 @@ def test_no_v1_module_assigns_watching():
 def test_a_row_says_in_words_when_there_is_no_bound_and_when_its_shape_can_mislead():
     row = paired_row("REF@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.5] * 30), 39, RULES, seller=True)
     assert (row.status, row.bound) == (MapStatus.NOT_ESTABLISHED, None)
-    assert "no bound before 78 sessions" in row.note and "falsely look positive up to 21%" in row.note
+    assert (
+        "no bound before 78 sessions" in row.note
+        and "falsely look positive up to 46% for this payoff shape (rarer full losses can be worse)" in row.note
+    )
     short = paired_row("DB1@1", "N0@1", Measure.PER_OPPORTUNITY, series([0.5] * 29), 15, RULES)
     assert short.status == MapStatus.EXPLORATORY and "no bound before 30 sessions" in short.note
     assert "falsely" not in short.note  # a debit buyer is not seller-shaped

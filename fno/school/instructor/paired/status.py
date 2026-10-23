@@ -14,7 +14,9 @@ from .series import PairedSeries
 
 DESCRIPTIVE = "descriptive, not a test"
 TOO_FEW_BATCHES = "too few independent batches: no bound before {first} sessions"
-SELLER_FALSE_RATE = "this method can falsely look positive up to {rate}% for this payoff shape"
+SELLER_FALSE_RATE = (
+    "this method can falsely look positive up to {rate}% for this payoff shape (rarer full losses can be worse)"
+)
 
 
 def batch_bound(values: tuple[float, ...], batch: int) -> float | None:

@@ -16,7 +16,7 @@ MIN_SESSIONS = 30  # part d: valid counted sessions before "watching" or "not es
 MIN_BATCHES = 2  # part d: fewer whole batches give no bound ("too few independent batches")
 BATCH_HOLD_MULTIPLE = 1.5  # part d: batch = 1.5 x the pair's longest hold (batch = hold failed the 10% null gate)
 MIN_BATCH = 10  # part d: and never under 10 sessions
-SELLER_FALSE_POSITIVE_PCT = 21  # part d: the skewed-seller null's worst upper end (20.7%), printed on seller rows
+SELLER_FALSE_POSITIVE_PCT = 46  # part d: the skewed-seller null's worst upper end (45.6%), printed on seller rows
 SESSIONS_PER_WEEK = 5  # part d: calendar days to sessions for a card's hold
 MONTHLY_CYCLE_DAYS = 36  # part d: the longest hold to the nearest monthly expiry (REF can enter at 36 days)
 WEEKLY_CYCLE_DAYS = 7  # part d: the same for a weekly expiry
