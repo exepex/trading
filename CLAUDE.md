@@ -65,7 +65,9 @@ cancels orders.
    A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww).
    It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
-   same day skips the steps already done.
+   same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
+   hang: never stop the run while it waits. A second run beside a living one prints "another daily run of <day> is
+   running" and does nothing (story O1-day-lock): then wait for the first run's last line.
 3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
    result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
 
