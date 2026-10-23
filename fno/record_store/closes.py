@@ -1,15 +1,23 @@
 """Story DR1's first dataset: A4h's close read (`fno/close_read/`), certified from the NSE index-list answers A4h
 already saves (`closes/<yyyy>/<mm>/<day>.first.raw.json` and `.recheck.raw.json`): the shadow phase, A4h's code
-unchanged. A4h's own rules decide what a valid answer is (`read_answer`: NSE's stamp of that day at or after 15:30,
-every index with a last and an open); this adds the sanity check and, for the certified record, NSE's official
-index-close file within A4h's tolerance. Lines name indices and differences, never a level (judge 440 SF1)."""
+unchanged. Those files are A4h's canonical JSON of the parsed answer (sorted keys), not NSE's own byte stream, so
+integrity means "matches its receipt". A4h's own rules decide what a valid answer is (`read_answer`: NSE's stamp of
+that day at or after 15:30, every index with a last and an open); this adds the sanity check and, for the certified
+record, NSE's official index-close file within A4h's tolerance. Lines name indices and differences, never a level.
+
+Which passing read is the record (the A4h builder's objection, 23 Oct): A4h rechecks at 16:00 because NSE's list can
+still change after 15:30, and both reads carry the same stamp (23 Oct: "23-Oct-2026 15:30" at 15:40 and at 16:00),
+so the stamp cannot order them. A value that changes after the 15:30 close is NSE's correction, so the provisional
+record is the latest passing read, with any difference named; it never blocks. The certified record is the read
+closest to NSE's official file. The certifier never alerts: A4h's overdue rule already alerts a day the official file
+does not confirm."""
 
 from __future__ import annotations
 
 import json
 from datetime import date
 
-from ..close_read.answer import Refused, read_answer
+from ..close_read.answer import Refused, difference, read_answer
 from ..close_read.constants import INDICES, READ, RECHECK, TOLERANCE
 from ..close_read.official import OfficialCloses
 from ..close_read.records import raw_path, record_path
@@ -21,8 +29,8 @@ from .rules import Choice, DatasetRules
 DATASET = "closes"
 MAX_MOVE = 0.20  # NSE's widest index circuit band: a close more than 20% from its open is not a real close
 AGREE = "{count} passing version(s) agree on {names}"
-DISAGREE = "the passing versions disagree on {names}; the certified record decides against NSE's official file"
-OFFICIAL = "agrees with NSE's official file {filename} within {tolerance}"
+SUPERSEDED = "the later read supersedes the earlier ({changes})"
+OFFICIAL = "closest to NSE's official file {filename}, within {tolerance}"
 MATCHES, DIFFERS, NO_A4H = "matches A4h's record", "differs from A4h's record (it cites {which})", "A4h wrote no record"
 
 
@@ -53,16 +61,21 @@ class ClosesRules(DatasetRules):
         return results
 
     def choose(self, session: str, level: str, passing: list[tuple[StagedVersion, bytes]]) -> Choice:
+        """Passing versions come in read order (first, then recheck)."""
         day = date.fromisoformat(session)
-        checked = [n.listed for n in INDICES if n.checked]
+        checked = [n for n in INDICES if n.checked]
         values = [read_answer(json.loads(data), day).values for _, data in passing]
-        differing = [name for name in checked if len({tuple(sorted(v[name].items())) for v in values}) > 1]
-        if level == CERTIFIED:  # every passing version agrees with the official file: any of them is the record
-            filename, _ = self.official.closes(day)
-            return Choice(passing[0][0], OFFICIAL.format(filename=filename, tolerance=TOLERANCE))
-        if differing:
-            return Choice(None, DISAGREE.format(names=", ".join(differing)))
-        return Choice(passing[0][0], AGREE.format(count=len(passing), names=", ".join(checked)))
+        if level == CERTIFIED:
+            filename, official = self.official.closes(day)
+            gaps = [max(abs(v[n.listed]["last"] - official[n.official]) for n in checked) for v in values]
+            best = min(range(len(passing)), key=lambda i: (gaps[i], i))  # equal quality: the read A4h's record cites
+            return Choice(passing[best][0], OFFICIAL.format(filename=filename, tolerance=TOLERANCE))
+        changes = [f"{n.listed} {difference(values[0][n.listed]['last'], values[-1][n.listed]['last'])}"
+                   for n in checked if values[0][n.listed] != values[-1][n.listed]]  # fmt: skip
+        if changes:
+            return Choice(passing[-1][0], SUPERSEDED.format(changes=", ".join(changes)))
+        names = ", ".join(n.listed for n in checked)  # equal values: the first read, the one A4h's record cites
+        return Choice(passing[0][0], AGREE.format(count=len(passing), names=names))
 
     def _agreement(self, day: date, values: dict) -> CheckResult:
         try:
@@ -83,12 +96,14 @@ class ClosesRules(DatasetRules):
 
 
 def _sanity(values: dict) -> CheckResult:
-    for name in (n.listed for n in INDICES):
-        last, opened = values[name]["last"], values[name]["open"]
+    """Positive values for every index; the 20% band only for the indices NSE's circuit bands cover (NIFTY 50 and NIFTY
+    BANK): INDIA VIX can move more than 20% in a day around a shock, and its list value is never certified."""
+    for index in INDICES:
+        last, opened = values[index.listed]["last"], values[index.listed]["open"]
         if last <= 0 or opened <= 0:
-            return CheckResult("sanity", False, f"{name} is not positive")
-        if abs(last / opened - 1) > MAX_MOVE:
-            return CheckResult("sanity", False, f"{name} closed more than {MAX_MOVE:.0%} from its open")
+            return CheckResult("sanity", False, f"{index.listed} is not positive")
+        if index.checked and abs(last / opened - 1) > MAX_MOVE:
+            return CheckResult("sanity", False, f"{index.listed} closed more than {MAX_MOVE:.0%} from its open")
     return CheckResult("sanity", True)
 
 

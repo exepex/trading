@@ -28,13 +28,26 @@ def test_two_agreeing_reads_make_one_provisional_record_and_a_rerun_changes_noth
     assert again.recorded and "already recorded" in again.line
 
 
-def test_reads_that_disagree_make_no_provisional_record(world):
+def test_a_later_read_that_differs_supersedes_the_earlier_and_the_change_is_named(world):
+    """Both reads carry NSE's 15:30 stamp (23 Oct's real files): a change after the close is NSE's correction."""
     world.a4h_saves(READ, answer())
-    other = {**LEVELS, "NIFTY 50": (22745.0, 22700.0)}
-    world.a4h_saves(RECHECK, answer(levels=other))
+    world.a4h_saves(RECHECK, answer(levels={**LEVELS, "NIFTY 50": (22745.0, 22700.0)}))
     outcome = world.certifier().certify(SESSION, PROVISIONAL)
-    assert not outcome.recorded and "disagree on NIFTY 50" in outcome.line
-    assert world.records.chosen("closes", SESSION, PROVISIONAL) is None
+    assert outcome.recorded and outcome.record.chosen.path.endswith(".recheck.raw.json")
+    assert "; the later read supersedes the earlier (NIFTY 50 differs by 3.75); A4h wrote no record" in outcome.line
+
+
+def test_india_vix_may_move_more_than_20_percent_but_must_be_positive(world):
+    world.a4h_saves(READ, answer(levels={**LEVELS, "INDIA VIX": (18.0, 13.5)}))  # +33%, a shock day
+    assert world.certifier().certify(SESSION, PROVISIONAL).recorded
+
+
+def test_when_both_reads_agree_with_the_official_file_the_closest_is_certified(world):
+    world.a4h_saves(READ, answer())  # equal to the official closes
+    world.a4h_saves(RECHECK, answer(levels={**LEVELS, "NIFTY 50": (22741.26, 22700.0)}))  # 0.01 off: still passes
+    outcome = world.certifier().certify(SESSION, CERTIFIED)
+    assert outcome.recorded and "2 of 2 version(s) passed" in outcome.line
+    assert outcome.record.chosen.path.endswith(".first.raw.json")
 
 
 def test_the_certified_record_chooses_the_read_that_agrees_with_the_official_file(world):
@@ -42,7 +55,7 @@ def test_the_certified_record_chooses_the_read_that_agrees_with_the_official_fil
     world.a4h_saves(RECHECK, answer("23-Oct-2026 15:31"))
     outcome = world.certifier().certify(SESSION, CERTIFIED)
     assert outcome.recorded and outcome.record.chosen.path.endswith(".recheck.raw.json")
-    assert "1 of 2 version(s) passed; agrees with NSE's official file ind_close_all_23102026.csv" in outcome.line
+    assert "1 of 2 version(s) passed; closest to NSE's official file ind_close_all_23102026.csv" in outcome.line
     failed = [v for v in outcome.record.verdicts if not v.passed][0]
     assert failed.failure() == "official file: NIFTY 50 differs by 3.75"
 
@@ -62,6 +75,7 @@ def test_no_official_file_yet_means_no_certified_record(tmp_path):
         (answer(levels={k: v for k, v in LEVELS.items() if k != "NIFTY BANK"}), "NIFTY BANK missing"),
         (answer(levels={**LEVELS, "NIFTY 50": (0.0, 22700.0)}), "sanity: NIFTY 50 is not positive"),
         (answer(levels={**LEVELS, "NIFTY BANK": (70000.0, 54900.0)}), "closed more than 20% from its open"),
+        (answer(levels={**LEVELS, "INDIA VIX": (-1.0, 13.5)}), "sanity: INDIA VIX is not positive"),
         (b"<html>busy</html>", "layout: not JSON"),
     ],
 )

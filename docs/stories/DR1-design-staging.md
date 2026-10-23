@@ -159,15 +159,35 @@ shadow phase the closes' versions are A4h's own raw answers (`<day>.first.raw.js
 their receipts), so A4h's writer is untouched. Command: `python -m fno records certify closes [--day D] [--level
 provisional|certified] [--commit]` and `python -m fno records read closes [--day D] [--level ...]`.
 
-**Closes rules (version 1):** provisional = integrity (bytes equal their receipt), layout (JSON), A4h's own
-`read_answer` (NSE stamp that day at or after 15:30, every index with last and open), sanity (positive; last within
-20% of open: NSE's widest index band); the passing versions must agree on NIFTY 50 and NIFTY BANK, else no provisional
-record ("the certified record decides"). Certified = the same plus NSE's official index-close file within A4h's
-0.01 tolerance (A4h's `OfficialCloses`); no official file yet means no certified record, named.
+**Closes rules (version 1):** provisional = integrity (bytes equal their receipt; A4h's raw file is its canonical
+JSON of the parsed answer, not NSE's byte stream), layout (JSON), A4h's own `read_answer` (NSE stamp that day at or
+after 15:30, every index with last and open), sanity (every index positive; NIFTY 50 and NIFTY BANK within 20% of their
+open, NSE's widest index band; INDIA VIX is not banded). Certified = the same plus NSE's official index-close file
+within A4h's 0.01 tolerance for NIFTY 50 and NIFTY BANK (A4h's `OfficialCloses`); no official file yet means no
+certified record, named, and no alert (A4h's overdue rule already alerts that gap).
 
-**Real Drive, read-only dry run (23 Oct, records kept local, not committed):** `closes 2026-10-22 certified: recorded
-d98b58cde08f, 1 of 1 version(s) passed; agrees with NSE's official file ind_close_all_22102026.csv within 0.01;
-matches A4h's record`; `closes 2026-10-23 provisional: recorded c5c1bb4fdf47, 2 of 2 version(s) passed; 2 passing
+**Which passing read is the record (settled with the A4h builder and the orchestrator, 23 Oct):**
+- *Objection (A4h builder): the 16:00 recheck may differ from the 15:40 read by design; "the reads must agree" would
+  leave no provisional close on a correction day.* Accepted. The orchestrator's alternative (block only when two reads
+  with the same NSE stamp differ) does not work on this data: both of 23 Oct's reads carry the same stamp
+  ("23-Oct-2026 15:30" at 15:40 and at 16:00; strong evidence, the raw files in Drive), so it would block exactly the
+  correction days. Rule: a value that changes after the 15:30 close is NSE's correction, so the provisional record is
+  the **latest** passing read, the change named ("the later read supersedes the earlier (NIFTY 50 differs by X)"); equal
+  values keep the first read, the one A4h's record cites. The A4h builder proposed the first read; DR1 takes the later
+  (reasoning only: a post-close change is a correction); the shadow counts the days the recheck differs and which read
+  NSE's official file confirms, which settles it with data.
+- *Certified:* the passing read closest to the official file (equal: the first read). The A4h builder proposed "both
+  agree: no record"; not taken: both within 0.01 of the official file are both correct closes, and refusing would cost
+  availability for no consistency gain.
+- *Objection: the 20% band must not apply to INDIA VIX.* Accepted (VIX moves more than 20% around shocks; its list
+  value is never certified); VIX keeps the positive check.
+
+**After A4h-2 (from Mon 26 Oct):** rules version 2 adds A4h's proposed checks of high, low and previous close (against
+the official file and the previous session's close; low <= open, last <= high), VIX fields optional.
+
+**Real Drive, read-only dry run (23 Oct, records kept local, not committed; all four match A4h's record):** `closes
+2026-10-22 certified: recorded d98b58cde08f, 1 of 1 version(s) passed; closest to NSE's official file
+ind_close_all_22102026.csv, within 0.01; matches A4h's record`; `closes 2026-10-23 provisional: recorded c5c1bb4fdf47, 2 of 2 version(s) passed; 2 passing
 version(s) agree on NIFTY 50, NIFTY BANK; matches A4h's record`.
 
 **Shadow running (proposed, not in this branch: it touches routines):** the evening routine certifies the day's
@@ -180,10 +200,11 @@ refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h
 
 1. A record is a pointer (path, SHA-256, size, saved time) plus every version's check results; it never holds a level
    (tested), and the same choice gives the same bytes, so a rerun is a no-op.
-2. Choice by quality only: a version failing any check never becomes the record; provisional reads that disagree make
-   no record; the certified record names the read that agrees with NSE's official file, whichever read it is.
+2. Choice by quality only: a version failing any check never becomes the record; a later read that differs supersedes
+   the earlier with the change named; the certified record names the read closest to NSE's official file, whichever
+   read it is; INDIA VIX may move more than 20% but must be positive.
 3. A record already published by another certifier is never overwritten: a different choice is printed as a conflict.
 4. `RecordReader` returns exactly the recorded bytes or refuses by name (no record, missing, other bytes); a certified
    record serves a provisional need, never the reverse; the as-seen pointer names level, path and SHA-256.
 5. Two writers staging one session in the same second get two names (`<fetched_at>_<run_id>`).
-6. Gates: ruff, `tools/check_imports.py`, full suite 14,635 passed (19 new in `tests/record_store/`).
+6. Gates: ruff, `tools/check_imports.py`, full suite 14,638 passed (22 in `tests/record_store/`).
