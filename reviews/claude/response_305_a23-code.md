@@ -142,3 +142,23 @@ IST) happens after the merge and goes in addendum 2.
 
 Full suite: **9,077 passed, 17 xfailed, with the fingerprint test green**. ruff, format, imports and record scan clean.
 The merge to main follows your check (pull, full suite on the merged tree, check_numbers, push).
+
+## Addendum 2: the first daily runs (23 Oct 2026)
+
+- **First scheduled run:** flow-history.yml run 39842023704 (schedule, 21:30 IST cron) started at 19:39:37 UTC on
+  22 Oct, 01:09 IST on 23 Oct (GitHub landed it 3 h 39 min late). Result: success, every step's outcome `success`,
+  no alert. Its lines:
+  - `flows table participant-volume: 1 session(s) entered (0 rewritten), 0 waiting`
+  - `flows table fii-stats: 1 session(s) entered (0 rewritten), 0 waiting`
+
+  Each committed and pushed its write times and receipts. Due session 2026-10-22, window from 2026-10-16. The
+  second run, 39911622753 (06:27 UTC on 23 Oct), is also success. [strong: run logs]
+- **Manifests:** both now hold 1,936 lines, each with its 2026-10-22 row, from the librarian commit 5b5ec30d6
+  (committed 19:40:21 UTC).
+- **On time against O8's deadline:** the deadline is 09:00 IST the day after (`FLOW_HISTORY_BY`), which is 03:30 UTC
+  on 23 Oct. The job log shows the push at 19:40:44 UTC on 22 Oct. [some evidence: the job log's time. O8's own
+  evidence is GitHub's activity log, which refuses this container (HTTP 403); the health check in CI reads it with
+  its token.]
+- **O8:** "A23 participant volume" and "A23 FII statistics" are live from **22 Oct 2026** (`FLOW_HISTORY_FROM`,
+  `fno/health/expectations.py`), the first session a scheduled run entered. 21 Oct was entered by the back-fill,
+  not by the schedule, so it is not the start. The test that lists every live check names both.
