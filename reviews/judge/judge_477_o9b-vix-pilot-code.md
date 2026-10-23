@@ -73,3 +73,22 @@ PASS stands at dafedbe3, and the G7 failure is gone now that `main` is merged in
   record_scan and o9b: 150 passed. The full-tree record scan is clean (8,658 files).
 - **Reasoning only, for a later step (the builder's own note):** writing a check snapshot only when it differs from
   the latest would bring back "no change, no commit".
+
+## Addendum 2: the data-checks trigger (story/o9b-data-checks-trigger @ 5a423497)
+
+**Verdict: PASS. It may merge now** (urgent: the false "lost run" rows keep growing).
+
+**My miss, said plainly.** In the main verdict I checked `data-checks.yml`'s steps and its alert, but not the cost of
+its push trigger. `receipts/data/**` matches every job's receipt push, several an hour. GitHub keeps one pending run
+per concurrency group and cancels the others, and O10's watcher records each as lost: **24 rows** in
+`research/ops/capture_errors.csv` on 23 Oct (counted on `main`).
+
+The fix:
+- the push paths are `tests/**`, `fno/storage/**` and the workflow itself;
+- the 09:41 IST daily run checks the new receipts;
+- `tests/o9b/test_data_checks_workflow.py` pins the trigger. My plant (`receipts/data/**` put back) fails it.
+- tests/o9b and the schedule tests: 21 passed.
+
+**For the orchestrator:** `data-checks` in O10's `REPLACEABLE` set is O10's call. It is reasonable while the job can
+still cancel a pending run on a burst of test pushes, which is far rarer now. The 24 existing rows are false losses,
+not failed data checks.
