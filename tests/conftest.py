@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parent.parent
 # Recorded research data and paper-desk records: tests must never write here.
 PROTECTED = [ROOT / "research" / "data", ROOT / "journal"]
 
+NO_SIGNING = "[commit]\n\tgpgsign = false\n[tag]\n\tgpgsign = false\n"
+
 
 def _snapshot() -> dict[str, float]:
     files = {}
@@ -101,16 +103,26 @@ def empty_home(tmp_path_factory):
     return tmp_path_factory.mktemp("home")
 
 
+@pytest.fixture(scope="session")
+def unsigned_git_config(tmp_path_factory):
+    """The machine's git settings (its identity) without signing: a test repository's commit never calls the
+    machine's signing program, an outside service whose failure is a `git commit` exit 128 (orchestrator, 23 Oct: a
+    test commit failed once under load the minute the signer was replaced)."""
+    machine = Path(os.environ.get("GIT_CONFIG_GLOBAL") or Path.home() / ".gitconfig")
+    config = tmp_path_factory.mktemp("git") / "gitconfig"
+    include = f"[include]\n\tpath = {machine}\n" if machine.is_file() else ""
+    config.write_text(include + NO_SIGNING, encoding="utf-8")
+    return config
+
+
 @pytest.fixture(autouse=True)
-def no_real_credentials(monkeypatch, empty_home):
+def no_real_credentials(monkeypatch, empty_home, unsigned_git_config):
     """Tests never reach a real broker account, Google Drive, #fno-desk, a database, a routine or GitHub through
     credentials that happen to be set on the machine; a test that needs them sets fake ones itself. The home folder
     is an empty one, so `python -m fno` (in process or as a subprocess) cannot reload them from the machine's env
-    file; git keeps the machine's own settings (its identity)."""
+    file; git keeps the machine's own settings (its identity), never its signing (`unsigned_git_config`)."""
     for name in LIVE_CREDENTIALS:
         monkeypatch.delenv(name, raising=False)
-    git_config = Path.home() / ".gitconfig"
-    if git_config.is_file() and "GIT_CONFIG_GLOBAL" not in os.environ:
-        monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(git_config))
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(unsigned_git_config))
     monkeypatch.setenv("HOME", str(empty_home))
     monkeypatch.setenv("USERPROFILE", str(empty_home))

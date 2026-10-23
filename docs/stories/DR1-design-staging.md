@@ -220,3 +220,21 @@ refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h
    confirm, the panel) does the same, while `DailyFiles` and `close_read/official.py` say "never writes to Drive":
    reported to the O9 and A4h builders, not changed here.
 7. Gates: ruff, `tools/check_imports.py`, full suite 14,647 passed (27 in `tests/record_store/`).
+
+## 8. DR1-1 shadow steps (branch story/dr1-1-shadow-steps, after DR1-1's PASS)
+
+- `records certify <dataset> --since N`: every NSE session from the dataset's `live_from` (closes: 22 Oct) in the last
+  N days, one line each; a session already recorded says so; exit 1 while any is not recorded. A session missed one
+  morning is therefore caught up the next (the catch-up of section 4, for this dataset). The window ends at the day
+  for a provisional record and at the previous session for a certified one (judge 546 SF1: a certified record is due
+  only once NSE's official file is out, so including today raised a false "NOT recorded" every trading morning).
+  Tested on NSE's real calendar: a trading morning, a Monday (Friday is the last) and the day after the 20 Oct holiday
+  (19 Oct is the last), each exit 0 with no line for today; the plant "the window ends today" fails 3 tests.
+- CLAUDE.md, morning routine (after `lab open`): `python -m fno records certify closes --since 7 --level certified
+  --commit`; evening routine (after `closes read --commit`): `python -m fno records certify closes --level provisional
+  --commit`. Each commits only `receipts/records/`. The stored prompts are unchanged ("Run the ... routine in
+  CLAUDE.md"), so the owner pastes nothing.
+- The command alerts #fno-desk itself for a record not pushed or a conflict (DR1-1 round 2). The routine notes every
+  "NOT recorded" line in the day's conversation log and posts it to #fno-desk, except a certified "no official
+  index-close file in Drive yet", which A4h's overdue rule already alerts (judge 543's note); it posts the text of any
+  "alert NOT sent" line.

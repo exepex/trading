@@ -41,6 +41,7 @@ def a4h_raw_paths(session: str) -> list[str]:
 
 class ClosesRules(DatasetRules):
     name, version = DATASET, "1"
+    live_from = date(2026, 10, 22)  # A4h's first raw answer (its first read, 22 Oct)
 
     def __init__(self, official: OfficialCloses):
         self.official = official
