@@ -126,3 +126,17 @@ def test_judge_547_f2_one_live_day_never_shows_a_colour_before_the_live_count():
     one_live = replace(checked(1100.0), right=29, scored=30, track=TrackRecord(1, 1, 29, 28, 30, 1))
     record = "Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (29 of the last 30 days): 28 of 29"
     assert top_block(one_live, DAY, MON)[-1] == f"⚪ too few live days to rate | {record}"
+
+
+def test_judge_547_1_s3_the_light_reads_only_the_newest_30_live_checks():
+    """Judge 547.1's survivor S3: with more than 30 live checks, older hits never lift the light (from December)."""
+    from fno.forecast_lab.page.plain import light
+    from fno.forecast_lab.page.today_view import track_record
+
+    def live(inside):
+        return Outcome(DAY, 1100.0 if inside else 1300.0, BAND, inside, inside, True)
+
+    points = [live(True)] * 10 + [live(False)] * 7 + [live(True)] * 23  # the newest 30: 23 inside, so red
+    track = track_record(points)
+    assert (track.live_days, track.live_right, track.live_recent_right) == (40, 33, 23)
+    assert light(replace(index(), track=track)) == "red"
