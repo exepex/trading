@@ -49,3 +49,28 @@ confirms it, including each routine's time.
    closed and monthly days / once-only alerts / unsent retried.
 3. `routine-watch` is added to O10's capture-watch list (its own failure alerts too).
 4. Gates: full suite, ruff, check_imports (results in the handover to the judge).
+
+## Round 2 (judge 542 FAIL at aa49a433): what changed
+
+Every must-fix was checked against the code before it was fixed. All three are correct.
+1. **The watcher reads yesterday too** (`watch.py` `findings`). A run that dies late (participant-oi: its 400
+   minutes end at 23:52, after the last check at 23:17) or a check GitHub delays past midnight is still found. Each
+   alert marker is keyed by the day of the expected start (`Finding.day`), so it is alerted once. The in-run marker
+   takes the run's own day from its path. Test: `test_a_late_run_that_died_is_alerted_once_after_midnight`.
+2. **Scrub pinned where it is used.** The watcher's own error line is now scrubbed. Tests cover a token in a command's
+   output (the Drive step file and the #fno-desk line) and in the watcher's error line.
+3. **Names are checked before anything runs.** `--routine` and `--step` use `type=name_argument`: a bad name exits 2
+   at argument parsing and the command never starts. This also covers follow-up 8 (`../x`). Test:
+   `test_a_bad_name_stops_before_the_command_runs`.
+
+Follow-ups, also done:
+4. A step with no open run (`begin` missing, or the pre-open background part ending after `end`) is its own run,
+   closed at once with a note, never a false "stuck". `end` with no open run writes nothing: an empty "ok" run would
+   hide a failed one. The watcher now checks every run in a slot, not only the last.
+5. `ROUTINES` is pinned to the live times (`test_the_schedule_matches_the_live_routines`). The 10-minute early edge
+   is pinned too.
+6. A signal-killed command exits 128 + n, the shell's code.
+7. A state file left open for more than a day is not reused. A run crossing midnight keeps its steps.
+
+Tests: 29 in `tests/routine_logs/`. The judge's 4 surviving mutations and 4 more (today-only watcher, watcher-error
+scrub, signal code, orphan run left open) are each caught.

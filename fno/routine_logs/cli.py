@@ -15,9 +15,12 @@ from __future__ import annotations
 
 import contextlib
 import shlex
+from datetime import date
 
 from ..alerts.sender import SENT
-from .findings import failed_key
+from .findings import run_key
+from .layout import name_argument
+from .scrub import scrub
 from .step_runner import last_lines, run_command
 from .watch import LINES_SHOWN, alert_marker
 
@@ -30,17 +33,19 @@ def add_routine_log_parser(sub) -> None:
     p = sub.add_parser("routine-log", help="routine run logs in Drive and the routine watcher (story O13)")
     actions = p.add_subparsers(dest="action", required=True)
     begin = actions.add_parser("begin", help="open a routine's run log")
-    begin.add_argument("--routine", required=True)
+    begin.add_argument("--routine", required=True, type=name_argument)
     begin.add_argument("--session", default="", help="the session's link, when known")
     begin.set_defaults(func=cmd_begin)
     run = actions.add_parser("run", help="run one command and log it")
-    run.add_argument("--routine", required=True)
-    run.add_argument("--step", required=True, help="a short name: lower-case letters, digits, hyphens")
+    run.add_argument("--routine", required=True, type=name_argument)
+    run.add_argument(
+        "--step", required=True, type=name_argument, help="a short name: lower-case letters, digits, hyphens"
+    )
     run.add_argument("--last", action="store_true", help="the routine's last step: close the run after it")
     run.add_argument("command", nargs="+", help="the command, after --")
     run.set_defaults(func=cmd_run)
     end = actions.add_parser("end", help="close a routine's run log")
-    end.add_argument("--routine", required=True)
+    end.add_argument("--routine", required=True, type=name_argument)
     end.add_argument("--note", default="", help="one line: the routine's result")
     end.set_defaults(func=cmd_end)
     watch = actions.add_parser("watch", help="alert missing, stuck and failed runs of today")
@@ -75,17 +80,14 @@ def cmd_run(args, out=print, log=None, sender=None, runner=run_command) -> int:
 
 
 def _alert_failure(routine, step, code, path, output, log, sender, out) -> None:
-    from .scrub import scrub
-
     lines = "\n".join(last_lines(scrub(output), LINES_SHOWN))
     outcome = sender.send(FAILED_NOW.format(routine=routine, step=step, code=code, path=path, lines=lines))
     out(outcome)
-    run_folder = path.split("/steps/", 1)[0]
+    day, _, run = path.split("/steps/", 1)[0].split("/")  # "<day>/<routine>/<run>": the watcher's marker day
     if outcome == SENT:
         # without the marker the watcher alerts once more: never worse than silence
         with contextlib.suppress(Exception):
-            log.store.put(alert_marker(log.clock().date(), failed_key(routine, run_folder.rsplit("/", 1)[-1])),
-                          outcome.encode())  # fmt: skip
+            log.store.put(alert_marker(date.fromisoformat(day), run_key(routine, run)), outcome.encode())
 
 
 def cmd_end(args, out=print, log=None) -> int:
@@ -103,7 +105,7 @@ def cmd_watch(args, out=print, watcher=None, sender=None) -> int:
     try:
         unsent = (watcher or build_watcher()).alert_new(sender, out)
     except Exception as error:  # noqa: BLE001 - the watcher's own failure is alerted, never silent
-        out(sender.send(WATCH_FAILED.format(error=f"{type(error).__name__}: {error}")))
+        out(sender.send(WATCH_FAILED.format(error=scrub(f"{type(error).__name__}: {error}"))))
         return 1
     out("routine watch: done" if not unsent else f"routine watch: {unsent} alert(s) NOT sent")
     return 1 if unsent else 0

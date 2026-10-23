@@ -10,6 +10,7 @@ from collections.abc import Callable, Sequence
 KEEP_BYTES = 2_000_000
 CUT = "[... earlier output cut: the log keeps the last {kept} bytes ...]\n"
 NOT_STARTED = 127
+SIGNAL_BASE = 128
 
 
 def run_command(command: Sequence[str], echo: Callable[[str], None] = print) -> tuple[int, str]:
@@ -32,6 +33,7 @@ def run_command(command: Sequence[str], echo: Callable[[str], None] = print) -> 
             size -= len(kept.popleft())
             cut = True
     code = process.wait()
+    code = SIGNAL_BASE - code if code < 0 else code  # killed by signal n: the shell's 128 + n
     text = "".join(kept)
     return code, (CUT.format(kept=KEEP_BYTES) + text) if cut else text
 

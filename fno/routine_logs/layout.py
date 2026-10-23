@@ -4,10 +4,11 @@ run (`<HHMMSS>-<token>`, sortable by start time), holding `begin.json`, one `ste
 
 from __future__ import annotations
 
+import argparse
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 LOGS_AREA = "logs/routines"
 BEGIN, END, STEPS = "begin.json", "end.json", "steps"
@@ -19,6 +20,14 @@ def check_name(name: str) -> str:
     if not NAME.match(name):
         raise ValueError(BAD_NAME.format(name=name))
     return name
+
+
+def name_argument(name: str) -> str:
+    """argparse `type=`: a bad routine or step name stops the call before its command runs (exit 2)."""
+    try:
+        return check_name(name)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from None
 
 
 @dataclass(frozen=True)
@@ -44,6 +53,9 @@ class RunFolder:
 
     def step_file(self, number: int, label: str) -> str:
         return f"{self.path}/{STEPS}/{number:02d}-{check_name(label)}.log"
+
+    def started_at(self, tz) -> datetime:
+        return datetime.combine(self.day, time(int(self.run[:2]), int(self.run[2:4]), int(self.run[4:6])), tz)
 
     def started_hhmm(self) -> str:
         return f"{self.run[:2]}:{self.run[2:4]}"

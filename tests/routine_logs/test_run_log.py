@@ -29,12 +29,38 @@ def test_a_run_writes_begin_each_step_and_end(run_log, store):
     assert run.folder.path.startswith("2026-10-23/daily-desk/140500-")
 
 
-def test_a_failed_step_makes_the_run_failed_and_a_step_without_begin_opens_one(run_log, store):
+def test_a_failed_step_makes_the_run_failed(run_log, store):
+    run, _ = run_log.begin("pre-open")
     path, _ = run_log.step("pre-open", _step("record", 2))
-    assert path.startswith("2026-10-23/pre-open/") and path.endswith("/steps/01-record.log")
+    assert path == f"{run.folder.path}/steps/01-record.log"
     status, _ = run_log.end("pre-open")
-    end = json.loads(store.get(path.split("/steps/")[0] + "/end.json"))
+    end = json.loads(store.get(f"{run.folder.path}/end.json"))
     assert status == "failed" and end["failed_steps"] == ["record"]
+
+
+def test_a_step_with_no_open_run_is_a_closed_run_of_its_own_and_a_later_end_adds_nothing(run_log, store):
+    path, _ = run_log.step("pre-open", _step("global-cues", 1))  # finished after `end`, or `begin` never ran
+    folder = path.split("/steps/")[0]
+    end = json.loads(store.get(f"{folder}/end.json"))
+    assert end["status"] == "failed" and "no open run" in end["note"]  # closed: never a false "stuck"
+    status, line = run_log.end("pre-open")
+    assert status == "no open run" and "nothing closed" in line
+    assert store.folders("2026-10-23/pre-open") == [folder.rsplit("/", 1)[-1]]
+
+
+def test_a_run_left_open_over_a_day_ago_never_takes_new_steps(run_log, clock):
+    old, _ = run_log.begin("daily-desk")
+    clock.moment = ist(14, 6, day=24)
+    path, _ = run_log.step("daily-desk", _step("daily-run", 0))
+    assert path.startswith("2026-10-24/daily-desk/") and old.folder.path not in path
+
+
+def test_a_run_crossing_midnight_keeps_its_steps(run_log, clock):
+    clock.moment = ist(23, 50)
+    run, _ = run_log.begin("participant-oi")
+    clock.moment = ist(0, 20, day=24)
+    path, _ = run_log.step("participant-oi", _step("watch", 0))
+    assert path.startswith(run.folder.path)
 
 
 def test_a_drive_failure_never_stops_the_routine(tmp_path, clock):
@@ -65,6 +91,7 @@ def test_the_runner_passes_output_through_and_returns_the_exit_code():
 
 
 def test_a_failed_command_alerts_at_once_and_marks_the_alert(run_log, store):
+    run_log.begin("daily-desk")
     sender, lines = Sent(), []
     args = Namespace(routine="daily-desk", step="daily-run", command=["python3", "-c", "raise SystemExit(1)"])
     code = cmd_run(args, out=lines.append, log=run_log, sender=sender,
@@ -72,7 +99,7 @@ def test_a_failed_command_alerts_at_once_and_marks_the_alert(run_log, store):
     assert code == 1 and len(sender.texts) == 1
     assert "step daily-run failed (exit 1)" in sender.texts[0] and "boom: Groww refused" in sender.texts[0]
     run = RunStateFolder(run_log.state.folder).load("daily-desk")
-    assert store.get(alert_marker(ist(14, 5).date(), f"daily-desk-{run.folder.run}-failed")) is not None
+    assert store.get(alert_marker(run.folder.day, f"daily-desk-{run.folder.run}-failed")) is not None
 
 
 def test_a_passing_command_sends_nothing(run_log):

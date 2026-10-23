@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import time
+from datetime import date, time
 
 MISSING, STUCK, FAILED = "missing", "stuck", "failed"
 TITLE = {
@@ -20,13 +20,14 @@ HINT = {
 ALERT = "Omenix F&O routine {routine} ({start} IST) {title}. {hint}.{where}{lines}"
 
 
-def failed_key(routine: str, run: str) -> str:
-    return f"{routine}-{run}-{FAILED}"
+def run_key(routine: str, run: str, kind: str = FAILED) -> str:
+    return f"{routine}-{run}-{kind}"
 
 
 @dataclass(frozen=True)
 class Finding:
     routine: str
+    day: date  # the IST day of the expected start: its alert marker lives there
     start: time
     kind: str
     run_path: str = ""
@@ -35,9 +36,10 @@ class Finding:
 
     @property
     def key(self) -> str:
-        """One alert per finding: a failed run by its run (the in-run alert uses the same key), others by slot."""
-        if self.kind == FAILED:
-            return failed_key(self.routine, self.run_path.rsplit("/", 1)[-1])
+        """One alert per finding: a run's finding by its run (a failed one: the in-run alert's key), a missing one by
+        its slot."""
+        if self.run_path:
+            return run_key(self.routine, self.run_path.rsplit("/", 1)[-1], self.kind)
         return f"{self.routine}-{self.start:%H%M}-{self.kind}"
 
     def alert_text(self) -> str:

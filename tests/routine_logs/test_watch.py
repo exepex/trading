@@ -21,7 +21,8 @@ def _run(store, routine, run, end=None, steps=()):
 
 
 def _watch(store, now, specs=(DESK,), session=True):
-    return RoutineWatcher(store, specs, lambda day: session, Clock(now))
+    """The 23rd is the session day under test; the 22nd (yesterday) and the 24th are closed unless a test says so."""
+    return RoutineWatcher(store, specs, lambda day: session and day.day == 23, Clock(now))
 
 
 def test_a_routine_with_no_log_after_its_grace_is_missing(store):
