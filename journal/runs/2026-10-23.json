@@ -103,6 +103,14 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "versions": {
+   "started_at": "2026-10-23T14:58:00.000468+05:30",
+   "finished_at": "2026-10-23T14:58:00.677452+05:30",
+   "inputs": {},
+   "result": {
+    "line": "versions:NONE_YET"
+   }
   }
  }
 }
