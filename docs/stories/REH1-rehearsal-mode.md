@@ -175,15 +175,28 @@ real run.
 - **DR1's staging model** does not block REH1. Rehearsal writes go to `dryrun/<run_id>/` and never reach staging or
   the record.
 
-## Owner questions (through the orchestrator)
+## Owner answers (through the orchestrator, 24 Oct 2026)
 
-- **Q1. The clock.** Accelerated waits (the day in minutes; windows at real speed), or real time throughout (the daily
-  run takes its full two hours)? Recommended: accelerated (reasoning only). It makes repeat rehearsals cheap, and the
-  windows, where timing matters, still run at real speed.
-- **Q2. Which day first.** 23 Oct, DRY1's day? Its gaps are known, so its rehearsal can be checked row by row against
-  DRY1.
-- **Q3. Clean-up.** Keep `dryrun/<run_id>/` folders and `rehearsal/*` branches, or delete them after the owner's review?
-  Recommended: keep them, write-once like the rest, and list them in the rehearsal's last line.
+- **Q1.** Accelerated clock, as recommended; the windows run at real speed.
+- **Q2.** 23 Oct first (the owner's own label).
+- **Q3.** Keep the `dryrun/` folders and the `rehearsal/` branches, so the owner can inspect them.
+
+## The orchestrator's three additions (24 Oct)
+
+1. **The AI books.**
+   - Book 2 and Book 3 are fired as routines through GitHub Actions, and their answers are sealed through the AI
+     transport. Rehearsal never fires a real routine.
+   - The HTTP guard refuses every call to Anthropic and to GitHub's trigger and dispatch API.
+   - The day's sealed answers are replayed from their receipts by a recorded-source adapter behind the books' fire and
+     collect ports. With no sealed answer for the day, the step reports `rehearsal:NOT_RECORDED`.
+   - The guard checks that no real routine trigger was built, and a test plants one.
+2. **Pushes only under `rehearsal/`.**
+   - The rehearsal branch is pushed to origin only as `refs/heads/rehearsal/<day>-<run_id>`.
+   - A test shows that no rehearsal path can push any other ref (`main`, another branch, a tag).
+   - A check shows that the record scan runs on every rehearsal commit (the hooks path is set, never `--no-verify`).
+3. **Something for the owner earlier.** The first labelled rehearsal of the daily run alone (the desk, the card, the
+   price ranges and the closes) is posted right after REH1a and REH1b pass. The pre-open, morning and evening routines
+   follow with REH1c. Every rehearsal post names the parts not yet in rehearsal.
 
 ## Parts and estimate (reasoning only)
 
@@ -194,8 +207,9 @@ real run.
   parts, the snapshot, fills, exits and A4h's reads run on the day's data. About 2 days.
 - **REH1c, the other routines:** `rehearse preopen`, `morning` and `evening`, with A22's and A17e's recorded sources.
   About 1.5 days.
-- **REH1d:** the first full rehearsal of 23 Oct, posted to Slack, with a report beside DRY1's comparing it row by row.
-  About half a day.
+- **After REH1a and REH1b pass:** the first labelled rehearsal of 23 Oct's daily run alone, posted (addition 3).
+- **REH1d:** the first full rehearsal of 23 Oct with every routine, posted to Slack, with a report beside DRY1's
+  comparing it row by row. About half a day.
 
 Each part has its own judge rounds. The total is about 6 working days of building, plus judging.
 
@@ -208,8 +222,13 @@ Each part has its own judge rounds. The total is about 6 working days of buildin
    Test: a rehearsal over a local origin leaves `main` unchanged and makes the rehearsal branch.
 3. **No unlabelled post.** Every post through each of the four ports starts with the bold label. Test: each port, with
    a planted unlabelled sender, is refused by the guard.
-4. **No live source.** The rehearsal builds no Groww, NSE or cue HTTP client. The HTTP guard refuses any other host.
-   Test: a planted live call raises.
+4. **No live source and no real routine.**
+   - The rehearsal builds no Groww, NSE or cue HTTP client and no AI routine trigger.
+   - The HTTP guard refuses every host but Google's Drive read and token endpoints and Slack's post endpoint
+     (Anthropic and GitHub's API included).
+   - Test: each planted live call raises, and a planted routine trigger is caught by the guard.
+4b. **Pushes only under `rehearsal/`, and the record scan always runs.** Test: a push of `main`, of another branch or of
+   a tag from a rehearsal path is refused, and every rehearsal commit ran the hooks.
 5. **No look-ahead.** A Drive file whose receipt was committed after the replay clock's now is not served. Test: at
    14:05 the 23 Oct close is "not recorded by 14:05"; at 15:41 it is served.
 6. **The recorded day runs.** Over O2's fixture day as a recorded day, `daily run --rehearse` ends `day done` with every
