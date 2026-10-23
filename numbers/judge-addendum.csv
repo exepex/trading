@@ -649,3 +649,5 @@ number,name,session,claimed_at_utc
 507.10,ms-p1j-sim-seams-fill,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T02:58:17Z
 520.1,ms-p1j-cm-minor,session_019ZApRwkUiNMKDsf1k4W44z,2026-10-23T03:03:37Z
 507.11,ms-p1j-first-ticket,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T03:09:17Z
+519.2,sim-seams-first-ticket,session_01MvZneCLZqBuiGyNxawdVee,2026-10-23T03:10:42Z
+507.12,ms-p1j-ins-wiring-test,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-23T03:18:49Z
