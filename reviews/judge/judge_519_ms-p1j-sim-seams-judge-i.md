@@ -17,3 +17,14 @@ verdict. Lane 1. Round 1 of 2.
 
 ## Plants
 6 planted, 6 caught.
+
+## Addendum 1: the follow-up 6d3aa180..54ef5d40
+
+**Verdict: PASS.** Live is unchanged.
+
+- **The switch moved: MET.** `school.enabled` is read in `wiring.build_fleet`, which returns `SwitchedOff` (the school-off line, nothing built). The CLI no longer turns the switch on in a copy of the config.
+  - The paths that reach the fleet: `school run` through `build_fleet` (switched), and the replay through `replay_wiring` (local writes only, and it forced the switch on before). No daily-run step calls the school yet.
+  - Plant (the switch check removed) caught.
+- **`FillStep.rules` carries the fleet's rules: MET.** The shared-size allocation no longer hard-codes `LIVE`. The rules field has no default, so a step never assumes live ones. Plants caught: live hard-coded in the allocation, and in the runner's `FillStep`.
+- **Gates (my run):** full `pytest -n auto` 13,803 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+- **For j's daily-run step:** it must enter through `build_fleet` (or read `school.enabled` itself). `fleet_on` has no switch now.
