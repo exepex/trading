@@ -92,3 +92,10 @@ def test_a_file_in_the_cache_folder_without_a_receipt_is_never_read(drive):
     stray = drive.cache_root / "data/vix/india_vix_daily/20261023T000000Z-zzzzzz.csv"
     stray.write_bytes(b"date,close\n2026-10-21,99\n")
     assert table.rebuilt() == TODAYS_FILE
+
+
+def test_a_series_with_nothing_written_yet_reads_empty_not_unreadable(drive):
+    """The sync reports a prefix without receipts as a problem; a new series (no part yet) is simply empty."""
+    series = drive.series(ReceiptedRowLog, "20261022T100000Z-aaaaaa", folder="global-cues/revisions")
+    assert series.rows() == [] and series.rebuilt() == b""
+    assert drive.series(ReceiptedSnapshots, "r1", folder="vix/checks/new").latest() == []
