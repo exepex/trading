@@ -14,6 +14,7 @@ from fno.models import IST
 from fno.school import fleet_wiring, replay_wiring, wiring
 from fno.school.fleet.replay_store import ReplayDashcam
 from fno.school.fleet.session_hook import IsolatedSessionStep, no_step
+from fno.school.instructor.outputs.public_counts import counts_path as instructor_counts_path
 
 CFG = load_config(ROOT / "config.yaml")
 ON = {**CFG, "school": {**CFG["school"], "enabled": True}}
@@ -88,6 +89,18 @@ def test_the_record_root_builds_the_drive_dashcam_the_sync_and_the_committer(mon
     assert isinstance(fleet.after_outcomes, IsolatedSessionStep) and fleet.after_outcomes.name == "instructor"
     fleet.after_outcomes.work(SESSION)
     assert built["run_instructor_session"] is not None, "the record's step is the instructor's session run"
+
+
+def test_the_record_root_names_the_instructor_s_counts_file_in_the_counts_commit(monkeypatch, tmp_path):
+    """Judge B's should-fix (judge 507.9): the commit takes only named files, so the instructor's counts file is
+    committed only if the record root names it; a replay names none."""
+    for name in REAL_STORES:
+        monkeypatch.setattr(wiring, name, lambda *a, **k: object())
+    files = wiring.build_fleet(ON, root=tmp_path).counts.files(SESSION)
+    assert str(instructor_counts_path(SESSION)) in files
+    assert str(instructor_counts_path(SESSION)) not in replay_wiring.build_replay_fleet(
+        ON, SESSION, tmp_path
+    ).counts.files(SESSION)
 
 
 def test_a_replay_runs_no_step_after_its_outcomes(tmp_path):

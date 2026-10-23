@@ -2815,6 +2815,9 @@ judges. It merges after part e.
   `research/school/counts/**/.*.part`. Test on real git (a clone of a bare origin):
   `test_only_the_session_s_named_files_are_committed_never_a_stray_part_file` commits the session's files and the
   instructor's, never a stray `.part` nor an un-ignored stray file beside them (plant: the folder committed, caught).
+  Judge B's should-fix (judge 507.9): `test_the_record_root_names_the_instructor_s_counts_file_in_the_counts_commit`:
+  the record root's `SessionCounts.files(session)` names the instructor's counts file and a replay's does not (plant:
+  the record root naming no instructor file, caught).
 - **Not in this change, by agreement:** g's `DayInputs.why` and the render line in `evening.py` are g's builder's;
   part e's `command.py` passing `unfilled=` and `counts=` is the INS builder's.
 - **Plants:** 9 planted, 8 caught; the ninth (closings counted as openings in `unfilled`) was equivalent, so the
