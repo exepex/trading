@@ -50,3 +50,15 @@ Fix: a test where, after `apply`, a receipted file is missing or holds other byt
 Run it when no job writes under `data/daily_runs/full`, outside the daily run (14:05-16:20 IST): a write landing
 mid-merge could create a third copy. The repaired receipt's push time will be today, so O8 judges that day's run-log
 receipt by today's push. That is late, and honestly so; Drive's creation time is in the receipt for the record.
+
+## Addendum 1: round 2 at accf28e7
+
+**Verdict: PASS. DR1-0 may merge.** `--apply` runs only after the orchestrator's go: outside 14:05-16:20 IST, with
+nothing writing under `data/daily_runs/full` (the builder proposes a weekend).
+
+SF1 is fixed, tests only (the code is unchanged from e0d18564):
+- after `apply`, a receipted file that is missing or holds other bytes is named and the command exits 1 (both cases);
+- a clean merge returns no problems.
+
+My plant from round 1 (`apply` returns `[]`) now fails 2 tests. tests/dr1: 18 passed; ruff clean. Round 1's full suite
+(14,610 passed) stands for the unchanged code.
