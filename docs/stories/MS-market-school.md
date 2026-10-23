@@ -1668,6 +1668,30 @@ Built: `fno/school/simulator/archive/{names,archive}.py`, tests in `tests/school
 - Mutations: **12 of 12 caught.** `tests/school/simulator`: 48 passed in the files I ran (archive and isolation); ruff and check_imports clean. The full suite is run at the e3 tip.
 - Not in e1 (e2 and e3): the real stores' wiring, the command's `--archive`, the report's first line, the exact-path receipt commit, and the real Drive run.
 
+#### SIM-e2 Claims (round 1, branch `story/ms-sim-e2`, on main with e1 and the publisher move; Judge H's four minors from judge 526 folded in; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/archive/{files,inputs,outcome,run,session,wiring}.py`, the `--archive` flag in `command.py`, `render(report, status)` taking the first line(s), `DASHCAM_HOME` shared by the fleet and the archive. Tests: `tests/school/simulator/archive/test_session.py` (16) and four more in `test_archive.py`.
+
+| Criterion (7.8) | Test | Broken-code proof (caught) |
+|---|---|---|
+| 5 first line says archived only when every file has a verified receipt | `test_an_archived_run_says_so_on_its_first_line...`, `test_a_damaged_read_back_gives_local_only...`, `test_a_push_that_fails_midway_is_reported_partial_never_archived` | read-back removed; exit code made 0 when not archived |
+| 6 receipt in the practice folder, never the pilot's | `test_a_practice_receipt_is_in_the_practice_folder_and_never_in_the_pilots`, the collision test (now with the instructor folder and the opportunity and marks paths) | n/a (path test) |
+| 7 the default run archives nothing | `test_the_default_run_archives_nothing` | `--archive` test made always true |
+| 4 report text archived, last | `test_the_report_text_is_the_last_file_and_carries_the_run_and_every_result_line` | report put first |
+| idempotent rerun | `test_a_rerun_of_the_same_run_names_the_same_run_and_makes_no_second_commit` | n/a (e1's SHA check) |
+| uncommitted code refused before the run | `test_uncommitted_code_is_refused_before_anything_runs`, `test_the_code_commit_is_named_only_for_committed_code` (real git) | dirty check removed; run id taken without `--archive` |
+| run id follows the spread model and margin label | `test_the_inputs_digest_follows_every_spread_value_and_the_margin_label` | margin label left out of the digest |
+| only dashcam record files and the report | `test_only_dashcam_record_files_and_the_report_are_archived...` | glob widened to every file |
+
+- **Judge H's minors (526):** (a) the archive checks `..`, empty and `.` parts itself (4 cases, store and publisher untouched on a refusal); (b) every record line is decoded as `decode_slot_file` decodes it (a known `type`, a `record` that builds); a line with only a label is refused; (c) `report.txt` is the one name, in the story and the code, and a non-UTF-8 text is refused by name; (d) the collision test covers the instructor folder, `opportunity_path` and `marks_path`.
+- **Found by running it end to end, fixed:** the fleet writes an **empty** outcomes file on a day with no closed trade, and my new decode check refused it, stopping every run at its third file. An empty gzip record file is now archived (no line to label); plain text and bad lines are still refused. `code_commit` stripped the first character of the first changed path in its message (`no/a.py`): fixed, with a real-git test.
+- **Deviation from the ruling, with the reason:** the run id's input digest is the spread model (every bucket, session and half-spread) plus the margin factor's label, not a digest of the input receipts. The NSE files the window reads are write-once and named by the window, so the window identifies them; the captures grow daily and are what the model hashes. New code or new captures still make a new run id.
+- **Two exact-name isolation exceptions** (`test_isolation.py`): `archive/wiring.py` may import `fno.school.dashcam.reader.VerifiedDriveReader` (the receipt-checked read-back; no record, count or seal) and `archive/files.py` the two constants `DASHCAM_FOLDER` and `SLOT_FILE_SUFFIX`. If the orchestrator prefers, `VerifiedDriveReader` moves to `fno/storage/` as the publisher did.
+- **Exact-path commit:** the recorder in `wiring.py` commits only `receipts/data/school-practice/<run id>/` (its pull refuses any other unpushed work; a refused push is retried once by the recorder, then the file stops the run with the reason). One commit per file.
+- **Mutations:** 8 of 9 caught; the ninth (`problem is None` in `archived`) was a redundant condition (a problem always stops the loop before the file count reaches the total), so it was removed.
+- **Gates at the merged tip `99101322`:** full suite 14,387 passed, 16 xfailed, 0 failed; ruff, `check_imports`, `check_numbers` clean.
+- **Not done (e3):** a real archived window on Drive, the rerun with no new commit, and the receipts counted. Until e3 passes, no practice result is shown or used.
+
 ## Claims
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
