@@ -793,8 +793,10 @@ sessions a real edge of a given size needs to show.
 
 #### INS-c Root causes · `story/ms-ins-causes`
 
-**Files owned:** `fno/school/instructor/causes/` (`terms.py`, `thresholds.py`, one module per rule group, `classify.py`),
-`research/school/INSTRUCTOR_V1.md`, `tests/school/instructor/causes/`.
+**Files owned:** `fno/school/instructor/causes/` (`terms.py`, `market.py`, `evidence.py`, `rules.py`, `classify.py`),
+`fno/school/instructor/thresholds.py` (shared by b, c and d, so it sits beside them), `CardStops` and
+`NotYetReplayable` in `adapters.py`, `build_classifier` in `wiring.py`, `research/school/INSTRUCTOR_V1.md`,
+`tests/school/instructor/causes/`.
 
 **Terms (frozen):**
 - **Move `z`:** `ln(S_exit / S_entry) / (sigma_atm x sqrt(T_held))`. `S` is the snapshot's spot, or the settlement
@@ -822,7 +824,7 @@ sessions a real edge of a given size needs to show.
 | 9 | Costs ate the edge | gross >= 0 and net < 0 | none |
 | 10 | Bad price or data | a snapshot SHA-256 mismatch, an impossible price (b's `impossible_keys`) on a filled or attributed leg, or a fill outside its snapshot's touch | the same fact |
 | 11 | Exit whipsaw | exit `loss_limit` or `profit_target`, and holding to the card's last exit (settled through d's `settle`, computed, never recorded) would have netted more than the actual by over 1x the loss | exit cost the gain: a target exit, holding would have netted more by over 1x the gain |
-| 12 | Normal noise | net within 1 standard deviation of the position's own model outcome: entry volatilities held (sticky strike), lognormal over `T_held`, 201 frozen quantiles | the same rule |
+| 12 | Normal noise | the mid-to-mid P&L (Greek components plus residual, before costs) within 1 standard deviation of the position's own model P&L: entry volatilities held (sticky strike), lognormal over `T_held`, 201 frozen quantiles | the same rule |
 | 13 | Rule broken | replaying the frozen card (h's SHA-256) on the recorded snapshot and history gives another decision (outcome, reason or proposal) | the same fact |
 
 - **Primary:** the first tag that fires in this frozen order: 13, 10, 6, 7, 8, 1, 11, then 2-5 by the largest
@@ -2312,4 +2314,57 @@ Replaces the earlier part 4 (744299d6, never merged), which waived the size laws
   `(size_not_measured,)`, exit waits. Plant: `LIVE` built with practice rules, caught.
 - **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
 - **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
+
+#### INS-c Claims (round 1, branch `story/ms-ins-causes`, on INS-b; the SHA is in the commit that carries this text)
+
+| Criterion | Met by | Test (`tests/school/instructor/causes/`) |
+|---|---|---|
+| 1 a plant per cause, each primary | `rules.verdicts`, `classify.causes_of` | `test_rules`: `each_plant_gives_its_cause_as_primary` (13 cases) |
+| 2 every threshold at and just beyond | `thresholds.py` | `each_threshold_at_and_just_beyond` (21 cases: 1.645, 2, 3 of 4 and fewer than 3 measurable, 40%, 1.25x, 1x, 1 sd, gross 0, delta 0) |
+| 3 winner forms; 6 and 9 never on a winner | `rules._share` and the winner branches | `a_winner_reads_the_winner_forms...`, `a_flat_result_fires_no_component_cause` |
+| 4 precedence with four firing; 2-5 by size | `classify.ordered` | `the_precedence_with_four_causes_firing...`, `causes_2_to_5_are_ranked_by_the_size...` |
+| 5 unclassified | `causes_of` | `the_neutral_loser_is_unclassified...` |
+| 6 a later record names the first | `Classifier.classify(corrects=)` | `test_classify`: `a_later_classification_names_the_one_it_replaces` |
+| 7 modifiers and "not testable" | `classify.modifier` | `the_modifiers_from_ref_and_rc1...` (8 cases) |
+| 8 card equals code | `INSTRUCTOR_V1.md` thresholds block | `test_card` (block equal to `THRESHOLDS`; each card's stop) |
+| 9 empty | `EvidenceBuilder.build` | `test_evidence`: `a_path_without_an_entry_or_snapshots...` |
+| terms from real prices | `terms.py`, `market.py`, `evidence.py` | `test_evidence` (z against the ATM volatility, stance of a credit spread, market moves, A6's known-on rule, stop, hold to expiry with settlement, replay, off-touch and impossible-price faults, noise band) |
+| wiring | `build_classifier` | `test_wiring` |
+
+**Not testable is counted, never guessed:** a rule returns None when its input is missing, and `Classification.not_testable` lists those causes.
+
+**Two limits, both in the card:**
+- cause 13 is not testable in production until MS-P1j can replay a sealed session (`NotYetReplayable`);
+- cause 11 holds to expiry.
+
+**Broken-code proof:** 28 plants over two rounds, all caught. They cover every rule's boundary and condition, the order, the size ranking, the modifiers, the not-testable list, the known-on date, the hold value, the off-touch check, the stance, `z`, the cause-10 scope, the market expiry and its clock time, the event and direction shortcuts, the flat result, and the wiring's stops. The size-ranking plant survived the first round; the test `causes_2_to_5_are_ranked...` was added for it.
+
+**Self-review (one independent review agent):** no blocking finding.
+1. **Should fix: cause 10 fired whenever the attribution was missing.** Accepted. Cause 10 now reads only path faults and off-market fills; a missing attribution leaves causes 2-5 and 12 not testable.
+2. **Should fix: the market move inflated across an expiry.** Accepted. It now uses an expiry alive over the whole window and the clock time between captures.
+3. **Should fix: cause 12's basis was unstated.** Accepted. Cause 12 compares the mid-to-mid P&L, now written in the card and the table.
+4. **Should fix: cause 13 not testable in production, unstated.** Accepted. It is now stated in the card, with a wiring test and this Claim.
+5. **Minor: causes 7 and 2 reported "not testable" when the answer was known.** Accepted. They now answer "no" when there is no event, or the trade is not directional.
+6. **Minor: a flat result fired causes 3-5.** Accepted. It now fires none of them.
+7. **Minor: the settled path's market window.** Accepted. It is documented in `market.py` and the card.
+8. **Minor: duplicated wiring.** Accepted. One `_archive` helper.
+9. **Minor: missing edge tests.** Accepted. The edge tests were added.
+
+**Real output sample:** none yet (no sealed day). Fixture: the model-priced put spread closing at F = 980 classifies with cause 11 not testable until its expiry settles, and the modifier `hard_road` when both controls lost (`test_classify`).
+
+#### INS-c Claims, round 2 (judge 510 FAIL round 1: one should-fix, eight branches; one minor)
+
+All in `tests/school/instructor/causes/test_branches.py`. Each test fails when its branch is broken; the judge's
+eight plants were re-run, 8 of 8 caught.
+
+| Judge 510 branch | Test |
+|---|---|
+| 1 cause 2's range edge `|z| <= 1.645` (the boundary named: 1.645 fires, 1.6451 does not) | `cause_2_holds_up_to_and_including_the_range_edge` |
+| 2 cause 5's winner form needs "not long premium" | `a_winning_debit_never_reads_time_decay_earned` |
+| 3 cause 11's winner form needs a target exit | `a_winner_closed_by_its_stop_is_never_a_whipsaw` |
+| 4 the tail order, 9 before 12 | `costs_rank_before_noise_in_the_tail` |
+| 5 the directional boundary is inclusive (the boundary named: the 1% dollar delta at exactly the share of the maximum loss, with a binary-exact share so floating point cannot blur it) | `the_directional_boundary_is_inclusive` |
+| 6 the lognormal drift -s^2/2 | `the_noise_band_is_centred_by_the_lognormal_drift` (a long ATM call's band mean is about 0) |
+| 7 the ATM strike nearest the forward | `the_atm_volatility_is_read_at_the_strike_nearest_the_forward` (a skewed lowest strike is never read) |
+| 8 the impossible-price half of cause 10, alone | `an_impossible_price_alone_is_a_data_fault_with_fills_at_the_touch` (the fill is at the impossible touch, so the off-touch half sees nothing) |
 
