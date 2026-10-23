@@ -33,23 +33,25 @@ this branch runs on `main`'s model today and on the builder's after its merge, i
 `VERDICTS`) are the design's copies until `plain.py` exposes them; then one import replaces them (asked of the
 builder, 23 Oct).
 
-## Design choice (option A, for the owner to confirm or change)
+## Design choice: option A (the owner chose it, 23 Oct, via the orchestrator)
 
 The signed-off key has three words (✓ correct / ⚠ close call / ✗ missed); the approved text line has two (✓ right /
 ✗ wrong). The page now says both, in one order: the verdict line "✓ right" first, as the text does, and the
 three-colour chip beneath it as the explanation ("⚠ Close call · Closed 80 pts above the most-likely range, inside
-“almost certainly”"). A close call therefore reads "verdict: ✓ right" over an amber chip. Options sent to the
-orchestrator: B, the chip only (one vocabulary, but the picture and the text would differ); C, right/wrong only on the
-card, the three colours kept for the charts and tables. A switch is a few lines.
+“almost certainly”"). A close call therefore reads "verdict: ✓ right" over an amber chip. The owner chose A over B (the chip only) and
+C (right/wrong only on the card).
 
-## Tests (`tests/forecast_lab/test_design_pages.py`, 14 tests; `test_design_camera.py`, 4)
+The orchestrator's rule, pinned by its own test: a past day is never called "today". The verdict line and the card's
+heading say "today" only for the page's own day, else the day's name ("Wed 21 Oct: closed …").
+
+## Tests (`tests/forecast_lab/test_design_pages.py`, 15 tests; `test_design_camera.py`, 4)
 
 New: the verdict's four lines in the exact words and their order before the numbers, why, the record and the next
 forecast; a close outside "almost certainly" reads "✗ wrong" in red with "no" on both ranges; no check: the red line
 first, "last checked" named, no verdict and no "why", the plain words when the model carries no reason; the morning
 report's name (Friday → "Monday's morning report"; Thursday → "tomorrow morning's report"; none → "the next morning
 report") on the verdict line and on the note under the close; the morning's "Last session's check"; `result_of`
-returns `None` instead of an older day. The honesty test's provisional wording updated. `design_builders.py`: every
+returns `None` instead of an older day; a past day's check is named by its date, never "today". The honesty test's provisional wording updated. `design_builders.py`: every
 fake index now carries its own check (`result`), and `unchecked(index, why)` drops it and the timeline's last point.
 
 ## Gates

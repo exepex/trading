@@ -205,3 +205,16 @@ def test_the_morning_shows_the_previous_sessions_check_in_the_same_words_with_it
     from dataclasses import replace
 
     assert "Last session’s check" not in render_morning(page("morning", indices=(replace(nifty(), result=None),)))
+
+
+def test_a_past_days_check_is_never_called_today():
+    """Orchestrator, 23 Oct: a past day under "today" without its date label is the fault of the 23 Oct page."""
+    from dataclasses import replace
+
+    index = nifty()
+    past = replace(index, result=index.horizons[0].timeline.points[-3])  # Wed 21 Oct on the Fri 23 Oct page
+    html = render_evening(page("evening", indices=(past,)))
+    assert "Wed 21 Oct: closed <b>" in html and "<small>Wed 21 Oct · closed" in html
+    assert "today: closed" not in html and "today · closed" not in html
+    own = render_evening(page("evening", indices=(index,)))
+    assert "today: closed <b>" in own and "<small>today · closed" in own

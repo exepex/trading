@@ -65,10 +65,15 @@ def unchecked_block(index: IndexView, days: list[Day]) -> str:
     return f'<p class="nocheck">⚠ {escape(why)}</p>{named}'
 
 
+def day_word(d: Day, view: PageView) -> str:
+    """ "today" only for the page's own day; a past day is always named (orchestrator, 23 Oct)."""
+    return "today" if d.day == view.day else long(d.day)
+
+
 def evening_verdict(index: IndexView, view: PageView, today: Day | None, days: list[Day]) -> str:
     if today is None:
         return unchecked_block(index, days)
-    return check_lines(today, "today", close_label(today, view)) + result_card(today, report_of(view))
+    return check_lines(today, day_word(today, view), close_label(today, view)) + result_card(today, report_of(view))
 
 
 def morning_check(index: IndexView, view: PageView, checked: Day | None) -> str:

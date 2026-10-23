@@ -27,7 +27,7 @@ from .page import (
 )
 from .trend_chart import trend_state
 from .values import Day, days_of, reason_for, result_of, rolling_90
-from .verdict import evening_verdict
+from .verdict import day_word, evening_verdict
 
 TITLE, ISSUED = "Was today’s forecast right?", "20:05"
 GRID = {"NIFTY": 100, "BANKNIFTY": 250}
@@ -89,7 +89,7 @@ def backtested_note(index: IndexView) -> str:
 
 def top_block(index: IndexView, view: PageView, today: Day | None, days: list[Day]) -> str:
     """The owner's order (23 Oct): verdict or the red line, why, the record, then the next session's forecast."""
-    closed = f"today · closed {fmt(today.close)}" if today else NOT_CHECKED
+    closed = f"{day_word(today, view)} · closed {fmt(today.close)}" if today else NOT_CHECKED
     why = why_block(WHY_TITLE[today.result], why_lines(index, today), index) if today else ""
     return (
         f'<div class="card"><h2>{index.underlying}<small>{closed}</small></h2>'
