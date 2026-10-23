@@ -13,9 +13,9 @@ from ...storage.data_wiring import (
     receipt_folder,
 )
 from ...storage.manifest_commit import GitManifestRecorder
+from ...storage.receipt_publisher import GitReceiptPublisher
 from .counts import PublicCountsFile
 from .names import SCHOOL_AREA
-from .publisher import GitReceiptPublisher
 from .reader import VerifiedDriveReader
 from .replay import ReplayReader
 from .seals import SealChecker

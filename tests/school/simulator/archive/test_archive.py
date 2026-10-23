@@ -57,7 +57,7 @@ class FakePublisher:
         self.folder, self.pushed, self.commits = folder, {}, 0
 
     def publish(self, drive_path, what):
-        from fno.school.dashcam.publisher import PushedReceipt
+        from fno.storage.receipt_publisher import PushedReceipt
 
         self.commits += 1
         found = PushedReceipt(
