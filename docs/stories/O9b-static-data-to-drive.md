@@ -281,3 +281,22 @@ None for the owner: the 22 Oct decisions above settle scope and history.
   - Found on the way, for a later step and not built here: every run writes three new check snapshots even when
     they are unchanged (3 receipts a day for VIX). A repository file rewritten with the same bytes used to make no
     commit. Writing a snapshot only when it differs from the latest one would restore that.
+
+**data-checks trigger (story/o9b-data-checks-trigger, for Judge F; assigned by the orchestrator, 23 Oct):**
+- **The defect, mine:** data-checks.yml's push filter held `receipts/data/**`, which matches every job's receipts,
+  several pushes an hour. GitHub keeps one pending run per concurrency group and cancels the others, even with
+  `cancel-in-progress: false`. On 23 Oct, O10's capture-watch recorded 24 "data-checks, before any step, cancelled"
+  rows in `research/ops/capture_errors.csv` (16 by 16:24 IST).
+- **Root fix:** the push paths are now `tests/**`, `fno/storage/**` and the workflow itself. The daily 09:41 IST run
+  checks the moved groups' new receipts. `tests/o9b/test_data_checks_workflow.py` pins this.
+- **O10's side:** `fno/health/run_failures.py` now has `REPLACEABLE = ("news-capture", "data-checks")`, with the O10
+  builder's condition beside it. That condition holds only while data-checks records nothing per push or per day that
+  a cancelled run would have had to write. The O10 builder (013YJ5gj, handed over) agreed as reasoning only; the
+  orchestrator assigned the change to me.
+  - The test `test_a_replaced_data_checks_run_is_neither_recorded_nor_alerted` checks both cases: cancelled before a
+    step means no row and no alert; cancelled after a step means one row and one alert.
+  - Mutation: the old one-entry tuple fails it.
+- **For O10's criterion 7** (response_254 is O10's file and is left alone): the 23 Oct rows are the first live
+  evidence that capture-watch records cancelled runs, each with its run link and "before any step".
+- **Judge 477 addendum 2: PASS at 5a423497 (the trigger); addendum 3: PASS at ccfc340a (REPLACEABLE).** Both merged
+  together with the orchestrator's go (23 Oct, after 16:15 IST).
