@@ -2819,12 +2819,8 @@ denominator, never counted. That must never be silent.
 - **No record changed:** the check only reads the sealed records, the repository's git and D6's rows.
 - **Plants:** 7 planted, 7 caught. Judge B's survivor (judge 507.7: N forced to M) is now caught by `test_the_line_counts_only_the_mismatched_decisions_among_the_session_s`: one mismatched decision among three gives "1 of 3".
 - **Judge K's survivor (judge 520: `seal.commit` replaced by HEAD):** caught by `test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed`: rows naming the new card, committed after the seal, would count these decisions at HEAD; at their own seal's commit they still warn.
-
-
 #### INS-e Claims (round 1, branch `story/ms-ins-outputs`, on INS-d; the SHA is in the commit that carries this text)
-
 | Criterion | Met by | Test (`tests/school/instructor/outputs/`) |
-|---|---|---|
 | 1 write-once | `store.DriveInstructorStore` (receipt per file, same bytes a no-op, others refused, damaged bytes never read) | `test_store` (conformance, the folder, damaged bytes, a refused Drive write); `test_run`: `a_session_is_attributed...written_once` |
 | 2 two runs, identical bytes | `run.InstructorRun` | `test_run` (a rerun leaves every file identical) |
 | 3 the public counts file | `public_counts.InstructorCountsFile` | `test_counts_and_command`: `the_counts_file_holds_codes...passes_the_record_scan`, `..._written_once` |
@@ -2833,7 +2829,6 @@ denominator, never counted. That must never be silent.
 | 6 a planted cause in the review and the "why" line | `review.driver_summary`, `WhyLineSource` | the same test; `test_run` |
 | 7 off-switch | `command.run` | `the_switch_off_prints_school_off_and_does_nothing` |
 | 8 orphan corrections counted and alerted | `PathReader.orphan_corrections`; the review's last line | `test_corrections`: `a_correction_naming_nothing_is_listed_as_an_orphan...`; `test_review` (its count printed) |
-
 **Also built (from the boundaries and the rulings):**
 - **Re-checks.** A classification waiting for its expiry's settlement (cause 11), or for its controls to close (the modifier), is classified again on each later run. A changed one is written as a new record naming the first (`test_run`: `a_classification_waiting_for_its_expiry...`). Cause 13 never triggers a re-check: it waits for MS-P1j.
 - **The comparison over sealed decisions.**
@@ -2844,11 +2839,9 @@ denominator, never counted. That must never be silent.
 - **Rupees.** Account trades only: net, maximum drawdown, worst day and worst trade. Tickets are never summed in (`tickets_are_never_summed_into_rupees`).
 - **The review text** starts with the plain P2 line (orchestrator's condition 4). Every paired row carries its notes: "descriptive, not a test", "no bound before N sessions", and the seller-shape false rate.
 - **The command.** `python -m fno.school.instructor --session D [--write]` and `--review FIRST LAST [--write]`, a dry run by default. Its real run on today's main prints "school off" (the school's switch is off). That is the honest result; no real record exists to read yet.
-
 **Known limits:**
 - **Unfilled entries.** An entry decided as a trade that never filled stays open until MS-P1j reports its fill status. `CountedComparison.rows` takes the `unfilled` set; j's wiring supplies it.
 - **The three counts.** f's eligible, fillable and executed counts need j's fills. The review shows every decision's outcome code, the denominator with refusals, until j supplies them.
-
 **Broken-code proof:** 15 plants, all caught after one added test:
 - the store's conflict and damage checks;
 - the dry run;
@@ -2861,9 +2854,7 @@ denominator, never counted. That must never be silent.
 - the write-only counts file;
 - the winner labels (survived until the winner "why" test was added);
 - orphans (caught in `test_corrections`).
-
 **Real output sample:** the fixture's "why" line, `CS1@1 BANKNIFTY-M: net Rs -140; why: ...`. On real data: "school off".
-
 **The interfaces agreed with MS-P1j's builder (23 Oct 2026; j wires them after j merges):**
 - `run_instructor_session(config, session, write=True)`: j's one entry point. j calls it after the session's outcomes
   file is sealed and before its counts commit. It attributes, classifies, writes the instructor's files and the public
@@ -2877,23 +2868,17 @@ denominator, never counted. That must never be silent.
   fills, both size-shared and refused fills.
 - `build_review(..., counts=)`: any `counts(session) -> tuple[OpportunityCounts, ...]`, which j's sealed day inputs
   satisfy. The review prints eligible, fillable and executed per driver, or "three counts not supplied".
-
 **Ticket lines (orchestrator's ruling, 23 Oct 2026, from g's builder; judge 481's rule):** a ticket's "why" line
 carries no rupee figure. It reads "<driver> <road> ticket (hypothetical, account limits relaxed): why: ...". Account
 trades keep "net Rs". Every line starts "<driver id> <road>", one space apart, which g's section relies on; that format
 is stable. Test: `test_counts_and_command::a_ticket_line_never_carries_rupees`. g keeps its own filter as a second
 guard.
-
-
 #### INS-e Claims, round 2 (judge 522 FAIL round 1: two should-fixes, six untested branches, one minor; the SHA is in the commit that carries this text)
-
 | Finding | Fix | Test |
-|---|---|---|
 | SF1 orphans missing from the day's output; the window search raised false alarms | `PathReader.orphan_corrections()` scans every session from `RECORD_START` (22 Oct 2026, the first dashcam day) to today, so a correction is an orphan only if no outcome on file anywhere carries its id. `SessionResult.orphans` is filled on every day run, and the command prints "ALERT: corrections naming no outcome on file: N". Files are read once per run (a cache). | `test_corrections::an_orphan_is_a_correction_naming_no_outcome_on_file_from_the_start_of_the_record`; `test_round2::the_days_run_lists_orphan_corrections`; `test_counts_and_command` (the ALERT line) |
 | SF2 a corrected outcome was picked up only while its record waited, and its attribution never rewritten | Each attribution and classification now carries `outcome_sha256`, the SHA-256 of the outcome record it read. The re-check takes the latest record per position from the first counted session (or 90 days back). It runs again when that outcome's SHA changed or the record waits, writes a new attribution (`corrects` = the old attribution's SHA) for a corrected outcome, and writes a classification only if it differs. | `test_round2::a_corrected_outcome_is_re_attributed_and_re_classified_even_when_nothing_waited`; `::an_unchanged_record_is_never_written_again` |
 | SF3 six untested branches | one test each | `test_round2`: `the_modifier_alone_makes_a_record_wait`, `an_unchanged_record_is_never_written_again`, `rc1_is_one_of_the_two_controls_on_a_road_slot`, `only_counted_decisions_are_paired`, `a_damaged_decisions_file_is_listed_as_unsealed`, `the_maximum_drawdown_is_the_deepest_fall_from_a_running_peak` (100, -300, 50, -100 gives -350 by hand) |
 | Minor: sum through f's `account_net` | `review.py` takes `net_rs` from `account_net(mine).net` | `test_review` unchanged, passing |
-
 **Broken-code proof (round 2):** I planted 10 faults, one at a time, and the tests caught every one:
 - `waiting`'s modifier half removed;
 - the unchanged guard forced true;
@@ -2905,8 +2890,8 @@ guard.
 - a damaged decisions file read as empty;
 - the drawdown taken from zero instead of the peak;
 - every decision counted regardless of h's verdict.
-
 **Known limits:** the same two as round 1 (the unfilled entries and the three counts come from j's wiring after j merges). The 90-day look-back applies only while `first_counted` is unset. Judge K's intermittent `test_settlement[BANKNIFTY]` under -n auto is in MS-P1d's files, outside this diff.
+
 
 ### MS-P1j follow-up: the instructor wired in (MS-INS part e; orchestrator's hand-off, 22 Oct 2026; branch `story/ms-p1j-ins-wiring`, on part e's 63cabe67)
 Signatures agreed with the INS builder (session_01LH7m9r5TCAKgZbeHVYkiTD). Lane 1 (the fleet's record path), so two
