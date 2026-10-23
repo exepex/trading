@@ -169,3 +169,11 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
 **Notes (no action):**
 - **Trust anchor:** with the proxy's CA trusted, the proxy is the trust anchor, as it already is for every HTTPS call in this environment. My handshake with a wrong name was accepted too, because the proxy mints a certificate for whatever name is asked. The SDK's own hostname check still runs against what the proxy presents. That is an environment property, not a defect here; on a host without `SSL_CERT_FILE`, certifi alone is used.
 - **Leftovers:** each run leaves one `feed-ca-*` temp folder holding public certificates only. A connect that times out leaves a daemon thread retrying until the process exits, right after the stop line.
+
+## Addendum 9: TLS fix round 2 at f0b72a93
+
+**Verdict: PASS.** It may merge under the merge procedure.
+
+- **Finding 1 (Addendum 8): FIXED.** `test_the_built_probe_connects_with_the_combined_roots_only_when_a_bundle_is_set` calls `build_feed_probe` with a fake provider and a fake `GrowwFeed` that records `nats_client.certifi.where()` when built. With `SSL_CERT_FILE` it gets the combined file; without it, the real certifi; monkeypatch restores the module.
+- My Addendum 8 plant (the `trust_for_feed` call removed) now fails it.
+- The diff is the test and the story's Claims only; no code changed since 94c7ca18, whose full suite I ran (14,333 passed). The 10 TLS tests pass at f0b72a93.
