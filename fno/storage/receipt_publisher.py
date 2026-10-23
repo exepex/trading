@@ -7,9 +7,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from ...research_engine.ledger import Git
-from ...storage.manifest_commit import TARGET_BRANCH, ManifestRecorder
-from ...storage.receipts import Receipt, ReceiptFolder
+from ..research_engine.ledger import Git
+from .manifest_commit import TARGET_BRANCH, ManifestRecorder
+from .receipts import Receipt, ReceiptFolder
 
 COMMIT_FORMAT = "%H %cI"  # commit id, committer time (the pushed commit's own time is the seal's pushed_at)
 NOT_ON_REMOTE = "the receipt of {path} is not on {target} ({outcome})"

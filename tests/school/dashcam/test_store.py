@@ -8,8 +8,8 @@ from fno.school.constants import RecordKind
 from fno.school.contracts.dashcam import ReplayConflict
 from fno.school.contracts.seal import StaleSeal
 from fno.school.dashcam.names import slot_file_path
-from fno.school.dashcam.publisher import SealNotPushed
 from fno.school.dashcam.replay import ReplayReader
+from fno.storage.receipt_publisher import SealNotPushed
 from tests.school.contracts import builders as b
 from tests.school.contracts import conformance as c
 from tests.school.contracts.test_records import closed_record, outcome_record, trade_record

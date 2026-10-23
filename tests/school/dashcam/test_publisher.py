@@ -7,8 +7,8 @@ from fno.school.constants import RecordKind
 from fno.school.contracts.dashcam import ReplayConflict
 from fno.school.contracts.seal import StaleSeal
 from fno.school.dashcam.names import slot_file_path
-from fno.school.dashcam.publisher import SealNotPushed, ShallowClone
 from fno.school.dashcam.seals import SealChecker
+from fno.storage.receipt_publisher import SealNotPushed, ShallowClone
 from tests.school.contracts import builders as b
 from tests.school.contracts.test_records import closed_record, outcome_record, trade_record
 from tests.school.dashcam import harness
@@ -97,3 +97,14 @@ def test_a_checkout_carrying_other_unpushed_commits_is_refused_by_name_and_never
         cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
     assert harness.git(cam.remote, "rev-parse", "main").strip() == main_before, "nothing was pushed to main"
     assert foreign not in harness.git(cam.remote, "rev-list", "main")
+
+
+def test_the_move_to_storage_changed_no_byte_of_the_seal_or_its_receipt(tmp_path):
+    """Golden values taken before the publisher moved out of the dashcam package (story MS-SIM, SIM-e)."""
+    cam = harness.build(tmp_path)
+    seal = cam.store.seal(b.SESSION, SLOT, RecordKind.DECISIONS, RECORDS)
+    assert seal.sha256 == "5a6b1a8564a6a0c1f3902e3428a65251bba6130ecd4a531c503b218234acd77d"
+    receipts = list((cam.repository / "receipts").rglob("*.sha256"))
+    assert len(receipts) == 1
+    assert receipts[0].read_text().endswith("\t532\t2026-11-02T09:40:00+00:00\ttest\trun1\n")
+    assert seal.pushed_at == cam.publisher.published(drive_path()).pushed_at
