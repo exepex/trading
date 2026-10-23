@@ -19,6 +19,7 @@ from fno.school.contracts.fleet import RunMode
 from fno.school.contracts.records import DecisionRecord, OutcomeRecord
 from fno.school.contracts.safety import LawResult
 from fno.school.dashcam.names import counts_path
+from fno.school.execution.quote_rules import LIVE, QuoteRules
 from fno.school.fakes import FakeDriver, FakeMaxLossLaw
 from fno.school.fleet.counts_file import opportunity_path
 from tests.school.contracts import builders as b
@@ -151,13 +152,30 @@ def decision_on(rig, session):
     return next(r.decision for r in sealed(rig, session) if r.road == OPEN_ROAD)
 
 
+def unmeasured_snapshots() -> dict:
+    quotes = {k: replace(q, bid_qty=None, ask_qty=None, sizes_measured=False) for k, q in b.snapshot().quotes.items()}
+    return {(OPEN_ROAD, s): replace(b.snapshot(quotes=quotes), session=s) for s in (b.SESSION, DAY2)}
+
+
 def test_a_live_road_whose_capture_holds_an_unmeasured_quote_closes_by_name_and_never_trades(tmp_path):
-    unmeasured = {
-        k: replace(q, bid_qty=None, ask_qty=None, sizes_measured=False) for k, q in b.snapshot().quotes.items()
-    }
-    snapshots = {(OPEN_ROAD, s): replace(b.snapshot(quotes=unmeasured), session=s) for s in (b.SESSION, DAY2)}
+    snapshots = unmeasured_snapshots()
     rig = Rig(tmp_path, (trader(),), (FakeMaxLossLaw(10_000),), snapshots=snapshots)
     run = rig.fleet.run(b.SESSION, RunMode.REPLAY)
     [mine] = [r for r in run.decisions if r.road == OPEN_ROAD]
     assert (mine.decision.outcome, mine.decision.reason) == (Outcome.ROAD_CLOSED, ClosureReason.SIZES_NOT_MEASURED)
     assert run.fills == () and rig.accounts.ledgers == {}
+
+
+def test_only_the_practice_rules_open_a_road_whose_capture_holds_unmeasured_quotes(tmp_path):
+    """The simulator's seam (orchestrator, 23 Oct 2026): the same capture closes under the live rules, the default of
+    every pilot root, and opens under the practice rules, so MS-P1d's practice laws judge each quote."""
+    snapshots = unmeasured_snapshots()
+    outcomes = {}
+    for name, rules in (("live", LIVE), ("practice", QuoteRules(practice=True))):
+        rig = Rig(tmp_path / name, (trader(),), (FakeMaxLossLaw(10_000),), snapshots=snapshots)
+        assert rig.fleet.rules is LIVE, "live unless a root says otherwise"
+        rig.fleet.rules = rules
+        [mine] = [r for r in rig.fleet.run(b.SESSION, RunMode.REPLAY).decisions if r.road == OPEN_ROAD]
+        outcomes[name] = (mine.decision.outcome, mine.decision.reason)
+    assert outcomes["live"] == (Outcome.ROAD_CLOSED, ClosureReason.SIZES_NOT_MEASURED)
+    assert outcomes["practice"][0] == Outcome.TRADE
