@@ -18,6 +18,7 @@ from fno.constants import (
     STEP_NOT_LIVE,
     STEP_REFUSED,
 )
+from fno.desk.daily_steps import COLLECTION_GRACE
 from fno.desk.run_log import RUNS_FOLDER
 from fno.health.data_checks import PanelDayCheck, SessionRowCheck
 from fno.health.desk_checks import MarksCheck, RunLogCheck
@@ -36,6 +37,7 @@ from .fakes import DAY, Repo, ist
 
 EVENING = ist(DAY, 17, 51)
 DESK_DEADLINE = Deadline(time(15, 12))
+SECOND = timedelta(seconds=1)
 AT_DEADLINE = ist(DAY, 15, 12)
 
 
@@ -53,10 +55,23 @@ def _run_log(repo, steps=DAILY_RUN_STEPS, decided=AT_DEADLINE, results=None):
                     {"day": DAY.isoformat(), "kind": "daily_run", "steps": {s: body(s) for s in steps}})  # fmt: skip
 
 
-@pytest.mark.parametrize(("decided", "status"), [(ist(DAY, 15, 12), HEALTH_OK), (ist(DAY, 15, 12, 1), HEALTH_LATE)])
-def test_the_desk_run_is_on_time_by_its_decisions_finish(repo, decided, status):
-    _run_log(repo, decided=decided)
+@pytest.mark.parametrize(("after", "status"), [(COLLECTION_GRACE, HEALTH_OK), (COLLECTION_GRACE + SECOND, HEALTH_LATE)])
+def test_the_desk_run_is_on_time_by_its_decisions_start_within_e3s_grace(repo, after, status):
+    """E3 collects at the deadline and fails closed after deadline + COLLECTION_GRACE (fno/desk/daily_steps.py): a
+    start one second past the grace is late, whatever the finish."""
+    _run_log(repo, decided=AT_DEADLINE + after)
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == status
+
+
+@pytest.mark.parametrize("day", ["2026-10-19", "2026-10-21", "2026-10-22", "2026-10-23"])
+def test_the_real_run_logs_of_the_dry_run_read_on_time(day):
+    """The O1 dry run (docs/dryruns/DRY1_2026-10-23.md, f3): started 15:12:00.0003, finished about 1.3 s later."""
+    from datetime import date
+
+    from fno.config import ROOT
+
+    result = RunLogCheck(ROOT, DESK_DEADLINE).check(date.fromisoformat(day), ist(date.fromisoformat(day), 17, 51))
+    assert result.status != HEALTH_LATE  # the old finish-time rule read all four late; other steps may still be missed
 
 
 @pytest.mark.parametrize("missing", ["exits", "trade_marks", "card"])  # E2d's marking step after the exits, O1's last
