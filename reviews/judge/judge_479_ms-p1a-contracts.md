@@ -162,3 +162,23 @@ valid quote is): first of two judges, independent of judge I.
 **Note for d part 4 and SIM-c.** An unmeasured quote is now `two_sided`. So the refusal of a live fill on it must be
 d's (`size_not_measured`), and E4's size check must never treat a missing size as enough. That belongs in d part 4's
 tests.
+
+## Addendum 4
+
+**Scope:** MS-P1a4, per-expiry lots, story/ms-p1a4-lots at 03a467b0 (from main). It adds `RoadDay.lots` and
+`lot_for(expiry)`, and e's proposal builder now uses `lot_for(plan.expiry)`. Lane 1 (lots size money): first of two
+judges, independent of judge I.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13804 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **The contract.**
+  - `lots` must name every recorded expiry, each lot above zero, with the nearest equal to `lot`.
+  - `lot_for` never falls back to another expiry's lot.
+  - Without `lots`, a recorded expiry carries `lot` and an unrecorded one has none. b guarantees that case by
+    closing a road on mixed lots, and the conformance check proves it on b's real catalogue.
+  - Optional and additive: existing callers are unchanged.
+- **e's use.** `ProposalBuilder.build` sizes the candidate and the proposal (`risk_proposal.lot_size`, `units`) on
+  the plan's own expiry's lot. No other school code reads `road_day.lot` for sizing (grep).
+- **Plants: 4, 4 caught.** The nearest lot not checked; `lot_for` falling back to the nearest; an unrecorded expiry
+  given the lot; the driver using the nearest lot.
