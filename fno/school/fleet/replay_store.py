@@ -1,6 +1,9 @@
 """The dashcam of a replay (story MS-P1j; `RunMode.REPLAY`: a recorded session again, fixed clock, local store, nothing
 pushed): write-once slot files in a local folder, with seals that say they were never pushed (`commit` "replay").
-Never the paper record: a replay's seals prove nothing about a fill's order, and nothing reads them as evidence."""
+Never the paper record: a replay's seals prove nothing about a fill's order, and nothing reads them as evidence.
+
+`encode` and `decode` are the one place a subclass changes (the simulator's practice dashcam labels each line); the
+write-once and seal logic stays here."""
 
 import hashlib
 from datetime import date
@@ -21,7 +24,7 @@ class ReplayDashcam:
         self.folder, self.clock = Path(folder), clock
 
     def seal(self, session: date, slot: str, kind: RecordKind, records: tuple[SlotRecord, ...]) -> Seal:
-        path, payload = slot_file_path(session, slot, kind), encode_slot_file(records)
+        path, payload = slot_file_path(session, slot, kind), self.encode(records)
         file = self.folder / path
         if file.is_file() and file.read_bytes() != payload:
             raise ReplayConflict(path)
@@ -39,6 +42,12 @@ class ReplayDashcam:
         data = file.read_bytes() if file.is_file() else b""
         if hashlib.sha256(data).hexdigest() != seal.sha256:
             raise StaleSeal(seal.path)
+        return self.decode(data)
+
+    def encode(self, records: tuple[SlotRecord, ...]) -> bytes:
+        return encode_slot_file(records)
+
+    def decode(self, data: bytes) -> tuple[SlotRecord, ...]:
         return decode_slot_file(data)
 
     def _seal(self, path: str, payload: bytes) -> Seal:
