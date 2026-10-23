@@ -43,6 +43,11 @@ class BadFile(ValueError):
     """The file is damaged or not in a known format: never read it partly."""
 
 
+CLOSE_COLUMN = "Closing Index Value"
+INDEX_VALUE_COLUMNS = {"open": "Open Index Value", "high": "High Index Value", "low": "Low Index Value",
+                       "close": CLOSE_COLUMN}  # fmt: skip
+
+
 def legacy_date(text: str) -> str:
     """'02-JAN-2019' or '31-Jan-2019' -> '2019-01-02' (month names read without the computer's language settings)."""
     day, month, year = text.strip().split("-")
@@ -63,16 +68,37 @@ def csv_text(filename: str, data: bytes) -> str:
         raise BadFile(f"{filename}: damaged or not a zip ({exc})") from exc
 
 
+def _index_rows(data: bytes, filename: str):
+    """(index name, row) for each named row of NSE's daily index-close file."""
+    for row in csv.DictReader(io.StringIO(csv_text(filename, data))):
+        name = (row.get("Index Name") or "").strip()
+        if name:
+            yield name, row
+
+
+def _value(row: dict, column: str) -> float | None:
+    """A column's number; None where NSE prints nothing or "-"."""
+    text = (row.get(column) or "").strip()
+    return None if text in ("", "-") else float(text)
+
+
 def read_index_closes(data: bytes, filename: str = "index-close.csv") -> dict[str, float]:
     """Index name -> closing value, from NSE's daily index-close file."""
-    closes = {}
-    for row in csv.DictReader(io.StringIO(csv_text(filename, data))):
-        name, close = (row.get("Index Name") or "").strip(), (row.get("Closing Index Value") or "").strip()
-        if name and close not in ("", "-"):
-            closes[name] = float(close)
+    closes = {name: _value(row, CLOSE_COLUMN) for name, row in _index_rows(data, filename)}
+    closes = {name: close for name, close in closes.items() if close is not None}
     if not closes:
         raise BadFile(f"{filename}: no index closing values")
     return closes
+
+
+def read_index_values(data: bytes, filename: str = "index-close.csv") -> dict[str, dict[str, float | None]]:
+    """Index name -> its official open, high, low and close (None where NSE prints nothing or "-"), from NSE's daily
+    index-close file (story A4h-2: the day range a list read is confirmed against)."""
+    values = {name: {field: _value(row, column) for field, column in INDEX_VALUE_COLUMNS.items()}
+              for name, row in _index_rows(data, filename)}  # fmt: skip
+    if not any(found["close"] is not None for found in values.values()):
+        raise BadFile(f"{filename}: no index closing values")
+    return values
 
 
 class FoFileFormat(ABC):

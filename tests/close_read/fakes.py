@@ -26,12 +26,23 @@ CALENDAR = CsvSessionCalendar(
 )
 LEVELS = {"NIFTY 50": (22811.35, 23016.0), "NIFTY BANK": (54976.9, 55707.85), "INDIA VIX": (15.7, 14.77)}
 OFFICIAL = {"Nifty 50": 22811.35, "Nifty Bank": 54976.9, "India VIX": 15.68}  # ind_close_all_21102026.csv
+# A4h-2: each index's (high, low, previous close) in the list, and the official file's day range (21 Oct) and closes
+# of the previous session (19 Oct: 20 Oct is a holiday), all from NSE's real files.
+RANGES = {"NIFTY 50": (23120.9, 22649.9, 22888.95), "NIFTY BANK": (55867.45, 54696.45, 55488.1),
+          "INDIA VIX": (16.17, 14.18, 14.77)}  # fmt: skip
+OFFICIAL_RANGES = {"Nifty 50": (23120.9, 22649.9), "Nifty Bank": (55867.45, 54696.45), "India VIX": (16.1725, 14.1825)}
+PREVIOUS_DAY = date(2026, 10, 19)
+PREVIOUS = {"Nifty 50": 22888.95, "Nifty Bank": 55488.1, "India VIX": 14.77}  # ind_close_all_19102026.csv
 
 
-def answer(stamp="21-Oct-2026 15:30", levels=None, drop=()) -> dict:
-    rows = [{"index": name, "last": last, "open": opened, "previousClose": 1.0}
+def answer(stamp="21-Oct-2026 15:30", levels=None, drop=(), ranges=None) -> dict:
+    rows = [{"index": name, "last": last, "open": opened, **_range((ranges or RANGES).get(name))}
             for name, (last, opened) in (levels or LEVELS).items() if name not in drop]  # fmt: skip
     return {"timestamp": stamp, "data": [{"index": "NIFTY NEXT 50", "last": 1.0, "open": 1.0}, *rows]}
+
+
+def _range(found) -> dict:
+    return dict(zip(("high", "low", "previousClose"), found, strict=True)) if found else {}
 
 
 def at(hour, minute, day=DAY) -> datetime:
@@ -70,13 +81,25 @@ class MemoryStore(ClosesStore):
 
 
 class Official(OfficialCloses):
-    def __init__(self, closes=None, raises=None):
-        self.by_day, self.raises = dict(closes or {}), raises
+    """`closes`: day -> official name -> close; the day range comes from `ranges` (default the real 21 Oct file's), and
+    the previous session's file (19 Oct) is always there unless `previous` is False."""
 
-    def closes(self, day):
+    def __init__(self, closes=None, raises=None, ranges=None, previous=True):
+        self.by_day = {**({PREVIOUS_DAY: PREVIOUS} if previous else {}), **(closes or {})}
+        self.raises, self.ranges = raises, OFFICIAL_RANGES if ranges is None else ranges
+
+    def values(self, day):
         if self.raises:
             raise self.raises
-        return (f"ind_close_all_{day:%d%m%Y}.csv", self.by_day[day]) if day in self.by_day else None
+        if day not in self.by_day:
+            return None
+        values = {
+            name: {"open": None, "high": None, "low": None, "close": close} for name, close in self.by_day[day].items()
+        }
+        for name, (high, low) in self.ranges.items():
+            if name in values and day != PREVIOUS_DAY:
+                values[name].update(high=high, low=low)
+        return f"ind_close_all_{day:%d%m%Y}.csv", values
 
 
 class Alerts(AlertSender):
