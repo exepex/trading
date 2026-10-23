@@ -193,6 +193,19 @@
      "trades": []
     }
    }
+  },
+  "reviews": {
+   "started_at": "2026-10-23T15:18:14.612538+05:30",
+   "finished_at": "2026-10-23T15:18:17.679955+05:30",
+   "inputs": {
+    "snapshot_id": "nifty_20261023_151500"
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "marked_contracts": 180,
+    "open_positions": 0
+   }
   }
  }
 }
