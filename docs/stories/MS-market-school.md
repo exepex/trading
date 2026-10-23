@@ -2493,3 +2493,15 @@ loss (a 5% chance), this descriptive bound looks positive about 2 runs in 5 even
 The rarer the loss, the more misleading a short sample looks. That is the peso problem, and it is why v1 has no
 Watching.
 
+**Round 2, addendum (the orchestrator's conditions on judge 516, sent before the round-2 push):**
+- **Reproducible seeded runs:** `tools/ins_seller_null.py` runs the seller grid (`nulls.seller_cells` and
+  `seller_cell`, fixed seeds 0-1999) through the shipped code and writes `research/school/instructor_seller_null.csv`.
+  Its rerun reproduced every one of the 96 cells exactly.
+- **The printed rate comes from those runs:**
+  - `test_the_printed_seller_rate_is_the_committed_grids_worst_upper_end_and_the_grid_covers_the_cards` checks that
+    the grid's cells are the cards' holds today and that the printed 46 is the worst upper end rounded up;
+  - `test_the_grids_worst_cell_recomputes_from_the_same_seeded_runs` re-runs the worst cell and matches the file to 4
+    decimals.
+- **Why 14.9% did not reproduce:** it came from a separate 4-road script. The shipped `seller_slots` drives all 5 roads
+  and gives 22.6%.
+

@@ -11,6 +11,7 @@ from statistics import NormalDist
 
 from ...constants import RoadCode
 from ..contracts import Measure
+from ..thresholds import BATCH_HOLD_MULTIPLE, MIN_BATCH
 from .series import paired_series
 from .status import paired_row
 from .values import RoadSlot, SlotStatus
@@ -96,3 +97,26 @@ def wilson_upper(share: float, n: int, z: float = 1.96) -> float:
     centre = share + z * z / (2 * n)
     spread = z * math.sqrt(share * (1 - share) / n + z * z / (4 * n * n))
     return (centre + spread) / (1 + z * z / n)
+
+
+SELLER_LOSS_CHANCES = (0.05, 0.1, 0.15, 0.2)
+SELLER_SEEDS = 2000
+
+
+def seller_cells(holds) -> list[tuple[int, float, int, int]]:
+    """The seller grid (judge 516): (hold, loss chance, sessions, batch) at each card hold and loss chance, at the
+    first session count with a bound (2 batches), at twice that, at 120 and at 250 sessions."""
+    cells = []
+    for hold in sorted(set(holds)):
+        batch = max(math.ceil(BATCH_HOLD_MULTIPLE * hold), MIN_BATCH)
+        for chance in SELLER_LOSS_CHANCES:
+            cells += [(hold, chance, n, batch) for n in sorted({2 * batch, 4 * batch, 120, 250})]
+    return cells
+
+
+def seller_cell(hold: int, chance: float, sessions: int, batch: int, seeds: int = SELLER_SEEDS) -> tuple[float, float]:
+    """The seeded share of runs whose bound looks positive, and the upper end of its 95% Wilson interval."""
+    share = share_positive(
+        lambda seed: seller_slots(seed, sessions, SellerShape(chance, hold=hold)), range(seeds), batch
+    )
+    return share, wilson_upper(share, seeds)
