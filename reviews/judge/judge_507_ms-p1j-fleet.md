@@ -289,3 +289,18 @@ viewed and d's store refuses a record before the first view. The fake had accept
   - A rerun's fills find the ledger already opened: d's `started` is the persisted cash file.
 - **Plants: 3, 3 caught.** The ticket ledger never viewed; the fake accepting a record before a view; the laws reading
   the ticket ledger's view.
+
+## Addendum 12
+
+**Verdict: PASS** on story/ms-p1j-ins-wiring, `bcf9ab21..4f5f8297` (test and story text only). This closes 507.9's
+one should-fix, so ins-wiring now has no open finding.
+
+| Criterion | Reality |
+|---|---|
+| The record root's `SessionCounts.files(session)` includes `instructor_counts_path(session)` | Yes: `test_the_record_root_names_the_instructor_s_counts_file_in_the_counts_commit` builds `wiring.build_fleet` over the real composition (stores stubbed) and asserts the path is in `counts.files(SESSION)` |
+| A replay names no instructor file | Yes: the same test asserts it is absent from `build_replay_fleet(...).counts.files(SESSION)` |
+| My 507.9 plant is caught | Yes: `fno/school/wiring.py:44`, with the lambda returning `()`, fails exactly this test (1 failed, 3250 passed in `tests/school`); reverted |
+| Story text | `MS-market-school.md` adds the test and its plant under part j; matches the code |
+
+Gates on 4f5f8297 (run by me): 14,035 passed, 16 xfailed; ruff clean; format clean; check_imports clean.
+No code changed, so 507.9's other findings stand as judged there.
