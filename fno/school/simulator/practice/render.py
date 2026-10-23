@@ -7,6 +7,7 @@ from .clock import PRACTICE_CLOCK_LABEL
 from .margin import PRACTICE_MARGIN_LABEL
 from .report import PracticeReport
 
+NOT_ARCHIVED = "local only, not archived: no practice result may be shown to the owner, reported or used in a decision"
 NOT_VALUED = "positions still open at the window's end are not valued"
 TOP_BUCKETS = 8
 LABELS = (SLOT_LABEL, SPREAD_LABEL, SIZE_GATE_NOT_TESTED_LABEL, PRACTICE_MARGIN_LABEL, PRACTICE_CLOCK_LABEL, NOT_VALUED)
@@ -18,7 +19,7 @@ def line(text: str) -> str:
 
 def render(report: PracticeReport) -> list[str]:
     roads = ", ".join(str(road) for road in report.roads)
-    lines = [line(f"window {report.first} to {report.last}; roads {roads}")]
+    lines = [line(NOT_ARCHIVED), line(f"window {report.first} to {report.last}; roads {roads}")]
     lines += [line(label) for label in LABELS]
     for scenario, result in report.scenarios.items():
         lines.append(

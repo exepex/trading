@@ -65,3 +65,21 @@ def test_a_run_prints_only_labelled_lines_and_writes_under_the_given_home(tmp_pa
     assert command.cmd_practice_run(namespace(home=tmp_path), out=lines.append) == 0
     assert len(lines) > 10 and all(text.startswith(PRACTICE_LABEL) for text in lines)
     assert isinstance(parts, PracticeParts) and any(tmp_path.rglob("*.jsonl.gz"))
+
+
+def test_school_practice_run_is_registered_in_the_main_command_and_refuses_a_window_by_name(capsys):
+    from fno import cli
+
+    code = cli.main(
+        ["school", "practice", "run", "--from", "2024-03-04", "--to", "2024-03-08", "--roads", "FINNIFTY-M"]
+    )
+    out = capsys.readouterr().out
+    assert code == 2 and "not_in_data_spend" in out and out.startswith(PRACTICE_LABEL)
+
+
+def test_the_first_line_of_a_report_says_local_only_not_archived():
+    from fno.school.simulator.practice.render import NOT_ARCHIVED, render
+    from fno.school.simulator.practice.report import PracticeReport
+
+    lines = render(PracticeReport(sb.SESSION, sb.SESSION, ()))
+    assert lines[0] == f"{PRACTICE_LABEL} | {NOT_ARCHIVED}" and "not archived" in lines[0]

@@ -73,7 +73,7 @@ def build_practice_fleet(
     margin_for: MarginFor | None = None, roads: Sequence[Road] = ROADS,
 ) -> SchoolFleet:  # fmt: skip
     _refuse_pilot_paths(home, parts.root)
-    cfg = _practice_switch(cfg_on(parts.cfg, parts.terms, session))
+    cfg = cfg_on(parts.cfg, parts.terms, session)
     settings, clock = school_settings(cfg), practice_clock(session)
     dashcam = PracticeDashcam(Path(home) / "dashcam", clock)
     books = books_on(
@@ -91,9 +91,3 @@ def build_practice_fleet(
         books, dashcam, SessionCounts(Path(home), None), lambda _session: None, DashcamEntryMids(dashcam), clock,
         rules=PRACTICE,
     )  # fmt: skip
-
-
-def _practice_switch(cfg: dict) -> dict:
-    """A practice run is its own explicit command, so it does not wait on the pilot's `school.enabled` (a copy of the
-    configuration; the file and the pilot's switch are untouched)."""
-    return {**cfg, "school": {**cfg["school"], "enabled": True}}
