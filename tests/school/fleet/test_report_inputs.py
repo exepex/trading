@@ -80,3 +80,11 @@ def test_a_rerun_of_a_complete_session_after_15_30_adds_no_mark(tmp_path):
     rig.fleet.clock = FixedClock(datetime.combine(b.SESSION, time(16, 0), IST))
     rig.fleet.run(b.SESSION, RunMode.REPLAY)
     assert inputs(rig, tmp_path)[1].marks(b.SESSION) == ()
+
+
+def test_the_day_inputs_pass_the_instructor_s_why_lines_through_and_none_without_a_source(tmp_path):
+    rig = ran(tmp_path)
+    _, plain = inputs(rig, tmp_path)
+    source = SimpleNamespace(lines=lambda session: ("CS1@1 BANKNIFTY-M: net Rs -140; why: wrong direction",))
+    with_why = SealedDayInputs(rig.dashcam, tmp_path, {}, source)
+    assert plain.why(b.SESSION) == () and with_why.why(b.SESSION) == source.lines(b.SESSION)

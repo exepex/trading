@@ -141,3 +141,31 @@ Both windows avoid every A16 mark. Reading a refusal at 500 twice as "closed mar
   - the second `check_start` after the sign-in, removed: the first check and `run`'s own window check still refuse;
   - the watch loop running past its end: `wait()` returns False at the hard end, so the loop stops there anyway.
 - **Gates (my run):** full `pytest -n auto` 11,722 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+
+## Addendum 8: the TLS fix at 94c7ca18 (story/a16h-feed-tls, on main 2c215d74)
+
+**Verdict: FAIL, round 1 of 2.** 1 should-fix. The design is right; its key wiring line has no test.
+
+**Checked (my evidence):**
+- **Root cause confirmed.** The installed `growwapi/groww/nats_client.py:120` builds `ssl.create_default_context(cafile=certifi.where())`, ignoring `SSL_CERT_FILE`. My own handshake to `socket-api.groww.in:443` from this container:
+  - certifi alone: `CERTIFICATE_VERIFY_FAILED` (self-signed certificate in chain);
+  - certifi plus `SSL_CERT_FILE` (`/root/.ccr/ca-bundle.crt`): `handshake ok TLSv1.3`, with `CERT_REQUIRED` and hostname checking on.
+- **Orchestrator's condition 1: MET in `feed_ca_file`.**
+  - certifi's roots plus the bundle, in one file, never replacing them;
+  - no bundle, no change;
+  - only the SDK's feed module is given the file.
+  - The tests make real localhost TLS handshakes: a certificate from the added CA verifies, and an untrusted one is still refused.
+  - Plants caught: the bundle replacing certifi, the bundle dropped, a missing file accepted.
+- **The patch takes effect at connect time:** the SDK calls `certifi.where()` inside `_connect`.
+- **Building in a worker thread is safe:** `NatsClient` owns its own event loop and consume thread, and later calls use `run_coroutine_threadsafe` on that loop.
+- **Orchestrator's condition 2: MET.** `open_feed` gives up after 30 s with one line; a connect error is named by class only. Plants caught: no timeout, the error swallowed.
+- **Gates (my run):** full `pytest -n auto` 14,333 passed, 16 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
+
+**Finding:**
+1. **Should-fix: the fix's own wiring is untested.**
+   - My plant removes `if ca_file: trust_for_feed(nats_client, ca_file)` from `build_feed_probe` (`feed_wiring.py:48-49`), and all 41 feed tests still pass. That puts back the exact 23 Oct failure.
+   - Fix expected: a test of `build_feed_probe` with fakes for the provider and `GrowwFeed`, and with `SSL_CERT_FILE` set. It checks that `nats_client.certifi.where()` then returns a file holding both bundles, and that without `SSL_CERT_FILE` the module keeps the real certifi. Restore the module after the test.
+
+**Notes (no action):**
+- **Trust anchor:** with the proxy's CA trusted, the proxy is the trust anchor, as it already is for every HTTPS call in this environment. My handshake with a wrong name was accepted too, because the proxy mints a certificate for whatever name is asked. The SDK's own hostname check still runs against what the proxy presents. That is an environment property, not a defect here; on a host without `SSL_CERT_FILE`, certifi alone is used.
+- **Leftovers:** each run leaves one `feed-ca-*` temp folder holding public certificates only. A connect that times out leaves a daemon thread retrying until the process exits, right after the stop line.
