@@ -1,9 +1,13 @@
 """The open run of each routine on this machine, kept in a git-ignored file between the routine's commands (each
-`Bash` call of a routine session is a new shell, so nothing can live in memory)."""
+`Bash` call of a routine session is a new shell, so nothing can live in memory). Two steps can run at once (the
+pre-open's background part), so every read-change-write of a routine's file holds that routine's lock."""
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
@@ -44,6 +48,13 @@ class RunStateFolder:
     def save(self, run: OpenRun) -> None:
         self.folder.mkdir(parents=True, exist_ok=True)
         self._file(run.folder.routine).write_text(run.to_json(), encoding="utf-8")
+
+    @contextlib.contextmanager
+    def locked(self, routine: str) -> Iterator[None]:
+        self.folder.mkdir(parents=True, exist_ok=True)
+        with open(self.folder / f"{routine}.lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            yield
 
     def clear(self, routine: str) -> None:
         self._file(routine).unlink(missing_ok=True)

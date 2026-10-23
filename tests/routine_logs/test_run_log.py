@@ -89,3 +89,13 @@ def test_the_last_step_closes_the_run_even_without_end(run_log, store):
     end = json.loads(store.get(f"{run.folder.path}/end.json"))
     assert end["status"] == "ok" and "last step daily-run (exit 0)" in end["note"]
     assert RunStateFolder(run_log.state.folder).load("daily-desk") is None
+
+
+def test_steps_finishing_at_once_are_all_counted(run_log):
+    from concurrent.futures import ThreadPoolExecutor
+
+    run_log.begin("pre-open")
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(lambda n: run_log.step("pre-open", _step(f"part-{n}", n % 2)), range(8)))
+    run = RunStateFolder(run_log.state.folder).load("pre-open")
+    assert run.steps == 8 and sorted(run.failed) == ["part-1", "part-3", "part-5", "part-7"]

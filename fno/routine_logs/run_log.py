@@ -49,11 +49,12 @@ class RoutineRunLog:
 
     def step(self, routine: str, result: StepResult) -> tuple[str, str]:
         """Writes the step's file; returns (its Drive path, a line to print when it was not saved, else "")."""
-        run, begun = self.open_run(routine)
-        run.steps += 1
-        if result.exit_code != 0:
-            run.failed.append(result.label)
-        self.state.save(run)
+        with self.state.locked(routine):
+            run, begun = self.open_run(routine)
+            run.steps += 1
+            if result.exit_code != 0:
+                run.failed.append(result.label)
+            self.state.save(run)
         path = run.folder.step_file(run.steps, result.label)
         header = STEP_HEADER.format(routine=routine, label=result.label, command=result.command,
                                     started=result.started.isoformat(), ended=result.ended.isoformat(),
@@ -63,12 +64,13 @@ class RoutineRunLog:
 
     def end(self, routine: str, note: str = "") -> tuple[str, str]:
         """Writes `end.json` (status `failed` when any step failed) and closes the run; returns (status, line)."""
-        run, _ = self.open_run(routine)
+        with self.state.locked(routine):
+            run, _ = self.open_run(routine)
+            self.state.clear(routine)
         status = STATUS_FAILED if run.failed else STATUS_OK
         body = {"routine": routine, "ended_at": self.clock().isoformat(), "status": status, "steps": run.steps,
                 "failed_steps": run.failed, "note": scrub(note)}  # fmt: skip
         problem = self._put(run.folder.file(END), json.dumps(body, indent=1), "end")
-        self.state.clear(routine)
         return status, problem or SAVED.format(path=run.folder.path)
 
     def _put(self, path: str, text: str, what: str) -> str:
