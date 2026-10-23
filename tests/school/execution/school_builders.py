@@ -24,7 +24,8 @@ SETTLEMENTS = {"NIFTY": 21352.60, "BANKNIFTY": 45015.25, "FINNIFTY": 20010.50, "
 
 
 def settlement_folder(tmp_path: Path, prices: dict[str, float] = SETTLEMENTS, day: date = REAL_DAY) -> Path:
-    """The real file's rows for NIFTY plus one future row per other index, each with its own `SttlmPric`."""
+    """The real file's rows for NIFTY plus one future row per other index, each with its own `SttlmPric`. The same
+    arguments always give the same bytes, so a file's SHA-256 can be compared across two builds."""
     path = NseDailyFoSource.path_for(REAL_DAY)
     name = path.rsplit("/", 1)[-1][:-4]
     with zipfile.ZipFile(REAL / path) as original:
@@ -43,8 +44,9 @@ def settlement_folder(tmp_path: Path, prices: dict[str, float] = SETTLEMENTS, da
     writer.writerows(out_rows)
     target = tmp_path / NseDailyFoSource.path_for(day)
     target.parent.mkdir(parents=True, exist_ok=True)
+    entry = zipfile.ZipInfo(NseDailyFoSource.filename_for(day)[:-4], (day.year, day.month, day.day, 0, 0, 0))
     with zipfile.ZipFile(target, "w") as copy:
-        copy.writestr(NseDailyFoSource.filename_for(day)[:-4], text.getvalue())
+        copy.writestr(entry, text.getvalue())  # a fixed stamp: a plain name would take the wall clock into the bytes
     return tmp_path
 
 

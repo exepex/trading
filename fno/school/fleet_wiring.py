@@ -21,6 +21,7 @@ from .contracts.dashcam import DashcamStore
 from .drivers.wiring import build_school_drivers
 from .execution.wiring import build_capture_1515, build_fill_port
 from .fleet.books import Books
+from .fleet.card_check import no_check
 from .fleet.counts_file import CountsCommitter, SessionCounts
 from .fleet.entry_mids import DashcamEntryMids
 from .fleet.history import RecordedSpotHistory
@@ -57,8 +58,10 @@ def books_on(cfg: dict, stores: FleetStores, fills: FillPort, root: Path = ROOT)
     return Books(accounts, accounts, TicketBook(fills, TicketLedger(tickets)), tickets, fills)
 
 
-def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, after_outcomes=no_step) -> SchoolFleet:
-    """`after_outcomes`: the record's step after the outcomes' seal (the instructor's run); a replay runs none."""
+def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, card_check=no_check,
+             after_outcomes=no_step) -> SchoolFleet:  # fmt: skip
+    """`card_check`: the record's comparison-card mismatch check (MS-P1j runbook); `after_outcomes`: the record's step
+    after the outcomes' seal (the instructor's run). A replay passes neither."""
     settings = school_settings(cfg)
     books = books_on(cfg, stores, build_fill_port(cfg), root)
     services, margin = build_road_services(), build_margin(cfg)
@@ -67,5 +70,5 @@ def fleet_on(cfg: dict, stores: FleetStores, root: Path = ROOT, after_outcomes=n
         RecordedSpotHistory(QUOTES_FOLDER), build_school_drivers(cfg, root),
         lambda marks: build_safety_laws(cfg, settings, marks, margin), books, stores.dashcam,
         SessionCounts(stores.home, stores.committer, stores.counts_extra), build_capture_1515(root).for_session,
-        DashcamEntryMids(stores.dashcam), stores.clock, after_outcomes=after_outcomes,
+        DashcamEntryMids(stores.dashcam), stores.clock, card_check=card_check, after_outcomes=after_outcomes,
     )  # fmt: skip
