@@ -2542,3 +2542,4 @@ denominator, never counted. That must never be silent.
 
 - **No record changed:** the check only reads the sealed records, the repository's git and D6's rows.
 - **Plants:** 7 planted, 7 caught. Judge B's survivor (judge 507.7: N forced to M) is now caught by `test_the_line_counts_only_the_mismatched_decisions_among_the_session_s`: one mismatched decision among three gives "1 of 3".
+- **Judge K's survivor (judge 520: `seal.commit` replaced by HEAD):** caught by `test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed`: rows naming the new card, committed after the seal, would count these decisions at HEAD; at their own seal's commit they still warn.

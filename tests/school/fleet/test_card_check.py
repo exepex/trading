@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import datetime
 from types import SimpleNamespace
 
+from fno.books.version_registry import render
 from fno.books.versions import Versions
 from fno.models import IST
 from fno.school import cli, wiring
@@ -43,6 +44,21 @@ def test_a_card_edited_without_rows_naming_it_is_named_once_with_its_version(tmp
     repo.register()
     commit(repo.path, CARD_PATH, NEW_CARD)  # the plant: a new card version, no D6 rows naming it
     records, seal = sealed_on(repo, repo.decide())
+    assert check(repo)(records, seal) == (
+        "comparison_card_mismatch: 2 of 2 decisions do not count until D6 rows name card v3; see the MS-P1j runbook",
+    )
+
+
+def test_rows_registered_after_the_seal_never_clear_the_decisions_it_sealed(tmp_path):
+    """Judge K's note (judge 520): each decision is judged at its own seal's receipt commit, never at HEAD. Rows naming
+    the new card, committed after the seal, count only later decisions; a rerun of this session still says so."""
+    repo = Repo(tmp_path)
+    repo.register()
+    commit(repo.path, CARD_PATH, NEW_CARD)
+    records, seal = sealed_on(repo, repo.decide())
+    repo.rows.append(repo.row_naming(NEW_CARD, "2", SESSION))
+    commit(repo.path, "journal/versions.csv", render(repo.rows))
+    repo.decide("after the rows")  # HEAD is now past the rows: judged at HEAD, these decisions would count
     assert check(repo)(records, seal) == (
         "comparison_card_mismatch: 2 of 2 decisions do not count until D6 rows name card v3; see the MS-P1j runbook",
     )
