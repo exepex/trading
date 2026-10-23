@@ -116,7 +116,7 @@ The judge also confirms the words with the owner directly; no file counts as pro
   again before the push.
 - A change of Markdown files only (no `.py`, test, config, workflow or requirements file) never runs the full suite
   (owner, 23 Oct 2026): the record scan, `check_numbers`, and the doc-reading tests unless every file is lane-3
-  changed (CLAUDE.md "Code", "Text-only changes"). This holds for the builder, for each judge round and for the merge;
+  (CLAUDE.md "Code", "Text-only changes"). This holds for the builder, for each judge round and for the merge;
   a round that only rewords text is judged by reading it.
 - The gates need the whole git history: in a shallow clone the freeze and back-fill tests fail with "shallow clone:
   run git fetch --unshallow origin main"; run that, then the gates again. It is never a code failure.
