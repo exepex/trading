@@ -15,11 +15,19 @@ def add_daily_parser(subparsers) -> None:
     run.set_defaults(func=cmd_daily_run)
 
 
-def cmd_daily_run(args, out=print) -> int:
-    from ..config import load_app_config
+def cmd_daily_run(args, out=print, root=None) -> int:
+    """A second run of a day beside a living one does nothing and says so (story O1-day-lock)."""
+    from ..config import ROOT, load_app_config
     from ..models import now_ist
+    from .day_lock import ALREADY_RUNNING, DayLock
+    from .part_locks import PART_LOCKS
     from .wiring import build_day_runner
 
-    code, line = build_day_runner(load_app_config()).run(args.day or now_ist().date())
+    root, day = root or ROOT, args.day or now_ist().date()
+    with DayLock(root / PART_LOCKS).taken(day, now_ist()) as running_since:
+        if running_since is not None:
+            out(ALREADY_RUNNING.format(day=day, since=running_since))
+            return 1
+        code, line = build_day_runner(load_app_config(), root).run(day)
     out(line)
     return code

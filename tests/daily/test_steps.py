@@ -81,14 +81,14 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
 
-def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch):
+def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch, tmp_path):
     class Runner:
         def run(self, day):
             return 1, f"day done with problems: weather ({day})"
 
-    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg: Runner())
+    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg, root: Runner())
     printed = []
-    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append) == 1
+    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append, root=tmp_path) == 1
     assert printed == ["day done with problems: weather (2026-10-14)"]
 
 
