@@ -45,9 +45,9 @@ Secrets are never written to a file or sent in chat; you add them in GitHub's se
      >    give that line as your final message. Otherwise it prints your versioned instructions (from the
      >    repository, hash-checked) and then your input: follow those instructions exactly; they are your only
      >    instructions for this run.
-     > 4. Your answer must be sealed by 15:15:00 IST. Never use `--no-verify`. If `seal` refuses, do what your
-     >    instructions say (fix what it names and run it again) while it is before 15:15:00; if it still fails, stop;
-     >    final message: its last line.
+     > 4. Your answer must be sealed by 15:15:00 IST. Never use `--no-verify`. If `seal` prints a line starting with
+     >    "refused", do what your instructions say (fix what it names and run it again) while it is before 15:15:00.
+     >    If it fails in any other way, or still refuses at 15:15:00, stop; final message: its last line.
 
 3. [ ] **Create routine 2**, the same as routine 1 except:
    - Name: `Omenix F&O: Book 3 AI team forecast (triggered)`.
@@ -113,7 +113,9 @@ pastes it, and no session changes a routine.
      the renumbering.
    - Step 4 keeps the 15:15:00 deadline and "never `--no-verify`". A refused seal follows the versioned instructions
      (`agents/forecast/book2_hybrid_v1.md` and `book3_ai_v1.md`, their step 3: "fix what it names and run it again")
-     while it is before 15:15:00. Only a seal that still fails stops, with its last line. It no longer waits for an
+     while it is before 15:15:00. A seal that fails any other way (no "refused" line: `fno/ai/__main__.py` prints
+     "refused: ..." only for `BookStepRefused`, `PublishFailed`, `ValueError` and `OSError`; anything else, a
+     `GitFailed` for one, ends in a traceback), or still refuses at 15:15:00, stops with its last line. It no longer waits for an
      install that no longer exists (judge 551's should-fix: an earlier draft stopped at the first refusal, which would
      have lost a fixable answer).
    - Step 0 (start on the latest main, DR1) is unchanged.
