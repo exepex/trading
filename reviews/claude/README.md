@@ -314,3 +314,4 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 330: FL1-1e design part: the evening page's verdict first (close, inside each range yes/no, ✓ right / ✗ wrong), a red line when today is unchecked and the last checked day named, why, the record, the next session's forecast; the morning's last-session check; `result_of` never an older day](response_330_fl1-1e-design-verdict.md)
 - [Response 331: FL1-1f, judge 547 answered: the back-test counts among the last 30 sessions as labelled; the light rates live checks only](response_331_fl1-1f-judge-547.md)
 - [Response 275: T1c, the card shows M1's weather record (story text claims for Judge E)](response_275_t1c-card-weather-text.md)
+- [Response 333: T1c code, the card shows M1's live weather record: claims](response_333_t1c-card-weather-code.md)

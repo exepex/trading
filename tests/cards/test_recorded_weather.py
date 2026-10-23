@@ -20,7 +20,7 @@ PATH = WEATHER.format(day=DAY)
 REAL = json.loads((ROOT / PATH).read_text(encoding="utf-8"))
 COLOURS = re.compile(r"\b(GREEN|AMBER|RED)\b")
 PROOF = "not yet proven: G8 has not scored it against v0 and the base rate"
-CHANCES = "Chance of a 2% NIFTY move: next session 3% (base rate 3%); within 5 sessions 13% (base rate 10%)"
+CHANCES = "Chance of a 2% NIFTY move: next session 2.9% (base rate 2.7%); within 5 sessions 12.9% (base rate 10.4%)"
 
 
 def section(record=None, raw: bytes | None = None, day=DAY):
@@ -94,10 +94,10 @@ def test_a_missing_operative_chance_is_not_scored_never_zero_percent():
     assert section(varied(probabilities={})).lines[1] == BLOCKS  # empty probabilities: the same
 
 
-def test_chances_are_whole_percents_at_the_boundary():
+def test_chances_have_one_decimal_at_the_boundary():
     record = copy.deepcopy(REAL)
     record["probabilities"]["weather_vix_v1"]["v6_abs_move_2pct_next_session"]["value"] = 0.10
-    assert section(record).lines[1].startswith("Chance of a 2% NIFTY move: next session 10% (base rate 3%)")
+    assert section(record).lines[1].startswith("Chance of a 2% NIFTY move: next session 10.0% (base rate 2.7%)")
 
 
 def test_an_unscored_v0_shows_its_reason_and_an_older_record_without_one_never_raises():
@@ -117,7 +117,55 @@ def test_no_driver_value_reaches_the_card():
 
 
 def test_the_app_reads_the_real_committed_record_and_an_uncommitted_file_reads_as_no_reading(tmp_path):
-    shown = _weather(GitHeadRecords(ROOT), ROOT).weather(DAY)
+    shown = _weather(GitHeadRecords(ROOT)).weather(DAY)
     assert shown.lines[0] == f"Weather: GREEN (weather_vix_v1, {PROOF})" and shown.used[0].path == PATH
     on_disk_only = GitHeadRecords(tmp_path)  # not a git checkout: nothing is committed
-    assert _weather(on_disk_only, ROOT).weather(DAY).lines[0] == f"Weather: no reading for {DAY}"
+    assert _weather(on_disk_only).weather(DAY).lines[0] == f"Weather: no reading for {DAY}"
+
+
+@pytest.mark.parametrize("colour", ["BLUE", None, ""])
+def test_a_colour_m1_never_writes_is_not_scored_and_never_shown(colour):
+    """Self-review: only GREEN, AMBER and RED are shown; anything else fails closed."""
+    shown = section(varied(colour=colour))
+    assert shown.lines == (f"Weather: not scored for {DAY} (colour {colour!r} is not GREEN, AMBER or RED)", BLOCKS)
+
+
+def _with(change):
+    record = copy.deepcopy(REAL)
+    change(record)
+    return record
+
+
+@pytest.mark.parametrize("change", [
+    lambda r: r.update(probabilities="not a mapping"),
+    lambda r: r["probabilities"].update(weather_vix_v1=["a", "list"]),
+    lambda r: r["probabilities"]["base_rate"].update(v6_abs_move_2pct_next_session="ok"),
+    lambda r: r["probabilities"]["weather_vix_v1"]["v6_abs_move_2pct_next_session"].update(value="0.03"),
+    lambda r: r["probabilities"]["weather_vix_v1"]["v6_abs_move_2pct_next_session"].update(value=True),
+    lambda r: r["probabilities"]["weather_vix_v1"]["v6_abs_move_2pct_next_session"].update(value=float("nan")),
+    lambda r: r["probabilities"]["weather_vix_v1"]["v6_abs_move_2pct_next_session"].update(value=1.5),
+    lambda r: r["probabilities"]["weather_vix_v1"]["v6_abs_move_2pct_next_session"].update(value=-0.01),
+])  # fmt: skip
+def test_a_malformed_chance_fails_closed_and_never_raises(change):
+    shown = section(_with(change))
+    assert shown.lines == (f"Weather: not scored for {DAY} (a chance or base rate is missing)", BLOCKS)
+
+
+def test_a_weather_source_that_raises_still_says_no_new_trades():
+    """Self-review: the card's guard keeps the owner's line when the weather source fails."""
+    from fno.cards.card import CardBuilder
+    from fno.cards.sections import WeatherSource
+    from tests.cards.fakes import daily_card
+
+    class Broken(WeatherSource):
+        def weather(self, day):
+            raise KeyError("colour")
+
+    records = FakeRecords()
+    answer = daily_card(records, ROOT).sessions.answer(DAY)
+    from fno.cards.forecasts import LiveCaptureForecasts
+    from fno.cards.status import RegistryStatus
+
+    card = CardBuilder(RegistryStatus(records, records), Broken(), LiveCaptureForecasts(records)).build(DAY, answer)
+    assert card.sections[1].lines == ("weather: not available on this card", BLOCKS)
+    assert "weather source failed (KeyError)" in card.missing

@@ -368,7 +368,8 @@ Out:
 - **Intraday colours:** LM1 and M1's intraday rule.
 
 **Design:** the card's lines, by the day's record (constants at the top of the module):
-1. **No record, an unreadable file, or a record whose `day` is not the card's day:**
+1. **No record, an unreadable file, a record whose `day` is not the card's day, or a record that is not `live`**
+   (the not-live line names the label):
    - "Weather: no reading for <d>";
    - "No new trades while the weather reading is missing (owner rule).";
    - missing: "weather record for <d>".
@@ -378,9 +379,10 @@ Out:
    - the same "no new trades" line;
    - missing: "weather not scored for <d>".
 3. **GREEN, AMBER or RED:**
-   - "Weather: <colour> (<operative>, <proof>)", plus " (back-fill, exploratory)" when the label is not `live`;
+   - "Weather: <colour> (<operative>, <proof>)";
    - "Chance of a 2% NIFTY move: next session <p> (base rate <b>); within 5 sessions <p5> (base rate <b5>)", using the
-     operative forecaster's probabilities and the base rate, as whole percents;
+     operative forecaster's probabilities and the base rate, with one decimal (self-review: on 23 Oct whole percents
+     showed 2.9% and 2.7% both as "3%");
    - "Checklist v0: <v0_colour>", or "Checklist v0: not scored (<v0_status's reason>)" when v0 itself is unscored;
    - for RED only, "RED: no new entries (owner rule)".
    - The record is added to the card's used records with its committed SHA-256.
@@ -395,15 +397,20 @@ string is M1's `WeatherColour.NOT_SCORED`, imported from `fno/weather/constants.
    "no new trades" line, and names the record as missing. It never shows a colour.
 3. A "not scored" record gives the not-scored line and the "no new trades" line, with no colour.
 4. RED adds "RED: no new entries (owner rule)". GREEN and AMBER do not.
-5. A back-fill record is labelled "(back-fill, exploratory)". A live one is not.
+5. Only a `live` record is the day's weather. A back-fill (any other label) shows "Weather: no live reading for <d>
+   (the record is <label>, not today's weather)" and the "no new trades" line, never a colour (M1's builder, 23 Oct
+   2026: a back-fill is history, never today's reading; amended after judge 401).
 6. No driver value appears on the card. Only committed bytes are read: a record on disk that is not committed reads as
    no record.
 7. `PendingWeather` and its "M1 pending" text are gone, and the wiring builds `RecordedWeather`.
 
 **Test plan:** fake `CommittedRecords` holding a record.
-1. Positive: GREEN live, AMBER back-fill, RED. Each gives its exact lines and its used record.
+1. Positive: the real live GREEN record of 23 Oct 2026, AMBER and RED variants. Each gives its exact lines and its used
+   record. Not live: the real back-fill of 14 Oct shows "no live reading" and blocks.
 2. Negative: no record; a file that is not JSON; a record whose `day` is the day before.
-3. Boundary: a probability of exactly 0.10, shown as a whole percent ("10%"). A missing operative probability is
+3. Boundary: a probability of exactly 0.10, shown as "10.0%". A colour other than GREEN, AMBER or RED, or a chance
+   that is not a number between 0 and 1, fails closed, and so does a weather source that raises (the guard keeps the
+   "no new trades" line). A missing operative probability is
    treated as "not scored" and never as 0%. M1's `_status` never writes that case, so this is a guard only. A v0
    colour of "not scored" shows its `v0_status` reason.
 4. Empty: an empty `probabilities` object, and a committed folder with no file for the day.

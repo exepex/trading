@@ -51,11 +51,11 @@ def _host_now() -> datetime:
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(build_status(records, root), _weather(records, root), LiveCaptureForecasts(records))
+    builder = CardBuilder(build_status(records, root), _weather(records), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
 
 
-def _weather(records, root: Path) -> RecordedWeather:
+def _weather(records) -> RecordedWeather:
     """M1's record path for a day, relative to the repository: the card reads the committed record (story T1c)."""
     from ..weather.records import WeatherRecords
     from ..weather.wiring import WEATHER_FOLDER
