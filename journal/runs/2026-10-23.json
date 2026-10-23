@@ -249,6 +249,24 @@
      }
     }
    }
+  },
+  "card": {
+   "started_at": "2026-10-23T15:18:18.845633+05:30",
+   "finished_at": "2026-10-23T15:18:36.382194+05:30",
+   "inputs": {
+    "command": [
+     "card",
+     "daily",
+     "unlisted",
+     "2026-10-23",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
   }
  }
 }
