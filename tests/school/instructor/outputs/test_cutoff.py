@@ -114,3 +114,17 @@ def test_the_controls_are_read_as_of_the_session():
     assert before.classifications[0].modifier != Modifier.NOT_TESTABLE  # both controls read
     correct_later(dashcam, ref, day=LATER, exit_price=1.0)  # REF's loss corrected to a win, after the session
     assert run_on(dashcam, FakeInstructorStore()).for_session(SESSION) == before
+
+
+def test_a_written_sessions_unreadable_files_are_read_as_of_that_session():
+    """The already-written branch reports the outcome files it could not read as of its own session, as its first run
+    did (judge 525.2's minor): a later session's damaged file is that session's to report."""
+    dashcam = WriteRefusingDashcam()
+    record = held_trade(dashcam)
+    store = FakeInstructorStore()
+    first = run_on(dashcam, store).for_session(SESSION, write=True)
+    correct_later(dashcam, record)
+    dashcam.damaged = frozenset({(LATER, RecordKind.OUTCOMES)})
+    again = run_on(dashcam, store).for_session(SESSION, write=True)
+    assert again.unreadable == first.unreadable == ()
+    assert run_on(dashcam, store).for_session(LATER).unreadable == (LATER,)  # where it belongs
