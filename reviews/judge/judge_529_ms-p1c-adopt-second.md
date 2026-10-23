@@ -66,3 +66,14 @@
 **Gates (my run, a trial merge with main):**
 - `tests/school`: 3569 passed.
 - ruff check, ruff format, check_imports, check_records (8664 files) and check_numbers: clean.
+
+## Addendum 3: the minors, round 2 at 39b12835 (text only)
+
+**Verdict: PASS.** The should-fix from 529.2 is closed.
+- The runbook now says per kind what waits after a stop:
+  - **decisions:** nothing is decided, sealed, filled or counted;
+  - **outcomes:** the decisions are sealed and the fills booked; the outcomes, drift, instructor files and counts wait;
+  - **drift:** the outcomes are sealed too.
+- This matches `runner._finish`: `FillStep.run`, then `_seal_once(OUTCOMES)`, then `_seal_once(DRIFT)`. "A rerun books no fill twice" matches `_finish`'s rebuild from the ledgers.
+- The diff against 6ede5d44 is the story doc only, and 6ede5d44's code was accepted in 529.2.
+- Gates, under the owner's text-only rule (23 Oct): the doc-reading tests gave 775 passed and 16 xfailed, and the record scan was clean (8662 files).
