@@ -16,7 +16,8 @@ from .lines import SIGNED_RUPEE, footer, paper_title
 
 TITLE = "How did today go"
 NONE_TODAY = "none"
-TICKET_LINE = re.compile(r"^\S+ \S+ ticket:")  # MS-INS part e's format: "{driver} {road} ticket: net Rs ..."
+TICKET_LINE = re.compile(r"^\S+ \S+ ticket\b")  # MS-INS part e: "{driver} {road} ticket ..." (hypothetical, no rupees)
+RUPEE_FIGURE = re.compile(r"Rs\.?\s*[-+]?\d|₹|\brupees?\b", re.IGNORECASE)
 WHY_HEADER = "Why (the instructor's words):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
@@ -67,12 +68,13 @@ class HowDidTodayGoSection:
 
     def _why(self, session: date) -> list[str]:
         """The instructor's cause lines for the rule drivers' trades, verbatim under one header; none, no header. A line
-        whose leading driver id is a control or a measurement-only driver is left out (they have their own lines), and
-        so is a ticket's line (`<driver> <road> ticket: net Rs ...`): a ticket is never shown in rupees."""
+        whose leading driver id is a control or a measurement-only driver is left out (they have their own lines). A
+        ticket's line is shown (it is hypothetical and informative) unless it holds a rupee figure: a ticket is never
+        shown in rupees, so such a line is refused."""
         kept = [
             line
             for line in self.inputs.why(session)
-            if self._leads_with_a_rule_driver(line) and not TICKET_LINE.match(line)
+            if self._leads_with_a_rule_driver(line) and not _ticket_in_rupees(line)
         ]
         return [WHY_HEADER, *kept] if kept else []
 
@@ -92,6 +94,10 @@ class HowDidTodayGoSection:
         return ["Counts (eligible / fillable / executed):"] + [
             f"{c.driver_id} {c.road}: {c.eligible} / {c.fillable} / {c.executed}" for c in rows
         ]
+
+
+def _ticket_in_rupees(line: str) -> bool:
+    return TICKET_LINE.match(line) is not None and RUPEE_FIGURE.search(line) is not None
 
 
 def _problems(decisions: list[DecisionRecord]) -> list[str]:

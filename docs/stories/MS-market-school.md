@@ -2555,9 +2555,11 @@ eight plants were re-run, 8 of 8 caught.
 - **Empty hash pinned** (orchestrator, judge 495): `test_a_card_deleted_after_the_rows_hashes_to_nothing_and_no_decision_counts_under_it`:
   a commit with no card gives `""` (never the hash of nothing), and a decision under a deleted card is
   `comparison_card_mismatch`; the plant (hashing an empty text) is caught.
-- **Tickets in the why lines:** MS-INS part e's `why_line` writes a ticket's line as `<driver> <road> ticket: net Rs ...`.
-  The section drops those lines (`TICKET_LINE`): a ticket is never shown in rupees (judge 481's rule); its cause
-  stays with the instructor's own output. Asked of the orchestrator and the INS builder; if they want ticket lines shown,
-  it is one condition removed. `test_the_pinned_format_is_what_the_instructors_why_line_writes` pins the leading
-  `{driver} {road}{ticket}: net Rs ` format against `why_line.LINE` and skips until part e is on main.
-
+- **Tickets in the why lines (orchestrator's call, 23 Oct 2026):** part e will write a ticket's line with no rupees
+  ("ticket (hypothetical, account limits relaxed)" plus cause words). The section shows ticket lines, and keeps a guard:
+  a ticket line (`<driver> <road> ticket ...`) that holds a rupee figure (`Rs 90`, a rupee sign, "rupees") is refused,
+  because a ticket is never shown in rupees (judge 481). Tests: a ticket line without a figure is shown, five forms with
+  a figure are refused, a trade's line keeps its rupees; plants: the figure check removed, the guard off (both caught).
+  `test_the_pinned_format_is_what_the_instructors_why_line_writes` pins the leading `{driver} {road}{ticket}: net Rs `
+  form against `why_line.LINE` and skips until part e is on main; it is to be updated to part e's new ticket form when it
+  lands (the INS builder tells the g builder).

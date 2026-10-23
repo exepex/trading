@@ -166,11 +166,30 @@ def test_only_controls_in_the_why_lines_leave_no_header():
     assert "Why (the instructor's words):" not in "\n".join(with_why("N0@1 BANKNIFTY-M: net Rs +5000; why: x").lines)
 
 
-def test_a_tickets_line_is_not_shown_because_a_ticket_is_never_in_rupees():
-    ticket = "CS1@1 BANKNIFTY-M ticket: net Rs -90; why: wrong direction"
-    updated = "CS1@1 BANKNIFTY-M: net Rs -140; why: wrong direction (updated)"
-    lines = with_why(ticket, updated).lines
-    assert ticket not in lines and updated in lines
+TICKET = "CS1@1 BANKNIFTY-M ticket (hypothetical, account limits relaxed): why: wrong direction"
+
+
+def test_a_tickets_line_without_a_rupee_figure_is_shown():
+    assert TICKET in with_why(TICKET).lines
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "CS1@1 BANKNIFTY-M ticket: net Rs -90; why: wrong direction",
+        "CS1@1 BANKNIFTY-M ticket (hypothetical): lost Rs 90; why: x",
+        "CS1@1 BANKNIFTY-M ticket (hypothetical): lost \u20b990; why: x",
+        "CS1@1 BANKNIFTY-M ticket (hypothetical): lost 90 rupees; why: x",
+        "CS1@1 BANKNIFTY-M ticket: net rs-90; why: x",
+    ],
+)
+def test_a_tickets_line_with_a_rupee_figure_is_refused(line):
+    lines = with_why(line, WHY).lines
+    assert line not in lines and WHY in lines
+
+
+def test_a_trades_line_keeps_its_rupees():
+    assert WHY in with_why(WHY).lines, "only a ticket is never shown in rupees"
 
 
 def test_the_pinned_format_is_what_the_instructors_why_line_writes():
