@@ -44,6 +44,12 @@ class CardReplay(Protocol):
 
 
 @runtime_checkable
+class StopSource(Protocol):
+    def loss_multiple(self, driver_id: str) -> float | None:
+        """The frozen card's stop as a multiple of the entry credit or debit; None when the card has no stop."""
+
+
+@runtime_checkable
 class InstructorStore(Protocol):
     def write(self, session: date, kind: InstructorKind, records: tuple[InstructorRecord, ...]) -> str:
         """Write once and return the file's SHA-256; the same records again return it, others raise
