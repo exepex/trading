@@ -2683,3 +2683,15 @@ monthlies carry different lots (BANKNIFTY-M, 2 Jun 2025). One lot per road day l
 | The live gate's quote rules are the fleet's own (orchestrator, 23 Oct 2026, 01:50 UTC) | `SchoolFleet.rules: QuoteRules = LIVE`, passed into `plan_slot`: under the live rules (every pilot root) a road whose capture holds an unmeasured quote still closes as `sizes_not_measured` (judge 506); only `QuoteRules(practice=True)`, which the simulator's practice root passes (`execution/practice_wiring.PRACTICE`), lets it through for MS-P1d's practice laws. d's isolation test already refuses practice rules outside the practice roots | `test_only_the_practice_rules_open_a_road_whose_capture_holds_unmeasured_quotes`; the live test unchanged (plants: the guard ignoring the rules, the guard always skipped, the runner not passing its rules, practice by default) |
 - **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files); full suite 13800 passed.
 - **Plants:** 8 planted (4 on the first two seams, 4 on the rules), 8 caught.
+
+**Round 2, addendum (the orchestrator's conditions on judge 516, sent before the round-2 push):**
+- **Reproducible seeded runs:** `tools/ins_seller_null.py` runs the seller grid (`nulls.seller_cells` and
+  `seller_cell`, fixed seeds 0-1999) through the shipped code and writes `research/school/instructor_seller_null.csv`.
+  Its rerun reproduced every one of the 96 cells exactly.
+- **The printed rate comes from those runs:**
+  - `test_the_printed_seller_rate_is_the_committed_grids_worst_upper_end_and_the_grid_covers_the_cards` checks that
+    the grid's cells are the cards' holds today and that the printed 46 is the worst upper end rounded up;
+  - `test_the_grids_worst_cell_recomputes_from_the_same_seeded_runs` re-runs the worst cell and matches the file to 4
+    decimals.
+- **Why 14.9% did not reproduce:** it came from a separate 4-road script. The shipped `seller_slots` drives all 5 roads
+  and gives 22.6%.
