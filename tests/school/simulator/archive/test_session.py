@@ -230,7 +230,14 @@ def test_data_and_receipt_commits_do_not_change_the_code_commit_but_a_code_commi
     assert code_commit(tmp_path) == first
     (tmp_path / "fno" / "a.py").write_text("x = 2\n")
     git("commit", "-q", "-am", "more code")
-    assert code_commit(tmp_path) != first
+    second = code_commit(tmp_path)
+    assert second != first
+    (tmp_path / "requirements.txt").write_text("numpy==1\n")  # a library change can change a result
+    with pytest.raises(CodeNotCommitted, match="requirements.txt"):
+        code_commit(tmp_path)
+    git("add", "-A")
+    git("commit", "-q", "-m", "a library")
+    assert code_commit(tmp_path) not in (first, second)
 
 
 def test_a_repository_whose_code_was_never_committed_has_no_code_commit(tmp_path):

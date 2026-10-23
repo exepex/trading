@@ -9,7 +9,12 @@ from pathlib import Path
 
 from ..spreads.model import SpreadModel
 
-CODE_PATHS = ("fno", "tools", "config.yaml")  # what a run's behaviour rests on
+CODE_PATHS = (
+    "fno",
+    "tools",
+    "config.yaml",
+    "requirements.txt",
+)  # what a run's behaviour rests on: code, settings, libraries
 DIRTY = "the code is not committed ({paths}): a run id names a commit, so commit first or run without --archive"
 NO_COMMIT = "cannot name the code commit: {reason}"
 COMMIT_CHARS = 12
