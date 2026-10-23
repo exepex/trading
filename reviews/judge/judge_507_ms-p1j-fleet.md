@@ -271,3 +271,21 @@ are judged in addendum 6.
 - **The fill step.** It uses the fleet's rules, and `allocate` receives them.
 - **Plants: 3, 3 caught.** The record root ignoring the switch; the fill step always LIVE; `allocate` given the
   default rules.
+
+## Addendum 11
+
+**Scope:** story/ms-p1j-sim-seams, 54ef5d40..1f767528 (6d3aa180..54ef5d40 is judged in addendum 10): the
+first-ticket bug the SIM builder found. A driver's first ticket stopped the run, because the ticket ledger was never
+viewed and d's store refuses a record before the first view. The fake had accepted one, which hid it.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 13807 passed, 16 xfailed. `ruff check` and `ruff format` are clean.
+- **The fix.**
+  - `Books.stores` lists every store the fleet records into (the driver account, then the ticket ledger).
+    `SchoolFleet._open` views each before any fill, and the laws read the driver account's view.
+  - a's `AccountPort.record` docstring now states the rule. `FakeAccounts` and the conformance check enforce it, so
+    the fake can no longer hide the bug. The new test runs on d's real stores.
+  - A rerun's fills find the ledger already opened: d's `started` is the persisted cash file.
+- **Plants: 3, 3 caught.** The ticket ledger never viewed; the fake accepting a record before a view; the laws reading
+  the ticket ledger's view.
