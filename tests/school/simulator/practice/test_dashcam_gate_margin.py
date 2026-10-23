@@ -19,7 +19,7 @@ from fno.school.simulator.constants import PRACTICE_LABEL
 from fno.school.simulator.practice.clock import practice_clock
 from fno.school.simulator.practice.dashcam import PracticeDashcam, labels
 from fno.school.simulator.practice.gate import PracticeQualityGate
-from fno.school.simulator.practice.margin import PRACTICE_MARGIN_LABEL, latest_factor
+from fno.school.simulator.practice.margin import SPAN_FIRST_DAY, latest_factor, latest_row, margin_label
 from tests.school.contracts import builders as b
 
 SESSION = date(2022, 3, 7)
@@ -119,5 +119,16 @@ def test_a_missing_factor_file_refuses_the_entry_like_the_pilots_does(tmp_path):
         latest_factor(tmp_path / "missing.csv")(date(2022, 3, 7))
 
 
-def test_the_margin_label_says_what_it_is():
-    assert "stress factor 2.1" in PRACTICE_MARGIN_LABEL and "computed after the fact" in PRACTICE_MARGIN_LABEL
+def test_the_margin_label_is_built_from_the_factor_row_actually_used():
+    row = latest_row(FACTOR_FILE)
+    label = margin_label(row)
+    assert f"stress factor {row.factor:g}" in label and f"row of {row.as_of}" in label
+    assert "computed after the fact" in label and "archived SPAN" in label
+    other = margin_label(replace(row, factor=2.4, as_of=date(2026, 12, 1)))
+    assert "stress factor 2.4" in other and "row of 2026-12-01" in other and "2.1" not in other  # a recompute shows
+
+
+def test_the_span_archive_starts_where_the_practice_says():
+    from fno.storage.raw_source import NseSpanBodSource
+
+    assert NseSpanBodSource.first_day == SPAN_FIRST_DAY

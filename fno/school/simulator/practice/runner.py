@@ -9,7 +9,7 @@ import csv
 from datetime import date
 from pathlib import Path
 
-from ...constants import SLOT_1500, Outcome, RecordKind, RefusalReason
+from ...constants import SLOT_1500, RecordKind, RefusalReason
 from ...contracts.fleet import RunMode, SessionRun
 from ...contracts.records import OutcomeRecord
 from ...contracts.roads import ROADS_BY_CODE
@@ -20,6 +20,7 @@ from ..source.catalogue import HistoricalRoadCatalogue
 from ..source.snapshots import HistoricalRoadSource
 from ..spreads.model import Scenario
 from .fleet import MarginFor, PracticeParts, build_practice_fleet
+from .margin import latest_row, margin_label
 from .report import PracticeReport, RoadDayCoverage, ScenarioResult
 from .spots import ChainSpotHistory
 from .window import RunWindow
@@ -34,7 +35,8 @@ class PracticeRunner:
         window.check(self.parts.windows)
         sessions = window.sessions(self.parts.calendar)
         roads = tuple(ROADS_BY_CODE[code] for code in window.roads)
-        report = PracticeReport(window.first, window.last, window.roads)
+        report = PracticeReport(window.first, window.last, window.roads,
+                                margin_label=margin_label(latest_row(self.parts.factor_file)))  # fmt: skip
         for position, scenario in enumerate(self.scenarios):
             result = report.scenarios.setdefault(scenario, ScenarioResult())
             for session in sessions:
@@ -62,9 +64,10 @@ class PracticeRunner:
         for record in run.decisions:
             driver = result.driver(record.decision.driver_id)
             driver.scheduled += 1
-            driver.outcomes[str(record.decision.outcome)] += 1
-            if record.decision.outcome == Outcome.REFUSED and record.decision.reason == RefusalReason.MARGIN_ROOM:
-                result.refused_for_margin += 1
+            reason = f":{record.decision.reason}" if record.decision.reason else ""
+            driver.outcomes[f"{record.decision.outcome}{reason}"] += 1
+            if any(not law.passed and law.reason == RefusalReason.MARGIN_ROOM for law in record.law_results):
+                result.failed_margin += 1
         self._counts(result, home / opportunity_path(session, SLOT_1500))
         self._outcomes(result, fleet, session)
 

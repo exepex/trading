@@ -127,3 +127,36 @@ def test_a_position_opened_before_the_stt_change_and_met_after_it_keeps_its_own_
         if leg.side == "sell":
             today = order_charges(leg.price, leg.units, leg.side, sb.CHARGES)
             assert leg.charges < today
+
+
+# ---- judge 521: dated STT on the fills of a single session, no second session needed -------------------------------
+
+
+def fills_of(session: date, tmp_path):
+    fleet = build_practice_fleet(parts_2023(), session, Scenario.MEDIAN, tmp_path, lambda cfg: FixedMargin())
+    run = fleet.run(session, RunMode.REPLAY)
+    legs = [leg for fill in run.fills for leg in fill.legs]
+    assert legs, "the session produced no filled leg"
+    return legs
+
+
+@pytest.mark.parametrize(
+    ("session", "stt"), [(date(2023, 3, 31), 0.05), (date(2023, 4, 3), 0.0625)],
+)  # fmt: skip
+def test_a_session_charges_the_stt_of_its_own_date_on_its_fills(tmp_path, session, stt):
+    """Plant: `cfg_on(...)` replaced by the pilot's configuration (today's 0.15%) fails both."""
+    dated = sb.TERMS.charges(session)
+    assert dated["stt_sell_pct"] == stt
+    sells = [leg for leg in fills_of(session, tmp_path) if leg.side == "sell"]
+    assert sells
+    for leg in sells:
+        assert leg.charges == pytest.approx(order_charges(leg.price, leg.units, "sell", dated))
+        assert leg.charges < order_charges(leg.price, leg.units, "sell", sb.CHARGES)  # today's rate is higher
+
+
+def test_the_charge_steps_up_across_the_change_for_the_same_premium(tmp_path):
+    before = [leg for leg in fills_of(date(2023, 3, 31), tmp_path / "a") if leg.side == "sell"][0]
+    after = [leg for leg in fills_of(date(2023, 4, 3), tmp_path / "b") if leg.side == "sell"][0]
+    same_premium = order_charges(before.price, before.units, "sell", sb.TERMS.charges(date(2023, 4, 3)))
+    assert same_premium > order_charges(before.price, before.units, "sell", sb.TERMS.charges(date(2023, 3, 31)))
+    assert after.charges > 0 and before.charges > 0

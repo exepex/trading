@@ -78,7 +78,7 @@ def test_the_report_counts_impossible_legs_apart_from_refusals(tmp_path):
     report = runner(tmp_path, parts).run(WINDOW)
     text = "\n".join(render(report))
     assert any(c.impossible > 0 for c in report.coverage)
-    assert "impossible" in text and "refused by margin" in text
+    assert "impossible" in text and "failed the margin law" in text
 
 
 def test_every_line_carries_the_label_and_the_required_labels_come_first(tmp_path):
@@ -205,3 +205,58 @@ def test_the_archive_is_read_before_the_fleet_runs_so_the_drivers_deadline_measu
     cached = swap(parts, chain=CachedChain(Spy()))
     runner(tmp_path, cached).run(WINDOW)
     assert reads["cold"] == 0
+
+
+# ---- judge 521: tests that run now, with no second session --------------------------------------------------------
+
+
+ONE_SESSION = RunWindow(sb.SESSION, sb.SESSION, NIFTY)
+
+
+class HugeMargin(FixedMargin):
+    """A margin so large that law 3 (margin room) refuses every entry."""
+
+    def margin(self, terms, day):
+        return 10**9
+
+    def margin_at_entry(self, terms, day):
+        return 10**9
+
+
+def test_one_session_under_all_three_scenarios_is_labelled_with_its_lists_and_counts(tmp_path):
+    report = runner(tmp_path).run(ONE_SESSION)
+    text = "\n".join(render(report))
+    assert [str(s) for s in report.scenarios] == ["median", "p75", "p95"]
+    assert all(r.sessions_run == 1 for r in report.scenarios.values())
+    for scenario in ("median", "p75", "p95"):
+        assert f"scenario {scenario}: 1 sessions" in text
+    assert report.coverage and "coverage over" in text and "insufficient spread data" in text
+    assert sum(c.legs for c in report.coverage) == sum(
+        c.priced + c.untraded + c.impossible + c.unsellable + c.insufficient for c in report.coverage
+    )
+    assert report.margin_label and report.margin_label in text
+
+
+def test_a_drivers_outcomes_show_their_reasons_not_only_the_outcome_code(tmp_path):
+    text = "\n".join(render(runner(tmp_path).run(ONE_SESSION)))
+    assert "no_trade:n0" in text and "no_trade:rule_not_fired" in text or "no_trade:no_expiry_in_window" in text
+    assert "no_trade=" not in text  # the bare code would read "no valid quotes" and "the rule did not fire" alike
+
+
+def test_margin_failures_are_counted_when_law_3_fails(tmp_path):
+    """Judge 521 minor c: law 3 failing is counted, though the entry becomes a ticket (an account limit)."""
+    refusing = PracticeRunner(tf.parts(), tmp_path, margin_for=lambda cfg: HugeMargin())
+    report = refusing.run(ONE_SESSION)
+    assert all(r.failed_margin > 0 for r in report.scenarios.values())
+    assert "failed the margin law" in "\n".join(render(report))
+    clear = runner(tmp_path / "clear").run(ONE_SESSION)
+    assert all(r.failed_margin == 0 for r in clear.scenarios.values())
+
+
+def test_a_window_starting_in_2019_says_there_is_no_span_file_before_2020(tmp_path):
+    from fno.school.simulator.practice.margin import NO_SPAN_LINE
+
+    report = runner(tmp_path).run(ONE_SESSION)
+    assert NO_SPAN_LINE not in "\n".join(render(report))  # 2022: the archive covers it
+    early = replace(report, first=date(2019, 6, 3))
+    assert f"{PRACTICE_LABEL} | {NO_SPAN_LINE}" in render(early)

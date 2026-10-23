@@ -19,7 +19,7 @@ class DriverResult:
     eligible: int = 0
     fillable: int = 0
     executed: int = 0
-    outcomes: Counter = field(default_factory=Counter)  # outcome code -> decisions
+    outcomes: Counter = field(default_factory=Counter)  # `outcome:reason` (or the outcome alone) -> decisions
     closed_trades: int = 0
     net: float = 0.0
 
@@ -52,7 +52,7 @@ class RoadDayCoverage:
 class ScenarioResult:
     drivers: dict[str, DriverResult] = field(default_factory=dict)
     sessions_run: int = 0
-    refused_for_margin: int = 0  # decisions refused by law 3 ("margin not checked: no data" included)
+    failed_margin: int = 0  # decisions on which law 3 failed, whether refused or ticketed (an account limit)
 
     def driver(self, driver_id: str) -> DriverResult:
         return self.drivers.setdefault(driver_id, DriverResult())
@@ -67,3 +67,4 @@ class PracticeReport:
     coverage: list[RoadDayCoverage] = field(default_factory=list)
     insufficient_buckets: Counter = field(default_factory=Counter)  # bucket text -> legs left without a quote
     sessions_without_roads: int = 0
+    margin_label: str = ""  # built from the factor row the run used

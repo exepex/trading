@@ -10,10 +10,18 @@ from pathlib import Path
 
 from ....risk.stress_factor import FactorRow, factor_in_force
 
-PRACTICE_MARGIN_LABEL = (
-    "practice margin: stress factor 2.1 (set 16 Oct 2026, measured on NIFTY monthly only) on that day's archived SPAN; "
-    "uses a factor computed after the fact"
-)
+SPAN_FIRST_DAY = date(2020, 1, 2)  # the first archived beginning-of-day SPAN file (`NseSpanBodSource.first_day`)
+NO_SPAN_LINE = "sessions before 2020-01-02 have no archived SPAN file: every entry there is refused by margin"
+
+
+def margin_label(row: FactorRow) -> str:
+    """The label for the factor row actually used, never a fixed text that a later recompute would make false."""
+    return (
+        f"practice margin: stress factor {row.factor:g} (row of {row.as_of}, {row.status}; measured on NIFTY monthly "
+        "only) on that day's archived SPAN; uses a factor computed after the fact"
+    )
+
+
 FAR_FUTURE = date(9999, 12, 31)  # the latest row is the one in force "then"
 UNLIMITED_AGE_DAYS = 10**7
 
@@ -23,6 +31,10 @@ def latest_factor(path: Path) -> Callable[[date], FactorRow]:
     missing or damaged file refuses the entry like the pilot's lookup does)."""
 
     def factor(_session: date) -> FactorRow:
-        return factor_in_force(path, FAR_FUTURE, UNLIMITED_AGE_DAYS)
+        return latest_row(path)
 
     return factor
+
+
+def latest_row(path: Path) -> FactorRow:
+    return factor_in_force(path, FAR_FUTURE, UNLIMITED_AGE_DAYS)
