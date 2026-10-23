@@ -67,3 +67,10 @@ Story 7.4 SIM-d criteria 1-16 and the SIM-d2-d4 Claims. Lane 1 (practice). Round
 
 ## Plants
 13 planted, 11 caught, 2 survived (finding 1 and minor c).
+
+## Note after the verdict (6d09451e, not a round)
+The builder's messages crossed this verdict. The tip 6d09451e merges MS-P1j's ticket-account fix and turns both strict
+xfails into plain tests.
+- My plant on `cfg_on` is now **caught**, and so is a one-scenario plant. **Finding 1 is met there.**
+- Finding 2 (DATA_SPEND rows 26 and 30) and the four minors stand. The `refused_for_margin` plant still survives.
+- Round 2 is judged on the builder's next tip.
