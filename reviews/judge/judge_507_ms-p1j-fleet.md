@@ -146,3 +146,31 @@ a replay cannot build a real store.
   replay is a different root, not a flag.
 - **Plants: 2, 2 caught.** The replay root using the Drive dashcam; the replay writing accounts at the repository
   root.
+
+## Addendum 5
+
+**Scope:** MS-P1j follow-up, the instructor wired into the fleet: story/ms-p1j-ins-wiring at eb5ec57a, which is
+MS-INS part e (63cabe67) merged with main. It merges after part e. Judged on the fleet side only (part e has its own
+judges): `SchoolFleet.after_outcomes`, `IsolatedSessionStep`, `UnfilledEntries`, `SealedDayInputs.why` and the
+record root's wiring. First of two judges, independent of judge K.
+
+**Verdict: PASS.**
+
+- **Gates (my run):** 14026 passed, 16 xfailed. `ruff check`, `ruff format` and `check_imports` are clean.
+- **The step after the outcomes.** It runs after the outcomes' (and drift's) seal and before the counts are written
+  and committed, and again on a rerun's commit-only path.
+  - The step is isolated: an exception or its 300-second limit gives one alert naming only the class, and the
+    school's own counts are still written and committed.
+  - Only the record root wires it. The replay root and the tests use `no_step`, and the replay root imports nothing
+    of `instructor.wiring`.
+- **`UnfilledEntries`.** Every sealed trade or ticket whose position neither ledger ever opened, derived read-only
+  from the dashcam and the two ledgers.
+- **Plants: 6, 5 caught.** Caught: the rerun skipping the step; the step not isolated; a failure not alerted;
+  tickets left out of unfilled; unfilled always empty.
+  - Survived, equivalent: the step run before the drift seal. Part e reads no drift (grep), so the order between
+    the two does not matter.
+
+**Note.** A step past its limit keeps running. If it is still writing when the counts are committed, part e's
+temporary file (`.<name>.part`, in the counts folder) could be caught by the commit's `git add` of that folder. The
+write is one small file, so the window is tiny, and `.gitignore` has no rule for `*.part` there [reasoning only]. An
+ignore rule for `research/school/counts/**/.*.part` would close it.
