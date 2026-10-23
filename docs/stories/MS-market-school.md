@@ -540,6 +540,13 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - each driver isolated: an exception is named by class and sealed `unavailable`;
 - a time limit per driver;
 - a rerun skips sealed decisions;
+- **runbook step (orchestrator, 22 Oct 2026; judge 495):** any new comparison-card version (an edit of
+  `research/school/CARD_P1.md`) needs new D6 rows registered before its decisions count: one `school:<driver id>` row per
+  driver version (12 today), a new version id, a `starts_on` strictly later than the book's previous row (D6 refuses an
+  equal or earlier date, so it cannot be registered the same day), `comparison_card_sha256` the new card's SHA-256 and
+  `card_sha256` unchanged unless the driver card changed too, committed after the card. Until then every decision made
+  under the new version is `comparison_card_mismatch` (denominator kept, nothing counted); decisions made earlier keep
+  their own verdict. The run's output says so by name when it sees the mismatch (orchestrator, 23 Oct 2026);
 - **requirement (orchestrator, 22 Oct 2026, judge 494):** a law result's `note` can name contracts or legs (MS-P1m's
   margin causes do), so it is never posted to Slack; the reports count "margin not checked" refusals by their cause
   (`margin_not_checked`, the cause after the prefix), never by quoting the note;
@@ -2731,6 +2738,49 @@ eight plants were re-run, 8 of 8 caught.
 - **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
 - **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.
 
+### MS-P1g follow-up: the instructor's why lines, and two items folded in (branch `story/ms-p1g-why-lines`, lane 1)
+
+- **Why lines** (asked by the MS-P1j builder; agreed with the MS-INS builder): `DayInputs.why(session)` returns MS-INS
+  part e's lines for the session's closed trades, or `()` without a source. The 20:05 section shows them verbatim under
+  the header "Why (the instructor's words):", right after the counts and before the fleet total; none, no header. A line
+  is kept only when its leading token (the driver id) is a rule driver (`role_of`); controls and measurement-only
+  drivers keep their own labelled lines (orchestrator's decision on judge 484). The section does not scan the text for
+  strikes or prices: the source's contract is that a line holds a driver id, a road, the net and cause words only.
+  Tests (`test_sections.py`): verbatim and in place, no lines no header, a control's or measurement-only line left out,
+  only controls leave no header. Plants: the role filter off, the empty-case header, the section call removed (all
+  caught).
+- **Merge order:** main's `SealedDayInputs` (j's file) gets a `why` returning `()` here (three lines), so the two
+  j tests that render the evening with the real inputs stay green; the MS-P1j builder's `story/ms-p1j-ins-wiring` has the
+  real `why` at the same place, so merging main into it takes theirs.
+- **Runbook step for MS-P1j** (orchestrator, judge 495): written into MS-P1j's "Implements" list: a new comparison-card
+  version needs new D6 rows (one per driver version) registered before its decisions count; until then every decision is
+  `comparison_card_mismatch`.
+- **Empty hash pinned** (orchestrator, judge 495): `test_a_card_deleted_after_the_rows_hashes_to_nothing_and_no_decision_counts_under_it`:
+  a commit with no card gives `""` (never the hash of nothing), and a decision under a deleted card is
+  `comparison_card_mismatch`; the plant (hashing an empty text) is caught.
+- **Tickets in the why lines (orchestrator's call, 23 Oct 2026):** part e will write a ticket's line with no rupees
+  ("ticket (hypothetical, account limits relaxed)" plus cause words). The section shows ticket lines, and keeps a guard:
+  a ticket line (`<driver> <road> ticket ...`) that holds a rupee figure (`Rs 90`, a rupee sign, "rupees") is refused,
+  because a ticket is never shown in rupees (judge 481). Tests: a ticket line without a figure is shown, five forms with
+  a figure are refused, a trade's line keeps its rupees; plants: the figure check removed, the guard off (both caught).
+  `test_the_pinned_format_is_what_the_instructors_why_line_writes` pins the leading `{driver} {road}{ticket}: net Rs `
+  form against `why_line.LINE` and skips until part e is on main; it is to be updated to part e's new ticket form when it
+  lands (the INS builder tells the g builder).
+
+MS-P1g why lines, round 2 (judge 517 PASS with minors; orchestrator, 23 Oct 2026; each accepted):
+1. **The stub is deleted** (`SealedDayInputs.why` in `fno/school/fleet/report_inputs.py`): a merge with j's ins-wiring would
+   have left two `def why` and let the stub replace j's. This branch merges after j's ins-wiring; until then the two j
+   tests that render the evening with the real inputs fail here (they need `why`), by design.
+2. **An unknown driver is withheld and counted, never raised:** a line whose first word is not a known driver id gives
+   "N why line(s) withheld: unknown driver"; the rest of the section stays.
+3. **A line with a strike or a price is withheld and counted** ("N why line(s) withheld: strike or price"): a strike
+   with its type, the words strike or premium, a price given as a number, "at <number>". Part e's own words ("bad
+   price or data", "net Rs -1,400") are kept. Tests plant each form.
+4. **Runbook:** `starts_on` strictly later than the book's previous row (above); the by-name sentence is re-attributed
+   to the orchestrator (23 Oct) and the j builder builds it. Plants: the unknown-driver catch, the leak check and the
+   notes are each removed (all caught).
+
+
 ### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B, then Judge I for the third seam, which touches the live gate; branch `story/ms-p1j-sim-seams`)
 | Seam | Change | Test (and the plant it catches) |
 |---|---|---|
@@ -3118,3 +3168,10 @@ archived SPAN file or the 15:15 capture landing between the two runs [some evide
   stuck: stored file unverifiable ... (a record that is not this fleet's ...)" and nothing of that kind is sealed
   (plants: `_belongs` true for every non-decision row, all three fail; the drift row's driver misread, the drift one
   fails). Test-only change.
+
+MS-P1g why lines, round 3 (j's ins-wiring is on main, 486b0f4f; main merged in): the stub is gone and `SealedDayInputs` has
+one `why` (j's). `test_the_pinned_format_is_what_the_instructors_why_line_writes` now runs against part e's real
+templates (`LINE`, `TICKET_LINE`): a trade's line starts "<driver> <road>: net Rs ...", a ticket's "<driver> <road> ticket
+(hypothetical, account limits relaxed): why: ...", both are shown with no withheld note, and the ticket form holds no
+rupee figure. The two j tests that needed `why` pass again.
+

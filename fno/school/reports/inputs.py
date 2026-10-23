@@ -45,3 +45,7 @@ class DayInputs(Protocol):
 
     def marks(self, session: date) -> tuple[str, ...]:
         """The run's marks on the session's record, shown as written (e.g. a rerun after 15:30: MS-P1j)."""
+
+    def why(self, session: date) -> tuple[str, ...]:
+        """The instructor's lines on the session's closed trades (MS-INS part e), or () without a source. Each starts
+        with a driver id and a road and holds the net and cause words only, never a contract, strike or price."""

@@ -266,3 +266,20 @@ def test_a_shallow_clone_stops_counting_by_name(tmp_path):
     head = git(clone, "rev-parse", "HEAD")
     with pytest.raises(FirstCountedError, match="git fetch --unshallow"):
         GitCountingHistory(Git(clone)).first_counted_at(head)
+
+
+def test_a_card_deleted_after_the_rows_hashes_to_nothing_and_no_decision_counts_under_it(repo):
+    repo.register()
+    assert GitCountingHistory(repo.git).card_sha256_at(repo.git.commits_touching(CARD_PATH)[-1]) == sha(CARD_TEXT)
+    git(repo.path, "rm", "-q", CARD_PATH)
+    git(repo.path, "commit", "-q", "-m", "the card is deleted")
+    deleted = repo.git.commits_touching(CARD_PATH)[-1]
+    history = GitCountingHistory(repo.git)
+    assert history.card_sha256_at(deleted) == "", "no card at that commit: an empty hash, never a hash of nothing"
+    assert history.card_sha256_at(repo.components) == "", "a commit that never had the card"
+    verdict = repo.verdict(repo.decide())
+    assert (verdict.counted, verdict.reason, verdict.card_commit) == (
+        False,
+        NotCounted.COMPARISON_CARD_MISMATCH,
+        deleted,
+    )
