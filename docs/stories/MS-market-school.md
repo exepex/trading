@@ -1514,6 +1514,41 @@ Tests: `tests/school/simulator/practice/test_inputs.py`, `tests/school/simulator
 - Gates at the tested tip `01bf888d`: full `pytest -q -n auto` in a clean worktree: **13,841 passed, 16 xfailed, 0 failed** in 522 s; `tests/school/simulator` 133 passed; ruff and check_imports clean; the record scan passed on commit.
 - **Question for Judge H (orchestrator's suggestion):** `practice/stores.py` needs the NSE datasets' file names and archive paths. They are class attributes of the NSE source classes in `fno/storage/raw_source.py`, and `daily_files` that wraps them is in `fno/storage/wiring.py`. Moving them to a constants module would change those frozen-adjacent files, which I do not own. Should they move, or does the one-file exception stand? **Judge 515 minor, applied:** the exception now names the exact imports (`daily_files`, `NseDailyFoSource`, `NseLegacyFoSource`, `NseIndexCloseSource`, plus their two modules) for that one file; a plant that adds `build_nse_fo_library` to `stores.py` fails the isolation test (checked on the real file, and `test_a_library_builder_import_in_stores_is_caught_while_the_dataset_names_pass`).
 
+#### SIM-d2, d3 and d4 Claims (round 1, branch `story/ms-sim-d2` on `story/ms-sim-d1`, MS-P1j's seams `6d3aa180` and MS-P1m's factor seam `2992864d`; the SHA is in the commit carrying this text)
+
+Built: `fno/school/simulator/practice/{clock,dated,dashcam,gate,margin,drivers,fleet,window,runner,report,render,wiring}.py` and
+`fno/school/simulator/command.py`; tests in `tests/school/simulator/practice/` and `tests/school/simulator/test_command.py`.
+
+| Criterion | Code | Named test | Broken-code proof (caught) |
+|---|---|---|---|
+| 1 drivers unchanged | `fleet.py` builds the pilot's `SchoolFleet` and `build_school_drivers` | `test_it_is_the_pilots_own_fleet_class_with_the_practice_rules` | `rules=PRACTICE` swapped for LIVE |
+| 2 three scenarios, insufficient listed, unpriceable counted | `runner.py`, `report.py`, `render.py` | `test_a_window_runs_every_scenario_over_every_session`, `test_every_line_carries_the_label...` | counts read dropped |
+| 3 every line labelled | `render.line` | same | label removed |
+| 4/15 isolation | `fleet._refuse_pilot_paths`, runner home | `test_a_home_inside_the_pilots_records_is_refused...`, `test_a_run_writes_nothing_under_the_pilots_paths` | guard removed |
+| 5 AI card refused | `drivers.simulable` | `test_an_ai_card_is_refused_by_name...`, `..._the_practice_fleet_refuses_an_ai_card_when_it_is_built` | `simulable` removed; family test removed |
+| 11 dated STT across a change | `dated.cfg_on` | `test_a_position_opened_before_the_stt_change_and_met_after_it_keeps_its_own_charges` (31 Mar then 3 Apr 2023, real fills, each leg's charges equal the 31 Mar mapping's) | dated config bypassed |
+| 12 live laws refuse unmeasured sizes | `fleet.rules` | `test_without_the_practice_rules_the_live_fleet_closes_every_road...` | n/a |
+| 14 impossible share apart from refusals | `report.RoadDayCoverage` | `test_the_impossible_line_gives_the_share_of_legs`, `test_the_impossible_share_is_legs_over_legs...` | share forced to 0 |
+| 15 label in the record itself | `dashcam.PracticeDashcam` | `test_every_stored_record_line_carries_the_practice_label`, plain `ReplayDashcam` still reads the file | label removed |
+| 16 refused by name before any read | `window.RunWindow.check`, `command.cmd_practice_run` | `test_a_window_over_an_unregistered_road_is_refused_by_name_before_any_session_is_read`, `test_a_refused_window_exits_2_names_the_road_and_builds_nothing` | check removed; last day not checked |
+
+- **Corrections to earlier rulings, found by running it:**
+  1. The practice clock is 15:30, not 15:31. At 15:31 all 7 fills of the first smoke run were `stale_seal` (law 6 refuses a fill after the close) while the run looked fine. `test_the_trades_really_fill_none_is_refused_by_a_stale_seal` pins it.
+  2. Under the practice rules `executed` reads 0 although the fills happen: `fleet/fill.py:79` allocates the shared size under LIVE. A strict `xfail` test (`test_account_trades_are_executed_not_size_shared...`) fails the day MS-P1j's seam lands.
+  3. `SchoolFleet.run()` reads `school.enabled`, a pilot-only switch; `build_practice_fleet` runs on a copy of the configuration with it on until MS-P1j moves the check out of the fleet (orchestrator, 23 Oct). The `_practice_switch` helper is then deleted.
+  4. The pilot's capture-window rule would close every road at the close (`out_of_window`), so the practice gate keeps the catalogue status and the road-day check only.
+  5. The stress-factor file has rows only from 14 Oct 2026 and each is valid for 30 days, so law 3 would refuse every historical entry. Practice uses the file's latest factor (2.1) on that session's own archived SPAN, labelled on every output; law 3 itself is unchanged (MS-P1m's `factor` seam).
+  6. The first real-data run made CS1 `unavailable: deadline` on a cold first session (the Drive read ran inside the driver's 60 s). The runner now reads the archive before the fleet runs; `test_the_archive_is_read_before_the_fleet_runs...` fails without it. The rerun had no `unavailable`.
+- **Real-data dry run** (`PracticeRunner` through `cmd_practice_run`, Drive archive stores only, recorded captures for the spreads; 4-8 Mar 2024, NIFTY-M, NIFTY-W, BANKNIFTY-M; 154 s, exit 0). Counts only:
+  - 4 sessions run (8 Mar was a holiday), 3 scenarios, 12 road-days, **4,710 legs: priced 0, untraded 1,356, impossible 1,276 (27%), unsellable 0, insufficient spread data 2,078**;
+  - every driver `no_trade` in every scenario, 0 refused by margin; 24 recorded captures were left out of the spread model (missing or failed a check);
+  - every line begins `practice (simulator) |`. No quote can be priced yet: the recorded sessions are far below 30 for every bucket, so this run proves the plumbing, the labels and the unpriceable counts, not a result.
+- **Deviations from the story, for the judge:**
+  1. Criterion 8 asked for the practice records in a Drive dataset with a receipt in GitHub. They are written locally under `work/school_practice/` (git-ignored), never in the repository, and nothing is pushed; a Drive upload is a later step for the orchestrator to schedule.
+  2. The command is not yet registered under `school`: the two lines in `fno/school/cli.py` are MS-P1j's (asked of its builder).
+  3. Isolation exceptions, each exact and with its reason in `test_isolation.py`: `practice/stores.py` (the NSE dataset names), `practice/fleet.py` (`build_road_margin`), `practice/runner.py` (`account_net`, a pure function).
+- **Not done:** criterion 13 (a lot per expiry) waits for MS-P1a's follow-up; criterion 7 (diff-based "no driver file edited") is true by construction (no file under `fno/school/drivers/` is touched) and is checked in the judge's diff. The full suite on this tip is run when MS-P1j's seams are on main.
+
 ## Claims
 
 Per round, at an exact pushed SHA: which criteria are met, with the test name and the broken-code proof; the
