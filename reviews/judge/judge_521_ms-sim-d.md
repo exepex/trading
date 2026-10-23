@@ -74,3 +74,36 @@ xfails into plain tests.
 - My plant on `cfg_on` is now **caught**, and so is a one-scenario plant. **Finding 1 is met there.**
 - Finding 2 (DATA_SPEND rows 26 and 30) and the four minors stand. The `refused_for_margin` plant still survives.
 - Round 2 is judged on the builder's next tip.
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-sim-d2 at 08bfbc1d (code 32195d2c). Against today's main, the branch holds only the
+simulator's files, its tests, `fno/school/cli.py` (3 lines) and DATA_SPEND. **Verdict: PASS.** Lane 1.
+
+**Gates (my run):** pytest -n 6: 14,144 passed, 16 xfailed (no strict xfail of this story left). ruff check/format,
+check_imports and check_records are clean.
+
+**Findings:**
+1. **Untested criteria 2 and 11: ACCEPTED.** These are plain tests that run now.
+   - Single-session dated STT: 31 Mar 2023 charged 0.05%, 3 Apr 2023 charged 0.0625%. My `cfg_on` plant is caught.
+   - One session under all three scenarios.
+   - The two multi-session tests. The Claims now correct the earlier "caught" statement.
+2. **DATA_SPEND: ACCEPTED against the orchestrator's ruling.**
+   - A new row: "Bid-ask spreads of the 15:00 captures (A4, A4c, A4f) ... `exposed` ... cost input for practice only,
+     no outcome".
+   - Rows 26 and 30 name the read too.
+   - The binding condition ("practice results are never used to choose, tune or rank a counted driver") is in the
+     story, the register and the report's second line. Plant (line removed) caught.
+
+**Minors:**
+- (a) **ACCEPTED.** The margin label is built from the row used. Plant (2.1 fixed again) caught.
+- (b) **ACCEPTED.** The report shows `outcome:reason`. Plant caught.
+- (c) **ACCEPTED, and the builder found a real counting error behind it.** A law-3 failure becomes `ticket:
+  account_limit`, so "refused" read 0. It is now `failed_margin` over the law results. Plant caught.
+- (d) **ACCEPTED.** Sessions before 2 Jan 2020 (the archive's first SPAN file) are refused by name, counted and not run.
+  Plant (running them) caught.
+- **Criterion 13 (new): MET.** My real read through the practice catalogue: BANKNIFTY-M on 2 Jun 2025 is open, with
+  lots 30 (26 Jun 2025) and 35 (31 Jul 2025), `lot_for` the far expiry 35, Google hosts only. Plant (one lot for every
+  expiry) caught.
+
+**Plants:** 7 this round, 7 caught.
