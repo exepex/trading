@@ -420,5 +420,16 @@ None for the owner: the 22 Oct decisions above settle scope and history.
     no committed receipt, so the next run does not see those rows and writes them again as a new part. That is safe:
     the receipts are the index, so no key is duplicated. Meanwhile C2 reads the older row, and the age rule fails
     closed.
-- **Not yet:** the owner's re-check, Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
+- **The owner's re-check of 9f22ba3c: no objection to Judge F** (their repros: the grown file caught up, the
+  file without its last new line refused; 1,088 passed). Their three notes:
+  1. **Accepted and built:** an evidence CSV differing from Drive's copy would have been caught up as a newer
+     snapshot. `move_into(..., exact=True)` now refuses it, and `margins move` uses that for the evidence, since its
+     factor row names the SHA-256. Tests: the evidence refused with nothing written, and an exact move never catching
+     up a report. A real re-run says "already in Drive, equal" for all three files.
+  2. **Correct:** `receipted_rows.py` and `moving.py` differ from `story/o9b-cues` by this step's guards. Monday's
+     merge of step 1b meets separate hunks here, which I check when the second branch lands.
+  3. **Noted:** `write_bytes` lists the series' receipts on every write (the part-order check), which is cheap at
+     these sizes.
+- Gates at 9f22ba3c: full suite 14,583 passed and 16 xfailed, clean.
+- **Not yet:** Judge F, the merge on Tue 27 Oct 11:00-13:30 IST with `margins move` re-run before
   and after, the first scheduled runs, and the removal commit.

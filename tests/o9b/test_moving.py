@@ -83,3 +83,11 @@ def test_a_move_that_reads_back_other_bytes_stops():
 
     with pytest.raises(MoveRefused, match="read back unequal after the move"):
         move_into(Lossy(), TODAYS_FILE, "vix.csv")
+
+
+def test_an_exact_move_never_catches_up_a_report(drive):
+    move_into(drive.series(ReceiptedSnapshots, "20261022T100000Z-aaaaaa"), b"date,kind\n", "e.csv", exact=True)
+    with pytest.raises(MoveRefused, match="Drive already holds other bytes"):
+        move_into(drive.series(ReceiptedSnapshots, "20261022T110000Z-bbbbbb"), TODAYS_FILE, "e.csv", exact=True)
+    assert move_into(drive.series(ReceiptedSnapshots, "r3"), b"date,kind\n", "e.csv", exact=True).startswith(
+        "e.csv: already in Drive, equal")  # fmt: skip

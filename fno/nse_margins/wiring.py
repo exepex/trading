@@ -132,5 +132,5 @@ def move_margins_to_drive(cfg: dict, root: Path = ROOT, env=os.environ) -> list[
         day = path.stem.removeprefix("stress_evidence_")
         series = ReceiptedSnapshots(build_data_store(STRESS_WRITER, env=env), build_drive_cache(env),
                                     EVIDENCE_SERIES.format(day=day))  # fmt: skip
-        lines.append(move_into(series, path.read_bytes(), path.name))
+        lines.append(move_into(series, path.read_bytes(), path.name, exact=True))  # its factor row names the SHA
     return lines

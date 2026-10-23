@@ -103,5 +103,14 @@ def test_a_table_without_its_last_new_line_is_refused_and_nothing_is_written(rep
     assert receipts(repo, "margins") == 0
 
 
+def test_an_evidence_csv_differing_from_drives_copy_is_refused_never_replaced(repo):
+    """Its factor row names its SHA-256, so a disagreement goes to a person (owner's review note 1)."""
+    wiring.move_margins_to_drive(CFG, repo)
+    (repo / wiring.STRESS_EVIDENCE / "stress_evidence_2026-10-18.csv").write_text("scope,needed_factor\nall,9.9\n")
+    with pytest.raises(MoveRefused, match="stress_evidence_2026-10-18.csv: Drive already holds other bytes"):
+        wiring.move_margins_to_drive(CFG, repo)
+    assert receipts(repo, "stress-evidence/2026-10-18") == 1
+
+
 def receipts(repo, folder: str) -> int:
     return len(list((repo / "receipts/data/margins" / folder).glob("*.sha256")))

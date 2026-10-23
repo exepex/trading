@@ -22,13 +22,15 @@ class MoveRefused(RuntimeError):
     """The file and its Drive series disagree: the move stops, nothing is overwritten."""
 
 
-def move_into(series: ReceiptedRowLog | ReceiptedSnapshots, data: bytes, name: str) -> str:
-    """One line saying what happened; MoveRefused when Drive holds, or gives back, other bytes."""
+def move_into(series: ReceiptedRowLog | ReceiptedSnapshots, data: bytes, name: str, exact: bool = False) -> str:
+    """One line saying what happened; MoveRefused when Drive holds, or gives back, other bytes. `exact`: Drive must
+    hold nothing or these bytes, never be caught up (a file that a record names by its SHA-256, such as A14c's
+    evidence: a disagreement goes to a person; A14/C2/C4 owner's review, 23 Oct 2026)."""
     facts = {"name": name, "size": len(data), "sha": hashlib.sha256(data).hexdigest()}
     current = series.current_bytes()
     if current == data:
         return ALREADY.format(**facts)
-    part = series.catch_up(current, data)
+    part = None if exact and current else series.catch_up(current, data)
     if part is None:
         raise MoveRefused(DIFFERS.format(drive=len(current), **facts))
     series.write_bytes(part)
