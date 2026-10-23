@@ -12,7 +12,6 @@ from ..research_data.panel_store import WARMUP_FILE
 from ..storage import wiring as storage
 from ..storage.data_wiring import build_data_store, build_drive_cache
 from ..storage.manifest_folder import FingerprintingStore, ManifestFolder
-from ..storage.moving import move_into
 from ..storage.raw_store import AreaStore, RawFileStore
 from ..storage.receipted_rows import ReceiptedRowLog, ReceiptedSnapshots
 from ..storage.revisions import RevisionArchive, RevisionIndex
@@ -25,9 +24,6 @@ from .table import VixDailyTable
 from .table_builder import VixTableBuilder
 from .verify import VixTableVerifier
 
-VIX_FOLDER = storage.REPOSITORY / "research" / "data" / "vix"  # the repository copies, read only by `move` (O9b)
-TABLE_FILE = VIX_FOLDER / "india_vix_daily.csv"
-CHECKS_FOLDER = VIX_FOLDER / "checks"
 WRITER = "vix-history"
 DRIVE_TABLE, DRIVE_CHECKS = "vix/india_vix_daily", "vix/checks/{stem}"  # inside Drive's `data` area
 REFERENCE_CLOSES = storage.PANEL_FOLDER / WARMUP_FILE  # India VIX closes from NSE's daily index-close files (A10)
@@ -88,13 +84,6 @@ def build_vix_checks(reports=None) -> VixCheckFiles:
     calendar = storage.build_session_calendar()
     return VixCheckFiles(reports or _check_reports(), calendar, calendar.first,
                          lambda: committed_vix_closes(REFERENCE_CLOSES))  # fmt: skip
-
-
-def move_vix_to_drive() -> list[str]:
-    """O9b's pilot: the committed table and checks into their Drive series, each read back equal."""
-    lines = [move_into(_table_log(), TABLE_FILE.read_bytes(), TABLE_FILE.name)]
-    reports = _check_reports()
-    return lines + [move_into(reports[name], (CHECKS_FOLDER / name).read_bytes(), name) for name in CHECK_FILES]
 
 
 def build_vix_verifier(raw: RawFileStore) -> VixTableVerifier:

@@ -1,7 +1,7 @@
 """Story A4b: the public-record scan refuses a raw Groww quote file by its path, whatever it holds, even when it is
 added past `.gitignore` with `git add -f`; sidecars, markers and NSE's public chain still commit."""
 
-from fno.record_scan.forbidden_files import RAW_GROWW_QUOTES
+from fno.record_scan.forbidden_files import MOVED_VIX_FILES, RAW_GROWW_QUOTES
 from tests.record_scan.test_routine_gate import git, repo  # noqa: F401 - the routine checkout fixture
 
 GROWW = "research/data/quotes/groww/derivatives/quote-snapshots/2026/10/"
@@ -34,3 +34,17 @@ def test_the_path_rule_boundaries():
     assert not RAW_GROWW_QUOTES.matches(f"{GROWW}a.meta.json")
     assert not RAW_GROWW_QUOTES.matches(f"x/{GROWW}a.csv")
     assert not RAW_GROWW_QUOTES.matches("research/data/quotes/groww.csv")
+
+
+def test_a_force_added_vix_file_moved_to_drive_is_refused_and_its_readme_commits(repo):  # noqa: F811
+    """O9b: the VIX table and checks live in Drive; a copy added back past `.gitignore` is refused by path."""
+    _stage(repo, "research/data/vix/checks/gaps.csv", "date,kind\n")
+    commit = git(repo, "commit", "-q", "-m", "data")
+    assert (
+        commit.returncode != 0 and "research/data/vix/checks/gaps.csv:0: India VIX data moved to Drive" in commit.stderr
+    )
+    git(repo, "rm", "-q", "--cached", "research/data/vix/checks/gaps.csv")
+    _stage(repo, "research/data/vix/README.md", "# India VIX\n")
+    assert git(repo, "commit", "-q", "-m", "docs").returncode == 0
+    assert MOVED_VIX_FILES.matches("research/data/vix/india_vix_daily.csv")
+    assert not MOVED_VIX_FILES.matches("receipts/data/vix/india_vix_daily/x.csv.sha256")
