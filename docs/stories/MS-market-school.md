@@ -2422,6 +2422,25 @@ Replaces the earlier part 4 (744299d6, never merged), which waived the size laws
 - **a3's `check_ledger_reader` on `SchoolAccounts`** (part 3's promised conformance): `test_entries.py::test_school_accounts_pass_a3s_ledger_reader_check` (plant: entries cut to the first, caught).
 - **Outside my files, for f's builder:** `tickets/shared_size.py` reads `ask_qty`/`bid_qty`, which are `None` on an unmeasured quote; under practice it should treat that as no size limit, as the fill port now does.
 
+
+### MS-P1d follow-up Claims, settlement fixture determinism (branch `story/ms-p1d-settle-determinism`, from main)
+
+Judge K saw `test_settlement.py::test_each_index_settles_at_intrinsic_against_its_own_price[BANKNIFTY]` fail once
+under `-n auto`: the fill's `rests_on` and a second build of the fixture file had different SHA-256s.
+
+- **Root cause (reproduced):** the test fixture `settlement_folder` wrote its zip entry with `writestr(<name>, ...)`,
+  which stamps the entry with the wall clock (2-second resolution). The test builds the file twice (`tmp_path` and
+  `tmp_path / "again"`), so two builds straddling a 2-second boundary differ; xdist load makes that likelier. Built
+  2.1 s apart, the old fixture gave 66c22c68... and 9e8454c0...
+- **Not production:** no `writestr` in `fno/school`, `fno/desk/settlement.py` or `fno/storage/raw_source.py`; the
+  settlement fill reads the archived file's bytes as stored. The same file settled twice, 2.1 s apart, gives an equal
+  `FillResult` (`rests_on` d700cfa2...). The other zip fixture (`tests/school/roads/test_listed_contracts.py`, b's)
+  has the same pattern but compares no hashes.
+- **Fix:** the fixture stamps its entry with the file's own trading day (`ZipInfo`), so the same arguments always give
+  the same bytes.
+- **Test:** `test_the_settlement_fixture_is_the_same_bytes_at_any_wall_clock_time` builds the file under two clocks
+  (zipfile's clock patched, about 3 years apart) and requires one SHA-256. Plant: the old plain-name `writestr`,
+  caught.
 #### INS-c Claims (round 1, branch `story/ms-ins-causes`, on INS-b; the SHA is in the commit that carries this text)
 
 | Criterion | Met by | Test (`tests/school/instructor/causes/`) |
