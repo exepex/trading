@@ -366,6 +366,25 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "premium_range_scores": {
+   "started_at": "2026-10-23T15:21:16.184295+05:30",
+   "finished_at": "2026-10-23T15:21:32.215687+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "rehearsal:NOT_LIVE_UNSET",
+    "exercised": {
+     "status": "ok",
+     "reason": "command:ok",
+     "exit_code": 0
+    }
+   }
   }
  }
 }
