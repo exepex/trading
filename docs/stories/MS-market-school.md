@@ -3196,4 +3196,11 @@ Part e's two known limits are closed: the unfilled entries and f's three counts.
 - the sources not built;
 - the counts read from the repository root instead of the given one;
 - the entry point passing no sources.
+
+**Known limits (judge 530's minors, parked by the orchestrator on 23 Oct 2026; reasoning only):**
+- **A written review is not rerunnable.** `--review --write` writes the paired file under the range's last session. It depends on today's ledgers and corrections, so the same range written again after a later correction is refused by write-once, for that key, for good.
+  - The cut-off reader could bound the corrections.
+  - The unfilled entries come from MS-P1j's ledgers, which have no "as of".
+  - Until fixed: write a range's review once, after its last session's fills; a dry run is always allowed.
+- **A review that covers a session before its fills** counts that session's fired entries as unfilled. Run a review only over sessions whose run has finished.
 **Real output:** `python -m fno.school.instructor --review 2026-10-22 2026-10-23` prints "school off": the school's switch is off. That is the honest result; no sealed day exists to review yet.
