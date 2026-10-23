@@ -29,6 +29,9 @@ DATASET_NAMES = {
     }),
     # the margin builder reads the archived SPAN files on Drive (A9's archive), never NSE; the factor seam is MS-P1m's
     "practice/fleet.py": frozenset({"fno.nse_margins.road_wiring.build_road_margin"}),
+    # `account_net` is the one rupee sum a report may use (327 item 1): a pure function over outcome records that
+    # touches no ticket book, ledger or count
+    "practice/runner.py": frozenset({"fno.school.tickets.rupees.account_net"}),
 }  # fmt: skip
 
 

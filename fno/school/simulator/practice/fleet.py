@@ -5,7 +5,7 @@ One fleet is built per session and scenario, because the session's charges (date
 on those charges, are fixed when they are built. The accounts persist across sessions under `home`, one folder per
 scenario, never under the pilot's `journal/school`."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -13,6 +13,7 @@ from pathlib import Path
 from ....nse_margins.road_wiring import build_road_margin
 from ....research_data.calendar import SessionCalendar
 from ....risk.margins import StressedMargin
+from ...contracts.roads import ROADS, Road
 from ...drivers.wiring import build_school_drivers
 from ...execution.practice_wiring import PRACTICE, build_practice_fill_port
 from ...fleet.counts_file import SessionCounts
@@ -67,8 +68,10 @@ def _refuse_pilot_paths(home: Path, root: Path) -> None:
             raise HomeUnderThePilot(f"{home} is under the pilot's {pilot.relative_to(root)}")
 
 
-def build_practice_fleet(parts: PracticeParts, session: date, scenario: Scenario, home: Path,
-                         margin_for: MarginFor | None = None) -> SchoolFleet:  # fmt: skip
+def build_practice_fleet(
+    parts: PracticeParts, session: date, scenario: Scenario, home: Path,
+    margin_for: MarginFor | None = None, roads: Sequence[Road] = ROADS,
+) -> SchoolFleet:  # fmt: skip
     _refuse_pilot_paths(home, parts.root)
     cfg = _practice_switch(cfg_on(parts.cfg, parts.terms, session))
     settings, clock = school_settings(cfg), practice_clock(session)
@@ -79,7 +82,7 @@ def build_practice_fleet(parts: PracticeParts, session: date, scenario: Scenario
     margin = (margin_for or (lambda c: practice_margin(parts, c)))(cfg)
     return SchoolFleet(
         settings,
-        HistoricalRoadCatalogue(parts.calendar, parts.chain, parts.terms, parts.windows),
+        HistoricalRoadCatalogue(parts.calendar, parts.chain, parts.terms, parts.windows, roads),
         HistoricalRoadSource(parts.chain, parts.spreads, scenario, parts.windows),
         PracticeQualityGate(),
         ChainSpotHistory(parts.chain, parts.calendar),
