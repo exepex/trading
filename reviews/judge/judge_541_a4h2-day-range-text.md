@@ -40,3 +40,15 @@ what happens when that file is not in Drive yet: the field stays unconfirmed und
 it is never silent.
 
 Plants: none (text round).
+
+## Addendum 1: round 2 at 7fb7d3de
+
+**Verdict: PASS for the A4h-2 story text.** Code may start; merge no earlier than Mon 26 Oct, never 14:00-16:15 IST.
+
+| Finding | Answer | Check | Result |
+|---|---|---|---|
+| SF1: DR1 sanity check 5 | The range check at the read: `low > high`, or `last`/`open` outside `[low, high]` (edges included), refused for NIFTY 50 and NIFTY BANK with a named reason and no level; VIX's finding goes into `problems`. Criterion 2b: 0.01 over, at the edge, and `low > high`, for both checked indices | read | **Accepted** |
+| SF2: gap list | 12 rows: FL1-1f (the 30-second rule Out, as FL1's display), DR1 checks 1-6, O9 write-once, no level, the merge window, quality rules 5, 6 and 8, DR1's certifier Out | read; each row maps to a criterion or to Out | **Accepted** |
+| Minor: `previous_close` without its file | Unconfirmed under `last`'s overdue rule (one alert at the second session after); criterion 3 tests it | read | **Accepted** |
+
+For the code round, show criterion 2b's boundary cases and the planted values from criterion 5 absent from every line.
