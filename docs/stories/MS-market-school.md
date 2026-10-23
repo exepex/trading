@@ -621,8 +621,13 @@ change to the roads, slot, band or drivers. The rows must be registered and push
 **Runbook: "dashcam stuck: stored file unverifiable" (Judge K, judge 529; MS-P1c follow-up).** `school run` stops with
 `stopped: dashcam stuck: stored file unverifiable <session> <slot> <kind> (<why>)` and exits 1 (the alert). Cause:
 Drive holds that key's file and `main` has no receipt for it (a run stopped between the two), and the file is not
-one this fleet could have written. Nothing for that session is sealed, filled or counted until a person decides; the
-fleet never seals over it.
+one this fleet could have written. What waits depends on the kind (Judge K, judge 529.2); the fleet never seals over
+the stored file:
+- `decisions`: nothing for that session is decided, sealed, filled or counted until a person decides.
+- `outcomes` or `drift`: the stop comes after the fills, so the decisions are already sealed and the fills booked in
+  the ledgers. An `outcomes` stop leaves the outcomes, the drift rows, the instructor's files and the counts waiting;
+  a `drift` stop comes after the outcomes are sealed too, so only the drift rows, the instructor's files and the
+  counts wait. A rerun after the person's decision books no fill twice (it reads the ledgers).
 1. Read the why. "not this fleet's" usually means a card or driver changed between the two runs (compare the
    cards' commits with the stored records' `card_sha256`); "unreadable", "not canonical", "another kind", "another
    session or slot" mean the file is damaged or misplaced.
