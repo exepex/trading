@@ -26,6 +26,7 @@ from ..contracts.fleet import RunMode, SessionRun
 from ..contracts.records import DecisionRecord, ExitRecord
 from ..contracts.roads import ROADS_BY_CODE, Road, RoadCatalogue
 from ..contracts.snapshot import SlotSnapshot, SnapshotSource
+from ..execution.quote_rules import LIVE, QuoteRules
 from ..settings import SchoolSettings
 from ..tickets.counts import counts_for
 from .books import AccountUnreadable, Books, EntryMids, account_call
@@ -63,6 +64,7 @@ class SchoolFleet:
     entry_mids: EntryMids
     clock: Clock
     seconds_per_driver: float = 60.0
+    rules: QuoteRules = LIVE  # d's quote rules: only the simulator's practice root passes practice rules
 
     def run(self, session: date, mode: RunMode) -> SessionRun:
         if not self.settings.enabled:
@@ -73,7 +75,7 @@ class SchoolFleet:
             return SessionRun(session, mode, ACCOUNT_STOP.format(reason=stop))
 
     def _run(self, session: date, mode: RunMode) -> SessionRun:
-        roads = plan_slot(session, self.catalogue, self.snapshots, self.gate)
+        roads = plan_slot(session, self.catalogue, self.snapshots, self.gate, self.rules)
         if not roads.scheduled:
             return SessionRun(session, mode, "")
         found = self.dashcam.find(session, SLOT_1500, RecordKind.DECISIONS)

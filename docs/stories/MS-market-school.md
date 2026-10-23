@@ -2529,11 +2529,13 @@ eight plants were re-run, 8 of 8 caught.
 - **Plants (round 6):** 10 planted (Judge K's six, plus four on the replay root), 10 caught.
 - **The 22 Oct replay through the new root** gives the same 69 files, byte for byte, as round 5's.
 
-### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B alone; branch `story/ms-p1j-sim-seams`)
+### MS-P1j seams for the simulator (SIM builder's request; orchestrator, 23 Oct 2026: lane 1, Judge B, then Judge I for the third seam, which touches the live gate; branch `story/ms-p1j-sim-seams`)
 | Seam | Change | Test (and the plant it catches) |
 |---|---|---|
 | One construction of the books | `fleet_wiring.books_on(cfg, stores, fills)`: the driver accounts and the ticket ledger under `stores.home`, filled through the given port; `fleet_on` calls it with the pilot's fill port, and the practice root will call it with its own | `test_books_on_builds_the_accounts_and_tickets_under_the_home_with_the_given_fill_port`, `test_fleet_on_builds_its_books_through_books_on` (plants: books_on ignoring its port; fleet_on building its own) |
 | The replay dashcam's encoding is overridable | `ReplayDashcam.encode` and `decode` (defaults `encode_slot_file` and `decode_slot_file`); `seal` and `read` go through them; the write-once and seal logic is not copied | a labelled subclass writes `"label": "practice (simulator)"` on every line, the pilot's `decode_slot_file` and a plain `ReplayDashcam` read the same records, write-once still holds; `read` uses a subclass's `decode` (plants: seal or read bypassing them) |
 
-- **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files); full suite 13798 passed.
-- **Plants:** 4 planted, 4 caught.
+| The live gate's quote rules are the fleet's own (orchestrator, 23 Oct 2026, 01:50 UTC) | `SchoolFleet.rules: QuoteRules = LIVE`, passed into `plan_slot`: under the live rules (every pilot root) a road whose capture holds an unmeasured quote still closes as `sizes_not_measured` (judge 506); only `QuoteRules(practice=True)`, which the simulator's practice root passes (`execution/practice_wiring.PRACTICE`), lets it through for MS-P1d's practice laws. d's isolation test already refuses practice rules outside the practice roots | `test_only_the_practice_rules_open_a_road_whose_capture_holds_unmeasured_quotes`; the live test unchanged (plants: the guard ignoring the rules, the guard always skipped, the runner not passing its rules, practice by default) |
+
+- **The pilot is unchanged:** the 22 Oct replay is byte-identical to round 5's (69 files); full suite 13800 passed.
+- **Plants:** 8 planted (4 on the first two seams, 4 on the rules), 8 caught.
