@@ -16,15 +16,27 @@ NEVER = (
 )  # fmt: skip
 
 
-# `practice/stores.py` names the NSE datasets (their file names and archive paths) to read the archive; it builds no
-# fetching library and a test (`test_inputs.py`) pins that nothing is requested from NSE.
-DATASET_NAMES = {"practice/stores.py": ("fno.storage.wiring", "fno.storage.raw_source")}
+# `practice/stores.py` names the NSE datasets (their file names and archive paths) to read the archive, and only these:
+# `daily_files` and the three source classes, never a library builder, which would fetch. A test (`test_inputs.py`)
+# pins that nothing is requested from NSE.
+DATASET_NAMES = {
+    "practice/stores.py": frozenset({
+        "fno.storage.wiring", "fno.storage.wiring.daily_files",
+        "fno.storage.raw_source", "fno.storage.raw_source.NseDailyFoSource",
+        "fno.storage.raw_source.NseLegacyFoSource", "fno.storage.raw_source.NseIndexCloseSource",
+    }),
+}  # fmt: skip
 
 
-def banned(path: Path, package: list[str] | None = None) -> list[str]:
-    allowed = DATASET_NAMES.get(path.relative_to(SIMULATOR).as_posix(), ()) if SIMULATOR in path.parents else ()
-    never = [f for f in NEVER if f not in allowed]
-    return [n for n in imports(path, package) if any(n == f or n.startswith(f + ".") for f in never)]
+def banned(path: Path, package: list[str] | None = None, name: str | None = None) -> list[str]:
+    """The path's forbidden imports; `name` (its place under the simulator package) selects an exact-name exception."""
+    if name is None and SIMULATOR in path.parents:
+        name = path.relative_to(SIMULATOR).as_posix()
+    allowed = DATASET_NAMES.get(name, frozenset())
+    return [
+        n for n in imports(path, package)
+        if n not in allowed and any(n == f or n.startswith(f + ".") for f in NEVER)
+    ]  # fmt: skip
 
 
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.relative_to(SIMULATOR).as_posix())
@@ -42,3 +54,19 @@ def test_a_planted_banner_import_is_caught(tmp_path):
         "fno.school.reports.banner", "fno.school.reports.banner.Banner",
         "fno.storage.wiring", "fno.storage.wiring.build_nse_fo_library",
     ]  # fmt: skip
+
+
+def test_a_library_builder_import_in_stores_is_caught_while_the_dataset_names_pass(tmp_path):
+    """Judge 515 minor: the exception names exact imports, so a fetching library builder cannot slip in beside them."""
+    package = ["fno", "school", "simulator", "practice"]
+    clean = tmp_path / "clean.py"
+    clean.write_text(
+        "from ....storage.wiring import daily_files\nfrom ....storage.raw_source import NseDailyFoSource\n"
+    )
+    assert banned(clean, package, name="practice/stores.py") == []
+    planted = tmp_path / "planted_stores.py"
+    planted.write_text("from ....storage.wiring import build_nse_fo_library, daily_files\n")
+    assert banned(planted, package, name="practice/stores.py") == ["fno.storage.wiring.build_nse_fo_library"]
+    other = tmp_path / "other.py"
+    other.write_text("from ....storage.wiring import daily_files\n")  # the exception is for stores.py only
+    assert banned(other, package, name="practice/other.py") != []
