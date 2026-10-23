@@ -12,6 +12,7 @@ from ..models import IST, now_ist
 from ..research_data.calendar import CalendarError
 from .backfill_cli import COMMANDS as BACKFILL_COMMANDS
 from .backfill_cli import add_backfill_parsers, cmd_backfill
+from .cover import covered_until
 from .dry_run import inside_repository
 from .feed_cli import FEED_PROBE, add_feed_probe_parser, cmd_feed_probe
 from .recorder import GOOD_OUTCOMES, SettleRefused, SlotOutcome
@@ -66,7 +67,7 @@ def cmd_intraday(args) -> int:
         if args.intraday_cmd == "rv":
             print("\n".join(recorder.settle_day(args.day)))
             return 0
-        outcomes = [recorder.snapshot()] if args.intraday_cmd == "snapshot" else recorder.run(args.until)
+        outcomes = [recorder.snapshot()] if args.intraday_cmd == "snapshot" else recorder.run(covered_until(args.until))
     except CalendarError as error:
         return _calendar_stop(error, alerts)
     except SettleRefused as error:

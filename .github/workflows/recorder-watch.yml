@@ -1,0 +1,53 @@
+# Story A16i: an in-day witness for the 15-minute recorder. The recorder is a set of Claude routine fires; when one
+# never runs (23 Oct: the 13:52 fire stopped in setup, 14:15-14:45 were lost) nothing else says so until a later fire
+# finds the gaps. This job reads GitHub's copy of research/data/intraday/heartbeat.json twice an hour in the watched
+# hours (09:45-15:45 IST) and posts to #fno-desk when the last run finished over 30 minutes ago on a recorded session.
+# GitHub's schedule is best effort (late or dropped slots happen), so this is a second witness, never the only cover:
+# the recorder's own extra hour (fno/intraday/cover.py) is the first. Reads the repository only; no Groww key, never
+# trades, never restarts anything. Secret: FNO_SLACK_BOT_TOKEN (the message), never printed or written to a file.
+name: recorder-watch
+
+on:
+  schedule:
+    - cron: "17,47 4-10 * * *" # 09:47-16:17 IST (jittered minutes); outside 09:45-15:45 the check says "not watched"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recorder-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Check the heartbeat and post to #fno-desk when it is silent
+        id: check
+        env: # only this step sees it
+          FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+        run: | # exit 1 means silent (the command alerted itself); the run still fails so capture_errors.csv has the row
+          status=0
+          python -m fno intraday heartbeat-check > check.out || status=$?
+          cat check.out
+          if grep -q '^silent:' check.out; then echo "posted=true" >> "$GITHUB_OUTPUT"; fi
+          exit $status
+      - name: Alert #fno-desk when the job failed before its check could answer (setup, install, an import crash)
+        if: ${{ failure() && steps.check.outputs.posted != 'true' }} # posted: the check's own alert went out
+        env:
+          FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+        run: >
+          python -c "from fno.composition import build_alert_sender;
+          print(build_alert_sender().send('Omenix F&O recorder watch (GitHub Actions) failed; see
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"
