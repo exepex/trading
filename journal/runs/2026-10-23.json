@@ -221,6 +221,17 @@
      }
     }
    }
+  },
+  "card": {
+   "started_at": "2026-10-23T15:18:31.949827+05:30",
+   "finished_at": "2026-10-23T15:18:31.949870+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
   }
  }
 }
