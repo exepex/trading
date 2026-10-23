@@ -353,6 +353,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "premium_range_scores": {
+   "started_at": "2026-10-23T15:21:23.768808+05:30",
+   "finished_at": "2026-10-23T15:21:39.789280+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
