@@ -4,10 +4,11 @@ capture period, the unmeasured size, the margin factor and the clock. Nothing is
 
 from ..constants import PRACTICE_LABEL, SIZE_GATE_NOT_TESTED_LABEL, SLOT_LABEL, SPREAD_LABEL
 from .clock import PRACTICE_CLOCK_LABEL
-from .margin import NO_SPAN_LINE, SPAN_FIRST_DAY
+from .margin import NO_SPAN_LINE
 from .report import PracticeReport
 
 NOT_ARCHIVED = "local only, not archived: no practice result may be shown to the owner, reported or used in a decision"
+NEVER_TUNES = "practice results are never used to choose, tune or rank a counted driver"
 NOT_VALUED = "positions still open at the window's end are not valued"
 TOP_BUCKETS = 8
 LABELS = (SLOT_LABEL, SPREAD_LABEL, SIZE_GATE_NOT_TESTED_LABEL, PRACTICE_CLOCK_LABEL, NOT_VALUED)
@@ -19,10 +20,10 @@ def line(text: str) -> str:
 
 def render(report: PracticeReport) -> list[str]:
     roads = ", ".join(str(road) for road in report.roads)
-    lines = [line(NOT_ARCHIVED), line(f"window {report.first} to {report.last}; roads {roads}")]
+    lines = [line(NOT_ARCHIVED), line(NEVER_TUNES), line(f"window {report.first} to {report.last}; roads {roads}")]
     lines += [line(label) for label in (*LABELS, report.margin_label) if label]
-    if report.first < SPAN_FIRST_DAY:
-        lines.append(line(NO_SPAN_LINE))
+    if report.sessions_without_span:
+        lines.append(line(NO_SPAN_LINE.format(count=report.sessions_without_span)))
     for scenario, result in report.scenarios.items():
         failed = f"{result.failed_margin} decisions failed the margin law"
         lines.append(line(f"scenario {scenario}: {result.sessions_run} sessions; {failed}"))

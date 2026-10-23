@@ -20,7 +20,7 @@ from ..source.catalogue import HistoricalRoadCatalogue
 from ..source.snapshots import HistoricalRoadSource
 from ..spreads.model import Scenario
 from .fleet import MarginFor, PracticeParts, build_practice_fleet
-from .margin import latest_row, margin_label
+from .margin import SPAN_FIRST_DAY, latest_row, margin_label
 from .report import PracticeReport, RoadDayCoverage, ScenarioResult
 from .spots import ChainSpotHistory
 from .window import RunWindow
@@ -34,12 +34,14 @@ class PracticeRunner:
     def run(self, window: RunWindow) -> PracticeReport:
         window.check(self.parts.windows)
         sessions = window.sessions(self.parts.calendar)
+        archived = [d for d in sessions if d >= SPAN_FIRST_DAY]  # law 3 needs that day's SPAN file
         roads = tuple(ROADS_BY_CODE[code] for code in window.roads)
         report = PracticeReport(window.first, window.last, window.roads,
-                                margin_label=margin_label(latest_row(self.parts.factor_file)))  # fmt: skip
+                                margin_label=margin_label(latest_row(self.parts.factor_file)),
+                                sessions_without_span=len(sessions) - len(archived))  # fmt: skip
         for position, scenario in enumerate(self.scenarios):
             result = report.scenarios.setdefault(scenario, ScenarioResult())
-            for session in sessions:
+            for session in archived:
                 self._warm(session, roads)
                 fleet = build_practice_fleet(self.parts, session, scenario, self.home / scenario.value,
                                              self.margin_for, roads)  # fmt: skip

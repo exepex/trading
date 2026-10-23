@@ -11,7 +11,7 @@ from pathlib import Path
 from ....risk.stress_factor import FactorRow, factor_in_force
 
 SPAN_FIRST_DAY = date(2020, 1, 2)  # the first archived beginning-of-day SPAN file (`NseSpanBodSource.first_day`)
-NO_SPAN_LINE = "sessions before 2020-01-02 have no archived SPAN file: every entry there is refused by margin"
+NO_SPAN_LINE = "{count} sessions refused: no SPAN archive before 2020 (the first file is 2020-01-02)"
 
 
 def margin_label(row: FactorRow) -> str:

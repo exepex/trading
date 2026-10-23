@@ -253,10 +253,27 @@ def test_margin_failures_are_counted_when_law_3_fails(tmp_path):
     assert all(r.failed_margin == 0 for r in clear.scenarios.values())
 
 
-def test_a_window_starting_in_2019_says_there_is_no_span_file_before_2020(tmp_path):
+def test_sessions_before_the_span_archive_are_refused_by_name_counted_and_never_run(tmp_path):
+    """Orchestrator, 23 Oct: the margin-checked window starts on 2 Jan 2020; 2019 and 1 Jan 2020 are refused."""
+    from fno.research_data.calendar import CsvSessionCalendar
     from fno.school.simulator.practice.margin import NO_SPAN_LINE
 
-    report = runner(tmp_path).run(ONE_SESSION)
-    assert NO_SPAN_LINE not in "\n".join(render(report))  # 2022: the archive covers it
-    early = replace(report, first=date(2019, 6, 3))
-    assert f"{PRACTICE_LABEL} | {NO_SPAN_LINE}" in render(early)
+    calendar = CsvSessionCalendar(
+        "date,kind,description,source_url\n2019-01-28,holiday,t,https://example.test/c\n"
+        "2020-01-27,holiday,t,https://example.test/c\n"
+    )
+    parts = replace(tf.parts(), calendar=calendar, chain=sb.DictChain())
+    window = RunWindow(date(2019, 12, 30), date(2020, 1, 3), (RoadCode.NIFTY_MONTHLY,))
+    report = runner(tmp_path, parts).run(window)
+    assert report.sessions_without_span == 3  # 30 Dec, 31 Dec 2019 and 1 Jan 2020
+    assert all(r.sessions_run == 2 for r in report.scenarios.values())  # 2 and 3 Jan 2020 only
+    assert f"{PRACTICE_LABEL} | {NO_SPAN_LINE.format(count=3)}" in render(report)
+    stored = {path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*.decisions.jsonl.gz")}
+    assert stored and not any("/2019/" in name or "/2020/01/01/" in name for name in stored)  # no session was run
+
+
+def test_the_report_header_says_practice_is_never_used_to_tune_a_counted_driver(tmp_path):
+    from fno.school.simulator.practice.render import NEVER_TUNES
+
+    lines = render(runner(tmp_path).run(ONE_SESSION))
+    assert lines[1] == f"{PRACTICE_LABEL} | {NEVER_TUNES}" and "never used to choose, tune or rank" in lines[1]
