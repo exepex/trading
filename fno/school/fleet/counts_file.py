@@ -51,8 +51,8 @@ def opportunity_text(counts: Iterable[OpportunityCounts]) -> str:
 class SessionCounts:
     def __init__(self, root: Path, committer: CountsCommitter | None,
                  extra: Callable[[date], tuple[str, ...]] = lambda session: ()):  # fmt: skip
-        """`committer` None writes only (tests, replays); the daily run commits and pushes. `extra(session)`: other
-        writers' files in the counts folder that the same commit takes (the instructor's counts file)."""
+        """`committer` None writes only (tests, replays); the daily run commits and pushes. `extra(session)`: the
+        files the run's session step wrote that the same commit takes (the instructor's counts file and receipts)."""
         self.root, self.committer, self.extra = Path(root), committer, extra
         self.outcomes = PublicCountsFile(self.root)
 

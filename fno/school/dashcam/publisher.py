@@ -42,20 +42,19 @@ class ReceiptPublisher(Protocol):
         """The commit on the remote that added this file's receipt, with the SHA-256 it holds there, or None."""
 
 
-class GitReceiptPublisher:
-    def __init__(self, recorder: ManifestRecorder, receipts: ReceiptFolder, repository: Path, run=subprocess.run):
-        self.recorder, self.receipts, self.repository, self.run = recorder, receipts, Path(repository), run
+class RemoteReceipts:
+    """The receipts on the remote's `main`: `refresh` fetches it (and deepens a shallow clone); `find` only reads the
+    history last fetched, so it writes nothing in the checkout and can run beside another git writer (judge 523)."""
 
-    def publish(self, drive_path: str, what: str) -> PushedReceipt:
-        outcome = self.recorder.commit(what)
-        found = self.published(drive_path) or self._push_unpushed(drive_path)
-        if found is None:
-            raise SealNotPushed(NOT_ON_REMOTE.format(path=drive_path, target=TARGET_BRANCH, outcome=outcome))
-        return found
+    def __init__(self, receipts: ReceiptFolder, repository: Path, run=subprocess.run):
+        self.receipts, self.repository, self.run = receipts, Path(repository), run
 
-    def published(self, drive_path: str) -> PushedReceipt | None:
+    def refresh(self) -> None:
         self._git("fetch", "origin", TARGET_BRANCH)
         self._deepen()
+
+    def find(self, drive_path: str) -> PushedReceipt | None:
+        """The commit on the fetched `main` that added this file's receipt, with the SHA-256 it holds there, or None."""
         file = self.receipts.file_for(drive_path).relative_to(self.repository).as_posix()
         added = self._git("log", f"origin/{TARGET_BRANCH}", "--diff-filter=A", "-1", f"--format={COMMIT_FORMAT}",
                           "--", file)  # fmt: skip
@@ -76,14 +75,32 @@ class GitReceiptPublisher:
         if git.is_shallow():
             raise ShallowClone(SHALLOW.format(target=TARGET_BRANCH))
 
+    def _git(self, *args: str) -> subprocess.CompletedProcess:
+        return self.run(["git", *args], cwd=self.repository, capture_output=True, text=True)
+
+
+class GitReceiptPublisher:
+    def __init__(self, recorder: ManifestRecorder, receipts: ReceiptFolder, repository: Path, run=subprocess.run):
+        self.recorder, self.receipts, self.repository, self.run = recorder, receipts, Path(repository), run
+        self.remote = RemoteReceipts(receipts, repository, run)
+
+    def publish(self, drive_path: str, what: str) -> PushedReceipt:
+        outcome = self.recorder.commit(what)
+        found = self.published(drive_path) or self._push_unpushed(drive_path)
+        if found is None:
+            raise SealNotPushed(NOT_ON_REMOTE.format(path=drive_path, target=TARGET_BRANCH, outcome=outcome))
+        return found
+
+    def published(self, drive_path: str) -> PushedReceipt | None:
+        self.remote.refresh()
+        return self.remote.find(drive_path)
+
     def _push_unpushed(self, drive_path: str) -> PushedReceipt | None:
         """A receipt committed by an earlier run whose push failed: nothing is pending, so push it now."""
         pulled = self.recorder.pull()
         if pulled.returncode != 0:  # e.g. the checkout carries other unpushed commits: never pushed to main
             self.recorder.abort_merge()
             raise SealNotPushed(pulled.stderr.strip() or PULL_FAILED.format(path=drive_path))
-        self._git("push", "origin", f"HEAD:{TARGET_BRANCH}")
+        self.run(["git", "push", "origin", f"HEAD:{TARGET_BRANCH}"], cwd=self.repository, capture_output=True,
+                 text=True)  # fmt: skip
         return self.published(drive_path)
-
-    def _git(self, *args: str) -> subprocess.CompletedProcess:
-        return self.run(["git", *args], cwd=self.repository, capture_output=True, text=True)

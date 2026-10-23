@@ -1,6 +1,8 @@
 """The fired entries that never filled (story MS-P1j, for MS-INS part e's paired comparison): every sealed trade or
 ticket decision whose position its ledger never opened, whatever the reason (the shared size, a refused fill, a stale
-seal). No fill status is stored, so it is derived from the dashcam and the two ledgers, read-only."""
+seal). No fill status is stored, so it is derived from the dashcam and the two ledgers, read-only. A session whose
+decisions file fails its receipt is left out, as part e's `sealed_decisions` leaves its decisions out of the comparison
+and names the session unsealed (judge 523, minor a)."""
 
 from datetime import date, timedelta
 
@@ -8,6 +10,7 @@ from ..constants import SLOT_1500, Outcome, RecordKind, RoadCode
 from ..contracts.accounts import LedgerReader
 from ..contracts.dashcam import DashcamStore
 from ..contracts.records import DecisionRecord
+from ..contracts.seal import StaleSeal
 from .ledgers import ledger_id
 
 SlotKey = tuple[str, RoadCode, date]  # (driver ID, road, entry session): MS-INS's key
@@ -34,8 +37,14 @@ class UnfilledEntries:
     def _fired(self, first: date, last: date):
         day = first
         while day <= last:
-            seal = self.dashcam.find(day, SLOT_1500, RecordKind.DECISIONS)
-            for record in self.dashcam.read(seal) if seal is not None else ():
+            for record in self._decisions(day):
                 if isinstance(record, DecisionRecord) and record.decision.outcome in (Outcome.TRADE, Outcome.TICKET):
                     yield record
             day += timedelta(days=1)
+
+    def _decisions(self, day: date) -> tuple:
+        seal = self.dashcam.find(day, SLOT_1500, RecordKind.DECISIONS)
+        try:
+            return self.dashcam.read(seal) if seal is not None else ()
+        except StaleSeal:
+            return ()
