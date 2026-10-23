@@ -47,6 +47,7 @@ WRITER = "pricerange"
 BANKNIFTY = "BANKNIFTY"
 NO_DRIVE = "set the four FNO_GDRIVE_* owner settings to use G13b's Drive data store"
 CACHE_ROOT = REPOSITORY / DRIVE_CACHE_FOLDER
+SEAL_READ_ATTEMPTS = 3  # a failed evidence read, read again twice within the run (story receipts-reach)
 
 
 def live_from(cfg: dict) -> date | None:
@@ -128,4 +129,5 @@ def build_seal_check(env=os.environ, deadline_of=None) -> SealCheck:
     history = HealthHistory(ROOT)
     repository = env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
     receipts = GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history)
-    return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar(), deadline_of)
+    return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar(), deadline_of,
+                     attempts=SEAL_READ_ATTEMPTS)  # fmt: skip
