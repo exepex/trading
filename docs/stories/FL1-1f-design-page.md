@@ -58,3 +58,13 @@ The morning's "Last session's check" uses the same rows.
 - `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py`: clean.
 - The first run had 19 failures in the school's golden-text test: the fakes carried a track record by default, which
   changed the builder's text line; fixed at 55ef15fd (a track only when asked, as with the check).
+
+## Judge 550 (FAIL round 1, tests only) answered at the next commit
+
+F1 accepted: the evening's why rows were not pinned on the rendered page. One test added,
+`test_the_evening_why_rows_carry_the_cause_the_context_and_each_cue_once`: a miss with a measured reason shows
+"Missed because (measured): …"; a miss without one shows the no-cause line; a failed source shows "Context: not
+available (<its why>)"; a context cue's name appears exactly once on the card. Each of the judge's plants fails it:
+T4 (why_rows drops cause_lines): 1 failed; T5 (the evening passes with_cues=True): 1 failed, after the pin was
+tightened to the cue's name (a first version counted the row's words, which the duplicate cue list does not
+repeat); T6 (unavailable() returns ()): 1 failed. Full suite on the new head in the branch's last commit message.

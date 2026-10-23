@@ -268,3 +268,31 @@ def test_a_provisional_morning_check_says_the_official_file_has_not_confirmed_it
     assert "morning report" not in html and "official close" not in html
     official = render_morning(page("morning", indices=(index,)))
     assert "official close" in official and "has not confirmed" not in official
+
+
+def test_the_evening_why_rows_carry_the_cause_the_context_and_each_cue_once():
+    """Judge 550: on the rendered evening page, a miss with a measured reason says "Missed because (measured)", a miss
+    without one "no measured cause", a failed source "Context: not available (<its why>)", and a cue appears once."""
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.cues import CONTEXT, FAILED, Cue, SectionView
+    from fno.forecast_lab.page.keypoints import REASON
+    from fno.forecast_lab.page.reasons import NO_REASON
+
+    index = nifty(checked=True)
+    point = index.horizons[0].timeline.points[-1]
+    missed = replace(point, close=point.band.q95 + 60, inside_50=False, inside_90=False)
+    brent = Cue("Brent", 80.0, 1.5, "%", role=CONTEXT)
+    said = replace(index, result=missed, why=(Cue(REASON, text="India VIX jumped from 13.9 to 15.3"), brent))
+    html = render_evening(page("evening", indices=(said,)))
+    card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
+    assert "Missed because (measured): India VIX jumped from 13.9 to 15.3." in card
+    assert "Context (measured, not a cause): Brent +1.50%." in card and card.count("Brent") == 1  # the cue once (T5)
+    unsaid = replace(index, result=missed, why=(Cue(REASON, text=NO_REASON),))
+    assert "Missed (reasoning): no measured cause in our data, so likely noise." in render_evening(
+        page("evening", indices=(unsaid,))
+    )
+    # a failed source: its words, as the text line prints them (T6)
+    failed = SectionView("US close", FAILED, why="the US close file was not read")
+    view = replace(page("evening", indices=(index,)), cues=(failed,))
+    assert "Context: not available (the US close file was not read)." in render_evening(view)
