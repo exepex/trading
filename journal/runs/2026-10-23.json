@@ -42,6 +42,21 @@
     "reason": "command:exit_2",
     "exit_code": 2
    }
+  },
+  "weather": {
+   "started_at": "2026-10-23T14:05:41.582109+05:30",
+   "finished_at": "2026-10-23T14:06:09.611822+05:30",
+   "inputs": {
+    "command": [
+     "weather",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
