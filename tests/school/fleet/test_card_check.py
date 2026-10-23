@@ -123,7 +123,7 @@ def test_the_record_root_passes_the_check_and_a_replay_has_none(monkeypatch, tmp
         )
     for name in ("build_dashcam", "build_account_sync", "GitManifestRecorder"):
         monkeypatch.setattr(wiring, name, lambda *a, **k: None)
-    wiring.build_fleet({})
+    wiring.build_fleet({"school": {**GOOD, "enabled": True}})
     replay_wiring.build_replay_fleet({}, b.SESSION, tmp_path)
     record_args = seen["fno.school.wiring"]
     assert any(isinstance(a, CardMismatchCheck) for a in (*record_args[0], *record_args[1].values()))
