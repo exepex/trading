@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import date
 
 from .models import CheckResult, StagedVersion
 
@@ -18,6 +19,7 @@ class Choice:
 class DatasetRules(ABC):
     name: str
     version: str  # bumped whenever a check or the choice changes; kept in every record
+    live_from: date  # the first session the dataset has versions for; a catch-up never asks for an earlier one
 
     @abstractmethod
     def checks(self, session: str, level: str, data: bytes) -> list[CheckResult]:
