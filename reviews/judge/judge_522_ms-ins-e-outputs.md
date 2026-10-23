@@ -65,3 +65,21 @@ MS-market-school.md INS-e and "INS-e Claims". Lane 1, one judge. Round 1 of 2. J
   outside this diff, and intermittent under -n auto: worth a look by d's owner.
 - The known limits (no unfilled set and no three counts until MS-P1j's sources, cause 13 waiting for the replay) are
   stated and printed ("three counts not supplied").
+
+## Addendum 1: round 2 at 136f5890
+
+**Verdict: PASS.** Lane 1, one judge. Scope: c23de177..136f5890.
+
+| Round-1 finding | Result | My evidence |
+|---|---|---|
+| SF1 orphans | ACCEPTED | `orphan_corrections()` scans from `RECORD_START` (22 Oct 2026) to today, so a pre-window original is no longer an orphan. Every day run carries `SessionResult.orphans`, and the command prints the alert line. Plants caught: the scan limited to today, the day's alert line removed |
+| SF2 corrected outcomes | ACCEPTED | Attributions and classifications carry `outcome_sha256`. The re-check runs on a changed outcome SHA-256 or a waiting record, and writes a new attribution naming the old one. Plants caught: the corrected test off, the attribution correction off, its `corrects` emptied |
+| SF3 six branches | ACCEPTED | my six round-1 survivors are all caught now (`test_round2.py`) |
+| Minor: rupees | ACCEPTED | `net_rs` from `account_net` |
+
+- **Plants:** 24 planted (my 19 from round 1 plus 5 on the new code), 24 caught.
+- **Note:** `PathReader` now caches each file for its own lifetime. That is right for one run, and the wiring builds a
+  reader per run (`build_instructor_run`). A reader kept across sessions would not see later seals, so keep it per
+  run.
+- **Gates (my run):** pytest -n auto 14,090 passed, 16 xfailed. ruff check and format, check_imports and
+  check_records are clean.

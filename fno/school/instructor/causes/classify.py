@@ -3,7 +3,7 @@
 modifier from the controls on the same road-slot (327 correction 2)."""
 
 from ....models import IST
-from ..contracts import MAX_SECONDARY, Attribution, Cause, Classification, HeldPath, Modifier
+from ..contracts import MAX_SECONDARY, Attribution, Cause, Classification, HeldPath, Modifier, record_sha256
 from .evidence import Controls, Evidence, EvidenceBuilder
 from .rules import verdicts
 
@@ -61,4 +61,5 @@ class Classifier:
             modifier=modifier(outcome.net, controls),
             rules_sha256=self.rules_sha256,
             corrects=corrects,
+            outcome_sha256=record_sha256(outcome),
         )
