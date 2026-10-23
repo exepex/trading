@@ -35,7 +35,9 @@ DATASET_NAMES = {
     # the read-back goes through the pilot's verified Drive reader (a receipt-checked read, no record, count or seal)
     "archive/wiring.py": frozenset({"fno.school.dashcam.reader.VerifiedDriveReader"}),
     # where the dashcam's files sit and what they are called: two constants, to find the files the fleet wrote
-    "archive/files.py": frozenset({"fno.school.dashcam.names.DASHCAM_FOLDER", "fno.school.dashcam.names.SLOT_FILE_SUFFIX"}),
+    "archive/files.py": frozenset({
+        "fno.school.dashcam.names.DASHCAM_FOLDER", "fno.school.dashcam.names.SLOT_FILE_SUFFIX",
+    }),
 }  # fmt: skip
 
 
