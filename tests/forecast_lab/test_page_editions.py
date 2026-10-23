@@ -6,8 +6,8 @@ scores the previous session only in the 14:33 routine, so at 08:50 it is two ses
 from datetime import date
 
 from fno.forecast_lab.page.builder import PageBuilder
-from fno.forecast_lab.page.model import CLOSE_NOT_READ, NO_FORECAST_TODAY
-from fno.forecast_lab.page.plain import slack_lines
+from fno.forecast_lab.page.message import slack_lines
+from fno.forecast_lab.page.model import CLOSE_NOT_READ, NO_FORECAST_TODAY, DayShape, TrackRecord
 from fno.forecast_lab.ranges import STATUS_OK, Outcomes, RangeRow, TodayCloses
 
 from .builders import QUANTILES, REPORT_DAY, SESSIONS, Forecasts, at, issue
@@ -34,8 +34,11 @@ class Official(Outcomes):
 
 
 class Read(TodayCloses):
-    def __init__(self, value=None):
-        self.value = value
+    def __init__(self, value=None, levels=None):
+        self.value, self.found = value, levels or {}
+
+    def levels(self, underlying, day):
+        return self.found
 
     def close(self, underlying, day):
         return self.value
@@ -44,9 +47,9 @@ class Read(TodayCloses):
         return "NSE's index list did not answer"
 
 
-def build(edition, issues, official=None, read=None, history=None, at_time=(8, 50)):
+def build(edition, issues, official=None, read=None, history=None, at_time=(8, 50), levels=None):
     pages = PageBuilder(Forecasts(issues), history or History(), NoFacts(), SESSIONS, underlyings=("NIFTY",),
-                        official=Official(official or {}), today_closes=Read(read))  # fmt: skip
+                        official=Official(official or {}), today_closes=Read(read, levels))  # fmt: skip
     return pages.build(MON, at(MON, *at_time), edition)
 
 
@@ -89,10 +92,9 @@ def test_the_evening_checks_today_s_forecast_on_today_s_close_as_read_and_labels
     last = index.horizons[0].timeline.points[-1]
     assert (last.day, last.close, last.inside_50, last.inside_90, last.provisional) == (MON, 25390.0, True, True, True)
     assert (index.price, index.price_at) == (25390.0, "close today") and index.scored == 30
-    line = slack_lines(view)[1]
-    assert line.startswith("*NIFTY* · today: closed 25,390.00 (NSE's close; the official file confirms it in "
-                           "tomorrow's morning report) · inside “most likely”: yes · inside “almost certainly”: yes "
-                           "→ ✓ right · tomorrow: most likely")  # fmt: skip
+    assert slack_lines(view)[1] == ("*NIFTY* today: closed 25,390.00 (NSE's close; the official file confirms it in "
+                                    "tomorrow's morning report) | most likely 25,200–25,400 → ✅ inside | almost "
+                                    "certainly 25,000–25,600 → ✅ inside → ✓ right")  # fmt: skip
 
 
 def test_a_friday_evening_names_monday_s_morning_report_never_tomorrow():
@@ -100,15 +102,18 @@ def test_a_friday_evening_names_monday_s_morning_report_never_tomorrow():
     fri = PageBuilder(Forecasts((implied(THU),)), History(), NoFacts(), SESSIONS, underlyings=("NIFTY",),
                       today_closes=Read()).build(FRI, at(FRI, 20, 5), "evening")  # fmt: skip
     assert fri.next_session == MON and fri.indices[0].unchecked == CLOSE_NOT_READ
-    assert "today: not checked yet (NSE close not read); result in Monday's morning report" in slack_lines(fri)[1]
+    assert slack_lines(fri)[1] == ("⚠️ *NIFTY* today: no verdict. Today's close could not be read (NSE's index list "
+                                   "did not answer). The result comes in Monday's morning report.")  # fmt: skip
     assert any("today's result appears in Monday's morning report" in line for line in fri.system)
 
 
 def test_a_close_call_and_a_miss_get_their_words():
     close_call = build("evening", (implied(FRI), implied(MON)), read=25500.0, at_time=(20, 5))
     missed = build("evening", (implied(FRI), implied(MON)), read=25700.0, at_time=(20, 5))
-    assert "inside “most likely”: no · inside “almost certainly”: yes → ✓ right" in slack_lines(close_call)[1]
-    assert "inside “most likely”: no · inside “almost certainly”: no → ✗ wrong" in slack_lines(missed)[1]
+    assert slack_lines(close_call)[1].endswith("most likely 25,200–25,400 → ❌ outside by 100.00 points (above) | "
+                                               "almost certainly 25,000–25,600 → ✅ inside → ✓ right")  # fmt: skip
+    assert slack_lines(missed)[1].endswith("→ ❌ outside by 300.00 points (above) | almost certainly 25,000–25,600 → "
+                                           "❌ outside by 100.00 points (above) → ✗ wrong")  # fmt: skip
     assert missed.indices[0].wrong_days[0] == MON
 
 
@@ -128,7 +133,9 @@ def test_an_evening_without_a_forecast_for_today_checks_nothing_and_reads_no_clo
     assert not any(p.provisional for p in view.indices[0].horizons[0].timeline.points)
     assert not any("close was not read" in line for line in view.system)
     assert view.indices[0].unchecked == NO_FORECAST_TODAY
-    assert "today: not checked (no forecast was issued for today)" in slack_lines(view)[1]
+    assert slack_lines(view)[1] == ("❌ *NIFTY* today: no verdict. No forecast was issued for today (the Fri 23 Oct "
+                                    "15:45 issue holds no next-session forecast for Mon 26 Oct), so there is nothing "
+                                    "to check.")  # fmt: skip
 
 
 def test_the_morning_never_shows_a_row_aimed_before_today():
@@ -174,3 +181,29 @@ def test_the_morning_does_not_check_a_session_already_scored_or_without_its_offi
     assert scored.indices[0].result is None
     unarchived = build("morning", (implied(THU), implied(FRI)), history=UpToThursday())
     assert unarchived.indices[0].result is None
+
+
+def test_the_evening_carries_the_day_s_path_and_the_record_live_and_back_tested_apart():
+    """FL1-1f: the day's levels from the close reader, the previous session's official close, and the record."""
+    levels = {"open": 25350.0, "high": 25420.0, "low": 25280.0}
+    view = build("evening", (implied(FRI), implied(MON)), {FRI: 25310.5}, 25390.0, at_time=(20, 5), levels=levels)
+    (index,) = view.indices
+    assert index.shape == DayShape(25350.0, 25420.0, 25280.0, 25310.5)
+    assert index.track == TrackRecord(1, 1, 30, 30)  # today's own live check; History is all back-test
+    lines = slack_lines(view)
+    assert lines[2] == ("Day (measured): opened 25,350 (+40 on the previous close), ranged 25,280–25,420, closed "
+                        "25,390; the forecast's centre was 25,300 and its “most likely” width 200 points.")  # fmt: skip
+    assert lines[3].startswith("Size (measured): swing 140 points = 0.7× the “most likely” width; close 210 points "
+                               "inside the nearest “almost certainly” edge, comfortable")  # fmt: skip
+    assert lines[4] == "🟢 Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (last 30 days): 30 of 30"
+    assert lines[5].startswith("Next: tomorrow: most likely")
+
+
+def test_the_morning_and_a_day_without_a_check_carry_no_day_path():
+    assert build("morning", (implied(FRI),), {FRI: 25310.5}, levels={"open": 1.0}).indices[0].shape is None
+    checked = build(
+        "morning", (implied(THU), implied(FRI)), {FRI: 25390.0}, history=UpToThursday(), levels={"open": 1.0}
+    )
+    assert checked.indices[0].result is not None and checked.indices[0].shape is None  # the morning's check: no path
+    unread = build("evening", (implied(FRI), implied(MON)), at_time=(20, 5), levels={"open": 1.0}).indices[0]
+    assert unread.shape is None and unread.unchecked_why == "NSE's index list did not answer"

@@ -114,6 +114,28 @@ class Miss:
     reasons: tuple[str, ...]  # facts from our own data; "no clear reason in our data" when none
 
 
+@dataclass(frozen=True)
+class DayShape:
+    """Today's path as NSE's index list gave it after 15:30 (A4h's read; measured, provisional like the close), and
+    the previous session's official close. A level not recorded is None and is never shown (FL1-1f)."""
+
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    previous_close: float | None = None
+
+
+@dataclass(frozen=True)
+class TrackRecord:
+    """The next-session record, live and back-tested apart (owner, 23 Oct 2026): every live check so far (today's
+    own included), and the back-tested sessions among the last 30."""
+
+    live_days: int
+    live_right: int
+    backtest_days: int
+    backtest_right: int
+
+
 CLOSE_NOT_READ, NO_FORECAST_TODAY = "close not read", "no forecast"  # `IndexView.unchecked` (FL1-1e)
 
 
@@ -139,6 +161,9 @@ class IndexView:
     levels: tuple[Cue, ...] = ()  # the evening's levels and flows table (FL1-1d-2)
     result: Outcome | None = None  # the edition's own check: today's (evening) or the previous session's (morning)
     unchecked: str = ""  # evening, no result: why today is not checked (CLOSE_NOT_READ or NO_FORECAST_TODAY)
+    unchecked_why: str = ""  # its cause in words: the close reader's reason, or the issue that holds no forecast
+    shape: DayShape | None = None  # evening, with a result: the day's path (FL1-1f)
+    track: TrackRecord | None = None  # the record, live and back-tested apart (FL1-1f)
 
 
 @dataclass(frozen=True)

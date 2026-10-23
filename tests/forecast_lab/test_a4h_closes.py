@@ -69,3 +69,13 @@ def test_an_older_copy_on_disk_is_never_used_past_a_problem(tmp_path):
     older.write_text(json.dumps(record(nifty=999.0)), encoding="utf-8")  # not the receipted bytes
     parts.damage(RECORD)  # and Drive's copy fails its check
     assert A4hTodayCloses(parts.cache).close("NIFTY", WED) is None
+
+
+def test_the_day_s_levels_come_from_the_same_record_and_only_when_recorded(tmp_path):
+    full = record()
+    full["indices"]["NIFTY 50"].update(high=1010.0, low=985.0)
+    full["indices"]["NIFTY BANK"].update(high=None)  # recorded as empty: left out
+    closes = a4h(tmp_path / "a", {RECORD: full})
+    assert closes.levels("NIFTY", WED) == {"open": 990.0, "high": 1010.0, "low": 985.0}
+    assert closes.levels("BANKNIFTY", WED) == {"open": 1990.0}  # high and low not recorded: never made up
+    assert a4h(tmp_path / "b", {RECORD: record("21-Oct-2026 15:29")}).levels("NIFTY", WED) == {}
