@@ -75,3 +75,42 @@ publisher (`publish` returns None, `published` sees nothing new) gives `recover 
 the should-fix above and the joint landing with ins-wiring are required.
 
 **Gates (my run, `tests/school/instructor`):** 272 passed. ruff and check_imports are clean.
+
+## Addendum 2: round 3 at 515da4f7 (granted by the owner)
+
+**Scope:** 08b93ce8, plus main merged in at 515da4f7. The owner's decision, relayed by the orchestrator on 23 Oct: judge
+the stricter version. Each session's files are computed as of that session, adoption and `recover()` are removed, and a
+rerun is byte-identical. The adoption variant is dropped, so ins-wiring needs no `recover()`.
+
+**Verdict: PASS.** No blocking or should-fix findings. One minor.
+
+| Earlier finding | Result | My evidence |
+|---|---|---|
+| 525 SF2: the root cause is non-determinism; build the cut-off | MET | `PathReader.closed_on/closed_between(..., as_of)` read corrections only from outcome files up to `as_of`. `InstructorRun` passes its own session to the day's paths, to `_nets` (the controls) and to every re-check. `EvidenceBuilder._hold` gives None for `expiry >= as_of`. The only call without `as_of` is `outputs/command.py` (the review, "today" by design) |
+| 525 SF1 and 525.1's should-fix (adoption) | NO LONGER APPLIES | `recover` is gone from `fno/` (the diff has 0 lines with it). Port, store and fake are as on main |
+| 525.1: works with MS-P1j's run-only receipts | MET | My probe: a run-only publisher (publish pushes nothing, `published` sees nothing). The first run wrote Drive with no receipt. Then a later correction was sealed and a settlement published, and the rerun followed. Drive bytes unchanged, no conflict, and the two receipts queued (attribution, causes) |
+| Combined with ins-wiring | CLEAN | A trial merge with `story/ms-p1j-ins-wiring` (bda6a49d) conflicts only in the story doc. `tests/school`: 3504 passed. Its `DeferredInstructorStore` has no `recover` and needs none |
+
+**Plants (mine, `tests/school/instructor`):** 6 of 7 caught.
+- Caught:
+  - the day's paths read to today;
+  - the re-check's paths read to today;
+  - the controls read to today;
+  - the hold allowed on the expiry day;
+  - the reader ignoring `as_of`;
+  - classify given a later `as_of`.
+- Survived (minor): the already-written branch's `unreadable` read to today. It is a report field only, never written
+  to a file, so purity is not affected. Pin it or drop the `as_of` there.
+
+**The stated residuals are accepted as stated [reasoning only]:**
+- **A late settlement or snapshot read.** A rerun can then differ only if the first run also stopped between Drive
+  and the receipt. The outcome is a loud `InstructorConflict` (main's write-once store, unchanged), never a silent
+  rewrite. Fully pure reads need "known at" times in d's settlement source and the archive; that belongs to those
+  stories.
+- **Out-of-order runs.** MS-P1j runs sessions in order.
+- **Orphan corrections.** They are read to today, but they are an alert line only.
+
+**Gates (my run, a trial merge of 515da4f7 with main 4127f79f):**
+- `pytest -n auto`: 14333 passed, 16 xfailed.
+- ruff check: clean. ruff format: 2303 files already formatted.
+- check_imports, check_records and check_numbers: clean.
