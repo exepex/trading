@@ -69,7 +69,8 @@ cancels orders.
    hang: never stop the run while it waits. A second run beside a living one prints "another daily run of <day> is
    running" and does nothing (story O1-day-lock): then wait for the first run's last line.
 3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
-   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+   result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin
+   main` first, then `git push origin HEAD:main`).
 
 ### What the run does for the 3 pm quote parts (A4c's routine steps, word for word)
 
@@ -84,7 +85,8 @@ each part's commit in its one thread. The `git add` lines below are also the han
    weekend session is recorded. It prints the result line. Groww's raw quote rows go to Google Drive only (story A4b;
    needs the four `FNO_GDRIVE_*` settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive
    file's SHA-256) and the day's `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
-3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase` first); never
+3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase origin main`
+   first, then `git push origin HEAD:main`); never
    `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed: `git add
    ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`. Never edit
    or delete a recorded attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never
@@ -139,7 +141,8 @@ modifies or cancels orders, and neither uses Groww.
    `--no-verify`). If the push is refused, pull and push once more; if it fails again, post "receipt NOT pushed" with
    the edition and day to #fno-desk (`C0C89E8QCCD`) with the Slack connector: the Drive copy is the record.
 4. If it printed "alert NOT sent", post those lines to #fno-desk with the Slack connector. Note any failure in
-   `conversations/<date>.md`, then commit and push it (`git pull --no-rebase` first).
+   `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin main` first, then `git push origin
+   HEAD:main`).
 
 ## Pre-open capture (story A22)
 
@@ -163,7 +166,8 @@ in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is r
      08:41, for the 08:50 morning edition). It ends on "pre-open recorded" or "pre-open recorded with problems: ..."
      (exit 1; it posts that one line to #fno-desk itself).
 4. If either printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk
-   (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase` first; only
+   (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase origin main`
+   first, then `git push origin HEAD:main`; only
    the files the command names, never `--no-verify`). No value is ever posted or committed.
 
 ## Branch
@@ -183,6 +187,11 @@ damage, not by its size; when unsure, lane 1.
   commits by scheduled jobs.
 
 A checkout on a detached HEAD pushes with `git push origin HEAD:<branch>`.
+
+**Every scheduled routine starts on latest main (story DR1, owner 23 Oct 2026).** The first line of each routine's
+stored prompt, before setup: `git fetch -q origin main && git checkout -q --detach origin/main`; if it fails, post its
+error line to #fno-desk (`C0C89E8QCCD`) and stop. Every push in a routine is `git pull --no-rebase origin main`, then
+`git push origin HEAD:main` (22 Oct: a routine on its own session branch could not commit the day's quotes).
 
 Work on `main` (`git pull --no-rebase origin main` before every push: ChatGPT also pushes to `main`).
 Every session commits with the public-record scan on (story O5): `.claude/settings.json` runs
