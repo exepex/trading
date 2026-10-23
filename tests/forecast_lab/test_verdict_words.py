@@ -64,3 +64,27 @@ def test_the_record_counts_every_live_check_and_only_back_tested_sessions_in_its
 
     points = [point(False)] * 29 + [point(True, False), point(False, False), point(True)]
     assert track_record(points) == TrackRecord(2, 1, 30, 29)
+
+
+def test_missing_context_says_not_available_with_each_reason_and_a_quiet_day_says_so():
+    """Orchestrator, 23 Oct: the real build prints measured values, never a placeholder."""
+    quiet = (Cue(QUIET, text=QUIET),)
+    why = ("Nasdaq-100: no reading yet (the last one is too old to use)", "USD/INR (RBI): the read failed (OSError)")
+    lines = top_block(checked(1100.0, why=quiet), DAY, MON, why)
+    assert ("Context: not available (Nasdaq-100: no reading yet (the last one is too old to use); USD/INR (RBI): the "
+            "read failed (OSError)).") in lines  # fmt: skip
+    assert "Context (measured): no notable moves in our data." in top_block(checked(1100.0, why=quiet), DAY, MON)
+
+
+def test_the_message_passes_the_evening_s_missing_sources_and_never_the_morning_only_ones():
+    from fno.forecast_lab.page.cues import FAILED, NOT_AVAILABLE, NOT_OUT_YET, SectionView
+    from fno.forecast_lab.page.message import slack_lines
+    from fno.forecast_lab.page.model import PageView
+
+    cues = (SectionView("Brent", NOT_OUT_YET, why="Brent: no reading yet (nothing recorded)"),
+            SectionView("GIFT Nifty", NOT_AVAILABLE, why="GIFT Nifty is a pre-open cue: the morning edition only"),
+            SectionView("Flags", FAILED, why="Flags: the read failed (OSError)"))  # fmt: skip
+    view = PageView(DAY, "Live, sealed", (checked(1100.0),), (), cues=cues, next_session=MON)
+    assert ("Context: not available (Brent: no reading yet (nothing recorded); Flags: the read failed (OSError)).") in (
+        slack_lines(view)
+    )

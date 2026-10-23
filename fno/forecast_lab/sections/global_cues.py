@@ -22,7 +22,12 @@ from .spread import changes, size
 BRENT_DAYS = 10  # a stated limit (story FL1-1d table), not evidence of the right number
 USABLE = ("current", "ahead")
 BEHIND = "behind"
-NOT_SHOWN = "{label}: no reading inside its rule ({status})"
+NOT_SHOWN = "{label}: no reading yet ({why})"
+WHY_NOT_SHOWN = {  # A17's reading states in plain words (orchestrator, 23 Oct: readable in 30 seconds)
+    "none": "nothing recorded",
+    "behind": "the last one is too old to use",
+    "stale": "the last one is far too old to use",
+}
 EARLIER = "{label}: today's value is not out yet; the previous one is shown, with its date"
 
 
@@ -62,7 +67,8 @@ class GlobalCueSection(Section):
         readings = [reader.read(self.spec.cue, day, cutoff, live_only=True) for cutoff in self.cutoffs[edition]]
         shown = next((n for n, r in enumerate(readings) if self._shown(r)), None)
         if shown is None:
-            return missing(self.name, edition, NOT_SHOWN.format(label=self.name, status=readings[0].status))
+            why = WHY_NOT_SHOWN.get(readings[0].status, readings[0].status)
+            return missing(self.name, edition, NOT_SHOWN.format(label=self.name, why=why))
         reading, why = readings[shown], (EARLIER.format(label=self.name) if shown else "")
         as_of = date.fromisoformat(reading.row["value_date"])
         rows = [r for r in reader.tables[self.spec.cue].rows() if date.fromisoformat(r["value_date"]) <= as_of]

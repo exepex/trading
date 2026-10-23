@@ -195,8 +195,9 @@ def test_the_evening_carries_the_day_s_path_and_the_record_live_and_back_tested_
                         "25,390; the forecast's centre was 25,300 and its “most likely” width 200 points.")  # fmt: skip
     assert lines[3].startswith("Size (measured): swing 140 points = 0.7× the “most likely” width; close 210 points "
                                "inside the nearest “almost certainly” edge, comfortable")  # fmt: skip
-    assert lines[4] == "🟢 Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (last 30 days): 30 of 30"
-    assert lines[5].startswith("Next: tomorrow: most likely")
+    assert lines[4] == "Context (measured): no notable moves in our data."  # no Sections in this build
+    assert lines[5] == "🟢 Live so far: 1 day, inside “almost certainly” 1 of 1 | Back-test (last 30 days): 30 of 30"
+    assert lines[6].startswith("Next: tomorrow: most likely")
 
 
 def test_the_morning_and_a_day_without_a_check_carry_no_day_path():

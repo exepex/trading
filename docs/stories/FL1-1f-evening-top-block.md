@@ -29,7 +29,12 @@ Per index, in this order:
      the half-width; that threshold is reasoning only and is labelled so.
    - "Missed because (measured)": only reasons that FL1-1c's direction-aware facts measured. Otherwise "Missed
      (reasoning): no measured cause in our data, so likely noise". A cause is never guessed.
-   - "Context (measured, not a cause)": the page's evening cues (US closes, VIX, Brent, USD/INR, flows) by size.
+   - "Context (measured, not a cause)": the page's evening cues (US closes, VIX, Brent, USD/INR, flows) by size,
+     with their measured values.
+     - With none to show, the line reads "Context: not available (<each source's reason>)" when a source has no
+       reading or failed, else "Context (measured): no notable moves in our data". It is never a placeholder
+       (orchestrator, 23 Oct).
+     - The morning-only sources (GIFT, VIX's official file) are never listed as missing in the evening.
 4. **The record, live and back-tested apart**: "🟢 Live so far: 1 day, inside “almost certainly” 1 of 1 |
    Back-test (last 30 days): 25 of 30".
    - "Live" counts every live sealed check so far, today's own included.
@@ -38,6 +43,24 @@ Per index, in this order:
 5. **Next**: tomorrow's and the 3-session forecast, as before.
 
 The footer (the status line) stays, but nothing that changes a verdict lives only there.
+
+## Smaller fixes folded in (orchestrator, 23 Oct)
+
+- **Plain words for a missing global cue.** "Nasdaq-100: no reading inside its rule (behind)" now reads "Nasdaq-100:
+  no reading yet (the last one is too old to use)". The other states read "nothing recorded" and "the last one is
+  far too old to use".
+- **`python -m fno lab preview --edition morning|evening --day D`**, the owner's preview (owner, 23 Oct: "publish both
+  the reports, morning for today and the evening ... Don't change the numbers for morning forecast"):
+  - It builds the edition's own composer with today's code and posts once to #fno-forecast. The bold first line reads
+    "DRY RUN (owner's preview, 23 Oct): not today's report; the official editions are above".
+  - It writes nothing: no record, no marker, no receipt, no commit. Only `EditionRun` writes, and the preview never
+    builds one; `build_edition` and `build_preview` share one `build_composer`.
+  - It sends no alert; would-be alerts are printed.
+  - A morning preview is posted only when every "most likely … (almost certainly …)" range of the sealed morning
+    record appears unchanged in it. Otherwise it prints the difference and posts nothing.
+  - It runs at each edition's own posting time (08:50, 20:05 IST).
+  - The FL1 builder runs it once per edition, for 23 Oct, only after FL1-1e, FL1-1f and the designer's page have
+    their PASS and are on `main` (orchestrator, 23 Oct).
 
 ## Data
 
@@ -76,7 +99,10 @@ The footer (the status line) stays, but nothing that changes a verdict lives onl
 - The replay's evening shows its real gap first.
 - MS-P1g's evening golden text is regenerated from the unwrapped maker. Its picture hashes, alerts and verdict count
   are asserted unchanged.
-- Mutations: 9 of 9 caught, after three survivors got tests (the live window, the morning's path, an empty level).
+- Mutations: 16 of 16 caught. Three survivors in the first round got tests: the live window, the morning's path and
+  an empty level. The second round covered the preview, the context and the cue wording.
+- The preview, read-only on real data with no token, so nothing could be sent: the 23 Oct morning keeps its sealed
+  ranges exactly. The evening is as below. `git status` and `receipts/` were unchanged by the run.
 
 ## Real data (read-only dry run of the 23 Oct evening, nothing posted or written)
 

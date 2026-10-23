@@ -4,6 +4,7 @@ the record) and its next forecasts; then the morning's confirmations and the sta
 
 from __future__ import annotations
 
+from .cues import FAILED, NOT_OUT_YET
 from .model import IndexView, PageView
 from .plain import EDITIONS, RIGHT, day_short, forecast_words, index_line, status_line
 from .verdict_words import top_block
@@ -11,7 +12,9 @@ from .verdict_words import top_block
 
 def _evening(index: IndexView, view: PageView) -> list[str]:
     ahead = forecast_words(index)
-    return [*top_block(index, view.day, view.next_session), *([f"Next: {' · '.join(ahead)}"] if ahead else [])]
+    unavailable = tuple(s.why for s in view.cues if s.status in (NOT_OUT_YET, FAILED) and s.why)
+    block = top_block(index, view.day, view.next_session, unavailable)
+    return [*block, *([f"Next: {' · '.join(ahead)}"] if ahead else [])]
 
 
 def slack_lines(view: PageView) -> list[str]:

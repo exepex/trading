@@ -26,6 +26,7 @@ NO_VERDICT = {
     "check.",
 }
 NO_CAUSE = "Missed (reasoning): no measured cause in our data, so likely noise."
+QUIET_CONTEXT = f"Context (measured): {QUIET}."
 
 
 def _edge(close: float, low: float, high: float) -> str:
@@ -92,7 +93,9 @@ def _cue(cue: Cue) -> str:
     return cue.text if cue.text is not None else f"{cue.name} {cue.change:+.2f}{cue.unit}"
 
 
-def _cause(index: IndexView) -> str | None:
+def _causes(index: IndexView, unavailable: tuple[str, ...]) -> list[str]:
+    """A miss's measured reasons (or that there is none), then the context: its measured values, "no notable moves",
+    or "not available" with each source's reason; never a placeholder."""
     said = [c.text for c in index.why if c.name == REASON and c.text != NO_REASON]
     context = [_cue(c) for c in index.why if c.role == CONTEXT and c.name not in (REASON, QUIET)
                and (c.text is not None or c.change is not None)]  # fmt: skip
@@ -101,14 +104,20 @@ def _cause(index: IndexView) -> str | None:
         lines.append(f"Missed because (measured): {'; '.join(said)}." if said else NO_CAUSE)
     if context:
         lines.append(f"Context (measured, not a cause): {', '.join(context)}.")
-    return " ".join(lines) or None
+    elif unavailable:
+        lines.append(f"Context: not available ({'; '.join(unavailable)}).")
+    else:
+        lines.append(QUIET_CONTEXT)
+    return lines
 
 
-def top_block(index: IndexView, today: date, next_session: date | None) -> list[str]:
-    """The index's verdict (or why there is none), its why lines and its record, in that order."""
+def top_block(index: IndexView, today: date, next_session: date | None,
+              unavailable: tuple[str, ...] = ()) -> list[str]:  # fmt: skip
+    """The index's verdict (or why there is none), its why lines and its record, in that order. `unavailable`: why
+    each context source the evening expected has no reading (its "not out yet" or "not read" words)."""
     if index.result is None:
         lines = [no_verdict_line(index, today, next_session)] if index.unchecked else [f"*{index.underlying}*"]
     else:
-        lines = [verdict_line(index, today, next_session),
-                 *(line for line in (_path(index), _size(index), _cause(index)) if line)]  # fmt: skip
+        lines = [verdict_line(index, today, next_session), *(line for line in (_path(index), _size(index)) if line),
+                 *_causes(index, unavailable)]  # fmt: skip
     return [*lines, f"{LIGHTS[light(index)]} {record_words(index)}"]
