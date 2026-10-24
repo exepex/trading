@@ -70,6 +70,7 @@ DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
 STEP_ERROR = "F&O paper desk {day}: step {name} FAILED ({reason}); the run goes on, the steps that need it are refused"
 NEEDS_FAILED = "needs {needed}, which failed today"
+NEEDS_MISSING = "needs {needed}, which has not run today"
 # DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
 # exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run)
 NEEDS = {"fills": ("snapshot", RUN_LOG_DECISIONS_STEP)}
@@ -201,11 +202,17 @@ class DailyRun:
         self._guarded(log.day, f"step {name}", step)
 
     def _refused(self, log: RunLog, name: str) -> StepOutcome | None:
-        """A step whose input step failed today is refused, never run on a missing input."""
-        failed = [needed for needed in NEEDS.get(name, ()) if log.done(needed) and _failed(log.result(needed))]
-        if not failed:
+        """A step whose input step has not run or failed today is refused, never run on a missing input (fail
+        closed); the reason names which."""
+        needs = NEEDS.get(name, ())
+        missing = [needed for needed in needs if not log.done(needed)]
+        failed = [needed for needed in needs if log.done(needed) and _failed(log.result(needed))]
+        if not (missing or failed):
             return None
-        return StepOutcome({}, {"status": STEP_REFUSED, "reason": NEEDS_FAILED.format(needed=", ".join(failed))})
+        reasons = ([NEEDS_MISSING.format(needed=", ".join(missing))] if missing else []) + (
+            [NEEDS_FAILED.format(needed=", ".join(failed))] if failed else []
+        )
+        return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons)})
 
     def _run_step(self, day: date, name: str, action: Callable[[], StepOutcome]) -> StepOutcome:
         """An unexpected error in one step fails that step only (DRY2 R2): it is logged with its type and one line,

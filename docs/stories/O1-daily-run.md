@@ -371,6 +371,49 @@ orchestrator put both before Monday 26 Oct 14:05 IST, lane 1 (judges B and E).
   `failed`/`refused` with a reason where the run used to raise.
 - (4) `_unreviewed` for a failed exits step.
 
+**Round 2 (the orchestrator and judge 567): fail closed, one table, every reader.**
+
+*Which step needs which.* This is read from `DailyRun`'s real step inputs: `_plan` and each step's own reads.
+
+| Step | Reads another step's logged result | If that step has not run | If that step failed |
+|---|---|---|---|
+| fills | snapshot (`valid`), decisions (the collected runs) | refused: "needs snapshot, which has not run today" | refused: "needs snapshot, which failed today" |
+| every other desk and O1 step | none: each reads its own inputs (files, the gate, Drive) | runs | runs |
+
+The exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run (design
+9). Book 1's decision (an O1 command) reads the pack from disk and refuses itself without it ("no common pack").
+
+*Every reader of a failed or refused step's committed result* (`{"status", "reason"}`, nothing else):
+- **Desk:**
+  - `daily_run` fills: refused (the table).
+  - `daily_run._unreviewed`: a failed exits step means every book is unreviewed.
+  - `_unfilled` and `_unscored` already read `status`.
+- **The run's last line** (`runner.py`): names the failed and refused steps through `run_log.problem_steps`, the one
+  rule (agreed with T1 for T1d's card).
+- **Scoreboard** (`scoreboard/committed_runs.py`, guarded here): reads the decisions and the exits through
+  `run_log.book_results`, which gives {} for a failed step.
+  - `runs()`: no run.
+  - `uncollected()`: no others. Before, it raised AttributeError on the failure's string.
+  - `missed_runs`: a missed decision and a missed exit review.
+  - `snapshot_ids`: no valid snapshot.
+- **Card** (T1, `cards/rule_checks.py`):
+  - The snapshot verdict reads "no valid execution snapshot (<reason>)", `data_check_failed`. Correct already.
+  - The decisions' late books would list "status" and "reason" (judge 567). T1d's change uses `book_results`, and the
+    orchestrator merges R2 together with T1d.
+- **E6 reviews** (`daily/reviews.py`): no valid snapshot, so a day with open positions is refused. Correct already.
+- **O8 health** (`health/desk_checks.py`): `_problems` names the step; `_collected_late` keeps only per-book dicts.
+  Correct already.
+- **E8 opening runs** (`books/opening_runs.py`): no `run_id`, so "no log". Correct already.
+- **A16's feed gate:** reads only the candles step, an O1 command whose shape is unchanged.
+- **Tests** (`tests/timetable/test_failed_step_readers.py`): the two helpers; the scoreboard on a failed decisions,
+  snapshot and exits day; a missing input refused.
+- **Plants** (the scoreboard without `book_results`; the missing check dropped): each fails.
+
+*A frozen day (the desk freeze, held for the owner's v4 sign-off, unmerged).* The freeze records the desk's steps
+`frozen` and runs none of them. `frozen` is neither failed nor missing, so `NEEDS` would not refuse the fills. The
+freeze's own rule must decide first: when the freeze merges, its check goes before `_refused` in `_step`, so a frozen
+day's fills are `frozen`, never refused or run. Both are O1's own code; the freeze branch carries the test.
+
 **Not changed, said plainly:**
 - The card's own text (T1's) does not list failed steps. The run's last line already names them ("day done with
   problems: snapshot, fills"), and each failed step is alerted.

@@ -10,9 +10,10 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
-from ..constants import JOURNAL_FOLDER
+from ..constants import JOURNAL_FOLDER, STEP_FAILED, STEP_REFUSED
 
 RUNS_FOLDER = "runs"
+PROBLEMS = (STEP_FAILED, STEP_REFUSED)
 
 
 @dataclass
@@ -53,3 +54,19 @@ class RunLog:
         temporary = self.path.with_name(f".{self.path.name}.tmp")
         temporary.write_text(json.dumps(body, indent=1, sort_keys=False) + "\n", encoding="utf-8")
         os.replace(temporary, self.path)
+
+
+def problem_steps(steps: dict[str, dict]) -> list[tuple[str, str]]:
+    """Each step that failed or was refused, with its status, in the order the steps ran: the one rule the run's last
+    line and the card read (DRY2 R2, T1d)."""
+    return [(name, step["result"]["status"]) for name, step in steps.items() if _problem(step["result"])]
+
+
+def book_results(result: dict) -> dict:
+    """A per-book step's result (the decisions, the exits) as book -> entry; {} when the step itself failed or was
+    refused (DRY2 R2): its `{"status", "reason"}` is never read as books."""
+    return {} if _problem(result) else result
+
+
+def _problem(result: dict) -> bool:
+    return result.get("status") in PROBLEMS
