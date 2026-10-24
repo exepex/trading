@@ -82,3 +82,25 @@ then reads "a refit day with no capture run at all", and the "or the day was `sy
 as in SF1 above.
 
 Minor m1 and m2 above are unchanged.
+
+## Addendum 2: round 2, `story/g7b-completion` at 2949410bf (judge K, own session)
+
+**PASS, lane 1.** Every finding is closed. A trial merge into origin/main a7ae33286 is clean. Gates on it, with the
+Slack token set: `pytest -n auto` 16,224 passed, 1 skipped, 14 xfailed, exit 0; ruff check and format clean;
+`check_imports` (2,713 files), `check_records` and `check_numbers` clean. **No test posted to Slack:** all three
+channels are empty for 16:40:40-16:50:54 UTC.
+
+| Finding | Verdict | Own evidence |
+|---|---|---|
+| Blocking 1 (red on main) | fixed | the fixture is on `build_drive_records` with `paths()`; the 4 tests pass in the full run |
+| SF1 (ratio stored only on a released day) | fixed | `pack_capture.store_refit_ratios` stores all six ratios on the refit day; `build_pack_capture` calls it before the release is read. A `NotReleased` day sets `refused`, still settles the ratios and V5's outcomes, prints "nothing written:" and exits 0. My plants are all caught: "ratios not stored", "every day treated as a refit day", "NotReleased raises again" |
+| Item (3) text | fixed | G-forecasts.md:646-649: stored "whatever its release label, before the release is read"; "a refit day with no capture run leaves the month not eligible, counted; never a late ratio", with its cost line (about 21 sessions) |
+| m1 (settled V5 outcomes not in that day's base rate) | fixed | my plant (removing `with_v5_outcomes`) is now caught |
+| m2 (a zero close proxy dropped from the level line) | fixed | `level_line` keeps zeros, and a zero total gives no value; my plant (`b > 0` restored) is caught |
+| Rate fix 1bd9d4638 | verified | it is an ancestor of 2949410bf; `fno/forecast_v4/pricing.py` `V4_RISK_FREE_RATE = 0.065` (protocol 1.4) is now used for the EOD proxy and V4/V5 terms instead of `config.yaml`'s `risk_free_rate`, which is also 0.065, so no value moves |
+| `pack_wiring.candle_history()` for G14 | MET (claims) | a thin pass-through to `candle_sessions`; the missing-folder test is the builder's (not re-planted) |
+
+**Plants this round:** 5 of mine, 5 caught.
+
+**For the merge:** rule 8 still applies. After the merge, run the merged system once on real data in dry-run mode.
+For this slice that means `forecast-v4-scores report` on real data, and `forecast-v4 backfill-implied` once to Drive.
