@@ -48,3 +48,18 @@
   - The guard gains probes for NSE's archive and GitHub's activity API.
 
 ## Plants: 6 planted, 2 caught (B3, B5), 4 survived (B1, B4 blocking; B2, B6 minor)
+
+## Addendum 1
+
+- **Head checked:** 67e150e3, round 2 of 2, merged with main. It also carries REH1a's merge, O9's
+  8214a5d5, judge 559's notes and the urllib3 backstop.
+- **Verdict: PASS (my half). Merge once judge B also passes.**
+- **Gates:** pytest -n auto: 15060 passed, 0 failed. ruff check, ruff format --check, check_imports and
+  check_records: clean.
+- **Plants re-run by me, each fails 1 test now:**
+  - **B1 (receipts from GitHub):** v4's real builder, with the mode set, returns `LocalPushReceipts` over
+    `<state>/pushes.log`, and all five builders are held to `rehearsed_receipts`.
+  - **B4 (the shim off the PATH):** a step's commit made through `rehearse_daily`'s environment carries
+    14:05 IST on 23 Oct.
+  - **B2 (`_held` always False):** a commit already held before a push is not received by that push.
+  - **B6 (every ref logged):** only pushes to main are logged.
