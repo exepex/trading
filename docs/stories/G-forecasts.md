@@ -1966,5 +1966,7 @@ rule-8 end-to-end run needs G10's release on a live day.
 *Open for the owner (through the orchestrator):* BG1 "forecasters last" and fail open (C8); whether the reveal wait
 counts in BG1's cap (C17 shows working, waiting and calls apart); steps 3 and 4 of both routines' stored prompt.
 
-*Gates:* see the message to the judge (full suite, ruff, format, `check_imports`, `check_records` on the head;
-`check_numbers` on `main` at merge).
+*Gates* on the merged head 562718c5 (a clean copy, `env -u FNO_SLACK_BOT_TOKEN` for pytest only): 15,550 passed,
+1 skipped, 14 xfailed (O11's G11 marker gone); ruff and ruff format clean; `check_imports` clean (2,619 files);
+`check_records` clean (9,070 files). `check_numbers` runs on `main` at merge (no number was claimed by this story).
+Every later commit on the branch is Markdown only.
