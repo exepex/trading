@@ -69,6 +69,8 @@ For each index and each listed expiry X (weekly or monthly: the nearest expiry e
 - Forecast realised volatility: sigma_RV = sqrt(252 x v), v the EWMA (lambda 0.94) of squared daily log returns of
   the index close, through the session **before** the entry session, seeded with the variance of its first 20
   returns from 1 Jan 2018.
+- A cycle without these inputs (no traded call and put pair, the ATM straddle untraded, or too few closes) is
+  skipped by every variant (`no_gate_input`, counted), so all six variants share one cycle set.
 - Ratio r = sigma_IV / sigma_RV. Gates: G0 none (always trade), G12 r >= 1.2, G15 r >= 1.5. Fixed now, before any
   ratio is seen: 1.2 is about the typical India VIX to realised ratio, 1.5 "rich" [reasoning only].
 - Limit stated: the gate uses entry-day option closes (NSE's last-half-hour weighted price), which a decision at 15:15
@@ -105,9 +107,10 @@ For each index and each listed expiry X (weekly or monthly: the nearest expiry e
 
 Per variant, on the discovery trades of both indices pooled (one trade per index per cycle, one lot):
 - **Mean net per trade** (Rs, after charges and the Rs 1 pad). Standard error clustered by expiry week (both indices'
-  trades of a week form one cluster); one-sided p of mean > 0 from a t with clusters - 1 degrees of freedom.
-- **Holm** across the 6 variants at 0.05 (one family, F1's question). Also each variant's G1 bound (lower one-sided
-  90% bound of mean net).
+  trades of a week form one cluster); one-sided p of mean > 0 = 1 - Phi(mean / SE), the normal approximation of the clustered t (the
+  clusters number in the hundreds; with fewer than 30 clusters the variant is reported only, p = 1).
+- **Holm** across the 6 variants at 0.05 (one family, F1's question). Also each variant's G1 bound (mean - 1.2816 x SE,
+  the lower one-sided 90% bound of mean net).
 - **Gate value** for G12 and G15: the gated mean against 2,000 random gates (RC1) that keep the same number of
   the same structure's always-trade cycles (seed 20261025); p_gate = share of random means >= the gated mean.
 - **Nomination to the held-out read** (all four needed; at most 2 variants, lowest Holm-adjusted p first):
