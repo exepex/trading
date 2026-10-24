@@ -2,7 +2,8 @@
 (synced verified from Drive into O9's cache first, its back-fill too for the page's history), FL1's adapter, the
 message's content (`page_wiring.py`), O9's data store for each edition's records, the Slack file poster pointed at
 #fno-forecast, the alert sender for #fno-desk, the A7 calendar and the IST clock. Each edition is live from its own
-`forecast_lab.live_from` date in config.yaml."""
+`forecast_lab.live_from` date in config.yaml; in a rehearsal of a day before it, the edition runs and every post says
+it is not live in real runs (story REH1k)."""
 
 from __future__ import annotations
 
@@ -53,6 +54,13 @@ def live_from(cfg: dict) -> dict[str, date | None]:
     return {e: date.fromisoformat(str(raw[e])) if raw.get(e) else None for e in (MORNING, EVENING)}
 
 
+def lab_live(cfg: dict, env=os.environ) -> tuple[dict[str, date | None], dict[str, str]]:
+    """Each edition's live date for this run, and the note of each edition made live only by a rehearsal (REH1k)."""
+    from ..rehearsal.live_wiring import rehearsed_live
+
+    return rehearsed_live(live_from(cfg), env)
+
+
 def g13b_issues_from(cfg: dict) -> date | None:
     """G13b's first live day: no forecast is expected from an issue day before it."""
     from ..daily.wiring import live_dates
@@ -79,9 +87,10 @@ def build_release_checks() -> ReleaseChecks:
     return ReleaseChecks({"fo-bhavcopy": fo, "fii-dii-cash": flows})
 
 
-def build_composer(edition: str, env=os.environ) -> tuple[Composer, RegularSessions, dict[str, date | None]]:
+def build_composer(edition: str, env=os.environ, live: dict[str, date | None] | None = None
+                   ) -> tuple[Composer, RegularSessions, dict[str, date | None]]:  # fmt: skip
     """The edition's composer over the synced Drive cache (read-only: only `EditionRun` writes records), the regular
-    sessions and each edition's live date."""
+    sessions and each edition's live date (`live`: the edition's run passes its own, REH1k)."""
     from ..price_ranges import wiring as g13b
     from ..price_ranges.closes import IndexFileCloses, Outcomes
     from ..price_ranges.folders import BACKFILL, LIVE, SCORES, drive
@@ -98,7 +107,7 @@ def build_composer(edition: str, env=os.environ) -> tuple[Composer, RegularSessi
     calendar, cfg = build_session_calendar(), load_app_config()
     closes = ArchivedCloses(G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store)))),
                             IndexFileCloses(build_stored_index_close_files(), calendar))  # fmt: skip
-    sessions, live = RegularSessions(calendar), live_from(cfg)
+    sessions, live = RegularSessions(calendar), lab_live(cfg, env)[0] if live is None else live
     maker = build_report_maker(ranges, forecasts, scores, calendar, closes)
     evenings, own = records(EVENING, env), records(edition, env)
     if edition == MORNING:
@@ -108,7 +117,11 @@ def build_composer(edition: str, env=os.environ) -> tuple[Composer, RegularSessi
 
 
 def build_edition(edition: str, env=os.environ) -> EditionRun:
-    composer, sessions, live = build_composer(edition, env)
+    from ..rehearsal.live_wiring import note_this_process
+
+    live, notes = lab_live(load_app_config(), env)
+    note_this_process(notes.get(edition))  # REH1k: one edition per process
+    composer, sessions, _ = build_composer(edition, env, live)
     cutoff = MORNING_BY if edition == MORNING else None
     return EditionRun(Edition(edition, live[edition], cutoff), composer, records(edition, env),
                       build_forecast_poster(env), build_alert_sender(), sessions.is_regular, now_ist)  # fmt: skip
@@ -116,5 +129,5 @@ def build_edition(edition: str, env=os.environ) -> EditionRun:
 
 def build_preview(edition: str, env=os.environ) -> Preview:
     """The owner's preview: the edition's composer, the #fno-forecast poster and its own records, read only."""
-    composer, _, _ = build_composer(edition, env)
+    composer, _, _ = build_composer(edition, env, live_from(load_app_config()))  # the real dates: no rehearsal note
     return Preview(composer, build_forecast_poster(env), records(edition, env).report)

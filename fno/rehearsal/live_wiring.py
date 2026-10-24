@@ -43,6 +43,13 @@ def rehearsed_live(live: dict[str, date | None], env: Mapping[str, str] = os.env
     return {**live, **dict.fromkeys(notes, mode.day)}, notes
 
 
+def note_this_process(note: str | None) -> None:
+    """The not-live line every labelled post of this process carries (story REH1k: one lab edition per process, as
+    one daily-run step at a time); None leaves the process as it is."""
+    if note is not None:
+        os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] = note
+
+
 def rehearsed_not_live(steps: dict[str, DayStep], notes: Mapping[str, str]) -> dict[str, DayStep]:
     return {name: NotLiveInRealRuns(step, notes[name]) if name in notes else step for name, step in steps.items()}
 
