@@ -356,5 +356,5 @@ VersionEvidence(version='school:CS1@1', rung=<EvidenceRung.UNPROVEN: 0>, counted
 VersionEvidence(version='school:CS1@1', rung=<EvidenceRung.UNPROVEN: 0>, counted_sessions=0, first_session=None, last_session=None)
 ```
 
-**Gates:** ruff check and format, `check_imports` and `check_records` are clean; the full suite result is in the commit
-that carries this text.
+**Gates (at 54451406, code unchanged since):** full suite `pytest -q -n auto`: 16666 passed, 1 skipped, 14 xfailed;
+ruff check and format, `check_imports` and `check_records` clean.
