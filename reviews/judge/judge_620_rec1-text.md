@@ -49,3 +49,13 @@ name one. Name the plant for 2, 4-6 and 8-11 as well (quality rule 4).
 
 ## Plants
 0 (text round).
+
+## Addendum 1: the delta to 94d532195 (still round 1, the orchestrator's re-point)
+The verdict stays **FAIL** at 94d532195. One Markdown commit on c0c6980dc (+17 -11): release 1 (REC1a+b) the week of
+26 Oct, new dates, A1 marked answered (DESK_DECISIONS line 343 (4) supports it).
+- S1, S2 and m1 are untouched by the delta.
+- **S3 now matters more.** Release 1 records verdicts from about 2 Nov, but the evening check is built later
+  (release 2, about 9-13 Nov) "from the same records". A check written after the days it judges is fair only if each
+  15:20 record already names its candidate set (version, decision path, SHA-256). So REC1a's record codec must carry
+  that set from the first live day: name it in REC1a's scope and criterion 7, or the release-1 days cannot be checked
+  without hindsight.
