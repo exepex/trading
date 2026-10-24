@@ -1062,7 +1062,14 @@ gains one line for the `v4` part and its hand-fix `git add` line; NIFTY's hand-f
 
 The three code commits (`1fe605bd1` pack builder and capture reader, `7cab92b06` the future's traded volume,
 `f313ae15f` release run, CLI and wiring) are cherry-picked with `-x` onto `story/g10-completion` (their history and
-authorship stay traceable), without their `docs/` hunks; then this story's commits finish them. **Not merged** because a
+authorship stay traceable), without their `docs/` hunks; then this story's commits finish them (orchestrator, 24 Oct:
+accepted). Where each lands:
+
+| Commit | Files it brings (on `story/g10-completion`) | Finished by |
+|---|---|---|
+| `1fe605bd1` | `fno/v4_pack/builder.py`, `fno/v4_pack/capture.py` (new); `codec.py` (`capture_window`), `model.py` (one field); `tests/v4_pack/capture_fixture.py`, `test_pack_builder.py` (new), `test_pack_format.py` | criteria 3 and 3a |
+| `7cab92b06` | `fno/v4_pack/builder.py` (the future's traded volume for Black-76) | criterion 3 |
+| `f313ae15f` | `fno/v4_pack/release_run.py`, `cli.py` (new); `wiring.py` (`build_release_run`, merged with `main`'s REH1b receipts line); `fno/cli.py` (the `v4-pack` command); `tests/v4_pack/test_release_run.py` (new), `test_release.py`; its `docs/WORK_REGISTER.md` and `docs/stories/G-forecasts.md` hunks are dropped (this text replaces them) | criteria 4, 5 and 7 | **Not merged** because a
 merge would also bring `.github/workflows/v4-fire.yml`, its `capture-watch.yml` line and its test: that workflow runs
 `python -m fno ai fire --protocol v4`, which is not on `main` (G11 round 2b, parked), so every release push would start
 a job that fails and alerts #fno-desk each session day. A merge would also bring a stale handover file and a second
@@ -1194,19 +1201,23 @@ to `build_commitment_times`), resolved by keeping both.
 8. **A prebuilt fallback start after A16's 14:30 mark:** no evidence of a clash (Groww load section); a one-value
    change if the first live day shows one.
 
-#### Decisions asked (recommendation first; for the judge and, where marked, the owner through the orchestrator)
+#### Decisions (orchestrator, 24 Oct: D1 and D3 to the owner, D2 accepted, D4 for the builder and the judge)
 
-- **D1 (owner's words, so through the orchestrator):** "at the latest 14:40" cannot be met literally: the last retry
+- **D1 (owner decision, pending; asked through the orchestrator):** "at the latest 14:40" cannot be met literally: the last retry
   may send its request at 14:40:00 and the pack is built after it. Recommend `V4_RELEASE_BY = 14:45:00`, a later
   record `system_late` (reasoning only: the content cutoff stays 14:40:00, no one gets more data, and pack readers keep
   10 minutes to 14:55). Alternative: 14:41:00, which a slow Drive upload can miss on a good day.
-- **D2:** the catch-up and the reader start at `daily.live_from.forecasts_v4` (22 Oct), so 22 and 23 Oct (and Monday
+- **D2 (accepted by the orchestrator, 24 Oct):** the catch-up and the reader start at `daily.live_from.forecasts_v4` (22 Oct), so 22 and 23 Oct (and Monday
   if this is not live then) are `system_late`. Recommend yes: those days had no pack, which is exactly the
   protocol's definition; all are before the freeze, so nothing counted changes.
-- **D3:** a `system_late` today makes `v4_release` a failed step (the day ends "day done with problems: v4_release" and
+- **D3 (owner decision, pending; asked through the orchestrator):** a `system_late` today makes `v4_release` a failed step (the day ends "day done with problems: v4_release" and
   the card warns, owner's 24 Oct row). Recommend yes: it is a system failure by definition.
 - **D4:** the day label reaches each record by its day from the release record, not as a record column; the 1.6 text
-  says "on every v4 report, and joined to every record by its day". Recommend yes (one source of truth).
+  says "on every v4 report, and joined to every record by its day". The builder's design choice, for the judge: one
+  source of truth.
+- **Until the owner answers D1 and D3, the code waits for their values:** D1 lives in one constant
+  (`terms.V4_RELEASE_BY`) and D3 in the step's status mapping, each with its test; criteria 4 and 5 are written with the
+  recommended values and change only in those two places if the owner decides otherwise.
 
 #### Monday 26 Oct: what the live run would and would not do
 
