@@ -59,3 +59,28 @@ None (a text round). The builder's P1-P10 are checked at the code round, togethe
 
 - Deadline: findings 1-3 touch only rule 3 (criterion 6, after Monday). Finding 4 touches criterion 1. A one-paragraph
   fix of all four lets criteria 1-5 start at once; round 2 is by reading.
+
+## Addendum 1
+
+**Text round 2 of 2 at story/a17f-taiex-empty @ efa332d49: PASS (text). Lane 1.** Judged by reading the round-2 diff
+(`028d7de02..efa332d49`, one file). Doc-reading tests on a trial merge with main: 853 passed, 15 xfailed; record scan
+clean (9,093 files).
+
+| Item | Answer | My check | Result |
+|---|---|---|---|
+| SF1 circular settlement | official tables only, read straight from the cue's table; Yahoo-only copy leaves the row open; P11 | rule 3 and criterion 6's bad case say so; official sources exist on main: `asia_sources.py:41-42` (sse_composite, CSIndex), `:58-59` (taiex, TWSE), `:73-74` (nikkei225) | **Accepted** |
+| SF2 back-dated rows | `seen_at` = settlement run time, `settles` names the date, empty level fields; test and P12 | rule 3, criterion 6 | **Accepted** |
+| SF3 other indexes | nikkei225 and sse_composite settle; kospi, asx200, hang_seng, sti final (named "not settled" in the morning line, no later alert) | matches `wiring.py:68-85`: these four have no official cue | **Accepted** |
+| SF4 coverage | one `covers` row per year (TWSE file's SHA-256, fixture-checked); uncovered year: alert, O10 `failure`, exit 1; from 1 Dec: O10 `incomplete`, exit 1; P13 | criteria 1 and 4 now agree (criterion 4's empty case lists coverage) | **Accepted** |
+| Minor 1 | `preopen.py` lines fixed; pushback on `yahoo_source.py` | on origin/main `chart_result` is line 117 and the shape check line 121; my "137" was wrong | **Pushback accepted** |
+| Minor 2 | a broken calendar fails `taiex` only, still read from Yahoo; the other six untouched | "A broken calendar" paragraph; criterion 1's bad case | **Accepted** |
+| Minor 3 | older parts read with `""` defaults | rule 4 | **Accepted** |
+
+## Notes for the code round (not findings)
+
+- The 1 Dec warning exits 1 on every session day until the next year's `covers` row lands, so December could bring
+  about 20 alerts. That is the owner's "problems warn" rule and acceptable, but the code round must show that one
+  CSV commit stops it.
+- A `covers` row shares 1 Jan with that day's `holiday` row. The loader must key rows by date and kind, never by date
+  alone.
+- Criterion 6 may land after Monday. The commit that holds it gets its own code verdict, with P9-P12 and my own plants.
