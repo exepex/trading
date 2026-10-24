@@ -15,7 +15,8 @@ from fno.rehearsal.built_commands import is_built
         (("margins", "stress-factor"), True),  # good: a full real path
         (("pricedist", "record", "--day", "2026-10-23", "--live"), True),  # the walk stops at the first option
         (("card", "daily", "--on", "2026-10-23", "--post"), True),
-        (("margins", "stress-broker-check"), False),  # bad: a missing child under a real parent
+        (("margins", "stress-broker-check"), True),  # A14c part 2: built since its merge
+        (("margins", "no-such-check"), False),  # bad: a missing child under a real parent
         (("quotes", "no-such-part"), False),  # bad: under a group whose own handler dispatches its subcommands
         (("quotes", "record"), True),  # that group's handler serves its real subcommand
         (("margins",), False),  # boundary: a prefix of a real command has no handler

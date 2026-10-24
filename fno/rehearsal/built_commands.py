@@ -4,7 +4,7 @@ word by word: while the parser reached has subcommands, the next word must be on
 that is not a subcommand (an option such as `--day`, or a value) of a parser with none. The path is built when it
 ends on a parser that needs no further subcommand and a handler (`set_defaults(func=...)`) is set on it or on a group
 above it (`quotes` dispatches its subcommands itself). So a missing child under a real parent
-(`margins stress-broker-check`) and a prefix of a real command (`margins`) are not built; `pricedist record --day D
+(`margins no-such-check`) and a prefix of a real command (`margins`) are not built; `pricedist record --day D
 --live` is. Two edges differ from argparse, on purpose and with no step affected: a top-level option before the
 command (`--config x chain`) reads as not built, and an extra value after a full command (`closes read extra`) as
 built; a step's command never has either."""

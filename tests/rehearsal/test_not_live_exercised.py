@@ -16,7 +16,7 @@ from fno.rehearsal.live_wiring import NOT_LIVE_UNSET, NOT_LIVE_UNTIL, NotLiveInR
 
 DAY = date(2026, 10, 23)
 UNTIL = NOT_LIVE_UNTIL.format(day=DAY, live_from=date(2026, 10, 26))
-MISSING = ("margins", "stress-broker-check")
+MISSING = ("margins", "no-such-check")  # a missing child under a real parent
 
 
 class Ended(Process):
@@ -102,7 +102,7 @@ def test_a_live_step_is_never_wrapped_and_its_failure_stays_a_failure():
 def test_the_public_log_names_each_reason_by_its_own_code():
     public = PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES))
     for note, code in ((NOT_LIVE_UNSET, "rehearsal:NOT_LIVE_UNSET"), (UNTIL, "rehearsal:NOT_LIVE_UNTIL"),
-                       (NOT_BUILT.format(command="margins stress-broker-check"), "rehearsal:NOT_BUILT")):  # fmt: skip
+                       (NOT_BUILT.format(command="margins no-such-check"), "rehearsal:NOT_BUILT")):  # fmt: skip
         assert public.public("margin_check", {"reason": note})["reason"] == code
 
 
@@ -123,7 +123,7 @@ def test_a_not_live_command_fno_has_not_built_is_not_built_never_run_never_alert
     done = step.run(DAY)
     assert done.result == {"status": STEP_NOT_LIVE, "reason": NOT_LIVE_UNSET,
                            "exercised": {"status": STEP_NOT_BUILT,
-                                         "reason": "no command 'margins stress-broker-check' in fno"}}  # fmt: skip
+                                         "reason": "no command 'margins no-such-check' in fno"}}  # fmt: skip
     assert done.inputs == {"command": list(MISSING)}
     assert (children.started, alerts.sent) == ([], [])
 
