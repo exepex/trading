@@ -9,8 +9,10 @@ from fno.close_read.constants import READ, RECHECK
 from fno.record_store.constants import CERTIFIED, PROVISIONAL
 from fno.storage.raw_library import NoReadableStore
 from tests.record_store.helpers import (
+    DAY,
     LEVELS,
     OFFICIAL,
+    PREVIOUS_DAY,
     PREVIOUS_OFFICIAL,
     SESSION,
     Official,
@@ -211,3 +213,25 @@ def test_a_previous_file_lacking_an_index_is_named_by_its_own_file(tmp_path):
         "NIFTY 50 previous_close not in ind_close_all_22102026.csv"
         in world.certifier().certify(SESSION, CERTIFIED).line
     )
+
+
+def test_each_official_file_is_read_once_per_run_so_a_later_read_cannot_fail_the_choice(tmp_path):
+    """Judge 561's note: the certified choice used to read the official file a second time, outside the guard."""
+
+    class OnceThenDown(Official):
+        def __init__(self):
+            super().__init__(OFFICIAL)
+            self.reads = []
+
+        def values(self, day):
+            self.reads.append(day)
+            if self.reads.count(day) > 1:
+                raise OSError("Drive went away")
+            return super().values(day)
+
+    official = OnceThenDown()
+    world = World(tmp_path, official)
+    world.a4h_saves(READ, answer())
+    world.a4h_saves(RECHECK, answer("23-Oct-2026 15:31"))
+    assert world.certifier().certify(SESSION, CERTIFIED).recorded
+    assert sorted(official.reads) == [PREVIOUS_DAY, DAY]
