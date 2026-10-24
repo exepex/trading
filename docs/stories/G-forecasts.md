@@ -1368,6 +1368,19 @@ they found and what was fixed or why not.
   `no_v4_drive_records` fixture (adopted once on `main`).
 - **Gates:** see the commit message.
 
+**Watch item, Mon 2 Nov 2026 (orchestrator, 25 Oct): November's refit day.** The first premium ratios (both
+yardsticks, V1-V3) are stored by `forecasts_v4_pack` on the month's first scored session; 26-30 Oct have none (October's
+refit day, 1 Oct, came before the capture existed; no exception, accepted). If the step does not run on 2 Nov, every
+premium-adjusted row of November is `not_eligible`, V2's primary baseline included (about 21 sessions).
+- **How it alerts:** a step that fails (exit 1 or an exception) or is refused (no release record) sends one #fno-desk
+  alert at once (O1's `Alerted`); the 17:51 IST health
+  check (`health-check.yml`, `RunLogCheck`) reports "never ran: no run log" when the daily run did not start, and a
+  failed or refused `forecasts_v4_pack` with its reason. Nothing alerts "ratio missing" by name: the check is that
+  `receipts/data/v4/ratios/close_proxy/` and `intraday/` each hold a `2026-11.json` per question by 2 Nov evening.
+- **Recovery, the same IST day only:** `python -m fno forecast-v4 capture-pack` stores the refit ratios before it reads
+  the release, at any hour of 2 Nov (no 15:10 deadline applies to a ratio; judge 598 item 6), then commit
+  `receipts/data/v4/ratios/`. From 3 Nov it stores nothing, by the rule (never a late ratio).
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
