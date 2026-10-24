@@ -6,6 +6,7 @@ from datetime import date
 
 from fno.constants import BOOK1_RULES, STEP_FAILED, STEP_REFUSED
 from fno.desk.daily_run import NEEDS_FAILED, NOT_REVIEWED
+from fno.desk.run_log import RETRY
 
 from .fakes import C4, Decisions, Rules, daily_run
 from .test_daily_run import NORMAL, decided, run_day
@@ -35,6 +36,7 @@ def test_a_planted_error_in_the_snapshot_fails_that_step_refuses_the_fills_and_t
     assert log.result("snapshot") == {
         "status": STEP_FAILED,
         "reason": "NotImplementedError: planted: the store cannot list a folder",
+        RETRY: False,  # SF1: a second capture would split the day's one execution snapshot
     }
     assert log.result("fills") == {"status": STEP_REFUSED, "reason": NEEDS_FAILED.format(needed="snapshot")}
     assert log.done("exits") and log.done("trade_marks")  # risk-reducing exits always run; the marks too
