@@ -139,10 +139,10 @@ def test_the_ledger_gets_each_books_minutes_once(desk):
     full_run(desk, BOOK3_AI)
     recorder = BookUsageRecorder(desk, UsageLedger(desk))
     [line] = recorder.record(DAY + timedelta(days=1))
-    assert "recorded 4.17 minutes" in line
+    assert "recorded 2.0 minutes (and a wait of 2.17 minutes apart, not capped)" in line
     [row] = UsageLedger(desk).rows()
     assert (row["purpose"], row["book"], row["session_id"], row["minutes"]) == (
-        "books_and_roles", BOOK3_AI, SESSION, "4.17")  # fmt: skip
+        "books_and_roles", BOOK3_AI, SESSION, "2.00")  # fmt: skip
     assert recorder.record(DAY + timedelta(days=2)) == []  # already recorded: nothing printed, nothing added
     assert len(UsageLedger(desk).rows()) == 1
 
