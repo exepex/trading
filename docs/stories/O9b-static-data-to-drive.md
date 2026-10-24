@@ -364,7 +364,8 @@ assigned by the orchestrator 23-24 Oct; agreed with the A4h, FL1 and G13 builder
   `build_composer` is not driven end to end (its cache and config stack), which is why the last check is by name.
   The by-name check reads the whole file text, so an import of the fetching builder fails it as well as a call
   (FL1's ask). A mutation back to the fetching library fails 2 tests. FL1 approved their lines (24 Oct).
-- **Not yet:** `close_read/official.py`'s docstring waits for A4h-2, which changes that file. `research_data/
+- **After A4h-2 merged (92eec596):** main is merged in and `close_read/official.py`'s docstring now names the reader's
+  builder and drops its old fallback to "NSE's own archive". `research_data/
   nifty_panel.py`'s `DailyFiles` docstring also says "never writes to Drive"; that module sits with the v3 panel,
   so it is left for its owner.
 - **For DR1:** `record_store/wiring.py`'s own `stored_index_closes()` does the same read. DR1's owner could call
