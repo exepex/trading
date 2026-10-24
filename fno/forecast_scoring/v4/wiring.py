@@ -9,6 +9,7 @@ from datetime import date
 from functools import cache
 
 from ...config import ROOT
+from ...constants import V4_PACK_LIVE_KEY
 from ...forecast_v4.sessions import is_scored_session
 from ...intraday.rv_table import RvTable
 from ...v4_pack.paths import DAYS_FOLDER, DEADLINES_FOLDER
@@ -79,13 +80,21 @@ def build_drive_records(folder: str):
 
 
 def build_day_labels(today: date) -> LiveDayLabels:
-    """The one day source of the three readers above: Drive's release records, and `missing_label` for the rest."""
+    """The one day source of the three readers above: Drive's release records, and `missing_label` for the rest, from
+    the pack's live date (the release's catch-up starts there too)."""
     from ...config import load_config
-    from ...daily.wiring import live_dates
     from ...v4_pack.sessions import sessions_between
 
     records = ReleasedDays(build_drive_records(DAYS_FOLDER))
-    return LiveDayLabels(records, sessions_between(_is_session()), live_dates(load_config())["forecasts_v4"], today)
+    return LiveDayLabels(records, sessions_between(_is_session()), label_start(load_config()), today)
+
+
+def label_start(cfg: dict) -> date | None:
+    """The first session with a day label: `daily.live_from.v4_pack` (D2 revised, 24 Oct: a day before the pack was
+    live had no pack to release, so it has no label and its live rows stay in)."""
+    from ...daily.wiring import live_dates
+
+    return live_dates(cfg)[V4_PACK_LIVE_KEY]
 
 
 def _is_session():
@@ -103,6 +112,17 @@ def _today() -> date:
 
 def build_look_records() -> LookRecords:
     return LookRecords(SCORES_FOLDER, FREEZE_FILE)
+
+
+def build_freeze_check():
+    """Protocol v4's freeze check on this tree (`freeze_check.check`); before the record exists, nothing to check (the
+    outputs are exploratory)."""
+    from ...research_engine.ledger import Git
+    from .freeze_check import FreezeCheck, check
+
+    if not FREEZE_FILE.is_file():
+        return FreezeCheck()
+    return check(ROOT, FREEZE_FILE.read_text(encoding="utf-8"), Git(ROOT))
 
 
 def build_thresholds() -> FrozenToolThresholds:

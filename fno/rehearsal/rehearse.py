@@ -16,6 +16,7 @@ from ..constants import ENV_FNO_REHEARSAL
 from ..models import IST
 from .checkout import RehearsalCheckout, RehearsalCheckoutError, run_git
 from .clock import ReplayClock
+from .exercised_line import report_exercised
 from .git_dates import install_git_shim
 from .mode import Rehearsal, in_this_process
 from .routines import ROUTINES, Command, Routine
@@ -26,6 +27,7 @@ NOT_A_SESSION = "rehearsal refused: {day} is not a session day (NSE's calendar)"
 GUARD_STOPPED = "rehearsal STOPPED before any step: {problem}"
 ENDED = "rehearsal {routine} {day} {run_id} ended: {line}; branch {ref}; Drive dryrun/{run_id}/"
 RECEIPTS_MESSAGE = "Rehearsal {routine} {day}: the routine's receipts"
+EXERCISED_UNREAD = "rehearsal: the exercised steps could not be read from the run's full log: {problem}"
 
 
 def rehearse_daily(day: date, source: Path, out: Callable[[str], None] = print, home: Path = HOME, **seams) -> int:
@@ -33,17 +35,18 @@ def rehearse_daily(day: date, source: Path, out: Callable[[str], None] = print, 
 
 
 def rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], None] = print, home: Path = HOME,
-             is_session: Callable[[date], bool] | None = None, run_child=None, guard=None) -> int:  # fmt: skip
+             is_session: Callable[[date], bool] | None = None, run_child=None, guard=None,
+             alerts=None) -> int:  # fmt: skip
     if not (is_session or _is_session)(day):
         out(NOT_A_SESSION.format(day=day))
         return 1
     mode = Rehearsal.new(day, home, source)
     with in_this_process(mode):  # REH1e: the checkout's own commit and its hook are labelled too
-        return _rehearse(routine, day, source, out, home, mode, run_child, guard)
+        return _rehearse(routine, day, source, out, home, mode, run_child, guard, alerts)
 
 
 def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], None], home: Path, mode: Rehearsal,
-              run_child, guard) -> int:  # fmt: skip
+              run_child, guard, alerts) -> int:  # fmt: skip
     start = datetime.combine(day, routine.start, IST)
     checkout = RehearsalCheckout(source, mode, home)
     ReplayClock(mode.state).start(start)  # first: the origin's push log reads it from the first push on
@@ -60,11 +63,23 @@ def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], No
         out(GUARD_STOPPED.format(problem=problem))
         return 1
     code, line = (run_child or run_routine)(checkout.clone, routine, day, env, out)
+    try:  # REH1j: after the day's last line; never in the way of the receipts and the publish
+        report_exercised(checkout.clone, day, out, alerts or _alerts(out))
+    except (OSError, ValueError, KeyError) as unreadable:
+        out(EXERCISED_UNREAD.format(problem=f"{type(unreadable).__name__}: {unreadable}"))
     if routine.receipts:
         commit_receipts(checkout.clone, routine.receipts, RECEIPTS_MESSAGE.format(routine=routine.name, day=day), env)
     ref = checkout.publish(run_git(source, "remote", "get-url", "origin").strip())
     out(ENDED.format(**fields, line=line, ref=ref))
     return code
+
+
+def _alerts(out: Callable[[str], None]):
+    """#fno-desk, labelled by the mode this process carries; a post Slack did not take prints "alert NOT sent"."""
+    from ..composition import build_alert_sender
+    from ..daily.alerts import ReportedAlerts
+
+    return ReportedAlerts(build_alert_sender(), out)
 
 
 def _is_session(day: date) -> bool:

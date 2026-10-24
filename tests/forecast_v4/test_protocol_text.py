@@ -148,4 +148,6 @@ def test_the_day_clock_s_release_and_label_rules_match_the_code():
     text = TEXT.replace("\n  ", " ")
     assert f"by {V4_RELEASE_BY:%H:%M}:00" in text and "after 14:45:00 makes the day `system_late`" in text
     assert RELEASED_LATE.split(":")[0] in text and f"is {PENDING}, never scored" in text
-    assert "or no release record at all" in text and "has no label (the close-proxy cohort)" in text
+    assert "or no release record at all" in text and "from the pack's live date (`daily.live_from.v4_pack`)" in text
+    before = "a day before that date has no label (no pack could exist, so it is no system failure; its rows stay in)"
+    assert before in text

@@ -113,11 +113,12 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   whose clock was not checked ok before and after is not used.
 - **Day-quality label, one per day, on every v4 report, and joined to every v4 record by its day:**
   `A`, every required field observed by 14:40:00 and released by 14:45:00; `system_late`, no complete pack by 14:40:00, a release
-  after 14:45:00, or no release record at all. A scored session from the live date with no release record is
-  `system_late` once its day has passed (the next release run writes that record, write-once; every reader applies the
-  same rule meanwhile); the report's own date without a record is pending, never scored; a day before the live date
-  has no label (the close-proxy cohort). A verdict uses `A` days; every report counts both labels, the pending day and
-  the flagged days. (`A2`, A16's 14:30 mark as fallback,
+  after 14:45:00, or no release record at all. A scored session from the pack's live date (`daily.live_from.v4_pack`)
+  with no release record is `system_late` once its day has passed (the next release run writes that record,
+  write-once; every reader applies the same rule meanwhile); the report's own date without a record is pending, never
+  scored; a day before that date has no label (no pack could exist, so it is no system failure; its rows stay in). A
+  verdict uses `A` days; every report counts both labels, the pending day and the flagged days.
+  (`A2`, A16's 14:30 mark as fallback,
   was dropped on 16 Oct: that mark has no India VIX, one monthly beside the weekly and no next monthly on an expiry
   day, so it can never hold a complete pack.)
 - **One pack, one hash:** a forecaster that reads the pack names the released pack's SHA-256 in its record; another or
