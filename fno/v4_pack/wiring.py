@@ -77,8 +77,9 @@ def build_deadline_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Deadli
     source = RecordCommitments(ROOT, V4_RECORDS, f"{RECEIPTS_FOLDER}/{DATA_AREA}/{LIVE_RECORDS_FOLDER}")
     in_drive = lambda path: store.drive.get(path) is not None  # noqa: E731
     sessions = sessions_between(lambda day: is_scored_session(calendar, day))
-    return DeadlineRun(store, in_drive, source, build_commitment_times(env=env), sessions,
-                       live_dates(cfg)[V4_PACK_LIVE_KEY], now_ist, rehearsed_catch_up(env))  # fmt: skip
+    live = live_dates(cfg)
+    return DeadlineRun(store, in_drive, source, build_commitment_times(env=env), sessions, live[V4_PACK_LIVE_KEY],
+                       now_ist, rehearsed_catch_up(env), live["forecasts_v4"])  # fmt: skip
 
 
 def build_overlap_watch(cfg: dict) -> OverlapWatch:

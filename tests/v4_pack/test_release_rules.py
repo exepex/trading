@@ -47,9 +47,17 @@ def test_a_capture_that_ended_without_a_pack_is_final_before_14_40(tmp_path):
     assert label(drive, DAY) == "system_late" and release.failed and release.late_today
 
 
-def test_no_ended_capture_before_14_40_writes_nothing_and_fails(tmp_path):
-    release, drive = run_for(tmp_path, at(DAY, 14, 36), live_from=DAY)
-    assert release.run(DAY)[-1].endswith("not released before 14:40") and drive.files == {} and release.failed
+@pytest.mark.parametrize("now", [(14, 36), (14, 42), (14, 45)])
+def test_no_ended_capture_until_14_45_writes_nothing_and_fails(tmp_path, now):
+    """A hand run while the recorder may still write its marker never settles the day (review finding 4)."""
+    release, drive = run_for(tmp_path, at(DAY, *now), live_from=DAY)
+    assert release.run(DAY)[-1].endswith("not released before 14:45") and drive.files == {} and release.failed
+
+
+def test_a_capture_never_ended_by_14_45_is_system_late_and_named(tmp_path):
+    release, drive = run_for(tmp_path, at(DAY, 14, 45, 1), live_from=DAY)
+    assert release.run(DAY) == ["v4 release 2026-10-22: system_late (capture still running at 14:45)"]
+    assert label(drive, DAY) == "system_late" and release.failed
 
 
 def test_d3_is_one_switch(tmp_path, monkeypatch):

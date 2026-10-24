@@ -82,7 +82,7 @@ def _look(scoring, records, thresholds, slot_days, look: str, decided_at, unchec
     if counted_after is not None:
         try:
             require_reconciled(slot_days.unsettled(counted_after, decided_at.date()), decided_at.date())
-            require_checked(unchecked(), decided_at.date())
+            require_checked(unchecked(), counted_after, decided_at.date())
         except LookBlocked as refusal:
             print(f"look NOT run, nothing recorded: {refusal}")
             return 1

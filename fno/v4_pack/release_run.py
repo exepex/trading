@@ -19,7 +19,6 @@ from ..storage.data_store import DataStore
 from ..storage.raw_store import RawFileConflict
 from .builder import Built, PackBuilder
 from .capture import CaptureSource
-from .codec import capture_window
 from .model import Pack
 from .paths import release_path
 from .release import publish
@@ -33,6 +32,7 @@ ALREADY = "v4 release {day}: already released"
 WAITING = "v4 release {day}: no complete pack yet ({reasons}); not released before {end:%H:%M}"
 REFUSED = "v4 release {day}: REFUSED by the write-once store ({error}); nothing overwritten"
 RELEASED_LATE = "released late: after {by:%H:%M}"
+NOT_ENDED = "capture still running at {by:%H:%M}"
 EXCUSED = "v4 release {day}: system_late ({note})"
 
 
@@ -78,10 +78,12 @@ class ReleaseRun:
     def _today(self, day: date) -> str:
         if self._released(day):
             return ALREADY.format(day=day)
-        built, end = self._built(day), capture_window(day)[1]
-        if built.pack is None and self.clock() <= end and not self.capture.ended(day):
-            self.waiting = True
-            return WAITING.format(day=day, reasons="; ".join(built.reasons), end=end)
+        built, by = self._built(day), datetime.combine(day, V4_RELEASE_BY, IST)
+        if built.pack is None and not self.capture.ended(day):
+            if self.clock() <= by:  # the capture may still write its marker: never settle the day early
+                self.waiting = True
+                return WAITING.format(day=day, reasons="; ".join(built.reasons), end=by)
+            built = Built(None, (NOT_ENDED.format(by=by),))
         refused = self._publish(day, built.pack)
         if refused:
             return refused

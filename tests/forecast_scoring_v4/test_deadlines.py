@@ -64,17 +64,25 @@ def test_the_ai_books_and_back_fill_rows_are_never_checked():
     assert source.unchecked == {THU, FRI, MON}  # never the back-fill day
 
 
-def test_a_row_missing_from_its_day_s_verdict_file_is_unchecked():
+def test_a_day_without_a_verdict_file_is_unchecked():
     source = LateCommitmentsOut(Rows(), DeadlineVerdicts(Files({THU: "on_time", FRI: "on_time", MON: "on_time"})))
     assert source.values("q", "base_rate")[THU].value == 0.2 and source.unchecked == set()
     assert unchecked_days(LateCommitmentsOut(Rows(), DeadlineVerdicts(Files({THU: "on_time"}))), ("q",)) == [FRI, MON]
 
 
-def test_a_look_refuses_while_a_day_up_to_it_is_unchecked():
+def test_a_look_refuses_while_a_counted_day_up_to_it_is_unchecked():
     with pytest.raises(LookBlocked, match="1 day\\(s\\) not checked, the earliest 2026-10-23"):
-        require_checked([FRI, MON], FRI)
-    require_checked([MON], FRI)  # a later day does not block an earlier look
-    require_checked([], MON)
+        require_checked([FRI, MON], THU, FRI)
+    require_checked([MON], THU, FRI)  # a later day does not block an earlier look
+    require_checked([THU], THU, MON)  # a day up to the freeze is never counted (review finding 2)
+    require_checked([], THU, MON)
+
+
+def test_a_row_its_day_s_verdict_file_does_not_name_was_committed_after_the_check_and_is_late():
+    """Review finding 1: a row pushed at 16:00, after 15:12's check wrote the day's file, is a miss, never scored, and
+    never leaves the day unchecked for good."""
+    source = LateCommitmentsOut(Rows(), DeadlineVerdicts(Files({THU: "on_time", FRI: "on_time", MON: "on_time"})))
+    assert source.values("q", "other_rule")[THU] == ForecastValue(None, True) and source.unchecked == set()
 
 
 def test_the_counts_line_names_the_unchecked_days():
@@ -94,6 +102,6 @@ def test_a_recorded_look_with_an_unchecked_day_records_nothing(tmp_path, capsys)
     (tmp_path / "FREEZE_v4.md").write_text(f"# Freeze\nFrozen on: {FREEZE}\n")
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
     code = _look(scoring, look_records, FrozenToolThresholds(tmp_path), slot_days(records(DAYS)), LOOK_STOP_REVIEW,
-                 AT, lambda: [DAYS[1]])  # fmt: skip
+                 AT, lambda: [FREEZE, DAYS[1]])  # the freeze day itself is not counted  # fmt: skip
     assert code == 1 and not look_records.path(LOOK_STOP_REVIEW).exists()
     assert "deadline checked: 1 day(s) not checked, the earliest 2027-05-25" in capsys.readouterr().out

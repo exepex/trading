@@ -3,6 +3,7 @@
 only from 15:12; the catch-up checks every live session without a verdict, except in a rehearsal (today only); the
 commitments are the live CSV rows and G7b's live-record receipts, the AI books left out by their own set."""
 
+import inspect
 import json
 from datetime import date, datetime
 
@@ -140,9 +141,31 @@ def test_a_pack_reader_is_still_checked_only_the_ai_books_are_exempt(tmp_path, m
     import fno.v4_pack.guard as guard
 
     monkeypatch.setattr(guard, "PACK_READERS", guard.PACK_READERS | {"v4_rule"})
-    assert {"book2_hybrid", "book3_ai"} == SEALED_COMMITMENTS and "PACK_READERS" not in vars(commitments)
+    assert {"book2_hybrid", "book3_ai"} == SEALED_COMMITMENTS and SEALED_COMMITMENTS is not guard.PACK_READERS
+    assert "from .guard" not in inspect.getsource(commitments)  # its own set, never the guard's PACK_READERS
     receipt = tmp_path / "receipts/data/v4/records/live/v4_rule/q4/2026/2026-10-26.json.sha256"
     receipt.parent.mkdir(parents=True)
     receipt.write_text("x")
     found = RecordCommitments(tmp_path, "research/forecasts/v4", "receipts/data/v4/records/live").commitments(MON)
     assert [c.forecaster for c in found] == ["v4_rule"]
+
+
+def test_the_catch_up_starts_at_the_first_live_v4_session_not_at_its_own_live_date(tmp_path):
+    """Review finding 2: the check goes live after 22 Oct's live rows; they are checked too, as the release's catch-up
+    settles their labels, so no live row is left unchecked for good."""
+    run, drive, _ = deadline(tmp_path, at(MON, 15, 15), lambda day: at(day, 14, 12), live_from=MON)
+    run.checks_from = THU
+    assert [line[12:22] for line in run.run(MON)] == ["2026-10-22", "2026-10-23", "2026-10-26"]
+
+
+def test_an_unreadable_record_line_names_the_file_and_the_day_is_retried(tmp_path):
+    """Review finding 3: never a traceback, never a guessed time; a blank line is no row."""
+    folder = tmp_path / "research/forecasts/v4/base_rate"
+    folder.mkdir(parents=True)
+    (folder / "q1.csv").write_text("day,value,status,label\n\n2026-10-26,0.2,ok,live\n2026-10-26,0.2,ok\n")
+    source = RecordCommitments(tmp_path, "research/forecasts/v4", "receipts/data/v4/records/live")
+    run, drive, _ = deadline(tmp_path, at(MON, 15, 15), lambda day: at(day, 14, 12), live_from=MON)
+    run.source = source
+    assert run.run(MON) == ["v4 deadline 2026-10-26: NOT checked (research/forecasts/v4/base_rate/q1.csv line 4: not "
+                            "one record row (3 fields for 4 columns)); the next run retries it"]  # fmt: skip
+    assert drive.files == {} and run.failed

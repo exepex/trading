@@ -13,10 +13,16 @@ from datetime import date
 from pathlib import Path
 
 from ..constants import BOOK2_HYBRID, BOOK3_AI
+from .commitment import CommitmentTimeUnknown
 
 SEALED_COMMITMENTS = frozenset({BOOK2_HYBRID, BOOK3_AI})  # committed by a sealed submission, not by a record
 LIVE = "live"  # G7's label of a live row
 ROW, FILE = "row", "file"
+UNREADABLE = "{path} line {number}: not one record row ({found} fields for {expected} columns)"
+
+
+class CommitmentsUnreadable(CommitmentTimeUnknown):
+    """A record file line that is not one row: no time can be established for it, so the day is not checked."""
 
 
 @dataclass(frozen=True)
@@ -50,10 +56,22 @@ class RecordCommitments(CommitmentSource):
             if forecaster in SEALED_COMMITMENTS:
                 continue
             lines = file.read_text(encoding="utf-8").splitlines()
-            for line, row in zip(lines[1:], csv.DictReader(lines), strict=True):
-                if row["day"] == day.isoformat() and row["label"] == LIVE:
+            header = next(csv.reader(lines[:1]), [])
+            for number, line in enumerate(lines[1:], 2):
+                row = self._row(header, line, file, number)
+                if row.get("day") == day.isoformat() and row.get("label") == LIVE:
                     found.append(Commitment(forecaster, question, ROW, self._relative(file), line))
         return found
+
+    def _row(self, header: list[str], line: str, file: Path, number: int) -> dict[str, str]:
+        """One CSV line as its row (its own text is what git's pickaxe finds); a blank line is no row."""
+        if not line.strip():
+            return {}
+        values = next(csv.reader([line]))
+        if len(values) != len(header):
+            raise CommitmentsUnreadable(UNREADABLE.format(path=self._relative(file), number=number,
+                                                          found=len(values), expected=len(header)))  # fmt: skip
+        return dict(zip(header, values, strict=True))
 
     def _files(self, day: date) -> list[Commitment]:
         pattern = f"*/*/{day:%Y}/{day.isoformat()}.json.sha256"

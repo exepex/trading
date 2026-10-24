@@ -128,3 +128,9 @@ def test_build_day_counts_counts_it_system_late(drive_records):
 def test_no_checkout_label_folder_is_left():
     sources = "".join(p.read_text(encoding="utf-8") for p in (ROOT / "fno").rglob("*.py"))
     assert "v4_days" not in sources and "V4_DAYS_FOLDER" not in sources
+
+
+def test_a_system_late_day_is_never_an_unchecked_deadline_day(drive_records, monkeypatch):
+    """Review finding 2: a day out for every family needs no 15:10 verdict to let a look run."""
+    monkeypatch.setattr(wiring, "_today", lambda: FRI)
+    assert LIVE not in wiring.build_unchecked_days()

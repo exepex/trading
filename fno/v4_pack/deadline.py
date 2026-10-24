@@ -54,16 +54,19 @@ def parse_verdicts(data: bytes) -> tuple[date, dict[tuple[str, str], str]]:
 class DeadlineRun:
     def __init__(self, store: DataStore, in_drive: Callable[[str], bool], source: CommitmentSource,
                  times: CommitmentTimes, sessions: Callable[[date, date], list[date]], live_from: date | None,
-                 clock: Callable[[], datetime], catch_up: bool = True):  # fmt: skip
-        """`catch_up=False` checks today only (a rehearsal: its push log holds only its own pushes)."""
+                 clock: Callable[[], datetime], catch_up: bool = True, checks_from: date | None = None):  # fmt: skip
+        """`live_from`: the check's own live date (`daily.live_from.v4_pack`); `checks_from`: the first live v4 session
+        the catch-up checks (`daily.live_from.forecasts_v4`, as the release's catch-up; default `live_from`);
+        `catch_up=False` checks today only (a rehearsal: its push log holds only its own pushes)."""
         self.store, self.in_drive, self.source, self.times = store, in_drive, source, times
         self.sessions, self.live_from, self.clock, self.catch_up = sessions, live_from, clock, catch_up
+        self.checks_from = checks_from or live_from
         self.failed = False
 
     def run(self, today: date) -> list[str]:
         if self.live_from is None or today < self.live_from:
             return [NOT_LIVE]
-        first = self.live_from if self.catch_up else today
+        first = self.checks_from if self.catch_up else today
         days = [d for d in self.sessions(first, today) if not self._checked(d)]
         return [self._check(day, today) for day in days]
 

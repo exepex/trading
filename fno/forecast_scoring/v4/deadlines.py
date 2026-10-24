@@ -1,6 +1,8 @@
 """The 15:10 deadline in G8 (story G10 completion, criterion 8): a live row whose verdict is `late` is no forecast that
-day (a miss under G9's caps); a live row with no verdict yet is counted "deadline not checked", and a confirmatory
-look refuses while one exists up to its date (the reconciliation's pattern, response 213). Back-fill rows and the AI
+day (a miss under G9's caps), and so is a live row its day's verdict file does not name (it was committed after the
+check, which runs from 15:12); a live row of a day with no verdict file yet is counted "deadline not checked", and a
+confirmatory look refuses while one exists after the freeze up to its date (the reconciliation's pattern, response
+213). Back-fill rows and the AI
 books (their commitment is their sealed submission, G11) are never checked here."""
 
 from __future__ import annotations
@@ -45,11 +47,12 @@ class LateCommitmentsOut(V4ForecastSource):
     def _checked(self, day: date, value: ForecastValue, key: tuple[str, str]) -> ForecastValue:
         if not value.live:
             return value
-        verdict = self.verdicts.by_day().get(day, {}).get(key)
-        if verdict is None:
+        checked = self.verdicts.by_day().get(day)
+        if checked is None:
             self.unchecked.add(day)
             return value
-        return ForecastValue(None, True) if verdict == LATE else value
+        # a row the day's check did not see was committed after it (15:12 or later): late, never scored
+        return ForecastValue(None, True) if checked.get(key, LATE) == LATE else value
 
 
 def unchecked_days(source: LateCommitmentsOut, questions: tuple[str, ...]) -> list[date]:
@@ -60,7 +63,8 @@ def unchecked_days(source: LateCommitmentsOut, questions: tuple[str, ...]) -> li
     return sorted(source.unchecked)
 
 
-def require_checked(unchecked: list[date], look_day: date) -> None:
-    due = [day for day in unchecked if day <= look_day]
+def require_checked(unchecked: list[date], counted_after: date, look_day: date) -> None:
+    """Only counted days matter to a look: after the freeze (`counted_after`) up to the look's day."""
+    due = [day for day in unchecked if counted_after < day <= look_day]
     if due:
         raise LookBlocked(UNCHECKED.format(look=look_day, count=len(due), day=due[0]))

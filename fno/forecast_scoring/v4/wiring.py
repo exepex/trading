@@ -54,9 +54,11 @@ def build_day_counts(as_of: date) -> DayCounts:
 
 def build_unchecked_days() -> list[date]:
     """The live days with a row whose 15:10 deadline has no verdict yet (a recorded look refuses while one exists)."""
+    from ...constants import V4_DAY_SYSTEM_LATE
     from .scoring import QUESTIONS
 
-    return unchecked_days(_checked_forecasts(), QUESTIONS)
+    late = {d for d, label in build_day_labels(_today()).labels().items() if label.label == V4_DAY_SYSTEM_LATE}
+    return [day for day in unchecked_days(_checked_forecasts(), QUESTIONS) if day not in late]  # out for everyone
 
 
 def _checked_forecasts() -> LateCommitmentsOut:

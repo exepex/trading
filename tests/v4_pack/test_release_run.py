@@ -75,7 +75,7 @@ def test_the_catch_up_settles_every_missed_session_since_go_live_and_drive_decid
     assert lines[0] == "v4 release 2026-10-19: system_late (catch-up: no release record in Drive)"
     assert label(drive, MON) == "system_late" and not release.refused
     assert drive.files[f"data/{release_path(TUE)}"].startswith(b"released earlier")  # never overwritten
-    assert lines[-1].startswith("v4 release 2026-10-21: system_late (no canonical v4 capture")  # after 14:40
+    assert lines[-1] == "v4 release 2026-10-21: system_late (capture still running at 14:45)"  # no marker by 14:45
 
 
 def test_a_run_twice_writes_nothing_new(tmp_path):
@@ -88,7 +88,7 @@ def test_a_run_twice_writes_nothing_new(tmp_path):
 def test_before_the_window_closes_a_missing_pack_waits_and_writes_nothing_for_today(tmp_path):
     release, drive = run_for(tmp_path, at(WED, 14, 40, 0), live_from=WED)
     assert release.run(WED) == ["v4 release 2026-10-21: no complete pack yet (no canonical v4 capture); not released "
-                                "before 14:40"] and drive.files == {}  # fmt: skip
+                                "before 14:45"] and drive.files == {}  # fmt: skip
 
 
 def test_a_write_once_refusal_is_named_and_the_run_goes_on(tmp_path):
