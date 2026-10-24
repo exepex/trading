@@ -327,3 +327,39 @@ None for the owner: the 22 Oct decisions above settle scope and history.
 - **Judge 536: PASS at 494d97df.** It may merge before FL1's branch, on the orchestrator's go. The judge listed all 13
   sync callers: every one that must succeed has receipts today. Their minor is accepted as a row in the umbrella gap
   list: a new dataset read straight through `sync()` must write first, or read through `ReceiptedRowLog`.
+
+**Readers of NSE's index-close files never write to Drive (story/o9-readonly-index-close; DR1 and DRY1 row b4,
+assigned by the orchestrator 23-24 Oct; agreed with the A4h, FL1 and G13 builders).**
+- **The defect:** `build_index_close_files()` is A9's `RawFileLibrary`. On a file no store holds it fetches the file
+  from NSE and archives it to Drive, with a manifest row. So A4h's Confirmer, FL1's editions (`lab preview`
+  included) and page, and G13's issuer and `pricerange closes` could all write to Drive. A dry run did on 23 Oct
+  (manifest row aa0e2ed30).
+- **The fix:**
+  - `fno/storage/raw_library.py` gains a `FileLibrary` interface and `StoredFilesLibrary` (the stores only; a
+    missing file is `RawFile(None, "not stored yet")`). `RawFileLibrary` stays the writer's.
+  - `storage/wiring.py` adds `build_stored_index_close_files()` for readers. Its stores are the service account's
+    (where set) plus the owner Drive's raw area, read with the owner's settings, because GitHub's jobs carry only
+    those. Without that, a reader there would have found no store at all.
+  - `build_index_close_files()` stays the writer's: the panel and the warm-up closes (`cli.py`).
+  - `daily_files`' docstring is corrected; it had said "Drive is only read".
+- **Switched:** `forecast_lab/wiring.py` (`build_composer`), `forecast_lab/page_wiring.py` (VixSection),
+  `price_ranges/wiring.py` (`build_issuer`, `build_table_update`) and `close_read/wiring.py` (the Confirmer).
+- **What a missing file now does** (each owner confirmed their path):
+  - A4h's Confirmer: its existing "no official index-close file in Drive yet" line and one overdue alert. That line
+    is now literally true.
+  - FL1: the 3 pm price, labelled; "not archived yet"; VIX "not available".
+  - G13: `CloseTables.update` prints its "no index-close file" gap line and retries the day later. If all four
+    librarian attempts fail, the 15:20 BANKNIFTY issue builds on a table one session short. G13 accepted that.
+- **Tests** (`tests/o9_store/test_readonly_index_close.py`, each with NSE's fetch and the fetching library made to
+  fail the test):
+  - the library itself;
+  - the reader's builder (a stored day read, a missing day None);
+  - G13's `build_table_update` (their ask);
+  - every reader's composition root naming only the reader's builder (FL1's ask for `build_composer` and the page).
+  `build_composer` is not driven end to end (its cache and config stack), which is why the last check is by name.
+  A mutation back to the fetching library fails 2 tests.
+- **Not yet:** `close_read/official.py`'s docstring waits for A4h-2, which changes that file. `research_data/
+  nifty_panel.py`'s `DailyFiles` docstring also says "never writes to Drive"; that module sits with the v3 panel,
+  so it is left for its owner.
+- **For DR1:** `record_store/wiring.py`'s own `stored_index_closes()` does the same read. DR1's owner could call
+  `build_stored_index_close_files()` instead, so there is one reader builder, not two.
