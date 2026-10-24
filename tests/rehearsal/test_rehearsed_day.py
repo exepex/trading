@@ -5,6 +5,7 @@ fixture's clock is the harness's, so the rehearsal's skipped waits fall back to 
 
 from fno.config import load_app_config
 from fno.constants import ENV_FNO_REHEARSAL
+from fno.daily.v4_wiring import step_notes
 from fno.daily.wiring import live_dates
 from fno.rehearsal.clock import ReplayClock
 from fno.rehearsal.drive_wiring import rehearsed_drive
@@ -24,7 +25,8 @@ def test_a_rehearsed_day_writes_only_under_dryrun_and_never_the_real_record(tmp_
     code, line = day.run()
     _, notes = rehearsed_live(live_dates(load_app_config()))
     problems = line.removeprefix("day done with problems: ").split(", ") if code else []
-    assert line.startswith("day done") and set(problems) <= set(notes)  # only the reports not live in real runs:
+    assert line.startswith("day done") and set(problems) <= set(step_notes(notes))  # only steps not live in real runs
+    # (G10: `v4_pack`'s note covers its two steps):
     # they run in a rehearsal (REH1c), and the fixture's child commands do not script them
     written = {path for path in day.drive.files if path not in before}
     assert written and all(path.startswith(f"{mode.drive_root}/") for path in written)

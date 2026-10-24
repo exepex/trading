@@ -34,6 +34,11 @@ jobs:
     timeout-minutes: 30
     env:
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      # G10 completion: G8's v4 report reads the day labels (release records) from Drive through O9's verified cache
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_ROUTINE_POSTMORTEM_TRIGGER_ID: ${{ secrets.FNO_ROUTINE_POSTMORTEM_TRIGGER_ID }}
       FNO_ROUTINE_POSTMORTEM_TOKEN: ${{ secrets.FNO_ROUTINE_POSTMORTEM_TOKEN }}
       STEP: ${{ github.event.schedule == '11 6 * * 6' && 'publish' || inputs.step || 'build' }}

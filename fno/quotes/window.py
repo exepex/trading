@@ -10,6 +10,7 @@ from datetime import datetime, time
 from ..config import ConfigError
 
 WINDOWS_KEY = "windows"
+V4_WINDOW = "v4"  # protocol v4's 14:30-14:40 pack window (stories A4e, G10)
 KEYS = ("start", "end", "max_early_wait_minutes")
 UNKNOWN = "quotes.windows has no window named {name!r} (config.yaml)"
 BAD_KEYS = "quotes.windows.{name} needs exactly the keys {keys} (config.yaml)"

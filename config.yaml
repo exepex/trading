@@ -209,6 +209,7 @@ daily:
     # G11: the AI books' own v4 go-live (the v4 AI fire runs and the v2 AI fire stops from it); null until the
     # books' v4 steps (step 7) and round 2c land, never forecasts_v4's date (orchestrator, 21 Oct)
     ai_books_v4: null
+    v4_pack: null  # G10 completion: the 14:30 `v4` capture, the release and the 15:10 check (one key)
     card: null
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
