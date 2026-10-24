@@ -68,8 +68,9 @@ def test_the_checkout_has_today_s_code_the_morning_s_data_and_a_local_origin(sou
 def test_publish_pushes_only_the_rehearsal_s_ref_and_every_other_ref_is_refused(source, tmp_path):
     repo, github = source
     lines = []
-    code = rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True,
-                          run_child=lambda clone, day, env, out: (0, "day done"), guard=lambda env: [])  # fmt: skip
+    ran = lambda clone, day, env, out: (0, "day done")  # noqa: E731
+    code = rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True, run_child=ran,
+                          guard=lambda env, cwd: [])  # fmt: skip
     pushed = refs(github)
     assert code == 0 and pushed[0] == "refs/heads/main" and len(pushed) == 2
     assert pushed[1].startswith("refs/heads/rehearsal/2026-10-23-")
@@ -86,7 +87,7 @@ def test_a_guard_problem_stops_before_any_step_and_a_closed_day_is_refused(sourc
     lines = []
     ran = []
     assert rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True,
-                          run_child=lambda *a: ran.append(1), guard=lambda env: ["planted"]) == 1  # fmt: skip
+                          run_child=lambda *a: ran.append(1), guard=lambda env, cwd: ["planted"]) == 1  # fmt: skip
     assert ran == [] and lines[-1] == "rehearsal STOPPED before any step: planted"
     assert refs(github) == ["refs/heads/main"]  # nothing published
     assert rehearse_daily(date(2026, 10, 24), repo, lines.append, tmp_path / "h2", is_session=lambda d: False) == 1

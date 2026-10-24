@@ -309,3 +309,24 @@ clean.
 - The AI books' sealed answers are not replayed. In REH1a they are never fired (the HTTP guard), and the daily run
   has no AI step.
 - No rehearsal of the real 23 Oct has run yet. It waits for REH1b and O9's read-only index-close fix.
+
+#### REH1a round 2 (judge 557, judge B: FAIL on SF1 and one note; both accepted, checked against the code)
+
+- **SF1, accepted.** Nothing tested that a rehearsing process really installs the replay clock and the HTTP guard.
+  Both plants in `process.py` survived, because the guard's probes only asked `allowed()`.
+  - Fixed: `python -m fno rehearse check` (`fno/rehearsal/cli.py`, `process_checks.py`) runs inside a process started
+    through the package's real entry point with the mode set.
+  - It reports a problem unless the process's clock is the replay clock, at the replay time, and a live call is
+    refused by `RehearsalCallRefused`. It then adds the builders' checks.
+  - `daily run --rehearse` now runs this command, in the rehearsal's checkout, before the first step.
+  - Test: `tests/rehearsal/test_process.py` starts that child on 23 Oct's replay clock and expects no problem. Each of
+    the two plants fails it (mutation run: `install_clock` → `pass`, and `http_guard.install()` → `pass`).
+- **Note, closed in this round (the orchestrator's ask).** The clock test missed `datetime.today()`, `time.time()` and
+  aliased imports.
+  - It is now an AST check: imports are resolved to their dotted names (`import datetime as d`,
+    `from datetime import datetime as dt`, `from time import time as epoch`).
+  - It forbids `datetime.now/today/utcnow`, `date.today` and `time.time/time_ns/localtime/gmtime/ctime/asctime`
+    anywhere but `fno/models.py`.
+  - A planted module with all six forms is caught, while `time.monotonic` and `time.sleep` are not reads.
+  - The package has none today.
+- Gates on the branch: 14863 passed; ruff, format, imports, records and numbers clean.

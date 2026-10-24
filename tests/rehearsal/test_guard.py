@@ -15,6 +15,7 @@ from .fakes import RecordingDrive
 PACKAGE = Path(__file__).resolve().parents[2] / "fno"
 ROOTS = {
     "__main__.py",
+    "cli.py",
     "composition.py",
     "storage/wiring.py",
     "cards/wiring.py",
