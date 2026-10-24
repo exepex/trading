@@ -259,3 +259,33 @@ ea232e876681.csv: in the receipts, not returned by Drive".
 | "a real sample: rerun the cold-cache 23 Oct rehearsal and show price_ranges ok" | the real sample | |
 | A found item deleted or moved in Drive | | The record is write-once; no reader deletes or moves, so a cached ID is never stale by design |
 | The service-account reader (`GoogleDriveStore`) and the owner's store (`GoogleDriveUploadStore`) | D1-D5 | One `_child` serves both |
+
+### Claims, code round 1 (for judge F)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/o9-child-no-absent-cache` (main merged in). Code: one change in
+`GoogleDriveStore._child` (`fno/storage/google_drive.py`): an absent name returns None without being cached; a found
+ID is cached as before; `_ids` holds found IDs only. No other file under `fno/` changes.
+
+| Criterion | Test (`tests/test_drive_absent_cache.py`) | On main's code | Plant |
+|---|---|---|---|
+| D1 | two instances over one HTTP-level fake Drive, at three depths (`x.json`, `a/x.json`, `a/b/c/x.json`): A finds nothing with `get`, `file_id`, `metadata`, `checksums`, `folders`; B writes; A's `get`, `file_id` (fresh), `metadata`, `checksums` and `folders` all see it (judge 612's condition); and a missing last folder under a found one | all 4 fail | the absence cached again: 7 of 10 fail |
+| D2 | a found file's folders are not asked twice; an absent name is asked again, its found folders not (a call-counting fake) | fails (the absent name is not asked again) | nothing cached: D2 fails |
+| D3 | one step's `DataStore` write then `DriveCache.sync` read on two instances, cold cache: real root and under `dryrun/` | the `dryrun/` case fails; the real-root case passes (no stale lookup of the new name there) | as D1 |
+| D4 | `CloseTables.latest_text` before and after the step's own write under `dryrun/`, cold and warm local cache | cold fails with "in the receipts, not returned by Drive", warm passes: the dry run's exact split | as D1 |
+| D5 | an absent path stays absent twice, nothing created | passes | |
+
+**Real Drive probe** (the owner's Drive, writes only under `dryrun/o9child-probe-<time>/`): two
+`GoogleDriveUploadStore` instances; A reads the path, B writes it, A reads again at once.
+
+```
+main's code:  A before: None | A after B's write: None | A file_id(fresh) after: False | a fresh instance C: b'probe\n'
+fixed code:   A before: None | A after B's write: b'probe\n' | A file_id(fresh) after: True | a fresh instance C: b'probe\n'
+```
+
+It also shows no Drive search lag: a fresh instance finds the file at once, so the stale cache was the only cause.
+
+**Cost** (judge 612 m3; the fake, 20 files read through `DryrunDrive` as a rehearsal reads them): 20 cold reads take
+44 list calls (main's code: 25); the same 20 again take 20 (main's code: 0). That is about one extra call per read,
+for the absent `dryrun/<run_id>/...` folder. A real run reading existing paths pays nothing extra.
+
+**Gates** (main merged in): 16294 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan, numbers clean.
