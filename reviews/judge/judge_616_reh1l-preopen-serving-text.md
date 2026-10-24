@@ -43,3 +43,36 @@ Judge F, own session (session_01A8XfbTUVgeeEpqatHaWbtP). Labels: strong, some, r
 ## Plants
 
 None (a text round). L1-L5's plants and my own are run at the code round.
+
+## Addendum 1
+
+**Code round 1 of 2 at story/reh1l-preopen-serving @ 2d8ccb8d4 (REH1l's diff `34aad0d85...2d8ccb8d4`), judge F,
+judge 1 of 2: FAIL on 1 should-fix (a test only; the code is right). Lane 1.** Own session; I did not read judge K.
+Trial merge with main 6e332c6f2 (clean): **16,540 passed, 1 skipped, 14 xfailed** (token kept); ruff, format (2,630
+files), `check_imports`, `check_records` (9,257 files) clean.
+
+| Item | Result | My evidence |
+|---|---|---|
+| L1 never past the window | MET in code | `recorded_preopen.py:55-57` drops copies seen at or after `window[1]` before `ServedOnce.pick`; plants (filter off, `<=`, window end moved) caught |
+| L2 the 23 Oct record | MET | `test_preopen_window.py` on the real receipts: gift, fo_list, nifty served; banknifty None at 09:10:00/30/45; 22 Oct none |
+| L3 the clock apart | MET | `RehearsalReading` removed; `ClockReading(CLOCK_UNCHECKED, ())` warns "" (base rule); real unchecked readings still warn (plant caught) |
+| L4 said once | MET | `rehearse.py` passes `(REPLAY_CLOCK,)` to `report_exercised`; plant dropping it caught |
+| L5 / real runs unchanged | MET | the day cell for every real two-server outcome (ok, skew or down for each server, 9 cases) equals the old `warning or "ok"`: my enumeration printed 0 differences; the rehearsal writes `clock_unchecked`, never "ok" (`day_cell`, plants caught); nothing reads the day row's `clock` cell (grep) |
+| 616 minors 2-4 | MET | text reworded (CaptureLog reads status); override removed; two judges |
+
+## Findings
+
+1. **Should fix: judge 616's condition is not proven by its test.** My plant "filter after the pick" (choose among
+   all copies, then refuse one seen at or after the close) passes all 622 tests in `tests/rehearsal`, `tests/preopen`
+   and `tests/intraday`. The cause is the case I gave in 616: at 09:10:45 the 09:10:30 copy (15 s away) is already
+   nearer than 09:11:01 (16 s), so both orders serve 09:10:30. The test's docstring repeats the mistake ("nearer would
+   be 09:11:01"). On the committed code a read at 09:10:50 gets 09:10:30, while under the plant it gets NOT_RECORDED
+   (my run). Fix: read at 09:10:50 (09:11:01 is 11 s ahead, 09:10:30 is 20 s back), assert 09:10:30 is served, and fix
+   the docstring. The plant must then fail. The wrong case was mine; the builder followed it.
+
+## Plants
+
+10 planted on 2d8ccb8d4, one at a time over `tests/rehearsal`, `tests/preopen` and `tests/intraday`, each restored:
+**9 caught, 1 survived** (finding 1). Caught: window filter off; close counted inside; window end pushed out; day cell
+old rule; day cell never "ok"; the replay reading warning again; the replay-clock item dropped; a real clock warning
+no problem; the recorder ignoring `day_cell`.
