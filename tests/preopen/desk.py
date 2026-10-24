@@ -11,11 +11,13 @@ from datetime import UTC, date, datetime, timedelta
 from fno.alerts.sender import SENT
 from fno.health.capture_errors import CaptureErrorLog
 from fno.intraday.candle_source import CandleAnswer
+from fno.intraday.clock import CLOCK_OK, CLOCK_SKEW, ClockReading
 from fno.preopen.check_files import PreopenFiles
 from fno.preopen.open_check import OpenCheck
 from fno.preopen.parts import FO_PREOPEN_URL, GIFT_URL, GrowwIndexPreopen, NseGiftNifty, NsePreopenList
 from fno.preopen.record import PreopenRecorder
 from fno.preopen.run import PreopenRun
+from fno.server_clock import SkewCheck
 from fno.storage.data_store import DataStore
 from fno.storage.raw_store import LocalFolderStore
 from fno.storage.receipts import ReceiptFolder
@@ -134,6 +136,11 @@ class Desk:
         self.trading, self.clock_warning = trading, clock_warning
         self.official, self.on_read, self.files = official or {}, on_read, None
 
+    def _clock(self) -> ClockReading:
+        if not self.clock_warning:
+            return ClockReading(CLOCK_OK, ())
+        return ClockReading(CLOCK_SKEW, (SkewCheck("slack", 7.0, True, self.clock_warning),))
+
     def store(self) -> DataStore:
         return DataStore(self.drive, "data", ReceiptFolder(self.root / "receipts"), "preopen", "run-1",
                          clock=lambda: datetime(2026, 10, 22, 3, 41, tzinfo=UTC))  # fmt: skip
@@ -149,7 +156,7 @@ class Desk:
             return PreopenRun(self.parts, self.clock.now, self.clock.sleep, done)
 
         return PreopenRecorder(self._trading, run, self.store(), self.errors, self.committers, self.sender,
-                               lambda: self.clock_warning, self.early, self.open_check(), self.out.append,
+                               self._clock, self.early, self.open_check(), self.out.append,
                                label_read)  # fmt: skip
 
     def plant_day_row(self, day: date, nifty: str = "", banknifty: str = "", basis: str = "flat_0915_unverified",

@@ -11,6 +11,7 @@ from datetime import date
 
 from ..alerts.sender import AlertSender
 from ..health.capture_errors import CaptureError, CaptureErrorLog
+from ..intraday.clock import ClockReading
 from ..research_data.calendar import CalendarError
 from ..storage.data_store import DataStore
 from ..storage.manifest_commit import ManifestRecorder
@@ -38,12 +39,12 @@ SAVE_ERRORS = (OSError, RuntimeError, ValueError)  # Drive and its settings; Raw
 class PreopenRecorder:
     def __init__(self, is_trading_day: Callable[[date], bool], run: Callable[[Callable], PreopenRun],
                  store: DataStore, errors: CaptureErrorLog, committers: Sequence[ManifestRecorder],
-                 alerts: AlertSender, clock_warning: Callable[[], str], early_commit: ManifestRecorder,
+                 alerts: AlertSender, clock: Callable[[], ClockReading], early_commit: ManifestRecorder,
                  check: OpenCheck, out=print, label_read: Callable[[Callable], LabelRead] = LabelRead):  # fmt: skip
         """`run`: builds the window run around the callback that saves each finished part; `early_commit` pushes a
         part's own file (GIFT Nifty) as soon as the part ends; `check`: A22d's open check, run after the commits."""
         self.is_trading_day, self.build_run, self.store, self.errors = is_trading_day, run, store, errors
-        self.committers, self.alerts, self.clock_warning, self.out = committers, alerts, clock_warning, out
+        self.committers, self.alerts, self.clock, self.out = committers, alerts, clock, out
         self.early_commit, self.check, self.label_read = early_commit, check, label_read
 
     def record(self, day: date) -> int:
@@ -54,7 +55,8 @@ class PreopenRecorder:
         except CalendarError as error:
             return self._finish(day, [Problem("calendar", "stopped", str(error))])
         labels = self.label_read(lambda: self.check.labels(day))  # beside the capture: it never delays a window
-        problems = [Problem("clock", "warning", warning)] if (warning := self.clock_warning()) else []
+        reading = self.clock()
+        problems = [Problem("clock", "warning", warning)] if (warning := reading.warning()) else []
         results = self.build_run(lambda result: problems.extend(self._finished(day, result))).run(day)
         for result in results:
             self.out(PART_LINE.format(part=result.part, status=result.status, reads=result.reads,
@@ -62,7 +64,7 @@ class PreopenRecorder:
         problems += [Problem(r.part, r.status, r.detail) for r in results if r.status != OK]
         flat_labels, label_problems = labels.taken()
         problems += (label_problems if _has_flat_value(results) else []) + self._save_day_row(
-            day, warning or "ok", results, flat_labels)  # fmt: skip
+            day, reading.day_cell(), results, flat_labels)  # fmt: skip
         captured = self._finish(day, problems)
         labels.finish()
         summary, check_problems = self.check.run(day)

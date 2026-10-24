@@ -13,7 +13,8 @@ from fno.rehearsal.recorded_preopen import RecordedPreopenPart
 from fno.storage.receipts import Receipt, ReceiptFolder
 
 D22, D23 = date(2026, 10, 22), date(2026, 10, 23)
-RECORD = ReceiptFolder(Path(__file__).resolve().parents[2] / "receipts")  # the real record's receipts
+RECORD_DIR = Path(__file__).resolve().parents[2] / "receipts"  # the real record's receipts
+RECORD = ReceiptFolder(RECORD_DIR)
 
 
 def at(hhmmss: str, day=D23) -> datetime:
@@ -99,6 +100,7 @@ def test_the_23_oct_record_serves_gift_the_list_and_nifty_and_never_banknifty():
 
 
 def test_22_oct_has_no_recorded_part_at_all():
+    assert (RECORD_DIR / "data/preopen/raw/2026/10/23").is_dir()  # the record is there, so None is not vacuous
     for name, window, first in (("gift", GIFT_WINDOW, "084000"), ("fo_list", FO_WINDOW, "090830"),
                                 ("nifty", INDEX_WINDOW, "091000"), ("banknifty", INDEX_WINDOW, "091000")):  # fmt: skip
         assert nearest(name, window, at(first, D22)) is None
@@ -118,3 +120,33 @@ def test_a_rehearsal_s_clock_check_gives_no_warning_and_a_real_one_still_does(mo
     assert build_clock_check().check().warning() == ""  # so `preopen record` adds no clock problem
     unanswered = SkewCheck("github", None, False, "github: not checked")
     assert ClockReading(CLOCK_UNCHECKED, (unanswered,)).warning() == "github: not checked"  # the real day's rule
+
+
+def test_a_reading_s_day_cell_is_ok_only_for_a_clock_checked_ok():
+    from fno.intraday.clock import CLOCK_OK, CLOCK_PARTIAL, CLOCK_SKEW, CLOCK_UNCHECKED, ClockReading
+    from fno.server_clock import SkewCheck
+
+    good, skew = SkewCheck("github", 0.2, False, "github: 0 s"), SkewCheck("slack", 7.0, True, "slack: 7 s")
+    unanswered = SkewCheck("slack", None, False, "slack: not checked")
+    assert ClockReading(CLOCK_OK, (good,)).day_cell() == "ok"
+    assert ClockReading(CLOCK_SKEW, (good, skew)).day_cell() == "slack: 7 s"  # a real day's cells, as before
+    assert ClockReading(CLOCK_PARTIAL, (good, unanswered)).day_cell() == "slack: not checked"
+    assert ClockReading(CLOCK_UNCHECKED, ()).day_cell() == CLOCK_UNCHECKED  # the replay clock: never "ok"
+
+
+def test_a_replay_with_every_part_recorded_ends_recorded_with_its_clock_unchecked_in_the_day_row(monkeypatch,
+                                                                                                tmp_path):  # fmt: skip
+    """L3 at the recorder: the rehearsal's clock check adds no problem, and its day row never claims a checked clock."""
+    from fno.constants import ENV_FNO_REHEARSAL
+    from fno.intraday.clock import CLOCK_UNCHECKED
+    from fno.intraday.clock_wiring import build_clock_check
+    from fno.rehearsal.mode import Rehearsal
+    from tests.preopen.desk import Desk
+    from tests.preopen.fixtures import DAY
+
+    monkeypatch.setenv(ENV_FNO_REHEARSAL, Rehearsal.new(D23, tmp_path / "m", tmp_path / "m").to_env())
+    desk = Desk(tmp_path)
+    monkeypatch.setattr(desk, "_clock", build_clock_check().check)
+    assert desk.recorder().record(DAY) == 0
+    assert "pre-open recorded" in desk.out and desk.errors.rows() == [] and desk.sender.sent == []
+    assert desk.day_row()["clock"] == CLOCK_UNCHECKED

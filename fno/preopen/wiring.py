@@ -49,7 +49,7 @@ def build_preopen_recorder(cfg: dict) -> PreopenRecorder:
         lambda day: is_trading_day(calendar, day),
         lambda finished: PreopenRun(parts, now_ist, time.sleep, finished),
         store, build_capture_error_log(), (_errors_committer(), _receipts_committer()),
-        build_alert_sender(), lambda: clock.check().warning(), _receipts_committer(),
+        build_alert_sender(), clock.check, _receipts_committer(),
         _open_check(calendar.previous_session, store),
     )  # fmt: skip
 

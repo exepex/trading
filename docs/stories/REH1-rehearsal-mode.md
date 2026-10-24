@@ -674,15 +674,21 @@ closure, correct).
    | NSE's archive (librarian, snapshot takers) | `recorded_archive.RecordedArchiveSession` (REH1h) | scheduled, by row commit | unchanged: served at its row's commit, never before |
    | A4's 3 pm and 15:15 quote attempts | `recorded_quotes` | republished at each attempt's `finished_at` | unchanged: no nearest-copy choice |
 
-3. **The rehearsal's clock is reported apart, the real day's rule unchanged.** In a rehearsal, `RehearsalReading.warning()`
-   returns "" (no capture problem); a real run's unchecked or skewed clock stays a warning and a problem. The fact that
+3. **The rehearsal's clock is reported apart, the real day's rule unchanged.** In a rehearsal the clock reading has no
+   checks, so its `warning()` is "" (no capture problem); a real run's unchecked or skewed clock stays a warning and a
+   problem. The pre-open day row's `clock` cell, until now `warning or "ok"`, comes from the new
+   `ClockReading.day_cell()` (`fno/intraday/clock.py`): the warning, else "ok" only for `clock_ok`, else the status.
+   A real reading with no warning is always `clock_ok` (a skew, a partial or an unchecked real reading each name a
+   server), so every real cell is as today; the replay clock's cell is `clock_unchecked`, never "ok" (found by the
+   self-review: with "" alone the dry-run day row would claim a checked clock). `PreopenRecorder` takes the reading
+   (`clock.check`) in place of its warning text. The fact that
    the replay clock was not checked is said once per rehearsal, as one fixed item of REH1j's labelled exercised line
    on #fno-desk ("replay clock not checked (by design)"), added by `rehearse` itself whatever the routine.
    The clock forms (the orchestrator's ask (c)), file by file:
    - `fno/rehearsal/preopen_wiring.py`: `RehearsalClockCheck`, chosen in `fno/intraday/clock_wiring.py`'s
      `build_clock_check` (REH1c). With no checks, the base `ClockReading.warning()` already returns "", so
      `RehearsalReading` and its override are removed (judge 616 m3). Its readers of `warning()`:
-     `fno/preopen/record.py:57` (the pre-open's problem, the finding) and `fno/intraday/recorder.py:117` (A16's marks
+     `fno/preopen/record.py:59` (the pre-open's problem, the finding) and `fno/intraday/recorder.py:117` (A16's marks
      add the warning as a line to the mark's outcome, not a failure); with "" both say nothing about the replay clock.
      A third builder, `fno/quotes/window_wiring.py:30`, gives the clock to `CaptureLog`, which records only
      `reading.status` and `worst`, never `warning()`; in a rehearsal `rehearsed_recorder` replaces that recorder, so
@@ -690,7 +696,8 @@ closure, correct).
    - `fno/rehearsal/card_label.py`: `RehearsalCardClocks` (T1f), which writes `unchecked(server, NOT_CHECKED)` lines
      into the card's delivery record. Unchanged by REH1l: the card's own record names each unchecked server, which is
      what T1f's judges passed; it is not a capture problem and changes no status.
-   `NOT_CHECKED` stays the one text both forms and the exercised line use.
+   Two texts, each in its one place: `NOT_CHECKED` in the card's delivery record (T1f), and `REPLAY_CLOCK`
+   (`fno/rehearsal/rehearse.py`, "replay clock not checked (by design)") as the exercised line's fixed item.
 
 #### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
 
@@ -702,8 +709,9 @@ closure, correct).
   BANKNIFTY NOT_RECORDED. Empty: 22 Oct, every part NOT_RECORDED. Plant: at-or-before-now (the rejected rule) fails
   the NIFTY case.
 - **L3. The clock apart.** Under the mode, `build_clock_check().check().warning()` is "", so a pre-open replay with
-  every part recorded ends "pre-open recorded"; with no mode an unchecked clock is still a warning and a problem.
-  Plant: the old text returned.
+  every part recorded ends "pre-open recorded" with no clock row in O10, and its day row's `clock` cell is
+  `clock_unchecked`; with no mode an unchecked clock is still a warning and a problem, and the cells of a real
+  `clock_ok`, skew and partial reading are as today. Plants: the old text returned; the cell back to "ok".
 - **L4. Said once.** The rehearsal's exercised line names "replay clock not checked (by design)" once per rehearsal,
   posted labelled; the card's own unchecked lines are unchanged. Plant: the item dropped.
 - **L5. Real runs unchanged.** No mode: every source and clock as today; the full suite passes.
