@@ -111,7 +111,8 @@ def test_one_alert_names_every_index_not_recorded(tmp_path, capsys):
     recs = recorders(tmp_path, clock, provider=IndexProvider(refuse={"FINNIFTY", "MIDCPNIFTY"}))
     assert record_indices(lambda: recs, alerts, "cal.csv", clock.now, clock.sleep) == 1
     (alert,) = alerts.sent
-    assert "FINNIFTY (incomplete)" in alert and "MIDCPNIFTY (incomplete)" in alert and "BANKNIFTY" not in alert
+    assert "FINNIFTY (incomplete, canonical none)" in alert and "MIDCPNIFTY (incomplete, canonical none)" in alert
+    assert "BANKNIFTY" not in alert
     lines = capsys.readouterr().out.splitlines()
     assert sum(line.startswith(("BANKNIFTY", "FINNIFTY", "MIDCPNIFTY")) for line in lines) == 3
 
@@ -182,3 +183,35 @@ def test_an_index_whose_turn_comes_after_the_window_is_not_asked_anything(tmp_pa
     results, _, _, _ = _run(tmp_path, start=datetime(2026, 10, 13, 15, 12, 40, tzinfo=IST), provider=provider)
     asked = {call[0] for call in provider.calls}
     assert asked == {"BANKNIFTY"} and results["MIDCPNIFTY"].status == "window closed"
+
+
+def _alerted(tmp_path, start, capsys, **kwargs):
+    clock, alerts = Clock(start), Alerts()
+    code = record_indices(lambda: recorders(tmp_path, clock, **kwargs), alerts, "cal.csv", clock.now, clock.sleep)
+    return code, alerts.sent, capsys.readouterr().out.splitlines()
+
+
+def test_a_run_too_early_says_not_started_and_never_canonical_none(tmp_path, capsys):
+    """A4c-2 (DRY2 R1): at 14:38 the nifty part had died; 23 minutes early, nothing is recorded and no marker is
+    written, so neither the lines nor the alert may say "canonical none"."""
+    code, sent, lines = _alerted(tmp_path, datetime(2026, 10, 13, 14, 38, tzinfo=IST), capsys)
+    assert code == 1 and len(sent) == 1 and "canonical none" not in sent[0]
+    assert all(f"{name} (not started: too early (before 14:41))" in sent[0] for name in SPOTS)
+    index_lines = [line for line in lines if " too early: " in line]
+    assert len(index_lines) == 3 and all(
+        line.endswith("- not started: too early (before 14:41)") for line in index_lines
+    )
+    assert not list(tmp_path.rglob("*.canonical"))
+
+
+def test_the_earliest_start_waits_and_one_second_before_it_is_too_early(tmp_path):
+    """The fake clock moves 1 s at each read, so a clock set at 14:40:59 reads 14:41:00 first."""
+    results, _, _, _ = _run(tmp_path, datetime(2026, 10, 13, 14, 40, 59, tzinfo=IST))
+    assert all(r.complete for r in results.values())
+    early, _, _, _ = _run(tmp_path / "early", datetime(2026, 10, 13, 14, 40, 58, tzinfo=IST))
+    assert {r.status for r in early.values()} == {"too early"}
+
+
+def test_an_index_closed_none_keeps_canonical_none_in_the_alert(tmp_path, capsys):
+    code, sent, _ = _alerted(tmp_path, AT_1500, capsys, provider=IndexProvider(refuse={"FINNIFTY"}))
+    assert code == 1 and "FINNIFTY (incomplete, canonical none)" in sent[0] and "BANKNIFTY" not in sent[0]

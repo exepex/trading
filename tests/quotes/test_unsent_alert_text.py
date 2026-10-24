@@ -70,7 +70,9 @@ def test_a_calendar_stop_slack_did_not_take_is_printed_with_its_text(monkeypatch
 def test_the_index_alert_slack_did_not_take_is_printed_with_its_text(monkeypatch, capsys):
     code, lines = _run(monkeypatch, capsys, NoAlertSender(DOWN), quotes_cmd="record-indices")
     [line] = _unsent(lines)
-    assert code == 1 and line == f"alert NOT sent: {DOWN} | " + INDEX_ALERT.format(names="FINNIFTY (incomplete)")
+    assert code == 1 and line == f"alert NOT sent: {DOWN} | " + INDEX_ALERT.format(
+        names="FINNIFTY (incomplete, canonical none)"
+    )
 
 
 @pytest.mark.parametrize("quotes_cmd", ["record", "record-indices"])

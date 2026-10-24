@@ -10,12 +10,12 @@ from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..models import now_ist
 from ..research_data.calendar import CalendarError
-from .indices import IndexRecording
+from .indices import CLOSED_NONE, DONE_WITHOUT_ATTEMPT, IndexRecording
 from .recorder import QuoteSnapshotRecorder, RecordResult
 
 INDEX_LINE = "{underlying} {status}: {snapshot_id} ({rows} contracts, complete={complete}){reason}"
 INDEX_ALERT = (
-    "3 pm index recorder: not recorded today (canonical none): {names}. Data only; NIFTY is separate; the sidecars "
+    "3 pm index recorder: not recorded today: {names}. Data only; NIFTY is separate; the sidecars "
     "in research/data/quotes/groww/ say why."
 )
 INDEX_CALENDAR_STOP = "3 pm index recorder stopped, nothing recorded: {error} ({file})"
@@ -44,7 +44,9 @@ def _missing(result: RecordResult) -> bool:
 
 
 def _why(result: RecordResult) -> str:
-    return result.reason or result.raw_file_error or ("incomplete" if result.status == "recorded" else result.status)
+    """The index's own outcome (A4c-2): "canonical none" only when its day was closed none."""
+    why = result.reason or result.raw_file_error or ("incomplete" if result.status == "recorded" else result.status)
+    return why if result.status in DONE_WITHOUT_ATTEMPT else f"{why}, {CLOSED_NONE}"
 
 
 def _line(underlying: str, result: RecordResult) -> str:

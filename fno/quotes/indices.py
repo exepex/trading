@@ -6,7 +6,7 @@ window lasts (A4's rule), and an index still incomplete at its end is "none" for
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 
 from ..models import IST
 from .recorder import (
@@ -24,6 +24,11 @@ INDEX_WINDOW_START, INDEX_WINDOW_END = time(15, 1), time(15, 13)
 INDEX_WORKERS, INDEX_PER_SECOND = 3, 2.5  # with A16's 5 a second, under the about 10 where Groww began failing
 NOT_STARTED = RecordResult("window closed")
 DONE_WITHOUT_ATTEMPT = ("not a trading day", "already recorded", "too early")
+# The earliest start that still reaches the window by waiting (A4c-2: 15:01 minus the 20-minute early wait). A run
+# started before it records nothing and writes no none marker, so its result says so (DRY2 R1, 24 Oct 2026).
+EARLIEST_START = (datetime.combine(date.min, INDEX_WINDOW_START) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS)).time()
+TOO_EARLY_REASON = f"not started: too early (before {EARLIEST_START:%H:%M})"
+CLOSED_NONE = "canonical none"  # the day's marker was written "none": a rerun records nothing more
 
 
 def index_slot(underlying: str, weeklies: int = 0) -> Slot:
@@ -50,7 +55,7 @@ class IndexRecording:
         start, end = (datetime.combine(day, moment, IST) for moment in (INDEX_WINDOW_START, INDEX_WINDOW_END))
         if now < start:
             if (start - now).total_seconds() > MAX_EARLY_WAIT_SECONDS:
-                return dict.fromkeys(self.recorders, RecordResult("too early"))
+                return dict.fromkeys(self.recorders, RecordResult("too early", reason=TOO_EARLY_REASON))
             self.sleep((start - now).total_seconds())
         results = {name: self._done(recorder, day) or NOT_STARTED for name, recorder in self.recorders.items()}
         pending = [name for name, result in results.items() if result is NOT_STARTED]
