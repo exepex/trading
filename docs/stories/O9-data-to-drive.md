@@ -204,9 +204,11 @@ ea232e876681.csv: in the receipts, not returned by Drive".
   90-99). The cache's instance had looked under the folder before the writer's instance created it, kept "absent",
   and answered the later read from that memory without asking Drive.
 - Two things hide it, so it fails only when both are absent. A warm local cache (a file already on disk with the
-  receipt's SHA-256 is never asked of Drive). And the replay clock: from the real file's own receipt time (15:20:35
-  for this table) REH1g lets `DryrunDrive` fall back to the real record's copy, whose bytes are the same, so a read
-  after that time passes despite the stale absence. A cold cache read before 15:20:35 fails. (Corrected in the code
+  receipt's SHA-256 is never asked of Drive). And the replay clock: from the real file's receipt `written_at` (15:20:20.479
+  IST for this table; the receipt reached main at 15:20:35) REH1a's visibility lets `DryrunDrive` fall back to the
+  real record's copy, whose bytes are the same, so a read after that time passes despite the stale absence. The
+  failing run's step ended at 15:20:20.40, before it; REH1j's two samples ended at about 15:20:26, after it, and
+  passed on the same code. A cold cache read before the real `written_at` fails. (Corrected in the code
   round: the text first said the start times were not the cause; they are one of the two masks.)
 - It is not a rehearsal-only bug. In a real run the same happens whenever one instance reads a path before another
   creates it in the same process (the first file of a new folder: a new year, a new dataset). A rehearsal makes it
