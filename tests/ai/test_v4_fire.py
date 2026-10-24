@@ -80,7 +80,7 @@ class Desk:
         inputs = V4BookInputs(root, ledger or Ledger(), ForecastFiles(v4))
         packs = released or Released()
         self.firer = V4BookFirer(root, self.triggers, lambda: packs, inputs, self.alerts,
-                                 lambda: now or at(14, 33), live_from)  # fmt: skip
+                                 lambda: now or at(14, 33), live_from, lambda day: [])  # fmt: skip
 
     def log(self):
         return json.loads((self.root / V4_TERMS.fired_path(DAY)).read_text())
@@ -131,7 +131,7 @@ def test_a_start_after_1455_is_a_logged_not_fired_with_an_alert(tmp_path):
 
 
 def test_the_stop_rule_is_logged_as_its_flag(tmp_path, monkeypatch):
-    monkeypatch.setattr("fno.ai.v4_fire.stop_reason", lambda root, book, version, day: "stopped: 2 breaches")
+    monkeypatch.setattr("fno.ai.v4_fire.stop_reason", lambda *args: "stopped: 2 breaches")
     desk = Desk(tmp_path)
     desk.firer.fire(DAY)
     assert desk.log()["books"][BOOK3_AI]["stop_rule"] is True and not desk.triggers[BOOK3_AI].fired

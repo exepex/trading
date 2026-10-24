@@ -40,18 +40,18 @@ def scoring_status(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed]
     isolation = audit["isolation"]
     if audit["status"] != ON_TIME:
         return ScoringStatus(UNSCORED, audit["status"], isolation)
-    transcript = TranscriptAudits(root).get(day, book)
+    transcript = TranscriptAudits(root, terms).get(day, book)
     if transcript and transcript.result == BREACH:
         return ScoringStatus(UNSCORED, f"transcript breach: {', '.join(transcript.breaches)}", isolation)
     if transcript is None:
-        waiting = _awaiting_audit(root, day, book, seeds)
+        waiting = _awaiting_audit(root, day, book, seeds, terms)
         if waiting:
             return ScoringStatus(PENDING, waiting, isolation)
     return ScoringStatus(SCORED, "on time; transcript clean or not drawn", isolation)
 
 
-def _awaiting_audit(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed]) -> str:
-    sessions = fired_sessions(root)
+def _awaiting_audit(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed], terms: RunTerms) -> str:
+    sessions = fired_sessions(root, terms)
     if any(s.day == day and s.book == book for s in sessions_to_audit(sessions, seeds)):
         return "transcript audit due"
     if day not in first_days(sessions) and day.isocalendar()[:2] not in seeds:

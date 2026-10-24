@@ -47,8 +47,11 @@ def timing_path(day: date, book: str) -> str:
     return f"{AI_FOLDER}/timing/{day:%Y}/{day.isoformat()}_{book}.timing.json"
 
 
-def transcript_audit_path(day: date, book: str) -> str:
-    return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_{book}_transcript_audit.json"
+TRANSCRIPT_AUDIT_SUFFIX = "_transcript_audit.json"
+
+
+def transcript_audit_path(day: date, book: str, folder: str = AI_FOLDER) -> str:
+    return f"{folder}/{day:%Y}/{day.isoformat()}_{book}{TRANSCRIPT_AUDIT_SUFFIX}"
 
 
 AI_V4_FOLDER = "research/forecasts/ai_v4"  # the AI books' v4 fire logs and submissions (their rows: v4/<forecaster>/)

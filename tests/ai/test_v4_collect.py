@@ -14,6 +14,7 @@ from fno.ai.history import RepoHistory
 from fno.ai.paths import CLOSES_FILE
 from fno.ai.run_terms import V4_TERMS
 from fno.ai.seal import Commitment, new_salt, reveal_text
+from fno.ai.transcript_audit import TranscriptAudits, new_audit
 from fno.ai.v4_book_inputs import V4BookInputs
 from fno.ai.v4_collect import V4BookCollector
 from fno.ai.v4_fire import V4BookFirer
@@ -45,7 +46,7 @@ class V4Desk:
 
     def fire(self, now=None):
         firer = V4BookFirer(self.root, self.triggers, lambda: Released(), self.inputs, self.alerts,
-                            lambda: now or at(14, 33), DAY)  # fmt: skip
+                            lambda: now or at(14, 33), DAY, lambda day: [])  # fmt: skip
         return firer.fire(DAY)
 
     def answer(self, book, sealed=None, revealed=None, values=(0.05, 0.18), model="claude-opus-5-5"):
@@ -69,8 +70,20 @@ class V4Desk:
                                     lambda: released or Released(), lambda: at(15, 31), DAY)  # fmt: skip
         return collector.collect(DAY)
 
-    def settle(self, seeds=SETTLED):
+    def settle(self, seeds=SETTLED, audited=(BOOK2_HYBRID, BOOK3_AI)):
+        """Records a clean transcript audit for each fired book in `audited` (v4's first 10 days are all audited,
+        round 2c), then settles."""
+        for book in audited:
+            self.audit_transcript(book)
         return V4RowSettler(self.root, self.v4, lambda: seeds).settle()
+
+    def audit_transcript(self, book, breaches=()):
+        log_file = self.root / V4_TERMS.fired_path(DAY)
+        fired = V4_TERMS.fired_books(json.loads(log_file.read_text())).get(book, {}) if log_file.is_file() else {}
+        audits = TranscriptAudits(self.root, V4_TERMS)
+        if not fired.get("fired") or audits.get(DAY, book) is not None:
+            return None
+        return audits.record(DAY, new_audit(DAY, book, fired, list(breaches), "tool calls read", "judge", at(16, 0)))
 
     def audit(self, book):
         return json.loads((self.root / V4_TERMS.audit_path(DAY, book)).read_text())
@@ -127,14 +140,29 @@ def test_no_released_pack_collects_nothing(desk):
     assert "nothing collected (no row)" in lines[0] and not (desk.root / V4_TERMS.folder).exists()
 
 
-def test_a_day_whose_week_is_not_drawn_waits_and_gets_no_row(desk):
+def test_a_first_ten_days_session_waits_for_its_transcript_audit_and_gets_no_row(desk):
     desk.fire()
     desk.answer(BOOK3_AI)
     desk.collect()
-    lines = desk.settle(seeds={})
-    # Hybrid never answered: a settled miss (2 rows); Book 3 was on time but its week is not drawn: it waits
-    assert lines[0].endswith("2 v4 row(s) added; 1 day(s) awaiting audit") and "weekly audit draw" in lines[1]
+    lines = desk.settle(audited=())
+    # Hybrid never answered: a settled miss (2 rows); Book 3 was on time but its audit is due: it waits
+    assert lines[0].endswith("2 v4 row(s) added; 1 day(s) awaiting audit") and "transcript audit due" in lines[1]
     assert desk.row(BOOK3_AI, V6_BIG_MOVE_1S) is None  # on time but unaudited: no row yet
+    desk.settle()  # the audit lands: the row follows
+    assert desk.row(BOOK3_AI, V6_BIG_MOVE_1S).status == "ok"
+
+
+def test_after_ten_fired_days_a_day_whose_week_is_not_drawn_waits(desk):
+    for back in range(1, 11):  # ten earlier v4 days with both books fired: DAY is the eleventh
+        earlier = DAY - timedelta(days=back)
+        log = {"released": True, "books": {b: {"fired": True, "version": "x"} for b in (BOOK2_HYBRID, BOOK3_AI)}}
+        (desk.root / V4_TERMS.fired_path(earlier)).parent.mkdir(parents=True, exist_ok=True)
+        (desk.root / V4_TERMS.fired_path(earlier)).write_text(json.dumps(log))
+    desk.fire()
+    desk.answer(BOOK3_AI)
+    desk.collect()
+    lines = desk.settle(seeds={}, audited=())
+    assert lines[0].endswith("2 v4 row(s) added; 1 day(s) awaiting audit") and "weekly audit draw" in lines[1]
 
 
 def test_an_input_that_rebuilds_to_another_hash_is_invalid(desk):

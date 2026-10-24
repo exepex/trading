@@ -7,8 +7,10 @@
 - `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once), then
   records every book run's own timing in BG1's usage ledger and alerts each run of the day not captured (F8c);
 - `coverage`: per book, the pack days with a counted forecast (story G5 criterion 3);
-- `audits-due`: records any new weekly draw (with its seed inputs), then lists the selected sessions not audited yet;
-- `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once.
+- `audits-due`: records any new weekly draw (with its seed inputs), then lists the selected sessions not audited yet,
+  for v2's runs and v4's apart (each protocol drawn from its own fire logs, G11 round 2c);
+- `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once;
+  `--protocol v4` for a v4 run.
 The routine side is `python -m fno.ai` (standard library only).
 """
 
@@ -42,6 +44,8 @@ def add_ai_parser(subparsers) -> None:
     record.add_argument("--evidence", required=True, help="what was read and seen (tool calls, files), never a secret")
     record.add_argument("--auditor", required=True, help="who read the transcript")
     record.add_argument("--session", default="", help="the session, when the fire log has no link")
+    protocols = (FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4)
+    record.add_argument("--protocol", choices=protocols, default=FORECAST_PROTOCOL_V2, help="v4: a run of the v4 fire")
     ai.set_defaults(func=cmd_ai)
 
 
@@ -108,33 +112,37 @@ def _audits_due(day: date) -> int:
     from ..composition import build_alert_sender
     from ..config import ROOT
     from .audit_plan import audits_due, record_draws
+    from .run_terms import V2_TERMS, V4_TERMS
     from .wiring import build_audit_seeds
 
     seeds, refused = build_audit_seeds()
     for line in refused:  # a close the archive does not confirm: that week is not drawn, and the desk is told
         print(line, "|", build_alert_sender().send(line))
-    drawn = record_draws(ROOT, seeds)
-    due = audits_due(ROOT, seeds)
-    print(
-        f"Omenix F&O AI transcript audits due: {len(due)}"
-        + (f"; new weekly draws: {', '.join(drawn)}" if drawn else "")
-    )
-    for session in due:
-        print(f"  {session.day} {session.book} {session.entry.get('session', '(no link)')}")
+    for terms in (V2_TERMS, V4_TERMS):
+        drawn = record_draws(ROOT, seeds, terms)
+        due = audits_due(ROOT, seeds, terms)
+        print(
+            f"Omenix F&O AI transcript audits due ({terms.protocol}): {len(due)}"
+            + (f"; new weekly draws: {', '.join(drawn)}" if drawn else "")
+        )
+        for session in due:
+            print(f"  {session.day} {session.book} {session.entry.get('session', '(no link)')}")
     return 0
 
 
 def _audit_record(args) -> int:
     from ..config import ROOT
     from ..models import now_ist
-    from .paths import fired_path
+    from .run_terms import V2_TERMS, V4_TERMS
     from .transcript_audit import AuditRefused, TranscriptAudits, new_audit
 
-    log = ROOT / fired_path(args.day)
-    fired = json.loads(log.read_text(encoding="utf-8")).get(args.book, {}) if log.is_file() else {}
+    terms = V4_TERMS if args.protocol == FORECAST_PROTOCOL_V4 else V2_TERMS
+    log = ROOT / terms.fired_path(args.day)
+    books = terms.fired_books(json.loads(log.read_text(encoding="utf-8"))) if log.is_file() else {}
     try:
-        audit = new_audit(args.day, args.book, fired, args.breach, args.evidence, args.auditor, now_ist(), args.session)
-        print(f"recorded {audit.result}: {TranscriptAudits(ROOT).record(args.day, audit)}")
+        audit = new_audit(args.day, args.book, books.get(args.book, {}), args.breach, args.evidence, args.auditor,
+                          now_ist(), args.session)  # fmt: skip
+        print(f"recorded {audit.result}: {TranscriptAudits(ROOT, terms).record(args.day, audit)}")
     except AuditRefused as refused:
         print(f"refused: {refused}")
         return 1

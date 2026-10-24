@@ -15,7 +15,7 @@ from datetime import date, datetime, time
 from ..forecast.schema_v2 import GENERATION_DEADLINE
 from ..forecast_v4.terms import V4_DEADLINE
 from ..models import IST
-from .paths import AI_FOLDER, AI_V4_FOLDER, audit_path, commitment_path, fired_path, reveal_path
+from .paths import AI_FOLDER, AI_V4_FOLDER, audit_path, commitment_path, fired_path, reveal_path, transcript_audit_path
 
 REVEAL_FROM = time(15, 15, 10)  # v2: 10 s after the deadline, so a little clock drift cannot open an answer early
 V4_REVEAL_FROM = time(15, 10, 10)  # v4: the same 10 s after its deadline
@@ -29,6 +29,7 @@ class RunTerms:
     deadline: time  # GitHub's receipt of the commitment, IST
     reveal_from: time  # no answer is readable before every commitment is in (a few seconds of clock drift)
     reveal_by: time  # the collection waits for reveals until then (15:30 for both: collect keeps its slot)
+    books_key: str | None = None  # where a fire log keeps its books' entries: v2's log is them, v4's under "books"
 
     def commitment_path(self, day: date, book: str) -> str:
         return commitment_path(day, book, self.folder)
@@ -42,6 +43,18 @@ class RunTerms:
     def fired_path(self, day: date) -> str:
         return fired_path(day, self.folder)
 
+    def transcript_audit_path(self, day: date, book: str) -> str:
+        return transcript_audit_path(day, book, self.folder)
+
+    @property
+    def draws_folder(self) -> str:
+        """The weekly audit draws of this protocol's runs (one draw per protocol: v4's sessions are drawn apart)."""
+        return f"{self.folder}/draws"
+
+    def fired_books(self, log: dict) -> dict:
+        """book -> its entry in a fire log (a v4 log with no released pack has none)."""
+        return log if self.books_key is None else log.get(self.books_key, {})
+
     def receipt_deadline(self, day: date) -> datetime:
         return datetime.combine(day, self.deadline, tzinfo=IST)
 
@@ -53,4 +66,4 @@ class RunTerms:
 
 
 V2_TERMS = RunTerms("v2", AI_FOLDER, GENERATION_DEADLINE, REVEAL_FROM, REVEAL_DEADLINE)
-V4_TERMS = RunTerms("v4", AI_V4_FOLDER, V4_DEADLINE, V4_REVEAL_FROM, REVEAL_DEADLINE)
+V4_TERMS = RunTerms("v4", AI_V4_FOLDER, V4_DEADLINE, V4_REVEAL_FROM, REVEAL_DEADLINE, books_key="books")

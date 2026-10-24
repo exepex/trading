@@ -5,7 +5,7 @@ source is one new class and one line here. The book side has its own root (`book
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import date, timedelta
 
 from ..budget.wiring import build_usage_ledger
 from ..composition import build_alert_sender
@@ -34,6 +34,8 @@ from .history import RepoHistory
 from .paths import CLOSES_FILE
 from .receipts import GitHubActivityReceipts
 from .record_writer import AiRecordWriter
+from .run_terms import V4_TERMS
+from .stop_rule import WINDOW_SESSION_DAYS
 from .usage_gaps import alert_usage_gaps
 from .usage_record import BookUsageRecorder
 from .v4_book_inputs import V4BookInputs
@@ -73,7 +75,20 @@ def build_v4_firer(env=os.environ) -> V4BookFirer:
     triggers = {book: build_book_trigger(book, env) for book in ROUTINES}
     inputs = V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER))
     return V4BookFirer(ROOT, triggers, lambda: build_released_packs(env), inputs, build_alert_sender(), now_ist,
-                       v4_live_from())  # fmt: skip
+                       v4_live_from(), v4_sessions_before)  # fmt: skip
+
+
+def v4_sessions_before(day: date) -> list[date]:
+    """v4's last scored sessions before `day` (A7's regular sessions): the stop rule's 20-session window."""
+    from ..forecast_v4.sessions import is_scored_session
+    from ..storage.wiring import build_session_calendar
+
+    calendar, found = build_session_calendar(), []
+    while len(found) < WINDOW_SESSION_DAYS:
+        day -= timedelta(days=1)
+        if is_scored_session(calendar, day):
+            found.append(day)
+    return sorted(found)
 
 
 def build_v4_collector(env=os.environ) -> V4BookCollector:
@@ -119,4 +134,5 @@ def build_audit_seeds(root=ROOT, env=os.environ) -> tuple[dict, list[str]]:
     """The weekly audit draws' seeds, each close confirmed in the Drive archive, and one line per refused week."""
     drive = storage.build_owner_drive(env)
     archive = DriveIndexCloseArchive(AreaStore(drive, storage.RAW_AREA)) if drive else NoCloseArchive()
-    return verified_seeds(root / CLOSES_FILE, archive, weeks_to_draw(fired_sessions(root)))
+    weeks = weeks_to_draw(fired_sessions(root)) | weeks_to_draw(fired_sessions(root, V4_TERMS))
+    return verified_seeds(root / CLOSES_FILE, archive, weeks)

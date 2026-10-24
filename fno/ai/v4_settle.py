@@ -15,12 +15,13 @@ from datetime import date
 from pathlib import Path
 
 from .draw_seed import Week, WeekSeed
+from .paths import TRANSCRIPT_AUDIT_SUFFIX
 from .run_terms import V4_TERMS
 from .scoring_gate import PENDING, scoring_status
 from .v4_rows import BookDay, write_book_day
 from .versions import version_by_label
 
-AUDITS = "*/*_audit.json"
+AUDITS = "*/*_audit.json"  # the collection's audits; the transcript audits share the folder (round 2c) and are skipped
 LINE = "Omenix F&O AI forecasts v4: {result}"
 
 
@@ -33,7 +34,7 @@ class V4RowSettler:
     def settle(self) -> list[str]:
         seeds = self.seeds()
         added, waiting = 0, []
-        for file in sorted((self.root / V4_TERMS.folder).glob(AUDITS)):
+        for file in _collection_audits(self.root / V4_TERMS.folder):
             audit = json.loads(file.read_text(encoding="utf-8"))
             day = date.fromisoformat(audit["day"])
             gate = scoring_status(self.root, day, audit["book"], seeds, V4_TERMS)
@@ -44,6 +45,10 @@ class V4RowSettler:
                                     audit["released_sha256"])  # fmt: skip
         lines = [LINE.format(result=f"{added} v4 row(s) added; {len(waiting)} day(s) awaiting audit")]
         return lines + [LINE.format(result=f"awaiting audit: {entry}") for entry in waiting]
+
+
+def _collection_audits(folder: Path) -> list[Path]:
+    return sorted(f for f in folder.glob(AUDITS) if not f.name.endswith(TRANSCRIPT_AUDIT_SUFFIX))
 
 
 def _book_day(audit: dict, day: date, gate) -> BookDay:

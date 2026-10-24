@@ -3,7 +3,8 @@ lands (G10 part 2): each book's routine is fired once, with a pointer holding it
 Drive credentials). Research only.
 
 - Refused outright (nothing logged): a day that is not today's IST date (a replayed or late push), and any day before
-  the v4 go-live date (`daily.live_from.forecasts_v4`, the same date that stops the v2 AI fire: owner's choice A).
+  the AI books' v4 go-live date (`daily.live_from.ai_books_v4`, the same date that stops the v2 AI fire: owner's
+  choice A).
 - No released pack (none recorded, `system_late`, or bytes failing their receipt): nothing is fired; the log says why.
 - Per book: a start after `V4_LATEST_FIRE` (14:55), the stop rule, a pointer over the cap or a refused trigger is a
   logged `not_fired`, with one #fno-desk line, never retried. The stop rule's day carries `"stop_rule": true`, the
@@ -34,8 +35,8 @@ from .versions import current_version
 
 LINE = "Omenix F&O AI forecasts v4 (GitHub Actions): {day}: {result}"
 NOT_TODAY = "not fired: {day} is not today ({today}), so a replayed or late push fires nothing"
-NOT_LIVE = "not fired: v4 is not live before {live_from} (config.yaml daily.live_from.forecasts_v4)"
-NO_LIVE_DATE = "not fired: no v4 go-live date is set (config.yaml daily.live_from.forecasts_v4)"
+NOT_LIVE = "not fired: v4 is not live before {live_from} (config.yaml daily.live_from.ai_books_v4)"
+NO_LIVE_DATE = "not fired: no v4 go-live date is set (config.yaml daily.live_from.ai_books_v4)"
 LATE_START = "late start: the run began after {latest:%H:%M} IST, so its answer could only be late"
 
 
@@ -48,6 +49,7 @@ class V4BookFirer:
     alerts: AlertSender
     clock: Callable[[], datetime]
     live_from: date | None
+    sessions_before: Callable[[date], list[date]]  # v4's scored sessions before a day: the stop rule's window
 
     def fire(self, day: date) -> list[str]:
         refused = self._refused(day)
@@ -89,7 +91,7 @@ class V4BookFirer:
             return entry | {"reason": "no v4 question is registered for its slot yet"}
         if late:
             return self._not_fired(day, book, entry | {"late_start": True}, LATE_START.format(latest=V4_LATEST_FIRE))
-        stopped = stop_reason(self.root, book, version.label, day)
+        stopped = stop_reason(self.root, book, version.label, day, V4_TERMS, self.sessions_before(day))
         if stopped:
             return self._not_fired(day, book, entry | {"stop_rule": True}, stopped)
         pointer = V4Pointer(self.inputs.build(version, day, entry["questions"], pack, pack_sha256))
