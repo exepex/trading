@@ -999,7 +999,7 @@ the pack format and SHA; the pack binding guard; the release record format and i
 
 | Ask | Answer | Reason | Groww load added at 14:30-14:40 |
 |---|---|---|---|
-| G7b 1: chains for `e` and every expiry up to and including the first with at least 5 scored sessions | **Changed:** `e` and the other monthly as today, plus **the first listed expiry with at least 5 scored sessions in `(d, expiry]`** when it is not already one of them; not the nearer ones | V4 uses only that expiry (G7b's own rule picks the first with 5 sessions), so a nearer weekly adds requests and no input. The rule is one pure function in G7b's module, imported by A4e's `v4` window (G7b's offer 2: one rule, one place) | about 90 contract quotes and one chain call, about 80 s, on days that expiry is a weekly (most days); none when it is a monthly |
+| G7b 1: chains for `e` and every expiry up to and including the first with at least 5 scored sessions | **Changed:** `e` and the other monthly as today, plus **the first listed expiry with at least 5 scored sessions in `(d, expiry]`** when it is not already one of them; not the nearer ones | V4 uses only that expiry (G7b's own rule picks the first with 5 sessions), so a nearer weekly adds requests and no input. The rule is one pure function in G7b's module, imported by A4e's `v4` window (G7b's offer 2: one rule, one place); **the pack names the chosen expiry as `v4_expiry`** (`None` when the function returns `None`; G7b's second ask: yes, so a failed weekly is never read as "V4's expiry is the monthly") | about 90 contract quotes and one chain call, about 80 s, on days that expiry is a weekly (most days); none when it is a monthly |
 | G7b 1: strikes within at least 3% of spot | **Yes, already:** A4's band is 5% (`fno/quotes/recorder.py:49`, `SPOT_BAND`), used for the added expiry too (one band, DRY) | 5% covers 3% and the strikes either side of ATM | none beyond the row above |
 | G7b 3: the future keeps bid and ask | **Yes:** one Groww quote of `e`'s future in the `v4` window, behind a new `FutureQuotes` interface with a Groww adapter (the `Provider` interface has no future quote; NSE's level read gives only last and volume) | V5 prices `F` at mid under the 5% spread rule (W2); without both sides V5 is void every day | one request, under 1 s |
 | G7b 4: `iv30.flagged` as on `main` | **Yes**, unchanged | | none |
@@ -1107,17 +1107,24 @@ to `build_commitment_times`), resolved by keeping both.
    a monthly expiry day (`e` is the next monthly). Empty: a capture with zero valid rows. Plants: `<=` to `<` at the
    window end; drop the clock check; read `last_trade_time` as the observation time.
 3a. **The pack holds G7b's inputs.** A4e's `v4` window records, beside the two monthlies, the first listed expiry with at
-   least 5 scored sessions in `(d, expiry]` (G7b's pure function, imported; special and muhurat sessions not counted)
-   when it is not a monthly, at the same 5% band, and one quote of `e`'s future with bid, ask and its `observed_at`;
-   the pack carries them (`future.bid`, `future.ask`; the added expiry's rows in `chain`). The default 14:55 capture's
+   least 5 scored sessions in `(d, expiry]` (G7b's pure function `first_v4_expiry(day, listed_expiries, calendar)` in
+   `fno/forecast_v4_rules/v4_expiry.py`, imported with that exact signature from G7b's first commit, which merges
+   first; special and muhurat sessions not counted) when it is not a monthly, at the same 5% band, and one quote of
+   `e`'s future with bid, ask and its `observed_at`; the pack carries them (`future.bid`, `future.ask`; the added
+   expiry's rows in `chain`) and **a field `v4_expiry`**: the expiry the function chose (a monthly or the added one),
+   `None` when it returned `None` (G7b's ask, 24 Oct: without it G7b cannot tell "the chosen weekly's quotes failed"
+   from "V4's expiry is the monthly" and would score another question). The capture's sidecar records the same value,
+   and the pack copies it from there (never recomputed at release). A chosen expiry whose quotes failed keeps
+   `v4_expiry` set with no rows for it: V4 voids itself, the day is not `system_late`. The default 14:55 capture's
    sidecar and rows are byte-identical to today's (a golden test). **Only the `v4` window changes** (orchestrator's
    assignment, 24 Oct): A4's 14:55-15:10 window, A4c's indices and A4f's weeklies, and A4c-2's index alert (merging now)
    keep their code paths and outputs; their existing tests pass unchanged, none edited. Good: a Monday with Tuesday's weekly (1 session)
    takes the next weekly (6 sessions). Bad: the future quote fails: the pack keeps the future without bid and ask
    (V5 then voids itself by its spread rule; the pack is not `system_late`, because V1-V3, V6 and V7 do not need it).
-   Boundary: exactly 5 sessions taken, 4 not; that expiry is a monthly: no extra chain. Empty: no listed expiry with 5
-   sessions: no extra chain. Plants: count sessions in calendar days; the expiry rule copied instead of imported; the
-   default capture gaining the future quote.
+   Boundary: exactly 5 sessions taken, 4 not; that expiry is a monthly: no extra chain, `v4_expiry` the monthly. Empty:
+   no listed expiry with 5 sessions: no extra chain, `v4_expiry` `None`. Plants: count sessions in calendar days; the
+   expiry rule copied instead of imported; the default capture gaining the future quote; `v4_expiry` dropped when its
+   quotes fail; `v4_expiry` recomputed at release.
 4. **The release step.** `v4_release` waits for the `v4` part to end, then runs the release: the catch-up writes
    `system_late` for every scored session from `daily.live_from.forecasts_v4` to yesterday with no release record in
    Drive (decision D2); today's pack and record are written once. **Release by 14:45:00** (`terms.V4_RELEASE_BY`,
