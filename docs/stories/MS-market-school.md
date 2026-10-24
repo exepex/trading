@@ -754,11 +754,27 @@ gap list); a run that started in time, settled an expired position and crashed b
 is never sealed later, `test_a_settlement_recorded_for_an_earlier_session_is_never_sealed_again`). Rare (a crash in a
 window of seconds), visible (the stop line), and covered by the runbook's in-time rerun.
 
+**Measured risk: the run's length (dry run of 23 Oct with the switch on, rehearsal 20261024T222606Z-831b1a; one
+sample, cold Drive cache as on a new container; some evidence).** Replayed IST: start 15:19:28, decisions sealed
+15:23:56 (4 min 28 s, mostly reading the captures from Drive), fills and outcomes 15:25:16, counts 15:25:40, done
+15:25:41: 6 min 13 s in all, against the 2-4 min that set 15:25 (the 77 s replay had a warm cache). Fills land about
+5 min 50 s after the start, so a start after about 15:24 risks fills after 15:30, which law 6 refuses as `stale_seal`
+(recorded, never invented). Option kept open: `SLOT_LAST_START` at 15:22 (the orchestrator, 25 Oct: not now; 22 Oct
+started 15:23 and would have been dropped, though its fills would have landed about 15:28:50). Watch (orchestrator,
+25 Oct): any session with fills after 15:29, or a start after 15:24 on 2 of the first 5 sessions, goes to the
+orchestrator for a small round of its own. The lasting fix is the decision phase's cold Drive reads, after 26 Oct.
+
 **Runbook line.** Never run `python -m fno school run` for a session after 15:25 IST on its day: the runner refuses it
 (criterion 1) and the session is not recorded. A school step that failed or was refused is not rerun that day; the
 next session runs as normal. The one exception: a run that crashed after it began (a "stopped:" line other than "too
 late") may be rerun by hand once, `python -m fno school run --session D`, only if it is still 15:25 IST or earlier on
 D; it completes the session without doubling anything (MS-P1j's finish).
+
+**Runbook: each enabled session's times, read in one minute (no new record).** The start and end are the `school`
+step's `started_at` and `finished_at` in `journal/runs/<D>.json`. The seal and fill times are the commit times of
+"Receipts: school dashcam files (dashcam decisions <D> 15:00)" (the seal) and "(dashcam outcomes <D> 15:00)" (after
+the fills): `TZ=Asia/Kolkata git log --format='%cd %s' --date=format-local:'%H:%M:%S' | grep 'dashcam .* <D>'`.
+Note them in `conversations/<D>.md` for each of the first 5 sessions, and apply the watch rule above.
 
 ### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
 
