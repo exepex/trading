@@ -2458,7 +2458,19 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
   below a VIX of about 22.4 and a standard deviation for V1 pass (a test pins all three). m3: C10's reason corrected.
 - Change 7: who records v4's first 10 transcript audits and how, in the go-live checklist.
 
-*Gates* on the merged head 562718c5 (a clean copy, `env -u FNO_SLACK_BOT_TOKEN` for pytest only): 15,550 passed,
-1 skipped, 14 xfailed (O11's G11 marker gone); ruff and ruff format clean; `check_imports` clean (2,619 files);
-`check_records` clean (9,070 files). `check_numbers` runs on `main` at merge (no number was claimed by this story).
-Every later commit on the branch is Markdown only.
+- Self-review of round 2 (an independent code-review agent on 9f4266b3), fixed in 9dac0ae70: the daily
+  missed-before-go-live line says each session with a released pack is a `not_fired` miss and a `system_late` day is
+  excused; the firer's `sessions_between` is required (no default empty list, which would count no misses); the
+  `forecast-capture.yml` comment and the m2 wording corrected.
+- BG1-w (judge 587, via the orchestrator): `sealed_at` is `now_ist().isoformat()` (ISO with +05:30; `book_wiring.py`
+  gives the clock), null when the run never sealed, absent only in timing files before G11; round 2 renames no field.
+  `run_timing.py`'s and `v4_cost.py`'s docstrings stay true before and after BG1-w. C8's stop sums `minutes` only: a
+  test through `MeterBudgetStop` with 60 working plus 60 `wait_minutes` at a cap of 100 fires the books (passes now
+  and after BG1-w adds the column); plant: summing `wait_minutes` too, caught.
+- `test_v4_collect.py` passed 350 lines with round 2's tests; the fire-log, go-live and F2 tests moved unchanged to
+  `test_v4_collect_log.py` (1f81dcbe2).
+
+*Gates* on head 1f81dcbe2 (`main` merged; a clean copy, `FNO_SLACK_BOT_TOKEN` kept set): 15,767 passed, 1 skipped, 14
+xfailed; ruff and ruff format clean; `check_imports` clean (2,655 files); `check_records` clean (9,108 files).
+`check_numbers` runs on `main` at merge (no number was claimed by this story). Every later commit on the branch is
+Markdown only.
