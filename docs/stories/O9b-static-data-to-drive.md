@@ -370,3 +370,12 @@ assigned by the orchestrator 23-24 Oct; agreed with the A4h, FL1 and G13 builder
   so it is left for its owner.
 - **For DR1:** `record_store/wiring.py`'s own `stored_index_closes()` does the same read. DR1's owner could call
   `build_stored_index_close_files()` instead, so there is one reader builder, not two.
+- **Judge 558 (FAIL, round 1 of 2), both accepted:**
+  - **SF1:** `_reader_raw_stores` was untested, though on GitHub it is the reader's only store: no workflow sets the
+    service account. The new test `test_on_github_the_readers_only_store_is_the_owner_drives_raw_area` sets the four
+    owner settings with no service account and asserts exactly one `AreaStore` over the owner drive at `RAW_AREA`.
+    With no settings it asserts `[]`. The owner drive is a local stand-in, because the real one signs in on use. The
+    judge's plant (the owner area dropped) now fails it.
+  - **Note 1, for FL1:** the 20:05 evening edition can no longer fetch the same day's official index-close file.
+    index-closes.yml archives it at 21:11 IST or later, so a later morning edition confirms it. That is by design: the
+    evening says "not archived yet" for that day.

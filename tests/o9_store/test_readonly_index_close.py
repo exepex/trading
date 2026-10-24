@@ -56,3 +56,18 @@ def test_no_reader_wiring_builds_the_fetching_library():
     for module in READERS:
         text = (root / module).read_text(encoding="utf-8")
         assert "build_stored_index_close_files" in text and "build_index_close_files" not in text, module
+
+
+def test_on_github_the_readers_only_store_is_the_owner_drives_raw_area(tmp_path, monkeypatch):
+    """Judge 558 SF1: GitHub's jobs carry the four owner settings and no service account, so the owner's raw area is
+    the reader's only store there; without it every reader would silently find no file."""
+    from fno.constants import ENV_GDRIVE_SERVICE_ACCOUNT_JSON
+    from fno.storage.raw_store import AreaStore
+
+    owner_drive = LocalFolderStore(tmp_path)  # stands in for the owner's Drive (the real one signs in on use)
+    monkeypatch.delenv(ENV_GDRIVE_SERVICE_ACCOUNT_JSON, raising=False)
+    monkeypatch.setattr(wiring, "build_owner_drive", lambda env: owner_drive if env else None)
+    owner = dict.fromkeys(wiring.OWNER_UPLOAD_SETTINGS, "set-for-the-test")
+    (store,) = wiring._reader_raw_stores(owner)
+    assert isinstance(store, AreaStore) and store.area == wiring.RAW_AREA and store.store is owner_drive
+    assert wiring._reader_raw_stores({}) == []  # no settings at all: no store, never a guessed one
