@@ -20,5 +20,5 @@ class ProblemSteps:
             steps, _ = self.runs.steps(day)
         except UnreadableRecord:  # T2's rule checks already name the unreadable run log on the card
             return None
-        found = problem_steps(steps or {})
+        found = problem_steps(steps or {})  # O1's one rule; the reader has already refused an odd shape
         return LINE.format(steps=", ".join(f"{name} ({status})" for name, status in found)) if found else None

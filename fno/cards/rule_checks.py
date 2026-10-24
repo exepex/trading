@@ -22,7 +22,7 @@ from ..constants import (
     RUN_LOG_DECISIONS_STEP,
     VALIDITY_FAILURES_FILE,
 )
-from ..desk.run_log import PROBLEMS, RUNS_FOLDER
+from ..desk.run_log import PROBLEMS, RUNS_FOLDER, book_results
 from ..desk.timetable import Timetable
 from .committed import CommittedRecords
 from .sections import UsedRecord
@@ -31,6 +31,7 @@ SNAPSHOT_STEP = "snapshot"  # the desk's execution capture, where C3's checks ru
 NOT_RUN = "not yet decided: the desk has not run today"
 PENDING = "not yet decided (final at {at:%H:%M} IST)"
 UNREADABLE = "{path}: not readable ({why})"
+MALFORMED = "steps are not name -> {result: {...}}"
 STEP_PROBLEM = "decisions step {status}: {reason}"  # O1's R2 result, the orchestrator's wording (T1d)
 
 
@@ -66,7 +67,14 @@ class RunLogReader:
             steps = json.loads(data)["steps"]
         except (ValueError, KeyError, TypeError) as bad:
             raise UnreadableRecord(UNREADABLE.format(path=path, why=type(bad).__name__)) from None
+        if not _well_formed(steps):  # checked once here, so no reader (nor O1's `problem_steps`) meets an odd shape
+            raise UnreadableRecord(UNREADABLE.format(path=path, why=MALFORMED))
         return steps, (UsedRecord.of(path, data),)
+
+
+def _well_formed(steps) -> bool:
+    return isinstance(steps, dict) and all(isinstance(s, dict) and isinstance(s.get("result"), dict)
+                                           for s in steps.values())  # fmt: skip
 
 
 class UnreadableRecord(RuntimeError):
@@ -97,16 +105,19 @@ class DecisionOutcome(RuleSource):
             return RuleOutcome(self.name, False, _pending(steps, self.at), used=used)
         result = steps[RUN_LOG_DECISIONS_STEP]["result"]
         if isinstance(result.get("status"), str):  # a step-level result (O1's R2 and later), never books (T1d)
-            line = STEP_PROBLEM.format(status=result["status"], reason=result.get("reason", ""))
-            return RuleOutcome(self.name, True, line, CARD_DATA_CHECK_FAILED if result["status"] in PROBLEMS else "",
-                               used)  # fmt: skip
-        late = [b for b, r in result.items() if "run_id" not in r]
+            return self._step_level(result, used)
+        late = [b for b, r in book_results(result).items() if "run_id" not in r]
         refused, files = self._refusals(day)
         parts = [f"late or not committed: {', '.join(late)}" if late else "every book on time"]
         parts.append("C4 refused: " + "; ".join(f"{b} ({', '.join(c)})" for b, c in refused.items()) if refused
                      else "no C4 refusal")  # fmt: skip
         code = CARD_HARD_RULE_BREACH if refused else ""
         return RuleOutcome(self.name, True, ", ".join(parts), code, used + files)
+
+    def _step_level(self, result: dict, used: tuple[UsedRecord, ...]) -> RuleOutcome:
+        """O1's problem statuses (failed, refused) are a data check failure; any other status is shown as it is."""
+        line = STEP_PROBLEM.format(status=result["status"], reason=result.get("reason", ""))
+        return RuleOutcome(self.name, True, line, CARD_DATA_CHECK_FAILED if result["status"] in PROBLEMS else "", used)
 
     def _refusals(self, day: date) -> tuple[dict[str, list[str]], tuple[UsedRecord, ...]]:
         refused, used = {}, []

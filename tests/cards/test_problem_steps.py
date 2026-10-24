@@ -1,6 +1,8 @@
 """Story T1d: the card names the steps that failed or were refused today, with O1's own rule, read through T2's
 run-log reader (criteria 1-5); and since O1's R2 a failed decisions step is never read as books (criterion 6)."""
 
+import json
+
 from fno.cards.problem_steps import ProblemSteps
 from fno.cards.rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader, run_log_path
 from fno.cards.ruled_status import REFUSED, RuleChecks, RuledStatus
@@ -59,8 +61,30 @@ def test_a_decisions_step_with_another_step_level_status_is_shown_as_it_is_never
     assert "- decisions: decisions step frozen: desk frozen" in lines and lines[0].endswith("(no_approved_strategy)")
 
 
-def test_odd_run_log_shapes_never_crash_the_rule():
-    assert run_log.problem_steps([]) == [] and run_log.problem_steps({"x": "text", "y": {"result": []}}) == []
+def test_a_refused_decisions_step_is_a_data_check_failure_too():
+    lines = status_lines({run_log_path(DAY): _log(decisions={"status": STEP_REFUSED, "reason": "needs pack"})})
+    assert lines[0] == f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})"
+    assert "- decisions: decisions step refused: needs pack" in lines
+
+
+def test_a_failed_snapshot_is_named_as_failed_never_as_a_c3_verdict():
+    lines = status_lines({run_log_path(DAY): _log(decisions=ON_TIME, snapshot=FAILED_SNAPSHOT)})
+    assert "- execution: no valid execution snapshot (raised:NotImplementedError)" in lines
+    assert not any("C3" in line for line in lines) and lines[-1] == "Steps with problems today: snapshot (failed)"
+
+
+ODD_STEPS = ([], {"x": "text"}, {"y": {"result": []}}, {"z": {"inputs": {}}})
+
+
+def test_odd_run_log_shapes_are_unreadable_at_the_reader_never_a_crash():
+    """O1's `problem_steps` assumes name -> {"result": {...}}; T2's reader refuses any other shape once, so neither
+    O1's rule nor a card rule meets it (the earlier copy of the rule tolerated these shapes itself)."""
+    for steps in ODD_STEPS:
+        log = json.dumps({"day": DAY.isoformat(), "kind": "daily_run", "steps": steps}).encode()
+        lines = status_lines({run_log_path(DAY): log})
+        assert lines[0] == f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})", steps
+        assert any("not readable (steps are not name -> {result: {...}})" in line for line in lines), steps
+        assert not any(line.startswith("Steps with problems") for line in lines), steps
 
 
 def test_the_app_s_card_wires_the_problem_line():
