@@ -51,9 +51,10 @@ class RepoDeliveryFiles(DeliveryLog):
         committed = [int(m.group(2)) for m in map(DELIVERY_FILE.fullmatch, self._committed_names(day)) if m]
         path = delivery_path(day, max([*self._numbers(day), *committed], default=0) + 1)
         target = self.root / path
+        body = json.dumps(metadata, indent=1, sort_keys=True) + "\n"  # first: a failure leaves no empty attempt file
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("x", encoding="utf-8") as out:  # "x": an existing attempt is never rewritten
-            out.write(json.dumps(metadata, indent=1, sort_keys=True) + "\n")
+            out.write(body)
         return path
 
     def _committed_names(self, day: date) -> list[str]:

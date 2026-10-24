@@ -35,7 +35,7 @@ def written(tmp_path, attempt=1):
 def test_a_posted_card_stores_slacks_ts_as_issuance_time_and_its_full_record_in_drive_only(tmp_path):
     slack, drive = FakeSlack(slack_ok()), FakeDrive()
     card, text, result = issue(tmp_path, SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack), DriveCardRecords(drive))
-    assert result.sent and result.saved and result.lines[0] == "alert sent to #fno-desk"
+    assert result.sent and result.complete and result.lines[0] == "alert sent to #fno-desk"
     assert slack.calls[0]["json"] == {"channel": FNO_DESK_CHANNEL_ID, "text": text}
     ((drive_path, data),) = drive.files.items()
     assert drive_path == f"2026/10/2026-10-15_{slack_ok()['ts'].replace('.', '')}.json"
@@ -85,7 +85,7 @@ def test_no_token_and_no_drive_print_what_was_not_done_and_never_a_secret(tmp_pa
     _, _, result = issue(tmp_path, NoCardPoster(), NoCardRecords())
     assert result.lines[0] == "alert NOT sent: FNO_SLACK_BOT_TOKEN is not set"
     assert "card record NOT saved to Drive: the owner's Drive settings (FNO_GDRIVE_*) are not set" in result.lines
-    assert not result.sent and not result.saved
+    assert not result.sent and not result.complete
     _, delivery = written(tmp_path)
     assert delivery["drive"]["saved"] is False
 
@@ -95,7 +95,7 @@ def test_drive_down_does_not_stop_the_post_and_is_named_by_error_type_only(tmp_p
     _, _, result = issue(
         tmp_path, SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, FakeSlack(slack_ok())), DriveCardRecords(drive)
     )
-    assert result.sent and not result.saved
+    assert result.sent and not result.complete
     assert "card record NOT saved to Drive: ConnectionError" in result.lines
     assert "secret" not in "\n".join(result.lines) and "secret" not in written(tmp_path)[0].read_text()
 
@@ -217,7 +217,7 @@ def test_a_failed_metadata_write_keeps_every_line_and_prints_the_metadata(tmp_pa
     issuer = CardIssuer(poster, NoCardRecords(), FailingLog(tmp_path, records), ServerCardClocks((), Ticking()),
                         Ticking(), "c" * 40)  # fmt: skip
     result = issuer.issue(card, text)
-    assert result.lines[0] == "alert sent to #fno-desk" and not result.saved
+    assert result.lines[0] == "alert sent to #fno-desk" and not result.complete
     assert result.lines[-1].startswith("delivery metadata NOT written (OSError); commit it by hand:")
     assert slack_ok()["ts"] in result.lines[-1] and text not in result.lines[-1]
 

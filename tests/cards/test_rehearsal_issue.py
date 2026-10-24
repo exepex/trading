@@ -43,7 +43,7 @@ result = CardIssuer(poster, store, RepoDeliveryFiles(root, records), clocks, hos
 stored = json.loads(path.read_text())
 print(json.dumps({"clock": {c["server"]: c["line"] for c in stored["clock"]}, "built": len(built),
                   "posts": len(poster.posts), "drive": len(store.saved), "last": result.lines[-1],
-                  "complete": result.saved}))
+                  "complete": result.complete}))
 """
 
 

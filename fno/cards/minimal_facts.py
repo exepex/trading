@@ -12,17 +12,20 @@ from .card import TradeCard
 from .posting import PostReceipt
 
 FACTS_FAILED = "facts not built ({error})"
+NOT_JSON = "metadata not JSON ({error})"
 
 
 def minimal_facts(card: TradeCard, text: str, receipt: PostReceipt, checks: Sequence[SkewCheck], code_commit: str,
-                  test: bool, error: Exception) -> dict:  # fmt: skip
+                  test: bool, failure: str) -> dict:  # fmt: skip
+    """`failure`: why the full facts were not kept (`FACTS_FAILED` or `NOT_JSON`, with the error's type)."""
     return {
-        "day": card.day.isoformat(), "status": str(card.status), "reason_code": _text(card.reason_code),
+        "day": _safe(card.day.isoformat), "status": _safe(lambda: str(card.status)),
+        "reason_code": _text(card.reason_code),
         "card_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "code_commit": _text(code_commit),
         "test": bool(test), "records_used": [], "missing": [], "previous_misses": [],
         "slack": {"sent": receipt.sent, "ts": _text(receipt.ts), "channel": _text(receipt.channel),
                   "outcome": _text(receipt.outcome), "server_time_utc": _server_time(receipt)},
-        "clock": _stored(checks), "failure": FACTS_FAILED.format(error=type(error).__name__),
+        "clock": _stored(checks), "failure": failure,
     }  # fmt: skip
 
 
@@ -30,12 +33,16 @@ def _text(value) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _server_time(receipt: PostReceipt) -> str | None:
+def _safe(read) -> str | None:
     try:
-        moment = receipt.server_time
-    except (TypeError, ValueError):  # a `ts` that is not seconds: the post is named, its time is not
+        return _text(read())
+    except Exception:  # noqa: BLE001 - the fallback itself must never raise
         return None
-    return utc_text(moment) if moment else None
+
+
+def _server_time(receipt: PostReceipt) -> str | None:
+    """A `ts` that is not seconds, or out of range (`OverflowError`): the post is named, its time is not."""
+    return _safe(lambda: utc_text(receipt.server_time) if receipt.server_time else None)
 
 
 def _stored(checks: Sequence[SkewCheck]) -> list[dict]:

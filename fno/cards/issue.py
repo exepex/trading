@@ -14,7 +14,7 @@ from ..server_clock import SkewCheck, unchecked, utc_text
 from .card import TradeCard
 from .card_clocks import CardClocks, ClockChecks
 from .deliveries import DeliveryLog
-from .minimal_facts import minimal_facts
+from .minimal_facts import FACTS_FAILED, NOT_JSON, minimal_facts
 from .posting import CardPoster, PostReceipt
 from .record_store import NOT_SAVED, CardRecordStore
 
@@ -30,7 +30,7 @@ WRITTEN = "delivery metadata written: {path} (commit and push it: its push recei
 class IssueResult:
     lines: tuple[str, ...]  # what to print
     sent: bool
-    saved: bool
+    complete: bool  # every stage after the post succeeded: the Drive record saved, the metadata written (T1f)
 
 
 def card_sha256(text: str) -> str:
@@ -57,10 +57,12 @@ class CardIssuer:
         try:
             facts, failed = {**self._facts(card, text, receipt, before, after, clocks.checks), "test": test}, False
         except Exception as error:  # noqa: BLE001 - the card is out: keep what is plainly known (T1f stage 2)
-            facts, failed = minimal_facts(card, text, receipt, clocks.checks, self.code_commit, test, error), True
+            facts, failed = self._minimal(card, text, receipt, clocks, test, FACTS_FAILED, error), True
         saved, drive_line = self._save(card, text, facts, receipt, after, test)
         delivery = {**facts, "schema": DELIVERY_SCHEMA, "drive": {"saved": saved, "outcome": drive_line}}
-        written, delivery_line = self._write(card, delivery)
+        fallback = {**self._minimal(card, text, receipt, clocks, test, NOT_JSON), "schema": DELIVERY_SCHEMA,
+                    "drive": delivery["drive"]}  # fmt: skip
+        written, delivery_line = self._write(card, delivery, fallback)
         lines = (receipt.outcome, *(c.line for c in clocks.checks), drive_line, delivery_line)
         return IssueResult(lines, receipt.sent, saved and written and not (failed or clocks.failed))
 
@@ -80,11 +82,15 @@ class CardIssuer:
         except Exception as error:  # noqa: BLE001 - the card is out: the metadata below still says so
             return False, NOT_SAVED.format(reason=RECORD_NOT_BUILT.format(error=type(error).__name__))
 
-    def _write(self, card: TradeCard, delivery: dict) -> tuple[bool, str]:
+    def _minimal(self, card, text, receipt, clocks: ClockChecks, test: bool, why: str, error=None) -> dict:
+        name = type(error).__name__ if error else "{error}"
+        return minimal_facts(card, text, receipt, clocks.checks, self.code_commit, test, why.format(error=name))
+
+    def _write(self, card: TradeCard, delivery: dict, fallback: dict) -> tuple[bool, str]:
         try:
             return True, WRITTEN.format(path=self.deliveries.write(card.day, delivery))
         except Exception as error:  # noqa: BLE001 - the post is out: print the metadata to commit by hand
-            return False, NOT_WRITTEN.format(error=type(error).__name__, metadata=_printable(delivery))
+            return False, NOT_WRITTEN.format(error=type(error).__name__, metadata=_printable(delivery, fallback))
 
     def _facts(self, card, text, receipt: PostReceipt, before, after, checks: Sequence[SkewCheck]) -> dict:
         """What both the Drive record and the delivery metadata hold (no card text: that goes to Drive only)."""
@@ -103,13 +109,12 @@ class CardIssuer:
         }  # fmt: skip
 
 
-def _printable(delivery: dict) -> str:
-    """The metadata as JSON, or its plain fields if it cannot be (T1f stage 4): always something to commit by hand."""
+def _printable(delivery: dict, fallback: dict) -> str:
+    """The metadata as JSON, or the minimal facts if it cannot be (T1f stage 4): still readable by the next card."""
     try:
         return _json(delivery).decode("utf-8")
-    except Exception:  # noqa: BLE001 - keep only what is plainly text, true/false or null
-        plain = {k: v for k, v in delivery.items() if isinstance(v, (str, bool, type(None)))}
-        return _json(plain).decode("utf-8")
+    except Exception as error:  # noqa: BLE001 - plain values only from here on, so this always turns into JSON
+        return _json({**fallback, "failure": fallback["failure"].format(error=type(error).__name__)}).decode("utf-8")
 
 
 def _section(section) -> dict:

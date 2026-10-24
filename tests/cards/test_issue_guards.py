@@ -83,7 +83,9 @@ def test_a_clock_that_raises_anything_is_unchecked_by_type_and_the_records_are_s
     github = [c for c in stored["clock"] if c["server"] == "GitHub"]
     assert github == [{"server": "GitHub", "checked": False, "skew_seconds": None, "warning": False,
                        "line": f"clock NOT CHECKED: host vs GitHub ({type(error).__name__})"}]  # fmt: skip
-    assert len(poster.posts) == 1 and store.saved and result.sent and not result.saved  # a raise is a failure: exit 1
+    assert (
+        len(poster.posts) == 1 and store.saved and result.sent and not result.complete
+    )  # a raise is a failure: exit 1
 
 
 @pytest.mark.parametrize("error", [TypeError("not JSON"), PermissionError("read-only")])
@@ -93,7 +95,7 @@ def test_a_metadata_write_that_raises_anything_prints_the_metadata_and_fails(tmp
     name = type(error).__name__
     assert result.lines[-1].startswith(f"delivery metadata NOT written ({name}); commit it by hand:")
     printed = json.loads(result.lines[-1].split("by hand:\n", 1)[1])
-    assert printed["slack"]["ts"] == TS and printed["drive"]["saved"] and store.saved and not result.saved
+    assert printed["slack"]["ts"] == TS and printed["drive"]["saved"] and store.saved and not result.complete
 
 
 def test_facts_that_cannot_be_built_leave_the_minimal_facts_in_both_records(tmp_path, monkeypatch):
@@ -108,7 +110,7 @@ def test_facts_that_cannot_be_built_leave_the_minimal_facts_in_both_records(tmp_
     assert delivery["slack"] == {"sent": True, "ts": TS, "channel": "C0C89E8QCCD", "outcome": "alert sent to #fno-desk",
                                  "server_time_utc": "2026-10-15T07:38:09.000100+00:00"}  # fmt: skip
     assert [c["server"] for c in delivery["clock"]] == ["Slack"]  # the checks already made are kept
-    assert delivery["drive"]["saved"] and not result.saved and len(poster.posts) == 1
+    assert delivery["drive"]["saved"] and not result.complete and len(poster.posts) == 1
     CONTRACT.validate("FnoCardResponse", card_from_delivery(delivery))  # the dashboard can still show the day
     committed = FakeRecords(
         {delivery_file(tmp_path).relative_to(tmp_path).as_posix(): delivery_file(tmp_path).read_bytes()}
@@ -123,7 +125,7 @@ def test_a_slack_time_that_cannot_be_read_is_a_failed_check_and_minimal_facts(tm
     result, _, _, _ = issued(tmp_path, poster=Sent(PostReceipt("alert sent to #fno-desk", "not-seconds", "C1")))
     delivery = json.loads(delivery_file(tmp_path).read_text())
     assert delivery["failure"] == "facts not built (ValueError)" and delivery["slack"]["server_time_utc"] is None
-    assert delivery["clock"][0]["line"] == "clock NOT CHECKED: host vs Slack (ValueError)" and not result.saved
+    assert delivery["clock"][0]["line"] == "clock NOT CHECKED: host vs Slack (ValueError)" and not result.complete
 
 
 class BrokenClocks(CardClocks):
@@ -140,7 +142,7 @@ def test_a_clock_form_that_raises_is_one_named_miss_and_the_records_are_still_wr
     )
     stored = json.loads(delivery_file(tmp_path).read_text())
     assert [c["line"] for c in stored["clock"]] == ["clock NOT CHECKED: host vs the clocks (RuntimeError)"]
-    assert store.saved and not result.saved
+    assert store.saved and not result.complete
 
 
 class BrokenSection:
@@ -151,19 +153,29 @@ def test_a_drive_record_that_cannot_be_built_is_a_named_miss_and_the_metadata_st
     result, _, store, _ = issued(tmp_path, card_change=lambda card: replace(card, sections=(BrokenSection(),)))
     assert result.lines[-2] == "card record NOT saved to Drive: record not built (AttributeError)"
     delivery = json.loads(delivery_file(tmp_path).read_text())
-    assert not delivery["drive"]["saved"] and not store.saved and not result.saved
+    assert not delivery["drive"]["saved"] and not store.saved and not result.complete
 
 
-def test_a_metadata_that_is_not_json_prints_its_plain_fields(tmp_path):
-    records = FakeRecords()
+def test_a_metadata_that_is_not_json_prints_the_minimal_facts_and_leaves_no_empty_file(tmp_path):
+    """Self-review: the printed fallback stays readable by the next card and the dashboard (the minimal facts plus
+    `drive`), and the real write, which fails on JSON, leaves no empty attempt file behind."""
     receipt = PostReceipt("alert sent to #fno-desk", TS, object())  # a channel that is not text: no JSON anywhere
-    result, _, _, _ = issued(tmp_path, poster=Sent(receipt), log=RaisingLog(tmp_path, records, TypeError("x")))
+    result, _, _, _ = issued(tmp_path, poster=Sent(receipt))
+    assert result.lines[-1].startswith("delivery metadata NOT written (TypeError); commit it by hand:")
+    assert result.lines[-2].endswith("record not built (TypeError)") and not result.complete
     printed = json.loads(result.lines[-1].split("by hand:\n", 1)[1])
-    assert (
-        printed["day"] == "2026-10-15"
-        and "slack" not in printed
-        and result.lines[-2].endswith("record not built (TypeError)")
-    )
+    assert printed["failure"] == "metadata not JSON (TypeError)" and printed["slack"]["channel"] is None
+    assert printed["slack"]["ts"] == TS and printed["drive"] == {"saved": False, "outcome": result.lines[-2]}
+    CONTRACT.validate("FnoCardResponse", card_from_delivery(printed))
+    assert list((tmp_path / "research" / "cards" / "deliveries").rglob("*.json")) == []  # no empty attempt
+
+
+def test_a_slack_time_out_of_range_never_escapes(tmp_path):
+    """Self-review: "1e20" passes Slack's answer check but overflows a date; it is a failed check, never a raise."""
+    result, _, _, _ = issued(tmp_path, poster=Sent(PostReceipt("alert sent to #fno-desk", "1e20", "C1")))
+    delivery = json.loads(delivery_file(tmp_path).read_text())
+    assert delivery["slack"]["server_time_utc"] is None and delivery["failure"] == "facts not built (OverflowError)"
+    assert not result.complete
 
 
 def test_boundaries_no_server_an_unsent_post_and_no_drive(tmp_path):
@@ -171,7 +183,7 @@ def test_boundaries_no_server_an_unsent_post_and_no_drive(tmp_path):
     delivery = json.loads(delivery_file(tmp_path).read_text())
     assert delivery["clock"] == [{"server": "Slack", "checked": False, "skew_seconds": None, "warning": False,
                                   "line": "clock NOT CHECKED: host vs Slack (not posted)"}]  # fmt: skip
-    assert "failure" not in delivery and not result.sent and not result.saved  # T1's rule: not sent, not saved
+    assert "failure" not in delivery and not result.sent and not result.complete  # T1's rule: not sent, not saved
 
 
 def test_the_cli_prints_the_delivery_line_last_when_a_clock_raises(tmp_path, monkeypatch):
