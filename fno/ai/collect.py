@@ -13,7 +13,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..constants import AI_BOOKS, BOOK2_HYBRID
-from .book import answer_labels, envelope_of
+from .book_run import answer_labels, envelope_of
 from .export import ExportRefused, build_export
 from .history import RepoHistory
 from .outcome import INVALID, NO_SUBMISSION, NOT_FIRED, Outcome, judge, mark_exposures

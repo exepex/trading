@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from .book_run import BookRun
 from .paths import WORK_FOLDER, timing_path
-from .pointer import BookPointer
 from .transport import SubmissionTransport
 
 STARTED_FILE = "started_{day}_{book}.json"  # per run: a reused container never lends one day's start to another
@@ -35,17 +35,17 @@ class RunTiming:
     clock: Callable[[], datetime]
     session_id: str  # empty outside a cloud session: the start is noted, the publish refused
 
-    def _started(self, pointer: BookPointer) -> Path:
+    def _started(self, pointer: BookRun) -> Path:
         return self.root / WORK_FOLDER / STARTED_FILE.format(day=pointer.day.isoformat(), book=pointer.book)
 
-    def start(self, pointer: BookPointer) -> None:
+    def start(self, pointer: BookRun) -> None:
         """The run's start, kept from its first `brief` (a repeated brief is the same run)."""
         path = self._started(pointer)
         if not path.is_file():
             path.parent.mkdir(exist_ok=True)
             path.write_text(json.dumps({"started_at": self.clock().isoformat()}), encoding="utf-8")
 
-    def publish(self, pointer: BookPointer, message: str) -> str:
+    def publish(self, pointer: BookRun, message: str) -> str:
         """Publishes the run's timing once; the line to print. A ValueError says why it cannot be published."""
         started_file = self._started(pointer)
         if not started_file.is_file():
