@@ -38,3 +38,23 @@
 ## Gates
 
 Doc-reading tests at 412ff59cd, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed; record scan clean.
+
+## Addendum 1: round 2 at 9fcb60682 (diff 412ff59cd..9fcb60682)
+
+**PASS, lane 1** (Judge I, own session). The diff changes only `MS-P0b-capture-probes.md`.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 626.1 should-fix | FIXED | Section 3: any other 4xx (401, 403, 404, ...) and any 200 that is not the expected JSON (empty, HTML, wrong shape) stop the source for the day, with no retry. Criterion 3 tests 401, 403 and 404 each, and the three non-JSON forms; its plant (the rule narrowed to 403) must fail the 401 test |
+| Note: shared 429 detection | FIXED | `_rate_limited` exists at `fno/intraday/feed_probe.py:174` as cited. It moves to one shared public function that both import, adding the SDK's `GrowwAPIRateLimitException` form, with a test for each form. Editing A16h's file is limited to the import, and the orchestrator confirmed it |
+| Note: when the cap is counted | FIXED | Before a slot's first request, a reservation of the whole slot budget is pushed. It is replaced at the slot's end, and a reservation with no end counts as fully spent. A failed reservation push starts no request (fails closed). The plant: a run killed after 3 requests reruns with the full reservation counted |
+
+Note for the code round: the reservation adds a push before each slot, so up to 8 pushes a day to `main`. Each push
+must stay within the story's own paths (criterion 11).
+
+Doc-reading tests at 9fcb60682, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed; record scan clean.
+
+The head moved to 073b8b9e7 after this addendum: one sentence records the orchestrator's ruling that there is one 429
+detector for the project, owned by the Groww rate-safety builder (`GrowwRateLimited`), and that P0b imports it. It is
+consistent with the note above, and nothing else changed (`git diff 9fcb60682 073b8b9e7`: 3 lines in
+`MS-P0b-capture-probes.md`). **PASS holds at 073b8b9e7**; doc-reading tests there: 922 passed, 14 xfailed.

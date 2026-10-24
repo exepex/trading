@@ -77,8 +77,7 @@ def test_each_ai_decision_records_the_model_served_and_its_session():
     not_built("F1t's model reporting (model_served, session_id) in Books 2 and 3's decision records")
 
 
-@missing("G6")
-def test_protocol_v4_is_frozen_so_the_days_v4_rows_are_scored():
+def test_protocol_v4_is_frozen_so_the_days_v4_rows_are_scored():  # G6 freeze: the marker deleted with the record
     assert (ROOT / "research" / "forecasts" / "FREEZE_v4.md").is_file()
 
 

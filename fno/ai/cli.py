@@ -13,7 +13,9 @@
 - `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once;
   `--protocol v4` for a v4 run;
 - `register-v4-slots`: appends the AI books' 10 v4 slot registrations after the freeze (`--print`: only print them,
-  for the freeze commit; G11 C13). Exit 1 when refused.
+  for the freeze commit; G11 C13). Exit 1 when refused;
+- `fire-probe`: fires Book 3's routine once with a harmless text the size of a v4 pointer, to prove the routine API
+  takes it (run only by hand, by routine-fire-probe.yml; writes nothing). Exit 1 when not fired.
 The routine side is `python -m fno.ai` (standard library only).
 """
 
@@ -22,7 +24,7 @@ from __future__ import annotations
 import json
 from datetime import date
 
-from ..constants import AI_BOOKS
+from ..constants import AI_BOOKS, BOOK3_AI
 from .run_terms import FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4
 from .transcript_audit import BREACH_KINDS
 
@@ -43,6 +45,7 @@ def add_ai_parser(subparsers) -> None:
     actions.add_parser("audits-due", help="routine sessions selected for a transcript audit and not yet audited")
     register = actions.add_parser("register-v4-slots", help="the AI books' 10 v4 slot registrations, after the freeze")
     register.add_argument("--print", action="store_true", dest="print_only", help="print the rows, write nothing")
+    actions.add_parser("fire-probe", help="fire Book 3's routine once with a harmless v4-sized text (writes nothing)")
     record = actions.add_parser("audit-record", help="record one routine session's transcript audit (written once)")
     record.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
     record.add_argument("--book", required=True, choices=AI_BOOKS)
@@ -63,12 +66,23 @@ def cmd_ai(args) -> int:
         return _audit_record(args)
     if args.ai_cmd == "register-v4-slots":
         return _register_v4_slots(args)
+    if args.ai_cmd == "fire-probe":
+        return _fire_probe()
     if args.ai_cmd in ("fire", "collect") and args.protocol == FORECAST_PROTOCOL_V4:
         return _fire_v4(day) if args.ai_cmd == "fire" else _collect_v4(day)
     if args.ai_cmd == "reveals-ready":
         return _reveals_ready(day, args.protocol)
     commands = {"fire": _fire, "collect": _collect, "coverage": _coverage, "audits-due": _audits_due}
     return commands[args.ai_cmd](day)
+
+
+def _fire_probe() -> int:
+    from .fire_probe import fire_probe
+    from .wiring import build_book_trigger
+
+    fired, line = fire_probe(build_book_trigger(BOOK3_AI))
+    print(line)
+    return 0 if fired else 1
 
 
 def _fire(day: date) -> int:

@@ -37,3 +37,31 @@ None blocking, none should-fix, none minor.
 - The stated few-second boundary (a daily step started at 15:24:59 whose child reads its clock after 15:25:00) fails
   closed: both refuse, both alert, nothing is sealed. Accepted.
 - The condition of 607 is met: the switch commit may follow this merge.
+
+## Addendum 1
+
+**MS-P1j3, round 2 (story/ms-p1j3-first-seal-cutoff @ aa94ad726; code unchanged since e6bb4c2ac): PASS holds. Lane 1.**
+Judge E, judge 2 of 2; judge F's 627 not read (its SF1 came to me through the orchestrator).
+`git diff e6bb4c2ac aa94ad726 -- fno` is empty. The round adds tests (`test_first_seal_cutoff.py`, +65) and story text.
+
+- **The rehearsal clause now has a test.** REH1's own `ReplayClock` is installed as a rehearsing process installs it.
+  Through the record root's `IstClock`, a past session replayed at 15:20 seals, and at 15:26 it is refused, with
+  nothing written. My plant Q1 (`IstClock` reading the wall clock, judge F's survivor): **caught**. My round 1 missed
+  that plant: I checked the wiring by reading only.
+- **The builder's two further tests.** A late first run settles no expired position, and a scheduled session of only
+  closed roads is refused too. My Q2 (the check moved after `settle_expired`): caught. Q3 (the clock read after
+  `plan_slot`): caught, now that the test moves the clock inside the captures' read.
+- **Gates** on trial merge 99285c2a8 with origin/main 7072e9e77: ruff clean, format clean (2,633 files), imports clean
+  (2,762 files), record scan clean (9,287 files). Full suite with the token kept: **16,576 passed, 14 xfailed, 0
+  failed**.
+
+## Findings
+
+None blocking, none should-fix, none minor.
+
+## Note for the owner (not a finding; the orchestrator's decision, stated in the story)
+
+The 23 Oct dry run measured a recording run at about 5 min 50 s. A school start after about 15:24 can therefore land
+fills after 15:30, which law 6 refuses (`stale_seal`, recorded and visible, never invented). `SLOT_LAST_START` stays
+15:25 with a watch rule over the first 5 sessions. The 15:22 option is written down. On run-log dates the school would
+have started about 15:19 (21 and 23 Oct) and 15:22:30 (22 Oct), so the first sessions should show which applies.
