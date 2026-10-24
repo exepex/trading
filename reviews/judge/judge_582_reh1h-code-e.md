@@ -50,3 +50,29 @@ run.
   early. `served` is set only after the SHA check. A shallow record dates every row to one commit; `checkout.py:48-49`
   unshallows the source before a rehearsal (the Claims' stated limit holds).
 - The Claims' output sample uses fixture days (9 and 13 Oct). My real-record run above stands in for 23 Oct.
+
+## Addendum 1
+
+**REH1h code, round 2 of 2 (story/reh1h-archive-serving @ 5bd3ed8d2): PASS. Lane 1.** Judge E, own session. Since
+9ddfd07fc the branch changes no file in `fno/rehearsal/`: `git diff 9ddfd07fc 5bd3ed8d2 -- fno/rehearsal` is empty.
+Only `tests/rehearsal/test_recorded_archive.py` (+3 tests, 1 replaced) and H5's text changed, plus main merged in.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: no test for the session-filed exception in `is_run_dated` | **Accepted, fixed** | `test_a_by_session_copy_of_the_session_before_committed_on_the_replay_day_is_served` (22 Oct 19:40, the 21 Oct row committed 22 Oct 01:07:09, no wait) and `test_an_evening_ban_list_for_the_next_session_is_served` (21 Oct 21:00, the 22 Oct list committed 21 Oct 20:00:23). Their times match my round-1 run on the full clone. My P11 again: **2 failed, 137 passed** (it survived in round 1) |
+| m1: H5's morning ban-list line | **Accepted, fixed** | H5 now says NOT_RECORDED only when the list reached main the evening before. Both record cases match my real-record run: 22 Oct 08:40 gives None (row on 21 Oct 20:00:23); 23 Oct 08:40 is served the 00:04:12 copy. The replaced test checks both halves |
+
+## Gates (trial merge fc15d6b4d with origin/main 2ed42790a; main moved only by lane-3 files beyond the branch)
+
+ruff clean; format clean (2,461 files); imports clean (2,590 files); record scan clean (9,033 files); full suite
+**15,307 passed, 1 skipped, 15 xfailed, 0 failed** (7 min 50 s; the skip is `growwapi` not installed here,
+`test_feed_tls.py:190`). `tests/rehearsal`: 139 passed.
+
+## Findings
+
+None blocking, none should-fix, no minor left.
+
+## Plants (round 2, each alone on `tests/rehearsal`, restored, `__pycache__` cleared)
+
+3 planted, 3 caught: P11 (session-filed lists treated as run-dated) 2 failed; P5 (no replay-day bound) 2 failed;
+P10 (run-dated rule dropped) 1 failed. Round 1's other 16 plants hit code that has not changed since.
