@@ -84,3 +84,45 @@ clean (9,093 files).
 - A `covers` row shares 1 Jan with that day's `holiday` row. The loader must key rows by date and kind, never by date
   alone.
 - Criterion 6 may land after Monday. The commit that holds it gets its own code verdict, with P9-P12 and my own plants.
+
+## Addendum 2
+
+**Code, criteria 1-5, round 1 of 2, at story/a17f-taiex-empty @ 82cd71a51: PASS (3 minor). Lane 1.** Judge F, own
+session. Trial merge with main cb98827ac (clean): **15,738 passed, 1 skipped, 15 xfailed** (token kept, DESK_DECISIONS
+24 Oct); ruff, format (2,523 files), `check_imports`, `check_records` (9,110 files) clean; largest new file 184 lines.
+
+| # | Criterion | Result | My evidence |
+|---|---|---|---|
+| 1 | calendar | MET | My own run, real `twse_closures.csv`, a session that fails on any request, 26 Oct 08:50 IST: exit 0, `taiex: market closed (TWSE holiday: 臺灣光復暨金門古寧頭大捷紀念日)`, no alert, no O10 row. Bad rows refused naming the row (`market_closures.py:46-61`); uncovered year: O10 `failure`, exit 1; 30 Nov / 1 Dec boundary |
+| 2 | parser = CSV | MET | fixture SHA-256 = `7644c1a8…2117` (my `sha256sum`), the same as my live fetch (addendum 0); the test checks every `covers` row against its fixture |
+| 3 | empty answer | MET | `preopen.py:83-84` (`EmptyAnswer`); four empty shapes, nine changed layouts; one close among nulls is `live` |
+| 4 | reasons | MET | `preopen_cli.py:125-134`: one O10 row per kind; the alert carries every problem; no level in the lines, alert, O10 or logs (test) |
+| 5 | archive first | MET | `preopen.py:156` comes before the parse; my command-level run with Drive refusing taiex's put: `taiex: failed (RuntimeError)` in the line, alert and O10 `failure`, and nikkei225 is still read |
+| 7 | wiring | MET | the calendar and `settled` are built only in `wiring.py:193-197` |
+| QR2-6 | gap list, self-review, plants, cases, sample | MET | Claims table, self-review with its fixes, sample matches my run's shape |
+
+**My notes 1 and 2 (addendum 1):** one `covers` row stops the December warning (test, and my plant "Dec warning never"
+is caught). Rows are keyed by date and kind: a 1 Jan `covers` row sits beside a holiday, and a day listed twice is
+refused (plant caught).
+
+**Choice 1 (an earlier-day-only answer for taiex is `no session data`): accepted** [reasoning, strong]. The calendar
+says Taiwan trades today, and TWSE opens at 06:30 IST, so at 08:50 an answer holding only yesterday is the same
+ambiguity as an empty one. Calling it `market closed` would contradict the calendar. **Choice 2 (O10 cut at 200
+characters): accepted** as O10's own limit. The alert keeps the full text, and rows split by kind (see minor 2).
+
+## Minor
+
+1. **Plant survivor:** dropping the December warning on a listed closure day (`preopen.py:144`, returning `()` for the
+   problems) passes every test. The code is right today (25 Dec is an NSE holiday too), but add a test.
+2. O10's cut drops names silently: a full Yahoo outage (7 indexes × about 35 characters) passes 200. Mark the cut
+   (for example "…") when O10 is next touched.
+3. `quote: [{}]` with timestamps reads as a changed layout, not an empty answer. The text allowed either; it still
+   alerts and exits 1, with the raw answer kept.
+
+## Plants
+
+20 planted on 82cd71a51, one at a time (`tests/global_cues`), each restored: **19 caught, 1 survived** (minor 1).
+Caught: closure ignored; archive after parse; empty = failure; earlier day = closed for taiex; warning from Nov; warning
+never; weekend rows used; "交易日" kept; no-data O10 `failure`; one O10 kind only; reason dropped; `settled` inverted;
+uncovered year silent; day twice; `covers` off 1 Jan; uneven = empty; quote without close = empty; a read exception
+not a problem; no private row on a closure.
