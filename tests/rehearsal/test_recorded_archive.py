@@ -251,3 +251,29 @@ def test_a_row_whose_path_does_not_map_back_to_its_url_is_never_served():
     with pytest.raises(NotRecorded, match="^rehearsal:NOT_RECORDED"):
         served.get(url)
     assert reads == []
+
+
+def test_a_list_filed_by_the_run_s_day_is_served_only_the_replayed_day_s_own_copy():
+    """Self-review 1: EQUITY_L.csv has one URL every day; 22 Oct's copy reaching main late on 23 Oct is never
+    served (and so never filed) as 23 Oct's, while 23 Oct's own row is."""
+    from fno.storage.snapshot_source import EquityListSource
+
+    url = EquityListSource.url_for(EquityListSource.path_for(DAY))
+    late = a9("equity-list", date(2026, 10, 22), url, ist(9, 0), b"list 22")
+    served, _, reads = session(ist(9, 5), late, files={EquityListSource.path_for(date(2026, 10, 22)): b"list 22"})
+    with pytest.raises(NotRecorded, match=f"^{not_recorded(url)}$"):
+        served.get(url)
+    assert reads == []
+    own = a9("equity-list", DAY, url, ist(9, 1), b"list 23")
+    files = {EquityListSource.path_for(DAY): b"list 23"}
+    assert session(ist(9, 5), late, own, files=files)[0].get(url).content == b"list 23"
+
+
+def test_a_drive_read_that_fails_is_a_refused_line_never_a_crash():
+    def broken(path):
+        raise RuntimeError("set the four FNO_GDRIVE_* settings")
+
+    clock = Clock(ist(20, 0))
+    served = RecordedArchiveSession(Rows(FO), DAY, broken, clock, clock.sleep)
+    with pytest.raises(NotRecorded, match=f"recorded copy {re.escape(FO_PATH)} could not be read from Drive: set"):
+        served.get(FO_URL)

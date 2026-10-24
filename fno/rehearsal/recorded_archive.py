@@ -10,6 +10,8 @@ for the row's day, kept only when that path maps back to the URL.
   (a session-filed taker) that is what it would have been served (not always NSE's newest: a 22 Oct by-session read
   at 19:40 gets the 21 Oct session's copy that reached main on 22 Oct); a store-first read of a dated URL never gets
   here, since REH1g's visibility already shows the file.
+- A list filed by the run's day (the reference lists, the run-dated flows) has one URL every day, so only the row
+  for the replayed day itself is a candidate: another day's copy that reached main late is never filed as today's.
 - Two candidates at the chosen commit time with different SHA-256 (two datasets sharing one URL) are refused as
   ambiguous, never guessed. A repeat request for a URL gets the copy it got first (a scheduled read, unlike the paced
   `ServedOnce`).
@@ -24,6 +26,8 @@ from collections.abc import Callable
 from datetime import date, datetime
 
 from ..models import IST
+from ..storage.content_checks import COVERED_SESSION
+from ..storage.snapshot_source import SnapshotSource
 from ..storage.source_lists import RAW_SOURCES, dataset_name
 from .manifest_rows import A9Row, ManifestRows
 from .nse_wiring import NotRecorded, NotRecordedSession
@@ -33,6 +37,7 @@ from .serving import NEAREST
 SOURCES = {dataset_name(source): source for source in RAW_SOURCES}
 AMBIGUOUS = "rehearsal: {url}: two recorded copies reached main at {at} and differ ({paths}); refused, never guessed"
 DAMAGED = "rehearsal: the recorded copy {path} is missing from Drive or differs from its manifest row"
+UNREAD = "rehearsal: the recorded copy {path} could not be read from Drive: {error}"
 
 
 class RecordedArchiveSession(NotRecordedSession):
@@ -50,7 +55,10 @@ class RecordedArchiveSession(NotRecordedSession):
         if (wait := (row.committed - self.now()).total_seconds()) > 0:
             self.sleep(wait)
         path = path_of(row)
-        data = self.read(path)
+        try:
+            data = self.read(path)
+        except Exception as exc:  # no Drive settings, Drive down: the step's refused line, never a crash
+            raise NotRecorded(UNREAD.format(path=path, error=exc)) from exc
         if data is None or hashlib.sha256(data).hexdigest() != row.sha256:
             raise NotRecorded(DAMAGED.format(path=path))
         self.served[url] = row
@@ -72,10 +80,18 @@ class RecordedArchiveSession(NotRecordedSession):
     def _is_candidate(self, row: A9Row, now: datetime) -> bool:
         if row.committed.astimezone(IST).date() != self.day or row.committed > now + NEAREST:
             return False
+        source = SOURCES.get(row.dataset)
+        if source is None or (is_run_dated(source) and row.day != self.day):
+            return False  # a list filed by the run's day: only the replayed day's own copy (never another day's)
         try:  # a dataset whose path the URL alone cannot give (a symbol's own list) is never a candidate
-            return SOURCES[row.dataset].url_for(path_of(row)) == row.url
-        except (KeyError, ValueError):
+            return source.url_for(path_of(row)) == row.url
+        except ValueError:
             return False
+
+
+def is_run_dated(source) -> bool:
+    """A fixed-URL list filed under the day it was taken (`SnapshotTaker`), not under the session it covers."""
+    return issubclass(source, SnapshotSource) and source not in COVERED_SESSION
 
 
 def path_of(row: A9Row) -> str:

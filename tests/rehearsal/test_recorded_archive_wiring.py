@@ -104,13 +104,18 @@ def test_the_librarian_archives_the_evening_s_participant_oi_only_under_dryrun(r
 
 
 def test_the_by_session_taker_after_the_commit_is_served_the_day_s_copy_only_under_dryrun(rehearsing):
+    from fno.storage.snapshot_taker import ALREADY
     from fno.storage.wiring import build_snapshot_taker
 
     real, checkout, clock = rehearsing(FLOWS_DAY)
     clock.at = ist(FLOWS_DAY, 19, 56, 40)  # commit + 61 s: a fetch-first read
-    line = build_snapshot_taker("fii-dii-cash-by-session").take(FLOWS_DAY)
-    assert FLOWS_PATH in line
+    taker = build_snapshot_taker("fii-dii-cash-by-session")
+    assert taker.source.session.get(FLOWS_URL).content == FLOWS  # the session serves the day's copy, no wait
+    assert clock() == ist(FLOWS_DAY, 19, 56, 40)
+    # the record already shows the file at this time (REH1g), so the taker keeps it: the accepted "already" line
+    assert taker.take(FLOWS_DAY) == ALREADY.format(path=FLOWS_PATH)
     assert real.writes == [f"dryrun/r1/raw/{FLOWS_PATH}"]
+    assert real.files[f"dryrun/r1/raw/{FLOWS_PATH}"] == FLOWS
     assert FLOWS_SHA in (checkout / "fii-dii-cash-by-session.csv").read_text()
 
 
