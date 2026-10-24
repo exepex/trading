@@ -105,6 +105,17 @@ def build_look_records() -> LookRecords:
     return LookRecords(SCORES_FOLDER, FREEZE_FILE)
 
 
+def build_freeze_check():
+    """Protocol v4's freeze check on this tree (`freeze_check.check`); before the record exists, nothing to check (the
+    outputs are exploratory)."""
+    from ...research_engine.ledger import Git
+    from .freeze_check import FreezeCheck, check
+
+    if not FREEZE_FILE.is_file():
+        return FreezeCheck()
+    return check(ROOT, FREEZE_FILE.read_text(encoding="utf-8"), Git(ROOT))
+
+
 def build_thresholds() -> FrozenToolThresholds:
     return FrozenToolThresholds(ROOT / "tools")
 

@@ -26,7 +26,8 @@ from .sessions import sessions_between
 V4_RECORDS = "research/forecasts/v4"  # G8's folder of CSV records (G7's rules, M1's weather)
 RELEASE_WRITER, DEADLINE_WRITER = "v4-release", "v4-deadline"
 IV30_METHOD = "g1_v2_live_atm_iv30"
-IV30_METHOD_FILES = ("research_engine/live_features.py", "forecast/iv30.py")  # G1 v2's live ATM rule and interpolation
+# G1 v2's live ATM rule and interpolation, and the protocol's rate they run at (story G6 freeze, judge 597 SF1)
+IV30_METHOD_FILES = ("research_engine/live_features.py", "forecast/iv30.py", "forecast_v4/pricing.py")
 
 
 def iv30_method() -> str:
@@ -34,6 +35,15 @@ def iv30_method() -> str:
     package = Path(__file__).resolve().parents[1]
     digest = hashlib.sha256(b"".join((package / name).read_bytes() for name in IV30_METHOD_FILES)).hexdigest()
     return f"{IV30_METHOD}/sha256:{digest}"
+
+
+def build_iv30_rule():
+    """G1 v2's live ATM IV30 rule at the protocol's rate (`pricing.V4_RISK_FREE_RATE`), never the config's."""
+    from ..forecast_v4.pricing import V4_RISK_FREE_RATE
+    from ..research_engine.implied_vol import Black76
+    from ..research_engine.live_features import LiveAtmIvMinusRealised
+
+    return LiveAtmIvMinusRealised(None, V4_RISK_FREE_RATE, Black76())
 
 
 def run_live_dates(cfg: dict, env: Mapping[str, str] = os.environ) -> dict:
@@ -50,8 +60,6 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
     from ..models import now_ist
     from ..quotes.recorder import DATASET
     from ..quotes.window import named_window
-    from ..research_engine.implied_vol import Black76
-    from ..research_engine.live_features import LiveAtmIvMinusRealised
     from ..storage.quote_wiring import build_drive_only_quote_store
     from ..storage.wiring import QUOTES_FOLDER, build_session_calendar
     from .builder import PackBuilder
@@ -59,7 +67,7 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
 
     dataset = named_window(cfg, V4_WINDOW).dataset(DATASET)
     capture = StoredV4Capture(build_drive_only_quote_store(QUOTES_FOLDER, env, dataset=dataset), dataset)
-    rule = LiveAtmIvMinusRealised(None, cfg["risk_free_rate"], Black76())
+    rule = build_iv30_rule()
     calendar, store = build_session_calendar(), build_data_store(RELEASE_WRITER, env=env)
 
     from ..rehearsal.v4_pack import rehearsed_release_excuse

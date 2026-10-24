@@ -95,6 +95,7 @@ def test_a_recorded_look_with_an_unchecked_day_records_nothing(tmp_path, capsys)
     from fno.forecast_scoring.v4.scoring import V4Scoring
     from fno.forecast_scoring.v4.thresholds import FrozenToolThresholds
     from fno.forecast_v4.terms import LOOK_STOP_REVIEW
+    from tests.forecast_scoring_v4.helpers import intact
     from tests.forecast_scoring_v4.test_look_reconcile import AT, DAYS, FREEZE, records, slot_days
     from tests.forecast_scoring_v4.test_records_and_report import OneForecaster, Outcomes
 
@@ -102,6 +103,6 @@ def test_a_recorded_look_with_an_unchecked_day_records_nothing(tmp_path, capsys)
     (tmp_path / "FREEZE_v4.md").write_text(f"# Freeze\nFrozen on: {FREEZE}\n")
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
     code = _look(scoring, look_records, FrozenToolThresholds(tmp_path), slot_days(records(DAYS)), LOOK_STOP_REVIEW,
-                 AT, lambda: [FREEZE, DAYS[1]])  # the freeze day itself is not counted  # fmt: skip
+                 AT, lambda: [FREEZE, DAYS[1]], freeze=intact)  # the freeze day itself is not counted  # fmt: skip
     assert code == 1 and not look_records.path(LOOK_STOP_REVIEW).exists()
     assert "deadline checked: 1 day(s) not checked, the earliest 2027-05-25" in capsys.readouterr().out
