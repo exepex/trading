@@ -168,6 +168,9 @@ archives. Each row's own provenance and the readers' checks protect them; the re
   `V4_PACK_WINDOW_END` in `v4_pack/codec.py:119-131`, so a config edit cannot put a later quote in a pack.
 - `daily.live_from.*` (`weather`, `forecasts_v4`, `v4_pack`, G7b's `forecasts_v4_pack`, G11's `ai_books_v4`): which
   days run; a late date makes misses, never better scores.
+- `budget.cap` (BG1-u: none, the owner's 24 Oct "No monthly budget cap for AI. Keep it unlimited."): the AI books'
+  budget stop (`fno/ai/budget_stop.py`, recorded) can never fire while there is no cap; a later cap, an owner
+  decision, would start AI `not_fired` misses, never a better score (judge 606.2 m1).
 - The freeze date: read by BG1 from `FREEZE_v4.md`'s `Frozen on:` (section 7), no config key.
 
 ## 3. The protocol's final form (one commit, before the record)
