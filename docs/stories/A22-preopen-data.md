@@ -279,4 +279,83 @@ the capture (at the start of `preopen record`).
 
 ### Claims (A22d)
 
-None yet: code starts after the text PASS.
+Text PASS: judge 589.1. Code on `story/a22d-flat-candle` (head named in the orchestrator message).
+
+**Code per criterion:**
+
+| Criterion | Code | Tests |
+|---|---|---|
+| D1-D3 | `answers.py` `read_index_preopen(..., seen_at)`, `_is_placeholder`; `parts.py` `GrowwIndexPreopen.read` | `test_flat_candle.py` (24 cases, a UTC `seen_at` too) |
+| D4 | `day_row.py` basis columns, `flat_labels` | `test_open_check.py::test_d4_*` (the pre-A22d header written out) |
+| D5 | `open_check.py` `OpenCheck.run`; `check_files.py` (verified Drive cache); `nse_range.read_nse_day(data, index_row)` | `test_open_check.py::test_d5_*`, `test_check_files.py`, `test_wiring.py` |
+| D6 | `OpenCheck.labels`, `_label` | `test_open_check.py::test_d6_*`, `test_open_check_record.py::test_d6_*` |
+| D7 | `record.py` (check after `_finish`, own alert, exit `max`); `label_read.py` (background read) | `test_open_check_record.py::test_d7_*` |
+| D8 | samples below | |
+
+**Choices beyond the text, for the judge:**
+1. The labels are read in a background thread started with the run and taken, without waiting, when the day row is
+   written: reading them at 09:11 in line would let a slow Drive delay the 09:12 commit. Not ready by then: every flat
+   value is `unverified` and one problem line "open check labels late" (only on a day that has a flat value). Before
+   the open check, the run waits for that thread (at most 10 minutes) so the two never write the same cached file.
+2. One index's row missing from NSE's file (`no official value`) is that index's own problem and result, written in the
+   check file; it never counts as a match and never hides the other index's result (self-review finding).
+3. A session still waiting for NSE's file on its last morning in the 10-session look-back is named once ("open check
+   not checked: ... leaves the look-back"), never dropped silently (self-review finding).
+4. The mismatch line follows the text: "nifty open check mismatch: flat 09:15 candle differs from NSE's official open
+   on <day>" ("pre-open value" for a 09:09 or old-row value).
+5. `PreopenPart.read` is now abstract on the port; REH1c's `RecordedPreopenPart` calls the live part's reader through
+   it (one reader, no type test). `parse_candles` also refuses a candle row that is a JSON object (`KeyError`, was a
+   crash path; self-review, pre-existing).
+6. CLAUDE.md's A22 section: only the last-line sentence changes (orchestrator). Its "NIFTY's and BANKNIFTY's 09:09
+   one-minute candle" wording is left as is, as asked; it now under-describes the flat-candle source.
+
+**Self-review (two independent review agents, read-only):** correctness: no blocking; should-fix 1 (one index's row
+missing failed the whole session, and a waiting session left the look-back silently): fixed (choices 2, 3). Minors
+fixed: `has()` outside the try (now inside: one failed line, never a traceback); the late label thread and the check
+sharing the Drive cache (choice 1's wait); late labels alerted on a day with no flat value (now only with one); the
+mismatch wording (choice 4); a dict candle row crashing the capture (choice 5). Tests: plant 11's survivor ("drop
+mismatches, then take 5") now caught by a 6-session case; the race of the real label thread in A22's older tests
+(they now read the labels at once; D7 uses the real thread); D4's circular header test now compares with the
+pre-A22d header written out; added: a UTC `seen_at`, a BANKNIFTY and a 09:09 mismatch, a missing NIFTY BANK row, the
+`taken` path, the 10-session boundary, old-header checks not counted, a recorder-level Drive-down check, no
+difference in the O10 row or committed files. Not done: a fake NSE that fails when called (the check has no NSE
+dependency at all; `test_wiring.py` shows the stores' reader is the one wired and the writer's library is not
+imported); holidays in the look-back (`previous_session` is the calendar's own, tested by A7).
+
+**Plants (builder's, 19, each restored with `git checkout`):** the 14 named in the text plus: every flat value
+`verified`; the per-index row not isolated; a waiting session dropped silently; late labels alerted with no flat
+value; check problems folded into exit 0. **19 of 19 caught.**
+
+**Real output samples:**
+- The committed reader on the real 23 Oct raw answers from Drive (verified against their receipts; values not printed):
+
+```
+nifty_091059.json read at 09:10:59: complete=True basis='flat_0915' source_time=None detail='' value_present=True
+nifty_091059.json read at 09:15:00: complete=False basis='' source_time=None detail='no pre-open value: candles only from 09:15' value_present=False
+banknifty_091101.json read at 09:11:01: complete=True basis='flat_0915' source_time=None detail='' value_present=True
+banknifty_091101.json read at 09:15:00: complete=False basis='' source_time=None detail='no pre-open value: candles only from 09:15' value_present=False
+```
+
+- The committed recorder on a fixture of that shape (invented numbers; the desk of `tests/preopen/desk.py`, fake
+  committers and a fake Slack sender), with one earlier session planted to mismatch:
+
+```
+receipts committed and pushed (2 file(s))
+gift ok (1 read(s))
+fo_list ok (1 read(s))
+nifty ok (1 read(s))
+banknifty ok (1 read(s))
+committed
+committed
+pre-open recorded
+committed
+committed
+open check with problems: nifty open check mismatch: flat 09:15 candle differs from NSE's official open on 2026-10-21
+alert sent to #fno-desk
+exit 1
+day row nifty: ok flat_0915_unverified | banknifty: ok candle_0909
+```
+
+- Open: the first live morning's lines (Mon 26 Oct) are added after it runs. Note: the real 23 Oct BANKNIFTY answer
+  was received at 09:11:01, after the window's close, so on that answer alone the run would mark it `late`; live, the
+  first read at 09:10:00 gets the flat candle (the 09:10:00 and 09:10:30 answers of 23 Oct were not archived).
