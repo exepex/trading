@@ -443,3 +443,69 @@ string is M1's `WeatherColour.NOT_SCORED`, imported from `fno/weather/constants.
 - they will warn T1c's owner before any move of these records to Drive (O9).
 
 **Depends:** T1, M1 · **Size:** S · **Status:** done: text judge 401 PASS, code judge 555 PASS (e30ab3d0)
+
+## T1d. The card names the steps that failed or were refused today
+
+**Repository:** trading · **Asked by:** the orchestrator, 24 Oct 2026, after O1's R2 · **Lane:** 1 (judge I)
+
+**Description:** As the owner, I want the daily card to name every desk step that failed or was refused today, so I
+never read a card without knowing that part of the day did not run.
+
+**Context and why (strong evidence: code on `main`, and R2 on `story/o1-r1r2-step-safety`, read 24 Oct 2026):**
+- Until R2, any unexpected error in a step ended the whole run. Then there was no card, so a card meant the day had
+  run.
+- Since R2 (`fno/desk/daily_run.py` `_run_step`), such an error fails only its step. The step is logged
+  `{"status": "failed", "reason": ...}` in the run log and the run goes on. A step that needs it, such as `fills`
+  needing the snapshot, is logged `refused`. The card is still posted, and today it says nothing about this.
+- O1 already defines the day's problem steps. `fno/daily/runner.py` lists every run-log step whose status is in
+  `PROBLEMS = (STEP_FAILED, STEP_REFUSED)` for its last line, "day done with problems: <steps>".
+- The run commits the run log after each step (`DailyRun._step`), so the card step sees every earlier step's status
+  in the committed log.
+
+**Scope.** In:
+- **One shared rule, O1's.** The list comprehension in `fno/daily/runner.py` moves into one function,
+  `problem_steps(steps) -> list[tuple[str, str]]` (step name, status). The function lives in O1's run-log module,
+  `fno/desk/run_log.py`, beside `RunLog`, and both the runner's last line and the card call it. It is O1's file, so
+  this is agreed with O1's builder first. The runner's text and behaviour do not change.
+- **The card line.** It sits in the card's status section, after the rule checks:
+  "Steps that failed or were refused today: snapshot (failed), fills (refused)", in run order. There is no line when
+  none failed or was refused.
+  - The card reads the day's committed run log through T2's existing `RunLogReader` (`fno/cards/rule_checks.py`), the
+    reader the rule checks already use, and passes its steps to `problem_steps`. It parses no text.
+  - A run log that cannot be read is already reported by T2's rule checks ("unreadable"), so T1d adds no second line
+    for it.
+- `not_live`, `ok` and every other status are not problems, exactly as O1's rule says.
+
+Out:
+- **Steps after the card in `DAILY_RUN_STEPS`** (G13's records and scores, the candles, the close reads) run after the
+  card is posted, so their failures cannot be on it. They stay in the run's last line and in their own alerts.
+- **The reason text:** under O1-status-only the committed log holds only a status and a reason code, and each failure
+  is already alerted to #fno-desk with its reason. The card names the step and its status only.
+- **The card's status (TRADE / NO TRADE):** unchanged. It is always NO TRADE until T1 slice B.
+
+**Acceptance criteria:**
+1. When the committed run log has steps logged `failed` or `refused`, the card shows one line naming each, with its
+   status, in run order.
+2. With no such step, including a day whose steps are all `ok` or `not_live`, the card has no such line.
+3. With no run log yet (the desk has not run), there is no such line. T2's rule checks already say "not yet decided".
+4. The runner's last line is unchanged ("day done with problems: <steps>"), and both the runner and the card use the
+   same `problem_steps`.
+5. The card reads the run log only through `RunLogReader` and `problem_steps`, never by matching text.
+
+**Test plan:**
+1. Positive: a planted committed run log with `snapshot` failed and `fills` refused gives the exact line, in order.
+2. Negative: all `ok` and `not_live`, so no line. A reason code never appears on the card.
+3. Empty: no run log gives no line.
+4. Shared rule: the runner's existing tests pass unchanged, and a test shows that the runner and the card list the
+   same steps for one log.
+5. Plants: dropping `refused` from the rule fails test 1; a card that ignores the reader's steps fails test 1.
+
+**Known limits:**
+- Failures in steps after the card are not on it (Out).
+- The card is posted only once the owner sets `daily.live_from.card`.
+
+**Split:** O1's builder (session_014zYLf18PgCzR7YoHs1X5Dp) owns `fno/daily/runner.py` and `fno/desk/run_log.py`. The
+move of the rule into `problem_steps` is asked of them before code.
+
+**Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** story text, waiting for judge I;
+code after R2 merges
