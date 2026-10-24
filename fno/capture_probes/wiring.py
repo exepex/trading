@@ -37,12 +37,12 @@ def build_probe_day(cfg: dict) -> ProbeDay:
     """The live probe: reads Groww and NSE at the study pace and pushes only its own records."""
     from ..composition import build_alert_sender
     from ..intraday.read_only import ReadOnlyGroww
-    from ..providers.groww import GrowwProvider
+    from ..providers import get_provider
     from ..storage.data_wiring import build_data_store
     from ..storage.trading_days import is_trading_day
     from ..storage.wiring import build_session_calendar
 
-    provider = GrowwProvider(cfg)
+    provider = get_provider("groww", cfg)  # GW1: sign-in guard, quiet windows and the 60 s pause come with it
     client = ReadOnlyGroww(lambda: provider.api)
     lot = _archived_lot()
     groww = GrowwReader(client, GrowwAnswers(groww_rate_limited), lot, now_ist)
@@ -91,8 +91,8 @@ def _archived_lot():
 
 
 def groww_rate_limited(error: Exception) -> bool:
-    """The project's one 429 detector (story GW1, parts 3-4), never a copy: a 429 in either SDK form, or the pause
-    that follows one."""
-    from ..providers.groww_guard import GrowwRateLimited, GrowwRateLimitPause
+    """The project's one 429 detector (story GW1, parts 3-4), never a copy: a 429 in either SDK form, or GW1's
+    unsent pause within 60 s after one."""
+    from ..providers.groww_rate_guard import GrowwRateLimitPaused, is_rate_limit
 
-    return isinstance(error, (GrowwRateLimited, GrowwRateLimitPause))
+    return is_rate_limit(error) or isinstance(error, GrowwRateLimitPaused)

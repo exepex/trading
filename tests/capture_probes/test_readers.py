@@ -172,3 +172,20 @@ def test_a_401_from_nse_s_first_request_stops_it_before_any_other(tmp_path):
     rig = Rig(tmp_path, nse_faults={1: status(401)})
     rig.run()
     assert rig.nse.calls == 1
+
+
+def test_the_live_wiring_reads_a_429_only_through_gw1_s_one_detector():
+    from fno.providers.groww_rate_guard import GrowwRateLimitPaused
+
+    from fno.capture_probes.wiring import groww_rate_limited
+
+    class GrowwAPIException(Exception):
+        code = "429"
+
+    class GrowwAPIRateLimitException(Exception):
+        code = "429"
+
+    assert groww_rate_limited(GrowwAPIException()) and groww_rate_limited(GrowwAPIRateLimitException())
+    assert groww_rate_limited(GrowwRateLimitPaused("unsent"))
+    assert not groww_rate_limited(ValueError()) and not groww_rate_limited(GrowwAPIException.__new__(Exception))
+    assert "def is_rate_limit" not in (PACKAGE / "wiring.py").read_text()  # used, never copied

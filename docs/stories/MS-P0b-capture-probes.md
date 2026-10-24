@@ -213,10 +213,13 @@ grow, keep or stop, per source.
 
 ### Code round 1 (builder session_01KJLFK1oqfytQkHapDCHJh9; branch `story/ms-p0b-capture`, SHA in the commit carrying this text)
 
-**Status: not ready to merge.** `fno/capture_probes/wiring.py` imports GW1's `GrowwRateLimited` and
-`GrowwRateLimitPause` from `fno.providers.groww_guard` (the project's one 429 detector, orchestrator's ruling 24 Oct).
-GW1's code is not on `main` yet, so `tools/check_imports.py` and `tests/test_import_graph.py` fail on this one import
-and nothing else. The module path is GW1's planned one, asked of its builder (session_01GsPm29fZzfH3DiErKAdBVk).
+**Status: not ready to merge.** `fno/capture_probes/wiring.py` reads a 429 only through GW1's `is_rate_limit` and
+`GrowwRateLimitPaused` (`fno/providers/groww_rate_guard.py`, names confirmed by GW1's builder,
+session_01GsPm29fZzfH3DiErKAdBVk, 24 Oct; the project's one 429 detector, orchestrator's ruling) and builds Groww
+through `get_provider("groww", cfg)`, so GW1's sign-in guard, quiet windows and 60 s pause apply too. GW1's code is
+on its branch (5d5d054ae), not on `main`: on this branch alone `tools/check_imports.py`, `tests/test_import_graph.py`
+and one probe test fail on that import. Merged with GW1's branch in a scratch worktree, the imports are clean and
+2,044 tests pass (`tests/capture_probes`, the school boundary, the import graph).
 
 | # | Criterion | Code | Tests (good, bad, boundary, empty) |
 |---|---|---|---|
