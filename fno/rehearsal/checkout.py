@@ -59,10 +59,20 @@ class RehearsalCheckout:
         message = DATA_AS_OF.format(day=self.rehearsal.day, run_id=self.rehearsal.run_id, at=start.isoformat())
         self.git(self.clone, "commit", "-q", "--allow-empty", "-m", message)  # the hooks run: never --no-verify
         self.git(self.root, "init", "-q", "--bare", "-b", "main", str(self.bare))
+        self._install_push_log()
         self.git(self.clone, "push", "-q", str(self.bare), "HEAD:refs/heads/main")
         self.git(self.clone, "remote", "set-url", "origin", str(self.bare))
         self.git(self.clone, "fetch", "-q", "origin")
         return self.git(self.clone, "rev-parse", "HEAD").strip()
+
+    def _install_push_log(self) -> None:
+        """The bare origin logs each push to main with the replay time, for the rehearsal's push receipts (REH1b)."""
+        from .push_receipts import post_receive_hook
+
+        self.rehearsal.state.mkdir(parents=True, exist_ok=True)
+        hook = self.bare / "hooks" / "post-receive"
+        hook.write_text(post_receive_hook(self.rehearsal.state), encoding="utf-8")
+        hook.chmod(0o755)
 
     def check_hooks(self) -> None:
         found = self.git(self.clone, "config", "--get", "core.hooksPath").strip()

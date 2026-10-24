@@ -103,11 +103,20 @@ def build_nse_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
 
 
 def _quote_recorder(provider: Provider, dataset: str) -> QuoteSnapshotRecorder:
+    from .rehearsal.quote_wiring import rehearsed_recorder
+
     expiries, levels = NseDailyFileExpiries(build_nse_fo_library()), NseLevelSource(PublicData().nse_json)
-    return QuoteSnapshotRecorder(
-        provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries,
-        levels=levels, dataset=dataset,
-    )  # fmt: skip
+    return rehearsed_recorder(
+        QuoteSnapshotRecorder(
+            provider,
+            build_quote_store(),
+            fallback=expiries,
+            calendar=build_session_calendar(),
+            history=expiries,
+            levels=levels,
+            dataset=dataset,
+        )
+    )  # fmt: skip; story REH1b: the day's recorded attempts when rehearsing
 
 
 @contextmanager

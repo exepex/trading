@@ -342,3 +342,92 @@ clean.
     exit 3 and a clean pass. Plant: ignoring the exit code fails the test.
   - **Minor (for REH1b/c, judge E):** `urllib3` used directly, or raw sockets, would bypass the HTTP guard. Nothing in
     the daily run uses them today. A `urllib3` backstop comes in REH1b's follow-up; raw sockets stay a stated limit.
+
+
+### REH1b: the recorded sources (for its two judges)
+
+Branch `story/reh1b-sources`, stacked on REH1a (b2e5337d) so REH1a's judges' fixes stay apart. The live sources each
+daily step reaches were mapped first, read-only (a search over every step's composition root). Each one now has its
+rehearsal form, chosen in the builder that builds it:
+
+| Live source | Step(s) | Rehearsal form | Chosen in |
+|---|---|---|---|
+| A4's capture: Groww / NSE chain, NSE levels | quotes (3 parts), snapshot | `RecordedRecorder`: the day's recorded attempts, republished byte for byte at their own `finished_at`, with the day's canonical marker; Groww's files from the real Drive checked against their sidecars' SHA-256 | `composition._quote_recorder`, `quotes/index_wiring`, `quotes/window_wiring` |
+| NSE's archive (a file missing from Drive) | book1, exits, the recorder's fallback, the index closes | the source's session never sends: `RawSourceUnavailable` "rehearsal:NOT_RECORDED ... (not sent)", no retry, no wait, nothing archived | `storage/wiring.build_nse_source` |
+| NSE's index list | close_read, close_recheck | `RecordedCloseList`: the day's raw answer saved at or just after now (15:40 the first, 16:00 the recheck), once the replay clock reaches its save time | `close_read/wiring` |
+| Groww's candles | candles | `RecordedCandles`: the day's archived answer for the same window, checked against its manifest row | `intraday/backfill_wiring` |
+| GitHub's activity log (push receipts) | premium_ranges, price_ranges, price_range_scores (seals); also the AI collector, v4 packs, health, the card | `LocalPushReceipts`: the rehearsal origin's `post-receive` hook logs each push to main with the replay time | the five `GitHubActivityReceipts` builders |
+| Git's commit dates (the wall clock) | every commit: D3's late rule, the seals | a `git` shim first on the rehearsal's `PATH` dates every commit by the replay clock | `rehearsal/daily.py` |
+
+**Also:**
+- The guard checks the 3 pm recorder and NSE's session, and probes NSE's archive and GitHub's activity log.
+- The run log's registry names `rehearsal:NOT_RECORDED`.
+- The label's pending line now names only REH1c.
+- The composition-root test uses the repository's own rule: a root is any `wiring.py` or `<part>_wiring.py`.
+
+**Two of my mistakes, said plainly:**
+- I committed part 1 (38f9d5ab) with one test red, because a pipe to `tail` hid pytest's exit code. That test is the
+  composition-root list, fixed in the next commit. The gates now run through a script that exits with their own
+  status.
+- The replay clock was started after the checkout, so the origin's first push (the data commit) was logged with no
+  offset. It now starts first.
+
+**Tests:**
+- `tests/rehearsal/test_recorded_quotes.py` (5): the 3 pm record at its own time with its marker, the 15:15 capture,
+  a day with no attempt ending "none", the record never written, and a Groww file whose bytes differ from its sidecar
+  refused.
+- `test_recorded_closes.py` (3) and `test_recorded_candles.py` (2).
+- `test_nse_archive.py` (2): never sent, no retry, no wait.
+- `test_git_dates.py` (1): a commit through the shim carries the replay time.
+- `test_checkout.py`, push receipts on real repositories.
+- `test_guard.py`, with five planted breaks.
+- `tests/intraday_backfill/test_read_only.py` still passes: the back-fill's import closure names no trading call.
+
+**Gates** (on main): 14905 passed, 1 skipped, 16 xfailed. ruff, format, imports, records and numbers are all clean.
+
+**Not in REH1b (said plainly):**
+- There is no end-to-end rehearsal of a recorded day with these sources yet. O2's fixture harness replaces the same
+  seams with its own fakes, so it cannot exercise them. The first whole run is the 23 Oct rehearsal itself, after the
+  judges and O9's read-only fix.
+- The card does not run. Its `daily.live_from` is null (config.yaml), on 23 Oct and today, so a rehearsal posts no
+  card, as the real day posted none.
+- The shared Drive's raw NSE files are read as they are now, not point in time. They are published files of past
+  sessions, and no step asks for one of the replayed day before NSE publishes it (reasoning only).
+
+#### REH1b follow-up (judge 559, judge B: PASS with notes; judge 560's minor point)
+
+- **REH1a's round 2 merged in:** judges 557 and 560.
+- **Note 1, accepted.** Dropping `finished_at >= now` in `RecordedRecorder._next` survived every test. Now
+  `test_a_late_execution_capture_is_never_served_an_earlier_attempt` asks for a capture at 15:20 and must get "window
+  closed": the 15:15:40 attempt is never passed off as a 15:20 one. Plant: dropping the rule fails the test.
+- **Note 2, accepted.** With no Drive set up, `candle_wiring` raised an `AttributeError`. It now says which settings
+  to set. `quote_wiring` already returned None, which A4b's store reports with the settings' names.
+- **Judge 560's minor point, accepted for `urllib3`.**
+  - `urllib3` overrides `http.client`'s connect, and its HTTPS connection has a connect of its own, so `urllib3` used
+    directly bypassed the guard. Probed: a `PoolManager` request to NSE was *reached*.
+  - The guard now wraps the connect of `http.client.HTTPConnection`, `urllib3.connection.HTTPConnection` and
+    `urllib3.connection.HTTPSConnection`.
+  - `tests/rehearsal/test_http_guard.py` probes a direct `urllib3` call, which is now refused.
+  - Raw sockets stay a stated limit: nothing in the package opens one.
+
+#### REH1b round 2 (judge 562, judge E: FAIL on two pins and two minors; all four accepted, each pinned)
+
+- **F1 (B1), accepted.** `rehearsed_receipts` returning GitHub's real receipts passed the suite. The guard would
+  refuse GitHub, so nothing leaked, but the seals would never read the push log.
+  - Now `test_with_the_mode_set_a_real_builder_reads_the_rehearsal_s_push_log` builds v4's commitment times through
+    their real builder with the mode set, and gets `LocalPushReceipts` over `<state>/pushes.log`.
+  - `test_every_builder_of_github_s_receipts_hands_them_to_the_rehearsal_s_choice` holds all five builders to
+    `rehearsed_receipts(GitHubActivityReceipts(...))`.
+  - Plant: returning the real receipts fails the test.
+- **F2 (B4), accepted.** Dropping the shim's `PATH` from the child's environment passed the suite.
+  - Now `test_a_step_s_commit_through_the_rehearsal_s_env_carries_the_replay_date` runs `rehearse_daily` with a step
+    that commits through the environment it is given (with no date set). The commit must carry 14:05 IST on the
+    replayed day.
+  - Plant: no `PATH` fails the test.
+- **Minor B2, accepted.** `_held` always False was close to equivalent on a time-ordered log.
+  `test_a_commit_already_held_before_a_push_is_not_received_by_it` pins it: a push whose old tip already holds the
+  commit did not bring it. Plant: `_held` → False fails the test.
+- **Minor B6, accepted.** A hook logging every ref passed the suite. `test_the_hook_logs_pushes_to_main_only` pins it:
+  a push of another ref writes no line, and a push of main writes one. Plant: dropping the condition fails the test.
+- **`main` merged in** (REH1a at 2d86b781, O9's read-only index-close fix 8214a5d5). One conflict, in
+  `close_read/wiring.py`: `main`'s `build_stored_index_close_files()` is kept with REH1b's recorded close source.

@@ -44,4 +44,7 @@ def build_close_reader(env=os.environ) -> CloseReader:
     calendar = build_session_calendar()
     alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
     confirmer = Confirmer(store, ArchivedIndexCloses(build_stored_index_close_files()), calendar, alerts, now=now_ist)
-    return CloseReader(NseIndexList(PublicData().nse_json), store, confirmer, calendar, now_ist, time.sleep)
+    from ..rehearsal.close_wiring import rehearsed_close_list
+
+    source = rehearsed_close_list(NseIndexList(PublicData().nse_json), drive)  # REH1b: the recorded answers
+    return CloseReader(source, store, confirmer, calendar, now_ist, time.sleep)

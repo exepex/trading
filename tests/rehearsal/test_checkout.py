@@ -94,6 +94,26 @@ def test_a_guard_problem_stops_before_any_step_and_a_closed_day_is_refused(sourc
     assert lines[-1] == "rehearsal refused: 2026-10-24 is not a session day (NSE's calendar)"
 
 
+def test_a_push_to_the_rehearsal_s_origin_has_a_receipt_at_the_replay_time(source, tmp_path):
+    """REH1b: G13b's seals ask when a commit was pushed; a rehearsal answers from its origin's push log."""
+    from fno.ai.history import RepoHistory
+    from fno.rehearsal.clock import ReplayClock
+    from fno.rehearsal.push_receipts import PUSH_LOG, LocalPushReceipts
+
+    repo, _ = source
+    mode = Rehearsal.new(DAY, tmp_path / "home", repo)
+    ReplayClock(mode.state).start(datetime(2026, 10, 23, 15, 29, tzinfo=IST))
+    checkout = RehearsalCheckout(repo, mode, tmp_path / "home")
+    checkout.create(START)
+    (checkout.clone / "seal.json").write_text("{}")
+    git(checkout.clone, "add", "seal.json")
+    git(checkout.clone, "commit", "-q", "-m", "seal")
+    git(checkout.clone, "push", "-q", "origin", "HEAD:main")
+    commit = git(checkout.clone, "rev-parse", "HEAD").strip()
+    received = LocalPushReceipts(mode.state / PUSH_LOG, RepoHistory(checkout.clone)).received_at(commit)
+    assert abs((received - datetime(2026, 10, 23, 15, 29, tzinfo=IST)).total_seconds()) < 30
+
+
 def test_the_clone_s_data_commit_runs_the_record_scan_hook(source, tmp_path):
     """Judge 560 F2: the hooks path being set is not enough; the clone's own data commit runs the repository's hook
     (never --no-verify). The source's hook leaves a mark when it runs."""
@@ -123,3 +143,24 @@ def test_a_guard_that_crashes_or_exits_non_zero_stops_the_rehearsal_whatever_it_
         "the guard did not finish cleanly (exit 3): no error output"
     ]
     assert _guard(dict(os.environ), tmp_path, clean) == []
+
+
+def test_a_step_s_commit_through_the_rehearsal_s_env_carries_the_replay_date(source, tmp_path):
+    """Judge 562 F2: the child's PATH puts the rehearsal's git first, so a step's commit is dated by the replay clock
+    (14:05 IST on the day), never the wall clock's day after."""
+    repo, _ = source
+    dates = []
+
+    def step(clone, day, env, out):
+        (clone / "decision.json").write_text("{}")
+        subprocess.run(["git", "add", "decision.json"], cwd=clone, env=env, check=True)
+        bare = {k: v for k, v in env.items() if k not in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE")}
+        subprocess.run(["git", "commit", "-q", "-m", "Desk run step decisions"], cwd=clone, env=bare, check=True)
+        dates.append(subprocess.run(["git", "log", "-1", "--format=%cI"], cwd=clone, env=bare, check=True,
+                                    capture_output=True, text=True).stdout.strip())  # fmt: skip
+        return 0, "day done"
+
+    rehearse_daily(DAY, repo, [].append, tmp_path / "home", is_session=lambda d: True, run_child=step,
+                   guard=lambda env, cwd: [])  # fmt: skip
+    committed = datetime.fromisoformat(dates[0])
+    assert abs((committed - START).total_seconds()) < 120  # the replay time, not today's

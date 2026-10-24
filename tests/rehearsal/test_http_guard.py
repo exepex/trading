@@ -9,7 +9,7 @@ import pytest
 
 from fno.rehearsal.http_guard import allowed
 
-PROBE = """import sys, requests, urllib.request
+PROBE = """import sys, requests, urllib.request, urllib3
 from fno.rehearsal import http_guard
 from fno.rehearsal.http_guard import RehearsalCallRefused
 http_guard.install(); http_guard.install()
@@ -17,6 +17,8 @@ for url in sys.argv[1:]:
     try:
         if url.startswith("urllib:"):
             urllib.request.urlopen(url[7:], timeout=1)
+        elif url.startswith("urllib3:"):
+            urllib3.PoolManager().request("GET", url[8:], timeout=1, retries=False)
         else:
             requests.post(url, timeout=1)
         print("REACHED", url)
@@ -28,7 +30,7 @@ for url in sys.argv[1:]:
 LIVE = ["https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY", "https://api.groww.in/v1/live-data/quote",
         "https://api.anthropic.com/v1/messages", "https://api.github.com/repos/exepex/trading/dispatches",
         "https://slack.com/api/chat.delete", "urllib:https://growwapi-assets.groww.in/instruments.csv",
-        "urllib:http://example.com/"]  # fmt: skip
+        "urllib:http://example.com/", "urllib3:https://www.nseindia.com/api/allIndices"]  # fmt: skip
 
 
 def test_every_live_source_anthropic_and_github_s_api_are_refused_before_the_call():

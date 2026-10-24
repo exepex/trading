@@ -128,6 +128,10 @@ def build_seal_check(env=os.environ, deadline_of=None) -> SealCheck:
     deep_enough()
     history = HealthHistory(ROOT)
     repository = env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
-    receipts = GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history)
+    from ..rehearsal.receipts_wiring import rehearsed_receipts
+
+    receipts = rehearsed_receipts(
+        GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history), history
+    )  # REH1b: the rehearsal's push log
     return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar(), deadline_of,
                      attempts=SEAL_READ_ATTEMPTS)  # fmt: skip

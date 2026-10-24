@@ -56,7 +56,11 @@ def build_ai_firer(env=os.environ) -> AiBookFirer:
 
 def build_ai_collector(env=os.environ) -> AiForecastCollector:
     history = RepoHistory(ROOT)
-    receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
+    from ..rehearsal.receipts_wiring import rehearsed_receipts
+
+    receipts = rehearsed_receipts(
+        GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history), history
+    )  # REH1b: the rehearsal's push log
     return AiForecastCollector(ROOT, history, receipts, AiRecordWriter(ROOT), now_ist)
 
 

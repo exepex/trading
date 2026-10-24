@@ -2,7 +2,9 @@
 before it is made. Allowed: Google's Drive API and token endpoint (the dryrun store's reads and writes; the store, not
 this guard, keeps writes under `dryrun/`), and Slack's posting calls. Refused: every market source (Groww, NSE,
 global cues), Anthropic, GitHub's API and anything else, so no real AI routine is ever fired. Checked twice: at
-`requests`' session (the whole URL) and at `http.client`'s connect (the host), for code that does not use requests."""
+`requests`' session (the whole URL), and at the connect of `http.client` and of `urllib3` (the host) for code that does
+not use requests (judge 560: urllib3 overrides http.client's connect). A raw socket is not checked: nothing in the
+package opens one (the stated limit)."""
 
 from __future__ import annotations
 
@@ -38,18 +40,27 @@ def install() -> None:
     """Wraps the two call paths of this process once; a second install changes nothing."""
     if getattr(requests.Session.request, "_rehearsal_guard", False):
         return
-    request, connect = requests.Session.request, http.client.HTTPConnection.connect
+    import urllib3.connection
+
+    request = requests.Session.request
 
     def guarded_request(self, method, url, *args, **kwargs):
         check(method, url)
         return request(self, method, url, *args, **kwargs)
 
-    def guarded_connect(self):
+    guarded_request._rehearsal_guard = True
+    requests.Session.request = guarded_request
+    # urllib3's HTTPS connection has a connect of its own, apart from its HTTP one and from http.client's
+    connections = (http.client.HTTPConnection, urllib3.connection.HTTPConnection, urllib3.connection.HTTPSConnection)
+    for connection in connections:
+        connection.connect = _guarded_connect(connection.connect)
+
+
+def _guarded_connect(connect):
+    def guarded(self):
         host = getattr(self, "_tunnel_host", None) or self.host
         if host not in ALLOWED_HOSTS:
             raise RehearsalCallRefused(REFUSED.format(method="CONNECT", host=host, path=""))
         return connect(self)
 
-    guarded_request._rehearsal_guard = True
-    requests.Session.request = guarded_request
-    http.client.HTTPConnection.connect = guarded_connect
+    return guarded
