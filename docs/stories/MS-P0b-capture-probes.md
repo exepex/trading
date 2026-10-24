@@ -161,12 +161,18 @@ grow, keep or stop, per source.
 - Flagged, not touched: `fno/providers/public.py` (O6) already sends a browser User-Agent to NSE; the owner may want
   the same honest rule there (a separate story).
 
-## 10. Questions to the orchestrator (recommended answer first)
+## 10. Questions answered (orchestrator, 24 Oct 2026)
 
-1. NSE refuses the honest User-Agent: (a, recommended) stop NSE's part and report; (b) a browser User-Agent like O6.
-2. Who runs it: (a, recommended) by hand, by this builder, no stored schedule; (b) a daily-run step.
-3. Missing lot or expiry: the row is `lot_unknown` / not captured, never guessed. Agreed?
-4. Groww's written question stays unasked; noted as an open risk. Agreed?
+1. NSE refuses the honest User-Agent: stop NSE's part and report; never disguise. O6's browser User-Agent is recorded
+   as an existing fact (section 9), untouched.
+2. Run by hand, by this builder, 5 sessions; no stored schedule and no `DAILY_RUN_STEPS` row.
+3. A missing lot or expiry is never guessed (`lot_unknown` / not captured).
+4. Groww's written question stays unasked; an open risk (section 9).
+5. Blackout days 26 and 27 Oct (28 Oct if A16h slips), confirmed by the orchestrator (A16h's owner out of reach).
+6. **Pending:** the owner's newest word (25 Oct, through the orchestrator): Groww must never exceed its rate limit in
+   any situation. P0b's Groww calls must fit one shared budget with the project's other Groww readers. The slot times
+   and the Groww gap in sections 3-4 are held until the orchestrator's load audit returns; any change goes in round 2
+   or the code round.
 
 ## Claims
 
