@@ -937,7 +937,7 @@ run log is written with O1's own `RunLog.record` (T1d's way).
   goes. Option (b) is one line, quoted in its docstring (criterion 11, plant W14).
 - **One rule, O1's.** `ProblemSteps.findings` calls `run_log.problem_steps` on the steps from `RunLogReader`; no
   status set and no text matching in the card (criterion 8; T1d's runner-versus-card test kept, on the detail).
-- **The contract test is red by design** until W3i's contract change is re-pinned. It reads the codes from the card's
+- **The contract test** was red by design until W3i's contract change was re-pinned (it is green since `d7855f7ea`). It reads the codes from the card's
   own tables (`status.REASONS`, T1's three, and `ruled_status.SEVERITY`, T2's two and `step_problems`), not from a
   list in the test. At pin `d53cefe` it reports exactly `hard_rule_breach`, `step_problems` and
   `trade_fields_not_built` (strong: run).
@@ -1020,17 +1020,27 @@ only the diff and this story.
   - silent failures: yesterday's unreadable run log turns today's execution line into "not readable" (T2's
     `_last`). This is older than T1e and was already noted in T1d.
 
-**Gates on the merged tree** (code at `0c96c473e`: T1e merged with T1d's `80b5259de`, which carries O1 R2 final
-`ee5711075`; this note was added after):
+**Re-pin and merge (24 Oct, after W3i part A):**
+- `main` is merged in at `002b97455` (R2, G10, G7b slices, REH1h/i). `git diff origin/main -- fno/desk fno/daily` is
+  empty.
+- `d7855f7ea` re-pins the dashboard contract to 2.14.0 at dashboard `main` `a7cadfc3bc0a` (W3i part A, the
+  dashboard's judge 4 PASS). It follows `contracts/omenix-dashboard/README.md`:
+  - every file in `pin.json` was fetched at that commit; three differ (`api/schemas/fno-card.yaml`, `api/openapi.yaml`,
+    `api/examples/fno-screens.json`), and no schema the OpenAPI file names is left unpinned;
+  - `pin.json` takes the commit, the version and the new SHA-256s;
+  - `python -m fno market contract-check` prints "pinned W11 contract 2.14.0 (commit a7cadfc3bc0a): same as the
+    dashboard's";
+  - the pin test's version assertion moves from "2.13.0" to "2.14.0", as earlier re-pins did. That is the only test
+    edit.
+- The card's `reason` enum now lists `trade_fields_not_built`, `hard_rule_breach` and `step_problems`, so
+  `test_every_reason_the_card_can_give_is_in_the_pinned_contract` is green.
+
+**Gates on the merged and re-pinned tree** (code at `d7855f7ea`; `FNO_SLACK_BOT_TOKEN` kept set, owner rule 24 Oct):
+- `python -m pytest -q -n auto`: 15645 passed, 1 skipped, 15 xfailed, 0 failed.
 - `ruff check fno tests tools`: clean.
-- `ruff format --check`: 2452 files formatted.
-- `check_imports`: clean (2581 files).
-- `check_records`: clean (9021 files).
-- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto`: 15228 passed, 1 skipped, 15 xfailed, 1 failed. The one
-  failure is `test_every_reason_the_card_can_give_is_in_the_pinned_contract`, red by design until W3i's re-pin
-  (criterion 10).
-- `git diff 80b5259de -- fno/desk fno/daily` is empty.
+- `ruff format --check`: 2515 files formatted.
+- `check_imports`: clean (2644 files).
+- `check_records`: clean (9093 files).
 
 **Depends:** T1, T2, T1d, O1 R2, the dashboard contract change and re-pin (Out) · **Size:** S · **Status:** text PASS
-(judge 577 addendum 1); code done at the head after `0c96c473e`, waiting for W3i's contract re-pin, then the code
-judge
+(judge 577 addendum 1); code re-pinned and green at `d7855f7ea`, to the code judge
