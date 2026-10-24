@@ -39,3 +39,13 @@ Lane 1. Round 1 of 2. I read R2 at story/o1-r1r2-step-safety e8dc9498.
 ## Notes (no action required)
 - `problem_steps` returns `(name, status)` pairs, while the runner prints names only. That is fine as long as its line is unchanged, as criterion 4 says.
 - A failed step is "done" for `RunLog.done`, so a same-day rerun never reruns it. The card's line stays true for the day.
+
+## Addendum 1: the new head b10c9c2d (diff 73c1f201..b10c9c2d), still round 1
+
+**Verdict: FAIL** (unchanged). This head was pushed before the builder had read this verdict. It changes two things, and neither touches finding 1:
+- **The line now uses the orchestrator's wording,** "Steps with problems today: ...". Accepted.
+- **The Claims cite the orchestrator for refused steps and state the after-the-card limit.** Accepted; this is the same limit the Out section names.
+
+Finding 1 (T2's decisions line misreading a failed `decisions` step under R2) stands for b10c9c2d. Doc-reading tests at b10c9c2d: 829 passed, 15 xfailed.
+
+Minor (text): the changed line in the card-line bullet now runs past the file's usual width. Rewrap it.
