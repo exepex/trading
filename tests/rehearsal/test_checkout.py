@@ -190,3 +190,50 @@ def test_a_routine_s_receipts_commit_carries_the_replay_date(source, tmp_path):
     assert subject == "Rehearsal evening 2026-10-23: the routine's receipts"
     start = datetime.combine(DAY, evening.start, IST)
     assert abs((datetime.fromisoformat(when) - start).total_seconds()) < 120  # the replay time, not today's
+
+
+def hook(repo, script, when="2026-10-24T10:05:00+05:30"):
+    hooks = repo / ".githooks"
+    hooks.mkdir(exist_ok=True)
+    (hooks / "pre-commit").write_text(f"#!/bin/sh\n{script}\n")
+    (hooks / "pre-commit").chmod(0o755)
+    git(repo, "add", ".githooks")
+    git(repo, "commit", "-q", "-m", "hooks", when=when)
+
+
+def test_the_checkout_s_own_commit_and_its_hook_run_with_the_mode_so_its_alerts_are_labelled(source, tmp_path):
+    """REH1e (DRY2's stop, 24 Oct): the record scan's hook on the checkout's data commit ran without the mode and
+    posted an unlabelled alert to #fno-desk. The rehearsing parent now carries the mode, and every hook it runs sees
+    it; the parent's environment is back as it was afterwards."""
+    from fno.constants import ENV_FNO_REHEARSAL
+    from fno.rehearsal.mode import Rehearsal as Mode
+
+    repo, _ = source
+    hook(repo, f'echo "${ENV_FNO_REHEARSAL}" > "$(git rev-parse --show-toplevel)/../hook-env"')
+    rehearse_daily(DAY, repo, [].append, tmp_path / "home", is_session=lambda d: True,
+                   run_child=lambda *a: (0, "day done"), guard=lambda env, cwd: [])  # fmt: skip
+    seen = next((tmp_path / "home").glob("*/hook-env")).read_text().strip()
+    assert seen and Mode.from_env(seen).day == DAY  # the hook's alert sender is the rehearsal's labelled one
+    assert ENV_FNO_REHEARSAL not in os.environ
+
+
+def test_a_file_moved_out_of_the_repository_after_the_start_stays_out_and_the_scan_still_runs(source, tmp_path):
+    """REH1e (the 23 Oct VIX case): a file the day had at the routine's start, moved to Drive later that day, is not
+    restored as a repository file; today's scan, which refuses it, still runs on the checkout's commit and passes."""
+    repo, github = source
+    vix, calendar = "research/data/vix/india_vix_daily.csv", "research/data/calendar/nse_sessions.csv"
+    for path in (vix, calendar):  # the folder stays tracked today, as on main
+        (repo / path).parent.mkdir(parents=True)
+        (repo / path).write_text("data")
+        git(repo, "add", path)
+    git(repo, "commit", "-q", "-m", "A15 VIX table", when="2026-10-23T08:00:00+05:30")
+    git(repo, "rm", "-q", vix)
+    git(repo, "commit", "-q", "-m", "O9b: VIX data out of the repository", when="2026-10-23T13:40:00+05:30")
+    hook(repo, f'git diff --cached --name-only | grep -q "^{vix}$" && exit 1; touch "$(git rev-parse '
+               '--show-toplevel)/../hook-ran"; exit 0')  # fmt: skip
+    git(repo, "push", "-q", "origin", "main")
+    checkout = RehearsalCheckout(repo, Rehearsal.new(DAY, tmp_path / "home", repo), tmp_path / "home")
+    checkout.create(datetime(2026, 10, 23, 8, 36, tzinfo=IST))
+    assert not (checkout.clone / vix).exists() and (checkout.clone / calendar).is_file()
+    assert (checkout.root / "hook-ran").is_file()
+    assert vix not in git(checkout.clone, "ls-files")

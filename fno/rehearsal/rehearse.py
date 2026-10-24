@@ -17,7 +17,7 @@ from ..models import IST
 from .checkout import RehearsalCheckout, RehearsalCheckoutError, run_git
 from .clock import ReplayClock
 from .git_dates import install_git_shim
-from .mode import Rehearsal
+from .mode import Rehearsal, in_this_process
 from .routines import ROUTINES, Command, Routine
 
 HOME = Path("~/.fno/rehearsals").expanduser()
@@ -38,6 +38,12 @@ def rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], Non
         out(NOT_A_SESSION.format(day=day))
         return 1
     mode = Rehearsal.new(day, home, source)
+    with in_this_process(mode):  # REH1e: the checkout's own commit and its hook are labelled too
+        return _rehearse(routine, day, source, out, home, mode, run_child, guard)
+
+
+def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], None], home: Path, mode: Rehearsal,
+              run_child, guard) -> int:  # fmt: skip
     start = datetime.combine(day, routine.start, IST)
     checkout = RehearsalCheckout(source, mode, home)
     ReplayClock(mode.state).start(start)  # first: the origin's push log reads it from the first push on

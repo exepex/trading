@@ -1,6 +1,7 @@
 """The rehearsal's own checkout (story REH1): a local clone of the checkout it starts from, with today's code and its
-data folders as they were on `main` just before the routine's start on the replayed day. Its `origin` is a local bare
-repository, so every committer of every step pushes `HEAD:main` exactly as in a real run without reaching GitHub.
+data folders as they were on `main` just before the routine's start on the replayed day (only the paths today's main
+still tracks: REH1e). Its `origin` is a local bare repository, so every committer of every step pushes `HEAD:main`
+exactly as in a real run without reaching GitHub.
 The one push to GitHub is `publish`: the bare `main` to `refs/heads/rehearsal/<day>-<run_id>`, checked before git
 runs. The record scan runs on every commit (the clone's hooks path is set and checked)."""
 
@@ -56,6 +57,7 @@ class RehearsalCheckout:
         self.git(self.clone, "fetch", "-q", str(self.source), before)
         present = [f for f in self.data_folders if (self.clone / f).exists()]
         self.git(self.clone, "restore", f"--source={before}", "--staged", "--worktree", "--", *present)
+        self._drop_moved_since(before, present)
         message = DATA_AS_OF.format(day=self.rehearsal.day, run_id=self.rehearsal.run_id, at=start.isoformat())
         self.git(self.clone, "commit", "-q", "--allow-empty", "-m", message)  # the hooks run: never --no-verify
         self.git(self.root, "init", "-q", "--bare", "-b", "main", str(self.bare))
@@ -64,6 +66,17 @@ class RehearsalCheckout:
         self.git(self.clone, "remote", "set-url", "origin", str(self.bare))
         self.git(self.clone, "fetch", "-q", "origin")
         return self.git(self.clone, "rev-parse", "HEAD").strip()
+
+    def _drop_moved_since(self, before: str, folders: Sequence[str]) -> None:
+        """A file the day had that today's main no longer tracks (moved to Drive since, as O9b's VIX files on 23 Oct)
+        stays out: its data comes from Drive through the recorded sources, and today's record scan rightly refuses it
+        as a repository file (REH1e, DRY2's stop). The scan is never bypassed."""
+        moved = sorted(set(self._tracked(before, folders)) - set(self._tracked("HEAD", folders)))
+        if moved:
+            self.git(self.clone, "rm", "-q", "-f", "--", *moved)
+
+    def _tracked(self, commit: str, folders: Sequence[str]) -> list[str]:
+        return self.git(self.clone, "ls-tree", "-r", "--name-only", commit, "--", *folders).splitlines()
 
     def _install_push_log(self) -> None:
         """The bare origin logs each push to main with the replay time, for the rehearsal's push receipts (REH1b)."""

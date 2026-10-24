@@ -6,7 +6,8 @@ from __future__ import annotations
 import json
 import os
 import secrets
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -68,3 +69,19 @@ def rehearsal(env: Mapping[str, str] = os.environ) -> Rehearsal | None:
     """The process's rehearsal, or None in a real run. Read only by composition roots."""
     text = env.get(ENV_FNO_REHEARSAL)
     return Rehearsal.from_env(text) if text else None
+
+
+@contextmanager
+def in_this_process(mode: Rehearsal) -> Iterator[None]:
+    """The rehearsing parent itself carries the mode while it rehearses (REH1e, DRY2's stop on 24 Oct): every process
+    it starts outside the steps (git and the record scan's hook on the checkout's data commit) reads it, so an alert
+    from any of them is labelled. The parent's previous environment comes back at the end."""
+    previous = os.environ.get(ENV_FNO_REHEARSAL)
+    os.environ[ENV_FNO_REHEARSAL] = mode.to_env()
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(ENV_FNO_REHEARSAL, None)
+        else:
+            os.environ[ENV_FNO_REHEARSAL] = previous
