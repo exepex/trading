@@ -479,7 +479,8 @@ commit); they are built when G7b and G11 are on `main`.
 
 - **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes; on the tree merged with `main` of 24 Oct
   evening, G11 included: 139 byte-checked files, 62 recorded with their lock, 50 not deciding with a reason);
-  `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`, `recorded` with G11's own "AI registration" table, `drift`, `protocol_problems`, `rate_readers`);
+  `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`, `recorded` with G11's own "AI registration" table, `drift`,
+  `protocol_problems`, `rate_readers`);
   `freeze_disclosure.py` (new); `cli.py` and `wiring.py` (`build_freeze_check`; the report's first lines; the look
   refuses unless the freeze holds; the check is a required keyword argument); `fno/forecast_v4/pricing.py` (new,
   agreed byte for byte with G7b's builder); `fno/v4_pack/wiring.py` (`build_iv30_rule` at the v4 rate, `pricing.py`
