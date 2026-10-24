@@ -67,3 +67,11 @@ In that mixed case the "so X of Y legs" count also includes the unbucketed legs,
 This is rare, so add one test when this code is next touched.
 
 **Plants:** 5 this round, 3 caught, 2 survived (the minor).
+
+## Note after Addendum 1 (b56e2fdd7, tests only, not a round)
+
+The builder added two tests on top of 4364179cc and moved the sessions tests to `test_not_enough_sessions.py`
+(97 lines; `test_runner.py` is now 279). Both of my surviving plants (`if not short` replaced by `if False`, the bucket
+count taken from all insufficient buckets) are now caught.
+**The minor in Addendum 1 is closed.** Gates: 14,795 passed, 1 skipped, 16 xfailed. ruff check/format and
+check_imports are clean. The PASS stands at b56e2fdd7.
