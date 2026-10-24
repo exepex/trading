@@ -40,3 +40,11 @@
 ## Notes
 - C8 enforces a cost cap that can only stop AI runs, never enlarge a trade. One judge is fine; the orchestrator decides.
 - C6's re-run loop costs model turns as well as wall-clock minutes; C17 should report both.
+
+## Addendum 1: the delta to a3de25b66 (still round 1, the orchestrator's re-point)
+One Markdown commit on acacf5c7f (D1-D3, C16; +16 -9). Checked against `story/g10-completion` at e5626aabf (contains
+2f508ae15), its "pack's interface" rows G11 D1-D3: module names, Drive release records via `ReleasedPacks.release(day)`,
+`research/data/v4_days/` retired, `paths:` filter `receipts/data/v4/days/**` and the catch-up rule match word for word.
+**S1 closed.** The new rule that a day with no release record is neither collected nor written is consistent with the
+look's reconciliation, which refuses until the catch-up record lands. S2-S7, m1 and m2 are untouched by the delta.
+**The verdict stays FAIL** at a3de25b66.
