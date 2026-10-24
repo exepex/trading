@@ -875,8 +875,10 @@ The three reads are of two kinds:
 - **H5. Empty.** These are NOT_RECORDED with today's exact message:
   - a URL with no candidate (a holiday; a file NSE had not published and no row came within 10 min; a warm-up page;
     a dataset with no A9 manifest);
-  - a morning fetch-first read of the ban list: the session's copy was taken the evening before, so no row reached
-    main that day (judges' code-round minor);
+  - a morning fetch-first read of the ban list when its list reached main the evening before, so no row reached
+    main that day (22 Oct: the list's row reached main on 21 Oct at 20:00:23). When the list reached main after
+    midnight, the read is served it (23 Oct: 00:04:12, the session's own list, committed before the read; judges 582
+    m1 and 583 m2);
   - every HEAD request.
 - **H6. Nothing reaches the real record.**
   - The real Drive is only read. The archived copy is written under `dryrun/<run_id>/`, and the manifest row in the

@@ -233,13 +233,37 @@ def test_every_head_request_is_not_recorded_even_with_a_candidate():
     assert reads == []
 
 
-def test_a_morning_ban_list_read_has_no_same_day_row_and_is_not_recorded():
-    """The ban list for 23 Oct was taken on the evening of 22 Oct: a fetch-first read at 08:40 on 23 Oct has no row
-    that reached main that day, so it stays "not recorded", never the evening before's copy."""
-    evening = a9("fo-ban-list", DAY, BAN_URL, ist(19, 55, day=date(2026, 10, 22)), b"ban 23")
-    served, _, _ = session(ist(8, 40), evening, files={FoBanListSource.path_for(DAY): b"ban 23"})
+def test_a_morning_ban_list_read_is_not_recorded_only_when_its_list_reached_main_the_evening_before():
+    """Judges 582 m1 and 583 m2, the record's two cases: 22 Oct's list reached main on 21 Oct at 20:00:23, so an
+    08:40 read on 22 Oct has no row that day and stays "not recorded"; 23 Oct's list reached main at 00:04:12 on
+    23 Oct, so an 08:40 read on 23 Oct is served it (the session's own list, committed before the read)."""
+    d22 = date(2026, 10, 22)
+    evening = a9("fo-ban-list", d22, BAN_URL, ist(20, 0, 23, day=date(2026, 10, 21)), b"ban 22")
+    served, _, _ = session(ist(8, 40, day=d22), evening, files={FoBanListSource.path_for(d22): b"ban 22"}, day=d22)
     with pytest.raises(NotRecorded, match=f"^{not_recorded(BAN_URL)}$"):
         served.get(BAN_URL)
+    after_midnight = a9("fo-ban-list", DAY, BAN_URL, ist(0, 4, 12), b"ban 23")
+    files = {FoBanListSource.path_for(DAY): b"ban 23"}
+    assert session(ist(8, 40), after_midnight, files=files)[0].get(BAN_URL).content == b"ban 23"
+
+
+def test_a_by_session_copy_of_the_session_before_committed_on_the_replay_day_is_served():
+    """Judges 582 SF1 and 583 m1, the text's own case: a 22 Oct by-session read at 19:40 gets the 21 Oct session's
+    copy, which reached main at 01:07:09 on 22 Oct. A session-filed list is never held to the replay day's row."""
+    d22 = date(2026, 10, 22)
+    row = a9("fii-dii-cash-by-session", date(2026, 10, 21), FLOWS_URL, ist(1, 7, 9, day=d22), b"flows 21")
+    files = {FiiDiiCashBySessionSource.path_for(date(2026, 10, 21)): b"flows 21"}
+    served, clock, _ = session(ist(19, 40, day=d22), row, files=files, day=d22)
+    assert served.get(FLOWS_URL).content == b"flows 21"
+    assert clock.slept == []
+
+
+def test_an_evening_ban_list_for_the_next_session_is_served():
+    """Judge 582 SF1: on 21 Oct the 22 Oct list reached main at 20:00:23; a 21:00 read that evening is served it."""
+    d21, d22 = date(2026, 10, 21), date(2026, 10, 22)
+    row = a9("fo-ban-list", d22, BAN_URL, ist(20, 0, 23, day=d21), b"ban 22")
+    files = {FoBanListSource.path_for(d22): b"ban 22"}
+    assert session(ist(21, 0, day=d21), row, files=files, day=d21)[0].get(BAN_URL).content == b"ban 22"
 
 
 def test_a_row_whose_path_does_not_map_back_to_its_url_is_never_served():
