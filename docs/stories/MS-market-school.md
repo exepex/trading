@@ -3393,3 +3393,9 @@ session is unlikely; kept as stated in the gap list. 6. A warning as the last li
 - a real-data replay of 23 Oct (`school run --replay <folder> --session 2026-10-23`, 77 s): 42 decisions sealed, 16
   fills; no_trade by reason: n0 x5, no_expiry_in_window x3, no_valid_quotes x6, not_enough_history x12; trade x16; no
   road refused for quotes.
+
+**Gates at f21525614** (the code; this Claims text is Markdown only on top): `python -m pytest -q -p no:cacheprovider
+-n auto` 15708 passed, 1 skipped, 15 xfailed (FNO_SLACK_BOT_TOKEN kept set); `ruff check fno tests tools` and `ruff
+format --check` clean; `python tools/check_imports.py` clean (2650 files); `python tools/check_records.py` clean (9108
+files). `python tools/check_numbers.py` runs on `main` at merge (CLAUDE.md "Code"). The first full run (at a92c0d773)
+had one failure, G13's score-row order test, fixed at f21525614 (Files owned).
