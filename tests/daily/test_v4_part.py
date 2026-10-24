@@ -69,21 +69,21 @@ def test_the_part_is_a4e_s_window_with_its_own_times_and_dataset():
     assert V4.arguments == ("quotes", "record", "--window", "v4")
     assert (WINDOW.start, WINDOW.end) == (time(14, 32), time(14, 40))  # after A16's 14:30 mark (25 Oct)
     assert V4.not_before == time(14, 29) and V4.window_end == time(14, 40)  # O1's 3-minute margin before 14:32
-    # never before A4's one early-limit rule with this window's own 30-minute wait, plus O1's margin (14:03)
-    assert WINDOW.max_early_wait_seconds == 1800 and V4.not_before >= time(14, 3)
+    # never before A4's one early-limit rule with this window's own 30-minute wait, plus O1's margin (14:05)
+    assert WINDOW.max_early_wait_seconds == 1800 and V4.not_before >= time(14, 5)
     assert V4.pathspecs == (":(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**",)
     assert V4.canonicals == (("groww/derivatives/quote-snapshots-v4", "nifty"),)
     assert V4.live_key == "v4_pack" and V4.apart and V4.starts_after is None
 
 
-def test_live_today_it_starts_at_14_27_and_commits_alone_before_nifty_starts(tmp_path):
+def test_live_today_it_starts_at_14_29_and_commits_alone_before_nifty_starts(tmp_path):
     clock = Clock()
     clock.now = at(14, 7)
     files = {V4.pathspecs[0]: [f"{V4_FOLDER}/nifty_20261026.canonical"]}
     parts, processes, commits, alerts = run(tmp_path, clock, live=DAY, files=files)
     parts.start(DAY)
-    assert processes.started == []  # nothing before 14:27 (a rehearsal skips that wait: no recorder running)
-    clock.now = at(14, 27)
+    assert processes.started == []  # nothing before 14:29 (a rehearsal skips that wait: no recorder running)
+    clock.now = at(14, 29)
     parts.start_due()
     assert [a for _, a in processes.started] == [V4.arguments]  # NIFTY and NSE wait for 14:38
     clock.now = at(14, 35)
@@ -208,7 +208,7 @@ def test_the_wait_for_the_part_is_announced_once_and_an_adopted_part_is_never_ca
     clock.now = at(14, 20)
     parts, *_ = run(tmp_path, clock, live=DAY, ends=(15, 30))
     parts.start(DAY)
-    clock.now = at(14, 28)
+    clock.now = at(14, 29)
     parts.start_due()
     parts.how["v4"] = ADOPTED
     said = []
@@ -221,9 +221,9 @@ def test_the_wait_for_the_part_is_announced_once_and_an_adopted_part_is_never_ca
 
 def test_the_part_never_starts_before_the_parts_one_early_limit(monkeypatch):
     """Judge 584 B1 and its self-review: the `v4` part's start follows A4's one early-limit rule with the window's own
-    wait whenever that is later than 14:27; today it never is (14:03), so its start stays 14:27."""
+    wait whenever that is later than 14:29; today it never is (14:05), so its start stays 14:29."""
     from dataclasses import replace
 
-    assert v4_part(WINDOW).not_before == time(14, 27)
-    short = replace(WINDOW, max_early_wait_seconds=60)  # a 1-minute wait: the recorder refuses before 14:29
-    assert v4_part(short).not_before == time(14, 32)  # 14:29 plus O1's 3-minute margin: never "too early"
+    assert v4_part(WINDOW).not_before == time(14, 29)
+    short = replace(WINDOW, max_early_wait_seconds=60)  # a 1-minute wait: the recorder refuses before 14:31
+    assert v4_part(short).not_before == time(14, 34)  # 14:31 plus O1's 3-minute margin: never "too early"
