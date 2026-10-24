@@ -244,13 +244,14 @@ text for judge F.
 - **The mechanism** (strong, reproduced in code): Yahoo answered HTTP 200 with a chart whose quote object was empty.
   `chart_result` (`yahoo_source.py:121`) checks `["close"]`, so the read raised `ValueError: taiex: not Yahoo's chart
   answer (KeyError)`, the same error as a changed layout. A chart with empty arrays gives `no 5-minute level`
-  (`preopen.py:66`). Either way it counted as "taiex failed"; the reason went to stdout only (the alert said "the
+  (`preopen.py:67-68`). Either way it counted as "taiex failed"; the reason went to stdout only (the alert said "the
   routine's output names why"; O10's row says only "taiex failed"), and the raw answer was lost because `read`
-  archives it only after parsing (`preopen.py:94-96`).
+  archives it only after parsing (`preopen.py:98-99`).
 
 ### The rule
 1. **Closures calendar first.** `research/data/calendar/twse_closures.csv` (`date,kind,description,source_url,sha256`;
-   `kind` is `holiday` or `unscheduled`) holds every weekday TWSE does not trade. Before reading `taiex`, part B asks
+   `kind` is `covers`, `holiday` or `unscheduled`) holds every weekday TWSE does not trade, and one `covers` row per
+   year it is complete for (below). Before reading `taiex`, part B asks
    it: a listed day gives the line `taiex: market closed (TWSE holiday: <description>)`, writes the private row with
    status `market closed` and reason `calendar: <kind>`, and **sends no request** (nothing to read; polite).
 2. **An empty answer is not a failure.** An answer is *empty* when it is Yahoo's chart (`chart.result[0]` with
@@ -263,14 +264,23 @@ text for judge F.
      from a Yahoo gap at 08:50 IST by any source we have tested; so the morning says `no session data`, never
      `market closed` and never `failed`.
    - Settled later, from the official close: each part B run first looks at its own `no session data` rows of the
-     last 10 days and asks the index's daily table (A17e's reading: TWSE's `taiex` first, `taiex_yahoo` otherwise):
-     the date **present** = `data gap` (Yahoo missed a real session); the date **absent while a later session is
-     present** = `closed (unscheduled)`; neither yet = still open, asked again next run. Each outcome is one appended
-     row (status and reason, same `seen_at` day as the original, `settles` column naming it) and one line; an open row
-     older than 10 days is settled as `unsettled` and alerted once.
+     last 10 days and asks **only the index's official daily table**, never a Yahoo table (judge 588 finding 1: a
+     Yahoo gap is likely missing from Yahoo's daily series too, so settling from it is circular). The official tables
+     are A17e part A's: `taiex` (TWSE), `nikkei225` (Nikkei Indexes), `sse_composite` (CSIndex); the row is read
+     straight from that cue's table, not through the official-else-Yahoo reading. The date **present** = `data gap`
+     (Yahoo missed a real session); the date **absent while a later session is present** = `closed (unscheduled)`;
+     neither yet (that table not fetched, or no later session) = still open, asked again next run; an open row older
+     than 10 days is settled as `unsettled` and alerted once.
+   - Each outcome is one appended row and one line. Its `seen_at` is **when the settlement ran** (never the original
+     morning: no look-ahead, judge 588 finding 2); its `settles` column names the date it settles; `level_time` and
+     `level` are empty.
+   - **The other four indexes** (`kospi`, `asx200`, `hang_seng`, `sti`) have no official table (A17e step 0; KOSPI's
+     KRX source waits for the owner's key). Their `no session data` row is **final**: never settled, never `unsettled`,
+     no later alert (the morning's alert already named it). The morning line says so: `kospi: no session data (empty
+     answer; no official table, not settled)`. Proposed: A17g adds their closures calendars.
 4. **Where the reason goes (never stdout only).** Every row of the private table gets two new last columns, `reason`
    (empty for `live`, `stale`, `lunch break`) and `settles` (the date a settlement row settles, else empty); each
-   Drive part has its own header, so older parts read with both blank. The #fno-desk alert names each index and its reason (`taiex: no session data (empty answer)`,
+   Drive part has its own header; older parts have neither key, so the reader reads each with `""` as the default. The #fno-desk alert names each index and its reason (`taiex: no session data (empty answer)`,
    `nikkei225: failed (ValueError: changed layout)`), and so does O10's row (`kind` `incomplete` for `no session data`,
    `failure` for a failure, a `data gap` or `unsettled`). Index names, statuses and error classes only; never a level.
    The run exits 1 when any index is `no session data`, `failed`, `data gap` or `unsettled` (owner, 24 Oct: problems
@@ -291,17 +301,29 @@ text for judge F.
   file into rows; the year's TWSE file is a test fixture (public dates, no market values), and a test fails when the
   CSV's `holiday` rows for that year differ from the parser's output. `unscheduled` rows are added by hand with their
   source when a settlement says `closed (unscheduled)` (the settlement line says so).
-- Coverage: the calendar declares the years it covers. A day in a year it does not cover: the `taiex` line says
-  `TWSE calendar has no <year>`, the alert names it, and part B reads Yahoo as before (never a stop). From 1 Dec, a
-  missing next year is named in that day's alert line (TWSE publishes the next year's schedule late in the year).
+- Coverage (judge 588 finding 4): a year is covered only by its `covers` row (`date` = 1 Jan of that year,
+  `description` "TWSE holidaySchedule <year> (ROC <n>)", `source_url` TWSE's file, `sha256` that file's SHA-256). A
+  test checks that each `covers` row has a fixture with that SHA-256 and that the year's `holiday` rows equal the
+  parser's output on it. A `holiday` or `unscheduled` row in a year with no `covers` row is refused at load.
+- **An uncovered year is a problem:** on a day of a year with no `covers` row, the `taiex` line says `taiex: TWSE
+  calendar has no <year>`, `taiex` is still read from Yahoo as if no day were listed (rules 2-3 apply), the alert names
+  `taiex: TWSE calendar has no <year>`, O10's row has kind `failure`, and the run exits 1. **From 1 Dec**, a missing
+  next year gives the line `taiex: TWSE calendar has no <next year> yet`, named in the alert, O10 kind `incomplete`,
+  exit 1 (TWSE publishes the next year's schedule late in the year; the warning gives a month to add it).
+- **A broken calendar stops only `taiex`'s calendar** (judge 588 minor 2): a CSV row with an unknown `kind`, a
+  malformed date or a missing `covers` row raises a named `ValueError` at load; that is a `taiex` failure (line, O10
+  kind `failure`, alert naming `taiex: calendar refused (ValueError)`, exit 1); `taiex` is still read from Yahoo as for
+  an uncovered year, and the other six indexes are untouched.
 - Not used for the other six indexes: an earlier-day-only answer keeps A17e's `market closed`, inferred from Yahoo,
   not proven (known limit). An empty answer for any index follows rule 2.
 
 ### Acceptance criteria (each: good, bad, boundary, empty; each with the test that breaks when its code is broken)
 1. **Calendar:** good: 26 Oct 2026 gives `market closed`, reason `calendar: holiday`, zero requests (the fake session
    counts them), exit 0; bad: a CSV row with an unknown `kind` or a malformed date is refused with a named
-   `ValueError` at load; boundary: 27 Oct (the next day) reads Yahoo; a Saturday `holiday` row is ignored; empty: an
-   uncovered year (2027) reads Yahoo and names `TWSE calendar has no 2027` in the line and the alert.
+   `ValueError` at load, failing `taiex` only (the other six still read), exit 1; boundary: 27 Oct (the next day)
+   reads Yahoo; a Saturday `holiday` row is ignored; 30 Nov 2026 gives no coverage warning, 1 Dec 2026 without a 2027
+   `covers` row gives `TWSE calendar has no 2027 yet` (O10 `incomplete`, exit 1); empty: a day of 2027 with no 2027
+   `covers` row reads Yahoo and gives `TWSE calendar has no 2027` in the line, the alert and O10 (`failure`), exit 1.
 2. **Parser and CSV agree:** good: the 2026 fixture gives exactly the 18 weekday closures above; bad: a layout without
    `Date` or `Name` is a named `ValueError`; boundary: the "交易日" rows (2 Jan, 11 Feb, 23 Feb) are not closures, the
    settlement-only rows (12-13 Feb) are; empty: an empty list is refused (TWSE never publishes an empty year).
@@ -312,16 +334,22 @@ text for judge F.
 4. **Reason recorded and alerted:** good: the alert and O10 row each name `taiex: no session data (empty answer)`;
    a failure names its error class; bad: no level appears in any line, alert, O10 row or committed file (A16b's scan
    pattern over the run's files); boundary: two problems in one run give one alert naming both; empty: a run with no
-   problem sends no alert and no O10 row.
+   problem (every index `live`, `stale`-but-not-all, `lunch break` or `market closed` by the calendar, and the
+   calendar covering today and, from 1 Dec, next year) sends no alert and no O10 row and exits 0. An uncovered year is
+   a problem (criterion 1), so it always alerts.
 5. **Archive before parse:** good: an empty answer and a changed layout each leave one Drive copy and one
    snapshot-log row with the answer's SHA-256 before the status is decided; bad: a planted Drive failure on the put is
    a failure for that index (line, O10 row, alert), the other indexes still read; boundary: a block archives nothing
    and makes one request; empty: no answer (network error) archives nothing.
 6. **Settlement** (may land after Monday; the orchestrator is told which commit holds it): good: an open `no session
    data` row of 23 Oct with TWSE rows for 22 and 27 Oct and none for 23 Oct settles `closed (unscheduled)`, exit 0;
-   bad: a row whose date TWSE has settles `data gap` with O10 `failure` and an alert; boundary: TWSE's last row is the
-   open date's previous session (no later session yet) leaves it open; a row exactly 10 days old is still asked, 11
-   days settles `unsettled` and alerts once; empty: no open rows means no read of the daily table.
+   the settlement row's `seen_at` is the settlement run's time (a test: no settlement row has `seen_at` earlier than
+   its run) and `settles` is 2026-10-23; bad: a row whose date TWSE has settles `data gap` with O10 `failure` and an
+   alert; a `taiex_yahoo` table holding 27 Oct but not 23 Oct, with no TWSE copy, leaves the row open (never
+   `closed (unscheduled)` from Yahoo); a `kospi` open row is never settled and never alerted again; boundary: TWSE's
+   last row is the open date's previous session (no later session yet) leaves it open; a row exactly 10 days old is
+   still asked, 11 days settles `unsettled` and alerts once; `nikkei225` and `sse_composite` settle from their own
+   official tables the same way; empty: no open rows means no read of any daily table.
 7. Gates pass; no file or class over 350 lines; the calendar and the reader are wired only in
    `fno/global_cues/wiring.py`.
 
@@ -329,7 +357,8 @@ text for judge F.
 P1 archive after parsing again; P2 an empty answer raised as a failure; P3 the calendar not asked (a request on
 26 Oct); P4 the reason dropped from the alert; P5 the reason dropped from O10's row; P6 "交易日" rows kept as closures;
 P7 an uncovered year read silently; P8 `no session data` exiting 0; P9 settlement's present/absent swapped; P10 the
-10-day limit off by one.
+10-day limit off by one; P11 settlement read through the official-else-Yahoo reading; P12 a settlement row stamped
+with the original morning's `seen_at`; P13 an uncovered year exiting 0.
 
 ### Gap list (DR1 item 8 and the orchestrator's brief)
 | Requirement | Where |
@@ -351,6 +380,19 @@ SGX; not safely reachable before Monday; proposed as A17g); a same-morning offic
 `MI_5MINS` gives a day's 5-second statistics, but whether it fills live during the session is untested and cannot be
 tested before Tue 27 Oct 09:00 Taipei; a second live source at 08:50 also doubles what can fail); switching part A's
 `taiex` cues from the weekday calendar to the TWSE calendar (part A already allows 10 days; no failure seen).
+
+### Text round 2 (judge 588)
+- SF1 accepted: settlement reads only official tables (rule 3); bad case and P11 added (criterion 6).
+- SF2 accepted: a settlement row's `seen_at` is its run's time, `settles` names the date; test and P12 (criterion 6).
+- SF3 accepted: `nikkei225` and `sse_composite` settle from their official tables; the four Yahoo-only indexes'
+  rows are final, never settled (rule 3); cases in criterion 6.
+- SF4 accepted: `covers` rows define coverage; an uncovered year is a problem (alert, O10 `failure`, exit 1), the
+  1 Dec warning `incomplete`, exit 1; criteria 1 and 4 now agree; P13.
+- Minor 1 partly accepted: `preopen.py:67-68` and `98-99` fixed. Not `yahoo_source.py:137`: on `main` at e2f115fab the
+  shape check is line 121 (`git show origin/main:fno/global_cues/yahoo_source.py | grep -n 'quote"\]\[0\]\["close"\]'`
+  prints 96 and 121; 121 is in `chart_result`), so the text keeps 121.
+- Minor 2 accepted: a broken calendar fails `taiex` only, which is still read from Yahoo.
+- Minor 3 accepted: older parts read `reason` and `settles` with `""` as the default.
 
 ### Claims
 (Filled with the code, after the text PASS.)
