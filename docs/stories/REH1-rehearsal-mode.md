@@ -464,7 +464,7 @@ now, once the replay clock reaches that time, read from the real record:
 - `test_rehearsed_day.py` now pins that O2's fixture day under the mode fails only in the steps not live in real runs
   (the fixture's child commands do not script them), with every Drive write still under `dryrun/`.
 
-**Gates:** in the commit message's push (below).
+**Gates** (on main, 3c7e87ae): 14958 passed, 1 skipped, 16 xfailed. ruff, format, imports, records and numbers are all clean.
 
 **Not in REH1c (said plainly):**
 - No routine has been rehearsed against the real record yet. That is REH1d, after the judges and O9's read-only fix,
