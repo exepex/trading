@@ -49,3 +49,18 @@ Lane 1. Round 1 of 2. I read R2 at story/o1-r1r2-step-safety e8dc9498.
 Finding 1 (T2's decisions line misreading a failed `decisions` step under R2) stands for b10c9c2d. Doc-reading tests at b10c9c2d: 829 passed, 15 xfailed.
 
 Minor (text): the changed line in the card-line bullet now runs past the file's usual width. Rewrap it.
+
+## Addendum 2: round 2 at 9a6ba1c3 (diff b10c9c2d..9a6ba1c3)
+
+**Verdict: PASS** (Judge I).
+
+- **Finding 1: FIXED in scope.**
+  - The new scope bullet, criterion 6 and test 5 make a `decisions` result whose `status` is a problem under O1's rule (the `problem_steps` set) give "decisions step <status> today" with `CARD_DATA_CHECK_FAILED`. Such a result is never read as books.
+  - The planted R2 result `{"status": "failed", "reason": "raised:NotImplementedError"}` is the exact case I found.
+  - The plant list adds "removing the decisions status check fails test 5".
+  - Checking `status` is safe: a normal decisions result is keyed by book ids, and a book's own value (for example `NO_DECISION_LATE`) sits one level down, so a real result never carries a top-level `status`. T2's per-book tests stay as they are.
+  - `refused` cannot happen for `decisions` today, since R2's `NEEDS` refuses only `fills`. Covering it costs nothing and keeps the one status set.
+  - The snapshot check stays unchanged, correctly.
+- **My minor (line width): withdrawn.** `T-cards.md` already has many lines over 120 characters, and no doc test enforces a width.
+- **Gates (text-only rule, my run at 9a6ba1c3):** doc-reading tests 829 passed, 15 xfailed; the diff is Markdown only (`T-cards.md`, `WORK_REGISTER.md`).
+- **For the code judge:** check that criterion 6's status test reads the same status set as `problem_steps` (one rule, not a second copy).
