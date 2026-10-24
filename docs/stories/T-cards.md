@@ -919,5 +919,99 @@ run log is written with O1's own `RunLog.record` (T1d's way).
 - Failures logged without a `status` stay unwarned until O1 logs them (Out).
 - T1e's merge waits for the dashboard contract change and the re-pin (criterion 10).
 
+**Code claims (for the code judge; builder session_017q19WnkrRJvfQoXBLCy3hA):**
+- **Built on T1d.** The branch starts at T1d's `5cbd3c4c7`, and T1d's new head is merged in (O1 R2 final, `ee5711075`).
+  Beyond the merges, the change is in `fno/cards/` (`problem_steps.py`, `ruled_status.py`, `sections.py`,
+  `card.py`, `render.py`, `issue.py`, `wiring.py`), one constant in `fno/constants.py`, `tests/cards/` and this file.
+  `fno/desk/` and `fno/daily/` are untouched (strong: diff).
+- **Placement (a), one function.** `render.opening(first, warning)` is the only code that knows where the warning
+  goes. Option (b) is one line, quoted in its docstring (criterion 11, plant W14).
+- **One rule, O1's.** `ProblemSteps.findings` calls `run_log.problem_steps` on the steps from `RunLogReader`; no
+  status set and no text matching in the card (criterion 8; T1d's runner-versus-card test kept, on the detail).
+- **The contract test is red by design** until W3i's contract change is re-pinned. It reads the codes from the card's
+  own tables (`status.REASONS`, T1's three, and `ruled_status.SEVERITY`, T2's two and `step_problems`), not from a
+  list in the test. At pin `d53cefe` it reports exactly `hard_rule_breach`, `step_problems` and
+  `trade_fields_not_built` (strong: run).
+- **Gap list (criteria to code, tests and plants):**
+
+  | Criterion | Code | Test (`tests/cards/`) | Plants caught |
+  |---|---|---|---|
+  | 1 warning on lines 1-2, `Status:` on line 3 | `render.opening`, `ProblemSteps.findings` | `test_card_warning.py`: `test_only_exits_failed_...`, `test_a_failed_snapshot_and_refused_fills_...` | W1, W14 |
+  | 2 word and glyph, never a reason code | `GLYPH`, `DETAIL` | `test_the_warning_has_glyph_and_word_...` | W2, W3, W12 |
+  | 3 `step_problems` below T2's codes | `SEVERITY`, `reason_code` | `test_only_exits_failed_...`, `test_a_failed_decisions_step_...`, `test_a_c4_refusal_today_...` | W4, W5 |
+  | 4 qualified "no breach" only beside a warning | `summary` | `test_only_exits_failed_...`, `test_a_clean_...` | W6, W7 |
+  | 5 nothing on a clean, empty or missing log | `ProblemSteps.findings` | `test_a_clean_an_empty_or_a_missing_run_log_...` | W7, W10 |
+  | 6 unreadable log warns, `data_check_failed` | `UNREADABLE` | `test_an_unreadable_run_log_puts_the_doubt_in_the_headline` | W8 |
+  | 7 the list once | `RuledStatus.status` (no bottom line) | `test_the_warning_has_glyph_and_word_...` (count 1), T1d's tests (`no_list`) | W1 |
+  | 8 O1's rule through the reader | `ProblemSteps.findings` | T1d's `test_the_runner_s_last_line_and_the_card_...`, `test_failed_and_refused_...` | W9 |
+  | 9 delivery keeps the code, no warning text | `issue._facts` (unchanged) | `test_the_delivery_metadata_keeps_step_problems_...` | W11 |
+  | 10 every card code in the pinned contract | `status.REASONS`, `ruled_status.SEVERITY` | `test_card_contract.py` (both tests) | W4, W13 |
+  | 11 placement in one function | `render.opening` | `test_placement_is_one_function_...` | W14 |
+  | 12 status failing keeps the warning | `CardBuilder._warning`, `WarningSource` | `test_a_failing_status_source_never_hides_the_warning`, `test_a_failing_warning_source_is_named_missing_...` | W18, W20 |
+  | 13 Drive record keeps the warning | `issue._warning` | `test_the_drive_record_keeps_the_warning_as_data` | W19 |
+  | 14 unreadable adds `data_check_failed`, never `step_problems` | `StepFindings` | `test_an_unreadable_log_is_data_check_failed_even_without_a_rule_...` | W17 |
+  | wiring: the same `ProblemSteps` for status and card | `wiring.build_status`, `build_daily_card` | `test_the_app_s_card_wires_the_problem_warning` | W15, W16 |
+
+- **Plants (rule 4): 20 planted, 20 caught.** Each was run on `tests/cards`, `tests/daily` and `tests/timetable`,
+  then restored (`git status` clean after the run). W13 is caught only by the contract test, which is already red at
+  this pin. It is told apart by its message, which names `brand_new`, and it fails alone once the re-pin is in.
+  W18 is crude: it drops the warning source when the status fails. It is caught by 5 tests; the one aimed at it is
+  `test_a_failing_status_source_never_hides_the_warning`.
+- **Cases (rule 5):**
+  - good: only `exits` failed; `snapshot` failed with `fills` refused; `decisions` failed; a C4 refusal with `exits`
+    failed;
+  - boundary: one step; a failed step waiting for its retry; one retried and then ok; an unfinished day with a
+    failed `pack`;
+  - bad: bad JSON; a malformed shape; a status source that raises; a warning source that raises;
+  - empty: all `ok`/`not_live`; empty `steps`; no run log.
+- **Output sample (rule 6),** made by the committed code from the tests' planted logs (status section only; the
+  books are test names):
+
+  ```
+  ⚠️ WARNING: part of today's desk run did not work. PAPER ONLY. Omenix F&O daily card, Thu 15 Oct 2026 (NSE regular session). Information, no action.
+  Steps with problems today: exits (failed). Their alerts in #fno-desk give the reasons.
+  Status: NO TRADE (step_problems)
+  Reason: no strategy has passed: no playbook version is approved to paper
+  Paper trades so far: 0 (book1_rules 0, book2_hybrid 0, book3_ai 0)
+  Rule checks: no breach (rule checks only; see the warning above)
+  - decisions: late or not committed: book2_hybrid, no C4 refusal
+  - execution: valid execution snapshot
+  ```
+  and for an unreadable run log:
+  ```
+  ⚠️ WARNING: today's run log could not be read. PAPER ONLY. Omenix F&O daily card, Thu 15 Oct 2026 (NSE regular session). Information, no action.
+  This card cannot say which desk steps worked. See #fno-desk.
+  Status: NO TRADE (data_check_failed)
+  ...
+  Rule checks: a rule refused, or a record could not be read
+  - decisions: journal/runs/2026-10-15.json: not readable (JSONDecodeError)
+  ```
+
+**Builder self-review (quality rule 3):** two independent review agents (correctness; silent failures), each given
+only the diff and this story.
+- FIXED:
+  - correctness: the unreadable warning added `step_problems` whenever no rule check read the log. Now
+    `StepFindings` carries its own code, `data_check_failed` (criterion 14, W17);
+  - correctness: `FAILED` held an unfilled `{steps}` template; it is now a plain `DETAIL` string;
+  - correctness: the "never a reason code" test now checks every card code and C4's check name;
+  - correctness: two boundary cases shared one log file; each now has its own folder;
+  - silent failures: a status source that raised dropped the warning (T1's `STATUS_FAILED`). The warning is now
+    its own card part (criterion 12, W18, W20). This moved "the status itself failing" out of Out;
+  - silent failures: T1d's list had been in the Drive record's `sections`, and T1e's move dropped it. It is now
+    the record's `warning` field (criterion 13, W19).
+- KEPT, with reasons:
+  - correctness: the fake-contract test checks the helper, not the real test's message. The real test's message is
+    the same `missing_from` list;
+  - silent failures: a git failure reading the run log looks like "no run log" (`GitHeadRecords` returns None).
+    This is older than T1e (T1's reader), so it is left to T1's next change;
+  - silent failures: on a worse day (`data_check_failed`, `hard_rule_breach`) the delivery code carries no trace of
+    failed steps, since one card has one reason. The Slack card and the Drive record still show the warning;
+  - silent failures: other bad days (an unreadable registry, a C4 refusal alone) get no headline. That is the scope
+    question already open with the orchestrator;
+  - silent failures: yesterday's unreadable run log turns today's execution line into "not readable" (T2's
+    `_last`). This is older than T1e and was already noted in T1d.
+
+**Gates (on the merged tree; see the head named in the status):** recorded below after the merge of T1d's new head.
+
 **Depends:** T1, T2, T1d, O1 R2, the dashboard contract change and re-pin (Out) · **Size:** S · **Status:** text
 round 2, to judge I
