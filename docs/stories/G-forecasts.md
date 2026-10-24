@@ -2649,8 +2649,10 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
 - `test_v4_collect.py` passed 350 lines with round 2's tests; the fire-log, go-live and F2 tests moved unchanged to
   `test_v4_collect_log.py` (1f81dcbe2).
 
-*Gates* on head bde1ec3c1 (`main` merged at bde1ec3c1, after BG1-w; a clean copy, `FNO_SLACK_BOT_TOKEN` kept
-set): 15,930 passed, 1 skipped, 14 xfailed; ruff and ruff format clean; `check_imports` clean (2,676 files);
-`check_records` clean (9,139 files).
+*Gates* on head 66db618e5 (`main` merged at 66db618e5, after BG1-w; `config.yaml`'s one conflict resolved to
+`main`'s `v4_pack: "2026-10-26"` beside G11's `ai_books_v4: null`; a clean copy, `FNO_SLACK_BOT_TOKEN` kept set):
+15,930 passed, 1 skipped, 14 xfailed; ruff and ruff format clean; `check_imports` clean (2,676 files);
+`check_records` clean (9,140 files). With `v4_pack` live and `ai_books_v4` null, `v4-fire.yml` prints "no v4
+go-live date is set", writes no log and exits 0 (tested).
 `check_numbers` runs on `main` at merge (no number was claimed by this story). Every later commit on the branch is
 Markdown only.
