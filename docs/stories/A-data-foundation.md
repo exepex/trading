@@ -719,9 +719,17 @@ of "canonical none" thinks the day is closed and a rerun is pointless, when in f
 - The alert names each index's own outcome:
   - an index whose day was closed none (incomplete at the window's end, the window closed, not listed, no weekly)
     keeps "canonical none" with its reason;
-  - an index not started because the run came too early says `not started: too early (before 14:41)`. 14:41 is
-    15:01 minus `MAX_EARLY_WAIT_SECONDS` (20 minutes), computed from the constants, never typed.
-- Its result line says the same.
+  - an index not started because the run came too early says `not started: too early (before 14:41); a rerun from
+    14:41 to 15:13 records it` (judge 568 minor 1).
+    - 14:41 is 15:01 minus `MAX_EARLY_WAIT_SECONDS` (20 minutes), from one function in A4's recorder,
+      `earliest_waiting_start(window_start)`, never typed.
+    - O1 builds its start time on the same function: 14:44 = 14:41 + its `START_MARGIN` (agreed with the O1
+      builder, 24 Oct). Whichever branch merges second switches O1's `earliest_start` to it, leaving O1's pinned
+      14:38 and 14:44 unchanged.
+    - 15:13 is `INDEX_WINDOW_END`.
+- Its result line says the same, for every index of the run, A4f's NIFTY weekly slot included (one `IndexRecording`).
+- The exit code is unchanged: too early stays exit 1, so O1 records the part's problem and the day's last line names
+  it, as now.
 - The fixed wording moves into one place, so the line and the alert cannot disagree.
 
 **Out of scope, with the reason:**
@@ -738,9 +746,29 @@ of "canonical none" thinks the day is closed and a rerun is pointless, when in f
 3. An index incomplete at 15:13 keeps "canonical none" in the alert, beside a "too early" one if both occur.
 4. A quiet day (not a trading day, already recorded) still sends no alert, as now.
 5. The unsent-alert test prints the new text.
-6. Gates: full suite, ruff, `check_imports`; no file over 350 lines.
+6. Too early stays exit 1 with exactly one alert (judge 568 minor 2).
+7. The NIFTY weekly slot (`WEEKLY_NAME`), run too early with the others, gets the same line and alert wording.
+8. `earliest_waiting_start` gives 14:41 for 15:01 and 14:35 for 14:55.
+9. Gates: full suite, ruff, `check_imports`; no file over 350 lines.
 
-**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** story text for judge F (24 Oct 2026)
+**Gap list (quality rule 2):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| A4c's alert contract: one alert for every index not recorded, exit 1 | criteria 1, 3, 6 |
+| O1's part contract: a non-zero exit is the part's problem, named in the day's last line | unchanged (criterion 6 keeps exit 1); O1's own tests |
+| O2's unsent-alert text (an alert Slack did not take is printed with its text) | criterion 5 |
+| Named constants, no second literal (CLAUDE.md "Code") | criteria 1, 8; `TOO_EARLY_REASON`, `CLOSED_NONE`, `earliest_waiting_start` |
+| The public record: `journal/runs` lines hold no level | the new text holds times only; criterion 1 checks the full lines |
+| A4f's weekly slot gets the same wording | criterion 7 |
+| No file over 350 lines | criterion 9 |
+| Broken-code proof (quality rule 4) | claims at code time: planted bugs per criterion |
+| Good, bad, boundary and empty cases (quality rule 5) | criteria 1-4 (empty: a quiet day, criterion 4) |
+| A real output sample (quality rule 6) | claims: DRY2's 14:38 case, replayed in a test, its exact lines |
+| An end-to-end run after merge (quality rule 8) | the next 3 pm run's indices lines; a too-early case only if one happens, else said so |
+| The root cause (the part's start time) | Out: O1's R1 (story/o1-r1r2-step-safety), with judges B and E |
+
+**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** story text round 2 for judge F (judge 568, 24 Oct 2026)
 
 ---
 
