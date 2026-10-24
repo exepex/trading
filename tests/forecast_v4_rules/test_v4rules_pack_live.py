@@ -123,13 +123,13 @@ def built(label="A"):
     inputs = pack_inputs(release, pack(future) if label == "A" else None, b"x", LISTED)
     from fno.forecast_v4_rules.pack_wiring import PackCapture
 
-    return lambda cfg, day: PackCapture(None, inputs, None, None, {}, ["V5 2026-10-27: outcome written"])
+    return lambda day: PackCapture(None, inputs, None, None, {}, ["V5 2026-10-27: outcome written"])
 
 
 def test_the_cli_refuses_without_a_release_record_and_o1_reads_it_as_nothing_written(monkeypatch, capsys):
     from fno.v4_pack.release import NotReleased
 
-    def missing(cfg, day):
+    def missing(day):
         raise NotReleased("no release record")
 
     code, out = run_cli(monkeypatch, capsys, missing)

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from ..constants import NIFTY_SYMBOL, V1_RV_1S, V2_RV_5S, V3_RV_20S, V4_DAY_A, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE
+from ..forecast_v4.pricing import V4_RISK_FREE_RATE
 from ..forecast_v4.terms import HORIZON_SESSIONS
 from ..intraday.candle_rv_table import CandleRvTable
 from ..intraday.rv_table import RvTable
@@ -24,7 +25,7 @@ from ..v4_pack.release import ReleasedPacks
 from ..v4_pack.wiring import build_released_packs
 from . import series
 from .baselines import Ewma
-from .candle_history import candle_sessions
+from .candle_history import candle_sessions, drift_days, paired_rv
 from .implied import ImpliedBaselines, IvPoint, PremiumRatio, horizon_sums
 from .intraday_series import RATIO_CLOSE_PROXY, RATIO_INTRADAY, backfill_window_points, intraday_horizon_rv
 from .option_history import OUTCOMES_FOLDER, OptionHistory, outcome_from_bytes, terms_from_bytes
@@ -35,7 +36,6 @@ from .pack_capture import TERMS_FOLDER, PackForecasts, PackInputs
 from .pack_followups import (
     DRIFT_FOLDER,
     W8_REVIEW_FOLDER,
-    backfill_pairs,
     resolve_pending_v5,
     review_w8,
     write_drift_pairs,
@@ -100,11 +100,11 @@ class PackCapture:
     settled: list[str]  # V5's outcomes resolved before the day's rows
 
 
-def build_pack_capture(cfg: dict, day: date, env: Mapping[str, str] = os.environ) -> PackCapture:
+def build_pack_capture(day: date, env: Mapping[str, str] = os.environ) -> PackCapture:
     """The day's capture: V5's pending outcomes are settled first (so its base rate counts them), then the
     forecasts, the inputs from the released pack (`NotReleased` before anything is written) and get/put."""
     inputs = released_inputs(build_released_packs(env), day)
-    eod, closes, sessions = implied_history(cfg)
+    eod, closes, sessions = implied_history()
     put = build_data_store(CAPTURE_WRITER, env=env).put
     history = option_history(sessions)
     settled, written = resolve_pending_v5(history, v5_resolver(env).resolve, put)
@@ -128,7 +128,7 @@ def build_pack_capture(cfg: dict, day: date, env: Mapping[str, str] = os.environ
         ),  # fmt: skip
     }
     v4, v5 = history.base_outcomes()
-    rule = OptionTermsRule(Black76(), cfg["risk_free_rate"], build_session_calendar())
+    rule = OptionTermsRule(Black76(), V4_RISK_FREE_RATE, build_session_calendar())
     forecasts = PackForecasts(implied, Ewma(close_rv), rule, {V4_RV_BELOW_WEEKLY_IV: v4, V5_INSIDE_STRADDLE: v5},
                               method_sha256(PACK_METHOD_FILES))  # fmt: skip
     return PackCapture(forecasts, inputs, drive_get, put, eod, settled)
@@ -165,7 +165,8 @@ def run_followups(day: date, eod: dict[date, IvPoint], put: Callable) -> list[st
     days = write_drift_pairs(released_iv30(written), eod, written, put)
     lines = [f"proxy drift: {len(days)} day(s) paired"] if days else []
     raised = bool(drive_files_paths(W8_REVIEW_FOLDER))
-    return lines + review_w8(day, backfill_pairs(live_rv(), candle_rv()), raised, put, build_alert_sender().send)
+    pairs = drift_days(paired_rv(live_rv(), candle_rv()))
+    return lines + review_w8(day, pairs, raised, put, build_alert_sender().send)
 
 
 def drive_files_paths(folder: str) -> list[str]:

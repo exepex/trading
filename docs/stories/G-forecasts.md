@@ -1332,6 +1332,17 @@ they found and what was fixed or why not.
   (4, all caught; the void-by-value plant first survived, the test now gives a void row a value). The
   `no_v4_drive_records` fixture (main ac1a81d19) now patches `build_drive_records` and answers `paths()`. Item (3) is
   now the stricter rule in the text (above). `candle_history.py` joins `PACK_METHOD_FILES`.
+- **Second follow-up (the v4 freeze's asks):** (a) judge 597 SF2: every v4 Black-76 of this story runs at
+  `fno/forecast_v4/pricing.py`'s `V4_RISK_FREE_RATE` (0.065; the file added byte for byte as agreed with the freeze
+  builder): the EOD IV30 proxy (`PanelAtmIv30(Black76(), V4_RISK_FREE_RATE)` in `wiring.implied_history`, no longer
+  v1's `build_atm_iv30(cfg)`) and V4's and V5's terms (`OptionTermsRule` in `pack_wiring`); the config parameter is
+  gone from `implied_history`, `build_implied_backfill` and `build_pack_capture`, so nothing here can read
+  `risk_free_rate`. Values are unchanged while the config holds 0.065; `IMPLIED_METHOD_FILES` does not hold
+  `wiring.py`, so the b1 back-fill's hash does not move. (b) G14's one pairing: `candle_history.paired_rv(live,
+  candle) -> list[PairedRv(day, live, candle, ratio = candle / live)]` over sessions where both rows are non-void (a
+  zero live value pairs nothing), and `drift_days` for `proxy_drift`; W8's drift line and review trigger use it
+  (`pack_followups.backfill_pairs` removed). On the committed tables: 19 Oct 0.962, 21 Oct 0.997, 22 Oct 1.009, the
+  story's figures. Tests: the pairing test in `test_v4rules_w8.py`; plants (4, all caught).
 - **Not done here:** the CLAUDE.md routine line for `forecasts_v4_pack` (when it goes live); the W1-W8 wordings into
   `PROTOCOL_v4.md` (a protocol edit, its own change); the real Drive back-fill run (after merge); the orchestrator's
   `no_v4_drive_records` fixture (adopted once on `main`).

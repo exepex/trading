@@ -151,7 +151,8 @@ def build_diagnostic_lines() -> list[str]:
     """The report's descriptive lines (G7b completion, part e): the pack / EOD IV30 drift from G7b's stored pairs,
     W8's back-fill / live and W3's intraday / close-proxy `RV_s` from the committed A16 and A16b tables."""
     from ...forecast_v4_rules import series
-    from ...forecast_v4_rules.pack_followups import DRIFT_FOLDER, backfill_pairs, drift_pair
+    from ...forecast_v4_rules.candle_history import drift_days, paired_rv
+    from ...forecast_v4_rules.pack_followups import DRIFT_FOLDER, drift_pair
     from ...forecast_v4_rules.pack_wiring import candle_rv, live_rv
     from .diagnostic_lines import diagnostic_lines
 
@@ -160,7 +161,7 @@ def build_diagnostic_lines() -> list[str]:
     closes = series.regular_closes(series.closes_rows(CLOSES_FILE.read_text(encoding="utf-8")))
     close_rv = {v.day: v.value for v in series.close_proxy_rv(closes)}
     level = [(day, value, close_rv.get(day)) for day, value in live.items() if value is not None]
-    return diagnostic_lines(drift, backfill_pairs(live, candle_rv()), level)
+    return diagnostic_lines(drift, drift_days(paired_rv(live, candle_rv())), level)
 
 
 def _registry() -> SlotRegistry:

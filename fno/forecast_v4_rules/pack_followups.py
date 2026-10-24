@@ -83,12 +83,6 @@ def write_drift_pairs(packs: Mapping[date, IvPoint | None], eod: Mapping[date, I
     return done
 
 
-def backfill_pairs(live: Mapping[date, float | None], candle: Mapping[date, float | None]
-                   ) -> list[tuple[date, float | None, float | None]]:  # fmt: skip
-    """W8's pairs (day, back-filled `RV_s`, live `RV_s`) over the non-void live days; a missing side is no pair."""
-    return [(day, candle.get(day), value) for day, value in sorted(live.items()) if value is not None]
-
-
 def review_w8(day: date, pairs, raised: bool, put: Callable[[str, bytes], None],
               send: Callable[[str], str]) -> list[str]:  # fmt: skip
     """`raised`: a marker already exists (the trigger fired before); fewer than 20 paired days raise nothing."""

@@ -52,11 +52,10 @@ def _backfill() -> int:
 
 
 def _backfill_implied() -> int:
-    from ..config import load_config
     from ..storage.data_wiring import build_data_store, receipt_folder
     from .wiring import build_implied_backfill, first_live_implied_day
 
-    backfill, last_close = build_implied_backfill(load_config())
+    backfill, last_close = build_implied_backfill()
     days = backfill.days(last_close, first_live_implied_day(receipt_folder()))
     paths = backfill.write(backfill.rows(days), build_data_store(BACKFILL_IMPLIED_WRITER).put)
     print(f"v4 implied back-fill: {len(days)} days, {len(paths)} files in Drive (labelled backfill_exploratory)")
@@ -67,16 +66,15 @@ def _backfill_implied() -> int:
 def _capture_pack() -> int:
     """O1's `forecasts_v4_pack` step: "nothing written:" marks a refusal (the step alerts); a system_late day is no
     refusal (the day is out for everyone); a changed row for the day is a failure (exit 1)."""
-    from ..config import load_config
     from ..models import now_ist
     from ..storage.raw_store import RawFileConflict
     from ..v4_pack.release import NotReleased
     from .pack_capture import CaptureRefused, ChangedRow, capture_pack
     from .pack_wiring import build_pack_capture, run_followups
 
-    day, cfg = now_ist().date(), load_config()
+    day = now_ist().date()
     try:
-        built = build_pack_capture(cfg, day)
+        built = build_pack_capture(day)
     except NotReleased as missing:
         print(f"v4 pack forecasts {day}: nothing written: {missing}")
         return 0

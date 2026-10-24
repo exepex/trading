@@ -10,12 +10,14 @@ from pathlib import Path
 
 from ..config import ROOT
 from ..constants import SESSION_REGULAR
-from ..forecast.wiring import build_atm_iv30
+from ..forecast.iv30 import PanelAtmIv30
 from ..forecast_v4.eligibility import PREMIUM_WINDOW_START
+from ..forecast_v4.pricing import V4_RISK_FREE_RATE
 from ..forecast_v4.sessions import is_scored_session
 from ..intraday.rv_table import RvTable
 from ..intraday.wiring import INTRADAY_FOLDER
 from ..research_data.panel_reader import read_nifty_panel
+from ..research_engine.implied_vol import Black76
 from ..storage.data_wiring import DATA_AREA
 from ..storage.receipts import ReceiptFolder
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
@@ -75,7 +77,7 @@ def method_sha256(files: tuple[str, ...] = METHOD_FILES) -> str:
     return hashlib.sha256(b"".join((package / name).read_bytes() for name in files)).hexdigest()
 
 
-def implied_history(cfg: dict) -> tuple[dict, list, list[date]]:
+def implied_history() -> tuple[dict, list, list[date]]:
     """The EOD IV30 proxy on the committed A3 panel from 2024, the regular closes, and the scored sessions to the
     calendar's end (so every horizon resolves its calendar days): the history both the back-fill and the live capture
     fit their ratios on."""
@@ -88,13 +90,13 @@ def implied_history(cfg: dict) -> tuple[dict, list, list[date]]:
         raise ValueError("the closes file and A7's scored sessions disagree: fix the closes before the back-fill")
     years = range(PREMIUM_WINDOW_START.year, closes[-1].day.year + 1)
     panel = read_nifty_panel(PANEL_FOLDER, years, keep=lambda d, e: (e - d).days <= PANEL_OPTION_DAYS)
-    estimator = build_atm_iv30(cfg)
+    estimator = PanelAtmIv30(Black76(), V4_RISK_FREE_RATE)  # protocol v4's own rate, never config (judge 597 SF2)
     return eod_iv30_series(sessions, lambda d: estimator.estimate(panel, d)), closes, sessions
 
 
-def build_implied_backfill(cfg: dict) -> tuple[ImpliedBackfill, date]:
+def build_implied_backfill() -> tuple[ImpliedBackfill, date]:
     """Part b1: the exploratory V2/V3 back-fill on that history; and the last close."""
-    eod, closes, sessions = implied_history(cfg)
+    eod, closes, sessions = implied_history()
     backfill = ImpliedBackfill(eod, series.close_proxy_rv(closes), sessions, method_sha256(IMPLIED_METHOD_FILES))
     return backfill, closes[-1].day
 

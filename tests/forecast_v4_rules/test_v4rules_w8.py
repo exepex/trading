@@ -8,8 +8,9 @@ from datetime import date, timedelta
 import pytest
 
 from fno.forecast_v4_rules import pack_wiring
+from fno.forecast_v4_rules.candle_history import PairedRv, drift_days, paired_rv
 from fno.forecast_v4_rules.intraday_series import RATIO_CLOSE_PROXY, RATIO_INTRADAY, backfill_window_points
-from fno.forecast_v4_rules.pack_followups import W8_REVIEW_FOLDER, backfill_pairs, review_w8
+from fno.forecast_v4_rules.pack_followups import W8_REVIEW_FOLDER, review_w8
 from fno.forecast_v4_rules.ratio_store import StoredRatio, ratio_path
 from tests.forecast_v4_rules.test_v4rules_pack_capture import REFIT, Drive, unit_ratio
 
@@ -45,9 +46,14 @@ def test_the_window_measure_takes_the_back_fill_only_where_a16_has_no_live_row(m
     assert backfilled == {DAYS[0], DAYS[3]}
 
 
-def test_the_pairs_are_the_non_void_live_days_with_the_back_fill_beside_them():
-    pairs = backfill_pairs({DAYS[1]: 2e-5, DAYS[0]: 1e-5, DAYS[2]: None}, {DAYS[0]: 1.1e-5})
-    assert pairs == [(DAYS[0], 1.1e-5, 1e-5), (DAYS[1], None, 2e-5)]
+def test_the_one_pairing_keeps_sessions_where_both_rows_are_non_void_in_session_order():
+    live = {DAYS[3]: 2e-5, DAYS[0]: 1e-5, DAYS[1]: None, DAYS[2]: 3e-5, DAYS[4]: 0.0}
+    candle = {DAYS[0]: 1.1e-5, DAYS[1]: 4e-5, DAYS[2]: None, DAYS[3]: 1.8e-5, DAYS[4]: 1e-5}
+    paired = paired_rv(live, candle)  # DAYS[1] void live, DAYS[2] void candle, DAYS[4] zero live: no pair
+    assert [p.day for p in paired] == [DAYS[0], DAYS[3]]
+    assert paired[0] == PairedRv(DAYS[0], 1e-5, 1.1e-5, pytest.approx(1.1))
+    assert drift_days(paired) == [(DAYS[0], 1.1e-5, 1e-5), (DAYS[3], 1.8e-5, 2e-5)]  # candle / live for proxy_drift
+    assert paired_rv({}, candle) == [] and paired_rv(live, {}) == []
 
 
 def pairs(ratio: float, n: int = 20):
