@@ -32,9 +32,6 @@ def add_school_parser(sub) -> None:
     from .simulator.command import add_practice_parser  # the simulator's one command (story MS-SIM-d4)
 
     add_practice_parser(commands)
-    from .probes.command import add_probe_parser  # the P0b capture probe (story MS-P0b)
-
-    add_probe_parser(commands)
 
 
 def cmd_run(args, out=print) -> int:

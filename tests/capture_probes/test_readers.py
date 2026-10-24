@@ -5,15 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from fno.school.probes.answers import RawAnswer
-from fno.school.probes.constants import NSE_USER_AGENT, Source
-from fno.school.probes.groww_reader import GrowwAnswers, future_symbol
-from fno.school.probes.nse_reader import NseGet
-from fno.school.probes.slot_capture import near_money, near_monthly
+from fno.capture_probes.answers import RawAnswer
+from fno.capture_probes.constants import NSE_USER_AGENT, Source
+from fno.capture_probes.groww_reader import GrowwAnswers, future_symbol
+from fno.capture_probes.nse_reader import NseGet
+from fno.capture_probes.slot_capture import near_money, near_monthly
 
 from .fakes import Rig, status
 
-PACKAGE = Path(__file__).resolve().parents[3] / "fno" / "school" / "probes"
+PACKAGE = Path(__file__).resolve().parents[2] / "fno" / "capture_probes"
 BROWSER_TOKENS = ("Mozilla", "Chrome", "Safari", "AppleWebKit", "Gecko")
 
 
@@ -59,12 +59,12 @@ def test_no_module_the_probe_imports_names_a_trading_call_v4_or_the_fleet():
 
     modules = set()
     for file in sorted(PACKAGE.glob("*.py")):
-        _closure(f"fno.school.probes.{file.stem}", modules)
+        _closure(f"fno.capture_probes.{file.stem}", modules)
     assert "fno.intraday.read_only" in modules and "fno.providers.groww" in modules
     assert not [m for m in modules if m.startswith(("fno.forecast_v4", "fno.school.fleet", "fno.v4_pack"))]
     found = {}
     for module in modules:
-        path = PACKAGE.parents[2].joinpath(*module.split("."))
+        path = PACKAGE.parents[1].joinpath(*module.split("."))
         file = path.with_suffix(".py") if path.with_suffix(".py").is_file() else path / "__init__.py"
         if hits := [name for name in FORBIDDEN if name in file.read_text(encoding="utf-8")]:
             found[module] = hits

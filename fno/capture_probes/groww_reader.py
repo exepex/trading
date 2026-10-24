@@ -1,14 +1,14 @@
 """Groww's part of a slot (story MS-P0b section 2): six near-month futures quotes, four stock chains and one quote per
 near-money leg (the chain has no bid or ask, P0 probe 1). Reads only through A16's `ReadOnlyGroww`; every call goes
-through the slot's `PacedCaller`. The client is signed in once per run, outside any retry: a failed sign-in is kept
-and stops Groww for the run, so no second sign-in is ever made (judge 626's audit condition; self-review 1)."""
+through the slot's `PacedCaller`. The client is signed in once, outside any retry: a failed sign-in stops Groww for
+the day, so no second sign-in is ever made (judge 626's audit condition; self-review 1)."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime
 
-from ...providers.groww import _payload, parse_groww_chain, parse_groww_quote_book
+from ..providers.groww import _payload, parse_groww_chain, parse_groww_quote_book
 from .answers import RawAnswer
 from .caller import PacedCaller, SourceStopped
 from .constants import CHAINS, FUTURES, GROWW_FUTURE_SYMBOL, OPTION_TYPES, RowKind
@@ -59,7 +59,6 @@ class GrowwReader:
         self.client, self.answers, self.lot, self.now = client, answers, lot, now
         self.expiries: dict[str, date | None] = {}
         self._signed_in: tuple[str, str] | None = None
-        self._sign_in_error = ""
 
     def unlooked(self) -> list[str]:
         """The underlyings whose near-month expiry is not known yet (all of them before the first lookup)."""
@@ -84,15 +83,13 @@ class GrowwReader:
             self._chain(caller, capture, underlying, last.get(underlying))
 
     def _sign_in(self) -> tuple[str, str]:
-        """The exchange and segment names, read once: the first read signs in. Its failure is kept for the run."""
-        if self._sign_in_error:
-            raise SourceStopped(self._sign_in_error)
+        """The exchange and segment names, read once: the first read signs in. Whatever its failure, it is a stop for
+        the day (never judged as a timeout or 5xx to retry), and a stopped source is never asked again that day."""
         if self._signed_in is None:
             try:
                 self._signed_in = (self.client.EXCHANGE_NSE, self.client.SEGMENT_FNO)
-            except Exception as error:  # whatever the sign-in raised, it is never tried again this run
-                self._sign_in_error = SIGN_IN_FAILED.format(name=type(error).__name__)
-                raise SourceStopped(self._sign_in_error) from None
+            except Exception as error:
+                raise SourceStopped(SIGN_IN_FAILED.format(name=type(error).__name__)) from None
         return self._signed_in
 
     def _quote(self, symbol: str) -> RawAnswer:

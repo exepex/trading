@@ -74,10 +74,10 @@ class PacedCaller:
             if self.cap_reason:
                 raise SourceStopped(self.cap_reason)
             return False
-        return self.wall_clock() < self.deadline
+        return True
 
     def _send(self, kind: str, request: Callable[[], RawAnswer]) -> RawAnswer | None:
-        """None when the pace's wait reached the hard stop: nothing is sent after it (self-review 6)."""
+        """None at or after the hard stop, checked after the pace's wait: nothing is sent past it (self-review 6)."""
         self.pace.wait_turn()
         if self.wall_clock() >= self.deadline:
             return None

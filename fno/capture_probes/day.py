@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date, datetime
 
-from ...models import IST
+from ..models import IST
 from .constants import (
     BLACKOUT_DAYS,
     BLACKOUT_LINE,

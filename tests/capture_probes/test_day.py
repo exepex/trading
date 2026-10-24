@@ -4,8 +4,8 @@ from datetime import date, time, timedelta
 
 import pytest
 
-from fno.school.probes.constants import BLACKOUT_DAYS, MAX_SESSIONS, SLOTS, Source
-from fno.school.probes.counts import DayCounts, SourceSlot
+from fno.capture_probes.constants import BLACKOUT_DAYS, MAX_SESSIONS, SLOTS, Source
+from fno.capture_probes.counts import DayCounts, SourceSlot
 
 from .fakes import SESSION, Rig, status
 

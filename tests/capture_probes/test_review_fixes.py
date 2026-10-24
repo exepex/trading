@@ -5,10 +5,10 @@ from datetime import datetime, time
 
 import pytest
 
+from fno.capture_probes.constants import Source
+from fno.capture_probes.dry_run import MadeUpResponse
+from fno.capture_probes.groww_timeout import BoundedCall, GrowwCallHung
 from fno.models import IST
-from fno.school.probes.constants import Source
-from fno.school.probes.dry_run import MadeUpResponse
-from fno.school.probes.groww_timeout import BoundedCall, GrowwCallHung
 
 from .fakes import SESSION, GrowwError, GrowwRateLimitedStub, Rig
 
@@ -116,10 +116,10 @@ def test_an_answer_inside_the_timeout_is_returned():
 
 
 def test_no_request_starts_after_the_hard_stop_even_after_a_pace_wait(tmp_path):
-    from fno.school.probes.answers import RawAnswer
-    from fno.school.probes.caller import PacedCaller
-    from fno.school.probes.dry_run import JumpingClock
-    from fno.school.probes.pace import StudyPace
+    from fno.capture_probes.answers import RawAnswer
+    from fno.capture_probes.caller import PacedCaller
+    from fno.capture_probes.dry_run import JumpingClock
+    from fno.capture_probes.pace import StudyPace
 
     clock = JumpingClock(SESSION, time(10, 2))
     deadline = datetime.combine(SESSION, time(10, 2, 1), IST)

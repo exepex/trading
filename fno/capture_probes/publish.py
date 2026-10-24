@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
 
-from ...storage.owned_paths_commit import OwnedPathsCommitter
+from ..storage.owned_paths_commit import OwnedPathsCommitter
 
 NOT_COMMITTED_MARK = "NOT committed"
 

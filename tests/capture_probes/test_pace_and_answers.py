@@ -2,8 +2,8 @@
 
 import pytest
 
-from fno.school.probes.answers import RawAnswer, Verdict, judge
-from fno.school.probes.pace import StudyPace
+from fno.capture_probes.answers import RawAnswer, Verdict, judge
+from fno.capture_probes.pace import StudyPace
 
 
 class Clock:
@@ -28,6 +28,15 @@ def test_a_start_never_comes_sooner_than_the_gap(gap):
         starts.append(clock.now)
         clock.now += 0.1  # the request itself
     assert [round(b - a, 9) for a, b in zip(starts, starts[1:])] == [gap] * 3
+
+
+def test_a_request_slower_than_half_the_gap_still_waits_out_the_rest():
+    clock = Clock()
+    pace = StudyPace(1.0, clock, clock.sleep)
+    pace.wait_turn()
+    clock.now = 0.7  # the first request took 0.7 s
+    pace.wait_turn()
+    assert clock.now == 1.0 and clock.slept == [pytest.approx(0.3)]
 
 
 def test_the_first_request_and_one_exactly_at_the_gap_do_not_wait():

@@ -4,11 +4,11 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
+from fno.capture_probes.answers import RawAnswer
+from fno.capture_probes.caller import PacedCaller, SourceStopped
+from fno.capture_probes.dry_run import JumpingClock
+from fno.capture_probes.pace import StudyPace
 from fno.models import IST
-from fno.school.probes.answers import RawAnswer
-from fno.school.probes.caller import PacedCaller, SourceStopped
-from fno.school.probes.dry_run import JumpingClock
-from fno.school.probes.pace import StudyPace
 
 OK = RawAnswer(status=200, payload={}, shape_ok=True)
 

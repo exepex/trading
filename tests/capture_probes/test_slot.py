@@ -4,11 +4,11 @@ from datetime import datetime, time
 
 import pytest
 
+from fno.capture_probes.constants import DAILY_CAP, FUTURES, SLOT_BUDGET, Source
+from fno.capture_probes.counts import DayCounts, SourceSlot
+from fno.capture_probes.dry_run import near_expiry
+from fno.capture_probes.slot import PLANNED_ROWS
 from fno.models import IST
-from fno.school.probes.constants import DAILY_CAP, FUTURES, SLOT_BUDGET, Source
-from fno.school.probes.counts import DayCounts, SourceSlot
-from fno.school.probes.dry_run import near_expiry
-from fno.school.probes.slot import PLANNED_ROWS
 
 from .fakes import SESSION, GrowwError, GrowwRateLimitedStub, MemoryStore, RecordingPublisher, Rig, status
 
@@ -81,7 +81,7 @@ def test_any_other_4xx_from_nse_stops_it_for_the_day(tmp_path, code):
 
 @pytest.mark.parametrize("fault", ["html", "empty", "wrong shape"])
 def test_a_200_that_is_not_the_expected_json_stops_nse(tmp_path, fault):
-    from fno.school.probes.dry_run import MadeUpResponse
+    from fno.capture_probes.dry_run import MadeUpResponse
 
     answer = {"html": MadeUpResponse(None), "empty": MadeUpResponse({}), "wrong shape": MadeUpResponse({"x": 1})}
     rig = Rig(tmp_path, nse_faults={3: answer[fault]})

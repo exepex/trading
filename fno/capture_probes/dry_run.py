@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 
-from ...models import IST
+from ..models import IST
 from .constants import FUTURES, SLOTS
 
 CALL_SECONDS = 0.2  # each made-up answer "takes" this long, so latency figures are not all zero

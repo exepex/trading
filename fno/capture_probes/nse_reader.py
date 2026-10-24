@@ -9,8 +9,8 @@ from datetime import date, datetime
 
 import requests
 
-from ...models import IST
-from ...providers.public import parse_nse_chain, parse_nse_date
+from ..models import IST
+from ..providers.public import parse_nse_chain, parse_nse_date
 from .answers import RawAnswer
 from .caller import PacedCaller
 from .constants import (

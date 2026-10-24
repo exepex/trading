@@ -1,4 +1,4 @@
-"""`python -m fno school capture-probe` (story MS-P0b): today's probe session, run by hand, read-only; `--dry-run
+"""`python -m fno capture-probe` (story MS-P0b): today's probe session, run by hand, read-only; `--dry-run
 FOLDER [--session D]` runs the same code over made-up answers with everything written under FOLDER."""
 
 from __future__ import annotations
@@ -6,12 +6,12 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from ...config import load_app_config
-from ...models import now_ist
+from ..config import load_app_config
+from ..models import now_ist
 
 
-def add_probe_parser(commands) -> None:
-    probe = commands.add_parser("capture-probe", help="P0b: futures and stock chains at a study pace (read only)")
+def add_probe_parser(sub) -> None:
+    probe = sub.add_parser("capture-probe", help="P0b: futures and stock chains at a study pace (read only)")
     probe.add_argument("--dry-run", type=Path, default=None, help="made-up answers; write under this folder only")
     probe.add_argument("--session", type=date.fromisoformat, default=None, help="dry run only: YYYY-MM-DD")
     probe.set_defaults(func=cmd_capture_probe)

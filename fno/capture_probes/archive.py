@@ -7,7 +7,7 @@ from __future__ import annotations
 import gzip
 import json
 
-from ...storage.raw_store import RawFileConflict
+from ..storage.raw_store import RawFileConflict
 
 SAVED, FAILED, CONFLICT, NOTHING = "ok", "failed", "conflict", "none"
 

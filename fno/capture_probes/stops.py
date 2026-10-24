@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from ...alerts.sender import AlertSender
-from ...health.capture_errors import CaptureError, CaptureErrorLog
+from ..alerts.sender import AlertSender
+from ..health.capture_errors import CaptureError, CaptureErrorLog
 from .constants import CAP_LINE, CAPTURE_JOB, STOP_LINE
 
 KIND_RATE, KIND_CAP, KIND_BLOCKED = "rate_limited", "cap_reached", "blocked"

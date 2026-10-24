@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from fno.school.probes.archive import SlotArchive, slot_bytes
-from fno.school.probes.command import cmd_capture_probe
-from fno.school.probes.dry_run import MADE_UP_LEVEL
-from fno.school.probes.publish import GitPublisher, RepoPathsCommitter
-from fno.school.probes.rows import quality_of
-from fno.school.probes.wiring import RECEIPTS_AREA
+from fno.capture_probes.archive import SlotArchive, slot_bytes
+from fno.capture_probes.command import cmd_capture_probe
+from fno.capture_probes.dry_run import MADE_UP_LEVEL
+from fno.capture_probes.publish import GitPublisher, RepoPathsCommitter
+from fno.capture_probes.rows import quality_of
+from fno.capture_probes.wiring import RECEIPTS_AREA
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
 
 from .fakes import SESSION, GrowwError, Rig, status
