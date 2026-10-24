@@ -323,6 +323,102 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   - a rerun accepts the run's own commit by content, and refuses it if its files were changed;
   - G4's strict xfail in `tests/e2e/test_hangs.py` becomes the real assertion.
 
+## Fix after DRY2: the indices' own early limit and one failed step never ends the day (24 Oct, `story/o1-r1r2-step-safety`)
+
+DRY2's daily-run rehearsal (docs/dryruns/DRY2_2026-10-23.md, rows d8 and d11) found two risks for a real day. The
+orchestrator put both before Monday 26 Oct 14:05 IST, lane 1 (judges B and E).
+
+**R1. The indices part started "too early" when NIFTY's part ended early.**
+- **Before:** the indices part started the moment NIFTY's part ended. A NIFTY part that died at 14:38 started A4c's
+  index recorder at once, more than 20 minutes before 15:01. It returned "too early" and recorded nothing, and the run
+  never started it again: the day's indices were lost.
+- **Note:** no "none" marker is written: "too early" skips `close_day`. A4c's alert still says "canonical none",
+  which is A4c's wording, a finding for A4c's owner, unchanged here.
+- **Fix:** `QuotePart.not_before` now also holds for a part that waits for another. The indices part gets
+  `INDEX_EARLIEST_START`, A4c's own early limit (15:01 less 20 minutes, plus the 3-minute margin: 14:44).
+  - `start_due` starts a waiting part once its part ended and its time has come; `service` calls it.
+  - `next_start` counts a waiting part once its part ended, so a rehearsal's skipped wait never passes it.
+  - On a normal day nothing changes: NIFTY commits at about 14:57, after 14:44.
+- **Tests** (`tests/daily/test_index_part_window.py`):
+  - the limit is 14:44, inside A4c's 20 minutes;
+  - a NIFTY part dead at 14:38 starts the indices only at 14:44, from any wait, without git;
+  - a normal day still starts them right after NIFTY's commit.
+- **Plants:** the indices' `not_before` dropped fails the test; `not_before` ignored for a waiting part fails it.
+
+**R2. One unexpected error ended the whole daily run.**
+- **Before:** `DailyRun._guarded` handled only `CommitFailed` and `GitFailed`. In the rehearsal a `NotImplementedError`
+  in the 15:15 snapshot ended the run with a traceback: no fills, exits, reviews, card, scores, candles or close reads.
+- **Fix:** `DailyRun._run_step` catches any other `Exception` from a step's action.
+  - The step is logged `{"status": "failed", "reason": "<type>: <first line>"}`. #fno-desk gets "F&O paper desk <day>:
+    step <name> FAILED (<reason>); the run goes on, the steps that need it are refused". The run goes on.
+  - A failed commit or git read still stops the run, as decision 44 says (unchanged).
+  - `NEEDS` names the steps that read another step's logged result. Only `fills` does: it reads the snapshot's
+    `valid` and the decisions. So `fills` is refused when either failed ("needs snapshot, which failed today"). Every
+    other step reads its own inputs. The exits and the marks check the snapshot through the gate themselves, so the
+    risk-reducing exits always run (design 9).
+  - The next session's `_unreviewed` reads a failed exits step as "no book's exits were reviewed". Before, it would
+    have read the failure's own fields as books.
+- **Tests** (`tests/timetable/test_step_error_run.py`):
+  - a planted `NotImplementedError` in the snapshot capture fails that step only, with its type and first line, and
+    alerts; `fills` is refused; the exits and the marks run;
+  - a failed exits step leaves every book unreviewed for the next session.
+- **Plants:** the catch narrowed, the refusal dropped, and the exits rule dropped: each fails a test.
+
+**Contracts changed** (for the judges):
+- (1) `QuotePart.not_before` now applies to parts with `starts_after`.
+- (2) `QuoteParts.next_start` includes such a part once its part has ended.
+- (3) `DailyRun` no longer lets a non-git, non-commit exception out of a step. A step's result may now be
+  `failed`/`refused` with a reason where the run used to raise.
+- (4) `_unreviewed` for a failed exits step.
+
+**Round 2 (the orchestrator and judge 567): fail closed, one table, every reader.**
+
+*Which step needs which.* This is read from `DailyRun`'s real step inputs: `_plan` and each step's own reads.
+
+| Step | Reads another step's logged result | If that step has not run | If that step failed |
+|---|---|---|---|
+| fills | snapshot (`valid`), decisions (the collected runs) | refused: "needs snapshot, which has not run today" | refused: "needs snapshot, which failed today" |
+| every other desk and O1 step | none: each reads its own inputs (files, the gate, Drive) | runs | runs |
+
+The exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run (design
+9). Book 1's decision (an O1 command) reads the pack from disk and refuses itself without it ("no common pack").
+
+*Every reader of a failed or refused step's committed result* (`{"status", "reason"}`, nothing else):
+- **Desk:**
+  - `daily_run` fills: refused (the table).
+  - `daily_run._unreviewed`: a failed exits step means every book is unreviewed.
+  - `_unfilled` and `_unscored` already read `status`.
+- **The run's last line** (`runner.py`): names the failed and refused steps through `run_log.problem_steps`, the one
+  rule (agreed with T1 for T1d's card).
+- **Scoreboard** (`scoreboard/committed_runs.py`, guarded here): reads the decisions and the exits through
+  `run_log.book_results`, which gives {} for a failed step.
+  - `runs()`: no run.
+  - `uncollected()`: no others. Before, it raised AttributeError on the failure's string.
+  - `missed_runs`: a missed decision and a missed exit review.
+  - `snapshot_ids`: no valid snapshot.
+- **Card** (T1, `cards/rule_checks.py`):
+  - The snapshot verdict reads "no valid execution snapshot (<reason>)", `data_check_failed`. Correct already.
+  - The decisions' late books would list "status" and "reason" (judge 567). T1d's change uses `book_results`, and the
+    orchestrator merges R2 together with T1d.
+- **E6 reviews** (`daily/reviews.py`): no valid snapshot, so a day with open positions is refused. Correct already.
+- **O8 health** (`health/desk_checks.py`): `_problems` names the step; `_collected_late` keeps only per-book dicts.
+  Correct already.
+- **E8 opening runs** (`books/opening_runs.py`): no `run_id`, so "no log". Correct already.
+- **A16's feed gate:** reads only the candles step, an O1 command whose shape is unchanged.
+- **Tests** (`tests/timetable/test_failed_step_readers.py`): the two helpers; the scoreboard on a failed decisions,
+  snapshot and exits day; a missing input refused.
+- **Plants** (the scoreboard without `book_results`; the missing check dropped): each fails.
+
+*A frozen day (the desk freeze, held for the owner's v4 sign-off, unmerged).* The freeze records the desk's steps
+`frozen` and runs none of them. `frozen` is neither failed nor missing, so `NEEDS` would not refuse the fills. The
+freeze's own rule must decide first: when the freeze merges, its check goes before `_refused` in `_step`, so a frozen
+day's fills are `frozen`, never refused or run. Both are O1's own code; the freeze branch carries the test.
+
+**Not changed, said plainly:**
+- The card's own text (T1's) does not list failed steps. The run's last line already names them ("day done with
+  problems: snapshot, fills"), and each failed step is alerted.
+- A `BaseException` (a kill, `KeyboardInterrupt`) still ends the run, as it should.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).

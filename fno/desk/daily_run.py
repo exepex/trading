@@ -26,7 +26,8 @@ pull, a push rejected every time) or a git read that fails (`GitFailed`, e.g. th
 read in the fills) stops the run at that step: one alert naming why, what is missed and the hand fix, no later step,
 nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
 first commits that failed commit's files exactly as they were recorded, and never repeats the step that made them
-(`PendingCommitter`, decision 47).
+(`PendingCommitter`, decision 47). Any other error in a step fails that step only (DRY2 R2, 24 Oct): logged with its
+type and one line, alerted, and the run goes on; a step that reads a failed step's result (`NEEDS`) is refused.
 """
 
 from __future__ import annotations
@@ -67,6 +68,12 @@ PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
+STEP_ERROR = "F&O paper desk {day}: step {name} FAILED ({reason}); the run goes on, the steps that need it are refused"
+NEEDS_FAILED = "needs {needed}, which failed today"
+NEEDS_MISSING = "needs {needed}, which has not run today"
+# DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
+# exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run)
+NEEDS = {"fills": ("snapshot", RUN_LOG_DECISIONS_STEP)}
 NO_LOG = "the run of {day} stopped before any step"
 BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
@@ -144,6 +151,9 @@ class DailyRun:
             return {}
         if "exits" not in log.steps:
             return dict.fromkeys(self.steps.books, BEFORE_EXITS.format(day=last))
+        if _failed(log.result("exits")):  # the step itself failed (R2): no book's exits were reviewed
+            why = log.result("exits").get("reason", "")
+            return dict.fromkeys(self.steps.books, NOT_REVIEWED.format(day=last, why=why))
         unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
                       for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
         return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
@@ -184,12 +194,37 @@ class DailyRun:
     def _step(self, log: RunLog, name: str, action: Callable[[], StepOutcome]) -> None:
         def step() -> None:
             started = self.clock()
-            outcome = action()
+            outcome = self._refused(log, name) or self._run_step(log.day, name, action)
             self.recorder.record(log, name, started, self.clock(), outcome.inputs, outcome.result)
             paths: tuple[Path, ...] = (log.path, *outcome.paths)
             self.committer.commit(paths, f"Desk run {log.day} step {name}")
 
         self._guarded(log.day, f"step {name}", step)
+
+    def _refused(self, log: RunLog, name: str) -> StepOutcome | None:
+        """A step whose input step has not run or failed today is refused, never run on a missing input (fail
+        closed); the reason names which."""
+        needs = NEEDS.get(name, ())
+        missing = [needed for needed in needs if not log.done(needed)]
+        failed = [needed for needed in needs if log.done(needed) and _failed(log.result(needed))]
+        if not (missing or failed):
+            return None
+        reasons = ([NEEDS_MISSING.format(needed=", ".join(missing))] if missing else []) + (
+            [NEEDS_FAILED.format(needed=", ".join(failed))] if failed else []
+        )
+        return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons)})
+
+    def _run_step(self, day: date, name: str, action: Callable[[], StepOutcome]) -> StepOutcome:
+        """An unexpected error in one step fails that step only (DRY2 R2): it is logged with its type and one line,
+        alerted, and the run goes on; a failed commit or git read still stops the run (`_guarded`)."""
+        try:
+            return action()
+        except (CommitFailed, GitFailed):
+            raise
+        except Exception as error:  # noqa: BLE001 - any other error: this step fails, the day goes on
+            reason = f"{type(error).__name__}: {_one_line(error)}"
+            self.steps.alerts.send(STEP_ERROR.format(day=day, name=name, reason=reason))
+            return StepOutcome({}, {"status": STEP_FAILED, "reason": reason})
 
     def _guarded(self, day: date, where: str, action: Callable[[], object]) -> None:
         """The one place a failed commit or git read is handled: the rerun's recovery, a step's own commit and any
@@ -207,3 +242,11 @@ class DailyRun:
         text = STOPPED.format(day=day, where=where, missed=missed, what=what, reason=failed, fix=fix).rstrip(" ")
         self.steps.alerts.send(text)
         raise RunStopped(text) from failed
+
+
+def _failed(result: dict) -> bool:
+    return result.get("status") == STEP_FAILED
+
+
+def _one_line(error: Exception) -> str:
+    return (str(error).strip().splitlines() or [""])[0][:300]

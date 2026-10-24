@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -14,19 +13,7 @@ from pathlib import Path
 from ..constants import JOURNAL_FOLDER, STEP_FAILED, STEP_REFUSED
 
 RUNS_FOLDER = "runs"
-PROBLEMS = (STEP_FAILED, STEP_REFUSED)  # O1's problem statuses (DRY2 R2): the run's last line and the card (T1d)
-
-
-def problem_steps(steps: Mapping[str, dict]) -> list[tuple[str, str]]:
-    """The day's steps that failed or were refused, with their status, in run order: one rule for the run's last line
-    and the card (story T1d)."""
-    found = []
-    for name, step in steps.items() if isinstance(steps, Mapping) else ():
-        result = step.get("result") if isinstance(step, dict) else None
-        status = result.get("status") if isinstance(result, dict) else None
-        if status in PROBLEMS:
-            found.append((name, status))
-    return found
+PROBLEMS = (STEP_FAILED, STEP_REFUSED)
 
 
 @dataclass
@@ -67,3 +54,19 @@ class RunLog:
         temporary = self.path.with_name(f".{self.path.name}.tmp")
         temporary.write_text(json.dumps(body, indent=1, sort_keys=False) + "\n", encoding="utf-8")
         os.replace(temporary, self.path)
+
+
+def problem_steps(steps: dict[str, dict]) -> list[tuple[str, str]]:
+    """Each step that failed or was refused, with its status, in the order the steps ran: the one rule the run's last
+    line and the card read (DRY2 R2, T1d)."""
+    return [(name, step["result"]["status"]) for name, step in steps.items() if _problem(step["result"])]
+
+
+def book_results(result: dict) -> dict:
+    """A per-book step's result (the decisions, the exits) as book -> entry; {} when the step itself failed or was
+    refused (DRY2 R2): its `{"status", "reason"}` is never read as books."""
+    return {} if _problem(result) else result
+
+
+def _problem(result: dict) -> bool:
+    return result.get("status") in PROBLEMS
