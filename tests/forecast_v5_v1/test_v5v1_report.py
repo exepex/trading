@@ -3,7 +3,7 @@ candle outcome), counts void and pending targets, prints the measure label and t
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -65,27 +65,18 @@ def test_no_rows_gives_not_enough_data_yet():
     assert "Input: candle RV (15m bars) vs live quote RV" in lines
 
 
-@dataclass(frozen=True)
-class Pair:  # the fields of G7b's pairing (amendment 1); the real pairing joins with criterion 5's import test
-    day: date
-    live: float
-    candle: float
-
-    @property
-    def ratio(self) -> float:
-        return self.candle / self.live
-
-
 def test_the_gap_table_prints_19_21_and_22_oct():
-    live = {r.day: r.value for r in live_rows() if r.value is not None}
-    pairs = [Pair(c.day, live[c.day], c.value) for c in candle_rows() if c.day in live and c.value is not None]
+    # G7b's `backfill_pairs` shape: (day, candle, live) over the non-void live days, a missing side None
+    candle = {c.day: c.value for c in candle_rows()}
+    pairs = [(r.day, candle.get(r.day), r.value) for r in live_rows() if r.value is not None]
     lines = gap_table(pairs)
     assert lines[0] == "Measure gap: candle RV (15m bars) vs live quote RV"
     assert [line.split(" | ")[-1].rstrip(" |") for line in lines[3:]] == ["0.962", "0.997", "1.009"]
 
 
-def test_no_pairs_says_so():
+def test_no_pairs_or_one_sided_pairs_say_so():
     assert gap_table([])[1] == "no session has both an ok candle row and an ok live row yet"
+    assert gap_table([(oct(23), None, 1.0e-4)])[1] == "no session has both an ok candle row and an ok live row yet"
 
 
 class _LiveOnly(OutcomeSeries):

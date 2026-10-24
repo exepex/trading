@@ -13,7 +13,7 @@ from ..forecast_scoring.v4.scores import PointScores, point_scores
 from ..forecast_v4_rules.baselines import OK
 from ..forecast_v4_rules.records import LIVE
 from ..forecast_v4_rules.series import SessionRv
-from .gap import PairedRv, gap_table
+from .gap import Pair, gap_table
 from .records import INPUT_MEASURE, V5Record
 
 TITLE = "v5 side by side (G14): V1's forecasters on the spliced candle-first history; a measurement, no claim"
@@ -61,7 +61,7 @@ def live_targets(live_rows: Sequence[SessionRv]) -> dict[date, float | None]:
     return {r.day: r.value for r in live_rows}
 
 
-def render(scores: Sequence[ForecasterScore], pairs: Sequence[PairedRv]) -> list[str]:
+def render(scores: Sequence[ForecasterScore], pairs: Sequence[Pair]) -> list[str]:
     lines = [TITLE, f"Input: {INPUT_MEASURE}", *TABLE]
     for s in scores:
         qlike = f"{s.scores.mean_qlike:.6f}" if s.scores else NOT_YET
