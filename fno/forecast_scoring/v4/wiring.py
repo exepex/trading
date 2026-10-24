@@ -39,12 +39,12 @@ def build_scoring() -> V4Scoring:
     """The slots registered in `v4_slots.csv` (none before the freeze commit writes them). A system_late day is
     out of the forecasts and the outcomes for every forecaster (G10)."""
     inputs = LateDaysOut(_checked_forecasts(), _outcomes(), build_day_labels(_today()))
-    return V4Scoring(inputs, inputs, _registry())
+    return V4Scoring(inputs, inputs, build_slot_registry())
 
 
 def build_ai_slot_days() -> AiSlotDays:
     sessions = sessions_not_late(_is_session(), build_day_labels(_today()))
-    return AiSlotDays(ForecastFiles(FORECASTS_FOLDER), _registry(), sessions)
+    return AiSlotDays(ForecastFiles(FORECASTS_FOLDER), build_slot_registry(), sessions)
 
 
 def build_day_counts(as_of: date) -> DayCounts:
@@ -164,7 +164,7 @@ def build_diagnostic_lines() -> list[str]:
     return diagnostic_lines(drift, drift_days(paired_rv(live, candle_rv())), level)
 
 
-def _registry() -> SlotRegistry:
+def build_slot_registry() -> SlotRegistry:
     """One registry for scoring and the look's reconciliation: the committed slot registrations (none before the
     freeze commit writes the first rows)."""
     return SlotFile(SLOTS_FILE, _first_eligible, _frozen_on)

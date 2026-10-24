@@ -41,3 +41,17 @@ def candles(first: time = time(9, 0), count: int = 10, day: date = DAY, close_09
         close = close_0909 if start.time() == time(9, 9) else 1000.0 + n
         rows.append([start.isoformat(), close, close, close, close, 0, None])
     return json.dumps({"candles": rows}, sort_keys=True, separators=(",", ":")).encode()
+
+
+def index_close(nifty_open: float = 5555.5, bank_open: float = 6666.5) -> bytes:
+    """NSE's index-close file (`ind_close_all`) cut to the rows the open check reads, in NSE's own spelling."""
+    head = "Index Name,Index Date,Open Index Value,High Index Value,Low Index Value,Closing Index Value"
+    rows = [f"Nifty 50,22-10-2026,{nifty_open},9999.0,1.0,5000.0",
+            f"Nifty Bank,22-10-2026,{bank_open},9999.0,1.0,6000.0", "India VIX,22-10-2026,-,-,-,11.0"]  # fmt: skip
+    return ("\n".join([head, *rows]) + "\n").encode()
+
+
+def flat_0915(day: date = DAY, close: float = 5555.5, volume=None, stamp: time = time(9, 15)) -> bytes:
+    """Groww's live answer before 09:15 (23 Oct 2026's shape): one flat candle, six fields, `null` volume."""
+    start = datetime.combine(day, stamp).isoformat()
+    return json.dumps({"candles": [[start, close, close, close, close, volume]]}).encode()

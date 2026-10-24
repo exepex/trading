@@ -3,7 +3,9 @@ on which the AI books were fired, then 2 sessions a week drawn at random from th
 seed is the week and its last session's official NIFTY 50 close, confirmed against the Drive archive (`draw_seed.py`),
 so it exists only after the week is over and nobody can know or steer it in advance. Callers pass the verified seeds
 (built in `wiring.py`); a week without one is not drawn. Each draw is recorded once with its seed inputs
-(`research/forecasts/ai_v1/draws/<YYYY>-W<ww>.json`), so anyone can redraw it."""
+(`research/forecasts/ai_v1/draws/<YYYY>-W<ww>.json`), so anyone can redraw it. Each protocol's runs are drawn apart,
+from their own fire logs into their own `draws/` (`RunTerms`, v2 the default; G11 round 2c): v4's first 10 days are
+audited in full, like v2's were."""
 
 from __future__ import annotations
 
@@ -14,13 +16,12 @@ from datetime import date
 from pathlib import Path
 
 from .draw_seed import Week, WeekSeed
-from .paths import AI_FOLDER
+from .run_terms import V2_TERMS, RunTerms
 from .transcript_audit import TranscriptAudits
 
 FIRST_DAYS_ALL_AUDITED = 10
 WEEKLY_SAMPLE = 2
 FIRED_SUFFIX = "_fired.json"
-DRAWS_FOLDER = f"{AI_FOLDER}/draws"
 
 
 @dataclass(frozen=True, order=True)
@@ -30,12 +31,12 @@ class FiredSession:
     entry: dict  # the fire log's entry: version, session link, time
 
 
-def fired_sessions(root: Path) -> list[FiredSession]:
-    """Every book-day that was actually fired, oldest first."""
+def fired_sessions(root: Path, terms: RunTerms = V2_TERMS) -> list[FiredSession]:
+    """Every book-day of `terms`' protocol that was actually fired, oldest first."""
     found = []
-    for path in sorted((Path(root) / AI_FOLDER).glob(f"*/*{FIRED_SUFFIX}")):
+    for path in sorted((Path(root) / terms.folder).glob(f"*/*{FIRED_SUFFIX}")):
         day = date.fromisoformat(path.name.removesuffix(FIRED_SUFFIX))
-        for book, entry in sorted(json.loads(path.read_text(encoding="utf-8")).items()):
+        for book, entry in sorted(terms.fired_books(json.loads(path.read_text(encoding="utf-8"))).items()):
             if entry.get("fired"):
                 found.append(FiredSession(day, book, entry))
     return found
@@ -68,11 +69,11 @@ def sessions_to_audit(sessions: list[FiredSession], seeds: dict[Week, WeekSeed])
     return sorted([s for s in sessions if s.day in first] + drawn)
 
 
-def record_draws(root: Path, seeds: dict[Week, WeekSeed]) -> list[str]:
+def record_draws(root: Path, seeds: dict[Week, WeekSeed], terms: RunTerms = V2_TERMS) -> list[str]:
     """Writes each new week's draw with its seed inputs (written once); returns the files written."""
     written = []
-    for week, chosen in weekly_draws(fired_sessions(root), seeds).items():
-        path = Path(root) / DRAWS_FOLDER / f"{seeds[week].week}.json"
+    for week, chosen in weekly_draws(fired_sessions(root, terms), seeds).items():
+        path = Path(root) / terms.draws_folder / f"{seeds[week].week}.json"
         if path.is_file():
             continue
         record = {"seed": asdict(seeds[week]), "drawn": [[s.day.isoformat(), s.book] for s in chosen]}
@@ -82,7 +83,7 @@ def record_draws(root: Path, seeds: dict[Week, WeekSeed]) -> list[str]:
     return written
 
 
-def audits_due(root: Path, seeds: dict[Week, WeekSeed]) -> list[FiredSession]:
+def audits_due(root: Path, seeds: dict[Week, WeekSeed], terms: RunTerms = V2_TERMS) -> list[FiredSession]:
     """Selected sessions without an audit record yet."""
-    audits = TranscriptAudits(root)
-    return [s for s in sessions_to_audit(fired_sessions(root), seeds) if audits.get(s.day, s.book) is None]
+    audits = TranscriptAudits(root, terms)
+    return [s for s in sessions_to_audit(fired_sessions(root, terms), seeds) if audits.get(s.day, s.book) is None]

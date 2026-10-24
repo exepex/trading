@@ -91,3 +91,7 @@ HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", 
 HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
 HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
 HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
+
+# A routine's fired text: one line of JSON, at most this long (the routine API's limit, to be confirmed before go-live);
+# a longer input is `not_fired`, never truncated (F1t's decision pointer, G11's v4 forecast pointer, response 272).
+ROUTINE_POINTER_MAX_BYTES = 64 * 1024

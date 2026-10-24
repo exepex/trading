@@ -1,6 +1,7 @@
 """Composition root of story A22's morning capture: NSE's two JSON answers through the shared polite session, Groww's
 NIFTY and BANKNIFTY 1-minute candles through A16b's source over A16's `ReadOnlyGroww`, A16's checked clock, the
-session calendar, O9's Drive data store, O10's capture-error log, the receipt and error committers and the alert."""
+session calendar, O9's Drive data store, O10's capture-error log, the receipt and error committers and the alert;
+A22d's open check over the verified Drive cache and the stored index-close files (never NSE)."""
 
 from __future__ import annotations
 
@@ -16,11 +17,22 @@ from ..intraday.clock_wiring import build_clock_check
 from ..intraday.read_only import ReadOnlyGroww
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
-from ..storage.data_wiring import RECEIPTS_FOLDER, RECEIPTS_LABEL, RECEIPTS_MESSAGE, build_data_store
+from ..storage.data_store import DataStore
+from ..storage.data_wiring import (
+    DATA_AREA,
+    RECEIPTS_FOLDER,
+    RECEIPTS_LABEL,
+    RECEIPTS_MESSAGE,
+    build_data_store,
+    build_drive_cache,
+    receipt_folder,
+)
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.trading_days import is_trading_day
-from ..storage.wiring import REPOSITORY, build_session_calendar
+from ..storage.wiring import REPOSITORY, build_session_calendar, build_stored_index_close_files
+from .check_files import DriveCacheFiles
+from .open_check import OpenCheck
 from .parts import GrowwIndexPreopen, NseGiftNifty, NsePreopenList, PreopenPart
 from .record import JOB, PreopenRecorder
 from .run import PreopenRun
@@ -32,13 +44,20 @@ ERRORS_MESSAGE = "Capture errors: A22 pre-open ({what})"
 def build_preopen_recorder(cfg: dict) -> PreopenRecorder:
     calendar = build_session_calendar()
     parts = _parts(cfg)
-    clock = build_clock_check()
+    clock, store = build_clock_check(), build_data_store(JOB)
     return PreopenRecorder(
         lambda day: is_trading_day(calendar, day),
         lambda finished: PreopenRun(parts, now_ist, time.sleep, finished),
-        build_data_store(JOB), build_capture_error_log(), (_errors_committer(), _receipts_committer()),
+        store, build_capture_error_log(), (_errors_committer(), _receipts_committer()),
         build_alert_sender(), lambda: clock.check().warning(), _receipts_committer(),
+        _open_check(calendar.previous_session, store),
     )  # fmt: skip
+
+
+def _open_check(previous_session, store: DataStore) -> OpenCheck:
+    files = DriveCacheFiles(build_drive_cache(), receipt_folder(), DATA_AREA)
+    closes = build_stored_index_close_files()  # the stores only: a day not archived yet reads as None
+    return OpenCheck(previous_session, files, lambda day: closes.get(day)[1], store)
 
 
 def _parts(cfg: dict) -> list[PreopenPart]:
