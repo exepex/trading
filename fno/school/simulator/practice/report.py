@@ -69,3 +69,4 @@ class PracticeReport:
     sessions_without_roads: int = 0
     sessions_without_span: int = 0  # sessions before the SPAN archive began, refused by name and not run
     margin_label: str = ""  # built from the factor row the run used
+    short_buckets: dict[str, int] = field(default_factory=dict)  # bucket text -> recorded sessions, each under 30

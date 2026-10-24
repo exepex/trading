@@ -5,7 +5,7 @@
 - `run --replay FOLDER [--session D]`: a recorded session again, every write under FOLDER (no Drive write, no push,
   no commit, a fixed clock). A replay writes no paper record, so its root has no switch; it is how the end-to-end
   dry run is made.
-- `capture-gate [...]`: b's read-only report (unchanged)."""
+- `capture-gate [--through D]`: b's read-only report; the option is the gate's own (`quality/options.py`)."""
 
 from collections import Counter
 from datetime import date
@@ -14,6 +14,7 @@ from pathlib import Path
 from ..config import load_app_config
 from ..models import now_ist
 from .constants import FLEET_STOPPED
+from .quality.options import add_through
 
 NOT_A_SESSION = "not a trading day: nothing scheduled"
 
@@ -26,7 +27,7 @@ def add_school_parser(sub) -> None:
     run.add_argument("--replay", type=Path, default=None, help="replay into this folder: no record, no push")
     run.set_defaults(func=cmd_run)
     gate = commands.add_parser("capture-gate", help="b's read-only capture-gate report")
-    gate.add_argument("rest", nargs="*")
+    add_through(gate)
     gate.set_defaults(func=cmd_capture_gate)
     from .simulator.command import add_practice_parser  # the simulator's one command (story MS-SIM-d4)
 
@@ -67,6 +68,6 @@ def run_lines(run, share_lines) -> list[str]:
 
 
 def cmd_capture_gate(args) -> int:
-    from .quality.command import main
+    from .quality.command import run_args
 
-    return main(args.rest)
+    return run_args(args)

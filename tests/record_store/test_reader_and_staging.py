@@ -111,3 +111,28 @@ def test_the_evening_provisional_catch_up_includes_today():
     args = SimpleNamespace(dataset="closes", day="2026-10-23", level=PROVISIONAL, since=7, commit=False)
     assert cmd_certify(args, [].append, certifier, calendar=build_session_calendar()) == 0
     assert certifier.asked[-1] == "2026-10-23"
+
+
+def test_a_catch_up_with_a_source_down_sends_one_alert_naming_every_session():
+    """Judge 561's note: `--since 7` with a store down alerted once per session."""
+
+    class Down:
+        rules = SimpleNamespace(live_from=date(2026, 10, 1))
+
+        def certify(self, session, level):
+            line = f"closes {session} {level}: NOT recorded: a source could not be read: down; nothing is certified"
+            return SimpleNamespace(line=line, recorded=False, alert=True)
+
+    class Alerts:
+        def __init__(self):
+            self.sent = []
+
+        def send(self, text):
+            self.sent.append(text)
+            return "sent"
+
+    alerts = Alerts()
+    args = SimpleNamespace(dataset="closes", day="2026-10-26", level=CERTIFIED, since=7, commit=False)
+    assert cmd_certify(args, [].append, Down(), alerts, build_session_calendar()) == 1
+    (text,) = alerts.sent
+    assert text.startswith("Omenix F&O records: closes 2026-10-19 certified") and text.count("NOT recorded") == 4

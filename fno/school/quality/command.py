@@ -8,6 +8,7 @@ from datetime import date, datetime, time, timedelta
 
 from ...models import now_ist
 from .capture_gate import CaptureGateReport
+from .options import add_through
 from .wiring import build_capture_gate_report
 
 LAST_CAPTURE_TIME = time(15, 15)
@@ -26,16 +27,15 @@ def default_through(now: datetime) -> date:
     return now.date() if now.time() >= LAST_CAPTURE_TIME else now.date() - timedelta(days=1)
 
 
+def run_args(args: argparse.Namespace) -> int:
+    """The parsed `--through` (or its default day), however the command was reached."""
+    return run(args.through or default_through(now_ist()))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="capture-gate", description=__doc__)
-    parser.add_argument(
-        "--through",
-        type=date.fromisoformat,
-        default=None,
-        help="last day (default: today once past 15:15 IST, else yesterday)",
-    )
-    args = parser.parse_args(argv)
-    return run(args.through or default_through(now_ist()))
+    add_through(parser)
+    return run_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

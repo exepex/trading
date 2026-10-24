@@ -2,8 +2,8 @@
 
 Read in the pilot's order, stopping at the first fault: the data window (DATA_SPEND), then no archived chain or index
 close (`capture_missing`), then fewer than the two expiries the road records (`expiry_mismatch`), then no single dated
-lot (`lot_mismatch`). A road outside the window is closed with `capture_missing` and the detail `not_in_data_spend`: the
-closure reasons belong to the pilot, and the detail says what is true here."""
+lot (`lot_unavailable`). A road outside the window is closed with `capture_missing` and the detail
+`not_in_data_spend`: the closure reasons belong to the pilot, and the detail says what is true here."""
 
 from collections.abc import Sequence
 from datetime import date
@@ -41,7 +41,7 @@ class HistoricalRoadCatalogue:
             return _closed(road, session, ClosureReason.EXPIRY_MISMATCH, f"{len(expiries)} {road.expiry_kind} expiries")
         lots = {e: self.terms.lot(found, e) for e in expiries}
         if None in lots.values():
-            return _closed(road, session, ClosureReason.LOT_MISMATCH, "an expiry has no dated lot of its own")
+            return _closed(road, session, ClosureReason.LOT_UNAVAILABLE, "an expiry has no dated lot of its own")
         steps = {e: strike_step((r.strike for r in found.rows_on(e)), found.index_close) for e in expiries}
         if None in steps.values():
             return _closed(road, session, ClosureReason.EXPIRY_MISMATCH, "an expiry lists fewer than two strikes")

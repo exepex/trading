@@ -54,7 +54,8 @@ class ClosureReason(StrEnum):
     OUT_OF_WINDOW = "out_of_window"
     HASH_MISMATCH = "hash_mismatch"
     EXPIRY_MISMATCH = "expiry_mismatch"
-    LOT_MISMATCH = "lot_mismatch"
+    LOT_MISMATCH = "lot_mismatch"  # the road's expiries carry different lots, so no single lot fits the road
+    LOT_UNAVAILABLE = "lot_unavailable"  # no usable dated lot: no file for the session, a bad file, or a missing month
     IMPOSSIBLE_PRICE = "impossible_price"
     SIZES_NOT_MEASURED = (
         "sizes_not_measured"  # a live road whose capture holds a quote with no measured size (judge 506)

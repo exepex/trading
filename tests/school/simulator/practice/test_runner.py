@@ -10,6 +10,7 @@ from fno.school.execution import practice_wiring
 from fno.school.fakes import FakeSettlementSource
 from fno.school.simulator.constants import PRACTICE_LABEL, PracticeRefusal
 from fno.school.simulator.practice.render import LABELS, render
+from fno.school.simulator.practice.report import RoadDayCoverage
 from fno.school.simulator.practice.runner import PracticeRunner
 from fno.school.simulator.practice.window import RunWindow, WindowRefused
 from fno.school.simulator.spreads.model import Scenario
@@ -161,7 +162,6 @@ def test_a_drivers_net_is_the_account_trades_only_and_tickets_are_never_added(tm
 
 
 def test_the_impossible_share_is_legs_over_legs_and_zero_without_legs():
-    from fno.school.simulator.practice.report import RoadDayCoverage
 
     day = RoadDayCoverage(sb.SESSION, RoadCode.NIFTY_MONTHLY, 40, 20, 8, 10, 2, 0)
     assert day.impossible_share == 0.25

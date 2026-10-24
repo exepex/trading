@@ -30,7 +30,7 @@ from .librarian import RawDataLibrarian
 from .manifest_commit import GitManifestRecorder, ManifestRecorder
 from .manifest_folder import FingerprintingStore, ManifestFolder
 from .owner_token import OwnerAccessToken
-from .raw_library import RawFileLibrary
+from .raw_library import FileLibrary, RawFileLibrary, StoredFilesLibrary
 from .raw_source import (
     NseArchiveSource,
     NseDailyFoSource,
@@ -269,8 +269,9 @@ EVENTS_FILE = Path(__file__).resolve().parents[2] / "research" / "data" / "event
 LIVE_VALIDATION_FOLDER = Path(__file__).resolve().parents[2] / "research" / "live_validation"  # story B7 reports
 
 
-def daily_files(label: str, source_type: type[NseArchiveSource], library: RawFileLibrary) -> DailyFiles:
-    """A day's original file name and bytes from a raw-file library (stores first, then NSE; Drive is only read)."""
+def daily_files(label: str, source_type: type[NseArchiveSource], library: FileLibrary) -> DailyFiles:
+    """A day's original file name and bytes from a library: a writer's fetches what no store has from NSE and archives
+    it; a reader's (`StoredFilesLibrary`) only reads the stores."""
     return DailyFiles(
         label,
         source_type.dataset,
@@ -290,8 +291,22 @@ def build_nifty_panel_files(project_folder: Path | None = None) -> tuple[list[Da
 
 
 def build_index_close_files(project_folder: Path | None = None) -> DailyFiles:
-    """NSE's daily index-close files (the panel's closes, and story A10's warm-up closes; never an F&O file)."""
+    """NSE's daily index-close files for a WRITER (the panel, story A10's warm-up closes): a file no store has is
+    fetched from NSE and archived to Drive. Readers use `build_stored_index_close_files`."""
     return daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, build_nse_index_close_library(project_folder))
+
+
+def build_stored_index_close_files() -> DailyFiles:
+    """NSE's daily index-close files for a READER: the stores only, never NSE and never a Drive write; a day no store
+    has reads as None (not archived yet). The librarian (index-closes.yml, the morning routine) is the one writer."""
+    return daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, StoredFilesLibrary(_reader_raw_stores()))
+
+
+def _reader_raw_stores(env=os.environ) -> list[RawFileStore]:
+    """The raw stores a reader looks in: the service account's (where set), then the owner's Drive raw area read with
+    the owner's settings (GitHub's jobs and the routines carry these), each only ever read."""
+    drive = build_owner_drive(env)
+    return build_raw_stores() + ([AreaStore(drive, RAW_AREA)] if drive is not None else [])
 
 
 def build_panel_sink(folder: Path | None = None) -> PanelSink:

@@ -106,7 +106,7 @@ def test_a_lot_that_neither_the_file_nor_the_schedule_states_closes_the_road():
     terms = DatedTerms(lambda underlying, expiry: None, sb.TERMS.charges_on)
     cat = HistoricalRoadCatalogue(sb.CALENDAR, sb.DictChain(sb.chain("NIFTY")), terms, PracticeWindows())
     day = next(d for d in cat.day(sb.SESSION) if d.road.code is RoadCode.NIFTY_MONTHLY)
-    assert day.status.closed_by is ClosureReason.LOT_MISMATCH
+    assert day.status.closed_by is ClosureReason.LOT_UNAVAILABLE
 
 
 # ---- the snapshot --------------------------------------------------------------------------------------------------
@@ -333,7 +333,7 @@ def test_one_expiry_without_a_lot_of_its_own_closes_the_road_and_nothing_is_borr
     day = road_2025(
         {MONTHLIES_2025[0]: 35}
     )  # the later monthly has no stated lot and a current-format day has no schedule
-    assert day.status.closed_by is ClosureReason.LOT_MISMATCH
+    assert day.status.closed_by is ClosureReason.LOT_UNAVAILABLE
 
 
 def test_the_same_lot_on_both_expiries_still_opens_as_before():

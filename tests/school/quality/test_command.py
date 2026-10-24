@@ -50,3 +50,34 @@ def test_the_composition_root_builds_the_real_gate_and_a_report_over_the_real_ro
     assert isinstance(report.gate.listing, NseListedContracts)
     assert isinstance(report, CaptureGateReport) and report.gate.band_steps == 4
     assert isinstance(report.catalogue, RecordedRoadCatalogue) and isinstance(report.snapshots, RecordedSnapshotSource)
+
+
+def test_the_school_subcommand_takes_through_as_a_real_option(monkeypatch):
+    """Dry run 1 (23 Oct, P-e2): `school capture-gate --through D` was rejected, because the subcommand took a
+    catch-all positional next to the gate's own parser."""
+    from fno import cli
+
+    seen = []
+    monkeypatch.setattr(command, "run", lambda through: seen.append(through) or 0)
+    assert cli.main(["school", "capture-gate", "--through", "2026-10-22"]) == 0
+    assert seen == [date(2026, 10, 22)]
+
+
+def test_the_school_subcommand_without_through_uses_the_default_day(monkeypatch):
+    from fno import cli
+
+    seen = []
+    monkeypatch.setattr(command, "run", lambda through: seen.append(through) or 0)
+    monkeypatch.setattr(command, "default_through", lambda now: date(2026, 10, 21))
+    assert cli.main(["school", "capture-gate"]) == 0 and seen == [date(2026, 10, 21)]
+
+
+def test_the_two_ways_in_share_the_one_option_definition():
+    import argparse
+
+    from fno.school.quality.options import add_through
+
+    parser = argparse.ArgumentParser()
+    add_through(parser)
+    assert parser.parse_args(["--through", "2026-10-22"]).through == date(2026, 10, 22)
+    assert parser.parse_args([]).through is None

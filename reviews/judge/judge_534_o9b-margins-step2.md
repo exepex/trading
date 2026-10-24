@@ -44,3 +44,44 @@ data-checks job and C4's own refusal lines make it visible the same day [reasoni
 After the merge (quality rule 8):
 - the first `nse-margins` and `stress-factor` scheduled runs on the Drive path;
 - the first desk day's C2 and C4 margin reads.
+
+## Addendum 1: the rebuilt step 2, story/o9b-margins @ 9b3a7922 (DRY1 g2)
+
+**Verdict: PASS stands. It may merge in the stated plan**, after step 1b (judge 478 addendum 2).
+
+9b3a7922 merges the PASSed step 2 head (e58dd0aa) with step 1b (61a0eee5). I read the merge's own changes with
+`git show --remerge-diff`, which shows only how each conflict was settled. Five files had conflicts:
+
+| File | How it was settled | My check |
+|---|---|---|
+| `receipted_rows.py` | keeps step 2's `NO_LAST_NEWLINE`; step 1b's empty-series guard comes in untouched | **union**. Present at the head: the empty-series guard (judge 536), `PartOutOfOrder`, `TableFileBroken` at write and at read, and `catch_up` |
+| `moving.py` | keeps step 2's `exact=` line (`None if exact and current else catch_up`) | **right**. Evidence files are still never caught up |
+| `data-checks.yml` | `MOVED: data/vix data/global-cues data/margins` | **all three groups** |
+| `tests/o9b/test_moving.py` | step 1b's write-a-mid-line-part test is replaced by step 2's read-side test | **right**. Step 2 now refuses that write, so the old test could not set itself up |
+| `tests/o9b/test_receipted_rows.py` | both tests kept | **union** |
+
+The doc conflicts (story text, `WORK_REGISTER`) also settle as unions of both sides.
+
+Gates on 9b3a7922:
+- full suite: **14800 passed**, 1 skipped, 16 xfailed (the same environment skip as round 1; the builder's 14,801 ran it);
+- ruff and ruff format (2380 files) are clean;
+- `check_imports.py` (2509) and the record scan (8906) are clean.
+
+| # | Plant (each reverted) | Caught |
+|---|---|---|
+| 1 | `exact=` ignored (evidence caught up) | yes, 2 failed |
+| 2 | the write-side last-newline guard off | yes, 1 failed |
+| 3 | the empty-series guard off | yes, 18 failed |
+| 4 | `data/margins` dropped from `MOVED` | no test; **loud in the job** (below) |
+
+Plant 4 is not a finding:
+- the margins `data` tests read through `CacheOnlyDrive`;
+- a file the sync step skipped fails them with "not in the verified cache: run `data-cache sync data/margins`";
+- the job's alert step then posts to #fno-desk.
+
+So a missing group shows the same day once margin receipts exist [strong, `tests/data_cache.py`]. The silent case
+is a newly moved group with no `data` test at all. Optional, any later step: a test that every `cached_series`
+folder's group is listed in `MOVED`.
+
+After the merge: unchanged from round 1. The first `nse-margins` and `stress-factor` runs on the Drive path, and
+the first desk day's C2 and C4 reads.

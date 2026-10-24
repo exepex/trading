@@ -238,3 +238,91 @@ refusal, phase 3 switches FL1's `A4hTodayCloses` to `RecordReader` (with the A4h
   "NOT recorded" line in the day's conversation log and posts it to #fno-desk, except a certified "no official
   index-close file in Drive yet", which A4h's overdue rule already alerts (judge 543's note); it posts the text of any
   "alert NOT sent" line.
+
+## 9. DR1-1b: A4h-2's official values (branch story/dr1-official-values; lane 1, judge B's delta)
+
+A4h-2 (judge 544, 72d769b8) renames `OfficialCloses.closes(day)` to `values(day)` (each index's official open, high,
+low and close) and adds high, low and previous close to the list read, refusing a checked index whose open or last is
+outside its day range. Built from main with 72d769b8 merged in.
+
+**Design decision: the new fields take part in certification (closes rules version 2).** FL1-1f's evening edition
+reads the day range and the previous close from the same record, so a certified record must vouch for them as for the
+close (the owner's consistency pillar: no wrong data reaches a reader). For NIFTY 50 and NIFTY BANK: last against the
+official close, high and low against the official high and low, previous close against the previous session's
+official close (NSE's calendar step back), all within A4h's 0.01. The previous session's file missing means no
+certified record, named. INDIA VIX stays recorded, never certified (its list values are not the official ones), and is
+out of the 20% band. Provisional checks gain A4h-2's range refusal through `read_answer`, unchanged. The same mapping
+as A4h's confirm (`fno/close_read/confirm.py`), applied to every passing read instead of A4h's own record.
+
+**Real Drive dry run (stores only, records local and deleted):** 22 and 23 Oct, provisional and certified, all four
+recorded and "matches A4h's record" under version 2.
+
+### Claims (DR1-1b)
+
+1. The certifier calls `values(day)` and takes `["close"]`; the certified choice (the read closest to the official
+   close) and every earlier rule are unchanged (all earlier tests pass with A4h-2's field set in the fixtures).
+2. A high, a low or a previous close differing from the official value by more than 0.01 means no certified record,
+   named by index and field.
+3. The previous session's official file missing means no certified record, named.
+4. INDIA VIX's range is never certified.
+5. Gates: ruff, `tools/check_imports.py`, full suite 14,824 passed (38 in `tests/record_store/`).
+
+### Plants (each reverted)
+
+| Claim | Plant | Caught |
+|---|---|---|
+| 2 | high and low dropped from the official mapping | 2 tests fail |
+| 2 | previous close dropped | 1 fails |
+| 3 | a missing previous-session file accepted | 1 fails |
+| 4 | INDIA VIX certified like the others | 1 fails |
+
+## 10. DR1-1c: one reader builder, and "cannot read" is never "not out yet" (branch story/dr1-reader-stores)
+
+Judge 558 (note 2) found two reader builders: DR1-1's `stored_index_closes()` read `build_raw_stores()` only (the
+service account), which no workflow and no routine sets, so in a routine every certified check would have said "no
+official index-close file in Drive yet", a reason the morning routine does not post: silent. Built on O9's
+story/o9-readonly-index-close (fb1a4bd7d, with judge F), so it merges after it.
+
+- The certifier takes its official files from O9's one reader builder, `build_stored_index_close_files()` (the stores
+  only, the owner's Drive raw area included); `stored_index_closes()` is deleted.
+- With no store at all, O9's reader raises `NoReadableStore` (added at DR1's request). Any failure reading the
+  official files (no store, a store refusing, a damaged file) is `SourceUnreadable`: the session is "NOT recorded: a
+  source could not be read: ...", alerted to #fno-desk, exit 1 (orchestrator, 24 Oct: never a line the morning skips).
+  A file simply not archived yet stays the ordinary, unalerted "no official index-close file in Drive yet".
+- Judge 554's note: a previous close missing from the previous session's file names that file.
+
+Real Drive (read-only): 22 and 23 Oct certified through O9's reader, both "matches A4h's record"; with the owner's
+settings and the service account removed, the reader raises NoReadableStore.
+
+### Claims (DR1-1c)
+
+1. An official source that cannot be read (NoReadableStore, a refusing store) gives an alerted "NOT recorded: a source
+   could not be read" and exit 1, never "in Drive yet".
+2. A file not archived yet stays an unalerted "no official index-close file in Drive yet".
+3. The certifier's official files come from `build_stored_index_close_files()`, never a store list of its own.
+4. A previous close missing from the previous file names the previous session's file.
+
+| Claim | Plant (reverted) | Caught |
+|---|---|---|
+| 1 | a read failure becomes an ordinary failed check | 2 tests fail |
+| 3 | the certifier builds the fetching `build_index_close_files()` | 1 fails |
+| 4 | the previous file named as today's | 1 fails |
+
+## 11. DR1-1d: judge 561's two notes (branch story/dr1-1d-one-read-one-alert; lane 1, judge B's delta)
+
+- Each official file is read once per run, through one guarded helper (`ClosesRules._official`): the certified
+  choice no longer re-reads it outside the guard, so a read failing between the check and the choice can no longer
+  end in a traceback.
+- A run that alerts (a record not pushed, a conflict, an unreadable source) sends one #fno-desk alert naming every
+  session, not one per session (`--since 7` with a store down: one alert, not up to seven).
+
+### Claims (DR1-1d)
+
+1. Two versions of a session read the day's and the previous session's official files once each; a source that
+   fails on a second read does not affect the record.
+2. A catch-up with a source down sends one alert listing every affected session.
+
+| Claim | Plant (reverted) | Caught |
+|---|---|---|
+| 1 | no per-run cache | 1 test fails |
+| 2 | one alert per session again | 1 fails |

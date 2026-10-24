@@ -11,6 +11,7 @@ from fno.quotes.snapshot_rows import COLUMNS, snapshot_csv
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.school.constants import ExpiryKind, RoadCode
 from fno.school.contracts.roads import ROADS, ROADS_BY_CODE, DatedLot, Road
+from fno.school.roads.ports import LotProblem
 from fno.storage.raw_store import RawFileStore
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -167,9 +168,9 @@ class FixedExpiries:
 
 
 class FixedLots:
-    """LotSource: one lot for every road, or none."""
+    """LotSource: one lot for every road, or one problem for every road."""
 
-    def __init__(self, lot: DatedLot | None = LOT):
+    def __init__(self, lot: DatedLot | LotProblem = LOT):
         self.lot_for_all, self.asked = lot, []
 
     def lot(self, underlying: str, session: date, expiries: tuple[date, ...]):

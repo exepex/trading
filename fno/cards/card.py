@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from ..constants import CARD_DATA_CHECK_FAILED, CARD_VALID_UNTIL, CardStatus
-from .sections import CardSection, ForecastSource, StatusSource, UsedRecord, WeatherSource
+from .sections import WEATHER_BLOCKS, CardSection, ForecastSource, StatusSource, UsedRecord, WeatherSource
 from .session import SessionAnswer
 
 UNAVAILABLE = "{title}: not available on this card"
@@ -58,11 +58,11 @@ def _failed(title: str, error: Exception, lines: tuple[str, ...] | None = None) 
     return CardSection(title, lines or (UNAVAILABLE.format(title=title),), missing=(missing,))
 
 
-def _guarded(title: str, make: Callable[[], CardSection]) -> CardSection:
+def _guarded(title: str, make: Callable[[], CardSection], extra: tuple[str, ...] = ()) -> CardSection:
     try:
         return make()
     except Exception as error:  # noqa: BLE001 - any failure is named on the card, never a lost card
-        return _failed(title, error)
+        return _failed(title, error, (UNAVAILABLE.format(title=title), *extra) if extra else None)
 
 
 class CardBuilder:
@@ -71,7 +71,9 @@ class CardBuilder:
 
     def build(self, day: date, session: SessionAnswer, previous_misses: tuple[str, ...] = ()) -> TradeCard:
         status, code = self._status(day)
-        weather = _guarded("weather", lambda: self.weather_source.weather(day))
+        weather = _guarded(
+            "weather", lambda: self.weather_source.weather(day), (WEATHER_BLOCKS,)
+        )  # a crash still blocks
         forecasts = _guarded("forecasts", lambda: self.forecast_source.forecasts(day))
         # v1 has no trade fields (slice B), so its status is NO TRADE whatever a source says: it never shows a trade
         sections = (status, weather, forecasts)
