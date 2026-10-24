@@ -26,3 +26,13 @@ close`), `exercised_line.py`, and the REH1h test fix.
 ## Plants
 
 7 planted, 6 caught; the survivor is m1.
+
+## Addendum 1: round 2 (the last), head cd7cf403d (tests and Claims only)
+
+**PASS. Lane 1.** No code changed. The branch's own commits since 34aad0d85 are `d4fd149a6`
+(`tests/rehearsal/test_lab_editions.py` only) and `b3c5a1dfe` (the story only). The `fno/` difference against
+34aad0d85, `fno/forecast_v5_v1/cli.py` and `freeze.py`, is G14's merge `110cfae03`, already on main. Against main, the
+trial merge's `fno/` diff is exactly the five REH1k files judged above.
+- **m1: FIXED.** My survivor plant (`build_preview` calling `build_composer(edition, env)`) now fails 2 tests.
+- **Gates:** trial merge into origin/main (clean, 9fd602235): ruff, format (2,629), imports (2,758), record scan
+  (9,257) and check_numbers clean; **16,532 passed, 1 skipped, 14 xfailed** (token kept).
