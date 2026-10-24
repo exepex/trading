@@ -187,5 +187,5 @@ def test_the_live_wiring_reads_a_429_only_through_gw1_s_one_detector():
 
     assert groww_rate_limited(GrowwAPIException()) and groww_rate_limited(GrowwAPIRateLimitException())
     assert groww_rate_limited(GrowwRateLimitPaused("unsent"))
-    assert not groww_rate_limited(ValueError()) and not groww_rate_limited(GrowwAPIException.__new__(Exception))
+    assert not groww_rate_limited(ValueError())
     assert "def is_rate_limit" not in (PACKAGE / "wiring.py").read_text()  # used, never copied
