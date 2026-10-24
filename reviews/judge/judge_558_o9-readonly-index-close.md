@@ -54,3 +54,20 @@ What is right, checked:
    builder as DR1's to do; I agree. Track it in the work register, not here.
 3. **Unverified bytes, as before.** The stores are read without a SHA-256 check against the manifest. That is
    unchanged from the writer's library, so it is not a regression of this change.
+
+## Addendum 1: round 2 at fb1a4bd7
+
+**Verdict: PASS. It may merge** (pull, full suite on the merged tree, `check_numbers.py`, then push).
+
+Gates on fb1a4bd7:
+- full suite: **14837 passed**, 1 skipped (the environment skip), 16 xfailed;
+- ruff and ruff format (2377 files) are clean;
+- `check_imports.py` (2506) and the record scan (8897) are clean.
+
+| Point | Answer | My check | Result |
+|---|---|---|---|
+| SF1: the reader's store list untested | A test with the four owner settings and no service account asserts one `AreaStore` over the owner drive at `RAW_AREA`, and `[]` with no settings | Plants: owner area dropped, 1 failed; `REVISIONS_AREA` for `RAW_AREA`, 1 failed | **Accepted** |
+| Note 1: the evening edition | one line in the claims | read | **Accepted** |
+| New: `NoReadableStore` when there is no store at all (DR1's review) | "cannot read" is never "not yet" | Plant: guard off, 1 failed. Each reader's path catches it: A4h's Confirmer per day (`confirm.py:60-64`, the class name only, then the overdue mark); FL1's sections (`page/builder.py:102`) and `guarded` (`edition_run.py:154`, an alert). Such a run also lacks Drive, so it fails earlier anyway | **Accepted** |
+
+Still open, DR1's to do: switch `record_store`'s `stored_index_closes()` to the one reader builder.
