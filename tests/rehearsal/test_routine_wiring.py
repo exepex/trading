@@ -29,7 +29,7 @@ def rehearsing(monkeypatch, tmp_path):
 
 def test_each_routine_source_is_its_recorded_form_built_without_drive(rehearsing):
     assert isinstance(rehearsed_cue_session(object()), RecordedCueSession)
-    assert isinstance(rehearsed_candle_source(object()), RecordedCandles)
+    assert isinstance(rehearsed_candle_source(lambda: pytest.fail("built Groww in a rehearsal")), RecordedCandles)
     (part,) = rehearsed_preopen_parts([NseGiftNifty(None, None)])
     assert isinstance(part, RecordedPreopenPart) and part.name == "gift"
 
@@ -44,5 +44,33 @@ def test_a_real_run_keeps_the_live_sources(monkeypatch):
     monkeypatch.delenv(ENV_FNO_REHEARSAL, raising=False)
     live = GrowwCandleSource(None, None)
     session, parts = object(), [NseGiftNifty(None, None)]
-    assert rehearsed_cue_session(session) is session and rehearsed_candle_source(live) is live
+    assert rehearsed_cue_session(session) is session and rehearsed_candle_source(lambda: live) is live
     assert rehearsed_preopen_parts(parts) is parts
+
+
+def test_the_candle_back_fill_builds_in_a_rehearsal_without_the_groww_sdk(rehearsing, monkeypatch, tmp_path):
+    """REH1j's dry run (24 Oct): a rehearsal's candle step failed on "Install the Groww SDK first" from
+    `GrowwProvider(cfg)`, a Groww object it never calls. The real builder now builds no provider when rehearsing."""
+    from fno.config import load_app_config
+    from fno.intraday import backfill_wiring
+
+    def no_sdk(cfg):
+        raise RuntimeError("Install the Groww SDK first: pip install growwapi")
+
+    monkeypatch.setattr(backfill_wiring, "GrowwProvider", no_sdk)
+    backfill = backfill_wiring.build_candle_backfill(load_app_config(), dry_run_folder=tmp_path)
+    assert isinstance(backfill.source, RecordedCandles)
+
+
+def test_a_real_run_s_candle_back_fill_still_builds_groww(monkeypatch, tmp_path):
+    from fno.config import load_app_config
+    from fno.intraday import backfill_wiring
+
+    monkeypatch.delenv(ENV_FNO_REHEARSAL, raising=False)
+    for name in OWNER_UPLOAD_SETTINGS:
+        monkeypatch.delenv(name, raising=False)
+    built = []
+    monkeypatch.setattr(backfill_wiring, "GrowwProvider", lambda cfg: built.append(cfg) or object())
+    backfill = backfill_wiring.build_candle_backfill(load_app_config(), dry_run_folder=tmp_path)
+    assert isinstance(backfill.source, GrowwCandleSource)
+    assert len(built) == 1
