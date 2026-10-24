@@ -86,8 +86,13 @@ and V5 and for the descriptive-only V7.
   `terms.V4_CAPTURE_START` and `V4_PACK_WINDOW_END` in `fno/v4_pack/codec.py`.
 - `daily.live_from`: `weather` 2026-10-22, `forecasts_v4` 2026-10-22, `v4_pack` 2026-10-26, `forecasts_v4_pack`
   2026-10-26 (set in this commit: the owner's standing 24 Oct rule, "Merge and turn on everything completed
-  now", and the v4 sign-off; V2's primary baseline, V4's and V5's live rows), `ai_books_v4` 2026-10-26. These
-  dates decide which days run; a late date makes misses, never better scores.
+  now", and the v4 sign-off; V2's primary baseline, V4's and V5's live rows; G7b's builder confirmed it needs nothing
+  else, by a dry run on real data), `ai_books_v4` 2026-10-26. These dates decide which days run; a late date makes
+  misses, never better scores.
+- **Known consequence of `forecasts_v4_pack`, said plainly:** no premium ratio exists before November's monthly refit
+  (Mon 2 Nov 2026); judge 598's late-ratio rule forbids an October ratio. So every premium-adjusted row is
+  `not_eligible` from 26 to 30 Oct, and V2's primary baseline is missing on those 5 sessions: counted as missing,
+  never scored, and no V2 slot counts a miss before the first day it has a value. There is no exception to the rule.
 - `budget.cap`: none (owner, 24 Oct 2026, "No monthly budget cap for AI. Keep it unlimited."). The AI books' budget
   stop (`fno/ai/budget_stop.py`, recorded) can never fire while there is no cap. A later cap, which would be an owner
   decision, would start AI `not_fired` misses, never a better score.
