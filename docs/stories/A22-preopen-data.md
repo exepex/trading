@@ -461,3 +461,12 @@ Text PASS: judge 604 (m1 carried into the rule above). Code on `story/a22e-last-
 - `LAST_READ_BEFORE_CLOSE` in `run.py` is gone: the margin lives on the part.
 - A rehearsal of 23 Oct still shows BANKNIFTY `late`: its only archived answer is the one received at 09:11:01
   (out of scope, a replay artifact).
+- Plants (builder's, each restored with `git checkout`): the 5 named above plus "the rehearsal ignores the live
+  margin" (it survived at first; `test_recorded_preopen.py::test_a_replayed_part_keeps_the_live_parts_read_plan`
+  added): **6 of 6 caught**.
+- Self-review (one independent review agent, read-only): no blocking. Fixed: an older test's name still said the
+  index parts read last at 09:10:59 (it tests the 1 s default), and the E2 boundary test's name overstated it. Left:
+  CLAUDE.md's A22 section names the index window "09:10:00-09:10:59"; the window is unchanged and the orchestrator
+  limited that section's edits, so the last-read time is not written there.
+- Gates (merged tree, token kept): full suite 16101 passed, 14 xfailed; ruff, format, `check_imports`, `check_records`
+  clean. After the two test renames: `tests/preopen`, `tests/rehearsal` and the size test, 2967 passed.
