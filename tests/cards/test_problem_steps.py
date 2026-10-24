@@ -70,7 +70,8 @@ def test_the_runner_s_last_line_and_the_card_name_the_same_steps_for_one_log(tmp
     """Test plan 4: the runner's real last line and the card's line, each built from the same run log."""
     results = {"weather": {"status": STEP_OK}, "snapshot": FAILED_SNAPSHOT, "fills": REFUSED_FILLS, "exits": {}}
     log = run_log.RunLog(DAY, tmp_path / "log.json", {name: {"result": r} for name, r in results.items()})
-    daily = SimpleNamespace(steps=SimpleNamespace(root=tmp_path), run=lambda day: log)
+    daily = SimpleNamespace(steps=SimpleNamespace(root=tmp_path), run=lambda day: log,
+                            on_its_day=lambda day: True)  # fmt: skip
     parts = SimpleNamespace(start=lambda day: None, busy=lambda: False)
     code, last = runner.DayRunner(daily, parts, waiter=None).run(DAY)
     card = status_lines({run_log_path(DAY): _log(**results)})[-1]
