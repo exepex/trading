@@ -1,7 +1,8 @@
-# Judge 580: G10 completion story text, v4's daily clock (story/g10-completion @ c876ede53), judge B
+# Judge 580: G10 completion story text, v4's daily clock (story/g10-completion @ d4e72f20d), judge B
 
-**FAIL (round 1 of 2; 3 should-fix, 3 minor). Lane 1, rule 1 (text first).** Markdown only (`docs/stories/G-forecasts.md`,
-+305 lines from main d5ee18d02): judged by reading. Doc-reading tests on c876ede53: 829 passed, 15 xfailed.
+**FAIL (round 1 of 2; 3 should-fix, 4 minor). Lane 1, rule 1 (text first).** Markdown only, judged by reading:
+first at c876ede53, then re-read at the head d4e72f20d (2f508ae15, e5626aabf, d4e72f20d add the `fno/quotes` owner,
+criterion 6's three readers and `v4_expiry`); every finding holds there. Doc tests at d4e72f20d: 829 passed, 15 xfailed.
 
 ## Criteria (is the text complete, true and safe?)
 
@@ -21,11 +22,11 @@
 
 1. **Should fix: the text never says what a rehearsal does with the three new pieces, and DRY reruns are the owner's
    first goal.** In a rehearsal every step that is not live runs anyway (`rehearsal/live_wiring.rehearsed_live`, REH1c;
-   handover section 1). So the `v4` part, `v4_release` and `v4_deadline` all run there. REH1b's recorded quote source (also for the named window: `quotes/window_wiring.py:31`)
-   serves only recorded attempts (`recorded_quotes.py:49-71`), and no `quote-snapshots-v4` attempt exists. So every
-   rehearsal ends the `v4` part with "no recorded in-window attempt", writes `system_late` for the day and the
-   catch-up days into `dryrun/`, and, under D3, ends "day done with problems: v4_release" with the card's warning
-   [strong: code read]. Fix: add a criterion naming each piece's rehearsal outcome and line, and say whether the
+   handover section 1). So the `v4` part, `v4_release` and `v4_deadline` all run there. REH1b's recorded source, also
+   for the named window (`quotes/window_wiring.py:31`), serves only recorded attempts (`recorded_quotes.py:49-71`),
+   and no `quote-snapshots-v4` attempt exists. So every rehearsal ends the `v4` part with "no recorded in-window
+   attempt", writes `system_late` for the day and the catch-up days into `dryrun/`, and, under D3, ends "day done
+   with problems: v4_release" with the card's warning [strong: code read]. Fix: add a criterion naming each piece's rehearsal outcome and line, and say whether the
    `v4_pack` key goes through `rehearsed_live` and whether D3's failure is right in a rehearsal of a day with no
    capture. Add a test with the mode on.
 2. **Should fix: the Groww-overlap evidence leaves out the one overlap that failed, and the fallback's trigger cannot
@@ -41,8 +42,8 @@
    is refused. Yet row 10 says "its first pack reader is G11", and `PACK_READERS` is only the two AI books
    (`guard.py:12`), which criterion 7 relies on ("outside PACK_READERS ... later V4/V5"). As written, G7b's V4/V5 rows
    would never be checked against the released SHA. Fix: name G7b's step as the first pack reader in row 10, and say
-   who brings it under `check_pack_binding` (G7b, in the interface table). Keep the 15:10 check keyed on something
-   other than `PACK_READERS`, or say how the two sets differ.
+   who brings it under `check_pack_binding` (G7b, in the interface table; d4e72f20d's `v4_expiry` adds to what G7b
+   reads). Keep the 15:10 check keyed on something other than `PACK_READERS`, or say how the two sets differ.
 
 ## Minor
 
@@ -51,12 +52,9 @@
 2. "Until the owner answers D1 and D3, the code waits for their values": say whether the code may be built and judged
    with the recommended values and only the merge waits.
 3. Criterion 4's good case "`A` at 14:33" does not match the timeline (capture to about 14:34, release about 14:35).
+4. 3a imports `first_v4_expiry` from "G7b's first commit"; no branch defines it yet (my `git grep`): add it to "Depends".
 
-## Plants
+## Plants and notes
 
-None (text). Add to the planned plants: the NIFTY glob widened in CLAUDE.md only; `v4_release` in a rehearsal (finding 1).
-
-## Notes
-
-D1 and D3 are clear enough for the owner to answer. I do not rule on them. D2 (catch-up from 22 Oct) matches 1.6's
-  "no release record at all".
+None (text). Add plants: the NIFTY glob widened in CLAUDE.md only; `v4_release` in a rehearsal (finding 1). D1 and D3
+are clear enough for the owner; I do not rule on them. D2 (catch-up from 22 Oct) matches 1.6's "no release record".
