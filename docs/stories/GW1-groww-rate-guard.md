@@ -126,6 +126,18 @@ it.
    source then paces at 2.5 a second, and at its own pacer again after.
 8. Each criterion fails when its code is broken on purpose (mutation per criterion). The full suite passes.
 
+## Proposal for round 2 (prepared, not pushed; orchestrator, 25 Oct)
+
+Rule 6's 7.5 a second for one rare mark breaks the owner's "in any situation". A run cannot know it is alone, so every
+taker paces for the worst pair: a claimed mark at 4 a second, an unclaimed one at 1 (4 + 1 = 5 and 1 + 1 = 2, both
+within 300 a minute and 10 a second). Cost, estimated from 78 slot rows of 20-23 Oct at 5 a second (overhead about 9 s,
+216-220 quotes): a mark takes about 63 s instead of 52 (median), and about 101 s instead of 83 at worst. The quiet
+window grows from 90 to 120 s: A4c then asks from 15:02:00, E3 from 15:17:00 (ends near 15:19:34 at 23 Oct's 2 min 34
+s), and the v4 capture at 14:32:00 sits exactly at the 14:30 window's end. An unclaimed mark at 1 a second spreads its
+contract quotes over about 3.8 minutes (the index still goes first, so the realised variance is on time). It also
+leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, candle) can never push a long mark over
+300.
+
 ## Claims
 
 Round 1, parts 1-6:

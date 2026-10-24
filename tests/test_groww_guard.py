@@ -253,14 +253,14 @@ class SleepClock:
 
 
 QUIET_CASES = [
-    ((14, 30, 10), [80.0]),  # inside A16's 14:30 mark: waits to 14:31:30
-    ((15, 0, 0), [90.0]),  # boundary: the mark itself
-    ((15, 1, 29), [1.0]),  # A4c at 15:01:29 starts at 15:01:30
-    ((15, 1, 30), []),  # boundary: the window's end
-    ((15, 15, 0), [90.0]),  # E3's execution capture starts at 15:16:30
-    ((14, 32, 0), []),  # the v4 capture at 14:32: no wait
+    ((14, 30, 10), [110.0]),  # inside A16's 14:30 mark: waits to 14:32:00
+    ((15, 0, 0), [120.0]),  # boundary: the mark itself
+    ((15, 1, 59), [1.0]),  # A4c at 15:01:59 starts at 15:02:00
+    ((15, 2, 0), []),  # boundary: the window's end
+    ((15, 15, 0), [120.0]),  # E3's execution capture starts at 15:17:00
+    ((14, 32, 0), []),  # the v4 capture at 14:32: no wait (the window's end)
     ((9, 14, 59), []),  # before the first mark
-    ((15, 31, 30), []),  # after the last mark's window
+    ((15, 32, 0), []),  # after the last mark's window
 ]
 
 
@@ -304,14 +304,14 @@ def test_get_providers_groww_starts_its_attempt_after_the_mark_and_a16s_own_neve
     with pytest.raises(GrowwQuietWindow):
         provider.api.get_quote(trading_symbol="X")  # a call inside the mark: refused, unsent
     assert sdk.calls == [] and clock.slept == []
-    provider.expiries("NIFTY")  # an attempt's first call: waits for 15:01:30, then asks
-    assert clock.slept == [60.0] and sdk.calls == ["get_expiries"] * 2  # this year and next
+    provider.expiries("NIFTY")  # an attempt's first call: waits for 15:02:00, then asks
+    assert clock.slept == [90.0] and sdk.calls == ["get_expiries"] * 2  # this year and next
     clock.at = datetime(2026, 10, 26, 15, 15, 5, tzinfo=IST)
     own = GrowwProvider({})
     own._token = lambda: "t"
     own.expiries("NIFTY")
     own.api.get_quote(trading_symbol="X")
-    assert clock.slept == [60.0] and sdk.calls[2:] == [
+    assert clock.slept == [90.0] and sdk.calls[2:] == [
         "get_expiries",
         "get_expiries",
         "get_quote",

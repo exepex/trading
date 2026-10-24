@@ -23,7 +23,9 @@ from .source import IntradayQuoteSource
 SPOT_BAND = 0.06  # strikes within 6% of the index level (design 2.1)
 INDEX_SYMBOL = "NIFTY"
 FUTURE_SYMBOL = "NIFTY{expiry:%y}{month}FUT"  # e.g. NIFTY26OCTFUT (step 0: the form get_quote accepts)
-WORKERS, PER_SECOND = 4, 5
+# GW1: any two takers stay within Groww's 300 a minute (5 a second) even unseen: a claimed mark at 4, an unclaimed
+# one at 1 (4 + 1 and 1 + 1). Step 0 measured 5 a second clean with 4 workers.
+WORKERS, PER_SECOND, SHARED_PER_SECOND = 4, 4, 1
 CALL_TIMEOUT_SECONDS = 10  # a hung call is a failure, never a stuck loop
 QUOTES_RETRIED = "quotes_retried:{count}"
 MAX_CODE_LENGTH = 12  # Groww's error codes are short words (e.g. 429); anything longer is not kept
@@ -56,7 +58,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
                 self._prepare_notes.append(f"prepare {step}: {type(exc).__name__}")
 
     def share_pace(self, shared: bool) -> None:
-        self.pacer = RatePacer(PER_SECOND / 2) if shared else self._own_pacer
+        self.pacer = RatePacer(SHARED_PER_SECOND) if shared else self._own_pacer
 
     def take(self, session: date, mark: datetime) -> SnapshotDocument:
         index = self._call("index", lambda api: api.get_quote(trading_symbol=INDEX_SYMBOL, exchange=api.EXCHANGE_NSE,

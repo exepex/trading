@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from ..intraday.slots import marks
 from ..models import now_ist
 
-QUIET_SECONDS = 90
+QUIET_SECONDS = 120  # 83 s at most at 5 a second; about 95 s expected at A16's 4 (GW1)
 REFUSED = "Groww call refused unsent: inside A16's {mark:%H:%M} mark until {end:%H:%M:%S} IST"
 
 

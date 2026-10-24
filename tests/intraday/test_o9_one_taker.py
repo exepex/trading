@@ -220,11 +220,12 @@ def test_a_run_that_could_not_claim_its_mark_takes_it_at_half_pace_and_the_next_
 
 
 def test_the_groww_source_asks_at_half_pace_only_while_shared():
-    from fno.intraday.groww_source import PER_SECOND
+    from fno.intraday.groww_source import PER_SECOND, SHARED_PER_SECOND
 
     adapter = source(FakeGrowwApi())
     own = adapter.pacer
     adapter.share_pace(True)
-    assert adapter.pacer is not own and adapter.pacer.interval == 2 / PER_SECOND
+    assert adapter.pacer is not own and adapter.pacer.interval == 1 / SHARED_PER_SECOND
+    assert PER_SECOND + SHARED_PER_SECOND <= 5 and 2 * SHARED_PER_SECOND <= 5  # any two takers: 300 a minute
     adapter.share_pace(False)
     assert adapter.pacer is own
