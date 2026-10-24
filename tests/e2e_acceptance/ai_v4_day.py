@@ -122,7 +122,7 @@ def replay(root: Path) -> dict:
     inputs = V4BookInputs(root, Slots(), ForecastFiles(v4), series)
     triggers = {book: FakeTrigger(book) for book in AI_BOOKS}
     lines = V4BookFirer(root, triggers, Released, inputs, RecordingAlerts(), lambda: at(14, 41), DAY,
-                        lambda day: [], Open()).fire(DAY)  # fmt: skip
+                        lambda day: [], Open(), lambda first, last: [DAY]).fire(DAY)  # fmt: skip
     for book in AI_BOOKS:
         routine = FakeRoutine(root, Clock(at(14, 41)))
         session = routine.session()

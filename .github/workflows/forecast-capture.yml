@@ -116,7 +116,7 @@ jobs:
         run: |
           set -o pipefail
           python -m fno ai collect | tee -a ai.log
-          python -m fno ai collect --protocol v4 | tee -a ai.log # G11: refuses before daily.live_from.ai_books_v4
+          python -m fno ai collect --protocol v4 | tee -a ai.log # G11: nothing before the AI slots' start or ai_books_v4
           grep '^ai receipt: ' ai.log >> "$GITHUB_STEP_SUMMARY" || echo "no AI receipt: nothing collected" >> "$GITHUB_STEP_SUMMARY"
       - name: Record new weekly audit draws and list the transcript audits due (owner's condition 1)
         if: ${{ !cancelled() }}

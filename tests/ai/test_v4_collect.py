@@ -49,7 +49,8 @@ class V4Desk:
 
     def fire(self, now=None):
         firer = V4BookFirer(self.root, self.triggers, lambda: Released(), self.inputs, self.alerts,
-                            lambda: now or at(14, 33), DAY, lambda day: [], NoBudgetStop())  # fmt: skip
+                            lambda: now or at(14, 33), DAY, lambda day: [], NoBudgetStop(),
+                            lambda first, last: [])  # fmt: skip
         return firer.fire(DAY)
 
     def answer(self, book, sealed=None, revealed=None, values=(0.05, 0.18), model="claude-opus-5-5"):
@@ -350,7 +351,8 @@ def test_the_fire_says_each_day_how_many_sessions_fell_before_go_live(tmp_path):
                         lambda day: [], NoBudgetStop(), lambda first, last: [early, DAY])  # fmt: skip
     lines = firer.fire(DAY)
     assert lines[0].endswith("1 AI session(s) from the slots' start 2026-10-23 fell before the go-live date "
-                             "2026-10-26: each is a miss")  # fmt: skip
+                             "2026-10-26: each with a released pack is a not_fired miss "
+                             "(a system_late day is excused)")  # fmt: skip
     on_time = V4BookFirer(desk.root, desk.triggers, Released, V4BookInputs(tmp_path, Ledger(), ForecastFiles(desk.v4),
                           Series()), desk.alerts, lambda: at(14, 33), DAY, lambda day: [], NoBudgetStop(),
                           lambda first, last: [DAY])  # fmt: skip

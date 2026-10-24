@@ -2453,7 +2453,8 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
   even while `ai_books_v4` is null, so registration and the go-live date should land on the same session (C13's order).
 - F2: P18 (`mark_exposures` dropped), P23 (`released_sha256` from the fire log) and P25 (the firer's stop rule without
   v4's sessions) each now fail a test through the collector or the firer; the three plants caught.
-- m1: both docstrings corrected. m2: the claim now says what holds: an annualised V1 is refused, an annualised V2
+- m1: both docstrings corrected. m2: the claim now says what holds: an annualised V1 above about 10% volatility is
+  refused (the cap 0.01 is 0.10 squared), an annualised V2
   below a VIX of about 22.4 and a standard deviation for V1 pass (a test pins all three). m3: C10's reason corrected.
 - Change 7: who records v4's first 10 transcript audits and how, in the go-live checklist.
 

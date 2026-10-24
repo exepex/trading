@@ -13,7 +13,10 @@ from ..forecast_scoring.v4.records import SlotRegistry
 
 AI_SLOTS = (V4_SLOT_HYBRID, V4_SLOT_AI)
 BEFORE_GO_LIVE = "before the AI books' v4 go-live ({live_from}): not fired, a miss"
-MISSED = "{count} AI session(s) from the slots' start {start} fell before the go-live date {live_from}: each is a miss"
+MISSED = (
+    "{count} AI session(s) from the slots' start {start} fell before the go-live date {live_from}: each with a "
+    "released pack is a not_fired miss (a system_late day is excused)"
+)
 
 
 def earliest_ai_start(registry: SlotRegistry) -> date | None:

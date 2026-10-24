@@ -1,5 +1,6 @@
 """Story G11 C17, what the AI books' v4 runs cost, printed by `ai collect --protocol v4`: per book, the runs since the
-books' v4 go-live, their start-to-end minutes as BG1's ledger holds them (the minutes BG1's cap counts), and from each
+books' v4 go-live, their minutes as BG1's ledger holds them (what BG1's cap counts: working minutes once BG1-w reads
+`sealed_at`, owner 24 Oct; start to end before it), and from each
 run's own timing file (`run_timing.py`) the working minutes (start to seal), the waiting minutes (seal to the end,
 mostly the wait for 15:10:10) and the reveal calls (turns) the wait took. p50 and p95 are nearest-rank. A run whose
 file has no seal time counts as "working unknown", never as zero. Whether the waiting minutes count against BG1's cap

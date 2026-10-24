@@ -109,7 +109,8 @@ class Desk:
         inputs = V4BookInputs(root, ledger or Ledger(), ForecastFiles(v4), Series())
         packs = released or Released()
         self.firer = V4BookFirer(root, self.triggers, lambda: packs, inputs, self.alerts,
-                                 lambda: now or at(14, 33), live_from, lambda day: [], NoBudgetStop())  # fmt: skip
+                                 lambda: now or at(14, 33), live_from, lambda day: [], NoBudgetStop(),
+                                 lambda first, last: [])  # fmt: skip
 
     def log(self):
         return json.loads((self.root / V4_TERMS.fired_path(DAY)).read_text())

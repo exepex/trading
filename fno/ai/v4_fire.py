@@ -57,7 +57,7 @@ class V4BookFirer:
     live_from: date | None
     sessions_before: Callable[[date], list[date]]  # v4's scored sessions before a day: the stop rule's window
     budget: BudgetStop  # BG1's month: the AI forecasters stop last
-    sessions_between: Callable[[date, date], list[date]] = lambda first, last: []  # v4's scored sessions, both ends in
+    sessions_between: Callable[[date, date], list[date]]  # v4's scored sessions, both ends included
 
     def fire(self, day: date) -> list[str]:
         missed = missed_before_go_live(self.inputs.registry, self.live_from, day, self.sessions_between)

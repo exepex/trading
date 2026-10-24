@@ -6,7 +6,8 @@ every file into the usage ledger. Standard library only, like every step the rou
 
 G11 C17: `seal` also notes when it sealed and each `reveal` call is counted, so the file says how much of the run was
 work (start to seal) and how much the wait for the reveal time (seal to end), and how many reveal calls (turns) the
-wait took; BG1's reader reads only start and end, so its minutes are unchanged."""
+wait took. BG1's reader decides which of them its cap counts (owner, 24 Oct: working minutes only, story BG1-w, which
+reads `sealed_at`: an ISO time with zone, or null when the run never sealed)."""
 
 from __future__ import annotations
 
