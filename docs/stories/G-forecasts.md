@@ -2614,7 +2614,8 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
 - `test_v4_collect.py` passed 350 lines with round 2's tests; the fire-log, go-live and F2 tests moved unchanged to
   `test_v4_collect_log.py` (1f81dcbe2).
 
-*Gates* on head 1f81dcbe2 (`main` merged; a clean copy, `FNO_SLACK_BOT_TOKEN` kept set): 15,767 passed, 1 skipped, 14
-xfailed; ruff and ruff format clean; `check_imports` clean (2,655 files); `check_records` clean (9,108 files).
+*Gates* on head 81f4d5460 (`main` merged at 81f4d5460; a clean copy, `FNO_SLACK_BOT_TOKEN` kept set): 15,874
+passed, 1 skipped, 14 xfailed; ruff and ruff format clean; `check_imports` clean (2,671 files); `check_records` clean
+(9,128 files).
 `check_numbers` runs on `main` at merge (no number was claimed by this story). Every later commit on the branch is
 Markdown only.
