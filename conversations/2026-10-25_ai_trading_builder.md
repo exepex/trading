@@ -25,6 +25,24 @@
   Under the 16 Oct no-trade rule for an unknown model, the books would trade about 1 day in 11 unless the decision
   prompt fixes model reporting.
 
+- Orchestrator, 25 Oct: "plan accepted"; "Q3: F4 is yours"; "Q4: ... one trading runner (F1t); any later
+  market-school AI driver reuses it, never a second one". Second message, "Owner update 25 Oct: every earlier pause and
+  condition from older decisions is lifted; so build on Q1 = yes ... and Q2 = draft the envelope and constitution v1
+  exactly as decided 16 Oct".
+  - F1t text 470cbdc5: the strategy label (criterion 17b), and the paper-strategy go-live check removed.
+  - F4 text fe5721d3: the port is F1t's, and NoJudge applies until F4 lands.
+  - F6: main merged at 50b479e1 (full gates 16,720 passed).
+  - Drafts at 7d44b51e: Book 2's envelope v1 and Book 3's constitution v1 (inert until registered in D6).
+- Found: Book 2 cannot trade even with Q1 lifted. D2 trades only `paper` rules, the only rule is `research`, and D4
+  refuses a trade the rules did not offer. Book 3 trades its own research specs. Owner question Q5 was sent.
+
+- Judges 621 (K) and 623 (E) failed F1t text round 1. Their findings were the served model (`last_served_model`; the
+  orchestrator ruled an instructions line alone unverified), decisions stopping on BG1's level alone, the
+  seal-before-reveal order, and fail-open on cost. All were accepted; round 2 is at 4dbf786d.
+- Orchestrator, 25 Oct: "the OWNER APPROVED (DESK_DECISIONS 25 Oct, '9 yes, 10 yes, 11 yes')": envelope v1, constitution v1
+  and (A) for Book 2. Done: D6 rows on story/ai-books-terms-v1 (1a694643; must merge with a merge commit), and F5's
+  revision for Q11 (a369d4f0).
+
 ## Decisions so far
 
 - F1t's code is re-ported onto main after the text PASS, never merged blind; F6 is re-judged after F1t's port; F5's
@@ -33,8 +51,4 @@
 
 ## Open questions
 
-- Owner: does the 25 Oct decision lift the 15 Oct rule "AI books trade on paper only after a strategy has passed"? Recommended:
-  yes for paper, every AI trade labelled "strategy not yet passed" and reported apart.
-- Owner: approve drafts of Book 2's envelope v1 and Book 3's constitution v1 (as decided on 16 Oct)? Recommended: yes.
-- Orchestrator: assign F4 to this session? Recommended: yes. Also confirm with the MS owner that the later AI drivers
-  reuse F1t's runner.
+- None open with the owner. The remaining waits are the judges' verdicts.
