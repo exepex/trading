@@ -162,3 +162,33 @@ def test_slow_extras_run_last_so_every_required_field_is_already_in(tmp_path):
     assert [what for what, _ in asked] == ["levels", "extras"] and result.complete
     times = [line.split(",")[2] for line in next(tmp_path.rglob("*.csv")).read_text().splitlines()[1:]]
     assert len(times) == result.rows and all(t <= asked[1][1].isoformat() for t in times)  # none after the extras start
+
+
+def test_a_failed_chain_still_hands_the_extras_the_day_s_expiries_and_no_attempt_reuses_old_extras(tmp_path):
+    """Self-review of round 2: a chain call failing after another came still gives the extras the listed expiries and
+    monthlies (never "no monthly after the day"); an attempt with no chain carries no earlier attempt's extras keys."""
+    from tests.quotes.test_quote_recorder import Clock
+
+    class SecondChainFails(Provider):
+        def chain(self, underlying, expiry):
+            if self.chains:
+                self.chains.append(expiry)
+                raise TimeoutError("slow")
+            return super().chain(underlying, expiry)
+
+    clock = Clock(datetime(2026, 10, 13, 14, 59, tzinfo=IST))
+    extra = extras(choose=lambda day, listed: None)
+    recorder = QuoteSnapshotRecorder(SecondChainFails(), LocalFolderStore(tmp_path / "a"), clock.now, clock.sleep,
+                                     extras=extra)  # fmt: skip
+    recorder.record(outside_window=True)
+    meta = json.loads(next((tmp_path / "a").rglob("*.meta.json")).read_text())
+    assert meta["future_quote"] == "recorded"  # e came from the day's monthlies, though the second chain failed
+
+    class NoChain(Provider):
+        def chain(self, underlying, expiry):
+            raise TimeoutError("slow")
+
+    again = QuoteSnapshotRecorder(NoChain(), LocalFolderStore(tmp_path / "b"), clock.now, clock.sleep, extras=extra)
+    again.record(outside_window=True)
+    meta = json.loads(next((tmp_path / "b").rglob("*.meta.json")).read_text())
+    assert not {"v4_expiry", "v4_failures", "future_quote"} & set(meta)  # never the earlier attempt's

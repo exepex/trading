@@ -10,7 +10,7 @@ from fno.config import ROOT, load_app_config
 from fno.constants import STEP_FAILED, STEP_OK
 from fno.daily.earlier_run import PartMarkers
 from fno.daily.part_locks import PART_LOCKS, PartLocks
-from fno.daily.quote_parts import NIFTY_QUOTES, NOT_IN_THIS_RUN, QUOTE_PARTS, QuoteParts, earliest_start
+from fno.daily.quote_parts import NIFTY_QUOTES, NOT_IN_THIS_RUN, QUOTE_PARTS, QuoteParts
 from fno.daily.quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
 from fno.daily.v4_part import v4_part, v4_quotes
 from fno.models import IST
@@ -69,8 +69,8 @@ def test_the_part_is_a4e_s_window_with_its_own_times_and_dataset():
     assert V4.arguments == ("quotes", "record", "--window", "v4")
     assert (WINDOW.start, WINDOW.end) == (time(14, 30), time(14, 40))
     assert V4.not_before == time(14, 27) and V4.window_end == time(14, 40)  # O1's 3-minute margin before 14:30
-    # never before the parts' one early limit (A4's shared `earliest_waiting_start`, 20 minutes, plus O1's margin)
-    assert earliest_start(WINDOW.start) == time(14, 13) and V4.not_before >= earliest_start(WINDOW.start)
+    # never before A4's one early-limit rule with this window's own 30-minute wait, plus O1's margin (14:03)
+    assert WINDOW.max_early_wait_seconds == 1800 and V4.not_before >= time(14, 3)
     assert V4.pathspecs == (":(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**",)
     assert V4.canonicals == (("groww/derivatives/quote-snapshots-v4", "nifty"),)
     assert V4.live_key == "v4_pack" and V4.apart and V4.starts_after is None
@@ -220,10 +220,10 @@ def test_the_wait_for_the_part_is_announced_once_and_an_adopted_part_is_never_ca
 
 
 def test_the_part_never_starts_before_the_parts_one_early_limit(monkeypatch):
-    """Judge 584 B1: the `v4` part's start follows O1's shared `earliest_start` (A4's `earliest_waiting_start`) whenever
-    that is later than 14:27; today it never is (14:13), so its start stays 14:27."""
-    import fno.daily.v4_part as v4_part_module
+    """Judge 584 B1 and its self-review: the `v4` part's start follows A4's one early-limit rule with the window's own
+    wait whenever that is later than 14:27; today it never is (14:03), so its start stays 14:27."""
+    from dataclasses import replace
 
     assert v4_part(WINDOW).not_before == time(14, 27)
-    monkeypatch.setattr(v4_part_module, "earliest_start", lambda start: time(14, 29))
-    assert v4_part(WINDOW).not_before == time(14, 29)
+    short = replace(WINDOW, max_early_wait_seconds=60)  # a 1-minute wait: the recorder refuses before 14:29
+    assert v4_part(short).not_before == time(14, 32)  # 14:29 plus O1's 3-minute margin: never "too early"

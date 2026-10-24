@@ -1,16 +1,19 @@
 """Protocol v4's 14:30-14:40 capture as a quote part of the daily run (story G10 completion, criteria 1-2): A4e's named
-window (`quotes record --window v4`), unchanged, started with the 3 pm parts at the run's start and waiting inside A4e's
-recorder for 14:30. Its times and dataset come from A4e's window in `config.yaml`, never copied; it is live from
-`daily.live_from.v4_pack` and commits its own files as soon as it ends (it shares none with NIFTY's 14:55 part)."""
+window (`quotes record --window v4`), unchanged, opened with the 3 pm parts at the run's start and started at 14:27
+(O1's margin before the window), waiting inside A4e's recorder for 14:30. Its times and dataset come from A4e's window
+in `config.yaml`, never copied; it is live from `daily.live_from.v4_pack` and commits its own files as soon as it ends
+(it shares none with NIFTY's 14:55 part)."""
 
 from __future__ import annotations
 
 from datetime import date, datetime
 
 from ..constants import V4_PACK_LIVE_KEY
-from ..quotes.recorder import DATASET
+from ..quotes.recorder import DATASET, earliest_waiting_moment
 from ..quotes.window import QuoteWindow
-from .quote_parts import START_MARGIN, QuotePart, earliest_start
+from .quote_parts import START_MARGIN, QuotePart
+
+ANY_DAY = date(2026, 1, 1)  # the limit is a time of day; a real day keeps a 30-minute wait clear of `date.min`
 
 V4_PART = "v4"
 V4_STEM = "nifty"  # A4e's named window records NIFTY under A4's own stem, in its own dataset
@@ -35,8 +38,10 @@ def v4_part(window: QuoteWindow) -> QuotePart:
 
 
 def _shortly_before(window: QuoteWindow):
-    """O1's margin before the window's start, never earlier than the parts' one early limit (`earliest_start`, A4's
-    shared `earliest_waiting_start`): the recorder then waits minutes, not half an hour (a rehearsal runs at real speed
-    while a recorder runs, REH1)."""
+    """O1's margin before the window's start, never earlier than A4's one early-limit rule (`earliest_waiting_moment`)
+    with the window's own wait (A4e's `max_early_wait_minutes`, 30 in `config.yaml`) plus O1's margin: the recorder then
+    waits minutes, not half an hour (a rehearsal runs at real speed while a recorder runs, REH1), and never says "too
+    early" whatever the window's wait (self-review: the default 20 minutes would not be this window's)."""
     shortly = (datetime.combine(date.min, window.start) - START_MARGIN).time()
-    return max(shortly, earliest_start(window.start))
+    limit = earliest_waiting_moment(ANY_DAY, window.start, window.max_early_wait_seconds) + START_MARGIN
+    return max(shortly, limit.time())
