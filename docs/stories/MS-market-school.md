@@ -3287,3 +3287,11 @@ maker's, made in the same run (`plain(edition)`): "the school wrapper changes no
 goldens (`golden/morning.txt`, `evening.txt`) stay: they pin the wrapper's own output. `golden/files.json` is deleted. Plant:
 a wrapper that drops a page file fails the two flag-on tests. Checked on main and on the designer's branch.
 
+### MS-SIM handover (builder session_01W2JE3W9xYftEDWTysHkdVC stopped on the owner's usage limit, 24 Oct 2026)
+
+- **State:** SIM-a to SIM-e (a, b, c, d, e1 to e3) and the DRY1 school fixes are all on main (last: `7cc3f6ac`). No local work is unpushed; nothing is half-built.
+- **Open, small, optional:** (1) print the checkout's HEAD in the archived `report.txt`, information only, outside the run id (Judge H, judge 533 addendum); (2) installed library versions are not in the run id (`requirements.txt` holds ranges), not measured whether a minor version moves a practice number.
+- **Where the real limit is:** the practice run prices little: about 7 recorded sessions against the 30 a spread bucket needs, and in a real window 716 of 2,350 legs were untraded and 549 impossible, so even 30 sessions leave most legs unpriced. Practice results stay "practice (simulator)", never a licence.
+- **Archived runs on main:** `receipts/data/school-practice/20240304_20240306_03e60fa98c1d` (the counted e3 evidence) and `..._4490ad2e299b` (an orphan under the old HEAD-based id, kept, not evidence).
+- **Rules that held:** no orders, no secrets, nothing to Slack, git with `env -u FNO_SLACK_BOT_TOKEN`, hooked commits, never merged to main myself (log appends excepted).
+
