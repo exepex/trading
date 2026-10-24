@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from functools import partial
 
 from ..alerts.output import announce
-from ..models import now_ist
+from ..models import now_ist, today_local
 from ..storage.librarian_cli import SIGN_IN_REFUSED, print_now, run_librarian
 from ..storage.manifest_commit import COMMITTED, NOTHING
 from ..storage.owner_token import DriveSignInRefused
@@ -154,7 +154,7 @@ def cmd_filings_day_lists(args) -> int:
 
     step = build_progress().step()
     first = step.day_lists_since if step else QUEUE[-1].day_lists_since
-    end = args.end or date.today() - timedelta(days=1)
+    end = args.end or today_local() - timedelta(days=1)
     names = [args.name] if args.name else sorted(DAY_LISTS)
     worst = 0
     for name, deadline in list_deadlines(names, now_ist(), args.max_minutes):

@@ -4,8 +4,7 @@ an account or places an order."""
 
 from __future__ import annotations
 
-from datetime import date
-
+from ..models import today_local
 from .constants import DEFAULT_ALPHA
 from .shadow_cli import COMMANDS as SHADOW_COMMANDS
 from .shadow_cli import add_shadow_parsers
@@ -55,7 +54,7 @@ def cmd_factory(args) -> int:
 def _register(args) -> list[str]:
     from .wiring import build_registration, read_idea
 
-    files = build_registration().register(read_idea(args.idea_id), date.today())
+    files = build_registration().register(read_idea(args.idea_id), today_local())
     return [f"registered: {args.idea_id} (G0 idea); commit together: {' '.join(files)}"]
 
 
@@ -72,7 +71,7 @@ def _gate(args) -> list[str]:
 
     run = getattr(build_gate_steps(), args.factory_cmd)
     lines = getattr(gate_numbers, f"{args.factory_cmd}_lines")
-    return [*lines(args.idea_id, run(read_idea(args.idea_id), date.today())), "commit research/factory/gates.csv"]
+    return [*lines(args.idea_id, run(read_idea(args.idea_id), today_local())), "commit research/factory/gates.csv"]
 
 
 def _status(args) -> list[str]:

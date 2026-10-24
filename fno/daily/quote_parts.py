@@ -147,6 +147,18 @@ class QuoteParts:
     def busy(self) -> bool:
         return self.started and len(self.results) < len(self.parts)
 
+    def recording(self) -> bool:
+        """True while a part's recorder is running (story REH1: a rehearsal's waits run at real speed then)."""
+        return bool(self.running)
+
+    def next_start(self) -> datetime | None:
+        """The earliest moment a part still to start may start (story REH1: a skipped wait never passes it)."""
+        if not self.started or self.closed:
+            return None
+        due = [datetime.combine(self.day, part.not_before, IST) for part in self.parts
+               if part.starts_after is None and part.not_before is not None and self._unstarted(part)]  # fmt: skip
+        return min(due, default=None)
+
     def service(self) -> None:
         """Starts the parts now due, commits every part that has ended (NIFTY's first), then starts the parts waiting
         for it."""
@@ -154,7 +166,7 @@ class QuoteParts:
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
-                self._finish(self._part(name), code, process.lines(), process.alerted())
+                self._finish(self._part(name), code, process.lines(), process.alerted(), process.errors())
         for part in self.parts:
             if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
                 self._start(part)
@@ -207,9 +219,9 @@ class QuoteParts:
         """How the part ran in this run and when it was started, by whichever run started it (the lock's record)."""
         return result | {"how": self.how.get(name, STARTED), "started_at": self.locks.started(self.day, name)}
 
-    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool) -> None:
+    def _finish(self, part: QuotePart, code: int, lines: list[str], alerted: bool, errors: list[str]) -> None:
         del self.running[part.name]
-        result = outcome(part.arguments, code, lines).result
+        result = outcome(part.arguments, code, lines, errors=errors).result
         files = self.changed(part.pathspecs)
         try:
             message = f"3 pm quotes {self.day} {part.name}"

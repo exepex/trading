@@ -39,9 +39,10 @@ def test_a_claim_prints_the_number_and_the_file_to_write(capsys):
 def test_a_refused_or_lost_claim_exits_1(capsys):
     for failure in (ClaimRefused("judge-report 66 is already claimed"), ClaimNotPushed("8 pushes refused")):
         assert claim_number.main(["judge-report", "x", "--session", "s", "--number", "66"], Claimer(failure)) == 1
+    tail = ". Nothing was pushed: do not write the file; fix it and claim again."
     assert capsys.readouterr().out.splitlines() == [
-        "number claim: NOT claimed (judge-report 66 is already claimed)",
-        "number claim: NOT claimed (8 pushes refused)",
+        "number claim: NOT claimed (judge-report 66 is already claimed)" + tail,
+        "number claim: NOT claimed (8 pushes refused)" + tail,
     ]
 
 
@@ -94,9 +95,10 @@ def test_with_a_baseline_only_new_problems_are_posted(tmp_path):
     assert "1 new problem(s)" in alerts.sent[0] and "response_1_a" not in alerts.sent[0]
 
 
-def test_the_alert_workflow_runs_on_every_push_and_hourly_with_the_push_baseline():
+def test_the_alert_workflow_runs_on_every_push_with_the_push_baseline_and_no_schedule():
     steps = (Path(__file__).resolve().parents[2] / ".github" / "workflows" / "number-alert.yml").read_text()
-    assert '  push:\n    branches: [main]\n  schedule:\n    - cron: "17 * * * *"' in steps
+    assert "  push:\n    branches: [main]\n  workflow_dispatch:" in steps
+    assert "schedule:" not in steps and "cron:" not in steps  # the hourly reminder is off (owner, 22 Oct 2026)
     assert "run: python tools/check_numbers.py --alert ${{ steps.baseline.outputs.args }}" in steps
     assert "FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}" in steps
 

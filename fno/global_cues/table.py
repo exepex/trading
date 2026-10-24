@@ -7,7 +7,8 @@ it came from, when we first saw it, and whether it was seen in time to be used l
 - A new date after the table's last one is appended. A date already held with the same value is skipped; with another
   value the table keeps its row and the change is logged in its revision log (`changed`); a date before the last one
   that the table lacks (a late publication) is logged (`late`) and never inserted. Rows already held never change.
-- Where the rows live is the `RowLog`'s business (`row_log.py`): a repository CSV, or Drive only for private cues.
+- Where the rows live is the `RowLog`'s business (`fno/storage/row_log.py`): a repository CSV, or Drive only
+  for private cues.
 """
 
 from __future__ import annotations
@@ -17,8 +18,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 
 from ..models import IST
+from ..storage.row_log import RowLog
 from .collection import SourcedValue
-from .row_log import RowLog
 
 FIELDS = ("value_date", "value", "source_sha256", "first_seen_at", "provenance")
 REVISION_FIELDS = ("cue", "value_date", "kind", "table_value", "new_value", "source_sha256", "seen_at")

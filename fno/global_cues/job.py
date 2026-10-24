@@ -12,9 +12,9 @@ import requests
 
 from ..research_data.calendar import CalendarError
 from ..storage.owner_token import DriveSignInRefused
+from ..storage.row_log import TableFileBroken
 from .check_files import CueChecks
 from .collector import CueCollector
-from .row_log import TableFileBroken
 from .source import GlobalCueSource
 from .table import CueTable
 

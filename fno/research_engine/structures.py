@@ -156,7 +156,11 @@ class ShortCondor(BodyAndWings):
 
     code, body_side = STRUCTURE_SHORT_CONDOR, SOLD
 
+    def __init__(self, offset: float = CONDOR_OFFSET):
+        """`offset`: the shorts' distance from spot as a fraction (EDGE1's SC3 passes 0.03; every other caller 0.02)."""
+        self.offset = offset
+
     def body_strikes(self, strikes: set[float], spot: float) -> tuple[float, float]:
-        call = nearest_strike(strikes, spot * (1 + CONDOR_OFFSET), tie_higher=True)
-        put = nearest_strike(strikes, spot * (1 - CONDOR_OFFSET), tie_higher=False)
+        call = nearest_strike(strikes, spot * (1 + self.offset), tie_higher=True)
+        put = nearest_strike(strikes, spot * (1 - self.offset), tie_higher=False)
         return call, put

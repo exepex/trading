@@ -71,22 +71,24 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
         "weather": phase_1,  # M1, on before the v4 freeze (owner, 21 Oct, DESK_DECISIONS 3a24ba24; response 299)
         "forecasts_v4": phase_1,  # G7's rule forecasts, the same; uncounted until the day after `Frozen on:`
         "price_distribution": phase_1,  # story G13
+        "premium_ranges": date(2026, 10, 23),  # story G13d: judge 465.2 PASS, merged on 22 Oct evening
+        "premium_range_scores": None,  # G13d's scores: off until their own go-live
         "price_distribution_scores": phase_1,  # G13's daily scores
         "price_ranges": phase_1,  # story G13b
         "price_range_scores": phase_1,  # G13b's daily scores and seals
-        "lab_close": None,  # story FL1-1: held until its HTML report is signed off (owner, f21a8966)
+        "close_read": date(2026, 10, 23), "close_recheck": date(2026, 10, 23),  # A4h: record-only 5 sessions first
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
 
-def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch):
+def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch, tmp_path):
     class Runner:
         def run(self, day):
             return 1, f"day done with problems: weather ({day})"
 
-    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg: Runner())
+    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg, root: Runner())
     printed = []
-    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append) == 1
+    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append, root=tmp_path) == 1
     assert printed == ["day done with problems: weather (2026-10-14)"]
 
 

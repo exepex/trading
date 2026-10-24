@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import date
 
 from ..constants import BOOKS, PROTOCOL_BREADTH, PROTOCOL_EVALUATION
+from ..models import today_local
 
 EXIT_FAILED = 2
 
@@ -70,7 +71,7 @@ def _freeze(name: str = PROTOCOL_EVALUATION) -> int:
     from .wiring import build_freezer, protocol_definition
 
     try:
-        record = build_freezer(protocol=name).freeze(date.today())
+        record = build_freezer(protocol=name).freeze(today_local())
     except FreezeRefused as refused:
         print(f"not frozen: {refused}")
         return EXIT_FAILED

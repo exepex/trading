@@ -14,6 +14,7 @@ import requests
 
 from ..constants import MONTH_CODES
 from ..http_pacing import REFUSALS_BEFORE_PAUSE, SourceCoolingOff
+from ..models import now_utc
 from .retry_policy import (
     MAX_RETRY_AFTER_SECONDS,
     NOT_PUBLISHED,
@@ -89,7 +90,7 @@ class NseArchiveSource(RawFileSource):
     FILENAME = ""  # format string of the original file name for a day
     TIMEOUT_SECONDS = 60
 
-    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: datetime.now(UTC)):
+    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: now_utc()):
         """`clock`: the time an HTTP-date `Retry-After` is measured from."""
         self.session, self.sleep, self.clock = session, sleep, clock
 
@@ -223,6 +224,26 @@ class ParticipantOiSource(NseArchiveSource):
     first_day = date(2019, 1, 1)
     BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
     FILENAME = "fao_participant_oi_{day:%d%m%Y}.csv"
+
+
+class ParticipantVolumeSource(NseArchiveSource):
+    """NSE's daily participant-wise trading volume (client, DII, FII, pro: contracts bought and sold per instrument
+    group), the sister file of participant OI in the same layout, e.g. fao_participant_vol_21102026.csv (story A23)."""
+
+    dataset = "nse/derivatives/participant-volume"
+    first_day = date(2019, 1, 1)
+    BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
+    FILENAME = "fao_participant_vol_{day:%d%m%Y}.csv"
+
+
+class FiiDerivativeStatsSource(NseArchiveSource):
+    """NSE's daily FII derivatives statistics (Excel 97): FII buy, sell and end-of-day open interest in contracts and
+    crores per instrument group (and per index from 2026), e.g. fii_stats_21-Oct-2026.xls (story A23)."""
+
+    dataset = "nse/derivatives/fii-stats"
+    first_day = date(2019, 1, 1)
+    BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
+    FILENAME = "fii_stats_{day:%d-%b-%Y}.xls"
 
 
 class NseEquityBhavcopySource(NseArchiveSource):

@@ -26,7 +26,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                     books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT,
                     waiter: Waiter | None = None, day_steps: Mapping[str, DayStep] | None = None,
                     git=None, alerts=None, entry_desk: EntryFiller | None = None,
-                    exit_timing: ExitTiming | None = None, git_committer=None) -> DailyRun:  # fmt: skip
+                    exit_timing: ExitTiming | None = None, git_committer=None, recorder=None) -> DailyRun:  # fmt: skip
     from ..books.version_registry import VersionRegistry
     from ..books.versions import VERSIONS_FILE
     from ..checks.gate import DataGate
@@ -58,7 +58,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     alerts, files = alerts or build_alert_sender(), build_private_files(root)
     journal = lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds, files)  # noqa: E731
     sync = DriveAccountSync(journal, committer, root)
-    pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch())  # noqa: E731
+    pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.target)  # noqa: E731
     packs = build_packs(root, refresh=pull, files=files, alerts=alerts)
     versions = Book1Versions(build_playbook_loader(root), VersionRegistry(root / VERSIONS_FILE), history,
                              history.head, committer)  # fmt: skip
@@ -73,7 +73,8 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                       entries, exits, exit_rules, alerts, now_ist)  # fmt: skip
     accounts = lambda: marked_accounts(root, books)  # noqa: E731
     marking = MarkingStep(journal, lambda: build_trade_marker(calendar, root), accounts, alerts)
-    return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, marking, files, day_steps)
+    return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, marking, files, day_steps,
+                    recorder)  # fmt: skip
 
 
 def build_trade_marker(calendar, root: Path) -> TradeMarker:

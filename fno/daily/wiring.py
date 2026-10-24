@@ -20,14 +20,22 @@ WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
+FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
-              "price_distribution_scores", "price_ranges", "price_range_scores", "lab_close")  # fmt: skip
+              "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
+              "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
+PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
 
 
 def range_issue(day: date) -> tuple[str, ...]:
     """G13b's live 15:45 issue (O1's `price_ranges` step)."""
     return ("pricerange", "issue", "--at", "1545", "--day", day.isoformat(), "--live")
+
+
+def premium_issue(day: date) -> tuple[str, ...]:
+    """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
+    return ("premrange", "issue", "--day", day.isoformat(), "--live")
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -39,6 +47,8 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
 def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep) -> DayRunner:
     """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock)."""
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
+    from ..close_read.constants import CLOSE_READ_FROM, CLOSE_RECHECK_FROM
+    from ..close_read.wiring import receipt_pathspecs as close_receipts
     from ..composition import build_alert_sender
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_limit import GitLocks
@@ -46,12 +56,13 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..desk.own_commits import OWN_UNPUSHED_FILE, OwnUnpushed
     from ..desk.owner_timing.wiring import build_owner_timing_desks, build_owner_timing_step
     from ..desk.wiring import build_entry_desk, build_execution_snapshots
-    from ..forecast_lab.constants import REPORT_AT
-    from ..forecast_lab.wiring import receipt_pathspecs as lab_receipts
     from ..intraday.backfill_daily import CATCH_UP_COMMAND, CATCH_UP_FROM, candle_folders
     from ..models import now_ist
+    from ..premium_ranges.folders import receipt_pathspecs as premium_receipts
     from ..price_distribution.folders import receipt_pathspecs
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
+    from ..rehearsal.live_wiring import rehearsed_live, rehearsed_not_live
+    from ..rehearsal.waits import rehearsed_waiter
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
     from .earlier_run import PartMarkers
@@ -62,18 +73,20 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .reviews import ReviewsStep, ScorecardReview
     from .steps import Alerted, CommandStep, LiveFrom, NotBefore
+    from .wait_notice import AnnouncedWaiter
 
-    git, alerts, processes, live = (
+    git, alerts, processes, (live, not_live) = (
         Git(root),
         ReportedAlerts(build_alert_sender()),
         ChildProcesses(root),
-        live_dates(cfg),
+        rehearsed_live(live_dates(cfg)),  # story REH1c: every report runs in a rehearsal, and says if not live
     )
     locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
     parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist, PartLocks(root / PART_LOCKS),
                        PartMarkers(root, git))  # fmt: skip
-    waiter = ServicingWaiter(parts, now_ist, sleep)
+    announced = AnnouncedWaiter(ServicingWaiter(parts, now_ist, sleep), now_ist, lambda line: print(line, flush=True))
+    waiter = rehearsed_waiter(announced, parts)  # story REH1: a rehearsal skips the waits outside the windows
 
     def waiting(seconds: float) -> None:
         """A command's wait: a quote part due meanwhile starts (no git: the commits stay between the steps)."""
@@ -87,11 +100,15 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     price_distribution = CommandStep(processes, lambda day: ("pricedist", "record", "--day", day.isoformat(), "--live"),
                                      receipt_pathspecs(), git.changed, waiting, locks)  # fmt: skip
     price_ranges = CommandStep(processes, range_issue, range_receipts(), git.changed, waiting, locks)
-    lab_close = CommandStep(processes, lambda day: ("lab", "close", "--day", day.isoformat()), lab_receipts(),
-                            git.changed, waiting, locks)  # fmt: skip
+    premium_ranges = CommandStep(processes, premium_issue, premium_receipts(), git.changed, waiting, locks)
+
+    def close_step(name: str, arguments: tuple[str, ...], gate) -> DayStep:
+        """A4h's reads: LiveFrom outside NotBefore (a day before the live date never waits), its receipts only."""
+        step = CommandStep(processes, lambda day: arguments, close_receipts(), git.changed, waiting, locks)
+        return Alerted(name, LiveFrom(NotBefore(step, gate, waiter), live[name]), alerts)
 
     def scores(arguments: tuple[str, ...], pathspecs: tuple[str, ...], name: str) -> DayStep:
-        """G13's and G13b's scorers: their own receipts only (the scores file; G13b's seals too)."""
+        """G13's, G13b's and G13d's scorers: their own receipts only (the scores file; G13b's and G13d's seals too)."""
         step = CommandStep(processes, lambda day: arguments, pathspecs, git.changed, waiting, locks)
         return Alerted(name, LiveFrom(step, live[name]), alerts)
 
@@ -127,9 +144,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         "price_distribution": Alerted(
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
+        "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),
+        "premium_range_scores": scores(PREMIUM_SCORES, premium_receipts(), "premium_range_scores"),
         "candles": Alerted(
             "candles",
             NotBefore(
@@ -139,13 +158,43 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             ),
             alerts,
         ),  # A16b-d: yesterday's candles, after A16's last mark
-        "lab_close": Alerted("lab_close", LiveFrom(NotBefore(lab_close, REPORT_AT, waiter), live["lab_close"]), alerts),
-    }  # FL1-1: LiveFrom outside NotBefore, so a day before its live date does not wait for 15:45 (O1 builder)
+        "close_read": close_step("close_read", ("closes", "read"), CLOSE_READ_FROM),  # A4h
+        "close_recheck": close_step("close_recheck", ("closes", "read", "--recheck"), CLOSE_RECHECK_FROM),
+    }
     cfg_orders, exit_rules = build_book1_orders(cfg, root), build_book1_exit_rules(root, alerts)
     entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
     fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
+    steps = rehearsed_not_live(steps, not_live)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
-                                git_committer=committer)  # fmt: skip
-    return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))
+                                git_committer=committer, recorder=public_recorder(root))  # fmt: skip
+    archive = full_log_archive(root, committer, alerts)
+    return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts), archive.archive)
+
+
+def public_recorder(root: Path):
+    """Story O1-status-only: the committed run log holds status only; the full text stays in the private log."""
+    from .full_log import FULL_LOGS, FullRunLog, PublicRecorder
+    from .public_log import PublicResult, ReasonRegistry
+    from .reason_codes import COMMON, STEP_TEMPLATES
+
+    return PublicRecorder(PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES)), FullRunLog(root / FULL_LOGS))
+
+
+def full_log_archive(root: Path, committer, alerts):
+    """The full log's write-once Drive copy (O9's data store), its receipt in this checkout's `receipts/`."""
+    from ..storage import wiring as storage
+    from ..storage.data_store import DataStore, new_run_id
+    from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
+    from ..storage.receipts import ReceiptFolder
+    from .full_log import FULL_LOGS, FullRunLog
+    from .full_log_archive import DriveNotSet, FullLogArchive
+
+    def store() -> DataStore:
+        drive = storage.build_owner_drive()
+        if drive is None:
+            raise DriveNotSet()
+        return DataStore(drive, DATA_AREA, ReceiptFolder(root / RECEIPTS_FOLDER), FULL_LOG_WRITER, new_run_id())
+
+    return FullLogArchive(FullRunLog(root / FULL_LOGS), store, committer, alerts)

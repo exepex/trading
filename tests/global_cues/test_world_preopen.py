@@ -12,11 +12,11 @@ from fno.global_cues import preopen_cli
 from fno.global_cues import wiring as global_cues_wiring
 from fno.global_cues.markets import SEOUL, TOKYO
 from fno.global_cues.preopen import CLOSED, LIVE, LUNCH, ROW_FIELDS, STALE, PreopenReader, level_status, newest_level
-from fno.global_cues.row_log import CsvRowLog
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.yahoo_source import YahooBlocked, YahooChartSource
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.row_log import CsvRowLog
 from tests.global_cues.world_fakes import CannedResponse, CountingSession, utc, yahoo_chart
 
 TOKYO_ZONE = ZoneInfo("Asia/Tokyo")
@@ -316,3 +316,18 @@ def test_a_day_nse_does_not_trade_reads_nothing(monkeypatch):
     out = []
     assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=lambda day: False) == 0
     assert out == [preopen_cli.NOT_A_TRADING_DAY]
+
+
+def test_a_day_the_calendar_cannot_answer_alerts_and_records_once(monkeypatch, tmp_path):
+    from fno.research_data.calendar import CalendarError
+
+    sent, errors = _alerts(monkeypatch, tmp_path)
+
+    def unknown(day):
+        raise CalendarError("2027 is not in the calendar yet")
+
+    monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: pytest.fail("nothing is read"))
+    out = []
+    assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=unknown) == 1
+    assert sent == [preopen_cli.ALERT.format(what="NSE calendar cannot answer for today")]
+    assert [r.message for r in errors.rows()] == ["NSE calendar cannot answer for today"]

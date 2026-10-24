@@ -5,12 +5,11 @@ and cache, O8's GitHub push evidence for the seal, and O1's `live_from` date."""
 from __future__ import annotations
 
 import os
-import subprocess
 from datetime import date, timedelta
 
 from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
-from ..constants import DEFAULT_REPOSITORY, ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, NIFTY_SYMBOL
+from ..constants import DEFAULT_REPOSITORY, ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, NIFTY_SYMBOL, PUBLISH_BRANCH
 from ..forecast_v4_rules.wiring import CLOSES_FILE
 from ..health.evidence import Evidence, HealthHistory
 from ..models import now_ist
@@ -18,15 +17,16 @@ from ..price_distribution.horizons import previous_regular_session
 from ..price_distribution.sources import PanelEodChains, SnapshotChains
 from ..price_distribution.store import DriveDistributionStore
 from ..research_data.panel_reader import read_nifty_panel
+from ..research_engine.ledger import Git
 from ..storage.data_wiring import DRIVE_CACHE_FOLDER, build_data_store, build_drive_cache, receipt_folder
 from ..storage.wiring import (
     PANEL_FOLDER,
     REPOSITORY,
-    build_index_close_files,
     build_nifty_panel_files,
     build_owner_drive,
     build_quote_store,
     build_session_calendar,
+    build_stored_index_close_files,
 )
 from .backfill import RangeBackfill
 from .bhavcopy_chains import BhavcopyChains
@@ -47,6 +47,7 @@ WRITER = "pricerange"
 BANKNIFTY = "BANKNIFTY"
 NO_DRIVE = "set the four FNO_GDRIVE_* owner settings to use G13b's Drive data store"
 CACHE_ROOT = REPOSITORY / DRIVE_CACHE_FOLDER
+SEAL_READ_ATTEMPTS = 3  # a failed evidence read, read again twice within the run (story receipts-reach)
 
 
 def live_from(cfg: dict) -> date | None:
@@ -86,7 +87,7 @@ def seal_lines(seals: Seals, store, day: date) -> list[str]:
 def build_issuer(cfg: dict) -> RangeIssuer:
     store, calendar = build_store(), build_session_calendar()
     tables, seals = build_tables(store), build_seals(store)
-    index_closes = IndexFileCloses(build_index_close_files(), calendar)
+    index_closes = IndexFileCloses(build_stored_index_close_files(), calendar)
 
     def update_banknifty(day: date) -> list[str]:
         lines = tables.update(BANKNIFTY, index_closes, previous_regular_session(calendar, day))
@@ -110,22 +111,27 @@ def build_backfill(cfg: dict, eod: bool, years=None) -> RangeBackfill:
 
 def build_table_update() -> tuple[CloseTables, IndexFileCloses]:
     calendar = build_session_calendar()
-    return build_tables(build_store()), IndexFileCloses(build_index_close_files(), calendar)
+    return build_tables(build_store()), IndexFileCloses(build_stored_index_close_files(), calendar)
 
 
 def deep_enough(root=ROOT, days: int = 10) -> None:
     """In a shallow clone, git's "first commit adding the file" is the clone's boundary commit, so the push time
-    found would be wrong: the history of the last `days` days is fetched first (review finding 1)."""
-    run = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=root, capture_output=True, text=True)
-    if run.stdout.strip() == "true":
-        since = (now_ist().date() - timedelta(days=days)).isoformat()
-        subprocess.run(["git", "fetch", "--quiet", f"--shallow-since={since}", "origin", "main"], cwd=root,
-                       capture_output=True, text=True, check=False)  # fmt: skip
+        found would be wrong: the history of the last `days` days is fetched first (review finding 1). Through B4's
+    `Git`, so a failure raises instead of passing as "not shallow" or a fetch that never happened."""
+    git = Git(root)
+    if git.is_shallow():  # a failed read or fetch raises GitFailed: a wrong push time would seal a record wrongly
+        git.deepen_since(now_ist().date() - timedelta(days=days), PUBLISH_BRANCH)
 
 
-def build_seal_check(env=os.environ) -> SealCheck:
+def build_seal_check(env=os.environ, deadline_of=None) -> SealCheck:
+    """`deadline_of`: G13b's 15:45 deadline when None; G13d passes its own (`fno/premium_ranges/wiring.py`)."""
     deep_enough()
     history = HealthHistory(ROOT)
     repository = env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
-    receipts = GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history)
-    return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar())
+    from ..rehearsal.receipts_wiring import rehearsed_receipts
+
+    receipts = rehearsed_receipts(
+        GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history), history
+    )  # REH1b: the rehearsal's push log
+    return SealCheck(Evidence(ROOT, history, receipts).file_pushed_at, build_session_calendar(), deadline_of,
+                     attempts=SEAL_READ_ATTEMPTS)  # fmt: skip

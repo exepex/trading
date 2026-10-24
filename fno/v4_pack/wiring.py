@@ -22,5 +22,9 @@ def build_released_packs(env: Mapping[str, str] = os.environ) -> ReleasedPacks:
 
 def build_commitment_times(root: Path = ROOT, env: Mapping[str, str] = os.environ) -> CommitmentTimes:
     history = HealthHistory(Path(root))
-    receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
+    from ..rehearsal.receipts_wiring import rehearsed_receipts
+
+    receipts = rehearsed_receipts(
+        GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history), history
+    )  # REH1b: the rehearsal's push log
     return GitHubCommitmentTimes(Evidence(Path(root), history, receipts))

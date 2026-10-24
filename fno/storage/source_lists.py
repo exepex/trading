@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .raw_source import (
+    FiiDerivativeStatsSource,
     NseArchiveSource,
     NseDailyFoSource,
     NseDeliverySource,
@@ -11,6 +12,7 @@ from .raw_source import (
     NseLegacyFoSource,
     NseSpanBodSource,
     ParticipantOiSource,
+    ParticipantVolumeSource,
 )
 from .snapshot_source import (
     CorporateActionsBySymbolSource,
@@ -34,6 +36,8 @@ DATED_SOURCES = (
     NseEquityBhavcopySource,
     NseDeliverySource,
     NseSpanBodSource,
+    ParticipantVolumeSource,
+    FiiDerivativeStatsSource,
 )  # one file per session: the coverage check's datasets
 SNAPSHOT_SOURCES = (
     EquityListSource,
@@ -56,7 +60,7 @@ def dataset_name(source: type[NseArchiveSource]) -> str:
 
 # Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes; P6: the
 # equity, delivery and current-format F&O files the market read models need each day, and the reference lists; A14:
-# the beginning-of-day SPAN files.
+# the beginning-of-day SPAN files; A23: participant volume and FII derivatives statistics, the flow history.
 LIBRARIAN_DATASETS = {
     dataset_name(s): s
     for s in (
@@ -66,6 +70,8 @@ LIBRARIAN_DATASETS = {
         NseDeliverySource,
         NseDailyFoSource,
         NseSpanBodSource,
+        ParticipantVolumeSource,
+        FiiDerivativeStatsSource,
     )
 }
 SNAPSHOT_DATASETS = {dataset_name(s): s for s in SNAPSHOT_SOURCES}

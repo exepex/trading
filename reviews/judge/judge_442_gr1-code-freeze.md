@@ -142,3 +142,84 @@ results will quote.
    so.
 3. New code hashes in `FREEZE.md`, and the ledger's `protocol_commit` updated if `PROTOCOL.md` changes.
 4. Then I re-check.
+
+## Addendum 1: deviation 4 at a8bdcc49, re-freeze at 08731ac6 (number 442.1, claimed with `tools/claim_number.py`)
+
+**PASS. Run 1 (`--select`) may start.** Nothing has been fitted or scored on real data.
+
+| Finding | Result | Evidence |
+|---|---|---|
+| SF1, standardised conditioners | MET | see "SF1" below |
+| SF2, C6 from d's own file | MET | see "SF2" below |
+| SF3, C9 split in the frozen output | MET | see "SF3" below |
+| Note 3, named drop reasons | MET | each candidate's `needs`; C11 joins its two |
+| Notes 1, 2 and 4 | MET | stated in section 14. `run_final` writes nothing; only the local, gitignored expiry cache is touched, keyed by file SHA-256 |
+| Deviation 4 in section 14 | MET | before run 1; it changes theta's units, C6's input and two reported outputs; no candidate, period, score, constraint or rule; the count stays 51 |
+
+### SF1
+- `candidates.column_scales` takes the SD of each non-intercept column on the candidate's own train rows, and
+  `standardised` divides by it.
+- `selection.fitted` fits in those units and stores `scales` in `selection.json`.
+- `candidate_for(cid, scales)` rebuilds the same candidate in run 2, C11 included.
+- N0-C is standardised the same way. C2 has no such column.
+- The builder's test recovers a planted +40% per SD effect on a 0.004-unit conditioner, which was an edge hit in raw
+  units. The "no standardising" mutant is caught.
+
+### SF2
+- `Context.expiries` is now `{index: {day: d's own list}}`, and `_expiry` reads `[row.day]`. A day with no file is
+  dropped.
+- A test shows a later file's revised date does not count. The "union" mutant is caught.
+
+### SF3
+- `splits.c9_split` runs in run 1 (train and 2024) and in run 2 (final).
+- The breaks are pinned: BANKNIFTY 4 Sep 2023 (the first Wednesday weekly in the files) and 14 Nov 2024 (the first
+  monthly-only file); NIFTY 1 Sep 2025 (recalled; run 2 reports what its own files show).
+- My plant (14 Nov 2024 -> 21 Nov) fails 1 test.
+- This split is descriptive and never decided on.
+
+### Freeze
+- Code: `sha256sum -c` on all 16 rows of "Analysis code" passes.
+- `PROTOCOL.md` hashes `f932c49b...e399`, as `FREEZE.md` records under "Deviation 4".
+- All 15 ledger rows name a8bdcc49.
+
+### Tests, mutation proof and gates (run by me on 08731ac6)
+| Check | Result |
+|---|---|
+| `tests/research_gr1` | 37 passed |
+| `mutation_proof.py` | 26 of 26 caught |
+| full suite, two runs on a fresh worktree | 9,003 passed, 17 xfailed |
+| `ruff check fno tests tools` | clean |
+| `ruff format --check` | 1,667 files formatted |
+| `check_imports` | clean |
+
+My first full run, after my plant had been reverted and `__pycache__` cleared, showed 1 failure among 9,002 passes. I
+did not capture its name; the two clean reruns on a fresh worktree did not repeat it. I record it as an unidentified
+one-off failure, not something attributable to this branch.
+
+### Next
+- Run 1. Commit `selection.json` and send it to me before `--final`.
+- Then run 2 once. I reproduce `final.json` from the committed `selection.json` by calling `run_final` outside the
+  CLI, and judge the results file.
+
+## Addendum 2: run 1 (`--select`) at 476aa240, reproduced by the judge (number 442.2, claimed with `tools/claim_number.py`)
+
+**Reproduced byte for byte. Run 2 (`--final`) may start, once.**
+
+- **The commit.** 476aa240 adds only `research/gr1/selection.json` on the frozen code 08731ac6 (the guard passed).
+- **The reproduction.** On a fresh worktree of 476aa240, I called `guard.check_code`, then `study.run_select()` through
+  the same `encode`, reading the inputs through the verified Drive cache. My output's SHA-256 is
+  `083756a0a80c649e02965749da25a737939a97082966446feb88a99c011de65c`, equal to the committed file.
+- **What the file holds.** No 2025-26 date appears in it, and each cell's winner is the eligible candidate with the most
+  negative paired difference.
+
+| Cell | Winner | 2024 paired difference against C0, and its share of C0's QS | Note |
+|---|---|---|---|
+| NIFTY/N1 | C8 | -3.42e-5, about 0.8% | |
+| NIFTY/N3 | C9 | -1.36e-5, about 0.2% | |
+| BANKNIFTY/N3 | C10 | -2.40e-5, about 0.3% | |
+| BANKNIFTY/N1 | none | | every candidate fails the 50% band; C0 itself has 50% coverage of 0.624 on 2024 |
+
+N0 carries N0-A: neither N0-B nor N0-C is inside the bands.
+
+**For the owner, before run 2.** NIFTY/N3's winner is C9 (weekday). NIFTY's expiry moved to Tuesday in Sep 2025,
+inside the final period. A failure there would have a known cause; the frozen split will show it.

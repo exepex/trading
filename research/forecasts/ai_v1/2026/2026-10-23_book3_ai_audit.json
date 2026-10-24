@@ -1,0 +1,54 @@
+{
+ "attempted": {
+  "q1_nifty_up_20d": {
+   "probability": 0.53,
+   "reason": "NIFTY 22486 at 15:00, -0.9% today and about -9% from the 24.6k Aug highs; short-term oversold, mild positive drift and mean reversion against a falling trend. Close to a coin flip, slight lean up."
+  },
+  "q2_nifty_move_3pct_20d": {
+   "probability": 0.5,
+   "reason": "IV30 16.4 and trailing RV20 16.4 give a 20-day sd of about 4.6%; a 3% band is about 0.65 sd, so a normal model says about 0.51. Fat tails offset by vol mean reversion; 0.50."
+  },
+  "q3_rv20_above_trailing": {
+   "probability": 0.45,
+   "reason": "Trailing RV20 16.4 is already high against the 12-14 seen most of 2026; VIX 17 implies roughly the same level. Vol clusters, but from elevated levels it tends to revert, so a slight lean below 0.5."
+  },
+  "q4_vix_up_10d": {
+   "probability": 0.4,
+   "reason": "VIX 17.02, up 1.26 today and up from about 14.8 a week ago; after spikes VIX usually falls back within 10 days unless the selloff deepens (Mar 2026 shows it can). The Oct 27 expiry in the window adds little. Lean down."
+  },
+  "q5_rv20_below_atm_iv30": {
+   "probability": 0.55,
+   "reason": "IV30 16.4 equals trailing RV20; the usual variance risk premium favours realised below implied, but in a falling market realised can stay high. Small lean to yes."
+  }
+ },
+ "book": "book3_ai",
+ "commitment_received_at": "2026-10-23T09:44:57+00:00",
+ "counted": {
+  "q1_nifty_up_20d": 0.53,
+  "q2_nifty_move_3pct_20d": 0.5,
+  "q3_rv20_above_trailing": 0.45,
+  "q4_vix_up_10d": 0.4,
+  "q5_rv20_below_atm_iv30": 0.55
+ },
+ "day": "2026-10-23",
+ "fire": {
+  "fired": true,
+  "fired_at": "2026-10-23T15:10:20.220190+05:30",
+  "session": "https://claude.ai/code/cse_0139W89pzfHhcvHoK7p1oRwb",
+  "version": "book3_ai/v1/sha256:6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "unverified",
+ "model_reported": "unknown",
+ "notes": [],
+ "problems": {
+  "q1_nifty_up_20d": "",
+  "q2_nifty_move_3pct_20d": "",
+  "q3_rv20_above_trailing": "",
+  "q4_vix_up_10d": "",
+  "q5_rv20_below_atm_iv30": ""
+ },
+ "reveal_received_at": "2026-10-23T09:45:12+00:00",
+ "status": "on_time",
+ "version": "book3_ai/v1/sha256:6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a/isolation:sealed_same_day"
+}

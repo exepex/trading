@@ -4,7 +4,7 @@ nothing but its own files staged, and logs one gate-log row. A measurement (B0, 
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import date
 from typing import Protocol
 
@@ -23,6 +23,10 @@ class StepGit(Protocol):
     def staged_paths(self) -> list[str]: ...
 
     def tree_matches(self, commit: str, paths: tuple[str, ...]) -> bool: ...
+
+    def is_ancestor(self, older: str, newer: str) -> bool: ...
+
+    def unchanged_since(self, commit: str, path: str) -> bool: ...
 
 
 class GateOrder:
@@ -48,6 +52,12 @@ class GateOrder:
         return next(row for row in self.gates.rows() if row.trial_id == trial_id and row.gate == gate)
 
     def log(self, card: IdeaCard, gate: Gate, outcome: Outcome, today: date, numbers: str) -> GateRow:
-        row = GateRow(card.trial_id, gate, outcome, today.isoformat(), self.git.head(), numbers)
-        self.gates.append(row)
+        row, write = self.prepare(card, gate, outcome, today, numbers, self.git.head())
+        write()
         return row
+
+    def prepare(self, card: IdeaCard, gate: Gate, outcome: Outcome, today: date, numbers: str, commit: str
+                ) -> tuple[GateRow, Callable[[], None]]:  # fmt: skip
+        """The row at `commit` and its append, every check done now: a gate with another write reads git first."""
+        row = GateRow(card.trial_id, gate, outcome, today.isoformat(), commit, numbers)
+        return row, self.gates.prepare(row)

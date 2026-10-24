@@ -16,3 +16,11 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-21T06:04:46.956697+05:30,eia/petroleum/brent-spot-daily/2026/10/21/060446_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,364aa7a7a99ece28ccc7dcdb5b82760458f5f9bc365a980dcad18234c8969e4e,452563
 2026-10-21T07:01:09.362348+05:30,eia/petroleum/brent-spot-daily/2026/10/21/070109_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,364aa7a7a99ece28ccc7dcdb5b82760458f5f9bc365a980dcad18234c8969e4e,452563
 2026-10-21T19:36:53.812113+05:30,eia/petroleum/brent-spot-daily/2026/10/21/193653_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,364aa7a7a99ece28ccc7dcdb5b82760458f5f9bc365a980dcad18234c8969e4e,452563
+2026-10-22T06:09:02.644066+05:30,eia/petroleum/brent-spot-daily/2026/10/22/060902_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
+2026-10-22T06:58:03.766721+05:30,eia/petroleum/brent-spot-daily/2026/10/22/065803_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
+2026-10-22T19:35:25.731413+05:30,eia/petroleum/brent-spot-daily/2026/10/22/193525_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
+2026-10-23T06:06:53.207211+05:30,eia/petroleum/brent-spot-daily/2026/10/23/060653_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,ed3ff1fbeca6d083523e6599905f012c88123d35ea7b8a624394c29d356963a0,453783
+2026-10-23T06:56:47.907124+05:30,eia/petroleum/brent-spot-daily/2026/10/23/065647_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
+2026-10-23T19:18:20.408624+05:30,eia/petroleum/brent-spot-daily/2026/10/23/191820_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
+2026-10-24T06:05:13.956760+05:30,eia/petroleum/brent-spot-daily/2026/10/24/060513_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
+2026-10-24T07:02:26.926636+05:30,eia/petroleum/brent-spot-daily/2026/10/24/070226_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765

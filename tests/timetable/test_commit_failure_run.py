@@ -1,6 +1,7 @@
 """Judge 118 addendum 3, should-fix 1, and decision 44: with the real `GitCommitter` in a daily run, a failed commit
 (a staged raw quote file, or a pull that cannot reach origin) stops the run at that step with one alert naming why,
-commits nothing and raises `RunStopped`; never an unhandled refusal."""
+commits nothing and raises `RunStopped`; never an unhandled refusal. A failed git read (`GitFailed`) stops it the same
+way, so the missed exits are never silent (judge 505)."""
 
 import shutil
 import subprocess
@@ -10,9 +11,10 @@ import pytest
 from fno.books.account import PaperAccount
 from fno.constants import BOOK1_RULES
 from fno.desk.daily_ports import CommitFailed
-from fno.desk.daily_run import RunStopped
+from fno.desk.daily_run import EXITS_MISSED, RunStopped
 from fno.desk.git_sync import Git, GitCommitter
 from fno.desk.pending_commit import PendingCommitter
+from fno.research_engine.ledger import GitFailed
 
 from .fakes import C4, RAW_QUOTE, Commits, Decisions, Rules, daily_run
 from .test_daily_run import NORMAL, decided, run_day
@@ -102,3 +104,23 @@ def test_a_failed_commit_inside_a_step_stops_the_run_at_that_step(root, tmp_path
     (sent,) = alerts.sent
     assert "run STOPPED at step snapshot" in sent and "Execution capture" in sent
     assert PaperAccount(root, BOOK1_RULES).fills() == []  # no fill and no exit step after it
+
+
+class GitFailsOnRecorded(Decisions):
+    """The fills read each recorded run's commit back (`PlaybookGit.added_in`); here that git read fails."""
+
+    def recorded(self, book, day, run_id, commit):
+        raise GitFailed("git log failed (exit 128): fatal: unable to read tree (simulated)")
+
+
+def test_a_failed_git_read_in_the_fill_step_stops_the_run_with_one_alert_naming_the_missed_exits(
+        root, tmp_path, alerts):  # fmt: skip
+    decisions = GitFailsOnRecorded()
+    decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
+    run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
+    with pytest.raises(RunStopped):
+        run_day(run, clock, NORMAL)
+    (sent,) = alerts.sent
+    assert "run STOPPED at step fills" in sent and EXITS_MISSED in sent
+    assert "a git read failed: git log failed (exit 128)" in sent and "(it skips the steps already recorded)" in sent
+    assert PaperAccount(root, BOOK1_RULES).fills() == []

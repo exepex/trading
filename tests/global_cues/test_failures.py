@@ -14,13 +14,13 @@ from fno.global_cues.cli import cmd_global_cues
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.job import GlobalCueJob
 from fno.global_cues.other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
-from fno.global_cues.row_log import TableFileBroken
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.treasury_source import TreasuryTenYearSource
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.research_data.calendar import CalendarError
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
+from fno.storage.row_log import TableFileBroken
 from tests.global_cues.fakes import EIA, RBI, FakeSource, csv_table, fake_file
 
 SEEN = datetime(2026, 10, 15, 6, 15, tzinfo=IST)

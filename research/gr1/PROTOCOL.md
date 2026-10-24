@@ -48,7 +48,7 @@ This section is stated first, because it limits what any result can mean.
 | India VIX | `research/data/vix/india_vix_daily.csv` (A15), close of d and d-1 | d's close |
 | Event days | `research/data/events/events.csv` (A6): `rbi_policy`, `budget`, `election_result`, with `announced_on` before d | announced before d |
 | Option expiries | the expiries of the index's options in d's archived F&O file (the same chain the record was built from) | d's close |
-| Global cues | A17: S&P 500 close (Drive, private), US 10-year (`us10y.csv`) and USD/INR (`usdinr_rbi.csv`). Each is read with A17's own point-in-time rule, `value_for(live_only=False)` with the source's `available_at`, at the cutoff 15:30 IST on d (C7) or 09:15 IST on d (N0-C). Never a raw `value_date < d`, which would be look-ahead against live. USD/INR is RBI's rate of d-1 at the latest, one day staler than A17 allows (safe). **Brent is dropped** (judge 428 SF2): A17's rule makes EIA's weekly Brent at least 10 days old at d (`EIA_WORST_LAG`), so for a 1- to 3-session range it would test nothing | at the cutoff |
+| Global cues | A17: S&P 500 close (Drive, private), US 10-year (`us10y.csv`) and USD/INR (`usdinr_rbi.csv`). Each is read with A17's own point-in-time rule, `value_for(live_only=False)` with the source's `available_at`, at the cutoff 15:30 IST on d (C7) or 09:15 IST on d (N0-C). Never a raw `value_date < d`, which would be look-ahead against live. USD/INR is RBI's rate of d-1 at the latest, one day staler than A17 allows (safe). It is one reference rate: RBI's rows, and A17's FBIL rows (private, Drive) for the dates RBI lacks, read under RBI's rule (deviation 3, section 14). **Brent is dropped** (judge 428 SF2): A17's rule makes EIA's weekly Brent at least 10 days old at d (`EIA_WORST_LAG`), so for a 1- to 3-session range it would test nothing | at the cutoff |
 | NIFTY intraday realised variance of d | A16b's `research/data/intraday/rv-candle/` (`rv_session`), from 2 Jan 2020, NIFTY only | d's close |
 | NIFTY 09:15 price | A16b's 15-minute candles (`nifty-15m`), the first candle's open | 09:15 IST |
 | Calendar | A7, `research/data/calendar/nse_sessions.csv` | always |
@@ -257,6 +257,42 @@ Any deviation is recorded here, dated, before the step it affects, and judge B i
   - Also in this revision, at judge B's request: section 12's (a)-(d) word for word as sent to the judge, run 2's
     determinism, and the "honest limit" in section 2.
 - **22 Oct 2026, after judge 428.1's PASS of a7a1b28a, before any code:** its notes 1-3 applied.
+- **22 Oct 2026, deviation 3, found by the input probe (counts only: no outcome read, no score computed), before the code
+  freeze and run 1:**
+  - **The problem:** C7 had its inputs on only 422 of 1,222 NIFTY N1 train days. RBI's public USD/INR table has no row
+    from 24 Jul 2018 to 12 Apr 2022, after FBIL took the reference rate over. A17 holds FBIL's rates for that span, and
+    A17's README records RBI and FBIL equal on all 1,086 dates both publish.
+  - **The change:** C7's USD/INR is one reference rate. RBI's rows are used where they exist, and FBIL's for the dates
+    RBI lacks. The series is read under RBI's rule (13:30 IST publication, 5-day age limit), at 09:15 on d, so the rate
+    is of d-1 at the latest. With it, C7 has inputs on 1,213 of 1,222 train days. The 9 missing days are FBIL's own gap
+    of 29 Jan - 16 Feb 2021, beyond the age limit.
+  - **And:** section 13's gap rule ("over 5% of a period's days in a cell") now also applies to the train period in the
+    code, as written. Each candidate's own train period counts, so C8's start on 2 Jan 2020 is a design date, not a gap.
+  - **What this changes:** only C7's input and the code's check of section 13. No candidate, period, score or decision
+    rule changes. Counted tests stay 51.
+- **22 Oct 2026, deviation 4, judge 442 (FAIL of the code freeze d43877e7, 3 should-fix; deviation 3 accepted), before run
+  1. Nothing had been fitted or scored on real data.**
+  - **SF1:** each non-intercept conditioner is divided by its SD over the candidate's own train rows, before the fit, so
+    the bound |theta| <= 3 means at most a factor e^3 per train SD for every conditioner. In raw units, a USD/INR log
+    move of about 0.004 needed a theta of about 85 for a real effect, so C7 and N0-C would have been failed fits, never
+    tested. The SDs are stored with each fit in `selection.json`, and run 2 rebuilds the same candidate from them.
+    Dummies (C5, C6, C9, C10) are scaled the same way: it only changes theta's units. C1 and C2 have no such column.
+  - **SF2:** C6 reads the expiries listed in d's own F&O file, as section 3 says. A union across files would hold
+    revised dates: BANKNIFTY's Thursday-to-Wednesday move of September 2023, NIFTY's move to Tuesday in September 2025,
+    holiday reschedules.
+  - **SF3:** C9's split at the regime breaks is produced by both runs: train and 2024 in run 1, the final period in run
+    2. No split is computed after the final look. The break dates are pinned in `gr1study/splits.py` and a test:
+    - BANKNIFTY 4 Sep 2023 and 14 Nov 2024, read from the archived files' expiry lists;
+    - NIFTY 1 Sep 2025, from NSE's circular as recalled (reasoning only), which run 2 checks against its own files.
+  - **Notes:**
+    - A dropped day's reason names the missing input (note 3).
+    - A cue's move after a gap in its table is measured against the last row before the gap (note 2). This is stated,
+      not changed.
+    - The issue-date seal lets the N3 rows of 30-31 Dec 2024 read closes of early January 2025; the results say so
+      (note 1).
+    - `run_final` returns its result and writes nothing; `study.py --final` writes `final.json` (note 4).
+  - **What this changes:** theta's units, C6's input and two reported outputs. No candidate, period, score, constraint
+    or decision rule changes. Counted tests stay 51.
   - Note 1: C2's crossing check covers every scored day, and a crossing is a failed fit.
   - Note 2: DATA_SPEND's global-cues row no longer names Brent.
   - Note 3: the honest-limit sentence in section 2 (already in eb8d061a).

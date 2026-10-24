@@ -52,11 +52,11 @@ def test_the_desk_deadline_moves_with_the_timetable_config():
     assert _table(cfg)["Desk daily run"].check.deadline.at == time(15, 13)
 
 
-def test_the_four_health_owned_deadlines_are_the_only_time_literals_in_fno_health():
+def test_the_five_health_owned_deadlines_are_the_only_time_literals_in_fno_health():
     found = {
         path.name: len(re.findall(r"\btime\(\d", path.read_text(encoding="utf-8"))) for path in HEALTH.glob("*.py")
     }
-    assert {name: n for name, n in found.items() if n} == {"expectations.py": 4}
+    assert {name: n for name, n in found.items() if n} == {"expectations.py": 5}  # A23 added the fifth
 
 
 def test_no_code_in_fno_health_reads_a_commit_date():
@@ -194,10 +194,11 @@ def test_exactly_these_checks_are_live_from_these_sessions():
     assert live == {
         "3 pm Groww recorder": expectations.FIRST_RECORDED, "NSE recorder": expectations.FIRST_RECORDED,
         "Forecast v2 records": expectations.FIRST_RECORDED, "Book 2 sealed forecast": expectations.FIRST_SEALED,
-        "Book 3 sealed forecast": expectations.FIRST_SEALED, "Desk daily run": None, "A16 15-minute marks": None,
-        "A22 pre-open data": None,
+        "Book 3 sealed forecast": expectations.FIRST_SEALED, "Desk daily run": None,
+        "A16 15-minute marks": expectations.MARKS_FROM, "A22 pre-open data": None,
         "A8 participant OI": expectations.DATA_JOBS_FROM, "Index closes": expectations.DATA_JOBS_FROM,
         "NIFTY panel day": expectations.DATA_JOBS_FROM, "FII/DII flows": expectations.DATA_JOBS_FROM,
+        "A23 participant volume": expectations.FLOW_HISTORY_FROM, "A23 FII statistics": expectations.FLOW_HISTORY_FROM,
     }  # fmt: skip
     assert expectations.FIRST_RECORDED < expectations.FIRST_SEALED  # both dates fixed in the table, before 16 Oct
 

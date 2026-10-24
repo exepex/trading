@@ -5,6 +5,9 @@ Change a value here, not where it is used."""
 from __future__ import annotations
 
 __all__ = [
+    "ENV_FNO_REHEARSAL",
+    "ENV_FNO_REHEARSAL_NOT_LIVE",
+    "PUBLISH_BRANCH",
     "RUN_LOG_DECISIONS_STEP",
     "RUN_LOG_EXITS_STEP",
     "RUN_LOG_TRADE_MARKS_STEP",
@@ -56,12 +59,21 @@ DAILY_RUN_STEPS = (
     "quotes_done",
     "card",
     "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
+    "premium_ranges",  # story G13d: from G13's record, at once (sealed by 15:30; the command refuses after it)
     "price_distribution_scores",  # G13's scores: outcomes lag one session (NSE's close file lands in the evening)
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
-    "price_range_scores",  # G13b's scores and seals, before FL1's 15:45 lab; the same one-session lag
+    "price_range_scores",  # G13b's scores and seals; the same one-session lag
+    "premium_range_scores",  # G13d's scores and seals: issues whose next session has passed
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
-    "lab_close",  # story FL1-1: the 15:45 report to #fno-forecast, last (fno/forecast_lab/constants.py REPORT_AT)
+    "close_read",  # story A4h: today's closes from NSE's index list, 15:40, after the candles
+    "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
 )  # fmt: skip; the quote parts start first (judge 178)
+# Story REH1: set only by a rehearsal, inherited by its children; and the line a not-yet-live report's posts carry
+ENV_FNO_REHEARSAL = "FNO_REHEARSAL"
+ENV_FNO_REHEARSAL_NOT_LIVE = "FNO_REHEARSAL_NOT_LIVE"
+# Every scheduled run publishes to main, whatever branch its checkout is on (a scheduled session runs on its own
+# unpublished session branch: 22 Oct 2026, "couldn't find remote ref claude/...")
+PUBLISH_BRANCH = "main"
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record

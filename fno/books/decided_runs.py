@@ -38,8 +38,8 @@ class GitDecidedRuns(DecidedRuns):
         folder = self.store.day_folder(day)
         name = folder.relative_to(self.git.root).as_posix()
         try:
-            self.git("fetch", "-q", "origin", self.git.branch())
-            origin, head = f"origin/{self.git.branch()}", "HEAD"
+            self.git("fetch", "-q", "origin", self.git.target)
+            origin, head = f"origin/{self.git.target}", "HEAD"
             places = {ON_ORIGIN: self._runs(origin, name), COMMITTED: self._runs(head, name)}
         except GitError as failed:
             raise CommitFailed(f"origin could not be checked for an earlier decision: {failed}") from failed

@@ -4,9 +4,9 @@ never stops the report (the file and the text go, and one alert says why); both 
 from datetime import date, datetime
 from pathlib import Path
 
+from fno.forecast_lab.design.renderer import DesignRenderer
 from fno.forecast_lab.maker import ReportMaker
 from fno.forecast_lab.page.camera import ChromiumCamera, PageCamera, PictureFailed
-from fno.forecast_lab.page.render import InterimRenderer
 
 from .page_builders import days, index, outcome, page
 
@@ -15,8 +15,8 @@ class Pages:
     def __init__(self, view):
         self.view, self.calls = view, []
 
-    def build(self, day, now, alerts, checks):
-        self.calls.append((alerts, checks))
+    def build(self, day, now, edition, alerts, checks, confirmation):
+        self.calls.append((edition, alerts, checks, confirmation))
         return self.view
 
 
@@ -42,27 +42,27 @@ def view_with_history():
 
 def test_the_text_picture_and_details_come_from_one_page_model():
     pages = Pages(view_with_history())
-    text, files, extra = ReportMaker(pages, InterimRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(),
-                                                                              ("an alert",), "a\n\nb")  # fmt: skip
-    assert text.endswith("Research only. Not a trade tip.") and extra == ()
-    assert [f.name for f in files] == ["forecast-2026-10-23.png", "forecast-2026-10-23.html"]
-    assert files[0].data.startswith(b"PNG<!doctype") and pages.calls == [(("an alert",), ("a", "b"))]
+    made = ReportMaker(pages, DesignRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "evening",
+                                                                ("an alert",), "a\n\nb")  # fmt: skip
+    assert made.text.endswith("Research only. Not a trade tip.") and made.alerts == ()
+    assert [f.name for f in made.files] == ["forecast-evening-2026-10-23.png", "forecast-evening-2026-10-23.html"]
+    assert made.files[0].data.startswith(b"PNG<!doctype")
+    assert pages.calls == [("evening", ("an alert",), ("a", "b"), ())]
 
 
 def test_a_picture_that_cannot_be_made_sends_the_file_and_the_text_with_one_alert():
-    maker = ReportMaker(Pages(view_with_history()), InterimRenderer(), Camera(fail=True))
-    text, files, extra = maker.make(date(2026, 10, 23), datetime.now(), (), "")
-    assert [f.name for f in files] == ["forecast-2026-10-23.html"] and text
-    assert extra == ("the 15:45 picture was not made (no Chromium at /nowhere); the text and the details file were "
-                     "posted without it",)  # fmt: skip
+    maker = ReportMaker(Pages(view_with_history()), DesignRenderer(), Camera(fail=True))
+    made = maker.make(date(2026, 10, 23), datetime.now(), "morning")
+    assert [f.name for f in made.files] == ["forecast-morning-2026-10-23.html"] and made.text
+    assert made.alerts == ("the morning picture was not made (no Chromium at /nowhere); the text and the details file "
+                           "were posted without it",)  # fmt: skip
 
 
 def test_both_pages_are_self_contained_and_carry_the_research_line():
-    renderer, view = InterimRenderer(), view_with_history()
+    renderer, view = DesignRenderer(), view_with_history()
     for html in (renderer.picture(view), renderer.details(view)):
-        assert "http://" not in html and "https://" not in html and "<link" not in html
-        assert "Research only. Not a trade tip." in html or "Paper research only" in html
-    assert "<script>" in renderer.details(view) and "<script>" not in renderer.picture(view)
+        assert "http://" not in html and "https://" not in html and "<link" not in html and "<script" not in html
+        assert "Research only. Not a trade tip." in html
 
 
 def test_the_camera_says_why_when_chromium_is_missing(tmp_path):
@@ -74,12 +74,59 @@ def test_the_camera_says_why_when_chromium_is_missing(tmp_path):
         raise AssertionError("no picture without Chromium")
 
 
+def test_a_failed_trim_names_the_missing_module(tmp_path, monkeypatch):
+    """FL1-1e: the 23 Oct morning said only "ImportError"; the alert now names what to install."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_pillow(name, *args, **kwargs):
+        if name == "PIL":
+            raise ImportError("No module named 'PIL'", name="PIL")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_pillow)
+    monkeypatch.setattr(ChromiumCamera, "_shoot", lambda self, page, raw: raw.write_bytes(b"png"))
+    camera = ChromiumCamera(executable=Path(__file__))  # any existing file: the shot itself is replaced
+    try:
+        camera.picture("<p>", tmp_path / "x.png")
+    except PictureFailed as failed:
+        assert str(failed) == "the picture could not be trimmed: ImportError (module PIL)"
+    else:
+        raise AssertionError("no picture without Pillow")
+
+
 def test_the_real_camera_draws_the_picture_page_at_its_width_and_trims_the_bottom(tmp_path):
-    camera = ChromiumCamera(width=600)
+    camera = ChromiumCamera(width=1100)
     if not camera.executable.exists():  # the routine's environment has it (/opt/pw-browsers); a laptop may not
         return
     from PIL import Image
 
-    out = camera.picture(InterimRenderer().picture(view_with_history()), tmp_path / "p.png")
+    out = camera.picture(DesignRenderer().picture(view_with_history()), tmp_path / "p.png")
     with Image.open(out) as image:
-        assert image.format == "PNG" and image.size[0] == 1200 and image.size[1] < 4000 * 2
+        assert image.format == "PNG" and image.size[0] == 2200 and image.size[1] < 4000 * 2
+
+
+def test_a_verdict_is_kept_only_for_today_s_own_provisional_check():
+    from dataclasses import replace
+
+    from fno.forecast_lab.maker import verdicts
+    from fno.forecast_lab.page.model import Band, Horizon, Outcome, Timeline
+
+    band = Band(980.0, 995.0, 1000.0, 1005.0, 1020.0)
+    other = Outcome(date(2026, 10, 22), 1001.0, band, True, True, True, provisional=True)
+    view = page(indices=(replace(index(), horizons=(Horizon(Timeline("N1", "implied", (other,)), ()),)),))
+    assert verdicts(view) == ()
+    today = replace(other, day=view.day)
+    view = page(indices=(replace(index(), horizons=(Horizon(Timeline("N1", "implied", (today,)), ()),)),))
+    assert [(v.day, v.close, v.band) for v in verdicts(view)] == [(view.day, 1001.0, (980.0, 995.0, 1005.0, 1020.0))]
+
+
+def test_a_failed_section_is_alerted_once_with_the_report():
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.cues import FAILED, SectionView
+
+    view = replace(view_with_history(), cues=(SectionView("S&P 500", FAILED, why="S&P 500: the read failed (X)"),))
+    made = ReportMaker(Pages(view), DesignRenderer(), Camera()).make(date(2026, 10, 23), datetime.now(), "morning")
+    assert made.alerts == ("S&P 500: the read failed (X)",)

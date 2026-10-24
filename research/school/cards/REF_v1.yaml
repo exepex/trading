@@ -1,0 +1,12 @@
+# FROZEN card (stories MS-P1e and MS-P1h): registered in journal/versions.csv with this file's SHA-256; a change is a new version (a new file), never an edit. Numbers are first guesses [reasoning only].
+code: REF
+version: "1"
+family: reference
+role: control
+roads: [NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W]
+band_steps: 10
+parameters:
+  min_dte: 2
+  expected_net_rs: 0.0  # no honest estimate: EDGE1 found no edge, so scores tie and the tie-break ranks
+  max_wing_steps: 40
+  max_open_per_road: 0

@@ -132,16 +132,33 @@ alert sender (`FNO_SLACK_BOT_TOKEN`; without it, it prints "alert NOT sent"). Wi
 baseline checkout did not already have are posted. `.github/workflows/number-alert.yml` runs it:
 - on every push to `main`, with the commit before the push as the baseline, so the push that turns `main` red is
   announced once and later pushes stay quiet (a missing "before" commit, as on a force-push, means no baseline);
-- every hour (minute 17), without a baseline, as a reminder while `main` stays red and as a net for a missed push.
+- by hand (workflow_dispatch), without a baseline. (An hourly reminder ran until the owner cut it on 22 Oct 2026.)
 It fixes nothing, writes nothing and has read-only repository permission. The plain check stays standard-library only:
 the alert sender is imported only when something is posted. Lane 1 (a workflow and a Slack post).
 
 **Criteria.**
 1. A red check with `--alert` posts one message listing every new problem line; a clean check posts nothing.
 2. With `--baseline`, problems the baseline already had are not posted; a new one is.
-3. The workflow runs on every push to `main` (with the before commit as baseline) and hourly (without), with only
+3. The workflow runs on every push to `main` (with the before commit as baseline) and by hand (without; the hourly run was cut on 22 Oct 2026, DESK_DECISIONS "Cut-list accepted"), with only
    `FNO_SLACK_BOT_TOKEN` and `contents: read`.
 4. (Added 21 Oct, root cause of main's 16 Oct red: judge 307's heading `## Addendum 307.5` was read as 307.307.) A
    claim prints the next step word for word: the file to write, or for an addendum the heading `## Addendum <k>` with
    only the addendum's own number; `numbers/README.md` says the same.
 Tests: `tests/numbering/test_tools.py` (the cases above, and the workflow's triggers and command).
+
+## O12c: a refused claim ends on its verdict (judge B, 22 Oct 2026)
+
+**Why.** Judge B wrote `judge_464` after a claim whose commit the record-scan hook refused (this Python lacked
+`xlrd`, now imported by the scan's code). The tool did exit 1, but its first line was "NOT claimed (git commit -q -m
+...", then the multi-line commit message and the hook's traceback, so the output ended on "ImportError: ...)" and the
+verdict was easy to miss.
+
+**Change.** A failed git step prints git's whole output first, then one last line: "number claim: NOT claimed (the
+commit was refused, usually by the record-scan hook: git's output is above; a missing package means this Python lacks the
+requirements, so run `sh tools/routine_setup.sh`). Nothing was pushed: do not write the file; fix it and claim again."
+Every refusal ends with "Nothing was pushed: do not write the file". Exit 1 as before; nothing is pushed.
+
+**Criteria.** A planted failing pre-commit hook (crashing, or refusing with findings) makes the claim stop with exit 1,
+the hook's own words before a last line that starts "number claim: NOT claimed", `main` unchanged and the worktree
+removed (`tests/numbering/test_claim.py`).
+

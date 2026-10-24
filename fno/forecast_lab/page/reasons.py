@@ -1,4 +1,5 @@
-"""Why a recent forecast missed (story FL1-1c v4): for each of the last 7 sessions whose close fell outside "almost
+"""Why a recent forecast missed (stories FL1-1c v4 and FL1-1d): for each of the last 30 sessions (the page's window;
+the designer's "when it was wrong" table) whose close fell outside "almost
 certainly", how far outside, and the likely reasons, after the fact, from facts we already hold. They are never
 guessed: a reason appears only when its fact crosses its threshold, else "no clear reason in our data".
 Facts used: India VIX (the NIFTY panel's daily VIX), scheduled events (research/data/events), NIFTY's F&O expiry
@@ -15,7 +16,7 @@ from datetime import date
 
 from .model import Miss, Outcome
 
-SESSIONS = 7
+SESSIONS = 30  # the page's 30-session window (FL1-1d; was 7 in FL1-1c)
 VIX_JUMP = 0.10  # India VIX up 10% or more on the day
 OIL_MOVE = 0.03  # Brent moved 3% or more in the last print before the day
 FX_MOVE = 0.005  # USD/INR moved 0.5% or more in the last print before the day

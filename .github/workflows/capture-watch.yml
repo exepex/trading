@@ -13,7 +13,9 @@ on:
     # list complete
     workflows:
       - circulars
+      - data-checks
       - filings-archive
+      - flow-history
       - flows-download
       - fo-masters
       - forecast-capture
@@ -29,6 +31,7 @@ on:
       - participant-oi-watch
       - postmortem-weekly
       - quote-recorder-nse
+      - recorder-watch
       - stress-factor
       - vix-history
     types: [completed]

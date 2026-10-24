@@ -82,11 +82,12 @@ def test_a_protocol_commit_outside_history_is_refused(repo):
 def test_the_first_run_is_recorded_once(repo):
     ledger = Ledger(repo)
     ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
-    ledger.mark_run("P1", date(2026, 11, 1))
+    head = ledger.git.head()
+    ledger.mark_run("P1", head, date(2026, 11, 1))
     first = next(r for r in ledger.rows() if r["trial_id"] == "P1")
-    ledger.mark_run("P1", date(2026, 12, 1))
+    ledger.mark_run("P1", "0" * 40, date(2026, 12, 1))
     again = next(r for r in ledger.rows() if r["trial_id"] == "P1")
-    assert first["first_run_on"] == again["first_run_on"] == "2026-11-01" and again["run_commit"]
+    assert first["first_run_on"] == again["first_run_on"] == "2026-11-01" and again["run_commit"] == head
 
 
 def test_duplicates_and_bad_rows_are_refused(repo):
@@ -100,7 +101,7 @@ def test_duplicates_and_bad_rows_are_refused(repo):
 
 def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospective():
     rows = read_ledger(REPO_LEDGER.read_text())
-    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 71)] and tuple(rows[0]) == COLUMNS
+    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 100)] and tuple(rows[0]) == COLUMNS
     assert all(r["kind"] == "retrospective" for r in rows[:21])
     r2 = rows[52]  # R2 feasibility, registered after its protocol commit (story R2)
     assert (r2["kind"], r2["protocol_commit"]) == ("prospective", "93a19c318003994c6cedd070d038ee89d45dd74e")
@@ -124,6 +125,9 @@ def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospecti
     assert ledger.count("weekly-weather-2026-10-14") == {"registered_rows": 10, "hypotheses": 10}  # W1-W5, filters
     gr1 = rows[55:70]  # GR1 sharper ranges (judge 428.2): C1-C11 hypotheses, FII/DII not tested, N0-A/B/C measurements
     assert ledger.count("gr1-sharper-ranges-2026-10-21") == {"registered_rows": 15, "hypotheses": 11}
+    # EDGE1 (story EDGE1, protocol section 13): 24 tradeable variants, then the 4 naked measurements
+    assert ledger.count("edge1-rule-based-option-trades-2026-10-22") == {"registered_rows": 28, "hypotheses": 24}
+    assert [r["hypothesis"] for r in rows[70:98]] == ["yes"] * 24 + ["no"] * 4
     assert {(r["kind"], r["protocol_path"]) for r in gr1} == {("prospective", "research/gr1/PROTOCOL.md")}
     assert len({r["protocol_commit"] for r in gr1}) == 1 and "NOT TESTED" in rows[66]["description"]
 

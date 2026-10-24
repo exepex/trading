@@ -68,6 +68,7 @@ class LastWriteSweep:
 
     def _append(self, day: date, written: datetime) -> None:
         new = not self.log.is_file()
+        self.log.parent.mkdir(parents=True, exist_ok=True)  # a first log in a fresh checkout (A23's folder)
         with self.log.open("a", encoding="utf-8", newline="") as f:
             writer = csv.writer(f, lineterminator="\n")
             if new:
