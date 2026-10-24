@@ -577,6 +577,47 @@ its own: no Slack, no Drive, no Groww, no NSE.
 - **Its other calls:** `_is_session` reads the repository's calendar file (local). The guard and the routine's
   commands are children with the rehearsal's env.
 
+### REH1i: the receipts guard test reads every use (a follow-up, after REH1h's judges)
+
+Branch `story/reh1i-guard-calls`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV. Asked by the orchestrator on
+24 Oct: G11's builder found that REH1b's guard test (`tests/rehearsal/test_receipts_and_dates.py`, "every builder of
+GitHub's receipts hands them to the rehearsal's choice") checked each file with one `re.search`. A file with one
+`GitHubActivityReceipts(...)` handed to `rehearsed_receipts` and a second one left bare passed. The v4 collector's
+receipts had exactly that gap on G11's branch (G11 fixed the code there; all five builders on main are wrapped). This
+tightens the test. Lane: a test made stricter in a lane-1 area, changing no record and no code under `fno/` (lane 2
+unless the orchestrator routes it to lane 1).
+
+**Criterion I1.** Every use of `GitHubActivityReceipts` in `fno/` is a call straight inside a call of
+`rehearsed_receipts`, as its first argument; every other use is listed by file and line. Code:
+`tests/rehearsal/wrapped_calls.py` (Python's `ast`, not text; any reference by name or attribute counts: a call, an
+alias, `partial`, `map`, a subclass's base, and an import that renames it); the guard test now uses it. Cases
+(`tests/rehearsal/test_wrapped_calls.py`): good (two uses, both handed over, one through module attributes); bad (one
+wrapped call and bare ones in the same file: every bare line, not the first); boundary (the builder as the choice's
+second argument, or built first and handed over by name, an alias, a partial, a map, a subclass, a renaming import:
+all unwrapped); empty (a docstring, a class definition and a plain import: nothing).
+
+Limits, said plainly: a name built from a string (`getattr(m, "...")`) is not seen; the choice is matched by its name
+(a local function called `rehearsed_receipts` would pass, and an alias of the choice or a keyword argument is
+flagged). The guard is strict on purpose. The file count stays 5; G11's merge changes it if it adds a builder.
+
+**Gap list.** "Check every builder call in a file": I1. "Plant the one wrapped, one unwrapped case": the plants. The
+code fix for the v4 collector: out of scope, G11's branch (one builder per function). The other rehearsal choices
+(Drive, NSE's session, the recorders, the posters) are checked by building them through the real roots
+(`guard.builders`), not by reading text, so they have no such gap.
+
+**Claims.** Plants, 7 planted, 7 caught: a bare second builder added to `fno/health/wiring.py`, and the same in
+`fno/v4_pack/wiring.py` (each caught by the guard test; on the same planted file the old `re.search` still passed, so
+the gap was real); the reader counting any argument as handed over; attribute uses not read; only the first bare use
+listed; a renaming import ignored; calls only (plain references ignored). Self-review (an independent review agent):
+four points; fixed: references other than literal calls slipped through (alias, partial, map, subclass, renaming
+import), the "on G11's branch" wording, the limits now stated; the fourth was a confirmation. Output sample (the
+reader on `fno/health/wiring.py` with the planted bare builder at line 56, then on the five real builders):
+
+```
+{'health/wiring.py': [56]}
+{'ai/wiring.py': [], 'cards/wiring.py': [], 'health/wiring.py': [], 'price_ranges/wiring.py': [], 'v4_pack/wiring.py': []}
+```
+
 ### REH1g: DRY2's rehearsal gaps (for judges B and E)
 
 Branch `story/reh1g-record-gaps`, from main. Built by the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp) to b5ab43ef6;
