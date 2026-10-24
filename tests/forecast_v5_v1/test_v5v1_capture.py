@@ -34,7 +34,7 @@ def _day(d=D) -> V5Day:
 
 
 def _captured(tmp_path: Path, now) -> dict[str, records.V5Record]:
-    capture(_day(), now, MADE_ON, lambda f, q, rows: records.write(tmp_path, f, q, rows))
+    capture(_day(), now, MADE_ON, lambda rows: records.write_day(tmp_path, "v1_rv_next_session", rows))
     files = sorted(tmp_path.glob("*/*.csv"))
     return {file.parent.name: records.read(file)[D.isoformat()] for file in files}
 
@@ -93,7 +93,7 @@ def test_a_row_is_made_on_its_own_day_only(tmp_path):
 
 def test_a_second_capture_the_same_day_adds_nothing(tmp_path):
     now = cutoff(D) - timedelta(minutes=18)
-    write = lambda f, q, rows: records.write(tmp_path, f, q, rows)  # noqa: E731
+    write = lambda rows: records.write_day(tmp_path, "v1_rv_next_session", rows)  # noqa: E731
     assert capture(_day(), now, MADE_ON, write) == 5
     assert capture(_day(), now + timedelta(minutes=1), "another machine", write) == 0
 

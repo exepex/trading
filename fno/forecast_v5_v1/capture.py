@@ -33,7 +33,7 @@ FORECASTERS = {  # v4's forecaster -> G14's
 }
 CLOSES_ONLY = "closes"  # the input_sources of a forecaster that reads no intraday RV
 
-Writer = Callable[[str, str, list[V5Record]], int]
+Writer = Callable[[dict[str, V5Record]], int]  # one day's rows by forecaster, all or nothing
 
 
 class V5Day:
@@ -78,4 +78,4 @@ def capture(day: V5Day, now: datetime, made_on: str, write: Writer) -> int:
         return 0
 
     capture_day(day.forecasts, day.d, now, keep)
-    return sum(write(name, V1_RV_1S, [row]) for name, row in day.v5_rows(kept, made_on).items())
+    return write(day.v5_rows(kept, made_on))

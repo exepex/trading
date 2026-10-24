@@ -24,17 +24,20 @@ def cmd_forecast_v5_v1(args) -> int:
 def _capture() -> int:
     from ..config import ROOT
     from ..forecast_v4_rules.capture import CaptureRefused
+    from ..forecast_v4_rules.records import RecordConflict
     from ..models import now_ist
     from .capture import capture
-    from .freeze import NotFrozen, check
+    from .freeze import FUTURE, NotFrozen, check
     from .records import capture_platform
     from .wiring import FREEZE_FILE, build_day, writer
 
     now = now_ist()
     try:
-        check(ROOT, FREEZE_FILE)
+        frozen_on = check(ROOT, FREEZE_FILE)
+        if frozen_on > now.date():
+            raise NotFrozen(FUTURE.format(name=FREEZE_FILE.name, day=frozen_on))
         added = capture(build_day(now.date()), now, capture_platform(), writer())
-    except (CaptureRefused, NotFrozen) as refused:
+    except (CaptureRefused, NotFrozen, RecordConflict) as refused:
         print(REFUSED.format(day=now.date(), why=refused))
         return 1
     print(f"v5 V1 candle forecasts {now.date()}: {added} rows written (live; a measurement, never a v4 member)")
@@ -50,6 +53,7 @@ def _report() -> int:
 
 def _freeze() -> int:
     from ..config import ROOT
+    from ..forecast_scoring.v4.freeze_check import byte_checked
     from ..models import now_ist
     from .freeze import NotFrozen, record_text
     from .wiring import FREEZE_FILE, V4_FREEZE_FILE
@@ -61,7 +65,7 @@ def _freeze() -> int:
         print(f"{FREEZE_FILE.name} not written: {V4_FREEZE_FILE.name} is not in this tree yet (amendment 1, section 3)")
         return 1
     try:
-        text = record_text(ROOT, V4_FREEZE_FILE.read_text(encoding="utf-8"), now_ist().date())
+        text = record_text(ROOT, V4_FREEZE_FILE.read_text(encoding="utf-8"), byte_checked(ROOT), now_ist().date())
     except NotFrozen as refused:
         print(f"{FREEZE_FILE.name} not written: {refused}")
         return 1

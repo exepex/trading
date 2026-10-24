@@ -46,7 +46,7 @@ def test_the_freeze_walk_adds_the_report_side():
 
 @pytest.fixture
 def copy(tmp_path) -> Path:
-    for relative in {*checked(ROOT, RECORD_STARTS), *SHARED, WIRING}:
+    for relative in {*checked(ROOT, RECORD_STARTS), *SHARED, *WIRING}:
         target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / relative, target)
@@ -85,7 +85,7 @@ def test_every_package_file_is_frozen_wiring_and_cli_included_without_walking_th
     package = {p.relative_to(ROOT).as_posix() for p in (ROOT / "fno" / "forecast_v5_v1").glob("*.py")}
     frozen = set(freeze_files(ROOT))
     assert package <= frozen
-    assert frozen == package | set(checked(ROOT, FREEZE_STARTS))
+    assert frozen == package | set(checked(ROOT, FREEZE_STARTS)) | set(WIRING)
 
 
 def test_a_new_package_file_is_frozen_at_once(copy):

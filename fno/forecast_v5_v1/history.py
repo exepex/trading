@@ -33,9 +33,8 @@ def _usable(rows: list[SessionRv], d: date, cutoff: datetime) -> dict[date, Sess
 
 def splice(candle: list[SessionRv], live: list[SessionRv], d: date, cutoff: datetime) -> list[SplicedRv]:
     """The candle-first series for `d`, in session order; a session with neither usable row is left out."""
-    from_candle, from_live = _usable(candle, d, cutoff), _usable(live, d, cutoff)
-    chosen = {day: SplicedRv(row, LIVE) for day, row in from_live.items()}
-    chosen |= {day: SplicedRv(row, CANDLE) for day, row in from_candle.items()}
+    chosen = {day: SplicedRv(row, LIVE) for day, row in _usable(live, d, cutoff).items()}
+    chosen |= {day: SplicedRv(row, CANDLE) for day, row in _usable(candle, d, cutoff).items()}
     return [chosen[day] for day in sorted(chosen)]
 
 

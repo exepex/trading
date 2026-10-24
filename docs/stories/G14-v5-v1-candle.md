@@ -181,8 +181,8 @@ call, raised to the orchestrator, not G14's.
 
 **3c. Freeze coverage as ruled (judge 596 addendum 2, the builder's proposal accepted with four conditions).**
 - Fail closed: the shared modules left unchecked are one named list in code (`fno/forecast_v5_v1/method.py`,
-  `SHARED`: `fno/__init__.py`, `fno/constants.py`, `fno/constants_channels.py`, `fno/constants_operations.py`,
-  `fno/models.py`; they changed in 125 commits in the 10 days to 24 Oct). A test checks byte-checked = walk minus
+  `SHARED`: `fno/constants.py`, `fno/constants_channels.py`, `fno/constants_operations.py`, `fno/models.py`; they
+  changed in 125 commits in the 10 days to 24 Oct; `fno/__init__.py` was dropped as built: the walk never reaches it). A test checks byte-checked = walk minus
   `SHARED`; any newly walked file is byte-checked unless a judged change adds it to `SHARED`.
 - `FREEZE_v5_v1.md` records each `SHARED` file with its SHA-256, marked "recorded, not checked".
 - `fno/intraday/rv_table.py` stays byte-checked though v4 only records it; the freeze record says so.
@@ -308,3 +308,24 @@ rule (its finding 2), a misnamed test (3), a dead `SHARED` entry (7), Monday 26 
 hash (1; the freeze already lists every package file). Stated, unchanged as v4: special sessions in the candle
 history enter HAR intraday as v4's live rows would (5); a past session with no A16 row stays pending (10).
 Deviation: the card lives in `research/ideas/` (Registration, above).
+
+### Part 2 (24 Oct 2026): wiring, CLI and freeze on G7b's reader (main 432071d63)
+
+- Wiring reads candle rows only through `pack_wiring.candle_history()` and pairs only through `paired_rv` (criterion
+  11's import half: `test_candle_rows_reach_the_package_only_through_w8s_reader`; criterion 5: the gap table prints
+  `PairedRv` as is).
+- `forecast-v5-v1 capture` exits 1, writing nothing, on every refusal: no or broken freeze record, a record frozen
+  after today, 14:30 or later, a different row already written (rows of a day are written all or nothing,
+  `records.write_day`). `freeze` is written once, only after `FREEZE_v4.md`, and refuses when a file v4's freeze
+  checks has no v4 row (an empty v4 record cannot pass v4's files as "v5 only").
+- Freeze coverage as built, beyond section 3c (second self-review, finding 2): the session calendar code
+  (`fno/forecast_v4/sessions.py`, `fno/storage/trading_days.py`, and through them `fno/research_data/calendar.py`)
+  is walked from `OUTSIDE_STARTS`, and v4's `wiring.py` and `pack_wiring.py` are hashed without following their
+  imports, like G14's own wiring (`method.WIRING`), in both the freeze and each record's method hash.
+- **Said plainly for judge J:** G7b's reader imports `fno/global_cues/table.py`, so the walk byte-checks five global
+  cues and storage files (`global_cues/table.py`, `collection.py`, `source.py`, `storage/raw_store.py`,
+  `row_log.py`) and `research_data/calendar.py`, none hashed by v4's freeze. Fail closed, any edit to them stops
+  G14's capture until a new record; only a judged change may move one into `SHARED`.
+- Real output (this tree, 24 Oct): `capture` prints "nothing written: FREEZE_v5_v1.md is missing" (exit 1);
+  `freeze` prints "FREEZE_v4.md is not in this tree yet" (exit 1); `report` prints the five forecasters with "not
+  enough data yet" and the gap 0.962 / 0.997 / 1.009 for 19, 21 and 22 Oct.

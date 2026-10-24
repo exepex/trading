@@ -1,7 +1,8 @@
 """Which files decide G14's values (story G14, amendment 1 section 3b): the files of this package that make records,
 scores or the gap table, and every `fno` module they import, directly or through others, found by walking the imports
-(never a hand list). A16b's candle table class is a start too: the candle rows reach the splice through G7b's reader,
-which wiring calls, so the walk from this package alone would miss it (judge 596 S2). Shared modules that other
+(never a hand list). Files that only wiring reaches are starts too (`OUTSIDE_STARTS`: A16b's candle table, judge 596
+S2; the session calendar, the second self-review); the wiring files themselves are hashed without following their
+imports, which reach the whole app (`WIRING`). Shared modules that other
 stories change are recorded, not checked, as v4's freeze records `fno/constants.py`
 (`fno/forecast_scoring/v4/freeze_check.py`, `RECORDED_NOT_CHECKED`; not imported here, so the walk stays small). One
 list for each record's method hash and for `FREEZE_v5_v1.md`. Fail closed (judge 596 addendum 2): `SHARED` is the one
@@ -14,10 +15,18 @@ import hashlib
 from pathlib import Path
 
 PACKAGE = "fno/forecast_v5_v1"
-RECORD_STARTS = (f"{PACKAGE}/history.py", f"{PACKAGE}/capture.py", f"{PACKAGE}/records.py")
-WIRING = f"{PACKAGE}/wiring.py"  # picks the reader and the inputs: hashed, its imports not followed (v4's whole app)
+OUTSIDE_STARTS = (  # input-path files no package module imports: wiring reaches them
+    "fno/intraday/candle_rv_table.py",  # A16b's file layout and columns (the reader's table class)
+    "fno/forecast_v4/sessions.py",  # which days are scored sessions (the trailing day, HAR's refits)
+    "fno/storage/trading_days.py",
+)
+RECORD_STARTS = (f"{PACKAGE}/history.py", f"{PACKAGE}/capture.py", f"{PACKAGE}/records.py", *OUTSIDE_STARTS)
 FREEZE_STARTS = (*RECORD_STARTS, f"{PACKAGE}/method.py", f"{PACKAGE}/report.py", f"{PACKAGE}/gap.py")
-CANDLE_TABLE = "fno/intraday/candle_rv_table.py"  # A16b's file layout and columns (the reader's table class)
+WIRING = (  # pick the reader, the folders and the inputs: hashed, their imports not followed (they reach the whole app)
+    f"{PACKAGE}/wiring.py",
+    "fno/forecast_v4_rules/wiring.py",
+    "fno/forecast_v4_rules/pack_wiring.py",
+)
 SHARED = (  # changed by other stories almost daily (125 commits in the 10 days to 24 Oct 2026)
     "fno/constants.py",
     "fno/constants_channels.py",
@@ -54,8 +63,8 @@ def _imports(root: Path, relative: str) -> set[str]:
 
 
 def walk(root: Path, starts: tuple[str, ...]) -> list[str]:
-    """Every file reached from `starts` and A16b's candle table (both included), sorted."""
-    seen, todo = set(), [*starts, CANDLE_TABLE]
+    """Every file reached from `starts` (included), sorted."""
+    seen, todo = set(), list(starts)
     while todo:
         relative = todo.pop()
         if relative not in seen:
@@ -75,17 +84,18 @@ def recorded(root: Path, starts: tuple[str, ...]) -> list[str]:
 
 
 def freeze_files(root: Path) -> list[str]:
-    """What `FREEZE_v5_v1.md` byte-checks: every file of this package (wiring and cli included) and the walk from
-    `FREEZE_STARTS`, minus `SHARED` (the start set only limits which imports are followed; judge 596 addendum 2)."""
+    """What `FREEZE_v5_v1.md` byte-checks: every file of this package (wiring and cli included), the walk from
+    `FREEZE_STARTS` minus `SHARED`, and v4's two wiring files (the start set only limits which imports are followed;
+    judge 596 addendum 2)."""
     package = {p.relative_to(root).as_posix() for p in (root / PACKAGE).glob("*.py")}
-    return sorted(package | set(checked(root, FREEZE_STARTS)))
+    return sorted(package | set(checked(root, FREEZE_STARTS)) | set(WIRING))
 
 
 def method_sha256(root: Path) -> str:
     """Each record's method hash: SHA-256 over the paths and bytes of the checked files and the wiring, in path
     order."""
     digest = hashlib.sha256()
-    for relative in sorted({*checked(root, RECORD_STARTS), WIRING}):
+    for relative in sorted({*checked(root, RECORD_STARTS), *WIRING}):
         digest.update(f"{relative}\n".encode())
         digest.update((root / relative).read_bytes())
     return digest.hexdigest()

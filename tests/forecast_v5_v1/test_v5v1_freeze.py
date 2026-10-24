@@ -32,7 +32,7 @@ def _v4(root: Path, *paths: str) -> str:
 
 def _frozen(root: Path, v4: str = "") -> Path:
     record = root / "FREEZE_v5_v1.md"
-    record.write_text(record_text(root, v4, DAY), encoding="utf-8")
+    record.write_text(record_text(root, v4, [], DAY), encoding="utf-8")
     return record
 
 
@@ -41,7 +41,7 @@ def test_a_written_record_holds_and_gives_its_day(copy):
 
 
 def test_each_file_is_marked_v4_row_or_v5_only_and_the_shared_ones_are_recorded(copy):
-    text = record_text(copy, _v4(copy, "fno/forecast_v4_rules/capture.py"), DAY)
+    text = record_text(copy, _v4(copy, "fno/forecast_v4_rules/capture.py"), [], DAY)
     assert "| `fno/forecast_v4_rules/capture.py` | `" in text and text.count("| v4 row |") == 1
     assert f"| `{CANDLE_TABLE}` | `{sha256(copy, CANDLE_TABLE)}` | v5 only |" in text
     assert "| `fno/intraday/rv_table.py` |" in text and "only records it" in text
@@ -53,7 +53,21 @@ def test_each_file_is_marked_v4_row_or_v5_only_and_the_shared_ones_are_recorded(
 def test_a_v4_row_that_differs_refuses_the_record(copy):
     v4 = "| `fno/forecast_v4_rules/capture.py` | `" + "0" * 64 + "` |"
     with pytest.raises(NotFrozen, match="FREEZE_v4.md row"):
-        record_text(copy, v4, DAY)
+        record_text(copy, v4, [], DAY)
+
+
+def test_an_empty_v4_record_cannot_pass_v4s_files_as_v5_only(copy):
+    v4_checked = ["fno/forecast_v4_rules/capture.py", "fno/forecast_v4_rules/series.py"]
+    with pytest.raises(NotFrozen, match="no row"):
+        record_text(copy, "", v4_checked, DAY)
+    assert "| v4 row |" in record_text(copy, _v4(copy, *v4_checked), v4_checked, DAY)
+
+
+def test_a_day_that_is_no_date_refuses(copy):
+    record = _frozen(copy)
+    record.write_text(record.read_text().replace(f"Frozen on: {DAY}", "Frozen on: 2026-02-30"))
+    with pytest.raises(NotFrozen, match="not a date"):
+        check(copy, record)
 
 
 def test_a_missing_record_refuses(copy):
@@ -68,7 +82,10 @@ def test_a_record_without_its_day_refuses(copy):
         check(copy, record)
 
 
-@pytest.mark.parametrize("planted", [CANDLE_TABLE, "fno/forecast_v5_v1/wiring.py", "fno/forecast_v4_rules/series.py"])
+@pytest.mark.parametrize(
+    "planted",
+    [CANDLE_TABLE, "fno/forecast_v5_v1/wiring.py", "fno/forecast_v4_rules/series.py", "fno/forecast_v4/sessions.py"],
+)
 def test_one_changed_byte_refuses(copy, planted):
     record = _frozen(copy)
     (copy / planted).write_bytes((copy / planted).read_bytes() + b"\n")

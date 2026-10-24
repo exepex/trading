@@ -4,7 +4,6 @@ reader (`pack_wiring.candle_history`), A16's live rows, G7b's one pairing, the r
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 
 from ..config import ROOT
 from ..constants import V1_RV_1S
@@ -27,17 +26,16 @@ def build_day(d: date) -> V5Day:
     return V5Day(build_v4_forecasts(d).inputs, from_candle(candle_history()), d, method_sha256(ROOT))
 
 
-def writer(folder: Path | None = None) -> Writer:
-    folder = folder or RECORDS_FOLDER
-    return lambda forecaster, question, rows: records.write(folder, forecaster, question, rows)
+def writer() -> Writer:
+    return lambda rows: records.write_day(RECORDS_FOLDER, V1_RV_1S, rows)
 
 
-def build_report(folder: Path | None = None) -> list[str]:
+def build_report() -> list[str]:
     """Every forecaster's live rows scored against A16's live RV (`live_rv`, never the candle table), then the
     measure-gap table."""
-    folder, live = folder or RECORDS_FOLDER, live_rv()
+    live = live_rv()
     sessions = build_v4_forecasts().inputs.sessions
-    rows = {name: records.read(records.path(folder, name, V1_RV_1S)) for name in FORECASTERS.values()}
+    rows = {name: records.read(records.path(RECORDS_FOLDER, name, V1_RV_1S)) for name in FORECASTERS.values()}
     scores = [score(name, rows[name], live, sessions) for name in FORECASTERS.values()]
     return render(scores, paired_rv(live, candle_rv()))
 

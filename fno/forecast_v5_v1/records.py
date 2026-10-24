@@ -54,21 +54,21 @@ def read(file: Path) -> dict[str, V5Record]:
     return {r["day"]: V5Record(**r) for r in csv.DictReader(io.StringIO(file.read_text()))}
 
 
-def write(folder: Path, forecaster: str, question: str, rows: list[V5Record]) -> int:
-    """Adds rows for new days and returns how many; refuses, writing nothing, on any changed day."""
-    file = path(folder, forecaster, question)
-    kept = read(file)
-    new = []
-    for row in rows:
-        old = kept.get(row.day)
+def write_day(folder: Path, question: str, rows: dict[str, V5Record]) -> int:
+    """One day's row per forecaster, all or nothing: every file is checked before any is written; returns how many
+    rows were added. A different row already written for the day refuses the whole day."""
+    files = {name: path(folder, name, question) for name in rows}
+    kept = {name: read(file) for name, file in files.items()}
+    new = {}
+    for name, row in rows.items():
+        old = kept[name].get(row.day)
         if old is None:
-            new.append(row)
+            new[name] = row
         elif not old.same_as(row):
-            raise RecordConflict(f"{forecaster}/{question} {row.day}: a different row is already written")
-    if new:
-        kept |= {row.day: row for row in new}
-        file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_text(_csv_text(kept.values()))
+            raise RecordConflict(f"{name}/{question} {row.day}: a different row is already written")
+    for name, row in new.items():
+        files[name].parent.mkdir(parents=True, exist_ok=True)
+        files[name].write_text(_csv_text([*kept[name].values(), row]))
     return len(new)
 
 

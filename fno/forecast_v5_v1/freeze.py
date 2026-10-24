@@ -14,6 +14,8 @@ from pathlib import Path
 
 from .method import FREEZE_STARTS, freeze_files, recorded
 
+FUTURE = "{name} is frozen on {day}, after today: no live row before it"
+
 V4_ROW = re.compile(r"^\| `([^`]+)` \| `([0-9a-f]{64})` \|$", re.MULTILINE)  # FREEZE_v4.md's table row
 CHECKED_ROW = re.compile(r"^\| `([^`]+)` \| `([0-9a-f]{64})` \| (v4 row|v5 only) \|$", re.MULTILINE)
 FROZEN_ON = re.compile(r"^Frozen on: (\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
@@ -32,12 +34,15 @@ def sha256(root: Path, relative: str) -> str:
     return hashlib.sha256((root / relative).read_bytes()).hexdigest()
 
 
-def record_text(root: Path, v4_record: str, frozen_on: date) -> str:
-    """The record's text; refuses when a byte-checked file's v4 row differs from its bytes today."""
+def record_text(root: Path, v4_record: str, v4_checked: list[str], frozen_on: date) -> str:
+    """The record's text; refuses when a file v4's freeze byte-checks (`v4_checked`, `freeze_check.byte_checked`) has
+    no row in `v4_record` (an empty or changed v4 record must not pass as "v5 only") or a row other than its bytes."""
     v4 = dict(V4_ROW.findall(v4_record))
     rows = []
     for relative in freeze_files(root):
         digest = sha256(root, relative)
+        if relative in v4_checked and relative not in v4:
+            raise NotFrozen(f"{relative}: v4's freeze checks it, but FREEZE_v4.md has no row for it")
         if relative in v4 and v4[relative] != digest:
             raise NotFrozen(f"{relative}: its bytes differ from its FREEZE_v4.md row")
         rows.append(f"| `{relative}` | `{digest}` | {V4_ROW_LABEL if relative in v4 else V5_ONLY} |")
@@ -63,4 +68,7 @@ def check(root: Path, record: Path) -> date:
     changed = [path for path, digest in listed.items() if sha256(root, path) != digest]
     if changed:
         raise NotFrozen(f"{changed[0]} differs from {record.name}")
-    return date.fromisoformat(frozen_on.group(1))
+    try:
+        return date.fromisoformat(frozen_on.group(1))
+    except ValueError as bad:
+        raise NotFrozen(f"{record.name}: 'Frozen on: {frozen_on.group(1)}' is not a date") from bad

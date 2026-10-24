@@ -15,13 +15,9 @@ NO_PAIRS = "no session has both an ok candle row and an ok live row yet"
 
 
 def gap_table(pairs: Sequence[PairedRv]) -> list[str]:
-    """The labelled table, oldest session first."""
+    """The labelled table, in `paired_rv`'s session order."""
     lines = [f"Measure gap: {INPUT_MEASURE}"]
     if not pairs:
         return [*lines, NO_PAIRS]
-    rows = [f"| {p.day:%d %b %Y} | {p.live:.6e} | {p.candle:.6e} | {p.ratio:.3f} |" for p in sorted(pairs, key=_day)]
+    rows = [f"| {p.day:%d %b %Y} | {p.live:.6e} | {p.candle:.6e} | {p.ratio:.3f} |" for p in pairs]
     return [*lines, *HEADER, *rows]
-
-
-def _day(pair: PairedRv):
-    return pair.day
