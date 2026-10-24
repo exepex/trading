@@ -1137,13 +1137,18 @@ to `build_commitment_times`), resolved by keeping both.
    PROTOCOL_v4.md 1.6 and `days.py`'s docstring say the same; `test_protocol_text.py` checks the label words and
    `V4_RELEASE_BY`. Good, bad, boundary (the live date itself; yesterday; today), empty (no record at all). Plants:
    treat a missing live record as unlabelled; count today as late.
-6. **G8 reads the labels from Drive.** `build_scoring`, `build_ai_slot_days` and `build_day_counts` read the release
-   records through O9's verified Drive cache (`v4/days/<YYYY>/`, synced before every report and look), not
-   `research/data/v4_days/`. A receipt whose bytes are missing or fail verification stops the report or look with the
+6. **G8 reads the labels from Drive: all three readers re-pointed in this story** (G7b's part e relies on it and does
+   not do it again; orchestrator, 24 Oct). `fno/forecast_scoring/v4/wiring.py`'s `build_scoring` (`LateDaysOut`),
+   `build_ai_slot_days` (`sessions_not_late`) and `build_day_counts` each read the release records through O9's
+   verified Drive cache (`v4/days/<YYYY>/`, synced before every report and look) and criterion 5's label rule, through
+   one shared day source built once in the wiring; `V4_DAYS_FOLDER` and `research/data/v4_days/` are deleted (a test
+   finds no reference left in `fno/`). A test per reader feeds a `system_late` release record from a fake Drive cache
+   and shows the day is out of the scored forecasts and outcomes (`build_scoring`), not an AI slot-day to settle, so
+   never an AI miss (`build_ai_slot_days`), and counted as `system_late` (`build_day_counts`). A receipt whose bytes are missing or fail verification stops the report or look with the
    day named, never a report with fewer labels. `postmortem-weekly.yml`, which runs the G8 report, gets the four
    `FNO_GDRIVE_*` settings. Good: two records read. Bad: a tampered record stops it. Boundary: a year folder change
    (31 Dec to 1 Jan). Empty: no receipts yet, no labels, every live day before the report `system_late` by criterion
-   5. Plants: swallow a sync problem; read the old folder.
+   5. Plants: swallow a sync problem; read the old folder; re-point only two of the three readers.
 7. **The 15:10 deadline verdict.** `python -m fno v4-pack deadline` (the `v4_deadline` step, not before 15:12:00) reads,
    for every live record row of each scored session from the live date to today without a verdict, written by a
    forecaster outside `PACK_READERS` (G7's rules, M1's weather, later V4/V5), GitHub's receipt time of the commit that
