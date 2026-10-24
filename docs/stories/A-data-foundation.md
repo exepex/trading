@@ -768,7 +768,52 @@ of "canonical none" thinks the day is closed and a rerun is pointless, when in f
 | An end-to-end run after merge (quality rule 8) | the next 3 pm run's indices lines; a too-early case only if one happens, else said so |
 | The root cause (the part's start time) | Out: O1's R1 (story/o1-r1r2-step-safety), with judges B and E |
 
-**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** story text round 2 for judge F (judge 568, 24 Oct 2026)
+**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** text PASS (judge 568 add. 1, a2e3061e); code for judge F (24 Oct 2026)
+
+**Claims (code at cf90bfac, branch `story/a4c-alert-outcome`):**
+- **Code:**
+  - `fno/quotes/recorder.py` `earliest_waiting_start`;
+  - `fno/quotes/indices.py` `EARLIEST_START`, `TOO_EARLY_REASON`, `CLOSED_NONE`, and the too-early result carrying its reason;
+  - `fno/quotes/indices_cli.py` `_why` and `INDEX_ALERT` without the hard-coded "(canonical none)".
+- **Tests:**
+  - `tests/quotes/test_index_recording.py`: 14:38 (criteria 1 and 6); the 14:40:59 and 14:41:00 edges (the fake clock moves 1 s per read: criterion 2); a closed-none index (3); `earliest_waiting_start` (8).
+  - `tests/quotes/test_weekly.py`: the weekly slot (7).
+  - `tests/quotes/test_unsent_alert_text.py`: criterion 5.
+  - The quiet-day tests are unchanged (4).
+- **Gates:** full suite 15114 passed, 15 xfailed; ruff, format and `check_imports` clean; recorder.py 327 lines.
+- **Planted bugs: 5 of 5 caught:**
+
+  | Planted bug | Tests failing |
+  |---|---|
+  | "canonical none" for every index | 2 |
+  | no too-early reason | 2 |
+  | closed-none silent | 3 |
+  | the wait limit off by a minute | 2 |
+  | no rerun hint | 1 |
+
+- **DRY2's 14:38 case, replayed (test fakes, the run started at 14:38; exit 1):**
+  ```
+  BANKNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  FINNIFTY too early: ... (the same)
+  MIDCPNIFTY too early: ... (the same)
+  alert: 3 pm index recorder: not recorded today: BANKNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it); FINNIFTY (...); MIDCPNIFTY (...). Data only; NIFTY is separate; the sidecars in research/data/quotes/groww/ say why.
+  ```
+- **O1's pinned times:**
+  - O1's branch is untouched by this change. Its 14:38 and 14:44 stay as pinned.
+  - Whichever branch merges second switches O1's `earliest_start` to `earliest_waiting_start(w) + START_MARGIN`, the same values (agreed with the O1 builder, 24 Oct).
+- **After merge (quality rule 8):** the next 3 pm run's indices lines. A too-early case is checked only if one happens; otherwise that is said.
+
+**Handover (24 Oct, owner's usage limit; builder session 01MKtUHByHsR9cNwaP5KhFYH stops here):**
+- The code is complete and sent to judge F for the code round.
+- **Next:** judge F's answer. After a PASS, merge with the full procedure, never 14:00-16:15.
+- **If O1's story/o1-r1r2-step-safety merged first:** in the merge, set O1's `earliest_start(w)` to
+  `earliest_waiting_start(w) + START_MARGIN` and keep O1's tests (14:38 and 14:44) passing.
+- **Other open items of this builder:**
+  - A4h-2: being merged by the orchestrator inside DR1's branch. Its first session's lines are owed from Mon 26 Oct 15:40 (no levels).
+  - A9c (story/oss1-second-host): code PASS (judge 472); merge on or after 26 Oct; expect a WORK_REGISTER conflict.
+  - RECHECK1 (story/recheck1-text, e5e11f03): text with judge E. Agreed design: a shared side-neutral `fno/research_engine/price_validity.py`, agreed with the EDGE1 builder.
+  - A4h: the first 5 live sessions' lines are owed.
+  - O9's read-only index-close change (story/o9-readonly-index-close): its close_read line is reviewed and approved.
 
 ---
 
