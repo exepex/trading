@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from fno.config import ROOT
-from fno.forecast_v5_v1.freeze import NotFrozen, check, record_text, sha256
+from fno.forecast_v5_v1.freeze import FreezeBroken, NotFrozen, check, record_text, sha256
 from fno.forecast_v5_v1.method import FREEZE_STARTS, SHARED, freeze_files, recorded
 
 DAY = date(2026, 10, 25)
@@ -66,7 +66,7 @@ def test_an_empty_v4_record_cannot_pass_v4s_files_as_v5_only(copy):
 def test_a_day_that_is_no_date_refuses(copy):
     record = _frozen(copy)
     record.write_text(record.read_text().replace(f"Frozen on: {DAY}", "Frozen on: 2026-02-30"))
-    with pytest.raises(NotFrozen, match="not a date"):
+    with pytest.raises(FreezeBroken, match="not a date"):
         check(copy, record)
 
 
@@ -78,7 +78,7 @@ def test_a_missing_record_refuses(copy):
 def test_a_record_without_its_day_refuses(copy):
     record = _frozen(copy)
     record.write_text(record.read_text().replace(f"Frozen on: {DAY}", "Frozen on: soon"))
-    with pytest.raises(NotFrozen, match="Frozen on"):
+    with pytest.raises(FreezeBroken, match="Frozen on"):
         check(copy, record)
 
 
@@ -89,7 +89,7 @@ def test_a_record_without_its_day_refuses(copy):
 def test_one_changed_byte_refuses(copy, planted):
     record = _frozen(copy)
     (copy / planted).write_bytes((copy / planted).read_bytes() + b"\n")
-    with pytest.raises(NotFrozen, match="differs"):
+    with pytest.raises(FreezeBroken, match="differs"):
         check(copy, record)
 
 
@@ -102,5 +102,5 @@ def test_a_shared_module_change_does_not_refuse(copy):
 def test_a_new_package_file_needs_a_new_record(copy):
     record = _frozen(copy)
     (copy / "fno/forecast_v5_v1/extra.py").write_text('"""new"""\n')
-    with pytest.raises(NotFrozen, match="other files"):
+    with pytest.raises(FreezeBroken, match="other files"):
         check(copy, record)

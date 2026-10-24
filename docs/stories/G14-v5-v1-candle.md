@@ -261,7 +261,7 @@ Found while building the O1 step, for Judge J (the package's `cli.py`) and judge
     on a day after today.
   - **Failed, a fault someone must fix** (exit 1, its line printed): a byte-checked file differs from the record, the
     record lists other files than today's walk, its `Frozen on:` line is not a date (a frozen file moved: revert it or
-    write a new record version; the precedent is v4's workflow, `.github/workflows/forecast-capture.yml` line 7, "a
+    write a new record version; the precedent is protocol v2's G3 workflow, `.github/workflows/forecast-capture.yml` line 7, "a
     failed freeze check fails the run before any forecast"); and a different row already written for the day
     (`RecordConflict`, as v4's `capture-pack` does for a changed row).
   - Both are alerted to #fno-desk and both end the day "with problems"; nothing is written in either case (all or
