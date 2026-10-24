@@ -24,7 +24,9 @@ from .weekly import NO_WEEKLY, WEEKLY_EXPIRIES
 INDEX_WINDOW_START, INDEX_WINDOW_END = time(15, 1), time(15, 13)
 INDEX_WORKERS, INDEX_PER_SECOND = 3, 2.5  # with A16's 5 a second, under the about 10 where Groww began failing
 NOT_STARTED = RecordResult("window closed")
-DONE_WITHOUT_ATTEMPT = ("not a trading day", "already recorded", "too early")
+ATTEMPTED = "recorded"  # the status of every in-window attempt, complete or not; each one wrote its sidecar
+QUIET_STATUSES = ("not a trading day", "already recorded")  # nothing to record and nothing to alert
+DONE_WITHOUT_ATTEMPT = (*QUIET_STATUSES, "too early")  # never attempted, so never closed none
 # The earliest start that still reaches the window by waiting (A4c-2: 15:01 minus the 20-minute early wait). A run
 # started before it records nothing and writes no none marker, so its result says so (DRY2 R1, 24 Oct 2026).
 EARLIEST_START = earliest_waiting_start(INDEX_WINDOW_START)
@@ -68,7 +70,7 @@ class IndexRecording:
                 if self.now() > end:  # an index's expiry and chain calls never start after the window either
                     break
                 results[underlying] = result = self.recorders[underlying].attempt_now()
-                if result.complete or result.status != "recorded" or _final(result.reason):
+                if result.complete or result.status != ATTEMPTED or _final(result.reason):
                     pending.remove(underlying)
             if pending:
                 self.sleep(RETRY_GAP_SECONDS)

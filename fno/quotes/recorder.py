@@ -59,7 +59,8 @@ def earliest_waiting_start(window_start: time) -> time:
     times). Not yet the only place: on main, O1's `fno/daily/quote_parts.py` `EARLIEST_START` still subtracts on its
     own. O1's switch completes it: whichever of A4c-2 and O1's R1 merges second makes O1's `earliest_start` return
     `(datetime.combine(date.min, earliest_waiting_start(window_start)) + START_MARGIN).time()`, imports this function
-    from `..quotes.recorder` and drops its then-unused `MAX_EARLY_WAIT_SECONDS` import."""
+    from `..quotes.recorder` and drops its then-unused `MAX_EARLY_WAIT_SECONDS` import; that switch removes this note.
+    A window opening before 00:20 has no such time of day (OverflowError); no window does."""
     return earliest_waiting_moment(date.min, window_start).time()
 
 

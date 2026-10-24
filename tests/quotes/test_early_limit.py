@@ -23,7 +23,8 @@ def test_a4_s_window_waits_from_1435_and_one_second_before_is_too_early(tmp_path
 
 @pytest.mark.parametrize(("start", "too_early"), [((13, 59, 59), False), ((13, 59, 58), True)])
 def test_a_named_window_keeps_its_own_longer_wait(tmp_path, start, too_early):
-    """A4e's v4 window (14:30, 30 minutes early): 14:00:00 waits, 13:59:59 is too early and asks nothing."""
+    """A4e's v4 window (14:30, 30 minutes early): 14:00:00 waits, 13:59:59 is too early and asks nothing (the fake
+    clock moves 1 s at each read, so a clock set at 13:59:59 reads 14:00:00 first)."""
     rec, _, _ = named_recorder(tmp_path, at(*start), provider=NoCalls() if too_early else None)
     assert (rec.record().status == "too early") is too_early
 
@@ -41,6 +42,6 @@ def test_a_wait_longer_than_the_time_of_day_lands_on_the_day_before_and_never_fa
     assert earliest_waiting_moment(DAY, time(14, 30), 900 * 60) == datetime(2026, 10, 12, 23, 30, tzinfo=IST)
 
 
-def test_the_time_of_day_is_the_same_rule_with_a4_s_20_minutes():
-    assert earliest_waiting_start(time(15, 1)) == time(14, 41) and earliest_waiting_start(time(14, 55)) == time(14, 35)
+def test_the_time_of_day_is_the_same_rule_down_to_its_midnight_limit():
+    """Criterion 8 (14:41 and 14:35) is `test_index_recording.py`'s; here the earliest window it can serve."""
     assert earliest_waiting_start(time(0, 20)) == time(0, 0)

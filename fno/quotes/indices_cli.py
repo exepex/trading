@@ -10,7 +10,7 @@ from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..models import now_ist
 from ..research_data.calendar import CalendarError
-from .indices import CLOSED_NONE, IndexRecording, closes_none
+from .indices import ATTEMPTED, CLOSED_NONE, QUIET_STATUSES, IndexRecording, closes_none
 from .recorder import QuoteSnapshotRecorder, RecordResult
 
 INDEX_LINE = "{underlying} {status}: {snapshot_id} ({rows} contracts, complete={complete}){outcome}"
@@ -18,8 +18,6 @@ INDEX_ALERT = "3 pm index recorder: not recorded today: {names}. Data only; NIFT
 # A4c-2 (judge 571 should-fix 2): only an attempt writes a sidecar, so only the attempted indices are pointed to it
 SIDECAR_POINTER = "; the sidecars in research/data/quotes/groww/ say why for {names}"
 INDEX_CALENDAR_STOP = "3 pm index recorder stopped, nothing recorded: {error} ({file})"
-QUIET_STATUSES = ("not a trading day", "already recorded")
-ATTEMPTED = "recorded"  # the status of every in-window attempt, complete or not, each with its sidecar
 
 
 def record_indices(build: Callable[[], Mapping[str, QuoteSnapshotRecorder]], alerts: AlertSender, calendar_file: str,
