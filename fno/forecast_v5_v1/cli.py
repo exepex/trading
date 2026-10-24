@@ -1,11 +1,13 @@
 """`python -m fno forecast-v5-v1 capture | report | freeze` (story G14). `capture` writes today's five rows before
-14:30 IST only while `FREEZE_v5_v1.md` holds, and exits 1 on any refusal so O1's step records it as refused
-(criterion 7); `report` prints the scores and the measure-gap table; `freeze` writes the freeze record once, after
-`FREEZE_v4.md`."""
+14:30 IST only while `FREEZE_v5_v1.md` holds: a planned "no row" (the cutoff, no record yet, a record frozen after
+today) prints "nothing written:" and exits 0, so O1 records it `refused`; a fault (a frozen file moved, a broken
+record, a different row already written) exits 1, so O1 records it `failed` (amendment 2; criterion 7). `report`
+prints the scores and the measure-gap table; `freeze` writes the freeze record once, after `FREEZE_v4.md`."""
 
 from __future__ import annotations
 
 REFUSED = "v5 V1 candle forecasts {day}: nothing written: {why}"
+FAILED = "v5 V1 candle forecasts {day}: FAILED, no row written: {why}"
 
 
 def add_forecast_v5_v1_parser(subparsers) -> None:
@@ -27,7 +29,7 @@ def _capture() -> int:
     from ..forecast_v4_rules.records import RecordConflict
     from ..models import now_ist
     from .capture import capture
-    from .freeze import FUTURE, NotFrozen, check
+    from .freeze import FUTURE, FreezeBroken, NotFrozen, check
     from .records import capture_platform
     from .wiring import FREEZE_FILE, build_day, writer
 
@@ -37,8 +39,11 @@ def _capture() -> int:
         if frozen_on > now.date():
             raise NotFrozen(FUTURE.format(name=FREEZE_FILE.name, day=frozen_on))
         added = capture(build_day(now.date()), now, capture_platform(), writer())
-    except (CaptureRefused, NotFrozen, RecordConflict) as refused:
+    except (CaptureRefused, NotFrozen) as refused:
         print(REFUSED.format(day=now.date(), why=refused))
+        return 0
+    except (FreezeBroken, RecordConflict) as fault:
+        print(FAILED.format(day=now.date(), why=fault))
         return 1
     print(f"v5 V1 candle forecasts {now.date()}: {added} rows written (live; a measurement, never a v4 member)")
     return 0

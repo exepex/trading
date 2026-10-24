@@ -91,3 +91,14 @@ lists `fno/constants.py`).
     "nothing written:"); changed bytes, an unparseable date or another walk list is `failed` (exit 1).
     `RecordConflict` stays `failed`. One planned flag, or two `NotFrozen` subclasses. Criterion 7 names both cases
     with a test each.
+
+## Addendum 4: G14 Amendment 2 round 2 (the last), story/g14-amend2 at c20a14926
+**PASS** (text), lane 1, 1 minor. The orchestrator named 63c9e6dbe, which is not an object in the repository. The
+branch's only head is c20a14926, cut from 4a54c1765 with one Markdown commit (checked). Doc-reading tests with the
+token set: 920 passed, 14 xfailed.
+- **S1 closed.** Refused (exit 0, "nothing written:"): 14:30 or later; not today or not a scored session; no
+  `FREEZE_v5_v1.md`; a record frozen after today. Failed (exit 1): a changed byte-checked file, another walk list,
+  an unparseable `Frozen on:`, `RecordConflict`. Criterion 7 names each, with a test at the command and one through
+  O1's `outcome`. Both are alerted, and the log label says which.
+- **m1 (minor)** The text calls `.github/workflows/forecast-capture.yml` "v4's workflow". It runs protocol v2's G3
+  capture (its header, lines 1-7). The precedent is v2's freeze check; fix the word.
