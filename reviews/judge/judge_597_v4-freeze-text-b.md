@@ -69,3 +69,24 @@ exists in `docs/DESK_DECISIONS.md` on main (my grep, 21 titles, one match each).
   replaces only the first part (slots registered at the freeze). The second part still stands unless the owner
   changes it, and it supports SF3's fix (G11's shared AI files hashed in G11's own registration, not byte-checked by
   `FREEZE_v4.md`). Split the row; recommend keeping the second part.
+
+## Addendum 2: round 2 (the last), head a4011c920 (text only)
+
+**PASS (2 minor left). Lane 1.** I read the "Round 2" section and its edits against my evidence. Doc-reading tests:
+853 passed, 15 xfailed (token kept); record scan clean (9,106 files).
+
+| 597 | Ruling | My evidence |
+|---|---|---|
+| SF1 rate placement | FIXED | new `fno/forecast_v4/pricing.py`: frozen by the `fno/forecast_v4/*.py` glob; M1's `METHOD_FILES` take only `forecast_v4/terms.py` and `sessions.py` from that package (`fno/weather/wiring.py:27-33`, read), so no committed hash moves; joining `IV30_METHOD_FILES` changes no pinned value (`tests/v4_pack/test_release_run.py:124-128` checks the digest's form only, read; no pack released before 26 Oct) |
+| SF2 every reader | FIXED | the three readers are named: pack wiring:54; G7b's EOD proxy through v1's frozen `fno/forecast/wiring.py:17` (G7b builds its own `PanelAtmIv30` at the constant); V4/V5 terms. Criterion 3 scans the walk's classes for a config read or a `build_atm_iv30` call, with good, bad, boundary and empty cases and 2 plants |
+| SF3 shared files | FIXED | three classes (byte-checked, recorded with a lock and a drift line, not deciding) plus an import walk (criterion 11, S1's pattern); the shared AI files, `live_features.py` and `iv30.py` move to recorded; claimed locks checked: `iv30.py`, `volatility_features.py`, `close_series.py` and `panel_reader.py` appear in two of `FREEZE.md`/`_v2`/`_v3`, `live_pack.py` and `quote_snapshots.py` in one; pending G10 change as blocker 6 |
+| m1 slot registry | FIXED | protocol commit (d) names `v4_slots.csv` in section 10 as append-only; section 4 already names it (line 226) |
+| m2 row 22 | NOT FIXED (minor) | row 22 (story line 255) still marks all of the owner's 21 Oct (3) as replaced. Its second part ("the AI files are hashed in their own registration when G11 goes live") is unanswered, while `fno/ai/v4_*.py` and the prompts are byte-checked by `FREEZE_v4.md`. Split the row and put that part to the owner with the keep-or-change table |
+| S held open | ACCEPTED | `slot_file.py`'s two rules (start after `Frozen on:`, not after the first eligible session; V6a/V6b/V7's base rate is valued every session) force `Frozen on:` to be the day before S, as stated; `ai_books_v4 = S` in the freeze commit closes 597's note 1 |
+
+**New minor m3:** `fno/quotes/recorder.py` is classed "not deciding", but it chooses the pack's contracts
+(`_targets`: which expiries; `_contracts`: the 5% band) and the spot. A narrower band can leave the pack without a
+valid ATM pair, which makes the day `system_late`. Class it "recorded" (shared with A4's 3 pm capture; lock: A4's
+golden 14:55 test, which G10 kept byte-identical).
+
+Round 2 ends here (JUDGE.md "Rounds"): code may start; m2 and m3 ride the next push.
