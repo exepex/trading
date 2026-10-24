@@ -300,3 +300,91 @@ minor.
 - G11's `tests/ai/test_run_timing.py:58-60` (on its branch) asserts 4.17 minutes for a record with `sealed_at`, which
   is start to end. After both merge it reads working minutes, so G11's builder updates that expectation.
 - G11's two docstrings, and the dashboard contract's "session minutes" (gap list).
+
+---
+
+## BG1-t. The stop-rule tracker reads Test A's real inputs and the freeze date from the freeze record
+
+**Repository:** trading · **Lane:** 1 (the whole project's stop-or-continue review and its tests) · **Builder:**
+session_016CU8KFuEEtWAM7ZNnFcKxv (BG1's owner) · **Size:** S
+
+**Description:** As the portfolio manager, I want the stop-rule tracker to see Test A's inputs when they exist and to
+take protocol v4's freeze date from the freeze record itself, so that Test A can become computable and the review date
+can never disagree with the freeze.
+
+**Context and why (each fact marked):**
+- Owner, 15 Oct 2026 (DESK_DECISIONS "Stop-rule review and its 'undecided' action"): the review is the last session of
+  the sixth full calendar month after protocol v4's freeze. (Owner's rule.)
+- **Test A can never become computable today** (fact, `fno/budget/stop_rule_tracker.py:57-60`). Its three inputs have
+  no path and no `present` check, so `exists()` is always false:
+  - G6, the frozen family;
+  - G8, v4 daily scores of V6, V1 and V2 against their primary baselines;
+  - A16, 15-minute quotes long enough for V1.
+  Found by the v4 freeze builder, 24 Oct; checked by the builder.
+- **The freeze's own record** (fact): `research/forecasts/FREEZE_v4.md`, carrying "Frozen on: YYYY-MM-DD", read by
+  `LookRecords.frozen()` and `frozen_on()` (`fno/forecast_scoring/v4/records.py:53-64`, wired at
+  `fno/forecast_scoring/v4/wiring.py:30,100`). G8's looks are written to `research/forecasts/v4_scores/<day>.json`, with
+  `exploratory` true before the freeze (10, 17 and 24 Oct so far). The file does not exist yet; the freeze targets Sun
+  25 Oct (G6 freeze, story/v4-freeze).
+- **V1's start rule** (fact, `research/forecasts/PROTOCOL_v4.md` section 1.3): "V1: when A16 has 20 non-void
+  sessions". The code is `V1_START_SESSIONS = 20` in `fno/forecast_v4_rules/capture.py:46`: A16's live rows with a
+  value, counted by `DayForecasts._v1`.
+- **The freeze date lives in two places today** (fact): config `budget.stop_rule.v4_freeze_date` (null on main), read
+  by `fno/budget/wiring.py:82`, and the record's "Frozen on:" line. G6's freeze story (on `story/v4-freeze`, section 7
+  and criterion 8) plans to set the config key to "Frozen on:".
+- **The review date with a freeze on 25 Oct 2026** (fact, the owner's rule): October is the freeze's own month, so
+  November-April are the six full months. That is the last session of April 2027, Fri 30 Apr 2027 by the weekday
+  fallback until NSE's 2027 circular is added. "About 31 May 2027" was the estimate from a projected November freeze.
+
+**Design (reasoning only):**
+- Each Test A input gets a `present` check, as Test B's R1 input already has (`_shadows_registered`):
+  - **G6 family:** frozen when `LookRecords.frozen()` is true and `frozen_on()` reads a date. A record without its
+    "Frozen on:" line is not frozen; the reason is reported, never a traceback.
+  - **G8 scores:** at least one look in `v4_scores/` that is not exploratory and is dated after `frozen_on()`.
+    Exploratory looks never count.
+  - **A16 for V1:** at least `V1_START_SESSIONS` (20, imported, never retyped) A16 live sessions with a value, read
+    through the same rows `build_v4_forecasts` reads. **Stated reading:** the tracker's "long enough for V1" is
+    protocol 1.3's start rule. If Test A meant a longer series (for example the 250 sessions HAR-intraday needs,
+    `HAR_INTRADAY_SESSIONS`), that is a gap for the G6/G8 owner to name. BG1-t uses the start rule and says so on the
+    tracker line.
+- **The freeze date comes from the record only.** `build_review_date()` takes `frozen_on()` when the record exists,
+  else the projected month as today. The config key `budget.stop_rule.v4_freeze_date` is removed. Its readers:
+  `fno/budget/wiring.py:82`, `tests/budget/test_stop_rule_tracker.py:59`, `config.yaml:177,198`, and BG1 criterion 6's
+  text. `projected_v4_freeze_month` stays for the time before the freeze. A config with the old key is refused, naming
+  "FREEZE_v4.md's Frozen on: line", so a stale value can never be read.
+- **Coordination with G6's freeze, through the orchestrator:** G6's section 7 and criterion 8 set the key. Under
+  BG1-t, the freeze sets nothing in config; criterion 8 becomes "`build_review_date()` gives 2027-04-30 from
+  FREEZE_v4.md". If the freeze merges first, BG1-t's commit removes the key it set and its test. Whichever merges second
+  carries that change.
+
+**Acceptance criteria:**
+1. **G6 input.** Present iff FREEZE_v4.md exists with a "Frozen on:" date. G: a record dated 2026-10-25. B: a record
+   without the line, not present, and the tracker names why. E: no record.
+2. **G8 input.** Present iff a non-exploratory look is dated after the freeze. G: one look on 2026-10-31. B: only
+   exploratory looks (today's 10, 17, 24 Oct); a non-exploratory look dated on or before the freeze. Bd: a look the
+   day after the freeze. E: no looks, or no freeze.
+3. **A16 input.** Present iff at least 20 A16 live sessions with a value exist. Bd: 19 is absent and 20 present. B: 20
+   rows of which one has no value is absent. E: no intraday folder. The line says "V1's start rule (protocol 1.3: 20
+   non-void sessions)".
+4. **Test A computable.** With all three present, `stop_test_status(root, "A")` is "computable"; with any missing, "not
+   computable yet" naming it. Test B is unchanged.
+5. **The freeze date from the record.** With FREEZE_v4.md "Frozen on: 2026-10-25", the review is 2027-04-30, labelled
+   from the freeze and unconfirmed by the weekday fallback while 2027 is missing. With no record, it is projected from
+   `projected_v4_freeze_month` as today. A config with `v4_freeze_date` is refused. A record without its date gives
+   "projected" with the reason, never a guessed date.
+6. **Gates** as BG1-u, the Slack token kept. Sample: `python -m fno budget stop-rule` before and after, on main and with
+   a constructed freeze record.
+
+**Gap list.**
+- The finding: all three Test A inputs (1-4); the two freeze-date sources (5).
+- Out of scope, with why:
+  - **Whether Test A needs more than V1's start** (stated reading above; the G6/G8 owner's).
+  - **The review date's owner message and the 15 Oct "half budget" wording**, which is moot under BG1-u's no cap.
+    Both go to the owner through the orchestrator.
+  - **G6's own files** (its story's section 7 and criterion 8, `FREEZE_v4.md`): G6's builder, through the orchestrator.
+  - **Test A's own computation** stays G6/G8's. The tracker only says whether its inputs exist.
+
+**Plants (named):** each `present` check always true; exploratory looks counted; 19 sessions counted as enough; a void
+row counted; the config key still read; a record without its date read as a date.
+
+**Depends:** BG1, G6 (freeze record), G8 (looks), A16 (rows) · **Status:** story text, for the judge
