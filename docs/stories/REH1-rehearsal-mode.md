@@ -1089,7 +1089,8 @@ REH1j's exercised line).
   ignored; a not-live command's failure still counted.
 - **K4. The line, once.** Printed after the routine's last line and posted once, labelled; none when every command
   is live. Plant: posted per command.
-- **K5. Real runs unchanged.** No mode: `build_edition` gives what it gives today; the full suite passes; the grep
+- **K5. Real runs unchanged.** No mode (judge 611 m2: its own test case): `rehearsed_lab_live` returns `config.yaml`'s
+  dates unchanged and no note, no `FNO_REHEARSAL_NOT_LIVE` is set, and `build_edition` gives what it gives today; the full suite passes; the grep
   test still finds the mode only in the roots and `fno/rehearsal/`; `test_routines.py` still holds the routines'
   commands to CLAUDE.md (`live_key` is not part of a command's words).
 
@@ -1103,3 +1104,4 @@ REH1j's exercised line).
 | `lab release-check` (evening) | | Not gated by a live date (it is read-only and never fails); it already runs on 22 Oct |
 | `lab preview` | | Never part of a rehearsed routine; FL1-1f's own command |
 | The morning's and evening's other commands (librarians, certify, closes read) | | Not gated by `forecast_lab.live_from`; they run as today |
+| A 22 Oct evening rehearsal reading the morning rehearsal's edition (judge 611 m1) | | Each rehearsal has its own run id and writes only under its own `dryrun/<run_id>/`; another run's folder is never read, and the real record holds no 22 Oct morning edition (live from 23 Oct). So a 22 Oct evening rehearsal's confirmation sees no morning report of that day, and says so as the real code says it |
