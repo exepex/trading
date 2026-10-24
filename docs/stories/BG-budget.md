@@ -110,6 +110,9 @@ code path posts to Slack.
 **Depends:** F8 (minimal), C1, A7 · **Size:** S · **Status:** done: judge 104 addendum 3 PASS (4fcea00), merged
 757c20d (addendum 4)
 
+**Since 24 Oct 2026 (owner: "No monthly budget cap for AI. Keep it unlimited."):** the cap criteria above (2, 3, 4
+and 7's levels) hold only under `budget.cap: share`; the configured value is `none` (BG1-u).
+
 ---
 
 ## BG1-w. The AI books' reveal wait does not count in BG1's cap
@@ -300,3 +303,99 @@ minor.
 - G11's `tests/ai/test_run_timing.py:58-60` (on its branch) asserts 4.17 minutes for a record with `sealed_at`, which
   is start to end. After both merge it reads working minutes, so G11's builder updates that expectation.
 - G11's two docstrings, and the dashboard contract's "session minutes" (gap list).
+
+---
+
+## BG1-u. No monthly AI cap: BG1 records and reports, nothing alerts or stops
+
+**Repository:** trading · **Lane:** 1 (BG1's level is what stops the AI roles and books) · **Builder:**
+session_016CU8KFuEEtWAM7ZNnFcKxv (BG1's owner)
+
+**Description:** As the owner, I want no monthly budget cap on AI, so that no AI role or book is ever alerted about or
+stopped by its minutes, while BG1 keeps measuring and reporting them.
+
+**Context and why (each fact marked):**
+- Owner, 24 Oct 2026 (`docs/DESK_DECISIONS.md`, "No monthly AI budget cap: unlimited"): "No monthly budget cap for AI.
+  Keep it unlimited." It replaces the 15 Oct "Monthly AI budget accepted" cap (50% of measured minutes, alert at 80%,
+  stop at 100%) and its "7 A" basis. BG1 still records and reports minutes (working minutes, the reveal wait apart).
+  (Owner's words and the orchestrator's row.)
+- **Every reader of the cap's level and stop (fact, grep of `main` at a38dad1b3 and G11's branch):**
+  - `fno/budget/cap.py` `cap_reading`: computes the level, read by the meter (`report.py`) and the signal.
+  - `fno/budget/signal.py`: writes `accounting/budget/<YYYY-MM>_signal.json` with `stop_ai_roles` (level `stop`) and
+    the alert text (`alert` or `stop`). Today no workflow or routine writes that file, and the folder does not exist.
+  - `fno/learning/writer.py` `SignalFile`: the weekly post-mortem writer is not fired when the month's signal says
+    `stop_ai_roles`.
+  - G11's `fno/ai/budget_stop.py` (`MeterBudgetStop`, C8; on `story/g11-ai-books-v4`, merging to main): the v4 books
+    are not fired when the meter's level is `stop` and the books' own minutes reach `cap_minutes`.
+  - `config.yaml` `budget`: `books_and_roles_share_pct`, `alert_pct`, `stop_pct`, `measured_basis_until`,
+    `plan_minutes_per_month`, read by `CapSettings.from_config`.
+  - The dashboard contract `contracts/omenix-dashboard/api/schemas/fno-budget.yaml`: `level` (enum ok, alert, stop,
+    unknown), `cap_minutes`, `pct_of_cap`, `share_pct`, `alert_pct`, `stop_pct` (all required; `x-fill: not_built`).
+- **Not a cap (fact):** the stop-rule tracker (`stop_rule_tracker.py`) is the whole project's stop-or-continue review
+  date (design 8.2), not the monthly cap. The allocation (`allocation.py`) splits the plan's cost by minutes. Both stay.
+
+**Design (the simplest that keeps everything for a later decision; reasoning only):**
+- One switch in `config.yaml`: `budget.cap`, either `none` (the owner's 24 Oct decision, the value set) or `share`
+  (the 15 Oct rule, kept in code and config for a later decision, never deleted). The key is required; a missing key
+  or any other value is refused, naming the two values. No value is guessed.
+- With `cap: none`, `cap_reading` gives the level `no_cap` (new, `BUDGET_NO_CAP`), `cap_minutes` and `pct_of_cap`
+  None, and the note "no AI cap (owner, 24 Oct 2026: unlimited)". The books-and-roles minutes and the measured basis
+  are still computed and shown. Coverage gaps never turn `no_cap` into `unknown`: there is no level to know.
+- The signal under `no_cap`: `stop_ai_roles` false, no alert text, and the send line "no alert: no AI cap (owner, 24
+  Oct 2026)". The file is still written when `budget signal` runs, so a reader sees an explicit "no stop".
+- The meter under `no_cap`: one line "AI cap: none (owner, 24 Oct 2026: unlimited); books and roles X minutes this
+  month", instead of the % and level lines. Every minutes line and BG1-w's wait line stay.
+- G11's `MeterBudgetStop` stops only on level `stop`, so with `no_cap` it never stops. It needs no code change; it is
+  G11's file, and its test is G11's builder's (through the orchestrator).
+- The `share` settings (`books_and_roles_share_pct`, `alert_pct`, `stop_pct`, `measured_basis_until`,
+  `plan_minutes_per_month`) stay in `config.yaml` with a comment: unused while `cap: none`, kept for a later decision.
+  They are still checked when `cap: share`.
+
+**Acceptance criteria:**
+1. **The switch.** `budget.cap: none` in `config.yaml`, citing the owner's row. G: `none` gives `no_cap`. Bd: `share`
+   gives exactly today's behaviour (every existing BG1 cap test passes unchanged under `share`). B: `unlimited`, `""`,
+   `None` and a missing key are refused, naming `none` and `share`. Plant: the default taken as `share` when the key is
+   missing.
+2. **The level under `none`.** `no_cap`, `cap_minutes` None, `pct_of_cap` None, the note; the books-and-roles and basis
+   minutes still the ledger's sums. G: 34.46 minutes. E: no rows: still `no_cap`, never `unknown`. Bd: 100,000 minutes
+   and a development or routine gap: still `no_cap`. Plants: `no_cap` replaced by `unknown` on a gap; minutes not
+   computed.
+3. **Nothing alerts or stops.** Under `none` the signal has `stop_ai_roles` false and no alert text, at any minutes, and
+   `send_alert` sends nothing and says "no alert: no AI cap". The post-mortem writer's `SignalFile` reads that file as
+   no stop, and the routine fires (test through `PostMortemRoutine`). G: one month's signal; Bd: 100,000 minutes;
+   E: no rows. Plant: `stop_ai_roles` from the minutes, or an alert sent.
+4. **The meter.** Under `none` it prints the "AI cap: none" line with the month's books-and-roles minutes, every
+   minutes line and the wait line, and no "%" or "level" line for the cap. G: the repository's October; E: an empty
+   ledger. Plant: the old cap lines printed under `none`.
+5. **G11's stop never fires under `none`.** This story's test: the meter's reading under `none` has a level other than
+   `stop` for any minutes, which is the only condition `MeterBudgetStop` stops on. A test through `MeterBudgetStop` is
+   G11's builder's (session_01Rga1fe3C4rmnrmmE1p3diE), asked through the orchestrator.
+6. **Nothing deleted.** The `share` path, its settings and their checks, the signal's stop fields and
+   `AI_ROLE_STOP_ORDER` stay. Test: `share` still reaches `alert` and `stop` at 80% and 100%.
+7. **Gates.** pytest (token kept), ruff, ruff format, `check_imports`, `check_records`, `check_numbers` on `main`; no
+   file or class over 350 lines. Real output sample: `python -m fno budget meter --month 2026-10` and `python -m fno
+   budget signal --month 2026-10` (dry run) before and after.
+
+**Gap list.**
+- The owner's decision: no cap (criteria 1-2); nothing alerts or stops (3, 5); minutes still recorded and reported
+  (2, 4; BG1-w unchanged); the 15 Oct cap replaced (1).
+- Out of scope, with why:
+  - **The dashboard contract** (`fno-budget.yaml`): `level` lacks `no_cap`, and `cap_minutes`, `share_pct`,
+    `alert_pct` and `stop_pct` are required numbers. It is `x-fill: not_built`, so nothing breaks today. Its wording
+    belongs to the dashboard's owner, through the orchestrator; BG1-u does not edit it.
+  - **G11's `budget_stop.py` docstring and its owner choices** ("forecasters last", "fail open") become moot under
+    `no_cap`; that is G11's file.
+  - **BG1's own criteria 2, 3, 4 and 7** (levels, basis, signal, coverage) now hold only under `cap: share`. BG1's
+    story text says so in one line.
+  - **The capture gaps** (no development roster, the 3 pm recorder's timing records) no longer decide any level. They
+    still make the allocation's book shares over- or understated, and the allocation still warns. Unchanged.
+  - **No routine writes the signal file today**, so nothing reads a stale `stop` file. Unchanged.
+
+**Test plan:** unit tests on `cap_reading` and the signal under both values; the meter and the signal through
+`build_month_meter` on a temporary repository; the post-mortem's `PostMortemRoutine` with the written signal; config
+refusals; no network, no Slack.
+
+**Judge verifies:** sets `cap: share` and sees today's levels; plants a stop under `none`; reads every reader of
+`stop_ai_roles` and the level by grep; checks no `share` code was removed.
+
+**Depends:** BG1, BG1-w · **Size:** S · **Status:** story text, for the judge
