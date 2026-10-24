@@ -62,3 +62,37 @@ The 4 blocking self-review fixes are present (P3, P11 caught; pipefail and the f
   - tests/rehearsal, daily, preopen, e2e and e2e_acceptance: 380 passed;
   - tests/ai, v4_pack, budget, forecast_scoring_v4 and pipeline: 572 passed.
 - So I attribute those 3 posts to the orchestrator's dry run running at the same time (some evidence, not proven). No test of this suite is shown to post.
+
+## Addendum 2: round 2 (the last), story/g11-ai-books-v4 at 8fc143ffc
+**PASS**, lane 1, with one merge condition (below). Code = 81f4d5460; 8fc143ffc touches only `G-forecasts.md` (checked).
+Every check was mine, with `FNO_SLACK_BOT_TOKEN` set.
+- **F1 closed.** `v4_go_live.py` makes collect start at the earlier of the go-live date and the AI slots' first
+  start. My round-1 probe, re-run (start 3 days early, go-live on DAY): the early session's audits are written as
+  `not_fired` ("before the AI books' v4 go-live"), and DAY's are `on_time`. Five plants on the new code all caught:
+  collect from the go-live date only, min changed to max, the count line removed, the reason forced to NO_LOG, `<=`
+  in the count. The wiring test pins the calendar's sessions (no empty default).
+- **F2 closed.** My P18, P23 and P25 re-planted: each caught, by tests through the collector and the firer
+  (`test_v4_collect_log.py`, `test_v4_fire.py`).
+- **m1-m3 closed.** Docstrings corrected; the m2 wording is true and pinned; C10's reason corrected.
+- **The test split:** 106 lines moved to `test_v4_collect_log.py` verbatim; only one docstring line differs.
+- **BG1-w:** C8 sums `minutes` only. My plant that adds `wait_minutes` to the stop was caught. `sealed_at` is ISO
+  time with zone, or null, which matches BG1-w's reader.
+- **Before go-live:** `ai fire` and `ai collect --protocol v4` print not live and exit 0. Consequence (stated in
+  Claims): once AI slots are registered, collect writes `not_fired` from their start even while `ai_books_v4` is
+  null. That is the protocol's rule; registration and the go-live date should land on the same session.
+- **Gates on a trial merge with main 6aea50ad2** (8a5ccf5e7): 15,875 passed, 1 skipped, 14 xfailed. ruff, format,
+  check_imports (2,672), check_records (9,131), check_numbers clean; largest file 350 lines.
+- **Slack:** #fno-forecast and #fno-intraday got nothing in either run. #fno-desk got two "DRY RUN, 2026-10-23
+  replay" card lines during the first run. The second full run posted nothing. So these are rehearsal lines, not
+  tests (some evidence; orchestrator asked to confirm).
+
+**Merge condition: BG1-w (story/bg1w-reveal-wait 3d19625a, judge 587.2 PASS).** main + G11 + BG1-w merges cleanly, but
+`tests/ai/test_run_timing.py::test_the_ledger_gets_each_books_minutes_once` then fails. G11's timing files now carry
+`sealed_at`, so BG1-w's reader records 2.00 working minutes plus a 2.17-minute wait, not 4.17. The Claims' "passes in
+either merge order" is wrong for this one test (minor, m4). Whichever of G11 or BG1-w merges second changes its two
+expectations:
+- `"recorded 4.17 minutes"` becomes `"recorded 2.0 minutes (and a wait of 2.17 minutes apart, not capped)"`;
+- the row's `"4.17"` becomes `"2.00"`.
+
+With exactly that change, the full suite on main + G11 + BG1-w: 15,911 passed, 1 skipped, 14 xfailed; no Slack post.
+No G11 code changes.
