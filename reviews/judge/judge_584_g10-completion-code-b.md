@@ -42,3 +42,17 @@ branch's own merge of main (221d2002a, main side b1b2fe371). Story text G10 comp
 ## Notes
 
 No look-ahead found: the catch-up writes only `system_late`, fields outside 14:30:00-14:40:00 are dropped, verdicts use GitHub receipt times. Write-once: `RawFileConflict` named, never overwritten (tests). Tests strip the Drive settings (`tests/conftest.py:118-125`); rehearsal Drive is `dryrun/`.
+
+## Addendum 1: new head 0e5647c7d (docs only on 837bd8c7b), still round 1
+
+**FAIL, unchanged: findings 1-4 stand; minors m1-m3 stand, plus m4.** `git diff --stat 837bd8c7b 0e5647c7d`: two files,
+`docs/stories/G-forecasts.md` and `research/forecasts/PROTOCOL_v4.md`, 6 insertions and 6 deletions. All of it is the
+D1/D3 status wording ("pending" to "owner decided 24 Oct"). No code or test changed, so the code verdict above holds
+for this SHA. The owner's rows are on main: `DESK_DECISIONS.md:324` (D1, "1 - Option A", release by 14:45:00) and
+`:325` (D3, "2 - Option A"); both match the code (`V4_RELEASE_BY = time(14, 45)`, `SYSTEM_LATE_FAILS = True`). The
+protocol text test passes on the new head (23 passed). The head still conflicts with main (`git merge-tree` exit 1),
+so finding 1 stands.
+- The builder's leftover 1: `release_run.py:25` and `:28` comments still say "owner pending". This is m4 (minor, stale
+  comment): fix it in the next code commit.
+- The builder's leftover 2: the decisions bullet still names `terms.V4_RELEASE_BY`. This is my m1, still open; the new
+  sentence beside it ("D1 lives in one constant (`terms.V4_RELEASE_BY`)") repeats it.
