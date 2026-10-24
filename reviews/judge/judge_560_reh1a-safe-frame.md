@@ -55,3 +55,20 @@
   - Nothing in the daily run uses them today: Groww's feed (NATS) first logs in through `requests`, which
     is refused, and psycopg runs only in the market-publish workflow.
   - REH1c's routines must keep it that way, or the guard must widen.
+
+## Addendum 1
+
+- **Head checked:** c37804a9, round 2 of 2: d362737c (judge 557) and c37804a9 (this report). Merged with
+  main as 4642646b for testing.
+- **Verdict: PASS (my half). Merge once judge B also passes.**
+- **Gates:** pytest -n auto: 14999 passed, 0 failed. ruff check, ruff format --check, check_imports and
+  check_records: clean.
+- **F1 fixed:** `python -m fno rehearse check` runs in a real `python -m fno` child with the mode set.
+  - It must see the replay clock and have a live `requests.get` refused.
+  - `daily run --rehearse` runs it before the first step.
+  - Plant H3 (`http_guard.install()` → `pass`) now fails tests/rehearsal/test_process.py.
+- **F2 fixed:** a marker hook proves that the clone's data commit runs the record scan. Plant G5
+  (`--no-verify`) now fails.
+- **F3 fixed:** `_guard` stops on any non-zero exit, whatever was printed. Plant H5 (the exit code ignored)
+  now fails.
+- **Minor:** a urllib3 backstop is promised in REH1b's follow-up; raw sockets stay a stated limit.
