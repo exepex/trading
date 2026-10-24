@@ -76,3 +76,11 @@ def test_the_wiring_reads_bg1s_own_meter():
 
     firer = build_v4_firer({})
     assert isinstance(firer.budget, MeterBudgetStop) and firer.budget.meter is build_month_meter
+
+
+def test_the_stop_sums_working_minutes_only_never_the_reveal_wait():
+    """BG1-w (owner, 24 Oct: the reveal wait is not counted) adds `wait_minutes` after `minutes`: the books at 60
+    working plus 60 waiting minutes are under the cap of 100, so they fire, before BG1-w and after it."""
+    rows = [{"book": BOOK3_AI, "minutes": "60.00", "wait_minutes": "60.00"}, {"book": "", "minutes": "90.00"}]
+    reading = SimpleNamespace(usage_rows=rows, cap=SimpleNamespace(level=BUDGET_STOP, cap_minutes=CAP))
+    assert MeterBudgetStop(lambda month, today: reading).check(DAY).stop == ""
