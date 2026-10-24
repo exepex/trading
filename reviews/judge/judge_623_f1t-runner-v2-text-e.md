@@ -58,3 +58,31 @@ allowed, each labelled 'strategy not yet passed'". Criterion 17b carries the lab
 - The four routine sessions overlapping around 15:00-15:11, with an unknown platform concurrency limit, are stated as
   a known limit to be measured on the non-counted fire. Accepted.
 - `NoJudge` failing Book 2 closed until F4 merges (criterion 16) is right.
+
+## Addendum 1
+
+**F1t revision 2 story text, round 2 of 2 (story/f1t-runner-v2 @ 4dbf786d): PASS. Lane 1.** Judge E, judge 1 of 2;
+judge K's verdict not read. Since 470cbdc5c only the two story files change (+81/-28). Judged by reading. Doc-reading
+tests with the token kept: 922 passed, 14 xfailed.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: the configured model checked, not the served one | **Accepted, fixed** | `brief` makes the session report `model_reported` = `external_metadata.last_served_model`, with `model_configured` = `session_context.model` and `model_source` beside it. These are the fields this judge's own `get_session` returns. `instructions` or `none` is `model_unverified`. A served or configured model different from the registered one is `model_mismatch`; both are no trade. A false copy is a transcript-audit breach (`model_misreported`). The latest-turn limit is stated, with the audit's coverage (every session of the first 10 days, then 2 a week). Criterion 3c has each case; the go-live fire needs `session_tool` with the registered model |
+| SF2: the budget stop's rule | **Accepted, fixed** | `LevelBudgetStop`, a second implementation of G11's interface, stops decisions on level `stop` alone. Criterion 12 has the case "level `stop`, books below the cap: decisions not fired, forecasts fired" and the `alert` case |
+| Minor 1: fail open on an unreadable meter | Fixed | Stated as the orchestrator's choice, on cost only: it never makes a trade, since every trade still passes C2, C4 and the judge |
+
+**New text this round, checked.**
+- Q9 to Q11 are the owner's: DESK_DECISIONS 25 Oct row 345, "9 yes, 10 yes, 11 yes". Q11 (Book 2 alone may take D2's
+  research candidates as rule defaults, under D2's unproven limit) is placed in F5's revision, not here.
+- The 15:10:10 row's claim holds by its own timeline: every seal deadline (15:10:00) comes before any reveal
+  (15:10:10).
+- The reveal race is a stated limit: a reveal missing at 15:11:00 is `not_revealed`, never a trade.
+
+## Findings
+
+None blocking, none should-fix, none minor.
+
+## Note
+
+The fix depends on routine sessions having the session-description tool. Without it every day is
+`model_unverified` (no trade). The go-live fire checks this, so the gap fails closed.
