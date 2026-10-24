@@ -122,8 +122,12 @@ def test_an_empty_repository_discloses_none_in_every_part(tmp_path):
 
 def test_the_repository_discloses_g7s_and_m1s_backfills_and_the_pre_freeze_live_days():
     text = disclosure(ROOT, FREEZE)
-    for source in ("base_rate/v6_abs_move_2pct_next_session.csv", "v7_vix_vs_mean20/", "weather_vix_v1/",
-                   "research/forecasts/v4/weather/*/*.json"):  # fmt: skip
-        assert source in text, source
-    backfill, live = text.split("### Live rows")[0], text.split("### Live rows")[1].split("### G8")[0]
-    assert "| 2017-01-03 |" in backfill and "2026-10-22" not in backfill and "| 2026-10-22 |" in live
+    backfill = text.split("### Live rows made")[0]
+    live = text.split("### Live rows made")[1].split("### G8")[0]
+    for source in ("base_rate/v6_abs_move_2pct_next_session.csv` | 2017-01-03 |", "v7_vix_vs_mean20/",
+                   "weather_vix_v1/", "`research/forecasts/v4/weather/*/*.json` | 2017-01-03 |"):  # fmt: skip
+        assert source in backfill, source
+    assert "2026-10-22" not in backfill and "| 2017-01-03 |" not in live
+    for source in ("base_rate/v6_abs_move_2pct_next_session.csv` | 2026-10-22 |",
+                   "`research/forecasts/v4/weather/*/*.json` | 2026-10-22 |"):  # fmt: skip
+        assert source in live, source

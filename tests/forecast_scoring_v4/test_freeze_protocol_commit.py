@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 from fno.forecast_scoring.v4 import freeze_check
+from fno.forecast_scoring.v4.freeze_classes import RECORDED
 from fno.research_engine.ledger import Git
 
 PROTOCOL = freeze_check.PROTOCOL
@@ -114,3 +115,16 @@ def test_a_shallow_clone_is_not_checked_never_broken_or_intact(repo):
     commit = _commit(repo, "final text\n", "protocol")
     found = freeze_check.check(repo, _record(commit, "final text\n"), ShallowGit(repo))
     assert not found.holds() and found.problems == () and found.lines()[0].startswith("v4 freeze NOT CHECKED: shallow")
+
+
+def test_the_check_names_a_recorded_file_changed_since_the_freeze_and_still_holds(repo):
+    commit = _commit(repo, "final text\n", "protocol")
+    (repo / "fno").mkdir()
+    (repo / "fno" / "analytics.py").write_text("def norm_cdf(x): ...\n", encoding="utf-8")
+    record = _record(commit, "final text\n") + "\n" + freeze_check.recorded(repo) + "\n"
+    assert freeze_check.check(repo, record, Git(repo)).drift == ()
+    (repo / "fno" / "analytics.py").write_text("# edited\n", encoding="utf-8")
+    found = freeze_check.check(repo, record, Git(repo))
+    assert found.holds() and found.drift == (
+        f"recorded file changed since the freeze: fno/analytics.py ({RECORDED['fno/analytics.py']})",
+    )
