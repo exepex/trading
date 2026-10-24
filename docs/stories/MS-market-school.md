@@ -664,7 +664,9 @@ the sign-off, "re-checked on current main and re-judged". The held 22 Oct commit
 `fno/daily/steps.py`; the school's four reason codes in `fno/daily/reason_codes.py`; the O2 harness's school command
 (`tests/e2e/harness.py`); `tests/e2e/test_school_step.py`, `tests/daily/test_starts_by.py`,
 `tests/school/test_rehearsed_stores.py`; the tuple's copies in `tests/daily/test_day_run.py` and
-`tests/health/test_desk_and_data_checks.py`; `FAILED_ALERT`'s one use in `tests/e2e_acceptance/test_replay_failures.py`.
+`tests/health/test_desk_and_data_checks.py`; `FAILED_ALERT`'s one use in `tests/e2e_acceptance/test_replay_failures.py`; the row of
+`tests/price_ranges/test_score_steps.py` that pinned G13's scores right after G13d (now right after the school:
+G13d's 15:30 seal still comes first, the rule that row states).
 
 **Why this place (measured on main's run logs, `journal/runs/`):** `quotes_done` started at 15:18:39 (21 Oct),
 15:22:05 (22 Oct) and 15:18:28 (23 Oct), after the desk's 15:15 snapshot and fills. Two things refuse after 15:30:
