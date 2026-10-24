@@ -70,6 +70,8 @@ class BrokerRecord:
         """(structure, width) of every basket with an `ok` or `mismatch` result in the day's earlier records."""
         store, cache = self.store, self.cache
         prefix = f"{store.area}/{FOLDER}/{day.isoformat()}"
+        if not cache.receipts.under(prefix):
+            return set()  # the day's first run: nothing recorded yet is empty, not unreadable (O9's sync refuses it)
         report = cache.sync(prefix)
         if not report.complete:
             raise RecordProblem(UNREADABLE.format(problems="; ".join(report.problems)))

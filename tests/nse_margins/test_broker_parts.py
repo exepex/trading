@@ -112,6 +112,9 @@ def test_a_damaged_earlier_record_or_a_refused_write_is_a_record_problem(tmp_pat
     drive.files[path] = b"changed"
     with pytest.raises(RecordProblem, match="cannot be read back"):
         record.done(DAY)
+    del drive.files[path]  # receipted but lost in Drive: never read as the day's first run
+    with pytest.raises(RecordProblem, match="not returned by Drive"):
+        record.done(DAY)
 
     class Refusing(DictStore):
         def put(self, path, data):

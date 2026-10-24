@@ -82,3 +82,59 @@ On the merged head 3dc0ab9b: ruff, format, imports and the number check clean; f
 - The comparison's tolerances are some evidence: one basket on 16 Oct, and now 15 baskets on one evening.
 - The live run in market hours has not happened yet; the first one is the owner's `live_from` date.
 - Groww's symbol form `NIFTY<yy><MON><strike><CE|PE>` is proven for monthly expiries only, which is all A14 uses.
+
+## Round 2 (25 Oct 2026, builder session 01JkD3wtEQbxiE7qLHzQS7jp; the first builder is out of reach)
+
+The owner lifted every pause on 25 Oct, and the orchestrator gave this part to this session. Not judged before: the
+code above at ebce3593.
+
+**Merge of main (merge, not rebase; 4,110 commits of main since 21 Oct).** It had six conflicts, all resolved without
+changing the check:
+- `CLAUDE.md` and `config.yaml`: main's text. Main's composition-root rule is now generic, so the old list entry is
+  gone. `daily.live_from.margin_check` stays `null`.
+- `fno/daily/wiring.py`: main's steps, plus this check's receipt pathspecs and main's new `locks` argument to
+  `CommandStep`, as every other step has. Main's `MARGIN_CHECKS = stress_broker_check.csv` is removed (nothing else
+  reads it).
+- `tests/daily/test_steps.py`: main's step order (`quotes`, `owner_timing_fills`, `margin_check`) and this branch's
+  command and pathspec checks.
+- `docs/WORK_REGISTER.md` and `reviews/claude/README.md`: main's rows plus this part's rows.
+
+**One defect the merge exposed, and its root cause (strong evidence: the test failed on the merge, passes after the
+fix).** Main's O9 change 494d97df3 (23 Oct) makes `DriveCache.sync` report a prefix with no receipts as a problem
+("a wrong path must never read as all verified"). `BrokerRecord.done` synced the day's folder before anything was
+written, so **every day's first run would have stopped on "cannot be read back", exit 1, with nothing asked**. The fix
+uses the rule main's `fno/storage/receipted_rows.py` already applies: when no receipt exists under the day's folder,
+the day has nothing done, and the empty set is returned without a sync. A receipted record that Drive no longer
+returns still refuses ("not returned by Drive", a new assertion in
+`test_a_damaged_earlier_record_or_a_refused_write_is_a_record_problem`), so the shortcut cannot hide a lost file.
+Mutations: the shortcut always taken, 2 tests failed; the shortcut removed, 1 failed.
+
+**Real read-only sample, Sun 25 Oct about 04:15 IST (what it proves and what it does not):**
+- The real command, as O1 runs it: `margin check 2026-10-25: outside market hours`, exit 0, nothing asked
+  (closed day).
+- A rehearsal ran with the command's real parts:
+  - all 15 of A14's real rows for **Mon 26 Oct**;
+  - their own `nsccl.20261026.i1.zip` read from Drive;
+  - live Groww through this caller's `ReadOnlyGroww`.
+
+  The clock was pinned to 26 Oct 10:00 IST. The record went to an in-memory store, never Drive, so no dated record
+  exists for a run that did not happen. Alerts were printed, not sent.
+- Results:
+  - All 15 baskets were rebuilt and proved to be their rows.
+  - The NIFTY quote answered.
+  - Pacing gave 15 margin requests 2-3 s apart, 60.7 s in all.
+  - **Every margin request was refused by Groww: `GrowwAPIException`, code `GA000`, "Margin cannot be fetched at this
+    time."** Groww's calculator does not answer on a weekend. On 21 Oct, a weekday, it answered at 20:13 IST, after
+    the close (above).
+  - The check did what the text says: 15 `error` rows ("Groww: GrowwAPIException", the class name only), the
+    "not checked ... a rerun today retries them" line last, exit 1, and no alert of its own.
+- The account afterwards, read-only (`get_order_list`, `get_positions_for_user`, `get_available_margin_details`):
+  0 orders, 0 positions, `net_fno_margin_used` 0.0, `span_margin_used` 0.0, `exposure_margin_used` 0.0.
+- **Still owed:** a matching sample in market hours, Mon 26 Oct about 10:00 IST (09:30-14:00, clear of 14:27 and
+  14:55). It will be added here with the request count, the duration and the account check. Until then, the
+  tolerance evidence is the 21 Oct evening run above (some evidence).
+
+**Finding for the owner (strong evidence, one Sunday reading).** On a closed day the check never asks, because A7's
+calendar says no session. But a special weekend session, or a weekday Groww outage, would give 15 `error` rows and
+exit 1. O1 then marks the step and alerts once, which is the designed outcome: a lost day is recorded as lost, never
+retried later.
