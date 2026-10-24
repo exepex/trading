@@ -63,3 +63,27 @@ fails on the merge.
   AI registration table (lock: G11 C8's tests) and class what the walk then reaches.
 
 Plants: none new (12 of 12 in round 1, on code unchanged here except the class tables).
+
+## Addendum 2: round 2 (the last), head 4183c46c8
+
+**PASS (1 minor). Lane 1.** I ran the gates on a trial merge into origin/main 5a5d4ddc5 (clean, ac3e2d4d6). ruff,
+format (2,578), imports (2,707), record scan (9,187) and check_numbers are all clean; **16,179 passed, 1 skipped, 14
+xfailed** (token kept); the walk passes.
+
+- **SF1: FIXED.** `budget_stop.py` is recorded in the AI registration table (`freeze_classes.py:83-84`), its lock
+  `tests/ai/test_v4_budget_stop.py`.
+- **The orchestrator's doubt: are `fno/budget/constants.py` and `report.py` deciding?** No; "not deciding" holds, by
+  trace. `MeterBudgetStop.check` (`budget_stop.py:39-52`) takes from `constants.py` only the name `BUDGET_STOP`
+  (`"stop"`), the same constant `cap.py` sets, so changing it changes both sides alike. From `report.py` it takes only
+  the `MonthMeter` dataclass shape. The values that decide a stop (`cap.level`, `cap_minutes`, the book minutes) come
+  from the injected meter: `fno/ai/wiring.py:92` passes `budget.wiring.build_month_meter`, whose
+  `cap_reading(..., CapSettings.from_config(budget), ...)` (`fno/budget/cap.py:92-104`) decides the level. With
+  `budget.cap: none` (owner, 24 Oct: "unlimited"), `CapSettings.capped` is False (my run), so the level is
+  `BUDGET_NO_CAP` and `budget_stop` can never return a stop: no `not_fired` row can come from it today.
+- **live_wiring.py: MET.** "A real run gets `daily.live_from` unchanged" is shown by two plants on the no-rehearsal
+  branch of `rehearsed_live` (all dates None: 5 failed; `v4_pack` moved to 22 Oct: 6 failed).
+- **The `wiring.py` conflict is resolved with both sides:** `build_iv30_rule()` (line 70) and `run_live_dates(cfg, env)`
+  (lines 75, 95) are both present; no `risk_free_rate` read is left.
+- **Minor m1:** the decider of a budget stop is `fno/budget/cap.py` plus the setting `budget.cap`, both outside the
+  walk (injected by a composition root). Name `budget.cap` (value `none`) in the record's "settings v4 reads" with that
+  sentence, so that a later cap (an owner decision) is known to start AI `not_fired` misses. Not a code change.
