@@ -399,3 +399,70 @@ refusals; no network, no Slack.
 `stop_ai_roles` and the level by grep; checks no `share` code was removed.
 
 **Depends:** BG1, BG1-w · **Size:** S · **Status:** story text, for the judge
+
+### BG1-u Claims (code, round 1)
+
+Builder session_016CU8KFuEEtWAM7ZNnFcKxv, branch `story/bg1u-no-cap`; text PASS judge 595, with judge J's minors.
+
+**What changed:**
+- `config.yaml`: `budget.cap: none`, citing the owner's row, in the same commit as the code (judge J m1). The five
+  share settings stay, commented as unused while `none`.
+- `fno/budget/constants.py`: `CAP_NONE`, `CAP_SHARE`, `BUDGET_NO_CAP`.
+- `fno/budget/cap.py`:
+  - `CapSettings.from_config` refuses a missing or unknown `cap` with a ValueError naming `none` and `share`. Under
+    `none` it neither reads nor checks the share settings.
+  - `cap_reading` under `none` returns `no_cap` with None cap and %. The minutes are still summed.
+  - The docstring says the 15 Oct rule holds only under `share`.
+- `fno/budget/signal.py`: under `no_cap` there is no alert template, so no alert; `stop_ai_roles` is false because the
+  level is not `stop`; the send line reads "no alert: no AI cap (owner, 24 Oct 2026)".
+- `fno/budget/report.py`: under `no_cap`, one line replaces the cap's %, level, basis and coverage lines.
+- `fno/budget/items.py`: the plan line reads "AI minutes for books and roles; their cap, if any, below". It said
+  "cap", which contradicted the line below.
+- **Tests changed, said plainly:** `tests/budget/test_meter.py`'s `config()` helper and `test_items_and_cap.py`'s
+  config test now set `cap: share`. Those tests are the 15 Oct cap's, and their assertions are unchanged. The `none`
+  path on the same meter is tested in `tests/budget/test_no_cap.py`.
+
+| Criterion | Tests (`tests/budget/test_no_cap.py`): good / bad / boundary / empty | Plants, each caught |
+|---|---|---|
+| 1 the switch | `config.yaml` is `none`; `share` keeps the cap; `unlimited`, `""`, None, `"None"` and missing refused as ValueError; both callers: `build_month_meter` (what G11's fire and role_value's weekly cost call) raises ValueError on a missing or unknown value, and under `none` role_value's allocation reads without a crash; under `none` the share settings are neither read nor checked | C1a missing key taken as `share` (2); C1b any value accepted (7); C1c config set to `share` (1); C1d refusal not a ValueError (7); C1e share settings checked under `none` (13) |
+| 2 the level | `no_cap`, None cap and %, the note, at 34.46, 100,000 and 0 minutes with coverage gaps; an empty month is `no_cap`, never `unknown` | C2a `no_cap` turned `unknown` on a gap (9); C2b minutes not computed (2); C3c the switch ignored (9) |
+| 3 nothing alerts or stops | the signal at no rows, 0, 34.46 and 100,000 minutes: `stop_ai_roles` false, no alert text, nothing sent; the post-mortem routine fires on a written `no_cap` signal | C3a stop under `none` (5); C3b alert sent under `none` (4) |
+| 4 the meter | the real October and an empty ledger: one "AI cap: none" line, no "%" or "level", the minutes and wait lines kept | C4 old cap lines under `none` (2) |
+| 5 G11's stop | the level under `none` is never `stop` at any minutes (the only level `MeterBudgetStop` stops on); a test through `MeterBudgetStop` is G11's builder's | C3a, C3c |
+| 6 nothing deleted | `share` still reaches `alert` at 80% and `stop` at 100%, with `stop_ai_roles`; the share settings still in config | C6 the share path removed (11) |
+
+12 plants, 12 caught, in a separate worktree, each restored (`git status` clean).
+
+**Real output sample** (`python -m fno budget meter --month 2026-10` and `budget signal --month 2026-10`, a dry run, in a
+scratch checkout so no signal file is committed):
+- Before (main):
+  ```
+  AI cap: books and roles 34.46 of 17.23 minutes = 200.0%; level unknown
+  signal unknown written ... / no alert: the level is unknown (no measured minutes to compare with)
+  ```
+- After: the same minutes lines, then
+  ```
+  AI cap: none (owner, 24 Oct 2026: unlimited); books and roles 34.46 minutes this month
+  signal no_cap written ... / no alert: no AI cap (owner, 24 Oct 2026)
+  ```
+  The signal file holds `level: no_cap`, `stop_ai_roles: false`, `alert_text: ""`, `cap_minutes: null` and
+  `pct_of_cap: null`.
+
+**Self-review** (an independent agent, given the diff and the story only): no blocking findings, 2 should-fix and 4
+minor.
+- **Fixed:**
+  - The share settings were still read and checked under `none`. Now they are not (C1e). Before, deleting one would
+    have given a KeyError traceback.
+  - The plan line contradicted the "AI cap: none" line.
+  - The report now keys on the level, as the signal does.
+  - The cap's docstring.
+  - The empty signal case.
+- **Not changed, with why:**
+  - The signal file still carries `stop_order` and `code_jobs`. The schema stays stable for its reader, which reads
+    only `stop_ai_roles`.
+  - When `allocation.flagged` is set, the gap warnings are hidden. That is BG1's allocation rule, unchanged.
+  - The callers' handling of the ValueError is read from their code (G11's `budget_stop.py:46-47` catches it;
+    role_value's `cli.py:37` catches it), not tested through them here.
+
+**Gap list addition (judge J m2):** G11's `fno/ai/usage_gaps.py:3` docstring ("its level shows unknown") becomes untrue
+under `no_cap`: for G11's owner, through the orchestrator.
