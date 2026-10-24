@@ -14,6 +14,7 @@ from .items import ItemLine
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 
 NOT_RECORDED = "not recorded"
+NO_CAP_LINE = "  AI cap: none (owner, 24 Oct 2026: unlimited); books and roles {minutes:,.2f} minutes this month"
 # Story BG1-w (owner 24 Oct 2026, "Waiting minutes - Option A"): the AI books' seal-to-reveal wait, shown apart
 WAIT_LINE = "  AI books' reveal wait (not capped): {minutes:,.2f} minutes over {runs} run(s)"
 NO_WAIT = "  AI books' reveal wait (not capped): none recorded"
@@ -88,6 +89,8 @@ def _wait_lines(rows: list[dict]) -> list[str]:
 
 def _cap_lines(meter: MonthMeter) -> list[str]:
     cap = meter.cap
+    if cap.cap_minutes is None:  # BG1-u: no cap, so no %, level, basis or coverage lines
+        return [NO_CAP_LINE.format(minutes=cap.books_and_roles_minutes)]
     pct = "unknown" if cap.pct_of_cap is None else f"{shown_pct(cap.pct_of_cap):.1f}%"
     lines = [f"  AI cap: books and roles {cap.books_and_roles_minutes:,.2f} of {cap.cap_minutes:,.2f} minutes = {pct}; "
              f"level {cap.level}", f"    basis: {cap.basis}"]  # fmt: skip

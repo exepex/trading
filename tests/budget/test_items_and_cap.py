@@ -102,7 +102,7 @@ def test_the_owner_numbers_come_from_config_and_bad_numbers_are_refused():
     settings = CapSettings.from_config(load_app_config()["budget"])
     assert (settings.share_pct, settings.alert_pct, settings.stop_pct, settings.plan_minutes) == (50, 80, 100, None)
     assert settings.basis_until == "2026-12"
-    base = {"books_and_roles_share_pct": 50, "alert_pct": 80, "stop_pct": 100}
+    base = {"cap": "share", "books_and_roles_share_pct": 50, "alert_pct": 80, "stop_pct": 100}
     for bad in ({"alert_pct": 120}, {"books_and_roles_share_pct": 0}, {"books_and_roles_share_pct": 101}):
         with pytest.raises(ValueError, match="budget settings"):
             CapSettings.from_config(base | bad)
