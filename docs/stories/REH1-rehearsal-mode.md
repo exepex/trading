@@ -815,7 +815,8 @@ plainly").
 - The weekly lives inside the `indices` part (one process, no live key), so REH1j's `ExercisedPartsApart` cannot set
   it apart.
 - The same happens to `quotes_done`'s `v4` part on every day before A4e's first `v4` capture: already apart (its live
-  key `v4_pack` is not live), but posted as "failed: window closed".
+  key `v4_pack` is not live), but posted as "failed: window closed" (the record holds no
+  `quote-snapshots-v4` marker yet; its first capture is due 26 Oct).
 
 #### Design
 
