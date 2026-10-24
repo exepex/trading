@@ -749,11 +749,16 @@ the runner and the daily step), `fno/daily/wiring.py` (`SCHOOL_STARTS_BY` reads 
 
 **Gap list.** Every requirement above has a criterion. Out of scope: the switch itself (a separate commit, the
 orchestrator's); what a person does after a refusal (runbook below); a late finish of a run that started in time (j2's
-gap list).
+gap list); a run that started in time, settled an expired position and crashed before the seal, then rerun after
+15:25: it is refused, and the settlement stays in the ledger without its sealed exit (an earlier session's settlement
+is never sealed later, `test_a_settlement_recorded_for_an_earlier_session_is_never_sealed_again`). Rare (a crash in a
+window of seconds), visible (the stop line), and covered by the runbook's in-time rerun.
 
 **Runbook line.** Never run `python -m fno school run` for a session after 15:25 IST on its day: the runner refuses it
 (criterion 1) and the session is not recorded. A school step that failed or was refused is not rerun that day; the
-next session runs as normal.
+next session runs as normal. The one exception: a run that crashed after it began (a "stopped:" line other than "too
+late") may be rerun by hand once, `python -m fno school run --session D`, only if it is still 15:25 IST or earlier on
+D; it completes the session without doubling anything (MS-P1j's finish).
 
 ### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
 
@@ -3456,3 +3461,31 @@ sealed`; `school run` exits 1 on it (`cli.py`: any "stopped:" status), and the d
 **Gates at a1c4a1fe9** (the code; the Claims text on top is Markdown only): `python -m pytest -q -p no:cacheprovider -n
 auto` 16556 passed, 1 skipped, 14 xfailed (FNO_SLACK_BOT_TOKEN kept set); `ruff check` and `ruff format --check`
 clean; `check_imports` clean (2760 files); `check_records` clean (9260 files); `check_numbers` at the merge, on `main`.
+
+### MS-P1j3 Claims, round 2 (judge 627 FAIL round 1: SF1 and a minor; judge 622 PASS)
+
+- **SF1 (judge F): the rehearsal clause had no test.** Accepted: F's plant (IstClock reading the wall clock) passed
+  all 4,072 tests. Fixed by `test_a_rehearsed_past_session_seals_by_its_replayed_last_start_and_not_after`: REH1's own
+  `ReplayClock`, installed with `models.install_clock` as `rehearsal/process.py` does, started at the past session's
+  15:20 IST; the record root's `wiring.IstClock` reads it (within a minute of the replayed time, not today), the fleet
+  seals; the clock jumped to 15:26 replayed, a first seal is refused with nothing written. F's plant (`IstClock.now`
+  returning `datetime.now().astimezone()`) fails it on the clock assertion: `assert 729679.12 < 60`.
+- **Minor (judge F): the self-review line.** Round 1 had no independent review agent on j3; one ran in round 2, on
+  the diff, with no context from this builder. Its findings, each checked by reading the code and planting:
+  1. "Settles nothing" untested (should fix): accepted, the rig held no expired position.
+     `test_a_late_first_run_settles_no_expired_position` (j's `expiring_rig`): the ledger unchanged, the position still
+     open, no file for the session. Plant: `settle_expired` moved above the check, caught.
+  2. The start-decides test passed without its code (should fix): accepted. The old fake clock changed on its
+     second read, and nothing in `plan_slot` read it. Now the snapshot source moves the clock past 15:25 while the
+     captures are read. Plant: the early read removed and the clock read at the check, caught (the earlier plant kept
+     the early read, so it proved less than the round-1 table said).
+  3. The ticket ledger not checked (minor): accepted, `nothing_written` checks both ledgers.
+  4. A late run on a day whose roads all closed is now refused too (minor): accepted as criterion 1 says, pinned by
+     `test_a_late_first_run_on_a_day_whose_roads_all_closed_is_refused_too`. It costs that day's closed-road record
+     only on a manual late run; the daily step is never late.
+  5. The comparison written twice, here and in `StartsBy` (minor): rejected. `StartsBy` is O1's generic step guard
+     with any time and knows nothing of the school; what the two share is the value, and that is one constant
+     (criterion 4).
+  6. A crash between a settlement and the seal, rerun after 15:25 (minor, out of scope): stated in the gap list,
+     with the runbook's in-time rerun.
+- **F's boundary ruling** (the runner does not take the step's start time): no change.

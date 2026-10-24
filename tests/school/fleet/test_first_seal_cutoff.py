@@ -11,9 +11,11 @@ from fno.school.constants import FLEET_STOPPED, SLOT_LAST_START
 from fno.school.contracts.clock import FixedClock
 from fno.school.contracts.fleet import RunMode
 from fno.school.fakes import FakeDriver, FakeMaxLossLaw
+from fno.school.fleet.ledgers import open_positions
 from fno.school.fleet.runner import FIRST_SEAL_TOO_LATE
 from tests.school.contracts import builders as b
 from tests.school.fleet.rig import DAY2, Rig, all_roads
+from tests.school.fleet.test_runner import expiring_rig
 
 LAWS = (FakeMaxLossLaw(10_000),)
 STOP_START = FIRST_SEAL_TOO_LATE.split("{")[0]
@@ -30,7 +32,8 @@ def on(session, hour, minute, second=0, micro=0) -> datetime:
 
 
 def nothing_written(rig: Rig) -> bool:
-    return rig.dashcam.files == {} and rig.accounts.ledgers == {} and not any(rig.root.rglob("*"))
+    accounts = rig.accounts.ledgers == {} and rig.ticket_accounts.ledgers == {}
+    return rig.dashcam.files == {} and accounts and not any(rig.root.rglob("*"))
 
 
 @pytest.mark.parametrize("at", [on(b.SESSION, 15, 4), on(b.SESSION, 15, 25)])
@@ -89,21 +92,77 @@ def test_a_session_with_nothing_scheduled_prints_its_own_line_whatever_the_hour(
     assert run.status == "" and run.decisions == () and nothing_written(rig)
 
 
-class SlowReading:
-    """The clock moves past the last start while the captures are read: the run's start decides."""
+class MovingClock:
+    """A clock that reads `first` until the captures are read, then `later` (the snapshot source moves it)."""
 
     def __init__(self, first: datetime, later: datetime):
-        self.times = [first, later]
+        self.at, self.later = first, later
 
     def now(self) -> datetime:
-        return self.times.pop(0) if len(self.times) > 1 else self.times[0]
+        return self.at
 
 
 def test_a_run_started_by_the_last_start_seals_even_if_reading_the_captures_crosses_it(tmp_path):
     rig = rig_at(tmp_path, on(b.SESSION, 15, 4))
-    rig.fleet.clock = SlowReading(on(b.SESSION, 15, 25), on(b.SESSION, 15, 26))
+    clock = rig.fleet.clock = MovingClock(on(b.SESSION, 15, 25), on(b.SESSION, 15, 26))
+    read = rig.fleet.snapshots.for_road
+
+    def slow_read(*args, **kwargs):
+        clock.at = clock.later  # reading the captures took past the last start
+        return read(*args, **kwargs)
+
+    rig.fleet.snapshots.for_road = slow_read
     assert rig.fleet.run(b.SESSION, RunMode.RECORD).status == "" and rig.dashcam.files
+    assert clock.at == clock.later  # the captures really were read after the start
+
+
+def test_a_late_first_run_settles_no_expired_position(tmp_path):
+    """The check sits before `settle_expired`: an expired position stays open, its exit unsealed, for an in-time run."""
+    rig, later = expiring_rig(tmp_path)
+    held = {driver: list(rows) for driver, rows in rig.accounts.ledgers.items()}
+    rig.fleet.clock = FixedClock(on(later, 15, 45))
+    run = rig.fleet.run(later, RunMode.RECORD)
+    assert run.status.startswith(STOP_START) and rig.accounts.ledgers == held
+    assert open_positions(tuple(rig.accounts.ledgers["CS1@1"]))  # still open: nothing settled
+    assert all(key[0] != later for key in rig.dashcam.files)
+
+
+def test_a_late_first_run_on_a_day_whose_roads_all_closed_is_refused_too(tmp_path):
+    """Criterion 1 as written: a scheduled session, even of closed roads only, makes no first seal after 15:25."""
+    rig = Rig(tmp_path, (FakeDriver(all_roads("CS1"), b.put_spread()),), LAWS, open_roads=())
+    rig.fleet.clock = FixedClock(on(b.SESSION, 15, 45))
+    run = rig.fleet.run(b.SESSION, RunMode.RECORD)
+    assert run.status.startswith(STOP_START) and nothing_written(rig)
 
 
 def test_the_daily_step_and_the_runner_share_one_last_start():
     assert SCHOOL_STARTS_BY is SLOT_LAST_START == time(15, 25)
+
+
+@pytest.fixture
+def replay_clock(monkeypatch, tmp_path):
+    """REH1's own replay clock, installed as a rehearsing process installs it (`rehearsal/process.py`); the package's
+    clock is restored after the test."""
+    from fno import models
+    from fno.rehearsal.clock import ReplayClock
+
+    monkeypatch.setattr(models, "_clock", models._clock)  # restored at the end
+    clock = ReplayClock(tmp_path / "state")
+    models.install_clock(clock)
+    return clock
+
+
+def test_a_rehearsed_past_session_seals_by_its_replayed_last_start_and_not_after(tmp_path, replay_clock):
+    """Criterion 3's rehearsal clause, on the clock the record root wires (`wiring.IstClock`, judge 627 SF1)."""
+    from fno.school.wiring import IstClock
+
+    replay_clock.start(on(b.SESSION, 15, 20))
+    wired = IstClock()
+    assert abs((wired.now() - on(b.SESSION, 15, 20)).total_seconds()) < 60  # the replayed day, not today
+    rig = rig_at(tmp_path / "in time", on(b.SESSION, 15, 4))
+    rig.fleet.clock = wired
+    assert rig.fleet.run(b.SESSION, RunMode.RECORD).status == "" and rig.dashcam.files
+    replay_clock.jump_to(on(b.SESSION, 15, 26))
+    late = rig_at(tmp_path / "late", on(b.SESSION, 15, 4))
+    late.fleet.clock = wired
+    assert late.fleet.run(b.SESSION, RunMode.RECORD).status.startswith(STOP_START) and nothing_written(late)
