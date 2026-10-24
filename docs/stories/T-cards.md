@@ -1398,10 +1398,33 @@ and the card still never computes a number or tells me to place a real order.
   its record's hash does not match, the card shows `NO TRADE` with `data_check_failed`, never a `TRADE` without a
   verified maximum loss. It adds one line: "The desk booked a paper trade (<version>) but its record could not be
   verified: <fields>." T1e's warning headline is shown too (the step or record problem is named). On a would-be
-  `WATCH` day the same failure gives `NO TRADE` with T1's reason and the same line, never an unverified shadow trade.
+  `WATCH` day the same failure gives `NO TRADE` with `data_check_failed` and the same line, never an unverified
+  shadow trade.
+  - Why `data_check_failed` there too (judge 625 note): the day's own answer (`no_established_version`) is genuine,
+    but a record the card read failed its check, and T1 criterion 2 names that `data_check_failed` on any day. One
+    rule for both statuses. The genuine answer is still on REC1's "Paper:" line.
 - **The reason on a `TRADE` or `WATCH` day is null.** The contract's `reason` is "Why there is no trade (NO TRADE
   only; null otherwise)". The delivery metadata stores `reason_code: null` and the card's status line reads "Status:
   TRADE" with no code. T1e's contract test gains the null case.
+- **How a `TRADE` or `WATCH` card meets the pinned contract (judge 625 should-fix; checked against 2.14.0):** the
+  contract's card has status-dependent rules. A `TRADE` or `WATCH` payload needs `trade` as an `FnoCardTrade` object,
+  an `evidence.rung` of its own, and a `price_of_staying_out` of its own type. Built from the empty-day example
+  (`getFnoCard_india_none`) with only the status changed, the pinned validator refuses it on exactly those three
+  fields (run 25 Oct: "payload/evidence/rung: breaks 'const'; payload/price_of_staying_out: breaks 'type';
+  payload/trade: breaks 'type'"). The delivery file holds none of them, by privacy. So the check splits in two:
+  - **The delivery file's own fields.** `test_every_committed_delivery_record_fits_the_catalogs_card`
+    (`tests/market_read_models/test_p1_t1_card.py`) builds each committed delivery's card through
+    `card_from_delivery`, which always starts from `getFnoCard_india_none`. The first real `TRADE` day's delivery
+    would therefore turn `main`'s suite red. T1g changes `card_from_delivery` to start from the contract's own example
+    for the delivery's status (`getFnoCard_india_trade`, `getFnoCard_india_watch`, else `getFnoCard_india_none`),
+    then copy in only the delivery's fields as today. That test file is P1's, so the change is agreed with its owner
+    before code. The check proves the delivery's status, null reason, session, times and footer fit the contract. The
+    trade part it takes from the example is labelled as such, never read as the day's trade.
+  - **The trade fields.** The Drive card record's `trade` field (the dashboard's `FnoCardTrade` names) and its
+    `evidence` block are validated against the pinned `FnoCardTrade` and `evidence` schemas in a card test, from
+    planted records (good: a full trade; bad: a missing `max_loss` refused).
+  - **Out:** the dashboard's owner-only path that publishes the trade fields from Drive (the publisher, P-stories; UI
+    pause, 16 Oct).
 - **Privacy:** the trade fields go only to the Slack post and the Drive card record, in its `trade` field. The
   repository's delivery metadata holds no trade field: no strike, price, size, loss or rule text, only status,
   `reason_code` and hashes, as today (T1 criterion 9, extended). T3's public subject never includes them.
@@ -1420,8 +1443,10 @@ Out, with reasons:
 **Decisions (orchestrator, 25 Oct 2026, after REC1 round 2 and judge 620 S1):**
 1. **Rung scale:** the card shows `TRADE` only for REC1's `PAPER_TRADE`, which means rung 3, "Established". Below
    rung 3 it shows `WATCH` (rungs 1-2, as in the Scope) or `NO TRADE`. One source of truth: REC1's record.
-   - The rung-0 rule (rung 0 never makes a card `WATCH`) is the builder's reading of "WATCH below rung 3", sent to the
-     orchestrator with this text.
+   - **Builder's decision (recorded as such, judge 625 note):** rung 0 never makes a card `WATCH`. Rung-0 versions
+     are measurement, not candidates, and trade on most days, so `WATCH` for them would hide "no version has
+     passed" on nearly every card. Sent to the orchestrator with this text; the orchestrator or the owner may
+     overrule it.
 2. **Fail closed:** a booked trade whose core fields cannot be verified shows `NO TRADE` (`data_check_failed`) with
    the line naming it, never a `TRADE` card without a verified maximum loss.
 3. **Entry range:** "Entry range (paper fill rule): ..." exactly as the decision record states it.
@@ -1436,9 +1461,12 @@ Out, with reasons:
 3. A T2 refusal or unreadable record on a `PAPER_TRADE` day gives `NO TRADE` with T2's code (T2 before T1g).
 4. `WATCH` on a `no_established_version` day with a rung 1-2 "paper, not a recommendation" trade (its fields,
    labelled "Shadow decision, for learning; never traded"). Never on a day with only rung-0 trades: that stays
-   `NO TRADE` with T1's reason.
-5. On `TRADE` and `WATCH` days the delivery metadata stores `status` and `reason_code: null`, and validates against
-   the pinned contract (`card_from_delivery`).
+   `NO TRADE` with the status's reason (judge 625 note: the status source's, REC1's after REC1b).
+5. On `TRADE` and `WATCH` days the delivery metadata stores `status` and `reason_code: null`. Through
+   `card_from_delivery`, now starting from the example for its status, it validates against the pinned contract,
+   and so does every committed delivery (P1's test, unchanged in what it asserts). The Drive record's `trade` and
+   `evidence` validate against the pinned `FnoCardTrade` and `evidence` schemas; a record missing `max_loss` is
+   refused.
 6. Neither the delivery metadata nor any repository file the card writes contains a trade field. A test plants
    distinctive strike, price and rule strings and finds none of them in the written repository file.
 7. The card computes nothing: the card's code imports no pricing, cost or risk calculator, and a field reads its
@@ -1467,6 +1495,9 @@ Out, with reasons:
 - P4: a value rounded or formatted by the card (test 1, byte-for-byte check).
 - P5: a trade field copied into the delivery metadata (privacy test).
 - P6: `reason_code` kept on a `TRADE` day (contract test).
+- P6b: `card_from_delivery` left starting from `india_none` (the committed-deliveries test fails on a planted `TRADE`
+  delivery).
+- P6c: the Drive record's `trade` missing `max_loss` (the `FnoCardTrade` schema test).
 - P7: T2's refusal not taking precedence (test 3).
 - P8: the trade section placed before the status section (golden file).
 - P9: a rung-0 trade makes the card `WATCH` (the rung-0 boundary test).
@@ -1481,9 +1512,17 @@ Out, with reasons:
 | Never a trade without a verified maximum loss | criterion 2, decision 2 |
 | No real-order instruction | decision 3, T1 criterion 1 |
 | Privacy: no trade field in the repository | criterion 6 |
-| Dashboard contract: null reason on TRADE and WATCH | criterion 5 |
+| Dashboard contract: null reason on TRADE and WATCH; the status-dependent `trade`, `evidence` and `price_of_staying_out` (judge 625) | criterion 5; the dashboard's publish path Out |
 | REC1's record as the one source (REC1's condition 3) | Scope, criterion 1 |
 | T2b, T3, the dashboard block, real-money eligibility, intraday | Out, with reasons |
 
-**Depends:** T1, T1e, T1f, REC1b (and REC1a's contract for the record's fields) · **Size:** M · **Status:** text,
-decisions 1-3 in, to judge I
+**Answers to judge 625 (round 1):**
+- Should-fix, accepted: I checked it with the pinned validator myself; it is wider than `trade`, also `evidence.rung`
+  and `price_of_staying_out`. Criterion 5 now splits into the delivery file's fields (through `card_from_delivery`
+  starting from the status's example, P1's test agreed first) and the Drive record's `trade` and `evidence` (their
+  own schemas). The publisher path is Out.
+- Notes, accepted: "the status's reason" replaces "T1's reason". A failed would-be `WATCH` gives `data_check_failed`,
+  with the reason stated. The rung-0 rule is recorded as the builder's decision.
+
+**Depends:** T1, T1e, T1f, REC1b (and REC1a's contract for the record's fields), P1's agreement on
+`card_from_delivery` · **Size:** M · **Status:** text round 2, to judge I
