@@ -16,6 +16,8 @@ PACKAGE = Path(__file__).resolve().parents[2] / "fno"
 ROOTS = {
     "__main__.py",
     "composition.py",
+    "quotes/index_wiring.py",
+    "quotes/window_wiring.py",
     "storage/wiring.py",
     "cards/wiring.py",
     "forecast_lab/wiring.py",
