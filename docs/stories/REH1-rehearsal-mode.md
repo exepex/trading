@@ -830,7 +830,11 @@ plainly").
    `capture` (the desk's 15:15 execution read, NIFTY only) is unchanged: NIFTY's monthly stem is in the record on
    every replayable day.
 3. **The real code accepts it as quiet.** `NOT_A_PART = "not a part of the day"` is a named constant in
-   `fno/quotes/recorder.py` beside `NOT_LISTED`; it joins `fno/quotes/indices.py`'s `QUIET_STATUSES` (so it is in
+   `fno/quotes/indices.py`, beside `QUIET_STATUSES`, never in `fno/quotes/recorder.py` or `fno/constants.py`: both are
+   in FREEZE_v4.md's "Recorded, not byte-checked" table (`story/v4-freeze`, lines 273-345), so any byte change there
+   prints a drift line on every v4 report (`freeze_check.drift`). Every file REH1n touches is checked against the
+   record's two hashed tables: `fno/quotes/indices.py`, `fno/quotes/cli.py`, `fno/rehearsal/recorded_quotes.py` and
+   `fno/rehearsal/exercised_line.py` are in neither. It joins `QUIET_STATUSES` (so it is in
    `DONE_WITHOUT_ATTEMPT`: never closed "none", never alerted, never an exit 1) and `fno/quotes/cli.py`'s
    `GOOD_STATUSES` (`quotes record` exits 0). A real recorder never returns it, so a real run is unchanged.
 4. **Said once, in the exercised line** (the orchestrator's ask): each part line carrying the status becomes one item
