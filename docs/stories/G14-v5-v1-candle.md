@@ -179,6 +179,16 @@ hash must be equal (criterion 12); where it has none, `FREEZE_v5_v1.md` alone ho
 (criterion 9) refuses on any change. W8's v4 baseline reads the same unhashed files: that is the v4 freeze builder's
 call, raised to the orchestrator, not G14's.
 
+**3c. Freeze coverage as ruled (judge 596 addendum 2, the builder's proposal accepted with four conditions).**
+- Fail closed: the shared modules left unchecked are one named list in code (`fno/forecast_v5_v1/method.py`,
+  `SHARED`: `fno/__init__.py`, `fno/constants.py`, `fno/constants_channels.py`, `fno/constants_operations.py`,
+  `fno/models.py`; they changed in 125 commits in the 10 days to 24 Oct). A test checks byte-checked = walk minus
+  `SHARED`; any newly walked file is byte-checked unless a judged change adds it to `SHARED`.
+- `FREEZE_v5_v1.md` records each `SHARED` file with its SHA-256, marked "recorded, not checked".
+- `fno/intraday/rv_table.py` stays byte-checked though v4 only records it; the freeze record says so.
+- Every file of `fno/forecast_v5_v1/` is hashed, `wiring.py` and `cli.py` included; the walk's start set
+  (`FREEZE_STARTS`) only decides which imports outside the package are followed (`method.freeze_files`).
+
 **4. Live date.** `daily.live_from.forecasts_v5_v1` is set in the O1 step's commit to the first NSE session after the
 day that commit merges (never the merge day itself; DESK_DECISIONS 24 Oct "Merge and turn on everything completed
 now": a finished, judged switch goes live from the next session). Mon 26 Oct is possible only if steps 1-4 all pass
