@@ -206,7 +206,7 @@ daily:
     margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
     weather: "2026-10-22"  # owner, 21 Oct 2026 (response 299 item 15): on before the v4 freeze, routine at 14:05
     forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
-    v4_pack: null  # G10 completion: the 14:30 `v4` capture, the release and the 15:10 check (one key)
+    v4_pack: "2026-10-26"  # G10: the 14:27 `v4` capture, the release by 14:45, the 15:10 check (owner, 24 Oct)
     card: null
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)

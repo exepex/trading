@@ -2059,6 +2059,20 @@ stronger).
 | NIFTY-glob plant caught only by literals | a test with git alone: NIFTY's part's own pathspec stages a `quote-snapshots/` sidecar and never a `quote-snapshots-v4/` one | `tests/daily/test_v4_steps.py` | glob widened in code |
 | Round-2 self-review (an independent agent) | (a) the early limit above; (b) `found` is set before the chain calls, so a later chain failing never hands the extras empty expiries (it wrote "no monthly after the day", which the overlap watch read as no failure); (c) the extras' sidecar keys come only from an attempt that asked them (an attempt with no chain carried the previous attempt's `future_quote` and `v4_failures`) | `tests/quotes/test_v4_extras.py`, `tests/daily/test_v4_part.py` | `found` after the loop; an earlier attempt's keys; the window's wait ignored |
 
+**Live date (owner, 24 Oct 2026, DESK_DECISIONS: "v4 pack live Monday - Option A"):** `daily.live_from.v4_pack:
+"2026-10-26"` (branch `story/g10-live-date`). On Monday 26 Oct the daily run (14:05) will: open the `v4` part with the
+3 pm parts and start it at 14:27; record 14:30:00-14:40:00 and commit its sidecars and marker alone; run `v4_release`
+once that part has ended (the wait announced, at most 14:45): `system_late` for 22 and 23 Oct (the catch-up from
+`daily.live_from.forecasts_v4`, decision D2, no record exists for them) and Monday's own record, `A` or `system_late`
+(D3: a failed step and the card's warning); push the receipts (no workflow starts: `v4-fire.yml` is G11's and not on
+`main`); from 15:12, before the candles, run `v4_deadline`: verdicts for 22, 23 and 26 Oct and the 14:30 overlap line
+if either job failed. **Live with it:** nothing else. G7b's `forecasts_v4_pack` and G11's AI books are not on `main`
+(G11's own key stays unset), no `FREEZE_v4.md` exists (nothing counts), G8's three readers already read the labels from
+Drive (`main` since the G10 merge). **The first live day's evidence (criterion 10)** goes to `conversations/2026-10-26.md`
+and the orchestrator that evening: the `v4` sidecar (start, finish, recorded of expected, failures, `v4_expiry`,
+`future_quote`, clock status) beside A16's 14:30 row (status, recorded of expected, failures); the release line and
+label; the deadline line; the overlap line, if any; the run's last line; and any alert posted.
+
 ---
 
 ## G11. AI books on the v4 questions: books 2 and 3 forecast like the rules and are scored by G8 the same way
