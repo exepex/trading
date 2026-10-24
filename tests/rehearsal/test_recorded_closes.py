@@ -50,8 +50,9 @@ def test_a_moment_with_no_recorded_answer_is_not_recorded(record):
 
 def test_of_two_answers_near_the_read_the_first_saved_is_served(tmp_path):
     """Judge 574 minor 2: two answers within ten minutes of the read; the first saved is the one the read got."""
-    receipts, early, late = ReceiptFolder(tmp_path), FIRST, FIRST.replace("first", "retry")
-    files = {early: json.dumps({"data": "first"}).encode(), late: json.dumps({"data": "retry"}).encode()}
+    # the later answer's name sorts first (`again` before `first`), so only the save-time order passes
+    receipts, early, late = ReceiptFolder(tmp_path), FIRST, FIRST.replace("first", "again")
+    files = {early: json.dumps({"data": "first"}).encode(), late: json.dumps({"data": "again"}).encode()}
     for path, at in ((late, "2026-10-23T10:14:00+00:00"), (early, "2026-10-23T10:10:09+00:00")):
         receipts.write(Receipt(path, "a" * 64, len(files[path]), at, "closes read", "r"))
     clock = Clock(datetime(2026, 10, 23, 10, 10, tzinfo=UTC))

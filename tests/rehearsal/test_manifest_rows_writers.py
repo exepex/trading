@@ -53,14 +53,23 @@ def test_of_two_rows_for_one_file_the_earlier_commit_counts(tmp_path):
     again = (
         f"fetched_at,path,url,form,sha256,size_bytes\n2026-10-23T06:06:20+05:30,{SP500.removeprefix('raw/')},u,,cd,1\n"
     )
-    commit_file(repo, MANIFESTS / "global-cues" / "sp500_again.csv", again, "2026-10-24T00:00:00+00:00")
+    # the later row is in a log read first (`aaa` sorts before `sp500`), so only the earliest-commit rule passes
+    commit_file(repo, MANIFESTS / "global-cues" / "aaa_again.csv", again, "2026-10-24T00:00:00+00:00")
     assert ManifestRows(repo).seen_at(SP500) == datetime(2026, 10, 23, 0, 42, 24, tzinfo=UTC)
 
 
 def test_a_dataset_is_matched_by_its_whole_folder_name_whatever_the_source_order(monkeypatch):
     """`nse/flows/fii-dii-cash` is a prefix of `nse/flows/fii-dii-cash-by-session`: the folder's `/` decides."""
-    monkeypatch.setattr(manifest_rows, "RAW_SOURCES", tuple(reversed(manifest_rows.RAW_SOURCES)))
-    key = manifest_rows._a9_key("nse/flows/fii-dii-cash-by-session/2026/10/23/fii-dii-cash.json")
-    assert key == ("fii-dii-cash-by-session", date(2026, 10, 23), "https://www.nseindia.com/api/fiidiiTradeReact")
-    monkeypatch.setattr(manifest_rows, "RAW_SOURCES", tuple(reversed(manifest_rows.RAW_SOURCES)))
-    assert manifest_rows._a9_key("nse/flows/fii-dii-cash/2026/10/13/fii-dii-cash.json")[0] == "fii-dii-cash"
+    by_session = "nse/flows/fii-dii-cash-by-session/2026/10/23/fii-dii-cash.json"
+    expected = ("fii-dii-cash-by-session", date(2026, 10, 23), "https://www.nseindia.com/api/fiidiiTradeReact")
+    for order in (manifest_rows.RAW_SOURCES, tuple(reversed(manifest_rows.RAW_SOURCES))):
+        monkeypatch.setattr(manifest_rows, "RAW_SOURCES", order)
+        assert manifest_rows._a9_key(by_session) == expected
+
+
+def test_a_path_row_in_a_log_s_subfolder_never_dates_a_file(tmp_path):
+    """Only the files directly in a snapshot log's folder are its log (`global-cues/attempts/` is not)."""
+    repo, _ = record(tmp_path)
+    other = f"checked_at,path\n2026-10-22T00:00:00+00:00,{SP500.removeprefix('raw/')}\n"
+    commit_file(repo, MANIFESTS / "global-cues" / "checks" / "sp500.csv", other, "2026-10-22T00:00:00+00:00")
+    assert ManifestRows(repo).seen_at(SP500) == datetime(2026, 10, 23, 0, 42, 24, tzinfo=UTC)
