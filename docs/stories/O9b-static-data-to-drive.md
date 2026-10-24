@@ -102,6 +102,7 @@ constant only; each step re-checks and lists its exact readers and writers):
 |---|---|---|---|
 | 1 (pilot) | G3 VIX (`research/data/vix/`) | no: only its own CLI reads it | text and code may be judged and merged before Mon 26 Oct (no live reader) |
 | 1b | G3 global cues | FL1's report reads two tables (agreed with its builder first) | after or inside GC2 (below); from Mon 26 Oct, outside 14:00-16:15 IST |
+| 1d | Verified reads of the raw archive (manifest SHA-256) for every reader | yes (desk checks, settlement, FL1, G13, A4h, school) | after the read-only index-close fix; text first |
 | 2 | G4 margins | yes (desk risk, C4) | from Mon 26 Oct, outside 14:00-16:15 IST |
 | 3 | G2 intraday: `rv-candle/` first (static), then the live A16 files | yes (E8, v4 RV) | as step 2 |
 | 4 | G5 NSE chains | yes (price distribution, capture) | as step 2 |
@@ -204,6 +205,73 @@ and in the commit hook's refusal list.
 | No push-time reader, no live reader | inventory above; nothing outside `fno/vix_history` reads it |
 | Removal from HEAD, refusal in the hook | the removal commit after the first scheduled run |
 | One builder per function | `RowLog` moved, not copied; A17's owner told; global cues untouched otherwise |
+
+## Step 1d: verified reads of the raw archive (`story/o9b-verified-raw`; text first, for the orchestrator)
+
+**Why** (G13 builder's review of the read-only index-close fix, 24 Oct; the orchestrator: "not just as a note"):
+every reader of the raw archive (`fno-research/raw/<publisher>/...`, NSE's original files kept by A9's librarian)
+takes the bytes Drive returns as they are. Nothing checks them against the manifest row's SHA-256, written when each
+file was saved. That breaks the owner's 16 Oct rule ("read through the verified Drive cache"). A changed or swapped
+file in Drive would be read silently, by the desk's checks and settlement among others.
+
+**Readers it reaches** (`grep` on main, 24 Oct). Every one reads through a `RawFileStore` of the raw area:
+- **Index-close files** (after the read-only fix): FL1's `build_composer` and page (VixSection), G13's
+  `build_issuer` and `build_table_update`, A4h's Confirmer; DR1's `record_store.stored_index_closes`; the school's
+  `practice/stores.py`.
+- **F&O bhavcopy** (`build_nse_fo_library`, `build_nse_legacy_fo_library`):
+  - C4's validity checker (`checks/wiring.py`);
+  - the settlements: the exit desk (`desk/wiring.py`), the scoreboard, role value and ITM chance
+    (`itm_chance/wiring.py`);
+  - expiry lists: the quotes' index and window wiring, `composition.py`, intraday (`intraday/wiring.py`);
+  - the school's practice and roads (`school/roads/wiring.py`) and execution (`school/execution/wiring.py`).
+- **Participant OI:** `composition.py` (A8) and FL1's page levels (`forecast_lab/page_wiring.py`).
+- **Data checks over the raw stores:** `checks/wiring.py` (`build_data_checks`) and the desk's daily gate
+  (`desk/daily_wiring.py`).
+- **Writers that read first:** the panel (`build_nifty_panel_files`), the warm-up closes, A16b's back-fill
+  (`intraday/backfill_wiring.py`), and the librarian's own already-archived check.
+
+**Design (proposal, reasoning only):**
+- One decorator at the store layer, below every library, not inside one library: `VerifiedRawStore(store,
+  manifests)`.
+  - Its `get(path)` finds the dataset whose folder starts the path (A9's `RAW_SOURCES`), and that dataset's
+    manifest row for the file name (`ManifestFolder.fingerprints`).
+  - It returns the bytes only when their SHA-256 equals the row's.
+  - A missing row, or another SHA-256, raises `RawFileUnverified` naming the path and the reason, never the bytes.
+- It is wrapped once, in the composition roots: in `build_raw_stores`, in `_reader_raw_stores`, and for the school's
+  and A16b's own store lists. So every library above gets it unchanged: A9's `RawFileLibrary`, my
+  `StoredFilesLibrary`, the school's `StoredFilesOnly` and DR1's reader. There is no change in a reader's own code.
+- `put` (the librarian) is not wrapped; `FingerprintingStore` already writes the row at save time. A fetched file
+  read back after its `put` verifies against the row just written.
+- **A refusal is never silent.** `RawFileUnverified` is a `RuntimeError`, so it reaches each reader's existing error
+  path. Those paths must each be checked to alert, not to read the day as "missing" (see the open questions).
+- **Consolidation, same step:** three read-only patterns exist today (my `StoredFilesLibrary`, the school's
+  `StoredFilesOnly` source, DR1's `stored_index_closes`). The step proposes one (`StoredFilesLibrary`) to their
+  owners, so the verification has one home.
+- **No fallback** (owner, 23 Oct): a refused file is refused; nothing re-fetches it.
+
+**Gap list (step 1d):**
+
+| Requirement | Where |
+|---|---|
+| Every raw-archive read verified against its manifest SHA-256 (owner's 16 Oct rule) | `VerifiedRawStore` in the composition roots |
+| A mismatch or a missing row is a refusal with an alert, never a silent read (orchestrator, 24 Oct) | `RawFileUnverified`; each reader's error path checked and tested |
+| Every reader listed and its owner told | readers above |
+| No change in a reader's own code; libraries take it unchanged | the decorator sits below the libraries |
+| One read-only pattern, not three | consolidation, agreed with the school's and DR1's owners |
+| No fallback, no Drive write | design; tests use fakes |
+| Measured before it goes live: how many archived files lack a manifest row or differ | open question 1 |
+
+**Open questions (before the code):**
+1. **Coverage, to measure first.** Do all archived raw files have manifest rows, including files saved before A9's
+   manifests? Measuring means reading each manifest row's file once from Drive and comparing SHA-256s. It is
+   read-only, but it reads Drive in bulk, so it waits for the orchestrator's go. Until then, how many reads would be
+   refused is unknown.
+2. **Each reader's path for `RawFileUnverified`.** Some catch broadly and may turn an error into "file missing"
+   (silent). This must be checked per reader with its owner. The step's tests cover each one.
+3. **Revisions** (A11's later NSE versions in `revisions/`): verify against the revision index's SHA-256 too, or
+   leave them out (readers take the first archived version).
+4. **Cost.** Hashing every read file is cheap next to the Drive download it follows (a few ms per MB), so no cache is
+   proposed.
 
 ## Gap list
 
