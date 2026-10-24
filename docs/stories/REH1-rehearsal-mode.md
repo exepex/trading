@@ -981,3 +981,12 @@ nse/flows/fii-dii-cash-by-session/2026/10/13/fii-dii-cash.json: already archived
 A rehearsal's record checkout must be a full clone: in a shallow one `git blame` dates every row to one commit
 (`checkout.py` unshallows the record; a sample script in a shallow clone shows false "ambiguous" refusals for
 `fiidiiTradeReact`). The DRY2 rerun itself is the orchestrator's.
+
+#### Claims, code round 2 (judges 582 E: FAIL, 583 B: PASS with minors; every item answered)
+
+| Finding | What changed | Test | Plant result |
+|---|---|---|---|
+| 582 SF1 = 583 m1 (rule 4): dropping `source not in COVERED_SESSION` from `is_run_dated` failed no test | No code change: the rule was right, untested. Two tests from the record's own times | `test_a_by_session_copy_of_the_session_before_committed_on_the_replay_day_is_served` (22 Oct 19:40 read, the 21 Oct session's row committed 22 Oct 01:07:09: served, no wait); `test_an_evening_ban_list_for_the_next_session_is_served` (21 Oct 21:00 read, the 22 Oct list committed 21 Oct 20:00:23: served) | With the exception removed (`return issubclass(source, SnapshotSource)`), exactly these two fail: "2 failed, 137 passed" on `tests/rehearsal`; restored with `git checkout --` |
+| 582 m1 = 583 m2: H5's morning ban-list line was false for 23 Oct | H5 now says NOT_RECORDED only when the list reached main the evening before, naming both record cases (22 Oct: row on 21 Oct 20:00:23; 23 Oct: row at 00:04:12, served) | `test_a_morning_ban_list_read_is_not_recorded_only_when_its_list_reached_main_the_evening_before` replaces the old test, whose premise ("taken on the evening of 22 Oct") described the wrong day: both cases, at 08:40 | Dropping the replay-day bound still fails `test_a_row_committed_on_the_day_before_is_never_a_candidate` and the 22 Oct half of this test |
+
+Gates on the tree merged with `origin/main`: see the push message to the orchestrator (head SHA there).
