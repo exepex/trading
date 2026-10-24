@@ -13,9 +13,8 @@ from datetime import date
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
-from ..constants import STEP_EXERCISED, STEP_NOT_BUILT, STEP_NOT_LIVE, STEP_OK
+from ..constants import EXERCISED_PARTS, STEP_EXERCISED, STEP_NOT_BUILT, STEP_NOT_LIVE, STEP_OK
 from ..daily.full_log import FULL_LOGS
-from .exercised_parts import EXERCISED_PARTS
 
 EXERCISED_LINE = "not live in real runs (exercised): {items}"
 PART = "{step}'s {part} part"

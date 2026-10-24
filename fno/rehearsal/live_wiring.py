@@ -14,7 +14,14 @@ import os
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date
 
-from ..constants import ENV_FNO_REHEARSAL_NOT_LIVE, OWNER_TIMING_STEP, STEP_EXERCISED, STEP_NOT_BUILT, STEP_NOT_LIVE
+from ..constants import (
+    ENV_FNO_REHEARSAL_NOT_LIVE,
+    OWNER_TIMING_STEP,
+    STEP_EXERCISED,
+    STEP_FAILED,
+    STEP_NOT_BUILT,
+    STEP_NOT_LIVE,
+)
 from ..daily.steps import CommandStep
 from ..desk.daily_ports import DayStep
 from ..desk.daily_steps import StepOutcome
@@ -50,8 +57,14 @@ class NotLiveInRealRuns(DayStep):
         self.command = command_of(step)
 
     def run(self, day: date) -> StepOutcome:
-        arguments = tuple(self.command(day)) if self.command else None
-        if arguments is not None and not self.built(arguments):
+        try:
+            arguments = tuple(self.command(day)) if self.command else None
+            built = arguments is None or self.built(arguments)
+        except Exception as failure:  # noqa: BLE001 - one step's failure never stops the rehearsed day (O1 design 9)
+            return StepOutcome(
+                {}, self._not_live({"status": STEP_FAILED, "reason": f"{type(failure).__name__}: {failure}"})
+            )
+        if not built:
             missing = {"status": STEP_NOT_BUILT, "reason": NOT_BUILT.format(command=" ".join(arguments))}
             return StepOutcome({"command": list(arguments)}, self._not_live(missing))
         os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] = self.note

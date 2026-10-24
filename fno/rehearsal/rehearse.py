@@ -27,6 +27,7 @@ NOT_A_SESSION = "rehearsal refused: {day} is not a session day (NSE's calendar)"
 GUARD_STOPPED = "rehearsal STOPPED before any step: {problem}"
 ENDED = "rehearsal {routine} {day} {run_id} ended: {line}; branch {ref}; Drive dryrun/{run_id}/"
 RECEIPTS_MESSAGE = "Rehearsal {routine} {day}: the routine's receipts"
+EXERCISED_UNREAD = "rehearsal: the exercised steps could not be read from the run's full log: {problem}"
 
 
 def rehearse_daily(day: date, source: Path, out: Callable[[str], None] = print, home: Path = HOME, **seams) -> int:
@@ -62,7 +63,10 @@ def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], No
         out(GUARD_STOPPED.format(problem=problem))
         return 1
     code, line = (run_child or run_routine)(checkout.clone, routine, day, env, out)
-    report_exercised(checkout.clone, day, out, alerts or _alerts(out))  # REH1j: after the day's last line
+    try:  # REH1j: after the day's last line; never in the way of the receipts and the publish
+        report_exercised(checkout.clone, day, out, alerts or _alerts(out))
+    except (OSError, ValueError, KeyError) as unreadable:
+        out(EXERCISED_UNREAD.format(problem=f"{type(unreadable).__name__}: {unreadable}"))
     if routine.receipts:
         commit_receipts(checkout.clone, routine.receipts, RECEIPTS_MESSAGE.format(routine=routine.name, day=day), env)
     ref = checkout.publish(run_git(source, "remote", "get-url", "origin").strip())

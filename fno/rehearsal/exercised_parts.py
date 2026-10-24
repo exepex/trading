@@ -8,12 +8,11 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping, Sequence
 from datetime import date
 
+from ..constants import EXERCISED_PARTS
 from ..daily.quote_parts import QuotePart
 from ..daily.quote_steps import parts_result
 from ..desk.daily_ports import DayStep
 from ..desk.daily_steps import StepOutcome
-
-EXERCISED_PARTS = "exercised_parts"
 
 
 def rehearsed_quotes_done(step: DayStep, parts: Sequence[QuotePart], notes: Mapping[str, str]) -> DayStep:

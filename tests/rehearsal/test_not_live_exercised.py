@@ -161,7 +161,19 @@ def test_the_command_is_found_through_every_decorator_of_the_real_daily_run(monk
     monkeypatch.setenv("FNO_SLACK_BOT_TOKEN", "xoxb-test")
     steps = wiring.build_day_runner(load_app_config(), sleep=lambda seconds: None).daily_run.day_steps
     wrapped = {name: step for name, step in steps.items() if isinstance(step, NotLiveInRealRuns)}
-    commands = {name: tuple(step.command(DAY)) for name, step in wrapped.items() if step.command}
-    assert commands and all(commands.values())  # each found under Alerted, LiveFrom, NotBefore or AfterPart
+    assert wrapped and all(step.command for step in wrapped.values())  # each found under its decorators
+    commands = {name: tuple(step.command(DAY)) for name, step in wrapped.items()}
+    assert all(commands.values())
     if "margin_check" in wrapped:  # not live until A14c's code lands
         assert commands["margin_check"] == wiring.MARGIN_CHECK
+
+
+def test_a_command_lookup_that_raises_is_recorded_never_a_crash():
+    def broken(arguments):
+        raise OSError("the parser could not be built")
+
+    children, alerts = Children(), Alerts()
+    done = NotLiveInRealRuns(command_step(MISSING, children, alerts), NOT_LIVE_UNSET, broken).run(DAY)
+    assert done.result["status"] == STEP_NOT_LIVE
+    assert done.result["exercised"] == {"status": STEP_FAILED, "reason": "OSError: the parser could not be built"}
+    assert children.started == []

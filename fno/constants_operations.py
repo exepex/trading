@@ -24,6 +24,7 @@ __all__ = [
     "STEP_NOT_LIVE",
     "STEP_NOT_BUILT",
     "STEP_EXERCISED",
+    "EXERCISED_PARTS",
     "HEALTH_OK",
     "HEALTH_LATE",
     "HEALTH_MISSED",
@@ -86,6 +87,7 @@ PUBLISH_BRANCH = "main"
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
 # Story REH1j: a rehearsed step not live in real runs keeps what it did under this key; a command not built yet
 STEP_EXERCISED, STEP_NOT_BUILT = "exercised", "not_built"
+EXERCISED_PARTS = "exercised_parts"  # `quotes_done`'s parts not live on the replayed day (REH1j)
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record
 HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"
