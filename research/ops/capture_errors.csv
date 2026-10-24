@@ -11,28 +11,3 @@ date,job,step,kind,message,run_url
 2026-10-23,global-cues-preopen,preopen,failure,taiex failed,
 2026-10-23,preopen,nifty,incomplete,no pre-open value: candles only from 09:15,
 2026-10-23,preopen,banknifty,incomplete,no pre-open value: candles only from 09:15,
-2026-10-23,forecast-capture,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39932039669
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39934626525
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941865134
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941852377
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941827039
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941994275
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941965757
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941980044
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941953409
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941921491
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941941056
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941891717
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39941877595
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942171625
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942159578
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942146325
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942122799
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942111263
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942092585
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942068360
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942081174
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942043789
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942032537
-2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942019512
-2026-10-24,index-closes,closes / Commit the closes,failure,closes / Commit the closes: failure,https://github.com/exepex/trading/actions/runs/40087915710
