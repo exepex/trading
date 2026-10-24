@@ -52,3 +52,15 @@
 ## Note
 `FNO_REHEARSAL_NOT_LIVE` is process-wide. It is safe only while the daily run's steps run one at a time,
 which the claims state. A parallel step runner would need the note passed to each child explicitly.
+
+## Addendum 1
+
+- **Head checked:** 320d4810, my round 2 of 2. Since 73053f9a it adds only two test files; no code.
+  Merged with main as 33e96d04 for testing.
+- **Verdict: PASS (my half). Merge once judge B also passes.**
+- **Gates:** pytest -n auto: 15106 passed, 0 failed. ruff check, ruff format --check, check_imports and
+  check_records: clean.
+- **F1 fixed:** the real `build_day_runner`, with the mode set, wraps exactly the steps in
+  `rehearsed_live`'s notes, the card among them. Plant C4 now fails (1 failed).
+- **F2 fixed:** an evening rehearsal on a real repository publishes a receipts commit dated within 2
+  minutes of 19:53 IST on the day. Plant C10 now fails (1 failed).
