@@ -154,7 +154,7 @@ never use up the cap or stop the books.
 
 **A run that never sealed: the builder's choice, one switch, for the owner (reasoning only).** The owner's decision
 does not say what a run with no seal time counts. Two rules were weighed:
-- **`no_seal_upper_bound` (the default until the owner answers; the orchestrator's recommendation).** The run counts
+- **`no_seal_upper_bound` (owner decided 24 Oct (DESK_DECISIONS); the orchestrator's recommendation).** The run counts
   start to end, as today, labelled in its row's source "no_seal_upper_bound: never sealed, start to end counted". Its
   working minutes are at most that, so the row is an upper bound: it counts a broken run's wait (if any) against the
   cap, never a sealed run's. The session is captured, the month's level stays known, and G11's stop can act on it.
@@ -237,7 +237,7 @@ never-sealed rule for the owner (default `no_seal_upper_bound`)
 ### BG1-w Claims (code, round 1)
 
 Builder session_016CU8KFuEEtWAM7ZNnFcKxv, branch `story/bg1w-reveal-wait`; text PASS judge 587.1. The never-sealed rule
-defaults to `no_seal_upper_bound` until the owner answers (asked by the orchestrator, 24 Oct).
+is `no_seal_upper_bound`: owner decided 24 Oct (DESK_DECISIONS).
 
 **What changed:**
 - `fno/budget/self_timed.py`: `_split` gives (counted minutes, wait apart, source). With a seal the wait is the whole
