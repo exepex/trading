@@ -215,13 +215,13 @@ daily:
     ai_books_v4: null
     v4_pack: "2026-10-26"  # G10: the 14:27 `v4` capture, the release by 14:45, the 15:10 check (owner, 24 Oct)
     forecasts_v4_pack: null  # G7b completion: the pack-derived v4 rows after the release (null until the owner's go)
-    card: null
+    card: "2026-10-26"  # T1's daily card to #fno-desk (owner, 24 Oct: "enable/activate everything that has been completed")
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
     price_ranges: "2026-10-22"  # story G13b's 15:45 NIFTY and BANKNIFTY ranges
     price_range_scores: "2026-10-22"  # G13b's daily `pricerange score` and seals; the same one-session lag
     premium_ranges: "2026-10-23"  # story G13d's next-session 3 pm premium ranges (judge 465.2 PASS; merged 22 Oct evening)
-    premium_range_scores: null  # G13d's daily `premrange score` and seals
+    premium_range_scores: "2026-10-26"  # G13d's daily `premrange score` and seals (owner, 24 Oct: the same)
     close_read: "2026-10-23"  # story A4h's 15:40 close read: record-only for its first 5 sessions (orchestrator)
     close_recheck: "2026-10-23"  # A4h's 16:00 second read
 
