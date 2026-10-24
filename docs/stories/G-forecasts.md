@@ -1820,7 +1820,8 @@ future carries `last_trade_time` and `volume` for A4's `traded_today` (interface
 1. `V4_RELEASE_BY` lives in `fno/v4_pack/release_run.py` beside D3's `SYSTEM_LATE_FAILS`, not in
    `fno/forecast_v4/terms.py`: that file is in M1's `METHOD_FILES` (`fno/weather/wiring.py:31`), so a constant there
    moved every committed weather record's method hash (`tests/weather/test_method_hash_gate.py` failed; `terms.py` is
-   now byte-identical to `main`).
+   now byte-identical to `main`: `git diff origin/main -- fno/forecast_v4/terms.py` prints nothing, and that gate
+   passes again).
 2. `v4_deadline` runs right before `candles`, not last: A4h's reads stay the run's last two steps
    (`tests/close_read/test_daily_steps.py`, unchanged); 15:12 is before 15:33.
 3. The `v4` part starts at 14:27 (O1's 3-minute margin before 14:30), never before A4e's early limit (14:03): a
