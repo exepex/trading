@@ -102,6 +102,19 @@ def test_the_protocol_names_the_rate_the_three_classes_and_the_append_only_slot_
         assert wording in text, wording
 
 
+def test_only_the_byte_checked_section_pins_files_and_only_the_recorded_section_drifts(tmp_path):
+    """Found on the real record: the disclosure's Drive table has the byte table's row shape (path, SHA-256)."""
+    for path in ("fno/forecast_v4/terms.py", "fno/constants.py"):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / path, tmp_path / path)
+    disclosure_row = "| `fno/forecast_v4/loss.py` | `" + "0" * 64 + "` |"  # same shape, outside the byte section
+    record = "\n\n".join([freeze_check.BYTE_HEADING, freeze_check.table(tmp_path), freeze_check.RECORDED_HEADING,
+                           freeze_check.recorded(tmp_path), "## Disclosure", disclosure_row])  # fmt: skip
+    assert freeze_check.problems(tmp_path, record) == [] and freeze_check.drift(tmp_path, record) == []
+    bare = freeze_check.table(tmp_path) + "\n" + disclosure_row  # no heading: read whole, so the row is a pin
+    assert freeze_check.problems(tmp_path, bare) == ["fno/forecast_v4/loss.py: gone since the freeze"]
+
+
 def test_once_the_record_exists_the_repository_matches_it():
     record = ROOT / "research" / "forecasts" / "FREEZE_v4.md"
     if record.exists():
