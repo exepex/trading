@@ -4,7 +4,8 @@ nearest to now and never the same answer twice (`serving.ServedOnce`: a 30-secon
 not the last one again), once the replay clock reaches that time; the reading is the live part's own reader on those
 bytes. The bytes must hash to the receipt's SHA-256 (judge 563 SF1), as every recorded source checks its record. A
 moment with no recorded answer, or a copy that differs from its receipt, is the capture's own failure (`PartFailed`),
-never a live read."""
+never a live read. A copy seen at or after the part's window closes is dropped before the choice (REH1l): a read
+inside the window is never moved past it, so a later copy cannot make it "late" (23 Oct: BANKNIFTY's 09:11:01)."""
 
 from __future__ import annotations
 
@@ -51,7 +52,9 @@ class RecordedPreopenPart(PreopenPart):
         prefix = f"{folder}/{self.name}_"
         saved = {r.path: r.sha256 for r in self.receipts.under(folder)
                  if r.path.startswith(prefix) and r.path.endswith(".json")}  # fmt: skip
-        picked = self.served.pick(now, ((_seen(day, path.removeprefix(prefix)), path) for path in saved))
+        closes = datetime.combine(day, self.window[1], IST)
+        inside = ((seen, path) for path in saved if (seen := _seen(day, path.removeprefix(prefix))) < closes)
+        picked = self.served.pick(now, inside)  # REH1l: a copy seen at or after the close is never this window's
         if picked is None:
             return None
         seen, path = picked

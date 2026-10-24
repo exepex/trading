@@ -29,6 +29,7 @@ GUARD_STOPPED = "rehearsal STOPPED before any step: {problem}"
 ENDED = "rehearsal {routine} {day} {run_id} ended: {line}; branch {ref}; Drive dryrun/{run_id}/"
 RECEIPTS_MESSAGE = "Rehearsal {routine} {day}: the routine's receipts"
 CONFIG_FILE = "config.yaml"
+REPLAY_CLOCK = "replay clock not checked (by design)"  # REH1l: said once per rehearsal, never a capture's problem
 NO_EXERCISED = "run_routine: commands not live in real runs need an `exercised` record"
 EXERCISED_UNREAD = "rehearsal: the exercised steps could not be read from the run's full log: {problem}"
 
@@ -69,7 +70,7 @@ def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], No
     run = run_child or partial(run_routine, not_live=_not_live_editions(day, checkout.clone), exercised=exercised)
     code, line = run(checkout.clone, routine, day, env, out)
     try:  # REH1j: after the day's last line; never in the way of the receipts and the publish
-        report_exercised(checkout.clone, day, out, alerts or _alerts(out), exercised)
+        report_exercised(checkout.clone, day, out, alerts or _alerts(out), exercised, (REPLAY_CLOCK,))
     except (OSError, ValueError, KeyError) as unreadable:
         out(EXERCISED_UNREAD.format(problem=f"{type(unreadable).__name__}: {unreadable}"))
     if routine.receipts:

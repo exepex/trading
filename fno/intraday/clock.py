@@ -33,6 +33,11 @@ class ClockReading:
         """The lines to print when something is wrong (a skew, or a server not checked), else empty."""
         return "; ".join(c.line for c in self.checks if c.warning or c.skew_seconds is None)
 
+    def day_cell(self) -> str:
+        """A day row's clock cell: the warning, else "ok" only for a clock checked ok, else its status (a rehearsal's
+        replay clock has no checks, so no warning, and is never recorded as "ok"; REH1l)."""
+        return self.warning() or ("ok" if self.status == CLOCK_OK else self.status)
+
 
 class ClockCheck:
     def __init__(self, servers: list[ServerClock], host_now: Callable[[], datetime]):

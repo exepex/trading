@@ -618,6 +618,178 @@ reader on `fno/health/wiring.py` with the planted bare builder at line 56, then 
 {'ai/wiring.py': [], 'cards/wiring.py': [], 'health/wiring.py': [], 'price_ranges/wiring.py': [], 'v4_pack/wiring.py': []}
 ```
 
+### REH1l: a pre-open read is never shifted past its window, and a rehearsal's own clock is not a capture problem (story text first)
+
+Branch `story/reh1l-preopen-serving`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV. Lane 1 (what a rehearsal
+records and posts). The text had one judge (F, 616); the code round has two, since it changes the #fno-desk exercised
+line (judge 616 m4). Placed before REH1g's section so it does not collide with REH1k's at the end of the
+file. Code starts after the judges.
+
+#### The two findings (the orchestrator's A22e replay of 23 Oct, run 20261024T173842Z-30b396)
+
+The run printed "banknifty late (1 read(s)): seen 09:11:01" and "pre-open recorded with problems: clock warning:
+rehearsal: replay clock, not checked against GitHub's and Slack's servers; banknifty late: seen 09:11:01", and the
+routine ended "failed: preopen record, global-cues preopen" (the cue failure is taiex, NOT_RECORDED: a typhoon
+closure, correct).
+
+1. **A forward time shift, not a look-ahead** (the orchestrator's "look-ahead" withdrawn, 24 Oct).
+   `RecordedPreopenPart` picks the day's copy nearest to now within `serving.AROUND` (60 s) either side
+   (`ServedOnce`) and, for a copy seen after now, sleeps until its seen time before answering
+   (`fno/rehearsal/recorded_preopen.py`, `answer`). No byte is served before the replay clock reaches the moment it was
+   seen. But the 23 Oct record holds one BANKNIFTY answer, `receipts/data/preopen/raw/2026/10/23/banknifty_091101.json`,
+   read by the day's pre-A22e plan at 09:11:01, after the index window (09:10:00-09:11:00, `fno/preopen/parts.py:22`).
+   A22e's plan reads at 09:10:00, 09:10:30 and 09:10:45 (`fno/preopen/run.py`: every 30 s, the last 15 s before the
+   close). The 09:10:00 read was within 60 s of 09:11:01, so the replay waited and answered with a copy seen after the
+   window's close, and A22e rightly called it late. The replay moved the read past its own window: what Groww would
+   have answered inside the window on 23 Oct is unknown, so "late" blames the new plan for old data.
+2. **The rehearsal's own clock counted as a capture problem.** REH1c's `RehearsalReading.warning()` returns the text
+   `NOT_CHECKED` (`fno/rehearsal/preopen_wiring.py`), and `fno/preopen/record.py:57` makes any clock warning a
+   `Problem("clock", "warning")`: every pre-open replay ends "recorded with problems", exit 1, "failed: preopen
+   record". A replay clock can never be checked against GitHub's and Slack's servers, so every replay would fail.
+
+#### Design
+
+1. **A paced read is never served a copy seen after its own window closed.** In `RecordedPreopenPart`, a copy seen
+   after now is served (after the wait, as today) only when it was seen before the part's window closes
+   (`self.window`); a copy seen at or after the close is never served to a read inside the window, which then gets
+   today's `rehearsal:NOT_RECORDED`. A copy seen at or before now is served as today.
+   - **Not chosen, measured (the orchestrator's first rule and mine):** "only a copy seen at or before now". On
+     23 Oct it flips 2 of the 4 pre-open parts (NIFTY's copy 09:10:59 and BANKNIFTY's 09:11:01: every A22e read is
+     before them) and all 6 of A17e's open-cue reads (copies seen 08:50:17 to 08:51:00, one index after another, while a
+     rehearsal's reads start at 08:50:00 and follow at once). It would turn a faithful replay of the cues into "not
+     recorded".
+   - **The chosen rule, measured:** on 23 Oct only BANKNIFTY flips (from "late, seen 09:11:01" to NOT_RECORDED); GIFT
+     (copy 08:40:00, first read 08:40:00), the F&O list (09:08:30, first read 09:08:30) and NIFTY (09:10:59, inside
+     its window) are served as today; the cues are not touched (0 of 6). On 22 Oct no pre-open part and no open cue was
+     recorded (`receipts/data/preopen/` and the `*_preopen.csv` logs start on 23 Oct): 0 flips, every read
+     NOT_RECORDED under both rules.
+2. **Every serving path, and its rule** (the orchestrator's ask (a)):
+
+   | Source | Code | Kind | Rule after REH1l, and why |
+   |---|---|---|---|
+   | GIFT Nifty, the F&O pre-open list, NIFTY's and BANKNIFTY's 09:09 candles (A22) | `recorded_preopen.RecordedPreopenPart` | paced, in a window | nearest within 60 s, a forward wait only up to the window's close (Design 1): a read belongs to its window |
+   | A17e's open Asian cues and the other Yahoo cues | `recorded_cues.RecordedCueSession` | paced, one index after another | unchanged (nearest within 60 s, forward wait, `ServedOnce`): the day's reads came seconds after a replay's; no window close is crossed (08:50-09:05) |
+   | A4h's 15:40 and 16:00 close reads | `recorded_closes` | scheduled | unchanged (`is_near`: 60 s back, 10 min ahead): the day asked first and saved its answer later |
+   | A16b's 15-minute candles | `recorded_candles` | scheduled | unchanged, the same reason |
+   | NSE's archive (librarian, snapshot takers) | `recorded_archive.RecordedArchiveSession` (REH1h) | scheduled, by row commit | unchanged: served at its row's commit, never before |
+   | A4's 3 pm and 15:15 quote attempts | `recorded_quotes` | republished at each attempt's `finished_at` | unchanged: no nearest-copy choice |
+
+3. **The rehearsal's clock is reported apart, the real day's rule unchanged.** In a rehearsal the clock reading has no
+   checks, so its `warning()` is "" (no capture problem); a real run's unchecked or skewed clock stays a warning and a
+   problem. The pre-open day row's `clock` cell, until now `warning or "ok"`, comes from the new
+   `ClockReading.day_cell()` (`fno/intraday/clock.py`): the warning, else "ok" only for `clock_ok`, else the status.
+   A real reading with no warning is always `clock_ok` (a skew, a partial or an unchecked real reading each name a
+   server), so every real cell is as today; the replay clock's cell is `clock_unchecked`, never "ok" (found by the
+   self-review: with "" alone the dry-run day row would claim a checked clock). `PreopenRecorder` takes the reading
+   (`clock.check`) in place of its warning text. The fact that
+   the replay clock was not checked is said once per rehearsal, as one fixed item of REH1j's labelled exercised line
+   on #fno-desk ("replay clock not checked (by design)"), added by `rehearse` itself whatever the routine.
+   The clock forms (the orchestrator's ask (c)), file by file:
+   - `fno/rehearsal/preopen_wiring.py`: `RehearsalClockCheck`, chosen in `fno/intraday/clock_wiring.py`'s
+     `build_clock_check` (REH1c). With no checks, the base `ClockReading.warning()` already returns "", so
+     `RehearsalReading` and its override are removed (judge 616 m3). Its readers of `warning()`:
+     `fno/preopen/record.py:59` (the pre-open's problem, the finding) and `fno/intraday/recorder.py:117` (A16's marks
+     add the warning as a line to the mark's outcome, not a failure); with "" both say nothing about the replay clock.
+     A third builder, `fno/quotes/window_wiring.py:30`, gives the clock to `CaptureLog`, which records only
+     `reading.status` and `worst`, never `warning()`; in a rehearsal `rehearsed_recorder` replaces that recorder, so
+     the v4 pack's `clock_ok` rule (`fno/v4_pack/builder.py:48`) is never reached (judge 616 m2: corrected).
+   - `fno/rehearsal/card_label.py`: `RehearsalCardClocks` (T1f), which writes `unchecked(server, NOT_CHECKED)` lines
+     into the card's delivery record. Unchanged by REH1l: the card's own record names each unchecked server, which is
+     what T1f's judges passed; it is not a capture problem and changes no status.
+   Two texts, each in its one place: `NOT_CHECKED` in the card's delivery record (T1f), and `REPLAY_CLOCK`
+   (`fno/rehearsal/rehearse.py`, "replay clock not checked (by design)") as the exercised line's fixed item.
+
+#### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
+
+- **L1. Never past the window.** A 09:10:00 read with only the 09:11:01 copy: NOT_RECORDED, never "late" (the A22e run
+  over a recorded day gives BANKNIFTY `failed` with NOT_RECORDED). Boundaries: a copy seen at 09:10:59.999 (before
+  the 09:11:00 close) is served after the wait; one seen exactly at the close is not. A copy seen before now is served
+  as today. Plant: the window bound dropped.
+- **L2. The measured cases.** The 23 Oct record replayed through the parts: GIFT, F&O list and NIFTY served as today;
+  BANKNIFTY NOT_RECORDED. Empty: 22 Oct, every part NOT_RECORDED. Plant: at-or-before-now (the rejected rule) fails
+  the NIFTY case.
+- **L3. The clock apart.** Under the mode, `build_clock_check().check().warning()` is "", so a pre-open replay with
+  every part recorded ends "pre-open recorded" with no clock row in O10, and its day row's `clock` cell is
+  `clock_unchecked`; with no mode an unchecked clock is still a warning and a problem, and the cells of a real
+  `clock_ok`, skew and partial reading are as today. Plants: the old text returned; the cell back to "ok".
+- **L4. Said once.** The rehearsal's exercised line names "replay clock not checked (by design)" once per rehearsal,
+  posted labelled; the card's own unchecked lines are unchanged. Plant: the item dropped.
+- **L5. Real runs unchanged.** No mode: every source and clock as today; the full suite passes.
+
+#### Gap list (rule 2)
+
+| Requirement (the orchestrator, 24 Oct) | Covered by | Or out of scope, with reason |
+|---|---|---|
+| (1) "only a copy observed at or before the replay time, else NotRecorded" | Design 1 (a narrower rule), L1, L2 | Measured and not chosen as asked: it flips all 6 open cues and NIFTY on 23 Oct. The window rule stops the shift past a window, which was the fault, and nothing else |
+| (2) "Should the replay-clock warning be reported apart (like REH1j's not_live) rather than as a capture problem?" | Design 3, L3, L4 | |
+| (a) every serving path and its rule, with the reason | Design 2's table | |
+| (b) the risk, measured on 22 and 23 Oct | Design 1 | |
+| (c) the A16 and T1f clock forms, file by file | Design 3 | |
+| "taiex NotRecorded is expected (typhoon closure, TWSE)" | | Correct today; no change |
+| Dry run 1 shows the old behaviour | | The orchestrator says so in its report |
+
+#### Claims, code round 1 (for judge F and a second judge)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1l-preopen-serving` (main and REH1k's branch merged in). Code:
+- `fno/rehearsal/recorded_preopen.py`: `_nearest` drops every copy seen at or after the window's close BEFORE
+  `ServedOnce.pick` (judge 616 condition 1), so a late copy can never be chosen, waited for, or move `_last`.
+- `fno/rehearsal/preopen_wiring.py`: `RehearsalReading` removed (judge 616 m3); `RehearsalClockCheck.check()` returns
+  `ClockReading(CLOCK_UNCHECKED, ())`, whose base `warning()` is "". `NOT_CHECKED` stays for T1f's card.
+- `fno/intraday/clock.py`: `ClockReading.day_cell()`; `fno/preopen/record.py` takes the reading (`clock.check`, wired
+  in `fno/preopen/wiring.py`) and writes `reading.day_cell()` in the day row (Design 3; from the self-review).
+- `fno/rehearsal/rehearse.py`: `REPLAY_CLOCK`, passed once to `report_exercised` as a fixed item;
+  `fno/rehearsal/exercised_line.py`: `exercised_line` and `report_exercised` take `fixed` items, put last.
+
+| Criterion | Tests | Plants (each caught by its own test) |
+|---|---|---|
+| L1 | `test_preopen_window.py`: a 09:10:00 read with only 09:11:01: NOT_RECORDED, no wait; 09:10:59 served after the wait, 09:11:00 not; judge 616's case (read 09:10:45, copies 09:10:30 and 09:11:01): 09:10:30 at once, then NOT_RECORDED | the window bound dropped; `<` made `<=` |
+| L2 | the real 23 Oct receipts: GIFT 08:40:00, F&O list 09:08:30, NIFTY 09:10:59 served; BANKNIFTY None at 09:10:00, 09:10:30, 09:10:45; 22 Oct every part None (guarded: the 23 Oct folder must exist) | at-or-before-now (the rejected rule) |
+| L3 | under the mode `warning()` is ""; a real unanswered check still warns; `day_cell()` for `clock_ok`, skew, partial (as today) and the replay's `clock_unchecked`; the recorder over the A22 desk with the rehearsal's clock: "pre-open recorded", no O10 row, no alert, day row `clock` = `clock_unchecked` | the old warning text back; the cell back to "ok"; the recorder back to `warning or "ok"` |
+| L4 | `test_checkout.py`: through `rehearse`, the exercised line ends with "replay clock not checked (by design)", posted once; `test_exercised_line.py`: fixed items last, and alone still make a line | the item dropped; fixed items ignored |
+| L5 | no mode: real clock readings' cells unchanged (above); `tests/preopen` unchanged but for the desk's reading; full suite | as L3 |
+
+**Plants:** 8 planted, 8 caught, in a separate worktree, each restored with `git checkout --`.
+
+**Self-review** (an independent review agent on `257afdd4b`): the window rule, its boundary (the same `<` as
+`fno/preopen/run.py:78`'s OK/LATE) and the IST times hold; no blocking finding. Accepted and fixed: (1) with
+`warning()` "" the rehearsal's day row would have said `clock` "ok", a clock never checked: now `clock_unchecked`
+through `day_cell()`; (2) the text said `NOT_CHECKED` is the exercised line's text, but the line uses `REPLAY_CLOCK`:
+text corrected; (3) the 22 Oct test passed vacuously if the receipts moved: now guarded; (4) L3 had no recorder-level
+test: added. Not changed: (5) a part with no window now raises `TypeError` in `_nearest`; every real part has a window
+(`fno/preopen/parts.py`), and two test fakes were given `GIFT_WINDOW`.
+
+**Gates** (main and REH1k merged in, the token kept): 16539 passed, 14 xfailed, 0 failed; ruff, format, imports,
+record scan clean (numbers run on `main`).
+
+#### Claims, code round 2 (judges 619 K: PASS, 616.1 F: FAIL on one test-only should-fix)
+
+Test only; no code changed. Judge 616.1 is right: at 09:10:45 the 09:10:30 copy (15 s back) is already nearer than
+09:11:01 (16 s ahead), so filtering after the pick also passed round 1's case. The case now reads at 09:10:50, where
+09:11:01 (11 s ahead) is the nearer copy and 09:10:30 (20 s back) the right one; the docstring says so
+(`test_a_late_copy_never_hides_an_earlier_one_inside_the_window`). Plant, judge F's: "filter after the pick" (pick the
+nearest of every copy, then refuse one seen at or after the close): caught by that test (the only failure in
+`test_preopen_window.py`).
+
+**Real output sample** (the orchestrator's go, 24 Oct; round 1's code at 2d8ccb8d4, a full clone, the token kept):
+`rehearse preopen --day 2026-10-23`, run 20261024T195929Z-9d85d7, branch
+`refs/heads/rehearsal/2026-10-23-20261024T195929Z-9d85d7`, Drive `dryrun/20261024T195929Z-9d85d7/`. The lines:
+"gift ok (1 read(s))", "fo_list ok (1 read(s))", "nifty ok (1 read(s))", "banknifty failed (1 read(s)):
+rehearsal:NOT_RECORDED banknifty at 2026-10-23T09:11:01.039530+05:30: the day saved no answer near then", "pre-open
+recorded with problems: banknifty failed: ..." (no clock problem: L3), "open check: 0 checked, 0 waiting for NSE's
+file"; the cues: six levels and "taiex: FAILED (NotRecorded)" (the TWSE typhoon closure, as expected); then "not live
+in real runs (exercised): replay clock not checked (by design)" (L4) and "ended: failed: preopen record, global-cues
+preopen". Both failures are the record's own (no BANKNIFTY copy inside its window on 23 Oct, L2; no TAIEX session).
+#fno-desk, read back, each post labelled "*DRY RUN, 2026-10-23 replay, not a real trading day*": "Omenix F&O pre-open
+Asian levels: taiex: failed (NotRecorded)"; "A22 pre-open capture 2026-10-23: banknifty failed: rehearsal:NOT_RECORDED
+..."; "not live in real runs (exercised): replay clock not checked (by design)". None unlabelled.
+
+**Found in the sample, not fixed here (for the orchestrator):** BANKNIFTY's one read was at 09:11:01, after its window,
+not at 09:10:00. `PreopenRun` reads its parts one after another; NIFTY's read at 09:10:00 waited (a real sleep in
+`RecordedPreopenPart.answer`) for its copy seen at 09:10:59, then saved it, so BANKNIFTY's first read came at 09:11:01,
+past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the same (BANKNIFTY has no copy inside
+its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
+never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.

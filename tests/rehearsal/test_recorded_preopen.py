@@ -8,8 +8,8 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from fno.models import IST
-from fno.preopen.parts import INDEX_LAST_READ_MARGIN, GrowwIndexPreopen, PartFailed, PreopenPart
-from fno.rehearsal.preopen_wiring import NOT_CHECKED, RehearsalClockCheck
+from fno.preopen.parts import GIFT_WINDOW, INDEX_LAST_READ_MARGIN, GrowwIndexPreopen, PartFailed, PreopenPart
+from fno.rehearsal.preopen_wiring import RehearsalClockCheck
 from fno.rehearsal.recorded_preopen import RecordedPreopenPart
 from fno.storage.receipts import Receipt, ReceiptFolder
 
@@ -29,7 +29,7 @@ class Clock:
 
 
 class LivePart(PreopenPart):
-    name, window = "gift", (None, None)
+    name, window = "gift", GIFT_WINDOW
 
     def answer(self, day):
         raise AssertionError("a rehearsal never reads live")
@@ -82,9 +82,11 @@ def test_an_answer_more_than_ten_minutes_ahead_is_not_served(record):
         RecordedPreopenPart(LivePart(), receipts, files.get, clock, clock.sleep).answer(DAY)
 
 
-def test_a_replay_clock_is_not_checked_and_says_so():
+def test_a_replay_clock_is_unchecked_but_never_a_capture_s_warning():
+    """REH1l: a replay clock cannot be checked against servers; that is said once in the rehearsal's exercised line,
+    never as each capture's problem (it made every pre-open replay "recorded with problems")."""
     reading = RehearsalClockCheck().check()
-    assert reading.status == "clock_unchecked" and reading.warning() == NOT_CHECKED
+    assert reading.status == "clock_unchecked" and reading.warning() == ""
 
 
 def test_a_replayed_part_keeps_the_live_parts_read_plan(tmp_path):

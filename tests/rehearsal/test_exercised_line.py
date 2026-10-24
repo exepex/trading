@@ -80,3 +80,14 @@ def test_a_post_slack_did_not_take_prints_alert_not_sent(tmp_path):
         tmp_path, DAY, printed.append, ReportedAlerts(Recording(NOT_SENT.format(reason="down")), printed.append)
     )
     assert printed == [LINE, f"alert NOT sent: down | {LINE}"]
+
+
+def test_the_rehearsal_s_fixed_items_come_last_and_alone_still_make_a_line():
+    """REH1l: the replay clock's item is said once, last; with nothing else exercised it is the line's one item."""
+    assert (
+        exercised_line(STEPS, ("replay clock not checked (by design)",))
+        == f"{LINE}; replay clock not checked (by design)"
+    )
+    assert exercised_line({}, ("replay clock not checked (by design)",)) == (
+        "not live in real runs (exercised): replay clock not checked (by design)")  # fmt: skip
+    assert exercised_line({}, ()) is None
