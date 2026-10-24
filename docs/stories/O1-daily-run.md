@@ -598,7 +598,7 @@ with the code.
 - **The hindsight left open is at most 15:20:00 less the snapshot.** A person who reruns after a stop has seen up to
   about 5 minutes of prices after the 15:15 snapshot. The owner's limit is `fills_by`.
 
-*Criteria, tests and plants (round 3).* Each plant was put in a separate worktree, run on tests/timetable, daily,
+*Criteria, tests and plants (round 3): 15 planted, 15 caught after the code test was added.* Each plant was put in a separate worktree, run on tests/timetable, daily,
 desk, scoreboard and health, then restored with `git checkout --`.
 
 | Criterion (code) | Tests (good / bad / boundary / empty) | Plant, caught by |
@@ -607,7 +607,8 @@ desk, scoreboard and health, then restored with `git checkout --`.
 | its alert says final, no new trade (`NOT_RETRIED`) | the same (`endswith`) | K9 the reason dropped: collection fails |
 | rerun after a stop: limit at 15:20:00 (`_too_late`) | `..._at_fills_by_fills_the_rest_once` (good, boundary 15:20:00, replayed and never doubled); `..._past_fills_by_is_refused...` at +1 s, +1 min and 23:50 (bad) | K2 no check; K3 2 minutes of grace; K12 a minute of grace (`<` + 1 min); K11 checked only for a logged step |
 | refusal alerted, done for the day, written trades stated | the same: the alert in `alerts.sent`, a clock set back still refused, "stay in their accounts" | K10 no alert |
-| the run that took the snapshot is never cut off | `test_the_run_that_took_the_snapshot_fills_even_when_its_commit_ends_past_fills_by` | K13 `ran_here` ignored |
+| the run that took the snapshot is never cut off | `test_the_run_that_took_the_snapshot_fills_even_when_its_commit_ends_past_fills_by` | K13 `ran_here` ignored; K14 `ran_here` never reset between runs: 3 tests |
+| the late and `NEEDS_*` reasons have public codes (`reason_codes.py`) | `tests/daily/test_fills_reason_codes.py`: each code, and a joined reason (boundary) | K15 `desk:FILLS_LATE` dropped (it survived the first set; this test was added for it) |
 | J6 count | `test_the_written_count_leaves_out_a_blocked_book` | K5 `len(result)` |
 | last line names the retried steps, own day only (`runner.py`, `retried_steps`) | `test_rerun_line.py`: exits failed (good), its rerun (boundary), a later day (no line), fills failed (bad: no line, never retried) | K6 no suffix; K7 any day; K8 any failed step |
 
