@@ -51,16 +51,18 @@ class Clock:
 class FakeBroker(BrokerMargins):
     """Answers every basket exactly (SPAN after NOV, exposure at LEVEL) unless `answers` or `fail` says otherwise."""
 
-    def __init__(self, clock: Clock, level: float | Exception = LEVEL):
-        self.clock, self.level, self.asked = clock, level, []
+    def __init__(self, clock: Clock, level: float | Exception = LEVEL, after: float | Exception | None = None):
+        """`after`: the level from the second quote on (a move during the run); the same level by default."""
+        self.clock, self.level, self.after, self.asked = clock, level, after, []
         self.answers: dict[tuple[str, float], tuple[float, float]] = {}
         self.fail: dict[tuple[str, float], Exception] = {}
 
     def index_level(self) -> float:
+        level = self.level if self.after is None or not any(key == "NIFTY" for key, _ in self.asked) else self.after
         self.asked.append(("NIFTY", self.clock()))
-        if isinstance(self.level, Exception):
-            raise self.level
-        return self.level
+        if isinstance(level, Exception):
+            raise level
+        return level
 
     def basket(self, orders) -> tuple[float, float]:
         key = next(k for k, b in BASKETS.items() if b.orders(LOT) == list(orders))
@@ -88,13 +90,14 @@ class MemoryRecord:
 
 
 def make_check(start: datetime, broker: FakeBroker | None = None, record: MemoryRecord | None = None,
-               rows=None, file: bytes | None = FILE, session=lambda day: day.weekday() < 5):  # fmt: skip
+               rows=None, file: bytes | None = FILE, session=lambda day: day.weekday() < 5,
+               dated_lot=lambda day, expiry: LOT):  # fmt: skip
     clock = Clock(start)
     broker = broker or FakeBroker(clock)
     broker.clock = clock
     record = record or MemoryRecord()
     alerts, printed = Alerts(), []
     parts = BrokerCheckParts(lambda: ROWS if rows is None else rows, lambda day: (NAME, file), BasketBuilder(BUILDER),
-                             broker, NseIndexOptionExposure(), LOT, record)  # fmt: skip
+                             broker, NseIndexOptionExposure(), dated_lot, record)  # fmt: skip
     check = BrokerMarginCheck(parts, session, clock, clock.sleep, alerts, 2.0, printed.append)
     return check, broker, record, alerts, printed, clock

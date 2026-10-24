@@ -138,3 +138,56 @@ Mutations: the shortcut always taken, 2 tests failed; the shortcut removed, 1 fa
 calendar says no session. But a special weekend session, or a weekday Groww outage, would give 15 `error` rows and
 exit 1. O1 then marks the step and alerts once, which is the designed outcome: a lost day is recorded as lost, never
 retried later.
+
+## Round 3: judge 630's five findings (25 Oct 2026; the orchestrator's last round)
+
+I checked each finding and accept all five, each on its own evidence:
+- **1 (blocking):** the first test run in this session failed with exactly "Install the Groww SDK first" before
+  `routine_setup.sh --groww`.
+- **2:** `NseIndexOptionExposure.per_unit` is `rate x level` per short leg, so a 0.12% move flips a correct row at
+  0.1% tolerance.
+- **3:** the check's lot and the row builder's lot are two reads of `lot_sizes.NIFTY`, and neither is dated.
+- **4 and 5:** read, true.
+
+Text first: dbb6607cf. Then code.
+
+| Finding | Fix | Tests (planted bug caught) |
+|---|---|---|
+| 1. The suite fails without the Groww SDK | `build_broker_check` builds `GrowwProvider` on first use (`functools.cache`), as Drive already is; the dated-lot library likewise | `test_the_wiring_uses_the_row_builder_s_lot_and_needs_no_groww_sdk` (blocks `growwapi` with `sys.modules`; plant "eager Groww" caught); the full suite in a venv with `requirements.txt` only (below) |
+| 2. Exposure at one level while Groww charges the live one | NIFTY read before the first basket and after the last (`Levels`). Exposure is judged against the expected figure nearest Groww's at any level between the two (exposure is linear in the level). A rate step at 10% out of the money inside the range is `error`. With no second reading (a failure, or the 14:50 stop), a basket within 0.1% at the first reading is `ok`, otherwise `error`, never `mismatch`. Both readings are in the record (`nifty_before`, `nifty_after`). | judge 630's case, +0.12% during the run: 6 of 6 `ok` (`test_a_move_during_the_run_is_inside_the_range_and_every_basket_is_ok`); the same answers against a still reading are mismatches; a planted 0.2% error is a mismatch on a still and on a moving index; no second reading; a rate step at NIFTY 18,181-18,183 for SF 100's short 20,000 call. Plants "one level only", "rate step ignored", "unclear as mismatch", "no second reading": 4 of 4 caught |
+| 3. The lot read twice and undated | One source: `BasketBuilder.lot_size` is the row builder's calculator's lot; the check has no lot field of its own. Before any request, it is checked against NSE's dated lot for the basket's expiry month from A20a's archived `fo_mktlots.csv` of the day, read with the school's `ArchivedLots` (`broker_lot.py`, no second reader), once per run and expiry. A different lot, a missing file or an unreadable one is `error` with no Groww request (when nothing can be sent, not even the NIFTY quote is asked). | `test_a_lot_differing_from_nse_s_dated_lot_sends_no_basket`, `test_no_dated_lot_or_an_unreadable_lot_file_is_an_error_retried_the_same_day`, `test_the_dated_lot_is_read_with_the_school_s_reader_for_the_basket_s_expiry_month`, the wiring test. Plants "lot check removed", "any dated lot accepted", "missing lot read as 65", "BANKNIFTY lot (30) as the basket's", "quote asked with nothing to send": 5 of 5 caught |
+| 4. Stale slot and timing text | The step runs third, right after the 14:05 start and before the weather; measured 44.7 s and 60.7 s, about 2.5 min for 40 baskets; `PACE_SECONDS`' comment says so | text |
+| 5. No self-review entry | below | - |
+
+Plants: 10 of 10 caught.
+
+**Real read-only check of the dated lot (Drive, 25 Oct).**
+- 23 Oct's archived lot file gives NIFTY 65 for November and December, the same as `lot_sizes.NIFTY`.
+- 26 Oct's file is not archived yet, so the read gives `lot_unavailable`, as it should. A20a's job archives it from
+  07:45 IST, before Monday's 10:00 sample.
+- On 21 Oct GitHub ran that job 12 hours late (19:46 IST). If that happens again, the 14:05 check is `error`
+  "no dated NSE lot" for the day: exit 1, one alert from O1, and a same-day rerun retries. I chose fail-closed over
+  carrying a lot from another day, following the school's own rule. The cost is a possible lost broker figure on a
+  late-archive day.
+
+**Self-review of rounds 2 and 3 (quality rule 3).**
+- **Round 2's first-run shortcut** (`BrokerRecord.done`) skips the sync only when the receipts folder in git has no
+  receipt for the day. The receipts are the index (O9 rule 4), so "none" is the truth. A receipted file that Drive lost
+  still refuses (tested).
+- **Round 2's REH1j test edits:** the example changed meaning only; the REH1 owner was told.
+- **Found and fixed in round 3:** `RawFileLibrary` keeps no copy, so a lot read per basket would have downloaded the
+  lot file from Drive 15 times a run. `NseDatedLot` now reads once per run and expiry; a failed read raises and is not
+  remembered, so a same-day rerun reads again (tested).
+- **Checked, no change:**
+  - The second quote is paced and stopped at 14:50 like every request. A run started at 14:49:5x gets "deadline"
+    for it, and then the first-reading rule applies.
+  - `checked_at` is still taken after each answer.
+  - Error rows from a failed basket carry no levels (empty cells).
+  - The record's two new columns break nothing: no record has ever been written, since the check was never live, and
+    `done()` reads columns by name.
+  - The rate-step test compares `exposure / level` rounded to 6 places. That is the summed rate times the lot, so float
+    noise cannot fake a step.
+- **Limit, said plainly:** a range read over about a minute (more with 40 baskets) loosens the exposure check by
+  NIFTY's move in that minute, typically a few hundredths of a percent [reasoning only]. A stale exposure rule
+  (2% to 2.5% is a 25% change) is still caught. A per-basket bracket would be tighter, at the cost of 15 more quotes;
+  I kept the orchestrator's accepted design.

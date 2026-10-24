@@ -13,13 +13,13 @@ from datetime import date, datetime
 
 from ..storage.data_store import DataStore
 from ..storage.drive_cache import DriveCache
-from .broker_compare import MISMATCH, OK
+from .broker_compare import MISMATCH, OK, Levels
 
 FOLDER = "margins/broker_checks"  # under O9's `data` area
 RECORD_PATH = FOLDER + "/{as_of}/{run:%H%M%S}.csv"
 RECEIPTS = "receipts/data/" + FOLDER + "/"
 COLUMNS = ("checked_at", "as_of", "structure", "width", "span_broker_rs", "span_expected_rs", "exposure_broker_rs",
-           "exposure_expected_rs", "status", "detail")  # fmt: skip
+           "exposure_expected_rs", "nifty_before", "nifty_after", "status", "detail")  # fmt: skip
 DONE = (OK, MISMATCH)  # a result that is never asked again; an `error` is retried by a same-day rerun only
 UNREADABLE = "the day's earlier records cannot be read back from Drive: {problems}"
 
@@ -45,9 +45,11 @@ class BrokerResult:
     exposure_expected: float | None
     status: str
     detail: str
+    levels: Levels | None = None  # NIFTY's two readings; None when the run read no level
 
     def as_row(self) -> tuple[str, ...]:
-        figures = (self.span_broker, self.span_expected, self.exposure_broker, self.exposure_expected)
+        before, after = (None, None) if self.levels is None else (self.levels.before, self.levels.after)
+        figures = (self.span_broker, self.span_expected, self.exposure_broker, self.exposure_expected, before, after)
         return (self.checked_at.isoformat(timespec="seconds"), self.as_of.isoformat(), self.structure,
                 f"{self.width:g}", *("" if f is None else f"{f:.2f}" for f in figures), self.status,
                 self.detail)  # fmt: skip

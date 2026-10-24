@@ -58,6 +58,11 @@ class BasketBuilder:
         self.builder = builder
         self.structures = {structure.code: structure for structure in builder.structures}
 
+    @property
+    def lot_size(self) -> int:
+        """The one lot A14's rows were computed with, so the basket sent is the row's own quantity."""
+        return self.builder.calculator.lot_size
+
     def basket(self, row: Mapping[str, str], span: SpanFile, data: bytes, day: date) -> Basket:
         """The row's basket from `data`, the archived file it names; refuses anything that is not that row."""
         if row["source"] != span_source(span.name, hashlib.sha256(data).hexdigest()):

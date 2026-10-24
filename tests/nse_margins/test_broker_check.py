@@ -25,8 +25,9 @@ def test_outside_market_hours_nothing_is_asked(start, session):
 def test_every_basket_ok_is_recorded_paced_with_the_index_first():
     check, broker, record, alerts, printed, clock = make_check(at(9, 30))
     assert check.run() == 0 and alerts.sent == []
-    assert broker.asked[0][0] == "NIFTY" and [key for key, _ in broker.asked[1:]] == list(BASKETS)
-    assert clock.slept == [2.0] * len(BASKETS)  # one request every 2 seconds; the first does not wait
+    assert [key for key, _ in broker.asked] == ["NIFTY", *BASKETS, "NIFTY"]  # NIFTY before and after the baskets
+    assert clock.slept == [2.0] * (len(BASKETS) + 1)  # one request every 2 seconds; the first does not wait
+    assert {(r.levels.before, r.levels.after) for r in record.written[0]} == {(LEVEL, LEVEL)}
     assert [r.status for r in record.written[0]] == ["ok"] * 6
     assert printed[-1].startswith("margin check 2026-10-14: 6 ok, 0 mismatch, 0 error; record data/margins/")
 
@@ -87,7 +88,7 @@ def test_no_request_starts_at_or_after_14_50_and_the_rest_are_errors(start, aske
 
 def test_a_rerun_asks_only_what_is_not_done_and_a_done_day_asks_nothing():
     check, broker, record, *_ = make_check(at(11, 0), record=MemoryRecord(done=set(BASKETS) - {SF100}))
-    assert check.run() == 0 and [key for key, _ in broker.asked[1:]] == [SF100]
+    assert check.run() == 0 and [key for key, _ in broker.asked] == ["NIFTY", SF100, "NIFTY"]
     check, broker, record, _, printed, _ = make_check(at(11, 0), record=MemoryRecord(done=set(BASKETS)))
     assert check.run() == 0 and broker.asked == [] and record.written == []
     assert printed == ["margin check 2026-10-14: nothing to check (6 baskets already checked)"]

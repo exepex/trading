@@ -19,7 +19,7 @@ from datetime import date, datetime, time
 
 from ..alerts.sender import AlertSender
 from .broker_basket import Basket, BasketBuilder, BasketProblem, todays_rows
-from .broker_compare import ERROR, MISMATCH, compare
+from .broker_compare import ERROR, MISMATCH, Levels, compare
 from .broker_port import BrokerMargins
 from .broker_record import BrokerRecord, BrokerResult, RecordProblem
 from .calculator import ExposureRule, MarginOutsideModel
@@ -38,6 +38,8 @@ FAILED = (
     "broker figure is lost"
 )
 DEADLINE, NO_FILE = "deadline", "the day's SPAN file is not in the archive"
+LOT_DIFFERS = "lot {lot} differs from NSE's dated lot {dated} for {expiry}"
+NO_LOT = "no dated NSE lot for {expiry} on {day} ({why})"
 OWN_REFUSALS = (BasketProblem, RecordProblem, MarginOutsideModel)  # their text is this repository's own wording
 
 
@@ -48,7 +50,7 @@ class BrokerCheckParts:
     baskets: BasketBuilder
     broker: BrokerMargins
     exposure: ExposureRule
-    lot_size: int
+    dated_lot: Callable[[date, date], int | str]  # NSE's lot for (day, expiry) from A20a's file, or why there is none
     record: BrokerRecord
 
 
@@ -83,18 +85,34 @@ class BrokerMarginCheck:
             return 1
         return self._finish(day, results, path)
 
+    @property
+    def lot_size(self) -> int:
+        return self.parts.baskets.lot_size  # the lot A14's rows were computed with: one source (judge 630)
+
     def _check(self, day: date, rows: Sequence[Mapping[str, str]]) -> list[BrokerResult]:
         baskets = self._baskets(day, rows)
+        if all(isinstance(basket, str) for basket in baskets.values()):  # nothing to send: no Groww request at all
+            return [self._error(day, row, baskets[_key(row)]) for row in rows]
         try:
-            level = self._ask(self.parts.broker.index_level)
+            before = self._ask(self.parts.broker.index_level)
         except Exception as exc:  # a row whose basket already failed keeps its own reason
-            why = DEADLINE if isinstance(exc, PastDeadline) else f"NIFTY quote: {type(exc).__name__}"
+            why = _quote_failure(exc)
             return [self._error(day, row, b if isinstance(b := baskets[_key(row)], str) else why) for row in rows]
+        answers = {key: self._answer(basket) for key, basket in baskets.items() if not isinstance(basket, str)}
+        levels = self._second_level(before) if answers else Levels(before)
         results = []
         for row in rows:
             basket = baskets[_key(row)]
-            results.append(self._error(day, row, basket) if isinstance(basket, str) else self._one(day, basket, level))
+            results.append(self._error(day, row, basket) if isinstance(basket, str)
+                           else self._result(day, basket, *answers[basket.key], levels))  # fmt: skip
         return results
+
+    def _second_level(self, before: float) -> Levels:
+        """NIFTY after the last basket, so a move during the run is inside the range compared (judge 630)."""
+        try:
+            return Levels(before, self._ask(self.parts.broker.index_level))
+        except Exception as exc:
+            return Levels(before, None, _quote_failure(exc))
 
     def _baskets(self, day: date, rows: Sequence[Mapping[str, str]]) -> dict[tuple[str, float], Basket | str]:
         """Each row's basket, or the reason it has none (kept as the row's `error` detail)."""
@@ -109,25 +127,42 @@ class BrokerMarginCheck:
         found: dict[tuple[str, float], Basket | str] = {}
         for key, row in zip(keys, rows, strict=True):
             try:
-                found[key] = self.parts.baskets.basket(row, span, data, day)
-            except Exception as exc:  # not the row's own basket (named), or outside the margin model
+                basket = self.parts.baskets.basket(row, span, data, day)
+                found[key] = self._lot_problem(day, basket) or basket
+            except Exception as exc:  # not the row's own basket (named), outside the margin model, or no lot file
                 found[key] = _named(exc)
         return found
 
-    def _one(self, day: date, basket: Basket, level: float) -> BrokerResult:
+    def _lot_problem(self, day: date, basket: Basket) -> str | None:
+        """Why the basket's one lot is not NSE's dated lot for its expiry (then it is never sent), or None."""
+        dated = self.parts.dated_lot(day, basket.expiry)
+        if isinstance(dated, str):
+            return NO_LOT.format(expiry=basket.expiry, day=day, why=dated)
+        return None if dated == self.lot_size else LOT_DIFFERS.format(lot=self.lot_size, dated=dated,
+                                                                       expiry=basket.expiry)  # fmt: skip
+
+    def _answer(self, basket: Basket) -> tuple[datetime, tuple[float, float] | str]:
+        """When Groww answered and its (SPAN, exposure), or why it did not (the class name only: an exception's text
+        could carry a credential)."""
         try:
-            broker = self._ask(lambda: self.parts.broker.basket(basket.orders(self.parts.lot_size)))
-        except Exception as exc:  # the class name only: an exception's text could carry a credential
-            why = DEADLINE if isinstance(exc, PastDeadline) else f"Groww: {type(exc).__name__}"
-            return BrokerResult(self.clock(), day, basket.structure, basket.width, None, basket.span_expected, None,
-                                None, ERROR, why)  # fmt: skip
+            answer = self._ask(lambda: self.parts.broker.basket(basket.orders(self.lot_size)))
+        except Exception as exc:
+            answer = DEADLINE if isinstance(exc, PastDeadline) else f"Groww: {type(exc).__name__}"
+        return self.clock(), answer
+
+    def _result(self, day: date, basket: Basket, checked_at: datetime, answer: tuple[float, float] | str,
+                levels: Levels) -> BrokerResult:  # fmt: skip
+        if isinstance(answer, str):
+            return BrokerResult(checked_at, day, basket.structure, basket.width, None, basket.span_expected, None,
+                                None, ERROR, answer, levels)  # fmt: skip
         try:
-            found = compare(basket, broker, level, self.parts.exposure, self.parts.lot_size, day)
+            found = compare(basket, answer, levels, self.parts.exposure, self.lot_size, day)
         except Exception as exc:  # e.g. an expiry outside the exposure model: named, never a silent pass
-            return BrokerResult(self.clock(), day, basket.structure, basket.width, broker[0], basket.span_expected,
-                                broker[1], None, ERROR, _named(exc))  # fmt: skip
-        return BrokerResult(self.clock(), day, basket.structure, basket.width, found.span_broker, found.span_expected,
-                            found.exposure_broker, found.exposure_expected, found.status, found.detail)  # fmt: skip
+            return BrokerResult(checked_at, day, basket.structure, basket.width, answer[0], basket.span_expected,
+                                answer[1], None, ERROR, _named(exc), levels)  # fmt: skip
+        return BrokerResult(checked_at, day, basket.structure, basket.width, found.span_broker, found.span_expected,
+                            found.exposure_broker, found.exposure_expected, found.status, found.detail,
+                            levels)  # fmt: skip
 
     def _ask(self, request: Callable[[], object]):
         """One broker request, paced, never started at or after the hard stop."""
@@ -166,6 +201,10 @@ class BrokerMarginCheck:
 
 def _key(row: Mapping[str, str]) -> tuple[str, float]:
     return row["structure"], float(row["width"])
+
+
+def _quote_failure(exc: Exception) -> str:
+    return DEADLINE if isinstance(exc, PastDeadline) else f"NIFTY quote: {type(exc).__name__}"
 
 
 def _named(exc: Exception) -> str:
