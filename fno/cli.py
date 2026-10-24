@@ -27,6 +27,7 @@ from .forecast_lab.cli import add_lab_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
 from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
+from .forecast_v5_v1.cli import add_forecast_v5_v1_parser
 from .global_cues.cli import add_global_cues_parser
 from .health.calendar_stop import calendar_stop, command_name
 from .health.cli import add_health_parser
@@ -247,6 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_budget_parser(sub)
     add_forecast_parser(sub)
     add_forecast_v4_parser(sub)
+    add_forecast_v5_v1_parser(sub)
     add_v4_pack_parser(sub)
     add_forecast_scores_parser(sub)
     add_forecast_v4_scores_parser(sub)
