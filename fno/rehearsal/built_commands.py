@@ -22,10 +22,8 @@ def is_built(arguments: Sequence[str], parser: Callable[[], argparse.ArgumentPar
     handled = reached.get_default("func") is not None
     for word in arguments:
         commands = _subcommands(reached)
-        if commands is None:
-            break
-        if word not in commands.choices:
-            return not commands.required and handled
+        if commands is None or word not in commands.choices:
+            break  # an option or a value; or a word that is no subcommand: the group then still needs one
         reached = commands.choices[word]
         handled = handled or reached.get_default("func") is not None
     commands = _subcommands(reached)

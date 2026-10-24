@@ -47,3 +47,19 @@ def test_with_every_part_live_the_step_is_as_today():
 def test_a_step_that_never_reached_its_parts_keeps_its_own_result():
     done = ExercisedPartsApart(Finished(None), {"v4"}).run(DAY)
     assert done.result == {"status": STEP_FAILED, "reason": "OSError: raised"}
+
+
+def test_the_daily_run_s_root_keeps_a_not_live_part_apart(monkeypatch, tmp_path):
+    """The composition root chooses it: with `v4_pack` not live on the replayed day, `quotes_done` keeps it apart."""
+    from fno.config import load_app_config
+    from fno.constants import ENV_FNO_REHEARSAL, V4_PACK_LIVE_KEY
+    from fno.daily import wiring
+    from fno.rehearsal.live_wiring import rehearsed_live
+    from fno.rehearsal.mode import Rehearsal
+
+    monkeypatch.setenv(ENV_FNO_REHEARSAL, Rehearsal.new(DAY, tmp_path, tmp_path).to_env())
+    monkeypatch.setenv("FNO_SLACK_BOT_TOKEN", "xoxb-test")
+    cfg = load_app_config()
+    assert V4_PACK_LIVE_KEY in rehearsed_live(wiring.live_dates(cfg))[1]  # 23 Oct: v4's capture not live yet
+    finish = wiring.build_day_runner(cfg, sleep=lambda seconds: None).daily_run.day_steps["quotes_done"].step
+    assert isinstance(finish, ExercisedPartsApart) and finish.names == {"v4"}
