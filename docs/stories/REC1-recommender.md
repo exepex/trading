@@ -393,3 +393,6 @@ New tests for J's round-2 plants:
 
 Plants: 29, all caught. The 5 new ones: the rung tie removed; the span check removed; first after last allowed; one
 rung-3 report made optional; the report hashes left unchecked. Tests: 122 in `tests/recommend`.
+
+Gates at 12df90b1 (code unchanged since): full suite 16689 passed, 1 skipped, 14 xfailed; ruff check and format and
+`check_imports` clean.
