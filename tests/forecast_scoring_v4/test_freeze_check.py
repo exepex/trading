@@ -92,9 +92,20 @@ def test_a_recorded_file_changed_since_the_freeze_is_named_but_breaks_nothing(tm
     assert freeze_check.problems(tmp_path, record) == []  # the byte-checked table is apart: drift is never a break
 
 
+def test_the_protocol_names_the_rate_the_three_classes_and_the_append_only_slot_registry():
+    """Criterion 10: section 10 as the freeze code builds it (story G6 freeze, section 3)."""
+    text = " ".join((ROOT / "research/forecasts/PROTOCOL_v4.md").read_text().split())
+    for wording in ("`pricing.py` (the rate of 1.4)", "**byte-checked** (a change is a new version)",
+                    "**recorded, not byte-checked**", "**not deciding**", "An import walk proves the three classes",
+                    "`research/forecasts/v4_slots.csv` (section 4) is written with the freeze and is append-only",
+                    "ChatGPT's review paused by the owner, 22 Oct 2026"):  # fmt: skip
+        assert wording in text, wording
+
+
 def test_once_the_record_exists_the_repository_matches_it():
     record = ROOT / "research" / "forecasts" / "FREEZE_v4.md"
     if record.exists():
         assert freeze_check.problems(ROOT, record.read_text(encoding="utf-8")) == []
-    else:  # before the freeze commit the protocol is still a draft
-        assert "**Status: DRAFT, not frozen.**" in (ROOT / "research/forecasts/PROTOCOL_v4.md").read_text()
+    else:  # criterion 10: the final text's status line holds before and after the record exists
+        text = (ROOT / "research/forecasts/PROTOCOL_v4.md").read_text()
+        assert "**Status: final text.** Frozen by `research/forecasts/FREEZE_v4.md` (section 10)" in text
