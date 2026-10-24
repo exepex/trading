@@ -43,3 +43,26 @@ run alone on `tests/rehearsal` (137 tests): 15 caught (S1-S15). Survived: S16 (m
   `raise_for_status`; my grep of `fno/storage/`). An empty SHA-256 in a row fails the check, so it is refused. HEAD
   is never answered.
 - REH1h was built by session_01GAACYjcfHWkC3hp33iiMXV; this judge shares no context with it or with judge E.
+
+## Addendum 1
+
+**REH1h code, round 2 (story/reh1h-archive-serving @ 5bd3ed8d2), judge B: PASS. Lane 1.** No finding left.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| m1 S16 survived | **Accepted** | two new tests from the record's times (22 Oct 19:40 by-session read gets the 01:07:09 row of session 21 Oct; 21 Oct 21:00 read gets the 22 Oct ban list committed 20:00:23). My re-plant of S16 fails exactly these two (2 failed, 137 passed) |
+| m2 H5's morning ban-list line | **Accepted** | H5 now names both record cases (22 Oct: row on 21 Oct 20:00:23, not recorded; 23 Oct: row at 00:04:12, served), as my round-1 run showed; the old test, with the wrong premise, is replaced by one covering both |
+
+**Nothing else changed.** `git diff 9ddfd07fc 5bd3ed8d2 -- fno/rehearsal` is empty. The branch's own commits since
+round 1 are aed4e74e5 (one test file and H5) and 224decb57 (Claims). The two main merges (2f7169bdf, 5bd3ed8d2) have
+an empty `--remerge-diff` under `fno` and `tests`, and the branch's diff to main is still the eight files of round 1.
+
+**Gates** (trial merge of 5bd3ed8d2 with origin/main 2ed42790a): ruff clean; format 2,461 files; imports clean
+(2,590); record scan clean (9,033); **15,307 passed, 1 skipped, 15 xfailed**. The skip is `growwapi` missing here
+(`test_feed_tls.py:190`).
+
+**Plants** (4, each alone on `tests/rehearsal`, restored, `__pycache__` cleared): all caught.
+- S16 every snapshot list run-dated: 2 failed.
+- S4 replay-day bound dropped: 2 failed.
+- S17 no list run-dated: 1 failed.
+- S18 a wait of one second more: 8 failed.
