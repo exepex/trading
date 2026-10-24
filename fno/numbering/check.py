@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
-from fno.numbering.blocks import LEDGER_TRIAL, BlockSeries, block_findings, ledger_trials
+from fno.numbering.blocks import LEDGER_TRIAL, BlockSeries, block_findings, ledger_ids
 from fno.numbering.categories import CATEGORIES, AddendumCategory, Category
 from fno.numbering.numbered_items import NumberedItem, misnamed_files, numbered_items
 from fno.numbering.registry import Row, read_rows, valid_stamp
@@ -53,7 +53,7 @@ def _check_blocks(root: Path, series: BlockSeries, pins: dict[str, str]) -> list
         rows = read_rows(root / series.registry)
     except ValueError as malformed:
         return [f"{series.registry}: {malformed}"]
-    return [*_seed_changed(series, rows, pins), *_bad_rows(series, rows), *block_findings(rows, ledger_trials(root))]
+    return [*_seed_changed(series, rows, pins), *_bad_rows(series, rows), *block_findings(rows, ledger_ids(root))]
 
 
 def _seed_changed(category: Category | BlockSeries, rows: list[Row], pins: dict[str, str]) -> list[str]:

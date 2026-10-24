@@ -9,6 +9,7 @@ import pytest
 
 from fno.research_engine.ledger import Ledger, NotRegistered, write_ledger
 from fno.research_engine.trial_guard import LedgerTrialGuard, ProtocolNotFrozen, frozen_commit
+from tests.numbering.helpers import claim_block
 
 PROTOCOL = "research/exp/PROTOCOL.md"
 RULES = "# Protocol\nP1: SC every opportunity\n"
@@ -31,8 +32,9 @@ def repo(tmp_path):
     git(tmp_path, "config", "user.name", "test")
     (tmp_path / "research/exp").mkdir(parents=True)
     (tmp_path / PROTOCOL).write_text(RULES)
+    claim_block(tmp_path)
     rules_commit = commit(tmp_path, "rules")
-    Ledger(tmp_path).register("P1", "exp", "SC every opportunity", "prospective", True, PROTOCOL, date(2026, 10, 13))
+    Ledger(tmp_path).register("1", "exp", "SC every opportunity", "prospective", True, PROTOCOL, date(2026, 10, 13))
     commit(tmp_path, "register P1")
     return tmp_path, rules_commit
 
@@ -54,39 +56,39 @@ def guard(root):
 def test_an_unregistered_trial_stops_with_not_registered(repo):
     root, _ = repo
     with pytest.raises(NotRegistered, match="not registered"):
-        guard(root).check(["P9"], PROTOCOL, decisive=False)
+        guard(root).check(["9"], PROTOCOL, decisive=False)
 
 
 def test_a_committed_registration_is_enough_for_the_reported_period_but_not_the_decisive_one(repo):
     root, _ = repo
-    guard(root).check(["P1"], PROTOCOL, decisive=False)
+    guard(root).check(["1"], PROTOCOL, decisive=False)
     with pytest.raises(NotRegistered, match="no frozen protocol commit"):
-        guard(root).check(["P1"], PROTOCOL, decisive=True)
+        guard(root).check(["1"], PROTOCOL, decisive=True)
 
 
 def test_the_decisive_period_needs_the_frozen_at_commit_line(repo):
     root, rules_commit = repo
     freeze(root, RULES + "\nNo freeze line here.\n")
     with pytest.raises(ProtocolNotFrozen, match="no 'frozen at commit"):
-        guard(root).check(["P1"], PROTOCOL, decisive=True)
+        guard(root).check(["1"], PROTOCOL, decisive=True)
 
 
 def test_a_frozen_line_naming_an_unknown_commit_is_refused(repo):
     root, _ = repo
     freeze(root, RULES + "frozen at commit 0123456789abcdef0123456789abcdef01234567\n")
     with pytest.raises(ProtocolNotFrozen, match="does not exist or does not precede"):
-        guard(root).check(["P1"], PROTOCOL, decisive=True)
+        guard(root).check(["1"], PROTOCOL, decisive=True)
 
 
 def test_rules_changed_after_the_named_commit_are_refused(repo):
     root, rules_commit = repo
     freeze(root, RULES.replace("SC", "SF") + f"Frozen at commit {rules_commit}\n")
     with pytest.raises(ProtocolNotFrozen, match="changed after its frozen commit"):
-        guard(root).check(["P1"], PROTOCOL, decisive=True)
+        guard(root).check(["1"], PROTOCOL, decisive=True)
 
 
 def test_a_valid_freeze_lets_the_decisive_period_run(repo):
     root, rules_commit = repo
     freeze(root, RULES + f"Frozen at commit `{rules_commit}` (12 Oct 2026)\n")
-    guard(root).check(["P1"], PROTOCOL, decisive=True)
+    guard(root).check(["1"], PROTOCOL, decisive=True)
     assert frozen_commit((root / PROTOCOL).read_text()) == rules_commit

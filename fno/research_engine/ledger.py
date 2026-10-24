@@ -196,6 +196,9 @@ class Ledger:
         row = next((r for r in self.rows() if r["trial_id"] == trial_id), None)
         if row is None:
             raise NotRegistered(f"trial {trial_id} is not registered: it is not in {LEDGER_FILE}")
+        unclaimed = self.claims.problem(trial_id, row["experiment"])  # a row typed by hand never passed `register`
+        if unclaimed:
+            raise NotRegistered(unclaimed)
         committed = self.git.committed_text(LEDGER_FILE)
         if committed is None or not self.git.unchanged_since("HEAD", LEDGER_FILE):
             raise NotRegistered("the ledger has uncommitted changes: commit it so the run uses exactly what is in git")

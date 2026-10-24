@@ -1,9 +1,10 @@
 """Ledger trial numbers as claimed blocks (story O12e): `numbers/ledger-trial.csv` reserves blocks of trial ids.
 
-A row's number is a block `<a>-<b>` (or one id `<n>`); its name is the experiment prefix the block is for. Every whole
-number `trial_id` in `research/ledger.csv` must sit in exactly one block, under an experiment that starts with the
-block's name, so two branches never take the same ids and no branch uses another's block. Ids that are not whole
-numbers (`book3:<strategy_id>`) are names, not counted ids, and stay outside. Standard library only (the number check).
+A row's number is a block `<a>-<b>` (or one id `<n>`); its name is the experiment prefix the block is for. Every
+`trial_id` in `research/ledger.csv` is a whole number from 1 sitting in exactly one block, under an experiment that is
+the block's name or starts with it and `-`, so two branches never take the same ids and no branch uses another's
+block. The one exception is Book 3's `book3:<strategy_id>` under Book 3's experiment: a strategy's own name, refused
+twice by Book 3's registry, not a counted id (judge 636). Standard library only (the number check).
 """
 
 from __future__ import annotations
@@ -18,6 +19,9 @@ from fno.numbering.registry import Row, read_rows
 
 LEDGER = "research/ledger.csv"  # B4's LEDGER_FILE, named here so the number check stays standard library only
 BLOCK = re.compile(r"([1-9]\d*)(?:-([1-9]\d*))?")
+TRIAL_ID = re.compile(r"[1-9]\d*")
+BOOK3_ID = re.compile(r"book3:\S+")
+BOOK3_EXPERIMENT = "book3_ai strategies"  # Book 3's TRIAL_FAMILY (fno/book3/registry.py), named here: standard library
 CLAIM_COMMAND = "python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>"
 
 UNCOVERED = "{ledger}: trial {id} ({experiment}) is in no block of {registry}; claim one first: {command}"
@@ -25,6 +29,10 @@ OUTSIDE = "{ledger}: trial {id}'s experiment {experiment} does not start with it
 OVERLAP = "{registry}: blocks {first} ({first_name}) and {second} ({second_name}) overlap"
 NOT_CLAIMED = "trial {id} is in no block of {registry}: claim one first ({command}), then merge main into your branch"
 OTHER_BLOCK = "trial {id} sits in block {block}, claimed for experiment {name!r}, not {experiment!r}"
+BAD_ID = (
+    "trial id {id!r} ({experiment}) is neither a whole number from 1 nor a Book 3 id (book3:<strategy_id> under "
+    f"{BOOK3_EXPERIMENT!r})"
+)
 NO_FREE = "no free id in a block claimed for experiment {experiment!r} in {registry}: claim one ({command})"
 
 
@@ -65,13 +73,25 @@ def parse_block(number: str, name: str = "") -> Block | None:
     return Block(first, last, name) if first <= last else None
 
 
-def ledger_trials(root: Path) -> list[Trial]:
-    """The ledger's whole-number trials, in file order; no ledger is no trials."""
+def ledger_ids(root: Path) -> list[tuple[str, str]]:
+    """Every ledger row's trial id and experiment, in file order; no ledger is no rows."""
     path = root / LEDGER
     if not path.is_file():
         return []
-    rows = csv.DictReader(io.StringIO(path.read_text(encoding="utf-8")))
-    return [Trial(int(r["trial_id"]), r["experiment"]) for r in rows if r["trial_id"].isdigit()]
+    return [(r["trial_id"], r["experiment"]) for r in csv.DictReader(io.StringIO(path.read_text(encoding="utf-8")))]
+
+
+def counted(trial_id: str) -> bool:
+    return TRIAL_ID.fullmatch(trial_id) is not None
+
+
+def is_book3(trial_id: str, experiment: str) -> bool:
+    return BOOK3_ID.fullmatch(trial_id) is not None and experiment == BOOK3_EXPERIMENT
+
+
+def ledger_trials(root: Path) -> list[Trial]:
+    """The ledger's counted trials (whole numbers from 1), in file order."""
+    return [Trial(int(i), experiment) for i, experiment in ledger_ids(root) if counted(i)]
 
 
 class BlockSeries:
@@ -112,18 +132,23 @@ def well_formed(rows: list[Row]) -> list[Block]:
     return [b for b in (parse_block(r.number, r.name) for r in rows) if b is not None]
 
 
-def block_findings(rows: list[Row], trials: list[Trial]) -> list[str]:
-    """Overlapping blocks, trials in no block and trials under another experiment's block; the rows' own form is
-    checked like every series (`check._bad_rows`)."""
+def block_findings(rows: list[Row], ids: list[tuple[str, str]]) -> list[str]:
+    """Overlapping blocks, ids that are neither counted nor Book 3's, trials in no block and trials under another
+    experiment's block; the rows' own form is checked like every series (`check._bad_rows`)."""
+    trials = [Trial(int(i), experiment) for i, experiment in ids if counted(i)]
+    bad = [f"{LEDGER}: " + BAD_ID.format(id=i, experiment=e) for i, e in ids if not counted(i) and not is_book3(i, e)]
     blocks = sorted(well_formed(rows), key=lambda b: (b.first, b.last))
-    found = [
-        OVERLAP.format(
-            registry=LEDGER_TRIAL.registry, first=a.text, first_name=a.name, second=b.text, second_name=b.name
-        )  # fmt: skip
-        for i, a in enumerate(blocks)
-        for b in blocks[i + 1 :]
-        if a.overlaps(b)
-    ]
+    found = (
+        [
+            OVERLAP.format(
+                registry=LEDGER_TRIAL.registry, first=a.text, first_name=a.name, second=b.text, second_name=b.name
+            )  # fmt: skip
+            for i, a in enumerate(blocks)
+            for b in blocks[i + 1 :]
+            if a.overlaps(b)
+        ]
+        + bad
+    )
     for trial in trials:
         owner = next((b for b in blocks if b.covers(trial.id)), None)
         if owner is None:
@@ -155,9 +180,11 @@ class TrialClaims:
         self.root = Path(root)
 
     def problem(self, trial_id: str, experiment: str) -> str | None:
-        """Why this trial may not be registered here, or None; an id that is not a whole number is not counted."""
-        if not trial_id.isdigit():
+        """Why this trial may not be registered or run here, or None; Book 3's named ids are not counted."""
+        if is_book3(trial_id, experiment):
             return None
+        if not counted(trial_id):
+            return BAD_ID.format(id=trial_id, experiment=experiment)
         owner = next((b for b in LEDGER_TRIAL.blocks(self.root) if b.covers(int(trial_id))), None)
         if owner is None:
             return NOT_CLAIMED.format(id=trial_id, registry=LEDGER_TRIAL.registry, command=CLAIM_COMMAND)
