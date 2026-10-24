@@ -16,7 +16,7 @@ from fno.evaluation.freeze import FreezeRefused, read_record
 from fno.evaluation.order import verify
 from fno.evaluation.protocol import parse_protocol
 from fno.research_engine.ledger import read_ledger
-from tests.evaluation.builders import LEDGER_HEAD, decided
+from tests.evaluation.builders import CLAIMS, LEDGER_HEAD, decided
 from tests.playbook.builders import commit_all, git
 
 TEXT = (ROOT / BREADTH_PROTOCOL_FILE).read_text(encoding="utf-8")
@@ -33,7 +33,9 @@ def small_frozen_files(text: str) -> str:
 
 def breadth_repo(root, text: str) -> None:
     git(root, "init", "-q")
-    for name, body in {BREADTH_PROTOCOL_FILE: text, CODE: "SCORE = 1\n", "research/ledger.csv": LEDGER_HEAD}.items():
+    files = {BREADTH_PROTOCOL_FILE: text, CODE: "SCORE = 1\n", "research/ledger.csv": LEDGER_HEAD,
+             "numbers/ledger-trial.csv": CLAIMS}  # fmt: skip
+    for name, body in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(body, encoding="utf-8")
     commit_all(root, "breadth protocol")

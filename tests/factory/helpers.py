@@ -17,6 +17,13 @@ measurement: no
 """
 
 
+CLAIMS_FILE = "numbers/ledger-trial.csv"  # story O12e: every test trial id sits in a block claimed for its experiment
+CLAIMS = (
+    "number,name,session,claimed_at_utc\n1-2,old,session_test,2026-10-25T00:00:00Z\n"
+    "3-99,x1-test,session_test,2026-10-25T00:00:00Z\n"
+)
+
+
 def git(root, *args):
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True).stdout.strip()
 
@@ -33,6 +40,8 @@ def init_repo(root: Path) -> Path:
     git(root, "config", "user.name", "test")
     ledger = Ledger(root)
     (root / "research").mkdir()
+    (root / "numbers").mkdir()
+    (root / CLAIMS_FILE).write_text(CLAIMS, encoding="utf-8")
     for trial in ("1", "2"):
         ledger.register(trial, "old", f"trial {trial}", "prospective", True, today=None)
     commit(root, "ledger")

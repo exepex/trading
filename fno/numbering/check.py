@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
+from fno.numbering.blocks import LEDGER_TRIAL, BlockSeries, block_findings, ledger_trials
 from fno.numbering.categories import CATEGORIES, AddendumCategory, Category
 from fno.numbering.numbered_items import NumberedItem, misnamed_files, numbered_items
 from fno.numbering.registry import Row, read_rows, valid_stamp
@@ -26,7 +27,8 @@ MISNAMED = "{where}: not a {prefix}_<n>_<slug>.md name, so its number cannot be 
 def check_numbers(root: Path) -> list[str]:
     """One finding line per problem, across every category; empty when clean."""
     pins = read_pins(root)
-    return [line for category in CATEGORIES.values() for line in _check_category(root, category, pins)]
+    files = [line for category in CATEGORIES.values() for line in _check_category(root, category, pins)]
+    return files + _check_blocks(root, LEDGER_TRIAL, pins)
 
 
 def _check_category(root: Path, category: Category, pins: dict[str, str]) -> list[str]:
@@ -45,13 +47,22 @@ def _check_category(root: Path, category: Category, pins: dict[str, str]) -> lis
     ]
 
 
-def _seed_changed(category: Category, rows: list[Row], pins: dict[str, str]) -> list[str]:
+def _check_blocks(root: Path, series: BlockSeries, pins: dict[str, str]) -> list[str]:
+    """Story O12e: the ledger's trial ids against their claimed blocks."""
+    try:
+        rows = read_rows(root / series.registry)
+    except ValueError as malformed:
+        return [f"{series.registry}: {malformed}"]
+    return [*_seed_changed(series, rows, pins), *_bad_rows(series, rows), *block_findings(rows, ledger_trials(root))]
+
+
+def _seed_changed(category: Category | BlockSeries, rows: list[Row], pins: dict[str, str]) -> list[str]:
     if pins.get(category.name, EMPTY_SEED) == seeded_digest(rows):
         return []
     return [SEED_CHANGED.format(registry=category.registry, pins=PINS)]
 
 
-def _bad_rows(category: Category, rows: list[Row]) -> list[str]:
+def _bad_rows(category: Category | BlockSeries, rows: list[Row]) -> list[str]:
     found = []
     for row in rows:
         reason = _row_problem(category, row)
@@ -60,7 +71,7 @@ def _bad_rows(category: Category, rows: list[Row]) -> list[str]:
     return found
 
 
-def _row_problem(category: Category, row: Row) -> str | None:
+def _row_problem(category: Category | BlockSeries, row: Row) -> str | None:
     if not category.valid_number(row.number):
         return "number is not of this category's form"
     if not row.name:

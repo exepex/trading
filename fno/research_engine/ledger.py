@@ -20,6 +20,7 @@ from datetime import date
 from pathlib import Path
 
 from ..models import today_local
+from ..numbering.blocks import TrialClaims
 
 LEDGER_FILE = "research/ledger.csv"
 COLUMNS = (
@@ -159,20 +160,29 @@ def write_ledger(rows: list[dict]) -> str:
     return out.getvalue()
 
 
+class TrialNotClaimed(ValueError):
+    """The trial id is not in a block claimed for its experiment (story O12e): claim one on `main` first."""
+
+
 class Ledger:
-    def __init__(self, root: Path, git: Git | None = None):
+    def __init__(self, root: Path, git: Git | None = None, claims: TrialClaims | None = None):
         self.root, self.git = Path(root), git or Git(Path(root))
         self.file = self.root / LEDGER_FILE
+        self.claims = claims or TrialClaims(self.root)
 
     def rows(self) -> list[dict]:
         return read_ledger(self.file.read_text()) if self.file.is_file() else []
 
     def register(self, trial_id: str, experiment: str, description: str, kind: str, hypothesis: bool,
                  protocol_path: str = "", today: date | None = None) -> None:  # fmt: skip
-        """Adds a row (commit it before the trial runs)."""
+        """Adds a row (commit it before the trial runs). A whole-number id must sit in a block claimed for this
+        experiment (story O12e), so two branches never take the same ids."""
         rows = self.rows()
         if any(r["trial_id"] == trial_id for r in rows):
             raise ValueError(f"trial {trial_id} is already registered")
+        unclaimed = self.claims.problem(trial_id, experiment)
+        if unclaimed:
+            raise TrialNotClaimed(unclaimed)
         row = dict.fromkeys(COLUMNS, "")
         row.update(trial_id=trial_id, experiment=experiment, description=description, kind=kind,
                    hypothesis="yes" if hypothesis else "no", registered_on=(today or today_local()).isoformat(),
