@@ -56,9 +56,12 @@
 
 ## Plants: 10 planted, 9 caught, 1 survived (R2b2, minor)
 
-## Addendum 1 (PENDING: judge E handed over, usage limit)
+## Addendum 1
 
 - **Head:** f0bb2aa9, round 2, answering judge 567 and the orchestrator.
+- **Verdict: PASS (my half). Merge only together with T1d (item 2 below).**
+- **Gates (merged as 8e1ae083):** pytest -n auto: 15120 passed, 0 failed. ruff check, ruff format --check,
+  check_imports and check_records: clean. These finished after the handover note was written.
 - **Done:**
   - Code delta read: fills is refused when an input step has not run or failed; `problem_steps` and
     `book_results` live in run_log.py; the scoreboard reads a failed decisions step as no books.
@@ -69,11 +72,8 @@
       is filled.
     - M3 (scoreboard exits without `book_results`): survives, but it is equivalent. A failed result looked
       up by book gives `{}` either way.
-- **Remains for the next judge:**
-  1. The full gates on f0bb2aa9 merged with main. My run was cut off.
-     - Run: `env -u FNO_SLACK_BOT_TOKEN PYTHONDONTWRITEBYTECODE=1 python -m pytest -q -p no:cacheprovider
-       -n auto`, then ruff check, ruff format --check, check_imports and check_records.
-     - If green, the verdict is PASS. 570's round-1 PASS stands for e8dc9498.
+- **Conditions:**
+  1. The full gates are done (above), so no judge work remains on this story.
   2. A merge-order risk: `fno/cards/rule_checks.py:97` iterates the decisions result.
      - On a failed decisions step it would list "status" and "reason" as late books, because
        `"run_id" not in "failed"` is True on strings.
