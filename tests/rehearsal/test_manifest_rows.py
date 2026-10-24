@@ -4,7 +4,7 @@ look-ahead), and a row not committed yet never counts."""
 
 import os
 import subprocess
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fno.rehearsal.manifest_rows import MANIFESTS, ManifestRows
 from fno.rehearsal.visibility import Visibility
@@ -82,3 +82,15 @@ def test_the_rehearsal_s_drive_reads_the_record_s_manifest_rows(tmp_path):
     env = {ENV_FNO_REHEARSAL: Rehearsal(date(2026, 10, 23), "r", tmp_path / "state", repo).to_env()}
     drive = rehearsed_drive(RecordingDrive({INDEX_CLOSE: b"close"}), env)
     assert drive.get(INDEX_CLOSE) == b"close"  # the replay clock (now) is past the row's commit
+
+
+def test_a_row_is_visible_at_its_commit_s_exact_second_and_not_a_microsecond_before(tmp_path):
+    repo, _ = record(tmp_path)
+    committed = datetime(2026, 10, 16, 19, 1, 48, tzinfo=UTC)
+    assert visibility(repo, committed)(INDEX_CLOSE)
+    assert not visibility(repo, committed.replace(microsecond=0) - timedelta(microseconds=1))(INDEX_CLOSE)
+
+
+def test_a_record_with_no_manifests_shows_nothing(tmp_path):
+    assert ManifestRows(tmp_path).seen_at(INDEX_CLOSE) is None
+    assert not visibility(tmp_path, datetime(2026, 12, 1, tzinfo=UTC))(INDEX_CLOSE)
