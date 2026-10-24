@@ -179,8 +179,10 @@ in CLAUDE.md, section 'Pre-open capture (story A22)'." Research only: Groww is r
      (09:08:30-09:10:59) and NIFTY's and BANKNIFTY's 09:09 one-minute candle from Groww (09:10:00-09:10:59), saves the
      raw answers and the day row write-once to Drive, and itself commits and pushes `research/ops/capture_errors.csv`
      and `receipts/` to `main` by about 09:12 (GIFT Nifty's own file and receipt already when its read ends, about
-     08:41, for the 08:50 morning edition). It ends on "pre-open recorded" or "pre-open recorded with problems: ..."
-     (exit 1; it posts that one line to #fno-desk itself).
+     08:41, for the 08:50 morning edition). Its capture line is "pre-open recorded" or "pre-open recorded with
+     problems: ..." (exit 1; it posts that one line to #fno-desk itself). Then, after that commit, A22d's check of
+     earlier sessions against NSE's official open ends the run on "open check: <n> checked, <m> waiting for NSE's
+     file" or "open check with problems: ..." (exit 1; it posts that line to #fno-desk itself).
 4. If either printed "alert NOT sent" or a line with "NOT committed", post its problem line to #fno-desk
    (`C0C89E8QCCD`) with the Slack connector, then commit the named files by hand (`git pull --no-rebase origin main`
    first, then `git push origin HEAD:main`; only
