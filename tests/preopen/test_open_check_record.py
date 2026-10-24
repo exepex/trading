@@ -35,7 +35,8 @@ def test_d1_the_23_oct_shape_gives_an_ok_value_labelled_unverified(tmp_path):
     assert nifty == ("ok", "7777.25", "flat_0915_unverified")
     times = (row["nifty_source_time"], row["nifty_seen_at"], row["banknifty_preopen_basis"])
     assert times == ("", "09:10:00", "candle_0909")
-    assert "nifty ok (1 read(s))" in desk.out and "7777.25" not in desk.committed_text()
+    assert "nifty ok (1 read(s))" in desk.out and "banknifty ok (1 read(s))" in desk.out  # A22e's E4: first read
+    assert "7777.25" not in desk.committed_text()
 
 
 def test_d6_five_matched_checks_label_todays_flat_value_verified(tmp_path):
