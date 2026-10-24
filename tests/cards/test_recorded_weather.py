@@ -169,3 +169,16 @@ def test_a_weather_source_that_raises_still_says_no_new_trades():
     card = CardBuilder(RegistryStatus(records, records), Broken(), LiveCaptureForecasts(records)).build(DAY, answer)
     assert card.sections[1].lines == ("weather: not available on this card", BLOCKS)
     assert "weather source failed (KeyError)" in card.missing
+
+
+def test_a_record_not_marked_scored_is_never_shown_even_with_a_colour_and_full_chances():
+    """Judge 555 minor: the `status` check alone holds this inconsistent record back."""
+    shown = section(varied(status="not scored: hand-made inconsistent record"))
+    assert shown.lines == (f"Weather: not scored for {DAY} (hand-made inconsistent record)", BLOCKS)
+
+
+def test_a_chance_whose_entry_status_is_not_ok_is_never_shown_even_with_a_value():
+    """Judge 555 minor: the entry's own `status` check alone holds this inconsistent record back."""
+    shown = section(_with(lambda r: r["probabilities"]["base_rate"]["v6_abs_move_2pct_within_5_sessions"].update(
+        status="not_started")))  # fmt: skip
+    assert shown.lines == (f"Weather: not scored for {DAY} (a chance or base rate is missing)", BLOCKS)
