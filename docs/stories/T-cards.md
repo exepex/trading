@@ -1011,7 +1011,17 @@ only the diff and this story.
   - silent failures: yesterday's unreadable run log turns today's execution line into "not readable" (T2's
     `_last`). This is older than T1e and was already noted in T1d.
 
-**Gates (on the merged tree; see the head named in the status):** recorded below after the merge of T1d's new head.
+**Gates on the merged tree** (code at `0c96c473e`: T1e merged with T1d's `80b5259de`, which carries O1 R2 final
+`ee5711075`; this note was added after):
+- `ruff check fno tests tools`: clean.
+- `ruff format --check`: 2452 files formatted.
+- `check_imports`: clean (2581 files).
+- `check_records`: clean (9021 files).
+- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto`: 15228 passed, 1 skipped, 15 xfailed, 1 failed. The one
+  failure is `test_every_reason_the_card_can_give_is_in_the_pinned_contract`, red by design until W3i's re-pin
+  (criterion 10).
+- `git diff 80b5259de -- fno/desk fno/daily` is empty.
 
-**Depends:** T1, T2, T1d, O1 R2, the dashboard contract change and re-pin (Out) · **Size:** S · **Status:** text
-round 2, to judge I
+**Depends:** T1, T2, T1d, O1 R2, the dashboard contract change and re-pin (Out) · **Size:** S · **Status:** text PASS
+(judge 577 addendum 1); code done at the head after `0c96c473e`, waiting for W3i's contract re-pin, then the code
+judge
