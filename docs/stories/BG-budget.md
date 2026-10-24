@@ -115,7 +115,8 @@ code path posts to Slack.
 ## BG1-w. The AI books' reveal wait does not count in BG1's cap
 
 **Repository:** trading · **Lane:** 1 (BG1's cap decides when the AI roles and books stop) · **Builder:**
-session_016CU8KFuEEtWAM7ZNnFcKxv (BG1's earlier owner is out of reach; orchestrator, 24 Oct)
+session_016CU8KFuEEtWAM7ZNnFcKxv (BG1's earlier owner is out of reach; orchestrator, 24 Oct) · **Round 2** of the text
+(judge 587: one should-fix, five minors, each answered below)
 
 **Description:** As the portfolio manager, I want BG1 to count only an AI book run's working minutes (brief to seal)
 against the cap, with the wait from the seal to the reveal shown apart, so that the v4 books' 24-28 idle minutes a day
@@ -124,75 +125,111 @@ never use up the cap or stop the books.
 **Context and why (each fact marked):**
 - Owner, 24 Oct 2026 (`docs/DESK_DECISIONS.md`, "The AI books' reveal wait does not count in BG1's cap"): "Waiting
   minutes - Option A". BG1 counts a book's working minutes (brief to seal) only. The seal-to-reveal wait is reported
-  apart and never capped. (Owner's words.)
+  apart and never capped. (Owner's words; nothing else in this story is the owner's unless it says so.)
 - In v4 a book fires at about 14:41 and seals by 14:42-14:46. `reveal` then waits until 15:10:10, about 24-28 minutes
   (G11's story, change 6, on `story/g11-ai-books-v4`; measured from 9 v2 book-days, 16-23 Oct). (Fact, G11's numbers.)
 - Today BG1's reader `fno/budget/self_timed.py` records a run's minutes from `started_at` to `ended_at` (judge J,
   verdict 586). One place decides the minutes: BG1's meter and G11's C8 stop (`fno/ai/budget_stop.py` on G11's branch)
-  both read the same ledger (`accounting/ai_usage.csv`) through the meter. (Fact, code read.)
-- G11's `run_timing.py` (on its branch) adds two fields to each book's timing file: `sealed_at` (an ISO time with zone,
-  or null when the run never sealed) and `reveal_calls`. Main's files have neither yet. (Fact, G11's branch at
-  d8aabba4c; the fields BG1-w reads are agreed with G11's builder through the orchestrator.)
-- The ledger holds 10 rows today, all "start to end" (4 book rows a few minutes each, v2). (Fact.)
+  both read the same ledger (`accounting/ai_usage.csv`) through the meter, and only its `minutes` column. (Fact, code.)
+- G11's `run_timing.py` (on its branch) writes the `sealed_at` key in every book timing file: an ISO time with zone, or
+  null when the run never sealed (judge 587, `run_timing.py` publish, `book_wiring.py:23`). The key is absent only from
+  files written before G11 merges. (Fact; the field is agreed with G11's builder through the orchestrator.)
+- The ledger holds 10 rows today, all start to end: 7 book rows (book2_hybrid 4, book3_ai 3, v2, about 4-5 minutes
+  each) and 3 post-mortem rows. (Fact.)
+- A book run that never sealed has happened: 14 Oct (`conversations/2026-10-15.md:398`). (Fact.)
 
-**Design (reasoning only, for the judge):**
-- `SelfTimedUsageReader` splits a run that has a seal: `minutes` = seal − start (working), `wait_minutes` = end −
-  seal. A record without the `sealed_at` key (a data routine, the post-mortem, a book file from before G11) stays start
-  to end with no wait, as today.
+**Design:**
+- `SelfTimedUsageReader` splits a run that sealed: `minutes` = seal − start (working), `wait_minutes` = end − seal. A
+  record without the `sealed_at` key (a data routine, the post-mortem, a book file from before G11) stays start to end
+  with no wait, as today.
 - `DayUsage` gains `wait_minutes: float | None` (None: not measured apart). The ledger gains one column,
   `wait_minutes`, after `minutes`; a blank is "no wait measured apart". The existing file gets the column in the same
-  commit, blank in every old row, so no recorded value changes (rows stay written once).
-- The cap, the measured basis and G11's stop read `minutes` only, so the wait is never capped. The wait also leaves the
-  measured basis (all recorded minutes of the month): the decision says BG1 counts working minutes, and the wait is one
-  idle tool call (a timed sleep until 15:10:10) that uses no model capacity, which the basis stands for. Keeping it in
-  the basis would raise the cap by the books' own idle time (reasoning only; the judge may rule otherwise).
+  commit as `COLUMNS` (`rows()` refuses any other header, `_write` writes the whole file), blank in every old row, so
+  no recorded value changes and rows stay written once.
+- The cap, the measured basis and G11's stop read `minutes` only, so the wait is never capped. **The wait also leaves
+  the measured basis.** Reason: the owner's "BG1 counts a book's working minutes only" covers the basis too (the basis
+  is the sum of the same `minutes` column, `cap.py:73-79`), and a smaller basis only gives a smaller cap, so the books
+  stop earlier, never later (judge 587's ruling).
 - The meter prints the month's wait on its own line, outside the cap.
+
+**A run that never sealed: the builder's choice, one switch, for the owner (reasoning only).** The owner's decision
+does not say what a run with no seal time counts. Two rules were weighed:
+- **`no_seal_upper_bound` (the default until the owner answers; the orchestrator's recommendation).** The run counts
+  start to end, as today, labelled in its row's source "no_seal_upper_bound: never sealed, start to end counted". Its
+  working minutes are at most that, so the row is an upper bound: it counts a broken run's wait (if any) against the
+  cap, never a sealed run's. The session is captured, the month's level stays known, and G11's stop can act on it.
+  Cost: a broken run's idle minutes are capped, which overstates use only on broken runs.
+- **`no_seal_unknown`.** The record is refused ("working minutes unknown: the run never sealed"): never 0, never start to
+  end. Cost, stated plainly (judge 587): a refused file never becomes a ledger row, and `ai collect` offers it again on
+  every run, printing the same refused line each time (`usage_record.py:5`). Its fired session stays not captured for
+  the rest of the month, so a month below the alert line reads `unknown` until the month ends (`cap.py:94-95`), and
+  G11's C8 stop, which stops only on `stop`, keeps firing the books (fail open). One broken run a month hides the cap
+  for that month.
+- **The switch** is one named constant, `NO_SEAL_RULE` in `fno/budget/constants.py` (the reader's default; G11's
+  recorder builds the reader with the path only, so no `fno/ai/` file changes). Changing the rule is that one line.
 
 **Acceptance criteria:**
 1. **Working minutes.** A timing record with a valid `sealed_at` gives `minutes` = seal − start and `wait_minutes` =
    end − seal, each to 2 decimals, with the source "self-timed by the routine (start to seal; the wait to the end
    apart)". G: start 14:41:00, seal 14:44:30, end 15:10:40 gives 3.50 and 26.17. Bd: a seal at the start gives 0.00
    working (a measured zero); a seal at the end gives 0.00 wait. B: a seal before the start or after the end is refused,
-   naming both times; a `sealed_at` without a zone, or not an ISO time, is refused. E: below (criterion 2).
-2. **No seal: working unknown, never 0 and never the whole run.** A record whose `sealed_at` is null or empty is
-   refused ("working minutes unknown: the run never sealed"): no ledger row. The fired session then counts as not
-   captured (BG1 criterion 7), so the level is `unknown`, or `alert`/`stop` "at least". A fired run with no timing file
-   takes the same path. G: a never-sealed run leaves the month `unknown` and names one session not captured. E: no
-   timing file, the same. B: a refused record never writes 0 and never the start-to-end minutes.
-3. **No `sealed_at` key: unchanged.** A record without the key is start to end with a blank `wait_minutes`, byte for
-   byte the row BG1 writes today (G: the post-mortem's record; Bd: a book file from before G11).
+   naming both times; a `sealed_at` without a zone, or not an ISO time, is refused. Plant: the split swapped or the wait
+   left in `minutes`.
+2. **A run that never sealed** (`sealed_at` null or empty), under each rule of the switch. `no_seal_upper_bound`: one
+   row, `minutes` = end − start, `wait_minutes` blank, the source naming `no_seal_upper_bound`; the session is captured
+   and the level known. `no_seal_unknown`: refused with "working minutes unknown: the run never sealed", no row; the
+   session counts as not captured (BG1 criterion 7), so the level is `unknown`, or `alert`/`stop` "at least". G: one
+   never-sealed run under each rule. E: a fired run with no timing file is not captured under both rules (unchanged).
+   B: under neither rule is a never-sealed run written as 0. The default is `no_seal_upper_bound` (test). Plants: the
+   default flipped; the upper bound written as 0; the unknown rule writing a row.
+3. **No `sealed_at` key: unchanged values.** A record without the key gives the same values as BG1 writes today, with
+   `wait_minutes` blank (G: the post-mortem's record; Bd: a book file from before G11). Plant: a missing key read as a
+   never-sealed run.
 4. **The ledger column.** `accounting/ai_usage.csv` gains `wait_minutes` after `minutes`. The migration changes no
-   value of any old row (test against the committed file before it). A wait that is negative, not a number, `nan` or
-   `inf` is refused on reading, like `minutes`. A blank is allowed. A session-day is still written once (G: a new row
-   with a wait; B: `-1` refused; Bd: `0.00`; E: blank).
+   value of any old row (test against `git show` of the file before it). A wait that is negative, not a number, `nan` or
+   `inf` is refused on reading, like `minutes`; a blank is allowed. A session-day is still written once (G: a new row
+   with a wait; B: `-1` refused; Bd: `0.00`; E: blank). Plants: the wait's check dropped; an old value changed by the
+   migration.
 5. **Never capped.** The cap's books-and-roles minutes and the measured basis read `minutes` only. G: one book run of
-   3.50 working and 26.17 waiting adds 3.50 to both. B: a plant that adds the wait to either changes a tested level.
-   G11's C8 stop reads the same meter, so it needs no change; a test runs `MeterBudgetStop`'s sum on the meter's rows
-   only after G11 merges (G11's file).
+   3.50 working and 26.17 waiting adds 3.50 to both. B: plants adding the wait to the cap, or to the basis, change a
+   tested level. G11's C8 stop sums the meter's `usage_rows` `minutes` (`MeterBudgetStop`): this story's test checks that
+   the meter's rows carry working minutes in `minutes` and the wait only in `wait_minutes`, so C8 reads working minutes
+   with no change; a test through `MeterBudgetStop` itself is G11's (session_01Rga1fe3C4rmnrmmE1p3diE), asked through
+   the orchestrator.
 6. **The meter shows the wait apart.** `budget meter` prints "AI books' reveal wait (not capped): X minutes over N
-   run(s)" for the month. "none recorded" when no row has a wait. G: two runs; E: none; Bd: one run with a 0.00 wait
-   counts as one run.
-7. **Gates.** pytest, ruff, ruff format, `check_imports`, `check_records`, `check_numbers` on `main`; no file or class
-   over 350 lines. Real output sample: `python -m fno budget meter --month 2026-10` before and after.
+   run(s)" for the month, "none recorded" when no row has a wait, and under it the count of `no_seal_upper_bound` rows
+   when there are any. G: two runs; E: none; Bd: one run with a 0.00 wait counts as one run. Plant: the line summing
+   `minutes` instead of `wait_minutes`.
+7. **Gates.** pytest (the Slack token kept, DESK_DECISIONS 24 Oct), ruff, ruff format, `check_imports`,
+   `check_records`, `check_numbers` on `main`; no file or class over 350 lines. Real output sample: `python -m fno
+   budget meter --month 2026-10` before and after.
 
-**Gap list (the decision's parts):**
-- Working minutes counted: criteria 1 and 5. The wait reported apart: criteria 1, 4 and 6. Never capped: criterion 5.
-- "No seal: working unknown, never 0, never the whole run" and "no timing file": criterion 2.
-- Out of scope, with why:
+**Gap list.**
+- The owner's decision: working minutes counted (criteria 1, 5); the wait reported apart (1, 4, 6); never capped (5).
+- The builder's own rules, each marked as such: the never-sealed run (criterion 2, the switch, for the owner); the
+  wait leaving the basis (design, judge 587's ruling); unchanged records without the key (criterion 3).
+- Out of scope, with why, and what this change makes untrue elsewhere:
   - **The reveal calls (turns) of the wait** are G11's C17 report (`v4_cost.py`). BG1's `turns` stays 1 per run.
-  - **Old rows are not rewritten.** The ledger is written once; the 4 v2 book rows keep their start-to-end minutes,
+  - **Old rows are not rewritten.** The ledger is written once; the 7 v2 book rows keep their start-to-end minutes,
     which include v2's own short wait. Stated, not corrected.
-  - **G11's files.** `run_timing.py`'s docstring ("BG1's reader reads only start and end, so its minutes are
-    unchanged") and `v4_cost.py`'s ("start-to-end minutes as BG1's ledger holds them") become wrong once this merges.
-    That is for G11's builder, through the orchestrator; BG1-w never edits `fno/ai/`.
+  - **G11's files** (G11's builder, through the orchestrator; BG1-w never edits `fno/ai/`): `run_timing.py`'s docstring
+    ("BG1's reader reads only start and end, so its minutes are unchanged") and `v4_cost.py`'s ("start-to-end minutes
+    as BG1's ledger holds them") become wrong. Under `no_seal_unknown`, `usage_gaps.py`'s alert ("stopped before its
+    reveal, or its timing could not be published") would give the wrong reason for a never-sealed refusal; under the
+    default upper bound the file is recorded, so that alert does not fire for it.
+  - **The refused line repeating every collect** happens only under `no_seal_unknown` (stated above).
+  - **The dashboard contract** `contracts/omenix-dashboard/api/schemas/fno-budget.yaml:19` says "session minutes"
+    for `books_and_roles_minutes`. After BG1-w they are working minutes for a book run that sealed. The contract is
+    `x-fill: not_built`; its wording is W3g's owner's, through the orchestrator.
   - **Until G11 merges, nothing changes in practice:** main's timing files have no `sealed_at`.
   - **The signal file** keeps the level and % only; the wait is in the meter's lines, not in the signal.
 
 **Test plan:** unit tests on constructed timing records and ledgers in `tests/budget/`; one CLI test of `budget meter`
-on a temporary ledger; the migration test against the committed file; no network.
+on a temporary ledger; the migration test against `git show`; no network.
 
 **Judge verifies:** recomputes one split by hand; plants the wait into the cap and into the basis; plants a
-never-sealed run recorded as 0 and as start to end; checks the migrated file's old values against `git show` of the
+never-sealed run recorded as 0, and flips the switch; checks the migrated file's old values against `git show` of the
 file before it.
 
-**Depends:** BG1, F8c; G11's timing fields (read only) · **Size:** S · **Status:** story text, for the judge
+**Depends:** BG1, F8c; G11's timing field (read only) · **Size:** S · **Status:** story text round 2, for the judge; the
+never-sealed rule for the owner (default `no_seal_upper_bound`)
