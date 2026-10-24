@@ -34,6 +34,8 @@ from ..models import IST
 from .model import CheckResult, Deadline, EvidenceUnknown, SessionCheck, absent, judged
 
 SKIPPED_STEP = "skipped"  # the run's closed-day step
+E3_LATE = "E3 collected late: {reason}"
+INCONSISTENT = "run log inconsistent: COLLECTED_LATE on some books only ({reason})"
 
 
 class RunLogCheck(SessionCheck):
@@ -51,7 +53,7 @@ class RunLogCheck(SessionCheck):
             return absent(now, due, "no decisions step")
         late = _collected_late(log.steps[RUN_LOG_DECISIONS_STEP])
         if late:
-            return CheckResult(HEALTH_LATE, f"E3 collected late: {late}")  # E3's own verdict, the one source of truth
+            return CheckResult(HEALTH_LATE, late)  # E3's own verdict, the one source of truth
         try:
             started = datetime.fromisoformat(log.steps[RUN_LOG_DECISIONS_STEP]["started_at"])
         except (KeyError, TypeError, ValueError):
@@ -64,13 +66,20 @@ class RunLogCheck(SessionCheck):
 
 
 def _collected_late(step: dict) -> str:
-    """E3's reason when it started collecting after its grace and failed closed (every book `NO_DECISION_LATE` with
-    its `COLLECTED_LATE` text); empty otherwise. It wins over the start time, which the run log takes a few ms
-    before E3's own clock."""
+    """The late-collection line when E3 started after its grace and failed closed; empty otherwise. E3 writes its
+    `COLLECTED_LATE` reason in one place (`_all_late`), for every book at once from the step's one start time, so one
+    book carrying it is enough. On some books only it cannot come from E3: the run log was edited or broken, and the
+    line says so. It wins over the start time, which the run log takes a few ms before E3's own clock."""
     prefix = COLLECTED_LATE.split("{", 1)[0]
-    books = (step.get("result") or {}).values()
-    reasons = [b.get("reason", "") for b in books if isinstance(b, dict) and b.get("decision") == NO_DECISION_LATE]
-    return next((r for r in reasons if isinstance(r, str) and r.startswith(prefix)), "")
+    books = [b for b in (step.get("result") or {}).values() if isinstance(b, dict)]
+    late = [b["reason"] for b in books if b.get("decision") == NO_DECISION_LATE and _starts(b.get("reason"), prefix)]
+    if not late:
+        return ""
+    return (INCONSISTENT if len(late) < len(books) else E3_LATE).format(reason=late[0])
+
+
+def _starts(text, prefix: str) -> bool:
+    return isinstance(text, str) and text.startswith(prefix)
 
 
 def _problems(log: RunLog) -> str:

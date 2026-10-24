@@ -91,6 +91,27 @@ def test_a_book_late_for_its_own_reason_is_not_read_as_a_late_collection(repo):
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == HEALTH_OK
 
 
+def test_a_mixed_log_is_late_and_named_inconsistent(repo):
+    """E3 writes COLLECTED_LATE for every book at once (one start time), so some books only means an edited or broken
+    run log: late, and said so, never silent."""
+    why = COLLECTED_LATE.format(started="2026-10-15T15:12:31+05:30", deadline="2026-10-15T15:12:00+05:30")
+    mixed = {
+        "book1_rules": {"decision": NO_DECISION_LATE, "reason": why},
+        "book2_hybrid": {"run_id": "2026-10-15-r1", "commit": "abc", "committed_at": "2026-10-15T14:58:00+05:30"},
+    }
+    _run_log(repo, results={RUN_LOG_DECISIONS_STEP: mixed})
+    result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
+    assert result.status == HEALTH_LATE and result.detail.startswith("run log inconsistent")
+
+
+def test_the_late_text_under_another_decision_is_not_a_late_collection(repo):
+    """Judge 552.1's surviving plant: only a NO_DECISION_LATE book carries E3's verdict."""
+    why = COLLECTED_LATE.format(started="2026-10-15T15:12:31+05:30", deadline="2026-10-15T15:12:00+05:30")
+    other = {"book1_rules": {"decision": "something else", "reason": why}}
+    _run_log(repo, results={RUN_LOG_DECISIONS_STEP: other})
+    assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == HEALTH_OK
+
+
 @pytest.mark.parametrize(("now", "status"), [(29, HEALTH_NOT_DUE), (30, HEALTH_MISSED)])
 def test_no_decisions_step_waits_for_the_same_grace(repo, now, status):
     _run_log(repo, steps=tuple(s for s in DAILY_RUN_STEPS if s != RUN_LOG_DECISIONS_STEP))
