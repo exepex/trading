@@ -44,4 +44,4 @@ registered before any of their results; they run only after the protocol freeze 
 
 | 109-114 | 2026-10-25 | EDGE2 F1 | Registered before results (`research/edge2/F1_PROTOCOL.md`, idea cards `research/ideas/EDGE2-F1-*.md`): weekly short iron fly and condor held to expiry, always or gated by ATM IV / EWMA RV >= 1.2 or 1.5; discovery NIFTY+BANKNIFTY weeklies (spent, exploratory), held-out FINNIFTY+MIDCPNIFTY read once | Pending | Exploratory; can only nominate for the school's forward test |
 
-Total trials so far: 114 (count every new variant, threshold or filter here before reading its result).
+Total trials so far: 106 (count every new variant, threshold or filter here before reading its result).
