@@ -85,3 +85,17 @@ Not reproduced, and no flaky test found.
 - The "No new trades" line is advice to the owner. Enforcing it at the entry gate is out of this story (its own story).
 - Nothing outside `fno/cards/` reads the weather section; only `fno/learning` imports card code, for health.
 - The story that makes the desk block on the weather will touch a safety rule and should get two judges.
+
+## Addendum 1: the minors, story/t1c-followups at 8f462a97 (diff against main: 3 files)
+
+**Verdict: PASS** (Judge I).
+
+- **Survivor 1 (the `status` check): FIXED.** `test_a_record_not_marked_scored_is_never_shown_even_with_a_colour_and_full_chances`. My plant (the check removed) now fails 1 test.
+- **Survivor 2 (the entry's `status == "ok"`): FIXED.** `test_a_chance_whose_entry_status_is_not_ok_is_never_shown_even_with_a_value`. My plant now fails 1 test.
+- **Survivor 3 (`math.isfinite`): REMOVED**, with the reason in a comment. NaN still fails closed (my plant letting NaN through fails 1 test).
+- **Minor:** no test holds a chance of `inf`. My plant letting inf through survives (103 passed). The code is right: `0 <= inf <= 1` is false. A test with `float("inf")` would pin it.
+- **Text minors: FIXED.**
+  - Design item 1 now gives criterion 5's not-live line and missing name.
+  - The Status line reads done.
+  - M1's `for_day` docstring is M1's and stays with M1's owner.
+- **Gates (my run on 8f462a97 merged with main):** full `pytest -n auto -rf` 14,871 passed, 15 xfailed, 0 failed; ruff check and format, check_imports and check_records clean.
