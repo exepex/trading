@@ -30,6 +30,10 @@ class CaptureSource(ABC):
     def capture(self, day: date) -> V4Capture | None:
         """The day's canonical capture; None when there is none (no marker, or the day ended "none")."""
 
+    @abstractmethod
+    def ended(self, day: date) -> bool:
+        """Whether the day's capture has ended: its marker exists (canonical or "none"); nothing more will come."""
+
 
 class StoredV4Capture(CaptureSource):
     def __init__(self, store: RawFileStore, dataset: str):
@@ -48,6 +52,9 @@ class StoredV4Capture(CaptureSource):
             return None
         rows = tuple(csv.DictReader(io.StringIO(quotes.decode("utf-8"))))
         return V4Capture(self.dataset, snapshot, json.loads(meta), rows)
+
+    def ended(self, day: date) -> bool:
+        return self._get(day, MARKER.format(day=day)) is not None
 
     def _get(self, day: date, name: str) -> bytes | None:
         return self.store.get(QuoteSnapshotRecorder.path(day, name, self.dataset))

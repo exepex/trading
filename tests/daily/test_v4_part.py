@@ -143,3 +143,44 @@ def test_claude_md_gives_the_code_s_paths():
     text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8").replace("\n   ", " ")
     assert f"'{NIFTY_QUOTES}'" in text and f"'{v4_quotes(WINDOW)}'" in text
     assert "':(glob)research/data/quotes/groww/**/nifty_*'" not in text
+
+
+class Step:
+    def __init__(self, clock):
+        self.clock, self.ran_at = clock, None
+
+    def run(self, day):
+        from fno.desk.daily_steps import StepOutcome
+
+        self.ran_at = self.clock()
+        return StepOutcome({}, {"status": STEP_OK, "reason": "released"})
+
+
+def after_v4(tmp_path, clock, ends):
+    from fno.daily.quote_steps import AfterPart
+
+    files = {V4.pathspecs[0]: [f"{V4_FOLDER}/nifty_20261026.canonical"]}
+    parts, processes, commits, alerts = run(tmp_path, clock, live=DAY, ends=ends, files=files)
+    step = Step(clock)
+    clock.now = at(14, 7)
+    parts.start(DAY)
+    clock.now = at(14, 20)
+    AfterPart(step, parts, "v4", time(14, 45), ServicingWaiter(parts, clock, sleep=clock.advance)).run(DAY)
+    return parts, processes, commits, alerts, step
+
+
+def test_the_release_runs_once_the_capture_ended_and_its_files_are_committed(tmp_path):
+    clock = Clock()
+    parts, _, commits, _, step = after_v4(tmp_path, clock, ends=(14, 34))
+    assert parts.results["v4"]["status"] == STEP_OK and [m for _, m, _ in commits] == ["3 pm quotes 2026-10-26 v4"]
+    assert at(14, 34) <= step.ran_at < at(14, 35)  # within a 5-second servicing poll of the end
+
+
+def test_a_capture_still_running_at_14_45_is_stopped_uncommitted_and_the_release_still_runs(tmp_path):
+    clock = Clock()
+    parts, processes, commits, alerts, step = after_v4(tmp_path, clock, ends=(15, 30))
+    assert step.ran_at == at(14, 45) and processes.made[V4.arguments].stopped
+    assert parts.results["v4"]["status"] == STEP_FAILED and parts.results["v4"]["reason"].startswith(
+        "still running at 14:45"
+    )
+    assert commits == [] and sum("v4" in text for text in alerts.sent) == 1

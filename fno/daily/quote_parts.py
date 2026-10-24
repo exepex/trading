@@ -44,6 +44,7 @@ STILL_HELD = (
     "still running after {minutes} minutes, held by an earlier run's recorder: a 3 pm recorder of an earlier run "
     "still holds {lock}: stop it, then rerun"
 )
+HUNG = "still running at {at:%H:%M}, after its window: stopped, nothing of it committed"
 NOT_IN_THIS_RUN = "not in this run: an earlier run started it and ended, its window has closed and a marker is missing"
 STARTED, RESTARTED, ADOPTED, EARLIER = "started", "restarted", "adopted", "earlier run"  # each part's `how` (F1)
 FINISH_LIMIT = timedelta(minutes=20)
@@ -216,6 +217,18 @@ class QuoteParts:
             if live_from is None or self.day < live_from:
                 why = NO_DATE if live_from is None else NOT_LIVE.format(live_from=live_from)
                 self.results[part.name] = {"status": STEP_NOT_LIVE, "reason": why, "commit": None}
+
+    def await_part(self, name: str, limit: datetime, wait: Callable[[datetime], None]) -> None:
+        """Waits (servicing every part) until the part `name` has ended and its commit was made or tried, at most until
+        `limit`; one still running then is stopped and failed, its files not committed (G10's release reads only an
+        ended capture)."""
+        self.service()
+        while self.started and name not in self.results and self.clock() < limit:
+            wait(min(limit, self.clock() + timedelta(seconds=5)))
+            self.service()
+        if name in self.running:
+            self.running.pop(name).stop()
+            self._failed(name, HUNG.format(at=limit))
 
     def _unstarted(self, part: QuotePart) -> bool:
         return part.name not in self.running and part.name not in self.results

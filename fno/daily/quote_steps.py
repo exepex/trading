@@ -6,11 +6,12 @@ from __future__ import annotations
 
 import time as clock_time
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK
 from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
+from ..models import IST
 from .quote_parts import QuotePart, QuoteParts
 
 POLL_SECONDS = 5.0
@@ -62,3 +63,15 @@ class FinishQuoteParts(DayStep):
         bad = [name for name, result in results.items() if result["status"] not in fine or result.get("commit_error")]
         reason = f"not ok: {', '.join(bad)}" if bad else "every part ok"
         return StepOutcome({}, {"status": STEP_FAILED if bad else STEP_OK, "reason": reason, "parts": results})
+
+
+class AfterPart(DayStep):
+    """Runs its step once the quote part `name` has ended and its commit was made or tried, at most at `by` IST: a part
+    still running then is stopped (G10's `v4_release` after the `v4` capture, by 14:45)."""
+
+    def __init__(self, step: DayStep, parts: QuoteParts, name: str, by: time, waiter: Waiter):
+        self.step, self.parts, self.name, self.by, self.waiter = step, parts, name, by, waiter
+
+    def run(self, day: date) -> StepOutcome:
+        self.parts.await_part(self.name, datetime.combine(day, self.by, IST), self.waiter.until)
+        return self.step.run(day)

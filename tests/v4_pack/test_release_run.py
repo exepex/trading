@@ -23,11 +23,14 @@ MON, TUE, WED = date(2026, 10, 19), date(2026, 10, 20), date(2026, 10, 21)  # WE
 
 
 class Capture(CaptureSource):
-    def __init__(self, found=None):
-        self.found = found
+    def __init__(self, found=None, ended=False):
+        self.found, self.has_ended = found, ended or found is not None
 
     def capture(self, day):
         return self.found
+
+    def ended(self, day):
+        return self.has_ended
 
 
 class NoPack:

@@ -6,7 +6,8 @@ from __future__ import annotations
 from datetime import date
 
 PACK_PATH = "v4/packs/{year}/{day}.json"
-RELEASE_PATH = "v4/days/{year}/{day}.json"
+DAYS_FOLDER = "v4/days"  # every release record, one per scored session, by year
+RELEASE_PATH = DAYS_FOLDER + "/{year}/{day}.json"
 
 
 def pack_path(day: date) -> str:

@@ -104,16 +104,20 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 |---|---|
 | 14:30:00 | The pack's capture starts (A4e's named window: spot, the future of `e`, India VIX, the chains, IV30); an incomplete capture retries |
 | 14:40:00 | **The pack's cutoff:** a field is in the pack only if its answer was received by 14:40:00 |
-| at the latest 14:40 | **One release:** one pack, one SHA-256, to every family at the same moment |
+| right after the capture ends, by 14:45:00 | **One release:** one pack, one SHA-256, to every family at the same moment; a release record written after 14:45:00 makes the day `system_late` ("released late"; G10 completion, decision D1, owner's answer pending) |
 | 15:10:00 | **One deadline:** a commitment counts only if GitHub received its push by then (GitHub's receipt time, never a commit's own time) |
 | 15:15 | **Common snapshot** (A16's 15:15 mark): the skill yardstick of every desk decision and the flag's end level |
 
 - **Honest times:** every field keeps its real `observed_at`, the time its answer was received by this host's checked
   clock; `last_trade_time` is kept apart (the "traded today" check only) and is never the observation time. A capture
   whose clock was not checked ok before and after is not used.
-- **Day-quality label, one per day, on every v4 record and report:** `A`, every required field observed by 14:40:00;
-  `system_late`, no complete pack by 14:40:00, or no release record at all (written after the fact, write-once). A
-  verdict uses `A` days; every report counts both labels and the flagged days. (`A2`, A16's 14:30 mark as fallback,
+- **Day-quality label, one per day, on every v4 report, and joined to every v4 record by its day:**
+  `A`, every required field observed by 14:40:00 and released by 14:45:00; `system_late`, no complete pack by 14:40:00, a release
+  after 14:45:00, or no release record at all. A scored session from the live date with no release record is
+  `system_late` once its day has passed (the next release run writes that record, write-once; every reader applies the
+  same rule meanwhile); the report's own date without a record is pending, never scored; a day before the live date
+  has no label (the close-proxy cohort). A verdict uses `A` days; every report counts both labels, the pending day and
+  the flagged days. (`A2`, A16's 14:30 mark as fallback,
   was dropped on 16 Oct: that mark has no India VIX, one monthly beside the weekly and no next monthly on an expiry
   day, so it can never hold a complete pack.)
 - **One pack, one hash:** a forecaster that reads the pack names the released pack's SHA-256 in its record; another or
