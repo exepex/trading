@@ -71,3 +71,12 @@ def test_on_github_the_readers_only_store_is_the_owner_drives_raw_area(tmp_path,
     (store,) = wiring._reader_raw_stores(owner)
     assert isinstance(store, AreaStore) and store.area == wiring.RAW_AREA and store.store is owner_drive
     assert wiring._reader_raw_stores({}) == []  # no settings at all: no store, never a guessed one
+
+
+def test_a_reader_with_no_store_at_all_fails_loudly_never_reads_not_archived_yet():
+    """DR1's review: with neither the owner's settings nor a service account, every read would otherwise look like
+    "the librarian has not archived it yet"; it raises a named error, which each reader's error path reports."""
+    from fno.storage.raw_library import NoReadableStore
+
+    with pytest.raises(NoReadableStore, match="no store to read nse/indices/index-close/.* set the owner's Drive"):
+        StoredFilesLibrary([]).get(NseIndexCloseSource.path_for(DAY))

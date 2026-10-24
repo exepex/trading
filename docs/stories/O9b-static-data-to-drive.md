@@ -379,3 +379,10 @@ assigned by the orchestrator 23-24 Oct; agreed with the A4h, FL1 and G13 builder
   - **Note 1, for FL1:** the 20:05 evening edition can no longer fetch the same day's official index-close file.
     index-closes.yml archives it at 21:11 IST or later, so a later morning edition confirms it. That is by design: the
     evening says "not archived yet" for that day.
+  - **The DR1 builder's review, accepted:** with neither the owner's settings nor a service account, the reader's
+    store list is empty, so every read looked like "not archived yet". `StoredFilesLibrary.get` now raises
+    `NoReadableStore` ("no store to read <path> from: set the owner's Drive settings ..."), so "cannot read" is never
+    "not yet". Each reader's existing error path reports it: A4h's Confirmer per day, FL1's failed section with its
+    alert, G13's step failing in O1 with its alert. DR1's certifier turns it into exit 1 plus an alert. A test pins
+    it. DR1 will switch `record_store`'s one call to `build_stored_index_close_files()` after this merges (one reader
+    builder).

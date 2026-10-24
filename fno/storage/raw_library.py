@@ -12,6 +12,11 @@ from .raw_source import RawFileSource
 from .raw_store import RawFileStore
 
 NOT_STORED = "not stored yet"  # a reader's library: no store holds the file (its librarian has not archived it)
+NO_STORE = "no store to read {path} from: set the owner's Drive settings (or the service account's)"
+
+
+class NoReadableStore(RuntimeError):
+    """A reader's library has no store at all: "cannot read" must never look like "not archived yet" (DR1, 24 Oct)."""
 
 
 @dataclass(frozen=True)
@@ -31,6 +36,8 @@ class StoredFilesLibrary(FileLibrary):
         self.stores = stores
 
     def get(self, path: str) -> RawFile:
+        if not self.stores:
+            raise NoReadableStore(NO_STORE.format(path=path))
         for store in self.stores:
             data = store.get(path)
             if data is not None:
