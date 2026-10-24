@@ -18,8 +18,9 @@ BAN = "raw/nse/derivatives/fo-ban-list/2026/10/{day}/fo_secban.csv"
 BAN_URL = "https://nsearchives.nseindia.com/content/fo/fo_secban.csv"
 
 
-def git(repo, *args, when=None):
-    env = {"GIT_COMMITTER_DATE": when, "GIT_AUTHOR_DATE": when} if when else {}
+def git(repo, *args, when=None, authored=None):
+    """`authored`: an author date other than `when` (a rebased or cherry-picked commit keeps its older one)."""
+    env = {"GIT_COMMITTER_DATE": when, "GIT_AUTHOR_DATE": authored or when} if when else {}
     subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, env={**os.environ, **env})
 
 
