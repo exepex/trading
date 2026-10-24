@@ -16,6 +16,7 @@ __all__ = [
     "DAILY_RUN_STEPS",
     "V4_PACK_LIVE_KEY",
     "V4_RELEASE_STEP",
+    "V4_PACK_FORECASTS_STEP",
     "V4_DEADLINE_STEP",
     "OWNER_TIMING_STEP",
     "STEP_OK",
@@ -50,6 +51,7 @@ DESK_RUN_STEPS = (
 )
 # Story G10 completion: one `daily.live_from` key for protocol v4's 14:30 capture part, its release and its 15:10 check
 V4_PACK_LIVE_KEY, V4_RELEASE_STEP, V4_DEADLINE_STEP = "v4_pack", "v4_release", "v4_deadline"
+V4_PACK_FORECASTS_STEP = "forecasts_v4_pack"  # story G7b completion: its own `daily.live_from` key (null until the go)
 OWNER_TIMING_STEP = "owner_timing_fills"  # story E8: right after the quote parts start, before every other step
 DAILY_RUN_STEPS = (
     "quotes",
@@ -58,6 +60,7 @@ DAILY_RUN_STEPS = (
     "weather",
     "forecasts_v4",
     V4_RELEASE_STEP,  # G10 completion: after the `v4` part's capture ends (by 14:45), before E3's pack (14:58)
+    V4_PACK_FORECASTS_STEP,  # G7b completion: the pack-derived v4 rows, after the release, committed before 15:10
     *DESK_RUN_STEPS[:2],
     "book1",
     *DESK_RUN_STEPS[2:],

@@ -41,11 +41,14 @@ IMPLIED_METHOD_FILES = (
     "implied.py", "eod_iv30.py", "implied_backfill.py", "drive_records.py", "series.py", "baselines.py", "records.py"
 )  # fmt: skip
 # Criterion 21 (judge 585's ruling): the pack-derived rows' own method hash, over every file of this package the post-
-# release capture runs (a test checks the list holds the capture's whole import closure inside the package)
+# release capture runs, from its composition root `pack_wiring.py` (a test checks the list holds that whole import
+# closure inside the package). It takes in phase 1's rule files through this root too: harmless, as pack rows are
+# live only and never regenerated, so a wider hash marks nothing stale
 PACK_METHOD_FILES = (
-    "pack_capture.py", "v4_expiry.py", "live_quotes.py", "option_terms.py", "option_probabilities.py",
-    "option_outcomes.py", "implied.py", "ratio_store.py", "intraday_series.py", "drive_records.py", "constants.py",
-    "series.py", "baselines.py", "records.py",
+    "pack_wiring.py", "wiring.py", "pack_capture.py", "pack_adapter.py", "pack_followups.py", "option_history.py",
+    "v4_expiry.py", "live_quotes.py", "option_terms.py", "option_probabilities.py", "option_outcomes.py", "implied.py",
+    "eod_iv30.py", "implied_backfill.py", "ratio_store.py", "intraday_series.py", "drive_records.py", "constants.py",
+    "series.py", "baselines.py", "records.py", "capture.py", "rules.py", "vix_rule.py",
 )  # fmt: skip
 LIVE_RECORDS = f"{DATA_AREA}/{LIVE_FOLDER}"  # the pack-derived live rows (part b2)
 LIVE_PATH_PARTS, JSON = 4, ".json"  # <forecaster>/<question>/<YYYY>/<date>.json under LIVE_RECORDS
@@ -72,9 +75,10 @@ def method_sha256(files: tuple[str, ...] = METHOD_FILES) -> str:
     return hashlib.sha256(b"".join((package / name).read_bytes() for name in files)).hexdigest()
 
 
-def build_implied_backfill(cfg: dict) -> tuple[ImpliedBackfill, date]:
-    """Part b1: the EOD IV30 proxy on the committed A3 panel from 2024, the close-proxy RV from the committed closes,
-    the scored sessions to the calendar's end (so every horizon resolves its calendar days); and the last close."""
+def implied_history(cfg: dict) -> tuple[dict, list, list[date]]:
+    """The EOD IV30 proxy on the committed A3 panel from 2024, the regular closes, and the scored sessions to the
+    calendar's end (so every horizon resolves its calendar days): the history both the back-fill and the live capture
+    fit their ratios on."""
     calendar = build_session_calendar()
     closes = series.regular_closes(series.closes_rows(CLOSES_FILE.read_text()))
     first = closes[0].day
@@ -85,7 +89,12 @@ def build_implied_backfill(cfg: dict) -> tuple[ImpliedBackfill, date]:
     years = range(PREMIUM_WINDOW_START.year, closes[-1].day.year + 1)
     panel = read_nifty_panel(PANEL_FOLDER, years, keep=lambda d, e: (e - d).days <= PANEL_OPTION_DAYS)
     estimator = build_atm_iv30(cfg)
-    eod = eod_iv30_series(sessions, lambda d: estimator.estimate(panel, d))
+    return eod_iv30_series(sessions, lambda d: estimator.estimate(panel, d)), closes, sessions
+
+
+def build_implied_backfill(cfg: dict) -> tuple[ImpliedBackfill, date]:
+    """Part b1: the exploratory V2/V3 back-fill on that history; and the last close."""
+    eod, closes, sessions = implied_history(cfg)
     backfill = ImpliedBackfill(eod, series.close_proxy_rv(closes), sessions, method_sha256(IMPLIED_METHOD_FILES))
     return backfill, closes[-1].day
 

@@ -11,19 +11,29 @@ from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP, V4_PACK_LIVE_KEY
+from ..constants import (
+    CARD_DELIVERIES_FOLDER,
+    OWNER_TIMING_STEP,
+    PLAYBOOK_FOLDER,
+    REVIEWS_STEP,
+    V4_PACK_FORECASTS_STEP,
+    V4_PACK_LIVE_KEY,
+)
 from ..desk.daily_ports import DayStep
 from .runner import DayRunner
 
 V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fno/forecast_v4_rules/wiring.py`)
 WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
+FORECASTS_V4_PACK = ("forecast-v4", "capture-pack")  # G7b completion: today's pack-derived rows, by 15:10
+# G7b completion's Drive folders, whose receipts its step commits
+PACK_RECORD_FOLDERS = ("v4/records/live", "v4/terms", "v4/ratios", "v4/outcomes", "v4/diagnostics")
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
-LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, "card", OWNER_TIMING_STEP,
-              "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
-              "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
+LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
+              OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
+              "price_range_scores", "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
 
@@ -75,6 +85,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from .reviews import ReviewsStep, ScorecardReview
     from .steps import Alerted, CommandStep, LiveFrom, NotBefore
     from .v4_wiring import day_parts, part_notes, step_notes, v4_steps
+    from .v4_wiring import receipts as v4_receipts
     from .wait_notice import AnnouncedWaiter
 
     git, alerts, processes, (live, not_live) = (
@@ -124,6 +135,21 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         "forecasts_v4": Alerted(
             "forecasts_v4", LiveFrom(command(lambda day: FORECASTS_V4, V4_RECORDS), live["forecasts_v4"]), alerts
         ),  # fmt: skip
+        V4_PACK_FORECASTS_STEP: Alerted(
+            V4_PACK_FORECASTS_STEP,
+            LiveFrom(
+                CommandStep(
+                    processes,
+                    lambda day: FORECASTS_V4_PACK,
+                    v4_receipts(*PACK_RECORD_FOLDERS),
+                    git.changed,
+                    waiting,
+                    locks,
+                ),
+                live[V4_PACK_FORECASTS_STEP],
+            ),
+            alerts,
+        ),  # G7b completion: its own receipts only  # fmt: skip
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
         "book1": Alerted(
             "book1",

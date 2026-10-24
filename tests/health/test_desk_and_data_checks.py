@@ -154,8 +154,9 @@ def test_the_check_reads_the_daily_run_s_own_tuple(repo):
     _run_log(repo, steps=DESK_RUN_STEPS)
     detail = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).detail
     assert detail == (
-        "steps not run: quotes, owner_timing_fills, margin_check, weather, forecasts_v4, v4_release, book1, reviews, "
-        "quotes_done, card, price_distribution, premium_ranges, price_distribution_scores, price_ranges, "
+        "steps not run: quotes, owner_timing_fills, margin_check, weather, forecasts_v4, v4_release, "
+        "forecasts_v4_pack, book1, reviews, quotes_done, card, price_distribution, premium_ranges, "
+        "price_distribution_scores, price_ranges, "
         "price_range_scores, premium_range_scores, v4_deadline, candles, close_read, close_recheck"
     )
 

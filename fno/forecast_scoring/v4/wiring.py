@@ -16,7 +16,7 @@ from .cutoff_moves import RecordedCutoffMoves
 from .days import DayCounts, LateDaysOut, LiveDayLabels, day_counts
 from .deadlines import DeadlineVerdicts, LateCommitmentsOut, unchecked_days
 from .drive_forecasts import CombinedForecasts, DriveForecastRecords, chosen_paths
-from .g7_series import G7Series
+from .g7_series import G7Series, StoredOptionOutcomes
 from .inputs import ForecastFiles
 from .outcomes import SeriesOutcomes
 from .primary import primary_values
@@ -129,8 +129,38 @@ def _forecasts() -> CombinedForecasts:
 
 
 def _outcomes() -> SeriesOutcomes:
+    """G7's series rules, and V4's and V5's outcomes from G7b's stored records (part e)."""
+    from ...forecast_v4_rules.pack_wiring import option_history
+
     rv = RvTable(INTRADAY_FOLDER)
-    return SeriesOutcomes(G7Series(CLOSES_FILE.read_text(encoding="utf-8"), rv.rows))
+    history = option_history(_scored_sessions())
+    return SeriesOutcomes(G7Series(CLOSES_FILE.read_text(encoding="utf-8"), rv.rows), StoredOptionOutcomes(history))
+
+
+def _scored_sessions() -> list[date]:
+    from datetime import timedelta
+
+    from ...storage.wiring import build_session_calendar
+
+    calendar = build_session_calendar()
+    days = (calendar.first + timedelta(n) for n in range((calendar.last - calendar.first).days + 1))
+    return [d for d in days if is_scored_session(calendar, d)]
+
+
+def build_diagnostic_lines() -> list[str]:
+    """The report's descriptive lines (G7b completion, part e): the pack / EOD IV30 drift from G7b's stored pairs,
+    W8's back-fill / live and W3's intraday / close-proxy `RV_s` from the committed A16 and A16b tables."""
+    from ...forecast_v4_rules import series
+    from ...forecast_v4_rules.pack_followups import DRIFT_FOLDER, backfill_pairs, drift_pair
+    from ...forecast_v4_rules.pack_wiring import candle_rv, live_rv
+    from .diagnostic_lines import diagnostic_lines
+
+    drift = [drift_pair(data) for data in build_drive_records(DRIFT_FOLDER).files().values()]
+    live = live_rv()
+    closes = series.regular_closes(series.closes_rows(CLOSES_FILE.read_text(encoding="utf-8")))
+    close_rv = {v.day: v.value for v in series.close_proxy_rv(closes)}
+    level = [(day, value, close_rv.get(day)) for day, value in live.items() if value is not None]
+    return diagnostic_lines(drift, backfill_pairs(live, candle_rv()), level)
 
 
 def _registry() -> SlotRegistry:

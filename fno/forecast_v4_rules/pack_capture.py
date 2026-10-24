@@ -32,9 +32,10 @@ from ..models import IST
 from ..v4_pack.guard import check_pack_binding
 from ..v4_pack.model import ChainQuote
 from .baselines import BaseRate, Ewma, Value
-from .constants import V4_RULE_V4_EWMA_CHI2, V4_RULE_V5_EWMA_LOGNORMAL
+from .constants import V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, V4_RULE_V4_EWMA_CHI2, V4_RULE_V5_EWMA_LOGNORMAL
 from .drive_records import live_bytes, live_path, read_live
 from .implied import ImpliedBaselines, IvPoint, first_session_of_month
+from .intraday_series import RATIO_CLOSE_PROXY, RATIO_INTRADAY
 from .live_quotes import TwoSided
 from .option_probabilities import option_implied_probability, v4_ewma_chi2, v5_ewma_lognormal
 from .option_terms import OptionTerms, OptionTermsRule, Void
@@ -48,6 +49,9 @@ PACK_FORECASTERS = {  # (forecaster, question) -> (kind, slot); every one report
     (V4_BASELINE_PREMIUM_ADJUSTED, V1_RV_1S): (BASELINE, SLOT_REPORTED),
     (V4_BASELINE_PREMIUM_ADJUSTED, V2_RV_5S): (BASELINE, SLOT_REPORTED),
     (V4_BASELINE_PREMIUM_ADJUSTED, V3_RV_20S): (BASELINE, SLOT_REPORTED),
+    (V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, V1_RV_1S): (BASELINE, SLOT_REPORTED),  # W3's yardstick A
+    (V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, V2_RV_5S): (BASELINE, SLOT_REPORTED),  # for part f's V2 series
+    (V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, V3_RV_20S): (BASELINE, SLOT_REPORTED),  # for part f's V3 series
     (V4_BASELINE_OPTION_IMPLIED_PROB, V5_INSIDE_STRADDLE): (BASELINE, SLOT_REPORTED),
     (V4_BASELINE_BASE_RATE, V4_RV_BELOW_WEEKLY_IV): (BASELINE, SLOT_REPORTED),
     (V4_BASELINE_BASE_RATE, V5_INSIDE_STRADDLE): (BASELINE, SLOT_REPORTED),
@@ -55,6 +59,7 @@ PACK_FORECASTERS = {  # (forecaster, question) -> (kind, slot); every one report
     (V4_RULE_V5_EWMA_LOGNORMAL, V5_INSIDE_STRADDLE): (RULE, SLOT_REPORTED),
 }
 READS_NO_PACK = frozenset({V4_BASELINE_BASE_RATE})
+YARDSTICKS = {RATIO_CLOSE_PROXY: V4_BASELINE_PREMIUM_ADJUSTED, RATIO_INTRADAY: V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY}
 RISK_NEUTRAL = f"{VERSION} risk-neutral, not a real-world probability"  # protocol 3.1's label for V5's baseline
 NOT_TODAY = "{day} is not today ({today}): a live row is made on its own day only"
 NOT_RELEASED = "{day} is {label}: no pack was released, so nothing is written (the day is out for everyone)"
@@ -81,7 +86,11 @@ class PackInputs:
 
 
 class CaptureRefused(RuntimeError):
-    """Not the day's own run, a system_late day, past the deadline or a changed row: nothing more written."""
+    """Not the day's own run, a system_late day or past the deadline: nothing more written (O1 alerts a refusal)."""
+
+
+class ChangedRow(RuntimeError):
+    """A different row or terms already written for the day: rows never change, so this is a failure."""
 
 
 def terms_path(question: str, day: date) -> str:
@@ -99,14 +108,13 @@ def digest(*parts) -> str:
 class PackForecasts:
     """One day's pack-derived values and records."""
 
-    def __init__(self, implied: Mapping[str, ImpliedBaselines], ewma: Ewma, terms: OptionTermsRule,
-                 base_outcomes: Mapping[str, list[Outcome]], ratio_measures: Mapping[str, str],
-                 method: str):  # fmt: skip
-        """`implied`: V1's, V2's and V3's baselines on their stored ratios (V1's by W3's measure); `ewma`: the
-        close-proxy EWMA; `base_outcomes`: V4's and V5's live outcomes; `ratio_measures`: each question's ratio
-        measure, carried in the premium-adjusted rows' version; `method`: the hash of the deciding files (crit. 21)."""
+    def __init__(self, implied: Mapping[str, Mapping[str, ImpliedBaselines]], ewma: Ewma, terms: OptionTermsRule,
+                 base_outcomes: Mapping[str, list[Outcome]], method: str):  # fmt: skip
+        """`implied[measure][question]`: V1's, V2's and V3's baselines on their stored ratios, per W3 yardstick
+        (`close_proxy`: B, `intraday`: A); `ewma`: the close-proxy EWMA; `base_outcomes`: V4's and V5's live outcomes;
+        `method`: the hash of the deciding files (criterion 21)."""
         self.implied, self.ewma, self.rule, self.base_outcomes = implied, ewma, terms, base_outcomes
-        self.ratio_measures, self.method = ratio_measures, method
+        self.method = method
 
     def terms(self, p: PackInputs) -> dict[str, OptionTerms | Void]:
         return {
@@ -117,15 +125,15 @@ class PackForecasts:
     def values(self, p: PackInputs, terms: dict) -> dict[tuple[str, str], tuple[Value, str]]:
         """Each row's value and the SHA-256 of what it read."""
         s2, v4, v5 = self.ewma.variance(p.day), terms[V4_RV_BELOW_WEEKLY_IV], terms[V5_INSIDE_STRADDLE]
-        out = {}
+        out, close = {}, self.implied[RATIO_CLOSE_PROXY]
         for question in (V2_RV_5S, V3_RV_20S):
-            out[(V4_BASELINE_RAW_IMPLIED, question)] = (self.implied[question].raw(p.day, p.iv30),
+            out[(V4_BASELINE_RAW_IMPLIED, question)] = (close[question].raw(p.day, p.iv30),
                                                         digest(p.pack_sha256, p.iv30))  # fmt: skip
-        for question in (V1_RV_1S, V2_RV_5S, V3_RV_20S):
-            implied = self.implied[question]
-            ratio = implied.ratio.at(first_session_of_month(p.day, implied.sessions))
-            out[(V4_BASELINE_PREMIUM_ADJUSTED, question)] = (implied.premium_adjusted(p.day, p.iv30),
-                                                             digest(p.pack_sha256, p.iv30, ratio))  # fmt: skip
+        for measure, forecaster in YARDSTICKS.items():
+            for question, implied in self.implied[measure].items():
+                ratio = implied.ratio.at(first_session_of_month(p.day, implied.sessions))
+                out[(forecaster, question)] = (implied.premium_adjusted(p.day, p.iv30),
+                                               digest(p.pack_sha256, p.iv30, ratio))  # fmt: skip
         for question in (V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE):
             known = [o for o in self.base_outcomes[question] if o.resolved_on < p.day]
             out[(V4_BASELINE_BASE_RATE, question)] = (
@@ -151,9 +159,8 @@ class PackForecasts:
     def _version(self, forecaster: str, question: str) -> str:
         if forecaster == V4_BASELINE_OPTION_IMPLIED_PROB:
             return RISK_NEUTRAL
-        if forecaster == V4_BASELINE_PREMIUM_ADJUSTED:
-            return f"{VERSION} ratio {self.ratio_measures[question]}"
-        return VERSION
+        measure = next((m for m, f in YARDSTICKS.items() if f == forecaster), None)
+        return VERSION if measure is None else f"{VERSION} ratio {measure}"
 
 
 def capture_pack(forecasts: PackForecasts, inputs: PackInputs, clock: Callable[[], datetime],
@@ -182,4 +189,4 @@ def _write(path: str, data: bytes, row: Record | None, clock, get, put) -> None:
     if held is None:
         put(path, data)
     elif held != data and (row is None or not read_live(held)[0].same_as(row)):
-        raise CaptureRefused(CHANGED_ROW.format(path=path))
+        raise ChangedRow(CHANGED_ROW.format(path=path))

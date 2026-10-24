@@ -20,7 +20,11 @@ from fno.constants import (
     V5_INSIDE_STRADDLE,
 )
 from fno.forecast_v4_rules.baselines import NOT_ELIGIBLE, OK, Ewma
-from fno.forecast_v4_rules.constants import V4_RULE_V4_EWMA_CHI2, V4_RULE_V5_EWMA_LOGNORMAL
+from fno.forecast_v4_rules.constants import (
+    V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY,
+    V4_RULE_V4_EWMA_CHI2,
+    V4_RULE_V5_EWMA_LOGNORMAL,
+)
 from fno.forecast_v4_rules.drive_records import live_path, read_live
 from fno.forecast_v4_rules.implied import HorizonRv, ImpliedBaselines, IvPoint, PremiumRatio
 from fno.forecast_v4_rules.intraday_series import RATIO_CLOSE_PROXY, RATIO_INTRADAY
@@ -29,6 +33,7 @@ from fno.forecast_v4_rules.option_terms import OptionTermsRule
 from fno.forecast_v4_rules.pack_capture import (
     PACK_FORECASTERS,
     CaptureRefused,
+    ChangedRow,
     PackForecasts,
     PackInputs,
     capture_pack,
@@ -80,22 +85,26 @@ def unit_ratio(value: float) -> PremiumRatio:
 REFIT = date(2026, 10, 1)
 
 
-def forecasts(drive: Drive, measures=None, today=REFIT, outcomes=None) -> PackForecasts:
-    measures = measures or {q: RATIO_CLOSE_PROXY for q in (V1_RV_1S, V2_RV_5S, V3_RV_20S)}
-    implied = {
-        q: ImpliedBaselines(h, SESSIONS, StoredRatio(unit_ratio(0.6), q, measures[q], today, drive.get, drive.put))
-        for q, h in ((V1_RV_1S, 1), (V2_RV_5S, 5), (V3_RV_20S, 20))
-    }
+def forecasts(drive: Drive, today=REFIT, outcomes=None, intraday_ratio=None) -> PackForecasts:
+    """Yardstick B on a stored ratio of 0.6; A on `intraday_ratio` (none: an empty window, not eligible)."""
+
+    def implied(measure: str, ratio: PremiumRatio):
+        return {q: ImpliedBaselines(h, SESSIONS, StoredRatio(ratio, q, measure, today, drive.get, drive.put))
+                for q, h in ((V1_RV_1S, 1), (V2_RV_5S, 5), (V3_RV_20S, 20))}  # fmt: skip
+
+    both = {RATIO_CLOSE_PROXY: implied(RATIO_CLOSE_PROXY, unit_ratio(0.6)),
+            RATIO_INTRADAY: implied(RATIO_INTRADAY, intraday_ratio or PremiumRatio({}, {}))}  # fmt: skip
     rv = [DayValue(d, 0.00008) for d in SESSIONS if d < D]
     rule = OptionTermsRule(Black76(), RATE, CALENDAR)
     outcomes = outcomes or {V4_RV_BELOW_WEEKLY_IV: [], V5_INSIDE_STRADDLE: []}
-    return PackForecasts(implied, Ewma(rv), rule, outcomes, measures, METHOD)
+    return PackForecasts(both, Ewma(rv), rule, outcomes, METHOD)
 
 
 def stored_ratios(drive: Drive) -> Drive:
     """The October ratios stored on their refit day (1 Oct), as the capture of that day would have."""
     for q in (V1_RV_1S, V2_RV_5S, V3_RV_20S):
         StoredRatio(unit_ratio(0.6), q, RATIO_CLOSE_PROXY, REFIT, drive.get, drive.put).at(REFIT)
+        StoredRatio(PremiumRatio({}, {}), q, RATIO_INTRADAY, REFIT, drive.get, drive.put).at(REFIT)
     return drive
 
 
@@ -133,8 +142,9 @@ def test_a_day_writes_every_pack_row_and_both_terms_once():
     shas = {key: row.pack_sha256 for key, (row, _) in rows.items()}
     no_pack = {(V4_BASELINE_BASE_RATE, q) for q in (V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE)}
     assert {k for k, s in shas.items() if s == ""} == no_pack and set(shas.values()) == {"", SHA}
-    # each row hashes what it read: raw V2/V3 share IV30, premium V1-V3 share one ratio here, both base rates are empty
-    assert len({row.inputs_sha256 for row, _ in rows.values()}) == 6
+    # each row hashes what it read: raw V2/V3 share IV30, each yardstick's V1-V3 rows share one ratio here, both base
+    # rates are empty
+    assert len({row.inputs_sha256 for row, _ in rows.values()}) == 7
     v4_terms = json.loads(drive.files[terms_path(V4_RV_BELOW_WEEKLY_IV, D)])
     assert v4_terms["expiry"] == "2026-11-03" and v4_terms["pack_sha256"] == SHA
 
@@ -151,7 +161,7 @@ def test_a_rerun_minutes_later_after_a_partial_failure_completes_the_day():
 def test_a_changed_row_for_the_day_is_refused():
     drive = stored_ratios(Drive())
     run(drive)
-    with pytest.raises(CaptureRefused, match="different row"):
+    with pytest.raises(ChangedRow, match="different row"):
         run(drive, iv30=IvPoint(0.2, False))
 
 
@@ -190,16 +200,27 @@ def test_a_flagged_iv30_gives_no_implied_value():
         assert read_live(drive.files[live_path(*key, D)])[0].status == "missing"
 
 
-def test_v1s_premium_adjusted_carries_its_ratio_measure():
+def test_both_yardsticks_are_written_each_labelled_by_its_measure():
     drive = stored_ratios(Drive())
     run(drive)
-    v1 = read_live(drive.files[live_path(V4_BASELINE_PREMIUM_ADJUSTED, V1_RV_1S, D)])[0]
-    assert float(v1.value) == pytest.approx(0.6 * 0.15**2 * 1 / 365) and v1.forecaster_version == "1 ratio close_proxy"
-    drive = Drive()  # option A: V1's own intraday window, none stored: not eligible, labelled
-    measures = {V1_RV_1S: RATIO_INTRADAY, V2_RV_5S: RATIO_CLOSE_PROXY, V3_RV_20S: RATIO_CLOSE_PROXY}
-    capture_pack(forecasts(drive, measures, today=D), inputs(), lambda: NOW, drive.get, drive.put)
-    v1 = read_live(drive.files[live_path(V4_BASELINE_PREMIUM_ADJUSTED, V1_RV_1S, D)])[0]
-    assert v1.status == NOT_ELIGIBLE and v1.forecaster_version == "1 ratio intraday"
+    for question, days in ((V1_RV_1S, 1), (V2_RV_5S, 7)):
+        b = read_live(drive.files[live_path(V4_BASELINE_PREMIUM_ADJUSTED, question, D)])[0]
+        a = read_live(drive.files[live_path(V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, question, D)])[0]
+        assert (
+            float(b.value) == pytest.approx(0.6 * 0.15**2 * days / 365)
+            and b.forecaster_version == "1 ratio close_proxy"
+        )
+        assert a.status == NOT_ELIGIBLE and a.forecaster_version == "1 ratio intraday"  # no intraday window stored
+
+
+def test_yardstick_a_has_a_value_when_its_own_window_is_stored():
+    drive = Drive()
+    for q in (V1_RV_1S, V2_RV_5S, V3_RV_20S):
+        StoredRatio(unit_ratio(0.6), q, RATIO_CLOSE_PROXY, REFIT, drive.get, drive.put).at(REFIT)
+        StoredRatio(unit_ratio(0.8), q, RATIO_INTRADAY, REFIT, drive.get, drive.put).at(REFIT)
+    run(drive)
+    a = read_live(drive.files[live_path(V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, V1_RV_1S, D)])[0]
+    assert float(a.value) == pytest.approx(0.8 * 0.15**2 * 1 / 365)
 
 
 def test_a_missed_refit_day_leaves_the_month_without_a_ratio():
@@ -280,9 +301,9 @@ def test_criterion_21_the_pack_rows_method_hash_covers_the_captures_whole_closur
     from fno.forecast_v4_rules import wiring
 
     package = Path(wiring.__file__).parent
-    closure = package_imports("pack_capture.py", package, {"pack_capture.py"})
+    closure = package_imports("pack_wiring.py", package, {"pack_wiring.py"})  # the capture's composition root
     named = {"v4_expiry.py", "live_quotes.py", "option_terms.py", "option_probabilities.py", "option_outcomes.py",
-             "implied.py", "series.py", "baselines.py", "records.py"}  # judge 585's list  # fmt: skip
+             "implied.py", "series.py", "baselines.py", "records.py", "eod_iv30.py"}  # judge 585's list  # fmt: skip
     assert closure <= set(wiring.PACK_METHOD_FILES) and named <= set(wiring.PACK_METHOD_FILES)
     assert wiring.method_sha256(wiring.PACK_METHOD_FILES) not in {
         wiring.method_sha256(),

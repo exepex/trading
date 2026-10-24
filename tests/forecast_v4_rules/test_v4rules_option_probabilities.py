@@ -3,7 +3,7 @@ decimals and an independent erf series, not by fno code), the two rule forecaste
 outcomes and their base-rate inputs."""
 
 import json
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal, getcontext
 from pathlib import Path
 
@@ -213,8 +213,9 @@ def test_judge_585_sf1a_v5_base_outcome_is_dated_by_the_ist_day_it_was_first_see
     seen = EXPIRY_CLOSE + timedelta(days=2)
     outcome = V5Resolver(Settlements(26500.0), Created(seen), dict).resolve(V5_TERMS)
     assert v5_base_outcome(D, outcome).resolved_on == MONTHLY + timedelta(days=2)
-    # 23:30 IST on the expiry day is 18:00 UTC the same day; 00:30 IST next day is still the previous UTC day
-    after_midnight = datetime.combine(MONTHLY + timedelta(days=1), time(0, 30), IST)
+    # Drive's createdTime is UTC: 19:00 UTC on the expiry day is 00:30 IST the next day, so a rule reading the UTC
+    # date (or the expiry) would date it a day early (judge 585.1 m4)
+    after_midnight = datetime.combine(MONTHLY, time(19, 0), UTC)
     outcome = V5Resolver(Settlements(26500.0), Created(after_midnight), dict).resolve(V5_TERMS)
     assert v5_base_outcome(D, outcome).resolved_on == MONTHLY + timedelta(days=1)
 

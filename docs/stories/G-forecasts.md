@@ -695,8 +695,10 @@ fa605291a).**
   only, every window point resolves before the refit that uses it, and the EOD IV30 proxy in the same window is the
   same precedent (a labelled proxy in a scale, never in a forecast).
 - **Review trigger (judge 591 m2):** when the drift line's median back-fill / live ratio over the latest 20 live days
-  leaves [0.95, 1.05], the report raises one alert to #fno-desk and an owner row is opened (keep W8, correct the
-  window by the measured factor, or drop it); fewer than 20 paired live days raise nothing.
+  leaves [0.95, 1.05], the daily pack capture (O1's `forecasts_v4_pack`, which runs every trading day; G8's report
+  runs weekly) raises one alert to #fno-desk, written once as a marker in Drive so it is never repeated, and an owner
+  row is opened (keep W8, correct the window by the measured factor, or drop it); fewer than 20 paired live days
+  raise nothing. G8's report prints the same median on its drift line.
 - **Had W8 been refused** (kept for the record): A's rows would be `not_eligible` until 500 live window points
   (about two years).
   V1's raw implied (`h` = 1, its horizon) is computed only as this input: protocol 3.2 does not report raw implied for V1.
@@ -1252,6 +1254,76 @@ they found and what was fixed or why not.
   the future's last trade time or volume, `v4_expiry`, `ListedExpiries`), the wiring of `get`/`put` to the Drive
   cache and `DataStore`, the CLI `forecast-v4 capture-pack`, the O1 step (with `receipts/data/v4/ratios/` in its
   paths) and the V4/V5 outcome and proxy-drift writers.
+- **Gates:** see the commit message.
+
+### Claims, build step 7: part b2 live (G10's pack on main), the writers, G8's V4/V5 sources and W3/W8 in code
+
+- **Code:** `pack_adapter.py` (G10's released `Pack` to `PackInputs`: IV30 points to a fraction, the future's trade
+  flag from its volume, the pack's SHA-256 from its bytes; a `system_late` release gives inputs with its label only);
+  `pack_wiring.py` (this capture's composition root: the released pack, NSE's listed expiries, both W3 yardsticks on
+  their stored monthly ratios, V4's and V5's stored terms and outcomes through G8's one Drive seam
+  `build_drive_records`, O9's `DataStore`); `option_history.py` (V4's and V5's outcomes from the stored terms, V5's
+  outcome records and A16's rows: one place for the capture's base rates and G8's scoring); `pack_followups.py` (V5's
+  pending outcomes, the proxy-drift pairs, W8's pairs and review trigger); the CLI `forecast-v4 capture-pack`; the O1
+  step `forecasts_v4_pack` right after `v4_release` (its receipts: `v4/records/live`, `terms`, `ratios`, `outcomes`,
+  `diagnostics`; `daily.live_from.forecasts_v4_pack: null`, so `not_live` until set); G8: `SeriesOutcomes` takes V4's
+  and V5's outcomes from `StoredOptionOutcomes` (void kept void), the report prints protocol 1.4's and 1.5's notes and
+  three descriptive lines (`diagnostic_lines.py`).
+- **W3 (both) as built:** V1 and part f's series compare every forecaster against B (`premium_adjusted_implied`) and A
+  (`premium_adjusted_implied_intraday`) beside the primary, each comparison labelled and seeded apart; V2's and V3's
+  close-proxy blocks keep B only (A is no forecaster there).
+- **W8 (owner, "W8 - yes") as built:** yardstick A's window measure is A16's live `RV_s`, else A16b's back-fill; a
+  live row, void included, is never overridden; the stored ratio counts its `backfill_window` points. The W8 drift
+  line is the median of the paired daily ratios (the approved text's words); the W3 level line (intraday / close
+  proxy) is a ratio of sums, as the text now says. Judge 591 m2's trigger runs in the daily capture (the report is
+  weekly), raised once (a write-once marker in `v4/diagnostics/w8_review/`). The switch `W8_BACKFILL_WINDOW` is gone
+  (decided; no dead code).
+- **Lane-1 test edits, said plainly:** `tests/v4_pack/test_pack_binding.py` (PACK_READERS gains the intraday yardstick;
+  G10's builder agreed); the O1, O8 and e2e tests that pin the step list (`test_day_run.py`, `test_steps.py`,
+  `test_v4_steps.py`, `test_desk_and_data_checks.py`, `test_hangs.py`: the hang trigger moves to after
+  `forecasts_v4_pack`). The orchestrator's two checks: the 15:10 deadline exempts only the sealed AI books, so the five
+  pack readers stay deadline-checked (`tests/v4_pack/test_deadline.py::test_a_pack_reader_is_still_checked_only_the_ai_books_are_exempt`
+  passes on this branch); `forecast_v4_rules/constants.py` imports nothing back into `v4_pack` (`check_imports`
+  clean).
+- **Tests:** `test_v4rules_pack_live.py` (11), `test_v4rules_w8.py` (9), `test_v4rules_pack_capture.py` (17, both
+  yardsticks), `test_v4_pack_forecasts_step.py` (2), `test_option_outcomes_and_diagnostics.py` (8),
+  `test_intraday_series_report.py` (11). Judge 585.1's m4 (a UTC `createdTime` after IST midnight) is in
+  `test_v4rules_option_probabilities.py`. **Plants (24, all caught; 2 first survived and their tests were made
+  stronger, 1 did not apply first and was redone):** the RV lines' recent window from the start; a median for the level line; a zero denominator paired;
+  V4/V5 routed to the other history; off-calendar days kept; void read as resolved; diagnostics dropped from text and
+  JSON; the back-fill overriding a live row; back-filled sessions over-counted; `t` itself in its horizon; the ratio
+  counting labels outside its window (survived first); the marker ignored; fewer than 20 days alerting; the band
+  made exclusive; the all-days median used (survived first); void live days paired; V5 outcomes written now not added
+  to the base rates; V1 without the yardsticks; A in the close-proxy block; a mean of ratios for W8's line; a Drive
+  conflict as a traceback; V5 settled lines not printed; `eod_iv30.py` out of the hash (did not apply first).
+- **Self-review (an independent agent), checked one by one:** (1, accepted, fixed) V1 was compared against its HAR
+  primary only; W3 and criterion 4 say both yardsticks: now both, tested. (2, accepted, fixed) `PACK_METHOD_FILES`
+  missed `eod_iv30.py` and the composition roots (`pack_wiring.py`'s W8 merge, `wiring.implied_history`): the hash now
+  covers the whole import closure from `pack_wiring.py`, and the gate test walks from there. That includes phase 1's
+  rule files; harmless, as pack rows are live only and never regenerated. (3, accepted, NOT built, said plainly) a
+  missed refit day leaves the month with no ratio; the story's text promises a later computation "only from inputs
+  whose receipts GitHub received before that refit day". The code keeps the stricter rule (no late ratio; the month's
+  premium-adjusted rows `not_eligible`, counted) and says so in `ratio_store.py`. Building the receipt-time filter
+  needs each input's commit time; I propose it as the next step, before 2 Nov 2026 (the first refit after Monday's
+  go-live), or the text changes to the stricter rule: judge K's call. (4, accepted, fixed) V5's base rate was built
+  before the day's pending outcomes were settled: they are now resolved first and added the same run, so an outcome
+  first seen on the evening of `e` counts for `e+1` (`resolved_on < d` unchanged). (5, accepted, fixed) A was scored
+  as a forecaster in V2's and V3's close-proxy blocks: removed. (6, rejected, with reason) the refit-day ratio is
+  written before the 15:10 check: it is computed only from refit-day inputs, never from the pack or the clock, so a
+  late write changes nothing it would not have written at 14:45; the forecast rows stay deadline-checked. (7,
+  partly fixed) the follow-ups no longer rebuild `implied_history` (one panel read per run); the run's time is not
+  measured yet (no real pack before Monday); the step's 600 s limit stands, and Monday's first live run is the
+  measurement. (8, accepted, fixed) a row already in Drive whose receipt is gone gave a traceback: `RawFileConflict`
+  now prints "stopped:" and exits 1, tested. The reviewer also flagged a stale `.pyc` in this checkout that briefly
+  showed a test failing; the caches were cleared before the gates.
+- **Real data:** the report on 23 Oct printed: pack IV30 / EOD 0 pairs (no live pack yet); W8 back-fill / live 3
+  pairs; intraday / close-proxy ratio of sums 2.34 over 3 days (some evidence only: 3 days). Meaning: yardstick B
+  forecasts on the close-proxy scale, so against V1's intraday target it sits about 2.3 times low; its ratio never
+  absorbs that, being fitted on the close proxy. That is the gap yardstick A (W8) exists for, and why B alone would
+  make any V1 rule look good.
+- **Not done here:** the CLAUDE.md routine line for `forecasts_v4_pack` (when it goes live); the W1-W8 wordings into
+  `PROTOCOL_v4.md` (a protocol edit, its own change); the real Drive back-fill run (after merge); the orchestrator's
+  `no_v4_drive_records` fixture (adopted once on `main`).
 - **Gates:** see the commit message.
 
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
