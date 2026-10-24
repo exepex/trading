@@ -23,7 +23,7 @@ the Slack token set:
 | L3: the replay clock said once, last, in the exercised line | MET | `rehearse.py` passes `(REPLAY_CLOCK,)`; `exercised_line` appends the fixed items last and alone still make a line. Plant "line dropped" caught |
 | Size, design | MET | small edits; the `PreopenRecorder` now takes `clock: Callable[[], ClockReading]` (one reading for warning and cell, no second check) |
 
-## Files read in full
+## Files read (the whole diff, and the changed functions with their callers)
 
 - `fno/intraday/clock.py` (the new `day_cell`), `fno/preopen/record.py` and `fno/preopen/wiring.py` (the reading
   passed once).
