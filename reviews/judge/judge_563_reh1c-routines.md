@@ -76,3 +76,22 @@ of `http.client`, urllib3's HTTP and urllib3's HTTPS connections. This is sound.
 - **The note's scope:** `NotLiveInRealRuns` sets a process-wide environment variable. An alert the parent sends for
   another step while a not-live step runs would carry that step's note. This happens only in a rehearsal, whose posts
   are all labelled.
+
+## Addendum 1
+
+**Verdict: PASS** for my part, on story/reh1c-routines at 73053f9a (round 2 of 2; REH1b 67e150e3 and main merged in).
+It closes SF1, SF2 and the window note.
+
+- **SF1 met:** `RecordedPreopenPart` takes the receipt's `sha256` with the chosen path, and refuses with `PartFailed`
+  ("missing from Drive or differs from its receipt") any copy that is missing or hashes differently. My plant removing
+  the check fails a test.
+- **SF2 met:** `test_routines.py` now compares both ways. Every `python -m fno` command named in the routine's own
+  numbered steps (before any `###` subsection) must equal the rehearsed list, and the morning and evening are split by
+  CLAUDE.md's markers (1b and "The morning:", 1c and "The evening:"). The two missing `records certify closes ...
+  --commit` commands are added in CLAUDE.md's order.
+  - My plants: the evening's `data-snapshot` deleted, and the morning's `records certify` dropped, each fail a test.
+- **Window note closed:** my plant dropping the pre-open window's upper bound now fails a test.
+- **The process-wide environment variable** is stated in the claims (safe while steps run one at a time).
+- **Merge resolution:** the merged `fno/close_read/wiring.py` keeps O9's read-only reader with the recorded source.
+- **Gates on 73053f9a (run by me):** 15,104 passed, 1 skipped, 15 xfailed; ruff, format and check_imports clean. It
+  merges cleanly with current main.
