@@ -56,3 +56,16 @@ None (a text round).
    makes a member "undecided, operations" at look 1 (protocol 4). This is a decision, not only a consequence.
 2. Accepted as written: V7's `rules` row registered (it can never be registered later; Test A unchanged), the ledger
    ids 100-107, `Frozen on:` moving forward only, and "Asked of the orchestrator" (the keep-or-change list).
+
+## Addendum 1: new head 7e3b8a623 (text only), still round 1
+
+**FAIL, unchanged: SF1-SF3 and m1 stand, plus m2.** `git diff 2f48524dc 7e3b8a623`: one file, 48 lines added and 4
+removed. It adds the 26-row keep-or-change table and "Orchestrator rulings"; neither touches SF1-SF3. The ruling "this
+story adds the constant and the one wiring line" still puts the rate in `terms.py` (SF1) and still covers one reader
+(SF2). "G11's builder confirms the AI file list" leaves SF3's per-file ruling undone. Every table row's source title
+exists in `docs/DESK_DECISIONS.md` on main (my grep, 21 titles, one match each).
+- **Minor m2: row 22 merges two parts of the owner's 21 Oct answer (3).** The owner said: "freeze now with the AI
+  slots unregistered", and "the AI files are hashed in their own registration when G11 goes live". The 24 Oct row
+  replaces only the first part (slots registered at the freeze). The second part still stands unless the owner
+  changes it, and it supports SF3's fix (G11's shared AI files hashed in G11's own registration, not byte-checked by
+  `FREEZE_v4.md`). Split the row; recommend keeping the second part.
