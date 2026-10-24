@@ -1,127 +1,16 @@
-"""Criteria 4-6 end to end: the real adapters over a fake NSE session and fake Groww candles, O9's data store over a
-folder, O10's error log, fake committers and alerts. No value reaches a committed path, an O10 row or an alert."""
+"""Criteria 4-6 end to end (the desk in `desk.py`). No value reaches a committed path, an O10 row or an alert."""
 
 from __future__ import annotations
 
-import csv
-import io
-from datetime import UTC, date, datetime
-
 import requests
 
-from fno.alerts.sender import SENT
-from fno.health.capture_errors import CaptureErrorLog
-from fno.intraday.candle_source import CandleAnswer, CandleCallFailed
-from fno.preopen.parts import FO_PREOPEN_URL, GIFT_URL, GrowwIndexPreopen, NseGiftNifty, NsePreopenList
-from fno.preopen.record import PreopenRecorder
-from fno.preopen.run import PreopenRun
+from fno.intraday.candle_source import CandleCallFailed
+from fno.preopen.parts import FO_PREOPEN_URL, GIFT_URL
 from fno.research_data.calendar import CalendarError
-from fno.storage.data_store import DataStore
 from fno.storage.raw_store import LocalFolderStore
-from fno.storage.receipts import ReceiptFolder
 
-from .fakes import FakeClock
-from .fixtures import DAY, candles, fo_list, gift, ist
-
-ROUTINE_START = ist(8, 36)
-VALUES = ("1234.5", "4321", "5555.5", "101.5")
-
-
-class Response:
-    def __init__(self, content: bytes, status_code: int = 200):
-        self.content, self.status_code = content, status_code
-
-
-class NseSession:
-    def __init__(self, answers: dict):
-        self.answers = answers  # url -> bytes, or a callable of the clock's time
-
-    def get(self, url, timeout):
-        answer = self.answers[url]
-        if isinstance(answer, Exception):
-            raise answer
-        return Response(answer) if isinstance(answer, bytes) else answer
-
-
-class Candles:
-    def __init__(self, clock, raw: bytes | Exception):
-        self.clock, self.raw = clock, raw
-
-    def minute_candles(self, day: date) -> CandleAnswer:
-        if isinstance(self.raw, Exception):
-            raise self.raw
-        return CandleAnswer("1m", day, day, self.raw, [], self.clock.now(), self.clock.now())
-
-
-class Committer:
-    def __init__(self, outcome="committed"):
-        self.outcome, self.calls = outcome, []
-
-    def commit(self, what):
-        self.calls.append(what)
-        return self.outcome
-
-
-class EarlyCommitter(Committer):
-    def __init__(self, clock, outcome="receipts committed and pushed (2 file(s))"):
-        super().__init__(outcome)
-        self.clock, self.at = clock, []
-
-    def commit(self, what):
-        self.at.append(self.clock.now())
-        return super().commit(what)
-
-
-class Sender:
-    def __init__(self):
-        self.sent = []
-
-    def send(self, text):
-        self.sent.append(text)
-        return SENT
-
-
-class Desk:
-    """One planted morning: a repository folder, a Drive folder and the parts' answers."""
-
-    def __init__(self, tmp_path, start=ROUTINE_START, nse=None, nifty=None, trading=True, clock_warning=""):
-        self.root, self.clock = tmp_path / "repo", FakeClock(start)
-        self.drive = LocalFolderStore(tmp_path / "drive")
-        answers = {GIFT_URL: gift(), FO_PREOPEN_URL: fo_list()} | (nse or {})
-        session = NseSession(answers)
-        self.parts = [NseGiftNifty(session, self.clock.now), NsePreopenList(session, self.clock.now),
-                      GrowwIndexPreopen("nifty", Candles(self.clock, candles() if nifty is None else nifty)),
-                      GrowwIndexPreopen("banknifty", Candles(self.clock, candles(close_0909=6666.5)))]  # fmt: skip
-        self.errors = CaptureErrorLog(self.root / "research/ops/capture_errors.csv")
-        self.committers, self.sender, self.out = [Committer(), Committer()], Sender(), []
-        self.early = EarlyCommitter(self.clock)
-        self.trading, self.clock_warning = trading, clock_warning
-
-    def recorder(self) -> PreopenRecorder:
-        store = DataStore(self.drive, "data", ReceiptFolder(self.root / "receipts"), "preopen", "run-1",
-                          clock=lambda: datetime(2026, 10, 22, 3, 41, tzinfo=UTC))  # fmt: skip
-
-        def run(done):
-            return PreopenRun(self.parts, self.clock.now, self.clock.sleep, done)
-
-        return PreopenRecorder(self._trading, run, store, self.errors, self.committers, self.sender,
-                               lambda: self.clock_warning, self.early, self.out.append)  # fmt: skip
-
-    def _trading(self, day):
-        if isinstance(self.trading, Exception):
-            raise self.trading
-        return self.trading
-
-    def day_row(self) -> dict:
-        data = self.drive.get("data/preopen/day/2026/10/2026-10-22.csv")
-        return next(csv.DictReader(io.StringIO(data.decode())))
-
-    def gift_row(self) -> dict:
-        data = self.drive.get("data/preopen/gift/2026/10/2026-10-22.csv")
-        return next(csv.DictReader(io.StringIO(data.decode())))
-
-    def committed_text(self) -> str:
-        return "\n".join(p.read_text() for p in self.root.rglob("*") if p.is_file())
+from .desk import VALUES, Committer, Desk, Response
+from .fixtures import DAY, candles, gift, ist
 
 
 def test_a_good_morning_saves_four_answers_and_the_day_row_commits_and_stays_quiet(tmp_path):
@@ -134,8 +23,9 @@ def test_a_good_morning_saves_four_answers_and_the_day_row_commits_and_stays_qui
     assert (row["gift_seen_at"], row["nifty_seen_at"], row["clock"]) == ("08:40:00", "09:10:00", "ok")
     raw = sorted(desk.drive.checksums("data/preopen/raw/2026/10/22"))
     assert raw == ["banknifty_091000.json", "fo_list_090830.json", "gift_084000.json", "nifty_091000.json"]
-    assert desk.out[-1] == "pre-open recorded" and desk.sender.sent == []
-    assert [c.calls for c in desk.committers] == [["pre-open 2026-10-22"]] * 2
+    assert desk.out[-1] == "open check: 0 checked, 0 waiting for NSE's file" and desk.sender.sent == []
+    assert "pre-open recorded" in desk.out  # the capture's line, before the open check's (A22d)
+    assert [c.calls for c in desk.committers] == [["pre-open 2026-10-22"] * 2] * 2  # the capture's, then the check's
     assert (desk.root / "receipts/data/preopen/day/2026/10/2026-10-22.csv.sha256").is_file()
     assert desk.errors.rows() == [] and not any(v in desk.committed_text() for v in VALUES)
 

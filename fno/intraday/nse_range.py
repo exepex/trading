@@ -30,15 +30,16 @@ class RangeCheck:
     open_gap: float | None  # the last pre-open 1-minute close minus NSE's open (None without a 1-minute answer)
 
 
-def read_nse_day(data: bytes) -> NseDay:
-    """NIFTY 50's row of an index-close file; ValueError when the file does not have it."""
+def read_nse_day(data: bytes, index_row: str = NIFTY_ROW) -> NseDay:
+    """An index's row of an index-close file (NIFTY 50's by default; A22d also reads NIFTY BANK's); ValueError when the
+    file does not have it."""
     for row in csv.DictReader(io.StringIO(data.decode("utf-8", errors="replace"))):
-        if (row.get("Index Name") or "").strip().upper() == NIFTY_ROW:
+        if (row.get("Index Name") or "").strip().upper() == index_row:
             try:
                 return NseDay(float(row[OPEN]), float(row[HIGH]), float(row[LOW]))
             except (KeyError, TypeError) as exc:  # a column missing or a short row: unreadable, as a bad number is
-                raise ValueError(f"the {NIFTY_ROW} row lacks a value: {type(exc).__name__}") from None
-    raise ValueError(f"no {NIFTY_ROW} row in the index-close file")
+                raise ValueError(f"the {index_row} row lacks a value: {type(exc).__name__}") from None
+    raise ValueError(f"no {index_row} row in the index-close file")
 
 
 def check_range(

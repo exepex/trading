@@ -41,6 +41,10 @@ class PreopenPart(ABC):
     def answer(self, day: date) -> Answer:
         """One read now; PartFailed or BadAnswer when there is nothing to use."""
 
+    @abstractmethod
+    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading:
+        """The part's reader on one raw answer seen at `seen_at` (a rehearsal replays recorded bytes through it)."""
+
 
 class NseJsonPart(PreopenPart):
     url: str
@@ -57,9 +61,6 @@ class NseJsonPart(PreopenPart):
         if response.status_code != 200:
             raise PartFailed(f"NSE: HTTP {response.status_code}")
         return Answer(response.content, self.read(response.content, day, seen_at), seen_at)
-
-    @abstractmethod
-    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading: ...
 
 
 class NseGiftNifty(NseJsonPart):
@@ -88,4 +89,7 @@ class GrowwIndexPreopen(PreopenPart):
             candles = self.source.minute_candles(day)
         except CandleCallFailed as exc:
             raise PartFailed(str(exc)) from None
-        return Answer(candles.raw, read_index_preopen(candles.raw, day, self.name), candles.received_at)
+        return Answer(candles.raw, self.read(candles.raw, day, candles.received_at), candles.received_at)
+
+    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading:
+        return read_index_preopen(data, day, self.name, seen_at)
