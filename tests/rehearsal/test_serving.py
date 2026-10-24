@@ -1,7 +1,7 @@
 """REH1g (DRY2's gap G4). A scheduled read (closes, candles) is served the answer the day saved from a minute before
 now to ten minutes after it. A paced read (cues, pre-open) is served the day's copy nearest to now within a minute
-either side, never the same copy twice, and only once the replay clock reaches its saved time. An answer saved before
-now is no look-ahead. Each rule in one place."""
+either side, never the same copy twice nor an older one, and only once the replay clock reaches its saved time.
+An answer saved before now is no look-ahead. Each rule in one place."""
 
 import hashlib
 from datetime import date, datetime, timedelta
@@ -118,3 +118,30 @@ def test_each_recorded_source_uses_its_one_rule():
         assert "ServedOnce()" in text(name) and "is_near" not in text(name)
     for name in ("recorded_cues", "recorded_candles", "recorded_preopen", "recorded_closes"):
         assert "timedelta(seconds=5)" not in text(name) and "NEAREST =" not in text(name)
+
+
+def test_an_older_copy_is_never_served_after_a_newer_one():
+    """The self-review's case: a read at 08:40:20 is served 08:40:31; the next, at 08:41:01, never gets 08:40:01."""
+    early, late = datetime(2026, 10, 23, 8, 40, 1, tzinfo=IST), datetime(2026, 10, 23, 8, 40, 31, tzinfo=IST)
+    served, copies = ServedOnce(), [(early, "early"), (late, "late")]
+    assert served.pick(datetime(2026, 10, 23, 8, 40, 20, tzinfo=IST), copies) == (late, "late")
+    assert served.pick(datetime(2026, 10, 23, 8, 41, 1, tzinfo=IST), copies) is None
+
+
+def test_no_copy_at_all_is_none():
+    assert ServedOnce().pick(READ, []) is None
+
+
+def test_each_url_keeps_its_own_order(tmp_path):
+    """Serving KOSPI's 08:50:34 copy never hides another index's copy saved earlier."""
+    data, asx_url = b"{}", KOSPI_URL.replace("KS11", "AXJO")
+    asx_path, asx_saved = "yahoo/preopen/2026/10/23/085030_asx200_5m.json", READ - 10 * SECOND
+    sha = hashlib.sha256(data).hexdigest()
+    rows = [
+        f"{KOSPI_SAVED.isoformat()},{KOSPI_PATH},{KOSPI_URL},,{sha},2",
+        f"{asx_saved.isoformat()},{asx_path},{asx_url},,{sha},2",
+    ]
+    (tmp_path / "cues.csv").write_text("fetched_at,path,url,form,sha256,size_bytes\n" + "\n".join(rows) + "\n")
+    clock = Clock(READ)
+    session = RecordedCueSession(tmp_path, {KOSPI_PATH: data, asx_path: data}.get, clock, clock.sleep)
+    assert session.get(KOSPI_URL).content == data and session.get(asx_url).content == data

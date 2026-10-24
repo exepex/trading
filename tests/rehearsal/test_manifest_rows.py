@@ -1,6 +1,8 @@
 """REH1g (DRY2's gap G2): a Drive file whose record is a manifest row, not an O9 receipt (A9's librarian datasets,
 the global cues), is visible once the commit that added its row is at or before the replay clock: never before (no
-look-ahead), and a row not committed yet never counts."""
+look-ahead); a row not on the record's main (only in the working tree, or on a branch) never counts; a row merged into
+main counts from its merge; the same URL archived on two days is two files; a path outside the raw area never
+matches."""
 
 import os
 import subprocess
@@ -12,6 +14,8 @@ from fno.storage.receipts import ReceiptFolder
 
 INDEX_CLOSE = "raw/nse/indices/index-close/2026/10/ind_close_all_16102026.csv"
 SP500 = "raw/cboe/indices/spx-history/2026/10/23/060620_spx-history.json"
+BAN = "raw/nse/derivatives/fo-ban-list/2026/10/{day}/fo_secban.csv"
+BAN_URL = "https://nsearchives.nseindia.com/content/fo/fo_secban.csv"
 
 
 def git(repo, *args, when=None):
@@ -37,7 +41,20 @@ def record(tmp_path):
     with cues.open("a") as rows:
         rows.write("2026-10-23T06:06:20+05:30,cboe/indices/spx-history/2026/10/23/060620_spx-history.json,u,,cd,1\n")
     git(repo, "commit", "-q", "-am", "S&P", when="2026-10-23T00:42:24+00:00")
+    ban = repo / MANIFESTS / "fo-ban-list.csv"
+    ban.write_text(f"date,url,status,sha256,size_bytes\n2026-10-22,{BAN_URL},200,a1,74\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "ban 22", when="2026-10-21T13:00:00+00:00")
+    with ban.open("a") as rows:
+        rows.write(f"2026-10-23,{BAN_URL},200,c2,74\n")
+    git(repo, "commit", "-q", "-am", "ban 23", when="2026-10-22T13:00:00+00:00")
+    publish(repo)
     return repo, index
+
+
+def publish(repo):
+    """The record checkout's view of main is its `origin/main`."""
+    git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
 
 
 def visibility(repo, at):
@@ -67,6 +84,46 @@ def test_an_uncommitted_row_and_a_file_with_no_row_never_count(tmp_path):
     assert not later("raw/nse/indices/index-close/2026/10/ind_close_all_19102026.csv")
     assert not later("raw/nse/indices/index-close/2026/10/ind_close_all_20102026.csv")
     assert not later("raw/elsewhere/ind_close_all_16102026.csv")  # the file's name in another dataset's folder
+
+
+def test_a_row_committed_only_on_a_branch_never_counts(tmp_path):
+    repo, index = record(tmp_path)
+    git(repo, "checkout", "-q", "-b", "story")
+    with index.open("a") as rows:
+        rows.write("2026-10-19,https://nsearchives.nseindia.com/content/indices/ind_close_all_19102026.csv,200,ef,1\n")
+    git(repo, "commit", "-q", "-am", "on a branch", when="2026-10-19T19:00:00+00:00")
+    branch_only = ManifestRows(repo).seen_at("raw/nse/indices/index-close/2026/10/ind_close_all_19102026.csv")
+    assert branch_only is None  # HEAD has the row; the record's main does not
+
+
+def test_a_merged_row_counts_from_its_merge_into_main(tmp_path):
+    repo, index = record(tmp_path)
+    git(repo, "checkout", "-q", "-b", "story")
+    with index.open("a") as rows:
+        rows.write("2026-10-19,https://nsearchives.nseindia.com/content/indices/ind_close_all_19102026.csv,200,ef,1\n")
+    git(repo, "commit", "-q", "-am", "on a branch", when="2026-10-19T19:00:00+00:00")
+    git(repo, "checkout", "-q", "-")
+    git(repo, "merge", "-q", "--no-ff", "-m", "merge", "story", when="2026-10-20T08:00:00+00:00")
+    publish(repo)
+    seen = ManifestRows(repo).seen_at("raw/nse/indices/index-close/2026/10/ind_close_all_19102026.csv")
+    assert seen == datetime(2026, 10, 20, 8, tzinfo=UTC)  # when main held it, not when the branch wrote it
+
+
+def test_the_same_url_archived_on_two_days_is_two_files(tmp_path):
+    """The review's look-ahead: fo_secban.csv is the same URL every day; the 23 Oct copy waits for its own row."""
+    repo, _ = record(tmp_path)
+    rows = ManifestRows(repo)
+    assert rows.seen_at(BAN.format(day=22)) == datetime(2026, 10, 21, 13, tzinfo=UTC)
+    assert rows.seen_at(BAN.format(day=23)) == datetime(2026, 10, 22, 13, tzinfo=UTC)
+    assert not visibility(repo, datetime(2026, 10, 22, 12, tzinfo=UTC))(BAN.format(day=23))
+    assert rows.seen_at(BAN.format(day=26)) is None
+
+
+def test_a_path_outside_the_raw_area_never_matches_a_row(tmp_path):
+    repo, _ = record(tmp_path)
+    rows = ManifestRows(repo)
+    for elsewhere in ("processed/" + SP500.removeprefix("raw/"), "dryrun/r/" + SP500, SP500.removeprefix("raw/")):
+        assert rows.seen_at(elsewhere) is None
 
 
 def test_the_rehearsal_s_drive_reads_the_record_s_manifest_rows(tmp_path):
