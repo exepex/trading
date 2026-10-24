@@ -23,6 +23,7 @@ from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
+from .card_clocks import GITHUB, CardClocks, ServerCardClocks
 from .committed import DownloadedRecords, GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles
@@ -99,13 +100,23 @@ def build_card_records(env=os.environ) -> CardRecordStore:
     return NoCardRecords() if drive is None else DriveCardRecords(AreaStore(drive, CARDS_AREA))
 
 
+def build_card_clocks(env=os.environ) -> CardClocks:
+    """Slack's and GitHub's server times; a rehearsal's form instead (T1f), which never builds the GitHub client."""
+    from ..rehearsal.card_label import rehearsed_card_clocks
+
+    def real() -> CardClocks:
+        return ServerCardClocks([HttpDateClock(GITHUB, GITHUB_TIME_URL.format(repository=_repository(env)))], _host_now)
+
+    return rehearsed_card_clocks(real, env)
+
+
 def build_card_issuer(env=os.environ, root: Path = ROOT) -> CardIssuer:
     records = GitHeadRecords(root)
-    github = HttpDateClock("GitHub", GITHUB_TIME_URL.format(repository=_repository(env)))
     deliveries = RepoDeliveryFiles(root, records)
     return CardIssuer(
-        build_card_poster(env), build_card_records(env), deliveries, [github], _host_now, records.code_commit()
-    )
+        build_card_poster(env), build_card_records(env), deliveries, build_card_clocks(env), _host_now,
+        records.code_commit(),
+    )  # fmt: skip
 
 
 def build_issuance_witness(env=os.environ, root: Path = ROOT) -> IssuanceWitness:
