@@ -217,3 +217,13 @@ def test_the_wait_for_the_part_is_announced_once_and_an_adopted_part_is_never_ca
     ).run(DAY)
     assert said == ["waiting for the v4 quote part to end, at most until 14:45 IST (never a hang)"]
     assert parts.results["v4"]["reason"].startswith("still running after 20 minutes, held by an earlier run")
+
+
+def test_the_part_never_starts_before_the_parts_one_early_limit(monkeypatch):
+    """Judge 584 B1: the `v4` part's start follows O1's shared `earliest_start` (A4's `earliest_waiting_start`) whenever
+    that is later than 14:27; today it never is (14:13), so its start stays 14:27."""
+    import fno.daily.v4_part as v4_part_module
+
+    assert v4_part(WINDOW).not_before == time(14, 27)
+    monkeypatch.setattr(v4_part_module, "earliest_start", lambda start: time(14, 29))
+    assert v4_part(WINDOW).not_before == time(14, 29)
