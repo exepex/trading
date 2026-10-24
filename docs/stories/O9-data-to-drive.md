@@ -289,3 +289,11 @@ It also shows no Drive search lag: a fresh instance finds the file at once, so t
 for the absent `dryrun/<run_id>/...` folder. A real run reading existing paths pays nothing extra.
 
 **Gates** (main merged in): 16294 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan, numbers clean.
+
+**Real sample** (the orchestrator's ask: the cold-cache 23 Oct rehearsal; `python -m fno daily run --rehearse --day
+2026-10-23` from this branch, a fresh clone, so an empty Drive cache): run 20261024T174640Z-a093aa. `price_ranges`
+ran 15:20:11.79-15:20:43.81 replay time and ended `ok` ("BANKNIFTY closes: 1 new rows through 2026-10-22", "issued");
+its cache downloaded the old table cold and then the new one. Said plainly: its read of the new table came after
+15:20:20.479, where the real copy masks the bug, so this run shows the day stays green on the fix but does not by
+itself prove the fix; the real-Drive probe above and D1/D4 do. Its last line was "day done with problems:
+margin_check, quotes_done": those are the not-live steps REH1j handles (not on main when this ran), not this change.
