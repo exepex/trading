@@ -64,7 +64,10 @@ def test_a_start_on_the_first_eligible_session_or_before_any_eligible_value_is_a
     assert slot_file(tmp_path, ai).registered()[(V6_BIG_MOVE_1S, V4_SLOT_AI)].forecaster == "book3_ai_v2"
 
 
-def test_before_the_freeze_the_repository_registers_no_slot():
-    assert not wiring.FREEZE_FILE.exists() and wiring._first_eligible(V6_BIG_MOVE_1S) is None
-    assert wiring._frozen_on() is None
-    assert wiring.build_slot_registry().registered() == {}
+def test_since_the_freeze_the_repository_registers_the_15_members_from_its_first_counted_session():
+    """Story G6 freeze, criterion 6: the freeze commit's rows, read by G8's own registry (refusals included)."""
+    assert wiring._frozen_on() == date(2026, 10, 25)
+    registered = wiring.build_slot_registry().registered()
+    assert len(registered) == 15 and {r.effective_start for r in registered.values()} == {date(2026, 10, 26)}
+    eligible = wiring._first_eligible(V6_BIG_MOVE_1S)
+    assert eligible is None or eligible >= date(2026, 10, 26)

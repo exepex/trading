@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+from datetime import date
 from pathlib import Path
 
 from ..ai.paths import AI_FOLDER
@@ -50,7 +51,7 @@ from .followed import FollowedCompaniesFolder
 from .forecast_history_block import FnoForecastHistoryBlock
 from .forecast_history_inputs import ScoreReportsReader
 from .forecast_lab_block import FnoForecastLabBlock
-from .forecast_lab_inputs import ForecastLabReader, SessionsAhead
+from .forecast_lab_inputs import ForecastLabReader, ProtocolFreeze, SessionsAhead
 from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
 from .frame_inputs import FlowsReader
 from .home_blocks import FnoBooksBlock, FnoPicksBlock
@@ -77,6 +78,9 @@ LATEST_FROZEN_EXPERIMENT = (  # its decisive run's passing policies are the only
     ROOT / "research" / "2026-10-12-experiment-1" / "results_challenge.json",
     "Experiment 1 (the 2019-2023 challenge)",
 )
+
+
+V4_FREEZE_FILE = ROOT / "research" / "forecasts" / "FREEZE_v4.md"  # G6 freeze: protocol v4's record (day, commit)
 
 
 def build_market_blocks() -> list[BlockBuilder]:
@@ -166,9 +170,24 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
 
 
 def build_forecast_lab_inputs(calendar: SessionCalendar) -> ForecastLabReader:
-    """Story P2b: G4's committed reports and the committed live and AI forecast records (G3, F1)."""
+    """Story P2b: G4's committed reports and the committed live and AI forecast records (G3, F1); protocol v4's freeze
+    from its committed record (G6 freeze)."""
     folders = [ROOT / LIVE_FOLDER, ROOT / AI_FOLDER]
-    return ForecastLabReader(ScoreReportsReader(ROOT / SCORES_FOLDER), folders, SessionsAhead(calendar))
+    return ForecastLabReader(ScoreReportsReader(ROOT / SCORES_FOLDER), folders, SessionsAhead(calendar), v4_freeze)
+
+
+def v4_freeze(path: Path = V4_FREEZE_FILE) -> ProtocolFreeze | None:
+    """`FREEZE_v4.md`'s `Frozen on:` day and protocol commit, or None while the record does not exist."""
+    from ..forecast_scoring.v4.freeze_check import PROTOCOL_COMMIT
+    from ..forecast_scoring.v4.records import FROZEN_ON
+
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8")
+    day, commit = FROZEN_ON.search(text), PROTOCOL_COMMIT.search(text)
+    if day is None or commit is None:
+        raise ValueError(f"{path.name} has no 'Frozen on:' or no 'Protocol commit:' line")
+    return ProtocolFreeze(date.fromisoformat(day.group(1)), commit.group(1))
 
 
 def build_weather_inputs() -> WeatherInputsReader:

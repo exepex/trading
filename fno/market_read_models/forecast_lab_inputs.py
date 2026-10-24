@@ -24,6 +24,14 @@ RECORDS_GLOB = "*/*_forecasts.csv"
 
 
 @dataclass(frozen=True)
+class ProtocolFreeze:
+    """A protocol's freeze as its record states it: the day and the protocol commit (v4: `FREEZE_v4.md`)."""
+
+    frozen_on: date
+    commit: str
+
+
+@dataclass(frozen=True)
 class ForecastLabInputs:
     day: date
     report: dict | None  # G4's latest report on or before the day; None before G4 wrote one
@@ -33,13 +41,19 @@ class ForecastLabInputs:
     answer_on: Callable[[date, int], date | None] | None = (
         None  # (session, sessions ahead) -> its answer day (None: unknown)
     )
+    v4_freeze: ProtocolFreeze | None = None  # protocol v4's freeze record (G6 freeze); None before it exists
 
 
 class ForecastLabReader:
     def __init__(
-        self, scores: ScoreReportsReader, record_folders: list[Path], answer_on: Callable[[date, int], date | None]
+        self,
+        scores: ScoreReportsReader,
+        record_folders: list[Path],
+        answer_on: Callable[[date, int], date | None],
+        v4_freeze: Callable[[], ProtocolFreeze | None] = lambda: None,
     ):
         self.scores, self.record_folders, self.answer_on = scores, [Path(f) for f in record_folders], answer_on
+        self.v4_freeze = v4_freeze
 
     def on(self, day: date) -> ForecastLabInputs:
         reports = self.scores.on(day)
@@ -53,7 +67,9 @@ class ForecastLabReader:
             if not any(r.on_time for r in rows):
                 late.setdefault(book, set()).add(d)
         today = [r for r in records if r.record.date == day]
-        return ForecastLabInputs(day, reports[-1] if reports else None, today, late, seen, self.answer_on)
+        frozen = self.v4_freeze()
+        v4 = frozen if frozen is not None and frozen.frozen_on <= day else None  # point in time: frozen from its day
+        return ForecastLabInputs(day, reports[-1] if reports else None, today, late, seen, self.answer_on, v4)
 
     def _records(self) -> list[ForecastRecordV2]:
         files = sorted(p for folder in self.record_folders if folder.is_dir() for p in folder.glob(RECORDS_GLOB))

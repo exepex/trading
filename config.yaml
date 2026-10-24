@@ -212,9 +212,9 @@ daily:
     forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
     # G11: the AI books' own v4 go-live (the v4 AI fire runs and the v2 AI fire stops from it), never forecasts_v4's
     # date; null until the v4 freeze, the AI slots' registration and the routines' steps 3-4 (F1-G5-owner-checklist.md)
-    ai_books_v4: null
+    ai_books_v4: "2026-10-26"
     v4_pack: "2026-10-26"  # G10: the 14:27 `v4` capture, the release by 14:45, the 15:10 check (owner, 24 Oct)
-    forecasts_v4_pack: null  # G7b completion: the pack-derived v4 rows after the release (null until the owner's go)
+    forecasts_v4_pack: "2026-10-26"  # G7b completion: the pack-derived v4 rows after the release (owner, 24 Oct)
     card: "2026-10-26"  # T1's daily card to #fno-desk (owner, 24 Oct: "enable/activate everything that has been completed")
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
