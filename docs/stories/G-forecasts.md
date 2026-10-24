@@ -1011,8 +1011,9 @@ the pack format and SHA; the pack binding guard; the release record format and i
 **Total per `v4` attempt:** about 180 + 90 = 270 contract quotes, 3 chain calls and 1 future quote, about 4 min at the
 measured pace (180 quotes in 2 min 38 s on 23 Oct), so about 14:30:00-14:34:00. A retry after an incomplete first
 attempt has about 6 minutes, enough for one full attempt. These A4e changes (V4's expiry and the future quote, only in
-the named window; the default 14:55 capture byte for byte as today) touch A4's `fno/quotes/`: A4e's builder
-01MKtUHByHsR9cNwaP5KhFYH is asked through the orchestrator to agree before code (one builder per function).
+the named window; the default 14:55 capture byte for byte as today) touch A4's `fno/quotes/`. A4e's builder
+01MKtUHByHsR9cNwaP5KhFYH is out of reach, so the orchestrator assigned these `v4`-window changes to this story's
+builder (24 Oct; register row G10); A4's other behaviour stays as it is (criterion 3a).
 
 #### The daily-run steps (O1)
 
@@ -1109,7 +1110,9 @@ to `build_commitment_times`), resolved by keeping both.
    least 5 scored sessions in `(d, expiry]` (G7b's pure function, imported; special and muhurat sessions not counted)
    when it is not a monthly, at the same 5% band, and one quote of `e`'s future with bid, ask and its `observed_at`;
    the pack carries them (`future.bid`, `future.ask`; the added expiry's rows in `chain`). The default 14:55 capture's
-   sidecar and rows are byte-identical to today's (a golden test). Good: a Monday with Tuesday's weekly (1 session)
+   sidecar and rows are byte-identical to today's (a golden test). **Only the `v4` window changes** (orchestrator's
+   assignment, 24 Oct): A4's 14:55-15:10 window, A4c's indices and A4f's weeklies, and A4c-2's index alert (merging now)
+   keep their code paths and outputs; their existing tests pass unchanged, none edited. Good: a Monday with Tuesday's weekly (1 session)
    takes the next weekly (6 sessions). Bad: the future quote fails: the pack keeps the future without bid and ask
    (V5 then voids itself by its spread rule; the pack is not `system_late`, because V1-V3, V6 and V7 do not need it).
    Boundary: exactly 5 sessions taken, 4 not; that expiry is a monthly: no extra chain. Empty: no listed expiry with 5
