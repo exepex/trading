@@ -8,6 +8,8 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
+from ...constants import SCHOOL_STEP
+from ...desk.run_log import RunLog
 from ..constants import SLOT_1500, DriverRole, Outcome, RecordKind, RoadCode
 from ..contracts.dashcam import DashcamStore
 from ..contracts.roads import RoadCatalogue, RoadDay
@@ -52,6 +54,10 @@ class SealedDayInputs:
 
     def marks(self, session: date) -> tuple[str, ...]:
         return SessionCounts(self.root, None).marks(session, SLOT_1500)
+
+    def school_step(self, session: date) -> tuple[str, str] | None:
+        step = RunLog.open(self.root, session).steps.get(SCHOOL_STEP)
+        return None if step is None else (step["result"]["status"], step["result"]["reason"])
 
 
 class PreviousSlotToday:

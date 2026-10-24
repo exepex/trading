@@ -18,6 +18,7 @@ from ..constants import (
     OWNER_TIMING_STEP,
     PLAYBOOK_FOLDER,
     REVIEWS_STEP,
+    SCHOOL_STEP,
     V4_PACK_FORECASTS_STEP,
     V4_PACK_LIVE_KEY,
 )
@@ -188,8 +189,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
         "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
-        "school": Alerted(
-            "school",
+        SCHOOL_STEP: Alerted(
+            SCHOOL_STEP,
             StartsBy(CommandStep(processes, school_run, (), git.changed, waiting, locks), SCHOOL_STARTS_BY, now_ist),
             alerts,
             note=SCHOOL_NOT_RETRIED,

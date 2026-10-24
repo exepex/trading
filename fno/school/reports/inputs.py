@@ -46,6 +46,10 @@ class DayInputs(Protocol):
     def marks(self, session: date) -> tuple[str, ...]:
         """The run's marks on the session's record, shown as written (e.g. a rerun after 15:30: MS-P1j)."""
 
+    def school_step(self, session: date) -> tuple[str, str] | None:
+        """The daily run's `school` step on the session as its committed run log holds it: (status, public reason
+        code), or None when the log or the step is missing (MS-P1j4). A log that cannot be read raises."""
+
     def why(self, session: date) -> tuple[str, ...]:
         """The instructor's lines on the session's closed trades (MS-INS part e), or () without a source. Each starts
         with a driver id and a road and holds the net and cause words only, never a contract, strike or price."""

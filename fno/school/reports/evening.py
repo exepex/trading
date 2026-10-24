@@ -10,7 +10,7 @@ from datetime import date
 
 from ..constants import FLEET_TOTAL_LABEL, DriverRole, Outcome
 from ..contracts.records import DecisionRecord, OutcomeRecord
-from ..contracts.reports import SectionText
+from ..contracts.reports import Banner, SectionText
 from .banner import banner_for, banner_line
 from .inputs import DayInputs
 from .lines import SIGNED_RUPEE, footer, paper_title
@@ -27,6 +27,11 @@ LEAK = re.compile(
     r"\b\d{3,6}(?:\.\d+)?\s?(?:CE|PE)\b|\bstrike\b|\bpremium\b|\bprice\s*:?\s*\d|\bat\s+\d", re.IGNORECASE
 )
 WHY_HEADER = "Why (the instructor's words):"
+# MS-P1j4: a session with no sealed decisions file is said so, never shown as a quiet day of "none ... Rs +0"
+NO_RECORD = "No school record for {day}: {why}."
+STEP_WAS = "the daily run's school step was {status} ({code})"
+NO_STEP = "the daily run recorded no school step"
+COUNTS = "Counts (eligible / fillable / executed):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
     (DriverRole.CONTROL, "Control (not in the fleet total)"),
@@ -42,6 +47,8 @@ class HowDidTodayGoSection:
     def render(self, session: date) -> SectionText:
         records = self.inputs.records(session)
         decisions = [r for r in records if isinstance(r, DecisionRecord)]
+        if not decisions:
+            return self._no_record(session)
         money = [r for r in records if isinstance(r, OutcomeRecord) and not r.is_ticket]  # tickets never in rupees
         rule = [r for r in money if self._role(r) is DriverRole.RULE]
         closed_roads = {(d.road, d.decision.reason) for d in decisions if d.decision.outcome is Outcome.ROAD_CLOSED}
@@ -60,6 +67,12 @@ class HowDidTodayGoSection:
             *footer(),
         )
         return SectionText(paper_title(TITLE), lines, banner)
+
+    def _no_record(self, session: date) -> SectionText:
+        step = self.inputs.school_step(session)
+        why = NO_STEP if step is None else STEP_WAS.format(status=step[0], code=step[1])
+        lines = (banner_line(Banner.RED), NO_RECORD.format(day=session, why=why), *footer())
+        return SectionText(paper_title(TITLE), lines, Banner.RED)
 
     def _role(self, record) -> DriverRole:
         return self.inputs.role_of(record.driver_id)
@@ -111,9 +124,9 @@ class HowDidTodayGoSection:
 
     def _counts(self, session: date) -> list[str]:
         rows = [c for c in self.inputs.counts(session) if self.inputs.role_of(c.driver_id) is DriverRole.RULE]
-        return ["Counts (eligible / fillable / executed):"] + [
-            f"{c.driver_id} {c.road}: {c.eligible} / {c.fillable} / {c.executed}" for c in rows
-        ]
+        if not rows:
+            return [f"{COUNTS} {NONE_TODAY}"]
+        return [COUNTS] + [f"{c.driver_id} {c.road}: {c.eligible} / {c.fillable} / {c.executed}" for c in rows]
 
 
 def _ticket_in_rupees(line: str) -> bool:
