@@ -45,6 +45,7 @@ from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .record_store.cli import add_records_parser
+from .rehearsal.cli import add_rehearse_parser
 from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
@@ -219,6 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_rehearse_parser(sub)  # story REH1
     add_intraday_parser(sub)
     add_account_parser(sub)
     add_desk_parser(sub)

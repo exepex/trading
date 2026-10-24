@@ -44,7 +44,7 @@ def rehearse_daily(day: date, source: Path, out: Callable[[str], None] = print, 
     out(STARTED.format(day=day, run_id=mode.run_id, at=start.isoformat(), checkout=checkout.clone))
     path = install_git_shim(checkout.root / "bin", mode.state)  # every commit dated by the replay clock
     env = {**os.environ, ENV_FNO_REHEARSAL: mode.to_env(), "PATH": path}
-    for problem in (guard or _guard)(env):
+    for problem in (guard or _guard)(env, checkout.clone):
         out(GUARD_STOPPED.format(problem=problem))
         return 1
     code, line = (run_child or _run_child)(checkout.clone, day, env, out)
@@ -60,13 +60,15 @@ def _is_session(day: date) -> bool:
     return is_trading_day(build_session_calendar(), day)
 
 
-def _guard(env: dict) -> list[str]:
-    """The guard in a child with the mode set, so every builder reads it exactly as a step's process would."""
-    code = "from fno.rehearsal.guard import problems; print('\\n'.join(problems()))"
-    done = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=False)
-    if done.returncode != 0:
+def _guard(env: dict, cwd: Path) -> list[str]:
+    """`rehearse check` in a child started as every step is (`python -m fno`, the mode set, in the checkout): its own
+    clock and HTTP guard, and every builder's rehearsal form."""
+    command = [sys.executable, "-m", "fno", "rehearse", "check"]
+    done = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, check=False)
+    found = [line for line in done.stdout.splitlines() if line]
+    if done.returncode != 0 and not found:
         return [f"the guard could not run: {(done.stderr or '').strip().splitlines()[-1:]}"]
-    return [line for line in done.stdout.splitlines() if line]
+    return found
 
 
 def _run_child(checkout: Path, day: date, env: dict, out: Callable[[str], None]) -> tuple[int, str]:
