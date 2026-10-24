@@ -825,9 +825,10 @@ The three reads are of two kinds:
 - **The choice (one rule for both kinds of read).**
   - If a candidate reached main after now, the read is the day's own read in this run: the earliest such row is
     served.
-  - Else the latest row that reached main at or before now that day is served. This is what a fetch-first taker
-    would have got from NSE then (NSE serves only its latest copy). For a store-first read it never arises, since G2
-    already shows the file.
+  - Else the latest row that reached main at or before now that day is served: the copy the record held then, which
+    a fetch-first taker is served. It is not always NSE's newest copy (judge B, code-round minor): a 22 Oct
+    by-session read at 19:40 gets the 21 Oct session's row that reached main on 22 Oct. For a store-first read of a
+    dated URL it never arises, since G2 already shows the file; a snapshot URL (the same every day) can reach it.
   - Two candidates at the same commit time with different SHA-256 (two datasets sharing one URL:
     `FiiDiiCashSource` and `FiiDiiCashBySessionSource`) are refused as ambiguous, never guessed.
   - A repeat request for the same URL in one run (a retry, a second step) gets the same copy again. That is right for
@@ -874,6 +875,8 @@ The three reads are of two kinds:
 - **H5. Empty.** These are NOT_RECORDED with today's exact message:
   - a URL with no candidate (a holiday; a file NSE had not published and no row came within 10 min; a warm-up page;
     a dataset with no A9 manifest);
+  - a morning fetch-first read of the ban list: the session's copy was taken the evening before, so no row reached
+    main that day (judges' code-round minor);
   - every HEAD request.
 - **H6. Nothing reaches the real record.**
   - The real Drive is only read. The archived copy is written under `dryrun/<run_id>/`, and the manifest row in the
