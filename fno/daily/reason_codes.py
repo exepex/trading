@@ -8,6 +8,9 @@ from ..desk import book_versions, daily_run, daily_steps, exits, recorded_c4, tr
 from ..desk.owner_timing import entry_fills, exit_fills, outcomes, pending_entries
 from ..desk.owner_timing import step as owner_timing
 from ..rehearsal import recorded_quotes
+from ..school import cli as school_cli
+from ..school.constants import SCHOOL_OFF_LINE
+from ..school.fleet import runner as school_fleet
 from ..v4_pack import deadline, release_run
 from . import earlier_run, quote_parts, reviews, steps
 
@@ -93,6 +96,12 @@ STEP_TEMPLATES = {
         ("v4_release:WAITING", release_run.WAITING),
         ("v4_release:REFUSED", release_run.REFUSED),
         ("v4_release:NOT_LIVE", release_run.NOT_LIVE),
+    ),
+    "school": (  # MS-P1j: its switch off, a closed day, or a loud stop (any stop's status: "stopped: <reason>")
+        ("school:OFF", SCHOOL_OFF_LINE),
+        ("school:NOT_A_SESSION", school_cli.NOT_A_SESSION),
+        ("school:STOPPED", school_fleet.DASHCAM_STOP),
+        ("school:TOO_LATE", steps.STARTS_TOO_LATE),
     ),
     "v4_deadline": (
         ("v4_deadline:CHECKED", deadline.CHECKED),

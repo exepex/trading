@@ -1,18 +1,21 @@
 """Composition root of the daily run (story O1): E3's desk run (Book 1's orders and exit rules) with O1's steps
 around it: A14c's margin check, the weather, the v4 forecasts and the card as their own commands, each from its
-`daily.live_from` date; Book 1's decision (E5) right after the pack; and A4c's quote parts beside the desk, committed
-through E3's committer in the run's one thread."""
+`daily.live_from` date; Book 1's decision (E5) right after the pack; the market school's slot (MS-P1j, its own
+`school.enabled` switch); and A4c's quote parts beside the desk, committed through E3's committer in the run's one
+thread."""
 
 from __future__ import annotations
 
 import time
 from collections.abc import Callable
 from datetime import date
+from datetime import time as time_of_day
 from pathlib import Path
 
 from ..config import ROOT
 from ..constants import CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP, V4_PACK_LIVE_KEY
 from ..desk.daily_ports import DayStep
+from ..desk.daily_run import RERUN_FINAL
 from .runner import DayRunner
 
 V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fno/forecast_v4_rules/wiring.py`)
@@ -20,6 +23,9 @@ WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
+# MS-P1j2: why a failed school step stays failed (orchestrator, 24 Oct: no retry, a named reason)
+SCHOOL_STARTS_BY = time_of_day(15, 25)  # MS-P1j2: 5 minutes before law 6's close; a run takes ~2-4 (reasoning only)
+SCHOOL_NOT_RETRIED = "; " + RERUN_FINAL.format(why="a later run never decides the session's paper trades")
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, "card", OWNER_TIMING_STEP,
               "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
@@ -36,6 +42,11 @@ def range_issue(day: date) -> tuple[str, ...]:
 def premium_issue(day: date) -> tuple[str, ...]:
     """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
     return ("premrange", "issue", "--day", day.isoformat(), "--live")
+
+
+def school_run(day: date) -> tuple[str, ...]:
+    """MS-P1j's slot: it seals, fills and commits its own records; with `school.enabled` off it prints "school off"."""
+    return ("school", "run", "--session", day.isoformat())
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -73,7 +84,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from .quote_parts import QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .reviews import ReviewsStep, ScorecardReview
-    from .steps import Alerted, CommandStep, LiveFrom, NotBefore
+    from .steps import Alerted, CommandStep, LiveFrom, NotBefore, StartsBy
     from .v4_wiring import day_parts, part_notes, step_notes, v4_steps
     from .wait_notice import AnnouncedWaiter
 
@@ -149,6 +160,12 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
         "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
+        "school": Alerted(
+            "school",
+            StartsBy(CommandStep(processes, school_run, (), git.changed, waiting, locks), SCHOOL_STARTS_BY, now_ist),
+            alerts,
+            note=SCHOOL_NOT_RETRIED,
+        ),  # MS-P1j2: never started late, never retried
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),
