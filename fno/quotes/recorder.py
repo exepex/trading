@@ -15,7 +15,7 @@ import hashlib
 import json
 import time as clock
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from ..constants import SESSION_MUHURAT, SESSION_REGULAR, SESSION_SPECIAL
 from ..intraday.pacing import RatePacer
@@ -45,6 +45,25 @@ NSE_DATASET = "nse/derivatives/quote-snapshots"  # story O6: NSE's public chain,
 WINDOW_START, WINDOW_END = time(14, 55), time(15, 10)
 MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits for the window
 DEFAULT_WINDOW = QuoteWindow("", WINDOW_START, WINDOW_END, MAX_EARLY_WAIT_SECONDS)  # A4's, never changed
+
+
+def earliest_waiting_moment(day: date, window_start: time, max_early_wait: int = MAX_EARLY_WAIT_SECONDS) -> datetime:
+    """A4's early limit, its one rule (A4c-2): a run started before this moment of `day` says "too early" and records
+    nothing; from it on, the run waits for the window opening at `window_start`. On the real day, so a named window's
+    longer wait (A4e's config) never crosses `date.min`."""
+    return datetime.combine(day, window_start, IST) - timedelta(seconds=max_early_wait)
+
+
+def earliest_waiting_start(window_start: time) -> time:
+    """That moment as a time of day, with A4's 20 minutes: 14:41 for 15:01, 14:35 for 14:55 (for texts and O1's start
+    times). Not yet the only place: on main, O1's `fno/daily/quote_parts.py` `EARLIEST_START` still subtracts on its
+    own. O1's switch completes it: whichever of A4c-2 and O1's R1 merges second makes O1's `earliest_start` return
+    `(datetime.combine(date.min, earliest_waiting_start(window_start)) + START_MARGIN).time()`, imports this function
+    from `..quotes.recorder` and drops its then-unused `MAX_EARLY_WAIT_SECONDS` import; that switch removes this note.
+    A window opening before 00:20 has no such time of day (OverflowError); no window does."""
+    return earliest_waiting_moment(date.min, window_start).time()
+
+
 RETRY_GAP_SECONDS = 60
 SPOT_BAND = 0.05  # strikes within 5% of spot
 MONTHLY_EXPIRIES = 2
@@ -133,9 +152,9 @@ class QuoteSnapshotRecorder:
         if outside_window:
             return self._attempt(day, canonical_allowed=False)
         start, end = (datetime.combine(day, t, IST) for t in (self.window.start, self.window.end))
+        if now < earliest_waiting_moment(day, self.window.start, self.window.max_early_wait_seconds):
+            return RecordResult("too early")
         if now < start:
-            if (start - now).total_seconds() > self.window.max_early_wait_seconds:
-                return RecordResult("too early")
             self.sleep((start - now).total_seconds())
         result = RecordResult("window closed")
         while self.now() <= end:
