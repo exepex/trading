@@ -294,7 +294,8 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
 6. **V1 inputs and switch:** V1 starts after 20 non-void **live** A16 sessions (19: not started); `HarIntraday` is
    eligible from 250 live sessions (up to 750), and from its first eligible day it is V1's primary for good
    (`forecast_v4.eligibility.primary_baseline`); rows with provenance `backfilled` (A16b's `rv-candle/`) never count
-   toward 20, 250 or any live input (decision 56); a void session is never a value.
+   toward 20, 250 or any live input, except a baseline's ratio window, W8 (decision 56); a void session is never a
+   value.
 7. **Trailing (V1):** the last live non-void intraday `RV_s` before the cutoff.
 8. **Rule forecasters:** `v6_ewma_t4` and `v1_close_blend` reproduce hand-computed values; missing when an input is
    missing.
@@ -640,27 +641,68 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
 - Refit on the first scored session of each month (as HAR); every day of that month uses that refit. **The ratio is
   computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<measure>/<question>/<YYYY-MM>.json`, `<measure>` = `close_proxy` or `intraday`, so an
   option-B ratio never collides with an option-A one (judge 578.1 n2):
-  the ratio, the window's first and last day, its count, and the inputs' SHA-256); every later day of the month reads
-  the stored ratio and never recomputes it with files archived after the refit day (judge 578 m3). A refit day with no
-  stored ratio (the capture did not run) is computed at the next run only from inputs whose receipts GitHub received
-  before that refit day; none: the month's premium-adjusted rows are missing, counted.
+  the ratio, the window's first and last day, its count, its `backfill_window` points (W8) and the inputs' SHA-256);
+  every later day of the month reads the stored ratio and never recomputes it with files archived after the refit day
+  (judge 578 m3). The ratios of both measures are stored on the refit day whatever its release label, before the
+  release is read (judge 598 SF1: they read no pack). A refit day with no capture run leaves the month not eligible,
+  counted; never a late ratio (judge 598, item 3 ruled). Cost: one missed first-session run makes that month's B and
+  A rows `not_eligible`, about 21 sessions.
 - Value for `d`: raw implied of `d` times the refit's ratio; missing when either is missing.
-- **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: the owner's choice (W3,
-  judge 578 SF4), reasoning only for both options:**
-  - **Option A, own measure:** the window uses the intraday A16 `RV_s` (live, non-void rows of `V1_INTRADAY_METHOD`;
-    A16b's back-filled rows never count, decision 56). Same measure on both sides of the ratio. **Cost:** the window
-    holds only live days from 16 Oct 2026, so V1's and part f's premium-adjusted baseline is missing (`not_eligible`)
-    for about two years (longer for V3's 20-session series).
-  - **Option B, the close-proxy ratio (available now):** the close-proxy method (the V2 / V3 window: close-to-close `RV_h`
-    over the EOD-IV30 raw implied) computed at the question's own `h` (1 for V1; 5 and 20 for part f), multiplies the
-    pack's raw implied. **Cost:** a measure mismatch: the ratio is fitted on close-to-close `RV_s` and applied to an
-    intraday-with-overnight target. Both estimate the same daily variance, and the window already mixes measures (the
-    EOD IV30 stands in for the 14:30 IV30, protocol 3.1), but the 26-snapshot quote RV can differ in level from the
-    close proxy; that level gap moves the baseline and so every paired difference. Each report then prints the mean
-    ratio of intraday to close-proxy `RV_s` over the live days, so the gap is seen, not assumed away.
-  - **Recommendation (reasoning only): B.** Both uses are "also reported" (protocol 3.2; never a member's test), so a
-    labelled mismatch now costs less than two years with no value. The build implements the option the owner signs;
-    until then it builds B behind one switch in the wiring and labels the rows `premium_ratio_measure=close_proxy`.
+- **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: both yardsticks (W3, owner
+  24 Oct 2026, DESK_DECISIONS c63eb7e0b: "I want both intraday and daily closes"), each its own labelled row, never
+  pooled, side reports only:**
+  - **B, close proxy (`premium_adjusted_implied`, version `1 ratio close_proxy`):** the close-proxy method (close-to-
+    close `RV_h` over the EOD-IV30 raw implied) at the question's own `h` (1 for V1; 5 and 20 for part f, where it is
+    V2's and V3's own row). Available now. Cost: a measure mismatch against an intraday target; every report prints
+    the ratio of the mean intraday to the mean close-proxy `RV_s` over the live days (a ratio of sums: one day's
+    close proxy is a single squared return, so a median or mean of daily ratios would overstate the gap), so the gap
+    is seen.
+  - **A, intraday (`premium_adjusted_implied_intraday`, version `1 ratio intraday`):** the window's `RV_h(t)` is the
+    intraday session variance. Live A16 rows alone give about two years with no value; W8 below (owner: "W8 - yes",
+    DESK_DECISIONS fa605291a) puts A16b's candle back-fill in the window's history, so A has a value now.
+  - G8 prints each V1 and part f forecaster against both yardsticks, each comparison labelled; V2's and V3's
+    close-proxy series keep B only (their own measure). Both are "also reported" (protocol 3.2), never a member's test.
+
+**W8, A16b's candle back-fill in option A's ratio window (decided by the owner, 24 Oct: "W8 - yes", DESK_DECISIONS
+fa605291a).**
+- **Same measure? Some evidence: yes, by construction and on 3 days.** A16's live `RV_s` (`rv-quote-15m-v1`) is the
+  squared log returns between the 26 marks 09:15-15:30 plus the overnight return, each mark NIFTY's level from Groww;
+  in practice every live mark is a 1-minute candle's close (Groww gives no index last-trade time: `basis_counts`
+  `candle_1m_close:25;candle_1m_open:1` on each live day). A16b's back-fill (`rv-candle-15m-v1`, `provenance
+  backfilled`) is the same formula on the same 26 marks, each the 15-minute candle's close (strong evidence: both
+  tables' columns). What A16b's step 0 actually compared (judge 591 m1): the 15-minute candle closes against the
+  1-minute candle closes at the same marks, 75 of 75 equal, on 13 Oct, 14 Oct and 1 Sep 2026, before A16 went live;
+  the 1-minute close is A16's live rule, so the link to A16's levels is by that rule, not a live comparison. **No
+  2024-25 day was checked**, while about 95% of the back-fill is 2020-2025 (some evidence only for those years).
+- **The gap, every live day so far (all of them):** A16 has 5 live sessions (16, 19, 21, 22, 23 Oct); 16 and 23 Oct
+  are void live (16 Oct: no usable 09:15-09:45 levels; 23 Oct: void, and A16b has no row yet), so **3 days compare**:
+  back-fill / live `RV_s` = **0.962 (19 Oct), 0.997 (21 Oct), 1.009 (22 Oct)**, mean 0.989. Some evidence only: 3 days
+  cannot bound a level bias; the gap is reported on every new live day (below).
+- **What it gives:** A16b holds 695 sessions from 1 Jan 2024 (685 ok, 10 void; 1,685 from 2020), so option A's window
+  reaches 500 points about as B's did (eligible now, from the refit after the change), instead of about two years.
+- **Proposed protocol text (section 3.1, after "Premium-adjusted implied"):** "For the intraday premium-adjusted
+  yardstick (V1, and V2's and V3's intraday versions), a window point's `RV_h(t)` is A16's live intraday `RV_s` where
+  A16 recorded `t+1..t+h`, else A16b's back-filled candle-close `RV_s` (`rv-candle-15m-v1`), labelled
+  `backfill_window`. Back-filled rows enter only this ratio window: never a forecast's input, never an outcome, never
+  a base rate (decision 56 read as never a forecast input, outcome or base rate; owner, 24 Oct). Every report prints
+  the paired back-fill / live `RV_s` ratio over all live days with both rows, its median and the latest 20, as the IV30
+  proxy's drift line."
+- **Why it is honest (reasoning only):** the window already uses a labelled end-of-day proxy for the IV side (3.1); the
+  ratio is a baseline's scale, not a forecast input, so decision 56's point (no hindsight in a forecast) is untouched;
+  the paired line makes any level gap visible. **Risk:** if the 15-minute close differs systematically from the live
+  1-minute close (a microstructure bias), A's ratio is biased by that factor; 3 days say under 4%, not proven.
+- **How decision 56 is read (judge 591 SF1, said plainly):** W8 narrows how decision 56 (response 113) has been read
+  until now. The owner's approved reading: back-filled rows are never a forecast input, outcome or base rate; a
+  baseline's ratio window may use back-filled rows labelled `backfill_window`. Reason: the ratio is a baseline's scale
+  only, every window point resolves before the refit that uses it, and the EOD IV30 proxy in the same window is the
+  same precedent (a labelled proxy in a scale, never in a forecast).
+- **Review trigger (judge 591 m2):** when the drift line's median back-fill / live ratio over the latest 20 live days
+  leaves [0.95, 1.05], the daily pack capture (O1's `forecasts_v4_pack`, which runs every trading day; G8's report
+  runs weekly) raises one alert to #fno-desk, written once as a marker in Drive so it is never repeated, and an owner
+  row is opened (keep W8, correct the window by the measured factor, or drop it); fewer than 20 paired live days
+  raise nothing. G8's report prints the same median on its drift line.
+- **Had W8 been refused** (kept for the record): A's rows would be `not_eligible` until 500 live window points
+  (about two years).
   V1's raw implied (`h` = 1, its horizon) is computed only as this input: protocol 3.2 does not report raw implied for V1.
 
 **V5 terms, frozen from the pack of `d` (protocol 1.5).** `e` = the nearest monthly expiry strictly after `d`, read
@@ -850,9 +892,8 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 - **Forecasts scored:** the same V2 and V3 forecaster rows (no new forecaster, no new record); each is scored against
   this outcome as its own series, `v2_rv_next_5_sessions/intraday` and `v3_rv_next_20_sessions/intraday` in the
   report, never pooled with the close-proxy series and never in the family, Test A or a look.
-- **Its primary baseline:** premium-adjusted implied, its ratio as the owner chooses in W3: under option B available
-  now; under option A `not_eligible` until 500 window points (about two years for V2, longer for V3), the pair missing
-  and counted, and the report printing each forecaster's QLIKE only.
+- **Its baselines:** both premium-adjusted yardsticks (W3, owner 24 Oct): B (V2's and V3's own rows, available now) and
+  A (the intraday ratio, W8), each comparison labelled; a yardstick with no value leaves its pairs missing, counted.
 - Reasoning only, said plainly: QLIKE ranks correctly under either proxy (protocol 1.1, Patton 2011); this series
   exists to show whether the close proxy's noise hides a difference, not to judge anyone.
 
@@ -861,9 +902,10 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 - **W1 (1.4):** V4's realised side is A16's intraday `RV_s` (method `V1_INTRADAY_METHOD`), live rows only.
 - **W2 (1.5, 3.1):** V5's `F` is the pack's future at mid, a live two-sided quote under the 5% spread rule; else void.
   V5's leg IVs use Black-76 on that `F` at 6.5%.
-- **W3 (3.1), a choice:** V1's and part f's premium ratio is either (A) fitted on their own intraday measure (no value
-  for about two years) or (B) the close-proxy ratio (available now, with a measured measure gap printed). Recommended
-  B, reasoning only. V2 and V3 use the close proxy either way.
+- **W3 (3.1), decided by the owner (24 Oct, "both"):** V1 and part f carry both premium-adjusted yardsticks, (A) on the
+  intraday measure and (B) on the close proxy, each a labelled row, never pooled. V2 and V3 use the close proxy.
+- **W8 (3.1), decided by the owner (24 Oct, "W8 - yes", DESK_DECISIONS fa605291a):** A16b's candle back-fill fills
+  option A's ratio window, never a forecast input, outcome or base rate (above).
 - **W4: dropped** (judge 578 SF3). Protocol 1.5's "archive time of A11's first version" exists: Drive's `createdTime`
   through `CreationTimes`. No wording needed.
 - **W5 (1.4, 1.5):** "a live two-sided quote" is bid > 0 and ask >= bid, both in the pack, and a trade in the contract
@@ -881,7 +923,8 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 |---|---|---|
 | W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
 | W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% or the future did not trade that day | the protocol says "the future" without saying which price |
-| W3 | **Your choice.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is either (A) scaled on the same intraday measure: no value for about two years; or (B) scaled on daily closes: a value now, with a small known mismatch shown on every report. Recommended: B (reasoning only); both are side reports, never the main test | the protocol does not say which, and the two cost different things |
+| W3 | **Decided by you (24 Oct): both.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is reported twice: scaled on the intraday measure (A) and on daily closes (B), each labelled, never mixed; both side reports. The code keeps the two in `fno/forecast_v4_rules/intraday_series.py` (judge 585.1 s1) | the protocol did not say which |
+| W8 | **Decided by you (24 Oct, "W8 - yes", DESK_DECISIONS fa605291a): yes.** The 15-minute candle history (A16b, 2020-2026, fetched later) fills the intraday yardstick's history, so it has a value now instead of in about two years. Decision 56 read as never a forecast input, outcome or base rate (owner, 24 Oct): those rows never become a forecast, a result or a base rate, only the yardstick's scale. Every report shows how far they differ from the live readings (3 days so far: within 4%); a median outside 0.95-1.05 over 20 live days raises one alert and a new row for you | without it, A has no value for about two years |
 | W4 | Dropped: the "first seen" time of the expiry-day file is Drive's own creation time, which the protocol already means | nothing to sign |
 | W5 | A "live" quote (each option leg **and the future**) needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
 | W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
@@ -894,7 +937,7 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 | 1 | EOD IV30 proxy series: one value and flag per regular session from 1 Jan 2024; flagged days kept with their flag, dropped by every window | fixture panel; a single-expiry day; empty panel gives no points; on the real panel the 686/647 counts of G7b are reproduced (claims) | flagged days not dropped |
 | 2 | Raw implied = `IV30^2 x calendar days / 365` over `d..d+h` | hand values at h 5 and 20 across a holiday; flagged gives missing; horizon past the calendar gives missing; 0 IV gives missing | sessions instead of calendar days; `d+h` one session off |
 | 3 | Premium ratio: median over `premium_ratio_window`, computed once on the month's first scored session and stored write-once; later days read the stored ratio | 499 points not eligible, 500 present; a point resolving on the refit day excluded, the day before included; `t` on 31 Dec 2023 excluded; a file archived after the refit day changes no stored ratio | mean instead of median; `<=` refit day; recomputed each day |
-| 4 | Premium-adjusted = raw x ratio; V1 and part f with the ratio W3 chooses (switch in the wiring, labelled on each row) | either input missing gives missing; option A: A16b back-filled rows never enter the window, 499 live points `not_eligible`; option B: the close-proxy ratio at `h` = 1, the row labelled `close_proxy`, the intraday / close-proxy level line printed | option A counting back-filled rows; option B rows without the label |
+| 4 | Premium-adjusted = raw x ratio; V1 and part f carry both yardsticks (W3), A `premium_adjusted_implied_intraday` and B `premium_adjusted_implied`, each labelled | either input missing gives missing; A's window takes A16 live where recorded, else A16b's back-fill labelled `backfill_window` (W8; without W8: back-filled rows never enter, 499 live points `not_eligible`); B: the close-proxy ratio at `h` = 1 for V1; the intraday / close-proxy and back-fill / live level lines printed; G8 compares V1 and part f forecasters against both | a back-filled row used as a forecast input or outcome; the two yardsticks pooled or unlabelled; a live day where A16 recorded overridden by the back-fill |
 | 5 | Back-fill (b1) for V2, V3: every row `backfill_exploratory`, ends before the first live day, re-run byte-identical, stored per method hash, reader refuses a missing hash file | re-run; changed method file gives a new path, never an overwrite | writing over an existing back-fill file |
 | 6 | V5 terms: `e` checked against NSE's listed monthlies known before `d`, K (tie lower), P, F, `S_e`, `C_e`; a live quote needs a trade on `d` (A4's `traded_today`, imported) | spread exactly 5% passes, 5.01% void; a one-sided leg void; a leg whose last trade is the day before: void `no_trade_today`; `d` an expiry day takes next month; a pack future on a weekly or on `d`: void `future_not_monthly`; no listed-expiry file: void `expiry_list_unavailable`; no future quote void | tie to the upper strike; `<` for the spread; `traded_today` copied or skipped; `e` trusted from the pack |
 | 7 | V5 option-implied probability equals a hand-computed golden value (30-digit decimals, fixture JSON) | IV unsolved gives missing; deep wide P near 1; tiny P near 0 | drift term dropped; `tau` in sessions |
@@ -1149,6 +1192,182 @@ they found and what was fixed or why not.
 | Step 4 review 6-8 | V3's series at report level (20 sessions, V3's loss and block); a void window counted void in the pairing; `question_of` written once (outcomes and scoring); the report marks each series "reported only: the intraday measure" | three tests |
 | Not changed | LR1's `forecast_section.py` docstring still says "a question G8 has not started": LR1's file, its builder updates it; its code reads the new keys correctly (the review checked) | |
 
+### Claims, build step 5: part e's pack-free pieces (the Drive record format and G8's reader)
+
+- **Code:** `fno/forecast_v4_rules/drive_records.py` (the one owner of the Drive record format: live JSON per day with
+  its day label, canonical with sorted keys; the back-fill paths); `fno/forecast_scoring/v4/drive_forecasts.py`
+  (`chosen_paths` decides from the receipts, never from disk: every live file and, per forecaster and question, this
+  code's latest back-fill; `verified_files` syncs only those paths through the Drive cache and stops on any problem;
+  `DriveForecastRecords` checks every row against its file; `CombinedForecasts` joins the repository CSVs and Drive
+  with one row per day); G8's `wiring._forecasts` builds it once per command and leaves Drive out when no receipt
+  exists under `data/v4/records` (no Drive access then); `_first_eligible` reads the combined source, because the live
+  implied rows exist only in Drive.
+- **Tests:** `tests/forecast_scoring_v4/test_drive_forecasts.py` (14). **Plants (8, all caught):** the earliest
+  back-fill taken; a stale pair dropped silently; sync problems ignored; live-file checks off; the back-fill's method
+  not checked; duplicates across sources and within Drive; Drive built without receipts.
+- **Self-review (an independent agent), all fixed or answered:** (1, blocking) the sync result was ignored, so a
+  broken mirror read as complete: now any missing or damaged chosen file stops the report; (2) the stale check worked
+  per tree, not per forecaster and question: now per pair; (3) everything under `data/v4/records` was synced: now only
+  the chosen files; (5) a working-directory-relative fallback path: Drive is left out instead; (6) built several times
+  per command: now once (`functools.cache`); (7) rows not checked against their file: now label, day, day label `A`
+  and the full method hash are checked; (9) the test gaps above. **Open, said plainly (4):** two existing tests
+  (`tests/forecast_v4/test_iv_never_used.py`, `tests/forecast_scoring_v4/test_v4_needs_no_implied_vol.py`) build the
+  real `build_scoring()`; once receipts under `data/v4/records` reach `main` they need Drive, as G8's report itself
+  does. G10's change (G8's day labels from Drive) brings the same need, so the seam for those tests is agreed with
+  G10's builder through the orchestrator rather than built twice. **Kept (8):** `drive_records.py` stays in
+  `IMPLIED_METHOD_FILES`: it owns `backfill_path`, so a change to it changes where the back-fill lives.
+- **Real run:** `python -m fno forecast-v4-scores report --as-of 2026-10-23` on this tree, with no receipts under
+  `data/v4/records`: no Drive access; V4 and V5 "not enough data yet"; `v2_rv_next_5_sessions/intraday: scored
+  (reported only ...)`, its first window holding the void 16 Oct A16 row; V3's series "not enough data yet". The
+  report files it wrote were removed (not this story's to commit).
+- **Gates:** see the commit message.
+
+### Claims, build step 6: part b2's capture core (no pack file read yet; G10 is not on main)
+
+- **Code:** `fno/forecast_v4_rules/pack_capture.py` (`PackInputs`, this module's own input interface, carrying the
+  release record's label and SHA apart from the loaded pack's; `PackForecasts`; `capture_pack`), `ratio_store.py`
+  (`StoredRatio`), `records.record(..., version=)`, `implied.PremiumRatio.window`, `wiring.PACK_METHOD_FILES`
+  (criterion 21), two forecaster ids, and G10's guard: `fno/v4_pack/guard.PACK_READERS` gains the five pack-reading
+  forecasters (its own comment says they join "when they are built"). **Said plainly:** that edits G10's file and its
+  test `tests/v4_pack/test_pack_binding.py` (a lane-1 test edit, now naming the new readers and that base rates are
+  none); G10's branch does not change either file, so the merge does not conflict.
+- **Rules as built:** nothing on a `system_late` day; every pack row passes `check_pack_binding` against the release
+  record's SHA; base rates name no pack; the 15:10 deadline is checked before every write; a rerun skips a row
+  already written the same (`Record.same_as`, `made_at` aside) and refuses a changed one; the ratio is computed only
+  on its refit day and stored with its window (first, last, count, inputs SHA-256), so a missed refit day leaves the
+  month not eligible (never a late ratio); each row hashes what it read; versions carry protocol 3.1's
+  "risk-neutral, not a real-world probability" (V5's baseline) and the ratio measure (premium-adjusted, W3).
+- **Tests:** `test_v4rules_pack_capture.py` (17). **Plants (16 + 1 equivalent):** deadline inclusive; a base rate
+  naming the pack; pack rows without the SHA; the W3 label lost; the stored ratio recomputed; a ratio file left out of
+  the hash list; another day written; a rerun conflicting; `system_late` written; the guard skipped; the deadline read
+  once; a late ratio; both version labels lost. **Equivalent:** the capture's own `resolved_on < d` filter widened to
+  `<=` (`BaseRate.forecast` already drops outcomes not resolved before `d`).
+- **Self-review (an independent agent), all fixed:** (1, blocking) `made_at` in the bytes made every rerun conflict,
+  so a failed run could never finish the day; (2, blocking) the guard was never called and the pack's SHA was
+  compared with itself; (3, blocking) the day label was a constant and `system_late` unhandled; (4) the stored ratio
+  could be computed late from files archived after the refit day; (5) the ratio file lacked its window; (6) one
+  inputs hash for every row; (7) no measure or risk-neutral label; (8) the deadline checked once; (10) V1 under option
+  A hard-coded: `PackForecasts` no longer decides it; V1's baselines come from the wiring on its own measure's ratio
+  (that wiring comes with the adapter, below). **Said plainly (9):** criterion 21's gate is the
+  import-closure test plus the reader's stale back-fill stop; live rows keep the hash of the code that made them,
+  as phase 1's gate (live rows are never regenerated). Files outside the package that shape these rows
+  (`fno/forecast_v4/*`, frozen at the v4 freeze; `fno/v4_pack/model.py`, G10's) are not in this hash.
+- **Not yet (needs G10 on main):** the adapter from G10's released `Pack` to `PackInputs` (IV30 points to a fraction,
+  the future's last trade time or volume, `v4_expiry`, `ListedExpiries`), the wiring of `get`/`put` to the Drive
+  cache and `DataStore`, the CLI `forecast-v4 capture-pack`, the O1 step (with `receipts/data/v4/ratios/` in its
+  paths) and the V4/V5 outcome and proxy-drift writers.
+- **Gates:** see the commit message.
+
+### Claims, build step 7: part b2 live (G10's pack on main), the writers, G8's V4/V5 sources and W3/W8 in code
+
+- **Code:** `pack_adapter.py` (G10's released `Pack` to `PackInputs`: IV30 points to a fraction, the future's trade
+  flag from its volume, the pack's SHA-256 from its bytes; a `system_late` release gives inputs with its label only);
+  `pack_wiring.py` (this capture's composition root: the released pack, NSE's listed expiries, both W3 yardsticks on
+  their stored monthly ratios, V4's and V5's stored terms and outcomes through G8's one Drive seam
+  `build_drive_records`, O9's `DataStore`); `option_history.py` (V4's and V5's outcomes from the stored terms, V5's
+  outcome records and A16's rows: one place for the capture's base rates and G8's scoring); `pack_followups.py` (V5's
+  pending outcomes, the proxy-drift pairs, W8's pairs and review trigger); the CLI `forecast-v4 capture-pack`; the O1
+  step `forecasts_v4_pack` right after `v4_release` (its receipts: `v4/records/live`, `terms`, `ratios`, `outcomes`,
+  `diagnostics`; `daily.live_from.forecasts_v4_pack: null`, so `not_live` until set); G8: `SeriesOutcomes` takes V4's
+  and V5's outcomes from `StoredOptionOutcomes` (void kept void), the report prints protocol 1.4's and 1.5's notes and
+  three descriptive lines (`diagnostic_lines.py`).
+- **W3 (both) as built:** V1 and part f's series compare every forecaster against B (`premium_adjusted_implied`) and A
+  (`premium_adjusted_implied_intraday`) beside the primary, each comparison labelled and seeded apart; V2's and V3's
+  close-proxy blocks keep B only (A is no forecaster there).
+- **W8 (owner, "W8 - yes") as built:** yardstick A's window measure is A16's live `RV_s`, else A16b's back-fill; a
+  live row, void included, is never overridden; the stored ratio counts its `backfill_window` points. The W8 drift
+  line is the median of the paired daily ratios (the approved text's words); the W3 level line (intraday / close
+  proxy) is a ratio of sums, as the text now says. Judge 591 m2's trigger runs in the daily capture (the report is
+  weekly), raised once (a write-once marker in `v4/diagnostics/w8_review/`). The switch `W8_BACKFILL_WINDOW` is gone
+  (decided; no dead code).
+- **Lane-1 test edits, said plainly:** `tests/v4_pack/test_pack_binding.py` (PACK_READERS gains the intraday yardstick;
+  G10's builder agreed); the O1, O8 and e2e tests that pin the step list (`test_day_run.py`, `test_steps.py`,
+  `test_v4_steps.py`, `test_desk_and_data_checks.py`, `test_hangs.py`: the hang trigger moves to after
+  `forecasts_v4_pack`). The orchestrator's two checks: the 15:10 deadline exempts only the sealed AI books, so the five
+  pack readers stay deadline-checked (`tests/v4_pack/test_deadline.py::test_a_pack_reader_is_still_checked_only_the_ai_books_are_exempt`
+  passes on this branch); `forecast_v4_rules/constants.py` imports nothing back into `v4_pack` (`check_imports`
+  clean).
+- **Tests:** `test_v4rules_pack_live.py` (11), `test_v4rules_w8.py` (9), `test_v4rules_pack_capture.py` (17, both
+  yardsticks), `test_v4_pack_forecasts_step.py` (2), `test_option_outcomes_and_diagnostics.py` (8),
+  `test_intraday_series_report.py` (11). Judge 585.1's m4 (a UTC `createdTime` after IST midnight) is in
+  `test_v4rules_option_probabilities.py`. **Plants (24, all caught; 2 first survived and their tests were made
+  stronger, 1 did not apply first and was redone):** the RV lines' recent window from the start; a median for the level line; a zero denominator paired;
+  V4/V5 routed to the other history; off-calendar days kept; void read as resolved; diagnostics dropped from text and
+  JSON; the back-fill overriding a live row; back-filled sessions over-counted; `t` itself in its horizon; the ratio
+  counting labels outside its window (survived first); the marker ignored; fewer than 20 days alerting; the band
+  made exclusive; the all-days median used (survived first); void live days paired; V5 outcomes written now not added
+  to the base rates; V1 without the yardsticks; A in the close-proxy block; a mean of ratios for W8's line; a Drive
+  conflict as a traceback; V5 settled lines not printed; `eod_iv30.py` out of the hash (did not apply first).
+- **Self-review (an independent agent), checked one by one:** (1, accepted, fixed) V1 was compared against its HAR
+  primary only; W3 and criterion 4 say both yardsticks: now both, tested. (2, accepted, fixed) `PACK_METHOD_FILES`
+  missed `eod_iv30.py` and the composition roots (`pack_wiring.py`'s W8 merge, `wiring.implied_history`): the hash now
+  covers the whole import closure from `pack_wiring.py`, and the gate test walks from there. That includes phase 1's
+  rule files; harmless, as pack rows are live only and never regenerated. (3, accepted, NOT built, said plainly) a
+  missed refit day leaves the month with no ratio; the story's text promises a later computation "only from inputs
+  whose receipts GitHub received before that refit day". The code keeps the stricter rule (no late ratio; the month's
+  premium-adjusted rows `not_eligible`, counted) and says so in `ratio_store.py`. Building the receipt-time filter
+  needs each input's commit time. The orchestrator favoured the stricter rule, so the text now says it (criterion 3's
+  paragraph, rule b2's "Ratio" bullet): a missed refit day is never computed later; judge K's call. The cost: one
+  missed first-session capture makes that month's B and A rows `not_eligible` (about 21 sessions). (4, accepted, fixed) V5's base rate was built
+  before the day's pending outcomes were settled: they are now resolved first and added the same run, so an outcome
+  first seen on the evening of `e` counts for `e+1` (`resolved_on < d` unchanged). (5, accepted, fixed) A was scored
+  as a forecaster in V2's and V3's close-proxy blocks: removed. (6, rejected, with reason) the refit-day ratio is
+  written before the 15:10 check: it is computed only from refit-day inputs, never from the pack or the clock, so a
+  late write changes nothing it would not have written at 14:45; the forecast rows stay deadline-checked. (7,
+  partly fixed) the follow-ups no longer rebuild `implied_history` (one panel read per run); the run's time is not
+  measured yet (no real pack before Monday); the step's 600 s limit stands, and Monday's first live run is the
+  measurement. (8, accepted, fixed) a row already in Drive whose receipt is gone gave a traceback: `RawFileConflict`
+  now prints "stopped:" and exits 1, tested. The reviewer also flagged a stale `.pyc` in this checkout that briefly
+  showed a test failing; the caches were cleared before the gates.
+- **Real data:** the report on 23 Oct printed: pack IV30 / EOD 0 pairs (no live pack yet); W8 back-fill / live 3
+  pairs; intraday / close-proxy ratio of sums 2.34 over 3 days (some evidence only: 3 days). Meaning: yardstick B
+  forecasts on the close-proxy scale, so against V1's intraday target it sits about 2.3 times low; its ratio never
+  absorbs that, being fitted on the close proxy. That is the gap yardstick A (W8) exists for, and why B alone would
+  make any V1 rule look good.
+- **Follow-up commit (after main's merge, judge 591.2 PASS of the text):** W8's one reader of A16b's candle history
+  is its own module, `fno/forecast_v4_rules/candle_history.py` (`candle_sessions(rows) -> list[CandleSession]`: day,
+  status, `rv_session` (None when void, decided by the status), method, provenance, `first_seen_at`); it reads only
+  A16b's pinned method (`CandleCloseRv15m.method`, `rv-candle-15m-v1`) and `backfilled` provenance (the step-7 reader
+  did not filter the method: fixed). G14 imports it and only splices (the orchestrator's freeze dependency). On the
+  committed table it reads all 1,685 rows (2020-2026), 19 void. Tests: `test_v4rules_candle_history.py` (3); plants
+  (4, all caught; the void-by-value plant first survived, the test now gives a void row a value). The
+  `no_v4_drive_records` fixture (main ac1a81d19) now patches `build_drive_records` and answers `paths()`. Item (3) is
+  now the stricter rule in the text (above). `candle_history.py` joins `PACK_METHOD_FILES`.
+- **Second follow-up (the v4 freeze's asks):** (a) judge 597 SF2: every v4 Black-76 of this story runs at
+  `fno/forecast_v4/pricing.py`'s `V4_RISK_FREE_RATE` (0.065; the file added byte for byte as agreed with the freeze
+  builder): the EOD IV30 proxy (`PanelAtmIv30(Black76(), V4_RISK_FREE_RATE)` in `wiring.implied_history`, no longer
+  v1's `build_atm_iv30(cfg)`) and V4's and V5's terms (`OptionTermsRule` in `pack_wiring`); the config parameter is
+  gone from `implied_history`, `build_implied_backfill` and `build_pack_capture`, so nothing here can read
+  `risk_free_rate`. Values are unchanged while the config holds 0.065; `IMPLIED_METHOD_FILES` does not hold
+  `wiring.py`, so the b1 back-fill's hash does not move. (b) G14's one pairing: `candle_history.paired_rv(live,
+  candle) -> list[PairedRv(day, live, candle, ratio = candle / live)]` over sessions where both rows are non-void (a
+  zero live value pairs nothing), and `drift_days` for `proxy_drift`; W8's drift line and review trigger use it
+  (`pack_followups.backfill_pairs` removed). On the committed tables: 19 Oct 0.962, 21 Oct 0.997, 22 Oct 1.009, the
+  story's figures. Tests: the pairing test in `test_v4rules_w8.py`; plants (4, all caught).
+- **Round 2 (judge 598, on bc1260a36: B1 blocking, SF1, m1, m2; item 3 ruled, item 6 accepted), one head:**
+  - B1 (main red on the fixture seam): main merged again (083367c68 and later; conflicts as before: `v4_pack`
+    "2026-10-26" beside `forecasts_v4_pack: null`); the fixture patches `build_drive_records`; full gates on the merged
+    tree (commit message).
+  - SF1: `pack_capture.store_refit_ratios` stores every measure's and question's ratio on the refit day, called in
+    `build_pack_capture` before the release is read; a day with no release record is no longer an exception but
+    `PackCapture.refused` (the CLI prints the stored ratios and V5's outcomes, then "nothing written:"). Tests
+    (`test_v4rules_pack_build.py`, through `build_pack_capture`): a `system_late` refit day and one with no release
+    record both store the 6 ratios; the next day reads them and writes none; a missed refit day is never computed by
+    the next day.
+  - Item 3: the text says the stricter rule in the judge's words, with its cost (criterion 3's paragraph above).
+  - m1: the same test file's V5 test fails when `with_v5_outcomes(written)` is removed (planted, caught).
+  - m2: the level line keeps a pair whose close proxy is exactly 0 (it adds 0 to the denominator); a zero sum gives
+    no ratio.
+  - G14's ask: `pack_wiring.candle_history() -> list[CandleSession]` (W8's one reader of the table) and `candle_rv()`
+    built on it; a missing folder gives `[]`.
+  - Plants (9, all caught): V5 outcomes not added; the refit store dropped; a store on every session; one measure
+    only; the refusal caught too widely; the history short a row; a zero proxy dropped; an all-zero sum divided; the
+    refusal not printed.
+- **Not done here:** the CLAUDE.md routine line for `forecasts_v4_pack` (when it goes live); the W1-W8 wordings into
+  `PROTOCOL_v4.md` (a protocol edit, its own change); the real Drive back-fill run (after merge); the orchestrator's
+  `no_v4_drive_records` fixture (adopted once on `main`).
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
@@ -1156,7 +1375,7 @@ reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; 
 so from Tue 22 Dec 2026 `first_v4_expiry` raises every day until they are added (needed by about 21 Dec 2026; the
 scheduled task "Omenix F&O: add NSE 2027 trading calendar", firing 15 Dec 2026, adds them); likewise V5's terms are
 void (`calendar`) from Tue 29 Dec 2026, the December monthly's own expiry day, whose `e` is January 2027's monthly (judge
-585 m3 estimated mid-December; days up to 28 Dec take the 29 Dec monthly, inside the 2026 calendar), and V4's from 22
+585 m3's rule, days whose monthly is in 2027; days up to 28 Dec take the 29 Dec monthly, inside the 2026 calendar), and V4's from 22
 Dec; NSE's 2027 holiday circular rows in `research/data/calendar/nse_sessions.csv` are the fix, and the voids are
 counted, never filled; `IMPLIED_METHOD_FILES` leaves out `fno/forecast_v4/eligibility.py`, hashed only at the v4 freeze
 (response 250 item 10's accepted reasoning): a change of the configured rate or the panel data under the same hash
@@ -2073,6 +2292,30 @@ and the orchestrator that evening: the `v4` sidecar (start, finish, recorded of 
 `future_quote`, clock status) beside A16's 14:30 row (status, recorded of expected, failures); the release line and
 label; the deadline line; the overlap line, if any; the run's last line; and any alert posted.
 
+**The release and the deadline in a rehearsal before the live date (orchestrator, 24 Oct; branch
+`story/v4pack-rehearsed-live`; lane 1, judge B).** *Finding (strong evidence: `daily run --rehearse --day 2026-10-22`
+on `story/g10-live-date`, run 20261024T133243Z-e75a00):* REH1c makes `v4_release` and `v4_deadline` live in a rehearsal
+of a day before `daily.live_from.v4_pack`, but their children (`v4-pack release`, `v4-pack deadline`) read
+`live_dates(cfg)` themselves and print `NOT_LIVE` (exit 0): the run log shows `v4_release:NOT_LIVE` and
+`v4_deadline:NOT_LIVE`, so the owner's weekend dry runs (22 and 23 Oct, before the 26 Oct date) never exercise the
+release. *Root cause:* the two children's composition root (`fno/v4_pack/wiring.py`) takes the real dates, while the
+daily run's root takes `rehearsed_live(live_dates(cfg))`; the same day has two answers. *Fix:* one function in that
+root, `run_live_dates(cfg, env)`, returns `rehearsed_live(live_dates(cfg), env)[0]`, and both builders take their
+dates from it. A real run is unchanged (`rehearsed_live` returns the dates as they are with no mode).
+*With REH1j (session_01GAACYjcfHWkC3hp33iiMXV, `story/reh1j-not-live`):* its wrapper still records each step as
+`not_live` with the child's result under `exercised`; this change only makes that result real (the release run),
+never a day problem.
+- **RL1.** In a rehearsal of 23 Oct with `v4_pack` live from 26 Oct, `run_live_dates` gives 23 Oct for `v4_pack` and
+  keeps `forecasts_v4` at 22 Oct; with no mode it gives the real dates. Boundary: a key already live on the replayed day
+  keeps its own date. Plant: the builders' `live_dates(cfg)` restored.
+- **RL2.** `build_release_run` and `build_deadline_run` (their Drive, quote store and calendar replaced by fakes)
+  carry 23 Oct as `live_from` under the mode and 26 Oct without it. Plant: either builder back on `live_dates(cfg)`.
+- **RL3.** Run with those dates, a rehearsal release of 23 Oct with no recorded `v4` attempt writes `system_late`
+  (catch-up from `forecasts_v4`, 22 Oct, too), prints the excused line ("rehearsal: no v4 capture recorded for this
+  day") and does not fail; the same day in a real run prints `NOT_LIVE` and writes nothing. Plant: the excuse ignored.
+- **Gates:** full suite with `FNO_SLACK_BOT_TOKEN` kept, ruff, format, imports, record scan; one 23 Oct rehearsal of
+  this branch's tree with `v4_pack` at 26 Oct, the release's and the deadline's records under `dryrun/` only.
+
 ---
 
 ## G11. AI books on the v4 questions: books 2 and 3 forecast like the rules and are scored by G8 the same way
@@ -2112,14 +2355,17 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 2. **Prompt versions:** `agents/forecast/book2_hybrid_v2.md` and `book3_ai_v2.md`, registered in `fno/ai/versions.py`
    as new versions (a prompt "changes only as a new version"); same model; same label form
    `book/v2/sha256:.../isolation:sealed_same_day`. Book 2 keeps the rules' numbers in its pointer, Book 3 does not.
-   Each version also writes BG1's self-timing record (`fno/budget/self_timed.py`), the prompt change
-   `BG-budget.md:102-104` left open.
+   BG1's self-timing record (`fno/budget/self_timed.py`, the change `BG-budget.md:102-104` left open) is written by
+   `brief` and `reveal` themselves (story F8c, its owner's; response 258 addendum 1), so no prompt step is needed.
 3. **Fire and collect:** F1/G5's existing firer, seal, reveal and outcome code (`fno/ai/fire.py`, `seal.py`,
    `outcome.py`, `scoring_gate.py`), pointed at the v4 pack: fired after the pack's release (about 14:32, at the latest
    14:40); the commitment must be **received by GitHub by 15:10** (G10, `fno/forecast_v4/terms.py` `V4_DEADLINE`);
    reveal after 15:10. Fired once, never retried (as today). The timing constants come from `terms.py`, not a copy.
 4. **Records:** G11's own writer (G7's `records.record()` stamps G7's version, so it is not reused) writes
-   `research/forecasts/v4/book2_hybrid/<question>.csv` and `research/forecasts/v4/book3_ai/<question>.csv` in G7's
+   `research/forecasts/v4/book2_hybrid_v2/<question>.csv` and `research/forecasts/v4/book3_ai_v2/<question>.csv`
+   (one folder per registered version, named as item 6 registers it, because G8's reader and the look's
+   reconciliation find a slot's rows by its registered forecaster's folder; a later version writes its own folder and
+   never fills the slot of the first, response 272 addendum 1) in G7's
    schema (`fno/forecast_v4_rules/records.py`: `day, value, status, label, forecaster_version, kind, slot,
    method_sha256, inputs_sha256, made_at`), `label=live` always (AI answers have no back-fill; G10's cohorts), `slot`
    `hybrid` or `ai_team` (`fno/constants.py` `V4_SLOT_HYBRID`, `V4_SLOT_AI`), `kind=ai`, `method_sha256` the prompt's
@@ -2223,3 +2469,433 @@ miss cap may make an AI slot "undecided, operations" early, which is an honest r
 **Depends:** G6 freeze, G8 (merged), G9 (merged), G10 (the v4 pack and clock, and the `forecast-capture.yml` fire
 step), the A16/G8 builder's look reconciliation, G5, BG1 · **Size:** S-M ·
 **Status:** story text for the judge (`reviews/claude/response_202_g11-ai-books-v4.md`); code after the v4 freeze
+
+### G11 completion (stage 1 text, 24 Oct 2026; round 2 after judge 579; builder session_01Rga1fe3C4rmnrmmE1p3diE)
+
+**Why now:** the owner, 24 Oct: "let's close v4 full first ... no partial implementation" (`DESK_DECISIONS.md` row
+"Close v4 in full first"). The 24 Oct audit found the AI books missing from v4. G11 makes Book 2 (Hybrid) and Book 3
+(AI team) answer v4's questions as scored records: **10 of the family's 15 slots** (`terms.FAMILY`: V1, V2, V6a, V6b,
+V7, each with `rules`, `hybrid`, `ai_team`). The earlier builder (013xqaNT) is out of reach; the orchestrator gave G11
+to this session, and with it step 7 and round 2c (F1t's owner out of reach; register row, fee2fd8e). **Lane 1**
+(forecast records, a registered prompt version, outside services: the routines' triggers, Drive, a workflow). **Not
+a money piece** (one judge; judge 579 note 1 agrees): no G11 output is read by any decider; C15 pins that, and C8
+can only stop AI runs, never enlarge a trade.
+
+**What is done** (strong evidence: the commits and tests named; nothing of it runs live):
+- On `main`: round 1, `fno/ai/v4_rows.py` (judge 275 PASS, 7c1a9734), switched off (no caller).
+- On `story/g11-ai-books-v4` (312eb791; 16 own commits, round 2b, **never judged**; conflicts with `main` only in
+  `docs/WORK_REGISTER.md`): the v4 input (`v4_input.py`, `v4_book_inputs.py`), the 64 KiB pointer (`v4_pointer.py`),
+  prompts v2 registered as protocol-v4 versions (`agents/forecast/book*_v2.md`, `versions.py`), `ai fire --protocol
+  v4` (`v4_fire.py`), `ai collect --protocol v4` (`v4_collect.py`, `v4_settle.py`, which already prints "N day(s)
+  awaiting audit"), one `RunTerms` per protocol threaded through F1/G5's chain (`run_terms.py`, v2 the default), rows
+  in `v4/book2_hybrid_v2/` and `v4/book3_ai_v2/` checked by `check_pack_binding`, the stop rule as a structured flag,
+  the own go-live key `daily.live_from.ai_books_v4` (null) and the v2 AI fire stopping on the same date. Claims:
+  `reviews/claude/response_282_g11-round-2b-v4-fire-collect.md`.
+
+**What is left** (each a criterion below):
+1. **All five questions.** Prompt v2 defines only V6a and V6b (`versions.V4_AI_QUESTIONS`), but the rules slot answers
+   all five (`research/forecasts/v4/`: `v1_close_blend`, `v2_close_blend`, `v6_ewma_t4`, `v7_vix_vs_mean20`). Story
+   item 1 says one list, so prompt v2 gains V1, V2 and V7 (v2 is not on `main`, so its hash changes in the same
+   commit; after merge any change, `w` included, is a v3 and never a member, protocol 5.6).
+2. **Point answers (V1, V2)** in each question's own measure (C2): today's answer check, envelope and prompt are
+   probability-only (`envelope.py` bounds inside [0, 1]).
+3. **Inputs for V1 and V2** in their own measures (C4).
+4. **Hybrid's envelope** (C3). Measured on `main`'s back-fill (strong evidence, 1,908-1,912 days, 2019-01-14 to
+   2026-10-23): the built rule "primary baseline +-0.10" holds the rules slot's own value on 94.4% of days for V6a,
+   **55.5% for V6b** and 96.7% for V7 (p95 of the gap 0.113, 0.438, 0.091). So as built, Hybrid could not even repeat
+   the rules' V6b answer on almost half the days. The envelope is redesigned in C3.
+5. **Step 7, the book side:** `brief` reads the v4 pointer; `seal` and `reveal` use `V4_TERMS` (the code still waits
+   for 15:15:10, `timing.py:13`).
+6. **The reveal wait.** Fired at about 14:41, a book's commitment reaches GitHub 35-309 s after its fire (the v2
+   record: fire log `fired_at` against the audit's GitHub `commitment_received_at`, 9 book-days 16-23 Oct), so about
+   14:42-14:46, and `reveal` then waits until 15:10:10, about 24-28 minutes, in one call (`book.py:94-97`) under the
+   prompt's 600,000 ms (10-minute) Bash timeout (`book*_v2.md:64`). Every day would end `not_revealed`, a miss (C6).
+7. **Round 2c:** the stop rule and the weekly audit draw count v2 days only; until fixed every on-time v4 day stays
+   "awaiting audit" (never scored) and a v4 book can never be stopped.
+8. **`pack_sha256` in every row** (R2/G7's column is on `main`: `records.py:44`).
+9. **BG1's stop:** nothing reads BG1's signal before a fire (`grep stop_ai_roles fno`: written `budget/signal.py:53`,
+   read only by `learning/writer.py:49`), yet story item "Daily AI cost" says a stopped day is `not_fired`.
+10. **Slot registration:** 10 rows in `research/forecasts/v4_slots.csv` (the file does not exist yet), in the order
+    of C13.
+11. **O11's replay check:** the strict xfail
+    `tests/e2e_acceptance/test_expected_missing.py::test_the_ai_books_answer_the_v4_questions_on_the_recorded_day`
+    becomes a real check.
+12. **Workflows:** `v4-fire.yml` (held on `story/g10-part2b-release` and `story/g10-part2b-pack`, judge 282.3) lands
+    with G11's fire; `forecast-capture.yml`'s collect gains `--protocol v4`.
+13. **The routines' stored prompt** says "sealed by 15:15:00 IST" (`docs/stories/F1-G5-owner-checklist.md:48`);
+    v4's deadline is 15:10:00. The owner owns the routines; exact text under "Owner step".
+14. Merge `main` into the branch (first code commit; `main` is 2,743 commits ahead of 312eb791 on 24 Oct).
+
+**Acceptance criteria.** Each names its code, a test that fails when that code is broken, and its good (G), bad (B),
+boundary (Bd) and empty (E) cases; P is the planned plant the judge can reuse.
+- **C1 Same questions.** Each book is asked exactly the rules slot's started questions of the day (`v4_slots.csv`'s
+  rules rows and G8's started set: one list); prompt v2 defines all five. G: five asked. B: a registered question
+  the prompt does not define is a logged `not_fired` with one alert. Bd: a question started on `d` is asked from `d`,
+  not before. E: no started question, nothing fired, one line. P: drop V7 from prompt v2's list.
+- **C2 Answer form, by measure** (protocol 1.1-1.2; named the same way in prompt v2). V1: the intraday `RV_s` of
+  `d+1` (A16's squared overnight log return plus the 25 intraday squared log returns, "quote-snapshot realised
+  variance"). V2: the sum of `close_proxy` `RV_s` over `d+1..d+5` (squared close-to-close log returns of the official
+  closes). Both are variances (dimensionless, not volatility points), finite and strictly positive. V6a, V6b, V7: a
+  probability in [0, 1]. `null` is "no forecast" (a miss, never imputed). G: V1 0.00008, V2 0.0004, V6a 0.12. B: 0,
+  a negative, NaN, a probability for V7 above 1; a V1 or V2 value above 1 (a 100% log move squared) is refused as a
+  unit error (volatility points given for a variance). Bd: V1 exactly 1 accepted, 1.000001 refused; probabilities
+  exactly 0 and 1 accepted. E: a question with no answer is `invalid` for that question only. P: accept 0 for V1.
+- **C3 Hybrid's envelope** (redesigned, reasoning only, fixed in prompt v2 and `versions.py` before merge, so no
+  value is set after merge). The day's span is from the lower to the higher of the rules slot's value and the
+  primary baseline's (either alone when the other has none), widened by `w`: probability questions (V6a, V6b, V7)
+  `w = 0.10` absolute, clipped to [0, 1], the built width; point questions (V1, V2) `w = 0.25` relative (low x 0.75 to
+  high x 1.25). So Hybrid can always repeat either number, which item 4 shows the built rule cannot. The primary
+  baseline is the one G8 uses for that day, `eligibility.primary_baseline(question, eligible, intraday_started)`
+  (V1: HAR daily, then HAR intraday one way from its first eligible date), never `terms.PRIMARY_BASELINE` directly.
+  V2's primary (premium-adjusted implied, G7b part b) needs no measurement for `w`, so its path is the same rule;
+  until G7b's baseline exists the V2 day is not baseline-observable (protocol 4: no score, no miss), and Hybrid's
+  span is the rules' value alone. No rules value and no baseline: no envelope, Hybrid answers "no forecast", no miss.
+  G: an answer at the span's widened edge accepted. B: outside, refused for that question. Bd: V6b with rules 0.30,
+  baseline 0.70: bounds 0.20-0.80; V1 after HAR intraday's first eligible day uses HAR intraday, and a later day
+  without it has no primary (never falls back to HAR daily). E: neither value, no envelope. P: build the span from
+  `PRIMARY_BASELINE` (V1's switch lost).
+- **C4 Inputs, by measure, no look-ahead.** Book 3 gets no rule or baseline value (key test). V1's history: A16's
+  committed intraday `RV_s` of the sessions before `d`, a void session shown as void (never filled). V2's history:
+  the `close_proxy` `RV_s` of the last 260 sessions before `d`, computed by the code from the official closes it
+  already sends (the test recomputes them as squared log returns). Nothing dated `d` except the released 14:30-14:40
+  pack. Hybrid's rules value for V6 is whatever forecaster the rules row of `v4_slots.csv` names (G7's `v6_ewma_t4`
+  or M1's weather), never hard-coded. The pointer stays under `ROUTINE_POINTER_MAX_BYTES`; the five-question input is
+  measured and stated in Claims. G: full input under the cap. B: over the cap, not fired (never truncated). Bd: an
+  `RV_s` row dated `d` is left out. E: no A16 row yet: V1 not started, nothing sent for it. P: let day `d`'s `RV_s` in.
+- **C5 Book side (step 7).** `brief` accepts the v4 pointer and prints prompt v2 (hash-checked) and the input; `seal`
+  writes the v4 commitment under `V4_TERMS`; `reveal` never publishes before 15:10:10; labels and envelope come from
+  the input. The v1 path is unchanged (v1 tests untouched). G: v4 brief, seal, reveal in a fixture day. B: a v1
+  pointer read as v4 (or the reverse) is refused. Bd: `reveal` at 15:10:09 waits, at 15:10:10 publishes. E: `seal`
+  with no brief this session is refused (`BookStepRefused`). P: `reveal` with v2's 15:15:10.
+- **C6 Reveal wait.** One `reveal` call waits at most 9 minutes; still early, it prints "waiting until 15:10:10 IST:
+  run reveal again" and exits 0; prompt v2 says to run it again until it publishes. G: a seal at 14:45 publishes on
+  the third call. B: a reveal with no seal is refused. Bd: called at 15:01:10, it waits exactly 9 minutes and
+  publishes at 15:10:10 in that call. E: called after 15:10:10, it publishes at once (collect judges the receipt). P:
+  one call that waits the whole 24 minutes.
+- **C7 Fire.** Today only, from `ai_books_v4`'s date, only after today's release record exists, latest start 14:55
+  (`V4_LATEST_FIRE`), once per book and day, never retried; each failure a logged `not_fired` and one #fno-desk line;
+  the v2 AI fire stops on the same date. G: a release at 14:40, both fired. B: a day other than today refused,
+  touching no Drive. Bd: start at 14:55:00 fires, 14:55:01 is `not_fired`. E: no release record, nothing fired, one
+  line. Re-verified after the merge of `main`. P: fire at 14:55:01.
+- **C8 Budget: forecasters stop last** (`BG-budget.md:46-48`, design 7.6). BG1's signal is one flag
+  (`signal.py:53`); the post-mortem writer already stops on it (`learning/writer.py:49`). So the fire
+  stops the books only when stopping every other role cannot help: the signal's level is `stop` **and** the books'
+  own minutes of the month (BG1's ledger rows with a `book`) are by themselves at or above the cap; then every
+  question is `not_fired` (reason "BG1 stop"), a miss. `ok`, `alert`, `unknown`, or `stop` with the books under the
+  cap: fire. **A missing signal file** for the month: fire, with one #fno-desk line "no BG1 signal for <month>"
+  (fail open, because a miss costs the slot under the 10% cap and the cost is bounded by C17's numbers). This reading
+  of "last" and the fail-open choice are reasoning only; the orchestrator puts both to the owner, and C8 follows the
+  ruling. G: `alert`, fired. B: `stop` with books at 100% of the cap, `not_fired`. Bd: books at 99.9%, fired. E: no
+  file, fired and one line. P: stop the books on any `stop`.
+- **C9 Rows.** One row per book, started question and settled session from `effective_start`, in G7's schema,
+  `label=live`, `kind=ai`, the right slot, the prompt hash, the input hash, and `pack_sha256` = the release record's
+  SHA (an empty or other SHA refused by `check_pack_binding` before any write); written once (`RecordConflict`). G:
+  an on-time day, one `ok` row per question with all fields. B: the pointer's SHA differs from the release record's,
+  refused, nothing written. Bd: the same row written twice is a no-op; a different second row raises. E: a day before
+  `effective_start` writes nothing. P: write the pointer's SHA instead of the release record's.
+- **C10 The 15:10 deadline.** GitHub's receipt decided by G10's `commitment.on_time` (reused, not copied). G: 15:09:59
+  on time. B: a commit dated 15:05 but received 15:10:01 is `late` (receipt time, never commit time). Bd: 15:10:00 on
+  time, 15:10:01 `late`. E: no commitment, `no_submission`. P: compare commit time instead of receipt time.
+- **C11 Every failure a miss.** Each outcome (late, not fired, no submission, not revealed, invalid, model mismatch,
+  exposed, breach, stopped, BG1 stop) writes a non-`ok` row; a session the fire never ran is `not_fired`. Day labels
+  come from the release record (`ReleasedPacks.release(day)`, D2): a `system_late` day has no AI row and is excused;
+  a day with no release record yet is neither collected nor written. Over a fixture month G8's `AiSlotDays` finds no
+  slot-day without a row, and a slot past 10% misses is "undecided, operations". G: a month of mixed outcomes, all
+  rows. B: a never-fired day left without a row fails the test. Bd: a `system_late` day, no row and not counted. E: no
+  release record yet, no row, counted as waiting. P: skip a never-fired day.
+- **C12 Round 2c.** `stop_rule.breached_days` takes the window's session days and the v4 audit folder;
+  `audit_plan.fired_sessions` and `TranscriptAudits` take the v4 folder; `scoring_gate.scoring_status` passes
+  `V4_TERMS`. Defaults keep v2's behaviour (its tests unchanged). G: a drawn, clean v4 day becomes `ok`. B: two
+  breaches in 20 v4 sessions stop the book. Bd: the second breach on the 21st session back does not stop it. E: no
+  fired v4 session draws nothing. P: drop `terms` in the gate.
+- **C13 Registration, in the protocol's order** (`slot_file.py:62-69`: a start on or before the freeze's day, or after
+  the slot's first eligible session, raises, and `registered()` then refuses the whole file, which stops every v4
+  score). The required order: (1) `FREEZE_v4.md` and the rules rows (the freeze builder, D5); (2) G11's 10 rows,
+  `book2_hybrid_v2` for `hybrid` and `book3_ai_v2` for `ai_team` on each of the five questions, `effective_start` =
+  the first scored session after the freeze's day (NSE calendar), which is never after any slot's first eligible
+  session (the earliest a primary-baseline value can exist; V6 and V7's base rate is eligible on that very day),
+  `registered_on` = the day written, on or before it, `decision` citing the owner's row; (3) `ai_books_v4` set by the
+  owner to that same session. G11 builds `python -m fno ai register-v4-slots`: it refuses, writing nothing, while
+  `FREEZE_v4.md` does not exist or the rules rows are missing, and after `effective_start` has begun (09:15 IST);
+  otherwise it appends the rows (or prints them with `--print` for the freeze builder to put in the freeze commit).
+  If the owner sets `ai_books_v4` later than `effective_start`, the sessions between are `not_fired` rows (collect's
+  back-fill, C11), honest misses; `ai fire` prints that count every day. G: rows written on the freeze's day, read
+  clean by `SlotFile`. B: before `FREEZE_v4.md`, refused, nothing written. Bd: a start one session later than the
+  first eligible session is refused by `SlotFile` (its test, here with G11's rows); writing at 09:14:59 of the
+  start day works, 09:15:00 is refused. E: no rules rows, refused. P: an `effective_start` one session late.
+- **C14 Replay.** O11's xfail becomes a real check: the recorded day, replayed with a fixture released pack and
+  scripted routine answers, writes 10 rows (5 per book) that G8 scores; the marker is deleted in the same branch. G:
+  10 `ok` rows scored. B: one book scripted late writes 5 `late` rows, scored as misses. Bd: a `system_late` replay
+  day writes none. E: no scripted answers, 10 `no_submission` rows.
+- **C15 Not a money piece.** A test over every module of the deciding packages `fno/desk`, `fno/books`, `fno/book3`,
+  `fno/risk`, `fno/factory` and `fno/playbook` (an AST walk of imports, and a text search): none imports `fno.ai` or
+  any `fno.ai.v4_*` module, and none holds the strings `research/forecasts/v4/book` or `book2_hybrid_v2` /
+  `book3_ai_v2`. A later package that decides trades (F1t's `fno/ai_trading`) is added to the list by its builder.
+  G: today's tree passes. B: a fixture module importing `fno.ai.v4_rows` fails it. Bd: a string inside a comment
+  counts (text search). E: an empty package passes. Note: O1's steps stage all of `research/forecasts/v4/`
+  (`daily/wiring.py:18`), which commits files but decides nothing.
+- **C16 Workflows.** `v4-fire.yml` runs `ai fire --protocol v4 --day <today>` on the release receipt's push
+  (`receipts/data/v4/days/**`, D3), fires nothing for a catch-up record of an earlier day, and commits only
+  `research/forecasts/ai_v4/` (judge 282.1's test kept); `forecast-capture.yml` runs `ai collect --protocol v4` after
+  the 15:10:10 reveal; before `ai_books_v4`'s date both refuse and change nothing. No schedule is created or moved.
+  G: today's receipt push fires. B: a push touching only `receipts/data/v4/deadlines/` starts nothing. Bd: a catch-up
+  push of yesterday's record fires nothing. E: no `ai_books_v4` date, refused, nothing committed.
+- **C17 Cost report.** G11's output prints, per book, p50 and p95 of working minutes (brief to seal), waiting minutes
+  (seal to reveal) and model turns, from BG1's ledger and the routine's timing file; a run not captured is named
+  (F8c's alert). G: a fixture week's numbers. B: a timing file with no seal time shows "working unknown", never 0. Bd:
+  one run, p50 = p95. E: no runs, "no runs yet".
+- **C18 Gates.** pytest, ruff, ruff format, `check_imports`, `check_numbers` on `main`; no file or class over 350
+  lines (`fno/constants.py` is 349 lines on `main` and 350 on the branch: new constants go elsewhere).
+
+- **C19 Pending days and unknown receipts** (earlier criterion 6, restored). A day whose transcript audit is pending
+  has no v4 row and is printed in "N day(s) awaiting audit" with each day and book (`v4_settle.py`); once settled its
+  row lands and G8's recomputed report shows it scored or missed. A day whose GitHub receipt cannot be found
+  (`CommitmentTimeUnknown`, `fno/v4_pack/commitment.py:16`) gets no verdict and no row (never a guessed time), is
+  printed as "N day(s) awaiting GitHub's receipt", and is retried by every later collect; while it waits, G8's look
+  refuses (its reconciliation), the safe direction. G: a pending day lands after its audit. B: a receipt lookup that
+  fails writes nothing. Bd: the audit settling on the day of the look lets the look run. E: nothing pending, "0 days
+  awaiting audit". P: write a `late` row when the receipt is unknown.
+
+**Gap list** (each requirement: its criterion, or out of scope with the reason):
+| Requirement (source) | Covered by |
+|---|---|
+| Item 1, same questions | C1 |
+| Item 2, prompt v2 per book, same model, label form | C1, C2, C3, C5 |
+| Item 3, fire after release, 15:10 receipt, reveal after, once | C5, C6, C7, C10 |
+| Item 4, G7 schema, folders, `pack_sha256`, write once | C9 |
+| Item 5, every failure a miss | C11 |
+| Earlier criterion 6, "N days awaiting audit", no row while pending | C19 |
+| Item 6, registration after the freeze | C13 (D5) |
+| Item 7, one row per slot-day for the look | C11, C19 (the look's refusal is G8's, merged) |
+| Item 8, wiring only in `fno/ai/wiring.py`, `book_wiring.py` | C18 (judge reads the diff) |
+| Protocol 1.1-1.2, each question's measure and unit | C2, C4 |
+| Protocol 3.2, V1's one-way baseline switch | C3 |
+| Daily AI cost, BG1 stop last, p50/p95 | C8, C17 |
+| Claim scope (Book 2 not independent) | prose only: G8's report wording, unchanged |
+| Judge 275 conditions (pack guard; freeze list) | C9; the freeze list is the freeze builder's (D5) |
+| Judge 282.1/282.3 (fire log folder; fire workflow with G11) | C16 |
+| Handover risk 6, 64 KiB vs the routine API's real limit | C4 measures; the first live fire is the real check |
+| Handover risk 1, M1's stale method hash | out: M1 and the freeze's, not G11's (no G11 file) |
+| Round 1's behaviour kept | the existing `test_v4_rows.py`, unchanged in meaning |
+
+**Dependencies on G10** (`story/g10-completion`, session_011hvvn9). Agreed (G10's answers, c876ede5, "The pack's
+interface for G7b and G11"):
+- **D1 The daily release:** O1's new `v4_release` step releases the 14:30-14:40 pack every session. G11 reads only
+  `ReleasedPacks` (`release`, `pack`, `pack_bytes`), `ReleaseRecord.pack_sha256`, `Pack`, `check_pack_binding` and
+  `build_released_packs` (`fno/v4_pack/release.py`, `model.py`, `guard.py`, `wiring.py`); G10 tells G11 before any
+  rename.
+- **D2 Day labels:** the label is the release record in Drive `v4/days/<YYYY>/<date>.json`, read through
+  `ReleasedPacks.release(day)`; every scored session from G10's live date gets one, `system_late` included (catch-up).
+  `research/data/v4_days/` is retired by G10, so G11 reads no file there (G8's reads of it are G10's to re-point).
+- **D3 The trigger:** the daily run's committer pushes `receipts/data/v4/days/<YYYY>/<date>.json.sha256` and the pack
+  receipt in one commit with the owner's routine credentials (never an Actions token), so `v4-fire.yml` starts on
+  the `paths:` filter `receipts/data/v4/days/**`. Catch-up records land on the same path, so `v4-fire.yml` fires only
+  for today's record (C16). G11 lands `v4-fire.yml` (judge 282.3's preferred path).
+- **D4 Times:** `V4_LATEST_FIRE` 14:55, `V4_DEADLINE` 15:10, read from `fno/forecast_v4/terms.py`, never copied.
+- **D5 Freeze and the rules rows:** a separate freeze builder writes `FREEZE_v4.md` and the rules rows of
+  `v4_slots.csv` (orchestrator, 24 Oct); G11's rows follow in C13's order.
+- **Not G10's, also needed:** V2's primary baseline (premium-adjusted implied; G7b's builder, `story/g7b-completion`).
+  Until it exists no V2 day is baseline-observable, so the V2 AI slots can neither score nor miss (C3).
+
+**AI cost limits (BG1):**
+- Measured (strong evidence): 6 v2 book runs, 19-23 Oct, 4.21-4.51 minutes start to end (`accounting/ai_usage.csv`);
+  they run from about 15:11 to 15:15:13-40 (`research/forecasts/ai_v1/timing/`), so they include v2's short reveal
+  wait. The commitment reached GitHub 35-309 s after the fire on the 9 book-days with one (fire log against the
+  audit's receipt time), so the working part is about 0.6-5 minutes. Two runs were not captured (22 Oct Book 3, 23 Oct
+  Book 2). v2 record: 7 of 14 book-days on time (3 `no_submission`, 4 `late`; the 22-23 Oct late seals had a root
+  cause fixed on 23 Oct).
+- v4 estimate (reasoning only): about 1-8 working minutes per run (a bigger input, five questions), plus a wait to
+  15:10:10 of about 24-28 minutes, so 25-35 minutes start to end, and 3-4 extra `reveal` turns (C6; judge 579 note 2).
+  Two books, 22 sessions: about 1,100-1,540 minutes a month if the waiting counts, 44-350 if only working minutes
+  count. Firing later (for example 14:50) would cut the wait but shrink the margin to 15:10; recommended: keep the
+  fire at release, because a miss costs the slot (10% cap) and the cap counts minutes, not answers.
+- Today's meter (`python -m fno budget meter --month 2026-10`): "level unknown", because development and
+  data-routine minutes are not recorded, so the cap cannot be judged now; C8 fires on `unknown`. Whether the wait
+  counts goes to the owner (orchestrator, 24 Oct); C17 reports working and waiting minutes and turns apart.
+- Limits G11 keeps: one fire per book and session, never retried; no second runtime cap; C8's stop; the weekly
+  transcript audit draw stays as it is (its auditor minutes are BG1's roles).
+
+**Owner step (text for the orchestrator to put to the owner when G11 is ready to go live; G11 changes no routine):**
+in both books' routines, replace step 4 of the stored prompt (`F1-G5-owner-checklist.md:48-50`) with:
+> 4. Your answer must be sealed by the deadline your versioned instructions give. Never use `--no-verify`. If `seal`
+>    prints a line starting with "refused", do what your instructions say (fix what it names and run it again)
+>    while it is before that deadline. If it fails in any other way, or still refuses at that deadline, stop; final
+>    message: its last line.
+
+Version 1's instructions say 15:15:00 and version 2's 15:10:00, so this text is right for both; the checklist file is
+updated in the same branch (lane 1, a routine's prompt).
+
+**Out of scope:** any trading by the AI books (F1t, F5); G8's scoring and the look (merged); the v4 pack, its
+capture, release and day labels, and G8's re-pointing from `research/data/v4_days/` (G10); the freeze record and the
+rules rows (D5); V2's primary baseline (G7b); creating, changing or deleting any scheduled routine or trigger (the
+owner's); setting `ai_books_v4`'s date (the owner's, after merge and the rule-8 end-to-end run); M1's method hash; v5.
+
+**Order:** this text to the judge; then merge `main`, C12 and C5-C6 (the book side), C1-C4 (five questions),
+C8-C9, C19, C13, C16, C14 last; self-review by independent code-review agents; Claims with a real output sample;
+judge.
+
+**Round 2 (judge 579, round 1 FAIL at acacf5c7f), each finding:**
+- S1 (D2, D3 vs G10's answers): fixed in a3de25b6, before the verdict reached me; C11 and C16 now also read the
+  label through `ReleasedPacks.release(day)` and name `receipts/data/v4/days/**`.
+- S2 (freeze order): C13 states the order, what G11 does in each case (refuse before the freeze or without rules
+  rows, refuse once the start has begun, `not_fired` back-fill for a late go-live) and tests both sides.
+- S3 (baseline and `w`): C3 uses `eligibility.primary_baseline` (V1's one-way switch) and redesigns the envelope as
+  the rules-and-baseline span widened by a declared `w` per kind (0.10 absolute, 0.25 relative), fixed before merge;
+  the measurement (V6b 55.5% inside the built rule) is in item 4. V2 needs no measured `w`, so nothing is set after
+  merge.
+- S4 (measures): C2 and prompt v2 name each measure (V1 intraday `RV_s` with the overnight return; V2 `close_proxy`),
+  variances, with the unit-error bound; C4 gives V2 its close-proxy history and tests it.
+- S5: C19 restores "N days awaiting audit" and adds the `CommitmentTimeUnknown` case and its retry.
+- S6: C15 lists the six deciding packages and checks both imports and path strings.
+- S7: C8 defines "last" (books stop only when their own minutes alone reach the cap) and the missing-file case
+  (fail open, one line); both are put to the owner by the orchestrator.
+- m1: every criterion now has G, B, Bd and E cases.
+- m2: `fno/constants.py` 349/350; the v2 minutes include the reveal wait; 2,743 commits (counted 24 Oct, after more
+  merges to `main`); the fire-to-receipt times are now taken from the audit files' GitHub receipts (35-309 s).
+
+**Claims** (stage 2, builder session_01Rga1fe3C4rmnrmmE1p3diE; branch `story/g11-ai-books-v4`, head given in the
+message to the judge). Lane 1, one judge (not a money piece: C15). Nothing runs live: `daily.live_from.ai_books_v4`
+stays null.
+
+*Commits on top of the merge of `main` (7334ec2b; full suite there 15,215 passed):* 85df1067 C12; e3c6cb35 C5-C6;
+881ba676 C1-C4; 2c69136a C8, C9, C17, C19; dfb26381 C13-C16; then the self-review's fixes 8e34b29a (A), 8d896bf3 (B),
+99a916f2 (C) and, after a second review, 251b65de (D); 562718c5 merges `main` (REH1i's receipts check passes).
+
+*Per criterion (code; tests; the builder's plants, every one caught):*
+- C1 `versions.py` (`V4_AI_QUESTIONS` = the family), prompts v2; `test_v4_versions.py`, `test_v4_fire.py`; plant: V7
+  dropped (20 failures).
+- C2 `answer.py` (`VARIANCE_CAP` per question); `test_v4_five_questions.py`; plants: 0 accepted, caps at 1.
+- C3 `envelope.py` (`Envelope.span`), `v4_book_inputs.py` (G8's `primary_values`), `v4_input_check.py` (recomputed);
+  `test_v4_input.py`, `test_v4_five_questions.py`, `test_v4_pointer.py`; plants: no point branch, static primary
+  baseline, envelope not recomputed.
+- C4 `v4_book_inputs._history`, `v4_input.py`; plants: day d's `RV_s` let in, free-text label.
+- C5-C6 `book.py`, `book_run.py`, `run_timing.py`; `test_v4_book_side.py`; plants: no cap, v2 reveal time, v2
+  path, no sealed-day check.
+- C7 `v4_fire.py`; `test_v4_fire.py` (whole-second 14:55, no log on no pack); plants: 14:55:01, log on no pack.
+- C8 `budget_stop.py`; `test_v4_budget_stop.py`; plant: stop on any `stop`.
+- C9 `v4_rows.py`; `test_v4_rows.py`; plant: rows without the release SHA.
+- C10 `run_terms.V4_TERMS` and `outcome.judge`, the same constant as G10's `commitment.on_time`, pinned equal at
+  15:09:59, 15:10:00, 15:10:01 (`test_v4s_deadline_is_g10s_receipt_rule`). It is not the same function because
+  F1/G5's judging chain takes one `RunTerms` for both protocols (v2's deadline is not G10's), so the rule stays in
+  the terms and the pin proves the two agree (judge 586 m3 corrected the earlier reason; ruled the pin enough).
+- C11 `v4_collect.py`, `v4_settle.py`; `test_v4_collect.py`, `test_v4_collect_log.py`; plants: never-fired day
+  skipped, no catch-up, lost log as `not_fired`, no too-early check, no containment.
+- C12 `run_terms.py`, `stop_rule.py`, `audit_plan.py`, `transcript_audit.py`, `scoring_gate.py`, `cli.py`;
+  `test_v4_round_2c.py`, `test_v4_wiring.py`; plants: gate, stop rule, fire-log shape, settler glob, v4 weeks
+  dropped, audits-due v2 only.
+- C13 `v4_register.py`, `ai register-v4-slots`; `test_v4_register.py`; plants: after 09:15, a later start, exit 0
+  on refusal, a conflicting forecaster.
+- C14 `tests/e2e_acceptance/ai_v4_day.py`, O11's marker deleted; see the sample.
+- C15 `tests/ai/test_v4_not_a_money_piece.py` (imports by AST and path strings; planted import found).
+- C16 `v4-fire.yml` (from `story/g10-part2b-release`), `forecast-capture.yml`, `capture-watch.yml`;
+  `tests/v4_pack/test_fire_workflow.py` (the day step and the commit step run as GitHub runs them, offline);
+  plants: fire on any receipt, no pipefail, no alert.
+- C17 `v4_cost.py`; `test_v4_cost.py`; plants: missing seal as 0, uncounted calls.
+- C18 gates below; largest file in `fno/ai` 171 lines.
+- C19 `v4_collect.py` (`Waiting`, `ReceiptUnknown`); plants: unknown receipt judged late.
+
+*Changes from the passed text, each for a reason found while building or by the self-review:*
+1. C2's caps are per question, not "at most 1": V1 0.01, V2 0.05. Strong evidence: NIFTY's closes 2017-2026, the
+   largest realised one-session close-proxy variance 0.0193 (23 Mar 2020), five sessions 0.0287, median 2.6e-5.
+   Percent squared, annualised figures and volatility points are refused; a standard deviation for V1 (about 0.008)
+   still passes, a known gap.
+2. C8 reads BG1's own meter, not the signal file: no schedule writes `accounting/budget/<month>_signal.json`.
+3. C14 replays 22 Oct 2026, not O11's 16 Oct: v4's rule rows are live only from 22 Oct (the back-fill ends 15 Oct).
+4. C4: the input is written as columns (closes, histories, the chain), not one object per row, and each `RV_s` to 6
+   significant digits: 33 KB became 18-19 KB, because the routine's model retypes the text into `brief`.
+5. The pointer carries its input's SHA-256; `brief` refuses a mis-copied text ("copy it again exactly"). The owner's
+   step 3 must let the model retry that one refusal: the exact text is in `F1-G5-owner-checklist.md` (the
+   orchestrator puts it to the owner with step 4).
+6. Collect no longer rebuilds the input: the fire log keeps the labels and Hybrid's envelope (rule numbers only),
+   because the files an input is built from can still change after the fire (the self-review's blocking finding).
+7. v4's first 10 fired days need a recorded transcript audit before they score, as v2's did (before round 2c the
+   gate read v2's fire logs only). Someone must record them: `ai audit-record --protocol v4`.
+8. `register-v4-slots` registers per rules row (a question whose rules row lands later is added by a later run).
+9. A commitment without a fire log waits 3 sessions (the fire keeps its log as a run artifact when its push fails),
+   then that book is `invalid`; the fire log is read as first committed; a Hybrid entry without an envelope is
+   `invalid`; the firer runs `brief`'s own pointer check before firing (each from the second review).
+
+*Self-review (quality rule 3):* three independent agents on dfb26381 (protocol logic, book side and prompts,
+workflows and wiring), then a fourth on the fixes. Accepted and fixed, each with a test: collect's rebuild from
+changing files (blocking); `v4-fire.yml` failing every session before go-live on `git add` of a missing folder
+(blocking); a fire step whose failure `tee` hid (blocking); the pointer retyped with no copy check; unchecked fields
+shown by `brief`, an editable envelope; weak variance caps; tracebacks on odd values; v2 collect writing
+`no_submission` after go-live; a refused question crashing settle; a lost fire log becoming `not_fired`; a failed
+pack read unalerted; v4 runs missing from BG1's capture coverage; the alert step's name cut by YAML at ` #`; ten
+mutations that survived. The second review (of 99a916f2) found, all fixed in 251b65de with a plant each: a
+`system_late` day collected as AI misses (blocking: the real `ReleasedPacks.release` returns a `system_late` record
+without raising, and the test fake had raised there, so the fake now behaves like the real class); the fire log
+trusted as it stood in the checkout; a lost log waiting forever; a pointer `brief` would refuse fired anyway. Not
+changed: C10's pin (above). Residual (reasoning only): a routine's own push credentials could add a file such as a
+forged fire log before the Actions push; the transcript audit names any push beyond `seal` and `reveal` a breach.
+
+*Real output sample* (`tests/e2e_acceptance/ai_v4_day.py` on 22 Oct 2026: the committed closes, rule and baseline
+rows and A16 rows; a fixture pack, scripted routines, recorded receipts):
+
+```
+Omenix F&O AI forecasts v4 (GitHub Actions): 2026-10-22: fired book2_hybrid, book3_ai of book2_hybrid, book3_ai
+Omenix F&O AI forecasts v4 (GitHub Actions): 2026-10-22: book2_hybrid on_time: collected; its rows land once its audit settles
+Omenix F&O AI forecasts v4 (GitHub Actions): 2026-10-22: book3_ai on_time: collected; its rows land once its audit settles
+Omenix F&O AI forecasts v4: 10 v4 row(s) added; 0 day(s) awaiting audit
+book2_hybrid_v2 v1_rv_next_session: invalid (no rules value and no baseline that day: no envelope, null; no miss)
+book2_hybrid_v2 v6_abs_move_2pct_next_session: ok 0.064 / book3_ai_v2 ...: ok 0.04
+G8, V6a, live cohort, n 1: Brier book2_hybrid_v2 0.004096, book3_ai_v2 0.0016, weather_vix_v1 0.000784, base_rate 0.000711
+Omenix F&O AI v4 slots: refused, nothing written: FREEZE_v4.md does not exist: the AI slots are registered after the freeze
+```
+
+*Waiting on others (none of these tests fail now; they use fakes of the agreed interfaces):* G10's real daily
+release (`ReleasedPacks`, the receipt push that starts `v4-fire.yml`) and G8's move from `research/data/v4_days/`;
+the freeze builder's `FREEZE_v4.md` and rules rows (then `register-v4-slots`); G7b's V2 primary baseline. The
+rule-8 end-to-end run needs G10's release on a live day.
+
+*Owner decided 24 Oct:* BG1 "forecasters last" and fail open, as built (C8; DESK_DECISIONS c63eb7e0b); the reveal
+wait does not count in BG1's cap (owner: "Waiting minutes - Option A"): BG1's reader change is its own story, not
+G11's (C17 already reports working and waiting minutes apart). *Still open:* steps 3 and 4 of both routines' stored
+prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v4's first 10 transcript audits).
+
+*Round 2 (judge 586, round 1 FAIL at d8aabba4c), each finding:*
+- Merge of `main` (G10 completion at 3ee1b8ae and later): `config.yaml` keeps both adjacent keys; G8's v4 wiring
+  keeps G10's body with G11's `build_slot_registry` name (judge J's resolution). REH1i's receipts test passes.
+- F1 (C13's late go-live): `v4_go_live.py`. Collect starts at the earlier of the go-live date and the AI slots'
+  earliest `effective_start`; a session before go-live is `not_fired` ("before the AI books' v4 go-live"); `ai fire`
+  prints the count every day. Tests: judge J's probe (start one session early, go-live on DAY) writes the early
+  session's audit, and G8's `AiSlotDays` finds no slot-day missing; the count line; the wiring passes the calendar's
+  sessions. Plant: collect from the go-live date only, caught. Note: a registered AI slot is collected from its start
+  even while `ai_books_v4` is null, so registration and the go-live date should land on the same session (C13's order).
+- F2: P18 (`mark_exposures` dropped), P23 (`released_sha256` from the fire log) and P25 (the firer's stop rule without
+  v4's sessions) each now fail a test through the collector or the firer; the three plants caught.
+- m1: both docstrings corrected. m2: the claim now says what holds: an annualised V1 above about 10% volatility is
+  refused (the cap 0.01 is 0.10 squared), an annualised V2
+  below a VIX of about 22.4 and a standard deviation for V1 pass (a test pins all three). m3: C10's reason corrected.
+- Change 7: who records v4's first 10 transcript audits and how, in the go-live checklist.
+
+- Self-review of round 2 (an independent code-review agent on 9f4266b3), fixed in 9dac0ae70: the daily
+  missed-before-go-live line says each session with a released pack is a `not_fired` miss and a `system_late` day is
+  excused; the firer's `sessions_between` is required (no default empty list, which would count no misses); the
+  `forecast-capture.yml` comment and the m2 wording corrected.
+- BG1-w (judge 587, via the orchestrator): `sealed_at` is `now_ist().isoformat()` (ISO with +05:30; `book_wiring.py`
+  gives the clock), null when the run never sealed, absent only in timing files before G11; round 2 renames no field.
+  `run_timing.py`'s and `v4_cost.py`'s docstrings stay true before and after BG1-w. C8's stop sums `minutes` only: a
+  test through `MeterBudgetStop` with 60 working plus 60 `wait_minutes` at a cap of 100 fires the books (passes now
+  and after BG1-w adds the column); plant: summing `wait_minutes` too, caught.
+  F8c's `test_run_timing.py` (BG1-w's builder, 24 Oct): its publish test no longer pins BG1's reader's minutes: it
+  checks the timing file's own start-to-end (4:10) and start-to-seal (2:00) figures and only the reader's day and
+  turns, so that test passes in either merge order (plant: `sealed_at` a minute late, caught). Judge's m4: the same
+  file's `test_the_ledger_gets_each_books_minutes_once` still pinned 4.17 and failed once BG1-w (cb98827ac) was
+  merged; with BG1-w on `main` first, its two expectations are now BG1-w's working minutes ("recorded 2.0 minutes
+  (and a wait of 2.17 minutes apart, not capped)", row "2.00"), nothing else changed (judge J's merge condition).
+- The same merge put `fno/constants.py` at 351 lines: `main` holds it at exactly 350 and G11 added one line
+  (`FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4`). Root cause: those names repeated the literals `RunTerms` already
+  held. They now live once in `fno/ai/run_terms.py` (`V2_TERMS`/`V4_TERMS` use them; every importer, all in
+  `fno/ai` and `tests/ai`, reads them there); `fno/constants.py` is byte-identical to `main`'s, so no other story's
+  file and nothing the v4 freeze records changed.
+- `test_v4_collect.py` passed 350 lines with round 2's tests; the fire-log, go-live and F2 tests moved unchanged to
+  `test_v4_collect_log.py` (1f81dcbe2).
+
+*Gates* on head 66db618e5 (`main` merged at 66db618e5, after BG1-w; `config.yaml`'s one conflict resolved to
+`main`'s `v4_pack: "2026-10-26"` beside G11's `ai_books_v4: null`; a clean copy, `FNO_SLACK_BOT_TOKEN` kept set):
+15,930 passed, 1 skipped, 14 xfailed; ruff and ruff format clean; `check_imports` clean (2,676 files);
+`check_records` clean (9,140 files). With `v4_pack` live and `ai_books_v4` null, `v4-fire.yml` prints "no v4
+go-live date is set", writes no log and exits 0 (tested).
+`check_numbers` runs on `main` at merge (no number was claimed by this story). Every later commit on the branch is
+Markdown only.

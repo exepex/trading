@@ -9,14 +9,15 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 
 from ..constants import V2_RV_5S, V3_RV_20S
+from .implied import HorizonRv
 
 INTRADAY_SUFFIX = "/intraday"
 INTRADAY_SERIES = {f"{q}{INTRADAY_SUFFIX}": q for q in (V2_RV_5S, V3_RV_20S)}  # series key -> its question
-# Wording W3, the owner's choice (unsigned): the series' premium-adjusted baseline is the question's own, fitted on the
-# close proxy (option B, recommended, the build's default), or fitted on the intraday measure (option A: no value for
-# about two years, so every pair is missing). One place to change when the owner signs.
+# Wording W3 (owner, 24 Oct 2026: "both"): V1 and the intraday series carry two premium-adjusted yardsticks, B fitted
+# on the close proxy and A on the intraday measure, each its own labelled row, never pooled.
 RATIO_CLOSE_PROXY, RATIO_INTRADAY = "close_proxy", "intraday"
-SERIES_RATIO_MEASURE = RATIO_CLOSE_PROXY
+# Wording W8 (owner, 24 Oct 2026: "W8 - yes"): yardstick A's ratio window takes A16b's candle back-fill where A16 has
+# no live row, counted as `backfill_window` in the stored ratio; never a forecast input, outcome or base rate.
 
 
 def question_of(key: str) -> str:
@@ -33,3 +34,22 @@ def intraday_horizon_sum(
         return None
     values = [intraday[d] for d in ahead]
     return (None, True) if any(v is None for v in values) else (sum(values), False)
+
+
+def intraday_horizon_rv(
+    rv: Mapping[date, float | None], sessions: Sequence[date], horizon: int
+) -> dict[date, HorizonRv]:
+    """Yardstick A's window points: for each scored session t whose next `horizon` sessions all have a non-void row,
+    `RV_h(t)` (`implied.HorizonRv`) resolved at `t+h`; a void or missing session leaves t out."""
+    found = {}
+    for i, t in enumerate(sessions[: len(sessions) - horizon]):
+        ahead = sessions[i + 1 : i + 1 + horizon]
+        summed = intraday_horizon_sum(rv, ahead)
+        if summed is not None and not summed[1]:
+            found[t] = HorizonRv(summed[0], ahead[-1])
+    return found
+
+
+def backfill_window_points(sessions: Sequence[date], horizon: int, backfilled: set[date]) -> set[date]:
+    """The window points t whose horizon `t+1..t+h` holds a back-filled session (W8's `backfill_window` label)."""
+    return {t for i, t in enumerate(sessions) if backfilled.intersection(sessions[i + 1 : i + 1 + horizon])}

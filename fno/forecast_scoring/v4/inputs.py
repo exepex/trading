@@ -62,9 +62,10 @@ class ForecastFiles(V4ForecastSource):
         if not path.is_file():
             return {}
         with path.open(encoding="utf-8", newline="") as handle:
-            return {date.fromisoformat(row["day"]): _value(row) for row in csv.DictReader(handle)}
+            return {date.fromisoformat(row["day"]): forecast_value(row) for row in csv.DictReader(handle)}
 
 
-def _value(row: dict) -> ForecastValue:
+def forecast_value(row: dict) -> ForecastValue:
+    """A record row (as a dict of its columns) as G8 reads it: a value only when its status is ok."""
     value = float(row["value"]) if row["status"] == OK else None
     return ForecastValue(value, row["label"] == LIVE)

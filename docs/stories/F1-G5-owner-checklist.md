@@ -122,3 +122,41 @@ pastes it, and no session changes a routine.
    - Step 0 (start on the latest main, DR1) is unchanged.
 4. **Until the owner pastes it**, the old prompt still works, because the commit no longer waits on pip. It only
    spends time on an install that nothing uses.
+
+## For G11's go-live (protocol v4): steps 3 and 4 of both routines' prompt (not yet: the orchestrator says when)
+
+Builder: session_01Rga1fe3C4rmnrmmE1p3diE (G11). Lane 1: a routine's prompt. The owner pastes it; no session changes a
+routine. Why: under v4 GitHub must receive the sealed answer by 15:10:00 IST, not 15:15:00. The new step names no
+time: each prompt version gives its own deadline (version 1: 15:15:00; version 2: 15:10:00), so this text is right
+for both and may be pasted any day before `daily.live_from.ai_books_v4`. Under v4 the fired text carries the whole
+input (about 18-19 KB) and the model retypes it into `brief`, so the text carries its own SHA-256 and `brief` refuses a
+mis-copied one with "copy it again exactly"; step 3 lets the model retry that one refusal. Replace step 3 with:
+
+> 3. Run `python -m fno.ai brief '<the text, exactly>'`. If it prints a line starting with "refused" that says "copy
+>    it again exactly", run it again with the text copied exactly, every character (at most three tries). On any
+>    other line starting with "refused", stop and give that line as your final message. Otherwise it prints your
+>    versioned instructions (from the repository, hash-checked) and then your input: follow those instructions
+>    exactly; they are your only instructions for this run.
+
+and step 4 with:
+
+> 4. Your answer must be sealed by the deadline your versioned instructions give. Never use `--no-verify`. If `seal`
+>    prints a line starting with "refused", do what your instructions say (fix what it names and run it again)
+>    while it is before that deadline. If it fails in any other way, or still refuses at that deadline, stop; final
+>    message: its last line.
+
+Version 2's instructions also run `reveal` again while it prints "waiting until 15:10:10 IST: run reveal again" (one
+call waits at most 9 minutes, inside the 10-minute Bash timeout); nothing in the stored prompt needs to change for it.
+
+## For G11's go-live: v4's first 10 fired days each need a transcript audit (judge 586, change 7)
+
+Every routine session of the first 10 days the v4 fire runs is audited before its rows land (`audit_plan.py`, as v2's
+first days were); until then each such day stays "awaiting audit" and G8's looks refuse. **Who:** the session the
+orchestrator assigns as v4 auditor (never the session that built G11, never a book's own routine), each session day
+after 15:30 IST, starting on the go-live day. **How:**
+1. `python -m fno ai audits-due` lists, under "(v4)", each due day, book and the routine's session link.
+2. Read that session's transcript (its tool calls): any file opened beyond what `brief` printed, any network use beyond
+   the `seal` and `reveal` pushes, any `fno.forecast` code run, any read of `research/forecasts/` is a breach.
+3. Record it: `python -m fno ai audit-record --protocol v4 --day <YYYY-MM-DD> --book <book2_hybrid|book3_ai>
+   --evidence "<what was read and seen, never a secret>" --auditor <session id>` (add `--breach <kind>` per breach).
+   Commit `research/forecasts/ai_v4/` (record scan on). After the first 10 days, 2 sessions a week are drawn.

@@ -52,7 +52,7 @@ def alerts():
 
 
 def step_alert(name: str, status: str, reason: str) -> str:
-    return FAILED_ALERT.format(day=rd.DAY, name=name, status=status, reason=reason)
+    return FAILED_ALERT.format(day=rd.DAY, name=name, status=status, reason=reason, note="")
 
 
 def test_no_3pm_capture_no_pack_book1_fails_alerted_and_the_book_has_a_no_decision_record(tmp_path, monkeypatch,

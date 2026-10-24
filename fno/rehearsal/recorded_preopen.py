@@ -13,8 +13,7 @@ from collections.abc import Callable
 from datetime import date, datetime, time
 
 from ..models import IST
-from ..preopen.answers import read_index_preopen
-from ..preopen.parts import Answer, GrowwIndexPreopen, PartFailed, PreopenPart
+from ..preopen.parts import Answer, PartFailed, PreopenPart
 from ..storage.receipts import ReceiptFolder
 from .serving import ServedOnce
 
@@ -27,6 +26,7 @@ class RecordedPreopenPart(PreopenPart):
     def __init__(self, live: PreopenPart, receipts: ReceiptFolder, read: Callable[[str], bytes | None],
                  now: Callable[[], datetime], sleep: Callable[[float], None]):  # fmt: skip
         self.live, self.name, self.window = live, live.name, live.window
+        self.last_read_margin = live.last_read_margin  # the live part's read plan, replayed (A22e)
         self.receipts, self.read_file, self.now, self.sleep = receipts, read, now, sleep
         self.served = ServedOnce()
 
@@ -41,12 +41,10 @@ class RecordedPreopenPart(PreopenPart):
         raw = self.read_file(path)
         if raw is None or hashlib.sha256(raw).hexdigest() != sha256:
             raise PartFailed(DAMAGED.format(path=path))
-        return Answer(raw, self._reading(raw, day, seen), seen)
+        return Answer(raw, self.read(raw, day, seen), seen)
 
-    def _reading(self, raw: bytes, day: date, seen: datetime):
-        if isinstance(self.live, GrowwIndexPreopen):
-            return read_index_preopen(raw, day, self.name)
-        return self.live.read(raw, day, seen)
+    def read(self, data: bytes, day: date, seen_at: datetime):
+        return self.live.read(data, day, seen_at)  # the live part's own reader on the recorded bytes
 
     def _nearest(self, day: date, now: datetime) -> tuple[str, datetime, str] | None:
         folder = RAW_FOLDER.format(day=day)

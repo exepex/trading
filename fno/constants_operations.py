@@ -16,6 +16,7 @@ __all__ = [
     "DAILY_RUN_STEPS",
     "V4_PACK_LIVE_KEY",
     "V4_RELEASE_STEP",
+    "V4_PACK_FORECASTS_STEP",
     "V4_DEADLINE_STEP",
     "OWNER_TIMING_STEP",
     "STEP_OK",
@@ -50,6 +51,7 @@ DESK_RUN_STEPS = (
 )
 # Story G10 completion: one `daily.live_from` key for protocol v4's 14:30 capture part, its release and its 15:10 check
 V4_PACK_LIVE_KEY, V4_RELEASE_STEP, V4_DEADLINE_STEP = "v4_pack", "v4_release", "v4_deadline"
+V4_PACK_FORECASTS_STEP = "forecasts_v4_pack"  # story G7b completion: its own `daily.live_from` key (null until the go)
 OWNER_TIMING_STEP = "owner_timing_fills"  # story E8: right after the quote parts start, before every other step
 DAILY_RUN_STEPS = (
     "quotes",
@@ -58,6 +60,7 @@ DAILY_RUN_STEPS = (
     "weather",
     "forecasts_v4",
     V4_RELEASE_STEP,  # G10 completion: after the `v4` part's capture ends (by 14:45), before E3's pack (14:58)
+    V4_PACK_FORECASTS_STEP,  # G7b completion: the pack-derived v4 rows, after the release, committed before 15:10
     *DESK_RUN_STEPS[:2],
     "book1",
     *DESK_RUN_STEPS[2:],
@@ -66,6 +69,7 @@ DAILY_RUN_STEPS = (
     "card",
     "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
     "premium_ranges",  # story G13d: from G13's record, at once (sealed by 15:30; the command refuses after it)
+    "school",  # MS-P1j: the five roads' 15:00 slot; after G13d (seconds), as both refuse after 15:30 (law 6: no fill)
     "price_distribution_scores",  # G13's scores: outcomes lag one session (NSE's close file lands in the evening)
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
     "price_range_scores",  # G13b's scores and seals; the same one-session lag
@@ -88,3 +92,7 @@ HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", 
 HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
 HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
 HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
+
+# A routine's fired text: one line of JSON, at most this long (the routine API's limit, to be confirmed before go-live);
+# a longer input is `not_fired`, never truncated (F1t's decision pointer, G11's v4 forecast pointer, response 272).
+ROUTINE_POINTER_MAX_BYTES = 64 * 1024

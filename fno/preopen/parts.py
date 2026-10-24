@@ -8,7 +8,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import requests
 
@@ -20,6 +20,10 @@ FO_PREOPEN_URL = "https://www.nseindia.com/api/market-data-pre-open?key=FO"
 TIMEOUT_SECONDS = 20
 GIFT_WINDOW = (time(8, 40), time(8, 45))  # opens at, closes at (the last read is one second before it)
 FO_WINDOW, INDEX_WINDOW = (time(9, 8, 30), time(9, 11)), (time(9, 10), time(9, 11))
+LAST_READ_MARGIN = timedelta(seconds=1)  # a part's last read starts this long before its window's close
+# A22e: the two index parts share their due times and Groww answers one paced call at a time (about 1-2 s each), so
+# their last read starts 15 s before the close and the second is not received after it only for being read second
+INDEX_LAST_READ_MARGIN = timedelta(seconds=15)
 
 
 class PartFailed(RuntimeError):
@@ -36,10 +40,15 @@ class Answer:
 class PreopenPart(ABC):
     name: str
     window: tuple[time, time]
+    last_read_margin: timedelta = LAST_READ_MARGIN
 
     @abstractmethod
     def answer(self, day: date) -> Answer:
         """One read now; PartFailed or BadAnswer when there is nothing to use."""
+
+    @abstractmethod
+    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading:
+        """The part's reader on one raw answer seen at `seen_at` (a rehearsal replays recorded bytes through it)."""
 
 
 class NseJsonPart(PreopenPart):
@@ -58,9 +67,6 @@ class NseJsonPart(PreopenPart):
             raise PartFailed(f"NSE: HTTP {response.status_code}")
         return Answer(response.content, self.read(response.content, day, seen_at), seen_at)
 
-    @abstractmethod
-    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading: ...
-
 
 class NseGiftNifty(NseJsonPart):
     name, window, url = "gift", GIFT_WINDOW, GIFT_URL
@@ -77,7 +83,7 @@ class NsePreopenList(NseJsonPart):
 
 
 class GrowwIndexPreopen(PreopenPart):
-    window = INDEX_WINDOW
+    window, last_read_margin = INDEX_WINDOW, INDEX_LAST_READ_MARGIN
 
     def __init__(self, name: str, source: IntradayCandleSource):
         """`name`: the index's day-row prefix (`nifty`, `banknifty`); `source`: its read-only candle source."""
@@ -88,4 +94,7 @@ class GrowwIndexPreopen(PreopenPart):
             candles = self.source.minute_candles(day)
         except CandleCallFailed as exc:
             raise PartFailed(str(exc)) from None
-        return Answer(candles.raw, read_index_preopen(candles.raw, day, self.name), candles.received_at)
+        return Answer(candles.raw, self.read(candles.raw, day, candles.received_at), candles.received_at)
+
+    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading:
+        return read_index_preopen(data, day, self.name, seen_at)

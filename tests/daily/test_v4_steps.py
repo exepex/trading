@@ -15,7 +15,8 @@ from .test_candle_step import _built_steps
 
 def test_the_order_puts_the_release_after_the_forecasts_and_before_the_desk_and_the_deadline_last():
     order = list(DAILY_RUN_STEPS)
-    assert order.index("forecasts_v4") + 1 == order.index("v4_release") == order.index("versions") - 1
+    assert order.index("forecasts_v4") + 1 == order.index("v4_release") == order.index("versions") - 2
+    assert order.index("forecasts_v4_pack") == order.index("v4_release") + 1  # G7b completion: right after the release
     assert order.index("v4_deadline") == order.index("candles") - 1  # from 15:12, before 15:33's candles
 
 

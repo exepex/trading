@@ -4,9 +4,10 @@ the freeze the first line says EXPLORATORY."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict
 
-from ...constants import V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE
+from ...constants import V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE
 from ...forecast_v4.terms import POWER_REPORT_AT
 from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES
 from .comparison import Comparison, margin
@@ -19,13 +20,20 @@ COHORT_HEADINGS = {
     V4_COHORT_LIVE: "live cohort (captured before the cutoff)",
 }  # G10: scored apart, never pooled
 SERIES_NOTE = " (reported only: the intraday measure, protocol 1.1)"
+QUESTION_NOTES = {  # protocol 1.4 and 1.5's own words for what V4 and V5 are, printed with them
+    V4_RV_BELOW_WEEKLY_IV: " (a probabilistic diagnostic, not a variance-risk-premium estimate)",
+    V5_INSIDE_STRADDLE: " (a terminal intrinsic-payoff proxy, not evidence of money)",
+    **{key: SERIES_NOTE for key in INTRADAY_SERIES},
+}
 SECONDARY = "Forecasts are secondary to net profit; no p-value here is a verdict (verdicts come only from a look)."
 
 
-def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> list[str]:
+def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts,
+                 diagnostics: Sequence[str] = ()) -> list[str]:  # fmt: skip
     lines = ([] if frozen else [EXPLORATORY]) + [f"Omenix F&O protocol v4 scores as of {as_of}", SECONDARY, days.line()]
+    lines += list(diagnostics)
     for report in reports:
-        lines.append(f"{report.question}: {report.status}{SERIES_NOTE if report.question in INTRADAY_SERIES else ''}")
+        lines.append(f"{report.question}: {report.status}{QUESTION_NOTES.get(report.question, '')}")
         if report.status != STATUS_SCORED:
             continue
         lines.append(f"  live forecasts: {report.live_forecasts}")
@@ -67,9 +75,11 @@ def comparison_lines(c: Comparison) -> list[str]:
     ]
 
 
-def report_json(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> dict:
+def report_json(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts,
+                diagnostics: Sequence[str] = ()) -> dict:  # fmt: skip
     questions = [_question_json(r) for r in reports]
-    return {"as_of": as_of, "exploratory": not frozen, "days": asdict(days), "questions": questions}
+    return {"as_of": as_of, "exploratory": not frozen, "days": asdict(days), "questions": questions,
+            "diagnostics": list(diagnostics)}  # fmt: skip
 
 
 def _question_json(report: QuestionReport) -> dict:

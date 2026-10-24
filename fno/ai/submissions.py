@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 
 from .history import RepoHistory
-from .paths import commitment_path, reveal_path
 from .receipts import PushReceipts, ReceiptUnknown
+from .run_terms import V2_TERMS, RunTerms
 from .seal import Commitment, SealBroken
 
 
@@ -37,11 +37,12 @@ class Submission:
             return None
 
 
-def read_submission(history: RepoHistory, receipts: PushReceipts, day: date, book: str) -> Submission:
-    commitment = _published(history, receipts, commitment_path(day, book))
-    reveal = _published(history, receipts, reveal_path(day, book))
+def read_submission(history: RepoHistory, receipts: PushReceipts, day: date, book: str,
+                    terms: RunTerms = V2_TERMS) -> Submission:  # fmt: skip
+    paths = terms.commitment_path(day, book), terms.reveal_path(day, book)
+    commitment, reveal = (_published(history, receipts, path) for path in paths)
     notes = [f"{p} was changed after it was first published; the first version counts"
-             for p, f in ((commitment_path(day, book), commitment), (reveal_path(day, book), reveal))
+             for p, f in zip(paths, (commitment, reveal))
              if f is not None and history.committed_text(p) != f.text]  # fmt: skip
     return Submission(commitment, reveal, notes)
 

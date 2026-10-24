@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from fno.models import IST
-from fno.preopen.parts import PartFailed
+from fno.preopen.parts import LAST_READ_MARGIN, PartFailed
 from fno.rehearsal.recorded_cues import RecordedCueSession
 from fno.rehearsal.recorded_preopen import RecordedPreopenPart
 from fno.rehearsal.serving import AROUND, EARLIER, NEAREST, ServedOnce, is_near
@@ -80,7 +80,7 @@ def test_the_kospi_read_is_served_and_a_second_read_of_the_url_is_not_recorded(t
 
 
 class GiftPart:
-    name, window = "gift", (None, None)
+    name, window, last_read_margin = "gift", (None, None), LAST_READ_MARGIN
 
     def read(self, data, day, seen_at):
         return data

@@ -34,6 +34,7 @@ on:
       - recorder-watch
       - stress-factor
       - vix-history
+      - v4-fire
     types: [completed]
 
 permissions:

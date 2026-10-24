@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fno.cards.card import CardBuilder
+from fno.cards.card_clocks import ServerCardClocks
 from fno.cards.committed import CommittedRecords
 from fno.cards.daily import DailyCard
 from fno.cards.deliveries import RepoDeliveryFiles
@@ -131,3 +132,6 @@ class Ticking:
     def __call__(self) -> datetime:
         self.moment += timedelta(milliseconds=1)
         return self.moment
+
+
+NO_CLOCKS = ServerCardClocks((), Ticking())  # T1f: an issuer that asks no server (Slack's post time only)

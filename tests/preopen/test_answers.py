@@ -61,8 +61,8 @@ def test_preopen_list_outside_its_layout_is_refused(data):
 
 
 def test_index_preopen_is_the_close_of_the_0909_candle_complete_at_0910():
-    reading = read_index_preopen(candles(), DAY, "nifty")
-    assert reading.complete and reading.values == {"nifty_preopen": "5555.5"}
+    reading = read_index_preopen(candles(), DAY, "nifty", ist(9, 10))
+    assert reading.complete and reading.values == {"nifty_preopen": "5555.5", "nifty_preopen_basis": "candle_0909"}
     assert reading.source_time == ist(9, 10)
 
 
@@ -72,16 +72,22 @@ def test_index_preopen_is_the_close_of_the_0909_candle_complete_at_0910():
      (candles(count=0), "no 09:09 candle yet"), (candles(day=DAY.replace(day=21)), "no 09:09 candle yet")],
 )  # fmt: skip
 def test_index_preopen_without_the_0909_candle_is_incomplete(data, detail):
-    reading = read_index_preopen(data, DAY, "nifty")
+    reading = read_index_preopen(data, DAY, "nifty", ist(9, 10))
     assert not reading.complete and reading.detail.startswith(detail) and reading.values == {}
 
 
 @pytest.mark.parametrize(
-    "data", [b'{"x": 1}', b'{"candles": [["2026-10-22T09:09:00+05:30", 1, 1, 1, 1]]}', b'{"candles": [["t"]]}']
+    "data",
+    [
+        b'{"x": 1}',
+        b'{"candles": [["2026-10-22T09:09:00+05:30", 1, 1, 1, 1]]}',
+        b'{"candles": [["t"]]}',
+        b'{"candles": [{"t": "2026-10-22T09:09:00"}]}',
+    ],
 )
 def test_index_candles_outside_their_layout_are_refused(data):
     with pytest.raises(BadAnswer):
-        read_index_preopen(data, DAY, "nifty")
+        read_index_preopen(data, DAY, "nifty", ist(9, 10))
 
 
 def test_gift_nifty_from_before_midnight_is_stale_even_when_under_15_minutes_old():

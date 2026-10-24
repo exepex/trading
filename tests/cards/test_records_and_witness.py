@@ -169,7 +169,7 @@ def test_the_five_second_boundary_on_both_sides(offset, resolution, warning):
 
 def test_githubs_clock_is_asked_on_the_repository_path(monkeypatch):
     issuer = wiring.build_card_issuer({})
-    (github,) = issuer.clocks
+    (github,) = issuer.clocks.servers
     assert github.url == "https://api.github.com/repos/exepex/trading"
     issuer = wiring.build_card_issuer({"GITHUB_REPOSITORY": "someone/fork"})
-    assert issuer.clocks[0].url == "https://api.github.com/repos/someone/fork"
+    assert issuer.clocks.servers[0].url == "https://api.github.com/repos/someone/fork"

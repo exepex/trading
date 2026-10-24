@@ -1,8 +1,9 @@
 """Waits for each part's window and reads it until complete (story A22, criterion 4): first read at the window's
-opening, then every 30 s, the last at one second before its close (09:10:59 for 09:11:00). A part complete inside its
-window is `ok`; complete only from its close on (a run started late reads once) is `late`; never complete is
-`incomplete`, or `failed` when no read gave a usable answer. Parts' windows may overlap; reads happen in time order.
-Each part is handed to `finished` as soon as it ends, so its answer is saved before later windows."""
+opening, then every 30 s, the last at its `last_read_margin` before its close (09:10:59 for 09:11:00; the index parts'
+09:10:45, A22e). A part complete inside its window is `ok`; complete only from its close on (a run started late reads
+once) is `late`; never complete is `incomplete`, or `failed` when no read gave a usable answer. Parts' windows may
+overlap; reads happen in time order. Each part is handed to `finished` as soon as it ends, so its answer is saved
+before later windows."""
 
 from __future__ import annotations
 
@@ -15,7 +16,6 @@ from .answers import BadAnswer
 from .parts import Answer, PartFailed, PreopenPart
 
 RETRY_EVERY = timedelta(seconds=30)
-LAST_READ_BEFORE_CLOSE = timedelta(seconds=1)
 OK, LATE, INCOMPLETE, FAILED = "ok", "late", "incomplete", "failed"
 
 
@@ -73,7 +73,7 @@ class PreopenRun:
             plan.problem = plan.answer.reading.detail
         except (PartFailed, BadAnswer) as problem:
             plan.problem = str(problem)
-        now, last_read = self.now(), plan.closes - LAST_READ_BEFORE_CLOSE
+        now, last_read = self.now(), plan.closes - plan.part.last_read_margin
         if plan.answer is not None and plan.answer.reading.complete:
             if plan.answer.seen_at < plan.closes:
                 return self._result(plan, OK, "")
