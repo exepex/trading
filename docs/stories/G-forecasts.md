@@ -2121,7 +2121,7 @@ to `build_commitment_times`), resolved by keeping both.
   may send its request at 14:40:00 and the pack is built after it. Recommend `V4_RELEASE_BY = 14:45:00`, a later
   record `system_late` (reasoning only: the content cutoff stays 14:40:00, no one gets more data, and pack readers keep
   10 minutes to 14:55). Alternative: 14:41:00, which a slow Drive upload can miss on a good day.
-- **D2 (accepted by the orchestrator, 24 Oct):** the catch-up and the reader start at `daily.live_from.forecasts_v4` (22 Oct), so 22 and 23 Oct (and Monday
+- **D2 (accepted by the orchestrator, 24 Oct; REVISED 24 Oct evening, see "D2 revised" below):** the catch-up and the reader start at `daily.live_from.forecasts_v4` (22 Oct), so 22 and 23 Oct (and Monday
   if this is not live then) are `system_late`. Recommend yes: those days had no pack, which is exactly the
   protocol's definition; all are before the freeze, so nothing counted changes.
 - **D3 (owner decided 24 Oct (DESK_DECISIONS): "2 - Option A", a `system_late` day fails `v4_release`):** a `system_late` today makes `v4_release` a failed step (the day ends "day done with problems: v4_release" and
@@ -2315,6 +2315,27 @@ never a day problem.
   day") and does not fail; the same day in a real run prints `NOT_LIVE` and writes nothing. Plant: the excuse ignored.
 - **Gates:** full suite with `FNO_SLACK_BOT_TOKEN` kept, ruff, format, imports, record scan; one 23 Oct rehearsal of
   this branch's tree with `v4_pack` at 26 Oct, the release's and the deadline's records under `dryrun/` only.
+
+**D2 revised: the day labels start at the pack's live date (orchestrator's rule-8 finding, 24 Oct; branch
+`story/g10-day-labels-live-date`; lane 1, one judge).** *Finding (strong evidence:
+`forecast-v4-scores report` on main 432071d63):* "days (live pack): A 0, system_late 2 ... flag not computable 1" and
+"live forecasts: 0" for every question, against "live forecasts: 8" before the G10 merge. *Cause:* D2 as built: the
+reader (`build_day_labels`) and the writer (the release's catch-up) start at `daily.live_from.forecasts_v4` (22 Oct),
+so 22 and 23 Oct, live forecast days before the pack was live, are `system_late` and `LateDaysOut` drops their rows.
+`system_late` means a system failure; no pack could exist on those days, and section 1.6 gives a day before the live
+date no label. Worse than the report: Monday's catch-up would write those two `system_late` records into Drive,
+write-once. "Flag not computable 1" is 23 Oct (A16's rv row has an empty `moved_after_cutoff`), counted only because
+23 Oct had a label. *Fix:* one label start, `daily.live_from.v4_pack`: `label_start(cfg)` in G8's root for every
+reader, and the release's catch-up from its own live date (`ReleaseRun` loses `labels_from`). The 15:10 deadline's
+catch-up stays at `forecasts_v4`: those are real forecast commitments, and their rows now stay in. PROTOCOL_v4 1.6
+names the pack's live date.
+- **DL1.** `label_start` is the pack's date (26 Oct), never the forecasts' (22 Oct); none when the pack is not live.
+- **DL2.** `build_day_labels` (Drive and calendar faked) on 27 Oct with no release record: 26 Oct `system_late`, 22
+  and 23 Oct no label, 27 Oct pending; on 26 Oct itself (the boundary): no label, pending 1.
+- **DL3.** `LateDaysOut` over those labels keeps 22 and 23 Oct's rows and outcomes and drops 26 Oct's.
+- **DL4.** The release's catch-up starts at its live date (RL3 updated: a rehearsal of 23 Oct writes only 23 Oct).
+- **Plants (each caught):** `label_start` back on `forecasts_v4`; `build_day_labels` bypassing it; the release's
+  catch-up starting before its live date.
 
 ---
 
