@@ -51,3 +51,47 @@ nearest row, the ambiguity, the old wiring and HEAD; I add one: a row committed 
 - The out-of-scope reasons hold: `corporate-actions-by-symbol` and the filings librarian are not run by the four
   routines (`rehearsal/routines.py`); G5's HEAD stays as accepted at the handover.
 - The builder, session_01Mt6dcBU5kp2htdPN2KmiZH, launched this judge (no shared context); builders never merge.
+
+## Addendum 1
+
+**REH1h story text, round 2 (story/reh1h-archive-serving @ e8c2f9de4), judge B: PASS (2 minor). Lane 1, rule 1.**
+Judged by reading: the branch changes only `docs/stories/REH1-rehearsal-mode.md` over REH1g's f1f37f3a5 (the REH1h
+section, `:772-929`). Doc-reading tests on e8c2f9de4: 829 passed, 15 xfailed.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1 G2b quotes not in the repository | **Accepted** | `docs/HANDOVER_2026-10-24.md:99` and `git show b5ab43ef6:...REH1-rehearsal-mode.md` lines 625-630 match the quotes word for word (my diff of the text) |
+| m1 H1's FII/DII condition | **Accepted** | `FiiDiiCashSource.url_for` returns `API` (`snapshot_source.py:83-85`); `_response` sends one GET (`raw_source.py:144-148`) |
+| m2 a day's 404 inside 10 min | **Accepted** | H2 boundary and its gap row, with the line difference said |
+| m3 empty headers | **Accepted** | `_stamp` reads `headers.get("Last-Modified")` (`raw_source.py:136-142`): empty gives None |
+| m4 tests on the fixed REH1g | **Accepted** | `f5854e3e3` merges f1f37f3a5; `git diff f1f37f3a5 e8c2f9de4` touches only the story file |
+| Judge 575 SF (fetch-first after 60 s) | **Accepted** | `SessionFiledTaker.take` fetches before any store read (`session_filed_taker.py:42-49`); the new rule serves it |
+
+**The new serving rule, on its merits.** Candidates: rows for the URL that reached main on the replay day (IST) and no
+later than now + 10 min; a future one is waited for (earliest first); otherwise the latest at or before now.
+- No look-ahead: a row after now is served only after a real sleep to its commit. `ReplayClock` is the wall clock plus an
+  offset that only grows (`clock.py:25-32`), so after the sleep now is at or after the commit. A row at or before now
+  was already held. Nothing is served before its commit [strong: code read].
+- Dropping the 60 s lower limit is right. Without it, e5 fails whenever the by-session step starts more than 60 s after
+  19:55:39. I reproduced that it does not open a guess: on the current record no URL has two datasets' rows in one
+  commit (my script over REH1g's A9 index), so the ambiguity rule refuses nothing real today. The only shared URLs are
+  the FII/DII API (by-session only, 22 Oct 01:07:09 and 19:55:58, 23 Oct 19:55:39 IST) and NSDL's page.
+- The knock-on holds: `FlowsRelease` and A8's `ReleaseTimeRecorder` call `fetch_published` (a GET, `release.py:36`,
+  `release_times.py:157`). The by-session copy names 23 Oct and the bhavcopy row is at 19:55:20, so both read "present"
+  with no "last written". The release log is written only in the rehearsal's checkout, so it never reaches main.
+
+## Minor (round 2)
+
+1. "This is what a fetch-first taker would have got from NSE then (NSE serves only its latest copy)" overstates it: it
+   is the record's latest copy, not NSE's. A 22 Oct by-session read at 19:40 is served the 01:07:09 row (session 21
+   Oct), while NSE probably already showed 22 Oct's values. The taker then files it under 21 Oct and the line differs.
+   No look-ahead [some evidence]. Say it as a limit.
+2. "For a store-first read it never arises" holds only for URLs that name their day. For a fixed-URL dataset (lot
+   sizes, equity list), a store-first read of day D with no D row would be served an earlier same-day row and file it
+   under D in `dryrun/`. None of the four routines makes such a read (`rehearsal/routines.py`; fo_masters is its own
+   workflow). Name the limit, or test the case when the code comes.
+
+## Plants
+
+None (text). The ten planned plants cover the rule; add "the replay-day bound dropped" alone (the text pairs it with
+the window).
