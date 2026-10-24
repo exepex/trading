@@ -4,12 +4,14 @@ says it is not live in real runs (K1, K2), and a rehearsed routine's not-live co
 
 import os
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 
 from fno.constants import ENV_FNO_REHEARSAL, ENV_FNO_REHEARSAL_NOT_LIVE
 from fno.forecast_lab import wiring
 from fno.forecast_lab.constants import EVENING, MORNING
+from fno.rehearsal.exercised_line import exercised_line
 from fno.rehearsal.mode import Rehearsal, labelled
 from fno.rehearsal.rehearse import run_routine
 from fno.rehearsal.routines import ROUTINES, Command, Routine
@@ -59,7 +61,8 @@ def edition_root(monkeypatch):
         return object(), Sessions(), live
 
     monkeypatch.setattr(wiring, "build_composer", composer)
-    monkeypatch.setattr(wiring, "records", lambda edition, env=None: object())
+    monkeypatch.setattr(wiring, "records", lambda edition, env=None: SimpleNamespace(report=None))
+    monkeypatch.setattr(wiring, "build_forecast_poster", lambda env=None: object())
     monkeypatch.setattr(wiring, "load_app_config", lambda: CFG)
     monkeypatch.setenv(ENV_FNO_REHEARSAL_NOT_LIVE, "before")  # recorded, so the line the edition sets is undone
     monkeypatch.delenv(ENV_FNO_REHEARSAL_NOT_LIVE)
@@ -92,12 +95,12 @@ def test_every_labelled_post_carries_the_note_and_a_live_edition_s_none(edition_
 # K3: a not-live command is exercised, never a routine failure
 
 
-def routine(tmp_path):
-    """A routine like the morning's: a script that exits 1 in place of `lab open`."""
+def routine(tmp_path, lab_exit=1):
+    """A routine like the morning's: a script that exits `lab_exit` in place of `lab open`."""
     script = tmp_path / "fno"
     script.mkdir()
     (script / "__main__.py").write_text(
-        "import sys\nprint('lab open said no')\nsys.exit(1 if 'lab' in sys.argv else 0)\n"
+        f"import sys\nprint('lab open said no')\nsys.exit({lab_exit} if 'lab' in sys.argv else 0)\n"
     )
     return Routine("morning", "-", None, (Command(("ok",)), Command(("lab", "open"), live_key=MORNING)))
 
@@ -109,6 +112,16 @@ def test_a_not_live_command_s_failure_is_exercised_and_the_routine_is_done(tmp_p
     assert (code, line) == (0, "2 commands done")
     failed = {"status": "failed", "reason": "lab open said no"}
     assert exercised == {"lab open": {"result": {"status": "not_live", "exercised": failed}}}
+
+
+def test_a_not_live_command_that_exits_0_is_exercised_ok_and_nothing_failed(tmp_path):
+    """Judge 618 SF1: exit 0 is recorded "ok", never "failed", and the exercised line says so."""
+    exercised = {}
+    code, line = run_routine(tmp_path, routine(tmp_path, lab_exit=0), D22, dict(os.environ), [].append,
+                             frozenset({MORNING}), exercised)  # fmt: skip
+    assert (code, line) == (0, "2 commands done")
+    assert exercised == {"lab open": {"result": {"status": "not_live", "exercised": {"status": "ok"}}}}
+    assert exercised_line(exercised) == "not live in real runs (exercised): lab open ok"
 
 
 def test_on_its_live_day_the_same_failure_is_the_routine_s(tmp_path):
@@ -133,3 +146,15 @@ def test_a_lone_not_live_command_is_exercised_never_the_routine_s_line(tmp_path)
     exercised = {}
     code, line = run_routine(tmp_path, lone, D22, dict(os.environ), [].append, frozenset({EVENING}), exercised)
     assert (code, line) == (0, "1 commands done") and "lab close" in exercised
+
+
+# The owner's preview: the real dates, never the rehearsal's (judge 617 m1, judge 618 m1)
+
+
+@pytest.mark.parametrize("day", [D22, None], ids=["under-the-mode", "no-mode"])
+def test_the_preview_takes_the_real_dates_and_sets_no_note(edition_root, monkeypatch, tmp_path, day):
+    if day is not None:
+        monkeypatch.setenv(ENV_FNO_REHEARSAL, mode(day, tmp_path)[ENV_FNO_REHEARSAL])
+    wiring.build_preview(MORNING)
+    assert edition_root["live"] == {MORNING: D23, EVENING: D23}  # config.yaml's dates, not the replayed day
+    assert ENV_FNO_REHEARSAL_NOT_LIVE not in os.environ

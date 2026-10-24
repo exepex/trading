@@ -1530,3 +1530,15 @@ patches the writers' builder `build_manifest_folder`; 5 of 5 runs pass.
 - Every post of both runs carries the bold label; none was unlabelled.
 
 **Gates** (main merged in): 16404 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan, numbers clean.
+
+#### Claims, code round 2 (judges 618 E: FAIL, 617 B: PASS with one minor; every item answered)
+
+Tests only; no code changed (`tests/rehearsal/test_lab_editions.py`).
+
+| Item | Answer | Plant (caught) |
+|---|---|---|
+| 618 SF1: no test where a not-live command exits 0 | `test_a_not_live_command_that_exits_0_is_exercised_ok_and_nothing_failed`: `lab open` exits 0 under the mode: "2 commands done", exercised `{"status": "not_live", "exercised": {"status": "ok"}}`, and `exercised_line` gives "not live in real runs (exercised): lab open ok" | E's own: `not_live_result` records exit 0 as failed |
+| 617 m1: nothing pins `build_preview`'s real dates | `test_the_preview_takes_the_real_dates_and_sets_no_note`, under the mode (22 Oct) and with no mode: the composer gets `config.yaml`'s dates (23 Oct both) | B's own: `build_composer(edition, env)` |
+| 618 m1: the preview under the mode | the same test, under the mode: the real dates, and no not-live note in the process | the preview given the rehearsal's dates; the preview noting its process |
+
+**Plants:** 4 planted, 4 caught, in a separate worktree, each restored with `git checkout --`.
