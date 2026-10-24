@@ -2,6 +2,7 @@
 run-log reader (criteria 1-5); and since O1's R2 a failed decisions step is never read as books (criterion 6)."""
 
 import json
+from datetime import datetime
 from types import SimpleNamespace
 
 from fno.cards.problem_steps import ProblemSteps
@@ -147,3 +148,30 @@ def test_the_app_s_card_wires_the_problem_line():
     from fno.config import ROOT
 
     assert isinstance(build_status(GitHeadRecords(ROOT), ROOT).problems, ProblemSteps)
+
+
+def _written_by_run_log(tmp_path, *entries) -> bytes:
+    """The run log as O1's `RunLog` writes it (round 2: a failed step carries `retry`; its retry replaces it)."""
+    log = run_log.RunLog(DAY, tmp_path / "log.json")
+    for name, result in entries:
+        log.record(name, datetime(2026, 10, 15, 15, 0), datetime(2026, 10, 15, 15, 1), {}, result)
+    return log.path.read_bytes()
+
+
+def test_a_failed_step_waiting_for_its_retry_is_named_as_failed(tmp_path):
+    """O1 round 2: `fills` failed with `retry: true` is not done for the run, and is still a failed step today."""
+    failed_fills = {"status": STEP_FAILED, "reason": "OSError: disk", run_log.RETRY: True}
+    final_decisions = {"status": STEP_FAILED, "reason": "raised:KeyError", run_log.RETRY: False}
+    data = _written_by_run_log(tmp_path, ("decisions", final_decisions), ("fills", failed_fills))
+    lines = status_lines({run_log_path(DAY): data})
+    assert lines[-1] == "Steps with problems today: decisions (failed), fills (failed)"
+    assert "- decisions: decisions step failed: raised:KeyError, no C4 refusal" in lines
+
+
+def test_a_step_retried_and_then_ok_is_no_longer_named(tmp_path):
+    """The retry's entry replaces the failed one (it moves last, in the order the steps ran): no problem remains."""
+    failed_fills = {"status": STEP_FAILED, "reason": "OSError: disk", run_log.RETRY: True}
+    data = _written_by_run_log(tmp_path, ("decisions", ON_TIME), ("fills", failed_fills), ("exits", {}),
+                               ("fills", {"t1": {"outcome": "filled"}}))  # fmt: skip
+    assert list(json.loads(data)["steps"]) == ["decisions", "exits", "fills"]
+    assert not any(line.startswith("Steps with problems") for line in status_lines({run_log_path(DAY): data}))
