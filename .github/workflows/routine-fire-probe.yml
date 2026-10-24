@@ -1,0 +1,33 @@
+# Story G11 fire probe (orchestrator, 25 Oct 2026): proves once, by hand, that the routine API's /fire takes a text the
+# size of a v4 pointer, through the same trigger and secrets as v4-fire. It fires Book 3's routine with a harmless
+# 24 KiB text ending in one single quote: the stored prompt's step 2 stops on it before anything runs. Manual only
+# (never on a push or a schedule); read-only checkout; it commits and pushes nothing. Run it outside 14:00-15:30 IST
+# on a session day. The step prints the API's answer and the session link, never the token. Never orders.
+name: routine-fire-probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FNO_ROUTINE_BOOK3_AI_TRIGGER_ID: ${{ secrets.FNO_ROUTINE_BOOK3_AI_TRIGGER_ID }}
+      FNO_ROUTINE_BOOK3_AI_TOKEN: ${{ secrets.FNO_ROUTINE_BOOK3_AI_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Fire Book 3's routine once with the probe text
+        run: python -m fno ai fire-probe | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash -o pipefail {0}
