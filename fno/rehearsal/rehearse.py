@@ -10,13 +10,14 @@ import subprocess
 import sys
 from collections.abc import Callable
 from datetime import date, datetime
+from functools import partial
 from pathlib import Path
 
 from ..constants import ENV_FNO_REHEARSAL
 from ..models import IST
 from .checkout import RehearsalCheckout, RehearsalCheckoutError, run_git
 from .clock import ReplayClock
-from .exercised_line import report_exercised
+from .exercised_line import not_live_result, report_exercised
 from .git_dates import install_git_shim
 from .mode import Rehearsal, in_this_process
 from .routines import ROUTINES, Command, Routine
@@ -62,9 +63,11 @@ def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], No
     for problem in (guard or _guard)(env, checkout.clone):
         out(GUARD_STOPPED.format(problem=problem))
         return 1
-    code, line = (run_child or run_routine)(checkout.clone, routine, day, env, out)
+    exercised: dict[str, dict] = {}  # REH1k: the routine's commands not live in real runs on the day
+    run = run_child or partial(run_routine, not_live=_not_live_editions(day), exercised=exercised)
+    code, line = run(checkout.clone, routine, day, env, out)
     try:  # REH1j: after the day's last line; never in the way of the receipts and the publish
-        report_exercised(checkout.clone, day, out, alerts or _alerts(out))
+        report_exercised(checkout.clone, day, out, alerts or _alerts(out), exercised)
     except (OSError, ValueError, KeyError) as unreadable:
         out(EXERCISED_UNREAD.format(problem=f"{type(unreadable).__name__}: {unreadable}"))
     if routine.receipts:
@@ -105,10 +108,12 @@ def _guard(env: dict, cwd: Path, command: tuple[str, ...] = GUARD_COMMAND) -> li
     return found
 
 
-def run_routine(checkout: Path, routine: Routine, day: date, env: dict, out: Callable[[str], None]) -> tuple[int, str]:
+def run_routine(checkout: Path, routine: Routine, day: date, env: dict, out: Callable[[str], None],
+                not_live: frozenset[str] = frozenset(), exercised: dict | None = None) -> tuple[int, str]:  # fmt: skip
     """The routine's own commands in the rehearsal's checkout, each relayed line by line: the background ones first,
     then the rest in order, then the background ones waited for. One command's failure never stops the next, as in
-    the routine; the last line is the daily run's own, or which commands failed."""
+    the routine; the last line is the daily run's own, or which commands failed. A command whose live key is in
+    `not_live` runs as on the day, but its outcome goes into `exercised` (REH1j's shape), never into "failed"."""
 
     def start(command: Command) -> subprocess.Popen:
         return subprocess.Popen([sys.executable, "-m", "fno", *command.for_day(day)], cwd=checkout, env=env,
@@ -117,10 +122,21 @@ def run_routine(checkout: Path, routine: Routine, day: date, env: dict, out: Cal
     background = [(c, start(c)) for c in routine.commands if c.background]
     results = [(c, _relayed(start(c), out)) for c in routine.commands if not c.background]
     results += [(c, _relayed(child, out)) for c, child in background]
-    failed = [" ".join(c.args) for c, (code, _) in results if code != 0]
+    for c, (code, last) in results:
+        if c.live_key in not_live and exercised is not None:
+            exercised[" ".join(c.args)] = {"result": not_live_result(code, last)}
+    failed = [" ".join(c.args) for c, (code, _) in results if code != 0 and c.live_key not in not_live]
     if len(routine.commands) == 1:
         return results[0][1]
     return (1 if failed else 0), (f"failed: {', '.join(failed)}" if failed else f"{len(results)} commands done")
+
+
+def _not_live_editions(day: date) -> frozenset[str]:
+    """The lab editions not live in real runs on the replayed day (`forecast_lab.live_from`)."""
+    from ..config import load_app_config
+    from ..forecast_lab.wiring import live_from
+
+    return frozenset(e for e, real in live_from(load_app_config()).items() if real is None or day < real)
 
 
 def _relayed(child: subprocess.Popen, out: Callable[[str], None]) -> tuple[int, str]:

@@ -275,3 +275,36 @@ def test_an_unreadable_full_log_never_stops_the_publish(source, tmp_path):
                           guard=lambda env, cwd: [], alerts=Recording())  # fmt: skip
     assert code == 0 and any(line.startswith("rehearsal: the exercised steps could not be read") for line in lines)
     assert lines[-1].startswith("rehearsal daily 2026-10-23 ")  # published
+
+
+# REH1k, K4: a routine's not-live command reaches the same line, through `rehearse` itself
+
+
+def test_a_routine_s_not_live_command_is_printed_after_its_last_line_and_posted_once(source, tmp_path, monkeypatch):
+    from fno.rehearsal import rehearse as module
+    from fno.rehearsal.exercised_line import not_live_result
+    from fno.rehearsal.routines import ROUTINES
+
+    repo, _ = source
+    lines, sent = [], Recording()
+
+    def routine_run(clone, routine, day, env, out, not_live, exercised):
+        assert not_live == {"evening"}  # what the rehearsal found not live on the day, handed to the routine
+        exercised["lab close"] = {"result": not_live_result(1, "lab close said no")}
+        out("7 commands done")
+        return 0, "7 commands done"
+
+    monkeypatch.setattr(module, "run_routine", routine_run)
+    monkeypatch.setattr(module, "_not_live_editions", lambda day: frozenset({"evening"}))
+    code = module.rehearse(ROUTINES["evening"], DAY, repo, lines.append, tmp_path / "home",
+                           is_session=lambda d: True, guard=lambda env, cwd: [], alerts=sent)  # fmt: skip
+    line = "not live in real runs (exercised): lab close failed: lab close said no"
+    at = lines.index("7 commands done")
+    assert code == 0 and lines[at + 1] == line and sent.sent == [line]
+
+
+def test_which_editions_are_not_live_comes_from_the_config():
+    from fno.rehearsal.rehearse import _not_live_editions
+
+    assert _not_live_editions(date(2026, 10, 22)) == {"morning", "evening"}  # both live from 23 Oct
+    assert _not_live_editions(DAY) == frozenset()
