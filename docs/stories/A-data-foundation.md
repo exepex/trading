@@ -707,6 +707,41 @@ first live day (rule 8); no Groww quote file in the repository.
 
 **Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 3 (15 Oct 2026: three indices, owner; judge 151's should-fix and minor)
 
+### A4c-2. The alert says what happened to each index (DRY2 R1, 24 Oct 2026)
+
+**Why.** DRY2 (`docs/dryruns/DRY2_2026-10-23.md`, row d8 and R1): the nifty part died at 14:38, so the indices part
+started at once, more than 20 minutes before 15:01. `IndexRecording` returned "too early" for every index and wrote no
+none marker (`close_day` is skipped for it). But the alert said "not recorded today (canonical none)", because
+`INDEX_ALERT` hard-codes that phrase for every index not recorded. A false alert misleads whoever reads it: a reader
+of "canonical none" thinks the day is closed and a rerun is pointless, when in fact a rerun before 15:13 would record.
+
+**What changes (A4c's own code only):**
+- The alert names each index's own outcome:
+  - an index whose day was closed none (incomplete at the window's end, the window closed, not listed, no weekly)
+    keeps "canonical none" with its reason;
+  - an index not started because the run came too early says `not started: too early (before 14:41)`. 14:41 is
+    15:01 minus `MAX_EARLY_WAIT_SECONDS` (20 minutes), computed from the constants, never typed.
+- Its result line says the same.
+- The fixed wording moves into one place, so the line and the alert cannot disagree.
+
+**Out of scope, with the reason:**
+- **The root cause:** the indices part starting before 14:41 lies in O1's `fno/daily/quote_parts.py`, which has
+  `starts_after="nifty"` and no `not_before`. It is proposed to the O1 builder (a `not_before` of 14:41).
+- **Never waiting longer than 20 minutes** stays: a hand run started an hour early still stops, now with a true line.
+
+**Acceptance criteria:**
+1. A run at 14:38 (23 minutes early) on a session: every index's line and the one alert say `not started: too early
+   (before 14:41)`. The alert does not hold "canonical none", and no none marker is written.
+2. **Boundaries:**
+   - a run at 14:41:00 waits and records;
+   - a run at 14:40:59 is "too early".
+3. An index incomplete at 15:13 keeps "canonical none" in the alert, beside a "too early" one if both occur.
+4. A quiet day (not a trading day, already recorded) still sends no alert, as now.
+5. The unsent-alert test prints the new text.
+6. Gates: full suite, ruff, `check_imports`; no file over 350 lines.
+
+**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** story text for judge F (24 Oct 2026)
+
 ---
 
 ## A4e. A named quote window for protocol v4's 14:30-14:40 pack (A4 behind config)
