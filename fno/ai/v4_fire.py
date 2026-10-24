@@ -5,13 +5,16 @@ Drive credentials). Research only.
 - Refused outright (nothing logged): a day that is not today's IST date (a replayed or late push), and any day before
   the AI books' v4 go-live date (`daily.live_from.ai_books_v4`, the same date that stops the v2 AI fire: owner's
   choice A).
-- No released pack (none recorded, `system_late`, or bytes failing their receipt): nothing is fired; the log says why.
+- No released pack (none recorded, `system_late`, or bytes failing their receipt): nothing is fired, one #fno-desk line,
+  and no log, so a later receipt push before 14:55 may still fire the day.
 - Per book: a start after `V4_LATEST_FIRE` (14:55), the stop rule, BG1's budget stop (`budget_stop.py`: forecasters
   last), a pointer over the cap or a refused trigger is a logged `not_fired`, with one #fno-desk line, never retried.
   The stop rule's day carries `"stop_rule": true`, the flag `v4_rows` reads (never the reason's wording); BG1's
   carries `"budget_stop": true`. A budget reading that fails fires the books with one line (fail open).
 - The log (`ai_v4/<YYYY>/<d>_fired.json`) keeps what the collection needs: the version, the questions, the pack's
-  and the input's SHA-256 and the routine's session link."""
+  and the input's SHA-256, the labels every answer must carry, Hybrid's envelope (numbers from the rule rows, never a
+  quote) and the routine's session link. Collect judges from it and never rebuilds the input, because the files an
+  input is built from (closes, A16's rows) can still change after the fire (review of dfb26381)."""
 
 from __future__ import annotations
 
@@ -31,8 +34,8 @@ from ..v4_pack.release import NotReleased, ReleasedPacks
 from .budget_stop import BudgetStop
 from .run_terms import V4_TERMS
 from .stop_rule import stop_reason
-from .v4_book_inputs import QuestionsRefused, V4BookInputs
-from .v4_pointer import V4Pointer
+from .v4_book_inputs import V4BookInputs
+from .v4_pointer import V4Pointer, v4_labels
 from .versions import current_version
 
 LINE = "Omenix F&O AI forecasts v4 (GitHub Actions): {day}: {result}"
@@ -65,10 +68,11 @@ class V4BookFirer:
             packs = self.released()
             release = packs.release(day)
             pack = packs.pack(release)
-        except NotReleased as missing:
-            self._write(log_file, {"released": False, "reason": str(missing)})
-            return [LINE.format(day=day, result=f"nothing fired: {missing}")]
-        late = self.clock() > datetime.combine(day, V4_LATEST_FIRE, IST)
+        except NotReleased as missing:  # no log: a later receipt push before 14:55 may still fire the day
+            line = LINE.format(day=day, result=f"nothing fired: {missing}")
+            self.alerts.send(line)
+            return [line]
+        late = self.clock().replace(microsecond=0) > datetime.combine(day, V4_LATEST_FIRE, IST)
         budget = self.budget.check(day)
         if budget.note:
             self.alerts.send(LINE.format(day=day, result=budget.note))
@@ -89,10 +93,9 @@ class V4BookFirer:
         version = current_version(book, FORECAST_PROTOCOL_V4)
         entry = {"version": version.label, "fired_at": self.clock().isoformat(), "pack_sha256": pack_sha256,
                  "fired": False, "stop_rule": False}  # fmt: skip
-        try:
-            entry["questions"] = self.inputs.questions(version, day)
-        except QuestionsRefused as wrong:
-            return self._not_fired(day, book, entry, str(wrong))
+        entry["questions"] = self.inputs.questions(version, day)
+        if refused := self.inputs.refusal(version, entry["questions"]):
+            return self._not_fired(day, book, entry, refused)
         if not entry["questions"]:
             return entry | {"reason": "no v4 question is registered for its slot yet"}
         if late:
@@ -103,7 +106,8 @@ class V4BookFirer:
         if budget_stop:
             return self._not_fired(day, book, entry | {"budget_stop": True}, budget_stop)
         pointer = V4Pointer(self.inputs.build(version, day, entry["questions"], pack, pack_sha256))
-        entry["input_sha256"] = pointer.input_sha256
+        entry |= {"input_sha256": pointer.input_sha256, "labels": v4_labels(pointer.input),
+                  "envelope": (pointer.input.get("rules") or {}).get("envelope")}  # fmt: skip
         try:
             session = self.triggers[book].fire(pointer)  # to_text refuses a pointer over the cap: never truncated
         except (FireFailed, ValueError) as failed:

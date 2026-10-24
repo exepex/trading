@@ -33,10 +33,6 @@ NOT_DEFINED = "{label} is registered for {questions}, which its prompt does not 
 V1_HISTORY, V2_HISTORY = 60, 260  # sessions of each point question's own measure shown (V2: as many as the closes)
 
 
-class QuestionsRefused(ValueError):
-    """The ledger asks a book a question its registered prompt does not define."""
-
-
 @dataclass
 class V4BookInputs:
     root: Path
@@ -45,11 +41,15 @@ class V4BookInputs:
     series: OutcomeSeries  # G8's outcome series: each point question's history in its own measure
 
     def questions(self, version: BookVersion, day: date) -> list[str]:
+        """The book's slot's started questions on `day` (every one gets a row, a refused one `not_fired`)."""
         slot = SLOTS[version.book]
-        asked = sorted(q for (q, s), r in self.registry.registered().items() if s == slot and r.effective_start <= day)
-        if undefined := [q for q in asked if q not in version.questions]:
-            raise QuestionsRefused(NOT_DEFINED.format(label=version.label, questions=undefined))
-        return asked
+        return sorted(q for (q, s), r in self.registry.registered().items() if s == slot and r.effective_start <= day)
+
+    @staticmethod
+    def refusal(version: BookVersion, questions: Sequence[str]) -> str:
+        """Why the book cannot be asked `questions` (its prompt does not define one), or ''."""
+        undefined = [q for q in questions if q not in version.questions]
+        return NOT_DEFINED.format(label=version.label, questions=undefined) if undefined else ""
 
     def build(self, version: BookVersion, day: date, questions: Sequence[str], pack: Pack, pack_sha256: str) -> dict:
         who = V4InputFor(version.book, version.label, day, questions, pack_sha256)

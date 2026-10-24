@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from ..forecast_v4_rules.records import RecordConflict
 from .draw_seed import Week, WeekSeed
 from .paths import TRANSCRIPT_AUDIT_SUFFIX
 from .run_terms import V4_TERMS
@@ -34,18 +35,28 @@ class V4RowSettler:
     def settle(self) -> list[str]:
         files = _collection_audits(self.root / V4_TERMS.folder)
         seeds = self.seeds() if files else {}  # the draws' seeds read the Drive archive: only when there is a day
-        added, waiting = 0, []
+        added, waiting, problems = 0, [], []
         for file in files:
-            audit = json.loads(file.read_text(encoding="utf-8"))
-            day = date.fromisoformat(audit["day"])
-            gate = scoring_status(self.root, day, audit["book"], seeds, V4_TERMS)
-            if gate.status == PENDING:
-                waiting.append(f"{day} {audit['book']} ({gate.reason})")
+            try:
+                rows, pending = self._settle(file, seeds)
+            except (KeyError, ValueError, RecordConflict) as broken:  # one bad day is said, never stops the others
+                problems.append(f"{file.name}: {type(broken).__name__}: {broken}")
                 continue
-            added += write_book_day(self.records_folder, _book_day(audit, day, gate), audit["fire"]["questions"],
-                                    audit["released_sha256"])  # fmt: skip
+            added += rows
+            waiting += [pending] if pending else []
         lines = [LINE.format(result=f"{added} v4 row(s) added; {len(waiting)} day(s) awaiting audit")]
-        return lines + [LINE.format(result=f"awaiting audit: {entry}") for entry in waiting]
+        lines += [LINE.format(result=f"awaiting audit: {entry}") for entry in waiting]
+        return lines + [LINE.format(result=f"NOT settled, fix and rerun: {entry}") for entry in problems]
+
+    def _settle(self, file: Path, seeds: dict[Week, WeekSeed]) -> tuple[int, str]:
+        """The rows one audit adds, or the day it leaves waiting."""
+        audit = json.loads(file.read_text(encoding="utf-8"))
+        day = date.fromisoformat(audit["day"])
+        gate = scoring_status(self.root, day, audit["book"], seeds, V4_TERMS)
+        if gate.status == PENDING:
+            return 0, f"{day} {audit['book']} ({gate.reason})"
+        book_day = _book_day(audit, day, gate)
+        return write_book_day(self.records_folder, book_day, audit["fire"]["questions"], audit["released_sha256"]), ""
 
 
 def _collection_audits(folder: Path) -> list[Path]:

@@ -134,10 +134,19 @@ def test_a_day_that_is_not_today_or_not_live_fires_nothing_and_logs_nothing(tmp_
     assert not (tmp_path / V4_TERMS.fired_path(DAY)).exists() and not desk.triggers[BOOK3_AI].fired
 
 
-def test_no_released_pack_fires_nothing_and_says_why(tmp_path):
+def test_no_released_pack_fires_nothing_says_why_and_leaves_the_day_open(tmp_path):
+    """No log is written, so a later receipt push before 14:55 can still fire the day (review of dfb26381)."""
     desk = Desk(tmp_path, released=Released("2026-10-26: system_late, no pack was released"))
     assert "nothing fired: 2026-10-26: system_late" in desk.firer.fire(DAY)[-1]
-    assert desk.log() == {"released": False, "reason": "2026-10-26: system_late, no pack was released"}
+    assert not (tmp_path / V4_TERMS.fired_path(DAY)).exists() and len(desk.alerts.lines) == 1
+
+
+@pytest.mark.parametrize(("now", "late"), [(datetime(2026, 10, 26, 14, 55, 0, 300000, IST), False),
+                                           (datetime(2026, 10, 26, 14, 55, 1, tzinfo=IST), True)])  # fmt: skip
+def test_the_latest_start_is_whole_seconds_1455_fires_145501_does_not(tmp_path, now, late):
+    desk = Desk(tmp_path, now=now)
+    desk.firer.fire(DAY)
+    assert desk.log()["books"][BOOK3_AI].get("late_start", False) is late
 
 
 def test_a_start_after_1455_is_a_logged_not_fired_with_an_alert(tmp_path):
