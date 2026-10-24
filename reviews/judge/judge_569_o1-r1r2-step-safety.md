@@ -146,3 +146,41 @@ nothing in `fno/desk` or `fno/daily`. tests/daily, timetable, desk, scoreboard a
 
 **Note:** a fills retry runs after run 1's exits, so `blocking_trades` and `taken_units` may see that run's close fills
 at the same snapshot. A retried entry can then differ from an uninterrupted day's, either way. Nothing is doubled.
+
+## Addendum 3 (owner's ruling 1A, own session)
+
+Judge B, 24 Oct 2026, in its own session (session_013TeXdnxSdUSYWCHjfyQA3N). Head judged: **story/o1-r1r2-step-safety-b
+at ee5711075**; the builder's delta from 2c80be430 is 067709db0, 5ca1fd0bc, 7fd93779b and d1b29a968 (the rest is main).
+Scope: only whether round 3 implements the owner's ruling ("1 - A", "2 - yes") and closes SF3.
+
+**Verdict: PASS: the change implements the ruling. SF3 is closed.** One minor and one merge condition below.
+
+| Check | Verdict | My evidence |
+|---|---|---|
+| Failed fills final, logged `retry: false`, no trade on a rerun | MET | `daily_run.py`: `RETRIED_ON_RERUN = ("exits", trade_marks)`; `_run_step` sets `retry = name in RETRIED_ON_RERUN`; `done` is false only for `retry is True`. Plant J1 (fills back in the list) fails 3 tests |
+| The alert says final, no new trade | MET | `NOT_RETRIED["fills"]` "failed fills are final for the day: no other new desk trade opens today (fail closed)" matches DESK_DECISIONS line 318 |
+| `_too_late`: 15:20:00 fills, 15:20:01 refused, only for a run that did not take the snapshot | MET | `now <= by` and `"snapshot" in self.ran_here`, reset in `run()`. Plants J2 (`<`), J3 (+1 s grace), J6 (seconds dropped), J4 (snapshot rule dropped), J5 (no reset), J15 (never added), J9 (not called), J7 (no alert): all caught |
+| SF3's 23:50 probe now refused | MET | `test_..._past_fills_by_is_refused_and_opens_nothing[30600]`: refused, book 3 opens nothing, the written trades unchanged, a clock set back still refused |
+| A late snapshot cannot reopen it | MET (read) | a rerun that takes the snapshot itself needs a new capture inside 15:15-15:20 (`SnapshotInWindow`, `take_snapshot` requires this attempt's record), else `valid` is false and nothing fills |
+| `desk:FILLS_LATE` and `NEEDS_*` codes | MET | `reason_codes.py`; plant J12 caught |
+| Exits and trade_marks still retried | MET (code), see M1 | `_too_late` returns at once for any name but `fills`; the round-2 retry tests pass |
+| Last line "; a rerun today retries it: <steps>" on its own day only | MET | `runner.py` `_retries` with `on_its_day`; plants J10 (any day), J11 (any failed step), J14 (no suffix): caught |
+| CLAUDE.md step 2b | MET | reruns once, at once, once only, never later; fills never retried; 14:05 unchanged (only 2b added). Narrows no lane-1 rule, touches no hard line |
+| J6 pinned | MET | plant J13 `written = len(result)` fails `test_the_written_count_leaves_out_a_blocked_book` |
+
+**M1 (minor, test only): the late-rerun test does not prove the exits and marks ran.** It asserts only `"exits" in
+log.steps`. My plant J8 (`_too_late` also refuses exits and trade_marks) survives all 690 tests. A probe asserting
+neither is `refused` passes on the head and fails 3 tests under J8, so the code is right. No test runs an exits retry
+after 15:20, the immediate rerun's usual time. Fix expected: assert their status is not refused there.
+
+**Merge condition (caused by this change, not a ruling defect):** with T1d (5cbd3c4c7) merged in, cb87fd6be fails
+`tests/cards/test_problem_steps.py::test_the_runner_s_last_line_and_the_card_name_the_same_steps_for_one_log`:
+`AttributeError: 'types.SimpleNamespace' object has no attribute 'on_its_day'` (`runner.py:69`). The runner now calls
+`daily_run.on_its_day`. Adding `on_its_day=lambda day: True` to that fake gives 646 passed. Whoever merges second makes
+that edit before pushing.
+
+**Plants: 15 planted, 14 caught, one survivor (J8, M1).** Restored with `git checkout --`; `git status` clean.
+
+**Gates (run by me):** trial merge with origin/main b61907a2a (547f51f94): 15,233 passed, 1 skipped, 15 xfailed; ruff,
+ruff format, check_imports, check_records and check_numbers clean. Trial merge with T1d: tests/daily, timetable, desk,
+scoreboard and cards 645 passed, 1 failed (above).
