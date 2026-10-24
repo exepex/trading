@@ -3505,3 +3505,7 @@ clean; `check_imports` clean (2760 files); `check_records` clean (9260 files); `
   6. A crash between a settlement and the seal, rerun after 15:25 (minor, out of scope): stated in the gap list,
      with the runbook's in-time rerun.
 - **F's boundary ruling** (the runner does not take the step's start time): no change.
+- **Gates at aeecdeebe** (the code of round 2; later commits are Markdown only): full suite 16559 passed, 1 skipped,
+  14 xfailed (FNO_SLACK_BOT_TOKEN kept set); ruff check and format clean; check_imports clean (2760 files);
+  check_records clean (9260 files). `SLOT_LAST_START` stays 15:25 (orchestrator, 25 Oct; the measured risk is in the
+  gap list).
