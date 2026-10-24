@@ -1575,6 +1575,19 @@ forecast-capture.yml's existing slot; the v2 AI steps leave at the freeze (owner
    at 14:55; moving it earlier is the owner's schedule call. Without it, that proof comes after the freeze and G11
    counts from the first proven day.
 
+#### Test-only note: the v4 no-implied-vol tests and the Drive-stored records (lane 2, 24 Oct 2026)
+
+From Mon 26 Oct (about 14:45 IST) the v4 pack is live and its first day receipt lands under `receipts/data/v4/days/`.
+Then the real `build_scoring()` reads the Drive-stored day records through G10's seam
+(`fno/forecast_scoring/v4/wiring.py`, `_drive_records`), and the two tests that build it
+(`tests/forecast_v4/test_iv_never_used.py`, `tests/forecast_scoring_v4/test_v4_needs_no_implied_vol.py`) would fail
+on main: tests have no Drive settings. Their point is "no implied vol", not the records, so both use one fixture,
+`no_v4_drive_records` in `tests/forecast_scoring_v4/conftest.py`: the seam returns records whose `files()` is `{}`, as
+before the first receipt. One place only; G7b renames the seam to `build_drive_records` and updates this fixture.
+Proof (a scratch worktree, a planted receipt `receipts/data/v4/days/2026/2026-10-26.json.sha256`, removed after):
+main's two tests "2 failed" with "RuntimeError: set FNO_GDRIVE_FOLDER_ID, ... to use the Drive data store"; with the
+fixture, "4 passed". Built by session_01GAACYjcfHWkC3hp33iiMXV for the orchestrator.
+
 ### G10 completion: protocol v4's daily clock really runs (story text, 24 Oct 2026)
 
 **Builder:** session_011hvvn9CahAD5dCPHS3kowN (orchestrator session_01Mt6dcBU5kp2htdPN2KmiZH assigned G10 on 24 Oct;

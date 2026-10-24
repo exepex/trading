@@ -20,3 +20,9 @@ EXISTING_COST_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_AZURE_POSTGRES)  # running before 
 BUDGET_OK, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN = "ok", "alert", "stop", "unknown"
 AI_ROLE_STOP_ORDER = ("analysts", "idea generator", "post-mortem writer", "devil's advocate objections",
                       "AI forecasters")  # fmt: skip
+# Story BG1-w (owner 24 Oct 2026, "Waiting minutes - Option A": a book run counts its working minutes, brief to seal):
+# what a run that never sealed counts, the builder's rule for the owner (BG-budget.md, BG1-w). The upper bound counts
+# it start to end, so the month's level stays known; the unknown rule refuses it (its session stays not captured)
+NO_SEAL_UPPER_BOUND, NO_SEAL_UNKNOWN = "no_seal_upper_bound", "no_seal_unknown"
+NO_SEAL_RULES = (NO_SEAL_UPPER_BOUND, NO_SEAL_UNKNOWN)
+NO_SEAL_RULE = NO_SEAL_UPPER_BOUND  # the one switch, until the owner answers (orchestrator, 24 Oct)

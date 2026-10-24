@@ -1,11 +1,11 @@
-date,purpose,book,role_or_bundle,session_id,model,minutes,turns,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,tokens_basis,source,complete_before
-2026-10-16,books_and_roles,,weekly post-mortem: writer and devil's advocate,session_019SMmBwLchqQaB4AtQ4vyN8,claude-sonnet-5-5,3.00,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-17
-2026-10-17,books_and_roles,,weekly post-mortem: writer and devil's advocate,session_013TcgmezGK6okSkMEDm56T4,claude-sonnet-5-5,0.42,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-18
-2026-10-19,books_and_roles,book2_hybrid,,session_01HFpRsZfaLf1ut6MYkb2irq,,4.21,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-20
-2026-10-19,books_and_roles,book3_ai,,session_01SCj76QeXzc5Xq883MDSgXz,,4.27,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-20
-2026-10-21,books_and_roles,book2_hybrid,,session_0197anEaxy7Kaofr8gMEDzo4,,4.51,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-22
-2026-10-21,books_and_roles,book3_ai,,session_01JjAoMB2LTn88Cn1u4ZCrFH,,4.37,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-22
-2026-10-22,books_and_roles,book2_hybrid,,session_01QkAB3bC1uZQ7YoVJcmEhzv,,4.43,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-23
-2026-10-23,books_and_roles,book3_ai,,session_0139W89pzfHhcvHoK7p1oRwb,,4.38,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-24
-2026-10-24,books_and_roles,,weekly post-mortem: writer and devil's advocate,session_01NQ2KNfvvtPZGcJshq9mM8i,claude-sonnet-5-5,0.23,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-25
-2026-10-23,books_and_roles,book2_hybrid,,session_01KkRLDYA5g7dbKBXo3k67ES,,4.64,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-24
+date,purpose,book,role_or_bundle,session_id,model,minutes,wait_minutes,turns,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,tokens_basis,source,complete_before
+2026-10-16,books_and_roles,,weekly post-mortem: writer and devil's advocate,session_019SMmBwLchqQaB4AtQ4vyN8,claude-sonnet-5-5,3.00,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-17
+2026-10-17,books_and_roles,,weekly post-mortem: writer and devil's advocate,session_013TcgmezGK6okSkMEDm56T4,claude-sonnet-5-5,0.42,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-18
+2026-10-19,books_and_roles,book2_hybrid,,session_01HFpRsZfaLf1ut6MYkb2irq,,4.21,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-20
+2026-10-19,books_and_roles,book3_ai,,session_01SCj76QeXzc5Xq883MDSgXz,,4.27,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-20
+2026-10-21,books_and_roles,book2_hybrid,,session_0197anEaxy7Kaofr8gMEDzo4,,4.51,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-22
+2026-10-21,books_and_roles,book3_ai,,session_01JjAoMB2LTn88Cn1u4ZCrFH,,4.37,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-22
+2026-10-22,books_and_roles,book2_hybrid,,session_01QkAB3bC1uZQ7YoVJcmEhzv,,4.43,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-23
+2026-10-23,books_and_roles,book3_ai,,session_0139W89pzfHhcvHoK7p1oRwb,,4.38,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-24
+2026-10-24,books_and_roles,,weekly post-mortem: writer and devil's advocate,session_01NQ2KNfvvtPZGcJshq9mM8i,claude-sonnet-5-5,0.23,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-25
+2026-10-23,books_and_roles,book2_hybrid,,session_01KkRLDYA5g7dbKBXo3k67ES,,4.64,,1,,,,,not available,self-timed by the routine (start to end of its run),2026-10-24
