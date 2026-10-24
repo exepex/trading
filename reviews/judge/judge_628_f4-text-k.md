@@ -40,3 +40,16 @@ new evidence are needed; round 2 can pass by reading.
 - `F-ai-layer.md` now points to `F4-ai-judge.md`. The old six criteria are carried there: Book 2 blocks and Book 3
   records, a missed budget is `unavailable` (Book 2 no trade), and the monthly audit.
 - The owner's "code daily + AI monthly" (16 Oct) and the 308 addendum's closed items stand unchanged.
+
+## Addendum 1: round 2, `story/f4-ai-judge` at 1ca9b6913 (judge K)
+
+**PASS, lane 1, text only.** Doc-reading tests on 1ca9b6913, Slack token set: 922 passed, 14 xfailed. I did not read
+judge E's verdict.
+
+| Finding | Verdict | Evidence (read) |
+|---|---|---|
+| SF1: the verdict type has no owner in the port | fixed | F4 design 4 now shows `JudgeVerdict(status, blocks, reason)` as a frozen dataclass in F1t's `fno/ai_trading/ports.py`, beside `Judged(verdict: JudgeVerdict, path)`. F4's `verdict.py` writes the full file (design 3) and returns that type, and "F4 defines no second copy". F1t's "The judge" names it in one line. Against main, this branch changes F1t by exactly those two sentences (`git diff origin/main 1ca9b6913 -- docs/stories/F1t-ai-trading-runner.md`), so nothing of F1t's passed text is lost |
+| m1: `NoJudge`'s path | fixed | `NoJudge` writes the verdict file once to `journal/ai_decisions/<YYYY>/<d>_<book>_judge.json`: `judge` `none:not-built`, `status` `unavailable`, `blocks` true for Book 2 and false for Book 3, reason "judge not built (F4)", `checks` empty, the decision and pack hashes only, so no private value. It returns `Judged(JudgeVerdict("unavailable", blocks, ...), path)`; that path is `AcceptedDecision.judge`. Same bytes are accepted, different bytes refused, as for F4's own file |
+
+With the port's types owned by F1t alone and `NoJudge` recorded, the orchestrator's four checks are all met: the port
+is F1t's only copy; `NoJudge` fails closed for Book 2; Book 3 never blocks; judge 308.1's item is closed.
