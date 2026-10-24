@@ -70,7 +70,7 @@ def test_auto_picks_groww_with_credentials_and_nse_without(monkeypatch):
     class FakeGroww:
         name = "groww"
 
-        def __init__(self, config):
+        def __init__(self, config, *guards):  # story GW1: the sign-in alert and A16's quiet windows
             pass
 
     monkeypatch.setattr(groww, "GrowwProvider", FakeGroww)

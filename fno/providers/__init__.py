@@ -8,7 +8,8 @@ AUTO_PROVIDER = "auto"
 
 
 def get_provider(name: str, config: dict) -> Provider:
-    """`auto` uses Groww when its credentials are set (the owner's PC) and the free NSE website otherwise."""
+    """`auto` uses Groww when its credentials are set (the owner's PC) and the free NSE website otherwise. A Groww
+    provider built here alerts its failed sign-in and keeps out of A16's marks (story GW1); A16 builds its own."""
     name = (name or "nse").lower()
     if name == AUTO_PROVIDER:
         return _auto_provider(config)
@@ -17,9 +18,7 @@ def get_provider(name: str, config: dict) -> Provider:
 
         return NSEProvider(config)
     if name == "groww":
-        from .groww import GrowwProvider
-
-        return GrowwProvider(config)
+        return _groww_provider(config)
     if name == "sample":
         from .sample import SampleProvider
 
@@ -32,13 +31,28 @@ def _auto_provider(config: dict) -> Provider:
     from .public import NSEProvider
 
     try:
-        from .groww import GrowwProvider, has_groww_credentials
+        from .groww import has_groww_credentials
 
         if has_groww_credentials():
-            return GrowwProvider(config)
+            return _groww_provider(config)
     except (ImportError, RuntimeError) as exc:
         log.warning("Groww unavailable (%s); using the NSE website for option chains", exc)
     return NSEProvider(config)
+
+
+def _groww_provider(config: dict) -> Provider:
+    from .groww import GrowwProvider
+    from .groww_quiet_windows import MarkQuietWindows
+
+    return GrowwProvider(config, alert_sign_in_failure, MarkQuietWindows())
+
+
+def alert_sign_in_failure(line: str) -> None:
+    """Story GW1: a token day's first failed Groww sign-in, one #fno-desk line; the outcome is printed, so an unsent
+    alert is seen ("alert NOT sent: ...")."""
+    from ..composition import build_alert_sender
+
+    print(build_alert_sender().send(line))
 
 
 __all__ = ["Provider", "get_provider"]

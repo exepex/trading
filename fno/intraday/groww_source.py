@@ -43,6 +43,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
                  clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None):  # fmt: skip
         self.client, self.plan, self.lot_size, self.clock = client, plan, lot_size, clock
         self.pacer = pacer or RatePacer(PER_SECOND)
+        self._own_pacer = self.pacer
         self._expiries: dict[date, Expiries] = {}
         self._prepare_notes: list[str] = []
 
@@ -53,6 +54,9 @@ class GrowwIntradaySource(IntradayQuoteSource):
                 action()
             except Exception as exc:  # a note only: the snapshot tries again, and its own calls decide its status
                 self._prepare_notes.append(f"prepare {step}: {type(exc).__name__}")
+
+    def share_pace(self, shared: bool) -> None:
+        self.pacer = RatePacer(PER_SECOND / 2) if shared else self._own_pacer
 
     def take(self, session: date, mark: datetime) -> SnapshotDocument:
         index = self._call("index", lambda api: api.get_quote(trading_symbol=INDEX_SYMBOL, exchange=api.EXCHANGE_NSE,

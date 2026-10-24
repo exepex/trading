@@ -18,7 +18,7 @@ from ..constants import SESSION_MUHURAT
 from ..models import IST, now_ist
 from ..quotes.recorder import MUHURAT_ONLY, RECORDED_SESSION_KINDS
 from ..research_data.calendar import CalendarError, SessionCalendar
-from .claims import ClaimResult, MarkClaims, NoClaims
+from .claims import UNCLAIMED, ClaimResult, MarkClaims, NoClaims
 from .clock import ClockCheck
 from .document import SnapshotDocument, utc_text
 from .heartbeat import Heartbeat
@@ -106,6 +106,7 @@ class IntradayRecorder:
             detail = CLAIMED_BY.format(run=claim.holder)
             return self._close(day, started, SlotOutcome(ALREADY, label(mark), detail, lines))
         lines += [CLAIM_LINE.format(outcome=claim.outcome, detail=claim.detail)] if claim.detail else []
+        self.source.share_pace(claim.outcome == UNCLAIMED)  # GW1: two blind takers stay within Groww's limit
         wait = (mark - self.now()).total_seconds()
         if wait > 0:
             self.sleep(wait)

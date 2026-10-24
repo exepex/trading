@@ -202,3 +202,29 @@ def test_a_dry_run_claims_nothing_and_a_live_run_shares_its_paths_with_the_ledge
     ledger = wiring._sync(None, NoAlertSender("test")).committer  # the other side shares the claims folder (judge 247)
     assert ledger.run_paths == (wiring._repository_path(wiring.CLAIMS_FOLDER) + "/",)
     assert isinstance(wiring._sync(tmp_path, NoAlertSender("test")), NoSync)
+
+
+class Unclaimed(MarkClaims):
+    def claim(self, day: date, mark: datetime) -> ClaimResult:
+        return ClaimResult(UNCLAIMED, "", "claim NOT committed") if mark == ist(DAY, 9, 15) else ClaimResult(WON, "me")
+
+
+def test_a_run_that_could_not_claim_its_mark_takes_it_at_half_pace_and_the_next_at_full(tmp_path):
+    """Story GW1: two blind takers of one mark stay within Groww's 5 a second."""
+    clock = FakeClock(ist(DAY, 9, 5))
+    recorder, source_, *_ = build(tmp_path, clock)
+    recorder.claims, paces = Unclaimed(), []
+    source_.share_pace = paces.append
+    recorder.run(time(9, 35))
+    assert [f"{m:%H:%M}" for m in source_.taken] == ["09:15", "09:30"] and paces == [True, False]
+
+
+def test_the_groww_source_asks_at_half_pace_only_while_shared():
+    from fno.intraday.groww_source import PER_SECOND
+
+    adapter = source(FakeGrowwApi())
+    own = adapter.pacer
+    adapter.share_pace(True)
+    assert adapter.pacer is not own and adapter.pacer.interval == 2 / PER_SECOND
+    adapter.share_pace(False)
+    assert adapter.pacer is own
