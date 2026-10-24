@@ -56,3 +56,25 @@ so finding 1 stands.
   comment): fix it in the next code commit.
 - The builder's leftover 2: the decisions bullet still names `terms.V4_RELEASE_BY`. This is my m1, still open; the new
   sentence beside it ("D1 lives in one constant (`terms.V4_RELEASE_BY`)") repeats it.
+
+## Addendum 2: round 2 (the last), exact head 5bde718c1
+
+**PASS. Lane 1.** Every finding is fixed and checked below; there are no blocking or should-fix findings left. I ran
+the gates on a trial merge of 5bde718c1 into origin/main 7f37fa7a6. The merge was clean (b1762a0d6). ruff, format
+(2,493 files), imports (2,622), record scan (9,067) and number check are all clean. **15,464 passed, 1 skipped, 15
+xfailed.** `fno/forecast_v4/terms.py` is still byte-identical to main.
+
+| Judge 584 | Ruling | My evidence |
+|---|---|---|
+| B1 conflict | FIXED | merge 3782758b8 keeps main's `earliest_start`, `INDEX_EARLIEST_START`, `_waited_for`/`_due`, `service()` calling `start_due()` untouched (`git diff origin/main -- fno/daily/quote_parts.py`: only `_open`/`_live`, `apart`, `await_part`, `waits_for`, `NIFTY_QUOTES`, `HUNG`); my run: nifty 14:38, nse 14:38, indices 14:44 (main's), v4 14:27; plants on the resolved scheduler (no live filter, `apart` off, hung part kept) all caught |
+| Deviation: v4 early limit | ACCEPTED | `v4_part._shortly_before` uses A4's one rule `earliest_waiting_moment` (`recorder.py:51`) with the window's own 30-minute wait; main's `earliest_start` hard-codes A4's 20 minutes (`earliest_waiting_start`, `recorder.py:58-62`), wrong for any window whose wait differs. A short-wait window now starts at or after its own limit, never "too early"; my plant (default wait) caught |
+| SF1 overlap | FIXED | my round-1 case now gives "31 failure(s) in 1 attempt(s) ... A16's 14:30 mark good"; plants dropping `v4_failures` or the future failure caught |
+| SF2 extras order | FIXED | `recorder.py`: extras after the levels and the monthly fetch, only on an attempt with a chain, sidecar keys only from that attempt; plants (extras moved before the levels; an earlier attempt's keys) caught |
+| SF3 CLAUDE.md | FIXED | step 2 now runs card, then the deadline check (from 15:12), then the candles, then A4h's reads last; story list `G-forecasts.md:1509` the same; the CLAUDE.md diff against main is G10's lines only; plant "last, v4's deadline" in CLAUDE.md caught |
+| m1, m4 stale text | FIXED | no `terms.V4_RELEASE_BY` left in the story; `release_run.py` comments cite the owner's 24 Oct rows |
+| m2 release-by | FIXED (residual accepted) | `release.publish(..., in_time)` asks after the pack upload; plant ignoring `in_time` caught. Residual: the small record's own write is not checked (stated). The pre-build check `_built` is now covered by `in_time`: my plant moving it 60 s later survives, because the outcome is the same apart from an orphan pack in Drive that no record names (note, not a finding) |
+| m3 other-session rows | ACCEPTED as a stated limit | `commitments.py` and `deadlines.py` docstrings |
+
+**Plants, round 2:** 11 new plants, all caught. I re-ran the 28 round-1 plants on the new head: 27 caught, and the one
+survivor is the equivalent `release_by_ge` described above. The orchestrator's merge procedure (quality rule 8) still
+applies: one dry run of `v4-pack release` on real data after merge.
