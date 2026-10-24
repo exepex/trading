@@ -53,3 +53,18 @@ None: text round.
 
 SF1 (the reported model must be the served one, `last_served_model`, not the configured one) is what still blocks the
 PASS. Its fix is text only.
+
+## Addendum 2: round 2, `story/f1t-runner-v2` at 4dbf786d7 (judge K)
+
+**PASS, lane 1, text only.** The change since 2bc4005d4 is Markdown only. Doc-reading tests on 4dbf786d7, Slack token
+set: 922 passed, 14 xfailed. I did not read judge E's 623.
+
+| Finding | Verdict | Evidence (read) |
+|---|---|---|
+| SF1 (served model) | fixed | `model_reported` = `external_metadata.last_served_model`, `model_configured` = `session_context.model`, `model_source` in {`session_tool`, `instructions`, `none`}. With `session_tool`, served or configured different from the registered model is `model_mismatch`. `instructions` or `none` is `model_unverified`, by the orchestrator's 25 Oct ruling, stated with its reason. All are no trade. A false copy of the tool's fields is a transcript-audit breach (`model_misreported`) under the stop rule. Criterion 3c covers every case, including "served differs while configured matches". The go-live fire must show `session_tool` with `last_served_model` equal to the registered model; anything else blocks the switch. The limit that `last_served_model` covers only the latest turn is stated in Known limits |
+| m1 | fixed | the 15:10:10 timeline row says every seal (decision and v4 forecast, 15:10:00) comes before any reveal. Known limits names the four-reveal race (a reveal not on the remote at 15:11:00 is `not_revealed`, never a trade), and the checklist's test fire records each reveal's push time |
+| m2 | fixed | the unreadable meter is a deliberate fail-open on cost only, never a trade (C2, C4 and the judge still apply), with the orchestrator's ruling cited |
+| The owner's rulings now cited | verified | `docs/DESK_DECISIONS.md` on main, 25 Oct rows. The 15 Oct "trade only after a strategy has passed" rule is lifted for paper: trades labelled "strategy not yet passed" (row 344). Q9, Q10 and Q11 approved (row 345: "9 yes, 10 yes, 11 yes"). The new criterion 17b (the strategy label; a chosen trade without `strategy_status` is refused) carries the lift with its label, so it is not loosened silently. Q11's research-candidate defaults are F5's revision, correctly kept out of this story |
+| Judge E's SF2 (`LevelBudgetStop`) | read only as text | a second `BudgetStop` implementation: decisions stop at BG1's level `stop`, before the forecasters (design 7.6); criterion 12 has the case. Its acceptance is judge E's to give |
+
+Nothing passed is loosened: the only lifted rule is the owner's own, and it is cited and labelled.
