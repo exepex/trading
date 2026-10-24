@@ -1,6 +1,7 @@
 """The weather record (story M1): `research/forecasts/v4/weather/<YYYY>/<d>.json`, one per regular session, written
 once (the same bytes again change nothing; a different record for a day already written is refused). Public inputs
-only: the US-move flag is in the private Drive part (decision 72). `WeatherRecords.for_day` is the card's reader."""
+only: the US-move flag is in the private Drive part (decision 72). The card (T1c) reads a day's committed bytes at
+`WeatherRecords.path`, never the working tree; `for_day` reads the file on disk."""
 
 from __future__ import annotations
 
