@@ -32,10 +32,20 @@ class CardSection:
 
 
 @dataclass(frozen=True)
+class CardWarning:
+    """Story T1e: the card's warning, a headline (glyph and word) and its detail. Only the renderer decides where it
+    goes, so the owner's choice of placement is a one-place change."""
+
+    headline: str
+    detail: str
+
+
+@dataclass(frozen=True)
 class StatusReading:
     status: CardStatus
     reason_code: str
     section: CardSection
+    warning: CardWarning | None = None
 
 
 class StatusSource(ABC):

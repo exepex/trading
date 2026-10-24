@@ -717,7 +717,7 @@ contract; never `fno/desk/` or `fno/daily/`):
 - **Placement: the owner chooses (judge 577 finding 2).** Built so that either answer is a one-place change: the
   status reading carries the warning as a value (`CardWarning(headline, detail)`), and one function in
   `SlackTextRenderer` places it. No other code knows where it goes.
-  - **(a) Line-1 prefix (judge I's recommendation to the owner).** Line 1:
+  - **(a) Line-1 prefix (fits the owner's word "headline", judge 577).** Line 1:
     "⚠️ WARNING: part of today's desk run did not work. PAPER ONLY. Omenix F&O daily card, Sat 24 Oct 2026 (NSE
     regular session). Information, no action." Line 2: the detail. The warning is in a phone notification's
     preview (about the first 100 characters). T1's two `startswith("PAPER ONLY.")` tests change to "line 1
@@ -729,7 +729,7 @@ contract; never `fno/desk/` or `fno/daily/`):
     line 2 on a day without one.
   - On a `--post --test` card, T1's TEST banner stays the very first line of the post, before the card's text, as
     today (`issue.py`). This holds for (a) and (b) alike.
-  - Until the owner answers, the code is built with (a), judge I's recommendation. If the owner picks (b), only that
+  - Until the owner answers, the code is built with (a) (the orchestrator's default, 24 Oct). The owner decides. If the owner picks (b), only that
     one renderer function and its test change.
 - **T1d's bottom line moves.** It becomes the warning's detail, so the step list is shown once, never twice.
 - **The status reason code.** A new code, `step_problems` (`CARD_STEP_PROBLEMS`, "a desk step failed or was refused
@@ -740,8 +740,8 @@ contract; never `fno/desk/` or `fno/daily/`):
   - A failed `snapshot` keeps `data_check_failed`, the more specific code; the warning is shown either way.
   - The code is stored in the delivery metadata as today's codes are; no card text goes there (T1 criterion 9).
   - Readers of the code (round 1 wrongly said "no other module"; the grep looked only in `fno/`): the delivery
-    file, and from it the dashboard card's `reason` (`tests/market_read_models/test_p1_t1_card.py`, and the
-    dashboard itself through the read models). No code in `fno/` outside `fno/cards/` reads it.
+    file, and from it the dashboard card's `reason` (`tests/market_read_models/test_p1_t1_card.py`); it
+    reaches the dashboard through the delivery file and the contract. No code in `fno/` outside `fno/cards/` reads it.
 - **The dashboard contract (judge 577 finding 1).** `step_problems` is not in the contract's `reason` list, so the
   first live card with it would break `test_every_committed_delivery_record_fits_the_catalogs_card` on `main`, and the
   dashboard could not show that day's card.

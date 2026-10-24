@@ -1,11 +1,12 @@
 """Story T1d: the card names the steps that failed or were refused today, with O1's own rule, read through T2's
-run-log reader (criteria 1-5); and since O1's R2 a failed decisions step is never read as books (criterion 6)."""
+run-log reader (criteria 1-5); since T1e the list is the warning's detail, never a status line. Since O1's R2 a failed
+decisions step is never read as books (criterion 6)."""
 
 import json
 from datetime import datetime
 from types import SimpleNamespace
 
-from fno.cards.problem_steps import ProblemSteps
+from fno.cards.problem_steps import FAILED, UNREADABLE, ProblemSteps
 from fno.cards.rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader, failures_path, run_log_path
 from fno.cards.ruled_status import REFUSED, RuleChecks, RuledStatus
 from fno.constants import (
@@ -27,36 +28,52 @@ REFUSED_FILLS = {"status": STEP_REFUSED, "reason": "needs snapshot, which failed
 C4_TODAY = HEADER + "2026-10-15,book1_rules,o1,playbook,caps,full,{}\n"
 
 
-def status_lines(files: dict) -> tuple[str, ...]:
+def status_reading(files: dict):
     records = FakeRecords(files)
     runs = RunLogReader(records)
     rules = (DecisionOutcome(records, runs, TODAY_TIMES, ("book1_rules", "book2_hybrid")),
              ExecutionOutcome(runs, TODAY_TIMES, lambda d: BEFORE))  # fmt: skip
-    return RuledStatus(Base(), RuleChecks(rules), ProblemSteps(runs)).status(DAY).section.lines
+    return RuledStatus(Base(), RuleChecks(rules), ProblemSteps(runs)).status(DAY)
+
+
+def status_lines(files: dict) -> tuple[str, ...]:
+    return status_reading(files).section.lines
+
+
+def listed(files: dict) -> str | None:
+    """T1e: T1d's step list is now the warning's detail (never a status line), or None with no warning."""
+    warning = status_reading(files).warning
+    return warning and warning.detail
+
+
+def detail(steps: str) -> str:
+    return FAILED.detail.format(steps=steps)
+
+
+def no_list(lines) -> bool:
+    return not any("Steps with problems" in line for line in lines)
 
 
 def test_failed_and_refused_steps_are_named_with_their_status_in_run_order():
     log = _log(weather={"status": STEP_OK}, decisions=ON_TIME, snapshot=FAILED_SNAPSHOT, fills=REFUSED_FILLS,
                exits={"status": STEP_OK})  # fmt: skip
-    lines = status_lines({run_log_path(DAY): log})
-    assert lines[-1] == "Steps with problems today: snapshot (failed), fills (refused)"
-    assert "needs snapshot" not in lines[-1]  # the reason stays in the step's own alert
+    files = {run_log_path(DAY): log}
+    assert listed(files) == detail("snapshot (failed), fills (refused)") and no_list(status_lines(files))
+    assert "needs snapshot" not in listed(files)  # the reason stays in the step's own alert
 
 
 def test_no_line_when_every_step_is_ok_or_not_live_or_the_desk_has_not_run():
     log = _log(weather={"status": STEP_OK}, forecasts_v4={"status": STEP_NOT_LIVE}, decisions=ON_TIME)
-    assert not any(line.startswith("Steps with problems") for line in status_lines({run_log_path(DAY): log}))
-    assert not any(line.startswith("Steps with problems") for line in status_lines({}))
+    assert listed({run_log_path(DAY): log}) is None and no_list(status_lines({run_log_path(DAY): log}))
+    assert listed({}) is None and no_list(status_lines({}))
 
 
 def test_boundaries_one_failed_one_refused_and_an_empty_log():
     """Rule 5: a single failed step, a single refused step, and a run log with no steps at all."""
-    one_failed = status_lines({run_log_path(DAY): _log(decisions=ON_TIME, snapshot=FAILED_SNAPSHOT)})
-    one_refused = status_lines({run_log_path(DAY): _log(decisions=ON_TIME, fills=REFUSED_FILLS)})
-    empty = status_lines({run_log_path(DAY): _log()})
-    assert one_failed[-1] == "Steps with problems today: snapshot (failed)"
-    assert one_refused[-1] == "Steps with problems today: fills (refused)"
-    assert not any(line.startswith("Steps with problems") for line in empty)
+    one_failed = listed({run_log_path(DAY): _log(decisions=ON_TIME, snapshot=FAILED_SNAPSHOT)})
+    one_refused = listed({run_log_path(DAY): _log(decisions=ON_TIME, fills=REFUSED_FILLS)})
+    assert one_failed == detail("snapshot (failed)") and one_refused == detail("fills (refused)")
+    assert listed({run_log_path(DAY): _log()}) is None
 
 
 def test_the_run_s_last_line_and_the_card_share_o1_s_one_rule():
@@ -73,9 +90,9 @@ def test_the_runner_s_last_line_and_the_card_name_the_same_steps_for_one_log(tmp
     daily = SimpleNamespace(steps=SimpleNamespace(root=tmp_path), run=lambda day: log)
     parts = SimpleNamespace(start=lambda day: None, busy=lambda: False)
     code, last = runner.DayRunner(daily, parts, waiter=None).run(DAY)
-    card = status_lines({run_log_path(DAY): _log(**results)})[-1]
+    card = listed({run_log_path(DAY): _log(**results)})
     assert (code, last) == (1, "day done with problems: snapshot, fills")
-    assert card == "Steps with problems today: snapshot (failed), fills (refused)"
+    assert card == detail("snapshot (failed), fills (refused)")
 
 
 def test_a_failed_decisions_step_is_a_data_check_failure_never_late_books_status_and_reason():
@@ -84,7 +101,7 @@ def test_a_failed_decisions_step_is_a_data_check_failure_never_late_books_status
     assert f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})" == lines[0] and REFUSED in lines
     assert "- decisions: decisions step failed: raised:NotImplementedError, no C4 refusal" in lines
     assert not any("late or not committed" in line for line in lines)
-    assert lines[-1] == "Steps with problems today: decisions (failed)"
+    assert listed({run_log_path(DAY): _log(decisions=FAILED_SNAPSHOT)}) == detail("decisions (failed)")
 
 
 def test_a_decisions_step_with_another_step_level_status_is_shown_as_it_is_never_as_books():
@@ -121,10 +138,11 @@ def test_a_refused_decisions_step_is_a_data_check_failure_too():
 
 def test_a_failed_snapshot_fails_closed_with_its_raise_and_is_named_as_failed():
     """T2's execution line is unchanged (story Scope); it carries the step's own reason code, not a C3 check name."""
-    lines = status_lines({run_log_path(DAY): _log(decisions=ON_TIME, snapshot=FAILED_SNAPSHOT)})
+    files = {run_log_path(DAY): _log(decisions=ON_TIME, snapshot=FAILED_SNAPSHOT)}
+    lines = status_lines(files)
     assert lines[0] == f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})"
     assert "- execution: no valid execution snapshot (raised:NotImplementedError)" in lines
-    assert lines[-1] == "Steps with problems today: snapshot (failed)"
+    assert listed(files) == detail("snapshot (failed)")
 
 
 ODD_STEPS = ([], {"x": "text"}, {"y": {"result": []}}, {"z": {"inputs": {}}})
@@ -135,14 +153,15 @@ def test_odd_run_log_shapes_are_unreadable_at_the_reader_never_a_crash():
     O1's rule nor a card rule meets it (the earlier copy of the rule tolerated these shapes itself)."""
     for steps in ODD_STEPS:
         log = json.dumps({"day": DAY.isoformat(), "kind": "daily_run", "steps": steps}).encode()
-        lines = status_lines({run_log_path(DAY): log})
+        reading = status_reading({run_log_path(DAY): log})
+        lines = reading.section.lines
         assert lines[0] == f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})", steps
         assert any("not readable (steps are not name -> {result: {...}})" in line for line in lines), steps
-        assert not any(line.startswith("Steps with problems") for line in lines), steps
+        assert reading.warning == UNREADABLE and no_list(lines), steps  # T1e: the doubt is in the headline
 
 
-def test_the_app_s_card_wires_the_problem_line():
-    """Self-review: dropping `ProblemSteps` from the wiring must fail a test, not silently remove the line."""
+def test_the_app_s_card_wires_the_problem_warning():
+    """Self-review: dropping `ProblemSteps` from the wiring must fail a test, not silently remove the warning."""
     from fno.cards.committed import GitHeadRecords
     from fno.cards.wiring import build_status
     from fno.config import ROOT
@@ -164,7 +183,7 @@ def test_a_failed_step_waiting_for_its_retry_is_named_as_failed(tmp_path):
     final_decisions = {"status": STEP_FAILED, "reason": "raised:KeyError", run_log.RETRY: False}
     data = _written_by_run_log(tmp_path, ("decisions", final_decisions), ("fills", failed_fills))
     lines = status_lines({run_log_path(DAY): data})
-    assert lines[-1] == "Steps with problems today: decisions (failed), fills (failed)"
+    assert listed({run_log_path(DAY): data}) == detail("decisions (failed), fills (failed)")
     assert "- decisions: decisions step failed: raised:KeyError, no C4 refusal" in lines
 
 
@@ -174,4 +193,4 @@ def test_a_step_retried_and_then_ok_is_no_longer_named(tmp_path):
     data = _written_by_run_log(tmp_path, ("decisions", ON_TIME), ("fills", failed_fills), ("exits", {}),
                                ("fills", {"t1": {"outcome": "filled"}}))  # fmt: skip
     assert list(json.loads(data)["steps"]) == ["decisions", "exits", "fills"]
-    assert not any(line.startswith("Steps with problems") for line in status_lines({run_log_path(DAY): data}))
+    assert listed({run_log_path(DAY): data}) is None

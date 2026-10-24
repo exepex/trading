@@ -8,7 +8,15 @@ from dataclasses import dataclass
 from datetime import date
 
 from ..constants import CARD_DATA_CHECK_FAILED, CARD_VALID_UNTIL, CardStatus
-from .sections import WEATHER_BLOCKS, CardSection, ForecastSource, StatusSource, UsedRecord, WeatherSource
+from .sections import (
+    WEATHER_BLOCKS,
+    CardSection,
+    CardWarning,
+    ForecastSource,
+    StatusSource,
+    UsedRecord,
+    WeatherSource,
+)
 from .session import SessionAnswer
 
 UNAVAILABLE = "{title}: not available on this card"
@@ -28,6 +36,7 @@ class TradeCard:
     sections: tuple[CardSection, ...]  # status first, then weather and forecasts
     previous_misses: tuple[str, ...]
     context: CardSection = CardSection("session", ())  # records used and gaps that are not a shown section
+    warning: CardWarning | None = None  # story T1e: a failed or refused step today; the renderer places it
 
     @property
     def _all(self) -> tuple[CardSection, ...]:
@@ -70,18 +79,20 @@ class CardBuilder:
         self.status_source, self.weather_source, self.forecast_source = status, weather, forecasts
 
     def build(self, day: date, session: SessionAnswer, previous_misses: tuple[str, ...] = ()) -> TradeCard:
-        status, code = self._status(day)
+        status, code, warning = self._status(day)
         weather = _guarded(
             "weather", lambda: self.weather_source.weather(day), (WEATHER_BLOCKS,)
         )  # a crash still blocks
         forecasts = _guarded("forecasts", lambda: self.forecast_source.forecasts(day))
         # v1 has no trade fields (slice B), so its status is NO TRADE whatever a source says: it never shows a trade
         sections = (status, weather, forecasts)
-        return TradeCard(day, session.note, CardStatus.NO_TRADE, code, sections, previous_misses, session.context)
+        return TradeCard(
+            day, session.note, CardStatus.NO_TRADE, code, sections, previous_misses, session.context, warning
+        )
 
-    def _status(self, day: date) -> tuple[CardSection, str]:
+    def _status(self, day: date) -> tuple[CardSection, str, CardWarning | None]:
         try:
             reading = self.status_source.status(day)
         except Exception as error:  # noqa: BLE001 - the card still goes out as NO TRADE, naming the failure
-            return _failed("status", error, STATUS_FAILED), CARD_DATA_CHECK_FAILED
-        return reading.section, reading.reason_code
+            return _failed("status", error, STATUS_FAILED), CARD_DATA_CHECK_FAILED, None
+        return reading.section, reading.reason_code, reading.warning
