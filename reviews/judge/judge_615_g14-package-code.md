@@ -58,3 +58,19 @@ commit>` (criterion 12's history half). Today it is provable only through the tr
   `research_data/calendar.py`. The CSV's rows are data, unhashed by design (2027 holidays to come). My plants were
   caught: the builder reading another file, and the calendar module moved to `SHARED`.
 - **m2** is stated in the Claims and checked at the record's commit.
+
+## Addendum 2: G14 Amendment 2 code, round 1, story/g14-amend2 at 7442d761f
+**PASS**, lane 1. The change is in `fno/forecast_v5_v1/cli.py` and `freeze.py` (`FreezeBroken` beside `NotFrozen`),
+their tests and the story's m1 word. The O1 step is not in it (checked).
+- **Gates** on a trial merge with main 6109e1c18 (099ae0d06), `FNO_SLACK_BOT_TOKEN` set, nothing else touching the
+  tree: 16,515 passed, 1 skipped, 14 xfailed. ruff, format, check_imports (2,757), check_records (9,252) and
+  check_numbers are clean. No post in any of the three channels.
+- **Real output:** `forecast-v5-v1 capture` prints "nothing written: FREEZE_v5_v1.md is missing" and exits 0.
+  `fno.daily.steps.outcome` reads that line as `refused`.
+- **The split matches 596.4.** Refused, exit 0: no record, 14:30, not today or not a session, frozen after today.
+  Failed, exit 1 ("FAILED, no row written:"): a changed byte, another walk list, an unparseable date, `RecordConflict`.
+- **The builder's choice, a missing "Frozen on:" line is `failed`: accepted.** `record_text` always writes that line,
+  so a record without it was edited or truncated. That is a fault on a frozen input, like an unparseable date.
+- **Plants: 9, all caught.** A broken freeze exiting 0; a refusal exiting 1; a changed byte, another walk list, a bad
+  date or a missing line raised as `NotFrozen`; a missing record raised as `FreezeBroken`; a conflict refused; the
+  "nothing written:" text lost.

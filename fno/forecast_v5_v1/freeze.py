@@ -27,7 +27,12 @@ RV_TABLE_NOTE = (
 
 
 class NotFrozen(RuntimeError):
-    """The capture writes nothing until the freeze record holds."""
+    """A planned state: no record yet (or not written, for `freeze`); the capture writes nothing and is `refused`."""
+
+
+class FreezeBroken(RuntimeError):
+    """A fault: the record no longer matches the tree or cannot be read; the capture writes nothing and `failed`
+    (story G14, amendment 2: revert the edit or write a new record version)."""
 
 
 def sha256(root: Path, relative: str) -> str:
@@ -55,20 +60,21 @@ def record_text(root: Path, v4_record: str, v4_checked: list[str], frozen_on: da
 
 
 def check(root: Path, record: Path) -> date:
-    """The record's `Frozen on:` day when it holds; NotFrozen otherwise."""
+    """The record's `Frozen on:` day when it holds; NotFrozen when it is missing, FreezeBroken when it no longer
+    matches."""
     if not record.is_file():
         raise NotFrozen(f"{record.name} is missing")
     text = record.read_text(encoding="utf-8")
     frozen_on = FROZEN_ON.search(text)
     if frozen_on is None:
-        raise NotFrozen(f"{record.name} has no 'Frozen on: YYYY-MM-DD' line")
+        raise FreezeBroken(f"{record.name} has no 'Frozen on: YYYY-MM-DD' line")
     listed = {path: digest for path, digest, _ in CHECKED_ROW.findall(text)}
     if sorted(listed) != freeze_files(root):
-        raise NotFrozen(f"{record.name} lists other files than today's walk: a new record is needed")
+        raise FreezeBroken(f"{record.name} lists other files than today's walk: a new record is needed")
     changed = [path for path, digest in listed.items() if sha256(root, path) != digest]
     if changed:
-        raise NotFrozen(f"{changed[0]} differs from {record.name}")
+        raise FreezeBroken(f"{changed[0]} differs from {record.name}")
     try:
         return date.fromisoformat(frozen_on.group(1))
     except ValueError as bad:
-        raise NotFrozen(f"{record.name}: 'Frozen on: {frozen_on.group(1)}' is not a date") from bad
+        raise FreezeBroken(f"{record.name}: 'Frozen on: {frozen_on.group(1)}' is not a date") from bad

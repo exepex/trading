@@ -63,10 +63,13 @@ class GoogleDriveStore(RawFileStore):
         """`token` returns a fresh access token (see DriveSession for renewal and retries)."""
         self.folder_id = folder_id
         self.drive = DriveSession(token, session, sleep)
-        self._ids: dict[tuple[str, str, bool], str | None] = {}
+        self._ids: dict[tuple[str, str, bool], str] = {}  # found IDs only (`_child`)
 
     def _child(self, parent_id: str, name: str, folder: bool) -> str | None:
-        """The ID of the named folder or file directly inside a folder (cached); None if absent."""
+        """The ID of the named folder or file directly inside a folder; None if absent. A found ID is cached (the
+        record is write-once, so a found item stays found); an absence never is: another store instance of the same
+        process may create the item next (O9-child: a rehearsal's cache read missed the table its own step had just
+        written, 24 Oct), so an absent name is asked of Drive again each time."""
         key = (parent_id, name, folder)
         if key not in self._ids:
             query = CHILD_QUERY.format(
@@ -77,7 +80,9 @@ class GoogleDriveStore(RawFileStore):
             found = response.json().get("files", [])
             if len(found) > 1:
                 raise RawFileConflict(f"{len(found)} items named {name!r} in one Drive folder")
-            self._ids[key] = found[0]["id"] if found else None
+            if not found:
+                return None
+            self._ids[key] = found[0]["id"]
         return self._ids[key]
 
     def get(self, path: str) -> bytes | None:
