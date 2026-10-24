@@ -74,3 +74,23 @@ the guard). Story: `docs/stories/REH1-rehearsal-mode.md`, "Claims / REH1a". I di
 
 14,911 passed, 1 skipped, 16 xfailed; ruff, format, check_imports and check_records clean. The merge with main is
 clean.
+
+## Addendum 1
+
+**Verdict: PASS** for my part, on story/reh1-rehearsal at d362737c. Round 2 of 2: one commit on b2e5337d. It closes SF1
+and the forbid-test note.
+
+- **SF1 met:** `python -m fno rehearse check` runs inside a process started through the real entry point with the mode
+  set. `process_problems` reports a problem unless `fno.models._clock` is a `ReplayClock` reading within 60 s of the
+  shared replay time, and a live `requests.get` to NSE raises `RehearsalCallRefused`. Any other exception counts as
+  "attempted".
+  - `daily run --rehearse` now runs this check in the rehearsal checkout before the first step, replacing the old
+    `-c` child, which never went through `install_process`.
+  - My plants: `install_clock(...)` replaced by `pass` fails `test_process.py`, and so does `http_guard.install()`
+    replaced by `pass`.
+- **Note closed:** `test_one_clock.py` is now an AST check that resolves aliased imports. My `datetime.today()` plant
+  in `close_read/reader.py` fails it, and so does a planted module with `import time as t; t.time()`.
+- **Gates on d362737c merged with current main (run by me):** 14,986 passed, 1 skipped, 15 xfailed; ruff, format and
+  check_imports clean.
+- **Merge note:** REH1b (judge 559, PASS) is stacked on b2e5337d, not on this commit. Its merge with d362737c must keep
+  `rehearse check` as the guard step in `daily.py`, which both branches touch.
