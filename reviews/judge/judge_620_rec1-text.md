@@ -59,3 +59,26 @@ The verdict stays **FAIL** at 94d532195. One Markdown commit on c0c6980dc (+17 -
   15:20 record already names its candidate set (version, decision path, SHA-256). So REC1a's record codec must carry
   that set from the first live day: name it in REC1a's scope and criterion 7, or the release-1 days cannot be checked
   without hindsight.
+
+## Addendum 2: round 2 (the last), story/rec1-recommender-text at 0359a0e50
+**PASS** (text), lane 1, 1 minor. Three Markdown commits on 94d532195 (f03ffdc09, 65a12e776, 0359a0e50; only the
+story). Doc-reading tests with the token set: 922 passed, 14 xfailed.
+- **S1 closed.** "Proven" is rung 3 only. `PAPER_TRADE` exists only at rung 3; rung 0-2 trades read "paper, not a
+  recommendation" with their rung. `no_established_version` comes before the day's conditions, so while no version is
+  at rung 3 only the first three codes can occur. The real-money answer also needs rung 3, and RM1 disagreeing with
+  the rung gives `data_check_failed` with an alert. Criterion 4 has a planted rung-1 threshold.
+- **S2 closed.** Only outcomes receipted strictly before `made_at` count, never day d; `evidence_cutoff` is in the
+  record. Criterion 5's boundary is 1 s before, at, and day d.
+- **S3 and 620.1 closed.** The record fixes the candidate set (version, path, SHA-256; empty written as empty) from
+  REC1a's first live day; the codec refuses a record without it. The check reads only that set, reports each and the
+  total, and gives `data_check_failed` (never a smaller total) for a missing or changed candidate. Criteria 11 and 12,
+  with the dropped-loser plant.
+- **m1 closed.** Criteria 1-14 each name a plant.
+- **The card's mapping checks out** against the pinned contract (`fno-card.yaml` 2.14.0): `no_approved_strategy`,
+  `data_check_failed`, `step_problems` and `weather_red` are in the enum. The three codes without a same-meaning entry
+  are guarded to `data_check_failed` with an alert until a re-pin, and they cannot occur below rung 3.
+- **Two judges for REC1b and RM1x:** the orchestrator's ruling is now written in.
+- **m2 (minor)** S2's cutoff uses "the commit time of its receipt on `main`, read through git". A commit's time is
+  set by whoever commits. The project's own rule for deadlines is GitHub's push receipt, never commit time
+  (`fno/ai/receipts.py`; protocol v4 1.6). Use the push receipt for `evidence_cutoff` in REC1a's code, or state why
+  commit time is enough here.
