@@ -22,12 +22,14 @@ DAMAGED = "rehearsal: the recorded copy {path} is missing from Drive or differs 
 
 
 class RecordedAnswer:
-    """What the cue readers ask of an answer: a 200 with the recorded bytes, never a redirect."""
+    """What the cue readers and NSE's archive sources ask of an answer: a 200 with the recorded bytes, never a
+    redirect, and no publisher headers (so no Last-Modified: a recorded file's "last written" time is unknown)."""
 
     status_code, is_redirect = 200, False
 
     def __init__(self, content: bytes):
         self.content = content
+        self.headers: dict[str, str] = {}
 
     def raise_for_status(self) -> None:
         return None
