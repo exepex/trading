@@ -992,13 +992,34 @@ the pack format and SHA; the pack binding guard; the release record format and i
 5. **The 15:10 deadline checked live** for every record committed straight to G8's folder, as a write-once verdict
    that G8 applies (a late record is a miss).
 6. The protocol 1.6 and section 4 wording that this needs (the protocol is not frozen: no `FREEZE_v4.md` exists).
+7. **The pack's interface for G7b and G11** (their asks, relayed by the orchestrator on 24 Oct; answered below): the
+   `v4` window also records V4's expiry and the future's bid and ask.
+
+#### The pack's interface for G7b and G11 (answers to their asks)
+
+| Ask | Answer | Reason | Groww load added at 14:30-14:40 |
+|---|---|---|---|
+| G7b 1: chains for `e` and every expiry up to and including the first with at least 5 scored sessions | **Changed:** `e` and the other monthly as today, plus **the first listed expiry with at least 5 scored sessions in `(d, expiry]`** when it is not already one of them; not the nearer ones | V4 uses only that expiry (G7b's own rule picks the first with 5 sessions), so a nearer weekly adds requests and no input. The rule is one pure function in G7b's module, imported by A4e's `v4` window (G7b's offer 2: one rule, one place) | about 90 contract quotes and one chain call, about 80 s, on days that expiry is a weekly (most days); none when it is a monthly |
+| G7b 1: strikes within at least 3% of spot | **Yes, already:** A4's band is 5% (`fno/quotes/recorder.py:49`, `SPOT_BAND`), used for the added expiry too (one band, DRY) | 5% covers 3% and the strikes either side of ATM | none beyond the row above |
+| G7b 3: the future keeps bid and ask | **Yes:** one Groww quote of `e`'s future in the `v4` window, behind a new `FutureQuotes` interface with a Groww adapter (the `Provider` interface has no future quote; NSE's level read gives only last and volume) | V5 prices `F` at mid under the 5% spread rule (W2); without both sides V5 is void every day | one request, under 1 s |
+| G7b 4: `iv30.flagged` as on `main` | **Yes**, unchanged | | none |
+| G7b 5: an O1 step `forecasts_v4_pack` right after the release | **Yes**, the order is fixed below; G7b builds the step, its own live key and its own pathspec | it reads the released pack, so it must follow `v4_release`, and it must commit before 15:10 | none (reads Drive) |
+| G11 D1: the daily release and the names G11 reads | **Yes:** `ReleasedPacks` (`release`, `pack`, `pack_bytes`), `ReleaseRecord.pack_sha256`, `Pack`, `check_pack_binding`, `build_released_packs` keep their names and modules (`fno/v4_pack/release.py`, `model.py`, `guard.py`, `wiring.py`); a rename goes to G11 first | | none |
+| G11 D2: `system_late` labels | **Yes, with a changed path:** the label is the release record in Drive `v4/days/<YYYY>/<date>.json`, read through `ReleasedPacks.release(day)`; **not** `research/data/v4_days/<d>.json` (that folder is retired here, criterion 6). Every scored session from the live date gets a record, `system_late` included (criterion 4's catch-up); criterion 5's function answers a day with no record yet | O9: data lives in Drive, GitHub holds receipts | none |
+| G11 D3: the release push starts workflows | **Yes:** the receipts `receipts/data/v4/days/<YYYY>/<date>.json.sha256` (its `paths:` filter: `receipts/data/v4/days/**`) and `receipts/data/v4/packs/<YYYY>/<date>.json.sha256` go in one commit, pushed by the daily run's committer with the owner's routine credentials, never an Actions token (15 Oct: such a push started forecast-capture run 38714143717 within the minute). Catch-up records land on the same path, so the workflow fires only for today's record (as the held `v4-fire.yml` already checks). The deadline verdicts (`receipts/data/v4/deadlines/`) never match. G11 lands `v4-fire.yml` | | none |
+
+**Total per `v4` attempt:** about 180 + 90 = 270 contract quotes, 3 chain calls and 1 future quote, about 4 min at the
+measured pace (180 quotes in 2 min 38 s on 23 Oct), so about 14:30:00-14:34:00. A retry after an incomplete first
+attempt has about 6 minutes, enough for one full attempt. These A4e changes (V4's expiry and the future quote, only in
+the named window; the default 14:55 capture byte for byte as today) touch A4's `fno/quotes/`: A4e's builder
+01MKtUHByHsR9cNwaP5KhFYH is asked through the orchestrator to agree before code (one builder per function).
 
 #### The daily-run steps (O1)
 
 The routine time stays **14:05 IST** (owner, 21 Oct). `DAILY_RUN_STEPS` (`fno/constants_operations.py:49`) becomes:
 
 `quotes` (now also starts the `v4` part), `owner_timing_fills`, `margin_check`, `weather`, `forecasts_v4`,
-**`v4_release`**, `versions`, `pack`, `book1`, `decisions`, `snapshot`, `fills`, `exits`, `trade_marks`, `reviews`,
+**`v4_release`**, `forecasts_v4_pack` (G7b's step, added by G7b), `versions`, `pack`, `book1`, `decisions`, `snapshot`, `fills`, `exits`, `trade_marks`, `reviews`,
 `quotes_done`, `card`, `price_distribution`, `premium_ranges`, `price_distribution_scores`, `price_ranges`,
 `price_range_scores`, `premium_range_scores`, `candles`, `close_read`, `close_recheck`, **`v4_deadline`**.
 
@@ -1009,7 +1030,8 @@ The routine time stays **14:05 IST** (owner, 21 Oct). `DAILY_RUN_STEPS` (`fno/co
 | `v4_deadline` | last step, not before 15:12:00 | `python -m fno v4-pack deadline` (new) | `receipts/data/v4/deadlines/` |
 
 `forecasts_v4` and `weather` keep their place: they must commit before 14:30, when their capture refuses. `v4_release`
-sits before E3's `versions` and `pack` (14:58), so it adds no wait before the desk. **Live switch:** one new key,
+sits before E3's `versions` and `pack` (14:58), so it adds no wait before the desk. G7b's `forecasts_v4_pack` comes
+right after `v4_release` (it reads the released pack) and before `versions`; it commits before 15:10. **Live switch:** one new key,
 `daily.live_from.v4_pack`, gates the `v4` part, `v4_release` and `v4_deadline` together (null on the branch; a not-live
 day records `not_live` for each and starts no capture). Each new step gets its reason codes in O1's closed set
 (`fno/daily/reason_codes.py`) and appears in O8's health window like every step. CLAUDE.md's "Daily desk routine"
@@ -1018,12 +1040,13 @@ gains one line for the `v4` part and its hand-fix `git add` line; NIFTY's hand-f
 
 #### The Groww load at 14:30, beside A16's marks (said plainly)
 
-- **The `v4` capture:** NIFTY's two monthly chains plus 180 contract quotes on the routine's Groww key, about 2 min 40 s
-  per attempt (measured: 23 Oct 14:55:00-14:57:38, 180 of 180; 22 Oct 14:58:58-15:01:30, 180 of 180), so about
-  14:30:00-14:32:40 when the first attempt is complete; India VIX and the futures come from NSE, not Groww.
+- **The `v4` capture:** NIFTY's two monthly chains plus 180 contract quotes on the routine's Groww key take about 2 min
+  40 s (measured: 23 Oct 14:55:00-14:57:38, 180 of 180; 22 Oct 14:58:58-15:01:30, 180 of 180); with G7b's V4 expiry
+  and the future quote (interface table above) about 4 min, so about 14:30:00-14:34:00 when the first attempt is
+  complete. India VIX and the futures' last prices come from NSE, not Groww.
 - **A16's 14:30 mark:** 220 contracts on its own routine's sign-in to the same Groww account, sent at 14:30:00 and done
   in about 85 s (22 Oct 15:00 mark: sent 15:00:00.0003, finished 15:01:23, 220 of 220). So the two overlap from 14:30:00
-  to about 14:31:25. They do not overlap A16's 14:45 mark (the capture's last request is at 14:40:00 at the latest),
+  to about 14:31:25; G7b's additions make the capture longer, not the overlap. They do not overlap A16's 14:45 mark (the capture's last request is at 14:40:00 at the latest),
   the 14:55 NIFTY part, the 15:01-15:13 indices or A16's 15:00 mark.
 - **Evidence the overlap is safe:** some evidence, one day: on 22 Oct NIFTY's second attempt (14:58:58-15:01:30) ran
   through A16's 15:00 mark, and both were complete with no failures. The same overlap already happens on any day a
@@ -1075,6 +1098,16 @@ to `build_commitment_times`), resolved by keeping both.
    day before a monthly expiry (`e` has 1 day left; IV30 from the other monthly alone, flagged: Monday 26 Oct's case);
    a monthly expiry day (`e` is the next monthly). Empty: a capture with zero valid rows. Plants: `<=` to `<` at the
    window end; drop the clock check; read `last_trade_time` as the observation time.
+3a. **The pack holds G7b's inputs.** A4e's `v4` window records, beside the two monthlies, the first listed expiry with at
+   least 5 scored sessions in `(d, expiry]` (G7b's pure function, imported; special and muhurat sessions not counted)
+   when it is not a monthly, at the same 5% band, and one quote of `e`'s future with bid, ask and its `observed_at`;
+   the pack carries them (`future.bid`, `future.ask`; the added expiry's rows in `chain`). The default 14:55 capture's
+   sidecar and rows are byte-identical to today's (a golden test). Good: a Monday with Tuesday's weekly (1 session)
+   takes the next weekly (6 sessions). Bad: the future quote fails: the pack keeps the future without bid and ask
+   (V5 then voids itself by its spread rule; the pack is not `system_late`, because V1-V3, V6 and V7 do not need it).
+   Boundary: exactly 5 sessions taken, 4 not; that expiry is a monthly: no extra chain. Empty: no listed expiry with 5
+   sessions: no extra chain. Plants: count sessions in calendar days; the expiry rule copied instead of imported; the
+   default capture gaining the future quote.
 4. **The release step.** `v4_release` waits for the `v4` part to end, then runs the release: the catch-up writes
    `system_late` for every scored session from `daily.live_from.forecasts_v4` to yesterday with no release record in
    Drive (decision D2); today's pack and record are written once. **Release by 14:45:00** (`terms.V4_RELEASE_BY`,
@@ -1184,9 +1217,9 @@ forecasts as on 22-23 Oct. **No `quote-snapshots-v4` capture exists for any day,
 recorded data:** the first live day is the first real run, so it is record-only and alerting.
 
 **If merged before Monday 14:00 with `daily.live_from.v4_pack: "2026-10-26"`, the run would:**
-- start the `v4` part at about 14:07; it waits, records 14:30:00-14:40:00 (about 180 Groww quote requests plus the chain calls, overlapping A16's
-  14:30 mark until about 14:31:25), commits its sidecar and marker by about 14:34;
-- run `v4_release` at about 14:34: write `system_late` for 22 and 23 Oct (catch-up, D2), then Monday's pack and record
+- start the `v4` part at about 14:07; it waits, records from 14:30:00 (about 270 Groww quote requests, 3 chain calls
+  and 1 future quote, overlapping A16's 14:30 mark until about 14:31:25), commits its sidecar and marker by about 14:35;
+- run `v4_release` at about 14:35: write `system_late` for 22 and 23 Oct (catch-up, D2), then Monday's pack and record
   (`A` if complete and `clock_ok`; IV30 from November's monthly alone, flagged, because October's has 1 day left), and
   push the receipts;
 - at its end (about 16:00), run `v4_deadline`: verdicts for G7's and M1's live rows of 22, 23 and 26 Oct (they commit at
