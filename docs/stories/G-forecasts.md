@@ -1069,6 +1069,48 @@ they found and what was fixed or why not.
   under a hash the review may change would be clutter).
 - **Gates:** see the commit message.
 
+### Claims, build step 3: V4 and V5 logic (criteria 6, 7, 8, 9, 10, 11's inputs, 12; judge 581's m1)
+
+- **Code (pure, against G10's agreed quote shapes, fixture packs; no pack file is read yet):**
+  `live_quotes.py` (the live two-sided quote, W5: A4's `traded_today` called through an adapter, the 5% spread in
+  exact decimals), `option_terms.py` (V5 terms: `e` checked against NSE's listed monthlies known before `d`, K, P, F at
+  the future's mid; V4 terms: `e` only from the pack's `v4_expiry`, the 5-session re-check, the parity forward; Black-76
+  leg IVs; voids with reasons, an expiry past the calendar voids as `calendar`), `option_probabilities.py` (V5's
+  option-implied probability, `v5_ewma_lognormal`, `v4_ewma_chi2`, chi-square(5); void terms give missing),
+  `option_outcomes.py` (V5: `settlement.v5_outcome` from the expiry day's file, `CreationTimes` then A8's sighting,
+  refusals; V4: `units.v4_outcome` on A16's live rows; each with its base-rate input, known on the IST date it was
+  first seen). The terms take the pack's fields plainly, so they do not depend on G10's file format; the adapter from
+  a released `Pack` (with `v4_expiry` and the future's trade field, asks (a) and (b)) comes with the live capture.
+- **Tests:** `test_v4rules_option_terms.py` (11), `test_v4rules_option_probabilities.py` (19),
+  `test_v4rules_v4_expiry.py` gains judge 581's year-end test (21 Dec takes 29 Dec; 22 Dec raises until 2027 is in the
+  calendar, then takes January). V5's probability matches `tests/fixtures/forecast_v4/v5_golden.json`
+  (0.50685288731716385..., 50-digit decimals and an erf series, no fno code) to 1e-13; V4's terms reproduce
+  `v4_golden.json` (13.567% implied on the session clock, outcome "no"); chi-square(5) matches exact quantiles to
+  1e-6.
+- **Plants (21, all caught):** spread `<=` to `<`; `traded_today` skipped; a locked quote refused; ATM tie to the upper
+  strike; `e` trusted from the pack; a monthly on `d` itself; no 5-session re-check; another expiry than `v4_expiry`;
+  no carry in the parity forward; W5 relaxed for the future; the lognormal drift dropped; `v = s2` without `S_e`;
+  chi-square with the wrong degrees; the V4 threshold without x5; no A8 fallback; a void session skipped; resolution
+  dated by the first row instead of the last; the float spread (the review's bug); `CalendarError` not caught; an
+  unclear settlement raising; void terms reaching the baseline.
+- **Self-review (an independent review agent):** maths confirmed (the lognormal sign by a 4-million-path simulation,
+  chi-square(5) to 1e-16, the parity forward, the threshold, no point-in-time leak). Fixed: (1) exactly-5% spreads
+  such as 7.02 / 7.38 were voided by float error: now exact decimals, tested; (2) an expiry past the calendar raised:
+  now void `calendar`, tested; (3) test gaps: void terms to missing, exact chi-square quantiles at 1e-6, `s2` = 0, A16b
+  rows never reach V4, V5's stale leg, the golden value as a fixture file; (4) an unclear settlement file is refused,
+  not raised; a negative or non-finite RV stays a loud data fault (documented); (6) `listed=[]` against `None`
+  documented; (7) the duplicate IV guard removed, `_terms` typed. Not changed: (5) `monthly_expiries` is the story's
+  rule; the case it misreads voids the day (safe), documented.
+- **Judge 581's note (v4_expiry in G7's `METHOD_FILES`), pushed back with reason:** phase 1's rows never use
+  `v4_expiry.py`; putting it in their hash would force a regeneration of 9,636 committed rows with no value changed.
+  The V4 and V5 rows get their own method hash over every file that decides them (`v4_expiry.py`, `live_quotes.py`,
+  `option_*.py`, `implied.py`, `series.py`, `baselines.py`, `records.py`) in the live-capture step that first writes
+  them, as part b1's implied rows have.
+- **Real output sample:** fixture packs only (no Groww value): the V5 terms of 27 Oct 2026 against the 23 Nov monthly,
+  K 26000, F 26080, IV 14.00%, `S_e` 18, `C_e` 27, P(inside) 0.5069; the V4 terms against the 3 Nov weekly, `S_e` 5,
+  `C_e` 7, IV 13.80%, 13.567% on the session clock.
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
