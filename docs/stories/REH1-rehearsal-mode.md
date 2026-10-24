@@ -767,7 +767,8 @@ Test only; no code changed. Judge 616.1 is right: at 09:10:45 the 09:10:30 copy 
 09:11:01 (16 s ahead), so filtering after the pick also passed round 1's case. The case now reads at 09:10:50, where
 09:11:01 (11 s ahead) is the nearer copy and 09:10:30 (20 s back) the right one; the docstring says so
 (`test_a_late_copy_never_hides_an_earlier_one_inside_the_window`). Plant, judge F's: "filter after the pick" (pick the
-nearest of every copy, then refuse one seen at or after the close): caught by that test, and by no other.
+nearest of every copy, then refuse one seen at or after the close): caught by that test (the only failure in
+`test_preopen_window.py`).
 
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
