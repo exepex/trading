@@ -26,7 +26,7 @@
  "inputs_sha256": "90d497ba568d0baa621799f0ad08f0e1393b6e30be747c8afadbb2ea597f6d1a",
  "label": "backfill_exploratory",
  "made_at": "",
- "method_sha256": "a49c62612a46ae5ca9dded82c6d8b6f4b4e439b6b0e189c3357db88eabd1e6dd",
+ "method_sha256": "2495d512b89da4d64f5a62b03d5d1dc60325896c3d4132b7f70a2a736ab9e21e",
  "model_colour": "GREEN",
  "operative": "weather_vix_v1",
  "over_alarming": "not counted (back-fill)",
@@ -65,6 +65,5 @@
  "proof": "not yet proven: G8 has not scored it against v0 and the base rate",
  "red_share": "not counted (back-fill)",
  "status": "scored",
- "v0_colour": "AMBER",
- "v0_status": "scored"
+ "v0_colour": "AMBER"
 }
