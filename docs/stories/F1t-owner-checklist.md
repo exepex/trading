@@ -72,8 +72,10 @@ Ask a Claude session to run, on a session day with no live switch, one fire of e
 pointer and to check, from the routine's transcript:
 - the routine API accepted the pointer (note its size in bytes: the cap is 64 KiB until this measure says otherwise),
   from the daily routine's own network;
-- the session ran `brief`, `seal` and `reveal`, and reported the registered model (not `unknown`; a test fire
-  reporting `unknown` blocks the switch);
+- the session ran `brief`, `seal` and `reveal`, and reported the served model through the session tool
+  (`model_source` `session_tool`, `last_served_model` equal to the registered model); anything else, including an
+  instructions line or `unknown`, blocks the switch;
+- each reveal reached `main` before 15:11:00 (note each push time: four reveals race at 15:10:10);
 - no file outside its printed input was read, and the network was used only for the two pushes.
 The result goes in `conversations/<date>.md`.
 
@@ -94,10 +96,12 @@ the orchestrator.
 2. F5 (Book 2) or F6 (Book 3) merged (D3's refusal, D4, D5 and the sheet hook already are); that book's version
    registered in `fno/ai_trading/versions.py` and its parts in `fno/ai_trading/wiring.py`. For Book 2 also F4 (the
    daily code judge): without it every Book 2 day is "judge failed", no trade.
-3. Book 2's envelope v1 or Book 3's constitution v1 registered in D6 with your approval (none exists today; until then
-   C4 refuses every trade of that book).
+3. Book 2's envelope v1 or Book 3's constitution v1 registered in D6: you approved both on 25 Oct ("9 yes, 10 yes");
+   they are registered when their judged branch (`story/ai-books-terms-v1`) merges. Until then C4 refuses every trade
+   of that book.
 4. Your 15 Oct rule "AI books trade on paper only after a strategy has passed": lifted for paper on 25 Oct. Every
    such trade is labelled "strategy not yet passed" and reported apart. Nothing to do unless you object.
 5. For Book 3: the daily routine's checkout has the full git history (`git fetch --unshallow`), as Book 3's C4 refuses
    a shallow clone.
-6. Steps 2-5 done, and the test fire reported the registered model (not `unknown`).
+6. Steps 2-5 done, and the test fire reported `last_served_model` through the session tool, equal to the registered
+   model, and each reveal's push time.

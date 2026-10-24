@@ -26,7 +26,9 @@ and book **paper** trades; the 22 Oct cut-list's pause on them is lifted. Their 
 the timeline names the v4 forecast run of the same books beside it; the two steps' public reasons are O1-status-only
 codes (criterion 17); a rehearsal never fires a routine (criterion 18); BG1's stop is read through G11's
 `BudgetStop`, with the owner's "no AI budget cap" (25 Oct); known limits and go-live checks updated with the real
-timing and model evidence of 15-23 Oct; the owner's lifting of the 15 Oct "strategy passed" rule for paper, with
+timing and model evidence of 15-23 Oct; round 2 (judges 621 and 623): the served model (`last_served_model`) is
+the one checked, an instructions line alone is unverified, decisions stop on BG1's level alone (`LevelBudgetStop`), the
+seal-before-reveal order and the reveal race stated; the owner's lifting of the 15 Oct "strategy passed" rule for paper, with
 the strategy label (criterion 17b); decisions reuse G11's `RunTerms` chain as a third instance instead of the 16
 Oct path parameters (Design, "The decision run's terms"). No criterion of the PASS is removed or loosened.
 
@@ -53,10 +55,14 @@ Oct path parameters (Design, "The decision run's terms"). No criterion of the PA
     (`fno/checks/wiring.py`). None is registered today (`playbook/envelopes/` and `book3/` do not exist).
   - Book 1's playbook holds one rule, `b0-monthly-sc` v1, status `research` (`playbook/registry.csv`): no strategy has
     passed to `paper`. The owner's rule of 15 Oct (design v2 decision 10, "AI books trade on paper only after a
-    strategy has passed") is **lifted for paper** (owner, 25 Oct, through the orchestrator: "every earlier pause and
-    condition from older decisions is lifted"; built on the builder's recommendation, the owner may still object):
+    strategy has passed") is **lifted for paper** (owner, 25 Oct, `docs/DESK_DECISIONS.md` rows of 25 Oct, item (1)
+    and "9 yes, 10 yes, 11 yes"):
     the AI books may trade on paper before a strategy has passed, each such trade labelled "strategy not yet passed"
-    and reported apart (Design, "Strategy label").
+    and reported apart (Design, "Strategy label"). Since D2 trades only `paper` versions, Book 2 would still have no
+    rule default; the owner's Q11 (25 Oct) lets Book 2 alone take D2's registered research candidates as eligible
+    rule defaults under D2's unproven limit (at most 1 open trade for a strategy with fewer than 20); that is F5's
+    revision, Book 1 unchanged. Book 2's envelope v1 and Book 3's constitution v1 are approved (Q9, Q10) and are
+    registered in D6 when their judged branch merges.
   - The same two AI books run their **forecast** job on protocol v4 from 26 Oct (G11, merged): `v4-fire.yml` fires each
     book's forecast routine when G10's release lands (about 14:45, latest fire 14:55), deadline 15:10
     (`fno/ai/v4_fire.py`). Those are separate routines and separate records; F1t's decision routines are new ones.
@@ -148,7 +154,7 @@ strictly in this order and before `desk.timetable.decision_deadline`):**
 | right after `pack`, before `book1` | `ai_fire` | one pointer per live AI book, fired once; not fired if the step starts after `latest_fire` 15:07:00; starts the receipt observer |
 | until 15:10:00 | each routine | `brief` → decides → `seal` pushes only its commitment to `main` |
 | 15:10:00 | receipt observer (child process) | observation 1 (`receipt_deadline`): `git ls-remote origin refs/heads/main`; a commitment counts only if contained in that commit |
-| 15:10:10 | each routine | `reveal` (`reveal_from`) pushes the answer and salt |
+| 15:10:10 | each routine | `reveal` (`reveal_from`) pushes the answer and salt. Every seal deadline of the day (decision and v4 forecast, 15:10:00) comes before any reveal (decision and v4 forecast, both 15:10:10), so no book's answer of either job is readable before every commitment is in (judge 621 m1) |
 | 15:11:00 | receipt observer | observation 2 (`reveal_deadline`), the same way |
 | after `book1`, once observation 2 exists | `ai_collect` | fetch and merge; judge each book against the two observations; accepted ones go to the decider; runs checked, then committed with the outcome records |
 | 15:12:00 | E3 `decisions` | unchanged: takes each book's first original run visible and committed before the deadline |
@@ -194,10 +200,13 @@ record `refused` with F1t's own code `ai:REHEARSAL_NO_FIRE` ("rehearsal: AI deci
 follow-up), not this one.
 
 **Firing (`fno/ai_trading/fire.py`):** for each live AI book, in this order, the first that applies is recorded:
-budget stop (BG1's own meter through G11's `BudgetStop`, `fno/ai/budget_stop.py`; trading decisions stop at BG1's
-level `stop`, before the forecasters, design 7.6; the owner set no cap on 25 Oct, so today it never stops, and a cap
-set later applies with no code change; a meter that cannot be read fires the books with the reason in the alert, as
-G11 does) → `not_fired`; no registered decision version → `not_fired`; stop rule (two
+budget stop (judge 623 should-fix 2): a second implementation of G11's `BudgetStop` interface
+(`fno/ai/budget_stop.py`), `LevelBudgetStop`, reading the same BG1 meter: trading decisions stop as soon as the
+month's level is `stop` (design 7.6: the AI forecasters stop last, so decisions stop before them), whereas G11's
+`MeterBudgetStop` stops the forecasters only when the books' own minutes also reach the cap. The owner set no cap on
+25 Oct, so today neither stops, and a cap set later applies with no code change. A meter that cannot be read fires
+the books with the reason in the alert: a deliberate fail-open on cost only (orchestrator, 25 Oct): it can cost AI
+minutes but never makes a trade (every trade still passes C2, C4 and the judge), and the owner set no cap → `not_fired`; no registered decision version → `not_fired`; stop rule (two
 transcript breaches in its last 20 decision session days, under that version) → `not_fired`; no common pack built →
 `not_fired`; started after `latest_fire` → `not_fired` (late start); pointer over `MAX_POINTER_BYTES` (64 KiB, to be
 confirmed against the routine API's real limit before go-live) → `not_fired`, never truncated; pointer text holding
@@ -241,11 +250,24 @@ not exactly these, whose version is not the book's current one, or whose private
 - `brief '<pointer>'`: checks the pointer, reads `journal/packs/<d>/common.json` from `main` and checks its SHA-256,
   checks the versioned prompt's hash, saves its private working files under `.ai_decision/` (never committed), then
   prints the prompt, `INPUT`, the common pack and the private pack. Nothing is shown unless every check passes.
-- **Model reported (judge 301):** `brief` prints, before the book's prompt, F1t's fixed answer rule: `model_reported`
-  is the exact model ID the session's own instructions state (its identity line); if the session also has its
-  session-description tool, that tool's `session_context.model`; `unknown` only when neither exists. `seal` refuses a
-  `model_reported` that is not a model ID or `unknown`.
-- `seal <answer.json>`: the answer is `{"model_reported": <text>, "decision": {...}}`. `seal` adds the labels (book,
+- **Model reported: the served model, not the configured one (judges 621 and 623, round 1; orchestrator's ruling, 25
+  Oct):** a session's configured model and the model that actually served a turn can differ (a fallback). The
+  session-description tool (`get_session` with no session ID) reports them apart: `session_context.model` (configured)
+  and `external_metadata.last_served_model` (the model that ran the latest turn). `brief` prints, before the book's
+  prompt, F1t's fixed answer rule: call that tool after writing the answer and report `model_reported` =
+  `last_served_model`, `model_configured` = `session_context.model`, and `model_source` = `"session_tool"`; without
+  the tool, `model_reported` = the model ID the session's own instructions state, `model_source` = `"instructions"`;
+  with neither, `"unknown"` and `model_source` = `"none"`. `seal` refuses a `model_reported` or `model_configured`
+  that is not a model ID or `unknown`, and a `model_source` outside those three. Judging (table below): `model_source`
+  `instructions` or `none` is `model_unverified` (an identity line names the configured model only; the orchestrator
+  ruled it not verified, because a routine session can call the tool); with `session_tool`, a `model_reported` or a
+  `model_configured` different from the registered model is `model_mismatch`. Both are no trade. The model copies the
+  tool's fields itself, so a false copy is possible: the transcript audit (every session of the first 10 fired days,
+  then the weekly draw) compares the recorded fields with the tool call in the transcript, and a difference is a
+  breach (kind `model_misreported`, under the stop rule). `last_served_model` covers the latest turn only; a fallback
+  on an earlier turn of the same session is visible only in the transcript (Known limits).
+- `seal <answer.json>`: the answer is `{"model_reported": <text>, "model_configured": <text>, "model_source": <text>,
+  "decision": {...}}`. `seal` adds the labels (book,
   day, version, both pack hashes) itself, checks the shape (F1t's base: `decision` is an object with `action` (text)
   and a one-line `reason` of 1-600 characters; F5's `decision` is `{"action", "reason", "slots", "evidence"}`, F6's
   `{"action", "reason", "trades", "proposals", "shadow", "cards_used", "evidence"}` (`evidence` is F4's key), and
@@ -279,8 +301,8 @@ commit in neither is `ReceiptUnknown`, which `fno/ai`'s rules already treat as l
 | `exposed` | another book's reveal was already visible at observation 1 (it could have been read) | no |
 | `invalid` | this book's own reveal visible at observation 1 (revealed early); seal broken; answer shape or labels wrong | no |
 | `not_revealed` | no reveal visible at observation 2 | no |
-| `model_mismatch` | `model_reported` differs from the registered model | no |
-| `model_unverified` | `model_reported` is `unknown` (orchestrator ruling, 16 Oct: no trade, reason recorded; forecasts keep their rule) | no |
+| `model_mismatch` | `model_source` is `session_tool` and `model_reported` (served) or `model_configured` differs from the registered model | no |
+| `model_unverified` | `model_source` is `instructions` or `none`, or `model_reported` is `unknown` (orchestrator rulings, 16 and 25 Oct: no trade, reason recorded; forecasts keep their rule) | no |
 | `judge_failed` | the judge's verdict blocks (Book 2 only: `fail` or `unavailable`); the decider still wrote its "no trade, judge failed" run, which passed F1t's check (below) | no (the rule default is kept as a shadow) |
 | `refused` | the decider raised `DecisionRefused`, or F1t's run check failed (below) | no |
 | `promoted` | the decider wrote a run that passed F1t's check | E3 collects it; fills only if C4 passed |
@@ -412,7 +434,8 @@ with no book live the two steps record `not_live` (O8 sees every step of `DAILY_
 book in their signatures) because F2's role routines reuse them too (agreed with F2, 16 Oct): `sealed_publish.py`
 (`SealedPublisher`, only if `BookSession` cannot serve a decision as is: design above), `observed_receipts.py`
 (`ObservedPushes`) and `fire_once.py` (`FireOnceLog`; G5's and G11's fire code untouched); changed: `fno/ai/wiring.py`
-(`build_audit_seeds`, one term), `fno/constants_operations.py`
+(`build_audit_seeds`, one term), `fno/ai/budget_stop.py` (`LevelBudgetStop` beside G11's class),
+`fno/ai/transcript_audit.py` (breach kind `model_misreported`; G11's records and tests unchanged), `fno/constants_operations.py`
 (`DAILY_RUN_STEPS` gains `ai_fire` and `ai_collect`), `fno/daily/wiring.py` (the two steps and per-book dispatch),
 `fno/desk/pack_wiring.py` (packed books from the run's books), `config.yaml` and `fno/config.py`
 (`ai_books.decision_timing`, two `daily.live_from` keys), `fno/daily/reason_codes.py` (the five `ai:` codes),
@@ -456,9 +479,15 @@ boundary and empty cases (quality rule 5).
    fired; a version with no role units gets an item with no roles; `consulted_units` in the outcome record lists exactly the
    roles whose card was passed (tests with a fake `CardsOfDay`); a full-size card set (every role at F2's largest
    card) with the largest fixture private pack fits under the cap, and the claims show its size in bytes.
-3c. **Model reported.** `brief` prints the model rule first; `seal` refuses a `model_reported` that is neither a model
-   ID nor `unknown`; an answer with `unknown` is `model_unverified` and no trade (tests). On the go-live non-counted
-   fire the session must report the registered model; a go-live fire reporting `unknown` blocks the live switch.
+3c. **Model reported.** `brief` prints the model rule first; `seal` refuses a `model_reported` or `model_configured`
+   that is neither a model ID nor `unknown`, and a `model_source` outside `session_tool`, `instructions` and `none`.
+   Judged: `session_tool` with served = configured = registered is not stopped by this check; `session_tool` with
+   the served model different (a fallback) while the configured one matches is `model_mismatch`; a configured model
+   different is `model_mismatch`; `instructions` naming the registered model is `model_unverified`; `none` or
+   `unknown` is `model_unverified`; each no trade (tests). The transcript audit records `model_misreported` when the
+   answer's fields differ from the tool call in the transcript (test with a fixture transcript). On the go-live
+   non-counted fire the session must report `model_source` `session_tool` with `last_served_model` equal to the
+   registered model; any other result blocks the live switch.
 3d. **No private figure in the answer.** An answer whose reason, proposal or shadow text holds a fill price, cash or
    P&L figure from the private account files is refused at `seal` and `invalid` at collection, the message naming its
    place, not the figure; a strike or price that also appears in the common pack is accepted; a 2-digit number is not
@@ -496,8 +525,11 @@ boundary and empty cases (quality rule 5).
     repeats nothing (tests).
 11. **Timing settings.** `ai_books.decision_timing` out of order, missing a key, or not before
     `desk.timetable.decision_deadline` is refused at load with the key named (tests).
-12. **Transcript audit and stop rule** for decision sessions: selection, record and stop by the forecast's rule on the
-    decision fire logs; forecast audits, draws and stops unchanged (tests on both).
+12. **Transcript audit, stop rule and budget stop** for decision sessions: selection, record and stop by the
+    forecast's rule on the decision fire logs; forecast audits, draws and stops unchanged (tests on both). With BG1's
+    level `stop` and the books' minutes below the cap, decisions are `not_fired` (`LevelBudgetStop`) while G11's
+    forecasts still fire (`MeterBudgetStop`); level `alert` fires both; an unreadable meter fires decisions with the
+    reason in the alert (tests).
 13. **Routine prompts and checklist.** `docs/stories/F1t-owner-checklist.md` holds the two routines' exact prompts (one
     line of JSON passed only to `brief`; stop on a refusal; never `--no-verify`), the environment
     variables' names (never values) the daily run needs, and the go-live checks below. A test checks the checklist's
@@ -590,7 +622,12 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
   model was reported on 1 of 11 answered book-days: unless the decision prompt's identity-line rule fixes that (to be
   shown on the non-counted fire), the books will almost never trade.
 - **Four routine sessions overlap** from about 15:00 to 15:11 (two forecast, two decision); the platform's limit on
-  concurrent routine runs is not documented to this builder and is measured on the non-counted fire. A pack built late (up to 15:10) leaves no time; such days are `not_fired` or `late`, never a trade. The
+  concurrent routine runs is not documented to this builder and is measured on the non-counted fire.
+- **Four reveal pushes race at 15:10:10** (two forecast, two decision), beside the daily run's own pushes to `main`.
+  Each push retries on a rejected push; a reveal still not on the remote at observation 2 (15:11:00) is
+  `not_revealed`, never a trade. The non-counted fire records each reveal's push time.
+- **The served model is the latest turn's** (`last_served_model`): a fallback on an earlier turn is caught only by the
+  transcript audit, which reads every session of the first 10 fired days and 2 a week after. A pack built late (up to 15:10) leaves no time; such days are `not_fired` or `late`, never a trade. The
   timetable is S1's to freeze from measured times.
 - **Isolation is detected, not prevented** (`sealed_same_day`), as for forecasts.
 - **The pointer grows with the private pack** (account files grow with fills). At the measured API limit a day fails
@@ -618,3 +655,15 @@ a book's go-live (fakes stand in for F1t's merge): F5 (Book 2), F6 (Book 3), F4 
 Text round (revision 2): every fact in Context was re-read on `main` of 25 Oct by this builder (files named beside
 each); the AI audit counts come from all 16 `*_audit.json` files of 14-23 Oct (`status`, `model_reported`,
 `fire.fired_at`, `commitment_received_at`). Code claims follow in the code round.
+
+Round 2 (answers to judges 621 and 623, all accepted; each fix is text):
+- 621 SF1 / 623 SF1 (the served model): Design "Model reported", the judging table, criterion 3c, go-live check 6 and
+  the checklist's test fire. `last_served_model` is checked and `model_configured` recorded beside it; an instructions
+  line alone is `model_unverified` (the orchestrator's ruling); a false copy is a transcript-audit breach.
+- 623 SF2 (the budget rule): `LevelBudgetStop`, a second implementation of G11's `BudgetStop`, stops decisions on
+  BG1's level `stop` alone. Criterion 12 has the case "level `stop`, books below the cap: decisions not fired,
+  forecasts fired".
+- 621 m1: the timeline row at 15:10:10 states every seal before any reveal; Known limits and the test fire name the
+  reveal race.
+- 621 m2 / 623 minor: the unreadable meter is a deliberate fail-open on cost only (orchestrator, 25 Oct). It costs
+  minutes, never a trade.
