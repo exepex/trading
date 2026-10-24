@@ -213,7 +213,8 @@ archives. Each row's own provenance and the readers' checks protect them; the re
 4. **G7b's wordings W1-W8** in the protocol, then this story's protocol commit (section 3).
 5. **Main green** with the merged tree (full gates once, `docs/JUDGE.md` merge procedure).
 6. **Known pending changes to byte-checked files land first** (judge 597 SF3): G10's `story/v4pack-rehearsed-live`
-   (`fno/v4_pack/wiring.py`); any other open branch touching a byte-checked file is listed by the freeze tool from the
+   (`fno/v4_pack/wiring.py`) **landed on 24 Oct and is merged into this branch** (one conflict beside
+   `build_iv30_rule`, both kept; `tests/rehearsal/test_v4_pack_live.py` and `tests/v4_pack` pass); any other open branch touching a byte-checked file is listed by the freeze tool from the
    register and the branches at the freeze, and either lands or waits for v5.
 
 **Said plainly:** Sunday holds only if item 1 passes judge K on Sunday. If not, nothing is frozen early: `Frozen on:`
@@ -452,6 +453,10 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
   only), `alerts/sender.py`, `pipeline/trigger.py`, `budget/constants.py` and `budget/report.py` (the stop's names and
   meter shape) not deciding; `timing.py` dropped (no longer reached). `fno/forecast/wiring.py`'s reason now says it
   leaves the rate refusal, and the walk marks it stale, once G7b's wiring stops importing it.
+- **Addendum 606.1 (should-fix: `budget_stop.py`):** already recorded at 9be2bccc4; its lock now names G11 C8's tests
+  (`tests/ai/test_v4_budget_stop.py`) and BG1-u's change to how the level is read. The walk stops at its two imports
+  (not deciding), so BG1-u's own files are not reached. G10's merged change adds `fno/rehearsal/live_wiring.py`, not
+  deciding (a real run gets `daily.live_from` unchanged).
 - **After the PASS (judge 597.2, orchestrator, 24 Oct):** m3, `fno/quotes/recorder.py` is recorded (A4's capture
   behind the pack; lock: A4's baseline-bytes test), with the five capture modules it imports; criterion 8 reads the
   freeze date from `FREEZE_v4.md` (BG1-t), no config key.
@@ -478,7 +483,8 @@ Criteria 5-8 and 10 are the freeze commit's (the record, the slot and ledger row
 commit); they are built when G7b and G11 are on `main`.
 
 - **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes; on the tree merged with `main` of 24 Oct
-  evening, G11 included: 139 byte-checked files, 62 recorded with their lock, 50 not deciding with a reason);
+  evening, G11 and G10's rehearsed live dates included: 139 byte-checked files, 62 recorded with their lock, 51 not
+  deciding with a reason);
   `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`, `recorded` with G11's own "AI registration" table, `drift`,
   `protocol_problems`, `rate_readers`);
   `freeze_disclosure.py` (new); `cli.py` and `wiring.py` (`build_freeze_check`; the report's first lines; the look

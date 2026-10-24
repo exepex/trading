@@ -46,8 +46,16 @@ def build_iv30_rule():
     return LiveAtmIvMinusRealised(None, V4_RISK_FREE_RATE, Black76())
 
 
-def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> ReleaseRun:
+def run_live_dates(cfg: dict, env: Mapping[str, str] = os.environ) -> dict:
+    """`daily.live_from` as the daily run's root sees it: in a rehearsal a key not live on the replayed day is made
+    live (REH1c), so the child exercises what its step was made live to do; a real run gets the dates unchanged."""
     from ..daily.wiring import live_dates
+    from ..rehearsal.live_wiring import rehearsed_live
+
+    return rehearsed_live(live_dates(cfg), env)[0]
+
+
+def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> ReleaseRun:
     from ..forecast_v4.sessions import is_scored_session
     from ..models import now_ist
     from ..quotes.recorder import DATASET
@@ -64,7 +72,7 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
 
     from ..rehearsal.v4_pack import rehearsed_release_excuse
 
-    sessions, live = sessions_between(lambda day: is_scored_session(calendar, day)), live_dates(cfg)
+    sessions, live = sessions_between(lambda day: is_scored_session(calendar, day)), run_live_dates(cfg, env)
     builder = PackBuilder(rule, iv30_method(), now_ist)
     excuse = rehearsed_release_excuse(_recorded_v4(dataset), env)
     in_drive = lambda path: store.drive.get(path) is not None  # noqa: E731
@@ -74,7 +82,6 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
 
 def build_deadline_run(cfg: dict, env: Mapping[str, str] = os.environ) -> DeadlineRun:
     """The 15:10 check of every live commitment, through GitHub's push receipts (F1, O8's evidence)."""
-    from ..daily.wiring import live_dates
     from ..forecast_v4.sessions import is_scored_session
     from ..models import now_ist
     from ..rehearsal.v4_pack import rehearsed_catch_up
@@ -85,7 +92,7 @@ def build_deadline_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Deadli
     source = RecordCommitments(ROOT, V4_RECORDS, f"{RECEIPTS_FOLDER}/{DATA_AREA}/{LIVE_RECORDS_FOLDER}")
     in_drive = lambda path: store.drive.get(path) is not None  # noqa: E731
     sessions = sessions_between(lambda day: is_scored_session(calendar, day))
-    live = live_dates(cfg)
+    live = run_live_dates(cfg, env)
     return DeadlineRun(store, in_drive, source, build_commitment_times(env=env), sessions, live[V4_PACK_LIVE_KEY],
                        now_ist, rehearsed_catch_up(env), live["forecasts_v4"])  # fmt: skip
 

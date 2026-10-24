@@ -80,7 +80,8 @@ RECORDED = {  # path -> what it decides and its lock
     "fno/ai/pointer.py": f"the pointer an AI book is given; {_AI}",
     "fno/ai/paths.py": f"the AI record paths; {_AI}",
     "fno/ai/run_terms.py": f"the v4 AI run's commitment, reveal and fire terms (deadlines read from `terms`); {_AI}",
-    "fno/ai/budget_stop.py": f"whether an AI book fires on BG1's meter: a stop is a `not_fired` miss; {_AI}",
+    "fno/ai/budget_stop.py": "whether an AI book fires on BG1's level: v4_fire logs a stop as a `not_fired` miss;"
+    " G11 C8's tests (tests/ai/test_v4_budget_stop.py); BG1-u changed how the level is read (judge 606.1)",
     "fno/ai/record_writer.py": f"writes the AI books' collected records; {_AI}",
     "fno/ai/activity_log.py": "GitHub's activity log behind push times (late = miss); the deadline and receipt tests",
     "fno/ai/history.py": f"which earlier AI records exist; {_AI}",
@@ -119,6 +120,7 @@ NOT_DECIDING = {  # path -> why its bytes compute no v4 value
     "fno/health/evidence.py": "O8's evidence history: a reader of push times' shape",
     "fno/health/model.py": "O8's plain record types",
     "fno/rehearsal/receipts_wiring.py": "REH1's rehearsal wiring; never on a counted day",
+    "fno/rehearsal/live_wiring.py": "REH1c's rehearsed live dates; a real run gets `daily.live_from` unchanged",
     "fno/rehearsal/v4_pack.py": "REH1's rehearsal excuses; never on a counted day",
     "fno/global_cues/reading.py": "M1's US flag on the card, outside its METHOD_FILES",
     "fno/global_cues/wiring.py": "composition root of the global cues (the card's flag)",

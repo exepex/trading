@@ -2073,6 +2073,30 @@ and the orchestrator that evening: the `v4` sidecar (start, finish, recorded of 
 `future_quote`, clock status) beside A16's 14:30 row (status, recorded of expected, failures); the release line and
 label; the deadline line; the overlap line, if any; the run's last line; and any alert posted.
 
+**The release and the deadline in a rehearsal before the live date (orchestrator, 24 Oct; branch
+`story/v4pack-rehearsed-live`; lane 1, judge B).** *Finding (strong evidence: `daily run --rehearse --day 2026-10-22`
+on `story/g10-live-date`, run 20261024T133243Z-e75a00):* REH1c makes `v4_release` and `v4_deadline` live in a rehearsal
+of a day before `daily.live_from.v4_pack`, but their children (`v4-pack release`, `v4-pack deadline`) read
+`live_dates(cfg)` themselves and print `NOT_LIVE` (exit 0): the run log shows `v4_release:NOT_LIVE` and
+`v4_deadline:NOT_LIVE`, so the owner's weekend dry runs (22 and 23 Oct, before the 26 Oct date) never exercise the
+release. *Root cause:* the two children's composition root (`fno/v4_pack/wiring.py`) takes the real dates, while the
+daily run's root takes `rehearsed_live(live_dates(cfg))`; the same day has two answers. *Fix:* one function in that
+root, `run_live_dates(cfg, env)`, returns `rehearsed_live(live_dates(cfg), env)[0]`, and both builders take their
+dates from it. A real run is unchanged (`rehearsed_live` returns the dates as they are with no mode).
+*With REH1j (session_01GAACYjcfHWkC3hp33iiMXV, `story/reh1j-not-live`):* its wrapper still records each step as
+`not_live` with the child's result under `exercised`; this change only makes that result real (the release run),
+never a day problem.
+- **RL1.** In a rehearsal of 23 Oct with `v4_pack` live from 26 Oct, `run_live_dates` gives 23 Oct for `v4_pack` and
+  keeps `forecasts_v4` at 22 Oct; with no mode it gives the real dates. Boundary: a key already live on the replayed day
+  keeps its own date. Plant: the builders' `live_dates(cfg)` restored.
+- **RL2.** `build_release_run` and `build_deadline_run` (their Drive, quote store and calendar replaced by fakes)
+  carry 23 Oct as `live_from` under the mode and 26 Oct without it. Plant: either builder back on `live_dates(cfg)`.
+- **RL3.** Run with those dates, a rehearsal release of 23 Oct with no recorded `v4` attempt writes `system_late`
+  (catch-up from `forecasts_v4`, 22 Oct, too), prints the excused line ("rehearsal: no v4 capture recorded for this
+  day") and does not fail; the same day in a real run prints `NOT_LIVE` and writes nothing. Plant: the excuse ignored.
+- **Gates:** full suite with `FNO_SLACK_BOT_TOKEN` kept, ruff, format, imports, record scan; one 23 Oct rehearsal of
+  this branch's tree with `v4_pack` at 26 Oct, the release's and the deadline's records under `dryrun/` only.
+
 ---
 
 ## G11. AI books on the v4 questions: books 2 and 3 forecast like the rules and are scored by G8 the same way
