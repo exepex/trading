@@ -470,3 +470,32 @@ Text PASS: judge 604 (m1 carried into the rule above). Code on `story/a22e-last-
   limited that section's edits, so the last-read time is not written there.
 - Gates (merged tree, token kept): full suite 16101 passed, 14 xfailed; ruff, format, `check_imports`, `check_records`
   clean. After the two test renames: `tests/preopen`, `tests/rehearsal` and the size test, 2967 passed.
+- Real output sample (judge 604.1 m1; `main` at 432071d63, the desk of `tests/preopen/desk.py` with fake committers
+  and Slack, invented numbers). The 23 Oct shape, a flat 09:15 candle for both indices, through the recorder:
+
+```
+receipts committed and pushed (2 file(s))
+gift ok (1 read(s))
+fo_list ok (1 read(s))
+nifty ok (1 read(s))
+banknifty ok (1 read(s))
+committed
+committed
+pre-open recorded
+committed
+committed
+open check: 0 checked, 0 waiting for NSE's file
+exit 0
+nifty ok 1 09:10:00 flat_0915_unverified
+banknifty ok 1 09:10:00 flat_0915_unverified
+```
+
+  The run with both indices' first two Groww calls failing and each call taking 2 s (E2's shape):
+
+```
+nifty ok 3 requested ['09:10:00', '09:10:32', '09:10:45'] seen 09:10:47
+banknifty ok 3 requested ['09:10:02', '09:10:34', '09:10:47'] seen 09:10:49
+```
+
+  The second read is 30 s after the first read's end (09:10:32, not 09:10:30), as `run.py` plans retries from the
+  read's end; the last read is still 09:10:45.
