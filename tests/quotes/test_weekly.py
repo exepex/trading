@@ -12,14 +12,15 @@ from fno.models import IST, OptionChain, OptionQuote, QuoteBook
 from fno.quotes import index_wiring
 from fno.quotes.book_fetch import BookFetcher
 from fno.quotes.drive_only_store import DriveOnlyQuoteStore
-from fno.quotes.indices import IndexRecording, weekly_slot
+from fno.quotes.indices import TOO_EARLY_REASON, IndexRecording, weekly_slot
+from fno.quotes.indices_cli import INDEX_ALERT, record_indices
 from fno.quotes.recorder import DATASET, QuoteSnapshotRecorder
 from fno.quotes.weekly import NO_WEEKLY, WEEKLY_DATASET, WEEKLY_NAME, nearest_weeklies
 from fno.storage import quote_wiring
 from fno.storage.raw_store import LocalFolderStore
 from tests.quotes.drive_fakes import SETTINGS, FakeDrive
 from tests.quotes.index_fakes import FILE, Clock
-from tests.quotes.test_recorder_calendar import CALENDAR
+from tests.quotes.test_recorder_calendar import CALENDAR, Alerts
 
 DAY = date(2026, 10, 13)  # a Tuesday: a NIFTY weekly expires today
 LISTED = [date(2026, 10, 13), date(2026, 10, 20), date(2026, 10, 27), date(2026, 11, 3), date(2026, 11, 10),
@@ -165,3 +166,16 @@ def test_the_wiring_sends_weekly_quote_files_to_drive_only(tmp_path, monkeypatch
     path = f"{WEEKLY_DATASET}/2026/10/niftyweekly_20261013_150501.csv"
     store.put(path, b"snapshot_id\nx\n")
     assert drive.files == {f"raw/{path}": b"snapshot_id\nx\n"} and not list(tmp_path.rglob("*.csv"))
+
+
+def test_the_weekly_slot_run_too_early_says_not_started_like_the_other_indices(tmp_path, capsys):
+    """A4c-2 criterion 7: one IndexRecording, so A4f's weekly slot gets the same wording and no marker."""
+    clock, alerts = Clock(datetime(2026, 10, 13, 14, 38, tzinfo=IST)), Alerts()
+
+    def build():
+        return {WEEKLY_NAME: _weekly(tmp_path, NiftyProvider(), clock, FakeDrive())}
+
+    assert record_indices(build, alerts, "cal.csv", clock.now, clock.sleep) == 1
+    assert alerts.sent == [INDEX_ALERT.format(names=f"{WEEKLY_NAME} ({TOO_EARLY_REASON})")]
+    assert capsys.readouterr().out.splitlines()[0].endswith(f"- {TOO_EARLY_REASON}")
+    assert not list(tmp_path.rglob("*.canonical"))

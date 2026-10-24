@@ -16,6 +16,7 @@ from tests.quotes.drive_fakes import FakeDrive
 from tests.quotes.index_fakes import FILE, SPOTS, Clock, IndexProvider, Listing, recorders
 from tests.quotes.test_recorder_calendar import Alerts, NoCalls
 
+TOO_EARLY = "not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it"
 AT_1500 = datetime(2026, 10, 13, 15, 0, 30, tzinfo=IST)
 WINDOW_START, WINDOW_END = datetime(2026, 10, 13, 15, 1, tzinfo=IST), datetime(2026, 10, 13, 15, 13, tzinfo=IST)
 
@@ -195,12 +196,10 @@ def test_a_run_too_early_says_not_started_and_never_canonical_none(tmp_path, cap
     """A4c-2 (DRY2 R1): at 14:38 the nifty part had died; 23 minutes early, nothing is recorded and no marker is
     written, so neither the lines nor the alert may say "canonical none"."""
     code, sent, lines = _alerted(tmp_path, datetime(2026, 10, 13, 14, 38, tzinfo=IST), capsys)
-    assert code == 1 and len(sent) == 1 and "canonical none" not in sent[0]
-    assert all(f"{name} (not started: too early (before 14:41))" in sent[0] for name in SPOTS)
+    assert code == 1 and len(sent) == 1 and "canonical none" not in sent[0]  # exit 1, one alert (judge 568 minor 2)
+    assert all(f"{name} ({TOO_EARLY})" in sent[0] for name in SPOTS)
     index_lines = [line for line in lines if " too early: " in line]
-    assert len(index_lines) == 3 and all(
-        line.endswith("- not started: too early (before 14:41)") for line in index_lines
-    )
+    assert len(index_lines) == 3 and all(line.endswith(f"- {TOO_EARLY}") for line in index_lines)
     assert not list(tmp_path.rglob("*.canonical"))
 
 

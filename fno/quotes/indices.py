@@ -28,7 +28,10 @@ DONE_WITHOUT_ATTEMPT = ("not a trading day", "already recorded", "too early")
 # The earliest start that still reaches the window by waiting (A4c-2: 15:01 minus the 20-minute early wait). A run
 # started before it records nothing and writes no none marker, so its result says so (DRY2 R1, 24 Oct 2026).
 EARLIEST_START = earliest_waiting_start(INDEX_WINDOW_START)
-TOO_EARLY_REASON = f"not started: too early (before {EARLIEST_START:%H:%M})"
+TOO_EARLY_REASON = (
+    f"not started: too early (before {EARLIEST_START:%H:%M}); a rerun from {EARLIEST_START:%H:%M} to "
+    f"{INDEX_WINDOW_END:%H:%M} records it"
+)  # judge 568 minor 1: what to do
 CLOSED_NONE = "canonical none"  # the day's marker was written "none": a rerun records nothing more
 
 
