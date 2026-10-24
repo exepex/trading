@@ -16,9 +16,10 @@ from ..models import now_utc
 
 DRYRUN_ROOT = "dryrun"
 BRANCH_PREFIX = "rehearsal/"
-LABEL = "*DRY RUN, {day} replay, not a real trading day*\nNot yet in rehearsal: {pending}"
+LABEL = "*DRY RUN, {day} replay, not a real trading day*"
+PENDING = "\nNot yet in rehearsal: {pending}"
 # The parts of the day not yet replayed (the orchestrator's addition 3): named in every post until each part lands
-NOT_YET_IN_REHEARSAL = ("the pre-open, morning and evening routines (REH1c)",)
+NOT_YET_IN_REHEARSAL: tuple[str, ...] = ()  # REH1c: every routine is in rehearsal now
 RUN_ID_TIME = "%Y%m%dT%H%M%SZ"
 
 
@@ -44,7 +45,8 @@ class Rehearsal:
 
     @property
     def label(self) -> str:
-        return LABEL.format(day=self.day.isoformat(), pending="; ".join(NOT_YET_IN_REHEARSAL) or "nothing")
+        pending = PENDING.format(pending="; ".join(NOT_YET_IN_REHEARSAL)) if NOT_YET_IN_REHEARSAL else ""
+        return LABEL.format(day=self.day.isoformat()) + pending
 
     def to_env(self) -> str:
         return json.dumps({"day": self.day.isoformat(), "run_id": self.run_id, "state": str(self.state),

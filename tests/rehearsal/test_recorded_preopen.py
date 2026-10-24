@@ -1,0 +1,68 @@
+"""REH1c: A22's morning capture in a rehearsal answers with the raw answer the day saved for each part, at its own
+seen time, read by the live part's own reader; a moment with nothing recorded is the capture's own failure. A replay
+clock is not checked against servers, and says so."""
+
+from datetime import date, datetime, timedelta
+
+import pytest
+
+from fno.models import IST
+from fno.preopen.parts import PartFailed, PreopenPart
+from fno.rehearsal.preopen_wiring import NOT_CHECKED, RehearsalClockCheck
+from fno.rehearsal.recorded_preopen import RecordedPreopenPart
+from fno.storage.receipts import Receipt, ReceiptFolder
+
+DAY = date(2026, 10, 23)
+GIFT = "data/preopen/raw/2026/10/23/gift_084000.json"
+
+
+class Clock:
+    def __init__(self, at):
+        self.at = at
+
+    def __call__(self):
+        return self.at
+
+    def sleep(self, seconds):
+        self.at += timedelta(seconds=seconds)
+
+
+class LivePart(PreopenPart):
+    name, window = "gift", (None, None)
+
+    def answer(self, day):
+        raise AssertionError("a rehearsal never reads live")
+
+    def __init__(self):
+        self.seen = []
+
+    def read(self, data, day, seen_at):
+        self.seen.append((data, seen_at))
+        return "reading"
+
+
+@pytest.fixture
+def record(tmp_path):
+    receipts = ReceiptFolder(tmp_path)
+    receipts.write(Receipt(GIFT, "a" * 64, 2, "2026-10-23T03:10:01+00:00", "preopen record", "r"))
+    return receipts, {GIFT: b"{}"}
+
+
+def test_a_part_answers_with_the_day_s_raw_answer_at_its_own_seen_time(record):
+    receipts, files = record
+    live, clock = LivePart(), Clock(datetime(2026, 10, 23, 8, 39, 55, tzinfo=IST))
+    answer = RecordedPreopenPart(live, receipts, files.get, clock, clock.sleep).answer(DAY)
+    assert (answer.raw, answer.reading, answer.seen_at) == (b"{}", "reading", datetime(2026, 10, 23, 8, 40, tzinfo=IST))
+    assert live.seen == [(b"{}", answer.seen_at)] and clock() == answer.seen_at  # the live reader, at its seen time
+
+
+def test_a_moment_with_no_recorded_answer_is_the_capture_s_own_failure(record):
+    receipts, files = record
+    clock = Clock(datetime(2026, 10, 23, 9, 30, tzinfo=IST))
+    with pytest.raises(PartFailed, match="rehearsal:NOT_RECORDED gift"):
+        RecordedPreopenPart(LivePart(), receipts, files.get, clock, clock.sleep).answer(DAY)
+
+
+def test_a_replay_clock_is_not_checked_and_says_so():
+    reading = RehearsalClockCheck().check()
+    assert reading.status == "clock_unchecked" and reading.warning() == NOT_CHECKED

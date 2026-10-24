@@ -10,8 +10,8 @@ import pytest
 
 from fno.models import IST
 from fno.rehearsal.checkout import RehearsalCheckout, RehearsalCheckoutError, refuse_unless_rehearsal_ref
-from fno.rehearsal.daily import rehearse_daily
 from fno.rehearsal.mode import Rehearsal
+from fno.rehearsal.rehearse import rehearse_daily
 
 DAY = date(2026, 10, 23)
 START = datetime(2026, 10, 23, 14, 5, tzinfo=IST)
@@ -68,7 +68,7 @@ def test_the_checkout_has_today_s_code_the_morning_s_data_and_a_local_origin(sou
 def test_publish_pushes_only_the_rehearsal_s_ref_and_every_other_ref_is_refused(source, tmp_path):
     repo, github = source
     lines = []
-    ran = lambda clone, day, env, out: (0, "day done")  # noqa: E731
+    ran = lambda clone, routine, day, env, out: (0, "day done")  # noqa: E731
     code = rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True, run_child=ran,
                           guard=lambda env, cwd: [])  # fmt: skip
     pushed = refs(github)
@@ -76,7 +76,9 @@ def test_publish_pushes_only_the_rehearsal_s_ref_and_every_other_ref_is_refused(
     assert pushed[1].startswith("refs/heads/rehearsal/2026-10-23-")
     assert git(github, "log", "-1", "--format=%s", "main").strip() == "today's code"  # main unchanged
     run_id = pushed[1].removeprefix("refs/heads/rehearsal/2026-10-23-")
-    assert lines[0].startswith(f"rehearsal 2026-10-23 {run_id}: ") and lines[-1].endswith(f"Drive dryrun/{run_id}/")
+    assert lines[0].startswith(f"rehearsal daily 2026-10-23 {run_id}: ") and lines[-1].endswith(
+        f"Drive dryrun/{run_id}/"
+    )
     for ref in ("refs/heads/main", "refs/heads/story/x", "refs/tags/v1", "refs/heads/rehearsal/../main", "main"):
         with pytest.raises(RehearsalCheckoutError, match="only refs/heads/rehearsal/"):
             refuse_unless_rehearsal_ref(ref)
@@ -133,7 +135,7 @@ def test_a_guard_that_crashes_or_exits_non_zero_stops_the_rehearsal_whatever_it_
     """Judge 560 F3: only a clean exit with nothing printed is safe."""
     import sys
 
-    from fno.rehearsal.daily import _guard
+    from fno.rehearsal.rehearse import _guard
 
     crash = (sys.executable, "-c", "raise RuntimeError('guard broke')")
     quiet_fail = (sys.executable, "-c", "raise SystemExit(3)")

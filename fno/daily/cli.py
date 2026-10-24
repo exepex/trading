@@ -30,7 +30,7 @@ def cmd_daily_run(args, out=print, root=None) -> int:
 
     root, day = root or ROOT, args.day or now_ist().date()
     if getattr(args, "rehearse", False):
-        from ..rehearsal.daily import rehearse_daily
+        from ..rehearsal.rehearse import rehearse_daily
 
         return rehearse_daily(day, root, out)
     with DayLock(root / PART_LOCKS).taken(day, now_ist()) as running_since:

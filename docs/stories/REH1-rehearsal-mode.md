@@ -409,3 +409,66 @@ rehearsal form, chosen in the builder that builds it:
     `urllib3.connection.HTTPSConnection`.
   - `tests/rehearsal/test_http_guard.py` probes a direct `urllib3` call, which is now refused.
   - Raw sockets stay a stated limit: nothing in the package opens one.
+
+### REH1c: every report, and the other three routines (for its two judges)
+
+Branch `story/reh1c-routines`, stacked on REH1b's c317d9e7.
+
+**1. Every report runs in a rehearsal** (the orchestrator's ruling for the owner, 24 Oct: "all type of data and reports
+... send to slack for review").
+- A daily-run step that is not live on the replayed day in real runs runs in the rehearsal. Each of its posts carries
+  one more line: "not live in real runs yet (live_from unset)", or "not live in real runs on <day> (live from
+  <date>)".
+- It is chosen in the daily run's composition root (`rehearsed_live`, `rehearsed_not_live`, `fno/rehearsal/
+  live_wiring.py`). `config.yaml` and real runs are untouched.
+- The line reaches the step's own process and its children through `FNO_REHEARSAL_NOT_LIVE`, only while the step
+  runs; the label decorators read it.
+- E8's owner-timing fills keep their real date: they change the desk's fills and are not a report.
+- On 23 Oct this makes the card, `margin_check` and `premium_range_scores` run. `margin_check`'s command does not
+  exist yet (DRY1 row a4), so in a rehearsal it fails and says so: an honest result, not hidden.
+- The rehearsal's two variable names move to `fno/constants_operations.py`: one more line put `constants.py` over the
+  350-line limit, and the size test caught it.
+
+**2. The other three routines: `python -m fno rehearse preopen|morning|evening --day D`.**
+- One runner (`fno/rehearsal/rehearse.py`, formerly `daily.py`) rehearses every routine: the checkout, the clock at the
+  routine's start, the guard, the routine's commands, its receipts, and the publish.
+- The routines are data (`routines.py`): their start time (14:05, 08:36, 08:38 and 19:53 IST), their commands in
+  CLAUDE.md's order (A17e's `global-cues preopen` in the background, as CLAUDE.md's step 3 orders it), and the
+  receipts each routine's session commits by hand.
+- `test_routines.py` holds every command's name and every receipt path to its routine's own CLAUDE.md section. The
+  doc wraps its lines, so the match allows any whitespace.
+- One command's failure never stops the next, as in the routines. The receipts are committed through the rehearsal's
+  git (dated by the replay clock) with the record scan's hook, then pushed to the rehearsal's origin.
+
+**3. Their recorded sources**, each chosen in its own builder. Each serves the answer the day saved at or just after
+now, once the replay clock reaches that time, read from the real record:
+- **A22's four parts** (GIFT Nifty, NSE's F&O pre-open list, Groww's NIFTY and BANKNIFTY candles): `RecordedPreopenPart`
+  serves `preopen/raw/<day>/<part>_<HHMMSS>.json`, read by the live part's own reader. It is chosen in
+  `fno/preopen/wiring.py`.
+- **A17e's Yahoo reads:** `RecordedCueSession` serves the copy the day archived, from the record's snapshot logs,
+  checked against each row's SHA-256. It is chosen in the cue jobs' one session builder.
+- **A16's clock check:** a replay clock is not checked against GitHub's and Slack's servers (it would always read as a
+  skew), and the check says so in its warning line. It is chosen in `build_clock_check`.
+- **The morning's and evening's NSE archive reads** and A4h's close reads were already covered by REH1b. The lab's
+  editions go through FL1's own `build_composer`, with REH1a's labelled poster (agreed with FL1's owner).
+- **Lazy Drive.** The recorded sources sign in to Drive at their first read (`record_drive.RecordFiles`), so they are
+  built, and the guard checks them, without Drive. A read with no Drive settings names the missing ones.
+- **The guard** checks the clock check too.
+
+**Tests:**
+- `test_not_live_reports.py` (3): the live dates and the lines, a real run unchanged, and the line present only while
+  its step runs.
+- `test_routines.py` (3): the commands held to CLAUDE.md; the order, the background command and a failure carried on;
+  the receipts committed through the hooks with the routine's paths only.
+- `test_recorded_preopen.py` (3), `test_recorded_cues.py` (2) and `test_routine_wiring.py` (3).
+- `test_rehearsed_day.py` now pins that O2's fixture day under the mode fails only in the steps not live in real runs
+  (the fixture's child commands do not script them), with every Drive write still under `dryrun/`.
+
+**Gates:** in the commit message's push (below).
+
+**Not in REH1c (said plainly):**
+- No routine has been rehearsed against the real record yet. That is REH1d, after the judges and O9's read-only fix,
+  on the orchestrator's go.
+- The evening's `data-snapshot fii-dii-cash-by-session` reads NSE live, and has no recorded form yet, so in a
+  rehearsal it is refused by the HTTP guard: a loud failure, never a fetch.
+- The paper accounts are read as they are now (the stated limit from REH1a).

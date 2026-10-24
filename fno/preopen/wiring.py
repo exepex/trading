@@ -47,7 +47,10 @@ def _parts(cfg: dict) -> list[PreopenPart]:
     provider = _LazyGroww(cfg)
     api = ReadOnlyGroww(lambda: provider.api)  # the only Groww object the capture holds
     indices = [GrowwIndexPreopen(name, _candles(api, symbol)) for name, symbol in GROWW_SYMBOLS.items()]
-    return [NseGiftNifty(session, now_ist), NsePreopenList(session, now_ist), *indices]
+    from ..rehearsal.preopen_wiring import rehearsed_preopen_parts
+
+    parts = [NseGiftNifty(session, now_ist), NsePreopenList(session, now_ist), *indices]
+    return rehearsed_preopen_parts(parts)  # story REH1c: the day's recorded answers when rehearsing
 
 
 class _LazyGroww:
