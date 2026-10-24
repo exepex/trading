@@ -307,3 +307,22 @@ settings and the service account removed, the reader raises NoReadableStore.
 | 1 | a read failure becomes an ordinary failed check | 2 tests fail |
 | 3 | the certifier builds the fetching `build_index_close_files()` | 1 fails |
 | 4 | the previous file named as today's | 1 fails |
+
+## 11. DR1-1d: judge 561's two notes (branch story/dr1-1d-one-read-one-alert; lane 1, judge B's delta)
+
+- Each official file is read once per run, through one guarded helper (`ClosesRules._official`): the certified
+  choice no longer re-reads it outside the guard, so a read failing between the check and the choice can no longer
+  end in a traceback.
+- A run that alerts (a record not pushed, a conflict, an unreadable source) sends one #fno-desk alert naming every
+  session, not one per session (`--since 7` with a store down: one alert, not up to seven).
+
+### Claims (DR1-1d)
+
+1. Two versions of a session read the day's and the previous session's official files once each; a source that
+   fails on a second read does not affect the record.
+2. A catch-up with a source down sends one alert listing every affected session.
+
+| Claim | Plant (reverted) | Caught |
+|---|---|---|
+| 1 | no per-run cache | 1 test fails |
+| 2 | one alert per session again | 1 fails |

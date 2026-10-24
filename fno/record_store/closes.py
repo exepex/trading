@@ -53,6 +53,7 @@ class ClosesRules(DatasetRules):
     def __init__(self, official: OfficialCloses, previous_session: Callable[[date], date]):
         """`previous_session`: NSE's calendar step back, for the previous close's official file."""
         self.official, self.previous_session = official, previous_session
+        self._read: dict[date, tuple | None] = {}  # one read of each official file per run (judge 561's note)
 
     def checks(self, session: str, level: str, data: bytes) -> list[CheckResult]:
         day = date.fromisoformat(session)
@@ -75,7 +76,7 @@ class ClosesRules(DatasetRules):
         checked = [n for n in INDICES if n.checked]
         values = [read_answer(json.loads(data), day).values for _, data in passing]
         if level == CERTIFIED:
-            filename, official = self.official.values(day)
+            filename, official = self._official(day)  # passing versions passed the official check: the file is there
             gaps = [max(abs(v[n.listed]["last"] - official[n.official]["close"]) for n in checked) for v in values]
             best = min(range(len(passing)), key=lambda i: (gaps[i], i))  # equal quality: the read A4h's record cites
             return Choice(passing[best][0], OFFICIAL.format(filename=filename, tolerance=TOLERANCE))
@@ -86,12 +87,18 @@ class ClosesRules(DatasetRules):
         names = ", ".join(n.listed for n in checked)  # equal values: the first read, the one A4h's record cites
         return Choice(passing[0][0], AGREE.format(count=len(passing), names=names))
 
+    def _official(self, day: date) -> tuple | None:
+        """The day's official file, read once per run; every read failure is SourceUnreadable, never "not yet"."""
+        if day not in self._read:
+            try:
+                self._read[day] = self.official.values(day)
+            except Exception as failure:  # noqa: BLE001 - any read failure stops the session loudly, never "not yet"
+                raise SourceUnreadable(UNREADABLE.format(kind=type(failure).__name__)) from failure
+        return self._read[day]
+
     def _agreement(self, day: date, values: dict) -> CheckResult:
-        try:
-            found = self.official.values(day)
-            previous = self.official.values(self.previous_session(day)) if _has_previous(values) else None
-        except Exception as failure:  # noqa: BLE001 - any read failure stops the session loudly, never "not yet"
-            raise SourceUnreadable(UNREADABLE.format(kind=type(failure).__name__)) from failure
+        found = self._official(day)
+        previous = self._official(self.previous_session(day)) if _has_previous(values) else None
         if found is None:
             return CheckResult(OFFICIAL_CHECK, False, "no official index-close file in Drive yet")
         if _has_previous(values) and previous is None:
