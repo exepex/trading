@@ -50,3 +50,19 @@ kept: 853 passed, 15 xfailed.
 
 None (text round). The named plants cover each `present` check, exploratory reports counted, 19 sessions, a void
 row, the old key read, and a record without its date. Add: a look record taken as the G8 input.
+
+## Addendum 1
+
+**BG1-t story text, round 2 of 2 (story/bg1t-test-a-inputs @ df9dee04a): PASS. Lane 1.** Judge E. Against main the
+branch changes one file, `docs/stories/BG-budget.md` (+97); the rest is main merged in. Judged by reading.
+Doc-reading tests with the token kept: 853 passed, 15 xfailed.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: the G8 input named G8's looks | **Accepted, fixed** | Context now names both kinds of file with the lines I cited (`render.py:72`, `records.py:66-74`, `terms.py:68`). The input is `v4_scores/YYYY-MM-DD.json` with `"exploratory": false`, dated after `frozen_on()`, never `look_*.json`, with the reason. Criterion 2 adds the B case "a `look_stop_rule_review.json` alone", and the plants add "a look record taken as the G8 input" |
+| m1: the 250-session question | Fixed | Closed with protocol line 197 and section 6's 12-batch rule, which the tracker line now cites |
+| m2: design 8.2's owner-decision rule | Fixed | In the gap list as out of scope, with its source (response 104) |
+
+## Findings
+
+None blocking, none should-fix, none minor.
