@@ -3,6 +3,8 @@ a Slack alert that was sent is never printed. Only a step marked `retry`, and on
 
 from datetime import timedelta
 
+import pytest
+
 from fno.daily.runner import RETRIES, WITH_PROBLEMS
 from tests.timetable.test_daily_run import NORMAL
 
@@ -18,15 +20,15 @@ def test_a_failed_exits_step_ends_the_line_with_the_rerun_that_retries_it(day): 
     run.steps.review_exits = raising
     code, line = runner.run(NORMAL)
     assert (code, line) == (1, WITH_PROBLEMS.format(steps="exits") + RETRIES.format(steps="exits"))
-    log = run.run(NORMAL)  # the routine's rerun: the exits retried, still failing, the line says so again
+    assert runner.run(NORMAL)[1].endswith(RETRIES.format(steps="exits"))  # the rerun: retried, failing again
     clock.now += timedelta(days=1)
-    assert runner._retries(NORMAL, log) == ""  # a later day's run of that day retries nothing, so it says nothing
+    assert runner.run(NORMAL)[1] == WITH_PROBLEMS.format(steps="exits")  # a later day's run retries nothing
 
 
 def test_a_failed_fills_step_never_asks_for_a_rerun(day):  # noqa: F811
     runner, run, *_ = day()
     run.steps.fill = raising
     code, line = runner.run(NORMAL)
-    assert (code, line) == (1, WITH_PROBLEMS.format(steps="fills")) and "TimeoutError" in run.run(NORMAL).result(
-        "fills"
-    )["reason"]
+    assert (code, line) == (1, WITH_PROBLEMS.format(steps="fills"))
+    run.steps.fill = lambda *_: pytest.fail("a failed fills step was retried")
+    assert runner.run(NORMAL) == (1, line)

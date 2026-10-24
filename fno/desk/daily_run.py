@@ -83,7 +83,7 @@ RERUN_FINAL = "a rerun today will not retry it: {why}"
 # trade never does
 RETRIED_ON_RERUN = ("exits", RUN_LOG_TRADE_MARKS_STEP)
 NOT_RETRIED = {
-    "fills": "failed fills are final for the day: no other new trade opens today (fail closed)",
+    "fills": "failed fills are final for the day: no other new desk trade opens today (fail closed)",
     "versions": "a version registered after the day's decision cannot count for it (D6)",
     "pack": "the decisions and the snapshot's checks already ran without it",
     RUN_LOG_DECISIONS_STEP: "what was visible at the deadline cannot be observed later",
@@ -97,10 +97,12 @@ NEEDS_PROBLEM = {STEP_FAILED: NEEDS_FAILED, STEP_REFUSED: NEEDS_REFUSED}  # each
 # DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
 # exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run)
 NEEDS = {"fills": ("snapshot", RUN_LOG_DECISIONS_STEP)}
-# The owner's ruling (24 Oct) and decision 47's rerun: a fills step that would start after `fills_by` (a rerun after a
-# stopped run) is refused, never run with hindsight
-FILLS_MINUTE = timedelta(minutes=1)  # `fills_by` is a minute: a start inside 15:20 is in time
-FILLS_LATE = "it is {now:%H:%M:%S}, past fills_by {by:%H:%M}: no new trades today (fail closed)"
+# The owner's ruling (24 Oct) and decision 47's rerun: a run that did not take the day's snapshot (a rerun after a
+# stop) starts no fills after `fills_by`, as a person chose that rerun after the price moved
+FILLS_LATE = (
+    "it is {now:%H:%M:%S}, past fills_by {by:%H:%M}, in a run that did not take the day's snapshot: no fills by this "
+    "run (fail closed); trades recorded before the stop stay in their accounts, check them"
+)
 FILLS_REFUSED = "F&O paper desk {day}: step fills REFUSED: {reason}"
 NO_LOG = "the run of {day} stopped before any step"
 BEFORE_EXITS = "the run of {day} stopped before its exits"
@@ -122,11 +124,13 @@ class DailyRun:
                  day_steps: Mapping[str, DayStep] | None = None, recorder: StepRecorder | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
         self.marking = marking  # story E2d
+        self.ran_here: set[str] = set()  # the steps this run itself recorded
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
         self.day_steps = dict(day_steps or {})  # story O1's steps around the desk's
         self.recorder = recorder or AsGiven()  # story O1-status-only: the committed log holds status only
 
     def run(self, day: date) -> RunLog:
+        self.ran_here = set()
         self._guarded(day, RECOVERY, self.committer.recover)
         if self.files is not None:
             self._guarded(day, DOWNLOAD, self.files.download)
@@ -228,6 +232,7 @@ class DailyRun:
             started = self.clock()
             outcome = self._refused(log, name) or self._too_late(log.day, name) or self._run_step(log.day, name, action)
             self.recorder.record(log, name, started, self.clock(), outcome.inputs, outcome.result)
+            self.ran_here.add(name)
             paths: tuple[Path, ...] = (log.path, *outcome.paths)
             self.committer.commit(paths, f"Desk run {log.day} step {name}")
 
@@ -248,10 +253,13 @@ class DailyRun:
         return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons)})
 
     def _too_late(self, day: date, name: str) -> StepOutcome | None:
-        """The fills start no later than `fills_by` (its minute included); after it they are refused with one alert."""
+        """A fills step of a run that did not take the day's snapshot itself starts by `fills_by`, or is refused with
+        one alert: only a person's rerun gets there (a stop, decision 47), chosen after the price moved. The run that
+        took the snapshot fills at its prices with no choice in between, even when its own commit ends past the limit.
+        The limit is on the step's start: its account writes may end a little later, at the snapshot's prices."""
         by = self.steps.timetable.at(day, self.steps.timetable.fills_by)
         now = self.clock()
-        if name != "fills" or now < by + FILLS_MINUTE:
+        if name != "fills" or "snapshot" in self.ran_here or now <= by:
             return None
         reason = FILLS_LATE.format(now=now, by=by)
         self.steps.alerts.send(FILLS_REFUSED.format(day=day, reason=reason))
