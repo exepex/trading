@@ -42,6 +42,7 @@ EMPTY_ANSWERS = {
 }
 CHANGED_LAYOUTS = {
     "a quote without close": chart(timestamp=[1], indicators={"quote": [{"open": [LEVEL], "Close": [LEVEL]}]}),
+    "a quote without close, no timestamps": chart(indicators={"quote": [{"open": [LEVEL]}]}),
     "more timestamps than closes": chart(timestamp=[1, 2], indicators={"quote": [{"close": []}]}),
     "a null close list": chart(timestamp=[1], indicators={"quote": [{"close": None}]}),
     "a number for timestamps": chart(timestamp=5, indicators={"quote": [{"close": [LEVEL]}]}),
