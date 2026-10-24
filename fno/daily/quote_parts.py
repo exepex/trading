@@ -18,7 +18,7 @@ from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
 from ..quotes.indices import INDEX_WINDOW_END, INDEX_WINDOW_START
-from ..quotes.recorder import DATASET, MAX_EARLY_WAIT_SECONDS, NSE_DATASET, WINDOW_END, WINDOW_START
+from ..quotes.recorder import DATASET, NSE_DATASET, WINDOW_END, WINDOW_START, earliest_waiting_start
 from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
 from .earlier_run import EarlierRun, PartMarkers
 from .part_locks import PartLocks
@@ -52,7 +52,7 @@ START_MARGIN = timedelta(minutes=3)  # inside A4's early limit by this much, for
 def earliest_start(window_start: time) -> time:
     """A4's recorders refuse a start more than `MAX_EARLY_WAIT_SECONDS` before their window ("too early", nothing
     recorded): the earliest moment a part of that window may start, from A4's own constants."""
-    return (datetime.combine(date.min, window_start) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS) + START_MARGIN).time()
+    return (datetime.combine(date.min, earliest_waiting_start(window_start)) + START_MARGIN).time()
 
 
 EARLIEST_START = earliest_start(WINDOW_START)  # NIFTY's and NSE's: 14:38 today
