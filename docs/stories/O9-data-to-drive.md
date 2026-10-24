@@ -183,3 +183,117 @@ readers read from the cache (so nothing breaks in between). Git history is not r
 2. A short Slack line on a good recorder run, or silence (today: alerts only, by design)?
 
 **Depends:** A16f (merged 209ac0f6) · **Size:** XL, built in the steps above · **Status:** story text for the judge
+
+## O9-child: the Drive store never caches an absence (24 Oct 2026; story text first)
+
+Branch `story/o9-child-no-absent-cache`, from main. Assigned by the orchestrator on 24 Oct to REH1's builder
+(session_01GAACYjcfHWkC3hp33iiMXV): O9's owner on the register is the earlier orchestrator session. Lane 1 (Drive,
+every reader and writer of the record), one judge. Code starts after the judge.
+
+### The finding (strong evidence: a dry run's own branch)
+
+The G10 builder's 23 Oct rehearsal (run 20261024T152428Z-b3890a) failed `price_ranges` with "BANKNIFTY build failed:
+the Drive cache could not verify the close tables: data/price_ranges/v1/closes/banknifty_through_2026-10-22_rows002415_
+ea232e876681.csv: in the receipts, not returned by Drive".
+- The receipt it names is the step's own. Commit f1cd35fb1 on `rehearsal/2026-10-23-20261024T152428Z-b3890a` ("step
+  price_ranges") adds it, written at 15:20:06 IST by writer `pricerange`, run 20261023T094954Z-6417f3. So the step
+  wrote the table, then could not read it back in the same process.
+- The step writes through `DataStore` (`build_data_store`: its own `GoogleDriveUploadStore`) and reads through
+  `DriveCache` (`build_drive_cache`: a second instance). `GoogleDriveStore.get` walks the path with `_child`, which
+  caches an absent folder or file as `None` (`fno/storage/google_drive.py:68-81`, `_file_id(fresh=False)` at
+  90-99). The cache's instance had looked under the folder before the writer's instance created it, kept "absent",
+  and answered the later read from that memory without asking Drive.
+- Two things hide it, so it fails only when both are absent. A warm local cache (a file already on disk with the
+  receipt's SHA-256 is never asked of Drive). And the replay clock: from the real file's receipt `written_at` (15:20:20.479
+  IST for this table; the receipt reached main at 15:20:35) REH1a's visibility lets `DryrunDrive` fall back to the
+  real record's copy, whose bytes are the same, so a read after that time passes despite the stale absence. The
+  failing run's step ended at 15:20:20.40, before it; REH1j's two samples ended at about 15:20:26, after it, and
+  passed on the same code. A cold cache read before the real `written_at` fails. (Corrected in the code
+  round: the text first said the start times were not the cause; they are one of the two masks.)
+- It is not a rehearsal-only bug. In a real run the same happens whenever one instance reads a path before another
+  creates it in the same process (the first file of a new folder: a new year, a new dataset). A rehearsal makes it
+  systematic, since every `dryrun/<run_id>/` folder starts absent and `DryrunDrive.get` looks there first.
+
+### The rule (the design fix, not a rehearsal patch)
+
+- `_child` caches only what it found (an ID), never an absence: a later lookup of an absent name asks Drive again.
+  That is the rule `GoogleDriveUploadStore._fresh_child` already states for writes ("Looks again instead of
+  trusting a cached absent"); reads now keep it too. `_fresh_child` keeps its own re-check of a found ID.
+  `file_id(fresh=True)` only drops the file's own key, so today a cached absent folder above it fails it too (judge
+  612 reproduced it); with the rule it finds the file like every other walker of `_child` (`get`, `metadata`,
+  `checksums`, `folders`).
+- A cached ID is still trusted: the record is write-once (never deleted or moved by a reader), so a found item
+  stays found.
+- **Cost (reasoning only):** one more Drive list call per repeated lookup of an absent name within one process. A
+  real run asks for absent names rarely and seldom twice. A rehearsal asks first for its own `dryrun/<run_id>/` copy
+  of every read, so each cold read costs one to two more list calls (the walk stops at the first absent folder).
+  Calls go through `DriveSession`'s existing pacing and retries.
+- Not chosen: a fresh lookup only inside `DryrunDrive` (it would fix rehearsals and leave the real-run case open).
+
+### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
+
+- **D1. Two instances.** Over one in-memory Drive at the HTTP level (`tests/dr1/fake_drive.py`): instance A looks
+  up a path and finds it absent; instance B creates it (folders and file); A's next `get` returns the bytes. The same
+  for a missing folder at each depth (boundary: the top folder, the last folder, the file itself). Plant: `_child`
+  caching `None` again.
+- **D2. Found IDs still cached.** A second `get` of a found file makes no second list call for its folders (a
+  counting fake); an absent name is asked again each time. Plant: never caching anything (the found case fails).
+- **D3. Real and rehearsal paths.** A real-root `DataStore` write then `DriveCache.sync` read in one process with two
+  instances, cold cache: the file is verified and present. The same through `DryrunDrive` under the mode (the write
+  lands under `dryrun/<run_id>/`, the read finds it there).
+- **D4. Cold and warm cache, `price_ranges`' close tables.** `CloseTables.update` then `latest_text` over the fake
+  Drive with two instances: with the local cache empty (cold) and with the previous table already on disk (warm),
+  both return the new table; on main today the cold case fails with "in the receipts, not returned by Drive" (the
+  test is shown failing before the fix).
+- **D5. Empty.** An absent path stays absent (`get` is None, no exception, nothing created).
+- **Real sample (rule 6):** the 23 Oct daily rehearsal rerun with a cold Drive cache (the cache folder emptied
+  first), `price_ranges` ends ok; its run log line in the Claims.
+
+### Gap list
+
+| Requirement | Covered by | Or out of scope, with reason |
+|---|---|---|
+| The orchestrator (24 Oct): "the two-instance plant (one instance caches absent, the other creates, the first must then find it)" | D1 | |
+| "real and rehearsal paths" | D3 | |
+| "cold-cache vs warm-cache rehearsal of price_ranges" | D4, the real sample | |
+| "a real sample: rerun the cold-cache 23 Oct rehearsal and show price_ranges ok" | the real sample | |
+| A found item deleted or moved in Drive | | The record is write-once; no reader deletes or moves, so a cached ID is never stale by design |
+| The service-account reader (`GoogleDriveStore`) and the owner's store (`GoogleDriveUploadStore`) | D1-D5 | One `_child` serves both |
+
+### Claims, code round 1 (for judge F)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/o9-child-no-absent-cache` (main merged in). Code: one change in
+`GoogleDriveStore._child` (`fno/storage/google_drive.py`): an absent name returns None without being cached; a found
+ID is cached as before; `_ids` holds found IDs only. No other file under `fno/` changes.
+
+| Criterion | Test (`tests/test_drive_absent_cache.py`) | On main's code | Plant |
+|---|---|---|---|
+| D1 | two instances over one HTTP-level fake Drive, at three depths (`x.json`, `a/x.json`, `a/b/c/x.json`): A finds nothing with `get`, `file_id`, `metadata`, `checksums`, `folders`; B writes; A's `get`, `file_id` (fresh), `metadata`, `checksums` and `folders` all see it (judge 612's condition); and a missing last folder under a found one | all 4 fail | the absence cached again: 7 of 10 fail |
+| D2 | a found file's folders are not asked twice; an absent name is asked again, its found folders not (a call-counting fake) | fails (the absent name is not asked again) | nothing cached: D2 fails |
+| D3 | one step's `DataStore` write then `DriveCache.sync` read on two instances, cold cache: real root and under `dryrun/` | the `dryrun/` case fails; the real-root case passes (no stale lookup of the new name there) | as D1 |
+| D4 | `CloseTables.latest_text` before and after the step's own write under `dryrun/`, cold and warm local cache | cold fails with "in the receipts, not returned by Drive", warm passes: the dry run's exact split | as D1 |
+| D5 | an absent path stays absent twice, nothing created | passes | |
+
+**Real Drive probe** (the owner's Drive, writes only under `dryrun/o9child-probe-<time>/`): two
+`GoogleDriveUploadStore` instances; A reads the path, B writes it, A reads again at once.
+
+```
+main's code:  A before: None | A after B's write: None | A file_id(fresh) after: False | a fresh instance C: b'probe\n'
+fixed code:   A before: None | A after B's write: b'probe\n' | A file_id(fresh) after: True | a fresh instance C: b'probe\n'
+```
+
+It also shows no Drive search lag: a fresh instance finds the file at once, so the stale cache was the only cause.
+
+**Cost** (judge 612 m3; the fake, 20 files read through `DryrunDrive` as a rehearsal reads them): 20 cold reads take
+44 list calls (main's code: 25); the same 20 again take 20 (main's code: 0). That is about one extra call per read,
+for the absent `dryrun/<run_id>/...` folder. A real run reading existing paths pays nothing extra.
+
+**Gates** (main merged in): 16294 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan, numbers clean.
+
+**Real sample** (the orchestrator's ask: the cold-cache 23 Oct rehearsal; `python -m fno daily run --rehearse --day
+2026-10-23` from this branch, a fresh clone, so an empty Drive cache): run 20261024T174640Z-a093aa. `price_ranges`
+ran 15:20:11.79-15:20:43.81 replay time and ended `ok` ("BANKNIFTY closes: 1 new rows through 2026-10-22", "issued");
+its cache downloaded the old table cold and then the new one. Said plainly: its read of the new table came after
+15:20:20.479, where the real copy masks the bug, so this run shows the day stays green on the fix but does not by
+itself prove the fix; the real-Drive probe above and D1/D4 do. Its last line was "day done with problems:
+margin_check, quotes_done": those are the not-live steps REH1j handles (not on main when this ran), not this change.
