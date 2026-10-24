@@ -16,6 +16,8 @@ def test_every_call_handed_to_the_choice_passes():
 def test_one_wrapped_call_does_not_hide_an_unwrapped_one_in_the_same_file():
     text = WRAPPED + "\n\ndef collector():\n    return GitHubActivityReceipts(repo, token, history)\n"
     assert unwrapped(text, "GitHubActivityReceipts", "rehearsed_receipts") == [7]
+    twice = text + "\n\ndef sweeper():\n    return GitHubActivityReceipts(repo, token, history)\n"
+    assert unwrapped(twice, "GitHubActivityReceipts", "rehearsed_receipts") == [7, 11]  # every bare use, not the first
 
 
 def test_the_builder_as_a_second_argument_or_handed_over_by_name_is_unwrapped():
