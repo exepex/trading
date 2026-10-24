@@ -28,8 +28,19 @@ def build_window_quote_recorder(cfg: dict, name: str) -> QuoteSnapshotRecorder:
     provider = TimedProvider(get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg), log)
     expiries, dataset = NseDailyFileExpiries(build_nse_fo_library()), window.dataset(DATASET)
     store = build_drive_only_quote_store(QUOTES_FOLDER, dataset=dataset)  # the window's quote files to Drive only (A4b)
-    return QuoteSnapshotRecorder(
-        provider, store, fallback=expiries, calendar=build_session_calendar(), history=expiries,
-        levels=TimedLevels(NseLevelSource(PublicData().nse_json), log), dataset=dataset,
-        slot=replace(NIFTY_SLOT, stop_requests_at=window.end), window=window, log=log,
-    )  # fmt: skip
+    from ..rehearsal.quote_wiring import rehearsed_recorder
+
+    return rehearsed_recorder(
+        QuoteSnapshotRecorder(
+            provider,
+            store,
+            fallback=expiries,
+            calendar=build_session_calendar(),
+            history=expiries,
+            levels=TimedLevels(NseLevelSource(PublicData().nse_json), log),
+            dataset=dataset,
+            slot=replace(NIFTY_SLOT, stop_requests_at=window.end),
+            window=window,
+            log=log,
+        )
+    )  # fmt: skip; story REH1b: the window's recorded attempts when rehearsing

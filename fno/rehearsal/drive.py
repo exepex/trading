@@ -62,3 +62,9 @@ class DryrunDrive(RawFileStore):
 
     def root_listing(self) -> tuple[str, list[str]]:
         return self.real.root_listing()
+
+    def record_view(self):
+        """The real record, read-only: what a recorded source replays from (REH1b)."""
+        from .record_store import RecordReader
+
+        return RecordReader(self.real)
