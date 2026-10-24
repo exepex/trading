@@ -76,3 +76,22 @@ problem.
 - E3's verdict ignored;
 - the bare deadline for "no decisions step";
 - any book-late reason taken as a late collection.
+
+## O8e: judge 552.1's notes (follow-up after the merge, orchestrator's go)
+
+**The orchestrator's question: does E3 mark the step late when every book is COLLECTED_LATE, or any one?** E3 writes
+`COLLECTED_LATE` in one place only, `_all_late` (`fno/desk/daily_steps.py:96, 124`). It runs once, from the step's one
+start time, gives every book the same reason, and returns before any per-book work. A book late for its own reason gets
+`NOT_COMMITTED` (`:102`). So "every book" is E3's behaviour, and one book carrying it is enough. The code (any one) was
+right; the docstring is corrected to say why.
+
+**A mixed log cannot come from E3.** COLLECTED_LATE on some books only means an edited or broken run log. It reads
+LATE and is named: "run log inconsistent: COLLECTED_LATE on some books only (...)" (orchestrator). Test:
+`test_a_mixed_log_is_late_and_named_inconsistent`.
+
+**Judge 552.1's surviving plant is now caught:** `test_the_late_text_under_another_decision_is_not_a_late_collection`
+(the COLLECTED_LATE text under a decision other than `NO_DECISION_LATE` is not a late collection).
+
+**Plants:**
+- the decision filter dropped (fails 1 test);
+- the mixed log not named (fails 1 test).
