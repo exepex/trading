@@ -38,7 +38,8 @@ def test_preopen_reads_every_30_s_from_090830_to_091059_then_reports_incomplete(
     assert part.read_at == expected and result.status == INCOMPLETE and result.detail == "not final"
 
 
-def test_index_parts_read_at_091000_091030_091059():
+def test_a_part_with_the_index_window_and_the_default_margin_reads_last_at_091059():
+    """The run's retry plan with the 1 s default; the real index parts read last at 09:10:45 (A22e, test_last_read)."""
     clock = FakeClock(ist(9, 0))
     part = ScriptedPart("nifty", INDEX_WINDOW, clock, never())
     _run(clock, part)

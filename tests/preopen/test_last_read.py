@@ -72,7 +72,8 @@ def test_e2_bad_case_with_the_old_1_s_margin_the_second_index_is_late():
     assert results["banknifty"].status == LATE and results["banknifty"].detail == "seen 09:11:03"
 
 
-def test_e2_boundary_an_answer_received_at_0911_00_is_late_at_0910_59_ok():
+def test_e2_boundary_the_last_read_s_answer_received_at_0911_00_is_late_at_0910_59_ok():
+    """The receive-time rule at the close; that the last read starts at 09:10:45 is test_e1's and test_e2's."""
     for takes, status in ((14, OK), (15, LATE), (16, LATE)):
         clock = FakeClock(ist(9, 10, 45))  # the last read itself, taking `takes` seconds
         part, _ = _index("nifty", clock, [candles()], takes=takes)
