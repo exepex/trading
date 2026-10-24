@@ -15,6 +15,7 @@ from fno.rehearsal.guard import builders
 from fno.rehearsal.manifest_rows import MANIFESTS, A9Row, ManifestRows
 from fno.rehearsal.mode import Rehearsal
 from fno.rehearsal.recorded_archive import RecordedArchiveSession
+from fno.storage.manifest_folder import ManifestFolder
 from fno.storage.raw_source import NseDailyFoSource, ParticipantOiSource
 from fno.storage.snapshot_source import FiiDiiCashBySessionSource
 from fno.storage.wiring import OWNER_UPLOAD_SETTINGS
@@ -81,7 +82,9 @@ def rehearsing(monkeypatch, tmp_path):
         monkeypatch.setattr("fno.storage.wiring.GoogleDriveUploadStore", lambda *a, **k: real)
         checkout = tmp_path / "checkout" / "manifests"
         checkout.mkdir(parents=True)
-        monkeypatch.setattr("fno.storage.wiring.MANIFEST_FOLDER", checkout)
+        # the writers' builder, not the constant: a module first imported now would keep a patched constant for the
+        # rest of the worker (`backfill_daily` did, failing `test_rehearsed_day` by test order, 24 Oct)
+        monkeypatch.setattr("fno.storage.wiring.build_manifest_folder", lambda: ManifestFolder(checkout))
         clock = Clock(ist(day, 19, 53, 30))
         monkeypatch.setattr("fno.models._clock", clock)
         monkeypatch.setattr("time.sleep", clock.sleep)

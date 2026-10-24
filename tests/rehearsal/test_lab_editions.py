@@ -120,3 +120,16 @@ def test_on_its_live_day_the_same_failure_is_the_routine_s(tmp_path):
 def test_the_lab_editions_name_their_live_key_and_nothing_else_does():
     keyed = {" ".join(c.args): c.live_key for r in ROUTINES.values() for c in r.commands if c.live_key}
     assert keyed == {"lab open": MORNING, "lab close": EVENING}  # the pre-open's and the daily's: none
+
+
+def test_not_live_commands_without_an_exercised_record_are_refused(tmp_path):
+    with pytest.raises(ValueError, match="need an `exercised` record"):
+        run_routine(tmp_path, routine(tmp_path), D22, dict(os.environ), [].append, frozenset({MORNING}))
+
+
+def test_a_lone_not_live_command_is_exercised_never_the_routine_s_line(tmp_path):
+    routine(tmp_path)  # writes the stand-in fno
+    lone = Routine("evening", "-", None, (Command(("lab", "close"), live_key=EVENING),))
+    exercised = {}
+    code, line = run_routine(tmp_path, lone, D22, dict(os.environ), [].append, frozenset({EVENING}), exercised)
+    assert (code, line) == (0, "1 commands done") and "lab close" in exercised

@@ -28,6 +28,8 @@ NOT_A_SESSION = "rehearsal refused: {day} is not a session day (NSE's calendar)"
 GUARD_STOPPED = "rehearsal STOPPED before any step: {problem}"
 ENDED = "rehearsal {routine} {day} {run_id} ended: {line}; branch {ref}; Drive dryrun/{run_id}/"
 RECEIPTS_MESSAGE = "Rehearsal {routine} {day}: the routine's receipts"
+CONFIG_FILE = "config.yaml"
+NO_EXERCISED = "run_routine: commands not live in real runs need an `exercised` record"
 EXERCISED_UNREAD = "rehearsal: the exercised steps could not be read from the run's full log: {problem}"
 
 
@@ -64,7 +66,7 @@ def _rehearse(routine: Routine, day: date, source: Path, out: Callable[[str], No
         out(GUARD_STOPPED.format(problem=problem))
         return 1
     exercised: dict[str, dict] = {}  # REH1k: the routine's commands not live in real runs on the day
-    run = run_child or partial(run_routine, not_live=_not_live_editions(day), exercised=exercised)
+    run = run_child or partial(run_routine, not_live=_not_live_editions(day, checkout.clone), exercised=exercised)
     code, line = run(checkout.clone, routine, day, env, out)
     try:  # REH1j: after the day's last line; never in the way of the receipts and the publish
         report_exercised(checkout.clone, day, out, alerts or _alerts(out), exercised)
@@ -119,24 +121,28 @@ def run_routine(checkout: Path, routine: Routine, day: date, env: dict, out: Cal
         return subprocess.Popen([sys.executable, "-m", "fno", *command.for_day(day)], cwd=checkout, env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)  # fmt: skip
 
+    if not_live and exercised is None:
+        raise ValueError(NO_EXERCISED)  # a not-live command's outcome must be reported somewhere, never dropped
     background = [(c, start(c)) for c in routine.commands if c.background]
     results = [(c, _relayed(start(c), out)) for c in routine.commands if not c.background]
     results += [(c, _relayed(child, out)) for c, child in background]
     for c, (code, last) in results:
-        if c.live_key in not_live and exercised is not None:
+        if c.live_key in not_live:
             exercised[" ".join(c.args)] = {"result": not_live_result(code, last)}
     failed = [" ".join(c.args) for c, (code, _) in results if code != 0 and c.live_key not in not_live]
-    if len(routine.commands) == 1:
+    if len(results) == 1 and results[0][0].live_key not in not_live:  # the daily run: its own last line
         return results[0][1]
     return (1 if failed else 0), (f"failed: {', '.join(failed)}" if failed else f"{len(results)} commands done")
 
 
-def _not_live_editions(day: date) -> frozenset[str]:
-    """The lab editions not live in real runs on the replayed day (`forecast_lab.live_from`)."""
+def _not_live_editions(day: date, checkout: Path) -> frozenset[str]:
+    """The lab editions not live in real runs on the replayed day, by the checkout's own `config.yaml` (the one the
+    routine's children read)."""
     from ..config import load_app_config
     from ..forecast_lab.wiring import live_from
 
-    return frozenset(e for e, real in live_from(load_app_config()).items() if real is None or day < real)
+    live = live_from(load_app_config(Path(checkout) / CONFIG_FILE))
+    return frozenset(e for e, real in live.items() if real is None or day < real)
 
 
 def _relayed(child: subprocess.Popen, out: Callable[[str], None]) -> tuple[int, str]:

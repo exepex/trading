@@ -129,5 +129,5 @@ def build_edition(edition: str, env=os.environ) -> EditionRun:
 
 def build_preview(edition: str, env=os.environ) -> Preview:
     """The owner's preview: the edition's composer, the #fno-forecast poster and its own records, read only."""
-    composer, _, _ = build_composer(edition, env)
+    composer, _, _ = build_composer(edition, env, live_from(load_app_config()))  # the real dates: no rehearsal note
     return Preview(composer, build_forecast_poster(env), records(edition, env).report)

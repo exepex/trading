@@ -295,7 +295,7 @@ def test_a_routine_s_not_live_command_is_printed_after_its_last_line_and_posted_
         return 0, "7 commands done"
 
     monkeypatch.setattr(module, "run_routine", routine_run)
-    monkeypatch.setattr(module, "_not_live_editions", lambda day: frozenset({"evening"}))
+    monkeypatch.setattr(module, "_not_live_editions", lambda day, checkout: frozenset({"evening"}))
     code = module.rehearse(ROUTINES["evening"], DAY, repo, lines.append, tmp_path / "home",
                            is_session=lambda d: True, guard=lambda env, cwd: [], alerts=sent)  # fmt: skip
     line = "not live in real runs (exercised): lab close failed: lab close said no"
@@ -303,8 +303,9 @@ def test_a_routine_s_not_live_command_is_printed_after_its_last_line_and_posted_
     assert code == 0 and lines[at + 1] == line and sent.sent == [line]
 
 
-def test_which_editions_are_not_live_comes_from_the_config():
+def test_which_editions_are_not_live_comes_from_the_checkout_s_own_config(tmp_path):
     from fno.rehearsal.rehearse import _not_live_editions
 
-    assert _not_live_editions(date(2026, 10, 22)) == {"morning", "evening"}  # both live from 23 Oct
-    assert _not_live_editions(DAY) == frozenset()
+    (tmp_path / "config.yaml").write_text('forecast_lab:\n  live_from:\n    morning: "2026-10-23"\n    evening: null\n')
+    assert _not_live_editions(date(2026, 10, 22), tmp_path) == {"morning", "evening"}
+    assert _not_live_editions(DAY, tmp_path) == {"evening"}  # the live day itself; a null date is never live
