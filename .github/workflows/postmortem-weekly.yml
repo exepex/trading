@@ -44,6 +44,8 @@ jobs:
       STEP: ${{ github.event.schedule == '11 6 * * 6' && 'publish' || inputs.step || 'build' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # G8's v4 report checks the v4 freeze record's protocol commit; a shallow clone cannot
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
