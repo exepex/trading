@@ -747,8 +747,13 @@ both name its SHA-256.
   `v4/records/live/<forecaster>/<question>/<YYYY>/<date>.json`; V4 and V5 terms: `v4/terms/<question>/<YYYY>/<date>.json`;
   resolved V5 outcomes: `v4/outcomes/v5/<YYYY>/<date>.json`; proxy drift: `v4/diagnostics/proxy_drift/<YYYY>/<date>.json`;
   all through O9's `DataStore.put`, read through `DriveCache` (verified SHA). Part b1's back-fill (NSE public data
-  only) also goes to Drive, one file per method hash, `v4/records/backfill/<method12>/<forecaster>/<question>.csv`, so a
-  regeneration after a method change is a new write-once file and the reader takes the file of this tree's hash.
+  only) also goes to Drive, one file per forecaster, question, method hash and last day,
+  `v4/records/backfill/<method12>/<forecaster>/<question>_to_<YYYY-MM-DD>.csv` (changed in the build, self-review
+  finding: with one file per hash, the next day's longer run would hit a write-once conflict). A regeneration after a
+  method change, or a later last day, is a new write-once file; the same data gives the same bytes (a no-op), because
+  the back-fill ends at the last day whose inputs are final (the last EOD chain, a horizon inside the calendar). The
+  reader (part e) takes, for this tree's method hash, the file with the latest last day; none for this hash: it stops
+  and says so.
 - A live row is written once: a rerun with the same bytes is a no-op; different bytes are refused and printed.
 
 **The post-release capture** (`python -m fno forecast-v4 capture-pack`, a new subcommand in G7's CLI):
@@ -1022,10 +1027,54 @@ they found and what was fixed or why not.
   regeneration now); it joins the hash in the step that builds V4's terms.
 - **Gates:** see the commit message.
 
+### Claims, build step 2: part b1 (EOD IV30 proxy, raw and premium-adjusted implied, V2 and V3 back-fill)
+
+- **Code:** `fno/forecast_v4_rules/implied.py` (raw implied, `horizon_sums`, `PremiumRatio` on
+  `eligibility.premium_ratio_window`, `ImpliedBaselines`), `eod_iv30.py` (G1's `PanelAtmIv30` series, points to
+  fractions, from 1 Jan 2024), `implied_backfill.py` (rows, write-once Drive files); `records.csv_text` factored out of
+  `records.write` (same text; records.py is not a phase-1 method file); `wiring.build_implied_backfill`,
+  `first_live_implied_day`, `IMPLIED_METHOD_FILES` (their own hash, so phase 1's committed rows keep theirs); CLI
+  `python -m fno forecast-v4 backfill-implied` (writes Drive files and receipts; the receipts are committed by hand,
+  as phase 1's back-fill files were: a one-off command, not a scheduled job).
+- **Criteria met in this step:** 1 (on the real panel, not a fixture: `test_real_panel_and_closes_reproduce...`, 691
+  regular sessions from 1 Jan 2024 to 23 Oct 2026, 652 unflagged and 39 flagged, the single-expiry days); 2; 3's
+  window, median and monthly refit; 4 for V2 and V3; 5 except the reader.
+- **Not met yet, said plainly:** criterion 3's stored ratio (`v4/ratios/<measure>/...`, read by later days) comes with
+  the live capture (b2), and no live premium-adjusted row is written before it; V1's and part f's premium-adjusted
+  (W3) come in b2; criterion 5's reader and criterion 19's hash gate on the back-fill path come with part e.
+- **Plants (13, all caught after one test was strengthened):** sessions instead of calendar days; `d+h` one session
+  off; mean instead of median; flagged days in the window; a flagged raw kept; refit every day (survived first, a
+  single point barely moves a median; the test now balances the window so one point flips it); the horizon sum
+  including `t`; 2023 days kept; points not converted; label `live`; days past the first live day; no method hash in
+  the path; the first-day calendar lookup of step 1.
+- **Self-review (an independent review agent on the diff):** accepted and fixed: (1) a rerun could hit a write-once
+  conflict when a close was archived before its chain, or the calendar grew: the back-fill now ends at the last day
+  whose inputs are final, with a test; (2) the method hash left out `series.py`, `baselines.py` and `records.py`: now
+  in (`fno/forecast/iv30.py` and `fno/forecast_v4/eligibility.py` stay out: hashed by their own freezes), and the panel
+  row filter moved into `eod_iv30.py`; (3) the Drive path differed from this text: the text now states it and the
+  reader's rule; (6) a guard stops the back-fill when the closes and A7's scored sessions disagree (they agree today,
+  2 Jan 2017 to 23 Oct 2026); (7) the area name comes from `DATA_AREA` and a live path off the layout stops with its
+  path. Rejected with evidence: the reviewer's "premium-adjusted first eligible at the 1 Jun 2026 refit": the code on
+  the real data gives `None` at 2 Mar and 0.6336 at 1 Apr (a pinned test). Not changed (minor 5):
+  `first_session_of_month` repeats `Har.refit_day`; folding them edits `baselines.py`, which moves phase 1's method hash
+  and forces its committed back-fill (9,636 rows) to be regenerated, so it is done in the step that regenerates it.
+- **Real output sample (dry run, committed code and data, no Drive write):** 691 back-fill days per file; raw implied
+  652 `ok`, 39 `missing` (flagged); premium-adjusted 133 `ok` (from 1 Apr 2026), 519 `not_eligible`, 39 `missing`.
+  Ratio of realised to raw implied variance, median over the window: V2 0.634 (1 Apr), 0.640 (4 May), 0.633 (1 Jun);
+  V3 0.694, 0.709, 0.687. Raw V2 on 23 Oct 2026: 0.1608^2 x 7 / 365 = 0.000496.
+  **Finding for the desk (some evidence, 2024-26 only, spent data):** realised variance ran at about 63-71% of the
+  EOD implied variance, i.e. implied over-priced realised movement by about 40-60% in variance terms, the variance risk
+  premium protocol 3.1 assumes. Exploratory, never a v4 result.
+- **Drive write:** not run before the merge (rule 8: the merged system is run once on real data; a pre-merge file
+  under a hash the review may change would be clutter).
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
-reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; all back-fill is spent data and
+reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; the session calendar has no 2027 rows,
+so from Tue 22 Dec 2026 `first_v4_expiry` raises every day until they are added (needed by about 21 Dec 2026; the
+scheduled task "Omenix F&O: add NSE 2027 trading calendar", firing 15 Dec 2026, adds them); all back-fill is spent data and
 exploratory (protocol 8).
 
 **Depends:** G7 and G7b part a (merged); G10's pack builder and release (live parts only); A16 (V4, V1's ratio); O9's
