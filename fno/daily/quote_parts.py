@@ -218,15 +218,21 @@ class QuoteParts:
         """Waits (servicing every part) until the part `name` has ended and its commit was made or tried, at most until
         `limit`; one still running then is stopped and failed, its files not committed (G10's release reads only an
         ended capture)."""
-        if name not in {part.name for part in self.parts}:
-            return  # not a part of this day (not live): nothing to wait for
+        if not self.waits_for(name):
+            return
         self.service()
         while self.started and name not in self.results and self.clock() < limit:
             wait(min(limit, self.clock() + timedelta(seconds=5)))
             self.service()
         if name in self.running:
+            adopted = self.how.get(name) == ADOPTED  # an earlier run's recorder: never stopped from here (F1)
+            reason = self._still_running(name) if adopted else HUNG.format(at=limit)
             self.running.pop(name).stop()
-            self._failed(name, HUNG.format(at=limit))
+            self._failed(name, reason)
+
+    def waits_for(self, name: str) -> bool:
+        """Whether the part `name` is a part of the day (live) that has not ended yet."""
+        return self.started and name in {part.name for part in self.parts} and name not in self.results
 
     def _unstarted(self, part: QuotePart) -> bool:
         return part.name not in self.running and part.name not in self.results

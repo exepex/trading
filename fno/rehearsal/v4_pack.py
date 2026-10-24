@@ -30,18 +30,20 @@ def rehearsed_catch_up(env: Mapping[str, str] = os.environ) -> bool:
 
 
 class NotedPartProcesses(Processes):
-    """Starts a quote part's child with its not-live note in the environment (`ENV_FNO_REHEARSAL_NOT_LIVE`), so its
-    posts carry the same line as the steps sharing its live key; other parts start as they are."""
+    """Starts a quote part's child with its own not-live note in the environment (`ENV_FNO_REHEARSAL_NOT_LIVE`), so its
+    posts carry the same line as the steps sharing its live key; every other part starts with no note, even inside a
+    noted step's wait (NIFTY starting during `v4_release`'s wait)."""
 
     def __init__(self, processes, notes: Mapping[tuple[str, ...], str]):
         self.processes, self.notes = processes, notes
 
     def start(self, arguments: Sequence[str], hold: int | None = None):
         note = self.notes.get(tuple(arguments))
-        if note is None:
-            return self.processes.start(arguments, hold)
         before = os.environ.get(ENV_FNO_REHEARSAL_NOT_LIVE)
-        os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] = note
+        if note is None:  # a part started during a noted step's wait never takes that step's note
+            os.environ.pop(ENV_FNO_REHEARSAL_NOT_LIVE, None)
+        else:
+            os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] = note
         try:
             return self.processes.start(arguments, hold)
         finally:

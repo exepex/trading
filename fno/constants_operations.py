@@ -70,10 +70,10 @@ DAILY_RUN_STEPS = (
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
     "price_range_scores",  # G13b's scores and seals; the same one-session lag
     "premium_range_scores",  # G13d's scores and seals: issues whose next session has passed
+    V4_DEADLINE_STEP,  # G10 completion: the 15:10 verdicts and the 14:30 overlap watch (from 15:12)
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
     "close_read",  # story A4h: today's closes from NSE's index list, 15:40, after the candles
-    "close_recheck",  # A4h's second read, 16:00 (judge 440 add. 1)
-    V4_DEADLINE_STEP,  # G10 completion: the 15:10 verdicts and the 14:30 overlap watch, last (from 15:12)
+    "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
 )  # fmt: skip; the quote parts start first (judge 178)
 # Story REH1: set only by a rehearsal, inherited by its children; and the line a not-yet-live report's posts carry
 ENV_FNO_REHEARSAL = "FNO_REHEARSAL"

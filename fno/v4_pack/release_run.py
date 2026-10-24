@@ -9,11 +9,10 @@ and the run goes on; nothing is ever overwritten."""
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from ..constants import V4_DAY_SYSTEM_LATE
 from ..forecast_scoring.v4.days import missing_label
-from ..forecast_v4.terms import V4_RELEASE_BY
 from ..models import IST
 from ..storage.data_store import DataStore
 from ..storage.raw_store import RawFileConflict
@@ -23,6 +22,9 @@ from .model import Pack
 from .paths import release_path
 from .release import publish
 
+# Decision D1 (owner pending): a release record written later makes the day system_late. Kept out of the frozen-to-be
+# `fno/forecast_v4/terms.py`, which G7's and M1's method hashes read (a change there would move every record's hash)
+V4_RELEASE_BY = time(14, 45)
 # Decision D3 (owner pending): a `system_late` today is a failure of the release (the day ends "with problems")
 SYSTEM_LATE_FAILS = True
 NOT_LIVE = "v4 release: not live (config.yaml daily.live_from.v4_pack is not set or is later)"

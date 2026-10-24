@@ -46,9 +46,10 @@ def test_the_part_s_child_starts_with_its_note_and_the_environment_is_restored(m
     processes.start(("quotes", "record"))
     assert seen.started == [(V4, "note"), (("quotes", "record"), None)]
     assert ENV_FNO_REHEARSAL_NOT_LIVE not in os.environ
-    monkeypatch.setenv(ENV_FNO_REHEARSAL_NOT_LIVE, "a step's note")
-    processes.start(V4)
-    assert os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] == "a step's note"  # a running step's note is put back
+    monkeypatch.setenv(ENV_FNO_REHEARSAL_NOT_LIVE, "v4_release's note")  # NIFTY starting inside that step's wait
+    processes.start(("quotes", "record"))
+    assert seen.started[-1] == (("quotes", "record"), None)  # never another step's note (self-review, daily side 2)
+    assert os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] == "v4_release's note"  # the running step's note is put back
 
 
 def test_the_release_is_excused_only_on_a_replayed_day_without_a_recorded_attempt(tmp_path):

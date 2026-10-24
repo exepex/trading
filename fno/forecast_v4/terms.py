@@ -84,7 +84,6 @@ V1_INTRADAY_METHOD = "rv-quote-15m-v1"
 # received by the window end (its `observed_at`: our receipt time, never a last-trade time).
 V4_CAPTURE_START = time(14, 30)  # the pack's capture starts; G7's and M1's live capture refuses from here
 V4_PACK_WINDOW_END = time(14, 40)  # a quote received later is not in the pack; no complete pack: system_late
-V4_RELEASE_BY = time(14, 45)  # a later release record makes the day system_late (G10 completion D1; owner pending)
 V4_DEADLINE = time(15, 10)  # GitHub's receipt time of a family's commitment, never its commit time
 V4_COMMON_SNAPSHOT = time(15, 15)  # A16's 15:15 mark: the skill yardstick and the flag's end level
 V4_LATEST_FIRE = time(14, 55)  # the AI books' latest start: a later run is recorded not_fired (G10 part 2, G11)

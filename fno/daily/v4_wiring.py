@@ -11,11 +11,11 @@ from datetime import date
 from ..alerts.sender import AlertSender
 from ..constants import V4_DEADLINE_STEP, V4_PACK_LIVE_KEY, V4_RELEASE_STEP
 from ..desk.daily_ports import DayStep, Waiter
-from ..forecast_v4.terms import V4_RELEASE_BY
 from ..quotes.window import named_window
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
 from ..v4_pack.deadline import CHECK_FROM
 from ..v4_pack.paths import DAYS_FOLDER, DEADLINES_FOLDER, PACKS_FOLDER
+from ..v4_pack.release_run import V4_RELEASE_BY
 from ..v4_pack.wiring import V4_CAPTURE_WINDOW
 from .quote_parts import QUOTE_PARTS, QuotePart, QuoteParts
 from .quote_steps import AfterPart

@@ -68,18 +68,22 @@ def run(tmp_path, clock, live, ends=(14, 34), recorded=None, files=None):
 def test_the_part_is_a4e_s_window_with_its_own_times_and_dataset():
     assert V4.arguments == ("quotes", "record", "--window", "v4")
     assert (WINDOW.start, WINDOW.end) == (time(14, 30), time(14, 40))
-    assert V4.not_before == time(14, 3) and V4.window_end == time(14, 40)  # 14:30 - 30 min + O1's 3 min margin
+    assert V4.not_before == time(14, 27) and V4.window_end == time(14, 40)  # O1's 3-minute margin before 14:30
+    assert V4.not_before >= time(14, 3)  # never before A4e's own early limit (14:30 - 30 min + the margin)
     assert V4.pathspecs == (":(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**",)
     assert V4.canonicals == (("groww/derivatives/quote-snapshots-v4", "nifty"),)
     assert V4.live_key == "v4_pack" and V4.apart and V4.starts_after is None
 
 
-def test_live_today_it_starts_at_the_run_s_start_and_commits_alone_before_nifty_starts(tmp_path):
+def test_live_today_it_starts_at_14_27_and_commits_alone_before_nifty_starts(tmp_path):
     clock = Clock()
     clock.now = at(14, 7)
     files = {V4.pathspecs[0]: [f"{V4_FOLDER}/nifty_20261026.canonical"]}
     parts, processes, commits, alerts = run(tmp_path, clock, live=DAY, files=files)
     parts.start(DAY)
+    assert processes.started == []  # nothing before 14:27 (a rehearsal skips that wait: no recorder running)
+    clock.now = at(14, 27)
+    parts.start_due()
     assert [a for _, a in processes.started] == [V4.arguments]  # NIFTY and NSE wait for 14:38
     clock.now = at(14, 35)
     parts.service()
@@ -191,3 +195,24 @@ def test_a_capture_still_running_at_14_45_is_stopped_uncommitted_and_the_release
         "still running at 14:45"
     )
     assert commits == [] and sum("v4" in text for text in alerts.sent) == 1
+
+
+def test_the_wait_for_the_part_is_announced_once_and_an_adopted_part_is_never_called_stopped(tmp_path):
+    """Self-review (daily side) 1 and 3: a silent wait reads as a hang (O1-day-lock); an earlier run's recorder is held,
+    not stopped (F1's STILL_HELD)."""
+    from fno.daily.quote_parts import ADOPTED
+    from fno.daily.quote_steps import AfterPart
+
+    clock = Clock()
+    clock.now = at(14, 20)
+    parts, *_ = run(tmp_path, clock, live=DAY, ends=(15, 30))
+    parts.start(DAY)
+    clock.now = at(14, 28)
+    parts.start_due()
+    parts.how["v4"] = ADOPTED
+    said = []
+    AfterPart(
+        Step(clock), parts, "v4", time(14, 45), ServicingWaiter(parts, clock, sleep=clock.advance), said.append
+    ).run(DAY)
+    assert said == ["waiting for the v4 quote part to end, at most until 14:45 IST (never a hang)"]
+    assert parts.results["v4"]["reason"].startswith("still running after 20 minutes, held by an earlier run")

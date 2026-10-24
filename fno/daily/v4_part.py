@@ -5,10 +5,12 @@ recorder for 14:30. Its times and dataset come from A4e's window in `config.yaml
 
 from __future__ import annotations
 
+from datetime import date, datetime
+
 from ..constants import V4_PACK_LIVE_KEY
 from ..quotes.recorder import DATASET
 from ..quotes.window import QuoteWindow
-from .quote_parts import QuotePart, earliest_start
+from .quote_parts import START_MARGIN, QuotePart, earliest_start
 
 V4_PART = "v4"
 V4_STEM = "nifty"  # A4e's named window records NIFTY under A4's own stem, in its own dataset
@@ -24,9 +26,16 @@ def v4_part(window: QuoteWindow) -> QuotePart:
         V4_PART,
         ("quotes", "record", "--window", window.name),
         (v4_quotes(window),),
-        not_before=earliest_start(window.start, window.max_early_wait_seconds),
+        not_before=_shortly_before(window),
         canonicals=((window.dataset(DATASET), V4_STEM),),
         window_end=window.end,
         live_key=V4_PACK_LIVE_KEY,
         apart=True,
     )
+
+
+def _shortly_before(window: QuoteWindow):
+    """O1's margin before the window's start, never earlier than A4e's own early limit: the recorder then waits
+    minutes, not half an hour (a rehearsal runs at real speed while a recorder runs, REH1)."""
+    shortly = (datetime.combine(date.min, window.start) - START_MARGIN).time()
+    return max(shortly, earliest_start(window.start, window.max_early_wait_seconds))

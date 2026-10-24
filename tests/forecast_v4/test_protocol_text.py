@@ -143,9 +143,9 @@ def test_section_11_d_states_the_measured_noise_not_the_assumed_one():
 def test_the_day_clock_s_release_and_label_rules_match_the_code():
     """G10 completion, criterion 5: the release-by time and the label words the release run and G8 use."""
     from fno.forecast_scoring.v4.days import PENDING
-    from fno.v4_pack.release_run import RELEASED_LATE
+    from fno.v4_pack.release_run import RELEASED_LATE, V4_RELEASE_BY
 
     text = TEXT.replace("\n  ", " ")
-    assert f"by {terms.V4_RELEASE_BY:%H:%M}:00" in text and "after 14:45:00 makes the day `system_late`" in text
+    assert f"by {V4_RELEASE_BY:%H:%M}:00" in text and "after 14:45:00 makes the day `system_late`" in text
     assert RELEASED_LATE.split(":")[0] in text and f"is {PENDING}, never scored" in text
     assert "or no release record at all" in text and "has no label (the close-proxy cohort)" in text
