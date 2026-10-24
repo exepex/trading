@@ -8,6 +8,7 @@ import pytest
 from fno.school.constants import ClosureReason, RoadCode
 from fno.school.roads.capture import CaptureReader
 from fno.school.roads.catalogue import RecordedRoadCatalogue
+from fno.school.roads.ports import LotProblem
 from fno.school.roads.snapshots import RecordedSnapshotSource
 from tests.school.contracts import conformance as c
 from tests.school.roads.capture_builder import (
@@ -121,11 +122,12 @@ def test_rows_short_of_the_sidecars_count_make_the_capture_incomplete():
     assert verdicts(catalogue_over(store)[0])[BANK] is ClosureReason.CAPTURE_INCOMPLETE
 
 
-def test_a_lot_the_source_cannot_find_closes_the_road():
+@pytest.mark.parametrize("reason", [ClosureReason.LOT_UNAVAILABLE, ClosureReason.LOT_MISMATCH])
+def test_a_road_with_no_lot_is_closed_by_the_reason_the_source_gives(reason):
     store = DictStore()
     all_roads_planted(store)
-    catalogue, _ = catalogue_over(store, lots=FixedLots(None))
-    assert set(verdicts(catalogue).values()) == {ClosureReason.LOT_MISMATCH}
+    catalogue, _ = catalogue_over(store, lots=FixedLots(LotProblem(reason)))
+    assert set(verdicts(catalogue).values()) == {reason}
 
 
 def test_unreadable_expiry_listing_closes_with_expiry_mismatch_rather_than_opening():
@@ -154,7 +156,7 @@ def test_two_faults_give_the_earlier_reason_only(earlier, later):
 def test_a_fault_with_a_lot_fault_behind_it_gives_the_capture_reason_and_never_asks_for_the_lot():
     store = DictStore()
     Plant(road(BANK), tamper=True).write(store)
-    lots = FixedLots(None)
+    lots = FixedLots(LotProblem(ClosureReason.LOT_UNAVAILABLE))
     assert verdicts(catalogue_over(store, lots=lots)[0])[BANK] is ClosureReason.HASH_MISMATCH
     assert lots.asked == []
 

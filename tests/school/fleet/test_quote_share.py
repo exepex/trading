@@ -47,3 +47,41 @@ def test_a_margin_cause_is_counted_by_name_and_no_line_quotes_a_note():
     lines = share_lines((record(MARGIN), record(MARGIN)))
     assert f"{ROAD}: margin not checked (no valid two-sided quote) x2" in lines
     assert not any(SECRET_LEG in line for line in lines)
+
+
+FINNIFTY = RoadCode.FINNIFTY_MONTHLY
+
+
+def driver_stop(road: RoadCode = FINNIFTY, reason: NoTradeReason = NoTradeReason.NO_VALID_QUOTES) -> DecisionRecord:
+    decision = Decision("CS1@1", road, b.SESSION, Outcome.NO_TRADE, reason)
+    return DecisionRecord(b.SESSION, SLOT_1500, road, "ab" * 32, "s", "cd" * 32, None, decision, ())
+
+
+def test_drivers_that_stop_on_no_valid_quotes_are_counted_beside_the_law_refusals():
+    """Dry run 1 (23 Oct, P-e1): "FINNIFTY-M: 0 of 9 refused for quotes" while 6 decisions were no_valid_quotes."""
+    records = tuple(driver_stop() for _ in range(6)) + tuple(record(road=FINNIFTY) for _ in range(3))
+    [share] = quote_shares(records)
+    assert (share.scheduled, share.quote_refused, share.driver_stops) == (9, 0, 6)
+    assert "FINNIFTY-M: 0 of 9 refused for quotes (0%); 6 more ended no_valid_quotes in the driver" in share_lines(
+        records
+    )
+
+
+def test_the_line_is_byte_identical_when_no_driver_stopped_on_quotes():
+    records = (record(MISSING), record(), driver_stop(reason=NoTradeReason.RULE_NOT_FIRED, road=ROAD))
+    assert [line for line in share_lines(records) if "refused for quotes" in line] == [
+        f"{ROAD}: 1 of 3 refused for quotes (33%)"
+    ]
+
+
+def test_a_decision_a_law_refused_is_not_also_counted_as_a_driver_stop():
+    both = replace(record(MISSING), decision=Decision("CS1@1", ROAD, b.SESSION, Outcome.NO_TRADE,
+                                                      NoTradeReason.NO_VALID_QUOTES))  # fmt: skip
+    [share] = quote_shares((both,))
+    assert (share.quote_refused, share.driver_stops) == (1, 0)
+
+
+def test_another_no_trade_reason_and_another_outcome_are_not_driver_stops():
+    refused_for_other = record(MAX_LOSS)
+    [share] = quote_shares((driver_stop(reason=NoTradeReason.N0, road=ROAD), refused_for_other))
+    assert share.driver_stops == 0

@@ -11,7 +11,7 @@ from functools import partial
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.quotes.snapshot_rows import COLUMNS, snapshot_csv
 from fno.school.acceptance.scenario import Scenario
-from fno.school.constants import SLOT_1500, RecordKind, RoadCode
+from fno.school.constants import SLOT_1500, ClosureReason, RecordKind, RoadCode
 from fno.school.contracts.accounts import LedgerEntry
 from fno.school.contracts.clock import FixedClock
 from fno.school.contracts.dashcam import DashcamStore
@@ -30,6 +30,7 @@ from fno.school.fakes import (
 from fno.school.quality.gate import RoadQualityGate
 from fno.school.roads.capture import CaptureReader
 from fno.school.roads.catalogue import RecordedRoadCatalogue
+from fno.school.roads.ports import LotProblem
 from fno.school.roads.snapshots import RecordedSnapshotSource
 from fno.storage.raw_store import RawFileStore
 from tests.school.roads.capture_builder import CALENDAR, DictStore, FixtureListing
@@ -84,7 +85,7 @@ class ScenarioExpiries:
 
 
 class ScenarioLots:
-    """LotSource: the scenario's dated lot copy; one lot for every expiry of the capture, or none."""
+    """LotSource: the scenario's dated lot copy; one lot for every expiry of the capture, or the problem."""
 
     def __init__(self, lots: dict):
         self.lots = lots
@@ -92,7 +93,9 @@ class ScenarioLots:
     def lot(self, underlying: str, session: date, expiries: tuple[date, ...]):
         road = next(r for r in ROADS if r.underlying == underlying and r.code in self.lots)
         units = {self.lots[road.code].get(expiry) for expiry in expiries}
-        return DatedLot(units.pop(), "scenario lot copy") if len(units) == 1 and None not in units else None
+        if None in units:
+            return LotProblem(ClosureReason.LOT_UNAVAILABLE)
+        return DatedLot(units.pop(), "scenario lot copy") if len(units) == 1 else LotProblem(ClosureReason.LOT_MISMATCH)
 
 
 class GatedSnapshots:

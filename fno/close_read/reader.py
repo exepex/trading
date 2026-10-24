@@ -14,6 +14,7 @@ from datetime import datetime
 from ..constants import SESSION_REGULAR
 from ..research_data.calendar import SessionCalendar
 from .answer import ListRead, Refused, difference, read_answer
+from .comparison import changed, compared
 from .confirm import Confirmer
 from .constants import (
     ALREADY_READ,
@@ -25,6 +26,7 @@ from .constants import (
     NOT_A_SESSION,
     NOT_READ,
     NOT_REGULAR,
+    RANGE_FIELDS,
     READ,
     READ_LINE,
     RECHECK,
@@ -79,7 +81,9 @@ class CloseReader:
         sha = self.store.put(record_path(day), encode(read_document(day, read_at, got, which, raw_file)))
         how = AT_RECHECK if which == RECHECK else ""
         names = ", ".join(n.listed + ("" if n.checked else " (list)") for n in INDICES)
-        line = READ_LINE.format(day=day, how=how, names=names, stamp=got.stamp, path=record_path(day), sha=sha[:12])
+        problems = "".join(f"; {name}: {', '.join(found)}" for name, found in got.problems.items())
+        line = READ_LINE.format(day=day, how=how, names=names, problems=problems, stamp=got.stamp,
+                                path=record_path(day), sha=sha[:12])  # fmt: skip
         return self._done(line, 0)
 
     def _read(self, day) -> tuple[ListRead | None, bytes, str]:
@@ -99,8 +103,10 @@ class CloseReader:
     def _recheck(self, day, read_at: str, got: ListRead, raw_file: tuple[str, str]) -> int:
         first = json.loads(self.store.get(record_path(day)))["indices"]
         against = {n.listed: difference(first[n.listed]["last"], got.values[n.listed]["last"]) for n in INDICES}
-        sha = self.store.put(recheck_path(day), encode(recheck_document(day, read_at, got, against, raw_file)))
-        results = ", ".join(f"{name} {status}" for name, status in against.items())
+        fields = {n.listed: compared(first[n.listed], got.values[n.listed], RANGE_FIELDS) for n in INDICES}
+        document = recheck_document(day, read_at, got, (against, fields), raw_file)
+        sha = self.store.put(recheck_path(day), encode(document))
+        results = ", ".join(f"{name} {status}{changed(fields[name])}" for name, status in against.items())
         return self._done(RECHECK_LINE.format(day=day, results=results, stamp=got.stamp, path=recheck_path(day),
                                               sha=sha[:12]), 0)  # fmt: skip
 

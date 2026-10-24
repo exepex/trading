@@ -38,18 +38,21 @@ def _session(args) -> str:
 
 
 def cmd_certify(args, out=print, certifier=None, alerts=None, calendar=None) -> int:
-    """A record not on origin's main, or a conflict, also goes to #fno-desk (an unsent alert is printed in full)."""
+    """A record not on origin's main, a conflict or an unreadable source also goes to #fno-desk, in one alert per run
+    naming every session (judge 561's note: `--since 7` with a store down would otherwise alert seven times)."""
     from ..alerts.output import announce
     from .wiring import build_alerts, build_certifier
 
     certifier = certifier or build_certifier(args.dataset, args.commit)
-    recorded = True
+    recorded, alerted = True, []
     for session in _sessions(args, calendar, certifier.rules.live_from):
         outcome = certifier.certify(session, args.level)
         out(outcome.line)
         if outcome.alert:
-            announce(alerts or build_alerts(), ALERT.format(line=outcome.line))
+            alerted.append(outcome.line)
         recorded = recorded and outcome.recorded
+    if alerted:
+        announce(alerts or build_alerts(), ALERT.format(line="\n".join(alerted)))
     return 0 if recorded else 1
 
 

@@ -6,11 +6,11 @@ import pytest
 
 from fno.quotes.expiry_listing import ExpiryHistory, ExpiryListUnavailable, ListedExpiries
 from fno.quotes.monthly_contracts import PointInTimeMonthlies
-from fno.school.constants import RoadCode
+from fno.school.constants import ClosureReason, RoadCode
 from fno.school.contracts.roads import ROADS_BY_CODE
 from fno.school.roads.expiries import ListedRoadExpiries
 from fno.school.roads.lots import ArchivedLots, month_label
-from fno.school.roads.ports import ExpirySource, ExpiryUnavailable, LotSource
+from fno.school.roads.ports import ExpirySource, ExpiryUnavailable, LotProblem, LotSource
 from fno.school.roads.stored_files import StoredFilesOnly
 from fno.storage.raw_library import RawFileLibrary
 from fno.storage.snapshot_source import FoLotSizeSource
@@ -23,6 +23,10 @@ LOT_FILE = (
     b"Nifty Bank                          ,BANKNIFTY ,30         ,30         ,35         \n"
     b"Nifty Midcap Select                 ,MIDCPNIFTY,120        ,           ,120        \n"
 )
+
+
+UNAVAILABLE = LotProblem(ClosureReason.LOT_UNAVAILABLE)
+MISMATCH = LotProblem(ClosureReason.LOT_MISMATCH)
 
 
 def archive(files: dict) -> ArchivedLots:
@@ -40,9 +44,16 @@ def test_the_lot_is_the_one_every_used_expiry_month_carries_with_its_source_path
     assert lot.units == 65 and lot.source == FoLotSizeSource.path_for(SESSION)
 
 
-def test_a_lot_of_zero_is_no_lot():
+def test_a_lot_of_zero_is_a_bad_file_not_a_mismatch():
     data = LOT_FILE.replace(b"65         ,65         ,65", b"0          ,0          ,0")
-    assert archive(lots_file(data=data)).lot("NIFTY", SESSION, (date(2026, 10, 27),)) is None
+    assert archive(lots_file(data=data)).lot("NIFTY", SESSION, (date(2026, 10, 27),)) == UNAVAILABLE
+
+
+def test_a_zero_lot_beside_a_different_lot_is_still_unavailable_not_a_mismatch():
+    """The bad-file check comes before the mismatch check (MS-P1b owner's note)."""
+    data = LOT_FILE.replace(b"65         ,65         ,65", b"0          ,65         ,35")
+    expiries = (date(2026, 10, 27), date(2026, 11, 24), date(2026, 12, 29))
+    assert archive(lots_file(data=data)).lot("NIFTY", SESSION, expiries) == UNAVAILABLE
 
 
 def test_an_outage_reading_the_listing_is_not_turned_into_a_closure():
@@ -56,25 +67,29 @@ def test_an_outage_reading_the_listing_is_not_turned_into_a_closure():
 
 
 @pytest.mark.parametrize(
-    "underlying,expiries",
+    "underlying,expiries,expected",
     [
-        ("BANKNIFTY", (date(2026, 11, 24), date(2026, 12, 29))),  # 30 against 35: no single lot
-        ("MIDCPNIFTY", (date(2026, 10, 27), date(2026, 11, 24))),  # a blank cell for November
-        ("NIFTY", (date(2027, 3, 30),)),  # a month the file has no column for
-        ("SENSEX", (date(2026, 10, 27),)),  # an underlying the file has no row for
+        ("BANKNIFTY", (date(2026, 11, 24), date(2026, 12, 29)), MISMATCH),  # 30 against 35: the only mismatch
+        ("MIDCPNIFTY", (date(2026, 10, 27), date(2026, 11, 24)), UNAVAILABLE),  # a blank cell for November
+        ("NIFTY", (date(2027, 3, 30),), UNAVAILABLE),  # a month the file has no column for
+        ("SENSEX", (date(2026, 10, 27),), UNAVAILABLE),  # an underlying the file has no row for
     ],
 )
-def test_no_single_lot_means_none(underlying, expiries):
-    assert archive(lots_file()).lot(underlying, SESSION, expiries) is None
+def test_no_single_lot_names_which_of_the_two_problems_it_is(underlying, expiries, expected):
+    assert archive(lots_file()).lot(underlying, SESSION, expiries) == expected
 
 
 def test_a_session_without_its_own_copy_has_no_lot_even_when_another_day_has_one():
     lots = archive(lots_file(day=date(2026, 10, 21)))
-    assert lots.lot("NIFTY", SESSION, (date(2026, 10, 27),)) is None
+    assert lots.lot("NIFTY", SESSION, (date(2026, 10, 27),)) == UNAVAILABLE  # not "mismatch": nothing was compared
 
 
-def test_a_damaged_lot_file_has_no_lot():
-    assert archive(lots_file(data=b"nonsense,\n1,2\n")).lot("NIFTY", SESSION, (date(2026, 10, 27),)) is None
+def test_no_lot_file_at_all_is_unavailable():
+    assert archive({}).lot("NIFTY", SESSION, (date(2026, 10, 27),)) == UNAVAILABLE
+
+
+def test_a_damaged_lot_file_is_unavailable():
+    assert archive(lots_file(data=b"nonsense,\n1,2\n")).lot("NIFTY", SESSION, (date(2026, 10, 27),)) == UNAVAILABLE
 
 
 def test_month_labels_are_nse_s_whatever_the_locale():

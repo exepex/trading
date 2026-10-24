@@ -103,3 +103,4 @@ class PracticeRunner:
             _, found = source.build(road_day)
             report.coverage.append(RoadDayCoverage.of(session, road_day.road.code, found))
             report.insufficient_buckets.update(found.insufficient)
+            report.short_buckets.update(found.short_buckets)

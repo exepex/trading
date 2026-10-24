@@ -22,11 +22,11 @@ from ..storage.data_wiring import DRIVE_CACHE_FOLDER, build_data_store, build_dr
 from ..storage.wiring import (
     PANEL_FOLDER,
     REPOSITORY,
-    build_index_close_files,
     build_nifty_panel_files,
     build_owner_drive,
     build_quote_store,
     build_session_calendar,
+    build_stored_index_close_files,
 )
 from .backfill import RangeBackfill
 from .bhavcopy_chains import BhavcopyChains
@@ -87,7 +87,7 @@ def seal_lines(seals: Seals, store, day: date) -> list[str]:
 def build_issuer(cfg: dict) -> RangeIssuer:
     store, calendar = build_store(), build_session_calendar()
     tables, seals = build_tables(store), build_seals(store)
-    index_closes = IndexFileCloses(build_index_close_files(), calendar)
+    index_closes = IndexFileCloses(build_stored_index_close_files(), calendar)
 
     def update_banknifty(day: date) -> list[str]:
         lines = tables.update(BANKNIFTY, index_closes, previous_regular_session(calendar, day))
@@ -111,7 +111,7 @@ def build_backfill(cfg: dict, eod: bool, years=None) -> RangeBackfill:
 
 def build_table_update() -> tuple[CloseTables, IndexFileCloses]:
     calendar = build_session_calendar()
-    return build_tables(build_store()), IndexFileCloses(build_index_close_files(), calendar)
+    return build_tables(build_store()), IndexFileCloses(build_stored_index_close_files(), calendar)
 
 
 def deep_enough(root=ROOT, days: int = 10) -> None:

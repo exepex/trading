@@ -86,7 +86,7 @@ def build_composer(edition: str, env=os.environ) -> tuple[Composer, RegularSessi
     from ..price_ranges.closes import IndexFileCloses, Outcomes
     from ..price_ranges.folders import BACKFILL, LIVE, SCORES, drive
     from ..price_ranges.reader import RangeForecasts, RangeScores
-    from ..storage.wiring import build_index_close_files
+    from ..storage.wiring import build_stored_index_close_files
 
     cache = build_drive_cache(env)
     problems = [p for prefix in (drive(LIVE), drive(SCORES), drive(BACKFILL)) for p in cache.sync(prefix).problems]
@@ -97,7 +97,7 @@ def build_composer(edition: str, env=os.environ) -> tuple[Composer, RegularSessi
     ranges = G13bRanges(forecasts, scores)
     calendar, cfg = build_session_calendar(), load_app_config()
     closes = ArchivedCloses(G13bCloses(Outcomes(g13b.build_closes(g13b.build_tables(store)))),
-                            IndexFileCloses(build_index_close_files(), calendar))  # fmt: skip
+                            IndexFileCloses(build_stored_index_close_files(), calendar))  # fmt: skip
     sessions, live = RegularSessions(calendar), live_from(cfg)
     maker = build_report_maker(ranges, forecasts, scores, calendar, closes)
     evenings, own = records(EVENING, env), records(edition, env)

@@ -13,7 +13,7 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from ..constants import RoadCode
+from ..constants import NoTradeReason, RoadCode
 from ..contracts.records import DecisionRecord
 from ..safety.margin_law import MARGIN_NOT_CHECKED, margin_not_checked
 from ..safety.quote_laws import GATE_REASONS
@@ -24,6 +24,7 @@ class QuoteShare:
     road: RoadCode
     scheduled: int
     quote_refused: int
+    driver_stops: int = 0  # decisions the driver ended itself with no_valid_quotes (no law result is involved)
 
     @property
     def share(self) -> float:
@@ -31,11 +32,19 @@ class QuoteShare:
 
 
 def quote_shares(records: Iterable[DecisionRecord]) -> tuple[QuoteShare, ...]:
-    scheduled, refused = Counter(), Counter()
+    scheduled, refused, stopped = Counter(), Counter(), Counter()
     for record in records:
         scheduled[record.road] += 1
-        refused[record.road] += any(not r.passed and r.reason in GATE_REASONS for r in record.law_results)
-    return tuple(QuoteShare(road, scheduled[road], refused[road]) for road in sorted(scheduled))
+        law_refused = any(not r.passed and r.reason in GATE_REASONS for r in record.law_results)
+        refused[record.road] += law_refused
+        stopped[record.road] += not law_refused and _driver_stopped_for_quotes(record)
+    return tuple(QuoteShare(road, scheduled[road], refused[road], stopped[road]) for road in sorted(scheduled))
+
+
+def _driver_stopped_for_quotes(record: DecisionRecord) -> bool:
+    """A driver that finds no valid quotes proposes nothing, so no law runs: counted from the decision itself. The
+    reason is a no-trade reason only (`Decision` refuses it under any other outcome), so it alone names the case."""
+    return record.decision.reason == NoTradeReason.NO_VALID_QUOTES
 
 
 def margin_unchecked_causes(records: Iterable[DecisionRecord]) -> Counter:
@@ -62,6 +71,7 @@ def reason_counts(records: Iterable[DecisionRecord]) -> Counter:
 
 
 QUOTE_LINE = "{road}: {refused} of {scheduled} refused for quotes ({share:.0%})"
+DRIVER_STOPS_SUFFIX = "; {stopped} more ended no_valid_quotes in the driver"  # only when there are any
 MARGIN_LINE = "{road}: margin not checked ({cause}) x{count}"
 REASONS_LINE = "{road}: refusal reasons, a decision can have several: {reasons}"
 
@@ -69,6 +79,7 @@ REASONS_LINE = "{road}: refusal reasons, a decision can have several: {reasons}"
 def share_lines(records: tuple[DecisionRecord, ...]) -> tuple[str, ...]:
     """Counts only, for the run's printout and the reports."""
     lines = [QUOTE_LINE.format(road=s.road, refused=s.quote_refused, scheduled=s.scheduled, share=s.share)
+             + (DRIVER_STOPS_SUFFIX.format(stopped=s.driver_stops) if s.driver_stops else "")
              for s in quote_shares(records)]  # fmt: skip
     causes = sorted(margin_unchecked_causes(records).items())
     lines += [MARGIN_LINE.format(road=road, cause=cause, count=n) for (road, cause), n in causes]
