@@ -3,8 +3,11 @@ run lands under `dryrun/<run_id>/` and the real record keeps every file it had. 
 the rehearsal's own function, exactly as the real builder wraps it (the guard's test shows the real builder does). The
 fixture's clock is the harness's, so the rehearsal's skipped waits fall back to the run's own waits."""
 
+import json
+
 from fno.config import load_app_config
-from fno.constants import ENV_FNO_REHEARSAL
+from fno.constants import ENV_FNO_REHEARSAL, STEP_NOT_LIVE, STEP_OK
+from fno.daily.full_log import FULL_LOGS
 from fno.daily.v4_wiring import step_notes
 from fno.daily.wiring import live_dates
 from fno.rehearsal.clock import ReplayClock
@@ -24,10 +27,15 @@ def test_a_rehearsed_day_writes_only_under_dryrun_and_never_the_real_record(tmp_
     before = dict(day.drive.files)
     code, line = day.run()
     _, notes = rehearsed_live(live_dates(load_app_config()))
-    problems = line.removeprefix("day done with problems: ").split(", ") if code else []
-    assert line.startswith("day done") and set(problems) <= set(step_notes(notes))  # only steps not live in real runs
-    # (G10: `v4_pack`'s note covers its two steps):
-    # they run in a rehearsal (REH1c), and the fixture's child commands do not script them
+    # REH1j: the steps not live in real runs run (REH1c) and fail here (the fixture's child commands do not script
+    # them), yet the day ends as the real day would; each is `not_live` with what it did kept (G10: `v4_pack`'s note
+    # covers its two steps)
+    assert (code, line) == (0, "day done")
+    full = json.loads((day.root / FULL_LOGS / f"{day.day.isoformat()}.json").read_text())["steps"]
+    exercised = {name: step["result"] for name, step in full.items() if "exercised" in step["result"]}
+    assert exercised and set(exercised) <= set(step_notes(notes))
+    assert all(result["status"] == STEP_NOT_LIVE for result in exercised.values())
+    assert any(result["exercised"]["status"] != STEP_OK for result in exercised.values())  # a failure, not counted
     written = {path for path in day.drive.files if path not in before}
     assert written and all(path.startswith(f"{mode.drive_root}/") for path in written)
     assert {path: day.drive.files[path] for path in before} == before  # the real record: every file as it was

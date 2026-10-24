@@ -1083,10 +1083,13 @@ changes is only what its outcome counts for.
    subcommands. A missing path gives `"exercised": {"status": "not_built", "reason": "no command 'margins
    stress-broker-check' in fno"}`, no child process and no alert. It never reads an error text. Only not-live steps
    are checked this way: a live step whose command is missing is a real failure and stays `failed`. The walk goes
-   one word at a time: each word must be a subcommand of the parser reached so far, and the path must end on a
-   parser with a handler (`set_defaults(func=...)`), so a missing child under a real parent (`margins
+   one word at a time: while the parser reached has subcommands, the word must be one of them; it stops at the first
+   word that is not a subcommand (an option such as `--day <d>`, or a value) of a parser with none (judge 593.1's
+   minor). The path is built when it ends on a parser that needs no further subcommand and a handler
+   (`set_defaults(func=...)`) is set on it or on a group above it (found while building: `quotes`, `intraday` and 84
+   other commands are dispatched by their group's handler). So a missing child under a real parent (`margins
    stress-broker-check` beside `margins stress-factor`) and a prefix of a real command (`margins` alone) are both
-   not built (judge 593 m2).
+   not built (judge 593 m2); `pricedist record --day D --live` is built.
 3. **A not-live quote part does not decide `quotes_done`.** In the rehearsal's composition root, the `quotes_done`
    step is wrapped (`fno/rehearsal/`) so that a part whose live key is not live on the replayed day is moved from
    `parts` into `exercised_parts`, and the step's status is decided by the live parts only, by
@@ -1125,7 +1128,8 @@ root, except `build_parser()`, a pure extraction.
   (public code `rehearsal:NOT_BUILT`), starts no child and sends no alert of its own; a live step with a missing
   command still runs and fails; a not-live step whose command exists runs. Boundaries: a missing child under a real
   parent (`margins stress-broker-check` beside `margins stress-factor`) and a prefix of a real command (`margins`
-  alone) are not built; a full real path (`margins stress-factor`) is built. Empty: a not-live step that is not a
+  alone) are not built; a full real path (`margins stress-factor`) and one ending in options (`pricedist record
+  --day D --live`) are built; every command path fno has is built and every group alone is not. Empty: a not-live step that is not a
   command (a Python step) is never checked. Plants: the check removed; the check applied to live steps; the walk
   stopping at the first word that exists (fooled by a real parent); a prefix accepted.
 - **J4. Quote parts.** A failed not-live `v4` part beside three ok live parts gives `quotes_done` `ok` with the `v4`

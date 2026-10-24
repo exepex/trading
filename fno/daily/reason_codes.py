@@ -7,7 +7,7 @@ from __future__ import annotations
 from ..desk import book_versions, daily_run, daily_steps, exits, recorded_c4, trade_marking
 from ..desk.owner_timing import entry_fills, exit_fills, outcomes, pending_entries
 from ..desk.owner_timing import step as owner_timing
-from ..rehearsal import recorded_quotes
+from ..rehearsal import built_commands, live_wiring, recorded_quotes
 from ..v4_pack import deadline, release_run
 from . import earlier_run, quote_parts, reviews, steps
 
@@ -17,6 +17,9 @@ COMMON = (
     ("o1:NO_DATE", steps.NO_DATE),
     ("o1:STOPPED_AT_LIMIT", steps.STOPPED_AT_LIMIT),
     ("rehearsal:NOT_RECORDED", recorded_quotes.NOT_RECORDED),  # story REH1b: a capture the day never recorded
+    ("rehearsal:NOT_LIVE_UNSET", live_wiring.NOT_LIVE_UNSET),  # story REH1j: a step exercised, not live in real runs
+    ("rehearsal:NOT_LIVE_UNTIL", live_wiring.NOT_LIVE_UNTIL),
+    ("rehearsal:NOT_BUILT", built_commands.NOT_BUILT),  # REH1j: its command not in fno yet
 )
 BLOCKS = (
     ("desk:NO_LOG", daily_run.NO_LOG),
