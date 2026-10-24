@@ -233,3 +233,70 @@ file before it.
 
 **Depends:** BG1, F8c; G11's timing field (read only) · **Size:** S · **Status:** story text round 2, for the judge; the
 never-sealed rule for the owner (default `no_seal_upper_bound`)
+
+### BG1-w Claims (code, round 1)
+
+Builder session_016CU8KFuEEtWAM7ZNnFcKxv, branch `story/bg1w-reveal-wait`; text PASS judge 587.1. The never-sealed rule
+defaults to `no_seal_upper_bound` until the owner answers (asked by the orchestrator, 24 Oct).
+
+**What changed:**
+- `fno/budget/self_timed.py`: `_split` gives (counted minutes, wait apart, source). With a seal the wait is the whole
+  run less the working minutes, so the two parts always add up to the run (0.33 + 0.34 for 20 s + 20 s). The reader's
+  `no_seal` argument defaults to the switch, read when the reader is built.
+- `fno/budget/constants.py`: `NO_SEAL_RULE`, the one switch.
+- `fno/budget/usage_reader.py`: `DayUsage.wait_minutes`.
+- `fno/budget/usage_ledger.py`: the `wait_minutes` column, its reading check, and the record line names the wait.
+- `fno/budget/report.py`: the meter's wait line, and the count of upper-bound rows (by the rule's name in the source).
+- `accounting/ai_usage.csv`: the column added, blank in the 10 earlier rows. No other byte of a value changed.
+
+| Criterion (code) | Tests (`tests/budget/test_reveal_wait.py`, `test_wait_ledger.py`): good / bad / boundary / empty | Plants, each caught |
+|---|---|---|
+| 1 working minutes (`_split`) | 3.50 and 26.17; a seal at the start (0.00 working) or the end (0.00 wait); a seal in UTC; a seal outside the run, with no zone, not ISO, or a number, refused under both rules; the parts add up | C1a split swapped (7); C1b the wait left in `minutes` (6); C1c a seal outside not refused (2); C1d the wait rounded on its own (1) |
+| 2 a never-sealed run, each rule explicitly (judge 587.1's condition) | the upper bound: start to end, labelled, null and ""; the unknown rule: refused, null and ""; the default is the upper bound, and flipping the switch flips it; a bad rule is refused. End to end through G11's recorder (unchanged) and the meter: captured with the level known, or not captured with the level `unknown`. E: a fired run with no timing file is not captured under both rules | C2a default flipped (2); C2b upper bound written as 0 (2); C2c the unknown rule writing a row (4); C2d "" read as a time (2) |
+| 3 no key: unchanged values | start to end, wait blank, the old source, under both rules | C3 a missing key read as never sealed (11) |
+| 4 the ledger column | a new row with a wait; `26.17`, `0.00` and blank read; `-1`, `-0.01`, `nan`, `inf` and text refused; every earlier row of the committed ledger equal to `git show d062fe347` with a blank wait | C4a the wait's check dropped (5); C4b the wait not written (3); C4c an old value changed (1); C4d the record line hiding the wait (1) |
+| 5 never capped | one run of 3.50 + 26.17: the cap's minutes 3.5, the basis 3.5, the cap 1.75; the ledger row carries 3.50 in `minutes` (what G11's C8 sums) | C5a the wait into the cap; C5b the wait into the basis. Each was also run with a non-crashing `.get` variant on the new tests alone, so the catch is this test, not a KeyError elsewhere: 2 and 1 failed |
+| 6 the meter's line | none recorded; two runs (26.17 and 0.00) give "26.17 minutes over 2 run(s)" with the cap at 33.17; one run with a 0.00 wait is one run; the upper bounds counted | C6a summing `minutes` (2); C6b a 0.00 wait not counted (2); C6c the upper bounds not shown (1) |
+
+18 plants, 18 caught, run in a separate worktree, each restored with `git checkout --` (`git status` clean).
+
+**Real output sample.**
+- `python -m fno budget meter --month 2026-10` on the repository, before and after: one new line, "AI books' reveal
+  wait (not capped): none recorded". Every other line is identical (diff of the two outputs), because no committed
+  timing file has `sealed_at` until G11 merges.
+- From a test ledger (one sealed run, one never sealed):
+  ```
+  measured books_and_roles: 33.17 minutes, 2 session(s), output tokens not available
+  AI books' reveal wait (not capped): 26.17 minutes over 1 run(s)
+    1 run(s) never sealed, counted start to end (no_seal_upper_bound, an upper bound)
+  AI cap: books and roles 33.17 of 500.00 minutes = 6.6%; level ok
+  ```
+  The ledger rows: `...,3.50,26.17,1,...,self-timed by the routine (start to seal; the wait to the end apart),...` and
+  `...,29.67,,1,...,self-timed by the routine (no_seal_upper_bound: never sealed; start to end counted),...`.
+
+**Self-review** (an independent agent, given the diff and the story only): no blocking findings, 2 should-fix and 4
+minor.
+- **Fixed:**
+  - The parts now add up to the run.
+  - The upper bounds are counted by the rule's name, not the source's exact wording, and the report no longer imports
+    the reader.
+  - The record line names the wait.
+  - The tests write through `record`, not the private `_write`, and the 0.00 wait has its own one-run case.
+- **Stated limits (should-fix 1 and 2):**
+  - **Cost allocation changes meaning with the minutes.** BG1's allocation (`allocation.py:42`) and F9a's unit cost
+    (`role_value/cost.py:43-44`) split the plan cost by `minutes`. Once G11 merges, a v4 book day counts about 3.5
+    minutes, not about 30, so the books' share of the plan cost falls about 8 times. Development still counts its idle
+    wall time. In October, rows from before G11 (wait included) and v4 rows (working only) sit in one month on two
+    bases. This is consistent with the owner's "working minutes only", but the owner may want the allocation on another
+    basis. That is for the orchestrator and F9a's owner, and nothing is changed here.
+  - **Merge hazard.** The branch rewrites every line of the ledger. A row that `ai collect` appends on `main` before
+    the merge (a trading day, about 15:15-15:35 IST) conflicts. Resolve it by giving each newer row a blank
+    `wait_minutes` and nothing else; `rows()` refuses a 15-field row, so the full suite catches a wrong resolution.
+    Merge outside 15:15-15:35 IST.
+- **Not changed:** criterion 3's good case uses a book record with the key dropped. The real post-mortem record is
+  already covered by `test_self_timed.py`.
+
+**Also open, for other builders through the orchestrator:**
+- G11's `tests/ai/test_run_timing.py:58-60` (on its branch) asserts 4.17 minutes for a record with `sealed_at`, which
+  is start to end. After both merge it reads working minutes, so G11's builder updates that expectation.
+- G11's two docstrings, and the dashboard contract's "session minutes" (gap list).
