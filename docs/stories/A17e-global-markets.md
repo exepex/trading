@@ -394,5 +394,48 @@ tested before Tue 27 Oct 09:00 Taipei; a second live source at 08:50 also double
 - Minor 2 accepted: a broken calendar fails `taiex` only, which is still read from Yahoo.
 - Minor 3 accepted: older parts read `reason` and `settles` with `""` as the default.
 
-### Claims
-(Filled with the code, after the text PASS.)
+### Claims (criteria 1-5; criterion 6, settlement, follows after Monday with its own verdict)
+Code: `fno/global_cues/market_closures.py` (the file and TWSE's parser), `preopen_calendar.py` (the question before a
+read), `preopen_outcome.py` (lines, status, problems with their O10 kind), `preopen.py` (empty vs changed layout,
+archive before parse, rows with `reason` and `settles`), `preopen_cli.py` (the alert and one O10 row per kind),
+`wiring.py` (the TWSE calendar for `taiex`; `settled` = taiex, nikkei225, sse_composite). Data:
+`research/data/calendar/twse_closures.csv` (covers 2026, 18 holidays, 23 Oct unscheduled), its README section, and
+TWSE's 2026 file as `tests/fixtures/twse/holiday_schedule_2026.json` (SHA-256 `7644c1a8…2117`, the `covers` row's).
+
+| Criterion | Tests (`tests/global_cues/`) | Plant caught by |
+|---|---|---|
+| 1 calendar | `test_preopen_empty.py`: Monday 26 Oct (0 requests, exit 0), next day reads, uncovered year, broken calendar (taiex only, both read); `test_twse_closures.py`: 1 Jan covers + holiday, malformed rows, weekend row, 30 Nov / 1 Dec, one covers row stops the warning (judge note 1), refused file | P3, P7, P13, P14 |
+| 2 parser = CSV | `test_twse_closures.py`: 18 closures, trading-day and weekend rows, settlement-only days, changed or empty file, committed CSV = parser on the fixture whose SHA-256 the `covers` row cites | P6 |
+| 3 empty answer | `test_preopen_empty.py`: four empty shapes, six changed layouts, one close among nulls, earlier-day level (taiex vs nikkei225), kospi "not settled" | P2, P8, P15 |
+| 4 reasons | the empty-answer test (line, alert, O10 `incomplete`), uncovered year (one alert, O10 `failure` then `incomplete`), no level in any line, alert, O10 row or snapshot log | P4, P5 |
+| 5 archive first | empty and changed layouts archived with the SHA-256 in the snapshot log; Drive put failure raises before any parse or row (the CLI side: `test_world_preopen.py::test_a_failed_archive_write_alerts_and_the_next_indexes_still_read`); block and network error archive nothing, one request | P1 |
+
+**Two choices the text did not spell out (for the judge):**
+1. For a market with a calendar (taiex), an answer holding only an earlier day's levels on an unlisted, covered day is
+   also `no session data`, reason `newest level from an earlier day: closed unannounced or a Yahoo gap` (the same
+   ambiguity as an empty answer; for the six markets without a calendar it stays `market closed`, as A17e).
+2. O10's message is cut at 200 characters (O10's `one_line`); the alert carries every problem in full.
+
+**Self-review** (an independent review agent on the diff): no blocking. Fixed: a quote without a `close` list,
+uneven lengths and non-list fields were read as empty (now changed layouts, five new cases, P15); a non-list field
+let `TypeError` escape without a row or raw SHA (now a changed layout); the alert now says "changed layout"; a
+`covers` row off 1 Jan or given twice is refused (P14). Taken as choice 1 above: the earlier-day level. Cited above:
+the Drive-put failure at CLI level.
+
+**Gates** (branch merged with `main` at 93fb86ee3): pytest 15,702 passed, 1 skipped, 15 xfailed (token kept); ruff check and format, check_imports, check_records (9,108 files), check_numbers: clean. **Plants:** P1-P8, P13-P15 all caught
+(each by the test named above; each restored with `git checkout`); P9-P12 belong to criterion 6.
+
+**Output sample** (the committed code; the real TWSE calendar; fakes for Yahoo, Drive, Slack and git):
+```
+--- 2026-10-26 08:55 IST: exit 0, Yahoo requests 0
+taiex: market closed (TWSE holiday: 臺灣光復暨金門古寧頭大捷紀念日)
+pre-open logs committed and pushed (1 file(s))
+--- 2026-10-27 08:55 IST: exit 1, Yahoo requests 1
+taiex: no session data (empty answer: closed unannounced or a Yahoo gap; raw 62f7e1473ea7)
+pre-open logs committed and pushed (1 file(s))
+alert sent
+alert: Omenix F&O pre-open Asian levels: taiex: no session data (empty answer; raw 62f7e1473ea7)
+O10: incomplete | taiex: no session data (empty answer; raw 62f7e1473ea7)
+```
+Not checkable before Monday: what Yahoo answers for ^TWII on a TWSE holiday (it answers HTTP 429 to this container);
+on 26 Oct no request is sent, so it does not matter that day.
