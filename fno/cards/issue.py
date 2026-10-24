@@ -10,14 +10,17 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from ..server_clock import ServerClock, SkewCheck, check_server, skew_check, unchecked, utc_text
+from ..server_clock import SkewCheck, unchecked, utc_text
 from .card import TradeCard
+from .card_clocks import CardClocks, ClockChecks
 from .deliveries import DeliveryLog
+from .minimal_facts import minimal_facts
 from .posting import CardPoster, PostReceipt
-from .record_store import CardRecordStore
+from .record_store import NOT_SAVED, CardRecordStore
 
 RECORD_SCHEMA, DELIVERY_SCHEMA = "card_record/v1", "card_delivery/v1"
-SLACK = "Slack"
+CLOCKS = "the clocks"
+RECORD_NOT_BUILT = "record not built ({error})"
 TEST_BANNER = "TEST — PAPER ONLY: a one-off check of live delivery, not the day's card."
 NOT_WRITTEN = "delivery metadata NOT written ({error}); commit it by hand:\n{metadata}"
 WRITTEN = "delivery metadata written: {path} (commit and push it: its push receipt is the second issuance witness)"
@@ -36,44 +39,54 @@ def card_sha256(text: str) -> str:
 
 class CardIssuer:
     def __init__(
-        self, poster: CardPoster, records: CardRecordStore, deliveries: DeliveryLog, clocks: Sequence[ServerClock],
+        self, poster: CardPoster, records: CardRecordStore, deliveries: DeliveryLog, clocks: CardClocks,
         host_now: Callable[[], datetime], code_commit: str,
     ):  # fmt: skip
         self.poster, self.records, self.deliveries = poster, records, deliveries
-        self.clocks, self.host_now, self.code_commit = tuple(clocks), host_now, code_commit
+        self.clocks, self.host_now, self.code_commit = clocks, host_now, code_commit
 
     def issue(self, card: TradeCard, text: str, test: bool = False) -> IssueResult:
         """`test`: the one live delivery check (T1 criterion 16): marked on its first line and in both records, and
-        never counted as the session's card."""
+        never counted as the session's card. After the post every stage is guarded on its own (story T1f), so a
+        raise in one never skips the next and the post always leaves its records, or says plainly why not."""
         text = f"{TEST_BANNER}\n{text}" if test else text
         before = self.host_now()
         receipt = self.poster.post(text)
         after = self.host_now()
-        checks = [self._slack_check(receipt, before, after), *(check_server(c, self.host_now) for c in self.clocks)]
-        facts = {**self._facts(card, text, receipt, before, after, checks), "test": test}
-        record = {**facts, "schema": RECORD_SCHEMA, "text": text, "sections": [_section(s) for s in card.sections],
-                  "warning": _warning(card)}  # fmt: skip
-        saved, drive_line = self.records.save(
-            card.day, _record_name(card, receipt, after) + ("_test" if test else ""), _json(record)
-        )
+        clocks = self._clocks(receipt, before, after)
+        try:
+            facts, failed = {**self._facts(card, text, receipt, before, after, clocks.checks), "test": test}, False
+        except Exception as error:  # noqa: BLE001 - the card is out: keep what is plainly known (T1f stage 2)
+            facts, failed = minimal_facts(card, text, receipt, clocks.checks, self.code_commit, test, error), True
+        saved, drive_line = self._save(card, text, facts, receipt, after, test)
         delivery = {**facts, "schema": DELIVERY_SCHEMA, "drive": {"saved": saved, "outcome": drive_line}}
         written, delivery_line = self._write(card, delivery)
-        lines = (receipt.outcome, *(c.line for c in checks), drive_line, delivery_line)
-        return IssueResult(lines, receipt.sent, saved and written)
+        lines = (receipt.outcome, *(c.line for c in clocks.checks), drive_line, delivery_line)
+        return IssueResult(lines, receipt.sent, saved and written and not (failed or clocks.failed))
+
+    def _clocks(self, receipt: PostReceipt, before: datetime, after: datetime) -> ClockChecks:
+        try:
+            return self.clocks.check(receipt, before, after)
+        except Exception as error:  # noqa: BLE001 - a broken clock form is a named miss, never a lost record
+            return ClockChecks((unchecked(CLOCKS, type(error).__name__),), (CLOCKS,))
+
+    def _save(self, card, text, facts: dict, receipt: PostReceipt, after: datetime, test: bool) -> tuple[bool, str]:
+        """The Drive record is built inside the same guard as its save (judge 592: a raise in either is one miss)."""
+        try:
+            record = {**facts, "schema": RECORD_SCHEMA, "text": text, "warning": _warning(card),
+                      "sections": [_section(s) for s in card.sections]}  # fmt: skip
+            name = _record_name(card, receipt, after) + ("_test" if test else "")
+            return self.records.save(card.day, name, _json(record))
+        except Exception as error:  # noqa: BLE001 - the card is out: the metadata below still says so
+            return False, NOT_SAVED.format(reason=RECORD_NOT_BUILT.format(error=type(error).__name__))
 
     def _write(self, card: TradeCard, delivery: dict) -> tuple[bool, str]:
         try:
             return True, WRITTEN.format(path=self.deliveries.write(card.day, delivery))
-        except OSError as error:  # the post is out: print the metadata so it can still be committed by hand
-            return False, NOT_WRITTEN.format(error=type(error).__name__, metadata=_json(delivery).decode("utf-8"))
+        except Exception as error:  # noqa: BLE001 - the post is out: print the metadata to commit by hand
+            return False, NOT_WRITTEN.format(error=type(error).__name__, metadata=_printable(delivery))
 
-    @staticmethod
-    def _slack_check(receipt: PostReceipt, before: datetime, after: datetime) -> SkewCheck:
-        if receipt.server_time is None:
-            return unchecked(SLACK, "not posted")
-        return skew_check(SLACK, receipt.server_time, before, after)
-
-    def _facts(self, card, text, receipt: PostReceipt, before, after, checks: list[SkewCheck]) -> dict:
+    def _facts(self, card, text, receipt: PostReceipt, before, after, checks: Sequence[SkewCheck]) -> dict:
         """What both the Drive record and the delivery metadata hold (no card text: that goes to Drive only)."""
         slack_time = receipt.server_time
         return {
@@ -88,6 +101,15 @@ class CardIssuer:
             "host_clock": {"before_utc": utc_text(before), "after_utc": utc_text(after)},
             "clock": [c.stored() for c in checks],
         }  # fmt: skip
+
+
+def _printable(delivery: dict) -> str:
+    """The metadata as JSON, or its plain fields if it cannot be (T1f stage 4): always something to commit by hand."""
+    try:
+        return _json(delivery).decode("utf-8")
+    except Exception:  # noqa: BLE001 - keep only what is plainly text, true/false or null
+        plain = {k: v for k, v in delivery.items() if isinstance(v, (str, bool, type(None)))}
+        return _json(plain).decode("utf-8")
 
 
 def _section(section) -> dict:

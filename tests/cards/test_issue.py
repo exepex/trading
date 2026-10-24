@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 import requests
 
+from fno.cards.card_clocks import ServerCardClocks
 from fno.cards.deliveries import RepoDeliveryFiles
 from fno.cards.issue import CardIssuer
 from fno.cards.posting import NoCardPoster, SlackCardPoster
@@ -20,7 +21,9 @@ DAY = date(2026, 10, 15)
 def issue(tmp_path, poster, store, clocks=(), files=None, test=False):
     records = FakeRecords(files)
     card, text = daily_card(records, tmp_path).prepare(DAY)
-    issuer = CardIssuer(poster, store, RepoDeliveryFiles(tmp_path, records), clocks, Ticking(), "c" * 40)
+    host = Ticking()
+    issuer = CardIssuer(poster, store, RepoDeliveryFiles(tmp_path, records), ServerCardClocks(clocks, host), host,
+                        "c" * 40)  # fmt: skip
     return card, text, issuer.issue(card, text, test=test)
 
 
@@ -161,7 +164,8 @@ def test_times_are_stored_in_utc_even_when_the_host_clock_is_in_ist(tmp_path):
     records = FakeRecords()
     card, text = daily_card(records, tmp_path).prepare(DAY)
     host = Ticking(HOST.astimezone(IST))
-    issuer = CardIssuer(NoCardPoster(), NoCardRecords(), RepoDeliveryFiles(tmp_path, records), (), host, "c" * 40)
+    issuer = CardIssuer(NoCardPoster(), NoCardRecords(), RepoDeliveryFiles(tmp_path, records),
+                        ServerCardClocks((), host), host, "c" * 40)  # fmt: skip
     issuer.issue(card, text)
     _, delivery = written(tmp_path)
     assert delivery["host_clock"]["before_utc"].startswith("2026-10-15T09:38:00")
@@ -210,7 +214,8 @@ def test_a_failed_metadata_write_keeps_every_line_and_prints_the_metadata(tmp_pa
     records = FakeRecords()
     card, text = daily_card(records, tmp_path).prepare(DAY)
     poster = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, FakeSlack(slack_ok()))
-    issuer = CardIssuer(poster, NoCardRecords(), FailingLog(tmp_path, records), (), Ticking(), "c" * 40)
+    issuer = CardIssuer(poster, NoCardRecords(), FailingLog(tmp_path, records), ServerCardClocks((), Ticking()),
+                        Ticking(), "c" * 40)  # fmt: skip
     result = issuer.issue(card, text)
     assert result.lines[0] == "alert sent to #fno-desk" and not result.saved
     assert result.lines[-1].startswith("delivery metadata NOT written (OSError); commit it by hand:")
