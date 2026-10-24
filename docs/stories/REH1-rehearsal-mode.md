@@ -409,3 +409,25 @@ rehearsal form, chosen in the builder that builds it:
     `urllib3.connection.HTTPSConnection`.
   - `tests/rehearsal/test_http_guard.py` probes a direct `urllib3` call, which is now refused.
   - Raw sockets stay a stated limit: nothing in the package opens one.
+
+#### REH1b round 2 (judge 562, judge E: FAIL on two pins and two minors; all four accepted, each pinned)
+
+- **F1 (B1), accepted.** `rehearsed_receipts` returning GitHub's real receipts passed the suite. The guard would
+  refuse GitHub, so nothing leaked, but the seals would never read the push log.
+  - Now `test_with_the_mode_set_a_real_builder_reads_the_rehearsal_s_push_log` builds v4's commitment times through
+    their real builder with the mode set, and gets `LocalPushReceipts` over `<state>/pushes.log`.
+  - `test_every_builder_of_github_s_receipts_hands_them_to_the_rehearsal_s_choice` holds all five builders to
+    `rehearsed_receipts(GitHubActivityReceipts(...))`.
+  - Plant: returning the real receipts fails the test.
+- **F2 (B4), accepted.** Dropping the shim's `PATH` from the child's environment passed the suite.
+  - Now `test_a_step_s_commit_through_the_rehearsal_s_env_carries_the_replay_date` runs `rehearse_daily` with a step
+    that commits through the environment it is given (with no date set). The commit must carry 14:05 IST on the
+    replayed day.
+  - Plant: no `PATH` fails the test.
+- **Minor B2, accepted.** `_held` always False was close to equivalent on a time-ordered log.
+  `test_a_commit_already_held_before_a_push_is_not_received_by_it` pins it: a push whose old tip already holds the
+  commit did not bring it. Plant: `_held` → False fails the test.
+- **Minor B6, accepted.** A hook logging every ref passed the suite. `test_the_hook_logs_pushes_to_main_only` pins it:
+  a push of another ref writes no line, and a push of main writes one. Plant: dropping the condition fails the test.
+- **`main` merged in** (REH1a at 2d86b781, O9's read-only index-close fix 8214a5d5). One conflict, in
+  `close_read/wiring.py`: `main`'s `build_stored_index_close_files()` is kept with REH1b's recorded close source.

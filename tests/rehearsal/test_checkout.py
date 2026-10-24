@@ -143,3 +143,24 @@ def test_a_guard_that_crashes_or_exits_non_zero_stops_the_rehearsal_whatever_it_
         "the guard did not finish cleanly (exit 3): no error output"
     ]
     assert _guard(dict(os.environ), tmp_path, clean) == []
+
+
+def test_a_step_s_commit_through_the_rehearsal_s_env_carries_the_replay_date(source, tmp_path):
+    """Judge 562 F2: the child's PATH puts the rehearsal's git first, so a step's commit is dated by the replay clock
+    (14:05 IST on the day), never the wall clock's day after."""
+    repo, _ = source
+    dates = []
+
+    def step(clone, day, env, out):
+        (clone / "decision.json").write_text("{}")
+        subprocess.run(["git", "add", "decision.json"], cwd=clone, env=env, check=True)
+        bare = {k: v for k, v in env.items() if k not in ("GIT_COMMITTER_DATE", "GIT_AUTHOR_DATE")}
+        subprocess.run(["git", "commit", "-q", "-m", "Desk run step decisions"], cwd=clone, env=bare, check=True)
+        dates.append(subprocess.run(["git", "log", "-1", "--format=%cI"], cwd=clone, env=bare, check=True,
+                                    capture_output=True, text=True).stdout.strip())  # fmt: skip
+        return 0, "day done"
+
+    rehearse_daily(DAY, repo, [].append, tmp_path / "home", is_session=lambda d: True, run_child=step,
+                   guard=lambda env, cwd: [])  # fmt: skip
+    committed = datetime.fromisoformat(dates[0])
+    assert abs((committed - START).total_seconds()) < 120  # the replay time, not today's
