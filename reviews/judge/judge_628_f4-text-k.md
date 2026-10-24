@@ -30,6 +30,11 @@ section replaced by a pointer), response 271 and its README row. Doc-reading tes
 
 None: text round.
 
+## For round 2
+
+SF1 and m1 are text only, in F4 plus one line in F1t's "The judge" paragraph (the type's name). No code and no
+new evidence are needed; round 2 can pass by reading.
+
 ## Notes
 
 - `F-ai-layer.md` now points to `F4-ai-judge.md`. The old six criteria are carried there: Book 2 blocks and Book 3
