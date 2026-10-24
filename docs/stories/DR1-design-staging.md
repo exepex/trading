@@ -275,3 +275,35 @@ recorded and "matches A4h's record" under version 2.
 | 2 | previous close dropped | 1 fails |
 | 3 | a missing previous-session file accepted | 1 fails |
 | 4 | INDIA VIX certified like the others | 1 fails |
+
+## 10. DR1-1c: one reader builder, and "cannot read" is never "not out yet" (branch story/dr1-reader-stores)
+
+Judge 558 (note 2) found two reader builders: DR1-1's `stored_index_closes()` read `build_raw_stores()` only (the
+service account), which no workflow and no routine sets, so in a routine every certified check would have said "no
+official index-close file in Drive yet", a reason the morning routine does not post: silent. Built on O9's
+story/o9-readonly-index-close (fb1a4bd7d, with judge F), so it merges after it.
+
+- The certifier takes its official files from O9's one reader builder, `build_stored_index_close_files()` (the stores
+  only, the owner's Drive raw area included); `stored_index_closes()` is deleted.
+- With no store at all, O9's reader raises `NoReadableStore` (added at DR1's request). Any failure reading the
+  official files (no store, a store refusing, a damaged file) is `SourceUnreadable`: the session is "NOT recorded: a
+  source could not be read: ...", alerted to #fno-desk, exit 1 (orchestrator, 24 Oct: never a line the morning skips).
+  A file simply not archived yet stays the ordinary, unalerted "no official index-close file in Drive yet".
+- Judge 554's note: a previous close missing from the previous session's file names that file.
+
+Real Drive (read-only): 22 and 23 Oct certified through O9's reader, both "matches A4h's record"; with the owner's
+settings and the service account removed, the reader raises NoReadableStore.
+
+### Claims (DR1-1c)
+
+1. An official source that cannot be read (NoReadableStore, a refusing store) gives an alerted "NOT recorded: a source
+   could not be read" and exit 1, never "in Drive yet".
+2. A file not archived yet stays an unalerted "no official index-close file in Drive yet".
+3. The certifier's official files come from `build_stored_index_close_files()`, never a store list of its own.
+4. A previous close missing from the previous file names the previous session's file.
+
+| Claim | Plant (reverted) | Caught |
+|---|---|---|
+| 1 | a read failure becomes an ordinary failed check | 2 tests fail |
+| 3 | the certifier builds the fetching `build_index_close_files()` | 1 fails |
+| 4 | the previous file named as today's | 1 fails |
